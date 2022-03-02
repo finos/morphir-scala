@@ -88,7 +88,7 @@ object ValueModule {
   }
 
   object Definition {
-    def fromLiteral[A](value: Value.Literal[A, Any]): Definition[Value[Any], Any] =
+    def fromLiteral[A](value: Value[Any]): Definition[Value[Any], Any] =
       Definition(Chunk.empty, TypeModule.Type.unit, value)
 
     def fromTypedValue(value: TypedValue): ValueDefinition[Any] = {
@@ -106,9 +106,12 @@ object ValueModule {
       annotations: ZEnvironment[Annotations]
   ) {
     def toValue[A >: Annotations](body: Value[A]): Value[A] =
-      Value.Lambda[A](
-        Pattern.AsPattern[A](Pattern.wildcardPattern[A](annotations), name, annotations),
-        body,
+      Value(
+        ValueCase
+          .LambdaCase[A, Value[A]](
+            Pattern.AsPattern[A](Pattern.wildcardPattern[A](annotations), name, annotations),
+            body
+          ),
         annotations
       )
   }
@@ -120,14 +123,25 @@ object ValueModule {
     def mapSpecificationAttributes[B](func: Annotations => B): Specification[B] = ???
   }
 
+  object Specification {
+    def create[Annotations](inputs: (Name, Type[Annotations])*): Inputs[Annotations] =
+      new Inputs(() => Chunk.fromIterable(inputs))
+
+    final class Inputs[Annotations](private val inputs: () => Chunk[(Name, Type[Annotations])]) extends AnyVal {
+      def apply(output: Type[Annotations]): Specification[Annotations] =
+        Specification(inputs(), output)
+    }
+  }
+
   final type TypedValue = Value[UType]
   val TypedValue = Value
 
-  sealed trait Value[+Annotations] { self =>
+  final case class Value[+Annotations] private[morphir] (
+      caseValue: ValueCase[Value[Annotations]],
+      annotations: ZEnvironment[Annotations]
+  ) { self =>
     import ValueCase.*
-
-    def annotations: ZEnvironment[Annotations]
-    def caseValue: ValueCase[Value[Annotations]]
+    import Value.*
 
     def fold[Z](f: ValueCase[Z] => Z): Z = self.caseValue match {
       case c @ ValueCase.ApplyCase(_, _)    => f(ValueCase.ApplyCase(c.function.fold(f), c.arguments.map(_.fold(f))))
@@ -232,29 +246,30 @@ object ValueModule {
     // }
 
     def toRawValue: RawValue = fold[RawValue] {
-      case c @ ValueCase.ApplyCase(_, _)    => Value.Apply(c.function, c.arguments, ZEnvironment.empty)
-      case c @ ValueCase.ConstructorCase(_) => Value.Constructor(c.name, ZEnvironment.empty)
+      case c @ ValueCase.ApplyCase(_, _)    => apply(c.function, c.arguments)
+      case c @ ValueCase.ConstructorCase(_) => constructor(c.name)
       case c @ ValueCase.DestructureCase(_, _, _) =>
-        Value.Destructure(c.pattern, c.valueToDestruct, c.inValue, ZEnvironment.empty)
-      case c @ ValueCase.FieldCase(_, _)      => Value.Field(c.target, c.name, ZEnvironment.empty)
-      case c @ ValueCase.FieldFunctionCase(_) => Value.FieldFunction(c.name, ZEnvironment.empty)
+        destructure(c.pattern, c.valueToDestruct, c.inValue)
+      case c @ ValueCase.FieldCase(_, _)      => field(c.target, c.name)
+      case c @ ValueCase.FieldFunctionCase(_) => fieldFunction(c.name)
       case c @ ValueCase.IfThenElseCase(_, _, _) =>
-        Value.IfThenElse(c.condition, c.thenBranch, c.elseBranch, ZEnvironment.empty)
-      case c @ ValueCase.LambdaCase(_, _) => Value.Lambda(c.argumentPattern, c.body, ZEnvironment.empty)
+        ifThenElse(c.condition, c.thenBranch, c.elseBranch)
+      case c @ ValueCase.LambdaCase(_, _) => lambda(c.argumentPattern, c.body)
       case c @ ValueCase.LetDefinitionCase(_, _, _) =>
-        Value.LetDefinition(c.valueName, c.valueDefinition, c.inValue, ZEnvironment.empty)
-      case c @ ValueCase.LetRecursionCase(_, _) => Value.LetRecursion(c.valueDefinitions, c.inValue, ZEnvironment.empty)
-      case c @ ValueCase.ListCase(_)            => Value.List(c.elements, ZEnvironment.empty)
-      case c @ ValueCase.LiteralCase(_)         => Value.Literal(c.literal, ZEnvironment.empty)
-      case c @ ValueCase.NativeApplyCase(_, _)  => Value.nativeApply(c.function, c.arguments)
-      case c @ ValueCase.PatternMatchCase(_, _) => Value.PatternMatch(c.branchOutOn, c.cases, ZEnvironment.empty)
-      case c @ ValueCase.ReferenceCase(_)       => Value.Reference(c.name, ZEnvironment.empty)
-      case c @ ValueCase.RecordCase(_)          => Value.Record(c.fields, ZEnvironment.empty)
-      case c @ ValueCase.TupleCase(_)           => Value.Tuple(c.elements, ZEnvironment.empty)
-      case _ @ValueCase.UnitCase                => Value.Unit(ZEnvironment.empty)
+        letDefinition(c.valueName, c.valueDefinition, c.inValue)
+      case c @ ValueCase.LetRecursionCase(_, _) =>
+        letRecursion(c.valueDefinitions, c.inValue)
+      case c @ ValueCase.ListCase(_)            => list(c.elements)
+      case c @ ValueCase.LiteralCase(_)         => literal(c.literal)
+      case c @ ValueCase.NativeApplyCase(_, _)  => nativeApply(c.function, c.arguments)
+      case c @ ValueCase.PatternMatchCase(_, _) => patternMatch(c.branchOutOn, c.cases)
+      case c @ ValueCase.ReferenceCase(_)       => reference(c.name)
+      case c @ ValueCase.RecordCase(_)          => record(c.fields)
+      case c @ ValueCase.TupleCase(_)           => tuple(c.elements)
+      case _ @ValueCase.UnitCase                => unit
       case c @ ValueCase.UpdateRecordCase(_, _) =>
-        Value.UpdateRecord(c.valueToUpdate, c.fieldsToUpdate, ZEnvironment.empty)
-      case c @ ValueCase.VariableCase(_) => Value.Variable(c.name, ZEnvironment.empty)
+        updateRecord(c.valueToUpdate, c.fieldsToUpdate)
+      case c @ ValueCase.VariableCase(_) => variable(c.name)
     }
 
     def transformDown[Annotations0 >: Annotations](
@@ -338,7 +353,7 @@ object ValueModule {
   }
 
   object Value extends ValueSyntax {
-    import ValueCase.*
+    def apply(caseValue: ValueCase[Value[Any]]): Value[Any] = Value(caseValue, ZEnvironment.empty)
 
     def apply(caseValue: ValueCase[Value[Any]]): Value[Any] = GenericValue(caseValue, ZEnvironment.empty)
 
