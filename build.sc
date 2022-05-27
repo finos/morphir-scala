@@ -6,7 +6,7 @@ val crossVersions = Seq("2.13.8", "3.1.2")
 object morphir extends Module {
   object knowledge extends mill.Cross[KnowledgeModule](crossVersions: _*) {}
   class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
-    def ivyDeps = Agg(com.lihaoyi.sourcecode)
+    def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
     object test extends Tests with MorphirZioTestModule {}
   }
 }
@@ -47,6 +47,7 @@ object Dependencies {
       val version             = "1.0.14"
       val zio: Dep            = ivy"dev.zio::zio::${version}"
       val `zio-prelude`       = ivy"dev.zio::zio-prelude::${version}"
+      val `zio-streams`       = ivy"dev.zio::zio-streams::${version}"
       val `zio-test`          = ivy"dev.zio::zio-test::${version}"
       val `zio-test-magnolia` = ivy"dev.zio::zio-test-magnolia::${version}"
       val `zio-test-sbt`      = ivy"dev.zio::zio-test-sbt::${version}"
