@@ -1,4 +1,4 @@
-package org.finos.morphir.knowledge
+package org.finos.morphir.knowledge.logic
 
 object microkanren {
   type State = org.finos.morphir.knowledge.core.State
