@@ -1,10 +1,10 @@
 package org.finos.morphir.knowledge.logic
 
 object microkanren {
-  type State = org.finos.morphir.knowledge.core.State
-  val State = org.finos.morphir.knowledge.core.State
-  type Goal = org.finos.morphir.knowledge.core.Goal
-  val Goal = org.finos.morphir.knowledge.core.Goal
+  type State = org.finos.morphir.knowledge.logic.core.State
+  val State = org.finos.morphir.knowledge.logic.core.State
+  type Goal = org.finos.morphir.knowledge.logic.core.Goal
+  val Goal = org.finos.morphir.knowledge.logic.core.Goal
 
   /**
    * An alias for equal.

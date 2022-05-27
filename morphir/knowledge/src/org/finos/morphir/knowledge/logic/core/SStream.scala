@@ -1,4 +1,4 @@
-package org.finos.morphir.knowledge.core
+package org.finos.morphir.knowledge.logic.core
 import zio.stream.ZStream
 
 object SStream {
