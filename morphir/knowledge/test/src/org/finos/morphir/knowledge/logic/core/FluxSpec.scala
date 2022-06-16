@@ -19,6 +19,16 @@ object FluxSpec extends DefaultRunnableSpec {
       for {
         res <- sut.runCollectN(10)
       } yield assert(res)(equalTo(Chunk(5, 6, 5, 6, 5, 6, 5, 6, 5, 6)))
+    },
+    testM("Results are interleaved when using mergeAll") {
+      val a_s    = Flux.repeat('a')
+      val b_s    = Flux.repeat('b')
+      val c_s    = Flux.repeat('c')
+      val d_s    = Flux.repeat('d')
+      val merged = Flux.mergeAll(a_s, b_s, c_s, d_s)
+      for {
+        res <- merged.runCollectN(12)
+      } yield assert(res)(equalTo(Chunk('a', 'b', 'c', 'd', 'a', 'b', 'c', 'd', 'a', 'b', 'c', 'd')))
     }
   )
 }

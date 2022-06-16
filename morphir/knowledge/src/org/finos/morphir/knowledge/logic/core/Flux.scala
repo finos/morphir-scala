@@ -6,11 +6,17 @@ import zio._
 import scala.collection.immutable.{Queue => ScalaQueue}
 
 final case class Flux[+A](private val stream: ZStream[Any, Nothing, Option[A]]) { self =>
-  def <>[B >: A](that: Flux[B]): Flux[B] =
-    Flux(Flux.mergeStream(self.stream, that.stream))
+
+  /**
+   * Operator alias for merge.
+   */
+  @inline def <>[B >: A](that: Flux[B]): Flux[B] = merge(that)
 
   def flatMap[B](f: A => Flux[B]): Flux[B] =
     Flux(Flux.flatMapStream(self.stream)(a => f(a).stream))
+
+  def merge[B >: A](that: Flux[B]): Flux[B] =
+    Flux(Flux.mergeStream(self.stream, that.stream))
 
   def runCollect: ZIO[Any, Nothing, Chunk[A]] =
     stream.collectSome.runCollect
@@ -26,6 +32,7 @@ final case class Flux[+A](private val stream: ZStream[Any, Nothing, Option[A]]) 
 object Flux {
   def empty[A]: Flux[A] =
     Flux(ZStream.empty)
+  def mergeAll[A](streams: Flux[A]*): Flux[A] = streams.foldLeft(Flux.empty[A])((acc, flux) => acc <> flux)
   def repeat[A](a: A): Flux[A] =
     Flux(ZStream(Some(a), None).forever)
   def succeed[A](a: A): Flux[A] = Flux(ZStream(Some(a)))
