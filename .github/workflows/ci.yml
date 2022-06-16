@@ -26,20 +26,7 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
       - name: Lint code
-        run: ./sbt check
-
-  mdoc:
-    runs-on: ubuntu-20.04
-    timeout-minutes: 60
-    steps:
-      - name: Checkout current branch
-        uses: actions/checkout@v3.0.2
-      - name: Setup Scala and Java
-        uses: olafurpg/setup-scala@v13
-      - name: Cache scala dependencies
-        uses: coursier/cache-action@v6
-      - name: Check Document Generation
-        run: ./sbt docs/docusaurusCreateSite
+        run: ./mill __.checkFormat
 
   test:
     runs-on: ubuntu-20.04
@@ -49,7 +36,6 @@ jobs:
       matrix:
         java: ['adopt@1.8', 'adopt@1.11']
         scala: ['2.13.8', '3.1.2']
-        platform: ['JVM', 'JS', 'Native']
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v3.0.2
@@ -63,36 +49,14 @@ jobs:
         uses: coursier/cache-action@v6
       - name: Run tests
         if: ${{ !startsWith(matrix.scala, '3.') }}
-        run: ./sbt ++${{ matrix.scala }}! test${{ matrix.platform }}
+        run: ./mill "__._[${{matrix.scala}}].test"
       - name: Run dotty tests
-        if: ${{ startsWith(matrix.scala, '3.') && matrix.platform == 'JVM' }}
-        run: ./sbt ++${{ matrix.scala }}! testJVM
+        if: ${{ startsWith(matrix.scala, '3.') }}
+        run: ./mill "__._[${{matrix.scala}}].test"
 
   ci:
     runs-on: ubuntu-20.04
-    needs: [lint, mdoc, test]
+    needs: [lint, test]
     steps:
       - name: Aggregate of lint, and all tests
         run: echo "ci passed"
-
-  publish:
-    runs-on: ubuntu-20.04
-    timeout-minutes: 30
-    needs: [ci]
-    if: github.event_name != 'pull_request'
-    steps:
-      - name: Checkout current branch
-        uses: actions/checkout@v3.0.2
-        with:
-          fetch-depth: 0
-      - name: Setup Scala and Java 
-        uses: olafurpg/setup-scala@v13
-      - name: Cache scala dependencies
-        uses: coursier/cache-action@v6
-      - name: Release artifacts
-        run: ./sbt ci-release
-        env:
-          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
-          PGP_SECRET: ${{ secrets.PGP_SECRET }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
