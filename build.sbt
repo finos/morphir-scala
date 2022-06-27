@@ -2,16 +2,10 @@ import BuildHelper._
 import Dependencies._
 inThisBuild(
   List(
-    organization := "dev.zio",
-    homepage     := Some(url("https://zio.github.io/zio-morphir-sexpr/")),
+    organization := "org.finos.morphir",
+    homepage     := Some(url("https://morphir.finos.org/")),
     licenses     := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
     developers := List(
-      Developer(
-        "jdegoes",
-        "John De Goes",
-        "john@degoes.net",
-        url("http://degoes.net")
-      ),
       Developer(
         "DamianReeves",
         "Damian Reeves",
@@ -377,11 +371,11 @@ lazy val sexprJVM = sexpr.jvm
   .settings(scalaReflectTestSettings)
 
 lazy val docs = project
-  .in(file("zio-morphir-docs"))
+  .in(file("docs"))
   .settings(stdSettings("zio-morphir"))
   .settings(
     publish / skip := true,
-    moduleName     := "zio-morphir-docs",
+    moduleName     := "morphir-docs",
     scalacOptions -= "-Yno-imports",
     scalacOptions -= "-Xfatal-warnings",
     ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(sexprJVM),
