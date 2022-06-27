@@ -44,9 +44,10 @@ object Dependencies {
   }
   case object dev {
     case object zio {
-      val version             = "1.0.14"
+      val version             = "2.0.0"
+      val preludeVersion      = "1.0.0-RC15"
       val zio: Dep            = ivy"dev.zio::zio::${version}"
-      val `zio-prelude`       = ivy"dev.zio::zio-prelude::${version}"
+      val `zio-prelude`       = ivy"dev.zio::zio-prelude::${preludeVersion}"
       val `zio-streams`       = ivy"dev.zio::zio-streams::${version}"
       val `zio-test`          = ivy"dev.zio::zio-test::${version}"
       val `zio-test-magnolia` = ivy"dev.zio::zio-test-magnolia::${version}"
