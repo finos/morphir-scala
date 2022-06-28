@@ -1,7 +1,7 @@
 package org.finos.morphir.knowledge.logic.core
 import zio.test._
 
-object StateSpec extends DefaultRunnableSpec {
+object StateSpec extends ZIOSpecDefault {
   def spec = suite("StateSpec")(
     test("addConstraint adds a constraint to an empty state") {
       val field      = Field.define[String]

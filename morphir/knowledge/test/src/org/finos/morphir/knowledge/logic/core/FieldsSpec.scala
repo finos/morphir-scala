@@ -1,7 +1,7 @@
 package org.finos.morphir.knowledge.logic.core
 import zio.test._
 
-object FieldsSpec extends DefaultRunnableSpec {
+object FieldsSpec extends ZIOSpecDefault {
   def spec = suite("Bindings Spec")(
     suite("valueOf")(
       test("should return the value when the substitution directly contains the value") {
