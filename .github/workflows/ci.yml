@@ -52,10 +52,10 @@ jobs:
 
       - name: Run tests
         if: ${{ !startsWith(matrix.scala, '3.') }}
-        run: ./mill -i -k "__._[${{matrix.scala}}].testCached"
+        run: ./mill -i -k "__._[${{matrix.scala}}].__.testCached"
       - name: Run dotty tests
         if: ${{ startsWith(matrix.scala, '3.') }}
-        run: ./mill -i -k "__._[${{matrix.scala}}].testCached"
+        run: ./mill -i -k "__._[${{matrix.scala}}].__.testCached"
 
   ci:
     runs-on: ubuntu-20.04
