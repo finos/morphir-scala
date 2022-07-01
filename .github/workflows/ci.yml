@@ -28,32 +28,6 @@ jobs:
       - name: Lint code
         run: ./mill __.checkFormat
 
-  depchecktest:
-    runs-on: ubuntu-latest
-    name: depecheck_test
-    steps:
-      - name: Checkout current branch
-        uses: actions/checkout@v3.0.2
-        with:
-          fetch-depth: 0
-      - name: Build project with Maven
-        run: ./mill __.test
-      - name: Depcheck
-        uses: dependency-check/Dependency-Check_Action@main
-        id: Depcheck
-        with:
-          project: 'test'
-          path: '.'
-          format: 'HTML'    
-          args: >
-            --failOnCVSS 7
-            --enableRetired
-      - name: Upload Test results
-        uses: actions/upload-artifact@master
-        with:
-           name: Depcheck report
-           path: ${{github.workspace}}/reports
-
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -73,12 +47,15 @@ jobs:
           java-version: ${{ matrix.java }}
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
+      
+      - run: ./mill -i -k __.publishLocal $(pwd)/testRepo
+
       - name: Run tests
         if: ${{ !startsWith(matrix.scala, '3.') }}
-        run: ./mill "__._[${{matrix.scala}}].test"
+        run: ./mill -i -k "__._[${{matrix.scala}}].testCached"
       - name: Run dotty tests
         if: ${{ startsWith(matrix.scala, '3.') }}
-        run: ./mill "__._[${{matrix.scala}}].test"
+        run: ./mill -i -k "__._[${{matrix.scala}}].testCached"
 
   ci:
     runs-on: ubuntu-20.04
