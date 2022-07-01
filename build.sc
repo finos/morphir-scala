@@ -7,7 +7,7 @@ import Deps._
 object morphir extends Module {
 
   object annotation extends mill.Cross[AnnotationModule](ScalaVersions.all: _*)
-  class AnnotationModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
+  class AnnotationModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
     object test extends Tests with MorphirTestModule {}
   }
 

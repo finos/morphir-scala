@@ -1,6 +1,7 @@
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.1.4`
 import $file.^.deps, deps.{Deps, ScalaVersions}
-
 import mill._, mill.scalalib._, mill.scalajslib._, scalafmt._
+import de.tobiasroeser.mill.vcs.version._
 import Deps._
 
 def commitHash = T {
@@ -38,14 +39,14 @@ trait MorphirPublishModule extends PublishModule with JavaModule {
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "org.finos.morphir",
-    url = "https://github.com/coursier/coursier",
+    url = "https://github.com/finos/morphir4s",
     licenses = Seq(License.`Apache-2.0`),
-    versionControl = VersionControl.github("coursier", "coursier"),
+    versionControl = VersionControl.github("finos", "morphir4s"),
     developers = Seq(
-      Developer("alexarchambault", "Alex Archambault", "https://github.com/alexarchambault")
+      Developer("DamianReeves", "Damian Reeves", "https://github.com/damianreeves")
     )
   )
-  def publishVersion = T(buildVersion)
+  def publishVersion = VcsVersion.vcsState().format()
   def javacOptions = T {
     super.javacOptions() ++ Seq("-source", "8", "-target", "8")
   }
