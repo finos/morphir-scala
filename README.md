@@ -1,50 +1,116 @@
 [![FINOS - Incubating](https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg)](https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating)
-![website build](https://github.com/finos/morphir4s/workflows/Docusaurus-website-build/badge.svg)
+[<img src="https://img.shields.io/badge/slack-@finos/morphir-green.svg?logo=slack">](https://finos-lf.slack.com/messages/morphir/)
 
-# morphir4s
+# Morphir
 
-Short blurb about what your project does.
+Morphir is a library of tools that works to capture business logic as data.
 
-## Installation
+For the first time, business logic can be shared, stored, translated and visualised, all with the reliability of standardisation ensured in the Morphir framework.
 
-OS X & Linux:
+## morphir-scala
 
-```sh
-npm install my-crazy-module --save
+Provides Scala language bindings and JVM based tooling for Morphir.
+
+## How to build and test
+
+Morphir-jvm use [mill](https://com-lihaoyi.github.io/mill) as its build tool.
+
+### IntelliJ Setup for Linux
+
+If you are using IntelliJ IDEA to edit morphir-jvm's Scala code, you can create the
+IntelliJ project files via:
+
+```bash
+./mill mill.scalalib.GenIdea/idea
 ```
 
-Windows:
+### BSP Setup
 
-```sh
-edit autoexec.bat
+If you are using Visual Studio Code, IntelliJ, or any of the Editors which support BSP you can also generate BSP config files via:
+
+```bash
+./mill mill.contrib.Bloop/install
 ```
 
-## Usage example
+### Run Tests
 
-A few motivating and useful examples of how your project can be used. Spice this up with code blocks and potentially screenshots / videos ([LiceCap](https://www.cockos.com/licecap/) is great for this kind of thing).
-
-_For more examples and usage, please refer to the [Wiki][wiki]._
-
-## Development setup
-
-Describe how to install all development dependencies and how to run an automated test-suite of some kind. Potentially do this for multiple platforms.
-
-```sh
-make install
-npm test
+```bash
+./mill __.test
 ```
+
+or in watch mode:
+
+```bash
+./mill -w __.test
+```
+
+### Formatting Code
+
+Code needs to be formatted according to `scalafmt` rules. To run `scalafmt` on all the source code using:
+
+```bash
+./mill mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+```
+
+or in watch mode to reformat changed files:
+
+```bash
+./mill -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+```
+
+#
+
+### IntelliJ Setup for Windows
+
+If you are using IntelliJ IDEA to edit morphir-jvm's Scala code, you can create the
+IntelliJ project files via:
+
+```
+.\mill -i mill.scalalib.GenIdea/idea
+```
+
+### BSP Setup
+
+If you are using Visual Studio Code, IntelliJ, or any of the Editors which support BSP you can also generate BSP config files via:
+
+```
+.\mill -i mill.contrib.Bloop/install
+```
+
+### Run Tests
+
+```
+.\mill -i __.test
+```
+
+or in watch mode:
+
+```
+.\mill -i -w __.test
+```
+
+### Formatting Code
+
+Code needs to be formatted according to `scalafmt` rules. To run `scalafmt` on all the source code using:
+
+```
+.\mill -i mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+```
+
+or in watch mode to reformat changed files:
+
+```
+.\mill -i -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+```
+
 
 ## Roadmap
 
-List the roadmap steps; alternatively link the Confluence Wiki page where the project roadmap is published.
-
-1. Item 1
-2. Item 2
-3. ....
+Watch for updates.
 
 ## Contributing
 
-1. Fork it (<https://github.com/finos/morphir4s/fork>)
+1. Fork it (<https://github.com/finos/morphir-scala/fork>)
 2. Create your feature branch (`git checkout -b feature/fooBar`)
 3. Read our [contribution guidelines](.github/CONTRIBUTING.md) and [Community Code of Conduct](https://www.finos.org/code-of-conduct)
 4. Commit your changes (`git commit -am 'Add some fooBar'`)
