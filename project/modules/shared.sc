@@ -38,7 +38,7 @@ trait MorphirPublishModule extends PublishModule with JavaModule {
   import mill.scalalib.publish._
   def pomSettings = PomSettings(
     description = artifactName(),
-    organization = "org.finos.morphir",
+    organization = "morphir",
     url = "https://github.com/finos/morphir4s",
     licenses = Seq(License.`Apache-2.0`),
     versionControl = VersionControl.github("finos", "morphir4s"),

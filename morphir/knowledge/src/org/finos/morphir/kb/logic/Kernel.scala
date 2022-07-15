@@ -1,18 +1,18 @@
-package org.finos.morphir.knowledge.logic
+package morphir.knowledge.logic
 
-import org.finos.morphir.knowledge.logic.core.FieldConstraint
-import org.finos.morphir.knowledge.logic.model.{Constraint, ConstraintModel}
-import org.finos.morphir.knowledge.logic.converter.ConstraintConverter
+import morphir.knowledge.logic.core.FieldConstraint
+import morphir.knowledge.logic.model.{Constraint, ConstraintModel}
+import morphir.knowledge.logic.converter.ConstraintConverter
 
 trait Kernel {
-  type Field[A] = org.finos.morphir.knowledge.logic.core.Field[A]
-  val Field = org.finos.morphir.knowledge.logic.core.Field
-  type Goal = org.finos.morphir.knowledge.logic.core.Goal
-  val Goal = org.finos.morphir.knowledge.logic.core.Goal
-  type State = org.finos.morphir.knowledge.logic.core.State
-  val State = org.finos.morphir.knowledge.logic.core.State
-  type SStream = org.finos.morphir.knowledge.logic.core.SStream
-  val SStream = org.finos.morphir.knowledge.logic.core.SStream
+  type Field[A] = morphir.knowledge.logic.core.Field[A]
+  val Field = morphir.knowledge.logic.core.Field
+  type Goal = morphir.knowledge.logic.core.Goal
+  val Goal = morphir.knowledge.logic.core.Goal
+  type State = morphir.knowledge.logic.core.State
+  val State = morphir.knowledge.logic.core.State
+  type SStream = morphir.knowledge.logic.core.SStream
+  val SStream = morphir.knowledge.logic.core.SStream
 
   def constraintConverter: ConstraintConverter = ConstraintConverter.Default
 

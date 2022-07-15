@@ -1,6 +1,6 @@
-package org.finos.morphir.knowledge.logic.converter
-import org.finos.morphir.knowledge.logic.model.ConstraintModel
-import org.finos.morphir.knowledge.logic.core.Goal
+package morphir.knowledge.logic.converter
+import morphir.knowledge.logic.model.ConstraintModel
+import morphir.knowledge.logic.core.Goal
 
 private[knowledge] trait ConstraintConverter {
   def convertToGoal(constraintModel: ConstraintModel): Goal

@@ -1,6 +1,6 @@
-package org.finos.morphir.knowledge.logic
+package morphir.knowledge.logic
 
-import org.finos.morphir.knowledge.logic.{microkanren => mk}
+import morphir.knowledge.logic.{microkanren => mk}
 import mk._
 import zio.Chunk
 import zio.test._
