@@ -1,4 +1,4 @@
-package org.finos.morphir.knowledge.logic
+package morphir.knowledge.logic
 
 object microkanren extends Kernel {
 

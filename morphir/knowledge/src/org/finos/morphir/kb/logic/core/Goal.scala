@@ -1,4 +1,4 @@
-package org.finos.morphir.knowledge.logic.core
+package morphir.knowledge.logic.core
 
 sealed trait Goal extends Serializable {
   def apply(state: State): SStream

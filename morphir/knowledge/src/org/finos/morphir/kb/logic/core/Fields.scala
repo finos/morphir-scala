@@ -1,4 +1,4 @@
-package org.finos.morphir.knowledge.logic.core
+package morphir.knowledge.logic.core
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 

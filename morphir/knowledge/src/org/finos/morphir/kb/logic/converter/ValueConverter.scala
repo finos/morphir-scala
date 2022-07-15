@@ -1,7 +1,7 @@
-package org.finos.morphir.knowledge.logic.converter
-import org.finos.morphir.knowledge.logic.core.Value
-import org.finos.morphir.knowledge.logic.model.ConstraintValue
-import org.finos.morphir.knowledge.logic.core.Field
+package morphir.knowledge.logic.converter
+import morphir.knowledge.logic.core.Value
+import morphir.knowledge.logic.model.ConstraintValue
+import morphir.knowledge.logic.core.Field
 
 private[knowledge] trait ValueConverter {
   def convertToConstraintValue(v: Value): ConstraintValue

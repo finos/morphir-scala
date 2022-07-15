@@ -1,4 +1,4 @@
-package org.finos.morphir
+package morphir
 import zio.test._
 
 object AnnotationsSpec extends ZIOSpecDefault {

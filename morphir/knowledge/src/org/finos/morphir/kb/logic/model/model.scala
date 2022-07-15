@@ -1,5 +1,5 @@
-package org.finos.morphir.knowledge.logic.model
-import org.finos.morphir.knowledge.logic.core.{Goal, Name, Value => LValue}
+package morphir.knowledge.logic.model
+import morphir.knowledge.logic.core.{Goal, Name, Value => LValue}
 import scala.reflect.ClassTag
 
 private[knowledge] final case class ConstraintModel(constraint: Constraint)

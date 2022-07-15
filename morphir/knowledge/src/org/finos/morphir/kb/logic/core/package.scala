@@ -1,4 +1,4 @@
-package org.finos.morphir.knowledge.logic
+package morphir.knowledge.logic
 import zio.stream.ZStream
 package object core {
   type FieldConstraint = PartialFunction[State, State]
