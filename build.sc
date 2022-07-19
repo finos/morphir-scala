@@ -15,9 +15,14 @@ object morphir extends Module {
 
   object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
   class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
+    def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
+    def moduleDeps = Seq(ld(crossScalaVersion))
+    object test extends Tests with MorphirTestModule {}
+  }
+
+  object ld extends mill.Cross[LdModule](ScalaVersions.all: _*) {}
+  class LdModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
     def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
     object test extends Tests with MorphirTestModule {}
   }
 }
-
-
