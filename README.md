@@ -11,6 +11,13 @@ For the first time, business logic can be shared, stored, translated and visuali
 
 Provides Scala language bindings and JVM based tooling for Morphir.
 
+## Gitpod
+
+Click the button below to start a new development environment and start contributing right away:
+
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/finos/morphir-scala)
+
 ## How to build and test
 
 Morphir-jvm use [mill](https://com-lihaoyi.github.io/mill) as its build tool.
