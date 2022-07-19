@@ -1,6 +1,50 @@
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.1.4`
-import $file.^.deps, deps.{Deps, ScalaVersions}
-import $file.dependencyCheck, dependencyCheck.DependencyCheckModule
+
+package ammonite
+package $file.project.modules
+import _root_.ammonite.interp.api.InterpBridge.{
+  value => interp
+}
+import _root_.ammonite.interp.api.InterpBridge.value.{
+  exit,
+  scalaVersion
+}
+import _root_.ammonite.interp.api.IvyConstructor.{
+  ArtifactIdExt,
+  GroupIdExt
+}
+import _root_.ammonite.compiler.CompilerExtensions.{
+  CompilerInterpAPIExtensions,
+  CompilerReplAPIExtensions
+}
+import _root_.ammonite.runtime.tools.{
+  browse,
+  grep,
+  time,
+  tail
+}
+import _root_.ammonite.compiler.tools.{
+  desugar,
+  source
+}
+import _root_.mainargs.{
+  arg,
+  main
+}
+import _root_.ammonite.repl.tools.Util.{
+  PathRead
+}
+import ammonite.$file.project.{
+  deps
+}
+import ammonite.$file.project.modules.{
+  dependencyCheck
+}
+
+
+object shared{
+/*<script>*/import $ivy.$                                                    
+import $file.$     , deps.{Deps, ScalaVersions}
+import $file.$              , dependencyCheck.DependencyCheckModule
 import mill._, mill.scalalib._, mill.scalajslib._, scalafmt._
 import de.tobiasroeser.mill.vcs.version._
 import Deps._
@@ -71,4 +115,9 @@ trait CommonCrossModule extends CrossScalaModule with ScalafmtModule {
 trait CommonTestModule extends TestModule {
   def ivyDeps       = super.ivyDeps() ++ Agg(dev.zio.zio, dev.zio.`zio-test`, dev.zio.`zio-test-sbt`)
   def testFramework = "zio.test.sbt.ZTestFramework"
+}
+/*</script>*/ /*<generated>*/
+def $main() = { scala.Iterator[String]() }
+  override def toString = "shared"
+  /*</generated>*/
 }
