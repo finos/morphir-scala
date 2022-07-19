@@ -3,7 +3,7 @@ import mill._, scalalib._
 object Deps {
   case object com {
     case object lihaoyi {
-      val sourcecode = ivy"com.lihaoyi::sourcecode::0.2.8"
+      val sourcecode = ivy"com.lihaoyi::sourcecode::0.3.0"
     }
     case object softwaremill {
       case object common {
