@@ -1,4 +1,42 @@
-import mill._, scalalib._
+
+package ammonite
+package $file.project
+import _root_.ammonite.interp.api.InterpBridge.{
+  value => interp
+}
+import _root_.ammonite.interp.api.InterpBridge.value.{
+  exit,
+  scalaVersion
+}
+import _root_.ammonite.interp.api.IvyConstructor.{
+  ArtifactIdExt,
+  GroupIdExt
+}
+import _root_.ammonite.compiler.CompilerExtensions.{
+  CompilerInterpAPIExtensions,
+  CompilerReplAPIExtensions
+}
+import _root_.ammonite.runtime.tools.{
+  browse,
+  grep,
+  time,
+  tail
+}
+import _root_.ammonite.compiler.tools.{
+  desugar,
+  source
+}
+import _root_.mainargs.{
+  arg,
+  main
+}
+import _root_.ammonite.repl.tools.Util.{
+  PathRead
+}
+
+
+object deps{
+/*<script>*/import mill._, scalalib._
 
 object Deps {
   case object com {
@@ -47,4 +85,9 @@ object ScalaVersions {
   val all      = Seq(scala213, scala3x)
   def scala213 = "2.13.8"
   def scala3x  = "3.1.3"
+}
+/*</script>*/ /*<generated>*/
+def $main() = { scala.Iterator[String]() }
+  override def toString = "deps"
+  /*</generated>*/
 }

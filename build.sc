@@ -22,7 +22,7 @@ object morphir extends Module {
 
   object ld extends mill.Cross[LdModule](ScalaVersions.all: _*) {}
   class LdModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
-    def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
+    def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`, io.lemonlabs.`scala-uri`)
     object test extends Tests with MorphirTestModule {}
   }
 }
