@@ -1,5 +1,6 @@
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.1.4`
 import $file.^.deps, deps.{Deps, ScalaVersions}
+import $file.dependencyCheck, dependencyCheck.DependencyCheckModule
 import mill._, mill.scalalib._, mill.scalajslib._, scalafmt._
 import de.tobiasroeser.mill.vcs.version._
 import Deps._
@@ -34,7 +35,7 @@ lazy val buildVersion = {
   }
 }
 
-trait MorphirPublishModule extends PublishModule with JavaModule {
+trait MorphirPublishModule extends PublishModule with JavaModule with DependencyCheckModule {
   import mill.scalalib.publish._
   def pomSettings = PomSettings(
     description = artifactName(),

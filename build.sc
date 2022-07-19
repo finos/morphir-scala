@@ -1,6 +1,8 @@
 import $file.project.deps, deps.{Deps, ScalaVersions}
+import $file.project.modules.dependencyCheck //, dependencyCheck.DependencyCheck
 import $file.project.publishing
 import $file.project.modules.shared, shared.{MorphirCrossScalaModule, MorphirTestModule, MorphirPublishModule}
+import $ivy.`io.chris-kipp::mill-github-dependency-graph::0.1.1`
 import mill._, scalalib._, scalafmt._
 import Deps._
 
@@ -17,3 +19,5 @@ object morphir extends Module {
     object test extends Tests with MorphirTestModule {}
   }
 }
+
+
