@@ -1,3 +1,3 @@
 FROM gitpod/workspace-full
 
-RUN brew install scala coursier/formulas/coursier ammonite-repl mill
+RUN brew install ammonite-repl mill
