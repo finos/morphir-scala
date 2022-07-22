@@ -15,6 +15,7 @@ class MorphirPlugin extends StandardPlugin:
   val name: String = "morphir"
   override val description: String = "Morphir compiler plugin"
   def init(options:List[String]):List[PluginPhase] =
+    println(s"Initializing  scala compiler plugin: $name")
     (new MorphirModuleSelectPhase)::(new MorphirIRGenPhase)::Nil
 
 

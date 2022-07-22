@@ -39,10 +39,10 @@ trait MorphirPublishModule extends PublishModule with JavaModule with Dependency
   import mill.scalalib.publish._
   def pomSettings = PomSettings(
     description = artifactName(),
-    organization = "morphir",
-    url = "https://github.com/finos/morphir4s",
+    organization = "org.finos.morphir",
+    url = "https://github.com/finos/morphir-scala",
     licenses = Seq(License.`Apache-2.0`),
-    versionControl = VersionControl.github("finos", "morphir4s"),
+    versionControl = VersionControl.github("finos", "morphir-scala"),
     developers = Seq(
       Developer("DamianReeves", "Damian Reeves", "https://github.com/damianreeves")
     )
@@ -68,7 +68,7 @@ trait CommonScalaModule extends ScalaModule with ScalafmtModule { self =>
     super.scalacOptions() ++ extraOptions
   }
 
-  def compilerPluginDependencies(selectedScalaVersion: String):Agg[Dep] =
+  def compilerPluginDependencies(selectedScalaVersion: String): Agg[Dep] =
     if (selectedScalaVersion.startsWith("3.")) {
       Agg(org.`scala-lang`.`scala3-compiler`(selectedScalaVersion))
     } else {

@@ -27,10 +27,22 @@ object morphir extends Module {
     object test extends Tests with MorphirTestModule {}
   }
 
-  object mscplugin extends MorphirScalaModule { self =>
+  object mscplugin extends MorphirScalaModule with MorphirPublishModule { self =>
     private val selectedScalaVersion = ScalaVersions.scala3x
     def scalaVersion                 = selectedScalaVersion
     def ivyDeps                      = self.compilerPluginDependencies(selectedScalaVersion)
+    def crossFullScalaVersion        = true
+
     object test extends Tests with MorphirTestModule {}
+    object itest extends Module {
+      object basics extends MorphirScalaModule {
+        def scalaVersion = selectedScalaVersion
+        def scalacPluginIvyDeps = T {
+          val _                    = mscplugin.publishLocal()
+          val morphirPluginVersion = mscplugin.publishVersion()
+          Agg(ivy"org.finos.morphir:::morphir-mscplugin:$morphirPluginVersion")
+        }
+      }
+    }
   }
 }
