@@ -38,7 +38,7 @@ object morphir extends Module {
       object basics extends MorphirScalaModule {
         def scalaVersion = selectedScalaVersion
         def scalacPluginIvyDeps = T {
-          val _                    = mscplugin.publishLocal()
+          val _                    = mscplugin.publishLocal()()
           val morphirPluginVersion = mscplugin.publishVersion()
           Agg(ivy"org.finos.morphir:::morphir-mscplugin:$morphirPluginVersion")
         }
