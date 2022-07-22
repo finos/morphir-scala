@@ -37,11 +37,22 @@ object morphir extends Module {
     object itest extends Module {
       object basics extends MorphirScalaModule {
         def scalaVersion = selectedScalaVersion
-        def scalacPluginIvyDeps = T {
-          val _                    = mscplugin.publishLocal()()
-          val morphirPluginVersion = mscplugin.publishVersion()
-          Agg(ivy"org.finos.morphir:::morphir-mscplugin:$morphirPluginVersion")
+
+        def morphirPluginJar = T.input(mscplugin.jar())
+
+        override def scalacOptions = T {
+          val pluginJarPath = morphirPluginJar().path
+          super.scalacOptions() ++ Seq(s"-Xplugin:$pluginJarPath")
         }
+
+        override def scalacPluginClasspath = T(super.scalacPluginClasspath() ++ Agg(morphirPluginJar()))
+        // def scalacPluginIvyDeps = T {
+        //   // TODO: try lefou's suggestion to
+        //   // "... but you could instead just override the scalacPluginClasspath and add the mscplugin.jar directly"
+        //   val _                    = mscplugin.publishLocal()()
+        //   val morphirPluginVersion = mscplugin.publishVersion()
+        //   Agg(ivy"org.finos.morphir:::morphir-mscplugin:$morphirPluginVersion")
+        // }
       }
     }
   }
