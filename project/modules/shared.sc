@@ -55,7 +55,26 @@ trait MorphirPublishModule extends PublishModule with JavaModule with Dependency
 
 trait MorphirCrossScalaModule extends CommonCrossModule {}
 
-trait MorphirTestModule extends CommonTestModule {}
+trait MorphirScalaModule extends CommonScalaModule {}
+trait MorphirTestModule  extends CommonTestModule  {}
+
+trait CommonScalaModule extends ScalaModule with ScalafmtModule { self =>
+  def scalacOptions = T.task {
+    val extraOptions = if (this.scalaVersion().startsWith("2.")) {
+      Seq("-Yrangepos")
+    } else {
+      Seq()
+    }
+    super.scalacOptions() ++ extraOptions
+  }
+
+  def compilerPluginDependencies(selectedScalaVersion: String):Agg[Dep] =
+    if (selectedScalaVersion.startsWith("3.")) {
+      Agg(org.`scala-lang`.`scala3-compiler`(selectedScalaVersion))
+    } else {
+      Agg()
+    }
+}
 
 trait CommonCrossModule extends CrossScalaModule with ScalafmtModule {
   def scalacOptions = T.task {
