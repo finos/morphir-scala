@@ -1,3 +1,4 @@
 FROM gitpod/workspace-full
 
-RUN brew install ammonite-repl mill
+RUN brew install mill
+RUN brew install Virtuslab/scala-cli/scala-cli
