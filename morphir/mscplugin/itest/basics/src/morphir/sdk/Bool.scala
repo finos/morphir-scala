@@ -1,5 +1,6 @@
 package morphir.sdk
 
+import scala.language.implicitConversions
 object Bool:
   opaque type Bool = Boolean
 

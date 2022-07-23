@@ -1,5 +1,6 @@
 package morphir.sdk
 
+import scala.language.implicitConversions
 object MString:
   import morphir.sdk.Bool.Bool
   

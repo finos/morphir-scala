@@ -59,7 +59,7 @@ trait MorphirScalaModule extends CommonScalaModule {}
 trait MorphirTestModule  extends CommonTestModule  {}
 
 trait CommonScalaModule extends ScalaModule with ScalafmtModule { self =>
-  def scalacOptions = T.task {
+  def scalacOptions = T {
     val extraOptions = if (this.scalaVersion().startsWith("2.")) {
       Seq("-Yrangepos")
     } else {
@@ -78,7 +78,7 @@ trait CommonScalaModule extends ScalaModule with ScalafmtModule { self =>
         try {
           val props = new java.util.Properties()
           props.load(is)
-          props.getProperty("scalac.options").split(" ").toSeq
+          props.getProperty("scalac.options.additional").split(" ").toSeq
         } finally
           is.close()
       } catch {
@@ -106,7 +106,30 @@ trait CommonCrossModule extends CrossScalaModule with ScalafmtModule {
     } else {
       Seq()
     }
-    super.scalacOptions() ++ extraOptions
+    super.scalacOptions() ++ extraOptions ++ additionalScalacOptions()
+  }
+
+  def userBuildProperties = T.source(T.workspace / "build.user.properties")
+
+  def additionalScalacOptions = T {
+    val propsPath = userBuildProperties().path
+    if (os.exists(propsPath)) {
+      try {
+        val is = os.read.inputStream(propsPath)
+        try {
+          val props = new java.util.Properties()
+          props.load(is)
+          props.getProperty("scalac.options.additional").split(" ").toSeq
+        } finally
+          is.close()
+      } catch {
+        case e: Throwable =>
+          println(s"Error reading $propsPath: ${e.getMessage}")
+          Seq()
+      }
+    } else {
+      Seq()
+    }
   }
 }
 
