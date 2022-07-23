@@ -11,19 +11,11 @@ import dotty.tools.dotc.core.Symbols.*
 import dotty.tools.dotc.plugins.{PluginPhase, StandardPlugin}
 import dotty.tools.dotc.transform.{PickleQuotes, Staging}
 
-class MorphirPlugin extends StandardPlugin:
-  val name: String = "morphir"
-  override val description: String = "Morphir compiler plugin"
-  def init(options:List[String]):List[PluginPhase] =
-    val settings = GenMorphirIR.Settings.fromOptions(options)
-    List(GenMorphirIR(settings))
+class MorphirIRGenPhase extends PluginPhase:
+  import tpd.*
+  val phaseName = MorphirIRGenPhase.name
+  override val runsAfter = Set(MorphirModuleSelectPhase.name)
+  override val runsBefore = Set(PickleQuotes.name)
 
-
-
-
-
-  
-
-
-
-  
+object MorphirIRGenPhase:
+  val name = "morphirIRGen"
