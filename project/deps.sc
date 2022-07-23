@@ -27,6 +27,9 @@ object Deps {
     }
   }
   case object org {
+    case object `scala-lang` {
+      def `scala3-compiler`(scalaVersion: String) = ivy"org.scala-lang::scala3-compiler:$scalaVersion"
+    }
     case object scalameta {
       val munit: mill.scalalib.Dep = ivy"org.scalameta::munit::${Versions.munit}"
       println(s"$munit")

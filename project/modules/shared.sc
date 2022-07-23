@@ -39,10 +39,10 @@ trait MorphirPublishModule extends PublishModule with JavaModule with Dependency
   import mill.scalalib.publish._
   def pomSettings = PomSettings(
     description = artifactName(),
-    organization = "morphir",
-    url = "https://github.com/finos/morphir4s",
+    organization = "org.finos.morphir",
+    url = "https://github.com/finos/morphir-scala",
     licenses = Seq(License.`Apache-2.0`),
-    versionControl = VersionControl.github("finos", "morphir4s"),
+    versionControl = VersionControl.github("finos", "morphir-scala"),
     developers = Seq(
       Developer("DamianReeves", "Damian Reeves", "https://github.com/damianreeves")
     )
@@ -55,7 +55,49 @@ trait MorphirPublishModule extends PublishModule with JavaModule with Dependency
 
 trait MorphirCrossScalaModule extends CommonCrossModule {}
 
-trait MorphirTestModule extends CommonTestModule {}
+trait MorphirScalaModule extends CommonScalaModule {}
+trait MorphirTestModule  extends CommonTestModule  {}
+
+trait CommonScalaModule extends ScalaModule with ScalafmtModule { self =>
+  def scalacOptions = T {
+    val extraOptions = if (this.scalaVersion().startsWith("2.")) {
+      Seq("-Yrangepos")
+    } else {
+      Seq()
+    }
+    super.scalacOptions() ++ extraOptions ++ additionalScalacOptions()
+  }
+
+  def userBuildProperties = T.source(T.workspace / "build.user.properties")
+
+  def additionalScalacOptions = T {
+    val propsPath = userBuildProperties().path
+    if (os.exists(propsPath)) {
+      try {
+        val is = os.read.inputStream(propsPath)
+        try {
+          val props = new java.util.Properties()
+          props.load(is)
+          props.getProperty("scalac.options.additional").split(" ").toSeq
+        } finally
+          is.close()
+      } catch {
+        case e: Throwable =>
+          println(s"Error reading $propsPath: ${e.getMessage}")
+          Seq()
+      }
+    } else {
+      Seq()
+    }
+  }
+
+  def compilerPluginDependencies(selectedScalaVersion: String): Agg[Dep] =
+    if (selectedScalaVersion.startsWith("3.")) {
+      Agg(org.`scala-lang`.`scala3-compiler`(selectedScalaVersion))
+    } else {
+      Agg()
+    }
+}
 
 trait CommonCrossModule extends CrossScalaModule with ScalafmtModule {
   def scalacOptions = T.task {
@@ -64,7 +106,30 @@ trait CommonCrossModule extends CrossScalaModule with ScalafmtModule {
     } else {
       Seq()
     }
-    super.scalacOptions() ++ extraOptions
+    super.scalacOptions() ++ extraOptions ++ additionalScalacOptions()
+  }
+
+  def userBuildProperties = T.source(T.workspace / "build.user.properties")
+
+  def additionalScalacOptions = T {
+    val propsPath = userBuildProperties().path
+    if (os.exists(propsPath)) {
+      try {
+        val is = os.read.inputStream(propsPath)
+        try {
+          val props = new java.util.Properties()
+          props.load(is)
+          props.getProperty("scalac.options.additional").split(" ").toSeq
+        } finally
+          is.close()
+      } catch {
+        case e: Throwable =>
+          println(s"Error reading $propsPath: ${e.getMessage}")
+          Seq()
+      }
+    } else {
+      Seq()
+    }
   }
 }
 
