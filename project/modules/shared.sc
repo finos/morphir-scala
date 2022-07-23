@@ -65,7 +65,30 @@ trait CommonScalaModule extends ScalaModule with ScalafmtModule { self =>
     } else {
       Seq()
     }
-    super.scalacOptions() ++ extraOptions
+    super.scalacOptions() ++ extraOptions ++ additionalScalacOptions()
+  }
+
+  def userBuildProperties = T.source(T.workspace / "build.user.properties")
+
+  def additionalScalacOptions = T {
+    val propsPath = userBuildProperties().path
+    if (os.exists(propsPath)) {
+      try {
+        val is = os.read.inputStream(propsPath)
+        try {
+          val props = new java.util.Properties()
+          props.load(is)
+          props.getProperty("scalac.options").split(" ").toSeq
+        } finally
+          is.close()
+      } catch {
+        case e: Throwable =>
+          println(s"Error reading $propsPath: ${e.getMessage}")
+          Seq()
+      }
+    } else {
+      Seq()
+    }
   }
 
   def compilerPluginDependencies(selectedScalaVersion: String): Agg[Dep] =

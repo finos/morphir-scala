@@ -36,3 +36,8 @@ final case class distributionPackage(
  * An annotation that indicates that the annotated item is a native function.
  */
 final case class nativeFunction() extends Annotation
+
+/**
+ * An annotation that indicates that the annotated item should not be exported to the Morphir IR.
+ */
+final case class notExported() extends Annotation

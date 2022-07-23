@@ -14,9 +14,14 @@ import dotty.tools.dotc.transform.{PickleQuotes, Staging}
 class MorphirPlugin extends StandardPlugin:
   val name: String = "morphir"
   override val description: String = "Morphir compiler plugin"
-  def init(options:List[String]):List[PluginPhase] =
+  def init(options:List[String]):List[PluginPhase]  =
+    println("===== MorphirPlugin.init =====")
+    println("options: ")    
+    options.foreach(println)    
+    println("===== MorphirPlugin.init =====")
     val settings = GenMorphirIR.Settings.fromOptions(options)
     List(GenMorphirIR(settings))
+    
 
 
 

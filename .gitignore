@@ -436,3 +436,4 @@ website/static/api
 .vscode/settings.json
 
 build.user.sbt
+build.user.properties

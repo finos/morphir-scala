@@ -9,8 +9,29 @@ import Deps._
 
 object morphir extends Module {
 
+  /**
+   * The version of Scala natively supported by the toolchain. Morphir itself may provide backends that generate code
+   * for other Scala versions. We may also directly cross-compile to additional Scla versions.
+   */
+  val morphirScalaVersion = ScalaVersions.scala3x
+
   object annotation extends mill.Cross[AnnotationModule](ScalaVersions.all: _*)
   class AnnotationModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
+    object test extends Tests with MorphirTestModule {}
+  }
+
+  object corelib extends MorphirScalaModule with MorphirPublishModule {
+    def scalaVersion     = morphirScalaVersion
+    def moduleDeps       = Seq(annotation(morphirScalaVersion))
+    def morphirPluginJar = T(mscplugin.jar())
+
+    override def scalacOptions = T {
+      val pluginJarPath = morphirPluginJar().path
+      super.scalacOptions() ++ Seq(s"-Xplugin:$pluginJarPath" /*, "--morphir"*/ )
+    }
+
+    override def scalacPluginClasspath = T(super.scalacPluginClasspath() ++ Agg(morphirPluginJar()))
+
     object test extends Tests with MorphirTestModule {}
   }
 
@@ -28,15 +49,15 @@ object morphir extends Module {
   }
 
   object mscplugin extends MorphirScalaModule with MorphirPublishModule { self =>
-    private val selectedScalaVersion = ScalaVersions.scala3x
-    def scalaVersion                 = selectedScalaVersion
-    def ivyDeps                      = self.compilerPluginDependencies(selectedScalaVersion)
-    def crossFullScalaVersion        = true
+    private val morphirScalaVersion = ScalaVersions.scala3x
+    def scalaVersion                = morphirScalaVersion
+    def ivyDeps                     = self.compilerPluginDependencies(morphirScalaVersion)
+    def crossFullScalaVersion       = true
 
     object test extends Tests with MorphirTestModule {}
     object itest extends Module {
       object basics extends MorphirScalaModule {
-        def scalaVersion = selectedScalaVersion
+        def scalaVersion = morphirScalaVersion
 
         def morphirPluginJar = T.input(mscplugin.jar())
 
