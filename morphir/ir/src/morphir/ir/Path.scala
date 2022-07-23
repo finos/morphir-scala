@@ -20,7 +20,7 @@ final case class Path(segments: Chunk[Name]) { self =>
   //   PackageAndModulePath(PackageName(self), ModulePath(other))
 
   // def %(name: Name): ModuleName = ModuleName(self, name)
-  // def ::(name: Name): QName     = QName(self, name)
+  def ::(name: Name): QName = QName(self, name)
 
   /** Indicates whether this path is empty. */
   def isEmpty: Boolean               = segments.isEmpty
