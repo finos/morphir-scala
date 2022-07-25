@@ -1,9 +1,9 @@
-package zio.morphir.ir.packages
+package morphir.ir.packages
 
-import zio.morphir.ir.Module.{Definition => ModuleDef, ModuleName}
-import zio.morphir.ir.Type.UType
-import zio.morphir.ir.Value.{Definition => ValueDef}
-import zio.morphir.ir.{AccessControlled, Name, Path}
+import morphir.ir.Module.{Definition => ModuleDef, ModuleName}
+import morphir.ir.Type.UType
+import morphir.ir.Value.{Definition => ValueDef}
+import morphir.ir.{AccessControlled, Name, Path}
 
 final case class Definition[+TA, +VA](
     modules: Map[ModuleName, AccessControlled[ModuleDef[TA, VA]]]

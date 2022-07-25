@@ -1,3 +1,3 @@
-package zio.morphir
+package morphir
 
 object Dsl extends syntax.AllSyntax

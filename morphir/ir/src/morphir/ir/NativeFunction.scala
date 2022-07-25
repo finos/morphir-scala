@@ -1,4 +1,4 @@
-package zio.morphir.ir
+package morphir.ir
 
 // def increment(x: Int): Int = x + 1
 

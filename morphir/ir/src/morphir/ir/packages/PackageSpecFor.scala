@@ -1,6 +1,6 @@
-package zio.morphir.ir.packages
+package morphir.ir.packages
 
-import zio.morphir.ir.{FQName, NativeFunction}
+import morphir.ir.{FQName, NativeFunction}
 
 trait PackageSpecFor[A] {
   import PackageModule._
