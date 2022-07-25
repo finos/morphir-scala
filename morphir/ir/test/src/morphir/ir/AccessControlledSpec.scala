@@ -1,10 +1,10 @@
-package zio.morphir.ir
+package morphir.ir
 
-import zio.morphir.testing.MorphirBaseSpec
-import zio.test.*
+import morphir.testing.MorphirBaseSpec
+import zio.test._
 
 object AccessControlledSpec extends MorphirBaseSpec {
-  def spec: ZSpec[Environment, Any] = suite("AccessControlled")(
+  def spec = suite("AccessControlled")(
     // test("Supports for comprehensions") {
     //   val code =
     //     """

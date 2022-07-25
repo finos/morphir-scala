@@ -1,5 +1,5 @@
-package zio.morphir.ir.types.recursive
-import zio.morphir.ir.Name
+package morphir.ir.types.recursive
+import morphir.ir.Name
 
 import Type.FieldT
 

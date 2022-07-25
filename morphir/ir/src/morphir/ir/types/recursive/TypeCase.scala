@@ -1,6 +1,6 @@
-package zio.morphir.ir.types.recursive
+package morphir.ir.types.recursive
+import morphir.ir._
 import zio.Chunk
-import zio.morphir.ir._
 import zio.prelude._
 
 sealed trait TypeCase[+A, +Self] { self =>

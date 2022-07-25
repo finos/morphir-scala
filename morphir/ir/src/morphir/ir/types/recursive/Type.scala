@@ -1,6 +1,6 @@
-package zio.morphir.ir.types.recursive
+package morphir.ir.types.recursive
 
-import zio.morphir.ir._
+import morphir.ir._
 import zio.prelude._
 import zio.prelude.fx.ZPure
 import zio.{Chunk, ZIO}

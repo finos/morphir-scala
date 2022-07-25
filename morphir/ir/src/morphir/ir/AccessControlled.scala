@@ -1,4 +1,4 @@
-package zio.morphir.ir
+package morphir.ir
 import zio.prelude._
 
 import AccessControlled.Access
