@@ -1,6 +1,6 @@
-package zio.morphir.ir
-import zio.morphir.ir.Type.UType
-import zio.morphir.ir.Value.{RawValue, TypedValue}
+package morphir.ir
+import morphir.ir.Type.UType
+import morphir.ir.Value.{RawValue, TypedValue}
 
 import scala.language.implicitConversions
 
@@ -52,6 +52,7 @@ object Literal {
 
   implicit def LiteralInferredTypeOf[A]: InferredTypeOf[Literal[A]] = new InferredTypeOf[Literal[A]] {
     def inferredType(value: Literal[A]): UType = value match {
+      // TODO: Add back the commented out call to the sdk module
       case Bool(_)        => sdk.Basics.boolType
       case Char(_)        => sdk.Char.charType
       case String(_)      => sdk.String.stringType

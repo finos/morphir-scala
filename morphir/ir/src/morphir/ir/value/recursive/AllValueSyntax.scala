@@ -1,5 +1,5 @@
-package zio.morphir.ir.value.recursive
+package morphir.ir.value.recursive
 
-import zio.morphir.ir.value.PatternConstructors
+import morphir.ir.value.PatternConstructors
 
 trait AllValueSyntax extends ValueConstructors with PatternConstructors with DefinitionConstructors
