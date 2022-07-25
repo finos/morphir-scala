@@ -1,4 +1,4 @@
-package zio.morphir.ir.source
+package morphir.ir.source
 import zio.prelude._
 final case class Region(start: Location, end: Location)
 object Region {
