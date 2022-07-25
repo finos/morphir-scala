@@ -1,4 +1,5 @@
 package morphir.ir.packages
+import morphir.ir.{FQName, ModulePath, Name}
 
 final case class PackageAndModulePath(packageName: PackageName, modulePath: ModulePath) {
   self =>

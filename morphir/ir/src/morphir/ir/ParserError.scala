@@ -1,3 +1,3 @@
-package zio.morphir.ir
+package morphir.ir
 
 final case class ParserError(msg: String) extends Exception

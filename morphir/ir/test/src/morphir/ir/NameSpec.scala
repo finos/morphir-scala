@@ -1,10 +1,10 @@
-package zio.morphir.ir
+package morphir.ir
 
-import zio.morphir.testing.MorphirBaseSpec
+import morphir.testing.MorphirBaseSpec
 import zio.test.*
 
 object NameSpec extends MorphirBaseSpec {
-  def spec: ZSpec[Environment, Any] = suite("Name")(
+  def spec = suite("Name")(
     suite("Create a Name from a string and check that:")(
       suite("Name should be creatable from a single word that:")(
         test("Starts with a capital letter") {
