@@ -1,6 +1,6 @@
 package morphir.testing
 
-import zio._
+import zio.*
 import zio.test.{TestAspect, ZIOSpecDefault}
 
 abstract class MorphirBaseSpec extends ZIOSpecDefault {

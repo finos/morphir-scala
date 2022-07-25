@@ -1,11 +1,10 @@
 package morphir.ir
-
 import zio.Chunk
 //import morphir.ir.PackageModule.PackageAndModulePath
 
 import scala.annotation.tailrec
 
-//import Module.{ModuleName, ModulePath}
+import Module.{ModuleName, ModulePath}
 
 final case class Path(segments: Chunk[Name]) { self =>
 

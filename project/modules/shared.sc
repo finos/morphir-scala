@@ -59,13 +59,11 @@ trait MorphirScalaModule extends CommonScalaModule {}
 trait MorphirTestModule  extends CommonTestModule  {}
 
 trait CommonScalaModule extends ScalaModule with ScalafmtModule { self =>
+
+  def optimize: T[Boolean] = T(false)
   def scalacOptions = T {
-    val extraOptions = if (this.scalaVersion().startsWith("2.")) {
-      Seq("-Yrangepos")
-    } else {
-      Seq()
-    }
-    super.scalacOptions() ++ extraOptions ++ additionalScalacOptions()
+    val options = scalacOptions(scalaVersion(), optimize())
+    super.scalacOptions() ++ options ++ additionalScalacOptions()
   }
 
   def userBuildProperties = T.source(T.workspace / "build.user.properties")
@@ -97,41 +95,25 @@ trait CommonScalaModule extends ScalaModule with ScalafmtModule { self =>
     } else {
       Agg()
     }
-}
 
-trait CommonCrossModule extends CrossScalaModule with ScalafmtModule {
-  def scalacOptions = T.task {
-    val extraOptions = if (this.crossScalaVersion.startsWith("2.")) {
-      Seq("-Yrangepos")
-    } else {
-      Seq()
+  def scalacOptions(scalaVersion: String, optimize: Boolean) = {
+
+    val commonOptions = Seq("-language:implicitConversions")
+
+    val versionParts = scalaVersion.split("\\.")
+    val extraOptions = versionParts match {
+      case Array("2", _, _) =>
+        Seq("-Yrangepos", "-Xsource:3.0")
+      case Array("3", _, _) =>
+        Seq("-Xignore-scala2-macros")
+      case _ =>
+        Seq()
     }
-    super.scalacOptions() ++ extraOptions ++ additionalScalacOptions()
-  }
-
-  def userBuildProperties = T.source(T.workspace / "build.user.properties")
-
-  def additionalScalacOptions = T {
-    val propsPath = userBuildProperties().path
-    if (os.exists(propsPath)) {
-      try {
-        val is = os.read.inputStream(propsPath)
-        try {
-          val props = new java.util.Properties()
-          props.load(is)
-          props.getProperty("scalac.options.additional").split(" ").toSeq
-        } finally
-          is.close()
-      } catch {
-        case e: Throwable =>
-          println(s"Error reading $propsPath: ${e.getMessage}")
-          Seq()
-      }
-    } else {
-      Seq()
-    }
+    commonOptions ++ extraOptions
   }
 }
+
+trait CommonCrossModule extends CrossScalaModule with CommonScalaModule {}
 
 trait CommonTestModule extends TestModule {
   def ivyDeps       = super.ivyDeps() ++ Agg(dev.zio.zio, dev.zio.`zio-test`, dev.zio.`zio-test-sbt`)

@@ -1,7 +1,7 @@
 package morphir.ir
 
 import morphir.testing.MorphirBaseSpec
-import zio.test._
+import zio.test.*
 
 object NameSpec extends MorphirBaseSpec {
   def spec = suite("Name")(
