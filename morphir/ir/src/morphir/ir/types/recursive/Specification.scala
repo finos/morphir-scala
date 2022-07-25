@@ -1,8 +1,8 @@
-package zio.morphir.ir.types.recursive
+package morphir.ir.types.recursive
 
 import zio.Chunk
-import zio.morphir.ir.types.recursive.Definition
-import zio.morphir.ir.{Documented, Name}
+import morphir.ir.types.recursive.Definition
+import morphir.ir.{Documented, Name}
 
 sealed trait Specification[+Attributes] { self =>
   import Specification._

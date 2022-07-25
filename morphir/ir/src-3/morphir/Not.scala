@@ -1,4 +1,4 @@
-package zio.morphir
+package morphir
 import scala.annotation.implicitNotFound
 import scala.util.NotGiven
 

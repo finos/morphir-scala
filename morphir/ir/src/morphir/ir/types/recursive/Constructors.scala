@@ -1,7 +1,7 @@
-package zio.morphir.ir.types.recursive
+package morphir.ir.types.recursive
 
 import zio.Chunk
-import zio.morphir.ir.{FQName, Name}
+import morphir.ir.{FQName, Name}
 
 private[ir] final case class Constructors[+Attributes](toMap: Map[Name, Chunk[(Name, Type[Attributes])]])
     extends AnyVal { self =>

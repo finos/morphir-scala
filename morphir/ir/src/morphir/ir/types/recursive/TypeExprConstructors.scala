@@ -1,11 +1,11 @@
-package zio.morphir.ir.types.recursive
+package morphir.ir.types.recursive
 
+import morphir.ir.{FQName, Name, NeedsAttributes}
 import zio.Chunk
-import zio.morphir.ir.{FQName, Name, NeedsAttributes}
 
 trait TypeExprConstructors { self =>
-  import TypeCase._
   import Type.FieldT
+  import TypeCase.*
   // Extensible record constructors
 
   final def extensibleRecord[A](attributes: A, name: Name, fields: Chunk[FieldT[A]])(implicit

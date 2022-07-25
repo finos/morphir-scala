@@ -1,4 +1,4 @@
-package zio.morphir
+package morphir
 
 import scala.annotation.implicitAmbiguous
 

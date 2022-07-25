@@ -1,8 +1,8 @@
-package zio.morphir.ir.types.recursive
+package morphir.ir.types.recursive
 
 import zio.Chunk
-import zio.morphir.ir.{AccessControlled, FQName, Name}
-//import zio.morphir.sdk.ResultModule.Result
+import morphir.ir.{AccessControlled, FQName, Name}
+//import morphir.sdk.ResultModule.Result
 
 sealed trait Definition[+Attributes] { self =>
   import Definition._
