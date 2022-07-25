@@ -1,16 +1,16 @@
-package zio.morphir.ir.value.recursive
+package morphir.ir.value.recursive
 
 import zio.Chunk
-import zio.morphir.ir.sdk.Basics.{boolType, floatType, intType}
-import zio.morphir.ir.sdk.String.stringType
-import zio.morphir.ir.{FQName, Gens, Literal => Lit, Name, Type}
-import zio.morphir.testing.MorphirBaseSpec
+import morphir.ir.sdk.Basics.{boolType, floatType, intType}
+import morphir.ir.sdk.String.stringType
+import morphir.ir.{FQName, Gens, Literal => Lit, Name, Type}
+import morphir.testing.MorphirBaseSpec
 import zio.test._
 
 object RecursiveValueSpec extends MorphirBaseSpec {
   import Value._
   import ValueCase._
-  def spec: ZSpec[Environment, Any] = suite("Value Spec")(
+  def spec = suite("Value Spec")(
     suite("Apply")(
       suite("Attributed")(
         test("It should be possible to create a single argument function application") {

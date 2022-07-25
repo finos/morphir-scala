@@ -1,4 +1,4 @@
-package zio.morphir.ir.module
+package morphir.ir.module
 
 trait ModuleSpecFor[A] {
 

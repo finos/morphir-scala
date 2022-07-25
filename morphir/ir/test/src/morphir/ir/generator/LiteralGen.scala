@@ -1,6 +1,6 @@
-package zio.morphir.ir.generator
+package morphir.ir.generator
 
-import zio.morphir.ir.Literal
+import morphir.ir.Literal
 import zio.test.Gen
 
 trait LiteralGen extends WordGen {

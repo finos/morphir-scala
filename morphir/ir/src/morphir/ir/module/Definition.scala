@@ -1,6 +1,6 @@
-package zio.morphir.ir.module
+package morphir.ir.module
 
-import zio.morphir.ir.{AccessControlled, Documented, FQName, Name, Type, Value}
+import morphir.ir.{AccessControlled, Documented, FQName, Name, Type, Value}
 
 import Type.Definition.{CustomType, TypeAlias}
 final case class Definition[+TA, +VA](

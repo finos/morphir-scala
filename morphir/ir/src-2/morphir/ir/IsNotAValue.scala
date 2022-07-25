@@ -1,4 +1,4 @@
-package zio.morphir.ir
+package morphir.ir
 
 import scala.annotation.implicitAmbiguous
 
@@ -24,7 +24,7 @@ trait IsNotAValueLowerPriority {
     "This operation assumes that ${A} is not a morphir IR Value node. " +
       "However, ${A} is a Value."
   )
-  implicit def isNotAValueAmbiguousA[A](implicit ev: A <:< value.Value[_, _]): IsNotAValue[A] = IsNotAValue
+  implicit def isNotAValueAmbiguousA[A](implicit ev: A <:< Value.Value[_, _]): IsNotAValue[A] = IsNotAValue
 
-  implicit def isNotAValueAmbiguousB[A](implicit ev: A <:< value.Value[_, _]): IsNotAValue[A] = IsNotAValue
+  implicit def isNotAValueAmbiguousB[A](implicit ev: A <:< Value.Value[_, _]): IsNotAValue[A] = IsNotAValue
 }

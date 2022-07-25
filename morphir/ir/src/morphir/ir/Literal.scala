@@ -51,13 +51,12 @@ object Literal {
   }
 
   implicit def LiteralInferredTypeOf[A]: InferredTypeOf[Literal[A]] = new InferredTypeOf[Literal[A]] {
-    def inferredType(value: Literal[A]): UType = value match {
-      // TODO: Add back the commented out call to the sdk module
-      case Bool(_)        => ??? // sdk.Basics.boolType
-      case Char(_)        => ??? // sdk.Char.charType
-      case String(_)      => ??? // sdk.String.stringType
-      case WholeNumber(_) => ??? // sdk.Basics.intType
-      case Float(_)       => ??? // sdk.Basics.floatType
+    def inferredType(value: Literal[A]): UType = value match {      
+      case Bool(_)        => sdk.Basics.boolType
+      case Char(_)        => sdk.Char.charType
+      case String(_)      => sdk.String.stringType
+      case WholeNumber(_) => sdk.Basics.intType
+      case Float(_)       => sdk.Basics.floatType
     }
   }
 }

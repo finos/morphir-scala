@@ -1,4 +1,4 @@
-package zio.morphir.ir
+package morphir.ir
 
 import scala.annotation.implicitNotFound
 import scala.util.NotGiven
@@ -6,7 +6,7 @@ import scala.util.NotGiven
 sealed abstract class IsNotAValue[-A] extends Serializable
 
 object IsNotAValue extends IsNotAValue[Any] with IsNotAValueLowerPriority {
-  implicit def isNotAValue[A](using NotGiven[A <:< value.Value[_, _]]): IsNotAValue[A] = IsNotAValue
+  implicit def isNotAValue[A](using NotGiven[A <:< Value.Value[_, _]]): IsNotAValue[A] = IsNotAValue
 
 }
 

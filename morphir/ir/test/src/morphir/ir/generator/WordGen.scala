@@ -1,4 +1,4 @@
-package zio.morphir.ir.generator
+package morphir.ir.generator
 
 import zio.test.Gen
 

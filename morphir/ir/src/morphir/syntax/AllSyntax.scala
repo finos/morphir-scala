@@ -1,4 +1,4 @@
-package zio.morphir.syntax
+package morphir.syntax
 
 trait AllSyntax extends ValueSyntax with NamingSyntax
 

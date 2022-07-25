@@ -1,15 +1,15 @@
-package zio.morphir.ir.sdk
+package morphir.ir.sdk
 
 import zio.Chunk
-import zio.morphir.ir.Module.ModuleName
-import zio.morphir.ir.Type.Specification.OpaqueTypeSpecification
-import zio.morphir.ir.Type.{Type, UType, reference => typeRef, tuple}
-import zio.morphir.ir.Value.{Value, reference => valRef}
-import zio.morphir.ir.sdk.Basics.{boolType, intType, orderType}
-import zio.morphir.ir.sdk.Common._
-import zio.morphir.ir.sdk.Maybe.maybeType
-import zio.morphir.ir.{Module, NeedsAttributes}
-import zio.morphir.syntax.NamingSyntax._
+import morphir.ir.Module.ModuleName
+import morphir.ir.Type.Specification.OpaqueTypeSpecification
+import morphir.ir.Type.{Type, UType, reference => typeRef, tuple}
+import morphir.ir.Value.{Value, reference => valRef}
+import morphir.ir.sdk.Basics.{boolType, intType, orderType}
+import morphir.ir.sdk.Common._
+import morphir.ir.sdk.Maybe.maybeType
+import morphir.ir.{Module, NeedsAttributes}
+import morphir.syntax.NamingSyntax._
 
 object List {
   val moduleName: ModuleName = ModuleName.fromString("List")

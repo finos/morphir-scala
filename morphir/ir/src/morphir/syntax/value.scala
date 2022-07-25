@@ -1,3 +1,3 @@
-package zio.morphir.syntax
+package morphir.syntax
 
 object value extends ValueSyntax

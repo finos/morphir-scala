@@ -1,8 +1,8 @@
-package zio.morphir.ir.module
+package morphir.ir.module
 
-import zio.morphir.ir.Type.{Specification => TypeSpec}
-import zio.morphir.ir.Value.{Specification => ValueSpec}
-import zio.morphir.ir.{Documented, Name}
+import morphir.ir.Type.{Specification => TypeSpec}
+import morphir.ir.Value.{Specification => ValueSpec}
+import morphir.ir.{Documented, Name}
 
 final case class Specification[+TA](
     types: Map[Name, Documented[TypeSpec[TA]]],

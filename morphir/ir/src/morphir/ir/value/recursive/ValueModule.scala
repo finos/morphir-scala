@@ -53,7 +53,7 @@ trait ValueModule extends ValueConstructors with PatternConstructors {
   final def valueAttribute[VA](value: Value[Nothing, VA]): VA = value.attributes
 }
 
-object ValueModule {
+object ValueModule extends ValueModule {
   final class MapValueAttributesPartiallyApplied[TA, VA](val value: Value[TA, VA]) extends AnyVal {
     def apply[TB, VB](f: TA => TB, g: VA => VB): Value[TB, VB] =
       value.mapAttributes(f, g)
