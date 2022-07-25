@@ -1,16 +1,16 @@
-package zio.morphir.ir.sdk
+package morphir.ir.sdk
 
 import zio.Chunk
-import zio.morphir.ir.Module
-import zio.morphir.ir.Module.ModuleName
-import zio.morphir.ir.Type.Specification.TypeAliasSpecification
-import zio.morphir.ir.Type.Type._
-import zio.morphir.ir.Type.{Type, UType}
-import zio.morphir.ir.sdk.Basics.boolType
-import zio.morphir.ir.sdk.Common._
-import zio.morphir.ir.sdk.List.listType
-import zio.morphir.ir.sdk.Maybe.maybeType
-import zio.morphir.syntax.NamingSyntax._
+import morphir.ir.Module
+import morphir.ir.Module.ModuleName
+import morphir.ir.Type.Specification.TypeAliasSpecification
+import morphir.ir.Type.Type._
+import morphir.ir.Type.{Type, UType}
+import morphir.ir.sdk.Basics.boolType
+import morphir.ir.sdk.Common._
+import morphir.ir.sdk.List.listType
+import morphir.ir.sdk.Maybe.maybeType
+import morphir.syntax.NamingSyntax._
 
 object Rule {
   val moduleName: ModuleName = ModuleName.fromString("Rule")

@@ -1,13 +1,13 @@
-package zio.morphir.ir.sdk
+package morphir.ir.sdk
 
 import zio.Chunk
-import zio.morphir.ir.Module
-import zio.morphir.ir.Module.ModuleName
-import zio.morphir.ir.Type.Specification.CustomTypeSpecification
-import zio.morphir.ir.Type.Type._
-import zio.morphir.ir.Type.{Type, UConstructors, UType}
-import zio.morphir.ir.sdk.Common._
-import zio.morphir.syntax.NamingSyntax._
+import morphir.ir.Module
+import morphir.ir.Module.ModuleName
+import morphir.ir.Type.Specification.CustomTypeSpecification
+import morphir.ir.Type.Type._
+import morphir.ir.Type.{Type, UConstructors, UType}
+import morphir.ir.sdk.Common._
+import morphir.syntax.NamingSyntax._
 
 object Month {
   val moduleName: ModuleName = ModuleName.fromString("Month")

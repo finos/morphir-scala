@@ -1,17 +1,17 @@
-package zio.morphir.ir.sdk
+package morphir.ir.sdk
 
-import zio.morphir.ir.Module
-import zio.morphir.ir.Module.ModuleName
-import zio.morphir.ir.Type.Specification.OpaqueTypeSpecification
-import zio.morphir.ir.Type.Type._
-import zio.morphir.ir.Type.{Type, UType}
-import zio.morphir.ir.sdk.Basics.{boolType, intType}
-import zio.morphir.ir.sdk.Common._
-import zio.morphir.ir.sdk.Decimal.decimalType
-import zio.morphir.ir.sdk.Maybe.maybeType
-import zio.morphir.ir.sdk.Result.resultType
-import zio.morphir.ir.sdk.String.stringType
-import zio.morphir.syntax.NamingSyntax._
+import morphir.ir.Module
+import morphir.ir.Module.ModuleName
+import morphir.ir.Type.Specification.OpaqueTypeSpecification
+import morphir.ir.Type.Type._
+import morphir.ir.Type.{Type, UType}
+import morphir.ir.sdk.Basics.{boolType, intType}
+import morphir.ir.sdk.Common._
+import morphir.ir.sdk.Decimal.decimalType
+import morphir.ir.sdk.Maybe.maybeType
+import morphir.ir.sdk.Result.resultType
+import morphir.ir.sdk.String.stringType
+import morphir.syntax.NamingSyntax._
 
 object Number {
   val moduleName: ModuleName = ModuleName.fromString("Number")

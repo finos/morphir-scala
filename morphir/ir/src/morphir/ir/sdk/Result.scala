@@ -1,15 +1,15 @@
-package zio.morphir.ir.sdk
+package morphir.ir.sdk
 
 import zio.Chunk
-import zio.morphir.ir.Module
-import zio.morphir.ir.Module.ModuleName
-import zio.morphir.ir.Type.Specification.CustomTypeSpecification
-import zio.morphir.ir.Type.{Constructors, Type, UType, reference, variable}
-import zio.morphir.ir.Value.Value
-import zio.morphir.ir.Value.Value.{Apply, Constructor}
-import zio.morphir.ir.sdk.Common._
-import zio.morphir.ir.sdk.Maybe.maybeType
-import zio.morphir.syntax.NamingSyntax._
+import morphir.ir.Module
+import morphir.ir.Module.ModuleName
+import morphir.ir.Type.Specification.CustomTypeSpecification
+import morphir.ir.Type.{Constructors, Type, UType, reference, variable}
+import morphir.ir.Value.Value
+import morphir.ir.Value.Value.{Apply, Constructor}
+import morphir.ir.sdk.Common._
+import morphir.ir.sdk.Maybe.maybeType
+import morphir.syntax.NamingSyntax._
 object Result {
   val moduleName: ModuleName = ModuleName.fromString("Result")
 

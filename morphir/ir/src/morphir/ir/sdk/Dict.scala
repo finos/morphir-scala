@@ -1,18 +1,18 @@
-package zio.morphir.ir.sdk
+package morphir.ir.sdk
 
 import zio.Chunk
-import zio.morphir.ir.Module.ModuleName
-import zio.morphir.ir.Type.Specification.OpaqueTypeSpecification
-import zio.morphir.ir.Type.Type._
-import zio.morphir.ir.Type.{Type, UType}
-import zio.morphir.ir.Value.Value
-import zio.morphir.ir.Value.Value.{Apply, Reference}
-import zio.morphir.ir.sdk.Basics._
-import zio.morphir.ir.sdk.Common._
-import zio.morphir.ir.sdk.List.listType
-import zio.morphir.ir.sdk.Maybe.maybeType
-import zio.morphir.ir.{FQName, Module, Name, Path}
-import zio.morphir.syntax.NamingSyntax._
+import morphir.ir.Module.ModuleName
+import morphir.ir.Type.Specification.OpaqueTypeSpecification
+import morphir.ir.Type.Type._
+import morphir.ir.Type.{Type, UType}
+import morphir.ir.Value.Value
+import morphir.ir.Value.Value.{Apply, Reference}
+import morphir.ir.sdk.Basics._
+import morphir.ir.sdk.Common._
+import morphir.ir.sdk.List.listType
+import morphir.ir.sdk.Maybe.maybeType
+import morphir.ir.{FQName, Module, Name, Path}
+import morphir.syntax.NamingSyntax._
 
 object Dict {
   val moduleName: ModuleName = ModuleName.fromString("Dict")

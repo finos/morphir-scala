@@ -1,10 +1,10 @@
-package zio.morphir.ir.sdk
+package morphir.ir.sdk
 
 import zio.Chunk
-import zio.morphir.ir.Module
-import zio.morphir.ir.Module.ModuleName
-import zio.morphir.ir.Type.Type._
-import zio.morphir.ir.sdk.Common._
+import morphir.ir.Module
+import morphir.ir.Module.ModuleName
+import morphir.ir.Type.Type._
+import morphir.ir.sdk.Common._
 
 object Tuple {
   val moduleName: ModuleName = ModuleName.fromString("Tuple")

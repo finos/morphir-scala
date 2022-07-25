@@ -1,14 +1,14 @@
-package zio.morphir.ir.sdk
+package morphir.ir.sdk
 
-import zio.morphir.ir.Module
-import zio.morphir.ir.Module.ModuleName
-import zio.morphir.ir.Type.Specification.OpaqueTypeSpecification
-import zio.morphir.ir.Type.Type._
-import zio.morphir.ir.Type.{Type, UType}
-import zio.morphir.ir.sdk.Basics.intType
-import zio.morphir.ir.sdk.Common.{toFQName, vSpec}
-import zio.morphir.ir.sdk.Maybe.maybeType
-import zio.morphir.syntax.NamingSyntax._
+import morphir.ir.Module
+import morphir.ir.Module.ModuleName
+import morphir.ir.Type.Specification.OpaqueTypeSpecification
+import morphir.ir.Type.Type._
+import morphir.ir.Type.{Type, UType}
+import morphir.ir.sdk.Basics.intType
+import morphir.ir.sdk.Common.{toFQName, vSpec}
+import morphir.ir.sdk.Maybe.maybeType
+import morphir.syntax.NamingSyntax._
 
 object Int {
 
