@@ -1,4 +1,4 @@
-package zio.morphir.ir
+package morphir.ir
 
 final case class Named[+A](name: Name, value: A) { self =>
   def map[B](f: A => B): Named[B]            = Named(name, f(value))

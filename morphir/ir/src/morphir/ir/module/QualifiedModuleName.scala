@@ -1,5 +1,5 @@
-package zio.morphir.ir.module
-import zio.morphir.ir.Path
+package morphir.ir.module
+import morphir.ir.Path
 
 final case class QualifiedModuleName(packageName: Path, module: Path) {
   lazy val toPath: Path     = packageName / module

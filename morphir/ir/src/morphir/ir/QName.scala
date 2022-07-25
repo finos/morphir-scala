@@ -1,4 +1,4 @@
-package zio.morphir.ir
+package morphir.ir
 
 final case class QName(modulePath: Path, localName: Name) {
   @inline def toTuple: (Path, Name) = (modulePath, localName)

@@ -1,4 +1,4 @@
-package zio.morphir.ir
+package morphir.ir
 
 import scala.annotation.nowarn
 
@@ -11,6 +11,7 @@ package object module {
     def toModuleName: ModuleName = ModuleName.fromPath(toPath)
 
   }
+
   object ModulePath {
     def fromString(path: String): ModulePath = ModulePath(Path.fromString(path))
   }

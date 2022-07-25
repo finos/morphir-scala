@@ -1,4 +1,4 @@
-package zio.morphir.testing
+package morphir.testing
 
 import zio.*
 import zio.test.{TestAspect, ZIOSpecDefault}

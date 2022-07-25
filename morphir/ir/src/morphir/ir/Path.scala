@@ -1,6 +1,6 @@
-package zio.morphir.ir
+package morphir.ir
 import zio.Chunk
-import zio.morphir.ir.PackageModule.PackageAndModulePath
+//import morphir.ir.PackageModule.PackageAndModulePath
 
 import scala.annotation.tailrec
 
@@ -15,11 +15,11 @@ final case class Path(segments: Chunk[Name]) { self =>
 
   /** Constructs a new path by combining this path with the given path. */
   def /(that: Path): Path = Path(segments ++ that.segments)
-  def %(other: Path): PackageAndModulePath =
-    PackageAndModulePath(PackageName(self), ModulePath(other))
+  // def %(other: Path): PackageAndModulePath =
+  //   PackageAndModulePath(PackageName(self), ModulePath(other))
 
-  def %(name: Name): ModuleName = ModuleName(self, name)
-  def ::(name: Name): QName     = QName(self, name)
+  // def %(name: Name): ModuleName = ModuleName(self, name)
+  def ::(name: Name): QName = QName(self, name)
 
   /** Indicates whether this path is empty. */
   def isEmpty: Boolean               = segments.isEmpty

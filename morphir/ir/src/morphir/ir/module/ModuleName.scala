@@ -1,6 +1,7 @@
-package zio.morphir.ir.module
+package morphir.ir.module
+
+import morphir.ir.{Name, Path, QName}
 import zio.Chunk
-import zio.morphir.ir.{Name, Path, QName}
 
 final case class ModuleName(namespace: Path, localName: Name) {
   def %(name: Name): QName = QName(toPath, name)
