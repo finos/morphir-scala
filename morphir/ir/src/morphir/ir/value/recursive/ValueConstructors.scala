@@ -1,10 +1,10 @@
-package zio.morphir.ir.value.recursive
+package morphir.ir.value.recursive
 
 import zio.Chunk
-import zio.morphir.ir.Type.UType
-import zio.morphir.ir.sdk.List.listType
-import zio.morphir.ir.value.{Pattern, UPattern}
-import zio.morphir.ir.{FQName, IsNotAValue, Literal => Lit, Name}
+import morphir.ir.Type.UType
+import morphir.ir.sdk.List.listType
+import morphir.ir.value.{Pattern, UPattern}
+import morphir.ir.{FQName, IsNotAValue, Literal => Lit, Name}
 
 trait ValueConstructors {
   import Value._

@@ -1,8 +1,8 @@
-package zio.morphir.ir.value.recursive
+package morphir.ir.value.recursive
 
-import zio.morphir.ir.Type.{Type, UType}
-import zio.morphir.ir.value.{Pattern, PatternConstructors, UPattern}
-import zio.morphir.ir.{FQName, Literal => Lit, Name, Path}
+import morphir.ir.Type.{Type, UType}
+import morphir.ir.value.{Pattern, PatternConstructors, UPattern}
+import morphir.ir.{FQName, Literal => Lit, Name, Path}
 import zio.prelude._
 import zio.prelude.fx.ZPure
 import zio.{Chunk, NonEmptyChunk, ZIO}
@@ -765,7 +765,7 @@ object Value extends ValueConstructors with PatternConstructors with DefinitionC
       def apply(tpe: UType, elements: Chunk[TypedValue]): TypedValue = Value(ListCase(tpe, elements))
 
       def apply(elements: NonEmptyChunk[TypedValue]): TypedValue = {
-        val tpe = zio.morphir.ir.sdk.List.listType(elements.head.attributes)
+        val tpe = morphir.ir.sdk.List.listType(elements.head.attributes)
         Value(ListCase(tpe, elements))
       }
 

@@ -19,8 +19,8 @@ package object ir {
   // type PackageSpecification[+Annotations] = PackageModule.Specification[Annotations]
   // val PackageSpecification: PackageModule.Specification.type = PackageModule.Specification
 
-  // type Result[+E, +A] = zio.morphir.sdk.ResultModule.Result[E, A]
-  // val Result: ResultModule.Result.type = zio.morphir.sdk.ResultModule.Result
+  // type Result[+E, +A] = morphir.sdk.ResultModule.Result[E, A]
+  // val Result: ResultModule.Result.type = morphir.sdk.ResultModule.Result
 
   // type UPackageSpecification = PackageModule.Specification[Any]
   // val UPackageSpecification: PackageModule.Specification.type = PackageModule.Specification
@@ -29,7 +29,7 @@ package object ir {
 
   // TODO:  Reintroduce later
   final implicit class StringOps(private val self: String) extends AnyVal {
-    //   import zio.morphir.ir.types.nonrecursive
+    //   import morphir.ir.types.nonrecursive
     import morphir.ir.types.recursive
 
     def <:>[A](tpe: recursive.Type[A]): recursive.Field[recursive.Type[A]] =

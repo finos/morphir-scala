@@ -1,4 +1,4 @@
-package zio.morphir.ir
+package morphir.ir
 
 /**
  * In functional programming data and logic are treated the same way and we refer to both as values. This module
