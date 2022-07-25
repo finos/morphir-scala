@@ -1,7 +1,7 @@
-package zio.morphir.ir
+package morphir.ir
 
-import zio.morphir.ir.Module.ModulePath
-import zio.morphir.testing.MorphirBaseSpec
+import morphir.ir.Module.ModulePath
+import morphir.testing.MorphirBaseSpec
 import zio.test.Assertion.*
 import zio.test.*
 

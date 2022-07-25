@@ -1,10 +1,10 @@
-package zio.morphir.ir
+package morphir.ir
 
-import zio.morphir.testing.MorphirBaseSpec
+import morphir.testing.MorphirBaseSpec
 import zio.test.*
 
 object QNameSpec extends MorphirBaseSpec {
-  def spec: ZSpec[Environment, Any] = suite("QName")(
+  def spec = suite("QName")(
     suite("Creating a tuple from QName")(
       test("toTuple should provide the Path and Name as a tuple") {
         val path     = Path.fromString("ice.cream")
