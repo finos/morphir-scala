@@ -51,7 +51,7 @@ object Literal {
   }
 
   implicit def LiteralInferredTypeOf[A]: InferredTypeOf[Literal[A]] = new InferredTypeOf[Literal[A]] {
-    def inferredType(value: Literal[A]): UType = value match {      
+    def inferredType(value: Literal[A]): UType = value match {
       case Bool(_)        => sdk.Basics.boolType
       case Char(_)        => sdk.Char.charType
       case String(_)      => sdk.String.stringType
