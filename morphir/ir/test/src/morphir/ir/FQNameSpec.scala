@@ -5,7 +5,7 @@ import morphir.testing.MorphirBaseSpec
 import zio.test.Assertion.*
 import zio.test.*
 
-object FQNameTest extends MorphirBaseSpec {
+object FQNameSpec extends MorphirBaseSpec {
   def spec = suite("FQName")(
     suite("Create a FQName:")(
       test("By using a string") {
