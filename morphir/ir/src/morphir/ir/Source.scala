@@ -1,4 +1,4 @@
-package zio.morphir.ir
+package morphir.ir
 
 object Source {
   type Located[+A] = source.Located[A]

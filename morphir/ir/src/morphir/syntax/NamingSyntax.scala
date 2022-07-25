@@ -1,7 +1,7 @@
-package zio.morphir.syntax
+package morphir.syntax
 
-import zio.morphir.ir.PackageModule.PackageName
-import zio.morphir.ir.{FQName, Name}
+import morphir.ir.PackageModule.PackageName
+import morphir.ir.{FQName, Name}
 
 trait NamingSyntax {
   def fqn(packageName: String, module: String, localName: String): FQName = FQName.fqn(packageName, module, localName)

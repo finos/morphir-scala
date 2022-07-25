@@ -1,13 +1,13 @@
-package zio.morphir.ir
+package morphir.ir
 
 import zio.Chunk
-import zio.morphir.ir.Type.Constructors
-import zio.morphir.ir.Type.Type._
-import zio.morphir.testing.MorphirBaseSpec
+import morphir.ir.Type.Constructors
+import morphir.ir.Type.Type._
+import morphir.testing.MorphirBaseSpec
 import zio.test._
 
 object TypeModuleSpec extends MorphirBaseSpec {
-  def spec: ZSpec[Environment, Any] = suite("Type")(
+  def spec = suite("Type")(
     suite("Operations")(
       test("Can be documented") {
         val actual = variable("a") ?? "Some type variable"

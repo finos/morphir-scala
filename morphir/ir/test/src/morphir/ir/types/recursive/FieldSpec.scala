@@ -1,7 +1,7 @@
-package zio.morphir.ir.types.recursive
+package morphir.ir.types.recursive
 
-import zio.morphir.ir.StringOps
-import zio.morphir.testing.MorphirBaseSpec
+import morphir.ir.StringOps
+import morphir.testing.MorphirBaseSpec
 import zio.test._
 
 object FieldSpec extends MorphirBaseSpec {

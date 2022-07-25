@@ -1,9 +1,9 @@
-package zio.morphir.ir.types.recursive
+package morphir.ir.types.recursive
 
 import zio.Chunk
-import zio.morphir.ir.{FQName, Name, Source}
-import zio.morphir.syntax.NamingSyntax
-import zio.morphir.testing.MorphirBaseSpec
+import morphir.ir.{FQName, Name, Source}
+import morphir.syntax.NamingSyntax
+import morphir.testing.MorphirBaseSpec
 import zio.test._
 
 import TypeCase._
