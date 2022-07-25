@@ -35,6 +35,13 @@ object morphir extends Module {
     object test extends Tests with MorphirTestModule {}
   }
 
+  object ir extends mill.Cross[IrModule](ScalaVersions.all: _*)
+
+  class IrModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
+    def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`)
+    object test extends Tests with MorphirTestModule {}
+  }
+
   object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
   class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
     def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
@@ -77,4 +84,11 @@ object morphir extends Module {
       }
     }
   }
+}
+
+import mill.eval.{Evaluator, EvaluatorPaths}
+// With this we can now just do ./mill reformatAll __.sources
+// instead of ./mill -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+def reformatAll(evaluator: Evaluator, sources: mill.main.Tasks[Seq[PathRef]]) = T.command {
+  ScalafmtModule.reformatAll(sources)()
 }

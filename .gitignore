@@ -420,7 +420,7 @@ project/plugins/project/
 .lib/
 *.class
 *.log
-
+.ammonite/
 .metals/
 metals.sbt
 .bloop/
