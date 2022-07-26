@@ -10,8 +10,6 @@ class GenMorphirIR(settings:GenMorphirIR.Settings) extends PluginPhase:
   override val description = GenMorphirIR.description
   override val phaseName = GenMorphirIR.name  
 
-
-
   override def run(using Context):Unit = 
     MIRCodeGen(settings).run()
 

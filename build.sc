@@ -59,6 +59,7 @@ object morphir extends Module {
     private val morphirScalaVersion = ScalaVersions.scala3x
     def scalaVersion                = morphirScalaVersion
     def ivyDeps                     = self.compilerPluginDependencies(morphirScalaVersion)
+    def moduleDeps = Seq(morphir.ir(morphirScalaVersion))
     def crossFullScalaVersion       = true
 
     object test extends Tests with MorphirTestModule {}
