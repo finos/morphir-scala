@@ -23,7 +23,7 @@ object morphir extends Module {
   object corelib extends MorphirScalaModule with MorphirPublishModule {
     def scalaVersion     = morphirScalaVersion
     def moduleDeps       = Seq(annotation(morphirScalaVersion))
-    def morphirPluginJar = T(mscplugin.jar())
+    def morphirPluginJar = T(mscplugin.assembly())
 
     override def scalacOptions = T {
       val pluginJarPath = morphirPluginJar().path
@@ -59,6 +59,7 @@ object morphir extends Module {
     private val morphirScalaVersion = ScalaVersions.scala3x
     def scalaVersion                = morphirScalaVersion
     def ivyDeps                     = self.compilerPluginDependencies(morphirScalaVersion)
+    def moduleDeps = Seq(morphir.ir(morphirScalaVersion))
     def crossFullScalaVersion       = true
 
     object test extends Tests with MorphirTestModule {}

@@ -17,9 +17,11 @@ class MorphirPlugin extends StandardPlugin:
   def init(options:List[String]):List[PluginPhase]  =
     println("===== MorphirPlugin.init =====")
     println("options: ")    
-    options.foreach(println)    
-    println("===== MorphirPlugin.init =====")
+    options.foreach(println)        
     val settings = GenMorphirIR.Settings.fromOptions(options)
+    println ("settings: ")
+    println(settings)
+    println("===== MorphirPlugin.init =====")
     List(GenMorphirIR(settings))
     
 
