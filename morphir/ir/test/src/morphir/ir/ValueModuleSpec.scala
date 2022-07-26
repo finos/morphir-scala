@@ -1,14 +1,14 @@
-package zio.morphir.ir
+package morphir.ir
 
 import zio.Chunk
-import zio.morphir.ir.Type.Field.defineField
-import zio.morphir.ir.Type.{Type => IrType, UType}
-import zio.morphir.ir.Value.Pattern.LiteralPattern
-import zio.morphir.ir.Value.Value.{Unit => UnitType, _}
-import zio.morphir.ir.Value.{Definition => ValueDefinition, Pattern, TypedValue}
-import zio.morphir.ir.sdk.Basics.{floatType, intType}
-import zio.morphir.ir.{Literal => Lit}
-import zio.morphir.testing.MorphirBaseSpec
+import morphir.ir.Type.Field.defineField
+import morphir.ir.Type.{Type => IrType, UType}
+import morphir.ir.Value.Pattern.LiteralPattern
+import morphir.ir.Value.Value.{Unit => UnitType, _}
+import morphir.ir.Value.{Definition => ValueDefinition, Pattern, TypedValue}
+import morphir.ir.sdk.Basics.{floatType, intType}
+import morphir.ir.{Literal => Lit}
+import morphir.testing.MorphirBaseSpec
 import zio.test._
 
 object ValueModuleSpec extends MorphirBaseSpec {
@@ -17,7 +17,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
   def listType(itemType: UType): UType = IrType.reference(FQName.fromString("Morphir.SDK:List:List"), itemType)
   val stringType: UType                = sdk.String.stringType
 
-  def spec: ZSpec[Environment, Any] = suite("Value Module")(
+  def spec = suite("Value Module")(
     suite("Collect Variables should return as expected for:")(
       test("Apply") {
         val ff     = fieldFunction("age")
@@ -29,9 +29,9 @@ object ValueModuleSpec extends MorphirBaseSpec {
         )
       },
       test("Constructor") {
-        val fqName = zio.morphir.ir.FQName(
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
+        val fqName = morphir.ir.FQName(
+          morphir.ir.Path(Name("Morphir.SDK")),
+          morphir.ir.Path(Name("Morphir.SDK")),
           Name("RecordType")
         )
         val constr = constructor(fqName)
@@ -148,9 +148,9 @@ object ValueModuleSpec extends MorphirBaseSpec {
       },
       test("Reference") {
         val ref = reference(
-          zio.morphir.ir.FQName(
-            zio.morphir.ir.Path(Name("Morphir.SDK")),
-            zio.morphir.ir.Path(Name("Morphir.SDK")),
+          morphir.ir.FQName(
+            morphir.ir.Path(Name("Morphir.SDK")),
+            morphir.ir.Path(Name("Morphir.SDK")),
             Name("RecordType")
           )
         )
@@ -210,18 +210,18 @@ object ValueModuleSpec extends MorphirBaseSpec {
         )
       },
       test("Constructor") {
-        val fqName = zio.morphir.ir.FQName(
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
+        val fqName = morphir.ir.FQName(
+          morphir.ir.Path(Name("Morphir.SDK")),
+          morphir.ir.Path(Name("Morphir.SDK")),
           Name("RecordType")
         )
         val constr = constructor(fqName)
         assertTrue(constr.collectReferences == Set[FQName]())
       },
       test("Destructure") {
-        val fq = zio.morphir.ir.FQName(
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
+        val fq = morphir.ir.FQName(
+          morphir.ir.Path(Name("Morphir.SDK")),
+          morphir.ir.Path(Name("Morphir.SDK")),
           Name("RecordType")
         )
         val des = destructure(
@@ -235,9 +235,9 @@ object ValueModuleSpec extends MorphirBaseSpec {
         val name = Name.fromString("Name")
         val fi   = field(string("String"), name)
 
-        val fqName = zio.morphir.ir.FQName(
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
+        val fqName = morphir.ir.FQName(
+          morphir.ir.Path(Name("Morphir.SDK")),
+          morphir.ir.Path(Name("Morphir.SDK")),
           Name("RecordType")
         )
         val name2 = Name.fromString("Name3")
@@ -254,14 +254,14 @@ object ValueModuleSpec extends MorphirBaseSpec {
         assertTrue(ff.collectReferences == Set[FQName]())
       },
       test("IfThenElse") {
-        val fqName = zio.morphir.ir.FQName(
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
+        val fqName = morphir.ir.FQName(
+          morphir.ir.Path(Name("Morphir.SDK")),
+          morphir.ir.Path(Name("Morphir.SDK")),
           Name("RecordType")
         )
-        val fqName2 = zio.morphir.ir.FQName(
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
+        val fqName2 = morphir.ir.FQName(
+          morphir.ir.Path(Name("Morphir.SDK")),
+          morphir.ir.Path(Name("Morphir.SDK")),
           Name("VariableType")
         )
         val ife = ifThenElse(
@@ -272,9 +272,9 @@ object ValueModuleSpec extends MorphirBaseSpec {
         assertTrue(ife.collectReferences == Set(fqName, fqName2))
       },
       test("Lambda") {
-        val fqName = zio.morphir.ir.FQName(
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
+        val fqName = morphir.ir.FQName(
+          morphir.ir.Path(Name("Morphir.SDK")),
+          morphir.ir.Path(Name("Morphir.SDK")),
           Name("RecordType")
         )
 
@@ -363,9 +363,9 @@ object ValueModuleSpec extends MorphirBaseSpec {
         assertTrue(pm.collectReferences == Set(fq, fq2))
       },
       test("Reference") {
-        val fq = zio.morphir.ir.FQName(
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
+        val fq = morphir.ir.FQName(
+          morphir.ir.Path(Name("Morphir.SDK")),
+          morphir.ir.Path(Name("Morphir.SDK")),
           Name("RecordType")
         )
         val ref = reference(fq)
@@ -427,9 +427,9 @@ object ValueModuleSpec extends MorphirBaseSpec {
         assertTrue(in.toRawValue == Apply.Raw(function.toRawValue, Lit.float(2.0f).toRawValue))
       },
       test("Constructor") {
-        val fqName = zio.morphir.ir.FQName(
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
-          zio.morphir.ir.Path(Name("Morphir.SDK")),
+        val fqName = morphir.ir.FQName(
+          morphir.ir.Path(Name("Morphir.SDK")),
+          morphir.ir.Path(Name("Morphir.SDK")),
           Name("RecordType")
         )
         val typeRef = IrType.reference(fqName)
@@ -570,7 +570,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
       test("Reference") {
 
         val intTypeName = FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:Int")
-        val ref         = Reference(zio.morphir.ir.sdk.Basics.intType, intTypeName)
+        val ref         = Reference(morphir.ir.sdk.Basics.intType, intTypeName)
         assertTrue(ref.toRawValue == Reference.Raw(intTypeName))
       },
       test("Record") {

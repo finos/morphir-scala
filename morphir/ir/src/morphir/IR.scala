@@ -1,9 +1,9 @@
-package zio.morphir
+package morphir
 
 import zio.Chunk
-import zio.morphir.IR.TypeConstructorInfo
-import zio.morphir.ir.Type.{Specification, Type, UType}
-import zio.morphir.ir.{Distribution, FQName, Name, PackageModule, Value}
+import morphir.IR.TypeConstructorInfo
+import morphir.ir.Type.{Specification, Type, UType}
+import morphir.ir.{Distribution, FQName, Name, PackageModule, Value}
 
 final case class IR(
     valueSpecifications: Map[FQName, Value.Specification.Raw],

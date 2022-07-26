@@ -1,10 +1,10 @@
-package zio.morphir.ir
+package morphir.ir
 
-import zio.morphir.ir.Module.ModuleName
-import zio.morphir.ir.PackageModule.{Definition, Specification}
-import zio.morphir.ir.Type.UType
-import zio.morphir.samples.ModuleExample.*
-import zio.morphir.testing.MorphirBaseSpec
+import morphir.ir.Module.ModuleName
+import morphir.ir.PackageModule.{Definition, Specification}
+import morphir.ir.Type.UType
+import morphir.samples.ModuleExample.*
+import morphir.testing.MorphirBaseSpec
 import zio.test.*
 
 object PackageModuleSpec extends MorphirBaseSpec {
@@ -28,7 +28,7 @@ object PackageModuleSpec extends MorphirBaseSpec {
 
   val packageSpec: Specification[Any] = Specification(packageSpecModules)
 
-  def spec: ZSpec[Environment, Any] = suite("Package")(
+  def spec = suite("Package")(
     suite("Definitions")(
       test("can convert to Specification") {
         // todo add back when TypeModule.toSpec is implemented

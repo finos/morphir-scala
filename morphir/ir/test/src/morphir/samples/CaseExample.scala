@@ -1,14 +1,14 @@
-package zio.morphir.testing
+package morphir.testing
 
 import zio.Chunk
-import zio.morphir.Dsl
-import zio.morphir.IR.TypeConstructorInfo
-import zio.morphir.ir.Type.{Type, UType}
-import zio.morphir.ir.Value.{Definition => ValueDefinition, RawValue}
-import zio.morphir.ir.sdk.Basics.{add, intType, subtract}
-import zio.morphir.ir.sdk.{String => StringModule}
-import zio.morphir.ir.{FQName, Name, Path}
-import zio.morphir.syntax.AllSyntax
+import morphir.Dsl
+import morphir.IR.TypeConstructorInfo
+import morphir.ir.Type.{Type, UType}
+import morphir.ir.Value.{Definition => ValueDefinition, RawValue}
+import morphir.ir.sdk.Basics.{add, intType, subtract}
+import morphir.ir.sdk.{String => StringModule}
+import morphir.ir.{FQName, Name, Path}
+import morphir.syntax.AllSyntax
 
 object CaseExample extends AllSyntax {
   private val intValueDef = valueDef(intType)
@@ -275,11 +275,11 @@ object CaseExample extends AllSyntax {
   )
 
   val personName: FQName =
-    zio.morphir.ir.FQName(zio.morphir.ir.Path(Name("")), zio.morphir.ir.Path(Name("")), Name("Person"))
+    morphir.ir.FQName(morphir.ir.Path(Name("")), morphir.ir.Path(Name("")), Name("Person"))
   lazy val recordTypeName: FQName =
-    zio.morphir.ir.FQName(
-      zio.morphir.ir.Path(Name("Morphir.SDK")),
-      zio.morphir.ir.Path(Name("Morphir.SDK")),
+    morphir.ir.FQName(
+      morphir.ir.Path(Name("Morphir.SDK")),
+      morphir.ir.Path(Name("Morphir.SDK")),
       Name("RecordType")
     )
 
@@ -288,8 +288,8 @@ object CaseExample extends AllSyntax {
     define.field(Name("age"), Type.unit)
   )
 
-  lazy val recordTypeAliasSpecification: zio.morphir.ir.Type.Specification.TypeAliasSpecification[Any] =
-    zio.morphir.ir.Type.Specification.TypeAliasSpecification[Any](
+  lazy val recordTypeAliasSpecification: morphir.ir.Type.Specification.TypeAliasSpecification[Any] =
+    morphir.ir.Type.Specification.TypeAliasSpecification[Any](
       typeParams = Chunk.empty,
       expr = recordType
     )
