@@ -1,12 +1,12 @@
 package morphir.ir
 
-import morphir.ir.Module.ModulePath
+import morphir.ir.Module.{ModuleName, ModulePath}
 import morphir.testing.MorphirBaseSpec
 import zio.test.Assertion.*
 import zio.test.*
 
 object FQNameSpec extends MorphirBaseSpec {
-  def spec = suite("FQName")(
+  def spec = suite("FQNameSpec")(
     suite("Create a FQName:")(
       test("By using a string") {
         assertTrue(
@@ -157,6 +157,13 @@ object FQNameSpec extends MorphirBaseSpec {
           assert(FQName.fromString("::"))(throwsA[ParserError]) &&
           assert(FQName.fromString(";;", ";"))(throwsA[ParserError])
       )
+    ), suite("getModuleName")(
+      test("When Path and LocalName are compound"){
+        val sut = FQName.fromString(":morphir.sdk:local.date")
+        assertTrue(
+          sut.getModuleName == ModuleName(Path.fromString("morphir.sdk"), Name.fromString("LocalDate"))
+        )
+      }
     )
   )
 }

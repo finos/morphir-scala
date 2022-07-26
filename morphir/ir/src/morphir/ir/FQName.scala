@@ -6,7 +6,7 @@ final case class FQName(packagePath: PackageName, modulePath: ModulePath, localN
   def getPackagePath: Path = packagePath.toPath
   def getModulePath: Path  = modulePath.toPath
 
-  def getModuleName: ModuleName = modulePath.toModuleName
+  def getModuleName: ModuleName = ModuleName(modulePath.toPath, localName)
 
   def toReferenceName: String = Seq(
     Path.toString(Name.toTitleCase, ".", packagePath.toPath),
@@ -54,6 +54,9 @@ object FQName {
   /** Convenience function to create a fully-qualified name from 1 string with defaults for package and module */
   def fqn(localName: String)(implicit options: FQNamingOptions): FQName =
     FQName(options.defaultPackage, options.defaultModule, Name.fromString(localName))
+
+  def fqn(moduleName:ModuleName)(implicit options:FQNamingOptions):FQName =
+    FQName(options.defaultPackage, ModulePath(moduleName.namespace), moduleName.localName)
 
   def toString(fqName: FQName): String = fqName.toString
 
