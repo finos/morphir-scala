@@ -157,8 +157,9 @@ object FQNameSpec extends MorphirBaseSpec {
           assert(FQName.fromString("::"))(throwsA[ParserError]) &&
           assert(FQName.fromString(";;", ";"))(throwsA[ParserError])
       )
-    ), suite("getModuleName")(
-      test("When Path and LocalName are compound"){
+    ),
+    suite("getModuleName")(
+      test("When Path and LocalName are compound") {
         val sut = FQName.fromString(":morphir.sdk:local.date")
         assertTrue(
           sut.getModuleName == ModuleName(Path.fromString("morphir.sdk"), Name.fromString("LocalDate"))

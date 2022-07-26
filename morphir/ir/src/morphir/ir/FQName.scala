@@ -55,7 +55,7 @@ object FQName {
   def fqn(localName: String)(implicit options: FQNamingOptions): FQName =
     FQName(options.defaultPackage, options.defaultModule, Name.fromString(localName))
 
-  def fqn(moduleName:ModuleName)(implicit options:FQNamingOptions):FQName =
+  def fqn(moduleName: ModuleName)(implicit options: FQNamingOptions): FQName =
     FQName(options.defaultPackage, ModulePath(moduleName.namespace), moduleName.localName)
 
   def toString(fqName: FQName): String = fqName.toString
