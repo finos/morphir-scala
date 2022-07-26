@@ -36,8 +36,10 @@ IntelliJ project files via:
 If you are using Visual Studio Code, IntelliJ, or any of the Editors which support BSP you can also generate BSP config files via:
 
 ```bash
-./mill mill.contrib.Bloop/install
+./mill --mill-version 0.10.5 --import ivy:com.lihaoyi::mill-contrib-bloop: mill.contrib.Bloop/instal
 ```
+
+
 
 ### Run Tests
 
@@ -89,7 +91,7 @@ IntelliJ project files via:
 If you are using Visual Studio Code, IntelliJ, or any of the Editors which support BSP you can also generate BSP config files via:
 
 ```
-.\mill -i mill.contrib.Bloop/install
+.\mill -i --import ivy:com.lihaoyi::mill-contrib-bloop:  mill.contrib.bloop.Bloop/install
 ```
 
 ### Run Tests
