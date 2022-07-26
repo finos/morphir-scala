@@ -8,10 +8,13 @@ import Contexts._
 
 class GenMorphirIR(settings:GenMorphirIR.Settings) extends PluginPhase:
   override val description = GenMorphirIR.description
-  override val phaseName = GenMorphirIR.name  
+  override val phaseName = GenMorphirIR.name
+
+  override val runsAfter = Set(transform.MoveStatics.name)
+  override val runsBefore = Set(backend.jvm.GenBCode.name)
 
   override def run(using Context):Unit = 
-    MIRCodeGen(settings).run()
+    MirCodeGen(settings).run()
 
 
 object GenMorphirIR:

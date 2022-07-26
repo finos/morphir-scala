@@ -23,7 +23,7 @@ object morphir extends Module {
   object corelib extends MorphirScalaModule with MorphirPublishModule {
     def scalaVersion     = morphirScalaVersion
     def moduleDeps       = Seq(annotation(morphirScalaVersion))
-    def morphirPluginJar = T(mscplugin.jar())
+    def morphirPluginJar = T(mscplugin.assembly())
 
     override def scalacOptions = T {
       val pluginJarPath = morphirPluginJar().path
