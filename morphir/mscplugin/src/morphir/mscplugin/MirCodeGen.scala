@@ -53,6 +53,7 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context):
         println("====================================================")
         println()
 
+        genIRFile(cunit, moduleFQN, moduleDef)
       else
         println(i"Here: ${typeDef.symbol.name}")
   end genCompilationUnit
