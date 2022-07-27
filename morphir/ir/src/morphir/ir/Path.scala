@@ -43,7 +43,8 @@ object Path {
   def apply(first: Name, rest: Name*): Path =
     wrap((first +: rest).toList)
 
-  private def wrap(value: List[Name]): Path = Path(Chunk.fromIterable(value))
+  private[morphir] def wrap(value: List[Name]): Path  = Path(Chunk.fromIterable(value))
+  private[morphir] def wrap(value: Array[Name]): Path = Path(Chunk.fromIterable(value))
 
   def fromString(str: String): Path = {
     val separatorRegex = """[^\w\s]+""".r
