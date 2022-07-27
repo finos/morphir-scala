@@ -67,12 +67,11 @@ object MirFileSupportSpec extends MorphirBaseSpec {
       }
     ),
     suite("morphir.ir.file.MirFileFormatVersion")(
-
       test("Supports roundtrip CBOR encoding/decoding of a MirFileFormatVersion") {
-        val sut = MirFileFormatVersion(2,13,9)
-        val encoded = Cbor.encode(sut)
+        val sut          = MirFileFormatVersion(2, 13, 9)
+        val encoded      = Cbor.encode(sut)
         val encodedBytes = encoded.toByteArray
-        val decoded = Cbor.decode(encodedBytes).to[MirFileFormatVersion].valueEither
+        val decoded      = Cbor.decode(encodedBytes).to[MirFileFormatVersion].valueEither
         assertTrue(
           decoded == Right(sut)
         )
@@ -80,12 +79,12 @@ object MirFileSupportSpec extends MorphirBaseSpec {
     ),
     suite("morphir.ir.file.MirFileHeader")(
       test("Supports roundtrip CBOR encoding/decoding of a MirFileHeader") {
-        val version = MirFileFormatVersion(2, 13, 9)
-        val moduleName = ModuleName(Path.fromString("morphir.ir"), Name.fromString("FQName"))
-        val sut = MirFileHeader(version, moduleName)
-        val encoded = Cbor.encode(sut)
+        val version      = MirFileFormatVersion(2, 13, 9)
+        val moduleName   = ModuleName(Path.fromString("morphir.ir"), Name.fromString("FQName"))
+        val sut          = MirFileHeader(version, moduleName)
+        val encoded      = Cbor.encode(sut)
         val encodedBytes = encoded.toByteArray
-        val decoded = Cbor.decode(encodedBytes).to[MirFileHeader].valueEither
+        val decoded      = Cbor.decode(encodedBytes).to[MirFileHeader].valueEither
         assertTrue(
           decoded == Right(sut)
         )
@@ -93,13 +92,13 @@ object MirFileSupportSpec extends MorphirBaseSpec {
     ),
     suite("morphir.ir.file.MirFile")(
       test("Supports roundtrip CBOR encoding/decoding of a MirFile") {
-        val version = MirFileFormatVersion(0, 1, 2)
-        val moduleName = ModuleName(Path.fromString("morphir.ir"), Name.fromString("QName"))
-        val header = MirFileHeader(version, moduleName)
-        val sut = MirFile(header = header)
-        val encoded = Cbor.encode(sut).withPrintLogging()
+        val version      = MirFileFormatVersion(0, 1, 2)
+        val moduleName   = ModuleName(Path.fromString("morphir.ir"), Name.fromString("QName"))
+        val header       = MirFileHeader(version, moduleName)
+        val sut          = MirFile(header = header)
+        val encoded      = Cbor.encode(sut).withPrintLogging()
         val encodedBytes = encoded.toByteArray
-        val decoded = Cbor.decode(encodedBytes).to[MirFile].valueEither
+        val decoded      = Cbor.decode(encodedBytes).to[MirFile].valueEither
         assertTrue(
           decoded == Right(sut)
         )

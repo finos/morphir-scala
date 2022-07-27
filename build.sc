@@ -36,7 +36,7 @@ object morphir extends Module {
   }
 
   object ir extends mill.Cross[IrModule](ScalaVersions.all: _*) {
-    object codec extends MorphirScalaModule {
+    object codec extends MorphirScalaModule with MorphirPublishModule {
 
       private val morphirScalaVersion = ScalaVersions.scala3x
 
@@ -72,7 +72,7 @@ object morphir extends Module {
     private val morphirScalaVersion = ScalaVersions.scala3x
     def scalaVersion                = morphirScalaVersion
     def ivyDeps                     = self.compilerPluginDependencies(morphirScalaVersion)
-    def moduleDeps                  = Seq(morphir.ir(morphirScalaVersion))
+    def moduleDeps                  = Seq(morphir.ir(morphirScalaVersion), morphir.ir.codec)
     def crossFullScalaVersion       = true
 
     object test extends Tests with MorphirTestModule {}
