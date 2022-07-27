@@ -78,7 +78,9 @@ object Name {
 
   val empty: Name = Name(Nil)
 
-  private def wrap(value: List[String]): Name = Name(value)
+  private[morphir] def wrap(value: List[String]): Name = Name(value)
+  private[morphir] def wrap(value: Array[String]): Name = Name(value.toList)
+  
 
   def apply(first: String, rest: String*): Name =
     fromIterable(first +: rest)

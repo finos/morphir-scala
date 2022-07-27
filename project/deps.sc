@@ -22,13 +22,21 @@ object Deps {
     }
   }
   case object io {
+    case object bullet {
+      def `borer-core`(scalaVersion:String):Dep = ivy"io.bullet::borer-core::${Versions.borer(scalaVersion)}"
+      def `borer-core`(scalaVersionParts:Seq[String]):Dep = ivy"io.bullet::borer-core::${Versions.borer(scalaVersionParts)}"
+
+      def `borer-derivation`(scalaVersion: String):Dep = ivy"io.bullet::borer-derivation::${Versions.borer(scalaVersion)}"
+
+      def `borer-derivation`(scalaVersionParts: Seq[String]):Dep = ivy"io.bullet::borer-derivation::${Versions.borer(scalaVersionParts)}"
+    }
     case object lemonlabs {
       val `scala-uri` = ivy"io.lemonlabs::scala-uri:4.0.2"
     }
   }
   case object org {
     case object `scala-lang` {
-      def `scala3-compiler`(scalaVersion: String) = ivy"org.scala-lang::scala3-compiler:$scalaVersion"
+      def `scala3-compiler`(scalaVersion: String):Dep = ivy"org.scala-lang::scala3-compiler:$scalaVersion"
     }
     case object scalameta {
       val munit: mill.scalalib.Dep = ivy"org.scalameta::munit::${Versions.munit}"
@@ -41,6 +49,15 @@ object Deps {
 }
 
 object Versions {
+  def borer(scalaVersion:String):String =
+    borer(scalaVersion.split('.'))
+  def borer(scalaVersionParts:Seq[String]):String =
+    scalaVersionParts match {
+      case Seq("3", _, _) => "1.10.0"
+      case Seq("2", "13", _) => "1.8.0"
+      case _ => "1.6.3"
+    }
+
   val munit         = "1.0.0-M4"
   val zio           = "2.0.0"
   val `zio-prelude` = "1.0.0-RC15"
