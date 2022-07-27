@@ -35,7 +35,20 @@ object morphir extends Module {
     object test extends Tests with MorphirTestModule {}
   }
 
-  object ir extends mill.Cross[IrModule](ScalaVersions.all: _*)
+  object ir extends mill.Cross[IrModule](ScalaVersions.all: _*) {
+    object codec extends MorphirScalaModule with MorphirPublishModule {
+
+      private val morphirScalaVersion = ScalaVersions.scala3x
+
+      def scalaVersion = morphirScalaVersion
+      def ivyDeps = Agg(io.bullet.`borer-core`(morphirScalaVersion), io.bullet.`borer-derivation`(morphirScalaVersion))
+      def moduleDeps = Seq(ir(morphirScalaVersion))
+
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(ir(morphirScalaVersion).test)
+      }
+    }
+  }
 
   class IrModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
     def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`)
@@ -59,7 +72,7 @@ object morphir extends Module {
     private val morphirScalaVersion = ScalaVersions.scala3x
     def scalaVersion                = morphirScalaVersion
     def ivyDeps                     = self.compilerPluginDependencies(morphirScalaVersion)
-    def moduleDeps = Seq(morphir.ir(morphirScalaVersion))
+    def moduleDeps                  = Seq(morphir.ir(morphirScalaVersion), morphir.ir.codec)
     def crossFullScalaVersion       = true
 
     object test extends Tests with MorphirTestModule {}

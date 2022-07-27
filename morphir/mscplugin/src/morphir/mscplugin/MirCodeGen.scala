@@ -14,9 +14,11 @@ import dotty.tools.dotc.printing.Printer
 import morphir.ir.FQName
 import morphir.ir.Module.Definition as MorphirModuleDef
 import morphir.ir.module.ModuleName
+import morphir.ir.file.format.MirFile
 
-import scala.collection.mutable
-import scala.language.implicitConversions
+import io.bullet.borer.{Cbor, Output}
+import morphir.ir.MirFileSupport.given
+import java.io.OutputStream
 
 class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context):
   import tpd._
@@ -46,14 +48,14 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context):
     for (typeDef <- allTypeDefs)
       if (typeDef.symbol.is(ModuleClass))
         val (moduleFQN, moduleDef) = genModuleData(typeDef)
+        val mirFile = MirFile(moduleFQN.getModuleName)
         println("====================================================")
         println(i"Module: ${typeDef.symbol}")
         println("----------------------------------------------------")
         println(i"ModuleName: ${moduleFQN.getModuleName}")
         println("====================================================")
-        println()
-
-        genIRFile(cunit, moduleFQN, moduleDef)
+        println()      
+        genIRFile(cunit, moduleFQN, moduleDef, mirFile)
       else
         println(i"Here: ${typeDef.symbol.name}")
   end genCompilationUnit
@@ -67,14 +69,17 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context):
     (fqn, MorphirModuleDef.empty)
   end genModuleData
 
-  private def genIRFile(cunit:CompilationUnit, fqn:FQName, moduleDef:MorphirModuleDef[Any,Any]):Unit =
+
+  private def genIRFile(cunit:CompilationUnit, fqn:FQName, moduleDef:MorphirModuleDef[Any,Any], mirFile:MirFile):Unit =
     val outfile = getFileFor(cunit, fqn.getModuleName, ".mir")
-    val output = outfile.bufferedOutput
+    val output:OutputStream = outfile.bufferedOutput
     try {
+      Cbor.encode(mirFile).to(output).result
     }
     finally {
       output.close()
     }
+  end genIRFile
 
   private def getFileFor(cunit: CompilationUnit, moduleName:ModuleName, suffix:String): dotty.tools.io.AbstractFile =
     val outputDirectory = ctx.settings.outputDir.value
