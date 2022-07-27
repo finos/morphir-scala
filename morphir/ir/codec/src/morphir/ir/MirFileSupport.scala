@@ -12,10 +12,10 @@ trait MirFileSupport:
   given Encoder[Path] = Encoder.forArray[Name].contramap(_.toList.toArray)
   given Decoder[Path] = Decoder.forArray[Name].map(Path.wrap(_))
 
-  given Codec[ModuleName] = deriveCodec[ModuleName]
+  given Codec[ModuleName]           = deriveCodec[ModuleName]
   given Codec[MirFileFormatVersion] = deriveCodec[MirFileFormatVersion]
 
   given Codec[MirFileHeader] = deriveCodec[MirFileHeader]
-  given Codec[MirFile] = deriveCodec[MirFile]
+  given Codec[MirFile]       = deriveCodec[MirFile]
 
 object MirFileSupport extends MirFileSupport
