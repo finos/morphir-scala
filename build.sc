@@ -39,7 +39,7 @@ object morphir extends Module {
   object core extends mill.Cross[CoreModule](ScalaVersions.all: _*) {
     object codec extends MorphirScalaModule with MorphirPublishModule {
 
-      def crossScalaVersion = ScalaVersions.scala3x
+      def crossScalaVersion = morphirScalaVersion
 
       def ivyDeps = Agg(io.bullet.`borer-core`(morphirScalaVersion), io.bullet.`borer-derivation`(morphirScalaVersion))
       def moduleDeps = Seq(core(morphirScalaVersion))
@@ -51,20 +51,25 @@ object morphir extends Module {
   }
 
   class CoreModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-    def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`)
+    def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`, io.lemonlabs.`scala-uri`)
+    object test extends Tests with MorphirTestModule {}
+  }
+
+  object internal extends Module {
+    object util extends MorphirScalaModule {
+      def crossScalaVersion = morphirScalaVersion
+      object test extends Tests with MorphirTestModule {}
+    }
+  }
+  object ir extends MorphirScalaModule with MorphirPublishModule {
+    def crossScalaVersion = morphirScalaVersion
     object test extends Tests with MorphirTestModule {}
   }
 
   object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
   class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
     def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
-    def moduleDeps = Seq(ld(crossScalaVersion))
-    object test extends Tests with MorphirTestModule {}
-  }
-
-  object ld extends mill.Cross[LdModule](ScalaVersions.all: _*) {}
-  class LdModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
-    def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`, io.lemonlabs.`scala-uri`)
+    def moduleDeps = Seq(core(crossScalaVersion))
     object test extends Tests with MorphirTestModule {}
   }
 

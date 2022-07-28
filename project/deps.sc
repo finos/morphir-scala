@@ -57,7 +57,7 @@ object Versions {
 
   def borer(scalaVersionParts: Seq[String]): String =
     scalaVersionParts match {
-      case Seq("3", _, _)    => "1.10.0"
+      case Seq("3", _, _)    => "1.10.1"
       case Seq("2", "13", _) => "1.8.0"
       case _                 => "1.6.3"
     }
