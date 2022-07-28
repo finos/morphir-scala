@@ -5,6 +5,7 @@ import $file.project.modules.shared,
 shared.{MorphirCrossScalaModule, MorphirScalaModule, MorphirTestModule, MorphirPublishModule}
 import $ivy.`io.chris-kipp::mill-github-dependency-graph::0.1.1`
 import mill._, scalalib._, scalafmt._
+
 import Deps._
 
 object morphir extends Module {
@@ -21,9 +22,9 @@ object morphir extends Module {
   }
 
   object corelib extends MorphirScalaModule with MorphirPublishModule {
-    def scalaVersion     = morphirScalaVersion
-    def moduleDeps       = Seq(annotation(morphirScalaVersion))
-    def morphirPluginJar = T(mscplugin.assembly())
+    def crossScalaVersion = morphirScalaVersion
+    def moduleDeps        = Seq(annotation(morphirScalaVersion))
+    def morphirPluginJar  = T(mscplugin.assembly())
 
     override def scalacOptions = T {
       val pluginJarPath = morphirPluginJar().path
@@ -35,22 +36,21 @@ object morphir extends Module {
     object test extends Tests with MorphirTestModule {}
   }
 
-  object ir extends mill.Cross[IrModule](ScalaVersions.all: _*) {
+  object core extends mill.Cross[CoreModule](ScalaVersions.all: _*) {
     object codec extends MorphirScalaModule with MorphirPublishModule {
 
-      private val morphirScalaVersion = ScalaVersions.scala3x
+      def crossScalaVersion = ScalaVersions.scala3x
 
-      def scalaVersion = morphirScalaVersion
       def ivyDeps = Agg(io.bullet.`borer-core`(morphirScalaVersion), io.bullet.`borer-derivation`(morphirScalaVersion))
-      def moduleDeps = Seq(ir(morphirScalaVersion))
+      def moduleDeps = Seq(core(morphirScalaVersion))
 
       object test extends Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(ir(morphirScalaVersion).test)
+        def moduleDeps = super.moduleDeps ++ Seq(core(morphirScalaVersion).test)
       }
     }
   }
 
-  class IrModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
+  class CoreModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
     def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`)
     object test extends Tests with MorphirTestModule {}
   }
@@ -69,16 +69,16 @@ object morphir extends Module {
   }
 
   object mscplugin extends MorphirScalaModule with MorphirPublishModule { self =>
-    private val morphirScalaVersion = ScalaVersions.scala3x
-    def scalaVersion                = morphirScalaVersion
-    def ivyDeps                     = self.compilerPluginDependencies(morphirScalaVersion)
-    def moduleDeps                  = Seq(morphir.ir(morphirScalaVersion), morphir.ir.codec)
-    def crossFullScalaVersion       = true
+    def crossScalaVersion     = ScalaVersions.scala3x
+    def scalaVersion          = morphirScalaVersion
+    def ivyDeps               = self.compilerPluginDependencies(morphirScalaVersion)
+    def moduleDeps            = Seq(morphir.core(morphirScalaVersion), morphir.core.codec)
+    def crossFullScalaVersion = true
 
     object test extends Tests with MorphirTestModule {}
     object itest extends Module {
       object basics extends MorphirScalaModule {
-        def scalaVersion = morphirScalaVersion
+        def crossScalaVersion = morphirScalaVersion
 
         def morphirPluginJar = T.input(mscplugin.jar())
 
