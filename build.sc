@@ -51,20 +51,14 @@ object morphir extends Module {
   }
 
   class CoreModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-    def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`)
+    def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`, io.lemonlabs.`scala-uri`)
     object test extends Tests with MorphirTestModule {}
   }
 
   object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
   class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
     def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
-    def moduleDeps = Seq(ld(crossScalaVersion))
-    object test extends Tests with MorphirTestModule {}
-  }
-
-  object ld extends mill.Cross[LdModule](ScalaVersions.all: _*) {}
-  class LdModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
-    def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`, io.lemonlabs.`scala-uri`)
+    def moduleDeps = Seq(core(crossScalaVersion))
     object test extends Tests with MorphirTestModule {}
   }
 
