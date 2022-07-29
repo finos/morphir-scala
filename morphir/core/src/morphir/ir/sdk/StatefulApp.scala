@@ -1,12 +1,12 @@
-package morphir.ir.sdk
+package morphir.mir.sdk
 
 import zio.Chunk
-import morphir.ir.Module
-import morphir.ir.Module.ModuleName
-import morphir.ir.Type.Constructors
-import morphir.ir.Type.Specification.CustomTypeSpecification
-import morphir.ir.Type.Type._
-import morphir.ir.sdk.Maybe.maybeType
+import morphir.mir.Module
+import morphir.mir.Module.ModuleName
+import morphir.mir.Type.Constructors
+import morphir.mir.Type.Specification.CustomTypeSpecification
+import morphir.mir.Type.Type._
+import morphir.mir.sdk.Maybe.maybeType
 import morphir.syntax.NamingSyntax._
 
 object StatefulApp {

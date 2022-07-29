@@ -1,7 +1,7 @@
-package morphir.ir.types.recursive
+package morphir.mir.types.recursive
 
 import zio.Chunk
-import morphir.ir.{FQName, Name}
+import morphir.mir.{FQName, Name}
 
 trait UnattributedTypeExprConstructors { self =>
 

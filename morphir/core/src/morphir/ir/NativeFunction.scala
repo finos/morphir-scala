@@ -1,4 +1,4 @@
-package morphir.ir
+package morphir.mir
 
 // def increment(x: Int): Int = x + 1
 

@@ -3,11 +3,11 @@ package morphir.testing
 import zio.Chunk
 import morphir.Dsl
 import morphir.IR.TypeConstructorInfo
-import morphir.ir.Type.{Type, UType}
-import morphir.ir.Value.{Definition => ValueDefinition, RawValue}
-import morphir.ir.sdk.Basics.{add, intType, subtract}
-import morphir.ir.sdk.{String => StringModule}
-import morphir.ir.{FQName, Name, Path}
+import morphir.mir.Type.{Type, UType}
+import morphir.mir.Value.{Definition => ValueDefinition, RawValue}
+import morphir.mir.sdk.Basics.{add, intType, subtract}
+import morphir.mir.sdk.{String => StringModule}
+import morphir.mir.{FQName, Name, Path}
 import morphir.syntax.AllSyntax
 
 object CaseExample extends AllSyntax {
@@ -275,11 +275,11 @@ object CaseExample extends AllSyntax {
   )
 
   val personName: FQName =
-    morphir.ir.FQName(morphir.ir.Path(Name("")), morphir.ir.Path(Name("")), Name("Person"))
+    morphir.mir.FQName(morphir.mir.Path(Name("")), morphir.mir.Path(Name("")), Name("Person"))
   lazy val recordTypeName: FQName =
-    morphir.ir.FQName(
-      morphir.ir.Path(Name("Morphir.SDK")),
-      morphir.ir.Path(Name("Morphir.SDK")),
+    morphir.mir.FQName(
+      morphir.mir.Path(Name("Morphir.SDK")),
+      morphir.mir.Path(Name("Morphir.SDK")),
       Name("RecordType")
     )
 
@@ -288,8 +288,8 @@ object CaseExample extends AllSyntax {
     define.field(Name("age"), Type.unit)
   )
 
-  lazy val recordTypeAliasSpecification: morphir.ir.Type.Specification.TypeAliasSpecification[Any] =
-    morphir.ir.Type.Specification.TypeAliasSpecification[Any](
+  lazy val recordTypeAliasSpecification: morphir.mir.Type.Specification.TypeAliasSpecification[Any] =
+    morphir.mir.Type.Specification.TypeAliasSpecification[Any](
       typeParams = Chunk.empty,
       expr = recordType
     )

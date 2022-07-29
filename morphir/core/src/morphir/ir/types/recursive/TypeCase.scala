@@ -1,5 +1,5 @@
-package morphir.ir.types.recursive
-import morphir.ir._
+package morphir.mir.types.recursive
+import morphir.mir._
 import zio.Chunk
 import zio.prelude._
 

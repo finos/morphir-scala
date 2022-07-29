@@ -1,6 +1,6 @@
-package morphir.ir.types.recursive
+package morphir.mir.types.recursive
 
-import morphir.ir.{FQName, Name, NeedsAttributes}
+import morphir.mir.{FQName, Name, NeedsAttributes}
 import zio.Chunk
 
 trait TypeExprConstructors { self =>

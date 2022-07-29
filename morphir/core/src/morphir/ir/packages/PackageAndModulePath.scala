@@ -1,5 +1,5 @@
-package morphir.ir.packages
-import morphir.ir.{FQName, ModulePath, Name}
+package morphir.mir.packages
+import morphir.mir.{FQName, ModulePath, Name}
 
 final case class PackageAndModulePath(packageName: PackageName, modulePath: ModulePath) {
   self =>

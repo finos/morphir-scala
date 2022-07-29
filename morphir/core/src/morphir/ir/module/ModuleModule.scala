@@ -1,27 +1,27 @@
-package morphir.ir.module
+package morphir.mir.module
 
-import morphir.ir.{Name, Value}
+import morphir.mir.{Name, Value}
 
 trait ModuleModule {
 
-  final type Definition[+TA, +VA] = morphir.ir.module.Definition[TA, VA]
-  final val Definition: morphir.ir.module.Definition.type = morphir.ir.module.Definition
+  final type Definition[+TA, +VA] = morphir.mir.module.Definition[TA, VA]
+  final val Definition: morphir.mir.module.Definition.type = morphir.mir.module.Definition
 
-  final type ModuleName = morphir.ir.module.ModuleName
-  final val ModuleName: morphir.ir.module.ModuleName.type = morphir.ir.module.ModuleName
+  final type ModuleName = morphir.mir.module.ModuleName
+  final val ModuleName: morphir.mir.module.ModuleName.type = morphir.mir.module.ModuleName
 
-  final type ModulePath = morphir.ir.module.ModulePath
-  final val ModulePath: morphir.ir.module.ModulePath.type = morphir.ir.module.ModulePath
+  final type ModulePath = morphir.mir.module.ModulePath
+  final val ModulePath: morphir.mir.module.ModulePath.type = morphir.mir.module.ModulePath
 
-  final type QualifiedModuleName = morphir.ir.module.QualifiedModuleName
-  final val QualifiedModuleName: morphir.ir.module.QualifiedModuleName.type =
-    morphir.ir.module.QualifiedModuleName
+  final type QualifiedModuleName = morphir.mir.module.QualifiedModuleName
+  final val QualifiedModuleName: morphir.mir.module.QualifiedModuleName.type =
+    morphir.mir.module.QualifiedModuleName
 
-  final type Specification[+TA] = morphir.ir.module.Specification[TA]
-  final val Specification: morphir.ir.module.Specification.type = morphir.ir.module.Specification
+  final type Specification[+TA] = morphir.mir.module.Specification[TA]
+  final val Specification: morphir.mir.module.Specification.type = morphir.mir.module.Specification
 
-  final type USpecification = morphir.ir.module.Specification[Any]
-  final val USpecification: morphir.ir.module.Specification.type = morphir.ir.module.Specification
+  final type USpecification = morphir.mir.module.Specification[Any]
+  final val USpecification: morphir.mir.module.Specification.type = morphir.mir.module.Specification
 
   final val emptyDefinition: Definition[Nothing, Nothing] = Definition.empty
   final val emptySpecification: Specification[Nothing]    = Specification.empty

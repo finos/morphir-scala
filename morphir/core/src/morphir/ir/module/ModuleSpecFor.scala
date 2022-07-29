@@ -1,4 +1,4 @@
-package morphir.ir.module
+package morphir.mir.module
 
 trait ModuleSpecFor[A] {
 

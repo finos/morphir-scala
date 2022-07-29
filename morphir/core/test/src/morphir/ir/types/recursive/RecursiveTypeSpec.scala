@@ -1,7 +1,7 @@
-package morphir.ir.types.recursive
+package morphir.mir.types.recursive
 
 import zio.Chunk
-import morphir.ir.{FQName, Name, Source}
+import morphir.mir.{FQName, Name, Source}
 import morphir.syntax.NamingSyntax
 import morphir.testing.MorphirBaseSpec
 import zio.test._

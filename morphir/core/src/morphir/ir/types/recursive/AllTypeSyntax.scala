@@ -1,3 +1,3 @@
-package morphir.ir.types.recursive
+package morphir.mir.types.recursive
 
 trait AllTypeSyntax extends TypeExprConstructors with UnattributedTypeExprConstructors with FieldSyntax

@@ -1,8 +1,8 @@
-package morphir.ir.sdk
+package morphir.mir.sdk
 
 import zio.Scope
-import morphir.ir.Type.Type
-import morphir.ir.{Gens, Path}
+import morphir.mir.Type.Type
+import morphir.mir.{Gens, Path}
 import morphir.testing.MorphirBaseSpec
 import zio.test._
 

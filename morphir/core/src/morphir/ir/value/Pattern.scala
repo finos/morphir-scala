@@ -1,8 +1,8 @@
-package morphir.ir.value
+package morphir.mir.value
 
 import zio.Chunk
-import morphir.ir.Type.UType
-import morphir.ir.{FQName, Literal, Name}
+import morphir.mir.Type.UType
+import morphir.mir.{FQName, Literal, Name}
 sealed trait Pattern[+A] { self =>
   import Pattern._
 

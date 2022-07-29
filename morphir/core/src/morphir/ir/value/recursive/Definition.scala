@@ -1,10 +1,10 @@
-package morphir.ir.value.recursive
+package morphir.mir.value.recursive
 
 import zio.Chunk
-import morphir.ir.Type.{Type, UType}
-import morphir.ir.value.Pattern.{AsPattern, WildcardPattern}
-import morphir.ir.value.Specification
-import morphir.ir.{InferredTypeOf, Literal, Name}
+import morphir.mir.Type.{Type, UType}
+import morphir.mir.value.Pattern.{AsPattern, WildcardPattern}
+import morphir.mir.value.Specification
+import morphir.mir.{InferredTypeOf, Literal, Name}
 import zio.prelude._
 
 final case class Definition[+TA, +VA](

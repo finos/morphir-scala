@@ -1,6 +1,6 @@
-package morphir.ir.packages
+package morphir.mir.packages
 
-import morphir.ir.{FQName, NativeFunction}
+import morphir.mir.{FQName, NativeFunction}
 
 trait PackageSpecFor[A] {
   import PackageModule._

@@ -1,5 +1,5 @@
-package morphir.ir
+package morphir.mir
 
-import morphir.ir.generator.LiteralGen
+import morphir.mir.generator.LiteralGen
 
 object Gens extends LiteralGen

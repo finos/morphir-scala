@@ -1,4 +1,4 @@
-package morphir.ir
+package morphir.mir
 
 import io.bullet.borer.{Codec, Json}
 import zio.test.*
@@ -6,13 +6,13 @@ import morphir.testing.MorphirBaseSpec
 import io.bullet.borer.Cbor
 import io.bullet.borer.EncodingSetup.Api
 import io.bullet.borer.Cbor.EncodingConfig
-import morphir.ir.file.format.{MirFile, MirFileFormatVersion, MirFileHeader}
-import morphir.ir.module.ModuleName
+import morphir.mir.file.format.{MirFile, MirFileFormatVersion, MirFileHeader}
+import morphir.mir.module.ModuleName
 
 object MirFileSupportSpec extends MorphirBaseSpec {
   import MirFileSupport.given
   val spec = suite("MirFileSupportSpec")(
-    suite("morphir.ir.Name")(
+    suite("morphir.mir.Name")(
       test("Supports encoding a Name") {
         val name    = Name.fromString("LocalDate")
         val encoded = Json.encode(name).toUtf8String
@@ -44,7 +44,7 @@ object MirFileSupportSpec extends MorphirBaseSpec {
         )
       }
     ),
-    suite("morphir.ir.Path")(
+    suite("morphir.mir.Path")(
       test("Supports roundtrip CBOR encoding/decoding of a Path") {
         val sut          = Path.fromString("java.lang.String")
         val encoded      = Cbor.encode(sut)
@@ -55,7 +55,7 @@ object MirFileSupportSpec extends MorphirBaseSpec {
         )
       }
     ),
-    suite("morphir.ir.ModuleName")(
+    suite("morphir.mir.ModuleName")(
       test("Supports roundtrip CBOR encoding/decoding of a ModuleName") {
         val sut          = ModuleName(Path.fromString("morphir.sdk"), Name.fromString("Bool"))
         val encoded      = Cbor.encode(sut)
@@ -66,7 +66,7 @@ object MirFileSupportSpec extends MorphirBaseSpec {
         )
       }
     ),
-    suite("morphir.ir.file.MirFileFormatVersion")(
+    suite("morphir.mir.file.MirFileFormatVersion")(
       test("Supports roundtrip CBOR encoding/decoding of a MirFileFormatVersion") {
         val sut          = MirFileFormatVersion(2, 13, 9)
         val encoded      = Cbor.encode(sut)
@@ -77,10 +77,10 @@ object MirFileSupportSpec extends MorphirBaseSpec {
         )
       }
     ),
-    suite("morphir.ir.file.MirFileHeader")(
+    suite("morphir.mir.file.MirFileHeader")(
       test("Supports roundtrip CBOR encoding/decoding of a MirFileHeader") {
         val version      = MirFileFormatVersion(2, 13, 9)
-        val moduleName   = ModuleName(Path.fromString("morphir.ir"), Name.fromString("FQName"))
+        val moduleName   = ModuleName(Path.fromString("morphir.mir"), Name.fromString("FQName"))
         val sut          = MirFileHeader(version, moduleName)
         val encoded      = Cbor.encode(sut)
         val encodedBytes = encoded.toByteArray
@@ -90,10 +90,10 @@ object MirFileSupportSpec extends MorphirBaseSpec {
         )
       }
     ),
-    suite("morphir.ir.file.MirFile")(
+    suite("morphir.mir.file.MirFile")(
       test("Supports roundtrip CBOR encoding/decoding of a MirFile") {
         val version      = MirFileFormatVersion(0, 1, 2)
-        val moduleName   = ModuleName(Path.fromString("morphir.ir"), Name.fromString("QName"))
+        val moduleName   = ModuleName(Path.fromString("morphir.mir"), Name.fromString("QName"))
         val header       = MirFileHeader(version, moduleName)
         val sut          = MirFile(header = header)
         val encoded      = Cbor.encode(sut).withPrintLogging()

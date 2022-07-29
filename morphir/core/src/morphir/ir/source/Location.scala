@@ -1,4 +1,4 @@
-package morphir.ir.source
+package morphir.mir.source
 import zio.prelude._
 final case class Location(row: Int, column: Int) {
   def offsetColumnBy(n: Int): Location =

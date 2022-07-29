@@ -1,35 +1,35 @@
-package morphir.ir.value.recursive
+package morphir.mir.value.recursive
 
-import morphir.ir.value.PatternConstructors
-import morphir.ir.{FQName, Name}
+import morphir.mir.value.PatternConstructors
+import morphir.mir.{FQName, Name}
 
 trait ValueModule extends ValueConstructors with PatternConstructors {
 
   import ValueModule.MapValueAttributesPartiallyApplied
 
-  final type Definition[+TA, +VA] = morphir.ir.value.recursive.Definition[TA, VA]
-  final val Definition: morphir.ir.value.recursive.Definition.type = morphir.ir.value.recursive.Definition
+  final type Definition[+TA, +VA] = morphir.mir.value.recursive.Definition[TA, VA]
+  final val Definition: morphir.mir.value.recursive.Definition.type = morphir.mir.value.recursive.Definition
 
-  final type ValueDefinition[+TA, +VA] = morphir.ir.value.recursive.Definition[TA, VA]
-  final val ValueDefinition: morphir.ir.value.recursive.Definition.type = morphir.ir.value.recursive.Definition
+  final type ValueDefinition[+TA, +VA] = morphir.mir.value.recursive.Definition[TA, VA]
+  final val ValueDefinition: morphir.mir.value.recursive.Definition.type = morphir.mir.value.recursive.Definition
 
-  final type Pattern[+A] = morphir.ir.value.Pattern[A]
-  final val Pattern: morphir.ir.value.Pattern.type = morphir.ir.value.Pattern
+  final type Pattern[+A] = morphir.mir.value.Pattern[A]
+  final val Pattern: morphir.mir.value.Pattern.type = morphir.mir.value.Pattern
 
-  final type RawValue = morphir.ir.value.recursive.Value.RawValue
-  final val RawValue: morphir.ir.value.recursive.Value.type = morphir.ir.value.recursive.Value
+  final type RawValue = morphir.mir.value.recursive.Value.RawValue
+  final val RawValue: morphir.mir.value.recursive.Value.type = morphir.mir.value.recursive.Value
 
-  final type Specification[+A] = morphir.ir.value.Specification[A]
-  final val Specification: morphir.ir.value.Specification.type = morphir.ir.value.Specification
+  final type Specification[+A] = morphir.mir.value.Specification[A]
+  final val Specification: morphir.mir.value.Specification.type = morphir.mir.value.Specification
 
-  final type TypedValue = morphir.ir.value.recursive.Value.TypedValue
-  final val TypedValue: morphir.ir.value.recursive.Value.type = morphir.ir.value.recursive.Value.TypedValue
+  final type TypedValue = morphir.mir.value.recursive.Value.TypedValue
+  final val TypedValue: morphir.mir.value.recursive.Value.type = morphir.mir.value.recursive.Value.TypedValue
 
-  final type USpecification = morphir.ir.value.USpecification
-  final val USpecification: morphir.ir.value.USpecification.type = morphir.ir.value.USpecification
+  final type USpecification = morphir.mir.value.USpecification
+  final val USpecification: morphir.mir.value.USpecification.type = morphir.mir.value.USpecification
 
-  final type Value[+TA, +VA] = morphir.ir.value.recursive.Value[TA, VA]
-  final val Value: morphir.ir.value.recursive.Value.type = morphir.ir.value.recursive.Value
+  final type Value[+TA, +VA] = morphir.mir.value.recursive.Value[TA, VA]
+  final val Value: morphir.mir.value.recursive.Value.type = morphir.mir.value.recursive.Value
 
   final def collectReferences[TA, VA](value: Value[TA, VA]): Set[FQName] = value.collectReferences
   final def collectVariables[TA, VA](value: Value[TA, VA]): Set[Name]    = value.collectVariables

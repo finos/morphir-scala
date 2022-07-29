@@ -3,7 +3,7 @@ package morphir
 // TODO:  Reintroduce later
 // import morphir.sdk.ResultModule
 
-package object ir {
+package object mir {
 
   // TODO:  Reintroduce later
   // type LiteralValue = Literal[Any]
@@ -29,8 +29,8 @@ package object ir {
 
   // TODO:  Reintroduce later
   final implicit class StringOps(private val self: String) extends AnyVal {
-    //   import morphir.ir.types.nonrecursive
-    import morphir.ir.types.recursive
+    //   import morphir.mir.types.nonrecursive
+    import morphir.mir.types.recursive
 
     def <:>[A](tpe: recursive.Type[A]): recursive.Field[recursive.Type[A]] =
       recursive.Field(Name.fromString(self), tpe)

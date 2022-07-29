@@ -1,7 +1,7 @@
-package morphir.ir.packages
+package morphir.mir.packages
 
-import morphir.ir.module._
-import morphir.ir.{FQName, Path}
+import morphir.mir.module._
+import morphir.mir.{FQName, Path}
 
 final case class PackageName(toPath: Path) { self =>
   def %(modulePath: ModulePath): PackageAndModulePath = PackageAndModulePath(self, modulePath)

@@ -1,8 +1,8 @@
-package morphir.ir.distribution
+package morphir.mir.distribution
 
 trait DistributionModule {
-  final type Distribution = morphir.ir.distribution.Distribution
-  final val Distribution: morphir.ir.distribution.Distribution.type = morphir.ir.distribution.Distribution
+  final type Distribution = morphir.mir.distribution.Distribution
+  final val Distribution: morphir.mir.distribution.Distribution.type = morphir.mir.distribution.Distribution
 }
 
 object DistributionModule extends DistributionModule

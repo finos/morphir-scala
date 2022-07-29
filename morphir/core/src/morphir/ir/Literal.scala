@@ -1,6 +1,6 @@
-package morphir.ir
-import morphir.ir.Type.UType
-import morphir.ir.Value.{RawValue, TypedValue}
+package morphir.mir
+import morphir.mir.Type.UType
+import morphir.mir.Value.{RawValue, TypedValue}
 
 import scala.language.implicitConversions
 

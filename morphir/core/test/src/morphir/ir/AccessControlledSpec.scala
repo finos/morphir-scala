@@ -1,4 +1,4 @@
-package morphir.ir
+package morphir.mir
 
 import morphir.testing.MorphirBaseSpec
 import zio.test._

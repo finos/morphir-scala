@@ -1,5 +1,5 @@
 package morphir.syntax
 
-import morphir.ir.types.recursive.AllTypeSyntax
+import morphir.mir.types.recursive.AllTypeSyntax
 
 object define extends AllTypeSyntax {}

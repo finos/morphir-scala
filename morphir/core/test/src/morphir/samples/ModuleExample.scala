@@ -2,12 +2,12 @@ package morphir.samples
 
 import zio.Chunk
 import morphir.Dsl.define
-import morphir.ir.Module.{Definition, Specification}
-import morphir.ir.Type.Definition.{CustomType, TypeAlias}
-import morphir.ir.Type.Specification.OpaqueTypeSpecification
-import morphir.ir.Type.{Constructors, UType}
-import morphir.ir.Value.ValueDefinition
-import morphir.ir.{AccessControlled, Documented, Literal => Lit, Name, Value, value}
+import morphir.mir.Module.{Definition, Specification}
+import morphir.mir.Type.Definition.{CustomType, TypeAlias}
+import morphir.mir.Type.Specification.OpaqueTypeSpecification
+import morphir.mir.Type.{Constructors, UType}
+import morphir.mir.Value.ValueDefinition
+import morphir.mir.{AccessControlled, Documented, Literal => Lit, Name, Value, value}
 
 object ModuleExample {
   val items: Map[Name, Chunk[(Name, UType)]] = Map {

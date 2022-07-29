@@ -1,3 +1,3 @@
-package morphir.ir
+package morphir.mir
 
-object PackageModule extends morphir.ir.packages.PackageModule
+object PackageModule extends morphir.mir.packages.PackageModule

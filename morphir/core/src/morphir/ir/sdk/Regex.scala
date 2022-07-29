@@ -1,10 +1,10 @@
-package morphir.ir.sdk
+package morphir.mir.sdk
 
 import zio.Chunk
-import morphir.ir.Module.ModuleName
-import morphir.ir.Type.Type.unit
-import morphir.ir.Value.Specification
-import morphir.ir.{Documented, Module, Name}
+import morphir.mir.Module.ModuleName
+import morphir.mir.Type.Type.unit
+import morphir.mir.Value.Specification
+import morphir.mir.{Documented, Module, Name}
 import morphir.syntax.NamingSyntax._
 
 object Regex {

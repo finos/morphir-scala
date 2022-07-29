@@ -1,9 +1,9 @@
-package morphir.ir
+package morphir.mir
 import io.bullet.borer.{Cbor, Codec, Decoder, Encoder, Json}
 import io.bullet.borer.derivation.key
 import io.bullet.borer.derivation.ArrayBasedCodecs.*
-import morphir.ir.file.format.{MirFile, MirFileFormatVersion, MirFileHeader}
-import morphir.ir.module.ModuleName
+import morphir.mir.file.format.{MirFile, MirFileFormatVersion, MirFileHeader}
+import morphir.mir.module.ModuleName
 
 trait MirFileSupport:
   given Encoder[Name] = Encoder.forArray[String].contramap[Name](_.toList.toArray)

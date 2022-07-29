@@ -1,14 +1,14 @@
-package morphir.ir.sdk
+package morphir.mir.sdk
 
 import zio.Chunk
-import morphir.ir.Module.ModuleName
-import morphir.ir.Type.Specification.CustomTypeSpecification
-import morphir.ir.Type.Type._
-import morphir.ir.Type.{Type, UConstructors, UType}
-import morphir.ir.Value.Value.{Apply, Constructor}
-import morphir.ir.Value.{RawValue, Value}
-import morphir.ir.sdk.Common._
-import morphir.ir.{Module, NeedsAttributes}
+import morphir.mir.Module.ModuleName
+import morphir.mir.Type.Specification.CustomTypeSpecification
+import morphir.mir.Type.Type._
+import morphir.mir.Type.{Type, UConstructors, UType}
+import morphir.mir.Value.Value.{Apply, Constructor}
+import morphir.mir.Value.{RawValue, Value}
+import morphir.mir.sdk.Common._
+import morphir.mir.{Module, NeedsAttributes}
 import morphir.syntax.NamingSyntax._
 
 object Maybe {

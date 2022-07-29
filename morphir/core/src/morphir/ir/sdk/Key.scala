@@ -1,11 +1,11 @@
-package morphir.ir.sdk
+package morphir.mir.sdk
 
-import morphir.ir.Module
-import morphir.ir.Module.ModuleName
-import morphir.ir.Type.Specification.OpaqueTypeSpecification
-import morphir.ir.Type.Type._
-import morphir.ir.Type.{Type, UType}
-import morphir.ir.sdk.Common._
+import morphir.mir.Module
+import morphir.mir.Module.ModuleName
+import morphir.mir.Type.Specification.OpaqueTypeSpecification
+import morphir.mir.Type.Type._
+import morphir.mir.Type.{Type, UType}
+import morphir.mir.sdk.Common._
 import morphir.syntax.NamingSyntax._
 
 object Key {

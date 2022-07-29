@@ -1,8 +1,8 @@
-package morphir.ir.value.recursive
+package morphir.mir.value.recursive
 
 import zio.Chunk
-import morphir.ir.Name
-import morphir.ir.Type.{Type, UType}
+import morphir.mir.Name
+import morphir.mir.Type.{Type, UType}
 
 trait DefinitionConstructors {
   import DefinitionConstructors._

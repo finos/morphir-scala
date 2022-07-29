@@ -1,7 +1,7 @@
-package morphir.ir.packages
-import morphir.ir.module.{ModuleName, Specification => ModuleSpec}
-import morphir.ir.value.{Specification => ValueSpec}
-import morphir.ir.{Name, Path}
+package morphir.mir.packages
+import morphir.mir.module.{ModuleName, Specification => ModuleSpec}
+import morphir.mir.value.{Specification => ValueSpec}
+import morphir.mir.{Name, Path}
 
 final case class Specification[+TA](modules: Map[ModuleName, ModuleSpec[TA]]) {
   self =>

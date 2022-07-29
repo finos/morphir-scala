@@ -1,6 +1,6 @@
 package morphir.syntax
 
-import morphir.ir.value.recursive.AllValueSyntax
+import morphir.mir.value.recursive.AllValueSyntax
 
 trait ValueSyntax extends AllValueSyntax {
   final val define = morphir.syntax.define

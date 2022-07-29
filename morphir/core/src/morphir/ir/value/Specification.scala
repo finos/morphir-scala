@@ -1,8 +1,8 @@
-package morphir.ir.value
+package morphir.mir.value
 
 import zio.Chunk
-import morphir.ir.Name
-import morphir.ir.Type.{Type, UType}
+import morphir.mir.Name
+import morphir.mir.Type.{Type, UType}
 
 final case class Specification[+TA](inputs: Chunk[(Name, Type[TA])], output: Type[TA]) { self =>
   def map[B](f: TA => B): Specification[B] =

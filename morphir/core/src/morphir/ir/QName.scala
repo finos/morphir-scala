@@ -1,4 +1,4 @@
-package morphir.ir
+package morphir.mir
 
 final case class QName(modulePath: Path, localName: Name) {
   @inline def toTuple: (Path, Name) = (modulePath, localName)

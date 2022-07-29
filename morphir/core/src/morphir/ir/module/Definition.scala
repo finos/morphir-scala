@@ -1,6 +1,6 @@
-package morphir.ir.module
+package morphir.mir.module
 
-import morphir.ir.{AccessControlled, Documented, FQName, Name, Type, Value}
+import morphir.mir.{AccessControlled, Documented, FQName, Name, Type, Value}
 
 import Type.Definition.{CustomType, TypeAlias}
 final case class Definition[+TA, +VA](

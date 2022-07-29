@@ -1,7 +1,7 @@
-package morphir.ir
+package morphir.mir
 
 package object packages {
 
-  final type USpecification = morphir.ir.packages.Specification[Any]
-  final val USpecification: morphir.ir.packages.Specification.type = morphir.ir.packages.Specification
+  final type USpecification = morphir.mir.packages.Specification[Any]
+  final val USpecification: morphir.mir.packages.Specification.type = morphir.mir.packages.Specification
 }

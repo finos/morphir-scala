@@ -1,8 +1,8 @@
-package morphir.ir.types.recursive
+package morphir.mir.types.recursive
 
 import zio.Chunk
-import morphir.ir.types.recursive.Definition
-import morphir.ir.{Documented, Name}
+import morphir.mir.types.recursive.Definition
+import morphir.mir.{Documented, Name}
 
 sealed trait Specification[+Attributes] { self =>
   import Specification._
@@ -26,7 +26,7 @@ sealed trait Specification[+Attributes] { self =>
   }
 }
 
-private[ir] object Specification {
+private[mir] object Specification {
 
   def mapSpecificationAttributes[A](spec: Specification[A]): MapSpecificationAttributes[A] =
     new MapSpecificationAttributes(() => spec)

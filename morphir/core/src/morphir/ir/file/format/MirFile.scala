@@ -1,6 +1,6 @@
-package morphir.ir.file.format
+package morphir.mir.file.format
 
-import morphir.ir.module.ModuleName
+import morphir.mir.module.ModuleName
 
 final case class MirFile(header: MirFileHeader)
 object MirFile {

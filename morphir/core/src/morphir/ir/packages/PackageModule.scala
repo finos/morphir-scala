@@ -1,25 +1,25 @@
-package morphir.ir.packages
+package morphir.mir.packages
 
 trait PackageModule {
 
-  final type Definition[+TA, +VA] = morphir.ir.packages.Definition[TA, VA]
-  final val Definition: morphir.ir.packages.Definition.type = morphir.ir.packages.Definition
+  final type Definition[+TA, +VA] = morphir.mir.packages.Definition[TA, VA]
+  final val Definition: morphir.mir.packages.Definition.type = morphir.mir.packages.Definition
 
-  final type PackageAndModulePath = morphir.ir.packages.PackageAndModulePath
-  final val PackageAndModulePath: morphir.ir.packages.PackageAndModulePath.type =
-    morphir.ir.packages.PackageAndModulePath
+  final type PackageAndModulePath = morphir.mir.packages.PackageAndModulePath
+  final val PackageAndModulePath: morphir.mir.packages.PackageAndModulePath.type =
+    morphir.mir.packages.PackageAndModulePath
 
-  final type PackageName = morphir.ir.packages.PackageName
-  final val PackageName: morphir.ir.packages.PackageName.type = morphir.ir.packages.PackageName
+  final type PackageName = morphir.mir.packages.PackageName
+  final val PackageName: morphir.mir.packages.PackageName.type = morphir.mir.packages.PackageName
 
-  final type PackageSpecFor[A] = morphir.ir.packages.PackageSpecFor[A]
-  final val PackageSpecFor: morphir.ir.packages.PackageSpecFor.type = morphir.ir.packages.PackageSpecFor
+  final type PackageSpecFor[A] = morphir.mir.packages.PackageSpecFor[A]
+  final val PackageSpecFor: morphir.mir.packages.PackageSpecFor.type = morphir.mir.packages.PackageSpecFor
 
-  final type Specification[+TA] = morphir.ir.packages.Specification[TA]
-  final val Specification: morphir.ir.packages.Specification.type = morphir.ir.packages.Specification
+  final type Specification[+TA] = morphir.mir.packages.Specification[TA]
+  final val Specification: morphir.mir.packages.Specification.type = morphir.mir.packages.Specification
 
-  final type USpecification = morphir.ir.packages.Specification[Any]
-  final val USpecification: morphir.ir.packages.Specification.type = morphir.ir.packages.Specification
+  final type USpecification = morphir.mir.packages.Specification[Any]
+  final val USpecification: morphir.mir.packages.Specification.type = morphir.mir.packages.Specification
 
   val emptySpecification: Specification[Nothing] = Specification.empty
 }

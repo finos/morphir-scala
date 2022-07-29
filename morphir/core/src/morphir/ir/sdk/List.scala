@@ -1,14 +1,14 @@
-package morphir.ir.sdk
+package morphir.mir.sdk
 
 import zio.Chunk
-import morphir.ir.Module.ModuleName
-import morphir.ir.Type.Specification.OpaqueTypeSpecification
-import morphir.ir.Type.{Type, UType, reference => typeRef, tuple}
-import morphir.ir.Value.{Value, reference => valRef}
-import morphir.ir.sdk.Basics.{boolType, intType, orderType}
-import morphir.ir.sdk.Common._
-import morphir.ir.sdk.Maybe.maybeType
-import morphir.ir.{Module, NeedsAttributes}
+import morphir.mir.Module.ModuleName
+import morphir.mir.Type.Specification.OpaqueTypeSpecification
+import morphir.mir.Type.{Type, UType, reference => typeRef, tuple}
+import morphir.mir.Value.{Value, reference => valRef}
+import morphir.mir.sdk.Basics.{boolType, intType, orderType}
+import morphir.mir.sdk.Common._
+import morphir.mir.sdk.Maybe.maybeType
+import morphir.mir.{Module, NeedsAttributes}
 import morphir.syntax.NamingSyntax._
 
 object List {

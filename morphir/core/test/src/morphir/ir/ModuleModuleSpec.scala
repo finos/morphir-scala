@@ -1,7 +1,7 @@
-package morphir.ir
+package morphir.mir
 
-import morphir.ir.Module.Definition
-import morphir.ir.{Literal => Lit}
+import morphir.mir.Module.Definition
+import morphir.mir.{Literal => Lit}
 import morphir.samples.ModuleExample.*
 import morphir.syntax.AllSyntax
 import morphir.testing.MorphirBaseSpec

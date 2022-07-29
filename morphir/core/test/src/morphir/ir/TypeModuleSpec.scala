@@ -1,8 +1,8 @@
-package morphir.ir
+package morphir.mir
 
 import zio.Chunk
-import morphir.ir.Type.Constructors
-import morphir.ir.Type.Type._
+import morphir.mir.Type.Constructors
+import morphir.mir.Type.Type._
 import morphir.testing.MorphirBaseSpec
 import zio.test._
 

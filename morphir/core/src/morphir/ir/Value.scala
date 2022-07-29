@@ -1,4 +1,4 @@
-package morphir.ir
+package morphir.mir
 
 /**
  * In functional programming data and logic are treated the same way and we refer to both as values. This module

@@ -1,9 +1,9 @@
-package morphir.ir.value
+package morphir.mir.value
 
 import zio.Chunk
 import morphir.Not
-import morphir.ir.value.Pattern.DefaultAttributes
-import morphir.ir.{FQName, Literal, Name}
+import morphir.mir.value.Pattern.DefaultAttributes
+import morphir.mir.{FQName, Literal, Name}
 
 trait PatternConstructors { self =>
   final def asAlias[A](attributes: A, alias: String): Pattern[A] =

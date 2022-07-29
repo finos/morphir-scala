@@ -1,32 +1,32 @@
-package morphir.ir.types.recursive
+package morphir.mir.types.recursive
 
-import morphir.ir.{FQName, Name}
+import morphir.mir.{FQName, Name}
 //import morphir.sdk.ResultModule.Result
 
 trait TypeModule extends AllTypeSyntax {
-  final type Type[+A] = morphir.ir.types.recursive.Type[A]
-  val Type: morphir.ir.types.recursive.Type.type = morphir.ir.types.recursive.Type
+  final type Type[+A] = morphir.mir.types.recursive.Type[A]
+  val Type: morphir.mir.types.recursive.Type.type = morphir.mir.types.recursive.Type
 
-  final type Constructors[+A] = morphir.ir.types.recursive.Constructors[A]
-  val Constructors: morphir.ir.types.recursive.Constructors.type = morphir.ir.types.recursive.Constructors
+  final type Constructors[+A] = morphir.mir.types.recursive.Constructors[A]
+  val Constructors: morphir.mir.types.recursive.Constructors.type = morphir.mir.types.recursive.Constructors
 
-  final type Definition[+A] = morphir.ir.types.recursive.Definition[A]
-  val Definition: morphir.ir.types.recursive.Definition.type = morphir.ir.types.recursive.Definition
+  final type Definition[+A] = morphir.mir.types.recursive.Definition[A]
+  val Definition: morphir.mir.types.recursive.Definition.type = morphir.mir.types.recursive.Definition
 
-  final type Field[+A] = morphir.ir.types.recursive.Field[A]
-  val Field: morphir.ir.types.recursive.Field.type = morphir.ir.types.recursive.Field
+  final type Field[+A] = morphir.mir.types.recursive.Field[A]
+  val Field: morphir.mir.types.recursive.Field.type = morphir.mir.types.recursive.Field
 
-  final type Specification[+A] = morphir.ir.types.recursive.Specification[A]
-  val Specification: morphir.ir.types.recursive.Specification.type = morphir.ir.types.recursive.Specification
+  final type Specification[+A] = morphir.mir.types.recursive.Specification[A]
+  val Specification: morphir.mir.types.recursive.Specification.type = morphir.mir.types.recursive.Specification
 
-  final type UConstructors = morphir.ir.types.recursive.Constructors[Any]
-  val UConstructors: morphir.ir.types.recursive.Constructors.type = morphir.ir.types.recursive.Constructors
+  final type UConstructors = morphir.mir.types.recursive.Constructors[Any]
+  val UConstructors: morphir.mir.types.recursive.Constructors.type = morphir.mir.types.recursive.Constructors
 
-  final type UDefinition = morphir.ir.types.recursive.Definition[Any]
-  val UDefinition: morphir.ir.types.recursive.Definition.type = morphir.ir.types.recursive.Definition
+  final type UDefinition = morphir.mir.types.recursive.Definition[Any]
+  val UDefinition: morphir.mir.types.recursive.Definition.type = morphir.mir.types.recursive.Definition
 
-  final type UType = morphir.ir.types.recursive.UType
-  val UType: morphir.ir.types.recursive.UType.type = morphir.ir.types.recursive.UType
+  final type UType = morphir.mir.types.recursive.UType
+  val UType: morphir.mir.types.recursive.UType.type = morphir.mir.types.recursive.UType
 
   final def definitionToSpecification[A](definition: Definition[A]): Specification[A] = definition.toSpecification
 

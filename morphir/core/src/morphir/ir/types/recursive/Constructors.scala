@@ -1,9 +1,9 @@
-package morphir.ir.types.recursive
+package morphir.mir.types.recursive
 
 import zio.Chunk
-import morphir.ir.{FQName, Name}
+import morphir.mir.{FQName, Name}
 
-private[ir] final case class Constructors[+Attributes](toMap: Map[Name, Chunk[(Name, Type[Attributes])]])
+private[mir] final case class Constructors[+Attributes](toMap: Map[Name, Chunk[(Name, Type[Attributes])]])
     extends AnyVal { self =>
   def eraseAttributes: Constructors[Any] = Constructors(toMap.map { case (ctor, args) =>
     (ctor, args.map { case (paramName, paramType) => (paramName, paramType.eraseAttributes) })
@@ -20,7 +20,7 @@ private[ir] final case class Constructors[+Attributes](toMap: Map[Name, Chunk[(N
     Constructors(toMap.map { case (name, ctors) => (name, ctors.map { case (name, tpe) => (name, tpe.map(f)) }) })
 }
 
-private[ir] object Constructors {
+private[mir] object Constructors {
 
   def forEnum(case1: String, otherCases: String*): Constructors[Any] = {
     val allCases  = (Chunk(case1) ++ otherCases).map(Name.fromString)

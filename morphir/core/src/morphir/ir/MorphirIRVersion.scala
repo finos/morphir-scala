@@ -1,4 +1,4 @@
-package zio.morphir.ir
+package zio.morphir.mir
 
 sealed trait MorphirIRVersion
 

@@ -1,5 +1,5 @@
-package morphir.ir
+package morphir.mir
 
-import morphir.ir.distribution.DistributionModule
+import morphir.mir.distribution.DistributionModule
 
 object Distribution extends DistributionModule
