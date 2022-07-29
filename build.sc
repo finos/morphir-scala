@@ -61,10 +61,6 @@ object morphir extends Module {
       object test extends Tests with MorphirTestModule {}
     }
   }
-  object ir extends MorphirScalaModule with MorphirPublishModule {
-    def crossScalaVersion = morphirScalaVersion
-    object test extends Tests with MorphirTestModule {}
-  }
 
   object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
   class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
