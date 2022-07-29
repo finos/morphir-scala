@@ -57,7 +57,7 @@ object morphir extends Module {
     }
   }
 
-  object interop extends mill.Cross[AnnotationModule](ScalaVersions.all: _*)
+  object interop extends mill.Cross[InteropModule](ScalaVersions.all: _*)
   class InteropModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
     object test extends Tests with MorphirTestModule {}
   }
