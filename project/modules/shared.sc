@@ -1,7 +1,9 @@
+import mill.define.Target
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.1.4`
-import $file.^.deps, deps.{Deps, ScalaVersions}
+import $file.^.deps, deps.{Deps, ScalaVersions, Versions => Vers}
 import $file.dependencyCheck, dependencyCheck.DependencyCheckModule
 import mill._, mill.scalalib._, mill.scalajslib._, scalafmt._
+import mill.scalalib.bsp.ScalaMetalsSupport
 import de.tobiasroeser.mill.vcs.version._
 import Deps._
 
@@ -53,12 +55,31 @@ trait MorphirPublishModule extends PublishModule with JavaModule with Dependency
   }
 }
 
-trait MorphirCrossScalaModule extends CommonCrossModule {}
+trait MorphirCrossScalaModule extends CommonCrossModule {
+  override def scalaVersion: T[String] = T(crossScalaVersion)
+}
 
 trait MorphirScalaModule extends CommonScalaModule {}
 trait MorphirTestModule  extends CommonTestModule  {}
 
-trait CommonScalaModule extends ScalaModule with ScalafmtModule { self =>
+trait CommonScalaModule extends ScalaModule with ScalafmtModule with ScalaMetalsSupport { self =>
+  def crossScalaVersion: String
+  def scalaVersion: T[String] = T(crossScalaVersion)
+  def semanticDbVersion       = Vers.semanticDb(partialVersion())
+
+  def partialVersion(version: String): Option[(Int, Int)] = {
+    val partial = version.split('.').take(2)
+    for {
+      major    <- partial.headOption
+      majorInt <- major.toIntOption
+      minor    <- partial.lastOption
+      minorInt <- minor.toIntOption
+    } yield (majorInt, minorInt)
+  }
+
+  def partialVersion: T[Option[(Int, Int)]] = T {
+    partialVersion(scalaVersion())
+  }
 
   def optimize: T[Boolean] = T(false)
   def scalacOptions = T {
@@ -113,7 +134,9 @@ trait CommonScalaModule extends ScalaModule with ScalafmtModule { self =>
   }
 }
 
-trait CommonCrossModule extends CrossScalaModule with CommonScalaModule {}
+trait CommonCrossModule extends CrossScalaModule with CommonScalaModule {
+  override def scalaVersion: T[String] = T(crossScalaVersion)
+}
 
 trait CommonTestModule extends TestModule {
   def ivyDeps       = super.ivyDeps() ++ Agg(dev.zio.zio, dev.zio.`zio-test`, dev.zio.`zio-test-sbt`)

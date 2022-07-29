@@ -11,13 +11,13 @@ import core.Symbols.*
 import core.Names.*
 import dotty.tools.FatalError
 import dotty.tools.dotc.printing.Printer
-import morphir.ir.FQName
-import morphir.ir.Module.Definition as MorphirModuleDef
-import morphir.ir.module.ModuleName
-import morphir.ir.file.format.MirFile
+import morphir.mir.FQName
+import morphir.mir.Module.Definition as MorphirModuleDef
+import morphir.mir.module.ModuleName
+import morphir.mir.file.format.MirFile
 
 import io.bullet.borer.{Cbor, Output}
-import morphir.ir.MirFileSupport.given
+import morphir.mir.MirFileSupport.given
 import java.io.OutputStream
 
 class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context):
