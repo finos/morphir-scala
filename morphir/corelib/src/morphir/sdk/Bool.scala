@@ -1,5 +1,7 @@
 package morphir.sdk
 import morphir.interop.extern
+
+@extern
 object Bool:
   opaque type Bool = Boolean
 
