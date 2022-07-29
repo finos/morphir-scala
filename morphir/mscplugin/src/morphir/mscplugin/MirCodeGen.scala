@@ -8,6 +8,8 @@ import core.Contexts.*
 import core.Decorators.*
 import core.Flags.*
 import core.Symbols.*
+import core.SymDenotations.{ClassDenotation, SymDenotation}
+import core.Denotations.NonSymSingleDenotation
 import core.Names.*
 import dotty.tools.FatalError
 import dotty.tools.dotc.printing.Printer
@@ -43,6 +45,7 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context):
         case PackageDef(_, stats) => stats.flatMap(collectTypeDefs)
         case cd: TypeDef => cd :: Nil
         case _: ValDef => Nil // module instance
+        case _: Import => Nil
 
     val allTypeDefs = collectTypeDefs(cunit.tpdTree)
     for (typeDef <- allTypeDefs)
@@ -61,9 +64,60 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context):
   end genCompilationUnit
 
   private def genModuleData(td:TypeDef):(FQName, MorphirModuleDef[Any,Any]) =
+    println(i"MIRCodeGen.genModuleData: ${td.name}")
+    def collectTypeDefs(tree:Tree):List[TypeDef] =
+      tree match
+        case cd:TypeDef => 
+          println("td".repeat(40))
+          println(i"tpe: ${cd.tpe}")
+          println("td".repeat(40))
+
+          cd :: Nil
+        case _ => 
+          println("?".repeat(60))
+          println(i"tpe: ${tree.tpe}")
+          println("?".repeat(60))
+          Nil
+
     val sym = td.symbol.asClass
     //TODO: Capture Source location information
-    //implicit val pos:Position = sym.span
+    //implicit val pos:Position = sym.span        
+
+    td.tpe.typeMembers.foreach { d =>
+      println(s"symbol: ${d.symbol}, isOpaqueAlias: ${d.symbol.isOpaqueAlias}")
+      d match
+        case cd:ClassDenotation => 
+          println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")
+          println(i"|ClassDenotation: $cd")
+          println(i"|owner: ${cd.owner}")
+          println(i"prefix: ${cd.prefix}")
+          //
+          println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")      
+        case sd:SymDenotation =>
+          println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")
+          println(i"|SymDenotation: $sd")
+          println(i"prefix: ${sd.prefix}")
+          //
+          println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")      
+        case sd:NonSymSingleDenotation =>
+          println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")
+          println(i"|NonSymSingleDenotation: $sd")
+          
+          println(i"| isTerm: ${sd.isTerm}, isType: ${sd.isType}")
+          println(i"|prefix: ${sd.prefix}")
+          println(i"|isTypeAlias: ${sd.info.isTypeAlias}, ${sd.showDcl}")
+          //
+          println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")      
+        case sd =>
+          println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")
+          println(i"|SingleDenotation: $sd")
+          
+          println(i"| isTerm: ${sd.isTerm}, isType: ${sd.isType}")
+          println(i"|prefix: ${sd.prefix}")
+          println(i"|isTypeAlias: ${sd.info.isTypeAlias}, ${sd.showDcl}")
+          //
+          println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")      
+    }
 
     val fqn = MorphirEncoding.encodeModuleName(sym)
     (fqn, MorphirModuleDef.empty)
