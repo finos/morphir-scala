@@ -4,5 +4,5 @@ package object runtime {
   @noinline def throwUndefined(): Nothing =
     throw new UndefinedBehaviorError
 
-  def intrinsic:Nothing = throwUndefined()
+  def intrinsic: Nothing = throwUndefined()
 }

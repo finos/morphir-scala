@@ -5,5 +5,5 @@ package object interop {
 
   final class extern extends scala.annotation.StaticAnnotation
 
-  def extern:Nothing = intrinsic
+  def extern: Nothing = intrinsic
 }
