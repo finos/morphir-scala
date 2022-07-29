@@ -1,4 +1,5 @@
 package morphir.sdk
+import morphir.interop.*
 
 import scala.Predef.{String => Str}
 import scala.language.implicitConversions
@@ -7,4 +8,4 @@ object String:
   
   opaque type String = Str
 
-  def isEmpty(value:String):Bool = value.isEmpty
+  @extern def isEmpty(value:String):Bool = value.isEmpty

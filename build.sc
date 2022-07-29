@@ -16,14 +16,9 @@ object morphir extends Module {
    */
   val morphirScalaVersion = ScalaVersions.scala3x
 
-  object annotation extends mill.Cross[AnnotationModule](ScalaVersions.all: _*)
-  class AnnotationModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-    object test extends Tests with MorphirTestModule {}
-  }
-
   object corelib extends MorphirScalaModule with MorphirPublishModule {
     def crossScalaVersion = morphirScalaVersion
-    def moduleDeps        = Seq(annotation(morphirScalaVersion))
+    def moduleDeps        = Seq(interop(crossScalaVersion))
     def morphirPluginJar  = T(mscplugin.assembly())
 
     override def scalacOptions = T {
@@ -61,8 +56,9 @@ object morphir extends Module {
       object test extends Tests with MorphirTestModule {}
     }
   }
-  object ir extends MorphirScalaModule with MorphirPublishModule {
-    def crossScalaVersion = morphirScalaVersion
+
+  object interop extends mill.Cross[InteropModule](ScalaVersions.all: _*)
+  class InteropModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
     object test extends Tests with MorphirTestModule {}
   }
 

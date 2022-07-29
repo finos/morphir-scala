@@ -1,11 +1,11 @@
 package morphir.sdk
-
+import morphir.interop.extern
 object Bool:
   opaque type Bool = Boolean
 
   def not(value:Bool):Bool = !value
-  def True: Bool = true
-  def False: Bool = false
+  @extern def True: Bool = true
+  @extern def False: Bool = false
 
   //
 

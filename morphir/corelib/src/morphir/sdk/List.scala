@@ -1,8 +1,22 @@
 package morphir.sdk
+import morphir.interop.*
 
-import scala.{List => ScalaList}
+import scala.{List => SList}
 
+@extern
 object List:
-  opaque type List[+A] = ScalaList[A]
+  import morphir.sdk.Int.Int
 
-  def singleton[A](value:A):List[A] = ScalaList(value)
+  opaque type List[+A] = SList[A]
+
+  /**
+   * Create a list with only one element
+   */
+  def singleton[A](value:A):List[A] = extern
+
+  /**
+   * Create a list with n copies of a value.
+   */
+  def repeat[A](n:Int, value:A):List[A] = extern
+
+  def range(lowest:Int, highest:Int):List[Int] = extern
