@@ -15,13 +15,13 @@ class MorphirPlugin extends StandardPlugin:
   val name: String = "morphir"
   override val description: String = "Morphir compiler plugin"
   def init(options:List[String]):List[PluginPhase]  =
-    println("===== MorphirPlugin.init =====")
-    println("options: ")    
+    // println("===== MorphirPlugin.init =====")
+    // println("options: ")    
     options.foreach(println)        
     val settings = GenMorphirIR.Settings.fromOptions(options)
-    println ("settings: ")
-    println(settings)
-    println("===== MorphirPlugin.init =====")
+    // println ("settings: ")
+    // println(settings)
+    // println("===== MorphirPlugin.init =====")
     List(GenMorphirIR(settings))
     
 
