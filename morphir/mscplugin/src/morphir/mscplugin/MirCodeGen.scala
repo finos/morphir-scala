@@ -68,15 +68,15 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context):
     def collectTypeDefs(tree:Tree):List[TypeDef] =
       tree match
         case cd:TypeDef => 
-          println("td".repeat(40))
+          println("td" * 40)
           println(i"tpe: ${cd.tpe}")
-          println("td".repeat(40))
+          println("td" * 40)
 
           cd :: Nil
         case _ => 
-          println("?".repeat(60))
+          println("?" * 60)
           println(i"tpe: ${tree.tpe}")
-          println("?".repeat(60))
+          println("?" * 60)
           Nil
 
     val sym = td.symbol.asClass
