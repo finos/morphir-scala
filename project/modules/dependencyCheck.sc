@@ -28,7 +28,7 @@ trait DependencyCheckModule extends JavaModule { self =>
       cp.map(p => p.path)
     }
 
-  private def initializeSettings():Settings = {
+  private def initializeSettings(): Settings = {
     val settings = new Settings()
     settings
   }
