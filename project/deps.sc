@@ -69,7 +69,7 @@ object Versions {
     }
 
   val munit         = "1.0.0-M4"
-  val zio           = "2.0.0"
+  val zio           = "2.0.1"
   val `zio-prelude` = "1.0.0-RC15"
 }
 
