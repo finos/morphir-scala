@@ -65,7 +65,7 @@ trait MorphirTestModule  extends CommonTestModule  {}
 trait CommonScalaModule extends ScalaModule with ScalafmtModule with ScalaMetalsSupport { self =>
   def crossScalaVersion: String
   def scalaVersion: T[String] = T(crossScalaVersion)
-  def semanticDbVersion       = Vers.semanticDb(partialVersion())
+  def semanticDbVersion       = T.input(Vers.semanticDb(partialVersion()))
 
   def partialVersion(version: String): Option[(Int, Int)] = {
     val partial = version.split('.').take(2)
