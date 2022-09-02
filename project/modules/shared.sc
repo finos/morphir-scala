@@ -1,10 +1,10 @@
 import mill.define.Target
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.2.0`
+import $ivy.`io.chris-kipp::mill-ci-release::0.1.1`
 import $file.^.deps, deps.{Deps, ScalaVersions, Versions => Vers}
 import $file.dependencyCheck, dependencyCheck.DependencyCheckModule
 import mill._, mill.scalalib._, mill.scalajslib._, scalafmt._
 import mill.scalalib.bsp.ScalaMetalsSupport
-import de.tobiasroeser.mill.vcs.version._
+import io.kipp.mill.ci.release.CiReleaseModule
 import Deps._
 
 def commitHash = T {
@@ -37,7 +37,7 @@ lazy val buildVersion = {
   }
 }
 
-trait MorphirPublishModule extends PublishModule with JavaModule with DependencyCheckModule {
+trait MorphirPublishModule extends CiReleaseModule with JavaModule with DependencyCheckModule {
   import mill.scalalib.publish._
   def pomSettings = PomSettings(
     description = artifactName(),
@@ -49,14 +49,6 @@ trait MorphirPublishModule extends PublishModule with JavaModule with Dependency
       Developer("DamianReeves", "Damian Reeves", "https://github.com/damianreeves")
     )
   )
-  def publishVersion = 
-    if(sys.env.getOrElse("PUBLISH_AS_SNAPSHOT","false") == "true") 
-      VcsVersion.vcsState().format() + "-SNAPSHOT"
-    else 
-      VcsVersion.vcsState().format()
-  def javacOptions = T {
-    super.javacOptions() ++ Seq("-source", "8", "-target", "8")
-  }
 }
 
 trait MorphirCrossScalaModule extends CommonCrossModule {

@@ -60,7 +60,7 @@ jobs:
   publish-sonatype:
       # when in master repo: all commits to main branch and all additional tags
     if: github.repository == 'finos/morphir-scala' && ( github.ref == 'refs/heads/main' || (github.ref != 'refs/heads/main' && startsWith( github.ref, 'refs/tags/') ) )
-    needs: [lint, test]
+    needs: [ci]
     
     runs-on: ubuntu-latest
 
@@ -69,10 +69,10 @@ jobs:
     concurrency: publish-sonatype-${{ github.sha }}
 
     env:
-      SONATYPE_PGP_SECRET: ${{ secrets.PGP_SECRET_BASE64 }}
-      SONATYPE_DEPLOY_USER: ${{ secrets.MAVEN_DEPLOY_USERNAME }}
-      SONATYPE_DEPLOY_PASSWORD: ${{ secrets.MAVEN_DEPLOY_PASSWORD }}
-      SONATYPE_PGP_PASSWORD: ${{ secrets.PGP_PASSPHRASE }}
+      PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+      PGP_SECRET: ${{ secrets.PGP_SECRET_BASE64 }}
+      SONATYPE_PASSWORD: ${{ secrets.MAVEN_DEPLOY_PASSWORD }}
+      SONATYPE_USERNAME: ${{ secrets.MAVEN_DEPLOY_USERNAME }}
       PUBLISH_AS_SNAPSHOT: true
       LANG: "en_US.UTF-8"
       LC_MESSAGES: "en_US.UTF-8"
@@ -90,7 +90,7 @@ jobs:
           java-version: 8
           distribution: temurin
 
-      - run: ci/release-maven.sh
+      - run: ./mill -i io.kipp.mill.ci.release.ReleaseModule/publishAll
 
   ci:
     runs-on: ubuntu-latest
