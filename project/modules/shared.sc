@@ -1,5 +1,5 @@
 import mill.define.Target
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.1.4`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.2.0`
 import $file.^.deps, deps.{Deps, ScalaVersions, Versions => Vers}
 import $file.dependencyCheck, dependencyCheck.DependencyCheckModule
 import mill._, mill.scalalib._, mill.scalajslib._, scalafmt._
@@ -49,7 +49,11 @@ trait MorphirPublishModule extends PublishModule with JavaModule with Dependency
       Developer("DamianReeves", "Damian Reeves", "https://github.com/damianreeves")
     )
   )
-  def publishVersion = VcsVersion.vcsState().format()
+  def publishVersion = 
+    if(sys.env.getOrElse("PUBLISH_AS_SNAPSHOT","false") == "true") 
+      VcsVersion.vcsState().format() + "-SNAPSHOT"
+    else 
+      VcsVersion.vcsState().format()
   def javacOptions = T {
     super.javacOptions() ++ Seq("-source", "8", "-target", "8")
   }
