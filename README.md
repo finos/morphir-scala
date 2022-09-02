@@ -1,8 +1,10 @@
-| Project Stage | CI | Release | Snapshot | Slack | Gitpod |
-| --- | --- | --- | --- | --- | --- |
-| [![Project stage][Badge-Stage]][Badge-Stage-Page] | ![CI][Badge-CI] | [![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases] | [![Snapshot Artifacts][Badge-SonatypeSnapshots]][Link-SonatypeSnapshots] | [![Badge-Slack]][Link-Slack] | [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/finos/morphir-scala) |
+| Project Stage | CI | Release | Snapshot |
+| --- | --- | --- | --- | 
+| [![Project stage][Badge-Stage]][Badge-Stage-Page] | ![CI][Badge-CI] | [![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases] | [![Snapshot Artifacts][Badge-SonatypeSnapshots]][Link-SonatypeSnapshots] |
 
-# Welcome to ZIO
+| Slack | Gitpod |
+| --- | --- |
+| [![Badge-Slack]][Link-Slack] | [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/finos/morphir-scala) |
 
 # Morphir
 
