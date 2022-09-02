@@ -49,7 +49,11 @@ trait MorphirPublishModule extends PublishModule with JavaModule with Dependency
       Developer("DamianReeves", "Damian Reeves", "https://github.com/damianreeves")
     )
   )
-  def publishVersion = VcsVersion.vcsState().format()
+  def publishVersion = 
+    if(sys.env.getOrElse("PUBLISH_AS_SNAPSHOT","false") == "true") 
+      VcsVersion.vcsState().format() + "-SNAPSHOT"
+    else 
+      VcsVersion.vcsState().format()
   def javacOptions = T {
     super.javacOptions() ++ Seq("-source", "8", "-target", "8")
   }
