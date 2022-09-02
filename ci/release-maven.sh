@@ -22,4 +22,4 @@ rm gpg_key
     --release true \
     --signed  true \
     --sonatypeUri https://s01.oss.sonatype.org/service/local \
-    --sonatypeSnaphostUri https://s01.oss.sonatype.org/content/repositories/snapshots
+    --sonatypeSnaphotUri https://s01.oss.sonatype.org/content/repositories/snapshots
