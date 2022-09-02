@@ -4,7 +4,7 @@ import scala.concurrent.duration._
 def ghOrg  = "finos"
 def ghName = "morphir-scala"
 
-def mavenOrg        = "io.get-coursier"
+def mavenOrg        = "org.finos.morphir"
 def sonatypeBaseUri = "https://s01.oss.sonatype.org" //"https://oss.sonatype.org/service/local"
 
 def publishSonatype(

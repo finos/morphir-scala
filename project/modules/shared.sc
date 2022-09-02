@@ -1,5 +1,5 @@
 import mill.define.Target
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.1.4`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.2.0`
 import $file.^.deps, deps.{Deps, ScalaVersions, Versions => Vers}
 import $file.dependencyCheck, dependencyCheck.DependencyCheckModule
 import mill._, mill.scalalib._, mill.scalajslib._, scalafmt._
