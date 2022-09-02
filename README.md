@@ -1,10 +1,9 @@
-[![FINOS - Incubating](https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg)](https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating)
-[<img src="https://img.shields.io/badge/slack-@finos/morphir-green.svg?logo=slack">](https://finos-lf.slack.com/messages/morphir/)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/finos/morphir-scala/CI)
+| Project Stage | CI | Release | Snapshot | Slack | Gitpod |
+| --- | --- | --- | --- | --- | --- |
+| [![Project stage][Badge-Stage]][Badge-Stage-Page] | ![CI][Badge-CI] | [![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases] | [![Snapshot Artifacts][Badge-SonatypeSnapshots]][Link-SonatypeSnapshots] | [![Badge-Slack]][Link-Slack] | [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/finos/morphir-scala) |
 
-![Maven Central](https://img.shields.io/maven-central/v/org.finos.morphir/morphir-mscplugin_3.1.3)
-![Sonatype Nexus (Releases)](https://img.shields.io/nexus/r/org.finos.morphir/morphir-mscplugin_3.1.3?server=https%3A%2F%2Foss.sonatype.org)
-![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/org.finos.morphir/morphir-mscplugin_3.1.3?label=nexus%20snapshot&server=https%3A%2F%2Foss.sonatype.org)
+# Welcome to ZIO
+
 # Morphir
 
 Morphir is a library of tools that works to capture business logic as data.
@@ -150,3 +149,14 @@ Copyright 2022 FINOS
 Distributed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
 SPDX-License-Identifier: [Apache-2.0](https://spdx.org/licenses/Apache-2.0)
+
+[Link-Slack]: https://finos-lf.slack.com/messages/morphir/
+[Link-SonatypeReleases]: https://oss.sonatype.org/content/repositories/releases/org/finos/morphir/morphir-mscplugin_3.1.3/ "Sonatype Releases"
+[Link-SonatypeSnapshots]: https://oss.sonatype.org/content/repositories/snapshots/org/finos/morphir/morphir-mscplugin_3.1.3/ "Sonatype Snapshots"
+
+[Badge-CI]: https://github.com/finos/morphir-scala/workflows/CI/badge.svg
+[Badge-Slack]: https://img.shields.io/badge/slack-@finos/morphir-green.svg?logo=slack
+[Badge-SonatypeReleases]: https://img.shields.io/nexus/r/https/oss.sonatype.org/org.finos.morphir/morphir-mscplugin_3.1.3.svg "Sonatype Releases"
+[Badge-SonatypeSnapshots]: https://img.shields.io/nexus/s/https/oss.sonatype.org/org.finos.morphir/morphir-mscplugin_3.1.3.svg "Sonatype Snapshots"
+[Badge-Stage]: https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg
+[Badge-Stage-Page]: https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating
