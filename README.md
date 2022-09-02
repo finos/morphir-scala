@@ -1,6 +1,10 @@
 [![FINOS - Incubating](https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg)](https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating)
 [<img src="https://img.shields.io/badge/slack-@finos/morphir-green.svg?logo=slack">](https://finos-lf.slack.com/messages/morphir/)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/finos/morphir-scala/CI)
 
+![Maven Central](https://img.shields.io/maven-central/v/org.finos.morphir/morphir-mscplugin_3.1.3)
+![Sonatype Nexus (Releases)](https://img.shields.io/nexus/r/org.finos.morphir/morphir-mscplugin_3.1.3?server=https%3A%2F%2Foss.sonatype.org)
+![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/org.finos.morphir/morphir-mscplugin_3.1.3?label=nexus%20snapshot&server=https%3A%2F%2Foss.sonatype.org)
 # Morphir
 
 Morphir is a library of tools that works to capture business logic as data.
