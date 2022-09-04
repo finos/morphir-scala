@@ -1,4 +1,4 @@
-package morphir.mscplugin
+package morphir.tools.backend.mir
 
 import scala.annotation.threadUnsafe
 

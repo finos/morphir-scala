@@ -1,4 +1,4 @@
-package morphir.mscplugin
+package morphir.tools.backend.mir
 
 import dotty.tools.dotc.{CompilationUnit, report}
 import dotty.tools.dotc.ast.tpd
@@ -70,17 +70,10 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context) extends
   private def genModuleData(td:TypeDef):(FQName, MorphirModuleDef[Any,Any]) =
     def collectTypeDefs(tree:Tree):List[TypeDef] =
       tree match
-        case cd:TypeDef => 
-          println("td" * 40)
-          println(i"tpe: ${cd.tpe}")
-          println("td" * 40)
-
-          cd :: Nil
-        case _ => 
-          println("?" * 60)
-          println(i"tpe: ${tree.tpe}")
-          println("?" * 60)
-          Nil
+        case EmptyTree            => Nil
+        case PackageDef(_, stats) => stats.flatMap(collectTypeDefs)
+        case cd: TypeDef          => cd :: Nil
+        case _: ValDef            => Nil // module instance
     end collectTypeDefs
     
     val sym = td.symbol.asClass

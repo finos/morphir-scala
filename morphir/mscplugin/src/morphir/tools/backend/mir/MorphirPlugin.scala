@@ -1,4 +1,4 @@
-package morphir.mscplugin
+package morphir.tools.backend.mir
 
 import dotty.tools.dotc.report
 import dotty.tools.dotc.ast.Trees.*

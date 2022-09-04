@@ -1,4 +1,4 @@
-package morphir.mscplugin.config
+package morphir.tools.backend.mir.config
 
 import dotty.tools.dotc.config.Settings.Setting
 import dotty.tools.dotc.config.Settings.SettingGroup
