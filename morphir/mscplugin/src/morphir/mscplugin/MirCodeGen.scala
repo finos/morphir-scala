@@ -25,10 +25,11 @@ import morphir.mir.MirFileSupport.given
 import java.io.OutputStream
 import zio.Chunk
 
-class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context):
+class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context) extends MirGenName with MirGenUtil:
   import tpd._
+  import mir._
 
-  protected val mirdefn = MirDefinitions.mirdefn
+  protected val mirdefn = MirDefinitions.mirDefn
 
   def run():Unit =
     try
@@ -80,76 +81,9 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context):
           println(i"tpe: ${tree.tpe}")
           println("?" * 60)
           Nil
-
+    end collectTypeDefs
+    
     val sym = td.symbol.asClass
-    //TODO: Capture Source location information
-    //implicit val pos:Position = sym.span        
-
-    // td.tpe.typeMembers.foreach { d =>
-    //   println(s"symbol: ${d.symbol}, isOpaqueAlias: ${d.symbol.isOpaqueAlias}")
-    //   d match
-    //     case cd:ClassDenotation => 
-    //       println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    //       println(i"|ClassDenotation: $cd")
-    //       println(i"|owner: ${cd.owner}")
-    //       println(i"prefix: ${cd.prefix}")
-    //       //
-    //       println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")      
-    //     case sd:SymDenotation =>
-    //       println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    //       println(i"|SymDenotation: $sd")
-    //       println(i"prefix: ${sd.prefix}")
-    //       //
-    //       println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")      
-    //     case sd:NonSymSingleDenotation if sd.symbol.isOpaqueAlias =>
-    //       println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    //       println("Processing Opaque type @@@@@@@@@")
-    //       println(i"|NonSymSingleDenotation: $sd")
-          
-    //       println(i"| isTerm: ${sd.isTerm}, isType: ${sd.isType}")
-    //       println(i"|prefix: ${sd.prefix}")
-    //       println(i"|isTypeAlias: ${sd.info.isTypeAlias}, ${sd.showDcl}")
-    //       //
-    //       println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")      
-    //     case sd:NonSymSingleDenotation =>
-    //       println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    //       println(i"|NonSymSingleDenotation: $sd")
-          
-    //       println(i"| isTerm: ${sd.isTerm}, isType: ${sd.isType}")
-    //       println(i"|prefix: ${sd.prefix}")
-    //       println(i"|isTypeAlias: ${sd.info.isTypeAlias}, ${sd.showDcl}")
-    //       //
-    //       println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")      
-    //     case sd =>
-    //       println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    //       println(i"|SingleDenotation: $sd")
-          
-    //       println(i"| isTerm: ${sd.isTerm}, isType: ${sd.isType}")
-    //       println(i"|prefix: ${sd.prefix}")
-    //       println(i"|isTypeAlias: ${sd.info.isTypeAlias}, ${sd.showDcl}")
-    //       //
-    //       println("|++++++++++++++++++++++++++++++++++++++++++++++++++++")      
-    // }
-
-    val types = td.tpe.typeMembers.collect {
-      case sd:NonSymSingleDenotation if sd.symbol.isOpaqueAlias =>                
-        println(i"TypeName: ${sd.name}")
-        val name = mir.Name.fromString(sd.name.show)
-        println(i"Name: ${name}")
-        println(i"TypeParams: ${sd.info.typeParams}")
-        val typeRef = mir.Type.reference("Placeholder.For.LHS")
-        val typeParams = Chunk.empty[mir.Name]
-        val typeAlias = mir.Type.Definition.TypeAlias(typeParams, typeRef)
-        val documented = mir.Documented("", typeAlias)
-        val accessControlled = mir.AccessControlled.publicAccess(documented)
-        (name, accessControlled)
-    }.toList
-
-    // Debug output
-    types.foreach{ case (name, typeAlias) =>
-      println(i"NamedType: ${(name, typeAlias)}")
-    }
-
     val fqn = MorphirEncoding.encodeModuleName(sym)
     (fqn, MorphirModuleDef.empty)
   end genModuleData

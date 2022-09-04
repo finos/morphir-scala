@@ -9,6 +9,9 @@ import core.Flags._
 
 import dotty.tools.dotc.core.Phases
 
+trait MirGenUtil(using Context):
+  self: MirCodeGen =>
+
 object MirGenUtil {
   class ContextCached[T](init: Context ?=> T) {
     private var lastContext: Context = _
