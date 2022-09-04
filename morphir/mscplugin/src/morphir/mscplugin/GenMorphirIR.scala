@@ -5,6 +5,7 @@ import dotc._
 import plugins._
 import core._
 import Contexts._
+import morphir.mscplugin.config.MorphirSettings
 
 class GenMorphirIR(settings:GenMorphirIR.Settings) extends PluginPhase:
   override val description = GenMorphirIR.description
@@ -12,6 +13,8 @@ class GenMorphirIR(settings:GenMorphirIR.Settings) extends PluginPhase:
 
   //override val runsAfter = Set(transform.Pickler.name) //Set(transform.MoveStatics.name)
   override val runsBefore = Set(transform.ElimOpaque.name) //Set(backend.jvm.GenBCode.name)
+
+  override def initContext(ctx: FreshContext): Unit = ()
 
   override def run(using Context):Unit = 
     MirCodeGen(settings).run()

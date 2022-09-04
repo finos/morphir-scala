@@ -28,7 +28,7 @@ import zio.Chunk
 class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context):
   import tpd._
 
-  protected val defnMir = MirDefinitions.get
+  protected val mirdefn = MirDefinitions.mirdefn
 
   def run():Unit =
     try

@@ -1,17 +1,21 @@
 package morphir.mscplugin
 
-import dotty.tools.dotc.ast.tpd
-import tpd._
-import dotty.tools.dotc.core
-import core.Symbols._
-import core.Contexts._
-import core.Types._
-import core.Flags._
-import dotty.tools.dotc.core.Phases
+import scala.annotation.threadUnsafe
+
+import dotty.tools.dotc.core._
+import Names._
+import Types._
+import Contexts._
+import Symbols._
+import StdNames._
+import morphir.mscplugin.config.MorphirPlatform
+
 
 object MirDefinitions {
-  private val cached = MirGenUtil.ContextCached(MirDefinitions())
-  def get(using Context):MirDefinitions = cached.get
+  def mirdefn(using Context):MirDefinitions = 
+    ctx.platform.asInstanceOf[MorphirPlatform].mirDefinitions
 }
 
-final class MirDefinitions()(using ctx:Context)
+final class MirDefinitions()(using ctx:Context) {
+
+}
