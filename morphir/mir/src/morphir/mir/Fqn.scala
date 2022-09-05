@@ -1,7 +1,14 @@
 package morphir.mir
 
-sealed abstract class Fqn:
-  final def show:String = Show(this)
+enum Fqn:
+  case None
+  case Module(id:String)
+  case Member(module:Module, spec:Spec)
 
-object Fqn:
-  case object None extends Fqn
+  final def show: String = Show(this)
+  final def isModule: Boolean = this match
+    case Module(_) => true
+    case _         => false
+
+
+
