@@ -14,6 +14,12 @@ object Show:
     value
   }
 
+  def apply(v:Attr):String = 
+    val b = newBuilder; b.attr_(v); b.toString
+
+  def apply(v:Attrs):String = 
+    val b = newBuilder; b.attrs_(v); b.toString
+
   def apply(v:Global):String = 
     val b = newBuilder; b.fqn_(v); b.toString
   def apply(v:Local):String = 
@@ -23,6 +29,17 @@ object Show:
 
   final class MirShowBuilder(val builder:ShowBuilder) extends AnyVal:
     import builder._
+
+    def attr_(attr:Attr):Unit = ()
+    def attrs_(attrs: Attrs): Unit =
+      if (attrs == Attrs.None) {
+        ()
+      } else {
+        attrs_(attrs.toSeq)
+      }
+      
+    def attrs_(attrs:Seq[Attr]):Unit = 
+      rep(attrs, sep= " ")(attr_)
 
     def fqn_(fqn:Global):Unit = fqn match
       case Global.None => 
