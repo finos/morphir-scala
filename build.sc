@@ -49,7 +49,7 @@ object morphir extends Module {
       object test extends Tests with MorphirTestModule {}
     }
 
-    object util extends MorphirScalaModule {
+    object util extends MorphirScalaModule with MorphirPublishModule {
       def crossScalaVersion = morphirScalaVersion
       object test extends Tests with MorphirTestModule {}
     }
@@ -70,6 +70,12 @@ object morphir extends Module {
   class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
     def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
     def moduleDeps = Seq(internal.core(crossScalaVersion))
+    object test extends Tests with MorphirTestModule {}
+  }
+
+  object mir extends MorphirScalaModule with MorphirPublishModule {
+    def crossScalaVersion = morphirScalaVersion
+    def moduleDeps        = Seq(internal.util)
     object test extends Tests with MorphirTestModule {}
   }
 
