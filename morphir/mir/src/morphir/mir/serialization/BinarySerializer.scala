@@ -7,5 +7,3 @@ import scala.collection.immutable.ListMap
 import scala.collection.mutable
 
 final class BinarySerializer
-
-
