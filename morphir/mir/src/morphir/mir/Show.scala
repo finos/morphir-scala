@@ -20,8 +20,11 @@ object Show:
   def apply(v:Attrs):String = 
     val b = newBuilder; b.attrs_(v); b.toString
 
+  def apply(v:Defn):String =
+    val b = newBuilder; b.defn_(v); b.toString
+
   def apply(v:Global):String = 
-    val b = newBuilder; b.fqn_(v); b.toString
+    val b = newBuilder; b.global_(v); b.toString
   def apply(v:Local):String = 
     val b = newBuilder; b.local_(v); b.toString
   def apply(v:Spec):String = 
@@ -41,13 +44,15 @@ object Show:
     def attrs_(attrs:Seq[Attr]):Unit = 
       rep(attrs, sep= " ")(attr_)
 
-    def fqn_(fqn:Global):Unit = fqn match
+    def defn_(defn:Defn):Unit = ()
+
+    def global_(fqn:Global):Unit = fqn match
       case Global.None => 
         unreachable
       case Global.Top(id) => 
         str(id)
       case Global.Member(module, spec) => 
-        fqn_(module)
+        global_(module)
         str("/")
         spec_(spec)
 

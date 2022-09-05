@@ -25,7 +25,7 @@ import morphir.mir.MirFileSupport.given
 import java.io.OutputStream
 import zio.Chunk
 
-class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context) extends MirGenName with MirGenUtil:
+class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context) extends MirGenName with MirGenUtil with MirGenSupport with MirGenType:
   import tpd._
   import mir._
 
@@ -51,20 +51,20 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context) extends
         case _: ValDef => Nil // module instance
         case _: Import => Nil
 
-    val allTypeDefs = collectTypeDefs(cunit.tpdTree)
-    for (typeDef <- allTypeDefs)
-      if (typeDef.symbol.is(ModuleClass))
-        println("====================================================")
-        println(i"Module: ${typeDef.symbol}")
-        println("----------------------------------------------------")
-        val (moduleFQN, moduleDef) = genModuleData(typeDef)
-        val mirFile = MirFile(moduleFQN.getModuleName)        
-        println(i"ModuleName: ${moduleFQN.getModuleName}")
-        println("====================================================")
-        println()      
-        genIRFile(cunit, moduleFQN, moduleDef, mirFile)
-      else
-        println(i"Here: ${typeDef.symbol.name}")
+    val allTypeDefs = collectTypeDefs(cunit.tpdTree).foreach(genModule)
+    // for (typeDef <- allTypeDefs)
+    //   if (typeDef.symbol.is(ModuleClass))
+    //     println("====================================================")
+    //     println(i"Module: ${typeDef.symbol}")
+    //     println("----------------------------------------------------")
+    //     val (moduleFQN, moduleDef) = genModuleData(typeDef)
+    //     val mirFile = MirFile(moduleFQN.getModuleName)        
+    //     println(i"ModuleName: ${moduleFQN.getModuleName}")
+    //     println("====================================================")
+    //     println()      
+    //     genIRFile(cunit, moduleFQN, moduleDef, mirFile)
+    //   else
+    //     println(i"Here: ${typeDef.symbol.name}")
   end genCompilationUnit
 
   private def genModuleData(td:TypeDef):(FQName, MorphirModuleDef[Any,Any]) =
