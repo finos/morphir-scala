@@ -14,24 +14,29 @@ object Show:
     value
   }
 
-  def apply(v:Fqn):String = 
+  def apply(v:Global):String = 
     val b = newBuilder; b.fqn_(v); b.toString
-  def apply(v:Local):String = ???
+  def apply(v:Local):String = 
+    val b = newBuilder; b.local_(v); b.toString
   def apply(v:Spec):String = 
     val b = newBuilder; b.spec_(v); b.toString
 
   final class MirShowBuilder(val builder:ShowBuilder) extends AnyVal:
     import builder._
 
-    def fqn_(fqn:Fqn):Unit = fqn match
-      case Fqn.None => 
+    def fqn_(fqn:Global):Unit = fqn match
+      case Global.None => 
         unreachable
-      case Fqn.Module(id) => 
+      case Global.Top(id) => 
         str(id)
-      case Fqn.Member(module, spec) => 
+      case Global.Member(module, spec) => 
         fqn_(module)
         str("/")
         spec_(spec)
+
+    def local_(local:Local):Unit =
+      str("%")
+      str(local.id)
 
     def spec_(spec:Spec):Unit = ()
     
