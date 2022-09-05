@@ -5,9 +5,9 @@ import morphir.interop.extern
 object Bool:
   opaque type Bool = Boolean
 
-  def not(value:Bool):Bool = !value
-  @extern def True: Bool = true
-  @extern def False: Bool = false
+  def not(value: Bool): Bool = !value
+  @extern def True: Bool     = true
+  @extern def False: Bool    = false
 
   //
 
