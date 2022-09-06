@@ -19,7 +19,7 @@ import morphir.mir.Module.Definition as MorphirModuleDef
 import morphir.mir.Type.Definition as MorphirTypeDef
 import morphir.mir.module.ModuleName
 import morphir.mir.file.format.MirFile
-
+import morphir.util.ScopedVar
 import io.bullet.borer.{Cbor, Output}
 import morphir.mir.MirFileSupport.given
 import java.io.OutputStream
@@ -30,6 +30,9 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context) extends
   import mir._
 
   protected val mirdefn = MirDefinitions.mirDefn
+
+  protected val curClassSym = new ScopedVar[ClassSymbol]
+  protected val currClassFresh = new ScopedVar[mir.Fresh]
 
   def run():Unit =
     try
@@ -51,7 +54,9 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context) extends
         case _: ValDef => Nil // module instance
         case _: Import => Nil
 
-    val allTypeDefs = collectTypeDefs(cunit.tpdTree).foreach(genModule)
+    collectTypeDefs(cunit.tpdTree)
+      .foreach(genClass)
+      
     // for (typeDef <- allTypeDefs)
     //   if (typeDef.symbol.is(ModuleClass))
     //     println("====================================================")

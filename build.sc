@@ -76,8 +76,8 @@ object morphir extends Module {
   object mir extends MorphirScalaModule with MorphirPublishModule {
     def crossScalaVersion = morphirScalaVersion
     def moduleDeps        = Seq(internal.util)
-    def scalacOptions     = super.scalacOptions() ++ Seq("-explain")
-    object test extends Tests with MorphirTestModule {}
+    def scalacOptions     = super.scalacOptions()
+    object test extends Tests with MorphirTestModule
   }
 
   object mscplugin extends MorphirScalaModule with MorphirPublishModule { self =>

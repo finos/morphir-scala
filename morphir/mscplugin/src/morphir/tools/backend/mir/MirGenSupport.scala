@@ -6,6 +6,7 @@ import dotty.tools.dotc.core
 import core.Contexts._
 import core.Symbols._
 import core.Constants._
+import core.Decorators.*
 import core.StdNames._
 import core.Flags._
 import core.Phases._
@@ -22,11 +23,14 @@ trait MirGenSupport(using Context):
   self: MirCodeGen =>
   
   protected val generatedModuleDefns = mutable.UnrolledBuffer.empty[ModuleDefn[Any,Any]]
-  def genModule(td:TypeDef)(using Context):Unit = 
+  def genClass(td:TypeDef)(using Context):Unit = 
     val sym = td.symbol.asClass
     scoped(){
-      if (sym.isStaticModule) () 
+      if (sym.isStaticModule) genModule(td)
       else ()
     }
+
+  def genModule(td:TypeDef):Unit = 
+    println(i"genModule for: ${td.symbol.name}")
 
 end MirGenSupport
