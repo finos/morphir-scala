@@ -29,10 +29,13 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context) extends
   import tpd._
   import mir._
 
-  protected val mirdefn = MirDefinitions.mirDefn
+  protected val defnMir = MirDefinitions.mirDefn
+  protected val positionsConversions = new MirPositions()
 
   protected val curClassSym = new ScopedVar[ClassSymbol]
-  protected val currClassFresh = new ScopedVar[mir.Fresh]
+  protected val curClassFresh = new ScopedVar[mir.Fresh]
+
+  protected val curFresh = new ScopedVar[mir.Fresh]
 
   def run():Unit =
     try

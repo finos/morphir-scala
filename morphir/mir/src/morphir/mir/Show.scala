@@ -30,6 +30,9 @@ object Show:
   def apply(v:Spec):String = 
     val b = newBuilder; b.spec_(v); b.toString
 
+  def apply(v:Type):String =
+    val b = newBuilder; b.type_(v); b.toString
+
   final class MirShowBuilder(val builder:ShowBuilder) extends AnyVal:
     import builder._
 
@@ -61,6 +64,7 @@ object Show:
       str(local.id)
 
     def spec_(spec:Spec):Unit = ()
+    def type_(typ:Type):Unit = ()
     
     private def escapeQuotes(s: String): String = 
       val chars = s.toArray

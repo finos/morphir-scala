@@ -14,6 +14,7 @@ import dotty.tools.dotc.transform.SymUtils._
 import morphir.mir
 import morphir.util.ScopedVar
 import morphir.util.ScopedVar.{scoped, toValue}
+import mir._
 import mir.Module.{Definition => ModuleDefn}
 
 import scala.collection.mutable
@@ -21,7 +22,8 @@ import scala.collection.mutable
 
 trait MirGenSupport(using Context):
   self: MirCodeGen =>
-  
+  import positionsConversions.fromSpan
+
   protected val generatedModuleDefns = mutable.UnrolledBuffer.empty[ModuleDefn[Any,Any]]
   def genClass(td:TypeDef)(using Context):Unit = 
     val sym = td.symbol.asClass
@@ -30,7 +32,17 @@ trait MirGenSupport(using Context):
       else ()
     }
 
-  def genModule(td:TypeDef):Unit = 
-    println(i"genModule for: ${td.symbol.name}")
+  def genModule(td:TypeDef):Unit =
+    given pos:mir.Position = td.span
+    val sys = td.symbol.asClass
+    val attrs = genClassAttrs(td)
+    println(i"genModule for: ${td.symbol.name} @ position: ${pos.show}")
+
+  private def genClassAttrs(td:TypeDef):mir.Attrs =
+    val sym = td.symbol.asClass
+    val annotationAttrs = sym.annotations.collect {
+      case ann if ann.symbol == defnMir.ExternClass => Attr.Extern
+    }
+    Attrs.fromSeq(annotationAttrs)
 
 end MirGenSupport
