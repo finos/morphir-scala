@@ -5,14 +5,16 @@ import scala.collection.mutable
 import morphir.util.{ShowBuilder, unreachable}
 import morphir.util.ShowBuilder.InMemoryShowBuilder
 
+import java.io.PrintWriter
+
 object Show:
   def newBuilder: MirShowBuilder = new MirShowBuilder(new InMemoryShowBuilder)
 
-  def debug[T](msg: String)(f: => T): T = {
+  def debug[T](msg: String)(f: => T): T =
     val value = f
     println("$msg: " + value)
     value
-  }
+  end debug
 
   def apply(v: Attr): String =
     val b = newBuilder; b.attr_(v); b.toString
@@ -33,6 +35,20 @@ object Show:
   def apply(v: Type): String =
     val b = newBuilder; b.type_(v); b.toString
 
+  def dump(defns: Seq[Defn], fileName:String):Unit =
+    val pw = new PrintWriter(fileName)
+    try
+      defns
+        .filter(_ != null)
+        .sortBy(_.name)
+        .foreach { defn =>
+          pw.write(defn.show)
+          pw.write("\n")
+        }
+    finally
+      pw.close()
+  end dump
+
   final class MirShowBuilder(val builder: ShowBuilder) extends AnyVal:
     import builder._
 
@@ -47,7 +63,15 @@ object Show:
     def attrs_(attrs: Seq[Attr]): Unit =
       rep(attrs, sep = " ")(attr_)
 
-    def defn_(defn: Defn): Unit = ()
+    def defn_(defn: Defn): Unit = defn match
+      case Defn.Module(attrs, name) => ()
+      case Defn.TypeAlias(attrs, name) => ()
+
+    def defns_(defns: Seq[Defn]): Unit =
+      rep(defns) { defn =>
+        newline()
+        defn_(defn)
+      }
 
     def global_(fqn: Global): Unit = fqn match
       case Global.None =>
@@ -58,18 +82,20 @@ object Show:
         global_(module)
         str("/")
         spec_(spec)
+    end global_
 
     def local_(local: Local): Unit =
-      str("%")
-      str(local.id)
+          str("%")
+          str(local.id)
 
     def spec_(spec: Spec): Unit = ()
-    def type_(typ: Type): Unit  = ()
+
+    def type_(typ: Type): Unit = ()
 
     private def escapeQuotes(s: String): String =
-      val chars   = s.toArray
-      val out     = mutable.UnrolledBuffer.empty[Char]
-      var i       = 0
+      val chars = s.toArray
+      val out = mutable.UnrolledBuffer.empty[Char]
+      var i = 0
       var escaped = false
       while (i < chars.length)
         val char = chars(i)
@@ -83,8 +109,10 @@ object Show:
         i += 1
       end while
       new String(out.toArray)
+
     end escapeQuotes
 
     override def toString: String = builder.toString
+
   end MirShowBuilder
 end Show

@@ -50,7 +50,6 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx: Context)
     finally {}
 
   def genCompilationUnit(cunit: CompilationUnit): Unit =
-    println(i"MIRCodeGen.genCompilationUnit: ${cunit.source}")
     def collectTypeDefs(tree: Tree): List[TypeDef] =
       tree match
         case EmptyTree            => Nil
@@ -61,6 +60,10 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx: Context)
 
     collectTypeDefs(cunit.tpdTree)
       .foreach(genClass)
+
+    generatedDefns.toSeq
+      .groupBy(defn => getFileFor(cunit, defn.name.top))
+      .foreach(genIRFile(_,_))
 
     // for (typeDef <- allTypeDefs)
     //   if (typeDef.symbol.is(ModuleClass))
@@ -105,9 +108,25 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx: Context)
       output.close()
   end genIRFile
 
+  private def genIRFile(outfile:dotty.tools.io.AbstractFile, defns:Seq[mir.Defn]):Unit =
+    import morphir.mir.serialization.serializeBinary
+    val output = outfile.bufferedOutput
+    try
+      serializeBinary(defns, output)
+    finally
+      output.close()
+
   private def getFileFor(cunit: CompilationUnit, moduleName: ModuleName, suffix: String): dotty.tools.io.AbstractFile =
     val outputDirectory = ctx.settings.outputDir.value
     val pathParts       = moduleName.namespace.segments.map(_.toLowerCase)
     val dir             = pathParts.foldLeft(outputDirectory)(_.subdirectoryNamed(_))
     val filename        = moduleName.localName.toTitleCase
     dir.fileNamed(filename + suffix)
+
+  private def getFileFor(cunit:CompilationUnit, ownerName: mir.Global): dotty.tools.io.AbstractFile =
+    val mir.Global.Top(className) = ownerName: @unchecked
+    val outputDirectory = ctx.settings.outputDir.value
+    val pathParts = className.split('.')
+    val dir = pathParts.init.foldLeft(outputDirectory)(_.subdirectoryNamed(_))
+    val filename = pathParts.last
+    dir.fileNamed(filename + ".mir")

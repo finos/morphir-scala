@@ -7,6 +7,7 @@ sealed abstract class Defn:
   final def show: String = Show(this)
 
 object Defn:
+  final case class Module(attrs:Attrs, name:Global)(using val pos:Position) extends Defn
   final case class TypeAlias(attrs: Attrs, name: Global)(using val pos: Position) extends Defn
 
 end Defn

@@ -23,12 +23,12 @@ trait MirGenSupport(using Context):
   self: MirCodeGen =>
   import positionsConversions.fromSpan
 
-  protected val generatedModuleDefns = mutable.UnrolledBuffer.empty[ModuleDefn[Any, Any]]
+  protected val generatedDefns = mutable.UnrolledBuffer.empty[Defn]
   def genClass(td: TypeDef)(using Context): Unit =
     val sym = td.symbol.asClass
     scoped() {
       if (sym.isStaticModule) genModule(td)
-      else ()
+      else handleUnsupported(td)
     }
 
   def genModule(td: TypeDef): Unit =
@@ -43,5 +43,7 @@ trait MirGenSupport(using Context):
       case ann if ann.symbol == defnMir.ExternClass => Attr.Extern
     }
     Attrs.fromSeq(annotationAttrs)
+
+  private def handleUnsupported(td:TypeDef):Unit = ()
 
 end MirGenSupport
