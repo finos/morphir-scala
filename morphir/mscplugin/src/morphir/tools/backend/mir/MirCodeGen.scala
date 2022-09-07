@@ -25,85 +25,89 @@ import morphir.mir.MirFileSupport.given
 import java.io.OutputStream
 import zio.Chunk
 
-class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx:Context) extends MirGenName with MirGenUtil with MirGenSupport with MirGenType:
+class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx: Context)
+    extends MirGenName
+    with MirGenUtil
+    with MirGenSupport
+    with MirGenType:
   import tpd._
   import mir._
 
-  protected val defnMir = MirDefinitions.mirDefn
+  protected val defnMir              = MirDefinitions.mirDefn
   protected val positionsConversions = new MirPositions()
 
-  protected val curClassSym = new ScopedVar[ClassSymbol]
+  protected val curClassSym   = new ScopedVar[ClassSymbol]
   protected val curClassFresh = new ScopedVar[mir.Fresh]
 
   protected val curFresh = new ScopedVar[mir.Fresh]
 
-  def run():Unit =
-    try
-      genCompilationUnit(ctx.compilationUnit)
+  def run(): Unit =
+    try genCompilationUnit(ctx.compilationUnit)
     catch
-      case e:Throwable =>
+      case e: Throwable =>
         report.error(s"[MIRCodeGen:Error]: ${e.getMessage}\r\n$e")
-        report.warning("MIR code generation failed")        
-    finally
-      {}
+        report.warning("MIR code generation failed")
+    finally {}
 
-  def genCompilationUnit(cunit:CompilationUnit):Unit =
+  def genCompilationUnit(cunit: CompilationUnit): Unit =
     println(i"MIRCodeGen.genCompilationUnit: ${cunit.source}")
     def collectTypeDefs(tree: Tree): List[TypeDef] =
       tree match
-        case EmptyTree => Nil
+        case EmptyTree            => Nil
         case PackageDef(_, stats) => stats.flatMap(collectTypeDefs)
-        case cd: TypeDef => cd :: Nil
-        case _: ValDef => Nil // module instance
-        case _: Import => Nil
+        case cd: TypeDef          => cd :: Nil
+        case _: ValDef            => Nil // module instance
+        case _: Import            => Nil
 
     collectTypeDefs(cunit.tpdTree)
       .foreach(genClass)
-      
+
     // for (typeDef <- allTypeDefs)
     //   if (typeDef.symbol.is(ModuleClass))
     //     println("====================================================")
     //     println(i"Module: ${typeDef.symbol}")
     //     println("----------------------------------------------------")
     //     val (moduleFQN, moduleDef) = genModuleData(typeDef)
-    //     val mirFile = MirFile(moduleFQN.getModuleName)        
+    //     val mirFile = MirFile(moduleFQN.getModuleName)
     //     println(i"ModuleName: ${moduleFQN.getModuleName}")
     //     println("====================================================")
-    //     println()      
+    //     println()
     //     genIRFile(cunit, moduleFQN, moduleDef, mirFile)
     //   else
     //     println(i"Here: ${typeDef.symbol.name}")
   end genCompilationUnit
 
-  private def genModuleData(td:TypeDef):(FQName, MorphirModuleDef[Any,Any]) =
-    def collectTypeDefs(tree:Tree):List[TypeDef] =
+  private def genModuleData(td: TypeDef): (FQName, MorphirModuleDef[Any, Any]) =
+    def collectTypeDefs(tree: Tree): List[TypeDef] =
       tree match
         case EmptyTree            => Nil
         case PackageDef(_, stats) => stats.flatMap(collectTypeDefs)
         case cd: TypeDef          => cd :: Nil
         case _: ValDef            => Nil // module instance
     end collectTypeDefs
-    
+
     val sym = td.symbol.asClass
     val fqn = MorphirEncoding.encodeModuleName(sym)
     (fqn, MorphirModuleDef.empty)
   end genModuleData
 
-
-  private def genIRFile(cunit:CompilationUnit, fqn:FQName, moduleDef:MorphirModuleDef[Any,Any], mirFile:MirFile):Unit =
-    val outfile = getFileFor(cunit, fqn.getModuleName, ".mir")
-    val output:OutputStream = outfile.bufferedOutput
-    try {
+  private def genIRFile(
+      cunit: CompilationUnit,
+      fqn: FQName,
+      moduleDef: MorphirModuleDef[Any, Any],
+      mirFile: MirFile
+  ): Unit =
+    val outfile              = getFileFor(cunit, fqn.getModuleName, ".mir")
+    val output: OutputStream = outfile.bufferedOutput
+    try
       Cbor.encode(mirFile).to(output).result
-    }
-    finally {
+    finally
       output.close()
-    }
   end genIRFile
 
-  private def getFileFor(cunit: CompilationUnit, moduleName:ModuleName, suffix:String): dotty.tools.io.AbstractFile =
+  private def getFileFor(cunit: CompilationUnit, moduleName: ModuleName, suffix: String): dotty.tools.io.AbstractFile =
     val outputDirectory = ctx.settings.outputDir.value
-    val pathParts = moduleName.namespace.segments.map(_.toLowerCase)
-    val dir = pathParts.foldLeft(outputDirectory)(_.subdirectoryNamed(_))
-    val filename = moduleName.localName.toTitleCase
+    val pathParts       = moduleName.namespace.segments.map(_.toLowerCase)
+    val dir             = pathParts.foldLeft(outputDirectory)(_.subdirectoryNamed(_))
+    val filename        = moduleName.localName.toTitleCase
     dir.fileNamed(filename + suffix)

@@ -4,16 +4,16 @@ enum Attr:
   case Extern
   case Opaque
 
-  def show:String = Show(this)
+  def show: String = Show(this)
 
 final case class Attrs(isExtern: Boolean = false, isOpaque: Boolean = false):
-  def show:String = Show(this)
+  def show: String = Show(this)
 
-  def toSeq:Seq[Attr] = 
+  def toSeq: Seq[Attr] =
     val out = Seq.newBuilder[Attr]
-    if(isExtern) out += Attr.Extern
-    if(isOpaque) out += Attr.Opaque
-    out.result()  
+    if (isExtern) out += Attr.Extern
+    if (isOpaque) out += Attr.Opaque
+    out.result()
 
 object Attrs:
   val None = new Attrs()
@@ -27,4 +27,3 @@ object Attrs:
       case Attr.Opaque => isOpaque = true
     }
     Attrs(isExtern = isExtern)
-

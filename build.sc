@@ -81,10 +81,11 @@ object morphir extends Module {
   }
 
   object mscplugin extends MorphirScalaModule with MorphirPublishModule { self =>
-    def crossScalaVersion     = ScalaVersions.scala3x
-    def scalaVersion          = morphirScalaVersion
-    def ivyDeps               = self.compilerPluginDependencies(morphirScalaVersion)
-    def moduleDeps            = Seq(morphir.internal.core(morphirScalaVersion), morphir.internal.codec, morphir.mir, morphir.internal.util)
+    def crossScalaVersion = ScalaVersions.scala3x
+    def scalaVersion      = morphirScalaVersion
+    def ivyDeps           = self.compilerPluginDependencies(morphirScalaVersion)
+    def moduleDeps =
+      Seq(morphir.internal.core(morphirScalaVersion), morphir.internal.codec, morphir.mir, morphir.internal.util)
     def crossFullScalaVersion = true
 
     object test extends Tests with MorphirTestModule {}

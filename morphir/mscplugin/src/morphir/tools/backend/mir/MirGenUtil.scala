@@ -15,7 +15,7 @@ trait MirGenUtil(using Context):
 object MirGenUtil {
   class ContextCached[T](init: Context ?=> T) {
     private var lastContext: Context = _
-    private var cached: T = _
+    private var cached: T            = _
 
     def get(using Context): T = {
       if (lastContext != ctx) {
@@ -26,7 +26,3 @@ object MirGenUtil {
     }
   }
 }
-
-
-
-

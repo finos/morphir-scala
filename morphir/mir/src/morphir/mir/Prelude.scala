@@ -6,9 +6,9 @@ case class Prelude(magic: Int, compat: Int, revision: Int)
 object Prelude:
   val length = 12
 
-  def readFrom(buffer:ByteBuffer, bufferName:String):Prelude =
-    val magic = buffer.getInt
-    val compat = buffer.getInt
+  def readFrom(buffer: ByteBuffer, bufferName: String): Prelude =
+    val magic    = buffer.getInt
+    val compat   = buffer.getInt
     val revision = buffer.getInt
     assert(magic == Versions.magic, "Can't read non-MIR file")
     assert(
@@ -20,7 +20,7 @@ object Prelude:
     Prelude(magic, compat, revision)
   end readFrom
 
-  def writeTo(out:DataOutputStream, prelude:Prelude):DataOutputStream =
+  def writeTo(out: DataOutputStream, prelude: Prelude): DataOutputStream =
     out.writeInt(prelude.magic)
     out.writeInt(prelude.compat)
     out.writeInt(prelude.revision)

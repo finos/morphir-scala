@@ -19,26 +19,25 @@ import mir.Module.{Definition => ModuleDefn}
 
 import scala.collection.mutable
 
-
 trait MirGenSupport(using Context):
   self: MirCodeGen =>
   import positionsConversions.fromSpan
 
-  protected val generatedModuleDefns = mutable.UnrolledBuffer.empty[ModuleDefn[Any,Any]]
-  def genClass(td:TypeDef)(using Context):Unit = 
+  protected val generatedModuleDefns = mutable.UnrolledBuffer.empty[ModuleDefn[Any, Any]]
+  def genClass(td: TypeDef)(using Context): Unit =
     val sym = td.symbol.asClass
-    scoped(){
+    scoped() {
       if (sym.isStaticModule) genModule(td)
       else ()
     }
 
-  def genModule(td:TypeDef):Unit =
-    given pos:mir.Position = td.span
-    val sys = td.symbol.asClass
-    val attrs = genClassAttrs(td)
+  def genModule(td: TypeDef): Unit =
+    given pos: mir.Position = td.span
+    val sys                 = td.symbol.asClass
+    val attrs               = genClassAttrs(td)
     println(i"genModule for: ${td.symbol.name} @ position: ${pos.show}")
 
-  private def genClassAttrs(td:TypeDef):mir.Attrs =
+  private def genClassAttrs(td: TypeDef): mir.Attrs =
     val sym = td.symbol.asClass
     val annotationAttrs = sym.annotations.collect {
       case ann if ann.symbol == defnMir.ExternClass => Attr.Extern

@@ -16,15 +16,15 @@ import scala.language.implicitConversions
 trait MirGenName(using Context):
   self: MirCodeGen =>
 
-  def genName(sym:Symbol):mir.Global =
+  def genName(sym: Symbol): mir.Global =
     if (sym.isType) genTypeName(sym)
-    else if(sym.is(Method)) genMethodName(sym)
+    else if (sym.is(Method)) genMethodName(sym)
     else genFieldName(sym)
-  def genTypeName(sym:Symbol): mir.Global.Top = ???
-  def genModuleName(sym:Symbol):mir.Global.Top = ???
-  def genFieldName(sym:Symbol):mir.Global = ???
+  def genTypeName(sym: Symbol): mir.Global.Top   = ???
+  def genModuleName(sym: Symbol): mir.Global.Top = ???
+  def genFieldName(sym: Symbol): mir.Global      = ???
 
-  def genMethodName(sym:Symbol):mir.Global = ???
+  def genMethodName(sym: Symbol): mir.Global = ???
 
 end MirGenName
 

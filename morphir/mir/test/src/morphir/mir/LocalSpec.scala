@@ -10,9 +10,8 @@ object LocalSpec extends ZIOSpecDefault:
       val local = Local(100)
       assertTrue(local.show == "%100")
     },
-    test("Local should support extractors"){
+    test("Local should support extractors") {
       val local = Local(1999)
       assertTrue(Local.unapply(local) == Some(1999L))
     }
   )
-
