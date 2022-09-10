@@ -21,18 +21,19 @@ trait MirGenName(using Context):
     else if (sym.is(Method)) genMethodName(sym)
     else genFieldName(sym)
 
-  def genTypeName(sym: Symbol): mir.Global.Top =
+  def genTypeName(sym: Symbol): mir.Global.Top = {
     val sym1 =
       if (sym.isAllOf(ModuleClass | JavaDefined) && sym.linkedClass.exists)
         sym.linkedClass
       else sym
 
-    if (sym1 == defn.ObjectClass) mir.Rt.Object.name.top
+    if (sym1 == defn.ObjectClass) Global.Top("java.lang.Object") // mir.Rt.Object.name.top
     else
       val id =
         val fullName = sym1.javaClassName
         MirGenName.MappedNames.getOrElse(fullName, fullName)
       Global.Top(id)
+  }
 
   def genModuleName(sym: Symbol): mir.Global.Top = ???
   def genFieldName(sym: Symbol): mir.Global      = ???

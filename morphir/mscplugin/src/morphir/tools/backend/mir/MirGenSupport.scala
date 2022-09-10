@@ -24,7 +24,7 @@ trait MirGenSupport(using Context):
   import positionsConversions.fromSpan
 
   protected val generatedDefns = mutable.UnrolledBuffer.empty[Defn]
-    def genClass(td: TypeDef)(using Context): Unit =
+  def genClass(td: TypeDef)(using Context): Unit =
     val sym = td.symbol.asClass
     scoped(
       curClassSym   := sym,

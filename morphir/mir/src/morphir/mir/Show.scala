@@ -35,7 +35,7 @@ object Show:
   def apply(v: Type): String =
     val b = newBuilder; b.type_(v); b.toString
 
-  def dump(defns: Seq[Defn], fileName:String):Unit =
+  def dump(defns: Seq[Defn], fileName: String): Unit =
     val pw = new PrintWriter(fileName)
     try
       defns
@@ -64,7 +64,7 @@ object Show:
       rep(attrs, sep = " ")(attr_)
 
     def defn_(defn: Defn): Unit = defn match
-      case Defn.Module(attrs, name) => ()
+      case Defn.Module(attrs, name)    => ()
       case Defn.TypeAlias(attrs, name) => ()
 
     def defns_(defns: Seq[Defn]): Unit =
@@ -85,17 +85,17 @@ object Show:
     end global_
 
     def local_(local: Local): Unit =
-          str("%")
-          str(local.id)
+      str("%")
+      str(local.id)
 
     def spec_(spec: Spec): Unit = ()
 
     def type_(typ: Type): Unit = ()
 
     private def escapeQuotes(s: String): String =
-      val chars = s.toArray
-      val out = mutable.UnrolledBuffer.empty[Char]
-      var i = 0
+      val chars   = s.toArray
+      val out     = mutable.UnrolledBuffer.empty[Char]
+      var i       = 0
       var escaped = false
       while (i < chars.length)
         val char = chars(i)

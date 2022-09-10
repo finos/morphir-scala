@@ -1,4 +1,3 @@
-
 package morphir.mir
 package serialization
 
