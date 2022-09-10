@@ -11,10 +11,10 @@ import scala.collection.mutable
 
 final class BinarySerializer:
   private[this] val bufferUnderlying = new JumpBackByteArrayOutputStream
-  private[this] val buffer = new DataOutputStream(bufferUnderlying)
+  private[this] val buffer           = new DataOutputStream(bufferUnderlying)
 
-  private[this] var lastPosition:Position = Position.NoPosition
-  private[this] val fileIndexMap = mutable.Map.empty[URI,Int]
+  private[this] var lastPosition: Position = Position.NoPosition
+  private[this] val fileIndexMap           = mutable.Map.empty[URI, Int]
 
   // Methods were renamed in order to not pollute git blame history.
   // Original implementation used ByteBuffers
@@ -29,8 +29,8 @@ final class BinarySerializer:
     writeShort => putShort
   }
   import bufferUnderlying.currentPosition
-  def serialize(defns:Seq[Defn], outputStream: OutputStream):Unit =
-    val names = defns.map(_.name)
+  def serialize(defns: Seq[Defn], outputStream: OutputStream): Unit =
+    val names     = defns.map(_.name)
     val filenames = initFiles(defns)
     val positions = mutable.UnrolledBuffer.empty[Int]
 
@@ -45,7 +45,7 @@ final class BinarySerializer:
 
     putSeq(filenames)(putUTF8String)
 
-    putSeq(names){n =>
+    putSeq(names) { n =>
       putGlobal(n)
       positions += currentPosition()
       putInt(0)
@@ -59,7 +59,7 @@ final class BinarySerializer:
     putInt(seq.length)
     seq.foreach(putT)
   private def putOpt[T](opt: Option[T])(putT: T => Unit) = opt match
-    case None => put(0.toByte)
+    case None    => put(0.toByte)
     case Some(t) => put(1.toByte); putT(t)
   private def putInts(ints: Seq[Int]) = putSeq[Int](ints)(putInt)
 
@@ -68,9 +68,12 @@ final class BinarySerializer:
   }
 
   private def putBytes(bytes: Array[Byte]) =
-    putInt(bytes.length);
+    putInt(bytes.length)
     put(bytes)
   private def putBool(v: Boolean) = put((if (v) 1 else 0).toByte)
+
+  private def putAttrs(attr: Attrs): Unit = putSeq(attr.toSeq)(putAttr)
+  private def putAttr(attr: Attr): Unit   = ()
 
   private def putGlobals(globals: Seq[Global]): Unit =
     putSeq(globals)(putGlobal)
@@ -78,7 +81,7 @@ final class BinarySerializer:
   private def putGlobalOpt(globalopt: Option[Global]): Unit =
     putOpt(globalopt)(putGlobal)
 
-  private def putGlobal(global:Global):Unit = global match
+  private def putGlobal(global: Global): Unit = global match
     case Global.None =>
       putInt(T.NoneGlobal)
     case Global.Top(id) =>
@@ -92,7 +95,47 @@ final class BinarySerializer:
       util.unreachable
   end putGlobal
 
-  private def putSpec(spec:Spec):Unit = ()
+  private def putSpec(spec: Spec): Unit = ()
+
+  // Ported from Scala.js
+  def putPosition(pos: Position): Unit =
+    import PositionFormat._
+    def writeFull(): Unit =
+      put(FormatFullMaskValue.toByte)
+      putInt(fileIndexMap(pos.source))
+      putInt(pos.line)
+      putInt(pos.column)
+    end writeFull
+
+    if (pos == Position.NoPosition) put(FormatNoPositionValue.toByte)
+    else if (
+      lastPosition == Position.NoPosition ||
+      pos.source != lastPosition.source
+    )
+      writeFull()
+      lastPosition = pos
+    else
+      val line         = pos.line
+      val column       = pos.column
+      val lineDiff     = line - lastPosition.line
+      val columnDiff   = column - lastPosition.column
+      val columnIsByte = column >= 0 && column < 256
+
+      if (lineDiff == 0 && columnDiff >= -64 && columnDiff < 64)
+        put(((columnDiff << Format1Shift) | Format1MaskValue).toByte)
+      else if (lineDiff >= -32 && lineDiff < 32 && columnIsByte)
+        put(((lineDiff << Format2Shift) | Format2MaskValue).toByte)
+        put(column.toByte)
+      else if (lineDiff >= Short.MinValue && lineDiff <= Short.MaxValue && columnIsByte)
+        put(Format3MaskValue.toByte)
+        putShort(lineDiff.toShort)
+        put(column.toByte)
+      else writeFull()
+      end if
+
+      lastPosition = pos
+    end if
+  end putPosition
 
   private def initFiles(defns: Seq[Defn]): Seq[String] = {
     val filesList = mutable.UnrolledBuffer.empty[String]
