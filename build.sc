@@ -2,16 +2,10 @@ import $file.project.deps, deps.{Deps, ScalaVersions}
 import $file.project.modules.dependencyCheck //, dependencyCheck.DependencyCheck
 import $file.project.modules.shared,
 shared.{MorphirCrossScalaModule, MorphirScalaModule, MorphirTestModule, MorphirPublishModule}
+import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
 import mill._, scalalib._, scalafmt._
 import mill.define.Sources
-
-// Add simple docusaurus2 support for mill
-import $ivy.`de.wayofquality.blended::de.wayofquality.blended.mill.docusaurus2::0.0.3`
-import de.wayofquality.mill.docusaurus2.Docusaurus2Module
-
-// Add simple mdoc support for mill
-import $ivy.`de.wayofquality.blended::de.wayofquality.blended.mill.mdoc::0.0.4`
-import de.wayofquality.mill.mdoc.MDocModule
+import mill.modules.Jvm
 import os.Path
 
 import Deps._
@@ -21,6 +15,7 @@ import Deps._
  * other Scala versions. We may also directly cross-compile to additional Scla versions.
  */
 val morphirScalaVersion = ScalaVersions.scala3x
+val docsScalaVersion    = ScalaVersions.scala213 //This really should match but need to figure it out
 
 object morphir extends Module {
   val workspaceDir = build.millSourcePath
@@ -130,7 +125,8 @@ object morphir extends Module {
   }
 
   object site extends Docusaurus2Module with MDocModule {
-    override def scalaVersion = T(morphirScalaVersion)
+    override def scalaMdocVersion: T[String] = T("2.3.3")
+    override def scalaVersion                = T(docsScalaVersion)
     // MD Sources that must be compiled with Scala MDoc
     override def mdocSources = T.sources(workspaceDir / "docs")
     // MD Sources that are just plain MD files
@@ -138,8 +134,8 @@ object morphir extends Module {
 
     override def watchedMDocsDestination: T[Option[Path]] = T(Some(docusaurusBuild().path / "docs"))
     override def compiledMdocs: Sources                   = T.sources(mdoc().path)
-  }
 
+  }
 }
 
 import mill.eval.{Evaluator, EvaluatorPaths}
