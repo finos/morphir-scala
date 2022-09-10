@@ -1,6 +1,5 @@
 import $file.project.deps, deps.{Deps, ScalaVersions}
 import $file.project.modules.dependencyCheck //, dependencyCheck.DependencyCheck
-import $file.project.publishing
 import $file.project.modules.shared,
 shared.{MorphirCrossScalaModule, MorphirScalaModule, MorphirTestModule, MorphirPublishModule}
 import mill._, scalalib._, scalafmt._
@@ -50,7 +49,7 @@ object morphir extends Module {
       object test extends Tests with MorphirTestModule {}
     }
 
-    object util extends MorphirScalaModule {
+    object util extends MorphirScalaModule with MorphirPublishModule {
       def crossScalaVersion = morphirScalaVersion
       object test extends Tests with MorphirTestModule {}
     }
@@ -61,6 +60,12 @@ object morphir extends Module {
     object test extends Tests with MorphirTestModule {}
   }
 
+  object ir extends mill.Cross[IrModule](ScalaVersions.all: _*)
+  class IrModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
+    def moduleDeps = Seq()
+    object test extends Tests with MorphirTestModule {}
+  }
+
   object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
   class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
     def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
@@ -68,11 +73,19 @@ object morphir extends Module {
     object test extends Tests with MorphirTestModule {}
   }
 
+  object mir extends MorphirScalaModule with MorphirPublishModule {
+    def crossScalaVersion = morphirScalaVersion
+    def moduleDeps        = Seq(internal.util)
+    def scalacOptions     = super.scalacOptions()
+    object test extends Tests with MorphirTestModule
+  }
+
   object mscplugin extends MorphirScalaModule with MorphirPublishModule { self =>
-    def crossScalaVersion     = ScalaVersions.scala3x
-    def scalaVersion          = morphirScalaVersion
-    def ivyDeps               = self.compilerPluginDependencies(morphirScalaVersion)
-    def moduleDeps            = Seq(morphir.internal.core(morphirScalaVersion), morphir.internal.codec)
+    def crossScalaVersion = ScalaVersions.scala3x
+    def scalaVersion      = morphirScalaVersion
+    def ivyDeps           = self.compilerPluginDependencies(morphirScalaVersion)
+    def moduleDeps =
+      Seq(morphir.internal.core(morphirScalaVersion), morphir.internal.codec, morphir.mir, morphir.internal.util)
     def crossFullScalaVersion = true
 
     object test extends Tests with MorphirTestModule {}
@@ -96,6 +109,12 @@ object morphir extends Module {
         //   Agg(ivy"org.finos.morphir:::morphir-mscplugin:$morphirPluginVersion")
         // }
       }
+    }
+  }
+
+  object testing extends Module {
+    object compiler extends Module {
+      object interface extends JavaModule with MorphirPublishModule {}
     }
   }
 }

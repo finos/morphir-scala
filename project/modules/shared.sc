@@ -94,8 +94,7 @@ trait CommonScalaModule extends ScalaModule with ScalafmtModule with ScalaMetals
           val props = new java.util.Properties()
           props.load(is)
           props.getProperty("scalac.options.additional").split(" ").toSeq
-        } finally
-          is.close()
+        } finally is.close()
       } catch {
         case e: Throwable =>
           println(s"Error reading $propsPath: ${e.getMessage}")
