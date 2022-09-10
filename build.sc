@@ -111,6 +111,12 @@ object morphir extends Module {
       }
     }
   }
+
+  object testing extends Module {
+    object compiler extends Module {
+      object interface extends JavaModule with MorphirPublishModule {}
+    }
+  }
 }
 
 import mill.eval.{Evaluator, EvaluatorPaths}

@@ -27,7 +27,7 @@ trait MirGenName(using Context):
         sym.linkedClass
       else sym
 
-    if (sym1 == defn.ObjectClass) Global.Top("java.lang.Object") // mir.Rt.Object.name.top
+    if (sym1 == defn.ObjectClass) Global.Top("java.lang.Object") /*mir.Rt.Object.name.top*/
     else
       val id =
         val fullName = sym1.javaClassName

@@ -2,15 +2,15 @@ package morphir.tools.backend.mir
 
 import dotty.tools.dotc.{CompilationUnit, report}
 import dotty.tools.dotc.ast.tpd
-import dotty.tools.dotc.ast.Trees.*
+import dotty.tools.dotc.ast.Trees._
 import dotty.tools.dotc.core
-import core.Contexts.*
-import core.Decorators.*
-import core.Flags.*
-import core.Symbols.*
+import core.Contexts._
+import core.Decorators._
+import core.Flags._
+import core.Symbols._
 import core.SymDenotations.{ClassDenotation, SymDenotation}
 import core.Denotations.NonSymSingleDenotation
-import core.Names.*
+import core.Names._
 import dotty.tools.FatalError
 import dotty.tools.dotc.printing.Printer
 import morphir.mir
