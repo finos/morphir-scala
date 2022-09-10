@@ -28,6 +28,19 @@ jobs:
       - name: Lint code
         run: ./mill __.checkFormat
 
+  mdoc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v3.0.2
+      - name: Setup Scala and Java
+        uses: olafurpg/setup-scala@v13
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v6
+      - name: Check Document Compilation
+        run: ./mill -i __.mdoc
+
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -94,7 +107,7 @@ jobs:
 
   ci:
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [lint, mdoc, test]
     steps:
       - name: Aggregate of lint, and all tests
         run: echo "ci passed"

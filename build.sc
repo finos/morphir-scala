@@ -3,16 +3,27 @@ import $file.project.modules.dependencyCheck //, dependencyCheck.DependencyCheck
 import $file.project.modules.shared,
 shared.{MorphirCrossScalaModule, MorphirScalaModule, MorphirTestModule, MorphirPublishModule}
 import mill._, scalalib._, scalafmt._
+import mill.define.Sources
+
+// Add simple docusaurus2 support for mill
+import $ivy.`de.wayofquality.blended::de.wayofquality.blended.mill.docusaurus2::0.0.3`
+import de.wayofquality.mill.docusaurus2.Docusaurus2Module
+
+// Add simple mdoc support for mill
+import $ivy.`de.wayofquality.blended::de.wayofquality.blended.mill.mdoc::0.0.4`
+import de.wayofquality.mill.mdoc.MDocModule
+import os.Path
 
 import Deps._
 
-object morphir extends Module {
+/**
+ * The version of Scala natively supported by the toolchain. Morphir itself may provide backends that generate code for
+ * other Scala versions. We may also directly cross-compile to additional Scla versions.
+ */
+val morphirScalaVersion = ScalaVersions.scala3x
 
-  /**
-   * The version of Scala natively supported by the toolchain. Morphir itself may provide backends that generate code
-   * for other Scala versions. We may also directly cross-compile to additional Scla versions.
-   */
-  val morphirScalaVersion = ScalaVersions.scala3x
+object morphir extends Module {
+  val workspaceDir = build.millSourcePath
 
   object corelib extends MorphirScalaModule with MorphirPublishModule {
     def crossScalaVersion = morphirScalaVersion
@@ -117,6 +128,18 @@ object morphir extends Module {
       object interface extends JavaModule with MorphirPublishModule {}
     }
   }
+
+  object site extends Docusaurus2Module with MDocModule {
+    override def scalaVersion = T(morphirScalaVersion)
+    // MD Sources that must be compiled with Scala MDoc
+    override def mdocSources = T.sources(workspaceDir / "docs")
+    // MD Sources that are just plain MD files
+    override def docusaurusSources = T.sources(workspaceDir / "website")
+
+    override def watchedMDocsDestination: T[Option[Path]] = T(Some(docusaurusBuild().path / "docs"))
+    override def compiledMdocs: Sources                   = T.sources(mdoc().path)
+  }
+
 }
 
 import mill.eval.{Evaluator, EvaluatorPaths}
