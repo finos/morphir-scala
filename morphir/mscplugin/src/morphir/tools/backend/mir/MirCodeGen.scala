@@ -45,9 +45,11 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx: Context)
     try genCompilationUnit(ctx.compilationUnit)
     catch
       case e: Throwable =>
-        report.error(s"[MIRCodeGen:Error]: ${e.getMessage}\r\n$e")
+        report.error(
+          i"[MIRCodeGen:Error]: While compiling ${ctx.compilationUnit}%n==============> Message: ${e.getMessage}%n$e"
+        )
         report.warning("MIR code generation failed")
-    finally {}
+    finally generatedDefns.clear()
 
   def genCompilationUnit(cunit: CompilationUnit): Unit =
     def collectTypeDefs(tree: Tree): List[TypeDef] =
@@ -63,21 +65,8 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx: Context)
 
     generatedDefns.toSeq
       .groupBy(defn => getFileFor(cunit, defn.name.top))
-      .foreach(genIRFile(_,_))
+      .foreach(genIRFile(_, _))
 
-    // for (typeDef <- allTypeDefs)
-    //   if (typeDef.symbol.is(ModuleClass))
-    //     println("====================================================")
-    //     println(i"Module: ${typeDef.symbol}")
-    //     println("----------------------------------------------------")
-    //     val (moduleFQN, moduleDef) = genModuleData(typeDef)
-    //     val mirFile = MirFile(moduleFQN.getModuleName)
-    //     println(i"ModuleName: ${moduleFQN.getModuleName}")
-    //     println("====================================================")
-    //     println()
-    //     genIRFile(cunit, moduleFQN, moduleDef, mirFile)
-    //   else
-    //     println(i"Here: ${typeDef.symbol.name}")
   end genCompilationUnit
 
   private def genModuleData(td: TypeDef): (FQName, MorphirModuleDef[Any, Any]) =
@@ -108,7 +97,7 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx: Context)
       output.close()
   end genIRFile
 
-  private def genIRFile(outfile:dotty.tools.io.AbstractFile, defns:Seq[mir.Defn]):Unit =
+  private def genIRFile(outfile: dotty.tools.io.AbstractFile, defns: Seq[mir.Defn]): Unit =
     import morphir.mir.serialization.serializeBinary
     val output = outfile.bufferedOutput
     try
@@ -123,10 +112,10 @@ class MirCodeGen(val settings: GenMorphirIR.Settings)(using ctx: Context)
     val filename        = moduleName.localName.toTitleCase
     dir.fileNamed(filename + suffix)
 
-  private def getFileFor(cunit:CompilationUnit, ownerName: mir.Global): dotty.tools.io.AbstractFile =
+  private def getFileFor(cunit: CompilationUnit, ownerName: mir.Global): dotty.tools.io.AbstractFile =
     val mir.Global.Top(className) = ownerName: @unchecked
-    val outputDirectory = ctx.settings.outputDir.value
-    val pathParts = className.split('.')
-    val dir = pathParts.init.foldLeft(outputDirectory)(_.subdirectoryNamed(_))
-    val filename = pathParts.last
+    val outputDirectory           = ctx.settings.outputDir.value
+    val pathParts                 = className.split('.')
+    val dir                       = pathParts.init.foldLeft(outputDirectory)(_.subdirectoryNamed(_))
+    val filename                  = pathParts.last
     dir.fileNamed(filename + ".mir")

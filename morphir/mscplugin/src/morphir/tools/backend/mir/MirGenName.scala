@@ -20,12 +20,39 @@ trait MirGenName(using Context):
     if (sym.isType) genTypeName(sym)
     else if (sym.is(Method)) genMethodName(sym)
     else genFieldName(sym)
-  def genTypeName(sym: Symbol): mir.Global.Top   = ???
+
+  def genTypeName(sym: Symbol): mir.Global.Top =
+    val sym1 =
+      if (sym.isAllOf(ModuleClass | JavaDefined) && sym.linkedClass.exists)
+        sym.linkedClass
+      else sym
+
+    if (sym1 == defn.ObjectClass) mir.Rt.Object.name.top
+    else
+      val id =
+        val fullName = sym1.javaClassName
+        MirGenName.MappedNames.getOrElse(fullName, fullName)
+      Global.Top(id)
+
   def genModuleName(sym: Symbol): mir.Global.Top = ???
   def genFieldName(sym: Symbol): mir.Global      = ???
 
   def genMethodName(sym: Symbol): mir.Global = ???
 
-end MirGenName
-
-object MirGenName
+object MirGenName:
+  private val MappedNames = Map(
+    "java.lang._Class"                -> "java.lang.Class",
+    "java.lang._Cloneable"            -> "java.lang.Cloneable",
+    "java.lang._Comparable"           -> "java.lang.Comparable",
+    "java.lang._Enum"                 -> "java.lang.Enum",
+    "java.lang._NullPointerException" -> "java.lang.NullPointerException",
+    "java.lang._Object"               -> "java.lang.Object",
+    "java.lang._String"               -> "java.lang.String",
+    "java.lang.annotation._Retention" -> "java.lang.annotation.Retention",
+    "java.io._Serializable"           -> "java.io.Serializable"
+  ).flatMap { case classEntry @ (nativeName, javaName) =>
+    List(
+      classEntry,
+      (nativeName + "$", javaName + "$")
+    )
+  }

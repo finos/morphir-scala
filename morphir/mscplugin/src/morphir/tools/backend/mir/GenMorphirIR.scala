@@ -26,4 +26,6 @@ object GenMorphirIR:
   case class Settings()
   object Settings:
     def fromOptions(options: List[String]): Settings =
-      Settings()
+      options.foldLeft(Settings()) { case (config, _) =>
+        config
+      }

@@ -24,18 +24,25 @@ trait MirGenSupport(using Context):
   import positionsConversions.fromSpan
 
   protected val generatedDefns = mutable.UnrolledBuffer.empty[Defn]
-  def genClass(td: TypeDef)(using Context): Unit =
+    def genClass(td: TypeDef)(using Context): Unit =
     val sym = td.symbol.asClass
-    scoped() {
+    scoped(
+      curClassSym   := sym,
+      curClassFresh := mir.Fresh()
+    ) {
       if (sym.isStaticModule) genModule(td)
       else handleUnsupported(td)
     }
 
   def genModule(td: TypeDef): Unit =
     given pos: mir.Position = td.span
-    val sys                 = td.symbol.asClass
+    val sym                 = td.symbol.asClass
     val attrs               = genClassAttrs(td)
+    val name                = genTypeName(sym)
     println(i"genModule for: ${td.symbol.name} @ position: ${pos.show}")
+    generatedDefns += {
+      Defn.Module(attrs, name)
+    }
 
   private def genClassAttrs(td: TypeDef): mir.Attrs =
     val sym = td.symbol.asClass
@@ -44,6 +51,6 @@ trait MirGenSupport(using Context):
     }
     Attrs.fromSeq(annotationAttrs)
 
-  private def handleUnsupported(td:TypeDef):Unit = ()
+  private def handleUnsupported(td: TypeDef): Unit = ()
 
 end MirGenSupport
