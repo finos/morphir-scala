@@ -23,22 +23,27 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Checkout current branch
+        uses: actions/checkout@v3.0.2
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: yarn
-          cache-dependency-path: ./website/yarn.lock
+          cache: yarn          
       - name: Enable corepack
         run: corepack enable
+      - name: Install Correct Yarn Version 
+        run: yarn set version berry
+
       - name: Setup Scala and Java
         uses: olafurpg/setup-scala@v13
+
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
-      - name: Check Document Compilation
+
+      - name: Build Website
         run: ./mill -i -k __.docusaurusBuild
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
