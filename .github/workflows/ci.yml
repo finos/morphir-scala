@@ -28,18 +28,31 @@ jobs:
       - name: Lint code
         run: ./mill __.checkFormat
 
-  mdoc:
+  check-website-build:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v3.0.2
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: yarn
+          cache-dependency-path: ./website/yarn.lock
+      - name: Enable corepack
+        run: corepack enable
+      - name: Install Correct Yarn Version 
+        run: yarn set version berry
       - name: Setup Scala and Java
         uses: olafurpg/setup-scala@v13
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
       - name: Check Document Compilation
         run: ./mill -i -k __.mdoc
+      - name: Check Docusaurus Build
+        run: ./mill -i -k __.docusaurusBuild
+
 
   test:
     runs-on: ubuntu-latest
@@ -107,7 +120,7 @@ jobs:
 
   ci:
     runs-on: ubuntu-latest
-    needs: [lint, mdoc, test]
+    needs: [lint, check-website-build, test]
     steps:
       - name: Aggregate of lint, and all tests
         run: echo "ci passed"
