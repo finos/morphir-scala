@@ -1,0 +1,7 @@
+{
+  "name": "morphir-scala",
+  "packageManager": "yarn@3.2.3",
+  "workspaces": [
+    "website"
+  ]
+}

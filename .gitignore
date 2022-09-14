@@ -437,3 +437,12 @@ website/static/api
 
 build.user.sbt
 build.user.properties
+
+
+.yarn/*
+!.yarn/cache
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
