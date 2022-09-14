@@ -33,6 +33,8 @@ jobs:
           cache-dependency-path: ./website/yarn.lock
       - name: Enable corepack
         run: corepack enable
+      - name: Install Correct Yarn Version 
+        run: yarn set version berry
       - name: Setup Scala and Java
         uses: olafurpg/setup-scala@v13
       - name: Cache scala dependencies
