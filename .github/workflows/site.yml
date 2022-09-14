@@ -23,35 +23,27 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        # Setup Node
+      - name: Checkout current branch
+        uses: actions/checkout@v3.0.2
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18
-      #Setup yarn berry
+          cache: yarn          
       - name: Enable corepack
         run: corepack enable
       - name: Install Correct Yarn Version 
         run: yarn set version berry
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
-      - uses: actions/cache@v3
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
 
       - name: Setup Scala and Java
         uses: olafurpg/setup-scala@v13
+
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
-      - name: Check Document Compilation
+
+      - name: Build Website
         run: ./mill -i -k __.docusaurusBuild
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
