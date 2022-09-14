@@ -2,17 +2,23 @@ import $file.project.deps, deps.{Deps, ScalaVersions}
 import $file.project.modules.dependencyCheck //, dependencyCheck.DependencyCheck
 import $file.project.modules.shared,
 shared.{MorphirCrossScalaModule, MorphirScalaModule, MorphirTestModule, MorphirPublishModule}
+import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
 import mill._, scalalib._, scalafmt._
+import mill.define.Sources
+import mill.modules.Jvm
+import os.Path
 
 import Deps._
 
-object morphir extends Module {
+/**
+ * The version of Scala natively supported by the toolchain. Morphir itself may provide backends that generate code for
+ * other Scala versions. We may also directly cross-compile to additional Scla versions.
+ */
+val morphirScalaVersion = ScalaVersions.scala3x
+val docsScalaVersion    = ScalaVersions.scala213 //This really should match but need to figure it out
 
-  /**
-   * The version of Scala natively supported by the toolchain. Morphir itself may provide backends that generate code
-   * for other Scala versions. We may also directly cross-compile to additional Scla versions.
-   */
-  val morphirScalaVersion = ScalaVersions.scala3x
+object morphir extends Module {
+  val workspaceDir = build.millSourcePath
 
   object corelib extends MorphirScalaModule with MorphirPublishModule {
     def crossScalaVersion = morphirScalaVersion
@@ -116,6 +122,18 @@ object morphir extends Module {
     object compiler extends Module {
       object interface extends JavaModule with MorphirPublishModule {}
     }
+  }
+
+  object site extends Docusaurus2Module with MDocModule {
+    override def scalaMdocVersion: T[String] = T("2.3.3")
+    override def scalaVersion                = T(docsScalaVersion)
+    // MD Sources that must be compiled with Scala MDoc
+    override def mdocSources = T.sources(workspaceDir / "docs")
+    // MD Sources that are just plain MD files
+    override def docusaurusSources = T.sources(workspaceDir / "website")
+
+    override def watchedMDocsDestination: T[Option[Path]] = T(Some(docusaurusBuild().path / "docs"))
+    override def compiledMdocs: Sources                   = T.sources(mdoc().path)
   }
 }
 
