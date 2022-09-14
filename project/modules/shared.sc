@@ -1,4 +1,4 @@
-import mill.define.Target
+import mill.define.{Target, Task}
 import $ivy.`io.chris-kipp::mill-ci-release::0.1.1`
 import $file.^.deps, deps.{Deps, ScalaVersions, Versions => Vers}
 import $file.dependencyCheck, dependencyCheck.DependencyCheckModule
@@ -58,7 +58,8 @@ trait MorphirCrossScalaModule extends CommonCrossModule {
 trait MorphirScalaModule extends CommonScalaModule {}
 trait MorphirTestModule  extends CommonTestModule  {}
 
-trait CommonScalaModule extends ScalaModule with ScalafmtModule with ScalaMetalsSupport { self =>
+trait CommonScalaModule extends ScalaModule with CommonCoursierModule with ScalafmtModule with ScalaMetalsSupport {
+  self =>
   def crossScalaVersion: String
   def scalaVersion: T[String] = T(crossScalaVersion)
   def semanticDbVersion       = T.input(Vers.semanticDb(partialVersion()))
@@ -129,11 +130,34 @@ trait CommonScalaModule extends ScalaModule with ScalafmtModule with ScalaMetals
   }
 }
 
-trait CommonCrossModule extends CrossScalaModule with CommonScalaModule {
+trait CommonCrossModule extends CrossScalaModule with CommonCoursierModule with CommonScalaModule {
   override def scalaVersion: T[String] = T(crossScalaVersion)
 }
 
-trait CommonTestModule extends TestModule {
+trait CommonTestModule extends TestModule with CommonCoursierModule {
   def ivyDeps       = super.ivyDeps() ++ Agg(dev.zio.zio, dev.zio.`zio-test`, dev.zio.`zio-test-sbt`)
   def testFramework = "zio.test.sbt.ZTestFramework"
+}
+
+trait CommonCoursierModule extends CoursierModule {
+  override def mapDependencies: Task[coursier.Dependency => coursier.Dependency] = T.task {
+    super.mapDependencies().andThen { dep =>
+      forcedVersions
+        .find(t => t._1 == dep.module.organization.value && t._2 == dep.module.name.value)
+        .map { forced =>
+          val newDep = dep.withVersion(forced._3)
+          T.log.debug(s"Mapping ${dep} to ${newDep}")
+          newDep
+        }
+        .getOrElse(dep)
+    }
+  }
+
+  val forcedVersions = Seq(
+    ("org.apache.ant", "ant", "1.10.12"),
+    ("commons-io", "commons-io", "2.11.0"),
+    ("com.google.code.gson", "gson", "2.9.0"),
+    ("com.google.protobuf", "protobuf-java", "3.21.2"),
+    ("com.google.guava", "guava", "31.1-jre")
+  )
 }
