@@ -39,7 +39,7 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
       - name: Check Document Compilation
-        run: ./mill -i __.mdoc
+        run: ./mill -i -k __.mdoc
 
   test:
     runs-on: ubuntu-latest
