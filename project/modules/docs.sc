@@ -88,33 +88,35 @@ trait Docusaurus2Module extends Module {
     PathRef(T.dest)
   }
 
-  def docusaurusBuild: T[PathRef] = T {
-    val workDir   = T.dest
-    val yarnSetup = yarnInstall().path
+  def installedDocusaurusSources = T.source(yarnInstall().path)
 
-    os.list(workDir).foreach(os.remove.all)
-    os.list(yarnSetup).foreach { p =>
-      os.copy.into(
-        p,
-        workDir,
-        followLinks = true,
-        replaceExisting = true,
-        copyAttributes = true,
-        createFolders = true,
-        mergeFolders = false
-      )
-    }
+  def docusaurusBuild: T[PathRef] = T {
+    val workDir                = T.dest
+    val docusaurusInstallation = installedDocusaurusSources()
+    val yarnSetup              = docusaurusInstallation.path
+
+    os.copy(
+      yarnSetup,
+      workDir,
+      followLinks = true,
+      replaceExisting = true,
+      copyAttributes = true,
+      createFolders = true,
+      mergeFolders = false
+    )
 
     val docsDir = workDir / "docs"
     os.makeDir.all(docsDir)
     os.list(docsDir).foreach(os.remove.all)
 
-    docusaurusSources().foreach { pr =>
+    Seq(docusaurusInstallation).foreach { pr =>
       val bd = pr.path
       os.walk(pr.path / "docs").foreach { p =>
         val relPath = p.relativeTo(bd / "docs")
         T.log.info(relPath.toString())
         if (p.toIO.isFile) {
+          val target = docsDir / relPath
+          os.makeDir.all(target)
           os.copy.over(p, docsDir / relPath)
         }
       }
@@ -148,17 +150,29 @@ trait Docusaurus2Module extends Module {
 
     // p1.join()
 
-    // val p2 = Jvm.spawnSubprocess(
-    //   commandArgs = Seq(
-    //     "yarn",
-    //     "build"
-    //   ),
-    //   envArgs = Map.empty,
-    //   workingDir = workDir
-    // )
+    val p2 = Jvm.spawnSubprocess(
+      commandArgs = Seq(
+        "yarn",
+        "build"
+      ),
+      envArgs = Map.empty,
+      workingDir = workDir
+    )
 
-    // p2.join()
+    p2.join()
 
     PathRef(workDir)
+  }
+
+  def docusaurusServe() = T.command {
+    val workDir = docusaurusBuild().path
+    Jvm.runSubprocess(
+      commandArgs = Seq(
+        "yarn",
+        "start"
+      ),
+      envArgs = T.env,
+      workingDir = workDir
+    )
   }
 }

@@ -134,7 +134,6 @@ object morphir extends Module {
 
     override def watchedMDocsDestination: T[Option[Path]] = T(Some(docusaurusBuild().path / "docs"))
     override def compiledMdocs: Sources                   = T.sources(mdoc().path)
-
   }
 }
 
