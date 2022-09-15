@@ -23,3 +23,9 @@ object tree:
     case Unit(attributes: VAttr)
 
   extension [Attr](self: Type.Reference[Attr]) inline def typeArgs: List[Type[Attr]] = self.typeParameters
+
+
+/**
+  *  Source => IR 
+  *  Bytes => IR => MIR
+  */

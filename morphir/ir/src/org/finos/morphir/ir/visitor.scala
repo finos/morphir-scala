@@ -34,3 +34,10 @@ object visitor:
         def visit(attributes: TAttr): Unit = downstream.visit(attributes)
         def done(): Unit                   = downstream.done()
 end visitor
+
+class ZioJsonParser {
+  import visitor.MorphirVisitor
+  import zio.json._
+  def dispatch[TAttr, VAttr, A](string: String, visitor: MorphirVisitor[TAttr, VAttr, A]): A = ???
+  ???
+}
