@@ -37,8 +37,24 @@ object morphir extends Module {
 
   object formats extends MorphirScalaModule with MorphirPublishModule {
     def crossScalaVersion = morphirScalaVersion
-    def ivyDeps           = Agg(Deps.dev.zio.`zio-json`)
+    def ivyDeps           = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-json`)
+    def moduleDeps        = Seq(core, zio.json)
+
     object test extends Tests with MorphirTestModule {}
+
+    object core extends MorphirScalaModule with MorphirPublishModule {
+      def crossScalaVersion = morphirScalaVersion
+      object test extends Tests with MorphirTestModule {}
+    }
+
+    object zio extends Module {
+      object json extends MorphirScalaModule with MorphirPublishModule {
+        def crossScalaVersion = morphirScalaVersion
+        def moduleDeps        = Seq(core)
+        def ivyDeps           = Agg(Deps.dev.zio.`zio-json`)
+        object test extends Tests with MorphirTestModule {}
+      }
+    }
   }
 
   object internal extends Module {
@@ -74,8 +90,7 @@ object morphir extends Module {
 
   object ir extends MorphirScalaModule with MorphirPublishModule {
     def crossScalaVersion = morphirScalaVersion
-    def moduleDeps        = Seq(formats)
-    def ivyDeps           = Agg(Deps.dev.zio.`zio-json`)
+    def moduleDeps        = Seq(formats.core)
     object test extends Tests with MorphirTestModule {}
   }
 
@@ -145,7 +160,7 @@ object morphir extends Module {
 
   object tools extends MorphirScalaModule with MorphirPublishModule {
     def crossScalaVersion = ScalaVersions.scala3x
-    def moduleDeps        = Seq(morphir.ir)
+    def moduleDeps        = Seq(morphir.ir, morphir.formats.core, morphir.formats.zio.json)
     object test extends Tests with MorphirTestModule {}
   }
 }
