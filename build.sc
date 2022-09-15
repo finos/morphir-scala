@@ -66,9 +66,9 @@ object morphir extends Module {
     object test extends Tests with MorphirTestModule {}
   }
 
-  object ir extends mill.Cross[IrModule](ScalaVersions.all: _*)
-  class IrModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-    def moduleDeps = Seq()
+  object ir extends MorphirScalaModule with MorphirPublishModule {
+    def crossScalaVersion = morphirScalaVersion
+    def moduleDeps        = Seq()
     object test extends Tests with MorphirTestModule {}
   }
 
@@ -138,6 +138,8 @@ object morphir extends Module {
 
   object tools extends MorphirScalaModule with MorphirPublishModule {
     def crossScalaVersion = ScalaVersions.scala3x
+    def moduleDeps        = Seq(morphir.ir)
+    object test extends Tests with MorphirTestModule {}
   }
 }
 
