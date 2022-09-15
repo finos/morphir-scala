@@ -49,6 +49,7 @@ object morphir extends Module {
 
     object zio extends Module {
       object json extends MorphirScalaModule with MorphirPublishModule {
+        def scalacOptions     = super.scalacOptions() ++ Seq("-Yretain-trees")
         def crossScalaVersion = morphirScalaVersion
         def moduleDeps        = Seq(core)
         def ivyDeps           = Agg(Deps.dev.zio.`zio-json`)

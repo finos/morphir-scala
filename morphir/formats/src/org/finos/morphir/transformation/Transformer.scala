@@ -17,6 +17,7 @@ object Transformer:
     Transformer(in => ZIO.succeed(f(in)))
 
 object scratch:
+  import org.finos.morphir.formats.json._
   // Stream(1, 2, 3, 4, 5)
   // Pipeline = ZPipeline.map[Int, Int](_ + 3)
   // Stream(4, 5, 6, 7, 8)
