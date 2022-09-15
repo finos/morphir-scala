@@ -118,12 +118,6 @@ object morphir extends Module {
     }
   }
 
-  object testing extends Module {
-    object compiler extends Module {
-      object interface extends JavaModule with MorphirPublishModule {}
-    }
-  }
-
   object site extends Docusaurus2Module with MDocModule {
     override def scalaMdocVersion: T[String] = T("2.3.3")
     override def scalaVersion                = T(docsScalaVersion)
@@ -134,6 +128,16 @@ object morphir extends Module {
 
     override def watchedMDocsDestination: T[Option[Path]] = T(Some(docusaurusBuild().path / "docs"))
     override def compiledMdocs: Sources                   = T.sources(mdoc().path)
+  }
+
+  object testing extends Module {
+    object compiler extends Module {
+      object interface extends JavaModule with MorphirPublishModule {}
+    }
+  }
+
+  object tools extends MorphirScalaModule with MorphirPublishModule {
+    def crossScalaVersion = ScalaVersions.scala3x
   }
 }
 
