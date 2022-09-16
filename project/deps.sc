@@ -14,6 +14,7 @@ object Deps {
   case object dev {
     case object zio {
       val zio: Dep            = ivy"dev.zio::zio::${Versions.zio}"
+      val `zio-cli`           = ivy"dev.zio::zio-cli::${Versions.`zio-cli`}"
       val `zio-json`: Dep     = ivy"dev.zio::zio-json::${Versions.`zio-json`}"
       val `zio-prelude`       = ivy"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
       val `zio-streams`       = ivy"dev.zio::zio-streams::${Versions.zio}"
@@ -71,6 +72,7 @@ object Versions {
 
   val munit         = "1.0.0-M4"
   val zio           = "2.0.2"
+  val `zio-cli`     = "0.2.8"
   val `zio-json`    = "0.3.0"
   val `zio-prelude` = "1.0.0-RC15"
 }

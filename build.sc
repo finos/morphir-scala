@@ -3,7 +3,11 @@ import $file.project.modules.dependencyCheck //, dependencyCheck.DependencyCheck
 import $file.project.modules.shared,
 shared.{MorphirCrossScalaModule, MorphirScalaModule, MorphirTestModule, MorphirPublishModule}
 import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
+import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
+
+import de.tobiasroeser.mill.vcs.version.VcsVersion
 import mill._, scalalib._, scalafmt._
+import mill.contrib.buildinfo.BuildInfo
 import mill.define.Sources
 import mill.modules.Jvm
 import os.Path
@@ -20,6 +24,25 @@ val docsScalaVersion    = ScalaVersions.scala213 //This really should match but 
 object morphir extends Module {
   val workspaceDir = build.millSourcePath
 
+  object cli extends MorphirScalaModule with BuildInfo /* - Not Ready to publish yet - with MorphirPublishModule*/ {
+    def crossScalaVersion    = morphirScalaVersion
+    def buildInfoPackageName = Some("org.finos.morphir.cli")
+    def buildInfoObjectName  = "MorphirCliBuildInfo"
+    def buildInfoMembers = T {
+      Map(
+        "scalaVersion" -> scalaVersion(),
+        "version"      -> VcsVersion.vcsState().format(),
+        "product"      -> "morphir",
+        "summary"      -> "Morphir CLI",
+        "description"  -> packageDescription
+      )
+    }
+
+    def ivyDeps            = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-cli`, Deps.dev.zio.`zio-json`)
+    def packageDescription = "A command line interface for Morphir"
+    object test extends Tests with MorphirTestModule {}
+  }
+
   object corelib extends MorphirScalaModule with MorphirPublishModule {
     def crossScalaVersion = morphirScalaVersion
     def moduleDeps        = Seq(interop(crossScalaVersion))
@@ -32,6 +55,12 @@ object morphir extends Module {
 
     override def scalacPluginClasspath = T(super.scalacPluginClasspath() ++ Agg(morphirPluginJar()))
 
+    object test extends Tests with MorphirTestModule {}
+  }
+
+  object flowz extends MorphirScalaModule with MorphirPublishModule {
+    def crossScalaVersion = morphirScalaVersion
+    def ivyDeps           = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-json`)
     object test extends Tests with MorphirTestModule {}
   }
 
