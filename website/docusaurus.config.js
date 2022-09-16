@@ -9,7 +9,7 @@ const config = {
   title: 'Morphir Scala',
   tagline: 'Morphir powered by Scala',
   url: 'https://finos.github.io',
-  baseUrl: '/morphir-scala/',
+  baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
