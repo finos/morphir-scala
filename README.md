@@ -125,6 +125,17 @@ or in watch mode to reformat changed files:
 .\mill -i -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
 ```
 
+### Building website
+
+```
+./mill -i __.docusaurusBuild
+```
+
+### Running website locally
+```
+./mill -i __.docusaurusServe 
+```
+
 
 ## Roadmap
 

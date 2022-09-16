@@ -4,6 +4,10 @@ import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import styles from './styles.module.css';
+import Feature from '../components/feature';
+import { features } from '../components/feature-config';
+import FeaturesTwo from '../components/featuresTwo';
+import { featuresTwo } from '../components/featuresTwo-config';
 
 function Home() {
   const context = useDocusaurusContext();
@@ -36,8 +40,33 @@ function Home() {
           </div>
         </div>
       </header>
-      {/*<main>*/}
-      {/*</main>*/}
+      <main>
+        {features && features.length && (
+            <section className={styles.features}>
+              <div className="container">
+                <div className="row">
+                  {features.map((props, idx) => (
+                      <Feature key={idx} {...props} />
+                  ))}
+                </div>
+              </div>
+            </section>
+        )}
+        {featuresTwo && featuresTwo.length && (
+            <section className={styles.members}>
+              <div className="container">
+                <div className="row row--center">
+                  <h2></h2>
+                </div>
+                <div className="row">
+                  {featuresTwo.map((props, idx) => (
+                      <FeaturesTwo key={idx} {...props} />
+                  ))}
+                </div>
+              </div>
+            </section>
+        )}
+      </main>
     </Layout>
   );
 }
