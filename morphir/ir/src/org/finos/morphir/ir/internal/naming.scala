@@ -1,11 +1,14 @@
-package org.finos.morphir.ir
+package org.finos.morphir.ir.internal
 
-object naming:
+private[ir] object naming:
   opaque type Token = String
   object Token:
     def apply(str: String) = str
 
   opaque type Name = List[Token]
+
+  opaque type PackageName = Path.PackagePath
+
   object Name:
     def apply(first: Token, rest: Token*): Name = first :: rest.toList
     def apply(tokens: ::[Token])                = tokens
