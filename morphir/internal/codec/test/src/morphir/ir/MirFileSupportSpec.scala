@@ -2,7 +2,7 @@ package morphir.mir
 
 import io.bullet.borer.{Codec, Json}
 import zio.test.*
-import morphir.testing.MorphirBaseSpec
+import org.finos.morphir.testing.MorphirBaseSpec
 import io.bullet.borer.Cbor
 import io.bullet.borer.EncodingSetup.Api
 import io.bullet.borer.Cbor.EncodingConfig

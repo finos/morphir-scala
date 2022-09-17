@@ -3,7 +3,7 @@ package morphir.mir.sdk
 import zio.Scope
 import morphir.mir.Type.Type
 import morphir.mir.{Gens, Path}
-import morphir.testing.MorphirBaseSpec
+import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
 object CommonSpec extends MorphirBaseSpec {

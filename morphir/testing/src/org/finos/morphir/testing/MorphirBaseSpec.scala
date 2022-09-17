@@ -1,6 +1,6 @@
-package morphir.testing
+package org.finos.morphir.testing
 
-import zio.*
+import zio._
 import zio.test.{TestAspect, ZIOSpecDefault}
 
 abstract class MorphirBaseSpec extends ZIOSpecDefault {

@@ -1,7 +1,7 @@
 package morphir.mir
 
 import zio.Chunk
-import morphir.testing.MorphirBaseSpec
+import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 
 object PathSpec extends MorphirBaseSpec {

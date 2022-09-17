@@ -4,7 +4,7 @@ import morphir.mir.Module.Definition
 import morphir.mir.{Literal => Lit}
 import morphir.samples.ModuleExample.*
 import morphir.syntax.AllSyntax
-import morphir.testing.MorphirBaseSpec
+import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.TestAspect.ignore
 import zio.test.*
 

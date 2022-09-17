@@ -1,6 +1,6 @@
 package morphir.mir
 
-import morphir.testing.MorphirBaseSpec
+import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 
 object ModuleSpec extends MorphirBaseSpec {

@@ -8,7 +8,7 @@ import morphir.mir.Value.Value.{Unit => UnitType, _}
 import morphir.mir.Value.{Definition => ValueDefinition, Pattern, TypedValue}
 import morphir.mir.sdk.Basics.{floatType, intType}
 import morphir.mir.{Literal => Lit}
-import morphir.testing.MorphirBaseSpec
+import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
 object ValueModuleSpec extends MorphirBaseSpec {

@@ -3,7 +3,7 @@ package morphir.mir
 import zio.Chunk
 import morphir.mir.Type.Constructors
 import morphir.mir.Type.Type._
-import morphir.testing.MorphirBaseSpec
+import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
 object TypeModuleSpec extends MorphirBaseSpec {

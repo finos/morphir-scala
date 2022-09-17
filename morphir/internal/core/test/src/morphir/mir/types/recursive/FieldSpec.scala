@@ -1,7 +1,7 @@
 package morphir.mir.types.recursive
 
 import morphir.mir.StringOps
-import morphir.testing.MorphirBaseSpec
+import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
 object FieldSpec extends MorphirBaseSpec {

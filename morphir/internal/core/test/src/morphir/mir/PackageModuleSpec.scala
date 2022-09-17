@@ -4,7 +4,7 @@ import morphir.mir.Module.ModuleName
 import morphir.mir.PackageModule.{Definition, Specification}
 import morphir.mir.Type.UType
 import morphir.samples.ModuleExample.*
-import morphir.testing.MorphirBaseSpec
+import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 
 object PackageModuleSpec extends MorphirBaseSpec {

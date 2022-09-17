@@ -4,7 +4,7 @@ import zio.Chunk
 import morphir.mir.sdk.Basics.{boolType, floatType, intType}
 import morphir.mir.sdk.String.stringType
 import morphir.mir.{FQName, Gens, Literal => Lit, Name, Type}
-import morphir.testing.MorphirBaseSpec
+import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
 object RecursiveValueSpec extends MorphirBaseSpec {

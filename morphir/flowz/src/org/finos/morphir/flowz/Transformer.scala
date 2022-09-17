@@ -16,27 +16,27 @@ object Transformer:
   def fromFunction[In, Out](f: In => Out): Transformer[Any, Nothing, In, Out] =
     Transformer(in => ZIO.succeed(f(in)))
 
-object scratch:
-  import org.finos.morphir.formats.json._
-  // Stream(1, 2, 3, 4, 5)
-  // Pipeline = ZPipeline.map[Int, Int](_ + 3)
-  // Stream(4, 5, 6, 7, 8)
+// object scratch:
+//   import org.finos.morphir.formats.json._
+//   // Stream(1, 2, 3, 4, 5)
+//   // Pipeline = ZPipeline.map[Int, Int](_ + 3)
+//   // Stream(4, 5, 6, 7, 8)
 
-  // List(1, 2, 3, 4, 5)
-  val transform: Int => Int = _ + 3
-  val result: List[Int]     = List(1, 2, 3, 4, 5).map(transform)
+//   // List(1, 2, 3, 4, 5)
+//   val transform: Int => Int = _ + 3
+//   val result: List[Int]     = List(1, 2, 3, 4, 5).map(transform)
 
-  type Morphir = Any
+//   type Morphir = Any
 
-  type Bin  = Long
-  type Json = String
-  val morphirToJson: Transformer[Any, Nothing, Morphir, Json] = ???
-  val morphirToBin: Transformer[Any, Nothing, Morphir, Bin]   = ???
+//   type Bin  = Long
+//   type Json = String
+//   val morphirToJson: Transformer[Any, Nothing, Morphir, Json] = ???
+//   val morphirToBin: Transformer[Any, Nothing, Morphir, Bin]   = ???
 
-  val morphir: Morphir = ???
+//   val morphir: Morphir = ???
 
-  def run(arg: String): Unit =
-    arg match {
-      case "json" => morphirToJson(morphir)
-      case "bin"  => morphirToBin(morphir)
-    }
+//   def run(arg: String): Unit =
+//     arg match {
+//       case "json" => morphirToJson(morphir)
+//       case "bin"  => morphirToBin(morphir)
+//     }

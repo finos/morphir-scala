@@ -3,7 +3,7 @@ package morphir.mir.types.recursive
 import zio.Chunk
 import morphir.mir.{FQName, Name, Source}
 import morphir.syntax.NamingSyntax
-import morphir.testing.MorphirBaseSpec
+import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
 import TypeCase._
