@@ -1,4 +1,6 @@
-package morphir.mir
+package org.finos
+package morphir
+package mir
 
 import io.bullet.borer.{Codec, Json}
 import zio.test.*
@@ -6,8 +8,8 @@ import org.finos.morphir.testing.MorphirBaseSpec
 import io.bullet.borer.Cbor
 import io.bullet.borer.EncodingSetup.Api
 import io.bullet.borer.Cbor.EncodingConfig
-import morphir.mir.file.format.{MirFile, MirFileFormatVersion, MirFileHeader}
-import morphir.mir.module.ModuleName
+import mir.file.format.{MirFile, MirFileFormatVersion, MirFileHeader}
+import mir.module.ModuleName
 
 object MirFileSupportSpec extends MorphirBaseSpec {
   import MirFileSupport.given
