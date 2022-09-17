@@ -7,6 +7,14 @@ import org.finos.morphir.formats.errors.DecodingError
 
 object jsonCodec:
   opaque type FormatVersion = 1 | 2
+  object FormatVersion:
+    final val V1: FormatVersion      = 1
+    final val V2: FormatVersion      = 2
+    final val Default: FormatVersion = V2
+
+    def valueOf(input: FormatVersion): Int = input
+
+  extension (input: FormatVersion) def value: Int = input
 
   trait DistributionEncoders(using currentFormatVersion: FormatVersion):
     def encodeVersionedDistribution(distro: Distribution): Json
@@ -21,3 +29,7 @@ object jsonCodec:
   trait DistributionCodec(using currentFormatVersion: FormatVersion)
       extends DistributionEncoders
       with DistributionDecoders
+
+  trait MorphirEncoders(using currentFormatVersion: FormatVersion):
+    def encodeUnit(scala: Unit): Json
+  end MorphirEncoders
