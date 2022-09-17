@@ -1,6 +1,6 @@
 package org.finos.morphir.ir.internal
 
-import org.finos.morphir.ir.FQName
+import org.finos.morphir.ir.internal.naming.FQName
 
 final case class Module[+TAttr, +VAttr](
     name: FQName,

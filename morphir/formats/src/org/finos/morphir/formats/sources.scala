@@ -1,6 +1,6 @@
 package org.finos.morphir.formats
 
-import errors.FormatError.TextParseError
+import org.finos.morphir.formats.errors.FormatError.TextParseError
 import zio.IO
 
 object sources:

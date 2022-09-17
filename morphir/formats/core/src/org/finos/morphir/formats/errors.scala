@@ -10,3 +10,9 @@ object errors:
       FormatError.TextParseError(message, None)
     def textParseError(message: String, text: Text): FormatError.TextParseError =
       FormatError.TextParseError(message, Option(text))
+
+  enum DecodingError(message: String) extends Exception(message):
+    case FormatError(message:String, formatError: errors.FormatError) extends DecodingError(message)
+    // case MissingField(fieldName: String) extends DecodingError
+    // case InvalidField(fieldName: String, message: String) extends DecodingError
+    // case InvalidValue(message: String) extends DecodingError

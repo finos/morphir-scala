@@ -1,4 +1,4 @@
-package org.finos.morphir.transformation
+package org.finos.morphir.flowz
 
 import zio.ZIO
 
@@ -28,7 +28,8 @@ object scratch:
 
   type Morphir = Any
 
-  type Bin = Long
+  type Bin  = Long
+  type Json = String
   val morphirToJson: Transformer[Any, Nothing, Morphir, Json] = ???
   val morphirToBin: Transformer[Any, Nothing, Morphir, Bin]   = ???
 

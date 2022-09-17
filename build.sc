@@ -80,7 +80,7 @@ object morphir extends Module {
       object json extends MorphirScalaModule with MorphirPublishModule {
         def scalacOptions     = super.scalacOptions() ++ Seq("-Yretain-trees")
         def crossScalaVersion = morphirScalaVersion
-        def moduleDeps        = Seq(core)
+        def moduleDeps        = Seq(core, ir)
         def ivyDeps           = Agg(Deps.dev.zio.`zio-json`)
         object test extends Tests with MorphirTestModule {}
       }
