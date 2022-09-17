@@ -1,8 +1,11 @@
-package morphir.mir.value.recursive
+package org.finos
+package morphir
+package mir
+package value.recursive
 
-import morphir.mir.Type.{Type, UType}
-import morphir.mir.value.{Pattern, PatternConstructors, UPattern}
-import morphir.mir.{FQName, Literal => Lit, Name, Path}
+import org.finos.morphir.mir.Type.{Type, UType}
+import org.finos.morphir.mir.value.{Pattern, PatternConstructors, UPattern}
+import org.finos.morphir.mir.{FQName, Literal => Lit, Name, Path}
 import zio.prelude._
 import zio.prelude.fx.ZPure
 import zio.{Chunk, NonEmptyChunk, ZIO}

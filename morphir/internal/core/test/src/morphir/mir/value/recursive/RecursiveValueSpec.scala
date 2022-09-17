@@ -1,9 +1,9 @@
-package morphir.mir.value.recursive
+package org.finos.morphir.mir.value.recursive
 
 import zio.Chunk
-import morphir.mir.sdk.Basics.{boolType, floatType, intType}
-import morphir.mir.sdk.String.stringType
-import morphir.mir.{FQName, Gens, Literal => Lit, Name, Type}
+import org.finos.morphir.mir.sdk.Basics.{boolType, floatType, intType}
+import org.finos.morphir.mir.sdk.String.stringType
+import org.finos.morphir.mir.{FQName, Gens, Literal => Lit, Name, Type}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 

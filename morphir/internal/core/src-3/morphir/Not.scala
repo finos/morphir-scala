@@ -1,4 +1,4 @@
-package morphir
+package org.finos.morphir
 import scala.annotation.implicitNotFound
 import scala.util.NotGiven
 

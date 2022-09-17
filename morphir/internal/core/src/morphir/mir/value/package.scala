@@ -1,6 +1,8 @@
-package morphir.mir
+package org.finos
+package morphir
+package mir
 
-import morphir.mir.Type.UType
+import org.finos.morphir.mir.Type.UType
 
 package object value {
 

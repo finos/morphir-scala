@@ -1,13 +1,15 @@
-package morphir.mir
+package org.finos
+package morphir
+package mir
 
 import zio.Chunk
-import morphir.mir.Type.Field.defineField
-import morphir.mir.Type.{Type => IrType, UType}
-import morphir.mir.Value.Pattern.LiteralPattern
-import morphir.mir.Value.Value.{Unit => UnitType, _}
-import morphir.mir.Value.{Definition => ValueDefinition, Pattern, TypedValue}
-import morphir.mir.sdk.Basics.{floatType, intType}
-import morphir.mir.{Literal => Lit}
+import org.finos.morphir.mir.Type.Field.defineField
+import org.finos.morphir.mir.Type.{Type => IrType, UType}
+import org.finos.morphir.mir.Value.Pattern.LiteralPattern
+import org.finos.morphir.mir.Value.Value.{Unit => UnitType, _}
+import org.finos.morphir.mir.Value.{Definition => ValueDefinition, Pattern, TypedValue}
+import org.finos.morphir.mir.sdk.Basics.{floatType, intType}
+import org.finos.morphir.mir.{Literal => Lit}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 

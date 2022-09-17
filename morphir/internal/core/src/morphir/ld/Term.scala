@@ -1,4 +1,6 @@
-package morphir.ld
+package org.finos
+package morphir
+package ld
 
 sealed trait Term
 object Term {

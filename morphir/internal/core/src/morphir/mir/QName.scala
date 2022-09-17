@@ -1,4 +1,4 @@
-package morphir.mir
+package org.finos.morphir.mir
 
 final case class QName(modulePath: Path, localName: Name) {
   @inline def toTuple: (Path, Name) = (modulePath, localName)

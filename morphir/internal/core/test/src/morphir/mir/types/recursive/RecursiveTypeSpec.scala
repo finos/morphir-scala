@@ -1,8 +1,8 @@
-package morphir.mir.types.recursive
+package org.finos.morphir.mir.types.recursive
 
 import zio.Chunk
-import morphir.mir.{FQName, Name, Source}
-import morphir.syntax.NamingSyntax
+import org.finos.morphir.mir.{FQName, Name, Source}
+import org.finos.morphir.syntax.NamingSyntax
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 

@@ -1,6 +1,9 @@
-package morphir.mir.module
+package org.finos
+package morphir
+package mir
+package module
 
-import morphir.mir.{Name, Value}
+import org.finos.morphir.mir.{Name, Value}
 
 trait ModuleModule {
 

@@ -1,4 +1,4 @@
-package morphir.ld
+package org.finos.morphir.ld
 import io.lemonlabs.uri.Uri
 import scala.util.control.NonFatal
 

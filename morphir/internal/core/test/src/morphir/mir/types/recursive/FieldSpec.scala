@@ -1,6 +1,6 @@
-package morphir.mir.types.recursive
+package org.finos.morphir.mir.types.recursive
 
-import morphir.mir.StringOps
+import org.finos.morphir.mir.StringOps
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 

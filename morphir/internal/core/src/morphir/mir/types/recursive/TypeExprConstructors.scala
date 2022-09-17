@@ -1,6 +1,10 @@
-package morphir.mir.types.recursive
+package org.finos
+package morphir
+package mir
+package types
+package recursive
 
-import morphir.mir.{FQName, Name, NeedsAttributes}
+import org.finos.morphir.mir.{FQName, Name, NeedsAttributes}
 import zio.Chunk
 
 trait TypeExprConstructors { self =>

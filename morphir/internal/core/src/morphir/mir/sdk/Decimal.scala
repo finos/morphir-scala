@@ -1,15 +1,15 @@
-package morphir.mir.sdk
+package org.finos.morphir.mir.sdk
 
-import morphir.mir.Module
-import morphir.mir.Module.ModuleName
-import morphir.mir.Type.Specification.OpaqueTypeSpecification
-import morphir.mir.Type.Type._
-import morphir.mir.Type.{Type, UType}
-import morphir.mir.sdk.Basics._
-import morphir.mir.sdk.Common._
-import morphir.mir.sdk.Maybe.maybeType
-import morphir.mir.sdk.String.stringType
-import morphir.syntax.NamingSyntax._
+import org.finos.morphir.mir.Module
+import org.finos.morphir.mir.Module.ModuleName
+import org.finos.morphir.mir.Type.Specification.OpaqueTypeSpecification
+import org.finos.morphir.mir.Type.Type._
+import org.finos.morphir.mir.Type.{Type, UType}
+import org.finos.morphir.mir.sdk.Basics._
+import org.finos.morphir.mir.sdk.Common._
+import org.finos.morphir.mir.sdk.Maybe.maybeType
+import org.finos.morphir.mir.sdk.String.stringType
+import org.finos.morphir.syntax.NamingSyntax._
 
 object Decimal {
   val moduleName: ModuleName = ModuleName.fromString("Decimal")

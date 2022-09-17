@@ -1,8 +1,8 @@
-package morphir.mir
+package org.finos.morphir.mir
 
 import zio.Chunk
-import morphir.mir.Type.Constructors
-import morphir.mir.Type.Type._
+import org.finos.morphir.mir.Type.Constructors
+import org.finos.morphir.mir.Type.Type._
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 

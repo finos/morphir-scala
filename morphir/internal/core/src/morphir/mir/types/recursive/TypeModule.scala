@@ -1,7 +1,9 @@
-package morphir.mir.types.recursive
+package org.finos
+package morphir
+package mir.types.recursive
 
-import morphir.mir.{FQName, Name}
-//import morphir.sdk.ResultModule.Result
+import org.finos.morphir.mir.{FQName, Name}
+//import org.finos.morphir.sdk.ResultModule.Result
 
 trait TypeModule extends AllTypeSyntax {
   final type Type[+A] = morphir.mir.types.recursive.Type[A]

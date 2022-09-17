@@ -1,4 +1,7 @@
-package morphir.mir.distribution
+package org.finos
+package morphir
+package mir
+package distribution
 
 trait DistributionModule {
   final type Distribution = morphir.mir.distribution.Distribution

@@ -1,6 +1,6 @@
-package morphir.mir
+package org.finos.morphir.mir
 
-import morphir.mir.Module.{ModuleName, ModulePath}
+import org.finos.morphir.mir.Module.{ModuleName, ModulePath}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.Assertion.*
 import zio.test.*

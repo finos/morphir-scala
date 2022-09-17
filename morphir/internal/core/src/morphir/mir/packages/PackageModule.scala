@@ -1,4 +1,7 @@
-package morphir.mir.packages
+package org.finos
+package morphir
+package mir
+package packages
 
 trait PackageModule {
 

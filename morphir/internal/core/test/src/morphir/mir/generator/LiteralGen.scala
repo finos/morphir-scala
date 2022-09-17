@@ -1,6 +1,6 @@
-package morphir.mir.generator
+package org.finos.morphir.mir.generator
 
-import morphir.mir.Literal
+import org.finos.morphir.mir.Literal
 import org.finos.morphir.testing.generators.WordGen
 import zio.test.Gen
 

@@ -1,7 +1,10 @@
-package morphir.mir.value.recursive
+package org.finos
+package morphir
+package mir
+package value.recursive
 
-import morphir.mir.value.PatternConstructors
-import morphir.mir.{FQName, Name}
+import org.finos.morphir.mir.value.PatternConstructors
+import org.finos.morphir.mir.{FQName, Name}
 
 trait ValueModule extends ValueConstructors with PatternConstructors {
 

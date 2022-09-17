@@ -1,7 +1,11 @@
-package morphir.mir.value.recursive
+package org.finos
+package morphir
+package mir
+package value.recursive
+
 import zio.Chunk
-import morphir.mir.value.Pattern
-import morphir.mir.{FQName, Literal, Name}
+import org.finos.morphir.mir.value.Pattern
+import org.finos.morphir.mir.{FQName, Literal, Name}
 import zio.prelude._
 
 sealed trait ValueCase[+TA, +VA, +Self] { self =>

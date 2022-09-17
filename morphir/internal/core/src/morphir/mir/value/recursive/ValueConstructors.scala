@@ -1,10 +1,13 @@
-package morphir.mir.value.recursive
+package org.finos
+package morphir
+package mir
+package value.recursive
 
 import zio.Chunk
-import morphir.mir.Type.UType
-import morphir.mir.sdk.List.listType
-import morphir.mir.value.{Pattern, UPattern}
-import morphir.mir.{FQName, IsNotAValue, Literal => Lit, Name}
+import org.finos.morphir.mir.Type.UType
+import org.finos.morphir.mir.sdk.List.listType
+import org.finos.morphir.mir.value.{Pattern, UPattern}
+import org.finos.morphir.mir.{FQName, IsNotAValue, Literal => Lit, Name}
 
 trait ValueConstructors {
   import Value._

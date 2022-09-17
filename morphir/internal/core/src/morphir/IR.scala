@@ -1,9 +1,9 @@
-package morphir
+package org.finos.morphir
 
 import zio.Chunk
-import morphir.IR.TypeConstructorInfo
-import morphir.mir.Type.{Specification, Type, UType}
-import morphir.mir.{Distribution, FQName, Name, PackageModule, Value}
+import org.finos.morphir.IR.TypeConstructorInfo
+import org.finos.morphir.mir.Type.{Specification, Type, UType}
+import org.finos.morphir.mir.{Distribution, FQName, Name, PackageModule, Value}
 
 final case class IR(
     valueSpecifications: Map[FQName, Value.Specification.Raw],

@@ -1,4 +1,4 @@
-package morphir.ld
+package org.finos.morphir.ld
 
 import zio.test.ZIOSpecDefault
 import zio.Scope

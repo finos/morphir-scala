@@ -1,9 +1,9 @@
-package morphir.mir.packages
+package org.finos.morphir.mir.packages
 
-import morphir.mir.Module.{Definition => ModuleDef, ModuleName}
-import morphir.mir.Type.UType
-import morphir.mir.Value.{Definition => ValueDef}
-import morphir.mir.{AccessControlled, Name, Path}
+import org.finos.morphir.mir.Module.{Definition => ModuleDef, ModuleName}
+import org.finos.morphir.mir.Type.UType
+import org.finos.morphir.mir.Value.{Definition => ValueDef}
+import org.finos.morphir.mir.{AccessControlled, Name, Path}
 
 final case class Definition[+TA, +VA](
     modules: Map[ModuleName, AccessControlled[ModuleDef[TA, VA]]]

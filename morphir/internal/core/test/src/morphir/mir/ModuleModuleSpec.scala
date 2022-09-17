@@ -1,9 +1,9 @@
-package morphir.mir
+package org.finos.morphir.mir
 
-import morphir.mir.Module.Definition
-import morphir.mir.{Literal => Lit}
-import morphir.samples.ModuleExample.*
-import morphir.syntax.AllSyntax
+import org.finos.morphir.mir.Module.Definition
+import org.finos.morphir.mir.{Literal => Lit}
+import org.finos.morphir.samples.ModuleExample.*
+import org.finos.morphir.syntax.AllSyntax
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.TestAspect.ignore
 import zio.test.*

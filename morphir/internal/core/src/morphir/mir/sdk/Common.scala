@@ -1,10 +1,10 @@
-package morphir.mir.sdk
+package org.finos.morphir.mir.sdk
 
 import zio.Chunk
-import morphir.mir.Module.ModuleName
-import morphir.mir.PackageModule.PackageName
-import morphir.mir.Type.UType
-import morphir.mir.{Value, _}
+import org.finos.morphir.mir.Module.ModuleName
+import org.finos.morphir.mir.PackageModule.PackageName
+import org.finos.morphir.mir.Type.UType
+import org.finos.morphir.mir.{Value, _}
 object Common {
   val packageName: PackageName = PackageName.fromString("Morphir.SDK")
 

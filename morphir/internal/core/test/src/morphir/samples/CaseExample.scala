@@ -1,14 +1,16 @@
-package morphir.testing
+package org.finos
+package morphir
+package testing
 
 import zio.Chunk
-import morphir.Dsl
-import morphir.IR.TypeConstructorInfo
-import morphir.mir.Type.{Type, UType}
-import morphir.mir.Value.{Definition => ValueDefinition, RawValue}
-import morphir.mir.sdk.Basics.{add, intType, subtract}
-import morphir.mir.sdk.{String => StringModule}
-import morphir.mir.{FQName, Name, Path}
-import morphir.syntax.AllSyntax
+import org.finos.morphir.Dsl
+import org.finos.morphir.IR.TypeConstructorInfo
+import org.finos.morphir.mir.Type.{Type, UType}
+import org.finos.morphir.mir.Value.{Definition => ValueDefinition, RawValue}
+import org.finos.morphir.mir.sdk.Basics.{add, intType, subtract}
+import org.finos.morphir.mir.sdk.{String => StringModule}
+import org.finos.morphir.mir.{FQName, Name, Path}
+import org.finos.morphir.syntax.AllSyntax
 
 object CaseExample extends AllSyntax {
   private val intValueDef = valueDef(intType)

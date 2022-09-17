@@ -1,8 +1,8 @@
-package morphir.mir.module
+package org.finos.morphir.mir.module
 
-import morphir.mir.Type.{Specification => TypeSpec}
-import morphir.mir.Value.{Specification => ValueSpec}
-import morphir.mir.{Documented, Name}
+import org.finos.morphir.mir.Type.{Specification => TypeSpec}
+import org.finos.morphir.mir.Value.{Specification => ValueSpec}
+import org.finos.morphir.mir.{Documented, Name}
 
 final case class Specification[+TA](
     types: Map[Name, Documented[TypeSpec[TA]]],

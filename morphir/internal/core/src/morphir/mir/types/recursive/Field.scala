@@ -1,6 +1,6 @@
-package morphir.mir.types.recursive
+package org.finos.morphir.mir.types.recursive
 
-import morphir.mir.Name
+import org.finos.morphir.mir.Name
 import zio.prelude._
 
 final case class Field[+T](name: Name, data: T) { self =>

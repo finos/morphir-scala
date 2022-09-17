@@ -1,4 +1,7 @@
-package morphir.mir.value
+package org.finos
+package morphir
+package mir
+package value
 
 package object recursive {
   type RawValue = morphir.mir.value.recursive.Value.RawValue

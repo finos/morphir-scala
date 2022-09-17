@@ -1,5 +1,5 @@
-package morphir.mir
+package org.finos.morphir.mir
 
-import morphir.mir.generator.LiteralGen
+import org.finos.morphir.mir.generator.LiteralGen
 
 object Gens extends LiteralGen

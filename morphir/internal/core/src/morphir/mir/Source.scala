@@ -1,4 +1,4 @@
-package morphir.mir
+package org.finos.morphir.mir
 
 object Source {
   type Located[+A] = source.Located[A]

@@ -1,11 +1,11 @@
-package morphir.mir.sdk
+package org.finos.morphir.mir.sdk
 
 import zio.Chunk
-import morphir.mir.Module.ModuleName
-import morphir.mir.Type.Type.unit
-import morphir.mir.Value.Specification
-import morphir.mir.{Documented, Module, Name}
-import morphir.syntax.NamingSyntax._
+import org.finos.morphir.mir.Module.ModuleName
+import org.finos.morphir.mir.Type.Type.unit
+import org.finos.morphir.mir.Value.Specification
+import org.finos.morphir.mir.{Documented, Module, Name}
+import org.finos.morphir.syntax.NamingSyntax._
 
 object Regex {
   val moduleName: ModuleName = ModuleName.fromString("Regex")

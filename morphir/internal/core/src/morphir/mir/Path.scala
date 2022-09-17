@@ -1,6 +1,6 @@
-package morphir.mir
+package org.finos.morphir.mir
 import zio.Chunk
-//import morphir.mir.PackageModule.PackageAndModulePath
+//import org.finos.morphir.mir.PackageModule.PackageAndModulePath
 
 import scala.annotation.tailrec
 

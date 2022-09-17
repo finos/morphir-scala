@@ -1,4 +1,7 @@
-package morphir.mir.types
+package org.finos
+package morphir
+package mir
+package types
 
 package object recursive {
 

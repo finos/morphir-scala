@@ -1,5 +1,5 @@
-package morphir.mir
-import morphir.mir.Type.UType
+package org.finos.morphir.mir
+import org.finos.morphir.mir.Type.UType
 
 trait InferredTypeOf[A] {
   def inferredType(value: A): UType

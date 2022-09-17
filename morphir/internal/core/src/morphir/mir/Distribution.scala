@@ -1,5 +1,5 @@
-package morphir.mir
+package org.finos.morphir.mir
 
-import morphir.mir.distribution.DistributionModule
+import org.finos.morphir.mir.distribution.DistributionModule
 
 object Distribution extends DistributionModule

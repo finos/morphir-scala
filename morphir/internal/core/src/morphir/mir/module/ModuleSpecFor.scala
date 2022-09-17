@@ -1,4 +1,4 @@
-package morphir.mir.module
+package org.finos.morphir.mir.module
 
 trait ModuleSpecFor[A] {
 

@@ -1,17 +1,17 @@
-package morphir.mir.sdk
+package org.finos.morphir.mir.sdk
 
 import zio.Chunk
-import morphir.mir.Module.ModuleName
-import morphir.mir.Type.Specification.OpaqueTypeSpecification
-import morphir.mir.Type.Type._
-import morphir.mir.Type.{Type, UType}
-import morphir.mir.sdk.Basics.{boolType, floatType, intType}
-import morphir.mir.sdk.Char.charType
-import morphir.mir.sdk.Common._
-import morphir.mir.sdk.List.listType
-import morphir.mir.sdk.Maybe.maybeType
-import morphir.mir.{Module, NeedsAttributes}
-import morphir.syntax.NamingSyntax._
+import org.finos.morphir.mir.Module.ModuleName
+import org.finos.morphir.mir.Type.Specification.OpaqueTypeSpecification
+import org.finos.morphir.mir.Type.Type._
+import org.finos.morphir.mir.Type.{Type, UType}
+import org.finos.morphir.mir.sdk.Basics.{boolType, floatType, intType}
+import org.finos.morphir.mir.sdk.Char.charType
+import org.finos.morphir.mir.sdk.Common._
+import org.finos.morphir.mir.sdk.List.listType
+import org.finos.morphir.mir.sdk.Maybe.maybeType
+import org.finos.morphir.mir.{Module, NeedsAttributes}
+import org.finos.morphir.syntax.NamingSyntax._
 
 object String {
   val moduleName: ModuleName = ModuleName.fromString("String")

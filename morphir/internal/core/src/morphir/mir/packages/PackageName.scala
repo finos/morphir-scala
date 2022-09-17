@@ -1,7 +1,7 @@
-package morphir.mir.packages
+package org.finos.morphir.mir.packages
 
-import morphir.mir.module._
-import morphir.mir.{FQName, Path}
+import org.finos.morphir.mir.module._
+import org.finos.morphir.mir.{FQName, Path}
 
 final case class PackageName(toPath: Path) { self =>
   def %(modulePath: ModulePath): PackageAndModulePath = PackageAndModulePath(self, modulePath)

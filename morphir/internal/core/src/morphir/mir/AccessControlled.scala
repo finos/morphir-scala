@@ -1,4 +1,4 @@
-package morphir.mir
+package org.finos.morphir.mir
 import zio.prelude._
 
 import AccessControlled.Access

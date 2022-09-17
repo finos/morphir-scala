@@ -1,4 +1,4 @@
-package morphir.mir
+package org.finos.morphir.mir
 
 import zio.Chunk
 import org.finos.morphir.testing.MorphirBaseSpec

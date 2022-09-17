@@ -1,5 +1,5 @@
-package morphir.mir.types.recursive
-import morphir.mir.Name
+package org.finos.morphir.mir.types.recursive
+import org.finos.morphir.mir.Name
 
 import Type.FieldT
 

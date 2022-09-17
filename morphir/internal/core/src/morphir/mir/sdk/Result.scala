@@ -1,15 +1,15 @@
-package morphir.mir.sdk
+package org.finos.morphir.mir.sdk
 
 import zio.Chunk
-import morphir.mir.Module
-import morphir.mir.Module.ModuleName
-import morphir.mir.Type.Specification.CustomTypeSpecification
-import morphir.mir.Type.{Constructors, Type, UType, reference, variable}
-import morphir.mir.Value.Value
-import morphir.mir.Value.Value.{Apply, Constructor}
-import morphir.mir.sdk.Common._
-import morphir.mir.sdk.Maybe.maybeType
-import morphir.syntax.NamingSyntax._
+import org.finos.morphir.mir.Module
+import org.finos.morphir.mir.Module.ModuleName
+import org.finos.morphir.mir.Type.Specification.CustomTypeSpecification
+import org.finos.morphir.mir.Type.{Constructors, Type, UType, reference, variable}
+import org.finos.morphir.mir.Value.Value
+import org.finos.morphir.mir.Value.Value.{Apply, Constructor}
+import org.finos.morphir.mir.sdk.Common._
+import org.finos.morphir.mir.sdk.Maybe.maybeType
+import org.finos.morphir.syntax.NamingSyntax._
 object Result {
   val moduleName: ModuleName = ModuleName.fromString("Result")
 

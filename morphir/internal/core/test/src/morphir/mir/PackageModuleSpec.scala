@@ -1,9 +1,9 @@
-package morphir.mir
+package org.finos.morphir.mir
 
-import morphir.mir.Module.ModuleName
-import morphir.mir.PackageModule.{Definition, Specification}
-import morphir.mir.Type.UType
-import morphir.samples.ModuleExample.*
+import org.finos.morphir.mir.Module.ModuleName
+import org.finos.morphir.mir.PackageModule.{Definition, Specification}
+import org.finos.morphir.mir.Type.UType
+import org.finos.morphir.samples.ModuleExample.*
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 

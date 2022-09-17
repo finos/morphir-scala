@@ -1,4 +1,4 @@
-package morphir.mir
+package org.finos.morphir.mir
 import zio.prelude.*
 
 final case class Documented[+A](doc: String, value: A) {

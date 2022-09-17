@@ -1,5 +1,10 @@
-package morphir.mir.types.recursive
-import morphir.mir._
+package org.finos
+package morphir
+package mir
+package types
+package recursive
+
+import org.finos.morphir.mir._
 import zio.Chunk
 import zio.prelude._
 

@@ -1,7 +1,7 @@
-package morphir
+package org.finos.morphir
 
 // TODO:  Reintroduce later
-// import morphir.sdk.ResultModule
+// import org.finos.morphir.sdk.ResultModule
 
 package object mir {
 
@@ -29,8 +29,8 @@ package object mir {
 
   // TODO:  Reintroduce later
   final implicit class StringOps(private val self: String) extends AnyVal {
-    //   import morphir.mir.types.nonrecursive
-    import morphir.mir.types.recursive
+    //   import org.finos.morphir.mir.types.nonrecursive
+    import org.finos.morphir.mir.types.recursive
 
     def <:>[A](tpe: recursive.Type[A]): recursive.Field[recursive.Type[A]] =
       recursive.Field(Name.fromString(self), tpe)

@@ -1,5 +1,5 @@
-package morphir.mir.module
-import morphir.mir.Path
+package org.finos.morphir.mir.module
+import org.finos.morphir.mir.Path
 
 final case class QualifiedModuleName(packageName: Path, module: Path) {
   lazy val toPath: Path     = packageName / module

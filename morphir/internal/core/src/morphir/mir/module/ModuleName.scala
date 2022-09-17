@@ -1,6 +1,9 @@
-package morphir.mir.module
+package org.finos
+package morphir
+package mir
+package module
 
-import morphir.mir.{Name, Path, QName}
+import org.finos.morphir.mir.{Name, Path, QName}
 import zio.Chunk
 
 final case class ModuleName(namespace: Path, localName: Name) {

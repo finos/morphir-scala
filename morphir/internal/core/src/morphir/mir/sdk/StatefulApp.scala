@@ -1,13 +1,13 @@
-package morphir.mir.sdk
+package org.finos.morphir.mir.sdk
 
 import zio.Chunk
-import morphir.mir.Module
-import morphir.mir.Module.ModuleName
-import morphir.mir.Type.Constructors
-import morphir.mir.Type.Specification.CustomTypeSpecification
-import morphir.mir.Type.Type._
-import morphir.mir.sdk.Maybe.maybeType
-import morphir.syntax.NamingSyntax._
+import org.finos.morphir.mir.Module
+import org.finos.morphir.mir.Module.ModuleName
+import org.finos.morphir.mir.Type.Constructors
+import org.finos.morphir.mir.Type.Specification.CustomTypeSpecification
+import org.finos.morphir.mir.Type.Type._
+import org.finos.morphir.mir.sdk.Maybe.maybeType
+import org.finos.morphir.syntax.NamingSyntax._
 
 object StatefulApp {
   val moduleName: ModuleName = ModuleName.fromString("StatefulApp")
