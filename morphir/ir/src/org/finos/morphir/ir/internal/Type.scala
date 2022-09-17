@@ -1,6 +1,7 @@
 package org.finos.morphir.ir.internal
 
-import org.finos.morphir.ir.internal.naming.{FQName, Name}
+import org.finos.morphir.ir.Name.Name
+import org.finos.morphir.ir.internal.naming.FQName
 import Type._
 
 private[ir] enum Type[+Attr] extends TypeMethods[Attr]:

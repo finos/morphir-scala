@@ -1,7 +1,8 @@
 package org.finos.morphir.ir.internal
 
-import org.finos.morphir.ir.internal.naming.{FQName, Name}
+import org.finos.morphir.ir.internal.naming.FQName
 import Type._
+import Name.Name
 
 private[ir] abstract class TypeMethods[+Attr] extends TypeBase[Attr]:
   self: Type[Attr] =>

@@ -1,6 +1,7 @@
 package morphir.mir.generator
 
 import morphir.mir.Literal
+import org.finos.morphir.testing.generators.WordGen
 import zio.test.Gen
 
 trait LiteralGen extends WordGen {

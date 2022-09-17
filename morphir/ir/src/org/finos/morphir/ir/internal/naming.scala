@@ -1,17 +1,8 @@
 package org.finos.morphir.ir.internal
-
+import Name.Name
 private[ir] object naming:
-  opaque type Token = String
-  object Token:
-    def apply(str: String) = str
-
-  opaque type Name = List[Token]
 
   opaque type PackageName = Path.PackagePath
-
-  object Name:
-    def apply(first: Token, rest: Token*): Name = first :: rest.toList
-    def apply(tokens: ::[Token])                = tokens
 
   // TODO: Work through symbol so that you get basic structural info from the type
   sealed trait TypeSym:
