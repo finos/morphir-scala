@@ -92,3 +92,15 @@ body{
   margin-top: 25px;
   margin-bottom: 25px;
 }
+
+[data-theme='dark'] {
+  --ifm-color-primary: #00b5e2;
+  --ifm-color-primary-dark: #0079ac;
+  --ifm-color-primary-darker: #0072a2;
+  --ifm-color-primary-darkest: #005e86;
+  --ifm-color-primary-light: #0093d2;
+  --ifm-color-primary-lighter: #009adc;
+  --ifm-color-primary-lightest: #00aef8;
+  --ifm-font-color-base: #ffffff;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
