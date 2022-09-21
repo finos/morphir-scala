@@ -1,4 +1,6 @@
-package org.finos.morphir.mir
+package org.finos
+package morphir
+package mir
 
 import zio.test.*
 object LocalSpec extends ZIOSpecDefault:
