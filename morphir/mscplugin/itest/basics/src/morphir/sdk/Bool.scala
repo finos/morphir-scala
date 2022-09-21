@@ -1,4 +1,4 @@
-package morphir.sdk
+package org.finos.morphir.sdk
 
 import scala.language.implicitConversions
 object Bool:

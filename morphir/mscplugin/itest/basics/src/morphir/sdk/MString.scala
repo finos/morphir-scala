@@ -1,7 +1,7 @@
-package morphir.sdk
+package org.finos.morphir.sdk
 
 object MString:
-  import morphir.sdk.Bool.Bool
+  import org.finos.morphir.sdk.Bool.Bool
 
   opaque type MString = String
 

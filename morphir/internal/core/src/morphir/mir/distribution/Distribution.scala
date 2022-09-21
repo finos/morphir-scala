@@ -1,7 +1,11 @@
 package org.finos.morphir.mir.distribution
 
 import org.finos.morphir.mir.Module.{ModuleName, Specification => ModSpec}
-import org.finos.morphir.mir.PackageModule.{Definition => PackageDefinition, PackageName, USpecification => UPackageSpecification}
+import org.finos.morphir.mir.PackageModule.{
+  Definition => PackageDefinition,
+  PackageName,
+  USpecification => UPackageSpecification
+}
 import org.finos.morphir.mir.Type.Specification.{TypeAliasSpecification, USpecification => UTypeSpec}
 import org.finos.morphir.mir.Type.Type.Reference
 import org.finos.morphir.mir.Type.UType
