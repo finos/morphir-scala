@@ -1,4 +1,4 @@
-package morphir.util
+package org.finos.morphir.util
 
 import scala.util.NotGiven
 

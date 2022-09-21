@@ -1,4 +1,4 @@
-package morphir.util
+package org.finos.morphir.util
 
 //Taken from Scala Native
 import language.implicitConversions

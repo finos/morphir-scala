@@ -1,4 +1,7 @@
-package morphir.tools.backend.mir
+package org.finos
+package morphir
+package tools.backend
+package mir
 
 import dotty.tools._
 import dotc._
