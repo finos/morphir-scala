@@ -1,4 +1,6 @@
-package morphir.tools.backend.mir
+package org.finos
+package morphir
+package tools.backend.mir
 
 import dotty.tools.dotc.core
 import core.Contexts.*

@@ -1,4 +1,6 @@
-package morphir.tools.backend.mir
+package org.finos
+package morphir
+package tools.backend.mir
 import scala.language.implicitConversions
 
 import dotty.tools.dotc.ast.tpd._
