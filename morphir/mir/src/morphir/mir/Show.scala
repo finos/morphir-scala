@@ -1,9 +1,11 @@
-package morphir.mir
+package org.finos
+package morphir
+package mir
 
 import java.nio.charset.StandardCharsets
 import scala.collection.mutable
-import morphir.util.{ShowBuilder, unreachable}
-import morphir.util.ShowBuilder.InMemoryShowBuilder
+import org.finos.morphir.util.{ShowBuilder, unreachable}
+import org.finos.morphir.util.ShowBuilder.InMemoryShowBuilder
 
 import java.io.PrintWriter
 

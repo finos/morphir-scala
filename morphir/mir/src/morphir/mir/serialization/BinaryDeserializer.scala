@@ -1,4 +1,6 @@
-package morphir.mir
+package org.finos
+package morphir
+package mir
 package serialization
 
 import java.net.URI

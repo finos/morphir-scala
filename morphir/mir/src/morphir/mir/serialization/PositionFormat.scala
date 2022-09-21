@@ -1,4 +1,7 @@
-package morphir.mir.serialization
+package org.finos
+package morphir
+package mir
+package serialization
 
 // Ported from Scala Native which in turn ported from Scala.js
 

@@ -1,5 +1,7 @@
-package morphir.mir
-import morphir.util.{unreachable, unsupported}
+package org.finos
+package morphir
+package mir
+import util.{unreachable, unsupported}
 
 sealed abstract class Type:
   def show: String   = morphir.mir.Show(this)

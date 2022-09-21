@@ -1,3 +1,4 @@
+package org.finos
 package morphir.mir
 
 enum Spec:

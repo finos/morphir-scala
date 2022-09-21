@@ -1,3 +1,4 @@
+package org.finos
 package morphir
 package mir
 package serialization
@@ -6,6 +7,7 @@ import java.net.URI
 import java.io.{DataOutputStream, OutputStream}
 import java.nio.charset.StandardCharsets
 import morphir.mir.serialization.{Tags => T}
+import org.finos.morphir.util.unreachable
 import scala.collection.immutable.ListMap
 import scala.collection.mutable
 
@@ -92,7 +94,7 @@ final class BinarySerializer:
       putUTF8String(owner)
       putSpec(spec)
     case _ =>
-      util.unreachable
+      unreachable
   end putGlobal
 
   private def putSpec(spec: Spec): Unit = ()

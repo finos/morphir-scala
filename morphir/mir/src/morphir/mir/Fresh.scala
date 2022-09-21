@@ -1,4 +1,6 @@
-package morphir.mir
+package org.finos
+package morphir
+package mir
 
 /**
  * Represents a fresh Local

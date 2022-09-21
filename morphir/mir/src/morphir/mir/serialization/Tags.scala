@@ -1,4 +1,4 @@
-package morphir.mir.serialization
+package org.finos.morphir.mir.serialization
 
 /**
  * Serialization tags are unique type ids used to identify types in the binary representation of NIR. There are some

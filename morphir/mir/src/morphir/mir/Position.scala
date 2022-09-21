@@ -1,4 +1,6 @@
-package morphir.mir
+package org.finos
+package morphir
+package mir
 
 final case class Position(
     /** Source file. */

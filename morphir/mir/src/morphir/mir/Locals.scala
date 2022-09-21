@@ -1,4 +1,6 @@
-package morphir.mir
+package org.finos
+package morphir
+package mir
 
 private[mir] object Locals:
   opaque type Local = Long

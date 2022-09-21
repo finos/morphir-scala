@@ -1,4 +1,6 @@
-package morphir.mir
+package org.finos
+package morphir
+package mir
 
 import java.io.OutputStream
 import java.nio._
