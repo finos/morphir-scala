@@ -1,4 +1,4 @@
-package morphir.mir
+package morphir.tools.backend.mir
 
 import dotty.tools.dotc.core._
 import Contexts._

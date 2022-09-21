@@ -5,7 +5,7 @@ import dotc._
 import plugins._
 import core._
 import Contexts._
-import morphir.tools.backend.mir.config.MorphirSettings
+import org.finos.morphir.tools.backend.mir.config.MorphirSettings
 
 class GenMorphirIR(settings: GenMorphirIR.Settings) extends PluginPhase:
   override val description = GenMorphirIR.description

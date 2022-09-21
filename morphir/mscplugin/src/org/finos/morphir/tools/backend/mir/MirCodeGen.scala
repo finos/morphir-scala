@@ -14,14 +14,14 @@ import core.Names._
 import dotty.tools.FatalError
 import dotty.tools.dotc.printing.Printer
 import morphir.mir
-import morphir.mir.FQName
-import morphir.mir.Module.Definition as MorphirModuleDef
-import morphir.mir.Type.Definition as MorphirTypeDef
-import morphir.mir.module.ModuleName
-import morphir.mir.file.format.MirFile
+import org.finos.morphir.mir.FQName
+import org.finos.morphir.mir.Module.Definition as MorphirModuleDef
+import org.finos.morphir.mir.Type.Definition as MorphirTypeDef
+import org.finos.morphir.mir.module.ModuleName
+import org.finos.morphir.mir.file.format.MirFile
 import morphir.util.ScopedVar
 import io.bullet.borer.{Cbor, Output}
-import morphir.mir.MirFileSupport.given
+import org.finos.morphir.mir.MirFileSupport.given
 import java.io.OutputStream
 import zio.Chunk
 

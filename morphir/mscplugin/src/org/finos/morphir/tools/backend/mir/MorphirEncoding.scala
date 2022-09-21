@@ -5,8 +5,8 @@ import core.Contexts.*
 import core.Flags.*
 import core.Symbols.*
 import dotty.tools.backend.jvm.DottyBackendInterface.symExtensions
-import morphir.mir.FQName
-import morphir.mir.Module.ModuleName
+import org.finos.morphir.mir.FQName
+import org.finos.morphir.mir.Module.ModuleName
 
 object MorphirEncoding:
   def encodeModuleName(sym: Symbol)(using Context): FQName =

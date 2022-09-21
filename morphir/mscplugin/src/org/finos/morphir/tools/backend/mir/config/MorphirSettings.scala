@@ -1,4 +1,8 @@
-package morphir.tools.backend.mir.config
+package org.finos
+package morphir
+package tools.backend
+package mir
+package config
 
 import dotty.tools.dotc.config.Settings.Setting
 import dotty.tools.dotc.config.Settings.SettingGroup
