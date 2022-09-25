@@ -6,7 +6,7 @@ import scala.language.implicitConversions
 
 @extern
 object String:
-  import morphir.sdk.Bool.Bool
+  import _root_.morphir.sdk.Bool.Bool
   import morphir.sdk.Int
   import morphir.sdk.Int.Int
 

@@ -5,7 +5,7 @@ import scala.{List => SList}
 
 @extern
 object List:
-  import morphir.sdk.Int.Int
+  import _root_.morphir.sdk.Int.Int
 
   opaque type List[+A] = SList[A]
 
