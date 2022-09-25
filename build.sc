@@ -93,9 +93,13 @@ object morphir extends Module {
 
   object lib extends Module {
     object core extends MorphirScalaModule with MorphirPublishModule {
-      def crossScalaVersion = morphirScalaVersion
-      def moduleDeps        = Seq(interop(crossScalaVersion))
-      def morphirPluginJar  = T(morphir.tools.msc.plugin.assembly())
+      def crossScalaVersion: String = morphirScalaVersion
+      def moduleDeps =
+        partialVersion(crossScalaVersion) match {
+          case Some((3, _)) => Seq(interop(crossScalaVersion))
+          case _            => Seq()
+        }
+      def morphirPluginJar = T(morphir.tools.msc.plugin.assembly())
 
       override def scalacOptions = T {
         val pluginJarPath = morphirPluginJar().path
@@ -111,13 +115,6 @@ object morphir extends Module {
     class InteropModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
       object test extends Tests with MorphirTestModule {}
     }
-  }
-
-  object mir extends MorphirScalaModule with MorphirPublishModule {
-    def crossScalaVersion = morphirScalaVersion
-    def moduleDeps        = Seq(internal.util)
-    def scalacOptions     = super.scalacOptions()
-    object test extends Tests with MorphirTestModule
   }
 
   object site extends Docusaurus2Module with MDocModule {
@@ -174,7 +171,7 @@ object morphir extends Module {
         def scalaVersion      = morphirScalaVersion
         def ivyDeps           = self.compilerPluginDependencies(morphirScalaVersion)
         def moduleDeps =
-          Seq(morphir.core(morphirScalaVersion), morphir.internal.codec, morphir.mir, morphir.internal.util)
+          Seq(morphir.core(morphirScalaVersion), morphir.internal.codec, morphir.internal.util)
         def crossFullScalaVersion = true
 
         object test extends Tests with MorphirTestModule {}
