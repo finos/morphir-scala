@@ -1,3 +1,4 @@
+package org.finos
 package morphir
 
 import scala.annotation.Annotation
