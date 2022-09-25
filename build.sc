@@ -24,6 +24,21 @@ val docsScalaVersion    = ScalaVersions.scala213 //This really should match but 
 object morphir extends Module {
   val workspaceDir = build.millSourcePath
 
+  object contrib extends Module {
+    object flowz extends MorphirScalaModule with MorphirPublishModule {
+      def crossScalaVersion = morphirScalaVersion
+      def ivyDeps           = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-json`)
+      object test extends Tests with MorphirTestModule {}
+    }
+
+    object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
+    class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
+      def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
+      def moduleDeps = Seq(morphir.core(crossScalaVersion))
+      object test extends Tests with MorphirTestModule {}
+    }
+  }
+
   object core extends mill.Cross[CoreModule](ScalaVersions.all: _*) {}
   class CoreModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
     def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`, io.lemonlabs.`scala-uri`)
@@ -35,12 +50,6 @@ object morphir extends Module {
     object test extends Tests with MorphirTestModule {
       def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
     }
-  }
-
-  object flowz extends MorphirScalaModule with MorphirPublishModule {
-    def crossScalaVersion = morphirScalaVersion
-    def ivyDeps           = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-json`)
-    object test extends Tests with MorphirTestModule {}
   }
 
   object formats extends Module {
@@ -87,13 +96,6 @@ object morphir extends Module {
         }
       }
     }
-  }
-
-  object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
-  class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
-    def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
-    def moduleDeps = Seq(morphir.core(crossScalaVersion))
-    object test extends Tests with MorphirTestModule {}
   }
 
   object lib extends Module {
