@@ -1,4 +1,6 @@
-package morphir.util
+package org.finos
+package morphir
+package util
 
 import zio.Console
 import zio.test.*
