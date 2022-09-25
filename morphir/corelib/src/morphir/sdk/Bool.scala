@@ -1,5 +1,5 @@
 package morphir.sdk
-import morphir.interop.extern
+import org.finos.morphir.interop.extern
 
 @extern
 object Bool:

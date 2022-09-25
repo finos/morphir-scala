@@ -1,5 +1,5 @@
 package morphir.sdk
-import morphir.interop.*
+import org.finos.morphir.interop._
 
 import scala.{List => SList}
 

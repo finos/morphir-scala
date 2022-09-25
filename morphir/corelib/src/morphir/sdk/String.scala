@@ -1,5 +1,5 @@
 package morphir.sdk
-import morphir.interop.*
+import org.finos.morphir.interop._
 
 import java.lang.{String => Str}
 import scala.language.implicitConversions
