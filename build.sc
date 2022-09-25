@@ -146,27 +146,32 @@ object morphir extends Module {
       Seq(morphir.internal.core(morphirScalaVersion), morphir.internal.codec, morphir.mir, morphir.internal.util)
     def crossFullScalaVersion = true
 
-    object test  extends Tests with MorphirTestModule {}
-    object itest extends Module                       {
-      // object basics extends MorphirScalaModule {
-      //   def crossScalaVersion = morphirScalaVersion
 
-      //   def morphirPluginJar = T.input(mscplugin.jar())
 
-      //   override def scalacOptions = T {
-      //     val pluginJarPath = morphirPluginJar().path
-      //     super.scalacOptions() ++ Seq(s"-Xplugin:$pluginJarPath")
-      //   }
 
-      //   override def scalacPluginClasspath = T(super.scalacPluginClasspath() ++ Agg(morphirPluginJar()))
-      //   // def scalacPluginIvyDeps = T {
-      //   //   // TODO: try lefou's suggestion to
-      //   //   // "... but you could instead just override the scalacPluginClasspath and add the mscplugin.jar directly"
-      //   //   val _                    = mscplugin.publishLocal()()
-      //   //   val morphirPluginVersion = mscplugin.publishVersion()
-      //   //   Agg(ivy"org.finos.morphir:::morphir-mscplugin:$morphirPluginVersion")
-      //   // }
-      // }
+
+
+    object test extends Tests with MorphirTestModule {}
+    object itest extends Module {
+      object basics extends MorphirScalaModule {
+        def crossScalaVersion = morphirScalaVersion
+        def moduleDeps        = Seq(interop(crossScalaVersion))
+        def morphirPluginJar  = T(mscplugin.assembly())
+
+        override def scalacOptions = T {
+          val pluginJarPath = morphirPluginJar().path
+          super.scalacOptions() ++ Seq(s"-Xplugin:$pluginJarPath" /*, "--morphir"*/ )
+        }
+
+        override def scalacPluginClasspath = T(super.scalacPluginClasspath() ++ Agg(morphirPluginJar()))
+        // def scalacPluginIvyDeps = T {
+        //   // TODO: try lefou's suggestion to
+        //   // "... but you could instead just override the scalacPluginClasspath and add the mscplugin.jar directly"
+        //   val _                    = mscplugin.publishLocal()()
+        //   val morphirPluginVersion = mscplugin.publishVersion()
+        //   Agg(ivy"org.finos.morphir:::morphir-mscplugin:$morphirPluginVersion")
+        // }
+      }
     }
   }
 

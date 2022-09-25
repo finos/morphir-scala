@@ -5,7 +5,7 @@ import scala.util.NotGiven
 trait Printer[-A]:
   extension (a: A)
     def text: Printer.Text
-    final def tprint: String = text.render
+    def tprint: String = text.render
 
 object Printer:
   type Renderer = Text => String
