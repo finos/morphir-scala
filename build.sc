@@ -51,21 +51,6 @@ object morphir extends Module {
     }
   }
 
-  object corelib extends MorphirScalaModule with MorphirPublishModule {
-    def crossScalaVersion = morphirScalaVersion
-    def moduleDeps        = Seq(interop(crossScalaVersion))
-    def morphirPluginJar  = T(mscplugin.assembly())
-
-    override def scalacOptions = T {
-      val pluginJarPath = morphirPluginJar().path
-      super.scalacOptions() ++ Seq(s"-Xplugin:$pluginJarPath" /*, "--morphir"*/ )
-    }
-
-    override def scalacPluginClasspath = T(super.scalacPluginClasspath() ++ Agg(morphirPluginJar()))
-
-    object test extends Tests with MorphirTestModule {}
-  }
-
   object flowz extends MorphirScalaModule with MorphirPublishModule {
     def crossScalaVersion = morphirScalaVersion
     def ivyDeps           = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-json`)
@@ -128,6 +113,23 @@ object morphir extends Module {
     def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
     def moduleDeps = Seq(morphir.core(crossScalaVersion))
     object test extends Tests with MorphirTestModule {}
+  }
+
+  object lib extends Module {
+    object core extends MorphirScalaModule with MorphirPublishModule {
+      def crossScalaVersion = morphirScalaVersion
+      def moduleDeps        = Seq(interop(crossScalaVersion))
+      def morphirPluginJar  = T(mscplugin.assembly())
+
+      override def scalacOptions = T {
+        val pluginJarPath = morphirPluginJar().path
+        super.scalacOptions() ++ Seq(s"-Xplugin:$pluginJarPath" /*, "--morphir"*/ )
+      }
+
+      override def scalacPluginClasspath = T(super.scalacPluginClasspath() ++ Agg(morphirPluginJar()))
+
+      object test extends Tests with MorphirTestModule {}
+    }
   }
 
   object mir extends MorphirScalaModule with MorphirPublishModule {
