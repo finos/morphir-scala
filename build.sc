@@ -64,11 +64,6 @@ object morphir extends Module {
     }
   }
 
-  object interop extends mill.Cross[InteropModule](ScalaVersions.all: _*)
-  class InteropModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-    object test extends Tests with MorphirTestModule {}
-  }
-
   object ir extends MorphirScalaModule with MorphirPublishModule {
     def crossScalaVersion = morphirScalaVersion
     def moduleDeps        = Seq(formats.core)
@@ -100,7 +95,7 @@ object morphir extends Module {
     object core extends MorphirScalaModule with MorphirPublishModule {
       def crossScalaVersion = morphirScalaVersion
       def moduleDeps        = Seq(interop(crossScalaVersion))
-      def morphirPluginJar  = T(mscplugin.assembly())
+      def morphirPluginJar  = T(morphir.tools.msc.plugin.assembly())
 
       override def scalacOptions = T {
         val pluginJarPath = morphirPluginJar().path
@@ -111,6 +106,11 @@ object morphir extends Module {
 
       object test extends Tests with MorphirTestModule {}
     }
+
+    object interop extends mill.Cross[InteropModule](ScalaVersions.all: _*)
+    class InteropModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
+      object test extends Tests with MorphirTestModule {}
+    }
   }
 
   object mir extends MorphirScalaModule with MorphirPublishModule {
@@ -118,38 +118,6 @@ object morphir extends Module {
     def moduleDeps        = Seq(internal.util)
     def scalacOptions     = super.scalacOptions()
     object test extends Tests with MorphirTestModule
-  }
-
-  object mscplugin extends MorphirScalaModule with MorphirPublishModule { self =>
-    def crossScalaVersion = ScalaVersions.scala3x
-    def scalaVersion      = morphirScalaVersion
-    def ivyDeps           = self.compilerPluginDependencies(morphirScalaVersion)
-    def moduleDeps =
-      Seq(morphir.core(morphirScalaVersion), morphir.internal.codec, morphir.mir, morphir.internal.util)
-    def crossFullScalaVersion = true
-
-    object test extends Tests with MorphirTestModule {}
-    object itest extends Module {
-      object basics extends MorphirScalaModule {
-        def crossScalaVersion = morphirScalaVersion
-        def moduleDeps        = Seq(interop(crossScalaVersion))
-        def morphirPluginJar  = T(mscplugin.assembly())
-
-        override def scalacOptions = T {
-          val pluginJarPath = morphirPluginJar().path
-          super.scalacOptions() ++ Seq(s"-Xplugin:$pluginJarPath" /*, "--morphir"*/ )
-        }
-
-        override def scalacPluginClasspath = T(super.scalacPluginClasspath() ++ Agg(morphirPluginJar()))
-        // def scalacPluginIvyDeps = T {
-        //   // TODO: try lefou's suggestion to
-        //   // "... but you could instead just override the scalacPluginClasspath and add the mscplugin.jar directly"
-        //   val _                    = mscplugin.publishLocal()()
-        //   val morphirPluginVersion = mscplugin.publishVersion()
-        //   Agg(ivy"org.finos.morphir:::morphir-mscplugin:$morphirPluginVersion")
-        // }
-      }
-    }
   }
 
   object site extends Docusaurus2Module with MDocModule {
@@ -199,39 +167,42 @@ object morphir extends Module {
       def packageDescription = "A command line interface for Morphir"
       object test extends Tests with MorphirTestModule {}
     }
-  }
 
-  object msc extends MorphirScalaModule with MorphirPublishModule { self =>
-    def crossScalaVersion = ScalaVersions.scala3x
-    def scalaVersion      = morphirScalaVersion
-    def ivyDeps           = self.compilerPluginDependencies(morphirScalaVersion)
-    def moduleDeps =
-      Seq(morphir.core(morphirScalaVersion), morphir.internal.codec, morphir.mir, morphir.internal.util)
-    def crossFullScalaVersion = true
+    object msc extends Module {
+      object plugin extends MorphirScalaModule with MorphirPublishModule { self =>
+        def crossScalaVersion = ScalaVersions.scala3x
+        def scalaVersion      = morphirScalaVersion
+        def ivyDeps           = self.compilerPluginDependencies(morphirScalaVersion)
+        def moduleDeps =
+          Seq(morphir.core(morphirScalaVersion), morphir.internal.codec, morphir.mir, morphir.internal.util)
+        def crossFullScalaVersion = true
 
-    object test extends Tests with MorphirTestModule {}
-    object itest extends Module {
-      object basics extends MorphirScalaModule {
-        def crossScalaVersion = morphirScalaVersion
-        def moduleDeps        = Seq(interop(crossScalaVersion))
-        def morphirPluginJar  = T(mscplugin.assembly())
+        object test extends Tests with MorphirTestModule {}
+        object itest extends Module {
+          object basics extends MorphirScalaModule {
+            def crossScalaVersion = morphirScalaVersion
+            def moduleDeps        = Seq(morphir.lib.interop(crossScalaVersion))
+            def morphirPluginJar  = T(morphir.tools.msc.plugin.assembly())
 
-        override def scalacOptions = T {
-          val pluginJarPath = morphirPluginJar().path
-          super.scalacOptions() ++ Seq(s"-Xplugin:$pluginJarPath" /*, "--morphir"*/ )
+            override def scalacOptions = T {
+              val pluginJarPath = morphirPluginJar().path
+              super.scalacOptions() ++ Seq(s"-Xplugin:$pluginJarPath" /*, "--morphir"*/ )
+            }
+
+            override def scalacPluginClasspath = T(super.scalacPluginClasspath() ++ Agg(morphirPluginJar()))
+            // def scalacPluginIvyDeps = T {
+            //   // TODO: try lefou's suggestion to
+            //   // "... but you could instead just override the scalacPluginClasspath and add the morphir.tools.msc.plugin.jar directly"
+            //   val _                    = morphir.tools.msc.plugin.publishLocal()()
+            //   val morphirPluginVersion = morphir.tools.msc.plugin.publishVersion()
+            //   Agg(ivy"org.finos.morphir:::morphir-morphir.tools.msc.plugin:$morphirPluginVersion")
+            // }
+          }
         }
-
-        override def scalacPluginClasspath = T(super.scalacPluginClasspath() ++ Agg(morphirPluginJar()))
-        // def scalacPluginIvyDeps = T {
-        //   // TODO: try lefou's suggestion to
-        //   // "... but you could instead just override the scalacPluginClasspath and add the mscplugin.jar directly"
-        //   val _                    = mscplugin.publishLocal()()
-        //   val morphirPluginVersion = mscplugin.publishVersion()
-        //   Agg(ivy"org.finos.morphir:::morphir-mscplugin:$morphirPluginVersion")
-        // }
       }
     }
   }
+
 }
 
 import mill.eval.{Evaluator, EvaluatorPaths}
