@@ -24,25 +24,6 @@ val docsScalaVersion    = ScalaVersions.scala213 //This really should match but 
 object morphir extends Module {
   val workspaceDir = build.millSourcePath
 
-  object cli extends MorphirScalaModule with BuildInfo /* - Not Ready to publish yet - with MorphirPublishModule*/ {
-    def crossScalaVersion    = morphirScalaVersion
-    def buildInfoPackageName = Some("org.finos.morphir.cli")
-    def buildInfoObjectName  = "MorphirCliBuildInfo"
-    def buildInfoMembers = T {
-      Map(
-        "scalaVersion" -> scalaVersion(),
-        "version"      -> VcsVersion.vcsState().format(),
-        "product"      -> "morphir",
-        "summary"      -> "Morphir CLI",
-        "description"  -> packageDescription
-      )
-    }
-
-    def ivyDeps            = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-cli`, Deps.dev.zio.`zio-json`)
-    def packageDescription = "A command line interface for Morphir"
-    object test extends Tests with MorphirTestModule {}
-  }
-
   object core extends mill.Cross[CoreModule](ScalaVersions.all: _*) {}
   class CoreModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
     def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`, io.lemonlabs.`scala-uri`)
@@ -193,10 +174,63 @@ object morphir extends Module {
     def ivyDeps = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-test`)
   }
 
-  object tools extends MorphirScalaModule with MorphirPublishModule {
+  object tools extends Module {
+
+    object backend extends MorphirScalaModule with MorphirPublishModule {
+      def crossScalaVersion = ScalaVersions.scala3x
+      def moduleDeps        = Seq(morphir.ir, morphir.formats.core, morphir.ir.zio.json)
+      object test extends Tests with MorphirTestModule {}
+    }
+    object cli extends MorphirScalaModule with BuildInfo /* - Not Ready to publish yet - with MorphirPublishModule*/ {
+      def crossScalaVersion    = morphirScalaVersion
+      def buildInfoPackageName = Some("org.finos.morphir.cli")
+      def buildInfoObjectName  = "MorphirCliBuildInfo"
+      def buildInfoMembers = T {
+        Map(
+          "scalaVersion" -> scalaVersion(),
+          "version"      -> VcsVersion.vcsState().format(),
+          "product"      -> "morphir",
+          "summary"      -> "Morphir CLI",
+          "description"  -> packageDescription
+        )
+      }
+
+      def ivyDeps            = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-cli`, Deps.dev.zio.`zio-json`)
+      def packageDescription = "A command line interface for Morphir"
+      object test extends Tests with MorphirTestModule {}
+    }
+  }
+
+  object msc extends MorphirScalaModule with MorphirPublishModule { self =>
     def crossScalaVersion = ScalaVersions.scala3x
-    def moduleDeps        = Seq(morphir.ir, morphir.formats.core, morphir.ir.zio.json)
+    def scalaVersion      = morphirScalaVersion
+    def ivyDeps           = self.compilerPluginDependencies(morphirScalaVersion)
+    def moduleDeps =
+      Seq(morphir.core(morphirScalaVersion), morphir.internal.codec, morphir.mir, morphir.internal.util)
+    def crossFullScalaVersion = true
+
     object test extends Tests with MorphirTestModule {}
+    object itest extends Module {
+      object basics extends MorphirScalaModule {
+        def crossScalaVersion = morphirScalaVersion
+        def moduleDeps        = Seq(interop(crossScalaVersion))
+        def morphirPluginJar  = T(mscplugin.assembly())
+
+        override def scalacOptions = T {
+          val pluginJarPath = morphirPluginJar().path
+          super.scalacOptions() ++ Seq(s"-Xplugin:$pluginJarPath" /*, "--morphir"*/ )
+        }
+
+        override def scalacPluginClasspath = T(super.scalacPluginClasspath() ++ Agg(morphirPluginJar()))
+        // def scalacPluginIvyDeps = T {
+        //   // TODO: try lefou's suggestion to
+        //   // "... but you could instead just override the scalacPluginClasspath and add the mscplugin.jar directly"
+        //   val _                    = mscplugin.publishLocal()()
+        //   val morphirPluginVersion = mscplugin.publishVersion()
+        //   Agg(ivy"org.finos.morphir:::morphir-mscplugin:$morphirPluginVersion")
+        // }
+      }
+    }
   }
 }
 
