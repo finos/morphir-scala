@@ -43,6 +43,14 @@ object morphir extends Module {
     object test extends Tests with MorphirTestModule {}
   }
 
+  object core extends mill.Cross[CoreModule](ScalaVersions.all: _*) {}
+  class CoreModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
+    def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`, io.lemonlabs.`scala-uri`)
+    object test extends Tests with MorphirTestModule {
+      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+    }
+  }
+
   object corelib extends MorphirScalaModule with MorphirPublishModule {
     def crossScalaVersion = morphirScalaVersion
     def moduleDeps        = Seq(interop(crossScalaVersion))
@@ -84,15 +92,6 @@ object morphir extends Module {
       }
     }
 
-    object core extends mill.Cross[CoreModule](ScalaVersions.all: _*) {}
-
-    class CoreModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-      def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`, io.lemonlabs.`scala-uri`)
-      object test extends Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
-      }
-    }
-
     object util extends MorphirScalaModule with MorphirPublishModule {
       def crossScalaVersion = morphirScalaVersion
       object test extends Tests with MorphirTestModule {}
@@ -127,7 +126,7 @@ object morphir extends Module {
   object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
   class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
     def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
-    def moduleDeps = Seq(internal.core(crossScalaVersion))
+    def moduleDeps = Seq(morphir.core(crossScalaVersion))
     object test extends Tests with MorphirTestModule {}
   }
 
@@ -143,13 +142,8 @@ object morphir extends Module {
     def scalaVersion      = morphirScalaVersion
     def ivyDeps           = self.compilerPluginDependencies(morphirScalaVersion)
     def moduleDeps =
-      Seq(morphir.internal.core(morphirScalaVersion), morphir.internal.codec, morphir.mir, morphir.internal.util)
+      Seq(morphir.core(morphirScalaVersion), morphir.internal.codec, morphir.mir, morphir.internal.util)
     def crossFullScalaVersion = true
-
-
-
-
-
 
     object test extends Tests with MorphirTestModule {}
     object itest extends Module {
