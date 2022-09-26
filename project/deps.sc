@@ -3,6 +3,8 @@ import mill._, scalalib._
 object Deps {
   case object com {
     case object lihaoyi {
+      val mainargs   = ivy"com.lihaoyi::mainargs::${Versions.`mainargs`}"
+      val `os-lib`   = ivy"com.lihaoyi::os-lib::${Versions.`os-lib`}"
       val sourcecode = ivy"com.lihaoyi::sourcecode::0.3.0"
     }
     case object softwaremill {
@@ -71,6 +73,8 @@ object Versions {
     }
 
   val munit         = "1.0.0-M4"
+  val mainargs      = "0.3.0"
+  val `os-lib`      = "0.8.1"
   val zio           = "2.0.2"
   val `zio-cli`     = "0.2.8"
   val `zio-json`    = "0.3.0"
