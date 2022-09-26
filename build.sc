@@ -127,12 +127,8 @@ object morphir extends Module {
 
     object core extends mill.Cross[CoreModule](ScalaVersions.all: _*) {}
     class CoreModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-      def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`, io.lemonlabs.`scala-uri`)
-      def moduleDeps =
-        partialVersion(crossScalaVersion) match {
-          case Some((3, _)) => Seq(morphir.lib.interop(crossScalaVersion))
-          case _            => Seq()
-        }
+      def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`, io.lemonlabs.`scala-uri`)
+      def moduleDeps = Seq(morphir.lib.interop(crossScalaVersion))
       object test extends Tests with MorphirTestModule {
         def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
       }

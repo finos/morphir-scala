@@ -1,8 +1,9 @@
 package org.finos
 package morphir
-package mir.file.format
+package mir
+package file.format
 
-import org.finos.morphir.mir.module.ModuleName
+//import org.finos.morphir.mir.Module.ModuleName
 
 final case class MirFile(header: MirFileHeader)
 object MirFile {
