@@ -1,3 +1,8 @@
+import mill.api.Result.Aborted
+import mill.api.Result
+import mill.api.Result.Failure
+import mill.api.Result.Skipped
+import mill.api.Result.Success
 import $file.project.deps, deps.{Deps, ScalaVersions}
 import $file.project.modules.dependencyCheck //, dependencyCheck.DependencyCheck
 import $file.project.modules.shared,
@@ -104,12 +109,15 @@ object morphir extends Module {
 
   object testing extends mill.Cross[TestingModule](ScalaVersions.all: _*) {
     object compiler extends Module {
-      object interface extends JavaModule with MorphirPublishModule {}
+      object interface extends JavaModule with MorphirPublishModule {
+        object test extends Tests with MorphirTestModule
+      }
     }
   }
 
   class TestingModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
     def ivyDeps = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-test`)
+    object test extends Tests with MorphirTestModule
   }
 
   object toolkit extends Module {
@@ -206,6 +214,7 @@ object morphir extends Module {
             //   val morphirPluginVersion = morphir.tools.msc.plugin.publishVersion()
             //   Agg(ivy"org.finos.morphir:::morphir-morphir.tools.msc.plugin:$morphirPluginVersion")
             // }
+            object test extends Tests with MorphirTestModule {}
           }
         }
       }
@@ -219,4 +228,52 @@ import mill.eval.{Evaluator, EvaluatorPaths}
 // instead of ./mill -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
 def reformatAll(evaluator: Evaluator, sources: mill.main.Tasks[Seq[PathRef]]) = T.command {
   ScalafmtModule.reformatAll(sources)()
+}
+
+def scalaBuild(evaluator: Evaluator, scalaVersionFilter: String, target: String) = T.command {
+  import mill.util.{PrintLogger, Watched}
+  import mill.define.SelectMode
+  import ujson.Value
+  val newTargets = mill.main.MainModule
+    .evaluateTasksNamed(
+      evaluator.withBaseLogger(
+        // When using `show`, redirect all stdout of the evaluated tasks so the
+        // printed JSON is the only thing printed to stdout.
+        evaluator.baseLogger match {
+          case PrintLogger(c1, d, c2, c3, _, i, e, in, de, uc) =>
+            PrintLogger(c1, d, c2, c3, e, i, e, in, de, uc)
+          case l => l
+        }
+      ),
+      Seq("__.scalaVersion"),
+      SelectMode.Separated
+    ) { res: Seq[(Any, Option[(String, ujson.Value)])] =>
+      val nameAndJson         = res.flatMap(_._2)
+      val output: ujson.Value = ujson.Obj.from(nameAndJson)
+      val res0 = output.obj.collect {
+        case (taskName, ujson.Str(scalaVersion)) if scalaVersion.startsWith(scalaVersionFilter) =>
+          taskName.replace(".scalaVersion", s".$target")
+      }.toList
+      // T.log.outputStream.println(res0)
+      res0
+    }
+    .map { res: Watched[Option[List[String]]] =>
+      res.value.getOrElse(List.empty)
+    }
+
+  val finalResult = newTargets.asSuccess match {
+    case Some(Result.Success(Nil)) =>
+      Result.Failure("No targets found where scalaVersion starts with " + scalaVersionFilter)
+    case Some(Result.Success(targets)) =>
+      T.log.outputStream.println(targets)
+      mill.main.MainModule.evaluateTasksNamed(evaluator, targets, SelectMode.Multi) {
+        res: Seq[(Any, Option[(String, ujson.Value)])] =>
+          val nameAndJson         = res.flatMap(_._2)
+          val output: ujson.Value = ujson.Obj.from(nameAndJson)
+          // T.log.outputStream.println(output)
+          output
+      }
+    case None => Result.Failure("Failed to get targets")
+  }
+  finalResult
 }
