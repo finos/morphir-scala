@@ -1,6 +1,6 @@
 package org.finos
 package morphir
-package mir
+package ir
 
 import zio.Chunk
 import org.finos.morphir.ir.Type.Field.defineField

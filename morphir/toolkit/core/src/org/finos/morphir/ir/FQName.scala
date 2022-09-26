@@ -1,6 +1,6 @@
 package org.finos
 package morphir
-package mir
+package ir
 
 import Module.{ModulePath, ModuleName}
 

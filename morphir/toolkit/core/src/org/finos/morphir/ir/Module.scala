@@ -1,5 +1,5 @@
 package org.finos
 package morphir
-package mir
+package ir
 
 object Module extends morphir.ir.module.ModuleModule

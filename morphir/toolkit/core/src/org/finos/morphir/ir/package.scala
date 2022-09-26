@@ -3,7 +3,7 @@ package org.finos.morphir
 // TODO:  Reintroduce later
 // import org.finos.morphir.sdk.ResultModule
 
-package object mir {
+package object ir {
 
   // TODO:  Reintroduce later
   // type LiteralValue = Literal[Any]

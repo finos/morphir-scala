@@ -1,6 +1,6 @@
 package org.finos
 package morphir
-package mir
+package ir
 package types.recursive
 
 import zio.Chunk

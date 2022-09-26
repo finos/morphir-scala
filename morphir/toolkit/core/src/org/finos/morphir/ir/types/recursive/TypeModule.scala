@@ -1,6 +1,6 @@
 package org.finos
 package morphir
-package mir.types.recursive
+package ir.types.recursive
 
 import org.finos.morphir.ir.{FQName, Name}
 //import org.finos.morphir.sdk.ResultModule.Result

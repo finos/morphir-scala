@@ -1,6 +1,6 @@
 package org.finos
 package morphir
-package mir
+package ir
 package value.recursive
 
 import org.finos.morphir.ir.Type.{Type, UType}

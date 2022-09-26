@@ -1,9 +1,9 @@
 package org.finos
 package morphir
-package mir
+package ir
 package types.recursive
 
-import mir._
+import ir._
 import zio.prelude._
 import zio.prelude.fx.ZPure
 import zio.{Chunk, ZIO}
