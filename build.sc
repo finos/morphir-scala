@@ -105,6 +105,7 @@ object morphir extends Module {
 
     override def watchedMDocsDestination: T[Option[Path]] = T(Some(docusaurusBuild().path / "docs"))
     override def compiledMdocs: Sources                   = T.sources(mdoc().path)
+    object test extends Tests with MorphirTestModule {}
   }
 
   object testing extends mill.Cross[TestingModule](ScalaVersions.all: _*) {
@@ -265,7 +266,7 @@ def scalaBuild(evaluator: Evaluator, scalaVersionFilter: String, target: String)
     case Some(Result.Success(Nil)) =>
       Result.Failure("No targets found where scalaVersion starts with " + scalaVersionFilter)
     case Some(Result.Success(targets)) =>
-      T.log.outputStream.println(targets)
+      // T.log.outputStream.println(targets)
       mill.main.MainModule.evaluateTasksNamed(evaluator, targets, SelectMode.Multi) {
         res: Seq[(Any, Option[(String, ujson.Value)])] =>
           val nameAndJson         = res.flatMap(_._2)
