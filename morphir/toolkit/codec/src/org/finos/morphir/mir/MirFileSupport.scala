@@ -5,7 +5,7 @@ import io.bullet.borer.{Cbor, Codec, Decoder, Encoder, Json}
 import io.bullet.borer.derivation.key
 import io.bullet.borer.derivation.ArrayBasedCodecs.*
 import mir.file.format.{MirFile, MirFileFormatVersion, MirFileHeader}
-import org.finos.morphir.mir.Module.ModuleName
+import org.finos.morphir.ir.Module.ModuleName
 
 trait MirFileSupport:
   given Encoder[Name] = Encoder.forArray[String].contramap[Name](_.toList.toArray)

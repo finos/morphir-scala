@@ -3,7 +3,7 @@ package morphir
 package mir
 package file.format
 
-//import org.finos.morphir.mir.Module.ModuleName
+import org.finos.morphir.ir.Module.ModuleName
 
 final case class MirFile(header: MirFileHeader)
 object MirFile {
