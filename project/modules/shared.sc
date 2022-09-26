@@ -39,8 +39,10 @@ lazy val buildVersion = {
 
 trait MorphirPublishModule extends CiReleaseModule with JavaModule with DependencyCheckModule {
   import mill.scalalib.publish._
+  def packageDescription: String = s"The $artifactName package"
+
   def pomSettings = PomSettings(
-    description = artifactName(),
+    description = packageDescription,
     organization = "org.finos.morphir",
     url = "https://github.com/finos/morphir-scala",
     licenses = Seq(License.`Apache-2.0`),
@@ -158,6 +160,7 @@ trait CommonCoursierModule extends CoursierModule {
     ("commons-io", "commons-io", "2.11.0"),
     ("com.google.code.gson", "gson", "2.9.0"),
     ("com.google.protobuf", "protobuf-java", "3.21.2"),
-    ("com.google.guava", "guava", "31.1-jre")
+    ("com.google.guava", "guava", "31.1-jre"),
+    ("org.jsoup", "jsoup", "1.15.3")
   )
 }
