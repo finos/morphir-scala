@@ -23,8 +23,8 @@ import Deps._
  * The version of Scala natively supported by the toolchain. Morphir itself may provide backends that generate code for
  * other Scala versions. We may also directly cross-compile to additional Scla versions.
  */
-val morphirScalaVersion = ScalaVersions.scala3x
-val docsScalaVersion    = ScalaVersions.scala213 //This really should match but need to figure it out
+val morphirScalaVersion: String = ScalaVersions.scala3x
+val docsScalaVersion: String    = ScalaVersions.scala213 //This really should match but need to figure it out
 
 object morphir extends Module {
   val workspaceDir = build.millSourcePath
@@ -111,7 +111,7 @@ object morphir extends Module {
   object testing extends mill.Cross[TestingModule](ScalaVersions.all: _*) {
     object compiler extends Module {
       object interface extends JavaModule with MorphirPublishModule {
-        object test extends Tests with MorphirTestModule
+        object test extends Tests
       }
     }
   }
@@ -178,6 +178,12 @@ object morphir extends Module {
 
       def ivyDeps            = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-cli`, Deps.dev.zio.`zio-json`)
       def packageDescription = "A command line interface for Morphir"
+      object test extends Tests with MorphirTestModule {}
+    }
+
+    object launcher extends MorphirScalaModule with MorphirPublishModule {
+      def crossScalaVersion = morphirScalaVersion
+      def ivyDeps           = Agg(com.lihaoyi.mainargs, com.lihaoyi.`os-lib`)
       object test extends Tests with MorphirTestModule {}
     }
 
