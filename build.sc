@@ -34,21 +34,8 @@ object morphir extends Module {
     object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
     class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
       def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
-      def moduleDeps = Seq(morphir.core(crossScalaVersion))
+      def moduleDeps = Seq(morphir.toolkit.core(crossScalaVersion))
       object test extends Tests with MorphirTestModule {}
-    }
-  }
-
-  object core extends mill.Cross[CoreModule](ScalaVersions.all: _*) {}
-  class CoreModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-    def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`, io.lemonlabs.`scala-uri`)
-    def moduleDeps =
-      partialVersion(crossScalaVersion) match {
-        case Some((3, _)) => Seq(morphir.lib.interop(crossScalaVersion))
-        case _            => Seq()
-      }
-    object test extends Tests with MorphirTestModule {
-      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
     }
   }
 
@@ -78,25 +65,6 @@ object morphir extends Module {
           }
         }
       }
-    }
-  }
-
-  object internal extends Module {
-    object codec extends MorphirScalaModule with MorphirPublishModule {
-
-      def crossScalaVersion = morphirScalaVersion
-
-      def ivyDeps = Agg(io.bullet.`borer-core`(morphirScalaVersion), io.bullet.`borer-derivation`(morphirScalaVersion))
-      def moduleDeps = Seq(core(morphirScalaVersion))
-
-      object test extends Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(core(morphirScalaVersion).test)
-      }
-    }
-
-    object util extends MorphirScalaModule with MorphirPublishModule {
-      def crossScalaVersion = morphirScalaVersion
-      object test extends Tests with MorphirTestModule {}
     }
   }
 
@@ -144,6 +112,44 @@ object morphir extends Module {
     def ivyDeps = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-test`)
   }
 
+  object toolkit extends Module {
+    object codec extends MorphirScalaModule with MorphirPublishModule {
+
+      def crossScalaVersion = morphirScalaVersion
+
+      def ivyDeps = Agg(io.bullet.`borer-core`(morphirScalaVersion), io.bullet.`borer-derivation`(morphirScalaVersion))
+      def moduleDeps = Seq(morphir.toolkit.core(morphirScalaVersion))
+
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(core(morphirScalaVersion).test)
+      }
+    }
+
+    object core extends mill.Cross[CoreModule](ScalaVersions.all: _*) {}
+    class CoreModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
+      def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`, io.lemonlabs.`scala-uri`)
+      def moduleDeps =
+        partialVersion(crossScalaVersion) match {
+          case Some((3, _)) => Seq(morphir.lib.interop(crossScalaVersion))
+          case _            => Seq()
+        }
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+      }
+    }
+
+    object mir extends MorphirScalaModule with MorphirPublishModule {
+      def crossScalaVersion = morphirScalaVersion
+      def moduleDeps        = Seq(morphir.toolkit.util)
+      def scalacOptions     = super.scalacOptions()
+      object test extends Tests with MorphirTestModule
+    }
+    object util extends MorphirScalaModule with MorphirPublishModule {
+      def crossScalaVersion = morphirScalaVersion
+      object test extends Tests with MorphirTestModule {}
+    }
+  }
+
   object tools extends Module {
 
     object backend extends MorphirScalaModule with MorphirPublishModule {
@@ -176,7 +182,7 @@ object morphir extends Module {
         def scalaVersion      = morphirScalaVersion
         def ivyDeps           = self.compilerPluginDependencies(morphirScalaVersion)
         def moduleDeps =
-          Seq(morphir.core(morphirScalaVersion), morphir.internal.codec, morphir.internal.util)
+          Seq(morphir.toolkit.core(morphirScalaVersion), morphir.toolkit.codec, morphir.toolkit.util)
         def crossFullScalaVersion = true
 
         object test extends Tests with MorphirTestModule {}
