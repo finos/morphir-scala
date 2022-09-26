@@ -16,10 +16,10 @@ import core.Names._
 import dotty.tools.FatalError
 import dotty.tools.dotc.printing.Printer
 import morphir.mir
-import org.finos.morphir.mir.FQName
-import org.finos.morphir.mir.Module.Definition as MorphirModuleDef
-import org.finos.morphir.mir.Type.Definition as MorphirTypeDef
-import org.finos.morphir.mir.module.ModuleName
+import org.finos.morphir.ir.FQName
+import org.finos.morphir.ir.Module.Definition as MorphirModuleDef
+import org.finos.morphir.ir.Type.Definition as MorphirTypeDef
+import org.finos.morphir.ir.module.ModuleName
 import org.finos.morphir.mir.file.format.MirFile
 import morphir.util.ScopedVar
 import io.bullet.borer.{Cbor, Output}

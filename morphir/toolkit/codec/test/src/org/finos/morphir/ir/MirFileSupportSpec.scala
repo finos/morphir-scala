@@ -8,13 +8,14 @@ import org.finos.morphir.testing.MorphirBaseSpec
 import io.bullet.borer.Cbor
 import io.bullet.borer.EncodingSetup.Api
 import io.bullet.borer.Cbor.EncodingConfig
+import ir.{Name, Path}
+import ir.module.ModuleName
 import mir.file.format.{MirFile, MirFileFormatVersion, MirFileHeader}
-import mir.module.ModuleName
 
 object MirFileSupportSpec extends MorphirBaseSpec {
   import MirFileSupport.given
   val spec = suite("MirFileSupportSpec")(
-    suite("morphir.mir.Name")(
+    suite("org.finos.morphir.ir.Name")(
       test("Supports encoding a Name") {
         val name    = Name.fromString("LocalDate")
         val encoded = Json.encode(name).toUtf8String
@@ -46,7 +47,7 @@ object MirFileSupportSpec extends MorphirBaseSpec {
         )
       }
     ),
-    suite("morphir.mir.Path")(
+    suite("org.finos.morphir.ir.Path")(
       test("Supports roundtrip CBOR encoding/decoding of a Path") {
         val sut          = Path.fromString("java.lang.String")
         val encoded      = Cbor.encode(sut)

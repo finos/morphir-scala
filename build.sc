@@ -178,7 +178,12 @@ object morphir extends Module {
         def scalaVersion      = morphirScalaVersion
         def ivyDeps           = self.compilerPluginDependencies(morphirScalaVersion)
         def moduleDeps =
-          Seq(morphir.toolkit.core(morphirScalaVersion), morphir.toolkit.codec, morphir.toolkit.util)
+          Seq(
+            morphir.toolkit.core(morphirScalaVersion),
+            morphir.toolkit.codec,
+            morphir.toolkit.mir,
+            morphir.toolkit.util
+          )
         def crossFullScalaVersion = true
 
         object test extends Tests with MorphirTestModule {}

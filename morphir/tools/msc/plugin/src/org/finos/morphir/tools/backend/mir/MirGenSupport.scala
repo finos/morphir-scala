@@ -17,7 +17,7 @@ import morphir.mir
 import morphir.util.ScopedVar
 import morphir.util.ScopedVar.{scoped, toValue}
 import mir._
-import org.finos.morphir.mir.Module.{Definition => ModuleDefn}
+import org.finos.morphir.ir.Module.{Definition => ModuleDefn}
 
 import scala.collection.mutable
 
