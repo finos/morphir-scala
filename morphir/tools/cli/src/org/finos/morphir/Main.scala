@@ -11,37 +11,24 @@ object Main extends ZIOCliDefault:
     name = MorphirCliBuildInfo.product,
     version = MorphirCliBuildInfo.version,
     summary = text(MorphirCliBuildInfo.description),
-    command = ??? // commands.morphir
+    command = cliCommand.morphir
   ) { case _ => printLine("Hello World!") }
 
-// object commands:
-//   sealed trait MorphirSubcommand
-//   sealed trait MorphirElmSubcommand extends MorphirSubcommand
-//   sealed trait WorkspaceSubCommand extends MorphirSubcommand
 
-//   case object Elm extends MorphirSubcommand:
-//     case object Make extends MorphirElmSubcommand
+  object cliCommand:
+    import org.finos.morphir.cli.{commands => Cmd}
+    object elm:
+      def apply()      = command
+      lazy val command = Command("elm", Options.none, Args.none).subcommands(make)
+      lazy val make    = Command("make", Options.none, Args.none).map(_ => Cmd.Elm.Make)
 
-//   case object Workspace:
-//     case object Init extends Workspace
+    object workspace:
+      val helpDoc      = HelpDoc.p("Init and get information about the current workspace")
+      lazy val command = Command("workspace").withHelp(helpDoc).subcommands(init)
 
-//   sealed trait CommandData
-//   object CommandData:
-//     case object  Workspace() extends CommandData
-//     case object Elm extends CommandData
+      val initHelp: HelpDoc = HelpDoc.p("Initialise a new Morphir project")
+      lazy val init         = Command("init").withHelp(initHelp).map(_ => Cmd.Workspace.Init)
+      def apply()           = command
 
-//   val morphir = Command("morphir")
-
-//   object elm:
-//     def apply()      = command
-//     lazy val command = Command("elm").subcommands(make)
-//     lazy val make    = Command("make").map(_ => ElmSubCommand.Make)
-
-//   object workspace:
-//     def apply()      = command
-//     lazy val command = Command("workspace").subcommands(init)
-//     lazy val init    = Command("init").withHelp(initHelp).map(_ => WorkspaceSubCommand.Init)
-
-//   val initHelp: HelpDoc = HelpDoc.p("Initialise a new Morphir project")
-
-//   val morphir = Command("morphir").subcommands(elm(), workspace())
+    val morphir: Command[Cmd.MorphirSubcommand] =
+      Command("morphir", Options.none, Args.none).subcommands(elm(), workspace())

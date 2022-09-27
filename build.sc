@@ -162,7 +162,7 @@ object morphir extends Module {
       def moduleDeps = Seq(morphir.experimental.ir, morphir.experimental.formats.core, morphir.experimental.ir.zio.json)
       object test extends Tests with MorphirTestModule {}
     }
-    object cli extends MorphirScalaModule with BuildInfo /* - Not Ready to publish yet - with MorphirPublishModule*/ {
+    object cli extends MorphirScalaModule with BuildInfo with MorphirPublishModule {
       def crossScalaVersion    = morphirScalaVersion
       def buildInfoPackageName = Some("org.finos.morphir.cli")
       def buildInfoObjectName  = "MorphirCliBuildInfo"
