@@ -9,8 +9,8 @@ import zio.cli._
 import zio.Scope
 import zio.ZIOAppArgs
 
-object Main extends MorphirCliDefault:
-  override def cliApp = MorphirCliApp.make(
+object Main extends CliDefault:
+  override def cliApp = CliApp.make(
     name = MorphirCliBuildInfo.product,
     version = MorphirCliBuildInfo.version,
     summary = text(MorphirCliBuildInfo.description),

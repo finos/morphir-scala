@@ -10,10 +10,10 @@ import zio.ZIOAppArgs
 object CliSetup:
   val elmDevelop =
     val portOpt = Options.integer("port").alias("p").withDefault(BigInt(3000)) ?? "The port to run the server on."
-    Command("develop", portOpt, Args.none).map { case port => CommandData.Elm.Develop() }
+    Command("develop", portOpt, Args.none).map { case port => CliCommand.Elm.Develop() }
 
   val elmGen =
-    Command("gen").map { case _ => CommandData.Elm.Gen() }
+    Command("gen").map { case _ => CliCommand.Elm.Gen() }
 
   val elmMake =
     val projectDirOpt = Options
@@ -30,7 +30,7 @@ object CliSetup:
     Command("make", projectDirOpt ++ outputOpt ++ typesOnlyOpt, Args.none)
       .withHelp("Compile a morphir-elm project into the Morphir IR.")
       .map { case (projectDir, output, typesOnly) =>
-        CommandData.Elm.Make(os.Path(projectDir), os.Path(output), typesOnly)
+        CliCommand.Elm.Make(os.Path(projectDir), os.Path(output), typesOnly)
       }
 
   val elm =
@@ -40,20 +40,20 @@ object CliSetup:
   val init =
     val help = HelpDoc.p("Initialize a new Morphir workspace.")
     Command("init", Options.none, Args.none).withHelp(help).map { _ =>
-      CommandData.Init()
+      CliCommand.Init()
     }
 
   val setup =
     val help = HelpDoc.p("Setup Morphir tooling.")
     Command("setup", Options.none, Args.none).withHelp(help).map { _ =>
-      CommandData.Setup
+      CliCommand.Setup
     }
 
   val workspace =
     val help = HelpDoc.p("Configure and get information about the Morphir workspace.")
     Command("workspace", Options.none, Args.none).withHelp(help).map { _ =>
-      CommandData.Workspace()
+      CliCommand.Workspace()
     }
 
-  val morphir: Command[CommandData] =
+  val morphir: Command[CliCommand] =
     Command("morphir", Options.none, Args.none).subcommands(elm, init, setup, workspace)
