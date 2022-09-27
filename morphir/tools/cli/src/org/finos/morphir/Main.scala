@@ -2,15 +2,15 @@ package org.finos
 package morphir
 
 import java.nio.file.Paths
-import morphir.cli.{CliSetup, CommandData, MorphirCliBuildInfo}
+import morphir.cli._
 import zio.Console.printLine
 import zio.cli.HelpDoc.Span.text
 import zio.cli._
 import zio.Scope
 import zio.ZIOAppArgs
 
-object Main extends ZIOCliDefault:
-  override def cliApp = CliApp.make(
+object Main extends MorphirCliDefault:
+  override def cliApp = MorphirCliApp.make(
     name = MorphirCliBuildInfo.product,
     version = MorphirCliBuildInfo.version,
     summary = text(MorphirCliBuildInfo.description),
@@ -24,3 +24,4 @@ object Main extends ZIOCliDefault:
     case CommandData.Setup                   => printLine("Setting up...")
     case CommandData.Workspace()             => printLine("Workspace selected")
   }
+end Main
