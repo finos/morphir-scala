@@ -176,7 +176,7 @@ object morphir extends Module {
         )
       }
 
-      def ivyDeps            = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-cli`, Deps.dev.zio.`zio-json`)
+      def ivyDeps = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-cli`, Deps.dev.zio.`zio-json`, Deps.com.lihaoyi.`os-lib`)
       def packageDescription = "A command line interface for Morphir"
       object test extends Tests with MorphirTestModule {}
     }
