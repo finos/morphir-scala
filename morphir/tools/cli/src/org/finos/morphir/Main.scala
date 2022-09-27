@@ -1,5 +1,8 @@
-package org.finos.morphir.cli
+package org.finos
+package morphir
 
+import java.nio.file.Paths
+import morphir.cli.{CliSetup, CommandData, MorphirCliBuildInfo}
 import zio.Console.printLine
 import zio.cli.HelpDoc.Span.text
 import zio.cli._
@@ -11,37 +14,13 @@ object Main extends ZIOCliDefault:
     name = MorphirCliBuildInfo.product,
     version = MorphirCliBuildInfo.version,
     summary = text(MorphirCliBuildInfo.description),
-    command = ??? // commands.morphir
-  ) { case _ => printLine("Hello World!") }
-
-// object commands:
-//   sealed trait MorphirSubcommand
-//   sealed trait MorphirElmSubcommand extends MorphirSubcommand
-//   sealed trait WorkspaceSubCommand extends MorphirSubcommand
-
-//   case object Elm extends MorphirSubcommand:
-//     case object Make extends MorphirElmSubcommand
-
-//   case object Workspace:
-//     case object Init extends Workspace
-
-//   sealed trait CommandData
-//   object CommandData:
-//     case object  Workspace() extends CommandData
-//     case object Elm extends CommandData
-
-//   val morphir = Command("morphir")
-
-//   object elm:
-//     def apply()      = command
-//     lazy val command = Command("elm").subcommands(make)
-//     lazy val make    = Command("make").map(_ => ElmSubCommand.Make)
-
-//   object workspace:
-//     def apply()      = command
-//     lazy val command = Command("workspace").subcommands(init)
-//     lazy val init    = Command("init").withHelp(initHelp).map(_ => WorkspaceSubCommand.Init)
-
-//   val initHelp: HelpDoc = HelpDoc.p("Initialise a new Morphir project")
-
-//   val morphir = Command("morphir").subcommands(elm(), workspace())
+    command = CliSetup.morphir
+  ) {
+    case CommandData.Elm.Develop(port)       => printLine(s"Running elm develop on port $port")
+    case CommandData.Elm(args)               => printLine("Elm")
+    case cmd @ CommandData.Elm.Make(_, _, _) => printLine(s"Elm Make: $cmd")
+    case CommandData.Elm.Gen()               => printLine("Elm Gen")
+    case CommandData.Init()                  => printLine("Initializing...")
+    case CommandData.Setup                   => printLine("Setting up...")
+    case CommandData.Workspace()             => printLine("Workspace selected")
+  }
