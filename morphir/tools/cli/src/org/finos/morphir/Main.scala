@@ -7,28 +7,31 @@ import zio.Scope
 import zio.ZIOAppArgs
 
 object Main extends ZIOCliDefault:
+  enum CliCommandData:
+    case Init()
+    case Workspace()
+
   override def cliApp = CliApp.make(
     name = MorphirCliBuildInfo.product,
     version = MorphirCliBuildInfo.version,
     summary = text(MorphirCliBuildInfo.description),
     command = cliCommand.morphir
-  ) { case _ => printLine("Hello World!") }
-
+  ) {
+    case CliCommandData.Init()      => printLine("Initializing...")
+    case CliCommandData.Workspace() => printLine("Workspace selected")
+  }
 
   object cliCommand:
-    import org.finos.morphir.cli.{commands => Cmd}
-    object elm:
-      def apply()      = command
-      lazy val command = Command("elm", Options.none, Args.none).subcommands(make)
-      lazy val make    = Command("make", Options.none, Args.none).map(_ => Cmd.Elm.Make)
+    val workspace =
+      val help = HelpDoc.p("Configure and get information about the Morphir workspace.")
+      Command("workspace", Options.none, Args.none).withHelp(help).map { _ =>
+        CliCommandData.Workspace()
+      }
 
-    object workspace:
-      val helpDoc      = HelpDoc.p("Init and get information about the current workspace")
-      lazy val command = Command("workspace").withHelp(helpDoc).subcommands(init)
+    val init =
+      val help = HelpDoc.p("Initialize a new Morphir workspace.")
+      Command("init", Options.none, Args.none).withHelp(help).map { _ =>
+        CliCommandData.Init()
+      }
 
-      val initHelp: HelpDoc = HelpDoc.p("Initialise a new Morphir project")
-      lazy val init         = Command("init").withHelp(initHelp).map(_ => Cmd.Workspace.Init)
-      def apply()           = command
-
-    val morphir: Command[Cmd.MorphirSubcommand] =
-      Command("morphir", Options.none, Args.none).subcommands(elm(), workspace())
+    val morphir: Command[CliCommandData] = Command("morphir", Options.none, Args.none).subcommands(workspace, init)
