@@ -2,6 +2,7 @@ package org.finos.morphir.cli
 
 sealed trait CliCommand extends Product with Serializable
 object CliCommand:
+  case object About                        extends CliCommand
   final case class Elm(args: List[String]) extends CliCommand
   final case class Init()                  extends CliCommand
   case object Setup                        extends CliCommand

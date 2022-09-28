@@ -8,6 +8,7 @@ import zio.Scope
 import zio.ZIOAppArgs
 
 object CliSetup:
+  val about = Command("about").withHelp("About Morphir CLI").map(_ => CliCommand.About)
   val elmDevelop =
     val portOpt = Options.integer("port").alias("p").withDefault(BigInt(3000)) ?? "The port to run the server on."
     Command("develop", portOpt, Args.none).map { case port => CliCommand.Elm.Develop() }
@@ -56,4 +57,4 @@ object CliSetup:
     }
 
   val morphir: Command[CliCommand] =
-    Command("morphir", Options.none, Args.none).subcommands(elm, init, setup, workspace)
+    Command("morphir", Options.none, Args.none).subcommands(about, elm, init, setup, workspace)
