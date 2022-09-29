@@ -21,12 +21,15 @@ object StepSpec extends MorphirBaseSpec {
       for {
         result <- Step.nameToUrn.run(Name("hello", "world"))
       } yield assertTrue(result == Urn("local-name", "hello-world"))
+    },
+    test("Steps should compose") {
+      val step1  = Step.succeed(Name("StepSpec"))
+      val step2  = Step.nameToUrn
+      val result = step1 >>> step2
+      for {
+        urn <- result.run(())
+      } yield assertTrue(urn == Urn("local-name", "step-spec"))
+
     }
   )
-
-  // def encoderSuite = suite("Encoder")(
-  //   // test("uriEncoder"){
-  //   //   val encoder = NameFolder.
-  //   // }
-  // )
 }

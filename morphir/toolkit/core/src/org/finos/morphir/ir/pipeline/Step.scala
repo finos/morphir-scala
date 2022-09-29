@@ -20,9 +20,18 @@ trait Step[-In, -Env, +Err, +Out] { self =>
 
 object Step extends NameSteps {
 
+  def attemptFunction[In, Out](f: In => Out) = new Step[In, Any, Throwable, Out] {
+    def run(in: In): ZIO[Any, Throwable, Out] = ZIO.attempt(f(in))
+  }
+
   def fail[Err](err: Err): Step[Any, Any, Err, Nothing] =
     new Step[Any, Any, Err, Nothing] {
       def run(in: Any): ZIO[Any, Err, Nothing] = ZIO.fail(err)
+    }
+
+  def fromFunction[In, Out](f: In => Out): Step[In, Any, Nothing, Out] =
+    new Step[In, Any, Nothing, Out] {
+      def run(in: In): ZIO[Any, Nothing, Out] = ZIO.succeed(f(in))
     }
   def succeed[A](a: => A) = new Step[Any, Any, Nothing, A] {
     def run(in: Any): ZIO[Any, Nothing, A] = ZIO.succeed(a)
