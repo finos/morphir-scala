@@ -10,7 +10,7 @@ import zio.test.*
 
 object ModuleModuleSpec extends MorphirBaseSpec with AllSyntax {
 
-  def spec = suite("Type")(
+  def spec = suite("ModuleModuleSpec")(
     suite("Module Definition")(
       test("Can be turned to Specification") {
 //        val expected = Specification(types = Map{

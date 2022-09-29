@@ -18,8 +18,12 @@ trait Step[-In, -Env, +Err, +Out] { self =>
     }
 }
 
-object Step {
+object Step extends NameSteps {
 
+  def fail[Err](err: Err): Step[Any, Any, Err, Nothing] =
+    new Step[Any, Any, Err, Nothing] {
+      def run(in: Any): ZIO[Any, Err, Nothing] = ZIO.fail(err)
+    }
   def succeed[A](a: => A) = new Step[Any, Any, Nothing, A] {
     def run(in: Any): ZIO[Any, Nothing, A] = ZIO.succeed(a)
   }
