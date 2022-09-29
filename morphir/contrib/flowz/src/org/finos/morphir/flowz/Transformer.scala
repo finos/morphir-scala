@@ -8,14 +8,15 @@ trait Transformer[-Env, +Err, -In, +Out] { self =>
     Transformer(in => self(in).flatMap(that.apply))
 }
 
-object Transformer:
+object Transformer {
   def apply[Env, Err, In, Out](f: In => ZIO[Env, Err, Out]): Transformer[Env, Err, In, Out] =
-    new Transformer[Env, Err, In, Out]:
+    new Transformer[Env, Err, In, Out] {
       def apply(in: In): ZIO[Env, Err, Out] = f(in)
+    }
 
   def fromFunction[In, Out](f: In => Out): Transformer[Any, Nothing, In, Out] =
     Transformer(in => ZIO.succeed(f(in)))
-
+}
 // object scratch:
 //   import org.finos.morphir.formats.json._
 //   // Stream(1, 2, 3, 4, 5)

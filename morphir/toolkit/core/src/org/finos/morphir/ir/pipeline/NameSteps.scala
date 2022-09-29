@@ -2,6 +2,7 @@ package org.finos.morphir.ir.pipeline
 
 import zio.prelude.fx._
 import io.lemonlabs.uri.Urn
+import org.finos.morphir.flowz._
 import org.finos.morphir.ir.Name
 
 trait NameSteps {
@@ -10,3 +11,7 @@ trait NameSteps {
 
   // Chunk[Path] >> Chunk[Json] >> Chunk[(MorphirIR, Json)] >> Chunk[Distribution] >> Chunk[Distribution] >> Chunk[Json] >> Chunk[Text]
 }
+
+object NameSteps extends NameSteps
+
+object steps extends NameSteps
