@@ -4,11 +4,11 @@ package flowz
 
 import zio._
 
-trait Step[-In, -Env, +Err, +Out] { self =>
+trait Step[-Env, +Err, -In, +Out] { self =>
   def run(in: In): ZIO[Env, Err, Out]
 
-  final def >>>[Env1 <: Env, Err1 >: Err, Out2](that: Step[Out, Env1, Err1, Out2]): Step[In, Env1, Err1, Out2] =
-    new Step[In, Env1, Err1, Out2] {
+  final def >>>[Env1 <: Env, Err1 >: Err, Out2](that: Step[Env1, Err1, Out, Out2]): Step[Env1, Err1, In, Out2] =
+    new Step[Env1, Err1, In, Out2] {
       def run(in: In): ZIO[Env1, Err1, Out2] =
         self.run(in).flatMap(that.run(_))
     }
@@ -16,24 +16,20 @@ trait Step[-In, -Env, +Err, +Out] { self =>
 
 object Step {
 
-  def attemptFunction[In, Out](f: In => Out) = new Step[In, Any, Throwable, Out] {
+  def attemptFunction[In, Out](f: In => Out) = new Step[Any, Throwable, In, Out] {
     def run(in: In): ZIO[Any, Throwable, Out] = ZIO.attempt(f(in))
   }
 
-  def fail[Err](err: Err): Step[Any, Any, Err, Nothing] =
-    new Step[Any, Any, Err, Nothing] {
+  def fail[Err](err: Err): Step[Any, Err, Any, Nothing] =
+    new Step[Any, Err, Any, Nothing] {
       def run(in: Any): ZIO[Any, Err, Nothing] = ZIO.fail(err)
     }
 
-  def fromFunction[In, Out](f: In => Out): Step[In, Any, Nothing, Out] =
-    new Step[In, Any, Nothing, Out] {
+  def fromFunction[In, Out](f: In => Out): Step[Any, Nothing, In, Out] =
+    new Step[Any, Nothing, In, Out] {
       def run(in: In): ZIO[Any, Nothing, Out] = ZIO.succeed(f(in))
     }
-  def succeed[A](a: => A) = new Step[Any, Any, Nothing, A] {
+  def succeed[A](a: => A) = new Step[Any, Nothing, Any, A] {
     def run(in: Any): ZIO[Any, Nothing, A] = ZIO.succeed(a)
-  }
-
-  def fromArgs[Args, A](f: Args => A): Step[Args, Any, Nothing, A] = new Step[Args, Any, Nothing, A] {
-    def run(in: Args): ZIO[Any, Nothing, A] = ZIO.succeed(f(in))
   }
 }
