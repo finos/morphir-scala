@@ -17,7 +17,7 @@ object StepSpec extends MorphirBaseSpec {
     },
     test("Steps should compose") {
       val step1  = Step.succeed("12345")
-      val step2  = Step.fromFunction[String, Int](_.toInt)
+      val step2  = Step.map[String, Int](_.toInt)
       val result = step1 >>> step2
       for {
         actual <- result.run(())

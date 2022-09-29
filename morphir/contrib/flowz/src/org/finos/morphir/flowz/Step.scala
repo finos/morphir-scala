@@ -25,7 +25,10 @@ object Step {
       def run(in: Any): ZIO[Any, Err, Nothing] = ZIO.fail(err)
     }
 
-  def fromFunction[In, Out](f: In => Out): Step[Any, Nothing, In, Out] =
+  /**
+   * Creates a step that maps from `In` to `Out` using the specified function.
+   */
+  def map[In, Out](f: In => Out): Step[Any, Nothing, In, Out] =
     new Step[Any, Nothing, In, Out] {
       def run(in: In): ZIO[Any, Nothing, Out] = ZIO.succeed(f(in))
     }
