@@ -48,7 +48,7 @@ object CliSetup:
   val setup =
     val help = HelpDoc.p("Setup Morphir tooling.")
     Command("setup", Options.none, Args.none).withHelp(help).map { _ =>
-      CliCommand.Setup
+      CliCommand.Setup()
     }
 
   val workspace =

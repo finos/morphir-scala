@@ -5,7 +5,7 @@ object CliCommand:
   case object About                        extends CliCommand
   final case class Elm(args: List[String]) extends CliCommand
   final case class Init()                  extends CliCommand
-  case object Setup                        extends CliCommand
+  final case class Setup()                 extends CliCommand
   final case class Workspace()             extends CliCommand
 
   object Elm:
