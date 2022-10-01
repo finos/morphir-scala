@@ -20,6 +20,7 @@ object CliSetup:
     val projectDirOpt = Options
       .directory("project-dir", Exists.Either)
       .withDefault(Paths.get("."))
+      .map(p => p.toAbsolutePath)
       .alias("p") ?? """Root directory of the project where morphir.json is located. (default: ".")"""
     val outputOpt =
       Options

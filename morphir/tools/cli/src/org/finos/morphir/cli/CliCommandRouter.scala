@@ -1,6 +1,7 @@
 package org.finos.morphir.cli
 import zio._
 import zio.Console.printLine
+import zio.process.Command
 object CliCommandRouter {
 
   def handleCliCommand(cmd: CliCommand): ZIO[Any, Exception, Any] =
@@ -17,6 +18,14 @@ object CliCommandRouter {
 }
 
 object ElmMakeCmdlet {
-  def run(cmd: CliCommand.Elm.Make): ZIO[Any, Exception, Any] =
-    printLine(s"Elm Make: $cmd")
+
+  def run(cmd: CliCommand.Elm.Make): ZIO[Any, Exception, Any] = {
+    val elmMake = Command("morphir-elm", "make", "-p", cmd.projectDir.toString).inheritIO
+    for {
+      _   <- printLine(s"Elm Make: $cmd")
+      res <- elmMake.linesStream.runDrain
+      _   <- printLine(res)
+    } yield ()
+  }
+
 }
