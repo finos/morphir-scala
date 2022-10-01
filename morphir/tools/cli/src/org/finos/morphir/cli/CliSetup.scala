@@ -8,6 +8,7 @@ import zio.Scope
 import zio.ZIOAppArgs
 
 object CliSetup:
+  val about = Command("about").withHelp("About Morphir CLI").map(_ => CliCommand.About)
   val elmDevelop =
     val portOpt = Options.integer("port").alias("p").withDefault(BigInt(3000)) ?? "The port to run the server on."
     Command("develop", portOpt, Args.none).map { case port => CliCommand.Elm.Develop() }
@@ -19,6 +20,7 @@ object CliSetup:
     val projectDirOpt = Options
       .directory("project-dir", Exists.Either)
       .withDefault(Paths.get("."))
+      .map(p => p.toAbsolutePath)
       .alias("p") ?? """Root directory of the project where morphir.json is located. (default: ".")"""
     val outputOpt =
       Options
@@ -30,7 +32,7 @@ object CliSetup:
     Command("make", projectDirOpt ++ outputOpt ++ typesOnlyOpt, Args.none)
       .withHelp("Compile a morphir-elm project into the Morphir IR.")
       .map { case (projectDir, output, typesOnly) =>
-        CliCommand.Elm.Make(os.Path(projectDir), os.Path(output), typesOnly)
+        CliCommand.Elm.Make(projectDir, output, typesOnly)
       }
 
   val elm =
@@ -46,7 +48,7 @@ object CliSetup:
   val setup =
     val help = HelpDoc.p("Setup Morphir tooling.")
     Command("setup", Options.none, Args.none).withHelp(help).map { _ =>
-      CliCommand.Setup
+      CliCommand.Setup()
     }
 
   val workspace =
@@ -56,4 +58,4 @@ object CliSetup:
     }
 
   val morphir: Command[CliCommand] =
-    Command("morphir", Options.none, Args.none).subcommands(elm, init, setup, workspace)
+    Command("morphir", Options.none, Args.none).subcommands(about, elm, init, setup, workspace)
