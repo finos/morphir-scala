@@ -31,7 +31,7 @@ object CliSetup:
     Command("make", projectDirOpt ++ outputOpt ++ typesOnlyOpt, Args.none)
       .withHelp("Compile a morphir-elm project into the Morphir IR.")
       .map { case (projectDir, output, typesOnly) =>
-        CliCommand.Elm.Make(os.Path(projectDir), os.Path(output), typesOnly)
+        CliCommand.Elm.Make(projectDir, output, typesOnly)
       }
 
   val elm =
