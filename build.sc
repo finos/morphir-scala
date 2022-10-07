@@ -127,6 +127,17 @@ object morphir extends Module {
   object toolkit extends Module {
     object codec extends MorphirScalaModule with MorphirPublishModule {
 
+      object zio extends Module {
+        object json extends mill.Cross[JsonModule](ScalaVersions.all: _*) {}
+        class JsonModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
+          def ivyDeps    = Agg(dev.zio.`zio-json`)
+          def moduleDeps = Seq(morphir.toolkit.core(crossScalaVersion))
+          object test extends Tests with MorphirTestModule {
+            def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+          }
+        }
+      }
+
       def crossScalaVersion = morphirScalaVersion
 
       def ivyDeps = Agg(io.bullet.`borer-core`(morphirScalaVersion), io.bullet.`borer-derivation`(morphirScalaVersion))
