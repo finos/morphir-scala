@@ -114,7 +114,7 @@ object morphir extends Module {
   object testing extends mill.Cross[TestingModule](ScalaVersions.all: _*) {
     object compiler extends Module {
       object interface extends JavaModule with MorphirPublishModule {
-        object test extends Tests
+        object test extends Tests with TestModule.Junit4
       }
     }
   }
