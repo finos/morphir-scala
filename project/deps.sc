@@ -85,6 +85,6 @@ object Versions {
 
 object ScalaVersions {
   val all      = Seq(scala213, scala3x)
-  def scala213 = "2.13.8"
+  def scala213 = "2.13.9"
   def scala3x  = "3.2.0"
 }

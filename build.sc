@@ -114,7 +114,7 @@ object morphir extends Module {
   object testing extends mill.Cross[TestingModule](ScalaVersions.all: _*) {
     object compiler extends Module {
       object interface extends JavaModule with MorphirPublishModule {
-        object test extends Tests
+        object test extends Tests with TestModule.Junit4
       }
     }
   }
@@ -126,6 +126,17 @@ object morphir extends Module {
 
   object toolkit extends Module {
     object codec extends MorphirScalaModule with MorphirPublishModule {
+
+      object zio extends Module {
+        object json extends mill.Cross[JsonModule](ScalaVersions.all: _*) {}
+        class JsonModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
+          def ivyDeps    = Agg(dev.zio.`zio-json`)
+          def moduleDeps = Seq(morphir.toolkit.core(crossScalaVersion))
+          object test extends Tests with MorphirTestModule {
+            def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+          }
+        }
+      }
 
       def crossScalaVersion = morphirScalaVersion
 
