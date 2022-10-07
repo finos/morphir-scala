@@ -1,7 +1,8 @@
 package org.finos
 package morphir
 package ir
-package types.recursive
+package types
+package recursive
 
 import ir._
 import zio.prelude._

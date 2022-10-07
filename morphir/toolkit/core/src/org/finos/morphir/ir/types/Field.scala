@@ -1,4 +1,6 @@
-package org.finos.morphir.ir.types.recursive
+package org.finos.morphir
+package ir
+package types
 
 import org.finos.morphir.ir.Name
 import zio.prelude._
@@ -12,7 +14,8 @@ final case class Field[+T](name: Name, data: T) { self =>
 
 }
 
-object Field extends FieldSyntax {
+object Field {
+  import org.finos.morphir.ir.types.recursive.Type
 
   def apply[T](name: String, data: T): Field[T] = Field(Name.fromString(name), data)
 
