@@ -4,7 +4,7 @@ package types
 package recursive
 
 import org.finos.morphir.ir.Name
-
+import org.finos.morphir.ir.types.recursive.Type.FieldT
 trait FieldSyntax {
   final def defineField(name: Name, fieldType: UType): Field[UType] = Field(name, fieldType)
 

@@ -1,11 +1,12 @@
 package org.finos
 package morphir
 package ir
-package types.recursive
+package types
+package recursive
 
 import zio.Chunk
 import org.finos.morphir.ir.{FQName, Name}
-
+import org.finos.morphir.ir.types.Field
 trait UnattributedTypeExprConstructors { self =>
 
   import TypeCase._

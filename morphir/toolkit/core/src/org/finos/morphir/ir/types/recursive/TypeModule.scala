@@ -15,8 +15,8 @@ trait TypeModule extends AllTypeSyntax {
   final type Definition[+A] = morphir.ir.types.recursive.Definition[A]
   val Definition: morphir.ir.types.recursive.Definition.type = morphir.ir.types.recursive.Definition
 
-  final type Field[+A] = morphir.ir.types.recursive.Field[A]
-  val Field: morphir.ir.types.recursive.Field.type = morphir.ir.types.recursive.Field
+  final type Field[+A] = morphir.ir.types.Field[A]
+  val Field: morphir.ir.types.Field.type = morphir.ir.types.Field
 
   final type Specification[+A] = morphir.ir.types.recursive.Specification[A]
   val Specification: morphir.ir.types.recursive.Specification.type = morphir.ir.types.recursive.Specification
