@@ -13,6 +13,12 @@ sealed trait Type[+A] extends Product with Serializable { self =>
 
   def attributes: A
 
+  // def flatMap[A1](f: A => Type[A1]): Type[A1] =
+  //   fold[Type[A1]](
+  //     unitCase0 = a => f(a),
+  //     variableCase0 = (a, name) => f(a),
+  //   )(extensibleRecordCase0 = ???, functionCase0 = ???, recordCase0 = ???, referenceCase0 = ???, tupleCase0 = ???)
+
   def fold[Z](
       unitCase0: A => Z,
       variableCase0: (A, Name) => Z
@@ -95,6 +101,23 @@ sealed trait Type[+A] extends Product with Serializable { self =>
       }
     loop(List(self), List.empty).head
   }
+
+  final def map[B](f: A => B): Type[B] =
+    fold[Type[B]](
+      attributes => UnitType(f(attributes)),
+      (attributes, name) => Variable(f(attributes), name)
+    )(
+      (attributes, name, fields) => ExtensibleRecord(f(attributes), name, fields),
+      (attributes, argumentType, returnType) => Function(f(attributes), argumentType, returnType),
+      (attributes, fields) => Record(f(attributes), fields),
+      (attributes, typeName, typeParams) => Reference(f(attributes), typeName, typeParams),
+      (attributes, elements) => Tuple(f(attributes), elements)
+    )
+
+  /**
+   * An alias for map.
+   */
+  @inline final def mapAttributes[B](f: A => B): Type[B] = map(f)
 
   final def satisfies(check: PartialFunction[Type[A], Boolean]): Boolean =
     check.lift(self).getOrElse(false)
