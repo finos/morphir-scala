@@ -3,17 +3,58 @@ package ir
 package types
 package folding
 
+import scala.annotation.tailrec
 import zio.Chunk
+
 sealed trait Type[+A] extends Product with Serializable { self =>
-  import Type._
+  import Type.{Unit => UnitType, _}
   final def ??(doc: String): Documented[Type[A]] = Documented(doc, self)
   def attributes: A
 
   final def foldContext[C, A1 >: A, Z](context: C)(folder: Folder[C, A1, Z]): Z = {
     import folder._
-    def loop(in: List[Type[A]]): Z = ???
-    loop(List(self))
+    sealed trait TypeCase {
+      def attributes: A1
+    }
+    case class FunctionCase(attributes: A1)                                         extends TypeCase
+    case class RecordCase(attributes: A1, fieldSize: Int)                           extends TypeCase
+    case class ReferenceCase(attributes: A1, typeName: FQName, typeParamsSize: Int) extends TypeCase
+
+    @tailrec
+    def loop(in: List[Type[A]], out: List[Either[TypeCase, Z]]): List[Z] =
+      in match {
+        case ExtensibleRecord(attributes, name, fields) :: types =>
+          ???
+        case Function(attributes, argumentType, returnType) :: types =>
+          loop(argumentType :: returnType :: types, Left(FunctionCase(attributes)) :: out)
+        case Record(attributes, fields) :: types =>
+          val fieldTypeExprs = fields.map(_.data).toList
+          loop(fieldTypeExprs ++ types, Left(RecordCase(attributes, fields.size)) :: out)
+        case Reference(attributes, typeName, typeParams) :: types =>
+          loop(typeParams.toList ++ types, Left(ReferenceCase(attributes, typeName, typeParams.size)) :: out)
+        case Tuple(attributes, elements) :: types => ???
+        case UnitType(attributes) :: types        => loop(types, Right(unitCase(context, attributes)) :: out)
+        case Variable(attributes, name) :: types =>
+          loop(types, Right(variableCase(context, attributes, name)) :: out)
+        case Nil =>
+          out.foldLeft[List[Z]](List.empty) {
+            case (acc, Right(typ)) =>
+              typ :: acc
+            case (acc, Left(FunctionCase(attributes))) =>
+              val argumentType :: returnType :: rest = (acc: @unchecked)
+              functionCase(context, attributes, argumentType, returnType) :: rest
+            case (acc, Left(ReferenceCase(attributes, typeName, size))) =>
+              // TODO: Is there a better way to do this?
+              val typeParams = Chunk.fromIterable(acc.take(size))
+              val rest       = acc.drop(size)
+              referenceCase(context, attributes, typeName, typeParams) :: rest
+            case _ => ???
+          }
+      }
+    loop(List(self), List.empty).head
   }
+
+  final def size: Int = foldContext(())(Type.Folder.Size)
 }
 object Type extends TypeConstructors with UnattributedTypeConstructors {
   type FieldT[+A] = Field[Type[A]]
@@ -31,12 +72,31 @@ object Type extends TypeConstructors with UnattributedTypeConstructors {
   final case class Variable[+A](attributes: A, name: Name)                                        extends Type[A]
 
   trait Folder[-Context, -Attrib, Z] {
-    def extensibleRecord(context: Context, attributes: Attrib, name: Name, fields: Chunk[Field[Z]]): Z
-    def function(context: Context, attributes: Attrib, argumentType: Z, returnType: Z): Z
-    def record(context: Context, attributes: Attrib, fields: Chunk[Field[Z]]): Z
-    def reference(context: Context, attributes: Attrib, typeName: FQName, typeParams: Chunk[Z]): Z
-    def tuple(context: Context, attributes: Attrib, elements: Chunk[Z]): Z
-    def unit(context: Context, attributes: Attrib): Z
-    def variable(context: Context, attributes: Attrib, name: Name): Z
+    def extensibleRecordCase(context: Context, attributes: Attrib, name: Name, fields: Chunk[Field[Z]]): Z
+    def functionCase(context: Context, attributes: Attrib, argumentType: Z, returnType: Z): Z
+    def recordCase(context: Context, attributes: Attrib, fields: Chunk[Field[Z]]): Z
+    def referenceCase(context: Context, attributes: Attrib, typeName: FQName, typeParams: Chunk[Z]): Z
+    def tupleCase(context: Context, attributes: Attrib, elements: Chunk[Z]): Z
+    def unitCase(context: Context, attributes: Attrib): Z
+    def variableCase(context: Context, attributes: Attrib, name: Name): Z
+  }
+
+  object Folder {
+    object Size extends Folder[Any, Any, Int] {
+      def extensibleRecordCase(context: Any, attributes: Any, name: Name, fields: Chunk[Field[Int]]): Int =
+        fields.map(_.data).sum + 1
+      def functionCase(context: Any, attributes: Any, argumentType: Int, returnType: Int): Int =
+        argumentType + returnType + 1
+      def recordCase(context: Any, attributes: Any, fields: Chunk[Field[Int]]): Int =
+        fields.map(_.data).sum + 1
+      def referenceCase(context: Any, attributes: Any, typeName: FQName, typeParams: Chunk[Int]): Int = {
+        println(s"referenceCase: typeParams.size: ${typeParams.sum}")
+        typeParams.sum + 1
+      }
+      def tupleCase(context: Any, attributes: Any, elements: Chunk[Int]): Int =
+        elements.sum + 1
+      def unitCase(context: Any, attributes: Any): Int                 = 1
+      def variableCase(context: Any, attributes: Any, name: Name): Int = 1
+    }
   }
 }
