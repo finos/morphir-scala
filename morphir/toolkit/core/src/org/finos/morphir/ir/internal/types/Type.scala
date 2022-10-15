@@ -6,6 +6,7 @@ package types
 import org.finos.morphir.ir.types.Field
 import scala.annotation.tailrec
 import zio.Chunk
+import zio.prelude._
 
 sealed trait Type[+A] extends Product with Serializable { self =>
   import Type.{Unit => UnitType, _}
@@ -186,10 +187,35 @@ object Type extends TypeConstructors with UnattributedTypeConstructors with Fiel
   type UType = Type[Any]
   val UType = Type
 
+  def mapTypeAttributes[A](tpe: Type[A]): MapTypeAttributes[A] = new MapTypeAttributes(() => tpe)
+
   final case class ExtensibleRecord[+A](attributes: A, name: Name, fields: Chunk[Field[Type[A]]]) extends Type[A]
-  final case class Function[+A](attributes: A, argumentType: Type[A], returnType: Type[A])        extends Type[A]
-  final case class Record[+A](attributes: A, fields: Chunk[Field[Type[A]]])                       extends Type[A]
-  final case class Reference[+A](attributes: A, typeName: FQName, typeParams: Chunk[Type[A]])     extends Type[A]
+  object ExtensibleRecord {
+    def apply[A](attributes: A, name: Name, fields: FieldT[A]*): ExtensibleRecord[A] =
+      ExtensibleRecord(attributes, name, Chunk.fromIterable(fields))
+
+    def apply[A](attributes: A, name: String, fields: FieldT[A]*): ExtensibleRecord[A] =
+      ExtensibleRecord(attributes, Name.fromString(name), Chunk.fromIterable(fields))
+
+    def apply(name: Name, fields: Field[UType]*): ExtensibleRecord[Any] =
+      ExtensibleRecord((), name, Chunk.fromIterable(fields))
+
+    def apply(name: Name, fields: Chunk[Field[UType]]): ExtensibleRecord[Any] =
+      ExtensibleRecord((), name, fields)
+
+    def apply(name: String, fields: Field[UType]*): ExtensibleRecord[Any] =
+      ExtensibleRecord((), Name.fromString(name), Chunk.fromIterable(fields))
+
+    def apply(name: String, fields: Chunk[Field[UType]]): ExtensibleRecord[Any] =
+      ExtensibleRecord((), Name.fromString(name), fields)
+  }
+  final case class Function[+A](attributes: A, argumentType: Type[A], returnType: Type[A]) extends Type[A]
+  object Function {
+    def apply(argumentType: UType, returnType: UType): Function[Any] = Function((), argumentType, returnType)
+  }
+
+  final case class Record[+A](attributes: A, fields: Chunk[Field[Type[A]]])                   extends Type[A]
+  final case class Reference[+A](attributes: A, typeName: FQName, typeParams: Chunk[Type[A]]) extends Type[A]
   object Reference {
     def apply[A](attributes: A, typeName: FQName, typeParams: Type[A]*)(implicit ev: NeedsAttributes[A]): Reference[A] =
       Reference(attributes, typeName, Chunk.fromIterable(typeParams))
@@ -255,5 +281,17 @@ object Type extends TypeConstructors with UnattributedTypeConstructors with Fiel
       def unitCase(context: Any, attributes: Any): String                 = "()"
       def variableCase(context: Any, attributes: Any, name: Name): String = name.toCamelCase
     }
+  }
+
+  implicit val CovariantType: Covariant[Type] = new Covariant[Type] {
+    override def map[A, B](f: A => B): Type[A] => Type[B] = tpe => tpe.mapAttributes(f)
+  }
+
+  final class MapTypeAttributes[+A](val input: () => Type[A]) extends AnyVal {
+    def apply[B](f: A => B): Type[B] = input().map(f)
+  }
+
+  implicit class UTypeExtensions(private val self: UType) extends AnyVal {
+    def -->(that: UType): UType = Function(self, that)
   }
 }
