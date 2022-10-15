@@ -25,6 +25,27 @@ trait TypeModule extends AllTypeSyntax {
   final type UDefinition = internal.types.Definition[Any]
   final val UDefinition: internal.types.Definition.type = internal.types.Definition
 
+  final type UExtensibleRecord = internal.types.Type.UExtensibleRecord
+  final val UExtensibleRecord: internal.types.Type.type = internal.types.Type
+
+  final type UFunction = internal.types.Type.UFunction
+  final val UFunction: internal.types.Type.type = internal.types.Type
+
+  final type URecord = internal.types.Type.URecord
+  final val URecord: internal.types.Type.type = internal.types.Type
+
+  final type UReference = internal.types.Type.UReference
+  final val UReference: internal.types.Type.type = internal.types.Type
+
+  final type UTuple = internal.types.Type.UTuple
+  final val UTuple: internal.types.Type.type = internal.types.Type
+
+  final type UUnit = internal.types.Type.UUnit
+  final val UUnit: internal.types.Type.type = internal.types.Type
+
+  final type UVariable = internal.types.Type.UVariable
+  final val UVariable: internal.types.Type.type = internal.types.Type
+
   final type UType = types.Type.UType
   final val UType = types.Type.UType
 

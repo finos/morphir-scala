@@ -190,11 +190,23 @@ private[internal] object Type extends TypeConstructors with UnattributedTypeCons
   type UExtensibleRecord = ExtensibleRecord[Any]
   val UExtensibleRecord = ExtensibleRecord
 
+  type UFunction = Function[Any]
+  val UFunction = Function
+
+  type URecord = Record[Any]
+  val URecord = Record
+
   type UReference = Reference[Any]
   val UReference = Reference
 
   type UTuple = Tuple[Any]
   val UTuple = Tuple
+
+  type UUnit = Type.Unit[Any]
+  val UUnit = Type.Unit
+
+  type UVariable = Variable[Any]
+  val UVariable = Variable
 
   def mapTypeAttributes[A](tpe: Type[A]): MapTypeAttributes[A] = new MapTypeAttributes(() => tpe)
 
