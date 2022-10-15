@@ -13,6 +13,28 @@ sealed trait Type[+A] extends Product with Serializable { self =>
 
   def attributes: A
 
+  def fold[Z](
+      unitCase0: A => Z,
+      variableCase0: (A, Name) => Z
+  )(
+      extensibleRecordCase0: (A, Name, Chunk[Field[Z]]) => Z,
+      functionCase0: (A, Z, Z) => Z,
+      recordCase0: (A, Chunk[Field[Z]]) => Z,
+      referenceCase0: (A, FQName, Chunk[Z]) => Z,
+      tupleCase0: (A, Chunk[Z]) => Z
+  ): Z = foldContext[Unit, A, Z](())(new Type.Folder[Unit, A, Z] {
+    def unitCase(context: Unit, attributes: A): Z                 = unitCase0(attributes)
+    def variableCase(context: Unit, attributes: A, name: Name): Z = variableCase0(attributes, name)
+    def extensibleRecordCase(context: Unit, attributes: A, name: Name, fields: Chunk[Field[Z]]): Z =
+      extensibleRecordCase0(attributes, name, fields)
+    def functionCase(context: Unit, attributes: A, argumentType: Z, returnType: Z): Z =
+      functionCase0(attributes, argumentType, returnType)
+    def recordCase(context: Unit, attributes: A, fields: Chunk[Field[Z]]): Z = recordCase0(attributes, fields)
+    def referenceCase(context: Unit, attributes: A, typeName: FQName, typeParams: Chunk[Z]): Z =
+      referenceCase0(attributes, typeName, typeParams)
+    def tupleCase(context: Unit, attributes: A, elements: Chunk[Z]): Z = tupleCase0(attributes, elements)
+  })
+
   final def foldContext[C, A1 >: A, Z](context: C)(folder: Folder[C, A1, Z]): Z = {
     import folder._
     sealed trait TypeCase {
