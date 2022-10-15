@@ -22,7 +22,19 @@ object FoldingTypeSpec extends MorphirBaseSpec with NamingSyntax {
   )
 
   def extensibleRecordSuite = suite("ExtensibleRecord")(
-    suite("Unattributed")(
+    suite("Misc")(
+      test("When calling foldLeft it should work as expected") {
+        val fieldA = field("fieldA", variable("A"))
+        val fieldB = field("fieldB", variable("B"))
+        val fieldC = field("fieldC", variable("C"))
+        val sut    = extensibleRecord("RecordWithThreeFields", Chunk(fieldA, fieldB, fieldC))
+        val result = sut.foldLeft(0) { case (acc, _) =>
+          acc + 1
+        }
+        assertTrue(result == 4)
+      }
+    ),
+    suite("Without Attributes")(
       test("When constructing using the constructor accepting a Name and Chunk") {
         val firstField  = field("first", variable("hello"))
         val secondField = field("second", variable("world"))
@@ -35,7 +47,18 @@ object FoldingTypeSpec extends MorphirBaseSpec with NamingSyntax {
   )
 
   def functionSuite = suite("Function")(
-    suite("Unattributed")(
+    suite("Misc")(
+      test("When calling foldLeft it should work as expected") {
+        val inputParam = variable("input")
+        val outputType = variable("output")
+        val sut        = function(inputParam, outputType)
+        val result = sut.foldLeft(0) { case (acc, _) =>
+          acc + 1
+        }
+        assertTrue(result == 3)
+      }
+    ),
+    suite("Without Attributes")(
       test("testing simple non-curried function") {
         val param      = variable("Input")
         val returnType = variable("Output")
@@ -46,11 +69,23 @@ object FoldingTypeSpec extends MorphirBaseSpec with NamingSyntax {
         )
       }
     ),
-    suite("Attributed")()
+    suite("With Attributes")()
   )
 
   def recordSuite = suite("Record")(
-    suite("Unattributed")(
+    suite("Misc")(
+      test("When calling foldLeft it should work as expected") {
+        val fieldA = field("fieldA", variable("A"))
+        val fieldB = field("fieldB", variable("B"))
+        val fieldC = field("fieldC", variable("C"))
+        val sut    = record(fieldA, fieldB, fieldC)
+        val result = sut.foldLeft(0) { case (acc, _) =>
+          acc + 1
+        }
+        assertTrue(result == 4)
+      }
+    ),
+    suite("Without Attributes")(
       test("When constructing using the constructor accepting a Chunk of fields") {
         val firstField  = field("first", variable("hello"))
         val secondField = field("second", variable("world"))
@@ -62,7 +97,19 @@ object FoldingTypeSpec extends MorphirBaseSpec with NamingSyntax {
   )
 
   def referenceSuite = suite("Reference")(
-    suite("Unattributed")(
+    suite("Misc")(
+      test("When calling foldLeft it should work as expected") {
+        val varA = variable("a")
+        val varB = variable("b")
+        val varC = variable("c")
+        val sut  = reference("Morphir.Sdk.Bool", varA, varB, varC)
+        val result = sut.foldLeft(0) { case (acc, _) =>
+          acc + 1
+        }
+        assertTrue(result == 4)
+      }
+    ),
+    suite("Without Attributes")(
       test("testing construction given a FQName and Chunk of types") {
         val v1     = variable("v1")
         val v2     = variable("v2")
@@ -82,7 +129,17 @@ object FoldingTypeSpec extends MorphirBaseSpec with NamingSyntax {
         )
       }
     ),
-    suite("Attributed")()
+    suite("With Attributes")(
+      test("testing construction given attributes, FQName and Chunk no type parameters") {
+        val refName = pkg("packageName") % "moduleName" % "localName"
+        val actual  = reference(Source.Location.default, refName)
+        assertTrue(
+          actual.attributes == Source.Location.default,
+          actual.collectReferences == Set(refName),
+          actual == Reference(Source.Location.default, refName)
+        )
+      }
+    )
   )
 
   def sizeSuite = suite("size")(
@@ -153,6 +210,30 @@ object FoldingTypeSpec extends MorphirBaseSpec with NamingSyntax {
         actual.attributes == "(a, b, c)",
         actual == Tuple("(a, b, c)", Chunk(varA, varB, varC))
       )
+    },
+    test("When calling foldLeft it should work as expected") {
+      val varA = variable("a")
+      val varB = variable("b")
+      val varC = variable("c")
+      val sut  = tuple(varA, varB, varC)
+      val result = sut.foldLeft(0) { case (acc, _) =>
+        acc + 1
+      }
+      assertTrue(result == 4)
+    },
+    test("When calling foldLeft with an empty tuple it should work as expected") {
+      val sut = emptyTuple(())
+      val result = sut.foldLeft(0) { case (acc, _) =>
+        acc + 1
+      }
+      assertTrue(result == 1)
+    },
+    test("When calling foldLeft with a nested empty tuple it should work as expected") {
+      val sut = tuple((), emptyTuple(()))
+      val result = sut.foldLeft(0) { case (acc, _) =>
+        acc + 1
+      }
+      assertTrue(result == 2)
     }
   )
 
@@ -164,6 +245,10 @@ object FoldingTypeSpec extends MorphirBaseSpec with NamingSyntax {
     test("Unit toString should produce the expected result") {
       val actual = Type.unit.toString
       assertTrue(actual == "()")
+    },
+    test("When calling foldLeft it should work as expected") {
+      val actual = Type.unit.foldLeft(0) { case (acc, _) => acc + 1 }
+      assertTrue(actual == 1)
     }
   )
 
@@ -180,6 +265,10 @@ object FoldingTypeSpec extends MorphirBaseSpec with NamingSyntax {
         actual.toString == "fizzBuzz",
         actual.size == 1
       )
+    },
+    test("When calling foldLeft it should work as expected") {
+      val actual = Type.variable("foo").foldLeft(0) { case (acc, _) => acc + 1 }
+      assertTrue(actual == 1)
     }
   )
 }

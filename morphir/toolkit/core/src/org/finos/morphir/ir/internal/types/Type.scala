@@ -20,6 +20,33 @@ sealed trait Type[+A] extends Product with Serializable { self =>
   //     variableCase0 = (a, name) => f(a),
   //   )(extensibleRecordCase0 = ???, functionCase0 = ???, recordCase0 = ???, referenceCase0 = ???, tupleCase0 = ???)
 
+  def collectReferences: Set[FQName] = fold[Set[FQName]](
+    unitCase0 = _ => Set.empty,
+    variableCase0 = (_, _) => Set.empty
+  )(
+    extensibleRecordCase0 = (a, _, fields) => fields.map(_.data).flatten.toSet,
+    functionCase0 = (a, argumentType, returnType) => argumentType ++ returnType,
+    recordCase0 = (a, fields) => fields.map(_.data).flatten.toSet,
+    referenceCase0 = (a, typeName, typeParams) => typeParams.flatten.toSet + typeName,
+    tupleCase0 = (a, types) => types.flatten.toSet
+  )
+
+  def collectVariables: Set[Name] = fold[Set[Name]](
+    unitCase0 = _ => Set.empty,
+    variableCase0 = (_, name) => Set(name)
+  )(
+    extensibleRecordCase0 = (a, name, fields) => fields.map(_.data).flatten.toSet + name,
+    functionCase0 = (a, argumentType, returnType) => argumentType ++ returnType,
+    recordCase0 = (a, fields) => fields.map(_.data).flatten.toSet,
+    referenceCase0 = (a, typeName, typeParams) => typeParams.flatten.toSet,
+    tupleCase0 = (a, types) => types.flatten.toSet
+  )
+
+  /**
+   * Erase the attributes from this type.
+   */
+  def eraseAttributes: UType = self.mapAttributes(_ => ())
+
   def fold[Z](
       unitCase0: A => Z,
       variableCase0: (A, Name) => Z
@@ -101,6 +128,31 @@ sealed trait Type[+A] extends Product with Serializable { self =>
           }
       }
     loop(List(self), List.empty).head
+  }
+
+  final def foldLeft[Z](z: Z)(f: PartialFunction[(Z, Type[A]), Z]): Z = {
+    @tailrec
+    def loop(z: Z, typ: Type[A], stack: List[Type[A]]): Z =
+      (f.applyOrElse[(Z, Type[A]), Z](z -> typ, _ => z), typ) match {
+        case (z, ExtensibleRecord(_, _, Chunk(head, tail @ _*))) =>
+          val rest = tail.map(_.data).toList
+          loop(z, head.data, rest ++ stack)
+        case (z, Function(_, argumentType, returnType)) =>
+          loop(z, argumentType, returnType :: stack)
+        case (z, Record(_, Chunk(head, tail @ _*))) =>
+          val rest = tail.map(_.data).toList
+          loop(z, head.data, rest ++ stack)
+        case (z, Reference(_, _, Chunk(head, tail @ _*))) =>
+          loop(z, head, tail.toList ++ stack)
+        case (z, Tuple(_, Chunk(head, tail @ _*))) =>
+          loop(z, head, tail.toList ++ stack)
+        case (z, _) =>
+          stack match {
+            case head :: tail => loop(z, head, tail)
+            case Nil          => z
+          }
+      }
+    loop(z, self, Nil)
   }
 
   final def map[B](f: A => B): Type[B] =
