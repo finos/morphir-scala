@@ -1,8 +1,9 @@
 package org.finos.morphir
 package ir
+package internal
 package types
-package folding
 
+import org.finos.morphir.ir.types.Field
 import scala.annotation.tailrec
 import zio.Chunk
 

@@ -1,10 +1,11 @@
 package org.finos.morphir
 package ir
+package internal
 package types
-package folding
 
 import org.finos.morphir.ir.Name
-import org.finos.morphir.ir.types.folding.Type.{FieldT, UType}
+import org.finos.morphir.ir.types.Field
+import org.finos.morphir.ir.internal.types.Type.{FieldT, UType}
 
 trait FieldSyntax {
   final def defineField(name: Name, fieldType: UType): Field[UType] = Field(name, fieldType)

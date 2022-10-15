@@ -1,6 +1,7 @@
 package org.finos.morphir
-package ir.types
-package folding
+package ir
+package internal
+package types
 
 import zio.Chunk
 import org.finos.morphir.syntax.NamingSyntax

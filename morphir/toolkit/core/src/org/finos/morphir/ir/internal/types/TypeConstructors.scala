@@ -1,11 +1,12 @@
 package org.finos
 package morphir
 package ir
+package internal
 package types
-package folding
 
 import org.finos.morphir.ir.{FQName, Name, NeedsAttributes}
-import org.finos.morphir.ir.types.folding.Type._
+import org.finos.morphir.ir.types.Field
+import Type._
 import zio.Chunk
 
 trait TypeConstructors { self =>
