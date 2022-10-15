@@ -1,17 +1,87 @@
-package org.finos.morphir.ir.types
+package org.finos.morphir
+package ir.types
 package folding
 
 import zio.Chunk
+import org.finos.morphir.syntax.NamingSyntax
 import org.finos.morphir.ir.{FQName, Name}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 import Type._
-object FoldingTypeSpec extends MorphirBaseSpec {
+object FoldingTypeSpec extends MorphirBaseSpec with NamingSyntax {
   def spec = suite("FoldingTypeSpec")(
+    extensibleRecordSuite,
+    functionSuite,
+    recordSuite,
+    referenceSuite,
     sizeSuite,
     tupleSuite,
     unitSuite,
     variableSuite
+  )
+
+  def extensibleRecordSuite = suite("ExtensibleRecord")(
+    suite("Unattributed")(
+      test("When constructing using the constructor accepting a Name and Chunk") {
+        val firstField  = field("first", variable("hello"))
+        val secondField = field("second", variable("world"))
+        val tupleField  = field("tupleField", tuple(variable("v3"), variable("v4")))
+        val recordName  = Name.fromString("MyRecord")
+        val sut         = extensibleRecord(recordName, Chunk(firstField, secondField, tupleField))
+        assertTrue(sut.toString == "{ myRecord | first : hello, second : world, tupleField : (v3, v4) }")
+      }
+    )
+  )
+
+  def functionSuite = suite("Function")(
+    suite("Unattributed")(
+      test("testing simple non-curried function") {
+        val param      = variable("Input")
+        val returnType = variable("Output")
+        val sut        = function(param, returnType)
+        assertTrue(
+          sut == Function((), param, returnType),
+          sut.toString == "input -> output"
+        )
+      }
+    ),
+    suite("Attributed")()
+  )
+
+  def recordSuite = suite("Record")(
+    suite("Unattributed")(
+      test("When constructing using the constructor accepting a Chunk of fields") {
+        val firstField  = field("first", variable("hello"))
+        val secondField = field("second", variable("world"))
+        val tupleField  = field("tupleField", tuple(variable("v3"), variable("v4")))
+        val sut         = record(Chunk(firstField, secondField, tupleField))
+        assertTrue(sut.toString == "{ first : hello, second : world, tupleField : (v3, v4) }", sut.size == 6)
+      }
+    )
+  )
+
+  def referenceSuite = suite("Reference")(
+    suite("Unattributed")(
+      test("testing construction given a FQName and Chunk of types") {
+        val v1     = variable("v1")
+        val v2     = variable("v2")
+        val v3     = tuple(variable("v3"), variable("v4"))
+        val fqn1   = FQName.fqn("packageName", "moduleName", "localName")
+        val actual = reference(fqn1, Chunk(v1, v2, v3))
+        assertTrue(
+          actual == Reference(
+            (),
+            fqn1,
+            Variable((), "v1"),
+            Variable((), "v2"),
+            Tuple((), Variable((), "v3"), Variable((), "v4"))
+          ),
+          actual.attributes == (),
+          actual.toString() == "PackageName.ModuleName.LocalName v1 v2 (v3, v4)"
+        )
+      }
+    ),
+    suite("Attributed")()
   )
 
   def sizeSuite = suite("size")(
@@ -26,7 +96,7 @@ object FoldingTypeSpec extends MorphirBaseSpec {
       assertTrue(actual == 1)
     },
     test("size of simple Reference") {
-      val sut    = Reference[Any]((), FQName.fromString("x"), Chunk.empty)
+      val sut    = reference("x")
       val actual = sut.size
       assertTrue(actual == 1)
     },

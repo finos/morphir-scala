@@ -18,23 +18,25 @@ sealed trait Type[+A] extends Product with Serializable { self =>
     sealed trait TypeCase {
       def attributes: A1
     }
-    case class ExtensibleRecordCase(attributes: A1, name: Name, fieldSize: Int)     extends TypeCase
-    case class FunctionCase(attributes: A1)                                         extends TypeCase
-    case class RecordCase(attributes: A1, fieldSize: Int)                           extends TypeCase
-    case class ReferenceCase(attributes: A1, typeName: FQName, typeParamsSize: Int) extends TypeCase
-    case class TupleCase(attributes: A1, arity: Int)                                extends TypeCase
+    case class ExtensibleRecordCase(attributes: A1, name: Name, untypedFields: Chunk[Field.Untyped]) extends TypeCase
+    case class FunctionCase(attributes: A1)                                                          extends TypeCase
+    case class RecordCase(attributes: A1, untypedFields: Chunk[Field.Untyped])                       extends TypeCase
+    case class ReferenceCase(attributes: A1, typeName: FQName, typeParamsSize: Int)                  extends TypeCase
+    case class TupleCase(attributes: A1, arity: Int)                                                 extends TypeCase
 
     @tailrec
     def loop(in: List[Type[A]], out: List[Either[TypeCase, Z]]): List[Z] =
       in match {
         case ExtensibleRecord(attributes, name, fields) :: types =>
           val fieldTypeExprs = fields.map(_.data).toList
-          loop(fieldTypeExprs ++ types, Left(ExtensibleRecordCase(attributes, name, fields.size)) :: out)
+          val untypedFields  = fields.map(f => Field.Untyped(f.name))
+          loop(fieldTypeExprs ++ types, Left(ExtensibleRecordCase(attributes, name, untypedFields)) :: out)
         case Function(attributes, argumentType, returnType) :: types =>
           loop(argumentType :: returnType :: types, Left(FunctionCase(attributes)) :: out)
         case Record(attributes, fields) :: types =>
           val fieldTypeExprs = fields.map(_.data).toList
-          loop(fieldTypeExprs ++ types, Left(RecordCase(attributes, fields.size)) :: out)
+          val untypedFields  = fields.map(f => Field.Untyped(f.name))
+          loop(fieldTypeExprs ++ types, Left(RecordCase(attributes, untypedFields)) :: out)
         case Reference(attributes, typeName, typeParams) :: types =>
           loop(typeParams.toList ++ types, Left(ReferenceCase(attributes, typeName, typeParams.size)) :: out)
         case Tuple(attributes, elements) :: types =>
@@ -46,13 +48,20 @@ sealed trait Type[+A] extends Product with Serializable { self =>
           out.foldLeft[List[Z]](List.empty) {
             case (acc, Right(typ)) =>
               typ :: acc
-            case (acc, Left(ExtensibleRecordCase(attributes, name, fieldSize))) => ???
+            case (acc, Left(ExtensibleRecordCase(attributes, name, untypedFields))) =>
+              val fieldTypes = acc.take(untypedFields.size)
+              val rest       = acc.drop(untypedFields.size)
+              val fields = untypedFields.zip(fieldTypes).map { case (field, fieldType) => Field(field.name, fieldType) }
+              extensibleRecordCase(context, attributes, name, fields) :: rest
             case (acc, Left(FunctionCase(attributes))) =>
               val argumentType :: returnType :: rest = (acc: @unchecked)
               functionCase(context, attributes, argumentType, returnType) :: rest
-            case (acc, Left(RecordCase(attributes, fieldSize)))         => ???
+            case (acc, Left(RecordCase(attributes, untypedFields))) =>
+              val fieldTypes = acc.take(untypedFields.size)
+              val rest       = acc.drop(untypedFields.size)
+              val fields = untypedFields.zip(fieldTypes).map { case (field, fieldType) => Field(field.name, fieldType) }
+              recordCase(context, attributes, fields) :: rest
             case (acc, Left(ReferenceCase(attributes, typeName, size))) =>
-              // TODO: Is there a better way to do this?
               val typeParams = Chunk.fromIterable(acc.take(size))
               val rest       = acc.drop(size)
               referenceCase(context, attributes, typeName, typeParams) :: rest
@@ -72,7 +81,7 @@ sealed trait Type[+A] extends Product with Serializable { self =>
 
   final override def toString: String = foldContext(())(Type.Folder.ToString)
 }
-object Type extends TypeConstructors with UnattributedTypeConstructors {
+object Type extends TypeConstructors with UnattributedTypeConstructors with FieldSyntax {
   type FieldT[+A] = Field[Type[A]]
   val FieldT: Field.type = Field
 
@@ -83,9 +92,23 @@ object Type extends TypeConstructors with UnattributedTypeConstructors {
   final case class Function[+A](attributes: A, argumentType: Type[A], returnType: Type[A])        extends Type[A]
   final case class Record[+A](attributes: A, fields: Chunk[Field[Type[A]]])                       extends Type[A]
   final case class Reference[+A](attributes: A, typeName: FQName, typeParams: Chunk[Type[A]])     extends Type[A]
-  final case class Tuple[+A](attributes: A, elements: Chunk[Type[A]])                             extends Type[A]
-  final case class Unit[+A](attributes: A)                                                        extends Type[A]
-  final case class Variable[+A](attributes: A, name: Name)                                        extends Type[A]
+  object Reference {
+    def apply[A](attributes: A, typeName: FQName, typeParams: Type[A]*)(implicit ev: NeedsAttributes[A]): Reference[A] =
+      Reference(attributes, typeName, Chunk.fromIterable(typeParams))
+
+    def apply(typeName: FQName, typeParams: UType*): Reference[Any] =
+      Reference((), typeName, Chunk.fromIterable(typeParams))
+  }
+  final case class Tuple[+A](attributes: A, elements: Chunk[Type[A]]) extends Type[A]
+  object Tuple {
+    def apply[A](attributes: A, elements: Type[A]*)(implicit ev: NeedsAttributes[A]): Tuple[A] =
+      Tuple(attributes, Chunk.fromIterable(elements))
+
+    def apply(elements: UType*): Tuple[Any] =
+      Tuple((), Chunk.fromIterable(elements))
+  }
+  final case class Unit[+A](attributes: A)                 extends Type[A]
+  final case class Variable[+A](attributes: A, name: Name) extends Type[A]
   object Variable {
     def apply(name: String): Variable[Any]             = Variable((), Name.fromString(name))
     def apply(name: Name): Variable[Any]               = Variable((), name)
@@ -119,14 +142,16 @@ object Type extends TypeConstructors with UnattributedTypeConstructors {
     }
 
     object ToString extends Folder[Any, Any, String] {
-      def extensibleRecordCase(context: Any, attributes: Any, name: Name, fields: Chunk[Field[String]]): String =
-        s"ExtensibleRecord(${name}, ${fields.map(_.data).mkString(", ")})"
+      def extensibleRecordCase(context: Any, attributes: Any, name: Name, fields: Chunk[Field[String]]): String = {
+        val fieldList = fields.map(field => field.name.toCamelCase + " : " + field.data).mkString(", ")
+        s"{ ${name.toCamelCase} | $fieldList }"
+      }
       def functionCase(context: Any, attributes: Any, argumentType: String, returnType: String): String =
-        s"Function(${argumentType}, ${returnType})"
+        s"$argumentType -> $returnType"
       def recordCase(context: Any, attributes: Any, fields: Chunk[Field[String]]): String =
-        s"Record(${fields.map(_.data).mkString(", ")})"
+        fields.map(field => field.name.toCamelCase + " : " + field.data).mkString("{ ", ", ", " }")
       def referenceCase(context: Any, attributes: Any, typeName: FQName, typeParams: Chunk[String]): String =
-        s"Reference(${typeName}, ${typeParams.mkString(", ")})"
+        typeName.toReferenceName + " " + typeParams.mkString(" ")
       def tupleCase(context: Any, attributes: Any, elements: Chunk[String]): String =
         elements.mkString("(", ", ", ")")
       def unitCase(context: Any, attributes: Any): String                 = "()"

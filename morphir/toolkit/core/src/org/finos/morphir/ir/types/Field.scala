@@ -19,6 +19,12 @@ object Field {
 
   def apply[T](name: String, data: T): Field[T] = Field(Name.fromString(name), data)
 
+  type Untyped = Field[Unit]
+  object Untyped {
+    def apply(name: Name): Field[Unit]    = Field(name, ())
+    def unapply(field: Field[Unit]): Name = field.name
+  }
+
   final implicit class FieldOfType[A](private val self: Field[Type[A]]) extends AnyVal {
     def fieldType: Type[A] = self.data
 
