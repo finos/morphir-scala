@@ -36,6 +36,9 @@ package object ir {
     def <:>[A](tpe: recursive.Type[A]): Field[recursive.Type[A]] =
       Field(Name.fromString(self), tpe)
 
+    def <:>[A](tpe: internal.types.TypeModule.Type[A]): Field[internal.types.TypeModule.Type[A]] =
+      Field(Name.fromString(self), tpe)
+
     //   def <:>[A](tpe: nonrecursive.Type[A]): nonrecursive.Field[nonrecursive.Type[A]] =
     //     nonrecursive.Field(Name.fromString(self), tpe)
 

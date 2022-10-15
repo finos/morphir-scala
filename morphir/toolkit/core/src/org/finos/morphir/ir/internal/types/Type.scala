@@ -8,7 +8,7 @@ import scala.annotation.tailrec
 import zio.Chunk
 import zio.prelude._
 
-sealed trait Type[+A] extends Product with Serializable { self =>
+private[internal] sealed trait Type[+A] extends Product with Serializable { self =>
   import Type.{Unit => UnitType, _}
 
   final def ??(doc: String): Documented[Type[A]] = Documented(doc, self)
@@ -180,12 +180,21 @@ sealed trait Type[+A] extends Product with Serializable { self =>
 
   final override def toString: String = foldContext(())(Type.Folder.ToString)
 }
-object Type extends TypeConstructors with UnattributedTypeConstructors with FieldSyntax {
+private[internal] object Type extends TypeConstructors with UnattributedTypeConstructors with FieldSyntax {
   type FieldT[+A] = Field[Type[A]]
   val FieldT: Field.type = Field
 
   type UType = Type[Any]
   val UType = Type
+
+  type UExtensibleRecord = ExtensibleRecord[Any]
+  val UExtensibleRecord = ExtensibleRecord
+
+  type UReference = Reference[Any]
+  val UReference = Reference
+
+  type UTuple = Tuple[Any]
+  val UTuple = Tuple
 
   def mapTypeAttributes[A](tpe: Type[A]): MapTypeAttributes[A] = new MapTypeAttributes(() => tpe)
 
@@ -214,22 +223,43 @@ object Type extends TypeConstructors with UnattributedTypeConstructors with Fiel
     def apply(argumentType: UType, returnType: UType): Function[Any] = Function((), argumentType, returnType)
   }
 
-  final case class Record[+A](attributes: A, fields: Chunk[Field[Type[A]]])                   extends Type[A]
+  final case class Record[+A](attributes: A, fields: Chunk[Field[Type[A]]]) extends Type[A]
+  object Record {
+    val empty: Record[Any]                              = Record((), Chunk.empty)
+    def apply(fields: Chunk[Field[UType]]): Record[Any] = Record((), fields)
+
+    def apply(fields: FieldT[Any]*): Record[Any] = Record((), Chunk.fromIterable(fields))
+
+    def empty[A](attributes: A): Record[A] = Record(attributes, Chunk.empty)
+    final class CreateAttributed[A](val attributes: A) extends AnyVal {
+      def apply(fields: Chunk[FieldT[A]]): Type[A] = Record(attributes, fields)
+      def apply(fields: FieldT[A]*): UType         = Record(attributes, Chunk.fromIterable(fields))
+    }
+  }
   final case class Reference[+A](attributes: A, typeName: FQName, typeParams: Chunk[Type[A]]) extends Type[A]
   object Reference {
     def apply[A](attributes: A, typeName: FQName, typeParams: Type[A]*)(implicit ev: NeedsAttributes[A]): Reference[A] =
       Reference(attributes, typeName, Chunk.fromIterable(typeParams))
 
-    def apply(typeName: FQName, typeParams: UType*): Reference[Any] =
+    def apply(typeName: FQName, typeParams: UType*): UReference =
       Reference((), typeName, Chunk.fromIterable(typeParams))
+
+    def apply(name: FQName): ApplyGivenName = new ApplyGivenName(name)
+    def apply(name: String): ApplyGivenName = new ApplyGivenName(FQName.fromString(name))
+
+    final class ApplyGivenName(val name: FQName) extends AnyVal {
+      def apply(typeParams: UType*): UReference = Reference((), name, Chunk.fromIterable(typeParams))
+    }
   }
   final case class Tuple[+A](attributes: A, elements: Chunk[Type[A]]) extends Type[A]
   object Tuple {
     def apply[A](attributes: A, elements: Type[A]*)(implicit ev: NeedsAttributes[A]): Tuple[A] =
       Tuple(attributes, Chunk.fromIterable(elements))
 
-    def apply(elements: UType*): Tuple[Any] =
+    def apply(elements: UType*): UTuple =
       Tuple((), Chunk.fromIterable(elements))
+
+    def withElements(elements: UType*): UTuple = Tuple((), Chunk.fromIterable(elements))
   }
   final case class Unit[+A](attributes: A)                 extends Type[A]
   final case class Variable[+A](attributes: A, name: Name) extends Type[A]
