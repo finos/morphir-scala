@@ -222,12 +222,12 @@ private[internal] sealed trait Type[+A] extends Product with Serializable { self
 
   final def size: Int = foldContext(())(Type.Folder.Size)
 
-  final override def toString: String = transform((): Any)(Type.Transformer.ToString)
+  final override def toString: String = transform((): Any)(Type.Transformer.ToString)._2
 
-  final def transform[C, A1 >: A, Z](context: C)(transformer: Transformer[C, C, A1, Z]): Z = {
+  final def transform[C, A1 >: A, Z](context: C)(transformer: Transformer[C, A1, Z]): (C, Z) = {
     import transformer._
     @tailrec
-    def loop(in: List[Type[A]], out: List[Either[Type[A], Z]]): List[Z] =
+    def loop(in: List[Type[A]], out: List[Either[Type[A], (C, Z)]]): List[(C, Z)] =
       in match {
         case (t @ ExtensibleRecord(attributes, name, fields)) :: types =>
           val fieldTypeExprs = fields.map(_.data).toList
@@ -242,44 +242,37 @@ private[internal] sealed trait Type[+A] extends Product with Serializable { self
         case (t @ Tuple(attributes, elements)) :: types =>
           loop(elements.toList ++ types, Left(t) :: out)
         case (t @ UnitType(attributes)) :: types =>
-          val newContext = updateContext(context, t, attributes)
-          loop(types, Right(unitCase(newContext, t, attributes)) :: out)
+          loop(types, Right(unitCase(context, t, attributes)) :: out)
         case (t @ Variable(attributes, name)) :: types =>
-          val newContext = updateContext(context, t, attributes)
-          loop(types, Right(variableCase(newContext, t, attributes, name)) :: out)
+          loop(types, Right(variableCase(context, t, attributes, name)) :: out)
         case Nil =>
-          out.foldLeft[List[Z]](List.empty) {
-            case (acc, Right(typ)) => typ :: acc
+          out.foldLeft[List[(C, Z)]](List.empty) {
+            case (acc, Right(results)) => results :: acc
             case (acc, Left(t @ ExtensibleRecord(attributes, name, _))) =>
               val size       = t.fields.size
               val fieldTypes = acc.take(size)
               val rest       = acc.drop(size)
-              val fields     = t.fields.zip(fieldTypes).map { case (field, fieldType) => Field(field.name, fieldType) }
-              val newContext = updateContext(context, t, attributes)
-              extensibleRecordCase(newContext, t, attributes, name, fields) :: rest
+              val fields = t.fields.zip(fieldTypes).map { case (field, (_, fieldType)) => Field(field.name, fieldType) }
+              extensibleRecordCase(context, t, attributes, name, fields) :: rest
             case (acc, Left(t @ Function(attributes, _, _))) =>
-              val argumentType :: returnType :: rest = (acc: @unchecked)
-              val newContext                         = updateContext(context, t, attributes)
-              functionCase(newContext, t, attributes, argumentType, returnType) :: rest
+              val (_, argumentType) :: (_, returnType) :: rest = (acc: @unchecked)
+              functionCase(context, t, attributes, argumentType, returnType) :: rest
             case (acc, Left(t @ Record(attributes, _))) =>
               val size       = t.fields.size
               val fieldTypes = acc.take(size)
               val rest       = acc.drop(size)
-              val fields     = t.fields.zip(fieldTypes).map { case (field, fieldType) => Field(field.name, fieldType) }
-              val newContext = updateContext(context, t, attributes)
-              recordCase(newContext, t, attributes, fields) :: rest
+              val fields = t.fields.zip(fieldTypes).map { case (field, (_, fieldType)) => Field(field.name, fieldType) }
+              recordCase(context, t, attributes, fields) :: rest
             case (acc, Left(t @ Reference(attributes, typeName, _))) =>
               val size       = t.typeParams.size
-              val typeParams = Chunk.fromIterable(acc.take(size))
+              val typeParams = Chunk.fromIterable(acc.take(size).map(_._2))
               val rest       = acc.drop(size)
-              val newContext = updateContext(context, t, attributes)
-              referenceCase(newContext, t, attributes, typeName, typeParams) :: rest
+              referenceCase(context, t, attributes, typeName, typeParams) :: rest
             case (acc, Left(t @ Tuple(attributes, _))) =>
-              val arity      = t.elements.size
-              val elements   = Chunk.fromIterable(acc.take(arity))
-              val rest       = acc.drop(arity)
-              val newContext = updateContext(context, t, attributes)
-              tupleCase(newContext, t, attributes, elements) :: rest
+              val arity    = t.elements.size
+              val elements = Chunk.fromIterable(acc.take(arity).map(_._2))
+              val rest     = acc.drop(arity)
+              tupleCase(context, t, attributes, elements) :: rest
             case (acc, Left(t)) =>
               throw new IllegalStateException(
                 s"Unexpected type ${t.getClass.getSimpleName()} encountered during transformation. (Type Expr: $t)"
@@ -434,35 +427,39 @@ private[internal] object Type extends TypeConstructors with UnattributedTypeCons
     }
   }
 
-  trait Transformer[-ContextIn, +ContextOut, -A, Z] {
-    def updateContext(context: ContextIn, tpe: Type[A], attributes: A): ContextOut
+  trait Transformer[Context, -A, Z] {
     def extensibleRecordCase(
-        context: ContextIn,
+        context: Context,
         tpe: ExtensibleRecord[A],
         attributes: A,
         name: Name,
         fields: Chunk[Field[Z]]
-    ): Z
-    def functionCase(context: ContextIn, tpe: Function[A], attributes: A, argumentType: Z, returnType: Z): Z
-    def recordCase(context: ContextIn, tpe: Record[A], attributes: A, fields: Chunk[Field[Z]]): Z
-    def referenceCase(context: ContextIn, tpe: Reference[A], attributes: A, typeName: FQName, typeParams: Chunk[Z]): Z
-    def tupleCase(context: ContextIn, tpe: Tuple[A], attributes: A, elements: Chunk[Z]): Z
-    def unitCase(context: ContextIn, tpe: Unit[A], attributes: A): Z
-    def variableCase(context: ContextIn, tpe: Variable[A], attributes: A, name: Name): Z
+    ): (Context, Z)
+    def functionCase(context: Context, tpe: Function[A], attributes: A, argumentType: Z, returnType: Z): (Context, Z)
+    def recordCase(context: Context, tpe: Record[A], attributes: A, fields: Chunk[Field[Z]]): (Context, Z)
+    def referenceCase(
+        context: Context,
+        tpe: Reference[A],
+        attributes: A,
+        typeName: FQName,
+        typeParams: Chunk[Z]
+    ): (Context, Z)
+    def tupleCase(context: Context, tpe: Tuple[A], attributes: A, elements: Chunk[Z]): (Context, Z)
+    def unitCase(context: Context, tpe: Unit[A], attributes: A): (Context, Z)
+    def variableCase(context: Context, tpe: Variable[A], attributes: A, name: Name): (Context, Z)
   }
 
   object Transformer {
-    object ToString extends Transformer[Any, Any, Any, String] {
-      def updateContext(context: Any, tpe: Type[Any], attributes: Any): Any = context
+    object ToString extends Transformer[Any, Any, String] {
       def extensibleRecordCase(
           context: Any,
           tpe: ExtensibleRecord[Any],
           attributes: Any,
           name: Name,
           fields: Chunk[Field[String]]
-      ): String = {
+      ): (Any, String) = {
         val fieldList = fields.map(field => field.name.toCamelCase + " : " + field.data).mkString(", ")
-        s"{ ${name.toCamelCase} | $fieldList }"
+        (context, s"{ ${name.toCamelCase} | $fieldList }")
       }
       def functionCase(
           context: Any,
@@ -470,25 +467,26 @@ private[internal] object Type extends TypeConstructors with UnattributedTypeCons
           attributes: Any,
           argumentType: String,
           returnType: String
-      ): String =
+      ): (Any, String) =
         tpe.argumentType match {
-          case _: Function[Any] => s"($argumentType) -> $returnType"
-          case _                => s"$argumentType -> $returnType"
+          case _: Function[Any] => (context, s"($argumentType) -> $returnType")
+          case _                => (context, s"$argumentType -> $returnType")
         }
-      def recordCase(context: Any, tpe: Record[Any], attributes: Any, fields: Chunk[Field[String]]): String =
-        fields.map(field => field.name.toCamelCase + " : " + field.data).mkString("{ ", ", ", " }")
+      def recordCase(context: Any, tpe: Record[Any], attributes: Any, fields: Chunk[Field[String]]): (Any, String) =
+        (context, fields.map(field => field.name.toCamelCase + " : " + field.data).mkString("{ ", ", ", " }"))
       def referenceCase(
           context: Any,
           tpe: Reference[Any],
           attributes: Any,
           typeName: FQName,
           typeParams: Chunk[String]
-      ): String =
-        (typeName.toReferenceName +: typeParams).mkString(" ")
-      def tupleCase(context: Any, tpe: Tuple[Any], attributes: Any, elements: Chunk[String]): String =
-        elements.mkString("(", ", ", ")")
-      def unitCase(context: Any, tpe: Unit[Any], attributes: Any): String                     = "()"
-      def variableCase(context: Any, tpe: Variable[Any], attributes: Any, name: Name): String = name.toCamelCase
+      ): (Any, String) =
+        (context, (typeName.toReferenceName +: typeParams).mkString(" "))
+      def tupleCase(context: Any, tpe: Tuple[Any], attributes: Any, elements: Chunk[String]): (Any, String) =
+        (context, elements.mkString("(", ", ", ")"))
+      def unitCase(context: Any, tpe: Unit[Any], attributes: Any): (Any, String) = (context, "()")
+      def variableCase(context: Any, tpe: Variable[Any], attributes: Any, name: Name): (Any, String) =
+        (context, name.toCamelCase)
     }
   }
 
