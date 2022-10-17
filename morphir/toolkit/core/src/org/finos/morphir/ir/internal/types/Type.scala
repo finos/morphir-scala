@@ -217,6 +217,11 @@ private[internal] sealed trait Type[+A] extends Product with Serializable { self
    */
   @inline final def mapAttributes[B](f: A => B): Type[B] = map(f)
 
+  /**
+   * Uses the specified function to map the FQName of any type references to another FQName.
+   */
+  final def mapReferenceName(f: FQName => FQName): Type[A] = foldContext(())(Folder.MapReferenceName(f))
+
   final def satisfies(check: PartialFunction[Type[A], Boolean]): Boolean =
     check.lift(self).getOrElse(false)
 
@@ -394,6 +399,36 @@ private[internal] object Type extends TypeConstructors with UnattributedTypeCons
   }
 
   object Folder {
+    abstract class RewritingFolder[-Context, Attrib] extends Folder[Context, Attrib, Type[Attrib]] {
+      def extensibleRecordCase(
+          context: Context,
+          attributes: Attrib,
+          name: Name,
+          fields: Chunk[Field[Type[Attrib]]]
+      ): Type[Attrib] =
+        ExtensibleRecord(attributes, name, fields)
+      def functionCase(
+          context: Context,
+          attributes: Attrib,
+          argumentType: Type[Attrib],
+          returnType: Type[Attrib]
+      ): Type[Attrib] =
+        Function(attributes, argumentType, returnType)
+      def recordCase(context: Context, attributes: Attrib, fields: Chunk[Field[Type[Attrib]]]): Type[Attrib] =
+        Record(attributes, fields)
+      def referenceCase(
+          context: Context,
+          attributes: Attrib,
+          typeName: FQName,
+          typeParams: Chunk[Type[Attrib]]
+      ): Type[Attrib] =
+        Reference(attributes, typeName, typeParams)
+      def tupleCase(context: Context, attributes: Attrib, elements: Chunk[Type[Attrib]]): Type[Attrib] =
+        Tuple(attributes, elements)
+      def unitCase(context: Context, attributes: Attrib): Type[Attrib]                 = Unit(attributes)
+      def variableCase(context: Context, attributes: Attrib, name: Name): Type[Attrib] = Variable(attributes, name)
+    }
+
     object Size extends Folder[Any, Any, Int] {
       def extensibleRecordCase(context: Any, attributes: Any, name: Name, fields: Chunk[Field[Int]]): Int =
         fields.map(_.data).sum + 1
@@ -424,6 +459,19 @@ private[internal] object Type extends TypeConstructors with UnattributedTypeCons
         elements.mkString("(", ", ", ")")
       def unitCase(context: Any, attributes: Any): String                 = "()"
       def variableCase(context: Any, attributes: Any, name: Name): String = name.toCamelCase
+    }
+
+    // typeX.mapReferenceCaseName(_.toUpperCase).mapVariableName(_.toLowerCase)
+
+    final case class MapReferenceName[Attrib](f: FQName => FQName) extends RewritingFolder[Any, Attrib] {
+      override def referenceCase(
+          context: Any,
+          attributes: Attrib,
+          typeName: FQName,
+          typeParams: Chunk[Type[Attrib]]
+      ): Type[Attrib] =
+        Reference(attributes, f(typeName), typeParams)
+
     }
   }
 
