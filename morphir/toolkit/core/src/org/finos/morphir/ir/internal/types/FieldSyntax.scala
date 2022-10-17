@@ -4,7 +4,6 @@ package internal
 package types
 
 import org.finos.morphir.ir.Name
-import org.finos.morphir.ir.types.Field
 import org.finos.morphir.ir.internal.types.Type.{FieldT, UType}
 
 trait FieldSyntax {

@@ -3,7 +3,6 @@ package ir
 package internal
 package types
 
-import org.finos.morphir.ir.types.Field
 import scala.annotation.tailrec
 import zio.Chunk
 import zio.prelude._
@@ -14,6 +13,51 @@ private[internal] sealed trait Type[+A] extends Product with Serializable { self
   final def ??(doc: String): Documented[Type[A]] = Documented(doc, self)
 
   def attributes: A
+
+  def exists(f: PartialFunction[Type[A], Any]): Boolean = find(f).isDefined
+
+  def fieldCount: Int = foldLeft[Int](0) {
+    case (acc, Record(_, fields))              => acc + fields.size
+    case (acc, ExtensibleRecord(_, _, fields)) => acc + fields.size
+    case (acc, _)                              => acc
+  }
+
+  def find[Z](f: PartialFunction[Type[A], Z]): Option[Z] = {
+    @tailrec
+    def loop(typ: Type[A], stack: List[Type[A]]): Option[Z] =
+      f.lift(typ) match {
+        case Some(z) => Some(z)
+        case None =>
+          typ match {
+            case ExtensibleRecord(_, _, Chunk(head, tail @ _*)) =>
+              val next = head.fieldType
+              val rest = tail.map(_.fieldType) ++: stack
+              loop(next, rest)
+            case Function(_, argumentType, resultType) =>
+              loop(argumentType, resultType :: stack)
+            case Record(_, Chunk(head, tail @ _*)) =>
+              val next = head.fieldType
+              val rest = tail.map(_.fieldType) ++: stack
+              loop(next, rest)
+            case Reference(_, _, Chunk(head, tail @ _*)) =>
+              loop(head, tail ++: stack)
+            case Tuple(_, Chunk(head, tail @ _*)) =>
+              loop(head, tail ++: stack)
+            case _ =>
+              stack match {
+                case head :: tail => loop(head, tail)
+                case Nil          => None
+              }
+          }
+      }
+
+    loop(self, Nil)
+  }
+
+  def findAll[Z](f: PartialFunction[Type[A], Z]): List[Z] = foldLeft[List[Z]](Nil) {
+    case (acc, typ) if f.isDefinedAt(typ) => f(typ) :: acc
+    case (acc, _)                         => acc
+  }
 
   // def flatMap[A1](f: A => Type[A1]): Type[A1] =
   //   fold[Type[A1]](
@@ -317,7 +361,7 @@ private[internal] object Type extends TypeConstructors with UnattributedTypeCons
       def recordCase(context: Any, attributes: Any, fields: Chunk[Field[String]]): String =
         fields.map(field => field.name.toCamelCase + " : " + field.data).mkString("{ ", ", ", " }")
       def referenceCase(context: Any, attributes: Any, typeName: FQName, typeParams: Chunk[String]): String =
-        typeName.toReferenceName + " " + typeParams.mkString(" ")
+        (typeName.toReferenceName +: typeParams).mkString(" ")
       def tupleCase(context: Any, attributes: Any, elements: Chunk[String]): String =
         elements.mkString("(", ", ", ")")
       def unitCase(context: Any, attributes: Any): String                 = "()"

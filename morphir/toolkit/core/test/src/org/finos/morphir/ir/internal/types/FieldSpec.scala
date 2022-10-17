@@ -1,6 +1,9 @@
-package org.finos.morphir.ir.types
+package org.finos.morphir
+package ir
+package internal
+package types
 
-import org.finos.morphir.ir.{StringOps, Type}
+import org.finos.morphir.ir.StringOps
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 

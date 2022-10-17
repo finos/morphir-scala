@@ -6,7 +6,6 @@ package types
 
 import zio.Chunk
 import org.finos.morphir.ir.{FQName, Name}
-import org.finos.morphir.ir.types.Field
 import Type._
 
 trait UnattributedTypeConstructors { self =>

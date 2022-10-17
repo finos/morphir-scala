@@ -5,7 +5,6 @@ package internal
 package types
 
 import org.finos.morphir.ir.{FQName, Name, NeedsAttributes}
-import org.finos.morphir.ir.types.Field
 import Type._
 import zio.Chunk
 
