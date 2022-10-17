@@ -280,16 +280,10 @@ private[internal] sealed trait Type[+A] extends Product with Serializable { self
               val rest       = acc.drop(arity)
               val newContext = updateContext(context, t, attributes)
               tupleCase(newContext, t, attributes, elements) :: rest
-            case (acc, Left(t @ Variable(attributes, name))) =>
-              // NOTE: Should never happen.
-              val rest       = acc
-              val newContext = updateContext(context, t, attributes)
-              variableCase(newContext, t, attributes, name) :: rest
-            case (acc, Left(t @ UnitType(attributes))) =>
-              // NOTE: Should never happen.
-              val rest       = acc
-              val newContext = updateContext(context, t, attributes)
-              unitCase(newContext, t, attributes) :: rest
+            case (acc, Left(t)) =>
+              throw new IllegalStateException(
+                s"Unexpected type ${t.getClass.getSimpleName()} encountered during transformation. (Type Expr: $t)"
+              )
           }
       }
     loop(List(self), List.empty).head
