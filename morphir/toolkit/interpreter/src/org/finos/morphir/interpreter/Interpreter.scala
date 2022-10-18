@@ -9,6 +9,8 @@ import org.finos.morphir.ir.NativeFunction
 import org.finos.morphir.ir.FQName
 import org.finos.morphir.ir.NativeFunction._
 import org.finos.morphir.ir.value.recursive.ValueCase._
+import org.finos.morphir.ir.value.recursive.ValueModule._
+import org.finos.morphir.ir.types.recursive.Type
 import org.finos.morphir.ir.Value.Value
 import org.finos.morphir.ir.Type.Specification.TypeAliasSpecification
 import org.finos.morphir.ir.Type.{Field, Type}
@@ -45,14 +47,14 @@ object Interpreter {
 
     def loop(
         value: RawValue,
-        variables: Map[Name, Result],
-        references: Map[FQName, Any]
+        variables: Map[Name, Result], // ex x = 1
+        references: Map[FQName, Any]  // ex y = x
     ): Any = {
       value.caseValue match {
-        case ApplyCase(variables, function, arguments) =>
-          val scalaFunction      = loop(function, variables, references)
-          val evaluatedArguments = arguments.map(loop(_, variables, references))
-          applyFunction(scalaFunction, evaluatedArguments)
+        case ApplyCase(_, function, argument) =>
+          val scalaFunction     = loop(function, variables, references)
+          val evaluatedArgument = loop(argument, variables, references)
+          applyFunction(scalaFunction, Chunk(evaluatedArgument))
 
         // ConstructorCase("Person")
 
@@ -65,7 +67,7 @@ object Interpreter {
          * | Worker2 String Int ConstructorCase("Worker") ConstructorCase("Manager") ConstructorCase("Worker2")
          */
 
-        case ConstructorCase(fqName) =>
+        case ConstructorCase(_, fqName) =>
           println(s"evaluating: ConstructorCase($fqName)")
           val dealiased = ir.resolveAliases(fqName)
           def getRecordConstructor(name: FQName): Option[Any] =
@@ -87,25 +89,7 @@ object Interpreter {
               throw InterpretationError.TypeNotFound(dealiased.toString)
           }
 
-        // case class Constructor(name FQName)
-        // case class ConstructorApply(name : FQName, args : Chunk[Any])
-
-        // final case class ExtensibleRecordCase[+Self](name: Name, fields: Chunk[Field[Self]]) extends TypeCase[Self]
-        // final case class FunctionCase[+Self](paramTypes: Chunk[Self], returnType: Self)      extends TypeCase[Self]
-        // final case class RecordCase[+Self](fields: Chunk[Field[Self]])                       extends TypeCase[Self]
-        // final case class ReferenceCase[+Self](typeName: FQName, typeParams: Chunk[Self])     extends TypeCase[Self]
-        // final case class TupleCase[+Self](elementTypes: Chunk[Self])                         extends TypeCase[Self]
-        // case object UnitCase                                                                 extends TypeCase[Nothing]
-        // final case class VariableCase(name: Name)                                            extends TypeCase[Nothing]
-
-        // TupleCase === Scala tuple (ordered values but no names)
-        // RecordCase === Python-style named tuple (ordered values and names)
-
-        // FieldCase(Apply(Constructor(Person), "Adam", 42), "age")
-
-        // Constructor = Chunk[Any] => Generic
-
-        case FieldCase(target, name) =>
+        case FieldCase(_, target, name) =>
           val record = loop(target, variables, references).asInstanceOf[ListMap[Name, Any]]
           record.get(name) match {
             case Some(value) => value
@@ -113,7 +97,7 @@ object Interpreter {
               throw InterpretationError.FieldNotFound(name, s"Field $name not found in $record")
           }
 
-        case FieldFunctionCase(name) =>
+        case FieldFunctionCase(_, name) =>
           (input: Any) =>
             input match {
               case record: ListMap[_, _] =>
@@ -124,20 +108,20 @@ object Interpreter {
               case _ => throw InterpretationError.RecordExpected(s"Record expected but got $input")
             }
 
-        case IfThenElseCase(condition, thenBranch, elseBranch) =>
+        case IfThenElseCase(_, condition, thenBranch, elseBranch) =>
           if (loop(condition, variables, references).asInstanceOf[Boolean]) {
             loop(thenBranch, variables, references)
           } else {
             loop(elseBranch, variables, references)
           }
 
-        case ListCase(elements) =>
+        case ListCase(_, elements) =>
           elements.map(loop(_, variables, references)).toList
 
-        case LiteralCase(literal) =>
+        case LiteralCase(_, literal) =>
           evalLiteralValue(literal)
 
-        case PatternMatchCase(branchOutOn, cases) =>
+        case PatternMatchCase(_, branchOutOn, cases) =>
           val evaluatedBody                   = loop(branchOutOn, variables, references)
           val casesChunk                      = cases
           var i                               = 0
@@ -157,26 +141,25 @@ object Interpreter {
           if (rightHandSide eq null) throw InterpretationError.MatchError(s"could not match $evaluatedBody")
           else loop(rightHandSide, variables ++ newVariables, references)
 
-        case RecordCase(fields) =>
+        case RecordCase(_, fields) =>
           val values = fields.map { case (name, value) =>
             name -> loop(value, variables, references)
           }
           ListMap(values: _*)
 
-        case ReferenceCase(name) =>
+        case ReferenceCase(_, name) =>
           references.get(name) match {
             case Some(value) => value
 
             case None => throw InterpretationError.ReferenceNotFound(name, s"Reference $name not found")
           }
 
-        case TupleCase(elements) =>
+        case TupleCase(_, elements) =>
           evalTuple(elements.map(loop(_, variables, references)))
 
-        case UnitCase =>
-          ()
+        case UnitCase(_) => ()
 
-        case VariableCase(name) =>
+        case VariableCase(_, name) =>
           variables.get(name) match {
             case Some(Result.Strict(value)) => value
             case Some(Result.Lazy(value, variables, references, definitions)) =>
@@ -187,20 +170,25 @@ object Interpreter {
             case None => throw InterpretationError.VariableNotFound(name, s"Variable $name not found")
           }
 
-        case LetDefinitionCase(name, value, body) =>
+        case LetDefinitionCase(_, name, value, body) =>
+          // val inputTypes = value.inputTypes.toSeq.map(t => (t._1.toTitleCase, t._2, t._3))
+          // val definition = Definition(inputTypes: _*)(value.outputType)(value.body)
           loop(
             body,
-            variables + (name -> Result.Strict(loop(value.toValue, variables, references))),
+            // variables + (name -> Result.Strict(loop(definition.toValue, variables, references))),
+            variables + (name -> Result.Strict(loop(???, variables, references))),
             references
           )
 
-        case LetRecursionCase(valueDefinitions, inValue) =>
+        case LetRecursionCase(_, valueDefinitions, inValue) =>
           def shallow = valueDefinitions.map { case (key, value) =>
             key -> Result.Lazy(
-              value.toValue,
+              // value.toValue,
+              ???,
               variables,
               references,
-              valueDefinitions.map { case (k, v) => k -> v.toValue }
+              // valueDefinitions.map { case (k, v) => k -> v.toValue }
+              valueDefinitions.map { case (k, v) => k -> ??? }
             )
           }
 
@@ -210,7 +198,7 @@ object Interpreter {
             references
           )
 
-        case UpdateRecordCase(valueToUpdate, fieldsToUpdate) =>
+        case UpdateRecordCase(_, valueToUpdate, fieldsToUpdate) =>
           val evaluatedValueToUpdate = loop(valueToUpdate, variables, references)
           val evaluatedFieldsToUpdate = fieldsToUpdate.map { case (name, value) =>
             name -> loop(value, variables, references)
@@ -225,7 +213,7 @@ object Interpreter {
               )
           }
 
-        case LambdaCase(argumentPattern, body) =>
+        case LambdaCase(_, argumentPattern, body) =>
           (input: Any) =>
             matchPattern(input, argumentPattern) match {
               case Right(newVariables) =>
@@ -240,7 +228,7 @@ object Interpreter {
                 )
             }
 
-        case DestructureCase(pattern, valueToDestruct, inValue) =>
+        case DestructureCase(_, pattern, valueToDestruct, inValue) =>
           val evaluatedValueToDestruct = loop(valueToDestruct, variables, references)
           matchPattern(evaluatedValueToDestruct, pattern) match {
             case Right(newVariables) =>
