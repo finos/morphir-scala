@@ -49,7 +49,7 @@ object Interpreter {
         references: Map[FQName, Any]
     ): Any = {
       value.caseValue match {
-        case ApplyCase(function, arguments) =>
+        case ApplyCase(variables, function, arguments) =>
           val scalaFunction      = loop(function, variables, references)
           val evaluatedArguments = arguments.map(loop(_, variables, references))
           applyFunction(scalaFunction, evaluatedArguments)
