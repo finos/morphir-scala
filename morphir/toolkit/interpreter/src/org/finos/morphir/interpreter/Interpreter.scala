@@ -52,6 +52,10 @@ object Interpreter {
     ): Any = {
       value.caseValue match {
         case ApplyCase(_, function, argument) =>
+          if (function.toString.contains("Brad")) {
+            println(s"\n\n\nGOT BRAD: ${function.getClass}; value: ${function.toString}")
+            new Throwable().printStackTrace
+          }
           val scalaFunction     = loop(function, variables, references)
           val evaluatedArgument = loop(argument, variables, references)
           applyFunction(scalaFunction, Chunk(evaluatedArgument))
@@ -412,6 +416,7 @@ object Interpreter {
     }
 
   def applyFunction(function: Any, arguments: Chunk[Any]): Any =
+    println("\n\nCLASS:\n" + function.getClass + "\nValue:\n" + function)
     function match {
       case f: Function1[_, _]    => f.asInstanceOf[Function1[Any, Any]](arguments(0))
       case f: Function2[_, _, _] => f.asInstanceOf[Function2[Any, Any, Any]](arguments(0), arguments(1))

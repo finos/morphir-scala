@@ -341,12 +341,16 @@ object CaseExample extends AllSyntax {
       string("Adam")
     )
 
-  val checkingAccountConstructorExample: RawValue =
-    apply(
+  val checkingAccountConstructorExample: RawValue = {
+    println("ONE")
+    val v = apply(
       constructor(checkingAccountTypeName),
       string("Brad"),
       int(10000)
     )
+    println("TWO")
+    v
+  }
 
   // tuple ("Adam", 42)
   // record (name: "Adam", age: 42)
