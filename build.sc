@@ -99,7 +99,7 @@ object morphir extends Module {
   }
 
   object site extends Docusaurus2Module with MDocModule {
-    override def scalaMdocVersion: T[String] = T("2.3.3")
+    override def scalaMdocVersion: T[String] = T("2.3.6")
     override def scalaVersion                = T(docsScalaVersion)
     // MD Sources that must be compiled with Scala MDoc
     override def mdocSources = T.sources(workspaceDir / "docs")
@@ -201,8 +201,8 @@ object morphir extends Module {
     }
 
     object launcher extends MorphirScalaModule with BuildInfo with MorphirPublishModule {
-      def crossScalaVersion = ScalaVersions.scala213 // Coursier not available for Scala 3
-      def ivyDeps           = Agg(com.lihaoyi.mainargs, com.lihaoyi.`os-lib`, io.`get-coursier`.coursier)
+      def crossScalaVersion    = ScalaVersions.scala213 // Coursier not available for Scala 3
+      def ivyDeps              = Agg(com.lihaoyi.mainargs, com.lihaoyi.`os-lib`, io.`get-coursier`.coursier)
       def buildInfoPackageName = Some("org.finos.morphir.launcher")
       def buildInfoMembers = T {
         val maybeLastTaggedVersion = VcsVersion.vcsState().lastTag.map(_.stripPrefix("v"))
