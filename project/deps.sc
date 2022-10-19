@@ -83,7 +83,7 @@ object Versions {
   val zio           = "2.0.2"
   val `zio-cli`     = "0.2.9-M01"
   val `zio-json`    = "0.3.0"
-  val `zio-prelude` = "1.0.0-RC15"
+  val `zio-prelude` = "1.0.0-RC16"
   val `zio-process` = "0.7.1"
 }
 
