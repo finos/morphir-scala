@@ -21,7 +21,7 @@ import org.finos.morphir.ir.module.{
   ModulePath,
   Specification => ModuleSpecification
 }
-import org.finos.morphir.ir.types.recursive.TypeCase
+import org.finos.morphir.ir.internal.types.Type
 import org.finos.morphir.ir.value.recursive.ValueCase
 import org.finos.morphir.ir.{Literal, _}
 
@@ -241,6 +241,21 @@ trait MorphirJsonEncodingSupportV1 {
       )
     }
 
+  // final case class Case[+TA, +VA, +TypeRepr[+_]: Covariant, +Z](
+  //     inputTypes: Chunk[(Name, VA, TypeRepr[TA])],
+  //     outputType: TypeRepr[TA],
+  //     body: Z
+  // )
+  implicit def valueDefinitionCaseEncoder[TA: JsonEncoder, VA: JsonEncoder, Z: JsonEncoder]
+      : JsonEncoder[ValueDefinition.Case[TA, VA, Type, Z]] =
+    Json.encoder.contramap[ValueDefinition.Case[TA, VA, Type, Z]] { definition =>
+      Json.Obj(
+        "inputTypes" -> toJsonAstOrThrow(definition.inputTypes),
+        "outputType" -> toJsonAstOrThrow(definition.outputType),
+        "body"       -> toJsonAstOrThrow(definition.body)
+      )
+    }
+
   implicit def valueSpecificationEncoder[A: JsonEncoder]: JsonEncoder[ValueSpecification[A]] =
     Json.encoder.contramap[ValueSpecification[A]] { specification =>
       Json.Obj(
@@ -298,21 +313,30 @@ trait MorphirJsonEncodingSupportV1 {
       case ValueCase.LambdaCase(attributes, argumentPattern, body) => ("lambda", attributes, argumentPattern, body)
     }
 
-  //   final case class LetDefinitionCase[+TA, +VA, +TypeRepr[+_], +Self](attributes: VA, valueName: Name, valueDefinition: Definition.Case[TA, VA, TypeRepr, Self], inValue: Self) extends ValueCase[TA, VA, Self]
-  // implicit def LetDefinitionCaseValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder, TypeRepr: JsonEncoder, Self: JsonEncoder]
-  //     : JsonEncoder[ValueCase.LetDefinitionCase[TA, VA, ???, Self]] =
-  //   JsonEncoder.tuple5[String, VA, Name, ValueModule.Definition.Case[TA, VA, ???, Self], Self].contramap {
-  //     case ValueCase.LetDefinitionCase(attributes, valueName, valueDefinition, inValue) =>
-  //       ("let_definition", attributes, valueName, valueDefinition, inValue)
-  //   }
+  // final case class LetDefinitionCase[+TA, +VA, +TypeRepr[+_], +Self](
+  //     attributes: VA,
+  //     valueName: Name,
+  //     valueDefinition: Definition.Case[TA, VA, TypeRepr, Self],
+  //     inValue: Self
+  // ) extends ValueCase[TA, VA, Self]
+  implicit def LetDefinitionCaseValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder, Self: JsonEncoder]
+      : JsonEncoder[ValueCase.LetDefinitionCase[TA, VA, Type, Self]] =
+    JsonEncoder.tuple5[String, VA, Name, ValueDefinition.Case[TA, VA, Type, Self], Self].contramap {
+      case ValueCase.LetDefinitionCase(attributes, valueName, valueDefinition, inValue) =>
+        ("let_definition", attributes, valueName, valueDefinition, inValue)
+    }
 
-  //   final case class LetRecursionCase[+TA, +VA, +TypeRepr[+_], +Self](attributes: VA, valueDefinitions: Map[Name, Definition.Case[TA, VA, TypeRepr, Self]], inValue: Self) extends ValueCase[TA, VA, Self]
-  // implicit def LetRecursionCaseValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder, TypeRepr: JsonEncoder, Self: JsonEncoder]
-  //     : JsonEncoder[ValueCase.LetRecursionCase[TA, VA, ???, Self]] =
-  //   JsonEncoder.tuple4[String, VA, Map[Name, ValueModule.Definition.Case[TA, VA, TypeRepr, Self]], Self].contramap {
-  //     case ValueCase.LetRecursionCase(attributes, valueDefinitions, inValue) =>
-  //       ("let_recursion", attributes, valueDefinitions, inValue)
-  //   }
+  // final case class LetRecursionCase[+TA, +VA, +TypeRepr[+_], +Self](
+  //     attributes: VA,
+  //     valueDefinitions: Map[Name, Definition.Case[TA, VA, TypeRepr, Self]],
+  //     inValue: Self
+  // ) extends ValueCase[TA, VA, Self]
+  implicit def LetRecursionCaseValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder, Self: JsonEncoder]
+      : JsonEncoder[ValueCase.LetRecursionCase[TA, VA, Type, Self]] =
+    JsonEncoder.tuple4[String, VA, List[(Name, ValueDefinition.Case[TA, VA, Type, Self])], Self].contramap {
+      case ValueCase.LetRecursionCase(attributes, valueDefinitions, inValue) =>
+        ("let_recursion", attributes, valueDefinitions.toList, inValue)
+    }
 
   //   final case class ListCase[+VA, +Self](attributes: VA, elements: Chunk[Self]) extends ValueCase[Nothing, VA, Self]
   implicit def ListCaseValueJsonEncoder[VA: JsonEncoder, Self: JsonEncoder]: JsonEncoder[ValueCase.ListCase[VA, Self]] =
@@ -390,10 +414,18 @@ trait MorphirJsonEncodingSupportV1 {
           JsonEncoder[ValueCase.IfThenElseCase[VA, Value[TA, VA]]].unsafeEncode(t, indent, out)
         case t @ ValueCase.LambdaCase(_, _, _) =>
           JsonEncoder[ValueCase.LambdaCase[VA, Value[TA, VA]]].unsafeEncode(t, indent, out)
-        case t @ ValueCase.LetDefinitionCase(_, _, _, _) => ???
-        // JsonEncoder[ValueCase.LetDefinitionCase[TA, VA, ???, Value[TA, VA]]].unsafeEncode(t, indent, out)
-        case t @ ValueCase.LetRecursionCase(_, _, _) => ???
-        // JsonEncoder[ValueCase.LetRecursionCase[TA, VA, ???, Value[TA, VA]]].unsafeEncode(t, indent, out)
+        case t @ ValueCase.LetDefinitionCase(_, _, _, _) =>
+          LetDefinitionCaseValueJsonEncoder[TA, VA, Value[TA, VA]].unsafeEncode(
+            t.asInstanceOf[ValueCase.LetDefinitionCase[TA, VA, Type, Value[TA, VA]]],
+            indent,
+            out
+          )
+        case t @ ValueCase.LetRecursionCase(_, _, _) =>
+          LetRecursionCaseValueJsonEncoder[TA, VA, Value[TA, VA]].unsafeEncode(
+            t.asInstanceOf[ValueCase.LetRecursionCase[TA, VA, Type, Value[TA, VA]]],
+            indent,
+            out
+          )
         case t @ ValueCase.ListCase(_, _) =>
           JsonEncoder[ValueCase.ListCase[VA, Value[TA, VA]]].unsafeEncode(t, indent, out)
         case t @ ValueCase.LiteralCase(_, _) =>
@@ -415,62 +447,60 @@ trait MorphirJsonEncodingSupportV1 {
       }
     }
 
-  implicit def ExtensibleRecordTypeJsonEncoder[A: JsonEncoder, Self: JsonEncoder]
-      : JsonEncoder[TypeCase.ExtensibleRecordCase[A, Self]] =
-    JsonEncoder.tuple4[String, A, Name, Chunk[Field[Self]]].contramap {
-      case TypeCase.ExtensibleRecordCase(attributes, name, fields) => ("extensible_record", attributes, name, fields)
+  implicit def ExtensibleRecordTypeJsonEncoder[A: JsonEncoder]: JsonEncoder[Type.ExtensibleRecord[A]] =
+    JsonEncoder.tuple4[String, A, Name, Chunk[Field[Type[A]]]].contramap {
+      case Type.ExtensibleRecord(attributes, name, fields) => ("extensible_record", attributes, name, fields)
     }
 
-  implicit def FunctionTypeJsonEncoder[A: JsonEncoder, Self: JsonEncoder]: JsonEncoder[TypeCase.FunctionCase[A, Self]] =
-    JsonEncoder.tuple4[String, A, Self, Self].contramap {
-      case TypeCase.FunctionCase(attributes, argumentType, returnType) =>
+  implicit def FunctionTypeJsonEncoder[A: JsonEncoder]: JsonEncoder[Type.Function[A]] =
+    JsonEncoder.tuple4[String, A, Type[A], Type[A]].contramap {
+      case Type.Function(attributes, argumentType, returnType) =>
         ("function", attributes, argumentType, returnType)
     }
 
-  implicit def RecordTypeJsonEncoder[A: JsonEncoder, Self: JsonEncoder]: JsonEncoder[TypeCase.RecordCase[A, Self]] =
-    JsonEncoder.tuple3[String, A, Chunk[Field[Self]]].contramap { case TypeCase.RecordCase(attributes, fields) =>
+  implicit def RecordTypeJsonEncoder[A: JsonEncoder]: JsonEncoder[Type.Record[A]] =
+    JsonEncoder.tuple3[String, A, Chunk[Field[Type[A]]]].contramap { case Type.Record(attributes, fields) =>
       ("record", attributes, fields)
     }
 
-  implicit def ReferenceTypeJsonEncoder[A: JsonEncoder, Self: JsonEncoder]
-      : JsonEncoder[TypeCase.ReferenceCase[A, Self]] =
-    JsonEncoder.tuple4[String, A, FQName, Chunk[Self]].contramap {
-      case TypeCase.ReferenceCase(attributes, typeName, typeParams) =>
+  implicit def ReferenceTypeJsonEncoder[A: JsonEncoder]: JsonEncoder[Type.Reference[A]] =
+    JsonEncoder.tuple4[String, A, FQName, Chunk[Type[A]]].contramap {
+      case Type.Reference(attributes, typeName, typeParams) =>
         ("reference", attributes, typeName, typeParams)
     }
 
-  implicit def TupleTypeJsonEncoder[A: JsonEncoder, Self: JsonEncoder]: JsonEncoder[TypeCase.TupleCase[A, Self]] =
-    JsonEncoder.tuple3[String, A, Chunk[Self]].contramap { case TypeCase.TupleCase(attributes, elements) =>
+  implicit def TupleTypeJsonEncoder[A: JsonEncoder]: JsonEncoder[Type.Tuple[A]] =
+    JsonEncoder.tuple3[String, A, Chunk[Type[A]]].contramap { case Type.Tuple(attributes, elements) =>
       ("tuple", attributes, elements)
     }
 
-  implicit def UnitTypeJsonEncoder[A: JsonEncoder]: JsonEncoder[TypeCase.UnitCase[A]] =
-    JsonEncoder.tuple2[String, A].contramap[TypeCase.UnitCase[A]] { case TypeCase.UnitCase(attributes) =>
+  implicit def UnitTypeJsonEncoder[A: JsonEncoder]: JsonEncoder[Type.Unit[A]] =
+    JsonEncoder.tuple2[String, A].contramap[Type.Unit[A]] { case Type.Unit(attributes) =>
       ("unit", attributes)
     }
 
-  implicit def VariableTypeJsonEncoder[A: JsonEncoder]: JsonEncoder[TypeCase.VariableCase[A]] =
-    JsonEncoder.tuple3[String, A, Name].contramap[TypeCase.VariableCase[A]] {
-      case TypeCase.VariableCase(attributes, name) => ("variable", attributes, name)
+  implicit def VariableTypeJsonEncoder[A: JsonEncoder]: JsonEncoder[Type.Variable[A]] =
+    JsonEncoder.tuple3[String, A, Name].contramap[Type.Variable[A]] { case Type.Variable(attributes, name) =>
+      ("variable", attributes, name)
     }
 
   implicit def typeEncoder[A: JsonEncoder]: JsonEncoder[Type[A]] =
     new JsonEncoder[Type[A]] {
-      def unsafeEncode(tpe: Type[A], indent: Option[Int], out: Write): Unit = tpe.caseValue match {
-        case t @ TypeCase.ExtensibleRecordCase(_, _, _) =>
-          JsonEncoder[TypeCase.ExtensibleRecordCase[A, Type[A]]].unsafeEncode(t, indent, out)
-        case t @ TypeCase.FunctionCase(_, _, _) =>
-          JsonEncoder[TypeCase.FunctionCase[A, Type[A]]].unsafeEncode(t, indent, out)
-        case t @ TypeCase.RecordCase(_, _) =>
-          JsonEncoder[TypeCase.RecordCase[A, Type[A]]].unsafeEncode(t, indent, out)
-        case t @ TypeCase.ReferenceCase(_, _, _) =>
-          JsonEncoder[TypeCase.ReferenceCase[A, Type[A]]].unsafeEncode(t, indent, out)
-        case t @ TypeCase.TupleCase(_, _) =>
-          JsonEncoder[TypeCase.TupleCase[A, Type[A]]].unsafeEncode(t, indent, out)
-        case t @ TypeCase.UnitCase(_) =>
-          JsonEncoder[TypeCase.UnitCase[A]].unsafeEncode(t, indent, out)
-        case t @ TypeCase.VariableCase(_, _) =>
-          JsonEncoder[TypeCase.VariableCase[A]].unsafeEncode(t, indent, out)
+      def unsafeEncode(tpe: Type[A], indent: Option[Int], out: Write): Unit = tpe match {
+        case t @ Type.ExtensibleRecord(_, _, _) =>
+          JsonEncoder[Type.ExtensibleRecord[A]].unsafeEncode(t, indent, out)
+        case t @ Type.Function(_, _, _) =>
+          JsonEncoder[Type.Function[A]].unsafeEncode(t, indent, out)
+        case t @ Type.Record(_, _) =>
+          JsonEncoder[Type.Record[A]].unsafeEncode(t, indent, out)
+        case t @ Type.Reference(_, _, _) =>
+          JsonEncoder[Type.Reference[A]].unsafeEncode(t, indent, out)
+        case t @ Type.Tuple(_, _) =>
+          JsonEncoder[Type.Tuple[A]].unsafeEncode(t, indent, out)
+        case t @ Type.Unit(_) =>
+          JsonEncoder[Type.Unit[A]].unsafeEncode(t, indent, out)
+        case t @ Type.Variable(_, _) =>
+          JsonEncoder[Type.Variable[A]].unsafeEncode(t, indent, out)
       }
     }
 

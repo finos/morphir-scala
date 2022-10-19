@@ -23,7 +23,7 @@ import org.finos.morphir.ir.json.MorphirJsonEncodingSupportV1._
 import zio.test.{ZIOSpecDefault, _}
 
 object MorphirJsonEncodingSpecV1 extends ZIOSpecDefault {
-  def spec = suite("Encoding Suite - V1")(
+  def spec = suite("Json Encoding Suite - V1")(
     suite("Unit")(
       test("will encode a Unit") {
         val actual   = ()
@@ -297,7 +297,7 @@ object MorphirJsonEncodingSpecV1 extends ZIOSpecDefault {
         assertTrue(actual.toJson == expected)
       }
     ),
-    suite("org.finos.morphir.ir.Type..Definition")(
+    suite("org.finos.morphir.ir.Type.Definition")(
       test("will encode TypeAlias") {
         val name1    = Name.fromString("name1")
         val name2    = Name.fromString("name2")
@@ -423,6 +423,18 @@ object MorphirJsonEncodingSpecV1 extends ZIOSpecDefault {
           ValueDefinition[Int, Int](inputParams, variable[Int](345, "g"), Value[Int, Int](ValueCase.UnitCase(1)))
         val expected =
           """{"inputTypes":[[["name","1"],1,["variable",345,["g"]]],[["name","2"],2,["variable",678,["h"]]]],"outputType":["variable",345,["g"]],"body":["unit",1]}"""
+        assertTrue(actual.toJson == expected)
+      },
+      test("will encode ValueDefinition.Case") {
+        val inputParams = zio.Chunk(
+          (Name.fromString("name1"), 1, variable[String]("444", "g")),
+          (Name.fromString("name2"), 2, variable[String]("678", "h"))
+        )
+        val literalCase   = Value[Int, Int](ValueCase.LiteralCase(3, Literal.Bool(true)))
+        val actual =
+          ValueDefinition.Case[String, Int, Type, Value[Int,Int]](inputParams, variable[String]("345", "g"), literalCase)
+        val expected =
+          """{"inputTypes":[[["name","1"],1,["variable","444",["g"]]],[["name","2"],2,["variable","678",["h"]]]],"outputType":["variable","345",["g"]],"body":["literal",3,["bool_literal",true]]}"""
         assertTrue(actual.toJson == expected)
       }
     ),
@@ -603,20 +615,35 @@ object MorphirJsonEncodingSpecV1 extends ZIOSpecDefault {
         val expected          = """["lambda",3,["wildcard_pattern",1],["field_function",3,["hello"]]]"""
         assertTrue(actual.toJson == expected)
       },
-      // test("will encode Value - LetDefinitionCase") {
-      //   val unitCase = Value[Int, Int](ValueCase.UnitCase(6))
-      //   val fieldFunctionCase   = Value[Int, Int](ValueCase.FieldFunctionCase(3, Name("Hello")))
-      //   val actual   = Value[Int, Int](ValueCase.LetDefinitionCase(3, Name("Hi"), ???, fieldFunctionCase))
-      //   val expected = """["list",3,[["unit",6],["field_function",3,["hello"]]]]"""
-      //   assertTrue(actual.toJson == expected)
-      // },
-      // test("will encode Value - LetRecursionCase") {
-      //   val unitCase = Value[Int, Int](ValueCase.UnitCase(6))
-      //   val fieldFunctionCase   = Value[Int, Int](ValueCase.FieldFunctionCase(3, Name("Hello")))
-      //   val actual   = Value[Int, Int](ValueCase.LetRecursionCase(3, ???, fieldFunctionCase))
-      //   val expected = """["list",3,[["unit",6],["field_function",3,["hello"]]]]"""
-      //   assertTrue(actual.toJson == expected)
-      // },
+      test("will encode Value - LetDefinitionCase") {
+        val inputParams = zio.Chunk(
+          (Name.fromString("name1"), 1, variable[Int](444, "g")),
+          (Name.fromString("name2"), 2, variable[Int](678, "h"))
+        )
+        val literalCase   = Value[Int, Int](ValueCase.LiteralCase(3, Literal.Bool(true)))
+        val valueDefinitionCase = ValueDefinition.Case[Int, Int, Type, Value[Int,Int]](inputParams, variable[Int](345, "g"), literalCase)
+
+        val fieldFunctionCase   = Value[Int, Int](ValueCase.FieldFunctionCase(3, Name("Hello")))
+
+        val actual   = Value[Int, Int](ValueCase.LetDefinitionCase(3, Name("Hi"), valueDefinitionCase, fieldFunctionCase))
+        val expected = """["let_definition",3,["hi"],{"inputTypes":[[["name","1"],1,["variable",444,["g"]]],[["name","2"],2,["variable",678,["h"]]]],"outputType":["variable",345,["g"]],"body":["literal",3,["bool_literal",true]]},["field_function",3,["hello"]]]"""
+        assertTrue(actual.toJson == expected)
+      },
+      test("will encode Value - LetRecursionCase") {
+        val inputParams = zio.Chunk(
+          (Name.fromString("name1"), 1, variable[Int](444, "g")),
+          (Name.fromString("name2"), 2, variable[Int](678, "h"))
+        )
+        val literalCase   = Value[Int, Int](ValueCase.LiteralCase(3, Literal.Bool(true)))
+        val valueDefinitionCase1 = ValueDefinition.Case[Int, Int, Type, Value[Int,Int]](inputParams, variable[Int](333, "x"), literalCase)
+        val valueDefinitionCase2 = ValueDefinition.Case[Int, Int, Type, Value[Int,Int]](inputParams, variable[Int](444, "y"), literalCase)
+        val valueDefinitions = Map(Name.fromString("key1") -> valueDefinitionCase1, Name.fromString("key2") -> valueDefinitionCase1)
+        
+        val fieldFunctionCase   = Value[Int, Int](ValueCase.FieldFunctionCase(3, Name("Hello")))
+        val actual   = Value[Int, Int](ValueCase.LetRecursionCase(3, valueDefinitions, fieldFunctionCase))
+        val expected = """["let_recursion",3,[[["key","1"],{"inputTypes":[[["name","1"],1,["variable",444,["g"]]],[["name","2"],2,["variable",678,["h"]]]],"outputType":["variable",333,["x"]],"body":["literal",3,["bool_literal",true]]}],[["key","2"],{"inputTypes":[[["name","1"],1,["variable",444,["g"]]],[["name","2"],2,["variable",678,["h"]]]],"outputType":["variable",333,["x"]],"body":["literal",3,["bool_literal",true]]}]],["field_function",3,["hello"]]]"""
+        assertTrue(actual.toJson == expected)
+      },
       test("will encode Value - ListCase") {
         val unitCase          = Value[Int, Int](ValueCase.UnitCase(6))
         val fieldFunctionCase = Value[Int, Int](ValueCase.FieldFunctionCase(3, Name("Hello")))
