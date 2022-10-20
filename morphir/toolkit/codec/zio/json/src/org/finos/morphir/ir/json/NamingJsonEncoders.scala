@@ -29,5 +29,3 @@ trait NamingJsonEncoders extends JsonEncodingHelpers {
       Json.Arr(toJsonAstOrThrow(moduleName.namespace), toJsonAstOrThrow(moduleName.localName))
     )
 }
-
-

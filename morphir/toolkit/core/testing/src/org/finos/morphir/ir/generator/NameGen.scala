@@ -11,5 +11,3 @@ trait NameGen {
   val name: Gen[Any, Name] =
     Gen.listOfBounded(1, 5)(WordGen.words).map(parts => Name.fromList(parts))
 }
-
-
