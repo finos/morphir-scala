@@ -52,10 +52,6 @@ object Interpreter {
     ): Any = {
       value.caseValue match {
         case ApplyCase(_, function, argument) =>
-          if (function.toString.contains("Brad")) {
-            println(s"\n\n\nGOT BRAD: ${function.getClass}; value: ${function.toString}")
-            new Throwable().printStackTrace
-          }
           val scalaFunction     = loop(function, variables, references)
           val evaluatedArgument = loop(argument, variables, references)
           applyFunction(scalaFunction, Chunk(evaluatedArgument))
@@ -175,11 +171,10 @@ object Interpreter {
           }
 
         case LetDefinitionCase(_, name, value, body) =>
-          // val inputTypes = value.inputTypes.toSeq.map(t => (t._1.toTitleCase, t._2, t._3))
-          // val definition = Definition(inputTypes: _*)(value.outputType)(value.body)
           loop(
             body,
             // variables + (name -> Result.Strict(loop(definition.toValue, variables, references))),
+            // @todo We need to call Definition.toValue below
             variables + (name -> Result.Strict(loop(???, variables, references))),
             references
           )
@@ -187,11 +182,10 @@ object Interpreter {
         case LetRecursionCase(_, valueDefinitions, inValue) =>
           def shallow = valueDefinitions.map { case (key, value) =>
             key -> Result.Lazy(
-              // value.toValue,
+              // @todo We need to call Definition.toValue below
               ???,
               variables,
               references,
-              // valueDefinitions.map { case (k, v) => k -> v.toValue }
               valueDefinitions.map { case (k, v) => k -> ??? }
             )
           }
@@ -416,7 +410,6 @@ object Interpreter {
     }
 
   def applyFunction(function: Any, arguments: Chunk[Any]): Any =
-    println("\n\nCLASS:\n" + function.getClass + "\nValue:\n" + function)
     function match {
       case f: Function1[_, _]    => f.asInstanceOf[Function1[Any, Any]](arguments(0))
       case f: Function2[_, _, _] => f.asInstanceOf[Function2[Any, Any, Any]](arguments(0), arguments(1))

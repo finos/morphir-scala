@@ -45,12 +45,7 @@ object ValueCase {
       attributes: VA,
       function: Self,
       argument: Self
-  ) extends ValueCase[Nothing, VA, Self] {
-    if (function.isInstanceOf[String]) {
-      println("WE'RE HERE")
-      new Throwable().printStackTrace()
-    }
-  }
+  ) extends ValueCase[Nothing, VA, Self]
 
   final case class ConstructorCase[+VA](attributes: VA, name: FQName) extends ValueCase[Nothing, VA, Nothing]
 

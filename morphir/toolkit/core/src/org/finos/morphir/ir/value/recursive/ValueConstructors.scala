@@ -22,11 +22,8 @@ trait ValueConstructors {
 
   final def apply(function: RawValue, argument: RawValue): RawValue = Apply.Raw(function, argument)
 
-  final def apply(function: TypedValue, argument: TypedValue, arguments: TypedValue*): TypedValue = {
-    if (argument.toString.contains("Brad")) println("IN APPLY")
-    println("IN APPLY")
+  final def apply(function: TypedValue, argument: TypedValue, arguments: TypedValue*): TypedValue =
     Apply.Typed(function, argument, arguments: _*)
-  }
 
   final def boolean[A](attributes: A, value: Boolean): Value[Nothing, A] = Literal(attributes, Lit.boolean(value))
   final def boolean(value: Boolean): RawValue                            = Literal.Raw(Lit.boolean(value))
