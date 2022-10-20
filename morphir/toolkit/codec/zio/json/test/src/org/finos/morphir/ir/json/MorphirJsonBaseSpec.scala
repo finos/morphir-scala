@@ -102,7 +102,7 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
     val filePath = resourceDir.resolve(fileName)
 
     val failureString =
-      s"No existing golden test for ${resourceDir.resolve("$name.json")}. Remove _new from the suffix and re-run the test."
+      s"No existing golden test for ${resourceDir.resolve(s"$name.json")}. Remove _new from the suffix and re-run the test."
 
     for {
       sample <- generateSample(gen, sampleSize)
