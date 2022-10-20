@@ -40,10 +40,10 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
     test(s"golden test for $name") {
       import config.{relativePath, sampleSize}
       for {
+
         resourceDir <- createGoldenDirectory(s"test/resources/golden/$relativePath")
         fileName = Paths.get(s"$name.json")
         filePath = resourceDir.resolve(fileName)
-        _        = println(s"Test file path: $filePath")
         assertion <- ZIO.ifZIO(ZIO.attemptBlocking(Files.exists(filePath)))(
           validateTest(resourceDir, name, gen, sampleSize),
           createNewTest(resourceDir, name, gen, sampleSize)

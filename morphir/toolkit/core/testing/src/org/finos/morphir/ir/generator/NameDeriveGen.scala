@@ -10,3 +10,5 @@ import zio.test.Gen
 trait NameDeriveGen {
   implicit val nameDeriveGen: DeriveGen[Name] = DeriveGen.instance(NameGen.name)
 }
+
+object NameDeriveGen extends NameDeriveGen
