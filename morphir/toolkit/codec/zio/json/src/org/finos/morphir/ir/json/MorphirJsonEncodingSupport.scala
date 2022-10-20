@@ -269,21 +269,8 @@ trait MorphirJsonEncodingSupport {
       )
     }
 
-  //  Alex's version
-  // implicit def definitionCaseEncoder[TA, VA: JsonEncoder, Z: JsonEncoder]
-  //     : JsonEncoder[ValueDefinition.Case[TA, VA, Type, Z]] =
-  //   DeriveJsonEncoder
-  //     .gen[ValueDefinition.Case[Any, VA, Type, Z]]
-  //     .contramap((value: ValueDefinition.Case[TA, VA, Type, Z]) =>
-  //       ValueDefinition.Case[Any, VA, Type, Z](
-  //         value.inputTypes.asInstanceOf[Chunk[(org.finos.morphir.ir.Name, VA, Type[Any])]],
-  //         value.outputType.asInstanceOf[Type[Any]],
-  //         value.body
-  //       )
-  //     )
-
-  // implicit def anyEncoder: JsonEncoder[Any] =
-  //   Json.Null.encoder.contramap(_ => Json.Null)
+  implicit def anyEncoder: JsonEncoder[Any] =
+    Json.Null.encoder.contramap(_ => Json.Null)
 
   implicit def valueSpecificationEncoder[A: JsonEncoder]: JsonEncoder[ValueSpecification[A]] =
     Json.encoder.contramap[ValueSpecification[A]] { specification =>

@@ -1,5 +1,6 @@
 package org.finos.morphir.ir.json
 
+import zio._
 import zio.json._
 import org.finos.morphir.ir.Module.{
   Definition => ModuleDefinition,
@@ -20,6 +21,7 @@ import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Pattern, Speci
 import org.finos.morphir.ir._
 import org.finos.morphir.ir.value.recursive.ValueCase
 import org.finos.morphir.ir.json.MorphirJsonEncodingSupport._
+import org.finos.morphir.ir.json.MorphirJsonDecodingSupport._
 import zio.test.{ZIOSpecDefault, _}
 
 object MorphirJsonEncodingSpec extends ZIOSpecDefault {
@@ -635,6 +637,81 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
         val expected =
           """["let_definition",3,["hi"],{"inputTypes":[[["name","1"],1,["Variable",444,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["literal",3,["BoolLiteral",true]]},["field_function",3,["hello"]]]"""
         assertTrue(actual.toJson == expected)
+      },
+      test("will encode and decode Value - LetDefinitionCase - with Any") {
+        object Refs {
+          val `morphir.SDK`            = PackageName.fromString("morphir.SDK")
+          val `basics`                 = Module.ModulePath.fromString("basics")
+          val `list`                   = Module.ModulePath.fromString("list")
+          val `morphir.SDK.basics.int` = FQName(`morphir.SDK`, `basics`, Name("int"))
+          val `morphir.SDK.list.list`  = FQName(`morphir.SDK`, `list`, Name("list"))
+        }
+
+        val `sdk.Int`                  = Type.reference(Refs.`morphir.SDK.basics.int`)
+        val `List[sdk.Int]`            = Type.reference(Refs.`morphir.SDK.list.list`, `sdk.Int`)
+        val `sdk.Int => List[sdk.Int]` = Type.function(`sdk.Int`, `List[sdk.Int]`)
+
+        // final case class LetDefinitionCase[+TA, +VA, +TypeRepr[+_], +Self](
+
+        /*
+        ValueCase.LetDefinitionCase[
+          Any,UType,Type,
+          ValueCase[Nothing,UType,ValueCase[Nothing,UType,Nothing]]
+        ]
+         */
+
+        // ValueCase.ApplyCase[UType,ValueCase[Nothing,UType,Nothing]]
+        val in =
+          Value.Apply(
+            `List[sdk.Int]`,
+            Value.Variable(`sdk.Int => List[sdk.Int]`, Name("foo")),
+            Value.Literal(`sdk.Int`, Literal.int(1))
+          )
+
+        // ValueCase.ListCase[UType,ValueCase.VariableCase[UType]]
+        val body =
+          Value.List(
+            `List[sdk.Int]`,
+            Chunk(Value.Variable(`sdk.Int`, Name("x")))
+          )
+
+        val actual =
+          Value.LetDefinition(
+            // o: List Int (minus the 'o' part)
+            `List[sdk.Int]`,
+            // foo: a -> List a
+            // foo x = [x]
+            Name("foo"),
+            ValueDefinition.Case(
+              inputTypes = Chunk((Name("x"), `sdk.Int`, Type.variable("a"))),
+              outputType = Type.reference(Refs.`morphir.SDK.list.list`, Chunk(Type.variable("a"))),
+              // ValueCase[Nothing, UType, ValueCase[Nothing, UType, Nothing]]
+              body = body
+            ),
+            // in
+            //   (foo 1)
+            // ValueCase[Nothing, UType, Nothing]
+            in
+            // ValueCase.LiteralCase(`sdk.Int`, Literal.int(1))
+          )
+
+        // TODO Compare actual with expected which is this long string, the printline function actual.toJson is doing the right thing.
+        // If you want to verify it, use try-morphir.html from https://github.com/finos/morphir and put in the following:
+        /*
+        module My.Test exposing (..)
+
+        o: List Int
+        o =
+          let
+            foo: a -> List a
+            foo x = [x]
+          in
+            (foo 1)
+         */
+        val jsonValue    = actual.toJson
+        val decodedValue = jsonValue.fromJson[Value[Any, UType]]
+
+        assertTrue(decodedValue == Right(actual))
       },
       test("will encode Value - LetRecursionCase") {
         val inputParams = zio.Chunk(

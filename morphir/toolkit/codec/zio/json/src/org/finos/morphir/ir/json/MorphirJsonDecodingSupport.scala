@@ -2,6 +2,8 @@ package org.finos.morphir.ir.json
 
 import zio._
 import zio.json._
+import zio.json.ast.Json
+
 import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, Specification => PackageSpecification}
 import org.finos.morphir.ir.Type.{
   Constructors,
@@ -109,7 +111,7 @@ trait MorphirJsonDecodingSupport {
       case ("ExtensibleRecord", attributes, name, fields) =>
         Right(Type.ExtensibleRecord(attributes, name, fields))
       case (other, attributes, name, fields) =>
-        Left(s"Expected Extensible_record, got $other with attributes: $attributes, name: $name and fields: $fields")
+        Left(s"Expected ExtensibleRecord, got $other with attributes: $attributes, name: $name and fields: $fields")
     }
 
   implicit def functionCaseTypeDecoder[A: JsonDecoder]: JsonDecoder[Type.Function[A]] =
@@ -249,28 +251,29 @@ trait MorphirJsonDecodingSupport {
   //   outputType: TypeRepr[TA],
   //   body: Z
   // )
-  // implicit def valueDefinitionCaseDecoder[TA: JsonDecoder, VA: JsonDecoder, Z: JsonDecoder]
-  //     : JsonDecoder[ValueDefinition.Case[TA, VA, Type, Z]] = {
-  //   lazy val dec: JsonDecoder[ValueDefinition.Case[TA, VA, Type, Z]] = DeriveJsonDecoder.gen
-  //   dec
-  // }
+  implicit def valueDefinitionCaseDecoder[TA: JsonDecoder, VA: JsonDecoder, Z: JsonDecoder]
+      : JsonDecoder[ValueDefinition.Case[TA, VA, Type, Z]] =
+    Json.Obj.decoder.mapOrFail[ValueDefinition.Case[TA, VA, Type, Z]] {
+      case Json.Obj(
+            Chunk(
+              "inputTypes" -> inputTypes,
+              "outputType" -> outputType,
+              "body" -> body
+            )
+          ) =>
+        for {
+          a <- JsonDecoder[Chunk[(Name, VA, Type[TA])]].fromJsonAST(inputTypes)
+          b <- JsonDecoder[Type[TA]].fromJsonAST(outputType)
+          c <- JsonDecoder[Z].fromJsonAST(body)
+        } yield ValueDefinition.Case(a, b, c)
+      case other =>
+        Left(
+          s"Cannot decode: $other"
+        )
+    }
 
-  //  Alex's version
-  // import zio.json.ast.Json
-  // implicit def anyDecoder: JsonDecoder[Any] =
-  //   Json.Null.decoder.map(v => v)
-
-  // implicit def definitionCaseDecoder[TA, VA: JsonDecoder, Z: JsonDecoder]
-  //     : JsonDecoder[ValueDefinition.Case[TA, VA, Type, Z]] =
-  //   DeriveJsonDecoder
-  //     .gen[ValueDefinition.Case[Any, VA, Type, Z]]
-  //     .map((value: ValueDefinition.Case[Any, VA, Type, Z]) =>
-  //       ValueDefinition.Case[TA, VA, Type, Z](
-  //         value.inputTypes.asInstanceOf[Chunk[(org.finos.morphir.ir.Name, VA, Type[TA])]],
-  //         value.outputType.asInstanceOf[Type[TA]],
-  //         value.body
-  //       )
-  //     )
+  implicit def anyDecoder: JsonDecoder[Any] =
+    Json.Null.decoder.map(v => ())
 
   implicit def valueSpecificationDecoder[A: JsonDecoder]: JsonDecoder[ValueSpecification[A]] = {
     final case class Spec[A](inputs: Chunk[(Name, Type[A])], outputs: Type[A])
@@ -484,32 +487,32 @@ trait MorphirJsonDecodingSupport {
   //     valueDefinition: Definition.Case[TA, VA, TypeRepr, Self],
   //     inValue: Self
   // ) extends ValueCase[TA, VA, Self]
-  // implicit def LetDefinitionCaseValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder, Self: JsonDecoder]
-  //     : JsonDecoder[ValueCase.LetDefinitionCase[TA, VA, Type, Self]] =
-  //   JsonDecoder.tuple5[String, VA, Name, ValueDefinition.Case[TA, VA, Type, Self], Self].mapOrFail {
-  //     case ("let_definition", attributes, valueName, valueDefinition, inValue) =>
-  //       Right(ValueCase.LetDefinitionCase[TA, VA, Type, Self](attributes, valueName, valueDefinition, inValue))
-  //     case (other, attributes, valueName, valueDefinition, inValue) =>
-  //       Left(
-  //         s"Expected let_definition, got $other with attributes: $attributes, valueName: $valueName, valueDefinition: $valueDefinition and inValue: $inValue"
-  //       )
-  //   }
+  implicit def LetDefinitionCaseValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder, Self: JsonDecoder]
+      : JsonDecoder[ValueCase.LetDefinitionCase[TA, VA, Type, Self]] =
+    JsonDecoder.tuple5[String, VA, Name, ValueDefinition.Case[TA, VA, Type, Self], Self].mapOrFail {
+      case ("let_definition", attributes, valueName, valueDefinition, inValue) =>
+        Right(ValueCase.LetDefinitionCase[TA, VA, Type, Self](attributes, valueName, valueDefinition, inValue))
+      case (other, attributes, valueName, valueDefinition, inValue) =>
+        Left(
+          s"Expected let_definition, got $other with attributes: $attributes, valueName: $valueName, valueDefinition: $valueDefinition and inValue: $inValue"
+        )
+    }
 
   // final case class LetRecursionCase[+TA, +VA, +TypeRepr[+_], +Self](
   //     attributes: VA,
   //     valueDefinitions: Map[Name, Definition.Case[TA, VA, TypeRepr, Self]],
   //     inValue: Self
   // ) extends ValueCase[TA, VA, Self]
-  // implicit def LetRecursionCaseValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder, Self: JsonDecoder]
-  //     : JsonDecoder[ValueCase.LetRecursionCase[TA, VA, Type, Self]] =
-  //   JsonDecoder.tuple4[String, VA, List[(Name, ValueDefinition.Case[TA, VA, Type, Self])], Self].mapOrFail {
-  //     case ("let_recursion", attributes, valueDefinitions, inValue) =>
-  //       Right(ValueCase.LetRecursionCase[TA, VA, Type, Self](attributes, valueDefinitions.toMap, inValue))
-  //     case (other, attributes, valueDefinitions, inValue) =>
-  //       Left(
-  //         s"Expected let_recursion, got $other with attributes: $attributes, valueDefinitions: $valueDefinitions and inValue: $inValue"
-  //       )
-  //   }
+  implicit def LetRecursionCaseValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder, Self: JsonDecoder]
+      : JsonDecoder[ValueCase.LetRecursionCase[TA, VA, Type, Self]] =
+    JsonDecoder.tuple4[String, VA, List[(Name, ValueDefinition.Case[TA, VA, Type, Self])], Self].mapOrFail {
+      case ("let_recursion", attributes, valueDefinitions, inValue) =>
+        Right(ValueCase.LetRecursionCase[TA, VA, Type, Self](attributes, valueDefinitions.toMap, inValue))
+      case (other, attributes, valueDefinitions, inValue) =>
+        Left(
+          s"Expected let_recursion, got $other with attributes: $attributes, valueDefinitions: $valueDefinitions and inValue: $inValue"
+        )
+    }
 
   //   final case class ListCase[+VA, +Self](attributes: VA, elements: Chunk[Self]) extends ValueCase[Nothing, VA, Self]
   implicit def ListCaseValueJsonDecoder[VA: JsonDecoder, Self: JsonDecoder]: JsonDecoder[ValueCase.ListCase[VA, Self]] =
@@ -626,8 +629,8 @@ trait MorphirJsonDecodingSupport {
       FieldCaseValueJsonDecoder[VA, Value[TA, VA]].map(Value(_)) orElse
       IfThenElseCaseValueJsonDecoder[VA, Value[TA, VA]].map(Value(_)) orElse
       LambdaCaseValueJsonDecoder[VA, Value[TA, VA]].map(Value(_)) orElse
-      // LetDefinitionCaseValueJsonDecoder[TA, VA, Value[TA, VA]].map(Value(_)) orElse
-      // LetRecursionCaseValueJsonDecoder[TA, VA, Value[TA, VA]].map(Value(_)) orElse
+      LetDefinitionCaseValueJsonDecoder[TA, VA, Value[TA, VA]].map(Value(_)) orElse
+      LetRecursionCaseValueJsonDecoder[TA, VA, Value[TA, VA]].map(Value(_)) orElse
       ListCaseValueJsonDecoder[VA, Value[TA, VA]].map(Value(_)) orElse
       PatternMatchCaseValueJsonDecoder[VA, Value[TA, VA]].map(Value(_)) orElse
       RecordCaseValueJsonDecoder[VA, Value[TA, VA]].map(Value(_)) orElse

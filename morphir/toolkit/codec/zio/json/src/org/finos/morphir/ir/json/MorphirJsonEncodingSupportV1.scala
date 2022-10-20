@@ -256,6 +256,9 @@ trait MorphirJsonEncodingSupportV1 {
       )
     }
 
+  implicit def anyEncoder: JsonEncoder[Any] =
+    Json.Null.encoder.contramap(_ => Json.Null)
+
   implicit def valueSpecificationEncoder[A: JsonEncoder]: JsonEncoder[ValueSpecification[A]] =
     Json.encoder.contramap[ValueSpecification[A]] { specification =>
       Json.Obj(
