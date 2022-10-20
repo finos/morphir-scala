@@ -39,6 +39,9 @@ object Deps {
       def `borer-derivation`(scalaVersionParts: Seq[String]): Dep =
         ivy"io.bullet::borer-derivation::${Versions.borer(scalaVersionParts)}"
     }
+    case object `get-coursier` {
+      val coursier = ivy"io.get-coursier::coursier::${Versions.coursier}"
+    }
     case object lemonlabs {
       val `scala-uri` = ivy"io.lemonlabs::scala-uri:4.0.2"
     }
@@ -74,13 +77,14 @@ object Versions {
       case _            => "4.5.11"
     }
 
+  val coursier      = "2.1.0-M7"
   val munit         = "1.0.0-M4"
   val mainargs      = "0.3.0"
   val `os-lib`      = "0.8.1"
   val zio           = "2.0.2"
   val `zio-cli`     = "0.2.9-M01"
   val `zio-json`    = "0.3.0"
-  val `zio-prelude` = "1.0.0-RC15"
+  val `zio-prelude` = "1.0.0-RC16"
   val `zio-process` = "0.7.1"
 }
 

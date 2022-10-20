@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+# Download and run the Morphir launcher jar.
+#
+# The launcher jar downloads the other jars that are required for Morphir development.
+#
+# The version of the launcher jar can be set from MORPHIR_VERSION or the .morphir-version file.
+#
+# Order of precedence for launcher jar version is
+#   - MORPHIR_VERSION env variable
+#   - contents of version file .morphir-version
+#   - the default from this file
+
+set -euo pipefail
+#set -x
+
+FALLBACK_MORPHIR_VERSION=0.1.1-M01
+MORPHIR_VERSION_FILE=.morphir-version
+CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}/morphir/launcher"
+
+_log() {
+    echo $* >/dev/stderr
+    echo >/dev/stderr
+}
+
+_advise_version_is_from() {
+    local ver="$1"
+    local src="$2"
+
+    _log Using Morphir launcher version $ver set from $src...
+}
+
+_version_from_env()  {
+    if [[ -n "${MORPHIR_VERSION+x}" ]]; then
+        _advise_version_is_from $MORPHIR_VERSION "MORPHIR_VERSION environment variable"
+        echo $MORPHIR_VERSION
+    else
+        return 1
+    fi
+}
+
+_version_from_file() {
+    if [[ -r "$MORPHIR_VERSION_FILE" ]]; then
+        local ver="$(cat "$MORPHIR_VERSION_FILE")"
+        _advise_version_is_from $ver "file $MORPHIR_VERSION_FILE"
+        echo $ver
+    else
+        return 1
+    fi
+}
+
+_version_fallback() {
+    _advise_version_is_from $FALLBACK_MORPHIR_VERSION "hard-coded default"
+    echo $FALLBACK_MORPHIR_VERSION
+}
+
+morphir_version() {
+    _version_from_env || _version_from_file || _version_fallback
+}
+
+curl_download() {
+    local url="$1"
+    local target="$2"
+
+    mkdir -p "$(dirname $target)"
+
+    _log Downloading $url to $target...
+
+    curl -Sf -o "$target" "$url"
+
+    _log
+}
+
+launcher_jar_url() {
+    local ver="$1"
+
+    echo https://repo1.maven.org/maven2/org/finos/morphir/morphir-tools-launcher_3/$ver/morphir-tools-launcher_3-$ver.jar
+}
+
+main() {
+    local ver="$(morphir_version)"
+    local url="$(launcher_jar_url "$ver")"
+    local jar="$CACHE_HOME/$ver.jar"
+
+    [[ ! -r "$jar" ]] && curl_download "$url" "$jar"
+
+    _log Running $jar...
+
+    java -jar "$jar"
+}
+
+main
