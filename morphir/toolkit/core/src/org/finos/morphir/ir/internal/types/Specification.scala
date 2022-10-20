@@ -1,10 +1,11 @@
-package org.finos.morphir.ir.types.recursive
+package org.finos.morphir
+package ir
+package internal
+package types
 
 import zio.Chunk
-import org.finos.morphir.ir.types.recursive.Definition
-import org.finos.morphir.ir.{Documented, Name}
 
-sealed trait Specification[+Attributes] { self =>
+private[internal] sealed trait Specification[+Attributes] { self =>
   import Specification._
 
   def ??(doc: String): Documented[Specification[Attributes]] =
@@ -26,8 +27,7 @@ sealed trait Specification[+Attributes] { self =>
   }
 }
 
-private[ir] object Specification {
-
+private[internal] object Specification {
   def mapSpecificationAttributes[A](spec: Specification[A]): MapSpecificationAttributes[A] =
     new MapSpecificationAttributes(() => spec)
 

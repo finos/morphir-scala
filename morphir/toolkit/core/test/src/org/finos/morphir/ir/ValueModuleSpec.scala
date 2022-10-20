@@ -3,7 +3,7 @@ package morphir
 package ir
 
 import zio.Chunk
-import org.finos.morphir.ir.Type.Field.defineField
+import org.finos.morphir.ir.Type.defineField
 import org.finos.morphir.ir.Type.{Type => IrType, UType}
 import org.finos.morphir.ir.Value.Pattern.LiteralPattern
 import org.finos.morphir.ir.Value.Value.{Unit => UnitType, _}

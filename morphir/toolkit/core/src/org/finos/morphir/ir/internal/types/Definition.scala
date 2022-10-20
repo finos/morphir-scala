@@ -1,10 +1,10 @@
-package org.finos.morphir.ir.types.recursive
-
+package org.finos.morphir
+package ir
+package internal
+package types
 import zio.Chunk
-import org.finos.morphir.ir.{AccessControlled, FQName, Name}
-//import org.finos.morphir.sdk.ResultModule.Result
 
-sealed trait Definition[+Attributes] { self =>
+private[internal] sealed trait Definition[+Attributes] { self =>
   import Definition._
   import Specification._
 
@@ -20,21 +20,6 @@ sealed trait Definition[+Attributes] { self =>
       CustomType(typeParams, ctors.map(_.eraseAttributes))
   }
 
-//  def map[E, Attributes0](
-//      f: Type[Attributes] => Result[E, Type[Attributes0]]
-//  ): Result[List[E], Definition[Attributes0]] = self match {
-//    case TypeAlias(typeParams, typeExp) =>
-//      f(typeExp) match {
-//        case Left(value)  => Left(List(value))
-//        case Right(value) => Right(TypeAlias(typeParams, value))
-//      }
-//    case CustomType(typeParams, AccessControlled.WithPublicAccess(const)) =>
-//      CustomType(
-//        typeParams,
-//        const.toMap.map { case (_, value) => value.map { case (name, typ) => (name, typ.mapAttributes(f)) } }
-//      )
-//  }
-
   def map[B](f: Attributes => B): Definition[B] = self match {
     case TypeAlias(typeParams, typeExp) => TypeAlias(typeParams, typeExp.map(f))
     case CustomType(typeParams, ctors)  => CustomType(typeParams, ctors.map(_.map(f)))
@@ -47,10 +32,9 @@ sealed trait Definition[+Attributes] { self =>
     case CustomType(typeParams, _) =>
       OpaqueTypeSpecification(typeParams)
   }
-
 }
 
-object Definition {
+private[internal] object Definition {
   type UDefinition = Definition[Any]
   val UDefinition: Definition.type = Definition
 

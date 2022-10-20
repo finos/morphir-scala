@@ -29,11 +29,10 @@ package object ir {
 
   // TODO:  Reintroduce later
   final implicit class StringOps(private val self: String) extends AnyVal {
-    //   import org.finos.morphir.ir.types.nonrecursive
-    import org.finos.morphir.ir.types.recursive
+    import org.finos.morphir.ir.Type.{Field, Type}
 
-    def <:>[A](tpe: recursive.Type[A]): recursive.Field[recursive.Type[A]] =
-      recursive.Field(Name.fromString(self), tpe)
+    def <:>[A](tpe: Type[A]): Field[Type[A]] =
+      Field(Name.fromString(self), tpe)
 
     //   def <:>[A](tpe: nonrecursive.Type[A]): nonrecursive.Field[nonrecursive.Type[A]] =
     //     nonrecursive.Field(Name.fromString(self), tpe)

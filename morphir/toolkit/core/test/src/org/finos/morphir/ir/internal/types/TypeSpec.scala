@@ -1,20 +1,53 @@
-package org.finos.morphir.ir.types.recursive
+package org.finos.morphir
+package ir
+package internal
+package types
 
 import zio.Chunk
-import org.finos.morphir.ir.{FQName, Name, Source}
 import org.finos.morphir.syntax.NamingSyntax
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
-import TypeCase._
 import Type._
+import org.finos.morphir.ir.packages.PackageName
+import org.finos.morphir.ir.module.ModuleName
 
-object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
+object TypeSpec extends MorphirBaseSpec with NamingSyntax {
   def spec = suite("Type Spec")(
+    extensibleRecordSuite,
+    functionSuite,
+    recordSuite,
+    referenceSuite,
+    sizeSuite,
+    tupleSuite,
+    unitSuite,
+    variableSuite,
     suite("Operations")(
       test("Can be documented") {
         val actual = variable("a") ?? "Some type variable"
         assertTrue(actual.doc == "Some type variable")
+      },
+      test("Calling mapReferenceName should remap the name of a reference type using the provided function") {
+        val sut = record(
+          "name"  -> reference(fqn("Morphir.SDK", "String", "String")),
+          "age"   -> reference(fqn("Morphir.SDK", "Int", "Int")),
+          "items" -> reference(fqn("Morphir.SDK", "List", "List"), reference(fqn("Morphir.SDK", "String", "String")))
+        )
+        val actual = sut.mapReferenceName { case FQName(_, module, localName) =>
+          FQName(PackageName.fromString("Acme.SDK"), ModulePath.fromString("Basics"), localName)
+        }
+        assertTrue(
+          sut.collectReferences == Set(
+            fqn("Morphir.SDK", "String", "String"),
+            fqn("Morphir.SDK", "Int", "Int"),
+            fqn("Morphir.SDK", "List", "List")
+          ),
+          actual.collectReferences == Set(
+            fqn("Acme.SDK", "Basics", "String"),
+            fqn("Acme.SDK", "Basics", "Int"),
+            fqn("Acme.SDK", "Basics", "List")
+          )
+        )
       }
     ),
     suite("Field")(
@@ -22,7 +55,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
         val actual = field(Name("field1"), variable("FizzBuzz"))
         assertTrue(
           actual.name == Name("field1"),
-          actual.fieldType.satisfiesCaseOf { case VariableCase(_, name) => name.toString == "[fizz,buzz]" },
+          actual.fieldType == Variable((), "FizzBuzz"),
           actual.fieldType.collectVariables == Set(Name.fromString("FizzBuzz"))
         )
       },
@@ -30,7 +63,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
         val actual = field("field1", variable("FizzBuzz"))
         assertTrue(
           actual.name == Name("field1"),
-          actual.fieldType.satisfiesCaseOf { case VariableCase(_, name) => name.toString == "[fizz,buzz]" },
+          actual.fieldType == Variable("FizzBuzz"),
           actual.fieldType.collectVariables == Set(Name.fromString("FizzBuzz"))
         )
       }
@@ -43,7 +76,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
         val actual = record(chunk)
         assertTrue(
           actual.fieldCount == 2,
-          actual.satisfiesCaseOf { case RecordCase(_, fields) => fields.contains(var1) && fields.contains(var2) },
+          actual == Record(var1, var2),
           actual.toString() == "{ first : hello, second : there }"
         )
       },
@@ -52,7 +85,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
         val var2   = field("second", variable("there"))
         val actual = record(var1, var2)
         assertTrue(
-          actual.satisfiesCaseOf { case RecordCase(_, fields) => fields.contains(var1) && fields.contains(var2) },
+          actual == Record(var1, var2),
           actual.toString() == "{ first : hello, second : there }"
         )
       },
@@ -113,11 +146,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
         val f3     = field("third", tuple(variable("v3"), variable("v4")))
         val n1     = Name("SomeName")
         val actual = extensibleRecord(n1, zio.Chunk(f1, f2, f3))
-        assertTrue(
-          actual.satisfiesCaseOf { case ExtensibleRecordCase(_, name, fields) =>
-            name == n1 && fields.contains(f1) && fields.contains(f2) && fields.contains(f3)
-          }
-        )
+        assertTrue(actual == ExtensibleRecord(n1, f1, f2, f3))
       },
       test("testing second extensible record constructor") {
         val f1     = field("first", variable("hello"))
@@ -125,11 +154,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
         val f3     = field("third", tuple(variable("v3"), variable("v4")))
         val n1     = Name("SomeName")
         val actual = extensibleRecordWithFields(n1, f1, f2, f3)
-        assertTrue(
-          actual.satisfiesCaseOf { case ExtensibleRecordCase(_, name, fields) =>
-            name == n1 && fields.contains(f1) && fields.contains(f2) && fields.contains(f3)
-          }
-        )
+        assertTrue(actual == ExtensibleRecord((), n1, f1, f2, f3))
       },
       test("testing third extensible record constructor") {
 
@@ -138,9 +163,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
         val f3     = field("third", tuple(variable("v3"), variable("v4")))
         val actual = extensibleRecord("SomeName", zio.Chunk(f1, f2, f3))
         assertTrue(
-          actual.satisfiesCaseOf { case ExtensibleRecordCase(_, name, fields) =>
-            name.toString == "[some,name]" && fields.contains(f1) && fields.contains(f2) && fields.contains(f3)
-          },
+          actual == ExtensibleRecord("SomeName", Chunk(f1, f2, f3)),
           actual.toString() == "{ someName | first : hello, second : there, third : (v3, v4) }"
         )
       },
@@ -150,7 +173,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
         val f3     = field("third", tuple(variable("v3"), variable("v4")))
         val actual = extensibleRecordWithFields("SomeName", f1, f2, f3)
         assertTrue(
-          actual.satisfiesCaseOf { case ExtensibleRecordCase(_, name, fields) =>
+          actual.exists { case ExtensibleRecord(_, name, fields) =>
             name.toString == "[some,name]" && fields.contains(f1) && fields.contains(f2) && fields.contains(f3)
           }
         )
@@ -172,7 +195,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
               Variable((), "v2"),
               Tuple((), Variable((), "v3"), Variable((), "v4"))
             ),
-            actual.satisfiesCaseOf { case ReferenceCase(attributes, fqName, typeParams) =>
+            actual.exists { case Reference(attributes, fqName, typeParams) =>
               attributes == () && fqName == fqn1 && typeParams.contains(v1) && typeParams.contains(v2) && typeParams
                 .contains(v3)
             },
@@ -187,7 +210,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
           val fqn1   = FQName.fqn("packageName", "moduleName", "localName")
           val actual = reference(fqn1, v1, v2, v3)
           assertTrue(
-            actual.satisfiesCaseOf { case ReferenceCase(_, fqName, typeParams) =>
+            actual.exists { case Reference(_, fqName, typeParams) =>
               fqName == fqn1 && typeParams.contains(v1) && typeParams.contains(v2) && typeParams.contains(v3)
             }
           )
@@ -199,7 +222,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
           val fqn1   = FQName.fqn("packageName", "moduleName", "localName")
           val actual = reference("packageName", "moduleName", "localName", Chunk(v1, v2, v3))
           assertTrue(
-            actual.satisfiesCaseOf { case ReferenceCase(_, fqName, typeParams) =>
+            actual.exists { case Reference(_, fqName, typeParams) =>
               fqName == fqn1 && typeParams.contains(v1) && typeParams.contains(v2) && typeParams.contains(v3)
             }
           )
@@ -211,7 +234,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
           val fqn1   = FQName.fqn("PackageName", "ModuleName", "LocalName")
           val actual = reference("PackageName", "ModuleName", "LocalName", v1, v2, v3)
           assertTrue(
-            actual.satisfiesCaseOf { case ReferenceCase(_, fqName, typeParams) =>
+            actual.exists { case Reference(_, fqName, typeParams) =>
               fqName == fqn1 && typeParams.contains(v1) && typeParams.contains(v2) && typeParams.contains(v3)
             },
             actual.toString == "PackageName.ModuleName.LocalName v1 v2 (v3, v4)"
@@ -264,7 +287,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("testing emptyTuple constructor") {
         val actual = emptyTuple("FizzBuzz")
         assertTrue(
-          actual.satisfiesCaseOf { case TupleCase(attributes, fields) => fields.isEmpty && attributes == "FizzBuzz" },
+          actual.exists { case Tuple(attributes, fields) => fields.isEmpty && attributes == "FizzBuzz" },
           actual.attributes == "FizzBuzz",
           actual == Tuple("FizzBuzz"),
           actual.toString() == "()"
@@ -277,7 +300,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
         val actual = tuple(chunk)
         assertTrue(
           actual.toString == "(hello, there)",
-          actual.satisfiesCaseOf { case TupleCase(attributes, elements) =>
+          actual.exists { case Tuple(attributes, elements) =>
             attributes == () && elements.contains(var1) && elements.contains(var2)
           },
           actual == Tuple((), Variable((), "hello"), Variable((), "there")),
@@ -293,7 +316,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
         val var3   = variable("notThere")
         val actual = tuple(var1, var2)
         assertTrue(
-          actual.satisfiesCaseOf { case TupleCase(_, elements) =>
+          actual.exists { case Tuple(_, elements) =>
             elements.contains(var1) && elements.contains(var2) && !elements.contains(var3)
           },
           actual.attributes == (),
@@ -307,7 +330,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
         val actual = tuple("Tuple3[a,b,c]", var1, var2, var3)
         assertTrue(
           actual.attributes == "Tuple3[a,b,c]",
-          actual.satisfiesCaseOf { case TupleCase(_, elements) => elements == Chunk(var1, var2, var3) },
+          actual.exists { case Tuple(_, elements) => elements == Chunk(var1, var2, var3) },
           actual.toString() == "(a, b, c)"
         )
       }
@@ -323,7 +346,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
         assertTrue(
           actual.attributes == attributes,
           actual == Unit(attributes),
-          actual.satisfiesCaseOf { case UnitCase(actualAttributes) => actualAttributes == attributes },
+          actual.exists { case Unit(actualAttributes) => actualAttributes == attributes },
           actual match {
             case Type.Unit(actualAttrbutes @ (_, _, _)) => actualAttrbutes == attributes
             case _                                      => false
@@ -336,7 +359,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
     suite("Variable")(
       test("testing first variable constructor") {
         val actual = variable("FizzBuzz")
-        assertTrue(actual.satisfiesCaseOf { case VariableCase(_, name) => name.toString == "[fizz,buzz]" }) &&
+        assertTrue(actual.exists { case Variable(_, name) => name.toString == "[fizz,buzz]" }) &&
         assertTrue(actual.collectVariables == Set(Name.fromString("FizzBuzz"))) &&
         assertTrue(actual == Variable((), "FizzBuzz")) &&
         assertTrue(actual.toString == "fizzBuzz")
@@ -344,7 +367,7 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
       },
       test("testing second variable constructor") {
         val actual = variable(Name("FizzBuzz"))
-        assertTrue(actual.satisfiesCaseOf { case VariableCase(_, name) => name.toString == "[fizz,buzz]" }) &&
+        assertTrue(actual.exists { case Variable(_, name) => name.toString == "[fizz,buzz]" }) &&
         assertTrue(actual.collectVariables == Set(Name.fromString("FizzBuzz"))) &&
         assertTrue(actual == Variable((), Name.fromString("FizzBuzz")))
       },
@@ -370,5 +393,256 @@ object RecursiveTypeSpec extends MorphirBaseSpec with NamingSyntax {
         )
       }
     )
+  )
+
+  def extensibleRecordSuite = suite("ExtensibleRecord")(
+    suite("Misc")(
+      test("When calling foldLeft it should work as expected") {
+        val fieldA = field("fieldA", variable("A"))
+        val fieldB = field("fieldB", variable("B"))
+        val fieldC = field("fieldC", variable("C"))
+        val sut    = extensibleRecord("RecordWithThreeFields", Chunk(fieldA, fieldB, fieldC))
+        val result = sut.foldLeft(0) { case (acc, _) =>
+          acc + 1
+        }
+        assertTrue(result == 4)
+      }
+    ),
+    suite("Without Attributes")(
+      test("When constructing using the constructor accepting a Name and Chunk") {
+        val firstField  = field("first", variable("hello"))
+        val secondField = field("second", variable("world"))
+        val tupleField  = field("tupleField", tuple(variable("v3"), variable("v4")))
+        val recordName  = Name.fromString("MyRecord")
+        val sut         = extensibleRecord(recordName, Chunk(firstField, secondField, tupleField))
+        assertTrue(sut.toString == "{ myRecord | first : hello, second : world, tupleField : (v3, v4) }")
+      }
+    )
+  )
+
+  def functionSuite = suite("Function")(
+    suite("Misc")(
+      test("When calling foldLeft it should work as expected") {
+        val inputParam = variable("input")
+        val outputType = variable("output")
+        val sut        = function(inputParam, outputType)
+        val result = sut.foldLeft(0) { case (acc, _) =>
+          acc + 1
+        }
+        assertTrue(result == 3)
+      }
+    ),
+    suite("Without Attributes")(
+      test("testing simple non-curried function") {
+        val param      = variable("Input")
+        val returnType = variable("Output")
+        val sut        = function(param, returnType)
+        assertTrue(
+          sut == Function((), param, returnType),
+          sut.toString == "input -> output"
+        )
+      }
+    ),
+    suite("With Attributes")()
+  )
+
+  def recordSuite = suite("Record")(
+    suite("Misc")(
+      test("When calling foldLeft it should work as expected") {
+        val fieldA = field("fieldA", variable("A"))
+        val fieldB = field("fieldB", variable("B"))
+        val fieldC = field("fieldC", variable("C"))
+        val sut    = record(fieldA, fieldB, fieldC)
+        val result = sut.foldLeft(0) { case (acc, _) =>
+          acc + 1
+        }
+        assertTrue(result == 4)
+      }
+    ),
+    suite("Without Attributes")(
+      test("When constructing using the constructor accepting a Chunk of fields") {
+        val firstField  = field("first", variable("hello"))
+        val secondField = field("second", variable("world"))
+        val tupleField  = field("tupleField", tuple(variable("v3"), variable("v4")))
+        val sut         = record(Chunk(firstField, secondField, tupleField))
+        assertTrue(sut.toString == "{ first : hello, second : world, tupleField : (v3, v4) }", sut.size == 6)
+      }
+    )
+  )
+
+  def referenceSuite = suite("Reference")(
+    suite("Misc")(
+      test("When calling foldLeft it should work as expected") {
+        val varA = variable("a")
+        val varB = variable("b")
+        val varC = variable("c")
+        val sut  = reference("Morphir.Sdk.Bool", varA, varB, varC)
+        val result = sut.foldLeft(0) { case (acc, _) =>
+          acc + 1
+        }
+        assertTrue(result == 4)
+      }
+    ),
+    suite("Without Attributes")(
+      test("testing construction given a FQName and Chunk of types") {
+        val v1     = variable("v1")
+        val v2     = variable("v2")
+        val v3     = tuple(variable("v3"), variable("v4"))
+        val fqn1   = FQName.fqn("packageName", "moduleName", "localName")
+        val actual = reference(fqn1, Chunk(v1, v2, v3))
+        assertTrue(
+          actual == Reference(
+            (),
+            fqn1,
+            Variable((), "v1"),
+            Variable((), "v2"),
+            Tuple((), Variable((), "v3"), Variable((), "v4"))
+          ),
+          actual.attributes == (),
+          actual.toString() == "PackageName.ModuleName.LocalName v1 v2 (v3, v4)"
+        )
+      }
+    ),
+    suite("With Attributes")(
+      test("testing construction given attributes, FQName and Chunk no type parameters") {
+        val refName = pkg("packageName") % "moduleName" % "localName"
+        val actual  = reference(Source.Location.default, refName)
+        assertTrue(
+          actual.attributes == Source.Location.default,
+          actual.collectReferences == Set(refName),
+          actual == Reference(Source.Location.default, refName)
+        )
+      }
+    )
+  )
+
+  def sizeSuite = suite("size")(
+    test("size of Unit") {
+      val sut    = Type.unit
+      val actual = sut.size
+      assertTrue(actual == 1)
+    },
+    test("size of Variable") {
+      val sut    = variable("x")
+      val actual = sut.size
+      assertTrue(actual == 1)
+    },
+    test("size of simple Reference") {
+      val sut    = reference("x")
+      val actual = sut.size
+      assertTrue(actual == 1)
+    },
+    test("size of Reference with a single typeParam") {
+      val sut    = Reference[Any]((), FQName.fromString("x"), Chunk(Type.Variable[Any]((), Name.fromString("y"))))
+      val actual = sut.size
+      assertTrue(actual == 2)
+    }
+  )
+
+  def tupleSuite = suite("Tuple")(
+    test("testing emptyTuple constructor") {
+      val sut = Type.emptyTuple("Attributes")
+      assertTrue(
+        sut.size == 1,
+        sut.toString == "()",
+        sut.attributes == "Attributes",
+        sut == Tuple("Attributes", Chunk.empty)
+      )
+    },
+    test("testing tuple constructor when given a Chunk") {
+      val helloVar = variable("hello")
+      val worldVar = variable("world")
+      val chunk    = Chunk(helloVar, worldVar)
+      val actual   = tuple(chunk)
+      assertTrue(
+        actual.size == 3,
+        actual.toString == "(hello, world)",
+        actual.attributes == (),
+        actual == Tuple((), chunk)
+      )
+    },
+    test("testing tuple constructor when given multiple un-attributed elements") {
+      val var1   = variable("one")
+      val var2   = variable("two")
+      val var3   = variable("three")
+      val actual = tuple(var1, var2, var3)
+      assertTrue(
+        actual.size == 4,
+        actual.toString == "(one, two, three)",
+        actual.attributes == (),
+        actual == Tuple((), Chunk(var1, var2, var3))
+      )
+    },
+    test("testing tuple with attributes constructor") {
+      val varA   = variable("A", "a")
+      val varB   = variable("B", "b")
+      val varC   = variable("C", "c")
+      val actual = tuple("(a, b, c)", varA, varB, varC)
+      assertTrue(
+        actual.size == 4,
+        actual.toString == "(a, b, c)",
+        actual.attributes == "(a, b, c)",
+        actual == Tuple("(a, b, c)", Chunk(varA, varB, varC))
+      )
+    },
+    test("When calling foldLeft it should work as expected") {
+      val varA = variable("a")
+      val varB = variable("b")
+      val varC = variable("c")
+      val sut  = tuple(varA, varB, varC)
+      val result = sut.foldLeft(0) { case (acc, _) =>
+        acc + 1
+      }
+      assertTrue(result == 4)
+    },
+    test("When calling foldLeft with an empty tuple it should work as expected") {
+      val sut = emptyTuple(())
+      val result = sut.foldLeft(0) { case (acc, _) =>
+        acc + 1
+      }
+      assertTrue(result == 1)
+    },
+    test("When calling foldLeft with a nested empty tuple it should work as expected") {
+      val sut = tuple((), emptyTuple(()))
+      val result = sut.foldLeft(0) { case (acc, _) =>
+        acc + 1
+      }
+      assertTrue(result == 2)
+    }
+  )
+
+  def unitSuite = suite("Unit")(
+    test("Unit has size 1") {
+      val actual = Type.unit.size
+      assertTrue(actual == 1)
+    },
+    test("Unit toString should produce the expected result") {
+      val actual = Type.unit.toString
+      assertTrue(actual == "()")
+    },
+    test("When calling foldLeft it should work as expected") {
+      val actual = Type.unit.foldLeft(0) { case (acc, _) => acc + 1 }
+      assertTrue(actual == 1)
+    }
+  )
+
+  def variableSuite = suite("Variable")(
+    test("Variable has size 1") {
+      val actual = variable("x").size
+      assertTrue(actual == 1)
+    },
+    test("testing first variable constructor") {
+      val actual = variable("FizzBuzz")
+      assertTrue(
+        // actual.satisfies { case Variable(_, name) => name.toString == "[fizz, buzz]" },
+        actual == Variable[Any]((), "FizzBuzz"),
+        actual.toString == "fizzBuzz",
+        actual.size == 1
+      )
+    },
+    test("When calling foldLeft it should work as expected") {
+      val actual = Type.variable("foo").foldLeft(0) { case (acc, _) => acc + 1 }
+      assertTrue(actual == 1)
+    }
   )
 }

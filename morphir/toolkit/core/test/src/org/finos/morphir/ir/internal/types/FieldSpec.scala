@@ -1,4 +1,7 @@
-package org.finos.morphir.ir.types.recursive
+package org.finos.morphir
+package ir
+package internal
+package types
 
 import org.finos.morphir.ir.StringOps
 import org.finos.morphir.testing.MorphirBaseSpec
