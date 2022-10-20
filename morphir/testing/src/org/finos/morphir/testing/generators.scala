@@ -105,4 +105,6 @@ object generators {
       word ++ greekLetterNames ++ monthNames
     }
   }
+
+  object WordGen extends WordGen
 }

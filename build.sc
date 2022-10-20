@@ -119,7 +119,7 @@ object morphir extends Module {
     }
   }
 
-  class TestingModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
+  class TestingModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
     def ivyDeps = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-test`)
     object test extends Tests with MorphirTestModule
   }
@@ -133,7 +133,11 @@ object morphir extends Module {
           def ivyDeps    = Agg(dev.zio.`zio-json`)
           def moduleDeps = Seq(morphir.toolkit.core(crossScalaVersion))
           object test extends Tests with MorphirTestModule {
-            def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+            def moduleDeps = super.moduleDeps ++ Seq(
+              morphir.testing(crossScalaVersion),
+              morphir.toolkit.core.testing(crossScalaVersion)
+            )
+            def ivyDeps = T(super.ivyDeps() ++ Agg(dev.zio.`zio-json-golden`))
           }
         }
       }
@@ -148,7 +152,14 @@ object morphir extends Module {
       }
     }
 
-    object core extends mill.Cross[CoreModule](ScalaVersions.all: _*) {}
+    object core extends mill.Cross[CoreModule](ScalaVersions.all: _*) {
+      object testing extends mill.Cross[TestingModule](ScalaVersions.all: _*)
+      class TestingModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
+        def ivyDeps    = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-magnolia`)
+        def moduleDeps = Seq(morphir.toolkit.core(crossScalaVersion), morphir.testing(crossScalaVersion))
+        object test extends Tests with MorphirTestModule {}
+      }
+    }
     class CoreModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
       def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`, io.lemonlabs.`scala-uri`)
       def moduleDeps = Seq(morphir.contrib.flowz(crossScalaVersion), morphir.lib.interop(crossScalaVersion))

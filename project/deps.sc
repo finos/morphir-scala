@@ -18,6 +18,7 @@ object Deps {
       val zio: Dep            = ivy"dev.zio::zio::${Versions.zio}"
       val `zio-cli`           = ivy"dev.zio::zio-cli::${Versions.`zio-cli`}"
       val `zio-json`: Dep     = ivy"dev.zio::zio-json::${Versions.`zio-json`}"
+      val `zio-json-golden`   = ivy"dev.zio::zio-json-golden::${Versions.`zio-json`}"
       val `zio-prelude`       = ivy"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
       val `zio-process`       = ivy"dev.zio::zio-process::${Versions.`zio-process`}"
       val `zio-streams`       = ivy"dev.zio::zio-streams::${Versions.zio}"
