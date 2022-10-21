@@ -343,6 +343,7 @@ object CaseExample extends AllSyntax {
 
   val checkingAccountConstructorExample: RawValue =
     apply(
+      (),
       constructor(checkingAccountTypeName),
       string("Brad"),
       int(10000)
