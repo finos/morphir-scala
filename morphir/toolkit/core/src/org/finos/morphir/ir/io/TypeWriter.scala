@@ -1,9 +1,11 @@
-package org.finos.morphir.toolkit.io
+package org.finos.morphir
+package ir
+package io
 
-import org.finos.morphir.toolkit.{Attributes, Name}
+import org.finos.morphir.ir.Name
 import zio._
 
-trait MorphirTypeWriter[-Context] {
+trait TypeWriter[-Context, -Attributes] {
 
   def writeAttributes(context: Context, attributes: Attributes): Unit
 

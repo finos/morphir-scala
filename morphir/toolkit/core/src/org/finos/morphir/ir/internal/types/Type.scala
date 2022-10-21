@@ -3,8 +3,9 @@ package ir
 package internal
 package types
 
+import io.TypeWriter
 import scala.annotation.tailrec
-import zio.Chunk
+import zio._
 import zio.prelude._
 
 private[internal] sealed trait Type[+A] extends Product with Serializable { self =>
@@ -286,6 +287,28 @@ private[internal] sealed trait Type[+A] extends Product with Serializable { self
       }
     loop(List(self), List.empty).head
   }
+
+  def write[Context](context: Context)(writer: TypeWriter[Context, A]): Unit =
+    self match {
+      case ExtensibleRecord(attributes, name, fields)     => ???
+      case Function(attributes, argumentType, returnType) => ???
+      case Record(attributes, fields)                     => ???
+      case Reference(attributes, typeName, typeParams)    => ???
+      case Tuple(attributes, elements)                    => ???
+      case UnitType(attributes)                           => writer.writeUnit(context, attributes)
+      case Variable(attributes, name)                     => writer.writeVariable(context, attributes, name)
+    }
+
+  def writeZIO[Context: Tag](writer: TypeWriter[Context, A]): ZIO[Context, Throwable, Unit] =
+    self match {
+      case ExtensibleRecord(attributes, name, fields)     => ???
+      case Function(attributes, argumentType, returnType) => ???
+      case Record(attributes, fields)                     => ???
+      case Reference(attributes, typeName, typeParams)    => ???
+      case Tuple(attributes, elements)                    => ???
+      case UnitType(attributes)                           => writer.writeUnitZIO(attributes)
+      case Variable(attributes, name)                     => writer.writeVariableZIO(attributes, name)
+    }
 }
 private[internal] object Type extends TypeConstructors with UnattributedTypeConstructors with FieldSyntax {
   type FieldT[+A] = Field[Type[A]]
@@ -396,6 +419,43 @@ private[internal] object Type extends TypeConstructors with UnattributedTypeCons
     def tupleCase(context: Context, attributes: Attrib, elements: Chunk[Z]): Z
     def unitCase(context: Context, attributes: Attrib): Z
     def variableCase(context: Context, attributes: Attrib, name: Name): Z
+  }
+
+  trait ForEach[-Context, -Attrib] extends Folder[Context, Attrib, scala.Unit] {
+    def extensibleRecordCase(
+        context: Context,
+        attributes: Attrib,
+        name: Name,
+        fields: Chunk[Field[scala.Unit]]
+    ): scala.Unit
+    def functionCase(context: Context, attributes: Attrib, argumentType: scala.Unit, returnType: scala.Unit): scala.Unit
+    def recordCase(context: Context, attributes: Attrib, fields: Chunk[Field[scala.Unit]]): scala.Unit
+    def referenceCase(context: Context, attributes: Attrib, typeName: FQName, typeParams: Chunk[scala.Unit]): scala.Unit
+
+    def onTuple(context: Context, attributes: Attrib, elementCount: Int): scala.Unit
+    final def tupleCase(context: Context, attributes: Attrib, elements: Chunk[scala.Unit]): scala.Unit =
+      onTuple(context, attributes, elements.size)
+
+    def unitCase(context: Context, attributes: Attrib): scala.Unit
+    def variableCase(context: Context, attributes: Attrib, name: Name): scala.Unit
+  }
+
+  // TODO: Look at usecases
+  trait ForEachZIO[-Context, -Attrib] extends Folder[Context, Attrib, Task[Any]] {
+    def extensibleRecordCase(
+        context: Context,
+        attributes: Attrib,
+        name: Name,
+        fields: Chunk[Task[Any]]
+    ): Task[Any]
+    def functionCase(context: Context, attributes: Attrib, argumentType: Task[Any], returnType: scala.Unit): Task[Any]
+    def recordCase(context: Context, attributes: Attrib, fields: Chunk[Field[Task[Any]]]): Task[Any]
+    def referenceCase(context: Context, attributes: Attrib, typeName: FQName, typeParams: Chunk[Task[Any]]): Task[Any]
+
+    def tupleCase(context: Context, attributes: Attrib, elements: Chunk[Task[Any]]): Task[Any]
+
+    def unitCase(context: Context, attributes: Attrib): Task[Any]
+    def variableCase(context: Context, attributes: Attrib, name: Name): Task[Any]
   }
 
   object Folder {

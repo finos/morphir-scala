@@ -10,4 +10,6 @@ package object toolkit {
 
   type Name = ir.Name
   val Name = ir.Name
+
+  type MorphirType = ir.Type.Type[Attributes]
 }
