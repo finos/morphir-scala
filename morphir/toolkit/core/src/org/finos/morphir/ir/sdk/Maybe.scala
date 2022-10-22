@@ -3,8 +3,7 @@ package org.finos.morphir.ir.sdk
 import zio.Chunk
 import org.finos.morphir.ir.Module.ModuleName
 import org.finos.morphir.ir.Type.Specification.CustomTypeSpecification
-import org.finos.morphir.ir.Type.Type._
-import org.finos.morphir.ir.Type.{Type, UConstructors, UType}
+import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.Value.Value.{Apply, Constructor}
 import org.finos.morphir.ir.Value.{RawValue, Value}
 import org.finos.morphir.ir.sdk.Common._

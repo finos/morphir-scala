@@ -1,7 +1,6 @@
 package org.finos.morphir.ir.sdk
 
-import zio.Scope
-import org.finos.morphir.ir.Type.Type
+import org.finos.morphir.ir.Type
 import org.finos.morphir.ir.{Gens, Path}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._

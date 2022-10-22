@@ -4,8 +4,7 @@ import zio.Chunk
 import org.finos.morphir.ir.Module
 import org.finos.morphir.ir.Module.ModuleName
 import org.finos.morphir.ir.Type.Specification.TypeAliasSpecification
-import org.finos.morphir.ir.Type.Type._
-import org.finos.morphir.ir.Type.{Type, UType}
+import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics.boolType
 import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.List.listType

@@ -3,9 +3,9 @@ package org.finos.morphir.ir
 import org.finos.morphir.ir.Module.ModuleName
 import org.finos.morphir.ir.PackageModule.{Definition, Specification}
 import org.finos.morphir.ir.Type.UType
-import org.finos.morphir.samples.ModuleExample.*
+import org.finos.morphir.samples.ModuleExample._
 import org.finos.morphir.testing.MorphirBaseSpec
-import zio.test.*
+import zio.test._
 
 object PackageModuleSpec extends MorphirBaseSpec {
   val packageDefModules: Map[ModuleName, AccessControlled[module.Definition[Any, UType]]] =

@@ -3,7 +3,7 @@ package org.finos.morphir.ir.sdk
 import zio.Chunk
 import org.finos.morphir.ir.Module.ModuleName
 import org.finos.morphir.ir.PackageModule.PackageName
-import org.finos.morphir.ir.Type.UType
+import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.{Value, _}
 object Common {
   val packageName: PackageName = PackageName.fromString("Morphir.SDK")
@@ -12,9 +12,9 @@ object Common {
     FQName(packageName, moduleName.toModulePath, Name.fromString(localName))
 
   def tFun(firstArgType: UType, rest: UType*)(returnType: UType): UType = tFun(firstArgType :: rest.toList, returnType)
-  def tFun(argTypes: List[UType], returnType: UType): UType             = UType.curriedFunction(argTypes, returnType)
+  def tFun(argTypes: List[UType], returnType: UType): UType             = curriedFunction(argTypes, returnType)
 
-  def tVar(varName: String): UType = UType.variable(varName)
+  def tVar(varName: String): UType = variable(varName)
 
   def vSpec(name: String, inputs: (String, UType)*) = new VSpec(() => (name, Chunk.fromIterable(inputs)))
 

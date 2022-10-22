@@ -15,8 +15,8 @@ import zio.test._
 
 object ValueModuleSpec extends MorphirBaseSpec {
 
-  val boolType: UType                  = IrType.reference(FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:Bool"))
-  def listType(itemType: UType): UType = IrType.reference(FQName.fromString("Morphir.SDK:List:List"), itemType)
+  val boolType: UType                  = Type.reference(FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:Bool"))
+  def listType(itemType: UType): UType = Type.reference(FQName.fromString("Morphir.SDK:List:List"), itemType)
   val stringType: UType                = sdk.String.stringType
 
   def spec = suite("Value Module")(
@@ -434,7 +434,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
           morphir.ir.Path(Name("Morphir.SDK")),
           Name("RecordType")
         )
-        val typeRef = IrType.reference(fqName)
+        val typeRef = Type.reference(fqName)
         val constr  = constructor(fqName, typeRef)
         assertTrue(constr.toRawValue == constructor(fqName))
       },

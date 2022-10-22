@@ -1,4 +1,5 @@
-package org.finos.morphir.ir.json
+package org.finos.morphir.ir
+package json
 
 import zio.json._
 import org.finos.morphir.ir.Module.{
@@ -8,8 +9,8 @@ import org.finos.morphir.ir.Module.{
   Specification => ModuleSpecification
 }
 import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, Specification => PackageSpecification}
-import org.finos.morphir.ir.Type.Type._
-import org.finos.morphir.ir.Type.{Definition => TypeDefinition, Field, Specification => TypeSpecification, Type}
+import org.finos.morphir.ir.Type._
+import org.finos.morphir.ir.Type.{Definition => TypeDefinition, Specification => TypeSpecification, Type}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Pattern, Specification => ValueSpecification, Value}
 import org.finos.morphir.ir._
 import org.finos.morphir.ir.value.recursive.ValueCase
@@ -223,7 +224,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
       },
       test("will decode Type.Variable") {
         val actual   = """["Variable",1234,["x"]]"""
-        val expected = Type.variable[Int](1234, "x")
+        val expected = variable[Int](1234, "x")
         assertTrue(
           actual.fromJson[Type[Int]] == Right(expected)
         )
@@ -233,7 +234,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         val var2 = Field(Name("second"), variable[Int](345, "g"))
         val actual =
           """["Record",1,[{"name":["first"],"tpe":["Variable",123,["f"]]},{"name":["second"],"tpe":["Variable",345,["g"]]}]]"""
-        val expected = Type.record(1, zio.Chunk(var1, var2))
+        val expected = record(1, zio.Chunk(var1, var2))
         assertTrue(
           actual.fromJson[Type[Int]] == Right(expected)
         )
@@ -272,7 +273,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         val var2 = variable[Int](345, "g")
         val actual =
           """["Function",1,["Variable",123,["f"]],["Variable",345,["g"]]]"""
-        val expected = Type.function(1, var1, var2)
+        val expected = function(1, var1, var2)
         assertTrue(
           actual.fromJson[Type[Int]] == Right(expected)
         )

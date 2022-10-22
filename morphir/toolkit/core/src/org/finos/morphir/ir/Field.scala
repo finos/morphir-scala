@@ -1,7 +1,5 @@
 package org.finos.morphir
 package ir
-package internal
-package types
 
 import org.finos.morphir.ir.Name
 import zio.prelude._
@@ -16,6 +14,7 @@ final case class Field[+T](name: Name, data: T) { self =>
 }
 
 object Field {
+  import Type.Type
 
   def apply[T](name: String, data: T): Field[T] = Field(Name.fromString(name), data)
 
@@ -25,7 +24,7 @@ object Field {
     def unapply(field: Field[Unit]): Name = field.name
   }
 
-  final implicit class FieldOfType[A](private val self: Field[Type[A]]) extends AnyVal {
+  final implicit class FieldOfType[A](private val self: Field[Type[A]]) {
 
     def fieldType: Type[A] = self.data
 
@@ -44,5 +43,4 @@ object Field {
     def mapAttributes[B](f: A => B): Field[Type[B]] =
       Field(self.name, self.data.mapAttributes(f))
   }
-
 }

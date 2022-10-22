@@ -45,7 +45,7 @@ object ModuleModuleSpec extends MorphirBaseSpec with AllSyntax {
       test("Can look up values") {
         val result = moduleSpec.lookupValueSpecification(Name("spec1"))
         assertTrue(
-          result.isDefined && result.get.inputs.size == 2 && result.get.output == define.variable("WholeNumbers")
+          result.isDefined && result.get.inputs.size == 2 && result.get.output == Type.variable("WholeNumbers")
         )
       },
       test("Can look up types") {

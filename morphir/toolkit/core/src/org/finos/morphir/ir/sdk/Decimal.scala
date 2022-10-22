@@ -3,8 +3,7 @@ package org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.Module
 import org.finos.morphir.ir.Module.ModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
-import org.finos.morphir.ir.Type.Type._
-import org.finos.morphir.ir.Type.{Type, UType}
+import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics._
 import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.Maybe.maybeType

@@ -908,8 +908,8 @@ object Value extends ValueConstructors with PatternConstructors with DefinitionC
         Value(RecordCase(tpe, Chunk.fromIterable(fields.map { case (name, value) => (Name.fromString(name), value) })))
 
       def apply(fields: (String, TypedValue)*): TypedValue = {
-        val fieldTypes = Chunk.fromIterable(fields.map { case (name, value) => Type.field(name, value.attributes) })
-        val tpe        = Type.record(fieldTypes)
+        val fieldTypes = Chunk.fromIterable(fields.map { case (name, value) => ir.Type.field(name, value.attributes) })
+        val tpe        = ir.Type.record(fieldTypes)
         Value(RecordCase(tpe, Chunk.fromIterable(fields.map { case (name, value) => (Name.fromString(name), value) })))
       }
 
@@ -986,7 +986,7 @@ object Value extends ValueConstructors with PatternConstructors with DefinitionC
 
     object Typed {
       def apply(elements: Chunk[TypedValue]): TypedValue = {
-        val tupleType = Type.tuple(elements.map(_.attributes))
+        val tupleType = ir.Type.tuple(elements.map(_.attributes))
         Value(TupleCase(tupleType, elements))
       }
 
@@ -1016,7 +1016,7 @@ object Value extends ValueConstructors with PatternConstructors with DefinitionC
     }
 
     object Typed {
-      def apply: TypedValue             = Value(UnitCase(Type.unit))
+      def apply: TypedValue             = Value(UnitCase(ir.Type.unit))
       def apply(tpe: UType): TypedValue = Value(UnitCase(tpe))
 
       def unapply(value: TypedValue): Option[UType] = value match {
@@ -1119,7 +1119,7 @@ object Value extends ValueConstructors with PatternConstructors with DefinitionC
   }
 
   implicit class StringExtensions(private val self: String) extends AnyVal {
-    def as(tpe: Type.UType): TypedValue = Variable.Typed(self, tpe)
+    def as(tpe: UType): TypedValue = Variable.Typed(self, tpe)
     def :=(value: TypedValue): LetDefinition.Unbound[Any, UType] =
       LetDefinition.Unbound(Name.fromString(self), Definition.fromTypedValue(value))
 

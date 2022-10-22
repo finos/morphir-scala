@@ -1,4 +1,5 @@
-package org.finos.morphir.ir.json
+package org.finos.morphir.ir
+package json
 
 import zio.json._
 import org.finos.morphir.ir.Module.{
@@ -8,10 +9,9 @@ import org.finos.morphir.ir.Module.{
   Specification => ModuleSpecification
 }
 import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, Specification => PackageSpecification}
-import org.finos.morphir.ir.Type.Type._
-import org.finos.morphir.ir.Type.{Definition => TypeDefinition, Field, Specification => TypeSpecification, Type}
+import org.finos.morphir.ir.Type.{Definition => TypeDefinition, Specification => TypeSpecification, _}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Pattern, Specification => ValueSpecification, Value}
-import org.finos.morphir.ir._
+import org.finos.morphir.ir.{Type => T, _}
 import org.finos.morphir.ir.value.recursive.ValueCase
 import org.finos.morphir.ir.json.MorphirJsonDecodingSupportV1._
 import zio.test.{ZIOSpecDefault, _}
@@ -223,7 +223,7 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
       },
       test("will decode Type.Variable") {
         val actual   = """["variable",1234,["x"]]"""
-        val expected = Type.variable[Int](1234, "x")
+        val expected = variable[Int](1234, "x")
         assertTrue(
           actual.fromJson[Type[Int]] == Right(expected)
         )
@@ -232,7 +232,7 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
         val var1     = Field(Name("first"), variable[Int](123, "f"))
         val var2     = Field(Name("second"), variable[Int](345, "g"))
         val actual   = """["record",1,[[["first"],["variable",123,["f"]]],[["second"],["variable",345,["g"]]]]]"""
-        val expected = Type.record(1, zio.Chunk(var1, var2))
+        val expected = record(1, zio.Chunk(var1, var2))
         assertTrue(
           actual.fromJson[Type[Int]] == Right(expected)
         )
@@ -271,7 +271,7 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
         val var2 = variable[Int](345, "g")
         val actual =
           """["function",1,["variable",123,["f"]],["variable",345,["g"]]]"""
-        val expected = Type.function(1, var1, var2)
+        val expected = function(1, var1, var2)
         assertTrue(
           actual.fromJson[Type[Int]] == Right(expected)
         )

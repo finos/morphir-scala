@@ -1,4 +1,7 @@
-package org.finos.morphir.ir.value.recursive
+package org.finos.morphir
+package ir
+package value
+package recursive
 
 import zio.Chunk
 import org.finos.morphir.ir.sdk.Basics.{boolType, floatType, intType}
@@ -735,8 +738,8 @@ object RecursiveValueSpec extends MorphirBaseSpec {
       suite("Attributed")(
         test("It should support construction given attributes") {
           val accountType = Type.record(
-            Type.Field(Name.fromString("accountNumber"), stringType),
-            Type.Field(Name.fromString("balance"), floatType)
+            ir.Type.field(Name.fromString("accountNumber"), stringType),
+            ir.Type.field(Name.fromString("balance"), floatType)
           )
           val attributes = accountType
           val account    = variable(accountType, "account")

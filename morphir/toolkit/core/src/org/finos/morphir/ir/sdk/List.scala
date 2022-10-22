@@ -101,7 +101,7 @@ object List {
   )
 
   def listType(itemType: UType): UType =
-    typeRef(toFQName(moduleName, "List"), Chunk(itemType))
+    typeRef(toFQName(moduleName, "List"), itemType)
 
   def listType[A](attributes: A)(itemType: Type[A])(implicit ev: NeedsAttributes[A]): Type[A] =
     typeRef(attributes, toFQName(moduleName, "List"), itemType)

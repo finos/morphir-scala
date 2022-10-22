@@ -2,6 +2,7 @@ package org.finos.morphir.ir
 
 import zio.Chunk
 import org.finos.morphir.ir.Type.Constructors
+import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.Type.Type._
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._

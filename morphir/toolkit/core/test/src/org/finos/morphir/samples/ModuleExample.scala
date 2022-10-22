@@ -1,23 +1,22 @@
 package org.finos.morphir.samples
 
 import zio.Chunk
-import org.finos.morphir.Dsl.define
 import org.finos.morphir.ir.Module.{Definition, Specification}
 import org.finos.morphir.ir.Type.Definition.{CustomType, TypeAlias}
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
-import org.finos.morphir.ir.Type.{Constructors, UType}
+import org.finos.morphir.ir.Type.{Constructors, UType, variable => typeVar}
 import org.finos.morphir.ir.Value.ValueDefinition
 import org.finos.morphir.ir.{AccessControlled, Documented, Literal => Lit, Name, Value, value}
 
 object ModuleExample {
   val items: Map[Name, Chunk[(Name, UType)]] = Map {
-    Name("type")    -> Chunk((Name("var"), define variable ("var1")))
-    Name("rainbow") -> Chunk((Name("red"), define variable ("red")))
+    Name("type")    -> Chunk((Name("var"), typeVar("var1")))
+    Name("rainbow") -> Chunk((Name("red"), typeVar("red")))
   }
 
   val typeAlias: Documented[TypeAlias[Any]] = Documented(
     "doc",
-    TypeAlias(Chunk(Name.fromString("hello")), define.variable("type1"))
+    TypeAlias(Chunk(Name.fromString("hello")), typeVar("type1"))
   )
 
   val customType: Documented[CustomType[Any]] = Documented(
@@ -54,10 +53,10 @@ object ModuleExample {
       "types",
       Value.Specification(
         Chunk(
-          (Name("type1"), define.variable("Float")),
-          (Name("type2"), define.variable("Decimal"))
+          (Name("type1"), typeVar("Float")),
+          (Name("type2"), typeVar("Decimal"))
         ),
-        define.variable("WholeNumbers")
+        typeVar("WholeNumbers")
       )
     )
   }
