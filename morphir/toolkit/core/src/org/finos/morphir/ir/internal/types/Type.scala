@@ -511,47 +511,71 @@ private[internal] object Type extends TypeConstructors with UnattributedTypeCons
   abstract class ForEach[-Context, -Attrib] extends Folder[Context, Attrib, scala.Unit] {
     final def extensibleRecordCase(
         context: Context,
+        tpe: Type[Attrib],
         attributes: Attrib,
         name: Name,
         fields: Chunk[Field[scala.Unit]]
-    ): scala.Unit = onExtensibleRecord(context, attributes, name, fields.size)
+    ): scala.Unit = onExtensibleRecord(context, tpe, attributes, name, fields.size)
 
     final def functionCase(
         context: Context,
+        tpe: Type[Attrib],
         attributes: Attrib,
         argumentType: scala.Unit,
         returnType: scala.Unit
     ): scala.Unit =
-      onFunction(context, attributes)
+      onFunction(context, tpe, attributes)
 
-    def onFunction(context: Context, attributes: Attrib): scala.Unit                                        = ()
-    def onExtensibleRecord(context: Context, attributes: Attrib, name: Name, fieldSize: Int): scala.Unit    = ()
-    def onRecord(context: Context, attributes: Attrib, fieldSize: Int): scala.Unit                          = ()
-    def onReference(context: Context, attributes: Attrib, typeName: FQName, typeParamSize: Int): scala.Unit = ()
-    def onTuple(context: Context, attributes: Attrib, arity: Int): scala.Unit                               = ()
-    def unit(context: Context, attributes: Attrib): scala.Unit                                              = ()
-    def variable(context: Context, attributes: Attrib, name: Name): scala.Unit                              = ()
+    def onFunction(context: Context, tpe: Type[Attrib], attributes: Attrib): scala.Unit = ()
+    def onExtensibleRecord(
+        context: Context,
+        tpe: Type[Attrib],
+        attributes: Attrib,
+        name: Name,
+        fieldSize: Int
+    ): scala.Unit = ()
+    def onRecord(context: Context, tpe: Type[Attrib], attributes: Attrib, fieldSize: Int): scala.Unit = ()
+    def onReference(
+        context: Context,
+        tpe: Type[Attrib],
+        attributes: Attrib,
+        typeName: FQName,
+        typeParamSize: Int
+    ): scala.Unit = ()
+    def onTuple(context: Context, tpe: Type[Attrib], attributes: Attrib, arity: Int): scala.Unit  = ()
+    def unit(context: Context, tpe: Type[Attrib], attributes: Attrib): scala.Unit                 = ()
+    def variable(context: Context, tpe: Type[Attrib], attributes: Attrib, name: Name): scala.Unit = ()
 
-    final def recordCase(context: Context, attributes: Attrib, fields: Chunk[Field[scala.Unit]]): scala.Unit =
-      onRecord(context, attributes, fields.size)
+    final def recordCase(
+        context: Context,
+        tpe: Type[Attrib],
+        attributes: Attrib,
+        fields: Chunk[Field[scala.Unit]]
+    ): scala.Unit =
+      onRecord(context, tpe, attributes, fields.size)
     def referenceCase(
         context: Context,
+        tpe: Type[Attrib],
         attributes: Attrib,
         typeName: FQName,
         typeParams: Chunk[scala.Unit]
-    ): scala.Unit = onReference(context, attributes, typeName, typeParams.size)
+    ): scala.Unit = onReference(context, tpe, attributes, typeName, typeParams.size)
 
-    final def tupleCase(context: Context, attributes: Attrib, elements: Chunk[scala.Unit]): scala.Unit =
-      onTuple(context, attributes, elements.size)
+    final def tupleCase(
+        context: Context,
+        tpe: Type[Attrib],
+        attributes: Attrib,
+        elements: Chunk[scala.Unit]
+    ): scala.Unit =
+      onTuple(context, tpe, attributes, elements.size)
 
-    def unitCase(context: Context, attributes: Attrib): scala.Unit                 = unit(context, attributes)
-    def variableCase(context: Context, attributes: Attrib, name: Name): scala.Unit = variable(context, attributes, name)
+    def unitCase(context: Context, tpe: Type[Attrib], attributes: Attrib): scala.Unit = unit(context, tpe, attributes)
+    def variableCase(context: Context, tpe: Type[Attrib], attributes: Attrib, name: Name): scala.Unit =
+      variable(context, tpe, attributes, name)
   }
 
   // TODO: Look at usecases
-  trait ForEachZIO[-Context, -Attrib] extends Folder[Context, Attrib, Task[Any]] {
-    
-  }
+  trait ForEachZIO[-Context, -Attrib] extends Folder[Context, Attrib, Task[Any]] {}
 
   implicit val CovariantType: Covariant[Type] = new Covariant[Type] {
     override def map[A, B](f: A => B): Type[A] => Type[B] = tpe => tpe.mapAttributes(f)
