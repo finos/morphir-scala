@@ -6,7 +6,8 @@ import org.finos.morphir.ir.PackageModule.{
   PackageName,
   USpecification => UPackageSpecification
 }
-import org.finos.morphir.ir.Type.Specification.{TypeAliasSpecification, USpecification => UTypeSpec}
+import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
+import org.finos.morphir.ir.Type.Specification.TypeAliasSpecification
 import org.finos.morphir.ir.Type.Type.Reference
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.Value.{USpecification => UValueSpec, ValueDefinition}

@@ -17,6 +17,8 @@ trait TypeModule { module =>
   type UDefinition = module.Definition[Any]
   val UDefinition: module.Definition.type = module.Definition
 
+  type USpecification = module.Specification[Any]
+
   type UType = module.Type[Any]
   val UType = module.Type
 
@@ -317,11 +319,11 @@ trait TypeModule { module =>
         CustomTypeSpecification(Chunk.empty, Constructors.forEnum(case1, otherCases: _*))
     }
 
-    type UCustomTypeSpecification = CustomTypeSpecification[Any]
-    val UCustomTypeSpecification: CustomTypeSpecification.type = CustomTypeSpecification
+    // type UCustomTypeSpecification = CustomTypeSpecification[Any]
+    // val UCustomTypeSpecification: CustomTypeSpecification.type = CustomTypeSpecification
 
-    type USpecification = Specification[Any]
-    val USpecification: Specification.type = Specification
+    // type USpecification = module.Specification[Any]
+    // val USpecification: Specification.type = module.Specification
 
     sealed class MapSpecificationAttributes[+A](val input: () => Specification[A]) {
       def map[B](f: A => B): Specification[B] = input().map(f)

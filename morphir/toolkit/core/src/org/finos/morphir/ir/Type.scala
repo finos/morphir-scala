@@ -2,6 +2,4 @@ package org.finos
 package morphir
 package ir
 
-object Type extends morphir.ir.internal.TypeModule {
-  
-}
+object Type extends internal.TypeModule
