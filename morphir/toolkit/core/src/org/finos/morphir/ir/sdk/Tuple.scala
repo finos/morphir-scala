@@ -3,7 +3,7 @@ package org.finos.morphir.ir.sdk
 import zio.Chunk
 import org.finos.morphir.ir.Module
 import org.finos.morphir.ir.Module.ModuleName
-import org.finos.morphir.ir.Type.Type._
+import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Common._
 
 object Tuple {

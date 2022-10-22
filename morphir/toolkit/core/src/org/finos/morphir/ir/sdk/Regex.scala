@@ -2,7 +2,7 @@ package org.finos.morphir.ir.sdk
 
 import zio.Chunk
 import org.finos.morphir.ir.Module.ModuleName
-import org.finos.morphir.ir.Type.Type.unit
+import org.finos.morphir.ir.Type.unit
 import org.finos.morphir.ir.Value.Specification
 import org.finos.morphir.ir.{Documented, Module, Name}
 import org.finos.morphir.syntax.NamingSyntax._

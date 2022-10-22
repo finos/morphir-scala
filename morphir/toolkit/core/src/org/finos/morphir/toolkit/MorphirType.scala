@@ -13,8 +13,8 @@ object MorphirType {
   type Function = ir.Type.Type.Function[Attributes]
   val Function = ir.Type.Type.Function
 
-  type Field = ir.Type.Field[MorphirType]
-  val Field = ir.Type.Field
+  type Field = ir.Field[MorphirType]
+  val Field = ir.Field
 
   type Record = ir.Type.Type.Record[Attributes]
   val Record = ir.Type.Type.Record

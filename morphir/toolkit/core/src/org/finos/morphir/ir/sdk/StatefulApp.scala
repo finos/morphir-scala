@@ -5,7 +5,7 @@ import org.finos.morphir.ir.Module
 import org.finos.morphir.ir.Module.ModuleName
 import org.finos.morphir.ir.Type.Constructors
 import org.finos.morphir.ir.Type.Specification.CustomTypeSpecification
-import org.finos.morphir.ir.Type.Type._
+import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Maybe.maybeType
 import org.finos.morphir.syntax.NamingSyntax._
 

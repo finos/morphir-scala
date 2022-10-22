@@ -5,7 +5,7 @@ package testing
 import zio.Chunk
 import org.finos.morphir.Dsl
 import org.finos.morphir.IR.TypeConstructorInfo
-import org.finos.morphir.ir.Type.{Type, UType}
+import org.finos.morphir.ir.Type.{Type, UType, reference => typeRef, unitType}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, RawValue}
 import org.finos.morphir.ir.sdk.Basics.{add, intType, subtract}
 import org.finos.morphir.ir.sdk.{String => StringModule}
@@ -285,9 +285,9 @@ object CaseExample extends AllSyntax {
       Name("RecordType")
     )
 
-  lazy val recordType: UType = define.record(
-    define.field(Name("name"), Type.unit),
-    define.field(Name("age"), Type.unit)
+  lazy val recordType: UType = ir.Type.record(
+    ir.Type.field(Name("name"), unitType),
+    ir.Type.field(Name("age"), unitType)
   )
 
   lazy val recordTypeAliasSpecification: morphir.ir.Type.Specification.TypeAliasSpecification[Any] =
@@ -316,15 +316,15 @@ object CaseExample extends AllSyntax {
   lazy val savingsAccountTypeConstructor: TypeConstructorInfo = TypeConstructorInfo(
     containingType = accountTypeName,
     typeParams = Chunk.empty,
-    typeArgs = Chunk(Name.fromString("arg1") -> define.reference(FQName.fromString("Morphir.SDK.String"), Chunk.empty))
+    typeArgs = Chunk(Name.fromString("arg1") -> typeRef(FQName.fromString("Morphir.SDK.String"), Chunk.empty))
   )
 
   lazy val checkingAccountTypeConstructor: TypeConstructorInfo = TypeConstructorInfo(
     containingType = accountTypeName,
     typeParams = Chunk.empty,
     typeArgs = Chunk(
-      Name.fromString("arg1") -> define.reference(FQName.fromString(":Morphir.SDK:String"), Chunk.empty),
-      Name.fromString("arg2") -> define.reference(FQName.fromString(":Morphir.SDK:Int"), Chunk.empty)
+      Name.fromString("arg1") -> typeRef(FQName.fromString(":Morphir.SDK:String"), Chunk.empty),
+      Name.fromString("arg2") -> typeRef(FQName.fromString(":Morphir.SDK:Int"), Chunk.empty)
     )
   )
 

@@ -14,6 +14,7 @@ final case class Field[+T](name: Name, data: T) { self =>
 }
 
 object Field {
+  import Type.Type
 
   def apply[T](name: String, data: T): Field[T] = Field(Name.fromString(name), data)
 
@@ -21,5 +22,25 @@ object Field {
   object Untyped {
     def apply(name: Name): Field[Unit]    = Field(name, ())
     def unapply(field: Field[Unit]): Name = field.name
+  }
+
+  final implicit class FieldOfType[A](private val self: Field[Type[A]]) {
+
+    def fieldType: Type[A] = self.data
+
+    /**
+     * Attributes the field with the given `attributes`.
+     */
+    def attributeTypeAs[Attributes](attributes: => Attributes): Field[Type[Attributes]] =
+      Field(self.name, self.data.mapAttributes(_ => attributes))
+
+    /**
+     * Attributes the field's type using the given function.
+     */
+    def attributeTypeWith[B](f: A => B): Field[Type[B]] =
+      Field(self.name, self.data.mapAttributes(f))
+
+    def mapAttributes[B](f: A => B): Field[Type[B]] =
+      Field(self.name, self.data.mapAttributes(f))
   }
 }

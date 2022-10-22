@@ -8,23 +8,180 @@ import zio.prelude._
 
 trait TypeModule { module =>
 
-  type FieldT[+A] = Field[Type[A]]
-  val FieldT: Field.type = Field
+  type FieldT[+A] = ir.Field[Type[A]]
+  val FieldT: Field.type = ir.Field
 
-  type UDefinition = Definition[Any]
-  val UDefinition: Definition.type = Definition
+  type UConstructors = module.Constructors[Any]
+  val UConstructors: module.Constructors.type = module.Constructors
 
-  type UType = Type[Any]
-  val UType = Type
+  type UDefinition = module.Definition[Any]
+  val UDefinition: module.Definition.type = module.Definition
+
+  type UType = module.Type[Any]
+  val UType = module.Type
+
+  final def curriedFunction(paramTypes: List[UType], returnType: UType): UType = {
+    def curry(args: List[UType]): UType = args match {
+      case Nil                    => returnType
+      case firstArg :: restOfArgs => function(firstArg, curry(restOfArgs))
+    }
+    curry(paramTypes)
+  }
 
   final def defineField(name: Name, fieldType: UType): Field[UType] = Field(name, fieldType)
 
   final def defineField(name: String, fieldType: UType): Field[UType] = Field(Name.fromString(name), fieldType)
 
+  final def emptyTuple[A](attributes: A)(implicit ev: NeedsAttributes[A]): Type[A] =
+    Type.Tuple(attributes, Chunk.empty)
+
+  // Extensible record constructors
+  def extensibleRecord[A](attributes: A, name: Name, fields: Chunk[Field[Type[A]]])(implicit
+      ev: NeedsAttributes[A]
+  ): Type[A] =
+    Type.ExtensibleRecord(attributes, name, fields)
+
+  final def extensibleRecord[A](attributes: A, name: String, fields: Chunk[Field[Type[A]]])(implicit
+      ev: NeedsAttributes[A]
+  ): Type[A] =
+    extensibleRecord(attributes, Name.fromString(name), fields)
+
+  final def extensibleRecord[A](attributes: A, name: String, field: Field[Type[A]], fields: Field[Type[A]]*)(implicit
+      ev: NeedsAttributes[A]
+  ): Type[A] =
+    extensibleRecord(attributes, Name.fromString(name), field +: Chunk.fromIterable(fields))
+
+  final def extensibleRecord[A](attributes: A, name: Name, fields: (String, Type[A])*)(implicit
+      ev: NeedsAttributes[A]
+  ): Type[A] = {
+    val fieldsChunk = Chunk.fromIterable(fields.map { case (name, typeExpr) =>
+      Field(Name.fromString(name), typeExpr)
+    })
+    Type.ExtensibleRecord(attributes, name, fieldsChunk)
+  }
+
+  final def extensibleRecord[A](attributes: A, name: String, fields: (String, Type[A])*)(implicit
+      ev: NeedsAttributes[A]
+  ): Type[A] =
+    extensibleRecord(attributes, Name.fromString(name), fields: _*)
+
+  final def extensibleRecord(name: Name, fields: Chunk[Field[UType]]): UType =
+    Type.ExtensibleRecord((), name, fields)
+
+  final def extensibleRecord(name: String, fields: Chunk[Field[UType]]): UType =
+    Type.ExtensibleRecord((), Name.fromString(name), fields)
+
+  final def extensibleRecord(name: Name, fields: (String, UType)*): UType = {
+    val fieldsChunk = Chunk.fromIterable(fields.map { case (name, typeExpr) => Field(Name.fromString(name), typeExpr) })
+    Type.ExtensibleRecord((), name, fieldsChunk)
+  }
+
+  final def extensibleRecord(name: String, fields: (String, UType)*): UType =
+    extensibleRecord(Name.fromString(name), fields: _*)
+
+  final def extensibleRecordWithFields(name: Name, fields: Field[UType]*): UType =
+    Type.ExtensibleRecord((), name, Chunk.fromIterable(fields))
+
+  final def extensibleRecordWithFields(name: String, fields: Field[UType]*): UType =
+    Type.ExtensibleRecord((), Name.fromString(name), Chunk.fromIterable(fields))
+
   final def field[A](name: String, tpe: Type[A]): FieldT[A] = Field(Name.fromString(name), tpe)
   final def field[A](name: Name, tpe: Type[A]): FieldT[A]   = Field(name, tpe)
 
   final def field[A](tuple: (String, Type[A])): FieldT[A] = Field(Name.fromString(tuple._1), tuple._2)
+
+  // Function constructors
+  final def function[A](attributes: A, argumentType: Type[A], returnType: Type[A]): Type[A] =
+    Type.Function(attributes, argumentType, returnType)
+
+  final def function(argumentType: UType, returnType: UType): UType =
+    Type.Function((), argumentType, returnType)
+
+    // Record constructors
+  final def record[A](attributes: A, fields: Chunk[Field[Type[A]]])(implicit ev: NeedsAttributes[A]): Type[A] =
+    Type.Record(attributes, fields)
+
+  final def record(fields: Chunk[Field[UType]]): UType =
+    Type.Record((), fields)
+
+  final def record(field: Field[UType], fields: Field[UType]*): UType =
+    Type.Record((), field +: Chunk.fromIterable(fields))
+
+  final def record(fields: (String, UType)*): UType =
+    Type.Record((), Chunk.fromIterable(fields.map { case (name, typeExpr) => Field(Name.fromString(name), typeExpr) }))
+
+  final def reference[A](attributes: A, typeName: FQName, typeParams: Chunk[Type[A]])(implicit
+      ev: NeedsAttributes[A]
+  ): Type[A] =
+    Type.Reference(attributes, typeName, typeParams)
+
+  final def reference[A](attributes: A, typeName: FQName)(implicit ev: NeedsAttributes[A]): Type[A] =
+    Type.Reference(attributes, typeName, Chunk.empty)
+
+  final def reference[A](attributes: A, typeName: FQName, firstTypeParam: Type[A], otherTypeParams: Type[A]*)(implicit
+      ev: NeedsAttributes[A]
+  ): Type[A] =
+    Type.Reference(attributes, typeName, Chunk.fromIterable(firstTypeParam +: otherTypeParams))
+
+  final def reference[A](attributes: A, typeName: String, typeParams: Chunk[Type[A]])(implicit ev: NeedsAttributes[A]) =
+    Type.Reference(attributes, FQName.fromString(typeName), typeParams)
+
+  final def reference[A](attributes: A, typeName: String)(implicit ev: NeedsAttributes[A]) =
+    Type.Reference(attributes, FQName.fromString(typeName), Chunk.empty)
+
+  final def reference[A](attributes: A, typeName: String, firstTypeParam: Type[A], otherTypeParams: Type[A]*)(implicit
+      ev: NeedsAttributes[A]
+  ) =
+    Type.Reference(attributes, FQName.fromString(typeName), firstTypeParam +: Chunk.fromIterable(otherTypeParams))
+
+  final def reference(typeName: FQName, typeParams: Chunk[UType]): UType =
+    Type.Reference((), typeName, typeParams)
+
+  final def reference(typeName: FQName, typeParams: UType*): UType =
+    Type.Reference((), typeName, Chunk.fromIterable(typeParams))
+
+  final def reference(typeName: String, typeParams: Chunk[UType]): UType =
+    Type.Reference((), FQName.fromString(typeName), typeParams)
+
+  final def reference(typeName: String, typeParams: UType*): UType =
+    Type.Reference((), FQName.fromString(typeName), Chunk.fromIterable(typeParams))
+
+  final def reference(packageName: String, moduleName: String, typeName: String, typeParams: UType*): UType =
+    Type.Reference((), FQName.fqn(packageName, moduleName, typeName), Chunk.fromIterable(typeParams))
+
+  final def reference(packageName: String, moduleName: String, typeName: String, typeParams: Chunk[UType]): UType =
+    Type.Reference((), FQName.fqn(packageName, moduleName, typeName), typeParams)
+
+  // Tuple constructors
+  final def tuple[A](attributes: A, elements: Chunk[Type[A]])(implicit ev: NeedsAttributes[A]): Type[A] =
+    Type.Tuple(attributes, elements)
+
+  final def tuple[A](attributes: A, elements: Type[A]*)(implicit ev: NeedsAttributes[A]): Type[A] =
+    tuple(attributes, Chunk.fromIterable(elements))
+
+  final def tuple(elements: UType*): UType =
+    Type.Tuple((), Chunk.fromIterable(elements))
+
+  final def tuple(elements: Chunk[UType]): UType =
+    Type.Tuple((), elements)
+
+  final def unit[A](attributes: A)(implicit ev: NeedsAttributes[A]): Type[A] = Type.Unit(attributes)
+
+  final lazy val unit: UType     = Type.Unit(())
+  final lazy val unitType: UType = Type.Unit(())
+
+  // Variable constructors
+  final def variable[A](attributes: A, name: Name)(implicit ev: NeedsAttributes[A]): Type[A] =
+    Type.Variable(attributes, name)
+
+  final def variable[A](attributes: A, name: String)(implicit ev: NeedsAttributes[A]): Type[A] =
+    Type.Variable(attributes, Name.fromString(name))
+
+  final def variable(name: Name): UType =
+    Type.Variable((), name)
+
+  final def variable(name: String): UType =
+    Type.Variable((), Name.fromString(name))
 
   sealed case class Constructors[+Attributes](toMap: Map[Name, Chunk[(Name, Type[Attributes])]]) {
     self =>
@@ -97,7 +254,7 @@ trait TypeModule { module =>
     }
   }
 
-  private[internal] sealed trait Specification[+Attributes] { self =>
+  sealed trait Specification[+Attributes] { self =>
     import Specification._
 
     def ??(doc: String): Documented[Specification[Attributes]] =
@@ -203,14 +360,14 @@ trait TypeModule { module =>
           case None =>
             typ match {
               case ExtensibleRecord(_, _, Chunk(head, tail @ _*)) =>
-                val next = head.fieldType
-                val rest = tail.map(_.fieldType) ++: stack
+                val next = head.data
+                val rest = tail.map(_.data) ++: stack
                 loop(next, rest)
               case Function(_, argumentType, resultType) =>
                 loop(argumentType, resultType :: stack)
               case Record(_, Chunk(head, tail @ _*)) =>
-                val next = head.fieldType
-                val rest = tail.map(_.fieldType) ++: stack
+                val next = head.data
+                val rest = tail.map(_.data) ++: stack
                 loop(next, rest)
               case Reference(_, _, Chunk(head, tail @ _*)) =>
                 loop(head, tail ++: stack)
@@ -428,32 +585,32 @@ trait TypeModule { module =>
         case Variable(attributes, name)                     => writer.writeVariableZIO(attributes, name)
       }
   }
-  private[internal] object Type {
+  object Type {
 
-    type UExtensibleRecord = ExtensibleRecord[Any]
-    val UExtensibleRecord = ExtensibleRecord
+    // type UExtensibleRecord = ExtensibleRecord[Any]
+    // val UExtensibleRecord = ExtensibleRecord
 
-    type UFunction = Function[Any]
-    val UFunction = Function
+    // type UFunction = Function[Any]
+    // val UFunction = Function
 
-    type URecord = Record[Any]
-    val URecord = Record
+    // type URecord = Record[Any]
+    // val URecord = Record
 
-    type UReference = Reference[Any]
-    val UReference = Reference
+    // type UReference = module.Type.Reference[Any]
+    // val UReference = module.Type.Reference
 
-    type UTuple = Tuple[Any]
-    val UTuple = Tuple
+    // type UTuple = module.Type.Tuple[Any]
+    // val UTuple = module.Type.Tuple
 
-    type UUnit = Type.Unit[Any]
-    val UUnit = Type.Unit
+    // type UUnit = Type.Unit[Any]
+    // val UUnit = Type.Unit
 
-    type UVariable = Variable[Any]
-    val UVariable = Variable
+    // type UVariable = Variable[Any]
+    // val UVariable = Variable
 
     def mapTypeAttributes[A](tpe: Type[A]): MapTypeAttributes[A] = new MapTypeAttributes(() => tpe)
 
-    sealed case class ExtensibleRecord[+A](attributes: A, name: Name, fields: Chunk[Field[Type[A]]]) extends Type[A]
+    sealed case class ExtensibleRecord[+A](attributes: A, name: Name, fields: Chunk[FieldT[A]]) extends Type[A]
     object ExtensibleRecord {
       def apply[A](attributes: A, name: Name, fields: FieldT[A]*): ExtensibleRecord[A] =
         ExtensibleRecord(attributes, name, Chunk.fromIterable(fields))
@@ -498,14 +655,14 @@ trait TypeModule { module =>
       ): Reference[A] =
         Reference(attributes, typeName, Chunk.fromIterable(typeParams))
 
-      def apply(typeName: FQName, typeParams: UType*): UReference =
+      def apply(typeName: FQName, typeParams: UType*): Reference[Any] =
         Reference((), typeName, Chunk.fromIterable(typeParams))
 
       def apply(name: FQName): ApplyGivenName = new ApplyGivenName(name)
       def apply(name: String): ApplyGivenName = new ApplyGivenName(FQName.fromString(name))
 
       final class ApplyGivenName(private val name: FQName) {
-        def apply(typeParams: UType*): UReference = Reference((), name, Chunk.fromIterable(typeParams))
+        def apply(typeParams: UType*): Reference[Any] = Reference((), name, Chunk.fromIterable(typeParams))
       }
     }
     sealed case class Tuple[+A](attributes: A, elements: Chunk[Type[A]]) extends Type[A]
@@ -513,10 +670,10 @@ trait TypeModule { module =>
       def apply[A](attributes: A, elements: Type[A]*)(implicit ev: NeedsAttributes[A]): Tuple[A] =
         Tuple(attributes, Chunk.fromIterable(elements))
 
-      def apply(elements: UType*): UTuple =
+      def apply(elements: UType*): Tuple[Any] =
         Tuple((), Chunk.fromIterable(elements))
 
-      def withElements(elements: UType*): UTuple = Tuple((), Chunk.fromIterable(elements))
+      def withElements(elements: UType*): Tuple[Any] = Tuple((), Chunk.fromIterable(elements))
     }
     sealed case class Unit[+A](attributes: A)                 extends Type[A]
     sealed case class Variable[+A](attributes: A, name: Name) extends Type[A]
@@ -753,26 +910,6 @@ trait TypeModule { module =>
     implicit class UTypeExtensions(private val self: UType) {
       def -->(that: UType): UType = Function(self, that)
     }
-  }
-
-  final implicit class FieldOfType[A](private val self: Field[Type[A]]) {
-
-    def fieldType: Type[A] = self.data
-
-    /**
-     * Attributes the field with the given `attributes`.
-     */
-    def attributeTypeAs[Attributes](attributes: => Attributes): Field[Type[Attributes]] =
-      Field(self.name, self.data.mapAttributes(_ => attributes))
-
-    /**
-     * Attributes the field's type using the given function.
-     */
-    def attributeTypeWith[B](f: A => B): Field[Type[B]] =
-      Field(self.name, self.data.mapAttributes(f))
-
-    def mapAttributes[B](f: A => B): Field[Type[B]] =
-      Field(self.name, self.data.mapAttributes(f))
   }
 
 }
