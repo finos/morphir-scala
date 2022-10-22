@@ -1,17 +1,12 @@
-package org.finos.morphir.ir.json
+package org.finos.morphir.ir
+package json
 
 import zio._
 import zio.json._
 import zio.json.ast.Json
 import org.finos.morphir.ir.AccessControlled.Access._
 import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, Specification => PackageSpecification}
-import org.finos.morphir.ir.Type.{
-  Constructors,
-  Definition => TypeDefinition,
-  Field,
-  Specification => TypeSpecification,
-  Type
-}
+import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, Type}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
 import org.finos.morphir.ir.Value.{Value, _}
 import org.finos.morphir.ir.module.{
@@ -20,7 +15,6 @@ import org.finos.morphir.ir.module.{
   ModulePath,
   Specification => ModuleSpecification
 }
-import org.finos.morphir.ir.internal.types.Type
 import org.finos.morphir.ir.value.recursive.ValueCase
 import org.finos.morphir.ir.{Literal, _}
 

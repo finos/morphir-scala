@@ -1,4 +1,6 @@
-package org.finos.morphir.ir.json
+package org.finos.morphir
+package ir
+package json
 
 import zio._
 import zio.json._
@@ -9,16 +11,8 @@ import org.finos.morphir.ir.Module.{
   Specification => ModuleSpecification
 }
 import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, Specification => PackageSpecification}
-import org.finos.morphir.ir.Type.Type._
-import org.finos.morphir.ir.Type.{
-  Constructors,
-  Definition => TypeDefinition,
-  Field,
-  Specification => TypeSpecification,
-  Type
-}
+import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, _}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Pattern, Specification => ValueSpecification, Value}
-import org.finos.morphir.ir._
 import org.finos.morphir.ir.value.recursive.ValueCase
 import org.finos.morphir.ir.json.MorphirJsonEncodingSupport._
 import org.finos.morphir.ir.json.MorphirJsonDecodingSupport._
@@ -218,7 +212,7 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
     ),
     suite("Type")(
       test("will encode TypeCase.UnitCase") {
-        val actual   = Type.unit[Int](1234)
+        val actual   = unit[Int](1234)
         val expected = """["Unit",1234]"""
         assertTrue(actual.toJson == expected)
       },
@@ -647,9 +641,9 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
           val `morphir.SDK.list.list`  = FQName(`morphir.SDK`, `list`, Name("list"))
         }
 
-        val `sdk.Int`                  = Type.reference(Refs.`morphir.SDK.basics.int`)
-        val `List[sdk.Int]`            = Type.reference(Refs.`morphir.SDK.list.list`, `sdk.Int`)
-        val `sdk.Int => List[sdk.Int]` = Type.function(`sdk.Int`, `List[sdk.Int]`)
+        val `sdk.Int`                  = ir.Type.reference(Refs.`morphir.SDK.basics.int`)
+        val `List[sdk.Int]`            = ir.Type.reference(Refs.`morphir.SDK.list.list`, `sdk.Int`)
+        val `sdk.Int => List[sdk.Int]` = ir.Type.function(`sdk.Int`, `List[sdk.Int]`)
 
         // final case class LetDefinitionCase[+TA, +VA, +TypeRepr[+_], +Self](
 
@@ -683,8 +677,8 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
             // foo x = [x]
             Name("foo"),
             ValueDefinition.Case(
-              inputTypes = Chunk((Name("x"), `sdk.Int`, Type.variable("a"))),
-              outputType = Type.reference(Refs.`morphir.SDK.list.list`, Chunk(Type.variable("a"))),
+              inputTypes = Chunk((Name("x"), `sdk.Int`, ir.Type.variable("a"))),
+              outputType = ir.Type.reference(Refs.`morphir.SDK.list.list`, Chunk(ir.Type.variable("a"))),
               // ValueCase[Nothing, UType, ValueCase[Nothing, UType, Nothing]]
               body = body
             ),
