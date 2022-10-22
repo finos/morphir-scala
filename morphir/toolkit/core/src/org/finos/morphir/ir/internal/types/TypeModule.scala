@@ -10,8 +10,8 @@ trait TypeModule extends AllTypeSyntax {
   final type Definition[+A] = internal.types.Definition[A]
   final val Definition: internal.types.Definition.type = internal.types.Definition
 
-  final type Field[+A] = internal.types.Field[A]
-  final val Field: internal.types.Field.type = internal.types.Field
+  final type Field[+A] = ir.Field[A]
+  final val Field: ir.Field.type = ir.Field
 
   final type Specification[+A] = internal.types.Specification[A]
   final val Specification: internal.types.Specification.type = internal.types.Specification

@@ -16,4 +16,23 @@ trait FieldSyntax {
 
   final def field[A](tuple: (String, Type[A])): FieldT[A] = Field(Name.fromString(tuple._1), tuple._2)
 
+  final implicit class FieldOfType[A](private val self: Field[Type[A]]) {
+
+    def fieldType: Type[A] = self.data
+
+    /**
+     * Attributes the field with the given `attributes`.
+     */
+    def attributeTypeAs[Attributes](attributes: => Attributes): Field[Type[Attributes]] =
+      Field(self.name, self.data.mapAttributes(_ => attributes))
+
+    /**
+     * Attributes the field's type using the given function.
+     */
+    def attributeTypeWith[B](f: A => B): Field[Type[B]] =
+      Field(self.name, self.data.mapAttributes(f))
+
+    def mapAttributes[B](f: A => B): Field[Type[B]] =
+      Field(self.name, self.data.mapAttributes(f))
+  }
 }
