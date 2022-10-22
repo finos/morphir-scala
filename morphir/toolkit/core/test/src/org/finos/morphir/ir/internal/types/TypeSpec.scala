@@ -9,6 +9,8 @@ import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
 import Type._
+import org.finos.morphir.ir.packages.PackageName
+import org.finos.morphir.ir.module.ModuleName
 
 object TypeSpec extends MorphirBaseSpec with NamingSyntax {
   def spec = suite("Type Spec")(
@@ -24,6 +26,28 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("Can be documented") {
         val actual = variable("a") ?? "Some type variable"
         assertTrue(actual.doc == "Some type variable")
+      },
+      test("Calling mapReferenceName should remap the name of a reference type using the provided function") {
+        val sut = record(
+          "name"  -> reference(fqn("Morphir.SDK", "String", "String")),
+          "age"   -> reference(fqn("Morphir.SDK", "Int", "Int")),
+          "items" -> reference(fqn("Morphir.SDK", "List", "List"), reference(fqn("Morphir.SDK", "String", "String")))
+        )
+        val actual = sut.mapReferenceName { case FQName(_, module, localName) =>
+          FQName(PackageName.fromString("Acme.SDK"), ModulePath.fromString("Basics"), localName)
+        }
+        assertTrue(
+          sut.collectReferences == Set(
+            fqn("Morphir.SDK", "String", "String"),
+            fqn("Morphir.SDK", "Int", "Int"),
+            fqn("Morphir.SDK", "List", "List")
+          ),
+          actual.collectReferences == Set(
+            fqn("Acme.SDK", "Basics", "String"),
+            fqn("Acme.SDK", "Basics", "Int"),
+            fqn("Acme.SDK", "Basics", "List")
+          )
+        )
       }
     ),
     suite("Field")(

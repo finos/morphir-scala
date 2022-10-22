@@ -102,7 +102,9 @@ object generators {
         Gen.weighted(choices: _*)
       }
 
-      word ++ greekLetterNames ++ monthNames
+      Gen.oneOf(word, greekLetterNames, monthNames)
     }
   }
+
+  object WordGen extends WordGen
 }
