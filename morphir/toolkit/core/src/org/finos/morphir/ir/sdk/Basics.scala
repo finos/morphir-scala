@@ -3,8 +3,8 @@ package org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.Module
 import org.finos.morphir.ir.Module.ModuleName
 import org.finos.morphir.ir.Type.Specification.{CustomTypeSpecification, OpaqueTypeSpecification}
-import org.finos.morphir.ir.Type.{Type, UType, reference, tuple}
-import org.finos.morphir.ir.Value.{RawValue, Value}
+import org.finos.morphir.ir.Type.{Type, UType, reference => tRef, tuple}
+import org.finos.morphir.ir.Value._
 import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.syntax.NamingSyntax._
 
@@ -93,19 +93,19 @@ object Basics {
     )
   )
 
-  lazy val boolType: UType                 = reference((toFQName(moduleName, "Bool")))
-  def boolType[A](attributes: A): Type[A]  = reference(attributes, (toFQName(moduleName, "Bool")))
-  lazy val floatType: UType                = reference((toFQName(moduleName, "Float")))
-  lazy val intType: UType                  = reference(toFQName(moduleName, "Int"))
-  lazy val neverType: UType                = reference((toFQName(moduleName, "Never")))
+  lazy val boolType: UType                 = tRef((toFQName(moduleName, "Bool")))
+  def boolType[A](attributes: A): Type[A]  = tRef(attributes, (toFQName(moduleName, "Bool")))
+  lazy val floatType: UType                = tRef((toFQName(moduleName, "Float")))
+  lazy val intType: UType                  = tRef(toFQName(moduleName, "Int"))
+  lazy val neverType: UType                = tRef((toFQName(moduleName, "Never")))
   lazy val orderType: UType                = orderType(())
-  def orderType[A](attributes: A): Type[A] = reference(attributes, (toFQName(moduleName, "Order")))
+  def orderType[A](attributes: A): Type[A] = tRef(attributes, (toFQName(moduleName, "Order")))
 
-  def add: RawValue = Value.reference(toFQName(moduleName, "add"))
+  def add: RawValue = reference(toFQName(moduleName, "add"))
   def add[A](attributes: A): Value[Nothing, A] =
     Value.Reference(attributes, toFQName(moduleName, "add"))
 
-  def subtract: RawValue = Value.reference(toFQName(moduleName, "subtract"))
+  def subtract: RawValue = reference(toFQName(moduleName, "subtract"))
   def subtract[A](attributes: A): Value[Nothing, A] =
     Value.Reference(attributes, toFQName(moduleName, "subtract"))
 }

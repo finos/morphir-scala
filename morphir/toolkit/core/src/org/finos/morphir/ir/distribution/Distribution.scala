@@ -10,7 +10,7 @@ import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
 import org.finos.morphir.ir.Type.Specification.TypeAliasSpecification
 import org.finos.morphir.ir.Type.Type.Reference
 import org.finos.morphir.ir.Type.UType
-import org.finos.morphir.ir.Value.{USpecification => UValueSpec, ValueDefinition}
+import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
 import org.finos.morphir.ir.{FQName, Name, QName}
 
 sealed trait Distribution
@@ -50,7 +50,7 @@ object Distribution {
     ): Option[UValueSpec] =
       lookupModuleSpecification(packageName, module).flatMap(_.lookupValueSpecification(localName))
 
-    def lookupValueDefinition(qName: QName): Option[ValueDefinition[Any, UType]] =
+    def lookupValueDefinition(qName: QName): Option[ValueDefinition[scala.Unit, UType]] =
       packageDef.lookupModuleDefinition(qName.modulePath).flatMap(_.lookupValueDefinition(qName.localName))
 
     def lookupPackageSpecification: UPackageSpecification = packageDef.toSpecificationWithPrivate.eraseAttributes

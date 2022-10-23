@@ -164,7 +164,8 @@ object morphir extends Module {
       def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`, io.lemonlabs.`scala-uri`)
       def moduleDeps = Seq(morphir.contrib.flowz(crossScalaVersion), morphir.lib.interop(crossScalaVersion))
       object test extends Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+        def moduleDeps =
+          super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion), morphir.toolkit.core.testing(crossScalaVersion))
       }
     }
 

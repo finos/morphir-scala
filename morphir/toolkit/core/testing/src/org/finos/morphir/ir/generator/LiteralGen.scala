@@ -1,4 +1,6 @@
-package org.finos.morphir.ir.generator
+package org.finos.morphir
+package ir
+package generator
 
 import org.finos.morphir.ir.Literal
 import org.finos.morphir.testing.generators.WordGen

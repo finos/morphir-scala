@@ -22,6 +22,9 @@ trait LiteralModule { module =>
   def stringLiteral(value: String): Literal      = Literal.StringLiteral(value)
   def wholeNumberLiteral(value: BigInt): Literal = Literal.WholeNumberLiteral(value)
 
+  final type Lit = module.Literal
+  final lazy val Lit: Literal.type = module.Literal
+
   sealed trait Literal extends Product with Serializable
   object Literal {
     sealed case class BoolLiteral(value: Boolean)       extends Literal

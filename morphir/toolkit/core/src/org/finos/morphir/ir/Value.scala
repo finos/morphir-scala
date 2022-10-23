@@ -1,4 +1,5 @@
-package org.finos.morphir.ir
+package org.finos.morphir
+package ir
 
 /**
  * In functional programming data and logic are treated the same way and we refer to both as values. This module
@@ -34,4 +35,6 @@ package org.finos.morphir.ir
  * (WholeNumberLiteral 2))
  * }}}
  */
-object Value extends value.recursive.ValueModule
+object Value extends internal.ValueModule {
+  final val Type: internal.MorphirTypeModule = ir.Type
+}

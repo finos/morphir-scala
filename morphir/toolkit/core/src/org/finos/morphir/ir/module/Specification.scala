@@ -14,7 +14,7 @@ final case class Specification[+TA](
   def lookupTypeSpecification(localName: Name): Option[TypeSpec[TA]] =
     types.get(localName).map(doc => doc.value)
 
-  def eraseAttributes: Specification[Any] = self.mapAttributes(_ => ())
+  def eraseAttributes: Specification[scala.Unit] = self.mapAttributes(_ => ())
 
   def mapAttributes[TB](tf: TA => TB): Specification[TB] = Specification(
     types.map { case (name, doc) => (name, doc.map(_.map(tf))) },
@@ -25,11 +25,11 @@ final case class Specification[+TA](
 object Specification {
   val empty: Specification[Nothing] = Specification(Map.empty, Map.empty)
 
-  type Raw = Specification[Any]
+  type Raw = Specification[scala.Unit]
   object Raw {
     def apply(
-        types: Map[Name, Documented[TypeSpec[Any]]],
-        values: Map[Name, Documented[ValueSpec[Any]]]
+        types: Map[Name, Documented[TypeSpec[scala.Unit]]],
+        values: Map[Name, Documented[ValueSpec[scala.Unit]]]
     ): Raw = Specification(types, values)
   }
 }

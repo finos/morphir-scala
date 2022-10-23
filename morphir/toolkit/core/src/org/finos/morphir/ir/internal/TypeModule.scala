@@ -6,20 +6,19 @@ import scala.annotation.tailrec
 import zio._
 import zio.prelude._
 
-trait TypeModule { module =>
+trait TypeModule extends MorphirTypeModule { module =>
 
   type FieldT[+A] = ir.Field[Type[A]]
   val FieldT: Field.type = ir.Field
 
-  type UConstructors = module.Constructors[Any]
+  type UConstructors = module.Constructors[scala.Unit]
   val UConstructors: module.Constructors.type = module.Constructors
 
-  type UDefinition = module.Definition[Any]
+  type UDefinition = module.Definition[scala.Unit]
   val UDefinition: module.Definition.type = module.Definition
 
-  type USpecification = module.Specification[Any]
+  type USpecification = module.Specification[scala.Unit]
 
-  type UType = module.Type[Any]
   val UType = module.Type
 
   final def curriedFunction(paramTypes: List[UType], returnType: UType): UType = {
@@ -167,6 +166,8 @@ trait TypeModule { module =>
   final def tuple(elements: Chunk[UType]): UType =
     Type.Tuple((), elements)
 
+  final def typeAttributes[A](tpe: Type[A]): A = tpe.attributes
+
   final def unit[A](attributes: A)(implicit ev: NeedsAttributes[A]): Type[A] = Type.Unit(attributes)
 
   final lazy val unit: UType     = Type.Unit(())
@@ -187,7 +188,7 @@ trait TypeModule { module =>
 
   sealed case class Constructors[+Attributes](toMap: Map[Name, Chunk[(Name, Type[Attributes])]]) {
     self =>
-    def eraseAttributes: Constructors[Any] = Constructors(toMap.map { case (ctor, args) =>
+    def eraseAttributes: UConstructors = Constructors(toMap.map { case (ctor, args) =>
       (ctor, args.map { case (paramName, paramType) => (paramName, paramType.eraseAttributes) })
     })
 
@@ -203,7 +204,7 @@ trait TypeModule { module =>
   }
 
   object Constructors {
-    def forEnum(case1: String, otherCases: String*): Constructors[Any] = {
+    def forEnum(case1: String, otherCases: String*): UConstructors = {
       val allCases  = (Chunk(case1) ++ otherCases).map(Name.fromString)
       val emptyArgs = Chunk[(Name, UType)]()
       Constructors(allCases.map(name => (name, emptyArgs)).toMap)
@@ -268,7 +269,7 @@ trait TypeModule { module =>
       case CustomTypeSpecification(typeParams, ctors) => CustomTypeSpecification(typeParams, ctors.map(f))
     }
 
-    def eraseAttributes: Specification[Any] = self match {
+    def eraseAttributes: Specification[scala.Unit] = self match {
       case c @ TypeAliasSpecification(_, _) =>
         TypeAliasSpecification(c.typeParams, c.expr.eraseAttributes)
       case c @ OpaqueTypeSpecification(_) =>
@@ -315,14 +316,14 @@ trait TypeModule { module =>
         CustomTypeSpecification(Chunk.empty, Constructors(allCtors))
       }
 
-      def mkEnum(case1: String, otherCases: String*): CustomTypeSpecification[Any] =
+      def mkEnum(case1: String, otherCases: String*): CustomTypeSpecification[scala.Unit] =
         CustomTypeSpecification(Chunk.empty, Constructors.forEnum(case1, otherCases: _*))
     }
 
-    // type UCustomTypeSpecification = CustomTypeSpecification[Any]
+    // type UCustomTypeSpecification = CustomTypeSpecification[scala.Unit]
     // val UCustomTypeSpecification: CustomTypeSpecification.type = CustomTypeSpecification
 
-    // type USpecification = module.Specification[Any]
+    // type USpecification = module.Specification[scala.Unit]
     // val USpecification: Specification.type = module.Specification
 
     sealed class MapSpecificationAttributes[+A](val input: () => Specification[A]) {
@@ -592,22 +593,22 @@ trait TypeModule { module =>
     // type UExtensibleRecord = ExtensibleRecord[Any]
     // val UExtensibleRecord = ExtensibleRecord
 
-    // type UFunction = Function[Any]
+    // type UFunction = Function[scala.Unit]
     // val UFunction = Function
 
-    // type URecord = Record[Any]
+    // type URecord = Record[scala.Unit]
     // val URecord = Record
 
-    // type UReference = module.Type.Reference[Any]
+    // type UReference = module.Type.Reference[scala.Unit]
     // val UReference = module.Type.Reference
 
-    // type UTuple = module.Type.Tuple[Any]
+    // type UTuple = module.Type.Tuple[scala.Unit]
     // val UTuple = module.Type.Tuple
 
-    // type UUnit = Type.Unit[Any]
+    // type UUnit = Type.Unit[scala.Unit]
     // val UUnit = Type.Unit
 
-    // type UVariable = Variable[Any]
+    // type UVariable = Variable[scala.Unit]
     // val UVariable = Variable
 
     def mapTypeAttributes[A](tpe: Type[A]): MapTypeAttributes[A] = new MapTypeAttributes(() => tpe)
@@ -620,34 +621,34 @@ trait TypeModule { module =>
       def apply[A](attributes: A, name: String, fields: FieldT[A]*): ExtensibleRecord[A] =
         ExtensibleRecord(attributes, Name.fromString(name), Chunk.fromIterable(fields))
 
-      def apply(name: Name, fields: Field[UType]*): ExtensibleRecord[Any] =
+      def apply(name: Name, fields: Field[UType]*): ExtensibleRecord[scala.Unit] =
         ExtensibleRecord((), name, Chunk.fromIterable(fields))
 
-      def apply(name: Name, fields: Chunk[Field[UType]]): ExtensibleRecord[Any] =
+      def apply(name: Name, fields: Chunk[Field[UType]]): ExtensibleRecord[scala.Unit] =
         ExtensibleRecord((), name, fields)
 
-      def apply(name: String, fields: Field[UType]*): ExtensibleRecord[Any] =
+      def apply(name: String, fields: Field[UType]*): ExtensibleRecord[scala.Unit] =
         ExtensibleRecord((), Name.fromString(name), Chunk.fromIterable(fields))
 
-      def apply(name: String, fields: Chunk[Field[UType]]): ExtensibleRecord[Any] =
+      def apply(name: String, fields: Chunk[Field[UType]]): ExtensibleRecord[scala.Unit] =
         ExtensibleRecord((), Name.fromString(name), fields)
     }
     sealed case class Function[+A](attributes: A, argumentType: Type[A], returnType: Type[A]) extends Type[A]
     object Function {
-      def apply(argumentType: UType, returnType: UType): Function[Any] = Function((), argumentType, returnType)
+      def apply(argumentType: UType, returnType: UType): Function[scala.Unit] = Function((), argumentType, returnType)
     }
 
     sealed case class Record[+A](attributes: A, fields: Chunk[Field[Type[A]]]) extends Type[A]
     object Record {
-      val empty: Record[Any]                              = Record((), Chunk.empty)
-      def apply(fields: Chunk[Field[UType]]): Record[Any] = Record((), fields)
+      val empty: Record[scala.Unit]                              = Record((), Chunk.empty)
+      def apply(fields: Chunk[Field[UType]]): Record[scala.Unit] = Record((), fields)
 
-      def apply(fields: FieldT[Any]*): Record[Any] = Record((), Chunk.fromIterable(fields))
+      def apply(fields: FieldT[scala.Unit]*): Record[scala.Unit] = Record((), Chunk.fromIterable(fields))
 
       def empty[A](attributes: A): Record[A] = Record(attributes, Chunk.empty)
       final class CreateAttributed[A](private val attributes: A) {
         def apply(fields: Chunk[FieldT[A]]): Type[A] = Record(attributes, fields)
-        def apply(fields: FieldT[A]*): UType         = Record(attributes, Chunk.fromIterable(fields))
+        def apply(fields: FieldT[A]*): Type[A]       = Record(attributes, Chunk.fromIterable(fields))
       }
     }
     sealed case class Reference[+A](attributes: A, typeName: FQName, typeParams: Chunk[Type[A]]) extends Type[A]
@@ -657,14 +658,14 @@ trait TypeModule { module =>
       ): Reference[A] =
         Reference(attributes, typeName, Chunk.fromIterable(typeParams))
 
-      def apply(typeName: FQName, typeParams: UType*): Reference[Any] =
+      def apply(typeName: FQName, typeParams: UType*): Reference[scala.Unit] =
         Reference((), typeName, Chunk.fromIterable(typeParams))
 
       def apply(name: FQName): ApplyGivenName = new ApplyGivenName(name)
       def apply(name: String): ApplyGivenName = new ApplyGivenName(FQName.fromString(name))
 
       final class ApplyGivenName(private val name: FQName) {
-        def apply(typeParams: UType*): Reference[Any] = Reference((), name, Chunk.fromIterable(typeParams))
+        def apply(typeParams: UType*): Reference[scala.Unit] = Reference((), name, Chunk.fromIterable(typeParams))
       }
     }
     sealed case class Tuple[+A](attributes: A, elements: Chunk[Type[A]]) extends Type[A]
@@ -672,16 +673,16 @@ trait TypeModule { module =>
       def apply[A](attributes: A, elements: Type[A]*)(implicit ev: NeedsAttributes[A]): Tuple[A] =
         Tuple(attributes, Chunk.fromIterable(elements))
 
-      def apply(elements: UType*): Tuple[Any] =
+      def apply(elements: UType*): Tuple[scala.Unit] =
         Tuple((), Chunk.fromIterable(elements))
 
-      def withElements(elements: UType*): Tuple[Any] = Tuple((), Chunk.fromIterable(elements))
+      def withElements(elements: UType*): Tuple[scala.Unit] = Tuple((), Chunk.fromIterable(elements))
     }
     sealed case class Unit[+A](attributes: A)                 extends Type[A]
     sealed case class Variable[+A](attributes: A, name: Name) extends Type[A]
     object Variable {
-      def apply(name: String): Variable[Any]             = Variable((), Name.fromString(name))
-      def apply(name: Name): Variable[Any]               = Variable((), name)
+      def apply(name: String): Variable[scala.Unit]      = Variable((), Name.fromString(name))
+      def apply(name: Name): Variable[scala.Unit]        = Variable((), name)
       def apply[A](attributes: A, name: String): Type[A] = Variable(attributes, Name.fromString(name))
     }
 
@@ -899,7 +900,7 @@ trait TypeModule { module =>
     }
 
     // TODO: Look at usecases
-    trait ForEachZIO[-Context, -Attrib] extends Folder[Context, Attrib, Task[Any]] {}
+    trait ForEachZIO[-Context, -Attrib] extends Folder[Context, Attrib, Task[scala.Unit]] {}
 
     implicit val CovariantType: Covariant[Type] = new Covariant[Type] {
       override def map[A, B](f: A => B): Type[A] => Type[B] = tpe => tpe.mapAttributes(f)
