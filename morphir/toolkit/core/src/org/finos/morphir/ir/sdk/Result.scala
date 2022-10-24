@@ -5,8 +5,7 @@ import org.finos.morphir.ir.Module
 import org.finos.morphir.ir.Module.ModuleName
 import org.finos.morphir.ir.Type.Specification.CustomTypeSpecification
 import org.finos.morphir.ir.Type.{Constructors, Type, UType, reference, variable}
-import org.finos.morphir.ir.Value.Value
-import org.finos.morphir.ir.Value.Value.{Apply, Constructor}
+import org.finos.morphir.ir.Value.{apply, constructor, Value}
 import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.Maybe.maybeType
 import org.finos.morphir.syntax.NamingSyntax._
@@ -81,9 +80,9 @@ object Result {
     reference(attributes, toFQName(moduleName, "result"), errorType, itemType)
 
   def ok[TA, VA](va: VA)(value: Value[TA, VA]): Value[TA, VA] =
-    Apply(va, Constructor(va, toFQName(moduleName, "Ok")), (value))
+    apply(va, constructor(va, toFQName(moduleName, "Ok")), (value))
 
   def err[TA, VA](va: VA)(error: Value[TA, VA]): Value[TA, VA] =
-    Apply(va, Constructor(va, toFQName(moduleName, "Err")), error)
+    apply(va, constructor(va, toFQName(moduleName, "Err")), error)
   // todo add nativefunctions
 }

@@ -4,8 +4,7 @@ import zio.Chunk
 import org.finos.morphir.ir.Module.ModuleName
 import org.finos.morphir.ir.Type.Specification.CustomTypeSpecification
 import org.finos.morphir.ir.Type._
-import org.finos.morphir.ir.Value.Value.{Apply, Constructor}
-import org.finos.morphir.ir.Value.{RawValue, Value}
+import org.finos.morphir.ir.Value.{apply, constructor, RawValue, Value}
 import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.{Module, NeedsAttributes}
 import org.finos.morphir.syntax.NamingSyntax._
@@ -68,15 +67,15 @@ object Maybe {
     reference(attributes, toFQName(moduleName, "Maybe"), itemType)
 
   def just(value: RawValue): RawValue =
-    Apply.Raw(Constructor.Raw(toFQName(moduleName, "Just")), value)
+    apply(constructor(toFQName(moduleName, "Just")), value)
 
   def just[VA](va: VA)(value: Value[Nothing, VA])(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA] =
-    Apply(va, Constructor(va, toFQName(moduleName, "Just")), value)
+    apply(va, constructor(va, toFQName(moduleName, "Just")), value)
 
   lazy val nothing: RawValue =
-    Constructor.Raw(toFQName(moduleName, "Nothing"))
+    constructor(toFQName(moduleName, "Nothing"))
   def nothing[VA](va: VA)(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA] =
-    Constructor(va, toFQName(moduleName, "Nothing"))
+    constructor(va, toFQName(moduleName, "Nothing"))
 
   // todo add nativeFunctions
 }

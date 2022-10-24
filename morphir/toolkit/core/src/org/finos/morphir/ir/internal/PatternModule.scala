@@ -28,11 +28,11 @@ trait PatternModule extends LiteralModule { module =>
   def tuplePattern[A](attributes: A, elementPatterns: List[Pattern[A]])(implicit ev: NeedsAttributes[A]): Pattern[A] =
     TuplePattern(attributes, Chunk.fromIterable(elementPatterns))
 
-  final def unitPattern: UPattern                     = Pattern.UnitPattern(scala.Unit)
+  final def unitPattern: UPattern                     = Pattern.UnitPattern(())
   final def unitPattern[A](attributes: A): Pattern[A] = Pattern.UnitPattern(attributes)
 
   def wildcardPattern[A](attributes: A)(implicit ev: NeedsAttributes[A]): Pattern[A] = WildcardPattern(attributes)
-  lazy val wildcardPattern: Pattern[Attributes]                                      = WildcardPattern(Attributes.empty)
+  lazy val wildcardPattern: UPattern                                                 = WildcardPattern(())
 
   sealed trait Pattern[+A] { self =>
     def attributes: A

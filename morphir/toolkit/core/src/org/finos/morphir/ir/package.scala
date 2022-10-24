@@ -4,8 +4,6 @@ package org.finos.morphir
 // import org.finos.morphir.sdk.ResultModule
 
 package object ir {
-  type LiteralValue = Literal[Any]
-  val LiteralValue: Literal.type = Literal
 
   type ModulePath = Module.ModulePath
   val ModulePath: Module.ModulePath.type = Module.ModulePath

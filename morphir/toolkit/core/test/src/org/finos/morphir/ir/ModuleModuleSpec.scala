@@ -1,7 +1,7 @@
 package org.finos.morphir.ir
 
 import org.finos.morphir.ir.Module.Definition
-import org.finos.morphir.ir.{Literal => Lit}
+import org.finos.morphir.ir.Value.stringLiteral
 import org.finos.morphir.samples.ModuleExample.*
 import org.finos.morphir.syntax.AllSyntax
 import org.finos.morphir.testing.MorphirBaseSpec
@@ -27,7 +27,7 @@ object ModuleModuleSpec extends MorphirBaseSpec with AllSyntax {
       },
       test("Can look up values") {
         assertTrue(
-          moduleDef.lookupValueDefinition(Name("val")) == Some(Value.Definition.fromLiteral(Lit.string("string")))
+          moduleDef.lookupValueDefinition(Name("val")) == Some(Value.Definition.fromLiteral(stringLiteral("string")))
         )
       },
       test("Can be erased") {

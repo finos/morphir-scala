@@ -570,7 +570,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       val actual = variable("FizzBuzz")
       assertTrue(
         // actual.satisfies { case Variable(_, name) => name.toString == "[fizz, buzz]" },
-        actual == Variable[Any]((), "FizzBuzz"),
+        actual == Variable((), "FizzBuzz"),
         actual.toString == "fizzBuzz",
         actual.size == 1
       )

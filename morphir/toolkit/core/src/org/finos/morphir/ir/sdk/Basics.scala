@@ -7,6 +7,7 @@ import org.finos.morphir.ir.Type.{Type, UType, reference => tRef, tuple}
 import org.finos.morphir.ir.Value._
 import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.syntax.NamingSyntax._
+import org.finos.morphir.ir.NeedsAttributes
 
 object Basics {
   val moduleName: ModuleName = ModuleName.fromString("Basics")
@@ -102,10 +103,10 @@ object Basics {
   def orderType[A](attributes: A): Type[A] = tRef(attributes, (toFQName(moduleName, "Order")))
 
   def add: RawValue = reference(toFQName(moduleName, "add"))
-  def add[A](attributes: A): Value[Nothing, A] =
-    Value.Reference(attributes, toFQName(moduleName, "add"))
+  def add[A](attributes: A)(implicit ev: NeedsAttributes[A]): Value[Nothing, A] =
+    reference(attributes, toFQName(moduleName, "add"))
 
   def subtract: RawValue = reference(toFQName(moduleName, "subtract"))
-  def subtract[A](attributes: A): Value[Nothing, A] =
-    Value.Reference(attributes, toFQName(moduleName, "subtract"))
+  def subtract[A](attributes: A)(implicit ev: NeedsAttributes[A]): Value[Nothing, A] =
+    reference(attributes, toFQName(moduleName, "subtract"))
 }

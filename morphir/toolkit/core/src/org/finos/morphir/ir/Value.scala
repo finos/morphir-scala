@@ -35,6 +35,4 @@ package ir
  * (WholeNumberLiteral 2))
  * }}}
  */
-object Value extends internal.ValueModule {
-  final val Type: internal.MorphirTypeModule = ir.Type
-}
+object Value extends internal.ValueModule

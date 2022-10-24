@@ -6,7 +6,7 @@ import scala.annotation.tailrec
 import zio._
 import zio.prelude._
 
-trait TypeModule extends MorphirTypeModule { module =>
+trait TypeModule { module =>
 
   type FieldT[+A] = ir.Field[Type[A]]
   val FieldT: Field.type = ir.Field
@@ -19,6 +19,7 @@ trait TypeModule extends MorphirTypeModule { module =>
 
   type USpecification = module.Specification[scala.Unit]
 
+  type UType = module.Type[scala.Unit]
   val UType = module.Type
 
   final def curriedFunction(paramTypes: List[UType], returnType: UType): UType = {
@@ -98,7 +99,9 @@ trait TypeModule extends MorphirTypeModule { module =>
   final def function(argumentType: UType, returnType: UType): UType =
     Type.Function((), argumentType, returnType)
 
-    // Record constructors
+  final def mapTypeAttributes[A, B](tpe: Type[A])(f: A => B): Type[B] = tpe.mapAttributes(f)
+
+  // Record constructors
   final def record[A](attributes: A, fields: Chunk[Field[Type[A]]])(implicit ev: NeedsAttributes[A]): Type[A] =
     Type.Record(attributes, fields)
 
@@ -913,6 +916,11 @@ trait TypeModule extends MorphirTypeModule { module =>
     implicit class UTypeExtensions(private val self: UType) {
       def -->(that: UType): UType = Function(self, that)
     }
+  }
+
+  trait MorphirTypeModule {
+    def typeAttributes[A](tpe: Type[A]): A                        = module.typeAttributes(tpe)
+    def mapTypeAttributes[A, B](tpe: Type[A])(f: A => B): Type[B] = module.mapTypeAttributes(tpe)(f)
   }
 
 }

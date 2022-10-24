@@ -6,10 +6,8 @@ import zio.Chunk
 import org.finos.morphir.ir.Type.defineField
 import org.finos.morphir.ir.Type.{Type => IrType, UType}
 import org.finos.morphir.ir.Value.Pattern.LiteralPattern
-import org.finos.morphir.ir.Value.Value.{Unit => UnitType, _}
-import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Pattern, TypedValue}
-import org.finos.morphir.ir.sdk.Basics.{floatType, intType}
-import org.finos.morphir.ir.{Literal => Lit}
+import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Pattern, TypedValue, _}
+import org.finos.morphir.ir.sdk.Basics.{boolType, floatType, intType}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
@@ -93,12 +91,11 @@ object ValueModuleSpec extends MorphirBaseSpec {
       test("LetRecursion") {
         val lr = LetRecursion.Typed(
           "x" -> valueDef(intType)(
-            IfThenElse
-              .Typed(
-                condition = literal(false),
-                thenBranch = variable("y", intType),
-                elseBranch = literal(3)
-              )
+            ifThenElse(
+              condition = boolean(boolType, false),
+              thenBranch = variable(intType, "y"),
+              elseBranch = int(intType, 3)
+            )
           ),
           "y" ->
             valueDef(intType)(
@@ -606,7 +603,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
         assertTrue(value.toRawValue == variable(name))
       },
       test("Unit") {
-        assertTrue(UnitType(Type.unit).toRawValue == unit)
+        assertTrue(unit(Type.unit).toRawValue == unit)
       }
     )
   )
