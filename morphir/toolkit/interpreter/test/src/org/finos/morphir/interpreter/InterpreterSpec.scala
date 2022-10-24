@@ -12,10 +12,9 @@ import org.finos.morphir.ir.NativeFunction
 import org.finos.morphir.ir.FQName
 import org.finos.morphir.ir.NativeFunction._
 import org.finos.morphir.ir.value.recursive.ValueModule._
-import org.finos.morphir.ir.types.recursive.Type
 import org.finos.morphir.ir.Value.Value
+import org.finos.morphir.ir.Type.Type
 import org.finos.morphir.ir.Type.Specification.TypeAliasSpecification
-import org.finos.morphir.ir.Type.{Field, Type}
 import org.finos.morphir.IR.TypeConstructorInfo
 import org.finos.morphir.testing.MorphirBaseSpec
 import org.finos.morphir.testing.CaseExample._
