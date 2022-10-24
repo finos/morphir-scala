@@ -168,6 +168,19 @@ object morphir extends Module {
       }
     }
 
+    object interpreter extends MorphirScalaModule with MorphirPublishModule {
+      def crossScalaVersion = ScalaVersions.scala3x
+      def ivyDeps           = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`)
+      def moduleDeps =
+        Seq(
+          morphir.toolkit.core(crossScalaVersion),
+          morphir.toolkit.util
+        )
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(core(crossScalaVersion).test)
+      }
+    }
+
     object mir extends MorphirScalaModule with MorphirPublishModule {
       def crossScalaVersion = morphirScalaVersion
       def moduleDeps        = Seq(morphir.toolkit.util)
