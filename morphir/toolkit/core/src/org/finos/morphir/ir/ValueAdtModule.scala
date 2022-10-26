@@ -1,16 +1,110 @@
 package org.finos.morphir
 package ir
-package internal
-
-import org.finos.morphir.ir.sdk.List.listType
 import zio.{Chunk, NonEmptyChunk}
-import Type.{Type, UType}
+import Type.{tuple => tupleType, unit => unitType, Type, UType}
 
-trait ValueModule extends PatternModule with LiteralModule { module =>
-  import ValueAdt.{Literal => LiteralValue, _}
+trait ValueAdtModule { module: ValueModule =>
+
   final type RawValue       = Value[scala.Unit, scala.Unit]
   final type TypedValue     = Value[scala.Unit, UType]
   final type USpecification = Specification[scala.Unit]
+
+  sealed case class Definition[+TA, +VA](
+      inputTypes: Chunk[(Name, VA, Type[TA])],
+      outputType: Type[TA],
+      body: Value[TA, VA]
+  ) { self =>
+    def mapAttributes[TB, VB](f: TA => TB, g: VA => VB): Definition[TB, VB] = ???
+    def toSpecification: Specification[TA] =
+      Specification(self.inputTypes.map { case (name, _, tpe) => name -> tpe }, self.outputType)
+
+  }
+
+  object Definition {
+    def apply[TA, VA](outputType: Type[TA], body: Value[TA, VA]): Definition[TA, VA] =
+      Definition(Chunk.empty, outputType, body)
+
+    def apply[TA, VA](
+        inputTypes: (String, VA, Type[TA])*
+    )(outputType: Type[TA])(body: Value[TA, VA]): Definition[TA, VA] = {
+      val args = Chunk.fromIterable(inputTypes.map { case (n, va, t) => (Name.fromString(n), va, t) })
+      Definition(args, outputType, body)
+    }
+
+    def fromRawValue(value: (RawValue, UType)): Definition.Raw =
+      Definition(
+        inputTypes = Chunk.empty,
+        outputType = value._2,
+        body = value._1
+      )
+
+    def fromRawValue(value: RawValue, outputType: UType): Definition.Raw =
+      Definition(
+        inputTypes = Chunk.empty,
+        outputType = outputType,
+        body = value
+      )
+
+    def fromTypedValue(value: TypedValue): Definition.Typed =
+      Definition(
+        inputTypes = Chunk.empty,
+        outputType = value.attributes,
+        body = value
+      )
+
+    type Raw = Definition[scala.Unit, scala.Unit]
+    object Raw {
+
+      def apply(inputTypes: Chunk[(Name, UType)], outputType: UType, body: RawValue): Raw =
+        Definition(inputTypes.map { case (n, t) => (n, (), t) }, outputType, body)
+
+      def apply(outputType: UType, body: RawValue): Raw =
+        Definition(
+          inputTypes = Chunk.empty,
+          outputType = outputType,
+          body = body
+        )
+
+      def apply(inputTypes: (String, UType)*)(outputType: UType)(body: RawValue): Raw = {
+        val args = Chunk.fromIterable(inputTypes.map { case (n, t) => (Name.fromString(n), (), t) })
+        Definition(args, outputType, body)
+      }
+    }
+    type Typed = Definition[scala.Unit, UType]
+    object Typed {
+      def apply(inputTypes: (String, UType)*)(outputType: UType)(body: TypedValue): Typed = {
+        val args = Chunk.fromIterable(inputTypes.map { case (n, t) => (Name.fromString(n), t, t) })
+        Definition(args, outputType, body)
+      }
+    }
+  }
+
+  sealed case class Specification[+TA](inputs: Chunk[(Name, Type[TA])], output: Type[TA]) { self =>
+    def map[B](f: TA => B): Specification[B] =
+      Specification(
+        inputs = inputs.map { case (name, tpe) => (name, Type.mapTypeAttributes(tpe)(f)) },
+        output = Type.mapTypeAttributes(output)(f)
+      )
+  }
+
+  object Specification {
+    def create[Attributes](inputs: (Name, Type[Attributes])*): Inputs[Attributes] =
+      new Inputs(() => Chunk.fromIterable(inputs))
+
+    type Raw = Specification[scala.Unit]
+    object Raw {
+      def apply(inputs: (String, UType)*)(output: UType): Raw =
+        Specification(
+          inputs = Chunk.fromIterable(inputs.map { case (n, t) => Name.fromString(n) -> t }),
+          output = output
+        )
+    }
+
+    final class Inputs[A](private val inputs: () => Chunk[(Name, Type[A])]) {
+      def apply(output: Type[A]): Specification[A] =
+        Specification(inputs(), output)
+    }
+  }
 
   sealed trait Value[+TA, +VA] {
     def attributes: VA
@@ -21,77 +115,6 @@ trait ValueModule extends PatternModule with LiteralModule { module =>
   }
 
   object Value {
-
-    trait Folder[-Context, -TA, -VA, Z] {
-
-      def applyCase(context: Context, value: Value[TA, VA], attributes: VA, function: Z, argument: Z): Z
-      def constructorCase(context: Context, value: Value[TA, VA], attributes: VA, name: FQName): Z
-      def destructureCase(
-          context: Context,
-          value: Value[TA, VA],
-          attributes: VA,
-          pattern: Pattern[VA],
-          valueToDestruct: Z,
-          inValue: Z
-      ): Z
-      def fieldCase(context: Context, value: Value[TA, VA], attributes: VA, subjectValue: Z, fieldName: Name): Z
-      def fieldFunctionCase(context: Context, value: Value[TA, VA], attributes: VA, fieldName: Name): Z
-      def ifThenElseCase(
-          context: Context,
-          value: Value[TA, VA],
-          attributes: VA,
-          condition: Z,
-          thenBranch: Z,
-          elseBranch: Z
-      ): Z
-      def lambdaCase(context: Context, value: Value[TA, VA], attributes: VA, argumentPattern: Pattern[VA], body: Z): Z
-      def letDefCase(
-          context: Context,
-          value: Value[TA, VA],
-          attributes: VA,
-          valueName: Name,
-          valueDefinition: (Chunk[(Name, VA, Type[TA])], Type[TA], Z),
-          inValue: Z
-      ): Z
-      def letDestruvt(
-          context: Context,
-          value: Value[TA, VA],
-          attributes: VA,
-          valueDefinitions: Map[Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z)],
-          inValue: Z
-      ): Z
-      def letRecCase(
-          context: Context,
-          value: Value[TA, VA],
-          attributes: VA,
-          valueDefinitions: Map[Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z)],
-          inValue: Z
-      ): Z
-      def listCase(context: Context, value: Value[TA, VA], attributes: VA, elements: Chunk[Z]): Z
-      def literalCase(context: Context, value: Value[TA, VA], attributes: VA, literal: Lit): Z
-      def patternMatchCase(
-          context: Context,
-          value: Value[TA, VA],
-          attributes: VA,
-          branchOutOn: Z,
-          cases: Chunk[(Pattern[VA], Z)]
-      ): Z
-      def recordCase(context: Context, value: Value[TA, VA], attributes: VA, fields: Chunk[(Name, Z)]): Z
-      def referenceCase(context: Context, value: Value[TA, VA], attributes: VA, name: FQName): Z
-      def tupleCase(context: Context, value: Value[TA, VA], attributes: VA, elements: Chunk[Z]): Z
-      def unitCase(context: Context, value: Value[TA, VA], attributes: VA): Z
-      def updateRecordCase(
-          context: Context,
-          value: Value[TA, VA],
-          attributes: VA,
-          valueToUpdate: Z,
-          fieldsToUpdate: Map[Name, Z]
-      ): Z
-      def variableCase(context: Context, value: Value[TA, VA], attributes: VA, name: Name): Z
-    }
-  }
-
-  private[ir] object ValueAdt {
 
     /**
      * Represents a function application. The two arguments are the target function and the argument to apply.
@@ -397,6 +420,20 @@ trait ValueModule extends PatternModule with LiteralModule { module =>
           LetDefinition(inValue.attributes, Name.fromString(name), valueDefinition, inValue)
 
       }
+      sealed case class Unbound[+TA, +VA](name: Name, valueDefinition: Definition[TA, VA]) {
+        def bind[TB >: TA, VB >: VA](value: Value[TB, VB]): Value[TB, VB] =
+          LetDefinition(value.attributes, name, valueDefinition, value)
+
+        def in[TB >: TA, VB >: VA](value: Value[TB, VB]): Value[TB, VB] =
+          LetDefinition(value.attributes, name, valueDefinition, value)
+
+        override def toString(): String = {
+          val args = valueDefinition.inputTypes.map(_._1.toCamelCase).mkString(" ")
+          val body = valueDefinition.body.toString()
+          s"let ${name.toCamelCase}$args = $body"
+        }
+      }
+
     }
 
     sealed case class LetRecursion[+TA, +VA](
@@ -406,8 +443,56 @@ trait ValueModule extends PatternModule with LiteralModule { module =>
     ) extends Value[TA, VA]
 
     object LetRecursion {
-      type Raw   = LetRecursion[scala.Unit, scala.Unit]
+      def apply[TA, VA](attributes: VA, valueDefinitions: (String, Definition[TA, VA])*)(
+          inValue: Value[TA, VA]
+      ): LetRecursion[TA, VA] =
+        LetRecursion(
+          attributes,
+          valueDefinitions.map { case (n, d) => (Name.fromString(n), d) }.toMap,
+          inValue
+        )
+
+      type Raw = LetRecursion[scala.Unit, scala.Unit]
+      object Raw {
+        def apply(valueDefinitions: Map[Name, Definition.Raw], inValue: RawValue): RawValue =
+          LetRecursion(inValue.attributes, valueDefinitions.map { case (n, d) => (n, d) }, inValue)
+
+        def apply(valueDefinitions: (String, Definition.Raw)*)(inValue: RawValue): RawValue =
+          LetRecursion(
+            inValue.attributes,
+            valueDefinitions.map { case (n, d) => (Name.fromString(n), d) }.toMap,
+            inValue
+          )
+
+      }
       type Typed = LetRecursion[scala.Unit, UType]
+      object Typed {
+        def apply(
+            tpe: UType,
+            valueDefinitions: Map[Name, Definition.Typed],
+            inValue: TypedValue
+        ): Typed =
+          LetRecursion(tpe, valueDefinitions.map { case (n, d) => (n, d) }, inValue)
+
+        def apply(tpe: UType, valueDefinitions: (String, Definition[scala.Unit, UType])*)(
+            inValue: TypedValue
+        ): Typed =
+          LetRecursion(tpe, valueDefinitions.map { case (n, d) => (Name.fromString(n), d) }.toMap, inValue)
+
+        def apply(
+            valueDefinitions: Map[Name, Definition.Typed],
+            inValue: TypedValue
+        ): Typed = LetRecursion(inValue.attributes, valueDefinitions.map { case (n, d) => (n, d) }, inValue)
+
+        def apply(valueDefinitions: (String, Definition[scala.Unit, UType])*)(
+            inValue: TypedValue
+        ): Typed =
+          LetRecursion(
+            inValue.attributes,
+            valueDefinitions.map { case (n, d) => (Name.fromString(n), d) }.toMap,
+            inValue
+          )
+      }
     }
 
     sealed case class List[+TA, +VA](attributes: VA, elements: Chunk[Value[TA, VA]]) extends Value[TA, VA]
@@ -430,10 +515,9 @@ trait ValueModule extends PatternModule with LiteralModule { module =>
       object Typed {
         def apply(tpe: UType, elements: Chunk[TypedValue]): Typed = List(tpe, elements)
 
-        def apply(elements: NonEmptyChunk[TypedValue]): Typed = {
-          val tpe = ir.sdk.List.listType(elements.head.attributes)
-          List(tpe, elements)
-        }
+        def apply(elements: NonEmptyChunk[TypedValue]): Typed =
+          // val tpe = sdk.List.listType(elements.head.attributes)
+          List( /*tpe*/ ???, elements)
 
         def apply(tpe: UType, elements: TypedValue*): Typed =
           List(tpe, Chunk.fromIterable(elements))
@@ -574,8 +658,8 @@ trait ValueModule extends PatternModule with LiteralModule { module =>
       type Typed = Tuple[scala.Unit, UType]
       object Typed {
         def apply(elements: Chunk[TypedValue]): Typed = {
-          val tupleType = ir.Type.tuple(elements.map(_.attributes))
-          Tuple(tupleType, elements)
+          val tpe = tupleType(elements.map(_.attributes))
+          Tuple(tpe, elements)
         }
 
         def apply(elements: TypedValue*): Typed = apply(Chunk.fromIterable(elements))
@@ -600,7 +684,7 @@ trait ValueModule extends PatternModule with LiteralModule { module =>
 
       type Typed = Unit[UType]
       object Typed {
-        def apply: Typed             = Unit(ir.Type.unit)
+        def apply: Typed             = Unit(unitType)
         def apply(tpe: UType): Typed = Unit(tpe)
 
         def unapply(value: TypedValue): Option[UType] = value match {
@@ -644,309 +728,74 @@ trait ValueModule extends PatternModule with LiteralModule { module =>
         }
       }
     }
-  }
 
-  sealed case class Definition[+TA, +VA](
-      inputTypes: Chunk[(Name, VA, Type[TA])],
-      outputType: Type[TA],
-      body: Value[TA, VA]
-  ) { self =>
-    def mapAttributes[TB, VB](f: TA => TB, g: VA => VB): Definition[TB, VB] = ???
-    def toSpecification: Specification[TA] =
-      Specification(self.inputTypes.map { case (name, _, tpe) => name -> tpe }, self.outputType)
+    trait Folder[-Context, -TA, -VA, Z] {
 
-  }
-
-  object Definition {
-    def apply[TA, VA](outputType: Type[TA], body: Value[TA, VA]): Definition[TA, VA] =
-      Definition(Chunk.empty, outputType, body)
-
-    def apply[TA, VA](
-        inputTypes: (String, VA, Type[TA])*
-    )(outputType: Type[TA])(body: Value[TA, VA]): Definition[TA, VA] = {
-      val args = Chunk.fromIterable(inputTypes.map { case (n, va, t) => (Name.fromString(n), va, t) })
-      Definition(args, outputType, body)
-    }
-
-    def fromRawValue(value: (RawValue, UType)): Definition.Raw =
-      Definition(
-        inputTypes = Chunk.empty,
-        outputType = value._2,
-        body = value._1
-      )
-
-    def fromRawValue(value: RawValue, outputType: UType): Definition.Raw =
-      Definition(
-        inputTypes = Chunk.empty,
-        outputType = outputType,
-        body = value
-      )
-
-    def fromTypedValue(value: TypedValue): Definition.Typed =
-      Definition(
-        inputTypes = Chunk.empty,
-        outputType = value.attributes,
-        body = value
-      )
-
-    type Raw = Definition[scala.Unit, scala.Unit]
-    object Raw {
-
-      def apply(inputTypes: Chunk[(Name, UType)], outputType: UType, body: RawValue): Raw =
-        Definition(inputTypes.map { case (n, t) => (n, (), t) }, outputType, body)
-
-      def apply(outputType: UType, body: RawValue): Raw =
-        Definition(
-          inputTypes = Chunk.empty,
-          outputType = outputType,
-          body = body
-        )
-
-      def apply(inputTypes: (String, UType)*)(outputType: UType)(body: RawValue): Raw = {
-        val args = Chunk.fromIterable(inputTypes.map { case (n, t) => (Name.fromString(n), (), t) })
-        Definition(args, outputType, body)
-      }
-    }
-    type Typed = Definition[scala.Unit, UType]
-    object Typed {
-      def apply(inputTypes: (String, UType)*)(outputType: UType)(body: TypedValue): Typed = {
-        val args = Chunk.fromIterable(inputTypes.map { case (n, t) => (Name.fromString(n), t, t) })
-        Definition(args, outputType, body)
-      }
+      def applyCase(context: Context, value: Value[TA, VA], attributes: VA, function: Z, argument: Z): Z
+      def constructorCase(context: Context, value: Value[TA, VA], attributes: VA, name: FQName): Z
+      def destructureCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          pattern: Pattern[VA],
+          valueToDestruct: Z,
+          inValue: Z
+      ): Z
+      def fieldCase(context: Context, value: Value[TA, VA], attributes: VA, subjectValue: Z, fieldName: Name): Z
+      def fieldFunctionCase(context: Context, value: Value[TA, VA], attributes: VA, fieldName: Name): Z
+      def ifThenElseCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          condition: Z,
+          thenBranch: Z,
+          elseBranch: Z
+      ): Z
+      def lambdaCase(context: Context, value: Value[TA, VA], attributes: VA, argumentPattern: Pattern[VA], body: Z): Z
+      def letDefCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          valueName: Name,
+          valueDefinition: (Chunk[(Name, VA, Type[TA])], Type[TA], Z),
+          inValue: Z
+      ): Z
+      def letDestruvt(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          valueDefinitions: Map[Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z)],
+          inValue: Z
+      ): Z
+      def letRecCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          valueDefinitions: Map[Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z)],
+          inValue: Z
+      ): Z
+      def listCase(context: Context, value: Value[TA, VA], attributes: VA, elements: Chunk[Z]): Z
+      def literalCase(context: Context, value: Value[TA, VA], attributes: VA, literal: Lit): Z
+      def patternMatchCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          branchOutOn: Z,
+          cases: Chunk[(Pattern[VA], Z)]
+      ): Z
+      def recordCase(context: Context, value: Value[TA, VA], attributes: VA, fields: Chunk[(Name, Z)]): Z
+      def referenceCase(context: Context, value: Value[TA, VA], attributes: VA, name: FQName): Z
+      def tupleCase(context: Context, value: Value[TA, VA], attributes: VA, elements: Chunk[Z]): Z
+      def unitCase(context: Context, value: Value[TA, VA], attributes: VA): Z
+      def updateRecordCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          valueToUpdate: Z,
+          fieldsToUpdate: Map[Name, Z]
+      ): Z
+      def variableCase(context: Context, value: Value[TA, VA], attributes: VA, name: Name): Z
     }
   }
 
-  sealed case class Specification[+TA](inputs: Chunk[(Name, Type[TA])], output: Type[TA]) { self =>
-    def map[B](f: TA => B): Specification[B] =
-      Specification(
-        inputs = inputs.map { case (name, tpe) => (name, Type.mapTypeAttributes(tpe)(f)) },
-        output = Type.mapTypeAttributes(output)(f)
-      )
-  }
-
-  object Specification {
-    def create[Attributes](inputs: (Name, Type[Attributes])*): Inputs[Attributes] =
-      new Inputs(() => Chunk.fromIterable(inputs))
-
-    type Raw = Specification[scala.Unit]
-    object Raw {
-      def apply(inputs: (String, UType)*)(output: UType): Raw =
-        Specification(
-          inputs = Chunk.fromIterable(inputs.map { case (n, t) => Name.fromString(n) -> t }),
-          output = output
-        )
-    }
-
-    final class Inputs[A](private val inputs: () => Chunk[(Name, Type[A])]) {
-      def apply(output: Type[A]): Specification[A] =
-        Specification(inputs(), output)
-    }
-  }
-
-  final def apply[TA, VA](
-      attributes: VA,
-      function: Value[TA, VA],
-      argument: Value[TA, VA],
-      arguments: Value[TA, VA]*
-  ): Value[TA, VA] =
-    Apply(attributes, function, argument, arguments: _*)
-
-  final def apply(function: RawValue, argument: RawValue): RawValue = Apply.Raw(function, argument)
-
-  final def apply(function: TypedValue, argument: TypedValue, arguments: TypedValue*): TypedValue =
-    Apply.Typed(function, argument, arguments: _*)
-
-  final def boolean[A](attributes: A, value: Boolean): Value[Nothing, A] = LiteralValue(attributes, boolLiteral(value))
-  final def boolean(value: Boolean): RawValue                            = LiteralValue.Raw(boolLiteral(value))
-
-  final def constructor[A](attributes: A, name: String): Value[Nothing, A] = Constructor(attributes, name)
-  final def constructor[A](attributes: A, name: FQName): Value[Nothing, A] = Constructor(attributes, name)
-  final def constructor(name: String): RawValue                            = Constructor.Raw(name)
-  final def constructor(name: FQName): RawValue                            = Constructor.Raw(name)
-  final def constructor(name: String, tpe: UType): TypedValue              = Constructor.Typed(name, tpe)
-  final def constructor(name: FQName, tpe: UType): TypedValue              = Constructor.Typed(name, tpe)
-
-  final def decimal[A](attributes: A, value: BigDecimal): Value[Nothing, A] =
-    LiteralValue(attributes, Lit.decimal(value))
-  final def decimal(value: BigDecimal): RawValue = LiteralValue.Raw(Lit.decimal(value))
-
-  final def destructure[TA, VA](
-      attributes: VA,
-      pattern: Pattern[VA],
-      valueToDestruct: Value[TA, VA],
-      inValue: Value[TA, VA]
-  ): Value[TA, VA] = Destructure(attributes, pattern, valueToDestruct, inValue)
-
-  final def destructure(pattern: UPattern, valueToDestruct: RawValue, inValue: RawValue): RawValue =
-    Destructure.Raw(pattern, valueToDestruct, inValue)
-
-  final def field[TA, VA](attributes: VA, target: Value[TA, VA], name: Name): Value[TA, VA] =
-    Field(attributes, target, name)
-
-  final def field[TA, VA](attributes: VA, target: Value[TA, VA], name: String): Value[TA, VA] =
-    Field(attributes, target, name)
-
-  final def field(target: RawValue, name: Name): RawValue = Field.Raw(target, name)
-
-  final def field(target: RawValue, name: String): RawValue = Field.Raw(target, name)
-
-  final def fieldFunction[A](attributes: A, name: String): Value[Nothing, A] = FieldFunction(attributes, name)
-  final def fieldFunction[A](attributes: A, name: Name): Value[Nothing, A]   = FieldFunction(attributes, name)
-  final def fieldFunction(name: String, tpe: UType): TypedValue              = FieldFunction.Typed(tpe, name)
-  final def fieldFunction(name: Name, tpe: UType): TypedValue                = FieldFunction.Typed(tpe, name)
-  final def fieldFunction(name: String): RawValue                            = FieldFunction.Raw(name)
-  final def fieldFunction(name: Name): RawValue                              = FieldFunction.Raw(name)
-
-  final def float[A](attributes: A, value: Double): Value[Nothing, A] = LiteralValue(attributes, Lit.float(value))
-  final def float(value: Double): RawValue                            = LiteralValue.Raw(Lit.float(value))
-  final def float[A](attributes: A, value: Float): Value[Nothing, A]  = LiteralValue(attributes, Lit.float(value))
-  final def float(value: Float): RawValue                             = LiteralValue.Raw(Lit.float(value))
-
-  final def ifThenElse[TA, VA](
-      attributes: VA,
-      condition: Value[TA, VA],
-      thenBranch: Value[TA, VA],
-      elseBranch: Value[TA, VA]
-  ): Value[TA, VA] = IfThenElse(attributes, condition, thenBranch, elseBranch)
-
-  final def ifThenElse(condition: RawValue, thenBranch: RawValue, elseBranch: RawValue): RawValue =
-    IfThenElse.Raw(condition, thenBranch, elseBranch)
-
-  final def int[A](attributes: A, value: Int): Value[Nothing, A] = LiteralValue(attributes, Lit.int(value))
-  final def int(value: Int): RawValue                            = LiteralValue.Raw(Lit.int(value))
-
-  final def lambda[TA, VA](attributes: VA, argumentPattern: Pattern[VA], body: Value[TA, VA]): Value[TA, VA] =
-    Lambda(attributes, argumentPattern, body)
-
-  final def lambda(argumentPattern: UPattern, body: RawValue): RawValue = Lambda.Raw(argumentPattern, body)
-
-  final def list[TA, VA](attributes: VA, values: Chunk[Value[TA, VA]]): Value[TA, VA] =
-    List(attributes, values)
-
-  final def list[TA, VA](attributes: VA, values: Value[TA, VA]*)(implicit ev: IsNotAValue[VA]): Value[TA, VA] =
-    List(attributes, values: _*)
-
-  final def list(elements: Chunk[RawValue]): RawValue = List.Raw(elements)
-  final def list(elements: RawValue*): RawValue       = List.Raw(elements: _*)
-
-  final def listOf[TA](elementType: UType, elements: Value[TA, UType]*): Value[TA, UType] =
-    List(listType(elementType), elements: _*)
-
-  final def listOf(elements: RawValue*)(elementType: UType): TypedValue =
-    List(listType(elementType), elements.map(e => (e :> elementType)): _*)
-
-  final def literal[VA](attributes: VA, literal: Lit): Value[Nothing, VA] = LiteralValue(attributes, literal)
-  final def literal(literal: Lit): RawValue                               = LiteralValue.Raw(literal)
-
-  final def record[TA, VA](attributes: VA, fields: Chunk[(Name, Value[TA, VA])]): Value[TA, VA] =
-    Record(attributes, fields)
-
-  final def record[TA, VA](attributes: VA, fields: Map[Name, Value[TA, VA]]): Value[TA, VA] =
-    Record.fromMap(attributes, fields)
-
-  final def record[TA, VA](attributes: VA, fields: (String, Value[TA, VA])*)(implicit
-      ev: IsNotAValue[VA]
-  ): Value[TA, VA] = Record(attributes, fields: _*)
-
-  final def record(fields: Chunk[(Name, RawValue)]): RawValue = Record.Raw(fields)
-  final def record(fields: (String, RawValue)*): RawValue     = Record.Raw(fields: _*)
-  final def record(firstField: (Name, RawValue), otherFields: (Name, RawValue)*): RawValue =
-    Record.Raw(firstField +: Chunk.fromIterable(otherFields))
-
-  def reference[VA](attributes: VA, fullyQualifiedName: FQName)(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA] =
-    Reference(attributes, fullyQualifiedName)
-
-  final def reference[A](attributes: A, fullyQualifiedName: String)(implicit
-      ev: NeedsAttributes[A]
-  ): Value[Nothing, A] =
-    Reference(attributes, fullyQualifiedName)
-  final def reference(fullyQualifiedName: String, tpe: UType): TypedValue = Reference.Typed(tpe, fullyQualifiedName)
-  final def reference(fullyQualifiedName: FQName, tpe: UType): TypedValue = Reference.Typed(tpe, fullyQualifiedName)
-  final def reference[A](
-      attributes: A,
-      packageName: String,
-      moduleName: String,
-      localName: String
-  ): Value[Nothing, A] =
-    Reference(attributes, packageName, moduleName, localName)
-  final def reference(fullyQualifiedName: String): RawValue = Reference.Raw(fullyQualifiedName)
-  final def reference(fullyQualifiedName: FQName): RawValue = Reference.Raw(fullyQualifiedName)
-  final def reference(packageName: String, moduleName: String, localName: String): RawValue =
-    Reference.Raw(packageName, moduleName, localName)
-
-  final def string[VA](attributes: VA, value: String): Value[Nothing, VA] =
-    LiteralValue(attributes, stringLiteral(value))
-  final def string(value: String): RawValue = LiteralValue.Raw(stringLiteral(value))
-
-  final def tuple[TA, VA](attributes: VA, elements: Chunk[Value[TA, VA]]): Value[TA, VA] = Tuple(attributes, elements)
-  final def tuple[TA, VA](attributes: VA, first: Value[TA, VA], second: Value[TA, VA], otherElements: Value[TA, VA]*)(
-      implicit ev: IsNotAValue[VA]
-  ): Value[TA, VA] = Tuple(attributes, first +: second +: Chunk.fromIterable(otherElements))
-
-  final def tuple(elements: RawValue*): RawValue       = Tuple.Raw(elements: _*)
-  final def tuple(elements: Chunk[RawValue]): RawValue = Tuple.Raw(elements)
-  final def tuple(element: (RawValue, UType), elements: (RawValue, UType)*): TypedValue =
-    Tuple.Typed(Chunk.fromIterable((element +: elements).map { case (v, t) => v :> t }))
-
-  def unit[VA](attributes: VA)(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA] = Unit(attributes)
-  final val unit: RawValue                                                           = unit(())
-
-  def update[TA, VA](attributes: VA, valueToUpdate: Value[TA, VA], fieldsToUpdate: Map[Name, Value[TA, VA]])(implicit
-      ev: NeedsAttributes[VA]
-  ): Value[TA, VA] = UpdateRecord(attributes, valueToUpdate, fieldsToUpdate)
-
-  final def variable[A](attributes: A, name: Name): Value[Nothing, A]   = Variable(attributes, name)
-  final def variable[A](attributes: A, name: String): Value[Nothing, A] = Variable(attributes, name)
-  final def variable(name: Name): RawValue                              = Variable.Raw(name)
-  final def variable(name: String): RawValue                            = Variable.Raw(name)
-  final def variable(name: String, tpe: UType): TypedValue              = Variable.Typed(tpe, name)
-  final def variable(name: Name, tpe: UType): TypedValue                = Variable.Typed(tpe, name)
-
-  final def wholeNumber(value: Long): RawValue =
-    literal(Lit.wholeNumber(value))
-
-  final def wholeNumber(value: Int): RawValue =
-    literal(Lit.wholeNumber(value))
-  trait MorphirValueModule { self =>
-    final type Value[+TA, +VA] = module.Value[TA, VA]
-    final type RawValue        = Value[scala.Unit, scala.Unit]
-    final type TypedValue      = Value[scala.Unit, UType]
-
-    final def definitionToSpecification[TA, VA](definition: Definition[TA, VA]): Specification[TA] =
-      definition.toSpecification
-
-    def record[TA, VA](attributes: VA, fields: Chunk[(Name, Value[TA, VA])]): Value[TA, VA] =
-      module.record(attributes, fields)
-
-    def record[TA, VA](attributes: VA, fields: Map[Name, Value[TA, VA]]): Value[TA, VA] =
-      module.record(attributes, fields)
-
-    def record[TA, VA](attributes: VA, fields: (String, Value[TA, VA])*)(implicit
-        ev: IsNotAValue[VA]
-    ): Value[TA, VA] = module.record(attributes, fields: _*)
-
-    def record(fields: Chunk[(Name, RawValue)]): RawValue = module.record(fields)
-    def record(fields: (String, RawValue)*): RawValue     = module.record(fields: _*)
-    def record(firstField: (Name, RawValue), otherFields: (Name, RawValue)*): RawValue =
-      module.record(firstField, otherFields: _*)
-
-    def unit[VA](attributes: VA)(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA]
-    final val unit: RawValue = unit(())
-
-    def update[TA, VA](attributes: VA, valueToUpdate: Value[TA, VA], fieldsToUpdate: Map[Name, Value[TA, VA]])(implicit
-        ev: NeedsAttributes[VA]
-    ): Value[TA, VA]
-  }
-
-  implicit class RawValueExtensions(private val self: RawValue) {
-
-    /**
-     * Ascribe the given type to this `RawValue` and all its children.
-     * ===NOTE===
-     * This is a recursive operation and all children of this `RawValue` will also be ascribed with the given value.
-     */
-    def :>(ascribedType: UType): TypedValue = self.mapAttributes(identity, _ => ascribedType)
-
-    def toValDef(returnType: UType): Definition[Any, UType] = Definition(returnType, self :> returnType)
-  }
 }

@@ -1,5 +1,8 @@
-package org.finos.morphir.ir.internal
+package org.finos.morphir
+package ir
+
 import java.math.{BigDecimal => BigDec}
+import Type.UType
 
 trait LiteralModule { module =>
 
@@ -45,5 +48,16 @@ trait LiteralModule { module =>
     sealed case class FloatLiteral(value: Double)       extends Literal
     sealed case class StringLiteral(value: String)      extends Literal
     sealed case class WholeNumberLiteral(value: Long)   extends Literal
+
+    implicit val LiteralInferredTypeOf: InferredTypeOf[Literal] = new InferredTypeOf[Literal] {
+      override def inferredType(value: Literal): UType = value match {
+        case BoolLiteral(_)        => sdk.Basics.boolType
+        case CharLiteral(_)        => sdk.Char.charType
+        case DecimalLiteral(_)     => sdk.Decimal.decimalType
+        case FloatLiteral(_)       => sdk.Basics.floatType
+        case StringLiteral(_)      => sdk.String.stringType
+        case WholeNumberLiteral(_) => sdk.Basics.intType
+      }
+    }
   }
 }

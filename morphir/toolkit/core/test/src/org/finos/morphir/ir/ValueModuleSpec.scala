@@ -7,6 +7,7 @@ import org.finos.morphir.ir.Type.defineField
 import org.finos.morphir.ir.Type.{Type => IrType, UType}
 import org.finos.morphir.ir.Value.Pattern.LiteralPattern
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Pattern, TypedValue, _}
+import Value._
 import org.finos.morphir.ir.sdk.Basics.{boolType, floatType, intType}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._

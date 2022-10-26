@@ -1,6 +1,6 @@
 package org.finos.morphir
 package ir
-package internal
+
 import io.TypeWriter
 import scala.annotation.tailrec
 import zio._

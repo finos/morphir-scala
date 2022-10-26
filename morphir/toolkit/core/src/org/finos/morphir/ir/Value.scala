@@ -35,4 +35,4 @@ package ir
  * (WholeNumberLiteral 2))
  * }}}
  */
-object Value extends internal.ValueModule
+object Value extends ValueModule

@@ -1,10 +1,9 @@
 package org.finos.morphir
 package ir
-package internal
 
 import zio.Chunk
 
-trait PatternModule extends LiteralModule { module =>
+trait PatternModule { module: LiteralModule =>
   import Pattern._
 
   final type APattern = Pattern[Attributes]
@@ -22,11 +21,17 @@ trait PatternModule extends LiteralModule { module =>
   /**
    * Destructure a tuple using a pattern for every element
    */
-  def tuplePattern[A](attributes: A, elementPatterns: Chunk[Pattern[A]])(implicit ev: NeedsAttributes[A]): Pattern[A] =
-    TuplePattern(attributes, elementPatterns)
+  final def tuplePattern[A](attributes: A, patterns: Chunk[Pattern[A]]): Pattern[A] =
+    Pattern.TuplePattern(attributes = attributes, elementPatterns = patterns)
 
-  def tuplePattern[A](attributes: A, elementPatterns: List[Pattern[A]])(implicit ev: NeedsAttributes[A]): Pattern[A] =
-    TuplePattern(attributes, Chunk.fromIterable(elementPatterns))
+  final def tuplePattern[A](attributes: A, patterns: Pattern[A]*)(implicit ev: Not[A <:< Pattern[_]]): Pattern[A] =
+    Pattern.TuplePattern(attributes = attributes, elementPatterns = Chunk.fromIterable(patterns))
+
+  final def tuplePattern(patterns: Chunk[UPattern]): UPattern =
+    Pattern.TuplePattern(attributes = (), elementPatterns = patterns)
+
+  final def tuplePattern(patterns: UPattern*): UPattern =
+    Pattern.TuplePattern(attributes = (), elementPatterns = Chunk.fromIterable(patterns))
 
   final def unitPattern: UPattern                     = Pattern.UnitPattern(())
   final def unitPattern[A](attributes: A): Pattern[A] = Pattern.UnitPattern(attributes)
