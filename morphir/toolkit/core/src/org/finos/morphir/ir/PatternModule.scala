@@ -2,8 +2,9 @@ package org.finos.morphir
 package ir
 
 import zio.Chunk
+import Literal.Literal
 
-trait PatternModule { module: LiteralModule =>
+trait PatternModule { module =>
   import Pattern._
 
   final type APattern = Pattern[Attributes]

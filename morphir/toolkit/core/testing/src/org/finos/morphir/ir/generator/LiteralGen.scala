@@ -2,7 +2,7 @@ package org.finos.morphir
 package ir
 package generator
 
-import org.finos.morphir.ir.Value.Literal
+import org.finos.morphir.ir.Literal.Literal
 import org.finos.morphir.testing.generators.WordGen
 import zio.test.Gen
 

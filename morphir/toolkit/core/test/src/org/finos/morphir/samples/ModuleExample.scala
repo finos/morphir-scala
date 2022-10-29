@@ -1,11 +1,12 @@
 package org.finos.morphir.samples
 
 import zio.Chunk
+import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Module.{Definition, Specification}
 import org.finos.morphir.ir.Type.Definition.{CustomType, TypeAlias}
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type.{Constructors, UType, variable => typeVar}
-import org.finos.morphir.ir.Value.{Definition => ValueDefinition, USpecification => UValueSpec, Lit}
+import org.finos.morphir.ir.Value.{Definition => ValueDefinition, USpecification => UValueSpec}
 import org.finos.morphir.ir.{AccessControlled, Documented, Name, Value}
 
 object ModuleExample {

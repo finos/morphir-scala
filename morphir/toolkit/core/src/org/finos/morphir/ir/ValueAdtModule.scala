@@ -2,8 +2,9 @@ package org.finos.morphir
 package ir
 import zio.{Chunk, NonEmptyChunk}
 import Type.{tuple => tupleType, unit => unitType, Type, UType}
-
-trait ValueAdtModule { module: ValueModule =>
+import Literal.Lit
+import scala.annotation.tailrec
+private[ir] trait ValueAdtModule { module: ValueModule =>
 
   final type RawValue       = Value[scala.Unit, scala.Unit]
   final type TypedValue     = Value[scala.Unit, UType]
@@ -29,6 +30,11 @@ trait ValueAdtModule { module: ValueModule =>
     )(outputType: Type[TA])(body: Value[TA, VA]): Definition[TA, VA] = {
       val args = Chunk.fromIterable(inputTypes.map { case (n, va, t) => (Name.fromString(n), va, t) })
       Definition(args, outputType, body)
+    }
+
+    def fromLiteral(literal: Lit): Typed = {
+      val tpe = literal.inferredType
+      Definition(outputType = tpe, body = Value.Literal(tpe, literal))
     }
 
     def fromRawValue(value: (RawValue, UType)): Definition.Raw =
@@ -106,10 +112,36 @@ trait ValueAdtModule { module: ValueModule =>
     }
   }
 
-  sealed trait Value[+TA, +VA] {
+  sealed trait Value[+TA, +VA] { self =>
+    import Value.{List => ListValue, _}
     def attributes: VA
-    def collectReferences: Set[FQName]                                 = ???
-    def collectVariables: Set[Name]                                    = ???
+    def collectReferences: Set[FQName] = ???
+    def collectVariables: Set[Name]    = ???
+    def foldContext[C, TA1 >: TA, VA1 >: VA, Z](context: C)(folder: Folder[C, TA1, VA1, Z]): Z = {
+      import folder._
+      @tailrec
+      def loop(in: List[Value[TA1, VA1]], out: List[Either[Value[TA1, VA1], Z]]): List[Z] =
+        in match {
+          case (v @ Apply(attributes, function, arguments)) :: values =>
+            loop(function :: arguments :: values, Left(v) :: out)
+          case (v @ Constructor(attributes, name)) :: values =>
+            loop(values, Right(constructorCase(context, v, attributes, name)) :: out)
+          case (v @ FieldFunction(attributes, name)) :: values =>
+            loop(values, Right(fieldFunctionCase(context, v, attributes, name)) :: out)
+          case (v @ Literal(attributes, lit)) :: values =>
+            loop(values, Right(literalCase(context, v, attributes, lit)) :: out)
+          case (v @ Reference(attributes, name)) :: values =>
+            loop(values, Right(referenceCase(context, v, attributes, name)) :: out)
+          case (v @ Variable(attributes, name)) :: values =>
+            loop(values, Right(variableCase(context, v, attributes, name)) :: out)
+          case Nil =>
+            out.foldLeft[List[Z]](List.empty) {
+              case (acc, Right(results)) => results :: acc
+              case _                     => ???
+            }
+        }
+      loop(List(self), List.empty).head
+    }
     def mapAttributes[TB, VB](f: TA => TB, g: VA => VB): Value[TB, VB] = ???
     def toRawValue: RawValue                                           = ???
   }
@@ -131,6 +163,16 @@ trait ValueAdtModule { module: ValueModule =>
           arguments: Value[TA, VA]*
       ): Apply[TA, VA] =
         arguments.foldLeft(Apply(attributes, function, argument)) { case (acc, arg) => Apply(acc.attributes, acc, arg) }
+
+      def apply[TA, VA](attributes: VA, function: Value[TA, VA], arguments: scala.List[Value[TA, VA]])(implicit
+          ev: NeedsAttributes[VA]
+      ): Value[TA, VA] =
+        arguments match {
+          case Nil => function
+          case head :: tail =>
+            tail.foldLeft(Apply(attributes, function, head)) { case (acc, arg) => Apply(acc.attributes, acc, arg) }
+        }
+        // arguments.foldLeft(Apply(attributes, function, arguments.head)) { case (acc, arg) => Apply(acc.attributes, acc, arg) }
 
       type Raw = Apply[scala.Unit, scala.Unit]
       object Raw {
@@ -604,7 +646,7 @@ trait ValueAdtModule { module: ValueModule =>
       type Typed = Record[scala.Unit, UType]
     }
 
-    sealed case class Reference[+VA](attributes: VA, name: FQName) extends Value[Nothing, VA]
+    sealed case class Reference[+VA](attributes: VA, fullyQualifiedName: FQName) extends Value[Nothing, VA]
     object Reference {
 
       def apply[VA](attributes: VA, name: String): Reference[VA] =
@@ -620,7 +662,7 @@ trait ValueAdtModule { module: ValueModule =>
         @inline def apply(packageName: String, moduleName: String, localName: String): RawValue =
           Reference((), FQName.fqn(packageName, moduleName, localName))
         def unapply[VA](value: Value[_, VA]): Option[FQName] = value match {
-          case reference: Reference[VA] => Some(reference.name)
+          case reference: Reference[VA] => Some(reference.fullyQualifiedName)
           case _                        => None
         }
       }
@@ -760,7 +802,7 @@ trait ValueAdtModule { module: ValueModule =>
           valueDefinition: (Chunk[(Name, VA, Type[TA])], Type[TA], Z),
           inValue: Z
       ): Z
-      def letDestruvt(
+      def letDestructCase(
           context: Context,
           value: Value[TA, VA],
           attributes: VA,
