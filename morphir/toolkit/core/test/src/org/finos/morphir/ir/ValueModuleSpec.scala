@@ -20,11 +20,12 @@ object ValueModuleSpec extends MorphirBaseSpec {
   val stringType: UType                = sdk.String.stringType
 
   def spec = suite("Value Module")(
-    applySuite,
-    constructorSuite,
-    destructureSuite,
-    fieldSuite,
-    fieldFunctionSuite,
+    // applySuite,
+    // constructorSuite,
+    // destructureSuite,
+    // fieldSuite,
+    // fieldFunctionSuite,
+    referenceSuite,
     suite("Collect Variables should return as expected for:")(
       //   test("IfThenElse") {
       //     val ife = ifThenElse(
@@ -115,16 +116,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //     )
       //     assertTrue(pm.collectVariables == Set(Name("name"), Name("integer")))
       //   },
-      //   test("Reference") {
-      //     val ref = reference(
-      //       morphir.ir.FQName(
-      //         morphir.ir.Path(Name("Morphir.SDK")),
-      //         morphir.ir.Path(Name("Morphir.SDK")),
-      //         Name("RecordType")
-      //       )
-      //     )
-      //     assertTrue(ref.collectVariables == Set[Name]())
-      //   },
       //   test("Record") {
       //     val name  = Name.fromString("hello")
       //     val name2 = Name.fromString("world")
@@ -165,8 +156,8 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //     val name = Name("ha")
       //     assertTrue(variable(name).collectVariables == Set(name))
       //   }
-      // ),
-      // suite("Collect References should return as expected for:")(
+    ),
+    suite("Collect References should return as expected for:")(
       //   test("Constructor") {
       //     val fqName = morphir.ir.FQName(
       //       morphir.ir.Path(Name("Morphir.SDK")),
@@ -320,15 +311,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //     )
       //     assertTrue(pm.collectReferences == Set(fq, fq2))
       //   },
-      //   test("Reference") {
-      //     val fq = morphir.ir.FQName(
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       Name("RecordType")
-      //     )
-      //     val ref = reference(fq)
-      //     assertTrue(ref.collectReferences == Set(fq))
-      //   },
       //   test("Record") {
       //     val name   = Name.fromString("hello")
       //     val name2  = Name.fromString("world")
@@ -376,189 +358,182 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //   test("Variable") {
       //     assertTrue(variable(Name("name")).collectReferences == Set[FQName]())
       //   }
-      // ),
-      // suite("toRawValue should return as expected for:")(
-      //   test("Constructor") {
-      //     val fqName = morphir.ir.FQName(
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       Name("RecordType")
-      //     )
-      //     val typeRef = Type.reference(fqName)
-      //     val constr  = constructor(fqName, typeRef)
-      //     assertTrue(constr.toRawValue == constructor(fqName))
-      //   },
-      //   test("Destructure") {
-      //     val lit    = Lit.string("timeout")
-      //     val lit2   = Lit.string("username")
-      //     val value  = literal(stringType, lit)
-      //     val value2 = literal(stringType, lit2)
-
-      //     val des: TypedValue =
-      //       Destructure(
-      //         stringType,
-      //         Pattern.WildcardPattern(stringType),
-      //         value,
-      //         value2
-      //       )
-      //     assertTrue(
-      //       des.toRawValue == destructure(
-      //         wildcardPattern,
-      //         string("timeout"),
-      //         string("username")
-      //       )
-      //     )
-      //   },
-      //   test("Field") {
-      //     val name  = Name.fromString("Name")
-      //     val value = literal(42)
-
-      //     val actual = Field.Typed(intType, value, name)
-
-      //     assertTrue(
-      //       actual.toRawValue == field(int(42), name)
-      //     )
-      //   },
-      //   test("FieldFunction") {
-      //     val age = Name.fromString("age")
-      //     val ff  = fieldFunction(age, intType)
-
-      //     assertTrue(ff.toRawValue == fieldFunction(age))
-      //   },
-      //   test("IfThenElse") {
-      //     val gt: TypedValue        = reference(FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:greaterThan"), intType)
-      //     val x: TypedValue         = variable("x", intType)
-      //     val y: TypedValue         = variable("y", intType)
-      //     val condition: TypedValue = Apply.Typed(gt, x, y)
-
-      //     val ife = IfThenElse.Typed(condition, x, y)
-      //     assertTrue(ife.toRawValue == IfThenElse.Raw(condition.toRawValue, x.toRawValue, y.toRawValue))
-      //   },
-      //   test("Lambda") {
-
-      //     val actual = Lambda.Typed(
-      //       Type.reference("Morphir.SDK", "Basics", "power"),
-      //       Pattern.asPattern(intType, wildcardPattern(intType), Name.fromString("x")),
-      //       variable(Name.fromString("x"), intType)
-      //     )
-
-      //     assertTrue(
-      //       actual.toRawValue == Lambda.Raw(
-      //         Pattern.AsPattern.Raw(wildcardPattern, "x"),
-      //         variable(Name.fromString("x"))
-      //       )
-      //     )
-      //   },
-      //   test("LetDefinition") {
-      //     val value   = Lit.False.toTypedValue
-      //     val flagDef = ValueDefinition()(boolType)(value)
-
-      //     val ld = LetDefinition.Typed(boolType, "flag", flagDef, variable("flag", boolType))
-      //     assertTrue(
-      //       ld.toRawValue == LetDefinition.Raw(
-      //         "flag",
-      //         ValueDefinition.Raw()(boolType)(value.toRawValue),
-      //         variable("flag").toRawValue
-      //       )
-      //     )
-      //   },
-      //   test("LetRecursion") {
-
-      //     val times = Reference(1, FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:multiply"))
-      //     val body  = Apply(4, times, Variable(5, "x"), Variable(6, "y"))
-
-      //     val lr = LetRecursion(
-      //       0,
-      //       "x" -> ValueDefinition.fromLiteral(1, Lit.int(0)),
-      //       "y" -> ValueDefinition.fromLiteral(2, Lit.int(42))
-      //     )(body)
-
-      //     assertTrue(
-      //       lr.toRawValue == LetRecursion.Raw(
-      //         "x" -> ValueDefinition.Raw()(intType)(Lit.int(0)),
-      //         "y" -> ValueDefinition.Raw()(intType)(Lit.int(42))
-      //       )(Apply.Raw(times.toRawValue, Variable.Raw("x"), Variable.Raw("y")))
-      //     )
-      //   },
-      //   test("List") {
-
-      //     val l1 = listOf(boolType, Lit.True.toTypedValue, Lit.False.toTypedValue)
-
-      //     assertTrue(
-      //       l1.toRawValue == list(boolean(true), boolean(false))
-      //     )
-      //   },
-      //   test("Literal") {
-      //     val value = Lit.True.toTypedValue
-
-      //     assertTrue(value.toRawValue == boolean(true))
-      //   },
-      //   test("Apply - typed with multiple arguments") {
-      //     val x      = Lit.int(42).toTypedValue
-      //     val y      = Lit.int(58).toTypedValue
-      //     val addRef = sdk.Basics.add(x.attributes)
-
-      //     val actual = Apply.Typed(addRef, x, y)
-      //     assertTrue(actual.toRawValue == apply(apply(addRef.toRawValue, x.toRawValue), y.toRawValue))
-      //   },
-      //   test("PatternMatch") {
-      //     val input = variable("magicNumber", intType)
-      //     val yes   = string("yes") :> stringType
-      //     val no    = string("no") :> stringType
-      //     val n42   = Lit.int(42)
-
-      //     val pm = caseOf(input)(
-      //       LiteralPattern.Typed(n42)(intType) -> yes,
-      //       wildcardPattern(yes.attributes)    -> no
-      //     )
-      //     assertTrue(
-      //       pm.toRawValue == PatternMatch.Raw(
-      //         input.toRawValue,
-      //         LiteralPattern.Raw(n42) -> yes.toRawValue,
-      //         Pattern.wildcardPattern -> no.toRawValue
-      //       )
-      //     )
-      //   },
-      //   test("Reference") {
-
-      //     val intTypeName = FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:Int")
-      //     val ref         = Reference(morphir.ir.sdk.Basics.intType, intTypeName)
-      //     assertTrue(ref.toRawValue == Reference.Raw(intTypeName))
-      //   },
-      //   test("Record") {
-      //     val name       = Name.fromString("hello")
-      //     val lit        = string("timeout") :> stringType
-      //     val recordType = Type.record(defineField("hello", stringType))
-      //     val rec        = Record(recordType, Chunk(name -> lit))
-
-      //     assertTrue(rec.toRawValue == record(Chunk((name, string("timeout")))))
-      //   },
-      //   test("Tuple") {
-
-      //     val t1 = tuple(string("shimmy") -> stringType)
-      //     assertTrue(
-      //       t1.toRawValue == Tuple.Raw(string("shimmy"))
-      //     )
-      //   },
-      //   test("UpdateRecord") {
-
-      //     val recordType = Type.record(defineField("greeting", stringType))
-      //     val greeter    = variable(recordType, "greeter")
-      //     val actual     = UpdateRecord.Typed(recordType, greeter, ("greeting", string("world") :> stringType))
-
-      //     assertTrue(
-      //       actual.toRawValue == UpdateRecord.Raw(Variable.Raw("greeter"), "greeting" -> string("world"))
-      //     )
-      //   },
-      //   test("Variable") {
-      //     val name  = Name("ha")
-      //     val value = variable(stringType, name)
-      //     assertTrue(value.toRawValue == variable(name))
-      //   },
-      //   test("Unit") {
-      //     assertTrue(unit(Type.unit).toRawValue == unit)
-      //   }
     )
+    // suite("toRawValue should return as expected for:")(
+    //   test("Constructor") {
+    //     val fqName = morphir.ir.FQName(
+    //       morphir.ir.Path(Name("Morphir.SDK")),
+    //       morphir.ir.Path(Name("Morphir.SDK")),
+    //       Name("RecordType")
+    //     )
+    //     val typeRef = Type.reference(fqName)
+    //     val constr  = constructor(fqName, typeRef)
+    //     assertTrue(constr.toRawValue == constructor(fqName))
+    //   },
+    //   test("Destructure") {
+    //     val lit    = Lit.string("timeout")
+    //     val lit2   = Lit.string("username")
+    //     val value  = literal(stringType, lit)
+    //     val value2 = literal(stringType, lit2)
+
+    //     val des: TypedValue =
+    //       Destructure(
+    //         stringType,
+    //         Pattern.WildcardPattern(stringType),
+    //         value,
+    //         value2
+    //       )
+    //     assertTrue(
+    //       des.toRawValue == destructure(
+    //         wildcardPattern,
+    //         string("timeout"),
+    //         string("username")
+    //       )
+    //     )
+    //   },
+    //   test("Field") {
+    //     val name  = Name.fromString("Name")
+    //     val value = literal(42)
+
+    //     val actual = Field.Typed(intType, value, name)
+
+    //     assertTrue(
+    //       actual.toRawValue == field(int(42), name)
+    //     )
+    //   },
+    //   test("FieldFunction") {
+    //     val age = Name.fromString("age")
+    //     val ff  = fieldFunction(age, intType)
+
+    //     assertTrue(ff.toRawValue == fieldFunction(age))
+    //   },
+    //   test("IfThenElse") {
+    //     val gt: TypedValue        = reference(FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:greaterThan"), intType)
+    //     val x: TypedValue         = variable("x", intType)
+    //     val y: TypedValue         = variable("y", intType)
+    //     val condition: TypedValue = Apply.Typed(gt, x, y)
+
+    //     val ife = IfThenElse.Typed(condition, x, y)
+    //     assertTrue(ife.toRawValue == IfThenElse.Raw(condition.toRawValue, x.toRawValue, y.toRawValue))
+    //   },
+    //   test("Lambda") {
+
+    //     val actual = Lambda.Typed(
+    //       Type.reference("Morphir.SDK", "Basics", "power"),
+    //       Pattern.asPattern(intType, wildcardPattern(intType), Name.fromString("x")),
+    //       variable(Name.fromString("x"), intType)
+    //     )
+
+    //     assertTrue(
+    //       actual.toRawValue == Lambda.Raw(
+    //         Pattern.AsPattern.Raw(wildcardPattern, "x"),
+    //         variable(Name.fromString("x"))
+    //       )
+    //     )
+    //   },
+    //   test("LetDefinition") {
+    //     val value   = Lit.False.toTypedValue
+    //     val flagDef = ValueDefinition()(boolType)(value)
+
+    //     val ld = LetDefinition.Typed(boolType, "flag", flagDef, variable("flag", boolType))
+    //     assertTrue(
+    //       ld.toRawValue == LetDefinition.Raw(
+    //         "flag",
+    //         ValueDefinition.Raw()(boolType)(value.toRawValue),
+    //         variable("flag").toRawValue
+    //       )
+    //     )
+    //   },
+    //   test("LetRecursion") {
+
+    //     val times = Reference(1, FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:multiply"))
+    //     val body  = Apply(4, times, Variable(5, "x"), Variable(6, "y"))
+
+    //     val lr = LetRecursion(
+    //       0,
+    //       "x" -> ValueDefinition.fromLiteral(1, Lit.int(0)),
+    //       "y" -> ValueDefinition.fromLiteral(2, Lit.int(42))
+    //     )(body)
+
+    //     assertTrue(
+    //       lr.toRawValue == LetRecursion.Raw(
+    //         "x" -> ValueDefinition.Raw()(intType)(Lit.int(0)),
+    //         "y" -> ValueDefinition.Raw()(intType)(Lit.int(42))
+    //       )(Apply.Raw(times.toRawValue, Variable.Raw("x"), Variable.Raw("y")))
+    //     )
+    //   },
+    //   test("List") {
+
+    //     val l1 = listOf(boolType, Lit.True.toTypedValue, Lit.False.toTypedValue)
+
+    //     assertTrue(
+    //       l1.toRawValue == list(boolean(true), boolean(false))
+    //     )
+    //   },
+    //   test("Literal") {
+    //     val value = Lit.True.toTypedValue
+
+    //     assertTrue(value.toRawValue == boolean(true))
+    //   },
+    //   test("Apply - typed with multiple arguments") {
+    //     val x      = Lit.int(42).toTypedValue
+    //     val y      = Lit.int(58).toTypedValue
+    //     val addRef = sdk.Basics.add(x.attributes)
+
+    //     val actual = Apply.Typed(addRef, x, y)
+    //     assertTrue(actual.toRawValue == apply(apply(addRef.toRawValue, x.toRawValue), y.toRawValue))
+    //   },
+    //   test("PatternMatch") {
+    //     val input = variable("magicNumber", intType)
+    //     val yes   = string("yes") :> stringType
+    //     val no    = string("no") :> stringType
+    //     val n42   = Lit.int(42)
+
+    //     val pm = caseOf(input)(
+    //       LiteralPattern.Typed(n42)(intType) -> yes,
+    //       wildcardPattern(yes.attributes)    -> no
+    //     )
+    //     assertTrue(
+    //       pm.toRawValue == PatternMatch.Raw(
+    //         input.toRawValue,
+    //         LiteralPattern.Raw(n42) -> yes.toRawValue,
+    //         Pattern.wildcardPattern -> no.toRawValue
+    //       )
+    //     )
+    //   },
+    //   test("Record") {
+    //     val name       = Name.fromString("hello")
+    //     val lit        = string("timeout") :> stringType
+    //     val recordType = Type.record(defineField("hello", stringType))
+    //     val rec        = Record(recordType, Chunk(name -> lit))
+
+    //     assertTrue(rec.toRawValue == record(Chunk((name, string("timeout")))))
+    //   },
+    //   test("Tuple") {
+
+    //     val t1 = tuple(string("shimmy") -> stringType)
+    //     assertTrue(
+    //       t1.toRawValue == Tuple.Raw(string("shimmy"))
+    //     )
+    //   },
+    //   test("UpdateRecord") {
+
+    //     val recordType = Type.record(defineField("greeting", stringType))
+    //     val greeter    = variable(recordType, "greeter")
+    //     val actual     = UpdateRecord.Typed(recordType, greeter, ("greeting", string("world") :> stringType))
+
+    //     assertTrue(
+    //       actual.toRawValue == UpdateRecord.Raw(Variable.Raw("greeter"), "greeting" -> string("world"))
+    //     )
+    //   },
+    //   test("Variable") {
+    //     val name  = Name("ha")
+    //     val value = variable(stringType, name)
+    //     assertTrue(value.toRawValue == variable(name))
+    //   },
+    //   test("Unit") {
+    //     assertTrue(unit(Type.unit).toRawValue == unit)
+    //   }
   )
 
   def applySuite = suite("Apply")(
@@ -626,6 +601,38 @@ object ValueModuleSpec extends MorphirBaseSpec {
     test("Should not have any nested variables when collected") {
       val ff = fieldFunction("name")
       assertTrue(ff.collectVariables == Set.empty[Name])
+    }
+  )
+
+  def referenceSuite = suite("Reference")(
+    test("toString should return the expected string") {
+      val fqn = FQName.fqn("Morphir.SDK", "String", "toUpperCase")
+      val ref = reference(fqn)
+      assertTrue(ref.toString == "Morphir.SDK.String.toUpperCase")
+    },
+    test("Should support collecting references") {
+      val fq = morphir.ir.FQName(
+        morphir.ir.Path(Name("Morphir.SDK")),
+        morphir.ir.Path(Name("Morphir.SDK")),
+        Name("RecordType")
+      )
+      val ref = reference(fq)
+      assertTrue(ref.collectReferences == Set(fq))
+    },
+    test("Collect variables should be empty") {
+      val ref = reference(
+        morphir.ir.FQName(
+          morphir.ir.Path(Name("Morphir.SDK")),
+          morphir.ir.Path(Name("Morphir.SDK")),
+          Name("RecordType")
+        )
+      )
+      assertTrue(ref.collectVariables == Set[Name]())
+    },
+    test("toRawValue should discard attributes") {
+      val intTypeName = FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:Int")
+      val ref         = Reference(morphir.ir.sdk.Basics.intType, intTypeName)
+      assertTrue(ref.toRawValue == Reference.Raw(intTypeName))
     }
   )
 }

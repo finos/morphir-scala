@@ -12,8 +12,15 @@ import zio.{Chunk, NonEmptyChunk}
 sealed trait Value[+TA, +VA] { self =>
   import Value.{List => ListValue, _}
   def attributes: VA
-  def collectReferences: Set[FQName] = ???
-  def collectVariables: Set[Name]    = ???
+  def collectReferences: Set[FQName] = foldContext(())(Folder.CollectReferences)
+  def collectVariables: Set[Name]    = foldContext(())(Folder.CollectVariables)
+
+  def fold[Z](referenceCase: (VA, FQName) => Z): Z = foldContext(())(
+    new Folder.DelegatedFolder(
+      onReferenceCase = (_, _, attributes, fqName) => referenceCase(attributes, fqName)
+    )
+  )
+
   def foldContext[C, TA1 >: TA, VA1 >: VA, Z](context: C)(folder: Folder[C, TA1, VA1, Z]): Z = {
     import folder._
     @tailrec
@@ -21,6 +28,8 @@ sealed trait Value[+TA, +VA] { self =>
       in match {
         case (v @ Apply(attributes, function, arguments)) :: values =>
           loop(function :: arguments :: values, Left(v) :: out)
+        case (v @ Destructure(attributes, pattern, valueToDestruct, inValue)) :: values =>
+          loop(valueToDestruct :: inValue :: values, Left(v) :: out)
         case (v @ Constructor(attributes, name)) :: values =>
           loop(values, Right(constructorCase(context, v, attributes, name)) :: out)
         case (v @ FieldFunction(attributes, name)) :: values =>
@@ -39,8 +48,21 @@ sealed trait Value[+TA, +VA] { self =>
       }
     loop(List(self), List.empty).head
   }
-  def mapAttributes[TB, VB](f: TA => TB, g: VA => VB): Value[TB, VB] = ???
-  def toRawValue: RawValue                                           = ???
+
+  def foldContextWith[C, Z](context: C)(referenceCase: (C, Value[TA, VA], VA, FQName) => Z)(
+      fieldCase: (C, Value[TA, VA], VA, Z, Name) => Z
+  ): Z = foldContext(context)(
+    new Folder.DelegatedFolder[C, TA, VA, Z](
+      onReferenceCase = referenceCase
+    )
+  )
+
+  def mapAttributes[TB, VB](f: TA => TB, g: VA => VB): Value[TB, VB] = fold(
+    referenceCase = (attributes, fqName) => Reference(g(attributes), fqName)
+  )
+  def toRawValue: RawValue = mapAttributes((_ => ()), (_ => ()))
+
+  final override def toString: String = foldContext(())(Folder.ToString)
 }
 
 object Value {
@@ -739,4 +761,478 @@ object Value {
     ): Z
     def variableCase(context: Context, value: Value[TA, VA], attributes: VA, name: Name): Z
   }
+
+  object Folder {
+
+    object CollectReferences extends Folder[Any, Any, Any, Set[FQName]] {
+
+      override def applyCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          function: Set[FQName],
+          argument: Set[FQName]
+      ): Set[FQName] = ???
+
+      override def constructorCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): Set[FQName] =
+        ???
+
+      override def destructureCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          pattern: Pattern[Any],
+          valueToDestruct: Set[FQName],
+          inValue: Set[FQName]
+      ): Set[FQName] = ???
+
+      override def fieldCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          subjectValue: Set[FQName],
+          fieldName: Name
+      ): Set[FQName] = ???
+
+      override def fieldFunctionCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          fieldName: Name
+      ): Set[FQName] = ???
+
+      override def ifThenElseCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          condition: Set[FQName],
+          thenBranch: Set[FQName],
+          elseBranch: Set[FQName]
+      ): Set[FQName] = ???
+
+      override def lambdaCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          argumentPattern: Pattern[Any],
+          body: Set[FQName]
+      ): Set[FQName] = ???
+
+      override def letDefCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          valueName: Name,
+          valueDefinition: (Chunk[(Name, Any, Type[Any])], Type[Any], Set[FQName]),
+          inValue: Set[FQName]
+      ): Set[FQName] = ???
+
+      override def letDestructCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          valueDefinitions: Map[Name, (Chunk[(Name, Any, Type[Any])], Type[Any], Set[FQName])],
+          inValue: Set[FQName]
+      ): Set[FQName] = ???
+
+      override def letRecCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          valueDefinitions: Map[Name, (Chunk[(Name, Any, Type[Any])], Type[Any], Set[FQName])],
+          inValue: Set[FQName]
+      ): Set[FQName] = ???
+
+      override def listCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          elements: Chunk[Set[FQName]]
+      ): Set[FQName] = ???
+
+      override def literalCase(context: Any, value: Value[Any, Any], attributes: Any, literal: Lit): Set[FQName] = ???
+
+      override def patternMatchCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          branchOutOn: Set[FQName],
+          cases: Chunk[(Pattern[Any], Set[FQName])]
+      ): Set[FQName] = ???
+
+      override def recordCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          fields: Chunk[(Name, Set[FQName])]
+      ): Set[FQName] = ???
+
+      override def referenceCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): Set[FQName] =
+        Set(name)
+
+      override def tupleCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          elements: Chunk[Set[FQName]]
+      ): Set[FQName] = ???
+
+      override def unitCase(context: Any, value: Value[Any, Any], attributes: Any): Set[FQName] = ???
+
+      override def updateRecordCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          valueToUpdate: Set[FQName],
+          fieldsToUpdate: Map[Name, Set[FQName]]
+      ): Set[FQName] = ???
+
+      override def variableCase(context: Any, value: Value[Any, Any], attributes: Any, name: Name): Set[FQName] = ???
+
+    }
+
+    object CollectVariables extends Folder[Any, Any, Any, Set[Name]] {
+
+      override def applyCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          function: Set[Name],
+          argument: Set[Name]
+      ): Set[Name] = ???
+
+      override def constructorCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): Set[Name] = ???
+
+      override def destructureCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          pattern: Pattern[Any],
+          valueToDestruct: Set[Name],
+          inValue: Set[Name]
+      ): Set[Name] = ???
+
+      override def fieldCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          subjectValue: Set[Name],
+          fieldName: Name
+      ): Set[Name] = ???
+
+      override def fieldFunctionCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          fieldName: Name
+      ): Set[Name] = ???
+
+      override def ifThenElseCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          condition: Set[Name],
+          thenBranch: Set[Name],
+          elseBranch: Set[Name]
+      ): Set[Name] = ???
+
+      override def lambdaCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          argumentPattern: Pattern[Any],
+          body: Set[Name]
+      ): Set[Name] = ???
+
+      override def letDefCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          valueName: Name,
+          valueDefinition: (Chunk[(Name, Any, Type[Any])], Type[Any], Set[Name]),
+          inValue: Set[Name]
+      ): Set[Name] = ???
+
+      override def letDestructCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          valueDefinitions: Map[Name, (Chunk[(Name, Any, Type[Any])], Type[Any], Set[Name])],
+          inValue: Set[Name]
+      ): Set[Name] = ???
+
+      override def letRecCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          valueDefinitions: Map[Name, (Chunk[(Name, Any, Type[Any])], Type[Any], Set[Name])],
+          inValue: Set[Name]
+      ): Set[Name] = ???
+
+      override def listCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          elements: Chunk[Set[Name]]
+      ): Set[Name] = ???
+
+      override def literalCase(context: Any, value: Value[Any, Any], attributes: Any, literal: Lit): Set[Name] = ???
+
+      override def patternMatchCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          branchOutOn: Set[Name],
+          cases: Chunk[(Pattern[Any], Set[Name])]
+      ): Set[Name] = ???
+
+      override def recordCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          fields: Chunk[(Name, Set[Name])]
+      ): Set[Name] = ???
+
+      override def referenceCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): Set[Name] =
+        Set.empty
+
+      override def tupleCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          elements: Chunk[Set[Name]]
+      ): Set[Name] = ???
+
+      override def unitCase(context: Any, value: Value[Any, Any], attributes: Any): Set[Name] = ???
+
+      override def updateRecordCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          valueToUpdate: Set[Name],
+          fieldsToUpdate: Map[Name, Set[Name]]
+      ): Set[Name] = ???
+
+      override def variableCase(context: Any, value: Value[Any, Any], attributes: Any, name: Name): Set[Name] = ???
+
+    }
+    object ToString extends Folder[Any, Any, Any, String] {
+
+      override def applyCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          function: String,
+          argument: String
+      ): String = ???
+
+      override def constructorCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): String = ???
+
+      override def destructureCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          pattern: Pattern[Any],
+          valueToDestruct: String,
+          inValue: String
+      ): String = ???
+
+      override def fieldCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          subjectValue: String,
+          fieldName: Name
+      ): String = s"$subjectValue.${fieldName.toCamelCase}"
+
+      override def fieldFunctionCase(context: Any, value: Value[Any, Any], attributes: Any, fieldName: Name): String =
+        ???
+
+      override def ifThenElseCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          condition: String,
+          thenBranch: String,
+          elseBranch: String
+      ): String = ???
+
+      override def lambdaCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          argumentPattern: Pattern[Any],
+          body: String
+      ): String = ???
+
+      override def letDefCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          valueName: Name,
+          valueDefinition: (Chunk[(Name, Any, Type[Any])], Type[Any], String),
+          inValue: String
+      ): String = ???
+
+      override def letDestructCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          valueDefinitions: Map[Name, (Chunk[(Name, Any, Type[Any])], Type[Any], String)],
+          inValue: String
+      ): String = ???
+
+      override def letRecCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          valueDefinitions: Map[Name, (Chunk[(Name, Any, Type[Any])], Type[Any], String)],
+          inValue: String
+      ): String = ???
+
+      override def listCase(context: Any, value: Value[Any, Any], attributes: Any, elements: Chunk[String]): String =
+        ???
+
+      override def literalCase(context: Any, value: Value[Any, Any], attributes: Any, literal: Lit): String = ???
+
+      override def patternMatchCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          branchOutOn: String,
+          cases: Chunk[(Pattern[Any], String)]
+      ): String = ???
+
+      override def recordCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          fields: Chunk[(Name, String)]
+      ): String = ???
+
+      override def referenceCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): String = Seq(
+        Path.toString(Name.toTitleCase, ".", name.packagePath.toPath),
+        Path.toString(Name.toTitleCase, ".", name.modulePath.toPath),
+        name.localName.toCamelCase
+      ).mkString(".")
+
+      override def tupleCase(context: Any, value: Value[Any, Any], attributes: Any, elements: Chunk[String]): String =
+        ???
+
+      override def unitCase(context: Any, value: Value[Any, Any], attributes: Any): String = ???
+
+      override def updateRecordCase(
+          context: Any,
+          value: Value[Any, Any],
+          attributes: Any,
+          valueToUpdate: String,
+          fieldsToUpdate: Map[Name, String]
+      ): String = ???
+
+      override def variableCase(context: Any, value: Value[Any, Any], attributes: Any, name: Name): String = ???
+
+    }
+
+    class DelegatedFolder[-Context, -TA, -VA, Z](onReferenceCase: (Context, Value[TA, VA], VA, FQName) => Z)
+        extends Folder[Context, TA, VA, Z] {
+
+      override def applyCase(context: Context, value: Value[TA, VA], attributes: VA, function: Z, argument: Z): Z = ???
+
+      override def constructorCase(context: Context, value: Value[TA, VA], attributes: VA, name: FQName): Z = ???
+
+      override def destructureCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          pattern: Pattern[VA],
+          valueToDestruct: Z,
+          inValue: Z
+      ): Z = ???
+
+      override def fieldCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          subjectValue: Z,
+          fieldName: Name
+      ): Z = ???
+
+      override def fieldFunctionCase(context: Context, value: Value[TA, VA], attributes: VA, fieldName: Name): Z = ???
+
+      override def ifThenElseCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          condition: Z,
+          thenBranch: Z,
+          elseBranch: Z
+      ): Z = ???
+
+      override def lambdaCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          argumentPattern: Pattern[VA],
+          body: Z
+      ): Z = ???
+
+      override def letDefCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          valueName: Name,
+          valueDefinition: (Chunk[(Name, VA, Type[TA])], Type[TA], Z),
+          inValue: Z
+      ): Z = ???
+
+      override def letDestructCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          valueDefinitions: Map[Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z)],
+          inValue: Z
+      ): Z = ???
+
+      override def letRecCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          valueDefinitions: Map[Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z)],
+          inValue: Z
+      ): Z = ???
+
+      override def listCase(context: Context, value: Value[TA, VA], attributes: VA, elements: Chunk[Z]): Z = ???
+
+      override def literalCase(context: Context, value: Value[TA, VA], attributes: VA, literal: Lit): Z = ???
+
+      override def patternMatchCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          branchOutOn: Z,
+          cases: Chunk[(Pattern[VA], Z)]
+      ): Z = ???
+
+      override def recordCase(context: Context, value: Value[TA, VA], attributes: VA, fields: Chunk[(Name, Z)]): Z = ???
+
+      override def referenceCase(context: Context, value: Value[TA, VA], attributes: VA, name: FQName): Z =
+        onReferenceCase(context, value, attributes, name)
+
+      override def tupleCase(context: Context, value: Value[TA, VA], attributes: VA, elements: Chunk[Z]): Z = ???
+
+      override def unitCase(context: Context, value: Value[TA, VA], attributes: VA): Z = ???
+
+      override def updateRecordCase(
+          context: Context,
+          value: Value[TA, VA],
+          attributes: VA,
+          valueToUpdate: Z,
+          fieldsToUpdate: Map[Name, Z]
+      ): Z = ???
+
+      override def variableCase(context: Context, value: Value[TA, VA], attributes: VA, name: Name): Z = ???
+
+    }
+  }
+
 }
