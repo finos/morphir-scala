@@ -1,14 +1,17 @@
 package org.finos.morphir
 package ir
+package internal
 
 import zio.Chunk
 import Literal.Literal
 
 trait PatternModule { module =>
-  import Pattern._
-
   final type APattern = Pattern[Attributes]
   final type UPattern = Pattern[scala.Unit]
+
+  final type Pattern[+A] = internal.Pattern[A]
+  final val Pattern: internal.Pattern.type = internal.Pattern
+  import Pattern._
 
   def asPattern[A](attributes: A, pattern: Pattern[A], name: Name)(implicit ev: NeedsAttributes[A]): Pattern[A] =
     AsPattern(attributes, pattern, name)
@@ -40,23 +43,4 @@ trait PatternModule { module =>
   def wildcardPattern[A](attributes: A)(implicit ev: NeedsAttributes[A]): Pattern[A] = WildcardPattern(attributes)
   lazy val wildcardPattern: UPattern                                                 = WildcardPattern(())
 
-  sealed trait Pattern[+A] { self =>
-    def attributes: A
-  }
-
-  object Pattern {
-    sealed case class AsPattern[+A](attributes: A, pattern: Pattern[A], name: Name) extends Pattern[A]
-    sealed case class ConstructorPattern[+A](
-        attributes: A,
-        constructorName: FQName,
-        argumentPatterns: Chunk[Pattern[A]]
-    ) extends Pattern[A]
-    sealed case class EmptyListPattern[+A](attributes: A) extends Pattern[A]
-    sealed case class HeadTailPattern[+A](attributes: A, headPattern: Pattern[A], tailPattern: Pattern[A])
-        extends Pattern[A]
-    sealed case class LiteralPattern[+A](attributes: A, literal: Literal)                 extends Pattern[A]
-    sealed case class TuplePattern[+A](attributes: A, elementPatterns: Chunk[Pattern[A]]) extends Pattern[A]
-    sealed case class UnitPattern[+A](attributes: A)                                      extends Pattern[A]
-    sealed case class WildcardPattern[+A](attributes: A)                                  extends Pattern[A]
-  }
 }
