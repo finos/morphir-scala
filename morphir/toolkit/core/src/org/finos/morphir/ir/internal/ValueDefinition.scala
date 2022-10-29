@@ -7,7 +7,7 @@ import Type.{Type, UType}
 import Value.{RawValue, TypedValue}
 import zio.Chunk
 
-private[internal] final case class ValueDefinition[+TA, +VA](
+private[ir] final case class ValueDefinition[+TA, +VA](
     inputTypes: Chunk[(Name, VA, Type[TA])],
     outputType: Type[TA],
     body: Value[TA, VA]
@@ -18,7 +18,7 @@ private[internal] final case class ValueDefinition[+TA, +VA](
 
 }
 
-object ValueDefinition {
+private[ir] object ValueDefinition {
   def apply[TA, VA](outputType: Type[TA], body: Value[TA, VA]): ValueDefinition[TA, VA] =
     ValueDefinition(Chunk.empty, outputType, body)
 

@@ -19,4 +19,13 @@ object NeedsAttributes extends NeedsAttributes[Nothing] {
   )
   implicit val needsAttributesAmbiguous1: NeedsAttributes[Any] = NeedsAttributes
   implicit val needsAttributesAmbiguous2: NeedsAttributes[Any] = NeedsAttributes
+
+  // Provide multiple ambiguous values so an implicit NeedsAtributes[Any] cannot be found.
+  @implicitAmbiguous(
+    "This operation assumes that your node requires attributes. " +
+      "However, your node has Unit for the attributes type, which means it " +
+      "requires no attributes, so there is no need to provide attributes to the node."
+  )
+  implicit val unitNeedsAttributesAmbiguous1: NeedsAttributes[Unit] = NeedsAttributes
+  implicit val unitNeedsAttributesAmbiguous2: NeedsAttributes[Unit] = NeedsAttributes
 }

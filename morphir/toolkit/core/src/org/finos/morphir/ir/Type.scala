@@ -38,6 +38,7 @@ trait TypeModule { module =>
 
   final def emptyTuple[A](attributes: A)(implicit ev: NeedsAttributes[A]): Type[A] =
     Type.Tuple(attributes, Chunk.empty)
+  lazy val emptyTuple: UType = Type.Tuple((), Chunk.empty)
 
   // Extensible record constructors
   def extensibleRecord[A](attributes: A, name: Name, fields: Chunk[Field[Type[A]]])(implicit

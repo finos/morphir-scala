@@ -287,11 +287,10 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         val actual = reference(fqn1, Chunk(v1, v2, v3))
         assertTrue(
           actual == Reference(
-            (),
             fqn1,
             Variable((), "v1"),
             Variable((), "v2"),
-            Tuple((), Variable((), "v3"), Variable((), "v4"))
+            Tuple(Variable((), "v3"), Variable((), "v4"))
           ),
           actual.exists { case Reference(attributes, fqName, typeParams) =>
             attributes == () && fqName == fqn1 && typeParams.contains(v1) && typeParams.contains(v2) && typeParams
@@ -462,14 +461,14 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       assertTrue(result == 4)
     },
     test("When calling foldLeft with an empty tuple it should work as expected") {
-      val sut = emptyTuple(())
+      val sut = emptyTuple
       val result = sut.foldLeft(0) { case (acc, _) =>
         acc + 1
       }
       assertTrue(result == 1)
     },
     test("When calling foldLeft with a nested empty tuple it should work as expected") {
-      val sut = tuple((), emptyTuple(()))
+      val sut = tuple(emptyTuple)
       val result = sut.foldLeft(0) { case (acc, _) =>
         acc + 1
       }
@@ -494,7 +493,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         actual.exists { case Tuple(attributes, elements) =>
           attributes == () && elements.contains(var1) && elements.contains(var2)
         },
-        actual == Tuple((), Variable((), "hello"), Variable((), "there")),
+        actual == Tuple(Variable((), "hello"), Variable((), "there")),
         actual match {
           case Tuple(attributes, Chunk(v1, v2)) => attributes == () && v1 == var1 && v2 == var2
           case _                                => false
