@@ -24,7 +24,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     // constructorSuite,
     // destructureSuite,
     // fieldSuite,
-    // fieldFunctionSuite,
+    fieldFunctionSuite,
     referenceSuite,
     suite("Collect Variables should return as expected for:")(
       //   test("IfThenElse") {
@@ -196,11 +196,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //       fi.collectReferences == Set[FQName]() &&
       //         fi2.collectReferences == Set(fqName)
       //     )
-      //   },
-      //   test("FieldFunction") {
-      //     val name = Name.fromString("Name")
-      //     val ff   = fieldFunction(name)
-      //     assertTrue(ff.collectReferences == Set[FQName]())
       //   },
       //   test("IfThenElse") {
       //     val fqName = morphir.ir.FQName(
@@ -401,12 +396,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
     //       actual.toRawValue == field(int(42), name)
     //     )
     //   },
-    //   test("FieldFunction") {
-    //     val age = Name.fromString("age")
-    //     val ff  = fieldFunction(age, intType)
-
-    //     assertTrue(ff.toRawValue == fieldFunction(age))
-    //   },
     //   test("IfThenElse") {
     //     val gt: TypedValue        = reference(FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:greaterThan"), intType)
     //     val x: TypedValue         = variable("x", intType)
@@ -598,9 +587,24 @@ object ValueModuleSpec extends MorphirBaseSpec {
   )
 
   def fieldFunctionSuite = suite("FieldFunction")(
+    test("toString should return the expected string") {
+      val sut = fieldFunction("price")
+      assertTrue(sut.toString == ".price")
+    },
     test("Should not have any nested variables when collected") {
       val ff = fieldFunction("name")
       assertTrue(ff.collectVariables == Set.empty[Name])
+    },
+    test("Should not have any nested references when collected") {
+      val name = Name.fromString("Name")
+      val ff   = fieldFunction(name)
+      assertTrue(ff.collectReferences == Set[FQName]())
+    },
+    test("Should discard attributes when calling toRawValue") {
+      val age = Name.fromString("age")
+      val ff  = fieldFunction(age, intType)
+
+      assertTrue(ff.toRawValue == fieldFunction(age))
     }
   )
 

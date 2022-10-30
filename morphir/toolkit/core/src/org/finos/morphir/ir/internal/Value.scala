@@ -15,8 +15,9 @@ sealed trait Value[+TA, +VA] { self =>
   def collectReferences: Set[FQName] = foldContext(())(Folder.CollectReferences)
   def collectVariables: Set[Name]    = foldContext(())(Folder.CollectVariables)
 
-  def fold[Z](referenceCase: (VA, FQName) => Z): Z = foldContext(())(
+  def fold[Z](fieldFunctionCase: (VA, Name) => Z, referenceCase: (VA, FQName) => Z): Z = foldContext(())(
     new Folder.DelegatedFolder(
+      onFieldFunctionCase = (_, _, attributes, name) => fieldFunctionCase(attributes, name),
       onReferenceCase = (_, _, attributes, fqName) => referenceCase(attributes, fqName)
     )
   )
@@ -49,15 +50,19 @@ sealed trait Value[+TA, +VA] { self =>
     loop(List(self), List.empty).head
   }
 
-  def foldContextWith[C, Z](context: C)(referenceCase: (C, Value[TA, VA], VA, FQName) => Z)(
+  def foldContextWith[C, Z](
+      context: C
+  )(fieldFunctionCase: (C, Value[TA, VA], VA, Name) => Z, referenceCase: (C, Value[TA, VA], VA, FQName) => Z)(
       fieldCase: (C, Value[TA, VA], VA, Z, Name) => Z
   ): Z = foldContext(context)(
     new Folder.DelegatedFolder[C, TA, VA, Z](
+      onFieldFunctionCase = fieldFunctionCase,
       onReferenceCase = referenceCase
     )
   )
 
   def mapAttributes[TB, VB](f: TA => TB, g: VA => VB): Value[TB, VB] = fold(
+    fieldFunctionCase = (attributes, name) => FieldFunction(g(attributes), name),
     referenceCase = (attributes, fqName) => Reference(g(attributes), fqName)
   )
   def toRawValue: RawValue = mapAttributes((_ => ()), (_ => ()))
@@ -799,7 +804,7 @@ object Value {
           value: Value[Any, Any],
           attributes: Any,
           fieldName: Name
-      ): Set[FQName] = ???
+      ): Set[FQName] = Set.empty
 
       override def ifThenElseCase(
           context: Any,
@@ -925,7 +930,7 @@ object Value {
           value: Value[Any, Any],
           attributes: Any,
           fieldName: Name
-      ): Set[Name] = ???
+      ): Set[Name] = Set.empty
 
       override def ifThenElseCase(
           context: Any,
@@ -1046,7 +1051,7 @@ object Value {
       ): String = s"$subjectValue.${fieldName.toCamelCase}"
 
       override def fieldFunctionCase(context: Any, value: Value[Any, Any], attributes: Any, fieldName: Name): String =
-        ???
+        s".${fieldName.toCamelCase}"
 
       override def ifThenElseCase(
           context: Any,
@@ -1133,8 +1138,10 @@ object Value {
 
     }
 
-    class DelegatedFolder[-Context, -TA, -VA, Z](onReferenceCase: (Context, Value[TA, VA], VA, FQName) => Z)
-        extends Folder[Context, TA, VA, Z] {
+    class DelegatedFolder[-Context, -TA, -VA, Z](
+        onFieldFunctionCase: (Context, Value[TA, VA], VA, Name) => Z,
+        onReferenceCase: (Context, Value[TA, VA], VA, FQName) => Z
+    ) extends Folder[Context, TA, VA, Z] {
 
       override def applyCase(context: Context, value: Value[TA, VA], attributes: VA, function: Z, argument: Z): Z = ???
 
@@ -1157,7 +1164,8 @@ object Value {
           fieldName: Name
       ): Z = ???
 
-      override def fieldFunctionCase(context: Context, value: Value[TA, VA], attributes: VA, fieldName: Name): Z = ???
+      override def fieldFunctionCase(context: Context, value: Value[TA, VA], attributes: VA, fieldName: Name): Z =
+        onFieldFunctionCase(context, value, attributes, fieldName)
 
       override def ifThenElseCase(
           context: Context,
