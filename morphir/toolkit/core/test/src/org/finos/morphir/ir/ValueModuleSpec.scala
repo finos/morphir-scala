@@ -29,6 +29,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     literalSuite,
     referenceSuite,
     unitSuite,
+    variableSuite,
     suite("Collect Variables should return as expected for:")(
       //   test("IfThenElse") {
       //     val ife = ifThenElse(
@@ -146,10 +147,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //       )
       //     )
       //     assertTrue(ur.collectVariables == Set(Name("none")))
-      //   },
-      //   test("Variable") {
-      //     val name = Name("ha")
-      //     assertTrue(variable(name).collectVariables == Set(name))
       //   }
     ),
     suite("Collect References should return as expected for:")(
@@ -327,9 +324,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //       )
       //     )
       //     assertTrue(ur.collectReferences == Set(fq))
-      //   },
-      //   test("Variable") {
-      //     assertTrue(variable(Name("name")).collectReferences == Set[FQName]())
       //   }
     )
     // suite("toRawValue should return as expected for:")(
@@ -477,12 +471,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     //     assertTrue(
     //       actual.toRawValue == UpdateRecord.Raw(Variable.Raw("greeter"), "greeting" -> string("world"))
     //     )
-    //   },
-    //   test("Variable") {
-    //     val name  = Name("ha")
-    //     val value = variable(stringType, name)
-    //     assertTrue(value.toRawValue == variable(name))
-    //   },
+    //   }
   )
 
   def applySuite = suite("Apply")(
@@ -522,9 +511,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
         Name("Transaction")
       )
       val constr = constructor(fqName)
-      for {
-        _ <- zio.Console.printLine(constr.toString)
-      } yield assertTrue(
+      assertTrue(
         constr.toString == fqName.toReferenceName,
         constr.toString == "Morphir.SDK.My.Models.Transaction"
       )
@@ -675,6 +662,24 @@ object ValueModuleSpec extends MorphirBaseSpec {
     test("toRawValue should return as expected") {
       val actual = unit(Type.unit)
       assertTrue(actual.toRawValue == Unit(()))
+    }
+  )
+
+  def variableSuite = suite("Variable")(
+    test("toString should return the expected string") {
+      assertTrue(variable("someVariable").toString == "someVariable")
+    },
+    test("Should return a single item set containing the variable name when collecting variables") {
+      val name = Name("slimShady")
+      assertTrue(variable(name).collectVariables == Set(name))
+    },
+    test("Should support collecting references") {
+      assertTrue(variable(Name("name")).collectReferences == Set.empty[FQName])
+    },
+    test("Should support toRawValue") {
+      val name  = Name("somVar")
+      val value = variable(stringType, name)
+      assertTrue(value.toRawValue == variable(name))
     }
   )
 }

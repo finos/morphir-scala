@@ -20,7 +20,8 @@ sealed trait Value[+TA, +VA] { self =>
       fieldFunctionCase: (VA, Name) => Z,
       literalCase: (VA, Lit) => Z,
       referenceCase: (VA, FQName) => Z,
-      unitCase: VA => Z
+      unitCase: VA => Z,
+      variableCase: (VA, Name) => Z
   ): Z =
     foldContext(())(
       new Folder.DelegatedFolder(
@@ -28,7 +29,8 @@ sealed trait Value[+TA, +VA] { self =>
         onFieldFunctionCase = (_, _, attributes, name) => fieldFunctionCase(attributes, name),
         onLiteralCase = (_, _, attributes, lit) => literalCase(attributes, lit),
         onReferenceCase = (_, _, attributes, fqName) => referenceCase(attributes, fqName),
-        onUnitCase = (_, _, attributes) => unitCase(attributes)
+        onUnitCase = (_, _, attributes) => unitCase(attributes),
+        onVariableCase = (_, _, attributes, name) => variableCase(attributes, name)
       )
     )
 
@@ -69,7 +71,8 @@ sealed trait Value[+TA, +VA] { self =>
       fieldFunctionCase: (C, Value[TA, VA], VA, Name) => Z,
       literalCase: (C, Value[TA, VA], VA, Lit) => Z,
       referenceCase: (C, Value[TA, VA], VA, FQName) => Z,
-      unitCase: (C, Value[TA, VA], VA) => Z
+      unitCase: (C, Value[TA, VA], VA) => Z,
+      variableCase: (C, Value[TA, VA], VA, Name) => Z
   )(
       fieldCase: (C, Value[TA, VA], VA, Z, Name) => Z
   ): Z = foldContext(context)(
@@ -78,7 +81,8 @@ sealed trait Value[+TA, +VA] { self =>
       onFieldFunctionCase = fieldFunctionCase,
       onLiteralCase = literalCase,
       onReferenceCase = referenceCase,
-      onUnitCase = unitCase
+      onUnitCase = unitCase,
+      onVariableCase = variableCase
     )
   )
 
@@ -87,7 +91,8 @@ sealed trait Value[+TA, +VA] { self =>
     fieldFunctionCase = (attributes, name) => FieldFunction(g(attributes), name),
     literalCase = (attributes, lit) => Literal(g(attributes), lit),
     referenceCase = (attributes, fqName) => Reference(g(attributes), fqName),
-    unitCase = attributes => Unit(g(attributes))
+    unitCase = attributes => Unit(g(attributes)),
+    variableCase = (attributes, name) => Variable(g(attributes), name)
   )
   def toRawValue: RawValue = mapAttributes((_ => ()), (_ => ()))
 
@@ -917,7 +922,8 @@ object Value {
           fieldsToUpdate: Map[Name, Set[FQName]]
       ): Set[FQName] = ???
 
-      override def variableCase(context: Any, value: Value[Any, Any], attributes: Any, name: Name): Set[FQName] = ???
+      override def variableCase(context: Any, value: Value[Any, Any], attributes: Any, name: Name): Set[FQName] =
+        Set.empty
 
     }
 
@@ -1045,7 +1051,9 @@ object Value {
           fieldsToUpdate: Map[Name, Set[Name]]
       ): Set[Name] = ???
 
-      override def variableCase(context: Any, value: Value[Any, Any], attributes: Any, name: Name): Set[Name] = ???
+      override def variableCase(context: Any, value: Value[Any, Any], attributes: Any, name: Name): Set[Name] = Set(
+        name
+      )
 
     }
     object ToString extends Folder[Any, Any, Any, String] {
@@ -1163,7 +1171,8 @@ object Value {
           fieldsToUpdate: Map[Name, String]
       ): String = ???
 
-      override def variableCase(context: Any, value: Value[Any, Any], attributes: Any, name: Name): String = ???
+      override def variableCase(context: Any, value: Value[Any, Any], attributes: Any, name: Name): String =
+        name.toCamelCase
 
     }
 
@@ -1172,7 +1181,8 @@ object Value {
         onFieldFunctionCase: (Context, Value[TA, VA], VA, Name) => Z,
         onLiteralCase: (Context, Value[TA, VA], VA, Lit) => Z,
         onReferenceCase: (Context, Value[TA, VA], VA, FQName) => Z,
-        onUnitCase: (Context, Value[TA, VA], VA) => Z
+        onUnitCase: (Context, Value[TA, VA], VA) => Z,
+        onVariableCase: (Context, Value[TA, VA], VA, Name) => Z
     ) extends Folder[Context, TA, VA, Z] {
 
       override def applyCase(context: Context, value: Value[TA, VA], attributes: VA, function: Z, argument: Z): Z = ???
@@ -1277,7 +1287,12 @@ object Value {
           fieldsToUpdate: Map[Name, Z]
       ): Z = ???
 
-      override def variableCase(context: Context, value: Value[TA, VA], attributes: VA, name: Name): Z = ???
+      override def variableCase(context: Context, value: Value[TA, VA], attributes: VA, name: Name): Z = onVariableCase(
+        context,
+        value,
+        attributes,
+        name
+      )
 
     }
   }
