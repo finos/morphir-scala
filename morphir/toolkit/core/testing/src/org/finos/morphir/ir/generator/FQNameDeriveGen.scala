@@ -7,11 +7,8 @@ import zio.test.magnolia.DeriveGen
 import zio.test.magnolia.DeriveGen._
 import zio.test.Gen
 
-trait NameDeriveGen {
-  implicit val nameDeriveGen: DeriveGen[Name] = DeriveGen.instance(NameGen.name)
+trait FQNameDeriveGen {
+  implicit val fqNameDeriveGen: DeriveGen[FQName] = DeriveGen.instance(FQNameGen.fqName)
 }
 
-object NameDeriveGen extends NameDeriveGen
-
-
-
+object FQNameDeriveGen extends FQNameDeriveGen
