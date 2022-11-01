@@ -16,6 +16,7 @@ sealed trait Value[+TA, +VA] { self =>
   def collectVariables: Set[Name]    = foldContext(())(Folder.CollectVariables)
 
   def fold[Z](
+      constructorCase: (VA, FQName) => Z,
       fieldFunctionCase: (VA, Name) => Z,
       literalCase: (VA, Lit) => Z,
       referenceCase: (VA, FQName) => Z,
@@ -23,6 +24,7 @@ sealed trait Value[+TA, +VA] { self =>
   ): Z =
     foldContext(())(
       new Folder.DelegatedFolder(
+        onConstructorCase = (_, _, attributes, name) => constructorCase(attributes, name),
         onFieldFunctionCase = (_, _, attributes, name) => fieldFunctionCase(attributes, name),
         onLiteralCase = (_, _, attributes, lit) => literalCase(attributes, lit),
         onReferenceCase = (_, _, attributes, fqName) => referenceCase(attributes, fqName),
@@ -63,6 +65,7 @@ sealed trait Value[+TA, +VA] { self =>
   def foldContextWith[C, Z](
       context: C
   )(
+      constructorCase: (C, Value[TA, VA], VA, FQName) => Z,
       fieldFunctionCase: (C, Value[TA, VA], VA, Name) => Z,
       literalCase: (C, Value[TA, VA], VA, Lit) => Z,
       referenceCase: (C, Value[TA, VA], VA, FQName) => Z,
@@ -71,6 +74,7 @@ sealed trait Value[+TA, +VA] { self =>
       fieldCase: (C, Value[TA, VA], VA, Z, Name) => Z
   ): Z = foldContext(context)(
     new Folder.DelegatedFolder[C, TA, VA, Z](
+      onConstructorCase = constructorCase,
       onFieldFunctionCase = fieldFunctionCase,
       onLiteralCase = literalCase,
       onReferenceCase = referenceCase,
@@ -79,6 +83,7 @@ sealed trait Value[+TA, +VA] { self =>
   )
 
   def mapAttributes[TB, VB](f: TA => TB, g: VA => VB): Value[TB, VB] = fold(
+    constructorCase = (attributes, name) => Constructor(g(attributes), name),
     fieldFunctionCase = (attributes, name) => FieldFunction(g(attributes), name),
     literalCase = (attributes, lit) => Literal(g(attributes), lit),
     referenceCase = (attributes, fqName) => Reference(g(attributes), fqName),
@@ -799,7 +804,7 @@ object Value {
       ): Set[FQName] = ???
 
       override def constructorCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): Set[FQName] =
-        ???
+        Set.empty
 
       override def destructureCase(
           context: Any,
@@ -926,7 +931,8 @@ object Value {
           argument: Set[Name]
       ): Set[Name] = ???
 
-      override def constructorCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): Set[Name] = ???
+      override def constructorCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): Set[Name] =
+        Set.empty
 
       override def destructureCase(
           context: Any,
@@ -1052,7 +1058,8 @@ object Value {
           argument: String
       ): String = ???
 
-      override def constructorCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): String = ???
+      override def constructorCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): String =
+        name.toReferenceName
 
       override def destructureCase(
           context: Any,
@@ -1161,6 +1168,7 @@ object Value {
     }
 
     class DelegatedFolder[-Context, -TA, -VA, Z](
+        onConstructorCase: (Context, Value[TA, VA], VA, FQName) => Z,
         onFieldFunctionCase: (Context, Value[TA, VA], VA, Name) => Z,
         onLiteralCase: (Context, Value[TA, VA], VA, Lit) => Z,
         onReferenceCase: (Context, Value[TA, VA], VA, FQName) => Z,
@@ -1169,7 +1177,8 @@ object Value {
 
       override def applyCase(context: Context, value: Value[TA, VA], attributes: VA, function: Z, argument: Z): Z = ???
 
-      override def constructorCase(context: Context, value: Value[TA, VA], attributes: VA, name: FQName): Z = ???
+      override def constructorCase(context: Context, value: Value[TA, VA], attributes: VA, name: FQName): Z =
+        onConstructorCase(context, value, attributes, name)
 
       override def destructureCase(
           context: Context,

@@ -22,7 +22,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
 
   def spec = suite("Value Module")(
     // applySuite,
-    // constructorSuite,
+    constructorSuite,
     // destructureSuite,
     // fieldSuite,
     fieldFunctionSuite,
@@ -153,15 +153,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //   }
     ),
     suite("Collect References should return as expected for:")(
-      //   test("Constructor") {
-      //     val fqName = morphir.ir.FQName(
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       Name("RecordType")
-      //     )
-      //     val constr = constructor(fqName)
-      //     assertTrue(constr.collectReferences == Set[FQName]())
-      //   },
       //   test("Destructure") {
       //     val fq = morphir.ir.FQName(
       //       morphir.ir.Path(Name("Morphir.SDK")),
@@ -342,16 +333,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //   }
     )
     // suite("toRawValue should return as expected for:")(
-    //   test("Constructor") {
-    //     val fqName = morphir.ir.FQName(
-    //       morphir.ir.Path(Name("Morphir.SDK")),
-    //       morphir.ir.Path(Name("Morphir.SDK")),
-    //       Name("RecordType")
-    //     )
-    //     val typeRef = Type.reference(fqName)
-    //     val constr  = constructor(fqName, typeRef)
-    //     assertTrue(constr.toRawValue == constructor(fqName))
-    //   },
     //   test("Destructure") {
     //     val lit    = Lit.string("timeout")
     //     val lit2   = Lit.string("username")
@@ -534,14 +515,47 @@ object ValueModuleSpec extends MorphirBaseSpec {
   )
 
   def constructorSuite = suite("Constructor")(
+    test("toString should return as expected") {
+      val fqName = morphir.ir.FQName(
+        morphir.ir.Path.fromString("Morphir.SDK"),
+        morphir.ir.Path.fromString("My.Models"),
+        Name("Transaction")
+      )
+      val constr = constructor(fqName)
+      for {
+        _ <- zio.Console.printLine(constr.toString)
+      } yield assertTrue(
+        constr.toString == fqName.toReferenceName,
+        constr.toString == "Morphir.SDK.My.Models.Transaction"
+      )
+    },
     test("Should support collecting nested variables") {
+      val fqName = morphir.ir.FQName(
+        morphir.ir.Path("Morphir.SDK"),
+        morphir.ir.Path("Morphir.SDK"),
+        Name("RecordType")
+      )
+      val constr = constructor(fqName)
+      assertTrue(constr.collectVariables == Set.empty[Name])
+    },
+    test("Collect references should return as expected") {
+      val fqName = morphir.ir.FQName(
+        morphir.ir.Path("Morphir.SDK"),
+        morphir.ir.Path("Morphir.SDK"),
+        Name("RecordType")
+      )
+      val constr = constructor(fqName)
+      assertTrue(constr.collectReferences == Set.empty[FQName])
+    },
+    test("Should support toRawValue") {
       val fqName = morphir.ir.FQName(
         morphir.ir.Path(Name("Morphir.SDK")),
         morphir.ir.Path(Name("Morphir.SDK")),
         Name("RecordType")
       )
-      val constr = constructor(fqName)
-      assertTrue(constr.collectVariables == Set[Name]())
+      val typeRef = Type.reference(fqName)
+      val constr  = constructor(fqName, typeRef)
+      assertTrue(constr.toRawValue == constructor(fqName))
     }
   )
 
