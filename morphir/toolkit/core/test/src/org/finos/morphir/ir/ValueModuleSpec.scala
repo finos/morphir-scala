@@ -26,6 +26,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     // fieldSuite,
     fieldFunctionSuite,
     referenceSuite,
+    unitSuite,
     suite("Collect Variables should return as expected for:")(
       //   test("IfThenElse") {
       //     val ife = ifThenElse(
@@ -137,10 +138,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //       tuple1.collectVariables == Set[Name]() &&
       //         tuple2.collectVariables == Set(Name("hello"))
       //     )
-      //   },
-      //   test("Unit") {
-      //     val actual = unit
-      //     assertTrue(actual.collectVariables == Set[Name]())
       //   },
       //   test("UpdateRecord") {
       //     val ur = update(
@@ -335,10 +332,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //         tuple2.collectReferences == Set(fq)
       //     )
       //   },
-      //   test("Unit") {
-      //     val actual = unit
-      //     assertTrue(actual.collectReferences == Set[FQName]())
-      //   },
       //   test("UpdateRecord") {
       //     val fq = FQName.fromString("hello:world:string", ":")
       //     val ur = update(
@@ -520,9 +513,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
     //     val value = variable(stringType, name)
     //     assertTrue(value.toRawValue == variable(name))
     //   },
-    //   test("Unit") {
-    //     assertTrue(unit(Type.unit).toRawValue == unit)
-    //   }
   )
 
   def applySuite = suite("Apply")(
@@ -637,6 +627,24 @@ object ValueModuleSpec extends MorphirBaseSpec {
       val intTypeName = FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:Int")
       val ref         = Reference(morphir.ir.sdk.Basics.intType, intTypeName)
       assertTrue(ref.toRawValue == Reference.Raw(intTypeName))
+    }
+  )
+
+  def unitSuite = suite("Unit")(
+    test("toString should return the expected string") {
+      assertTrue(unit(Type.unit).toString == "()")
+    },
+    test("Collect variables should be empty") {
+      val actual = unit
+      assertTrue(actual.collectVariables == Set[Name]())
+    },
+    test("Collect references should be empty") {
+      val actual = unit
+      assertTrue(actual.collectReferences == Set[FQName]())
+    },
+    test("toRawValue should return as expected") {
+      val actual = unit(Type.unit)
+      assertTrue(actual.toRawValue == Unit(()))
     }
   )
 }
