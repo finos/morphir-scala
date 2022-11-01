@@ -15,10 +15,16 @@ sealed trait Value[+TA, +VA] { self =>
   def collectReferences: Set[FQName] = foldContext(())(Folder.CollectReferences)
   def collectVariables: Set[Name]    = foldContext(())(Folder.CollectVariables)
 
-  def fold[Z](fieldFunctionCase: (VA, Name) => Z, referenceCase: (VA, FQName) => Z, unitCase: VA => Z): Z =
+  def fold[Z](
+      fieldFunctionCase: (VA, Name) => Z,
+      literalCase: (VA, Lit) => Z,
+      referenceCase: (VA, FQName) => Z,
+      unitCase: VA => Z
+  ): Z =
     foldContext(())(
       new Folder.DelegatedFolder(
         onFieldFunctionCase = (_, _, attributes, name) => fieldFunctionCase(attributes, name),
+        onLiteralCase = (_, _, attributes, lit) => literalCase(attributes, lit),
         onReferenceCase = (_, _, attributes, fqName) => referenceCase(attributes, fqName),
         onUnitCase = (_, _, attributes) => unitCase(attributes)
       )
@@ -58,6 +64,7 @@ sealed trait Value[+TA, +VA] { self =>
       context: C
   )(
       fieldFunctionCase: (C, Value[TA, VA], VA, Name) => Z,
+      literalCase: (C, Value[TA, VA], VA, Lit) => Z,
       referenceCase: (C, Value[TA, VA], VA, FQName) => Z,
       unitCase: (C, Value[TA, VA], VA) => Z
   )(
@@ -65,6 +72,7 @@ sealed trait Value[+TA, +VA] { self =>
   ): Z = foldContext(context)(
     new Folder.DelegatedFolder[C, TA, VA, Z](
       onFieldFunctionCase = fieldFunctionCase,
+      onLiteralCase = literalCase,
       onReferenceCase = referenceCase,
       onUnitCase = unitCase
     )
@@ -72,6 +80,7 @@ sealed trait Value[+TA, +VA] { self =>
 
   def mapAttributes[TB, VB](f: TA => TB, g: VA => VB): Value[TB, VB] = fold(
     fieldFunctionCase = (attributes, name) => FieldFunction(g(attributes), name),
+    literalCase = (attributes, lit) => Literal(g(attributes), lit),
     referenceCase = (attributes, fqName) => Reference(g(attributes), fqName),
     unitCase = attributes => Unit(g(attributes))
   )
@@ -865,7 +874,8 @@ object Value {
           elements: Chunk[Set[FQName]]
       ): Set[FQName] = ???
 
-      override def literalCase(context: Any, value: Value[Any, Any], attributes: Any, literal: Lit): Set[FQName] = ???
+      override def literalCase(context: Any, value: Value[Any, Any], attributes: Any, literal: Lit): Set[FQName] =
+        Set.empty
 
       override def patternMatchCase(
           context: Any,
@@ -991,7 +1001,8 @@ object Value {
           elements: Chunk[Set[Name]]
       ): Set[Name] = ???
 
-      override def literalCase(context: Any, value: Value[Any, Any], attributes: Any, literal: Lit): Set[Name] = ???
+      override def literalCase(context: Any, value: Value[Any, Any], attributes: Any, literal: Lit): Set[Name] =
+        Set.empty
 
       override def patternMatchCase(
           context: Any,
@@ -1108,7 +1119,8 @@ object Value {
       override def listCase(context: Any, value: Value[Any, Any], attributes: Any, elements: Chunk[String]): String =
         ???
 
-      override def literalCase(context: Any, value: Value[Any, Any], attributes: Any, literal: Lit): String = ???
+      override def literalCase(context: Any, value: Value[Any, Any], attributes: Any, literal: Lit): String =
+        literal.toString
 
       override def patternMatchCase(
           context: Any,
@@ -1150,6 +1162,7 @@ object Value {
 
     class DelegatedFolder[-Context, -TA, -VA, Z](
         onFieldFunctionCase: (Context, Value[TA, VA], VA, Name) => Z,
+        onLiteralCase: (Context, Value[TA, VA], VA, Lit) => Z,
         onReferenceCase: (Context, Value[TA, VA], VA, FQName) => Z,
         onUnitCase: (Context, Value[TA, VA], VA) => Z
     ) extends Folder[Context, TA, VA, Z] {
@@ -1222,7 +1235,12 @@ object Value {
 
       override def listCase(context: Context, value: Value[TA, VA], attributes: VA, elements: Chunk[Z]): Z = ???
 
-      override def literalCase(context: Context, value: Value[TA, VA], attributes: VA, literal: Lit): Z = ???
+      override def literalCase(context: Context, value: Value[TA, VA], attributes: VA, literal: Lit): Z = onLiteralCase(
+        context,
+        value,
+        attributes,
+        literal
+      )
 
       override def patternMatchCase(
           context: Context,

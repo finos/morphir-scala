@@ -4,9 +4,7 @@ package ir
 import java.math.{BigDecimal => BigDec}
 import Type.UType
 
-object Literal extends LiteralModule
-
-private[ir] sealed trait LiteralModule { module =>
+object Literal { module =>
 
   /**
    * Represents a boolean value. The only possible values are `true` and `false`.
@@ -44,6 +42,8 @@ private[ir] sealed trait LiteralModule { module =>
       case StringLiteral(value)      => s""""$value""""
       case WholeNumberLiteral(value) => value.toString()
     }
+    final def toTypedValue(implicit ev: InferredTypeOf[Literal]): Value.TypedValue =
+      Value.literal(inferredType, self)
   }
   object Literal {
     def boolean(value: Boolean): Literal = BoolLiteral(value)
@@ -75,19 +75,19 @@ private[ir] sealed trait LiteralModule { module =>
         case WholeNumberLiteral(_) => sdk.Basics.intType
       }
     }
-  }
-}
 
-class LiteralInterpolator(val sc: StringContext) extends AnyVal {
-  import Literal._
-  def lit(args: Any*): Literal = {
-    val strings     = sc.parts.iterator
-    val expressions = args.iterator
-    val buf         = new StringBuilder(strings.next)
-    while (strings.hasNext) {
-      buf append expressions.next
-      buf append strings.next
+    class LiteralInterpolator(val sc: StringContext) extends AnyVal {
+      import Literal._
+      def lit(args: Any*): Literal = {
+        val strings     = sc.parts.iterator
+        val expressions = args.iterator
+        val buf         = new StringBuilder(strings.next)
+        while (strings.hasNext) {
+          buf append expressions.next
+          buf append strings.next
+        }
+        stringLiteral(buf.toString)
+      }
     }
-    stringLiteral(buf.toString)
   }
 }

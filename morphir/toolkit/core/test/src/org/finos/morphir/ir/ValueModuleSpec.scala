@@ -3,6 +3,7 @@ package morphir
 package ir
 
 import zio.Chunk
+import org.finos.morphir.ir.generator.LiteralGen
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Type.defineField
 import org.finos.morphir.ir.Type.{Type => IrType, UType}
@@ -25,6 +26,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     // destructureSuite,
     // fieldSuite,
     fieldFunctionSuite,
+    literalSuite,
     referenceSuite,
     unitSuite,
     suite("Collect Variables should return as expected for:")(
@@ -100,10 +102,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //       list1.collectVariables == Set[Name]() &&
       //         list2.collectVariables == Set(Name("hello"))
       //     )
-      //   },
-      //   test("Literal") {
-      //     val in = int(123)
-      //     assertTrue(in.collectVariables == Set[Name]())
       //   },
       //   test("PatternMatch") {
       //     val cases = Chunk(
@@ -285,10 +283,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //         list2.collectReferences == Set(fq)
       //     )
       //   },
-      //   test("Literal") {
-      //     val in = int(123)
-      //     assertTrue(in.collectReferences == Set[FQName]())
-      //   },
       //   test("PatternMatch") {
       //     val fq  = FQName.fromString("hello:world:star", ":")
       //     val fq2 = FQName.fromString("hello:world:mission", ":")
@@ -452,11 +446,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
     //       l1.toRawValue == list(boolean(true), boolean(false))
     //     )
     //   },
-    //   test("Literal") {
-    //     val value = Lit.True.toTypedValue
-
-    //     assertTrue(value.toRawValue == boolean(true))
-    //   },
     //   test("Apply - typed with multiple arguments") {
     //     val x      = Lit.int(42).toTypedValue
     //     val y      = Lit.int(58).toTypedValue
@@ -595,6 +584,33 @@ object ValueModuleSpec extends MorphirBaseSpec {
       val ff  = fieldFunction(age, intType)
 
       assertTrue(ff.toRawValue == fieldFunction(age))
+    }
+  )
+
+  def literalSuite = suite("Literal")(
+    test("toString should produce the expected string") {
+      check(LiteralGen.literal) { lit =>
+        val sut = literal(lit)
+        assertTrue(sut.toString == lit.toString)
+      }
+    },
+    test("Should support collecting variables") {
+      check(LiteralGen.literal) { lit =>
+        val sut = literal(lit)
+        assertTrue(sut.collectVariables == Set.empty[Name])
+      }
+    },
+    test("Should support collecting references") {
+      check(LiteralGen.literal) { lit =>
+        val sut = literal(lit)
+        assertTrue(sut.collectReferences == Set.empty[FQName])
+      }
+    },
+    test("Should discard attributes when calling toRawValue") {
+      check(LiteralGen.literal) { lit =>
+        val sut = lit.toTypedValue
+        assertTrue(sut.toRawValue == literal(lit))
+      }
     }
   )
 
