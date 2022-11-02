@@ -14,9 +14,10 @@
 set -euo pipefail
 #set -x
 
-FALLBACK_MORPHIR_VERSION=0.1.1-M01
+FALLBACK_MORPHIR_VERSION=0.1.1-M04
 MORPHIR_VERSION_FILE=.morphir-version
 CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}/morphir/launcher"
+URL_FMT=https://repo1.maven.org/maven2/org/finos/morphir/morphir-tools-launcher_2.13/%s/morphir-tools-launcher_2.13-%s-assembly.jar
 
 _log() {
     echo $* >/dev/stderr
@@ -74,7 +75,7 @@ curl_download() {
 launcher_jar_url() {
     local ver="$1"
 
-    echo https://repo1.maven.org/maven2/org/finos/morphir/morphir-tools-launcher_3/$ver/morphir-tools-launcher_3-$ver.jar
+    printf $URL_FMT $ver $ver
 }
 
 main() {

@@ -233,6 +233,13 @@ object morphir extends Module {
         Map("version" -> maybeLastTaggedVersion.getOrElse("0.0.0"))
       }
       object test extends Tests with MorphirTestModule {}
+
+      // also publish the assembly jar
+      override def extraPublish: T[Seq[PublishInfo]] = T {
+        Seq(
+          PublishInfo(file = assembly(), classifier = Some("assembly"), ivyConfig = "compile")
+        )
+      }
     }
 
     object msc extends Module {
