@@ -93,19 +93,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
 
       //     assertTrue(lr.collectVariables == Set(Name("x"), Name("y"), Name("z")))
       //   },
-      //   test("List") {
-      //     val list1 = listOf(literal("hello"), literal("world"))(stringType)
-      //     val list2 = list(
-      //       Chunk(
-      //         variable(Name("hello")),
-      //         int(3)
-      //       )
-      //     )
-      //     assertTrue(
-      //       list1.collectVariables == Set[Name]() &&
-      //         list2.collectVariables == Set(Name("hello"))
-      //     )
-      //   },
       //   test("PatternMatch") {
       //     val cases = Chunk(
       //       (asPattern(wildcardPattern, Name.fromString("x")), variable(Name("name"))),
@@ -229,20 +216,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
 
       //     assertTrue(lr.collectReferences == Set(fqName))
       //   },
-      //   test("List") {
-      //     val list1 = listOf(stringType, literal("hello"), literal("world"))
-      //     val fq    = FQName.fromString("hello:world:star")
-      //     val list2 = list(
-      //       Chunk(
-      //         reference(fq),
-      //         int(3)
-      //       )
-      //     )
-      //     assertTrue(
-      //       list1.collectReferences == Set[FQName]() &&
-      //         list2.collectReferences == Set(fq)
-      //     )
-      //   },
       //   test("PatternMatch") {
       //     val fq  = FQName.fromString("hello:world:star", ":")
       //     val fq2 = FQName.fromString("hello:world:mission", ":")
@@ -354,14 +327,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
     //         "x" -> ValueDefinition.Raw()(intType)(Lit.int(0)),
     //         "y" -> ValueDefinition.Raw()(intType)(Lit.int(42))
     //       )(Apply.Raw(times.toRawValue, Variable.Raw("x"), Variable.Raw("y")))
-    //     )
-    //   },
-    //   test("List") {
-
-    //     val l1 = listOf(boolType, Lit.True.toTypedValue, Lit.False.toTypedValue)
-
-    //     assertTrue(
-    //       l1.toRawValue == list(boolean(true), boolean(false))
     //     )
     //   },
     //   test("Apply - typed with multiple arguments") {
@@ -557,7 +522,46 @@ object ValueModuleSpec extends MorphirBaseSpec {
     }
   )
 
-  def listSuite = suite("List")()
+  def listSuite = suite("List")(
+    test("toString should return as expected") {
+      val sut = list(string("red"), string("blue"))
+      assertTrue(sut.toString == "[\"red\", \"blue\"]")
+    },
+    test("Should support collecting nested variables") {
+      val list1 = listOf(string("hello"), string("world"))(stringType)
+      val list2 = list(
+        Chunk(
+          variable(Name("hello")),
+          int(3)
+        )
+      )
+      assertTrue(
+        list1.collectVariables == Set[Name]() &&
+          list2.collectVariables == Set(Name("hello"))
+      )
+    },
+    test("Should support collecting references") {
+      val list1 = listOf(stringType, literal("hello"), literal("world"))
+      val fq    = FQName.fromString("hello:world:star")
+      val list2 = list(
+        Chunk(
+          reference(fq),
+          int(3)
+        )
+      )
+      assertTrue(
+        list1.collectReferences == Set[FQName]() &&
+          list2.collectReferences == Set(fq)
+      )
+    },
+    test("Should support toRawValue") {
+
+      val l1 = listOf(boolType, Lit.True, Lit.False)
+      assertTrue(
+        l1.toRawValue == list(boolean(true).toRawValue, boolean(false).toRawValue)
+      )
+    }
+  )
 
   def literalSuite = suite("Literal")(
     test("toString should produce the expected string") {

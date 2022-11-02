@@ -3,6 +3,7 @@ package ir
 
 import java.math.{BigDecimal => BigDec}
 import Type.UType
+import Value.TypedValue
 
 object Literal { module =>
 
@@ -46,6 +47,8 @@ object Literal { module =>
       Value.literal(inferredType, self)
   }
   object Literal {
+    final lazy val False: TypedValue     = BoolLiteral(false).toTypedValue
+    final lazy val True: TypedValue      = BoolLiteral(true).toTypedValue
     def boolean(value: Boolean): Literal = BoolLiteral(value)
     def char(value: Char): Literal       = CharLiteral(value)
     def decimal(value: BigDecimal): Literal =

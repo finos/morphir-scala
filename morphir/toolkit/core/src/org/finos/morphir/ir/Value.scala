@@ -4,6 +4,7 @@ package ir
 import Literal._
 import zio.Chunk
 import org.finos.morphir.ir.internal.PatternModule
+import org.finos.morphir.ir.sdk.List.listType
 import internal.{ValueDefinition, ValueSpecification}
 
 /**
@@ -148,10 +149,10 @@ object Value extends internal.PatternModule {
   final def list(elements: RawValue*): RawValue       = List.Raw(elements: _*)
 
   final def listOf[TA](elementType: UType, elements: Value[TA, UType]*): Value[TA, UType] =
-    List( /*listType(elementType)*/ ???, elements: _*)
+    List(listType(elementType), elements: _*)
 
   final def listOf(elements: RawValue*)(elementType: UType): TypedValue =
-    List( /*listType(elementType)*/ ???, elements.map(e => (e :> elementType)): _*)
+    List(listType(elementType), elements.map(e => (e :> elementType)): _*)
 
   final def literal[VA](attributes: VA, literal: Lit): Value[Nothing, VA] = LiteralValue(attributes, literal)
   final def literal(literal: Lit): RawValue                               = LiteralValue.Raw(literal)

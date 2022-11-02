@@ -19,6 +19,7 @@ sealed trait Value[+TA, +VA] { self =>
       constructorCase: (VA, FQName) => Z,
       fieldCase: (VA, Z, Name) => Z,
       fieldFunctionCase: (VA, Name) => Z,
+      listCase: (VA, Chunk[Z]) => Z,
       literalCase: (VA, Lit) => Z,
       referenceCase: (VA, FQName) => Z,
       tupleCase: (VA, Chunk[Z]) => Z,
@@ -30,6 +31,7 @@ sealed trait Value[+TA, +VA] { self =>
         onConstructorCase = (_, _, attributes, name) => constructorCase(attributes, name),
         onFieldCase = (_, _, attributes, value, name) => fieldCase(attributes, value, name),
         onFieldFunctionCase = (_, _, attributes, name) => fieldFunctionCase(attributes, name),
+        onListCase = (_, _, attributes, values) => listCase(attributes, values),
         onLiteralCase = (_, _, attributes, lit) => literalCase(attributes, lit),
         onReferenceCase = (_, _, attributes, fqName) => referenceCase(attributes, fqName),
         onTupleCase = (_, _, attributes, values) => tupleCase(attributes, values),
@@ -53,6 +55,8 @@ sealed trait Value[+TA, +VA] { self =>
           loop(subjectValue :: values, Left(v) :: out)
         case (v @ FieldFunction(attributes, name)) :: values =>
           loop(values, Right(fieldFunctionCase(context, v, attributes, name)) :: out)
+        case (v @ ListValue(_, elements)) :: values =>
+          loop(elements.toList ++ values, Left(v) :: out)
         case (v @ Literal(attributes, lit)) :: values =>
           loop(values, Right(literalCase(context, v, attributes, lit)) :: out)
         case (v @ Reference(attributes, name)) :: values =>
@@ -70,6 +74,10 @@ sealed trait Value[+TA, +VA] { self =>
               val subjectValue = acc.head
               val rest         = acc.tail
               fieldCase(context, v, attributes, subjectValue, fieldName) :: rest
+            case (acc, Left(v @ ListValue(attributes, _))) =>
+              val elements = Chunk.fromIterable(acc.take(v.elements.size))
+              val rest     = acc.drop(v.elements.length)
+              listCase(context, v, attributes, elements) :: rest
             case (acc, Left(v @ Tuple(attributes, _))) =>
               val arity    = v.elements.length
               val elements = Chunk.fromIterable(acc.take(arity))
@@ -92,12 +100,14 @@ sealed trait Value[+TA, +VA] { self =>
       variableCase: (C, Value[TA, VA], VA, Name) => Z
   )(
       fieldCase: (C, Value[TA, VA], VA, Z, Name) => Z,
+      listCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z,
       tupleCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z
   ): Z = foldContext(context)(
     new Folder.DelegatedFolder[C, TA, VA, Z](
       onConstructorCase = constructorCase,
       onFieldCase = fieldCase,
       onFieldFunctionCase = fieldFunctionCase,
+      onListCase = listCase,
       onLiteralCase = literalCase,
       onReferenceCase = referenceCase,
       onTupleCase = tupleCase,
@@ -110,6 +120,7 @@ sealed trait Value[+TA, +VA] { self =>
     constructorCase = (attributes, name) => Constructor(g(attributes), name),
     fieldCase = (attributes, value, name) => Field(g(attributes), value, name),
     fieldFunctionCase = (attributes, name) => FieldFunction(g(attributes), name),
+    listCase = (attributes, values) => ListValue(g(attributes), values),
     literalCase = (attributes, lit) => Literal(g(attributes), lit),
     referenceCase = (attributes, fqName) => Reference(g(attributes), fqName),
     tupleCase = (attributes, elements) => Tuple(g(attributes), elements),
@@ -899,7 +910,7 @@ object Value {
           value: Value[Any, Any],
           attributes: Any,
           elements: Chunk[Set[FQName]]
-      ): Set[FQName] = ???
+      ): Set[FQName] = elements.fold(Set.empty)(_ ++ _)
 
       override def literalCase(context: Any, value: Value[Any, Any], attributes: Any, literal: Lit): Set[FQName] =
         Set.empty
@@ -1028,7 +1039,7 @@ object Value {
           value: Value[Any, Any],
           attributes: Any,
           elements: Chunk[Set[Name]]
-      ): Set[Name] = ???
+      ): Set[Name] = elements.fold(Set.empty)(_ ++ _)
 
       override def literalCase(context: Any, value: Value[Any, Any], attributes: Any, literal: Lit): Set[Name] =
         Set.empty
@@ -1149,7 +1160,7 @@ object Value {
       ): String = ???
 
       override def listCase(context: Any, value: Value[Any, Any], attributes: Any, elements: Chunk[String]): String =
-        ???
+        elements.mkString("[", ", ", "]")
 
       override def literalCase(context: Any, value: Value[Any, Any], attributes: Any, literal: Lit): String =
         literal.toString
@@ -1197,6 +1208,7 @@ object Value {
         onConstructorCase: (Context, Value[TA, VA], VA, FQName) => Z,
         onFieldCase: (Context, Value[TA, VA], VA, Z, Name) => Z,
         onFieldFunctionCase: (Context, Value[TA, VA], VA, Name) => Z,
+        onListCase: (Context, Value[TA, VA], VA, Chunk[Z]) => Z,
         onLiteralCase: (Context, Value[TA, VA], VA, Lit) => Z,
         onReferenceCase: (Context, Value[TA, VA], VA, FQName) => Z,
         onTupleCase: (Context, Value[TA, VA], VA, Chunk[Z]) => Z,
@@ -1271,7 +1283,12 @@ object Value {
           inValue: Z
       ): Z = ???
 
-      override def listCase(context: Context, value: Value[TA, VA], attributes: VA, elements: Chunk[Z]): Z = ???
+      override def listCase(context: Context, value: Value[TA, VA], attributes: VA, elements: Chunk[Z]): Z = onListCase(
+        context,
+        value,
+        attributes,
+        elements
+      )
 
       override def literalCase(context: Context, value: Value[TA, VA], attributes: VA, literal: Lit): Z = onLiteralCase(
         context,
