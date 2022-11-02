@@ -155,6 +155,56 @@ object Value extends internal.PatternModule {
 
   final def literal[VA](attributes: VA, literal: Lit): Value[Nothing, VA] = LiteralValue(attributes, literal)
   final def literal(literal: Lit): RawValue                               = LiteralValue.Raw(literal)
+  final def literal(value: String): TypedValue = {
+    val literal = Lit.string(value)
+    LiteralValue(literal.inferredType, literal)
+  }
+  final def literal(value: Int): TypedValue = {
+    val literal = Lit.int(value)
+    LiteralValue(literal.inferredType, literal)
+  }
+
+  final def literal(value: Long): TypedValue = {
+    val literal = Lit.long(value)
+    LiteralValue(literal.inferredType, literal)
+  }
+
+  final def literal(value: Float): TypedValue = {
+    val literal = Lit.float(value)
+    LiteralValue(literal.inferredType, literal)
+  }
+
+  final def literal(value: Double): TypedValue = {
+    val literal = Lit.double(value)
+    LiteralValue(literal.inferredType, literal)
+  }
+
+  final def literal(value: Boolean): TypedValue = {
+    val literal = Lit.boolean(value)
+    LiteralValue(literal.inferredType, literal)
+  }
+
+  final def literal(value: scala.BigDecimal): TypedValue = {
+    val literal = Lit.decimal(value)
+    LiteralValue(literal.inferredType, literal)
+  }
+
+  final def literal(value: java.math.BigDecimal): TypedValue = {
+    val literal = Lit.decimal(value)
+    LiteralValue(literal.inferredType, literal)
+  }
+
+  // final def literal(value: java.math.BigInteger): TypedValue = {
+  //   val literal = Lit.wholeNumber(value)
+  //   LiteralValue(literal.inferredType, literal)
+  // }
+
+  // final def literal(value: scala.BigInt): TypedValue = {
+  //   val literal = Lit.wholeNumber(value)
+  //   LiteralValue(literal.inferredType, literal)
+  // }
+
+  final def literalTyped[A](literal: Lit): TypedValue = literal.toTypedValue
 
   final def record[VA](attributes: VA)(implicit ev: NeedsAttributes[VA]): RecordPartiallyApplied[VA] =
     new RecordPartiallyApplied(

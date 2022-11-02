@@ -51,9 +51,11 @@ object Literal { module =>
     def decimal(value: BigDecimal): Literal =
       DecimalLiteral(value)
     def decimal(value: BigDec): Literal = DecimalLiteral(BigDecimal(value))
+    def double(value: Double): Literal  = FloatLiteral(value)
     def float(value: Double): Literal   = FloatLiteral(value)
     def float(value: Float): Literal    = FloatLiteral(value.toDouble)
     def int(value: Int): Literal        = WholeNumberLiteral(value)
+    def long(value: Long): Literal      = WholeNumberLiteral(value)
     def string(value: String): Literal  = StringLiteral(value)
     def wholeNumber(value: Long): Literal =
       WholeNumberLiteral(value)

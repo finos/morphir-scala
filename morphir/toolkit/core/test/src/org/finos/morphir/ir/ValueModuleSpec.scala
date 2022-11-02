@@ -24,10 +24,12 @@ object ValueModuleSpec extends MorphirBaseSpec {
     // applySuite,
     constructorSuite,
     // destructureSuite,
-    // fieldSuite,
+    fieldSuite,
     fieldFunctionSuite,
+    listSuite,
     literalSuite,
     referenceSuite,
+    tupleSuite,
     unitSuite,
     variableSuite,
     suite("Collect Variables should return as expected for:")(
@@ -125,19 +127,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //     val rec = record(Chunk((name, str), (name2, va)))
       //     assertTrue(rec.collectVariables == Set(name2))
       //   },
-      //   test("Tuple") {
-      //     val tuple1 = Tuple.Typed(literal("hello"), literal("world"))
-      //     val tuple2 = tuple(
-      //       Chunk(
-      //         variable(Name("hello")),
-      //         int(3)
-      //       )
-      //     )
-      //     assertTrue(
-      //       tuple1.collectVariables == Set[Name]() &&
-      //         tuple2.collectVariables == Set(Name("hello"))
-      //     )
-      //   },
       //   test("UpdateRecord") {
       //     val ur = update(
       //       string("hello world"),
@@ -162,23 +151,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //       variable("x")
       //     )
       //     assertTrue(des.collectReferences == Set(fq))
-      //   },
-      //   test("Field") {
-      //     val name = Name.fromString("Name")
-      //     val fi   = field(string("String"), name)
-
-      //     val fqName = morphir.ir.FQName(
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       Name("RecordType")
-      //     )
-      //     val name2 = Name.fromString("Name3")
-      //     val fi2   = field(reference(fqName), name2)
-
-      //     assertTrue(
-      //       fi.collectReferences == Set[FQName]() &&
-      //         fi2.collectReferences == Set(fqName)
-      //     )
       //   },
       //   test("IfThenElse") {
       //     val fqName = morphir.ir.FQName(
@@ -295,25 +267,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //     val rec = record(Chunk((name, str), (name2, rf)))
       //     assertTrue(rec.collectReferences == Set(fqName))
       //   },
-      //   test("Tuple") {
-      //     val tuple1 = Tuple.Typed(
-      //       Chunk(
-      //         literal("hello"),
-      //         literal("world")
-      //       )
-      //     )
-      //     val fq = FQName.fromString("hello:world:star", ":")
-      //     val tuple2 = tuple(
-      //       Chunk(
-      //         reference(fq),
-      //         int(3)
-      //       )
-      //     )
-      //     assertTrue(
-      //       tuple1.collectReferences == Set[FQName]() &&
-      //         tuple2.collectReferences == Set(fq)
-      //     )
-      //   },
       //   test("UpdateRecord") {
       //     val fq = FQName.fromString("hello:world:string", ":")
       //     val ur = update(
@@ -346,16 +299,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
     //         string("timeout"),
     //         string("username")
     //       )
-    //     )
-    //   },
-    //   test("Field") {
-    //     val name  = Name.fromString("Name")
-    //     val value = literal(42)
-
-    //     val actual = Field.Typed(intType, value, name)
-
-    //     assertTrue(
-    //       actual.toRawValue == field(int(42), name)
     //     )
     //   },
     //   test("IfThenElse") {
@@ -455,13 +398,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
 
     //     assertTrue(rec.toRawValue == record(Chunk((name, string("timeout")))))
     //   },
-    //   test("Tuple") {
-
-    //     val t1 = tuple(string("shimmy") -> stringType)
-    //     assertTrue(
-    //       t1.toRawValue == Tuple.Raw(string("shimmy"))
-    //     )
-    //   },
     //   test("UpdateRecord") {
 
     //     val recordType = Type.record(defineField("greeting", stringType))
@@ -558,10 +494,43 @@ object ValueModuleSpec extends MorphirBaseSpec {
   )
 
   def fieldSuite = suite("Field")(
+    test("toString should return as expected") {
+      val person        = variable("person")
+      val ageField      = field(person, "age")
+      val lastNameField = field(person, "lastName")
+      assertTrue(ageField.toString == "person.age", lastNameField.toString() == "person.lastName")
+    },
     test("Should support collecting nested variables") {
       assertTrue(
         field(variable("person"), "age").collectVariables == Set[Name](Name("person")),
         field(reference("Package:Module:People"), "count").collectVariables == Set.empty[Name]
+      )
+    },
+    test("Should support collecting references") {
+      val name = Name.fromString("Name")
+      val fi   = field(string("String"), name)
+
+      val fqName = morphir.ir.FQName(
+        morphir.ir.Path("Morphir.SDK"),
+        morphir.ir.Path("Morphir.SDK"),
+        Name("RecordType")
+      )
+      val name2 = Name.fromString("Name3")
+      val fi2   = field(reference(fqName), name2)
+
+      assertTrue(
+        fi.collectReferences == Set[FQName]() &&
+          fi2.collectReferences == Set(fqName)
+      )
+    },
+    test("toRawValue should return as expected") {
+      val name  = Name.fromString("Name")
+      val value = literal(42)
+
+      val actual = Field.Typed(intType, value, name)
+
+      assertTrue(
+        actual.toRawValue == field(int(42), name)
       )
     }
   )
@@ -587,6 +556,8 @@ object ValueModuleSpec extends MorphirBaseSpec {
       assertTrue(ff.toRawValue == fieldFunction(age))
     }
   )
+
+  def listSuite = suite("List")()
 
   def literalSuite = suite("Literal")(
     test("toString should produce the expected string") {
@@ -644,6 +615,53 @@ object ValueModuleSpec extends MorphirBaseSpec {
       val intTypeName = FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:Int")
       val ref         = Reference(morphir.ir.sdk.Basics.intType, intTypeName)
       assertTrue(ref.toRawValue == Reference.Raw(intTypeName))
+    }
+  )
+
+  def tupleSuite = suite("Tuple")(
+    test("toString should return the expected string") {
+      val sut = tuple(string("red"), string("blue"))
+      assertTrue(sut.toString == "(\"red\", \"blue\")")
+    },
+    test("Should support collecting nested variables") {
+      val tuple1 = Tuple.Typed(Lit.string("hello").toTypedValue, Lit.string("world").toTypedValue)
+      val tuple2 = tuple(
+        Chunk(
+          variable(Name("hello")),
+          int(3),
+          variable(Name.fromString("other"))
+        )
+      )
+      assertTrue(
+        tuple1.collectVariables == Set[Name](),
+        tuple2.collectVariables == Set(Name("hello"), Name.fromString("other"))
+      )
+    },
+    test("Should support collecting nested references") {
+      val tuple1 = Tuple.Typed(
+        Chunk(
+          literal("hello"),
+          literal("world")
+        )
+      )
+      val fq = FQName.fromString("hello:world:star", ":")
+      val tuple2 = tuple(
+        Chunk(
+          reference(fq),
+          int(3)
+        )
+      )
+      assertTrue(
+        tuple1.collectReferences == Set[FQName]() &&
+          tuple2.collectReferences == Set(fq)
+      )
+    },
+    test("toRawValue should discard attributes") {
+
+      val t1 = tuple(string("shimmy") -> stringType)
+      assertTrue(
+        t1.toRawValue == Tuple.Raw(string("shimmy"))
+      )
     }
   )
 
