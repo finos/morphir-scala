@@ -2,6 +2,8 @@ package org.finos.morphir.ir
 package json
 
 import zio.json._
+import org.finos.morphir.ir.distribution.Distribution
+import org.finos.morphir.ir.distribution.Distribution._
 import org.finos.morphir.ir.Literal.Literal
 import org.finos.morphir.ir.Literal.Literal._
 import org.finos.morphir.ir.Module.{
@@ -10,7 +12,11 @@ import org.finos.morphir.ir.Module.{
   ModulePath,
   Specification => ModuleSpecification
 }
-import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, Specification => PackageSpecification}
+import org.finos.morphir.ir.PackageModule.{
+  Definition => PackageDefinition,
+  Specification => PackageSpecification,
+  USpecification => UPackageSpecification
+}
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.Type.{Definition => TypeDefinition, Specification => TypeSpecification, Type}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Pattern, Specification => ValueSpecification, Value}
@@ -207,7 +213,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
       test("will decode a FloatLiteral") {
         val actual   = """["FloatLiteral",1.3232]"""
         val expected = FloatLiteral(1.3232d)
-        
+
         assertTrue(actual.fromJson[FloatLiteral] == Right(expected))
       },
       test("will decode a StringLiteral") {
@@ -583,7 +589,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
           (name1, 1, variable[Int](345, "g")),
           (name2, 2, variable[Int](678, "h"))
         )
-        val value = Value.Constructor(1, FQName.fromString("test:JavaHome:morphir"))
+        val value    = Value.Constructor(1, FQName.fromString("test:JavaHome:morphir"))
         val valueDef = ValueDefinition[Int, Int](inputParams, variable[Int](345, "g"), value)
 
         val valueMap =
@@ -663,7 +669,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
           (Name.fromString("name1"), 1, variable[Int](444, "g")),
           (Name.fromString("name2"), 2, variable[Int](678, "h"))
         )
-        val literalCase = Value.Literal(3, BoolLiteral(true))
+        val literalCase     = Value.Literal(3, BoolLiteral(true))
         val valueDefinition = ValueDefinition[Int, Int](inputParams, variable[Int](345, "g"), literalCase)
 
         val fieldFunctionCase = Value.FieldFunction(3, Name("Hello"))
@@ -679,7 +685,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
           (Name.fromString("name1"), 1, variable[Int](444, "g")),
           (Name.fromString("name2"), 2, variable[Int](678, "h"))
         )
-        val literalCase = Value.Literal(3, BoolLiteral(true))
+        val literalCase          = Value.Literal(3, BoolLiteral(true))
         val valueDefinitionCase1 = ValueDefinition[Int, Int](inputParams, variable[Int](333, "x"), literalCase)
         val valueDefinitionCase2 = ValueDefinition[Int, Int](inputParams, variable[Int](444, "y"), literalCase)
         val valueDefinitions =
@@ -695,7 +701,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         val unitCase          = Value.Unit(6)
         val fieldFunctionCase = Value.FieldFunction(3, Name("Hello"))
         val actual            = """["list",3,[["unit",6],["field_function",3,["hello"]]]]"""
-        val expected = Value.List(3, zio.Chunk[Value[Int, Int]](unitCase, fieldFunctionCase))
+        val expected          = Value.List(3, zio.Chunk[Value[Int, Int]](unitCase, fieldFunctionCase))
         assertTrue(actual.fromJson[Value[Int, Int]] == Right(expected))
       },
       test("will decode Value - LiteralCase") {
@@ -752,6 +758,66 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         val actual   = """["variable",3,["hello"]]"""
         val expected = Value.Variable(3, Name("hello"))
         assertTrue(actual.fromJson[Value[Int, Int]] == Right(expected))
+      }
+    ),
+    suite("Distribution")(
+      test("will encode Distribution.Library") {
+        val packageName = PackageName.fromString("morphir.SDK")
+        val name        = Name.fromString("name")
+        val name1       = Name.fromString("name1")
+        val name2       = Name.fromString("name2")
+        val modName1    = ModuleName(Path.fromString("org"), Name.fromString("src"))
+        val modName2    = ModuleName(Path.fromString("org"), Name.fromString("test"))
+
+        val specTypeMap = Map(
+          name -> Documented(
+            "typeDoc1",
+            TypeSpecification.TypeAliasSpecification[scala.Unit](zio.Chunk(name1, name2), unit)
+          )
+        )
+        val inputs       = zio.Chunk((name1, unit), (name2, unit))
+        val specValueMap = Map(name -> Documented("valueDoc1", ValueSpecification[scala.Unit](inputs, unit)))
+
+        val modSpec = ModuleSpecification[scala.Unit](specTypeMap, specValueMap)
+        val pkgSpec = PackageSpecification[scala.Unit](Map(modName1 -> modSpec, modName2 -> modSpec))
+
+        val inputParams = zio.Chunk(
+          (name1, unit, unit),
+          (name2, unit, unit)
+        )
+        val value    = Value.Constructor(unit, FQName.fromString("test:JavaHome:morphir"))
+        val valueDef = ValueDefinition(inputParams, unit, value)
+
+        val defValueMap =
+          Map(name -> AccessControlled(AccessControlled.Access.Private, Documented("valueDoc1", valueDef)))
+
+        val defTypeMap = Map(
+          name -> AccessControlled(
+            AccessControlled.Access.Private,
+            Documented(
+              "typeDoc1",
+              TypeDefinition.TypeAlias(zio.Chunk(name1, name2), unit)
+            )
+          )
+        )
+
+        val modDef = ModuleDefinition(defTypeMap, defValueMap)
+        val dependencies = Map[PackageName, UPackageSpecification](
+          PackageName.fromString("org.finos.morphir.ir") -> pkgSpec
+        )
+        val packageDef: PackageDefinition.Typed = PackageDefinition(
+          Map(
+            modName1 -> AccessControlled(AccessControlled.Access.Public, modDef),
+            modName2 -> AccessControlled(AccessControlled.Access.Private, modDef)
+          )
+        )
+        val expected = Library(packageName, dependencies, packageDef)
+        val actual =
+          """["Library",[["morphir"],["s","d","k"]],[[[["org"],["finos"],["morphir"],["ir"]],{"modules":[[[[["org"]],["src"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}],[[[["org"]],["test"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}]]}]],{"modules":[[[[["org"]],["src"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}],[[[["org"]],["test"]],{"access":"Private","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}]]}]"""
+        assertTrue(
+          actual.fromJson[Library] == Right(expected),
+          actual.fromJson[Distribution] == Right(expected)
+        )
       }
     )
   )
