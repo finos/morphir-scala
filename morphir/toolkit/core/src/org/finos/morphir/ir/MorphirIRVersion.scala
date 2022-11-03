@@ -1,9 +1,15 @@
-package zio.morphir.ir
+package org.finos.morphir
+package ir
 
-sealed trait MorphirIRVersion
+sealed abstract class MorphirIRVersion(version: String) extends Product with Serializable {
+  final val versionNumber: String = version
+}
 
 object MorphirIRVersion {
-  case object V1_0 extends MorphirIRVersion
+  case object V1_0 extends MorphirIRVersion("1.0")
+  case object V2_0 extends MorphirIRVersion("2.0")
 
-  val Default: MorphirIRVersion = V1_0
+  val Default: MorphirIRVersion = V2_0
 }
+
+
