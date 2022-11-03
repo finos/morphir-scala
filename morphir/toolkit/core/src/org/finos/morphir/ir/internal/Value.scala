@@ -20,6 +20,7 @@ sealed trait Value[+TA, +VA] { self =>
       constructorCase: (VA, FQName) => Z,
       fieldCase: (VA, Z, Name) => Z,
       fieldFunctionCase: (VA, Name) => Z,
+      lambdaCase: (VA, Pattern[VA], Z) => Z,
       listCase: (VA, Chunk[Z]) => Z,
       literalCase: (VA, Lit) => Z,
       recordCase: (VA, Chunk[(Name, Z)]) => Z,
@@ -34,6 +35,7 @@ sealed trait Value[+TA, +VA] { self =>
         onConstructorCase = (_, _, attributes, name) => constructorCase(attributes, name),
         onFieldCase = (_, _, attributes, value, name) => fieldCase(attributes, value, name),
         onFieldFunctionCase = (_, _, attributes, name) => fieldFunctionCase(attributes, name),
+        onLambdaCase = (_, _, attributes, pattern, body) => lambdaCase(attributes, pattern, body),
         onListCase = (_, _, attributes, values) => listCase(attributes, values),
         onLiteralCase = (_, _, attributes, lit) => literalCase(attributes, lit),
         onRecordCase = (_, _, attributes, fields) => recordCase(attributes, fields),
@@ -59,6 +61,8 @@ sealed trait Value[+TA, +VA] { self =>
           loop(subjectValue :: values, Left(v) :: out)
         case (v @ FieldFunction(attributes, name)) :: values =>
           loop(values, Right(fieldFunctionCase(context, v, attributes, name)) :: out)
+        case (v @ Lambda(_, _, body)) :: values =>
+          loop(body :: values, Left(v) :: out)
         case (v @ ListValue(_, elements)) :: values =>
           loop(elements.toList ++ values, Left(v) :: out)
         case (v @ Literal(attributes, lit)) :: values =>
@@ -84,6 +88,9 @@ sealed trait Value[+TA, +VA] { self =>
               val subjectValue = acc.head
               val rest         = acc.tail
               fieldCase(context, v, attributes, subjectValue, fieldName) :: rest
+            case (acc, Left(v @ Lambda(attributes, pattern, _))) =>
+              val body :: rest = acc
+              lambdaCase(context, v, attributes, pattern, body) :: rest
             case (acc, Left(v @ ListValue(attributes, _))) =>
               val elements = Chunk.fromIterable(acc.take(v.elements.size))
               val rest     = acc.drop(v.elements.length)
@@ -124,6 +131,7 @@ sealed trait Value[+TA, +VA] { self =>
   )(
       applyCase: (C, Value[TA, VA], VA, Z, Z) => Z,
       fieldCase: (C, Value[TA, VA], VA, Z, Name) => Z,
+      lambdaCase: (C, Value[TA, VA], VA, Pattern[VA], Z) => Z,
       listCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z,
       recordCase: (C, Value[TA, VA], VA, Chunk[(Name, Z)]) => Z,
       tupleCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z
@@ -133,6 +141,7 @@ sealed trait Value[+TA, +VA] { self =>
       onConstructorCase = constructorCase,
       onFieldCase = fieldCase,
       onFieldFunctionCase = fieldFunctionCase,
+      onLambdaCase = lambdaCase,
       onListCase = listCase,
       onLiteralCase = literalCase,
       onRecordCase = recordCase,
@@ -148,6 +157,7 @@ sealed trait Value[+TA, +VA] { self =>
     constructorCase = (attributes, name) => Constructor(g(attributes), name),
     fieldCase = (attributes, value, name) => Field(g(attributes), value, name),
     fieldFunctionCase = (attributes, name) => FieldFunction(g(attributes), name),
+    lambdaCase = (attributes, pattern, body) => Lambda(g(attributes), pattern.map(g), body),
     listCase = (attributes, values) => ListValue(g(attributes), values),
     literalCase = (attributes, lit) => Literal(g(attributes), lit),
     recordCase = (attributes, fields) => Record(g(attributes), fields),
@@ -907,7 +917,7 @@ object Value {
           attributes: Any,
           argumentPattern: Pattern[Any],
           body: Set[FQName]
-      ): Set[FQName] = ???
+      ): Set[FQName] = body
 
       override def letDefCase(
           context: Any,
@@ -1036,7 +1046,7 @@ object Value {
           attributes: Any,
           argumentPattern: Pattern[Any],
           body: Set[Name]
-      ): Set[Name] = ???
+      ): Set[Name] = body
 
       override def letDefCase(
           context: Any,
@@ -1161,7 +1171,7 @@ object Value {
           attributes: Any,
           argumentPattern: Pattern[Any],
           body: String
-      ): String = ???
+      ): String = s"(\\$argumentPattern -> $body)"
 
       override def letDefCase(
           context: Any,
@@ -1240,6 +1250,7 @@ object Value {
         onConstructorCase: (Context, Value[TA, VA], VA, FQName) => Z,
         onFieldCase: (Context, Value[TA, VA], VA, Z, Name) => Z,
         onFieldFunctionCase: (Context, Value[TA, VA], VA, Name) => Z,
+        onLambdaCase: (Context, Value[TA, VA], VA, Pattern[VA], Z) => Z,
         onListCase: (Context, Value[TA, VA], VA, Chunk[Z]) => Z,
         onLiteralCase: (Context, Value[TA, VA], VA, Lit) => Z,
         onRecordCase: (Context, Value[TA, VA], VA, Chunk[(Name, Z)]) => Z,
@@ -1296,7 +1307,7 @@ object Value {
           attributes: VA,
           argumentPattern: Pattern[VA],
           body: Z
-      ): Z = ???
+      ): Z = onLambdaCase(context, value, attributes, argumentPattern, body)
 
       override def letDefCase(
           context: Context,

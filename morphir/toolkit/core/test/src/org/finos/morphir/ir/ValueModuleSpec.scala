@@ -26,6 +26,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     // destructureSuite,
     fieldSuite,
     fieldFunctionSuite,
+    lambdaSuite,
     listSuite,
     literalSuite,
     recordSuite,
@@ -41,22 +42,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //       elseBranch = int(3)
       //     )
       //     assertTrue(ife.collectVariables == Set(Name.fromString("y")))
-      //   },
-      //   test("Lambda") {
-      //     val v1 = variable("x")
-
-      //     val lam1 = lambda(
-      //       asPattern(wildcardPattern, Name("x")),
-      //       list(v1, variable("y"))
-      //     )
-      //     val lam2 = lambda(
-      //       asPattern(wildcardPattern, Name("x")),
-      //       v1
-      //     )
-      //     assertTrue(
-      //       lam1.collectVariables == Set[Name](Name("X"), Name("y")),
-      //       lam2.collectVariables == Set(Name("x"))
-      //     )
       //   },
       //   test("LetDefinition") {
       //     val ld = let(
@@ -148,26 +133,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //       elseBranch = reference(fqName2)
       //     )
       //     assertTrue(ife.collectReferences == Set(fqName, fqName2))
-      //   },
-      //   test("Lambda") {
-      //     val fqName = morphir.ir.FQName(
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       Name("RecordType")
-      //     )
-
-      //     val lam1 = lambda(
-      //       asPattern(wildcardPattern, Name("x")),
-      //       reference(fqName)
-      //     )
-      //     val lam2 = lambda(
-      //       asPattern(wildcardPattern, Name("x")),
-      //       variable("x")
-      //     )
-      //     assertTrue(
-      //       lam1.collectReferences == Set(fqName) &&
-      //         lam2.collectReferences == Set[FQName]()
-      //     )
       //   },
       //   test("LetDefinition") {
 
@@ -264,21 +229,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
 
     //     val ife = IfThenElse.Typed(condition, x, y)
     //     assertTrue(ife.toRawValue == IfThenElse.Raw(condition.toRawValue, x.toRawValue, y.toRawValue))
-    //   },
-    //   test("Lambda") {
-
-    //     val actual = Lambda.Typed(
-    //       Type.reference("Morphir.SDK", "Basics", "power"),
-    //       Pattern.asPattern(intType, wildcardPattern(intType), Name.fromString("x")),
-    //       variable(Name.fromString("x"), intType)
-    //     )
-
-    //     assertTrue(
-    //       actual.toRawValue == Lambda.Raw(
-    //         Pattern.AsPattern.Raw(wildcardPattern, "x"),
-    //         variable(Name.fromString("x"))
-    //       )
-    //     )
     //   },
     //   test("LetDefinition") {
     //     val value   = Lit.False.toTypedValue
@@ -506,6 +456,64 @@ object ValueModuleSpec extends MorphirBaseSpec {
       val ff  = fieldFunction(age, intType)
 
       assertTrue(ff.toRawValue == fieldFunction(age))
+    }
+  )
+
+  def lambdaSuite = suite("Lambda")(
+    test("toString should return the expected value") {
+      val sut = lambda(asPattern(wildcardPattern, Name.fromString("x")), variable("x"))
+      assertTrue(sut.toString == "(\\x -> x)")
+    },
+    test("It should support collecting nested variables") {
+      val v1 = variable("x")
+
+      val lam1 = lambda(
+        asPattern(wildcardPattern, Name("x")),
+        list(v1, variable("y"))
+      )
+      val lam2 = lambda(
+        asPattern(wildcardPattern, Name("x")),
+        v1
+      )
+      assertTrue(
+        lam1.collectVariables == Set[Name](Name("X"), Name("y")),
+        lam2.collectVariables == Set(Name("x"))
+      )
+    },
+    test("Should support collecting nested references") {
+      val fqName = morphir.ir.FQName(
+        morphir.ir.Path(Name("Morphir.SDK")),
+        morphir.ir.Path(Name("Morphir.SDK")),
+        Name("RecordType")
+      )
+
+      val lam1 = lambda(
+        asPattern(wildcardPattern, Name("x")),
+        reference(fqName)
+      )
+      val lam2 = lambda(
+        asPattern(wildcardPattern, Name("x")),
+        variable("x")
+      )
+      assertTrue(
+        lam1.collectReferences == Set(fqName) &&
+          lam2.collectReferences == Set[FQName]()
+      )
+    },
+    test("toRawValue should return the expected value") {
+
+      val actual = Lambda.Typed(
+        Type.reference("Morphir.SDK", "Basics", "power"),
+        asPattern(intType, wildcardPattern(intType), Name.fromString("x")),
+        variable(Name.fromString("x"), intType)
+      )
+
+      assertTrue(
+        actual.toRawValue == Lambda.Raw(
+          Pattern.AsPattern((), wildcardPattern, Name.fromString("x")),
+          variable(Name.fromString("x"))
+        )
+      )
     }
   )
 

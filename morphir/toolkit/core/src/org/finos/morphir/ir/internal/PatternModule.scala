@@ -4,6 +4,7 @@ package internal
 
 import zio.Chunk
 import Literal.Literal
+import PatternModule._
 
 trait PatternModule { module =>
   final type APattern = Pattern[Attributes]
@@ -12,6 +13,8 @@ trait PatternModule { module =>
   final type Pattern[+A] = internal.Pattern[A]
   final val Pattern: internal.Pattern.type = internal.Pattern
   import Pattern._
+
+  def mapPatternAttributes[A] = new MapPatternAttributesPartiallyApplied[A]()
 
   def asPattern[A](attributes: A, pattern: Pattern[A], name: Name)(implicit ev: NeedsAttributes[A]): Pattern[A] =
     AsPattern(attributes, pattern, name)
@@ -43,4 +46,13 @@ trait PatternModule { module =>
   def wildcardPattern[A](attributes: A)(implicit ev: NeedsAttributes[A]): Pattern[A] = WildcardPattern(attributes)
   lazy val wildcardPattern: UPattern                                                 = WildcardPattern(())
 
+  final def toString[A](pattern: Pattern[A]): String = pattern.toString()
+
+}
+
+object PatternModule {
+  class MapPatternAttributesPartiallyApplied[A](private val dummy: Boolean = false) extends AnyVal {
+    def apply[B](f: A => B, pattern: Pattern[A]): Pattern[B] =
+      pattern.mapAttributes(f)
+  }
 }
