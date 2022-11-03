@@ -21,7 +21,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
   val stringType: UType                = sdk.String.stringType
 
   def spec = suite("Value Module")(
-    // applySuite,
+    applySuite,
     constructorSuite,
     // destructureSuite,
     fieldSuite,
@@ -385,12 +385,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
         actual.toString == ".age {age = myAge, firstName = \"John\"}"
       )
     },
-    test("toRawValue should return as expected") {
-      val function = reference("Test:Test:square", floatType)
-      val in       = Apply.Typed(function, toTypedValue(Lit.float(2.0f)))
-
-      assertTrue(in.toRawValue == Apply.Raw(function.toRawValue, toRawValue(Lit.float(2.0f))))
-    },
     test("Collect references should return as expected") {
       val name  = FQName.fromString("hello:world", ":")
       val name2 = Name.fromString("wonderful")
@@ -402,6 +396,12 @@ object ValueModuleSpec extends MorphirBaseSpec {
         apply(ff, rec).collectReferences == Set(name)
       )
     }
+    // test("toRawValue should return as expected") {
+    //   val function = reference("Test:Test:square", floatType)
+    //   val in       = Apply.Typed(function, toTypedValue(Lit.float(2.0f)))
+
+    //   assertTrue(in.toRawValue == Apply.Raw(function.toRawValue, toRawValue(Lit.float(2.0f))))
+    // },
   )
 
   def constructorSuite = suite("Constructor")(

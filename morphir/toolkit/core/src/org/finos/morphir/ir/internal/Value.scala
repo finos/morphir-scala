@@ -16,6 +16,7 @@ sealed trait Value[+TA, +VA] { self =>
   def collectVariables: Set[Name]    = foldContext(())(Folder.CollectVariables)
 
   def fold[Z](
+      applyCase: (VA, Z, Z) => Z,
       constructorCase: (VA, FQName) => Z,
       fieldCase: (VA, Z, Name) => Z,
       fieldFunctionCase: (VA, Name) => Z,
@@ -28,6 +29,7 @@ sealed trait Value[+TA, +VA] { self =>
   ): Z =
     foldContext(())(
       new Folder.DelegatedFolder(
+        onApplyCase = (_, _, attributes, function, argument) => applyCase(attributes, function, argument),
         onConstructorCase = (_, _, attributes, name) => constructorCase(attributes, name),
         onFieldCase = (_, _, attributes, value, name) => fieldCase(attributes, value, name),
         onFieldFunctionCase = (_, _, attributes, name) => fieldFunctionCase(attributes, name),
@@ -45,8 +47,8 @@ sealed trait Value[+TA, +VA] { self =>
     @tailrec
     def loop(in: List[Value[TA1, VA1]], out: List[Either[Value[TA1, VA1], Z]]): List[Z] =
       in match {
-        case (v @ Apply(attributes, function, arguments)) :: values =>
-          loop(function :: arguments :: values, Left(v) :: out)
+        case (v @ Apply(_, function, argument)) :: values =>
+          loop(function :: argument :: values, Left(v) :: out)
         case (v @ Destructure(attributes, pattern, valueToDestruct, inValue)) :: values =>
           loop(valueToDestruct :: inValue :: values, Left(v) :: out)
         case (v @ Constructor(attributes, name)) :: values =>
@@ -59,6 +61,9 @@ sealed trait Value[+TA, +VA] { self =>
           loop(elements.toList ++ values, Left(v) :: out)
         case (v @ Literal(attributes, lit)) :: values =>
           loop(values, Right(literalCase(context, v, attributes, lit)) :: out)
+        case (v @ Record(_, fields)) :: values =>
+          val fieldValues = fields.map(_._2).toList
+          loop(fieldValues ++ values, Left(v) :: out)
         case (v @ Reference(attributes, name)) :: values =>
           loop(values, Right(referenceCase(context, v, attributes, name)) :: out)
         case (v @ Tuple(_, elements)) :: values =>
@@ -70,6 +75,9 @@ sealed trait Value[+TA, +VA] { self =>
         case Nil =>
           out.foldLeft[List[Z]](List.empty) {
             case (acc, Right(results)) => results :: acc
+            case (acc, Left(v @ Apply(attributes, _, _))) =>
+              val function :: argument :: rest = acc
+              applyCase(context, v, attributes, function, argument) :: rest
             case (acc, Left(v @ Field(attributes, _, fieldName))) =>
               val subjectValue = acc.head
               val rest         = acc.tail
@@ -78,13 +86,26 @@ sealed trait Value[+TA, +VA] { self =>
               val elements = Chunk.fromIterable(acc.take(v.elements.size))
               val rest     = acc.drop(v.elements.length)
               listCase(context, v, attributes, elements) :: rest
+            case (acc, Left(v @ Record(attributes, _))) =>
+              val fieldValues = Chunk.fromIterable(acc.take(v.fields.length))
+              val rest        = acc.drop(v.fields.length)
+              val fields      = v.fields.map(_._1).zip(fieldValues)
+              recordCase(context, v, attributes, fields) :: rest
             case (acc, Left(v @ Tuple(attributes, _))) =>
               val arity    = v.elements.length
               val elements = Chunk.fromIterable(acc.take(arity))
               val rest     = acc.drop(arity)
               tupleCase(context, v, attributes, elements) :: rest
-            case _ => ???
+            case (_, Left(value)) =>
+              val msg =
+                s"Reached an unexpected state while folding a Value. The Value node is a ${value.getClass().getSimpleName()} This is a bug in the traversal logic for values."
+              throw new IllegalStateException(msg)
           }
+        case lst =>
+          val items = lst.map(_.getClass().getSimpleName()).mkString(", ")
+          throw new IllegalStateException(
+            s"Reached an unexpected state while traversing values. The error occured while matching a list contianing the following Value node types: $items"
+          )
       }
     loop(List(self), List.empty).head
   }
@@ -99,11 +120,13 @@ sealed trait Value[+TA, +VA] { self =>
       unitCase: (C, Value[TA, VA], VA) => Z,
       variableCase: (C, Value[TA, VA], VA, Name) => Z
   )(
+      applyCase: (C, Value[TA, VA], VA, Z, Z) => Z,
       fieldCase: (C, Value[TA, VA], VA, Z, Name) => Z,
       listCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z,
       tupleCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z
   ): Z = foldContext(context)(
     new Folder.DelegatedFolder[C, TA, VA, Z](
+      onApplyCase = applyCase,
       onConstructorCase = constructorCase,
       onFieldCase = fieldCase,
       onFieldFunctionCase = fieldFunctionCase,
@@ -117,6 +140,7 @@ sealed trait Value[+TA, +VA] { self =>
   )
 
   def mapAttributes[TB, VB](f: TA => TB, g: VA => VB): Value[TB, VB] = fold[Value[TB, VB]](
+    applyCase = (attributes, function, argument) => Apply(g(attributes), function, argument),
     constructorCase = (attributes, name) => Constructor(g(attributes), name),
     fieldCase = (attributes, value, name) => Field(g(attributes), value, name),
     fieldFunctionCase = (attributes, name) => FieldFunction(g(attributes), name),
@@ -834,7 +858,7 @@ object Value {
           attributes: Any,
           function: Set[FQName],
           argument: Set[FQName]
-      ): Set[FQName] = ???
+      ): Set[FQName] = function union argument
 
       override def constructorCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): Set[FQName] =
         Set.empty
@@ -928,7 +952,7 @@ object Value {
           value: Value[Any, Any],
           attributes: Any,
           fields: Chunk[(Name, Set[FQName])]
-      ): Set[FQName] = ???
+      ): Set[FQName] = fields.foldLeft[Set[FQName]](Set.empty) { case (acc, (_, value)) => acc ++ value }
 
       override def referenceCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): Set[FQName] =
         Set(name)
@@ -963,7 +987,7 @@ object Value {
           attributes: Any,
           function: Set[Name],
           argument: Set[Name]
-      ): Set[Name] = ???
+      ): Set[Name] = function union argument
 
       override def constructorCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): Set[Name] =
         Set.empty
@@ -1057,7 +1081,7 @@ object Value {
           value: Value[Any, Any],
           attributes: Any,
           fields: Chunk[(Name, Set[Name])]
-      ): Set[Name] = ???
+      ): Set[Name] = fields.map(_._2).foldLeft(Set.empty[Name])(_ ++ _)
 
       override def referenceCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): Set[Name] =
         Set.empty
@@ -1092,7 +1116,7 @@ object Value {
           attributes: Any,
           function: String,
           argument: String
-      ): String = ???
+      ): String = s"$function $argument"
 
       override def constructorCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): String =
         name.toReferenceName
@@ -1178,7 +1202,9 @@ object Value {
           value: Value[Any, Any],
           attributes: Any,
           fields: Chunk[(Name, String)]
-      ): String = ???
+      ): String = fields
+        .map { case (fieldName, fieldValue) => s"${fieldName.toCamelCase} = $fieldValue" }
+        .mkString("{", ", ", "}")
 
       override def referenceCase(context: Any, value: Value[Any, Any], attributes: Any, name: FQName): String = Seq(
         Path.toString(Name.toTitleCase, ".", name.packagePath.toPath),
@@ -1205,6 +1231,7 @@ object Value {
     }
 
     class DelegatedFolder[-Context, -TA, -VA, Z](
+        onApplyCase: (Context, Value[TA, VA], VA, Z, Z) => Z,
         onConstructorCase: (Context, Value[TA, VA], VA, FQName) => Z,
         onFieldCase: (Context, Value[TA, VA], VA, Z, Name) => Z,
         onFieldFunctionCase: (Context, Value[TA, VA], VA, Name) => Z,
@@ -1216,7 +1243,14 @@ object Value {
         onVariableCase: (Context, Value[TA, VA], VA, Name) => Z
     ) extends Folder[Context, TA, VA, Z] {
 
-      override def applyCase(context: Context, value: Value[TA, VA], attributes: VA, function: Z, argument: Z): Z = ???
+      override def applyCase(context: Context, value: Value[TA, VA], attributes: VA, function: Z, argument: Z): Z =
+        onApplyCase(
+          context,
+          value,
+          attributes,
+          function,
+          argument
+        )
 
       override def constructorCase(context: Context, value: Value[TA, VA], attributes: VA, name: FQName): Z =
         onConstructorCase(context, value, attributes, name)
