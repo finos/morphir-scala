@@ -21,7 +21,7 @@ trait PackageModule {
   final type Specification[+TA] = morphir.ir.packages.Specification[TA]
   final val Specification: morphir.ir.packages.Specification.type = morphir.ir.packages.Specification
 
-  final type USpecification = morphir.ir.packages.Specification[Any]
+  final type USpecification = morphir.ir.packages.Specification[scala.Unit]
   final val USpecification: morphir.ir.packages.Specification.type = morphir.ir.packages.Specification
 
   val emptySpecification: Specification[Nothing] = Specification.empty
