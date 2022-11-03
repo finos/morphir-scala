@@ -5,10 +5,15 @@ import zio._
 import zio.json._
 import zio.json.ast.Json
 import zio.json.internal.Write
+import org.finos.morphir.ir.distribution.Distribution._
 import org.finos.morphir.ir.AccessControlled.Access._
 import org.finos.morphir.ir.Literal.Literal
 import org.finos.morphir.ir.Literal.Literal._
-import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, Specification => PackageSpecification}
+import org.finos.morphir.ir.PackageModule.{
+  Definition => PackageDefinition,
+  Specification => PackageSpecification,
+  USpecification => UPackageSpecification
+}
 import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, Type}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
 import org.finos.morphir.ir.Value.{Value, _}
@@ -509,6 +514,13 @@ trait MorphirJsonEncodingSupportV1 {
         })
       )
     }
+
+  implicit def DistributionLibraryJsonEncoder: JsonEncoder[Library] =
+    JsonEncoder
+      .tuple4[String, PackageName, List[(PackageName, UPackageSpecification)], PackageDefinition.Typed]
+      .contramap { case Library(packageName, dependencies, packageDef) =>
+        ("library", packageName, dependencies.toList, packageDef)
+      }
 
   private def toJsonAstOrThrow[A](a: A)(implicit encoder: JsonEncoder[A]): Json =
     a.toJsonAST.toOption.get

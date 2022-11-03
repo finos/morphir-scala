@@ -4,10 +4,14 @@ package json
 import zio._
 import zio.json._
 import zio.json.ast.Json
-
+import org.finos.morphir.ir.distribution.Distribution._
 import org.finos.morphir.ir.Literal.Literal
 import org.finos.morphir.ir.Literal.Literal._
-import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, Specification => PackageSpecification}
+import org.finos.morphir.ir.PackageModule.{
+  Definition => PackageDefinition,
+  Specification => PackageSpecification,
+  USpecification => UPackageSpecification
+}
 import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, Type}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
 import org.finos.morphir.ir.Value.{Value, _}
@@ -54,7 +58,7 @@ trait MorphirJsonDecodingSupport {
   implicit def literalDecimalDecoder: JsonDecoder[DecimalLiteral] =
     JsonDecoder.tuple2[String, java.math.BigDecimal].mapOrFail {
       case ("DecimalLiteral", value) => Right(DecimalLiteral(value))
-      case (other, value)          => Left(s"Expected DecimalLiteral, got $other with value $value")
+      case (other, value)            => Left(s"Expected DecimalLiteral, got $other with value $value")
     }
 
   implicit def literalFloatDecoder: JsonDecoder[FloatLiteral] =
@@ -296,8 +300,7 @@ trait MorphirJsonDecodingSupport {
         )
     }
 
-  implicit def patternLiteralPatternDecoder[Attributes: JsonDecoder]
-      : JsonDecoder[Pattern.LiteralPattern[Attributes]] =
+  implicit def patternLiteralPatternDecoder[Attributes: JsonDecoder]: JsonDecoder[Pattern.LiteralPattern[Attributes]] =
     JsonDecoder.tuple3[String, Attributes, Literal].mapOrFail {
       case ("literal_pattern", attributes, literal) =>
         Right(Pattern.LiteralPattern(attributes, literal))
@@ -375,8 +378,7 @@ trait MorphirJsonDecodingSupport {
   }
 
   //   sealed case class Apply[+TA, +VA](attributes: VA, function: Value[TA, VA], argument: Value[TA, VA]) extends Value[TA, VA]
-  implicit def ApplyValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]
-      : JsonDecoder[Value.Apply[TA, VA]] =
+  implicit def ApplyValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[Value.Apply[TA, VA]] =
     JsonDecoder.tuple4[String, VA, Value[TA, VA], Value[TA, VA]].mapOrFail {
       case ("apply", attributes, function, argument) =>
         Right(Value.Apply[TA, VA](attributes, function, argument))
@@ -398,8 +400,7 @@ trait MorphirJsonDecodingSupport {
     }
 
   //   sealed case class Destructure[+TA, +VA](attributes: VA, pattern: Pattern[VA], valueToDestruct: Value[TA, VA], inValue: Value[TA, VA]) extends Value[TA, VA]
-  implicit def DestructureValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]
-      : JsonDecoder[Value.Destructure[TA, VA]] =
+  implicit def DestructureValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[Value.Destructure[TA, VA]] =
     JsonDecoder.tuple5[String, VA, Pattern[VA], Value[TA, VA], Value[TA, VA]].mapOrFail {
       case ("destructure", attributes, pattern, valueToDestruct, inValue) =>
         Right(Value.Destructure[TA, VA](attributes, pattern, valueToDestruct, inValue))
@@ -410,8 +411,7 @@ trait MorphirJsonDecodingSupport {
     }
 
   //   sealed case class Field[+TA, +VA](attributes: VA, subjectValue: Value[TA, VA], fieldName: Name) extends Value[TA, VA]
-  implicit def FieldValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]
-      : JsonDecoder[Value.Field[TA, VA]] =
+  implicit def FieldValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[Value.Field[TA, VA]] =
     JsonDecoder.tuple4[String, VA, Value[TA, VA], Name].mapOrFail {
       case ("field", attributes, subjectValue, fieldName) =>
         Right(Value.Field[TA, VA](attributes, subjectValue, fieldName))
@@ -433,8 +433,7 @@ trait MorphirJsonDecodingSupport {
     }
 
   //   sealed case class IfThenElse[+TA, +VA](attributes: VA, condition: Value[TA, VA], thenBranch: Value[TA, VA], elseBranch: Value[TA, VA]) extends Value[TA, VA]
-  implicit def IfThenElseValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]
-      : JsonDecoder[Value.IfThenElse[TA, VA]] =
+  implicit def IfThenElseValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[Value.IfThenElse[TA, VA]] =
     JsonDecoder.tuple5[String, VA, Value[TA, VA], Value[TA, VA], Value[TA, VA]].mapOrFail {
       case ("if_then_else", attributes, condition, thenBranch, elseBranch) =>
         Right(Value.IfThenElse[TA, VA](attributes, condition, thenBranch, elseBranch))
@@ -445,8 +444,7 @@ trait MorphirJsonDecodingSupport {
     }
 
   //   sealed case class Lambda[+TA, +VA](attributes: VA, argumentPattern: Pattern[VA], body: Value[TA, VA])  extends Value[TA, VA]
-  implicit def LambdaValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]
-      : JsonDecoder[Value.Lambda[TA, VA]] =
+  implicit def LambdaValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[Value.Lambda[TA, VA]] =
     JsonDecoder.tuple4[String, VA, Pattern[VA], Value[TA, VA]].mapOrFail {
       case ("lambda", attributes, argumentPattern, body) =>
         Right(Value.Lambda[TA, VA](attributes, argumentPattern, body))
@@ -469,8 +467,7 @@ trait MorphirJsonDecodingSupport {
     }
 
   //   sealed case class LetRecursion[+TA, +VA](attributes: VA, valueDefinitions: Map[Name, Definition[TA, VA]], inValue: Value[TA, VA]) extends Value[TA, VA]
-  implicit def LetRecursionValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]
-      : JsonDecoder[Value.LetRecursion[TA, VA]] =
+  implicit def LetRecursionValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[Value.LetRecursion[TA, VA]] =
     JsonDecoder.tuple4[String, VA, List[(Name, ValueDefinition[TA, VA])], Value[TA, VA]].mapOrFail {
       case ("let_recursion", attributes, valueDefinitions, inValue) =>
         Right(Value.LetRecursion[TA, VA](attributes, valueDefinitions.toMap, inValue))
@@ -503,8 +500,7 @@ trait MorphirJsonDecodingSupport {
     }
 
   // sealed case class PatternMatch[+TA, +VA](attributes: VA, branchOutOn: Value[TA, VA], cases: Chunk[(Pattern[VA], Value[TA, VA])]) extends Value[TA, VA]
-  implicit def PatternMatchValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]
-      : JsonDecoder[Value.PatternMatch[TA, VA]] =
+  implicit def PatternMatchValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[Value.PatternMatch[TA, VA]] =
     JsonDecoder.tuple4[String, VA, Value[TA, VA], Chunk[(Pattern[VA], Value[TA, VA])]].mapOrFail {
       case ("pattern_match", attributes, branchOutOn, cases) =>
         Right(Value.PatternMatch[TA, VA](attributes, branchOutOn, cases))
@@ -515,8 +511,7 @@ trait MorphirJsonDecodingSupport {
     }
 
   //   sealed case class Record[+TA, +VA](attributes: VA, fields: Chunk[(Name, Value[TA, VA])]) extends Value[TA, VA]
-  implicit def RecordValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]
-      : JsonDecoder[Value.Record[TA, VA]] =
+  implicit def RecordValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[Value.Record[TA, VA]] =
     JsonDecoder.tuple3[String, VA, Chunk[(Name, Value[TA, VA])]].mapOrFail {
       case ("record", attributes, fields) =>
         Right(Value.Record[TA, VA](attributes, fields))
@@ -538,8 +533,7 @@ trait MorphirJsonDecodingSupport {
     }
 
   //   sealed case class Tuple[+TA, +VA](attributes: VA, elements: Chunk[Value[TA, VA]]) extends Value[TA, VA]
-  implicit def TupleValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]
-      : JsonDecoder[Value.Tuple[TA, VA]] =
+  implicit def TupleValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[Value.Tuple[TA, VA]] =
     JsonDecoder.tuple3[String, VA, Chunk[Value[TA, VA]]].mapOrFail {
       case ("tuple", attributes, elements) =>
         Right(Value.Tuple[TA, VA](attributes, elements))
@@ -550,8 +544,7 @@ trait MorphirJsonDecodingSupport {
     }
 
   //   sealed case class UpdateRecord[+TA, +VA](attributes: VA, valueToUpdate: Value[TA, VA], fieldsToUpdate: Map[Name, Value[TA, VA]]) extends Value[TA, VA]
-  implicit def UpdateRecordValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]
-      : JsonDecoder[Value.UpdateRecord[TA, VA]] =
+  implicit def UpdateRecordValueJsonDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[Value.UpdateRecord[TA, VA]] =
     JsonDecoder.tuple4[String, VA, Value[TA, VA], List[(Name, Value[TA, VA])]].mapOrFail {
       case ("update_record", attributes, valueToUpdate, fieldsToUpdate) =>
         Right(Value.UpdateRecord[TA, VA](attributes, valueToUpdate, fieldsToUpdate.toMap))
@@ -602,6 +595,18 @@ trait MorphirJsonDecodingSupport {
       RecordValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
       TupleValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
       UpdateRecordValueJsonDecoder[TA, VA].widen[Value[TA, VA]]
+
+  implicit def DistributionLibraryJsonDecoder: JsonDecoder[Library] =
+    JsonDecoder
+      .tuple4[String, PackageName, List[(PackageName, UPackageSpecification)], PackageDefinition.Typed]
+      .mapOrFail {
+        case ("Library", packageName, dependencies, packageDef) =>
+          Right(Library(packageName, dependencies.toMap, packageDef))
+        case (other, packageName, dependencies, packageDef) =>
+          Left(
+            s"Expected Library, got $other with packageName: $packageName, dependencies: $dependencies and packageDef: $packageDef"
+          )
+      }
 }
 
 object MorphirJsonDecodingSupport extends MorphirJsonDecodingSupport
