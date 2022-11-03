@@ -109,6 +109,9 @@ object Value extends internal.PatternModule {
 
   final def field(target: RawValue, name: String): RawValue = Field.Raw(target, name)
 
+  final def fields[TA, VA](all: (String, Value[TA, VA])*): Chunk[(Name, Value[TA, VA])] =
+    Chunk.fromIterable(all.map { case (name, value) => (Name.fromString(name), value) })
+
   final def fieldFunction[A](attributes: A, name: String): Value[Nothing, A] = FieldFunction(attributes, name)
   final def fieldFunction[A](attributes: A, name: Name): Value[Nothing, A]   = FieldFunction(attributes, name)
   final def fieldFunction(name: String, tpe: UType): TypedValue              = FieldFunction.Typed(tpe, name)
@@ -287,6 +290,12 @@ object Value extends internal.PatternModule {
     def toValDef(returnType: UType): Definition[Any, UType] = Definition(returnType, self :> returnType)
   }
 
+  class FieldsPartiallyApplied(val dummy: Boolean = false) extends AnyVal {
+    def apply[TA, VA](fields: (String, Value[TA, VA])*): Vector[(Name, Value[TA, VA])] = fields.map {
+      case (name, value) => Name(name) -> value
+    }.toVector
+  }
+
   class RecordPartiallyApplied[VA](val attributes: VA) extends AnyVal {
     def apply[TA](fields: (String, Value[TA, VA])*): Value[TA, VA] = Value.Record(attributes, fields: _*)
     def apply[TA](fields: Map[Name, Value[TA, VA]]): Value[TA, VA] = Value.Record.fromMap(attributes, fields)
@@ -297,7 +306,10 @@ object Value extends internal.PatternModule {
   class RecordWithoutAttributesPartiallyApplied(val dummy: Boolean = false) extends AnyVal {
     def apply[TA](fields: (String, Value[TA, scala.Unit])*): Value[TA, scala.Unit] = Value.Record((), fields: _*)
     def apply[TA](fields: Map[Name, Value[TA, scala.Unit]]): Value[TA, scala.Unit] = Value.Record.fromMap((), fields)
-    def withFields[TA](fields: Seq[(Name, Value[TA, scala.Unit])]): Value[TA, scala.Unit] =
-      Value.Record(Chunk.fromIterable(fields))
+    def withFields[TA](fields: (String, Value[TA, scala.Unit])*): Value[TA, scala.Unit] = Value.Record((), fields: _*)
+    def withFields[TA](fields: Iterable[(String, Value[TA, scala.Unit])]): Value[TA, scala.Unit] =
+      Value.Record(Chunk.fromIterable(fields.map((Name.fromString(_), _))))
+    def withNamedFields[TA](fields: Seq[(Name, Value[TA, scala.Unit])]): Value[TA, scala.Unit] =
+      Value.Record((), Chunk.fromIterable(fields))
   }
 }

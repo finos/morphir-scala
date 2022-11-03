@@ -28,6 +28,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     fieldFunctionSuite,
     listSuite,
     literalSuite,
+    recordSuite,
     referenceSuite,
     tupleSuite,
     unitSuite,
@@ -104,15 +105,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //       cases
       //     )
       //     assertTrue(pm.collectVariables == Set(Name("name"), Name("integer")))
-      //   },
-      //   test("Record") {
-      //     val name  = Name.fromString("hello")
-      //     val name2 = Name.fromString("world")
-      //     val str   = string("string1")
-      //     val va    = variable(name2)
-
-      //     val rec = record(Chunk((name, str), (name2, va)))
-      //     assertTrue(rec.collectVariables == Set(name2))
       //   },
       //   test("UpdateRecord") {
       //     val ur = update(
@@ -230,16 +222,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //     )
       //     assertTrue(pm.collectReferences == Set(fq, fq2))
       //   },
-      //   test("Record") {
-      //     val name   = Name.fromString("hello")
-      //     val name2  = Name.fromString("world")
-      //     val fqName = FQName.fromString("folder:location:name", ":")
-      //     val str    = string("string1")
-      //     val rf     = reference(fqName)
-
-      //     val rec = record(Chunk((name, str), (name2, rf)))
-      //     assertTrue(rec.collectReferences == Set(fqName))
-      //   },
       //   test("UpdateRecord") {
       //     val fq = FQName.fromString("hello:world:string", ":")
       //     val ur = update(
@@ -355,14 +337,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
     //       )
     //     )
     //   },
-    //   test("Record") {
-    //     val name       = Name.fromString("hello")
-    //     val lit        = string("timeout") :> stringType
-    //     val recordType = Type.record(defineField("hello", stringType))
-    //     val rec        = Record(recordType, Chunk(name -> lit))
-
-    //     assertTrue(rec.toRawValue == record(Chunk((name, string("timeout")))))
-    //   },
     //   test("UpdateRecord") {
 
     //     val recordType = Type.record(defineField("greeting", stringType))
@@ -376,6 +350,19 @@ object ValueModuleSpec extends MorphirBaseSpec {
   )
 
   def applySuite = suite("Apply")(
+    test("ToString should return as expected") {
+      val x = variable("x", intType)
+      val y = variable("y", intType)
+      val z = variable("z", intType)
+
+      val addRef      = sdk.Basics.add(x.attributes)
+      val subtractRef = sdk.Basics.subtract(x.attributes)
+
+      val add      = Apply.Typed(addRef, x, y)
+      val subtract = Apply.Typed(subtractRef, add, z)
+
+      assertTrue(subtract.toString == "Morphir.SDK.Basics.subtract Morphir.SDK.Basics.add x y z")
+    },
     test("Should support collecting nested variables") {
       val ff     = fieldFunction("age")
       val rec    = record("age" -> variable("myAge"), "firstName" -> string("John"))
@@ -395,13 +382,13 @@ object ValueModuleSpec extends MorphirBaseSpec {
       assertTrue(
         apply(ff, rec).collectReferences == Set(name)
       )
-    }
-    // test("toRawValue should return as expected") {
-    //   val function = reference("Test:Test:square", floatType)
-    //   val in       = Apply.Typed(function, toTypedValue(Lit.float(2.0f)))
+    },
+    test("toRawValue should return as expected") {
+      val function = reference("Test:Test:square", floatType)
+      val in       = Apply.Typed(function, toTypedValue(Lit.float(2.0f)))
 
-    //   assertTrue(in.toRawValue == Apply.Raw(function.toRawValue, toRawValue(Lit.float(2.0f))))
-    // },
+      assertTrue(in.toRawValue == Apply.Raw(function.toRawValue, toRawValue(Lit.float(2.0f))))
+    }
   )
 
   def constructorSuite = suite("Constructor")(
@@ -587,6 +574,35 @@ object ValueModuleSpec extends MorphirBaseSpec {
         val sut = lit.toTypedValue
         assertTrue(sut.toRawValue == literal(lit))
       }
+    }
+  )
+
+  def recordSuite = suite("Record")(
+    test("toString should return as expected") {
+      val sut = record.withFields("age" -> int(42), "name" -> string("John"))
+      assertTrue(sut.toString == "{age = 42, name = \"John\"}")
+    },
+    test("It should support collecting nested variables") {
+      val someVar = variable("someVar")
+
+      val rec = record("fieldA" -> string("string1"), "fieldB" -> someVar)
+      assertTrue(rec.collectVariables == Set(Name.fromString("someVar")))
+    },
+    test("It should support collecting references") {
+      val name   = Name.fromString("hello")
+      val name2  = Name.fromString("world")
+      val fqName = FQName.fromString("folder:location:name", ":")
+      val str    = string("string1")
+      val rf     = reference(fqName)
+
+      val rec = record.withNamedFields(Chunk((name, str), (name2, rf)))
+      assertTrue(rec.collectReferences == Set(fqName))
+    },
+    test("toRawValue should return as expected") {
+      val recordType = Type.record(defineField("timeout", intType))
+      val rec        = Record(recordType, fields("timeout" -> int(30000)))
+
+      assertTrue(rec.toRawValue == Record((), fields("timeout" -> int(30000))))
     }
   )
 

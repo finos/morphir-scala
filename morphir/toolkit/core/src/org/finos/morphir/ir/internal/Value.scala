@@ -22,6 +22,7 @@ sealed trait Value[+TA, +VA] { self =>
       fieldFunctionCase: (VA, Name) => Z,
       listCase: (VA, Chunk[Z]) => Z,
       literalCase: (VA, Lit) => Z,
+      recordCase: (VA, Chunk[(Name, Z)]) => Z,
       referenceCase: (VA, FQName) => Z,
       tupleCase: (VA, Chunk[Z]) => Z,
       unitCase: VA => Z,
@@ -35,6 +36,7 @@ sealed trait Value[+TA, +VA] { self =>
         onFieldFunctionCase = (_, _, attributes, name) => fieldFunctionCase(attributes, name),
         onListCase = (_, _, attributes, values) => listCase(attributes, values),
         onLiteralCase = (_, _, attributes, lit) => literalCase(attributes, lit),
+        onRecordCase = (_, _, attributes, fields) => recordCase(attributes, fields),
         onReferenceCase = (_, _, attributes, fqName) => referenceCase(attributes, fqName),
         onTupleCase = (_, _, attributes, values) => tupleCase(attributes, values),
         onUnitCase = (_, _, attributes) => unitCase(attributes),
@@ -123,6 +125,7 @@ sealed trait Value[+TA, +VA] { self =>
       applyCase: (C, Value[TA, VA], VA, Z, Z) => Z,
       fieldCase: (C, Value[TA, VA], VA, Z, Name) => Z,
       listCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z,
+      recordCase: (C, Value[TA, VA], VA, Chunk[(Name, Z)]) => Z,
       tupleCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z
   ): Z = foldContext(context)(
     new Folder.DelegatedFolder[C, TA, VA, Z](
@@ -132,6 +135,7 @@ sealed trait Value[+TA, +VA] { self =>
       onFieldFunctionCase = fieldFunctionCase,
       onListCase = listCase,
       onLiteralCase = literalCase,
+      onRecordCase = recordCase,
       onReferenceCase = referenceCase,
       onTupleCase = tupleCase,
       onUnitCase = unitCase,
@@ -146,6 +150,7 @@ sealed trait Value[+TA, +VA] { self =>
     fieldFunctionCase = (attributes, name) => FieldFunction(g(attributes), name),
     listCase = (attributes, values) => ListValue(g(attributes), values),
     literalCase = (attributes, lit) => Literal(g(attributes), lit),
+    recordCase = (attributes, fields) => Record(g(attributes), fields),
     referenceCase = (attributes, fqName) => Reference(g(attributes), fqName),
     tupleCase = (attributes, elements) => Tuple(g(attributes), elements),
     unitCase = attributes => Unit(g(attributes)),
@@ -1237,6 +1242,7 @@ object Value {
         onFieldFunctionCase: (Context, Value[TA, VA], VA, Name) => Z,
         onListCase: (Context, Value[TA, VA], VA, Chunk[Z]) => Z,
         onLiteralCase: (Context, Value[TA, VA], VA, Lit) => Z,
+        onRecordCase: (Context, Value[TA, VA], VA, Chunk[(Name, Z)]) => Z,
         onReferenceCase: (Context, Value[TA, VA], VA, FQName) => Z,
         onTupleCase: (Context, Value[TA, VA], VA, Chunk[Z]) => Z,
         onUnitCase: (Context, Value[TA, VA], VA) => Z,
@@ -1339,7 +1345,13 @@ object Value {
           cases: Chunk[(Pattern[VA], Z)]
       ): Z = ???
 
-      override def recordCase(context: Context, value: Value[TA, VA], attributes: VA, fields: Chunk[(Name, Z)]): Z = ???
+      override def recordCase(context: Context, value: Value[TA, VA], attributes: VA, fields: Chunk[(Name, Z)]): Z =
+        onRecordCase(
+          context,
+          value,
+          attributes,
+          fields
+        )
 
       override def referenceCase(context: Context, value: Value[TA, VA], attributes: VA, name: FQName): Z =
         onReferenceCase(context, value, attributes, name)
