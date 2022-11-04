@@ -26,6 +26,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     destructureSuite,
     fieldSuite,
     fieldFunctionSuite,
+    ifThenElseSuite,
     lambdaSuite,
     listSuite,
     literalSuite,
@@ -36,14 +37,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
     updateRecordSuite,
     variableSuite,
     suite("Collect Variables should return as expected for:")(
-      //   test("IfThenElse") {
-      //     val ife = ifThenElse(
-      //       condition = boolean(false),
-      //       thenBranch = variable("y"),
-      //       elseBranch = int(3)
-      //     )
-      //     assertTrue(ife.collectVariables == Set(Name.fromString("y")))
-      //   },
       //   test("LetDefinition") {
       //     val ld = let(
       //       "y",
@@ -94,24 +87,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //   },
     ),
     suite("Collect References should return as expected for:")(
-      //   test("IfThenElse") {
-      //     val fqName = morphir.ir.FQName(
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       Name("RecordType")
-      //     )
-      //     val fqName2 = morphir.ir.FQName(
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       Name("VariableType")
-      //     )
-      //     val ife = ifThenElse(
-      //       condition = reference(fqName),
-      //       thenBranch = variable("y"),
-      //       elseBranch = reference(fqName2)
-      //     )
-      //     assertTrue(ife.collectReferences == Set(fqName, fqName2))
-      //   },
       //   test("LetDefinition") {
 
       //     val fqName  = FQName.fromString("Morphir:SDK:valueType")
@@ -167,15 +142,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //   },
     )
     // suite("toRawValue should return as expected for:")(
-    //   test("IfThenElse") {
-    //     val gt: TypedValue        = reference(FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:greaterThan"), intType)
-    //     val x: TypedValue         = variable("x", intType)
-    //     val y: TypedValue         = variable("y", intType)
-    //     val condition: TypedValue = Apply.Typed(gt, x, y)
-
-    //     val ife = IfThenElse.Typed(condition, x, y)
-    //     assertTrue(ife.toRawValue == IfThenElse.Raw(condition.toRawValue, x.toRawValue, y.toRawValue))
-    //   },
     //   test("LetDefinition") {
     //     val value   = Lit.False.toTypedValue
     //     val flagDef = ValueDefinition()(boolType)(value)
@@ -431,6 +397,52 @@ object ValueModuleSpec extends MorphirBaseSpec {
       val ff  = fieldFunction(age, intType)
 
       assertTrue(ff.toRawValue == fieldFunction(age))
+    }
+  )
+
+  def ifThenElseSuite = suite("IfThenElse")(
+    test("Support toString") {
+      val sut = ifThenElse(
+        variable("condition"),
+        variable("trueValue"),
+        variable("falseValue")
+      )
+      assertTrue(sut.toString == "if condition then trueValue else falseValue")
+    },
+    test("Supports collecting nested variables") {
+      val ife = ifThenElse(
+        condition = boolean(false),
+        thenBranch = variable("y"),
+        elseBranch = int(3)
+      )
+      assertTrue(ife.collectVariables == Set(Name.fromString("y")))
+    },
+    test("Supports collecting references") {
+      val fqName = morphir.ir.FQName(
+        morphir.ir.Path(Name("Morphir.SDK")),
+        morphir.ir.Path(Name("Morphir.SDK")),
+        Name("RecordType")
+      )
+      val fqName2 = morphir.ir.FQName(
+        morphir.ir.Path(Name("Morphir.SDK")),
+        morphir.ir.Path(Name("Morphir.SDK")),
+        Name("VariableType")
+      )
+      val ife = ifThenElse(
+        condition = reference(fqName),
+        thenBranch = variable("y"),
+        elseBranch = reference(fqName2)
+      )
+      assertTrue(ife.collectReferences == Set(fqName, fqName2))
+    },
+    test("toRawValue should strip attributes") {
+      val gt: TypedValue        = reference(FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:greaterThan"), intType)
+      val x: TypedValue         = variable("x", intType)
+      val y: TypedValue         = variable("y", intType)
+      val condition: TypedValue = Apply.Typed(gt, x, y)
+
+      val ife = IfThenElse.Typed(condition, x, y)
+      assertTrue(ife.toRawValue == IfThenElse.Raw(condition.toRawValue, x.toRawValue, y.toRawValue))
     }
   )
 

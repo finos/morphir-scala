@@ -21,6 +21,7 @@ sealed trait Value[+TA, +VA] { self =>
       destructureCase: (VA, Pattern[VA], Z, Z) => Z,
       fieldCase: (VA, Z, Name) => Z,
       fieldFunctionCase: (VA, Name) => Z,
+      ifThenElseCase: (VA, Z, Z, Z) => Z,
       lambdaCase: (VA, Pattern[VA], Z) => Z,
       listCase: (VA, Chunk[Z]) => Z,
       literalCase: (VA, Lit) => Z,
@@ -39,6 +40,8 @@ sealed trait Value[+TA, +VA] { self =>
           destructureCase(attributes, pattern, valueToDestruct, inValue),
         onFieldCase = (_, _, attributes, value, name) => fieldCase(attributes, value, name),
         onFieldFunctionCase = (_, _, attributes, name) => fieldFunctionCase(attributes, name),
+        onIfThenElseCase = (_, _, attributes, condition, thenValue, elseValue) =>
+          ifThenElseCase(attributes, condition, thenValue, elseValue),
         onLambdaCase = (_, _, attributes, pattern, body) => lambdaCase(attributes, pattern, body),
         onListCase = (_, _, attributes, values) => listCase(attributes, values),
         onLiteralCase = (_, _, attributes, lit) => literalCase(attributes, lit),
@@ -67,6 +70,8 @@ sealed trait Value[+TA, +VA] { self =>
           loop(subjectValue :: values, Left(v) :: out)
         case (v @ FieldFunction(attributes, name)) :: values =>
           loop(values, Right(fieldFunctionCase(context, v, attributes, name)) :: out)
+        case (v @ IfThenElse(attributes, condition, thenValue, elseValue)) :: values =>
+          loop(condition :: thenValue :: elseValue :: values, Left(v) :: out)
         case (v @ Lambda(_, _, body)) :: values =>
           loop(body :: values, Left(v) :: out)
         case (v @ ListValue(_, elements)) :: values =>
@@ -91,17 +96,20 @@ sealed trait Value[+TA, +VA] { self =>
           out.foldLeft[List[Z]](List.empty) {
             case (acc, Right(results)) => results :: acc
             case (acc, Left(v @ Apply(attributes, _, _))) =>
-              val function :: argument :: rest = acc
+              val function :: argument :: rest = (acc: @unchecked)
               applyCase(context, v, attributes, function, argument) :: rest
             case (acc, Left(v @ Destructure(attributes, pattern, _, _))) =>
-              val valueToDestruct :: inValue :: rest = acc
+              val valueToDestruct :: inValue :: rest = (acc: @unchecked)
               destructureCase(context, v, attributes, pattern, valueToDestruct, inValue) :: rest
             case (acc, Left(v @ Field(attributes, _, fieldName))) =>
               val subjectValue = acc.head
               val rest         = acc.tail
               fieldCase(context, v, attributes, subjectValue, fieldName) :: rest
+            case (acc, Left(v @ IfThenElse(attributes, _, _, _))) =>
+              val condition :: thenValue :: elseValue :: rest = (acc: @unchecked)
+              ifThenElseCase(context, v, attributes, condition, thenValue, elseValue) :: rest
             case (acc, Left(v @ Lambda(attributes, pattern, _))) =>
-              val body :: rest = acc
+              val body :: rest = (acc: @unchecked)
               lambdaCase(context, v, attributes, pattern, body) :: rest
             case (acc, Left(v @ ListValue(attributes, _))) =>
               val elements = Chunk.fromIterable(acc.take(v.elements.size))
@@ -119,7 +127,7 @@ sealed trait Value[+TA, +VA] { self =>
               tupleCase(context, v, attributes, elements) :: rest
             case (acc, Left(v @ UpdateRecord(attributes, _, _))) =>
               val arity                 = v.fieldsToUpdate.size
-              val valueToUpdate :: rest = acc
+              val valueToUpdate :: rest = (acc: @unchecked)
               val fieldValues           = Chunk.fromIterable(rest.take(arity))
               val fields                = v.fieldsToUpdate.keys.zip(fieldValues).toMap
               updateRecordCase(context, v, attributes, valueToUpdate, fields) :: rest.drop(arity)
@@ -150,6 +158,7 @@ sealed trait Value[+TA, +VA] { self =>
       applyCase: (C, Value[TA, VA], VA, Z, Z) => Z,
       destructureCase: (C, Value[TA, VA], VA, Pattern[VA], Z, Z) => Z,
       fieldCase: (C, Value[TA, VA], VA, Z, Name) => Z,
+      ifThenElseCase: (C, Value[TA, VA], VA, Z, Z, Z) => Z,
       lambdaCase: (C, Value[TA, VA], VA, Pattern[VA], Z) => Z,
       listCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z,
       recordCase: (C, Value[TA, VA], VA, Chunk[(Name, Z)]) => Z,
@@ -162,6 +171,7 @@ sealed trait Value[+TA, +VA] { self =>
       onDestructureCase = destructureCase,
       onFieldCase = fieldCase,
       onFieldFunctionCase = fieldFunctionCase,
+      onIfThenElseCase = ifThenElseCase,
       onLambdaCase = lambdaCase,
       onListCase = listCase,
       onLiteralCase = literalCase,
@@ -181,6 +191,7 @@ sealed trait Value[+TA, +VA] { self =>
       Destructure(g(attributes), pattern.map(g), valueToDestruct, inValue),
     fieldCase = (attributes, value, name) => Field(g(attributes), value, name),
     fieldFunctionCase = (attributes, name) => FieldFunction(g(attributes), name),
+    ifThenElseCase = (attributes, condition, ifTrue, ifFalse) => IfThenElse(g(attributes), condition, ifTrue, ifFalse),
     lambdaCase = (attributes, pattern, body) => Lambda(g(attributes), pattern.map(g), body),
     listCase = (attributes, values) => ListValue(g(attributes), values),
     literalCase = (attributes, lit) => Literal(g(attributes), lit),
@@ -974,7 +985,7 @@ object Value {
           condition: Set[FQName],
           thenBranch: Set[FQName],
           elseBranch: Set[FQName]
-      ): Set[FQName] = ???
+      ): Set[FQName] = condition union thenBranch union elseBranch
 
       override def lambdaCase(
           context: Any,
@@ -1103,7 +1114,7 @@ object Value {
           condition: Set[Name],
           thenBranch: Set[Name],
           elseBranch: Set[Name]
-      ): Set[Name] = ???
+      ): Set[Name] = condition union thenBranch union elseBranch
 
       override def lambdaCase(
           context: Any,
@@ -1228,7 +1239,7 @@ object Value {
           condition: String,
           thenBranch: String,
           elseBranch: String
-      ): String = ???
+      ): String = s"if $condition then $thenBranch else $elseBranch"
 
       override def lambdaCase(
           context: Any,
@@ -1321,6 +1332,7 @@ object Value {
         onDestructureCase: (Context, Value[TA, VA], VA, Pattern[VA], Z, Z) => Z,
         onFieldCase: (Context, Value[TA, VA], VA, Z, Name) => Z,
         onFieldFunctionCase: (Context, Value[TA, VA], VA, Name) => Z,
+        onIfThenElseCase: (Context, Value[TA, VA], VA, Z, Z, Z) => Z,
         onLambdaCase: (Context, Value[TA, VA], VA, Pattern[VA], Z) => Z,
         onListCase: (Context, Value[TA, VA], VA, Chunk[Z]) => Z,
         onLiteralCase: (Context, Value[TA, VA], VA, Lit) => Z,
@@ -1371,7 +1383,7 @@ object Value {
           condition: Z,
           thenBranch: Z,
           elseBranch: Z
-      ): Z = ???
+      ): Z = onIfThenElseCase(context, value, attributes, condition, thenBranch, elseBranch)
 
       override def lambdaCase(
           context: Context,
