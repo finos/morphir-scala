@@ -33,6 +33,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     referenceSuite,
     tupleSuite,
     unitSuite,
+    updateRecordSuite,
     variableSuite,
     suite("Collect Variables should return as expected for:")(
       //   test("IfThenElse") {
@@ -91,16 +92,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //     )
       //     assertTrue(pm.collectVariables == Set(Name("name"), Name("integer")))
       //   },
-      //   test("UpdateRecord") {
-      //     val ur = update(
-      //       string("hello world"),
-      //       Chunk(
-      //         Name("fieldB") -> wholeNumber(new java.math.BigInteger("3")),
-      //         Name("fieldC") -> variable(Name("none"))
-      //       )
-      //     )
-      //     assertTrue(ur.collectVariables == Set(Name("none")))
-      //   }
     ),
     suite("Collect References should return as expected for:")(
       //   test("Destructure") {
@@ -187,17 +178,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //     )
       //     assertTrue(pm.collectReferences == Set(fq, fq2))
       //   },
-      //   test("UpdateRecord") {
-      //     val fq = FQName.fromString("hello:world:string", ":")
-      //     val ur = update(
-      //       string("hello world"),
-      //       Chunk(
-      //         Name("fieldB") -> wholeNumber(new java.math.BigInteger("3")),
-      //         Name("fieldC") -> reference(fq)
-      //       )
-      //     )
-      //     assertTrue(ur.collectReferences == Set(fq))
-      //   }
     )
     // suite("toRawValue should return as expected for:")(
     //   test("Destructure") {
@@ -287,16 +267,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
     //       )
     //     )
     //   },
-    //   test("UpdateRecord") {
-
-    //     val recordType = Type.record(defineField("greeting", stringType))
-    //     val greeter    = variable(recordType, "greeter")
-    //     val actual     = UpdateRecord.Typed(recordType, greeter, ("greeting", string("world") :> stringType))
-
-    //     assertTrue(
-    //       actual.toRawValue == UpdateRecord.Raw(Variable.Raw("greeter"), "greeting" -> string("world"))
-    //     )
-    //   }
   )
 
   def applySuite = suite("Apply")(
@@ -708,6 +678,48 @@ object ValueModuleSpec extends MorphirBaseSpec {
     test("toRawValue should return as expected") {
       val actual = unit(Type.unit)
       assertTrue(actual.toRawValue == Unit(()))
+    }
+  )
+
+  def updateRecordSuite = suite("UpdateRecord")(
+    test("toString should return the expected string") {
+      val sut = update(
+        record.withFields("age" -> int(42), "name" -> string("John")),
+        "age" -> int(43)
+      )
+      assertTrue(sut.toString == "{ {age = 42, name = \"John\"} | age = 43 }")
+    },
+    test("Should support collecting nested variables") {
+      val ur = update(
+        string("hello world"),
+        Chunk(
+          Name("fieldB") -> wholeNumber(3),
+          Name("fieldC") -> variable(Name("none"))
+        )
+      )
+      assertTrue(ur.collectVariables == Set(Name("none")))
+    },
+    test("Should support collecting nested references") {
+      val fqn1 = FQName.fromString("hello:world:string", ":")
+      val fqn2 = FQName.fromString("hello:world:constRecord", ":")
+      val ur = update(
+        reference(fqn2),
+        Chunk(
+          Name("fieldB") -> wholeNumber(423),
+          Name("fieldC") -> reference(fqn1)
+        )
+      )
+      assertTrue(ur.collectReferences == Set(fqn1, fqn2))
+    },
+    test("toRawValue should discard attributes") {
+
+      val recordType = Type.record(defineField("greeting", stringType))
+      val greeter    = variable(recordType, "greeter")
+      val actual     = UpdateRecord(recordType, greeter, ("greeting", string("world") :> stringType))
+
+      assertTrue(
+        actual.toRawValue == UpdateRecord.Raw(Variable.Raw("greeter"), "greeting" -> string("world"))
+      )
     }
   )
 

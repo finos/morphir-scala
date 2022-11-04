@@ -27,6 +27,7 @@ sealed trait Value[+TA, +VA] { self =>
       referenceCase: (VA, FQName) => Z,
       tupleCase: (VA, Chunk[Z]) => Z,
       unitCase: VA => Z,
+      updateRecordCase: (VA, Z, Map[Name, Z]) => Z,
       variableCase: (VA, Name) => Z
   ): Z =
     foldContext(())(
@@ -42,6 +43,8 @@ sealed trait Value[+TA, +VA] { self =>
         onReferenceCase = (_, _, attributes, fqName) => referenceCase(attributes, fqName),
         onTupleCase = (_, _, attributes, values) => tupleCase(attributes, values),
         onUnitCase = (_, _, attributes) => unitCase(attributes),
+        onUpdateRecordCase =
+          (_, _, attributes, valueToUpdate, fields) => updateRecordCase(attributes, valueToUpdate, fields),
         onVariableCase = (_, _, attributes, name) => variableCase(attributes, name)
       )
     )
@@ -74,10 +77,13 @@ sealed trait Value[+TA, +VA] { self =>
           loop(values, Right(referenceCase(context, v, attributes, name)) :: out)
         case (v @ Tuple(_, elements)) :: values =>
           loop(elements.toList ++ values, Left(v) :: out)
-        case (v @ Variable(attributes, name)) :: values =>
-          loop(values, Right(variableCase(context, v, attributes, name)) :: out)
         case (v @ Unit(attributes)) :: values =>
           loop(values, Right(unitCase(context, v, attributes)) :: out)
+        case (v @ UpdateRecord(_, valueToUpdate, fields)) :: values =>
+          val fieldValues = fields.values.toList
+          loop(valueToUpdate :: fieldValues ++ values, Left(v) :: out)
+        case (v @ Variable(attributes, name)) :: values =>
+          loop(values, Right(variableCase(context, v, attributes, name)) :: out)
         case Nil =>
           out.foldLeft[List[Z]](List.empty) {
             case (acc, Right(results)) => results :: acc
@@ -105,6 +111,12 @@ sealed trait Value[+TA, +VA] { self =>
               val elements = Chunk.fromIterable(acc.take(arity))
               val rest     = acc.drop(arity)
               tupleCase(context, v, attributes, elements) :: rest
+            case (acc, Left(v @ UpdateRecord(attributes, _, _))) =>
+              val arity                 = v.fieldsToUpdate.size
+              val valueToUpdate :: rest = acc
+              val fieldValues           = Chunk.fromIterable(rest.take(arity))
+              val fields                = v.fieldsToUpdate.keys.zip(fieldValues).toMap
+              updateRecordCase(context, v, attributes, valueToUpdate, fields) :: rest.drop(arity)
             case (_, Left(value)) =>
               val msg =
                 s"Reached an unexpected state while folding a Value. The Value node is a ${value.getClass().getSimpleName()} This is a bug in the traversal logic for values."
@@ -134,7 +146,8 @@ sealed trait Value[+TA, +VA] { self =>
       lambdaCase: (C, Value[TA, VA], VA, Pattern[VA], Z) => Z,
       listCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z,
       recordCase: (C, Value[TA, VA], VA, Chunk[(Name, Z)]) => Z,
-      tupleCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z
+      tupleCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z,
+      updateRecordCase: (C, Value[TA, VA], VA, Z, Map[Name, Z]) => Z
   ): Z = foldContext(context)(
     new Folder.DelegatedFolder[C, TA, VA, Z](
       onApplyCase = applyCase,
@@ -148,6 +161,7 @@ sealed trait Value[+TA, +VA] { self =>
       onReferenceCase = referenceCase,
       onTupleCase = tupleCase,
       onUnitCase = unitCase,
+      onUpdateRecordCase = updateRecordCase,
       onVariableCase = variableCase
     )
   )
@@ -164,6 +178,8 @@ sealed trait Value[+TA, +VA] { self =>
     referenceCase = (attributes, fqName) => Reference(g(attributes), fqName),
     tupleCase = (attributes, elements) => Tuple(g(attributes), elements),
     unitCase = attributes => Unit(g(attributes)),
+    updateRecordCase =
+      (attributes, valueToUpdate, fieldsToUpdate) => UpdateRecord(g(attributes), valueToUpdate, fieldsToUpdate),
     variableCase = (attributes, name) => Variable(g(attributes), name)
   )
   def toRawValue: RawValue = mapAttributes((_ => ()), (_ => ()))
@@ -766,8 +782,47 @@ object Value {
       fieldsToUpdate: Map[Name, Value[TA, VA]]
   ) extends Value[TA, VA]
   object UpdateRecord {
-    type Raw   = UpdateRecord[scala.Unit, scala.Unit]
+    def apply[TA, VA](
+        attributes: VA,
+        valueToUpdate: Value[TA, VA],
+        fieldsToUpdate: (String, Value[TA, VA])*
+    ): UpdateRecord[TA, VA] =
+      UpdateRecord(
+        attributes,
+        valueToUpdate,
+        fieldsToUpdate.map { case (name, value) => (Name.fromString(name), value) }.toMap
+      )
+    type Raw = UpdateRecord[scala.Unit, scala.Unit]
+    object Raw {
+      def apply(valueToUpdate: RawValue, fieldsToUpdate: Map[String, RawValue]): Raw =
+        UpdateRecord((), valueToUpdate, fieldsToUpdate.map { case (name, value) => (Name.fromString(name), value) })
+
+      def apply(valueToUpdate: RawValue, fieldsToUpdate: (String, RawValue)*): Raw =
+        UpdateRecord(
+          (),
+          valueToUpdate,
+          fieldsToUpdate.map { case (name, value) => (Name.fromString(name), value) }.toMap
+        )
+
+      def unapply(value: RawValue): Option[(RawValue, Map[String, RawValue])] = value match {
+        case UpdateRecord(_, valueToUpdate, fieldsToUpdate) =>
+          Some((valueToUpdate, fieldsToUpdate.map { case (name, value) => (name.toString, value) }))
+        case _ => None
+      }
+    }
     type Typed = UpdateRecord[scala.Unit, UType]
+    object Typed {
+      def apply(valueToUpdate: TypedValue, fieldsToUpdate: Map[Name, TypedValue]): Typed =
+        UpdateRecord(valueToUpdate.attributes, valueToUpdate, fieldsToUpdate)
+
+      def apply(valueToUpdate: TypedValue, fieldsToUpdate: (Name, TypedValue)*): Typed =
+        UpdateRecord(valueToUpdate.attributes, valueToUpdate, fieldsToUpdate.toMap)
+
+      def unapply(value: TypedValue): Option[(TypedValue, Map[Name, TypedValue])] = value match {
+        case UpdateRecord(_, valueToUpdate, fieldsToUpdate) => Some((valueToUpdate, fieldsToUpdate))
+        case _                                              => None
+      }
+    }
   }
 
   sealed case class Variable[+VA](attributes: VA, name: Name) extends Value[Nothing, VA]
@@ -987,7 +1042,7 @@ object Value {
           attributes: Any,
           valueToUpdate: Set[FQName],
           fieldsToUpdate: Map[Name, Set[FQName]]
-      ): Set[FQName] = ???
+      ): Set[FQName] = fieldsToUpdate.values.foldLeft(valueToUpdate)(_ ++ _)
 
       override def variableCase(context: Any, value: Value[Any, Any], attributes: Any, name: Name): Set[FQName] =
         Set.empty
@@ -1116,7 +1171,7 @@ object Value {
           attributes: Any,
           valueToUpdate: Set[Name],
           fieldsToUpdate: Map[Name, Set[Name]]
-      ): Set[Name] = ???
+      ): Set[Name] = fieldsToUpdate.values.foldLeft(valueToUpdate)(_ ++ _)
 
       override def variableCase(context: Any, value: Value[Any, Any], attributes: Any, name: Name): Set[Name] = Set(
         name
@@ -1238,7 +1293,12 @@ object Value {
           attributes: Any,
           valueToUpdate: String,
           fieldsToUpdate: Map[Name, String]
-      ): String = ???
+      ): String = {
+        val fieldsString = fieldsToUpdate
+          .map { case (fieldName, fieldValue) => s"${fieldName.toCamelCase} = $fieldValue" }
+          .mkString(", ")
+        s"{ $valueToUpdate | $fieldsString }"
+      }
 
       override def variableCase(context: Any, value: Value[Any, Any], attributes: Any, name: Name): String =
         name.toCamelCase
@@ -1257,6 +1317,7 @@ object Value {
         onReferenceCase: (Context, Value[TA, VA], VA, FQName) => Z,
         onTupleCase: (Context, Value[TA, VA], VA, Chunk[Z]) => Z,
         onUnitCase: (Context, Value[TA, VA], VA) => Z,
+        onUpdateRecordCase: (Context, Value[TA, VA], VA, Z, Map[Name, Z]) => Z,
         onVariableCase: (Context, Value[TA, VA], VA, Name) => Z
     ) extends Folder[Context, TA, VA, Z] {
 
@@ -1384,7 +1445,13 @@ object Value {
           attributes: VA,
           valueToUpdate: Z,
           fieldsToUpdate: Map[Name, Z]
-      ): Z = ???
+      ): Z = onUpdateRecordCase(
+        context,
+        value,
+        attributes,
+        valueToUpdate,
+        fieldsToUpdate
+      )
 
       override def variableCase(context: Context, value: Value[TA, VA], attributes: VA, name: Name): Z = onVariableCase(
         context,
