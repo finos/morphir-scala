@@ -442,7 +442,7 @@ object Value extends internal.PatternModule {
      */
     def :>(ascribedType: UType): TypedValue = self.mapAttributes(identity, _ => ascribedType)
 
-    def toValDef(returnType: UType): Definition[Any, UType] = Definition(returnType, self :> returnType)
+    def toValDef(returnType: UType): Definition[scala.Unit, UType] = Definition(returnType, self :> returnType)
   }
 
   class FieldsPartiallyApplied(val dummy: Boolean = false) extends AnyVal {

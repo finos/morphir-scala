@@ -29,6 +29,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     ifThenElseSuite,
     lambdaSuite,
     letDefinitionSuite,
+    letRecursionSuite,
     listSuite,
     literalSuite,
     patternMatchSuite,
@@ -37,82 +38,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     tupleSuite,
     unitSuite,
     updateRecordSuite,
-    variableSuite,
-    suite("Collect Variables should return as expected for:")(
-      //   test("LetRecursion") {
-      //     val lr = LetRecursion.Typed(
-      //       "x" -> valueDef(intType)(
-      //         ifThenElse(
-      //           condition = boolean(boolType, false),
-      //           thenBranch = variable(intType, "y"),
-      //           elseBranch = int(intType, 3)
-      //         )
-      //       ),
-      //       "y" ->
-      //         valueDef(intType)(
-      //           IfThenElse
-      //             .Typed(
-      //               condition = literal(false) :> boolType,
-      //               thenBranch = literal(2) :> intType,
-      //               elseBranch = variable("z") :> intType
-      //             )
-      //         )
-      //     )(
-      //       apply(
-      //         reference(intType, FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:add")),
-      //         variable("x", intType),
-      //         variable("y", intType)
-      //       )
-      //     )
-
-      //     assertTrue(lr.collectVariables == Set(Name("x"), Name("y"), Name("z")))
-      //   },
-    ),
-    suite("Collect References should return as expected for:")(
-      //   test("LetRecursion") {
-      //     val fqName = FQName.fromString("Zio:Morphir.Basics:constInt")
-      //     val lr = LetRecursion.Typed(
-      //       "x" -> valueDef(intType)(
-      //         IfThenElse
-      //           .Typed(
-      //             condition = literal(false),
-      //             thenBranch = reference(fqName, intType),
-      //             elseBranch = Lit.int(42).toTypedValue
-      //           )
-      //       ),
-      //       "y" ->
-      //         valueDef(intType)(
-      //           IfThenElse
-      //             .Typed(
-      //               condition = Lit.False.toTypedValue,
-      //               thenBranch = Lit.int(2).toTypedValue,
-      //               elseBranch = Lit.int(42).toTypedValue
-      //             )
-      //         )
-      //     )(variable("y", intType))
-
-      //     assertTrue(lr.collectReferences == Set(fqName))
-      //   },
-    )
-    // suite("toRawValue should return as expected for:")(
-    //   test("LetRecursion") {
-
-    //     val times = Reference(1, FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:multiply"))
-    //     val body  = Apply(4, times, Variable(5, "x"), Variable(6, "y"))
-
-    //     val lr = LetRecursion(
-    //       0,
-    //       "x" -> ValueDefinition.fromLiteral(1, Lit.int(0)),
-    //       "y" -> ValueDefinition.fromLiteral(2, Lit.int(42))
-    //     )(body)
-
-    //     assertTrue(
-    //       lr.toRawValue == LetRecursion.Raw(
-    //         "x" -> ValueDefinition.Raw()(intType)(Lit.int(0)),
-    //         "y" -> ValueDefinition.Raw()(intType)(Lit.int(42))
-    //       )(Apply.Raw(times.toRawValue, Variable.Raw("x"), Variable.Raw("y")))
-    //     )
-    //   },
+    variableSuite
   )
 
   def applySuite = suite("Apply")(
@@ -471,6 +397,112 @@ object ValueModuleSpec extends MorphirBaseSpec {
         )
       )
     }
+  )
+
+  def letRecursionSuite = suite("LetRecursion")(
+    test("toString should return the expected value") {
+      val lr = LetRecursion.Typed(
+        valueDefinitions = "unused" -> int(42).toValDef(intType),
+        "z" -> Lit.int(10).toValueDef,
+        "x" -> valueDef(intType)(
+          IfThenElse.Typed(
+            condition = boolean(boolType, false),
+            thenBranch = variable(intType, "y"),
+            elseBranch = int(intType, 3)
+          )
+        ),
+        "y" ->
+          valueDef(intType)(
+            IfThenElse
+              .Typed(
+                condition = Lit.boolean(false).toTypedValue,
+                thenBranch = Lit.int(2).toTypedValue,
+                elseBranch = variable("z") :> intType
+              )
+          )
+      )(
+        Apply.Typed(
+          reference(intType, FQName.fromString("Finos.Morphir:SDK.Basics:add")),
+          variable("x", intType),
+          variable("y", intType)
+        )
+      )
+
+      assertTrue(
+        lr.toString == "let unused = 42; z = 10; x = if False then y else 3; y = if False then 2 else z in Finos.Morphir.SDK.Basics.add x y"
+      )
+    },
+    test("Collect Variables should return as expected") {
+      val lr = LetRecursion.Typed(
+        valueDefinitions = "unused" -> int(42).toValDef(intType),
+        "x" -> valueDef(intType)(
+          IfThenElse.Typed(
+            condition = boolean(boolType, false),
+            thenBranch = variable(intType, "y"),
+            elseBranch = int(intType, 3)
+          )
+        ),
+        "y" ->
+          valueDef(intType)(
+            IfThenElse
+              .Typed(
+                condition = Lit.boolean(false).toTypedValue,
+                thenBranch = Lit.int(2).toTypedValue,
+                elseBranch = variable("z") :> intType
+              )
+          )
+      )(
+        Apply.Typed(
+          reference(intType, FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:add")),
+          variable("x", intType),
+          variable("y", intType)
+        )
+      )
+
+      assertTrue(lr.collectVariables == Set(Name("unused"), Name("x"), Name("y"), Name("z")))
+    },
+    test("Collect References should return as expected") {
+      val fqName = FQName.fromString("Finos:Morphir.Basics:constInt")
+      val lr = LetRecursion.Typed(
+        "x" -> valueDef(intType)(
+          IfThenElse
+            .Typed(
+              condition = literal(false),
+              thenBranch = reference(fqName, intType),
+              elseBranch = Lit.int(42).toTypedValue
+            )
+        ),
+        "y" ->
+          valueDef(intType)(
+            IfThenElse
+              .Typed(
+                condition = Lit.False,
+                thenBranch = Lit.int(2).toTypedValue,
+                elseBranch = Lit.int(42).toTypedValue
+              )
+          )
+      )(variable("y", intType))
+
+      assertTrue(lr.collectReferences == Set(fqName))
+    }
+    //   test("toRawValue should return the expected value") {
+
+    //     val times = Reference(1, FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:multiply"))
+    //     val body  = Apply(4, times, Variable(5, "x"), Variable(6, "y"))
+
+    //     val lr = LetRecursion(
+    //       0,
+    //       "x" -> ValueDefinition.fromLiteral(1, Lit.int(0)),
+    //       "y" -> ValueDefinition.fromLiteral(2, Lit.int(42))
+    //     )(body)
+
+    //     assertTrue(
+    //       lr.toRawValue == LetRecursion.Raw(
+    //         "x" -> ValueDefinition.Raw()(intType)(Lit.int(0)),
+    //         "y" -> ValueDefinition.Raw()(intType)(Lit.int(42))
+    //       )(Apply.Raw(times.toRawValue, Variable.Raw("x"), Variable.Raw("y")))
+    //     )
+    //   },
   )
 
   def listSuite = suite("List")(

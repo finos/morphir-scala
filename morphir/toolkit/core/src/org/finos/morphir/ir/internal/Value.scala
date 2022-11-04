@@ -84,6 +84,8 @@ sealed trait Value[+TA, +VA] { self =>
           loop(body :: values, Left(v) :: out)
         case (v @ LetDefinition(attributes, name, definition, inValue)) :: values =>
           loop(definition.body :: inValue :: values, Left(v) :: out)
+        case (v @ LetRecursion(attributes, definitions, inValue)) :: values =>
+          loop(definitions.values.map(_.body).toList ::: inValue :: values, Left(v) :: out)
         case (v @ ListValue(_, elements)) :: values =>
           loop(elements.toList ++ values, Left(v) :: out)
         case (v @ Literal(attributes, lit)) :: values =>
@@ -126,6 +128,18 @@ sealed trait Value[+TA, +VA] { self =>
             case (acc, Left(v @ LetDefinition(attributes, name, defn, _))) =>
               val body :: inValue :: rest = (acc: @unchecked)
               letDefinitionCase(context, v, attributes, name, (defn.inputTypes, defn.outputType, body), inValue) :: rest
+            case (acc, Left(v @ LetRecursion(attributes, definitions, _))) =>
+              val definitionValues = acc.take(definitions.size)
+              val acc2             = acc.drop(definitions.size)
+              val inValue :: rest  = (acc2: @unchecked)
+              val definitionsFinal = definitions
+                .zip(definitionValues)
+                .map { case ((name, defn), value) =>
+                  (name, (defn.inputTypes, defn.outputType, value))
+                }
+                .toMap
+              letRecursionCase(context, v, attributes, definitionsFinal, inValue) :: rest
+
             case (acc, Left(v @ ListValue(attributes, _))) =>
               val elements = Chunk.fromIterable(acc.take(v.elements.size))
               val rest     = acc.drop(v.elements.length)
@@ -1073,7 +1087,7 @@ object Value {
           attributes: Any,
           valueDefinitions: Map[Name, (Chunk[(Name, Any, Type[Any])], Type[Any], Set[FQName])],
           inValue: Set[FQName]
-      ): Set[FQName] = ???
+      ): Set[FQName] = valueDefinitions.values.foldLeft(inValue) { case (acc, (_, _, inBody)) => acc ++ inBody }
 
       override def listCase(
           context: Any,
@@ -1197,7 +1211,8 @@ object Value {
           attributes: Any,
           valueDefinitions: Map[Name, (Chunk[(Name, Any, Type[Any])], Type[Any], Set[Name])],
           inValue: Set[Name]
-      ): Set[Name] = ???
+      ): Set[Name] =
+        valueDefinitions.foldLeft(inValue) { case (acc, (name, (_, _, inBody))) => acc union inBody union Set(name) }
 
       override def listCase(
           context: Any,
@@ -1318,7 +1333,15 @@ object Value {
           attributes: Any,
           valueDefinitions: Map[Name, (Chunk[(Name, Any, Type[Any])], Type[Any], String)],
           inValue: String
-      ): String = ???
+      ): String = {
+        val defs = valueDefinitions
+          .map { case (name, (inputTypes, _, body)) =>
+            val args = inputTypes.map(_._1.toCamelCase).mkString(" ")
+            s"${name.toCamelCase}$args = $body"
+          }
+          .mkString("; ")
+        s"let $defs in $inValue"
+      }
 
       override def listCase(context: Any, value: Value[Any, Any], attributes: Any, elements: Chunk[String]): String =
         elements.mkString("[", ", ", "]")
