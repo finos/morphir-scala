@@ -30,6 +30,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     lambdaSuite,
     listSuite,
     literalSuite,
+    patternMatchSuite,
     recordSuite,
     referenceSuite,
     tupleSuite,
@@ -73,18 +74,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
 
       //     assertTrue(lr.collectVariables == Set(Name("x"), Name("y"), Name("z")))
       //   },
-      //   test("PatternMatch") {
-      //     val cases = Chunk(
-      //       (asPattern(wildcardPattern, Name.fromString("x")), variable(Name("name"))),
-      //       (asPattern(wildcardPattern, Name.fromString("y")), variable(Name("integer")))
-      //     )
-
-      //     val pm = patternMatch(
-      //       wholeNumber(new java.math.BigInteger("42")),
-      //       cases
-      //     )
-      //     assertTrue(pm.collectVariables == Set(Name("name"), Name("integer")))
-      //   },
     ),
     suite("Collect References should return as expected for:")(
       //   test("LetDefinition") {
@@ -126,20 +115,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
 
       //     assertTrue(lr.collectReferences == Set(fqName))
       //   },
-      //   test("PatternMatch") {
-      //     val fq  = FQName.fromString("hello:world:star", ":")
-      //     val fq2 = FQName.fromString("hello:world:mission", ":")
-      //     val cases = Chunk(
-      //       (asPattern(wildcardPattern, Name.fromString("x")), variable(Name("name"))),
-      //       (asPattern(wildcardPattern, Name.fromString("y")), reference(fq2))
-      //     )
-
-      //     val pm = patternMatch(
-      //       reference(fq),
-      //       cases
-      //     )
-      //     assertTrue(pm.collectReferences == Set(fq, fq2))
-      //   },
     )
     // suite("toRawValue should return as expected for:")(
     //   test("LetDefinition") {
@@ -180,24 +155,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
 
     //     val actual = Apply.Typed(addRef, x, y)
     //     assertTrue(actual.toRawValue == apply(apply(addRef.toRawValue, x.toRawValue), y.toRawValue))
-    //   },
-    //   test("PatternMatch") {
-    //     val input = variable("magicNumber", intType)
-    //     val yes   = string("yes") :> stringType
-    //     val no    = string("no") :> stringType
-    //     val n42   = Lit.int(42)
-
-    //     val pm = caseOf(input)(
-    //       LiteralPattern.Typed(n42)(intType) -> yes,
-    //       wildcardPattern(yes.attributes)    -> no
-    //     )
-    //     assertTrue(
-    //       pm.toRawValue == PatternMatch.Raw(
-    //         input.toRawValue,
-    //         LiteralPattern.Raw(n42) -> yes.toRawValue,
-    //         Pattern.wildcardPattern -> no.toRawValue
-    //       )
-    //     )
     //   },
   )
 
@@ -569,6 +526,67 @@ object ValueModuleSpec extends MorphirBaseSpec {
         val sut = lit.toTypedValue
         assertTrue(sut.toRawValue == literal(lit))
       }
+    }
+  )
+
+  def patternMatchSuite = suite("PatternMatch")(
+    test("Should support toString") {
+      val cases = Chunk(
+        (asPattern(wildcardPattern, Name.fromString("x")), variable(Name("name"))),
+        (asPattern(wildcardPattern, Name.fromString("y")), variable(Name("integer"))),
+        (wildcardPattern, variable(Name("other")))
+      )
+
+      val pm = patternMatch(
+        wholeNumber(42),
+        cases
+      )
+      assertTrue(pm.toString == "case 42 of x -> name; y -> integer; _ -> other")
+    },
+    test("Should support collecting nested variables") {
+      val cases = Chunk(
+        (asPattern(wildcardPattern, Name.fromString("x")), variable(Name("name"))),
+        (asPattern(wildcardPattern, Name.fromString("y")), variable(Name("integer"))),
+        (wildcardPattern, variable(Name("other")))
+      )
+
+      val pm = patternMatch(
+        wholeNumber(42),
+        cases
+      )
+      assertTrue(pm.collectVariables == Set(Name("name"), Name("integer"), Name("other")))
+    },
+    test("Should support collecting nested references") {
+      val fq  = FQName.fromString("hello:world:star", ":")
+      val fq2 = FQName.fromString("hello:world:mission", ":")
+      val cases = Chunk(
+        (asPattern(wildcardPattern, Name.fromString("x")), variable(Name("name"))),
+        (asPattern(wildcardPattern, Name.fromString("y")), reference(fq2))
+      )
+
+      val pm = patternMatch(
+        reference(fq),
+        cases
+      )
+      assertTrue(pm.collectReferences == Set(fq, fq2))
+    },
+    test("toRawValue should return the expected value") {
+      val input = variable("magicNumber", intType)
+      val yes   = string("yes") :> stringType
+      val no    = string("no") :> stringType
+      val n42   = Lit.int(42)
+
+      val pm = caseOf(input)(
+        literalPattern(intType, n42)    -> yes,
+        wildcardPattern(yes.attributes) -> no
+      )
+      assertTrue(
+        pm.toRawValue == PatternMatch.Raw(
+          input.toRawValue,
+          literalPattern((), n42) -> yes.toRawValue,
+          wildcardPattern         -> no.toRawValue
+        )
+      )
     }
   )
 

@@ -23,8 +23,11 @@ sealed trait Value[+TA, +VA] { self =>
       fieldFunctionCase: (VA, Name) => Z,
       ifThenElseCase: (VA, Z, Z, Z) => Z,
       lambdaCase: (VA, Pattern[VA], Z) => Z,
+      letDefinitionCase: (VA, Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z), Z) => Z,
+      letRecursionCase: (VA, Map[Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z)], Z) => Z,
       listCase: (VA, Chunk[Z]) => Z,
       literalCase: (VA, Lit) => Z,
+      patternMatchCase: (VA, Z, Chunk[(Pattern[VA], Z)]) => Z,
       recordCase: (VA, Chunk[(Name, Z)]) => Z,
       referenceCase: (VA, FQName) => Z,
       tupleCase: (VA, Chunk[Z]) => Z,
@@ -43,8 +46,13 @@ sealed trait Value[+TA, +VA] { self =>
         onIfThenElseCase = (_, _, attributes, condition, thenValue, elseValue) =>
           ifThenElseCase(attributes, condition, thenValue, elseValue),
         onLambdaCase = (_, _, attributes, pattern, body) => lambdaCase(attributes, pattern, body),
+        onLetDefinitionCase =
+          (_, _, attributes, name, definition, inValue) => letDefinitionCase(attributes, name, definition, inValue),
+        onLetRecursionCase =
+          (_, _, attributes, definitions, inValue) => letRecursionCase(attributes, definitions, inValue),
         onListCase = (_, _, attributes, values) => listCase(attributes, values),
         onLiteralCase = (_, _, attributes, lit) => literalCase(attributes, lit),
+        onPatternMatchCase = (_, _, attributes, value, cases) => patternMatchCase(attributes, value, cases),
         onRecordCase = (_, _, attributes, fields) => recordCase(attributes, fields),
         onReferenceCase = (_, _, attributes, fqName) => referenceCase(attributes, fqName),
         onTupleCase = (_, _, attributes, values) => tupleCase(attributes, values),
@@ -78,6 +86,8 @@ sealed trait Value[+TA, +VA] { self =>
           loop(elements.toList ++ values, Left(v) :: out)
         case (v @ Literal(attributes, lit)) :: values =>
           loop(values, Right(literalCase(context, v, attributes, lit)) :: out)
+        case (v @ PatternMatch(attributes, value, cases)) :: values =>
+          loop(value :: cases.map(_._2).toList ++ values, Left(v) :: out)
         case (v @ Record(_, fields)) :: values =>
           val fieldValues = fields.map(_._2).toList
           loop(fieldValues ++ values, Left(v) :: out)
@@ -115,6 +125,12 @@ sealed trait Value[+TA, +VA] { self =>
               val elements = Chunk.fromIterable(acc.take(v.elements.size))
               val rest     = acc.drop(v.elements.length)
               listCase(context, v, attributes, elements) :: rest
+            case (acc, Left(v @ PatternMatch(attributes, _, _))) =>
+              val value :: acc2 = (acc: @unchecked)
+              val caseValues    = acc2.take(v.cases.size)
+              val cases         = v.cases.zip(caseValues).map { case ((pattern, _), caseValue) => (pattern, caseValue) }
+              val rest          = acc2.drop(v.cases.size)
+              patternMatchCase(context, v, attributes, value, cases) :: rest
             case (acc, Left(v @ Record(attributes, _))) =>
               val fieldValues = Chunk.fromIterable(acc.take(v.fields.length))
               val rest        = acc.drop(v.fields.length)
@@ -160,7 +176,10 @@ sealed trait Value[+TA, +VA] { self =>
       fieldCase: (C, Value[TA, VA], VA, Z, Name) => Z,
       ifThenElseCase: (C, Value[TA, VA], VA, Z, Z, Z) => Z,
       lambdaCase: (C, Value[TA, VA], VA, Pattern[VA], Z) => Z,
+      letDefinitionCase: (C, Value[TA, VA], VA, Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z), Z) => Z,
+      letRecursionCase: (C, Value[TA, VA], VA, Map[Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z)], Z) => Z,
       listCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z,
+      patternMatchCase: (C, Value[TA, VA], VA, Z, Chunk[(Pattern[VA], Z)]) => Z,
       recordCase: (C, Value[TA, VA], VA, Chunk[(Name, Z)]) => Z,
       tupleCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z,
       updateRecordCase: (C, Value[TA, VA], VA, Z, Map[Name, Z]) => Z
@@ -173,8 +192,11 @@ sealed trait Value[+TA, +VA] { self =>
       onFieldFunctionCase = fieldFunctionCase,
       onIfThenElseCase = ifThenElseCase,
       onLambdaCase = lambdaCase,
+      onLetDefinitionCase = letDefinitionCase,
+      onLetRecursionCase = letRecursionCase,
       onListCase = listCase,
       onLiteralCase = literalCase,
+      onPatternMatchCase = patternMatchCase,
       onRecordCase = recordCase,
       onReferenceCase = referenceCase,
       onTupleCase = tupleCase,
@@ -193,8 +215,24 @@ sealed trait Value[+TA, +VA] { self =>
     fieldFunctionCase = (attributes, name) => FieldFunction(g(attributes), name),
     ifThenElseCase = (attributes, condition, ifTrue, ifFalse) => IfThenElse(g(attributes), condition, ifTrue, ifFalse),
     lambdaCase = (attributes, pattern, body) => Lambda(g(attributes), pattern.map(g), body),
+    letDefinitionCase = { (attributes, name, definition, inValue) =>
+      val (parameters, returnType, value) = definition
+      val parametersFinal                 = parameters.map { case (name, value, tpe) => (name, g(value), tpe.map(f)) }
+      val returnTypeFinal                 = returnType.map(f)
+      LetDefinition(
+        g(attributes),
+        name,
+        Value.Definition(parametersFinal, returnTypeFinal, value),
+        inValue
+      )
+    },
+    letRecursionCase = (attributes, bindings, inValue) => ???,
     listCase = (attributes, values) => ListValue(g(attributes), values),
     literalCase = (attributes, lit) => Literal(g(attributes), lit),
+    patternMatchCase = { (attributes, valueToMatch, cases) =>
+      val finalCases = cases.map { case (pattern, value) => (pattern.map(g), value) }
+      PatternMatch(g(attributes), valueToMatch, finalCases)
+    },
     recordCase = (attributes, fields) => Record(g(attributes), fields),
     referenceCase = (attributes, fqName) => Reference(g(attributes), fqName),
     tupleCase = (attributes, elements) => Tuple(g(attributes), elements),
@@ -665,8 +703,35 @@ object Value {
       cases: Chunk[(Pattern[VA], Value[TA, VA])]
   ) extends Value[TA, VA]
   object PatternMatch {
-    type Raw   = PatternMatch[scala.Unit, scala.Unit]
+    def apply[TA, VA](attributes: VA, target: Value[TA, VA], cases: (Pattern[VA], Value[TA, VA])*): Value[TA, VA] =
+      PatternMatch(attributes, target, Chunk.fromIterable(cases))
+
+    type Raw = PatternMatch[scala.Unit, scala.Unit]
+    object Raw {
+      def apply(branchOutOn: RawValue, cases: Chunk[(UPattern, RawValue)]): Raw =
+        PatternMatch((), branchOutOn, cases)
+      def apply(target: RawValue, cases: (UPattern, RawValue)*): Raw =
+        PatternMatch((), target, Chunk.fromIterable(cases))
+
+      def unapply(value: RawValue): Option[(RawValue, Chunk[(UPattern, RawValue)])] =
+        value match {
+          case PatternMatch(_, target, cases) => Some((target, cases))
+          case _                              => None
+        }
+    }
     type Typed = PatternMatch[scala.Unit, UType]
+    object Typed {
+      def apply(tpe: UType, target: TypedValue, cases: Chunk[(Pattern[UType], TypedValue)]): Typed =
+        PatternMatch(tpe, target, cases)
+
+      def unapply[TA](
+          value: Value[TA, Type[TA]]
+      ): Option[(Type[TA], Value[TA, Type[TA]], Chunk[(Pattern[Type[TA]], Value[TA, Type[TA]])])] =
+        value match {
+          case PatternMatch(tpe, target, cases) => Some((tpe, target, cases))
+          case _                                => None
+        }
+    }
   }
 
   sealed case class Record[+TA, +VA](attributes: VA, fields: Chunk[(Name, Value[TA, VA])]) extends Value[TA, VA]
@@ -894,7 +959,7 @@ object Value {
         elseBranch: Z
     ): Z
     def lambdaCase(context: Context, value: Value[TA, VA], attributes: VA, argumentPattern: Pattern[VA], body: Z): Z
-    def letDefCase(
+    def letDefinitionCase(
         context: Context,
         value: Value[TA, VA],
         attributes: VA,
@@ -902,14 +967,7 @@ object Value {
         valueDefinition: (Chunk[(Name, VA, Type[TA])], Type[TA], Z),
         inValue: Z
     ): Z
-    def letDestructCase(
-        context: Context,
-        value: Value[TA, VA],
-        attributes: VA,
-        valueDefinitions: Map[Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z)],
-        inValue: Z
-    ): Z
-    def letRecCase(
+    def letRecursionCase(
         context: Context,
         value: Value[TA, VA],
         attributes: VA,
@@ -995,7 +1053,7 @@ object Value {
           body: Set[FQName]
       ): Set[FQName] = body
 
-      override def letDefCase(
+      override def letDefinitionCase(
           context: Any,
           value: Value[Any, Any],
           attributes: Any,
@@ -1004,15 +1062,7 @@ object Value {
           inValue: Set[FQName]
       ): Set[FQName] = ???
 
-      override def letDestructCase(
-          context: Any,
-          value: Value[Any, Any],
-          attributes: Any,
-          valueDefinitions: Map[Name, (Chunk[(Name, Any, Type[Any])], Type[Any], Set[FQName])],
-          inValue: Set[FQName]
-      ): Set[FQName] = ???
-
-      override def letRecCase(
+      override def letRecursionCase(
           context: Any,
           value: Value[Any, Any],
           attributes: Any,
@@ -1036,7 +1086,7 @@ object Value {
           attributes: Any,
           branchOutOn: Set[FQName],
           cases: Chunk[(Pattern[Any], Set[FQName])]
-      ): Set[FQName] = ???
+      ): Set[FQName] = cases.foldLeft(branchOutOn) { case (acc, (_, value)) => acc ++ value }
 
       override def recordCase(
           context: Any,
@@ -1124,7 +1174,7 @@ object Value {
           body: Set[Name]
       ): Set[Name] = body
 
-      override def letDefCase(
+      override def letDefinitionCase(
           context: Any,
           value: Value[Any, Any],
           attributes: Any,
@@ -1133,15 +1183,7 @@ object Value {
           inValue: Set[Name]
       ): Set[Name] = ???
 
-      override def letDestructCase(
-          context: Any,
-          value: Value[Any, Any],
-          attributes: Any,
-          valueDefinitions: Map[Name, (Chunk[(Name, Any, Type[Any])], Type[Any], Set[Name])],
-          inValue: Set[Name]
-      ): Set[Name] = ???
-
-      override def letRecCase(
+      override def letRecursionCase(
           context: Any,
           value: Value[Any, Any],
           attributes: Any,
@@ -1165,7 +1207,7 @@ object Value {
           attributes: Any,
           branchOutOn: Set[Name],
           cases: Chunk[(Pattern[Any], Set[Name])]
-      ): Set[Name] = ???
+      ): Set[Name] = cases.foldLeft(branchOutOn) { case (acc, (_, value)) => acc ++ value }
 
       override def recordCase(
           context: Any,
@@ -1249,7 +1291,7 @@ object Value {
           body: String
       ): String = s"(\\$argumentPattern -> $body)"
 
-      override def letDefCase(
+      override def letDefinitionCase(
           context: Any,
           value: Value[Any, Any],
           attributes: Any,
@@ -1258,15 +1300,7 @@ object Value {
           inValue: String
       ): String = ???
 
-      override def letDestructCase(
-          context: Any,
-          value: Value[Any, Any],
-          attributes: Any,
-          valueDefinitions: Map[Name, (Chunk[(Name, Any, Type[Any])], Type[Any], String)],
-          inValue: String
-      ): String = ???
-
-      override def letRecCase(
+      override def letRecursionCase(
           context: Any,
           value: Value[Any, Any],
           attributes: Any,
@@ -1286,7 +1320,10 @@ object Value {
           attributes: Any,
           branchOutOn: String,
           cases: Chunk[(Pattern[Any], String)]
-      ): String = ???
+      ): String = {
+        val casesStr = cases.map { case (pattern, value) => s"$pattern -> $value" }.mkString("; ")
+        s"case $branchOutOn of $casesStr"
+      }
 
       override def recordCase(
           context: Any,
@@ -1334,8 +1371,11 @@ object Value {
         onFieldFunctionCase: (Context, Value[TA, VA], VA, Name) => Z,
         onIfThenElseCase: (Context, Value[TA, VA], VA, Z, Z, Z) => Z,
         onLambdaCase: (Context, Value[TA, VA], VA, Pattern[VA], Z) => Z,
+        onLetDefinitionCase: (Context, Value[TA, VA], VA, Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z), Z) => Z,
+        onLetRecursionCase: (Context, Value[TA, VA], VA, Map[Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z)], Z) => Z,
         onListCase: (Context, Value[TA, VA], VA, Chunk[Z]) => Z,
         onLiteralCase: (Context, Value[TA, VA], VA, Lit) => Z,
+        onPatternMatchCase: (Context, Value[TA, VA], VA, Z, Chunk[(Pattern[VA], Z)]) => Z,
         onRecordCase: (Context, Value[TA, VA], VA, Chunk[(Name, Z)]) => Z,
         onReferenceCase: (Context, Value[TA, VA], VA, FQName) => Z,
         onTupleCase: (Context, Value[TA, VA], VA, Chunk[Z]) => Z,
@@ -1393,30 +1433,22 @@ object Value {
           body: Z
       ): Z = onLambdaCase(context, value, attributes, argumentPattern, body)
 
-      override def letDefCase(
+      override def letDefinitionCase(
           context: Context,
           value: Value[TA, VA],
           attributes: VA,
           valueName: Name,
           valueDefinition: (Chunk[(Name, VA, Type[TA])], Type[TA], Z),
           inValue: Z
-      ): Z = ???
+      ): Z = onLetDefinitionCase(context, value, attributes, valueName, valueDefinition, inValue)
 
-      override def letDestructCase(
+      override def letRecursionCase(
           context: Context,
           value: Value[TA, VA],
           attributes: VA,
           valueDefinitions: Map[Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z)],
           inValue: Z
-      ): Z = ???
-
-      override def letRecCase(
-          context: Context,
-          value: Value[TA, VA],
-          attributes: VA,
-          valueDefinitions: Map[Name, (Chunk[(Name, VA, Type[TA])], Type[TA], Z)],
-          inValue: Z
-      ): Z = ???
+      ): Z = onLetRecursionCase(context, value, attributes, valueDefinitions, inValue)
 
       override def listCase(context: Context, value: Value[TA, VA], attributes: VA, elements: Chunk[Z]): Z = onListCase(
         context,
@@ -1438,7 +1470,7 @@ object Value {
           attributes: VA,
           branchOutOn: Z,
           cases: Chunk[(Pattern[VA], Z)]
-      ): Z = ???
+      ): Z = onPatternMatchCase(context, value, attributes, branchOutOn, cases)
 
       override def recordCase(context: Context, value: Value[TA, VA], attributes: VA, fields: Chunk[(Name, Z)]): Z =
         onRecordCase(

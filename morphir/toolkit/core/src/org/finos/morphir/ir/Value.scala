@@ -78,6 +78,11 @@ object Value extends internal.PatternModule {
       ev: NeedsAttributes[VA]
   ): Value[TA, VA] = Apply(attributes, function, arguments.toList)
 
+  final def caseOf[TA, VA](
+      value: Value[TA, VA]
+  )(firstCase: (Pattern[VA], Value[TA, VA]), otherCases: (Pattern[VA], Value[TA, VA])*): Value[TA, VA] =
+    PatternMatch(value.attributes, value, firstCase +: Chunk.fromIterable(otherCases))
+
   final def constructor[A](attributes: A, name: String): Value[Nothing, A] = Constructor(attributes, name)
   final def constructor[A](attributes: A, name: FQName): Value[Nothing, A] = Constructor(attributes, name)
   final def constructor(name: String): RawValue                            = Constructor.Raw(name)
@@ -209,6 +214,26 @@ object Value extends internal.PatternModule {
   // }
 
   final def literalTyped[A](literal: Lit): TypedValue = literal.toTypedValue
+
+  final def patternMatch[TA, VA](
+      attributes: VA,
+      branchOutOn: Value[TA, VA],
+      cases: Chunk[(Pattern[VA], Value[TA, VA])]
+  ): Value[TA, VA] =
+    PatternMatch(attributes, branchOutOn, cases)
+
+  final def patternMatch[TA, VA](
+      attributes: VA,
+      branchOutOn: Value[TA, VA],
+      cases: (Pattern[VA], Value[TA, VA])*
+  ): Value[TA, VA] =
+    PatternMatch(attributes, branchOutOn, cases: _*)
+
+  final def patternMatch(branchOutOn: RawValue, cases: Chunk[(UPattern, RawValue)]): RawValue =
+    PatternMatch.Raw(branchOutOn, cases)
+
+  final def patternMatch(branchOutOn: RawValue, cases: (UPattern, RawValue)*): RawValue =
+    PatternMatch.Raw(branchOutOn, cases: _*)
 
   final def record[VA](attributes: VA)(implicit ev: NeedsAttributes[VA]): RecordPartiallyApplied[VA] =
     new RecordPartiallyApplied(

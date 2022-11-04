@@ -25,6 +25,12 @@ trait PatternModule { module =>
   def asPattern(pattern: UPattern, name: Name): UPattern =
     AsPattern((), pattern, name)
 
+  final def literalPattern[A](attributes: A, value: Literal): Pattern[A] =
+    Pattern.LiteralPattern(attributes = attributes, literal = value)
+
+  final def literalPattern(value: Literal): UPattern =
+    Pattern.LiteralPattern(attributes = (), literal = value)
+
   /**
    * Destructure a tuple using a pattern for every element
    */
