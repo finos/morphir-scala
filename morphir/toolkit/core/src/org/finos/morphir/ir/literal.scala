@@ -3,7 +3,8 @@ package ir
 
 import java.math.{BigDecimal => BigDec}
 import Type.UType
-import Value.TypedValue
+import Value.{RawValue, TypedValue, Value, literal}
+import Value.{Definition => ValueDefinition}
 
 object Literal { module =>
 
@@ -33,7 +34,9 @@ object Literal { module =>
 
   sealed trait Literal extends Product with Serializable { self =>
     import Literal._
-    final def inferredType: UType = InferredTypeOf[Literal].inferredType(self)
+    final def inferredType: UType  = InferredTypeOf[Literal].inferredType(self)
+    final def toRawValue: RawValue = Value.Literal.Raw(self)
+
     final override def toString: String = self match {
       case BoolLiteral(true)         => "True"
       case BoolLiteral(false)        => "False"
@@ -43,8 +46,11 @@ object Literal { module =>
       case StringLiteral(value)      => s""""$value""""
       case WholeNumberLiteral(value) => value.toString()
     }
+
     final def toTypedValue(implicit ev: InferredTypeOf[Literal]): Value.TypedValue =
-      Value.literal(inferredType, self)
+      literal(inferredType, self)
+
+    final def toValueDef: ValueDefinition[Unit, UType] = ValueDefinition.fromLiteral(self)
   }
   object Literal {
     final lazy val False: TypedValue     = BoolLiteral(false).toTypedValue

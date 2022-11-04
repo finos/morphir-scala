@@ -129,6 +129,16 @@ object Value extends internal.PatternModule {
   final def float[A](attributes: A, value: Float): Value[Nothing, A]  = LiteralValue(attributes, Lit.float(value))
   final def float(value: Float): RawValue                             = LiteralValue.Raw(Lit.float(value))
 
+  def functionDef(
+      firstArg: (String, UType),
+      otherArgs: (String, UType)*
+  ): FunctionDefInputsClause[scala.Unit, UType] = {
+    val args = (firstArg +: Chunk.fromIterable(otherArgs)).map { case (name, tpe) =>
+      (Name.fromString(name), tpe, tpe)
+    }
+    new FunctionDefInputsClause(args)
+  }
+
   final def ifThenElse[TA, VA](
       attributes: VA,
       condition: Value[TA, VA],
@@ -146,6 +156,104 @@ object Value extends internal.PatternModule {
     Lambda(attributes, argumentPattern, body)
 
   final def lambda(argumentPattern: UPattern, body: RawValue): RawValue = Lambda.Raw(argumentPattern, body)
+
+  final def let[TA, VA](
+      attributes: VA,
+      name: String,
+      valueDefinition: Definition[TA, VA],
+      body: Value[TA, VA]
+  ): Value[TA, VA] =
+    LetDefinition(attributes, name, valueDefinition, body)
+
+  final def let[TA, VA](
+      attributes: VA,
+      name: Name,
+      valueDefinition: Definition[TA, VA],
+      body: Value[TA, VA]
+  ): Value[TA, VA] =
+    LetDefinition(attributes, name, valueDefinition, body)
+
+  final def let(name: Name, valueDefinition: Definition.Raw, body: RawValue): RawValue =
+    LetDefinition.Raw(name, valueDefinition, body)
+
+  final def let(name: String, valueDefinition: Definition.Raw, body: RawValue): RawValue =
+    LetDefinition.Raw(name, valueDefinition, body)
+
+  final def let(varName: String, value: Int, block: TypedValue): TypedValue = {
+    val literalValue = literal(value)
+    val vDef         = valueDef(literalValue.attributes).withBody(literalValue)
+    LetDefinition.Typed(varName, vDef, block)
+  }
+
+  final def let(varName: String, value: String, block: TypedValue): TypedValue = {
+    val literalValue = literal(value)
+    val vDef         = valueDef(literalValue.attributes).withBody(literalValue)
+    LetDefinition.Typed(varName, vDef, block)
+  }
+
+  final def let(varName: String, value: Boolean, block: TypedValue): TypedValue = {
+    val literalValue = literal(value)
+    val vDef         = valueDef(literalValue.attributes).withBody(literalValue)
+    LetDefinition.Typed(varName, vDef, block)
+  }
+
+  final def let(varName: String, value: Float, block: TypedValue): TypedValue = {
+    val literalValue = literal(value)
+    val vDef         = valueDef(literalValue.attributes).withBody(literalValue)
+    LetDefinition.Typed(varName, vDef, block)
+  }
+
+  final def let(varName: String, value: Double, block: TypedValue): TypedValue = {
+    val literalValue = literal(value)
+    val vDef         = valueDef(literalValue.attributes).withBody(literalValue)
+    LetDefinition.Typed(varName, vDef, block)
+  }
+
+  final def let(varName: String, value: scala.BigDecimal, block: TypedValue): TypedValue = {
+    val literalValue = literal(value)
+    val vDef         = valueDef(literalValue.attributes).withBody(literalValue)
+    LetDefinition.Typed(varName, vDef, block)
+  }
+
+  final def let(varName: String, value: java.math.BigDecimal, block: TypedValue): TypedValue = {
+    val literalValue = literal(value)
+    val vDef         = valueDef(literalValue.attributes).withBody(literalValue)
+    LetDefinition.Typed(varName, vDef, block)
+  }
+
+  // final def let(varName: String, value: scala.BigInt, block: TypedValue): TypedValue = {
+  //   val literalValue = literal(value)
+  //   val vDef         = valueDef(literalValue.attributes).withBody(literalValue)
+  //   LetDefinition.Typed(varName, vDef, block)
+  // }
+
+  // final def let(varName: String, value: java.math.BigInteger, block: TypedValue): TypedValue = {
+  //   val literalValue = literal(value)
+  //   val vDef         = valueDef(literalValue.attributes).withBody(literalValue)
+  //   LetDefinition.Typed(varName, vDef, block)
+  // }
+
+  final def letDef[TA, VA](
+      attributes: VA,
+      name: Name,
+      valueDefinition: Definition[TA, VA],
+      body: Value[TA, VA]
+  ): Value[TA, VA] =
+    LetDefinition(attributes, name, valueDefinition, body)
+
+  final def letDef[TA, VA](
+      attributes: VA,
+      name: String,
+      valueDefinition: Definition[TA, VA],
+      body: Value[TA, VA]
+  ): Value[TA, VA] =
+    LetDefinition(attributes, name, valueDefinition, body)
+
+  final def letDef(name: Name, valueDefinition: Definition.Raw, body: RawValue): RawValue =
+    LetDefinition.Raw(name, valueDefinition, body)
+
+  final def letDef(name: String, valueDefinition: Definition.Raw, body: RawValue): RawValue =
+    LetDefinition.Raw(name, valueDefinition, body)
 
   final def list[TA, VA](attributes: VA, values: Chunk[Value[TA, VA]]): Value[TA, VA] =
     List(attributes, values)
@@ -310,6 +418,8 @@ object Value extends internal.PatternModule {
   final def update(valueToUpdate: RawValue, fields: (String, RawValue)*): RawValue =
     UpdateRecord.Raw(valueToUpdate, fields: _*)
 
+  final def valueDef[TA](returnType: Type[TA]): ValueDefClause[TA] = new ValueDefClause(returnType)
+
   final def variable[A](attributes: A, name: Name): Value[Nothing, A]   = Variable(attributes, name)
   final def variable[A](attributes: A, name: String): Value[Nothing, A] = Variable(attributes, name)
   final def variable(name: Name): RawValue                              = Variable.Raw(name)
@@ -356,5 +466,35 @@ object Value extends internal.PatternModule {
       Value.Record(Chunk.fromIterable(fields.map((Name.fromString(_), _))))
     def withNamedFields[TA](fields: Seq[(Name, Value[TA, scala.Unit])]): Value[TA, scala.Unit] =
       Value.Record((), Chunk.fromIterable(fields))
+  }
+
+  final class FunctionDefInputsClause[TA, VA](val args: Chunk[(Name, VA, Type[TA])]) extends AnyVal {
+
+    def apply(returnType: Type[TA]): FunctionSignature[TA, VA] = returning(returnType)
+
+    def apply(returnType: Type[TA], body: Value[TA, VA]): Definition[TA, VA] =
+      Definition(inputTypes = args, outputType = returnType, body = body)
+
+    def returning(returnType: Type[TA]): FunctionSignature[TA, VA] = new FunctionSignature(() => (args, returnType))
+  }
+
+  final class FunctionSignature[TA, VA](val input: () => (Chunk[(Name, VA, Type[TA])], Type[TA])) extends AnyVal {
+    def apply(body: => Value[TA, VA]): Definition[TA, VA] = {
+      val (args, returnType) = input()
+      Definition(inputTypes = args, outputType = returnType, body = body)
+    }
+
+    def withBody(body: => Value[TA, VA]): Definition[TA, VA] = {
+      val (args, returnType) = input()
+      Definition(inputTypes = args, outputType = returnType, body = body)
+    }
+  }
+
+  final class ValueDefClause[TA](val returnType: Type[TA]) extends AnyVal {
+    def apply[VA](body: => Value[TA, VA]): Definition[TA, VA] =
+      Definition(inputTypes = Chunk.empty, outputType = returnType, body = body)
+
+    def withBody[VA](body: => Value[TA, VA]): Definition[TA, VA] =
+      Definition(inputTypes = Chunk.empty, outputType = returnType, body = body)
   }
 }

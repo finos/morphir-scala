@@ -82,6 +82,8 @@ sealed trait Value[+TA, +VA] { self =>
           loop(condition :: thenValue :: elseValue :: values, Left(v) :: out)
         case (v @ Lambda(_, _, body)) :: values =>
           loop(body :: values, Left(v) :: out)
+        case (v @ LetDefinition(attributes, name, definition, inValue)) :: values =>
+          loop(definition.body :: inValue :: values, Left(v) :: out)
         case (v @ ListValue(_, elements)) :: values =>
           loop(elements.toList ++ values, Left(v) :: out)
         case (v @ Literal(attributes, lit)) :: values =>
@@ -121,6 +123,9 @@ sealed trait Value[+TA, +VA] { self =>
             case (acc, Left(v @ Lambda(attributes, pattern, _))) =>
               val body :: rest = (acc: @unchecked)
               lambdaCase(context, v, attributes, pattern, body) :: rest
+            case (acc, Left(v @ LetDefinition(attributes, name, defn, _))) =>
+              val body :: inValue :: rest = (acc: @unchecked)
+              letDefinitionCase(context, v, attributes, name, (defn.inputTypes, defn.outputType, body), inValue) :: rest
             case (acc, Left(v @ ListValue(attributes, _))) =>
               val elements = Chunk.fromIterable(acc.take(v.elements.size))
               val rest     = acc.drop(v.elements.length)
@@ -1060,7 +1065,7 @@ object Value {
           valueName: Name,
           valueDefinition: (Chunk[(Name, Any, Type[Any])], Type[Any], Set[FQName]),
           inValue: Set[FQName]
-      ): Set[FQName] = ???
+      ): Set[FQName] = valueDefinition._3 union inValue
 
       override def letRecursionCase(
           context: Any,
@@ -1181,7 +1186,10 @@ object Value {
           valueName: Name,
           valueDefinition: (Chunk[(Name, Any, Type[Any])], Type[Any], Set[Name]),
           inValue: Set[Name]
-      ): Set[Name] = ???
+      ): Set[Name] = {
+        val (_, _, inBody) = valueDefinition
+        inBody union inValue
+      }
 
       override def letRecursionCase(
           context: Any,
@@ -1298,7 +1306,11 @@ object Value {
           valueName: Name,
           valueDefinition: (Chunk[(Name, Any, Type[Any])], Type[Any], String),
           inValue: String
-      ): String = ???
+      ): String = {
+        val (inputTypes, _, body) = valueDefinition
+        val args                  = inputTypes.map(_._1.toCamelCase).mkString(" ")
+        s"let ${valueName.toCamelCase}$args = $body in $inValue"
+      }
 
       override def letRecursionCase(
           context: Any,

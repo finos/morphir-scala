@@ -28,6 +28,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     fieldFunctionSuite,
     ifThenElseSuite,
     lambdaSuite,
+    letDefinitionSuite,
     listSuite,
     literalSuite,
     patternMatchSuite,
@@ -38,14 +39,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
     updateRecordSuite,
     variableSuite,
     suite("Collect Variables should return as expected for:")(
-      //   test("LetDefinition") {
-      //     val ld = let(
-      //       "y",
-      //       int(intType, 42).toValDef,
-      //       apply(intType --> intType, sdk.Basics.add(intType), variable("y", intType), int(intType, 42))
-      //     )
-      //     assertTrue(ld.collectVariables == Set(Name("y")))
-      //   },
       //   test("LetRecursion") {
       //     val lr = LetRecursion.Typed(
       //       "x" -> valueDef(intType)(
@@ -76,21 +69,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //   },
     ),
     suite("Collect References should return as expected for:")(
-      //   test("LetDefinition") {
-
-      //     val fqName  = FQName.fromString("Morphir:SDK:valueType")
-      //     val fqName2 = FQName.fromString("Morphir:SDK:typed")
-
-      //     val ld = letDef(
-      //       Name("y"),
-      //       ValueDefinition()(intType)(reference(fqName)),
-      //       tuple(
-      //         int(42),
-      //         reference(fqName2)
-      //       )
-      //     )
-      //     assertTrue(ld.collectReferences == Set(fqName, fqName2))
-      //   },
       //   test("LetRecursion") {
       //     val fqName = FQName.fromString("Zio:Morphir.Basics:constInt")
       //     val lr = LetRecursion.Typed(
@@ -117,19 +95,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //   },
     )
     // suite("toRawValue should return as expected for:")(
-    //   test("LetDefinition") {
-    //     val value   = Lit.False.toTypedValue
-    //     val flagDef = ValueDefinition()(boolType)(value)
-
-    //     val ld = LetDefinition.Typed(boolType, "flag", flagDef, variable("flag", boolType))
-    //     assertTrue(
-    //       ld.toRawValue == LetDefinition.Raw(
-    //         "flag",
-    //         ValueDefinition.Raw()(boolType)(value.toRawValue),
-    //         variable("flag").toRawValue
-    //       )
-    //     )
-    //   },
     //   test("LetRecursion") {
 
     //     val times = Reference(1, FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:multiply"))
@@ -147,14 +112,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
     //         "y" -> ValueDefinition.Raw()(intType)(Lit.int(42))
     //       )(Apply.Raw(times.toRawValue, Variable.Raw("x"), Variable.Raw("y")))
     //     )
-    //   },
-    //   test("Apply - typed with multiple arguments") {
-    //     val x      = Lit.int(42).toTypedValue
-    //     val y      = Lit.int(58).toTypedValue
-    //     val addRef = sdk.Basics.add(x.attributes)
-
-    //     val actual = Apply.Typed(addRef, x, y)
-    //     assertTrue(actual.toRawValue == apply(apply(addRef.toRawValue, x.toRawValue), y.toRawValue))
     //   },
   )
 
@@ -197,6 +154,14 @@ object ValueModuleSpec extends MorphirBaseSpec {
       val in       = Apply.Typed(function, toTypedValue(Lit.float(2.0f)))
 
       assertTrue(in.toRawValue == Apply.Raw(function.toRawValue, toRawValue(Lit.float(2.0f))))
+    },
+    test("toRawValue when the Apply is typed with multiple arguments") {
+      val x      = Lit.int(42).toTypedValue
+      val y      = Lit.int(58).toTypedValue
+      val addRef = sdk.Basics.add(x.attributes)
+
+      val actual = Apply.Typed(addRef, x, y)
+      assertTrue(actual.toRawValue == apply(apply(addRef.toRawValue, x.toRawValue), y.toRawValue))
     }
   )
 
@@ -456,6 +421,53 @@ object ValueModuleSpec extends MorphirBaseSpec {
         actual.toRawValue == Lambda.Raw(
           Pattern.AsPattern((), wildcardPattern, Name.fromString("x")),
           variable(Name.fromString("x"))
+        )
+      )
+    }
+  )
+
+  def letDefinitionSuite = suite("LetDefinition")(
+    test("Should support toString") {
+      val sut = let(
+        "x",
+        42,
+        variable(intType, "x")
+      )
+      assertTrue(sut.toString == "let x = 42 in x")
+    },
+    test("Should support collecting nested variables") {
+      val ld = let(
+        "y",
+        42,
+        apply(intType --> intType, sdk.Basics.add(intType), variable("y", intType), int(intType, 42))
+      )
+      assertTrue(ld.collectVariables == Set(Name("y")))
+    },
+    test("Should support collecting nested references") {
+
+      val fqName  = FQName.fromString("Morphir:SDK:valueType")
+      val fqName2 = FQName.fromString("Morphir:SDK:typed")
+
+      val ld = letDef(
+        Name("y"),
+        ValueDefinition()(intType)(reference(fqName)),
+        tuple(
+          int(42),
+          reference(fqName2)
+        )
+      )
+      assertTrue(ld.collectReferences == Set(fqName, fqName2))
+    },
+    test("Should support toRawValue") {
+      val value   = Lit.False
+      val flagDef = ValueDefinition()(boolType)(value)
+
+      val ld = LetDefinition.Typed(boolType, "flag", flagDef, variable("flag", boolType))
+      assertTrue(
+        ld.toRawValue == LetDefinition.Raw(
+          "flag",
+          ValueDefinition.Raw()(boolType)(value.toRawValue),
+          variable("flag").toRawValue
         )
       )
     }
