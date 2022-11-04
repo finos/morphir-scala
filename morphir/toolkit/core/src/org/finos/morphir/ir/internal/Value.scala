@@ -18,6 +18,7 @@ sealed trait Value[+TA, +VA] { self =>
   def fold[Z](
       applyCase: (VA, Z, Z) => Z,
       constructorCase: (VA, FQName) => Z,
+      destructureCase: (VA, Pattern[VA], Z, Z) => Z,
       fieldCase: (VA, Z, Name) => Z,
       fieldFunctionCase: (VA, Name) => Z,
       lambdaCase: (VA, Pattern[VA], Z) => Z,
@@ -34,6 +35,8 @@ sealed trait Value[+TA, +VA] { self =>
       new Folder.DelegatedFolder(
         onApplyCase = (_, _, attributes, function, argument) => applyCase(attributes, function, argument),
         onConstructorCase = (_, _, attributes, name) => constructorCase(attributes, name),
+        onDestructureCase = (_, _, attributes, pattern, valueToDestruct, inValue) =>
+          destructureCase(attributes, pattern, valueToDestruct, inValue),
         onFieldCase = (_, _, attributes, value, name) => fieldCase(attributes, value, name),
         onFieldFunctionCase = (_, _, attributes, name) => fieldFunctionCase(attributes, name),
         onLambdaCase = (_, _, attributes, pattern, body) => lambdaCase(attributes, pattern, body),
@@ -90,6 +93,9 @@ sealed trait Value[+TA, +VA] { self =>
             case (acc, Left(v @ Apply(attributes, _, _))) =>
               val function :: argument :: rest = acc
               applyCase(context, v, attributes, function, argument) :: rest
+            case (acc, Left(v @ Destructure(attributes, pattern, _, _))) =>
+              val valueToDestruct :: inValue :: rest = acc
+              destructureCase(context, v, attributes, pattern, valueToDestruct, inValue) :: rest
             case (acc, Left(v @ Field(attributes, _, fieldName))) =>
               val subjectValue = acc.head
               val rest         = acc.tail
@@ -142,6 +148,7 @@ sealed trait Value[+TA, +VA] { self =>
       variableCase: (C, Value[TA, VA], VA, Name) => Z
   )(
       applyCase: (C, Value[TA, VA], VA, Z, Z) => Z,
+      destructureCase: (C, Value[TA, VA], VA, Pattern[VA], Z, Z) => Z,
       fieldCase: (C, Value[TA, VA], VA, Z, Name) => Z,
       lambdaCase: (C, Value[TA, VA], VA, Pattern[VA], Z) => Z,
       listCase: (C, Value[TA, VA], VA, Chunk[Z]) => Z,
@@ -152,6 +159,7 @@ sealed trait Value[+TA, +VA] { self =>
     new Folder.DelegatedFolder[C, TA, VA, Z](
       onApplyCase = applyCase,
       onConstructorCase = constructorCase,
+      onDestructureCase = destructureCase,
       onFieldCase = fieldCase,
       onFieldFunctionCase = fieldFunctionCase,
       onLambdaCase = lambdaCase,
@@ -169,6 +177,8 @@ sealed trait Value[+TA, +VA] { self =>
   def mapAttributes[TB, VB](f: TA => TB, g: VA => VB): Value[TB, VB] = fold[Value[TB, VB]](
     applyCase = (attributes, function, argument) => Apply(g(attributes), function, argument),
     constructorCase = (attributes, name) => Constructor(g(attributes), name),
+    destructureCase = (attributes, pattern, valueToDestruct, inValue) =>
+      Destructure(g(attributes), pattern.map(g), valueToDestruct, inValue),
     fieldCase = (attributes, value, name) => Field(g(attributes), value, name),
     fieldFunctionCase = (attributes, name) => FieldFunction(g(attributes), name),
     lambdaCase = (attributes, pattern, body) => Lambda(g(attributes), pattern.map(g), body),
@@ -940,7 +950,7 @@ object Value {
           pattern: Pattern[Any],
           valueToDestruct: Set[FQName],
           inValue: Set[FQName]
-      ): Set[FQName] = ???
+      ): Set[FQName] = valueToDestruct union inValue
 
       override def fieldCase(
           context: Any,
@@ -1069,7 +1079,7 @@ object Value {
           pattern: Pattern[Any],
           valueToDestruct: Set[Name],
           inValue: Set[Name]
-      ): Set[Name] = ???
+      ): Set[Name] = valueToDestruct union inValue
 
       override def fieldCase(
           context: Any,
@@ -1198,7 +1208,7 @@ object Value {
           pattern: Pattern[Any],
           valueToDestruct: String,
           inValue: String
-      ): String = ???
+      ): String = s"let $pattern = $valueToDestruct in $inValue"
 
       override def fieldCase(
           context: Any,
@@ -1308,6 +1318,7 @@ object Value {
     class DelegatedFolder[-Context, -TA, -VA, Z](
         onApplyCase: (Context, Value[TA, VA], VA, Z, Z) => Z,
         onConstructorCase: (Context, Value[TA, VA], VA, FQName) => Z,
+        onDestructureCase: (Context, Value[TA, VA], VA, Pattern[VA], Z, Z) => Z,
         onFieldCase: (Context, Value[TA, VA], VA, Z, Name) => Z,
         onFieldFunctionCase: (Context, Value[TA, VA], VA, Name) => Z,
         onLambdaCase: (Context, Value[TA, VA], VA, Pattern[VA], Z) => Z,
@@ -1340,7 +1351,7 @@ object Value {
           pattern: Pattern[VA],
           valueToDestruct: Z,
           inValue: Z
-      ): Z = ???
+      ): Z = onDestructureCase(context, value, attributes, pattern, valueToDestruct, inValue)
 
       override def fieldCase(
           context: Context,

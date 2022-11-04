@@ -23,7 +23,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
   def spec = suite("Value Module")(
     applySuite,
     constructorSuite,
-    // destructureSuite,
+    destructureSuite,
     fieldSuite,
     fieldFunctionSuite,
     lambdaSuite,
@@ -94,19 +94,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //   },
     ),
     suite("Collect References should return as expected for:")(
-      //   test("Destructure") {
-      //     val fq = morphir.ir.FQName(
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       morphir.ir.Path(Name("Morphir.SDK")),
-      //       Name("RecordType")
-      //     )
-      //     val des = destructure(
-      //       tuplePattern(asPattern(wildcardPattern, Name("name1")), asPattern(wildcardPattern, Name("name2"))),
-      //       tuple(string("red"), reference(fq)),
-      //       variable("x")
-      //     )
-      //     assertTrue(des.collectReferences == Set(fq))
-      //   },
       //   test("IfThenElse") {
       //     val fqName = morphir.ir.FQName(
       //       morphir.ir.Path(Name("Morphir.SDK")),
@@ -180,27 +167,6 @@ object ValueModuleSpec extends MorphirBaseSpec {
       //   },
     )
     // suite("toRawValue should return as expected for:")(
-    //   test("Destructure") {
-    //     val lit    = Lit.string("timeout")
-    //     val lit2   = Lit.string("username")
-    //     val value  = literal(stringType, lit)
-    //     val value2 = literal(stringType, lit2)
-
-    //     val des: TypedValue =
-    //       Destructure(
-    //         stringType,
-    //         Pattern.WildcardPattern(stringType),
-    //         value,
-    //         value2
-    //       )
-    //     assertTrue(
-    //       des.toRawValue == destructure(
-    //         wildcardPattern,
-    //         string("timeout"),
-    //         string("username")
-    //       )
-    //     )
-    //   },
     //   test("IfThenElse") {
     //     val gt: TypedValue        = reference(FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:greaterThan"), intType)
     //     val x: TypedValue         = variable("x", intType)
@@ -355,6 +321,11 @@ object ValueModuleSpec extends MorphirBaseSpec {
   )
 
   def destructureSuite = suite("Destructure")(
+    test("Should support toString") {
+      val sut =
+        Destructure((), wildcardPattern, variable("x"), Apply((), sdk.Basics.add, variable("x"), variable("x")))
+      assertTrue(sut.toString == "let _ = x in Morphir.SDK.Basics.add x x")
+    },
     test("Should support collecting nested variables") {
       val des = destructure(
         tuplePattern(asPattern(wildcardPattern, Name("name1")), asPattern(wildcardPattern, Name("name2"))),
@@ -362,6 +333,40 @@ object ValueModuleSpec extends MorphirBaseSpec {
         variable("x")
       )
       assertTrue(des.collectVariables == Set(Name("x")))
+    },
+    test("Should support collecting references") {
+      val fq = morphir.ir.FQName(
+        morphir.ir.Path(Name("Morphir.SDK")),
+        morphir.ir.Path(Name("Morphir.SDK")),
+        Name("RecordType")
+      )
+      val des = destructure(
+        tuplePattern(asPattern(wildcardPattern, Name("name1")), asPattern(wildcardPattern, Name("name2"))),
+        tuple(string("red"), reference(fq)),
+        variable("x")
+      )
+      assertTrue(des.collectReferences == Set(fq))
+    },
+    test("Should support toRawValue") {
+      val lit    = Lit.string("timeout")
+      val lit2   = Lit.string("username")
+      val value  = literal(stringType, lit)
+      val value2 = literal(stringType, lit2)
+
+      val des: TypedValue =
+        Destructure(
+          stringType,
+          Pattern.WildcardPattern(stringType),
+          value,
+          value2
+        )
+      assertTrue(
+        des.toRawValue == destructure(
+          wildcardPattern,
+          string("timeout"),
+          string("username")
+        )
+      )
     }
   )
 
