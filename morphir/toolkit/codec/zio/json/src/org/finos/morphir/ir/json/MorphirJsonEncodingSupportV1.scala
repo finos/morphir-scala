@@ -530,6 +530,16 @@ trait MorphirJsonEncodingSupportV1 {
       }
     }
 
+  implicit val morphirIRVersionEncoder: JsonEncoder[MorphirIRVersion] = JsonEncoder.int.contramap(_.versionNumber.toDouble.toInt)
+
+  implicit def morphirIRFileJsonEncoder: JsonEncoder[MorphirIRFile] =
+    Json.encoder.contramap[MorphirIRFile] { file =>
+      Json.Obj(
+        "formatVersion" -> toJsonAstOrThrow(file.version),
+        "distribution"  -> toJsonAstOrThrow(file.distribution)
+      )
+    }
+
   private def toJsonAstOrThrow[A](a: A)(implicit encoder: JsonEncoder[A]): Json =
     a.toJsonAST.toOption.get
 }
