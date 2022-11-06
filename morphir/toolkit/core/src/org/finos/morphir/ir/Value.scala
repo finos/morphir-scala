@@ -255,6 +255,34 @@ object Value extends internal.PatternModule {
   final def letDef(name: String, valueDefinition: Definition.Raw, body: RawValue): RawValue =
     LetDefinition.Raw(name, valueDefinition, body)
 
+  final def letDestruct[TA, VA](
+      attributes: VA,
+      pattern: Pattern[VA],
+      valueToDestruct: Value[TA, VA],
+      inValue: Value[TA, VA]
+  ): Value[TA, VA] = Destructure(attributes, pattern, valueToDestruct, inValue)
+
+  final def letDestruct(pattern: UPattern, valueToDestruct: RawValue, inValue: RawValue): RawValue =
+    Destructure.Raw(pattern, valueToDestruct, inValue)
+
+  final def letRec[TA, VA](
+      attributes: VA,
+      valueDefinitions: Map[Name, Definition[TA, VA]],
+      inValue: Value[TA, VA]
+  ): Value[TA, VA] =
+    LetRecursion(attributes, valueDefinitions, inValue)
+
+  final def letRec[TA, VA](attributes: VA, valueDefinitions: (String, Definition[TA, VA])*)(
+      inValue: Value[TA, VA]
+  ): Value[TA, VA] =
+    LetRecursion(attributes, valueDefinitions: _*)(inValue)
+
+  final def letRec(valueDefinitions: Map[Name, Definition.Raw], inValue: RawValue): RawValue =
+    LetRecursion.Raw(valueDefinitions, inValue)
+
+  final def letRec(valueDefinitions: (String, Definition.Raw)*)(inValue: RawValue): RawValue =
+    LetRecursion.Raw(valueDefinitions: _*)(inValue)
+
   final def list[TA, VA](attributes: VA, values: Chunk[Value[TA, VA]]): Value[TA, VA] =
     List(attributes, values)
 
@@ -348,7 +376,7 @@ object Value extends internal.PatternModule {
       attributes
     )
 
-  final def record: RecordWithoutAttributesPartiallyApplied = new RecordWithoutAttributesPartiallyApplied
+  // final def record: RecordWithoutAttributesPartiallyApplied = new RecordWithoutAttributesPartiallyApplied
 
   def reference[VA](attributes: VA, fullyQualifiedName: FQName)(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA] =
     Reference(attributes, fullyQualifiedName)
@@ -458,15 +486,14 @@ object Value extends internal.PatternModule {
       Value.Record(attributes, Chunk.fromIterable(fields))
   }
 
-  class RecordWithoutAttributesPartiallyApplied(val dummy: Boolean = false) extends AnyVal {
-    def apply[TA](fields: (String, Value[TA, scala.Unit])*): Value[TA, scala.Unit] = Value.Record((), fields: _*)
-    def apply[TA](fields: Map[Name, Value[TA, scala.Unit]]): Value[TA, scala.Unit] = Value.Record.fromMap((), fields)
-    def withFields[TA](fields: (String, Value[TA, scala.Unit])*): Value[TA, scala.Unit] = Value.Record((), fields: _*)
-    def withFields[TA](fields: Iterable[(String, Value[TA, scala.Unit])]): Value[TA, scala.Unit] =
-      Value.Record(Chunk.fromIterable(fields.map((Name.fromString(_), _))))
-    def withNamedFields[TA](fields: Seq[(Name, Value[TA, scala.Unit])]): Value[TA, scala.Unit] =
-      Value.Record((), Chunk.fromIterable(fields))
-  }
+  // class RecordWithoutAttributesPartiallyApplied(val dummy: Boolean = false) extends AnyVal {
+  //   def apply[TA](fields: (String, Value[TA, scala.Unit])*): Value[TA, scala.Unit]      = Value.Record((), fields: _*)
+  //   def withFields[TA](fields: (String, Value[TA, scala.Unit])*): Value[TA, scala.Unit] = Value.Record((), fields: _*)
+  //   def withFields[TA](fields: Iterable[(String, Value[TA, scala.Unit])]): Value[TA, scala.Unit] =
+  //     Value.Record(Chunk.fromIterable(fields.map((Name.fromString(_), _))))
+  //   def withNamedFields[TA](fields: Seq[(Name, Value[TA, scala.Unit])]): Value[TA, scala.Unit] =
+  //     Value.Record((), Chunk.fromIterable(fields))
+  // }
 
   final class FunctionDefInputsClause[TA, VA](val args: Chunk[(Name, VA, Type[TA])]) extends AnyVal {
 

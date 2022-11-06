@@ -69,7 +69,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
       val name2 = Name.fromString("wonderful")
       val ff    = reference(name)
       val str   = string("string2")
-      val rec   = record(Map((name2, str)))
+      val rec   = record((name2, str))
 
       assertTrue(
         apply(ff, rec).collectReferences == Set(name)

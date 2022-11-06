@@ -770,6 +770,22 @@ object Value {
       Record(attributes, fieldsChunk)
     }
 
+    class Builder[C, +TA, +VA](private val fields: collection.mutable.Map[Name, Value[TA, VA]]) {
+      self =>
+      def +=(field: (Name, Value[TA, VA])): this.type  = fields += field; self
+      def +=(field: (String, Value[TA, VA])): Builder[C, TA, VA] = fields + (Name.fromString(field._1) -> field._2);
+      self
+      def result(): Record[TA, VA] = Record[TA, VA]((), Chunk.fromArray(fields.result()))
+    }
+    object Builder {
+      def apply[TA, VA](field: (Name, Value[TA, VA])): Builder[Nothing, TA, VA] =
+        new Builder(collection.mutable.ArrayBuilder.ofRef[(Name, Value[TA, VA])](field))
+      type Constraints
+      object Constraints {
+        type Empty <: Constraints
+      }
+    }
+
     def fromMap[TA, VA](attributes: VA, fields: Map[Name, Value[TA, VA]]): Record[TA, VA] =
       Record(attributes, Chunk.fromIterable(fields.map { case (name, value) => (name, value) }))
     type Raw = Record[scala.Unit, scala.Unit]

@@ -6,46 +6,46 @@ import zio.Chunk
 import org.finos.morphir.Dsl
 import org.finos.morphir.IR.TypeConstructorInfo
 import org.finos.morphir.ir.Type.{Type, UType, reference => typeRef, unitType}
-import org.finos.morphir.ir.Value.{Definition => ValueDefinition, RawValue}
+import org.finos.morphir.ir.Value.{Definition => ValueDefinition, RawValue, _}
 import org.finos.morphir.ir.sdk.Basics.{add, intType, subtract}
 import org.finos.morphir.ir.sdk.{String => StringModule}
 import org.finos.morphir.ir.{FQName, Name, Path}
 import org.finos.morphir.syntax.AllSyntax
 
 object CaseExample extends AllSyntax {
-  // private val intValueDef = valueDef(intType)
+  private val intValueDef = valueDef(intType)
 
-  // // /x = if (foo) y else 0
-  // // y = if (!foo) x else 0
-  // val letIntroduceMultipleExample: RawValue = letRec(
-  //   Map(
-  //     Name.fromString("x") -> ValueDefinition.fromRawValue(int(20), intType), // lit(20)
-  //     Name.fromString("y") -> ValueDefinition.fromRawValue(int(22), intType)  // lit(22)
-  //   ),
-  //   apply(apply(add, variable("x")), variable("y"))
-  //   // nativeApply(
-  //   //   NativeFunction.Addition,
-  //   //   Chunk(variable("x"), variable("y"))
-  //   // )
-  // )
+  // /x = if (foo) y else 0
+  // y = if (!foo) x else 0
+  val letIntroduceMultipleExample: RawValue = letRec(
+    Map(
+      Name.fromString("x") -> ValueDefinition.fromRawValue(int(20), intType), // lit(20)
+      Name.fromString("y") -> ValueDefinition.fromRawValue(int(22), intType)  // lit(22)
+    ),
+    apply(apply(add, variable("x")), variable("y"))
+    // nativeApply(
+    //   NativeFunction.Addition,
+    //   Chunk(variable("x"), variable("y"))
+    // )
+  )
 
-  // val letIntroduceOutOfOrderExample: RawValue = letRec(
-  //   Map(
-  //     Name.fromString("x") -> intValueDef(apply(apply(add, variable("y")), int(22))),
-  //     // nativeApply(
-  //     //   NativeFunction.Addition,
-  //     //   Chunk(
-  //     //     variable("y"),
-  //     //     int(22)
-  //     //   )
-  //     // ).toDefinition(Basics.intType),
-  //     Name.fromString("y") -> intValueDef(int(22))
-  //   ),
-  //   inValue = variable("x")
-  // )
+  val letIntroduceOutOfOrderExample: RawValue = letRec(
+    Map(
+      Name.fromString("x") -> intValueDef(apply(apply(add, variable("y")), int(22))),
+      // nativeApply(
+      //   NativeFunction.Addition,
+      //   Chunk(
+      //     variable("y"),
+      //     int(22)
+      //   )
+      // ).toDefinition(Basics.intType),
+      Name.fromString("y") -> intValueDef(int(22))
+    ),
+    inValue = variable("x")
+  )
 
-  // val applyFieldFunction: RawValue =
-  //   Dsl.apply(fieldFunction(Name.fromString("fieldA")), recordCaseExample)
+  val applyFieldFunction: RawValue =
+    apply(fieldFunction(Name.fromString("fieldA")), recordCaseExample)
 
   // val additionExample: RawValue =
   //   let(
@@ -89,17 +89,17 @@ object CaseExample extends AllSyntax {
   //     elseBranch = string("no")
   //   )
 
-  // lazy val recordCaseExample: RawValue = {
-  //   val fieldA = Name.fromString("fieldA")
-  //   val fieldB = Name.fromString("fieldB")
+  lazy val recordCaseExample: RawValue = {
+    val fieldA = Name.fromString("fieldA")
+    val fieldB = Name.fromString("fieldB")
 
-  //   val value1 = Dsl.string("hello")
-  //   val value2 = int(2)
+    val value1 = string("hello")
+    val value2 = int(2)
 
-  //   val element1 = fieldA -> value1
-  //   val element2 = fieldB -> value2
-  //   Dsl.record(element1, element2)
-  // }
+    val element1 = fieldA -> value1
+    val element2 = fieldB -> value2
+    record(element1, element2)
+  }
 
   // val recordCaseUpdateExample: RawValue =
   //   update(
