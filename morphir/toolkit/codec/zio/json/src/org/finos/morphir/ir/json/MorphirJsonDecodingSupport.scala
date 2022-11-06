@@ -4,6 +4,7 @@ package json
 import zio._
 import zio.json._
 import zio.json.ast.Json
+import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution._
 import org.finos.morphir.ir.Literal.Literal
 import org.finos.morphir.ir.Literal.Literal._
@@ -596,7 +597,7 @@ trait MorphirJsonDecodingSupport {
       TupleValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
       UpdateRecordValueJsonDecoder[TA, VA].widen[Value[TA, VA]]
 
-  implicit def DistributionLibraryJsonDecoder: JsonDecoder[Library] =
+  implicit def distributionLibraryJsonDecoder: JsonDecoder[Library] =
     JsonDecoder
       .tuple4[String, PackageName, List[(PackageName, UPackageSpecification)], PackageDefinition.Typed]
       .mapOrFail {
@@ -607,6 +608,20 @@ trait MorphirJsonDecodingSupport {
             s"Expected Library, got $other with packageName: $packageName, dependencies: $dependencies and packageDef: $packageDef"
           )
       }
+      
+  implicit def distributionDecoder: JsonDecoder[Distribution] =
+    distributionLibraryJsonDecoder.widen[Distribution]
+
+  implicit val morphirIRVersionDecoder: JsonDecoder[MorphirIRVersion] = JsonDecoder.int.map {
+    case 1 => MorphirIRVersion.V1_0
+    case 2 => MorphirIRVersion.V2_0
+  }
+
+  implicit def morphirIRFileDecoder: JsonDecoder[MorphirIRFile] = {
+    final case class VersionedDistribution(formatVersion: MorphirIRVersion, distribution: Distribution)
+    lazy val dec: JsonDecoder[VersionedDistribution] = DeriveJsonDecoder.gen
+    dec.map(file => MorphirIRFile(file.formatVersion, file.distribution))
+  }
 }
 
 object MorphirJsonDecodingSupport extends MorphirJsonDecodingSupport
