@@ -5,6 +5,7 @@ import zio._
 import zio.json._
 import zio.json.ast.Json
 import zio.json.internal.Write
+import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution._
 import org.finos.morphir.ir.AccessControlled.Access._
 import org.finos.morphir.ir.Literal.Literal
@@ -522,12 +523,30 @@ trait MorphirJsonEncodingSupport {
       )
     }
 
-  implicit def DistributionLibraryJsonEncoder: JsonEncoder[Library] =
+  implicit def distributionLibraryJsonEncoder: JsonEncoder[Library] =
     JsonEncoder
       .tuple4[String, PackageName, List[(PackageName, UPackageSpecification)], PackageDefinition.Typed]
       .contramap { case Library(packageName, dependencies, packageDef) =>
         ("Library", packageName, dependencies.toList, packageDef)
       }
+
+  implicit def distributionEncoder: JsonEncoder[Distribution] =
+    new JsonEncoder[Distribution] {
+      def unsafeEncode(a: Distribution, indent: Option[Int], out: Write): Unit = a match {
+        case library: Library => distributionLibraryJsonEncoder.unsafeEncode(library, indent, out)
+      }
+    }
+
+  implicit val morphirIRVersionEncoder: JsonEncoder[MorphirIRVersion] =
+    JsonEncoder.int.contramap(_.versionNumber.toDouble.toInt)
+
+  implicit def morphirIRFileJsonEncoder: JsonEncoder[MorphirIRFile] =
+    Json.encoder.contramap[MorphirIRFile] { file =>
+      Json.Obj(
+        "formatVersion" -> toJsonAstOrThrow(file.version),
+        "distribution"  -> toJsonAstOrThrow(file.distribution)
+      )
+    }
 
   private def toJsonAstOrThrow[A](a: A)(implicit encoder: JsonEncoder[A]): Json =
     a.toJsonAST.toOption.get
