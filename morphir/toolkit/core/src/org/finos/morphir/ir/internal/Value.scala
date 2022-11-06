@@ -770,19 +770,39 @@ object Value {
       Record(attributes, fieldsChunk)
     }
 
-    class Builder[C, +TA, +VA](private val fields: collection.mutable.Map[Name, Value[TA, VA]]) {
-      self =>
-      def +=(field: (Name, Value[TA, VA])): this.type  = fields += field; self
-      def +=(field: (String, Value[TA, VA])): Builder[C, TA, VA] = fields + (Name.fromString(field._1) -> field._2);
-      self
-      def result(): Record[TA, VA] = Record[TA, VA]((), Chunk.fromArray(fields.result()))
+    class Builder[-C, TA, VA] private (
+        private val maybeAttributes: Option[VA],
+        private val fields: collection.mutable.Map[Name, Value[TA, VA]]
+    ) { self =>
+      import Builder._
+      def +=(field: (Name, Value[TA, VA])): Builder[C with Meta.HasFields, TA, VA] = {
+        fields += field
+        self.asInstanceOf[Builder[C with Meta.HasFields, TA, VA]]
+      }
+      def addField(name: String, value: Value[TA, VA]): Builder[C with Meta.HasFields, TA, VA] =
+        addField(Name.fromString(name), value)
+      def addField(name: Name, value: Value[TA, VA]): Builder[C with Meta.HasFields, TA, VA] = {
+        fields + (name -> value)
+        self.asInstanceOf[Builder[C with Meta.HasFields, TA, VA]]
+      }
+      def result[C1 <: C](implicit ev: Not[C1 <:< Meta.HasAttributes]): Record[TA, scala.Unit] = {
+        val fieldsFinal = Chunk.fromIterable(fields.map { case (name, value) =>
+          (name, value.mapAttributes(identity, _ => ()))
+        })
+        Record((), fieldsFinal)
+      }
+
     }
     object Builder {
-      def apply[TA, VA](field: (Name, Value[TA, VA])): Builder[Nothing, TA, VA] =
-        new Builder(collection.mutable.ArrayBuilder.ofRef[(Name, Value[TA, VA])](field))
-      type Constraints
-      object Constraints {
-        type Empty <: Constraints
+      def apply[TA, VA](fields: (String, Value[TA, VA])*): Builder[Any, TA, VA] = {
+        val fieldMap = collection.mutable.Map(fields.map { case (name, value) => (Name.fromString(name), value) }: _*)
+        new Builder[Any, TA, VA](None, fieldMap)
+      }
+
+      type Meta
+      object Meta {
+        type HasFields <: Meta
+        type HasAttributes <: Meta
       }
     }
 

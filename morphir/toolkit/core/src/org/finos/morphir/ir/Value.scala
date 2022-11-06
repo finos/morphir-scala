@@ -371,10 +371,7 @@ object Value extends internal.PatternModule {
   final def patternMatch(branchOutOn: RawValue, cases: (UPattern, RawValue)*): RawValue =
     PatternMatch.Raw(branchOutOn, cases: _*)
 
-  final def record[VA](attributes: VA)(implicit ev: NeedsAttributes[VA]): RecordPartiallyApplied[VA] =
-    new RecordPartiallyApplied(
-      attributes
-    )
+  final def record[TA, VA]: Record.Builder[Any, TA, VA] = Record.Builder[TA, VA]()
 
   // final def record: RecordWithoutAttributesPartiallyApplied = new RecordWithoutAttributesPartiallyApplied
 
