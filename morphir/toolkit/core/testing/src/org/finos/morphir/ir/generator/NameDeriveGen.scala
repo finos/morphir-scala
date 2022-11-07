@@ -12,6 +12,3 @@ trait NameDeriveGen {
 }
 
 object NameDeriveGen extends NameDeriveGen
-
-
-

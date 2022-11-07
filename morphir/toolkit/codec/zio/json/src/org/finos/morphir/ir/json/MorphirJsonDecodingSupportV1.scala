@@ -610,7 +610,7 @@ trait MorphirJsonDecodingSupportV1 {
             s"Expected library, got $other with packageName: $packageName, dependencies: $dependencies and packageDef: $packageDef"
           )
       }
-      
+
   implicit def distributionDecoder: JsonDecoder[Distribution] =
     distributionLibraryJsonDecoder.widen[Distribution]
 

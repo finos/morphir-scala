@@ -11,5 +11,3 @@ object MorphirIRVersion {
 
   val Default: MorphirIRVersion = V2_0
 }
-
-

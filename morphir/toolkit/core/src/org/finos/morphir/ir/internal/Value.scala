@@ -226,6 +226,67 @@ sealed trait Value[+TA, +VA] { self =>
     )
   )
 
+  final def foldLeft[Z](z: Z)(f: PartialFunction[(Z, Value[TA, VA]), Z]): Z = {
+    @tailrec
+    def loop(z: Z, value: Value[TA, VA], stack: List[Value[TA, VA]]): Z =
+      (f.applyOrElse[(Z, Value[TA, VA]), Z](z -> value, _ => z), value) match {
+        case (z, v @ Apply(_, function, argument)) =>
+          loop(z, function, argument :: stack)
+        case (z, v @ Destructure(_, _, valueToDestruct, inValue)) =>
+          loop(z, valueToDestruct, inValue :: stack)
+        case (z, v @ Field(_, value, _)) =>
+          loop(z, value, stack)
+        case (z, v @ IfThenElse(_, condition, thenBranch, elseBranch)) =>
+          loop(z, condition, thenBranch :: elseBranch :: stack)
+        case (z, v @ Lambda(_, _, body)) =>
+          loop(z, body, stack)
+        case (z, v @ LetDefinition(_, _, Value.Definition(_, _, body), inValue)) =>
+          loop(z, body, inValue :: stack)
+        case (z, v @ LetRecursion(_, valueDefs, inValue)) =>
+          val values = valueDefs.values.map(_.body).toList ++ scala.List(inValue)
+          loop(z, values.head, values.tail ++ stack)
+        case (z, v @ ListValue(_, Chunk(head, tail @ _*))) =>
+          loop(z, head, tail.toList ++ stack)
+        case (z, v @ PatternMatch(_, branchOutOn, cases)) =>
+          val values = cases.map(_._2).toList
+          loop(z, branchOutOn, values ++ stack)
+        case (z, v @ Record(_, Chunk((_, value), tail @ _*))) =>
+          loop(z, value, tail.map(_._2).toList ++ stack)
+        case (z, v @ Tuple(_, Chunk(head, tail @ _*))) =>
+          loop(z, head, tail.toList ++ stack)
+        case (z, v @ UpdateRecord(_, valueToUpdate, fields)) =>
+          val values = fields.values.toList
+          loop(z, valueToUpdate, values ++ stack)
+        case (z, _) =>
+          stack match {
+            case Nil          => z
+            case head :: tail => loop(z, head, tail)
+          }
+      }
+    loop(z, self, List.empty)
+  }
+
+  def isData: Boolean = fold[Boolean](
+    applyCase = (_, fun, arg) => fun && arg,
+    constructorCase = (_, _) => true,
+    destructureCase = (_, _, _, _) => false,
+    fieldCase = (_, _, _) => false,
+    fieldFunctionCase = (_, _) => false,
+    ifThenElseCase = (_, _, _, _) => false,
+    lambdaCase = (_, _, _) => false,
+    letDefinitionCase = (_, _, _, _) => false,
+    letRecursionCase = (_, _, _) => false,
+    listCase = (_, items) => items.forall(identity),
+    literalCase = (_, _) => true,
+    patternMatchCase = (_, _, _) => false,
+    recordCase = (_, fields) => fields.forall(_._2),
+    referenceCase = (_, _) => false,
+    tupleCase = (_, items) => items.forall(identity),
+    unitCase = (_) => true,
+    updateRecordCase = (_, _, _) => false,
+    variableCase = (_, _) => false
+  )
+
   def mapAttributes[TB, VB](f: TA => TB, g: VA => VB): Value[TB, VB] = fold[Value[TB, VB]](
     applyCase = (attributes, function, argument) => Apply(g(attributes), function, argument),
     constructorCase = (attributes, name) => Constructor(g(attributes), name),
@@ -264,6 +325,22 @@ sealed trait Value[+TA, +VA] { self =>
   def toRawValue: RawValue = mapAttributes((_ => ()), (_ => ()))
 
   final override def toString: String = foldContext(())(Folder.ToString)
+
+  /**
+   * Extract the argument list from a curried apply tree. It takes the two arguments of an apply and returns a tuple of
+   * the function and a list of arguments.
+   *
+   * {{{
+   *  assert(Apply((), f,a).uncurryApply(b) == (f, List(a, b)))
+   * }}}
+   */
+  def uncurryApply[TB >: TA, VB >: VA](lastArg: Value[TB, VB]): (Value[TB, VB], scala.List[Value[TB, VB]]) =
+    self match {
+      case Apply(_, nestedFun, nestedArg) =>
+        val (f, initArgs) = nestedFun.uncurryApply(nestedArg)
+        (f, initArgs :+ lastArg)
+      case _ => (self, scala.List(lastArg))
+    }
 }
 
 object Value {
@@ -1298,6 +1375,7 @@ object Value {
       )
 
     }
+
     object ToString extends Folder[Any, Any, Any, String] {
 
       override def applyCase(
@@ -1585,6 +1663,31 @@ object Value {
       )
 
     }
+  }
+
+  implicit final class StringExtensions(private val self: String) extends AnyVal {
+    def as(tpe: UType): TypedValue = Variable.Typed(self, tpe)
+    def :=(value: TypedValue): LetDefinition.Unbound[Any, UType] =
+      LetDefinition.Unbound(Name.fromString(self), Definition.fromTypedValue(value))
+
+    def :=(value: Int): LetDefinition.Unbound[Any, UType] =
+      LetDefinition.Unbound(Name.fromString(self), Definition.fromLiteral(Lit.int(value)))
+
+    def :=(value: Long): LetDefinition.Unbound[Any, UType] =
+      LetDefinition.Unbound(Name.fromString(self), Definition.fromLiteral(Lit.long(value)))
+
+    def :=(value: Float): LetDefinition.Unbound[Any, UType] =
+      LetDefinition.Unbound(Name.fromString(self), Definition.fromLiteral(Lit.float(value)))
+
+    def :=(value: Double): LetDefinition.Unbound[Any, UType] =
+      LetDefinition.Unbound(Name.fromString(self), Definition.fromLiteral(Lit.double(value)))
+
+    def :=(value: Boolean): LetDefinition.Unbound[Any, UType] =
+      LetDefinition.Unbound(Name.fromString(self), Definition.fromLiteral(Lit.boolean(value)))
+
+    def :=(value: String): LetDefinition.Unbound[Any, UType] =
+      LetDefinition.Unbound(Name.fromString(self), Definition.fromLiteral(Lit.string(value)))
+
   }
 
 }
