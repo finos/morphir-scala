@@ -57,7 +57,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     },
     test("Should support collecting nested variables") {
       val ff     = fieldFunction("age")
-      val rec    = record("age" -> variable("myAge"), "firstName" -> string("John"))
+      val rec    = recordRaw("age" -> variable("myAge"), "firstName" -> string("John"))
       val actual = apply(ff, rec)
       assertTrue(
         actual.collectVariables == Set(Name("myAge")),
@@ -69,7 +69,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
       val name2 = Name.fromString("wonderful")
       val ff    = reference(name)
       val str   = string("string2")
-      val rec   = record((name2, str))
+      val rec   = recordRaw(b => b.addField(name2, str))
 
       assertTrue(
         apply(ff, rec).collectReferences == Set(name)
@@ -636,7 +636,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
 
   def recordSuite = suite("Record")(
     test("toString should return as expected") {
-      val sut = record.withFields("age" -> int(42), "name" -> string("John"))
+      val sut = recordRaw("age" -> int(42), "name" -> string("John"))
       assertTrue(sut.toString == "{age = 42, name = \"John\"}")
     },
     test("It should support collecting nested variables") {
@@ -652,7 +652,11 @@ object ValueModuleSpec extends MorphirBaseSpec {
       val str    = string("string1")
       val rf     = reference(fqName)
 
-      val rec = record.withNamedFields(Chunk((name, str), (name2, rf)))
+      val rec = recordRaw { rb =>
+        import rb._
+        addField(name, str)
+        addField(name2, rf)
+      }
       assertTrue(rec.collectReferences == Set(fqName))
     },
     test("toRawValue should return as expected") {
@@ -763,7 +767,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
   def updateRecordSuite = suite("UpdateRecord")(
     test("toString should return the expected string") {
       val sut = update(
-        record.withFields("age" -> int(42), "name" -> string("John")),
+        recordRaw("age" -> int(42), "name" -> string("John")),
         "age" -> int(43)
       )
       assertTrue(sut.toString == "{ {age = 42, name = \"John\"} | age = 43 }")

@@ -8,6 +8,7 @@ import Pattern._
 import Type.{Type, UType}
 import Type.{Unit => UnitType}
 import zio.{Chunk, NonEmptyChunk}
+import zio.ChunkBuilder
 
 sealed trait Value[+TA, +VA] { self =>
   import Value.{List => ListValue, _}
@@ -303,6 +304,11 @@ object Value {
 
       def apply(function: RawValue, argument: RawValue, arguments: RawValue*): Raw =
         arguments.foldLeft(Apply(function.attributes, function, argument)) { case (acc, arg) =>
+          Apply(acc.attributes, acc, arg)
+        }
+
+      def apply(function: RawValue, arguments: ::[RawValue]): Raw =
+        arguments.tail.foldLeft(Apply(function.attributes, function, arguments.head)) { case (acc, arg) =>
           Apply(acc.attributes, acc, arg)
         }
 
@@ -770,44 +776,36 @@ object Value {
       Record(attributes, fieldsChunk)
     }
 
-    class Builder[-C, TA, VA] private (
-        private val maybeAttributes: Option[VA],
-        private val fields: collection.mutable.Map[Name, Value[TA, VA]]
-    ) { self =>
-      import Builder._
-      def +=(field: (Name, Value[TA, VA])): Builder[C with Meta.HasFields, TA, VA] = {
-        fields += field
-        self.asInstanceOf[Builder[C with Meta.HasFields, TA, VA]]
-      }
-      def addField(name: String, value: Value[TA, VA]): Builder[C with Meta.HasFields, TA, VA] =
-        addField(Name.fromString(name), value)
-      def addField(name: Name, value: Value[TA, VA]): Builder[C with Meta.HasFields, TA, VA] = {
-        fields + (name -> value)
-        self.asInstanceOf[Builder[C with Meta.HasFields, TA, VA]]
-      }
-      def result[C1 <: C](implicit ev: Not[C1 <:< Meta.HasAttributes]): Record[TA, scala.Unit] = {
-        val fieldsFinal = Chunk.fromIterable(fields.map { case (name, value) =>
-          (name, value.mapAttributes(identity, _ => ()))
-        })
-        Record((), fieldsFinal)
-      }
-
-    }
-    object Builder {
-      def apply[TA, VA](fields: (String, Value[TA, VA])*): Builder[Any, TA, VA] = {
-        val fieldMap = collection.mutable.Map(fields.map { case (name, value) => (Name.fromString(name), value) }: _*)
-        new Builder[Any, TA, VA](None, fieldMap)
-      }
-
-      type Meta
-      object Meta {
-        type HasFields <: Meta
-        type HasAttributes <: Meta
-      }
-    }
-
     def fromMap[TA, VA](attributes: VA, fields: Map[Name, Value[TA, VA]]): Record[TA, VA] =
       Record(attributes, Chunk.fromIterable(fields.map { case (name, value) => (name, value) }))
+
+    final class Builder[TA, VA] private[ir] (private val fields: ChunkBuilder[(Name, Value[TA, VA])]) { self =>
+      def +=(field: (String, Value[TA, VA])): Builder[TA, VA] = {
+        fields += (Name.fromString(field._1) -> field._2)
+        self
+      }
+      def ++=(fields: Chunk[(Name, Value[TA, VA])]): Builder[TA, VA] = {
+        self.fields ++= fields
+        self
+      }
+
+      def ++=(fields: Map[String, Value[TA, VA]]): Builder[TA, VA] = {
+        self.fields ++= Chunk.fromIterable(fields.map { case (name, value) => (Name.fromString(name), value) })
+        self
+      }
+      def addField(name: String, value: Value[TA, VA]): Builder[TA, VA] = {
+        fields += (Name.fromString(name) -> value)
+        self
+      }
+      def addField(name: Name, value: Value[TA, VA]): Builder[TA, VA] = {
+        fields += (name -> value)
+        self
+      }
+      def result(attributes: VA): Record[TA, VA] = Record(attributes, fields.result())
+    }
+    object Builder {
+      def apply[TA, VA](): Builder[TA, VA] = new Builder(ChunkBuilder.make[(Name, Value[TA, VA])]())
+    }
     type Raw = Record[scala.Unit, scala.Unit]
     object Raw {
       def apply(fields: Chunk[(Name, RawValue)]): Raw = Record((), fields)

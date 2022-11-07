@@ -63,10 +63,12 @@ object Value extends internal.PatternModule {
       function: Value[TA, VA],
       argument: Value[TA, VA],
       arguments: Value[TA, VA]*
-  )(implicit ev: NeedsAttributes[VA]): Value[TA, VA] =
+  )(implicit ev: IsNotAValue[VA]): Value[TA, VA] =
     Apply(attributes, function, argument, arguments: _*)
 
-  final def apply(function: RawValue, argument: RawValue): RawValue = Apply.Raw(function, argument)
+  final def apply(function: RawValue, argument: RawValue): Apply.Raw = Apply.Raw(function, argument)
+  final def apply(function: RawValue, argument: RawValue, arguments: RawValue*) =
+    Apply.Raw(function, ::(argument, arguments.toList))
 
   // final def apply(function: TypedValue, argument: TypedValue, arguments: TypedValue*): TypedValue =
   //   Apply.Typed(function, argument, arguments: _*)
@@ -371,9 +373,28 @@ object Value extends internal.PatternModule {
   final def patternMatch(branchOutOn: RawValue, cases: (UPattern, RawValue)*): RawValue =
     PatternMatch.Raw(branchOutOn, cases: _*)
 
-  final def record[TA, VA]: Record.Builder[Any, TA, VA] = Record.Builder[TA, VA]()
+  final def record[TA, VA](attributes: VA, fields: (String, Value[TA, VA])*)(implicit
+      ev: Not[VA =:= (String, Value[TA, VA])]
+  ): Value[TA, VA] =
+    Record(attributes, fields: _*)
 
-  // final def record: RecordWithoutAttributesPartiallyApplied = new RecordWithoutAttributesPartiallyApplied
+  final def record[TA, VA](attributes: VA, f: Record.Builder[TA, VA] => Any)(implicit
+      ev: IsNotAValue[VA]
+  ): Value[TA, VA] = {
+    val builder = Record.Builder[TA, VA]()
+    f(builder)
+    builder.result(attributes)
+  }
+
+  // final def record(fields: Chunk[(Name, RawValue)]): RawValue = Record.Raw(fields)
+  final def recordRaw(fields: (String, RawValue)*): RawValue = Record.Raw(fields: _*)
+  final def recordRaw(f: Record.Builder[scala.Unit, scala.Unit] => Any): RawValue = {
+    val builder = Record.Builder[scala.Unit, scala.Unit]()
+    f(builder)
+    builder.result(())
+  }
+  // final def record(firstField: (Name, RawValue), otherFields: (Name, RawValue)*): RawValue =
+  //   Record.Raw(firstField +: Chunk.fromIterable(otherFields))
 
   def reference[VA](attributes: VA, fullyQualifiedName: FQName)(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA] =
     Reference(attributes, fullyQualifiedName)
