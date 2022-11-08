@@ -15,6 +15,7 @@ import mill._, scalalib._, scalafmt._
 import mill.contrib.buildinfo.BuildInfo
 import mill.define.Sources
 import mill.modules.Jvm
+import mill.scalalib.publish.PublishInfo
 import os.Path
 
 import Deps._
@@ -239,6 +240,13 @@ object morphir extends Module {
         Map("version" -> maybeLastTaggedVersion.getOrElse("0.0.0"))
       }
       object test extends Tests with MorphirTestModule {}
+
+      // also publish the assembly jar
+      override def extraPublish: T[Seq[PublishInfo]] = T {
+        Seq(
+          PublishInfo(file = assembly(), classifier = Some("assembly"), ivyConfig = "compile")
+        )
+      }
     }
 
     object msc extends Module {
