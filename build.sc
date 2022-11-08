@@ -15,6 +15,7 @@ import mill._, scalalib._, scalafmt._
 import mill.contrib.buildinfo.BuildInfo
 import mill.define.Sources
 import mill.modules.Jvm
+import mill.scalalib.publish.PublishInfo
 import os.Path
 
 import Deps._
