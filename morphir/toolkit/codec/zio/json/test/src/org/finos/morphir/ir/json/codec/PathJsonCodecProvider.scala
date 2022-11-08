@@ -9,7 +9,7 @@ import zio.json.golden.GoldenConfiguration
 import org.finos.morphir.ir.json.MorphirJsonBaseSpec
 import org.finos.morphir.ir.Path
 
-object PathJsonCodecSpec extends MorphirJsonBaseSpec with PathDeriveGen with PathJsonCodecProvider {
+object PathJsonCodecSpec extends MorphirJsonBaseSpec with NameDeriveGen with PathDeriveGen with PathJsonCodecProvider {
   implicit lazy val givenGoldenConfiguration: GoldenConfiguration =
     GoldenConfiguration.default.copy(relativePath =
       implicitly[sourcecode.FullName].value.split('.').dropRight(1).mkString(File.separator)

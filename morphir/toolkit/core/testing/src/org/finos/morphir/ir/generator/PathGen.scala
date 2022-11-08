@@ -10,7 +10,7 @@ object PathGen extends PathGen
 
 trait PathGen {
   val modulePath = path.map(ModulePath(_))
-  val path: Gen[Any, Path] =
+  def path: Gen[Any, Path] =
     Gen.listOfBounded(1, 5)(NameGen.name).map(parts => Path.fromList(parts))
 
   def modulePath[R](path: Gen[R, Path]): Gen[R, ModulePath] = path.map(ModulePath(_))

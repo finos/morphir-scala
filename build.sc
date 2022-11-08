@@ -169,27 +169,32 @@ object morphir extends Module {
       }
     }
 
-    object interpreter extends MorphirScalaModule with MorphirPublishModule {
-      def crossScalaVersion = ScalaVersions.scala3x
-      def ivyDeps           = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`)
+    object interpreter extends mill.Cross[InterpreterModule](ScalaVersions.all: _*)
+    class InterpreterModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
+      def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`)
       def moduleDeps =
         Seq(
           morphir.toolkit.core(crossScalaVersion),
-          morphir.toolkit.util
+          morphir.toolkit.util(crossScalaVersion)
         )
       object test extends Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(core(crossScalaVersion).test)
+        def moduleDeps = super.moduleDeps ++ Seq(
+          morphir.testing(crossScalaVersion),
+          morphir.toolkit.core.testing(crossScalaVersion),
+          morphir.toolkit.core(crossScalaVersion).test
+        )
       }
     }
 
     object mir extends MorphirScalaModule with MorphirPublishModule {
       def crossScalaVersion = morphirScalaVersion
-      def moduleDeps        = Seq(morphir.toolkit.util)
+      def moduleDeps        = Seq(morphir.toolkit.util(crossScalaVersion))
       def scalacOptions     = super.scalacOptions()
       object test extends Tests with MorphirTestModule
     }
-    object util extends MorphirScalaModule with MorphirPublishModule {
-      def crossScalaVersion = morphirScalaVersion
+
+    object util extends mill.Cross[UtilModule](ScalaVersions.all: _*)
+    class UtilModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
       object test extends Tests with MorphirTestModule {}
     }
   }
@@ -246,7 +251,7 @@ object morphir extends Module {
             morphir.toolkit.core(morphirScalaVersion),
             morphir.toolkit.codec,
             morphir.toolkit.mir,
-            morphir.toolkit.util
+            morphir.toolkit.util(crossScalaVersion)
           )
         def crossFullScalaVersion = true
 

@@ -1,7 +1,7 @@
 package org.finos
 package morphir
 
-package object util:
+package object util {
   def unreachable: Nothing =
     throw UnreachableException
 
@@ -12,3 +12,4 @@ package object util:
     throw UnsupportedException(s)
 
   type UnreachableException = UnreachableException.type
+}
