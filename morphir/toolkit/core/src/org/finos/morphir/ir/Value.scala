@@ -106,7 +106,7 @@ object Value extends internal.PatternModule {
   final def destructure(pattern: UPattern, valueToDestruct: RawValue, inValue: RawValue): RawValue =
     Destructure.Raw(pattern, valueToDestruct, inValue)
 
-  final def emptyTuple[VA](attributes: VA): Value[Nothing, VA] = Tuple(attributes)    
+  final def emptyTuple[VA](attributes: VA): Value[Nothing, VA] = Tuple(attributes)
 
   final def field[TA, VA](attributes: VA, target: Value[TA, VA], name: Name): Value[TA, VA] =
     Field(attributes, target, name)
