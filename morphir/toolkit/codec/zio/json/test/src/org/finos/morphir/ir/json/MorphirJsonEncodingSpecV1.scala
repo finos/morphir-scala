@@ -835,6 +835,63 @@ object MorphirJsonEncodingSpecV1 extends ZIOSpecDefault {
           """["library",[["morphir"],["s","d","k"]],[[[["org"],["finos"],["morphir"],["ir"]],{"modules":[{"name":[[["org"]],["src"]],"spec":{"types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["unit",[]]]]]],"values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["unit",[]]],[["name","2"],["unit",[]]]],"outputs":["unit",[]]}]]]}},{"name":[[["org"]],["test"]],"spec":{"types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["unit",[]]]]]],"values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["unit",[]]],[["name","2"],["unit",[]]]],"outputs":["unit",[]]}]]]}}]}]],{"modules":[{"name":[[["org"]],["src"]],"def":["public",{"types":[[["name"],["private",["typeDoc1",["type_alias_definition",[["name","1"],["name","2"]],["unit",[]]]]]]],"values":[[["name"],["private",["valueDoc1",{"inputTypes":[[["name","1"],["unit",[]],["unit",[]]],[["name","2"],["unit",[]],["unit",[]]]],"outputType":["unit",[]],"body":["constructor",["unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}]]]]}]},{"name":[[["org"]],["test"]],"def":["private",{"types":[[["name"],["private",["typeDoc1",["type_alias_definition",[["name","1"],["name","2"]],["unit",[]]]]]]],"values":[[["name"],["private",["valueDoc1",{"inputTypes":[[["name","1"],["unit",[]],["unit",[]]],[["name","2"],["unit",[]],["unit",[]]]],"outputType":["unit",[]],"body":["constructor",["unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}]]]]}]}]}]"""
         assertTrue(actual.toJson == expected)
       }
+    ),
+    suite("MorphirIRFile")(
+      test("will encode Distribution.Library") {
+        val packageName = PackageName.fromString("morphir.SDK")
+        val name        = Name.fromString("name")
+        val name1       = Name.fromString("name1")
+        val name2       = Name.fromString("name2")
+        val modName1    = ModuleName(Path.fromString("org"), Name.fromString("src"))
+        val modName2    = ModuleName(Path.fromString("org"), Name.fromString("test"))
+
+        val specTypeMap = Map(
+          name -> Documented(
+            "typeDoc1",
+            TypeSpecification.TypeAliasSpecification[scala.Unit](zio.Chunk(name1, name2), unit)
+          )
+        )
+        val inputs       = zio.Chunk((name1, unit), (name2, unit))
+        val specValueMap = Map(name -> Documented("valueDoc1", ValueSpecification[scala.Unit](inputs, unit)))
+
+        val modSpec = ModuleSpecification[scala.Unit](specTypeMap, specValueMap)
+        val pkgSpec = PackageSpecification[scala.Unit](Map(modName1 -> modSpec, modName2 -> modSpec))
+
+        val inputParams = zio.Chunk(
+          (name1, unit, unit),
+          (name2, unit, unit)
+        )
+        val value    = Value.Constructor(unit, FQName.fromString("test:JavaHome:morphir"))
+        val valueDef = ValueDefinition(inputParams, unit, value)
+
+        val defValueMap =
+          Map(name -> AccessControlled(AccessControlled.Access.Private, Documented("valueDoc1", valueDef)))
+
+        val defTypeMap = Map(
+          name -> AccessControlled(
+            AccessControlled.Access.Private,
+            Documented(
+              "typeDoc1",
+              TypeDefinition.TypeAlias(zio.Chunk(name1, name2), unit)
+            )
+          )
+        )
+
+        val modDef = ModuleDefinition(defTypeMap, defValueMap)
+        val dependencies = Map[PackageName, UPackageSpecification](
+          PackageName.fromString("org.finos.morphir.ir") -> pkgSpec
+        )
+        val packageDef: PackageDefinition.Typed = PackageDefinition(
+          Map(
+            modName1 -> AccessControlled(AccessControlled.Access.Public, modDef),
+            modName2 -> AccessControlled(AccessControlled.Access.Private, modDef)
+          )
+        )
+        val actual = MorphirIRFile(MorphirIRVersion.V1_0, Library(packageName, dependencies, packageDef))
+        val expected =
+          """{"formatVersion":1,"distribution":["library",[["morphir"],["s","d","k"]],[[[["org"],["finos"],["morphir"],["ir"]],{"modules":[{"name":[[["org"]],["src"]],"spec":{"types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["unit",[]]]]]],"values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["unit",[]]],[["name","2"],["unit",[]]]],"outputs":["unit",[]]}]]]}},{"name":[[["org"]],["test"]],"spec":{"types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["unit",[]]]]]],"values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["unit",[]]],[["name","2"],["unit",[]]]],"outputs":["unit",[]]}]]]}}]}]],{"modules":[{"name":[[["org"]],["src"]],"def":["public",{"types":[[["name"],["private",["typeDoc1",["type_alias_definition",[["name","1"],["name","2"]],["unit",[]]]]]]],"values":[[["name"],["private",["valueDoc1",{"inputTypes":[[["name","1"],["unit",[]],["unit",[]]],[["name","2"],["unit",[]],["unit",[]]]],"outputType":["unit",[]],"body":["constructor",["unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}]]]]}]},{"name":[[["org"]],["test"]],"def":["private",{"types":[[["name"],["private",["typeDoc1",["type_alias_definition",[["name","1"],["name","2"]],["unit",[]]]]]]],"values":[[["name"],["private",["valueDoc1",{"inputTypes":[[["name","1"],["unit",[]],["unit",[]]],[["name","2"],["unit",[]],["unit",[]]]],"outputType":["unit",[]],"body":["constructor",["unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}]]]]}]}]}]}"""
+        assertTrue(actual.toJson == expected)
+      }
     )
   )
 }
