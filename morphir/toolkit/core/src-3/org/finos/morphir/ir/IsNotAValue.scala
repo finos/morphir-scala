@@ -5,11 +5,7 @@ import scala.util.NotGiven
 
 sealed abstract class IsNotAValue[-A] extends Serializable
 
-object IsNotAValue extends IsNotAValue[Any] with IsNotAValueLowerPriority {
+object IsNotAValue extends IsNotAValue[Any] {
   implicit def isNotAValue[A](using NotGiven[A <:< Value.Value[_, _]]): IsNotAValue[A] = IsNotAValue
 
-}
-
-trait IsNotAValueLowerPriority {
-  implicit def isNotARecursiveValue[A](using NotGiven[A <:< value.recursive.Value[_, _]]): IsNotAValue[A] = IsNotAValue
 }

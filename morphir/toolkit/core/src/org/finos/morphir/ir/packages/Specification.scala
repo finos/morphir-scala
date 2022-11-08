@@ -1,12 +1,12 @@
 package org.finos.morphir.ir.packages
 import org.finos.morphir.ir.module.{ModuleName, Specification => ModuleSpec}
-import org.finos.morphir.ir.value.{Specification => ValueSpec}
+import org.finos.morphir.ir.Value.{Specification => ValueSpec}
 import org.finos.morphir.ir.{Name, Path}
 
 final case class Specification[+TA](modules: Map[ModuleName, ModuleSpec[TA]]) {
   self =>
 
-  def eraseAttributes: Specification[Any] = self.mapAttributes(_ => ())
+  def eraseAttributes: Specification[scala.Unit] = self.mapAttributes(_ => ())
 
   def lookupModuleSpecification(path: Path): Option[ModuleSpec[TA]] =
     lookupModuleSpecification(ModuleName.fromPath(path))

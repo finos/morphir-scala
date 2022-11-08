@@ -107,5 +107,5 @@ object List {
     typeRef(attributes, toFQName(moduleName, "List"), itemType)
 
   def construct[VA](attributes: VA): Value[Nothing, VA] =
-    valRef(attributes = attributes, name = toFQName(moduleName, "cons"))
+    valRef(attributes, toFQName(moduleName, "cons"))
 }

@@ -1,10 +1,11 @@
-package org.finos.morphir.ir.sdk
+package org.finos.morphir
+package ir
+package sdk
 
 import zio.Chunk
 import org.finos.morphir.ir.Module.ModuleName
 import org.finos.morphir.ir.PackageModule.PackageName
 import org.finos.morphir.ir.Type._
-import org.finos.morphir.ir.{Value, _}
 object Common {
   val packageName: PackageName = PackageName.fromString("Morphir.SDK")
 
@@ -19,7 +20,7 @@ object Common {
   def vSpec(name: String, inputs: (String, UType)*) = new VSpec(() => (name, Chunk.fromIterable(inputs)))
 
   final class VSpec(private val data: () => (String, Chunk[(String, UType)])) extends AnyVal {
-    def apply(outputType: UType): (Name, Documented[Value.Specification[Any]]) = {
+    def apply(outputType: UType): (Name, Documented[Value.USpecification]) = {
       val (name, inputs) = data()
       (
         Name.fromString(name),
@@ -30,7 +31,7 @@ object Common {
       )
     }
 
-    @inline def returning(outputType: UType): (Name, Documented[Value.Specification[Any]]) = apply(outputType)
+    @inline def returning(outputType: UType): (Name, Documented[Value.USpecification]) = apply(outputType)
   }
 
 }

@@ -3,8 +3,6 @@ package morphir
 package ir
 package module
 
-import org.finos.morphir.ir.{Name, Value}
-
 trait ModuleModule {
 
   final type Definition[+TA, +VA] = morphir.ir.module.Definition[TA, VA]

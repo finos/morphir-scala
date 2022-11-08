@@ -6,7 +6,7 @@ import zio.Chunk
 import org.finos.morphir.Dsl
 import org.finos.morphir.IR.TypeConstructorInfo
 import org.finos.morphir.ir.Type.{Type, UType, reference => typeRef, unitType}
-import org.finos.morphir.ir.Value.{Definition => ValueDefinition, RawValue}
+import org.finos.morphir.ir.Value.{Definition => ValueDefinition, RawValue, _}
 import org.finos.morphir.ir.sdk.Basics.{add, intType, subtract}
 import org.finos.morphir.ir.sdk.{String => StringModule}
 import org.finos.morphir.ir.{FQName, Name, Path}
@@ -45,7 +45,7 @@ object CaseExample extends AllSyntax {
   )
 
   val applyFieldFunction: RawValue =
-    Dsl.apply(fieldFunction(Name.fromString("fieldA")), recordCaseExample)
+    apply(fieldFunction(Name.fromString("fieldA")), recordCaseExample)
 
   val additionExample: RawValue =
     let(
@@ -93,12 +93,14 @@ object CaseExample extends AllSyntax {
     val fieldA = Name.fromString("fieldA")
     val fieldB = Name.fromString("fieldB")
 
-    val value1 = Dsl.string("hello")
+    val value1 = string("hello")
     val value2 = int(2)
 
-    val element1 = fieldA -> value1
-    val element2 = fieldB -> value2
-    Dsl.record(element1, element2)
+    recordRaw { rb =>
+      import rb._
+      addField(fieldA, value1)
+      addField(fieldB, value2)
+    }
   }
 
   val recordCaseUpdateExample: RawValue =
@@ -110,27 +112,25 @@ object CaseExample extends AllSyntax {
     )
 
   val patternMatchWildcardCaseExample: RawValue =
-    Dsl.patternMatch(
-      Dsl.wholeNumber(new java.math.BigInteger("42")),
-      wildcardPattern -> Dsl.wholeNumber(
-        new java.math.BigInteger("100")
-      )
+    patternMatch(
+      wholeNumber(42),
+      wildcardPattern -> wholeNumber(100)
     )
 
   val patternMatchAsCaseExample: RawValue =
-    Dsl.patternMatch(
-      Dsl.wholeNumber(new java.math.BigInteger("42")),
-      asPattern(wildcardPattern, Name.fromString("x")) -> Dsl.variable(Name.fromString("x"))
+    patternMatch(
+      wholeNumber(42),
+      asPattern(wildcardPattern, Name.fromString("x")) -> variable(Name.fromString("x"))
     )
 
   val patternMatchEmptyListCaseExample: RawValue =
-    Dsl.patternMatch(
+    patternMatch(
       list(),
       emptyListPattern -> string("empty list")
     )
 
   val patternHeadTailCaseExample: RawValue =
-    Dsl.patternMatch(
+    patternMatch(
       listCaseExample,
       headTailPattern(
         stringPattern("hello"),
@@ -139,29 +139,29 @@ object CaseExample extends AllSyntax {
     )
 
   val patternTupleOneCaseExample: RawValue =
-    Dsl.patternMatch(
+    patternMatch(
       tuple(string("singleton tuple")),
       tuplePattern(asPattern(wildcardPattern, Name("x"))) -> variable(Name("x"))
     )
 
   val patternTupleOneCaseCounterExample: RawValue =
-    Dsl.patternMatch(
+    patternMatch(
       string("singleton tuple"),
       tuplePattern(wildcardPattern) -> string("wrong"),
       wildcardPattern               -> string("right")
     )
 
   val patternTupleCaseExample: RawValue =
-    Dsl.patternMatch(
+    patternMatch(
       tupleCaseExample,
       tuplePattern(
         wildcardPattern,
         wildcardPattern
-      ) -> Dsl.wholeNumber(new java.math.BigInteger("107"))
+      ) -> wholeNumber(107)
     )
 
   lazy val patternConstructorCaseExample: RawValue =
-    Dsl.patternMatch(
+    patternMatch(
       checkingAccountConstructorExample,
       constructorPattern(
         checkingAccountTypeName,
@@ -170,7 +170,7 @@ object CaseExample extends AllSyntax {
     )
 
   val patternUnitCaseExample: RawValue =
-    Dsl.patternMatch(
+    patternMatch(
       unit,
       emptyListPattern -> string("wrong"),
       unitPattern      -> string("right")
@@ -220,17 +220,17 @@ object CaseExample extends AllSyntax {
       // )
     )
 
-  // (valueDefinitions: Map[Name, Self], inValue: Self)
+  // // (valueDefinitions: Map[Name, Self], inValue: Self)
 
-  // example : letrec (x, y) = if (cond) then (0, x) else (y, 0)
+  // // example : letrec (x, y) = if (cond) then (0, x) else (y, 0)
 
   /**
    * letRec x -> 3 y -> 4 x + y
    */
 
   val patternMatchAsCaseComplexExample: RawValue =
-    Dsl.patternMatch(
-      Dsl.wholeNumber(new java.math.BigInteger("7")),
+    patternMatch(
+      wholeNumber(7),
       asPattern(
         intPattern(8),
         Name.fromString("x")
@@ -253,10 +253,10 @@ object CaseExample extends AllSyntax {
       // )
     )
 
-  // { case _ => 42}()
+  // // { case _ => 42}()
 
   val applyWithWildCard: RawValue =
-    Dsl.apply(lambda(wildcardPattern, wholeNumber(new java.math.BigInteger("42"))), Dsl.unit)
+    apply(lambda(wildcardPattern, wholeNumber(42)), unit)
 
   val lambdaExample: RawValue = let(
     Name("foo"),
@@ -273,7 +273,7 @@ object CaseExample extends AllSyntax {
         // )
       )
     ),
-    Dsl.apply(variable("foo"), int(33))
+    apply(variable("foo"), int(33))
   )
 
   val personName: FQName =
@@ -290,8 +290,8 @@ object CaseExample extends AllSyntax {
     ir.Type.field(Name("age"), unitType)
   )
 
-  lazy val recordTypeAliasSpecification: morphir.ir.Type.Specification.TypeAliasSpecification[Any] =
-    morphir.ir.Type.Specification.TypeAliasSpecification[Any](
+  lazy val recordTypeAliasSpecification: morphir.ir.Type.Specification.TypeAliasSpecification[scala.Unit] =
+    morphir.ir.Type.Specification.TypeAliasSpecification[scala.Unit](
       typeParams = Chunk.empty,
       expr = recordType
     )

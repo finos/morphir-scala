@@ -3,9 +3,8 @@ package org.finos.morphir.ir.sdk
 import zio.Chunk
 import org.finos.morphir.ir.Module.ModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
-import org.finos.morphir.ir.Type._
-import org.finos.morphir.ir.Value.Value
-import org.finos.morphir.ir.Value.Value.{Apply, Reference}
+import org.finos.morphir.ir.Type.{reference => tRef, _}
+import org.finos.morphir.ir.Value.{apply, reference, Value}
 import org.finos.morphir.ir.sdk.Basics._
 import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.List.listType
@@ -103,22 +102,22 @@ object Dict {
   )
 
   def dictType(keyType: UType, valueType: UType): UType =
-    reference(toFQName(moduleName, "dict"), keyType, valueType)
+    tRef(toFQName(moduleName, "dict"), keyType, valueType)
 
   def dictType[A](attributes: A)(keyType: Type[A], valueType: Type[A]): Type[A] =
-    reference(attributes, toFQName(moduleName, "dict"), keyType, valueType)
+    tRef(attributes, toFQName(moduleName, "dict"), keyType, valueType)
 
   def fromListValue[TA, VA](attributes: VA)(list: Value[TA, VA]): Value[TA, VA] =
-    Apply(
+    apply(
       attributes,
-      Reference(attributes, FQName(Path("morphir", "s", "d", "k"), Path("dict"), Name("from", "list"))),
+      reference(attributes, FQName(Path("morphir", "s", "d", "k"), Path("dict"), Name("from", "list"))),
       list
     )
 
   def toListValue[TA, VA](attributes: VA)(list: Value[TA, VA]): Value[TA, VA] =
-    Apply(
+    apply(
       attributes,
-      Reference(attributes, FQName(Path("morphir", "s", "d", "k"), Path("dict"), Name("to", "list"))),
+      reference(attributes, FQName(Path("morphir", "s", "d", "k"), Path("dict"), Name("to", "list"))),
       list
     )
 }

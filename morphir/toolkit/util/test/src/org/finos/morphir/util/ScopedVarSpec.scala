@@ -3,7 +3,7 @@ package morphir
 package util
 
 import zio.test.*
-object ScopedVarSpec extends ZIOSpecDefault:
+object ScopedVarSpec extends ZIOSpecDefault {
   def spec = suite("ScopedVarSpec")(
     test("ScopedVars can be assigned to and retrieved within a scope") {
       val flag  = new ScopedVar[Boolean]
@@ -21,3 +21,4 @@ object ScopedVarSpec extends ZIOSpecDefault:
       assert(notInitialized.get)(Assertion.throwsA[ScopedVar.Unitialized])
     }
   )
+}

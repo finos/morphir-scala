@@ -1,12 +1,13 @@
 package org.finos.morphir.samples
 
 import zio.Chunk
+import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Module.{Definition, Specification}
 import org.finos.morphir.ir.Type.Definition.{CustomType, TypeAlias}
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type.{Constructors, UType, variable => typeVar}
-import org.finos.morphir.ir.Value.ValueDefinition
-import org.finos.morphir.ir.{AccessControlled, Documented, Literal => Lit, Name, Value, value}
+import org.finos.morphir.ir.Value.{Definition => ValueDefinition, USpecification => UValueSpec}
+import org.finos.morphir.ir.{AccessControlled, Documented, Name, Value}
 
 object ModuleExample {
   val items: Map[Name, Chunk[(Name, UType)]] = Map {
@@ -48,7 +49,7 @@ object ModuleExample {
     )
   }
 
-  val specValues: Map[Name, Documented[value.Specification[Any]]] = Map {
+  val specValues: Map[Name, Documented[UValueSpec]] = Map {
     Name("spec1") -> Documented(
       "types",
       Value.Specification(
@@ -61,6 +62,6 @@ object ModuleExample {
     )
   }
 
-  val moduleSpec: Specification[Any] = Specification(specTypes, specValues)
+  val moduleSpec: Specification[scala.Unit] = Specification(specTypes, specValues)
 
 }

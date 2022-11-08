@@ -1,11 +1,22 @@
-package org.finos.morphir.ir.value
+package org.finos.morphir
+package ir
+package internal
 
 import zio.Chunk
-import org.finos.morphir.Not
-import org.finos.morphir.ir.value.Pattern.DefaultAttributes
-import org.finos.morphir.ir.{FQName, Literal, Name}
+import Literal.Literal
+import PatternModule._
 
-trait PatternConstructors { self =>
+trait PatternModule { module =>
+  final type APattern = Pattern[Attributes]
+  final type UPattern = Pattern[scala.Unit]
+
+  final type Pattern[+A] = internal.Pattern[A]
+  final val Pattern: internal.Pattern.type = internal.Pattern
+  private final val DefaultAttributes      = ()
+  import Pattern._
+
+  def mapPatternAttributes[A] = new MapPatternAttributesPartiallyApplied[A]()
+
   final def asAlias[A](attributes: A, alias: String): Pattern[A] =
     Pattern.AsPattern(
       attributes = attributes,
@@ -22,49 +33,35 @@ trait PatternConstructors { self =>
 
   final def asAlias(alias: String): UPattern =
     Pattern.AsPattern(
-      attributes = DefaultAttributes,
+      attributes = (),
       pattern = wildcardPattern,
       name = Name.fromString(alias)
     )
 
   final def asAlias(alias: Name): UPattern =
     Pattern.AsPattern(
-      attributes = DefaultAttributes,
+      attributes = (),
       pattern = wildcardPattern,
       name = alias
     )
 
-  final def asPattern[A](attributes: A, pattern: Pattern[A], alias: Name): Pattern[A] =
-    Pattern.AsPattern(attributes = attributes, pattern = pattern, name = alias)
+  def asPattern[A](attributes: A, pattern: Pattern[A], name: Name)(implicit ev: NeedsAttributes[A]): Pattern[A] =
+    AsPattern(attributes, pattern, name)
 
   final def asPattern[A](attributes: A, pattern: Pattern[A], alias: String): Pattern[A] =
     Pattern.AsPattern(attributes = attributes, pattern = pattern, name = Name.fromString(alias))
 
-  final def asPattern(pattern: UPattern, alias: Name): UPattern =
-    Pattern.AsPattern(attributes = DefaultAttributes, pattern = pattern, name = alias)
+  def asPattern(pattern: UPattern, name: Name): UPattern =
+    AsPattern((), pattern, name)
 
   final def asPattern(pattern: UPattern, alias: String): UPattern =
-    Pattern.AsPattern(attributes = DefaultAttributes, pattern = pattern, name = Name.fromString(alias))
-
-  final def asPattern(alias: String): UPattern =
-    Pattern.AsPattern(
-      attributes = DefaultAttributes,
-      pattern = wildcardPattern,
-      name = Name.fromString(alias)
-    )
-
-  final def asPattern(alias: Name): UPattern =
-    Pattern.AsPattern(
-      attributes = DefaultAttributes,
-      pattern = wildcardPattern,
-      name = alias
-    )
+    Pattern.AsPattern(attributes = (), pattern = pattern, name = Name.fromString(alias))
 
   final def booleanPattern[A](attributes: A, value: Boolean): Pattern[A] =
     Pattern.LiteralPattern(attributes = attributes, literal = Literal.boolean(value))
 
   final def booleanPattern(value: Boolean): UPattern =
-    Pattern.LiteralPattern(attributes = DefaultAttributes, literal = Literal.boolean(value))
+    Pattern.LiteralPattern(attributes = (), literal = Literal.boolean(value))
 
   final def constructorPattern[A](
       attributes: A,
@@ -112,19 +109,18 @@ trait PatternConstructors { self =>
     Pattern.LiteralPattern(attributes = attributes, literal = Literal.decimal(value))
 
   final def decimalPattern(value: BigDecimal): UPattern =
-    Pattern.LiteralPattern(attributes = DefaultAttributes, literal = Literal.decimal(value))
+    Pattern.LiteralPattern(attributes = (), literal = Literal.decimal(value))
 
   final def emptyListPattern[A](attributes: A): Pattern[A] =
-    Pattern.EmptyListPattern(attributes)
+    EmptyListPattern(attributes)
 
-  final lazy val emptyListPattern: UPattern =
-    Pattern.EmptyListPattern(DefaultAttributes)
+  final def emptyListPattern: UPattern = EmptyListPattern(())
 
   final def falsePattern[A](attributes: A): Pattern[A] =
-    Pattern.LiteralPattern(attributes = attributes, literal = Literal.False)
+    Pattern.LiteralPattern(attributes = attributes, literal = Literal.boolean(false))
 
   final def falsePattern: UPattern =
-    Pattern.LiteralPattern(attributes = DefaultAttributes, literal = Literal.False)
+    Pattern.LiteralPattern(attributes = DefaultAttributes, literal = Literal.boolean(false))
 
   final def floatPattern[A](attributes: A, value: Float): Pattern[A] =
     Pattern.LiteralPattern(attributes = attributes, literal = Literal.float(value))
@@ -132,11 +128,11 @@ trait PatternConstructors { self =>
   final def floatPattern(value: Float): UPattern =
     Pattern.LiteralPattern(attributes = DefaultAttributes, literal = Literal.float(value))
 
-  final def headTailPattern[A](attributes: A, head: Pattern[A], tail: Pattern[A]): Pattern[A] =
-    Pattern.HeadTailPattern(attributes = attributes, headPattern = head, tailPattern = tail)
+  final def headTailPattern[A](attributes: A, headPattern: Pattern[A], tailPattern: Pattern[A]): Pattern[A] =
+    HeadTailPattern(attributes, headPattern, tailPattern)
 
-  final def headTailPattern(head: UPattern, tail: UPattern): UPattern =
-    Pattern.HeadTailPattern(attributes = DefaultAttributes, headPattern = head, tailPattern = tail)
+  def headTailPattern(headPattern: UPattern, tailPattern: UPattern): UPattern =
+    HeadTailPattern((), headPattern, tailPattern)
 
   final def intPattern[A](attributes: A, value: Int): Pattern[A] =
     Pattern.LiteralPattern(attributes = attributes, literal = Literal.int(value))
@@ -144,24 +140,27 @@ trait PatternConstructors { self =>
   final def intPattern(value: Int): UPattern =
     Pattern.LiteralPattern(attributes = DefaultAttributes, literal = Literal.int(value))
 
-  final def literalPattern[A, T](attributes: A, value: Literal[T]): Pattern[A] =
+  final def literalPattern[A](attributes: A, value: Literal): Pattern[A] =
     Pattern.LiteralPattern(attributes = attributes, literal = value)
 
-  final def literalPattern[T](value: Literal[T]): UPattern =
-    Pattern.LiteralPattern(attributes = DefaultAttributes, literal = value)
+  final def literalPattern(value: Literal): UPattern =
+    Pattern.LiteralPattern(attributes = (), literal = value)
 
   final def stringPattern[A](attributes: A, value: String): Pattern[A] =
-    Pattern.LiteralPattern(attributes = attributes, literal = Literal.string(value))
+    Pattern.LiteralPattern(attributes = attributes, literal = Literal.StringLiteral(value))
 
   final def stringPattern(value: String): UPattern =
-    Pattern.LiteralPattern(attributes = DefaultAttributes, literal = Literal.string(value))
+    Pattern.LiteralPattern(attributes = (), literal = Literal.StringLiteral(value))
 
   final def truePattern[A](attributes: A): Pattern[A] =
-    Pattern.LiteralPattern(attributes = attributes, literal = Literal.True)
+    Pattern.LiteralPattern(attributes = attributes, literal = Literal.boolean(true))
 
   final def truePattern: UPattern =
-    Pattern.LiteralPattern(attributes = DefaultAttributes, literal = Literal.True)
+    Pattern.LiteralPattern(attributes = DefaultAttributes, literal = Literal.boolean(true))
 
+  /**
+   * Destructure a tuple using a pattern for every element
+   */
   final def tuplePattern[A](attributes: A, patterns: Chunk[Pattern[A]]): Pattern[A] =
     Pattern.TuplePattern(attributes = attributes, elementPatterns = patterns)
 
@@ -169,16 +168,24 @@ trait PatternConstructors { self =>
     Pattern.TuplePattern(attributes = attributes, elementPatterns = Chunk.fromIterable(patterns))
 
   final def tuplePattern(patterns: Chunk[UPattern]): UPattern =
-    Pattern.TuplePattern(attributes = DefaultAttributes, elementPatterns = patterns)
+    Pattern.TuplePattern(attributes = (), elementPatterns = patterns)
 
   final def tuplePattern(patterns: UPattern*): UPattern =
-    Pattern.TuplePattern(attributes = DefaultAttributes, elementPatterns = Chunk.fromIterable(patterns))
+    Pattern.TuplePattern(attributes = (), elementPatterns = Chunk.fromIterable(patterns))
 
-  final def unitPattern: UPattern                     = Pattern.UnitPattern(DefaultAttributes)
+  final def unitPattern: UPattern                     = Pattern.UnitPattern(())
   final def unitPattern[A](attributes: A): Pattern[A] = Pattern.UnitPattern(attributes)
 
-  final def wildcardPattern[A](attributes: A): Pattern[A] = Pattern.WildcardPattern(attributes)
+  def wildcardPattern[A](attributes: A)(implicit ev: NeedsAttributes[A]): Pattern[A] = WildcardPattern(attributes)
+  lazy val wildcardPattern: UPattern                                                 = WildcardPattern(())
 
-  final lazy val wildcardPattern: UPattern = Pattern.WildcardPattern(Pattern.DefaultAttributes)
+  final def toString[A](pattern: Pattern[A]): String = pattern.toString()
 
+}
+
+object PatternModule {
+  class MapPatternAttributesPartiallyApplied[A](private val dummy: Boolean = false) extends AnyVal {
+    def apply[B](f: A => B, pattern: Pattern[A]): Pattern[B] =
+      pattern.mapAttributes(f)
+  }
 }

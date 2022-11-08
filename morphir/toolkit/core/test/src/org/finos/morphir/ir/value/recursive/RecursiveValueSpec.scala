@@ -6,13 +6,14 @@ package recursive
 import zio.Chunk
 import org.finos.morphir.ir.sdk.Basics.{boolType, floatType, intType}
 import org.finos.morphir.ir.sdk.String.stringType
-import org.finos.morphir.ir.{FQName, Gens, Literal => Lit, Name, Type}
+import org.finos.morphir.ir.{FQName, Gens, Name, Type}
+import org.finos.morphir.ir.Literal.Lit
+import org.finos.morphir.ir.Value.Value.{Unit => UnitValue, List => ListValue, _}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
 object RecursiveValueSpec extends MorphirBaseSpec {
   import Value._
-  import ValueCase._
   def spec = suite("Value Spec")(
     suite("Apply")(
       suite("Attributed")(
@@ -23,7 +24,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
 
           assertTrue(
             actual == Apply(attribute, intToString, int(42)),
-            actual == Value(ApplyCase(attribute, intToString, int(42))),
+            actual == Apply(attribute, intToString, int(42)),
             actual.attributes == attribute,
             actual.toString == "Morphir.SDK.Int.intToString 42",
             actual.isData == false
@@ -49,7 +50,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
 
           assertTrue(
             actual == Apply.Raw(intToString, int(100)),
-            actual == Value(ApplyCase((), intToString, int(100))),
+            actual == Apply((), intToString, int(100)),
             actual.toString == "Morphir.SDK.Int.intToString 100",
             actual.isData == false
           )
@@ -405,7 +406,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
         test("It should be possible to create an empty list with only attributes") {
           val actual = list(intType)
           assertTrue(
-            actual == List(intType),
+            actual == ListValue(intType),
             actual.attributes == intType,
             actual.toString == "[]",
             actual.isData == true
@@ -415,10 +416,10 @@ object RecursiveValueSpec extends MorphirBaseSpec {
           val element = decimal(BigDecimal(3.99))
           val actual  = list(floatType, element)
           assertTrue(
-            actual == List(floatType, element),
-            actual == List(floatType, Chunk(element)),
+            actual == ListValue(floatType, element),
+            actual == ListValue(floatType, Chunk(element)),
             actual.attributes == floatType,
-            actual.toString == "[3.99]",
+            actual.toString == "[\"3.99M\"]",
             actual.isData == true
           )
         },
@@ -429,10 +430,10 @@ object RecursiveValueSpec extends MorphirBaseSpec {
           val element4 = decimal(BigDecimal(6.99))
           val actual   = list(floatType, element1, element2, element3, element4)
           assertTrue(
-            actual == List(floatType, element1, element2, element3, element4),
-            actual == List(floatType, Chunk(element1, element2, element3, element4)),
+            actual == ListValue(floatType, element1, element2, element3, element4),
+            actual == ListValue(floatType, Chunk(element1, element2, element3, element4)),
             actual.attributes == floatType,
-            actual.toString == "[3.99, 4.99, 5.99, 6.99]",
+            actual.toString == """["3.99M", "4.99M", "5.99M", "6.99M"]""",
             actual.isData == true
           )
         }
@@ -441,35 +442,35 @@ object RecursiveValueSpec extends MorphirBaseSpec {
         test("It should be possible to create an empty list") {
           val actual = list()
           assertTrue(
-            actual == List.Raw(),
-            actual == List((), Chunk.empty),
+            actual == ListValue.Raw(),
+            actual == ListValue((), Chunk.empty),
             actual.attributes == (),
             actual.toString == "[]",
             actual.isData == true
           )
         },
         test("It should be possible to create a list with a single element") {
-          val element = decimal(BigDecimal(3.99))
+          val element = string("3.99")
           val actual  = list(element)
           assertTrue(
-            actual == List.Raw(element),
-            actual == List((), Chunk(element)),
+            actual == ListValue.Raw(element),
+            actual == ListValue((), Chunk(element)),
             actual.attributes == (),
-            actual.toString == "[3.99]",
+            actual.toString == "[\"3.99\"]",
             actual.isData == true
           )
         },
         test("It should be possible to create a list with multiple elements") {
-          val element1 = decimal(BigDecimal(3.99))
-          val element2 = decimal(BigDecimal(4.99))
-          val element3 = decimal(BigDecimal(5.99))
-          val element4 = decimal(BigDecimal(6.99))
+          val element1 = float(3.99)
+          val element2 = float(4.99)
+          val element3 = float(5.99)
+          val element4 = float(6.99)
           val actual   = list(element1, element2, element3, element4)
           assertTrue(
-            actual == List.Raw(element1, element2, element3, element4),
-            actual == List((), Chunk(element1, element2, element3, element4)),
+            actual == ListValue.Raw(element1, element2, element3, element4),
+            actual == ListValue((), Chunk(element1, element2, element3, element4)),
             actual.attributes == (),
-            actual.toString == "[3.99, 4.99, 5.99, 6.99]",
+            actual.toString == """[3.99, 4.99, 5.99, 6.99]""",
             actual.isData == true
           )
         }
@@ -527,10 +528,10 @@ object RecursiveValueSpec extends MorphirBaseSpec {
       ),
       suite("Unattributed")(
         test("It should be possible to construct given a value and a Chunk of cases") {
-          val toggle    = variable(boolType, "toggle")
-          val trueCase  = truePattern(boolType)  -> string("On")
-          val falseCase = falsePattern(boolType) -> string("Off")
-          val actual    = patternMatch(toggle, Chunk(trueCase, falseCase))
+          val toggle    = variable("toggle")
+          val trueCase  = truePattern  -> string("On")
+          val falseCase = falsePattern -> string("Off")
+          val actual    = patternMatch(toggle, trueCase, falseCase)
           assertTrue(
             actual == PatternMatch.Raw(toggle, Chunk(trueCase, falseCase)),
             actual == PatternMatch.Raw(toggle, trueCase, falseCase),
@@ -567,7 +568,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
           val lastNameField  = "lastName"  -> string("Doe")
           val ageField       = "age"       -> int(21)
           val fields = Chunk(firstNameField, lastNameField, ageField).map { case (n, v) => Name.fromString(n) -> v }
-          val actual = record(firstNameField, lastNameField, ageField)
+          val actual = recordRaw(firstNameField, lastNameField, ageField)
           assertTrue(
             actual == Record.Raw(firstNameField, lastNameField, ageField),
             actual == Record.Raw(fields),
@@ -716,7 +717,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
           val actual = unit(Type.unit)
           assertTrue(
             actual.attributes == Type.unit,
-            actual == Unit(Type.unit),
+            actual == UnitValue(Type.unit),
             actual.toString() == "()",
             actual.isData == true
           )
@@ -724,10 +725,10 @@ object RecursiveValueSpec extends MorphirBaseSpec {
       ),
       suite("Unattributed")(
         test("It should support construction given no attributes") {
-          val actual = Value.unit
+          val actual = ir.Value.unit
           assertTrue(
             actual.attributes == (),
-            actual == Unit.Raw(),
+            actual == UnitValue.Raw(),
             actual.toString() == "()",
             actual.isData == true
           )
@@ -748,7 +749,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
             actual == UpdateRecord(
               attributes,
               account,
-              Chunk(Name.fromString("balance") -> float(floatType, 42000.00f))
+              "balance" -> float(floatType, 42000.00f)
             ),
             actual.attributes == attributes,
             actual.toString() == "{ account | balance = 42000.0 }",
@@ -759,11 +760,11 @@ object RecursiveValueSpec extends MorphirBaseSpec {
       suite("Unattributed")(
         test("It should support construction given no attributes") {
           val account = variable("account")
-          val actual  = update(account, "balance" -> float(floatType, 42000.00f))
+          val actual  = update(account, "balance" -> float(42000.00f))
           assertTrue(
             actual == UpdateRecord.Raw(
               account,
-              Chunk(Name.fromString("balance") -> float(floatType, 42000.00f))
+              "balance" -> float(42000.00f)
             ),
             actual.attributes == (),
             actual.toString() == "{ account | balance = 42000.0 }",
@@ -778,7 +779,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
           val nameStr = "Alpha"
           val actual  = variable(stringType, nameStr)
           assertTrue(
-            actual == Value(VariableCase(stringType, Name.fromString(nameStr))),
+            actual == Variable(stringType, Name.fromString(nameStr)),
             actual.attributes == stringType,
             actual.toString == "alpha",
             actual == Variable(stringType, nameStr),
@@ -795,7 +796,6 @@ object RecursiveValueSpec extends MorphirBaseSpec {
           assertTrue(
             actual.attributes == stringType,
             actual.toString == "beta",
-            actual == Value(VariableCase(stringType, name)),
             actual == Variable(stringType, name),
             actual.isData == false
           )
@@ -806,7 +806,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
           val nameStr = "Gamma"
           val actual  = variable(nameStr)
           assertTrue(
-            actual == Value(VariableCase((), Name.fromString(nameStr))),
+            actual == Variable((), Name.fromString(nameStr)),
             actual.attributes == (),
             actual.toString == "gamma",
             actual == Variable.Raw(nameStr),
@@ -817,7 +817,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
           val name   = Name.fromString("Epsilon")
           val actual = variable(name)
           assertTrue(
-            actual == Value(VariableCase((), name)),
+            actual == Variable((), name),
             actual.attributes == (),
             actual.toString == "epsilon",
             actual == Variable.Raw(name),
@@ -828,7 +828,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
         test("foldLeft should work as expected on a variable value") {
           val actual = Variable.Raw(Name.fromString("foo"))
           assertTrue(
-            actual.foldLeft(Chunk.empty[RawValue])((acc, v) => v +: acc) == Chunk(actual)
+            actual.foldLeft(Chunk.empty[RawValue]) { case (acc, v) => v +: acc } == Chunk(actual)
           )
         }
       )

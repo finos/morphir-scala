@@ -1,5 +1,5 @@
 package org.finos.morphir.syntax
 
-trait AllSyntax extends ValueSyntax with NamingSyntax
+trait AllSyntax extends NamingSyntax
 
 object all extends AllSyntax
