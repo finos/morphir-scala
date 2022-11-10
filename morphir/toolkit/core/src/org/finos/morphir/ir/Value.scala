@@ -6,6 +6,7 @@ import zio.Chunk
 import org.finos.morphir.ir.internal.PatternModule
 import org.finos.morphir.ir.sdk.List.listType
 import internal.{ValueDefinition, ValueSpecification}
+import org.finos.morphir.ir.conversion._
 
 /**
  * In functional programming data and logic are treated the same way and we refer to both as values. This module
@@ -155,6 +156,8 @@ object Value extends internal.PatternModule {
 
   final def int[A](attributes: A, value: Int): Value[Nothing, A] = LiteralValue(attributes, Lit.int(value))
   final def int(value: Int): RawValue                            = LiteralValue.Raw(Lit.int(value))
+  final def intTyped(value: Int): TypedValue =
+    LiteralValue.Typed(value.morphirType, Lit.int(value))
 
   final def lambda[TA, VA](attributes: VA, argumentPattern: Pattern[VA], body: Value[TA, VA]): Value[TA, VA] =
     Lambda(attributes, argumentPattern, body)
@@ -441,6 +444,7 @@ object Value extends internal.PatternModule {
 
   def unit[VA](attributes: VA)(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA] = Unit(attributes)
   final val unit: RawValue                                                           = Unit(())
+  lazy val unitTyped: TypedValue                                                     = Unit.Typed(().morphirType)
 
   def update[TA, VA](attributes: VA, valueToUpdate: Value[TA, VA], fieldsToUpdate: Map[Name, Value[TA, VA]])(implicit
       ev: NeedsAttributes[VA]
