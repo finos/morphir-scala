@@ -162,7 +162,13 @@ object morphir extends Module {
       }
     }
     class CoreModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-      def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`, io.lemonlabs.`scala-uri`)
+      def ivyDeps = Agg(
+        com.lihaoyi.sourcecode,
+        dev.zio.zio,
+        dev.zio.`zio-prelude`,
+        io.lemonlabs.`scala-uri`,
+        Deps.com.lihaoyi.pprint
+      )
       def moduleDeps = Seq(morphir.contrib.flowz(crossScalaVersion), morphir.lib.interop(crossScalaVersion))
       object test extends Tests with MorphirTestModule {
         def moduleDeps =
