@@ -77,7 +77,7 @@ object Versions {
       case _            => "4.5.11"
     }
 
-  val coursier      = "2.1.0-M7"
+  val coursier      = "2.1.0-RC1"
   val munit         = "1.0.0-M4"
   val mainargs      = "0.3.0"
   val `os-lib`      = "0.8.1"
