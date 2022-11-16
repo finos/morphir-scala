@@ -43,7 +43,7 @@ object Deps {
       val coursier = ivy"io.get-coursier::coursier::${Versions.coursier}"
     }
     case object lemonlabs {
-      val `scala-uri` = ivy"io.lemonlabs::scala-uri:4.0.2"
+      val `scala-uri` = ivy"io.lemonlabs::scala-uri:4.0.3"
     }
   }
   case object org {
