@@ -5465,7 +5465,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@types/babel__core", null],\
             ["@types/webpack", null],\
             ["find-cache-dir", "npm:3.3.2"],\
-            ["loader-utils", "npm:2.0.3"],\
+            ["loader-utils", "npm:2.0.4"],\
             ["make-dir", "npm:3.1.0"],\
             ["schema-utils", "npm:2.7.1"],\
             ["webpack", "virtual:1cf37528d1641d5a18a48a2f7037d57ac88eee4863e639137f120b01be098eae77370af6e9b152fda6d31feee5befcfdac58d5378e3c0fa457680015ef3694a2#npm:5.74.0"]\
@@ -7660,7 +7660,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageDependencies": [\
             ["file-loader", "virtual:1cf37528d1641d5a18a48a2f7037d57ac88eee4863e639137f120b01be098eae77370af6e9b152fda6d31feee5befcfdac58d5378e3c0fa457680015ef3694a2#npm:6.2.0"],\
             ["@types/webpack", null],\
-            ["loader-utils", "npm:2.0.3"],\
+            ["loader-utils", "npm:2.0.4"],\
             ["schema-utils", "npm:3.1.1"],\
             ["webpack", "virtual:1cf37528d1641d5a18a48a2f7037d57ac88eee4863e639137f120b01be098eae77370af6e9b152fda6d31feee5befcfdac58d5378e3c0fa457680015ef3694a2#npm:5.74.0"]\
           ],\
@@ -9389,10 +9389,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]\
       ]],\
       ["loader-utils", [\
-        ["npm:2.0.3", {\
-          "packageLocation": "../.yarn/cache/loader-utils-npm-2.0.3-4d761d6a51-d055c61ce5.zip/node_modules/loader-utils/",\
+        ["npm:2.0.4", {\
+          "packageLocation": "../.yarn/cache/loader-utils-npm-2.0.4-ba3800585b-a5281f5fff.zip/node_modules/loader-utils/",\
           "packageDependencies": [\
-            ["loader-utils", "npm:2.0.3"],\
+            ["loader-utils", "npm:2.0.4"],\
             ["big.js", "npm:5.2.2"],\
             ["emojis-list", "npm:3.0.0"],\
             ["json5", "npm:2.2.1"]\
@@ -14005,7 +14005,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@types/file-loader", null],\
             ["@types/webpack", null],\
             ["file-loader", "virtual:1cf37528d1641d5a18a48a2f7037d57ac88eee4863e639137f120b01be098eae77370af6e9b152fda6d31feee5befcfdac58d5378e3c0fa457680015ef3694a2#npm:6.2.0"],\
-            ["loader-utils", "npm:2.0.3"],\
+            ["loader-utils", "npm:2.0.4"],\
             ["mime-types", "npm:2.1.35"],\
             ["schema-utils", "npm:3.1.1"],\
             ["webpack", "virtual:1cf37528d1641d5a18a48a2f7037d57ac88eee4863e639137f120b01be098eae77370af6e9b152fda6d31feee5befcfdac58d5378e3c0fa457680015ef3694a2#npm:5.74.0"]\
