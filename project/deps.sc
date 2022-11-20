@@ -81,7 +81,7 @@ object Versions {
   val munit         = "1.0.0-M4"
   val mainargs      = "0.3.0"
   val `os-lib`      = "0.8.1"
-  val zio           = "2.0.3"
+  val zio           = "2.0.4"
   val `zio-cli`     = "0.2.9-M01"
   val `zio-json`    = "0.3.0"
   val `zio-prelude` = "1.0.0-RC16"
