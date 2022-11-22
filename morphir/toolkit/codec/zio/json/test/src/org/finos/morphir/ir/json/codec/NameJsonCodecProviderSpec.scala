@@ -3,18 +3,17 @@ package ir
 package json
 package codec
 
-import org.finos.morphir.testing.MorphirBaseSpec
-
-import zio.test._
-import zio.test.magnolia.DeriveGen
-import org.finos.morphir.ir.generator.NameDeriveGen
 import java.io.File
+import org.finos.morphir.ir.generator.MorphirIRDeriveGen
+import zio.test._
 import zio.json.golden.GoldenConfiguration
+import zio.test.magnolia.DeriveGen
 
-object NameJsonCodecProviderSpec extends MorphirJsonBaseSpec with NameDeriveGen with NameJsonCodecProvider {
+object NameJsonCodecProviderSpec extends MorphirJsonBaseSpec with MorphirIRDeriveGen with MorphirJsonSupport {
   implicit lazy val givenGoldenConfiguration: GoldenConfiguration =
-    GoldenConfiguration.default.copy(relativePath =
-      implicitly[sourcecode.FullName].value.split('.').dropRight(1).mkString(File.separator)
+    GoldenConfiguration.default.copy(
+      relativePath = implicitly[sourcecode.FullName].value.split('.').dropRight(1).mkString(File.separator),
+      sampleSize = 20
     )
   def spec = suite("NameJsonCodecProviderSpec")(
     goldenTest(DeriveGen[Name])

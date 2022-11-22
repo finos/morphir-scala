@@ -20,8 +20,7 @@ import org.finos.morphir.ir.PackageModule.{
 }
 import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, _}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Pattern, Specification => ValueSpecification, Value}
-import org.finos.morphir.ir.json.MorphirJsonEncodingSupport._
-import org.finos.morphir.ir.json.MorphirJsonDecodingSupport._
+import org.finos.morphir.ir.json.MorphirJsonSupport._
 import zio.test.{ZIOSpecDefault, _}
 
 object MorphirJsonEncodingSpec extends ZIOSpecDefault {

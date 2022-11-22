@@ -1,0 +1,144 @@
+{
+  "samples" : [
+    {
+      "doc" : "February",
+      "value" : [
+        "StringLiteral",
+        "mu"
+      ]
+    },
+    {
+      "doc" : "alpha",
+      "value" : [
+        "DecimalLiteral",
+        "-4787308055216964339"
+      ]
+    },
+    {
+      "doc" : "September",
+      "value" : [
+        "BoolLiteral",
+        false
+      ]
+    },
+    {
+      "doc" : "state",
+      "value" : [
+        "StringLiteral",
+        "kappa"
+      ]
+    },
+    {
+      "doc" : "time",
+      "value" : [
+        "WholeNumberLiteral",
+        3113236965224242345
+      ]
+    },
+    {
+      "doc" : "world",
+      "value" : [
+        "CharLiteral",
+        ";"
+      ]
+    },
+    {
+      "doc" : "theta",
+      "value" : [
+        "StringLiteral",
+        "March"
+      ]
+    },
+    {
+      "doc" : "April",
+      "value" : [
+        "WholeNumberLiteral",
+        -896623589317825413
+      ]
+    },
+    {
+      "doc" : "lambda",
+      "value" : [
+        "DecimalLiteral",
+        "-3655845090341788072"
+      ]
+    },
+    {
+      "doc" : "zeta",
+      "value" : [
+        "WholeNumberLiteral",
+        -5658399885858689188
+      ]
+    },
+    {
+      "doc" : "April",
+      "value" : [
+        "WholeNumberLiteral",
+        8405809223299084324
+      ]
+    },
+    {
+      "doc" : "alpha",
+      "value" : [
+        "CharLiteral",
+        "Y"
+      ]
+    },
+    {
+      "doc" : "November",
+      "value" : [
+        "WholeNumberLiteral",
+        -9029740400834038024
+      ]
+    },
+    {
+      "doc" : "June",
+      "value" : [
+        "WholeNumberLiteral",
+        -796337404703127930
+      ]
+    },
+    {
+      "doc" : "omega",
+      "value" : [
+        "DecimalLiteral",
+        "-6552048310805886940"
+      ]
+    },
+    {
+      "doc" : "January",
+      "value" : [
+        "DecimalLiteral",
+        "-4018230439525105555"
+      ]
+    },
+    {
+      "doc" : "gamma",
+      "value" : [
+        "BoolLiteral",
+        true
+      ]
+    },
+    {
+      "doc" : "alpha",
+      "value" : [
+        "FloatLiteral",
+        0.06853530981264189
+      ]
+    },
+    {
+      "doc" : "lot",
+      "value" : [
+        "BoolLiteral",
+        false
+      ]
+    },
+    {
+      "doc" : "pi",
+      "value" : [
+        "StringLiteral",
+        "group"
+      ]
+    }
+  ]
+}
