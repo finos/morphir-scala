@@ -1,0 +1,220 @@
+{
+  "samples" : [
+    {
+      "name" : [
+        "omicron",
+        "mu",
+        "alpha",
+        "september"
+      ],
+      "tpe" : [
+        "DecimalLiteral",
+        "-1710145478941878882"
+      ]
+    },
+    {
+      "name" : [
+        "benchmark",
+        "june"
+      ],
+      "tpe" : [
+        "BoolLiteral",
+        false
+      ]
+    },
+    {
+      "name" : [
+        "valid",
+        "mu",
+        "work"
+      ],
+      "tpe" : [
+        "WholeNumberLiteral",
+        4873802281714851347
+      ]
+    },
+    {
+      "name" : [
+        "government"
+      ],
+      "tpe" : [
+        "FloatLiteral",
+        0.18461099656619107
+      ]
+    },
+    {
+      "name" : [
+        "december",
+        "lambda",
+        "august"
+      ],
+      "tpe" : [
+        "DecimalLiteral",
+        "-2580764320601275524"
+      ]
+    },
+    {
+      "name" : [
+        "september",
+        "october",
+        "psi"
+      ],
+      "tpe" : [
+        "DecimalLiteral",
+        "-8771583905340475668"
+      ]
+    },
+    {
+      "name" : [
+        "june",
+        "company",
+        "minute"
+      ],
+      "tpe" : [
+        "CharLiteral",
+        "f"
+      ]
+    },
+    {
+      "name" : [
+        "omicron",
+        "nu"
+      ],
+      "tpe" : [
+        "BoolLiteral",
+        false
+      ]
+    },
+    {
+      "name" : [
+        "february",
+        "psi"
+      ],
+      "tpe" : [
+        "WholeNumberLiteral",
+        26712164866275572
+      ]
+    },
+    {
+      "name" : [
+        "rho",
+        "gamma",
+        "work",
+        "phi"
+      ],
+      "tpe" : [
+        "WholeNumberLiteral",
+        -3958404602379645853
+      ]
+    },
+    {
+      "name" : [
+        "november",
+        "pi",
+        "id"
+      ],
+      "tpe" : [
+        "StringLiteral",
+        "August"
+      ]
+    },
+    {
+      "name" : [
+        "delta"
+      ],
+      "tpe" : [
+        "WholeNumberLiteral",
+        1841225506105057176
+      ]
+    },
+    {
+      "name" : [
+        "june",
+        "left"
+      ],
+      "tpe" : [
+        "BoolLiteral",
+        true
+      ]
+    },
+    {
+      "name" : [
+        "zeta",
+        "chi",
+        "epsilon"
+      ],
+      "tpe" : [
+        "FloatLiteral",
+        0.7129428643529099
+      ]
+    },
+    {
+      "name" : [
+        "state",
+        "april",
+        "system",
+        "may",
+        "may"
+      ],
+      "tpe" : [
+        "BoolLiteral",
+        false
+      ]
+    },
+    {
+      "name" : [
+        "rate"
+      ],
+      "tpe" : [
+        "WholeNumberLiteral",
+        -6653635909546093417
+      ]
+    },
+    {
+      "name" : [
+        "market",
+        "iota",
+        "delta",
+        "march",
+        "market"
+      ],
+      "tpe" : [
+        "BoolLiteral",
+        false
+      ]
+    },
+    {
+      "name" : [
+        "market",
+        "april",
+        "upsilon"
+      ],
+      "tpe" : [
+        "BoolLiteral",
+        false
+      ]
+    },
+    {
+      "name" : [
+        "december"
+      ],
+      "tpe" : [
+        "DecimalLiteral",
+        "-1710024392037156854"
+      ]
+    },
+    {
+      "name" : [
+        "december",
+        "id",
+        "october",
+        "april",
+        "january"
+      ],
+      "tpe" : [
+        "BoolLiteral",
+        false
+      ]
+    }
+  ]
+}

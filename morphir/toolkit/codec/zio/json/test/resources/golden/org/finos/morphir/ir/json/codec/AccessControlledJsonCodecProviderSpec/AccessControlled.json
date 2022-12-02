@@ -1,0 +1,144 @@
+{
+  "samples" : [
+    {
+      "access" : "Public",
+      "value" : [
+        "CharLiteral",
+        "m"
+      ]
+    },
+    {
+      "access" : "Private",
+      "value" : [
+        "CharLiteral",
+        "A"
+      ]
+    },
+    {
+      "access" : "Public",
+      "value" : [
+        "FloatLiteral",
+        0.012017429455819406
+      ]
+    },
+    {
+      "access" : "Public",
+      "value" : [
+        "BoolLiteral",
+        false
+      ]
+    },
+    {
+      "access" : "Private",
+      "value" : [
+        "BoolLiteral",
+        true
+      ]
+    },
+    {
+      "access" : "Private",
+      "value" : [
+        "BoolLiteral",
+        false
+      ]
+    },
+    {
+      "access" : "Public",
+      "value" : [
+        "WholeNumberLiteral",
+        8605914234768709017
+      ]
+    },
+    {
+      "access" : "Private",
+      "value" : [
+        "BoolLiteral",
+        true
+      ]
+    },
+    {
+      "access" : "Public",
+      "value" : [
+        "BoolLiteral",
+        false
+      ]
+    },
+    {
+      "access" : "Private",
+      "value" : [
+        "DecimalLiteral",
+        "-8021201449330502156"
+      ]
+    },
+    {
+      "access" : "Public",
+      "value" : [
+        "CharLiteral",
+        ";"
+      ]
+    },
+    {
+      "access" : "Private",
+      "value" : [
+        "CharLiteral",
+        "5"
+      ]
+    },
+    {
+      "access" : "Private",
+      "value" : [
+        "WholeNumberLiteral",
+        3468455811152010948
+      ]
+    },
+    {
+      "access" : "Private",
+      "value" : [
+        "WholeNumberLiteral",
+        -3647881857580288726
+      ]
+    },
+    {
+      "access" : "Public",
+      "value" : [
+        "StringLiteral",
+        "lambda"
+      ]
+    },
+    {
+      "access" : "Private",
+      "value" : [
+        "StringLiteral",
+        "eta"
+      ]
+    },
+    {
+      "access" : "Public",
+      "value" : [
+        "StringLiteral",
+        "February"
+      ]
+    },
+    {
+      "access" : "Public",
+      "value" : [
+        "DecimalLiteral",
+        "-6579633828079961152"
+      ]
+    },
+    {
+      "access" : "Private",
+      "value" : [
+        "FloatLiteral",
+        0.9509189843135866
+      ]
+    },
+    {
+      "access" : "Public",
+      "value" : [
+        "CharLiteral",
+        "Z"
+      ]
+    }
+  ]
+}

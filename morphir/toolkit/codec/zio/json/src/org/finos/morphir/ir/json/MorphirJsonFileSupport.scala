@@ -7,7 +7,7 @@ import zio.json.ast.Json
 import org.finos.morphir.ir.distribution.Distribution
 import scala.annotation.nowarn
 
-trait MorphirJsonFileSupport {
+trait MorphirJsonFileSupport extends JsonEncodingHelpers {
   implicit val morphirIRVersionDecoder: JsonDecoder[MorphirIRVersion] = JsonDecoder.int.map {
     case 1 => MorphirIRVersion.V1_0
     case 2 => MorphirIRVersion.V2_0
@@ -34,10 +34,8 @@ trait MorphirJsonFileSupport {
           version <- JsonDecoder[MorphirIRVersion].fromJsonAST(formatVersion)
           dist    <- DecodeDistributionWithVersion(version, distribution)
         } yield MorphirIRFile(version, dist)
-      case other =>
-        Left(
-          s"Cannot decode: $other"
-        )
+
+      case other => Left(s"Cannot decode: $other")
     }
 
   implicit val morphirIRVersionEncoder: JsonEncoder[MorphirIRVersion] =
@@ -54,14 +52,11 @@ trait MorphirJsonFileSupport {
   private def EncodeDistributionWithVersion(version: MorphirIRVersion, distribution: Distribution) = version match {
     case MorphirIRVersion.V1_0 =>
       import org.finos.morphir.ir.json.MorphirJsonEncodingSupportV1._
-      toJsonAstOrThrow(distribution)
+      super.toJsonAstOrThrow(distribution)
     case MorphirIRVersion.V2_0 =>
       import org.finos.morphir.ir.json.MorphirJsonEncodingSupport._
-      toJsonAstOrThrow(distribution)
+      super.toJsonAstOrThrow(distribution)
   }
-
-  private def toJsonAstOrThrow[A](a: A)(implicit encoder: JsonEncoder[A]): Json =
-    a.toJsonAST.toOption.get
 }
 
 object MorphirJsonFileSupport extends MorphirJsonFileSupport
