@@ -37,4 +37,12 @@ package object ir {
     //     Value.Value.LetDefinition.Unbound(Name.fromString(self), Value.Definition.fromLiteral(Literal.int(value)))
 
   }
+
+  final implicit class StringContextOps(private val self: StringContext) extends AnyVal {
+    def n(args: Any*): Name =
+      self.parts.toList match {
+        case List(name) => Name.fromString(name)
+        case _          => throw new IllegalArgumentException("Name must be a single string")
+      }
+  }
 }
