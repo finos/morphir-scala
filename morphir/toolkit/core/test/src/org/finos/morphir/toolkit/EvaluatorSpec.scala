@@ -85,7 +85,7 @@ trait EvaluationWithTypedValueVisitorSpecs { self: MorphirBaseSpec =>
 
   def eval(
       value: TypedValue
-  )(implicit ctx: Evaluator.TypedEvaluationContext = new Evaluator.TypedEvaluationContext {}) = {
+  )(implicit ctx: Evaluator.TypedEvaluationContext = EvaluationContext.root) = {
     val visitor = new TypedValueVisitor.Default
     visitor.evaluate(value).provide(ZLayer.succeed(ctx))
   }

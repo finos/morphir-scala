@@ -26,6 +26,6 @@ object Evaluator {
   }
 }
 
-trait EvaluationContext[+TA, +VA] {}
 
-object EvaluationContext {}
+
+
