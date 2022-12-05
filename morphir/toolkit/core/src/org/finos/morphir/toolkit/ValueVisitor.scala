@@ -11,7 +11,12 @@ trait ValueVisitor[Context, TA, VA] extends Folder[Context, TA, VA, ZIO[Context,
     ZIO.environment[Context].flatMap { context =>
       value.foldContext(context.get)(self)
     }
+
 }
 
-object ValueVisitor {  
+object ValueVisitor {
+  implicit class ValueVisitorOps[Context, TA, VA](val visitor: ValueVisitor[Context, TA, VA]) extends AnyVal {
+    def evaluate(value: Value[TA, VA])(implicit tag: Tag[Context]): ZIO[Context, Throwable, Any] =
+      visitor.visit(value)
+  }
 }

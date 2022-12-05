@@ -16,5 +16,5 @@ package object toolkit {
   type UType = ir.Type.UType
   val UType = ir.Type.Type
 
-  type TypedValueVisitor[Context] = ValueVisitor[Context, scala.Unit, MorphirType]
+  // type TypedValueVisitor[Context] = ValueVisitor[Context, scala.Unit, MorphirType]
 }
