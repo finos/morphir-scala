@@ -25,20 +25,20 @@ trait LiteralGen extends WordGen {
 
   final def literal: Gen[Any, Literal] = Gen.oneOf(
     boolLiteral,
-    charLiteral,
+    charLiteral('0', 'z'),
     decimalLiteral(BigDecimal(Long.MinValue), BigDecimal(Long.MaxValue)),
     stringLiteral,
     floatLiteral,
     wholeNumberLiteral
   )
 
-  def stringLiteral: Gen[Any, Literal.StringLiteral] = words.map(Literal.StringLiteral(_))
+  final def stringLiteral: Gen[Any, Literal.StringLiteral] = words.map(Literal.StringLiteral(_))
 
-  def wholeNumberLiteral(min: BigInt, max: BigInt): Gen[Any, Literal.WholeNumberLiteral] =
+  final def wholeNumberLiteral(min: BigInt, max: BigInt): Gen[Any, Literal.WholeNumberLiteral] =
     Gen.bigInt(min, max).map(n => Literal.WholeNumberLiteral(n.longValue))
-  def wholeNumberLiteral(min: Long, max: Long): Gen[Any, Literal.WholeNumberLiteral] =
+  final def wholeNumberLiteral(min: Long, max: Long): Gen[Any, Literal.WholeNumberLiteral] =
     Gen.long(min, max).map(n => Literal.WholeNumberLiteral(n))
-  def wholeNumberLiteral: Gen[Any, Literal.WholeNumberLiteral] =
+  final def wholeNumberLiteral: Gen[Any, Literal.WholeNumberLiteral] =
     Gen.long.map(n => Literal.WholeNumberLiteral(n))
 }
 

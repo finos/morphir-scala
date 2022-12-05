@@ -21,7 +21,7 @@ import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.Type.{Definition => TypeDefinition, Specification => TypeSpecification, Type}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Pattern, Specification => ValueSpecification, Value}
 import org.finos.morphir.ir._
-import org.finos.morphir.ir.json.MorphirJsonDecodingSupportV1._
+import org.finos.morphir.ir.json.MorphirJsonSupportV1._
 import zio.test.{ZIOSpecDefault, _}
 
 object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
