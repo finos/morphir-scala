@@ -8,6 +8,7 @@ import zio.{test => _, _}
 import zio.test._
 import zio.test.TestAspect.{ignore, tag}
 import org.finos.morphir.testing.MorphirBaseSpec
+import EvaluationContext.{Variables, VariableRef}
 import V._
 
 object EvaluatorSpec extends MorphirBaseSpec with EvaluationWithTypedValueVisitorSpecs {
@@ -19,9 +20,12 @@ object EvaluatorSpec extends MorphirBaseSpec with EvaluationWithTypedValueVisito
 
 trait EvaluationWithTypedValueVisitorSpecs { self: MorphirBaseSpec =>
   def typedValueVisitorSuite = suite("With TypedValueVisitor")(
+    letDefinitionSuite,
     listSuite,
     literalSuite,
-    unitSuite
+    tupleSuite,
+    unitSuite,
+    variableSuite
   )
 
   def literalSuite = suite("Literal")(
@@ -45,6 +49,36 @@ trait EvaluationWithTypedValueVisitorSpecs { self: MorphirBaseSpec =>
         } yield assertTrue(actual == strValue)
       }
     }
+  )
+
+  def letDefinitionSuite = suite("LetDefinition")(
+    test("Should suuport simple let involving an Int literal") {
+      val value = V.let("n", 42, V.variable("n") :> ir.sdk.Basics.intType)
+      ZIO.stateful(EvaluationContext.Typed.root) {
+        for {
+          initalVars <- ZIO.getStateWith[EvaluationContext.Typed](ctx => ctx.allVariables)
+          actual     <- eval(value)
+          finalVars  <- ZIO.getStateWith[EvaluationContext.Typed](ctx => ctx.allVariables)
+        } yield assertTrue(actual == 42, initalVars == finalVars)
+      }
+    }
+    // test("Should support nested let definitions") {
+    //   // Let x = 3 in (let x = 2 in x) + x
+    //   val innerLet: TypedValue = V.let("x", 2, V.variable("x") :> ir.sdk.Basics.intType)
+    //   val value =
+    //     V.let(
+    //       "x",
+    //       3,
+    //       V.tuple(
+    //         T.tuple(ir.sdk.Basics.intType, ir.sdk.Basics.intType),
+    //         innerLet,
+    //         V.variable("x") :> ir.sdk.Basics.intType
+    //       )
+    //     )
+    //   for {
+    //     actual <- eval(value)
+    //   } yield assertTrue(actual == (3, 2))
+    // }
   )
 
   def listSuite = suite("List")(
@@ -74,6 +108,35 @@ trait EvaluationWithTypedValueVisitorSpecs { self: MorphirBaseSpec =>
     )
   )
 
+  def tupleSuite = suite("Tuple")(
+    suite("Of Literals")(
+      test("Should be possible to evaluate a Tuple of literal values") {
+        val value: TypedValue = V.tuple(
+          V.boolean(true)    -> ir.sdk.Basics.boolType,
+          V.string("Batman") -> ir.sdk.String.stringType /*, V.float(42.5) -> ir.sdk.Basics.floatType*/
+        )
+        for {
+          actual <- eval(value)
+        } yield assertTrue(actual == (true, "Batman" /*, 42.5*/ ))
+      }
+    ),
+    suite("Of Variables")(
+      test("Should resolve nested variables") {
+        val aName = Name.fromString("a")
+        val nName = Name.fromString("n")
+        val value = V.tuple(V.variable(aName) -> ir.sdk.Char.charType, V.variable(nName) -> ir.sdk.Basics.intType)
+        implicit val initialCtx = EvaluationContext.root(
+          Variables.empty
+            .set(aName, VariableRef.Evaluated('A', ir.sdk.Char.charType))
+            .set(nName, VariableRef.Evaluated(42, ir.sdk.Basics.intType))
+        )
+        for {
+          actual <- eval(value)
+        } yield assertTrue(actual == ('A', 42))
+      }
+    )
+  )
+
   def unitSuite = suite("Unit")(
     test("Should be possible to evaluate a Unit value") {
       val value = V.unit(T.unit)
@@ -83,10 +146,43 @@ trait EvaluationWithTypedValueVisitorSpecs { self: MorphirBaseSpec =>
     }
   )
 
+  def variableSuite = suite("Variable")(
+    test("Should be possible to resolve a variable that has the Scala unitValue") {
+      val varName             = Name.fromString("testVar")
+      val value               = V.variable(varName) :> T.unit
+      implicit val initialCtx = EvaluationContext.root(Variables.empty.set(varName, VariableRef.Evaluated((), T.unit)))
+      ZIO.stateful(initialCtx) {
+        for {
+          actual <- eval(value)
+          _      <- Console.printLine(s"Actual has a type of ${actual.getClass.getSimpleName}")
+        } yield assertTrue(actual == ())
+      }
+    },
+    test("Should be possible to resolve a variable that has a Scala boolean value") {
+      val trueVarName  = Name.fromString("trueVar")
+      val falseVarName = Name.fromString("falseVar")
+      val trueValue    = V.variable(trueVarName) :> ir.sdk.Basics.boolType
+      val falseValue   = V.variable(falseVarName) :> ir.sdk.Basics.boolType
+
+      implicit val initialCtx = EvaluationContext.root(
+        Variables.empty
+          .set(trueVarName, VariableRef.Evaluated(true, ir.sdk.Basics.boolType))
+          .set(falseVarName, VariableRef.Evaluated(false, ir.sdk.Basics.boolType))
+      )
+      for {
+        actualTrueValue  <- eval(trueValue)
+        actualFalseValue <- eval(falseValue)
+      } yield assertTrue(actualTrueValue == true, actualFalseValue == false)
+    }
+  )
+
   def eval(
       value: TypedValue
-  )(implicit ctx: Evaluator.TypedEvaluationContext = EvaluationContext.root) = {
-    val visitor = new TypedValueVisitor.Default
-    visitor.evaluate(value).provide(ZLayer.succeed(ctx))
+  )(implicit
+      evaluator: Evaluator.Typed = Evaluator.Typed(),
+      ctx: Evaluator.Typed.Ctx = EvaluationContext.Typed.root
+  ) = {
+    var state = ZState.initial(ctx)
+    evaluator.evaluate(value).provide(state)
   }
 }

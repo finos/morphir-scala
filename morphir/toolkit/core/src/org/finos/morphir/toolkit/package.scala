@@ -1,5 +1,5 @@
 package org.finos.morphir
-
+import zio.ZState
 package object toolkit {
 
   type Documented[+A] = ir.Documented[A]
@@ -16,5 +16,6 @@ package object toolkit {
   type UType = ir.Type.UType
   val UType = ir.Type.Type
 
+  type ZEvaluationContext[TA,VA] = ZState[EvaluationContext[TA,VA]]
   // type TypedValueVisitor[Context] = ValueVisitor[Context, scala.Unit, MorphirType]
 }

@@ -1,0 +1,15 @@
+package org.finos.morphir
+package toolkit
+
+import ir.Value.{TypedValue, Value}
+import ir.Type.UType
+import Value.Folder
+import zio.{Tag, ZIO}
+
+sealed abstract class EvaluationError(message:Option[String]) extends Exception(message.orNull) with Product with Serializable
+
+object EvaluationError {
+  final case class VariableNotFound(name:Name) extends EvaluationError(Some(s"Evaluation Error: Could not find variable $name"))
+  final case class VariableResolutionError(name:Name, msg:String) extends EvaluationError(Some(s"Evaluation Error: Error occurred while resolving variable $name. $msg"))
+  final case class UnsupportedTupleArity(value:Any, arity:Int) extends EvaluationError(Some(s"Evaluation Error: Unsupported tuple arity of $arity for value: $value"))
+}

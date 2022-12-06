@@ -4,28 +4,34 @@ package toolkit
 import ir.Value.{TypedValue, Value}
 import ir.Type.UType
 import Value.Folder
-import zio.{Tag, ZIO}
+import zio.{Tag, ZIO, ZState}
 
-trait Evaluator[TA, VA] {
-  final type Ctx = EvaluationContext[TA, VA]
+trait Evaluator[TA, VA] extends Folder[scala.Unit, TA, VA, ZIO[ZEvaluationContext[TA, VA], EvaluationError, Any]] {
+  self =>
 
-  def evaluate(value: Value[TA, VA]): ZIO[Ctx, Throwable, Any]
+  def evaluate(value: Value[TA, VA])(implicit
+      typeAttributeTag: Tag[TA],
+      valueAttributeTag: Tag[VA]
+  ): ZIO[ZEvaluationContext[TA, VA], EvaluationError, Any] =
+    ZIO.serviceWithZIO { context =>
+      value.foldContext(())(self)
+    }
 }
 
 object Evaluator {
-  type TypedEvaluationContext = EvaluationContext[scala.Unit, UType]
 
-  def forTyped(
-      visitor: ValueVisitor[TypedEvaluationContext, scala.Unit, UType]
-  ): Evaluator[scala.Unit, UType] = new Evaluator[scala.Unit, UType] {
+  def evaluate[TA: Tag, VA: Tag](
+      value: Value[TA, VA]
+  ): ZIO[Evaluator[TA, VA] with ZEvaluationContext[TA, VA], EvaluationError, Any] =
+    ZIO.serviceWithZIO[Evaluator[TA, VA]] { evaluator =>
+      evaluator.evaluate(value)
+    }
+  // def make[TA,VA](initialContext:EvaluationContext[TA,VA]) = ZIO.succeed()
 
-    def evaluate(value: TypedValue): ZIO[Ctx, Throwable, Any] =
-      ZIO.environment[Ctx].flatMap { context =>
-        value.foldContext(context.get)(visitor)
-      }
+  type Typed = Evaluator[scala.Unit, UType]
+  object Typed {
+    type Ctx = EvaluationContext[scala.Unit, UType]
+    val Ctx            = EvaluationContext.Typed
+    def apply(): Typed = new TypedValueEvaluator
   }
 }
-
-
-
-
