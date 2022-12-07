@@ -60,7 +60,12 @@ class TypedValueEvaluator extends Evaluator[scala.Unit, UType] { self =>
       condition: ZIO[ZEvaluationContext[scala.Unit, UType], EvaluationError, Any],
       thenBranch: ZIO[ZEvaluationContext[scala.Unit, UType], EvaluationError, Any],
       elseBranch: ZIO[ZEvaluationContext[scala.Unit, UType], EvaluationError, Any]
-  ): ZIO[ZEvaluationContext[scala.Unit, UType], EvaluationError, Any] = ???
+  ): ZIO[ZEvaluationContext[scala.Unit, UType], EvaluationError, Any] = condition.flatMap { cond =>
+    cond match {
+      case true => thenBranch
+      case _    => elseBranch
+    }
+  }
 
   def lambdaCase(
       context: scala.Unit,

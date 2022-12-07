@@ -20,12 +20,34 @@ object EvaluatorSpec extends MorphirBaseSpec with EvaluationWithTypedValueVisito
 trait EvaluationWithTypedValueVisitorSpecs {
   self: MorphirBaseSpec =>
   def typedValueVisitorSuite = suite("With TypedValueVisitor")(
+    ifThenElseSuite,
     letDefinitionSuite,
     listSuite,
     literalSuite,
     tupleSuite,
     unitSuite,
     variableSuite
+  )
+
+  def ifThenElseSuite = suite("ifThenElse")(
+    test("Should evaluate true condition to ThenBranch") {
+      val value: TypedValue = V.ifThenElse(V.boolean(true), V.int(2), V.int(6)) :> ir.sdk.Basics.intType
+      for {
+        actual <- eval(value)
+      } yield assertTrue(actual == 2)
+    },
+    test("Should evaluate false condition to ElseBranch") {
+      val value: TypedValue = V.ifThenElse(V.boolean(false), V.int(2), V.int(6)) :> ir.sdk.Basics.intType
+      for {
+        actual <- eval(value)
+      } yield assertTrue(actual == 6)
+    },
+    test("Should evaluate any other non true conditions to ElseBranch") {
+      val value: TypedValue = V.ifThenElse(V.int(3), V.int(2), V.int(6)) :> ir.sdk.Basics.intType
+      for {
+        actual <- eval(value)
+      } yield assertTrue(actual == 6)
+    }
   )
 
   def literalSuite = suite("Literal")(
