@@ -1,24 +1,24 @@
 package org.finos.morphir
 package toolkit
 
-import org.finos.morphir.ir.{Type => T}
-import org.finos.morphir.ir.{Value => V}
-
-import zio.{test => _, _}
-import zio.test._
+import org.finos.morphir.ir.Type as T
+import org.finos.morphir.ir.Value as V
+import zio.{test as _, *}
+import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
 import org.finos.morphir.testing.MorphirBaseSpec
-import EvaluationContext.{Variables, VariableRef}
-import V._
+import EvaluationContext.{VariableRef, Variables}
+import V.*
+import org.finos.morphir.toolkit.EvaluationWithTypedValueVisitorSpecs.eval
 
 object EvaluatorSpec extends MorphirBaseSpec with EvaluationWithTypedValueVisitorSpecs {
   def spec = suite("Evaluator Spec")(
     typedValueVisitorSuite
   )
-
 }
 
-trait EvaluationWithTypedValueVisitorSpecs { self: MorphirBaseSpec =>
+trait EvaluationWithTypedValueVisitorSpecs {
+  self: MorphirBaseSpec =>
   def typedValueVisitorSuite = suite("With TypedValueVisitor")(
     letDefinitionSuite,
     listSuite,
@@ -134,7 +134,8 @@ trait EvaluationWithTypedValueVisitorSpecs { self: MorphirBaseSpec =>
           actual <- eval(value)
         } yield assertTrue(actual == ('A', 42))
       }
-    )
+    ),
+    TupleAritySuite.evaluatesTupleArities2to22Suite
   )
 
   def unitSuite = suite("Unit")(
@@ -175,7 +176,9 @@ trait EvaluationWithTypedValueVisitorSpecs { self: MorphirBaseSpec =>
       } yield assertTrue(actualTrueValue == true, actualFalseValue == false)
     }
   )
+}
 
+object EvaluationWithTypedValueVisitorSpecs {
   def eval(
       value: TypedValue
   )(implicit

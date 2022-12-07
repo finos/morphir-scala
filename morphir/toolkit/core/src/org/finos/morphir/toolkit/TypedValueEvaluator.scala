@@ -86,7 +86,7 @@ class TypedValueEvaluator extends Evaluator[scala.Unit, UType] { self =>
     (params, _, body) = valueDefinition
     evaluatedBody <- body
     variable = (valueName, VariableRef.Evaluated(evaluatedBody, attributes))
-    locals0      <- EvaluationContext.Typed.localVaribles
+    locals0     <- EvaluationContext.Typed.localVaribles
     _           <- Console.printLine(s"[Initial]Variables: $locals0").orDie
     _           <- EvaluationContext.Typed.pushFrame(Variables.Typed(variable))
     res         <- inValue
@@ -180,8 +180,36 @@ class TypedValueEvaluator extends Evaluator[scala.Unit, UType] { self =>
       elements: Chunk[ZIO[ZEvaluationContext[scala.Unit, UType], EvaluationError, Any]]
   ): ZIO[ZEvaluationContext[scala.Unit, UType], EvaluationError, Any] = ZIO.collectAll(elements).flatMap { items =>
     items match {
-      case Chunk(a, b) => ZIO.succeed((a, b))
-      case _           => ZIO.fail(EvaluationError.UnsupportedTupleArity(value, elements.size))
+      case Chunk(a, b)                                     => ZIO.succeed((a, b))
+      case Chunk(a, b, c)                                  => ZIO.succeed((a, b, c))
+      case Chunk(a, b, c, d)                               => ZIO.succeed((a, b, c, d))
+      case Chunk(a, b, c, d, e)                            => ZIO.succeed((a, b, c, d, e))
+      case Chunk(a, b, c, d, e, f)                         => ZIO.succeed((a, b, c, d, e, f))
+      case Chunk(a, b, c, d, e, f, g)                      => ZIO.succeed((a, b, c, d, e, f, g))
+      case Chunk(a, b, c, d, e, f, g, h)                   => ZIO.succeed((a, b, c, d, e, f, g, h))
+      case Chunk(a, b, c, d, e, f, g, h, i)                => ZIO.succeed((a, b, c, d, e, f, g, h, i))
+      case Chunk(a, b, c, d, e, f, g, h, i, j)             => ZIO.succeed((a, b, c, d, e, f, g, h, i, j))
+      case Chunk(a, b, c, d, e, f, g, h, i, j, k)          => ZIO.succeed((a, b, c, d, e, f, g, h, i, j, k))
+      case Chunk(a, b, c, d, e, f, g, h, i, j, k, l)       => ZIO.succeed((a, b, c, d, e, f, g, h, i, j, k, l))
+      case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m)    => ZIO.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m))
+      case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n) => ZIO.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n))
+      case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) =>
+        ZIO.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o))
+      case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) =>
+        ZIO.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p))
+      case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) =>
+        ZIO.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q))
+      case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) =>
+        ZIO.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r))
+      case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) =>
+        ZIO.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s))
+      case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) =>
+        ZIO.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t))
+      case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) =>
+        ZIO.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u))
+      case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) =>
+        ZIO.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v))
+      case _ => ZIO.fail(EvaluationError.UnsupportedTupleArity(value, elements.size))
     }
   }
 
