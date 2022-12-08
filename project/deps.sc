@@ -6,7 +6,7 @@ object Deps {
       val mainargs   = ivy"com.lihaoyi::mainargs::${Versions.`mainargs`}"
       val `os-lib`   = ivy"com.lihaoyi::os-lib::${Versions.`os-lib`}"
       val sourcecode = ivy"com.lihaoyi::sourcecode::0.3.0"
-      val pprint = ivy"com.lihaoyi::pprint::0.7.3"
+      val pprint     = ivy"com.lihaoyi::pprint::0.7.3"
     }
     case object softwaremill {
       case object common {
@@ -84,7 +84,7 @@ object Versions {
   val `os-lib`      = "0.8.1"
   val zio           = "2.0.4"
   val `zio-cli`     = "0.3.0-M02"
-  val `zio-json`    = "0.3.0"
+  val `zio-json`    = "0.4.2"
   val `zio-prelude` = "1.0.0-RC16"
   val `zio-process` = "0.7.1"
 }
