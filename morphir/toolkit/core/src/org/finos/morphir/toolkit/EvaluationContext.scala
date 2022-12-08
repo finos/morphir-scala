@@ -31,10 +31,11 @@ final case class EvaluationContext[+TA, +VA](parent: Option[EvaluationContext[TA
 
   def pushFrame[TA1 >: TA, VA1 >: VA](vars: Variables[TA1, VA1]): EvaluationContext[TA1, VA1] =
     EvaluationContext(parent = Some(self), variables = self.variables ++ vars)
+    
 
   def popFrame: EvaluationContext[TA, VA] = self match {
     case EvaluationContext(Some(parent), _) => parent
-    case _                                  => self
+    case _                                  => self 
   }
 
 }

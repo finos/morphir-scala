@@ -13,7 +13,7 @@ trait Evaluator[TA, VA] extends Folder[scala.Unit, TA, VA, ZIO[ZEvaluationContex
       typeAttributeTag: Tag[TA],
       valueAttributeTag: Tag[VA]
   ): ZIO[ZEvaluationContext[TA, VA], EvaluationError, Any] =
-    ZIO.serviceWithZIO { context =>
+   ZIO.serviceWithZIO { context =>
       value.foldContext(())(self)
     }
 }
