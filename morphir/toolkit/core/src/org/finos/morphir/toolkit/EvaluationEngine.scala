@@ -176,7 +176,12 @@ abstract class EvaluationEngine[TA: Tag, VA: Tag] extends Folder[scala.Unit, TA,
       condition: Step[TA, VA, EvalResult],
       thenBranch: Step[TA, VA, EvalResult],
       elseBranch: Step[TA, VA, EvalResult]
-  ): Step[TA, VA, EvalResult] = ???
+  ): Step[TA, VA, EvalResult] = condition.flatMap { cond =>
+    cond match {
+      case true => thenBranch
+      case _    => elseBranch
+    }
+  }
 
   def visitLambda(
       value: Value[TA, VA],
@@ -191,27 +196,17 @@ abstract class EvaluationEngine[TA: Tag, VA: Tag] extends Folder[scala.Unit, TA,
       valueName: Name,
       valueDefinition: (Chunk[(Name, VA, Type.Type[TA])], Type.Type[TA], Step[TA, VA, EvalResult]),
       inValue: Step[TA, VA, EvalResult]
-  ): Step[TA, VA, EvalResult] = {
+  ): Step[TA, VA, EvalResult] =
     for {
       variable <- Step.succeed(Var(valueName))
       (_, _, body) = valueDefinition
-      evaluatedBody <- body     
-      originalContext <- Step.get[Context[TA,VA]] 
-      // updatedContext = originalContext.map { context =>        
-      //   context.scoped(
-      //     variable := evaluatedBody
-      //   )
-      // }
-      // _ <- Step.set(updatedContext)
-      // res <-  inValue
-      // _ <- Set.set(originalContext)
-    } yield 999
-    /*
-      let 
-        x = 1
-      in x
-    */
-  }
+      evaluatedBody   <- body
+      originalContext <- Step.get[Context[TA, VA]]
+      updatedContext = originalContext.push(variable := evaluatedBody)
+      _   <- Step.set(updatedContext)
+      res <- inValue
+      _   <- Step.set(originalContext)
+    } yield res
 
   def visitLetRecursion(
       value: Value[TA, VA],
@@ -259,8 +254,41 @@ abstract class EvaluationEngine[TA: Tag, VA: Tag] extends Folder[scala.Unit, TA,
       value: Value[TA, VA],
       attributes: VA,
       elements: Chunk[Step[TA, VA, EvalResult]]
-  ): Step[TA, VA, EvalResult] = ???
-
+  ): Step[TA, VA, EvalResult] =
+    Step.collectAll(elements).flatMap { items =>
+      items match {
+        case Chunk(a, b)                                     => Step.succeed((a, b))
+        case Chunk(a, b, c)                                  => Step.succeed((a, b, c))
+        case Chunk(a, b, c, d)                               => Step.succeed((a, b, c, d))
+        case Chunk(a, b, c, d, e)                            => Step.succeed((a, b, c, d, e))
+        case Chunk(a, b, c, d, e, f)                         => Step.succeed((a, b, c, d, e, f))
+        case Chunk(a, b, c, d, e, f, g)                      => Step.succeed((a, b, c, d, e, f, g))
+        case Chunk(a, b, c, d, e, f, g, h)                   => Step.succeed((a, b, c, d, e, f, g, h))
+        case Chunk(a, b, c, d, e, f, g, h, i)                => Step.succeed((a, b, c, d, e, f, g, h, i))
+        case Chunk(a, b, c, d, e, f, g, h, i, j)             => Step.succeed((a, b, c, d, e, f, g, h, i, j))
+        case Chunk(a, b, c, d, e, f, g, h, i, j, k)          => Step.succeed((a, b, c, d, e, f, g, h, i, j, k))
+        case Chunk(a, b, c, d, e, f, g, h, i, j, k, l)       => Step.succeed((a, b, c, d, e, f, g, h, i, j, k, l))
+        case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m)    => Step.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m))
+        case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n) => Step.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n))
+        case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) =>
+          Step.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o))
+        case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) =>
+          Step.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p))
+        case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) =>
+          Step.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q))
+        case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) =>
+          Step.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r))
+        case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) =>
+          Step.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s))
+        case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) =>
+          Step.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t))
+        case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) =>
+          Step.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u))
+        case Chunk(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) =>
+          Step.succeed((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v))
+        case _ => Step.fail(EvaluationError.UnsupportedTupleArity(value, elements.size))
+      }
+    }
   def visitUnit(value: Value[TA, VA], attributes: VA): Step[TA, VA, EvalResult] = Step.succeed(())
 
   def visitUpdateRecord(
@@ -303,13 +331,15 @@ object EvaluationEngine {
   def typed: EvaluationEngine[scala.Unit, UType] = new EvaluationEngine[scala.Unit, UType] {}
 
   type EvalResult = Any
-  
 
   final case class Context[+TA, +VA](parent: Option[Context[TA, VA]], variables: Variables) { self =>
-    def +=(binding:VarBinding):Context[TA,VA] = copy(variables = self.variables += binding)
-    def ++=(bindings:VarBinding*):Context[TA,VA] = copy(variables = self.variables.++=(bindings:_*))
+    def +=(binding: VarBinding): Context[TA, VA]    = copy(variables = self.variables += binding)
+    def ++=(bindings: VarBinding*): Context[TA, VA] = copy(variables = self.variables.++=(bindings: _*))
 
-    // def scoped[R,A](bindings: VarBinding*)(use: => ZSet[R, TA,VA, A]): ZSet[R,TA,VA,A] = 
+    def push(bindings: VarBinding*): Context[TA, VA] =
+      copy(variables = Variables.withBindings(bindings: _*), parent = Some(self))
+
+    // def scoped[R,A](bindings: VarBinding*)(use: => ZSet[R, TA,VA, A]): ZSet[R,TA,VA,A] =
     //   Context(parent = Some(self), variables = variables)
 
     def variable(variable: Var): Option[VarValue] = variables.get(variable).orElse(parent.flatMap(_.variable(variable)))
@@ -328,9 +358,10 @@ object EvaluationEngine {
       loop(self)
     }
 
-    def withBindings(bindings:VarBinding*):Context[TA,VA] = copy(variables = self.variables.withBindings(bindings:_*))
+    def withBindings(bindings: VarBinding*): Context[TA, VA] =
+      copy(variables = self.variables.withBindings(bindings: _*))
   }
-  
+
   object Context {
     def createRoot[TA, VA](bindings: VarBinding*): Context[TA, VA] =
       Context(parent = None, Variables.withBindings(bindings: _*))
@@ -359,8 +390,8 @@ object EvaluationEngine {
     )
 
     /**
-      * Alias for `withBindings`
-      */
+     * Alias for `withBindings`
+     */
     def ++=(bindings: VarBinding*): Variables = withBindings(bindings: _*)
 
     def apply(variable: Var): VarValue = bindings.get(variable) match {
@@ -370,7 +401,9 @@ object EvaluationEngine {
 
     def get(variable: Var): Option[VarValue] = bindings.get(variable)
 
-    def withBindings(bindings:VarBinding*):Variables = Variables(self.bindings ++ bindings.map(b => b.variable -> VarValue.Resolved(b.value)))
+    def withBindings(bindings: VarBinding*): Variables = Variables(
+      self.bindings ++ bindings.map(b => b.variable -> VarValue.Resolved(b.value))
+    )
   }
 
   object Variables {

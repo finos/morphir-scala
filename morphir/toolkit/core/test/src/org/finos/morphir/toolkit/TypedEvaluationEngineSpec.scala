@@ -13,37 +13,101 @@ import V._
 
 trait TypedEvaluationEngineSpec { self: MorphirBaseSpec =>
   def typedEvaluationEngineSuite =
-    suite("For TypedValue")(letDefinitionSuite, listSuite, literalSuite, unitSuite, variableSuite).provide(
+    suite("For TypedValue")(
+      letDefinitionSuite,
+      listSuite,
+      literalSuite,
+      unitSuite,
+      ifThenElseSuite,
+      variableSuite,
+      tupleSuite
+    ).provide(
       ZLayer.succeed(EvaluationEngine.typed)
     )
 
+  def tupleSuite = suite("Tuple")(
+    suite("Of Literals")(
+      test("Should be possible to evaluate a Tuple of literal values") {
+        val value: TypedValue = V.tuple(
+          V.boolean(true)    -> ir.sdk.Basics.boolType,
+          V.string("Batman") -> ir.sdk.String.stringType /*, V.float(42.5) -> ir.sdk.Basics.floatType*/
+        )
+        val context = Context.Typed.createRoot()
+        for {
+          actual <- evaluateZIO(value, context)
+        } yield assertTrue(actual == (true, "Batman" /*, 42.5*/ ))
+      },
+      suite("Of Variables")(
+        test("Should resolve nested variables") {
+          val aName = Name.fromString("a")
+          val nName = Name.fromString("n")
+          val value = V.tuple(V.variable(aName) -> ir.sdk.Char.charType, V.variable(nName) -> ir.sdk.Basics.intType)
+          val context = EvaluationEngine.Context.Typed.createRoot(
+            Var(aName) := 'A',
+            Var(nName) := 42
+          )
+          for {
+            actual <- evaluateZIO(value, context)
+          } yield assertTrue(actual == ('A', 42))
+        }
+      ),
+      TupleAritySuite.evaluatesTupleArities2to22Suite
+    )
+  )
+
+  def ifThenElseSuite = suite("ifThenElse")(
+    test("Should evaluate true condition to ThenBranch") {
+      val value: TypedValue = V.ifThenElse(V.boolean(true), V.int(2), V.int(6)) :> ir.sdk.Basics.intType
+      val context           = Context.Typed.createRoot()
+      for {
+        actual <- evaluateZIO(value, context)
+      } yield assertTrue(actual == 2)
+    },
+    test("Should evaluate false condition to ElseBranch") {
+      val value: TypedValue = V.ifThenElse(V.boolean(false), V.int(2), V.int(6)) :> ir.sdk.Basics.intType
+      val context           = Context.Typed.createRoot()
+      for {
+        actual <- evaluateZIO(value, context)
+      } yield assertTrue(actual == 6)
+    },
+    test("Should evaluate any other non true conditions to ElseBranch") {
+      val value: TypedValue = V.ifThenElse(V.int(3), V.int(2), V.int(6)) :> ir.sdk.Basics.intType
+      val context           = Context.Typed.createRoot()
+      for {
+        actual <- evaluateZIO(value, context)
+      } yield assertTrue(actual == 6)
+    }
+  )
+
   def letDefinitionSuite = suite("LetDefinition")(
-    // test("Should support simple let involving an Int literal") {
-    //  val value   = V.let("n", 42, V.variable("n") :> ir.sdk.Basics.intType)
-    //  val context = Context.Typed.createRoot()
-    //  for {
-    //    // initalVars <-  ZIO.getStateWith[EvaluationContext.Typed](ctx => ctx.allVariables)
-    //    actual <- evaluateZIO(value, context)
-    //    // finalVars  <- ZIO.getStateWith[EvaluationContext.Typed](ctx => ctx.allVariables)
-    //  } yield assertTrue(actual == 42 /*, initalVars == finalVars*/ )
-    // }
-    // test("Should support nested let definitions") {
-    //   // Let x = 3 in (let x = 2 in x) + x
-    //   val innerLet: TypedValue = V.let("x", 2, V.variable("x") :> ir.sdk.Basics.intType)
-    //   val value =
-    //     V.let(
-    //       "x",
-    //       3,
-    //       V.tuple(
-    //         T.tuple(ir.sdk.Basics.intType, ir.sdk.Basics.intType),
-    //         innerLet,
-    //         V.variable("x") :> ir.sdk.Basics.intType
-    //       )
-    //     )
-    //   for {
-    //     actual <- eval(value)
-    //   } yield assertTrue(actual == (3, 2))
-    // }
+    test("Should support simple let involving an Int literal") {
+      val value   = V.let("n", 42, V.variable("n") :> ir.sdk.Basics.intType)
+      val context = Context.Typed.createRoot()
+      for {
+        // initalVars <-  ZIO.getStateWith[EvaluationContext.Typed](ctx => ctx.allVariables)
+        actual <- evaluateZIO(value, context)
+        // finalVars  <- ZIO.getStateWith[EvaluationContext.Typed](ctx => ctx.allVariables)
+      } yield assertTrue(actual == 42 /*, initalVars == finalVars*/ )
+    },
+    test("Should support nested let definitions") {
+
+      // Let x = 3 in ((let x = 2 in x), x)
+      val innerLet: TypedValue = V.let("x", 2, V.variable("x") :> ir.sdk.Basics.intType)
+      val value =
+        V.let(
+          "x",
+          3,
+          V.tuple(
+            T.tuple(ir.sdk.Basics.intType, ir.sdk.Basics.intType),
+            innerLet,
+            V.variable("x") :> ir.sdk.Basics.intType
+          )
+        )
+      val context = Context.Typed.createRoot()
+      for {
+        actual <- evaluateZIO(value, context)
+      } yield assertTrue(actual == (2, 3))
+    }
   )
 
   def listSuite = suite("List")(

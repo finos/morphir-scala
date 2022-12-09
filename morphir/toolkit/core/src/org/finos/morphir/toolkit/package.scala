@@ -18,7 +18,6 @@ package object toolkit {
   type UType = ir.Type.UType
   val UType = ir.Type.Type
 
-  type ZEvaluationContext[TA, VA] = ZState[EvaluationContext[TA, VA]]
   // type TypedValueVisitor[Context] = ValueVisitor[Context, scala.Unit, MorphirType]
 
   type StepCompanion
@@ -33,10 +32,10 @@ package object toolkit {
   implicit class ZStepCompanionOps(val self: ZPure.type with StepCompanion) extends AnyVal {
     import EvaluationEngine._
 
-    def scoped[R, TA,VA,A](bindings:VarBinding*)(block : => ZStep[R, TA,VA,A]):ZStep[R, TA,VA,A] = 
+    def scoped[R, TA, VA, A](bindings: VarBinding*)(block: => ZStep[R, TA, VA, A]): ZStep[R, TA, VA, A] =
       for {
-        originalContext <- ZStep.get[Context[TA,VA]]
-        result <- ZStep.set(originalContext)
+        originalContext <- ZStep.get[Context[TA, VA]]
+        result          <- ZStep.set(originalContext)
 
       } yield ???
   }

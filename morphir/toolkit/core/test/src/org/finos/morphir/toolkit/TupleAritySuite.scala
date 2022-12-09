@@ -1,9 +1,10 @@
 package org.finos.morphir
 package toolkit
 
-import org.finos.morphir.ir.Value as V
+import org.finos.morphir.ir.{Type => T}
+import org.finos.morphir.ir.{Value => V}
 import zio.test.*
-import org.finos.morphir.toolkit.EvaluationWithTypedValueVisitorSpecs.eval
+import EvaluationEngine._
 
 object TupleAritySuite {
 
@@ -12,10 +13,11 @@ object TupleAritySuite {
   )
 
   def tupleArityTests2to22 = tupleArityCases2to22
-    .map[Spec[Any, EvaluationError]] { case (testName, tupleTv, expected) =>
+    .map[Spec[EvaluationEngine[Unit, T.Type[Unit]], EvaluationError]] { case (testName, tupleTv, expected) =>
       test(testName) {
+        val context = Context.Typed.createRoot()
         for {
-          actual <- eval(tupleTv)
+          actual <- evaluateZIO(tupleTv, context)
         } yield assertTrue(actual == expected)
       }
     }
@@ -603,6 +605,7 @@ object TupleAritySuite {
   )
 
   val negativeCase23 = test("Should not evaluate tuples of arity 23") {
+    val context = Context.Typed.createRoot()
     val value = V.tuple(
       element(1),
       element(2),
@@ -629,7 +632,7 @@ object TupleAritySuite {
       element(23)
     )
     for {
-      actual <- eval(value).either
+      actual <- evaluateZIO(value, context).either
     } yield assertTrue(actual.isLeft)
   }
 }
