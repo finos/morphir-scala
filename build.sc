@@ -167,7 +167,8 @@ object morphir extends Module {
         dev.zio.zio,
         dev.zio.`zio-prelude`,
         io.lemonlabs.`scala-uri`,
-        Deps.com.lihaoyi.pprint
+        com.lihaoyi.pprint,
+        org.typelevel.`paiges-core`
       )
       def moduleDeps = Seq(morphir.contrib.flowz(crossScalaVersion), morphir.lib.interop(crossScalaVersion))
       object test extends Tests with MorphirTestModule {

@@ -58,6 +58,10 @@ object Deps {
         ivy"org.scalameta::munit-scalacheck::${Versions.munit}"
 
     }
+
+    case object typelevel {
+      val `paiges-core` = ivy"org.typelevel::paiges-core::${Versions.paiges}"
+    }
   }
 }
 
@@ -82,6 +86,7 @@ object Versions {
   val munit         = "1.0.0-M4"
   val mainargs      = "0.3.0"
   val `os-lib`      = "0.8.1"
+  val paiges        = "0.4.2"
   val zio           = "2.0.4"
   val `zio-cli`     = "0.3.0-M02"
   val `zio-json`    = "0.3.0"
