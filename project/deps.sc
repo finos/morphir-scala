@@ -6,7 +6,7 @@ object Deps {
       val mainargs   = ivy"com.lihaoyi::mainargs::${Versions.`mainargs`}"
       val `os-lib`   = ivy"com.lihaoyi::os-lib::${Versions.`os-lib`}"
       val sourcecode = ivy"com.lihaoyi::sourcecode::0.3.0"
-      val pprint = ivy"com.lihaoyi::pprint::0.7.3"
+      val pprint     = ivy"com.lihaoyi::pprint::0.7.3"
     }
     case object softwaremill {
       case object common {
@@ -78,7 +78,7 @@ object Versions {
       case _            => "4.5.11"
     }
 
-  val coursier      = "2.1.0-RC2"
+  val coursier      = "2.1.0-RC3"
   val munit         = "1.0.0-M4"
   val mainargs      = "0.3.0"
   val `os-lib`      = "0.8.1"
