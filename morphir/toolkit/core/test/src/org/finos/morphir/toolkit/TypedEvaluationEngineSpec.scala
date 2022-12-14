@@ -30,12 +30,13 @@ trait TypedEvaluationEngineSpec { self: MorphirBaseSpec =>
       test("Should be possible to evaluate a Tuple of literal values") {
         val value: TypedValue = V.tuple(
           V.boolean(true)    -> ir.sdk.Basics.boolType,
-          V.string("Batman") -> ir.sdk.String.stringType /*, V.float(42.5) -> ir.sdk.Basics.floatType*/
+          V.string("Batman") -> ir.sdk.String.stringType,
+          V.float(42.5)      -> ir.sdk.Basics.floatType
         )
         val context = Context.Typed.createRoot()
         for {
           actual <- evaluateZIO(value, context)
-        } yield assertTrue(actual == (true, "Batman" /*, 42.5*/ ))
+        } yield assertTrue(actual == (true, "Batman", 42.5))
       },
       suite("Of Variables")(
         test("Should resolve nested variables") {
