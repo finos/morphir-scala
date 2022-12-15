@@ -10,18 +10,18 @@ object PropertyBagSpec extends MorphirBaseSpec {
       val sut      = PropertyBag.empty
       assertTrue(sut.get(property) == true)
     },
-    test("Can be updated from Bindings using `++=`"){
+    test("Can be updated from Bindings using `++=`") {
       val firstNameProperty = Property("firstName", "N/A")
-      val lastNameProperty = Property("lastName", "N/A")
-      val ageProperty = Property("age", 0)
-      val counterMetric = Metric[Int]("counter", 0, (l,r) => l + r)
-      val sut = PropertyBag.empty
+      val lastNameProperty  = Property("lastName", "N/A")
+      val ageProperty       = Property("age", 0)
+      val counterMetric     = Property.makeMetric[Int]("counter", 0, (l, r) => l + r)
+      val sut               = PropertyBag.empty
       val actual = sut ++= Seq(
         firstNameProperty := "John",
-        lastNameProperty := "Smith",
-        ageProperty := 42,
-        counterMetric := 2,
-        counterMetric := 3,
+        lastNameProperty  := "Smith",
+        ageProperty       := 42,
+        counterMetric     := 2,
+        counterMetric     := 3,
         firstNameProperty := "Jane"
       )
       assertTrue(
@@ -30,6 +30,14 @@ object PropertyBagSpec extends MorphirBaseSpec {
         actual.get(ageProperty) == 42,
         actual.get(counterMetric) == 5
       )
+    },
+    test("Can set an existing value"){
+      val email = Property("email", "")
+      val original = PropertyBag(
+        email := "nobody@nowhere.com"
+      )
+      val actual = original.set(email, "somebody@everywhere.com")
+      assertTrue(actual.get(email) == "somebody@everywhere.com")
     }
   )
 }

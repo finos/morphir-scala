@@ -5,10 +5,10 @@ import zio.EnvironmentTag
 import java.nio.charset.{Charset, StandardCharsets}
 object VFileProperties {
 
-  val isEmpty:Property[Boolean] =
+  val isEmpty: Property[Boolean] =
     Property("isEmpty", false)
 
-  val characterSet:Property[Charset] =
+  val characterSet: Property[Charset] =
     Property("characterSet", StandardCharsets.UTF_8)
 
 }
