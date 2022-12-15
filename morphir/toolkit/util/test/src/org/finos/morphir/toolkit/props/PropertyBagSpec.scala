@@ -31,7 +31,7 @@ object PropertyBagSpec extends MorphirBaseSpec {
         actual.get(counterMetric) == 5
       )
     },
-    test("Can set an existing value"){
+    test("Can set an existing value") {
       val email = Property("email", "")
       val original = PropertyBag(
         email := "nobody@nowhere.com"

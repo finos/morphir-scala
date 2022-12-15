@@ -21,7 +21,7 @@ object Property {
   def apply[A](name: String, initial: A)(implicit tag: Tag[A]): Property[A] =
     new Property(name, initial, PropertyChangeInterceptor.KeepNewValue, tag)
 
-  def apply[A](name: String, initial: A, interceptor:PropertyChangeInterceptor[A])(implicit tag: Tag[A]): Property[A] =
+  def apply[A](name: String, initial: A, interceptor: PropertyChangeInterceptor[A])(implicit tag: Tag[A]): Property[A] =
     new Property(name, initial, interceptor, tag)
 
   /**
