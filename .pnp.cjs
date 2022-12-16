@@ -38,6 +38,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         [null, {\
           "packageLocation": "./",\
           "packageDependencies": [\
+            ["@algolia/client-search", "npm:4.14.2"]\
           ],\
           "linkType": "SOFT"\
         }]\
@@ -10041,7 +10042,8 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         ["workspace:.", {\
           "packageLocation": "./",\
           "packageDependencies": [\
-            ["morphir-scala", "workspace:."]\
+            ["morphir-scala", "workspace:."],\
+            ["@algolia/client-search", "npm:4.14.2"]\
           ],\
           "linkType": "SOFT"\
         }]\
