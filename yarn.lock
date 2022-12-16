@@ -102,7 +102,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@algolia/client-search@npm:4.14.2, @algolia/client-search@npm:^4.14.2":
+"@algolia/client-search@npm:4.14.2, @algolia/client-search@npm:^4.14.2, @algolia/client-search@npm:^4.9.1":
   version: 4.14.2
   resolution: "@algolia/client-search@npm:4.14.2"
   dependencies:
@@ -10608,6 +10608,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "website@workspace:website"
   dependencies:
+    "@algolia/client-search": ^4.9.1
     "@docusaurus/core": latest
     "@docusaurus/module-type-aliases": latest
     "@docusaurus/preset-classic": latest
