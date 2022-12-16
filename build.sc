@@ -167,7 +167,8 @@ object morphir extends Module {
         dev.zio.zio,
         dev.zio.`zio-prelude`,
         io.lemonlabs.`scala-uri`,
-        Deps.com.lihaoyi.pprint
+        com.lihaoyi.pprint,
+        org.typelevel.`paiges-core`
       )
       def moduleDeps = Seq(morphir.contrib.flowz(crossScalaVersion), morphir.lib.interop(crossScalaVersion))
       object test extends Tests with MorphirTestModule {
@@ -201,8 +202,32 @@ object morphir extends Module {
     }
 
     object util extends mill.Cross[UtilModule](ScalaVersions.all: _*)
+
     class UtilModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-      object test extends Tests with MorphirTestModule {}
+      def ivyDeps = Agg(dev.zio.`izumi-reflect`)
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+      }
+    }
+
+    object vfile extends mill.Cross[VFileModule](ScalaVersions.all:_*)
+    class VFileModule(val crossScalaVersion:String) extends MorphirCrossScalaModule with MorphirPublishModule {
+      def ivyDeps = Agg(
+        com.lihaoyi.sourcecode,
+        com.lihaoyi.geny,
+        com.lihaoyi.pprint,
+        dev.zio.zio,
+        dev.zio.`zio-prelude`,
+        dev.zio.`zio-streams`,
+        org.typelevel.`paiges-core`
+      )
+
+      def moduleDeps = Seq(morphir.toolkit.util(crossScalaVersion))
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(
+          morphir.testing(crossScalaVersion),
+        )
+      }
     }
   }
 
