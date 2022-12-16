@@ -7,6 +7,7 @@ import Value.Folder
 import org.finos.morphir.ir.{FQName, Name, Type}
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.Pattern
+import org.finos.morphir.toolkit.runtime.MorphirRecord
 import zio._
 import org.finos.morphir.ir.Literal.Literal._
 import zio.prelude._
@@ -245,8 +246,12 @@ abstract class EvaluationEngine[TA: Tag, VA: Tag] extends Folder[scala.Unit, TA,
       value: Value[TA, VA],
       attributes: VA,
       fields: Chunk[(Name, Step[TA, VA, EvalResult])]
-  ): Step[TA, VA, EvalResult] =
-    ???
+  ): Step[TA, VA, EvalResult] = {
+    val fieldTuples: Chunk[Step[TA, VA, (Name, EvalResult)]] = fields.map { case (name, value) =>
+      value.map { case er: EvalResult => name -> er }
+    }
+    Step.collectAll(fieldTuples).map(MorphirRecord(_))
+  }
 
   def visitReference(value: Value[TA, VA], attributes: VA, name: FQName): Step[TA, VA, EvalResult] = ???
 

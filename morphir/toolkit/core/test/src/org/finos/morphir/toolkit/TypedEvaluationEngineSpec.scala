@@ -2,8 +2,10 @@ package org.finos.morphir
 package toolkit
 
 import org.finos.morphir.testing.MorphirBaseSpec
+import org.finos.morphir.toolkit.runtime.MorphirRecord
 import org.finos.morphir.ir.{Type => T}
 import org.finos.morphir.ir.{Value => V}
+import scala.collection.immutable.ListMap
 import zio.{test => _, _}
 import zio.prelude.fx._
 import zio.test._
@@ -19,6 +21,7 @@ trait TypedEvaluationEngineSpec { self: MorphirBaseSpec =>
       literalSuite,
       unitSuite,
       ifThenElseSuite,
+      recordSuite,
       variableSuite,
       tupleSuite
     ).provide(
@@ -163,6 +166,96 @@ trait TypedEvaluationEngineSpec { self: MorphirBaseSpec =>
           actual <- EvaluationEngine.evaluateZIO(value, context)
         } yield assertTrue(actual == strValue)
       }
+    }
+  )
+
+  def recordSuite = suite("Record")(
+    test("Should work with Literals") {
+      val firstNameField = "firstName" -> (V.string("John") :> ir.sdk.String.stringType)
+      val lastNameField  = "lastName"  -> (V.string("Doe") :> ir.sdk.String.stringType)
+      val ageField       = "age"       -> (V.int(26) :> ir.sdk.Basics.intType)
+      val recordFields = Chunk(
+        "lastName"  -> ir.sdk.String.stringType,
+        "firstName" -> ir.sdk.String.stringType,
+        "age"       -> ir.sdk.Basics.intType
+      ).map(T.field(_))
+
+      val recordType = T.record(recordFields)
+
+      val value: TypedValue = V.record(recordType, lastNameField, firstNameField, ageField)
+      val context           = EvaluationEngine.Context.Typed.createRoot()
+      val expected = MorphirRecord(
+        ListMap(
+          Name.fromString("lastName")  -> "Doe",
+          Name.fromString("firstName") -> "John",
+          Name.fromString("age")       -> 26
+        )
+      )
+
+      for {
+        actual <- EvaluationEngine.evaluateZIO(value, context)
+        actualRecord = actual.asInstanceOf[MorphirRecord]
+      } yield assertTrue(
+        actual == expected,
+        actualRecord.firstName == "John",
+        actualRecord.lastName == "Doe",
+        actualRecord.age == 26,
+        actualRecord.productElementName(0) == expected.productElementName(0),
+        actualRecord.productElementName(1) == expected.productElementName(1),
+        actualRecord.productElementName(2) == expected.productElementName(2)
+      )
+    },
+    test("Should work with nested records") {
+      val heightField = "height" -> (V.float(12.3) :> ir.sdk.Basics.floatType)
+      val lengthField = "length" -> (V.float(11.2) :> ir.sdk.Basics.floatType)
+      val uomField    = "uom"    -> (V.string("cm") :> ir.sdk.String.stringType)
+      val nestedRecordFields = Chunk(
+        "height" -> ir.sdk.Basics.floatType,
+        "length" -> ir.sdk.Basics.floatType,
+        "uom"    -> ir.sdk.String.stringType
+      ).map(T.field(_))
+
+      val nestedRecordType         = T.record(nestedRecordFields)
+      val nestedRecord: TypedValue = V.record(nestedRecordType, heightField, lengthField, uomField)
+
+      val itemField  = "item"  -> (V.string("paper") :> ir.sdk.String.stringType)
+      val sizesField = "sizes" -> nestedRecord
+      val stockField = "stock" -> (V.boolean(true) :> ir.sdk.Basics.boolType)
+      val recordFields = Chunk(
+        "item"  -> ir.sdk.Basics.floatType,
+        "sizes" -> nestedRecordType,
+        "stock" -> ir.sdk.Basics.boolType
+      ).map(T.field(_))
+
+      val recordType = T.record(recordFields)
+
+      val value: TypedValue = V.record(recordType, itemField, sizesField, stockField)
+      val context           = EvaluationEngine.Context.Typed.createRoot()
+
+      val sizesRecord = MorphirRecord(
+        ListMap(Name.fromString("height") -> 12.3, Name.fromString("length") -> 11.2, Name.fromString("uom") -> "cm")
+      )
+      val expected = MorphirRecord(
+        ListMap(
+          Name.fromString("item")  -> "paper",
+          Name.fromString("sizes") -> sizesRecord,
+          Name.fromString("stock") -> true
+        )
+      )
+
+      for {
+        actual <- EvaluationEngine.evaluateZIO(value, context)
+        actualRecord       = actual.asInstanceOf[MorphirRecord]
+        actualNestedRecord = actualRecord.sizes.asInstanceOf[MorphirRecord]
+      } yield assertTrue(
+        actual == expected,
+        actualRecord.item == "paper",
+        actualRecord.sizes == sizesRecord,
+        actualRecord.stock == true,
+        actualNestedRecord.height == 12.3,
+        actualNestedRecord.length == 11.2,
+        actualNestedRecord.uom == "cm"
+      )
     }
   )
 
