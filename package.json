@@ -4,5 +4,11 @@
   "packageManager": "yarn@3.2.3",
   "workspaces": [
     "website"
-  ]
+  ],
+  "dependencies": {
+    "@algolia/client-search": "^4.14.2"
+  },
+  "resolutions": {
+    "trim": "0.0.3"
+  }
 }

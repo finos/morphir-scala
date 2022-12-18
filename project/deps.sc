@@ -3,10 +3,11 @@ import mill._, scalalib._
 object Deps {
   case object com {
     case object lihaoyi {
+      val geny = ivy"com.lihaoyi::geny::${Versions.geny}"
       val mainargs   = ivy"com.lihaoyi::mainargs::${Versions.`mainargs`}"
       val `os-lib`   = ivy"com.lihaoyi::os-lib::${Versions.`os-lib`}"
       val sourcecode = ivy"com.lihaoyi::sourcecode::0.3.0"
-      val pprint = ivy"com.lihaoyi::pprint::0.7.3"
+      val pprint     = ivy"com.lihaoyi::pprint::0.8.1"
     }
     case object softwaremill {
       case object common {
@@ -16,12 +17,14 @@ object Deps {
   }
   case object dev {
     case object zio {
+      val `izumi-reflect`     = ivy"dev.zio::izumi-reflect::${Versions.`izumi-reflect`}"
       val zio: Dep            = ivy"dev.zio::zio::${Versions.zio}"
       val `zio-cli`           = ivy"dev.zio::zio-cli::${Versions.`zio-cli`}"
       val `zio-json`: Dep     = ivy"dev.zio::zio-json::${Versions.`zio-json`}"
       val `zio-json-golden`   = ivy"dev.zio::zio-json-golden::${Versions.`zio-json`}"
       val `zio-prelude`       = ivy"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
       val `zio-process`       = ivy"dev.zio::zio-process::${Versions.`zio-process`}"
+      val `zio-schema`        = ivy"dev.zio::zio-streams::${Versions.`zio-schema`}"
       val `zio-streams`       = ivy"dev.zio::zio-streams::${Versions.zio}"
       val `zio-test`          = ivy"dev.zio::zio-test::${Versions.zio}"
       val `zio-test-magnolia` = ivy"dev.zio::zio-test-magnolia::${Versions.zio}"
@@ -58,10 +61,15 @@ object Deps {
         ivy"org.scalameta::munit-scalacheck::${Versions.munit}"
 
     }
+
+    case object typelevel {
+      val `paiges-core` = ivy"org.typelevel::paiges-core::${Versions.paiges}"
+    }
   }
 }
 
 object Versions {
+
   def borer(scalaVersion: String): String =
     borer(scalaVersion.split('.'))
 
@@ -79,14 +87,18 @@ object Versions {
     }
 
   val coursier      = "2.1.0-RC2"
+  val geny = "1.0.0"
+  val `izumi-reflect` = "2.2.2"
   val munit         = "1.0.0-M4"
   val mainargs      = "0.3.0"
   val `os-lib`      = "0.8.1"
+  val paiges        = "0.4.2"
   val zio           = "2.0.4"
   val `zio-cli`     = "0.3.0-M02"
   val `zio-json`    = "0.3.0"
   val `zio-prelude` = "1.0.0-RC16"
   val `zio-process` = "0.7.1"
+  val `zio-schema`  = "0.4.1"
 }
 
 object ScalaVersions {
