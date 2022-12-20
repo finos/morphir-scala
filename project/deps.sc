@@ -88,7 +88,7 @@ object Versions {
 
   val coursier        = "2.1.0-RC3-1"
   val geny            = "1.0.0"
-  val `izumi-reflect` = "2.2.2"
+  val `izumi-reflect` = "2.2.3"
   val munit           = "1.0.0-M4"
   val mainargs        = "0.3.0"
   val `os-lib`        = "0.9.0"
