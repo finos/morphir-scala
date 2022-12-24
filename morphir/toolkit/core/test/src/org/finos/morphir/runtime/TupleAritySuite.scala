@@ -1,5 +1,5 @@
 package org.finos.morphir
-package toolkit
+package runtime
 
 import org.finos.morphir.ir.{Type => T}
 import org.finos.morphir.ir.{Value => V}

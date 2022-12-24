@@ -2,7 +2,7 @@ package org.finos.morphir
 package runtime
 
 import ir.Name
-import toolkit.EvaluationEngine._
+import EvaluationEngine._
 import scala.collection.immutable.{ListMap, SeqMap}
 import scala.language.dynamics
 

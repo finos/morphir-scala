@@ -1,7 +1,8 @@
 package org.finos.morphir
-package toolkit
+package runtime
 
 import org.finos.morphir.testing.MorphirBaseSpec
+import ir.Name
 import org.finos.morphir.ir.Type as T
 import org.finos.morphir.ir.Value as V
 

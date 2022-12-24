@@ -1,5 +1,5 @@
 package org.finos.morphir
-package toolkit
+package runtime
 
 import ir.Value.{TypedValue, Value}
 import ir.Type.UType
