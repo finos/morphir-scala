@@ -1,5 +1,5 @@
 package org.finos.morphir
-package toolkit
+package runtime
 
 sealed trait EngineEvent
 sealed trait LogEvent extends EngineEvent

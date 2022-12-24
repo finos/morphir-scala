@@ -2,7 +2,6 @@ package org.finos.morphir
 package runtime
 
 import ir.Value.Value
-import org.finos.morphir.toolkit.{EngineEvent, KernelError}
 import zio.prelude.fx.*
 import zio.*
 

@@ -13,7 +13,7 @@ import zio.test.TestAspect.{ignore, tag}
 import EvaluationEngine.*
 import V.*
 import org.finos.morphir.runtime
-import org.finos.morphir.runtime.MorphirRecord
+import org.finos.morphir.runtime.{EvaluationError, MorphirRecord}
 
 trait TypedEvaluationEngineSpec { self: MorphirBaseSpec =>
   def typedEvaluationEngineSuite =
