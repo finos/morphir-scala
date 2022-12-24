@@ -1,4 +1,4 @@
-package org.finos.morphir.toolkit.runtime
+package org.finos.morphir.runtime
 
 trait Resolver extends Product with Serializable
 

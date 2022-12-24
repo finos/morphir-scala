@@ -7,12 +7,12 @@ import Value.Folder
 import org.finos.morphir.ir.{FQName, Name, Type}
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.Pattern
-import org.finos.morphir.toolkit.runtime.MorphirRecord
 import zio._
 import org.finos.morphir.ir.Literal.Literal._
 import zio.prelude._
 import zio.prelude.fx._
 import EvaluationEngine._
+import org.finos.morphir.runtime.MorphirRecord
 
 abstract class EvaluationEngine[TA: Tag, VA: Tag] extends Folder[scala.Unit, TA, VA, Step[TA, VA, EvalResult]] {
   self =>

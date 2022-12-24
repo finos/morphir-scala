@@ -1,6 +1,4 @@
-package org.finos.morphir
-package toolkit
-package runtime
+package org.finos.morphir.runtime
 
 import zio.Tag
 import org.finos.morphir.ir.FQName
