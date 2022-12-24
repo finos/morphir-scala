@@ -25,8 +25,3 @@ final case class SymbolTable()
 object SymbolTable {
   val empty: SymbolTable = SymbolTable()
 }
-
-sealed trait Symbol
-object Symbol {
-  final case class Var(name: Name) extends Symbol
-}
