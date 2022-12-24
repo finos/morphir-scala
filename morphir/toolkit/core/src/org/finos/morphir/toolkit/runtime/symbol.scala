@@ -6,11 +6,11 @@ import org.finos.morphir.ir.FQName
 import zio.Tag
 
 sealed trait Symbol { self =>
-  //@compat.targetName("append")
+  @compat.targetName("append")
   def :=[A](value: A)(implicit ev: Not[A =:= SymbolValue], tagged: Tag[A]): SymbolBinding =
     SymbolBinding(self, SymbolValue.Typed(value, tagged))
 
-  //@compat.targetName("append")
+  @compat.targetName("append")
   def :=(value: SymbolValue): SymbolBinding = SymbolBinding(self, value)
 }
 object Symbol {
