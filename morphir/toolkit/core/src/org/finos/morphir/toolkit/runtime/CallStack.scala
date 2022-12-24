@@ -20,8 +20,3 @@ final case class StackFrame(symbols: SymbolTable)
 object StackFrame {
   val empty: StackFrame = StackFrame(SymbolTable.empty)
 }
-
-final case class SymbolTable()
-object SymbolTable {
-  val empty: SymbolTable = SymbolTable()
-}
