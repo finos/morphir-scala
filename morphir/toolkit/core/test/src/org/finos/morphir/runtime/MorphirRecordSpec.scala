@@ -11,7 +11,8 @@ object MorphirRecordSpec extends MorphirBaseSpec {
   def spec = suite("MorphirRecord Spec")(
     suite("canEqual")(
       test("Should be true with any other MorphirRecord") {
-        val record1 = MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
+        val record1 =
+          MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
         val record2 = MorphirRecord(ListMap(Name.fromString("age") -> 28))
 
         assertTrue(
@@ -32,8 +33,10 @@ object MorphirRecordSpec extends MorphirBaseSpec {
     ),
     suite("equals")(
       test("Should be true with the same or with similar record") {
-        val record1 = MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
-        val record2 = MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
+        val record1 =
+          MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
+        val record2 =
+          MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
 
         assertTrue(
           record1.equals(record1),
@@ -42,7 +45,8 @@ object MorphirRecordSpec extends MorphirBaseSpec {
         )
       },
       test("Should be false with a different record") {
-        val record1 = MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
+        val record1 =
+          MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
         val record2 = MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26))
         val record3 = MorphirRecord(ListMap(Name.fromString("age") -> 26))
 
@@ -92,8 +96,10 @@ object MorphirRecordSpec extends MorphirBaseSpec {
     ),
     suite("hashCode")(
       test("Should be equal with the same or similar record") {
-        val record1 = MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
-        val record2 = MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
+        val record1 =
+          MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
+        val record2 =
+          MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
 
         assertTrue(
           record1.hashCode == record2.hashCode

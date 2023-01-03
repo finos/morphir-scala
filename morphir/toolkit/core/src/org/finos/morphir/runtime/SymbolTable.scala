@@ -34,6 +34,3 @@ object SymbolTable {
     SymbolTable(data)
   }
 }
-
-
-
