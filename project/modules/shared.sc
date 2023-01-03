@@ -6,6 +6,7 @@ import mill._, mill.scalalib._, mill.scalajslib._, scalafmt._
 import mill.scalalib.bsp.ScalaMetalsSupport
 import io.kipp.mill.ci.release.CiReleaseModule
 import Deps._
+import java.util.Properties
 
 def commitHash = T {
   os.proc("git", "rev-parse", "HEAD").call().out.text.trim
@@ -96,7 +97,7 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule with Scala
         try {
           val props = new java.util.Properties()
           props.load(is)
-          props.getProperty("scalac.options.additional").split(" ").toSeq
+          getAdditionalScalacOptions(props, partialVersion())
         } finally is.close()
       } catch {
         case e: Throwable =>
@@ -108,6 +109,22 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule with Scala
     }
   }
 
+  def getAdditionalScalacOptions(props:Properties, partialVersion:Option[(Int,Int)]):Seq[String] = {
+    val allProps =
+      Option(props.getProperty("scalac.options.additional"))
+        .map(str => str.split(' ').toSeq).getOrElse(Seq.empty)
+    partialVersion match {
+      case None => allProps
+      case Some((major,minor)) =>
+        val majorProps =
+          Option(props.getProperty(s"scalac.$major.x.options.additional"))
+            .map(str => str.split(' ').toSeq).getOrElse(Seq.empty)
+        val majorMinorProps =
+          Option(props.getProperty(s"scalac.$major.$minor.options.additional"))
+            .map(str => str.split(" ").toSeq).getOrElse(Seq.empty)
+        allProps ++ majorProps ++ majorMinorProps
+    }
+  }
   def compilerPluginDependencies(selectedScalaVersion: String): Agg[Dep] =
     if (selectedScalaVersion.startsWith("3.")) {
       Agg(org.`scala-lang`.`scala3-compiler`(selectedScalaVersion))

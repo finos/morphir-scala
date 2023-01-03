@@ -1,10 +1,9 @@
 package org.finos.morphir
-package toolkit
+package runtime
 
-import ir.{Value => V, Type => T}
-import V.Value
-import zio._
-import zio.prelude.fx._
+import ir.Value.Value
+import zio.*
+import zio.prelude.fx.*
 
 abstract class Kernel[+TA, +VA, +A] {
   def interpret[TA1 >: TA: Tag, VA1 >: VA: Tag](value: Value[TA1, VA1]): A

@@ -1,9 +1,8 @@
 package org.finos.morphir
-package toolkit
 package runtime
 
 import org.finos.morphir.testing.MorphirBaseSpec
-import zio.test._
+import zio.test.*
 object CallStackSpec extends MorphirBaseSpec {
   def spec = suite("CallStack Spec")(
     test("An empty CallStack can be created") {

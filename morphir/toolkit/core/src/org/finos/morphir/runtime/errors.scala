@@ -1,9 +1,7 @@
 package org.finos.morphir
-package toolkit
+package runtime
 
-import ir.Value.{TypedValue, Value}
-import ir.Type.UType
-import Value.Folder
+import ir.Name
 import zio.{Tag, ZIO}
 
 sealed abstract class KernelError(message: Option[String])

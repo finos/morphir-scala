@@ -1,17 +1,20 @@
 package org.finos.morphir
-package toolkit
+package runtime
 
 import org.finos.morphir.testing.MorphirBaseSpec
-import org.finos.morphir.toolkit.runtime.MorphirRecord
-import org.finos.morphir.ir.{Type => T}
-import org.finos.morphir.ir.{Value => V}
+import ir.Name
+import org.finos.morphir.ir.Type as T
+import org.finos.morphir.ir.Value as V
+
 import scala.collection.immutable.ListMap
-import zio.{test => _, _}
-import zio.prelude.fx._
-import zio.test._
+import zio.{test as _, *}
+import zio.prelude.fx.*
+import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
-import EvaluationEngine._
-import V._
+import EvaluationEngine.*
+import V.*
+import org.finos.morphir.runtime
+import org.finos.morphir.runtime.{EvaluationError, MorphirRecord}
 
 trait TypedEvaluationEngineSpec { self: MorphirBaseSpec =>
   def typedEvaluationEngineSuite =

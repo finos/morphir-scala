@@ -1,7 +1,7 @@
 package org.finos.morphir
+import org.finos.morphir.runtime.{EngineEvent, EvaluationError}
 import zio.ZState
-
-import zio.prelude.fx._
+import zio.prelude.fx.*
 package object toolkit {
 
   type Documented[+A] = ir.Documented[A]
@@ -20,23 +20,4 @@ package object toolkit {
 
   // type TypedValueVisitor[Context] = ValueVisitor[Context, scala.Unit, MorphirType]
 
-  type StepCompanion
-
-  type Step[TA, VA, A] = ZStep[Any, TA, VA, A]
-  val Step = ZPure.asInstanceOf[ZPure.type with StepCompanion]
-
-  type ZStep[-R, TA, VA, A] =
-    ZPure[EngineEvent, EvaluationEngine.Context[TA, VA], EvaluationEngine.Context[TA, VA], R, EvaluationError, A]
-  val ZStep = ZPure.asInstanceOf[ZPure.type with StepCompanion]
-
-  implicit class ZStepCompanionOps(val self: ZPure.type with StepCompanion) extends AnyVal {
-    import EvaluationEngine._
-
-    def scoped[R, TA, VA, A](bindings: VarBinding*)(block: => ZStep[R, TA, VA, A]): ZStep[R, TA, VA, A] =
-      for {
-        originalContext <- ZStep.get[Context[TA, VA]]
-        result          <- ZStep.set(originalContext)
-
-      } yield ???
-  }
 }

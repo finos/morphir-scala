@@ -1,5 +1,5 @@
 package org.finos.morphir
-package toolkit
+package runtime
 
 import org.finos.morphir.testing.MorphirBaseSpec
 

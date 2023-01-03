@@ -1,10 +1,11 @@
 package org.finos.morphir
-package toolkit
 package runtime
 
+import ir.Name
 import org.finos.morphir.testing.MorphirBaseSpec
+
 import scala.collection.immutable.ListMap
-import zio.test._
+import zio.test.*
 
 object MorphirRecordSpec extends MorphirBaseSpec {
   def spec = suite("MorphirRecord Spec")(
