@@ -240,7 +240,7 @@ object morphir extends Module {
     }
     object cli extends MorphirScalaModule with BuildInfo with MorphirPublishModule {
       def crossScalaVersion    = morphirScalaVersion
-      def buildInfoPackageName = Some("org.finos.morphir.cli")
+      def buildinfopackagename = Some("org.finos.morphir.cli")
       def buildInfoObjectName  = "MorphirCliBuildInfo"
       def buildInfoMembers = T {
         Map(
@@ -260,6 +260,35 @@ object morphir extends Module {
       )
       def packageDescription = "A command line interface for Morphir"
       object test extends Tests with MorphirTestModule {}
+    }
+
+    object frontend extends Module {
+      object lang extends Module {
+        object scala extends MorphirScalaModule with BuildInfo with MorphirPublishModule {
+          def crossScalaVersion    = morphirScalaVersion
+
+          def buildinfopackagename = Some("org.finos.morphir.frontend.lang")
+
+          def buildInfoObjectName = "ScalaFrontendBuildInfo"
+
+          def buildInfoMembers = T {
+            Map(
+              "scalaVersion" -> scalaVersion(),
+              "version" -> VcsVersion.vcsState().format(),
+              "product" -> "morphir",
+              "summary" -> "Morphir Frontend - Scala",
+              "description" -> packageDescription
+            )
+          }
+
+          def ivyDeps = Agg(
+            org.`scala-lang`.`scala3-tasty-inspector`(crossScalaVersion)
+          )
+          def moduleDeps = Seq(morphir.toolkit.core(crossScalaVersion))
+
+          object test extends Tests with MorphirTestModule {}
+        }
+      }
     }
 
     object launcher extends MorphirScalaModule with BuildInfo with MorphirPublishModule {

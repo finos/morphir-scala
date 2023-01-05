@@ -14,3 +14,7 @@ object Bool:
   /** Define conversions between Bool and Boolean */
   private[sdk] given Conversion[Bool, Boolean] = b => b
   private[sdk] given Conversion[Boolean, Bool] = b => b
+
+class NotABoolModule
+
+object ABoolModule {}
