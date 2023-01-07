@@ -31,15 +31,6 @@ object morphir extends Module {
   val workspaceDir = build.millSourcePath
 
   object contrib extends Module {
-    object flowz extends mill.Cross[FlowzModule](ScalaVersions.all: _*) {}
-    class FlowzModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-      def ivyDeps = Agg(dev.zio.zio, dev.zio.`zio-json`)
-      object test extends Tests with MorphirTestModule {
-
-        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
-      }
-    }
-
     object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
     class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
       def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
@@ -141,7 +132,7 @@ object morphir extends Module {
         com.lihaoyi.pprint,
         org.typelevel.`paiges-core`
       )
-      def moduleDeps = Seq(morphir.contrib.flowz(crossScalaVersion), morphir.lib.interop(crossScalaVersion))
+      def moduleDeps = Seq(morphir.lib.interop(crossScalaVersion))
       object test extends Tests with MorphirTestModule {
         def moduleDeps =
           super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion), morphir.toolkit.core.testing(crossScalaVersion))
