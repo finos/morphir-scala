@@ -48,35 +48,6 @@ object morphir extends Module {
     }
   }
 
-  object experimental extends Module {
-    object formats extends Module {
-      object core extends MorphirScalaModule with MorphirPublishModule {
-        def crossScalaVersion = morphirScalaVersion
-        object test extends Tests with MorphirTestModule {}
-      }
-    }
-
-    object ir extends MorphirScalaModule with MorphirPublishModule {
-      def crossScalaVersion = morphirScalaVersion
-      def moduleDeps        = Seq(morphir.experimental.formats.core)
-      object test extends Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
-      }
-
-      object zio extends Module {
-        object json extends MorphirScalaModule with MorphirPublishModule {
-          def scalacOptions     = super.scalacOptions() ++ Seq("-Yretain-trees")
-          def crossScalaVersion = morphirScalaVersion
-          def moduleDeps        = Seq(morphir.experimental.formats.core, ir)
-          def ivyDeps           = Agg(dev.zio.`zio-json`)
-          object test extends Tests with MorphirTestModule {
-            def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
-          }
-        }
-      }
-    }
-  }
-
   object lib extends Module {
     object core extends MorphirScalaModule with MorphirPublishModule {
       def crossScalaVersion = morphirScalaVersion
