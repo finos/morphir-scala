@@ -210,8 +210,8 @@ object morphir extends Module {
       }
     }
 
-    object vfile extends mill.Cross[VFileModule](ScalaVersions.all:_*)
-    class VFileModule(val crossScalaVersion:String) extends MorphirCrossScalaModule with MorphirPublishModule {
+    object vfile extends mill.Cross[VFileModule](ScalaVersions.all: _*)
+    class VFileModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
       def ivyDeps = Agg(
         com.lihaoyi.sourcecode,
         com.lihaoyi.geny,
@@ -225,7 +225,7 @@ object morphir extends Module {
       def moduleDeps = Seq(morphir.toolkit.util(crossScalaVersion))
       object test extends Tests with MorphirTestModule {
         def moduleDeps = super.moduleDeps ++ Seq(
-          morphir.testing(crossScalaVersion),
+          morphir.testing(crossScalaVersion)
         )
       }
     }
@@ -233,11 +233,6 @@ object morphir extends Module {
 
   object tools extends Module {
 
-    object backend extends MorphirScalaModule with MorphirPublishModule {
-      def crossScalaVersion = ScalaVersions.scala3x
-      def moduleDeps = Seq(morphir.experimental.ir, morphir.experimental.formats.core, morphir.experimental.ir.zio.json)
-      object test extends Tests with MorphirTestModule {}
-    }
     object cli extends MorphirScalaModule with BuildInfo with MorphirPublishModule {
       def crossScalaVersion    = morphirScalaVersion
       def buildInfoPackageName = Some("org.finos.morphir.cli")
