@@ -6,3 +6,4 @@ trait CoreModule:
   type ValueAttribs
 
   export internal.DistroVisitor
+  type Visitor[-In, +Out] = internal.Visitor[TypeAttribs, ValueAttribs, In, Out]

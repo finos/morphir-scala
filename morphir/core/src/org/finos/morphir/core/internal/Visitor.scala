@@ -3,12 +3,13 @@ package core
 package internal
 
 trait Visitor[TA, VA, -In, +Out] {
-  def visitName(value: Array[String]): Out
-  def visitPath(value: Array[Array[String]]): Out
-  def visitDist(): Out
-
-  def visitType(): TypeVisitor[TA, In, Out]
-  def visitValue(): ValueVisitor[TA, VA, In, Out]
+  def fail(index: Int): Out
+  def visitName(value: Name, index: Int): Out
+//  def visitPath(value: Array[Array[String]]): Out
+//  def visitDist(): DistroVisitor[In, Out]
+//
+//  def visitType(): TypeVisitor[TA, In, Out]
+//  def visitValue(): ValueVisitor[TA, VA, In, Out]
 }
 
 trait ValueVisitor[TA, VA, -In, +Out] { self => }
@@ -25,4 +26,6 @@ trait AccessControlledVisitor[-In, +Out] { self =>
   def visitPrivate(index: Int): Out
 }
 
-private[core] trait DistroVisitor[-In, +Out] { self => }
+private[core] trait DistroVisitor[-In, +Out] { self =>
+  def visitVersion(index: Int, version: MorphirVersion): Out
+}

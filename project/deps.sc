@@ -10,6 +10,11 @@ object Deps {
     }
   }
   case object com {
+    case object github {
+      case object arturopala {
+        val `buffer-and-slice` = ivy"com.github.arturopala::buffer-and-slice:${Versions.`buffer-and-slice`}"
+      }
+    }
     case object lihaoyi {
       val geny       = ivy"com.lihaoyi::geny::${Versions.geny}"
       val mainargs   = ivy"com.lihaoyi::mainargs::${Versions.`mainargs`}"
@@ -81,6 +86,7 @@ object Deps {
 
 object Versions {
 
+
   def borer(scalaVersion: String): String =
     borer(scalaVersion.split('.'))
 
@@ -90,6 +96,8 @@ object Versions {
       case Seq("2", "13", _) => "1.8.0"
       case _                 => "1.6.3"
     }
+
+  val `buffer-and-slice` = "1.57.0"
 
   def semanticDb(partialVersion: Option[(Int, Int)]): String =
     partialVersion match {
