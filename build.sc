@@ -48,9 +48,19 @@ object morphir extends Module {
     }
   }
 
+  object concepts extends MorphirScalaModule with MorphirPublishModule {
+    val crossScalaVersion = morphirScalaVersion
+
+    def moduleDeps = Seq(core)
+
+    object test extends Tests with MorphirTestModule {
+      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+    }
+  }
+
   object core extends MorphirScalaModule with MorphirPublishModule {
     val crossScalaVersion = morphirScalaVersion
-    def ivyDeps = Agg(com.github.arturopala.`buffer-and-slice`, com.lihaoyi.ujson)
+
     object test extends Tests with MorphirTestModule {
       def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
     }
@@ -85,6 +95,18 @@ object morphir extends Module {
     }
   }
 
+  object lang extends MorphirScalaModule with MorphirPublishModule {
+    val crossScalaVersion = morphirScalaVersion
+
+    def ivyDeps = Agg(com.lihaoyi.ujson)
+
+    def moduleDeps = Seq(core, concepts)
+
+    object test extends Tests with MorphirTestModule {
+      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+    }
+  }
+
   object lib extends Module {
     object core extends MorphirScalaModule with MorphirPublishModule {
       def crossScalaVersion = morphirScalaVersion
@@ -107,15 +129,7 @@ object morphir extends Module {
     }
   }
 
-  object models extends MorphirScalaModule with MorphirPublishModule {
-    val crossScalaVersion = morphirScalaVersion
-    def ivyDeps = Agg(com.lihaoyi.ujson)
-    def moduleDeps = Seq(core)
 
-    object test extends Tests with MorphirTestModule {
-      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
-    }
-  }
 
   object site extends Docusaurus2Module with MDocModule {
     override def scalaMdocVersion: T[String] = T("2.3.6")

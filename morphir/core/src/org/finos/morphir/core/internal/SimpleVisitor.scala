@@ -3,6 +3,8 @@ import org.finos.morphir.core.Name
 
 trait SimpleVisitor[TA, VA, -In, +Out] extends Visitor[TA, VA, In, Out] {
   def expectedMsg: String
+  def visitName(value: Name, index: Int): Out =
+    throw new Abort(expectedMsg + "got name")
 
-  override def visitName(value: Name, index: Int): Out = ???
+  def visitNull(index: Int): Out = null.asInstanceOf[Out]
 }
