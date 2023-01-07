@@ -10,6 +10,9 @@ object Deps {
     }
   }
   case object com {
+    case object beachape {
+      val enumeratum = ivy"com.beachape::enumeratum::${Versions.enumeratum}"
+    }
     case object github {
       case object arturopala {
         val `buffer-and-slice` = ivy"com.github.arturopala::buffer-and-slice:${Versions.`buffer-and-slice`}"
@@ -26,7 +29,7 @@ object Deps {
     }
     case object softwaremill {
       case object common {
-        val tagging = ivy"com.softwaremill.common::tagging::2.3.3"
+        val tagging = ivy"com.softwaremill.common::tagging::2.3.4"
       }
     }
   }
@@ -85,6 +88,7 @@ object Deps {
 }
 
 object Versions {
+  val enumeratum = "1.7.2"
 
 
   def borer(scalaVersion: String): String =

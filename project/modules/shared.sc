@@ -141,7 +141,7 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule with Scala
       case Array("2", _, _) =>
         Seq("-Yrangepos", "-Xsource:3.0")
       case Array("3", _, _) =>
-        Seq("-Xignore-scala2-macros")
+        Seq("-Xignore-scala2-macros", "-Yretain-trees")
       case _ =>
         Seq()
     }

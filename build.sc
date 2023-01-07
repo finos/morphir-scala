@@ -27,8 +27,14 @@ import Deps._
 val morphirScalaVersion: String = ScalaVersions.scala3x
 val docsScalaVersion: String    = ScalaVersions.scala213 //This really should match but need to figure it out
 
-object morphir extends Module {
+object morphir extends MorphirScalaModule with MorphirPublishModule {
+  val crossScalaVersion = morphirScalaVersion
   val workspaceDir = build.millSourcePath
+  def moduleDeps  = Seq(core, concepts, lang)
+
+  object test extends Tests with MorphirTestModule {
+    def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+  }
 
   object contrib extends Module {
     object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
@@ -42,6 +48,7 @@ object morphir extends Module {
   object concepts extends MorphirScalaModule with MorphirPublishModule {
     val crossScalaVersion = morphirScalaVersion
 
+    def ivyDeps = Agg(com.beachape.enumeratum)
     def moduleDeps = Seq(core)
 
     object test extends Tests with MorphirTestModule {
@@ -51,6 +58,18 @@ object morphir extends Module {
 
   object core extends MorphirScalaModule with MorphirPublishModule {
     val crossScalaVersion = morphirScalaVersion
+
+    def ivyDeps = Agg(com.beachape.enumeratum)
+    object test extends Tests with MorphirTestModule {
+      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+    }
+  }
+
+  object lang extends MorphirScalaModule with MorphirPublishModule {
+    val crossScalaVersion = morphirScalaVersion
+
+    def moduleDeps = Seq(core, concepts, vfile(crossScalaVersion))
+    def ivyDeps = Agg(org.typelevel.`paiges-core`)
 
     object test extends Tests with MorphirTestModule {
       def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
@@ -173,25 +192,6 @@ object morphir extends Module {
       }
     }
 
-    object vfile extends mill.Cross[VFileModule](ScalaVersions.all: _*)
-    class VFileModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-      def ivyDeps = Agg(
-        com.lihaoyi.sourcecode,
-        com.lihaoyi.geny,
-        com.lihaoyi.pprint,
-        dev.zio.zio,
-        dev.zio.`zio-prelude`,
-        dev.zio.`zio-streams`,
-        org.typelevel.`paiges-core`
-      )
-
-      def moduleDeps = Seq(morphir.toolkit.util(crossScalaVersion))
-      object test extends Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(
-          morphir.testing(crossScalaVersion)
-        )
-      }
-    }
   }
 
   object tools extends Module {
@@ -308,6 +308,24 @@ object morphir extends Module {
     }
   }
 
+  object vfile extends mill.Cross[VFileModule](ScalaVersions.all: _*)
+
+  class VFileModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
+    def ivyDeps = Agg(
+      com.lihaoyi.sourcecode,
+      com.lihaoyi.geny,
+      com.lihaoyi.pprint,
+      org.typelevel.`paiges-core`
+    )
+
+    def moduleDeps = Seq(morphir.toolkit.util(crossScalaVersion))
+
+    object test extends Tests with MorphirTestModule {
+      def moduleDeps = super.moduleDeps ++ Seq(
+        morphir.testing(crossScalaVersion)
+      )
+    }
+  }
 }
 
 import mill.eval.{Evaluator, EvaluatorPaths}

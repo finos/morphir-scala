@@ -1,5 +1,6 @@
 package org.finos.morphir.core.internal
-import org.finos.morphir.core.Name
+
+import org.finos.morphir.core.types.Name
 
 trait SimpleVisitor[TA, VA, -In, +Out] extends Visitor[TA, VA, In, Out] {
   def expectedMsg: String
