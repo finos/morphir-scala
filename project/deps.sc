@@ -1,6 +1,14 @@
 import mill._, scalalib._
 
 object Deps {
+
+  case object ch {
+    case object epfl {
+      case object scala {
+        val `tasty-query` = ivy"ch.epfl.scala::tasty-query::${Versions.`tasty-query`}"
+      }
+    }
+  }
   case object com {
     case object lihaoyi {
       val geny       = ivy"com.lihaoyi::geny::${Versions.geny}"
@@ -8,6 +16,8 @@ object Deps {
       val `os-lib`   = ivy"com.lihaoyi::os-lib::${Versions.`os-lib`}"
       val sourcecode = ivy"com.lihaoyi::sourcecode::0.3.0"
       val pprint     = ivy"com.lihaoyi::pprint::0.8.1"
+      val ujson      = ivy"com.lihaoyi::ujson::${Versions.upickle}"
+      val upickle    = ivy"com.lihaoyi::upickle::${Versions.upickle}"
     }
     case object softwaremill {
       case object common {
@@ -94,6 +104,8 @@ object Versions {
   val mainargs        = "0.3.0"
   val `os-lib`        = "0.9.0"
   val paiges          = "0.4.2"
+  val `tasty-query`   = "0.5.6"
+  val upickle         = "3.0.0-M1"
   val zio             = "2.0.5"
   val `zio-cli`       = "0.3.0-M02"
   val `zio-json`      = "0.4.2"

@@ -48,6 +48,14 @@ object morphir extends Module {
     }
   }
 
+  object core extends MorphirScalaModule with MorphirPublishModule {
+    val crossScalaVersion = morphirScalaVersion
+    def ivyDeps = Agg(com.lihaoyi.ujson)
+    object test extends Tests with MorphirTestModule {
+      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+    }
+  }
+
   object experimental extends Module {
     object formats extends Module {
       object core extends MorphirScalaModule with MorphirPublishModule {
@@ -96,6 +104,16 @@ object morphir extends Module {
     object interop extends mill.Cross[InteropModule](ScalaVersions.all: _*)
     class InteropModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
       object test extends Tests with MorphirTestModule {}
+    }
+  }
+
+  object models extends MorphirScalaModule with MorphirPublishModule {
+    val crossScalaVersion = morphirScalaVersion
+    def ivyDeps = Agg(com.lihaoyi.ujson)
+    def moduleDeps = Seq(core)
+
+    object test extends Tests with MorphirTestModule {
+      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
     }
   }
 
