@@ -31,15 +31,6 @@ object morphir extends Module {
   val workspaceDir = build.millSourcePath
 
   object contrib extends Module {
-    object flowz extends mill.Cross[FlowzModule](ScalaVersions.all: _*) {}
-    class FlowzModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-      def ivyDeps = Agg(dev.zio.zio, dev.zio.`zio-json`)
-      object test extends Tests with MorphirTestModule {
-
-        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
-      }
-    }
-
     object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
     class KnowledgeModule(val crossScalaVersion: String) extends MorphirCrossScalaModule {
       def ivyDeps    = Agg(com.lihaoyi.sourcecode, dev.zio.`zio-streams`)
@@ -60,47 +51,6 @@ object morphir extends Module {
 
   object core extends MorphirScalaModule with MorphirPublishModule {
     val crossScalaVersion = morphirScalaVersion
-
-    object test extends Tests with MorphirTestModule {
-      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
-    }
-  }
-
-  object experimental extends Module {
-    object formats extends Module {
-      object core extends MorphirScalaModule with MorphirPublishModule {
-        def crossScalaVersion = morphirScalaVersion
-        object test extends Tests with MorphirTestModule {}
-      }
-    }
-
-    object ir extends MorphirScalaModule with MorphirPublishModule {
-      def crossScalaVersion = morphirScalaVersion
-      def moduleDeps        = Seq(morphir.experimental.formats.core)
-      object test extends Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
-      }
-
-      object zio extends Module {
-        object json extends MorphirScalaModule with MorphirPublishModule {
-          def scalacOptions     = super.scalacOptions() ++ Seq("-Yretain-trees")
-          def crossScalaVersion = morphirScalaVersion
-          def moduleDeps        = Seq(morphir.experimental.formats.core, ir)
-          def ivyDeps           = Agg(dev.zio.`zio-json`)
-          object test extends Tests with MorphirTestModule {
-            def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
-          }
-        }
-      }
-    }
-  }
-
-  object lang extends MorphirScalaModule with MorphirPublishModule {
-    val crossScalaVersion = morphirScalaVersion
-
-    def ivyDeps = Agg(com.lihaoyi.ujson)
-
-    def moduleDeps = Seq(core, concepts)
 
     object test extends Tests with MorphirTestModule {
       def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
@@ -128,8 +78,6 @@ object morphir extends Module {
       object test extends Tests with MorphirTestModule {}
     }
   }
-
-
 
   object site extends Docusaurus2Module with MDocModule {
     override def scalaMdocVersion: T[String] = T("2.3.6")
@@ -202,27 +150,10 @@ object morphir extends Module {
         com.lihaoyi.pprint,
         org.typelevel.`paiges-core`
       )
-      def moduleDeps = Seq(morphir.contrib.flowz(crossScalaVersion), morphir.lib.interop(crossScalaVersion))
+      def moduleDeps = Seq(morphir.lib.interop(crossScalaVersion))
       object test extends Tests with MorphirTestModule {
         def moduleDeps =
           super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion), morphir.toolkit.core.testing(crossScalaVersion))
-      }
-    }
-
-    object interpreter extends mill.Cross[InterpreterModule](ScalaVersions.all: _*)
-    class InterpreterModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-      def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-prelude`)
-      def moduleDeps =
-        Seq(
-          morphir.toolkit.core(crossScalaVersion),
-          morphir.toolkit.util(crossScalaVersion)
-        )
-      object test extends Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(
-          morphir.testing(crossScalaVersion),
-          morphir.toolkit.core.testing(crossScalaVersion),
-          morphir.toolkit.core(crossScalaVersion).test
-        )
       }
     }
 
@@ -242,8 +173,8 @@ object morphir extends Module {
       }
     }
 
-    object vfile extends mill.Cross[VFileModule](ScalaVersions.all:_*)
-    class VFileModule(val crossScalaVersion:String) extends MorphirCrossScalaModule with MorphirPublishModule {
+    object vfile extends mill.Cross[VFileModule](ScalaVersions.all: _*)
+    class VFileModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
       def ivyDeps = Agg(
         com.lihaoyi.sourcecode,
         com.lihaoyi.geny,
@@ -257,7 +188,7 @@ object morphir extends Module {
       def moduleDeps = Seq(morphir.toolkit.util(crossScalaVersion))
       object test extends Tests with MorphirTestModule {
         def moduleDeps = super.moduleDeps ++ Seq(
-          morphir.testing(crossScalaVersion),
+          morphir.testing(crossScalaVersion)
         )
       }
     }
@@ -265,14 +196,9 @@ object morphir extends Module {
 
   object tools extends Module {
 
-    object backend extends MorphirScalaModule with MorphirPublishModule {
-      def crossScalaVersion = ScalaVersions.scala3x
-      def moduleDeps = Seq(morphir.experimental.ir, morphir.experimental.formats.core, morphir.experimental.ir.zio.json)
-      object test extends Tests with MorphirTestModule {}
-    }
     object cli extends MorphirScalaModule with BuildInfo with MorphirPublishModule {
       def crossScalaVersion    = morphirScalaVersion
-      def buildinfopackagename = Some("org.finos.morphir.cli")
+      def buildInfoPackageName = Some("org.finos.morphir.cli")
       def buildInfoObjectName  = "MorphirCliBuildInfo"
       def buildInfoMembers = T {
         Map(
