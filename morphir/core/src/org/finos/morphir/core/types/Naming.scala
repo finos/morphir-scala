@@ -245,15 +245,27 @@ object Naming:
 
       def namespace: Namespace = Path(self.toList.dropRight(1))
 
-  final case class QualifiedModuleName(packageName: Path, module: ModuleName) {
+  /**
+   * A qualified module name is a globally unique identifier for a module. It is represented by the combination of a
+   * package name and the module name
+   */
+  final case class QualifiedModuleName(packageName: PackageName, module: ModuleName) {
     lazy val toPath: Path     = packageName / module
     def toTuple: (Path, Path) = (packageName, module)
   }
 
   object QualifiedModuleName {
-    val qn = QualifiedModuleName(Path("a.b"), ModuleName("b.c"))
 //    object AsTuple {
 //      def unapply(name: QualifiedModuleName): Option[(Path, ModuleName)] =
 //        Some(name.toTuple)
 //    }
   }
+
+  /**
+   * A package name is a globally unique identifier for a package. It is represented by a `Path` which is a list of
+   * names.
+   */
+  opaque type PackageName <: Path = Path
+  object PackageName:
+    def apply(path: Path): PackageName                   = path
+    def apply(firstPart: Name, rest: Name*): PackageName = Path(firstPart :: rest.toList)

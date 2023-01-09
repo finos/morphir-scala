@@ -16,6 +16,9 @@ object CodeModel:
     case Library()
     case Workspace()
 
+  sealed trait Package extends CodeRepr
+  case class PackageSpec[+TA](modules: ModuleSpecListing[TA])
+
   sealed trait Module       extends CodeRepr
   sealed trait ModuleMember extends CodeRepr
 
@@ -27,6 +30,16 @@ object CodeModel:
   case class ModuleSpec[+TA](types: Map[Name, Documented[TypeSpec[TA]]], values: Map[Name, Documented[ValueSpec[TA]]])
       extends Module
       with Spec
+
+  opaque type ModuleSpecListing[+TA] <: Iterable[(ModuleName, ModuleSpec[TA])] = Map[ModuleName, ModuleSpec[TA]]
+  object ModuleSpecListing:
+    def apply[TA](entries: (ModuleName, ModuleSpec[TA])*): ModuleSpecListing[TA] = entries.toMap
+    def fromMap[TA](map: Map[ModuleName, ModuleSpec[TA]]): ModuleSpecListing[TA] = map
+
+    extension [TA](self: ModuleSpecListing[TA])
+      def moduleNames: Iterable[ModuleName]      = self.keys
+      def moduleSpecs: Iterable[ModuleSpec[TA]]  = self.values
+      def toMap: Map[ModuleName, ModuleSpec[TA]] = self
 
   enum Type[+A] extends CodeRepr:
     case Unit(attributes: A)
