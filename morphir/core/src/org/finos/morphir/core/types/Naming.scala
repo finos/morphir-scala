@@ -3,8 +3,9 @@ package org.finos.morphir.core.types
 import scala.annotation.tailrec
 
 object Naming:
+  trait IName extends Any
 
-  final case class Name private (toList: List[String]) extends AnyVal {
+  final case class Name private (toList: List[String]) extends AnyVal with IName {
     self =>
     def :+(that: String): Name = Name(self.toList :+ that)
 
@@ -89,7 +90,7 @@ object Naming:
     def apply(first: String, rest: String*): Name =
       fromIterable(first +: rest)
 
-    private val pattern = """[a-zA-Z][a-z]*|[0-9]+""".r
+    private val pattern = """([a-zA-Z][a-z]*|[0-9]+)""".r
 
     @inline def fromList(list: List[String]): Name = fromIterable(list)
 
@@ -125,16 +126,17 @@ object Naming:
 
   }
 
-  final case class Path(segments: List[Name]) {
+  sealed trait PathLike extends IName
+  final case class Path(toList: List[Name]) extends PathLike {
     self =>
 
-    def ++(that: Path): Path = Path(segments ++ that.segments)
+    def ++(that: Path): Path = Path(toList ++ that.toList)
 
     /** Constructs a new path by combining this path with the given name. */
-    def /(name: Name): Path = Path(segments ++ List(name))
+    def /(name: Name): Path = Path(toList ++ List(name))
 
     /** Constructs a new path by combining this path with the given path. */
-    def /(that: Path): Path = Path(segments ++ that.segments)
+    def /(that: Path): Path = Path(toList ++ that.toList)
     // def %(other: Path): PackageAndModulePath =
     //   PackageAndModulePath(PackageName(self), ModulePath(other))
 
@@ -142,14 +144,12 @@ object Naming:
     def ::(name: Name): QName = QName(self, name)
 
     /** Indicates whether this path is empty. */
-    def isEmpty: Boolean = segments.isEmpty
+    def isEmpty: Boolean = toList.isEmpty
 
     def zip(other: Path): (Path, Path) = (self, other)
 
-    def toList: List[Name] = segments.toList
-
     def toString(f: Name => String, separator: String): String =
-      segments.map(f).mkString(separator)
+      toList.map(f).mkString(separator)
 
     /** Checks if this path is a prefix of provided path */
     def isPrefixOf(path: Path): Boolean = Path.isPrefixOf(self, path)
@@ -178,7 +178,7 @@ object Naming:
 
     @inline def fromList(names: List[Name]): Path = wrap(names)
 
-    @inline def toList(path: Path): List[Name] = path.segments.toList
+    @inline def toList(path: Path): List[Name] = path.toList.toList
 
     /** Checks if the first provided path is a prefix of the second path */
     @tailrec
@@ -224,4 +224,36 @@ object Naming:
           Some(QName(Path.fromString(packageNameString), Name.fromString(localNameString)))
         case _ => None
       }
+  }
+
+  opaque type Namespace <: Path = Path
+  object Namespace:
+    def apply(path: Path): Namespace   = path
+    def apply(parts: Name*): Namespace = Path.fromList(parts.toList)
+
+  opaque type ModuleName <: Path = Path
+  object ModuleName:
+    def apply(path: Path): ModuleName = path
+    def apply(input: String): ModuleName =
+      Path(input.split('.').map(Name.fromString).toList)
+
+    extension (self: ModuleName)
+      def name: Name =
+        self match
+          case Path(Nil)      => Name.empty
+          case Path(segments) => segments.last
+
+      def namespace: Namespace = Path(self.toList.dropRight(1))
+
+  final case class QualifiedModuleName(packageName: Path, module: ModuleName) {
+    lazy val toPath: Path     = packageName / module
+    def toTuple: (Path, Path) = (packageName, module)
+  }
+
+  object QualifiedModuleName {
+    val qn = QualifiedModuleName(Path("a.b"), ModuleName("b.c"))
+//    object AsTuple {
+//      def unapply(name: QualifiedModuleName): Option[(Path, ModuleName)] =
+//        Some(name.toTuple)
+//    }
   }
