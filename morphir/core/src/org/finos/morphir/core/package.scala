@@ -5,4 +5,4 @@ import org.finos.morphir.core.types.Naming.Name
 package object core:
   export org.finos.morphir.core.internal.Visitor
 
-  def name(input: CharSequence): Name = Name(input)
+  def name(input: String): Name = Name(input)

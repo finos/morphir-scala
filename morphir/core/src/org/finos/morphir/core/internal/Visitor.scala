@@ -6,7 +6,7 @@ package internal
 import morphir.core.types.Versioning.MorphirVersion
 
 trait Visitor[TA, VA, -In, +Out]:
-  def visitName(value: CharSequence, index: Int): Out
+  def visitName(value: String, index: Int): Out
   def visitNull(index: Int): Out
 //  def visitPath(value: Array[Array[String]]): Out
 //  def visitDist(): DistroVisitor[In, Out]
@@ -26,7 +26,7 @@ object Visitor:
       if (v == null) then null.asInstanceOf[Z]
       else mapNonNullsFunction(v)
 
-    override def visitName(value: CharSequence, index: Int): Z =
+    override def visitName(value: String, index: Int): Z =
       mapFunction(delegatedReader.visitName(value, index))
 
     override def visitNull(index: Int) = mapFunction(delegatedReader.visitNull(index))
