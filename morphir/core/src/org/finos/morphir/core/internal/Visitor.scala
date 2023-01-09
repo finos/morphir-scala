@@ -1,6 +1,9 @@
-package org.finos.morphir
+package org.finos
+package morphir
 package core
 package internal
+
+import morphir.core.types.Versioning.MorphirVersion
 
 trait Visitor[TA, VA, -In, +Out]:
   def visitName(value: CharSequence, index: Int): Out

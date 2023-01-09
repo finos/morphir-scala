@@ -1,7 +1,8 @@
 package org.finos.morphir.core.types
 
-import org.finos.morphir.core.types.Name
+import org.finos.morphir.core.types.Naming.Name
 import org.finos.morphir.testing.MorphirBaseSpec
+import org.finos.morphir.testing.generators.WordGen
 import zio.test.*
 object NameSpec extends MorphirBaseSpec {
   def spec = suite("Name Spec")(
@@ -46,6 +47,18 @@ object NameSpec extends MorphirBaseSpec {
       assert("foo", "foo") &&
       assert("fooBar", "foo•bar") &&
       assert("Buffalo Bills", "buffalo•bills")
-    }
+    },
+    equalitySuite
   )
+
+  def equalitySuite = suite("Equality") {
+    val examples = Seq("TitleCase", "camelCase", "snake_case", "Kebab-Case")
+    test("Should hold when created from equal Strings") {
+      check(Gen.fromIterable(examples)) { input =>
+        val actualLHS = Name.fromString(input)
+        val actualRHS = Name.fromString(input)
+        assertTrue(actualLHS == actualRHS)
+      }
+    }
+  }
 }

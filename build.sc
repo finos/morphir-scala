@@ -29,8 +29,8 @@ val docsScalaVersion: String    = ScalaVersions.scala213 //This really should ma
 
 object morphir extends MorphirScalaModule with MorphirPublishModule {
   val crossScalaVersion = morphirScalaVersion
-  val workspaceDir = build.millSourcePath
-  def moduleDeps  = Seq(core, concepts, lang)
+  val workspaceDir      = build.millSourcePath
+  def moduleDeps        = Seq(core, concepts, lang)
 
   object test extends Tests with MorphirTestModule {
     def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
@@ -48,7 +48,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
   object concepts extends MorphirScalaModule with MorphirPublishModule {
     val crossScalaVersion = morphirScalaVersion
 
-    def ivyDeps = Agg(com.beachape.enumeratum)
+    def ivyDeps    = Agg(com.beachape.enumeratum, dev.zio.`zio-parser`, org.typelevel.`paiges-core`)
     def moduleDeps = Seq(core)
 
     object test extends Tests with MorphirTestModule {
@@ -59,7 +59,14 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
   object core extends MorphirScalaModule with MorphirPublishModule {
     val crossScalaVersion = morphirScalaVersion
 
-    def ivyDeps = Agg(com.beachape.enumeratum)
+    def ivyDeps = Agg(
+      com.beachape.enumeratum,
+      com.lihaoyi.castor,
+      com.lihaoyi.pprint,
+      com.lihaoyi.`upickle-core`,
+      io.monix.`newtypes-core`,
+      org.typelevel.`paiges-core`
+    )
     object test extends Tests with MorphirTestModule {
       def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
     }
@@ -69,7 +76,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
     val crossScalaVersion = morphirScalaVersion
 
     def moduleDeps = Seq(core, concepts, vfile(crossScalaVersion))
-    def ivyDeps = Agg(org.typelevel.`paiges-core`)
+    def ivyDeps    = Agg(com.lihaoyi.pprint, dev.zio.`zio-parser`, com.lihaoyi.upickle, org.typelevel.`paiges-core`)
 
     object test extends Tests with MorphirTestModule {
       def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
@@ -223,7 +230,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
     object frontend extends Module {
       object lang extends Module {
         object scala extends MorphirScalaModule with BuildInfo with MorphirPublishModule {
-          def crossScalaVersion    = morphirScalaVersion
+          def crossScalaVersion = morphirScalaVersion
 
           def buildinfopackagename = Some("org.finos.morphir.frontend.lang")
 
@@ -232,10 +239,10 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
           def buildInfoMembers = T {
             Map(
               "scalaVersion" -> scalaVersion(),
-              "version" -> VcsVersion.vcsState().format(),
-              "product" -> "morphir",
-              "summary" -> "Morphir Frontend - Scala",
-              "description" -> packageDescription
+              "version"      -> VcsVersion.vcsState().format(),
+              "product"      -> "morphir",
+              "summary"      -> "Morphir Frontend - Scala",
+              "description"  -> packageDescription
             )
           }
 

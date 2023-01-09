@@ -19,6 +19,7 @@ object Deps {
       }
     }
     case object lihaoyi {
+      val castor       = ivy"com.lihaoyi::castor::${Versions.castor}"
       val geny       = ivy"com.lihaoyi::geny::${Versions.geny}"
       val mainargs   = ivy"com.lihaoyi::mainargs::${Versions.`mainargs`}"
       val `os-lib`   = ivy"com.lihaoyi::os-lib::${Versions.`os-lib`}"
@@ -26,6 +27,7 @@ object Deps {
       val pprint     = ivy"com.lihaoyi::pprint::0.8.1"
       val ujson      = ivy"com.lihaoyi::ujson::${Versions.upickle}"
       val upickle    = ivy"com.lihaoyi::upickle::${Versions.upickle}"
+      val `upickle-core` = ivy"com.lihaoyi::upickle-core::${Versions.upickle}"
     }
     case object softwaremill {
       case object common {
@@ -40,6 +42,7 @@ object Deps {
       val `zio-cli`           = ivy"dev.zio::zio-cli::${Versions.`zio-cli`}"
       val `zio-json`: Dep     = ivy"dev.zio::zio-json::${Versions.`zio-json`}"
       val `zio-json-golden`   = ivy"dev.zio::zio-json-golden::${Versions.`zio-json`}"
+      val `zio-parser`        = ivy"dev.zio::zio-parser::${Versions.`zio-parser`}"
       val `zio-prelude`       = ivy"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
       val `zio-process`       = ivy"dev.zio::zio-process::${Versions.`zio-process`}"
       val `zio-schema`        = ivy"dev.zio::zio-streams::${Versions.`zio-schema`}"
@@ -67,6 +70,10 @@ object Deps {
     case object lemonlabs {
       val `scala-uri` = ivy"io.lemonlabs::scala-uri:4.0.3"
     }
+
+    case object monix {
+      val `newtypes-core` = ivy"io.monix::newtypes-core::0.2.3"
+    }
   }
   case object org {
     case object `scala-lang` {
@@ -88,6 +95,8 @@ object Deps {
 }
 
 object Versions {
+  val castor = "0.2.1"
+
   val enumeratum = "1.7.2"
 
 
@@ -121,6 +130,7 @@ object Versions {
   val zio             = "2.0.5"
   val `zio-cli`       = "0.3.0-M02"
   val `zio-json`      = "0.4.2"
+  val `zio-parser`    = "0.1.7"
   val `zio-prelude`   = "1.0.0-RC16"
   val `zio-process`   = "0.7.1"
   val `zio-schema`    = "0.4.1"
