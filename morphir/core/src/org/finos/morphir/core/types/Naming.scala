@@ -1,5 +1,8 @@
-package org.finos.morphir.core.types
-import monix.newtypes.*
+package org.finos
+package morphir
+package core.types
+
+import morphir.prelude.*
 import scala.annotation.tailrec
 
 object Naming {
@@ -228,14 +231,18 @@ object Naming {
   }
 
   type Namespace = Namespace.Type
-  object Namespace extends NewsubtypeWrapped[Path] {
-    // def apply(path: Path): Namespace = path
-
+  object Namespace extends Subtype[Path] {
     def apply(parts: Name*): Namespace = Namespace(Path.fromList(parts.toList))
+
+    implicit class NamespaceOps(val namespace: Namespace) extends AnyVal {
+      def /(name: Name): ModuleName = ModuleName(namespace.value / name)
+      @inline def toPath: Path      = namespace.value
+      @inline def value: Path       = unwrap(namespace)
+    }
   }
 
   type ModuleName = ModuleName.Type
-  object ModuleName extends NewsubtypeWrapped[Path] {
+  object ModuleName extends Subtype[Path] {
 
     def apply(input: String): ModuleName =
       ModuleName(Path(input.split('.').map(Name.fromString).toList))
@@ -248,6 +255,8 @@ object Naming {
         }
 
       def namespace: Namespace = Namespace(Path(self.value.toList.dropRight(1)))
+      def toPath: Path         = unwrap(self)
+      def value: Path          = unwrap(self)
     }
   }
 
@@ -274,9 +283,12 @@ object Naming {
    */
   type PackageName = PackageName.Type
 
-  object PackageName extends NewsubtypeWrapped[Path] {
-    // def apply(path: Path): PackageName = path
+  object PackageName extends Subtype[Path] {
+    def apply(firstPart: Name, rest: Name*): PackageName = wrap(Path(firstPart :: rest.toList))
 
-    def apply(firstPart: Name, rest: Name*): PackageName = PackageName(Path(firstPart :: rest.toList))
+    implicit class PackageNameOps(val self: PackageName) extends AnyVal {
+      def value: Path  = unwrap(self)
+      def toPath: Path = unwrap(self)
+    }
   }
 }

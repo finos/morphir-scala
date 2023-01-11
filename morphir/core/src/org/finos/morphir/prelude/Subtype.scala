@@ -8,6 +8,6 @@
  */
 package org.finos.morphir.prelude
 
-trait NewtypeVersionSpecific {
-  type Type
+abstract class Subtype[A] extends Newtype[A] {
+  type Type <: A
 }
