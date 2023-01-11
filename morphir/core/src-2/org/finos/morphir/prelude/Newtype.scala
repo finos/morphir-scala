@@ -1,5 +1,6 @@
-package org.finos.morphir.core.types
-import zio.prelude._
+package org.finos
+package morphir
+package prelude
 
 /**
  * The `Newtype` module provides functionality for creating zero overhead newtypes. Newtypes wrap an existing type and
@@ -90,7 +91,7 @@ import zio.prelude._
  * syntax differs between Scala 2 and 3 due to changes in the macro API).
  *
  * {{{
- * import zio.prelude.Assertion.greaterThanOrEqualTo
+ * import org.finos.morphir.prelude.Assertion.greaterThanOrEqualTo
  *
  * type Natural = Natural.Type
  * object Natural extends Newtype[Int] {
@@ -183,7 +184,7 @@ abstract class Newtype[A] extends NewtypeVersionSpecific {
    *
    * If there is a `def assertion` (see [[assert]]), the value will be checked at compile-time.
    */
-  def apply(value: A): Type = macro zio.prelude.Macros.wrap_impl[A, Type]
+  def apply(value: A): Type = macro morphir.prelude.Macros.wrap_impl[A, Type]
 
   // def make(value: A): Validation[String, Type] = macro zio.prelude.Macros.make_impl[A, Type]
 
@@ -217,7 +218,7 @@ abstract class Newtype[A] extends NewtypeVersionSpecific {
    * a type (`QuotedAssertion`). If you do so, the macro will not be able to run the provided assertion at compile-time
    * and will fail with a message containing this very same information.
    */
-  def assert(assertion: Assertion[A]): QuotedAssertion[A] = macro zio.prelude.Macros.assert_impl[A]
+  def assert(assertion: Assertion[A]): QuotedAssertion[A] = macro morphir.prelude.Macros.assert_impl[A]
 
   /**
    * This method is used as an escape hatch for `assert` to allow Newtypes to use custom functions. If at all possible,
@@ -232,7 +233,7 @@ abstract class Newtype[A] extends NewtypeVersionSpecific {
    */
   def assertCustom(f: A => Either[AssertionError, Unit]): QuotedAssertion[A] =
     // NOTE: This comment exist to keep scalafmt from messing up the formatting of this method
-    macro zio.prelude.Macros.assertCustom_impl[A]
+    macro morphir.prelude.Macros.assertCustom_impl[A]
 
   /**
    * Converts an instance of a type parameterized on the underlying type to an instance of a type parameterized on the
@@ -242,12 +243,12 @@ abstract class Newtype[A] extends NewtypeVersionSpecific {
    * Due to macro limitations, this method cannot with refined newtype and will thus issue a compiler error if you
    * attempt to do so.
    */
-  def wrapAll[F[_]](value: F[A]): F[Type] = macro zio.prelude.Macros.wrapAll_impl[F, A, Type]
+  def wrapAll[F[_]](value: F[A]): F[Type] = macro morphir.prelude.Macros.wrapAll_impl[F, A, Type]
 
 }
 
 object Newtype {
-  def assert[A](assertion: Assertion[A]): QuotedAssertion[A] = macro zio.prelude.Macros.assert_impl[A]
+  def assert[A](assertion: Assertion[A]): QuotedAssertion[A] = macro morphir.prelude.Macros.assert_impl[A]
 
   /**
    * Converts an instance of the underlying type to an instance of the newtype, ignoring any Assertion.

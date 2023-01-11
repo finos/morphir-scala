@@ -1,4 +1,4 @@
-package org.finos.morphir.core.types
+package org.finos.morphir.prelude
 
 trait NewtypeVersionSpecific {
   type Type

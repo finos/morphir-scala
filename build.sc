@@ -78,7 +78,6 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
         com.lihaoyi.`upickle-core`,
         io.monix.`newtypes-core`,
         org.typelevel.`paiges-core`,
-        dev.zio.`zio-prelude-macros`
       ) ++ (if (crossScalaVersion.startsWith("2."))
               Agg(
                 org.`scala-lang`.`scala-reflect`(crossScalaVersion),
