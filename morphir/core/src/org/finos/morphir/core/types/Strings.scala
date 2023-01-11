@@ -1,8 +1,11 @@
-package org.finos.morphir.core.types
-import monix.newtypes.*
+package org.finos
+package morphir
+package core.types
+
+import morphir.prelude._
 object Strings {
   type EncodedString = EncodedString.Type
-  object EncodedString extends NewsubtypeWrapped[String] {
+  object EncodedString extends Newtype[String] {
     def encode(input: CharSequence)(implicit encoder: StringEncoder): EncodedString =
       EncodedString(encoder.encode(input))
 
@@ -14,6 +17,10 @@ object Strings {
         case EncodedString(s) => Option(s)
         case _                => None
       }
+
+    implicit class EncodedStringOps(val self: EncodedString) extends AnyVal {
+      def value: String = unwrap(self)
+    }
   }
   trait StringEncoder {
     def encode(input: CharSequence): String

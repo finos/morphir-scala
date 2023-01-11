@@ -46,7 +46,7 @@ private[prelude] class Macros(val c: whitebox.Context) extends Liftables {
              |""".stripMargin
         c.abort(c.enclosingPosition, message)
       case None =>
-        c.Expr[F[T]](q"_root_.zio.prelude.Newtype.unsafeWrapAll(${c.prefix}, $expr)")
+        c.Expr[F[T]](q"_root_.org.finos.morphir.prelude.Newtype.unsafeWrapAll(${c.prefix}, $expr)")
     }
   }
 
@@ -93,11 +93,11 @@ private[prelude] class Macros(val c: whitebox.Context) extends Liftables {
           c.abort(c.enclosingPosition, message)
         } else {
 
-          q"_root_.zio.prelude.Newtype.unsafeWrapAll(${c.prefix}, _root_.zio.NonEmptyChunk($value, ..$values))"
+          q"_root_.org.finos.morphir.prelude.Newtype.unsafeWrapAll(${c.prefix}, _root_.zio.NonEmptyChunk($value, ..$values))"
         }
 
       case None =>
-        q"_root_.zio.prelude.Newtype.unsafeWrapAll(${c.prefix}, _root_.zio.NonEmptyChunk($value, ..$values))"
+        q"_root_.org.finos.morphir.prelude.Newtype.unsafeWrapAll(${c.prefix}, _root_.zio.NonEmptyChunk($value, ..$values))"
     }
   }
 
@@ -126,7 +126,7 @@ private[prelude] class Macros(val c: whitebox.Context) extends Liftables {
                 c.abort(c.enclosingPosition, message)
 
               case Right(_) =>
-                c.Expr[T](q"_root_.zio.prelude.Newtype.unsafeWrap(${c.prefix})($expr)")
+                c.Expr[T](q"_root_.org.finos.morphir.prelude.Newtype.unsafeWrap(${c.prefix})($expr)")
             }
 
           case _ =>
@@ -142,7 +142,7 @@ private[prelude] class Macros(val c: whitebox.Context) extends Liftables {
         }
 
       case None =>
-        c.Expr[T](q"_root_.zio.prelude.Newtype.unsafeWrap(${c.prefix})($expr)")
+        c.Expr[T](q"_root_.org.finos.morphir.prelude.Newtype.unsafeWrap(${c.prefix})($expr)")
     }
 
   }
@@ -150,10 +150,10 @@ private[prelude] class Macros(val c: whitebox.Context) extends Liftables {
   def make_impl[A: c.WeakTypeTag, T: c.WeakTypeTag](value: c.Expr[A]): c.Tree = {
     val expr = value
 
-    val result = q"_root_.zio.prelude.Newtype.unsafeWrap(${c.prefix})($expr)"
+    val result = q"_root_.org.finos.morphir.prelude.Newtype.unsafeWrap(${c.prefix})($expr)"
 
     q"""
-_root_.zio.prelude.Validation.fromEitherNonEmptyChunk {
+_root_.org.finos.morphir.prelude.Validation.fromEitherNonEmptyChunk {
   ${c.prefix}.assertion.run($value)
     .left.map(e => _root_.zio.NonEmptyChunk.fromCons(e.toNel($value.toString)))
 }.as($result)
@@ -172,10 +172,10 @@ _root_.zio.prelude.Validation.fromEitherNonEmptyChunk {
 
     quotedAssertion match {
       case Some(quotedAssertion) =>
-        val result = q"_root_.zio.prelude.Newtype.unsafeWrapAll(${c.prefix}, $expr)"
+        val result = q"_root_.org.finos.morphir.prelude.Newtype.unsafeWrapAll(${c.prefix}, $expr)"
         q"""
 $forall.forEach($value) { value =>
-  _root_.zio.prelude.Validation.fromEitherNonEmptyChunk {
+  _root_.org.finos.morphir.prelude.Validation.fromEitherNonEmptyChunk {
     $quotedAssertion.run(value)
       .left.map(e => _root_.zio.NonEmptyChunk.fromCons(e.toNel(value.toString)))
   }
@@ -184,8 +184,8 @@ $forall.forEach($value) { value =>
 """
 
       case None =>
-        val result = q"_root_.zio.prelude.Newtype.unsafeWrapAll(${c.prefix}, $expr)"
-        q"_root_.zio.prelude.Validation.succeed($result)"
+        val result = q"_root_.org.finos.morphir.prelude.Newtype.unsafeWrapAll(${c.prefix}, $expr)"
+        q"_root_.org.finos.morphir.prelude.Validation.succeed($result)"
     }
 
   }
@@ -193,12 +193,13 @@ $forall.forEach($value) { value =>
   def assert_impl[A: c.WeakTypeTag](assertion: c.Tree): c.Tree = {
     val (_, _, codeString) = text(assertion)
     q"""
-new _root_.zio.prelude.QuotedAssertion[${c.weakTypeOf[A]}] {
-  @_root_.zio.prelude.assertionQuote($assertion)
-  @_root_.zio.prelude.assertionString($codeString)
+new _root_.org.finos.morphir.prelude.QuotedAssertion[${c.weakTypeOf[A]}] {
+  @_root_.org.finos.morphir.prelude.assertionQuote($assertion)
+  @_root_.org.finos.morphir.prelude.assertionString($codeString)
   def magic = 42
 
-  def run(value: ${c.weakTypeOf[A]}): _root_.scala.util.Either[_root_.zio.prelude.AssertionError, _root_.scala.Unit] =
+  def run(value: ${c
+        .weakTypeOf[A]}): _root_.scala.util.Either[_root_.org.finos.morphir.prelude.AssertionError, _root_.scala.Unit] =
     $assertion.apply(value)
 }
        """
@@ -207,12 +208,13 @@ new _root_.zio.prelude.QuotedAssertion[${c.weakTypeOf[A]}] {
   def assertCustom_impl[A: c.WeakTypeTag](f: c.Tree): c.Tree = {
     val (_, _, codeString) = text(f)
     q"""
-new _root_.zio.prelude.QuotedAssertion[${c.weakTypeOf[A]}] {
-  @_root_.zio.prelude.assertionLambdaQuote($f)
-  @_root_.zio.prelude.assertionString($codeString)
+new _root_.org.finos.morphir.prelude.QuotedAssertion[${c.weakTypeOf[A]}] {
+  @_root_.org.finos.morphir.prelude.assertionLambdaQuote($f)
+  @_root_.org.finos.morphir.prelude.assertionString($codeString)
   def magic = 42
 
-  def run(value: ${c.weakTypeOf[A]}): _root_.scala.util.Either[_root_.zio.prelude.AssertionError, _root_.scala.Unit] =
+  def run(value: ${c
+        .weakTypeOf[A]}): _root_.scala.util.Either[_root_.org.finos.morphir.prelude.AssertionError, _root_.scala.Unit] =
     $f(value)
 }
        """
@@ -237,7 +239,7 @@ new _root_.zio.prelude.QuotedAssertion[${c.weakTypeOf[A]}] {
              |
              |Make certain your definition looks something like this:
              |
-             |      ${yellow("import zio.prelude.Assertion._")}
+             |      ${yellow("import org.finos.morphir.prelude.Assertion._")}
              |      ${yellow("override def assertion = assert(greaterThan(40) && lessThan(80))")}
              |
              |""".stripMargin
