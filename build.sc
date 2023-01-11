@@ -129,6 +129,19 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
     object test extends Tests with MorphirTestModule {}
   }
 
+  object runtime
+  class RuntimeModule(val crossScalaVersion: String) extends CrossPlatform { module =>
+    def enableNative = false
+    def moduleDeps = Seq(morphir.core(crossScalaVersion))
+    trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
+      object test extends Tests with MorphirTestModule {}
+    }
+
+    object jvm extends Shared {}
+    object js extends Shared with MorphirScalaJSModule {}
+    object native extends Shared with MorphirScalaNativeModule {}
+  }
+
   object testing extends mill.Cross[TestingModule](ScalaVersions.all: _*) {
     object compiler extends Module {
       object interface extends JavaModule with MorphirPublishModule {
