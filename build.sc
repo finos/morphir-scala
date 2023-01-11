@@ -6,10 +6,10 @@ import mill.api.Result.Success
 import $file.project.deps, deps.{Deps, ScalaVersions}
 import $file.project.modules.dependencyCheck //, dependencyCheck.DependencyCheck
 import $file.project.modules.shared,
-shared.{MorphirCrossScalaModule, MorphirScalaModule, MorphirTestModule, MorphirPublishModule}
+shared.{MorphirCrossScalaModule, MorphirScalaJSModule, MorphirScalaModule, MorphirScalaNativeModule, MorphirTestModule, MorphirPublishModule}
 import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
 import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
-
+import com.github.lolgab.mill.crossplatform._
 import de.tobiasroeser.mill.vcs.version.VcsVersion
 import mill._, scalalib._, scalafmt._
 import mill.contrib.buildinfo.BuildInfo
@@ -30,7 +30,7 @@ val docsScalaVersion: String    = ScalaVersions.scala213 //This really should ma
 object morphir extends MorphirScalaModule with MorphirPublishModule {
   val crossScalaVersion = morphirScalaVersion
   val workspaceDir      = build.millSourcePath
-  def moduleDeps        = Seq(core, concepts, lang)
+  def moduleDeps        = Seq(core.jvm, concepts, lang)
 
   object test extends Tests with MorphirTestModule {
     def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
@@ -48,34 +48,46 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
   object concepts extends MorphirScalaModule with MorphirPublishModule {
     val crossScalaVersion = morphirScalaVersion
 
+    def enableNative = crossScalaVersion.startsWith("2.")
+
     def ivyDeps    = Agg(com.beachape.enumeratum, dev.zio.`zio-parser`, org.typelevel.`paiges-core`)
-    def moduleDeps = Seq(core)
+    def moduleDeps = Seq(core.jvm)
 
     object test extends Tests with MorphirTestModule {
       def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
     }
   }
 
-  object core extends MorphirScalaModule with MorphirPublishModule {
-    val crossScalaVersion = morphirScalaVersion
+  object core extends CrossPlatform {
+    def enableNative = crossScalaVersion.startsWith("2.")
+    trait Shared extends CrossPlatformScalaModule with MorphirScalaModule with MorphirPublishModule {
 
-    def ivyDeps = Agg(
-      com.beachape.enumeratum,
-      com.lihaoyi.castor,
-      com.lihaoyi.pprint,
-      com.lihaoyi.`upickle-core`,
-      io.monix.`newtypes-core`,
-      org.typelevel.`paiges-core`
-    )
-    object test extends Tests with MorphirTestModule {
-      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+      val crossScalaVersion = morphirScalaVersion
+
+      def ivyDeps = Agg(
+        com.beachape.enumeratum,
+        com.lihaoyi.castor,
+        com.lihaoyi.pprint,
+        com.lihaoyi.`upickle-core`,
+        io.monix.`newtypes-core`,
+        org.typelevel.`paiges-core`
+      )
+
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+      }
     }
+
+    object jvm extends Shared {}
+    object js extends Shared with MorphirScalaJSModule {}
+
+    object native extends Shared with MorphirScalaNativeModule {}
   }
 
   object lang extends MorphirScalaModule with MorphirPublishModule {
     val crossScalaVersion = morphirScalaVersion
 
-    def moduleDeps = Seq(core, concepts, vfile(crossScalaVersion))
+    def moduleDeps = Seq(core.jvm, concepts, vfile(crossScalaVersion))
     def ivyDeps    = Agg(com.lihaoyi.pprint, dev.zio.`zio-parser`, com.lihaoyi.upickle, org.typelevel.`paiges-core`)
 
     object test extends Tests with MorphirTestModule {

@@ -1,10 +1,11 @@
 import mill.define.{Target, Task}
 import $ivy.`io.chris-kipp::mill-ci-release::0.1.1`
+import $ivy.`com.github.lolgab::mill-crossplatform::0.1.2`
 import $file.^.deps, deps.{Deps, ScalaVersions, Versions => Vers}
 import $file.dependencyCheck, dependencyCheck.DependencyCheckModule
-import mill._, mill.scalalib._, mill.scalajslib._, scalafmt._
-import mill.scalalib.bsp.ScalaMetalsSupport
+import mill._, mill.scalalib._, mill.scalajslib._,  mill.scalanativelib._, scalafmt._
 import io.kipp.mill.ci.release.CiReleaseModule
+import com.github.lolgab.mill.crossplatform._
 import Deps._
 import java.util.Properties
 
@@ -59,9 +60,17 @@ trait MorphirCrossScalaModule extends CommonCrossModule {
 }
 
 trait MorphirScalaModule extends CommonScalaModule {}
+trait MorphirScalaJSModule extends ScalaJSModule with CommonScalaModule {
+  def scalaJSVersion = ScalaVersions.scalaJSVersion
+}
+
+trait MorphirScalaNativeModule extends ScalaNativeModule with CommonScalaModule {
+  def scalaNativeVersion = ScalaVersions.scalaNativeVersion
+}
+
 trait MorphirTestModule  extends CommonTestModule  {}
 
-trait CommonScalaModule extends ScalaModule with CommonCoursierModule with ScalafmtModule with ScalaMetalsSupport {
+trait CommonScalaModule extends ScalaModule with CommonCoursierModule with ScalafmtModule {
   self =>
   def crossScalaVersion: String
   def scalaVersion: T[String] = T(crossScalaVersion)
