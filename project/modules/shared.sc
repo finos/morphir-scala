@@ -143,7 +143,7 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule with Scala
 
   def scalacOptions(scalaVersion: String, optimize: Boolean) = {
 
-    val commonOptions = Seq("-language:implicitConversions")
+    val commonOptions = Seq("-deprecation","-language:implicitConversions")
 
     val versionParts = scalaVersion.split("\\.")
     val extraOptions = versionParts match {

@@ -92,10 +92,10 @@ object Literal { module =>
       def lit(args: Any*): Literal = {
         val strings     = sc.parts.iterator
         val expressions = args.iterator
-        val buf         = new StringBuilder(strings.next)
+        val buf         = new StringBuilder(strings.next())
         while (strings.hasNext) {
-          buf append expressions.next
-          buf append strings.next
+          buf append expressions.next()
+          buf append strings.next()
         }
         stringLiteral(buf.toString)
       }

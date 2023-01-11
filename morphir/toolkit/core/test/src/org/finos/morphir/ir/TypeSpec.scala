@@ -4,12 +4,13 @@ package ir
 import zio.Chunk
 import org.finos.morphir.syntax.NamingSyntax
 import org.finos.morphir.testing.MorphirBaseSpec
-import zio.test._
-
-import org.finos.morphir.ir.Type._
+import zio.test.*
+import org.finos.morphir.ir.Type.*
 import org.finos.morphir.ir.Type.Type.{ExtensibleRecord, Function, Record, Reference, Tuple, Unit, Variable}
 import org.finos.morphir.ir.packages.PackageName
 import org.finos.morphir.ir.module.ModuleName
+
+import scala.annotation.nowarn
 
 object TypeSpec extends MorphirBaseSpec with NamingSyntax {
   def spec = suite("Type Spec")(
@@ -265,6 +266,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
     )
   )
 
+  @nowarn
   def referenceSuite = suite("Reference")(
     suite("Misc")(
       test("When calling foldLeft it should work as expected") {
@@ -404,7 +406,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
     }
   )
 
-  def tupleSuite = suite("Tuple")(
+  @nowarn def tupleSuite = suite("Tuple")(
     test("testing emptyTuple constructor") {
       val sut = emptyTuple("Attributes")
       assertTrue(
