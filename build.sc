@@ -5,8 +5,14 @@ import mill.api.Result.Skipped
 import mill.api.Result.Success
 import $file.project.deps, deps.{Deps, ScalaVersions}
 import $file.project.modules.dependencyCheck //, dependencyCheck.DependencyCheck
-import $file.project.modules.shared,
-shared.{MorphirCrossScalaModule, MorphirScalaJSModule, MorphirScalaModule, MorphirScalaNativeModule, MorphirTestModule, MorphirPublishModule}
+import $file.project.modules.shared, shared.{
+  MorphirCrossScalaModule,
+  MorphirScalaJSModule,
+  MorphirScalaModule,
+  MorphirScalaNativeModule,
+  MorphirTestModule,
+  MorphirPublishModule
+}
 import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
 import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
 import com.github.lolgab.mill.crossplatform._
@@ -59,8 +65,10 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
   }
 
   object core extends Cross[CoreModule](ScalaVersions.all: _*)
-  class CoreModule(val crossScalaVersion:String) extends CrossPlatform { module =>
+  class CoreModule(val crossScalaVersion: String) extends CrossPlatform { module =>
     def enableNative = false
+
+    def moduleDeps = Seq(`core-macros`(crossScalaVersion))
     trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
 
       def ivyDeps = Agg(
@@ -69,18 +77,63 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
         com.lihaoyi.pprint,
         com.lihaoyi.`upickle-core`,
         io.monix.`newtypes-core`,
-        org.typelevel.`paiges-core`
-      )
+        org.typelevel.`paiges-core`,
+        dev.zio.`zio-prelude-macros`
+      ) ++ (if (crossScalaVersion.startsWith("2."))
+              Agg(
+                org.`scala-lang`.`scala-reflect`(crossScalaVersion),
+                org.`scala-lang`.`scala-compiler`(crossScalaVersion)
+              )
+            else Agg.empty)
+
+      def scalacOptions = T {
+        // val additionalOptions = if (crossScalaVersion.startsWith("2.13")) Seq("-Ymacro-annotations") else Seq.empty
+        val additionalOptions =
+          if (crossScalaVersion.startsWith("2.13")) Seq("-language:experimental.macros") else Seq.empty
+        super.scalacOptions() ++ additionalOptions
+      }
+
+      //def moduleDeps = Seq(macros)
 
       object test extends Tests with MorphirTestModule {
         def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
       }
     }
 
-    object jvm extends Shared {}
-    object js extends Shared with MorphirScalaJSModule {}
+    object jvm extends Shared                           {}
+    object js  extends Shared with MorphirScalaJSModule {}
 
     object native extends Shared with MorphirScalaNativeModule {}
+  }
+
+  object `core-macros` extends Cross[CoreMacrosModule](ScalaVersions.all: _*)
+  class CoreMacrosModule(val crossScalaVersion:String) extends CrossPlatform {
+    def enableNative = false
+    trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
+      def ivyDeps = T {
+        (if (crossScalaVersion.startsWith("2."))
+          Agg(
+            org.`scala-lang`.`scala-reflect`(crossScalaVersion),
+            org.`scala-lang`.`scala-compiler`(crossScalaVersion)
+          )
+        else Agg.empty)
+      }
+
+      def scalacOptions = T {
+        // val additionalOptions = if (crossScalaVersion.startsWith("2.13")) Seq("-Ymacro-annotations") else Seq.empty
+        val additionalOptions =
+          if (crossScalaVersion.startsWith("2.13")) Seq("-language:experimental.macros") else Seq.empty
+        super.scalacOptions() ++ additionalOptions
+      }
+
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+      }
+    }
+
+    object jvm extends Shared
+    object js extends Shared with MorphirScalaJSModule
+    object native extends Shared with MorphirScalaNativeModule
   }
 
   object lang extends MorphirScalaModule with MorphirPublishModule {
@@ -132,13 +185,13 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
   object runtime
   class RuntimeModule(val crossScalaVersion: String) extends CrossPlatform { module =>
     def enableNative = false
-    def moduleDeps = Seq(morphir.core(crossScalaVersion))
+    def moduleDeps   = Seq(morphir.core(crossScalaVersion))
     trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
       object test extends Tests with MorphirTestModule {}
     }
 
-    object jvm extends Shared {}
-    object js extends Shared with MorphirScalaJSModule {}
+    object jvm    extends Shared                               {}
+    object js     extends Shared with MorphirScalaJSModule     {}
     object native extends Shared with MorphirScalaNativeModule {}
   }
 

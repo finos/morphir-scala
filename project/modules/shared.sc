@@ -148,7 +148,7 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule with Scala
     val versionParts = scalaVersion.split("\\.")
     val extraOptions = versionParts match {
       case Array("2", _, _) =>
-        Seq("-Yrangepos", "-Xsource:3.0")
+        Seq("-language:existentials","-Yrangepos", "-Xsource:3.0", "-Xfatal-warnings")
       case Array("3", _, _) =>
         Seq("-Xignore-scala2-macros", "-Yretain-trees")
       case _ =>
@@ -156,6 +156,22 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule with Scala
     }
     commonOptions ++ extraOptions
   }
+
+//  def compileIvyDeps = T{
+//    if(scalaVersion().startsWith("2.")) {
+//      super.compileIvyDeps() ++ Agg(
+//        com.github.ghik.`silencer-plugin`
+//      )
+//    } else {
+//      super.compileIvyDeps()
+//    }
+//  }
+//  def ivyDeps = T {
+//    if (scalaVersion().startsWith("2."))
+//      Agg(com.github.ghik.`silencer-lib`)
+//    else
+//      Agg()
+//  }
 }
 
 trait CommonCrossModule extends CrossScalaModule with CommonCoursierModule with CommonScalaModule {
