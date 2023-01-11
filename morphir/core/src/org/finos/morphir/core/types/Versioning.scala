@@ -1,9 +1,10 @@
-package org.finos.morphir.core.types
-import monix.newtypes.*
-object Versioning {
-  type MorphirVersion = String
+package org.finos
+package morphir
+package core.types
 
-  object MorphirVersion extends Newtype[String] {
-    def apply(version: String): MorphirVersion = version
-  }
+import morphir.prelude.*
+object Versioning {
+  type MorphirVersion = MorphirVersion.Type
+
+  object MorphirVersion extends Newtype[String] {}
 }

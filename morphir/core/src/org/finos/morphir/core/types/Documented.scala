@@ -1,6 +1,9 @@
-package org.finos.morphir.core.types
+package org.finos
+package morphir
+package core.types
+
 import Documented.*
-import monix.newtypes.*
+import morphir.prelude.*
 
 /**
  * Type that represents a documented value
@@ -13,7 +16,7 @@ object Documented {
   import org.typelevel.paiges.{Doc => doc, *}
 
   type Doc = doc
-  object Doc extends NewtypeWrapped[doc] {
+  object Doc extends Newtype[doc] {
     def apply(text: String): Doc = doc.text(text)
   }
 }
