@@ -1,4 +1,4 @@
-  package org.finos.morphir.printing
+package org.finos.morphir.printing
 
 trait Stringify[A] {
   def apply(value: A): String
