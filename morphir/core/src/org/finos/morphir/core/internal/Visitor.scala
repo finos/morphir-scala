@@ -5,25 +5,28 @@ package internal
 
 import morphir.core.types.Versioning.MorphirVersion
 
-trait Visitor[TA, VA, -In, +Out]:
+trait Visitor[TA, VA, -In, +Out] {
   def visitName(value: String, index: Int): Out
+
   def visitNull(index: Int): Out
-//  def visitPath(value: Array[Array[String]]): Out
-//  def visitDist(): DistroVisitor[In, Out]
-//
-//  def visitType(): TypeVisitor[TA, In, Out]
-//  def visitValue(): ValueVisitor[TA, VA, In, Out]
-  def map[Z](f: Out => Z): Visitor[TA, VA, In, Z] = new Visitor.MapReader[TA, VA, In, Out, Z](Visitor.this):
+
+  //  def visitPath(value: Array[Array[String]]): Out
+  //  def visitDist(): DistroVisitor[In, Out]
+  //
+  //  def visitType(): TypeVisitor[TA, In, Out]
+  //  def visitValue(): ValueVisitor[TA, VA, In, Out]
+  def map[Z](f: Out => Z): Visitor[TA, VA, In, Z] = new Visitor.MapReader[TA, VA, In, Out, Z](Visitor.this) {
     def mapNonNullsFunction(v: Out): Z = f(v)
+  }
+}
 
-end Visitor
-
-object Visitor:
-  abstract class MapReader[TA, VA, -In, V, Z](delegatedReader: Visitor[TA, VA, In, V]) extends Visitor[TA, VA, In, Z]:
+object Visitor {
+  abstract class MapReader[TA, VA, -In, V, Z](delegatedReader: Visitor[TA, VA, In, V]) extends Visitor[TA, VA, In, Z] {
 
     def mapNonNullsFunction(v: V): Z
+
     def mapFunction(v: V): Z =
-      if (v == null) then null.asInstanceOf[Z]
+      if (v == null) null.asInstanceOf[Z]
       else mapNonNullsFunction(v)
 
     override def visitName(value: String, index: Int): Z =
@@ -31,9 +34,8 @@ object Visitor:
 
     override def visitNull(index: Int) = mapFunction(delegatedReader.visitNull(index))
 
-  end MapReader
-
-end Visitor
+  }
+}
 
 trait ValueVisitor[TA, VA, -In, +Out] { self => }
 

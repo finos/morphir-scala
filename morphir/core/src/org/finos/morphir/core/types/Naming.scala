@@ -1,8 +1,8 @@
 package org.finos.morphir.core.types
-
+import monix.newtypes.*
 import scala.annotation.tailrec
 
-object Naming:
+object Naming {
   trait IName extends Any
 
   final case class Name private (toList: List[String]) extends AnyVal with IName {
@@ -127,6 +127,7 @@ object Naming:
   }
 
   sealed trait PathLike extends IName
+
   final case class Path(toList: List[Name]) extends PathLike {
     self =>
 
@@ -226,46 +227,56 @@ object Naming:
       }
   }
 
-  opaque type Namespace <: Path = Path
-  object Namespace:
-    def apply(path: Path): Namespace   = path
-    def apply(parts: Name*): Namespace = Path.fromList(parts.toList)
+  type Namespace = Namespace.Type
+  object Namespace extends NewsubtypeWrapped[Path] {
+    // def apply(path: Path): Namespace = path
 
-  opaque type ModuleName <: Path = Path
-  object ModuleName:
-    def apply(path: Path): ModuleName = path
+    def apply(parts: Name*): Namespace = Namespace(Path.fromList(parts.toList))
+  }
+
+  type ModuleName = ModuleName.Type
+  object ModuleName extends NewsubtypeWrapped[Path] {
+
     def apply(input: String): ModuleName =
-      Path(input.split('.').map(Name.fromString).toList)
+      ModuleName(Path(input.split('.').map(Name.fromString).toList))
 
-    extension (self: ModuleName)
+    implicit class ModuleNameOps(val self: ModuleName) extends AnyVal {
       def name: Name =
-        self match
-          case Path(Nil)      => Name.empty
-          case Path(segments) => segments.last
+        self match {
+          case ModuleName(Path(Nil))      => Name.empty
+          case ModuleName(Path(segments)) => segments.last
+        }
 
-      def namespace: Namespace = Path(self.toList.dropRight(1))
+      def namespace: Namespace = Namespace(Path(self.value.toList.dropRight(1)))
+    }
+  }
 
   /**
    * A qualified module name is a globally unique identifier for a module. It is represented by the combination of a
    * package name and the module name
    */
   final case class QualifiedModuleName(packageName: PackageName, module: ModuleName) {
-    lazy val toPath: Path     = packageName / module
+    lazy val toPath: Path = packageName / module
+
     def toTuple: (Path, Path) = (packageName, module)
   }
 
   object QualifiedModuleName {
-//    object AsTuple {
-//      def unapply(name: QualifiedModuleName): Option[(Path, ModuleName)] =
-//        Some(name.toTuple)
-//    }
+    //    object AsTuple {
+    //      def unapply(name: QualifiedModuleName): Option[(Path, ModuleName)] =
+    //        Some(name.toTuple)
+    //    }
   }
 
   /**
    * A package name is a globally unique identifier for a package. It is represented by a `Path` which is a list of
    * names.
    */
-  opaque type PackageName <: Path = Path
-  object PackageName:
-    def apply(path: Path): PackageName                   = path
-    def apply(firstPart: Name, rest: Name*): PackageName = Path(firstPart :: rest.toList)
+  type PackageName = PackageName.Type
+
+  object PackageName extends NewsubtypeWrapped[Path] {
+    // def apply(path: Path): PackageName = path
+
+    def apply(firstPart: Name, rest: Name*): PackageName = PackageName(Path(firstPart :: rest.toList))
+  }
+}

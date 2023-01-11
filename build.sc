@@ -30,7 +30,7 @@ val docsScalaVersion: String    = ScalaVersions.scala213 //This really should ma
 object morphir extends MorphirScalaModule with MorphirPublishModule {
   val crossScalaVersion = morphirScalaVersion
   val workspaceDir      = build.millSourcePath
-  def moduleDeps        = Seq(core.jvm, concepts, lang)
+  def moduleDeps        = Seq(core(crossScalaVersion).jvm, concepts, lang)
 
   object test extends Tests with MorphirTestModule {
     def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
@@ -51,18 +51,17 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
     def enableNative = crossScalaVersion.startsWith("2.")
 
     def ivyDeps    = Agg(com.beachape.enumeratum, dev.zio.`zio-parser`, org.typelevel.`paiges-core`)
-    def moduleDeps = Seq(core.jvm)
+    def moduleDeps = Seq(core(crossScalaVersion).jvm)
 
     object test extends Tests with MorphirTestModule {
       def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
     }
   }
 
-  object core extends CrossPlatform {
-    def enableNative = crossScalaVersion.startsWith("2.")
-    trait Shared extends CrossPlatformScalaModule with MorphirScalaModule with MorphirPublishModule {
-
-      val crossScalaVersion = morphirScalaVersion
+  object core extends Cross[CoreModule](ScalaVersions.all: _*)
+  class CoreModule(val crossScalaVersion:String) extends CrossPlatform { module =>
+    def enableNative = false
+    trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
 
       def ivyDeps = Agg(
         com.beachape.enumeratum,
@@ -87,7 +86,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
   object lang extends MorphirScalaModule with MorphirPublishModule {
     val crossScalaVersion = morphirScalaVersion
 
-    def moduleDeps = Seq(core.jvm, concepts, vfile(crossScalaVersion))
+    def moduleDeps = Seq(core(crossScalaVersion).jvm, concepts, vfile(crossScalaVersion))
     def ivyDeps    = Agg(com.lihaoyi.pprint, dev.zio.`zio-parser`, com.lihaoyi.upickle, org.typelevel.`paiges-core`)
 
     object test extends Tests with MorphirTestModule {

@@ -1,7 +1,9 @@
 package org.finos.morphir.core.types
+import monix.newtypes.*
+object Versioning {
+  type MorphirVersion = String
 
-object Versioning:
-  opaque type MorphirVersion = String
-
-  object MorphirVersion:
+  object MorphirVersion extends Newtype[String] {
     def apply(version: String): MorphirVersion = version
+  }
+}

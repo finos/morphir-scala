@@ -3,5 +3,6 @@ package example
 
 import core.types.Versioning.MorphirVersion
 
-object VisitorUsage:
+object VisitorUsage {
   val morphirVersion: MorphirVersion = MorphirVersion("1.2.3")
+}

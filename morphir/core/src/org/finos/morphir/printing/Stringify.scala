@@ -1,15 +1,18 @@
-package org.finos.morphir.printing
+  package org.finos.morphir.printing
 
-trait Stringify[A]:
+trait Stringify[A] {
   def apply(value: A): String
+}
 
-  extension (value: A)(using renderer: Stringify[A])
-    def stringify: String     = renderer(value)
-    def stringifyLine: String = renderer(value) + System.lineSeparator()
+object Stringify extends StringifyLow0 {
+  def apply[A](implicit printer: Stringify[A]): Stringify[A] = printer
 
-object Stringify extends StringifyLow0
+  final implicit class StringifyOps[A](val value: A) extends AnyVal {
+    def stringify(implicit renderer: Stringify[A]): String     = renderer(value)
+    def stringifyLine(implicit renderer: Stringify[A]): String = renderer(value) + System.lineSeparator()
+  }
+}
 
-def apply[A](using printer: Stringify[A]): Stringify[A] = printer
-
-private[printing] trait StringifyLow0:
-  given [A]: Stringify[A] = value => value.toString
+private[printing] trait StringifyLow0 {
+  implicit def defaultStringify[A]: Stringify[A] = value => value.toString
+}
