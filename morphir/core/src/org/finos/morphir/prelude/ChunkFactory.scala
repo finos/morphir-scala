@@ -9,8 +9,7 @@
 package org.finos.morphir.prelude
 
 /**
- * Ported from ZIO:
- * https://github.com/zio/zio/blob/series/2.x/core/shared/src/main/scala-2.13%2B/zio/ChunkFactory.scala
+ * Ported from ZIO: https://github.com/zio/zio/blob/series/2.x/core/shared/src/main/scala-2.13%2B/zio/ChunkFactory.scala
  */
 
 // import zio.stacktracer.TracingImplicits.disableAutoTrace
