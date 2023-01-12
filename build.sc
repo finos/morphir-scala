@@ -75,7 +75,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
         com.beachape.enumeratum,
         com.lihaoyi.castor,
         com.lihaoyi.pprint,
-        com.lihaoyi.`upickle-core`,
+        com.lihaoyi.`upickle`,
         org.typelevel.`paiges-core`,
       ) ++ (if (crossScalaVersion.startsWith("2."))
               Agg(

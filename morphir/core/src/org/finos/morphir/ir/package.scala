@@ -6,4 +6,5 @@ package object ir {
 
   type Name = morphir.core.types.Naming.Name
   val Name = morphir.core.types.Naming.Name
+  
 }
