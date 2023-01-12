@@ -9,13 +9,19 @@ object NamingWritersSpec extends MorphirBaseSpec {
   def spec = suite("NamingWriters Spec") {
     val sut = new NamingWriters with AttributeTagged {}
     suite("NameWriter")(
-      test("Should be able to write simple names") {
-        expectAllEqual(
-          Name("alpha") -> """["alpha"]""",
-          Name("beta")  -> """["beta"]""",
-          Name("gamma") -> """["gamma"]"""
-        )(name => sut.NameWriter.write(StringRenderer(), name).toString)
-      }
-    )
+      tableTest("Writing simple names")("name")(
+        Names.Name("alpha") -> """["alpha"]""",
+        Names.Name("beta")  -> """["beta"]""",
+        Names.Name("gamma") -> """["gamma"]"""
+      )(name => sut.NameWriter.write(StringRenderer(), name).toString)
+    ) +
+      suite("PathWriter")(
+        test("Should support writing Morphir IR Paths")(
+          expectAllEqual(
+            Paths.Path("alpha", "beta", "gamma")      -> """[["alpha"],["beta"],["gamma"]]""",
+            Paths.Path("kebabs-rule", "do-you-agree") -> """[["kebabs","rule"],["do","you","agree"]]"""
+          )(path => sut.PathWriter.write(StringRenderer(), path).toString)
+        )
+      )
   }
 }

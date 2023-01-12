@@ -13,8 +13,10 @@ abstract class MorphirBaseSpec extends ZIOSpecDefault {
     def makeTest(row: (A, Expected)): Spec[Any, Nothing] = {
       val (a, expected) = row
       val actual        = when(a)
-      test(s"Given $colA is $a, then $actual should be $expected") {
-        assertTrue(actual == expected)
+      test(s"Given $colA is $a, then the result should be $expected") {
+        assertTrue(
+          actual == expected
+        ) ?? s"Given input of $colA=$a"
       }
     }
 
@@ -28,7 +30,7 @@ abstract class MorphirBaseSpec extends ZIOSpecDefault {
     def onRow(row: (A, Expected)) = {
       val (a, expected) = row
       val actual        = when(a)
-      assertTrue(actual == expected)
+      assertTrue(actual == expected) ?? s"Given input of $a"
     }
     rest.foldLeft(onRow(first))((acc, row) => acc && onRow(row))
   }
