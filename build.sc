@@ -66,7 +66,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
 
   object core extends Cross[CoreModule](ScalaVersions.all: _*)
   class CoreModule(val crossScalaVersion: String) extends CrossPlatform { module =>
-    def enableNative = false
+    def enableNative = crossScalaVersion.startsWith("2.")
 
     def moduleDeps = Seq(`core-macros`(crossScalaVersion))
     trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
@@ -76,7 +76,6 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
         com.lihaoyi.castor,
         com.lihaoyi.pprint,
         com.lihaoyi.`upickle-core`,
-        io.monix.`newtypes-core`,
         org.typelevel.`paiges-core`,
       ) ++ (if (crossScalaVersion.startsWith("2."))
               Agg(
