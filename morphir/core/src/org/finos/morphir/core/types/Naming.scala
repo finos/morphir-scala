@@ -6,6 +6,87 @@ import morphir.prelude.*
 import scala.annotation.tailrec
 
 object Naming {
+  final case class FQName(packagePath: PackageName, modulePath: ModulePath, localName: Name) {
+    def getPackagePath: Path = packagePath.toPath
+
+    def getModulePath: Path = modulePath.toPath
+
+    def getModuleName: ModuleName = ModuleName(modulePath.toPath, localName)
+
+    def toReferenceName: String = Seq(
+      Path.toString(Name.toTitleCase, ".", packagePath.toPath),
+      Path.toString(Name.toTitleCase, ".", modulePath.toPath),
+      localName.toTitleCase
+    ).mkString(".")
+
+    override def toString: String = Array(
+      Path.toString(Name.toTitleCase, ".", packagePath.toPath),
+      Path.toString(Name.toTitleCase, ".", modulePath.toPath),
+      Name.toCamelCase(localName)
+    ).mkString(":")
+  }
+
+  object FQName {
+//    def apply(packagePath: Path, modulePath: Path, localName: Name): FQName =
+//      FQName(PackageName(packagePath), ModulePath(modulePath), localName)
+
+    val fqName: Path => Path => Name => FQName = packagePath =>
+      modulePath => localName => FQName(PackageName(packagePath), ModulePath(modulePath), localName)
+
+    def fromQName(packagePath: Path, qName: QName): FQName =
+      FQName(PackageName.fromPath(packagePath), QName.getModulePath(qName), QName.getLocalName(qName))
+
+    def fromQName(qName: QName)(implicit options: FQNamingOptions): FQName =
+      FQName(options.defaultPackage, ModulePath(QName.getModulePath(qName)), QName.getLocalName(qName))
+
+    /** Get the package path part of a fully-qualified name. */
+    def getPackagePath(fqName: FQName): Path = fqName.getPackagePath
+
+    /** Get the module path part of a fully-qualified name */
+    def getModulePath(fqName: FQName): Path = fqName.getModulePath
+
+    /** Get the local name part of a fully-qualified name */
+    def getLocalName(fqName: FQName): Name = fqName.localName
+
+    /** Convenience function to create a fully-qualified name from 3 strings */
+    def fqn(packageName: String, moduleName: String, localName: String): FQName =
+      FQName(PackageName.fromString(packageName), ModulePath.fromString(moduleName), Name.fromString(localName))
+
+    /** Convenience function to create a fully-qualified name from 2 strings with default package name */
+    def fqn(moduleName: String, localName: String)(implicit options: FQNamingOptions): FQName =
+      FQName(options.defaultPackage, ModulePath(Path.fromString(moduleName)), Name.fromString(localName))
+
+    /** Convenience function to create a fully-qualified name from 1 string with defaults for package and module */
+    def fqn(localName: String)(implicit options: FQNamingOptions): FQName =
+      FQName(options.defaultPackage, options.defaultModule, Name.fromString(localName))
+
+    def fqn(moduleName: ModuleName)(implicit options: FQNamingOptions): FQName =
+      FQName(options.defaultPackage, ModulePath(moduleName.namespace), moduleName.localName)
+
+    def toString(fqName: FQName): String = fqName.toString
+
+    /** Parse a string into a FQName using splitter as the separator between package, module, and local names */
+    def fromString(fqNameString: String, splitter: String)(implicit options: FQNamingOptions): FQName =
+      fqNameString.split(splitter) match {
+        case Array(packageNameString, moduleNameString, localNameString) =>
+          fqn(packageNameString, moduleNameString, localNameString)
+        case Array(moduleNameString, localNameString) =>
+          fqn(moduleNameString, localNameString)
+        case Array(localNameString) =>
+          fqn(localNameString)
+        case _ => throw ParserError(s"Unable to parse: [$fqNameString] into a valid FQName")
+      }
+
+    def fromString(fqNameString: String)(implicit options: FQNamingOptions): FQName =
+      fromString(fqNameString, options.defaultSeparator)
+  }
+
+  final case class FQNamingOptions(defaultPackage: PackageName, defaultModule: ModulePath, defaultSeparator: String)
+
+  object FQNamingOptions {
+    implicit val default: FQNamingOptions = FQNamingOptions(PackageName(Path.empty), ModulePath(Path.empty), ":")
+  }
+
   trait IName extends Any
 
   final case class Name private (toList: List[String]) extends AnyVal with IName {
@@ -218,7 +299,7 @@ object Naming {
 
     def getLocalName(qname: QName): Name = qname.localName
 
-    def getModulePath(qname: QName): Path = qname.modulePath
+    def getModulePath(qname: QName): ModulePath = ModulePath(qname.modulePath)
 
     def toString(qName: QName): String = qName.toString
 
@@ -241,13 +322,21 @@ object Naming {
     }
   }
 
+  /**
+   * A module name is a unique identifier for a module within a package. It is represented by a pth, which is a list of
+   * names.
+   */
   type ModuleName = ModuleName.Type
   object ModuleName extends Subtype[Path] {
 
+    def apply(path: Path, name: Name): ModuleName = ModuleName(path / name)
     def apply(input: String): ModuleName =
       ModuleName(Path(input.split('.').map(Name.fromString).toList))
 
+    def fromString(input: String): ModuleName = ModuleName(input)
+
     implicit class ModuleNameOps(val self: ModuleName) extends AnyVal {
+      @inline def localName: Name = name
       def name: Name =
         self match {
           case ModuleName(Path(Nil))      => Name.empty
@@ -257,6 +346,18 @@ object Naming {
       def namespace: Namespace = Namespace(Path(self.value.toList.dropRight(1)))
       def toPath: Path         = unwrap(self)
       def value: Path          = unwrap(self)
+    }
+  }
+
+  type ModulePath = ModulePath.Type
+  object ModulePath extends Subtype[Path] {
+    def apply(parts: Name*): ModulePath     = wrap(Path.fromList(parts.toList))
+    def fromString(str: String): ModulePath = wrap(Path.fromString(str))
+
+    implicit class ModulePathOps(val modulePath: ModulePath) extends AnyVal {
+      def /(name: Name): ModuleName = ModuleName(modulePath.value / name)
+      @inline def toPath: Path      = modulePath.value
+      @inline def value: Path       = unwrap(modulePath)
     }
   }
 
@@ -285,6 +386,8 @@ object Naming {
 
   object PackageName extends Subtype[Path] {
     def apply(firstPart: Name, rest: Name*): PackageName = wrap(Path(firstPart :: rest.toList))
+    def fromPath(path: Path): PackageName                = wrap(path)
+    def fromString(str: String): PackageName             = wrap(Path.fromString(str))
 
     implicit class PackageNameOps(val self: PackageName) extends AnyVal {
       def value: Path  = unwrap(self)

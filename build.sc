@@ -66,7 +66,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
 
   object core extends Cross[CoreModule](ScalaVersions.all: _*)
   class CoreModule(val crossScalaVersion: String) extends CrossPlatform { module =>
-    def enableNative = crossScalaVersion.startsWith("2.")
+    def enableNative = false //crossScalaVersion.startsWith("2.")
 
     def moduleDeps = Seq(`core-macros`(crossScalaVersion))
     trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
