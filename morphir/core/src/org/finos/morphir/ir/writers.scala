@@ -42,3 +42,4 @@ trait NamingWriters extends upickle.implicits.Writers { self: Annotator =>
     }
   }
 }
+

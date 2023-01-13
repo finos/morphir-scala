@@ -1,7 +1,7 @@
 package org.finos.morphir.ir
 
 import org.finos.morphir.testing.MorphirBaseSpec
-import zio.test.*
+import zio.test._
 import ujson.StringRenderer
 import upickle.AttributeTagged
 import upickle.core.Annotator

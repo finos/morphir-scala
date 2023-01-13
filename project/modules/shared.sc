@@ -148,7 +148,7 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule with Scala
     val versionParts = scalaVersion.split("\\.")
     val extraOptions = versionParts match {
       case Array("2", _, _) =>
-        Seq("-language:existentials","-Yrangepos", "-Xsource:3.0", "-Xfatal-warnings")
+        Seq("-language:existentials","-Yrangepos", "-Xsource:3", "-Xfatal-warnings")
       case Array("3", _, _) =>
         Seq("-Xignore-scala2-macros", "-Yretain-trees")
       case _ =>

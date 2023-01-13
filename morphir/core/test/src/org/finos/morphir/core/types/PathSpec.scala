@@ -1,8 +1,8 @@
 package org.finos.morphir.core.types
 
 import org.finos.morphir.testing.MorphirBaseSpec
-import org.finos.morphir.core.types.Naming.*
-import zio.test.*
+import org.finos.morphir.core.types.Naming._
+import zio.test._
 
 object PathSpec extends MorphirBaseSpec {
   def spec = suite("Path")(

@@ -39,7 +39,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
   def moduleDeps        = Seq(core(crossScalaVersion).jvm, concepts, lang)
 
   object test extends Tests with MorphirTestModule {
-    def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+    def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).jvm)
   }
 
   object contrib extends Module {
@@ -60,7 +60,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
     def moduleDeps = Seq(core(crossScalaVersion).jvm)
 
     object test extends Tests with MorphirTestModule {
-      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).jvm)
     }
   }
 
@@ -93,13 +93,19 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
 
       //def moduleDeps = Seq(macros)
 
-      object test extends Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
-      }
     }
 
-    object jvm extends Shared                           {}
-    object js  extends Shared with MorphirScalaJSModule {}
+    object jvm extends Shared                           {
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).jvm)
+      }
+    }
+    object js  extends Shared with MorphirScalaJSModule {
+
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).js)
+      }
+    }
 
     object native extends Shared with MorphirScalaNativeModule {}
   }
@@ -123,10 +129,6 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
           if (crossScalaVersion.startsWith("2.13")) Seq("-language:experimental.macros") else Seq.empty
         super.scalacOptions() ++ additionalOptions
       }
-
-      object test extends Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
-      }
     }
 
     object jvm extends Shared
@@ -141,7 +143,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
     def ivyDeps    = Agg(com.lihaoyi.pprint, dev.zio.`zio-parser`, com.lihaoyi.upickle, org.typelevel.`paiges-core`)
 
     object test extends Tests with MorphirTestModule {
-      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).jvm)
     }
   }
 
@@ -201,9 +203,15 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
     }
   }
 
-  class TestingModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
-    def ivyDeps = Agg(dev.zio.zio, dev.zio.`zio-test`)
-    object test extends Tests with MorphirTestModule
+  class TestingModule(val crossScalaVersion: String) extends CrossPlatform {
+    trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
+      def ivyDeps = Agg(dev.zio.zio, dev.zio.`zio-test`)
+    }
+
+    object jvm extends Shared
+
+    object js extends Shared with MorphirScalaJSModule
+    object native extends Shared with MorphirScalaNativeModule
   }
 
   object toolkit extends Module {
@@ -216,7 +224,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
           def moduleDeps = Seq(morphir.toolkit.core(crossScalaVersion))
           object test extends Tests with MorphirTestModule {
             def moduleDeps = super.moduleDeps ++ Seq(
-              morphir.testing(crossScalaVersion),
+              morphir.testing(crossScalaVersion).jvm,
               morphir.toolkit.core.testing(crossScalaVersion)
             )
             def ivyDeps = T(super.ivyDeps() ++ Agg(dev.zio.`zio-json-golden`))
@@ -238,7 +246,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
       object testing extends mill.Cross[TestingModule](ScalaVersions.all: _*)
       class TestingModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
         def ivyDeps    = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-magnolia`)
-        def moduleDeps = Seq(morphir.toolkit.core(crossScalaVersion), morphir.testing(crossScalaVersion))
+        def moduleDeps = Seq(morphir.toolkit.core(crossScalaVersion), morphir.testing(crossScalaVersion).jvm)
         object test extends Tests with MorphirTestModule {}
       }
     }
@@ -254,7 +262,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
       def moduleDeps = Seq(morphir.lib.interop(crossScalaVersion))
       object test extends Tests with MorphirTestModule {
         def moduleDeps =
-          super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion), morphir.toolkit.core.testing(crossScalaVersion))
+          super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).jvm, morphir.toolkit.core.testing(crossScalaVersion))
       }
     }
 
@@ -270,7 +278,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
     class UtilModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
       def ivyDeps = Agg(dev.zio.`izumi-reflect`)
       object test extends Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion))
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).jvm)
       }
     }
 
@@ -404,7 +412,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
 
     object test extends Tests with MorphirTestModule {
       def moduleDeps = super.moduleDeps ++ Seq(
-        morphir.testing(crossScalaVersion)
+        morphir.testing(crossScalaVersion).jvm
       )
     }
   }

@@ -3,7 +3,7 @@ package org.finos.morphir.core.types
 import org.finos.morphir.core.types.Naming.Name
 import org.finos.morphir.testing.MorphirBaseSpec
 import org.finos.morphir.testing.generators.WordGen
-import zio.test.*
+import zio.test._
 object NameSpec extends MorphirBaseSpec {
   def spec = suite("Name")(
     suite("Create a Name from a string and check that:")(

@@ -1,7 +1,7 @@
 package org.finos.morphir.core.types
 
 import org.finos.morphir.testing.MorphirBaseSpec
-import zio.test.*
+import zio.test._
 import org.finos.morphir.core.types.Strings.EncodedString
 
 object EncodedStringSpec extends MorphirBaseSpec {
