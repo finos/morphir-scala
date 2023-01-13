@@ -114,11 +114,11 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
   class CoreMacrosModule(val crossScalaVersion:String) extends CrossPlatform {
     def enableNative = false
     trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
-      def ivyDeps = T {
+      def ivyDeps = Agg(com.lihaoyi.pprint) ++ {
         (if (crossScalaVersion.startsWith("2."))
           Agg(
             org.`scala-lang`.`scala-reflect`(crossScalaVersion),
-            org.`scala-lang`.`scala-compiler`(crossScalaVersion)
+            org.`scala-lang`.`scala-compiler`(crossScalaVersion),
           )
         else Agg.empty)
       }
