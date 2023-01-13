@@ -1,8 +1,6 @@
-package org.finos
-package morphir
-package core.types
+package org.finos.morphir.core
+import org.finos.morphir.prelude.*
 
-import morphir.prelude._
 object Strings {
   type EncodedString = EncodedString.Type
   object EncodedString extends Newtype[String] {

@@ -10,16 +10,16 @@ object NamingWritersSpec extends MorphirBaseSpec {
     val sut = new NamingWriters with AttributeTagged {}
     suite("NameWriter")(
       tableTest("Writing simple names")("name")(
-        Names.Name("alpha") -> """["alpha"]""",
-        Names.Name("beta")  -> """["beta"]""",
-        Names.Name("gamma") -> """["gamma"]"""
+        Name.Name("alpha") -> """["alpha"]""",
+        Name.Name("beta")  -> """["beta"]""",
+        Name.Name("gamma") -> """["gamma"]"""
       )(name => sut.NameWriter.write(StringRenderer(), name).toString)
     ) +
       suite("PathWriter")(
         test("Should support writing Morphir IR Paths")(
           expectAllEqual(
-            Paths.Path("alpha", "beta", "gamma")      -> """[["alpha"],["beta"],["gamma"]]""",
-            Paths.Path("kebabs-rule", "do-you-agree") -> """[["kebabs","rule"],["do","you","agree"]]"""
+            Path.Path("alpha", "beta", "gamma")      -> """[["alpha"],["beta"],["gamma"]]""",
+            Path.Path("kebabs-rule", "do-you-agree") -> """[["kebabs","rule"],["do","you","agree"]]"""
           )(path => sut.PathWriter.write(StringRenderer(), path).toString)
         )
       )

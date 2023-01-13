@@ -3,8 +3,8 @@ package morphir
 package ir
 
 import upickle.core.{Annotator, Visitor}
-import ir.Types as T
-import org.finos.morphir.ir.Types.Type
+import Type.Type
+import ir.Type as T
 
 trait IRWriters extends IRValueWriters { self: Annotator => }
 
@@ -26,15 +26,15 @@ trait IRTypeWriters extends NamingWriters { self: Annotator =>
       val ctx = out.visitArray(3, -1).narrow
       ctx.visitValue(ctx.subVisitor.visitString("Variable", -1), -1)
       ctx.visitValue(implicitly[Writer[A]].write(ctx.subVisitor, v.attributes), -1)
-      ctx.visitValue(implicitly[Writer[Names.Name]].write(ctx.subVisitor, v.name), -1)
+      ctx.visitValue(implicitly[Writer[Name.Name]].write(ctx.subVisitor, v.name), -1)
       ctx.visitEnd(-1)
     }
   }
 }
 
 trait NamingWriters extends upickle.implicits.Writers { self: Annotator =>
-  implicit val NameWriter: Writer[Names.Name] = new Writer[Names.Name] {
-    def write0[R](out: Visitor[_, R], v: Names.Name): R = {
+  implicit val NameWriter: Writer[Name.Name] = new Writer[Name.Name] {
+    def write0[R](out: Visitor[_, R], v: Name.Name): R = {
       val ctx = out.visitArray(v.toList.length, -1).narrow
       v.toList.foreach { str =>
         ctx.visitValue(ctx.subVisitor.visitString(str, -1), -1)
@@ -43,11 +43,11 @@ trait NamingWriters extends upickle.implicits.Writers { self: Annotator =>
     }
   }
 
-  implicit val PathWriter: Writer[Paths.Path] = new Writer[Paths.Path] {
-    def write0[R](out: Visitor[_, R], v: Paths.Path): R = {
+  implicit val PathWriter: Writer[Path.Path] = new Writer[Path.Path] {
+    def write0[R](out: Visitor[_, R], v: Path.Path): R = {
       val ctx = out.visitArray(v.toList.length, -1).narrow
       v.toList.foreach { name =>
-        ctx.visitValue(implicitly[Writer[Names.Name]].write(ctx.subVisitor, name), -1)
+        ctx.visitValue(implicitly[Writer[Name.Name]].write(ctx.subVisitor, name), -1)
       }
       ctx.visitEnd(-1)
     }

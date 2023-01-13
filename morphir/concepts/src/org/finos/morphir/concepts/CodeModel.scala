@@ -3,7 +3,7 @@ package morphir
 package concepts
 
 import core.types.{AccessControlled, Documented}
-import core.types.Naming.*
+import org.finos.morphir.ir.Naming.*
 object CodeModel:
   sealed trait CodeRepr extends Product with Serializable
   sealed trait Defn     extends CodeRepr

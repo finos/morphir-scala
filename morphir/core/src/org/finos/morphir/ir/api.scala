@@ -1,4 +1,6 @@
-package org.finos.morphir.ir
+package org.finos
+package morphir
+package ir
 
 trait TypeAttribution {
   type TypeAttribs
@@ -9,10 +11,10 @@ trait ValueAttribution {
 }
 
 trait TypeModelApi { self: TypeAttribution =>
-  type Type = Types.Type[TypeAttribs]
+  type Type = ir.Type.Type[TypeAttribs]
   object Type {
-    type Unit = Types.Type.Unit[TypeAttribs]
-    val Unit = Types.Type.Unit
+    type Unit = ir.Type.Type.Unit[TypeAttribs]
+    val Unit = ir.Type.Type.Unit
   }
 }
 

@@ -1,9 +1,11 @@
-package org.finos.morphir.core.types
+package org.finos
+package morphir
+package ir
 
-import org.finos.morphir.core.types.Naming.Name
 import org.finos.morphir.testing.MorphirBaseSpec
 import org.finos.morphir.testing.generators.WordGen
-import zio.test._
+import zio.test.*
+import Name.Name
 object NameSpec extends MorphirBaseSpec {
   def spec = suite("Name")(
     suite("Create a Name from a string and check that:")(

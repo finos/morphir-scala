@@ -2,9 +2,10 @@ package org.finos
 package morphir
 package ir
 
-import morphir.core.types.Naming.*
+import FQName.FQName
+import Name.Name
 
-object Types {
+object Type {
   sealed trait Type[+A] {
     def map[B](f: A => B): Type[B] = ???
   }
