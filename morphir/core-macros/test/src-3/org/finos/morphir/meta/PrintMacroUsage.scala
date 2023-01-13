@@ -1,16 +1,12 @@
 package org.finos.morphir.meta
 
-object PrintMacroUsage {
+object PrintMacroUsage:
+  def greet(target: String): String = s"Hello, $target"
+
   def main(args: Array[String]): Unit =
-    println("Running macro")
-    PrintMacro {
-      trait RocketLauncher {
-        def launch(): Unit
+    println("Running macro..........")
+    val result = PrintMacro.inspect {
+      greet("43")
 
-      }
     }
-
-    PrintMacro.detail {
-      case class Widget(name: String) {}
-    }
-}
+    println(result)
