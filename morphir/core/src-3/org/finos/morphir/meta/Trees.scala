@@ -1,5 +1,7 @@
 package org.finos.morphir.meta
 
+import scala.quoted.*
+
 import scala.quoted._
 
 object Trees:
