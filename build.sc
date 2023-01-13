@@ -131,9 +131,23 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
       }
     }
 
-    object jvm extends Shared
-    object js extends Shared with MorphirScalaJSModule
-    object native extends Shared with MorphirScalaNativeModule
+    object jvm extends Shared {
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).jvm)
+      }
+    }
+    object js extends Shared with MorphirScalaJSModule {
+
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).js)
+      }
+    }
+    object native extends Shared with MorphirScalaNativeModule{
+
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).native)
+      }
+    }
   }
 
   object lang extends MorphirScalaModule with MorphirPublishModule {
@@ -204,14 +218,30 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
   }
 
   class TestingModule(val crossScalaVersion: String) extends CrossPlatform {
+    def enableNative = false
     trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
       def ivyDeps = Agg(dev.zio.zio, dev.zio.`zio-test`)
     }
 
-    object jvm extends Shared
+    object jvm extends Shared {
 
-    object js extends Shared with MorphirScalaJSModule
-    object native extends Shared with MorphirScalaNativeModule
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).jvm)
+      }
+    }
+
+    object js extends Shared with MorphirScalaJSModule{
+
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).js)
+      }
+    }
+    object native extends Shared with MorphirScalaNativeModule{
+
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).native)
+      }
+    }
   }
 
   object toolkit extends Module {
