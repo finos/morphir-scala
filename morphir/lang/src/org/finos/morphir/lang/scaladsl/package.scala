@@ -1,5 +1,5 @@
 package org.finos.morphir.lang
 
-package object ir {
+package object scaladsl {
   export internal.BundlerMacro.bundle
 }
