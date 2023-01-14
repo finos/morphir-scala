@@ -2,8 +2,10 @@ package org.finos
 package morphir
 package concepts
 
-import core.types.{AccessControlled, Documented}
-import org.finos.morphir.ir.Naming.*
+import morphir.ir.AccessControlled.AccessControlled
+import morphir.ir.Documented.Documented
+import morphir.ir.Module.ModuleName
+import morphir.ir.Name.*
 object CodeModel:
   sealed trait CodeRepr extends Product with Serializable
   sealed trait Defn     extends CodeRepr
