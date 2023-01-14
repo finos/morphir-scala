@@ -16,7 +16,8 @@ package object ir {
     type PackageName = PackageName.Type
 
     object PackageName extends Subtype[Path] {
-      def apply(firstPart: Name, rest: Name*): PackageName = wrap(Path(firstPart :: rest.toList))
+      def apply(firstPart: Name, rest: Name*): PackageName     = wrap(Path(firstPart :: rest.toList))
+      def apply(firstPart: String, rest: String*): PackageName = wrap(Path((firstPart :: rest.toList).map(Name(_))))
 
       def fromPath(path: Path): PackageName = wrap(path)
 
@@ -27,6 +28,10 @@ package object ir {
 
         def toPath: Path = unwrap(self)
       }
+    }
+
+    final case class Specification[+TA](modules: Map[Module.ModuleName, Module.Specification[TA]]) {
+      def map[B](f: TA => B): Specification[B] = Specification(modules.map { case (k, v) => k -> v.map(f) })
     }
   }
 }

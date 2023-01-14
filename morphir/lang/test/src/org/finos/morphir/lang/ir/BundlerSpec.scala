@@ -11,12 +11,13 @@ object BundlerSpec extends MorphirBaseSpec {
 
   def bundleSuite = suite("When calling bundle")(
     test("it should return the correct module names and count") {
-      val actual = bundle(
-        org.finos.morphir.samples.Hello,
-        org.finos.morphir.samples.Basics
+      val (bundleName, actual) = bundle("MyBundle")(
+        morphir.samples.Hello,
+        morphir.samples.Basics
       )
       pprint.pprintln(actual)
       assertTrue(
+        bundleName == "MyBundle",
         actual(0) == ModuleName.fromString("org.finos.morphir.samples.Hello"),
         actual(1) == ModuleName.fromString("org.finos.morphir.samples.Basics"),
         actual.size == 2

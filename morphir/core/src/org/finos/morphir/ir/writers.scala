@@ -52,4 +52,7 @@ trait NamingWriters extends upickle.implicits.Writers { self: Annotator =>
       ctx.visitEnd(-1)
     }
   }
+
+  implicit val PackageNameWriter: Writer[Package.PackageName] =
+    implicitly[Writer[Path.Path]].comap[Package.PackageName](_.toPath)
 }

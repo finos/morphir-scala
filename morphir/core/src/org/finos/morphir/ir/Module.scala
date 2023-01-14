@@ -1,10 +1,13 @@
 package org.finos.morphir.ir
 
 import org.finos.morphir.prelude.*
+import Documented.Documented
 import Name.Name
 import Namespace.Namespace
 import Package.PackageName
 import Path.Path
+import Type.Specification as TypeSpec
+import Value.Specification as ValueSpec
 object Module {
 
   /**
@@ -70,5 +73,15 @@ object Module {
     //      def unapply(name: QualifiedModuleName): Option[(Path, ModuleName)] =
     //        Some(name.toTuple)
     //    }
+  }
+
+  final case class Specification[+TA](
+      types: Map[Name, Documented[TypeSpec[TA]]],
+      values: Map[Name, Documented[ValueSpec[TA]]]
+  ) {
+    def map[TB](f: TA => TB): Specification[TB] = Specification(
+      types.view.mapValues(_.map(_.map(f))).toMap,
+      values.view.mapValues(_.map(_.map(f))).toMap
+    )
   }
 }

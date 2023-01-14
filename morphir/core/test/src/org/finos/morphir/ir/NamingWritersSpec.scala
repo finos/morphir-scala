@@ -22,6 +22,14 @@ object NamingWritersSpec extends MorphirBaseSpec {
             Path.Path("kebabs-rule", "do-you-agree") -> """[["kebabs","rule"],["do","you","agree"]]"""
           )(path => sut.PathWriter.write(StringRenderer(), path).toString)
         )
+      ) +
+      suite("PackageNameWriter")(
+        test("Should support writing package names")(
+          expectAllEqual(
+            Package.PackageName("morphir", "sdk")          -> """[["morphir"],["sdk"]]""",
+            Package.PackageName("Com", "MyCompany", "SDK") -> """[["com"],["my","company"],["s","d","k"]]"""
+          )(pkg => sut.PackageNameWriter.write(StringRenderer(), pkg).toString)
+        )
       )
   }
 }
