@@ -205,17 +205,29 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
     object test extends Tests with MorphirTestModule {}
   }
 
-  object runtime
+  object runtime extends Cross[RuntimeModule](ScalaVersions.all: _*)
   class RuntimeModule(val crossScalaVersion: String) extends CrossPlatform { module =>
     def enableNative = false
     def moduleDeps   = Seq(morphir.core(crossScalaVersion))
     trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
-      object test extends Tests with MorphirTestModule {}
     }
 
-    object jvm    extends Shared                               {}
-    object js     extends Shared with MorphirScalaJSModule     {}
-    object native extends Shared with MorphirScalaNativeModule {}
+    object jvm    extends Shared                               {
+     object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).jvm)
+      }
+    }
+    object js     extends Shared with MorphirScalaJSModule     {outer =>
+      object test extends Tests with MorphirTestModule {
+        def scalacOptions = super.scalacOptions() ++ outer.scalacOptions()
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).js)
+      }
+    }
+    object native extends Shared with MorphirScalaNativeModule {
+      object test extends Tests with MorphirTestModule {
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).native)
+      }
+    }
   }
 
   object testing extends mill.Cross[TestingModule](ScalaVersions.all: _*) {
@@ -303,13 +315,6 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
         def moduleDeps =
           super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).jvm, morphir.toolkit.core.testing(crossScalaVersion))
       }
-    }
-
-    object mir extends MorphirScalaModule with MorphirPublishModule {
-      def crossScalaVersion = morphirScalaVersion
-      def moduleDeps        = Seq(morphir.toolkit.util(crossScalaVersion))
-      def scalacOptions     = super.scalacOptions()
-      object test extends Tests with MorphirTestModule
     }
 
     object util extends mill.Cross[UtilModule](ScalaVersions.all: _*)
