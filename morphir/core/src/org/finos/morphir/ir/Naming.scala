@@ -7,7 +7,4 @@ import org.finos.morphir.prelude.Subtype
 
 import scala.annotation.tailrec
 
-object Naming {
-  
-
-}
+object Naming {}
