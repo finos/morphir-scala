@@ -6,6 +6,7 @@ import mill.api.Result.Success
 import $file.project.deps, deps.{Deps, ScalaVersions}
 import $file.project.modules.dependencyCheck //, dependencyCheck.DependencyCheck
 import $file.project.modules.shared, shared.{
+  MorphirScalaTestModule,
   MorphirCrossScalaModule,
   MorphirScalaJSModule,
   MorphirScalaModule,
@@ -100,9 +101,10 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
         def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).jvm)
       }
     }
-    object js  extends Shared with MorphirScalaJSModule {
+    object js  extends Shared with MorphirScalaJSModule { outer =>
 
       object test extends Tests with MorphirTestModule {
+        def scalacOptions = super.scalacOptions() ++ outer.scalacOptions()
         def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).js)
       }
     }
@@ -181,15 +183,6 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
     object core extends MorphirScalaModule with MorphirPublishModule {
       def crossScalaVersion = morphirScalaVersion
       def moduleDeps        = Seq(interop(crossScalaVersion))
-      def morphirPluginJar  = T(morphir.tools.msc.plugin.assembly())
-
-      override def scalacOptions = T {
-        val pluginJarPath = morphirPluginJar().path
-        super.scalacOptions() ++ Seq(s"-Xplugin:$pluginJarPath" /*, "--morphir"*/ )
-      }
-
-      override def scalacPluginClasspath = T(super.scalacPluginClasspath() ++ Agg(morphirPluginJar()))
-
       object test extends Tests with MorphirTestModule {}
     }
 
@@ -333,16 +326,19 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
   object tools extends Module {
 
     object cli extends MorphirScalaModule with BuildInfo with MorphirPublishModule {
-      def crossScalaVersion    = morphirScalaVersion
+      def crossScalaVersion = morphirScalaVersion
+
       def buildInfoPackageName = Some("org.finos.morphir.cli")
-      def buildInfoObjectName  = "MorphirCliBuildInfo"
+
+      def buildInfoObjectName = "MorphirCliBuildInfo"
+
       def buildInfoMembers = T {
         Map(
           "scalaVersion" -> scalaVersion(),
-          "version"      -> VcsVersion.vcsState().format(),
-          "product"      -> "morphir",
-          "summary"      -> "Morphir CLI",
-          "description"  -> packageDescription
+          "version" -> VcsVersion.vcsState().format(),
+          "product" -> "morphir",
+          "summary" -> "Morphir CLI",
+          "description" -> packageDescription
         )
       }
 
@@ -352,7 +348,9 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
         dev.zio.`zio-json`,
         dev.zio.`zio-process`
       )
+
       def packageDescription = "A command line interface for Morphir"
+
       object test extends Tests with MorphirTestModule {}
     }
 
@@ -368,16 +366,17 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
           def buildInfoMembers = T {
             Map(
               "scalaVersion" -> scalaVersion(),
-              "version"      -> VcsVersion.vcsState().format(),
-              "product"      -> "morphir",
-              "summary"      -> "Morphir Frontend - Scala",
-              "description"  -> packageDescription
+              "version" -> VcsVersion.vcsState().format(),
+              "product" -> "morphir",
+              "summary" -> "Morphir Frontend - Scala",
+              "description" -> packageDescription
             )
           }
 
           def ivyDeps = Agg(
             org.`scala-lang`.`scala3-tasty-inspector`(crossScalaVersion)
           )
+
           def moduleDeps = Seq(morphir.toolkit.core(crossScalaVersion))
 
           object test extends Tests with MorphirTestModule {}
@@ -386,13 +385,17 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
     }
 
     object launcher extends MorphirScalaModule with BuildInfo with MorphirPublishModule {
-      def crossScalaVersion    = ScalaVersions.scala213 // Coursier not available for Scala 3
-      def ivyDeps              = Agg(com.lihaoyi.mainargs, com.lihaoyi.`os-lib`, io.`get-coursier`.coursier)
+      def crossScalaVersion = ScalaVersions.scala213 // Coursier not available for Scala 3
+
+      def ivyDeps = Agg(com.lihaoyi.mainargs, com.lihaoyi.`os-lib`, io.`get-coursier`.coursier)
+
       def buildInfoPackageName = Some("org.finos.morphir.launcher")
+
       def buildInfoMembers = T {
         val maybeLastTaggedVersion = VcsVersion.vcsState().lastTag.map(_.stripPrefix("v"))
         Map("version" -> maybeLastTaggedVersion.getOrElse("0.0.0"))
       }
+
       object test extends Tests with MorphirTestModule {}
 
       // also publish the assembly jar
@@ -402,47 +405,8 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
         )
       }
     }
-
-    object msc extends Module {
-      object plugin extends MorphirScalaModule with MorphirPublishModule { self =>
-        def crossScalaVersion = ScalaVersions.scala3x
-        def scalaVersion      = morphirScalaVersion
-        def ivyDeps           = self.compilerPluginDependencies(morphirScalaVersion)
-        def moduleDeps =
-          Seq(
-            morphir.toolkit.core(morphirScalaVersion),
-            morphir.toolkit.codec,
-            morphir.toolkit.mir,
-            morphir.toolkit.util(crossScalaVersion)
-          )
-        def crossFullScalaVersion = true
-
-        object test extends Tests with MorphirTestModule {}
-        object itest extends Module {
-          object basics extends MorphirScalaModule {
-            def crossScalaVersion = morphirScalaVersion
-            def moduleDeps        = Seq(morphir.lib.interop(crossScalaVersion))
-            def morphirPluginJar  = T(morphir.tools.msc.plugin.assembly())
-
-            override def scalacOptions = T {
-              val pluginJarPath = morphirPluginJar().path
-              super.scalacOptions() ++ Seq(s"-Xplugin:$pluginJarPath" /*, "--morphir"*/ )
-            }
-
-            override def scalacPluginClasspath = T(super.scalacPluginClasspath() ++ Agg(morphirPluginJar()))
-            // def scalacPluginIvyDeps = T {
-            //   // TODO: try lefou's suggestion to
-            //   // "... but you could instead just override the scalacPluginClasspath and add the morphir.tools.msc.plugin.jar directly"
-            //   val _                    = morphir.tools.msc.plugin.publishLocal()()
-            //   val morphirPluginVersion = morphir.tools.msc.plugin.publishVersion()
-            //   Agg(ivy"org.finos.morphir:::morphir-morphir.tools.msc.plugin:$morphirPluginVersion")
-            // }
-            object test extends Tests with MorphirTestModule {}
-          }
-        }
-      }
-    }
   }
+
 
   object vfile extends mill.Cross[VFileModule](ScalaVersions.all: _*)
 

@@ -68,6 +68,8 @@ trait MorphirScalaNativeModule extends ScalaNativeModule with CommonScalaModule 
   def scalaNativeVersion = ScalaVersions.scalaNativeVersion
 }
 
+trait MorphirScalaTestModule extends CommonTestModule with CommonScalaModule{}
+
 trait MorphirTestModule  extends CommonTestModule  {}
 
 trait CommonScalaModule extends ScalaModule with CommonCoursierModule with ScalafmtModule {
