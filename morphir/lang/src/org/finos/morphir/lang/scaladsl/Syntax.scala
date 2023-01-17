@@ -11,5 +11,5 @@ object Syntax:
 
   case class BundleInfo(name: PackageName)
   case class Bundle(info: BundleInfo, modules: List[Module]) extends Distro
-  case class Module(name: ModuleName)                        extends Definition
+  case class Module(name: ir.Module.ModuleName)              extends Definition
 end Syntax
