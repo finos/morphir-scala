@@ -55,4 +55,32 @@ trait NamingWriters extends upickle.implicits.Writers { self: Annotator =>
 
   implicit val PackageNameWriter: Writer[Package.PackageName] =
     implicitly[Writer[Path.Path]].comap[Package.PackageName](_.toPath)
+
+  implicit val QNameWriter: Writer[QName.QName] = new Writer[QName.QName] {
+    def write0[R](out: Visitor[_, R], v: QName.QName): R = {
+      val ctx = out.visitArray(2, -1).narrow
+      ctx.visitValue(implicitly[Writer[Path.Path]].write(ctx.subVisitor, v.modulePath), -1)
+      ctx.visitValue(implicitly[Writer[Name.Name]].write(ctx.subVisitor, v.localName), -1)
+      ctx.visitEnd(-1)
+    }
+  }
+
+  implicit val FQNameWriter: Writer[FQName.FQName] = new Writer[FQName.FQName] {
+    def write0[R](out: Visitor[_, R], v: FQName.FQName): R = {
+      val ctx = out.visitArray(3, -1).narrow
+      ctx.visitValue(implicitly[Writer[Package.PackageName]].write(ctx.subVisitor, v.packagePath), -1)
+      ctx.visitValue(implicitly[Writer[Path.Path]].write(ctx.subVisitor, v.modulePath), -1)
+      ctx.visitValue(implicitly[Writer[Name.Name]].write(ctx.subVisitor, v.localName), -1)
+      ctx.visitEnd(-1)
+    }
+  }
+
+  implicit val ModuleNameWriter: Writer[Module.ModuleName] = new Writer[Module.ModuleName] {
+    def write0[R](out: Visitor[_, R], v: Module.ModuleName): R = {
+      val ctx = out.visitArray(2, -1).narrow
+      ctx.visitValue(implicitly[Writer[Path.Path]].write(ctx.subVisitor, v.namespace.toPath), -1)
+      ctx.visitValue(implicitly[Writer[Name.Name]].write(ctx.subVisitor, v.name), -1)
+      ctx.visitEnd(-1)
+    }
+  }
 }
