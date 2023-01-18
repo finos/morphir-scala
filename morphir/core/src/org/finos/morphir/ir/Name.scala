@@ -124,4 +124,6 @@ object Name {
 
   }
   // TODO: Fill with the rest of the Name module
+
+  @inline def fromList(words: List[String]): Name = Name.fromList(words)
 }
