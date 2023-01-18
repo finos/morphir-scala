@@ -15,8 +15,17 @@ trait IRTypeWriters extends NamingWriters { self: Annotator =>
   implicit def ExtensibleRecordTypeWriter[A: Writer]: Writer[T.Type.ExtensibleRecord[A]] = ???
   implicit def FunctionTypeWriter[A: Writer]: Writer[T.Type.Function[A]]                 = ???
   implicit def RecordTypeWriter[A: Writer]: Writer[T.Type.Record[A]]                     = ???
-  implicit def ReferenceTypeWriter[A: Writer]: Writer[T.Type.Reference[A]]               = ???
-  implicit def TupleTypeWriter[A: Writer]: Writer[T.Type.Tuple[A]]                       = ???
+  implicit def ReferenceTypeWriter[A: Writer]: Writer[T.Type.Reference[A]] = new Writer[T.Type.Reference[A]] {
+    override def write0[V](out: Visitor[_, V], v: T.Type.Reference[A]): V = {
+      val ctx = out.visitArray(4, -1).narrow
+      ctx.visitValue(ctx.subVisitor.visitString("Reference", -1), -1)
+      ctx.visitValue(implicitly[Writer[A]].write(ctx.subVisitor, v.attributes), -1)
+      ctx.visitValue(implicitly[Writer[FQName.FQName]].write(ctx.subVisitor, v.typeName), -1)
+      ctx.visitValue(implicitly[Writer[List[Type[A]]]].write(ctx.subVisitor, v.typeParams), -1)
+      ctx.visitEnd(-1)
+    }
+  }
+  implicit def TupleTypeWriter[A: Writer]: Writer[T.Type.Tuple[A]] = ???
 
   implicit def UnitTypeWriter[A: Writer]: Writer[T.Type.Unit[A]] = new Writer[T.Type.Unit[A]] {
     def write0[R](out: Visitor[_, R], v: T.Type.Unit[A]): R = {
