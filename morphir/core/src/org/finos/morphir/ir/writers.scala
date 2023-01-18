@@ -12,6 +12,12 @@ trait IRValueWriters extends IRTypeWriters { self: Annotator => }
 
 trait IRTypeWriters extends NamingWriters { self: Annotator =>
 
+  implicit def ExtensibleRecordTypeWriter[A: Writer]: Writer[T.Type.ExtensibleRecord[A]] = ???
+  implicit def FunctionTypeWriter[A: Writer]: Writer[T.Type.Function[A]]                 = ???
+  implicit def RecordTypeWriter[A: Writer]: Writer[T.Type.Record[A]]                     = ???
+  implicit def ReferenceTypeWriter[A: Writer]: Writer[T.Type.Reference[A]]               = ???
+  implicit def TupleTypeWriter[A: Writer]: Writer[T.Type.Tuple[A]]                       = ???
+
   implicit def UnitTypeWriter[A: Writer]: Writer[T.Type.Unit[A]] = new Writer[T.Type.Unit[A]] {
     def write0[R](out: Visitor[_, R], v: T.Type.Unit[A]): R = {
       val ctx = out.visitArray(2, -1).narrow
@@ -30,6 +36,10 @@ trait IRTypeWriters extends NamingWriters { self: Annotator =>
       ctx.visitEnd(-1)
     }
   }
+
+  implicit def TypeWriter[A: Writer]: Writer[Type[A]] = ???
+
+  implicit def FieldTypeWriter[A: Writer]: Writer[T.Field[A]] = ???
 }
 
 trait NamingWriters extends upickle.implicits.Writers { self: Annotator =>
