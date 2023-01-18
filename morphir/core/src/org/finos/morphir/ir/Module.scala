@@ -75,13 +75,20 @@ object Module {
     //    }
   }
 
+  sealed trait ModuleDefOrSpec
+
   final case class Specification[+TA](
       types: Map[Name, Documented[TypeSpec[TA]]],
       values: Map[Name, Documented[ValueSpec[TA]]]
-  ) {
+  ) extends ModuleDefOrSpec {
     def map[TB](f: TA => TB): Specification[TB] = Specification(
       types.view.mapValues(_.map(_.map(f))).toMap,
       values.view.mapValues(_.map(_.map(f))).toMap
     )
   }
+
+//  final case class Definition[+TA, +VA](
+//      types: Map[Name, AccessControlled[Documented[Type.Definition[TA]]]],
+//      values: Map[Name, AccessControlled[Documented[Value.Definition[TA, VA]]]]
+//  ) extends ModuleDefOrSpec
 }

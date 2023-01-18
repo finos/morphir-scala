@@ -22,13 +22,25 @@ class BundlerMacro(using Quotes):
       case Varargs(modules) =>
         // Expr.ofList(modules.map(m => Expr(ModuleName.fromString(m.getName))))
         val syntaxModules = modules
-          .map { (module: Expr[Any]) =>
-            report.info(s"Module: ${pprint(module.asTerm)}", module.asTerm.pos)
+          .map { (module: Expr[_]) =>
+            scribe.info(s"Module: ${pprint(module.asTerm)}")
             val moduleTerm: Term = module.asTerm
 
             val moduleType: TypeRepr = moduleTerm.tpe
             val moduleSymbol: Symbol = moduleType.typeSymbol
             val moduleName: String   = moduleSymbol.fullName
+            scribe.info("""
+                          |===================== Code  ==========================""".stripMargin)
+            scribe.info(Printer.TreeAnsiCode.show(moduleSymbol.tree))
+            scribe.info("""
+                          |===================== Structure ==========================""".stripMargin)
+            scribe.info(Printer.TreeStructure.show(moduleSymbol.tree))
+            moduleSymbol.tree match
+              case Extractors.Module.Tree(info) =>
+                scribe.info(s"Module Info: ${info}")
+              case _ =>
+                scribe.warn(s"Module not found for: $moduleName")
+
             '{ ModuleName.fromString(${ Expr(moduleName) }) }
 
           }

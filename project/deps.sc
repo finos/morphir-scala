@@ -34,6 +34,10 @@ object Deps {
       val upickle        = ivy"com.lihaoyi::upickle::${Versions.upickle}"
       val `upickle-core` = ivy"com.lihaoyi::upickle-core::${Versions.upickle}"
     }
+
+    case object outr {
+      val scribe = ivy"com.outr::scribe::${Versions.scribe}"
+    }
     case object softwaremill {
       case object common {
         val tagging = ivy"com.softwaremill.common::tagging::2.3.4"
@@ -133,6 +137,7 @@ object Versions {
   val mainargs        = "0.3.0"
   val `os-lib`        = "0.9.0"
   val paiges          = "0.4.2"
+  val scribe = "3.10.6"
   val silencer = "1.4.2"
   val `tasty-query`   = "0.5.6"
   val upickle         = "3.0.0-M1"

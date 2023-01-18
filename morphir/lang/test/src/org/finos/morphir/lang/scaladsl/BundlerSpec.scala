@@ -19,6 +19,7 @@ object BundlerSpec extends MorphirBaseSpec {
       val bundleInfo = BundleInfo(
         name = packageName
       )
+      // -- 3
       val actual = bundle(bundleInfo)(
         morphir.samples.Hello,
         morphir.samples.Basics

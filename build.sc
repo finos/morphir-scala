@@ -77,6 +77,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
         com.lihaoyi.castor,
         com.lihaoyi.pprint,
         com.lihaoyi.`upickle`,
+        com.outr.scribe,
         org.typelevel.`paiges-core`,
       ) ++ (if (crossScalaVersion.startsWith("2."))
               Agg(
@@ -157,7 +158,7 @@ object morphir extends MorphirScalaModule with MorphirPublishModule {
     def moduleDeps = Seq(core(crossScalaVersion)/*, vfile(crossScalaVersion)*/)
     trait Shared extends CrossPlatformScalaModule with MorphirScalaModule with MorphirPublishModule {
       val crossScalaVersion = morphirScalaVersion
-      def ivyDeps = Agg(com.lihaoyi.pprint, dev.zio.`zio-parser`, com.lihaoyi.upickle, org.typelevel.`paiges-core`)
+      def ivyDeps = Agg(com.lihaoyi.pprint, dev.zio.`zio-parser`, com.lihaoyi.upickle, com.outr.scribe,  org.typelevel.`paiges-core`)
     }
     object jvm extends Shared {
       def moduleDeps = super.moduleDeps ++ Seq(concepts)
