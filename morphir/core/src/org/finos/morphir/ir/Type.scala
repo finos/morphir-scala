@@ -48,7 +48,7 @@ object Type {
     sealed case class Variable[+A](attributes: A, name: Name)                                   extends Type[A]
   }
 
-  final case class Field[+A](name: String, tpe: Type[A]) {
+  final case class Field[+A](name: Name, tpe: Type[A]) {
     def map[B](f: A => B): Field[B] = Field(name, tpe.map(f))
   }
 

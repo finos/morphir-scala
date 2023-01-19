@@ -99,9 +99,10 @@ trait IRTypeWriters extends NamingWriters { self: Annotator =>
 
   implicit def FieldTypeWriter[A: Writer]: Writer[T.Field[A]] = new Writer[T.Field[A]] {
     override def write0[R](out: Visitor[_, R], v: T.Field[A]): R = {
-      val ctx        = out.visitObject(2, true, -1).narrow
-      val keyVisitor = ctx.visitKey(-1)
-      ctx.visitKeyValue(implicitly[Writer[String]].write(keyVisitor, v.name), -1)
+      val ctx = out.visitObject(2, true, -1).narrow
+      ctx.visitKeyValue(implicitly[Writer[String]].write(ctx.visitKey(-1), "name"), -1)
+      ctx.visitValue(implicitly[Writer[Name.Name]].write(ctx.subVisitor, v.name), -1)
+      ctx.visitKeyValue(implicitly[Writer[String]].write(ctx.visitKey(-1), "tpe"), -1)
       ctx.visitValue(implicitly[Writer[Type[A]]].write(ctx.subVisitor, v.tpe), -1)
       ctx.visitEnd(-1)
     }

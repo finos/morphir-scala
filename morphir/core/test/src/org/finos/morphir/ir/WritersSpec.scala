@@ -72,9 +72,9 @@ object WritersSpec extends MorphirBaseSpec {
         suite("FieldTypeWriter")(
           test("Should support writing Morphir IR Field")(
             expectAllEqual(
-              Field[Int]("key1", Unit[Int](1)) -> """{"key1":["Unit",1]}""",
-              Field[Int]("key2", Tuple[Int](2, List(Variable[Int](2, Name("x")), Variable[Int](2, Name("y")))))
-                -> """{"key2":["Tuple",2,[["Variable",2,["x"]],["Variable",2,["y"]]]]}"""
+              Field[Int](Name("key1"), Unit[Int](1)) -> """{"name":["key","1"],"tpe":["Unit",1]}""",
+              Field[Int](Name("key2"), Tuple[Int](2, List(Variable[Int](2, Name("x")), Variable[Int](2, Name("y")))))
+                -> """{"name":["key","2"],"tpe":["Tuple",2,[["Variable",2,["x"]],["Variable",2,["y"]]]]}"""
             )(field => sut.FieldTypeWriter(sut.IntWriter).write(StringRenderer(), field).toString)
           )
         ) +
@@ -84,9 +84,12 @@ object WritersSpec extends MorphirBaseSpec {
                 ExtensibleRecord[Int](
                   1,
                   Name("ExtRec"),
-                  List(Field[Int]("key1", Variable[Int](2, Name("x"))), Field[Int]("key2", Variable[Int](2, Name("y"))))
+                  List(
+                    Field[Int](Name("key1"), Variable[Int](2, Name("x"))),
+                    Field[Int](Name("key2"), Variable[Int](2, Name("y")))
+                  )
                 )
-                  -> """["ExtensibleRecord",1,["ext","rec"],[{"key1":["Variable",2,["x"]]},{"key2":["Variable",2,["y"]]}]]"""
+                  -> """["ExtensibleRecord",1,["ext","rec"],[{"name":["key","1"],"tpe":["Variable",2,["x"]]},{"name":["key","2"],"tpe":["Variable",2,["y"]]}]]"""
               )(rec => sut.ExtensibleRecordTypeWriter(sut.IntWriter).write(StringRenderer(), rec).toString)
             )
           ) +
@@ -107,9 +110,12 @@ object WritersSpec extends MorphirBaseSpec {
               expectAllEqual(
                 Record[Int](
                   1,
-                  List(Field[Int]("key1", Variable[Int](2, Name("x"))), Field[Int]("key2", Variable[Int](2, Name("y"))))
+                  List(
+                    Field[Int](Name("key1"), Variable[Int](2, Name("x"))),
+                    Field[Int](Name("key2"), Variable[Int](2, Name("y")))
+                  )
                 )
-                  -> """["Record",1,[{"key1":["Variable",2,["x"]]},{"key2":["Variable",2,["y"]]}]]"""
+                  -> """["Record",1,[{"name":["key","1"],"tpe":["Variable",2,["x"]]},{"name":["key","2"],"tpe":["Variable",2,["y"]]}]]"""
               )(rec => sut.RecordTypeWriter(sut.IntWriter).write(StringRenderer(), rec).toString)
             )
           ) +
