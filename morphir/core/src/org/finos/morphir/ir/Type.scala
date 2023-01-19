@@ -41,7 +41,7 @@ object Type {
 
     sealed case class ExtensibleRecord[+A](attributes: A, name: Name, fields: List[Field[A]])   extends Type[A]
     sealed case class Function[+A](attributes: A, argumentType: Type[A], returnType: Type[A])   extends Type[A]
-    sealed case class Record[+A](attributes: A, fields: List[Field[Type[A]]])                   extends Type[A]
+    sealed case class Record[+A](attributes: A, fields: List[Field[A]])                         extends Type[A]
     sealed case class Reference[+A](attributes: A, typeName: FQName, typeParams: List[Type[A]]) extends Type[A]
     sealed case class Tuple[+A](attributes: A, elements: List[Type[A]])                         extends Type[A]
     sealed case class Unit[+A](attributes: A)                                                   extends Type[A]
