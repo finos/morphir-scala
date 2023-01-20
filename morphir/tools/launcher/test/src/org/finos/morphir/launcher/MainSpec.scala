@@ -1,5 +1,5 @@
 package org.finos.morphir.launcher
-
+import scala.language.reflectiveCalls
 import coursier.{Dependency, Module, ModuleName, Organization}
 import zio.test._
 

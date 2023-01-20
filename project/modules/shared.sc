@@ -1,10 +1,11 @@
 import mill.define.{Target, Task}
 import $ivy.`io.chris-kipp::mill-ci-release::0.1.1`
+import $ivy.`com.github.lolgab::mill-crossplatform::0.1.2`
 import $file.^.deps, deps.{Deps, ScalaVersions, Versions => Vers}
 import $file.dependencyCheck, dependencyCheck.DependencyCheckModule
-import mill._, mill.scalalib._, mill.scalajslib._, scalafmt._
-import mill.scalalib.bsp.ScalaMetalsSupport
+import mill._, mill.scalalib._, mill.scalajslib._,  mill.scalanativelib._, scalafmt._
 import io.kipp.mill.ci.release.CiReleaseModule
+import com.github.lolgab.mill.crossplatform._
 import Deps._
 import java.util.Properties
 
@@ -54,14 +55,16 @@ trait MorphirPublishModule extends CiReleaseModule with JavaModule with Dependen
   )
 }
 
-trait MorphirCrossScalaModule extends CommonCrossModule {
-  override def scalaVersion: T[String] = T(crossScalaVersion)
-}
+trait MorphirCrossScalaModule extends CommonCrossModule
 
 trait MorphirScalaModule extends CommonScalaModule {}
+
+
+trait MorphirScalaTestModule extends CommonTestModule with CommonScalaModule{}
+
 trait MorphirTestModule  extends CommonTestModule  {}
 
-trait CommonScalaModule extends ScalaModule with CommonCoursierModule with ScalafmtModule with ScalaMetalsSupport {
+trait CommonScalaModule extends ScalaModule with CommonCoursierModule with ScalafmtModule {
   self =>
   def crossScalaVersion: String
   def scalaVersion: T[String] = T(crossScalaVersion)
@@ -134,22 +137,38 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule with Scala
 
   def scalacOptions(scalaVersion: String, optimize: Boolean) = {
 
-    val commonOptions = Seq("-language:implicitConversions")
+    val commonOptions = Seq("-deprecation","-language:implicitConversions")
 
     val versionParts = scalaVersion.split("\\.")
     val extraOptions = versionParts match {
       case Array("2", _, _) =>
-        Seq("-Yrangepos", "-Xsource:3.0")
+        Seq("-language:existentials","-Yrangepos", "-Xsource:3", "-Xfatal-warnings")
       case Array("3", _, _) =>
-        Seq("-Xignore-scala2-macros")
+        Seq("-Xignore-scala2-macros", "-Yretain-trees")
       case _ =>
         Seq()
     }
     commonOptions ++ extraOptions
   }
+
+//  def compileIvyDeps = T{
+//    if(scalaVersion().startsWith("2.")) {
+//      super.compileIvyDeps() ++ Agg(
+//        com.github.ghik.`silencer-plugin`
+//      )
+//    } else {
+//      super.compileIvyDeps()
+//    }
+//  }
+//  def ivyDeps = T {
+//    if (scalaVersion().startsWith("2."))
+//      Agg(com.github.ghik.`silencer-lib`)
+//    else
+//      Agg()
+//  }
 }
 
-trait CommonCrossModule extends CrossScalaModule with CommonCoursierModule with CommonScalaModule {
+trait CommonCrossModule extends CrossScalaModule with CommonScalaModule {
   override def scalaVersion: T[String] = T(crossScalaVersion)
 }
 
