@@ -14,7 +14,7 @@ object Extractors:
           case defm @ DefDef(name, paramss, _, _) =>
             println(s"""
                        |===================== Function Structure ==========================
-                       |${Printer.TreeStructure.show(defm)}
+                       |${pprint(defm)}
                        |""".stripMargin)
             Some((Name.fromString(name), paramss.size))
           case _ => None
@@ -30,7 +30,7 @@ object Extractors:
           case _ =>
             println(s"""
                        |===================== Not Matched Structure ==========================
-                       |${Printer.TreeStructure.show(node)}
+                       |${pprint(node)}
                        |""".stripMargin)
             None
 end Extractors

@@ -34,7 +34,7 @@ class BundlerMacro(using Quotes):
             println(Printer.TreeAnsiCode.show(moduleSymbol.tree))
             println("""
                       |===================== Structure ==========================""".stripMargin)
-            println(Printer.TreeStructure.show(moduleSymbol.tree))
+            pprint.pprintln(moduleSymbol.tree)
             moduleSymbol.tree match
               case Extractors.Module.Tree(info) =>
                 println(s"Module Info: ${info}")
