@@ -55,18 +55,10 @@ trait MorphirPublishModule extends CiReleaseModule with JavaModule with Dependen
   )
 }
 
-trait MorphirCrossScalaModule extends CommonCrossModule {
-  override def scalaVersion: T[String] = T(crossScalaVersion)
-}
+trait MorphirCrossScalaModule extends CommonCrossModule
 
 trait MorphirScalaModule extends CommonScalaModule {}
-trait MorphirScalaJSModule extends ScalaJSModule with CommonScalaModule {
-  def scalaJSVersion = ScalaVersions.scalaJSVersion
-}
 
-trait MorphirScalaNativeModule extends ScalaNativeModule with CommonScalaModule {
-  def scalaNativeVersion = ScalaVersions.scalaNativeVersion
-}
 
 trait MorphirScalaTestModule extends CommonTestModule with CommonScalaModule{}
 
@@ -176,7 +168,7 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule with Scala
 //  }
 }
 
-trait CommonCrossModule extends CrossScalaModule with CommonCoursierModule with CommonScalaModule {
+trait CommonCrossModule extends CrossScalaModule with CommonScalaModule {
   override def scalaVersion: T[String] = T(crossScalaVersion)
 }
 

@@ -12,10 +12,10 @@ object Extractors:
         import quotes.reflect.*
         tree match
           case defm @ DefDef(name, paramss, _, _) =>
-            scribe.info(s"""
-                           |===================== Function Structure ==========================
-                           |${Printer.TreeStructure.show(defm)}
-                           |""".stripMargin)
+            println(s"""
+                       |===================== Function Structure ==========================
+                       |${Printer.TreeStructure.show(defm)}
+                       |""".stripMargin)
             Some((Name.fromString(name), paramss.size))
           case _ => None
   object Module:
@@ -28,9 +28,9 @@ object Extractors:
             val functions = body.collect { case f @ FunctionDef.Tree(name, arity) => (name, arity) }
             Some((name, body.size))
           case _ =>
-            scribe.info(s"""
-                           |===================== Not Matched Structure ==========================
-                           |${Printer.TreeStructure.show(node)}
-                           |""".stripMargin)
+            println(s"""
+                       |===================== Not Matched Structure ==========================
+                       |${Printer.TreeStructure.show(node)}
+                       |""".stripMargin)
             None
 end Extractors

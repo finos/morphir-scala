@@ -23,28 +23,28 @@ class BundlerMacro(using Quotes):
         // Expr.ofList(modules.map(m => Expr(ModuleName.fromString(m.getName))))
         val syntaxModules = modules
           .map { (module: Expr[_]) =>
-            scribe.info(s"Module: ${pprint(module.asTerm)}")
+            println(s"Module: ${pprint(module.asTerm)}")
             val moduleTerm: Term = module.asTerm
 
             val moduleType: TypeRepr = moduleTerm.tpe
             val moduleSymbol: Symbol = moduleType.typeSymbol
             val moduleName: String   = moduleSymbol.fullName
-            scribe.info("""
-                          |===================== Code  ==========================""".stripMargin)
-            scribe.info(Printer.TreeAnsiCode.show(moduleSymbol.tree))
-            scribe.info("""
-                          |===================== Structure ==========================""".stripMargin)
-            scribe.info(Printer.TreeStructure.show(moduleSymbol.tree))
+            println("""
+                      |===================== Code  ==========================""".stripMargin)
+            println(Printer.TreeAnsiCode.show(moduleSymbol.tree))
+            println("""
+                      |===================== Structure ==========================""".stripMargin)
+            println(Printer.TreeStructure.show(moduleSymbol.tree))
             moduleSymbol.tree match
               case Extractors.Module.Tree(info) =>
-                scribe.info(s"Module Info: ${info}")
+                println(s"Module Info: ${info}")
               case _ =>
-                scribe.warn(s"Module not found for: $moduleName")
+                report.warning(s"Module not found for: $moduleName", moduleTerm.pos)
 
             '{ ModuleName.fromString(${ Expr(moduleName) }) }
 
           }
-          .map(name => '{ Syntax.Module($name) })
+          .map(name => '{ Syntax.Module($name, Map.empty) })
         val sModules = Expr.ofList(syntaxModules)
         '{ Bundle($info, $sModules) }
       case _ =>

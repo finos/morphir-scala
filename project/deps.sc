@@ -19,7 +19,7 @@ object Deps {
       }
 
       case object ghik {
-        val `silencer-lib` = ivy"com.github.ghik:::silencer-lib:${Versions.silencer}"
+        val `silencer-lib`    = ivy"com.github.ghik:::silencer-lib:${Versions.silencer}"
         val `silencer-plugin` = ivy"com.github.ghik:::silencer-plugin:${Versions.silencer}"
       }
     }
@@ -78,20 +78,16 @@ object Deps {
       val coursier = ivy"io.get-coursier::coursier::${Versions.coursier}"
     }
     case object lemonlabs {
-      val `scala-uri` = ivy"io.lemonlabs::scala-uri:4.0.3"
-    }
-
-    case object monix {
-      val `newtypes-core` = ivy"io.monix::newtypes-core::0.2.3"
+      val `scala-uri` = ivy"io.lemonlabs::scala-uri::4.0.3"
     }
   }
   case object org {
     case object `scala-lang` {
-      def `scala-compiler`(scalaVersion:String):Dep = ivy"org.scala-lang:scala-compiler:$scalaVersion"
-      def `scala-reflect`(scalaVersion:String):Dep = ivy"org.scala-lang:scala-reflect:$scalaVersion"
+      def `scala-compiler`(scalaVersion: String): Dep  = ivy"org.scala-lang:scala-compiler:$scalaVersion"
+      def `scala-reflect`(scalaVersion: String): Dep   = ivy"org.scala-lang:scala-reflect:$scalaVersion"
       def `scala3-compiler`(scalaVersion: String): Dep = ivy"org.scala-lang::scala3-compiler:$scalaVersion"
       def `scala3-tasty-inspector`(scalaVersion: String): Dep =
-        ivy"org.scala-lang::scala3-tasty-inspector:$scalaVersion"
+        ivy"org.scala-lang::scala3-tasty-inspector::$scalaVersion"
     }
     case object scalameta {
       val munit: mill.scalalib.Dep = ivy"org.scalameta::munit::${Versions.munit}"
@@ -137,8 +133,8 @@ object Versions {
   val mainargs        = "0.3.0"
   val `os-lib`        = "0.9.0"
   val paiges          = "0.4.2"
-  val scribe = "3.10.6"
-  val silencer = "1.4.2"
+  val scribe          = "3.10.6"
+  val silencer        = "1.4.2"
   val `tasty-query`   = "0.5.6"
   val upickle         = "3.0.0-M1"
   val zio             = "2.0.6"
