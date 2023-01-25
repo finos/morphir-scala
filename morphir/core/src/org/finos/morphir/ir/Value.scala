@@ -16,7 +16,9 @@ object Value extends ValueVersionSpecific {
     def map[TB](f: TA => TB): Specification[TB] =
       Specification(inputs.map(_.map(f)), output.map(f))
   }
-  sealed trait Value[+TA, +VA]
+  sealed trait Value[+TA, +VA] {
+    def attributes: VA
+  }
   final case class Apply[+VA, +TA](attributes: VA, function: Value[TA, VA], argument: Value[TA, VA])
       extends Value[TA, VA]
   final case class Constructor[+VA](attributes: VA, fullyQualifiedName: FQName) extends Value[Nothing, VA]

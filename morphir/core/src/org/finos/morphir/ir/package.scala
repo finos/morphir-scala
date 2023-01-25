@@ -6,6 +6,7 @@ package object ir {
 
   object Package {
 
+    import org.finos.morphir.ir.AccessControlled.AccessControlled
     import org.finos.morphir.ir.Name.Name
     import org.finos.morphir.ir.Path.Path
 
@@ -30,8 +31,14 @@ package object ir {
       }
     }
 
-    final case class Specification[+TA](modules: Map[Module.ModuleName, Module.Specification[TA]]) {
+    sealed trait PackageDefOrSpec
+
+    final case class Specification[+TA](modules: Map[Module.ModuleName, Module.Specification[TA]])
+        extends PackageDefOrSpec {
       def map[B](f: TA => B): Specification[B] = Specification(modules.map { case (k, v) => k -> v.map(f) })
     }
+
+    final case class Definition[+TA, +VA](modules: Map[Module.ModuleName, AccessControlled[Module.Definition[TA, VA]]])
+        extends PackageDefOrSpec
   }
 }

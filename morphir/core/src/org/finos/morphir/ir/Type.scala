@@ -3,6 +3,7 @@ package morphir
 package ir
 
 import morphir.prelude.*
+import AccessControlled.AccessControlled
 import FQName.FQName
 import Name.Name
 
@@ -39,17 +40,24 @@ object Type {
   }
   object Type {
 
-    sealed case class ExtensibleRecord[+A](attributes: A, name: Name, fields: List[Field[A]])   extends Type[A]
-    sealed case class Function[+A](attributes: A, argumentType: Type[A], returnType: Type[A])   extends Type[A]
-    sealed case class Record[+A](attributes: A, fields: List[Field[A]])                         extends Type[A]
-    sealed case class Reference[+A](attributes: A, typeName: FQName, typeParams: List[Type[A]]) extends Type[A]
-    sealed case class Tuple[+A](attributes: A, elements: List[Type[A]])                         extends Type[A]
-    sealed case class Unit[+A](attributes: A)                                                   extends Type[A]
-    sealed case class Variable[+A](attributes: A, name: Name)                                   extends Type[A]
+    final case class ExtensibleRecord[+A](attributes: A, name: Name, fields: List[Field[A]])   extends Type[A]
+    final case class Function[+A](attributes: A, argumentType: Type[A], returnType: Type[A])   extends Type[A]
+    final case class Record[+A](attributes: A, fields: List[Field[A]])                         extends Type[A]
+    final case class Reference[+A](attributes: A, typeName: FQName, typeParams: List[Type[A]]) extends Type[A]
+    final case class Tuple[+A](attributes: A, elements: List[Type[A]])                         extends Type[A]
+    final case class Unit[+A](attributes: A)                                                   extends Type[A]
+    final case class Variable[+A](attributes: A, name: Name)                                   extends Type[A]
   }
 
   final case class Field[+A](name: Name, tpe: Type[A]) {
     def map[B](f: A => B): Field[B] = Field(name, tpe.map(f))
+  }
+
+  sealed trait Definition[+A]
+  object Definition {
+    final case class TypeAliasDefinition[+A](typeParams: Chunk[Name], typeExpr: Type[A]) extends Definition[A]
+    final case class CustomTypeDefinition[+A](typeParams: Chunk[Name], ctors: AccessControlled[Constructors[A]])
+        extends Definition[A]
   }
 
   final case class Spec[Props[+_], +A](typeParams: List[Name], properties: Props[A])
