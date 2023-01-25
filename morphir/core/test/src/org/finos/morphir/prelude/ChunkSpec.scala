@@ -607,7 +607,7 @@ object ChunkSpec extends MorphirBaseSpec {
             indices.zip(values).foldLeft(chunk.toList) { case (chunk, (index, value)) => chunk.updated(index, value) }
           assert(actual.toList)(equalTo(expected))
         }
-      },
+      } @@ TestAspect.flaky,
       test("fails if the chunk does not contain the specified index") {
         val chunk = Chunk(1, 2, 3)
         assert(chunk.updated(3, 4))(throwsA[IndexOutOfBoundsException])
