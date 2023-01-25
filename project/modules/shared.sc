@@ -3,7 +3,7 @@ import $ivy.`io.chris-kipp::mill-ci-release::0.1.1`
 import $ivy.`com.github.lolgab::mill-crossplatform::0.1.2`
 import $file.^.deps, deps.{Deps, ScalaVersions, Versions => Vers}
 import $file.dependencyCheck, dependencyCheck.DependencyCheckModule
-import mill._, mill.scalalib._, mill.scalajslib._,  mill.scalanativelib._, scalafmt._
+import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import io.kipp.mill.ci.release.CiReleaseModule
 import com.github.lolgab.mill.crossplatform._
 import Deps._
@@ -59,10 +59,9 @@ trait MorphirCrossScalaModule extends CommonCrossModule
 
 trait MorphirScalaModule extends CommonScalaModule {}
 
+trait MorphirScalaTestModule extends CommonTestModule with CommonScalaModule {}
 
-trait MorphirScalaTestModule extends CommonTestModule with CommonScalaModule{}
-
-trait MorphirTestModule  extends CommonTestModule  {}
+trait MorphirTestModule extends CommonTestModule {}
 
 trait CommonScalaModule extends ScalaModule with CommonCoursierModule with ScalafmtModule {
   self =>
@@ -112,19 +111,22 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule with Scala
     }
   }
 
-  def getAdditionalScalacOptions(props:Properties, partialVersion:Option[(Int,Int)]):Seq[String] = {
+  def getAdditionalScalacOptions(props: Properties, partialVersion: Option[(Int, Int)]): Seq[String] = {
     val allProps =
       Option(props.getProperty("scalac.options.additional"))
-        .map(str => str.split(' ').toSeq).getOrElse(Seq.empty)
+        .map(str => str.split(' ').toSeq)
+        .getOrElse(Seq.empty)
     partialVersion match {
       case None => allProps
-      case Some((major,minor)) =>
+      case Some((major, minor)) =>
         val majorProps =
           Option(props.getProperty(s"scalac.$major.x.options.additional"))
-            .map(str => str.split(' ').toSeq).getOrElse(Seq.empty)
+            .map(str => str.split(' ').toSeq)
+            .getOrElse(Seq.empty)
         val majorMinorProps =
           Option(props.getProperty(s"scalac.$major.$minor.options.additional"))
-            .map(str => str.split(" ").toSeq).getOrElse(Seq.empty)
+            .map(str => str.split(" ").toSeq)
+            .getOrElse(Seq.empty)
         allProps ++ majorProps ++ majorMinorProps
     }
   }
@@ -137,12 +139,12 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule with Scala
 
   def scalacOptions(scalaVersion: String, optimize: Boolean) = {
 
-    val commonOptions = Seq("-deprecation","-language:implicitConversions")
+    val commonOptions = Seq("-deprecation", "-language:implicitConversions")
 
     val versionParts = scalaVersion.split("\\.")
     val extraOptions = versionParts match {
       case Array("2", _, _) =>
-        Seq("-language:existentials","-Yrangepos", "-Xsource:3", "-Xfatal-warnings")
+        Seq("-language:existentials", "-Yrangepos", "-Xsource:3", "-Xfatal-warnings")
       case Array("3", _, _) =>
         Seq("-Xignore-scala2-macros", "-Yretain-trees")
       case _ =>

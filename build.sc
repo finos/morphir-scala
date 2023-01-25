@@ -3,7 +3,7 @@ import mill.api.Result
 import mill.api.Result.Failure
 import mill.api.Result.Skipped
 import mill.api.Result.Success
-import mill._, mill.scalalib._, mill.scalajslib._,  mill.scalanativelib._, scalafmt._
+import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import $file.project.deps, deps.{Deps, ScalaVersions}
 import $file.project.modules.dependencyCheck //, dependencyCheck.DependencyCheck
 import $file.project.modules.shared, shared.{
@@ -35,7 +35,7 @@ val morphirScalaVersion: String = ScalaVersions.scala3x
 val docsScalaVersion: String    = ScalaVersions.scala213 //This really should match but need to figure it out
 
 object morphir extends Module {
-  val workspaceDir      = build.millSourcePath
+  val workspaceDir = build.millSourcePath
 
   object contrib extends Module {
     object knowledge extends mill.Cross[KnowledgeModule](ScalaVersions.all: _*) {}
@@ -77,11 +77,11 @@ object morphir extends Module {
       )
 
       def compileIvyDeps = super.compileIvyDeps() ++ (if (crossScalaVersion.startsWith("2."))
-        Agg(
-          org.`scala-lang`.`scala-reflect`(crossScalaVersion),
-          org.`scala-lang`.`scala-compiler`(crossScalaVersion)
-        )
-      else Agg.empty)
+                                                        Agg(
+                                                          org.`scala-lang`.`scala-reflect`(crossScalaVersion),
+                                                          org.`scala-lang`.`scala-compiler`(crossScalaVersion)
+                                                        )
+                                                      else Agg.empty)
 
       def scalacOptions = T {
         // val additionalOptions = if (crossScalaVersion.startsWith("2.13")) Seq("-Ymacro-annotations") else Seq.empty
@@ -102,8 +102,8 @@ object morphir extends Module {
     object js extends Shared with MorphirScalaJSModule {
 
       object test extends Tests with MorphirTestModule {
-        //def scalacOptions = super.scalacOptions() ++ outer.scalacOptions()
-        def moduleDeps    = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).js)
+        // def scalacOptions = super.scalacOptions() ++ outer.scalacOptions()
+        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).js)
       }
     }
 
@@ -153,9 +153,9 @@ object morphir extends Module {
 
   object lang extends CrossPlatform /*MorphirScalaModule with MorphirPublishModule*/ { langModule =>
     val crossScalaVersion = morphirScalaVersion
-    def enableNative = false
-    def enableJS     = crossScalaVersion.startsWith("3.")
-    def moduleDeps   = Seq(core(crossScalaVersion) /*, vfile(crossScalaVersion)*/ )
+    def enableNative      = false
+    def enableJS          = crossScalaVersion.startsWith("3.")
+    def moduleDeps        = Seq(core(crossScalaVersion) /*, vfile(crossScalaVersion)*/ )
     trait Shared extends CrossPlatformScalaModule with MorphirScalaModule with MorphirPublishModule {
       val crossScalaVersion = langModule.crossScalaVersion
       def ivyDeps =
@@ -447,7 +447,7 @@ trait MorphirScalaJSModule extends ScalaJSModule { outer =>
 
   trait Tests extends super.Tests with MorphirTestModule {
     override def scalacOptions = outer.scalacOptions()
-    //override def moduleDeps = super.moduleDeps ++ Seq(outer)
+    // override def moduleDeps = super.moduleDeps ++ Seq(outer)
   }
 }
 
@@ -456,7 +456,7 @@ trait MorphirScalaNativeModule extends ScalaNativeModule { outer =>
 
   trait Tests extends super.Tests with MorphirTestModule {
     override def scalacOptions = outer.scalacOptions()
-    //override def moduleDeps = super.moduleDeps ++ Seq(outer)
+    // override def moduleDeps = super.moduleDeps ++ Seq(outer)
   }
 }
 
