@@ -1,6 +1,7 @@
 package org.finos.morphir.ir
 
 import org.finos.morphir.prelude.*
+import AccessControlled.AccessControlled
 import Documented.Documented
 import Name.Name
 import Namespace.Namespace
@@ -87,8 +88,8 @@ object Module {
     )
   }
 
-//  final case class Definition[+TA, +VA](
-//      types: Map[Name, AccessControlled[Documented[Type.Definition[TA]]]],
-//      values: Map[Name, AccessControlled[Documented[Value.Definition[TA, VA]]]]
-//  ) extends ModuleDefOrSpec
+  final case class Definition[+TA, +VA](
+      types: Map[Name, AccessControlled[Documented[Type.Definition[TA]]]],
+      values: Map[Name, AccessControlled[Documented[Value.Definition[TA, VA]]]]
+  ) extends ModuleDefOrSpec
 }
