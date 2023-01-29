@@ -196,7 +196,7 @@ object morphir extends Module {
   }
 
   object site extends Docusaurus2Module with MDocModule {
-    override def scalaMdocVersion: T[String] = T("2.3.6")
+    override def scalaMdocVersion: T[String] = T("2.3.7")
     override def scalaVersion                = T(docsScalaVersion)
     // MD Sources that must be compiled with Scala MDoc
     override def mdocSources = T.sources(workspaceDir / "docs")
