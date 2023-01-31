@@ -149,7 +149,7 @@ object Versions {
 object ScalaVersions {
   val all      = Seq(scala213, scala3x)
   def scala213 = "2.13.10"
-  def scala3x  = "3.2.1"
+  def scala3x  = "3.2.2"
 
   def scalaJSVersion     = "1.12.0"
   def scalaNativeVersion = "0.4.9"
