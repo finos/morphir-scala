@@ -12,14 +12,14 @@ import org.finos.morphir.ir.Value.Pattern.AsPattern
 object Value extends ValueVersionSpecific {
 
   final case class Definition[+TA, +VA](inputTypes: Chunk[Parameter[TA, VA]], outputType: Type[TA], body: Value[TA, VA])
-  final case class Specification[+TA](inputs: Chunk[SpecParameter[TA]], output: Type[TA]) { self =>
+  final case class Specification[+TA](inputs: Chunk[SpecParameter[TA]], outputs: Type[TA]) { self =>
     def map[TB](f: TA => TB): Specification[TB] =
-      Specification(inputs.map(_.map(f)), output.map(f))
+      Specification(inputs.map(_.map(f)), outputs.map(f))
   }
   sealed trait Value[+TA, +VA] {
     def attributes: VA
   }
-  final case class Apply[+VA, +TA](attributes: VA, function: Value[TA, VA], argument: Value[TA, VA])
+  final case class Apply[+TA, +VA](attributes: VA, function: Value[TA, VA], argument: Value[TA, VA])
       extends Value[TA, VA]
   final case class Constructor[+VA](attributes: VA, fullyQualifiedName: FQName) extends Value[Nothing, VA]
   final case class Destructure[+TA, +VA](
