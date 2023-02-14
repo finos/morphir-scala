@@ -128,7 +128,7 @@ object Versions {
 
   val coursier        = "2.1.0-RC5"
   val geny            = "1.0.0"
-  val `izumi-reflect` = "2.2.4"
+  val `izumi-reflect` = "2.2.5"
   val munit           = "1.0.0-M4"
   val mainargs        = "0.3.0"
   val `os-lib`        = "0.9.0"
@@ -137,7 +137,7 @@ object Versions {
   val silencer        = "1.4.2"
   val `tasty-query`   = "0.5.6"
   val upickle         = "3.0.0-M1"
-  val zio             = "2.0.6"
+  val zio             = "2.0.8"
   val `zio-cli`       = "0.3.0-M02"
   val `zio-json`      = "0.4.2"
   val `zio-parser`    = "0.1.8"
