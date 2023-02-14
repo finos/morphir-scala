@@ -4077,10 +4077,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]\
       ]],\
       ["@sideway/formula", [\
-        ["npm:3.0.0", {\
-          "packageLocation": "../.yarn/cache/@sideway-formula-npm-3.0.0-8688cb96b6-8ae26a0ed6.zip/node_modules/@sideway/formula/",\
+        ["npm:3.0.1", {\
+          "packageLocation": "../.yarn/cache/@sideway-formula-npm-3.0.1-ee371b2ddf-e4beeebc9d.zip/node_modules/@sideway/formula/",\
           "packageDependencies": [\
-            ["@sideway/formula", "npm:3.0.0"]\
+            ["@sideway/formula", "npm:3.0.1"]\
           ],\
           "linkType": "HARD"\
         }]\
@@ -5826,7 +5826,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["cacheable-request", "npm:6.1.0"],\
             ["clone-response", "npm:1.0.3"],\
             ["get-stream", "npm:5.2.0"],\
-            ["http-cache-semantics", "npm:4.1.0"],\
+            ["http-cache-semantics", "npm:4.1.1"],\
             ["keyv", "npm:3.1.0"],\
             ["lowercase-keys", "npm:2.0.0"],\
             ["normalize-url", "npm:4.5.1"],\
@@ -8495,10 +8495,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]\
       ]],\
       ["http-cache-semantics", [\
-        ["npm:4.1.0", {\
-          "packageLocation": "../.yarn/cache/http-cache-semantics-npm-4.1.0-860520a31f-974de94a81.zip/node_modules/http-cache-semantics/",\
+        ["npm:4.1.1", {\
+          "packageLocation": "../.yarn/cache/http-cache-semantics-npm-4.1.1-1120131375-83ac0bc60b.zip/node_modules/http-cache-semantics/",\
           "packageDependencies": [\
-            ["http-cache-semantics", "npm:4.1.0"]\
+            ["http-cache-semantics", "npm:4.1.1"]\
           ],\
           "linkType": "HARD"\
         }]\
@@ -9202,7 +9202,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@hapi/hoek", "npm:9.3.0"],\
             ["@hapi/topo", "npm:5.1.0"],\
             ["@sideway/address", "npm:4.1.4"],\
-            ["@sideway/formula", "npm:3.0.0"],\
+            ["@sideway/formula", "npm:3.0.1"],\
             ["@sideway/pinpoint", "npm:2.0.0"]\
           ],\
           "linkType": "HARD"\
@@ -9559,7 +9559,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["make-fetch-happen", "npm:10.2.1"],\
             ["agentkeepalive", "npm:4.2.1"],\
             ["cacache", "npm:16.1.3"],\
-            ["http-cache-semantics", "npm:4.1.0"],\
+            ["http-cache-semantics", "npm:4.1.1"],\
             ["http-proxy-agent", "npm:5.0.0"],\
             ["https-proxy-agent", "npm:5.0.1"],\
             ["is-lambda", "npm:1.0.1"],\
