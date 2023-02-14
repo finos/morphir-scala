@@ -136,7 +136,7 @@ object Versions {
   val scribe          = "3.10.7"
   val silencer        = "1.4.2"
   val `tasty-query`   = "0.5.6"
-  val upickle         = "3.0.0-M1"
+  val upickle         = "3.0.0-M2"
   val zio             = "2.0.8"
   val `zio-cli`       = "0.3.0-M02"
   val `zio-json`      = "0.4.2"
