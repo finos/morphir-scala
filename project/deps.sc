@@ -130,7 +130,7 @@ object Versions {
   val geny            = "1.0.0"
   val `izumi-reflect` = "2.2.5"
   val munit           = "1.0.0-M4"
-  val mainargs        = "0.3.0"
+  val mainargs        = "0.4.0"
   val `os-lib`        = "0.9.0"
   val paiges          = "0.4.2"
   val scribe          = "3.10.7"
