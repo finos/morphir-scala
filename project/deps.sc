@@ -137,13 +137,13 @@ object Versions {
   val silencer        = "1.4.2"
   val `tasty-query`   = "0.5.6"
   val upickle         = "3.0.0-M1"
-  val zio             = "2.0.8"
+  val zio             = "2.0.13"
   val `zio-cli`       = "0.4.0"
-  val `zio-json`      = "0.4.2"
-  val `zio-parser`    = "0.1.8"
-  val `zio-prelude`   = "1.0.0-RC16"
+  val `zio-json`      = "0.5.0"
+  val `zio-parser`    = "0.1.9"
+  val `zio-prelude`   = "1.0.0-RC19"
   val `zio-process`   = "0.7.2"
-  val `zio-schema`    = "0.4.1"
+  val `zio-schema`    = "0.4.11"
 }
 
 object ScalaVersions {
