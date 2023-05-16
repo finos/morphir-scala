@@ -98,9 +98,8 @@ object Store {
   def empty[TA, VA]: Store[TA, VA] = {
     val plus: SDKValue[TA, VA] = SDKValue.SDKNativeFunction(
       2,
-      { (a: ResultValue[TA, VA], b: ResultValue[TA, VA]) =>
+      (a: ResultValue[TA, VA], b: ResultValue[TA, VA]) =>
         ResultValue.Primitive(ResultValue.unwrap(a).asInstanceOf[Long] + ResultValue.unwrap(b).asInstanceOf[Long])
-      }
     )
     val native = Map(FQName.fromString("SDK.Basics.Int.Plus") -> plus)
     Store(native, CallStackFrame(Map(), None))
