@@ -178,12 +178,12 @@ Distributed under the [Apache License, Version 2.0](http://www.apache.org/licens
 SPDX-License-Identifier: [Apache-2.0](https://spdx.org/licenses/Apache-2.0)
 
 [Link-Slack]: https://finos-lf.slack.com/messages/morphir/
-[Link-SonatypeReleases]: https://oss.sonatype.org/content/repositories/releases/org/finos/morphir/morphir-mscplugin_3.1.3/ "Sonatype Releases"
-[Link-SonatypeSnapshots]: https://oss.sonatype.org/content/repositories/snapshots/org/finos/morphir/morphir-mscplugin_3.1.3/ "Sonatype Snapshots"
+[Link-SonatypeReleases]: https://oss.sonatype.org/content/repositories/releases/org/finos/morphir/morphir-runtime_3/ "Sonatype Releases"
+[Link-SonatypeSnapshots]: https://oss.sonatype.org/content/repositories/snapshots/org/finos/morphir/morphir-runtime_3/ "Sonatype Snapshots"
 
 [Badge-CI]: https://github.com/finos/morphir-scala/workflows/CI/badge.svg
 [Badge-Slack]: https://img.shields.io/badge/slack-@finos/morphir-green.svg?logo=slack
-[Badge-SonatypeReleases]: https://img.shields.io/nexus/r/https/oss.sonatype.org/org.finos.morphir/morphir-mscplugin_3.1.3.svg "Sonatype Releases"
-[Badge-SonatypeSnapshots]: https://img.shields.io/nexus/s/https/oss.sonatype.org/org.finos.morphir/morphir-mscplugin_3.1.3.svg "Sonatype Snapshots"
+[Badge-SonatypeReleases]: https://img.shields.io/nexus/r/https/oss.sonatype.org/org.finos.morphir/morphir-runtime_3.svg "Sonatype Releases"
+[Badge-SonatypeSnapshots]: https://img.shields.io/nexus/s/https/oss.sonatype.org/org.finos.morphir/morphir-runtime_3.svg "Sonatype Snapshots"
 [Badge-Stage]: https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg
 [Badge-Stage-Page]: https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating
