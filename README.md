@@ -40,9 +40,15 @@ IntelliJ project files via:
 
 If you are using Visual Studio Code, IntelliJ, or any of the Editors which support BSP you can also generate BSP config files via:
 
-```bash
-./mill --import ivy:com.lihaoyi::mill-contrib-bloop:  mill.contrib.bloop.Bloop/install
 ```
+./mill mill.bsp.BSP/install
+```
+
+You can also try the following to use the `mill-contrib-bloop` plugin to install and use the Bloop based BSP setup.
+
+> NOTE: The recommended BSP based setup for mill is to run: `./mill mill.bsp.BSP/install` as mentioned above.
+
+
 
 
 
@@ -84,8 +90,8 @@ or in watch mode to reformat changed files:
 
 ### IntelliJ Setup for Windows
 
-If you are using IntelliJ IDEA to edit morphir-jvm's Scala code, you can create the
-IntelliJ project files via:
+If you are using IntelliJ IDEA to edit morphir-scala's Scala code, you can create the
+IntelliJ project files via or use the **BSP Setup** option (BSP is the recommended approach):
 
 ```
 .\mill -i mill.scalalib.GenIdea/idea
@@ -94,6 +100,14 @@ IntelliJ project files via:
 ### BSP Setup
 
 If you are using Visual Studio Code, IntelliJ, or any of the Editors which support BSP you can also generate BSP config files via:
+
+```
+.\mill mill.bsp.BSP/install
+```
+
+You can also try the following to use the `mill-contrib-bloop` plugin to install and use the Bloop based BSP setup.
+
+> NOTE: The recommended BSP based setup for mill is to run: `.\mill mill.bsp.BSP/install` as mentioned above.
 
 ```
 .\mill -i --import ivy:com.lihaoyi::mill-contrib-bloop:  mill.contrib.bloop.Bloop/install
