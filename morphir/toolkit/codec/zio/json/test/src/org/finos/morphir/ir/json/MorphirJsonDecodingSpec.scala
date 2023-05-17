@@ -433,7 +433,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         )
       },
       test("will decode ConstructorPattern") {
-        val patterns = zio.Chunk(
+        val patterns: zio.Chunk[Pattern[Int]] = zio.Chunk(
           Pattern.WildcardPattern[Int](1),
           Pattern.EmptyListPattern[Int](2),
           Pattern.AsPattern[Int](1, Pattern.WildcardPattern[Int](1), Name.fromString("wildCard"))
@@ -469,7 +469,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         )
       },
       test("will decode TuplePattern") {
-        val patterns = zio.Chunk(
+        val patterns: zio.Chunk[Pattern[Int]] = zio.Chunk(
           Pattern.WildcardPattern[Int](1),
           Pattern.UnitPattern[Int](2),
           Pattern.AsPattern[Int](1, Pattern.WildcardPattern[Int](1), Name.fromString("wildCard"))

@@ -10,18 +10,57 @@
         [
           [
             [
-              "valid",
-              "mu",
-              "work"
+              "september",
+              "fact"
             ],
             [
-              "Variable",
+              "ExtensibleRecord",
               [
-                "CharLiteral",
-                "s"
+                "StringLiteral",
+                "kappa"
               ],
               [
-                "government"
+                "valid",
+                "mu",
+                "work"
+              ],
+              [
+                {
+                  "name" : [
+                    "psi",
+                    "march"
+                  ],
+                  "tpe" : [
+                    "Variable",
+                    [
+                      "WholeNumberLiteral",
+                      -3647881857580288726
+                    ],
+                    [
+                      "fact",
+                      "zeta",
+                      "eta",
+                      "zeta",
+                      "september"
+                    ]
+                  ]
+                }
+              ]
+            ]
+          ],
+          [
+            [
+              "week",
+              "november",
+              "nu",
+              "july",
+              "book"
+            ],
+            [
+              "Unit",
+              [
+                "WholeNumberLiteral",
+                9041071467532443714
               ]
             ]
           ]
@@ -29,67 +68,61 @@
       ],
       [
         [
-          "june",
-          "february",
-          "state",
           "minute"
         ],
         [
           [
             [
-              "october",
-              "number",
-              "pi",
-              "lot",
-              "omega"
+              "september",
+              "july",
+              "source",
+              "january",
+              "june"
             ],
             [
-              "Variable",
+              "Tuple",
               [
-                "WholeNumberLiteral",
-                -5658399885858689188
+                "CharLiteral",
+                "6"
               ],
               [
-                "week",
-                "november",
-                "nu",
-                "july",
-                "book"
+                [
+                  "Unit",
+                  [
+                    "BoolLiteral",
+                    false
+                  ]
+                ],
+                [
+                  "Unit",
+                  [
+                    "CharLiteral",
+                    "l"
+                  ]
+                ]
               ]
             ]
           ],
           [
             [
-              "june",
-              "december",
-              "omega",
-              "september"
+              "october"
             ],
             [
-              "Variable",
+              "Unit",
               [
-                "CharLiteral",
-                "q"
-              ],
-              [
-                "currency",
-                "february",
-                "psi",
-                "january"
+                "FloatLiteral",
+                0.06853530981264189
               ]
             ]
           ]
         ]
       ]
     ],
+    [],
     [
       [
         [
-          "left",
-          "rho",
-          "october",
-          "psi",
-          "omicron"
+          "benchmark"
         ],
         [
           [
@@ -171,177 +204,49 @@
       ],
       [
         [
-          "benchmark"
-        ],
-        [
-          [
-            [
-              "upsilon",
-              "government"
-            ],
-            [
-              "Variable",
-              [
-                "WholeNumberLiteral",
-                2455689002988751364
-              ],
-              [
-                "state",
-                "theta",
-                "job",
-                "pi",
-                "mu"
-              ]
-            ]
-          ]
-        ]
-      ]
-    ],
-    [],
-    [
-      [
-        [
-          "home",
-          "xi",
-          "november",
-          "minute",
-          "june"
-        ],
-        [
-          [
-            [
-              "mu",
-              "entity",
-              "family",
-              "owner"
-            ],
-            [
-              "Unit",
-              [
-                "CharLiteral",
-                "9"
-              ]
-            ]
-          ]
-        ]
-      ]
-    ],
-    [
-      [
-        [
-          "source"
-        ],
-        [
-          [
-            [
-              "gamma"
-            ],
-            [
-              "Variable",
-              [
-                "FloatLiteral",
-                0.17429365021602394
-              ],
-              [
-                "december"
-              ]
-            ]
-          ]
-        ]
-      ],
-      [
-        [
           "january",
-          "benchmark"
-        ],
-        [
-          [
-            [
-              "october",
-              "june",
-              "problem",
-              "beta"
-            ],
-            [
-              "Variable",
-              [
-                "CharLiteral",
-                "?"
-              ],
-              [
-                "psi",
-                "home"
-              ]
-            ]
-          ]
-        ]
-      ]
-    ],
-    [
-      [
-        [
-          "minute",
-          "xi",
-          "eta"
-        ],
-        [
-          [
-            [
-              "entity",
-              "february",
-              "system",
-              "title",
-              "phi"
-            ],
-            [
-              "Unit",
-              [
-                "StringLiteral",
-                "phi"
-              ]
-            ]
-          ],
-          [
-            [
-              "nu",
-              "alpha"
-            ],
-            [
-              "Variable",
-              [
-                "CharLiteral",
-                "1"
-              ],
-              [
-                "upsilon",
-                "fact",
-                "march",
-                "november",
-                "october"
-              ]
-            ]
-          ]
-        ]
-      ],
-      [
-        [
-          "july",
-          "family",
           "xi"
         ],
         [
           [
             [
-              "zeta",
-              "june",
+              "february",
               "alpha",
-              "benchmark"
+              "december"
+            ],
+            [
+              "Tuple",
+              [
+                "BoolLiteral",
+                false
+              ],
+              [
+                [
+                  "Unit",
+                  [
+                    "DecimalLiteral",
+                    "-6370396365804724211"
+                  ]
+                ],
+                [
+                  "Unit",
+                  [
+                    "BoolLiteral",
+                    false
+                  ]
+                ]
+              ]
+            ]
+          ],
+          [
+            [
+              "july"
             ],
             [
               "Unit",
               [
-                "WholeNumberLiteral",
-                3556699716651937785
+                "DecimalLiteral",
+                "-5763511803693341824"
               ]
             ]
           ]
@@ -351,349 +256,99 @@
     [
       [
         [
-          "june"
+          "iota",
+          "nu"
         ],
         [
           [
             [
-              "rho"
+              "tau",
+              "april"
             ],
             [
-              "Tuple",
+              "ExtensibleRecord",
               [
                 "FloatLiteral",
-                0.36628362879395704
+                0.062074633721140526
               ],
               [
-                [
-                  "Function",
-                  [
-                    "BoolLiteral",
-                    false
+                "march",
+                "week",
+                "august",
+                "march"
+              ],
+              [
+                {
+                  "name" : [
+                    "eta",
+                    "epsilon"
                   ],
-                  [
-                    "Unit",
-                    [
-                      "CharLiteral",
-                      "n"
-                    ]
-                  ],
-                  [
-                    "Variable",
+                  "tpe" : [
+                    "Tuple",
                     [
                       "BoolLiteral",
                       true
                     ],
                     [
-                      "valid",
-                      "group",
-                      "september",
-                      "iota",
-                      "july"
+                      [
+                        "Variable",
+                        [
+                          "WholeNumberLiteral",
+                          -3435933686792469288
+                        ],
+                        [
+                          "left",
+                          "july",
+                          "december"
+                        ]
+                      ]
                     ]
                   ]
-                ]
+                }
               ]
             ]
           ]
         ]
-      ],
+      ]
+    ],
+    [
       [
         [
-          "upsilon",
-          "pi",
-          "tau",
-          "lot",
-          "from"
+          "minute"
         ],
         [
           [
             [
+              "area",
               "january",
-              "work"
-            ],
-            [
-              "Variable",
-              [
-                "CharLiteral",
-                "8"
-              ],
-              [
-                "march"
-              ]
-            ]
-          ]
-        ]
-      ]
-    ],
-    [],
-    [
-      [
-        [
-          "tau",
-          "to",
-          "march",
-          "group",
-          "may"
-        ],
-        [
-          [
-            [
-              "february",
-              "time",
-              "source"
-            ],
-            [
-              "Unit",
-              [
-                "DecimalLiteral",
-                "-8958995607367929221"
-              ]
-            ]
-          ]
-        ]
-      ],
-      [
-        [
-          "time",
-          "number",
-          "pi",
-          "september",
-          "june"
-        ],
-        [
-          [
-            [
-              "september",
-              "country",
-              "june",
-              "rate",
-              "january"
-            ],
-            [
-              "Tuple",
-              [
-                "StringLiteral",
-                "October"
-              ],
-              [
-                [
-                  "Unit",
-                  [
-                    "FloatLiteral",
-                    0.5113788413233795
-                  ]
-                ]
-              ]
-            ]
-          ]
-        ]
-      ]
-    ],
-    [],
-    [
-      [
-        [
-          "iota",
-          "pi",
-          "mu"
-        ],
-        [
-          [
-            [
-              "alpha",
-              "epsilon"
-            ],
-            [
-              "Variable",
-              [
-                "FloatLiteral",
-                0.3394399783544515
-              ],
-              [
-                "sigma",
-                "company",
-                "april",
-                "april",
-                "time"
-              ]
-            ]
-          ]
-        ]
-      ]
-    ],
-    [
-      [
-        [
-          "may",
-          "book",
-          "right",
-          "gamma"
-        ],
-        [
-          [
-            [
-              "march"
-            ],
-            [
-              "Function",
-              [
-                "StringLiteral",
-                "July"
-              ],
-              [
-                "Unit",
-                [
-                  "CharLiteral",
-                  "2"
-                ]
-              ],
-              [
-                "Variable",
-                [
-                  "WholeNumberLiteral",
-                  2638449211374568932
-                ],
-                [
-                  "october"
-                ]
-              ]
-            ]
-          ],
-          [
-            [
-              "id",
-              "omega"
-            ],
-            [
-              "Reference",
-              [
-                "DecimalLiteral",
-                "-8739153864626221186"
-              ],
-              [
-                [
-                  [
-                    "january",
-                    "name",
-                    "pi"
-                  ],
-                  [
-                    "psi",
-                    "lambda",
-                    "market"
-                  ],
-                  [
-                    "rho",
-                    "part"
-                  ],
-                  [
-                    "week",
-                    "october",
-                    "june"
-                  ],
-                  [
-                    "valid",
-                    "october",
-                    "lot",
-                    "problem",
-                    "system"
-                  ]
-                ],
-                [
-                  [
-                    "chi"
-                  ],
-                  [
-                    "time",
-                    "description",
-                    "may",
-                    "zeta"
-                  ]
-                ],
-                [
-                  "state",
-                  "september",
-                  "sigma",
-                  "xi"
-                ]
-              ],
-              [
-                [
-                  "Unit",
-                  [
-                    "CharLiteral",
-                    "t"
-                  ]
-                ]
-              ]
-            ]
-          ]
-        ]
-      ]
-    ],
-    [
-      [
-        [
-          "xi",
-          "work"
-        ],
-        [
-          [
-            [
-              "book"
-            ],
-            [
-              "Unit",
-              [
-                "FloatLiteral",
-                0.31431875931702213
-              ]
-            ]
-          ],
-          [
-            [
-              "delta",
-              "upsilon",
-              "minute"
-            ],
-            [
-              "Variable",
-              [
-                "DecimalLiteral",
-                "-5620729296349039233"
-              ],
-              [
-                "march"
-              ]
-            ]
-          ]
-        ]
-      ],
-      [
-        [
-          "may",
-          "lambda"
-        ],
-        [
-          [
-            [
-              "psi",
-              "source",
-              "gamma",
-              "omega",
+              "iota",
               "november"
             ],
             [
               "Variable",
               [
                 "CharLiteral",
-                "Z"
+                ";"
               ],
               [
-                "february",
-                "lambda",
-                "beta"
+                "august",
+                "november",
+                "october"
+              ]
+            ]
+          ],
+          [
+            [
+              "entity",
+              "june",
+              "sigma",
+              "march"
+            ],
+            [
+              "Unit",
+              [
+                "DecimalLiteral",
+                "-853181312914613287"
               ]
             ]
           ]
@@ -703,57 +358,359 @@
     [
       [
         [
-          "theta",
-          "rate",
-          "eta",
-          "february",
-          "march"
+          "nu",
+          "alpha"
         ],
         [
           [
             [
-              "april"
+              "mu",
+              "government"
+            ],
+            [
+              "Unit",
+              [
+                "StringLiteral",
+                "March"
+              ]
+            ]
+          ],
+          [
+            [
+              "company"
+            ],
+            [
+              "Variable",
+              [
+                "BoolLiteral",
+                false
+              ],
+              [
+                "zeta",
+                "june",
+                "alpha",
+                "benchmark"
+              ]
+            ]
+          ]
+        ]
+      ],
+      [
+        [
+          "march",
+          "november",
+          "valid",
+          "upsilon"
+        ],
+        [
+          [
+            [
+              "june",
+              "april",
+              "tau",
+              "january"
+            ],
+            [
+              "Unit",
+              [
+                "DecimalLiteral",
+                "-8861957863734036517"
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    [],
+    [
+      [
+        [
+          "title",
+          "september",
+          "july",
+          "mu",
+          "may"
+        ],
+        [
+          [
+            [
+              "september",
+              "iota",
+              "july"
+            ],
+            [
+              "Unit",
+              [
+                "CharLiteral",
+                "\\"
+              ]
+            ]
+          ]
+        ]
+      ],
+      [
+        [
+          "august",
+          "gamma",
+          "february",
+          "february",
+          "july"
+        ],
+        [
+          [
+            [
+              "to"
+            ],
+            [
+              "Variable",
+              [
+                "BoolLiteral",
+                false
+              ],
+              [
+                "omega"
+              ]
+            ]
+          ],
+          [
+            [
+              "entity",
+              "august",
+              "chi",
+              "psi",
+              "omega"
             ],
             [
               "Record",
               [
-                "FloatLiteral",
-                0.39129777456538983
+                "CharLiteral",
+                "d"
               ],
               [
                 {
                   "name" : [
-                    "chi"
+                    "september",
+                    "august",
+                    "job",
+                    "market",
+                    "time"
                   ],
                   "tpe" : [
-                    "Tuple",
+                    "Function",
                     [
-                      "StringLiteral",
-                      "upsilon"
+                      "DecimalLiteral",
+                      "-8929013231356220242"
                     ],
                     [
+                      "Reference",
                       [
-                        "Unit",
+                        "StringLiteral",
+                        "group"
+                      ],
+                      [
                         [
-                          "FloatLiteral",
-                          0.5658031960733167
+                          [
+                            "currency",
+                            "october",
+                            "march",
+                            "february",
+                            "tau"
+                          ],
+                          [
+                            "zeta"
+                          ],
+                          [
+                            "mu",
+                            "april",
+                            "tau",
+                            "eta"
+                          ],
+                          [
+                            "group",
+                            "sigma"
+                          ]
+                        ],
+                        [
+                          [
+                            "chi",
+                            "epsilon",
+                            "february",
+                            "october",
+                            "may"
+                          ],
+                          [
+                            "zeta",
+                            "minute"
+                          ]
+                        ],
+                        [
+                          "december",
+                          "march",
+                          "minute"
+                        ]
+                      ],
+                      [
+                        [
+                          "Record",
+                          [
+                            "CharLiteral",
+                            "R"
+                          ],
+                          [
+                            {
+                              "name" : [
+                                "february"
+                              ],
+                              "tpe" : [
+                                "Function",
+                                [
+                                  "CharLiteral",
+                                  "n"
+                                ],
+                                [
+                                  "Unit",
+                                  [
+                                    "BoolLiteral",
+                                    false
+                                  ]
+                                ],
+                                [
+                                  "Unit",
+                                  [
+                                    "CharLiteral",
+                                    "A"
+                                  ]
+                                ]
+                              ]
+                            }
+                          ]
+                        ],
+                        [
+                          "ExtensibleRecord",
+                          [
+                            "BoolLiteral",
+                            false
+                          ],
+                          [
+                            "kappa",
+                            "minute",
+                            "system"
+                          ],
+                          [
+                            {
+                              "name" : [
+                                "september",
+                                "delta",
+                                "psi",
+                                "lambda"
+                              ],
+                              "tpe" : [
+                                "ExtensibleRecord",
+                                [
+                                  "DecimalLiteral",
+                                  "-7584927473002833783"
+                                ],
+                                [
+                                  "december",
+                                  "psi",
+                                  "may",
+                                  "july",
+                                  "name"
+                                ],
+                                [
+                                  {
+                                    "name" : [
+                                      "november",
+                                      "right",
+                                      "rate",
+                                      "upsilon"
+                                    ],
+                                    "tpe" : [
+                                      "Unit",
+                                      [
+                                        "FloatLiteral",
+                                        0.9372729652824233
+                                      ]
+                                    ]
+                                  }
+                                ]
+                              ]
+                            }
+                          ]
                         ]
                       ]
+                    ],
+                    [
+                      "Unit",
+                      [
+                        "CharLiteral",
+                        "8"
+                      ]
+                    ]
+                  ]
+                }
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    [],
+    [
+      [
+        [
+          "description"
+        ],
+        [
+          [
+            [
+              "february",
+              "october"
+            ],
+            [
+              "ExtensibleRecord",
+              [
+                "WholeNumberLiteral",
+                -5351282803927789052
+              ],
+              [
+                "world",
+                "book",
+                "lambda",
+                "february",
+                "nu"
+              ],
+              [
+                {
+                  "name" : [
+                    "january",
+                    "valid",
+                    "october",
+                    "book",
+                    "rho"
+                  ],
+                  "tpe" : [
+                    "Variable",
+                    [
+                      "DecimalLiteral",
+                      "-1600665926892323687"
+                    ],
+                    [
+                      "beta",
+                      "june"
                     ]
                   ]
                 },
                 {
                   "name" : [
-                    "august",
-                    "july",
-                    "epsilon",
-                    "june"
+                    "tau",
+                    "july"
                   ],
                   "tpe" : [
                     "Unit",
                     [
-                      "DecimalLiteral",
-                      "-7279132001134641778"
+                      "FloatLiteral",
+                      0.9339772232634181
                     ]
                   ]
                 }
@@ -762,38 +719,13 @@
           ],
           [
             [
-              "kappa",
-              "parent"
+              "valid"
             ],
             [
               "Unit",
               [
-                "CharLiteral",
-                "a"
-              ]
-            ]
-          ]
-        ]
-      ],
-      [
-        [
-          "title",
-          "name",
-          "june",
-          "zeta"
-        ],
-        [
-          [
-            [
-              "market",
-              "january",
-              "august"
-            ],
-            [
-              "Unit",
-              [
-                "CharLiteral",
-                "Y"
+                "WholeNumberLiteral",
+                8386468075380176522
               ]
             ]
           ]
@@ -804,106 +736,358 @@
     [
       [
         [
-          "may",
-          "from",
-          "november",
-          "fact",
-          "minute"
+          "october",
+          "job",
+          "kappa"
         ],
         [
           [
             [
-              "number",
-              "june",
+              "beta",
+              "september",
+              "november",
+              "rate",
               "may"
+            ],
+            [
+              "Variable",
+              [
+                "BoolLiteral",
+                true
+              ],
+              [
+                "august",
+                "epsilon"
+              ]
+            ]
+          ]
+        ]
+      ],
+      [
+        [
+          "valid",
+          "system",
+          "title",
+          "april",
+          "country"
+        ],
+        [
+          [
+            [
+              "year",
+              "kappa"
             ],
             [
               "Unit",
               [
-                "CharLiteral",
-                "?"
+                "StringLiteral",
+                "upsilon"
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    [
+      [
+        [
+          "xi",
+          "tau",
+          "xi"
+        ],
+        [
+          [
+            [
+              "eta",
+              "gamma",
+              "september",
+              "name",
+              "kappa"
+            ],
+            [
+              "Reference",
+              [
+                "DecimalLiteral",
+                "-5689144490204792063"
+              ],
+              [
+                [
+                  [
+                    "market",
+                    "eta",
+                    "state",
+                    "omicron"
+                  ],
+                  [
+                    "problem",
+                    "upsilon"
+                  ],
+                  [
+                    "november",
+                    "fact",
+                    "minute",
+                    "number",
+                    "october"
+                  ]
+                ],
+                [
+                  [
+                    "may",
+                    "beta"
+                  ],
+                  [
+                    "september"
+                  ],
+                  [
+                    "theta",
+                    "july",
+                    "rho"
+                  ],
+                  [
+                    "phi",
+                    "september"
+                  ]
+                ],
+                [
+                  "september",
+                  "august",
+                  "description"
+                ]
+              ],
+              [
+                [
+                  "Record",
+                  [
+                    "BoolLiteral",
+                    true
+                  ],
+                  [
+                    {
+                      "name" : [
+                        "sigma",
+                        "system"
+                      ],
+                      "tpe" : [
+                        "Record",
+                        [
+                          "BoolLiteral",
+                          false
+                        ],
+                        [
+                          {
+                            "name" : [
+                              "psi",
+                              "left",
+                              "psi",
+                              "fact",
+                              "august"
+                            ],
+                            "tpe" : [
+                              "Variable",
+                              [
+                                "BoolLiteral",
+                                true
+                              ],
+                              [
+                                "september"
+                              ]
+                            ]
+                          }
+                        ]
+                      ]
+                    }
+                  ]
+                ],
+                [
+                  "Unit",
+                  [
+                    "DecimalLiteral",
+                    "-8858936286351103976"
+                  ]
+                ]
               ]
             ]
           ],
           [
             [
-              "september"
+              "xi",
+              "delta",
+              "kappa"
+            ],
+            [
+              "Unit",
+              [
+                "DecimalLiteral",
+                "-5543217548806803607"
+              ]
+            ]
+          ]
+        ]
+      ],
+      [
+        [
+          "august"
+        ],
+        [
+          [
+            [
+              "december",
+              "april"
             ],
             [
               "Reference",
               [
-                "WholeNumberLiteral",
-                6281879505097793399
+                "DecimalLiteral",
+                "-3597022886280692471"
               ],
               [
                 [
                   [
+                    "eta",
                     "rho",
-                    "minute",
-                    "january"
+                    "upsilon",
+                    "december"
+                  ],
+                  [
+                    "february",
+                    "omega"
+                  ],
+                  [
+                    "world",
+                    "october",
+                    "june",
+                    "chi"
+                  ],
+                  [
+                    "october",
+                    "government"
                   ]
                 ],
                 [
                   [
-                    "september",
-                    "august",
-                    "description"
-                  ],
-                  [
-                    "minute",
-                    "mu"
-                  ],
-                  [
-                    "problem",
-                    "benchmark",
-                    "august",
-                    "home",
-                    "tau"
-                  ],
-                  [
-                    "part",
+                    "eta",
                     "day",
-                    "group",
-                    "money",
-                    "epsilon"
+                    "id"
                   ],
                   [
-                    "alpha",
-                    "january",
-                    "may"
+                    "description",
+                    "february",
+                    "system",
+                    "theta",
+                    "zeta"
+                  ],
+                  [
+                    "psi",
+                    "work",
+                    "march"
                   ]
                 ],
                 [
-                  "xi",
-                  "delta",
-                  "kappa"
+                  "name"
                 ]
               ],
               [
                 [
-                  "Variable",
+                  "Unit",
                   [
-                    "StringLiteral",
-                    "omega"
-                  ],
-                  [
-                    "area",
-                    "may",
-                    "phi",
-                    "december"
+                    "BoolLiteral",
+                    false
                   ]
                 ],
                 [
                   "Variable",
                   [
                     "WholeNumberLiteral",
-                    -8988565058673523043
+                    -4944279669463953230
                   ],
                   [
-                    "september",
-                    "government",
-                    "delta",
-                    "june"
+                    "psi",
+                    "area",
+                    "parent"
+                  ]
+                ]
+              ]
+            ]
+          ],
+          [
+            [
+              "omega"
+            ],
+            [
+              "Function",
+              [
+                "BoolLiteral",
+                false
+              ],
+              [
+                "Variable",
+                [
+                  "WholeNumberLiteral",
+                  6061833247650217967
+                ],
+                [
+                  "chi"
+                ]
+              ],
+              [
+                "Reference",
+                [
+                  "CharLiteral",
+                  "q"
+                ],
+                [
+                  [
+                    [
+                      "lambda",
+                      "family",
+                      "december"
+                    ],
+                    [
+                      "february",
+                      "april",
+                      "june",
+                      "description",
+                      "november"
+                    ]
+                  ],
+                  [
+                    [
+                      "february",
+                      "alpha",
+                      "eta"
+                    ],
+                    [
+                      "gamma",
+                      "november",
+                      "sigma"
+                    ],
+                    [
+                      "lambda",
+                      "book",
+                      "november",
+                      "march"
+                    ],
+                    [
+                      "january",
+                      "december"
+                    ]
+                  ],
+                  [
+                    "september"
+                  ]
+                ],
+                [
+                  [
+                    "Variable",
+                    [
+                      "FloatLiteral",
+                      0.6016027288516124
+                    ],
+                    [
+                      "number",
+                      "july",
+                      "december"
+                    ]
                   ]
                 ]
               ]
@@ -915,50 +1099,104 @@
     [
       [
         [
-          "december",
-          "september",
-          "september",
-          "chi",
-          "business"
+          "area",
+          "october",
+          "state"
         ],
         [
           [
             [
-              "october",
-              "government"
+              "february",
+              "omega",
+              "august",
+              "september",
+              "id"
             ],
             [
-              "Variable",
+              "Function",
               [
-                "WholeNumberLiteral",
-                8112336046618785507
+                "FloatLiteral",
+                0.412695084733127
               ],
               [
-                "day",
-                "id",
-                "eta"
+                "Unit",
+                [
+                  "CharLiteral",
+                  "E"
+                ]
+              ],
+              [
+                "Unit",
+                [
+                  "StringLiteral",
+                  "January"
+                ]
               ]
             ]
           ]
         ]
-      ],
+      ]
+    ],
+    [
       [
         [
-          "tau",
-          "alpha"
+          "currency",
+          "lambda",
+          "theta",
+          "epsilon",
+          "sigma"
         ],
         [
           [
             [
-              "pi"
+              "sigma",
+              "rate",
+              "epsilon"
             ],
             [
-              "Variable",
+              "Unit",
               [
-                "FloatLiteral",
-                0.9383674611130763
-              ],
+                "WholeNumberLiteral",
+                -4719090811093253196
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    [
+      [
+        [
+          "theta"
+        ],
+        [
+          [
+            [
+              "march",
+              "july",
+              "home",
+              "work"
+            ],
+            [
+              "Unit",
               [
+                "StringLiteral",
+                "problem"
+              ]
+            ]
+          ],
+          [
+            [
+              "february",
+              "rho",
+              "alpha",
+              "beta",
+              "description"
+            ],
+            [
+              "Unit",
+              [
+                "StringLiteral",
                 "zeta"
               ]
             ]
@@ -969,184 +1207,81 @@
     [
       [
         [
-          "august",
-          "october"
+          "february",
+          "left"
         ],
         [
           [
             [
-              "area",
-              "parent",
-              "money",
-              "october"
+              "phi",
+              "january",
+              "book",
+              "tau",
+              "time"
             ],
             [
-              "ExtensibleRecord",
-              [
-                "DecimalLiteral",
-                "-7204381714255964258"
-              ],
-              [
-                "gamma"
-              ],
-              [
-                {
-                  "name" : [
-                    "family",
-                    "december",
-                    "pi",
-                    "money"
-                  ],
-                  "tpe" : [
-                    "Reference",
-                    [
-                      "BoolLiteral",
-                      false
-                    ],
-                    [
-                      [
-                        [
-                          "april",
-                          "nu"
-                        ],
-                        [
-                          "lambda",
-                          "name",
-                          "omega",
-                          "gamma",
-                          "november"
-                        ]
-                      ],
-                      [
-                        [
-                          "gamma"
-                        ],
-                        [
-                          "april",
-                          "world",
-                          "xi",
-                          "owner",
-                          "zeta"
-                        ],
-                        [
-                          "rho",
-                          "left"
-                        ],
-                        [
-                          "omicron",
-                          "business",
-                          "november",
-                          "theta"
-                        ]
-                      ],
-                      [
-                        "mu"
-                      ]
-                    ],
-                    [
-                      [
-                        "Unit",
-                        [
-                          "DecimalLiteral",
-                          "-8816553714420160099"
-                        ]
-                      ]
-                    ]
-                  ]
-                }
-              ]
-            ]
-          ],
-          [
-            [
-              "may",
-              "nu",
-              "xi"
-            ],
-            [
-              "ExtensibleRecord",
-              [
-                "BoolLiteral",
-                true
-              ],
-              [
-                "government",
-                "phi",
-                "valid",
-                "july",
-                "currency"
-              ],
-              [
-                {
-                  "name" : [
-                    "country",
-                    "november"
-                  ],
-                  "tpe" : [
-                    "Variable",
-                    [
-                      "CharLiteral",
-                      ";"
-                    ],
-                    [
-                      "omicron",
-                      "chi",
-                      "benchmark",
-                      "description",
-                      "september"
-                    ]
-                  ]
-                }
-              ]
-            ]
-          ]
-        ]
-      ],
-      [
-        [
-          "sigma",
-          "benchmark",
-          "psi",
-          "august",
-          "january"
-        ],
-        [
-          [
-            [
-              "theta"
-            ],
-            [
-              "Unit",
-              [
-                "FloatLiteral",
-                0.07310139010087868
-              ]
-            ]
-          ],
-          [
-            [
-              "july",
-              "home"
-            ],
-            [
-              "Tuple",
+              "Reference",
               [
                 "WholeNumberLiteral",
-                -8124229420355091037
+                3472151933476510110
               ],
               [
                 [
-                  "Unit",
                   [
-                    "StringLiteral",
-                    "lot"
+                    "week",
+                    "lambda"
+                  ],
+                  [
+                    "pi",
+                    "government"
+                  ],
+                  [
+                    "omega",
+                    "july"
+                  ],
+                  [
+                    "february",
+                    "beta",
+                    "eta",
+                    "home",
+                    "id"
+                  ],
+                  [
+                    "omicron",
+                    "sigma",
+                    "to",
+                    "job"
                   ]
                 ],
                 [
+                  [
+                    "description",
+                    "system",
+                    "iota",
+                    "epsilon",
+                    "january"
+                  ],
+                  [
+                    "lambda"
+                  ],
+                  [
+                    "government"
+                  ],
+                  [
+                    "valid"
+                  ]
+                ],
+                [
+                  "september",
+                  "fact"
+                ]
+              ],
+              [
+                [
                   "Unit",
                   [
-                    "FloatLiteral",
-                    0.6773716472325554
+                    "BoolLiteral",
+                    true
                   ]
                 ]
               ]
@@ -1158,47 +1293,66 @@
     [
       [
         [
-          "february",
-          "january",
-          "psi"
+          "august",
+          "currency",
+          "pi",
+          "problem",
+          "august"
         ],
         [
           [
             [
-              "october",
-              "february",
-              "left",
-              "left"
+              "chi",
+              "iota",
+              "area"
             ],
             [
-              "Variable",
+              "Unit",
               [
-                "FloatLiteral",
-                0.4298571355849643
-              ],
+                "DecimalLiteral",
+                "-8003023385806132554"
+              ]
+            ]
+          ]
+        ]
+      ],
+      [
+        [
+          "market",
+          "nu",
+          "eta",
+          "july"
+        ],
+        [
+          [
+            [
+              "iota"
+            ],
+            [
+              "Unit",
               [
-                "book",
-                "tau",
-                "time",
-                "world",
-                "nu"
+                "DecimalLiteral",
+                "-8441501803921241637"
               ]
             ]
           ],
           [
             [
-              "week",
-              "lambda"
+              "fact",
+              "phi",
+              "rho",
+              "may",
+              "source"
             ],
             [
               "Variable",
               [
-                "FloatLiteral",
-                0.6357274440543341
+                "DecimalLiteral",
+                "-7240667164925156629"
               ],
               [
-                "omicron",
-                "omega"
+                "november",
+                "beta"
               ]
             ]
           ]
@@ -1208,284 +1362,34 @@
     [
       [
         [
-          "iota",
-          "number"
+          "source",
+          "june",
+          "alpha"
         ],
         [
           [
             [
               "november",
-              "omicron",
-              "sigma",
-              "to"
+              "gamma",
+              "october"
             ],
             [
               "Record",
               [
-                "DecimalLiteral",
-                "-1897933875326424006"
+                "StringLiteral",
+                "parent"
               ],
               [
                 {
                   "name" : [
-                    "iota",
-                    "epsilon",
-                    "january"
+                    "number",
+                    "lot"
                   ],
                   "tpe" : [
-                    "Reference",
+                    "Unit",
                     [
-                      "StringLiteral",
-                      "valid"
-                    ],
-                    [
-                      [
-                        [
-                          "fact"
-                        ],
-                        [
-                          "tau",
-                          "work"
-                        ],
-                        [
-                          "may",
-                          "june",
-                          "august"
-                        ]
-                      ],
-                      [
-                        [
-                          "alpha",
-                          "eta"
-                        ]
-                      ],
-                      [
-                        "august",
-                        "june",
-                        "company",
-                        "id",
-                        "fact"
-                      ]
-                    ],
-                    [
-                      [
-                        "Variable",
-                        [
-                          "StringLiteral",
-                          "delta"
-                        ],
-                        [
-                          "nu",
-                          "eta",
-                          "july",
-                          "sigma"
-                        ]
-                      ]
-                    ]
-                  ]
-                },
-                {
-                  "name" : [
-                    "psi",
-                    "november",
-                    "time",
-                    "month"
-                  ],
-                  "tpe" : [
-                    "Function",
-                    [
-                      "StringLiteral",
-                      "nu"
-                    ],
-                    [
-                      "Unit",
-                      [
-                        "WholeNumberLiteral",
-                        6861668720663365378
-                      ]
-                    ],
-                    [
-                      "ExtensibleRecord",
-                      [
-                        "WholeNumberLiteral",
-                        2183594316759823748
-                      ],
-                      [
-                        "omicron"
-                      ],
-                      [
-                        {
-                          "name" : [
-                            "beta",
-                            "omega"
-                          ],
-                          "tpe" : [
-                            "Unit",
-                            [
-                              "WholeNumberLiteral",
-                              -1509901454621780435
-                            ]
-                          ]
-                        },
-                        {
-                          "name" : [
-                            "alpha",
-                            "group",
-                            "family",
-                            "alpha",
-                            "june"
-                          ],
-                          "tpe" : [
-                            "ExtensibleRecord",
-                            [
-                              "StringLiteral",
-                              "July"
-                            ],
-                            [
-                              "number",
-                              "lot"
-                            ],
-                            [
-                              {
-                                "name" : [
-                                  "sigma",
-                                  "rho"
-                                ],
-                                "tpe" : [
-                                  "Record",
-                                  [
-                                    "FloatLiteral",
-                                    0.6809793904272538
-                                  ],
-                                  [
-                                    {
-                                      "name" : [
-                                        "omega"
-                                      ],
-                                      "tpe" : [
-                                        "Reference",
-                                        [
-                                          "CharLiteral",
-                                          "k"
-                                        ],
-                                        [
-                                          [
-                                            [
-                                              "area",
-                                              "march",
-                                              "beta"
-                                            ],
-                                            [
-                                              "pi",
-                                              "owner",
-                                              "psi"
-                                            ],
-                                            [
-                                              "february",
-                                              "july",
-                                              "title",
-                                              "march"
-                                            ]
-                                          ],
-                                          [
-                                            [
-                                              "theta",
-                                              "market"
-                                            ],
-                                            [
-                                              "july",
-                                              "august",
-                                              "april",
-                                              "company",
-                                              "fact"
-                                            ]
-                                          ],
-                                          [
-                                            "mu",
-                                            "february",
-                                            "entity",
-                                            "market",
-                                            "year"
-                                          ]
-                                        ],
-                                        [
-                                          [
-                                            "Unit",
-                                            [
-                                              "StringLiteral",
-                                              "tau"
-                                            ]
-                                          ],
-                                          [
-                                            "Reference",
-                                            [
-                                              "FloatLiteral",
-                                              0.16444542807878615
-                                            ],
-                                            [
-                                              [
-                                                [
-                                                  "owner",
-                                                  "book",
-                                                  "theta"
-                                                ],
-                                                [
-                                                  "february",
-                                                  "february",
-                                                  "rate",
-                                                  "october"
-                                                ],
-                                                [
-                                                  "right",
-                                                  "omicron",
-                                                  "state",
-                                                  "lambda",
-                                                  "job"
-                                                ],
-                                                [
-                                                  "october",
-                                                  "june"
-                                                ],
-                                                [
-                                                  "theta",
-                                                  "source",
-                                                  "minute"
-                                                ]
-                                              ],
-                                              [
-                                                [
-                                                  "april",
-                                                  "currency",
-                                                  "title"
-                                                ]
-                                              ],
-                                              [
-                                                "part"
-                                              ]
-                                            ],
-                                            [
-                                              [
-                                                "Variable",
-                                                [
-                                                  "StringLiteral",
-                                                  "September"
-                                                ],
-                                                [
-                                                  "lambda"
-                                                ]
-                                              ]
-                                            ]
-                                          ]
-                                        ]
-                                      ]
-                                    }
-                                  ]
-                                ]
-                              }
-                            ]
-                          ]
-                        }
-                      ]
+                      "DecimalLiteral",
+                      "-3685331341227902266"
                     ]
                   ]
                 }
@@ -1494,275 +1398,53 @@
           ],
           [
             [
-              "june",
-              "kappa"
+              "alpha",
+              "may",
+              "omega",
+              "entity"
             ],
             [
-              "Record",
+              "Variable",
               [
-                "WholeNumberLiteral",
-                7449860494260146825
+                "BoolLiteral",
+                true
               ],
               [
-                {
-                  "name" : [
-                    "january",
-                    "february",
-                    "owner",
-                    "january"
-                  ],
-                  "tpe" : [
-                    "Reference",
-                    [
-                      "StringLiteral",
-                      "title"
-                    ],
-                    [
-                      [
-                        [
-                          "rho",
-                          "may",
-                          "mu",
-                          "entity"
-                        ],
-                        [
-                          "group",
-                          "owner",
-                          "week"
-                        ],
-                        [
-                          "delta",
-                          "zeta",
-                          "lot",
-                          "id",
-                          "beta"
-                        ],
-                        [
-                          "march",
-                          "september",
-                          "march",
-                          "gamma"
-                        ]
-                      ],
-                      [
-                        [
-                          "april",
-                          "problem",
-                          "february"
-                        ],
-                        [
-                          "beta"
-                        ],
-                        [
-                          "july",
-                          "iota",
-                          "beta"
-                        ],
-                        [
-                          "sigma",
-                          "pi",
-                          "july",
-                          "area",
-                          "november"
-                        ]
-                      ],
-                      [
-                        "psi"
-                      ]
-                    ],
-                    [
-                      [
-                        "Reference",
-                        [
-                          "StringLiteral",
-                          "May"
-                        ],
-                        [
-                          [
-                            [
-                              "september",
-                              "left",
-                              "beta",
-                              "tau",
-                              "valid"
-                            ]
-                          ],
-                          [
-                            [
-                              "eta",
-                              "alpha",
-                              "september",
-                              "kappa"
-                            ],
-                            [
-                              "description",
-                              "company",
-                              "july",
-                              "may",
-                              "system"
-                            ],
-                            [
-                              "rho",
-                              "july",
-                              "rho",
-                              "beta"
-                            ],
-                            [
-                              "government",
-                              "rate",
-                              "march",
-                              "march",
-                              "psi"
-                            ],
-                            [
-                              "lambda",
-                              "description"
-                            ]
-                          ],
-                          [
-                            "omega",
-                            "company",
-                            "epsilon"
-                          ]
-                        ],
-                        [
-                          [
-                            "Variable",
-                            [
-                              "FloatLiteral",
-                              0.9438031243777418
-                            ],
-                            [
-                              "money",
-                              "state",
-                              "tau",
-                              "theta",
-                              "beta"
-                            ]
-                          ]
-                        ]
-                      ],
-                      [
-                        "Function",
-                        [
-                          "FloatLiteral",
-                          0.2098132705789577
-                        ],
-                        [
-                          "Variable",
-                          [
-                            "WholeNumberLiteral",
-                            -3849377228879583683
-                          ],
-                          [
-                            "lambda"
-                          ]
-                        ],
-                        [
-                          "Reference",
-                          [
-                            "BoolLiteral",
-                            false
-                          ],
-                          [
-                            [
-                              [
-                                "june",
-                                "tau"
-                              ],
-                              [
-                                "eta",
-                                "april"
-                              ],
-                              [
-                                "tau",
-                                "eta",
-                                "problem",
-                                "home"
-                              ],
-                              [
-                                "alpha",
-                                "work",
-                                "february",
-                                "government",
-                                "rho"
-                              ],
-                              [
-                                "theta",
-                                "july"
-                              ]
-                            ],
-                            [
-                              [
-                                "november",
-                                "omega"
-                              ],
-                              [
-                                "minute"
-                              ],
-                              [
-                                "name",
-                                "may",
-                                "right"
-                              ]
-                            ],
-                            [
-                              "market",
-                              "theta"
-                            ]
-                          ],
-                          [
-                            [
-                              "Record",
-                              [
-                                "CharLiteral",
-                                "u"
-                              ],
-                              [
-                                {
-                                  "name" : [
-                                    "alpha",
-                                    "april",
-                                    "psi"
-                                  ],
-                                  "tpe" : [
-                                    "Unit",
-                                    [
-                                      "DecimalLiteral",
-                                      "-3849685525041733411"
-                                    ]
-                                  ]
-                                },
-                                {
-                                  "name" : [
-                                    "area",
-                                    "upsilon",
-                                    "nu",
-                                    "title",
-                                    "march"
-                                  ],
-                                  "tpe" : [
-                                    "Variable",
-                                    [
-                                      "StringLiteral",
-                                      "parent"
-                                    ],
-                                    [
-                                      "june",
-                                      "omega",
-                                      "theta",
-                                      "september"
-                                    ]
-                                  ]
-                                }
-                              ]
-                            ]
-                          ]
-                        ]
-                      ]
-                    ]
+                "part",
+                "november"
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    [
+      [
+        [
+          "part",
+          "job",
+          "year",
+          "omicron"
+        ],
+        [
+          [
+            [
+              "july"
+            ],
+            [
+              "Tuple",
+              [
+                "BoolLiteral",
+                false
+              ],
+              [
+                [
+                  "Unit",
+                  [
+                    "DecimalLiteral",
+                    "-7809017001238987534"
                   ]
-                }
+                ]
               ]
             ]
           ]
@@ -1770,27 +1452,24 @@
       ],
       [
         [
-          "source",
-          "zeta"
+          "area",
+          "xi",
+          "upsilon",
+          "october"
         ],
         [
           [
             [
-              "december",
-              "december",
-              "march",
-              "country",
-              "pi"
+              "company",
+              "fact",
+              "problem",
+              "january"
             ],
             [
-              "Variable",
+              "Unit",
               [
-                "FloatLiteral",
-                0.3764223237360841
-              ],
-              [
-                "epsilon",
-                "business"
+                "StringLiteral",
+                "August"
               ]
             ]
           ]

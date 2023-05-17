@@ -1,7 +1,6 @@
 package morphir.knowledge.logic.core
 
 import zio.stream.{ZChannel, ZSink, ZStream}
-import zio.stream.ZChannel.{ChildExecutorDecision, UpstreamPullRequest, UpstreamPullStrategy}
 import zio._
 
 import scala.collection.immutable.{Queue => ScalaQueue}

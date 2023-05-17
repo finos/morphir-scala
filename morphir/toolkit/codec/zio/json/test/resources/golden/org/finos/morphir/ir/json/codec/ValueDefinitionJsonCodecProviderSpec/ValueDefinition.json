@@ -174,53 +174,48 @@
         [
           [
             [
-              "july",
-              "iota",
-              "tau"
+              "id"
             ],
             [
-              "literal",
+              "tuple",
               [
-                "DecimalLiteral",
-                "-4872681376410661556"
+                "CharLiteral",
+                "6"
               ],
               [
-                "StringLiteral",
-                "September"
+                [
+                  "variable",
+                  [
+                    "BoolLiteral",
+                    false
+                  ],
+                  [
+                    "owner",
+                    "beta",
+                    "april",
+                    "september",
+                    "january"
+                  ]
+                ]
+              ]
+            ]
+          ],
+          [
+            [
+              "day",
+              "gamma"
+            ],
+            [
+              "field_function",
+              [
+                "FloatLiteral",
+                0.17429365021602394
+              ],
+              [
+                "december"
               ]
             ]
           ]
-        ]
-      ]
-    },
-    {
-      "inputTypes" : [
-        [
-          [
-            "phi"
-          ],
-          [
-            "StringLiteral",
-            "April"
-          ],
-          [
-            "Unit",
-            []
-          ]
-        ]
-      ],
-      "outputType" : [
-        "Unit",
-        []
-      ],
-      "body" : [
-        "field_function",
-        [
-          "FloatLiteral",
-          0.17429365021602394
-        ],
-        [
-          "december"
         ]
       ]
     },
@@ -2120,6 +2115,52 @@
             "epsilon",
             "number"
           ]
+        ]
+      ]
+    },
+    {
+      "inputTypes" : [
+        [
+          [
+            "month",
+            "business"
+          ],
+          [
+            "CharLiteral",
+            "8"
+          ],
+          [
+            "Unit",
+            []
+          ]
+        ],
+        [
+          [
+            "september",
+            "eta",
+            "may",
+            "may",
+            "december"
+          ],
+          [
+            "WholeNumberLiteral",
+            -4111158958374173272
+          ],
+          [
+            "Unit",
+            []
+          ]
+        ]
+      ],
+      "outputType" : [
+        "Unit",
+        []
+      ],
+      "body" : [
+        "unit",
+        [
+          "StringLiteral",
+          "chi"
         ]
       ]
     }
