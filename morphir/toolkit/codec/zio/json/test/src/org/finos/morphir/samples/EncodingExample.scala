@@ -8,12 +8,12 @@ import zio.json._
 import zio.json.ast.Json
 
 import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, Specification => PackageSpecification}
-import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, _}
+import org.finos.morphir.ir.Type.{Definition as TypeDefinition, Specification as TypeSpecification, *}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
 import org.finos.morphir.ir.Value.{Value, _}
 import org.finos.morphir.ir.module.{
   Definition => ModuleDefinition,
-  ModuleName,
+  QualifiedModuleName,
   ModulePath,
   Specification => ModuleSpecification
 }

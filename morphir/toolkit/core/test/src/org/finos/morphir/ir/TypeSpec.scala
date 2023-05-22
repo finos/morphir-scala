@@ -8,7 +8,7 @@ import zio.test.*
 import org.finos.morphir.ir.Type.*
 import org.finos.morphir.ir.Type.Type.{ExtensibleRecord, Function, Record, Reference, Tuple, Unit, Variable}
 import org.finos.morphir.ir.packages.PackageName
-import org.finos.morphir.ir.module.ModuleName
+import org.finos.morphir.ir.module.QualifiedModuleName
 
 import scala.annotation.nowarn
 

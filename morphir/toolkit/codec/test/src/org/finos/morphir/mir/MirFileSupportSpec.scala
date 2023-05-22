@@ -9,7 +9,7 @@ import io.bullet.borer.Cbor
 import io.bullet.borer.EncodingSetup.Api
 import io.bullet.borer.Cbor.EncodingConfig
 import ir.{Name, Path}
-import ir.module.ModuleName
+import ir.module.QualifiedModuleName
 import mir.file.format.{MirFile, MirFileFormatVersion, MirFileHeader}
 
 object MirFileSupportSpec extends MorphirBaseSpec {
@@ -60,10 +60,10 @@ object MirFileSupportSpec extends MorphirBaseSpec {
     ),
     suite("morphir.mir.ModuleName")(
       test("Supports roundtrip CBOR encoding/decoding of a ModuleName") {
-        val sut          = ModuleName(Path.fromString("morphir.sdk"), Name.fromString("Bool"))
+        val sut          = QualifiedModuleName(Path.fromString("morphir.sdk"), Name.fromString("Bool"))
         val encoded      = Cbor.encode(sut)
         val encodedBytes = encoded.toByteArray
-        val decoded      = Cbor.decode(encodedBytes).to[ModuleName].valueEither
+        val decoded      = Cbor.decode(encodedBytes).to[QualifiedModuleName].valueEither
         assertTrue(
           decoded == Right(sut)
         )
@@ -83,7 +83,7 @@ object MirFileSupportSpec extends MorphirBaseSpec {
     suite("morphir.mir.file.MirFileHeader")(
       test("Supports roundtrip CBOR encoding/decoding of a MirFileHeader") {
         val version      = MirFileFormatVersion(2, 13, 9)
-        val moduleName   = ModuleName(Path.fromString("morphir.mir"), Name.fromString("FQName"))
+        val moduleName   = QualifiedModuleName(Path.fromString("morphir.mir"), Name.fromString("FQName"))
         val sut          = MirFileHeader(version, moduleName)
         val encoded      = Cbor.encode(sut)
         val encodedBytes = encoded.toByteArray
@@ -96,7 +96,7 @@ object MirFileSupportSpec extends MorphirBaseSpec {
     suite("morphir.mir.file.MirFile")(
       test("Supports roundtrip CBOR encoding/decoding of a MirFile") {
         val version      = MirFileFormatVersion(0, 1, 2)
-        val moduleName   = ModuleName(Path.fromString("morphir.mir"), Name.fromString("QName"))
+        val moduleName   = QualifiedModuleName(Path.fromString("morphir.mir"), Name.fromString("QName"))
         val header       = MirFileHeader(version, moduleName)
         val sut          = MirFile(header = header)
         val encoded      = Cbor.encode(sut).withPrintLogging()

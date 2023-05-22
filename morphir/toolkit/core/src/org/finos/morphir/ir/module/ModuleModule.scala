@@ -8,8 +8,8 @@ trait ModuleModule {
   final type Definition[+TA, +VA] = morphir.ir.module.Definition[TA, VA]
   final val Definition: morphir.ir.module.Definition.type = morphir.ir.module.Definition
 
-  final type ModuleName = morphir.ir.module.ModuleName
-  final val ModuleName: morphir.ir.module.ModuleName.type = morphir.ir.module.ModuleName
+  final type ModuleName = morphir.ir.module.QualifiedModuleName
+  final val ModuleName: morphir.ir.module.QualifiedModuleName.type = morphir.ir.module.QualifiedModuleName
 
   final type ModulePath = morphir.ir.module.ModulePath
   final val ModulePath: morphir.ir.module.ModulePath.type = morphir.ir.module.ModulePath

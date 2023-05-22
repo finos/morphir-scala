@@ -8,7 +8,7 @@ package object module {
   final case class ModulePath(toPath: Path) extends AnyVal {
     self =>
 
-    def toModuleName: ModuleName = ModuleName.fromPath(toPath)
+    def toModuleName: QualifiedModuleName = QualifiedModuleName.fromPath(toPath)
 
   }
 

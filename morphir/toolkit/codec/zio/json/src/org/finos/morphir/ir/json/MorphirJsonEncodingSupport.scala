@@ -19,7 +19,7 @@ import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification 
 import org.finos.morphir.ir.Value.{Value, _}
 import org.finos.morphir.ir.module.{
   Definition => ModuleDefinition,
-  ModuleName,
+  QualifiedModuleName,
   ModulePath,
   Specification => ModuleSpecification
 }
@@ -44,8 +44,8 @@ trait MorphirJsonEncodingSupport extends JsonEncodingHelpers {
       )
     )
 
-  implicit val moduleNameEncoder: JsonEncoder[ModuleName] =
-    Json.encoder.contramap[ModuleName](moduleName =>
+  implicit val moduleNameEncoder: JsonEncoder[QualifiedModuleName] =
+    Json.encoder.contramap[QualifiedModuleName](moduleName =>
       Json.Arr(toJsonAstOrThrow(moduleName.namespace), toJsonAstOrThrow(moduleName.localName))
     )
 
