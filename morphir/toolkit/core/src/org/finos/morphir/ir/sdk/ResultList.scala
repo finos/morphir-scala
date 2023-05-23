@@ -2,7 +2,7 @@ package org.finos.morphir.ir.sdk
 
 import zio.Chunk
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.ModuleName
+import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.TypeAliasSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics.boolType
@@ -12,7 +12,7 @@ import org.finos.morphir.ir.sdk.Result.resultType
 import org.finos.morphir.syntax.NamingSyntax._
 
 object ResultList {
-  val moduleName: ModuleName = ModuleName.fromString("ResultList")
+  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("ResultList")
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(

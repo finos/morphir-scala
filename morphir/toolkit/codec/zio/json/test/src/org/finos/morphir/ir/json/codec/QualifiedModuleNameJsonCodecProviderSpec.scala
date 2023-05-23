@@ -10,7 +10,10 @@ import zio.test._
 import zio.json.golden.GoldenConfiguration
 import zio.test.magnolia.DeriveGen
 
-object QualifiedModuleNameJsonCodecProviderSpec extends MorphirJsonBaseSpec with MorphirIRDeriveGen with MorphirJsonSupport {
+object QualifiedModuleNameJsonCodecProviderSpec
+    extends MorphirJsonBaseSpec
+    with MorphirIRDeriveGen
+    with MorphirJsonSupport {
   implicit lazy val givenGoldenConfiguration: GoldenConfiguration =
     GoldenConfiguration.default.copy(
       relativePath = implicitly[sourcecode.FullName].value.split('.').dropRight(1).mkString(File.separator),

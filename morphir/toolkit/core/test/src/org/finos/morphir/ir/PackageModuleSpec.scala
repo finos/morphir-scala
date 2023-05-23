@@ -1,6 +1,6 @@
 package org.finos.morphir.ir
 
-import org.finos.morphir.ir.Module.ModuleName
+import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.PackageModule.{Definition, Specification}
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.samples.ModuleExample._
@@ -8,9 +8,9 @@ import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
 object PackageModuleSpec extends MorphirBaseSpec {
-  val packageDefModules: Map[ModuleName, AccessControlled[module.Definition[Any, UType]]] =
+  val packageDefModules: Map[QualifiedModuleName, AccessControlled[module.Definition[Any, UType]]] =
     Map {
-      ModuleName(
+      QualifiedModuleName(
         Path.fromString("blog.author"),
         Name("peter")
       ) -> AccessControlled.publicAccess(moduleDef)
@@ -18,9 +18,9 @@ object PackageModuleSpec extends MorphirBaseSpec {
 
   val packageDef: Definition[Any, UType] = Definition(packageDefModules)
 
-  val packageSpecModules: Map[ModuleName, module.Specification[Any]] =
+  val packageSpecModules: Map[QualifiedModuleName, module.Specification[Any]] =
     Map {
-      ModuleName(
+      QualifiedModuleName(
         Path.fromString("blog.author"),
         Name("peter")
       ) -> moduleSpec
@@ -50,14 +50,16 @@ object PackageModuleSpec extends MorphirBaseSpec {
         assertTrue(result.equals(None))
       },
       test("Look up existing Type Definition") {
-        val result  = packageDef.lookupTypeDefinition(Path.fromString("blog.author"), Name("peter"))
-        val result2 = packageDef.lookupTypeDefinition(ModuleName(Path.fromString("blog.author"), Name("peter")))
+        val result = packageDef.lookupTypeDefinition(Path.fromString("blog.author"), Name("peter"))
+        val result2 =
+          packageDef.lookupTypeDefinition(QualifiedModuleName(Path.fromString("blog.author"), Name("peter")))
 
         assertTrue(result == Some(moduleDef) && result2 == Some(moduleDef))
       },
       test("Look up non-existent Type Definition") {
-        val result  = packageDef.lookupTypeDefinition(Path.fromString("blog.author"), Name("stephen"))
-        val result2 = packageDef.lookupTypeDefinition(ModuleName(Path.fromString("blog.author"), Name("stephen")))
+        val result = packageDef.lookupTypeDefinition(Path.fromString("blog.author"), Name("stephen"))
+        val result2 =
+          packageDef.lookupTypeDefinition(QualifiedModuleName(Path.fromString("blog.author"), Name("stephen")))
 
         assertTrue(result.isEmpty && result2.isEmpty)
       }
@@ -72,14 +74,16 @@ object PackageModuleSpec extends MorphirBaseSpec {
         assertTrue(result == None)
       },
       test("Look up existing Type Definition") {
-        val result  = packageSpec.lookupTypeSpecification(Path.fromString("blog.author"), Name("peter"))
-        val result2 = packageSpec.lookupTypeSpecification(ModuleName(Path.fromString("blog.author"), Name("peter")))
+        val result = packageSpec.lookupTypeSpecification(Path.fromString("blog.author"), Name("peter"))
+        val result2 =
+          packageSpec.lookupTypeSpecification(QualifiedModuleName(Path.fromString("blog.author"), Name("peter")))
 
         assertTrue(result == Some(moduleSpec) && result2 == Some(moduleSpec))
       },
       test("Look up non-existent Type Definition") {
-        val result  = packageSpec.lookupTypeSpecification(Path.fromString("blog.author"), Name("stephen"))
-        val result2 = packageSpec.lookupTypeSpecification(ModuleName(Path.fromString("blog.author"), Name("stephen")))
+        val result = packageSpec.lookupTypeSpecification(Path.fromString("blog.author"), Name("stephen"))
+        val result2 =
+          packageSpec.lookupTypeSpecification(QualifiedModuleName(Path.fromString("blog.author"), Name("stephen")))
 
         assertTrue(result.isEmpty && result2.isEmpty)
       }

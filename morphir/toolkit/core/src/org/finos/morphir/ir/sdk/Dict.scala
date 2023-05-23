@@ -1,7 +1,7 @@
 package org.finos.morphir.ir.sdk
 
 import zio.Chunk
-import org.finos.morphir.ir.Module.ModuleName
+import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type.{reference => tRef, _}
 import org.finos.morphir.ir.Value.{apply, reference, Value}
@@ -13,7 +13,7 @@ import org.finos.morphir.ir.{FQName, Module, Name, Path}
 import org.finos.morphir.syntax.NamingSyntax._
 
 object Dict {
-  val moduleName: ModuleName = ModuleName.fromString("Dict")
+  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Dict")
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(

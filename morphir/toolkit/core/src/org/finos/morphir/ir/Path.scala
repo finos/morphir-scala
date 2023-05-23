@@ -4,7 +4,7 @@ import zio.Chunk
 
 import scala.annotation.tailrec
 
-import Module.{ModuleName, ModulePath}
+import Module.{QualifiedModuleName, ModulePath}
 
 final case class Path(segments: Chunk[Name]) { self =>
 

@@ -6,7 +6,7 @@ import zio.test.Gen
 
 trait PackageSpecificationGen {
   final def packageSpecification[R, TA](
-      modulesGen: Gen[R, Map[Module.ModuleName, Module.Specification[TA]]]
+      modulesGen: Gen[R, Map[Module.QualifiedModuleName, Module.Specification[TA]]]
   ): Gen[R, PackageModule.Specification[TA]] = for {
     modules <- modulesGen
   } yield PackageModule.Specification(modules)
@@ -18,7 +18,7 @@ trait PackageSpecificationGen {
 
   private final def mapOfModulesGen[R, TA](implicit
       typeAttributes: Gen[R, TA]
-  ): Gen[R, Map[Module.ModuleName, Module.Specification[TA]]] =
+  ): Gen[R, Map[Module.QualifiedModuleName, Module.Specification[TA]]] =
     Gen.mapOfBounded(1, 2)(
       ModuleNameGen.moduleName,
       ModuleSpecificationGen.moduleSpecificationFromAttributes(typeAttributes)

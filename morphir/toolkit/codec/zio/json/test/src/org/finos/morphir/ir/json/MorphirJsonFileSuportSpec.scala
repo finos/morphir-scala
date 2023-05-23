@@ -8,7 +8,7 @@ import org.finos.morphir.ir.Literal.Literal
 import org.finos.morphir.ir.Literal.Literal._
 import org.finos.morphir.ir.Module.{
   Definition => ModuleDefinition,
-  ModuleName,
+  QualifiedModuleName,
   ModulePath,
   Specification => ModuleSpecification
 }
@@ -22,7 +22,7 @@ import org.finos.morphir.ir.Type.{Definition => TypeDefinition, Specification =>
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Pattern, Specification => ValueSpecification, Value}
 import org.finos.morphir.ir._
 import org.finos.morphir.ir.json.MorphirJsonFileSupport._
-import zio.test.{ZIOSpecDefault, _}
+import zio.test.*
 
 object MorphirJsonMorphirIRFileSpec extends ZIOSpecDefault {
   def spec = suite("Json Decoding Suite")(
@@ -65,8 +65,8 @@ object MorphirJsonMorphirIRFileSpec extends ZIOSpecDefault {
     val name        = Name.fromString("name")
     val name1       = Name.fromString("name1")
     val name2       = Name.fromString("name2")
-    val modName1    = ModuleName(Path.fromString("org"), Name.fromString("src"))
-    val modName2    = ModuleName(Path.fromString("org"), Name.fromString("test"))
+    val modName1    = QualifiedModuleName(Path.fromString("org"), Name.fromString("src"))
+    val modName2    = QualifiedModuleName(Path.fromString("org"), Name.fromString("test"))
 
     val specTypeMap = Map(
       name -> Documented(

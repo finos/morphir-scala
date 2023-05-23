@@ -1,7 +1,7 @@
 package org.finos.morphir.ir.sdk
 
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.ModuleName
+import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics._
@@ -11,7 +11,7 @@ import org.finos.morphir.ir.sdk.String.stringType
 import org.finos.morphir.syntax.NamingSyntax._
 
 object Decimal {
-  val moduleName: ModuleName = ModuleName.fromString("Decimal")
+  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Decimal")
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(

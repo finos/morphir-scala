@@ -1,12 +1,12 @@
 package org.finos.morphir.ir.packages
 
-import org.finos.morphir.ir.Module.{Definition => ModuleDef, ModuleName}
+import org.finos.morphir.ir.Module.{Definition => ModuleDef, QualifiedModuleName}
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.Value.{Definition => ValueDef}
 import org.finos.morphir.ir.{AccessControlled, Name, Path}
 
 final case class Definition[+TA, +VA](
-    modules: Map[ModuleName, AccessControlled[ModuleDef[TA, VA]]]
+    modules: Map[QualifiedModuleName, AccessControlled[ModuleDef[TA, VA]]]
 ) { self =>
 
   def eraseAttributes: Definition[Any, Any] = self.mapAttributes(_ => (), _ => ())
@@ -26,16 +26,16 @@ final case class Definition[+TA, +VA](
   }
 
   def lookupModuleDefinition(path: Path): Option[ModuleDef[TA, VA]] = lookupModuleDefinition(
-    ModuleName.fromPath(path)
+    QualifiedModuleName.fromPath(path)
   )
 
-  def lookupModuleDefinition(moduleName: ModuleName): Option[ModuleDef[TA, VA]] =
+  def lookupModuleDefinition(moduleName: QualifiedModuleName): Option[ModuleDef[TA, VA]] =
     modules.get(moduleName).map(_.withPrivateAccess)
 
   def lookupTypeDefinition(path: Path, name: Name): Option[ModuleDef[TA, VA]] =
-    lookupTypeDefinition(ModuleName(path, name))
+    lookupTypeDefinition(QualifiedModuleName(path, name))
 
-  def lookupTypeDefinition(moduleName: ModuleName): Option[ModuleDef[TA, VA]] =
+  def lookupTypeDefinition(moduleName: QualifiedModuleName): Option[ModuleDef[TA, VA]] =
     modules.get(moduleName).map(_.withPrivateAccess)
 
   def mapAttributes[TB, VB](tf: TA => TB, vf: VA => VB): Definition[TB, VB] = Definition(
@@ -86,7 +86,7 @@ object Definition {
 
   type Typed = Definition[Unit, UType]
   object Typed {
-    def apply(modules: Map[ModuleName, AccessControlled[ModuleDef[Unit, UType]]]): Definition[Unit, UType] =
+    def apply(modules: Map[QualifiedModuleName, AccessControlled[ModuleDef[Unit, UType]]]): Definition[Unit, UType] =
       Definition(modules)
   }
 }

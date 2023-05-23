@@ -4,10 +4,10 @@ import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 
 object ModuleNameSpec extends MorphirBaseSpec {
-  import org.finos.morphir.ir.Module.ModuleName
+  import org.finos.morphir.ir.Module.QualifiedModuleName
   def spec = suite("ModuleName Spec")(
     test("fromString") {
-      assertTrue(ModuleName.fromString("Basics") == ModuleName.unsafeMake()("basics"))
+      assertTrue(QualifiedModuleName.fromString("Basics") == QualifiedModuleName.unsafeMake()("basics"))
     }
   )
 }

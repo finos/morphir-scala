@@ -5,7 +5,7 @@ import io.bullet.borer.{Cbor, Codec, Decoder, Encoder, Json}
 import io.bullet.borer.derivation.key
 import io.bullet.borer.derivation.ArrayBasedCodecs.*
 import mir.file.format.{MirFile, MirFileFormatVersion, MirFileHeader}
-import org.finos.morphir.ir.Module.ModuleName
+import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Name
 import org.finos.morphir.ir.Path
 
@@ -16,7 +16,7 @@ trait MirFileSupport:
   given Encoder[Path] = Encoder.forArray[Name].contramap(_.toList.toArray)
   given Decoder[Path] = Decoder.forArray[Name].map(Path.wrap(_))
 
-  given Codec[ModuleName]           = deriveCodec[ModuleName]
+  given Codec[QualifiedModuleName]  = deriveCodec[QualifiedModuleName]
   given Codec[MirFileFormatVersion] = deriveCodec[MirFileFormatVersion]
 
   given Codec[MirFileHeader] = deriveCodec[MirFileHeader]

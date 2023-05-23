@@ -2,7 +2,7 @@ package org.finos.morphir.ir.sdk
 
 import zio.Chunk
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.ModuleName
+import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.CustomTypeSpecification
 import org.finos.morphir.ir.Type.{Constructors, Type, UType, reference, variable}
 import org.finos.morphir.ir.Value.{apply, constructor, Value}
@@ -10,7 +10,7 @@ import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.Maybe.maybeType
 import org.finos.morphir.syntax.NamingSyntax._
 object Result {
-  val moduleName: ModuleName = ModuleName.fromString("Result")
+  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Result")
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(

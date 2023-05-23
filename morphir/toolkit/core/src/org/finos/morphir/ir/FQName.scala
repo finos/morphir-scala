@@ -2,13 +2,13 @@ package org.finos
 package morphir
 package ir
 
-import Module.{ModulePath, ModuleName}
+import Module.{ModulePath, QualifiedModuleName}
 
 final case class FQName(packagePath: PackageName, modulePath: ModulePath, localName: Name) {
   def getPackagePath: Path = packagePath.toPath
   def getModulePath: Path  = modulePath.toPath
 
-  def getModuleName: ModuleName = ModuleName(modulePath.toPath, localName)
+  def getModuleName: QualifiedModuleName = QualifiedModuleName(modulePath.toPath, localName)
 
   def toReferenceName: String = Seq(
     Path.toString(Name.toTitleCase, ".", packagePath.toPath),
@@ -57,7 +57,7 @@ object FQName {
   def fqn(localName: String)(implicit options: FQNamingOptions): FQName =
     FQName(options.defaultPackage, options.defaultModule, Name.fromString(localName))
 
-  def fqn(moduleName: ModuleName)(implicit options: FQNamingOptions): FQName =
+  def fqn(moduleName: QualifiedModuleName)(implicit options: FQNamingOptions): FQName =
     FQName(options.defaultPackage, ModulePath(moduleName.namespace), moduleName.localName)
 
   def toString(fqName: FQName): String = fqName.toString

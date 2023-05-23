@@ -1,6 +1,6 @@
 package org.finos.morphir.ir
 
-import org.finos.morphir.ir.Module.{ModuleName, ModulePath}
+import org.finos.morphir.ir.Module.{QualifiedModuleName, ModulePath}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.Assertion.*
 import zio.test.*
@@ -162,7 +162,7 @@ object FQNameSpec extends MorphirBaseSpec {
       test("When Path and LocalName are compound") {
         val sut = FQName.fromString(":morphir.sdk:local.date")
         assertTrue(
-          sut.getModuleName == ModuleName(Path.fromString("morphir.sdk"), Name.fromString("LocalDate"))
+          sut.getModuleName == QualifiedModuleName(Path.fromString("morphir.sdk"), Name.fromString("LocalDate"))
         )
       }
     )
