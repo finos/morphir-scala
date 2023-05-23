@@ -1,6 +1,6 @@
 package org.finos.morphir.ir
 
-import org.finos.morphir.ir.Module.{QualifiedModuleName, ModulePath}
+import org.finos.morphir.ir.Module.{QualifiedModuleName, ModuleName}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.Assertion.*
 import zio.test.*
@@ -13,7 +13,7 @@ object FQNameSpec extends MorphirBaseSpec {
           FQName.fromString("moduleName/packageName/localName", "/") ==
             FQName(
               PackageName(Path.fromString("moduleName")),
-              ModulePath(Path.fromString("packageName")),
+              ModuleName(Path.fromString("packageName")),
               Name.fromString("localName")
             )
         )
@@ -25,9 +25,9 @@ object FQNameSpec extends MorphirBaseSpec {
       },
       test("By using a QName without package name using implicit defaults") {
         val pkg                               = PackageName(Path.fromString("package Name"))
-        implicit val default: FQNamingOptions = FQNamingOptions(pkg, ModulePath(Path.fromString("MyModule")), ":")
+        implicit val default: FQNamingOptions = FQNamingOptions(pkg, ModuleName(Path.fromString("MyModule")), ":")
         val qName = QName(Path.fromString("qualified.Name.Path"), Name.fromString("localName"))
-        assertTrue(FQName.fromQName(qName) == FQName(pkg, ModulePath(qName.modulePath), qName.localName))
+        assertTrue(FQName.fromQName(qName) == FQName(pkg, ModuleName(qName.modulePath), qName.localName))
       }
     ),
     suite("Retrieving variables should work")(
@@ -50,7 +50,7 @@ object FQNameSpec extends MorphirBaseSpec {
           FQName.toString(
             FQName(
               PackageName(Path.fromString("com.example")),
-              ModulePath(Path.fromString("java home")),
+              ModuleName(Path.fromString("java home")),
               Name.fromString("morphir")
             )
           ) == "Com.Example:JavaHome:morphir"
@@ -63,7 +63,7 @@ object FQNameSpec extends MorphirBaseSpec {
           FQName.fromString("Com.Example:JavaHome:morphir", ":") ==
             FQName(
               PackageName(Path.fromString("com.example")),
-              ModulePath(Path.fromString("JavaHome")),
+              ModuleName(Path.fromString("JavaHome")),
               Name.fromString("morphir")
             )
         )
@@ -73,19 +73,19 @@ object FQNameSpec extends MorphirBaseSpec {
           FQName.fromString("Com.Example;JavaHome;morphir", ";") ==
             FQName(
               PackageName(Path.fromString("com.example")),
-              ModulePath(Path.fromString("JavaHome")),
+              ModuleName(Path.fromString("JavaHome")),
               Name.fromString("morphir")
             )
         )
       ),
       test("3 parameters - with implicit FQNamingOptions") {
-        implicit val default: FQNamingOptions = FQNamingOptions(PackageName(Path.empty), ModulePath(Path.empty), ";")
+        implicit val default: FQNamingOptions = FQNamingOptions(PackageName(Path.empty), ModuleName(Path.empty), ";")
 
         assertTrue(
           FQName.fromString("Com.Example;JavaHome;morphir") ==
             FQName(
               PackageName(Path.fromString("com.example")),
-              ModulePath(Path.fromString("JavaHome")),
+              ModuleName(Path.fromString("JavaHome")),
               Name.fromString("morphir")
             )
         )
@@ -95,20 +95,20 @@ object FQNameSpec extends MorphirBaseSpec {
           FQName.fromString("scalaHome:morphir") ==
             FQName(
               PackageName(Path.empty),
-              ModulePath(Path.fromString("scalaHome")),
+              ModuleName(Path.fromString("scalaHome")),
               Name.fromString("morphir")
             )
         )
       ),
       test("2 parameters - with implicit FQNamingOptions") {
         implicit val default: FQNamingOptions =
-          FQNamingOptions(PackageName(Path.fromString("zio.test")), ModulePath(Path.fromString("MyModule")), ";")
+          FQNamingOptions(PackageName(Path.fromString("zio.test")), ModuleName(Path.fromString("MyModule")), ";")
 
         assertTrue(
           FQName.fromString("JavaHome;morphir") ==
             FQName(
               PackageName(Path.fromString("zio.test")),
-              ModulePath(Path.fromString("JavaHome")),
+              ModuleName(Path.fromString("JavaHome")),
               Name.fromString("morphir")
             )
         )
@@ -117,20 +117,20 @@ object FQNameSpec extends MorphirBaseSpec {
         assertTrue(
           FQName.fromString("morphir") == FQName(
             PackageName(Path.empty),
-            ModulePath(Path.empty),
+            ModuleName(Path.empty),
             Name.fromString("morphir")
           )
         )
       ),
       test("1 parameters - with implicit FQNamingOptions") {
         implicit val default: FQNamingOptions =
-          FQNamingOptions(PackageName(Path.fromString("zio.test")), ModulePath(Path.fromString("MyModule")), ";")
+          FQNamingOptions(PackageName(Path.fromString("zio.test")), ModuleName(Path.fromString("MyModule")), ";")
 
         assertTrue(
           FQName.fromString("morphir") ==
             FQName(
               PackageName(Path.fromString("zio.test")),
-              ModulePath(Path.fromString("MyModule")),
+              ModuleName(Path.fromString("MyModule")),
               Name.fromString("morphir")
             )
         )
@@ -140,7 +140,7 @@ object FQNameSpec extends MorphirBaseSpec {
           FQName.fromString("") ==
             FQName(
               PackageName(Path.empty),
-              ModulePath(Path.empty),
+              ModuleName(Path.empty),
               Name.fromString("")
             )
         )

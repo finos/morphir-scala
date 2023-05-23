@@ -14,7 +14,7 @@ import org.finos.morphir.ir.Value.{Value, _}
 import org.finos.morphir.ir.module.{
   Definition => ModuleDefinition,
   QualifiedModuleName,
-  ModulePath,
+  ModuleName,
   Specification => ModuleSpecification
 }
 import org.finos.morphir.ir.printing.PrintIR
@@ -34,8 +34,8 @@ object EncodingExample {
   def encode(): Unit = {
     object Refs {
       val `morphir.SDK`             = PackageName.fromString("morphir.SDK")
-      val `basics`                  = Module.ModulePath.fromString("basics")
-      val `list`                    = Module.ModulePath.fromString("list")
+      val `basics`                  = Module.ModuleName.fromString("basics")
+      val `list`                    = Module.ModuleName.fromString("list")
       val `morphir.SDK.basics.int`  = FQName(`morphir.SDK`, `basics`, Name("int"))
       val `morphir.SDK.basics.bool` = FQName(`morphir.SDK`, `basics`, Name("bool"))
       val `morphir.SDK.list.list`   = FQName(`morphir.SDK`, `list`, Name("list"))

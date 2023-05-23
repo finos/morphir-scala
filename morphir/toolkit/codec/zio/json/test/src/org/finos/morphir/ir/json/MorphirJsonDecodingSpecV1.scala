@@ -9,7 +9,7 @@ import org.finos.morphir.ir.Literal.Literal._
 import org.finos.morphir.ir.Module.{
   Definition => ModuleDefinition,
   QualifiedModuleName,
-  ModulePath,
+  ModuleName,
   Specification => ModuleSpecification
 }
 import org.finos.morphir.ir.PackageModule.{
@@ -85,18 +85,18 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
     suite("ModulePath")(
       test("will decode an empty ModulePath") {
         val actual   = "[]"
-        val expected = ModulePath(Path.empty)
-        assertTrue(actual.fromJson[ModulePath] == Right(expected))
+        val expected = ModuleName(Path.empty)
+        assertTrue(actual.fromJson[ModuleName] == Right(expected))
       },
       test("will decode a simple ModulePath") {
         val actual   = """[["org"]]"""
-        val expected = ModulePath(Path.fromString("org"))
-        assertTrue(actual.fromJson[ModulePath] == Right(expected))
+        val expected = ModuleName(Path.fromString("org"))
+        assertTrue(actual.fromJson[ModuleName] == Right(expected))
       },
       test("will decode a ModulePath") {
         val actual   = """[["org"],["foo"],["bar"]]"""
-        val expected = ModulePath(Path.fromString("org.foo.bar"))
-        assertTrue(actual.fromJson[ModulePath] == Right(expected))
+        val expected = ModuleName(Path.fromString("org.foo.bar"))
+        assertTrue(actual.fromJson[ModuleName] == Right(expected))
       }
     ),
     suite("PackageName")(

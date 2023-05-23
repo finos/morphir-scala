@@ -11,8 +11,8 @@ trait ModuleModule {
   final type QualifiedModuleName = morphir.ir.module.QualifiedModuleName
   final val QualifiedModuleName: morphir.ir.module.QualifiedModuleName.type = morphir.ir.module.QualifiedModuleName
 
-  final type ModulePath = morphir.ir.module.ModulePath
-  final val ModulePath: morphir.ir.module.ModulePath.type = morphir.ir.module.ModulePath
+  final type ModuleName = morphir.ir.module.ModuleName
+  final val ModuleName: morphir.ir.module.ModuleName.type = morphir.ir.module.ModuleName
 
   final type QModuleName = morphir.ir.module.QModuleName
   final val QModuleName: morphir.ir.module.QModuleName.type =

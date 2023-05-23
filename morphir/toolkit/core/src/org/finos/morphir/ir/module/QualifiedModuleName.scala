@@ -9,7 +9,7 @@ import zio.Chunk
 final case class QualifiedModuleName(namespace: Path, localName: Name) {
   def %(name: Name): QName = QName(toPath, name)
 
-  def toModulePath: ModulePath = ModulePath(toPath)
+  def toModulePath: ModuleName = ModuleName(toPath)
 
   lazy val toPath: Path         = namespace / localName
   override def toString: String = toPath.toString

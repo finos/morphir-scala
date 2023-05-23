@@ -9,7 +9,7 @@ import org.finos.morphir.ir.Literal.Literal._
 import org.finos.morphir.ir.Module.{
   Definition => ModuleDefinition,
   QualifiedModuleName,
-  ModulePath,
+  ModuleName,
   Specification => ModuleSpecification
 }
 import org.finos.morphir.ir.PackageModule.{

@@ -10,7 +10,7 @@ import org.finos.morphir.ir.Literal.Literal._
 import org.finos.morphir.ir.Module.{
   Definition => ModuleDefinition,
   QualifiedModuleName,
-  ModulePath,
+  ModuleName,
   Specification => ModuleSpecification
 }
 import org.finos.morphir.ir.PackageModule.{
@@ -78,17 +78,17 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
     ),
     suite("ModulePath")(
       test("will encode an empty Path") {
-        val actual   = ModulePath(Path.empty)
+        val actual   = ModuleName(Path.empty)
         val expected = "[]"
         assertTrue(actual.toJson == expected)
       },
       test("will encode a simple Path") {
-        val actual   = ModulePath(Path.fromString("org"))
+        val actual   = ModuleName(Path.fromString("org"))
         val expected = """[["org"]]"""
         assertTrue(actual.toJson == expected)
       },
       test("will encode a Path") {
-        val actual   = ModulePath(Path.fromString("org.foo.bar"))
+        val actual   = ModuleName(Path.fromString("org.foo.bar"))
         val expected = """[["org"],["foo"],["bar"]]"""
         assertTrue(actual.toJson == expected)
       }
