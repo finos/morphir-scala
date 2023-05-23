@@ -1,0 +1,22 @@
+{
+    "name": "Morphir.Examples.App",
+    "sourceDirectory": "src",
+    "exposedModules": [
+        "CurrentTests",
+        "LiteralTests",
+        "DestructureTests",
+        "ConstructorTests",
+        "IfThenElseTests",
+        "RecordTests",
+        "LambdaTests",
+        "LetDefinitionTests",
+        "LetRecursionTests",
+        "ListTests",
+        "PatternMatchTests",
+        "NativeReferenceTests",
+        "SimpleTests",
+        "TupleTests",
+        "ExampleModule",
+        "UserDefinedRefernceTests"
+    ]
+}
