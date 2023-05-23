@@ -12,7 +12,7 @@ trait MorphirIRDeriveGen
     with LiteralDeriveGen
     with ModuleDefinitionDeriveGen
     with QualifiedModuleNameDeriveGen
-    with ModulePathDeriveGen
+    with ModuleNameDeriveGen
     with ModuleSpecificationDeriveGen
     with MorphirIRFileDeriveGen
     with NameDeriveGen

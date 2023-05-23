@@ -12,7 +12,7 @@ trait MorphirIRGen
     with LiteralGen
     with ModuleDefinitionGen
     with QualifiedModuleNameGen
-    with ModulePathGen
+    with ModuleNameGen
     with ModuleSpecificationGen
     with MorphirIRFileGen
     with NameGen

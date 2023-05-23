@@ -359,14 +359,14 @@ trait MorphirJsonDecodingSupport {
 
   // final case class Specification[+TA](modules: Map[ModuleName, ModuleSpec[TA]]) {
   implicit def packageModuleSpecificationDecoder[TA: JsonDecoder]: JsonDecoder[PackageSpecification[TA]] = {
-    final case class Spec[TA](modules: List[(QualifiedModuleName, ModuleSpecification[TA])])
+    final case class Spec[TA](modules: List[(ModuleName, ModuleSpecification[TA])])
     lazy val dec: JsonDecoder[Spec[TA]] = DeriveJsonDecoder.gen
     dec.map(s => PackageSpecification(s.modules.map(m => m._1 -> m._2).toMap))
   }
 
   implicit def packageModuleDefinitionDecoder[TA: JsonDecoder, VA: JsonDecoder]
       : JsonDecoder[PackageDefinition[TA, VA]] = {
-    final case class Spec[TA, VA](modules: List[(QualifiedModuleName, AccessControlled[ModuleDefinition[TA, VA]])])
+    final case class Spec[TA, VA](modules: List[(ModuleName, AccessControlled[ModuleDefinition[TA, VA]])])
     lazy val dec: JsonDecoder[Spec[TA, VA]] = DeriveJsonDecoder.gen
     dec.map(d => PackageDefinition(d.modules.map(m => m._1 -> m._2).toMap))
   }

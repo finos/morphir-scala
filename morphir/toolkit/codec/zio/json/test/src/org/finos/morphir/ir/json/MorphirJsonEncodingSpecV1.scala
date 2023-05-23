@@ -76,7 +76,7 @@ object MorphirJsonEncodingSpecV1 extends ZIOSpecDefault {
         assertTrue(actual.toJson == expected)
       }
     ),
-    suite("ModulePath")(
+    suite("ModuleName")(
       test("will encode an empty Path") {
         val actual   = ModuleName(Path.empty)
         val expected = "[]"
@@ -501,8 +501,8 @@ object MorphirJsonEncodingSpecV1 extends ZIOSpecDefault {
         val name     = Name.fromString("name")
         val name1    = Name.fromString("name1")
         val name2    = Name.fromString("name2")
-        val modName1 = QualifiedModuleName(Path.fromString("org"), Name.fromString("src"))
-        val modName2 = QualifiedModuleName(Path.fromString("org"), Name.fromString("test"))
+        val modName1 = ModuleName.fromString("org.src")
+        val modName2 = ModuleName.fromString("org.test")
 
         val typeMap = Map(
           name -> Documented(
@@ -526,8 +526,8 @@ object MorphirJsonEncodingSpecV1 extends ZIOSpecDefault {
         val name     = Name.fromString("name")
         val name1    = Name.fromString("name1")
         val name2    = Name.fromString("name2")
-        val modName1 = QualifiedModuleName(Path.fromString("org"), Name.fromString("src"))
-        val modName2 = QualifiedModuleName(Path.fromString("org"), Name.fromString("test"))
+        val modName1 = ModuleName.fromString("org.src")
+        val modName2 = ModuleName.fromString("org.test")
 
         val inputParams = zio.Chunk(
           (name1, 1, variable[Int](345, "g")),
@@ -784,8 +784,8 @@ object MorphirJsonEncodingSpecV1 extends ZIOSpecDefault {
         val name        = Name.fromString("name")
         val name1       = Name.fromString("name1")
         val name2       = Name.fromString("name2")
-        val modName1    = QualifiedModuleName(Path.fromString("org"), Name.fromString("src"))
-        val modName2    = QualifiedModuleName(Path.fromString("org"), Name.fromString("test"))
+        val modName1    = ModuleName.fromString("org.src")
+        val modName2    = ModuleName.fromString("org.test")
 
         val specTypeMap = Map(
           name -> Documented(
@@ -841,8 +841,8 @@ object MorphirJsonEncodingSpecV1 extends ZIOSpecDefault {
         val name        = Name.fromString("name")
         val name1       = Name.fromString("name1")
         val name2       = Name.fromString("name2")
-        val modName1    = QualifiedModuleName(Path.fromString("org"), Name.fromString("src"))
-        val modName2    = QualifiedModuleName(Path.fromString("org"), Name.fromString("test"))
+        val modName1    = ModuleName.fromString("org.src")
+        val modName2    = ModuleName.fromString("org.test")
 
         val specTypeMap = Map(
           name -> Documented(

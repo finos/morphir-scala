@@ -23,7 +23,7 @@ trait PackageDefinitionGen {
       valueAttributes: Gen[R, VA]
   ): Gen[R, Map[ModuleName, AccessControlled[Module.Definition[TA, VA]]]] =
     Gen.mapOfBounded(1, 2)(
-      QualifiedModuleNameGen.qualifiedModuleName,
+      ModuleNameGen.moduleName,
       AccessControlledGen.accessControlledFromAttributes(
         ModuleDefinitionGen.moduleDefinitionFromAttributes(typeAttributes, valueAttributes)
       )

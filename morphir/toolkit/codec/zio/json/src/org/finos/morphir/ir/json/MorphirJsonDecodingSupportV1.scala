@@ -355,7 +355,7 @@ trait MorphirJsonDecodingSupportV1 {
 
   // final case class Specification[+TA](modules: Map[ModuleName, ModuleSpec[TA]]) {
   implicit def packageModuleSpecificationDecoder[TA: JsonDecoder]: JsonDecoder[PackageSpecification[TA]] = {
-    final case class Module[TA](name: QualifiedModuleName, spec: ModuleSpecification[TA])
+    final case class Module[TA](name: ModuleName, spec: ModuleSpecification[TA])
     final case class Spec[TA](modules: List[Module[TA]])
 
     implicit val modDec: JsonDecoder[Module[TA]] = DeriveJsonDecoder.gen
@@ -366,7 +366,7 @@ trait MorphirJsonDecodingSupportV1 {
 
   implicit def packageModuleDefinitionDecoder[TA: JsonDecoder, VA: JsonDecoder]
       : JsonDecoder[PackageDefinition[TA, VA]] = {
-    final case class Module[TA, VA](name: QualifiedModuleName, `def`: AccessControlled[ModuleDefinition[TA, VA]])
+    final case class Module[TA, VA](name: ModuleName, `def`: AccessControlled[ModuleDefinition[TA, VA]])
     final case class Spec[TA, VA](modules: List[Module[TA, VA]])
 
     implicit val modDec: JsonDecoder[Module[TA, VA]] = DeriveJsonDecoder.gen

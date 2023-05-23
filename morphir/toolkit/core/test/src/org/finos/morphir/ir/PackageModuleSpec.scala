@@ -8,23 +8,15 @@ import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
 object PackageModuleSpec extends MorphirBaseSpec {
-  val packageDefModules: Map[QualifiedModuleName, AccessControlled[module.Definition[Any, UType]]] =
+  val packageDefModules: Map[ModuleName, AccessControlled[module.Definition[Any, UType]]] =
     Map {
-      QualifiedModuleName(
-        Path.fromString("blog.author"),
-        Name("peter")
-      ) -> AccessControlled.publicAccess(moduleDef)
+      ModuleName.fromString("blog.author.peter") -> AccessControlled.publicAccess(moduleDef)
     }
 
   val packageDef: Definition[Any, UType] = Definition(packageDefModules)
 
-  val packageSpecModules: Map[QualifiedModuleName, module.Specification[Any]] =
-    Map {
-      QualifiedModuleName(
-        Path.fromString("blog.author"),
-        Name("peter")
-      ) -> moduleSpec
-    }
+  val packageSpecModules: Map[ModuleName, module.Specification[Any]] =
+    Map (ModuleName.fromString("blog.author.peter") -> moduleSpec)
 
   val packageSpec: Specification[Any] = Specification(packageSpecModules)
 
