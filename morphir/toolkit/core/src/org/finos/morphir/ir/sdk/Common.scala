@@ -10,7 +10,7 @@ object Common {
   val packageName: PackageName = PackageName.fromString("Morphir.SDK")
 
   def toFQName(moduleName: QualifiedModuleName, localName: String): FQName =
-    FQName(packageName, moduleName.toModulePath, Name.fromString(localName))
+    FQName(packageName, moduleName.toModuleName, Name.fromString(localName))
 
   def tFun(firstArgType: UType, rest: UType*)(returnType: UType): UType = tFun(firstArgType :: rest.toList, returnType)
   def tFun(argTypes: List[UType], returnType: UType): UType             = curriedFunction(argTypes, returnType)

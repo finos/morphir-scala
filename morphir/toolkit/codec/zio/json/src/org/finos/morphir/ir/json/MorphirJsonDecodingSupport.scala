@@ -39,11 +39,8 @@ trait MorphirJsonDecodingSupport {
     case (packagePath, modulePath, localName) => FQName(packagePath, modulePath, localName)
   }
 
-  implicit val moduleNameDecoder: JsonDecoder[QualifiedModuleName] =
-    JsonDecoder.tuple2[Path, Name].map { case (namespace, localName) =>
-      QualifiedModuleName(namespace, localName)
-    }
-
+  implicit val qualifiedModuleNameDecoder: JsonDecoder[QualifiedModuleName] =
+    pathDecoder.map(QualifiedModuleName.fromPath)
   implicit def literalBoolDecoder: JsonDecoder[BoolLiteral] =
     JsonDecoder.tuple2[String, Boolean].mapOrFail {
       case ("BoolLiteral", value) => Right(BoolLiteral(value))

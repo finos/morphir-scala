@@ -9,7 +9,7 @@ import zio.Chunk
 final case class QualifiedModuleName(namespace: Path, localName: Name) {
   def %(name: Name): QName = QName(toPath, name)
 
-  def toModulePath: ModuleName = ModuleName(toPath)
+  def toModuleName: ModuleName = ModuleName(toPath)
 
   lazy val toPath: Path         = namespace / localName
   override def toString: String = toPath.toString
@@ -27,6 +27,8 @@ object QualifiedModuleName {
   }
 
   def fromString(input: String): QualifiedModuleName = fromPath(Path.fromString(input))
+
+  implicit def toModuleName(qualifiedModuleName: QualifiedModuleName):ModuleName = qualifiedModuleName.toModuleName
 
   private[morphir] def unsafeMake(namespace: String*)(nameSegments: String*): QualifiedModuleName = {
     val ns        = namespace.foldLeft(Path.empty) { case (path, pathStr) => path / Path.fromString(pathStr) }

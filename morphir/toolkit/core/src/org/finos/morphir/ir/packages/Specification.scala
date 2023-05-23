@@ -1,17 +1,21 @@
 package org.finos.morphir.ir.packages
-import org.finos.morphir.ir.module.{QualifiedModuleName, Specification => ModuleSpec}
+import org.finos.morphir.ir.module.{ModuleName, QualifiedModuleName, Specification => ModuleSpec}
 import org.finos.morphir.ir.Value.{Specification => ValueSpec}
 import org.finos.morphir.ir.{Name, Path}
 
-final case class Specification[+TA](modules: Map[QualifiedModuleName, ModuleSpec[TA]]) {
+/**
+ * Type that represents a package specification. A package specification only contains types that are exposed publicly
+ * and type signatures for values that are exposed publicly.
+ */
+final case class Specification[+TA](modules: Map[ModuleName, ModuleSpec[TA]]) {
   self =>
 
   def eraseAttributes: Specification[scala.Unit] = self.mapAttributes(_ => ())
 
   def lookupModuleSpecification(path: Path): Option[ModuleSpec[TA]] =
-    lookupModuleSpecification(QualifiedModuleName.fromPath(path))
+    get(ModuleName.fromPath(path))
 
-  def lookupModuleSpecification(moduleName: QualifiedModuleName): Option[ModuleSpec[TA]] =
+  def get(moduleName: ModuleName): Option[ModuleSpec[TA]] =
     modules.get(moduleName)
 
   def lookupTypeSpecification(path: Path, name: Name): Option[ModuleSpec[TA]] =
@@ -37,7 +41,7 @@ object Specification {
 
   type Raw = Specification[Unit]
   object Raw {
-    def apply(modules: Map[QualifiedModuleName, ModuleSpec[Unit]]): Raw =
+    def apply(modules: Map[ModuleName, ModuleSpec[Unit]]): Raw =
       Specification(modules)
   }
 }

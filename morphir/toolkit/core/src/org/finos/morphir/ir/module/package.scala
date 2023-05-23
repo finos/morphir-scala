@@ -14,5 +14,7 @@ package object module {
 
   object ModuleName {
     def fromString(path: String): ModuleName = ModuleName(Path.fromString(path))
+    def fromPath(path:Path):ModuleName = ModuleName(path)
+    implicit def toQualifiedModuleName(moduleName:ModuleName):QualifiedModuleName = moduleName.toQualifiedModuleName
   }
 }

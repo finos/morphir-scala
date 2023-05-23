@@ -7,7 +7,7 @@ import zio.test.Gen
 
 trait PackageDefinitionGen {
   final def packageDefinition[R, TA, VA](
-      modulesGen: Gen[R, Map[QualifiedModuleName, AccessControlled[Module.Definition[TA, VA]]]]
+      modulesGen: Gen[R, Map[ModuleName, AccessControlled[Module.Definition[TA, VA]]]]
   ): Gen[R, PackageModule.Definition[TA, VA]] =
     for {
       modules <- modulesGen
@@ -21,9 +21,9 @@ trait PackageDefinitionGen {
   private final def mapOfModulesGen[R, TA, VA](implicit
       typeAttributes: Gen[R, TA],
       valueAttributes: Gen[R, VA]
-  ): Gen[R, Map[QualifiedModuleName, AccessControlled[Module.Definition[TA, VA]]]] =
+  ): Gen[R, Map[ModuleName, AccessControlled[Module.Definition[TA, VA]]]] =
     Gen.mapOfBounded(1, 2)(
-      ModuleNameGen.moduleName,
+      QualifiedModuleNameGen.qualifiedModuleName,
       AccessControlledGen.accessControlledFromAttributes(
         ModuleDefinitionGen.moduleDefinitionFromAttributes(typeAttributes, valueAttributes)
       )

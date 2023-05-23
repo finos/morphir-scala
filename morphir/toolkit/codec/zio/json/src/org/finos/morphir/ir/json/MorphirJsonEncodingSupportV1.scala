@@ -28,7 +28,7 @@ trait MorphirJsonEncodingSupportV1 extends JsonEncodingHelpers {
   implicit val unitEncoder: JsonEncoder[Unit] = JsonEncoder.list[String].contramap(_ => List.empty[String])
   implicit val nameEncoder: JsonEncoder[Name] = JsonEncoder.list[String].contramap(name => name.toList)
   implicit val pathEncoder: JsonEncoder[Path] = JsonEncoder.list[Name].contramap(path => path.segments.toList)
-  implicit val modulePathEncoder: JsonEncoder[ModuleName]   = pathEncoder.contramap(_.toPath)
+  implicit val moduleNameEncoder: JsonEncoder[ModuleName]   = pathEncoder.contramap(_.toPath)
   implicit val packageNameEncoder: JsonEncoder[PackageName] = pathEncoder.contramap(_.toPath)
   implicit val qNameEncoder: JsonEncoder[QName] =
     Json.encoder.contramap[QName](qName =>
@@ -44,10 +44,7 @@ trait MorphirJsonEncodingSupportV1 extends JsonEncodingHelpers {
       )
     )
 
-  implicit val moduleNameEncoder: JsonEncoder[QualifiedModuleName] =
-    Json.encoder.contramap[QualifiedModuleName](moduleName =>
-      Json.Arr(toJsonAstOrThrow(moduleName.namespace), toJsonAstOrThrow(moduleName.localName))
-    )
+  implicit val qualifiedModuleNameEncoder: JsonEncoder[QualifiedModuleName] = pathEncoder.contramap(_.toPath)
 
   implicit def fieldEncoder[A: JsonEncoder]: JsonEncoder[Field[A]] =
     Json.encoder.contramap[Field[A]](field => Json.Arr(toJsonAstOrThrow(field.name), toJsonAstOrThrow(field.data)))

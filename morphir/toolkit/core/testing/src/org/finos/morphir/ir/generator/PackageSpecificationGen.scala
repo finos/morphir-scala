@@ -20,7 +20,7 @@ trait PackageSpecificationGen {
       typeAttributes: Gen[R, TA]
   ): Gen[R, Map[Module.QualifiedModuleName, Module.Specification[TA]]] =
     Gen.mapOfBounded(1, 2)(
-      ModuleNameGen.moduleName,
+      QualifiedModuleNameGen.qualifiedModuleName,
       ModuleSpecificationGen.moduleSpecificationFromAttributes(typeAttributes)
     )
 }

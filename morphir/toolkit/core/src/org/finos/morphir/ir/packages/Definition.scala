@@ -1,12 +1,12 @@
 package org.finos.morphir.ir.packages
 
-import org.finos.morphir.ir.Module.{Definition => ModuleDef, QualifiedModuleName}
+import org.finos.morphir.ir.Module.{Definition => ModuleDef, ModuleName, QualifiedModuleName}
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.Value.{Definition => ValueDef}
 import org.finos.morphir.ir.{AccessControlled, Name, Path}
 
 final case class Definition[+TA, +VA](
-    modules: Map[QualifiedModuleName, AccessControlled[ModuleDef[TA, VA]]]
+    modules: Map[ModuleName, AccessControlled[ModuleDef[TA, VA]]]
 ) { self =>
 
   def eraseAttributes: Definition[Any, Any] = self.mapAttributes(_ => (), _ => ())
@@ -86,7 +86,7 @@ object Definition {
 
   type Typed = Definition[Unit, UType]
   object Typed {
-    def apply(modules: Map[QualifiedModuleName, AccessControlled[ModuleDef[Unit, UType]]]): Definition[Unit, UType] =
+    def apply(modules: Map[ModuleName, AccessControlled[ModuleDef[Unit, UType]]]): Definition[Unit, UType] =
       Definition(modules)
   }
 }
