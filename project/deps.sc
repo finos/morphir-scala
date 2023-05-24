@@ -126,7 +126,7 @@ object Versions {
       case _            => "4.5.11"
     }
 
-  val coursier        = "2.1.3"
+  val coursier        = "2.1.4"
   val geny            = "1.0.0"
   val `izumi-reflect` = "2.3.6"
   val munit           = "1.0.0-M4"
