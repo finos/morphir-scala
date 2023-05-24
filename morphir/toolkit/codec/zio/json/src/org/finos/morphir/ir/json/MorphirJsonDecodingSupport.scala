@@ -26,10 +26,7 @@ import org.finos.morphir.ir.module.{
 import scala.annotation.nowarn
 
 trait MorphirJsonDecodingSupport {
-  implicit val unitDecoder: JsonDecoder[Unit] = JsonDecoder.list[String].mapOrFail {
-    case a if a.isEmpty => Right(())
-    case a              => Left(s"Expected empty list, got [${a.mkString(", ")}]")
-  }
+  implicit val unitDecoder: JsonDecoder[Unit]               = Json.decoder.map(_ => ())
   implicit val nameDecoder: JsonDecoder[Name]               = JsonDecoder.list[String].map(Name.fromList)
   implicit val pathDecoder: JsonDecoder[Path]               = JsonDecoder.list[Name].map(Path.fromList)
   implicit val modulePathDecoder: JsonDecoder[ModuleName]   = pathDecoder.map(ModuleName(_))
