@@ -180,7 +180,7 @@
                             [
                               "delta"
                             ],
-                            [],
+                            {},
                             [
                               "Tuple",
                               [
@@ -205,7 +205,7 @@
                               "july",
                               "alpha"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -232,7 +232,7 @@
                         ],
                         "body" : [
                           "unit",
-                          []
+                          {}
                         ]
                       }
                     }
@@ -546,7 +546,7 @@
                               "july",
                               "name"
                             ],
-                            [],
+                            {},
                             [
                               "Reference",
                               [
@@ -710,7 +710,7 @@
                         ],
                         "body" : [
                           "variable",
-                          [],
+                          {},
                           [
                             "market",
                             "january",
@@ -738,7 +738,7 @@
                               "february",
                               "rate"
                             ],
-                            [],
+                            {},
                             [
                               "Tuple",
                               [
@@ -765,7 +765,7 @@
                               "july",
                               "rho"
                             ],
-                            [],
+                            {},
                             [
                               "Record",
                               [
@@ -865,18 +865,18 @@
                         ],
                         "body" : [
                           "destructure",
-                          [],
+                          {},
                           [
                             "empty_list_pattern",
-                            []
+                            {}
                           ],
                           [
                             "unit",
-                            []
+                            {}
                           ],
                           [
                             "field_function",
-                            [],
+                            {},
                             [
                               "september",
                               "chi",
@@ -1038,7 +1038,7 @@
                               "january",
                               "omicron"
                             ],
-                            [],
+                            {},
                             [
                               "Reference",
                               [
@@ -1101,7 +1101,7 @@
                         ],
                         "body" : [
                           "reference",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -1173,7 +1173,7 @@
                               "home",
                               "id"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -1188,7 +1188,7 @@
                               "may",
                               "february"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -1214,7 +1214,7 @@
                         ],
                         "body" : [
                           "reference",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -1698,7 +1698,7 @@
                               "right",
                               "description"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -1719,7 +1719,7 @@
                               "may",
                               "december"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -1751,7 +1751,7 @@
                         ],
                         "body" : [
                           "field_function",
-                          [],
+                          {},
                           [
                             "february",
                             "october",
@@ -1959,7 +1959,7 @@
                               "rate",
                               "may"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -1975,7 +1975,7 @@
                               "sigma",
                               "month"
                             ],
-                            [],
+                            {},
                             [
                               "Function",
                               [
@@ -2018,7 +2018,7 @@
                         ],
                         "body" : [
                           "record",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -2030,7 +2030,7 @@
                               ],
                               [
                                 "unit",
-                                []
+                                {}
                               ]
                             ]
                           ]
@@ -2243,7 +2243,7 @@
                               "week",
                               "valid"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -2332,7 +2332,7 @@
                         ],
                         "body" : [
                           "reference",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -2481,7 +2481,7 @@
                               "group",
                               "time"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -2506,10 +2506,10 @@
                         ],
                         "body" : [
                           "field",
-                          [],
+                          {},
                           [
                             "literal",
-                            [],
+                            {},
                             [
                               "WholeNumberLiteral",
                               5385670069085972159
@@ -2543,7 +2543,7 @@
                             [
                               "benchmark"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -2566,7 +2566,7 @@
                         ],
                         "body" : [
                           "constructor",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -2687,7 +2687,7 @@
                               "march",
                               "november"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -2720,7 +2720,7 @@
                         ],
                         "body" : [
                           "constructor",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -3022,7 +3022,7 @@
                               "october",
                               "nu"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -3045,7 +3045,7 @@
                         ],
                         "body" : [
                           "reference",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -3096,7 +3096,7 @@
                             [
                               "december"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -3111,7 +3111,7 @@
                               "number",
                               "upsilon"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -3138,7 +3138,7 @@
                         ],
                         "body" : [
                           "field_function",
-                          [],
+                          {},
                           [
                             "july",
                             "family",
@@ -3276,7 +3276,7 @@
                               "area",
                               "problem"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -3372,7 +3372,7 @@
                         ],
                         "body" : [
                           "reference",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -3512,7 +3512,7 @@
                               "october",
                               "april"
                             ],
-                            [],
+                            {},
                             [
                               "Function",
                               [
@@ -3548,7 +3548,7 @@
                         ],
                         "body" : [
                           "constructor",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -3628,7 +3628,7 @@
                             [
                               "system"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -3703,7 +3703,7 @@
                         ],
                         "body" : [
                           "reference",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -3970,7 +3970,7 @@
                             [
                               "month"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -3988,7 +3988,7 @@
                               "june",
                               "problem"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -4007,7 +4007,7 @@
                         ],
                         "body" : [
                           "field_function",
-                          [],
+                          {},
                           [
                             "money",
                             "february",
@@ -4034,7 +4034,7 @@
                               "benchmark",
                               "epsilon"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -4048,7 +4048,7 @@
                               "upsilon",
                               "february"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -4075,7 +4075,7 @@
                         ],
                         "body" : [
                           "literal",
-                          [],
+                          {},
                           [
                             "WholeNumberLiteral",
                             1699058039035188472
@@ -4195,7 +4195,7 @@
                               "june",
                               "may"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -4213,7 +4213,7 @@
                             [
                               "gamma"
                             ],
-                            [],
+                            {},
                             [
                               "Tuple",
                               [
@@ -4357,7 +4357,7 @@
                         ],
                         "body" : [
                           "variable",
-                          [],
+                          {},
                           [
                             "delta",
                             "delta",
@@ -4386,7 +4386,7 @@
                               "december",
                               "june"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -4403,7 +4403,7 @@
                               "entity",
                               "september"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -4425,7 +4425,7 @@
                         ],
                         "body" : [
                           "unit",
-                          []
+                          {}
                         ]
                       }
                     }
@@ -4520,7 +4520,7 @@
                             [
                               "february"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -4533,7 +4533,7 @@
                             [
                               "iota"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -4616,7 +4616,7 @@
                         ],
                         "body" : [
                           "field_function",
-                          [],
+                          {},
                           [
                             "march",
                             "id",
@@ -4743,7 +4743,7 @@
                               "june",
                               "omicron"
                             ],
-                            [],
+                            {},
                             [
                               "Record",
                               [
@@ -4861,7 +4861,7 @@
                         ],
                         "body" : [
                           "reference",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -5019,7 +5019,7 @@
                             [
                               "country"
                             ],
-                            [],
+                            {},
                             [
                               "Record",
                               [
@@ -5084,7 +5084,7 @@
                         ],
                         "body" : [
                           "unit",
-                          []
+                          {}
                         ]
                       }
                     }
@@ -5107,7 +5107,7 @@
                               "august",
                               "february"
                             ],
-                            [],
+                            {},
                             [
                               "Tuple",
                               [
@@ -5173,7 +5173,7 @@
                         ],
                         "body" : [
                           "constructor",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -5338,7 +5338,7 @@
                               "april",
                               "omicron"
                             ],
-                            [],
+                            {},
                             [
                               "Tuple",
                               [
@@ -5506,7 +5506,7 @@
                               "delta",
                               "iota"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -5531,7 +5531,7 @@
                         ],
                         "body" : [
                           "field_function",
-                          [],
+                          {},
                           [
                             "to",
                             "november",
@@ -5908,7 +5908,7 @@
                             [
                               "march"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -5924,7 +5924,7 @@
                               "valid",
                               "epsilon"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -5948,7 +5948,7 @@
                         ],
                         "body" : [
                           "unit",
-                          []
+                          {}
                         ]
                       }
                     }
@@ -6066,7 +6066,7 @@
                               "year",
                               "from"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -6149,7 +6149,7 @@
                         ],
                         "body" : [
                           "constructor",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -6515,7 +6515,7 @@
                             [
                               "july"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -6528,7 +6528,7 @@
                             [
                               "money"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -6560,7 +6560,7 @@
                         ],
                         "body" : [
                           "variable",
-                          [],
+                          {},
                           [
                             "benchmark",
                             "chi",
@@ -6764,7 +6764,7 @@
                               "gamma",
                               "may"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -6785,7 +6785,7 @@
                               "february",
                               "psi"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -6807,7 +6807,7 @@
                         ],
                         "body" : [
                           "field_function",
-                          [],
+                          {},
                           [
                             "february",
                             "july",
@@ -6946,7 +6946,7 @@
                               "rho",
                               "chi"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -6965,7 +6965,7 @@
                         ],
                         "body" : [
                           "field_function",
-                          [],
+                          {},
                           [
                             "day",
                             "time",
@@ -6998,7 +6998,7 @@
                               "may",
                               "psi"
                             ],
-                            [],
+                            {},
                             [
                               "ExtensibleRecord",
                               [
@@ -7051,7 +7051,7 @@
                         ],
                         "body" : [
                           "reference",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -7174,7 +7174,7 @@
                               "beta",
                               "benchmark"
                             ],
-                            [],
+                            {},
                             [
                               "Reference",
                               [
@@ -7262,7 +7262,7 @@
                         ],
                         "body" : [
                           "reference",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -7418,7 +7418,7 @@
                               "august",
                               "epsilon"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -7438,7 +7438,7 @@
                             [
                               "june"
                             ],
-                            [],
+                            {},
                             [
                               "ExtensibleRecord",
                               [
@@ -7522,7 +7522,7 @@
                         ],
                         "body" : [
                           "variable",
-                          [],
+                          {},
                           [
                             "eta"
                           ]
@@ -7800,7 +7800,7 @@
                               "name",
                               "december"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -7873,10 +7873,10 @@
                         ],
                         "body" : [
                           "apply",
-                          [],
+                          {},
                           [
                             "field_function",
-                            [],
+                            {},
                             [
                               "january",
                               "october",
@@ -7886,7 +7886,7 @@
                           ],
                           [
                             "field_function",
-                            [],
+                            {},
                             [
                               "eta",
                               "omega"
@@ -7913,7 +7913,7 @@
                               "july",
                               "alpha"
                             ],
-                            [],
+                            {},
                             [
                               "ExtensibleRecord",
                               [
@@ -7958,7 +7958,7 @@
                         ],
                         "body" : [
                           "unit",
-                          []
+                          {}
                         ]
                       }
                     }
@@ -8039,7 +8039,7 @@
                             [
                               "month"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -8063,7 +8063,7 @@
                         ],
                         "body" : [
                           "literal",
-                          [],
+                          {},
                           [
                             "DecimalLiteral",
                             "-3436528127462124638"
@@ -8508,7 +8508,7 @@
                             [
                               "name"
                             ],
-                            [],
+                            {},
                             [
                               "Record",
                               [
@@ -8583,7 +8583,7 @@
                         ],
                         "body" : [
                           "constructor",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -8657,7 +8657,7 @@
                               "chi",
                               "alpha"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -8676,7 +8676,7 @@
                               "june",
                               "theta"
                             ],
-                            [],
+                            {},
                             [
                               "Reference",
                               [
@@ -8745,7 +8745,7 @@
                         ],
                         "body" : [
                           "unit",
-                          []
+                          {}
                         ]
                       }
                     }
@@ -8865,7 +8865,7 @@
                               "mu",
                               "valid"
                             ],
-                            [],
+                            {},
                             [
                               "Record",
                               [
@@ -8906,7 +8906,7 @@
                         ],
                         "body" : [
                           "field_function",
-                          [],
+                          {},
                           [
                             "lot"
                           ]
@@ -8934,7 +8934,7 @@
                               "october",
                               "delta"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -8951,7 +8951,7 @@
                               "name",
                               "delta"
                             ],
-                            [],
+                            {},
                             [
                               "ExtensibleRecord",
                               [
@@ -9063,7 +9063,7 @@
                         ],
                         "body" : [
                           "unit",
-                          []
+                          {}
                         ]
                       }
                     }
@@ -9155,7 +9155,7 @@
                               "june",
                               "right"
                             ],
-                            [],
+                            {},
                             [
                               "Variable",
                               [
@@ -9175,7 +9175,7 @@
                             [
                               "march"
                             ],
-                            [],
+                            {},
                             [
                               "Record",
                               [
@@ -9233,11 +9233,11 @@
                         ],
                         "body" : [
                           "list",
-                          [],
+                          {},
                           [
                             [
                               "unit",
-                              []
+                              {}
                             ]
                           ]
                         ]
@@ -9264,7 +9264,7 @@
                               "mu",
                               "phi"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -9283,7 +9283,7 @@
                         ],
                         "body" : [
                           "reference",
-                          [],
+                          {},
                           [
                             [
                               [
@@ -9499,7 +9499,7 @@
                               "book",
                               "october"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -9523,7 +9523,7 @@
                         ],
                         "body" : [
                           "field_function",
-                          [],
+                          {},
                           [
                             "name",
                             "left",
@@ -9665,7 +9665,7 @@
                               "omicron",
                               "april"
                             ],
-                            [],
+                            {},
                             [
                               "Unit",
                               [
@@ -9864,7 +9864,7 @@
                         ],
                         "body" : [
                           "reference",
-                          [],
+                          {},
                           [
                             [
                               [
