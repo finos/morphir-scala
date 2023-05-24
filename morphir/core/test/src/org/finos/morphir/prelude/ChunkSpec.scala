@@ -5,7 +5,7 @@ import org.finos.morphir.prelude.NonEmptyChunk
 import org.finos.morphir.testing.MorphirBaseSpec
 
 import zio.test.Assertion._
-import zio.test.TestAspect.exceptScala211
+//import zio.test.TestAspect.exceptScala211
 import zio.test._
 
 object ChunkSpec extends MorphirBaseSpec {

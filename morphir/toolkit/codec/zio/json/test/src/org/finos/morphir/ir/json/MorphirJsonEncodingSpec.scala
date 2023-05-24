@@ -373,7 +373,7 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
         assertTrue(actual.toJson == expected)
       },
       test("will encode ConstructorPattern") {
-        val patterns = zio.Chunk(
+        val patterns: zio.Chunk[Pattern[Int]] = zio.Chunk(
           Pattern.WildcardPattern[Int](1),
           Pattern.EmptyListPattern[Int](2),
           Pattern.AsPattern[Int](1, Pattern.WildcardPattern[Int](1), Name.fromString("wildCard"))
@@ -399,7 +399,7 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
         assertTrue(actual.toJson == expected)
       },
       test("will encode TuplePattern") {
-        val patterns = zio.Chunk(
+        val patterns: zio.Chunk[Pattern[Int]] = zio.Chunk(
           Pattern.WildcardPattern[Int](1),
           Pattern.UnitPattern[Int](2),
           Pattern.AsPattern[Int](1, Pattern.WildcardPattern[Int](1), Name.fromString("wildCard"))
