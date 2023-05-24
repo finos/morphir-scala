@@ -44,7 +44,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: ['adopt@1.8', 'adopt@1.11']
+        java: ['adopt@1.11', 'adopt@1.17']
         scala: ['2.13.10', '3.2.2']
     steps:
       - name: Checkout current branch
@@ -57,7 +57,7 @@ jobs:
           java-version: ${{ matrix.java }}
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
-      
+
       - run: ./mill -i -k __.publishLocal $(pwd)/testRepo
 
       - name: Run tests
@@ -71,7 +71,7 @@ jobs:
       # when in master repo: all commits to main branch and all additional tags
     if: github.repository == 'finos/morphir-scala' && ( github.ref == 'refs/heads/main' || (github.ref != 'refs/heads/main' && startsWith( github.ref, 'refs/tags/') ) )
     needs: [ci]
-    
+
     runs-on: ubuntu-latest
 
     # only run one publish job for the same sha at the same time

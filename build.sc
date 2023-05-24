@@ -281,7 +281,13 @@ object morphir extends Module {
               morphir.testing(crossScalaVersion).jvm,
               morphir.toolkit.core.testing(crossScalaVersion)
             )
-            def ivyDeps = T(super.ivyDeps() ++ Agg(dev.zio.`zio-json-golden`))
+            def ivyDeps = T(
+              super.ivyDeps() ++ Agg(
+                dev.zio.`zio-json-golden`,
+                ivy"io.github.deblockt:json-diff:0.0.5",
+                dev.zio.`zio-process`
+              )
+            )
           }
         }
       }

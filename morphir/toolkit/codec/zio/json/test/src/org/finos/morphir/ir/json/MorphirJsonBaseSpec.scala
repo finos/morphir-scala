@@ -12,6 +12,16 @@ import zio.json.golden.filehelpers._
 import zio.json._
 import zio.json.ast._
 import java.io.File
+import java.io.IOException
+import zio.process.Command
+import com.deblock.jsondiff.matcher.CompositeJsonMatcher
+import com.deblock.jsondiff.matcher.LenientJsonArrayPartialMatcher
+import com.deblock.jsondiff.matcher.LenientJsonObjectPartialMatcher
+import com.deblock.jsondiff.matcher.LenientNumberPrimitivePartialMatcher
+import com.deblock.jsondiff.matcher.StrictPrimitivePartialMatcher
+import com.deblock.jsondiff.DiffGenerator
+import com.deblock.jsondiff.viewer.OnlyErrorDiffViewer
+import com.deblock.jsondiff.viewer.PatchDiffViewer
 
 abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
   implicit private lazy val diffJsonValue: Diff[Json] = {
@@ -69,6 +79,32 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
     } yield path
   }
 
+  final val jsonMatcher = new CompositeJsonMatcher(
+    new LenientJsonArrayPartialMatcher(),  // comparing array using lenient mode (ignore array order and extra items)
+    new LenientJsonObjectPartialMatcher(), // comparing object using lenient mode (ignoring extra properties)
+    new LenientNumberPrimitivePartialMatcher(
+      new StrictPrimitivePartialMatcher()
+    ) // comparing primitive types and manage numbers (100.00 == 100)
+  )
+
+  def doJsonDiff(expectedJson: String, actualJson: String) = {
+    val jsondiff     = DiffGenerator.diff(expectedJson, actualJson, jsonMatcher)
+    val errorsResult = OnlyErrorDiffViewer.from(jsondiff)
+    // create a patch file text
+    var patch = PatchDiffViewer.from(jsondiff);
+    // use the viewer to collect diff data
+    var patchFile = PatchDiffViewer.from(jsondiff);
+    (errorsResult.toString, patchFile.toString)
+  }
+
+  def writeContentToFile(path: Path, content: String)(implicit trace: Trace): IO[IOException, Unit] = {
+    val jsonString = content
+
+    ZIO.attemptBlockingIO {
+      Files.write(path, jsonString.getBytes("UTF-8"))
+    }.unit
+  }
+
   private def validateTest[A: JsonEncoder](
       resourceDir: Path,
       name: String,
@@ -85,10 +121,58 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
         if (sample == currentSample) {
           ZIO.succeed(assertTrue(sample == currentSample))
         } else {
-          val diffFileName = Paths.get(s"${name}_changed.json")
-          val diffFilePath = resourceDir.resolve(diffFileName)
-          writeSampleToFile(diffFilePath, sample) *>
-            ZIO.succeed(assertTrue(sample == currentSample))
+          val diffFileName      = Paths.get(s"${name}_changed.json")
+          val patchFileName     = Paths.get(s"${name}.patch")
+          val patchFilePath     = resourceDir.resolve(patchFileName)
+          val diffFilePath      = resourceDir.resolve(diffFileName)
+          val structureDiff     = "N/A"
+          val sampleJson        = sample.toJsonPretty
+          val currentSampleJson = currentSample.toJsonPretty
+
+          val (errors, patchFile) = doJsonDiff(sampleJson, currentSampleJson)
+
+          (if (structureDiff.length <= 20) {
+             Console.printLine(
+               s"""|==================== Golden Json Change ====================
+                   |${patchFilePath}
+                   |==================== Structure Diff ==================
+                   |${structureDiff}
+                   |==================== Description ==================
+                   |${errors}
+                   |""".stripMargin
+             )
+           } else {
+             Console.printLine(
+               s"""|==================== Golden Json Change ====================
+                   |${patchFilePath}
+                   |==================== Description ==================
+                   |${errors}
+                   |""".stripMargin
+             )
+           }) *>
+            (
+              Command(
+                "git",
+                "diff",
+                "-U5",
+                "--no-index",
+                filePath.toString,
+                diffFilePath.toString
+              ).lines
+                .map { linesChunk =>
+                  linesChunk.map { line =>
+                    line
+                      .replace(diffFilePath.toString, filePath.toString)
+                      .replace(Paths.get("").toAbsolutePath().toString, "")
+                  }
+                }
+                .flatMap { lines =>
+                  writeContentToFile(patchFilePath, lines.mkString("\n") + "\n")
+                }
+            ) *>
+            writeSampleToFile(diffFilePath, sample) *>
+            // ZIO.succeed(assertTrue(sample == currentSample))
+            ZIO.succeed(assertTrue(false))
         }
     } yield assertion
   }
