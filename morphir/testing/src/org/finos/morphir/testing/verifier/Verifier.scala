@@ -10,8 +10,8 @@ object Verifier {
       name: String
   )(actual: => A)(implicit file: sourcecode.File, line: sourcecode.Line): TestResult = {
 
-    val encoded = actual.toJsonPretty
-    var expected:Option[String] = None
+    val encoded                  = actual.toJsonPretty
+    var expected: Option[String] = None
 
     println(s"Encoded: $encoded")
 
