@@ -1,10 +1,13 @@
 package org.finos
 package morphir
 package testing
-class VerifierSpec extends MorphirBaseSpec {
+
+import zio.json.*
+
+object VerifierSpec extends MorphirBaseSpec with SnapshotSpec {
   def spec = suite("VerifierSpec")(
-    test("Verify should work as expected"){
-      Verifier.verify(true)
+    snapshotTest("SnapshotTest001") {
+      List(1, 2, 3)
     }
   )
 }

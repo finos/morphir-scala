@@ -16,7 +16,7 @@ object PackageModuleSpec extends MorphirBaseSpec {
   val packageDef: Definition[Any, UType] = Definition(packageDefModules)
 
   val packageSpecModules: Map[ModuleName, module.Specification[Any]] =
-    Map (ModuleName.fromString("blog.author.peter") -> moduleSpec)
+    Map(ModuleName.fromString("blog.author.peter") -> moduleSpec)
 
   val packageSpec: Specification[Any] = Specification(packageSpecModules)
 

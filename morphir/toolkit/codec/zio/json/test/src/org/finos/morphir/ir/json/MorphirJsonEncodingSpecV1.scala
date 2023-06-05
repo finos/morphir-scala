@@ -23,7 +23,7 @@ import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Pattern, Speci
 import org.finos.morphir.ir.json.MorphirJsonSupportV1._
 import zio.test.*
 
-object MorphirJsonEncodingSpecV1 extends ZIOSpecDefault {
+object MorphirJsonEncodingSpecV1 extends MorphirJsonBaseSpec {
   def spec = suite("Json Encoding Suite - V1")(
     suite("Unit")(
       test("will encode a Unit") {

@@ -29,7 +29,6 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
   @nowarn implicit private lazy val diff: Diff[GoldenSample] = (x: GoldenSample, y: GoldenSample) =>
     Diff[Json].diff(x.samples, y.samples)
 
-
   def goldenTest[A: Tag: JsonEncoder](
       gen: Gen[Sized, A]
   )(implicit

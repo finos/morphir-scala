@@ -244,7 +244,7 @@ object morphir extends Module {
   class TestingModule(val crossScalaVersion: String) extends CrossPlatform {
     def enableNative = false
     trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
-      def ivyDeps = Agg(com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-test`)
+      def ivyDeps = Agg(co.fs2.`fs2-io`, com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-json`,  dev.zio.`zio-test`)
     }
 
     object jvm extends Shared {
