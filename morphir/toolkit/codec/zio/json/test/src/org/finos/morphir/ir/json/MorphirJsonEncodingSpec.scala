@@ -29,7 +29,7 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
     suite("Unit")(
       test("will encode a Unit") {
         val actual   = ()
-        val expected = "[]"
+        val expected = "{}"
         assert(actual.toJson)(stringEqualTo(expected))
       }
     ),
@@ -114,17 +114,17 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
     suite("ModuleName")(
       test("will encode an empty ModuleName") {
         val actual   = QualifiedModuleName(Path.empty, Name.empty)
-        val expected = "[[],[]]"
+        val expected = "[[]]"
         assert(actual.toJson)(stringEqualTo(expected))
       },
       test("will encode a simple ModuleName") {
         val actual   = QualifiedModuleName(Path.fromString("org"), Name.fromString("SrcTest"))
-        val expected = """[[["org"]],["src","test"]]"""
+        val expected = """[["org"],["src","test"]]"""
         assert(actual.toJson)(stringEqualTo(expected))
       },
       test("will encode a ModuleName") {
         val actual   = QualifiedModuleName(Path.fromString("src.test.scala"), Name.fromString("SrcTest"))
-        val expected = """[[["src"],["test"],["scala"]],["src","test"]]"""
+        val expected = """[["src"],["test"],["scala"],["src","test"]]"""
         assert(actual.toJson)(stringEqualTo(expected))
       }
     ),
@@ -519,7 +519,7 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
         val modSpec = ModuleSpecification[Int](typeMap, valueMap)
         val actual  = PackageSpecification[Int](Map(modName1 -> modSpec, modName2 -> modSpec))
         val expected =
-          """{"modules":[[[[["org"]],["src"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Variable",345,["g"]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Variable",345,["g"]]],[["name","2"],["Variable",678,["h"]]]],"outputs":["Variable",111,["f"]]}}]]}],[[[["org"]],["test"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Variable",345,["g"]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Variable",345,["g"]]],[["name","2"],["Variable",678,["h"]]]],"outputs":["Variable",111,["f"]]}}]]}]]}"""
+          """{"modules":[[[["org"],["src"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Variable",345,["g"]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Variable",345,["g"]]],[["name","2"],["Variable",678,["h"]]]],"outputs":["Variable",111,["f"]]}}]]}],[[["org"],["test"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Variable",345,["g"]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Variable",345,["g"]]],[["name","2"],["Variable",678,["h"]]]],"outputs":["Variable",111,["f"]]}}]]}]]}"""
         assert(actual.toJson)(stringEqualTo(expected))
       }
     ),
@@ -560,7 +560,7 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
         )
 
         val expected =
-          """{"modules":[[[[["org"]],["src"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Variable",345,["g"]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],1,["Variable",345,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["constructor",1,[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}],[[[["org"]],["test"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Variable",345,["g"]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],1,["Variable",345,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["constructor",1,[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}]]}"""
+          """{"modules":[[[["org"],["src"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Variable",345,["g"]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],1,["Variable",345,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["constructor",1,[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}],[[["org"],["test"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Variable",345,["g"]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],1,["Variable",345,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["constructor",1,[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}]]}"""
         assert(actual.toJson)(stringEqualTo(expected))
       }
     ),
@@ -833,7 +833,7 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
         )
         val actual = Library(packageName, dependencies, packageDef)
         val expected =
-          """["Library",[["morphir"],["s","d","k"]],[[[["org"],["finos"],["morphir"],["ir"]],{"modules":[[[[["org"]],["src"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}],[[[["org"]],["test"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}]]}]],{"modules":[[[[["org"]],["src"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}],[[[["org"]],["test"]],{"access":"Private","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}]]}]"""
+          """["Library",[["morphir"],["s","d","k"]],[[[["org"],["finos"],["morphir"],["ir"]],{"modules":[[[["org"],["src"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",{}]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",{}]],[["name","2"],["Unit",{}]]],"outputs":["Unit",{}]}}]]}],[[["org"],["test"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",{}]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",{}]],[["name","2"],["Unit",{}]]],"outputs":["Unit",{}]}}]]}]]}]],{"modules":[[[["org"],["src"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",{}]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",{}],["Unit",{}]],[["name","2"],["Unit",{}],["Unit",{}]]],"outputType":["Unit",{}],"body":["constructor",["Unit",{}],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}],[[["org"],["test"]],{"access":"Private","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",{}]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",{}],["Unit",{}]],[["name","2"],["Unit",{}],["Unit",{}]]],"outputType":["Unit",{}],"body":["constructor",["Unit",{}],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}]]}]"""
         assert(actual.toJson)(stringEqualTo(expected))
       }
     ),
@@ -890,7 +890,7 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
         )
         val actual = MorphirIRFile(MorphirIRVersion.V2_0, Library(packageName, dependencies, packageDef))
         val expected =
-          """{"formatVersion":2,"distribution":["Library",[["morphir"],["s","d","k"]],[[[["org"],["finos"],["morphir"],["ir"]],{"modules":[[[[["org"]],["src"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}],[[[["org"]],["test"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}]]}]],{"modules":[[[[["org"]],["src"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}],[[[["org"]],["test"]],{"access":"Private","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}]]}]}"""
+          """{"formatVersion":2,"distribution":["Library",[["morphir"],["s","d","k"]],[[[["org"],["finos"],["morphir"],["ir"]],{"modules":[[[["org"],["src"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",{}]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",{}]],[["name","2"],["Unit",{}]]],"outputs":["Unit",{}]}}]]}],[[["org"],["test"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",{}]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",{}]],[["name","2"],["Unit",{}]]],"outputs":["Unit",{}]}}]]}]]}]],{"modules":[[[["org"],["src"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",{}]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",{}],["Unit",{}]],[["name","2"],["Unit",{}],["Unit",{}]]],"outputType":["Unit",{}],"body":["constructor",["Unit",{}],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}],[[["org"],["test"]],{"access":"Private","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",{}]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",{}],["Unit",{}]],[["name","2"],["Unit",{}],["Unit",{}]]],"outputType":["Unit",{}],"body":["constructor",["Unit",{}],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}]]}]}"""
         assert(actual.toJson)(stringEqualTo(expected))
       }
     )
