@@ -111,20 +111,20 @@ object MorphirJsonEncodingSpecV1 extends MorphirJsonBaseSpec {
         assert(actual.toJson)(stringEqualTo(expected))
       }
     ),
-    suite("ModuleName")(
-      test("will encode an empty ModuleName") {
+    suite("QualifiedModuleName")(
+      test("will encode an empty QualifiedModuleName") {
         val actual   = QualifiedModuleName(Path.empty, Name.empty)
-        val expected = "[[]]"
+        val expected = "[[],[]]"
         assert(actual.toJson)(stringEqualTo(expected))
       },
-      test("will encode a simple ModuleName") {
+      test("will encode a simple QualifiedModuleName") {
         val actual   = QualifiedModuleName(Path.fromString("org"), Name.fromString("SrcTest"))
-        val expected = """[["org"],["src","test"]]"""
+        val expected = """[[["org"]],["src","test"]]"""
         assert(actual.toJson)(stringEqualTo(expected))
       },
-      test("will encode a ModuleName") {
+      test("will encode a QualifiedModuleName") {
         val actual   = QualifiedModuleName(Path.fromString("src.test.scala"), Name.fromString("SrcTest"))
-        val expected = """[["src"],["test"],["scala"],["src","test"]]"""
+        val expected = """[[["src"],["test"],["scala"]],["src","test"]]"""
         assert(actual.toJson)(stringEqualTo(expected))
       }
     ),
