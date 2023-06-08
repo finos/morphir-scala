@@ -1,7 +1,7 @@
 package org.finos.morphir.ir.sdk
 
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.ModuleName
+import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.{CustomTypeSpecification, OpaqueTypeSpecification}
 import org.finos.morphir.ir.Type.{Type, UType, reference => tRef, tuple}
 import org.finos.morphir.ir.Value._
@@ -10,7 +10,7 @@ import org.finos.morphir.syntax.NamingSyntax._
 import org.finos.morphir.ir.NeedsAttributes
 
 object Basics {
-  val moduleName: ModuleName = ModuleName.fromString("Basics")
+  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Basics")
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(
       name("Int")   -> OpaqueTypeSpecification() ?? "Type that represents an integer value.",

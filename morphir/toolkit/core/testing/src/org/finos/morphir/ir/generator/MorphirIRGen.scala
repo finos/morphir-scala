@@ -11,8 +11,8 @@ trait MorphirIRGen
     with FQNameGen
     with LiteralGen
     with ModuleDefinitionGen
+    with QualifiedModuleNameGen
     with ModuleNameGen
-    with ModulePathGen
     with ModuleSpecificationGen
     with MorphirIRFileGen
     with NameGen

@@ -8,7 +8,7 @@ import zio.test.*
 import org.finos.morphir.ir.Type.*
 import org.finos.morphir.ir.Type.Type.{ExtensibleRecord, Function, Record, Reference, Tuple, Unit, Variable}
 import org.finos.morphir.ir.packages.PackageName
-import org.finos.morphir.ir.module.ModuleName
+import org.finos.morphir.ir.module.QualifiedModuleName
 
 import scala.annotation.nowarn
 
@@ -193,7 +193,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         "items" -> reference(fqn("Morphir.SDK", "List", "List"), reference(fqn("Morphir.SDK", "String", "String")))
       )
       val actual = sut.mapReferenceName { case FQName(_, module, localName) =>
-        FQName(PackageName.fromString("Acme.SDK"), ModulePath.fromString("Basics"), localName)
+        FQName(PackageName.fromString("Acme.SDK"), ModuleName.fromString("Basics"), localName)
       }
       assertTrue(
         sut.collectReferences == Set(

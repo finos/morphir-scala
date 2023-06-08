@@ -1,14 +1,14 @@
 package org.finos.morphir.ir.sdk
 
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.ModuleName
+import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.syntax.NamingSyntax._
 
 object Key {
-  val moduleName: ModuleName = ModuleName.fromString("Key")
+  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Key")
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(

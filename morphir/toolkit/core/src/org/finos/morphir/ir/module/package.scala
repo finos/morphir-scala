@@ -5,14 +5,18 @@ import scala.annotation.nowarn
 package object module {
 
   @nowarn
-  final case class ModulePath(toPath: Path) extends AnyVal {
+  final case class ModuleName(toPath: Path) extends AnyVal {
     self =>
 
-    def toModuleName: ModuleName = ModuleName.fromPath(toPath)
+    def toQualifiedModuleName: QualifiedModuleName = QualifiedModuleName.fromPath(toPath)
+    def toQName(localName: Name): QName            = QName(toPath, localName)
 
   }
 
-  object ModulePath {
-    def fromString(path: String): ModulePath = ModulePath(Path.fromString(path))
+  object ModuleName {
+    def fromString(path: String): ModuleName  = ModuleName(Path.fromString(path))
+    def fromNames(names: String*): ModuleName = ModuleName(Path.fromIterable(names.map(Name.fromString)))
+    def fromPath(path: Path): ModuleName      = ModuleName(path)
+    implicit def toQualifiedModuleName(moduleName: ModuleName): QualifiedModuleName = moduleName.toQualifiedModuleName
   }
 }

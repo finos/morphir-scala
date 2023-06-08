@@ -16,7 +16,7 @@ object ModuleNameJsonCodecProviderSpec extends MorphirJsonBaseSpec with MorphirI
       relativePath = implicitly[sourcecode.FullName].value.split('.').dropRight(1).mkString(File.separator),
       sampleSize = 20
     )
-  def spec = suite("ModuleNameJsonCodecProviderSpec")(
+  def spec = suite("ModulePathJsonCodecProviderSpec")(
     goldenTest(DeriveGen[ModuleName])
   )
 }

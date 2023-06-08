@@ -244,7 +244,7 @@ object morphir extends Module {
   class TestingModule(val crossScalaVersion: String) extends CrossPlatform {
     def enableNative = false
     trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
-      def ivyDeps = Agg(dev.zio.zio, dev.zio.`zio-test`)
+      def ivyDeps = Agg(co.fs2.`fs2-io`, com.lihaoyi.sourcecode, dev.zio.zio, dev.zio.`zio-json`,  dev.zio.`zio-test`)
     }
 
     object jvm extends Shared {
@@ -281,7 +281,13 @@ object morphir extends Module {
               morphir.testing(crossScalaVersion).jvm,
               morphir.toolkit.core.testing(crossScalaVersion)
             )
-            def ivyDeps = T(super.ivyDeps() ++ Agg(dev.zio.`zio-json-golden`))
+            def ivyDeps = T(
+              super.ivyDeps() ++ Agg(
+                dev.zio.`zio-json-golden`,
+                ivy"io.github.deblockt:json-diff:0.0.5",
+                dev.zio.`zio-process`
+              )
+            )
           }
         }
       }

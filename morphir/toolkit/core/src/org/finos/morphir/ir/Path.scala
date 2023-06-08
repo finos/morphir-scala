@@ -4,7 +4,7 @@ import zio.Chunk
 
 import scala.annotation.tailrec
 
-import Module.{ModuleName, ModulePath}
+import Module.{QualifiedModuleName, ModuleName}
 
 final case class Path(segments: Chunk[Name]) { self =>
 
@@ -55,6 +55,7 @@ object Path {
     path.toString(f, separator)
 
   @inline def fromList(names: List[Name]): Path = wrap(names)
+  def fromIterable(names: Iterable[Name]): Path = Path(Chunk.fromIterable(names))
 
   @inline def toList(path: Path): List[Name] = path.segments.toList
 

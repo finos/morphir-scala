@@ -8,9 +8,9 @@ trait PackageModule {
   final type Definition[+TA, +VA] = morphir.ir.packages.Definition[TA, VA]
   final val Definition: morphir.ir.packages.Definition.type = morphir.ir.packages.Definition
 
-  final type PackageAndModulePath = morphir.ir.packages.PackageAndModulePath
-  final val PackageAndModulePath: morphir.ir.packages.PackageAndModulePath.type =
-    morphir.ir.packages.PackageAndModulePath
+  final type PackageAndModulePath = morphir.ir.packages.PackagedModuleName
+  final val PackageAndModulePath: morphir.ir.packages.PackagedModuleName.type =
+    morphir.ir.packages.PackagedModuleName
 
   final type PackageName = morphir.ir.packages.PackageName
   final val PackageName: morphir.ir.packages.PackageName.type = morphir.ir.packages.PackageName

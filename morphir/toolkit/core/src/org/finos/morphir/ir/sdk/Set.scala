@@ -2,7 +2,7 @@ package org.finos.morphir.ir.sdk
 
 import zio.Chunk
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.ModuleName
+import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics.{boolType, intType}
@@ -11,7 +11,7 @@ import org.finos.morphir.ir.sdk.List.listType
 import org.finos.morphir.syntax.NamingSyntax._
 
 object Set {
-  val moduleName: ModuleName = ModuleName.fromString("Set")
+  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Set")
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(name("Set") -> OpaqueTypeSpecification("a") ?? "Type that represents a set."),

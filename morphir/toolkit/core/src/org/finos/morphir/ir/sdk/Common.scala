@@ -3,14 +3,14 @@ package ir
 package sdk
 
 import zio.Chunk
-import org.finos.morphir.ir.Module.ModuleName
+import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.PackageModule.PackageName
 import org.finos.morphir.ir.Type._
 object Common {
   val packageName: PackageName = PackageName.fromString("Morphir.SDK")
 
-  def toFQName(moduleName: ModuleName, localName: String): FQName =
-    FQName(packageName, moduleName.toModulePath, Name.fromString(localName))
+  def toFQName(moduleName: QualifiedModuleName, localName: String): FQName =
+    FQName(packageName, moduleName.toModuleName, Name.fromString(localName))
 
   def tFun(firstArgType: UType, rest: UType*)(returnType: UType): UType = tFun(firstArgType :: rest.toList, returnType)
   def tFun(argTypes: List[UType], returnType: UType): UType             = curriedFunction(argTypes, returnType)
