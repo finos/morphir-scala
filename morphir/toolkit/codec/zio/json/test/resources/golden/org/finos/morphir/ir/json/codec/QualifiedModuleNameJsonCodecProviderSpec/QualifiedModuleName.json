@@ -2,26 +2,28 @@
   "samples" : [
     [
       [
-        "beta",
-        "december",
-        "benchmark"
-      ],
-      [
-        "june",
-        "february",
-        "state",
-        "minute"
-      ],
-      [
-        "time",
-        "march",
-        "world"
-      ],
-      [
-        "april",
-        "april",
-        "december",
-        "october"
+        [
+          "beta",
+          "december",
+          "benchmark"
+        ],
+        [
+          "june",
+          "february",
+          "state",
+          "minute"
+        ],
+        [
+          "time",
+          "march",
+          "world"
+        ],
+        [
+          "april",
+          "april",
+          "december",
+          "october"
+        ]
       ],
       [
         "fact",
@@ -33,27 +35,29 @@
     ],
     [
       [
-        "september",
-        "october",
-        "psi"
-      ],
-      [
-        "psi",
-        "june",
-        "company",
-        "minute",
-        "nu"
-      ],
-      [
-        "left",
-        "november"
-      ],
-      [
-        "january"
-      ],
-      [
-        "psi",
-        "january"
+        [
+          "september",
+          "october",
+          "psi"
+        ],
+        [
+          "psi",
+          "june",
+          "company",
+          "minute",
+          "nu"
+        ],
+        [
+          "left",
+          "november"
+        ],
+        [
+          "january"
+        ],
+        [
+          "psi",
+          "january"
+        ]
       ],
       [
         "rho",
@@ -64,26 +68,28 @@
     ],
     [
       [
-        "lot",
-        "benchmark",
-        "market"
-      ],
-      [
-        "mu",
-        "october",
-        "delta",
-        "february",
-        "phi"
-      ],
-      [
-        "left",
-        "number"
-      ],
-      [
-        "may",
-        "chi",
-        "kappa",
-        "september"
+        [
+          "lot",
+          "benchmark",
+          "market"
+        ],
+        [
+          "mu",
+          "october",
+          "delta",
+          "february",
+          "phi"
+        ],
+        [
+          "left",
+          "number"
+        ],
+        [
+          "may",
+          "chi",
+          "kappa",
+          "september"
+        ]
       ],
       [
         "phi",
@@ -94,24 +100,26 @@
     ],
     [
       [
-        "lot",
-        "rate"
-      ],
-      [
-        "xi",
-        "market"
-      ],
-      [
-        "left",
-        "work",
-        "october",
-        "august",
-        "work"
-      ],
-      [
-        "home",
-        "january",
-        "xi"
+        [
+          "lot",
+          "rate"
+        ],
+        [
+          "xi",
+          "market"
+        ],
+        [
+          "left",
+          "work",
+          "october",
+          "august",
+          "work"
+        ],
+        [
+          "home",
+          "january",
+          "xi"
+        ]
       ],
       [
         "december"
@@ -119,28 +127,30 @@
     ],
     [
       [
-        "state",
-        "theta",
-        "job",
-        "pi",
-        "mu"
-      ],
-      [
-        "epsilon"
-      ],
-      [
-        "july"
-      ],
-      [
-        "november",
-        "minute",
-        "june"
-      ],
-      [
-        "nu",
-        "phi",
-        "october",
-        "august"
+        [
+          "state",
+          "theta",
+          "job",
+          "pi",
+          "mu"
+        ],
+        [
+          "epsilon"
+        ],
+        [
+          "july"
+        ],
+        [
+          "november",
+          "minute",
+          "june"
+        ],
+        [
+          "nu",
+          "phi",
+          "october",
+          "august"
+        ]
       ],
       [
         "beta"
@@ -148,23 +158,25 @@
     ],
     [
       [
-        "source"
-      ],
-      [
-        "january",
-        "benchmark"
-      ],
-      [
-        "day",
-        "alpha",
-        "november"
-      ],
-      [
-        "time",
-        "october",
-        "beta",
-        "zeta",
-        "pi"
+        [
+          "source"
+        ],
+        [
+          "january",
+          "benchmark"
+        ],
+        [
+          "day",
+          "alpha",
+          "november"
+        ],
+        [
+          "time",
+          "october",
+          "beta",
+          "zeta",
+          "pi"
+        ]
       ],
       [
         "october",
@@ -176,33 +188,35 @@
     ],
     [
       [
-        "november",
-        "november",
-        "delta",
-        "november",
-        "lambda"
-      ],
-      [
-        "entity",
-        "february",
-        "system",
-        "title",
-        "phi"
-      ],
-      [
-        "country",
-        "october",
-        "october",
-        "january",
-        "psi"
-      ],
-      [
-        "government",
-        "xi"
-      ],
-      [
-        "february",
-        "beta"
+        [
+          "november",
+          "november",
+          "delta",
+          "november",
+          "lambda"
+        ],
+        [
+          "entity",
+          "february",
+          "system",
+          "title",
+          "phi"
+        ],
+        [
+          "country",
+          "october",
+          "october",
+          "january",
+          "psi"
+        ],
+        [
+          "government",
+          "xi"
+        ],
+        [
+          "february",
+          "beta"
+        ]
       ],
       [
         "owner"
@@ -210,11 +224,13 @@
     ],
     [
       [
-        "june",
-        "alpha",
-        "benchmark",
-        "nu",
-        "eta"
+        [
+          "june",
+          "alpha",
+          "benchmark",
+          "nu",
+          "eta"
+        ]
       ],
       [
         "valid"
@@ -222,32 +238,34 @@
     ],
     [
       [
-        "lambda",
-        "june",
-        "april"
-      ],
-      [
-        "from",
-        "kappa",
-        "october",
-        "title"
-      ],
-      [
-        "october",
-        "family",
-        "psi",
-        "part"
-      ],
-      [
-        "may",
-        "delta",
-        "october",
-        "mu"
-      ],
-      [
-        "may",
-        "january",
-        "work"
+        [
+          "lambda",
+          "june",
+          "april"
+        ],
+        [
+          "from",
+          "kappa",
+          "october",
+          "title"
+        ],
+        [
+          "october",
+          "family",
+          "psi",
+          "part"
+        ],
+        [
+          "may",
+          "delta",
+          "october",
+          "mu"
+        ],
+        [
+          "may",
+          "january",
+          "work"
+        ]
       ],
       [
         "theta",
@@ -258,26 +276,28 @@
     ],
     [
       [
-        "money",
-        "august",
-        "home"
-      ],
-      [
-        "kappa",
-        "june",
-        "money"
-      ],
-      [
-        "september",
-        "june"
-      ],
-      [
-        "gamma",
-        "september",
-        "august"
-      ],
-      [
-        "beta"
+        [
+          "money",
+          "august",
+          "home"
+        ],
+        [
+          "kappa",
+          "june",
+          "money"
+        ],
+        [
+          "september",
+          "june"
+        ],
+        [
+          "gamma",
+          "september",
+          "august"
+        ],
+        [
+          "beta"
+        ]
       ],
       [
         "march",
@@ -289,24 +309,26 @@
     ],
     [
       [
-        "currency",
-        "october",
-        "march",
-        "february",
-        "tau"
-      ],
-      [
-        "zeta"
-      ],
-      [
-        "mu",
-        "april",
-        "tau",
-        "eta"
-      ],
-      [
-        "group",
-        "sigma"
+        [
+          "currency",
+          "october",
+          "march",
+          "february",
+          "tau"
+        ],
+        [
+          "zeta"
+        ],
+        [
+          "mu",
+          "april",
+          "tau",
+          "eta"
+        ],
+        [
+          "group",
+          "sigma"
+        ]
       ],
       [
         "september",
@@ -315,13 +337,15 @@
     ],
     [
       [
-        "time",
-        "mu",
-        "mu"
-      ],
-      [
-        "right",
-        "work"
+        [
+          "time",
+          "mu",
+          "mu"
+        ],
+        [
+          "right",
+          "work"
+        ]
       ],
       [
         "lot",
@@ -332,28 +356,30 @@
     ],
     [
       [
-        "december",
-        "xi",
-        "chi"
-      ],
-      [
-        "day",
-        "march"
-      ],
-      [
-        "october",
-        "march",
-        "home",
-        "january"
-      ],
-      [
-        "september",
-        "delta",
-        "psi",
-        "lambda"
-      ],
-      [
-        "year"
+        [
+          "december",
+          "xi",
+          "chi"
+        ],
+        [
+          "day",
+          "march"
+        ],
+        [
+          "october",
+          "march",
+          "home",
+          "january"
+        ],
+        [
+          "september",
+          "delta",
+          "psi",
+          "lambda"
+        ],
+        [
+          "year"
+        ]
       ],
       [
         "lambda",
@@ -365,30 +391,32 @@
     ],
     [
       [
-        "gamma",
-        "may",
-        "right",
-        "november",
-        "september"
-      ],
-      [
-        "chi"
-      ],
-      [
-        "time",
-        "description",
-        "may",
-        "zeta"
-      ],
-      [
-        "state",
-        "september",
-        "sigma",
-        "xi"
-      ],
-      [
-        "lambda",
-        "february"
+        [
+          "gamma",
+          "may",
+          "right",
+          "november",
+          "september"
+        ],
+        [
+          "chi"
+        ],
+        [
+          "time",
+          "description",
+          "may",
+          "zeta"
+        ],
+        [
+          "state",
+          "september",
+          "sigma",
+          "xi"
+        ],
+        [
+          "lambda",
+          "february"
+        ]
       ],
       [
         "theta",
@@ -398,13 +426,15 @@
     ],
     [
       [
-        "month"
-      ],
-      [
-        "rate",
-        "phi",
-        "delta",
-        "upsilon"
+        [
+          "month"
+        ],
+        [
+          "rate",
+          "phi",
+          "delta",
+          "upsilon"
+        ]
       ],
       [
         "beta",
@@ -413,14 +443,16 @@
     ],
     [
       [
-        "june",
-        "country"
-      ],
-      [
-        "lot",
-        "valid",
-        "sigma",
-        "may"
+        [
+          "june",
+          "country"
+        ],
+        [
+          "lot",
+          "valid",
+          "sigma",
+          "may"
+        ]
       ],
       [
         "october",
@@ -430,14 +462,16 @@
     ],
     [
       [
-        "beta",
-        "september",
-        "november",
-        "rate",
-        "may"
-      ],
-      [
-        "parent"
+        [
+          "beta",
+          "september",
+          "november",
+          "rate",
+          "may"
+        ],
+        [
+          "parent"
+        ]
       ],
       [
         "june",
@@ -449,21 +483,23 @@
     ],
     [
       [
-        "epsilon",
-        "kappa",
-        "year",
-        "kappa"
-      ],
-      [
-        "name",
-        "may",
-        "xi",
-        "tau",
-        "xi"
-      ],
-      [
-        "epsilon",
-        "june"
+        [
+          "epsilon",
+          "kappa",
+          "year",
+          "kappa"
+        ],
+        [
+          "name",
+          "may",
+          "xi",
+          "tau",
+          "xi"
+        ],
+        [
+          "epsilon",
+          "june"
+        ]
       ],
       [
         "september",
@@ -474,26 +510,28 @@
     ],
     [
       [
-        "alpha",
-        "market"
-      ],
-      [
-        "eta",
-        "state",
-        "omicron",
-        "gamma"
-      ],
-      [
-        "upsilon",
-        "august",
-        "left"
-      ],
-      [
-        "minute",
-        "number",
-        "october",
-        "id",
-        "august"
+        [
+          "alpha",
+          "market"
+        ],
+        [
+          "eta",
+          "state",
+          "omicron",
+          "gamma"
+        ],
+        [
+          "upsilon",
+          "august",
+          "left"
+        ],
+        [
+          "minute",
+          "number",
+          "october",
+          "id",
+          "august"
+        ]
       ],
       [
         "parent",
@@ -502,20 +540,22 @@
     ],
     [
       [
-        "money",
-        "fact"
-      ],
-      [
-        "minute",
-        "january",
-        "october"
-      ],
-      [
-        "left",
-        "time"
-      ],
-      [
-        "money"
+        [
+          "money",
+          "fact"
+        ],
+        [
+          "minute",
+          "january",
+          "october"
+        ],
+        [
+          "left",
+          "time"
+        ],
+        [
+          "money"
+        ]
       ],
       [
         "mu"

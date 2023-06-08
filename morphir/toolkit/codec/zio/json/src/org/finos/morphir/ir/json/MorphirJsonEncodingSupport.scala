@@ -44,8 +44,11 @@ trait MorphirJsonEncodingSupport extends JsonEncodingHelpers {
       )
     )
 
-  implicit val qualifiedModuleNameEncoder: JsonEncoder[QualifiedModuleName] = pathEncoder.contramap(_.toPath)
-
+  implicit val qualifiedModuleNameEncoder: JsonEncoder[QualifiedModuleName] =     
+    Json.encoder.contramap[QualifiedModuleName](moduleName =>
+      Json.Arr(toJsonAstOrThrow(moduleName.namespace), toJsonAstOrThrow(moduleName.localName))
+    )
+    
   implicit def fieldEncoder[A: JsonEncoder]: JsonEncoder[Field[A]] =
     Json.encoder.contramap[Field[A]](field =>
       Json.Obj(

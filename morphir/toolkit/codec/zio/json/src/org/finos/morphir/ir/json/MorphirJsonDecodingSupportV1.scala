@@ -32,14 +32,14 @@ trait MorphirJsonDecodingSupportV1 {
   }
   implicit val nameDecoder: JsonDecoder[Name]               = JsonDecoder.list[String].map(Name.fromList)
   implicit val pathDecoder: JsonDecoder[Path]               = JsonDecoder.list[Name].map(Path.fromList)
-  implicit val modulePathDecoder: JsonDecoder[ModuleName]   = pathDecoder.map(ModuleName(_))
+  implicit val moduleNameDecoder: JsonDecoder[ModuleName]   = pathDecoder.map(ModuleName(_))
   implicit val packageNameDecoder: JsonDecoder[PackageName] = pathDecoder.map(PackageName(_))
   implicit val qNameDecoder: JsonDecoder[QName]             = JsonDecoder.tuple2[Path, Name].map(QName.fromTuple)
   implicit val fqNameDecoder: JsonDecoder[FQName] = JsonDecoder.tuple3[PackageName, ModuleName, Name].map {
     case (packagePath, modulePath, localName) => FQName(packagePath, modulePath, localName)
   }
 
-  implicit val moduleNameDecoder: JsonDecoder[QualifiedModuleName] =
+  implicit val qualifiedModuleNameDecoder: JsonDecoder[QualifiedModuleName] =
     JsonDecoder.tuple2[Path, Name].map { case (namespace, localName) =>
       QualifiedModuleName(namespace, localName)
     }
