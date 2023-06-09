@@ -1,5 +1,4 @@
-package org.finos.morphir
-package ddl
+package org.finos.morphir.dataformat.mdf
 
 case class Label(value: String)
 
@@ -17,7 +16,7 @@ object Schema {
   case class Map(keyType: Schema, valueType: Schema)     extends Schema
   case class Tuple(values: scala.List[Schema])           extends Schema
   case class Optional(elementType: Schema)               extends Schema
-  
+
   /**
    * A discrimiated union type such as an ELM union (either with labels or not)
    *
@@ -62,14 +61,16 @@ object Schema {
    *   )
    * }}}
    */
-  case class Enum(cases: scala.List[Case]) extends Schema
+  case class Enum(cases: scala.List[Enum.Case]) extends Schema
 
-  case class Case(label: Label, fields: scala.List[Case.Field])
-  object Case {
-    sealed trait Field
-    object Field {
-      case class Named(label: Label, value: Schema)
-      case class Anon(value: Schema)
+  object Enum {
+    case class Case(label: Label, fields: scala.List[Case.Field])
+    object Case {
+      sealed trait Field
+      object Field {
+        case class Named(label: Label, value: Schema) extends Field
+        case class Anon(value: Schema)                extends Field
+      }
     }
   }
 
@@ -166,5 +167,5 @@ object Data {
    *   Aliased(Data.String("xyz"), schema = Schema.Alias("Label", Data.String))
    * }}}
    */
-  case class Aliased(data: Data, alias: Schema.Alias)
+  case class Aliased(data: Data, schema: Schema.Alias) extends Data
 }
