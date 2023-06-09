@@ -8,13 +8,13 @@ import zio.json._
 import zio.json.ast.Json
 
 import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, Specification => PackageSpecification}
-import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, _}
+import org.finos.morphir.ir.Type.{Definition as TypeDefinition, Specification as TypeSpecification, *}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
 import org.finos.morphir.ir.Value.{Value, _}
 import org.finos.morphir.ir.module.{
   Definition => ModuleDefinition,
+  QualifiedModuleName,
   ModuleName,
-  ModulePath,
   Specification => ModuleSpecification
 }
 import org.finos.morphir.ir.printing.PrintIR
@@ -34,8 +34,8 @@ object EncodingExample {
   def encode(): Unit = {
     object Refs {
       val `morphir.SDK`             = PackageName.fromString("morphir.SDK")
-      val `basics`                  = Module.ModulePath.fromString("basics")
-      val `list`                    = Module.ModulePath.fromString("list")
+      val `basics`                  = Module.ModuleName.fromString("basics")
+      val `list`                    = Module.ModuleName.fromString("list")
       val `morphir.SDK.basics.int`  = FQName(`morphir.SDK`, `basics`, Name("int"))
       val `morphir.SDK.basics.bool` = FQName(`morphir.SDK`, `basics`, Name("bool"))
       val `morphir.SDK.list.list`   = FQName(`morphir.SDK`, `list`, Name("list"))

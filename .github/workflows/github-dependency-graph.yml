@@ -15,4 +15,4 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '17'
-    - uses: ckipp01/mill-dependency-submission@v1.1.1
+    - uses: ckipp01/mill-dependency-submission@v1.1.3

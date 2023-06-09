@@ -2,7 +2,7 @@ package org.finos.morphir
 package ir
 package generator
 
-import org.finos.morphir.ir.Module.ModuleName
+import org.finos.morphir.ir.Module.QualifiedModuleName
 import zio.test.Gen
 
 trait PackageDefinitionGen {

@@ -1,7 +1,7 @@
 package org.finos.morphir.ir.sdk
 
 import zio.Chunk
-import org.finos.morphir.ir.Module.ModuleName
+import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type.{Type, UType, reference => typeRef, tuple}
 import org.finos.morphir.ir.Value.{Value, reference => valRef}
@@ -12,7 +12,7 @@ import org.finos.morphir.ir.{Module, NeedsAttributes}
 import org.finos.morphir.syntax.NamingSyntax._
 
 object List {
-  val moduleName: ModuleName = ModuleName.fromString("List")
+  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("List")
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(name("List") -> OpaqueTypeSpecification("a") ?? "Type that represents a list of values."),

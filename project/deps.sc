@@ -9,6 +9,14 @@ object Deps {
       }
     }
   }
+
+  case object co {
+    case object fs2 {
+      val `fs2-core` = ivy"co.fs2::fs2-core::${Versions.fs2}"
+      val `fs2-io` = ivy"co.fs2::fs2-io::${Versions.fs2}"
+    }
+  }
+
   case object com {
     case object beachape {
       val enumeratum = ivy"com.beachape::enumeratum::${Versions.enumeratum}"
@@ -127,13 +135,14 @@ object Versions {
     }
 
   val coursier        = "2.1.3"
+  val fs2             = "3.7.0"
   val geny            = "1.0.0"
-  val `izumi-reflect` = "2.3.6"
+  val `izumi-reflect` = "2.3.8"
   val munit           = "1.0.0-M4"
   val mainargs        = "0.5.0"
   val `os-lib`        = "0.9.1"
   val paiges          = "0.4.2"
-  val scribe          = "3.10.7"
+  val scribe          = "3.11.5"
   val silencer        = "1.4.2"
   val `tasty-query`   = "0.5.6"
   val upickle         = "3.0.0-M1"

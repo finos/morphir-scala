@@ -17,7 +17,7 @@ object Schema {
   case class Map(keyType: Schema, valueType: Schema)     extends Schema
   case class Tuple(values: scala.List[Schema])           extends Schema
   case class Optional(elementType: Schema)               extends Schema
-
+  
   /**
    * A discrimiated union type such as an ELM union (either with labels or not)
    *

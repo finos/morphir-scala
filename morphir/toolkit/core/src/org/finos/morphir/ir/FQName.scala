@@ -2,13 +2,13 @@ package org.finos
 package morphir
 package ir
 
-import Module.{ModulePath, ModuleName}
+import Module.{ModuleName, QualifiedModuleName}
 
-final case class FQName(packagePath: PackageName, modulePath: ModulePath, localName: Name) {
+final case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) {
   def getPackagePath: Path = packagePath.toPath
   def getModulePath: Path  = modulePath.toPath
 
-  def getModuleName: ModuleName = ModuleName(modulePath.toPath, localName)
+  def getModuleName: QualifiedModuleName = QualifiedModuleName(modulePath.toPath, localName)
 
   def toReferenceName: String = Seq(
     Path.toString(Name.toTitleCase, ".", packagePath.toPath),
@@ -25,16 +25,16 @@ final case class FQName(packagePath: PackageName, modulePath: ModulePath, localN
 
 object FQName {
   def apply(packagePath: Path, modulePath: Path, localName: Name): FQName =
-    FQName(PackageName(packagePath), ModulePath(modulePath), localName)
+    FQName(PackageName(packagePath), ModuleName(modulePath), localName)
 
   val fqName: Path => Path => Name => FQName = packagePath =>
-    modulePath => localName => FQName(PackageName(packagePath), ModulePath(modulePath), localName)
+    modulePath => localName => FQName(PackageName(packagePath), ModuleName(modulePath), localName)
 
   def fromQName(packagePath: Path, qName: QName): FQName =
     FQName(packagePath, QName.getModulePath(qName), QName.getLocalName(qName))
 
   def fromQName(qName: QName)(implicit options: FQNamingOptions): FQName =
-    FQName(options.defaultPackage, ModulePath(QName.getModulePath(qName)), QName.getLocalName(qName))
+    FQName(options.defaultPackage, ModuleName(QName.getModulePath(qName)), QName.getLocalName(qName))
 
   /** Get the package path part of a fully-qualified name. */
   def getPackagePath(fqName: FQName): Path = fqName.getPackagePath
@@ -51,14 +51,14 @@ object FQName {
 
   /** Convenience function to create a fully-qualified name from 2 strings with default package name */
   def fqn(moduleName: String, localName: String)(implicit options: FQNamingOptions): FQName =
-    FQName(options.defaultPackage, ModulePath(Path.fromString(moduleName)), Name.fromString(localName))
+    FQName(options.defaultPackage, ModuleName(Path.fromString(moduleName)), Name.fromString(localName))
 
   /** Convenience function to create a fully-qualified name from 1 string with defaults for package and module */
   def fqn(localName: String)(implicit options: FQNamingOptions): FQName =
     FQName(options.defaultPackage, options.defaultModule, Name.fromString(localName))
 
-  def fqn(moduleName: ModuleName)(implicit options: FQNamingOptions): FQName =
-    FQName(options.defaultPackage, ModulePath(moduleName.namespace), moduleName.localName)
+  def fqn(moduleName: QualifiedModuleName)(implicit options: FQNamingOptions): FQName =
+    FQName(options.defaultPackage, ModuleName(moduleName.namespace), moduleName.localName)
 
   def toString(fqName: FQName): String = fqName.toString
 
@@ -78,8 +78,8 @@ object FQName {
     fromString(fqNameString, options.defaultSeparator)
 }
 
-final case class FQNamingOptions(defaultPackage: PackageName, defaultModule: ModulePath, defaultSeparator: String)
+final case class FQNamingOptions(defaultPackage: PackageName, defaultModule: ModuleName, defaultSeparator: String)
 
 object FQNamingOptions {
-  implicit val default: FQNamingOptions = FQNamingOptions(PackageName(Path.empty), ModulePath(Path.empty), ":")
+  implicit val default: FQNamingOptions = FQNamingOptions(PackageName(Path.empty), ModuleName(Path.empty), ":")
 }

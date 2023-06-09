@@ -5,8 +5,8 @@ package org.finos.morphir
 
 package object ir {
 
-  type ModulePath = Module.ModulePath
-  val ModulePath: Module.ModulePath.type = Module.ModulePath
+  type ModuleName = Module.ModuleName
+  val ModuleName: Module.ModuleName.type = Module.ModuleName
 
   type PackageName = PackageModule.PackageName
   val PackageName: PackageModule.PackageName.type = PackageModule.PackageName

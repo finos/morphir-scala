@@ -4,11 +4,11 @@ import org.finos.morphir.ir.module._
 import org.finos.morphir.ir.{FQName, Path}
 
 final case class PackageName(toPath: Path) { self =>
-  def %(modulePath: ModulePath): PackageAndModulePath = PackageAndModulePath(self, modulePath)
-  def %(moduleName: ModuleName): FQName =
-    FQName(self, ModulePath(moduleName.namespace), moduleName.localName)
+  def %(moduleName: ModuleName): PackagedModuleName = PackagedModuleName(self, moduleName)
+  def %(moduleName: QualifiedModuleName): FQName =
+    FQName(self, ModuleName(moduleName.namespace), moduleName.localName)
 
-  def %(modulePath: String): PackageAndModulePath = PackageAndModulePath(self, ModulePath.fromString(modulePath))
+  def %(modulePath: String): PackagedModuleName = PackagedModuleName(self, ModuleName.fromString(modulePath))
 }
 
 object PackageName {

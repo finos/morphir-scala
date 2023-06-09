@@ -11,8 +11,8 @@ trait MorphirIRDeriveGen
     with FQNameDeriveGen
     with LiteralDeriveGen
     with ModuleDefinitionDeriveGen
+    with QualifiedModuleNameDeriveGen
     with ModuleNameDeriveGen
-    with ModulePathDeriveGen
     with ModuleSpecificationDeriveGen
     with MorphirIRFileDeriveGen
     with NameDeriveGen
