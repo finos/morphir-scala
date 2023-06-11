@@ -151,8 +151,8 @@ object morphir extends Module {
     }
   }
 
-  object dataformat extends Cross[DataformatModule](ScalaVersions.all: _*)
-  case class DataformatModule(val crossScalaVersion:String) extends CrossPlatform { module =>  
+  object datamodel extends Cross[DatamodelModule](ScalaVersions.all: _*)
+  case class DatamodelModule(val crossScalaVersion:String) extends CrossPlatform { module =>  
     trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
       
     }
@@ -165,11 +165,11 @@ object morphir extends Module {
     object native extends Shared with MorphirScalaNativeModule {}
   }
   
-  object `dataformat-json` extends Module {
-    object zio extends Cross[DataformatJsonZioModule](ScalaVersions.all: _*)
-    case class DataformatJsonZioModule(val crossScalaVersion:String) extends CrossPlatform { module =>  
+  object `datamodel-json` extends Module {
+    object zio extends Cross[DatamodelJsonZioModule](ScalaVersions.all: _*)
+    case class DatamodelJsonZioModule(val crossScalaVersion:String) extends CrossPlatform { module =>  
       def enableNative      = false
-      def moduleDeps = Seq(morphir.dataformat(crossScalaVersion))
+      def moduleDeps = Seq(morphir.datamodel(crossScalaVersion))
 
       trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
         def ivyDeps = Agg(dev.zio.`zio-json`)
@@ -351,7 +351,7 @@ object morphir extends Module {
       object testing extends mill.Cross[TestingModule](ScalaVersions.all: _*)
       class TestingModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
         def ivyDeps    = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-magnolia`)
-        def moduleDeps = Seq(morphir.dataformat(crossScalaVersion).jvm, morphir.toolkit.core(crossScalaVersion), morphir.testing(crossScalaVersion).jvm)
+        def moduleDeps = Seq(morphir.datamodel(crossScalaVersion).jvm, morphir.toolkit.core(crossScalaVersion), morphir.testing(crossScalaVersion).jvm)
         object test extends Tests with MorphirTestModule {}
       }
     }
@@ -364,7 +364,7 @@ object morphir extends Module {
         com.lihaoyi.pprint,
         org.typelevel.`paiges-core`
       )
-      def moduleDeps = Seq(morphir.dataformat(crossScalaVersion).jvm, morphir.lib.interop(crossScalaVersion))
+      def moduleDeps = Seq(morphir.datamodel(crossScalaVersion).jvm, morphir.lib.interop(crossScalaVersion))
       object test extends Tests with MorphirTestModule {
         def moduleDeps =
           super.moduleDeps ++ Seq(            
