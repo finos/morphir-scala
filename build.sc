@@ -156,7 +156,11 @@ object morphir extends Module {
     trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
       
     }
-    object jvm extends Shared 
+    object jvm extends Shared {
+      object test extends Tests with TestModule.Munit {
+        override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+      }
+    }
     object js extends Shared with MorphirScalaJSModule {}
     object native extends Shared with MorphirScalaNativeModule {}
   }
@@ -171,9 +175,24 @@ object morphir extends Module {
         def ivyDeps = Agg(dev.zio.`zio-json`)
         
       }
-      object jvm extends Shared 
-      object js extends Shared with MorphirScalaJSModule {}
-      object native extends Shared with MorphirScalaNativeModule {}
+      object jvm extends Shared {
+        object test extends Tests with TestModule.Munit {
+          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit, org.scalameta.`munit-scalacheck`)
+        }
+      } 
+      
+      object js extends Shared with MorphirScalaJSModule {
+         
+        object test extends Tests with TestModule.Munit {
+          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+        }
+      }
+      
+      object native extends Shared with MorphirScalaNativeModule {
+        object test extends Tests with TestModule.Munit {
+          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+        }
+      }
     }
   }
 

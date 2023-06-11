@@ -1,29 +1,32 @@
-package org.finos.morphir.dataformat.mdf
+package org.finos.morphir.datamodel
 
-sealed trait Schema
+//TODO: Keep this non-GADT version as Concept and make a GADT version `Schema[A]`
+sealed trait Concept
 
-object Schema {
-  case object Int extends Schema
+object Concept {
+  final val integer = Basic(BasicDataType.Integer)
 
-  case object String extends Schema
+  case class Basic[+A](basicType:BasicDataType[A]) extends Concept
 
-  case object Decimal extends Schema
+  case object String extends Concept
 
-  case object LocalDate extends Schema
+  case object Decimal extends Concept
 
-  case object Boolean extends Schema
+  case object LocalDate extends Concept
 
-  case class Record(fields: scala.List[(Label, Schema)]) extends Schema
+  case object Boolean extends Concept
 
-  case class Alias(name: String, value: Schema) extends Schema
+  case class Record(fields: scala.List[(Label, Concept)]) extends Concept
 
-  case class List(elementType: Schema) extends Schema
+  case class Alias(name: String, value: Concept) extends Concept
 
-  case class Map(keyType: Schema, valueType: Schema) extends Schema
+  case class List(elementType: Concept) extends Concept
 
-  case class Tuple(values: scala.List[Schema]) extends Schema
+  case class Map(keyType: Concept, valueType: Concept) extends Concept
 
-  case class Optional(elementType: Schema) extends Schema
+  case class Tuple(values: scala.List[Concept]) extends Concept
+
+  case class Optional(elementType: Concept) extends Concept
 
   /**
    * A discrimiated union type such as an ELM union (either with labels or not)
@@ -69,7 +72,7 @@ object Schema {
    *   )
    * }}}
    */
-  case class Enum(cases: scala.List[Enum.Case]) extends Schema
+  case class Enum(cases: scala.List[Enum.Case]) extends Concept
 
   object Enum {
     case class Case(label: Label, fields: scala.List[Case.Field])
@@ -78,9 +81,9 @@ object Schema {
       sealed trait Field
 
       object Field {
-        case class Named(label: Label, value: Schema) extends Field
+        case class Named(label: Label, value: Concept) extends Field
 
-        case class Anon(value: Schema) extends Field
+        case class Anon(value: Concept) extends Field
       }
     }
   }
@@ -95,5 +98,5 @@ object Schema {
    *   Union(Schema.Int, Schema.String)
    * }}}
    */
-  case class Union(cases: scala.List[Schema]) extends Schema
+  case class Union(cases: scala.List[Concept]) extends Concept
 }
