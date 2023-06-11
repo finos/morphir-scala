@@ -46,19 +46,6 @@ object morphir extends Module {
     }
   }
 
-  object concepts extends MorphirScalaModule with MorphirPublishModule {
-    val crossScalaVersion = morphirScalaVersion
-
-    def enableNative = crossScalaVersion.startsWith("2.")
-
-    def ivyDeps    = Agg(com.beachape.enumeratum, dev.zio.`zio-parser`, org.typelevel.`paiges-core`)
-    def moduleDeps = Seq(core(crossScalaVersion).jvm)
-
-    object test extends Tests with MorphirTestModule {
-      def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).jvm)
-    }
-  }
-
   object core extends Cross[CoreModule](ScalaVersions.all: _*)
   class CoreModule(val crossScalaVersion: String) extends CrossPlatform { module =>
     def enableNative = false // crossScalaVersion.startsWith("2.")
@@ -161,8 +148,14 @@ object morphir extends Module {
         override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
       }
     }
-    object js extends Shared with MorphirScalaJSModule {}
-    object native extends Shared with MorphirScalaNativeModule {}
+    object js extends Shared with MorphirScalaJSModule {
+      
+        override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+    }
+    object native extends Shared with MorphirScalaNativeModule {
+      
+        override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+    }
   }
   
   object `datamodel-json` extends Module {
@@ -184,48 +177,18 @@ object morphir extends Module {
       object js extends Shared with MorphirScalaJSModule {
          
         object test extends Tests with TestModule.Munit {
-          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit, org.scalameta.`munit-scalacheck`)
         }
       }
       
       object native extends Shared with MorphirScalaNativeModule {
         object test extends Tests with TestModule.Munit {
-          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit, org.scalameta.`munit-scalacheck`)
         }
       }
     }
   }
 
-  object lang extends CrossPlatform /*MorphirScalaModule with MorphirPublishModule*/ { langModule =>
-    val crossScalaVersion = morphirScalaVersion
-    def enableNative      = false
-    def enableJS          = crossScalaVersion.startsWith("3.")
-    def moduleDeps        = Seq(core(crossScalaVersion) /*, vfile(crossScalaVersion)*/ )
-    trait Shared extends CrossPlatformScalaModule with MorphirScalaModule with MorphirPublishModule {
-      val crossScalaVersion = langModule.crossScalaVersion
-      def ivyDeps =
-        Agg(com.lihaoyi.pprint, dev.zio.`zio-parser`, com.lihaoyi.upickle, com.outr.scribe, org.typelevel.`paiges-core`)
-
-    }
-    object jvm extends Shared { outer =>
-      def moduleDeps = super.moduleDeps ++ Seq(concepts)
-      object test extends outer.Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).jvm)
-      }
-    }
-
-    object js extends Shared with MorphirScalaJSModule { outer =>
-      object test extends outer.Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).js)
-      }
-    }
-
-    object native extends Shared with MorphirScalaNativeModule { outer =>
-      object test extends outer.Tests with MorphirTestModule {
-        def moduleDeps = super.moduleDeps ++ Seq(morphir.testing(crossScalaVersion).native)
-      }
-    }
-  }
 
   object lib extends Module {
     object core extends MorphirScalaModule with MorphirPublishModule {
@@ -414,36 +377,6 @@ object morphir extends Module {
       def packageDescription = "A command line interface for Morphir"
 
       object test extends Tests with MorphirTestModule {}
-    }
-
-    object frontend extends Module {
-      object lang extends Module {
-        object scala extends MorphirScalaModule with BuildInfo with MorphirPublishModule {
-          def crossScalaVersion = morphirScalaVersion
-
-          def buildinfopackagename = Some("org.finos.morphir.frontend.lang")
-
-          def buildInfoObjectName = "ScalaFrontendBuildInfo"
-
-          def buildInfoMembers = T {
-            Map(
-              "scalaVersion" -> scalaVersion(),
-              "version"      -> VcsVersion.vcsState().format(),
-              "product"      -> "morphir",
-              "summary"      -> "Morphir Frontend - Scala",
-              "description"  -> packageDescription
-            )
-          }
-
-          def ivyDeps = Agg(
-            org.`scala-lang`.`scala3-tasty-inspector`(crossScalaVersion)
-          )
-
-          def moduleDeps = Seq(morphir.toolkit.core(crossScalaVersion))
-
-          object test extends Tests with MorphirTestModule {}
-        }
-      }
     }
 
     object launcher extends MorphirScalaModule with BuildInfo with MorphirPublishModule {
