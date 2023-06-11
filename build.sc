@@ -151,6 +151,51 @@ object morphir extends Module {
     }
   }
 
+  object datamodel extends Cross[DatamodelModule](ScalaVersions.all: _*)
+  case class DatamodelModule(val crossScalaVersion:String) extends CrossPlatform { module =>  
+    trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
+      
+    }
+    object jvm extends Shared {
+      object test extends Tests with TestModule.Munit {
+        override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+      }
+    }
+    object js extends Shared with MorphirScalaJSModule {}
+    object native extends Shared with MorphirScalaNativeModule {}
+  }
+  
+  object `datamodel-json` extends Module {
+    object zio extends Cross[DatamodelJsonZioModule](ScalaVersions.all: _*)
+    case class DatamodelJsonZioModule(val crossScalaVersion:String) extends CrossPlatform { module =>  
+      def enableNative      = false
+      def moduleDeps = Seq(morphir.datamodel(crossScalaVersion))
+
+      trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
+        def ivyDeps = Agg(dev.zio.`zio-json`)
+        
+      }
+      object jvm extends Shared {
+        object test extends Tests with TestModule.Munit {
+          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit, org.scalameta.`munit-scalacheck`)
+        }
+      } 
+      
+      object js extends Shared with MorphirScalaJSModule {
+         
+        object test extends Tests with TestModule.Munit {
+          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+        }
+      }
+      
+      object native extends Shared with MorphirScalaNativeModule {
+        object test extends Tests with TestModule.Munit {
+          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+        }
+      }
+    }
+  }
+
   object lang extends CrossPlatform /*MorphirScalaModule with MorphirPublishModule*/ { langModule =>
     val crossScalaVersion = morphirScalaVersion
     def enableNative      = false
@@ -306,7 +351,7 @@ object morphir extends Module {
       object testing extends mill.Cross[TestingModule](ScalaVersions.all: _*)
       class TestingModule(val crossScalaVersion: String) extends MorphirCrossScalaModule with MorphirPublishModule {
         def ivyDeps    = Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-magnolia`)
-        def moduleDeps = Seq(morphir.toolkit.core(crossScalaVersion), morphir.testing(crossScalaVersion).jvm)
+        def moduleDeps = Seq(morphir.datamodel(crossScalaVersion).jvm, morphir.toolkit.core(crossScalaVersion), morphir.testing(crossScalaVersion).jvm)
         object test extends Tests with MorphirTestModule {}
       }
     }
@@ -319,10 +364,10 @@ object morphir extends Module {
         com.lihaoyi.pprint,
         org.typelevel.`paiges-core`
       )
-      def moduleDeps = Seq(morphir.lib.interop(crossScalaVersion))
+      def moduleDeps = Seq(morphir.datamodel(crossScalaVersion).jvm, morphir.lib.interop(crossScalaVersion))
       object test extends Tests with MorphirTestModule {
         def moduleDeps =
-          super.moduleDeps ++ Seq(
+          super.moduleDeps ++ Seq(            
             morphir.testing(crossScalaVersion).jvm,
             morphir.toolkit.core.testing(crossScalaVersion)
           )
