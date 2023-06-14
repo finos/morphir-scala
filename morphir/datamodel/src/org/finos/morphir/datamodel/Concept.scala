@@ -5,6 +5,9 @@ sealed trait Concept
 object Concept {
   sealed trait Basic[+A] extends Concept
 
+  case object Integer   extends Basic[scala.BigInt]
+  case object Int16     extends Basic[Short]
+  case object Int32     extends Basic[Int]
   case object String    extends Basic[java.lang.String]
   case object LocalDate extends Basic[java.time.LocalDate]
   case object Month     extends Basic[Int]
