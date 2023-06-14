@@ -4,14 +4,6 @@ sealed trait Data {
 }
 
 object Data {
-  val True: Data  = Boolean(true)
-  val False: Data = Boolean(false)
-
-  case class Integer(value: scala.Int)                              extends Data { val shape = Concept.integer   }
-  case class String(value: java.lang.String)                        extends Data { val shape = Concept.String    }
-  case class Decimal(value: scala.Double)                           extends Data { val shape = Concept.Decimal   }
-  case class LocalDate(day: Integer, month: Integer, year: Integer) extends Data { val shape = Concept.LocalDate }
-  case class Boolean(value: scala.Boolean)                          extends Data { val shape = Concept.Boolean   }
 
   /**
    * See notes on Concept.Enum for information on how this type is modelled
