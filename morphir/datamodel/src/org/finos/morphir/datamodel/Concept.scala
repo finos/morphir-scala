@@ -22,6 +22,12 @@ object Concept {
     val String = Concept.String
     type LocalDate = Concept.LocalDate.type
     val LocalDate = Concept.LocalDate
+    type Month = Concept.Month.type
+    val Month = Concept.Month
+    type LocalTime = Concept.LocalTime.type
+    val LocalTime = Concept.LocalTime
+    type Char = Concept.Char.type
+    val Char = Concept.Char
   }
 
   case object Boolean   extends Basic[scala.Boolean]
