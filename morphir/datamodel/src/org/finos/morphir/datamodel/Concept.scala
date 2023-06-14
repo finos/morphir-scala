@@ -3,7 +3,7 @@ package org.finos.morphir.datamodel
 sealed trait Concept
 
 object Concept {
-  case class Basic[+A](basicType: BasicDataType[A]) extends Concept
+  sealed trait Basic[+A] extends Concept
 
   case class Record(fields: scala.List[(Label, Concept)]) extends Concept
 
