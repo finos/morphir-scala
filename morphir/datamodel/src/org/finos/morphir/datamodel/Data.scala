@@ -6,6 +6,8 @@ sealed trait Data {
 object Data {
   sealed trait Basic[+A] extends Data
 
+  case class Int16(value: scala.Short)             extends Basic[Short]               { val shape = Concept.Int16     }
+  case class Int32(value: scala.Int)               extends Basic[Int]                 { val shape = Concept.Int32     }
   case class String(value: java.lang.String)       extends Basic[java.lang.String]    { val shape = Concept.String    }
   case class LocalDate(value: java.time.LocalDate) extends Basic[java.time.LocalDate] { val shape = Concept.LocalDate }
   case class Month(value: Int)                     extends Basic[Int]                 { val shape = Concept.Month     }
