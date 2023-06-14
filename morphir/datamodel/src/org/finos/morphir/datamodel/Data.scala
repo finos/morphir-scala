@@ -7,6 +7,7 @@ object Data {
   sealed trait Basic[+A] extends Data
 
   case class LocalDate(value: java.time.LocalDate) extends Basic[java.time.LocalDate] { val shape = Concept.LocalDate }
+  case class Month(value: Int)                     extends Basic[Int]                 { val shape = Concept.Month     }
   case class LocalTime(value: java.time.LocalTime) extends Basic[java.time.LocalTime] { val shape = Concept.LocalTime }
 
   /**
