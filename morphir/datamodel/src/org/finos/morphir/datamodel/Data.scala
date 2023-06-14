@@ -4,6 +4,9 @@ sealed trait Data {
 }
 
 object Data {
+  val True: Data  = Boolean(true)
+  val False: Data = Boolean(false)
+
   def Int(value: Int) = Int32(value)
 
   sealed trait Basic[+A] extends Data
