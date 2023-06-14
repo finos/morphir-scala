@@ -3,9 +3,6 @@ package org.finos.morphir.datamodel
 sealed trait Concept
 
 object Concept {
-  final val boolean = Basic(BasicDataType.Boolean)
-  final val integer = Basic(BasicDataType.Integer)
-
   case class Basic[+A](basicType: BasicDataType[A]) extends Concept
 
   case class Record(fields: scala.List[(Label, Concept)]) extends Concept
