@@ -4,6 +4,7 @@ sealed trait Data {
 }
 
 object Data {
+  sealed trait Basic[+A] extends Data
 
   /**
    * See notes on Concept.Enum for information on how this type is modelled
