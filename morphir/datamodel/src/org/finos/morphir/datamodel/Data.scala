@@ -6,6 +6,9 @@ sealed trait Data {
 object Data {
   sealed trait Basic[+A] extends Data
 
+  case class LocalDate(value: java.time.LocalDate) extends Basic[java.time.LocalDate] { val shape = Concept.LocalDate }
+  case class LocalTime(value: java.time.LocalTime) extends Basic[java.time.LocalTime] { val shape = Concept.LocalTime }
+
   /**
    * See notes on Concept.Enum for information on how this type is modelled
    */
