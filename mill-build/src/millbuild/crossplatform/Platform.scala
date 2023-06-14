@@ -18,6 +18,8 @@ sealed trait Platform extends Ordered[Platform] { self =>
   override def toString = name
 }
 object Platform {
+  lazy val all:Set[Platform] = Set(JVM, JS, Native)
+
   implicit val rw:RW[Platform] = RW.merge(
     macroRW[Platform.JVM],
     macroRW[Platform.JS],
@@ -39,5 +41,44 @@ object Platform {
     def name = "native"
   }
 
-  lazy val all:Set[Platform] = Set(JVM, JS, Native)
+  sealed trait FolderMode { self =>
+    import FolderMode._
+
+    final def useNesting:Boolean = 
+      self match {
+        case UseBoth => true
+        case UseNesting => true 
+        case _ => false
+      } 
+
+    final def useSuffix:Boolean =
+      self match {
+        case UseNesting => false
+        case UseSuffix => true
+        case UseBoth => true 
+      }
+      
+  }
+  object FolderMode {
+    implicit val rw:RW[FolderMode] = RW.merge(
+      macroRW[UseNesting],
+      macroRW[UseSuffix],
+      macroRW[UseBoth]
+    )
+    type UseNesting = UseNesting.type
+    case object UseNesting extends FolderMode {
+      implicit val rn:RW[UseNesting] = macroRW 
+    }
+
+    type UseSuffix = UseSuffix.type
+    case object UseSuffix extends FolderMode {
+      implicit val rw:RW[UseSuffix] = macroRW
+    }
+
+    type UseBoth = UseBoth.type
+    case object UseBoth extends FolderMode {
+      implicit val rw:RW[UseBoth] = macroRW
+    }
+  }
+
 }
