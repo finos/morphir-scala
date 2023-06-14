@@ -8,14 +8,6 @@ object Concept {
 
   case class Basic[+A](basicType: BasicDataType[A]) extends Concept
 
-  case object String extends Concept
-
-  case object Decimal extends Concept
-
-  case object LocalDate extends Concept
-
-  case object Boolean extends Concept
-
   case class Record(fields: scala.List[(Label, Concept)]) extends Concept
 
   case class Alias(name: String, value: Concept) extends Concept
