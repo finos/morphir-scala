@@ -8,6 +8,10 @@ object Concept {
   object Basic {
     type Boolean = Concept.Boolean.type
     val Boolean = Concept.Boolean
+    type Byte = Concept.Byte.type
+    val Byte = Concept.Byte
+    type Decimal = Concept.Decimal.type
+    val Decimal = Concept.Decimal
   }
 
   case object Boolean   extends Basic[scala.Boolean]
