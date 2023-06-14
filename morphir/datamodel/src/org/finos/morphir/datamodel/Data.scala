@@ -4,6 +4,8 @@ sealed trait Data {
 }
 
 object Data {
+  def Int(value: Int) = Int32(value)
+
   sealed trait Basic[+A] extends Data
 
   case class Boolean(value: scala.Boolean)         extends Basic[scala.Boolean]       { val shape = Concept.Boolean   }
