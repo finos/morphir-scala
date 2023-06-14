@@ -5,6 +5,10 @@ sealed trait Concept
 object Concept {
   sealed trait Basic[+A] extends Concept
 
+  case object LocalDate extends Basic[java.time.LocalDate]
+  case object Month     extends Basic[Int]
+  case object LocalTime extends Basic[java.time.LocalTime]
+
   case class Record(fields: scala.List[(Label, Concept)]) extends Concept
 
   case class Alias(name: String, value: Concept) extends Concept
