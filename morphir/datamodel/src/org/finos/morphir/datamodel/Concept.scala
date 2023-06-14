@@ -12,6 +12,12 @@ object Concept {
     val Byte = Concept.Byte
     type Decimal = Concept.Decimal.type
     val Decimal = Concept.Decimal
+    type Integer = Concept.Integer.type
+    val Integer = Concept.Integer
+    type Int16 = Concept.Int16.type
+    val Int16 = Concept.Int16
+    type Int32 = Concept.Int32.type
+    val Int32 = Concept.Int32
   }
 
   case object Boolean   extends Basic[scala.Boolean]
