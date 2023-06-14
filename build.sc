@@ -1,7 +1,7 @@
 import $meta._
 import $file.project.deps, deps.{Deps, ScalaVersions, Versions => Vers}
 import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
-import millbuild.crossplatform.{Platform}
+import millbuild.crossplatform._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 
 
@@ -9,16 +9,8 @@ object morphir extends Cross[MorphirModule](ScalaVersions.all)
 trait MorphirModule extends Cross.Module[String] {
   val workspaceDir = build.millSourcePath
 
-  trait Shared extends CrossScalaModule with CrossValue with PlatformScalaModule {
-    def platform:Platform
-    def platforms:T[Seq[Platform]] = T { Platform.all.toSeq }    
-    def sources = T.sources { 
-      (super.sources() ++ (for {
-        source <- super.sources()
-        suffix <- platform.suffixes        
-        if !source.path.last.endsWith(platform.name)
-      } yield PathRef(source.path/ _root_.os.up / s"${source.path.last}-${suffix}" ))).distinct
-    }
+  trait Shared extends CrossPlatformScalaModule with CrossValue {
+
   }
 
   trait SharedJVM extends Shared {
