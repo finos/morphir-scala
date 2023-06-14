@@ -18,6 +18,10 @@ object Concept {
     val Int16 = Concept.Int16
     type Int32 = Concept.Int32.type
     val Int32 = Concept.Int32
+    type String = Concept.String.type
+    val String = Concept.String
+    type LocalDate = Concept.LocalDate.type
+    val LocalDate = Concept.LocalDate
   }
 
   case object Boolean   extends Basic[scala.Boolean]
