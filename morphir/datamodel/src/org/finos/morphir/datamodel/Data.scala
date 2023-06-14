@@ -1,4 +1,5 @@
 package org.finos.morphir.datamodel
+
 sealed trait Data {
   def shape: Concept
 }
