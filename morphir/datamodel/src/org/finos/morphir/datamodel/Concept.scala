@@ -5,6 +5,11 @@ sealed trait Concept
 object Concept {
   sealed trait Basic[+A] extends Concept
 
+  object Basic {
+    type Boolean = Concept.Boolean.type
+    val Boolean = Concept.Boolean
+  }
+
   case object Boolean   extends Basic[scala.Boolean]
   case object Byte      extends Basic[Byte]
   case object Decimal   extends Basic[scala.BigDecimal]
