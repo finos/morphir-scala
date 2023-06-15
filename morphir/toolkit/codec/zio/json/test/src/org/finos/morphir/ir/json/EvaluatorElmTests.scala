@@ -61,18 +61,18 @@ object EvaluatorElmTests extends MorphirBaseSpec {
         },
         test("AsTwice") {
           val actual   = runTest[(Long, Long)]("destructureTests", "destructureTests", "destructureAsTwiceTest")
-          val expected = (5, 5)
+          val expected = (5L, 5L)
           assertTrue(actual == expected)
         },
         test("Tuple Twice") {
           val actual =
             runTest[(String, Long, (Long, String))]("destructureTests", "destructureTests", "destructureTupleTwiceTest")
-          val expected = ("Blue", 5, (5, "Blue"))
+          val expected = ("Blue", 5L, (5L, "Blue"))
           assertTrue(actual == expected)
         },
         test("Directly Nested") {
           val actual   = runTest[(Long, String)]("destructureTests", "destructureTests", "destructureDirectTest")
-          val expected = (6, "Green")
+          val expected = (6L, "Green")
           assertTrue(actual == expected)
         }
       ),
@@ -101,17 +101,17 @@ object EvaluatorElmTests extends MorphirBaseSpec {
       suite("Lambda Tests")(
         test("As") {
           val actual   = runTest[(Long, Long)]("lambdaTests", "lambdaTests", "lambdaAsTest")
-          val expected = (5, 5)
+          val expected = (5L, 5L)
           assertTrue(actual == expected)
         },
         test("Tuple") {
           val actual   = runTest[(Long, Long)]("lambdaTests", "lambdaTests", "lambdaTupleTest")
-          val expected = (0, 1)
+          val expected = (0L, 1L)
           assertTrue(actual == expected)
         },
         test("Constructor") {
           val actual   = runTest[(String, Long)]("lambdaTests", "lambdaTests", "lambdaConstructorTest")
-          val expected = ("Red", 5)
+          val expected = ("Red", 5L)
           assertTrue(actual == expected)
         },
         test("Unit") {
@@ -121,51 +121,51 @@ object EvaluatorElmTests extends MorphirBaseSpec {
         },
         test("Directly Nested") {
           val actual   = runTest[(Long, Long)]("lambdaTests", "lambdaTests", "lambdaDirectTest")
-          val expected = (0, 1)
+          val expected = (0L, 1L)
           assertTrue(actual == expected)
         },
         test("Scope") {
           val actual   = runTest[(Long, (Long, Long))]("lambdaTests", "lambdaTests", "lambdaScopeTest")
-          val expected = (3, (4, 5))
+          val expected = (3L, (4L, 5L))
           assertTrue(actual == expected)
         },
         test("Higher Order") {
           val actual   = runTest[(Long, Long, Long)]("lambdaTests", "lambdaTests", "lambdaHigherOrderTest")
-          val expected = (3, 4, 5)
+          val expected = (3L, 4L, 5L)
           assertTrue(actual == expected)
         },
         test("User Defined Constructor") {
           val actual   = runTest[(Long, String)]("lambdaTests", "lambdaTests", "lambdaUserDefinedTest")
-          val expected = (5, "Red")
+          val expected = (5L, "Red")
           assertTrue(actual == expected)
         }
       ),
       suite("Let Definition")(
         test("Make Tuple") {
           val actual   = runTest[(Long, Long)]("letDefinitionTests", "letDefinitionTests", "letDefinitionMakeTupleTest")
-          val expected = (1, 1)
+          val expected = (1L, 1L)
           assertTrue(actual == expected)
         },
         test("Nested") {
           val actual   = runTest[(Long, Long)]("letDefinitionTests", "letDefinitionTests", "letDefinitionNestedTest")
-          val expected = (2, 2)
+          val expected = (2L, 2L)
           assertTrue(actual == expected)
         },
         test("Simple Function") {
           val actual =
             runTest[(Long, Long)]("letDefinitionTests", "letDefinitionTests", "letDefinitionSimpleFunctionTest")
-          val expected = (3, 3)
+          val expected = (3L, 3L)
           assertTrue(actual == expected)
         },
         test("Two Argument Function") {
           val actual =
             runTest[(Long, Long)]("letDefinitionTests", "letDefinitionTests", "letDefinitionTwoArgFunctionFunctionTest")
-          val expected = (3, 2)
+          val expected = (3L, 2L)
           assertTrue(actual == expected)
         },
         test("Curried Function") {
           val actual   = runTest[(Long, Long)]("letDefinitionTests", "letDefinitionTests", "letDefinitionCurriedTest")
-          val expected = (2, 0)
+          val expected = (2L, 0L)
           assertTrue(actual == expected)
         },
         test("Apply Twice") {
@@ -174,7 +174,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
             "letDefinitionTests",
             "letDefinitionApplyTwiceTest"
           )
-          val expected = ((1, 0), (2, 0))
+          val expected = ((1L, 0L), (2L, 0L))
           assertTrue(actual == expected)
         },
         test("Only runs if applied") {
@@ -185,19 +185,19 @@ object EvaluatorElmTests extends MorphirBaseSpec {
         test("Lexical cope") {
           val actual =
             runTest[(Long, (Long, Long))]("letDefinitionTests", "letDefinitionTests", "letDefinitionScopeTest")
-          val expected = (3, (4, 5))
+          val expected = (3L, (4L, 5L))
           assertTrue(actual == expected)
         }
       ),
       suite("Let Recursion")(
         test("Fibbonacci") {
           val actual   = runTest[Long]("letRecursionTests", "letRecursionTests", "letRecursionFibonacciTest")
-          val expected = 34
+          val expected = 34L
           assertTrue(actual == expected)
         },
         test("Mutual Recursion") {
           val actual   = runTest[(Long, Long)]("letRecursionTests", "letRecursionTests", "letRecursionMutualTest")
-          val expected = (8, 9)
+          val expected = (8L, 9L)
           assertTrue(actual == expected)
         }
       ),
@@ -214,7 +214,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
         },
         test("Several") {
           val actual   = runTest[List[Long]]("listTests", "listTests", "listSeveralTest")
-          val expected = List(0, 1, 2, 3, 4, 5)
+          val expected = List(0L, 1, 2, 3, 4, 5)
           assertTrue(actual == expected)
         },
         test("Nested") {
@@ -259,12 +259,12 @@ object EvaluatorElmTests extends MorphirBaseSpec {
         test("Map") {
           val actual =
             runTest[List[(Long, Long)]]("nativeReferenceTests", "nativeReferenceTests", "nativeReferenceMapTest")
-          val expected = List((1, 1), (2, 2), (3, 3))
+          val expected = List((1L, 1L), (2, 2), (3, 3))
           assertTrue(actual == expected)
         },
         test("Add") {
           val actual   = runTest[Long]("nativeReferenceTests", "nativeReferenceTests", "nativeReferenceAddTest")
-          val expected = 3
+          val expected = 3L
           assertTrue(actual == expected)
         },
         test("Curried Log") {
@@ -312,7 +312,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
         test("Repeated As") {
           val actual =
             runTest[(Long, (Long, Long))]("patternMatchTests", "patternMatchTests", "patternMatchRepeatedAsTest")
-          val expected = (2, (1, 2))
+          val expected = (2L, (1L, 2L))
           assertTrue(actual == expected)
         }
       ),
@@ -334,7 +334,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
         },
         test("Field Function Apply Twice") {
           val actual   = runTest[(Long, Long)]("recordTests", "recordTests", "fieldFunctionApplyTwiceTest")
-          val expected = (1, 2)
+          val expected = (1L, 2L)
           assertTrue(actual == expected)
         },
         test("Field") {
@@ -381,17 +381,17 @@ object EvaluatorElmTests extends MorphirBaseSpec {
       suite("Simple")(
         test("Tuple(2)") {
           val actual   = runTest[(Long, Long)]("simpleAndTupleTests", "tupleTests", "tupleTwoTest")
-          val expected = (5, 4)
+          val expected = (5L, 4L)
           assertTrue(actual == expected)
         },
         test("Tuple(3)") {
           val actual   = runTest[(Long, Boolean, String)]("simpleAndTupleTests", "tupleTests", "tupleThreeTest")
-          val expected = (0, true, "Green")
+          val expected = (0L, true, "Green")
           assertTrue(actual == expected)
         },
         test("Nested Tuple") {
           val actual = runTest[(Long, (String, (Long, String)))]("simpleAndTupleTests", "tupleTests", "tupleNestedTest")
-          val expected = (5, ("Four", (4, "Five")))
+          val expected = (5L, ("Four", (4L, "Five")))
           assertTrue(actual == expected)
         }
       ),
@@ -399,7 +399,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
         test("Reference to value") {
           val actual =
             runTest[Long]("userDefinedReferences", "userDefinedReferenceTests", "userDefinedReferenceValueTest")
-          val expected = 5
+          val expected = 5L
           assertTrue(actual == expected)
         },
         test("Curried Function Application") {
@@ -414,13 +414,13 @@ object EvaluatorElmTests extends MorphirBaseSpec {
             "userDefinedReferenceTests",
             "userDefinedReferenceSimpleFunctionTest"
           )
-          val expected = (1, 2)
+          val expected = (1L, 2L)
           assertTrue(actual == expected)
         },
         test("Calling public function which calls private function") {
           val actual =
             runTest[Long]("userDefinedReferences", "userDefinedReferenceTests", "userDefinedReferencePublicPrivateTest")
-          val expected = 10
+          val expected = 10L
           assertTrue(actual == expected)
         },
         test("Reference to Record") {
@@ -432,7 +432,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
         test("Reference to Union Type") {
           val actual =
             runTest[Long]("userDefinedReferences", "userDefinedReferenceTests", "userDefinedReferenceUnionTest")
-          val expected = -6
+          val expected = -6L
           assertTrue(actual == expected)
         }
       )
