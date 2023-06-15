@@ -44,4 +44,4 @@ nativeReferenceCurriedLogTest _ =
 nativeReferencePiTest : () -> Float
 nativeReferencePiTest _ = 
     pi
---expected = 3.14
+--expected = 3

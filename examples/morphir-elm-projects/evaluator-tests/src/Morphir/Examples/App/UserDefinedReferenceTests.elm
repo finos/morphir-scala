@@ -1,4 +1,4 @@
-module Morphir.Examples.App.UserDefinedTests exposing (..)
+module Morphir.Examples.App.UserDefinedReferenceTests exposing (..)
 
 {-
     TODO: Check expected values vs. elm (Ellie is not friendly to multiple modules)

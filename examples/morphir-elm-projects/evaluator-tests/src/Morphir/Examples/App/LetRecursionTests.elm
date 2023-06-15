@@ -1,4 +1,4 @@
-module Morphir.Examples.App.LetDefinitionTests exposing (..)
+module Morphir.Examples.App.LetRecursionTests exposing (..)
 
 {-
     TODO:
@@ -17,7 +17,7 @@ letRecursionFibonacciTest _ =
         fib 8
 --expected = 34
 
---Test: LetRecursion/MutualRecursion Mutuall recursive functions grab last items on a list. 
+--Test: LetRecursion/MutualRecursion Mutually recursive functions grab last items on a list.
 letRecursionMutualTest : () -> (Int, Int)
 letRecursionMutualTest _ = 
     let
