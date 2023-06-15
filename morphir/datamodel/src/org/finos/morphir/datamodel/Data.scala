@@ -1,4 +1,5 @@
 package org.finos.morphir.datamodel
+
 sealed trait Data {
   def shape: Concept
 }
@@ -7,11 +8,21 @@ object Data {
   val True: Data  = Boolean(true)
   val False: Data = Boolean(false)
 
-  case class Integer(value: scala.Int)                              extends Data { val shape = Concept.integer   }
-  case class String(value: java.lang.String)                        extends Data { val shape = Concept.String    }
-  case class Decimal(value: scala.Double)                           extends Data { val shape = Concept.Decimal   }
-  case class LocalDate(day: Integer, month: Integer, year: Integer) extends Data { val shape = Concept.LocalDate }
-  case class Boolean(value: scala.Boolean)                          extends Data { val shape = Concept.Boolean   }
+  def Int(value: Int) = Int32(value)
+
+  sealed trait Basic[+A] extends Data
+
+  case class Boolean(value: scala.Boolean)         extends Basic[scala.Boolean]       { val shape = Concept.Boolean   }
+  case class Byte(value: scala.Byte)               extends Basic[Byte]                { val shape = Concept.Byte      }
+  case class Decimal(value: scala.BigDecimal)      extends Basic[scala.BigDecimal]    { val shape = Concept.Decimal   }
+  case class Integer(value: scala.BigInt)          extends Basic[scala.BigInt]        { val shape = Concept.Integer   }
+  case class Int16(value: scala.Short)             extends Basic[Short]               { val shape = Concept.Int16     }
+  case class Int32(value: scala.Int)               extends Basic[Int]                 { val shape = Concept.Int32     }
+  case class String(value: java.lang.String)       extends Basic[java.lang.String]    { val shape = Concept.String    }
+  case class LocalDate(value: java.time.LocalDate) extends Basic[java.time.LocalDate] { val shape = Concept.LocalDate }
+  case class Month(value: Int)                     extends Basic[Int]                 { val shape = Concept.Month     }
+  case class LocalTime(value: java.time.LocalTime) extends Basic[java.time.LocalTime] { val shape = Concept.LocalTime }
+  case class Char(value: scala.Char)               extends Basic[scala.Char]          { val shape = Concept.Char      }
 
   /**
    * See notes on Concept.Enum for information on how this type is modelled

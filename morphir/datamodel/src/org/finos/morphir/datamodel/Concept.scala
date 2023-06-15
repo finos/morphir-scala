@@ -3,18 +3,44 @@ package org.finos.morphir.datamodel
 sealed trait Concept
 
 object Concept {
-  final val boolean = Basic(BasicDataType.Boolean)
-  final val integer = Basic(BasicDataType.Integer)
+  sealed trait Basic[+A] extends Concept
 
-  case class Basic[+A](basicType: BasicDataType[A]) extends Concept
+  object Basic {
+    type Boolean = Concept.Boolean.type
+    val Boolean = Concept.Boolean
+    type Byte = Concept.Byte.type
+    val Byte = Concept.Byte
+    type Decimal = Concept.Decimal.type
+    val Decimal = Concept.Decimal
+    type Integer = Concept.Integer.type
+    val Integer = Concept.Integer
+    type Int16 = Concept.Int16.type
+    val Int16 = Concept.Int16
+    type Int32 = Concept.Int32.type
+    val Int32 = Concept.Int32
+    type String = Concept.String.type
+    val String = Concept.String
+    type LocalDate = Concept.LocalDate.type
+    val LocalDate = Concept.LocalDate
+    type Month = Concept.Month.type
+    val Month = Concept.Month
+    type LocalTime = Concept.LocalTime.type
+    val LocalTime = Concept.LocalTime
+    type Char = Concept.Char.type
+    val Char = Concept.Char
+  }
 
-  case object String extends Concept
-
-  case object Decimal extends Concept
-
-  case object LocalDate extends Concept
-
-  case object Boolean extends Concept
+  case object Boolean   extends Basic[scala.Boolean]
+  case object Byte      extends Basic[Byte]
+  case object Decimal   extends Basic[scala.BigDecimal]
+  case object Integer   extends Basic[scala.BigInt]
+  case object Int16     extends Basic[Short]
+  case object Int32     extends Basic[Int]
+  case object String    extends Basic[java.lang.String]
+  case object LocalDate extends Basic[java.time.LocalDate]
+  case object Month     extends Basic[Int]
+  case object LocalTime extends Basic[java.time.LocalTime]
+  case object Char      extends Basic[scala.Char]
 
   case class Record(fields: scala.List[(Label, Concept)]) extends Concept
 
