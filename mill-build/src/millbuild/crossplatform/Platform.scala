@@ -3,6 +3,10 @@ package millbuild.crossplatform
 import upickle.default.{ReadWriter => RW, macroRW}
 
 sealed trait Platform extends Ordered[Platform] { self =>
+  val isJS:Boolean = self == Platform.JS
+  val isJVM :Boolean = self == Platform.JVM 
+  val isNative:Boolean = self == Platform.Native
+  val isNotNative:Boolean = !isNative
   def name: String
   def compare(that:Platform):Int = self.name.compare(that.name)
 

@@ -4,6 +4,7 @@ import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
 import $file.project.deps, deps.{Deps, ScalaVersions, Versions => Vers}
 import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
 import io.kipp.mill.ci.release.CiReleaseModule
+import millbuild._
 import millbuild.crossplatform._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 
@@ -31,37 +32,16 @@ trait MorphirPublishModule extends CiReleaseModule with JavaModule {
   )
 }
 
-trait CommonCoursierModule extends CoursierModule {
-  override def mapDependencies: Task[coursier.Dependency => coursier.Dependency] = T.task {
-    super.mapDependencies().andThen { dep =>
-      forcedVersions
-        .find(t => t._1 == dep.module.organization.value && t._2 == dep.module.name.value)
-        .map { forced =>
-          val newDep = dep.withVersion(forced._3)
-          T.log.debug(s"Mapping ${dep} to ${newDep}")
-          newDep
-        }
-        .getOrElse(dep)
-    }
-  }
-
-  val forcedVersions = Seq(
-    ("org.apache.ant", "ant", "1.10.12"),
-    ("commons-io", "commons-io", "2.11.0"),
-    ("com.google.code.gson", "gson", "2.9.0"),
-    ("com.google.protobuf", "protobuf-java", "3.21.2"),
-    ("com.google.guava", "guava", "31.1-jre"),
-    ("org.jsoup", "jsoup", "1.15.3"),
-    ("junit", "junit", "4.13.1")
-  )
-}
-
 object morphir extends Cross[MorphirModule](ScalaVersions.all)
-trait MorphirModule extends Cross.Module[String] {
-  val workspaceDir = build.millSourcePath
+trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
+  val workspaceDir = millbuild.build.millSourcePath
 
-  trait MorphirCommonModule extends CrossPlatformScalaModule with CrossValue {
-
+  trait MorphirCommonModule extends CrossPlatformScalaModule with CrossValue with CommonScalaModule {
+    def semanticDbVersion       = T.input(Vers.semanticDb(partialVersion()))
+    def compilerPluginDependencies(selectedScalaVersion: String) =
+      Agg.when(selectedScalaVersion.startsWith("3.")) {
+        Agg(Deps.org.`scala-lang`.`scala3-compiler`(selectedScalaVersion))
+      } 
   }
 
   trait MorphirJVMModule extends MorphirCommonModule {
@@ -126,13 +106,44 @@ trait MorphirModule extends Cross.Module[String] {
     }
   }
 
-  object testing extends Module {
+  object lib extends Module {
     object jvm extends MorphirJVMModule {
-    }
-    object js extends MorphirJSModule {
 
     }
-    object native extends MorphirNativeModule
+
+    object interop extends Module {
+      trait Shared extends MorphirCommonModule with MorphirPublishModule {
+        object test extends ScalaTests with TestModule.Munit {
+          def ivyDeps = Agg(Deps.org.scalameta.munit)
+        }       
+      }
+      object jvm extends Shared with MorphirJVMModule {
+
+      }
+      object js extends Shared with MorphirJSModule {
+
+      }
+      object native extends Shared with  MorphirNativeModule {
+
+      }
+    }
+  }
+
+  object testing extends Module {
+    trait Shared extends MorphirCommonModule with MorphirPublishModule {
+       def ivyDeps = T {
+        Agg(Deps.co.fs2.`fs2-io`, Deps.com.lihaoyi.sourcecode, Deps.dev.zio.zio,  Deps.dev.zio.`zio-test`) ++ Agg.when(platform.isNotNative)(Deps.dev.zio.`zio-json`)
+       }
+    }
+
+
+    object jvm extends Shared with MorphirJVMModule {
+      
+    }
+    object js extends Shared with MorphirJSModule {
+
+    }
+    object native extends Shared with MorphirNativeModule
 
     object munit extends Module {
       object jvm extends MorphirJVMModule
@@ -145,6 +156,50 @@ trait MorphirModule extends Cross.Module[String] {
       object js extends MorphirJSModule
       object native extends MorphirNativeModule
     }
+  }
+
+  object toolkit extends Module {
+    object core extends Module {
+      trait Shared extends MorphirCommonModule with MorphirPublishModule {
+        def ivyDeps = Agg(
+          Deps.com.lihaoyi.sourcecode,
+          Deps.dev.zio.zio,
+          Deps.dev.zio.`zio-prelude`,
+          Deps.io.lemonlabs.`scala-uri`,
+          Deps.com.lihaoyi.pprint,
+          Deps.org.typelevel.`paiges-core`
+        )
+      }
+      object jvm extends Shared with MorphirJVMModule {
+         def moduleDeps = Seq(datamodel.jvm, lib.interop.jvm)
+      }
+      object js extends Shared with MorphirJSModule {
+         def moduleDeps = Seq(datamodel.js, lib.interop.js)
+      }
+    }
+
+    object util extends Module {
+      trait Shared extends MorphirCommonModule with MorphirPublishModule {
+        def ivyDeps = Agg(Deps.dev.zio.`izumi-reflect`)
+      }
+      object jvm extends Shared with MorphirJVMModule with MorphirPublishModule
+    }
+  }
+
+  object vfile extends Module {
+    trait Shared extends MorphirCommonModule {
+      def ivyDeps = Agg(
+        Deps.com.lihaoyi.sourcecode,
+        Deps.com.lihaoyi.geny,
+        Deps.com.lihaoyi.pprint,
+        Deps.org.typelevel.`paiges-core`
+      )
+    }
+
+    object jvm extends Shared with MorphirJVMModule with MorphirPublishModule {
+      def moduleDeps = Seq(morphir.toolkit.util.jvm)
+
+    }  
   }
 
 }
