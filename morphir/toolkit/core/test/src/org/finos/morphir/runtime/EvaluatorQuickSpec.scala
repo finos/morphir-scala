@@ -48,7 +48,7 @@ object EvaluatorQuickSpec extends MorphirBaseSpec {
     suite("NativeFunction Spec")(
       test("Addition") {
         val reference = V.reference(
-          FQName.fromString("SDK.Basics.Int.Plus")
+          FQName.fromString("Morphir.SDK:Basics:add")
         ) // :> T.function(ir.sdk.Basics.intType, T.function(ir.sdk.Basics.intType, ir.sdk.Basics.intType))
         val curried = V.apply(
           reference,

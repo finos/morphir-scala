@@ -1,4 +1,4 @@
-module Morphir.Examples.App.LetRecursionTests exposing (..)
+module Morphir.Examples.App.LetDefinitionTests exposing (..)
 
 {-
     Unhappy:
