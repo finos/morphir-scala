@@ -121,7 +121,7 @@ object EvaluatorQuick {
   def handleConstructor[TA, VA](va: VA, name: FQName, store: Store[TA, VA]): ResultValue[TA, VA] =
     store.get(name) match {
       // TODO: Zero-argument constructor
-      case Some(SDKValue.SDKConstructor(List())) => ResultValue.ConstructorResult(name, List())
+      case Some(SDKValue.SDKConstructor(List()))    => ResultValue.ConstructorResult(name, List())
       case Some(SDKValue.SDKConstructor(arguments)) => ResultValue.ConstructorFunction[TA, VA](name, arguments, List())
       case Some(other) => throw new Exception(s"$name points to $other, which is not a constructor")
       case None        => throw new Exception(s"$name not found in store")
@@ -226,7 +226,7 @@ object EvaluatorQuick {
             List(),
             store.callStack
           )
-      case Some(SDKNativeValue(value)) => value
+      case Some(SDKNativeValue(value))                  => value
       case Some(SDKNativeFunction(arguments, function)) => ResultValue.NativeFunction(arguments, List(), function)
       case Some(other) =>
         throw new Exception(s"$name points to $other, which is not a value definition (is it a type definition?)")

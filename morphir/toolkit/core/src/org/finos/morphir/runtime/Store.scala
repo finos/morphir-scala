@@ -11,8 +11,6 @@ import org.finos.morphir.ir.Value.Pattern
 
 sealed trait ResultValue[TA, VA]
 
-
-
 object ResultValue {
   def unwrap[TA, VA](arg: ResultValue[TA, VA]): Any =
     arg match {
@@ -23,10 +21,12 @@ object ResultValue {
         val listed = Helpers.tupleToList(elements).getOrElse(throw new Exception("Invalid tuple returned to top level"))
         val mapped = listed.map(unwrap(_))
         Helpers.listToTuple(mapped)
-      case RecordResult(elements) => elements.map { case (name, value) => name.toCamelCase -> unwrap(value) }
-      case ConstructorResult(name, values) => (toTitleCase(name.localName), values.map(unwrap(_))) //Just for testing
+      case RecordResult(elements)          => elements.map { case (name, value) => name.toCamelCase -> unwrap(value) }
+      case ConstructorResult(name, values) => (toTitleCase(name.localName), values.map(unwrap(_))) // Just for testing
       case other =>
-        throw new Exception(s"$other returned to top level, only Unit, Primitive, List, Tuples, Constructed Types and Records are supported")
+        throw new Exception(
+          s"$other returned to top level, only Unit, Primitive, List, Tuples, Constructed Types and Records are supported"
+        )
     }
   case class Unit[TA, VA]()                extends ResultValue[TA, VA]
   case class Primitive[TA, VA](value: Any) extends ResultValue[TA, VA]
@@ -38,10 +38,11 @@ object ResultValue {
 
   case class ListResult[TA, VA](elements: List[ResultValue[TA, VA]]) extends ResultValue[TA, VA]
 
-  case class Applied[TA, VA](body : Value[TA, VA],
-                             curried: List[(Name, ResultValue[TA, VA])],
-                             closingContext: CallStackFrame[TA, VA]
-                            )
+  case class Applied[TA, VA](
+      body: Value[TA, VA],
+      curried: List[(Name, ResultValue[TA, VA])],
+      closingContext: CallStackFrame[TA, VA]
+  )
 
   case class FieldFunction[TA, VA](fieldName: Name) extends ResultValue[TA, VA]
 
@@ -121,10 +122,9 @@ object Store {
         ResultValue.Primitive(ResultValue.unwrap(a).asInstanceOf[Long] < ResultValue.unwrap(b).asInstanceOf[Long])
     )
     val native = Map(
-      FQName.fromString("Morphir.SDK:Basics:add") -> plus,
+      FQName.fromString("Morphir.SDK:Basics:add")      -> plus,
       FQName.fromString("Morphir.SDK:Basics:lessThan") -> lessThan
     )
     Store(native, CallStackFrame(Map(), None))
   }
 }
-
