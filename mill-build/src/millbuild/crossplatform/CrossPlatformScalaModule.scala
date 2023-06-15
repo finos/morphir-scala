@@ -3,18 +3,49 @@ import mill._
 import mill.scalalib._ 
 
 trait CrossPlatformScalaModule extends PlatformScalaModule with CrossScalaModule {
-  def crossPlatformSuffixesT[Seq[String]] = T{
-    scalaVersionDirectoryNames
+  def crossPlatformSourceSuffixes = 
+    for {
+      versionSuffix <- Seq("") ++ scalaVersionDirectoryNames
+      platformSuffix <- Seq("") ++ platform.suffixes
+    } yield {
+        (versionSuffix, platformSuffix) match {
+          case ("","") => "src"
+          case ("", suffix) => s"src-$suffix"
+          case (suffix, "") => s"src-$suffix"
+          case (vs, ps) => s"src-${vs}-${ps}"
+        }
+    }
+
+  def crossPlatformRelativeSourcePaths:Seq[os.RelPath] = 
+    for {
+      versionSuffix <- Seq("") ++ scalaVersionDirectoryNames
+      platformSuffix <- Seq("") ++ platform.suffixes
+    } yield {
+        (versionSuffix, platformSuffix) match {
+          case ("","") => os.rel / "src"
+          case ("", suffix) => os.rel / suffix / "src"
+          case (suffix, "") => os.rel / s"src-$suffix"
+          case (vs, ps) => os.rel / ps /  s"src-${vs}"
+        }
+    }
+
+  def crossPlatformSources:T[Seq[PathRef]] = T.sources {
+    platformFolderMode() match {
+      case Platform.FolderMode.UseSuffix => 
+        crossPlatformSourceSuffixes.map(suffix => PathRef(millSourcePath / suffix) )
+      case Platform.FolderMode.UseNesting =>
+        crossPlatformRelativeSourcePaths.map(subPath => PathRef(millSourcePath / subPath))
+      case Platform.FolderMode.UseBoth =>
+        (crossPlatformSourceSuffixes.map(suffix => PathRef(millSourcePath / suffix) ) ++ 
+          crossPlatformRelativeSourcePaths.map(subPath => PathRef(millSourcePath / subPath))).distinct
+    }
   }
+
+  def platformFolderMode:T[Platform.FolderMode] = T {Platform.FolderMode.UseNesting}
   def platform:Platform
   def platforms:T[Seq[Platform]] = T { Platform.all.toSeq }    
-  //TODO: Use a flag to determine if source folder type should be src-3.3.0-js-jvm style or js-jvm/src-3.3.0 style
 
   def sources = T.sources { 
-    (super.sources() ++ (for {
-      source <- super.sources()
-      suffix <- platform.suffixes        
-      if !source.path.last.endsWith(platform.name)
-    } yield PathRef(source.path/ _root_.os.up / s"${source.path.last}-${suffix}" ))).distinct
+   crossPlatformSources()
   }
 }
