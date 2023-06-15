@@ -33,7 +33,7 @@ trait MorphirPublishModule extends CiReleaseModule with JavaModule {
 }
 
 object morphir extends Cross[MorphirModule](ScalaVersions.all)
-trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
+trait MorphirModule extends Cross.Module[String] { morphir =>
   val workspaceDir = millbuild.build.millSourcePath
 
   trait MorphirCommonModule extends CrossPlatformScalaModule with CrossValue with CommonScalaModule {
@@ -58,7 +58,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     def scalaNativeVersion = ScalaVersions.scalaNativeVersion
   }
 
-  object datamodel extends Module {
+  object datamodel extends CrossPlatform {
     object jvm extends MorphirJVMModule with MorphirPublishModule {
       object test extends ScalaTests with TestModule.Munit {
         def ivyDeps = Agg(Deps.org.scalameta.munit)
@@ -111,7 +111,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
     }
 
-    object interop extends Module {
+    object interop extends CrossPlatform {
       trait Shared extends MorphirCommonModule with MorphirPublishModule {
         object test extends ScalaTests with TestModule.Munit {
           def ivyDeps = Agg(Deps.org.scalameta.munit)
@@ -159,7 +159,8 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
   }
 
   object toolkit extends Module {
-    object core extends Module {
+    object core extends CrossPlatform {
+      
       trait Shared extends MorphirCommonModule with MorphirPublishModule {
         def ivyDeps = Agg(
           Deps.com.lihaoyi.sourcecode,
@@ -169,12 +170,14 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
           Deps.com.lihaoyi.pprint,
           Deps.org.typelevel.`paiges-core`
         )
+
+        def platformSpecificModuleDeps = Seq(datamodel, lib.interop)
       }
       object jvm extends Shared with MorphirJVMModule {
-         def moduleDeps = Seq(datamodel.jvm, lib.interop.jvm)
+         //def moduleDeps = Seq(datamodel.jvm, lib.interop.jvm)
       }
       object js extends Shared with MorphirJSModule {
-         def moduleDeps = Seq(datamodel.js, lib.interop.js)
+         //def moduleDeps = Seq(datamodel.js, lib.interop.js)
       }
     }
 
