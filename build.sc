@@ -153,6 +153,7 @@ object morphir extends Module {
 
   object datamodel extends Cross[DatamodelModule](ScalaVersions.all: _*)
   case class DatamodelModule(val crossScalaVersion:String) extends CrossPlatform { module =>  
+    def enableNative = false
     trait Shared extends CrossPlatformCrossScalaModule with MorphirCrossScalaModule with MorphirPublishModule {
       
     }
@@ -161,8 +162,16 @@ object morphir extends Module {
         override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
       }
     }
-    object js extends Shared with MorphirScalaJSModule {}
-    object native extends Shared with MorphirScalaNativeModule {}
+    object js extends Shared with MorphirScalaJSModule {
+     object test extends Tests with TestModule.Munit {
+        override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+      } 
+    }
+    object native extends Shared with MorphirScalaNativeModule {
+      object test extends Tests with TestModule.Munit {
+        override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+      }
+    }
   }
   
   object `datamodel-json` extends Module {
@@ -184,13 +193,13 @@ object morphir extends Module {
       object js extends Shared with MorphirScalaJSModule {
          
         object test extends Tests with TestModule.Munit {
-          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit, org.scalameta.`munit-scalacheck`)
         }
       }
       
       object native extends Shared with MorphirScalaNativeModule {
         object test extends Tests with TestModule.Munit {
-          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit)
+          override def ivyDeps: T[Agg[Dep]] = Agg(org.scalameta.munit, org.scalameta.`munit-scalacheck`)
         }
       }
     }
