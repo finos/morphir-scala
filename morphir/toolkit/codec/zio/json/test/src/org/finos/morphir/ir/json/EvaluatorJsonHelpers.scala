@@ -21,7 +21,7 @@ object TestLibrary {
   val fullName = s"./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json"
   val text = Source
     .fromFile(fullName)
-    .getLines
+    .getLines()
     .mkString("\n")
   val morphirIRFile = text.fromJson[MorphirIRFile]
   val library = morphirIRFile

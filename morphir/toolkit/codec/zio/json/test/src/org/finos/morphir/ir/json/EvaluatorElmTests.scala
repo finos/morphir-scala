@@ -46,7 +46,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
         },
         test("Tuple") {
           val actual   = runTest[(Long, Long)]("destructureTests", "destructureTests", "destructureTupleTest")
-          val expected = (1, 2)
+          val expected = (1L, 2L)
           assertTrue(actual == expected)
         },
         test("Constructor") {
@@ -56,7 +56,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
         },
         test("Unit") {
           val actual   = runTest[Long]("destructureTests", "destructureTests", "destructureUnitTest")
-          val expected = 4
+          val expected = 4L
           assertTrue(actual == expected)
         },
         test("AsTwice") {
@@ -209,7 +209,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
         },
         test("Single") {
           val actual   = runTest[List[Long]]("listTests", "listTests", "listSingleTest")
-          val expected = List(0)
+          val expected = List(0L)
           assertTrue(actual == expected)
         },
         test("Several") {
@@ -259,7 +259,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
         test("Map") {
           val actual =
             runTest[List[(Long, Long)]]("nativeReferenceTests", "nativeReferenceTests", "nativeReferenceMapTest")
-          val expected = List((1L, 1L), (2, 2), (3, 3))
+          val expected = List((1L, 1L), (2L, 2L), (3L, 3L))
           assertTrue(actual == expected)
         },
         test("Add") {
@@ -348,7 +348,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
           assertTrue(actual == expected)
         },
         test("Nested Record") {
-          val actual = runTest[Map[String, List[Map[String, Any]]]]("recordTests", "recordTests", "recordNestedTest")
+          val actual = runTest[Map[String, Any]]("recordTests", "recordTests", "recordNestedTest")
           val expected = Map(
             "name"    -> "Dogs",
             "records" -> List(Map("name" -> "Ponyo", "number" -> 3), Map("name" -> "Soso", "number" -> 3))
