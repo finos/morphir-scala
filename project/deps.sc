@@ -99,7 +99,7 @@ object Deps {
     }
     case object scalameta {
       val munit: mill.scalalib.Dep = ivy"org.scalameta::munit::${Versions.munit}"
-      println(s"$munit")
+    
       val `munit-scalacheck` =
         ivy"org.scalameta::munit-scalacheck::${Versions.munit}"
 

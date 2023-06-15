@@ -3,41 +3,41 @@ import mill._
 import mill.scalalib._ 
 
 trait CrossPlatformScalaModule extends PlatformScalaModule with CrossScalaModule {
-  def crossPlatformSourceSuffixes = 
+  def crossPlatformSourceSuffixes(srcFolderName:String) = 
     for {
       versionSuffix <- Seq("") ++ scalaVersionDirectoryNames
       platformSuffix <- Seq("") ++ platform.suffixes
     } yield {
         (versionSuffix, platformSuffix) match {
-          case ("","") => "src"
-          case ("", suffix) => s"src-$suffix"
-          case (suffix, "") => s"src-$suffix"
-          case (vs, ps) => s"src-${vs}-${ps}"
+          case ("","") => srcFolderName
+          case ("", suffix) => s"${srcFolderName}-$suffix"
+          case (suffix, "") => s"${srcFolderName}-$suffix"
+          case (vs, ps) => s"${srcFolderName}-${vs}-${ps}"
         }
     }
 
-  def crossPlatformRelativeSourcePaths:Seq[os.RelPath] = 
+  def crossPlatformRelativeSourcePaths(srcFolderName:String):Seq[os.RelPath] = 
     for {
       versionSuffix <- Seq("") ++ scalaVersionDirectoryNames
       platformSuffix <- Seq("") ++ platform.suffixes
     } yield {
         (versionSuffix, platformSuffix) match {
-          case ("","") => os.rel / "src"
-          case ("", suffix) => os.rel / suffix / "src"
-          case (suffix, "") => os.rel / s"src-$suffix"
-          case (vs, ps) => os.rel / ps /  s"src-${vs}"
+          case ("","") => os.rel / srcFolderName
+          case ("", suffix) => os.rel / suffix / srcFolderName
+          case (suffix, "") => os.rel / s"${srcFolderName}-$suffix"
+          case (vs, ps) => os.rel / ps /  s"${srcFolderName}-${vs}"
         }
     }
 
-  def crossPlatformSources:T[Seq[PathRef]] = T.sources {
+  def crossPlatformSources:T[Seq[PathRef]] = T.sources {    
     platformFolderMode() match {
       case Platform.FolderMode.UseSuffix => 
-        crossPlatformSourceSuffixes.map(suffix => PathRef(millSourcePath / suffix) )
+        crossPlatformSourceSuffixes("src").map(suffix => PathRef(millSourcePath / suffix) )
       case Platform.FolderMode.UseNesting =>
-        crossPlatformRelativeSourcePaths.map(subPath => PathRef(millSourcePath / subPath))
+        crossPlatformRelativeSourcePaths("src").map(subPath => PathRef(millSourcePath / subPath))
       case Platform.FolderMode.UseBoth =>
-        (crossPlatformSourceSuffixes.map(suffix => PathRef(millSourcePath / suffix) ) ++ 
-          crossPlatformRelativeSourcePaths.map(subPath => PathRef(millSourcePath / subPath))).distinct
+        (crossPlatformSourceSuffixes("src").map(suffix => PathRef(millSourcePath / suffix) ) ++ 
+          crossPlatformRelativeSourcePaths("src").map(subPath => PathRef(millSourcePath / subPath))).distinct
     }
   }
 
