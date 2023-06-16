@@ -63,7 +63,7 @@ jobs:
         run: ./mill -i -k -j 3 "morphir[${{matrix.scala}}].__.${{matrix.platform}}.__.testCached"
 
       - name: Run artifact creation
-        run: ./mill -i -k -j 3 __.publishArtifacts $(pwd)/testRepo
+        run: ./mill -i -k -j 3 "morphir[${{matrix.scala}}].__.${{matrix.platform}}.publishArtifacts" $(pwd)/testRepo
 
 
   publish-sonatype:

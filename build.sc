@@ -8,6 +8,13 @@ import millbuild._
 import millbuild.crossplatform._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 
+/**
+ * The version of Scala natively supported by the toolchain. Morphir itself may provide backends that generate code for
+ * other Scala versions. We may also directly cross-compile to additional Scla versions.
+ */
+val morphirScalaVersion: String = ScalaVersions.scala3x
+
+val docsScalaVersion: String    = ScalaVersions.scala213 //This really should match but need to figure it out
 
 import mill.eval.{Evaluator, EvaluatorPaths}
 // With this we can now just do ./mill reformatAll __.sources
@@ -206,3 +213,18 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
   }
 
 }
+
+  object site extends Docusaurus2Module with MDocModule {
+    val workspaceDir = millbuild.build.millSourcePath
+    
+    override def scalaMdocVersion: T[String] = T("2.3.7")
+    override def scalaVersion                = T(docsScalaVersion)
+    // MD Sources that must be compiled with Scala MDoc
+    override def mdocSources = T.sources(workspaceDir / "docs")
+    // MD Sources that are just plain MD files
+    override def docusaurusSources = T.sources(workspaceDir / "website")
+
+    override def watchedMDocsDestination: T[Option[os.Path]] = T(Some(docusaurusBuild().path / "docs"))
+    override def compiledMdocs: Sources                   = T.sources(mdoc().path)
+    object test extends ScalaTests with TestModule.Munit {}
+  }

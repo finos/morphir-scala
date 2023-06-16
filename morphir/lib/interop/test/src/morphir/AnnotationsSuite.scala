@@ -1,5 +1,3 @@
 package morphir
 
-class AnnotationsSuite extends munit.FunSuite {
-  
-}
+class AnnotationsSuite extends munit.FunSuite {}
