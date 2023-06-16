@@ -13,6 +13,7 @@ import zio.prelude.*
 import zio.prelude.fx.*
 import EvaluationEngine.*
 import org.finos.morphir.runtime.{EngineEvent, EvaluationError, LogEvent, MorphirRecord}
+import step.*
 
 abstract class EvaluationEngine[TA: Tag, VA: Tag] extends Folder[scala.Unit, TA, VA, Step[TA, VA, EvalResult]] {
   self =>

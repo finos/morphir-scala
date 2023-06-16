@@ -21,6 +21,13 @@ object Deps {
     case object beachape {
       val enumeratum = ivy"com.beachape::enumeratum::${Versions.enumeratum}"
     }
+
+    case object eed3si9n {
+      case object expecty {
+        val expecty = ivy"com.eed3si9n.expecty::expecty::${Versions.expecty}"
+      }
+    }
+
     case object github {
       case object arturopala {
         val `buffer-and-slice` = ivy"com.github.arturopala::buffer-and-slice:${Versions.`buffer-and-slice`}"
@@ -99,7 +106,7 @@ object Deps {
     }
     case object scalameta {
       val munit: mill.scalalib.Dep = ivy"org.scalameta::munit::${Versions.munit}"
-      println(s"$munit")
+    
       val `munit-scalacheck` =
         ivy"org.scalameta::munit-scalacheck::${Versions.munit}"
 
@@ -134,7 +141,8 @@ object Versions {
       case _            => "4.5.11"
     }
 
-  val coursier        = "2.1.3"
+  val coursier        = "2.1.4"
+  val expecty         = "0.16.0" 
   val fs2             = "3.7.0"
   val geny            = "1.0.0"
   val `izumi-reflect` = "2.3.8"
@@ -146,20 +154,20 @@ object Versions {
   val silencer        = "1.4.2"
   val `tasty-query`   = "0.5.6"
   val upickle         = "3.0.0-M1"
-  val zio             = "2.0.13"
-  val `zio-cli`       = "0.4.0"
+  val zio             = "2.0.15"
+  val `zio-cli`       = "0.5.0"
   val `zio-json`      = "0.5.0"
   val `zio-parser`    = "0.1.9"
   val `zio-prelude`   = "1.0.0-RC19"
   val `zio-process`   = "0.7.2"
-  val `zio-schema`    = "0.4.11"
+  val `zio-schema`    = "0.4.12"
 }
 
 object ScalaVersions {
   val all      = Seq(scala213, scala3x)
-  def scala213 = "2.13.10"
-  def scala3x  = "3.2.2"
+  def scala213 = "2.13.11"
+  def scala3x  = "3.3.0"
 
   def scalaJSVersion     = "1.13.1"
-  def scalaNativeVersion = "0.4.12"
+  def scalaNativeVersion = "0.4.14"
 }

@@ -426,6 +426,7 @@ project/plugins/project/
 metals.sbt
 .bloop/
 project/secret
+.scala-build/
 
 # mdoc
 website/node_modules

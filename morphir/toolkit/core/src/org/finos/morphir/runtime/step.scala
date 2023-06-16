@@ -1,8 +1,7 @@
-package org.finos.morphir
+package org.finos.morphir.runtime
+import zio.prelude.fx.*
 
-import zio.prelude.fx._
-package object runtime {
-
+object step {
 //  type FQName = ir.FQName
 //  val FQName = ir.FQName
 //
