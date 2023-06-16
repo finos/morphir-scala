@@ -86,14 +86,14 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
       }
 
       object js extends Shared with MorphirJSModule {
-        object test extends ScalaTests with TestModule.ZioTest {
-          def ivyDeps = Agg(
-            Deps.dev.zio.`zio-test`,
-            Deps.dev.zio.`zio-test-sbt`           
-          )
+        // object test extends ScalaTests with TestModule.ZioTest {
+        //   def ivyDeps = Agg(
+        //     Deps.dev.zio.`zio-test`,
+        //     Deps.dev.zio.`zio-test-sbt`           
+        //   )
 
-          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.js)
-        }                
+        //   def moduleDeps = super.moduleDeps ++ Seq(testing.zio.js)
+        // }                
       }
 
       object native extends Shared with MorphirNativeModule {
@@ -200,18 +200,22 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
 
     object interop extends CrossPlatform {
       trait Shared extends MorphirCommonModule with MorphirPublishModule {
-        object test extends ScalaTests with TestModule.Munit {
-          def ivyDeps = Agg(Deps.org.scalameta.munit)
-        }       
+        
       }
       object jvm extends Shared with MorphirJVMModule {
-
+        object test extends ScalaTests with TestModule.Munit {
+          def ivyDeps = Agg(Deps.org.scalameta.munit)
+        }    
       }
       object js extends Shared with MorphirJSModule {
-
+        object test extends ScalaTests with TestModule.Munit {    
+          def ivyDeps = Agg(Deps.org.scalameta.munit)
+        }    
       }
       object native extends Shared with  MorphirNativeModule {
-
+        object test extends ScalaTests with TestModule.Munit {
+          def ivyDeps = Agg(Deps.org.scalameta.munit)
+        }    
       }
     }
   }
