@@ -58,14 +58,14 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
 
-      - run: ./mill -i -k __.publishLocal $(pwd)/testRepo
+      - run: ./mill -i -k -j 3 __.publishLocal $(pwd)/testRepo
 
       - name: Run tests
         if: ${{ !startsWith(matrix.scala, '3.') }}
-        run: ./mill -i -k scalaBuild "${{matrix.scala}}" __.testCached
+        run: ./mill -i -k -j 3 scalaBuild "${{matrix.scala}}" __.testCached
       - name: Run dotty tests
         if: ${{ startsWith(matrix.scala, '3.') }}
-        run: ./mill -i -k scalaBuild "${{matrix.scala}}" __.testCached
+        run: ./mill -i -k -j 3 scalaBuild "${{matrix.scala}}" __.testCached
 
   publish-sonatype:
       # when in master repo: all commits to main branch and all additional tags
@@ -100,7 +100,7 @@ jobs:
           java-version: 8
           distribution: temurin
 
-      - run: ./mill -i io.kipp.mill.ci.release.ReleaseModule/publishAll
+      - run: ./mill -i -j 3 io.kipp.mill.ci.release.ReleaseModule/publishAll
 
   ci:
     runs-on: ubuntu-latest
