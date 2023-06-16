@@ -7,8 +7,7 @@ final case class State(
     private[knowledge] val fieldConstraints: Map[Field[_], List[FieldConstraint]] = Map.empty
 ) { self =>
 
-  private[knowledge] def addField[A](field: Field[A], value: Value)(implicit tag: ClassTag[A]): Option[State] = {
-    println(s"Adding field $field with value $value")
+  private[knowledge] def addField[A](field: Field[A], value: Value)(implicit tag: ClassTag[A]): Option[State] = {    
     def applyConstraint(state: Option[State], fieldConstraint: FieldConstraint): Option[State] =
       state.collect(fieldConstraint)
 

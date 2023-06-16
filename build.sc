@@ -76,24 +76,31 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
       }
 
       object jvm extends Shared with MorphirJVMModule {
-        object test extends ScalaTests with TestModule.ZioTest {
+        object test extends ScalaTests with TestModule.Munit {
           def ivyDeps = Agg(
-            Deps.dev.zio.`zio-test`,
-            Deps.dev.zio.`zio-test-sbt`
+            Deps.dev.zio.zio,
+            Deps.dev.zio.`zio-streams`,
+            Deps.com.eed3si9n.expecty.expecty,
+            Deps.com.github.poslegm.`munit-zio`,
+            Deps.org.scalameta.munit,
+            Deps.org.scalameta.`munit-scalacheck`
           )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.jvm)
+          def moduleDeps = super.moduleDeps ++ Seq(testing.munit.jvm)
         }
       }
 
       object js extends Shared with MorphirJSModule {
-        // object test extends ScalaTests with TestModule.ZioTest {
-        //   def ivyDeps = Agg(
-        //     Deps.dev.zio.`zio-test`,
-        //     Deps.dev.zio.`zio-test-sbt`           
-        //   )
-
-        //   def moduleDeps = super.moduleDeps ++ Seq(testing.zio.js)
-        // }                
+        object test extends ScalaTests with TestModule.Munit {
+          def ivyDeps = Agg(
+            Deps.dev.zio.zio,
+            Deps.dev.zio.`zio-streams`,
+            Deps.com.eed3si9n.expecty.expecty,
+            Deps.com.github.poslegm.`munit-zio`,
+            Deps.org.scalameta.munit,
+            Deps.org.scalameta.`munit-scalacheck`
+          )
+          def moduleDeps = super.moduleDeps ++ Seq(testing.munit.js)
+        }    
       }
 
       object native extends Shared with MorphirNativeModule {
