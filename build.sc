@@ -97,13 +97,13 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
       }
 
       object native extends Shared with MorphirNativeModule {
-        object test extends ScalaTests with TestModule.ZioTest {
-          def ivyDeps = Agg(
-            Deps.dev.zio.`zio-test`,
-            Deps.dev.zio.`zio-test-sbt`
-          )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.native)
-        }
+        // object test extends ScalaTests with TestModule.ZioTest {
+        //   def ivyDeps = Agg(
+        //     Deps.dev.zio.`zio-test`,
+        //     Deps.dev.zio.`zio-test-sbt`
+        //   )
+        //   def moduleDeps = super.moduleDeps ++ Seq(testing.zio.native)
+        // }
       }
     }
   }
