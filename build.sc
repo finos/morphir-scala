@@ -242,6 +242,36 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
   }
 
   object toolkit extends Module {
+
+    object codec extends Module {
+        object zio extends Module {
+          object json extends CrossPlatform with CrossValue {
+            trait Shared extends MorphirCommonModule with MorphirPublishModule {
+              def ivyDeps = Agg(Deps.dev.zio.`zio-json`)
+              def platformSpecificModuleDeps = Seq(core)
+            }
+            object jvm extends Shared with MorphirJVMModule {
+              object test extends ScalaTests with TestModule.ZioTest {
+                def ivyDeps = 
+                  super.ivyDeps() ++ Agg(
+                    Deps.dev.zio.`zio-json-golden`,
+                    ivy"io.github.deblockt:json-diff:0.0.5",
+                    Deps.dev.zio.`zio-process`
+                  )
+              
+                def moduleDeps = super.moduleDeps ++ Agg(core.testing.jvm, morphir.testing.zio.jvm)
+              }
+            }
+            object js extends Shared with MorphirJSModule {
+              // object test extends ScalaTests with TestModule.ZioTest {
+              //   def ivyDeps = super.ivyDeps() ++ Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
+              //   def moduleDeps = super.moduleDeps ++ Agg(testing.js, morphir.testing.zio.js)
+              // }
+            }            
+          }
+        }
+      }
+
     object core extends CrossPlatform with CrossValue{
       def enableNative(module:Module):Boolean = crossValue.startsWith("2.13.")
 
@@ -274,7 +304,8 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         //   def ivyDeps = super.ivyDeps() ++ Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
         //   def moduleDeps = super.moduleDeps ++ Agg(testing.native, morphir.testing.zio.native)
         // }
-      }
+      }      
+
       object testing extends CrossPlatform {
         trait Shared extends MorphirCommonModule {
           def ivyDeps = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-magnolia`)
