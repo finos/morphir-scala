@@ -65,6 +65,39 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
     def scalaNativeVersion = ScalaVersions.scalaNativeVersion
   }
 
+  object core extends Module {
+    object macros extends CrossPlatform {
+      trait Shared extends MorphirCommonModule with MorphirPublishModule {
+        def compileIvyDeps = T {
+          super.compileIvyDeps() ++ Agg.when(scalaVersion().startsWith("2."))(
+            Deps.org.`scala-lang`.`scala-reflect`(scalaVersion()), 
+            Deps.org.`scala-lang`.`scala-compiler`(scalaVersion())            
+          )
+        }
+
+        def scalacOptions = T {
+          super.scalacOptions().concatIf(isScala213())("-language:experimental.macros")
+        }
+      }
+      
+      object jvm extends Shared with MorphirJVMModule {
+        object test extends ScalaTests with TestModule.Munit {
+          def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)  
+        }
+      }
+      object js extends Shared with MorphirJSModule {
+        object test extends ScalaTests with TestModule.Munit {
+          def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+        }
+      }
+      object native extends Shared with MorphirNativeModule {
+        object test extends ScalaTests with TestModule.Munit {
+          def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+        }
+      }
+    }
+  }
+
   object datamodel extends CrossPlatform {
     object jvm extends MorphirJVMModule with MorphirPublishModule {
       object test extends ScalaTests with TestModule.Munit {
@@ -139,7 +172,11 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
   object testing extends Module {
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
        def ivyDeps = T {
-        Agg(Deps.co.fs2.`fs2-io`, Deps.com.lihaoyi.sourcecode, Deps.dev.zio.zio,  Deps.dev.zio.`zio-test`) ++ Agg.when(platform.isNotNative)(Deps.dev.zio.`zio-json`)
+        Agg(
+          Deps.co.fs2.`fs2-io`, 
+          Deps.com.lihaoyi.sourcecode, 
+          Deps.dev.zio.zio,  
+          Deps.dev.zio.`zio-test`) ++ Agg.when(platform.isNotNative)(Deps.dev.zio.`zio-json`)
        }
     }
 

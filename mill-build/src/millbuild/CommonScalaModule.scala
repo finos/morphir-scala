@@ -3,7 +3,15 @@ package millbuild
 import mill._, scalalib._, scalafmt._
 import java.util.Properties
 trait CommonScalaModule extends CrossScalaModule with CommonCoursierModule with ScalafmtModule { self =>
+
+    def isScala3 : T[Boolean] = T {
+      scalaVersion().startsWith("3.")
+    }
     
+    def isScala213 : T[Boolean] = T {
+      scalaVersion().startsWith("2.13.")
+    }
+
     def partialVersion(version: String): Option[(Int, Int)] = {
       val partial = version.split('.').take(2)
       for {
