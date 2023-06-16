@@ -46,6 +46,7 @@ jobs:
       matrix:
         java: ['adopt@1.11', 'adopt@1.16']
         scala: ['2.13.11', '3.3.0']
+        platform: ['jvm', 'js', 'native']
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v3.5.2
@@ -58,14 +59,12 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
 
-      - run: ./mill -i -k -j 3 __.publishLocal $(pwd)/testRepo
-
       - name: Run tests
-        if: ${{ !startsWith(matrix.scala, '3.') }}
-        run: ./mill -i -k -j 3 scalaBuild "${{matrix.scala}}" __.testCached
-      - name: Run dotty tests
-        if: ${{ startsWith(matrix.scala, '3.') }}
-        run: ./mill -i -k -j 3 scalaBuild "${{matrix.scala}}" __.testCached
+        run: ./mill -i -k -j 3 "morphir[${{matrix.scala}}].__${{matrix.platform}}.__.testCached"
+
+      - name: Run artifact creation
+        run: ./mill -i -k -j 3 __.publishArtifacts $(pwd)/testRepo
+
 
   publish-sonatype:
       # when in master repo: all commits to main branch and all additional tags
@@ -97,7 +96,7 @@ jobs:
 
       - uses: actions/setup-java@v3
         with:
-          java-version: 8
+          java-version: '11'
           distribution: temurin
 
       - run: ./mill -i -j 3 io.kipp.mill.ci.release.ReleaseModule/publishAll
