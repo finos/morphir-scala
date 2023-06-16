@@ -60,7 +60,7 @@ jobs:
         uses: coursier/cache-action@v6
 
       - name: Run tests
-        run: ./mill -i -k -j 3 "morphir[${{matrix.scala}}].__${{matrix.platform}}.__.testCached"
+        run: ./mill -i -k -j 3 "morphir[${{matrix.scala}}].__.${{matrix.platform}}.__.testCached"
 
       - name: Run artifact creation
         run: ./mill -i -k -j 3 __.publishArtifacts $(pwd)/testRepo
