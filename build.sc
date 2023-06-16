@@ -188,35 +188,68 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
       }
     }
 
-    object util extends Module {
+    object util extends CrossPlatform {
       trait Shared extends MorphirCommonModule with MorphirPublishModule {
         def ivyDeps = Agg(Deps.dev.zio.`izumi-reflect`)
       }
-      object jvm extends Shared with MorphirJVMModule with MorphirPublishModule
+
+      object jvm extends Shared with MorphirJVMModule {
+        object test extends ScalaTests with TestModule.ZioTest {
+          def ivyDeps = Agg(Deps.dev.zio.`zio-test`)
+        }
+      }
+
+      object js extends Shared with MorphirJSModule {
+        object test extends ScalaTests with TestModule.ZioTest {
+          def ivyDeps = Agg(Deps.dev.zio.`zio-test`)
+        }
+      }
+
+      object native extends Shared with MorphirNativeModule {
+        object test extends ScalaTests with TestModule.ZioTest {
+          def ivyDeps = Agg(Deps.dev.zio.`zio-test`)
+        }
+      }
     }
   }
 
-  object vfile extends Module {
-    trait Shared extends MorphirCommonModule {
+  object vfile extends CrossPlatform with CrossValue {
+    def enableNative(module:Module) = !crossValue.startsWith("3")
+    trait Shared extends MorphirCommonModule with MorphirPublishModule {
       def ivyDeps = Agg(
         Deps.com.lihaoyi.sourcecode,
         Deps.com.lihaoyi.geny,
-        Deps.com.lihaoyi.pprint,
+        Deps.com.lihaoyi.pprint, 
         Deps.org.typelevel.`paiges-core`
       )
+
+      def platformSpecificModuleDeps = Seq(morphir.toolkit.util)
     }
 
-    object jvm extends Shared with MorphirJVMModule with MorphirPublishModule {
-      def moduleDeps = Seq(morphir.toolkit.util.jvm)
-
+    object jvm extends Shared with MorphirJVMModule {
+      object test extends ScalaTests with TestModule.Munit {
+        def ivyDeps = Agg(Deps.org.scalameta.munit)
+      }
     }  
+
+    object js extends Shared with MorphirJSModule {
+      object test extends ScalaTests with TestModule.Munit {
+        def ivyDeps = Agg(Deps.org.scalameta.munit)
+      }
+    }
+
+    object native extends Shared with MorphirNativeModule {
+      object test extends ScalaTests with TestModule.Munit {
+        def ivyDeps = Agg(Deps.org.scalameta.munit)
+      }
+    }
   }
 
 }
 
   object site extends Docusaurus2Module with MDocModule {
     val workspaceDir = millbuild.build.millSourcePath
-    
+
     override def scalaMdocVersion: T[String] = T("2.3.7")
     override def scalaVersion                = T(docsScalaVersion)
     // MD Sources that must be compiled with Scala MDoc
