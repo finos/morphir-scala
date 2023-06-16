@@ -2,25 +2,19 @@ package org.finos
 package morphir
 package util
 
-import zio.Console
-import zio.test.*
 import morphir.util.Printer.given
+import org.scalacheck.Prop._
 
-object PrinterSpec extends ZIOSpecDefault:
-  def spec = suite("PrinterSpec")(
-    suite("Out the box Printers")(
-      suite("With Simple Renderer")(
-        test("Printing Booleans") {
-          check(Gen.boolean) { v =>
-            assertTrue(v.text == Printer.Text.Run(v.toString), v.tprint == v.toString)
-          }
-        },
-        test("Printing strings") {
-          check(Gen.alphaNumericString) { v =>
-            assertTrue(v.text == Printer.Text.Run(v), v.tprint == v)
-          }
-        }
-      )
-    )
-  )
-end PrinterSpec
+class PrinterSuite extends munit.ScalaCheckSuite {
+
+  property("The out the box Orinter with a Simple Renderer should properly print Booleans") {
+    forAll { (v: Boolean) =>
+      assertEquals(v.text, Printer.Text.Run(v.toString), v.tprint == v.toString)
+    }
+  }
+  property("The out the box Printer with a Simple Renderer should properly print a sting") {
+    forAll { (v: String) =>
+      assertEquals(v.text == Printer.Text.Run(v), v.tprint == v)
+    }
+  }
+}

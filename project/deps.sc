@@ -21,6 +21,13 @@ object Deps {
     case object beachape {
       val enumeratum = ivy"com.beachape::enumeratum::${Versions.enumeratum}"
     }
+
+    case object eed3si9n {
+      case object expecty {
+        val expecty = ivy"com.eed3si9n.expecty::expecty::${Versions.expecty}"
+      }
+    }
+
     case object github {
       case object arturopala {
         val `buffer-and-slice` = ivy"com.github.arturopala::buffer-and-slice:${Versions.`buffer-and-slice`}"
@@ -135,6 +142,7 @@ object Versions {
     }
 
   val coursier        = "2.1.4"
+  val expecty         = "0.16.0" 
   val fs2             = "3.7.0"
   val geny            = "1.0.0"
   val `izumi-reflect` = "2.3.8"
