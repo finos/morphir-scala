@@ -23,6 +23,7 @@ object Data {
   case class Month(value: Int)                     extends Basic[Int]                 { val shape = Concept.Month     }
   case class LocalTime(value: java.time.LocalTime) extends Basic[java.time.LocalTime] { val shape = Concept.LocalTime }
   case class Char(value: scala.Char)               extends Basic[scala.Char]          { val shape = Concept.Char      }
+  case object Unit                                 extends Basic[scala.Unit]          { val shape = Concept.Unit      }
 
   /**
    * See notes on Concept.Enum for information on how this type is modelled
