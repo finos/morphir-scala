@@ -158,16 +158,9 @@ jobs:
 
       - run: ./mill -i -j 3 io.kipp.mill.ci.release.ReleaseModule/publishAll
 
-  test:
-    runs-on: ubuntu-latest
-    needs: [test-js]
-    steps:
-      - name: Aggregate of all tests
-        run: echo "ci passed"
-
   ci:
     runs-on: ubuntu-latest
-    needs: [lint, check-website-build, test]
+    needs: [lint, check-website-build, test-js, test-jvm, test-native]
     steps:
       - name: Aggregate of lint, and all tests
         run: echo "ci passed"
