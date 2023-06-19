@@ -269,7 +269,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
     object munit extends CrossPlatform {
       trait Shared extends MorphirCommonModule { 
         def ivyDeps = Agg(
-          ivy"io.github.cquiroz::scala-java-time:2.5.0",
+          ivy"io.github.cquiroz::scala-java-time::2.5.0",
           Deps.org.scalameta.munit, 
           Deps.org.scalameta.`munit-scalacheck`
         )
@@ -282,7 +282,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
       object zio extends CrossPlatform {
         trait Shared extends MorphirCommonModule {
           def ivyDeps = super.ivyDeps() ++ Agg(
-            ivy"io.github.cquiroz::scala-java-time:2.5.0",
+            ivy"io.github.cquiroz::scala-java-time::2.5.0",
             Deps.org.scalameta.munit, 
             Deps.org.scalameta.`munit-scalacheck`,
             Deps.dev.zio.zio            
@@ -294,10 +294,10 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
           object test extends ScalaTests with TestModule.Munit 
         }
         object js extends Shared with MorphirJSModule {
-          object test extends ScalaTests with TestModule.Munit 
+          object test extends ScalaJSTests with TestModule.Munit 
         }
         object native extends Shared with MorphirNativeModule {
-          object test extends ScalaTests with TestModule.Munit
+          object test extends ScalaNativeTests with TestModule.Munit
         }
       }
     }
