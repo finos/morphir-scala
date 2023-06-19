@@ -82,25 +82,23 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
             Deps.dev.zio.zio,
             Deps.dev.zio.`zio-streams`,
             Deps.com.eed3si9n.expecty.expecty,
-            Deps.com.github.poslegm.`munit-zio`,
             Deps.org.scalameta.munit,
             Deps.org.scalameta.`munit-scalacheck`
           )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.munit.jvm)
+          def moduleDeps = super.moduleDeps ++ Seq(testing.munit.jvm, testing.munit.zio.jvm)
         }
       }
 
       object js extends Shared with MorphirJSModule {
-        object test extends ScalaTests with TestModule.Munit {
+        object test extends ScalaJSTests with TestModule.Munit {
           def ivyDeps = Agg(
             Deps.dev.zio.zio,
             Deps.dev.zio.`zio-streams`,
             Deps.com.eed3si9n.expecty.expecty,
-            Deps.com.github.poslegm.`munit-zio`,
             Deps.org.scalameta.munit,
             Deps.org.scalameta.`munit-scalacheck`
           )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.munit.js)
+          def moduleDeps = super.moduleDeps ++ Seq(testing.munit.js, testing.munit.zio.js)
         }    
       }
 

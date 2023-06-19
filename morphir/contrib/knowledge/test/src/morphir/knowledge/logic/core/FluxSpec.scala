@@ -1,13 +1,14 @@
 package morphir.knowledge.logic.core
 
+import org.finos.morphir.testing.munit.*
 import zio.Chunk
 
-class FluxSpec extends munit.ZSuite {
+class FluxSpec extends ZSuite {
   testZ("An empty flux should produce no values") {
     val sut = Flux.empty[Int]
     for {
       res <- sut.runCollect
-    } yield assertEquals(res,Chunk.empty)
+    } yield assertEquals(res, Chunk.empty)
   }
 
   testZ("Results are interleaved") {

@@ -4,7 +4,7 @@ import com.eed3si9n.expecty.Expecty.expect
 import morphir.knowledge.logic.{microkanren => mk}
 import mk._
 import zio.Chunk
-import munit.*
+import org.finos.morphir.testing.munit.*
 
 class MicrokanrenSpec extends ZSuite {
 
@@ -46,7 +46,7 @@ class MicrokanrenSpec extends ZSuite {
       results <- or(successGoal, failingGoal)(state).runCollect
     } yield assertEquals(results, Chunk(state))
   }
-   
+
   testZ("For Or/Disjunction - When the first goal fails and second goal succeeds we should get back the state") {
     import mk._
     val state       = State.empty

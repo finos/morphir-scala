@@ -1,8 +1,8 @@
 package morphir.knowledge.logic.core
 import com.eed3si9n.expecty.Expecty.expect
 import zio.*
-import munit.*
-class FieldsSpec extends ScalaCheckSuite {
+import org.finos.morphir.testing.munit.*
+class FieldsSpec extends munit.ScalaCheckSuite {
   test("valueOf should return the value when the substitution directly contains the value") {
     val nameField = Field.define[String]("name")
     val bindings  = Fields.init(nameField -> "John Doe")
@@ -63,6 +63,6 @@ class FieldsSpec extends ScalaCheckSuite {
     val nameField = Field.define[String]("name")
     val sut       = Fields.empty
     val actual    = sut + (nameField -> "John Doe")
-    assertEquals(actual,Fields.init(nameField -> "John Doe"))
+    assertEquals(actual, Fields.init(nameField -> "John Doe"))
   }
 }

@@ -1,6 +1,6 @@
 package morphir.knowledge.logic.core
 import zio.*
-import munit.* 
+import org.finos.morphir.testing.munit.*
 import com.eed3si9n.expecty.Expecty.expect
 
 class FieldSpec extends munit.ScalaCheckSuite {

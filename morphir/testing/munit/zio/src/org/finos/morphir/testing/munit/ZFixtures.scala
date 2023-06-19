@@ -6,30 +6,31 @@ import zio.*
 trait ZFixtures {
   self: ZSuite =>
 
-  /** Test-local fixture.
-    *
-    * Can be created from raw setup/teardown effects or from Scoped effect.
-    *
-    * {{{
-    * val rawZIOFunFixture = ZTestLocalFixture(options => ZIO.succeed(s"acquired \${options.name}")) { str =>
-    *   putStrLn(s"cleanup [\$str]").provideLayer(Console.live)
-    * }
-    *
-    * val scopedFunFixture = ZTestLocalFixture { options =>
-    *   ZIO.acquireRelease(ZIO.succeed(s"acquired \${options.name} with Scoped")) { str =>
-    *     printLine(s"cleanup [\$str] with Scoped").orDie
-    *   }
-    * }
-    *
-    * rawZIOFunFixture.test("allocate resource with ZIO FunFixture") { str =>
-    *   assertNoDiff(str, "acquired allocate resource with ZIO FunFixture")
-    * }
-    *
-    * scopedFunFixture.test("allocate resource with Scoped FunFixture") { str =>
-    *   assertNoDiff(str, "acquired allocate resource with Scoped FunFixture with Scoped")
-    * }
-    * }}}
-    */
+  /**
+   * Test-local fixture.
+   *
+   * Can be created from raw setup/teardown effects or from Scoped effect.
+   *
+   * {{{
+   * val rawZIOFunFixture = ZTestLocalFixture(options => ZIO.succeed(s"acquired \${options.name}")) { str =>
+   *   putStrLn(s"cleanup [\$str]").provideLayer(Console.live)
+   * }
+   *
+   * val scopedFunFixture = ZTestLocalFixture { options =>
+   *   ZIO.acquireRelease(ZIO.succeed(s"acquired \${options.name} with Scoped")) { str =>
+   *     printLine(s"cleanup [\$str] with Scoped").orDie
+   *   }
+   * }
+   *
+   * rawZIOFunFixture.test("allocate resource with ZIO FunFixture") { str =>
+   *   assertNoDiff(str, "acquired allocate resource with ZIO FunFixture")
+   * }
+   *
+   * scopedFunFixture.test("allocate resource with Scoped FunFixture") { str =>
+   *   assertNoDiff(str, "acquired allocate resource with Scoped FunFixture with Scoped")
+   * }
+   * }}}
+   */
   object ZTestLocalFixture {
     def apply[E, A](setup: TestOptions => IO[E, A])(teardown: A => IO[E, Unit]): FunFixture[A] =
       FunFixture.async(
@@ -53,23 +54,24 @@ trait ZFixtures {
     }
   }
 
-  /** Suite local fixture from Scoped effect.
-    *
-    * {{{
-    *
-    * var state   = 0
-    * val fixture = ZSuiteLocalFixture(
-    *   "sample",
-    *   ZIO.acquireRelease(ZIO.attempt { state += 1; state })(_ => ZIO.attempt { state -= 1 }.orDie)
-    * )
-    *
-    * override val munitFixtures = Seq(fixture)
-    *
-    * test("suite local fixture works") {
-    *   assertEquals(fixture(), 1)
-    * }
-    * }}}
-    */
+  /**
+   * Suite local fixture from Scoped effect.
+   *
+   * {{{
+   *
+   * var state   = 0
+   * val fixture = ZSuiteLocalFixture(
+   *   "sample",
+   *   ZIO.acquireRelease(ZIO.attempt { state += 1; state })(_ => ZIO.attempt { state -= 1 }.orDie)
+   * )
+   *
+   * override val munitFixtures = Seq(fixture)
+   *
+   * test("suite local fixture works") {
+   *   assertEquals(fixture(), 1)
+   * }
+   * }}}
+   */
   object ZSuiteLocalFixture {
     final class FixtureNotInstantiatedException(name: String)
         extends Exception(
@@ -89,7 +91,7 @@ trait ZFixtures {
         override def beforeAll(): Unit = {
           Unsafe.unsafe { implicit unsafe =>
             runtime.unsafe.run(
-              managed.map { r => resource = Some(r) }.provideLayer(ZLayer.succeed(scope))
+              managed.map(r => resource = Some(r)).provideLayer(ZLayer.succeed(scope))
             )
           }
           ()

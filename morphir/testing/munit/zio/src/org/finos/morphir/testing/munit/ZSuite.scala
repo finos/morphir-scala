@@ -3,32 +3,28 @@ package org.finos.morphir.testing.munit
 import _root_.munit.*
 import zio.*
 
-abstract class ZSuite
-    extends FunSuite
-    with ZAssertions
-    with ZFixtures
-    with ZFixtureSyntax
-    with ZRuntime {
+abstract class ZSuite extends FunSuite with ZAssertions with ZFixtures with ZFixtureSyntax with ZRuntime {
 
-  /** Runs test returning `ZIO[Any, E, Any]`
-    *
-    * {{{
-    * testZ("simple effect test") {
-    *   val effect = for
-    *     a <- ZIO(1)
-    *     b <- ZIO(2)
-    *   yield a + b
-    *
-    *   assertEqualsZ(effect, 3)
-    * }
-    *
-    * }}}
-    *
-    * @param name
-    *   test name
-    * @param body
-    *   test body
-    */
+  /**
+   * Runs test returning `ZIO[Any, E, Any]`
+   *
+   * {{{
+   * testZ("simple effect test") {
+   *   val effect = for
+   *     a <- ZIO(1)
+   *     b <- ZIO(2)
+   *   yield a + b
+   *
+   *   assertEqualsZ(effect, 3)
+   * }
+   *
+   * }}}
+   *
+   * @param name
+   *   test name
+   * @param body
+   *   test body
+   */
   def testZ[E](name: String)(body: IO[E, Any])(implicit loc: Location): Unit =
     testZ(TestOptions(name))(body)
 
