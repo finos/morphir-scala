@@ -67,7 +67,8 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
   }
 
   object contrib extends Module {
-    object knowledge extends CrossPlatform {
+    object knowledge extends CrossPlatform with CrossValue {
+      def enableNative(module:Module):Boolean = crossValue.startsWith("2.13.")
       trait Shared extends MorphirCommonModule with MorphirPublishModule {
         def ivyDeps    = Agg(
           Deps.com.lihaoyi.sourcecode, 
@@ -103,12 +104,17 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
       }
 
       object native extends Shared with MorphirNativeModule {
-        // object test extends ScalaTests with TestModule.ZioTest {
+        //NOTE: Issues arise when trying to run tests on native.  Need to figure out how to get this working
+        
+        // object test extends ScalaNativeTests with TestModule.ZioTest {
         //   def ivyDeps = Agg(
-        //     Deps.dev.zio.`zio-test`,
-        //     Deps.dev.zio.`zio-test-sbt`
+        //     Deps.dev.zio.zio,
+        //     Deps.dev.zio.`zio-streams`,
+        //     Deps.com.eed3si9n.expecty.expecty,
+        //     Deps.org.scalameta.munit,
+        //     Deps.org.scalameta.`munit-scalacheck`
         //   )
-        //   def moduleDeps = super.moduleDeps ++ Seq(testing.zio.native)
+        //   def moduleDeps = super.moduleDeps ++ Seq(testing.munit.native, testing.munit.zio.native)
         // }
       }
     }
@@ -251,12 +257,12 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         }    
       }
       object js extends Shared with MorphirJSModule {
-        object test extends ScalaTests with TestModule.Munit {    
+        object test extends ScalaJSTests with TestModule.Munit {    
           def ivyDeps = Agg(Deps.org.scalameta.munit)
         }    
       }
       object native extends Shared with  MorphirNativeModule {
-        object test extends ScalaTests with TestModule.Munit {
+        object test extends ScalaNativeTests with TestModule.Munit {
           def ivyDeps = Agg(Deps.org.scalameta.munit)
         }    
       }
