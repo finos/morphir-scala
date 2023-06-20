@@ -105,7 +105,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
 
       object native extends Shared with MorphirNativeModule {
         //NOTE: Issues arise when trying to run tests on native.  Need to figure out how to get this working
-        
+
         // object test extends ScalaNativeTests with TestModule.ZioTest {
         //   def ivyDeps = Agg(
         //     Deps.dev.zio.zio,
@@ -279,9 +279,15 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         )
       }
 
-      object jvm extends Shared with MorphirJVMModule 
-      object js extends Shared with  MorphirJSModule
-      object native extends Shared with  MorphirNativeModule
+      object jvm extends Shared with MorphirJVMModule {
+        object test extends ScalaTests with TestModule.Munit
+      }
+      object js extends Shared with  MorphirJSModule{
+        object test extends ScalaJSTests with TestModule.Munit
+      }
+      object native extends Shared with  MorphirNativeModule {
+        object test extends ScalaNativeTests with TestModule.Munit
+      }
 
       object zio extends CrossPlatform {
         trait Shared extends MorphirCommonModule {
