@@ -112,9 +112,8 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install Native Libraries
-        uses: ConorMacBride/install-package@v1
-        with:
-          apt: libuv
+        run: |
+          sudo apt update && sudo apt install -y libuv
       - name: Set up Clang
         uses: egor-tensin/setup-clang@v1
         with:
