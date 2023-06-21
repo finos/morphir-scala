@@ -43,7 +43,7 @@ object Concept {
   case object Int32     extends Basic[Int]
   case object String    extends Basic[java.lang.String]
   case object LocalDate extends Basic[java.time.LocalDate]
-  case object Month     extends Basic[Int]
+  case object Month     extends Basic[java.time.Month]
   case object LocalTime extends Basic[java.time.LocalTime]
   case object Char      extends Basic[scala.Char]
   case object Unit      extends Basic[scala.Unit]

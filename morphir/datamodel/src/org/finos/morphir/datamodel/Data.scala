@@ -40,7 +40,7 @@ object Data {
   case class Tuple(values: scala.List[Data]) extends Data {
     val shape: Concept.Tuple = Concept.Tuple(values.map(_.shape))
   }
-  case class Record private (values: scala.List[(Label, Data)]) extends Data {
+  case class Record(values: scala.List[(Label, Data)]) extends Data {
     val shape: Concept.Record = Concept.Record(values.map { case (label, data) => (label, data.shape) })
   }
 
@@ -51,8 +51,11 @@ object Data {
     val shape: Concept.Optional = Concept.Optional(data.shape)
   }
 
-  case class List private (values: scala.List[Data], shape: Concept.List)
+  case class List private[datamodel] (values: scala.List[Data], shape: Concept.List) extends Data
   object List {
+    def apply(values: scala.List[Data], shape: Concept.List) =
+      new List(values, shape)
+
     def apply(value: Data, rest: Data*) =
       new List(value +: rest.toList, Concept.List(value.shape))
 
