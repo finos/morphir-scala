@@ -1,4 +1,4 @@
-package org.finios.morphir.datamodel
+package org.finos.morphir.datamodel
 
 import scala.reflect.ClassTag
 import scala.reflect.classTag

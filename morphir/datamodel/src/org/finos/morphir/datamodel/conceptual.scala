@@ -1,4 +1,5 @@
 package org.finos.morphir.datamodel
+import java.io.OutputStream
 
 object conceptual {
   trait Ctx {}
@@ -24,7 +25,13 @@ object conceptual {
     def visitEnd(): T
   }
 
-  trait Printer extends Visitor[scala.Unit] {
+  class Printer(out: OutputStream) extends Visitor[scala.Unit] {
+    override def visitArray(ctx: Ctx): ArrayVisitor[Unit] = ???
+
     override def visitBoolean(ctx: Ctx, value: Boolean): Unit = ???
+
+    override def visitObject(ctx: Ctx): RecordVisitor[Unit] = ???
+
+    override def visitString(ctx: Ctx, text: CharSequence): Unit = ???
   }
 }
