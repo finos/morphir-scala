@@ -3,7 +3,7 @@ import java.io.OutputStream
 sealed trait Data extends geny.Writeable {
   def shape: Concept
   def writeBytesTo(out: OutputStream): Unit = {
-    //TODO: Implement writing
+    // TODO: Implement writing
   }
 }
 

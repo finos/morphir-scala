@@ -4,8 +4,8 @@ object conceptual {
   trait Ctx {}
 
   trait Visitor[+T] {
-    def visitArray(ctx:Ctx):ArrayVisitor[T]
-    def visitBoolean(ctx:Ctx, value: Boolean): T
+    def visitArray(ctx: Ctx): ArrayVisitor[T]
+    def visitBoolean(ctx: Ctx, value: Boolean): T
     def visitObject(ctx: Ctx): RecordVisitor[T]
     def visitString(ctx: Ctx, text: CharSequence): T
   }
