@@ -159,6 +159,10 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
 
   object datamodel extends CrossPlatform {
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
+      def ivyDeps = super.ivyDeps() ++ Agg(
+        Deps.com.lihaoyi.geny, 
+        Deps.com.lihaoyi.sourcecode
+      )
       def platformSpecificModuleDeps = Seq(datamodel.macros)
     }
 
