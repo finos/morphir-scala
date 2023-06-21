@@ -163,8 +163,9 @@ jobs:
         with:
           java-version: '11'
           distribution: temurin
-
-      - run: ./mill -i -j 3 io.kipp.mill.ci.release.ReleaseModule/publishAll
+      - name: Install libuv
+        run: sudo apt-get update && sudo apt-get install -y libuv1-dev
+      - run: ./mill -i -j 0 io.kipp.mill.ci.release.ReleaseModule/publishAll
 
   ci:
     runs-on: ubuntu-latest
