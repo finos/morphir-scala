@@ -28,7 +28,12 @@ object Concept {
     val LocalTime = Concept.LocalTime
     type Char = Concept.Char.type
     val Char = Concept.Char
+    type Unit = Concept.Unit.type
+    val Unit = Concept.Unit
   }
+
+  /// Represents any concept but also means that you have no reasonable idea of the shape of the associated data
+  case object Any extends Concept
 
   case object Boolean   extends Basic[scala.Boolean]
   case object Byte      extends Basic[Byte]
@@ -41,6 +46,7 @@ object Concept {
   case object Month     extends Basic[Int]
   case object LocalTime extends Basic[java.time.LocalTime]
   case object Char      extends Basic[scala.Char]
+  case object Unit      extends Basic[scala.Unit]
 
   case class Record(fields: scala.List[(Label, Concept)]) extends Concept
 

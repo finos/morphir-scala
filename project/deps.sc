@@ -37,6 +37,10 @@ object Deps {
         val `silencer-lib`    = ivy"com.github.ghik:::silencer-lib:${Versions.silencer}"
         val `silencer-plugin` = ivy"com.github.ghik:::silencer-plugin:${Versions.silencer}"
       }
+
+      case object poslegm {
+        val `munit-zio` = ivy"com.github.poslegm::munit-zio::${Versions.`munit-zio`}"
+      }
     }
     case object lihaoyi {
       val castor         = ivy"com.lihaoyi::castor::${Versions.castor}"
@@ -147,6 +151,7 @@ object Versions {
   val geny            = "1.0.0"
   val `izumi-reflect` = "2.3.8"
   val munit           = "1.0.0-M8"
+  val `munit-zio`     = "0.1.1"  
   val mainargs        = "0.5.0"
   val `os-lib`        = "0.9.1"
   val paiges          = "0.4.2"

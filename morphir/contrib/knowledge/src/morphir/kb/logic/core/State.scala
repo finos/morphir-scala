@@ -8,7 +8,6 @@ final case class State(
 ) { self =>
 
   private[knowledge] def addField[A](field: Field[A], value: Value)(implicit tag: ClassTag[A]): Option[State] = {
-    println(s"Adding field $field with value $value")
     def applyConstraint(state: Option[State], fieldConstraint: FieldConstraint): Option[State] =
       state.collect(fieldConstraint)
 

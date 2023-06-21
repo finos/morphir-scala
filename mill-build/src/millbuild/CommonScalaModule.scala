@@ -32,6 +32,8 @@ trait CommonScalaModule extends CrossScalaModule with CommonCoursierModule with 
       super.scalacOptions() ++ options ++ additionalScalacOptions()
     }
 
+    /// The location of user specific build properties. This is curremtly only setup to provide custom scalac options. 
+    /// This becomes useful when you want to temporarily enable a scalac option which is harder given mill runs a build serve/daemon.
     def userBuildProperties = T.source(T.workspace / "build.user.properties")
 
     def additionalScalacOptions = T {
@@ -83,7 +85,7 @@ trait CommonScalaModule extends CrossScalaModule with CommonCoursierModule with 
         case Array("2", _, _) =>
           Seq("-language:existentials", "-Yrangepos", "-Xsource:3", "-Xfatal-warnings")
         case Array("3", _, _) =>
-          Seq("-Xignore-scala2-macros", "-Yretain-trees")
+          Seq("-Xignore-scala2-macros", "-Yretain-trees", "-Wvalue-discard")
         case _ =>
           Seq()
       }
