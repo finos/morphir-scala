@@ -1,6 +1,6 @@
 package org.finos.morphir.datamodel
 import java.io.OutputStream
-sealed trait Data extends geny.Writeable {
+sealed trait Data extends geny.Writable {
   def shape: Concept
   def writeBytesTo(out: OutputStream): Unit = {
     // TODO: Implement writing
