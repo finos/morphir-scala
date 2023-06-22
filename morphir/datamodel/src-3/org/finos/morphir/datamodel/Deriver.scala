@@ -22,7 +22,7 @@ trait SpecificDeriver[T] extends Deriver[T] {
 object Deriver {
 
   inline def toData[T](value: T): Data = {
-    import org.finos.morphir.datamodel.Derivers._
+    import org.finos.morphir.datamodel.Derivers.{given, _}
     val deriver = Deriver.gen[T]
     deriver.derive(value)
   }
@@ -33,7 +33,8 @@ object Deriver {
     Expr(TypeRepr.of[T].simplified.typeSymbol.name)
   }
 
-  type IsProduct[P <: Product] = P
+  type IsProduct[P <: Product]  = P
+  type IsOption[P <: Option[_]] = P
 
   inline def summonDeriver[T]: Deriver[T] = ${ summonDeriverImpl[T] }
   def summonDeriverImpl[T: Type](using Quotes): Expr[Deriver[T]] =
@@ -99,6 +100,10 @@ object Deriver {
         deriver
       case ev: Mirror.Of[T] =>
         inline ev match {
+          case m: Mirror.ProductOf[IsOption[t]] =>
+            error(
+              "Cannot summon a generic derivation of Option[T], a specific encoder is required. Have you imported `org.finos.morphir.datamodel.Derviers._` ?"
+            )
           case m: Mirror.ProductOf[T] =>
             val stageListTuple = deriveProductFields[m.MirroredElemLabels, m.MirroredElemTypes](0)
             val mirrorProduct  = Stage.MirrorProduct(stageListTuple)

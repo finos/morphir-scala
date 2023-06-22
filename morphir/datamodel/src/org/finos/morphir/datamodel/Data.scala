@@ -1,5 +1,7 @@
 package org.finos.morphir.datamodel
 import java.io.OutputStream
+import scala.collection.immutable.ListMap
+import scala.collection.mutable
 sealed trait Data extends geny.Writable {
   def shape: Concept
   def writeBytesTo(out: OutputStream): Unit = {
@@ -23,7 +25,7 @@ object Data {
   case class Int32(value: scala.Int)               extends Basic[Int]                 { val shape = Concept.Int32     }
   case class String(value: java.lang.String)       extends Basic[java.lang.String]    { val shape = Concept.String    }
   case class LocalDate(value: java.time.LocalDate) extends Basic[java.time.LocalDate] { val shape = Concept.LocalDate }
-  case class Month(value: Int)                     extends Basic[Int]                 { val shape = Concept.Month     }
+  case class Month(value: java.time.Month)         extends Basic[java.time.Month]     { val shape = Concept.Month     }
   case class LocalTime(value: java.time.LocalTime) extends Basic[java.time.LocalTime] { val shape = Concept.LocalTime }
   case class Char(value: scala.Char)               extends Basic[scala.Char]          { val shape = Concept.Char      }
   case object Unit                                 extends Basic[scala.Unit]          { val shape = Concept.Unit      }
@@ -43,24 +45,39 @@ object Data {
   case class Record(values: scala.List[(Label, Data)]) extends Data {
     val shape: Concept.Record = Concept.Record(values.map { case (label, data) => (label, data.shape) })
   }
+  object Record {
+    def apply(entry: (Label, Data)*): Record = Record(entry.toList)
+  }
 
   /**
    * Equlvalent to ELM Optional or Scala Option
    */
-  case class Optional(data: Data) extends Data {
-    val shape: Concept.Optional = Concept.Optional(data.shape)
+  sealed trait Optional extends Data
+  object Optional {
+    // Note that despite the fact that there is only one element, the Data element
+    // can potentially have a more specific shape than the shape given by Some. Therefore
+    // the option is given to pass in the actual shape
+    case class Some private[datamodel] (data: Data, shape: Concept.Optional) extends Optional
+    object Some {
+      def apply(data: Data)                        = new Some(data, Concept.Optional(data.shape))
+      def apply(data: Data, elementShape: Concept) = new Some(data, Concept.Optional(elementShape))
+    }
+    case class None private[datamodel] (shape: Concept.Optional) extends Optional
+    object None {
+      def apply(elementShape: Concept) = new None(Concept.Optional(elementShape))
+    }
   }
 
   case class List private[datamodel] (values: scala.List[Data], shape: Concept.List) extends Data
   object List {
-    def apply(values: scala.List[Data], shape: Concept.List) =
-      new List(values, shape)
+    def apply(values: scala.List[Data], elementShape: Concept) =
+      new List(values, Concept.List(elementShape))
 
     def apply(value: Data, rest: Data*) =
       new List(value +: rest.toList, Concept.List(value.shape))
 
-    def empty(schema: Concept.List) =
-      new List(scala.List(), schema)
+    def empty(elementShape: Concept) =
+      new List(scala.List(), Concept.List(elementShape))
 
     def validated(values: scala.List[Data]): Option[List] =
       // Validate that element-type of everything is the same
@@ -68,6 +85,24 @@ object Data {
         Some(List(values, Concept.List(values.head.shape)))
       else
         None
+  }
+
+  /**
+   * Since in ELM, record-based datastructures are generally kept in order, we want to preserve element ordering until
+   * the last possible second (i.e. within the DDL structure). This should perserve a certain amount of determinism. We
+   * have chosen to use LinkedHashMap because Scala's immutable ListMap is only suitable for a small amount of elements
+   * and has O(n) lookup time. Despite the fact that this datastructure is mutable
+   */
+  case class Map private[datamodel] (values: mutable.LinkedHashMap[Data, Data], shape: Concept.Map) extends Data
+  object Map {
+    def copyFrom(values: mutable.LinkedHashMap[Data, Data], shape: Concept.Map) =
+      Map(values.clone(), shape)
+
+    def apply(value: (Data, Data), rest: (Data, Data)*) =
+      new Map(mutable.LinkedHashMap.from(value +: rest.toList), Concept.Map(value._1.shape, value._2.shape))
+
+    def empty(keyShape: Concept, valueShape: Concept) =
+      new Map(mutable.LinkedHashMap.empty, Concept.Map(keyShape, valueShape))
   }
 
   /**
