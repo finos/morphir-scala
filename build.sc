@@ -1,13 +1,14 @@
 import $meta._
+import $ivy.`de.tototec::de.tobiasroeser.mill.integrationtest::0.7.1`
 import $ivy.`io.chris-kipp::mill-ci-release::0.1.9`
 import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
-import $file.project.deps, deps.{Deps, ScalaVersions, Versions => Vers}
+import $file.project.deps, deps.{Deps, MillVersions,ScalaVersions, Versions => Vers}
 import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
+import de.tobiasroeser.mill.integrationtest._
 import io.kipp.mill.ci.release.CiReleaseModule
 import millbuild._
 import millbuild.crossplatform._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
-import mill.scalalib.api.ZincWorkerUtil.scalaNativeBinaryVersion
 
 /**
  * The version of Scala natively supported by the toolchain. Morphir itself may provide backends that generate code for
@@ -16,10 +17,7 @@ import mill.scalalib.api.ZincWorkerUtil.scalaNativeBinaryVersion
 val morphirScalaVersion: String = ScalaVersions.scala3x
 
 val docsScalaVersion: String    = ScalaVersions.scala213 //This really should match but need to figure it out
-val millVersions = Seq("0.10.12", "0.11.0")
-def millBinaryVersion(millVersion: String) = scalaNativeBinaryVersion(
-  millVersion
-)
+
 
 import mill.eval.{Evaluator, EvaluatorPaths}
 // With this we can now just do ./mill reformatAll __.sources
@@ -47,17 +45,30 @@ trait MorphirPublishModule extends CiReleaseModule with JavaModule {
 object morphir extends Cross[MorphirModule](ScalaVersions.all) {
   object build extends Module {
     object integration extends Module {
-      object `mill-morphir-elm` extends Cross[MillMorphirElmPlugin](millVersions)              
+      object `mill-morphir-elm` extends Cross[MillMorphirElmPlugin](MillVersions.all)
       trait MillMorphirElmPlugin
         extends Cross.Module[String]
         with ScalaModule 
+        with ScalafmtModule
         with MorphirPublishModule {
+        
         def millVersion = crossValue
+        
         val pluginName = "mill-morphir-elm"
-        def scalaVersion = ScalaVersions.millScalaVersion
-        override def millSourcePath = super.millSourcePath / os.up
-        override def artifactName = s"${pluginName}_mill${millBinaryVersion(millVersion)}"
-      }   
+        
+        def scalaVersion = ScalaVersions.millScalaVersion    
+        override def artifactName = s"${pluginName}_mill${MillVersions.millBinaryVersion(millVersion)}"
+        override def compileIvyDeps = super.compileIvyDeps() ++ Agg(
+          ivy"com.lihaoyi::mill-scalalib:${millVersion}"
+        )
+        override def scalacOptions = Seq("-Ywarn-unused", "-deprecation")
+        override def sources = T.sources {
+          super.sources() ++ Seq(
+            millSourcePath / s"src-mill${millVersion.split('.').take(2).mkString(".")}"
+          ).map(PathRef(_))
+        }
+      }
+      trait ItestCross extends MillIntegrationTestModule with Cross.Module[String]  
     }
   }
 }

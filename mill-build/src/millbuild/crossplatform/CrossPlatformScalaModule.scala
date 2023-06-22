@@ -1,6 +1,6 @@
 package millbuild.crossplatform
 import mill._
-import mill.define.DynamicModule
+import _root_.mill.define.DynamicModule
 import mill.main.BuildInfo
 import mill.scalajslib._
 import mill.scalalib._

@@ -1,4 +1,5 @@
 import mill._, scalalib._
+import mill.scalalib.api.ZincWorkerUtil.scalaNativeBinaryVersion
 
 object Deps {
 
@@ -176,4 +177,11 @@ object ScalaVersions {
   def scalaJSVersion     = "1.13.1"
   def scalaNativeVersion = "0.4.14"
   def millScalaVersion = "2.13.10"
+}
+
+object MillVersions {
+  val all = Seq("0.10.12", "0.11.0")
+  def millBinaryVersion(millVersion: String) = scalaNativeBinaryVersion(
+    millVersion
+  )
 }
