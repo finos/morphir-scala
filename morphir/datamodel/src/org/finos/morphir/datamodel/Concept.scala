@@ -47,6 +47,7 @@ object Concept {
   case object LocalTime extends Basic[java.time.LocalTime]
   case object Char      extends Basic[scala.Char]
   case object Unit      extends Basic[scala.Unit]
+  case object Nothing   extends Basic[scala.Nothing]
 
   case class Record(fields: scala.List[(Label, Concept)]) extends Concept
 
@@ -58,6 +59,21 @@ object Concept {
 
   case class Tuple(values: scala.List[Concept]) extends Concept
 
+  /**
+   * We can only know if an optional-value is Some or None on the value-level, not the type-level because the
+   * parent-derivation stage does not know this information. This is generally understood to be a standard practice. For
+   * example, using Scala 3 enums, the specific type of an enum element is not known, only the general coproduct type.
+   * For example:
+   * {{{
+   * enum Customer:
+   *   case Person
+   *   case Robot
+   *
+   * // this will be implicitly typed as Customer
+   * val c = Customer.Person
+   * }}}
+   * Coproduct types in other languages (e.g. Haskell) work similarly.
+   */
   case class Optional(elementType: Concept) extends Concept
 
   /**
