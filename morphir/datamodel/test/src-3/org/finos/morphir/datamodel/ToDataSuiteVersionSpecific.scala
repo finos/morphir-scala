@@ -1,6 +1,7 @@
 package org.finos.morphir.datamodel
 
 import org.finos.morphir.datamodel.{Data, Deriver}
+import org.finos.morphir.datamodel.Derivers.{given, *}
 trait ToDataSuiteVersionSpecific {
   self: ToDataSuite =>
 
