@@ -1,4 +1,4 @@
-package org.finios.morphir.datamodel
+package org.finos.morphir.datamodel
 
 import scala.reflect.ClassTag
 import scala.reflect.classTag
@@ -22,7 +22,7 @@ trait SpecificDeriver[T] extends Deriver[T] {
 object Deriver {
 
   inline def toData[T](value: T): Data = {
-    import org.finios.morphir.datamodel.Derivers._
+    import org.finos.morphir.datamodel.Derivers._
     val deriver = Deriver.gen[T]
     deriver.derive(value)
   }
