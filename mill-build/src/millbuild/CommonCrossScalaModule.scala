@@ -2,7 +2,7 @@ package millbuild
 
 import mill._, scalalib._, scalafmt._
 import java.util.Properties
-trait CommonScalaModule extends CrossScalaModule with CommonCoursierModule with ScalafmtModule { self =>
+trait CommonCrossScalaModule extends CrossScalaModule with CommonCoursierModule with ScalafmtModule { self =>
 
     def isScala3 : T[Boolean] = T {
       scalaVersion().startsWith("3.")
