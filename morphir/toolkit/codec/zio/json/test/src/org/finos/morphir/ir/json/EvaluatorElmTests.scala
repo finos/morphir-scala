@@ -436,5 +436,12 @@ object EvaluatorElmTests extends MorphirBaseSpec {
           assertTrue(actual == expected)
         }
       )
-    ) @@ TestAspect.ignore @@ TestAspect.tag("Will re-enable when code-gen of a test are part of the pipeline")
+//      ,
+//      suite("Show me the map IR")(
+//        test("SHOW ME!"){
+//          val stuff : Any = Native.map
+//          assertTrue(stuff == "")
+//}
+//      )
+    )
 }

@@ -2,12 +2,15 @@ package org.finos.morphir
 package runtime
 
 import org.finos.morphir.ir.internal.*
-import org.finos.morphir.ir.internal.Value.{List as ListValue, *}
+import org.finos.morphir.ir.internal.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.{FQName, Name, Type}
 import ir.Value.{TypedValue, Value}
 import org.finos.morphir.ir.FQName.getLocalName
 import org.finos.morphir.ir.Name.toTitleCase
 import org.finos.morphir.ir.Value.Pattern
+import org.finos.morphir.ir.distribution.Distribution.Library
+import zio.Chunk
+import org.finos.morphir.ir.{FQName, QName, Name, Type, Module}
 
 sealed trait ResultValue[TA, VA]
 
@@ -109,6 +112,36 @@ final case class Store[TA, VA](fqNameBindings: Map[FQName, SDKValue[TA, VA]], ca
   def push(bindings: Map[Name, StoredValue[TA, VA]]) = Store(fqNameBindings, callStack.push(bindings))
 }
 object Store {
+  def fromLibrary(lib: Library): Store[Unit, Type.UType] = {
+    val packageName = lib.packageName
+    val fqNameBindings = lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
+      val valueDefs: Map[FQName, SDKValue[Unit, Type.UType]] = accessControlledModule.value.values.map {
+        case (localName, accessControlledValue) =>
+          val name = FQName(packageName.toPath, moduleName.toPath, localName)
+          val definition = accessControlledValue.value.value
+          val sdkDef = SDKValue.SDKValueDefinition(definition)
+          (name, sdkDef)
+      }
+      val constructors: Map[FQName, SDKValue[Unit, Type.UType]] = accessControlledModule.value.types.flatMap {
+        case (localName, accessControlledType) =>
+          val definition = accessControlledType.value.value
+          definition match {
+            case Type.Definition.CustomType(Chunk(), accessControlledCtors) =>
+              val ctors = accessControlledCtors.value.toMap
+              ctors.map { case (ctorName, ctorArgs) =>
+                val name = FQName(packageName.toPath, moduleName.toPath, ctorName)
+                (name, SDKValue.SDKConstructor[Unit, Type.UType](ctorArgs.map(_._2).toList))
+              }
+            case Type.Definition.CustomType(_, _) =>
+              throw new Exception("Unimplemented - type parameters on custom type")
+            case Type.Definition.TypeAlias(_, _) => Map.empty
+          }
+      }
+      valueDefs ++ constructors
+    }
+    Store(fqNameBindings ++ Native.native, CallStackFrame(Map(), None))
+  }
+
   def empty[TA, VA]: Store[TA, VA] = {
     val plus: SDKValue[TA, VA] = SDKValue.SDKNativeFunction(
       2,
