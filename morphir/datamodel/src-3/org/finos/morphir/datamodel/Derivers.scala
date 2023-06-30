@@ -126,4 +126,7 @@ object Derivers {
 
   implicit inline def autoProductDeriver[T <: Product]: GenericProductDeriver[T] =
     GenericProductDeriver.gen[T]
+
+  implicit inline def autoSumDeriver[T]: GenericSumDeriver[T] =
+    GenericSumDeriver.gen[T]
 }

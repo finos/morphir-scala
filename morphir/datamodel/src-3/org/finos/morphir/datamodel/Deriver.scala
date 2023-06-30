@@ -1,10 +1,12 @@
 package org.finos.morphir.datamodel
 
+import org.finos.morphir.datamodel
+
 import scala.reflect.ClassTag
 import scala.reflect.classTag
-import scala.quoted._
-import scala.deriving._
-import scala.compiletime.{erasedValue, constValue, summonFrom, summonInline, error, codeOf}
+import scala.quoted.*
+import scala.deriving.*
+import scala.compiletime.{codeOf, constValue, erasedValue, error, summonFrom, summonInline}
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.datamodel.Label
 import org.finos.morphir.datamodel.Concept
@@ -20,46 +22,14 @@ trait SpecificDeriver[T] extends Deriver[T] {
 }
 
 object Deriver {
+  import DeriverTypes._
+  import DeriverMacros._
 
   inline def toData[T](value: T): Data = {
     import org.finos.morphir.datamodel.Derivers.{given, _}
     val deriver = Deriver.gen[T]
     deriver.derive(value)
   }
-
-  inline def showType[T]: String = ${ showTypeImpl[T] }
-  def showTypeImpl[T: Type](using Quotes): Expr[String] = {
-    import quotes.reflect._
-    Expr(TypeRepr.of[T].simplified.typeSymbol.name)
-  }
-
-  type IsProduct[P <: Product]  = P
-  type IsOption[P <: Option[_]] = P
-
-  inline def summonDeriver[T]: Deriver[T] = ${ summonDeriverImpl[T] }
-  def summonDeriverImpl[T: Type](using Quotes): Expr[Deriver[T]] =
-    import quotes.reflect._
-    val specificDriver = Expr.summon[SpecificDeriver[T]]
-    specificDriver match {
-      case Some(value) => value
-      case None =>
-        Type.of[T] match {
-          case '[IsProduct[p]] =>
-            val genericDeriver = Expr.summon[GenericProductDeriver[p]]
-            genericDeriver match {
-              case Some(value) => '{ $value.asInstanceOf[Deriver[T]] }
-              case _ =>
-                report.errorAndAbort(
-                  s"Cannot summon specific or generic Deriver for the type: ${TypeRepr.of[T].widen.show}"
-                )
-            }
-          case _ =>
-            report.errorAndAbort(
-              s"Cannot summon specific Deriver for the type (and it is not a Product): ${TypeRepr.of[T].widen.show}"
-            )
-        }
-
-    }
 
   inline def summonSpecificDeriver[T] =
     summonFrom {
@@ -68,7 +38,62 @@ object Deriver {
         error(s"Cannot find specific deriver for type: ${showType[T]}")
     }
 
-  inline def deriveProductFields[Fields <: Tuple, Elems <: Tuple](i: Int): List[FieldStage] =
+  sealed trait UnionType
+  object UnionType {
+    case object SealedTrait extends UnionType
+    case object Enum        extends UnionType
+    case object Sum         extends UnionType
+  }
+
+  private inline def deriveSumVariants[Fields <: Tuple, Elems <: Tuple](
+      inline unionType: UnionType
+  ): List[SumBuilder.Variant] =
+    inline erasedValue[Fields] match {
+      case EmptyTuple => Nil
+
+      case _: (field *: fields) =>
+        val fieldName = constValue[field].toString
+        // note that no printout done here (e.g. println("hello")) will actually happen at compile-time
+        // since this is actually a string that will be spliced in at runtime
+        inline erasedValue[Elems] match {
+          case _: (head *: tail) =>
+            val ct = summonClassTagOrFail[head].asInstanceOf[ClassTag[Any]]
+            // need to make sure that ALL of the matches inside here (including the `unionType` match)
+            // is inline otherwise very strange things happen! Macros will run for even variants that shouldn't be matching
+            // (i.e. because the other side of the case match branch is also running)
+            val variant =
+              inline unionType match {
+                // UnionType.Enum |
+                case UnionType.SealedTrait =>
+                  // enum case with fields
+                  if (isCaseClass[head]) {
+                    summonProductDeriver[head] match {
+                      case deriver: GenericProductDeriver[Product] =>
+                        SumBuilder.EnumProduct(fieldName, ct, deriver)
+                      case other =>
+                        throw new IllegalArgumentException(
+                          "Illegal state, should not be possible, summonProductDeriver always returns a GenericProductDeriver"
+                        )
+                    }
+                  } // enum case without fields
+                  else {
+                    SumBuilder.EnumSingleton(fieldName, ct)
+                  }
+                // for the sum-case just do regular recursive derivation
+                case UnionType.Sum =>
+                  val deriver = summonDeriver[head].asInstanceOf[Deriver[Any]]
+                  SumBuilder.SumVariant(fieldName, ct, deriver)
+              }
+
+            // return the variant and recurse
+            variant +: deriveSumVariants[fields, tail](unionType)
+
+          case EmptyTuple =>
+            error("shuold not be possible")
+        }
+    }
+
+  inline def deriveProductFields[Fields <: Tuple, Elems <: Tuple](i: Int): List[ProductBuilderField] =
     inline erasedValue[Fields] match {
       case EmptyTuple => Nil
 
@@ -79,15 +104,51 @@ object Deriver {
             val derivationStage =
               summonDeriver[head] match {
                 case deriver: SpecificDeriver[Any] =>
-                  Stage.FieldLeaf(fieldName, i, deriver)
+                  ProductBuilder.Leaf(fieldName, i, deriver)
                 case deriver: GenericProductDeriver[Product] =>
-                  Stage.FieldProduct(fieldName, i, deriver)
+                  ProductBuilder.Product(fieldName, i, deriver)
+                case deriver: GenericSumDeriver[Any] =>
+                  ProductBuilder.Sum(fieldName, i, deriver)
               }
             derivationStage +: deriveProductFields[fields, tail](i + 1)
 
           case EmptyTuple =>
             error("shuold not be possible")
         }
+    }
+
+  inline def deriveProductFromMirror[T](m: Mirror.ProductOf[T]): GenericProductDeriver[T & Product] =
+    inline if (isCaseClass[T]) {
+      val stageListTuple = deriveProductFields[m.MirroredElemLabels, m.MirroredElemTypes](0)
+      val mirrorProduct  = ProductBuilder.MirrorProduct(stageListTuple)
+      GenericProductDeriver
+        .make[T & Product](mirrorProduct)
+    } else {
+      errorOnType[T]("Cannot summon a generic deriver of he case class type. It is not a valid product type")
+    }
+
+  inline def deriveSumFromMirror[T](m: Mirror.SumOf[T]): GenericSumDeriver[T] =
+    inline if (isEnumOrSealedTrait[T]) {
+      val sumTypeName = DeriverMacros.typeName[T]
+      // The clause `inferUnionType` NEEDs to be  a macro otherwise we can't get the value
+      // coming out if it to work with inline matches/ifs and if our matches/ifs are not inline
+      // and there is a `scala.compiletime.error` command called of a non-inline match/if branch
+      // called then it will happen no mater what the input data is because these constructs
+      // just do the equivalent of report.errorAndAbort for all inputs. The only way to NOT
+      // activate them is to have them on a branch of a inline match/if which is not being called
+      val variants =
+        deriveSumVariants[m.MirroredElemLabels, m.MirroredElemTypes](inferUnionType[T])
+
+      val builder =
+        inline inferUnionType[T] match {
+          case UnionType.Enum | UnionType.SealedTrait =>
+            SumBuilder(SumBuilder.SumType.Enum(sumTypeName), variants)
+          case UnionType.Sum =>
+            error("Simple union types not allowed yet in builder synthesis")
+        }
+      GenericSumDeriver.make[T](builder)
+    } else {
+      errorOnType[T]("The following type is not a valid enum and there is no specific deriver defined for it")
     }
 
   // TODO When making a product deriver, make sure to exclude Option[T] since
@@ -102,60 +163,14 @@ object Deriver {
         inline ev match {
           case m: Mirror.ProductOf[IsOption[t]] =>
             error(
-              "Cannot summon a generic derivation of Option[T], a specific encoder is required. Have you imported `org.finos.morphir.datamodel.Derviers._` ?"
+              s"Cannot summon a generic derivation of Option[T], a specific encoder is required."
             )
+
           case m: Mirror.ProductOf[T] =>
-            val stageListTuple = deriveProductFields[m.MirroredElemLabels, m.MirroredElemTypes](0)
-            val mirrorProduct  = Stage.MirrorProduct(stageListTuple)
-            GenericProductDeriver
-              .make[T & Product](mirrorProduct)
-              .asInstanceOf[Deriver[T]] // not sure why the cast is needed
+            // cast is needed otherwise it's T & Product which doesn't seem to derive correctly
+            deriveProductFromMirror[T](m).asInstanceOf[Deriver[T]]
+          case m: Mirror.SumOf[T] =>
+            deriveSumFromMirror[T](m)
         }
-    }
-}
-
-trait GenericProductDeriver[T <: Product] extends Deriver[T] {
-  def derive(value: T): Data = stage.run(value)
-  def stage: Stage.MirrorProduct
-  // def concept: Concept.Record
-}
-object GenericProductDeriver {
-  def make[T <: Product](creationStage: Stage.MirrorProduct) =
-    new GenericProductDeriver[T] {
-      val stage = creationStage
-      val concept: Concept.Record = {
-        // Deriver stage contains list of fields and child derivers
-        val fields: List[(Label, Concept)] =
-          creationStage.fields.map {
-            case Stage.FieldLeaf(field, _, deriver) =>
-              (Label(field), deriver.concept)
-            case Stage.FieldProduct(field, _, deriver) =>
-              (Label(field), deriver.concept)
-          }
-        Concept.Record(fields)
-      }
-    }
-
-  /**
-   * Automatic generator for Product types (and only product types). For anything that is automatically evaluated by the
-   * Scala compiler as a implicit (e.g. auto-derivation) we need to be really careful for that not to evaulate for
-   * Products and Primitives (and/or Sums) otherwise there is a danger that it will recurse infinately on certain
-   * datatypes that are not well-formed. Therefore for products we have a single function that handles derivation only
-   * for products and the implicit needed for that (in the Derivers). This is needed for the following purpose.
-   *
-   * Say that we have a simple case-class hierarchy like this {{ case class Person(name: Name, age: String) case class
-   * Name(first: String, last: String)
-   *
-   * }}
-   */
-  inline def gen[T <: Product]: GenericProductDeriver[T] =
-    summonFrom { case ev: Mirror.Of[T] =>
-      inline ev match {
-        case m: Mirror.ProductOf[T] =>
-          val stageListTuple = Deriver.deriveProductFields[m.MirroredElemLabels, m.MirroredElemTypes](0)
-          val mirrorProduct  = Stage.MirrorProduct(stageListTuple)
-          GenericProductDeriver
-            .make[T & Product](mirrorProduct)
-      }
     }
 }
