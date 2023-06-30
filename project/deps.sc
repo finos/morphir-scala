@@ -14,7 +14,7 @@ object Deps {
   case object co {
     case object fs2 {
       val `fs2-core` = ivy"co.fs2::fs2-core::${Versions.fs2}"
-      val `fs2-io` = ivy"co.fs2::fs2-io::${Versions.fs2}"
+      val `fs2-io`   = ivy"co.fs2::fs2-io::${Versions.fs2}"
     }
   }
 
@@ -111,7 +111,7 @@ object Deps {
     }
     case object scalameta {
       val munit: mill.scalalib.Dep = ivy"org.scalameta::munit::${Versions.munit}"
-    
+
       val `munit-scalacheck` =
         ivy"org.scalameta::munit-scalacheck::${Versions.munit}"
 
@@ -147,15 +147,15 @@ object Versions {
     }
 
   val coursier        = "2.1.4"
-  val expecty         = "0.16.0" 
+  val expecty         = "0.16.0"
   val fs2             = "3.7.0"
   val geny            = "1.0.0"
   val `izumi-reflect` = "2.3.8"
   val munit           = "1.0.0-M8"
-  val `munit-zio`     = "0.1.1"  
+  val `munit-zio`     = "0.1.1"
   val mainargs        = "0.5.0"
   val `os-lib`        = "0.9.1"
-  val paiges          = "0.4.2"
+  val paiges          = "0.4.3"
   val scribe          = "3.11.5"
   val silencer        = "1.4.2"
   val `tasty-query`   = "0.5.6"
