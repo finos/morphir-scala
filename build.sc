@@ -1,8 +1,10 @@
 import $meta._
+import $ivy.`de.tototec::de.tobiasroeser.mill.integrationtest::0.7.1`
 import $ivy.`io.chris-kipp::mill-ci-release::0.1.9`
 import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
-import $file.project.deps, deps.{Deps, ScalaVersions, Versions => Vers}
+import $file.project.deps, deps.{Deps, MillVersions,ScalaVersions, Versions => Vers}
 import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
+import de.tobiasroeser.mill.integrationtest._
 import io.kipp.mill.ci.release.CiReleaseModule
 import millbuild._
 import millbuild.crossplatform._
@@ -15,6 +17,7 @@ import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalaf
 val morphirScalaVersion: String = ScalaVersions.scala3x
 
 val docsScalaVersion: String    = ScalaVersions.scala213 //This really should match but need to figure it out
+
 
 import mill.eval.{Evaluator, EvaluatorPaths}
 // With this we can now just do ./mill reformatAll __.sources
@@ -39,11 +42,40 @@ trait MorphirPublishModule extends CiReleaseModule with JavaModule {
   )
 }
 
-object morphir extends Cross[MorphirModule](ScalaVersions.all)
+object morphir extends Cross[MorphirModule](ScalaVersions.all) {
+  object build extends Module {
+    object integration extends Module {
+      object `mill-morphir-elm` extends Cross[MillMorphirElmPlugin](MillVersions.all)
+      trait MillMorphirElmPlugin
+        extends Cross.Module[String]
+        with ScalaModule 
+        with ScalafmtModule
+        with MorphirPublishModule {
+        
+        def millVersion = crossValue
+        
+        val pluginName = "mill-morphir-elm"
+        
+        def scalaVersion = ScalaVersions.millScalaVersion    
+        override def artifactName = s"${pluginName}_mill${MillVersions.millBinaryVersion(millVersion)}"
+        override def compileIvyDeps = super.compileIvyDeps() ++ Agg(
+          ivy"com.lihaoyi::mill-scalalib:${millVersion}"
+        )
+        override def scalacOptions = Seq("-Ywarn-unused", "-deprecation")
+        override def sources = T.sources {
+          super.sources() ++ Seq(
+            millSourcePath / s"src-mill${millVersion.split('.').take(2).mkString(".")}"
+          ).map(PathRef(_))
+        }
+      }
+      trait ItestCross extends MillIntegrationTestModule with Cross.Module[String]  
+    }
+  }
+}
 trait MorphirModule extends Cross.Module[String] { morphir =>
   val workspaceDir = millbuild.build.millSourcePath
 
-  trait MorphirCommonModule extends CrossPlatformScalaModule with CrossValue with CommonScalaModule {
+  trait MorphirCommonModule extends CrossPlatformScalaModule with CrossValue with CommonCrossScalaModule {
     def semanticDbVersion       = T.input(Vers.semanticDb(partialVersion()))
     def compilerPluginDependencies(selectedScalaVersion: String) =
       Agg.when(selectedScalaVersion.startsWith("3.")) {

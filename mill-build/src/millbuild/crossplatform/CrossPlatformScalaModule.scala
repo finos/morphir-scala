@@ -1,13 +1,13 @@
 package millbuild.crossplatform
 import mill._
-import mill.define.DynamicModule
+import _root_.mill.define.DynamicModule
 import mill.main.BuildInfo
 import mill.scalajslib._
 import mill.scalalib._
 import mill.scalanativelib._
-import _root_.millbuild.CommonScalaModule
+import _root_.millbuild.CommonCrossScalaModule
 
-trait CrossPlatformScalaModule extends PlatformScalaModule with CrossScalaModule with CommonScalaModule {
+trait CrossPlatformScalaModule extends PlatformScalaModule with CrossScalaModule with CommonCrossScalaModule {
   def crossPlatformSourceSuffixes(srcFolderName:String) = 
     for {
       versionSuffix <- Seq("") ++ scalaVersionDirectoryNames
