@@ -306,6 +306,35 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
     }
   }
 
+  object runtime extends CrossPlatform with CrossValue {
+
+    def enableNative(module:Module):Boolean = crossValue.startsWith("2.13.")
+    trait Shared extends MorphirCommonModule with MorphirPublishModule {
+      def platformSpecificModuleDeps = Seq(datamodel, toolkit.core)
+    }
+
+    object jvm extends Shared with MorphirJVMModule {
+      object test extends ScalaTests with TestModule.Munit {
+        def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+        def moduleDeps = super.moduleDeps ++ Agg(testing.munit.jvm)
+      }
+    }
+
+    object js extends Shared with MorphirJSModule {
+      object test extends ScalaJSTests with TestModule.Munit {
+        def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+        def moduleDeps = super.moduleDeps ++ Agg(testing.munit.js)
+      }
+    }
+
+    object native extends Shared with MorphirNativeModule {
+      object test extends ScalaNativeTests with TestModule.Munit {
+        def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+        def moduleDeps = super.moduleDeps ++ Agg(testing.munit.native)
+      }
+    }
+  }
+
   object testing extends Module {
     object munit extends CrossPlatform {
       trait Shared extends MorphirCommonModule {
