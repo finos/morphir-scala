@@ -1178,7 +1178,7 @@ sdkXorTest _ =
 sdkAppendStringTest: () -> String
 sdkAppendStringTest _ =
     let
-        f x y = x ++ y
+        f x y = String.append x y
     in
         f "aa-" "bb"
 
@@ -1189,7 +1189,7 @@ sdkAppendStringTest _ =
 sdkAppendListTest: () -> List number
 sdkAppendListTest _ =
     let
-        f x y = x ++ y
+        f x y = List.append x y
     in
         f [1, 2] [3, 4]
 
