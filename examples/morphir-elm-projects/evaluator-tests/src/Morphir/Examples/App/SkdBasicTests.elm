@@ -41,8 +41,8 @@ sdkSubtractTest _ =
   Test: SdkBasics/multiply
   Expected = 6
 -}
-sdkMultipleTest: () -> Int
-sdkMultipleTest _ =
+sdkMultiplyTest: () -> Int
+sdkMultiplyTest _ =
     let
         f x y = x * y
     in
@@ -89,8 +89,8 @@ sdkSubtractFloatTest _ =
   Test: SdkBasics/multiplyFloat
   Expected = 6.0
 -}
-sdkMultipleFloatTest: () -> Float
-sdkMultipleFloatTest _ =
+sdkMultiplyFloatTest: () -> Float
+sdkMultiplyFloatTest _ =
     let
         f x y = x * y
     in
