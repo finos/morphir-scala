@@ -1,14 +1,9 @@
-package org.finos.morphir.runtime
+package org.finos.morphir.runtime.quick
 
-
-
-import org.finos.morphir.ir.Type as T
-import org.finos.morphir.ir.Value as V
-import V.*
 import org.finos.morphir.ir.{FQName, Name, Type}
-import org.finos.morphir.ir.Literal.{Literal => Lit}
-import zio.*
-
+import org.finos.morphir.ir.{Value => V}
+import org.finos.morphir.ir.Value.*
+import zio.Chunk
 
 object MapImpl {
 
