@@ -5,6 +5,13 @@ import org.finos.morphir.datamodel.Deriver
 import scala.collection.immutable.ListMap
 import scala.collection.mutable.LinkedHashMap
 
+case class Person(fName: String, lName: Int)
+object Joe {
+  def unapply(p: Person) =
+    if (p.fName == "Joe") Some((p.fName, p.lName))
+    else None
+}
+
 class ToDataOptional extends munit.FunSuite {
   test("Option") {
     assertEquals(

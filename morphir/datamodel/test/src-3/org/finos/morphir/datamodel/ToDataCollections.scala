@@ -19,6 +19,12 @@ class ToDataCollections extends munit.FunSuite {
     )
   }
 
+//  def convert(data: Data): RawValue =
+//    data match {
+//      case Data.Map(values, shape) =>
+//      case Data.Record(values) =>
+//    }
+
   test("Primitive Map") {
     assertEquals(
       Deriver.toData(LinkedHashMap("abc" -> 123, "def" -> 456)),

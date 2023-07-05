@@ -34,10 +34,15 @@ object Data {
    * See notes on Concept.Enum for information on how this type is modelled
    */
   case class Case(
-      value: Data,
-      enumCase: Concept.Enum.Case,
+      values: scala.List[(EnumLabel, Data)],
+      enumLabel: java.lang.String,
       shape: Concept.Enum
-  )
+  ) extends Data
+
+  object Case {
+    def apply(values: (EnumLabel, Data)*)(enumLabel: java.lang.String, shape: Concept.Enum) =
+      new Case(values.toList, enumLabel, shape)
+  }
 
   case class Tuple(values: scala.List[Data]) extends Data {
     val shape: Concept.Tuple = Concept.Tuple(values.map(_.shape))
