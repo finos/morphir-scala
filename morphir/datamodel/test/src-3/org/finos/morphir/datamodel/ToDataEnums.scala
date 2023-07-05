@@ -53,10 +53,9 @@ class ToDataEnums extends munit.FunSuite {
     )
   }
 
-  test("Enum Data 1 - Adv") {
+  test("Enum Data 1 - List of Enums") {
     import EnumData1._
     val listOfEnums = List(Bar, Baz("A"), Baz("B"))
-    println("hello")
     assertEquals(
       Deriver.toData(listOfEnums),
       Data.List(
@@ -66,6 +65,64 @@ class ToDataEnums extends munit.FunSuite {
       )
     )
   }
+
+  test("Enum Data 1 - Sealed Trait In-Class Field") {
+    import EnumData1._
+    case class Stuff(a: String, b: Foo, c: Int)
+    val stuff = Stuff("a_str", Baz("baz_val"), 123)
+    assertEquals(
+      Deriver.toData(stuff),
+      Data.Record(
+        l"a" -> Data.String("a_str"),
+        l"b" -> Case(el"value" -> Data.String("baz_val"))("Baz", concept),
+        l"c" -> Data.Int(123)
+      )
+    )
+  }
+
+  test("Enum Data 1 - Sealed Trait In-Class Subtype") {
+    import EnumData1._
+    // In this case Baz is treated as a product type because the deriver knows nothing about it being a "Foo" instance
+    case class Stuff(a: String, b: Baz, c: Int)
+    val stuff = Stuff("a_str", Baz("baz_val"), 123)
+    assertEquals(
+      Deriver.toData(stuff),
+      Data.Record(
+        l"a" -> Data.String("a_str"),
+        l"b" -> Data.Record(l"value" -> Data.String("baz_val")),
+        l"c" -> Data.Int(123)
+      )
+    )
+  }
+
+  test("Enum Data 1 - Enum In-Class Field") {
+    import EnumData2._
+    case class Stuff(a: String, b: Foo, c: Int)
+    val stuff = Stuff("a_str", Foo.Baz("baz_val"), 123)
+    assertEquals(
+      Deriver.toData(stuff),
+      Data.Record(
+        l"a" -> Data.String("a_str"),
+        l"b" -> Case(el"value" -> Data.String("baz_val"))("Baz", concept),
+        l"c" -> Data.Int(123)
+      )
+    )
+  }
+
+  // Direct-typing on enum-sub-types also not supported yet
+  //  test("Enum Data 1 - Enum In-Class Field") {
+  //    import EnumData2._
+  //    case class Stuff(a: String, b: Foo.Baz, c: Int)
+  //    val stuff = Stuff("a_str", Foo.Baz("baz_val"), 123)
+  //    assertEquals(
+  //      Deriver.toData(stuff),
+  //      Data.Record(
+  //        l"a" -> Data.String("a_str"),
+  //        l"b" -> Case(el"value" -> Data.String("baz_val"))("Baz", concept),
+  //        l"c" -> Data.Int(123)
+  //      )
+  //    )
+  //  }
 
   test("Enum Data 2 - Concept") {
     import EnumData2._
