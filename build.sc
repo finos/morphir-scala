@@ -302,18 +302,21 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         object jvm extends Shared with MorphirJVMModule {
           object test extends ScalaTests with TestModule.Munit {
             def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+            def moduleDeps = super.moduleDeps ++ Agg(testing.munit.jvm)
           }
         }
 
         object js extends Shared with MorphirJSModule {
-          object test extends ScalaTests with TestModule.Munit {
+          object test extends ScalaJSTests with TestModule.Munit {
             def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+            def moduleDeps = super.moduleDeps ++ Agg(testing.munit.js)
           }
         }
 
         object native extends Shared with MorphirNativeModule {
-          object test extends ScalaTests with TestModule.Munit {
+          object test extends ScalaNativeTests with TestModule.Munit {
             def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+            def moduleDeps = super.moduleDeps ++ Agg(testing.munit.native)
           }
         }
       }
