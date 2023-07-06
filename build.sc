@@ -437,6 +437,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
       trait Shared extends MorphirCommonModule {
         def ivyDeps = Agg(
           ivy"io.github.cquiroz::scala-java-time::2.5.0",
+          Deps.com.eed3si9n.expecty.expecty,
           Deps.org.scalameta.munit,
           Deps.org.scalameta.`munit-scalacheck`
         )
