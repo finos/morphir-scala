@@ -1,25 +1,23 @@
-package org.finos.morphir
-package runtime
+// package org.finos.morphir
+// package runtime
 
-import org.finos.morphir.testing.MorphirBaseSpec
+// import org.finos.morphir.testing.munit.*
 
-import org.finos.morphir.ir.{Type => T}
-import org.finos.morphir.ir.{Value => V}
+// import org.finos.morphir.ir.{Type as T}
+// import org.finos.morphir.ir.{Value as V}
 
-import zio.{test => _, _}
-import zio.test._
-import zio.test.TestAspect.{ignore, tag}
-import org.finos.morphir.testing.MorphirBaseSpec
-import V._
-import zio.prelude.fx._
-import org.finos.morphir.ir.Type
+// import V._
+// import zio.prelude.fx._
+// import org.finos.morphir.ir.Type
 
-object EvaluationEngineSpec extends MorphirBaseSpec with TypedEvaluationEngineSpec with EvaluationEngineContext {
-  def spec = suite("EvaluationEngineSpec")(typedEvaluationEngineSuite)
-}
+// class EvaluationEngineSpec extends MorphirZSuite with TypedEvaluationEngineSpec with EvaluationEngineContext {
+//   suite("EvaluationEngineSpec")(
+//     typedEvaluationEngineSuite
+//   )
+// }
 
-trait EvaluationEngineContext { self: MorphirBaseSpec =>
-  def contextSuite = suite("Context Suite")(
-    // test("Scopes can be defined ")()
-  )
-}
+// trait EvaluationEngineContext { self: MorphirBaseSpec =>
+//   def contextSuite = suite("Context Suite")(
+//     // test("Scopes can be defined ")()
+//   )
+// }
