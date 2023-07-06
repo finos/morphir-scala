@@ -38,7 +38,7 @@ private[util] class Macros(val c: whitebox.Context) extends Liftables {
         val message =
           s"""
              |$assertionErrorHeader
-             |You cannot use `wrapAll` if you have a assertion:
+             |You cannot use `wrapAll` if you have an assertion:
              |${show(quotedAssertion)}
              |""".stripMargin
         c.abort(c.enclosingPosition, message)
@@ -90,11 +90,11 @@ private[util] class Macros(val c: whitebox.Context) extends Liftables {
           c.abort(c.enclosingPosition, message)
         } else {
 
-          q"_root_.org.finos.morphir.util.Newtype.unsafeWrapAll(${c.prefix}, _root_.zio.NonEmptyChunk($value, ..$values))"
+          q"_root_.org.finos.morphir.util.Newtype.unsafeWrapAll(${c.prefix}, _root_.org.finos.morphir.util.NonEmptyChunk($value, ..$values))"
         }
 
       case None =>
-        q"_root_.org.finos.morphir.util.Newtype.unsafeWrapAll(${c.prefix}, _root_.zio.NonEmptyChunk($value, ..$values))"
+        q"_root_.org.finos.morphir.util.Newtype.unsafeWrapAll(${c.prefix}, _root_.org.finos.morphir.util.NonEmptyChunk($value, ..$values))"
     }
   }
 
@@ -150,9 +150,9 @@ private[util] class Macros(val c: whitebox.Context) extends Liftables {
     val result = q"_root_.org.finos.morphir.util.Newtype.unsafeWrap(${c.prefix})($expr)"
 
     q"""
-_root_.org.finos.morphir.util.Validation.fromEitherNonEmptyChunk {
+_root_.org.finos.morphir.util.Result.fromEitherNonEmptyChunk {
   ${c.prefix}.assertion.run($value)
-    .left.map(e => _root_.zio.NonEmptyChunk.fromCons(e.toNel($value.toString)))
+    .left.map(e => _root_.org.finos.morphir.util.NonEmptyChunk.fromCons(e.toNel($value.toString)))
 }.as($result)
 """
 
@@ -172,9 +172,9 @@ _root_.org.finos.morphir.util.Validation.fromEitherNonEmptyChunk {
         val result = q"_root_.org.finos.morphir.util.Newtype.unsafeWrapAll(${c.prefix}, $expr)"
         q"""
 $forall.forEach($value) { value =>
-  _root_.org.finos.morphir.util.Validation.fromEitherNonEmptyChunk {
+  _root_.org.finos.morphir.util.Result.fromEitherNonEmptyChunk {
     $quotedAssertion.run(value)
-      .left.map(e => _root_.zio.NonEmptyChunk.fromCons(e.toNel(value.toString)))
+      .left.map(e => _root_.org.finos.morphir.util.NonEmptyChunk.fromCons(e.toNel(value.toString)))
   }
 }.as($result)
 
@@ -182,7 +182,7 @@ $forall.forEach($value) { value =>
 
       case None =>
         val result = q"_root_.org.finos.morphir.util.Newtype.unsafeWrapAll(${c.prefix}, $expr)"
-        q"_root_.org.finos.morphir.util.Validation.succeed($result)"
+        q"_root_.org.finos.morphir.util.Result.succeed($result)"
     }
 
   }
