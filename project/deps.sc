@@ -162,7 +162,7 @@ object Versions {
   val upickle         = "3.0.0-M1"
   val zio             = "2.0.15"
   val `zio-cli`       = "0.5.0"
-  val `zio-json`      = "0.5.0"
+  val `zio-json`      = "0.6.0"
   val `zio-parser`    = "0.1.9"
   val `zio-prelude`   = "1.0.0-RC19"
   val `zio-process`   = "0.7.2"
@@ -176,7 +176,7 @@ object ScalaVersions {
 
   def scalaJSVersion     = "1.13.1"
   def scalaNativeVersion = "0.4.14"
-  def millScalaVersion = "2.13.10"
+  def millScalaVersion   = "2.13.10"
 }
 
 object MillVersions {

@@ -120,19 +120,17 @@ object Concept {
    *   )
    * }}}
    */
-  case class Enum(cases: scala.List[Enum.Case]) extends Concept
+  case class Enum(name: java.lang.String, cases: scala.List[Enum.Case]) extends Concept
 
   object Enum {
-    case class Case(label: Label, fields: scala.List[Case.Field])
+    def apply(name: java.lang.String, cases: Enum.Case*) =
+      new Enum(name, cases.toList)
+
+    case class Case(label: Label, fields: scala.List[(EnumLabel, Concept)])
 
     object Case {
-      sealed trait Field
-
-      object Field {
-        case class Named(label: Label, value: Concept) extends Field
-
-        case class Anon(value: Concept) extends Field
-      }
+      def apply(label: Label, fields: (EnumLabel, Concept)*) =
+        new Case(label, fields.toList)
     }
   }
 
