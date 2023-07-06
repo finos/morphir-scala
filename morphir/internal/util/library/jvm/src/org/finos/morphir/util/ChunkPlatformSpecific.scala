@@ -71,4 +71,3 @@ private[util] trait ChunkPlatformSpecific {
     private val CharClassBox    = classOf[java.lang.Character]
   }
 }
-

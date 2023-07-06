@@ -444,6 +444,8 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
           Deps.org.scalameta.munit,
           Deps.org.scalameta.`munit-scalacheck`
         )
+
+        def platformSpecificModuleDeps = Seq(testing.munit.macros)
       }
 
       object jvm extends Shared with MorphirJVMModule {
@@ -454,6 +456,31 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
       }
       object native extends Shared with MorphirNativeModule {
         object test extends ScalaNativeTests with TestModule.Munit
+      }
+
+      object macros extends CrossPlatform with CrossValue {
+        trait Shared extends MorphirCommonModule {
+          def compileIvyDeps = T {
+            super.compileIvyDeps() ++ Agg.when(scalaVersion().startsWith("2."))(
+              Deps.org.`scala-lang`.`scala-reflect`(scalaVersion()),
+              Deps.org.`scala-lang`.`scala-compiler`(scalaVersion())
+            )
+          }
+
+          def ivyDeps = super.ivyDeps() ++ Agg(
+            ivy"io.github.cquiroz::scala-java-time::2.5.0",
+            Deps.org.scalameta.munit,
+            Deps.org.scalameta.`munit-scalacheck`
+          )
+
+          def scalacOptions = T {
+            super.scalacOptions().concatIf(isScala213())("-language:experimental.macros")
+          }
+        }
+
+        object jvm extends Shared with MorphirJVMModule
+        object js extends Shared with MorphirJSModule 
+        object native extends Shared with MorphirNativeModule
       }
 
       object zio extends CrossPlatform {

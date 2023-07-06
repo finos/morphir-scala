@@ -7,8 +7,8 @@ import scala.collection.immutable.ListMap
 import com.eed3si9n.expecty.Expecty.expect
 
 class MorphirRecordSuite extends MorphirTestSuite {
-  describe("MorphirRecord Spec"){
-    describe("canEqual"){
+  describe("MorphirRecord Spec") {
+    describe("canEqual") {
       test("Should be true with any other MorphirRecord") {
         val record1 =
           MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
@@ -24,11 +24,11 @@ class MorphirRecordSuite extends MorphirTestSuite {
         assertEquals(record.canEqual("Some string"), false)
         assertEquals(record.canEqual(6), false)
         assertEquals(record.canEqual(true), false)
-        
-      }
-  }
 
-    describe("equals"){
+      }
+    }
+
+    describe("equals") {
       test("Should be true with the same or with similar record") {
         val record1 =
           MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
@@ -38,7 +38,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
         assertEquals(record1.equals(record1), true)
         assertEquals(record1.equals(record2), true)
         assertEquals(record2.equals(record1), true)
-      
+
       }
       test("Should be false with a different record") {
         val record1 =
@@ -46,14 +46,13 @@ class MorphirRecordSuite extends MorphirTestSuite {
         val record2 = MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26))
         val record3 = MorphirRecord(ListMap(Name.fromString("age") -> 26))
 
-        
-        assertEquals(record1.equals(record2) ,false)
-        assertEquals(record2.equals(record1) ,false)
-        assertEquals(record1.equals(record3) ,false)
-        assertEquals(record3.equals(record1) ,false)
-        assertEquals(record2.equals(record3) ,false)
+        assertEquals(record1.equals(record2), false)
+        assertEquals(record2.equals(record1), false)
+        assertEquals(record1.equals(record3), false)
+        assertEquals(record3.equals(record1), false)
+        assertEquals(record2.equals(record3), false)
         assertEquals(record3.equals(record2), false)
-        
+
       }
       test("Should be true with a similar record in different field order") {
         val record1 = MorphirRecord(
@@ -75,10 +74,9 @@ class MorphirRecordSuite extends MorphirTestSuite {
           Some("DATA")
         )
 
-        
         assertEquals(record1.equals(record2), true)
         assertEquals(record2.equals(record1), true)
-        
+
       }
       test("Should be false with other types") {
         val record = MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26))
@@ -87,11 +85,11 @@ class MorphirRecordSuite extends MorphirTestSuite {
           record.equals("Some string") == false,
           record.equals(6) == false,
           record.equals(true) == false
-        )        
+        )
       }
-    } 
+    }
 
-    describe("hashCode"){
+    describe("hashCode") {
       test("Should be equal with the same or similar record") {
         val record1 =
           MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
@@ -143,14 +141,14 @@ class MorphirRecordSuite extends MorphirTestSuite {
           record.hashCode != 26.hashCode,
           record.hashCode != true.hashCode
         )
-        
+
       }
     }
 
     test("productArity should return as expected") {
       val record = MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26))
 
-      assertEquals(record.productArity,2)
+      assertEquals(record.productArity, 2)
     }
 
     test("getField should return as expected") {
@@ -163,7 +161,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
       )
     }
 
-    describe("setField"){
+    describe("setField") {
       test("Should return a modified record when key is one of the record's fields") {
         val name      = Name.fromString("name")
         val age       = Name.fromString("age")
@@ -215,7 +213,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
       }
     }
 
-    describe("setFields"){
+    describe("setFields") {
       test("Should return a modified record when keys are in the record's map") {
         val name     = Name.fromString("name")
         val age      = Name.fromString("age")
@@ -303,7 +301,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
         record.productElementName(3) == "weight"
       )
     }
-    describe("copy"){
+    describe("copy") {
       test("Should return the modified record with the same fields' order when all keys are in the record's map ") {
         val name     = Name.fromString("name")
         val age      = Name.fromString("age")
@@ -313,13 +311,12 @@ class MorphirRecordSuite extends MorphirTestSuite {
         val modified = record.copy(age = 33, name = "Diana", weight = 140)
         val expected = MorphirRecord(ListMap(name -> "Diana", age -> 33, height -> 1.72, weight -> 140), Some("Person"))
 
-        
-        assertEquals(modified,expected)
+        assertEquals(modified, expected)
         assertEquals(modified.productElementName(0), expected.productElementName(0))
         assertEquals(modified.productElementName(1), expected.productElementName(1))
         assertEquals(modified.productElementName(2), expected.productElementName(2))
         assertEquals(modified.productElementName(3), expected.productElementName(3))
-        
+
       }
       test("Should should return the record's copy when there are no parameters keeping the field order") {
         val name     = Name.fromString("name")
@@ -332,7 +329,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
         assertEquals(modified.productElementName(0), record.productElementName(0))
         assertEquals(modified.productElementName(1), record.productElementName(1))
         assertEquals(modified.productElementName(2), record.productElementName(2))
-        
+
       }
     }
     test("Should allow calling by field name") {
@@ -342,10 +339,10 @@ class MorphirRecordSuite extends MorphirTestSuite {
       val color  = Name.fromString("color")
       val record = new MorphirRecord(ListMap(movie -> "Avatar", number -> 6, team -> "Knicks", color -> "Blue"))
 
-      assertEquals(record.movie , "Avatar")
+      assertEquals(record.movie, "Avatar")
       assertEquals(record.number, 6)
-      assertEquals(record.team  , "Knicks")
-      assertEquals(record.color , "Blue")
+      assertEquals(record.team, "Knicks")
+      assertEquals(record.color, "Blue")
     }
     test("Should work with nested records") {
       val movie     = Name.fromString("movie")
@@ -361,7 +358,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
         )
       val record = MorphirRecord(ListMap(name -> "Sophia", favorites -> favoritesRecord))
 
-      assertEquals(record.name,"Sophia")
+      assertEquals(record.name, "Sophia")
       assertEquals(record.favorites, favoritesRecord)
       assertEquals(record.favorites.asInstanceOf[MorphirRecord].movie, "Avatar")
       assertEquals(record.favorites.asInstanceOf[MorphirRecord].number, 3)

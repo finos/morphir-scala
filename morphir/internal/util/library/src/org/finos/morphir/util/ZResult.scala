@@ -1,7 +1,7 @@
 package org.finos.morphir.util
 import ZResult.*
 
-sealed trait ZResult[+W,+E,+A] { self =>  
+sealed trait ZResult[+W, +E, +A] { self =>
 
   /**
    * A symbolic alias for `zipParLeft`.
@@ -19,24 +19,24 @@ sealed trait ZResult[+W,+E,+A] { self =>
   final def <&>[W1 >: W, E1 >: E, B](that: => ZResult[W1, E1, B]): ZResult[W1, E1, (A, B)] = zipPar(that)
 
   /**
-   * A symbolic alias for `log`.        
+   * A symbolic alias for `log`.
    */
-  final def ??[W1 >: W](entry: W1): ZResult[W1,E,A] = log(entry)
+  final def ??[W1 >: W](entry: W1): ZResult[W1, E, A] = log(entry)
 
   /**
    * Maps the successful value of this `ZResult` to the specified constant value.
    */
-  final def as[B](b: => B): ZResult[W,E,B] = map(_ => b)
+  final def as[B](b: => B): ZResult[W, E, B] = map(_ => b)
 
   /**
    * Maps the error value of this `ZResult` to the specified constant value.
    */
-  final def asError[E2](e: => E2): ZResult[W,E2,A] = mapError(_ => e)
+  final def asError[E2](e: => E2): ZResult[W, E2, A] = mapError(_ => e)
 
   /**
    * Returns the value, because no eror has occurred.
    */
-  final def get(implicit ev: E <:< Nothing):A = self.asInstanceOf[Success[W,A]].value
+  final def get(implicit ev: E <:< Nothing): A = self.asInstanceOf[Success[W, A]].value
 
   /**
    * Returns the value, if successful, otherwise returns the `fallback` value.
@@ -47,22 +47,23 @@ sealed trait ZResult[+W,+E,+A] { self =>
   }
 
   /**
-   * Transforms the value of this `ZResult` with the specified result returning 
-   * function if it is a success or returns the value unchanged otherwise.
+   * Transforms the value of this `ZResult` with the specified result returning function if it is a success or returns
+   * the value unchanged otherwise.
    */
-  def flatMap[W1 >: W, E1 >: E, B](f: A => ZResult[W1, E1, B]):ZResult[W1, E1, B] = self match {
+  def flatMap[W1 >: W, E1 >: E, B](f: A => ZResult[W1, E1, B]): ZResult[W1, E1, B] = self match {
     case Failure(log, errors) => Failure(log, errors)
-    case Success(log, value)  => 
+    case Success(log, value) =>
       f(value) match {
         case Failure(logR, errors) => Failure(log ++ logR, errors)
-        case Success(logR, value) => Success(log ++ logR, value)
+        case Success(logR, value)  => Success(log ++ logR, value)
       }
   }
 
   /**
-   * Flattens nested `ZResult`s.   
+   * Flattens nested `ZResult`s.
    */
-  final def flatten[W1 >: W, E1 >: E, B](implicit ev: A <:< ZResult[W1, E1, B]): ZResult[W1, E1, B] = self.flatMap(a => ev(a))
+  final def flatten[W1 >: W, E1 >: E, B](implicit ev: A <:< ZResult[W1, E1, B]): ZResult[W1, E1, B] =
+    self.flatMap(a => ev(a))
 
   /**
    * Folds over the error and success values of this `ZResult`.
@@ -75,7 +76,7 @@ sealed trait ZResult[+W,+E,+A] { self =>
   /**
    * Writes an entry to the log.
    */
-  final def log[W1 >: W](entry: W1): ZResult[W1,E,A] = self match {
+  final def log[W1 >: W](entry: W1): ZResult[W1, E, A] = self match {
     case Failure(log, errors) => Failure(log :+ entry, errors)
     case Success(log, value)  => Success(log :+ entry, value)
   }
@@ -83,7 +84,7 @@ sealed trait ZResult[+W,+E,+A] { self =>
   /**
    * Transforms the successful value of this `ZResult` with the specified function `f`.
    */
-  final def map[B](f: A => B): ZResult[W,E,B] = self match {
+  final def map[B](f: A => B): ZResult[W, E, B] = self match {
     case Failure(log, errors) => Failure(log, errors)
     case Success(log, value)  => Success(log, f(value))
   }
@@ -91,39 +92,39 @@ sealed trait ZResult[+W,+E,+A] { self =>
   /**
    * Transforms the error value of this `ZResult` with the specified function `f`.
    */
-  final def mapError[E1](f: E => E1): ZResult[W,E1,A] = self match {
+  final def mapError[E1](f: E => E1): ZResult[W, E1, A] = self match {
     case Failure(log, errors) => Failure(log, errors.map(f))
     case Success(log, value)  => Success(log, value)
   }
 
   /**
-   * Transforms the log entries of this `ZResult` with the specified function `f`.   
+   * Transforms the log entries of this `ZResult` with the specified function `f`.
    */
-  final def mapLog[W2](f: W => W2): ZResult[W2,E,A] = self match {
+  final def mapLog[W2](f: W => W2): ZResult[W2, E, A] = self match {
     case Failure(log, errors) => Failure(log.map(f), errors)
     case Success(log, value)  => Success(log.map(f), value)
   }
 
   /**
-   * Transforms all the log entries of this `ZResult` with the specified function `f`.   
+   * Transforms all the log entries of this `ZResult` with the specified function `f`.
    */
-  final def mapLogAll[W2](f: Chunk[W] => Chunk[W2]): ZResult[W2,E,A] = self match {
+  final def mapLogAll[W2](f: Chunk[W] => Chunk[W2]): ZResult[W2, E, A] = self match {
     case Failure(log, errors) => Failure(f(log), errors)
     case Success(log, value)  => Success(f(log), value)
   }
 
-  def runLog[B]:(Chunk[W], Either[NonEmptyChunk[E], A]) = self match {
+  def runLog[B]: (Chunk[W], Either[NonEmptyChunk[E], A]) = self match {
     case Failure(log, errors) => (log, Left(errors))
     case Success(log, value)  => (log, Right(value))
   }
 
   final def orElse[W1 >: W, E1, A1 >: A](that: ZResult[W1, E1, A1]): ZResult[W1, E1, A1] = self match {
     case Failure(log, errors) => that.mapLogAll(log ++ _)
-    case Success(log, value) => Success(log, value)
+    case Success(log, value)  => Success(log, value)
   }
 
   final def orElseLog[W1 >: W, E1, A1 >: A](
-    that: ZResult[W1, E1, A1]
+      that: ZResult[W1, E1, A1]
   )(implicit ev: E <:< W1): ZResult[W1, E1, A1] =
     self match {
       case Failure(log, errors) => that.mapLogAll(log ++ errors.map(ev) ++ _)
@@ -136,46 +137,40 @@ sealed trait ZResult[+W,+E,+A] { self =>
   final def toEither: Either[NonEmptyChunk[E], A] = fold(Left(_), Right(_))
 
   /**
-   * Transforms this `ZResult` into an `Option`, discarding information about
-   * the errors and the log.
+   * Transforms this `ZResult` into an `Option`, discarding information about the errors and the log.
    */
   final def toOption: Option[A] = fold(_ => None, Some(_))
 
   /**
    * Transforms this `ZResult` into a `Try`, discarding all but the first error and the log.
    */
-  final def toTry(implicit ev: E <:< Throwable): scala.util.Try[A] = fold(es => scala.util.Failure(es.head), scala.util.Success(_))
-
+  final def toTry(implicit ev: E <:< Throwable): scala.util.Try[A] =
+    fold(es => scala.util.Failure(es.head), scala.util.Success(_))
 
   /**
-   * Combines this `ZResult` with the specified `ZResult`, returning a
-   * tuple of their results. Returns either the combined result if both were
-   * successes or otherwise returns a failure with all errors.
+   * Combines this `ZResult` with the specified `ZResult`, returning a tuple of their results. Returns either the
+   * combined result if both were successes or otherwise returns a failure with all errors.
    */
   final def zipPar[W1 >: W, E1 >: E, B](that: ZResult[W1, E1, B]): ZResult[W1, E1, (A, B)] =
     zipWithPar(that)((_, _))
 
   /**
-   * A variant of `zipPar` that keeps only the left success value, but returns
-   * a failure with all errors if either this `ZResult` or the specified
-   * `ZResult` fail.
+   * A variant of `zipPar` that keeps only the left success value, but returns a failure with all errors if either this
+   * `ZResult` or the specified `ZResult` fail.
    */
   final def zipParLeft[W1 >: W, E1 >: E, B](that: ZResult[W1, E1, B]): ZResult[W1, E1, A] =
     zipWithPar(that)((a, _) => a)
 
   /**
-   * A variant of `zipPar` that keeps only the right success value, but returns
-   * a failure with all errors if either this `ZResult` or the specified
-   * `ZResult` fail.
+   * A variant of `zipPar` that keeps only the right success value, but returns a failure with all errors if either this
+   * `ZResult` or the specified `ZResult` fail.
    */
   final def zipParRight[W1 >: W, E1 >: E, B](that: ZResult[W1, E1, B]): ZResult[W1, E1, B] =
     zipWithPar(that)((_, b) => b)
 
   /**
-   * Combines this `ZResult` with the specified `ZResult`, using the
-   * function `f` to combine their success values. Returns either the combined
-   * result if both were successes or otherwise returns a failure with all
-   * errors.
+   * Combines this `ZResult` with the specified `ZResult`, using the function `f` to combine their success values.
+   * Returns either the combined result if both were successes or otherwise returns a failure with all errors.
    */
   final def zipWithPar[W1 >: W, E1 >: E, B, C](that: ZResult[W1, E1, B])(f: (A, B) => C): ZResult[W1, E1, C] =
     (self, that) match {
@@ -187,12 +182,12 @@ sealed trait ZResult[+W,+E,+A] { self =>
 }
 
 object ZResult {
-  final case class Failure[+W,+E](log:Chunk[W], errors:NonEmptyChunk[E]) extends ZResult[W,E,Nothing]
-  final case class Success[+W,+A](log:Chunk[W], value:A) extends ZResult[W,Nothing,A]  
+  final case class Failure[+W, +E](log: Chunk[W], errors: NonEmptyChunk[E]) extends ZResult[W, E, Nothing]
+  final case class Success[+W, +A](log: Chunk[W], value: A)                 extends ZResult[W, Nothing, A]
 
   /**
-   * Attempts to evaluate the specified value, catching any error that occurs
-   * during evaluation and capturing it as a failure.
+   * Attempts to evaluate the specified value, catching any error that occurs during evaluation and capturing it as a
+   * failure.
    */
   def apply[A](a: => A): Result[Throwable, A] =
     try succeed(a)
@@ -208,11 +203,10 @@ object ZResult {
     Failure(Chunk.empty, NonEmptyChunk(error))
 
   /**
-   * Constructs a `ZResult` that fails with the specified `NonEmptyChunk`
-   * of errors.
+   * Constructs a `ZResult` that fails with the specified `NonEmptyChunk` of errors.
    */
   def failNonEmptyChunk[E](errors: NonEmptyChunk[E]): Result[E, Nothing] =
-    Failure(Chunk.empty, errors)    
+    Failure(Chunk.empty, errors)
 
   /**
    * Constructs a `ZResult` from an `Either`.
@@ -221,8 +215,7 @@ object ZResult {
     value.fold(fail, succeed)
 
   /**
-   * Constructs a `ZResult` from an `Either` that fails with a
-   * `NonEmptyChunk` of errors.
+   * Constructs a `ZResult` from an `Either` that fails with a `NonEmptyChunk` of errors.
    */
   def fromEitherNonEmptyChunk[E, A](value: Either[NonEmptyChunk[E], A]): Result[E, A] =
     value.fold(failNonEmptyChunk, succeed)
@@ -230,14 +223,13 @@ object ZResult {
   /**
    * Constructs a `ZResult` from an `Option`.
    */
-  def fromOption[A](value:Option[A]): Result[Unit, A] =
+  def fromOption[A](value: Option[A]): Result[Unit, A] =
     value.fold[Result[Unit, A]](fail(()))(succeed)
 
   /**
-   * Constructs a `Result` from an `Option`, failing with the error
-   * provided.
+   * Constructs a `Result` from an `Option`, failing with the error provided.
    */
-  def fromOptionWith[E,A](error: => E)(value:Option[A]): Result[E, A] =
+  def fromOptionWith[E, A](error: => E)(value: Option[A]): Result[E, A] =
     value.fold[Result[E, A]](fail(error))(succeed)
 
   /**
@@ -251,7 +243,7 @@ object ZResult {
    */
   def fromPredicateWith[E, A](error: => E)(value: A)(f: A => Boolean): Result[E, A] =
     if (f(value)) Result.succeed(value)
-    else Result.fail(error)    
+    else Result.fail(error)
 
   /**
    * Constructs a `ZResult` from a `Try`.
@@ -260,11 +252,10 @@ object ZResult {
     value.fold(fail, succeed)
 
   /**
-   * Constructs a `ZResult` that succeeds with the `Unit` value with a log
-   * containing the specified entry.
+   * Constructs a `ZResult` that succeeds with the `Unit` value with a log containing the specified entry.
    */
   def log[W](entry: W): ZResult[W, Nothing, Unit] =
-    Success(Chunk(entry), ())    
+    Success(Chunk(entry), ())
 
   /**
    * Constructs a `Result` that succeeds with the specified value.

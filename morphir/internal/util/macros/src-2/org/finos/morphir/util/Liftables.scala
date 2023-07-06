@@ -135,8 +135,8 @@ trait Liftables {
     def unapply(tree: c.Tree): Option[Assertion.type] =
       tree match {
         case q"org.finos.morphir.internal.util.Assertion" => Some(Assertion)
-        case q"Assertion"             => Some(Assertion)
-        case _                        => None
+        case q"Assertion"                                 => Some(Assertion)
+        case _                                            => None
       }
   }
 

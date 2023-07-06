@@ -7,7 +7,7 @@
  * you may not use this file except in compliance with the License.
  */
 package org.finos.morphir.util
-import org.finos.morphir.util.Macros 
+import org.finos.morphir.util.Macros
 
 /**
  * The `Newtype` module provides functionality for creating zero overhead newtypes. Newtypes wrap an existing type and

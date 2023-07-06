@@ -1,7 +1,7 @@
 package org.finos.morphir.util
 
 object NewtypeTestTypes {
-   type Natural = Natural.Type
+  type Natural = Natural.Type
   object Natural extends Subtype[Int] {
     override def assertion =
       assert(Assertion.greaterThanOrEqualTo(0))
