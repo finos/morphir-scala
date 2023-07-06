@@ -1,6 +1,6 @@
 package org.finos.morphir.testing.munit
 
-trait MorphirTestSuite extends munit.ScalaCheckSuite {
+trait MorphirTestSuite extends munit.ScalaCheckSuite {  
   def describe(name:String)(thunk: => Unit): Unit = {
     val countBefore = munitTestsBuffer.size
     val _ = thunk
@@ -10,4 +10,9 @@ trait MorphirTestSuite extends munit.ScalaCheckSuite {
     (0 until countRegistered).foreach(_ => munitTestsBuffer.remove(countBefore))
     registered.foreach(t => munitTestsBuffer += t.withName(s"$name - ${t.name}"))
   }
+
+  /**
+    * An alias for `describe`.    
+    */
+  def suite(name:String)(thunk: => Unit): Unit = describe(name)(thunk)
 }
