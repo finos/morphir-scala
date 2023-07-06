@@ -1,15 +1,13 @@
-package org.finos.morphir
-package runtime
+package org.finos.morphir.runtime
 
-import ir.Name
-import org.finos.morphir.testing.MorphirBaseSpec
+import org.finos.morphir.ir.Name
+import org.finos.morphir.testing.MorphirTestSuite
 
 import scala.collection.immutable.ListMap
-import zio.test.*
 
-object MorphirRecordSpec extends MorphirBaseSpec {
-  def spec = suite("MorphirRecord Spec")(
-    suite("canEqual")(
+object MorphirRecordSpec extends MorphirTestSuite {
+  describe("MorphirRecord Spec")(
+    describe("canEqual")(
       test("Should be true with any other MorphirRecord") {
         val record1 =
           MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
@@ -31,7 +29,7 @@ object MorphirRecordSpec extends MorphirBaseSpec {
         )
       }
     ),
-    suite("equals")(
+    describe("equals")(
       test("Should be true with the same or with similar record") {
         val record1 =
           MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
@@ -94,7 +92,7 @@ object MorphirRecordSpec extends MorphirBaseSpec {
         )
       }
     ),
-    suite("hashCode")(
+    describe("hashCode")(
       test("Should be equal with the same or similar record") {
         val record1 =
           MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26), Some("Person"))
@@ -217,7 +215,7 @@ object MorphirRecordSpec extends MorphirBaseSpec {
         )
       }
     ),
-    suite("setFields")(
+    describe("setFields")(
       test("Should return a modified record when keys are in the record's map") {
         val name     = Name.fromString("name")
         val age      = Name.fromString("age")
@@ -305,7 +303,7 @@ object MorphirRecordSpec extends MorphirBaseSpec {
         record.productElementName(3) == "weight"
       )
     },
-    suite("copy")(
+    describe("copy")(
       test("Should return the modified record with the same fields' order when all keys are in the record's map ") {
         val name     = Name.fromString("name")
         val age      = Name.fromString("age")

@@ -2,7 +2,6 @@ package org.finos.morphir
 package runtime
 
 import ir.Name
-import EvaluationEngine._
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Literal.Literal._
 import org.finos.morphir.ir.Value.Pattern
