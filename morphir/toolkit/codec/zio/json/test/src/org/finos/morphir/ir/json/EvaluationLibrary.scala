@@ -20,17 +20,17 @@ import zio.json.*
 import org.finos.morphir.ir.json.MorphirJsonSupport.*
 import org.finos.morphir.runtime.quick.{EvaluatorQuick, Store}
 
-case class EvaluationLibrary(store : Store[Unit, Type.UType], modulePrefix : Option[String]){
-  def runTest(moduleName : String, functionName : String, input : Any) : Any = {
+case class EvaluationLibrary(store: Store[Unit, Type.UType], modulePrefix: Option[String]) {
+  def runTest(moduleName: String, functionName: String, input: Any): Any = {
     val fullName = modulePrefix match {
       case Some(prefix) => s"$prefix:$moduleName:$functionName"
-      case None => s"$moduleName:$functionName"
+      case None         => s"$moduleName:$functionName"
     }
     EvaluatorQuick.evalFunction(FQName.fromString(fullName), store, input)
   }
 }
-object EvaluationLibrary{
-  def apply(fileName : String, prefix : Option[String] = None) : EvaluationLibrary = {
+object EvaluationLibrary {
+  def apply(fileName: String, prefix: Option[String] = None): EvaluationLibrary = {
     val text = Source
       .fromFile(fileName)
       .getLines()
@@ -43,5 +43,5 @@ object EvaluationLibrary{
     val store = Store.fromLibrary(library)
     EvaluationLibrary(store, prefix)
   }
-  def apply(fileName : String, prefix : String) : EvaluationLibrary = apply(fileName, Some(prefix))
+  def apply(fileName: String, prefix: String): EvaluationLibrary = apply(fileName, Some(prefix))
 }

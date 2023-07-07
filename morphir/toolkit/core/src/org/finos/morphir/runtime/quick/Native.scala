@@ -7,21 +7,19 @@ import zio.Chunk
 
 import scala.io.Source
 
-
-object Dict{
+object Dict {
   val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
     (l: Result[Unit, Type.UType]) => {
       val list = l.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
       val mapped = list
-        .map(input => {
+        .map { input =>
           val asTuple = input
             .asInstanceOf[Result.Tuple[Unit, Type.UType]]
             .elements
             .asInstanceOf[(Result[Unit, Type.UType], Result[Unit, Type.UType])]
           asTuple._1 -> asTuple._2
         }
-        )
         .toMap
 //      val mapped = list
 //        .asInstanceOf[List[(ResultValue[Unit, Type.UType], ResultValue[Unit, Type.UType])]]
@@ -32,26 +30,28 @@ object Dict{
 
   val get: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
-    (key: Result[Unit, Type.UType], m : Result[Unit, Type.UType]) => {
+    (key: Result[Unit, Type.UType], m: Result[Unit, Type.UType]) => {
       val map = m.asInstanceOf[Result.MapResult[Unit, Type.UType]].elements
       map.get(key) match {
         case Some(value) => Result.ConstructorResult(
-          FQName.fromString("Morphir.SDK:Maybe:just"),
-          List(value))
+            FQName.fromString("Morphir.SDK:Maybe:just"),
+            List(value)
+          )
         case None => Result.ConstructorResult(
-          FQName.fromString("Morphir.SDK:Maybe:nothing"),
-          List())
+            FQName.fromString("Morphir.SDK:Maybe:nothing"),
+            List()
+          )
       }
     }
   )
 
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:Dict:fromList") -> fromList,
-    FQName.fromString("Morphir.SDK:Dict:get") -> get
+    FQName.fromString("Morphir.SDK:Dict:get")      -> get
   )
 }
 
-object String{
+object String {
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
@@ -64,7 +64,7 @@ object String{
   )
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:String:append") -> append,
-    FQName.fromString("Morphir.SDK:String:right") -> right,
+    FQName.fromString("Morphir.SDK:String:right")  -> right
   )
 }
 object Native {
@@ -92,12 +92,10 @@ object Native {
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.unwrap(a) match {
-        case l : Long => {
+        case l: Long =>
           Result.Primitive(l / Result.unwrap(b).asInstanceOf[Long])
-        }
-        case l: Double => {
+        case l: Double =>
           Result.Primitive(l / Result.unwrap(b).asInstanceOf[Double])
-        }
       }
   )
   val negate: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
@@ -137,7 +135,7 @@ object Native {
   val concat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
     (l: Result[Unit, Type.UType]) => {
-      val list = l.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
+      val list      = l.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
       val flattened = list.flatMap(inner => inner.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements)
       Result.ListResult(flattened)
     }
@@ -153,31 +151,30 @@ object Native {
 //    }
 //  )
 
-
   val pi: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.Primitive(3L))
 
-  val just : SDKConstructor[Unit, Type.UType] = SDKConstructor(List(Type.variable("contents")))
+  val just: SDKConstructor[Unit, Type.UType]    = SDKConstructor(List(Type.variable("contents")))
   val nothing: SDKConstructor[Unit, Type.UType] = SDKConstructor(List())
 
   val nativeCtors: Map[FQName, SDKConstructor[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:Maybe:just") -> just,
-    FQName.fromString("Morphir.SDK:Maybe:nothing") -> nothing,
+    FQName.fromString("Morphir.SDK:Maybe:just")    -> just,
+    FQName.fromString("Morphir.SDK:Maybe:nothing") -> nothing
   )
 
   val native: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:Basics:and") -> and,
-    FQName.fromString("Morphir.SDK:Basics:or") -> or,
-    FQName.fromString("Morphir.SDK:Basics:pi") -> pi,
-    FQName.fromString("Morphir.SDK:Basics:add") -> plus,
+    FQName.fromString("Morphir.SDK:Basics:and")      -> and,
+    FQName.fromString("Morphir.SDK:Basics:or")       -> or,
+    FQName.fromString("Morphir.SDK:Basics:pi")       -> pi,
+    FQName.fromString("Morphir.SDK:Basics:add")      -> plus,
     FQName.fromString("Morphir.SDK:Basics:subtract") -> subtract,
-    FQName.fromString("Morphir.SDK:Basics:divide") -> divide,
-    FQName.fromString("Morphir.SDK:Basics:negate") -> negate,
-    FQName.fromString("Morphir.SDK:Basics:toFloat") -> toFloat,
-    FQName.fromString("Morphir.SDK:Basics:logBase") -> log,
+    FQName.fromString("Morphir.SDK:Basics:divide")   -> divide,
+    FQName.fromString("Morphir.SDK:Basics:negate")   -> negate,
+    FQName.fromString("Morphir.SDK:Basics:toFloat")  -> toFloat,
+    FQName.fromString("Morphir.SDK:Basics:logBase")  -> log,
     FQName.fromString("Morphir.SDK:Basics:lessThan") -> lessThan,
-    FQName.fromString("Morphir.SDK:List:cons") -> cons,
-    FQName.fromString("Morphir.SDK:List:concat") -> concat,
-    FQName.fromString("Morphir.SDK:List:map") -> map,
+    FQName.fromString("Morphir.SDK:List:cons")       -> cons,
+    FQName.fromString("Morphir.SDK:List:concat")     -> concat,
+    FQName.fromString("Morphir.SDK:List:map")        -> map
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
   ) ++ Dict.sdk ++ String.sdk
 }

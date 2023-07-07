@@ -8,15 +8,13 @@ import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.{FQName, Module, Name, QName, Type}
 import zio.Chunk
 
-
-
 sealed trait SDKValue[TA, VA]
 
 case class SDKConstructor[TA, VA](arguments: List[VA])
 object SDKValue {
   case class SDKValueDefinition[TA, VA](definition: Definition[TA, VA]) extends SDKValue[TA, VA]
-  case class SDKNativeFunction[TA, VA](arguments: Int, function: Any) extends SDKValue[TA, VA]
-  case class SDKNativeValue[TA, VA](value: Result[TA, VA]) extends SDKValue[TA, VA]
+  case class SDKNativeFunction[TA, VA](arguments: Int, function: Any)   extends SDKValue[TA, VA]
+  case class SDKNativeValue[TA, VA](value: Result[TA, VA])              extends SDKValue[TA, VA]
 }
 
 sealed trait StoredValue[TA, VA]
@@ -43,9 +41,13 @@ final case class CallStackFrame[TA, VA](
     CallStackFrame[TA, VA](bindings, Some(this))
 }
 
-final case class Store[TA, VA](definitions: Map[FQName, SDKValue[TA, VA]], ctors : Map[FQName, SDKConstructor[TA, VA]], callStack: CallStackFrame[TA, VA]) {
-  def getVariable(name: Name): Option[StoredValue[TA, VA]]   = callStack.get(name)
-  def getDefinition(name: FQName): Option[SDKValue[TA, VA]]    = definitions.get(name)
+final case class Store[TA, VA](
+    definitions: Map[FQName, SDKValue[TA, VA]],
+    ctors: Map[FQName, SDKConstructor[TA, VA]],
+    callStack: CallStackFrame[TA, VA]
+) {
+  def getVariable(name: Name): Option[StoredValue[TA, VA]]  = callStack.get(name)
+  def getDefinition(name: FQName): Option[SDKValue[TA, VA]] = definitions.get(name)
   def getCtor(name: FQName): Option[SDKConstructor[TA, VA]] = ctors.get(name)
 
   def push(bindings: Map[Name, StoredValue[TA, VA]]) = Store(definitions, ctors, callStack.push(bindings))
@@ -57,15 +59,16 @@ object Store {
     val valueBindings = lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
       accessControlledModule.value.values.map {
         case (localName, accessControlledValue) =>
-          val name = FQName(packageName.toPath, moduleName.toPath, localName)
+          val name       = FQName(packageName.toPath, moduleName.toPath, localName)
           val definition = accessControlledValue.value.value
-          val sdkDef = SDKValue.SDKValueDefinition(definition)
+          val sdkDef     = SDKValue.SDKValueDefinition(definition)
           (name, sdkDef)
       }
     }
 
-    val ctorBindings : Map[FQName, SDKConstructor[Unit, Type.UType]]= lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
-      accessControlledModule.value.types.flatMap {
+    val ctorBindings: Map[FQName, SDKConstructor[Unit, Type.UType]] =
+      lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
+        accessControlledModule.value.types.flatMap {
           case (localName, accessControlledType) =>
             val definition = accessControlledType.value.value
             definition match {
@@ -77,8 +80,8 @@ object Store {
                 }
               case Type.Definition.TypeAlias(_, _) => Map.empty
             }
+        }
       }
-    }
     Store(valueBindings ++ Native.native, ctorBindings ++ Native.nativeCtors, CallStackFrame(Map(), None))
   }
 
@@ -98,6 +101,6 @@ object Store {
       FQName.fromString("Morphir.SDK:Basics:add")      -> plus,
       FQName.fromString("Morphir.SDK:Basics:lessThan") -> lessThan
     )
-    Store(native, Map(),  CallStackFrame(Map(), None))
+    Store(native, Map(), CallStackFrame(Map(), None))
   }
 }

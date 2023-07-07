@@ -6,7 +6,7 @@ import zio.test.{test, *}
 
 object EvaluatorElmTests extends MorphirBaseSpec {
   val lib = EvaluationLibrary("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json", "Morphir.Examples.App")
-  def runTest(moduleName : String, functionName : String) = lib.runTest(moduleName, functionName, ())
+  def runTest(moduleName: String, functionName: String) = lib.runTest(moduleName, functionName, ())
   def spec =
     suite("Json Evaluation")(
       suite("Constructor Tests")(
@@ -41,7 +41,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
       ),
       suite("Destructure Tests")(
         test("As") {
-          val actual   =runTest("destructureTests", "destructureAsTest")
+          val actual   = runTest("destructureTests", "destructureAsTest")
           val expected = 5
           assertTrue(actual == expected)
         },
@@ -178,7 +178,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
           assertTrue(actual == expected)
         },
         test("Only runs if applied") {
-          val actual   =runTest("letDefinitionTests", "letDefinitionDoNotRunTest")
+          val actual   = runTest("letDefinitionTests", "letDefinitionDoNotRunTest")
           val expected = "Correct"
           assertTrue(actual == expected)
         },
@@ -268,7 +268,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
           assertTrue(actual == expected)
         },
         test("Curried Log") {
-          val actual = runTest("nativeReferenceTests", "nativeReferenceCurriedLogTest")
+          val actual   = runTest("nativeReferenceTests", "nativeReferenceCurriedLogTest")
           val expected = Double.PositiveInfinity
           assertTrue(actual == expected)
         },
@@ -390,7 +390,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
           assertTrue(actual == expected)
         },
         test("Nested Tuple") {
-          val actual = runTest("tupleTests", "tupleNestedTest")
+          val actual   = runTest("tupleTests", "tupleNestedTest")
           val expected = (5L, ("Four", (4L, "Five")))
           assertTrue(actual == expected)
         }
