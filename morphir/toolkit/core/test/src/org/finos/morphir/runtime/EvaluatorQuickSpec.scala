@@ -13,11 +13,11 @@ import zio.test.*
 import zio.test.Assertion.{equalTo, fails}
 import zio.test.TestAspect.{ignore, tag}
 import org.finos.morphir.ir.{FQName, Name, Type}
-
-import EvaluatorQuick.*
+import org.finos.morphir.runtime.quick.EvaluatorQuick.*
 import V.*
 import org.finos.morphir.ir.Type
-import org.finos.morphir.ir.Literal.{Literal => Lit}
+import org.finos.morphir.ir.Literal.Literal as Lit
+import org.finos.morphir.runtime.quick.{EvaluatorQuick, Store}
 
 object EvaluatorQuickSpec extends MorphirBaseSpec {
   def eval(v: TypedValue) =

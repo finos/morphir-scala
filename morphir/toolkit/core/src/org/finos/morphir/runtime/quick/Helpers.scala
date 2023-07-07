@@ -1,11 +1,17 @@
-package org.finos.morphir
-package runtime
+package org.finos.morphir.runtime.quick
 
-import ir.Name
 import org.finos.morphir.ir.Literal.Lit
-import org.finos.morphir.ir.Literal.Literal._
-import org.finos.morphir.ir.Value.Pattern
+import org.finos.morphir.ir.Literal.Literal.{
+  BoolLiteral,
+  CharLiteral,
+  DecimalLiteral,
+  FloatLiteral,
+  StringLiteral,
+  WholeNumberLiteral
+}
+import org.finos.morphir.ir.Name
 import org.finos.morphir.ir.{Value => V}
+import org.finos.morphir.ir.Value.Pattern.*
 
 object Helpers {
 
@@ -20,41 +26,40 @@ object Helpers {
 
   def matchPatternCase[TA, VA](
       pattern: V.Pattern[VA],
-      value: ResultValue[TA, VA]
-  ): Option[Map[Name, ResultValue[TA, VA]]] = {
-    import V.Pattern._
+      value: Result[TA, VA]
+  ): Option[Map[Name, Result[TA, VA]]] =
     (pattern, value) match {
       case (_: WildcardPattern[VA], _) => Some(Map.empty)
       case (AsPattern(_, innerPattern, name), innerValue) =>
         matchPatternCase(innerPattern, value).map(innerBindings => innerBindings + (name -> innerValue))
-      case (_: UnitPattern[VA], ResultValue.Unit()) => Some(Map.empty)
-      case (LiteralPattern(_, literal), ResultValue.Primitive(innerValue)) if unpackLit(literal) == innerValue =>
+      case (_: UnitPattern[VA], Result.Unit()) => Some(Map.empty)
+      case (LiteralPattern(_, literal), Result.Primitive(innerValue)) if unpackLit(literal) == innerValue =>
         Some(Map.empty)
-      case (_: EmptyListPattern[VA], ResultValue.ListResult(List())) => Some(Map.empty)
-      case (HeadTailPattern(_, headPattern, tailPattern), ResultValue.ListResult(head :: tail)) =>
+      case (_: EmptyListPattern[VA], Result.ListResult(List())) => Some(Map.empty)
+      case (HeadTailPattern(_, headPattern, tailPattern), Result.ListResult(head :: tail)) =>
         for {
           headBindings <- matchPatternCase(headPattern, head)
-          tailBindings <- matchPatternCase(tailPattern, ResultValue.ListResult(tail))
+          tailBindings <- matchPatternCase(tailPattern, Result.ListResult(tail))
         } yield headBindings ++ tailBindings
-      case (TuplePattern(_, patterns), ResultValue.TupleResult(tuple)) =>
+      case (TuplePattern(_, patterns), Result.Tuple(tuple)) =>
         for {
-          listedTuple: List[ResultValue[TA, VA]] <- tupleToList[TA, VA](tuple)
-          res                                    <- matchListOfPatterns(patterns.toList, listedTuple)
+          listedTuple: List[Result[TA, VA]] <- tupleToList[TA, VA](tuple)
+          res                               <- matchListOfPatterns(patterns.toList, listedTuple)
         } yield res
-      case (ConstructorPattern(_, patternName, patterns), ResultValue.ConstructorResult(valueName, values))
+      case (ConstructorPattern(_, patternName, patterns), Result.ConstructorResult(valueName, values))
           if patternName == valueName =>
         matchListOfPatterns(patterns.toList, values)
       // TODO: Destructure records
       case _ => None
     }
-  }
+
   private def matchListOfPatterns[TA, VA](
       patterns: List[V.Pattern[VA]],
-      values: List[ResultValue[TA, VA]]
-  ): Option[Map[Name, ResultValue[TA, VA]]] =
+      values: List[Result[TA, VA]]
+  ): Option[Map[Name, Result[TA, VA]]] =
     for {
       zipped <- if (patterns.length == values.length) Some(patterns.zip(values)) else None
-      res <- zipped.foldLeft(Some(Map.empty): Option[Map[Name, ResultValue[TA, VA]]]) { case (bindings, (p, v)) =>
+      res <- zipped.foldLeft(Some(Map.empty): Option[Map[Name, Result[TA, VA]]]) { case (bindings, (p, v)) =>
         for {
           priorBindings <- bindings
           newBindings   <- matchPatternCase(p, v)
@@ -62,7 +67,7 @@ object Helpers {
       }
     } yield res
 
-  def tupleToList[TA, VA](tuple: Any): Option[List[ResultValue[TA, VA]]] = {
+  def tupleToList[TA, VA](tuple: Any): Option[List[Result[TA, VA]]] = {
     val anyList = tuple match {
       case Tuple1(a)                                     => Some(List(a))
       case (a, b)                                        => Some(List(a, b))
@@ -95,7 +100,7 @@ object Helpers {
         Some(List(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v))
       case _ => None
     }
-    anyList.map(_.map(_.asInstanceOf[ResultValue[TA, VA]]))
+    anyList.map(_.map(_.asInstanceOf[Result[TA, VA]]))
   }
 
   def listToTuple(
