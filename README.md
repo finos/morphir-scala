@@ -1,12 +1,29 @@
-| Project Stage | CI | Release | Snapshot |
-| --- | --- | --- | --- | 
-| [![Project stage][Badge-Stage]][Badge-Stage-Page] | ![CI][Badge-CI] | [![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases] | [![Snapshot Artifacts][Badge-SonatypeSnapshots]][Link-SonatypeSnapshots] |
+# Morphir 
 
-| Slack | Gitpod |
-| --- | --- |
-| [![Badge-Slack]][Link-Slack] | [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/finos/morphir-scala) |
+<a href="https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating">
+    <img src="https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg" />
+</a>
+<a href="https://github.com/finos/morphir-scala/actions">
+    <img src="https://github.com/finos/morphir-scala/workflows/CI/badge.svg" />
+</a>
 
-# Morphir
+<a href="https://finos-lf.slack.com/messages/morphir/">
+    <img src="https://img.shields.io/badge/slack-@finos/morphir-green.svg?logo=slack" />
+</a>
+<a href="https://gitpod.io/#https://github.com/finos/morphir-scala">
+    <img src="https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod" />
+</a>
+
+<a href="https://javadoc.io/doc/org.finos.morphir/morphir-toolkit-core_3/latest/index.html">
+    <img src="https://img.shields.io/badge/Scaladoc-latest-blue" />
+</a>
+<a href="https://index.scala-lang.org/finos/morphir-scala">
+    <img src="https://img.shields.io/maven-central/v/org.finos.morphir/morphir-toolkit-core_3?style=flat-square&color=blue" />
+</a>
+<a href="https://index.scala-lang.org/finos/morphir-scala">
+    <img src="https://img.shields.io/nexus/s/org.finos.morphir/morphir-toolkit-core_3?server=https%3A%2F%2Foss.sonatype.org%2F&label=nexus-snapshots" />
+</a>
+
 
 Morphir is a library of tools that works to capture business logic as data.
 
