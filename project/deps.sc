@@ -1,4 +1,5 @@
 import mill._, scalalib._
+import mill.scalalib.api.ZincWorkerUtil.scalaNativeBinaryVersion
 
 object Deps {
 
@@ -13,7 +14,7 @@ object Deps {
   case object co {
     case object fs2 {
       val `fs2-core` = ivy"co.fs2::fs2-core::${Versions.fs2}"
-      val `fs2-io` = ivy"co.fs2::fs2-io::${Versions.fs2}"
+      val `fs2-io`   = ivy"co.fs2::fs2-io::${Versions.fs2}"
     }
   }
 
@@ -36,6 +37,10 @@ object Deps {
       case object ghik {
         val `silencer-lib`    = ivy"com.github.ghik:::silencer-lib:${Versions.silencer}"
         val `silencer-plugin` = ivy"com.github.ghik:::silencer-plugin:${Versions.silencer}"
+      }
+
+      case object poslegm {
+        val `munit-zio` = ivy"com.github.poslegm::munit-zio::${Versions.`munit-zio`}"
       }
     }
     case object lihaoyi {
@@ -106,7 +111,7 @@ object Deps {
     }
     case object scalameta {
       val munit: mill.scalalib.Dep = ivy"org.scalameta::munit::${Versions.munit}"
-    
+
       val `munit-scalacheck` =
         ivy"org.scalameta::munit-scalacheck::${Versions.munit}"
 
@@ -142,21 +147,22 @@ object Versions {
     }
 
   val coursier        = "2.1.4"
-  val expecty         = "0.16.0" 
+  val expecty         = "0.16.0"
   val fs2             = "3.7.0"
   val geny            = "1.0.0"
   val `izumi-reflect` = "2.3.8"
   val munit           = "1.0.0-M8"
+  val `munit-zio`     = "0.1.1"
   val mainargs        = "0.5.0"
   val `os-lib`        = "0.9.1"
-  val paiges          = "0.4.2"
+  val paiges          = "0.4.3"
   val scribe          = "3.11.5"
   val silencer        = "1.4.2"
   val `tasty-query`   = "0.5.6"
   val upickle         = "3.0.0-M1"
   val zio             = "2.0.15"
   val `zio-cli`       = "0.5.0"
-  val `zio-json`      = "0.5.0"
+  val `zio-json`      = "0.6.0"
   val `zio-parser`    = "0.1.9"
   val `zio-prelude`   = "1.0.0-RC19"
   val `zio-process`   = "0.7.2"
@@ -170,4 +176,12 @@ object ScalaVersions {
 
   def scalaJSVersion     = "1.13.1"
   def scalaNativeVersion = "0.4.14"
+  def millScalaVersion   = "2.13.10"
+}
+
+object MillVersions {
+  val all = Seq("0.10.12", "0.11.0")
+  def millBinaryVersion(millVersion: String) = scalaNativeBinaryVersion(
+    millVersion
+  )
 }

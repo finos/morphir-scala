@@ -7,16 +7,16 @@ object codecs extends SchemaZioJsonSupport with DataZioJsonSupport
 
 trait ZioJsonBaseEncoders {
   implicit val LabelEncoder: JsonEncoder[Label]                    = DeriveJsonEncoder.gen[Label]
+  implicit val EnumLabelEncoder: JsonEncoder[EnumLabel]            = DeriveJsonEncoder.gen[EnumLabel]
   implicit val BasicDataTypeEncoder: JsonEncoder[BasicDataType[_]] = DeriveJsonEncoder.gen[BasicDataType[_]]
 }
 
 trait SchemaZioJsonSupport extends SchemaZioJsonEncoders {}
 
 trait SchemaZioJsonEncoders extends ZioJsonBaseEncoders {
-  implicit val EnumCaseField: JsonEncoder[Concept.Enum.Case.Field] = DeriveJsonEncoder.gen[Concept.Enum.Case.Field]
-  implicit val EnumCaseEncoder: JsonEncoder[Concept.Enum.Case]     = DeriveJsonEncoder.gen[Concept.Enum.Case]
-  implicit val SchemaAliasEncoder: JsonEncoder[Concept.Alias]      = DeriveJsonEncoder.gen[Concept.Alias]
-  implicit val SchemaJsonEncoder: JsonEncoder[Concept]             = DeriveJsonEncoder.gen[Concept]
+  implicit val EnumCaseEncoder: JsonEncoder[Concept.Enum.Case] = DeriveJsonEncoder.gen[Concept.Enum.Case]
+  implicit val SchemaAliasEncoder: JsonEncoder[Concept.Alias]  = DeriveJsonEncoder.gen[Concept.Alias]
+  implicit val SchemaJsonEncoder: JsonEncoder[Concept]         = DeriveJsonEncoder.gen[Concept]
 }
 
 trait DataZioJsonSupport extends DataZioJsonEncoders { self: SchemaZioJsonSupport => }

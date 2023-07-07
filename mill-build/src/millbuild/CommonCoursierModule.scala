@@ -22,7 +22,6 @@ trait CommonCoursierModule extends CoursierModule {
     ("com.google.code.gson", "gson", "2.9.0"),
     ("com.google.protobuf", "protobuf-java", "3.21.2"),
     ("com.google.guava", "guava", "31.1-jre"),
-    ("org.jsoup", "jsoup", "1.15.3"),
-    ("junit", "junit", "4.13.2")
+    ("org.jsoup", "jsoup", "1.15.3")
   )
 }

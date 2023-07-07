@@ -28,7 +28,12 @@ object Concept {
     val LocalTime = Concept.LocalTime
     type Char = Concept.Char.type
     val Char = Concept.Char
+    type Unit = Concept.Unit.type
+    val Unit = Concept.Unit
   }
+
+  /// Represents any concept but also means that you have no reasonable idea of the shape of the associated data
+  case object Any extends Concept
 
   case object Boolean   extends Basic[scala.Boolean]
   case object Byte      extends Basic[Byte]
@@ -38,9 +43,11 @@ object Concept {
   case object Int32     extends Basic[Int]
   case object String    extends Basic[java.lang.String]
   case object LocalDate extends Basic[java.time.LocalDate]
-  case object Month     extends Basic[Int]
+  case object Month     extends Basic[java.time.Month]
   case object LocalTime extends Basic[java.time.LocalTime]
   case object Char      extends Basic[scala.Char]
+  case object Unit      extends Basic[scala.Unit]
+  case object Nothing   extends Basic[scala.Nothing]
 
   case class Record(fields: scala.List[(Label, Concept)]) extends Concept
 
@@ -52,6 +59,21 @@ object Concept {
 
   case class Tuple(values: scala.List[Concept]) extends Concept
 
+  /**
+   * We can only know if an optional-value is Some or None on the value-level, not the type-level because the
+   * parent-derivation stage does not know this information. This is generally understood to be a standard practice. For
+   * example, using Scala 3 enums, the specific type of an enum element is not known, only the general coproduct type.
+   * For example:
+   * {{{
+   * enum Customer:
+   *   case Person
+   *   case Robot
+   *
+   * // this will be implicitly typed as Customer
+   * val c = Customer.Person
+   * }}}
+   * Coproduct types in other languages (e.g. Haskell) work similarly.
+   */
   case class Optional(elementType: Concept) extends Concept
 
   /**
@@ -98,19 +120,17 @@ object Concept {
    *   )
    * }}}
    */
-  case class Enum(cases: scala.List[Enum.Case]) extends Concept
+  case class Enum(name: java.lang.String, cases: scala.List[Enum.Case]) extends Concept
 
   object Enum {
-    case class Case(label: Label, fields: scala.List[Case.Field])
+    def apply(name: java.lang.String, cases: Enum.Case*) =
+      new Enum(name, cases.toList)
+
+    case class Case(label: Label, fields: scala.List[(EnumLabel, Concept)])
 
     object Case {
-      sealed trait Field
-
-      object Field {
-        case class Named(label: Label, value: Concept) extends Field
-
-        case class Anon(value: Concept) extends Field
-      }
+      def apply(label: Label, fields: (EnumLabel, Concept)*) =
+        new Case(label, fields.toList)
     }
   }
 
