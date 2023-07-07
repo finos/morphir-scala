@@ -446,6 +446,9 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         )
 
         def platformSpecificModuleDeps = Seq(testing.munit.macros)
+        def scalacOptions = T {
+            super.scalacOptions().concatIf(isScala213())("-language:experimental.macros")
+          }
       }
 
       object jvm extends Shared with MorphirJVMModule {
@@ -469,6 +472,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
 
           def ivyDeps = super.ivyDeps() ++ Agg(
             ivy"io.github.cquiroz::scala-java-time::2.5.0",
+            Deps.com.eed3si9n.expecty.expecty,
             Deps.org.scalameta.munit,
             Deps.org.scalameta.`munit-scalacheck`
           )

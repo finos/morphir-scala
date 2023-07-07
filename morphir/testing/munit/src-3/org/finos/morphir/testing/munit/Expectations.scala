@@ -37,8 +37,8 @@ trait Expectations:
         try { Expecty.assert(obtained == expected); "" }
         catch Expectations.ExtractMessage
 
-      if expectyClue.isEmpty then s"\$RED\n\$clue\$RESET"
-      else s"\$RED\n\$clue\n\$expectyClue\$RESET"
+      if expectyClue.isEmpty then s"$RED\n$clue$RESET"
+      else s"$RED\n$clue\n$expectyClue$RESET"
 
     assertEquals(obtained, expected, calculatedClue)
 
@@ -56,10 +56,11 @@ trait Expectations:
         catch Expectations.ExtractMessage
 
       val clueWithSuffix =
-        s"\${munitPrint(clue)} expected same: \$expected was not: \$obtained"
+        s"${munitPrint(clue)} expected same: $expected was not: $obtained"
 
-      if expectyClue.isEmpty then clueWithSuffix
-      else s"\$RED\n\$clueWithSuffix\n\$expectyClue\$RESET"
+      if expectyClue.isEmpty 
+      then clueWithSuffix
+      else s"$RED\n${clueWithSuffix}\n${expectyClue}$RESET"
 
     dropInside(if obtained == expected then failComparison(calculatedClue, obtained, expected))
 

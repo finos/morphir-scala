@@ -42,8 +42,8 @@ trait Expectations {
         }
         catch Macro.ExtractMessage
 
-      if (expectyClue.isEmpty) s"\$RED\n\$clue\$RESET"
-      else s"\$RED\n\$clue\n\$expectyClue\$RESET"
+      if (expectyClue.isEmpty) s"$RED\n$clue$RESET"
+      else s"$RED\n$clue\n$expectyClue$RESET"
     }
 
     assertEquals(obtained, expected, calculatedClue)
@@ -69,10 +69,10 @@ trait Expectations {
         catch Macro.ExtractMessage
 
       val clueWithSuffix =
-        s"\${munitPrint(clue)} expected same: \$expected was not: \$obtained"
+        s"${munitPrint(clue)} expected same: $expected was not: $obtained"
 
       if (expectyClue.isEmpty) clueWithSuffix
-      else s"\$RED\n\$clueWithSuffix\n\$expectyClue\$RESET"
+      else s"$RED\n$clueWithSuffix\n$expectyClue$RESET"
     }
 
     dropInside(if (obtained == expected) failComparison(calculatedClue, obtained, expected))
