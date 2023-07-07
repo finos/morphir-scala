@@ -5,7 +5,7 @@ import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.{test, *}
 
 object EvaluatorElmTests extends MorphirBaseSpec {
-  val lib = EvaluationLibrary("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json", "Morphir.Examples.App")
+  lazy val lib = EvaluationLibrary("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json", "Morphir.Examples.App")
   def runTest(moduleName: String, functionName: String) = lib.runTest(moduleName, functionName, ())
   def spec =
     suite("Json Evaluation")(
