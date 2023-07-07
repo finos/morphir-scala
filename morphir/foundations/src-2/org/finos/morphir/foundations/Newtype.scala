@@ -98,7 +98,7 @@ import org.finos.morphir.foundations.Macros
  * syntax differs between Scala 2 and 3 due to changes in the macro API).
  *
  * {{{
- * import org.finos.morphir.prelude.Assertion.greaterThanOrEqualTo
+ * import org.finos.morphir.foundations.Assertion.greaterThanOrEqualTo
  *
  * type Natural = Natural.Type
  * object Natural extends Newtype[Int] {

@@ -1,6 +1,6 @@
 package org.finos.morphir
 
-import org.finos.morphir.prelude.*
+import org.finos.morphir.foundations.*
 
 package object ir {
 

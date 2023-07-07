@@ -2,7 +2,7 @@ package org.finos
 package morphir
 package ir
 
-import morphir.prelude.*
+import morphir.foundations.*
 import AccessControlled.AccessControlled
 import FQName.FQName
 import Name.Name

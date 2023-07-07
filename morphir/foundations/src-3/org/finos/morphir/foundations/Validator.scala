@@ -18,7 +18,7 @@ import scala.quoted._
  *
  * File 1:
  * {{{
- * import org.finos.morphir.prelude.Validator
+ * import org.finos.morphir.foundations.Validator
  *
  * object PalindromeValidator extends Validator[String](str =>
  *   if (str.reverse == str) Right(()) else Left(AssertionError.failure("isPalindrome"))

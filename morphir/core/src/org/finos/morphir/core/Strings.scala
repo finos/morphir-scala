@@ -1,5 +1,5 @@
 package org.finos.morphir.core
-import org.finos.morphir.prelude.*
+import org.finos.morphir.foundations.*
 
 object Strings {
   type EncodedString = EncodedString.Type
