@@ -6,7 +6,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-package org.finos.morphir.util
+package org.finos.morphir.foundations
 
 import ConsoleUtils._
 import scala.annotation.{StaticAnnotation, nowarn}
@@ -22,7 +22,7 @@ trait QuotedAssertion[A] {
 
 // Wrongly emits warnings on Scala 2.12.x https://github.com/scala/bug/issues/11918
 @nowarn("msg=pattern var .* in method unapply is never used: use a wildcard `_` or suppress this warning with .*")
-private[util] class Macros(val c: whitebox.Context) extends Liftables {
+private[foundations] class Macros(val c: whitebox.Context) extends Liftables {
   import c.universe._
 
   type RunnableAssertion[A] = A => Either[AssertionError, Unit]
@@ -43,7 +43,7 @@ private[util] class Macros(val c: whitebox.Context) extends Liftables {
              |""".stripMargin
         c.abort(c.enclosingPosition, message)
       case None =>
-        c.Expr[F[T]](q"_root_.org.finos.morphir.util.Newtype.unsafeWrapAll(${c.prefix}, $expr)")
+        c.Expr[F[T]](q"_root_.org.finos.morphir.foundations.Newtype.unsafeWrapAll(${c.prefix}, $expr)")
     }
   }
 
@@ -90,11 +90,11 @@ private[util] class Macros(val c: whitebox.Context) extends Liftables {
           c.abort(c.enclosingPosition, message)
         } else {
 
-          q"_root_.org.finos.morphir.util.Newtype.unsafeWrapAll(${c.prefix}, _root_.org.finos.morphir.util.NonEmptyChunk($value, ..$values))"
+          q"_root_.org.finos.morphir.foundations.Newtype.unsafeWrapAll(${c.prefix}, _root_.org.finos.morphir.foundations.NonEmptyChunk($value, ..$values))"
         }
 
       case None =>
-        q"_root_.org.finos.morphir.util.Newtype.unsafeWrapAll(${c.prefix}, _root_.org.finos.morphir.util.NonEmptyChunk($value, ..$values))"
+        q"_root_.org.finos.morphir.foundations.Newtype.unsafeWrapAll(${c.prefix}, _root_.org.finos.morphir.foundations.NonEmptyChunk($value, ..$values))"
     }
   }
 
@@ -123,7 +123,7 @@ private[util] class Macros(val c: whitebox.Context) extends Liftables {
                 c.abort(c.enclosingPosition, message)
 
               case Right(_) =>
-                c.Expr[T](q"_root_.org.finos.morphir.util.Newtype.unsafeWrap(${c.prefix})($expr)")
+                c.Expr[T](q"_root_.org.finos.morphir.foundations.Newtype.unsafeWrap(${c.prefix})($expr)")
             }
 
           case _ =>
@@ -139,7 +139,7 @@ private[util] class Macros(val c: whitebox.Context) extends Liftables {
         }
 
       case None =>
-        c.Expr[T](q"_root_.org.finos.morphir.util.Newtype.unsafeWrap(${c.prefix})($expr)")
+        c.Expr[T](q"_root_.org.finos.morphir.foundations.Newtype.unsafeWrap(${c.prefix})($expr)")
     }
 
   }
@@ -147,12 +147,12 @@ private[util] class Macros(val c: whitebox.Context) extends Liftables {
   def make_impl[A: c.WeakTypeTag, T: c.WeakTypeTag](value: c.Expr[A]): c.Tree = {
     val expr = value
 
-    val result = q"_root_.org.finos.morphir.util.Newtype.unsafeWrap(${c.prefix})($expr)"
+    val result = q"_root_.org.finos.morphir.foundations.Newtype.unsafeWrap(${c.prefix})($expr)"
 
     q"""
-_root_.org.finos.morphir.util.Result.fromEitherNonEmptyChunk {
+_root_.org.finos.morphir.foundations.Result.fromEitherNonEmptyChunk {
   ${c.prefix}.assertion.run($value)
-    .left.map(e => _root_.org.finos.morphir.util.NonEmptyChunk.fromCons(e.toNel($value.toString)))
+    .left.map(e => _root_.org.finos.morphir.foundations.NonEmptyChunk.fromCons(e.toNel($value.toString)))
 }.as($result)
 """
 
@@ -169,20 +169,20 @@ _root_.org.finos.morphir.util.Result.fromEitherNonEmptyChunk {
 
     quotedAssertion match {
       case Some(quotedAssertion) =>
-        val result = q"_root_.org.finos.morphir.util.Newtype.unsafeWrapAll(${c.prefix}, $expr)"
+        val result = q"_root_.org.finos.morphir.foundations.Newtype.unsafeWrapAll(${c.prefix}, $expr)"
         q"""
 $forall.forEach($value) { value =>
-  _root_.org.finos.morphir.util.Result.fromEitherNonEmptyChunk {
+  _root_.org.finos.morphir.foundations.Result.fromEitherNonEmptyChunk {
     $quotedAssertion.run(value)
-      .left.map(e => _root_.org.finos.morphir.util.NonEmptyChunk.fromCons(e.toNel(value.toString)))
+      .left.map(e => _root_.org.finos.morphir.foundations.NonEmptyChunk.fromCons(e.toNel(value.toString)))
   }
 }.as($result)
 
 """
 
       case None =>
-        val result = q"_root_.org.finos.morphir.util.Newtype.unsafeWrapAll(${c.prefix}, $expr)"
-        q"_root_.org.finos.morphir.util.Result.succeed($result)"
+        val result = q"_root_.org.finos.morphir.foundations.Newtype.unsafeWrapAll(${c.prefix}, $expr)"
+        q"_root_.org.finos.morphir.foundations.Result.succeed($result)"
     }
 
   }
@@ -190,13 +190,13 @@ $forall.forEach($value) { value =>
   def assert_impl[A: c.WeakTypeTag](assertion: c.Tree): c.Tree = {
     val (_, _, codeString) = text(assertion)
     q"""
-new _root_.org.finos.morphir.util.QuotedAssertion[${c.weakTypeOf[A]}] {
-  @_root_.org.finos.morphir.util.assertionQuote($assertion)
-  @_root_.org.finos.morphir.util.assertionString($codeString)
+new _root_.org.finos.morphir.foundations.QuotedAssertion[${c.weakTypeOf[A]}] {
+  @_root_.org.finos.morphir.foundations.assertionQuote($assertion)
+  @_root_.org.finos.morphir.foundations.assertionString($codeString)
   def magic = 42
 
   def run(value: ${c
-        .weakTypeOf[A]}): _root_.scala.util.Either[_root_.org.finos.morphir.util.AssertionError, _root_.scala.Unit] =
+        .weakTypeOf[A]}): _root_.scala.util.Either[_root_.org.finos.morphir.foundations.AssertionError, _root_.scala.Unit] =
     $assertion.apply(value)
 }
        """
@@ -205,13 +205,13 @@ new _root_.org.finos.morphir.util.QuotedAssertion[${c.weakTypeOf[A]}] {
   def assertCustom_impl[A: c.WeakTypeTag](f: c.Tree): c.Tree = {
     val (_, _, codeString) = text(f)
     q"""
-new _root_.org.finos.morphir.util.QuotedAssertion[${c.weakTypeOf[A]}] {
-  @_root_.org.finos.morphir.util.assertionLambdaQuote($f)
-  @_root_.org.finos.morphir.util.assertionString($codeString)
+new _root_.org.finos.morphir.foundations.QuotedAssertion[${c.weakTypeOf[A]}] {
+  @_root_.org.finos.morphir.foundations.assertionLambdaQuote($f)
+  @_root_.org.finos.morphir.foundations.assertionString($codeString)
   def magic = 42
 
   def run(value: ${c
-        .weakTypeOf[A]}): _root_.scala.util.Either[_root_.org.finos.morphir.util.AssertionError, _root_.scala.Unit] =
+        .weakTypeOf[A]}): _root_.scala.util.Either[_root_.org.finos.morphir.foundations.AssertionError, _root_.scala.Unit] =
     $f(value)
 }
        """
@@ -236,7 +236,7 @@ new _root_.org.finos.morphir.util.QuotedAssertion[${c.weakTypeOf[A]}] {
              |
              |Make certain your definition looks something like this:
              |
-             |      ${yellow("import org.finos.morphir.util.Assertion._")}
+             |      ${yellow("import org.finos.morphir.foundations.Assertion._")}
              |      ${yellow("override def assertion = assert(greaterThan(40) && lessThan(80))")}
              |
              |""".stripMargin

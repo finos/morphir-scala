@@ -6,7 +6,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-package org.finos.morphir.util
+package org.finos.morphir.foundations
 
 /**
  * Ported from ZIO: https://github.com/zio/zio/blob/series/2.x/core/shared/src/main/scala/zio/NonEmptyChunk.scala
@@ -14,7 +14,7 @@ package org.finos.morphir.util
 
 import NonEmptyChunk._
 // import zio.stacktracer.TracingImplicits.disableAutoTrace
-import org.finos.morphir.util.capabilities.Zippable
+import org.finos.morphir.foundations.capabilities.Zippable
 import scala.language.implicitConversions
 
 /**
@@ -280,6 +280,6 @@ object NonEmptyChunk {
    * Constructs a `NonEmptyChunk` from a `Chunk`. This should only be used when it is statically known that the `Chunk`
    * must have at least one element.
    */
-  private[util] def nonEmpty[A](chunk: Chunk[A]): NonEmptyChunk[A] =
+  private[foundations] def nonEmpty[A](chunk: Chunk[A]): NonEmptyChunk[A] =
     new NonEmptyChunk(chunk)
 }

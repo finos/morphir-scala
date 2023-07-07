@@ -6,8 +6,8 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-package org.finos.morphir.util
-import org.finos.morphir.util.Macros
+package org.finos.morphir.foundations
+import org.finos.morphir.foundations.Macros
 
 /**
  * The `Newtype` module provides functionality for creating zero overhead newtypes. Newtypes wrap an existing type and

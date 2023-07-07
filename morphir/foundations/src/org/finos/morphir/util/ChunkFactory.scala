@@ -6,7 +6,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-package org.finos.morphir.util
+package org.finos.morphir.foundations
 
 /**
  * Ported from ZIO: https://github.com/zio/zio/blob/series/2.x/core/shared/src/main/scala-2.13%2B/zio/ChunkFactory.scala
@@ -17,7 +17,7 @@ package org.finos.morphir.util
 import scala.collection.{IterableOnce, StrictOptimizedSeqFactory}
 import scala.collection.mutable.Builder
 
-private[util] trait ChunkFactory extends StrictOptimizedSeqFactory[Chunk] {
+private[foundations] trait ChunkFactory extends StrictOptimizedSeqFactory[Chunk] {
 
   final def from[A](source: IterableOnce[A]): Chunk[A] =
     source match {

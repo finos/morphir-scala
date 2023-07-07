@@ -1,4 +1,4 @@
-package org.finos.morphir.util.capabilities
+package org.finos.morphir.foundations.capabilities
 
 trait Show[A] {
   def show(value: A): String
@@ -10,7 +10,7 @@ object Show extends ShowInstancesPriority0 {
   def fromToString[A]: Show[A] = _.toString()
 }
 
-private[util] trait ShowInstancesPriority0 {
+private[foundations] trait ShowInstancesPriority0 {
 
   implicit def defaultInstance[A]: Show[A] = _.toString()
 }

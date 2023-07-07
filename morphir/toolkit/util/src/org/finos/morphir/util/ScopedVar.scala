@@ -1,4 +1,4 @@
-package org.finos.morphir.util
+package org.finos.morphir.foundations
 
 //Taken from Scala Native
 import language.implicitConversions

@@ -1,4 +1,4 @@
-package org.finos.morphir.util
+package org.finos.morphir.foundations
 
 import scala.util.NotGiven
 

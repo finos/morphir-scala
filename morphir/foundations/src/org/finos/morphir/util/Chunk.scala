@@ -6,7 +6,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-package org.finos.morphir.util
+package org.finos.morphir.foundations
 
 /**
  * Ported from ZIO: https://github.com/zio/zio/blob/series/2.x/core/shared/src/main/scala/zio/Chunk.scala
@@ -15,7 +15,7 @@ package org.finos.morphir.util
 import java.nio._
 import java.nio.charset.Charset
 import java.util.concurrent.atomic.AtomicInteger
-import org.finos.morphir.util.capabilities.Zippable
+import org.finos.morphir.foundations.capabilities.Zippable
 import scala.annotation.tailrec
 import scala.collection.mutable.Builder
 import scala.math.log
@@ -790,7 +790,7 @@ sealed abstract class Chunk[+A] extends ChunkLike[A] with Serializable { self =>
   }
 
   // noinspection AccessorLikeMethodIsUnit
-  protected[util] def toArray[A1 >: A](n: Int, dest: Array[A1]): Unit =
+  protected[foundations] def toArray[A1 >: A](n: Int, dest: Array[A1]): Unit =
     if (isEmpty) () else materialize.toArray(n, dest)
 
   /**
@@ -1122,7 +1122,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
   /**
    * Returns the `ClassTag` for the element type of the chunk.
    */
-  private[util] def classTagOf[A](chunk: Chunk[A]): ClassTag[A] =
+  private[foundations] def classTagOf[A](chunk: Chunk[A]): ClassTag[A] =
     chunk match {
       case x: AppendN[_]            => x.classTag.asInstanceOf[ClassTag[A]]
       case x: Arr[_]                => x.classTag.asInstanceOf[ClassTag[A]]
@@ -1188,7 +1188,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
       else if (n < start.length) start(n)
       else buffer(n - start.length).asInstanceOf[A]
 
-    override protected[util] def toArray[A1 >: A](n: Int, dest: Array[A1]): Unit = {
+    override protected[foundations] def toArray[A1 >: A](n: Int, dest: Array[A1]): Unit = {
       start.toArray(n, dest)
       val _ = buffer.asInstanceOf[Array[A]].copyToArray(dest, n + start.length, bufferUsed)
     }
@@ -1223,7 +1223,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
       else if (n < bufferUsed) buffer(BufferSize - bufferUsed + n).asInstanceOf[A]
       else end(n - bufferUsed)
 
-    override protected[util] def toArray[A1 >: A](n: Int, dest: Array[A1]): Unit = {
+    override protected[foundations] def toArray[A1 >: A](n: Int, dest: Array[A1]): Unit = {
       val length = math.min(bufferUsed, math.max(dest.length - n, 0))
       Array.copy(buffer, BufferSize - bufferUsed, dest, n, length)
       val _ = end.toArray(n + length, dest)
@@ -1274,7 +1274,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
         Update(Chunk.fromArray(array.asInstanceOf[Array[A1]]), bufferIndices, bufferValues, 1, new AtomicInteger(1))
       }
 
-    override protected[util] def toArray[A1 >: A](n: Int, dest: Array[A1]): Unit = {
+    override protected[foundations] def toArray[A1 >: A](n: Int, dest: Array[A1]): Unit = {
       chunk.toArray(n, dest)
       var i = 0
       while (i < used) {
@@ -1286,7 +1286,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
     }
   }
 
-  private[util] sealed abstract class Arr[A] extends Chunk[A] with Serializable { self =>
+  private[foundations] sealed abstract class Arr[A] extends Chunk[A] with Serializable { self =>
 
     val array: Array[A]
 
@@ -1396,7 +1396,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
       take(i)
     }
 
-    override protected[util] def toArray[A1 >: A](n: Int, dest: Array[A1]): Unit =
+    override protected[foundations] def toArray[A1 >: A](n: Int, dest: Array[A1]): Unit =
       Array.copy(array, 0, dest, n, length)
 
     override protected def collectChunk[B](pf: PartialFunction[A, B]): Chunk[B] = {
@@ -1561,7 +1561,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
     }
   }
 
-  private[util] trait BitOps[T] {
+  private[foundations] trait BitOps[T] {
     def zero: T
     def one: T
     def reverse(a: T): T
@@ -1574,7 +1574,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
     def classTag: ClassTag[T]
   }
 
-  private[util] object BitOps {
+  private[foundations] object BitOps {
     def apply[T](implicit ops: BitOps[T]): BitOps[T] = ops
     implicit val ByteOps: BitOps[Byte] = new BitOps[Byte] {
       def zero: Byte                = 0
@@ -1614,7 +1614,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
     }
   }
 
-  private[util] sealed abstract class BitChunk[T](
+  private[foundations] sealed abstract class BitChunk[T](
       chunk: Chunk[T],
       val bits: Int
   ) extends Chunk[Boolean]
@@ -1713,7 +1713,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
 
   }
 
-  private[util] final case class BitChunkByte(bytes: Chunk[Byte], minBitIndex: Int, maxBitIndex: Int)
+  private[foundations] final case class BitChunkByte(bytes: Chunk[Byte], minBitIndex: Int, maxBitIndex: Int)
       extends BitChunk[Byte](bytes, 8) {
     self =>
 
@@ -1847,7 +1847,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
     }
   }
 
-  private[util] final case class BitChunkInt(
+  private[foundations] final case class BitChunkInt(
       ints: Chunk[Int],
       endianness: BitChunk.Endianness,
       minBitIndex: Int,
@@ -1924,7 +1924,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
       else Integer.reverse(bigEndianValue)
   }
 
-  private[util] final case class BitChunkLong(
+  private[foundations] final case class BitChunkLong(
       longs: Chunk[Long],
       endianness: BitChunk.Endianness,
       minBitIndex: Int,
@@ -2031,7 +2031,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
 
   }
 
-  private[util] final case class ChunkPackedBoolean[T](
+  private[foundations] final case class ChunkPackedBoolean[T](
       unpacked: Chunk[Boolean],
       bits: Int,
       endianness: Chunk.BitChunk.Endianness
@@ -2063,7 +2063,7 @@ object Chunk extends ChunkFactory with ChunkPlatformSpecific {
         if (endianness == BitChunk.Endianness.BigEndian) elem else ops.reverse(elem)
       }
 
-    override protected[util] def toArray[T1 >: T](n: Int, dest: Array[T1]): Unit = {
+    override protected[foundations] def toArray[T1 >: T](n: Int, dest: Array[T1]): Unit = {
       var i = n
       while (i < length) {
         dest(i + n) = self.apply(i)

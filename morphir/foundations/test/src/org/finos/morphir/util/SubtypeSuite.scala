@@ -1,4 +1,4 @@
-package org.finos.morphir.util
+package org.finos.morphir.foundations
 
 import NewtypeTestTypes._
 import org.finos.morphir.testing.munit.MorphirTestSuite

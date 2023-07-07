@@ -6,7 +6,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-package org.finos.morphir.util
+package org.finos.morphir.foundations
 
 /**
  * Ported from ZIO Prelude:
@@ -119,7 +119,7 @@ object Assertion {
 
   def startsWith(prefix: String): Assertion[String] = StartsWith(prefix)
 
-  private[util] case class And[A](left: Assertion[A], right: Assertion[A]) extends Assertion[A] {
+  private[foundations] case class And[A](left: Assertion[A], right: Assertion[A]) extends Assertion[A] {
     def apply(a: A, negated: Boolean): Either[AssertionError, Unit] =
       if (!negated) {
         (left.apply(a, negated), right.apply(a, negated)) match {
@@ -131,7 +131,7 @@ object Assertion {
       } else (!left || !right).apply(a, negated = false)
   }
 
-  private[util] case class Or[A](left: Assertion[A], right: Assertion[A]) extends Assertion[A] {
+  private[foundations] case class Or[A](left: Assertion[A], right: Assertion[A]) extends Assertion[A] {
     def apply(a: A, negated: Boolean): Either[AssertionError, Unit] =
       if (!negated) {
         (left.apply(a, negated), right.apply(a, negated)) match {
@@ -141,12 +141,12 @@ object Assertion {
       } else (!left && !right).apply(a, negated = false)
   }
 
-  private[util] case class Not[A](assertion: Assertion[A]) extends Assertion[A] {
+  private[foundations] case class Not[A](assertion: Assertion[A]) extends Assertion[A] {
     def apply(a: A, negated: Boolean): Either[AssertionError, Unit] =
       assertion.apply(a, !negated)
   }
 
-  private[util] case class DivisibleBy[A](n: A)(implicit numeric: Numeric[A]) extends Assertion[A] {
+  private[foundations] case class DivisibleBy[A](n: A)(implicit numeric: Numeric[A]) extends Assertion[A] {
     def apply(a: A, negated: Boolean): Either[AssertionError, Unit] = {
       val result = numeric.toDouble(a) % numeric.toDouble(n) == 0
       if (!negated) {
@@ -159,7 +159,7 @@ object Assertion {
     }
   }
 
-  private[util] case class Contains(string: String) extends Assertion[String] {
+  private[foundations] case class Contains(string: String) extends Assertion[String] {
     def apply(a: String, negated: Boolean): Either[AssertionError, Unit] = {
       val result = a.contains(string)
       if (!negated) {
@@ -172,7 +172,7 @@ object Assertion {
     }
   }
 
-  private[util] case class EndsWith(suffix: String) extends Assertion[String] {
+  private[foundations] case class EndsWith(suffix: String) extends Assertion[String] {
     def apply(a: String, negated: Boolean): Either[AssertionError, Unit] = {
       val result = a.endsWith(suffix)
       if (!negated) {
@@ -185,7 +185,7 @@ object Assertion {
     }
   }
 
-  private[util] case class EqualTo[A](value: A) extends Assertion[A] {
+  private[foundations] case class EqualTo[A](value: A) extends Assertion[A] {
     def apply(a: A, negated: Boolean): Either[AssertionError, Unit] =
       if (!negated) {
         if (a == value) Right(())
@@ -196,7 +196,7 @@ object Assertion {
       }
   }
 
-  private[util] case class Between[A](min: A, max: A)(implicit ordering: Ordering[A]) extends Assertion[A] {
+  private[foundations] case class Between[A](min: A, max: A)(implicit ordering: Ordering[A]) extends Assertion[A] {
     def apply(a: A, negated: Boolean): Either[AssertionError, Unit] = {
       val result = ordering.gteq(a, min) && ordering.lteq(a, max)
       if (!negated) {
@@ -209,7 +209,7 @@ object Assertion {
     }
   }
 
-  private[util] case class GreaterThan[A](value: A)(implicit ordering: Ordering[A]) extends Assertion[A] {
+  private[foundations] case class GreaterThan[A](value: A)(implicit ordering: Ordering[A]) extends Assertion[A] {
     def apply(a: A, negated: Boolean): Either[AssertionError, Unit] =
       if (!negated) {
         if (ordering.gt(a, value)) Right(())
@@ -220,7 +220,7 @@ object Assertion {
       }
   }
 
-  private[util] case class HasLength[A](lengthAssertion: Assertion[Int]) extends Assertion[String] {
+  private[foundations] case class HasLength[A](lengthAssertion: Assertion[Int]) extends Assertion[String] {
     def apply(string: String, negated: Boolean): Either[AssertionError, Unit] =
       lengthAssertion(string.length, negated) match {
         case Left(AssertionError.Failure(condition)) => Left(AssertionError.failure(s"hasLength($condition)"))
@@ -228,7 +228,7 @@ object Assertion {
       }
   }
 
-  private[util] case class LessThan[A](value: A)(implicit ordering: Ordering[A]) extends Assertion[A] {
+  private[foundations] case class LessThan[A](value: A)(implicit ordering: Ordering[A]) extends Assertion[A] {
     def apply(a: A, negated: Boolean): Either[AssertionError, Unit] =
       if (!negated) {
         if (ordering.lt(a, value)) Right(())
@@ -239,7 +239,7 @@ object Assertion {
       }
   }
 
-  private[util] case class Matches(regexString: String) extends Assertion[String] {
+  private[foundations] case class Matches(regexString: String) extends Assertion[String] {
     def apply(a: String, negated: Boolean): Either[AssertionError, Unit] = {
       val result = a.matches(regexString)
       if (!negated) {
@@ -252,7 +252,7 @@ object Assertion {
     }
   }
 
-  private[util] case class PowerOf[A](base: A)(implicit numeric: Numeric[A]) extends Assertion[A] {
+  private[foundations] case class PowerOf[A](base: A)(implicit numeric: Numeric[A]) extends Assertion[A] {
     def apply(a: A, negated: Boolean): Either[AssertionError, Unit] = {
       val result = isPower(numeric.toDouble(base), numeric.toDouble(a))
       if (!negated) {
@@ -272,7 +272,7 @@ object Assertion {
     }
   }
 
-  private[util] case class StartsWith(prefix: String) extends Assertion[String] {
+  private[foundations] case class StartsWith(prefix: String) extends Assertion[String] {
     def apply(a: String, negated: Boolean): Either[AssertionError, Unit] = {
       val result = a.startsWith(prefix)
       if (!negated) {
@@ -285,7 +285,7 @@ object Assertion {
     }
   }
 
-  private[util] object Anything extends Assertion[Any] {
+  private[foundations] object Anything extends Assertion[Any] {
     def apply(a: Any, negated: Boolean): Either[AssertionError, Unit] =
       if (!negated) Right(()) else Left(AssertionError.failure("never"))
   }

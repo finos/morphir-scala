@@ -1,4 +1,4 @@
-package org.finos.morphir.util
+package org.finos.morphir.foundations
 
 object NewtypeTestTypes {
   type Natural = Natural.Type

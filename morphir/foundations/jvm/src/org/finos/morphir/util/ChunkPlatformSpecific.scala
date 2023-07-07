@@ -6,7 +6,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-package org.finos.morphir.util
+package org.finos.morphir.foundations
 
 /**
  * Ported from ZIO: https://github.com/zio/zio/blob/series/2.x/core/js/src/main/scala/zio/ChunkPlatformSpecific.scala
@@ -16,9 +16,9 @@ package org.finos.morphir.util
 
 import scala.reflect.{ClassTag, classTag}
 
-private[util] trait ChunkPlatformSpecific {
+private[foundations] trait ChunkPlatformSpecific {
 
-  private[util] object Tags {
+  private[foundations] object Tags {
     def fromValue[A](a: A): ClassTag[A] = {
       val c = a.getClass
       val unboxedClass =

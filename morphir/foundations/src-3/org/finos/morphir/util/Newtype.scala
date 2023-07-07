@@ -6,10 +6,10 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-package org.finos.morphir.util
+package org.finos.morphir.foundations
 
 import scala.quoted.*
-import org.finos.morphir.util.ConsoleUtils.*
+import org.finos.morphir.foundations.ConsoleUtils.*
 
 abstract class NewtypeCustom[A] {
 

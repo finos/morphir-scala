@@ -6,13 +6,13 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-package org.finos.morphir.util
+package org.finos.morphir.foundations
 
 /**
  * Ported from ZIO Prelude
  * https://github.com/zio/zio-prelude/blob/754ced18f21573d1bc128715ceb24899d1e67353/macros/shared/src/main/scala/ConsoleUtils.scala
  */
-private[util] object ConsoleUtils {
+private[foundations] object ConsoleUtils {
   def underlined(s: String): String =
     Console.UNDERLINED + s + Console.RESET
 

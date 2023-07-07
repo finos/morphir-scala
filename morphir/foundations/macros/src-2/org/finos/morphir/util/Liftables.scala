@@ -6,7 +6,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-package org.finos.morphir.util
+package org.finos.morphir.foundations
 
 import Assertion.Regex
 
@@ -20,7 +20,7 @@ trait Liftables {
 
   import c.universe._
 
-  final val AssertionPrefix: Select = q"_root_.org.finos.morphir.util.Assertion"
+  final val AssertionPrefix: Select = q"_root_.org.finos.morphir.foundations.Assertion"
 
   implicit def optionUnliftable[T](implicit u: Unliftable[T]): Unliftable[Option[T]] = Unliftable[Option[T]] {
     case q"scala.None"               => None
