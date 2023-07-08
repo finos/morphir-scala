@@ -11,11 +11,6 @@ import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.MorphirIRFile
 
 import scala.io.Source
-import zio.{test as _, *}
-import zio.prelude.fx.*
-import zio.test.*
-import zio.test.Assertion.{equalTo, fails}
-import zio.test.TestAspect.{ignore, tag}
 import zio.json.*
 import org.finos.morphir.ir.json.MorphirJsonSupport.*
 import org.finos.morphir.runtime.quick.{EvaluatorQuick, Store}
