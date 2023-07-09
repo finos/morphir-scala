@@ -1,3 +1,3 @@
-package org.finos.morphir.foundations
+package org.finos.morphir.util
 
 case object UnreachableException extends Exception
