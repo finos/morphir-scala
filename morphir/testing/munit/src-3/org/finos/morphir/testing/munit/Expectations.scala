@@ -9,10 +9,10 @@ import munit.internal.console.StackTraces.dropInside
 trait Expectations:
   this: munit.FunSuite =>
   inline def expect(
-    inline cond: Boolean,
-    clue: => Any = "assertion failed",
+      inline cond: Boolean,
+      clue: => Any = "assertion failed"
   )(using
-    loc: munit.Location
+      loc: munit.Location
   ): Unit =
     lazy val calculatedClue =
       val expectyClue =
@@ -25,12 +25,12 @@ trait Expectations:
     assert(cond, calculatedClue)
 
   def expectEquals[A, B](
-    obtained: A,
-    expected: B,
-    clue: => Any = "values are not the same",
+      obtained: A,
+      expected: B,
+      clue: => Any = "values are not the same"
   )(using
-    loc: munit.Location,
-    ev: B <:< A,
+      loc: munit.Location,
+      ev: B <:< A
   ): Unit =
     lazy val calculatedClue =
       val expectyClue =
@@ -43,12 +43,12 @@ trait Expectations:
     assertEquals(obtained, expected, calculatedClue)
 
   def expectNotEquals[A, B](
-    obtained: A,
-    expected: B,
-    clue: => Any = "values are the same",
+      obtained: A,
+      expected: B,
+      clue: => Any = "values are the same"
   )(using
-    loc: munit.Location,
-    ev: A =:= B,
+      loc: munit.Location,
+      ev: A =:= B
   ): Unit =
     lazy val calculatedClue =
       val expectyClue =
@@ -58,7 +58,7 @@ trait Expectations:
       val clueWithSuffix =
         s"${munitPrint(clue)} expected same: $expected was not: $obtained"
 
-      if expectyClue.isEmpty 
+      if expectyClue.isEmpty
       then clueWithSuffix
       else s"$RED\n${clueWithSuffix}\n${expectyClue}$RESET"
 

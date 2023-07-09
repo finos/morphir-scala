@@ -8,11 +8,11 @@ import com.eed3si9n.expecty.Expecty
 @SuppressWarnings(Array("org.wartremover.warts.All"))
 object Macro {
   def expectWithoutClue(
-    c: Context
+      c: Context
   )(
-    cond: c.Expr[Boolean]
+      cond: c.Expr[Boolean]
   )(
-    loc: c.Expr[munit.Location]
+      loc: c.Expr[munit.Location]
   ): c.Expr[Unit] = {
     import c.universe._
 
@@ -30,12 +30,12 @@ object Macro {
   }
 
   def expectWithClue(
-    c: Context
+      c: Context
   )(
-    cond: c.Expr[Boolean],
-    clue: c.Expr[Any],
+      cond: c.Expr[Boolean],
+      clue: c.Expr[Any]
   )(
-    loc: c.Expr[munit.Location]
+      loc: c.Expr[munit.Location]
   ): c.Expr[Unit] = {
     import c.universe._
 

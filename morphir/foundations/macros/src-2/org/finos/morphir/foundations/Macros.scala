@@ -196,7 +196,9 @@ new _root_.org.finos.morphir.foundations.QuotedAssertion[${c.weakTypeOf[A]}] {
   def magic = 42
 
   def run(value: ${c
-        .weakTypeOf[A]}): _root_.scala.util.Either[_root_.org.finos.morphir.foundations.AssertionError, _root_.scala.Unit] =
+        .weakTypeOf[
+          A
+        ]}): _root_.scala.util.Either[_root_.org.finos.morphir.foundations.AssertionError, _root_.scala.Unit] =
     $assertion.apply(value)
 }
        """
@@ -211,7 +213,9 @@ new _root_.org.finos.morphir.foundations.QuotedAssertion[${c.weakTypeOf[A]}] {
   def magic = 42
 
   def run(value: ${c
-        .weakTypeOf[A]}): _root_.scala.util.Either[_root_.org.finos.morphir.foundations.AssertionError, _root_.scala.Unit] =
+        .weakTypeOf[
+          A
+        ]}): _root_.scala.util.Either[_root_.org.finos.morphir.foundations.AssertionError, _root_.scala.Unit] =
     $f(value)
 }
        """

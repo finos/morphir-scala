@@ -9,27 +9,25 @@ import munit.internal.console.StackTraces.dropInside
 trait Expectations {
   this: munit.FunSuite =>
   def expect(
-    cond: Boolean
+      cond: Boolean
   )(implicit
-    loc: munit.Location
-  ): Unit =
-    macro Macro.expectWithoutClue
+      loc: munit.Location
+  ): Unit = macro Macro.expectWithoutClue
 
   def expect(
-    cond: Boolean,
-    clue: => Any,
+      cond: Boolean,
+      clue: => Any
   )(implicit
-    loc: munit.Location
-  ): Unit =
-    macro Macro.expectWithClue
+      loc: munit.Location
+  ): Unit = macro Macro.expectWithClue
 
   def expectEquals[A, B](
-    obtained: A,
-    expected: B,
-    clue: => Any = "values are not the same",
+      obtained: A,
+      expected: B,
+      clue: => Any = "values are not the same"
   )(implicit
-    loc: munit.Location,
-    ev: B <:< A,
+      loc: munit.Location,
+      ev: B <:< A
   ): Unit = {
     lazy val calculatedClue = {
       val expectyClue =
@@ -39,8 +37,7 @@ trait Expectations {
           expect(obtained == expected)
 
           ""
-        }
-        catch Macro.ExtractMessage
+        } catch Macro.ExtractMessage
 
       if (expectyClue.isEmpty) s"$RED\n$clue$RESET"
       else s"$RED\n$clue\n$expectyClue$RESET"
@@ -50,12 +47,12 @@ trait Expectations {
   }
 
   def expectNotEquals[A, B](
-    obtained: A,
-    expected: B,
-    clue: => Any = "values are the same",
+      obtained: A,
+      expected: B,
+      clue: => Any = "values are the same"
   )(implicit
-    loc: munit.Location,
-    ev: A =:= B,
+      loc: munit.Location,
+      ev: A =:= B
   ): Unit = {
     lazy val calculatedClue = {
       val expectyClue =
@@ -65,8 +62,7 @@ trait Expectations {
           expect(obtained != expected)
 
           ""
-        }
-        catch Macro.ExtractMessage
+        } catch Macro.ExtractMessage
 
       val clueWithSuffix =
         s"${munitPrint(clue)} expected same: $expected was not: $obtained"
