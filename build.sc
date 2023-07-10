@@ -345,7 +345,6 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
   }
   
   object lib extends Module {
-    object jvm extends MorphirJVMModule {}
 
     object interop extends CrossPlatform {
       trait Shared extends MorphirCommonModule with MorphirPublishModule {}
