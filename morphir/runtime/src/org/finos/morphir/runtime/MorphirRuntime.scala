@@ -13,7 +13,7 @@ trait MorphirRuntime[F[_], TA, VA] {
   def applyParams(entrypoint: Value[TA, VA], params: Value[TA, VA]): Value[TA, VA]
 }
 
-object MorphirRuntime {
+object MorphirRuntime extends MorphirRuntimePlatformSpecific {
   def simple(distributions: Distribution*): MorphirRuntime[SimpleMorphirRuntime.Result, scala.Unit, UType] =
     SimpleMorphirRuntime(distributions.toList)
 
