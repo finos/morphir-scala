@@ -98,16 +98,19 @@ object DeriverMacros {
   inline def summonDeriver[T]: Deriver[T] = ${ summonDeriverImpl[T] }
   def summonDeriverImpl[T: Type](using Quotes): Expr[Deriver[T]] =
     import quotes.reflect._
-    def failNotProduct() =
+    def failNotProductOrSum() =
       report.errorAndAbort(
-        s"Cannot summon generic Deriver for the type (was not a Product): ${TypeRepr.of[T].widen.show} (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
+        s"Cannot summon generic Deriver for the type (was not a Product or Sum): ${TypeRepr.of[T].widen.show} (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
       )
 
     val specificDriver = Expr.summon[SpecificDeriver[T]]
     specificDriver match {
       case Some(value) => value
       case None =>
-        if (!TypeRepr.of[T].typeSymbol.flags.is(Flags.Module))
+        val tpe   = TypeRepr.of[T]
+        val flags = tpe.typeSymbol.flags
+        // For some reason, Enums are also product-types and modules (i.e. objects) are also considered product types
+        if (!flags.is(Flags.Module) && !flags.is(Flags.Enum) && tpe <:< TypeRepr.of[Product]) {
           Type.of[T] match {
             case '[IsProduct[p]] =>
               val genericDeriver = Expr.summon[GenericProductDeriver[p]]
@@ -115,13 +118,25 @@ object DeriverMacros {
                 case Some(value) => '{ $value.asInstanceOf[Deriver[T]] }
                 case _ =>
                   report.errorAndAbort(
-                    s"Cannot summon specific or generic Deriver for the type: ${TypeRepr.of[T].widen.show}. Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
+                    s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen.show} (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
                   )
               }
-            case _ => failNotProduct()
+            case _ => report.errorAndAbort(
+                s"Impossible condition. ${tpe} has been checked to be a product already (flags: ${flags.show})."
+              )
           }
-        else
-          failNotProduct()
+          // To be a sum-type it has to be a enum or sealed-trait
+        } else if (flags.is(Flags.Enum) || (flags.is(Flags.Trait) && flags.is(Flags.Sealed))) {
+          val genericDeriver = Expr.summon[GenericSumDeriver[T]]
+          genericDeriver match {
+            case Some(value) => value
+            case _ =>
+              report.errorAndAbort(
+                s"Cannot summon specific or generic Sum Deriver for the sum type: ${tpe.widen.show} (flags: ${flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
+              )
+          }
+        } else
+          failNotProductOrSum()
     }
 
   inline def summonProductDeriver[T]: Deriver[T] = ${ summonProductDeriverImpl[T] }
