@@ -1,5 +1,5 @@
 package org.finos.morphir.ir
-import org.finos.morphir.prelude.*
+import org.finos.morphir.foundations.*
 object Documented {
   import Documented.Doc
   final case class Documented[+A](doc: String, value: A) {

@@ -9,7 +9,7 @@ object PrintMacro {
     val sb = new StringBuilder()
     sb.appendln("================== The Short Version  ================")
     sb.appendln(Printer.TreeAnsiCode.show(expr.asTerm.underlyingArgument))
-    scribe.info(sb.toString)
+    println(sb.toString)
     expr
   }
 
@@ -21,7 +21,7 @@ object PrintMacro {
     sb.appendln(expr.show)
     sb.appendln("================== The Long Version ================")
     sb.appendln(pprint(expr.asTerm.underlyingArgument).render)
-    scribe.info(sb.toString)
+    println(sb.toString)
     expr
   }
 

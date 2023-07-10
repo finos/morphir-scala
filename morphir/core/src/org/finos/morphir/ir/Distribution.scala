@@ -3,7 +3,7 @@ package morphir
 package ir
 
 import ir.Package.{PackageName, Definition => PkgDef, Specification => PkgSpec}
-import prelude.*
+import foundations.*
 
 object Distribution {
 

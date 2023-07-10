@@ -1,6 +1,6 @@
 package org.finos.morphir.ir
 
-import org.finos.morphir.prelude.*
+import org.finos.morphir.foundations.*
 import org.finos.morphir.ir.Documented.Documented
 import org.finos.morphir.ir.Name.Name
 import org.finos.morphir.ir.QName.QName

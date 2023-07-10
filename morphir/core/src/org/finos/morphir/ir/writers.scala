@@ -2,7 +2,7 @@ package org.finos
 package morphir
 package ir
 
-import prelude.*
+import foundations.*
 import upickle.core.{Annotator, Visitor}
 import Distribution.Distribution
 import Documented.Documented
