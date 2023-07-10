@@ -1,8 +1,6 @@
 package org.finos.morphir.runtime
 
-import zio.Tag
 import org.finos.morphir.ir.FQName
-
 import scala.annotation.tailrec
 
 final case class CallStack(resolver: Resolver, frames: List[StackFrame]) { self =>

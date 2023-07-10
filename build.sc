@@ -399,7 +399,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
       def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.")
       trait Shared extends MorphirCommonModule with MorphirPublishModule {
         def ivyDeps = super.ivyDeps() ++ Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-prelude`)
-        def platformSpecificModuleDeps = Seq(datamodel, toolkit.core)
+        def platformSpecificModuleDeps = Seq(datamodel, runtime, toolkit.core)
       }
 
       object jvm extends Shared with MorphirJVMModule {
