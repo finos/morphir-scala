@@ -14,7 +14,6 @@ import zio.json.*
 import org.finos.morphir.ir.json.MorphirJsonSupport.*
 import org.finos.morphir.runtime.quick.{EvaluatorQuick, Store}
 
-
 trait EvaluationLibraryPlatformSpecific {
   def apply(fileName: String, prefix: Option[String] = None): EvaluationLibrary = {
     val text = Source
@@ -29,6 +28,6 @@ trait EvaluationLibraryPlatformSpecific {
     val store = Store.fromLibrary(library)
     EvaluationLibrary(store, prefix)
   }
-  
+
   def apply(fileName: String, prefix: String): EvaluationLibrary = apply(fileName, Some(prefix))
 }

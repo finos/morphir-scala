@@ -17,5 +17,4 @@ case class EvaluationLibrary(store: Store[Unit, Type.UType], modulePrefix: Optio
     EvaluatorQuick.evalFunction(FQName.fromString(fullName), store, input)
   }
 }
-object EvaluationLibrary extends EvaluationLibraryPlatformSpecific {
-}
+object EvaluationLibrary extends EvaluationLibraryPlatformSpecific {}
