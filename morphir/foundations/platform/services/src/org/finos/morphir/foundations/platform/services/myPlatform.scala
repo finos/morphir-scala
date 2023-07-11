@@ -1,5 +1,5 @@
 package org.finos.morphir.foundations.platform.services
-import org.finos.morphir.foundations.platform.services.internal.{FsModule, PathApi, PathPlatformSpecific}
+import org.finos.morphir.foundations.platform.services.internal.{FsModule, PathApi, PathModule}
 
 object myPlatform {  
   type Path = String
@@ -10,6 +10,9 @@ object myPlatform {
       def apply(path: Path): Boolean = FsModule.exists(path)
     }
   }
-  object path extends PathApi with PathPlatformSpecific {}    
+  object path extends PathApi {
+    def delimiter: String = PathModule.delimiter
+    def sep: String = PathModule.sep
+  }    
   object process {}
 }
