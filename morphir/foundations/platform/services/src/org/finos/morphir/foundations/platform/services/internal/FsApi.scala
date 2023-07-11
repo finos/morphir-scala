@@ -1,5 +1,7 @@
 package org.finos.morphir.foundations.platform.services.internal
 
 trait FsApi {
-  def exists(path: String): Boolean  
+  type Path
+  def root:Path 
+  def exists(path: Path): Boolean  
 }

@@ -15,6 +15,9 @@ trait Path extends js.Object {
 
   /// The platform-specific file separator, '\\' or '/'.
   val sep: String = js.native
+
+  /// Returns an object from a path.
+  def parse(path:String):PathObj = js.native
 }
 
 @js.native
