@@ -1,4 +1,4 @@
-package org.finos.morphir.foundations.platform.services.internal
+package org.finos.morphir.foundations.platform.services.internal.path
 
 import scala.scalajs.js 
 import scala.scalajs.js.annotation.JSImport
