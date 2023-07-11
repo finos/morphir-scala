@@ -9,19 +9,18 @@ class EventEmitter() extends IEventEmitter {
   def this(options: EventEmitterOptions) = this()
 }
 
-
 @js.native
 trait IEventEmitter extends js.Object {
-  var Domain:Domain = js.native
+  var Domain: Domain = js.native
 
   def addListener(eventName: String, listener: js.Function): this.type = js.native
-  def emit(name: String, args: js.Any*): Boolean = js.native
-  def eventNames(): js.Array[String] = js.native
+  def emit(name: String, args: js.Any*): Boolean                       = js.native
+  def eventNames(): js.Array[String]                                   = js.native
 
-  def listenerCount(eventName: String): Int = js.native
-  def listeners(eventName: String): js.Array[js.Function] = js.native
-  def off(eventName: String, listner: js.Function): this.type = js.native
-  def on(eventName: String, listener: js.Function): this.type = js.native
+  def listenerCount(eventName: String): Int                     = js.native
+  def listeners(eventName: String): js.Array[js.Function]       = js.native
+  def off(eventName: String, listner: js.Function): this.type   = js.native
+  def on(eventName: String, listener: js.Function): this.type   = js.native
   def once(eventName: String, listener: js.Function): this.type = js.native
 }
 

@@ -1,6 +1,6 @@
 package org.finos.morphir.foundations.platform.services.internal.fs
 
-import scala.scalajs.js 
+import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 
 @js.native
@@ -11,4 +11,3 @@ trait Fs extends js.Object {
 @js.native
 @JSImport("fs", JSImport.Namespace)
 object Fs extends Fs {}
-

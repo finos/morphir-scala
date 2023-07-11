@@ -5,11 +5,11 @@ import scala.scalajs.js.annotation.JSGlobal
 
 @js.native
 trait Process extends js.Object {
-    /// What processor architecture you're running on: 'arm', 'arm64', 'ia32', or 'x64'.
-    def arch:String = js.native
+  /// What processor architecture you're running on: 'arm', 'arm64', 'ia32', or 'x64'.
+  def arch: String = js.native
 
-    /// Returns the current 
-    def cwd(): String = js.native
+  /// Returns the current
+  def cwd(): String = js.native
 }
 
 @js.native

@@ -1,6 +1,6 @@
 package org.finos.morphir.foundations.platform.services.internal.path
 
-import scala.scalajs.js 
+import scala.scalajs.js
 
 trait PathObj extends js.Object {
   var root: js.UndefOr[String] = js.undefined
