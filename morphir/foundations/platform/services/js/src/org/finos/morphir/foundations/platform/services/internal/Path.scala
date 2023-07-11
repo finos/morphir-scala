@@ -10,6 +10,9 @@ import scala.scalajs.js.annotation.JSImport
   */
 @js.native
 trait Path extends js.Object {  
+  /// The platform-specific file delimiter, ';' or ':'.
+  val delimiter: String = js.native
+
   /// The platform-specific file separator, '\\' or '/'.
   val sep: String = js.native
 }
