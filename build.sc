@@ -9,6 +9,7 @@ import io.kipp.mill.ci.release.CiReleaseModule
 import millbuild._
 import millbuild.crossplatform._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
+import mill.scalajslib.api.ModuleKind
 
 /**
  * The version of Scala natively supported by the toolchain. Morphir itself may provide backends that generate code for
@@ -392,6 +393,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
           object test extends ScalaJSTests with TestModule.Munit {
             def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
             def moduleDeps = super.moduleDeps ++ Agg(testing.munit.js)
+            def moduleKind = ModuleKind.CommonJSModule
           }
         }
 
