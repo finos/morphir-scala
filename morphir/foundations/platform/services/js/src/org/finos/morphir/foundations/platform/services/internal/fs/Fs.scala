@@ -5,16 +5,16 @@ import scala.scalajs.js.annotation.JSImport
 
 @js.native
 trait Fs extends js.Object {
-  def existsSync(path: Path): Boolean = js.native
-  def mkdtempSync(prefix: String): String = js.native
-  def mkdtempSync(prefix: String, options:FsMkTempDirOptions): String = js.native
+  def existsSync(path: Path): Boolean                                  = js.native
+  def mkdtempSync(prefix: String): String                              = js.native
+  def mkdtempSync(prefix: String, options: FsMkTempDirOptions): String = js.native
 }
 
 @js.native
 @JSImport("fs", JSImport.Namespace)
 object Fs extends Fs {}
 
-trait FsMkTempDirOptions extends js.Object {  
+trait FsMkTempDirOptions extends js.Object {
   val encoding: js.UndefOr[String] = js.undefined
 }
 

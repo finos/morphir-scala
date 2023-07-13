@@ -9,7 +9,7 @@ object myPlatform {
     object exists extends Function1[Path, Boolean] {
       def apply(path: Path): Boolean = FsModule.exists(path)
     }
-    
+
     def root: Path = FsModule.root
   }
   object path extends PathApi {
