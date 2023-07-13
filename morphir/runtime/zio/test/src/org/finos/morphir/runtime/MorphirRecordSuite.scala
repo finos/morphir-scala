@@ -4,7 +4,7 @@ import org.finos.morphir.ir.Name
 import org.finos.morphir.testing.munit.MorphirTestSuite
 
 import scala.collection.immutable.ListMap
-import com.eed3si9n.expecty.Expecty.expect
+import com.eed3si9n.expecty.Expecty.{expect as expectAll}
 
 class MorphirRecordSuite extends MorphirTestSuite {
   describe("MorphirRecord Spec") {
@@ -81,7 +81,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
       test("Should be false with other types") {
         val record = MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26))
 
-        expect(
+        expectAll(
           record.equals("Some string") == false,
           record.equals(6) == false,
           record.equals(true) == false
@@ -136,7 +136,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
       test("Should be different with other types") {
         val record = MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26))
 
-        expect(
+        expectAll(
           record.hashCode != "John".hashCode,
           record.hashCode != 26.hashCode,
           record.hashCode != true.hashCode
@@ -154,7 +154,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
     test("getField should return as expected") {
       val record = MorphirRecord(ListMap(Name.fromString("name") -> "John", Name.fromString("age") -> 26))
 
-      expect(
+      expectAll(
         record.getField(Name.fromString("name")) == Some("John"),
         record.getField(Name.fromString("age")) == Some(26),
         record.getField(Name.fromString("not existing")) == None
@@ -169,7 +169,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
         val expected1 = MorphirRecord(ListMap(name -> "John", age -> 20), Some("Person"))
         val expected2 = MorphirRecord(ListMap(name -> "Mary", age -> 20), Some("Person"))
 
-        expect(
+        expectAll(
           record.setField(age, 20) == expected1,
           expected1.setField(name, "Mary") == expected2,
           record.setField(age, 20).setField(name, "Mary") == expected2
@@ -190,7 +190,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
         val modified1 = record.setField(age, 20)
         val modified2 = modified1.setField(name, "Mary")
 
-        expect(
+        expectAll(
           record != modified1,
           record != modified2,
           modified1 != modified2,
@@ -221,7 +221,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
         val record   = MorphirRecord(ListMap(name -> "John", age -> 26, height -> 1.72), Some("Person"))
         val expected = MorphirRecord(ListMap(name -> "Mary", age -> 26, height -> 1.63), Some("Person"))
 
-        expect(
+        expectAll(
           record.setFields(Map(name -> "Mary", height -> 1.63)) == expected
         )
       }
@@ -233,7 +233,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
         val record   = MorphirRecord(ListMap(name -> "John", age -> 26, height -> 1.72), Some("Person"))
         val expected = MorphirRecord(ListMap(name -> "Mary", age -> 26, height -> 1.63), Some("Person"))
 
-        expect(
+        expectAll(
           record.setFields(Map(name -> "Mary", height -> 1.63, weight -> 120)) == expected
         )
       }
@@ -244,7 +244,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
         val weight = Name.fromString("weight")
         val record = MorphirRecord(ListMap(name -> "John", age -> 26), Some("Person"))
 
-        expect(
+        expectAll(
           record.setFields(Map(height -> 1.63, weight -> 120)) == record
         )
       }
@@ -256,7 +256,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
         val record = MorphirRecord(ListMap(name -> "John", age -> 26, height -> 1.72, weight -> 180.4), Some("Person"))
         val modified = record.setFields(Map(height -> 1.63, name -> "Mary"))
 
-        expect(
+        expectAll(
           record != modified,
           record.productElementName(0) == modified.productElementName(0),
           record.productElementName(1) == modified.productElementName(1),
@@ -280,7 +280,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
       val weight = Name.fromString("weight")
       val record = MorphirRecord(ListMap(name -> "John", age -> 26, height -> 1.72, weight -> 180), Some("Person"))
 
-      expect(
+      expectAll(
         record.productElement(0) == "John",
         record.productElement(1) == 26,
         record.productElement(2) == 1.72,
@@ -294,7 +294,7 @@ class MorphirRecordSuite extends MorphirTestSuite {
       val weight = Name.fromString("weight")
       val record = MorphirRecord(ListMap(name -> "John", age -> 26, height -> 1.72, weight -> 180), Some("Person"))
 
-      expect(
+      expectAll(
         record.productElementName(0) == "name",
         record.productElementName(1) == "age",
         record.productElementName(2) == "height",

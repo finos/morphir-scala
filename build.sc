@@ -9,6 +9,7 @@ import io.kipp.mill.ci.release.CiReleaseModule
 import millbuild._
 import millbuild.crossplatform._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
+import mill.scalajslib.api.ModuleKind
 
 /**
  * The version of Scala natively supported by the toolchain. Morphir itself may provide backends that generate code for
@@ -275,6 +276,34 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
     }
   }
 
+  object elm extends Module {
+    object facade extends CrossPlatform with CrossValue {
+      trait Shared extends MorphirCommonModule with MorphirPublishModule {    
+        
+        def platformSpecificModuleDeps = Seq(morphir.foundations)
+      }
+
+      object jvm extends Shared with MorphirJVMModule {
+        object test extends ScalaTests with TestModule.Munit {
+          def ivyDeps = super.ivyDeps() ++ Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+        
+        }
+      }
+
+      object js extends Shared with MorphirJSModule {
+        object test extends ScalaJSTests with TestModule.Munit {
+          def ivyDeps = super.ivyDeps() ++ Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+        }
+      }
+
+      object native extends Shared with MorphirNativeModule {
+        object test extends ScalaNativeTests with TestModule.Munit {
+          def ivyDeps = super.ivyDeps() ++ Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+        }
+      }            
+    }  
+  }
+
   object foundations extends CrossPlatform with CrossValue {
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
       def compileIvyDeps = super.compileIvyDeps() ++ (if (crossScalaVersion.startsWith("2."))
@@ -312,6 +341,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         def moduleDeps = super.moduleDeps ++ Agg(testing.munit.native)
       }
     }
+
     object macros extends CrossPlatform {
       trait Shared extends MorphirCommonModule with MorphirPublishModule {
         def compileIvyDeps = T {
@@ -329,23 +359,56 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
       object jvm extends Shared with MorphirJVMModule {
         object test extends ScalaTests with TestModule.Munit {
           def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+          def moduleDeps = super.moduleDeps ++ Agg(testing.munit.jvm)
         }
       }
       object js extends Shared with MorphirJSModule {
         object test extends ScalaJSTests with TestModule.Munit {
           def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+          def moduleDeps = super.moduleDeps ++ Agg(testing.munit.js)
         }
       }
       object native extends Shared with MorphirNativeModule {
         object test extends ScalaNativeTests with TestModule.Munit {
           def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+          def moduleDeps = super.moduleDeps ++ Agg(testing.munit.native)
+        }
+      }
+    }
+
+    object platform extends Module {
+      object services extends CrossPlatform with CrossValue {
+        trait Shared extends MorphirCommonModule with MorphirPublishModule {
+          def ivyDeps = super.ivyDeps() ++ Agg(Deps.com.lihaoyi.sourcecode)
+          def platformSpecificModuleDeps = Seq(foundations)
+        }
+
+        object jvm extends Shared with MorphirJVMModule {
+          object test extends ScalaTests with TestModule.Munit {
+            def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+            def moduleDeps = super.moduleDeps ++ Agg(testing.munit.jvm)
+          }
+        }
+
+        object js extends Shared with MorphirJSModule {
+          object test extends ScalaJSTests with TestModule.Munit {
+            def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+            def moduleDeps = super.moduleDeps ++ Agg(testing.munit.js)
+            def moduleKind = ModuleKind.CommonJSModule
+          }
+        }
+
+        object native extends Shared with MorphirNativeModule {
+          object test extends ScalaNativeTests with TestModule.Munit {
+            def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+            def moduleDeps = super.moduleDeps ++ Agg(testing.munit.native)
+          }
         }
       }
     }
   }
 
   object lib extends Module {
-    object jvm extends MorphirJVMModule {}
 
     object interop extends CrossPlatform {
       trait Shared extends MorphirCommonModule with MorphirPublishModule {}

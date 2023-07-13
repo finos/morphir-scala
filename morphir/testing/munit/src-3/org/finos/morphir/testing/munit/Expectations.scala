@@ -19,8 +19,8 @@ trait Expectations:
         try { Expecty.assert(cond); "" }
         catch Expectations.ExtractMessage
 
-      if expectyClue.isEmpty then s"\$RED\n\$clue\$RESET"
-      else s"\$RED\n\$clue\n\$expectyClue\$RESET"
+      if expectyClue.isEmpty then s"$RED\n$clue$RESET"
+      else s"$RED\n$clue\n$expectyClue$RESET"
 
     assert(cond, calculatedClue)
 
