@@ -4,7 +4,7 @@ import org.finos.morphir.ir.Name
 import org.finos.morphir.testing.munit.MorphirTestSuite
 
 import scala.collection.immutable.ListMap
-import com.eed3si9n.expecty.Expecty.{expect as expectAll}
+import com.eed3si9n.expecty.Expecty.expect as expectAll
 
 class MorphirRecordSuite extends MorphirTestSuite {
   describe("MorphirRecord Spec") {
