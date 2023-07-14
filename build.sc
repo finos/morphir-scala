@@ -13,7 +13,7 @@ import mill.scalajslib.api.ModuleKind
 
 implicit val buildSettings: BuildSettings = interp.watchValue(BuildSettings.load())
 
-def resolvedBuildSettings = T { buildSettings }
+def resolvedBuildSettings = T.input { buildSettings }
 
 /**
  * The version of Scala natively supported by the toolchain. Morphir itself may provide backends that generate code for

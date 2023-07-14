@@ -21,8 +21,8 @@ object BuildSettings {
   lazy val buildUserHoconFileSource =
     ConfigProvider.fromHoconFile((os.pwd / "build.user.conf").toIO)
 
-  lazy val buildUserYamlFileSource =
-    ConfigProvider.fromYamlPath((os.pwd / "build.user.yaml").wrapped)
+  // lazy val buildUserYamlFileSource =
+  //   ConfigProvider.fromYamlPath((os.pwd / "build.user.yaml").wrapped)
 
   lazy val hoconFallbackSource = ConfigProvider.fromHoconString(
     """
@@ -30,7 +30,7 @@ object BuildSettings {
       |  enable = true
       |}
       |js {
-      |  enable = true
+      |  enable = false
       |}
       |native {
       |  enable = true
@@ -45,7 +45,9 @@ object BuildSettings {
   }
 
   def loadSettings() =
-    read(buildSettingsConfig from (buildUserHoconFileSource orElse buildUserYamlFileSource orElse hoconFallbackSource))
+    read(
+      buildSettingsConfig from (buildUserHoconFileSource /* orElse buildUserYamlFileSource */ orElse hoconFallbackSource)
+    )
 
 }
 
