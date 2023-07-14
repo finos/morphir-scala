@@ -6,8 +6,9 @@ import org.finos.morphir.datamodel.{Concept, Label}
 import org.finos.morphir.ir.{Type => T}
 import org.finos.morphir.ir.Type.{Type, UType}
 
+import scala.collection.immutable.{Map, Set}
 
-trait ToMorphirType[A, +Attribs] {
+trait ToMorphirType[A, +Attribs] { self =>
   def apply: Type[Attribs]
   final def morphirType: Type[Attribs] = apply
 }
