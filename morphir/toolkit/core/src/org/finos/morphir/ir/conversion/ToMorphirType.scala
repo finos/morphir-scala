@@ -38,6 +38,13 @@ object ToMorphirType {
   implicit val charUType: ToMorphirUType[scala.Char]               = toUTypeConverter(sdk.Char.charType)
   implicit val bigIntUType: ToMorphirUType[scala.BigInt]           = toUTypeConverter(sdk.Basics.intType)
 
+  implicit def conceptToTypeIR(concept: Concept): ToMorphirUType[Concept] =
+    concept match {
+      case Concept.Any          => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
+      case Concept.Nothing      => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
+      case Concept.Union(cases) => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
+    }
+
   final class SummonPartiallyApplied[A](private val dummy: Boolean = true) extends AnyVal {
     def withAttributesOf[Attribs](implicit toMorphirType: ToMorphirType[A, Attribs]): ToMorphirType[A, Attribs] =
       toMorphirType
