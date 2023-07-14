@@ -43,6 +43,18 @@ object ToMorphirType {
 
   implicit def conceptToTypeIR(concept: Concept): ToMorphirUType[Concept] =
     concept match {
+      case Concept.Boolean                 => boolUType.as
+      case Concept.Byte                    => byteUType.as
+      case Concept.Decimal                 => decimalUType.as
+      case Concept.Integer                 => bigIntUType.as
+      case Concept.Int16                   => shortUType.as
+      case Concept.Int32                   => intUType.as
+      case Concept.String                  => stringUType.as
+      case Concept.LocalDate               => localDateUType.as
+      case Concept.Month                   => monthUType.as
+      case Concept.LocalTime               => localTimeUType.as
+      case Concept.Char                    => charUType.as
+      case Concept.Unit                    => unitUType.as
       case Concept.Alias(name, value)      => toUTypeConverter(T.reference(name))
       case Concept.Enum(name, cases)       => toUTypeConverter(T.reference(name))
       case Concept.List(elementType)       => listUType(conceptToTypeIR(elementType)).as
