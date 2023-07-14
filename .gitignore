@@ -441,6 +441,7 @@ website/static/api
 build.user.sbt
 build.user.properties
 build.user.conf
+build.user.yaml
 
 
 .yarn/*

@@ -1,38 +1,71 @@
 package millbuild
-import metaconfig._
-import metaconfig.sconfig._
-import metaconfig.Configured.NotOk
-import metaconfig.Configured.Ok
+import zio.{ConfigProvider, Unsafe, Runtime}
+import zio.config._
+import zio.config.magnolia.deriveConfig
+import zio.config.typesafe._
+import zio.config.yaml._
 
 final case class BuildSettings(
-    enableJVM: Boolean = true,
-    enableScalaJS: Boolean = true,
-    enableScalaNative: Boolean = true
+    jvm: JvmBuildSettings = JvmBuildSettings(),
+    js: ScalaJsBuildSettings = ScalaJsBuildSettings(),
+    native: ScalaNativeBuildSettings = ScalaNativeBuildSettings()
 )
 
 object BuildSettings {
   lazy val default: BuildSettings = BuildSettings()
-  implicit lazy val surface: generic.Surface[BuildSettings] =
-    generic.deriveSurface[BuildSettings]
-  implicit lazy val decoder: ConfDecoder[BuildSettings] =
-    generic.deriveDecoder[BuildSettings](default)
-  implicit lazy val decoderEx: ConfDecoderEx[BuildSettings] =
-    generic.deriveDecoderEx[BuildSettings](default)
-  implicit lazy val encoder: ConfEncoder[BuildSettings] =
-    generic.deriveEncoder[BuildSettings]
 
   implicit lazy val rw: upickle.default.ReadWriter[BuildSettings] = upickle.default.macroRW
 
-  def load(): BuildSettings = {
-    val userConfPath = os.pwd / "build.user.conf"
-    if (os.exists(userConfPath)) {
-      Conf.parseInput(Input.File(userConfPath.wrapped)) match {
-        case NotOk(error) => default
-        case Ok(conf)     => BuildSettings.decoderEx.read(Option(default), conf).getOrElse(default)
-      }
-    } else {
-      default
-    }
+  lazy val buildSettingsConfig = deriveConfig[BuildSettings]
+
+  lazy val buildUserHoconFileSource =
+    ConfigProvider.fromHoconFile((os.pwd / "build.user.conf").toIO)
+
+  lazy val buildUserYamlFileSource =
+    ConfigProvider.fromYamlPath((os.pwd / "build.user.yaml").wrapped)
+
+  lazy val hoconFallbackSource = ConfigProvider.fromHoconString(
+    """
+      |jvm {
+      |  enable = true
+      |}
+      |js {
+      |  enable = true
+      |}
+      |native {
+      |  enable = true
+      |}
+      |""".stripMargin
+  )
+
+  def load(): BuildSettings = Unsafe.unsafe { implicit u =>
+    Runtime.default.unsafe.run(
+      loadSettings()
+    ).getOrThrowFiberFailure()
   }
 
+  def loadSettings() =
+    read(buildSettingsConfig from (buildUserHoconFileSource orElse buildUserYamlFileSource orElse hoconFallbackSource))
+
+}
+
+final case class JvmBuildSettings(enable: Boolean = true)
+object JvmBuildSettings {
+  lazy val default: JvmBuildSettings = JvmBuildSettings()
+
+  implicit lazy val rw: upickle.default.ReadWriter[JvmBuildSettings] = upickle.default.macroRW
+}
+
+final case class ScalaJsBuildSettings(enable: Boolean = true)
+object ScalaJsBuildSettings {
+  lazy val default: ScalaJsBuildSettings = ScalaJsBuildSettings()
+
+  implicit lazy val rw: upickle.default.ReadWriter[ScalaJsBuildSettings] = upickle.default.macroRW
+}
+
+final case class ScalaNativeBuildSettings(enable: Boolean = true)
+object ScalaNativeBuildSettings {
+  lazy val default: ScalaNativeBuildSettings = ScalaNativeBuildSettings()
+
+  implicit lazy val rw: upickle.default.ReadWriter[ScalaNativeBuildSettings] = upickle.default.macroRW
 }
