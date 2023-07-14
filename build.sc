@@ -8,6 +8,7 @@ import de.tobiasroeser.mill.integrationtest._
 import io.kipp.mill.ci.release.CiReleaseModule
 import millbuild._
 import millbuild.crossplatform._
+import millbuild.settings._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind
 
@@ -40,7 +41,9 @@ def reformatAll(evaluator: Evaluator, sources: mill.main.Tasks[Seq[PathRef]]) = 
 }
 
 def showBuildSettings() = T.command {
-  pprint.pprintln(resolvedBuildSettings())
+  val settings = resolvedBuildSettings()
+  pprint.pprintln(settings)
+  settings
 }
 
 trait MorphirPublishModule extends CiReleaseModule with JavaModule {

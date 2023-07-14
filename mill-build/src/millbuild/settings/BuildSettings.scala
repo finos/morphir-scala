@@ -1,4 +1,4 @@
-package millbuild
+package millbuild.settings
 import zio.{ConfigProvider, Unsafe, Runtime}
 import zio.config._
 import zio.config.magnolia.deriveConfig
@@ -10,7 +10,8 @@ import zio.Config
 final case class BuildSettings(
     jvm: JvmBuildSettings = JvmBuildSettings(),
     js: ScalaJsBuildSettings = ScalaJsBuildSettings(),
-    native: ScalaNativeBuildSettings = ScalaNativeBuildSettings()
+    native: ScalaNativeBuildSettings = ScalaNativeBuildSettings(),
+    scala: ScalaSettings = ScalaSettings()
 )
 
 object BuildSettings {
@@ -30,22 +31,8 @@ object BuildSettings {
 
     // .fromPropertiesFile((os.pwd / "build.user.properties").toIO)
 
-  // lazy val buildUserYamlFileSource =
-  //   ConfigProvider.fromYamlPath((os.pwd / "build.user.yaml").wrapped)
-
-  lazy val hoconFallbackSource: ConfigProvider = ConfigProvider.fromHoconString(
-    """
-      |jvm {
-      |  enable = true
-      |}
-      |js {
-      |  enable = false
-      |}
-      |native {
-      |  enable = true
-      |}
-      |""".stripMargin
-  )
+  lazy val buildUserYamlFileConfigProvider =
+    ConfigProvider.fromYamlPath((os.pwd / "build.user.yaml").wrapped)
 
   def load(): BuildSettings = Unsafe.unsafe { implicit u =>
     Runtime.default.unsafe.run(
@@ -56,8 +43,10 @@ object BuildSettings {
   def loadSettings() =
     read(
       BuildSettings.config from (
-        buildEnvConfigProvider orElse propertiesFileConfigProvider orElse
-          buildUserHoconFileConfigProvider /* orElse buildUserYamlFileSource  orElse hoconFallbackSource*/
+        buildEnvConfigProvider orElse
+          propertiesFileConfigProvider orElse
+          buildUserHoconFileConfigProvider // orElse
+          // buildUserYamlFileConfigProvider
       )
     )
 

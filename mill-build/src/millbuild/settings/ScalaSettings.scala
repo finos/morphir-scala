@@ -1,0 +1,25 @@
+package millbuild.settings
+
+import zio.{ConfigProvider, Unsafe, Runtime}
+import zio.config._
+import zio.config.magnolia.deriveConfig
+import zio.config.typesafe._
+import zio.config.yaml._
+import com.typesafe.config.ConfigFactory
+import zio.Config
+
+final case class ScalaSettings(
+    scala213Version: String = ScalaSettings.defaultScala213Version,
+    scala3xVersion: String = ScalaSettings.defaultScala3xVersion,
+    crossScalaVersions: List[String] = ScalaSettings.defaultCrossScalaVersions
+)
+
+object ScalaSettings {
+  val config: Config[ScalaSettings]                          = deriveConfig[ScalaSettings]
+  lazy val default: ScalaSettings                            = ScalaSettings()
+  implicit val rw: upickle.default.ReadWriter[ScalaSettings] = upickle.default.macroRW
+
+  val defaultScala213Version                  = "2.13.11"
+  val defaultScala3xVersion                   = "3.3.0"
+  val defaultCrossScalaVersions: List[String] = List(defaultScala3xVersion, defaultScala213Version)
+}
