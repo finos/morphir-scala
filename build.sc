@@ -73,6 +73,7 @@ object morphir extends Cross[MorphirModule](ScalaVersions.all) {
   }
 }
 trait MorphirModule extends Cross.Module[String] { morphir =>
+  import DevMode._
   val workspaceDir = millbuild.build.millSourcePath
 
   trait MorphirCommonModule extends CrossPlatformScalaModule with CrossValue with CommonCrossScalaModule {
@@ -100,7 +101,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
 
   object contrib extends Module {
     object knowledge extends CrossPlatform with CrossValue {
-      def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.")
+      def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
       trait Shared extends MorphirCommonModule with MorphirPublishModule {
         def ivyDeps = Agg(
           Deps.com.lihaoyi.sourcecode,
@@ -288,15 +289,15 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
 
   object elm extends Module {
     object facade extends CrossPlatform with CrossValue {
-      trait Shared extends MorphirCommonModule with MorphirPublishModule {    
-        
+      trait Shared extends MorphirCommonModule with MorphirPublishModule {
+
         def platformSpecificModuleDeps = Seq(morphir.foundations)
       }
 
       object jvm extends Shared with MorphirJVMModule {
         object test extends ScalaTests with TestModule.Munit {
           def ivyDeps = super.ivyDeps() ++ Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-        
+
         }
       }
 
@@ -310,8 +311,8 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         object test extends ScalaNativeTests with TestModule.Munit {
           def ivyDeps = super.ivyDeps() ++ Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
         }
-      }            
-    }  
+      }
+    }
   }
 
   object foundations extends CrossPlatform with CrossValue {
@@ -442,7 +443,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
 
   object runtime extends CrossPlatform with CrossValue {
 
-    def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.")
+    def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
       def platformSpecificModuleDeps = Seq(datamodel, toolkit.core, toolkit.codec.zio.json)
     }
@@ -469,7 +470,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
     }
 
     object zio extends CrossPlatform with CrossValue {
-      def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.")
+      def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
       trait Shared extends MorphirCommonModule with MorphirPublishModule {
         def ivyDeps                    = super.ivyDeps() ++ Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-prelude`)
         def platformSpecificModuleDeps = Seq(datamodel, runtime, toolkit.core)
@@ -622,7 +623,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
     }
 
     object core extends CrossPlatform with CrossValue {
-      def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.")
+      def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
 
       trait Shared extends MorphirCommonModule with MorphirPublishModule {
         def ivyDeps = Agg(
@@ -721,7 +722,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
   }
 
   object vfile extends CrossPlatform with CrossValue {
-    def enableNative(module: Module) = !crossValue.startsWith("3")
+    def enableNative(module: Module) = !crossValue.startsWith("3") && !devMode
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
       def ivyDeps = Agg(
         Deps.com.lihaoyi.sourcecode,

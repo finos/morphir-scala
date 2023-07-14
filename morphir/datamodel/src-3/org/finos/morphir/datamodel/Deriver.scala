@@ -57,7 +57,7 @@ object Deriver {
         // since this is actually a string that will be spliced in at runtime
         inline erasedValue[Elems] match {
           case _: (head *: tail) =>
-            val ct = summonClassTagOrFail[head].asInstanceOf[ClassTag[Any]]
+            val ct = summonClassTagOrFail[head].asInstanceOf[Class[Any]]
             // need to make sure that ALL of the matches inside here (including the `unionType` match)
             // is inline otherwise very strange things happen! Macros will run for even variants that shouldn't be matching
             // (i.e. because the other side of the case match branch is also running)
