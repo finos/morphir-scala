@@ -25,9 +25,12 @@ object ToMorphirType {
     def apply: UType = f
   }
 
-  implicit val unitUType: ToMorphirUType[scala.Unit] = toUTypeConverter(T.unit)
-  implicit val boolUType: ToMorphirUType[Boolean]    = toUTypeConverter(sdk.Basics.boolType)
-  implicit val intUType: ToMorphirUType[Int]         = toUTypeConverter(sdk.Basics.intType)
+  implicit val unitUType: ToMorphirUType[scala.Unit]               = toUTypeConverter(T.unit)
+  implicit val boolUType: ToMorphirUType[Boolean]                  = toUTypeConverter(sdk.Basics.boolType)
+  implicit val intUType: ToMorphirUType[Int]                       = toUTypeConverter(sdk.Int.int32Type)
+  implicit val monthUType: ToMorphirUType[java.time.Month]         = toUTypeConverter(sdk.Month.dateType)
+  implicit val charUType: ToMorphirUType[scala.Char]               = toUTypeConverter(sdk.Char.charType)
+  implicit val bigIntUType: ToMorphirUType[scala.BigInt]           = toUTypeConverter(sdk.Basics.intType)
 
   final class SummonPartiallyApplied[A](private val dummy: Boolean = true) extends AnyVal {
     def withAttributesOf[Attribs](implicit toMorphirType: ToMorphirType[A, Attribs]): ToMorphirType[A, Attribs] =
