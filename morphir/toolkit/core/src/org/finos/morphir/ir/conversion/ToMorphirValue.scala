@@ -54,6 +54,21 @@ trait ToMorphirTypedValueInstances extends ToMorphirTypedValueInstancesLowPriori
 trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
   import ToMorphirUType._
 
+  implicit def dataToIR[Data]: ToMorphirTypedValue[Data] = {
+    case Data.Unit           => V.unit(().morphirType)
+    case Data.Boolean(value) => if (value) Literal.Lit.True else Literal.Lit.False
+    case Data.Byte(value: scala.Byte) =>
+      V.apply(
+        value.morphirType,
+        V.reference(value.morphirType, FQName.fromString("Morphir.SDK:Int:toInt8")),
+        V.intTyped(value)
+      )
+    case Data.Char(value: scala.Char)          => V.literal(value.morphirType, Lit.char(value))
+    case Data.Decimal(value: scala.BigDecimal) => V.decimal(value.morphirType, value)
+    case Data.Integer(value: scala.BigInt) =>
+      V.intTyped(value.toInt) // TODO: to be fixed when Integer is mapped to BigInt
+  }
+
   implicit val unitTyped: ToMorphirTypedValue[scala.Unit] = makeTyped { v =>
     V.unit(v.morphirType)
   }
