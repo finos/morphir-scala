@@ -216,7 +216,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
     }
 
     object json extends Module {
-      object zio extends Module {
+      object zio extends CrossPlatform {
         object jvm extends MorphirJVMModule with MorphirPublishModule {
 
           def ivyDeps    = Agg(Deps.dev.zio.`zio-json`)
