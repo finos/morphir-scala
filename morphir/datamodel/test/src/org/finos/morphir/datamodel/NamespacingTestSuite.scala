@@ -1,6 +1,4 @@
 package org.finos.morphir.datamodel
-import org.finos.morphir.testing.munit.* 
+import org.finos.morphir.testing.munit.*
 
-class NamespacingTestSuite extends MorphirTestSuite {
-  
-}
+class NamespacingTestSuite extends MorphirTestSuite {}
