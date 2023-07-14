@@ -67,6 +67,28 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     case Data.Decimal(value: scala.BigDecimal) => V.decimal(value.morphirType, value)
     case Data.Integer(value: scala.BigInt) =>
       V.intTyped(value.toInt) // TODO: to be fixed when Integer is mapped to BigInt
+    case Data.Int16(value: scala.Short) =>
+      V.apply(
+        value.morphirType,
+        V.reference(value.morphirType, FQName.fromString("Morphir.SDK:Int:toInt16")),
+        V.intTyped(value)
+      )
+    case Data.Int32(value: scala.Int)         => V.int(value.morphirType, value)
+    case Data.String(value: java.lang.String) => V.string(value.morphirType, value)
+    case Data.LocalDate(value: java.time.LocalDate) =>
+      V.apply(
+        value.morphirType,
+        V.reference(value.morphirType, FQName.fromString("Morphir.SDK:LocalDate:fromParts")),
+        V.intTyped(value.getYear),
+        V.intTyped(value.getMonthValue),
+        V.intTyped(value.getDayOfMonth)
+      )
+    case Data.LocalTime(value: java.time.LocalTime) =>
+      V.apply(
+        value.morphirType,
+        V.reference(value.morphirType, FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds")),
+        V.intTyped(value.get(ChronoField.MILLI_OF_DAY))
+      )
   }
 
   implicit val unitTyped: ToMorphirTypedValue[scala.Unit] = makeTyped { v =>
