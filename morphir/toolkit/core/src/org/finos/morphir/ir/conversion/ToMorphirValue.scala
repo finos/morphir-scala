@@ -130,34 +130,33 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     case tuple: Data.Tuple =>
       val values = tuple.values.map { data => dataToIR(data) }
       V.tuple(tuple.shape.morphirType, zio.Chunk.fromIterable(values))
-
-    case Data.Aliased(data, shape) => dataToIR(data) match {
-        case Value.Apply(attributes, function, argument) => Value.Apply(shape.morphirType, function, argument)
-        case Value.Constructor(attributes, name)         => Value.Constructor(shape.morphirType, name)
+    case Data.Aliased(data, shape) =>
+      val alias = shape.morphirType
+      dataToIR(data) match {
+        case Value.Apply(attributes, function, argument) => Value.Apply(alias, function, argument)
+        case Value.Constructor(attributes, name)         => Value.Constructor(alias, name)
         case Value.Destructure(attributes, pattern, valueToDestruct, inValue) =>
-          Value.Destructure(shape.morphirType, pattern, valueToDestruct, inValue)
-        case Value.Field(attributes, subjectValue, fieldName) => Value.Field(shape.morphirType, subjectValue, fieldName)
-        case Value.FieldFunction(attributes, name)            => Value.FieldFunction(shape.morphirType, name)
+          Value.Destructure(alias, pattern, valueToDestruct, inValue)
+        case Value.Field(attributes, subjectValue, fieldName) => Value.Field(alias, subjectValue, fieldName)
+        case Value.FieldFunction(attributes, name)            => Value.FieldFunction(alias, name)
         case Value.IfThenElse(attributes, condition, thenBranch, elseBranch) =>
-          Value.IfThenElse(shape.morphirType, condition, thenBranch, elseBranch)
-        case Value.Lambda(attributes, argumentPattern, body) => Value.Lambda(shape.morphirType, argumentPattern, body)
+          Value.IfThenElse(alias, condition, thenBranch, elseBranch)
+        case Value.Lambda(attributes, argumentPattern, body) => Value.Lambda(alias, argumentPattern, body)
         case Value.LetDefinition(attributes, valueName, valueDefinition, inValue) =>
-          Value.LetDefinition(shape.morphirType, valueName, valueDefinition, inValue)
+          Value.LetDefinition(alias, valueName, valueDefinition, inValue)
         case Value.LetRecursion(attributes, valueDefinitions, inValue) =>
-          Value.LetRecursion(shape.morphirType, valueDefinitions, inValue)
-        case Value.List(attributes, elements)   => Value.List(shape.morphirType, elements)
-        case Value.Literal(attributes, literal) => Value.Literal(shape.morphirType, literal)
-        case Value.PatternMatch(attributes, branchOutOn, cases) =>
-          Value.PatternMatch(shape.morphirType, branchOutOn, cases)
-        case Value.Record(attributes, fields)                => Value.Record(shape.morphirType, fields)
-        case Value.Reference(attributes, fullyQualifiedName) => Value.Reference(shape.morphirType, fullyQualifiedName)
-        case Value.Tuple(attributes, elements)               => Value.Tuple(shape.morphirType, elements)
-        case Value.Unit(attributes)                          => Value.Unit(shape.morphirType)
+          Value.LetRecursion(alias, valueDefinitions, inValue)
+        case Value.List(attributes, elements)                   => Value.List(alias, elements)
+        case Value.Literal(attributes, literal)                 => Value.Literal(alias, literal)
+        case Value.PatternMatch(attributes, branchOutOn, cases) => Value.PatternMatch(alias, branchOutOn, cases)
+        case Value.Record(attributes, fields)                   => Value.Record(alias, fields)
+        case Value.Reference(attributes, fullyQualifiedName)    => Value.Reference(alias, fullyQualifiedName)
+        case Value.Tuple(attributes, elements)                  => Value.Tuple(alias, elements)
+        case Value.Unit(attributes)                             => Value.Unit(alias)
         case Value.UpdateRecord(attributes, valueToUpdate, fieldsToUpdate) =>
-          Value.UpdateRecord(shape.morphirType, valueToUpdate, fieldsToUpdate)
-        case Value.Variable(attributes, name) => Value.Variable(shape.morphirType, name)
+          Value.UpdateRecord(alias, valueToUpdate, fieldsToUpdate)
+        case Value.Variable(attributes, name) => Value.Variable(alias, name)
       }
-
     case Data.Case(values, enumLabel, shape) => ??? // TODO: to be implemented
     case Data.Union(value, shape)            => ??? // TODO: to be implemented
   }
