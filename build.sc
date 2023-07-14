@@ -62,7 +62,7 @@ trait MorphirPublishModule extends CiReleaseModule with JavaModule {
   )
 }
 
-object morphir extends Cross[MorphirModule](ScalaVersions.all) {
+object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersions) {
   object build extends Module {
     object integration extends Module {
       object `mill-morphir-elm` extends Cross[MillMorphirElmPlugin](MillVersions.all)

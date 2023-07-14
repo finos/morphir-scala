@@ -52,26 +52,11 @@ object BuildSettings {
 
 }
 
-final case class JvmBuildSettings(enable: Boolean = true)
-object JvmBuildSettings {
-  val config                         = deriveConfig[JvmBuildSettings]
-  lazy val default: JvmBuildSettings = JvmBuildSettings()
 
-  implicit lazy val rw: upickle.default.ReadWriter[JvmBuildSettings] = upickle.default.macroRW
-}
 
-final case class ScalaJsBuildSettings(enable: Boolean = true)
-object ScalaJsBuildSettings {
-  val config                             = deriveConfig[ScalaJsBuildSettings]
-  lazy val default: ScalaJsBuildSettings = ScalaJsBuildSettings()
 
-  implicit lazy val rw: upickle.default.ReadWriter[ScalaJsBuildSettings] = upickle.default.macroRW
-}
 
-final case class ScalaNativeBuildSettings(enable: Boolean = true)
-object ScalaNativeBuildSettings {
-  val config                                 = deriveConfig[ScalaNativeBuildSettings]
-  lazy val default: ScalaNativeBuildSettings = ScalaNativeBuildSettings()
 
-  implicit lazy val rw: upickle.default.ReadWriter[ScalaNativeBuildSettings] = upickle.default.macroRW
-}
+
+
+

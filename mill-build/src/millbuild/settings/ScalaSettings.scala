@@ -9,6 +9,7 @@ import com.typesafe.config.ConfigFactory
 import zio.Config
 
 final case class ScalaSettings(
+    defaultVersion: String = ScalaSettings.defaultVersion,
     scala213Version: String = ScalaSettings.defaultScala213Version,
     scala3xVersion: String = ScalaSettings.defaultScala3xVersion,
     crossScalaVersions: List[String] = ScalaSettings.defaultCrossScalaVersions
@@ -17,6 +18,7 @@ final case class ScalaSettings(
 object ScalaSettings {
   val config: Config[ScalaSettings]                          = deriveConfig[ScalaSettings]
   lazy val default: ScalaSettings                            = ScalaSettings()
+  lazy val defaultVersion                                    = defaultScala3xVersion
   implicit val rw: upickle.default.ReadWriter[ScalaSettings] = upickle.default.macroRW
 
   val defaultScala213Version                  = "2.13.11"
