@@ -38,6 +38,22 @@ object ToMorphirType {
   implicit val charUType: ToMorphirUType[scala.Char]               = toUTypeConverter(sdk.Char.charType)
   implicit val bigIntUType: ToMorphirUType[scala.BigInt]           = toUTypeConverter(sdk.Basics.intType)
 
+  implicit def optionUType[A](implicit elementToUType: ToMorphirUType[A]): ToMorphirUType[scala.Option[A]] =
+    toUTypeConverter(sdk.Maybe.maybeType(elementToUType.morphirType))
+
+  implicit def listUType[A](implicit elementToUType: ToMorphirUType[A]): ToMorphirUType[scala.List[A]] =
+    toUTypeConverter(sdk.List.listType(elementToUType.morphirType))
+
+  implicit def mapUType[A, B](implicit
+      keyToUType: ToMorphirUType[A],
+      valueToUType: ToMorphirUType[B]
+  ): ToMorphirUType[Map[A, B]] =
+    toUTypeConverter(sdk.Dict.dictType(keyToUType.morphirType, valueToUType.morphirType))
+
+  implicit def setUType[A, B](implicit
+      itemToUType: ToMorphirUType[A]
+  ): ToMorphirUType[Set[A]] =
+    toUTypeConverter(sdk.Set.setType(itemToUType.morphirType))
 
   implicit val labelUType: ToMorphirUType[Label] = stringUType.as
 
@@ -77,5 +93,5 @@ object ToMorphirType {
   final class SummonPartiallyApplied[A](private val dummy: Boolean = true) extends AnyVal {
     def withAttributesOf[Attribs](implicit toMorphirType: ToMorphirType[A, Attribs]): ToMorphirType[A, Attribs] =
       toMorphirType
-  }    
+  }
 }
