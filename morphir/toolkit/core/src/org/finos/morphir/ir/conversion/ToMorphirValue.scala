@@ -111,6 +111,55 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         V.constructor(FQName.fromString("Morphir.SDK:Maybe:just"), shape.morphirType),
         dataToIR(data)
       )
+    case Data.List(values, shape) =>
+      val valuesList = values.map { data => dataToIR(data) }
+      V.list(shape.morphirType, zio.Chunk.fromIterable(valuesList))
+    case Data.Map(values, shape) =>
+      val tupleShape = Concept.Tuple(List(shape.keyType, shape.valueType))
+      val tuples = values.map { case (key, value) =>
+        V.tuple(tupleShape.morphirType, dataToIR(key), dataToIR(value))
+      }
+      V.apply(
+        shape.morphirType,
+        V.reference(shape.morphirType, FQName.fromString("Morphir.SDK:Dict:fromList")),
+        V.list(Concept.List(tupleShape).morphirType, zio.Chunk.fromIterable(tuples))
+      )
+    case record: Data.Record =>
+      val fields = record.values.map { case (Label(name), value) => (name, dataToIR(value)) }
+      V.record(record.shape.morphirType, fields: _*)
+    case tuple: Data.Tuple =>
+      val values = tuple.values.map { data => dataToIR(data) }
+      V.tuple(tuple.shape.morphirType, zio.Chunk.fromIterable(values))
+
+    case Data.Aliased(data, shape) => dataToIR(data) match {
+        case Value.Apply(attributes, function, argument) => Value.Apply(shape.morphirType, function, argument)
+        case Value.Constructor(attributes, name)         => Value.Constructor(shape.morphirType, name)
+        case Value.Destructure(attributes, pattern, valueToDestruct, inValue) =>
+          Value.Destructure(shape.morphirType, pattern, valueToDestruct, inValue)
+        case Value.Field(attributes, subjectValue, fieldName) => Value.Field(shape.morphirType, subjectValue, fieldName)
+        case Value.FieldFunction(attributes, name)            => Value.FieldFunction(shape.morphirType, name)
+        case Value.IfThenElse(attributes, condition, thenBranch, elseBranch) =>
+          Value.IfThenElse(shape.morphirType, condition, thenBranch, elseBranch)
+        case Value.Lambda(attributes, argumentPattern, body) => Value.Lambda(shape.morphirType, argumentPattern, body)
+        case Value.LetDefinition(attributes, valueName, valueDefinition, inValue) =>
+          Value.LetDefinition(shape.morphirType, valueName, valueDefinition, inValue)
+        case Value.LetRecursion(attributes, valueDefinitions, inValue) =>
+          Value.LetRecursion(shape.morphirType, valueDefinitions, inValue)
+        case Value.List(attributes, elements)   => Value.List(shape.morphirType, elements)
+        case Value.Literal(attributes, literal) => Value.Literal(shape.morphirType, literal)
+        case Value.PatternMatch(attributes, branchOutOn, cases) =>
+          Value.PatternMatch(shape.morphirType, branchOutOn, cases)
+        case Value.Record(attributes, fields)                => Value.Record(shape.morphirType, fields)
+        case Value.Reference(attributes, fullyQualifiedName) => Value.Reference(shape.morphirType, fullyQualifiedName)
+        case Value.Tuple(attributes, elements)               => Value.Tuple(shape.morphirType, elements)
+        case Value.Unit(attributes)                          => Value.Unit(shape.morphirType)
+        case Value.UpdateRecord(attributes, valueToUpdate, fieldsToUpdate) =>
+          Value.UpdateRecord(shape.morphirType, valueToUpdate, fieldsToUpdate)
+        case Value.Variable(attributes, name) => Value.Variable(shape.morphirType, name)
+      }
+
+    case Data.Case(values, enumLabel, shape) => ??? // TODO: to be implemented
+    case Data.Union(value, shape)            => ??? // TODO: to be implemented
   }
 
   implicit val unitTyped: ToMorphirTypedValue[scala.Unit] = makeTyped { v =>
