@@ -27,6 +27,9 @@ private[datamodel] case class SumBuilder(tpe: SumBuilder.SumType, variants: List
                       failInsideNotProduct(other)
                   }
                 Concept.Enum.Case(Label(v.enumLabel), enumVariantFields)
+
+              case variant: SumBuilder.Variant =>
+                throw new IllegalArgumentException("Non-Discrimiated union decoding is not supported yet.")
             }
 
           }
