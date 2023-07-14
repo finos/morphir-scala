@@ -62,6 +62,10 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     if (value) Literal.Lit.True else Literal.Lit.False
   }
 
+  implicit val stringTyped: ToMorphirTypedValue[String] = makeTyped { value =>
+    V.string(value.morphirType, value)
+  }
+
   implicit val intTyped: ToMorphirTypedValue[Int] = makeTyped { value =>
     V.int(value.morphirType, value)
   }
