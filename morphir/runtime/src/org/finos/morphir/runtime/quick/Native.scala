@@ -21,12 +21,10 @@ object Dict {
           asTuple._1 -> asTuple._2
         }
         .toMap
-//      val mapped = list
-//        .asInstanceOf[List[(ResultValue[Unit, Type.UType], ResultValue[Unit, Type.UType])]]
-//        .toMap
       Result.MapResult(mapped)
     }
   )
+
 
   val get: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
@@ -151,7 +149,7 @@ object Native {
 //    }
 //  )
 
-  val pi: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.Primitive(3L))
+  val pi: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.Primitive(3.toDouble))
 
   val just: SDKConstructor[Unit, Type.UType]    = SDKConstructor(List(Type.variable("contents")))
   val nothing: SDKConstructor[Unit, Type.UType] = SDKConstructor(List())
