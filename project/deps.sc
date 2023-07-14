@@ -130,7 +130,7 @@ object Versions {
   val enumeratum = "1.7.2"
 
   def borer(scalaVersion: String): String =
-    borer(scalaVersion.split('.'))
+    borer(scalaVersion.split('.').toIndexedSeq)
 
   def borer(scalaVersionParts: Seq[String]): String =
     scalaVersionParts match {

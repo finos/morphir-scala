@@ -30,10 +30,10 @@ trait CrossPlatform extends Module with DynamicModule { self =>
     case _ => true
   }
 
-  def originalMillModuleDirectChildren: Seq[Module] = super.millModuleDirectChildren
+  final def originalMillModuleDirectChildren: Seq[Module] = super.millModuleDirectChildren
 
   override def millModuleDirectChildren: Seq[Module] =
-    super.millModuleDirectChildren.filter(enableModuleCondition)
+    originalMillModuleDirectChildren.filter(enableModuleCondition)
 
   private type PlatformModule = JavaModule {
     def platform: Platform

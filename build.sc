@@ -11,6 +11,10 @@ import millbuild.crossplatform._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind
 
+implicit val buildSettings: BuildSettings = interp.watchValue(BuildSettings.load())
+
+def resolvedBuildSettings = T { buildSettings }
+
 /**
  * The version of Scala natively supported by the toolchain. Morphir itself may provide backends that generate code for
  * other Scala versions. We may also directly cross-compile to additional Scla versions.
@@ -20,10 +24,23 @@ val morphirScalaVersion: String = ScalaVersions.scala3x
 val docsScalaVersion: String = ScalaVersions.scala213 //This really should match but need to figure it out
 
 import mill.eval.{Evaluator, EvaluatorPaths}
+
+def bspInstall(jobs: Int = 1) = T.command {
+  mill.bsp.BSP.install(jobs)
+}
+
+def idea(ev: Evaluator) = T.command {
+  mill.scalalib.GenIdea.idea(ev)
+}
+
 // With this we can now just do ./mill reformatAll __.sources
 // instead of ./mill -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
 def reformatAll(evaluator: Evaluator, sources: mill.main.Tasks[Seq[PathRef]]) = T.command {
   ScalafmtModule.reformatAll(sources)()
+}
+
+def showBuildSettings() = T.command {
+  pprint.pprintln(resolvedBuildSettings())
 }
 
 trait MorphirPublishModule extends CiReleaseModule with JavaModule {
@@ -212,7 +229,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         def moduleDeps = super.moduleDeps ++ Agg(
           testing.munit.js
         )
-        //def moduleKind = ModuleKind.CommonJSModule
+        // def moduleKind = ModuleKind.CommonJSModule
       }
     }
 
@@ -369,19 +386,19 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
 
       object jvm extends Shared with MorphirJVMModule {
         object test extends ScalaTests with TestModule.Munit {
-          def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+          def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
           def moduleDeps = super.moduleDeps ++ Agg(testing.munit.jvm)
         }
       }
       object js extends Shared with MorphirJSModule {
         object test extends ScalaJSTests with TestModule.Munit {
-          def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+          def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
           def moduleDeps = super.moduleDeps ++ Agg(testing.munit.js)
         }
       }
       object native extends Shared with MorphirNativeModule {
         object test extends ScalaNativeTests with TestModule.Munit {
-          def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+          def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
           def moduleDeps = super.moduleDeps ++ Agg(testing.munit.native)
         }
       }
@@ -390,20 +407,20 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
     object platform extends Module {
       object services extends CrossPlatform with CrossValue {
         trait Shared extends MorphirCommonModule with MorphirPublishModule {
-          def ivyDeps = super.ivyDeps() ++ Agg(Deps.com.lihaoyi.sourcecode)
+          def ivyDeps                    = super.ivyDeps() ++ Agg(Deps.com.lihaoyi.sourcecode)
           def platformSpecificModuleDeps = Seq(foundations)
         }
 
         object jvm extends Shared with MorphirJVMModule {
           object test extends ScalaTests with TestModule.Munit {
-            def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+            def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
             def moduleDeps = super.moduleDeps ++ Agg(testing.munit.jvm)
           }
         }
 
         object js extends Shared with MorphirJSModule {
           object test extends ScalaJSTests with TestModule.Munit {
-            def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+            def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
             def moduleDeps = super.moduleDeps ++ Agg(testing.munit.js)
             def moduleKind = ModuleKind.CommonJSModule
           }
@@ -411,7 +428,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
 
         object native extends Shared with MorphirNativeModule {
           object test extends ScalaNativeTests with TestModule.Munit {
-            def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+            def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
             def moduleDeps = super.moduleDeps ++ Agg(testing.munit.native)
           }
         }
