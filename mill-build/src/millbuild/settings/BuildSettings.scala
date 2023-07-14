@@ -11,6 +11,7 @@ final case class BuildSettings(
     jvm: JvmBuildSettings = JvmBuildSettings(),
     js: ScalaJsBuildSettings = ScalaJsBuildSettings(),
     native: ScalaNativeBuildSettings = ScalaNativeBuildSettings(),
+    mill: MillSettings = MillSettings(),
     scala: ScalaSettings = ScalaSettings()
 )
 
@@ -51,12 +52,3 @@ object BuildSettings {
     )
 
 }
-
-
-
-
-
-
-
-
-

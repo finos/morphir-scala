@@ -25,3 +25,7 @@ object ScalaSettings {
   val defaultScala3xVersion                   = "3.3.0"
   val defaultCrossScalaVersions: List[String] = List(defaultScala3xVersion, defaultScala213Version)
 }
+
+
+
+

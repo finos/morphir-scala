@@ -2,7 +2,7 @@ import $meta._
 import $ivy.`de.tototec::de.tobiasroeser.mill.integrationtest::0.7.1`
 import $ivy.`io.chris-kipp::mill-ci-release::0.1.9`
 import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
-import $file.project.deps, deps.{Deps, MillVersions, ScalaVersions, Versions => Vers}
+import $file.project.deps, deps.{Deps, MillVersions, Versions => Vers}
 import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
 import de.tobiasroeser.mill.integrationtest._
 import io.kipp.mill.ci.release.CiReleaseModule
@@ -12,17 +12,18 @@ import millbuild.settings._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind
 
-implicit val buildSettings: BuildSettings = interp.watchValue(BuildSettings.load())
+implicit val buildSettings: BuildSettings = interp.watchValue(MyBuild.cachedBuildSettings)
 
-def resolvedBuildSettings = T.input { buildSettings }
+def resolvedBuildSettings = T.input { MyBuild.buildSettings() }
 
 /**
  * The version of Scala natively supported by the toolchain. Morphir itself may provide backends that generate code for
  * other Scala versions. We may also directly cross-compile to additional Scla versions.
  */
-val morphirScalaVersion: String = ScalaVersions.scala3x
+val morphirScalaVersion: String = interp.watchValue(buildSettings.scala.defaultVersion)
 
-val docsScalaVersion: String = ScalaVersions.scala213 //This really should match but need to figure it out
+val docsScalaVersion: String =
+  interp.watchValue(buildSettings.scala.scala213Version) // This really should match but need to figure it out
 
 import mill.eval.{Evaluator, EvaluatorPaths}
 
@@ -41,9 +42,7 @@ def reformatAll(evaluator: Evaluator, sources: mill.main.Tasks[Seq[PathRef]]) = 
 }
 
 def showBuildSettings() = T.command {
-  val settings = resolvedBuildSettings()
-  pprint.pprintln(settings)
-  settings
+  MyBuild.showBuildSettings()
 }
 
 trait MorphirPublishModule extends CiReleaseModule with JavaModule {
@@ -76,7 +75,7 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
 
         val pluginName = "mill-morphir-elm"
 
-        def scalaVersion          = ScalaVersions.millScalaVersion
+        def scalaVersion          = T { resolvedBuildSettings().mill.scalaVersion }
         override def artifactName = s"${pluginName}_mill${MillVersions.millBinaryVersion(millVersion)}"
         override def compileIvyDeps = super.compileIvyDeps() ++ Agg(
           ivy"com.lihaoyi::mill-scalalib:${millVersion}"
@@ -111,12 +110,12 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
   trait MorphirJSModule extends MorphirCommonModule with ScalaJSModule {
     import mill.scalajslib.api._
     def platform       = Platform.JS
-    def scalaJSVersion = ScalaVersions.scalaJSVersion
+    def scalaJSVersion = T { resolvedBuildSettings().js.version }
   }
 
   trait MorphirNativeModule extends MorphirCommonModule with ScalaNativeModule {
     def platform           = Platform.Native
-    def scalaNativeVersion = ScalaVersions.scalaNativeVersion
+    def scalaNativeVersion = T { resolvedBuildSettings().native.version }
   }
 
   object contrib extends Module {
