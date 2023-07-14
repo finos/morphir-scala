@@ -11,6 +11,10 @@ import scala.collection.immutable.{Map, Set}
 trait ToMorphirType[A, +Attribs] { self =>
   def apply: Type[Attribs]
   final def morphirType: Type[Attribs] = apply
+
+  def as[B]: ToMorphirType[B, Attribs] = new ToMorphirType[B, Attribs] {
+    override def apply: Type[Attribs] = self.apply
+  }
 }
 
 object ToMorphirType {
