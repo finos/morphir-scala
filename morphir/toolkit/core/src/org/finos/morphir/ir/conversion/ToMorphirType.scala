@@ -39,8 +39,14 @@ object ToMorphirType {
   implicit val bigIntUType: ToMorphirUType[scala.BigInt]           = toUTypeConverter(sdk.Basics.intType)
 
 
+  implicit val labelUType: ToMorphirUType[Label] = stringUType.as
+
   implicit def conceptToTypeIR(concept: Concept): ToMorphirUType[Concept] =
     concept match {
+      case Concept.Alias(name, value)      => toUTypeConverter(T.reference(name))
+      case Concept.Enum(name, cases)       => toUTypeConverter(T.reference(name))
+      case Concept.List(elementType)       => listUType(conceptToTypeIR(elementType)).as
+      case Concept.Optional(elementType)   => optionUType(conceptToTypeIR(elementType)).as
       case Concept.Map(keyType, valueType) => mapUType(conceptToTypeIR(keyType), conceptToTypeIR(valueType)).as
       case Concept.Record(fields) =>
         val types: scala.List[(String, UType)] = fields.map {
@@ -59,5 +65,5 @@ object ToMorphirType {
   final class SummonPartiallyApplied[A](private val dummy: Boolean = true) extends AnyVal {
     def withAttributesOf[Attribs](implicit toMorphirType: ToMorphirType[A, Attribs]): ToMorphirType[A, Attribs] =
       toMorphirType
-  }
+  }    
 }
