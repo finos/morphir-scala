@@ -86,7 +86,7 @@ object Data {
 
     def validated(values: scala.List[Data]): Option[List] =
       // Validate that element-type of everything is the same
-      if (values.nonEmpty && values.forall(_ == values.head))
+      if (values.nonEmpty && values.forall(_.shape == values.head.shape))
         Some(List(values, Concept.List(values.head.shape)))
       else
         None
@@ -124,7 +124,7 @@ object Data {
    *   Data.Union(Data.Int(123), Union(Schema.Int, Schema.String))
    * }}}
    */
-  case class Union(value: Data, unionSchema: Concept.Union)
+  case class Union(value: Data, shape: Concept.Union) extends Data
 
   /**
    * Represents data that lives beind a typedef. For example,
