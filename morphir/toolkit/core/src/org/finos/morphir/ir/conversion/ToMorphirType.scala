@@ -4,8 +4,8 @@ package conversion
 
 import org.finos.morphir.datamodel.{Concept, Label}
 import org.finos.morphir.ir.{Type => T}
-import Type.{Type, UType}
-import zio.Tag
+import org.finos.morphir.ir.Type.{Type, UType}
+
 
 trait ToMorphirType[A, +Attribs] {
   def apply: Type[Attribs]
