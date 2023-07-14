@@ -38,8 +38,19 @@ object ToMorphirType {
   implicit val charUType: ToMorphirUType[scala.Char]               = toUTypeConverter(sdk.Char.charType)
   implicit val bigIntUType: ToMorphirUType[scala.BigInt]           = toUTypeConverter(sdk.Basics.intType)
 
+
   implicit def conceptToTypeIR(concept: Concept): ToMorphirUType[Concept] =
     concept match {
+      case Concept.Map(keyType, valueType) => mapUType(conceptToTypeIR(keyType), conceptToTypeIR(valueType)).as
+      case Concept.Record(fields) =>
+        val types: scala.List[(String, UType)] = fields.map {
+          case (k: Label, v: Concept) => (k.value, conceptToTypeIR(v).morphirType)
+        }
+        toUTypeConverter(T.record(types: _*))
+      case Concept.Tuple(values) =>
+        val types: scala.List[UType] = values.map(conceptToTypeIR(_).morphirType)
+        toUTypeConverter(T.tuple(types: _*))
+
       case Concept.Any          => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
       case Concept.Nothing      => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
       case Concept.Union(cases) => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
