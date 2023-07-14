@@ -89,6 +89,28 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         V.reference(value.morphirType, FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds")),
         V.intTyped(value.get(ChronoField.MILLI_OF_DAY))
       )
+    case Data.Month(value: java.time.Month) => value match {
+        case Month.JANUARY   => V.constructor("Morphir.SDK:Month:January", value.morphirType)
+        case Month.FEBRUARY  => V.constructor("Morphir.SDK:Month:February", value.morphirType)
+        case Month.MARCH     => V.constructor("Morphir.SDK:Month:March", value.morphirType)
+        case Month.APRIL     => V.constructor("Morphir.SDK:Month:April", value.morphirType)
+        case Month.MAY       => V.constructor("Morphir.SDK:Month:May", value.morphirType)
+        case Month.JUNE      => V.constructor("Morphir.SDK:Month:June", value.morphirType)
+        case Month.JULY      => V.constructor("Morphir.SDK:Month:July", value.morphirType)
+        case Month.AUGUST    => V.constructor("Morphir.SDK:Month:August", value.morphirType)
+        case Month.SEPTEMBER => V.constructor("Morphir.SDK:Month:September", value.morphirType)
+        case Month.OCTOBER   => V.constructor("Morphir.SDK:Month:October", value.morphirType)
+        case Month.NOVEMBER  => V.constructor("Morphir.SDK:Month:November", value.morphirType)
+        case Month.DECEMBER  => V.constructor("Morphir.SDK:Month:December", value.morphirType)
+      }
+    case Data.Optional.None(shape: Concept.Optional) =>
+      V.constructor("Morphir.SDK:Maybe:Nothing", shape.morphirType)
+    case Data.Optional.Some(data, shape) =>
+      V.apply(
+        shape.morphirType,
+        V.constructor(FQName.fromString("Morphir.SDK:Maybe:just"), shape.morphirType),
+        dataToIR(data)
+      )
   }
 
   implicit val unitTyped: ToMorphirTypedValue[scala.Unit] = makeTyped { v =>
