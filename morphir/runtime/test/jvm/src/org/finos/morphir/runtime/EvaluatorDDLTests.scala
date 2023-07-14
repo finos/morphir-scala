@@ -13,7 +13,7 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
     (Label("name"), Concept.String),
     (Label("number"), Concept.Int32)
   ))
-  def dogRecordDataRaw(name : String, number : Int) = Data.Record(
+  def dogRecordDataRaw(name: String, number: Int) = Data.Record(
     (Label("name"), Data.String(name)),
     (Label("number"), Data.Int32(number))
   )
@@ -21,17 +21,18 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
     "Morphir.Examples.App:RecordTests:recordType",
     dogRecordConceptRaw
   )
-  def dogRecordData(name : String, number : Int) = Data.Aliased(
-    dogRecordDataRaw(name, number), dogRecordConcept
+  def dogRecordData(name: String, number: Int) = Data.Aliased(
+    dogRecordDataRaw(name, number),
+    dogRecordConcept
   )
 
-  def unionEnumShape : Concept.Enum = Concept.Enum(
+  def unionEnumShape: Concept.Enum = Concept.Enum(
     "Morphir.Examples.App:ConstructorTests:unionType",
     List(
       Concept.Enum.Case(
         Label("oneArg"),
         List(
-          (EnumLabel.Named("arg1"), Concept.Int32 )
+          (EnumLabel.Named("arg1"), Concept.Int32)
         )
       ),
       Concept.Enum.Case(
@@ -48,17 +49,17 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
     )
   )
 
-  val zeroArg : Data= Data.Case(
+  val zeroArg: Data = Data.Case(
     List(),
     "Morphir.Examples.App:ConstructorTests:zeroArg",
     unionEnumShape
   )
-  def oneArg(i : Int) : Data = Data.Case(
-    List((EnumLabel.Named("arg1"), Data.Int(i) )),
+  def oneArg(i: Int): Data = Data.Case(
+    List((EnumLabel.Named("arg1"), Data.Int(i))),
     "Morphir.Examples.App:ConstructorTests:oneArg",
     unionEnumShape
   )
-  def twoArg(i : Int, s : String): Data = Data.Case(
+  def twoArg(i: Int, s: String): Data = Data.Case(
     List(
       (EnumLabel.Named("arg1"), Data.Int(i)),
       (EnumLabel.Named("arg2"), Data.String(s))
@@ -279,13 +280,23 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
           assertTrue(actual == expected)
         },
         test("Nested") {
-          val actual   = runTest("listTests", "listNestedTest")
-          val expected = Data.List(Data.List(Data.String("Red"), Data.String("Blue")), Data.List(List(), Concept.String), Data.List(Data.String("Car"), Data.String("Plane"), Data.String("Truck")))
+          val actual = runTest("listTests", "listNestedTest")
+          val expected = Data.List(
+            Data.List(Data.String("Red"), Data.String("Blue")),
+            Data.List(List(), Concept.String),
+            Data.List(Data.String("Car"), Data.String("Plane"), Data.String("Truck"))
+          )
           assertTrue(actual == expected)
         },
         test("Flatten") {
-          val actual   = runTest("listTests", "listFlattenTest")
-          val expected = Data.List(Data.String("Red"), Data.String("Blue"), Data.String("Car"), Data.String("Plane"), Data.String("Truck"))
+          val actual = runTest("listTests", "listFlattenTest")
+          val expected = Data.List(
+            Data.String("Red"),
+            Data.String("Blue"),
+            Data.String("Car"),
+            Data.String("Plane"),
+            Data.String("Truck")
+          )
           assertTrue(actual == expected)
         }
       ),
@@ -320,7 +331,11 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
         test("Map") {
           val actual =
             runTest("nativeReferenceTests", "nativeReferenceMapTest")
-          val expected = Data.List(Data.Tuple(Data.Int(1), Data.Int(1)), Data.Tuple(Data.Int(2), Data.Int(2)), Data.Tuple(Data.Int(3), Data.Int(3)))
+          val expected = Data.List(
+            Data.Tuple(Data.Int(1), Data.Int(1)),
+            Data.Tuple(Data.Int(2), Data.Int(2)),
+            Data.Tuple(Data.Int(3), Data.Int(3))
+          )
           assertTrue(actual == expected)
         },
         test("Add") {
@@ -412,10 +427,13 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
           val actual = runTest("recordTests", "recordNestedTest")
           val rawRecord = Data.Record(
             (Label("name"), Data.String("Dogs")),
-            (Label("records"), Data.List(
-              dogRecordData("Ponyo", 3),
-              dogRecordData("Soso", 3)
-            ))
+            (
+              Label("records"),
+              Data.List(
+                dogRecordData("Ponyo", 3),
+                dogRecordData("Soso", 3)
+              )
+            )
           )
           val expected = Data.Aliased(
             rawRecord,
@@ -434,7 +452,7 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
           assertTrue(actual == expected)
         },
         test("Record Updates are not mutation") {
-          val actual   = runTest("recordTests", "updateRecordImmutableTest")
+          val actual = runTest("recordTests", "updateRecordImmutableTest")
           val expected =
             Data.List(
               dogRecordData("Soso", 4),
@@ -462,10 +480,12 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
           assertTrue(actual == expected)
         },
         test("Nested Tuple") {
-          val actual   = runTest("tupleTests", "tupleNestedTest")
+          val actual = runTest("tupleTests", "tupleNestedTest")
           val expected = Data.Tuple(
-            Data.Int(5), Data.Tuple(
-              Data.String("Four"), Data.Tuple(Data.Int(4), Data.String("Five"))
+            Data.Int(5),
+            Data.Tuple(
+              Data.String("Four"),
+              Data.Tuple(Data.Int(4), Data.String("Five"))
             )
           )
           assertTrue(actual == expected)
@@ -512,7 +532,7 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
         }
       ),
       suite("Dictionary Tests")(
-        test("Returns a dictionary"){
+        test("Returns a dictionary") {
           val actual =
             runTest("dictionaryTests", "returnDictionaryTest")
           val expected = Data.Map((Data.Int(1), Data.String("Red")), (Data.Int(2), Data.String("Blue")))
@@ -520,7 +540,7 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
 
         }
       ),
-      suite ("Optional Tests") (
+      suite("Optional Tests")(
         test("Returns a Just 1") {
           val actual =
             runTest("optionTests", "returnJustIntTest")
@@ -534,5 +554,5 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
           assertTrue(actual == expected)
         }
       )
-    ) //@@ TestAspect.ignore @@ TestAspect.tag("Will re-enable when code-gen of a test are part of the pipeline")
+    ) @@ TestAspect.ignore @@ TestAspect.tag("Will re-enable when code-gen of a test are part of the pipeline")
 }

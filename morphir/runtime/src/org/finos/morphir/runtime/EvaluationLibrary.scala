@@ -9,7 +9,7 @@ import org.finos.morphir.ir.{FQName, Module, Name, QName, Type}
 import org.finos.morphir.runtime.quick.{EvaluatorQuick, Store}
 import org.finos.morphir.ir.Distribution.Distribution.Library
 
-case class EvaluationLibrary(store: Store[Unit, Type.UType], modulePrefix: Option[String], distribution : Library) {
+case class EvaluationLibrary(store: Store[Unit, Type.UType], modulePrefix: Option[String], distribution: Library) {
   def runTest(moduleName: String, functionName: String, input: Any): Any = {
     val fullName = modulePrefix match {
       case Some(prefix) => s"$prefix:$moduleName:$functionName"
@@ -21,7 +21,7 @@ case class EvaluationLibrary(store: Store[Unit, Type.UType], modulePrefix: Optio
   def runTestDDL(moduleName: String, functionName: String, input: Any): Any = {
     val fullName = modulePrefix match {
       case Some(prefix) => s"$prefix:$moduleName:$functionName"
-      case None => s"$moduleName:$functionName"
+      case None         => s"$moduleName:$functionName"
     }
     EvaluatorQuick.evalFunctionToDDL(FQName.fromString(fullName), store, input, distribution)
   }

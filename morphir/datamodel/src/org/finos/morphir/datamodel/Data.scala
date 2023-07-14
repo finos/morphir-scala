@@ -47,8 +47,8 @@ object Data {
   case class Tuple(values: scala.List[Data]) extends Data {
     val shape: Concept.Tuple = Concept.Tuple(values.map(_.shape))
   }
-  object Tuple{
-    def apply(values : Data*): Tuple = Tuple(values.toList)
+  object Tuple {
+    def apply(values: Data*): Tuple = Tuple(values.toList)
   }
   case class Record(values: scala.List[(Label, Data)]) extends Data {
     val shape: Concept.Record = Concept.Record(values.map { case (label, data) => (label, data.shape) })
