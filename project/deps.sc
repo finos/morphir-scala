@@ -133,6 +133,7 @@ object Deps {
 
     case object typelevel {
       val `paiges-core` = ivy"org.typelevel::paiges-core::${Versions.paiges}"
+      val spire         = ivy"org.typelevel::spire::0.18.0"
     }
   }
 }

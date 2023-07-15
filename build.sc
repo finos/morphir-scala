@@ -494,10 +494,13 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
   object sdk extends CrossPlatform with CrossValue {
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
       def ivyDeps = super.ivyDeps() ++ Agg(
+        Deps.com.beachape.enumeratum,
         Deps.com.lihaoyi.geny,
         Deps.com.lihaoyi.sourcecode,
         Deps.com.lihaoyi.pprint,
-        Deps.dev.zio.`zio-prelude`
+        Deps.dev.zio.`zio-prelude`,
+        Deps.org.typelevel.`paiges-core`,
+        Deps.org.typelevel.spire
       )
       def platformSpecificModuleDeps = Seq(morphir.foundations)
     }
@@ -787,7 +790,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
           Deps.dev.zio.`zio-prelude`
         )
 
-        def platformSpecificModuleDeps = Seq(morphir.toolkit.core)
+        def platformSpecificModuleDeps = Seq(morphir.toolkit.core, morphir.sdk)
       }
 
       object jvm extends Shared with MorphirJVMModule {
