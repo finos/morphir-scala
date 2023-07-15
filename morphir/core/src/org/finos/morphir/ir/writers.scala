@@ -2,7 +2,8 @@ package org.finos
 package morphir
 package ir
 
-import foundations.*
+import zio.Chunk
+import zio.prelude.*
 import upickle.core.{Annotator, Visitor}
 import Distribution.Distribution
 import Documented.Documented

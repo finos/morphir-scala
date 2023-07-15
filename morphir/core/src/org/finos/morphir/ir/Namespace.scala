@@ -1,6 +1,6 @@
 package org.finos.morphir.ir
 
-import org.finos.morphir.foundations.*
+import zio.prelude.*
 import Module.ModuleName
 import Name.Name
 import Path.Path

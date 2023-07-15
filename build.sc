@@ -180,6 +180,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         Deps.com.lihaoyi.pprint,
         Deps.com.lihaoyi.`upickle`,
         Deps.com.outr.scribe,
+        Deps.dev.zio.`zio-prelude`,
         Deps.org.typelevel.`paiges-core`
       )
 
