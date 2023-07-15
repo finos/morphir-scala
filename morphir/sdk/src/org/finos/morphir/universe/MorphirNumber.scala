@@ -1,4 +1,4 @@
-package org.finos.morphir.universe.sdk.types
+package org.finos.morphir.universe
 
 trait MorphirNumber[A] {}
 

@@ -3,6 +3,9 @@ import zio.prelude.*
 
 package object ir {
 
+  type UType = ir.Type[scala.Unit]
+  val UType: ir.Type.type = ir.Type
+
   /**
    * A module name is a unique identifier for a module within a package. It is represented by a pth, which is a list of
    * names.
