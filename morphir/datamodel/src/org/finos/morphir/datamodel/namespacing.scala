@@ -1,6 +1,6 @@
 package org.finos.morphir.datamodel
-import org.finos.morphir.foundations.*
 import org.finos.morphir.foundations.capabilities.*
+import zio.prelude.*
 
 object namespacing {
 
@@ -13,17 +13,24 @@ object namespacing {
     }
   }
 
+  type ValidNamespaceSegment = ValidNamespaceSegment.Type
+  object ValidNamespaceSegment extends Subtype[String] {
+    implicit class ValidNamespaceSegmentOps(val self: ValidNamespaceSegment) extends AnyVal {
+      def value: String = unwrap(self)
+    }
+  }
+
   type Namespace = Namespace.Type
-  object Namespace extends Newtype[Chunk[NamespaceSegment]] {
-    lazy val root: Namespace = Namespace(Chunk.empty)
+  object Namespace extends Newtype[List[NamespaceSegment]] {
+    lazy val root: Namespace = Namespace(List.empty)
 
     implicit val showInstance: Show[Namespace] = ns => ns.segments.map(_.value).mkString(".")
 
     def fromIterable(segments: Iterable[NamespaceSegment]): Namespace =
-      Namespace(Chunk.fromIterable(segments))
+      Namespace(segments.toList)
 
     implicit class NamespaceOps(val self: Namespace) extends AnyVal {
-      def segments: Chunk[NamespaceSegment]       = unwrap(self)
+      def segments: List[NamespaceSegment]        = unwrap(self)
       def /(segment: NamespaceSegment): Namespace = Namespace(unwrap(self) :+ segment)
       def /(namespace: Namespace): Namespace      = Namespace(unwrap(self) ++ unwrap(namespace))
       // def /(name: String): Namespace = Namespace(unwrap(self) :+ NamespaceSegment(name))
