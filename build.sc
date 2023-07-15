@@ -491,6 +491,39 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
     }
   }
 
+  object sdk extends CrossPlatform with CrossValue {
+    trait Shared extends MorphirCommonModule with MorphirPublishModule {
+      def ivyDeps = super.ivyDeps() ++ Agg(
+        Deps.com.lihaoyi.geny,
+        Deps.com.lihaoyi.sourcecode,
+        Deps.com.lihaoyi.pprint,
+        Deps.dev.zio.`zio-prelude`
+      )
+      def platformSpecificModuleDeps = Seq(morphir.foundations)
+    }
+
+    object jvm extends Shared with MorphirJVMModule {
+      object test extends ScalaTests with TestModule.Munit {
+        def ivyDeps    = Agg(Deps.org.scalameta.munit)
+        def moduleDeps = super.moduleDeps ++ Agg(testing.munit.jvm)
+      }
+    }
+
+    object js extends Shared with MorphirJSModule {
+      object test extends ScalaJSTests with TestModule.Munit {
+        def ivyDeps    = Agg(Deps.org.scalameta.munit)
+        def moduleDeps = super.moduleDeps ++ Agg(testing.munit.js)
+      }
+    }
+
+    object native extends Shared with MorphirNativeModule {
+      object test extends ScalaNativeTests with TestModule.Munit {
+        def ivyDeps    = Agg(Deps.org.scalameta.munit)
+        def moduleDeps = super.moduleDeps ++ Agg(testing.munit.native)
+      }
+    }
+  }
+
   object testing extends Module {
     object munit extends CrossPlatform {
       trait Shared extends MorphirCommonModule {
@@ -738,6 +771,43 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
     object native extends Shared with MorphirNativeModule {
       object test extends ScalaTests with TestModule.Munit {
         def ivyDeps = Agg(Deps.org.scalameta.munit)
+      }
+    }
+  }
+
+  object zio extends Module {
+    object schema extends CrossPlatform with CrossValue {
+      def enableNative(module: Module) = false
+      trait Shared extends MorphirCommonModule with MorphirPublishModule {
+        def ivyDeps = Agg(
+          Deps.com.lihaoyi.sourcecode,
+          Deps.com.lihaoyi.geny,
+          Deps.com.lihaoyi.pprint,
+          Deps.org.typelevel.`paiges-core`,
+          Deps.dev.zio.`zio-prelude`
+        )
+
+        def platformSpecificModuleDeps = Seq(morphir.toolkit.core)
+      }
+
+      object jvm extends Shared with MorphirJVMModule {
+        object test extends ScalaTests with TestModule.Munit {
+          def ivyDeps = Agg(Deps.org.scalameta.munit)
+          def moduleDeps = super.moduleDeps ++ Agg(
+            morphir.testing.munit.jvm,
+            morphir.testing.munit.zio.jvm
+          )
+        }
+      }
+
+      object js extends Shared with MorphirJSModule {
+        object test extends ScalaTests with TestModule.Munit {
+          def ivyDeps = Agg(Deps.org.scalameta.munit)
+          def moduleDeps = super.moduleDeps ++ Agg(
+            morphir.testing.munit.js,
+            morphir.testing.munit.zio.js
+          )
+        }
       }
     }
   }
