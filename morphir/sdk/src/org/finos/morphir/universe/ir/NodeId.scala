@@ -22,7 +22,7 @@ import zio.prelude.*
  * For example: `"module:Morphir.Reference.Model:BooksAndRecords"` refers to the `Books and Records` module inside the
  * `Morphir.Reference.Model` package.
  */
-sealed trait NodeId
+sealed trait NodeId extends Product with Serializable { self => }
 object NodeId {
 
   def fromString(input: String): Either[Error, NodeId] = {
@@ -31,7 +31,7 @@ object NodeId {
       if (defNameWithSuffix.endsWith(".value")) {
         Right(ValueId(FQName.fqn(packageName, moduleName, defName(".value")), NodePath.fromString(nodePath)))
       } else {
-        Right(ValueId(FQName.fqn(packageName, moduleName, defName(".type")), NodePath.fromString(nodePath)))
+        Right(TypeId(FQName.fqn(packageName, moduleName, defName(".type")), NodePath.fromString(nodePath)))
       }
     }
 
@@ -49,6 +49,33 @@ object NodeId {
         }
       case _ =>
         Left(Error.InvalidNodeId(input))
+    }
+  }
+
+  def toString(input: NodeId): String = {
+    implicit val renderer: Path.Renderer = Path.Renderer.TitleCase
+
+    def mapToTypeOrValue(
+        packageName: Path,
+        moduleName: Path,
+        localName: Name,
+        suffix: String,
+        nodePath: NodePath
+    ): String = {
+      val nodeIdString = s"${packageName.render}:${moduleName.render}:${localName.toCamelCase}$suffix"
+      nodePath match {
+        case Nil => nodeIdString
+        case _   => s"$nodeIdString${NodePath.toString(nodePath)}"
+      }
+    }
+
+    input match {
+      case ModuleId(packagePath, modulePath) =>
+        s"${packagePath.render}:${modulePath.render}"
+      case TypeId(FQName(packageName, moduleName, localName), path) =>
+        mapToTypeOrValue(packageName, moduleName, localName, ".type", path)
+      case ValueId(FQName(packageName, moduleName, localName), path) =>
+        mapToTypeOrValue(packageName, moduleName, localName, ".value", path)
     }
   }
 

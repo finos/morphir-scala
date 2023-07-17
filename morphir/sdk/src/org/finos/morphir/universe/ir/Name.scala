@@ -1,7 +1,7 @@
 package org.finos.morphir.universe.ir
 
 import scala.annotation.tailrec
-
+import zio.prelude.*
 final case class Name private (toList: List[String]) extends AnyVal {
   self =>
   def :+(that: String): Name = Name(self.toList :+ that)
@@ -49,6 +49,8 @@ final case class Name private (toList: List[String]) extends AnyVal {
 
   def mkString(f: String => String)(sep: String): String =
     toList.map(f).mkString(sep)
+
+  def render(implicit renderer: Name.Renderer): String = renderer(self)
 
   def toUpperCase: String = mkString(part => part.toUpperCase)("")
 
@@ -119,6 +121,19 @@ object Name {
   object VariableName {
     def unapply(name: Name): Option[String] =
       Some(name.toCamelCase)
+  }
+
+  type Renderer = Renderer.Type
+  object Renderer extends Subtype[Name => String] {
+    val CamelCase: Renderer = Renderer(Name.toCamelCase)
+    val KebabCase: Renderer = Renderer(Name.toKebabCase)
+    val SnakeCase: Renderer = Renderer(Name.toSnakeCase)
+    val TitleCase: Renderer = Renderer(Name.toTitleCase)
+
+    implicit class RendererOps(val self: Renderer) extends AnyVal {
+      def apply(name: Name): String  = self(name)
+      def render(name: Name): String = self(name)
+    }
   }
 
 }

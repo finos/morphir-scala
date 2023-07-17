@@ -95,6 +95,9 @@ package object ir {
     import NodePathStep.*
     val empty: NodePath = wrap(List.empty)
 
+    def apply(first: Name, rest: Name*): NodePath     = wrap((first :: rest.toList).map(ChildByName(_)))
+    def apply(first: String, rest: String*): NodePath = wrap((first :: rest.toList).map(childByName(_)))
+
     @inline def fromIterable(iterable: Iterable[NodePathStep]): NodePath = wrap(iterable.toList)
 
     def fromString(input: String): NodePath =

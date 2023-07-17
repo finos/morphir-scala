@@ -1,10 +1,13 @@
 package org.finos.morphir.universe.ir
 
 import scala.annotation.tailrec
-
+import zio.prelude.*
+import fansi.Str
 final case class Path(toList: List[Name]) extends PathLike {
   self =>
-
+  def render(implicit renderer: Path.Renderer): String = renderer(self)
+  def render(separator: String)(implicit nameRenderer: Name.Renderer): String =
+    render(Path.Renderer(separator, nameRenderer))
 }
 
 object Path {
@@ -14,7 +17,8 @@ object Path {
     wrap((first +: rest).map(Name.fromString).toList)
 
   def apply(first: Name, rest: Name*): Path =
-    wrap((first +: rest).toList)
+    if (rest.isEmpty) wrap(List(first))
+    else wrap((first +: rest).toList)
 
   private[morphir] def wrap(value: List[Name]): Path = Path(value)
 
@@ -48,6 +52,16 @@ object Path {
   }
 
   private[morphir] def unsafeMake(parts: Name*): Path = Path(parts.toList)
+
+  final case class Renderer(separator: String, nameRenderer: Name.Renderer) extends (Path => String) {
+    def apply(path: Path): String        = path.toString(nameRenderer, separator)
+    final def render(path: Path): String = apply(path)
+  }
+
+  object Renderer {
+    val CamelCase: Renderer = Renderer(".", Name.Renderer.CamelCase)
+    val KebabCase: Renderer = Renderer(".", Name.Renderer.KebabCase)
+    val SnakeCase: Renderer = Renderer(".", Name.Renderer.SnakeCase)
+    val TitleCase: Renderer = Renderer(".", Name.Renderer.TitleCase)
+  }
 }
-
-
