@@ -6,6 +6,9 @@ sealed trait Type[+A] {
 }
 object Type {
 
+  def reference[A](attributes: A)(name: FQName, typeParams: List[Type[A]] = List.empty): Reference[A] =
+    Reference(attributes, name, typeParams)
+
   final case class ExtensibleRecord[+A](attributes: A, name: Name, fields: List[Field[A]])   extends Type[A]
   final case class Function[+A](attributes: A, argumentType: Type[A], returnType: Type[A])   extends Type[A]
   final case class Record[+A](attributes: A, fields: List[Field[A]])                         extends Type[A]

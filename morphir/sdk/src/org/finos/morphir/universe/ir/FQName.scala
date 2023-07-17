@@ -56,6 +56,10 @@ object FQName {
   def fqn(localName: String)(implicit options: FQNamingOptions): FQName =
     FQName(options.defaultPackage, options.defaultModule, Name.fromString(localName))
 
+  /** Convenience function to create a fully-qualified name from 1 string with defaults for package and module */
+  def fromLocalName(localName: String)(implicit context: ModuleNamingContext): FQName =
+    FQName(context.packageName, context.moduleName, Name.fromString(localName))
+
   def fqn(moduleName: ModuleName)(implicit options: FQNamingOptions): FQName =
     FQName(options.defaultPackage, ModulePath(moduleName.namespace), moduleName.localName)
 

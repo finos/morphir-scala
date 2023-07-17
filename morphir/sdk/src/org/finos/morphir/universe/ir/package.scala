@@ -1,10 +1,20 @@
 package org.finos.morphir.universe
+import zio.=!=
 import zio.prelude.*
 
 package object ir {
 
-  type UType = ir.Type[scala.Unit]
-  val UType: ir.Type.type = ir.Type
+  type UType = RawType
+  val UType: RawType.type = RawType
+
+  type RawType = RawType.Type
+  object RawType extends Subtype[Type[scala.Unit]]
+
+  type RawTypeInfo = RawTypeInfo.Type
+  object RawTypeInfo extends Subtype[TypeInfo[scala.Unit]] {
+    def apply[A](typeInfo: TypeInfo[A])(implicit ev: A =!= scala.Unit): RawTypeInfo = wrap(typeInfo.map(_ => ()))
+
+  }
 
   /**
    * A module name is a unique identifier for a module within a package. It is represented by a pth, which is a list of
@@ -54,6 +64,9 @@ package object ir {
     }
   }
 
+  implicit def modulePathToModuleName(modulePath: ModulePath): ModuleName = ModuleName(modulePath.value)
+  implicit def moduleNameToModulePath(moduleName: ModuleName): ModulePath = ModulePath(moduleName.value)
+
   type Namespace = Namespace.Type
 
   object Namespace extends Subtype[Path] {
@@ -65,6 +78,47 @@ package object ir {
       @inline def toPath: Path = namespace.value
 
       @inline def value: Path = unwrap(namespace)
+    }
+  }
+
+  sealed trait NodePathStep
+  object NodePathStep {
+    def childByName(input: String): NodePathStep = ChildByName(Name.fromString(input))
+    def childByIndex(index: Int): NodePathStep   = ChildByIndex(index)
+
+    final case class ChildByName(name: Name)  extends NodePathStep
+    final case class ChildByIndex(index: Int) extends NodePathStep
+  }
+
+  type NodePath = NodePath.Type
+  object NodePath extends Subtype[List[NodePathStep]] {
+    import NodePathStep.*
+    val empty: NodePath = wrap(List.empty)
+
+    @inline def fromIterable(iterable: Iterable[NodePathStep]): NodePath = wrap(iterable.toList)
+
+    def fromString(input: String): NodePath =
+      if (input.isEmpty()) empty
+      else {
+        fromIterable(input.split(":").map { stepString =>
+          stepString.toIntOption match {
+            case Some(index) => NodePathStep.childByIndex(index)
+            case None        => NodePathStep.childByName(stepString)
+          }
+        })
+      }
+
+    def toString(nodePath: NodePath): String =
+      if (nodePath.isEmpty) ""
+      else {
+        nodePath.map {
+          case ChildByName(name)   => name.toCamelCase
+          case ChildByIndex(index) => index.toString()
+        }.mkString("#", ":", "")
+      }
+
+    implicit class NodePathOps(val self: NodePath) extends AnyVal {
+      @inline def toList: List[NodePathStep] = unwrap(self)
     }
   }
 
