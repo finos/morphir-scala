@@ -14,13 +14,12 @@ import org.finos.morphir.ir.Distribution.Distribution.Library
 import zio.Chunk
 import scala.collection.mutable
 
-type IntType = Long
-
 object FQString {
   def unapply(fqName: FQName): Option[String] = Some(fqName.toString)
 }
 
 object EvaluatorQuick {
+  type IntType = Long
 
   def evaluate[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Any = Result.unwrap(Loop.loop(ir, store))
 
@@ -45,7 +44,7 @@ object EvaluatorQuick {
   }
 
   def typeToConcept(tpe: Type.Type[Unit], dist: Library): Concept =
-    tpe match
+    tpe match {
       case TT.ExtensibleRecord(attributes, name, fields) =>
         throw new UnsupportedType("Extensible records not supported for DDL")
       case TT.Function(attributes, argumentType, returnType) =>
@@ -83,8 +82,9 @@ object EvaluatorQuick {
       case TT.Tuple(attributes, elements) => Concept.Tuple(elements.map(element => typeToConcept(element, dist)).toList)
       case TT.Unit(attributes)            => Concept.Unit
       case TT.Variable(attributes, name)  => throw new UnsupportedTypeParameter("Tried to convert type with parameter")
+    }
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
-    (concept, result) match
+    (concept, result) match {
       case (Concept.Record(fields), Result.Record(elements)) =>
         if (fields.length != elements.size) {
           throw new ResultDoesNotMatchType(s"$fields has different number of elements than $elements")
@@ -154,6 +154,7 @@ object EvaluatorQuick {
       case (Concept.Unit, Result.Unit()) => Data.Unit
       case (badType, badResult) =>
         throw new ResultDoesNotMatchType(s"Could not match type $badType with result $badResult")
+    }
 
   def resultToDDL(result: Result[Unit, Type.UType], tpe: Type.Type[Unit], dist: Library): Data = {
     val concept = typeToConcept(tpe, dist)
