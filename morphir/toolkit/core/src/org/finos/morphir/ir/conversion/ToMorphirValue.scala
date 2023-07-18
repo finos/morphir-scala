@@ -2,7 +2,7 @@ package org.finos.morphir
 package ir
 package conversion
 
-import org.finos.morphir.datamodel.{Concept, Data, Label}
+import org.finos.morphir.datamodel.{Concept, Data, EnumLabel, Label}
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.{TypedValue, Value}
 import org.finos.morphir.ir.{Type => T, Value => V}
@@ -157,8 +157,21 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
           Value.UpdateRecord(alias, valueToUpdate, fieldsToUpdate)
         case Value.Variable(attributes, name) => Value.Variable(alias, name)
       }
-    case Data.Case(values, enumLabel, shape) => ??? // TODO: to be implemented
-    case Data.Union(value, shape)            => ??? // TODO: to be implemented
+    case Data.Case(values, enumLabel, shape) =>
+      val constructor = V.constructor(shape.morphirType, enumLabel)
+      val args = values.map { case (label, data) =>
+        V.apply(
+          data.shape.morphirType,
+          V.constructor(data.shape.morphirType, ???), // TODO: where is the FQName?
+          dataToIR(data)
+        )
+      }
+      if (args.isEmpty)
+        constructor
+      else
+        V.apply(shape.morphirType, constructor, args.head, args.tail: _*)
+
+    case Data.Union(value, shape) => ??? // TODO: to be implemented
   }
 
   implicit val unitTyped: ToMorphirTypedValue[scala.Unit] = makeTyped { v =>
