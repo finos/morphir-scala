@@ -47,6 +47,9 @@ object Data {
   case class Tuple(values: scala.List[Data]) extends Data {
     val shape: Concept.Tuple = Concept.Tuple(values.map(_.shape))
   }
+  object Tuple {
+    def apply(values: Data*): Tuple = Tuple(values.toList)
+  }
   case class Record(values: scala.List[(Label, Data)]) extends Data {
     val shape: Concept.Record = Concept.Record(values.map { case (label, data) => (label, data.shape) })
   }
@@ -124,7 +127,7 @@ object Data {
    *   Data.Union(Data.Int(123), Union(Schema.Int, Schema.String))
    * }}}
    */
-  case class Union(value: Data, unionSchema: Concept.Union)
+  case class Union(value: Data, shape: Concept.Union) extends Data
 
   /**
    * Represents data that lives beind a typedef. For example,

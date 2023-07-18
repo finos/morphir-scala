@@ -26,7 +26,7 @@ trait EvaluationLibraryPlatformSpecific {
       .distribution
       .asInstanceOf[Library]
     val store = Store.fromLibrary(library)
-    EvaluationLibrary(store, prefix)
+    EvaluationLibrary(store, prefix, library)
   }
 
   def apply(fileName: String, prefix: String): EvaluationLibrary = apply(fileName, Some(prefix))
