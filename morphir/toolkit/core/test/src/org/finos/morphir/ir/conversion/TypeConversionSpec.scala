@@ -135,7 +135,7 @@ object TypeConversionSpec extends MorphirBaseSpec {
     suite("Concept.Record")(
       test("Should be possible to convert a Concept Record type to a Morphir record type") {
         val conceptRecord = Concept.Record(List(Label("1") -> Concept.String, Label("2") -> Concept.Char))
-        val morphirType = ToMorphirType.summon[Concept].withAttributesOf(conceptRecord).morphirType
+        val morphirType   = ToMorphirType.summon[Concept].withAttributesOf(conceptRecord).morphirType
         assertTrue(morphirType == T.record(Chunk("1" -> sdk.String.stringType, "2" -> sdk.Char.charType): _*))
       }
     ),

@@ -4,6 +4,7 @@ import org.finos.morphir.datamodel.Deriver.UnionType
 
 import scala.quoted.*
 import scala.reflect.ClassTag
+import scala.deriving.Mirror
 
 object DeriverMacros {
   import DeriverTypes._
@@ -109,8 +110,7 @@ object DeriverMacros {
       case None =>
         val tpe   = TypeRepr.of[T]
         val flags = tpe.typeSymbol.flags
-        // For some reason, Enums are also product-types and modules (i.e. objects) are also considered product types
-        if (!flags.is(Flags.Module) && !flags.is(Flags.Enum) && tpe <:< TypeRepr.of[Product]) {
+        if (Expr.summon[Mirror.ProductOf[T]].nonEmpty) {
           Type.of[T] match {
             case '[IsProduct[p]] =>
               val genericDeriver = Expr.summon[GenericProductDeriver[p]]
@@ -125,8 +125,7 @@ object DeriverMacros {
                 s"Impossible condition. ${tpe} has been checked to be a product already (flags: ${flags.show})."
               )
           }
-          // To be a sum-type it has to be a enum or sealed-trait
-        } else if (flags.is(Flags.Enum) || (flags.is(Flags.Trait) && flags.is(Flags.Sealed))) {
+        } else if (Expr.summon[Mirror.SumOf[T]].nonEmpty) {
           val genericDeriver = Expr.summon[GenericSumDeriver[T]]
           genericDeriver match {
             case Some(value) => value
@@ -135,8 +134,9 @@ object DeriverMacros {
                 s"Cannot summon specific or generic Sum Deriver for the sum type: ${tpe.widen.show} (flags: ${flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
               )
           }
-        } else
+        } else {
           failNotProductOrSum()
+        }
     }
 
   inline def summonProductDeriver[T]: Deriver[T] = ${ summonProductDeriverImpl[T] }
@@ -146,10 +146,9 @@ object DeriverMacros {
       report.errorAndAbort(
         s"Cannot summon generic Deriver for the type (was not a Product): ${TypeRepr.of[T].widen.show} (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
       )
-    // Not sure why but in Scala 3 case-objects are products. No idea why but we shouldn't be treating one of those
-    // as a product so if it's a case-object (i.e. Module) don't consider it to be a product
-    // (that's what the extra check is for!)
-    if (!TypeRepr.of[T].typeSymbol.flags.is(Flags.Module))
+    val tpe   = TypeRepr.of[T]
+    val flags = tpe.typeSymbol.flags
+    if (Expr.summon[Mirror.ProductOf[T]].nonEmpty) {
       Type.of[T] match {
         case '[IsProduct[p]] =>
           val genericDeriver = Expr.summon[GenericProductDeriver[p]]
@@ -157,11 +156,13 @@ object DeriverMacros {
             case Some(value) => '{ $value.asInstanceOf[Deriver[T]] }
             case _ =>
               report.errorAndAbort(
-                s"Cannot summon generic Product-Deriver for the Product type: ${TypeRepr.of[T].simplified.widen.show} (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
+                s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen.show} (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
               )
           }
-        case _ => failNotProduct()
+        case _ => report.errorAndAbort(
+            s"Impossible condition. ${tpe} has been checked to be a product already (flags: ${flags.show})."
+          )
       }
-    else
+    } else
       failNotProduct()
 }
