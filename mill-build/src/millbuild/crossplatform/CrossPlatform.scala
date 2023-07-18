@@ -10,12 +10,14 @@ import mill.scalanativelib._
 import scala.language.reflectiveCalls
 
 trait CrossPlatform extends Module with DynamicModule { self =>
+  import DevMode._
+
   def moduleDeps: Seq[CrossPlatform]         = Seq.empty
   def compiledModuleDeps: Seq[CrossPlatform] = Seq.empty
 
   def enableJVM(module: Module): Boolean    = true
-  def enableJS(module: Module): Boolean     = true
-  def enableNative(module: Module): Boolean = true
+  def enableJS(module: Module): Boolean     = !devMode
+  def enableNative(module: Module): Boolean = !devMode
 
   private def enableModuleCondition(module: Module): Boolean = module match {
     case _: ScalaNativeModule => enableNative(module)

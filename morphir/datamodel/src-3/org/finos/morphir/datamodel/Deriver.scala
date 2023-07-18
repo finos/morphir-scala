@@ -57,7 +57,7 @@ object Deriver {
         // since this is actually a string that will be spliced in at runtime
         inline erasedValue[Elems] match {
           case _: (head *: tail) =>
-            val ct = summonClassTagOrFail[head].asInstanceOf[ClassTag[Any]]
+            val ct = summonClassTagOrFail[head].asInstanceOf[Class[Any]]
             // need to make sure that ALL of the matches inside here (including the `unionType` match)
             // is inline otherwise very strange things happen! Macros will run for even variants that shouldn't be matching
             // (i.e. because the other side of the case match branch is also running)
@@ -68,7 +68,7 @@ object Deriver {
                   // enum case with fields
                   if (isCaseClass[head]) {
                     summonProductDeriver[head] match {
-                      case deriver: GenericProductDeriver[Product] =>
+                      case deriver: GenericProductDeriver[Product] @unchecked =>
                         SumBuilder.EnumProduct(fieldName, ct, deriver)
                       case other =>
                         throw new IllegalArgumentException(
@@ -93,6 +93,7 @@ object Deriver {
         }
     }
 
+  /** Not possible to check variants in pattern-match here. Setting them as widest possible type. */
   inline def deriveProductFields[Fields <: Tuple, Elems <: Tuple](i: Int): List[ProductBuilderField] =
     inline erasedValue[Fields] match {
       case EmptyTuple => Nil
@@ -103,11 +104,11 @@ object Deriver {
           case _: (head *: tail) =>
             val derivationStage =
               summonDeriver[head] match {
-                case deriver: SpecificDeriver[Any] =>
+                case deriver: SpecificDeriver[Any] @unchecked =>
                   ProductBuilder.Leaf(fieldName, i, deriver)
-                case deriver: GenericProductDeriver[Product] =>
+                case deriver: GenericProductDeriver[Product] @unchecked =>
                   ProductBuilder.Product(fieldName, i, deriver)
-                case deriver: GenericSumDeriver[Any] =>
+                case deriver: GenericSumDeriver[Any] @unchecked =>
                   ProductBuilder.Sum(fieldName, i, deriver)
               }
             derivationStage +: deriveProductFields[fields, tail](i + 1)

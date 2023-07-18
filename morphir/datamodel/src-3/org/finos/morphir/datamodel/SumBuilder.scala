@@ -27,36 +27,27 @@ private[datamodel] case class SumBuilder(tpe: SumBuilder.SumType, variants: List
                       failInsideNotProduct(other)
                   }
                 Concept.Enum.Case(Label(v.enumLabel), enumVariantFields)
+
+              case variant: SumBuilder.Variant =>
+                throw new IllegalArgumentException("Non-Discrimiated union decoding is not supported yet.")
             }
 
           }
         Concept.Enum(name, enumCases)
     }
 
-  def run(value: Any, tag: Option[ClassTag[Any]] = None): Data = {
-    val usedVariant =
-      tag match {
-        case Some(tag) =>
-          variants.find(v => tag <:< v.tag) match {
-            case Some(value) => value
-            case None =>
-              val varNames = variants.map(v => s"${v.enumLabel}:${v.tag.runtimeClass.getName}")
-              throw new IllegalArgumentException(
-                s"Cannot decode instance of ${tag.runtimeClass.getName} (value was ${value}:${value.getClass.getSimpleName}) becase it was not any of the possibilities: ${varNames}"
-              )
-          }
-        // If we don't have a class-tag need to rely on JVM-level reflection (not sure this is implemented in ScalaJS)
+  def run(value: Any): Data = {
+    val usedVariant = {
+      val cls = value.getClass
+      variants.find(v => cls.isAssignableFrom(v.tag)) match {
+        case Some(value) => value
         case None =>
-          val cls = value.getClass
-          variants.find(v => cls.isAssignableFrom(v.tag.runtimeClass)) match {
-            case Some(value) => value
-            case None =>
-              val varNames = variants.map(v => s"${v.enumLabel}:${v.tag.runtimeClass.getName}")
-              throw new IllegalArgumentException(
-                s"Cannot decode instance of ${value}:${cls.getName} because it was not a sub-type of any of the possibilities: ${varNames}"
-              )
-          }
+          val varNames = variants.map(v => s"${v.enumLabel}:${v.tag.getName}")
+          throw new IllegalArgumentException(
+            s"Cannot decode instance of ${value}:${cls.getName} because it was not a sub-type of any of the possibilities: ${varNames}"
+          )
       }
+    }
 
     val enumValues =
       usedVariant match {
@@ -78,6 +69,9 @@ private[datamodel] case class SumBuilder(tpe: SumBuilder.SumType, variants: List
                 s"The value ($value) for the enum variant ${v.enumLabel} must be a scala product type (case class or multi-field enum) but it was a ${other.getClass}"
               )
           }
+
+        case v: SumBuilder.Variant =>
+          throw new IllegalArgumentException("Non Discrimiated Unions are not supported yet.")
       }
 
     tpe match {
@@ -88,19 +82,19 @@ private[datamodel] case class SumBuilder(tpe: SumBuilder.SumType, variants: List
 }
 object SumBuilder {
   sealed trait Variant {
-    def tag: ClassTag[Any]
+    def tag: Class[Any]
     def enumLabel: java.lang.String
   }
   sealed trait EnumVariant extends Variant
   // case object variant of a sealed trait or a enum case with no fields
-  case class EnumSingleton(enumLabel: java.lang.String, tag: ClassTag[Any])
+  case class EnumSingleton(enumLabel: java.lang.String, tag: Class[Any])
       extends EnumVariant
   // case class variant of sealed trait or enum case with fields
-  case class EnumProduct(enumLabel: java.lang.String, tag: ClassTag[Any], deriver: GenericProductDeriver[Product])
+  case class EnumProduct(enumLabel: java.lang.String, tag: Class[Any], deriver: GenericProductDeriver[Product])
       extends EnumVariant
 
   // for generic sums
-  case class SumVariant(enumLabel: java.lang.String, tag: ClassTag[Any], deriver: Deriver[Any]) extends Variant
+  case class SumVariant(enumLabel: java.lang.String, tag: Class[Any], deriver: Deriver[Any]) extends Variant
 
   sealed trait SumType
   object SumType {

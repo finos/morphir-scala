@@ -1,5 +1,6 @@
 import mill._, scalalib._
 import mill.scalalib.api.ZincWorkerUtil.scalaNativeBinaryVersion
+import millbuild.crossplatform.DevMode
 
 object Deps {
 
@@ -156,7 +157,7 @@ object Versions {
   val mainargs        = "0.5.0"
   val `os-lib`        = "0.9.1"
   val paiges          = "0.4.3"
-  val scribe          = "3.11.7"
+  val scribe          = "3.11.8"
   val silencer        = "1.4.2"
   val `tasty-query`   = "0.5.6"
   val upickle         = "3.0.0-M1"
@@ -170,7 +171,8 @@ object Versions {
 }
 
 object ScalaVersions {
-  val all      = Seq(scala213, scala3x)
+  import DevMode._
+  val all      = if (devMode) Seq(scala3x) else Seq(scala213, scala3x)
   def scala213 = "2.13.11"
   def scala3x  = "3.3.0"
 

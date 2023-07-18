@@ -1,6 +1,6 @@
 package org.finos.morphir.testing.munit
 
-trait MorphirTestSuite extends munit.ScalaCheckSuite {
+trait MorphirTestSuite extends munit.ScalaCheckSuite with Expectations {
   def describe(name: String)(thunk: => Unit): Unit = {
     val countBefore     = munitTestsBuffer.size
     val _               = thunk
