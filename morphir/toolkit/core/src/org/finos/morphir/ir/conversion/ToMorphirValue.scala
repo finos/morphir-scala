@@ -162,7 +162,7 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
       val args = values.map { case (label, data) =>
         V.apply(
           data.shape.morphirType,
-          V.constructor(data.shape.morphirType, ???), // TODO: where is the FQName?
+          V.constructor(data.shape.morphirType, "FQName ???"), // TODO: where is the FQName?
           dataToIR(data)
         )
       }
