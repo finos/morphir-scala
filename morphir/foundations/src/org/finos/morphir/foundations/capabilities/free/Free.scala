@@ -1,16 +1,28 @@
 package org.finos.morphir.foundations.capabilities.free
-import zio._
-
 import scala.annotation.tailrec
+import Free.*
 sealed trait Free[F[+_, +_], +E, +A] { self =>
 
-  def catchAll[E2, A1 >: A](
-      onFailure: E => Free[F, E2, A1]
-  ): Free[F, E2, A1] =
-    Free.Sequence[F, E, E2, A, A1](self, Free.Succeed(_), onFailure)
+  final def catchAll[E2, A1 >: A](
+      f: E => Free[F, E2, A1]
+  ): Free[F, E2, A1] = self match {
+    case free @ Sequence(fa, onSuccess, onFailure) =>
+      Sequence(
+        fa,
+        (a: free.InSuccess) => onSuccess(a).catchAll(f),
+        (e: free.InFailure) => onFailure(e).catchAll(f)
+      )
+    case _ => Free.Sequence[F, E, E2, A, A1](self, Free.Succeed(_), f)
+  }
 
-  def flatMap[E1 >: E, B](f: A => Free[F, E1, B]): Free[F, E1, B] =
-    Free.Sequence[F, E, E1, A, B](self, f, Free.Fail(_))
+  final def flatMap[E1 >: E, B](f: A => Free[F, E1, B]): Free[F, E1, B] = self match {
+    case free @ Sequence(fa, onSuccess, onFailure) =>
+      Sequence(fa, (a: free.InSuccess) => onSuccess(a).flatMap(f), (e: free.InFailure) => onFailure(e).flatMap(f))
+    case _ => Free.Sequence[F, E, E1, A, B](self, f, Free.Fail(_))
+  }
+
+  final def flatten[E1 >: E, B](implicit ev: A <:< Free[F, E1, B]): Free[F, E1, B] =
+    self.flatMap(ev)
 
   def interpret[G[+_, +_]](
       interpreter: Free.Interpreter[F, G]
@@ -26,8 +38,11 @@ sealed trait Free[F[+_, +_], +E, +A] { self =>
       )
   }
 
-  def map[B](f: A => B): Free[F, E, B] =
+  final def map[B](f: A => B): Free[F, E, B] =
     self.flatMap(a => Free.Succeed(f(a)))
+
+  final def mapError[E2](f: E => E2): Free[F, E2, A] =
+    self.catchAll(e => Free.Fail(f(e)))
 
   def unsafeInterpret(
       unsafeInterpreter: Free.UnsafeInterpreter[F]
@@ -76,7 +91,7 @@ object Free {
   final case class Succeed[F[+_, +_], A](a: A)        extends Free[F, Nothing, A]
   final case class Fail[F[+_, +_], E](a: E)           extends Free[F, E, Nothing]
   final case class Eval[F[+_, +_], E, A](fa: F[E, A]) extends Free[F, E, A]
-  final case class Sequence[F[+_, +_], E1, E2, A1, A2](
+  final case class Sequence[F[+_, +_], E1, E2, A1, A2] private[Free] (
       fa: Free[F, E1, A1],
       onSuccess: A1 => Free[F, E2, A2],
       onFailure: E1 => Free[F, E2, A2]
@@ -102,6 +117,5 @@ object Free {
         onSuccess: A1 => F[E2, A2],
         onFailure: E1 => F[E2, A2]
     ): F[E2, A2]
-    // def execute[E, A](fa: F[E, A]): Either[E, A]
   }
 }
