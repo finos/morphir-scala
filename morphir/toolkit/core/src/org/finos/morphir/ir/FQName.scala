@@ -2,13 +2,20 @@ package org.finos
 package morphir
 package ir
 
+import org.finos.morphir.datamodel.namespacing.*
 import Module.{ModuleName, QualifiedModuleName}
 
-final case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) {
+final case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) { self =>
   def getPackagePath: Path = packagePath.toPath
   def getModulePath: Path  = modulePath.toPath
 
   def getModuleName: QualifiedModuleName = QualifiedModuleName(modulePath.toPath, localName)
+
+  def toQualifiedName: QualifiedName = {
+    val namespace: Namespace = (packagePath.toPath ++ modulePath.toPath).toNamespace
+    val localName: LocalName = self.localName.toLocalName
+    QualifiedName(namespace, localName)
+  }
 
   def toReferenceName: String = Seq(
     Path.toString(Name.toTitleCase, ".", packagePath.toPath),

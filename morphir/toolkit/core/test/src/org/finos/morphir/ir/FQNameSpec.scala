@@ -1,5 +1,6 @@
 package org.finos.morphir.ir
 
+import org.finos.morphir.datamodel.namespacing.*
 import org.finos.morphir.ir.Module.{QualifiedModuleName, ModuleName}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.Assertion.*
@@ -164,6 +165,14 @@ object FQNameSpec extends MorphirBaseSpec {
         assertTrue(
           sut.getModuleName == QualifiedModuleName(Path.fromString("morphir.sdk"), Name.fromString("LocalDate"))
         )
+      }
+    ),
+    suite("QualifiedName Conversion")(
+      test("It should be possible to convert an FQName to a QualifiedName") {
+        val sut      = FQName.fqn("Morphir.SDK", "Basics", "Int")
+        val actual   = sut.toQualifiedName
+        val expected = QualifiedName(Namespace.fromStrings("Morphir", "SDK", "Basics"), LocalName("Int"))
+        assertTrue(actual == expected)
       }
     )
   )

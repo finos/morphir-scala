@@ -50,7 +50,7 @@ object EvaluatorQuick {
       case TT.Function(attributes, argumentType, returnType) =>
         throw new UnsupportedType("Functiom types not supported for DDL")
       case TT.Record(attributes, fields) =>
-        Concept.Record(fields.map(field => (Label(field.name.toCamelCase), typeToConcept(field.data, dist))).toList)
+        Concept.Struct(fields.map(field => (Label(field.name.toCamelCase), typeToConcept(field.data, dist))).toList)
       case TT.Reference(attributes, FQString("Morphir.SDK:Basics:int"), _)    => Concept.Int32
       case TT.Reference(attributes, FQString("Morphir.SDK:String:string"), _) => Concept.String
       case TT.Reference(attributes, FQString("Morphir.SDK:Basics:bool"), _)   => Concept.Boolean

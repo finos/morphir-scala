@@ -19,8 +19,12 @@ object namespacing {
 
     implicit val showInstance: Show[Namespace] = ns => ns.segments.map(_.value).mkString(".")
 
+    def fromStrings(inputs: String*): Namespace = Namespace.fromIterable(segments(inputs))
+
     def fromIterable(segments: Iterable[NamespaceSegment]): Namespace =
       Namespace(Chunk.fromIterable(segments))
+
+    def segments(inputs: Iterable[String]): Iterable[NamespaceSegment] = inputs.map(NamespaceSegment(_))
 
     implicit class NamespaceOps(val self: Namespace) extends AnyVal {
       def segments: Chunk[NamespaceSegment]       = unwrap(self)
