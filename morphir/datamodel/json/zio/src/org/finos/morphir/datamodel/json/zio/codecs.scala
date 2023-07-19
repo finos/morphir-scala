@@ -1,7 +1,8 @@
 package org.finos.morphir.datamodel.json.zio
 
-import org.finos.morphir.datamodel._
-import zio.json._
+import org.finos.morphir.datamodel.*
+import org.finos.morphir.datamodel.namespacing.QualifiedName
+import zio.json.*
 
 object codecs extends SchemaZioJsonSupport with DataZioJsonSupport
 
@@ -17,6 +18,11 @@ trait SchemaZioJsonEncoders extends ZioJsonBaseEncoders {
   implicit val EnumCaseEncoder: JsonEncoder[Concept.Enum.Case] = DeriveJsonEncoder.gen[Concept.Enum.Case]
   implicit val SchemaAliasEncoder: JsonEncoder[Concept.Alias]  = DeriveJsonEncoder.gen[Concept.Alias]
   implicit val SchemaJsonEncoder: JsonEncoder[Concept]         = DeriveJsonEncoder.gen[Concept]
+
+  implicit val QualifiedNameEncoder: JsonEncoder[QualifiedName] =
+    JsonEncoder.string.contramap {
+      (qname: QualifiedName) => qname.toString
+    }
 }
 
 trait DataZioJsonSupport extends DataZioJsonEncoders { self: SchemaZioJsonSupport => }

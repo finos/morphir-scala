@@ -1,7 +1,11 @@
 package org.finos.morphir.datamodel
+
+import org.finos.morphir.datamodel.namespacing.{Namespace, QualifiedName}
+
 import java.io.OutputStream
 import scala.collection.immutable.ListMap
 import scala.collection.mutable
+
 sealed trait Data extends geny.Writable {
   def shape: Concept
   def writeBytesTo(out: OutputStream): Unit = {
@@ -50,11 +54,27 @@ object Data {
   object Tuple {
     def apply(values: Data*): Tuple = Tuple(values.toList)
   }
-  case class Record(values: scala.List[(Label, Data)]) extends Data {
-    val shape: Concept.Record = Concept.Record(values.map { case (label, data) => (label, data.shape) })
-  }
+
+  case class Record private (values: scala.List[(Label, Data)], shape: Concept.Record) extends Data
   object Record {
-    def apply(entry: (Label, Data)*): Record = Record(entry.toList)
+    def apply(namespace: QualifiedName, fields: (Label, Data)*): Record =
+      apply(namespace, fields.toList)
+
+    def apply(namespace: QualifiedName, fields: scala.List[(Label, Data)]): Record = {
+      val concept = Concept.Record(namespace, fields.map { case (label, data) => (label, data.shape) })
+      Record(fields.toList, concept)
+    }
+
+    /** Unapply of a record should contain it's qname and the field values, not the shape */
+    def unapply(record: Record) =
+      Some((record.shape.namespace, record.values))
+  }
+
+  case class Struct(values: scala.List[(Label, Data)]) extends Data {
+    val shape: Concept.Struct = Concept.Struct(values.map { case (label, data) => (label, data.shape) })
+  }
+  object Struct {
+    def apply(fields: (Label, Data)*): Struct = new Struct(fields.toList)
   }
 
   /**
