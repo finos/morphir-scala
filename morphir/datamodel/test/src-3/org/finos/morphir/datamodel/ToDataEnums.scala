@@ -5,8 +5,19 @@ import org.finos.morphir.datamodel.Concept.Enum
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.datamodel.Data.Case
 import org.finos.morphir.datamodel.Util.*
+import org.finos.morphir.datamodel.namespacing.*
+import org.finos.morphir.datamodel.namespacing.Namespace.root
+
+object EnumGns {
+  val gns: Namespace = root / "enumtest"
+}
 
 object EnumData1 {
+  import EnumGns._
+  implicit val gnsImpl: GlobalNamespace = new GlobalNamespace {
+    def value = gns
+  }
+
   sealed trait Foo
   case object Bar               extends Foo
   case class Baz(value: String) extends Foo
@@ -15,6 +26,11 @@ object EnumData1 {
 }
 
 object EnumData2 {
+  import EnumGns._
+  implicit val gnsImpl: GlobalNamespace = new GlobalNamespace {
+    def value = gns
+  }
+
   enum Foo {
     case Bar
     case Baz(value: String)
@@ -23,14 +39,31 @@ object EnumData2 {
   val deriver = Deriver.gen[Foo]
 }
 
+object EnumData3 {
+  import EnumGns._
+  implicit val gnsImpl: TypeNamespace[Foo] = new TypeNamespace[Foo] {
+    def value = gns
+  }
+
+  implicit val gnsImpl2: TypeNamespace[Baz] = new TypeNamespace[Baz] {
+    def value = gns
+  }
+
+  sealed trait Foo
+  case object Bar               extends Foo
+  case class Baz(value: String) extends Foo
+
+  val deriver = Deriver.gen[Foo]
+}
+
 class ToDataEnums extends munit.FunSuite {
+  import EnumGns._
   // DONT use Deriver.gen in same project while working on it
   // if it fails, it messes up IntelliJ's ability to know what
   // is compiled and what is not
-
   val concept =
     Enum(
-      "Foo",
+      gns :: ("Foo"),
       Enum.Case(l"Bar"),
       Enum.Case(l"Baz", (el"value", Concept.String))
     )
@@ -73,6 +106,7 @@ class ToDataEnums extends munit.FunSuite {
     assertEquals(
       Deriver.toData(stuff),
       Data.Record(
+        gns :: "Stuff",
         l"a" -> Data.String("a_str"),
         l"b" -> Case(el"value" -> Data.String("baz_val"))("Baz", concept),
         l"c" -> Data.Int(123)
@@ -88,8 +122,9 @@ class ToDataEnums extends munit.FunSuite {
     assertEquals(
       Deriver.toData(stuff),
       Data.Record(
+        gns :: "Stuff",
         l"a" -> Data.String("a_str"),
-        l"b" -> Data.Record(l"value" -> Data.String("baz_val")),
+        l"b" -> Data.Record(gns :: "Baz", l"value" -> Data.String("baz_val")),
         l"c" -> Data.Int(123)
       )
     )
@@ -102,6 +137,7 @@ class ToDataEnums extends munit.FunSuite {
     assertEquals(
       Deriver.toData(stuff),
       Data.Record(
+        gns :: "Stuff",
         l"a" -> Data.String("a_str"),
         l"b" -> Case(el"value" -> Data.String("baz_val"))("Baz", concept),
         l"c" -> Data.Int(123)
@@ -136,6 +172,14 @@ class ToDataEnums extends munit.FunSuite {
 
   test("Enum Data 2 - Value") {
     import EnumData1._
+    assertEquals(
+      deriver.derive(Baz("something")),
+      Case(el"value" -> Data.String("something"))("Baz", concept)
+    )
+  }
+
+  test("Enum Data 2 - Value") {
+    import EnumData3._
     assertEquals(
       deriver.derive(Baz("something")),
       Case(el"value" -> Data.String("something"))("Baz", concept)

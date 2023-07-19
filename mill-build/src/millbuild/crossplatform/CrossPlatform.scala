@@ -18,8 +18,8 @@ trait CrossPlatform extends Module with DynamicModule { self =>
   def compiledModuleDeps: Seq[CrossPlatform] = Seq.empty
 
   def enableJVM(module: Module): Boolean    = buildSettings.jvm.enable
-  def enableJS(module: Module): Boolean     = buildSettings.js.enable
-  def enableNative(module: Module): Boolean = buildSettings.native.enable
+  def enableJS(module: Module): Boolean     = !devMode && buildSettings.js.enable
+  def enableNative(module: Module): Boolean = !devMode && buildSettings.native.enable
 
   private def enableModuleCondition(module: Module): Boolean = module match {
     case _: ScalaNativeModule => enableNative(module)

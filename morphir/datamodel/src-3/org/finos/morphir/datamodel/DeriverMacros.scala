@@ -1,10 +1,20 @@
 package org.finos.morphir.datamodel
 
 import org.finos.morphir.datamodel.Deriver.UnionType
+import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace}
 
 import scala.quoted.*
 import scala.reflect.ClassTag
 import scala.deriving.Mirror
+
+trait GlobalNamespace {
+  def value: Namespace
+}
+
+trait TypeNamespace[T] {
+  def value: Namespace
+  def nameOverride: Option[LocalName] = None
+}
 
 object DeriverMacros {
   import DeriverTypes._
@@ -13,6 +23,45 @@ object DeriverMacros {
   def typeNameImpl[T: Type](using Quotes): Expr[String] = {
     import quotes.reflect._
     Expr(TypeRepr.of[T].typeSymbol.name)
+  }
+
+  inline def summonNamespaceOrFail[T]: (Namespace, Option[LocalName]) = ${ summonNamespaceOrFailImpl[T] }
+  def summonNamespaceOrFailImpl[T: Type](using Quotes): Expr[(Namespace, Option[LocalName])] = {
+    import quotes.reflect._
+
+    def summonTypeNamespace(): Option[Expr[(Namespace, Option[LocalName])]] =
+      Expr.summon[TypeNamespace[T]].map(tns =>
+        '{ ($tns.value, $tns.nameOverride) }
+      )
+
+    def summonGlobalNamespace(): Option[Expr[(Namespace, Option[LocalName])]] =
+      Expr.summon[GlobalNamespace].map(gns =>
+        '{ ($gns.value, None) }
+      )
+
+    val namespace: Expr[(Namespace, Option[LocalName])] =
+      summonTypeNamespace()
+        .orElse(summonGlobalNamespace())
+        .getOrElse {
+          val tpeStr = TypeRepr.of[T].widen.show
+          report.errorAndAbort(
+            s"""
+               |Cannot find a namespace for the type $tpeStr and a global default namespace has also not
+               |been found. To define a namespace for a specific type do the following:
+               |implicit val ns: TypeNamespace[$tpeStr] = new TypeNamespace[${TypeRepr.of[T].widen.show}] {
+               |  import org.finos.morphir.datamodel.namespacing.*
+               |  def value: Namespace = root / "path" / "to" / "my" / "package"
+               |}
+               |
+               |To define a global namespace for all types do the following:
+               |  implicit val ns: GlobalNamespace = new GlobalNamespace {
+               |  def value: Namespace = root / "path" / "to" / "my" / "package"
+               |}
+               |""".stripMargin
+          )
+        }
+
+    namespace
   }
 
   inline def showFlags[T]: String = ${ showFlagsImpl[T] }

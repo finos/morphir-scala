@@ -9,7 +9,6 @@ object Show extends ShowInstancesPriority0 {
 
   def fromToString[A]: Show[A] = _.toString()
 
-  
 }
 
 private[foundations] trait ShowInstancesPriority0 {

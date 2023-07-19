@@ -7,6 +7,7 @@ import zio.config.typesafe._
 import zio.config.yaml._
 import com.typesafe.config.ConfigFactory
 import zio.Config
+import millbuild.crossplatform.DevMode
 
 final case class ScalaSettings(
     defaultVersion: String = ScalaSettings.defaultVersion,
@@ -16,6 +17,8 @@ final case class ScalaSettings(
 )
 
 object ScalaSettings {
+  import DevMode._
+
   val config: Config[ScalaSettings]                          = deriveConfig[ScalaSettings]
   lazy val default: ScalaSettings                            = ScalaSettings()
   lazy val defaultVersion                                    = defaultScala3xVersion
@@ -23,7 +26,7 @@ object ScalaSettings {
 
   val defaultScala213Version                  = "2.13.11"
   val defaultScala3xVersion                   = "3.3.0"
-  val defaultCrossScalaVersions: List[String] = List(defaultScala3xVersion, defaultScala213Version)
+  val defaultCrossScalaVersions: List[String] = if (devMode) List(defaultScala3xVersion) else List(defaultScala3xVersion, defaultScala213Version)
 }
 
 
