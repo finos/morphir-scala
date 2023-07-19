@@ -3,7 +3,7 @@ package org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.Module
 import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.{CustomTypeSpecification, OpaqueTypeSpecification}
-import org.finos.morphir.ir.Type.{Type, UType, reference => tRef, tuple}
+import org.finos.morphir.ir.Type.{Type, UType, reference => tRef, tuple, tupleVar}
 import org.finos.morphir.ir.Value._
 import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.syntax.NamingSyntax._
@@ -57,8 +57,8 @@ object Basics {
       vSpec("degrees", "a" -> floatType)(floatType),
       vSpec("radians", "a" -> floatType)(floatType),
       vSpec("turns", "a" -> floatType)(floatType),
-      vSpec("toPolar", "a" -> tuple(floatType, floatType))(tuple(floatType, floatType)),
-      vSpec("fromPolar", "a" -> tuple(floatType, floatType))(tuple(floatType, floatType)),
+      vSpec("toPolar", "a" -> tupleVar(floatType, floatType))(tupleVar(floatType, floatType)),
+      vSpec("fromPolar", "a" -> tupleVar(floatType, floatType))(tupleVar(floatType, floatType)),
       // eq
       vSpec("equal", "a" -> tVar("eq"), "b" -> tVar("eq"))(boolType),
       vSpec("notEqual", "a" -> tVar("eq"), "b" -> tVar("eq"))(boolType),

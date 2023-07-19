@@ -137,7 +137,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
     suite("Destructure")(
       suite("Attributed")(
         test("It should be possible to create given attrributes and a simple pattern") {
-          val attributes = Type.tuple(intType, stringType)
+          val attributes = Type.tupleVar(intType, stringType)
           val pat        = tuplePattern(attributes, asAlias(intType, "a"), asAlias(stringType, "b"))
           val c          = variable(attributes, "c")
           val in         = variable(intType, "a")
@@ -275,7 +275,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
     suite("Lambda")(
       suite("Attributed")(
         test("It should be possible to construct given attributes, an argument pattern, and a body") {
-          val attributes = Type.tuple(intType, intType)
+          val attributes = Type.tupleVar(intType, intType)
           val pat        = tuplePattern(attributes, asAlias(intType, "l"), asAlias(stringType, "r"))
           val body = apply(
             intType,
@@ -644,7 +644,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
           )
         },
         test("It should be possible to construct a tuple given an attribute and a pair of elements") {
-          val attributes = Type.tuple(stringType, intType)
+          val attributes = Type.tupleVar(stringType, intType)
           val element1   = string(stringType, "Scala")
           val element2   = int(intType, 3)
           val actual     = tuple(attributes, element1, element2)
@@ -656,7 +656,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
           )
         },
         test("It should be possible to construct a tuple given an attribute and many elements") {
-          val attributes = Type.tuple(stringType, intType, boolType)
+          val attributes = Type.tupleVar(stringType, intType, boolType)
           val element1   = string(stringType, "John Doe")
           val element2   = int(intType, 42)
           val element3   = boolean(boolType, true)

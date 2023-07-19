@@ -89,7 +89,7 @@ object Data {
 
     def validated(values: scala.List[Data]): Option[List] =
       // Validate that element-type of everything is the same
-      if (values.nonEmpty && values.forall(_ == values.head))
+      if (values.nonEmpty && values.forall(_.shape == values.head.shape))
         Some(List(values, Concept.List(values.head.shape)))
       else
         None
