@@ -66,7 +66,7 @@ object EvaluatorQuick {
         val lookedUp = dist.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
           case Type.Specification.TypeAliasSpecification(params, expr) =>
-            Concept.Alias(typeName.toString, typeToConcept(expr, dist))
+            Concept.Alias(typeName.toQualifiedName, typeToConcept(expr, dist))
           case Type.Specification.CustomTypeSpecification(params, ctors) =>
             val cases = ctors.toMap.toList.map { case (caseName, args) =>
               val argTuples = args.map { case (argName: Name, argType: Type.UType) =>
@@ -76,7 +76,7 @@ object EvaluatorQuick {
               val concepts: List[(EnumLabel, Concept)] = argTuples.toList
               Concept.Enum.Case(Label(conceptName), concepts)
             }
-            Concept.Enum(typeName.toString, cases)
+            Concept.Enum(typeName.toQualifiedName, cases)
           case other => throw new Exception(s"$other is unknown to me")
         }
       case TT.Tuple(attributes, elements) => Concept.Tuple(elements.map(element => typeToConcept(element, dist)).toList)
