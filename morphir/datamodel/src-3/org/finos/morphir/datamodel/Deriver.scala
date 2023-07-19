@@ -10,6 +10,7 @@ import scala.compiletime.{codeOf, constValue, erasedValue, error, summonFrom, su
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.datamodel.Label
 import org.finos.morphir.datamodel.Concept
+import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, QualifiedName}
 
 trait Deriver[T] {
   def derive(value: T): Data
@@ -120,17 +121,29 @@ object Deriver {
 
   inline def deriveProductFromMirror[T](m: Mirror.ProductOf[T]): GenericProductDeriver[T & Product] =
     inline if (isCaseClass[T]) {
+      val caseClassName  = summonQualifiedName[T]
       val stageListTuple = deriveProductFields[m.MirroredElemLabels, m.MirroredElemTypes](0)
-      val mirrorProduct  = ProductBuilder.MirrorProduct(stageListTuple)
+      val mirrorProduct  = ProductBuilder.MirrorProduct(caseClassName, stageListTuple)
       GenericProductDeriver
         .make[T & Product](mirrorProduct)
     } else {
-      errorOnType[T]("Cannot summon a generic deriver of he case class type. It is not a valid product type")
+      errorOnType[T]("Cannot summon a generic deriver of the case class type. It is not a valid product type")
     }
+
+  inline def summonQualifiedName[T] = {
+    val (namespace: Namespace, localNameOverride: Option[LocalName]) =
+      DeriverMacros.summonNamespaceOrFail[T]
+    val localName =
+      localNameOverride.getOrElse {
+        LocalName(DeriverMacros.typeName[T])
+      }
+    QualifiedName(namespace, localName)
+  }
 
   inline def deriveSumFromMirror[T](m: Mirror.SumOf[T]): GenericSumDeriver[T] =
     inline if (isEnumOrSealedTrait[T]) {
-      val sumTypeName = DeriverMacros.typeName[T]
+      val sumTypeName = summonQualifiedName[T]
+
       // The clause `inferUnionType` NEEDs to be  a macro otherwise we can't get the value
       // coming out if it to work with inline matches/ifs and if our matches/ifs are not inline
       // and there is a `scala.compiletime.error` command called of a non-inline match/if branch

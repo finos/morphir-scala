@@ -1,5 +1,7 @@
 package org.finos.morphir.datamodel
 
+import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, QualifiedName}
+
 import scala.reflect.ClassTag
 
 private[datamodel] case class SumBuilder(tpe: SumBuilder.SumType, variants: List[SumBuilder.Variant]) {
@@ -21,7 +23,7 @@ private[datamodel] case class SumBuilder(tpe: SumBuilder.SumType, variants: List
               case variant: SumBuilder.EnumProduct =>
                 val enumVariantFields =
                   variant.deriver.concept match {
-                    case Concept.Record(fields) =>
+                    case Concept.Record(_, fields) =>
                       fields.map { case (label, concept) => (EnumLabel(label.value), concept) }
                     case other =>
                       failInsideNotProduct(other)
@@ -60,7 +62,7 @@ private[datamodel] case class SumBuilder(tpe: SumBuilder.SumType, variants: List
             case p: Product =>
               val enumCaseRecord = v.deriver.derive(p)
               enumCaseRecord match {
-                case Data.Record(values) =>
+                case Data.Record(_, values) =>
                   values.map { case (label, data) => (EnumLabel(label.value), data) }
                 case other =>
                   failInsideNotProduct(other)
@@ -98,7 +100,11 @@ object SumBuilder {
 
   sealed trait SumType
   object SumType {
-    case class Enum(name: java.lang.String) extends SumType
+    case class Enum(name: QualifiedName) extends SumType
+    object Enum {
+      def apply(name: String, ns: Namespace) = new Enum(QualifiedName(ns, LocalName(name)))
+    }
+
     // TODO Union for non-discrimited unions
   }
 }

@@ -26,10 +26,6 @@ object namespacing {
       def segments: Chunk[NamespaceSegment]       = unwrap(self)
       def /(segment: NamespaceSegment): Namespace = Namespace(unwrap(self) :+ segment)
       def /(namespace: Namespace): Namespace      = Namespace(unwrap(self) ++ unwrap(namespace))
-      // def /(name: String): Namespace = Namespace(unwrap(self) :+ NamespaceSegment(name))
-      // def /(names: Iterable[String]): Namespace = Namespace(unwrap(self) ++ names.map(NamespaceSegment(_)))
-      // def /(names: String*): Namespace = /(names)
-      // def /(names: Chunk[String]): Namespace = Namespace(unwrap(self) ++ names.map(NamespaceSegment(_)))
     }
   }
 
