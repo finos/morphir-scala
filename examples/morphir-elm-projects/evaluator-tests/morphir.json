@@ -4,6 +4,8 @@
     "exposedModules": [
         "ConstructorTests",
         "DestructureTests",
+        "DictionaryTests",
+        "OptionTests",
         "ExampleModule",
         "IfThenElseTests",
         "LambdaTests",
