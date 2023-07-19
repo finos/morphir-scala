@@ -160,13 +160,13 @@ trait TypeModule { module =>
     Type.Reference((), FQName.fqn(packageName, moduleName, typeName), typeParams)
 
   // Tuple constructors
-  final def tuple[A](attributes: A, elements: Chunk[Type[A]])(implicit ev: NeedsAttributes[A]): Type[A] =
+  final def tupleWithAttr[A](attributes: A, elements: Chunk[Type[A]])(implicit ev: NeedsAttributes[A]): Type[A] =
     Type.Tuple(attributes, elements)
 
-  final def tuple[A](attributes: A, elements: Type[A]*)(implicit ev: NeedsAttributes[A]): Type[A] =
-    tuple(attributes, Chunk.fromIterable(elements))
+  final def tupleWithAttr[A](attributes: A, elements: Type[A]*)(implicit ev: NeedsAttributes[A]): Type[A] =
+    tupleWithAttr(attributes, Chunk.fromIterable(elements))
 
-  final def tuple(elements: UType*): UType =
+  final def tupleVar(elements: UType*): UType =
     Type.Tuple((), Chunk.fromIterable(elements))
 
   final def tuple(elements: Chunk[UType]): UType =

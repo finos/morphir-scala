@@ -81,9 +81,10 @@ object ToMorphirType {
           case (k: Label, v: Concept) => (k.value, conceptToTypeIR(v).morphirType)
         }
         toUTypeConverter(T.record(types: _*))
+
       case Concept.Tuple(values) =>
         val types: scala.List[UType] = values.map(conceptToTypeIR(_).morphirType)
-        toUTypeConverter(T.tuple(types: _*))
+        toUTypeConverter(T.tupleVar(types: _*))
 
       case Concept.Any          => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
       case Concept.Nothing      => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type

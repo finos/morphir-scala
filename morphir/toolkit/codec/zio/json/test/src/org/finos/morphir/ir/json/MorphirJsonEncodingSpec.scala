@@ -256,7 +256,7 @@ object MorphirJsonEncodingSpec extends ZIOSpecDefault {
       test("will encode TypeCase.TupleCase") {
         val var1     = variable[Int](123, "f")
         val var2     = variable[Int](345, "g")
-        val actual   = tuple(1, var1, var2)
+        val actual   = tupleWithAttr(1, var1, var2)
         val expected = """["Tuple",1,[["Variable",123,["f"]],["Variable",345,["g"]]]]"""
         assert(actual.toJson)(stringEqualTo(expected))
       },

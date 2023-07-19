@@ -65,7 +65,7 @@ object EvaluatorQuickSpec extends MorphirBaseSpec {
     suite("Destructure")(
       test("Should work with tuples") {
         // Let (a,b) = c in b
-        val attributes = T.tuple(ir.sdk.Basics.intType, ir.sdk.String.stringType)
+        val attributes = T.tupleVar(ir.sdk.Basics.intType, ir.sdk.String.stringType)
         val pat =
           V.tuplePattern(attributes, asAlias(ir.sdk.Basics.intType, "a"), asAlias(ir.sdk.String.stringType, "b"))
         val c  = V.tuple(V.int(26) -> ir.sdk.Basics.intType, V.string("Success") -> ir.sdk.String.stringType)
@@ -76,7 +76,7 @@ object EvaluatorQuickSpec extends MorphirBaseSpec {
       },
       test("Should be able to switch tuple variables") {
         // Let (a,b) = c in (b,a)
-        val attributes = T.tuple(ir.sdk.Basics.intType, ir.sdk.Basics.floatType, ir.sdk.String.stringType)
+        val attributes = T.tupleVar(ir.sdk.Basics.intType, ir.sdk.Basics.floatType, ir.sdk.String.stringType)
         val pat = V.tuplePattern(
           attributes,
           asAlias(ir.sdk.Basics.intType, "a"),
@@ -88,7 +88,7 @@ object EvaluatorQuickSpec extends MorphirBaseSpec {
           V.float(24.678) -> ir.sdk.Basics.floatType,
           V.string("Joe") -> ir.sdk.String.stringType
         )
-        val inAttributes = T.tuple(ir.sdk.String.stringType, ir.sdk.Basics.floatType, ir.sdk.Basics.intType)
+        val inAttributes = T.tupleVar(ir.sdk.String.stringType, ir.sdk.Basics.floatType, ir.sdk.Basics.intType)
         val in = V.tuple(
           inAttributes,
           V.variable(ir.sdk.String.stringType, "c"),
@@ -137,7 +137,7 @@ object EvaluatorQuickSpec extends MorphirBaseSpec {
             "x",
             3,
             V.tuple(
-              T.tuple(ir.sdk.Basics.intType, ir.sdk.Basics.intType),
+              T.tupleVar(ir.sdk.Basics.intType, ir.sdk.Basics.intType),
               innerLet,
               V.variable("x") :> ir.sdk.Basics.intType
             )
@@ -181,7 +181,7 @@ object EvaluatorQuickSpec extends MorphirBaseSpec {
               ),
               (V.wildcardPattern, V.string("An earlier case should have been matched"))
             )
-          ) :> T.tuple(ir.sdk.Basics.intType, ir.sdk.Basics.intType)
+          ) :> T.tupleVar(ir.sdk.Basics.intType, ir.sdk.Basics.intType)
         val result = eval(value)
         assertTrue(result == (125, 125))
       },
@@ -424,7 +424,7 @@ object EvaluatorQuickSpec extends MorphirBaseSpec {
         val value = V.apply(
           lambda,
           V.int(12)
-        ) :> T.tuple(ir.sdk.Basics.intType, ir.sdk.Basics.intType)
+        ) :> T.tupleVar(ir.sdk.Basics.intType, ir.sdk.Basics.intType)
         val result = eval(value)
         assertTrue(result == (12, 12))
       }
