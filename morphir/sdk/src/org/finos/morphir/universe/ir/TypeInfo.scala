@@ -18,4 +18,3 @@ object TypeInfo {
   final case class TypeSpec[+A](info: TypeSpecification[A]) extends TypeInfo[A]
   final case class TypeDef[+A](info: TypeDefinition[A])     extends TypeInfo[A]
 }
-

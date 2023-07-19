@@ -9,5 +9,3 @@ final case class ConceptId(namespace: String, name: String) extends HasId {
 object ConceptId {
   final case class Member(conceptId: ConceptId, member: String)
 }
-
-

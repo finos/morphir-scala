@@ -18,5 +18,3 @@ object QualifiedModuleName {
   //        Some(name.toTuple)
   //    }
 }
-
-

@@ -9,7 +9,7 @@ sealed trait NumericExpr[+A] extends MorphirExpr[A] {
 object modules {
   object sdk {
     object Basics {
-      //import org.finos.morphir.universe.sdk.types.Basics.Integer
+      // import org.finos.morphir.universe.sdk.types.Basics.Integer
 
       final case class Add[A](left: A, right: A) extends NumericExpr[A] {
         type Number = A
