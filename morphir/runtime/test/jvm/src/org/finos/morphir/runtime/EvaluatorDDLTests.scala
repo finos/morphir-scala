@@ -22,18 +22,19 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
       (Label("number"), Concept.Int32)
     )
   )
-  def dogRecordDataRaw(name: String, number: Int) = Data.Struct(
+  def dogRecordData(name: String, number: Int) = Data.Record(
+    qn"Morphir/Examples/App:RecordTests:RecordType",
     (Label("name"), Data.String(name)),
     (Label("number"), Data.Int32(number))
   )
-  val dogRecordConcept = Concept.Alias(
-    qn"Morphir/Examples/App:RecordTests:RecordType",
-    dogRecordConceptRaw
-  )
-  def dogRecordData(name: String, number: Int) = Data.Aliased(
-    dogRecordDataRaw(name, number),
-    dogRecordConcept
-  )
+//  val dogRecordConcept = Concept.Alias(
+//    qn"Morphir/Examples/App:RecordTests:RecordType",
+//    dogRecordConceptRaw
+//  )
+//  def dogRecordData(name: String, number: Int) = Data.Aliased(
+//    dogRecordDataRaw(name, number),
+//    dogRecordConcept
+//  )
 
   def unionEnumShape: Concept.Enum = Concept.Enum(
     qn"Morphir/Examples/App:ConstructorTests:UnionType",
@@ -483,7 +484,8 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
         },
         test("Nested Record") {
           val actual = runTest("recordTests", "recordNestedTest")
-          val rawRecord = Data.Struct(
+          val expected = Data.Record(
+            qn"Morphir/Examples/App:RecordTests:NestedRecordType",
             (Label("name"), Data.String("Dogs")),
             (
               Label("records"),
@@ -492,10 +494,6 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
                 dogRecordData("Soso", 3)
               )
             )
-          )
-          val expected = Data.Aliased(
-            rawRecord,
-            Concept.Alias(qn"Morphir/Examples/App:RecordTests:NestedRecordType", rawRecord.shape)
           )
           assertTrue(actual == expected)
         },
