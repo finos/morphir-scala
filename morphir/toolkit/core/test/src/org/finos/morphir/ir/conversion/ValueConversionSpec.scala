@@ -3,15 +3,23 @@ package ir
 package conversion
 
 import org.finos.morphir.datamodel.{Concept, Data, Label}
+import org.finos.morphir.ir.FQName.fqn
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.Chunk
 import zio.test._
+import org.finos.morphir.datamodel.namespacing.*
+import org.finos.morphir.datamodel.namespacing.Namespace.ns
+import org.finos.morphir.datamodel.namespacing.PackageName.root
 
 import java.time.temporal.ChronoField
 
 object ValueConversionSpec extends MorphirBaseSpec {
+  object pn {
+    val morphirIR: PartialName = root / "Morphir" % ns / "IR"
+  }
+
   def spec = suite("ValueConversion Spec")(
     booleanSuite,
     intSuite,
@@ -178,10 +186,12 @@ object ValueConversionSpec extends MorphirBaseSpec {
     ),
     suite("Data.Aliased")(
       test("Should be possible to convert a Data.Int32 Aliased to it's Morphir value") {
-        val toValue      = ToMorphirValue.summon[Data].typed
-        val inputValue   = Data.Aliased(Data.Int32(10), Concept.Alias("someAlias", Concept.Int32))
-        val morphirInt32 = toValue(inputValue)
-        val result       = Value.literal(T.reference("someAlias"), Lit.int(10))
+        val toValue           = ToMorphirValue.summon[Data].typed
+        val someAliasTypeName = pn.morphirIR % "someAlias"
+        val expectedFQName    = fqn("Morphir", "IR", "someAlias")
+        val inputValue        = Data.Aliased(Data.Int32(10), Concept.Alias(someAliasTypeName, Concept.Int32))
+        val morphirInt32      = toValue(inputValue)
+        val result            = Value.literal(T.reference(expectedFQName), Lit.int(10))
         assertTrue(morphirInt32 == result)
       },
       test("Should be possible to convert a Data.List Aliased to it's Morphir value") {
@@ -189,10 +199,10 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val inputValue =
           Data.Aliased(
             Data.List(Data.True, Data.False, Data.True),
-            Concept.Alias("Alias1", Concept.List(Concept.Boolean))
+            Concept.Alias(pn.morphirIR % "Alias1", Concept.List(Concept.Boolean))
           )
         val actual = toValue(inputValue)
-        val result = V.list(T.reference("Alias1"), zio.Chunk(Lit.True, Lit.False, Lit.True))
+        val result = V.list(T.reference("Morphir:IR:Alias1"), zio.Chunk(Lit.True, Lit.False, Lit.True))
         assertTrue(actual == result)
       }
     ),
@@ -257,8 +267,10 @@ object ValueConversionSpec extends MorphirBaseSpec {
     suite("Data.Record")(
       test("Should be possible to convert a Data record to a Morphir record") {
         val toValue    = ToMorphirValue.summon[Data].typed
-        val inputValue = Data.Record(List(Label("1") -> Data.String("Testing Record"), Label("2") -> Data.False))
-        val actual     = toValue(inputValue)
+        val recordName = pn.morphirIR % "Test"
+        val inputValue =
+          Data.Record(recordName, List(Label("1") -> Data.String("Testing Record"), Label("2") -> Data.False))
+        val actual = toValue(inputValue)
         val result = V.record(
           T.record(Chunk("1" -> sdk.String.stringType, "2" -> sdk.Basics.boolType): _*),
           "1" -> V.string(sdk.String.stringType, "Testing Record"),
