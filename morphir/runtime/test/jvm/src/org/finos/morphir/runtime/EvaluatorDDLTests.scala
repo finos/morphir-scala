@@ -58,6 +58,32 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
     )
   )
 
+  def typeArgUnionShape(c1: Concept, c2: Concept): Concept.Enum = Concept.Enum(
+    "Morphir.Examples.App:ExampleModule:typeArgUnion",
+    List(
+      Concept.Enum.Case(
+        Label("b"),
+        List(Tuple2(
+          EnumLabel.Named("arg1"),
+          c2
+        ))
+      ),
+      Concept.Enum.Case(
+        Label("aB"),
+        List(
+          (
+            EnumLabel.Named("arg1"),
+            c1
+          ),
+          (
+            EnumLabel.Named("arg2"),
+            c2
+          )
+        )
+      )
+    )
+  )
+
   val zeroArg: Data = Data.Case(
     List(),
     "Morphir.Examples.App:ConstructorTests:zeroArg",
@@ -562,5 +588,5 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
           assertTrue(actual == expected)
         }
       )
-    ) //@@ TestAspect.ignore @@ TestAspect.tag("Will re-enable when code-gen of a test are part of the pipeline")
+    ) // @@ TestAspect.ignore @@ TestAspect.tag("Will re-enable when code-gen of a test are part of the pipeline")
 }
