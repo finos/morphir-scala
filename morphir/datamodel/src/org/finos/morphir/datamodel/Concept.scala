@@ -1,15 +1,21 @@
 package org.finos.morphir.datamodel
 
+import org.finos.morphir.datamodel.Concept.Basic
 import org.finos.morphir.datamodel.namespacing.QualifiedName
+import org.finos.morphir.foundations.Chunk
 
 import scala.annotation.tailrec
+import scala.collection.mutable.ArrayBuffer
 
 //TODO: Keep this non-GADT version as Concept and make a GADT version `Schema[A]`
 sealed trait Concept { self =>
-  final def foldContext[C, Z](context: C)(folder: Unit): Z = {
+  final def foldContext[C, Z](context: C)(folder: Folder[C, Z]): Z = {
     @tailrec
     def loop(in: List[Concept], out: List[Either[Concept, Z]]): List[Z] =
+      import folder._
       in match {
+        case (basic: Basic[_]) :: types =>
+          loop(types, Left(basic) :: out)
         case (t @ Concept.Any) :: types =>
           loop(types, Left(t) :: out)
         case (t @ Concept.Record(namespace, fields)) :: types =>
@@ -30,58 +36,308 @@ sealed trait Concept { self =>
           loop(elementType +: types, Left(t) :: out)
         case (t @ Concept.Enum(name, cases)) :: types =>
           val fieldTypes = cases.flatMap(_.fields.map(_._2))
+          loop(fieldTypes ++ types, Left(t) :: out)
         case (t @ Concept.Union(cases)) :: types =>
           loop(cases ++ types, Left(t) :: out)
         case Nil =>
           out.foldLeft[List[Z]](List.empty) {
-            case (acc, Right(results))        => results :: acc
-            case (acc, Left(t @ Concept.Any)) => ???
+            case (acc, Right(results)) =>
+              results :: acc
+            case (acc, Left(t: Concept.Basic[_])) =>
+              basicCase(context, t) :: acc
+            case (acc, Left(t @ Concept.Any)) =>
+              anyCase(context) :: acc
 
-            case (acc, Left(t @ Concept.Record(_, fields))) =>
-              val size       = fields.size
+            case (acc, Left(t @ Concept.Record(qname, fields))) =>
+              val size       = t.fields.size
               val fieldTypes = acc.take(size)
               val rest       = acc.drop(size)
-              val fields     = t.fields.zip(fieldTypes).map { case (field, fieldType) => Field(field.name, fieldType) }
-              extensibleRecordCase(context, t, attributes, name, fields) :: rest
+              val fields     = t.fields.zip(fieldTypes).map { case ((label, _), fieldType) => (label, fieldType) }
+              recordCase(context, qname, fields) :: rest
             case (acc, Left(t @ Concept.Struct(fields))) =>
-
+              val size       = t.fields.size
+              val fieldTypes = acc.take(size)
+              val rest       = acc.drop(size)
+              val fields     = t.fields.zip(fieldTypes).map { case ((label, _), fieldType) => (label, fieldType) }
+              structCase(context, fields) :: rest
             case (acc, Left(t @ Concept.Alias(name, value))) =>
+              // just take one value from the accumulator which is the alias type
+              aliasCase(context, name, acc.head) :: acc.tail
 
             case (acc, Left(t @ Concept.List(elementType))) =>
+              // just take one value from the accumulator which is the element type
+              listCase(context, acc.head) :: acc.tail
 
             case (acc, Left(t @ Concept.Map(keyType, valueType))) =>
+              val kv   = acc.take(2)
+              val rest = acc.drop(2)
+              // TODO check that they have the right order (key comes before value)
+              mapCase(context, kv(0), kv(1)) :: rest
 
             case (acc, Left(t @ Concept.Tuple(values))) =>
+              val size   = t.values.size
+              val values = acc.take(size)
+              val rest   = acc.drop(size)
+              tupleCase(context, values) :: rest
 
             case (acc, Left(t @ Concept.Optional(elementType))) =>
+              optionalCase(context, acc.head) :: acc.tail
 
             case (acc, Left(t @ Concept.Enum(name, cases))) =>
+              import scala.collection.mutable.ArrayBuffer
+              import scala.collection.mutable.ArrayDeque
+
+              // using local mutability + iterative logic here because it is intricate
+              val mutableAcc       = ArrayDeque.from(acc)
+              val enumCaseMappings = ArrayBuffer[FoldableCase[Z]]()
+              for (enumCase <- cases) {
+                // for each enum case, need to pop-off a number of types from the accumulator equivalent to the number
+                // of values that the enum-case fields hold
+                val enumCaseFields = ArrayBuffer[Z]()
+                for (i <- (0 until enumCase.fields.size))
+                  enumCaseFields += mutableAcc.removeHead()
+
+                // create a specific foldable case out of every single found mapping
+                val foldableCase =
+                  FoldableCase(
+                    enumCase.label,
+                    enumCase.fields.zip(enumCaseFields).map {
+                      case ((label, _), z) => (label, z)
+                    }
+                  )
+                enumCaseMappings += foldableCase
+              }
+
+              // now since all the types of all the enum-fields of all the enum-cases were removed,
+              // the rest of the accumulator has the remaining types
+              enumCase(context, name, enumCaseMappings.toList) :: mutableAcc.toList
 
             case (acc, Left(t @ Concept.Union(cases))) =>
+              val size       = t.cases.size
+              val fieldTypes = acc.take(size)
+              val rest       = acc.drop(size)
+              unionCase(context, fieldTypes) :: rest
 
-            case (acc, Left(t)) =>
-              throw new IllegalStateException(
-                s"Unexpected type ${t.getClass.getSimpleName()} encountered during transformation. (Type Expr: $t)"
-              )
+            // Unreachable, all types covered
+            //  case (acc, Left(t)) =>
+            //    throw new IllegalStateException(
+            //      s"Unexpected type ${t.getClass.getSimpleName()} encountered during transformation. (Type Expr: $t)"
+            //    )
           }
-
-          ???
       }
     loop(List(self), List.empty).head
   }
 
+  case class FoldableCase[Z](label: Label, fields: scala.List[(EnumLabel, Z)])
+
   trait Folder[-Context, Z] {
-    def anyCase: Concept = Concept.Any
-    def recordCase(namespace: QualifiedName, fields: List[(Label, Concept)]): Concept =
-      Concept.Record(namespace, fields)
-    def structCase(fields: List[(Label, Concept)]): Concept                    = Concept.Struct(fields)
-    def aliasCase(name: QualifiedName, value: Concept): Concept                = Concept.Alias(name, value)
-    def listCase(elementType: Concept): Concept                                = Concept.List(elementType)
-    def mapCase(keyType: Concept, valueType: Concept): Concept                 = Concept.Map(keyType, valueType)
-    def tupleCase(values: List[Concept]): Concept                              = Concept.Tuple(values)
-    def optionalCase(elementType: Concept): Concept                            = Concept.Optional(elementType)
-    def enumCase(name: QualifiedName, cases: List[Concept.Enum.Case]): Concept = Concept.Enum(name, cases)
-    def unionCase(cases: List[Concept]): Concept                               = Concept.Union(cases)
+    def basicCase(ctx: Context, value: Concept): Z
+    def anyCase(ctx: Context): Z
+    def recordCase(ctx: Context, namespace: QualifiedName, fields: List[(Label, Z)]): Z
+    def structCase(ctx: Context, fields: List[(Label, Z)]): Z
+    def aliasCase(ctx: Context, name: QualifiedName, value: Z): Z
+    def listCase(ctx: Context, elementType: Z): Z
+    def mapCase(ctx: Context, keyType: Z, valueType: Z): Z
+    def tupleCase(ctx: Context, values: List[Z]): Z
+    def optionalCase(ctx: Context, elementType: Z): Z
+    def enumCase(ctx: Context, name: QualifiedName, cases: List[FoldableCase[Z]]): Z
+    def unionCase(ctx: Context, cases: List[Z]): Z
+  }
+
+  object TypeCollectingFolder extends Folder[ArrayBuffer[Concept], Concept] {
+    override def anyCase(ctx: ArrayBuffer[Concept]): Concept =
+      Concept.Any
+    override def recordCase(
+        ctx: ArrayBuffer[Concept],
+        namespace: QualifiedName,
+        fields: List[(Label, Concept)]
+    ): Concept = {
+      val out = Concept.Record(namespace, fields)
+      ctx += out
+      out
+    }
+
+    override def basicCase(ctx: ArrayBuffer[Concept], value: Concept): Concept =
+      val out = value
+      ctx += out
+      out
+    override def structCase(ctx: ArrayBuffer[Concept], fields: List[(Label, Concept)]): Concept =
+      val out = Concept.Struct(fields)
+      ctx += out
+      out
+    override def aliasCase(ctx: ArrayBuffer[Concept], name: QualifiedName, value: Concept): Concept =
+      val out = Concept.Alias(name, value)
+      ctx += out
+      out
+    override def listCase(ctx: ArrayBuffer[Concept], elementType: Concept): Concept =
+      val out = Concept.List(elementType)
+      ctx += out
+      out
+    override def mapCase(ctx: ArrayBuffer[Concept], keyType: Concept, valueType: Concept): Concept =
+      val out = Concept.Map(keyType, valueType)
+      ctx += out
+      out
+    override def tupleCase(ctx: ArrayBuffer[Concept], values: List[Concept]): Concept =
+      val out = Concept.Tuple(values)
+      ctx += out
+      out
+    override def optionalCase(ctx: ArrayBuffer[Concept], elementType: Concept): Concept =
+      val out = Concept.Optional(elementType)
+      ctx += out
+      out
+    override def unionCase(ctx: ArrayBuffer[Concept], cases: List[Concept]): Concept =
+      val out = Concept.Union(cases)
+      ctx += out
+      out
+    override def enumCase(ctx: ArrayBuffer[Concept], name: QualifiedName, cases: List[FoldableCase[Concept]]): Concept =
+      val out = Concept.Enum(name, cases.map(c => Concept.Enum.Case(c.label, c.fields)).toList)
+      ctx += out
+      out
+  }
+
+  def printSpec: String = {
+    val buff = scala.collection.mutable.ArrayBuffer[Concept]()
+    // use the folder to gather the types
+    foldContext(buff)(TypeCollectingFolder)
+    val typesList = buff.distinct.toList
+
+    // TODO use showInstances or change Package/Namespace to not be newtypes
+    def printModuleDef(qn: QualifiedName) =
+      s"{- ============ Declaring ${s"${qn.pack.show}:${qn.namespace.show}:${qn.localName}"} ============ -}\n" +
+        s"module ${qn.pack.show}.${qn.namespace.show} exposing (${qn.localName})"
+
+    // TODO use showInstances or change Package/Namespace to not be newtypes
+    def printImportDef(qn: QualifiedName) =
+      s"{- Importing ${s"${qn.pack.show}:${qn.namespace.show}:${qn.localName}"} -}\n" +
+        s"import ${qn.pack.show}.${qn.namespace.show} exposing (${qn.localName})"
+
+    def printFields(fields: List[(Label, Concept)]): String = {
+      val fieldPrints = fields.map { case (label, field) =>
+        val fieldPrint = printConcept(field, false)
+        s"${label.value}: $fieldPrint"
+      }
+      val output =
+        if (fields.size > 4) {
+          fieldPrints.mkString("\n{\n", ",\n", "\n}\n").split("\n").map("  " + _).mkString("\n")
+        } else {
+          fieldPrints.mkString("{ ", ", ", " }")
+        }
+      output
+    }
+
+    def printRecordDef(r: Concept.Record) = {
+      val alias       = s"type alias ${r.namespace.localName} ="
+      val fieldPrints = printFields(r.fields)
+      val allFieldPrints =
+        alias + "\n" + "  " + fieldPrints
+      allFieldPrints + "\n"
+    }
+
+    def printEnumDef(e: Concept.Enum) = {
+      val casePrints =
+        e.cases.map { case Concept.Enum.Case(label, values) =>
+          val valuePrint =
+            values.map { case (fieldLabel, concept) =>
+              val valueConceptPrint = printConcept(concept)
+              val valueConceptLabelPrint =
+                fieldLabel match {
+                  case EnumLabel.Empty        => ""
+                  case EnumLabel.Named(value) => s"{- ${value}: -} "
+                }
+
+              s"${valueConceptLabelPrint}${valueConceptPrint}"
+            }
+          s"${label.value} ${valuePrint.mkString(" ")}"
+        }
+
+      val casePrintString = {
+        val first     = "= " + casePrints.take(1).head
+        val afterward = casePrints.drop(1).map("| " + _)
+        val combined  = first +: afterward
+        combined.mkString("\n").split("\n").map("  " + _).mkString("\n")
+      }
+
+      val importDefsPrint = {
+        val importDefs =
+          e.cases.flatMap(_.fields.map(_._2)).collect {
+            case v: Concept.Record => printImportDef(v.namespace)
+            // TODO All sub-types of whatever is inside the alias that needs it e.g. a struct
+            case v: Concept.Alias => printImportDef(v.name)
+            case v: Concept.Enum  => printImportDef(v.name)
+          }
+        if (importDefs.isEmpty) "" else importDefs.mkString("\n") + "\n"
+      }
+
+      printModuleDef(e.name) + "\n" +
+        importDefsPrint +
+        s"type ${e.name.localName}" + "\n" + casePrintString
+    }
+
+    def printRecordInfo(r: Concept.Record) = {
+      val moduleDef = printModuleDef(r.namespace)
+      val importDefs =
+        r.fields.map(_._2).collect {
+          case v: Concept.Record => printImportDef(v.namespace)
+          // TODO All sub-types of whatever is inside the alias that needs it e.g. a struct
+          case v: Concept.Alias => printImportDef(v.name)
+          case v: Concept.Enum  => printImportDef(v.name)
+        }
+      val recordDef       = printRecordDef(r)
+      val importDefsPrint = if (importDefs.isEmpty) "" else importDefs.mkString("\n") + "\n"
+
+      moduleDef + "\n" + importDefsPrint + recordDef
+    }
+
+    def printConcept(concept: Concept, isTopLevel: Boolean = false): String =
+      concept match {
+        // only show if this is part of a type e.g. part of a record, not on the top level
+        case basic: Basic[_] =>
+          if (isTopLevel) "" else basic.toString
+
+        // only show if this is part of a type e.g. part of a record, not on the top level
+        // (Even for that we don't need type defs for 'Any' it doesn't exist in ELM)
+        case Concept.Any =>
+          if (isTopLevel) "" else "Any"
+
+        case r: Concept.Record =>
+          if (isTopLevel) printRecordInfo(r)
+          else r.namespace.localName.toString
+
+        case Concept.Struct(fields) =>
+          printFields(fields)
+
+        // TODO what if it's an alias of a tuple, we need module imports for the types used in the tuple
+        //      we need a folder that collects QNames (what about things inside of record? should record def handle that?)
+        case Concept.Alias(name, value) =>
+          val rhs = printConcept(value)
+          s"${printModuleDef(name)}\ntype alias ${name.localName} = $rhs".stripMargin
+
+        case Concept.List(elementType) =>
+          val rhs = printConcept(elementType)
+          s"List $elementType"
+
+        case Concept.Map(keyType, valueType) =>
+          val k = printConcept(keyType)
+          val v = printConcept(valueType)
+          s"Dict $k $v"
+
+        case Concept.Tuple(values) =>
+          val valuePrints = values.map(printConcept(_))
+          s"(${valuePrints.mkString(", ")})"
+
+        case Concept.Optional(elementType) =>
+          val rhs = printConcept(elementType)
+          s"Maybe $rhs"
+
+        case e: Concept.Enum =>
+          if (isTopLevel) printEnumDef(e)
+          else e.name.localName.toString
+
+        case Concept.Union(cases) => "<UNION NOT SUPPORTED IN ELM>"
+      }
+
+    val out = typesList.map(tpe => printConcept(tpe, true))
+    out.mkString("\n")
   }
 }
 

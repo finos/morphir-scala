@@ -9,6 +9,24 @@ import org.finos.morphir.datamodel.namespacing.*
 import org.finos.morphir.datamodel.namespacing.PackageName.root
 import org.finos.morphir.datamodel.namespacing.Namespace.ns
 
+object Main {
+  import EnumGns._
+  implicit val gnsImpl: GlobalDatamodelContext = new GlobalDatamodelContext {
+    def value = gns
+  }
+
+  case class Person(name: String, age: Int)
+
+  sealed trait Foo
+  case object Bar                               extends Foo
+  case class Baz(value: String, person: Person) extends Foo
+
+  def main(args: Array[String]): Unit = {
+    val derive = Deriver.gen[Foo]
+    println(derive.concept.printSpec)
+  }
+}
+
 object EnumGns {
   val gns: PartialName = root / "morphir" :: ns / "test" / "todataenums"
 }

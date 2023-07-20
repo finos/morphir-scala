@@ -28,6 +28,7 @@ object namespacing {
 
     implicit final class NamespaceOps(val self: Namespace) extends AnyVal {
       def segments: Chunk[NamespaceSegment]  = unwrap(self)
+      def show                               = self.segments.map(_.value).mkString(".")
       def parts: IndexedSeq[String]          = unwrap(self)
       def /(segment: String): Namespace      = Namespace(unwrap(self) :+ NamespaceSegment(segment))
       def /(namespace: Namespace): Namespace = Namespace(unwrap(self) ++ unwrap(namespace))
@@ -66,6 +67,7 @@ object namespacing {
     implicit final class PackageNameOps(val self: PackageName) extends AnyVal {
       def map[A](f: PackageSegment => A): Chunk[A] = unwrap(self).map(f)
       def segments: Chunk[PackageSegment]          = unwrap(self)
+      def show                                     = self.segments.map(_.value).mkString(".")
       def %(namespace: Namespace): PartialName     = PartialName(self, namespace)
       def /(segment: String): PackageName          = PackageName(unwrap(self) :+ PackageSegment(segment))
       def /(namespace: PackageName): PackageName   = PackageName(unwrap(self) ++ unwrap(namespace))
