@@ -1,6 +1,26 @@
 package org.finos.morphir.datamodel
+
+import org.finos.morphir.datamodel.Concept.Basic
+import org.finos.morphir.datamodel.namespacing.QualifiedName
+import org.finos.morphir.foundations.Chunk
+
+import scala.annotation.tailrec
+import scala.collection.mutable.ArrayBuffer
+import zio.prelude.fx.ZPure
+
 //TODO: Keep this non-GADT version as Concept and make a GADT version `Schema[A]`
-sealed trait Concept
+sealed trait Concept { self =>
+  def collectAll: Chunk[Concept] =
+    (new Concept.Collector[Concept](PartialFunction.fromFunction(x => x)).of(self))
+      .run(Chunk[Concept]()) match {
+      case (chunk, _) => chunk
+    }
+
+  def collect[T](p: PartialFunction[Concept, T]): Chunk[T] =
+    (new Concept.Collector[T](p).of(self)).run(Chunk[T]()) match {
+      case (chunk, _) => chunk
+    }
+}
 
 object Concept {
   sealed trait Basic[+A] extends Concept
@@ -49,9 +69,17 @@ object Concept {
   case object Unit      extends Basic[scala.Unit]
   case object Nothing   extends Basic[scala.Nothing]
 
-  case class Record(fields: scala.List[(Label, Concept)]) extends Concept
+  case class Record(namespace: QualifiedName, fields: scala.List[(Label, Concept)]) extends Concept
+  object Record {
+    def apply(namespace: QualifiedName, fields: (Label, Concept)*) = new Record(namespace, fields.toList)
+  }
 
-  case class Alias(name: String, value: Concept) extends Concept
+  case class Struct(fields: scala.List[(Label, Concept)]) extends Concept
+  object Struct {
+    def apply(fields: (Label, Concept)*) = new Struct(fields.toList)
+  }
+
+  case class Alias(name: QualifiedName, value: Concept) extends Concept
 
   case class List(elementType: Concept) extends Concept
 
@@ -120,10 +148,10 @@ object Concept {
    *   )
    * }}}
    */
-  case class Enum(name: java.lang.String, cases: scala.List[Enum.Case]) extends Concept
+  case class Enum(name: QualifiedName, cases: scala.List[Enum.Case]) extends Concept
 
   object Enum {
-    def apply(name: java.lang.String, cases: Enum.Case*) =
+    def apply(name: QualifiedName, cases: Enum.Case*) =
       new Enum(name, cases.toList)
 
     case class Case(label: Label, fields: scala.List[(EnumLabel, Concept)])
@@ -145,4 +173,16 @@ object Concept {
    * }}}
    */
   case class Union(cases: scala.List[Concept]) extends Concept
+
+  /** Collector to help with Traversal */
+  class Collector[T](p: PartialFunction[Concept, T])
+      extends ConceptStatefulTransformer[Chunk[T]] {
+
+    override def transform[R <: Concept](concept: R): Stateful[R] =
+      if (p.isDefinedAt(concept)) {
+        ZPure.update[Chunk[T], Chunk[T]](state => state :+ p(concept)) *> ZPure.succeed(concept)
+      } else {
+        ZPure.succeed(concept)
+      }
+  }
 }

@@ -3,7 +3,7 @@ package ir
 package conversion
 
 import org.finos.morphir.datamodel.{Concept, Label}
-import org.finos.morphir.ir.{Type => T}
+import org.finos.morphir.ir.{FQName, Type => T}
 import org.finos.morphir.ir.Type.{Type, UType}
 
 import scala.collection.immutable.{Map, Set}
@@ -71,15 +71,22 @@ object ToMorphirType {
       case Concept.LocalTime               => localTimeUType.as
       case Concept.Char                    => charUType.as
       case Concept.Unit                    => unitUType.as
-      case Concept.Alias(name, value)      => toUTypeConverter(T.reference(name))
-      case Concept.Enum(name, cases)       => toUTypeConverter(T.reference(name))
+      case Concept.Alias(name, value)      => toUTypeConverter(T.reference(FQName.fromQualifiedName(name)))
+      case Concept.Enum(name, cases)       => toUTypeConverter(T.reference(FQName.fromQualifiedName(name)))
       case Concept.List(elementType)       => listUType(conceptToTypeIR(elementType)).as
       case Concept.Optional(elementType)   => optionUType(conceptToTypeIR(elementType)).as
       case Concept.Map(keyType, valueType) => mapUType(conceptToTypeIR(keyType), conceptToTypeIR(valueType)).as
-      case Concept.Record(fields) =>
+      case Concept.Struct(fields) =>
         val types: scala.List[(String, UType)] = fields.map {
           case (k: Label, v: Concept) => (k.value, conceptToTypeIR(v).morphirType)
         }
+        // TODO: When we provide MorphirType map this to a spec or definition
+        toUTypeConverter(T.record(types: _*))
+      case Concept.Record(_, fields) =>
+        val types: scala.List[(String, UType)] = fields.map {
+          case (k: Label, v: Concept) => (k.value, conceptToTypeIR(v).morphirType)
+        }
+        // TODO: When we provide MorphirType map this to a spec or definition
         toUTypeConverter(T.record(types: _*))
 
       case Concept.Tuple(values) =>

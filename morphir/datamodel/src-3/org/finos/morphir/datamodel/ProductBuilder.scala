@@ -7,6 +7,7 @@ import scala.deriving.*
 import scala.compiletime.{codeOf, constValue, erasedValue, error, summonFrom, summonInline}
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.datamodel.Label
+import org.finos.morphir.datamodel.namespacing.QualifiedName
 
 private[datamodel] sealed trait ProductBuilder
 
@@ -46,8 +47,8 @@ private[datamodel] object ProductBuilder {
       }
   }
 
-  case class MirrorProduct(fields: List[ProductBuilderField]) extends ProductBuilder {
+  case class MirrorProduct(name: QualifiedName, fields: List[ProductBuilderField]) extends ProductBuilder {
     def run(parent: scala.Product) =
-      Data.Record(fields.map(f => (Label(f.field), f.run(parent))))
+      Data.Record(name, fields.map(f => (Label(f.field), f.run(parent))))
   }
 }

@@ -4,21 +4,28 @@ package runtime
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.{test, *}
 import org.finos.morphir.datamodel.{Data, Concept, Label, EnumLabel}
+import org.finos.morphir.datamodel.namespacing.Namespace.ns
+import org.finos.morphir.datamodel.namespacing.PackageName.root
+import org.finos.morphir.datamodel.Util.*
 
 object EvaluatorDDLTests extends MorphirBaseSpec {
   lazy val lib =
     EvaluationLibrary("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json", "Morphir.Examples.App")
 
-  val dogRecordConceptRaw = Concept.Record(List(
-    (Label("name"), Concept.String),
-    (Label("number"), Concept.Int32)
-  ))
+  val dogRecordConceptRaw = Concept.Record(
+    qn"Morphir.Examples.App:RecordTests:recordType",
+    List(
+      (Label("name"), Concept.String),
+      (Label("number"), Concept.Int32)
+    )
+  )
   def dogRecordDataRaw(name: String, number: Int) = Data.Record(
+    qn"Morphir.Examples.App:RecordTests:recordType",
     (Label("name"), Data.String(name)),
     (Label("number"), Data.Int32(number))
   )
   val dogRecordConcept = Concept.Alias(
-    "Morphir.Examples.App:RecordTests:recordType",
+    qn"Morphir.Examples.App:RecordTests:recordType",
     dogRecordConceptRaw
   )
   def dogRecordData(name: String, number: Int) = Data.Aliased(
@@ -27,7 +34,7 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
   )
 
   def unionEnumShape: Concept.Enum = Concept.Enum(
-    "Morphir.Examples.App:ConstructorTests:unionType",
+    qn"Morphir.Examples.App:ConstructorTests:unionType",
     List(
       Concept.Enum.Case(
         Label("oneArg"),
@@ -426,6 +433,7 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
         test("Nested Record") {
           val actual = runTest("recordTests", "recordNestedTest")
           val rawRecord = Data.Record(
+            qn"Morphir.Examples.App:RecordTests:nestedRecordType",
             (Label("name"), Data.String("Dogs")),
             (
               Label("records"),
@@ -437,7 +445,7 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
           )
           val expected = Data.Aliased(
             rawRecord,
-            Concept.Alias("Morphir.Examples.App:RecordTests:nestedRecordType", rawRecord.shape)
+            Concept.Alias(qn"Morphir.Examples.App:RecordTests:nestedRecordType", rawRecord.shape)
           )
           assertTrue(actual == expected)
         },
