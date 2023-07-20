@@ -53,7 +53,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("testing first extensible record constructor") {
         val f1     = field("first", variable("hello"))
         val f2     = field("second", variable("there"))
-        val f3     = field("third", tuple(variable("v3"), variable("v4")))
+        val f3     = field("third", tupleVar(variable("v3"), variable("v4")))
         val n1     = Name("SomeName")
         val actual = extensibleRecord(n1, zio.Chunk(f1, f2, f3))
         assertTrue(actual == ExtensibleRecord(n1, f1, f2, f3))
@@ -61,7 +61,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("testing second extensible record constructor") {
         val f1     = field("first", variable("hello"))
         val f2     = field("second", variable("there"))
-        val f3     = field("third", tuple(variable("v3"), variable("v4")))
+        val f3     = field("third", tupleVar(variable("v3"), variable("v4")))
         val n1     = Name("SomeName")
         val actual = extensibleRecordWithFields(n1, f1, f2, f3)
         assertTrue(actual == ExtensibleRecord((), n1, f1, f2, f3))
@@ -70,7 +70,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
 
         val f1     = field("first", variable("hello"))
         val f2     = field("second", variable("there"))
-        val f3     = field("third", tuple(variable("v3"), variable("v4")))
+        val f3     = field("third", tupleVar(variable("v3"), variable("v4")))
         val actual = extensibleRecord("SomeName", zio.Chunk(f1, f2, f3))
         assertTrue(
           actual == ExtensibleRecord("SomeName", Chunk(f1, f2, f3)),
@@ -80,7 +80,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("testing fourth extensible record constructor") {
         val f1     = field("first", variable("hello"))
         val f2     = field("second", variable("there"))
-        val f3     = field("third", tuple(variable("v3"), variable("v4")))
+        val f3     = field("third", tupleVar(variable("v3"), variable("v4")))
         val actual = extensibleRecordWithFields("SomeName", f1, f2, f3)
         assertTrue(
           actual.exists { case ExtensibleRecord(_, name, fields) =>
@@ -93,7 +93,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("When constructing using the constructor accepting a Name and Chunk") {
         val firstField  = field("first", variable("hello"))
         val secondField = field("second", variable("world"))
-        val tupleField  = field("tupleField", tuple(variable("v3"), variable("v4")))
+        val tupleField  = field("tupleField", tupleVar(variable("v3"), variable("v4")))
         val recordName  = Name.fromString("MyRecord")
         val sut         = extensibleRecord(recordName, Chunk(firstField, secondField, tupleField))
         assertTrue(sut.toString == "{ myRecord | first : hello, second : world, tupleField : (v3, v4) }")
@@ -150,7 +150,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("testing function constructor(1)") {
         val param1  = variable("v1")
         val param2  = variable("v2")
-        val retType = tuple(variable("v3"), variable("v4"))
+        val retType = tupleVar(variable("v3"), variable("v4"))
         val actual  = function(param1, function(param2, retType))
         assertTrue(
           actual == Function(param1, Function(param2, retType)),
@@ -160,7 +160,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("testing function constructor(2)") {
         val param1  = variable("v1")
         val param2  = variable("v2")
-        val retType = tuple(variable("v3"), variable("v4"))
+        val retType = tupleVar(variable("v3"), variable("v4"))
         val actual  = function(param1, function(param2, retType))
         assertTrue(
           actual == Function(param1, Function(param2, retType))
@@ -227,7 +227,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("When constructing using the constructor accepting a Chunk of fields") {
         val firstField  = field("first", variable("hello"))
         val secondField = field("second", variable("world"))
-        val tupleField  = field("tupleField", tuple(variable("v3"), variable("v4")))
+        val tupleField  = field("tupleField", tupleVar(variable("v3"), variable("v4")))
         val sut         = record(Chunk(firstField, secondField, tupleField))
         assertTrue(sut.toString == "{ first : hello, second : world, tupleField : (v3, v4) }", sut.size == 6)
       },
@@ -284,7 +284,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("testing construction given a FQName and Chunk of types") {
         val v1     = variable("v1")
         val v2     = variable("v2")
-        val v3     = tuple(variable("v3"), variable("v4"))
+        val v3     = tupleVar(variable("v3"), variable("v4"))
         val fqn1   = FQName.fqn("packageName", "moduleName", "localName")
         val actual = reference(fqn1, Chunk(v1, v2, v3))
         assertTrue(
@@ -305,7 +305,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("testing construction given an FQName and a variadic list of types") {
         val v1     = variable("v1")
         val v2     = variable("v2")
-        val v3     = tuple(variable("v3"), variable("v4"))
+        val v3     = tupleVar(variable("v3"), variable("v4"))
         val fqn1   = FQName.fqn("packageName", "moduleName", "localName")
         val actual = reference(fqn1, v1, v2, v3)
         assertTrue(
@@ -317,7 +317,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("testing construction given packageName, moduleName, localName and a Chunk of Types") {
         val v1     = variable("v1")
         val v2     = variable("v2")
-        val v3     = tuple(variable("v3"), variable("v4"))
+        val v3     = tupleVar(variable("v3"), variable("v4"))
         val fqn1   = FQName.fqn("packageName", "moduleName", "localName")
         val actual = reference("packageName", "moduleName", "localName", Chunk(v1, v2, v3))
         assertTrue(
@@ -329,7 +329,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("testing given packageName, moduleName, localName and a variadic list of Types") {
         val v1     = variable("V1")
         val v2     = variable("V2")
-        val v3     = tuple(variable("v3"), variable("v4"))
+        val v3     = tupleVar(variable("v3"), variable("v4"))
         val fqn1   = FQName.fqn("PackageName", "ModuleName", "LocalName")
         val actual = reference("PackageName", "ModuleName", "LocalName", v1, v2, v3)
         assertTrue(
@@ -353,7 +353,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("testing construction given attributes, FQName, and a Chunk of types") {
         val v1 = variable(Source.Location.default, "V1")
         val v2 = variable(Source.Location.default.offsetRowBy(1), "V2")
-        val v3 = tuple(
+        val v3 = tupleWithAttr(
           Source.Location.default.offsetRowBy(4),
           variable(Source.Location.default.offsetRowBy(2), "v3"),
           variable(Source.Location.default.offsetRowBy(3), "v4")
@@ -370,7 +370,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       test("testing given FQName and a variadic list of Types") {
         val v1     = variable(1, "V1")
         val v2     = variable(2, "V2")
-        val v3     = tuple(3, variable(3, "v3"), variable(4, "v4"))
+        val v3     = tupleWithAttr(3, variable(3, "v3"), variable(4, "v4"))
         val fqn    = FQName.fqn("PackageName", "ModuleName", "LocalName")
         val actual = reference(5, fqn, v1, v2, v3)
         assertTrue(
@@ -432,7 +432,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       val var1   = variable("one")
       val var2   = variable("two")
       val var3   = variable("three")
-      val actual = tuple(var1, var2, var3)
+      val actual = tupleVar(var1, var2, var3)
       assertTrue(
         actual.size == 4,
         actual.toString == "(one, two, three)",
@@ -444,7 +444,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       val varA   = variable("A", "a")
       val varB   = variable("B", "b")
       val varC   = variable("C", "c")
-      val actual = tuple("(a, b, c)", varA, varB, varC)
+      val actual = tupleWithAttr("(a, b, c)", varA, varB, varC)
       assertTrue(
         actual.size == 4,
         actual.toString == "(a, b, c)",
@@ -456,7 +456,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       val varA = variable("a")
       val varB = variable("b")
       val varC = variable("c")
-      val sut  = tuple(varA, varB, varC)
+      val sut  = tupleVar(varA, varB, varC)
       val result = sut.foldLeft(0) { case (acc, _) =>
         acc + 1
       }
@@ -470,7 +470,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       assertTrue(result == 1)
     },
     test("When calling foldLeft with a nested empty tuple it should work as expected") {
-      val sut = tuple(emptyTuple)
+      val sut = tupleVar(emptyTuple)
       val result = sut.foldLeft(0) { case (acc, _) =>
         acc + 1
       }
@@ -506,7 +506,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       val var1   = variable("hello")
       val var2   = variable("There")
       val var3   = variable("notThere")
-      val actual = tuple(var1, var2)
+      val actual = tupleVar(var1, var2)
       assertTrue(
         actual.exists { case Tuple(_, elements) =>
           elements.contains(var1) && elements.contains(var2) && !elements.contains(var3)
@@ -519,7 +519,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       val var1   = variable("A", "a")
       val var2   = variable("B", "b")
       val var3   = variable("C", "c")
-      val actual = tuple("Tuple3[a,b,c]", var1, var2, var3)
+      val actual = tupleWithAttr("Tuple3[a,b,c]", var1, var2, var3)
       assertTrue(
         actual.attributes == "Tuple3[a,b,c]",
         actual.exists { case Tuple(_, elements) => elements == Chunk(var1, var2, var3) },

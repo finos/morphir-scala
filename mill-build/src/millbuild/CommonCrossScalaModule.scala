@@ -32,6 +32,18 @@ trait CommonCrossScalaModule extends CrossScalaModule with CommonCoursierModule 
     super.scalacOptions() ++ options ++ additionalScalacOptions()
   }
 
+  override def scalacPluginIvyDeps: Target[Agg[Dep]] = T {
+    val original = super.scalacPluginIvyDeps()
+    if (isScala3()) {
+      original
+    } else {
+      original ++ Agg(
+        ivy"org.typelevel:::kind-projector:0.13.2",
+        ivy"com.olegpy::better-monadic-for:0.3.1"
+      )
+    }
+  }
+
   /// The location of user specific build properties. This is curremtly only setup to provide custom scalac options.
   /// This becomes useful when you want to temporarily enable a scalac option which is harder given mill runs a build serve/daemon.
   def userBuildProperties = T.source(T.workspace / "build.user.properties")

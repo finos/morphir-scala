@@ -13,9 +13,16 @@ import SDKValue.{SDKNativeFunction, SDKNativeValue}
 import org.finos.morphir.ir.Distribution.Distribution.Library
 import zio.Chunk
 import scala.collection.mutable
+import org.finos.morphir.ir.sdk.Basics
+
+//Basics.int.fqName
 
 object FQString {
   def unapply(fqName: FQName): Option[String] = Some(fqName.toString)
+}
+
+object IntRef{
+  def unapply(fqName: FQName) : Option[()] =  if fqName == Basics.int.fqName then Some(()) else None
 }
 
 object EvaluatorQuick {
@@ -47,16 +54,15 @@ object EvaluatorQuick {
     resultToDDL(result, tpe, dist)
   }
 
+
+
   def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept =
     tpe match {
       case TT.ExtensibleRecord(attributes, name, fields) =>
         throw UnsupportedType("Extensible records not supported for DDL")
       case TT.Function(attributes, argumentType, returnType) =>
         throw UnsupportedType("Functiom types not supported for DDL")
-      case TT.Record(attributes, fields) =>
-        Concept.Record(fields.map(field =>
-          (Label(field.name.toCamelCase), typeToConcept(field.data, dist, boundTypes))
-        ).toList)
+      case TT.Record(attributes, fields) => Concept.Struct(fields.map(field => (Label(field.name.toCamelCase), typeToConcept(field.data, dist, boundTypes))).toList)
       case TT.Reference(attributes, FQString("Morphir.SDK:Basics:int"), _)    => Concept.Int32
       case TT.Reference(attributes, FQString("Morphir.SDK:String:string"), _) => Concept.String
       case TT.Reference(attributes, FQString("Morphir.SDK:Basics:bool"), _)   => Concept.Boolean
@@ -69,13 +75,13 @@ object EvaluatorQuick {
       case TT.Reference(attributes, FQString("Morphir.SDK:Dict:dict"), Chunk(keyType, valType)) =>
         Concept.Map(typeToConcept(keyType, dist, boundTypes), typeToConcept(valType, dist, boundTypes))
       case TT.Reference(attributes, typeName, typeArgs) =>
-        val lookedUp    = dist.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+        val lookedUp = dist.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dist, boundTypes))
-        lookedUp.getOrElse(throw TypeNotFound(s"Could not find spec for $typeName")) match {
-          case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
+        lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
+          case Type.Specification.TypeAliasSpecification(params, expr) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
-            Concept.Alias(typeName.toString, typeToConcept(expr, dist, newBindings))
-          case Type.Specification.CustomTypeSpecification(typeParams, ctors) =>
+            Concept.Alias(typeName.toQualifiedName, typeToConcept(expr, dist))
+          case Type.Specification.CustomTypeSpecification(params, ctors) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             val cases = ctors.toMap.toList.map { case (caseName, args) =>
               val argTuples = args.map { case (argName: Name, argType: Type.UType) =>
@@ -85,7 +91,7 @@ object EvaluatorQuick {
               val concepts: List[(EnumLabel, Concept)] = argTuples.toList
               Concept.Enum.Case(Label(conceptName), concepts)
             }
-            Concept.Enum(typeName.toString, cases)
+            Concept.Enum(typeName.toQualifiedName, cases)
           case other => throw UnsupportedType(s"$other is not a recognized type")
         }
       case TT.Tuple(attributes, elements) =>
@@ -95,7 +101,7 @@ object EvaluatorQuick {
     }
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
     (concept, result) match {
-      case (Concept.Record(fields), Result.Record(elements)) =>
+      case (Concept.Record(qname, fields), Result.Record(elements)) =>
         if (fields.length != elements.size) {
           throw ResultDoesNotMatchType(s"$fields has different number of elements than $elements")
         } else {
@@ -104,7 +110,7 @@ object EvaluatorQuick {
               elements.getOrElse(Name(name), throw new MissingField(s"Type expected $name but not found in $elements"))
             (Label(name), resultAndConceptToData(value, innerConcept))
           }
-          Data.Record(tuples.toList)
+          Data.Record(qname, tuples.toList)
         }
       case (Concept.Int32, Result.Primitive(value: IntType)) =>
         Data.Int(value.toInt)
