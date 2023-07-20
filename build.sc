@@ -502,7 +502,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         Deps.org.typelevel.`paiges-core`,
         Deps.org.typelevel.spire
       )
-      def platformSpecificModuleDeps = Seq(morphir.foundations)
+      def platformSpecificModuleDeps = Seq(morphir.foundations, morphir.datamodel)
     }
 
     object jvm extends Shared with MorphirJVMModule {
