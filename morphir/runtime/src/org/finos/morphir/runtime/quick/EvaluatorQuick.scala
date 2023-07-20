@@ -26,7 +26,6 @@ class BasicReference(tpe: UType) {
 
 object EvaluatorQuick {
   type IntType = Long
-  val what = BasicReference(Basics.intType).unapply(FQName.fromString("What?"))
 
   def evaluate[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Any = Result.unwrap(Loop.loop(ir, store))
 
