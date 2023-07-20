@@ -186,12 +186,12 @@ object ValueConversionSpec extends MorphirBaseSpec {
     ),
     suite("Data.Aliased")(
       test("Should be possible to convert a Data.Int32 Aliased to it's Morphir value") {
-        val toValue      = ToMorphirValue.summon[Data].typed
+        val toValue           = ToMorphirValue.summon[Data].typed
         val someAliasTypeName = pn.morphirIR % "someAlias"
-        val expectedFQName = fqn("Morphir","IR", "someAlias")
-        val inputValue   = Data.Aliased(Data.Int32(10), Concept.Alias(someAliasTypeName, Concept.Int32))
-        val morphirInt32 = toValue(inputValue)
-        val result       = Value.literal(T.reference(expectedFQName), Lit.int(10))
+        val expectedFQName    = fqn("Morphir", "IR", "someAlias")
+        val inputValue        = Data.Aliased(Data.Int32(10), Concept.Alias(someAliasTypeName, Concept.Int32))
+        val morphirInt32      = toValue(inputValue)
+        val result            = Value.literal(T.reference(expectedFQName), Lit.int(10))
         assertTrue(morphirInt32 == result)
       },
       test("Should be possible to convert a Data.List Aliased to it's Morphir value") {
