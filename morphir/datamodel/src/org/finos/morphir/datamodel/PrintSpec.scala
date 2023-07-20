@@ -134,7 +134,7 @@ object PrintSpec {
 
         case Concept.List(elementType) =>
           val rhs = printConcept(elementType)
-          s"List $elementType"
+          s"List $rhs"
 
         case Concept.Map(keyType, valueType) =>
           val k = printConcept(keyType)
