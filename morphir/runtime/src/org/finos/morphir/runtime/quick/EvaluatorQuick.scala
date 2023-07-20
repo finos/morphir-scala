@@ -17,14 +17,15 @@ import scala.collection.mutable
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 
-object FQString {
-  def unapply(fqName: FQName): Option[String] = Some(fqName.toString())
-}
-class BasicReference(tpe: UType) {
-  def unapply(fqName: FQName): Boolean = fqName == tpe.asInstanceOf[TT.Reference[Unit]].typeName
-}
-
 object EvaluatorQuick {
+  object FQString {
+    def unapply(fqName: FQName): Option[String] = Some(fqName.toString())
+  }
+
+  class BasicReference(tpe: UType) {
+    def unapply(fqName: FQName): Boolean = fqName == tpe.asInstanceOf[TT.Reference[Unit]].typeName
+  }
+
   type IntType = Long
 
   def evaluate[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Any = Result.unwrap(Loop.loop(ir, store))
@@ -54,11 +55,11 @@ object EvaluatorQuick {
   }
 
   def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept = {
-    val intRef    = BasicReference(Basics.intType)
-    val boolRef   = BasicReference(Basics.boolType)
-    val floatRef  = BasicReference(Basics.floatType)
-    val stringRef = BasicReference(sdk.String.stringType)
-    val charRef   = BasicReference(sdk.Char.charType)
+    val intRef    = new BasicReference(Basics.intType)
+    val boolRef   = new BasicReference(Basics.boolType)
+    val floatRef  = new BasicReference(Basics.floatType)
+    val stringRef = new BasicReference(sdk.String.stringType)
+    val charRef   = new BasicReference(sdk.Char.charType)
     tpe match {
       case TT.ExtensibleRecord(attributes, name, fields) =>
         throw UnsupportedType("Extensible records not supported for DDL")
@@ -84,7 +85,10 @@ object EvaluatorQuick {
         lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
           case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
-            Concept.Alias(typeName.toQualifiedName, typeToConcept(expr, dist, newBindings))
+            typeToConcept(expr, dist, newBindings) match {
+              case Concept.Struct(fields) => Concept.Record(typeName.toQualifiedName, fields)
+              case other                  => Concept.Alias(typeName.toQualifiedName, other)
+            }
           case Type.Specification.CustomTypeSpecification(typeParams, ctors) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             val cases = ctors.toMap.toList.map { case (caseName, args) =>
@@ -116,6 +120,17 @@ object EvaluatorQuick {
             (Label(name), resultAndConceptToData(value, innerConcept))
           }
           Data.Struct(tuples.toList)
+        }
+      case (Concept.Record(qName, fields), Result.Record(elements)) =>
+        if (fields.length != elements.size) {
+          throw ResultDoesNotMatchType(s"$fields has different number of elements than $elements")
+        } else {
+          val tuples = fields.map { case (Label(name), innerConcept) =>
+            val value =
+              elements.getOrElse(Name(name), throw new MissingField(s"Type expected $name but not found in $elements"))
+            (Label(name), resultAndConceptToData(value, innerConcept))
+          }
+          Data.Record(qName, tuples.toList)
         }
       case (Concept.Int32, Result.Primitive(value: IntType)) =>
         Data.Int(value.toInt)
