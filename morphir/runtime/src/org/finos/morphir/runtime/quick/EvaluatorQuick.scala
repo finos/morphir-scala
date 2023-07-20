@@ -54,7 +54,7 @@ object EvaluatorQuick {
     resultToDDL(result, tpe, dist)
   }
 
-  def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept =
+  def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept = {
     val intRef    = BasicReference(Basics.intType)
     val boolRef   = BasicReference(Basics.boolType)
     val floatRef  = BasicReference(Basics.floatType)
@@ -104,6 +104,7 @@ object EvaluatorQuick {
       case TT.Unit(attributes)           => Concept.Unit
       case TT.Variable(attributes, name) => boundTypes(name)
     }
+  }
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
     (concept, result) match {
       case (Concept.Struct(fields), Result.Record(elements)) =>
