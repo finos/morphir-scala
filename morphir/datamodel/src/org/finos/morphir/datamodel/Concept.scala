@@ -2,8 +2,88 @@ package org.finos.morphir.datamodel
 
 import org.finos.morphir.datamodel.namespacing.QualifiedName
 
+import scala.annotation.tailrec
+
 //TODO: Keep this non-GADT version as Concept and make a GADT version `Schema[A]`
-sealed trait Concept
+sealed trait Concept { self =>
+  final def foldContext[C, Z](context: C)(folder: Unit): Z = {
+    @tailrec
+    def loop(in: List[Concept], out: List[Either[Concept, Z]]): List[Z] =
+      in match {
+        case (t @ Concept.Any) :: types =>
+          loop(types, Left(t) :: out)
+        case (t @ Concept.Record(namespace, fields)) :: types =>
+          val fieldTypes = fields.map(_._2)
+          loop(fieldTypes ++ types, Left(t) :: out)
+        case (t @ Concept.Struct(fields)) :: types =>
+          val fieldTypes = fields.map(_._2)
+          loop(fieldTypes ++ types, Left(t) :: out)
+        case (t @ Concept.Alias(name, value)) :: types =>
+          loop(value +: types, Left(t) :: out)
+        case (t @ Concept.List(elementType)) :: types =>
+          loop(elementType +: types, Left(t) :: out)
+        case (t @ Concept.Map(keyType, valueType)) :: types =>
+          loop(keyType +: valueType +: types, Left(t) :: out)
+        case (t @ Concept.Tuple(values)) :: types =>
+          loop(values ++ types, Left(t) :: out)
+        case (t @ Concept.Optional(elementType)) :: types =>
+          loop(elementType +: types, Left(t) :: out)
+        case (t @ Concept.Enum(name, cases)) :: types =>
+          val fieldTypes = cases.flatMap(_.fields.map(_._2))
+        case (t @ Concept.Union(cases)) :: types =>
+          loop(cases ++ types, Left(t) :: out)
+        case Nil =>
+          out.foldLeft[List[Z]](List.empty) {
+            case (acc, Right(results))        => results :: acc
+            case (acc, Left(t @ Concept.Any)) => ???
+
+            case (acc, Left(t @ Concept.Record(_, fields))) =>
+              val size       = fields.size
+              val fieldTypes = acc.take(size)
+              val rest       = acc.drop(size)
+              val fields     = t.fields.zip(fieldTypes).map { case (field, fieldType) => Field(field.name, fieldType) }
+              extensibleRecordCase(context, t, attributes, name, fields) :: rest
+            case (acc, Left(t @ Concept.Struct(fields))) =>
+
+            case (acc, Left(t @ Concept.Alias(name, value))) =>
+
+            case (acc, Left(t @ Concept.List(elementType))) =>
+
+            case (acc, Left(t @ Concept.Map(keyType, valueType))) =>
+
+            case (acc, Left(t @ Concept.Tuple(values))) =>
+
+            case (acc, Left(t @ Concept.Optional(elementType))) =>
+
+            case (acc, Left(t @ Concept.Enum(name, cases))) =>
+
+            case (acc, Left(t @ Concept.Union(cases))) =>
+
+            case (acc, Left(t)) =>
+              throw new IllegalStateException(
+                s"Unexpected type ${t.getClass.getSimpleName()} encountered during transformation. (Type Expr: $t)"
+              )
+          }
+
+          ???
+      }
+    loop(List(self), List.empty).head
+  }
+
+  trait Folder[-Context, Z] {
+    def anyCase: Concept = Concept.Any
+    def recordCase(namespace: QualifiedName, fields: List[(Label, Concept)]): Concept =
+      Concept.Record(namespace, fields)
+    def structCase(fields: List[(Label, Concept)]): Concept                    = Concept.Struct(fields)
+    def aliasCase(name: QualifiedName, value: Concept): Concept                = Concept.Alias(name, value)
+    def listCase(elementType: Concept): Concept                                = Concept.List(elementType)
+    def mapCase(keyType: Concept, valueType: Concept): Concept                 = Concept.Map(keyType, valueType)
+    def tupleCase(values: List[Concept]): Concept                              = Concept.Tuple(values)
+    def optionalCase(elementType: Concept): Concept                            = Concept.Optional(elementType)
+    def enumCase(name: QualifiedName, cases: List[Concept.Enum.Case]): Concept = Concept.Enum(name, cases)
+    def unionCase(cases: List[Concept]): Concept                               = Concept.Union(cases)
+  }
+}
 
 object Concept {
   sealed trait Basic[+A] extends Concept
