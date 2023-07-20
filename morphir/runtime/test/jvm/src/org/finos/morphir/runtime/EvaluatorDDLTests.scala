@@ -625,5 +625,5 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
           assertTrue(actual == expected)
         }
       )
-    ) // @@ TestAspect.ignore @@ TestAspect.tag("Will re-enable when code-gen of a test are part of the pipeline")
+    ) @@ TestAspect.ignore @@ TestAspect.tag("Will re-enable when code-gen of a test are part of the pipeline")
 }

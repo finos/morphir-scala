@@ -6,6 +6,7 @@ import V.*
 import org.finos.morphir.ir.Type as T
 import org.finos.morphir.ir.Type.Type as TT
 import org.finos.morphir.ir.{FQName, Module, Name, QName, Type, Field}
+import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.MorphirIRFile
 import org.finos.morphir.datamodel.{Data, Concept, Label, EnumLabel}
@@ -13,14 +14,19 @@ import SDKValue.{SDKNativeFunction, SDKNativeValue}
 import org.finos.morphir.ir.Distribution.Distribution.Library
 import zio.Chunk
 import scala.collection.mutable
+import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 
 object FQString {
-  def unapply(fqName: FQName): Option[String] = Some(fqName.toString)
+  def unapply(fqName: FQName): Option[String] = Some(fqName.toString())
+}
+class BasicReference(tpe: UType) {
+  def unapply(fqName: FQName): Boolean = fqName == tpe.asInstanceOf[TT.Reference[Unit]].typeName
 }
 
 object EvaluatorQuick {
   type IntType = Long
+  val what = BasicReference(Basics.intType).unapply(FQName.fromString("What?"))
 
   def evaluate[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Any = Result.unwrap(Loop.loop(ir, store))
 
@@ -49,6 +55,11 @@ object EvaluatorQuick {
   }
 
   def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept =
+    val intRef    = BasicReference(Basics.intType)
+    val boolRef   = BasicReference(Basics.boolType)
+    val floatRef  = BasicReference(Basics.floatType)
+    val stringRef = BasicReference(sdk.String.stringType)
+    val charRef   = BasicReference(sdk.Char.charType)
     tpe match {
       case TT.ExtensibleRecord(attributes, name, fields) =>
         throw UnsupportedType("Extensible records not supported for DDL")
@@ -57,11 +68,11 @@ object EvaluatorQuick {
       case TT.Record(attributes, fields) => Concept.Struct(fields.map(field =>
           (Label(field.name.toCamelCase), typeToConcept(field.data, dist, boundTypes))
         ).toList)
-      case TT.Reference(attributes, FQString("Morphir.SDK:Basics:int"), _)    => Concept.Int32
-      case TT.Reference(attributes, FQString("Morphir.SDK:String:string"), _) => Concept.String
-      case TT.Reference(attributes, FQString("Morphir.SDK:Basics:bool"), _)   => Concept.Boolean
-      case TT.Reference(attributes, FQString("Morphir.SDK:Char:char"), _)     => Concept.Char
-      case TT.Reference(attributes, FQString("Morphir.SDK:Basics:float"), _)  => Concept.Decimal
+      case TT.Reference(attributes, intRef(), _)    => Concept.Int32
+      case TT.Reference(attributes, stringRef(), _) => Concept.String
+      case TT.Reference(attributes, boolRef(), _)   => Concept.Boolean
+      case TT.Reference(attributes, charRef(), _)   => Concept.Char
+      case TT.Reference(attributes, floatRef(), _)  => Concept.Decimal
       case TT.Reference(attributes, FQString("Morphir.SDK:List:list"), Chunk(elementType)) =>
         Concept.List(typeToConcept(elementType, dist, boundTypes))
       case TT.Reference(attributes, FQString("Morphir.SDK:Maybe:maybe"), Chunk(elementType)) =>
