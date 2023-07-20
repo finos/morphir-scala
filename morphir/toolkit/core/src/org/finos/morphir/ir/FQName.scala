@@ -44,6 +44,13 @@ object FQName {
   def fromQName(qName: QName)(implicit options: FQNamingOptions): FQName =
     FQName(options.defaultPackage, ModuleName(QName.getModulePath(qName)), QName.getLocalName(qName))
 
+  def fromQualifiedName(input: QualifiedName): FQName = {
+    val packageName = PackageName(input.pack)
+    val modulePath  = ModuleName.fromNamespace(input.namespace)
+    val localName   = Name.fromString(input.localName)
+    FQName(packageName, modulePath, localName)
+  }
+
   /** Get the package path part of a fully-qualified name. */
   def getPackagePath(fqName: FQName): Path = fqName.getPackagePath
 
