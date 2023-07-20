@@ -211,7 +211,8 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.com.lihaoyi.geny,
         Deps.com.lihaoyi.sourcecode,
-        Deps.com.lihaoyi.pprint
+        Deps.com.lihaoyi.pprint,
+        Deps.dev.zio.`zio-prelude`
       )
       def platformSpecificModuleDeps = Seq(datamodel.macros, foundations)
     }
