@@ -6,15 +6,16 @@ import org.finos.morphir.datamodel.Data
 import org.finos.morphir.datamodel.Data.Case
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.namespacing.*
-import org.finos.morphir.datamodel.namespacing.Namespace.root
+import org.finos.morphir.datamodel.namespacing.PackageName.root
+import org.finos.morphir.datamodel.namespacing.Namespace.ns
 
 object EnumGns {
-  val gns: Namespace = root / "enumtest"
+  val gns: PartialName = root / "morphir" :: ns / "test" / "todataenums"
 }
 
 object EnumData1 {
   import EnumGns._
-  implicit val gnsImpl: GlobalNamespace = new GlobalNamespace {
+  implicit val gnsImpl: GlobalDatamodelContext = new GlobalDatamodelContext {
     def value = gns
   }
 
@@ -27,7 +28,7 @@ object EnumData1 {
 
 object EnumData2 {
   import EnumGns._
-  implicit val gnsImpl: GlobalNamespace = new GlobalNamespace {
+  implicit val gnsImpl: GlobalDatamodelContext = new GlobalDatamodelContext {
     def value = gns
   }
 
@@ -41,11 +42,11 @@ object EnumData2 {
 
 object EnumData3 {
   import EnumGns._
-  implicit val gnsImpl: TypeNamespace[Foo] = new TypeNamespace[Foo] {
+  implicit val gnsImpl: TypeDatamodelContext[Foo] = new TypeDatamodelContext[Foo] {
     def value = gns
   }
 
-  implicit val gnsImpl2: TypeNamespace[Baz] = new TypeNamespace[Baz] {
+  implicit val gnsImpl2: TypeDatamodelContext[Baz] = new TypeDatamodelContext[Baz] {
     def value = gns
   }
 

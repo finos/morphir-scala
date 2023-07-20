@@ -2,12 +2,13 @@ package org.finos.morphir.datamodel
 
 import org.finos.morphir.datamodel.Deriver
 import org.finos.morphir.datamodel.Util.*
-import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace}
-import org.finos.morphir.datamodel.namespacing.Namespace.root
+import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, PartialName}
+import org.finos.morphir.datamodel.namespacing.PackageName.root
+import org.finos.morphir.datamodel.namespacing.Namespace.ns
 
 class ToDataRecords extends munit.FunSuite {
-  val gns: Namespace = root / "recordtest"
-  given GlobalNamespace with {
+  val gns: PartialName = root / "morphir" :: ns / "datamodel"
+  given GlobalDatamodelContext with {
     def value = gns
   }
 
@@ -21,8 +22,8 @@ class ToDataRecords extends munit.FunSuite {
 
   test("basic record - override namespace") {
     case class Person(name: String, age: Int)
-    val tns: Namespace = root / "override"
-    given TypeNamespace[Person] with {
+    val tns: PartialName = root / "override" :: ns / "datamodel"
+    given TypeDatamodelContext[Person] with {
       def value = tns
     }
 
@@ -34,8 +35,8 @@ class ToDataRecords extends munit.FunSuite {
 
   test("basic record - override namespace, override name") {
     case class Person(name: String, age: Int)
-    val tns: Namespace = root / "override"
-    given TypeNamespace[Person] with {
+    val tns: PartialName = root / "override" :: ns / "datamodel"
+    given TypeDatamodelContext[Person] with {
       def value                                    = tns
       override def nameOverride: Option[LocalName] = Some(LocalName("Person2"))
     }
