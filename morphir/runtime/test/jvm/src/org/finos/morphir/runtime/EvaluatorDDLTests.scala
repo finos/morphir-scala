@@ -59,7 +59,7 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
   )
 
   def typeArgUnionShape(c1: Concept, c2: Concept): Concept.Enum = Concept.Enum(
-    "Morphir.Examples.App:ExampleModule:typeArgUnion",
+    qn"Morphir/Examples/App:ExampleModule:TypeArgUnion",
     List(
       Concept.Enum.Case(
         Label("b"),
@@ -80,6 +80,30 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
             c2
           )
         )
+      ),
+      Concept.Enum.Case(
+        Label("a"),
+        List((
+          EnumLabel.Named("arg1"),
+          c1
+        ))
+      ),
+      Concept.Enum.Case(
+        Label("dictBA"),
+        List((
+          EnumLabel.Named("arg1"),
+          Concept.Map(
+            c2,
+            c1
+          )
+        ))
+      ),
+      Concept.Enum.Case(
+        Label("maybeA"),
+        List((
+          EnumLabel.Named("arg1"),
+          Concept.Optional(c1)
+        ))
       )
     )
   )
@@ -562,6 +586,19 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
           val actual =
             runTest("userDefinedReferenceTests", "userDefinedReferenceUnionTest")
           val expected = Data.Int(-6)
+          assertTrue(actual == expected)
+        },
+        test("Reference to Union with type args") {
+          val actual =
+            runTest("userDefinedReferenceTests", "typeArgUnionTest", (1, "Red"))
+          val expected = Data.Case(
+            List(
+              (EnumLabel.Named("arg1"), Data.Int(1)),
+              (EnumLabel.Named("arg2"), Data.String("Red"))
+            ),
+            "Morphir.Examples.App:ExampleModule:aB",
+            typeArgUnionShape(Concept.Int32, Concept.String)
+          )
           assertTrue(actual == expected)
         }
       ),
