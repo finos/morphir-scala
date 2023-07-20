@@ -212,6 +212,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         Deps.com.lihaoyi.geny,
         Deps.com.lihaoyi.sourcecode,
         Deps.com.lihaoyi.pprint,
+        Deps.dev.zio.zio,
         Deps.dev.zio.`zio-prelude`
       )
       def platformSpecificModuleDeps = Seq(datamodel.macros, foundations)
