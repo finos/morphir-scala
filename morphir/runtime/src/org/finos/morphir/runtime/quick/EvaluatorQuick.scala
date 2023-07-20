@@ -15,14 +15,8 @@ import zio.Chunk
 import scala.collection.mutable
 import org.finos.morphir.ir.sdk.Basics
 
-//Basics.int.fqName
-
 object FQString {
   def unapply(fqName: FQName): Option[String] = Some(fqName.toString)
-}
-
-object IntRef{
-  def unapply(fqName: FQName) : Option[()] =  if fqName == Basics.int.fqName then Some(()) else None
 }
 
 object EvaluatorQuick {
@@ -78,10 +72,10 @@ object EvaluatorQuick {
         val lookedUp = dist.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dist, boundTypes))
         lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
-          case Type.Specification.TypeAliasSpecification(params, expr) =>
+          case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
-            Concept.Alias(typeName.toQualifiedName, typeToConcept(expr, dist))
-          case Type.Specification.CustomTypeSpecification(params, ctors) =>
+            Concept.Alias(typeName.toQualifiedName, typeToConcept(expr, dist, newBindings))
+          case Type.Specification.CustomTypeSpecification(typeParams, ctors) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             val cases = ctors.toMap.toList.map { case (caseName, args) =>
               val argTuples = args.map { case (argName: Name, argType: Type.UType) =>
@@ -101,7 +95,7 @@ object EvaluatorQuick {
     }
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
     (concept, result) match {
-      case (Concept.Record(qname, fields), Result.Record(elements)) =>
+      case (Concept.Struct(fields), Result.Record(elements)) =>
         if (fields.length != elements.size) {
           throw ResultDoesNotMatchType(s"$fields has different number of elements than $elements")
         } else {
@@ -110,7 +104,7 @@ object EvaluatorQuick {
               elements.getOrElse(Name(name), throw new MissingField(s"Type expected $name but not found in $elements"))
             (Label(name), resultAndConceptToData(value, innerConcept))
           }
-          Data.Record(qname, tuples.toList)
+          Data.Struct(tuples.toList)
         }
       case (Concept.Int32, Result.Primitive(value: IntType)) =>
         Data.Int(value.toInt)
