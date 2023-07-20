@@ -1,9 +1,26 @@
 package org.finos.morphir.datamodel
 
+import org.finos.morphir.datamodel.Concept.Basic
 import org.finos.morphir.datamodel.namespacing.QualifiedName
+import org.finos.morphir.foundations.Chunk
+
+import scala.annotation.tailrec
+import scala.collection.mutable.ArrayBuffer
+import zio.prelude.fx.ZPure
 
 //TODO: Keep this non-GADT version as Concept and make a GADT version `Schema[A]`
-sealed trait Concept
+sealed trait Concept { self =>
+  def collectAll: Chunk[Concept] =
+    (new Concept.Collector[Concept](PartialFunction.fromFunction(x => x)).of(self))
+      .run(Chunk[Concept]()) match {
+      case (chunk, _) => chunk
+    }
+
+  def collect[T](p: PartialFunction[Concept, T]): Chunk[T] =
+    (new Concept.Collector[T](p).of(self)).run(Chunk[T]()) match {
+      case (chunk, _) => chunk
+    }
+}
 
 object Concept {
   sealed trait Basic[+A] extends Concept
@@ -156,4 +173,16 @@ object Concept {
    * }}}
    */
   case class Union(cases: scala.List[Concept]) extends Concept
+
+  /** Collector to help with Traversal */
+  class Collector[T](p: PartialFunction[Concept, T])
+      extends ConceptStatefulTransformer[Chunk[T]] {
+
+    override def transform[R <: Concept](concept: R): Stateful[R] =
+      if (p.isDefinedAt(concept)) {
+        ZPure.update[Chunk[T], Chunk[T]](state => state :+ p(concept)) *> ZPure.succeed(concept)
+      } else {
+        ZPure.succeed(concept)
+      }
+  }
 }
