@@ -9,6 +9,9 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
   lazy val lib =
     EvaluationLibrary("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json", "Morphir.Examples.App")
 
+  def runTest(moduleName: String, functionName: String) = lib.runTestDDL(moduleName, functionName, ())
+  def runTest(moduleName: String, functionName: String, value : Any) = lib.runTestDDL(moduleName, functionName, value)
+
   val dogRecordConceptRaw = Concept.Record(List(
     (Label("name"), Concept.String),
     (Label("number"), Concept.Int32)
@@ -68,7 +71,6 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
     unionEnumShape
   )
 
-  def runTest(moduleName: String, functionName: String) = lib.runTestDDL(moduleName, functionName, ())
   def spec =
     suite("Json Evaluation")(
       suite("Constructor Tests")(
@@ -529,6 +531,12 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
             runTest("userDefinedReferenceTests", "userDefinedReferenceUnionTest")
           val expected = Data.Int(-6)
           assertTrue(actual == expected)
+        },
+        test("Reference to Union with type args"){
+          val actual =
+            runTest("userDefinedReferenceTests", "typeArgUnionTest", (1, "Red"))
+          val expected = Data.Int(0)
+          assertTrue(actual == expected)
         }
       ),
       suite("Dictionary Tests")(
@@ -554,5 +562,5 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
           assertTrue(actual == expected)
         }
       )
-    ) @@ TestAspect.ignore @@ TestAspect.tag("Will re-enable when code-gen of a test are part of the pipeline")
+    )// @@ TestAspect.ignore @@ TestAspect.tag("Will re-enable when code-gen of a test are part of the pipeline")
 }

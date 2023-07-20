@@ -195,6 +195,8 @@ object EvaluatorQuick {
         val mappedArgs  = args.map(scalaToIR(_))
         val constructor = V.constructor(FQName.fromString(name))
         curry(constructor, mappedArgs)
+      case (a, b) => V.tuple(Chunk(scalaToIR(a), scalaToIR(b)))
+      case (a, b, c) => V.tuple(Chunk(scalaToIR(a), scalaToIR(b), scalaToIR(c)))
       case other => throw new Exception(s"I don't know how to decompose $other")
     }
 
