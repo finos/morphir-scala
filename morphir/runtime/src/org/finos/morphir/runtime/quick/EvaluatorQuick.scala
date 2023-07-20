@@ -6,6 +6,7 @@ import V.*
 import org.finos.morphir.ir.Type as T
 import org.finos.morphir.ir.Type.Type as TT
 import org.finos.morphir.ir.{FQName, Module, Name, QName, Type, Field}
+import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.MorphirIRFile
 import org.finos.morphir.datamodel.{Data, Concept, Label, EnumLabel}
@@ -13,12 +14,18 @@ import SDKValue.{SDKNativeFunction, SDKNativeValue}
 import org.finos.morphir.ir.Distribution.Distribution.Library
 import zio.Chunk
 import scala.collection.mutable
-
-object FQString {
-  def unapply(fqName: FQName): Option[String] = Some(fqName.toString)
-}
+import org.finos.morphir.ir.sdk
+import org.finos.morphir.ir.sdk.Basics
 
 object EvaluatorQuick {
+  object FQString {
+    def unapply(fqName: FQName): Option[String] = Some(fqName.toString())
+  }
+
+  class BasicReference(tpe: UType) {
+    def unapply(fqName: FQName): Boolean = fqName == tpe.asInstanceOf[TT.Reference[Unit]].typeName
+  }
+
   type IntType = Long
 
   def evaluate[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Any = Result.unwrap(Loop.loop(ir, store))
@@ -33,68 +40,97 @@ object EvaluatorQuick {
     val inputIR   = scalaToIR(input);
     val applyNode = V.apply(V.reference(entryFQName), inputIR) :> T.unit // lies but I don't think we check?
     val result    = Loop.loop(applyNode, store);
-    val tpe: Type.Type[Unit] = store.getDefinition(entryFQName)
+    val tpe_raw: Type.Type[Unit] = store.getDefinition(entryFQName)
       .get
       .asInstanceOf[SDKValue.SDKValueDefinition[Unit, Type.UType]]
       .definition
       .outputType
-      .asInstanceOf[TT.Function[Unit]]
-      .returnType
+
+    // A bug in morphir-elm make may cause top-level definitions to incorrectly typecheck
+    val tpe = tpe_raw match {
+      case TT.Function(_, _, returnType) => returnType
+      case _                             => tpe_raw
+    }
     resultToDDL(result, tpe, dist)
   }
 
-  def typeToConcept(tpe: Type.Type[Unit], dist: Library): Concept =
+  def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept = {
+    val intRef    = new BasicReference(Basics.intType)
+    val boolRef   = new BasicReference(Basics.boolType)
+    val floatRef  = new BasicReference(Basics.floatType)
+    val stringRef = new BasicReference(sdk.String.stringType)
+    val charRef   = new BasicReference(sdk.Char.charType)
     tpe match {
       case TT.ExtensibleRecord(attributes, name, fields) =>
-        throw new UnsupportedType("Extensible records not supported for DDL")
+        throw UnsupportedType("Extensible records not supported for DDL")
       case TT.Function(attributes, argumentType, returnType) =>
-        throw new UnsupportedType("Functiom types not supported for DDL")
-      case TT.Record(attributes, fields) =>
-        Concept.Struct(fields.map(field => (Label(field.name.toCamelCase), typeToConcept(field.data, dist))).toList)
-      case TT.Reference(attributes, FQString("Morphir.SDK:Basics:int"), _)    => Concept.Int32
-      case TT.Reference(attributes, FQString("Morphir.SDK:String:string"), _) => Concept.String
-      case TT.Reference(attributes, FQString("Morphir.SDK:Basics:bool"), _)   => Concept.Boolean
-      case TT.Reference(attributes, FQString("Morphir.SDK:Char:char"), _)     => Concept.Char
-      case TT.Reference(attributes, FQString("Morphir.SDK:Basics:float"), _)  => Concept.Decimal
+        throw UnsupportedType("Functiom types not supported for DDL")
+      case TT.Record(attributes, fields) => Concept.Struct(fields.map(field =>
+          (Label(field.name.toCamelCase), typeToConcept(field.data, dist, boundTypes))
+        ).toList)
+      case TT.Reference(attributes, intRef(), _)    => Concept.Int32
+      case TT.Reference(attributes, stringRef(), _) => Concept.String
+      case TT.Reference(attributes, boolRef(), _)   => Concept.Boolean
+      case TT.Reference(attributes, charRef(), _)   => Concept.Char
+      case TT.Reference(attributes, floatRef(), _)  => Concept.Decimal
       case TT.Reference(attributes, FQString("Morphir.SDK:List:list"), Chunk(elementType)) =>
-        Concept.List(typeToConcept(elementType, dist))
+        Concept.List(typeToConcept(elementType, dist, boundTypes))
       case TT.Reference(attributes, FQString("Morphir.SDK:Maybe:maybe"), Chunk(elementType)) =>
-        Concept.Optional(typeToConcept(elementType, dist))
+        Concept.Optional(typeToConcept(elementType, dist, boundTypes))
       case TT.Reference(attributes, FQString("Morphir.SDK:Dict:dict"), Chunk(keyType, valType)) =>
-        Concept.Map(typeToConcept(keyType, dist), typeToConcept(valType, dist))
-      case TT.Reference(attributes, typeName, typeParams) =>
-        val lookedUp = dist.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+        Concept.Map(typeToConcept(keyType, dist, boundTypes), typeToConcept(valType, dist, boundTypes))
+      case TT.Reference(attributes, typeName, typeArgs) =>
+        val lookedUp    = dist.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+        val conceptArgs = typeArgs.map(typeToConcept(_, dist, boundTypes))
         lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
-          case Type.Specification.TypeAliasSpecification(params, expr) =>
-            Concept.Alias(typeName.toQualifiedName, typeToConcept(expr, dist))
-          case Type.Specification.CustomTypeSpecification(params, ctors) =>
+          case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
+            val newBindings = typeParams.zip(conceptArgs).toMap
+            typeToConcept(expr, dist, newBindings) match {
+              case Concept.Struct(fields) => Concept.Record(typeName.toQualifiedName, fields)
+              case other                  => Concept.Alias(typeName.toQualifiedName, other)
+            }
+          case Type.Specification.CustomTypeSpecification(typeParams, ctors) =>
+            val newBindings = typeParams.zip(conceptArgs).toMap
             val cases = ctors.toMap.toList.map { case (caseName, args) =>
               val argTuples = args.map { case (argName: Name, argType: Type.UType) =>
-                (EnumLabel.Named(argName.toCamelCase), typeToConcept(argType, dist))
+                (EnumLabel.Named(argName.toCamelCase), typeToConcept(argType, dist, newBindings))
               }
               val conceptName: String                  = caseName.toCamelCase
               val concepts: List[(EnumLabel, Concept)] = argTuples.toList
               Concept.Enum.Case(Label(conceptName), concepts)
             }
             Concept.Enum(typeName.toQualifiedName, cases)
-          case other => throw new Exception(s"$other is unknown to me")
+          case other => throw UnsupportedType(s"$other is not a recognized type")
         }
-      case TT.Tuple(attributes, elements) => Concept.Tuple(elements.map(element => typeToConcept(element, dist)).toList)
-      case TT.Unit(attributes)            => Concept.Unit
-      case TT.Variable(attributes, name)  => throw new UnsupportedTypeParameter("Tried to convert type with parameter")
+      case TT.Tuple(attributes, elements) =>
+        Concept.Tuple(elements.map(element => typeToConcept(element, dist, boundTypes)).toList)
+      case TT.Unit(attributes)           => Concept.Unit
+      case TT.Variable(attributes, name) => boundTypes(name)
     }
+  }
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
     (concept, result) match {
-      case (Concept.Record(qname, fields), Result.Record(elements)) =>
+      case (Concept.Struct(fields), Result.Record(elements)) =>
         if (fields.length != elements.size) {
-          throw new ResultDoesNotMatchType(s"$fields has different number of elements than $elements")
+          throw ResultDoesNotMatchType(s"$fields has different number of elements than $elements")
         } else {
           val tuples = fields.map { case (Label(name), innerConcept) =>
             val value =
               elements.getOrElse(Name(name), throw new MissingField(s"Type expected $name but not found in $elements"))
             (Label(name), resultAndConceptToData(value, innerConcept))
           }
-          Data.Record(qname, tuples.toList)
+          Data.Struct(tuples.toList)
+        }
+      case (Concept.Record(qName, fields), Result.Record(elements)) =>
+        if (fields.length != elements.size) {
+          throw ResultDoesNotMatchType(s"$fields has different number of elements than $elements")
+        } else {
+          val tuples = fields.map { case (Label(name), innerConcept) =>
+            val value =
+              elements.getOrElse(Name(name), throw new MissingField(s"Type expected $name but not found in $elements"))
+            (Label(name), resultAndConceptToData(value, innerConcept))
+          }
+          Data.Record(qName, tuples.toList)
         }
       case (Concept.Int32, Result.Primitive(value: IntType)) =>
         Data.Int(value.toInt)
@@ -157,7 +193,7 @@ object EvaluatorQuick {
     }
 
   def resultToDDL(result: Result[Unit, Type.UType], tpe: Type.Type[Unit], dist: Library): Data = {
-    val concept = typeToConcept(tpe, dist)
+    val concept = typeToConcept(tpe, dist, Map())
     resultAndConceptToData(result, concept)
   }
 
@@ -188,7 +224,9 @@ object EvaluatorQuick {
         val mappedArgs  = args.map(scalaToIR(_))
         val constructor = V.constructor(FQName.fromString(name))
         curry(constructor, mappedArgs)
-      case other => throw new Exception(s"I don't know how to decompose $other")
+      case (a, b)    => V.tuple(Chunk(scalaToIR(a), scalaToIR(b)))
+      case (a, b, c) => V.tuple(Chunk(scalaToIR(a), scalaToIR(b), scalaToIR(c)))
+      case other     => throw new Exception(s"I don't know how to decompose $other")
     }
 
 }
