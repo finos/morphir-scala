@@ -1,18 +1,18 @@
 package org.finos.morphir.datamodel
 
 import org.finos.morphir.datamodel.Deriver.UnionType
-import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace}
+import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, PartialName}
 
 import scala.quoted.*
 import scala.reflect.ClassTag
 import scala.deriving.Mirror
 
-trait GlobalNamespace {
-  def value: Namespace
+trait GlobalDatamodelContext {
+  def value: PartialName
 }
 
-trait TypeNamespace[T] {
-  def value: Namespace
+trait TypeDatamodelContext[T] {
+  def value: PartialName
   def nameOverride: Option[LocalName] = None
 }
 
@@ -25,21 +25,21 @@ object DeriverMacros {
     Expr(TypeRepr.of[T].typeSymbol.name)
   }
 
-  inline def summonNamespaceOrFail[T]: (Namespace, Option[LocalName]) = ${ summonNamespaceOrFailImpl[T] }
-  def summonNamespaceOrFailImpl[T: Type](using Quotes): Expr[(Namespace, Option[LocalName])] = {
+  inline def summonNamespaceOrFail[T]: (PartialName, Option[LocalName]) = ${ summonNamespaceOrFailImpl[T] }
+  def summonNamespaceOrFailImpl[T: Type](using Quotes): Expr[(PartialName, Option[LocalName])] = {
     import quotes.reflect._
 
-    def summonTypeNamespace(): Option[Expr[(Namespace, Option[LocalName])]] =
-      Expr.summon[TypeNamespace[T]].map(tns =>
+    def summonTypeNamespace(): Option[Expr[(PartialName, Option[LocalName])]] =
+      Expr.summon[TypeDatamodelContext[T]].map(tns =>
         '{ ($tns.value, $tns.nameOverride) }
       )
 
-    def summonGlobalNamespace(): Option[Expr[(Namespace, Option[LocalName])]] =
-      Expr.summon[GlobalNamespace].map(gns =>
+    def summonGlobalNamespace(): Option[Expr[(PartialName, Option[LocalName])]] =
+      Expr.summon[GlobalDatamodelContext].map(gns =>
         '{ ($gns.value, None) }
       )
 
-    val namespace: Expr[(Namespace, Option[LocalName])] =
+    val partialName: Expr[(PartialName, Option[LocalName])] =
       summonTypeNamespace()
         .orElse(summonGlobalNamespace())
         .getOrElse {
@@ -48,20 +48,20 @@ object DeriverMacros {
             s"""
                |Cannot find a namespace for the type $tpeStr and a global default namespace has also not
                |been found. To define a namespace for a specific type do the following:
-               |implicit val ns: TypeNamespace[$tpeStr] = new TypeNamespace[${TypeRepr.of[T].widen.show}] {
+               |implicit val ns: TypeDatamodelContext[$tpeStr] = new TypeDatamodelContext[${TypeRepr.of[T].widen.show}] {
                |  import org.finos.morphir.datamodel.namespacing.*
                |  def value: Namespace = root / "path" / "to" / "my" / "package"
                |}
                |
                |To define a global namespace for all types do the following:
-               |  implicit val ns: GlobalNamespace = new GlobalNamespace {
+               |  implicit val ns: GlobalDatamodelContext = new GlobalDatamodelContext {
                |  def value: Namespace = root / "path" / "to" / "my" / "package"
                |}
                |""".stripMargin
           )
         }
 
-    namespace
+    partialName
   }
 
   inline def showFlags[T]: String = ${ showFlagsImpl[T] }

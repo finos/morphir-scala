@@ -15,7 +15,7 @@ object namespacing {
 
   type Namespace = Namespace.Type
   object Namespace extends Newtype[Chunk[NamespaceSegment]] {
-    lazy val root: Namespace = Namespace(Chunk.empty)
+    lazy val ns: Namespace = Namespace(Chunk.empty)
 
     implicit val showInstance: Show[Namespace] = ns => ns.segments.map(_.value).mkString(".")
 
@@ -37,13 +37,46 @@ object namespacing {
   object LocalName extends Subtype[String] {
 
     implicit class LocalNameOps(val self: LocalName) extends AnyVal {
-      def value: String                                    = unwrap(self)
-      def toQualified(namespace: Namespace): QualifiedName = QualifiedName(namespace, self)
+      def value: String                                                       = unwrap(self)
+      def toQualified(pack: PackageName, namespace: Namespace): QualifiedName = QualifiedName(pack, namespace, self)
     }
 
   }
 
-  final case class QualifiedName(namespace: Namespace, localName: LocalName) { self =>
-    override def toString: String = s"${namespace.show}::${localName.value}"
+  type PackageSegment = PackageSegment.Type
+  object PackageSegment extends Subtype[String] {
+    implicit class PackageSegmentOps(val self: PackageSegment) extends AnyVal {
+      def value: String = unwrap(self)
+    }
   }
+
+  type PackageName = PackageName.Type
+  object PackageName extends Newtype[Chunk[PackageSegment]] {
+    lazy val root: PackageName = PackageName(Chunk.empty)
+
+    implicit val showInstance: Show[PackageName] = ns => ns.segments.map(_.value).mkString(".")
+
+    def fromStrings(inputs: String*): PackageName = PackageName.fromIterable(segments(inputs))
+
+    def fromIterable(segments: Iterable[PackageSegment]): PackageName =
+      PackageName(Chunk.fromIterable(segments))
+
+    def segments(inputs: Iterable[String]): Iterable[PackageSegment] = inputs.map(PackageSegment(_))
+
+    implicit class PackageNameOps(val self: PackageName) extends AnyVal {
+      def segments: Chunk[PackageSegment]         = unwrap(self)
+      def /(segment: PackageSegment): PackageName = PackageName(unwrap(self) :+ segment)
+      def /(namespace: PackageName): PackageName  = PackageName(unwrap(self) ++ unwrap(namespace))
+    }
+  }
+
+  final case class QualifiedName(pack: PackageName, namespace: Namespace, localName: LocalName) { self =>
+    override def toString: String = s"${pack}::${namespace.show}::${localName.value}"
+  }
+  object QualifiedName {
+    def apply(partialName: PartialName, localName: LocalName) =
+      new QualifiedName(partialName.pack, partialName.namespace, localName)
+  }
+
+  case class PartialName(pack: PackageName, namespace: Namespace)
 }

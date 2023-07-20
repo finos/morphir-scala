@@ -85,7 +85,7 @@ object EvaluatorQuick {
     }
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
     (concept, result) match {
-      case (Concept.Record(fields), Result.Record(elements)) =>
+      case (Concept.Record(qname, fields), Result.Record(elements)) =>
         if (fields.length != elements.size) {
           throw new ResultDoesNotMatchType(s"$fields has different number of elements than $elements")
         } else {
@@ -94,7 +94,7 @@ object EvaluatorQuick {
               elements.getOrElse(Name(name), throw new MissingField(s"Type expected $name but not found in $elements"))
             (Label(name), resultAndConceptToData(value, innerConcept))
           }
-          Data.Record(tuples.toList)
+          Data.Record(qname, tuples.toList)
         }
       case (Concept.Int32, Result.Primitive(value: IntType)) =>
         Data.Int(value.toInt)

@@ -1,6 +1,6 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, QualifiedName}
+import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, QualifiedName, PackageName}
 
 import scala.reflect.ClassTag
 
@@ -102,7 +102,7 @@ object SumBuilder {
   object SumType {
     case class Enum(name: QualifiedName) extends SumType
     object Enum {
-      def apply(name: String, ns: Namespace) = new Enum(QualifiedName(ns, LocalName(name)))
+      def apply(name: String, ns: Namespace, pack: PackageName) = new Enum(QualifiedName(pack, ns, LocalName(name)))
     }
 
     // TODO Union for non-discrimited unions

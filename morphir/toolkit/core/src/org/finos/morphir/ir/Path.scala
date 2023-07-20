@@ -33,6 +33,11 @@ final case class Path(segments: Chunk[Name]) { self =>
 
   def toList: List[Name] = segments.toList
 
+  def toPackageName(implicit renderer: Name.Renderer = Name.Renderer.TitleCase): PackageName = {
+    val nsSegments = PackageName.segments(segments.map(_.render))
+    PackageName.fromIterable(nsSegments)
+  }
+
   def toNamespace(implicit renderer: Name.Renderer = Name.Renderer.TitleCase): Namespace = {
     val nsSegments = Namespace.segments(segments.map(_.render))
     Namespace.fromIterable(nsSegments)
