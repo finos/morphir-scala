@@ -3,6 +3,7 @@ package org.finos.morphir.universe.engine
 import org.finos.morphir.foundations.capabilities.free.Free
 import scala.collection.mutable
 import org.finos.morphir.universe.ir.Type
+import org.finos.morphir.universe.sdk.types.Basics.{Integer as MInteger, Float as MFloat}
 
 object MorphirEngine {
   def unsafe(): Free.UnsafeInterpreter[Instr] = {
@@ -18,6 +19,10 @@ object MorphirEngine {
         case ReceiveMessage(subscription, message) =>
           Right(())
         case ReadVariable(name) => Right((Type.Unit(()), 42))
+        case AddI(a, b)         => Right(MInteger(a.value + b.value))
+        case AddF(a, b)         => Right(MFloat(a.value + b.value))
+        case MultiplyI(a, b)    => Right(MInteger(a.value * b.value))
+        case MultiplyF(a, b)    => Right(MFloat(a.value * b.value))
       }
 
     }

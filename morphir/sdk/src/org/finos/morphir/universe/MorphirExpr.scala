@@ -1,5 +1,6 @@
 package org.finos.morphir.universe
 
+//TODO: Evaluate if still needed
 sealed trait MorphirExpr[+A] extends Product with Serializable
 
 sealed trait NumericExpr[+A] extends MorphirExpr[A] {

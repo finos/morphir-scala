@@ -18,8 +18,16 @@ object Basics {
     //   val morphirType = ???
     //   MorphirTypeTag.succeed(Type.Reference((), fqName, List.empty))
     // }
+
+    implicit final class IntegerOps(val self: Integer) extends AnyVal {
+      def value: SafeLong = unwrap(self)
+    }
   }
 
   type Float = Float.Type
-  object Float extends Subtype[scala.Double] {}
+  object Float extends Subtype[scala.Double] {
+    implicit final class FloatOps(val self: Float) extends AnyVal {
+      def value: Double = unwrap(self)
+    }
+  }
 }
