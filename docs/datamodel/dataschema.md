@@ -9,3 +9,17 @@ following simple record type:
 ```scala
 case class Person(name: String, age: Int)
 ```
+
+An instance of this record would have the following Morphir data-model encoding.
+```scala
+// Instance
+val joe = Person("Joe", 123)
+
+// Encoding
+Data.Record(
+    values = List(
+        Label("name") -> Data.String("Joe"),
+        Label("age") -> Data.Int32(123)
+    )
+)
+```
