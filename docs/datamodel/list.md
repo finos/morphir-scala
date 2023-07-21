@@ -4,12 +4,10 @@ title: Lists
 ---
 Given the following Scala:
 ```scala
-// Scala
 val items = List("one", "two", "three")
 ```
-and Morphir/ELM lists:
+and the equivalent Morphir/ELM lists:
 ```elm
--- Morphir/ELM
 items: List String
 items = ["one", "two", "three"]
 ```

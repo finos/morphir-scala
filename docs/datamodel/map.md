@@ -3,12 +3,11 @@ id: maps
 title: Maps
 ---
 Given the following Scala Map:
-```scala// Scala
+```scala
 val myMap = Map("foo" -> 123, "bar" -> 456)
 ```
-and Morphir/ELM dictionary:
+and the equivalent Morphir/ELM dictionary:
 ```elm
--- Morphir/ELM
 myMap: Dict String Int
 myMap = Dict.fromList
     [

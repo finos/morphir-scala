@@ -8,3 +8,10 @@ Given the following Scala values:
 case class Person(name: String, age: Int)
 val joe = Person("Joe", 123)
 ```
+
+and the equivalent Morphir/ELM value:
+```elm
+person: { name: String, age: Int }
+person = { name = "Joe", age = 123 }
+```
+The Data and Concept that represents the above is as follows:
