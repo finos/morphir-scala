@@ -1,11 +1,12 @@
 ---
-id: Maps
+id: maps
 title: Maps
 ---
-Given the following Scala Map (and Morphir/ELM dictionary)
+Given the following Scala Map:
 ```scala// Scala
 val myMap = Map("foo" -> 123, "bar" -> 456)
 ```
+and Morphir/ELM dictionary:
 ```elm
 -- Morphir/ELM
 myMap: Dict String Int

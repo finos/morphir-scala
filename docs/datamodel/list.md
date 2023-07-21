@@ -1,13 +1,13 @@
 ---
-id: Lists
+id: lists
 title: Lists
 ---
-Given the following Scala and Morphir/ELM lists:
+Given the following Scala:
 ```scala
 // Scala
 val items = List("one", "two", "three")
 ```
-
+and Morphir/ELM lists:
 ```elm
 -- Morphir/ELM
 items: List String
