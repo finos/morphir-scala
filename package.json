@@ -6,7 +6,7 @@
     "website"
   ],
   "dependencies": {
-    "@algolia/client-search": "^4.14.2"
+    "@algolia/client-search": "^4.19.1"
   },
   "resolutions": {
     "trim": "0.0.3"
