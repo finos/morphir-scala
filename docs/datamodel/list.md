@@ -24,3 +24,15 @@ Data.List(
 
 List should be able to contain Records, Enums, or any other subtype of Data.
 For example, the following data in Scala and Morphir/Elm:
+```scala
+// Scala
+case class Person(name: String, age: Int)
+val people = List(Person("Joe", 123), Person("Jim", 456))
+```
+```elm
+-- Morphir/ELM
+type alias Person = { name: String, age: Int }
+people: List Person
+people = [ {name = "Joe", age = 123}, {name = "Jim", age = 456} ]
+```
+should be represented in the Morphir data-model as the following:
