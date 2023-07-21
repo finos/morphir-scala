@@ -32,3 +32,15 @@ person = { name = "Joe", age = 123 }
 
 Every single instance of the data-model has a Data.shape property that represents the schema. The schema of this 
 record will look like the following:
+
+```scala
+Concept.Record(
+    values = List(
+        Label("name") -> Concept.String
+        Label("age") -> Concept.Int
+    )
+)
+```
+
+With this in mind, complete data available on the Data.Record instance above can be thought of as the following. 
+(NOTE: the shorthand L("name") will be used for Label("name") now on).
