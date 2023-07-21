@@ -59,3 +59,15 @@ val os = Data.Case(
 ```
 
 The value `oc` would be represented as the following:
+```scala
+// val oc: Sink = Sink.ConsoleLog // (Scala)
+// oc = ConsoleLog                // (Morphir/ELM)
+
+val oc = Data.Case(
+  values = List()
+  enumLabel = "ConsoleLog",
+  shape = enumConcept /* will be described in just a minute */
+)
+```
+
+On a schema-level the `Concept` for this enum would be the following:
