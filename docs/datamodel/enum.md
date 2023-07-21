@@ -33,3 +33,17 @@ oc = ConsoleLog
 ```
 
 The value `os` would be represented in the Morphir data-model as the following:
+```scala
+val os = Data.Case(
+  values = List(
+    EnumLabel.Named("sinkData") -> 
+      Data.Record(L("topic") -> Data.String("123")) 
+  )
+  enumLabel = "OneStream",
+  shape = enumConcept /* will be described in just a minute */
+)
+```
+
+Note how the OneStream enum fields `sinkData` is represented as `EnumLabel.Named("sinkData")`. Not all languages 
+support the naming for enum fields. As you can see in the Morphir/ELM example abovem it is commented out. Therefore
+instead of `EnumLabel.Named("sinkData")` in the Moprhir-data model, it would be represented as `EnumLabel.Empty`.
