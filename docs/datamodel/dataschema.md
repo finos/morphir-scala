@@ -23,3 +23,12 @@ Data.Record(
     )
 )
 ```
+
+Note that the equivalent representation of this data in ELM is the following:
+```elm
+person: { name: String, age: Int }
+person = { name = "Joe", age = 123 }
+```
+
+Every single instance of the data-model has a Data.shape property that represents the schema. The schema of this 
+record will look like the following:
