@@ -36,3 +36,23 @@ people: List Person
 people = [ {name = "Joe", age = 123}, {name = "Jim", age = 456} ]
 ```
 should be represented in the Morphir data-model as the following:
+```scala
+Data.List(
+  values = List(
+    Data.Record(
+      L("name") -> Data.String("Joe"), L("age") -> Data.Int32(123), 
+    ),
+    Data.Record(
+      L("name") -> Data.String("Jim"), L("age") -> Data.Int32(456), 
+    )
+  ),
+  shape = Concept.List(
+    elementType = 
+      Concept.Record(
+        L("name") -> Concept.String, 
+        L("age") -> Concept.Int32
+      )
+  )
+)
+
+```
