@@ -1,4 +1,5 @@
-module Morphir.Examples.App.ExampleModule exposing (five, tupleReverse, parametricFunction, publicFunction, outputRecordFunction, inputRecordFunction, outputUnionFunction, inputUnionFunction, ModuleRecord, ModuleSingleUnion(..), ModuleUnion(..))
+module Morphir.Examples.App.ExampleModule exposing (five, tupleReverse, parametricFunction, publicFunction, outputRecordFunction, inputRecordFunction, outputUnionFunction, inputUnionFunction, ModuleRecord, ModuleSingleUnion(..), ModuleUnion(..), TypeArgUnion(..), TypeArgRecord(..))
+import Dict exposing (Dict)
 
 type alias ModuleRecord = {name : String, truth : Bool}
 type ModuleUnion = Center | Up Int | Down Int
@@ -54,3 +55,6 @@ inputUnionFunction u =
             0
 
         
+type TypeArgUnion a b = A a | B b | AB a b | MaybeA (Maybe a) | DictBA (Dict b a)
+type alias TypeArgRecord a b c = {a : a, bList : List b, tuple : (a, b, c), union : TypeArgUnion c a}
+

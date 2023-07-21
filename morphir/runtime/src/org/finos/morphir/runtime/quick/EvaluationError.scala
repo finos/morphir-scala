@@ -9,6 +9,7 @@ case class FunctionWithoutParameters(message: String) extends EvaluationError(me
 case class VariableNotFound(message: String)          extends EvaluationError(message)
 case class DefinitionNotFound(message: String)        extends EvaluationError(message)
 case class ConstructorNotFound(message: String)       extends EvaluationError(message)
+case class TypeNotFound(message: String)              extends EvaluationError(message)
 
 case class ResultDoesNotMatchType(message: String)     extends EvaluationError(message)
 case class FunctionReturnedToTopLevel(message: String) extends EvaluationError(message)
