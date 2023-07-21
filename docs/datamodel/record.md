@@ -32,3 +32,21 @@ Data.Record(
 ```
 
 The fields of records may themselves be records (as well as collections, enums, or any other kind of Data object).
+Given the following Scala data:
+```scala
+case class Name(first: String, last: String)
+case class Person(name: Name, age: Int)
+
+val joe = Person(Name("Joe", "Bloggs"), 123)
+```
+
+and the equivalent Morphir/ELM data:
+```elm
+type alias Name = { first: String, last: String }
+
+joe: { name: Name, age: Int }
+joe = {
+    name = { first = "Joe", last = "Bloggs" },
+    age = 123
+}
+```
