@@ -2,10 +2,9 @@ package org.finos.morphir.datamodel
 
 import org.finos.morphir.datamodel.Concept.Basic
 import org.finos.morphir.datamodel.namespacing.QualifiedName
-import org.finos.morphir.foundations.Chunk
 
 import scala.annotation.tailrec
-import scala.collection.mutable.ArrayBuffer
+import zio.Chunk
 import zio.prelude.fx.ZPure
 
 //TODO: Keep this non-GADT version as Concept and make a GADT version `Schema[A]`

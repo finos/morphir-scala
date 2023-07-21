@@ -73,14 +73,27 @@ object Deps {
       val `zio-json`: Dep      = ivy"dev.zio::zio-json::${Versions.`zio-json`}"
       val `zio-json-golden`    = ivy"dev.zio::zio-json-golden::${Versions.`zio-json`}"
       val `zio-parser`         = ivy"dev.zio::zio-parser::${Versions.`zio-parser`}"
-      val `zio-prelude`        = ivy"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
-      val `zio-prelude-macros` = ivy"dev.zio::zio-prelude-macros::${Versions.`zio-prelude`}"
+      val `zio-prelude`        = prelude()
+      val `zio-prelude-macros` = prelude.macros
       val `zio-process`        = ivy"dev.zio::zio-process::${Versions.`zio-process`}"
-      val `zio-schema`         = ivy"dev.zio::zio-streams::${Versions.`zio-schema`}"
       val `zio-streams`        = ivy"dev.zio::zio-streams::${Versions.zio}"
       val `zio-test`           = ivy"dev.zio::zio-test::${Versions.zio}"
       val `zio-test-magnolia`  = ivy"dev.zio::zio-test-magnolia::${Versions.zio}"
       val `zio-test-sbt`       = ivy"dev.zio::zio-test-sbt::${Versions.zio}"
+
+      case object prelude {
+        def apply(): Dep = ivy"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
+        val macros       = ivy"dev.zio::zio-prelude-macros::${Versions.`zio-prelude`}"
+      }
+
+      case object schema {
+        val `avro`       = ivy"dev.zio::zio-schema-avro::${Versions.`zio-schema`}"
+        val `bson`       = ivy"dev.zio::zio-schema-bson::${Versions.`zio-schema`}"
+        val `core`       = ivy"dev.zio::zio-schema-core::${Versions.`zio-schema`}"
+        val `derivation` = ivy"dev.zio::zio-schema-derivation::${Versions.`zio-schema`}"
+        val `json`       = ivy"dev.zio::zio-schema-json::${Versions.`zio-schema`}"
+        val `msg-pack`   = ivy"dev.zio::zio-schema-msg-pack::${Versions.`zio-schema`}"
+      }
     }
   }
   case object io {
@@ -120,6 +133,7 @@ object Deps {
 
     case object typelevel {
       val `paiges-core` = ivy"org.typelevel::paiges-core::${Versions.paiges}"
+      val spire         = ivy"org.typelevel::spire::0.18.0"
     }
   }
 }

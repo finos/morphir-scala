@@ -2,7 +2,7 @@ package org.finos
 package morphir
 package ir
 
-import morphir.foundations.*
+import zio.Chunk
 import AccessControlled.AccessControlled
 import FQName.FQName
 import Name.Name

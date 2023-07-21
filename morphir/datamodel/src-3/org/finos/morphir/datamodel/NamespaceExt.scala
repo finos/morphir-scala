@@ -10,7 +10,7 @@ import org.finos.morphir.datamodel.namespacing.{
   PartialName,
   PackageSegment
 }
-import org.finos.morphir.foundations.Chunk
+import zio.Chunk
 
 import scala.annotation.targetName
 

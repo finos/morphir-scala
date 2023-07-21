@@ -1,7 +1,7 @@
 package org.finos.morphir.datamodel
 import org.finos.morphir.testing.munit.*
 import org.finos.morphir.datamodel.namespacing.*
-import org.finos.morphir.foundations.Chunk
+import zio.Chunk
 
 class NamespacingTestSuite extends MorphirTestSuite {
   describe("When qualifying a LocalName") {
