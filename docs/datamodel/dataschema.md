@@ -72,3 +72,14 @@ Data.Record(
       Concept.Record(L("name") -> Concept.String, L("age") -> Concept.Int)
 )
 ```
+
+This relationship between Data and Concept is maintained down to the primitive level. For example, Data.string is 
+represented as the following:
+```scala
+Data.String(
+    value = "Joe",
+    shape = Concept.String
+)
+```
+
+In the case of primitives, the Data.shape field represents a leaf-level Concept element.
