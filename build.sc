@@ -780,43 +780,6 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
     }
   }
 
-  object zio extends Module {
-    object schema extends CrossPlatform with CrossValue {
-      def enableNative(module: Module) = false
-      trait Shared extends MorphirCommonModule with MorphirPublishModule {
-        def ivyDeps = Agg(
-          Deps.com.lihaoyi.sourcecode,
-          Deps.com.lihaoyi.geny,
-          Deps.com.lihaoyi.pprint,
-          Deps.org.typelevel.`paiges-core`,
-          Deps.dev.zio.`zio-prelude`
-        )
-
-        def platformSpecificModuleDeps = Seq(morphir.toolkit.core, morphir.sdk)
-      }
-
-      object jvm extends Shared with MorphirJVMModule {
-        object test extends ScalaTests with TestModule.Munit {
-          def ivyDeps = Agg(Deps.org.scalameta.munit)
-          def moduleDeps = super.moduleDeps ++ Agg(
-            morphir.testing.munit.jvm,
-            morphir.testing.munit.zio.jvm
-          )
-        }
-      }
-
-      object js extends Shared with MorphirJSModule {
-        object test extends ScalaTests with TestModule.Munit {
-          def ivyDeps = Agg(Deps.org.scalameta.munit)
-          def moduleDeps = super.moduleDeps ++ Agg(
-            morphir.testing.munit.js,
-            morphir.testing.munit.zio.js
-          )
-        }
-      }
-    }
-  }
-
 }
 
 object site extends Docusaurus2Module with MDocModule {
