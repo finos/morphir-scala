@@ -71,3 +71,21 @@ val oc = Data.Case(
 ```
 
 On a schema-level the `Concept` for this enum would be the following:
+```scala
+Concept.Enum(
+  name = "Sink",
+  cases = List(
+    Concept.Enum.Case(
+      L("OneStream"),
+      fields = List(
+        EnumLabel.Named("sinkData") -> 
+          Concept.Record(L("topic") -> Concept.String)
+      )
+    ),
+    Concept.Enum.Case(
+      L("ConsoleLog"),
+      fields = List()
+    )    
+  )
+)
+```
