@@ -58,5 +58,17 @@ Data.Record(
     )
   )
 )
+```
 
+Notice how the general shape of the Data.Record.shape.values information corresponds to the shape of the Data.Record.
+values information. This is a general idea that the Morphir data-model attempts to maintain. The Concept data within
+the Data.shape of various Data instances should approximately mirror what is available on the value level.
+
+Also please note that from now on, the variadic constructor shorthand for Data.Record and Concept.Record will be used:
+```scala
+Data.Record(
+    L("name") -> Data.String("Joe"), L("age") -> Data.Int(123))
+    shape =
+      Concept.Record(L("name") -> Concept.String, L("age") -> Concept.Int)
+)
 ```
