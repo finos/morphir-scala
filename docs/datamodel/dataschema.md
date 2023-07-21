@@ -44,3 +44,19 @@ Concept.Record(
 
 With this in mind, complete data available on the Data.Record instance above can be thought of as the following. 
 (NOTE: the shorthand L("name") will be used for Label("name") now on).
+```scala
+// val joe = Person("Joe", 123)
+Data.Record(
+  values = List(
+    L("name") -> Data.String("Joe"),
+    L("age") -> Data.Int32(123)
+  )
+  shape = Concept.Record(
+    values = List(
+      L("name") -> Concept.String
+      L("age") -> Concept.Int32
+    )
+  )
+)
+
+```
