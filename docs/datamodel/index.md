@@ -3,9 +3,9 @@ id: datamodel
 title: Data Model
 ---
 
-The data model represents a list of data-types represented by the Mapper data-model specification. For every
-data-type in the hosted-value list, an encoding exists to that data-type from a simple Scala type (also known as the
-Scala -> Morphir DDL encoding).
+The Morphir data model (MDM) was created to simplify integration between data formats and the Morphir IR. Most data 
+formats have no concept of logic, and as such, a significant portion of the Morphir IR is not relevant if your
+intention is to provide a front-end or back-end for a data format.
 
-For every data-type in the data model, a decoding will also be implemented from the morphir evaluator’s output
-ResultValue type (also known as the Morphir-IR -> Morphir DDL decoding).
+The Morphir data model implements a front-end and back-end to the Morphir IR and allows those integrating data formats
+to only have to integrate with MDM, which closer resembles other data format integration activities.
