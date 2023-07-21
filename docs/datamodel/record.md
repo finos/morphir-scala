@@ -50,3 +50,19 @@ joe = {
     age = 123
 }
 ```
+The data is represented as the following:
+```scala
+Data.Record(
+  values = List(
+    L("name") -> Data.Record(L("first") -> "Joe", L("last") -> "Bloggs")
+    L("age") -> Data.Int32(123)
+  ),
+  concept = Concept.Record(
+    L("name") -> 
+      Data.Record(L("first") -> Concept.String, L("last") -> Concept.String)
+    L("age") ->
+      Data.Int32
+  )
+)
+
+```
