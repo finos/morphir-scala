@@ -119,7 +119,13 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
   }
 
   trait Shared extends MorphirCommonModule with MorphirPublishModule {
-    def ivyDeps = Agg(Deps.com.lihaoyi.pprint, Deps.dev.zio.`zio-prelude`)
+    def ivyDeps = super.ivyDeps() ++ Agg(
+      Deps.com.lihaoyi.geny,
+      Deps.com.lihaoyi.sourcecode,
+      Deps.com.lihaoyi.pprint,
+      Deps.dev.zio.zio,
+      Deps.dev.zio.`zio-prelude`
+    )
     def compileIvyDeps = super.compileIvyDeps() ++ (if (crossScalaVersion.startsWith("2."))
                                                       Agg(
                                                         Deps.org.`scala-lang`.`scala-reflect`(crossScalaVersion),
@@ -133,6 +139,8 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         if (crossScalaVersion.startsWith("2.13")) Seq("-language:experimental.macros") else Seq.empty
       super.scalacOptions() ++ additionalOptions
     }
+
+    def platformSpecificModuleDeps = Seq(macros)
   }
 
   object jvm extends Shared with MorphirJVMModule {
