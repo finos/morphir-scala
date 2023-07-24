@@ -141,7 +141,7 @@ object Deps {
 object Versions {
   val castor = "0.2.1"
 
-  val enumeratum = "1.7.2"
+  val enumeratum = "1.7.3"
 
   def borer(scalaVersion: String): String =
     borer(scalaVersion.split('.').toIndexedSeq)
