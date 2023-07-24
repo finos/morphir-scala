@@ -120,9 +120,12 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
   trait Shared extends MorphirCommonModule with MorphirPublishModule {
     def ivyDeps = super.ivyDeps() ++ Agg(
+      Deps.com.beachape.enumeratum,
       Deps.com.lihaoyi.geny,
       Deps.com.lihaoyi.sourcecode,
       Deps.com.lihaoyi.pprint,
+      Deps.org.typelevel.`paiges-core`,
+      Deps.org.typelevel.spire,
       Deps.dev.zio.zio,
       Deps.dev.zio.`zio-prelude`
     )
@@ -496,42 +499,6 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
           def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
           def moduleDeps = super.moduleDeps ++ Agg(testing.munit.native, testing.munit.zio.native)
         }
-      }
-    }
-  }
-
-  object sdk extends CrossPlatform with CrossValue {
-    trait Shared extends MorphirCommonModule with MorphirPublishModule {
-      def ivyDeps = super.ivyDeps() ++ Agg(
-        Deps.com.beachape.enumeratum,
-        Deps.com.lihaoyi.geny,
-        Deps.com.lihaoyi.sourcecode,
-        Deps.com.lihaoyi.pprint,
-        Deps.dev.zio.`zio-prelude`,
-        Deps.org.typelevel.`paiges-core`,
-        Deps.org.typelevel.spire
-      )
-      def platformSpecificModuleDeps = Seq(morphir)
-    }
-
-    object jvm extends Shared with MorphirJVMModule {
-      object test extends ScalaTests with TestModule.Munit {
-        def ivyDeps    = Agg(Deps.org.scalameta.munit)
-        def moduleDeps = super.moduleDeps ++ Agg(testing.munit.jvm)
-      }
-    }
-
-    object js extends Shared with MorphirJSModule {
-      object test extends ScalaJSTests with TestModule.Munit {
-        def ivyDeps    = Agg(Deps.org.scalameta.munit)
-        def moduleDeps = super.moduleDeps ++ Agg(testing.munit.js)
-      }
-    }
-
-    object native extends Shared with MorphirNativeModule {
-      object test extends ScalaNativeTests with TestModule.Munit {
-        def ivyDeps    = Agg(Deps.org.scalameta.munit)
-        def moduleDeps = super.moduleDeps ++ Agg(testing.munit.native)
       }
     }
   }
