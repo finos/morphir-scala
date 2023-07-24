@@ -118,6 +118,44 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
     def scalaNativeVersion = T { resolvedBuildSettings().native.version }
   }
 
+  trait Shared extends MorphirCommonModule with MorphirPublishModule {
+    def ivyDeps = Agg(Deps.com.lihaoyi.pprint, Deps.dev.zio.`zio-prelude`)
+    def compileIvyDeps = super.compileIvyDeps() ++ (if (crossScalaVersion.startsWith("2."))
+                                                      Agg(
+                                                        Deps.org.`scala-lang`.`scala-reflect`(crossScalaVersion),
+                                                        Deps.org.`scala-lang`.`scala-compiler`(crossScalaVersion)
+                                                      )
+                                                    else Agg.empty)
+
+    def scalacOptions = T {
+      // val additionalOptions = if (crossScalaVersion.startsWith("2.13")) Seq("-Ymacro-annotations") else Seq.empty
+      val additionalOptions =
+        if (crossScalaVersion.startsWith("2.13")) Seq("-language:experimental.macros") else Seq.empty
+      super.scalacOptions() ++ additionalOptions
+    }
+  }
+
+  object jvm extends Shared with MorphirJVMModule {
+    object test extends ScalaTests with TestModule.Munit {
+      def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+      def moduleDeps = super.moduleDeps ++ Agg(testing.munit.jvm)
+    }
+  }
+
+  object js extends Shared with MorphirJSModule {
+    object test extends ScalaJSTests with TestModule.Munit {
+      def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+      def moduleDeps = super.moduleDeps ++ Agg(testing.munit.js)
+    }
+  }
+
+  object native extends Shared with MorphirNativeModule {
+    object test extends ScalaNativeTests with TestModule.Munit {
+      def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+      def moduleDeps = super.moduleDeps ++ Agg(testing.munit.native)
+    }
+  }
+
   object contrib extends Module {
     object knowledge extends CrossPlatform with CrossValue {
       def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
@@ -216,7 +254,7 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         Deps.dev.zio.zio,
         Deps.dev.zio.`zio-prelude`
       )
-      def platformSpecificModuleDeps = Seq(datamodel.macros, foundations)
+      def platformSpecificModuleDeps = Seq(macros, foundations)
     }
 
     object jvm extends Shared with MorphirJVMModule {
@@ -277,36 +315,6 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
       }
     }
 
-    object macros extends CrossPlatform {
-      trait Shared extends MorphirCommonModule with MorphirPublishModule {
-        def compileIvyDeps = T {
-          super.compileIvyDeps() ++ Agg.when(scalaVersion().startsWith("2."))(
-            Deps.org.`scala-lang`.`scala-reflect`(scalaVersion()),
-            Deps.org.`scala-lang`.`scala-compiler`(scalaVersion())
-          )
-        }
-
-        def scalacOptions = T {
-          super.scalacOptions().concatIf(isScala213())("-language:experimental.macros")
-        }
-      }
-
-      object jvm extends Shared with MorphirJVMModule {
-        object test extends ScalaTests with TestModule.Munit {
-          def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-        }
-      }
-      object js extends Shared with MorphirJSModule {
-        object test extends ScalaTests with TestModule.Munit {
-          def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-        }
-      }
-      object native extends Shared with MorphirNativeModule {
-        object test extends ScalaTests with TestModule.Munit {
-          def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-        }
-      }
-    }
   }
 
   object elm extends Module {
@@ -428,6 +436,36 @@ trait MorphirModule extends Cross.Module[String] { morphir =>
         object test extends ScalaNativeTests with TestModule.Munit {
           def ivyDeps = Agg(Deps.org.scalameta.munit)
         }
+      }
+    }
+  }
+  object macros extends CrossPlatform {
+    trait Shared extends MorphirCommonModule with MorphirPublishModule {
+      def compileIvyDeps = T {
+        super.compileIvyDeps() ++ Agg.when(scalaVersion().startsWith("2."))(
+          Deps.org.`scala-lang`.`scala-reflect`(scalaVersion()),
+          Deps.org.`scala-lang`.`scala-compiler`(scalaVersion())
+        )
+      }
+
+      def scalacOptions = T {
+        super.scalacOptions().concatIf(isScala213())("-language:experimental.macros")
+      }
+    }
+
+    object jvm extends Shared with MorphirJVMModule {
+      object test extends ScalaTests with TestModule.Munit {
+        def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+      }
+    }
+    object js extends Shared with MorphirJSModule {
+      object test extends ScalaTests with TestModule.Munit {
+        def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
+      }
+    }
+    object native extends Shared with MorphirNativeModule {
+      object test extends ScalaTests with TestModule.Munit {
+        def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
       }
     }
   }
