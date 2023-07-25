@@ -23,7 +23,7 @@ object EnumData1 {
   case object Bar               extends Foo
   case class Baz(value: String) extends Foo
 
-  val deriver = Deriver.gen[Foo]
+  val deriver = DataEncoder.gen[Foo]
 }
 
 object EnumData2 {
@@ -37,7 +37,7 @@ object EnumData2 {
     case Baz(value: String)
   }
 
-  val deriver = Deriver.gen[Foo]
+  val deriver = DataEncoder.gen[Foo]
 }
 
 object EnumData3 {
@@ -54,7 +54,7 @@ object EnumData3 {
   case object Bar               extends Foo
   case class Baz(value: String) extends Foo
 
-  val deriver = Deriver.gen[Foo]
+  val deriver = DataEncoder.gen[Foo]
 }
 
 class ToDataEnums extends munit.FunSuite {
@@ -76,13 +76,13 @@ class ToDataEnums extends munit.FunSuite {
 
   test("Enum Data 1 - NoVals") {
     import EnumData1._
-    assertEquals(deriver.derive(Bar), Case(List(), "Bar", concept))
+    assertEquals(deriver.encode(Bar), Case(List(), "Bar", concept))
   }
 
   test("Enum Data 1 - Value") {
     import EnumData1._
     assertEquals(
-      deriver.derive(Baz("something")),
+      deriver.encode(Baz("something")),
       Case(el"value" -> Data.String("something"))("Baz", concept)
     )
   }
@@ -91,7 +91,7 @@ class ToDataEnums extends munit.FunSuite {
     import EnumData1._
     val listOfEnums = List(Bar, Baz("A"), Baz("B"))
     assertEquals(
-      Deriver.toData(listOfEnums),
+      DataEncoder.toData(listOfEnums),
       Data.List(
         Case()("Bar", concept),
         Case(el"value" -> Data.String("A"))("Baz", concept),
@@ -105,7 +105,7 @@ class ToDataEnums extends munit.FunSuite {
     case class Stuff(a: String, b: Foo, c: Int)
     val stuff = Stuff("a_str", Baz("baz_val"), 123)
     assertEquals(
-      Deriver.toData(stuff),
+      DataEncoder.toData(stuff),
       Data.Record(
         gns :: "Stuff",
         l"a" -> Data.String("a_str"),
@@ -121,7 +121,7 @@ class ToDataEnums extends munit.FunSuite {
     case class Stuff(a: String, b: Baz, c: Int)
     val stuff = Stuff("a_str", Baz("baz_val"), 123)
     assertEquals(
-      Deriver.toData(stuff),
+      DataEncoder.toData(stuff),
       Data.Record(
         gns :: "Stuff",
         l"a" -> Data.String("a_str"),
@@ -136,7 +136,7 @@ class ToDataEnums extends munit.FunSuite {
     case class Stuff(a: String, b: Foo, c: Int)
     val stuff = Stuff("a_str", Foo.Baz("baz_val"), 123)
     assertEquals(
-      Deriver.toData(stuff),
+      DataEncoder.toData(stuff),
       Data.Record(
         gns :: "Stuff",
         l"a" -> Data.String("a_str"),
@@ -168,13 +168,13 @@ class ToDataEnums extends munit.FunSuite {
 
   test("Enum Data 2 - NoVals") {
     import EnumData1._
-    assertEquals(deriver.derive(Bar), Case(List(), "Bar", concept))
+    assertEquals(deriver.encode(Bar), Case(List(), "Bar", concept))
   }
 
   test("Enum Data 2 - Value") {
     import EnumData1._
     assertEquals(
-      deriver.derive(Baz("something")),
+      deriver.encode(Baz("something")),
       Case(el"value" -> Data.String("something"))("Baz", concept)
     )
   }
@@ -182,7 +182,7 @@ class ToDataEnums extends munit.FunSuite {
   test("Enum Data 2 - Value") {
     import EnumData3._
     assertEquals(
-      deriver.derive(Baz("something")),
+      deriver.encode(Baz("something")),
       Case(el"value" -> Data.String("something"))("Baz", concept)
     )
   }

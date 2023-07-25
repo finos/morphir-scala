@@ -60,7 +60,7 @@ private[datamodel] case class SumBuilder(tpe: SumBuilder.SumType, variants: List
         case v: SumBuilder.EnumProduct =>
           value match {
             case p: Product =>
-              val enumCaseRecord = v.deriver.derive(p)
+              val enumCaseRecord = v.deriver.encode(p)
               enumCaseRecord match {
                 case Data.Record(_, values) =>
                   values.map { case (label, data) => (EnumLabel(label.value), data) }
@@ -92,11 +92,11 @@ object SumBuilder {
   case class EnumSingleton(enumLabel: java.lang.String, tag: Class[Any])
       extends EnumVariant
   // case class variant of sealed trait or enum case with fields
-  case class EnumProduct(enumLabel: java.lang.String, tag: Class[Any], deriver: GenericProductDeriver[Product])
+  case class EnumProduct(enumLabel: java.lang.String, tag: Class[Any], deriver: GenericProductDataEncoder[Product])
       extends EnumVariant
 
   // for generic sums
-  case class SumVariant(enumLabel: java.lang.String, tag: Class[Any], deriver: Deriver[Any]) extends Variant
+  case class SumVariant(enumLabel: java.lang.String, tag: Class[Any], deriver: DataEncoder[Any]) extends Variant
 
   sealed trait SumType
   object SumType {

@@ -10,14 +10,14 @@ import org.finos.morphir.datamodel.Label
 import org.finos.morphir.datamodel.Concept
 import org.finos.morphir.datamodel.DeriverMacros.{errorOnType, isCaseClass}
 
-trait GenericProductDeriver[T <: Product] extends Deriver[T] {
-  def derive(value: T): Data = builder.run(value)
+trait GenericProductDataEncoder[T <: Product] extends DataEncoder[T] {
+  def encode(value: T): Data = builder.run(value)
   def builder: ProductBuilder.MirrorProduct
 }
 
-object GenericProductDeriver {
-  def make[T <: Product](productBuilder: ProductBuilder.MirrorProduct): GenericProductDeriver[T] =
-    new GenericProductDeriver[T] {
+object GenericProductDataEncoder {
+  def make[T <: Product](productBuilder: ProductBuilder.MirrorProduct): GenericProductDataEncoder[T] =
+    new GenericProductDataEncoder[T] {
       val builder = productBuilder
       val concept: Concept.Record = {
         // Deriver stage contains list of fields and child derivers
@@ -46,6 +46,6 @@ object GenericProductDeriver {
    *
    * }}
    */
-  inline def gen[T <: Product]: GenericProductDeriver[T] =
-    summonFrom { case m: Mirror.ProductOf[T] => Deriver.deriveProductFromMirror[T](m) }
+  inline def gen[T <: Product]: GenericProductDataEncoder[T] =
+    summonFrom { case m: Mirror.ProductOf[T] => DataEncoder.deriveProductFromMirror[T](m) }
 }

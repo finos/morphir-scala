@@ -1,6 +1,6 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.datamodel.Deriver.UnionType
+import org.finos.morphir.datamodel.DataEncoder.UnionType
 import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, PartialName}
 
 import scala.quoted.*
@@ -145,15 +145,15 @@ object DeriverMacros {
     Expr(TypeRepr.of[T].simplified.typeSymbol.name)
   }
 
-  inline def summonDeriver[T]: Deriver[T] = ${ summonDeriverImpl[T] }
-  def summonDeriverImpl[T: Type](using Quotes): Expr[Deriver[T]] =
+  inline def summonDeriver[T]: DataEncoder[T] = ${ summonDeriverImpl[T] }
+  def summonDeriverImpl[T: Type](using Quotes): Expr[DataEncoder[T]] =
     import quotes.reflect._
     def failNotProductOrSum() =
       report.errorAndAbort(
         s"Cannot summon generic Deriver for the type (was not a Product or Sum): ${TypeRepr.of[T].widen.show} (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
       )
 
-    val specificDriver = Expr.summon[SpecificDeriver[T]]
+    val specificDriver = Expr.summon[SpecificDataEncoder[T]]
     specificDriver match {
       case Some(value) => value
       case None =>
@@ -162,9 +162,9 @@ object DeriverMacros {
         if (Expr.summon[Mirror.ProductOf[T]].nonEmpty) {
           Type.of[T] match {
             case '[IsProduct[p]] =>
-              val genericDeriver = Expr.summon[GenericProductDeriver[p]]
+              val genericDeriver = Expr.summon[GenericProductDataEncoder[p]]
               genericDeriver match {
-                case Some(value) => '{ $value.asInstanceOf[Deriver[T]] }
+                case Some(value) => '{ $value.asInstanceOf[DataEncoder[T]] }
                 case _ =>
                   report.errorAndAbort(
                     s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen.show} (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
@@ -175,7 +175,7 @@ object DeriverMacros {
               )
           }
         } else if (Expr.summon[Mirror.SumOf[T]].nonEmpty) {
-          val genericDeriver = Expr.summon[GenericSumDeriver[T]]
+          val genericDeriver = Expr.summon[GenericSumDataEncoder[T]]
           genericDeriver match {
             case Some(value) => value
             case _ =>
@@ -188,8 +188,8 @@ object DeriverMacros {
         }
     }
 
-  inline def summonProductDeriver[T]: Deriver[T] = ${ summonProductDeriverImpl[T] }
-  def summonProductDeriverImpl[T: Type](using Quotes): Expr[Deriver[T]] =
+  inline def summonProductDeriver[T]: DataEncoder[T] = ${ summonProductDeriverImpl[T] }
+  def summonProductDeriverImpl[T: Type](using Quotes): Expr[DataEncoder[T]] =
     import quotes.reflect._
     def failNotProduct() =
       report.errorAndAbort(
@@ -200,9 +200,9 @@ object DeriverMacros {
     if (Expr.summon[Mirror.ProductOf[T]].nonEmpty) {
       Type.of[T] match {
         case '[IsProduct[p]] =>
-          val genericDeriver = Expr.summon[GenericProductDeriver[p]]
+          val genericDeriver = Expr.summon[GenericProductDataEncoder[p]]
           genericDeriver match {
-            case Some(value) => '{ $value.asInstanceOf[Deriver[T]] }
+            case Some(value) => '{ $value.asInstanceOf[DataEncoder[T]] }
             case _ =>
               report.errorAndAbort(
                 s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen.show} (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"

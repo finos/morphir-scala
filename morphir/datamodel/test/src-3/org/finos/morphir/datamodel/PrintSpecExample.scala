@@ -15,7 +15,7 @@ object PrintSpecExample {
   case class Baz(value: String, person: Person) extends Foo
 
   def main(args: Array[String]): Unit = {
-    val derive = Deriver.gen[Foo]
+    val derive = DataEncoder.gen[Foo]
     println(PrintSpec.of(derive.concept))
   }
 }

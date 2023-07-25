@@ -16,8 +16,8 @@ private[datamodel] sealed trait ProductBuilderField extends ProductBuilder {
   def field: String
 }
 private[datamodel] object ProductBuilder {
-  case class Leaf(field: String, index: Int, deriver: SpecificDeriver[Any]) extends ProductBuilderField {
-    def run(parent: scala.Product) = deriver.derive(parent.productElement(index))
+  case class Leaf(field: String, index: Int, deriver: SpecificDataEncoder[Any]) extends ProductBuilderField {
+    def run(parent: scala.Product) = deriver.encode(parent.productElement(index))
   }
 
   private def fail(derived: Any, index: Int) =
@@ -25,10 +25,10 @@ private[datamodel] object ProductBuilder {
       s"The derived output element ${derived} at index: $index was not a product-type, ${derived.getClass()}"
     )
 
-  case class Product(field: String, index: Int, deriver: GenericProductDeriver[scala.Product])
+  case class Product(field: String, index: Int, deriver: GenericProductDataEncoder[scala.Product])
       extends ProductBuilderField {
     def run(parent: scala.Product) =
-      deriver.derive {
+      deriver.encode {
         val derived = parent.productElement(index)
         derived match {
           case p: scala.Product => p
@@ -36,9 +36,9 @@ private[datamodel] object ProductBuilder {
         }
       }
   }
-  case class Sum(field: String, index: Int, deriver: GenericSumDeriver[Any]) extends ProductBuilderField {
+  case class Sum(field: String, index: Int, deriver: GenericSumDataEncoder[Any]) extends ProductBuilderField {
     def run(parent: scala.Product) =
-      deriver.derive {
+      deriver.encode {
         val derived = parent.productElement(index)
         derived match {
           case p: scala.Product => p

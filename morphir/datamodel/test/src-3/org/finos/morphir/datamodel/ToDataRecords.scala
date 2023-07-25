@@ -1,6 +1,6 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.datamodel.Deriver
+import org.finos.morphir.datamodel.DataEncoder
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, PartialName}
 import org.finos.morphir.datamodel.namespacing.PackageName.root
@@ -16,7 +16,7 @@ class ToDataRecords extends munit.FunSuite {
   test("basic record") {
     case class Person(name: String, age: Int)
     assertEquals(
-      Deriver.toData(Person("Joe", 123)),
+      DataEncoder.toData(Person("Joe", 123)),
       Data.Record(gns :: "Person", l"name" -> Data.String("Joe"), l"age" -> Data.Int(123))
     )
   }
@@ -29,7 +29,7 @@ class ToDataRecords extends munit.FunSuite {
     }
 
     assertEquals(
-      Deriver.toData(Person("Joe", 123)),
+      DataEncoder.toData(Person("Joe", 123)),
       Data.Record(tns :: "Person", l"name" -> Data.String("Joe"), l"age" -> Data.Int(123))
     )
   }
@@ -43,7 +43,7 @@ class ToDataRecords extends munit.FunSuite {
     }
 
     assertEquals(
-      Deriver.toData(Person("Joe", 123)),
+      DataEncoder.toData(Person("Joe", 123)),
       Data.Record(tns :: "Person2", l"name" -> Data.String("Joe"), l"age" -> Data.Int(123))
     )
   }
@@ -52,7 +52,7 @@ class ToDataRecords extends munit.FunSuite {
     case class Name(first: String, last: String)
     case class Person(name: Name, age: Int)
     assertEquals(
-      Deriver.toData(Person(Name("Joe", "Bloggs"), 123)),
+      DataEncoder.toData(Person(Name("Joe", "Bloggs"), 123)),
       Data.Record(
         gns :: "Person",
         l"name" -> Data.Record(gns :: "Name", l"first" -> Data.String("Joe"), l"last" -> Data.String("Bloggs")),
@@ -65,7 +65,7 @@ class ToDataRecords extends munit.FunSuite {
     case class Name(first: String, last: String)
     case class Person(name: List[Name], age: Int)
     assertEquals(
-      Deriver.toData(Person(List(Name("Joe", "Bloggs"), Name("Jim", "Roogs")), 123)),
+      DataEncoder.toData(Person(List(Name("Joe", "Bloggs"), Name("Jim", "Roogs")), 123)),
       Data.Record(
         gns :: "Person",
         l"name" ->

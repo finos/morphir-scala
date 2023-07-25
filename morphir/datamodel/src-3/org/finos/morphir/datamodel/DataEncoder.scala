@@ -12,24 +12,25 @@ import org.finos.morphir.datamodel.Label
 import org.finos.morphir.datamodel.Concept
 import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, PackageName, PartialName, QualifiedName}
 
-trait Deriver[T] {
-  def derive(value: T): Data
+trait DataEncoder[T] {
+  final def apply(value: T): Data = encode(value)
+  def encode(value: T): Data
   def concept: Concept
 }
 
-object Deriver {
+object DataEncoder {
   import DeriverTypes._
   import DeriverMacros._
 
   inline def toData[T](value: T): Data = {
     import org.finos.morphir.datamodel.{given, _}
-    val deriver = Deriver.gen[T]
-    deriver.derive(value)
+    val deriver = DataEncoder.gen[T]
+    deriver.encode(value)
   }
 
   inline def summonSpecificDeriver[T] =
     summonFrom {
-      case deriver: SpecificDeriver[T] => deriver
+      case deriver: SpecificDataEncoder[T] => deriver
       case _ =>
         error(s"Cannot find specific deriver for type: ${showType[T]}")
     }
@@ -64,7 +65,7 @@ object Deriver {
                   // enum case with fields
                   if (isCaseClass[head]) {
                     summonProductDeriver[head] match {
-                      case deriver: GenericProductDeriver[Product] @unchecked =>
+                      case deriver: GenericProductDataEncoder[Product] @unchecked =>
                         SumBuilder.EnumProduct(fieldName, ct, deriver)
                       case other =>
                         throw new IllegalArgumentException(
@@ -77,7 +78,7 @@ object Deriver {
                   }
                 // for the sum-case just do regular recursive derivation
                 case UnionType.Sum =>
-                  val deriver = summonDeriver[head].asInstanceOf[Deriver[Any]]
+                  val deriver = summonDeriver[head].asInstanceOf[DataEncoder[Any]]
                   SumBuilder.SumVariant(fieldName, ct, deriver)
               }
 
@@ -100,11 +101,11 @@ object Deriver {
           case _: (head *: tail) =>
             val derivationStage =
               summonDeriver[head] match {
-                case deriver: SpecificDeriver[Any] @unchecked =>
+                case deriver: SpecificDataEncoder[Any] @unchecked =>
                   ProductBuilder.Leaf(fieldName, i, deriver)
-                case deriver: GenericProductDeriver[Product] @unchecked =>
+                case deriver: GenericProductDataEncoder[Product] @unchecked =>
                   ProductBuilder.Product(fieldName, i, deriver)
-                case deriver: GenericSumDeriver[Any] @unchecked =>
+                case deriver: GenericSumDataEncoder[Any] @unchecked =>
                   ProductBuilder.Sum(fieldName, i, deriver)
               }
             derivationStage +: deriveProductFields[fields, tail](i + 1)
@@ -114,12 +115,12 @@ object Deriver {
         }
     }
 
-  inline def deriveProductFromMirror[T](m: Mirror.ProductOf[T]): GenericProductDeriver[T & Product] =
+  inline def deriveProductFromMirror[T](m: Mirror.ProductOf[T]): GenericProductDataEncoder[T & Product] =
     inline if (isCaseClass[T]) {
       val caseClassName  = summonQualifiedName[T]
       val stageListTuple = deriveProductFields[m.MirroredElemLabels, m.MirroredElemTypes](0)
       val mirrorProduct  = ProductBuilder.MirrorProduct(caseClassName, stageListTuple)
-      GenericProductDeriver
+      GenericProductDataEncoder
         .make[T & Product](mirrorProduct)
     } else {
       errorOnType[T]("Cannot summon a generic deriver of the case class type. It is not a valid product type")
@@ -135,7 +136,7 @@ object Deriver {
     QualifiedName(partialName, localName)
   }
 
-  inline def deriveSumFromMirror[T](m: Mirror.SumOf[T]): GenericSumDeriver[T] =
+  inline def deriveSumFromMirror[T](m: Mirror.SumOf[T]): GenericSumDataEncoder[T] =
     inline if (isEnumOrSealedTrait[T]) {
       val sumTypeName = summonQualifiedName[T]
 
@@ -155,18 +156,18 @@ object Deriver {
           case UnionType.Sum =>
             error("Simple union types not allowed yet in builder synthesis")
         }
-      GenericSumDeriver.make[T](builder)
+      GenericSumDataEncoder.make[T](builder)
     } else {
       errorOnType[T]("The following type is not a valid enum and there is no specific deriver defined for it")
     }
 
   // TODO When making a product deriver, make sure to exclude Option[T] since
   //      we want a specific deriver for that, not a generic one.
-  inline def gen[T]: Deriver[T] =
+  inline def gen[T]: DataEncoder[T] =
     summonFrom {
       // If there is a leaf-level deriver, summon that first. Do NOT EVER try to summon Deriver[T]
       // directly because you will can run into infinite recursive derivation.
-      case deriver: SpecificDeriver[T] =>
+      case deriver: SpecificDataEncoder[T] =>
         deriver
       case ev: Mirror.Of[T] =>
         inline ev match {
@@ -177,7 +178,7 @@ object Deriver {
 
           case m: Mirror.ProductOf[T] =>
             // cast is needed otherwise it's T & Product which doesn't seem to derive correctly
-            deriveProductFromMirror[T](m).asInstanceOf[Deriver[T]]
+            deriveProductFromMirror[T](m).asInstanceOf[DataEncoder[T]]
           case m: Mirror.SumOf[T] =>
             deriveSumFromMirror[T](m)
         }
