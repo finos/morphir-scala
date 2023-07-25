@@ -1,5 +1,5 @@
 ---
-id: primitive
+id: primitives
 title: Primitive Encoding
 ---
 The following encodings are supported from Scala values into Morphir DDL primitives:
