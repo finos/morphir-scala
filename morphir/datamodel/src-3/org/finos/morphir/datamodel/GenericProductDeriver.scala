@@ -30,7 +30,7 @@ object GenericProductDeriver {
             case ProductBuilder.Sum(field, index, deriver) =>
               (Label(field), deriver.concept)
           }
-        Concept.Record(fields)
+        Concept.Record(productBuilder.name, fields)
       }
     }
 

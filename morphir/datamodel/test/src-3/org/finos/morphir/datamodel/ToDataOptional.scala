@@ -4,6 +4,7 @@ import org.finos.morphir.datamodel.Deriver
 
 import scala.collection.immutable.ListMap
 import scala.collection.mutable.LinkedHashMap
+import org.finos.morphir.datamodel.{*, given}
 
 case class Person(fName: String, lName: Int)
 object Joe {

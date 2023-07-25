@@ -1,6 +1,6 @@
 package org.finos.morphir.ir
 
-import org.finos.morphir.foundations.*
+import zio.prelude.*
 import AccessControlled.AccessControlled
 import Documented.Documented
 import Name.Name

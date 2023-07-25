@@ -1,6 +1,7 @@
 package org.finos.morphir.datamodel
 
 import org.finos.morphir.datamodel.Deriver
+import org.finos.morphir.datamodel.{*, given}
 
 class ToDataPrimitives extends munit.FunSuite {
   test("Boolean-true") { assertEquals(Deriver.toData(true), Data.Boolean(true)) }

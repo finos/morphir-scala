@@ -6,18 +6,20 @@ import mill.main.BuildInfo
 import mill.scalajslib._
 import mill.scalalib._
 import mill.scalanativelib._
-
+import millbuild.settings._
 import scala.language.reflectiveCalls
+import millbuild.MyBuild
 
 trait CrossPlatform extends Module with DynamicModule { self =>
   import DevMode._
 
+  def buildSettings: BuildSettings           = MyBuild.cachedBuildSettings
   def moduleDeps: Seq[CrossPlatform]         = Seq.empty
   def compiledModuleDeps: Seq[CrossPlatform] = Seq.empty
 
-  def enableJVM(module: Module): Boolean    = true
-  def enableJS(module: Module): Boolean     = !devMode
-  def enableNative(module: Module): Boolean = !devMode
+  def enableJVM(module: Module): Boolean    = buildSettings.jvm.enable
+  def enableJS(module: Module): Boolean     = !devMode && buildSettings.js.enable
+  def enableNative(module: Module): Boolean = !devMode && buildSettings.native.enable
 
   private def enableModuleCondition(module: Module): Boolean = module match {
     case _: ScalaNativeModule => enableNative(module)
@@ -30,10 +32,10 @@ trait CrossPlatform extends Module with DynamicModule { self =>
     case _ => true
   }
 
-  def originalMillModuleDirectChildren: Seq[Module] = super.millModuleDirectChildren
+  final def originalMillModuleDirectChildren: Seq[Module] = super.millModuleDirectChildren
 
   override def millModuleDirectChildren: Seq[Module] =
-    super.millModuleDirectChildren.filter(enableModuleCondition)
+    originalMillModuleDirectChildren.filter(enableModuleCondition)
 
   private type PlatformModule = JavaModule {
     def platform: Platform

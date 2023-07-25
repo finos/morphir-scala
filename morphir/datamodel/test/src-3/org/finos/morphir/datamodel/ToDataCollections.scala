@@ -4,6 +4,7 @@ import org.finos.morphir.datamodel.Deriver
 
 import scala.collection.immutable.ListMap
 import scala.collection.mutable.LinkedHashMap
+import org.finos.morphir.datamodel.{*, given}
 
 class ToDataCollections extends munit.FunSuite {
   test("Primitive List") {

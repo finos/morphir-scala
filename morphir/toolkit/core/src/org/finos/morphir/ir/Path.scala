@@ -1,6 +1,8 @@
 package org.finos.morphir.ir
+
+import org.finos.morphir.datamodel.namespacing.*
 import zio.Chunk
-//import org.finos.morphir.ir.PackageModule.PackageAndModulePath
+import zio.prelude.*
 
 import scala.annotation.tailrec
 
@@ -25,7 +27,21 @@ final case class Path(segments: Chunk[Name]) { self =>
   def isEmpty: Boolean               = segments.isEmpty
   def zip(other: Path): (Path, Path) = (self, other)
 
+  def render(implicit renderer: Path.Renderer): String = renderer(self)
+  def render(separator: String)(implicit nameRenderer: Name.Renderer): String =
+    render(Path.Renderer(separator, nameRenderer))
+
   def toList: List[Name] = segments.toList
+
+  def toPackageName(implicit renderer: Name.Renderer = Name.Renderer.TitleCase): PackageName = {
+    val nsSegments = PackageName.segments(segments.map(_.render))
+    PackageName.fromIterable(nsSegments)
+  }
+
+  def toNamespace(implicit renderer: Name.Renderer = Name.Renderer.TitleCase): Namespace = {
+    val nsSegments = Namespace.segments(segments.map(_.render))
+    Namespace.fromIterable(nsSegments)
+  }
 
   def toString(f: Name => String, separator: String): String =
     segments.map(f).mkString(separator)
@@ -74,4 +90,16 @@ object Path {
   }
 
   private[morphir] def unsafeMake(parts: Name*): Path = Path(Chunk.fromIterable(parts))
+
+  final case class Renderer(separator: String, nameRenderer: Name.Renderer) extends (Path => String) {
+    def apply(path: Path): String        = path.toString(nameRenderer, separator)
+    final def render(path: Path): String = apply(path)
+  }
+
+  object Renderer {
+    val CamelCase: Renderer = Renderer(".", Name.Renderer.CamelCase)
+    val KebabCase: Renderer = Renderer(".", Name.Renderer.KebabCase)
+    val SnakeCase: Renderer = Renderer(".", Name.Renderer.SnakeCase)
+    val TitleCase: Renderer = Renderer(".", Name.Renderer.TitleCase)
+  }
 }

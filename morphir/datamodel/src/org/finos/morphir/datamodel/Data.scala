@@ -1,7 +1,11 @@
 package org.finos.morphir.datamodel
+
+import org.finos.morphir.datamodel.namespacing.{Namespace, QualifiedName}
+
 import java.io.OutputStream
 import scala.collection.immutable.ListMap
 import scala.collection.mutable
+
 sealed trait Data extends geny.Writable {
   def shape: Concept
   def writeBytesTo(out: OutputStream): Unit = {
@@ -15,8 +19,7 @@ object Data {
 
   def Int(value: Int) = Int32(value)
 
-  sealed trait Basic[+A] extends Data
-
+  sealed trait Basic[+A]                           extends Data
   case class Boolean(value: scala.Boolean)         extends Basic[scala.Boolean]       { val shape = Concept.Boolean   }
   case class Byte(value: scala.Byte)               extends Basic[Byte]                { val shape = Concept.Byte      }
   case class Decimal(value: scala.BigDecimal)      extends Basic[scala.BigDecimal]    { val shape = Concept.Decimal   }
@@ -29,6 +32,19 @@ object Data {
   case class LocalTime(value: java.time.LocalTime) extends Basic[java.time.LocalTime] { val shape = Concept.LocalTime }
   case class Char(value: scala.Char)               extends Basic[scala.Char]          { val shape = Concept.Char      }
   case object Unit                                 extends Basic[scala.Unit]          { val shape = Concept.Unit      }
+
+  // Needed for Scala 3 extension methods to work
+  object Boolean   {}
+  object Byte      {}
+  object Decimal   {}
+  object Integer   {}
+  object Int16     {}
+  object Int32     {}
+  object String    {}
+  object LocalDate {}
+  object Month     {}
+  object LocalTime {}
+  object Char      {}
 
   /**
    * See notes on Concept.Enum for information on how this type is modelled
@@ -50,11 +66,27 @@ object Data {
   object Tuple {
     def apply(values: Data*): Tuple = Tuple(values.toList)
   }
-  case class Record(values: scala.List[(Label, Data)]) extends Data {
-    val shape: Concept.Record = Concept.Record(values.map { case (label, data) => (label, data.shape) })
-  }
+
+  case class Record private (values: scala.List[(Label, Data)], shape: Concept.Record) extends Data
   object Record {
-    def apply(entry: (Label, Data)*): Record = Record(entry.toList)
+    def apply(namespace: QualifiedName, fields: (Label, Data)*): Record =
+      apply(namespace, fields.toList)
+
+    def apply(namespace: QualifiedName, fields: scala.List[(Label, Data)]): Record = {
+      val concept = Concept.Record(namespace, fields.map { case (label, data) => (label, data.shape) })
+      Record(fields.toList, concept)
+    }
+
+    /** Unapply of a record should contain it's qname and the field values, not the shape */
+    def unapply(record: Record) =
+      Some((record.shape.namespace, record.values))
+  }
+
+  case class Struct(values: scala.List[(Label, Data)]) extends Data {
+    val shape: Concept.Struct = Concept.Struct(values.map { case (label, data) => (label, data.shape) })
+  }
+  object Struct {
+    def apply(fields: (Label, Data)*): Struct = new Struct(fields.toList)
   }
 
   /**
