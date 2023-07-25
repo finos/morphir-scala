@@ -2,7 +2,7 @@ package org.finos
 package morphir
 package core.types
 
-import morphir.prelude.*
+import zio.prelude.*
 object Versioning {
   type MorphirVersion = MorphirVersion.Type
 

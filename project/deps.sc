@@ -1,4 +1,6 @@
 import mill._, scalalib._
+import mill.scalalib.api.ZincWorkerUtil.scalaNativeBinaryVersion
+import millbuild.crossplatform.DevMode
 
 object Deps {
 
@@ -13,7 +15,7 @@ object Deps {
   case object co {
     case object fs2 {
       val `fs2-core` = ivy"co.fs2::fs2-core::${Versions.fs2}"
-      val `fs2-io` = ivy"co.fs2::fs2-io::${Versions.fs2}"
+      val `fs2-io`   = ivy"co.fs2::fs2-io::${Versions.fs2}"
     }
   }
 
@@ -21,6 +23,13 @@ object Deps {
     case object beachape {
       val enumeratum = ivy"com.beachape::enumeratum::${Versions.enumeratum}"
     }
+
+    case object eed3si9n {
+      case object expecty {
+        val expecty = ivy"com.eed3si9n.expecty::expecty::${Versions.expecty}"
+      }
+    }
+
     case object github {
       case object arturopala {
         val `buffer-and-slice` = ivy"com.github.arturopala::buffer-and-slice:${Versions.`buffer-and-slice`}"
@@ -29,6 +38,10 @@ object Deps {
       case object ghik {
         val `silencer-lib`    = ivy"com.github.ghik:::silencer-lib:${Versions.silencer}"
         val `silencer-plugin` = ivy"com.github.ghik:::silencer-plugin:${Versions.silencer}"
+      }
+
+      case object poslegm {
+        val `munit-zio` = ivy"com.github.poslegm::munit-zio::${Versions.`munit-zio`}"
       }
     }
     case object lihaoyi {
@@ -60,14 +73,27 @@ object Deps {
       val `zio-json`: Dep      = ivy"dev.zio::zio-json::${Versions.`zio-json`}"
       val `zio-json-golden`    = ivy"dev.zio::zio-json-golden::${Versions.`zio-json`}"
       val `zio-parser`         = ivy"dev.zio::zio-parser::${Versions.`zio-parser`}"
-      val `zio-prelude`        = ivy"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
-      val `zio-prelude-macros` = ivy"dev.zio::zio-prelude-macros::${Versions.`zio-prelude`}"
+      val `zio-prelude`        = prelude()
+      val `zio-prelude-macros` = prelude.macros
       val `zio-process`        = ivy"dev.zio::zio-process::${Versions.`zio-process`}"
-      val `zio-schema`         = ivy"dev.zio::zio-streams::${Versions.`zio-schema`}"
       val `zio-streams`        = ivy"dev.zio::zio-streams::${Versions.zio}"
       val `zio-test`           = ivy"dev.zio::zio-test::${Versions.zio}"
       val `zio-test-magnolia`  = ivy"dev.zio::zio-test-magnolia::${Versions.zio}"
       val `zio-test-sbt`       = ivy"dev.zio::zio-test-sbt::${Versions.zio}"
+
+      case object prelude {
+        def apply(): Dep = ivy"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
+        val macros       = ivy"dev.zio::zio-prelude-macros::${Versions.`zio-prelude`}"
+      }
+
+      case object schema {
+        val `avro`       = ivy"dev.zio::zio-schema-avro::${Versions.`zio-schema`}"
+        val `bson`       = ivy"dev.zio::zio-schema-bson::${Versions.`zio-schema`}"
+        val `core`       = ivy"dev.zio::zio-schema-core::${Versions.`zio-schema`}"
+        val `derivation` = ivy"dev.zio::zio-schema-derivation::${Versions.`zio-schema`}"
+        val `json`       = ivy"dev.zio::zio-schema-json::${Versions.`zio-schema`}"
+        val `msg-pack`   = ivy"dev.zio::zio-schema-msg-pack::${Versions.`zio-schema`}"
+      }
     }
   }
   case object io {
@@ -99,7 +125,7 @@ object Deps {
     }
     case object scalameta {
       val munit: mill.scalalib.Dep = ivy"org.scalameta::munit::${Versions.munit}"
-      println(s"$munit")
+
       val `munit-scalacheck` =
         ivy"org.scalameta::munit-scalacheck::${Versions.munit}"
 
@@ -107,6 +133,7 @@ object Deps {
 
     case object typelevel {
       val `paiges-core` = ivy"org.typelevel::paiges-core::${Versions.paiges}"
+      val spire         = ivy"org.typelevel::spire::0.18.0"
     }
   }
 }
@@ -114,10 +141,10 @@ object Deps {
 object Versions {
   val castor = "0.2.1"
 
-  val enumeratum = "1.7.2"
+  val enumeratum = "1.7.3"
 
   def borer(scalaVersion: String): String =
-    borer(scalaVersion.split('.'))
+    borer(scalaVersion.split('.').toIndexedSeq)
 
   def borer(scalaVersionParts: Seq[String]): String =
     scalaVersionParts match {
@@ -134,32 +161,43 @@ object Versions {
       case _            => "4.5.11"
     }
 
-  val coursier        = "2.1.3"
+  val coursier        = "2.1.4"
+  val expecty         = "0.16.0"
   val fs2             = "3.7.0"
   val geny            = "1.0.0"
   val `izumi-reflect` = "2.3.8"
-  val munit           = "1.0.0-M4"
+  val munit           = "1.0.0-M8"
+  val `munit-zio`     = "0.1.1"
   val mainargs        = "0.5.0"
   val `os-lib`        = "0.9.1"
-  val paiges          = "0.4.2"
-  val scribe          = "3.11.5"
+  val paiges          = "0.4.3"
+  val scribe          = "3.11.8"
   val silencer        = "1.4.2"
   val `tasty-query`   = "0.5.6"
   val upickle         = "3.0.0-M1"
-  val zio             = "2.0.13"
-  val `zio-cli`       = "0.4.0"
-  val `zio-json`      = "0.5.0"
+  val zio             = "2.0.15"
+  val `zio-cli`       = "0.5.0"
+  val `zio-json`      = "0.6.0"
   val `zio-parser`    = "0.1.9"
   val `zio-prelude`   = "1.0.0-RC19"
   val `zio-process`   = "0.7.2"
-  val `zio-schema`    = "0.4.11"
+  val `zio-schema`    = "0.4.12"
 }
 
 object ScalaVersions {
-  val all      = Seq(scala213, scala3x)
-  def scala213 = "2.13.10"
-  def scala3x  = "3.2.2"
+  import DevMode._
+  val all      = if (devMode) Seq(scala3x) else Seq(scala213, scala3x)
+  def scala213 = "2.13.11"
+  def scala3x  = "3.3.0"
 
   def scalaJSVersion     = "1.13.1"
-  def scalaNativeVersion = "0.4.12"
+  def scalaNativeVersion = "0.4.14"
+  def millScalaVersion   = "2.13.10"
+}
+
+object MillVersions {
+  val all = Seq("0.10.12", "0.11.0")
+  def millBinaryVersion(millVersion: String) = scalaNativeBinaryVersion(
+    millVersion
+  )
 }

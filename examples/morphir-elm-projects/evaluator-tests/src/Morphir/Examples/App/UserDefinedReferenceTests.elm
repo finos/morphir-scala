@@ -1,11 +1,11 @@
-module Morphir.Examples.App.UserDefinedTests exposing (..)
+module Morphir.Examples.App.UserDefinedReferenceTests exposing (..)
 
 {-
     TODO: Check expected values vs. elm (Ellie is not friendly to multiple modules)
 -}
 
 import Morphir.Examples.App.ExampleModule exposing (..)
-
+import Dict exposing (Dict)
 
 --Test: UserDefinedReference/Value
 --import Morphir.Examples.App.ExampleModule exposing (..)
@@ -68,3 +68,51 @@ userDefinedReferenceUnionTest _ =
     in  
         inputUnionFunction (f ())
 --expected = -6
+
+{-
+    Test: UserDefinedReference/TypeArgUnion
+    --import Morphir.Examples.App.ExampleModule exposing (..)
+    --input (1, "Red")
+    --expected = TypeArgUnion.AB 1 "Red"
+-}
+typeArgUnionTest : (Int, String) -> TypeArgUnion Int String
+typeArgUnionTest tuple = 
+    let (i, s) = tuple in
+    AB i s
+
+{-
+    Test: UserDefinedReference/TypeArgUnionMaybe
+    --import Morphir.Examples.App.ExampleModule exposing (..)
+    --import Dict exposing (Dict)
+    --input (0, "Red")
+    --expected = TypeArgUnion.MaybeA True
+-}
+typeArgUnionMaybeFunction : (Int, String) -> TypeArgUnion Bool (Dict Int String)
+typeArgUnionMaybeFunction tuple = 
+    let (i, s) = tuple in
+    if i == 0 then MaybeA (Just True) else A True
+
+    {-
+    Test: UserDefinedReference/TypeArgUnionMaybe
+    --import Morphir.Examples.App.ExampleModule exposing (..)
+    --import Dict exposing (Dict)
+    --input (0, "Red")
+    --expected = TypeArgUnion.MaybeA True
+-}
+typeArgUnionMaybeFunction : (Int, String) -> TypeArgUnion Bool (Dict Int String)
+typeArgUnionMaybeFunction tuple = 
+    let (i, s) = tuple in
+    if i == 0 then MaybeA (Just True) else A True
+
+
+type alias TypeArgRecord a b c = {a : a, bList : List b, tuple : (a, b, c), union : TypeArgUnion c a}
+
+typeArgRecordTest : (Int, Bool, String) -> TypeArgRecord Int Bool String
+typeArgRecordTest tuple =
+    let (i, b, s) = tuple in
+    {
+        a = i,
+        bList = [b],
+        tuple = (i, b, s),
+        union = DictBA (Dict.fromList [(i, s)])
+    }

@@ -2,7 +2,7 @@ package org.finos
 package morphir
 package ir
 
-import prelude.*
+import zio.Chunk
 import FQName.FQName
 import Literal.Literal
 import Name.Name

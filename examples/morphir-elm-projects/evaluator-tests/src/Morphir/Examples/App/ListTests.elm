@@ -1,4 +1,4 @@
-module Morphir.Examples.App.LetDefinitionTests exposing (..)
+module Morphir.Examples.App.ListTests exposing (..)
 import List exposing (map, (::))
 
 

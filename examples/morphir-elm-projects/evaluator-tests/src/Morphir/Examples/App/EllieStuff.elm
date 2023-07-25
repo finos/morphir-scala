@@ -6,12 +6,14 @@ import Html.Events exposing (onClick)
 import List exposing (map)
 
  
-     
---Test: Simple/Unit
-simpleUnitTest : () ->()
-simpleUnitTest _ = 
-    ()
+infinite : () -> Bool
+infinite _ = infinite ()
+
+test : () -> Bool
+test _ = 
+    let f = (&&) False in
+    f (infinite ())
 --expected = ()
 
 main : Html ()
-main = text (Debug.toString (simpleUnitTest () ))
+main = text (Debug.toString (test () ))

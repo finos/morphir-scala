@@ -2,13 +2,21 @@ package org.finos
 package morphir
 package ir
 
+import org.finos.morphir.datamodel.namespacing.{PackageName => Pack, *}
 import Module.{ModuleName, QualifiedModuleName}
 
-final case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) {
+final case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) { self =>
   def getPackagePath: Path = packagePath.toPath
   def getModulePath: Path  = modulePath.toPath
 
   def getModuleName: QualifiedModuleName = QualifiedModuleName(modulePath.toPath, localName)
+
+  def toQualifiedName: QualifiedName = {
+    val packageName: Pack    = packagePath.toPath.toPackageName
+    val namespace: Namespace = modulePath.toPath.toNamespace
+    val localName: LocalName = self.localName.toLocalName
+    QualifiedName(packageName, namespace, localName)
+  }
 
   def toReferenceName: String = Seq(
     Path.toString(Name.toTitleCase, ".", packagePath.toPath),
@@ -35,6 +43,13 @@ object FQName {
 
   def fromQName(qName: QName)(implicit options: FQNamingOptions): FQName =
     FQName(options.defaultPackage, ModuleName(QName.getModulePath(qName)), QName.getLocalName(qName))
+
+  def fromQualifiedName(input: QualifiedName): FQName = {
+    val packageName = PackageName(input.pack)
+    val modulePath  = ModuleName.fromNamespace(input.namespace)
+    val localName   = Name.fromString(input.localName)
+    FQName(packageName, modulePath, localName)
+  }
 
   /** Get the package path part of a fully-qualified name. */
   def getPackagePath(fqName: FQName): Path = fqName.getPackagePath

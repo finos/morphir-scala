@@ -1,3 +1,5 @@
+# Elm build products
+elm-stuff/
 
 # Docusaurus generated folders
 website/translated_docs/
@@ -73,6 +75,7 @@ flycheck_*.el
 
 # Linux trash folder which might appear on any partition or disk
 .Trash-*
+nohup.out
 
 # .nfs files are created when an open file is removed but is still being accessed
 .nfs*
@@ -424,6 +427,7 @@ project/plugins/project/
 metals.sbt
 .bloop/
 project/secret
+.scala-build/
 
 # mdoc
 website/node_modules
@@ -436,6 +440,8 @@ website/static/api
 
 build.user.sbt
 build.user.properties
+build.user.conf
+build.user.yaml
 
 
 .yarn/*

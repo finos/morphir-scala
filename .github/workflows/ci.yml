@@ -1,8 +1,8 @@
 name: CI
 
 env:
-  JDK_JAVA_OPTIONS: -XX:+PrintCommandLineFlags # JDK_JAVA_OPTIONS is _the_ env. variable to use for modern Java
-  JVM_OPTS: -XX:+PrintCommandLineFlags # for Java 8 only (sadly, it is not modern enough for JDK_JAVA_OPTIONS)
+  JDK_JAVA_OPTIONS: -XX:+PrintCommandLineFlags -Xss10M # JDK_JAVA_OPTIONS is _the_ env. variable to use for modern Java
+  JVM_OPTS: -XX:+PrintCommandLineFlags -Xss10M # for Java 8 only (sadly, it is not modern enough for JDK_JAVA_OPTIONS)
 
 on:
   pull_request:
@@ -11,6 +11,13 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
+
+# cancel older runs of a pull request;
+# this will not cancel anything for normal git pushes
+concurrency:
+  group: cancel-old-pr-runs-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true      
 
 jobs:
   lint:
@@ -22,7 +29,10 @@ jobs:
         with:
           fetch-depth: 0
       - name: Setup Scala and Java
-        uses: olafurpg/setup-scala@v14
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
       - name: Lint code
@@ -38,34 +48,88 @@ jobs:
         run: ./mill -i -k __.mdoc
 
 
-  test:
+  test-js:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        java: ['adopt@1.11', 'adopt@1.16']
-        scala: ['2.13.10', '3.2.2']
+        java: ['11', '17']
+        scala: ['2.13.11', '3.3.0']
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v3.5.2
         with:
           fetch-depth: 0
       - name: Setup Scala and Java
-        uses: olafurpg/setup-scala@v14
+        uses: actions/setup-java@v3
         with:
+          distribution: 'temurin'
           java-version: ${{ matrix.java }}
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
 
-      - run: ./mill -i -k __.publishLocal $(pwd)/testRepo
+      - name: Run JS tests
+        run: |
+          ./mill -i -k -j 0 "morphir[${{matrix.scala}}].__.js.__.compile" + "morphir[${{matrix.scala}}].__.js.publishArtifacts" + "morphir[${{matrix.scala}}].__.js.__.test"
 
-      - name: Run tests
-        if: ${{ !startsWith(matrix.scala, '3.') }}
-        run: ./mill -i -k scalaBuild "${{matrix.scala}}" __.testCached
-      - name: Run dotty tests
-        if: ${{ startsWith(matrix.scala, '3.') }}
-        run: ./mill -i -k scalaBuild "${{matrix.scala}}" __.testCached
+  test-jvm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['11', '17']
+        scala: ['2.13.11', '3.3.0']
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v3.5.2
+        with:
+          fetch-depth: 0
+      - name: Setup Scala and Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v6
+
+      - name: Run JVM tests
+        run: |
+          ./mill -i -k -j 0 "morphir[${{matrix.scala}}].__.jvm.__.compile" + "morphir[${{matrix.scala}}].__.jvm.publishArtifacts" + "morphir[${{matrix.scala}}].__.jvm.__.test"          
+
+  test-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['11', '17']
+        scala: ['2.13.11', '3.3.0']
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v3.5.2
+        with:
+          fetch-depth: 0
+      - name: Install libuv
+        run: sudo apt-get update && sudo apt-get install -y libuv1-dev
+  
+      - name: Set up Clang
+        uses: egor-tensin/setup-clang@v1
+        with:
+          version: latest
+          platform: x64
+      - name: Setup Scala and Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v6
+
+      - name: Run Native tests
+        run: |
+          ./mill -i -k -j 0 "morphir[${{matrix.scala}}].__.native.__.compile" + "morphir[${{matrix.scala}}].__.native.publishArtifacts" + "morphir[${{matrix.scala}}].__.native.__.test"          
 
   publish-sonatype:
       # when in master repo: all commits to main branch and all additional tags
@@ -97,14 +161,15 @@ jobs:
 
       - uses: actions/setup-java@v3
         with:
-          java-version: 8
+          java-version: '11'
           distribution: temurin
-
-      - run: ./mill -i io.kipp.mill.ci.release.ReleaseModule/publishAll
+      - name: Install libuv
+        run: sudo apt-get update && sudo apt-get install -y libuv1-dev
+      - run: ./mill -i -j 0 io.kipp.mill.ci.release.ReleaseModule/publishAll
 
   ci:
     runs-on: ubuntu-latest
-    needs: [lint, check-website-build, test]
+    needs: [lint, check-website-build, test-js, test-jvm, test-native]
     steps:
       - name: Aggregate of lint, and all tests
         run: echo "ci passed"

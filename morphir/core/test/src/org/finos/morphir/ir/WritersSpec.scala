@@ -1,6 +1,5 @@
 package org.finos.morphir.ir
 
-import org.finos.morphir.prelude.*
 import org.finos.morphir.ir.Documented.Documented
 import org.finos.morphir.ir.Name.Name
 import org.finos.morphir.ir.QName.QName
@@ -15,6 +14,7 @@ import org.finos.morphir.ir.Package as P
 import org.finos.morphir.ir.Type as T
 import org.finos.morphir.ir.Value as V
 import org.finos.morphir.testing.MorphirBaseSpec
+import zio.Chunk
 import zio.test._
 import ujson.StringRenderer
 import upickle.AttributeTagged

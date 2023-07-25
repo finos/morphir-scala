@@ -1,6 +1,6 @@
 package org.finos.morphir
 
-import org.finos.morphir.prelude.*
+import zio.prelude.*
 
 package object ir {
 
