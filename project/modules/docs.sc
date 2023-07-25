@@ -1,8 +1,7 @@
 import mill._
 import mill.scalalib._
-import mill.modules.Jvm
-import mill.define.Sources
-import mill.modules.Jvm
+import mill.util.Jvm
+import mill.define.Target
 import os.Path
 
 trait MDocModule extends ScalaModule {
