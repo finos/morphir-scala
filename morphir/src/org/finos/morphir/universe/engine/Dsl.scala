@@ -1,7 +1,7 @@
 package org.finos.morphir.universe.engine
 
 import org.finos.morphir.datamodel.DataEncoder
-import org.finos.morphir.foundations.capabilities.free.Free
+import org.finos.morphir.core.capabilities.free.Free
 import org.finos.morphir.universe.ir.{Name, Type}
 import org.finos.morphir.universe.sdk.types.Basics.{Integer as MInteger, Float as MFloat}
 

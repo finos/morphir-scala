@@ -6,7 +6,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-package org.finos.morphir.foundations.capabilities
+package org.finos.morphir.core.capabilities
 
 /**
  * Ported from ZIO: https://github.com/zio/zio/blob/series/2.x/core/shared/src/main/scala/zio/Zippable.scala

@@ -1,6 +1,6 @@
 package org.finos.morphir.universe.engine
 
-import org.finos.morphir.foundations.capabilities.free.Free
+import org.finos.morphir.core.capabilities.free.Free
 import scala.collection.mutable
 import org.finos.morphir.universe.ir.Type
 import org.finos.morphir.universe.sdk.types.Basics.{Integer as MInteger, Float as MFloat}

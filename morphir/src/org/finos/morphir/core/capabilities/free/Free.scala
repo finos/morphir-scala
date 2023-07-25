@@ -1,4 +1,4 @@
-package org.finos.morphir.foundations.capabilities.free
+package org.finos.morphir.core.capabilities.free
 import scala.annotation.tailrec
 import Free.*
 sealed trait Free[F[+_, +_], +E, +A] { self =>

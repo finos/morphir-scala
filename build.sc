@@ -233,7 +233,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
         Deps.org.typelevel.`paiges-core`
       )
 
-      def platformSpecificModuleDeps = Seq(morphir.foundations)
+      def platformSpecificModuleDeps = Seq(morphir)
     }
 
     object jvm extends Shared with MorphirJVMModule {
@@ -260,7 +260,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     object facade extends CrossPlatform with CrossValue {
       trait Shared extends MorphirCommonModule with MorphirPublishModule {
 
-        def platformSpecificModuleDeps = Seq(morphir.foundations)
+        def platformSpecificModuleDeps = Seq(morphir)
       }
 
       object jvm extends Shared with MorphirJVMModule {
@@ -329,7 +329,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
             Deps.com.lihaoyi.sourcecode,
             Deps.dev.zio.prelude()
           )
-          def platformSpecificModuleDeps = Seq(foundations)
+          def platformSpecificModuleDeps = Seq(morphir)
         }
 
         object jvm extends Shared with MorphirJVMModule {

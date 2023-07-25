@@ -1,6 +1,6 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.foundations.capabilities.*
+import org.finos.morphir.core.capabilities.*
 import zio.*
 import zio.prelude.*
 object namespacing {

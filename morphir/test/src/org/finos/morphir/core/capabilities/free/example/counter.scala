@@ -1,5 +1,5 @@
-package org.finos.morphir.foundations.capabilities.free.example
-import org.finos.morphir.foundations.capabilities.free.*
+package org.finos.morphir.core.capabilities.free.example
+import org.finos.morphir.core.capabilities.free.*
 
 object counter {
   object grammar {

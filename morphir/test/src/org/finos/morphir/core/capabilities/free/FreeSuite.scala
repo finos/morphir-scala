@@ -1,10 +1,10 @@
-package org.finos.morphir.foundations.capabilities.free
+package org.finos.morphir.ore.capabilities.free
 import org.finos.morphir.testing.munit.*
 
 class FreeSuite extends MorphirTestSuite {
   describe("Free") {
     test("should be able to create a Free dsl") {
-      import org.finos.morphir.foundations.capabilities.free.example.counter
+      import org.finos.morphir.core.capabilities.free.example.counter
       import counter.dsl.*
       val program = for {
         original   <- get()
@@ -24,7 +24,7 @@ class FreeSuite extends MorphirTestSuite {
       // expectEquals(result, Right(0))
     }
     test("should be able to create a Free dsl") {
-      import org.finos.morphir.foundations.capabilities.free.example.counter
+      import org.finos.morphir.core.capabilities.free.example.counter
       import counter.dsl.*
       val program = for {
         original   <- get()
