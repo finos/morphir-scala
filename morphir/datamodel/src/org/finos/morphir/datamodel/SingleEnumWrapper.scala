@@ -14,3 +14,14 @@ case class SingleEnumWrapper(label: String, innerShape: Concept, rootPath: Parti
       Concept.Enum.Case(Label(label), EnumLabel.Empty -> innerShape)
     )
 }
+
+case class UnitEnumWrapper(label: String, rootPath: PartialName) {
+  def construct =
+    Data.Case()(label, this.concept)
+
+  def concept =
+    Concept.Enum(
+      rootPath % label,
+      Concept.Enum.Case(Label(label))
+    )
+}

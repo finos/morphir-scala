@@ -19,7 +19,7 @@ object Data {
 
   def Int(value: Int) = Int32(value)
 
-  sealed trait Basic[+A] extends Data
+  sealed trait Basic[+A]                           extends Data
   case class Boolean(value: scala.Boolean)         extends Basic[scala.Boolean]       { val shape = Concept.Boolean   }
   case class Byte(value: scala.Byte)               extends Basic[Byte]                { val shape = Concept.Byte      }
   case class Decimal(value: scala.BigDecimal)      extends Basic[scala.BigDecimal]    { val shape = Concept.Decimal   }
@@ -33,17 +33,18 @@ object Data {
   case class Char(value: scala.Char)               extends Basic[scala.Char]          { val shape = Concept.Char      }
   case object Unit                                 extends Basic[scala.Unit]          { val shape = Concept.Unit      }
 
-  object Boolean {}
-  object Byte {}
-  object Decimal {}
-  object Integer {}
-  object Int16 {}
-  object Int32 {}
-  object String {}
+  // Needed for Scala 3 extension methods to work
+  object Boolean   {}
+  object Byte      {}
+  object Decimal   {}
+  object Integer   {}
+  object Int16     {}
+  object Int32     {}
+  object String    {}
   object LocalDate {}
-  object Month {}
+  object Month     {}
   object LocalTime {}
-  object Char {}
+  object Char      {}
 
   /**
    * See notes on Concept.Enum for information on how this type is modelled
