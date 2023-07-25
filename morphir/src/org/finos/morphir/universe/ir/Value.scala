@@ -1,20 +1,14 @@
 package org.finos.morphir.universe.ir
 
-import org.finos.morphir.universe.ir.Literal as Lit
+import org.finos.morphir.universe.ir.{Literal => Lit}
 import zio.Chunk
 
 sealed trait Value[+TA, +VA] {
   def attributes: VA
 }
 
-object Value extends ValueVersionSpecific {
-  import Pattern.*
-
-  final case class Definition[+TA, +VA](inputTypes: Chunk[Parameter[TA, VA]], outputType: Type[TA], body: Value[TA, VA])
-  final case class Specification[+TA](inputs: Chunk[SpecParameter[TA]], outputs: Type[TA]) { self =>
-    def map[TB](f: TA => TB): Specification[TB] =
-      Specification(inputs.map(_.map(f)), outputs.map(f))
-  }
+object Value {
+  import Pattern._
 
   final case class Apply[+TA, +VA](attributes: VA, function: Value[TA, VA], argument: Value[TA, VA])
       extends Value[TA, VA]
@@ -40,12 +34,12 @@ object Value extends ValueVersionSpecific {
   sealed case class LetDefinition[+TA, +VA](
       attributes: VA,
       valueName: Name,
-      valueDefinition: Definition[TA, VA],
+      valueDefinition: ValueDefinition[TA, VA],
       inValue: Value[TA, VA]
   ) extends Value[TA, VA]
   sealed case class LetRecursion[+TA, +VA](
       attributes: VA,
-      valueDefinitions: Map[Name, Definition[TA, VA]],
+      valueDefinitions: Map[Name, ValueDefinition[TA, VA]],
       inValue: Value[TA, VA]
   ) extends Value[TA, VA]
   final case class List[+TA, +VA](attributes: VA, items: Chunk[Value[TA, VA]]) extends Value[TA, VA]
