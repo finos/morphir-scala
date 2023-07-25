@@ -17,17 +17,12 @@ trait Deriver[T] {
   def concept: Concept
 }
 
-trait SpecificDeriver[T] extends Deriver[T] {
-  def derive(value: T): Data
-  def concept: Concept
-}
-
 object Deriver {
   import DeriverTypes._
   import DeriverMacros._
 
   inline def toData[T](value: T): Data = {
-    import org.finos.morphir.datamodel.Derivers.{given, _}
+    import org.finos.morphir.datamodel.{given, _}
     val deriver = Deriver.gen[T]
     deriver.derive(value)
   }

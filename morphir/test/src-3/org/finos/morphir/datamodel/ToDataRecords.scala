@@ -5,6 +5,7 @@ import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, PartialName}
 import org.finos.morphir.datamodel.namespacing.PackageName.root
 import org.finos.morphir.datamodel.namespacing.Namespace.ns
+import org.finos.morphir.datamodel.{*, given}
 
 class ToDataRecords extends munit.FunSuite {
   val gns: PartialName = root / "morphir" :: ns / "datamodel"

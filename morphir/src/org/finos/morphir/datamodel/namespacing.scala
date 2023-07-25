@@ -35,6 +35,7 @@ object namespacing {
       def /(namespace: Namespace): Namespace = Namespace(unwrap(self) ++ unwrap(namespace))
     }
   }
+  val ns = Namespace.ns
 
   type LocalName = LocalName.Type
   object LocalName extends Subtype[String] {
@@ -74,6 +75,7 @@ object namespacing {
       def /(namespace: PackageName): PackageName   = PackageName(unwrap(self) ++ unwrap(namespace))
     }
   }
+  val root = PackageName.root
 
   final case class QualifiedName(pack: PackageName, namespace: Namespace, localName: LocalName) { self =>
     override def toString: String = s"${pack}::${namespace.show}::${localName.value}"

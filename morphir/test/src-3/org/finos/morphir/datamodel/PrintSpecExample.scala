@@ -1,6 +1,6 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.datamodel.Derivers.{*, given}
+import org.finos.morphir.datamodel.{*, given}
 
 object PrintSpecExample {
   import EnumGns._

@@ -49,9 +49,9 @@ Morphir-jvm use [mill](https://com-lihaoyi.github.io/mill) as its build tool.
 If you are using IntelliJ IDEA to edit morphir-jvm's Scala code, you can create the
 IntelliJ project files via:
 
-```bash
+````bash
 ./mill mill.scalalib.GenIdea/idea
-```
+````
 
 ### BSP Setup
 
