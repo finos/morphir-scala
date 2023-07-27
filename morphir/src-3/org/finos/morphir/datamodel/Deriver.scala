@@ -13,6 +13,7 @@ import org.finos.morphir.datamodel.Concept
 import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, PackageName, PartialName, QualifiedName}
 
 trait Deriver[T] {
+  final def apply(value: T): Data = encode(value)
   def derive(value: T): Data
   def concept: Concept
 }
@@ -159,6 +160,9 @@ object Deriver {
     } else {
       errorOnType[T]("The following type is not a valid enum and there is no specific deriver defined for it")
     }
+
+    // Needed so you can do the syntax `case class Foo(...) derives Deriver`
+  inline def derived[T]: Deriver[T] = gen[T]
 
   // TODO When making a product deriver, make sure to exclude Option[T] since
   //      we want a specific deriver for that, not a generic one.

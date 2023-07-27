@@ -123,8 +123,4 @@ given mapDeriver[K, V](using
   def derive(value: Map[K, V]): Data = linkedMapDeriver[K, V].derive(LinkedHashMap.from(value))
   def concept: Concept               = linkedMapDeriver[K, V].concept
 
-implicit inline def autoProductDeriver[T <: Product]: GenericProductDeriver[T] =
-  GenericProductDeriver.gen[T]
-
-implicit inline def autoSumDeriver[T]: GenericSumDeriver[T] =
-  GenericSumDeriver.gen[T]
+implicit inline def autoDeriver[T]: Deriver[T] = Deriver.gen[T]
