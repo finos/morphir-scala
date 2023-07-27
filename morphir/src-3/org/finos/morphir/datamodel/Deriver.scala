@@ -13,7 +13,7 @@ import org.finos.morphir.datamodel.Concept
 import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, PackageName, PartialName, QualifiedName}
 
 trait Deriver[T] {
-  final def apply(value: T): Data = encode(value)
+  final def apply(value: T): Data = derive(value)
   def derive(value: T): Data
   def concept: Concept
 }
