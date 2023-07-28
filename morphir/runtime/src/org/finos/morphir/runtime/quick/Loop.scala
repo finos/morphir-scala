@@ -6,7 +6,15 @@ import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
 import org.finos.morphir.ir.{FQName, Name}
 import Helpers.{listToTuple, matchPatternCase, unpackLit}
 import SDKValue.{SDKNativeFunction, SDKNativeValue}
-import org.finos.morphir.runtime.{ConstructorNotFound, DefinitionNotFound, FunctionWithoutParameters, MissingField, UnexpectedType, UnmatchedPattern, VariableNotFound}
+import org.finos.morphir.runtime.{
+  ConstructorNotFound,
+  DefinitionNotFound,
+  FunctionWithoutParameters,
+  MissingField,
+  UnexpectedType,
+  UnmatchedPattern,
+  VariableNotFound
+}
 
 object Loop {
   def loop[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Result[TA, VA] =

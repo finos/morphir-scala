@@ -28,7 +28,7 @@ object EvaluatorQuick {
 
   type IntType = Long
 
-  //def evaluate[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Any = Result.unwrap(Loop.loop(ir, store))
+  // def evaluate[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Any = Result.unwrap(Loop.loop(ir, store))
 
 //  def evalFunction(entryFQName: FQName, store: Store[Unit, Type.UType], input: Any): Any = {
 //    val ir        = scalaToIR(input)
@@ -51,7 +51,7 @@ object EvaluatorQuick {
 //    resultToMDM(result, tpe, dist)
 //  }
 
-  private[runtime] def eval(value : Value[Unit, Type.UType], store : Store[Unit, Type.UType], library : Library) : Data = {
+  private[runtime] def eval(value: Value[Unit, Type.UType], store: Store[Unit, Type.UType], library: Library): Data = {
     val result = Loop.loop(value, store)
     resultToMDM(result, value.attributes, library)
   }
