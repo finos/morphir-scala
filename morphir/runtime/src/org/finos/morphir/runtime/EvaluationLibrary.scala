@@ -6,16 +6,23 @@ import V.*
 import V.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Type as T
 import org.finos.morphir.ir.{FQName, Module, Name, QName, Type}
-import org.finos.morphir.runtime.quick.{EvaluatorQuick, Store}
+import org.finos.morphir.runtime.quick.{EvaluatorQuick, QuickMorphirRuntime, Store}
 import org.finos.morphir.ir.Distribution.Distribution.Library
+import org.finos.morphir.ir.conversion.*
+import org.finos.morphir.datamodel.Util.*
+import org.finos.morphir.datamodel.{:: as _, *}
+import org.finos.morphir.ir.Type.UType
 
-case class EvaluationLibrary(store: Store[Unit, Type.UType], modulePrefix: Option[String], distribution: Library) {
-  def runTest(moduleName: String, functionName: String, input: Any): Any = {
-    val fullName = modulePrefix match {
-      case Some(prefix) => s"$prefix:$moduleName:$functionName"
-      case None         => s"$moduleName:$functionName"
+case class EvaluationLibrary(runtime :MorphirRuntime[Either, scala.Unit, UType], modulePrefix: Option[String]) {
+
+  def deriveData(input: Any): Data = {
+    input match {
+      case u: Unit => Deriver.toData(u)
+      case i: Int => Deriver.toData(i)
+      case s: String => Deriver.toData(s)
+      case (i: Int, s: String) => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
+      case other => throw new Exception(s"Couldn't derive $other")
     }
-    EvaluatorQuick.evalFunction(FQName.fromString(fullName), store, input)
   }
 
   def runTestDDL(moduleName: String, functionName: String, input: Any): Any = {
@@ -23,7 +30,12 @@ case class EvaluationLibrary(store: Store[Unit, Type.UType], modulePrefix: Optio
       case Some(prefix) => s"$prefix:$moduleName:$functionName"
       case None         => s"$moduleName:$functionName"
     }
-    EvaluatorQuick.evalFunctionToDDL(FQName.fromString(fullName), store, input, distribution)
+    val derived = deriveData(input)
+    val res = runtime.evaluate(FQName.fromString(fullName), derived)
+    res match{
+      case Right(res) => res
+      case Left(error) => throw error
+    }
   }
 }
 object EvaluationLibrary extends EvaluationLibraryPlatformSpecific {}
