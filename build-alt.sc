@@ -289,7 +289,7 @@ trait MorphirModule extends CrossModuleBase { morphirModule =>
             def ivyDeps = T(
               super.ivyDeps() ++ Agg(
                 dev.zio.`zio-json-golden`,
-                ivy"io.github.deblockt:json-diff:0.0.5",
+                ivy"io.github.deblockt:json-diff:0.0.6",
                 dev.zio.`zio-process`
               )
             )
