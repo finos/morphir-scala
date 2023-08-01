@@ -25,14 +25,11 @@ import org.finos.morphir.ir.module.{
 
 import scala.annotation.nowarn
 
-trait MorphirJsonDecodingSupportV1 {
-  implicit val unitDecoder: JsonDecoder[Unit] = JsonDecoder.list[String].mapOrFail {
-    case a if a.isEmpty => Right(())
-    case a              => Left(s"Expected empty list, got [${a.mkString(", ")}]")
-  }
+trait MorphirJsonDecodingSupportV2 {
+  implicit val unitDecoder: JsonDecoder[Unit]               = Json.decoder.map(_ => ())
   implicit val nameDecoder: JsonDecoder[Name]               = JsonDecoder.list[String].map(Name.fromList)
   implicit val pathDecoder: JsonDecoder[Path]               = JsonDecoder.list[Name].map(Path.fromList)
-  implicit val moduleNameDecoder: JsonDecoder[ModuleName]   = pathDecoder.map(ModuleName(_))
+  implicit val modulePathDecoder: JsonDecoder[ModuleName]   = pathDecoder.map(ModuleName(_))
   implicit val packageNameDecoder: JsonDecoder[PackageName] = pathDecoder.map(PackageName(_))
   implicit val qNameDecoder: JsonDecoder[QName]             = JsonDecoder.tuple2[Path, Name].map(QName.fromTuple)
   implicit val fqNameDecoder: JsonDecoder[FQName] = JsonDecoder.tuple3[PackageName, ModuleName, Name].map {
@@ -43,41 +40,40 @@ trait MorphirJsonDecodingSupportV1 {
     JsonDecoder.tuple2[Path, Name].map { case (namespace, localName) =>
       QualifiedModuleName(namespace, localName)
     }
-
   implicit def literalBoolDecoder: JsonDecoder[BoolLiteral] =
     JsonDecoder.tuple2[String, Boolean].mapOrFail {
-      case ("bool_literal", value) => Right(BoolLiteral(value))
-      case (other, value)          => Left(s"Expected bool_literal, got $other with value $value")
+      case ("BoolLiteral", value) => Right(BoolLiteral(value))
+      case (other, value)         => Left(s"Expected BoolLiteral, got $other with value $value")
     }
 
   implicit def literalCharDecoder: JsonDecoder[CharLiteral] =
     JsonDecoder.tuple2[String, Char].mapOrFail {
-      case ("char_literal", value) => Right(CharLiteral(value))
-      case (other, value)          => Left(s"Expected char_literal, got $other with value $value")
+      case ("CharLiteral", value) => Right(CharLiteral(value))
+      case (other, value)         => Left(s"Expected CharLiteral, got $other with value $value")
     }
 
   implicit def literalDecimalDecoder: JsonDecoder[DecimalLiteral] =
     JsonDecoder.tuple2[String, java.math.BigDecimal].mapOrFail {
-      case ("decimal_literal", value) => Right(DecimalLiteral(value))
-      case (other, value)             => Left(s"Expected decimal_literal, got $other with value $value")
+      case ("DecimalLiteral", value) => Right(DecimalLiteral(value))
+      case (other, value)            => Left(s"Expected DecimalLiteral, got $other with value $value")
     }
 
   implicit def literalFloatDecoder: JsonDecoder[FloatLiteral] =
     JsonDecoder.tuple2[String, Double].mapOrFail {
-      case ("float_literal", value) => Right(FloatLiteral(value))
-      case (other, value)           => Left(s"Expected float_literal, got $other with value $value")
+      case ("FloatLiteral", value) => Right(FloatLiteral(value))
+      case (other, value)          => Left(s"Expected FloatLiteral, got $other with value $value")
     }
 
   implicit def literalStringDecoder: JsonDecoder[StringLiteral] =
     JsonDecoder.tuple2[String, String].mapOrFail {
-      case ("string_literal", value) => Right(StringLiteral(value))
-      case (other, value)            => Left(s"Expected string_literal, got $other with value $value")
+      case ("StringLiteral", value) => Right(StringLiteral(value))
+      case (other, value)           => Left(s"Expected StringLiteral, got $other with value $value")
     }
 
   implicit def literalWholeNumberDecoder: JsonDecoder[WholeNumberLiteral] =
     JsonDecoder.tuple2[String, Long].mapOrFail {
-      case ("int_literal", value) => Right(WholeNumberLiteral(value))
-      case (other, value)         => Left(s"Expected int_literal, got $other with value $value")
+      case ("WholeNumberLiteral", value) => Right(WholeNumberLiteral(value))
+      case (other, value)                => Left(s"Expected WholeNumberLiteral, got $other with value $value")
     }
 
   implicit def literalDecoder: JsonDecoder[Literal] =
@@ -88,88 +84,95 @@ trait MorphirJsonDecodingSupportV1 {
       literalStringDecoder.widen[Literal] orElse
       literalWholeNumberDecoder.widen[Literal]
 
-  implicit def fieldDecoder[A: JsonDecoder]: JsonDecoder[Field[A]] =
-    JsonDecoder.tuple2[Name, A].map { case (name, fieldType) => Field(name, fieldType) }
+  implicit def fieldDecoder[A: JsonDecoder]: JsonDecoder[Field[A]] = {
+    final case class FieldLike[A](name: Name, tpe: A)
+    lazy val dec: JsonDecoder[FieldLike[A]] = DeriveJsonDecoder.gen
+    dec.map(f => Field(f.name, f.tpe))
+  }
 
-  implicit def documentedDecoder[A: JsonDecoder]: JsonDecoder[Documented[A]] =
-    JsonDecoder.tuple2[String, A].map { case (doc, value) => Documented(doc, value) }
+  implicit def documentedDecoder[A: JsonDecoder]: JsonDecoder[Documented[A]] = {
+    lazy val decoder: JsonDecoder[Documented[A]] = DeriveJsonDecoder.gen
+    decoder
+  }
 
-  implicit def accessControlledDecoder[A: JsonDecoder]: JsonDecoder[AccessControlled[A]] =
-    JsonDecoder.tuple2[String, A].map { case (access, value) =>
-      AccessControlled(
-        access match {
-          case "public"  => AccessControlled.Access.Public
-          case "private" => AccessControlled.Access.Private
-        },
-        value
-      )
+  implicit def accessDecoder: JsonDecoder[AccessControlled.Access] =
+    JsonDecoder.string.map { access =>
+      access match {
+        case "Public"  => AccessControlled.Access.Public
+        case "Private" => AccessControlled.Access.Private
+      }
     }
+
+  implicit def accessControlledDecoder[A: JsonDecoder]: JsonDecoder[AccessControlled[A]] = {
+    lazy val dec: JsonDecoder[AccessControlled[A]] = DeriveJsonDecoder.gen
+    dec
+  }
 
   implicit def extensibleRecordCaseTypeDecoder[A: JsonDecoder]: JsonDecoder[Type.ExtensibleRecord[A]] =
     JsonDecoder.tuple4[String, A, Name, Chunk[Field[Type[A]]]].mapOrFail {
-      case ("extensible_record", attributes, name, fields) =>
+      case ("ExtensibleRecord", attributes, name, fields) =>
         Right(Type.ExtensibleRecord(attributes, name, fields))
       case (other, attributes, name, fields) =>
-        Left(s"Expected extensible_record, got $other with attributes: $attributes, name: $name and fields: $fields")
+        Left(s"Expected ExtensibleRecord, got $other with attributes: $attributes, name: $name and fields: $fields")
     }
 
   implicit def functionCaseTypeDecoder[A: JsonDecoder]: JsonDecoder[Type.Function[A]] =
     JsonDecoder.tuple4[String, A, Type[A], Type[A]].mapOrFail {
-      case ("function", attributes, argumentType, returnType) =>
+      case ("Function", attributes, argumentType, returnType) =>
         Right(Type.Function(attributes, argumentType, returnType))
       case (other, attributes, argumentType, returnType) =>
         Left(
-          s"Expected function, got $other with attributes: $attributes, argumentType: $argumentType and returnType: $returnType"
+          s"Expected Function, got $other with attributes: $attributes, argumentType: $argumentType and returnType: $returnType"
         )
     }
 
   implicit def recordCaseTypeDecoder[A: JsonDecoder]: JsonDecoder[Type.Record[A]] =
     JsonDecoder.tuple3[String, A, Chunk[Field[Type[A]]]].mapOrFail {
-      case ("record", attributes, fields) =>
+      case ("Record", attributes, fields) =>
         Right(Type.Record(attributes, fields))
       case (other, attributes, fields) =>
         Left(
-          s"Expected record, got $other with attributes: $attributes and fields: $fields"
+          s"Expected Record, got $other with attributes: $attributes and fields: $fields"
         )
     }
 
   implicit def referenceCaseTypeDecoder[A: JsonDecoder]: JsonDecoder[Type.Reference[A]] =
     JsonDecoder.tuple4[String, A, FQName, Chunk[Type[A]]].mapOrFail {
-      case ("reference", attributes, typeName, typeParams) =>
+      case ("Reference", attributes, typeName, typeParams) =>
         Right(Type.Reference(attributes, typeName, typeParams))
       case (other, attributes, typeName, typeParams) =>
         Left(
-          s"Expected reference, got $other with attributes: $attributes, typeName: $typeName and typeParams: $typeParams"
+          s"Expected Reference, got $other with attributes: $attributes, typeName: $typeName and typeParams: $typeParams"
         )
     }
 
   implicit def tupleCaseTypeDecoder[A: JsonDecoder]: JsonDecoder[Type.Tuple[A]] =
     JsonDecoder.tuple3[String, A, Chunk[Type[A]]].mapOrFail {
-      case ("tuple", attributes, elements) =>
+      case ("Tuple", attributes, elements) =>
         Right(Type.Tuple(attributes, elements))
       case (other, attributes, elements) =>
         Left(
-          s"Expected tuple, got $other with attributes: $attributes and elements: $elements"
+          s"Expected Tuple, got $other with attributes: $attributes and elements: $elements"
         )
     }
 
   implicit def unitCaseTypeDecoder[A: JsonDecoder]: JsonDecoder[Type.Unit[A]] =
     JsonDecoder.tuple2[String, A].mapOrFail {
-      case ("unit", attributes) =>
+      case ("Unit", attributes) =>
         Right(Type.Unit(attributes))
       case (other, attributes) =>
         Left(
-          s"Expected unit, got $other with attributes: $attributes"
+          s"Expected Unit, got $other with attributes: $attributes"
         )
     }
 
   implicit def variableCaseTypeDecoder[A: JsonDecoder]: JsonDecoder[Type.Variable[A]] =
     JsonDecoder.tuple3[String, A, Name].mapOrFail {
-      case ("variable", attributes, name) =>
+      case ("Variable", attributes, name) =>
         Right(Type.Variable(attributes, name))
       case (other, attributes, name) =>
         Left(
-          s"Expected variable, got $other with attributes: $attributes and name: $name"
+          s"Expected Variable, got $other with attributes: $attributes and name: $name"
         )
     }
 
@@ -191,18 +194,18 @@ trait MorphirJsonDecodingSupportV1 {
 
   implicit def typeDefinitionTypeAliasDecoder[A: JsonDecoder]: JsonDecoder[TypeDefinition.TypeAlias[A]] =
     JsonDecoder.tuple3[String, Chunk[Name], Type[A]].mapOrFail {
-      case ("type_alias_definition", typeParams, typeExp) =>
+      case ("TypeAliasDefinition", typeParams, typeExp) =>
         Right(TypeDefinition.TypeAlias(typeParams, typeExp))
       case (other, typeParams, typeExp) =>
-        Left(s"Expected type_alias_definition, got $other with typeParams: $typeParams and typeExp: $typeExp")
+        Left(s"Expected TypeAliasDefinition, got $other with typeParams: $typeParams and typeExp: $typeExp")
     }
 
   implicit def typeDefinitionCustomTypeDecoder[A: JsonDecoder]: JsonDecoder[TypeDefinition.CustomType[A]] =
     JsonDecoder.tuple3[String, Chunk[Name], AccessControlled[Constructors[A]]].mapOrFail {
-      case ("custom_type_definition", typeParams, ctors) =>
+      case ("CustomTypeDefinition", typeParams, ctors) =>
         Right(TypeDefinition.CustomType(typeParams, ctors))
       case (other, typeParams, ctors) =>
-        Left(s"Expected type_alias_definition, got $other with typeParams: $typeParams and ctors: $ctors")
+        Left(s"Expected CustomTypeDefinition, got $other with typeParams: $typeParams and ctors: $ctors")
     }
 
   implicit def typeDefinitionDecoder[A: JsonDecoder]: JsonDecoder[TypeDefinition[A]] =
@@ -212,27 +215,27 @@ trait MorphirJsonDecodingSupportV1 {
   implicit def typeSpecificationTypeAliasDecoder[A: JsonDecoder]
       : JsonDecoder[TypeSpecification.TypeAliasSpecification[A]] =
     JsonDecoder.tuple3[String, Chunk[Name], Type[A]].mapOrFail {
-      case ("type_alias_specification", typeParams, expr) =>
+      case ("TypeAliasSpecification", typeParams, expr) =>
         Right(TypeSpecification.TypeAliasSpecification(typeParams, expr))
       case (other, typeParams, expr) =>
-        Left(s"Expected type_alias_specification, got $other with typeParams: $typeParams and expr: $expr")
+        Left(s"Expected TypeAliasSpecification, got $other with typeParams: $typeParams and expr: $expr")
     }
 
   implicit def typeSpecificationOpaqueTypeDecoder: JsonDecoder[TypeSpecification.OpaqueTypeSpecification] =
     JsonDecoder.tuple2[String, Chunk[Name]].mapOrFail {
-      case ("opaque_type_specification", typeParams) =>
+      case ("OpaqueTypeSpecification", typeParams) =>
         Right(TypeSpecification.OpaqueTypeSpecification(typeParams))
       case (other, typeParams) =>
-        Left(s"Expected opaque_type_specification, got $other with typeParams: $typeParams")
+        Left(s"Expected OpaqueTypeSpecification, got $other with typeParams: $typeParams")
     }
 
   implicit def typeSpecificationCustomTypeDecoder[A: JsonDecoder]
       : JsonDecoder[TypeSpecification.CustomTypeSpecification[A]] =
     JsonDecoder.tuple3[String, Chunk[Name], Constructors[A]].mapOrFail {
-      case ("custom_type_specification", typeParams, ctors) =>
+      case ("CustomTypeSpecification", typeParams, ctors) =>
         Right(TypeSpecification.CustomTypeSpecification(typeParams, ctors))
       case (other, typeParams, ctors) =>
-        Left(s"Expected custom_type_specification, got $other with typeParams: $typeParams and ctors: $ctors")
+        Left(s"Expected CustomTypeSpecification, got $other with typeParams: $typeParams and ctors: $ctors")
     }
 
   implicit def typeSpecificationDecoder[A: JsonDecoder]: JsonDecoder[TypeSpecification[A]] =
@@ -355,24 +358,16 @@ trait MorphirJsonDecodingSupportV1 {
 
   // final case class Specification[+TA](modules: Map[ModuleName, ModuleSpec[TA]]) {
   implicit def packageModuleSpecificationDecoder[TA: JsonDecoder]: JsonDecoder[PackageSpecification[TA]] = {
-    final case class Module[TA](name: ModuleName, spec: ModuleSpecification[TA])
-    final case class Spec[TA](modules: List[Module[TA]])
-
-    implicit val modDec: JsonDecoder[Module[TA]] = DeriveJsonDecoder.gen
-    lazy val _                                   = modDec // This is to suppress unused local val warning
-    lazy val dec: JsonDecoder[Spec[TA]]          = DeriveJsonDecoder.gen
-    dec.map(s => PackageSpecification(s.modules.map(m => m.name -> m.spec).toMap))
+    final case class Spec[TA](modules: List[(ModuleName, ModuleSpecification[TA])])
+    lazy val dec: JsonDecoder[Spec[TA]] = DeriveJsonDecoder.gen
+    dec.map(s => PackageSpecification(s.modules.map(m => m._1 -> m._2).toMap))
   }
 
   implicit def packageModuleDefinitionDecoder[TA: JsonDecoder, VA: JsonDecoder]
       : JsonDecoder[PackageDefinition[TA, VA]] = {
-    final case class Module[TA, VA](name: ModuleName, `def`: AccessControlled[ModuleDefinition[TA, VA]])
-    final case class Spec[TA, VA](modules: List[Module[TA, VA]])
-
-    implicit val modDec: JsonDecoder[Module[TA, VA]] = DeriveJsonDecoder.gen
-    lazy val _                                       = modDec // This is to suppress unused local val warning
-    lazy val dec: JsonDecoder[Spec[TA, VA]]          = DeriveJsonDecoder.gen
-    dec.map(d => PackageDefinition(d.modules.map(m => m.name -> m.`def`).toMap))
+    final case class Spec[TA, VA](modules: List[(ModuleName, AccessControlled[ModuleDefinition[TA, VA]])])
+    lazy val dec: JsonDecoder[Spec[TA, VA]] = DeriveJsonDecoder.gen
+    dec.map(d => PackageDefinition(d.modules.map(m => m._1 -> m._2).toMap))
   }
 
   //   sealed case class Apply[+TA, +VA](attributes: VA, function: Value[TA, VA], argument: Value[TA, VA]) extends Value[TA, VA]
@@ -598,11 +593,11 @@ trait MorphirJsonDecodingSupportV1 {
     JsonDecoder
       .tuple4[String, PackageName, List[(PackageName, UPackageSpecification)], PackageDefinition.Typed]
       .mapOrFail {
-        case ("library", packageName, dependencies, packageDef) =>
+        case ("Library", packageName, dependencies, packageDef) =>
           Right(Library(packageName, dependencies.toMap, packageDef))
         case (other, packageName, dependencies, packageDef) =>
           Left(
-            s"Expected library, got $other with packageName: $packageName, dependencies: $dependencies and packageDef: $packageDef"
+            s"Expected Library, got $other with packageName: $packageName, dependencies: $dependencies and packageDef: $packageDef"
           )
       }
 
@@ -622,4 +617,4 @@ trait MorphirJsonDecodingSupportV1 {
   }
 }
 
-object MorphirJsonDecodingSupportV1 extends MorphirJsonDecodingSupportV1
+object MorphirJsonDecodingSupportV2 extends MorphirJsonDecodingSupportV2

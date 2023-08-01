@@ -24,7 +24,7 @@ import org.finos.morphir.ir.module.{
   Specification => ModuleSpecification
 }
 
-trait MorphirJsonEncodingSupport extends JsonEncodingHelpers {
+trait MorphirJsonEncodingSupportV2 extends JsonEncodingHelpers {
   implicit val unitEncoder: JsonEncoder[Unit] = Json.encoder.contramap(_ => Json.Obj())
   implicit val nameEncoder: JsonEncoder[Name] = JsonEncoder.list[String].contramap(name => name.toList)
   implicit val pathEncoder: JsonEncoder[Path] = JsonEncoder.list[Name].contramap(path => path.segments.toList)
@@ -97,45 +97,45 @@ trait MorphirJsonEncodingSupport extends JsonEncodingHelpers {
 
   implicit def patternAsPatternEncoder[A: JsonEncoder]: JsonEncoder[Pattern.AsPattern[A]] =
     JsonEncoder.tuple4[String, A, Pattern[A], Name].contramap { case Pattern.AsPattern(attributes, pattern, name) =>
-      ("AsPattern", attributes, pattern, name)
+      ("as_pattern", attributes, pattern, name)
     }
 
   implicit def patternConstructorPatternEncoder[A: JsonEncoder]: JsonEncoder[Pattern.ConstructorPattern[A]] =
     JsonEncoder.tuple4[String, A, FQName, Chunk[Pattern[A]]].contramap {
       case Pattern.ConstructorPattern(attributes, constructorName, argumentPatterns) =>
-        ("ConstructorPattern", attributes, constructorName, argumentPatterns)
+        ("constructor_pattern", attributes, constructorName, argumentPatterns)
     }
 
   implicit def patternEmptyListPatternEncoder[A: JsonEncoder]: JsonEncoder[Pattern.EmptyListPattern[A]] =
     JsonEncoder.tuple2[String, A].contramap { case Pattern.EmptyListPattern(attributes) =>
-      ("EmptyListPattern", attributes)
+      ("empty_list_pattern", attributes)
     }
 
   implicit def patternHeadTailPatternEncoder[A: JsonEncoder]: JsonEncoder[Pattern.HeadTailPattern[A]] =
     JsonEncoder.tuple4[String, A, Pattern[A], Pattern[A]].contramap {
       case Pattern.HeadTailPattern(attributes, headPattern, tailPattern) =>
-        ("HeadTailPattern", attributes, headPattern, tailPattern)
+        ("head_tail_pattern", attributes, headPattern, tailPattern)
     }
 
   implicit def patternLiteralPatternEncoder[A: JsonEncoder]: JsonEncoder[Pattern.LiteralPattern[A]] =
     JsonEncoder.tuple3[String, A, Literal].contramap { case Pattern.LiteralPattern(attributes, literal) =>
-      ("LiteralPattern", attributes, literal)
+      ("literal_pattern", attributes, literal)
     }
 
   implicit def patternTuplePatternEncoder[A: JsonEncoder]: JsonEncoder[Pattern.TuplePattern[A]] =
     JsonEncoder.tuple3[String, A, Chunk[Pattern[A]]].contramap {
       case Pattern.TuplePattern(attributes, elementPatterns) =>
-        ("TuplePattern", attributes, elementPatterns)
+        ("tuple_pattern", attributes, elementPatterns)
     }
 
   implicit def patternUnitPatternEncoder[A: JsonEncoder]: JsonEncoder[Pattern.UnitPattern[A]] =
     JsonEncoder.tuple2[String, A].contramap { case Pattern.UnitPattern(attributes) =>
-      ("UnitPattern", attributes)
+      ("unit_pattern", attributes)
     }
 
   implicit def patternWildcardPatternEncoder[A: JsonEncoder]: JsonEncoder[Pattern.WildcardPattern[A]] =
     JsonEncoder.tuple2[String, A].contramap { case Pattern.WildcardPattern(attributes) =>
-      ("WildcardPattern", attributes)
+      ("wildcard_pattern", attributes)
     }
 
   implicit def patternEncoder[A: JsonEncoder]: JsonEncoder[Pattern[A]] =
@@ -267,46 +267,46 @@ trait MorphirJsonEncodingSupport extends JsonEncodingHelpers {
   implicit def applyValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder]: JsonEncoder[Value.Apply[TA, VA]] =
     JsonEncoder.tuple4[String, VA, Value[TA, VA], Value[TA, VA]].contramap {
       case Value.Apply(attributes, function, argument) =>
-        ("Apply", attributes, function, argument)
+        ("apply", attributes, function, argument)
     }
 
   //   sealed case class Constructor[+VA](attributes: VA, name: FQName) extends Value[Nothing, VA]
   implicit def constructorValueJsonEncoder[VA: JsonEncoder]: JsonEncoder[Value.Constructor[VA]] =
     JsonEncoder.tuple3[String, VA, FQName].contramap { case Value.Constructor(attributes, name) =>
-      ("Constructor", attributes, name)
+      ("constructor", attributes, name)
     }
 
   //   sealed case class Destructure[+TA, +VA](attributes: VA, pattern: Pattern[VA], valueToDestruct: Value[TA, VA], inValue: Value[TA, VA]) extends Value[TA, VA]
   implicit def destructureValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder]: JsonEncoder[Value.Destructure[TA, VA]] =
     JsonEncoder.tuple5[String, VA, Pattern[VA], Value[TA, VA], Value[TA, VA]].contramap {
       case Value.Destructure(attributes, pattern, valueToDestruct, inValue) =>
-        ("Destructure", attributes, pattern, valueToDestruct, inValue)
+        ("destructure", attributes, pattern, valueToDestruct, inValue)
     }
 
   //   sealed case class Field[+TA, +VA](attributes: VA, subjectValue: Value[TA, VA], fieldName: Name) extends Value[TA, VA]
   implicit def fieldValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder]: JsonEncoder[Value.Field[TA, VA]] =
     JsonEncoder.tuple4[String, VA, Value[TA, VA], Name].contramap {
       case Value.Field(attributes, subjectValue, fieldName) =>
-        ("Field", attributes, subjectValue, fieldName)
+        ("field", attributes, subjectValue, fieldName)
     }
 
   //   sealed case class FieldFunction[+VA](attributes: VA, name: Name) extends Value[Nothing, VA]
   implicit def fieldFunctionValueJsonEncoder[VA: JsonEncoder]: JsonEncoder[Value.FieldFunction[VA]] =
     JsonEncoder.tuple3[String, VA, Name].contramap { case Value.FieldFunction(attributes, name) =>
-      ("FieldFunction", attributes, name)
+      ("field_function", attributes, name)
     }
 
   //   sealed case class IfThenElse[+TA, +VA](attributes: VA, condition: Value[TA, VA], thenBranch: Value[TA, VA], elseBranch: Value[TA, VA]) extends Value[TA, VA]
   implicit def ifThenElseValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder]: JsonEncoder[Value.IfThenElse[TA, VA]] =
     JsonEncoder.tuple5[String, VA, Value[TA, VA], Value[TA, VA], Value[TA, VA]].contramap {
       case Value.IfThenElse(attributes, condition, thenBranch, elseBranch) =>
-        ("IfThenElse", attributes, condition, thenBranch, elseBranch)
+        ("if_then_else", attributes, condition, thenBranch, elseBranch)
     }
 
   //   sealed case class Lambda[+TA, +VA](attributes: VA, argumentPattern: Pattern[VA], body: Value[TA, VA])  extends Value[TA, VA]
   implicit def lambdaValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder]: JsonEncoder[Value.Lambda[TA, VA]] =
     JsonEncoder.tuple4[String, VA, Pattern[VA], Value[TA, VA]].contramap {
-      case Value.Lambda(attributes, argumentPattern, body) => ("Lambda", attributes, argumentPattern, body)
+      case Value.Lambda(attributes, argumentPattern, body) => ("lambda", attributes, argumentPattern, body)
     }
 
   //   sealed case class LetDefinition[+TA, +VA](attributes: VA, valueName: Name, valueDefinition: Definition[TA, VA], inValue: Value[TA, VA]) extends Value[TA, VA]
@@ -314,69 +314,69 @@ trait MorphirJsonEncodingSupport extends JsonEncodingHelpers {
       : JsonEncoder[Value.LetDefinition[TA, VA]] =
     JsonEncoder.tuple5[String, VA, Name, ValueDefinition[TA, VA], Value[TA, VA]].contramap {
       case Value.LetDefinition(attributes, valueName, valueDefinition, inValue) =>
-        ("LetDefinition", attributes, valueName, valueDefinition, inValue)
+        ("let_definition", attributes, valueName, valueDefinition, inValue)
     }
 
   //   sealed case class LetRecursion[+TA, +VA](attributes: VA, valueDefinitions: Map[Name, Definition[TA, VA]], inValue: Value[TA, VA]) extends Value[TA, VA]
   implicit def letRecursionValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder]: JsonEncoder[Value.LetRecursion[TA, VA]] =
     JsonEncoder.tuple4[String, VA, List[(Name, ValueDefinition[TA, VA])], Value[TA, VA]].contramap {
       case Value.LetRecursion(attributes, valueDefinitions, inValue) =>
-        ("LetRecursion", attributes, valueDefinitions.toList, inValue)
+        ("let_recursion", attributes, valueDefinitions.toList, inValue)
     }
 
   //    sealed case class List[+TA, +VA](attributes: VA, elements: Chunk[Value[TA, VA]]) extends Value[TA, VA]
   implicit def listValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder]: JsonEncoder[Value.List[TA, VA]] =
     JsonEncoder.tuple3[String, VA, Chunk[Value[TA, VA]]].contramap { case Value.List(attributes, elements) =>
-      ("List", attributes, elements)
+      ("list", attributes, elements)
     }
 
   //   sealed case class Literal[+VA](attributes: VA, literal: Lit) extends Value[Nothing, VA]
   implicit def literalValueJsonEncoder[VA: JsonEncoder]: JsonEncoder[Value.Literal[VA]] =
     JsonEncoder.tuple3[String, VA, Literal].contramap { case Value.Literal(attributes, literal) =>
-      ("Literal", attributes, literal)
+      ("literal", attributes, literal)
     }
 
   // sealed case class PatternMatch[+TA, +VA](attributes: VA, branchOutOn: Value[TA, VA], cases: Chunk[(Pattern[VA], Value[TA, VA])]) extends Value[TA, VA]
   implicit def patternMatchValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder]: JsonEncoder[Value.PatternMatch[TA, VA]] =
     JsonEncoder.tuple4[String, VA, Value[TA, VA], Chunk[(Pattern[VA], Value[TA, VA])]].contramap {
       case Value.PatternMatch(attributes, branchOutOn, cases) =>
-        ("PatternMatch", attributes, branchOutOn, cases)
+        ("pattern_match", attributes, branchOutOn, cases)
     }
 
   //   sealed case class Record[+TA, +VA](attributes: VA, fields: Chunk[(Name, Value[TA, VA])]) extends Value[TA, VA]
   implicit def recordValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder]: JsonEncoder[Value.Record[TA, VA]] =
     JsonEncoder.tuple3[String, VA, Chunk[(Name, Value[TA, VA])]].contramap { case Value.Record(attributes, fields) =>
-      ("Record", attributes, fields)
+      ("record", attributes, fields)
     }
 
   //   sealed case class Reference[+VA](attributes: VA, fullyQualifiedName: FQName) extends Value[Nothing, VA]
   implicit def referenceValueJsonEncoder[VA: JsonEncoder]: JsonEncoder[Value.Reference[VA]] =
     JsonEncoder.tuple3[String, VA, FQName].contramap { case Value.Reference(attributes, fullyQualifiedName) =>
-      ("Reference", attributes, fullyQualifiedName)
+      ("reference", attributes, fullyQualifiedName)
     }
 
   //   sealed case class Tuple[+TA, +VA](attributes: VA, elements: Chunk[Value[TA, VA]]) extends Value[TA, VA]
   implicit def tupleValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder]: JsonEncoder[Value.Tuple[TA, VA]] =
     JsonEncoder.tuple3[String, VA, Chunk[Value[TA, VA]]].contramap { case Value.Tuple(attributes, elements) =>
-      ("Tuple", attributes, elements)
+      ("tuple", attributes, elements)
     }
 
   //   sealed case class UpdateRecord[+TA, +VA](attributes: VA, valueToUpdate: Value[TA, VA], fieldsToUpdate: Map[Name, Value[TA, VA]]) extends Value[TA, VA]
   implicit def updateRecordValueJsonEncoder[TA: JsonEncoder, VA: JsonEncoder]: JsonEncoder[Value.UpdateRecord[TA, VA]] =
     JsonEncoder.tuple4[String, VA, Value[TA, VA], List[(Name, Value[TA, VA])]].contramap {
       case Value.UpdateRecord(attributes, valueToUpdate, fieldsToUpdate) =>
-        ("UpdateRecord", attributes, valueToUpdate, fieldsToUpdate.toList)
+        ("update_record", attributes, valueToUpdate, fieldsToUpdate.toList)
     }
 
   implicit def unitValueJsonEncoder[VA: JsonEncoder]: JsonEncoder[Value.Unit[VA]] =
     JsonEncoder.tuple2[String, VA].contramap { case Value.Unit(attributes) =>
-      ("Unit", attributes)
+      ("unit", attributes)
     }
 
   //   sealed case class Variable[+VA](attributes: VA, name: Name) extends Value[Nothing, VA]
   implicit def variableValueJsonEncoder[VA: JsonEncoder]: JsonEncoder[Value.Variable[VA]] =
     JsonEncoder.tuple3[String, VA, Name].contramap { case Value.Variable(attributes, name) =>
-      ("Variable", attributes, name)
+      ("variable", attributes, name)
     }
 
   implicit def valueEncoder[TA: JsonEncoder, VA: JsonEncoder]: JsonEncoder[Value[TA, VA]] =
@@ -543,4 +543,4 @@ trait MorphirJsonEncodingSupport extends JsonEncodingHelpers {
     }
 }
 
-object MorphirJsonEncodingSupport extends MorphirJsonEncodingSupport
+object MorphirJsonEncodingSupportV2 extends MorphirJsonEncodingSupportV2

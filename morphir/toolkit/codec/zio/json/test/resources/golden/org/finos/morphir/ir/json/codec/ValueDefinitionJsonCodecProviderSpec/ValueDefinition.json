@@ -126,13 +126,13 @@
         {}
       ],
       "body" : [
-        "update_record",
+        "UpdateRecord",
         [
           "FloatLiteral",
           0.13118618627812528
         ],
         [
-          "constructor",
+          "Constructor",
           [
             "DecimalLiteral",
             "-5103673731003828373"
@@ -177,14 +177,14 @@
               "id"
             ],
             [
-              "tuple",
+              "Tuple",
               [
                 "CharLiteral",
                 "6"
               ],
               [
                 [
-                  "variable",
+                  "Variable",
                   [
                     "BoolLiteral",
                     false
@@ -206,7 +206,7 @@
               "gamma"
             ],
             [
-              "field_function",
+              "FieldFunction",
               [
                 "FloatLiteral",
                 0.17429365021602394
@@ -406,7 +406,7 @@
         {}
       ],
       "body" : [
-        "field_function",
+        "FieldFunction",
         [
           "FloatLiteral",
           0.9271011273286186
@@ -489,7 +489,7 @@
         ]
       ],
       "body" : [
-        "variable",
+        "Variable",
         [
           "BoolLiteral",
           false
@@ -533,7 +533,7 @@
         ]
       ],
       "body" : [
-        "variable",
+        "Variable",
         [
           "FloatLiteral",
           0.49080890523895293
@@ -662,7 +662,7 @@
         ]
       ],
       "body" : [
-        "unit",
+        "Unit",
         [
           "StringLiteral",
           "April"
@@ -752,7 +752,7 @@
         ]
       ],
       "body" : [
-        "constructor",
+        "Constructor",
         [
           "BoolLiteral",
           false
@@ -1013,7 +1013,7 @@
         ]
       ],
       "body" : [
-        "reference",
+        "Reference",
         [
           "WholeNumberLiteral",
           -7084558078100003866
@@ -1131,7 +1131,7 @@
         ]
       ],
       "body" : [
-        "variable",
+        "Variable",
         [
           "DecimalLiteral",
           "-2651409267975802309"
@@ -1205,7 +1205,7 @@
         ]
       ],
       "body" : [
-        "field_function",
+        "FieldFunction",
         [
           "StringLiteral",
           "theta"
@@ -1268,7 +1268,7 @@
         ]
       ],
       "body" : [
-        "reference",
+        "Reference",
         [
           "CharLiteral",
           "b"
@@ -1359,7 +1359,7 @@
         ]
       ],
       "body" : [
-        "variable",
+        "Variable",
         [
           "BoolLiteral",
           true
@@ -1411,7 +1411,7 @@
         {}
       ],
       "body" : [
-        "field_function",
+        "FieldFunction",
         [
           "DecimalLiteral",
           "-2107465743415302870"
@@ -1488,7 +1488,7 @@
         ]
       ],
       "body" : [
-        "field_function",
+        "FieldFunction",
         [
           "StringLiteral",
           "April"
@@ -1562,7 +1562,7 @@
         ]
       ],
       "body" : [
-        "variable",
+        "Variable",
         [
           "FloatLiteral",
           0.012204952780981326
@@ -1774,7 +1774,7 @@
         ]
       ],
       "body" : [
-        "constructor",
+        "Constructor",
         [
           "FloatLiteral",
           0.6427939665723734
@@ -1876,7 +1876,7 @@
         {}
       ],
       "body" : [
-        "reference",
+        "Reference",
         [
           "StringLiteral",
           "nu"
@@ -1956,7 +1956,7 @@
         {}
       ],
       "body" : [
-        "variable",
+        "Variable",
         [
           "DecimalLiteral",
           "-716803413465912134"
@@ -2008,7 +2008,7 @@
         ]
       ],
       "body" : [
-        "variable",
+        "Variable",
         [
           "BoolLiteral",
           true
@@ -2071,7 +2071,7 @@
         ]
       ],
       "body" : [
-        "reference",
+        "Reference",
         [
           "BoolLiteral",
           false
@@ -2157,7 +2157,7 @@
         {}
       ],
       "body" : [
-        "unit",
+        "Unit",
         [
           "StringLiteral",
           "chi"

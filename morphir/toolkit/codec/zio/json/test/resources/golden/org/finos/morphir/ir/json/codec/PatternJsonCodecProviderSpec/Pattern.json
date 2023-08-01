@@ -1,38 +1,38 @@
 {
   "samples" : [
     [
-      "tuple_pattern",
+      "TuplePattern",
       [
         "CharLiteral",
         "m"
       ],
       [
         [
-          "as_pattern",
+          "AsPattern",
           [
             "DecimalLiteral",
             "-9017238956316359872"
           ],
           [
-            "as_pattern",
+            "AsPattern",
             [
               "FloatLiteral",
               0.7998282266818394
             ],
             [
-              "as_pattern",
+              "AsPattern",
               [
                 "DecimalLiteral",
                 "-1710145478941878882"
               ],
               [
-                "as_pattern",
+                "AsPattern",
                 [
                   "BoolLiteral",
                   false
                 ],
                 [
-                  "unit_pattern",
+                  "UnitPattern",
                   [
                     "WholeNumberLiteral",
                     8605914234768709017
@@ -67,47 +67,47 @@
       ]
     ],
     [
-      "unit_pattern",
+      "UnitPattern",
       [
         "FloatLiteral",
         0.5167307399350253
       ]
     ],
     [
-      "unit_pattern",
+      "UnitPattern",
       [
         "DecimalLiteral",
         "-8771583905340475668"
       ]
     ],
     [
-      "as_pattern",
+      "AsPattern",
       [
         "WholeNumberLiteral",
         8235736781057890430
       ],
       [
-        "head_tail_pattern",
+        "HeadTailPattern",
         [
           "CharLiteral",
           "q"
         ],
         [
-          "wildcard_pattern",
+          "WildcardPattern",
           [
             "StringLiteral",
             "omega"
           ]
         ],
         [
-          "tuple_pattern",
+          "TuplePattern",
           [
             "FloatLiteral",
             0.6082913791418255
           ],
           [
             [
-              "literal_pattern",
+              "LiteralPattern",
               [
                 "BoolLiteral",
                 true
@@ -118,13 +118,13 @@
               ]
             ],
             [
-              "as_pattern",
+              "AsPattern",
               [
                 "DecimalLiteral",
                 "-3075645228655279165"
               ],
               [
-                "wildcard_pattern",
+                "WildcardPattern",
                 [
                   "CharLiteral",
                   "6"
@@ -148,38 +148,38 @@
       ]
     ],
     [
-      "head_tail_pattern",
+      "HeadTailPattern",
       [
         "WholeNumberLiteral",
         -7376517528920331453
       ],
       [
-        "head_tail_pattern",
+        "HeadTailPattern",
         [
           "FloatLiteral",
           0.13420847040559947
         ],
         [
-          "head_tail_pattern",
+          "HeadTailPattern",
           [
             "FloatLiteral",
             0.6983623209858252
           ],
           [
-            "unit_pattern",
+            "UnitPattern",
             [
               "FloatLiteral",
               0.3409924114434335
             ]
           ],
           [
-            "head_tail_pattern",
+            "HeadTailPattern",
             [
               "CharLiteral",
               "o"
             ],
             [
-              "literal_pattern",
+              "LiteralPattern",
               [
                 "WholeNumberLiteral",
                 2151711211062355416
@@ -190,7 +190,7 @@
               ]
             ],
             [
-              "wildcard_pattern",
+              "WildcardPattern",
               [
                 "BoolLiteral",
                 true
@@ -199,7 +199,7 @@
           ]
         ],
         [
-          "constructor_pattern",
+          "ConstructorPattern",
           [
             "BoolLiteral",
             true
@@ -261,26 +261,26 @@
           ],
           [
             [
-              "head_tail_pattern",
+              "HeadTailPattern",
               [
                 "CharLiteral",
                 "9"
               ],
               [
-                "as_pattern",
+                "AsPattern",
                 [
                   "WholeNumberLiteral",
                   3820377407421829547
                 ],
                 [
-                  "tuple_pattern",
+                  "TuplePattern",
                   [
                     "BoolLiteral",
                     false
                   ],
                   [
                     [
-                      "literal_pattern",
+                      "LiteralPattern",
                       [
                         "BoolLiteral",
                         false
@@ -301,27 +301,27 @@
                 ]
               ],
               [
-                "head_tail_pattern",
+                "HeadTailPattern",
                 [
                   "CharLiteral",
                   "6"
                 ],
                 [
-                  "tuple_pattern",
+                  "TuplePattern",
                   [
                     "FloatLiteral",
                     0.6263185598272519
                   ],
                   [
                     [
-                      "wildcard_pattern",
+                      "WildcardPattern",
                       [
                         "CharLiteral",
                         "?"
                       ]
                     ],
                     [
-                      "empty_list_pattern",
+                      "EmptyListPattern",
                       [
                         "CharLiteral",
                         "z"
@@ -330,7 +330,7 @@
                   ]
                 ],
                 [
-                  "unit_pattern",
+                  "UnitPattern",
                   [
                     "BoolLiteral",
                     false
@@ -342,13 +342,13 @@
         ]
       ],
       [
-        "as_pattern",
+        "AsPattern",
         [
           "DecimalLiteral",
           "-5863733258778367483"
         ],
         [
-          "literal_pattern",
+          "LiteralPattern",
           [
             "FloatLiteral",
             0.3666572208874358
@@ -364,7 +364,7 @@
       ]
     ],
     [
-      "constructor_pattern",
+      "ConstructorPattern",
       [
         "StringLiteral",
         "November"
@@ -416,7 +416,7 @@
       ],
       [
         [
-          "unit_pattern",
+          "UnitPattern",
           [
             "FloatLiteral",
             0.43869715412472543
@@ -425,20 +425,20 @@
       ]
     ],
     [
-      "head_tail_pattern",
+      "HeadTailPattern",
       [
         "FloatLiteral",
         0.7570788763587312
       ],
       [
-        "empty_list_pattern",
+        "EmptyListPattern",
         [
           "BoolLiteral",
           true
         ]
       ],
       [
-        "unit_pattern",
+        "UnitPattern",
         [
           "BoolLiteral",
           false
@@ -446,20 +446,20 @@
       ]
     ],
     [
-      "as_pattern",
+      "AsPattern",
       [
         "BoolLiteral",
         false
       ],
       [
-        "tuple_pattern",
+        "TuplePattern",
         [
           "BoolLiteral",
           true
         ],
         [
           [
-            "unit_pattern",
+            "UnitPattern",
             [
               "StringLiteral",
               "June"
@@ -473,20 +473,20 @@
       ]
     ],
     [
-      "head_tail_pattern",
+      "HeadTailPattern",
       [
         "FloatLiteral",
         0.46322226168096836
       ],
       [
-        "wildcard_pattern",
+        "WildcardPattern",
         [
           "CharLiteral",
           "N"
         ]
       ],
       [
-        "empty_list_pattern",
+        "EmptyListPattern",
         [
           "CharLiteral",
           "k"
@@ -494,20 +494,20 @@
       ]
     ],
     [
-      "tuple_pattern",
+      "TuplePattern",
       [
         "FloatLiteral",
         0.9457860345344182
       ],
       [
         [
-          "as_pattern",
+          "AsPattern",
           [
             "WholeNumberLiteral",
             3436225158522558521
           ],
           [
-            "constructor_pattern",
+            "ConstructorPattern",
             [
               "WholeNumberLiteral",
               1348225059150789233
@@ -563,20 +563,20 @@
             ],
             [
               [
-                "head_tail_pattern",
+                "HeadTailPattern",
                 [
                   "FloatLiteral",
                   0.6661737141496007
                 ],
                 [
-                  "wildcard_pattern",
+                  "WildcardPattern",
                   [
                     "WholeNumberLiteral",
                     -2459593470081638888
                   ]
                 ],
                 [
-                  "empty_list_pattern",
+                  "EmptyListPattern",
                   [
                     "CharLiteral",
                     "R"
@@ -594,21 +594,21 @@
       ]
     ],
     [
-      "tuple_pattern",
+      "TuplePattern",
       [
         "CharLiteral",
         "r"
       ],
       [
         [
-          "tuple_pattern",
+          "TuplePattern",
           [
             "WholeNumberLiteral",
             6048888688164717682
           ],
           [
             [
-              "empty_list_pattern",
+              "EmptyListPattern",
               [
                 "WholeNumberLiteral",
                 2387880968307273099
@@ -619,7 +619,7 @@
       ]
     ],
     [
-      "constructor_pattern",
+      "ConstructorPattern",
       [
         "FloatLiteral",
         0.46899064874600316
@@ -647,14 +647,14 @@
       ],
       [
         [
-          "tuple_pattern",
+          "TuplePattern",
           [
             "BoolLiteral",
             false
           ],
           [
             [
-              "wildcard_pattern",
+              "WildcardPattern",
               [
                 "DecimalLiteral",
                 "-8287581838019655403"
@@ -663,7 +663,7 @@
           ]
         ],
         [
-          "empty_list_pattern",
+          "EmptyListPattern",
           [
             "DecimalLiteral",
             "-8739153864626221186"
@@ -672,27 +672,27 @@
       ]
     ],
     [
-      "empty_list_pattern",
+      "EmptyListPattern",
       [
         "BoolLiteral",
         true
       ]
     ],
     [
-      "as_pattern",
+      "AsPattern",
       [
         "FloatLiteral",
         0.6103509451347525
       ],
       [
-        "tuple_pattern",
+        "TuplePattern",
         [
           "CharLiteral",
           "@"
         ],
         [
           [
-            "empty_list_pattern",
+            "EmptyListPattern",
             [
               "FloatLiteral",
               0.9399128489649412
@@ -708,21 +708,21 @@
       ]
     ],
     [
-      "wildcard_pattern",
+      "WildcardPattern",
       [
         "StringLiteral",
         "May"
       ]
     ],
     [
-      "unit_pattern",
+      "UnitPattern",
       [
         "WholeNumberLiteral",
         -4817324240102912628
       ]
     ],
     [
-      "literal_pattern",
+      "LiteralPattern",
       [
         "CharLiteral",
         "9"
@@ -733,27 +733,27 @@
       ]
     ],
     [
-      "wildcard_pattern",
+      "WildcardPattern",
       [
         "WholeNumberLiteral",
         6470364540930653790
       ]
     ],
     [
-      "head_tail_pattern",
+      "HeadTailPattern",
       [
         "StringLiteral",
         "problem"
       ],
       [
-        "unit_pattern",
+        "UnitPattern",
         [
           "DecimalLiteral",
           "-2218019864207257835"
         ]
       ],
       [
-        "wildcard_pattern",
+        "WildcardPattern",
         [
           "FloatLiteral",
           0.9056847074705534
@@ -761,7 +761,7 @@
       ]
     ],
     [
-      "empty_list_pattern",
+      "EmptyListPattern",
       [
         "StringLiteral",
         "tau"
