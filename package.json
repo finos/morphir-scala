@@ -3,10 +3,15 @@
   "private": true,
   "packageManager": "yarn@3.2.3",
   "workspaces": [
-    "website"
+    "website",
+    "examples/morphir-elm-projects/evaluator-tests"
   ],
   "dependencies": {
-    "@algolia/client-search": "^4.14.2"
+    "@algolia/client-search": "^4.14.2",
+    "morphir-elm": "2.80.0"
+  },
+  "scripts": {
+    "make-models": "yarn workspace morphir-scala-evaluator-tests run make"
   },
   "resolutions": {
     "trim": "0.0.3"
