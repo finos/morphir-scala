@@ -12,19 +12,26 @@ import org.finos.morphir.datamodel.*
 
 //TODO: Specify "Either" on lower level
 trait TypedMorphirRuntime extends MorphirRuntime[Either, scala.Unit, UType] {
-  def applyParams(entryPoint: Value[scala.Unit, UType], params: Value[scala.Unit, UType]*): Value[scala.Unit, UType] = {
-    val asEither = entryPoint match {
+  final def evaluate(
+      entryPoint: Value[scala.Unit, UType],
+      params: Value[scala.Unit, UType]
+  ): Either[MorphirRuntimeError, Data] =
+    for {
+      applied   <- applyParams(entryPoint, params)
+      evaluated <- evaluate(applied)
+    } yield evaluated
+
+  def applyParams(
+      entryPoint: Value[scala.Unit, UType],
+      params: Value[scala.Unit, UType]*
+  ): Either[TypeError, Value[scala.Unit, UType]] =
+    entryPoint match {
       case Value.Reference.Typed(tpe, entryName) =>
         for {
           tpe <- unCurryTypeFunction(tpe, params.toList.map(_.attributes))
         } yield V.apply(tpe, entryPoint, params.head, params.tail: _*)
-      case other => Left(NotImplemented(s"Entry point must be a Reference, instead found $other"))
+      case other => Left(UnsupportedType(s"Entry point must be a Reference, instead found $other"))
     }
-    asEither match {
-      case Right(value) => value
-      case Left(error)  => throw error // Function should return error, but that requires F[_. _] to be mappable
-    }
-  }
 
   def evaluate(entryPoint: Value[scala.Unit, UType], params: Data): Either[MorphirRuntimeError, Data] = {
     val toValue = ToMorphirValue.summon[Data].typed
