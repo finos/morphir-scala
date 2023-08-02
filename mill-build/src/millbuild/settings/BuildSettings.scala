@@ -12,7 +12,6 @@ final case class BuildSettings(
     js: ScalaJsBuildSettings = ScalaJsBuildSettings(),
     native: ScalaNativeBuildSettings = ScalaNativeBuildSettings(),
     mill: MillSettings = MillSettings(),
-    sbt: SbtSettings = SbtSettings(),
     scala: ScalaSettings = ScalaSettings()
 )
 
