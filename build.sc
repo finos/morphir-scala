@@ -451,7 +451,12 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
     object jvm extends Shared with MorphirJVMModule {
       object test extends ScalaTests with TestModule.ZioTest {
-        def ivyDeps    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
+        def ivyDeps = Agg(
+          Deps.com.lihaoyi.`os-lib`,
+          Deps.com.lihaoyi.sourcecode,
+          Deps.dev.zio.`zio-test`,
+          Deps.dev.zio.`zio-test-sbt`
+        )
         def moduleDeps = super.moduleDeps ++ Agg(testing.zio.jvm)
       }
     }
