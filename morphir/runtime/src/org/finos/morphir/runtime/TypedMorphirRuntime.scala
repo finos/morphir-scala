@@ -8,7 +8,7 @@ import Utils.*
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.conversion.*
 import org.finos.morphir.datamodel.Util.*
-import org.finos.morphir.datamodel.{:: as _, *}
+import org.finos.morphir.datamodel.*
 
 //TODO: Specify "Either" on lower level
 trait TypedMorphirRuntime extends MorphirRuntime[Either, scala.Unit, UType] {

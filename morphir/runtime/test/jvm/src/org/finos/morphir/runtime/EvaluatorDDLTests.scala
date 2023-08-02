@@ -11,7 +11,7 @@ import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.ir.FQName
 import org.finos.morphir.ir.conversion.*
 import org.finos.morphir.datamodel.Util.*
-import org.finos.morphir.datamodel.{:: as _, *}
+import org.finos.morphir.datamodel.*
 
 object EvaluatorDDLTests extends MorphirBaseSpec {
   lazy val morphirRuntime = {
