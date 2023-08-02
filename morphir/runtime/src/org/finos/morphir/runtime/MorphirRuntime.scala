@@ -10,16 +10,12 @@ import org.finos.morphir.runtime.quick.QuickMorphirRuntime
 
 trait MorphirRuntime[F[+_, +_], TA, VA] {
 
-  final def evaluate(entryPoint: Value[TA, VA], params: Value[TA, VA]): F[EvaluationError, Data] = {
-    val applied = applyParams(entryPoint, params)
-    evaluate(applied)
-  }
-
+  def evaluate(entryPoint: Value[TA, VA], params: Value[TA, VA]): F[MorphirRuntimeError, Data]
   def evaluate(entryPoint: Value[TA, VA], params: Data): F[MorphirRuntimeError, Data]
   def evaluate(entryPoint: FQName, params: Data): F[MorphirRuntimeError, Data]
   def evaluate(entryPoint: FQName, params: Value[TA, VA]): F[MorphirRuntimeError, Data]
   // TODO: applyParams can fail if things are bad, but we can't combine Fs yet
-  def applyParams(entryPoint: Value[TA, VA], params: Value[TA, VA]*): Value[TA, VA]
+  def applyParams(entryPoint: Value[TA, VA], params: Value[TA, VA]*): F[TypeError, Value[TA, VA]]
 
   def evaluate(value: Value[TA, VA]): F[EvaluationError, Data]
 
