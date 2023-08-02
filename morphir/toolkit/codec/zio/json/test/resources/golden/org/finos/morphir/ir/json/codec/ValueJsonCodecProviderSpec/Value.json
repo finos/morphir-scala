@@ -1,7 +1,7 @@
 {
   "samples" : [
     [
-      "unit",
+      "Unit",
       [
         "beta",
         "december",
@@ -9,7 +9,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "september",
         "fact"
@@ -19,7 +19,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "time",
         "march",
@@ -78,7 +78,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "lot",
         "benchmark",
@@ -90,7 +90,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "february",
         "june",
@@ -99,7 +99,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "number",
         "zeta",
@@ -151,7 +151,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "epsilon"
       ],
@@ -161,7 +161,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "november",
         "minute",
@@ -173,7 +173,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "october"
       ],
@@ -183,7 +183,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "week",
         "august",
@@ -192,7 +192,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "epsilon",
         "part",
@@ -250,7 +250,7 @@
       ]
     ],
     [
-      "apply",
+      "Apply",
       [
         "november",
         "rho",
@@ -259,7 +259,7 @@
         "november"
       ],
       [
-        "variable",
+        "Variable",
         [
           "benchmark"
         ],
@@ -269,7 +269,7 @@
         ]
       ],
       [
-        "literal",
+        "Literal",
         [
           "tau",
           "january",
@@ -284,14 +284,14 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "july",
         "mu"
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "group",
         "september",
@@ -345,7 +345,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "currency",
         "october",
@@ -358,7 +358,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "november",
         "source",
@@ -370,7 +370,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "company",
         "april",
@@ -383,7 +383,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "minute"
       ],
@@ -443,7 +443,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "description"
       ],
@@ -486,7 +486,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "tau",
         "july"
@@ -497,7 +497,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "source"
       ],
@@ -507,7 +507,7 @@
       ]
     ],
     [
-      "lambda",
+      "Lambda",
       [
         "benchmark",
         "october",
@@ -516,7 +516,7 @@
         "theta"
       ],
       [
-        "as_pattern",
+        "AsPattern",
         [
           "september",
           "november",
@@ -525,7 +525,7 @@
           "march"
         ],
         [
-          "constructor_pattern",
+          "ConstructorPattern",
           [
             "june",
             "november",
@@ -584,7 +584,7 @@
           ],
           [
             [
-              "head_tail_pattern",
+              "HeadTailPattern",
               [
                 "august",
                 "zeta",
@@ -593,7 +593,7 @@
                 "money"
               ],
               [
-                "literal_pattern",
+                "LiteralPattern",
                 [
                   "owner",
                   "phi",
@@ -605,7 +605,7 @@
                 ]
               ],
               [
-                "head_tail_pattern",
+                "HeadTailPattern",
                 [
                   "time",
                   "december",
@@ -614,13 +614,13 @@
                   "problem"
                 ],
                 [
-                  "unit_pattern",
+                  "UnitPattern",
                   [
                     "fact"
                   ]
                 ],
                 [
-                  "empty_list_pattern",
+                  "EmptyListPattern",
                   [
                     "company",
                     "february",
@@ -641,7 +641,7 @@
         ]
       ],
       [
-        "constructor",
+        "Constructor",
         [
           "august",
           "theta",
@@ -693,7 +693,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "february"
       ],
@@ -702,14 +702,14 @@
       ]
     ],
     [
-      "apply",
+      "Apply",
       [
         "lot",
         "psi",
         "work"
       ],
       [
-        "variable",
+        "Variable",
         [
           "sigma",
           "benchmark",
@@ -723,7 +723,7 @@
         ]
       ],
       [
-        "field_function",
+        "FieldFunction",
         [
           "omega"
         ],
@@ -735,7 +735,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "area",
         "september"
@@ -790,7 +790,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "october",
         "state"
@@ -819,7 +819,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "country",
         "november"
@@ -832,7 +832,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "rho"
       ],
@@ -885,7 +885,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "description",
         "september",
@@ -932,7 +932,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "eta"
       ],
@@ -985,7 +985,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "source",
         "june",
@@ -997,7 +997,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "june",
         "country",
@@ -1005,7 +1005,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "august",
         "mu"
@@ -1016,7 +1016,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "rho",
         "omega",
@@ -1030,7 +1030,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "pi",
         "owner",
@@ -1044,14 +1044,14 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "theta",
         "market"
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "upsilon"
       ],
@@ -1060,7 +1060,7 @@
       ]
     ],
     [
-      "if_then_else",
+      "IfThenElse",
       [
         "march",
         "to",
@@ -1069,7 +1069,7 @@
         "august"
       ],
       [
-        "variable",
+        "Variable",
         [
           "year",
           "october",
@@ -1084,13 +1084,13 @@
         ]
       ],
       [
-        "unit",
+        "Unit",
         [
           "eta"
         ]
       ],
       [
-        "lambda",
+        "Lambda",
         [
           "phi",
           "omicron",
@@ -1098,7 +1098,7 @@
           "omicron"
         ],
         [
-          "constructor_pattern",
+          "ConstructorPattern",
           [
             "november"
           ],
@@ -1148,7 +1148,7 @@
           ],
           [
             [
-              "literal_pattern",
+              "LiteralPattern",
               [
                 "november",
                 "october",
@@ -1161,7 +1161,7 @@
               ]
             ],
             [
-              "literal_pattern",
+              "LiteralPattern",
               [
                 "omicron"
               ],
@@ -1173,7 +1173,7 @@
           ]
         ],
         [
-          "field_function",
+          "FieldFunction",
           [
             "to",
             "iota",
@@ -1187,7 +1187,7 @@
       ]
     ],
     [
-      "tuple",
+      "Tuple",
       [
         "march",
         "iota",
@@ -1197,7 +1197,7 @@
       ],
       [
         [
-          "reference",
+          "Reference",
           [
             "august",
             "july"
@@ -1254,7 +1254,7 @@
           ]
         ],
         [
-          "variable",
+          "Variable",
           [
             "february",
             "government",
@@ -1269,7 +1269,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "left",
         "entity",
@@ -1320,7 +1320,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "beta",
         "to",
@@ -1370,12 +1370,12 @@
       ]
     ],
     [
-      "if_then_else",
+      "IfThenElse",
       [
         "lambda"
       ],
       [
-        "constructor",
+        "Constructor",
         [
           "february"
         ],
@@ -1423,7 +1423,7 @@
         ]
       ],
       [
-        "variable",
+        "Variable",
         [
           "week",
           "iota",
@@ -1436,7 +1436,7 @@
         ]
       ],
       [
-        "variable",
+        "Variable",
         [
           "april",
           "country",
@@ -1451,7 +1451,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "month",
         "time",
@@ -1465,7 +1465,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "lambda",
         "from"
@@ -1499,7 +1499,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "month",
         "upsilon",
@@ -1537,7 +1537,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "eta",
         "chi",
@@ -1580,7 +1580,7 @@
       ]
     ],
     [
-      "apply",
+      "Apply",
       [
         "week",
         "book",
@@ -1589,7 +1589,7 @@
         "week"
       ],
       [
-        "constructor",
+        "Constructor",
         [
           "october",
           "parent",
@@ -1634,7 +1634,7 @@
         ]
       ],
       [
-        "variable",
+        "Variable",
         [
           "iota",
           "beta",
@@ -1648,7 +1648,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "description",
         "phi"
@@ -1658,7 +1658,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "description"
       ],
@@ -1671,7 +1671,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "december",
         "home"
@@ -1682,7 +1682,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "xi",
         "kappa",
@@ -1694,7 +1694,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "rho",
         "april"
@@ -1750,7 +1750,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "alpha",
         "sigma",
@@ -1760,7 +1760,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "home",
         "february",
@@ -1774,7 +1774,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "chi",
         "november",
@@ -1851,14 +1851,14 @@
       ]
     ],
     [
-      "list",
+      "List",
       [
         "money",
         "home"
       ],
       [
         [
-          "field_function",
+          "FieldFunction",
           [
             "october",
             "area",
@@ -1873,7 +1873,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "phi",
         "july",
@@ -1890,7 +1890,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "january",
         "february",
@@ -1900,7 +1900,7 @@
       ]
     ],
     [
-      "record",
+      "Record",
       [
         "may",
         "time"
@@ -1913,7 +1913,7 @@
             "valid"
           ],
           [
-            "reference",
+            "Reference",
             [
               "february",
               "february",
@@ -1964,7 +1964,7 @@
             "october"
           ],
           [
-            "variable",
+            "Variable",
             [
               "mu",
               "september",
@@ -1979,7 +1979,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "april"
       ],
@@ -1991,7 +1991,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "upsilon",
         "source",
@@ -2004,7 +2004,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "id"
       ],
@@ -2045,7 +2045,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "psi",
         "october"
@@ -2058,7 +2058,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "group"
       ],
@@ -2068,7 +2068,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "june",
         "book",
@@ -2111,7 +2111,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "june",
         "epsilon",
@@ -2120,7 +2120,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "left",
         "omega",
@@ -2133,14 +2133,14 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "description",
         "pi"
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "alpha",
         "group",
@@ -2148,7 +2148,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "chi",
         "left"
@@ -2197,7 +2197,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "time",
         "epsilon"
@@ -2239,7 +2239,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "lambda"
       ],
@@ -2249,7 +2249,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "area",
         "november",
@@ -2259,7 +2259,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "source",
         "fact"
@@ -2290,7 +2290,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "delta",
         "from",
@@ -2360,13 +2360,13 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "august"
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "lambda",
         "number",
@@ -2380,7 +2380,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "name",
         "psi",
@@ -2394,7 +2394,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "description",
         "omega",
@@ -2402,7 +2402,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "december"
       ],
@@ -2461,7 +2461,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "march",
         "xi",
@@ -2474,7 +2474,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "parent"
       ],
@@ -2484,7 +2484,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "area",
         "valid",
@@ -2494,7 +2494,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "money",
         "theta",
@@ -2509,7 +2509,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "from",
         "upsilon",
@@ -2521,7 +2521,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "market"
       ],
@@ -2531,7 +2531,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "upsilon",
         "kappa"
@@ -2568,7 +2568,7 @@
       ]
     ],
     [
-      "record",
+      "Record",
       [
         "book"
       ],
@@ -2580,7 +2580,7 @@
             "country"
           ],
           [
-            "field_function",
+            "FieldFunction",
             [
               "omicron",
               "xi",
@@ -2599,7 +2599,7 @@
             "eta"
           ],
           [
-            "literal",
+            "Literal",
             [
               "owner",
               "december",
@@ -2615,7 +2615,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "work",
         "zeta"
@@ -2628,7 +2628,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "book",
         "eta",
@@ -2641,7 +2641,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "october"
       ],
@@ -2651,7 +2651,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "lot"
       ],
@@ -2682,7 +2682,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "august"
       ],
@@ -2691,7 +2691,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "march",
         "march",
@@ -2704,7 +2704,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "valid",
         "november"
@@ -2715,7 +2715,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "may",
         "september",
@@ -2729,7 +2729,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "january",
         "alpha",
@@ -2778,7 +2778,7 @@
       ]
     ],
     [
-      "let_definition",
+      "LetDefinition",
       [
         "july",
         "nu",
@@ -2818,7 +2818,7 @@
           ]
         ],
         "body" : [
-          "constructor",
+          "Constructor",
           [
             "january",
             "december",
@@ -2885,7 +2885,7 @@
         ]
       },
       [
-        "variable",
+        "Variable",
         [
           "from",
           "part",
@@ -2900,7 +2900,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "pi",
         "company"
@@ -2911,7 +2911,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "chi",
         "june",
@@ -2926,7 +2926,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "family"
       ],
@@ -2935,7 +2935,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "government",
         "state"
@@ -2949,7 +2949,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "system"
       ],
@@ -2996,14 +2996,14 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "january",
         "iota"
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "pi",
         "april"
@@ -3017,7 +3017,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "week",
         "minute",
@@ -3031,7 +3031,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "september",
         "october",
@@ -3087,7 +3087,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "june",
         "july"
@@ -3127,7 +3127,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "money",
         "february",
@@ -3138,13 +3138,13 @@
       ]
     ],
     [
-      "if_then_else",
+      "IfThenElse",
       [
         "february",
         "job"
       ],
       [
-        "field_function",
+        "FieldFunction",
         [
           "august",
           "to",
@@ -3157,7 +3157,7 @@
         ]
       ],
       [
-        "constructor",
+        "Constructor",
         [
           "work",
           "july",
@@ -3200,7 +3200,7 @@
         ]
       ],
       [
-        "field_function",
+        "FieldFunction",
         [
           "group",
           "january",
@@ -3217,14 +3217,14 @@
       ]
     ],
     [
-      "if_then_else",
+      "IfThenElse",
       [
         "kappa",
         "omicron",
         "lambda"
       ],
       [
-        "reference",
+        "Reference",
         [
           "zeta",
           "part",
@@ -3288,7 +3288,7 @@
         ]
       ],
       [
-        "variable",
+        "Variable",
         [
           "march",
           "july",
@@ -3300,7 +3300,7 @@
         ]
       ],
       [
-        "literal",
+        "Literal",
         [
           "nu",
           "kappa",
@@ -3313,7 +3313,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "theta"
       ],
@@ -3355,7 +3355,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "september",
         "june",
@@ -3415,7 +3415,7 @@
       ]
     ],
     [
-      "tuple",
+      "Tuple",
       [
         "lambda",
         "name",
@@ -3423,7 +3423,7 @@
       ],
       [
         [
-          "literal",
+          "Literal",
           [
             "pi",
             "entity",
@@ -3437,7 +3437,7 @@
           ]
         ],
         [
-          "field_function",
+          "FieldFunction",
           [
             "fact",
             "rho"
@@ -3453,7 +3453,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "may",
         "book",
@@ -3469,7 +3469,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "zeta",
         "gamma",
@@ -3521,7 +3521,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "march",
         "to",
@@ -3529,7 +3529,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "day",
         "phi",
@@ -3542,7 +3542,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "entity",
         "rho",
@@ -3593,7 +3593,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "january",
         "currency",
@@ -3602,7 +3602,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "nu",
         "april",
@@ -3611,7 +3611,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "february",
         "january"
@@ -3623,7 +3623,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "from",
         "sigma",
@@ -3632,7 +3632,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "currency",
         "february"
@@ -3671,7 +3671,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "june",
         "september",
@@ -3683,7 +3683,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "july",
         "omega",
@@ -3697,7 +3697,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "chi",
         "family",
@@ -3709,7 +3709,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "country",
         "world"
@@ -3719,7 +3719,7 @@
       ]
     ],
     [
-      "if_then_else",
+      "IfThenElse",
       [
         "kappa",
         "beta",
@@ -3728,7 +3728,7 @@
         "market"
       ],
       [
-        "literal",
+        "Literal",
         [
           "omicron",
           "psi",
@@ -3740,7 +3740,7 @@
         ]
       ],
       [
-        "literal",
+        "Literal",
         [
           "year",
           "psi",
@@ -3754,7 +3754,7 @@
         ]
       ],
       [
-        "field_function",
+        "FieldFunction",
         [
           "august",
           "theta",
@@ -3766,7 +3766,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "may",
         "june",
@@ -3797,7 +3797,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "november",
         "description",
@@ -3810,7 +3810,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "november",
         "may",
@@ -3823,7 +3823,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "owner",
         "world",
@@ -3861,7 +3861,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "december",
         "september",
@@ -3875,14 +3875,14 @@
       ]
     ],
     [
-      "pattern_match",
+      "PatternMatch",
       [
         "mu",
         "money",
         "name"
       ],
       [
-        "unit",
+        "Unit",
         [
           "book",
           "psi",
@@ -3893,18 +3893,18 @@
       [
         [
           [
-            "tuple_pattern",
+            "TuplePattern",
             [
               "february"
             ],
             [
               [
-                "as_pattern",
+                "AsPattern",
                 [
                   "phi"
                 ],
                 [
-                  "empty_list_pattern",
+                  "EmptyListPattern",
                   [
                     "tau",
                     "september",
@@ -3918,7 +3918,7 @@
                 ]
               ],
               [
-                "constructor_pattern",
+                "ConstructorPattern",
                 [
                   "july",
                   "zeta",
@@ -3951,7 +3951,7 @@
                 ],
                 [
                   [
-                    "constructor_pattern",
+                    "ConstructorPattern",
                     [
                       "month",
                       "sigma"
@@ -4009,7 +4009,7 @@
                     ],
                     [
                       [
-                        "wildcard_pattern",
+                        "WildcardPattern",
                         [
                           "october",
                           "right",
@@ -4023,7 +4023,7 @@
             ]
           ],
           [
-            "constructor",
+            "Constructor",
             [
               "omicron",
               "september"
@@ -4069,31 +4069,31 @@
         ],
         [
           [
-            "head_tail_pattern",
+            "HeadTailPattern",
             [
               "december",
               "april"
             ],
             [
-              "as_pattern",
+              "AsPattern",
               [
                 "beta"
               ],
               [
-                "as_pattern",
+                "AsPattern",
                 [
                   "october",
                   "may"
                 ],
                 [
-                  "as_pattern",
+                  "AsPattern",
                   [
                     "phi",
                     "alpha",
                     "december"
                   ],
                   [
-                    "tuple_pattern",
+                    "TuplePattern",
                     [
                       "month",
                       "number",
@@ -4102,13 +4102,13 @@
                     ],
                     [
                       [
-                        "unit_pattern",
+                        "UnitPattern",
                         [
                           "parent"
                         ]
                       ],
                       [
-                        "wildcard_pattern",
+                        "WildcardPattern",
                         [
                           "chi",
                           "system",
@@ -4137,7 +4137,7 @@
               ]
             ],
             [
-              "unit_pattern",
+              "UnitPattern",
               [
                 "july",
                 "december"
@@ -4145,7 +4145,7 @@
             ]
           ],
           [
-            "field_function",
+            "FieldFunction",
             [
               "work",
               "rate",
@@ -4161,7 +4161,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "alpha",
         "time"
@@ -4211,7 +4211,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "year",
         "area",
@@ -4223,7 +4223,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "june",
         "omega"
@@ -4234,7 +4234,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "lot",
         "august",
@@ -4248,7 +4248,7 @@
       ]
     ],
     [
-      "let_recursion",
+      "LetRecursion",
       [
         "time"
       ],
@@ -4290,7 +4290,7 @@
               ]
             ],
             "body" : [
-              "constructor",
+              "Constructor",
               [
                 "beta"
               ],
@@ -4355,14 +4355,14 @@
         ]
       ],
       [
-        "field",
+        "Field",
         [
           "august",
           "currency",
           "march"
         ],
         [
-          "unit",
+          "Unit",
           [
             "work",
             "december"
@@ -4374,7 +4374,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "iota",
         "march",
@@ -4390,14 +4390,14 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "december",
         "august"
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "problem",
         "mu",
@@ -4411,7 +4411,7 @@
       ]
     ],
     [
-      "let_recursion",
+      "LetRecursion",
       [
         "right",
         "fact",
@@ -4662,7 +4662,7 @@
               ]
             ],
             "body" : [
-              "variable",
+              "Variable",
               [
                 "february",
                 "omicron",
@@ -4752,14 +4752,14 @@
               ]
             ],
             "body" : [
-              "if_then_else",
+              "IfThenElse",
               [
                 "june",
                 "time",
                 "number"
               ],
               [
-                "reference",
+                "Reference",
                 [
                   "gamma"
                 ],
@@ -4807,7 +4807,7 @@
                 ]
               ],
               [
-                "constructor",
+                "Constructor",
                 [
                   "december",
                   "fact"
@@ -4860,7 +4860,7 @@
                 ]
               ],
               [
-                "let_definition",
+                "LetDefinition",
                 [
                   "owner",
                   "may",
@@ -4929,7 +4929,7 @@
                     ]
                   ],
                   "body" : [
-                    "field_function",
+                    "FieldFunction",
                     [
                       "march",
                       "description",
@@ -4946,7 +4946,7 @@
                   ]
                 },
                 [
-                  "reference",
+                  "Reference",
                   [
                     "march",
                     "april"
@@ -4991,7 +4991,7 @@
         ]
       ],
       [
-        "unit",
+        "Unit",
         [
           "to",
           "lambda"
@@ -4999,7 +4999,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "nu",
         "valid",
@@ -5016,7 +5016,7 @@
       ]
     ],
     [
-      "list",
+      "List",
       [
         "december",
         "august",
@@ -5024,7 +5024,7 @@
       ],
       [
         [
-          "literal",
+          "Literal",
           [
             "iota"
           ],
@@ -5034,13 +5034,13 @@
           ]
         ],
         [
-          "list",
+          "List",
           [
             "lot"
           ],
           [
             [
-              "let_definition",
+              "LetDefinition",
               [
                 "tau",
                 "parent",
@@ -5138,7 +5138,7 @@
                   ]
                 ],
                 "body" : [
-                  "reference",
+                  "Reference",
                   [
                     "may",
                     "problem",
@@ -5198,7 +5198,7 @@
                 ]
               },
               [
-                "reference",
+                "Reference",
                 [
                   "country",
                   "kappa",
@@ -5241,7 +5241,7 @@
               ]
             ],
             [
-              "reference",
+              "Reference",
               [
                 "sigma",
                 "february",
@@ -5308,7 +5308,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "march",
         "left",
@@ -5318,7 +5318,7 @@
       ]
     ],
     [
-      "destructure",
+      "Destructure",
       [
         "september",
         "january",
@@ -5326,13 +5326,13 @@
         "omicron"
       ],
       [
-        "head_tail_pattern",
+        "HeadTailPattern",
         [
           "sigma",
           "omicron"
         ],
         [
-          "wildcard_pattern",
+          "WildcardPattern",
           [
             "zeta",
             "december",
@@ -5341,7 +5341,7 @@
           ]
         ],
         [
-          "tuple_pattern",
+          "TuplePattern",
           [
             "name",
             "eta",
@@ -5351,7 +5351,7 @@
           ],
           [
             [
-              "constructor_pattern",
+              "ConstructorPattern",
               [
                 "rho",
                 "gamma",
@@ -5407,7 +5407,7 @@
               ],
               [
                 [
-                  "constructor_pattern",
+                  "ConstructorPattern",
                   [
                     "july"
                   ],
@@ -5449,7 +5449,7 @@
                   ],
                   [
                     [
-                      "empty_list_pattern",
+                      "EmptyListPattern",
                       [
                         "psi",
                         "owner",
@@ -5459,7 +5459,7 @@
                       ]
                     ],
                     [
-                      "empty_list_pattern",
+                      "EmptyListPattern",
                       [
                         "beta",
                         "march"
@@ -5470,7 +5470,7 @@
               ]
             ],
             [
-              "wildcard_pattern",
+              "WildcardPattern",
               [
                 "money"
               ]
@@ -5479,7 +5479,7 @@
         ]
       ],
       [
-        "unit",
+        "Unit",
         [
           "benchmark",
           "year",
@@ -5489,7 +5489,7 @@
         ]
       ],
       [
-        "literal",
+        "Literal",
         [
           "entity",
           "august"
@@ -5501,7 +5501,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "problem",
         "omicron",
@@ -5517,13 +5517,13 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "lot"
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "iota",
         "april",
@@ -5536,7 +5536,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "eta",
         "parent"
@@ -5550,7 +5550,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "april",
         "january"
@@ -5621,14 +5621,14 @@
       ]
     ],
     [
-      "list",
+      "List",
       [
         "zeta",
         "xi"
       ],
       [
         [
-          "unit",
+          "Unit",
           [
             "may",
             "parent",
@@ -5637,7 +5637,7 @@
           ]
         ],
         [
-          "constructor",
+          "Constructor",
           [
             "month",
             "xi",
@@ -5681,7 +5681,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "june",
         "part",
@@ -5697,7 +5697,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "october",
         "upsilon"
@@ -5759,14 +5759,14 @@
       ]
     ],
     [
-      "apply",
+      "Apply",
       [
         "july",
         "august",
         "epsilon"
       ],
       [
-        "constructor",
+        "Constructor",
         [
           "pi",
           "december",
@@ -5832,7 +5832,7 @@
         ]
       ],
       [
-        "field_function",
+        "FieldFunction",
         [
           "omicron"
         ],
@@ -5845,7 +5845,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "from"
       ],
@@ -5893,7 +5893,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "november",
         "number"
@@ -5935,7 +5935,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "september",
         "owner",
@@ -5951,7 +5951,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "february",
         "lambda",
@@ -5966,7 +5966,7 @@
       ]
     ],
     [
-      "let_recursion",
+      "LetRecursion",
       [
         "year",
         "june",
@@ -6015,7 +6015,7 @@
               ]
             ],
             "body" : [
-              "reference",
+              "Reference",
               [
                 "rate",
                 "september",
@@ -6064,7 +6064,7 @@
         ]
       ],
       [
-        "variable",
+        "Variable",
         [
           "october"
         ],
@@ -6076,7 +6076,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "job",
         "february",
@@ -6134,7 +6134,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "october",
         "november"
@@ -6190,7 +6190,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "july",
         "time",
@@ -6206,7 +6206,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "area",
         "december",
@@ -6247,7 +6247,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "xi"
       ],
@@ -6294,7 +6294,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "rho",
         "may",
@@ -6307,7 +6307,7 @@
       ]
     ],
     [
-      "record",
+      "Record",
       [
         "december",
         "epsilon"
@@ -6319,7 +6319,7 @@
             "chi"
           ],
           [
-            "constructor",
+            "Constructor",
             [
               "iota",
               "december",
@@ -6359,7 +6359,7 @@
             "month"
           ],
           [
-            "literal",
+            "Literal",
             [
               "week",
               "kappa",
@@ -6374,7 +6374,7 @@
       ]
     ],
     [
-      "list",
+      "List",
       [
         "may",
         "chi",
@@ -6383,7 +6383,7 @@
       ],
       [
         [
-          "variable",
+          "Variable",
           [
             "april",
             "september",
@@ -6401,7 +6401,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "may",
         "december",
@@ -6413,7 +6413,7 @@
       ]
     ],
     [
-      "list",
+      "List",
       [
         "july",
         "currency",
@@ -6421,25 +6421,25 @@
       ],
       [
         [
-          "apply",
+          "Apply",
           [
             "december"
           ],
           [
-            "if_then_else",
+            "IfThenElse",
             [
               "to",
               "mu",
               "omega"
             ],
             [
-              "pattern_match",
+              "PatternMatch",
               [
                 "year",
                 "area"
               ],
               [
-                "unit",
+                "Unit",
                 [
                   "right"
                 ]
@@ -6447,7 +6447,7 @@
               [
                 [
                   [
-                    "wildcard_pattern",
+                    "WildcardPattern",
                     [
                       "july",
                       "phi",
@@ -6457,7 +6457,7 @@
                     ]
                   ],
                   [
-                    "variable",
+                    "Variable",
                     [
                       "august",
                       "april",
@@ -6473,7 +6473,7 @@
               ]
             ],
             [
-              "literal",
+              "Literal",
               [
                 "minute",
                 "part",
@@ -6485,7 +6485,7 @@
               ]
             ],
             [
-              "variable",
+              "Variable",
               [
                 "gamma"
               ],
@@ -6497,7 +6497,7 @@
             ]
           ],
           [
-            "reference",
+            "Reference",
             [
               "eta"
             ],
@@ -6542,7 +6542,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "month",
         "business",
@@ -6556,7 +6556,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "name"
       ],
@@ -6566,7 +6566,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "right"
       ],
@@ -6610,7 +6610,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "theta",
         "march",
@@ -6654,7 +6654,7 @@
       ]
     ],
     [
-      "apply",
+      "Apply",
       [
         "world",
         "entity",
@@ -6662,7 +6662,7 @@
         "parent"
       ],
       [
-        "field_function",
+        "FieldFunction",
         [
           "theta",
           "to",
@@ -6676,7 +6676,7 @@
         ]
       ],
       [
-        "variable",
+        "Variable",
         [
           "october",
           "country",
@@ -6692,7 +6692,7 @@
       ]
     ],
     [
-      "let_definition",
+      "LetDefinition",
       [
         "group"
       ],
@@ -6763,7 +6763,7 @@
           ]
         ],
         "body" : [
-          "variable",
+          "Variable",
           [
             "alpha",
             "april"
@@ -6774,7 +6774,7 @@
         ]
       },
       [
-        "field_function",
+        "FieldFunction",
         [
           "theta",
           "id",
@@ -6789,7 +6789,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "rho",
         "eta",
@@ -6803,7 +6803,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "iota"
       ],
@@ -6869,7 +6869,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "owner",
         "home",
@@ -6926,7 +6926,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "name",
         "rate",
@@ -6976,19 +6976,19 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "epsilon"
       ]
     ],
     [
-      "list",
+      "List",
       [
         "source"
       ],
       [
         [
-          "constructor",
+          "Constructor",
           [
             "pi",
             "omicron"
@@ -7046,7 +7046,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "november",
         "description",
@@ -7060,7 +7060,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "nu",
         "market",
@@ -7073,7 +7073,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "mu",
         "phi",
@@ -7085,7 +7085,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "july"
       ],
@@ -7123,7 +7123,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "january",
         "june",
@@ -7135,7 +7135,7 @@
       ]
     ],
     [
-      "variable",
+      "Variable",
       [
         "rho",
         "september",
@@ -7148,7 +7148,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "job"
       ],
@@ -7189,7 +7189,7 @@
       ]
     ],
     [
-      "reference",
+      "Reference",
       [
         "march"
       ],
@@ -7235,13 +7235,13 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "market"
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "may",
         "nu"
@@ -7252,7 +7252,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "january",
         "april",
@@ -7266,7 +7266,7 @@
       ]
     ],
     [
-      "literal",
+      "Literal",
       [
         "november"
       ],
@@ -7276,7 +7276,7 @@
       ]
     ],
     [
-      "unit",
+      "Unit",
       [
         "from",
         "upsilon",
@@ -7284,7 +7284,7 @@
       ]
     ],
     [
-      "field_function",
+      "FieldFunction",
       [
         "omicron",
         "company"
@@ -7296,7 +7296,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "july"
       ],
@@ -7338,7 +7338,7 @@
       ]
     ],
     [
-      "constructor",
+      "Constructor",
       [
         "omega",
         "november",

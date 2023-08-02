@@ -21,11 +21,11 @@ import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.Type.{Definition => TypeDefinition, Specification => TypeSpecification, Type}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Pattern, Specification => ValueSpecification, Value}
 import org.finos.morphir.ir._
-import org.finos.morphir.ir.json.MorphirJsonSupport._
+import org.finos.morphir.ir.json.MorphirJsonSupportV2._
 import org.finos.morphir.ir.json.util.CustomAssert._
 import zio.test._
 
-object MorphirJsonDecodingSpec extends ZIOSpecDefault {
+object MorphirJsonDecodingSpecV2 extends ZIOSpecDefault {
   def spec = suite("Json Decoding Suite")(
     suite("Unit")(
       test("will decode a Unit") {
@@ -401,7 +401,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
           (Name.fromString("name2"), 2, variable[Int](678, "h"))
         )
         val actual =
-          """{"inputTypes":[[["name","1"],1,["Variable",345,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["Unit",1]}"""
+          """{"inputTypes":[[["name","1"],1,["Variable",345,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["unit",1]}"""
         val expected =
           ValueDefinition[Int, Int](inputParams, variable[Int](345, "g"), Value.Unit(1))
         assert(actual.fromJson[ValueDefinition[Int, Int]])(objectEqualTo(Right(expected)))
@@ -421,7 +421,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
     ),
     suite("Pattern")(
       test("will decode AsPattern") {
-        val actual   = """["AsPattern",1,["WildcardPattern",1],["wild","card"]]"""
+        val actual   = """["as_pattern",1,["wildcard_pattern",1],["wild","card"]]"""
         val expected = Pattern.AsPattern[Int](1, Pattern.WildcardPattern[Int](1), Name.fromString("wildCard"))
         assertTrue(
           actual.fromJson[Pattern.AsPattern[Int]] == Right(expected),
@@ -435,7 +435,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
           Pattern.AsPattern[Int](1, Pattern.WildcardPattern[Int](1), Name.fromString("wildCard"))
         )
         val actual =
-          """["ConstructorPattern",1,[[["test"]],[["java","home"]],["morphir"]],[["WildcardPattern",1],["EmptyListPattern",2],["AsPattern",1,["WildcardPattern",1],["wild","card"]]]]"""
+          """["constructor_pattern",1,[[["test"]],[["java","home"]],["morphir"]],[["wildcard_pattern",1],["empty_list_pattern",2],["as_pattern",1,["wildcard_pattern",1],["wild","card"]]]]"""
         val expected = Pattern.ConstructorPattern[Int](1, FQName.fromString("test:JavaHome:morphir"), patterns)
         assertTrue(
           actual.fromJson[Pattern.ConstructorPattern[Int]] == Right(expected),
@@ -443,7 +443,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         )
       },
       test("will decode EmptyListPattern") {
-        val actual   = """["EmptyListPattern",1]"""
+        val actual   = """["empty_list_pattern",1]"""
         val expected = Pattern.EmptyListPattern[Int](1)
         assertTrue(
           actual.fromJson[Pattern.EmptyListPattern[Int]] == Right(expected),
@@ -451,12 +451,12 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         )
       },
       test("will decode LiteralPattern") {
-        val actual   = """["LiteralPattern",1,["StringLiteral","hello"]]"""
+        val actual   = """["literal_pattern",1,["StringLiteral","hello"]]"""
         val expected = Pattern.LiteralPattern[Int](1, StringLiteral("hello"))
         assert(actual.fromJson[Pattern.LiteralPattern[Int]])(objectEqualTo(Right(expected)))
       },
       test("will decode HeadTailPattern") {
-        val actual = """["HeadTailPattern",1,["WildcardPattern",1],["EmptyListPattern",2]]"""
+        val actual = """["head_tail_pattern",1,["wildcard_pattern",1],["empty_list_pattern",2]]"""
         val expected =
           Pattern.HeadTailPattern[Int](1, Pattern.WildcardPattern[Int](1), Pattern.EmptyListPattern[Int](2))
         assertTrue(
@@ -471,7 +471,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
           Pattern.AsPattern[Int](1, Pattern.WildcardPattern[Int](1), Name.fromString("wildCard"))
         )
         val actual =
-          """["TuplePattern",1,[["WildcardPattern",1],["UnitPattern",2],["AsPattern",1,["WildcardPattern",1],["wild","card"]]]]"""
+          """["tuple_pattern",1,[["wildcard_pattern",1],["unit_pattern",2],["as_pattern",1,["wildcard_pattern",1],["wild","card"]]]]"""
         val expected = Pattern.TuplePattern[Int](1, patterns)
         assertTrue(
           actual.fromJson[Pattern.TuplePattern[Int]] == Right(expected),
@@ -479,7 +479,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         )
       },
       test("will decode UnitPattern") {
-        val actual   = """["UnitPattern",1]"""
+        val actual   = """["unit_pattern",1]"""
         val expected = Pattern.UnitPattern[Int](1)
         assertTrue(
           actual.fromJson[Pattern.UnitPattern[Int]] == Right(expected),
@@ -487,7 +487,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         )
       },
       test("will decode WildcardPattern") {
-        val actual   = """["WildcardPattern",1]"""
+        val actual   = """["wildcard_pattern",1]"""
         val expected = Pattern.WildcardPattern[Int](1)
         assertTrue(
           actual.fromJson[Pattern.WildcardPattern[Int]] == Right(expected),
@@ -569,7 +569,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
 
         val expected = ModuleDefinition[Int, Int](typeMap, valueMap)
         val actual =
-          """{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Variable",345,["g"]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],1,["Variable",345,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["Constructor",1,[[["test"]],[["java","home"]],["morphir"]]]}}}]]}"""
+          """{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Variable",345,["g"]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],1,["Variable",345,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["constructor",1,[[["test"]],[["java","home"]],["morphir"]]]}}}]]}"""
         assert(actual.fromJson[ModuleDefinition[Int, Int]])(objectEqualTo(Right(expected)))
       }
     ),
@@ -603,7 +603,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
 
         val modDef = ModuleDefinition[Int, Int](typeMap, valueMap)
         val actual =
-          """{"modules":[[[["org"],["src"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Variable",345,["g"]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],1,["Variable",345,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["Constructor",1,[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}],[[["org"],["test"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Variable",345,["g"]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],1,["Variable",345,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["Constructor",1,[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}]]}"""
+          """{"modules":[[[["org"],["src"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Variable",345,["g"]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],1,["Variable",345,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["constructor",1,[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}],[[["org"],["test"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Variable",345,["g"]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],1,["Variable",345,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["constructor",1,[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}]]}"""
         val expected = PackageDefinition[Int, Int](
           Map(
             modName1 -> AccessControlled(AccessControlled.Access.Public, modDef),
@@ -617,46 +617,46 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
     suite("Value")(
       test("will decode Value - ApplyCase") {
         val unitCase = Value.Unit(6)
-        val actual   = """["Apply",3,["Unit",6],["Unit",6]]"""
+        val actual   = """["apply",3,["unit",6],["unit",6]]"""
         val expected = Value.Apply(3, unitCase, unitCase)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
       test("will decode Value - ConstructorCase") {
         val name     = FQName.fromString("Com.Example;JavaHome;morphir", ";")
-        val actual   = """["Constructor",3,[[["com"],["example"]],[["java","home"]],["morphir"]]]"""
+        val actual   = """["constructor",3,[[["com"],["example"]],[["java","home"]],["morphir"]]]"""
         val expected = Value.Constructor(3, name)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
       test("will decode Value - DestructureCase") {
         val pattern  = Pattern.WildcardPattern[Int](1)
         val unitCase = Value.Unit(6)
-        val actual   = """["Destructure",3,["WildcardPattern",1],["Unit",6],["Unit",6]]"""
+        val actual   = """["destructure",3,["wildcard_pattern",1],["unit",6],["unit",6]]"""
         val expected = Value.Destructure(3, pattern, unitCase, unitCase)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
       test("will decode Value - FieldCase") {
         val name     = Name("Hello")
         val unitCase = Value.Unit(6)
-        val actual   = """["Field",3,["Unit",6],["hello"]]"""
+        val actual   = """["field",3,["unit",6],["hello"]]"""
         val expected = Value.Field(3, unitCase, name)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
       test("will decode Value - FieldFunctionCase") {
-        val actual   = """["FieldFunction",3,["hello"]]"""
+        val actual   = """["field_function",3,["hello"]]"""
         val expected = Value.FieldFunction(3, Name("Hello"))
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
       test("will decode Value - IfThenElseCase") {
         val fieldFunctionCase = Value.FieldFunction(3, Name("Hello"))
         val unitCase          = Value.Unit(6)
-        val actual            = """["IfThenElse",3,["Unit",6],["FieldFunction",3,["hello"]],["Unit",6]]"""
+        val actual            = """["if_then_else",3,["unit",6],["field_function",3,["hello"]],["unit",6]]"""
         val expected          = Value.IfThenElse(3, unitCase, fieldFunctionCase, unitCase)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
       test("will decode Value - LambdaCase") {
         val pattern           = Pattern.WildcardPattern[Int](1)
         val fieldFunctionCase = Value.FieldFunction(3, Name("Hello"))
-        val actual            = """["Lambda",3,["WildcardPattern",1],["FieldFunction",3,["hello"]]]"""
+        val actual            = """["lambda",3,["wildcard_pattern",1],["field_function",3,["hello"]]]"""
         val expected          = Value.Lambda(3, pattern, fieldFunctionCase)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
@@ -671,7 +671,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         val fieldFunctionCase = Value.FieldFunction(3, Name("Hello"))
 
         val actual =
-          """["LetDefinition",3,["hi"],{"inputTypes":[[["name","1"],1,["Variable",444,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["Literal",3,["BoolLiteral",true]]},["FieldFunction",3,["hello"]]]"""
+          """["let_definition",3,["hi"],{"inputTypes":[[["name","1"],1,["Variable",444,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",345,["g"]],"body":["literal",3,["BoolLiteral",true]]},["field_function",3,["hello"]]]"""
         val expected =
           Value.LetDefinition(3, Name("Hi"), valueDefinition, fieldFunctionCase)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
@@ -689,20 +689,20 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
 
         val fieldFunctionCase = Value.FieldFunction(3, Name("Hello"))
         val actual =
-          """["LetRecursion",3,[[["key","1"],{"inputTypes":[[["name","1"],1,["Variable",444,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",333,["x"]],"body":["Literal",3,["BoolLiteral",true]]}],[["key","2"],{"inputTypes":[[["name","1"],1,["Variable",444,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",333,["x"]],"body":["Literal",3,["BoolLiteral",true]]}]],["FieldFunction",3,["hello"]]]"""
+          """["let_recursion",3,[[["key","1"],{"inputTypes":[[["name","1"],1,["Variable",444,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",333,["x"]],"body":["literal",3,["BoolLiteral",true]]}],[["key","2"],{"inputTypes":[[["name","1"],1,["Variable",444,["g"]]],[["name","2"],2,["Variable",678,["h"]]]],"outputType":["Variable",333,["x"]],"body":["literal",3,["BoolLiteral",true]]}]],["field_function",3,["hello"]]]"""
         val expected = Value.LetRecursion(3, valueDefinitions, fieldFunctionCase)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
       test("will decode Value - ListCase") {
         val unitCase          = Value.Unit(6)
         val fieldFunctionCase = Value.FieldFunction(3, Name("Hello"))
-        val actual            = """["List",3,[["Unit",6],["FieldFunction",3,["hello"]]]]"""
+        val actual            = """["list",3,[["unit",6],["field_function",3,["hello"]]]]"""
         val expected          = Value.List(3, zio.Chunk[Value[Int, Int]](unitCase, fieldFunctionCase))
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
       test("will decode Value - LiteralCase") {
         val literal  = BoolLiteral(true)
-        val actual   = """["Literal",3,["BoolLiteral",true]]"""
+        val actual   = """["literal",3,["BoolLiteral",true]]"""
         val expected = Value.Literal(3, literal)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
@@ -710,7 +710,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         val unitCase          = Value.Unit(6)
         val fieldFunctionCase = Value.FieldFunction(3, Name("Hello"))
         val patterns          = zio.Chunk((Pattern.WildcardPattern[Int](12), fieldFunctionCase))
-        val actual   = """["PatternMatch",3,["Unit",6],[[["WildcardPattern",12],["FieldFunction",3,["hello"]]]]]"""
+        val actual   = """["pattern_match",3,["unit",6],[[["wildcard_pattern",12],["field_function",3,["hello"]]]]]"""
         val expected = Value.PatternMatch(3, unitCase, patterns)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
@@ -718,13 +718,13 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         val unitCase          = Value.Unit(6)
         val fieldFunctionCase = Value.FieldFunction(3, Name("Hello"))
         val fields            = zio.Chunk((Name("hello"), fieldFunctionCase), (Name("there"), unitCase))
-        val actual            = """["Record",3,[[["hello"],["FieldFunction",3,["hello"]]],[["there"],["Unit",6]]]]"""
+        val actual            = """["record",3,[[["hello"],["field_function",3,["hello"]]],[["there"],["unit",6]]]]"""
         val expected          = Value.Record(3, fields)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
       test("will decode Value - ReferenceCase") {
         val name     = FQName.fromString("Com.Example;JavaHome;morphir", ";")
-        val actual   = """["Reference",3,[[["com"],["example"]],[["java","home"]],["morphir"]]]"""
+        val actual   = """["reference",3,[[["com"],["example"]],[["java","home"]],["morphir"]]]"""
         val expected = Value.Reference(3, name)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
@@ -732,7 +732,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         val unitCase          = Value.Unit(6)
         val fieldFunctionCase = Value.FieldFunction(3, Name("Hello"))
         val elements          = zio.Chunk(unitCase, fieldFunctionCase)
-        val actual            = """["Tuple",3,[["Unit",6],["FieldFunction",3,["hello"]]]]"""
+        val actual            = """["tuple",3,[["unit",6],["field_function",3,["hello"]]]]"""
         val expected          = Value.Tuple(3, elements)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
@@ -741,17 +741,17 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         val fieldFunctionCase = Value.FieldFunction(3, Name("Hello"))
         val fields            = zio.Chunk((Name("hello"), fieldFunctionCase), (Name("there"), unitCase)).toMap
         val actual =
-          """["UpdateRecord",3,["Unit",6],[[["hello"],["FieldFunction",3,["hello"]]],[["there"],["Unit",6]]]]"""
+          """["update_record",3,["unit",6],[[["hello"],["field_function",3,["hello"]]],[["there"],["unit",6]]]]"""
         val expected = Value.UpdateRecord(3, unitCase, fields)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
       test("will decode Value - UnitCase") {
-        val actual   = """["Unit",6]"""
+        val actual   = """["unit",6]"""
         val expected = Value.Unit(6)
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       },
       test("will decode Value - VariableCase") {
-        val actual   = """["Variable",3,["hello"]]"""
+        val actual   = """["variable",3,["hello"]]"""
         val expected = Value.Variable(3, Name("hello"))
         assert(actual.fromJson[Value[Int, Int]])(objectEqualTo(Right(expected)))
       }
@@ -809,7 +809,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         )
         val expected = Library(packageName, dependencies, packageDef)
         val actual =
-          """["Library",[["morphir"],["s","d","k"]],[[[["org"],["finos"],["morphir"],["ir"]],{"modules":[[[["org"],["src"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}],[[["org"],["test"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}]]}]],{"modules":[[[["org"],["src"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["Constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}],[[["org"],["test"]],{"access":"Private","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["Constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}]]}]"""
+          """["Library",[["morphir"],["s","d","k"]],[[[["org"],["finos"],["morphir"],["ir"]],{"modules":[[[["org"],["src"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}],[[["org"],["test"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}]]}]],{"modules":[[[["org"],["src"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}],[[["org"],["test"]],{"access":"Private","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}]]}]"""
         assert(actual.fromJson[Library])(objectEqualTo(Right(expected))) &&
         assert(actual.fromJson[Distribution])(objectEqualTo(Right(expected)))
 
@@ -866,9 +866,9 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
             modName2 -> AccessControlled(AccessControlled.Access.Private, modDef)
           )
         )
-        val expected = MorphirIRFile(MorphirIRVersion.V3_0, Library(packageName, dependencies, packageDef))
+        val expected = MorphirIRFile(MorphirIRVersion.V2_0, Library(packageName, dependencies, packageDef))
         val actual =
-          """{"formatVersion":3,"distribution":["Library",[["morphir"],["s","d","k"]],[[[["org"],["finos"],["morphir"],["ir"]],{"modules":[[[["org"],["src"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}],[[["org"],["test"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}]]}]],{"modules":[[[["org"],["src"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["Constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}],[[["org"],["test"]],{"access":"Private","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["Constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}]]}]}"""
+          """{"formatVersion":2,"distribution":["Library",[["morphir"],["s","d","k"]],[[[["org"],["finos"],["morphir"],["ir"]],{"modules":[[[["org"],["src"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}],[[["org"],["test"]],{"types":[[["name"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","1"],["name","2"]],["Unit",[]]]}]],"values":[[["name"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Unit",[]]],[["name","2"],["Unit",[]]]],"outputs":["Unit",[]]}}]]}]]}]],{"modules":[[[["org"],["src"]],{"access":"Public","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}],[[["org"],["test"]],{"access":"Private","value":{"types":[[["name"],{"access":"Private","value":{"doc":"typeDoc1","value":["TypeAliasDefinition",[["name","1"],["name","2"]],["Unit",[]]]}}]],"values":[[["name"],{"access":"Private","value":{"doc":"valueDoc1","value":{"inputTypes":[[["name","1"],["Unit",[]],["Unit",[]]],[["name","2"],["Unit",[]],["Unit",[]]]],"outputType":["Unit",[]],"body":["constructor",["Unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}}}]]}}]]}]}"""
         assert(actual.fromJson[MorphirIRFile])(objectEqualTo(Right(expected)))
       }
     )

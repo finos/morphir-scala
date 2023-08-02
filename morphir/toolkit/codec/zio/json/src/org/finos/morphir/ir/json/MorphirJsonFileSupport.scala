@@ -11,6 +11,7 @@ trait MorphirJsonFileSupport extends JsonEncodingHelpers {
   implicit val morphirIRVersionDecoder: JsonDecoder[MorphirIRVersion] = JsonDecoder.int.map {
     case 1 => MorphirIRVersion.V1_0
     case 2 => MorphirIRVersion.V2_0
+    case 3 => MorphirIRVersion.V3_0
   }
 
   private def DecodeDistributionWithVersion(version: MorphirIRVersion, distribution: Json) = version match {
@@ -18,6 +19,9 @@ trait MorphirJsonFileSupport extends JsonEncodingHelpers {
       import org.finos.morphir.ir.json.MorphirJsonDecodingSupportV1._
       JsonDecoder[Distribution].fromJsonAST(distribution)
     case MorphirIRVersion.V2_0 =>
+      import org.finos.morphir.ir.json.MorphirJsonDecodingSupportV2._
+      JsonDecoder[Distribution].fromJsonAST(distribution)
+    case MorphirIRVersion.V3_0 =>
       import org.finos.morphir.ir.json.MorphirJsonDecodingSupport._
       JsonDecoder[Distribution].fromJsonAST(distribution)
   }
@@ -54,6 +58,9 @@ trait MorphirJsonFileSupport extends JsonEncodingHelpers {
       import org.finos.morphir.ir.json.MorphirJsonEncodingSupportV1._
       super.toJsonAstOrThrow(distribution)
     case MorphirIRVersion.V2_0 =>
+      import org.finos.morphir.ir.json.MorphirJsonEncodingSupportV2._
+      super.toJsonAstOrThrow(distribution)
+    case MorphirIRVersion.V3_0 =>
       import org.finos.morphir.ir.json.MorphirJsonEncodingSupport._
       super.toJsonAstOrThrow(distribution)
   }

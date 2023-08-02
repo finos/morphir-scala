@@ -278,7 +278,7 @@
                   ]
                 ],
                 "body" : [
-                  "constructor",
+                  "Constructor",
                   {},
                   [
                     [
@@ -519,7 +519,7 @@
                   ]
                 ],
                 "body" : [
-                  "constructor",
+                  "Constructor",
                   {},
                   [
                     [
@@ -709,7 +709,7 @@
                   ]
                 ],
                 "body" : [
-                  "unit",
+                  "Unit",
                   {}
                 ]
               }
@@ -919,7 +919,7 @@
                   ]
                 ],
                 "body" : [
-                  "literal",
+                  "Literal",
                   {},
                   [
                     "StringLiteral",
@@ -993,7 +993,7 @@
                   ]
                 ],
                 "body" : [
-                  "constructor",
+                  "Constructor",
                   {},
                   [
                     [
@@ -1667,7 +1667,7 @@
                   ]
                 ],
                 "body" : [
-                  "constructor",
+                  "Constructor",
                   {},
                   [
                     [
@@ -1915,7 +1915,7 @@
                   ]
                 ],
                 "body" : [
-                  "unit",
+                  "Unit",
                   {}
                 ]
               }
@@ -2019,7 +2019,7 @@
                   ]
                 ],
                 "body" : [
-                  "field_function",
+                  "FieldFunction",
                   {},
                   [
                     "may",
@@ -2176,10 +2176,10 @@
                   ]
                 ],
                 "body" : [
-                  "destructure",
+                  "Destructure",
                   {},
                   [
-                    "constructor_pattern",
+                    "ConstructorPattern",
                     {},
                     [
                       [
@@ -2236,11 +2236,11 @@
                     ],
                     [
                       [
-                        "unit_pattern",
+                        "UnitPattern",
                         {}
                       ],
                       [
-                        "literal_pattern",
+                        "LiteralPattern",
                         {},
                         [
                           "CharLiteral",
@@ -2250,11 +2250,11 @@
                     ]
                   ],
                   [
-                    "unit",
+                    "Unit",
                     {}
                   ],
                   [
-                    "literal",
+                    "Literal",
                     {},
                     [
                       "CharLiteral",
@@ -2382,7 +2382,7 @@
                   ]
                 ],
                 "body" : [
-                  "literal",
+                  "Literal",
                   {},
                   [
                     "WholeNumberLiteral",
@@ -2623,7 +2623,7 @@
                   ]
                 ],
                 "body" : [
-                  "constructor",
+                  "Constructor",
                   {},
                   [
                     [
@@ -2776,7 +2776,7 @@
                   ]
                 ],
                 "body" : [
-                  "reference",
+                  "Reference",
                   {},
                   [
                     [
@@ -3353,7 +3353,7 @@
                   ]
                 ],
                 "body" : [
-                  "unit",
+                  "Unit",
                   {}
                 ]
               }
@@ -3483,7 +3483,7 @@
                   ]
                 ],
                 "body" : [
-                  "constructor",
+                  "Constructor",
                   {},
                   [
                     [
@@ -3630,11 +3630,11 @@
                   ]
                 ],
                 "body" : [
-                  "list",
+                  "List",
                   {},
                   [
                     [
-                      "variable",
+                      "Variable",
                       {},
                       [
                         "august",
@@ -3644,7 +3644,7 @@
                       ]
                     ],
                     [
-                      "reference",
+                      "Reference",
                       {},
                       [
                         [
@@ -3995,7 +3995,7 @@
                   ]
                 ],
                 "body" : [
-                  "field_function",
+                  "FieldFunction",
                   {},
                   [
                     "job"
@@ -4240,7 +4240,7 @@
                   ]
                 ],
                 "body" : [
-                  "let_definition",
+                  "LetDefinition",
                   {},
                   [
                     "system",
@@ -4381,7 +4381,7 @@
                       ]
                     ],
                     "body" : [
-                      "variable",
+                      "Variable",
                       {},
                       [
                         "sigma",
@@ -4392,7 +4392,7 @@
                     ]
                   },
                   [
-                    "literal",
+                    "Literal",
                     {},
                     [
                       "BoolLiteral",
@@ -4494,10 +4494,10 @@
                   ]
                 ],
                 "body" : [
-                  "field",
+                  "Field",
                   {},
                   [
-                    "reference",
+                    "Reference",
                     {},
                     [
                       [
@@ -4744,7 +4744,7 @@
                   ]
                 ],
                 "body" : [
-                  "constructor",
+                  "Constructor",
                   {},
                   [
                     [
@@ -4880,10 +4880,10 @@
                   ]
                 ],
                 "body" : [
-                  "destructure",
+                  "Destructure",
                   {},
                   [
-                    "constructor_pattern",
+                    "ConstructorPattern",
                     {},
                     [
                       [
@@ -4928,13 +4928,13 @@
                     ],
                     [
                       [
-                        "empty_list_pattern",
+                        "EmptyListPattern",
                         {}
                       ]
                     ]
                   ],
                   [
-                    "variable",
+                    "Variable",
                     {},
                     [
                       "psi",
@@ -4944,11 +4944,11 @@
                     ]
                   ],
                   [
-                    "list",
+                    "List",
                     {},
                     [
                       [
-                        "reference",
+                        "Reference",
                         {},
                         [
                           [
@@ -5211,7 +5211,7 @@
                   ]
                 ],
                 "body" : [
-                  "let_recursion",
+                  "LetRecursion",
                   {},
                   [
                     [
@@ -5261,7 +5261,7 @@
                           ]
                         ],
                         "body" : [
-                          "literal",
+                          "Literal",
                           {},
                           [
                             "BoolLiteral",
@@ -5444,7 +5444,7 @@
                           ]
                         ],
                         "body" : [
-                          "literal",
+                          "Literal",
                           {},
                           [
                             "BoolLiteral",
@@ -5455,7 +5455,7 @@
                     ]
                   ],
                   [
-                    "record",
+                    "Record",
                     {},
                     [
                       [
@@ -5467,7 +5467,7 @@
                           "march"
                         ],
                         [
-                          "variable",
+                          "Variable",
                           {},
                           [
                             "march",
@@ -5672,7 +5672,7 @@
                   ]
                 ],
                 "body" : [
-                  "reference",
+                  "Reference",
                   {},
                   [
                     [
@@ -6045,7 +6045,7 @@
                   ]
                 ],
                 "body" : [
-                  "unit",
+                  "Unit",
                   {}
                 ]
               }
@@ -6338,7 +6338,7 @@
                   ]
                 ],
                 "body" : [
-                  "unit",
+                  "Unit",
                   {}
                 ]
               }
@@ -6446,7 +6446,7 @@
                   ]
                 ],
                 "body" : [
-                  "unit",
+                  "Unit",
                   {}
                 ]
               }
@@ -6680,7 +6680,7 @@
                   ]
                 ],
                 "body" : [
-                  "variable",
+                  "Variable",
                   {},
                   [
                     "benchmark",
@@ -6824,7 +6824,7 @@
                   ]
                 ],
                 "body" : [
-                  "literal",
+                  "Literal",
                   {},
                   [
                     "WholeNumberLiteral",
