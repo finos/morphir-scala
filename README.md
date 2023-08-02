@@ -14,14 +14,14 @@
     <img src="https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod" />
 </a>
 
-<a href="https://javadoc.io/doc/org.finos.morphir/morphir-toolkit-core_3/latest/index.html">
+<a href="https://javadoc.io/doc/org.finos.morphir/morphir-runtime_3/latest/index.html">
     <img src="https://img.shields.io/badge/Scaladoc-latest-blue" />
 </a>
 <a href="https://index.scala-lang.org/finos/morphir-scala">
-    <img src="https://img.shields.io/maven-central/v/org.finos.morphir/morphir-toolkit-core_3?style=flat-square&color=blue" />
+    <img src="https://img.shields.io/maven-central/v/org.finos.morphir/morphir-runtime_3?style=flat-square&color=blue" />
 </a>
 <a href="https://index.scala-lang.org/finos/morphir-scala">
-    <img src="https://img.shields.io/nexus/s/org.finos.morphir/morphir-toolkit-core_3?server=https%3A%2F%2Foss.sonatype.org%2F&label=nexus-snapshots" />
+    <img src="https://img.shields.io/nexus/s/org.finos.morphir/morphir-runtime_3?server=https%3A%2F%2Foss.sonatype.org%2F&label=nexus-snapshots" />
 </a>
 
 
