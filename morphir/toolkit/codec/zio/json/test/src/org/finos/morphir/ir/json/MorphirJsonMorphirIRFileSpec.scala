@@ -55,7 +55,7 @@ object MorphirJsonMorphirIRFileSpec extends ZIOSpecDefault {
         assert(actual.fromJson[MorphirIRFile])(objectEqualTo(Right(expected)))
       }
     ),
-    suite ("MorphirIRFile Version 3")(
+    suite("MorphirIRFile Version 3")(
       test("encoding") {
         val actual = MorphirIRFile(MorphirIRVersion.V3_0, library)
         val expected =
