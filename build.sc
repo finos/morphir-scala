@@ -606,7 +606,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
               def ivyDeps =
                 super.ivyDeps() ++ Agg(
                   Deps.dev.zio.`zio-json-golden`,
-                  ivy"io.github.deblockt:json-diff:0.0.5",
+                  ivy"io.github.deblockt:json-diff:0.0.6",
                   Deps.dev.zio.`zio-process`
                 )
 
