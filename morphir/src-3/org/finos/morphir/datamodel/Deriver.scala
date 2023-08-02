@@ -161,7 +161,7 @@ object Deriver {
       errorOnType[T]("The following type is not a valid enum and there is no specific deriver defined for it")
     }
 
-    // Needed so you can do the syntax `case class Foo(...) derives Deriver`
+  // Needed so you can do the syntax `case class Foo(...) derives Deriver`
   inline def derived[T]: Deriver[T] = gen[T]
 
   // TODO When making a product deriver, make sure to exclude Option[T] since
