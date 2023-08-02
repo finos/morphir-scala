@@ -395,6 +395,10 @@ object Value {
       }
     }
 
+    // foo : T1
+    // foo(arg) : T2
+    // T2 == T1
+
     type Typed = Apply[scala.Unit, UType]
     object Typed {
 

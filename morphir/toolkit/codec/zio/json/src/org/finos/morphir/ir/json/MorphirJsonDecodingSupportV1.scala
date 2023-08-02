@@ -612,6 +612,7 @@ trait MorphirJsonDecodingSupportV1 {
   implicit val morphirIRVersionDecoder: JsonDecoder[MorphirIRVersion] = JsonDecoder.int.map {
     case 1 => MorphirIRVersion.V1_0
     case 2 => MorphirIRVersion.V2_0
+    case 3 => MorphirIRVersion.V3_0
   }
 
   implicit def morphirIRFileDecoder: JsonDecoder[MorphirIRFile] = {

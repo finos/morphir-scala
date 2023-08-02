@@ -467,7 +467,7 @@
                             {}
                           ],
                           "body" : [
-                            "variable",
+                            "Variable",
                             [
                               "Unit",
                               {}
@@ -997,7 +997,7 @@
                             ]
                           ],
                           "body" : [
-                            "literal",
+                            "Literal",
                             [
                               "Unit",
                               {}
@@ -1103,7 +1103,7 @@
                             ]
                           ],
                           "body" : [
-                            "variable",
+                            "Variable",
                             [
                               "Unit",
                               {}
@@ -1915,7 +1915,7 @@
                             {}
                           ],
                           "body" : [
-                            "reference",
+                            "Reference",
                             [
                               "Record",
                               {},
@@ -2112,7 +2112,7 @@
                             {}
                           ],
                           "body" : [
-                            "constructor",
+                            "Constructor",
                             [
                               "Variable",
                               {},
@@ -2427,7 +2427,7 @@
                             ]
                           ],
                           "body" : [
-                            "unit",
+                            "Unit",
                             [
                               "Unit",
                               {}
@@ -3187,7 +3187,7 @@
                             ]
                           ],
                           "body" : [
-                            "field_function",
+                            "FieldFunction",
                             [
                               "Variable",
                               {},
@@ -3316,7 +3316,7 @@
                             ]
                           ],
                           "body" : [
-                            "reference",
+                            "Reference",
                             [
                               "Variable",
                               {},
@@ -3651,7 +3651,7 @@
                             {}
                           ],
                           "body" : [
-                            "field_function",
+                            "FieldFunction",
                             [
                               "Reference",
                               {},
@@ -4746,7 +4746,7 @@
                             ]
                           ],
                           "body" : [
-                            "variable",
+                            "Variable",
                             [
                               "Variable",
                               {},
@@ -4901,7 +4901,7 @@
                             ]
                           ],
                           "body" : [
-                            "literal",
+                            "Literal",
                             [
                               "Variable",
                               {},
@@ -5123,7 +5123,7 @@
                             ]
                           ],
                           "body" : [
-                            "constructor",
+                            "Constructor",
                             [
                               "Unit",
                               {}
@@ -5224,7 +5224,7 @@
                             ]
                           ],
                           "body" : [
-                            "reference",
+                            "Reference",
                             [
                               "ExtensibleRecord",
                               {},
@@ -5791,7 +5791,7 @@
                             ]
                           ],
                           "body" : [
-                            "variable",
+                            "Variable",
                             [
                               "Tuple",
                               {},
@@ -6120,7 +6120,7 @@
                             ]
                           ],
                           "body" : [
-                            "unit",
+                            "Unit",
                             [
                               "Unit",
                               {}
@@ -6914,7 +6914,7 @@
                             ]
                           ],
                           "body" : [
-                            "reference",
+                            "Reference",
                             [
                               "Variable",
                               {},
@@ -7212,7 +7212,7 @@
                             ]
                           ],
                           "body" : [
-                            "unit",
+                            "Unit",
                             [
                               "Variable",
                               {},
@@ -8246,7 +8246,7 @@
                             ]
                           ],
                           "body" : [
-                            "unit",
+                            "Unit",
                             [
                               "Reference",
                               {},
@@ -8390,7 +8390,7 @@
                             {}
                           ],
                           "body" : [
-                            "reference",
+                            "Reference",
                             [
                               "Unit",
                               {}
@@ -8622,13 +8622,13 @@
                             ]
                           ],
                           "body" : [
-                            "destructure",
+                            "Destructure",
                             [
                               "Unit",
                               {}
                             ],
                             [
-                              "head_tail_pattern",
+                              "HeadTailPattern",
                               [
                                 "Record",
                                 {},
@@ -8675,7 +8675,7 @@
                                 ]
                               ],
                               [
-                                "unit_pattern",
+                                "UnitPattern",
                                 [
                                   "Variable",
                                   {},
@@ -8686,7 +8686,7 @@
                                 ]
                               ],
                               [
-                                "unit_pattern",
+                                "UnitPattern",
                                 [
                                   "Unit",
                                   {}
@@ -8694,7 +8694,7 @@
                               ]
                             ],
                             [
-                              "field",
+                              "Field",
                               [
                                 "Tuple",
                                 {},
@@ -8710,7 +8710,7 @@
                                 ]
                               ],
                               [
-                                "unit",
+                                "Unit",
                                 [
                                   "Variable",
                                   {},
@@ -8728,7 +8728,7 @@
                               ]
                             ],
                             [
-                              "constructor",
+                              "Constructor",
                               [
                                 "ExtensibleRecord",
                                 {},
@@ -9647,7 +9647,7 @@
                             ]
                           ],
                           "body" : [
-                            "unit",
+                            "Unit",
                             [
                               "Variable",
                               {},
@@ -9784,7 +9784,7 @@
                             ]
                           ],
                           "body" : [
-                            "constructor",
+                            "Constructor",
                             [
                               "Reference",
                               {},
@@ -10097,7 +10097,7 @@
                             {}
                           ],
                           "body" : [
-                            "field_function",
+                            "FieldFunction",
                             [
                               "Unit",
                               {}
@@ -10567,7 +10567,7 @@
                             {}
                           ],
                           "body" : [
-                            "reference",
+                            "Reference",
                             [
                               "Unit",
                               {}
@@ -10708,7 +10708,7 @@
                             {}
                           ],
                           "body" : [
-                            "literal",
+                            "Literal",
                             [
                               "Tuple",
                               {},

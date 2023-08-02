@@ -2,19 +2,53 @@ package org.finos.morphir
 package runtime
 
 import org.finos.morphir.testing.MorphirBaseSpec
+import zio.{Console, Task, ZIO}
 import zio.test.{test, *}
+import org.finos.morphir.runtime.MorphirRuntime
 import org.finos.morphir.datamodel.{Data, Concept, Label, EnumLabel}
 import org.finos.morphir.datamodel.namespacing.Namespace.ns
 import org.finos.morphir.datamodel.namespacing.PackageName.root
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.ir.FQName
+import org.finos.morphir.ir.conversion.*
+import org.finos.morphir.datamodel.Util.*
+import org.finos.morphir.datamodel.*
 
 object EvaluatorDDLTests extends MorphirBaseSpec {
-  lazy val lib =
-    EvaluationLibrary("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json", "Morphir.Examples.App")
+  val morphirRuntime =
+    for {
+      irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
+      _          <- Console.printLine(s"Loading distribution from $irFilePath")
+      dist       <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
+    } yield MorphirRuntime.quick(dist)
 
-  def runTest(moduleName: String, functionName: String)             = lib.runTestDDL(moduleName, functionName, ())
-  def runTest(moduleName: String, functionName: String, value: Any) = lib.runTestDDL(moduleName, functionName, value)
+  def deriveData(input: Any): Data =
+    input match {
+      case u: Unit             => Deriver.toData(u)
+      case i: Int              => Deriver.toData(i)
+      case s: String           => Deriver.toData(s)
+      case (i: Int, s: String) => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
+      case other               => throw new Exception(s"Couldn't derive $other")
+    }
+
+  def checkEvaluation(moduleName: String, functionName: String)(expected: => Data) =
+    runTest(moduleName, functionName).map { actual =>
+      assertTrue(actual == expected)
+    }
+
+  def checkEvaluation(moduleName: String, functionName: String, value: Any)(expected: => Data) =
+    runTest(moduleName, functionName, value).map { actual =>
+      assertTrue(actual == expected)
+    }
+
+  def runTest(moduleName: String, functionName: String): Task[Data] = runTest(moduleName, functionName, ())
+  def runTest(moduleName: String, functionName: String, value: Any): Task[Data] =
+    morphirRuntime.flatMap { runtime =>
+      val fullName = s"Morphir.Examples.App:$moduleName:$functionName"
+      val data     = deriveData(value)
+
+      ZIO.fromEither(runtime.evaluate(FQName.fromString(fullName), data))
+    }
 
   val dogRecordConceptRaw = Concept.Struct(
     List(
@@ -132,275 +166,219 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
     suite("Json Evaluation")(
       suite("Constructor Tests")(
         test("Zero Arg") {
-          val actual   = runTest("constructorTests", "constructorZeroArgTest")
-          val expected = zeroArg
-          assertTrue(actual == expected)
+          for {
+            actual <- runTest("constructorTests", "constructorZeroArgTest")
+            expected = zeroArg
+          } yield assertTrue(actual == expected)
         },
         test("One Arg") {
-          val actual =
-            runTest("constructorTests", "constructorOneArgAppliedTest")
-          val expected = oneArg(5)
-          assertTrue(actual == expected)
+          for {
+            actual <- runTest("constructorTests", "constructorOneArgAppliedTest")
+            expected = oneArg(5)
+          } yield assertTrue(actual == expected)
         },
         test("Two Arg") {
-          val actual =
-            runTest("constructorTests", "constructorTwoArgAppliedTest")
-          val expected = twoArg(5, "Red")
-          assertTrue(actual == expected)
+          for {
+            actual <- runTest("constructorTests", "constructorTwoArgAppliedTest")
+            expected = twoArg(5, "Red")
+          } yield assertTrue(actual == expected)
         },
         test("Two Arg Curried") {
-          val actual =
-            runTest("constructorTests", "constructorTwoArgCurriedTest")
-          val expected = twoArg(5, "Blue")
-          assertTrue(actual == expected)
+          for {
+            actual <- runTest("constructorTests", "constructorTwoArgCurriedTest")
+            expected = twoArg(5, "Blue")
+          } yield assertTrue(actual == expected)
         },
         test("Lazy Function") {
-          val actual   = runTest("constructorTests", "lazyFunctionTest")
-          val expected = Data.Tuple(Data.Int(5), Data.Int(5))
-          assertTrue(actual == expected)
+          for {
+            actual <- runTest("constructorTests", "lazyFunctionTest")
+            expected = Data.Tuple(Data.Int(5), Data.Int(5))
+          } yield assertTrue(actual == expected)
         }
       ),
       suite("Destructure Tests")(
         test("As") {
-          val actual   = runTest("destructureTests", "destructureAsTest")
-          val expected = Data.Int(5)
-          assertTrue(actual == expected)
+          for {
+            actual <- runTest("destructureTests", "destructureAsTest")
+            expected = Data.Int(5)
+          } yield assertTrue(actual == expected)
         },
         test("Tuple") {
-          val actual   = runTest("destructureTests", "destructureTupleTest")
-          val expected = Data.Tuple(Data.Int(1), Data.Int(2))
-          assertTrue(actual == expected)
+          for {
+            actual <- runTest("destructureTests", "destructureTupleTest")
+            expected = Data.Tuple(Data.Int(1), Data.Int(2))
+          } yield assertTrue(actual == expected)
         },
         test("Constructor") {
-          val actual   = runTest("destructureTests", "destructureConstructorTest")
-          val expected = Data.Tuple(Data.Int(5), Data.String("red"))
-          assertTrue(actual == expected)
+          for {
+            actual <- runTest("destructureTests", "destructureConstructorTest")
+            expected = Data.Tuple(Data.Int(5), Data.String("red"))
+          } yield assertTrue(actual == expected)
         },
         test("Unit") {
-          val actual   = runTest("destructureTests", "destructureUnitTest")
-          val expected = Data.Int(4)
-          assertTrue(actual == expected)
+          checkEvaluation("destructureTests", "destructureUnitTest")(Data.Int(4))
         },
         test("AsTwice") {
-          val actual   = runTest("destructureTests", "destructureAsTwiceTest")
-          val expected = Data.Tuple(Data.Int(5), Data.Int(5))
-          assertTrue(actual == expected)
+          checkEvaluation("destructureTests", "destructureAsTwiceTest")(Data.Tuple(Data.Int(5), Data.Int(5)))
         },
         test("Tuple Twice") {
-          val actual =
-            runTest("destructureTests", "destructureTupleTwiceTest")
-          val expected = Data.Tuple(Data.String("Blue"), Data.Int(5), Data.Tuple(Data.Int(5), Data.String("Blue")))
-          assertTrue(actual == expected)
+          checkEvaluation("destructureTests", "destructureTupleTwiceTest")(Data.Tuple(
+            Data.String("Blue"),
+            Data.Int(5),
+            Data.Tuple(Data.Int(5), Data.String("Blue"))
+          ))
         },
         test("Directly Nested") {
-          val actual   = runTest("destructureTests", "destructureDirectTest")
-          val expected = Data.Tuple(Data.Int(6), Data.String("Green"))
-          assertTrue(actual == expected)
+          checkEvaluation("destructureTests", "destructureDirectTest")(Data.Tuple(Data.Int(6), Data.String("Green")))
         }
       ),
       suite("IfThenElse Tests")(
         test("True Branch") {
-          val actual   = runTest("ifThenElseTests", "ifThenElseTrueTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("ifThenElseTests", "ifThenElseTrueTest")(Data.String("Correct"))
         },
         test("False Branch") {
-          val actual   = runTest("ifThenElseTests", "ifThenElseFalseTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("ifThenElseTests", "ifThenElseFalseTest")(Data.String("Correct"))
         },
         test("Else Unevaluated") {
-          val actual   = runTest("ifThenElseTests", "ifThenElseElseBranchUnevaluatedTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("ifThenElseTests", "ifThenElseElseBranchUnevaluatedTest")(Data.String("Correct"))
         },
         test("Then Unevaluated") {
-          val actual   = runTest("ifThenElseTests", "ifThenElseThenBranchUnevaluatedTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("ifThenElseTests", "ifThenElseThenBranchUnevaluatedTest")(Data.String("Correct"))
         }
       ),
       suite("Lambda Tests")(
         test("As") {
-          val actual   = runTest("lambdaTests", "lambdaAsTest")
-          val expected = Data.Tuple(Data.Int(5), Data.Int(5))
-          assertTrue(actual == expected)
+          checkEvaluation("lambdaTests", "lambdaAsTest")(Data.Tuple(Data.Int(5), Data.Int(5)))
         },
         test("Tuple") {
-          val actual   = runTest("lambdaTests", "lambdaTupleTest")
-          val expected = Data.Tuple(Data.Int(0), Data.Int(1))
-          assertTrue(actual == expected)
+          checkEvaluation("lambdaTests", "lambdaTupleTest")(Data.Tuple(Data.Int(0), Data.Int(1)))
         },
         test("Constructor") {
-          val actual   = runTest("lambdaTests", "lambdaConstructorTest")
-          val expected = Data.Tuple(Data.String("Red"), Data.Int(5))
-          assertTrue(actual == expected)
+          checkEvaluation("lambdaTests", "lambdaConstructorTest")(Data.Tuple(Data.String("Red"), Data.Int(5)))
         },
         test("Unit") {
-          val actual   = runTest("lambdaTests", "lambdaUnitTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("lambdaTests", "lambdaUnitTest")(Data.String("Correct"))
         },
         test("Directly Nested") {
-          val actual   = runTest("lambdaTests", "lambdaDirectTest")
-          val expected = Data.Tuple(Data.Int(0), Data.Int(1))
-          assertTrue(actual == expected)
+          checkEvaluation("lambdaTests", "lambdaDirectTest")(Data.Tuple(Data.Int(0), Data.Int(1)))
         },
         test("Scope") {
-          val actual   = runTest("lambdaTests", "lambdaScopeTest")
-          val expected = Data.Tuple(Data.Int(3), Data.Tuple(Data.Int(4), Data.Int(5)))
-          assertTrue(actual == expected)
+          checkEvaluation("lambdaTests", "lambdaScopeTest")(Data.Tuple(
+            Data.Int(3),
+            Data.Tuple(Data.Int(4), Data.Int(5))
+          ))
         },
         test("Higher Order") {
-          val actual   = runTest("lambdaTests", "lambdaHigherOrderTest")
-          val expected = Data.Tuple(Data.Int(3), Data.Int(4), Data.Int(5))
-          assertTrue(actual == expected)
+          checkEvaluation("lambdaTests", "lambdaHigherOrderTest")(Data.Tuple(Data.Int(3), Data.Int(4), Data.Int(5)))
         },
         test("User Defined Constructor") {
-          val actual   = runTest("lambdaTests", "lambdaUserDefinedTest")
-          val expected = Data.Tuple(Data.Int(5), Data.String("Red"))
-          assertTrue(actual == expected)
+          checkEvaluation("lambdaTests", "lambdaUserDefinedTest")(Data.Tuple(Data.Int(5), Data.String("Red")))
         }
       ),
       suite("Let Definition")(
         test("Make Tuple") {
-          val actual   = runTest("letDefinitionTests", "letDefinitionMakeTupleTest")
-          val expected = Data.Tuple(Data.Int(1), Data.Int(1))
-          assertTrue(actual == expected)
+          checkEvaluation("letDefinitionTests", "letDefinitionMakeTupleTest")(Data.Tuple(Data.Int(1), Data.Int(1)))
         },
         test("Nested") {
-          val actual   = runTest("letDefinitionTests", "letDefinitionNestedTest")
-          val expected = Data.Tuple(Data.Int(2), Data.Int(2))
-          assertTrue(actual == expected)
+          checkEvaluation("letDefinitionTests", "letDefinitionNestedTest")(Data.Tuple(Data.Int(2), Data.Int(2)))
         },
         test("Simple Function") {
-          val actual =
-            runTest("letDefinitionTests", "letDefinitionSimpleFunctionTest")
-          val expected = Data.Tuple(Data.Int(3), Data.Int(3))
-          assertTrue(actual == expected)
+          checkEvaluation("letDefinitionTests", "letDefinitionSimpleFunctionTest")(Data.Tuple(Data.Int(3), Data.Int(3)))
         },
         test("Two Argument Function") {
-          val actual =
-            runTest("letDefinitionTests", "letDefinitionTwoArgFunctionFunctionTest")
-          val expected = Data.Tuple(Data.Int(3), Data.Int(2))
-          assertTrue(actual == expected)
+          checkEvaluation("letDefinitionTests", "letDefinitionTwoArgFunctionFunctionTest")(Data.Tuple(
+            Data.Int(3),
+            Data.Int(2)
+          ))
         },
         test("Curried Function") {
-          val actual   = runTest("letDefinitionTests", "letDefinitionCurriedTest")
-          val expected = Data.Tuple(Data.Int(2), Data.Int(0))
-          assertTrue(actual == expected)
+          checkEvaluation("letDefinitionTests", "letDefinitionCurriedTest")(Data.Tuple(Data.Int(2), Data.Int(0)))
         },
         test("Apply Twice") {
-          val actual = runTest(
-            "letDefinitionTests",
-            "letDefinitionApplyTwiceTest"
-          )
-          val expected = Data.Tuple(Data.Tuple(Data.Int(1), Data.Int(0)), Data.Tuple(Data.Int(2), Data.Int(0)))
-          assertTrue(actual == expected)
+          checkEvaluation("letDefinitionTests", "letDefinitionApplyTwiceTest")(Data.Tuple(
+            Data.Tuple(Data.Int(1), Data.Int(0)),
+            Data.Tuple(Data.Int(2), Data.Int(0))
+          ))
         },
         test("Only runs if applied") {
-          val actual   = runTest("letDefinitionTests", "letDefinitionDoNotRunTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("letDefinitionTests", "letDefinitionDoNotRunTest")(Data.String("Correct"))
         },
-        test("Lexical cope") {
-          val actual =
-            runTest("letDefinitionTests", "letDefinitionScopeTest")
-          val expected = Data.Tuple(Data.Int(3), Data.Tuple(Data.Int(4), Data.Int(5)))
-          assertTrue(actual == expected)
+        test("Lexical scope") {
+          checkEvaluation("letDefinitionTests", "letDefinitionScopeTest")(Data.Tuple(
+            Data.Int(3),
+            Data.Tuple(Data.Int(4), Data.Int(5))
+          ))
         }
       ),
       suite("Let Recursion")(
         test("Fibbonacci") {
-          val actual   = runTest("letRecursionTests", "letRecursionFibonacciTest")
-          val expected = Data.Int(34)
-          assertTrue(actual == expected)
+          checkEvaluation("letRecursionTests", "letRecursionFibonacciTest")(Data.Int(34))
         },
         test("Mutual Recursion") {
-          val actual   = runTest("letRecursionTests", "letRecursionMutualTest")
-          val expected = Data.Tuple(Data.Int(8), Data.Int(9))
-          assertTrue(actual == expected)
+          checkEvaluation("letRecursionTests", "letRecursionMutualTest")(Data.Tuple(Data.Int(8), Data.Int(9)))
         }
       ),
       suite("Lists")(
         test("Empty") {
-          val actual   = runTest("listTests", "listEmptyTest")
-          val expected = Data.List(List(), Concept.Int32)
-          assertTrue(actual == expected)
+          checkEvaluation("listTests", "listEmptyTest")(Data.List(List(), Concept.Int32))
         },
         test("Single") {
-          val actual   = runTest("listTests", "listSingleTest")
-          val expected = Data.List(Data.Int(0))
-          assertTrue(actual == expected)
+          checkEvaluation("listTests", "listSingleTest")(Data.List(Data.Int(0)))
         },
         test("Several") {
-          val actual   = runTest("listTests", "listSeveralTest")
-          val expected = Data.List(Data.Int(0), Data.Int(1), Data.Int(2), Data.Int(3), Data.Int(4), Data.Int(5))
-          assertTrue(actual == expected)
+          checkEvaluation("listTests", "listSeveralTest")(Data.List(
+            Data.Int(0),
+            Data.Int(1),
+            Data.Int(2),
+            Data.Int(3),
+            Data.Int(4),
+            Data.Int(5)
+          ))
         },
         test("Nested") {
-          val actual = runTest("listTests", "listNestedTest")
-          val expected = Data.List(
+          checkEvaluation("listTests", "listNestedTest")(Data.List(
             Data.List(Data.String("Red"), Data.String("Blue")),
             Data.List(List(), Concept.String),
             Data.List(Data.String("Car"), Data.String("Plane"), Data.String("Truck"))
-          )
-          assertTrue(actual == expected)
+          ))
         },
         test("Flatten") {
-          val actual = runTest("listTests", "listFlattenTest")
-          val expected = Data.List(
+          checkEvaluation("listTests", "listFlattenTest")(Data.List(
             Data.String("Red"),
             Data.String("Blue"),
             Data.String("Car"),
             Data.String("Plane"),
             Data.String("Truck")
-          )
-          assertTrue(actual == expected)
+          ))
         }
       ),
       suite("Literals")(
         test("String") {
-          val actual   = runTest("literalTests", "litStringTest")
-          val expected = Data.String("Bloop")
-          assertTrue(actual == expected)
+          checkEvaluation("literalTests", "litStringTest")(Data.String("Bloop"))
         },
         test("Float") {
-          val actual   = runTest("literalTests", "litFloatTest")
-          val expected = Data.Decimal(scala.BigDecimal("5.0"))
-          assertTrue(actual == expected)
+          checkEvaluation("literalTests", "litFloatTest")(Data.Decimal(scala.BigDecimal("5.0")))
         },
         test("Char") {
-          val actual   = runTest("literalTests", "litCharTest")
-          val expected = Data.Char('f')
-          assertTrue(actual == expected)
+          checkEvaluation("literalTests", "litCharTest")(Data.Char('f'))
         },
         test("Boolean") {
-          val actual   = runTest("literalTests", "litBoolTest")
-          val expected = Data.Boolean(true)
-          assertTrue(actual == expected)
+          checkEvaluation("literalTests", "litBoolTest")(Data.Boolean(true))
         },
         test("Whole Number") {
-          val actual   = runTest("literalTests", "litWholeNumberLiteralTest")
-          val expected = Data.Int(5)
-          assertTrue(actual == expected)
+          checkEvaluation("literalTests", "litWholeNumberLiteralTest")(Data.Int(5))
         }
       ),
       suite("Native References")(
         test("Map") {
-          val actual =
-            runTest("nativeReferenceTests", "nativeReferenceMapTest")
-          val expected = Data.List(
+          checkEvaluation("nativeReferenceTests", "nativeReferenceMapTest")(Data.List(
             Data.Tuple(Data.Int(1), Data.Int(1)),
             Data.Tuple(Data.Int(2), Data.Int(2)),
             Data.Tuple(Data.Int(3), Data.Int(3))
-          )
-          assertTrue(actual == expected)
+          ))
         },
         test("Add") {
-          val actual   = runTest("nativeReferenceTests", "nativeReferenceAddTest")
-          val expected = Data.Int(3)
-          assertTrue(actual == expected)
+          checkEvaluation("nativeReferenceTests", "nativeReferenceAddTest")(Data.Int(3))
         },
 //        test("Curried Log") {
 //          val actual   = runTest("nativeReferenceTests", "nativeReferenceCurriedLogTest")
@@ -408,83 +386,63 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
 //          assertTrue(actual == expected)
 //        }, //No DDL equivalent
         test("Pi") {
-          val actual   = runTest("nativeReferenceTests", "nativeReferencePiTest")
-          val expected = Data.Decimal(scala.BigDecimal("3"))
-          assertTrue(actual == expected)
+          checkEvaluation("nativeReferenceTests", "nativeReferencePiTest")(Data.Decimal(scala.BigDecimal("3")))
         }
       ),
       suite("Patern Matching")(
         test("Wildcard") {
-          val actual   = runTest("patternMatchTests", "patternMatchWildcardTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("patternMatchTests", "patternMatchWildcardTest")(Data.String("Correct"))
         },
         test("Tuple") {
-          val actual   = runTest("patternMatchTests", "patternMatchTupleTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("patternMatchTests", "patternMatchTupleTest")(Data.String("Correct"))
         },
         test("Constructor") {
-          val actual   = runTest("patternMatchTests", "patternMatchConstructorTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("patternMatchTests", "patternMatchConstructorTest")(Data.String("Correct"))
         },
         test("Zero Arg Constructor") {
-          val actual   = runTest("patternMatchTests", "patternMatchEmptyListTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("patternMatchTests", "patternMatchEmptyListTest")(Data.String("Correct"))
         },
         test("Head Tail") {
-          val actual   = runTest("patternMatchTests", "patternMatchHeadTailTest")
-          val expected = Data.Tuple(Data.String("Dog"), Data.String("Red"))
-          assertTrue(actual == expected)
+          checkEvaluation("patternMatchTests", "patternMatchHeadTailTest")(Data.Tuple(
+            Data.String("Dog"),
+            Data.String("Red")
+          ))
         },
         test("Literal") {
-          val actual   = runTest("patternMatchTests", "patternMatchLiteralTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("patternMatchTests", "patternMatchLiteralTest")(Data.String("Correct"))
         },
         test("Repeated As") {
-          val actual =
-            runTest("patternMatchTests", "patternMatchRepeatedAsTest")
-          val expected = Data.Tuple(Data.Int(2), Data.Tuple(Data.Int(1), Data.Int(2)))
-          assertTrue(actual == expected)
+          checkEvaluation("patternMatchTests", "patternMatchRepeatedAsTest")(Data.Tuple(
+            Data.Int(2),
+            Data.Tuple(Data.Int(1), Data.Int(2))
+          ))
         }
       ),
       suite("Records")(
         test("Field") {
-          val actual   = runTest("recordTests", "recordFieldTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("recordTests", "recordFieldTest")(Data.String("Correct"))
         },
         test("Field from Bound Record") {
-          val actual   = runTest("recordTests", "recordFieldFromBoundTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("recordTests", "recordFieldFromBoundTest")(Data.String("Correct"))
         },
         test("Field Function Apply") {
-          val actual   = runTest("recordTests", "fieldFunctionApplyTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("recordTests", "fieldFunctionApplyTest")(Data.String("Correct"))
         },
         test("Field Function Apply Twice") {
-          val actual   = runTest("recordTests", "fieldFunctionApplyTwiceTest")
-          val expected = Data.Tuple(Data.Int(1), Data.Int(2))
-          assertTrue(actual == expected)
+          checkEvaluation("recordTests", "fieldFunctionApplyTwiceTest")(Data.Tuple(Data.Int(1), Data.Int(2)))
         },
         test("Field") {
-          val actual   = runTest("recordTests", "fieldFunctionMapTest")
-          val expected = Data.List(Data.String("Soso"), Data.String("Ponyo"), Data.String("Odin"))
-          assertTrue(actual == expected)
+          checkEvaluation("recordTests", "fieldFunctionMapTest")(Data.List(
+            Data.String("Soso"),
+            Data.String("Ponyo"),
+            Data.String("Odin")
+          ))
         },
         test("Simple Record") {
-          val actual   = runTest("recordTests", "recordSimpleTest")
-          val expected = dogRecordData("Fido", 5)
-          assertTrue(actual == expected)
+          checkEvaluation("recordTests", "recordSimpleTest")(dogRecordData("Fido", 5))
         },
         test("Nested Record") {
-          val actual = runTest("recordTests", "recordNestedTest")
-          val expected = Data.Record(
+          checkEvaluation("recordTests", "recordNestedTest")(Data.Record(
             qn"Morphir/Examples/App:RecordTests:NestedRecordType",
             (Label("name"), Data.String("Dogs")),
             (
@@ -494,133 +452,96 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
                 dogRecordData("Soso", 3)
               )
             )
-          )
-          assertTrue(actual == expected)
+          ))
         },
         test("Record Update Single Field") {
-          val actual   = runTest("recordTests", "updateRecordSimpleTest")
-          val expected = Data.String("Soso")
-          assertTrue(actual == expected)
+          checkEvaluation("recordTests", "updateRecordSimpleTest")(Data.String("Soso"))
         },
         test("Record Update Full") {
-          val actual   = runTest("recordTests", "updateRecordFullTest")
-          val expected = dogRecordData("Soso", 5)
-          assertTrue(actual == expected)
+          checkEvaluation("recordTests", "updateRecordFullTest")(dogRecordData("Soso", 5))
         },
         test("Record Updates are not mutation") {
-          val actual = runTest("recordTests", "updateRecordImmutableTest")
-          val expected =
+          checkEvaluation("recordTests", "updateRecordImmutableTest")(
             Data.List(
               dogRecordData("Soso", 4),
               dogRecordData("Ponyo", 5)
             )
-          assertTrue(actual == expected)
+          )
         }
       ),
       suite("Simple")(
         test("Unit") {
-          val actual   = runTest("simpleTests", "simpleUnitTest")
-          val expected = Data.Unit
-          assertTrue(actual == expected)
+          checkEvaluation("simpleTests", "simpleUnitTest")(Data.Unit)
         }
       ),
       suite("Simple")(
         test("Tuple(2)") {
-          val actual   = runTest("tupleTests", "tupleTwoTest")
-          val expected = Data.Tuple(List(Data.Int(5), Data.Int(4)))
-          assertTrue(actual == expected)
+          checkEvaluation("tupleTests", "tupleTwoTest")(Data.Tuple(List(Data.Int(5), Data.Int(4))))
         },
         test("Tuple(3)") {
-          val actual   = runTest("tupleTests", "tupleThreeTest")
-          val expected = Data.Tuple(Data.Int(0), Data.Boolean(true), Data.String("Green"))
-          assertTrue(actual == expected)
+          checkEvaluation("tupleTests", "tupleThreeTest")(Data.Tuple(
+            Data.Int(0),
+            Data.Boolean(true),
+            Data.String("Green")
+          ))
         },
         test("Nested Tuple") {
-          val actual = runTest("tupleTests", "tupleNestedTest")
-          val expected = Data.Tuple(
+          checkEvaluation("tupleTests", "tupleNestedTest")(Data.Tuple(
             Data.Int(5),
             Data.Tuple(
               Data.String("Four"),
               Data.Tuple(Data.Int(4), Data.String("Five"))
             )
-          )
-          assertTrue(actual == expected)
+          ))
         }
       ),
       suite("References To user Defined Members")(
         test("Reference to value") {
-          val actual =
-            runTest("userDefinedReferenceTests", "userDefinedReferenceValueTest")
-          val expected = Data.Int(5)
-          assertTrue(actual == expected)
+          checkEvaluation("userDefinedReferenceTests", "userDefinedReferenceValueTest")(Data.Int(5))
         },
         test("Curried Function Application") {
-          val actual =
-            runTest("userDefinedReferenceTests", "userDefinedReferenceCurriedTest")
-          val expected = Data.String("Correct")
-          assertTrue(actual == expected)
+          checkEvaluation("userDefinedReferenceTests", "userDefinedReferenceCurriedTest")(Data.String("Correct"))
         },
         test("Simple Function Application") {
-          val actual = runTest(
-            "userDefinedReferenceTests",
-            "userDefinedReferenceSimpleFunctionTest"
-          )
-          val expected = Data.Tuple(List(Data.Int(1), Data.Int(2)))
-          assertTrue(actual == expected)
+          checkEvaluation("userDefinedReferenceTests", "userDefinedReferenceSimpleFunctionTest")(Data.Tuple(List(
+            Data.Int(1),
+            Data.Int(2)
+          )))
         },
         test("Calling public function which calls private function") {
-          val actual =
-            runTest("userDefinedReferenceTests", "userDefinedReferencePublicPrivateTest")
-          val expected = Data.Int(10)
-          assertTrue(actual == expected)
+          checkEvaluation("userDefinedReferenceTests", "userDefinedReferencePublicPrivateTest")(Data.Int(10))
         },
         test("Reference to Record") {
-          val actual =
-            runTest("userDefinedReferenceTests", "userDefinedReferenceRecordTest")
-          val expected = Data.String("Tom Tit Tot")
-          assertTrue(actual == expected)
+          checkEvaluation("userDefinedReferenceTests", "userDefinedReferenceRecordTest")(Data.String("Tom Tit Tot"))
         },
         test("Reference to Union Type") {
-          val actual =
-            runTest("userDefinedReferenceTests", "userDefinedReferenceUnionTest")
-          val expected = Data.Int(-6)
-          assertTrue(actual == expected)
+          checkEvaluation("userDefinedReferenceTests", "userDefinedReferenceUnionTest")(Data.Int(-6))
         },
         test("Reference to Union with type args") {
-          val actual =
-            runTest("userDefinedReferenceTests", "typeArgUnionTest", (1, "Red"))
-          val expected = Data.Case(
+          checkEvaluation("userDefinedReferenceTests", "typeArgUnionTest", (1, "Red"))(Data.Case(
             List(
               (EnumLabel.Named("arg1"), Data.Int(1)),
               (EnumLabel.Named("arg2"), Data.String("Red"))
             ),
             "Morphir.Examples.App:ExampleModule:aB",
             typeArgUnionShape(Concept.Int32, Concept.String)
-          )
-          assertTrue(actual == expected)
+          ))
         }
       ),
       suite("Dictionary Tests")(
         test("Returns a dictionary") {
-          val actual =
-            runTest("dictionaryTests", "returnDictionaryTest")
-          val expected = Data.Map((Data.Int(1), Data.String("Red")), (Data.Int(2), Data.String("Blue")))
-          assertTrue(actual == expected)
-
+          checkEvaluation("dictionaryTests", "returnDictionaryTest")(Data.Map(
+            (Data.Int(1), Data.String("Red")),
+            (Data.Int(2), Data.String("Blue"))
+          ))
         }
       ),
       suite("Optional Tests")(
         test("Returns a Just 1") {
-          val actual =
-            runTest("optionTests", "returnJustIntTest")
-          val expected = Data.Optional.Some(Data.Int(1))
-          assertTrue(actual == expected)
+          checkEvaluation("optionTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1)))
         },
         test("Returns a None") {
-          val actual =
-            runTest("optionTests", "returnNoneIntTest")
-          val expected = Data.Optional.None(Concept.Int32)
-          assertTrue(actual == expected)
+          checkEvaluation("optionTests", "returnNoneIntTest")(Data.Optional.None(Concept.Int32))
         }
       )
     ) @@ TestAspect.ignore @@ TestAspect.tag("Will re-enable when code-gen of a test are part of the pipeline")

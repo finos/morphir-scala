@@ -16,6 +16,7 @@ final case class BuildSettings(
 )
 
 object BuildSettings {
+
   val config: Config[BuildSettings] = deriveConfig[BuildSettings]
   lazy val default: BuildSettings   = BuildSettings()
 

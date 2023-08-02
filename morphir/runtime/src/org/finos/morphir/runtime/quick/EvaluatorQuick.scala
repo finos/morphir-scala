@@ -5,53 +5,55 @@ import org.finos.morphir.ir.Value as V
 import V.*
 import org.finos.morphir.ir.Type as T
 import org.finos.morphir.ir.Type.Type as TT
-import org.finos.morphir.ir.{FQName, Module, Name, QName, Type, Field}
+import org.finos.morphir.ir.{FQName, Field, Module, Name, QName, Type}
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.MorphirIRFile
-import org.finos.morphir.datamodel.{Data, Concept, Label, EnumLabel}
+import org.finos.morphir.datamodel.{Concept, Data, EnumLabel, Label}
 import SDKValue.{SDKNativeFunction, SDKNativeValue}
 import org.finos.morphir.ir.Distribution.Distribution.Library
 import zio.Chunk
 import scala.collection.mutable
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
+import org.finos.morphir.runtime.{MissingField, ResultDoesNotMatchType, UnsupportedType}
 
 object EvaluatorQuick {
   object FQString {
     def unapply(fqName: FQName): Option[String] = Some(fqName.toString())
   }
-
   class BasicReference(tpe: UType) {
     def unapply(fqName: FQName): Boolean = fqName == tpe.asInstanceOf[TT.Reference[Unit]].typeName
   }
 
   type IntType = Long
 
-  def evaluate[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Any = Result.unwrap(Loop.loop(ir, store))
+  // def evaluate[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Any = Result.unwrap(Loop.loop(ir, store))
 
-  def evalFunction(entryFQName: FQName, store: Store[Unit, Type.UType], input: Any): Any = {
-    val ir        = scalaToIR(input)
-    val applyNode = V.apply(V.reference(entryFQName), ir) :> T.unit // lies but I don't think we check?
-    evaluate[Unit, Type.UType](applyNode, store)
-  }
+//  def evalFunction(entryFQName: FQName, store: Store[Unit, Type.UType], input: Any): Any = {
+//    val ir        = scalaToIR(input)
+//    val applyNode = V.apply(V.reference(entryFQName), ir) :> T.unit // lies but I don't think we check?
+//    evaluate[Unit, Type.UType](applyNode, store)
+//  }
 
-  def evalFunctionToDDL(entryFQName: FQName, store: Store[Unit, Type.UType], input: Any, dist: Library): Data = {
-    val inputIR   = scalaToIR(input);
-    val applyNode = V.apply(V.reference(entryFQName), inputIR) :> T.unit // lies but I don't think we check?
-    val result    = Loop.loop(applyNode, store);
-    val tpe_raw: Type.Type[Unit] = store.getDefinition(entryFQName)
-      .get
-      .asInstanceOf[SDKValue.SDKValueDefinition[Unit, Type.UType]]
-      .definition
-      .outputType
+//  def evalFunctionToMDM(entryFQName: FQName, store: Store[Unit, Type.UType], input: Any, dist: Library): Data = {
+//    val inputIR   = scalaToIR(input);
+//    val applyNode = V.apply(V.reference(entryFQName), inputIR) :> T.unit // lies but I don't think we check?
+//    val result    = Loop.loop(applyNode, store);
+//
+//    val tpe_raw: Type.Type[Unit] = store.getDefinition(entryFQName)
+//      .get
+//      .asInstanceOf[SDKValue.SDKValueDefinition[Unit, Type.UType]]
+//      .definition
+//      .outputType
+//
+//    // A bug in morphir-elm make may cause top-level definitions to incorrectly typecheck
+//    resultToMDM(result, tpe, dist)
+//  }
 
-    // A bug in morphir-elm make may cause top-level definitions to incorrectly typecheck
-    val tpe = tpe_raw match {
-      case TT.Function(_, _, returnType) => returnType
-      case _                             => tpe_raw
-    }
-    resultToDDL(result, tpe, dist)
+  private[runtime] def eval(value: Value[Unit, Type.UType], store: Store[Unit, Type.UType], library: Library): Data = {
+    val result = Loop.loop(value, store)
+    resultToMDM(result, value.attributes, library)
   }
 
   def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept = {
@@ -192,7 +194,7 @@ object EvaluatorQuick {
         throw new ResultDoesNotMatchType(s"Could not match type $badType with result $badResult")
     }
 
-  def resultToDDL(result: Result[Unit, Type.UType], tpe: Type.Type[Unit], dist: Library): Data = {
+  def resultToMDM(result: Result[Unit, Type.UType], tpe: Type.Type[Unit], dist: Library): Data = {
     val concept = typeToConcept(tpe, dist, Map())
     resultAndConceptToData(result, concept)
   }

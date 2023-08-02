@@ -8,8 +8,7 @@ import zio.test.Gen
 trait MorphirIRFileGen {
   final val morphirIRVersion: Gen[Any, MorphirIRVersion] =
     Gen.elements(
-      // MorphirIRVersion.V1_0,
-      MorphirIRVersion.V2_0
+      MorphirIRVersion.Default
     )
 
   final def morphirIRFile(
