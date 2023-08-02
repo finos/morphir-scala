@@ -7,7 +7,7 @@ import zio.test.{test, *}
 object EvaluatorElmTests extends MorphirBaseSpec {
   lazy val lib =
     EvaluationLibrary("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json", "Morphir.Examples.App")
-  def runTest(moduleName: String, functionName: String) = lib.runTest(moduleName, functionName, ())
+  def runTest(moduleName: String, functionName: String) = lib.runTestDDL(moduleName, functionName, ())
   def spec =
     suite("Json Evaluation")(
       suite("Constructor Tests")(

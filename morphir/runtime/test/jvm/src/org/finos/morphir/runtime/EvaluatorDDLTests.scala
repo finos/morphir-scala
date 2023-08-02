@@ -3,18 +3,41 @@ package runtime
 
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.{test, *}
+import org.finos.morphir.runtime.MorphirRuntime
 import org.finos.morphir.datamodel.{Data, Concept, Label, EnumLabel}
 import org.finos.morphir.datamodel.namespacing.Namespace.ns
 import org.finos.morphir.datamodel.namespacing.PackageName.root
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.ir.FQName
+import org.finos.morphir.ir.conversion.*
+import org.finos.morphir.datamodel.Util.*
+import org.finos.morphir.datamodel.{:: as _, *}
 
 object EvaluatorDDLTests extends MorphirBaseSpec {
-  lazy val lib =
-    EvaluationLibrary("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json", "Morphir.Examples.App")
+  lazy val morphirRuntime = {
+    val dist = EvaluationLibrary.loadDistribution("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json")
+    MorphirRuntime.quick(dist)
+  }
 
-  def runTest(moduleName: String, functionName: String)             = lib.runTestDDL(moduleName, functionName, ())
-  def runTest(moduleName: String, functionName: String, value: Any) = lib.runTestDDL(moduleName, functionName, value)
+  def deriveData(input: Any): Data =
+    input match {
+      case u: Unit             => Deriver.toData(u)
+      case i: Int              => Deriver.toData(i)
+      case s: String           => Deriver.toData(s)
+      case (i: Int, s: String) => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
+      case other               => throw new Exception(s"Couldn't derive $other")
+    }
+
+  def runTest(moduleName: String, functionName: String): Data = runTest(moduleName, functionName, ())
+  def runTest(moduleName: String, functionName: String, value: Any): Data = {
+    val fullName = s"Morphir.Examples.App:$moduleName:$functionName"
+    val data     = deriveData(value)
+    val res      = morphirRuntime.evaluate(FQName.fromString(fullName), data)
+    res match {
+      case Right(res)  => res
+      case Left(error) => throw error
+    }
+  }
 
   val dogRecordConceptRaw = Concept.Struct(
     List(

@@ -7,8 +7,9 @@ import V.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Type as T
 import org.finos.morphir.ir.{FQName, Module, Name, QName, Type}
 import org.finos.morphir.ir.distribution.Distribution.Library
+import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.MorphirIRFile
-
+import org.finos.morphir.runtime.MorphirRuntime
 import scala.io.Source
 import zio.json.*
 import org.finos.morphir.ir.json.MorphirJsonSupport.*
@@ -21,13 +22,24 @@ trait EvaluationLibraryPlatformSpecific {
       .getLines()
       .mkString("\n")
     val morphirIRFile = text.fromJson[MorphirIRFile]
-    val library = morphirIRFile
+    val distribution = morphirIRFile
       .getOrElse(throw new Exception(morphirIRFile.toString))
       .distribution
-      .asInstanceOf[Library]
-    val store = Store.fromLibrary(library)
-    EvaluationLibrary(store, prefix, library)
+//      .asInstanceOf[Library]
+//    val store = Store.fromLibrary(library)
+    EvaluationLibrary(MorphirRuntime.quick(distribution), prefix)
   }
 
   def apply(fileName: String, prefix: String): EvaluationLibrary = apply(fileName, Some(prefix))
+
+  def loadDistribution(fileName: String): Distribution = {
+    val text = Source
+      .fromFile(fileName)
+      .getLines()
+      .mkString("\n")
+    val morphirIRFile = text.fromJson[MorphirIRFile]
+    morphirIRFile
+      .getOrElse(throw new Exception(s"Failed to load $fileName as distribution"))
+      .distribution
+  }
 }
