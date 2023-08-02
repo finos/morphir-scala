@@ -12,10 +12,12 @@ final case class BuildSettings(
     js: ScalaJsBuildSettings = ScalaJsBuildSettings(),
     native: ScalaNativeBuildSettings = ScalaNativeBuildSettings(),
     mill: MillSettings = MillSettings(),
+    sbt: SbtSettings = SbtSettings(),
     scala: ScalaSettings = ScalaSettings()
 )
 
 object BuildSettings {
+
   val config: Config[BuildSettings] = deriveConfig[BuildSettings]
   lazy val default: BuildSettings   = BuildSettings()
 
