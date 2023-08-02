@@ -12,6 +12,7 @@ import org.finos.morphir.ir.MorphirIRFile
 import org.finos.morphir.runtime.MorphirRuntime
 import scala.io.Source
 import zio.json.*
+import zio.*
 import org.finos.morphir.ir.json.MorphirJsonSupport.*
 import org.finos.morphir.runtime.quick.{EvaluatorQuick, Store}
 
@@ -42,4 +43,12 @@ trait EvaluationLibraryPlatformSpecific {
       .getOrElse(throw new Exception(s"Failed to load $fileName as distribution"))
       .distribution
   }
+
+  def loadDistributionFromFileZIO(fileName: String): Task[Distribution] =
+    for {
+      fileContents <- ZIO.readFile(fileName)
+      morphirIRFile <- ZIO.fromEither(fileContents.fromJson[MorphirIRFile])
+        .mapError(MorphirIRDecodingError(_))
+    } yield morphirIRFile.distribution
+
 }
