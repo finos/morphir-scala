@@ -24,7 +24,7 @@ trait MorphirRuntime[TA, VA] {
 object MorphirRuntime extends MorphirRuntimePlatformSpecific {
   type RT[+E, +A] = ZPure[Nothing, Unit, Unit, Any, E, A]
   val RT: zio.prelude.fx.ZPure.type = zio.prelude.fx.ZPure
-  
+
   def quick(distribution: Distribution): MorphirRuntime[scala.Unit, UType] =
     QuickMorphirRuntime.fromDistribution(distribution)
 }
