@@ -18,25 +18,27 @@ import org.finos.morphir.ir.PackageModule.PackageName
 
 import scala.util.{Failure, Success, Try}
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
+import org.finos.morphir.runtime.MorphirEnv
+import org.finos.morphir.runtime.MorphirEnv
 
 private[runtime] case class QuickMorphirRuntime(library: Library, store: Store[scala.Unit, UType])
     extends TypedMorphirRuntime {
   // private val store: Store[scala.Unit, UType] = Store.empty //
 
-  def evaluate(entryPoint: FQName, params: Value[scala.Unit, UType]): RTAction[Any, MorphirRuntimeError, Data] =
+  def evaluate(entryPoint: FQName, params: Value[scala.Unit, UType]): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
       tpe <- fetchType(entryPoint)
       res <- evaluate(Value.Reference.Typed(tpe, entryPoint), params)
     } yield res
 
-  def evaluate(value: Value[scala.Unit, UType]): RTAction[org.finos.morphir.runtime.services.sdk.MorphirSdk, EvaluationError, Data] =
+  def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
     try
       RTAction.succeed(EvaluatorQuick.eval(value, store, library))
     catch {
       case e: EvaluationError => RTAction.fail(e)
     }
 
-  def fetchType(ref: FQName): RTAction[Any, MorphirRuntimeError, UType] = {
+  def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
     val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)
     val qName           = QName.fromTuple(mod, loc)
     val maybeSpec       = library.lookupValueSpecification(PackageName(pkg), QualifiedModuleName.fromPath(mod), loc)
@@ -56,5 +58,9 @@ object QuickMorphirRuntime {
     val store = Store.fromLibrary(library)
     QuickMorphirRuntime(library, store)
   }
+
+  def fromDistributionRTAction(distribution: Distribution)
+      : RTAction[MorphirEnv, MorphirRuntimeError, QuickMorphirRuntime] =
+    RTAction.succeed(fromDistribution(distribution))
 
 }
