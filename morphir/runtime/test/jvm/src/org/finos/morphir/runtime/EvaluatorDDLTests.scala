@@ -12,7 +12,6 @@ import org.finos.morphir.ir.{FQName, Type}
 import org.finos.morphir.ir.conversion.*
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
-import org.finos.morphir.runtime.MorphirRuntime.RT
 
 object EvaluatorDDLTests extends MorphirBaseSpec {
   type MorphirRuntimeTyped = MorphirRuntime[Unit, Type.UType]

@@ -4,7 +4,7 @@ import V.Value
 import T.Type
 import org.finos.morphir.ir.{Name, QName, FQName}
 import org.finos.morphir.ir.Module.QualifiedModuleName
-import org.finos.morphir.runtime.MorphirRuntime.RT
+import org.finos.morphir.runtime.RTAction
 import zio.Chunk
 
 object Utils {
@@ -12,19 +12,19 @@ object Utils {
   def specificationToType[TA](spec: V.Specification[TA]): Type[TA] =
     curryTypeFunction(spec.output, spec.inputs)
 
-  def unCurryTypeFunction[TA](curried: Type[TA], args: List[Type[TA]]): RT[TypeError, Type[TA]] =
+  def unCurryTypeFunction[TA](curried: Type[TA], args: List[Type[TA]]): RTAction[Any, TypeError, Type[TA]] =
     (curried, args) match {
       case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
         for {
           _           <- typeCheck(parameterType, head)
           appliedType <- unCurryTypeFunction(returnType, tail)
         } yield appliedType
-      case (tpe, Nil) => RT.succeed(tpe)
+      case (tpe, Nil) => RTAction.succeed(tpe)
       case (nonFunction, head :: _) =>
-        RT.fail(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
+        RTAction.fail(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
     }
   // TODO: Implement
-  def typeCheck[TA](t1: Type[TA], t2: Type[TA]): RT[TypeError, Unit] = RT.succeed(())
+  def typeCheck[TA](t1: Type[TA], t2: Type[TA]): RTAction[Any, TypeError, Unit] = RTAction.succeed(())
   def curryTypeFunction[TA](inner: Type[TA], params: Chunk[(Name, Type[TA])]): Type[TA] =
     params match {
       case Chunk() => inner
