@@ -400,6 +400,9 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
 //        }, //No DDL equivalent
         test("Pi") {
           checkEvaluation("nativeReferenceTests", "nativeReferencePiTest")(Data.Decimal(scala.BigDecimal("3")))
+        },
+        test("ModBy"){
+          checkEvaluation("nativeReferenceTests", "nativeReferenceModByTest", 7)(Data.Int(1))
         }
       ),
       suite("Patern Matching")(
