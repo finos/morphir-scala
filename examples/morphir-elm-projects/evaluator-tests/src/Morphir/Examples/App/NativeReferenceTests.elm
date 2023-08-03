@@ -45,3 +45,10 @@ nativeReferencePiTest : () -> Float
 nativeReferencePiTest _ = 
     pi
 --expected = 3
+
+--Test: NativeReference/modBy
+--import Basics exposing (pi)
+nativeReferenceModByTest : Int -> Int
+nativeReferenceModByTest x = 
+    modBy 3 x
+--expected = x % 3
