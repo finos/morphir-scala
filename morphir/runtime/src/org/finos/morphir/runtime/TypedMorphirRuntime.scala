@@ -11,11 +11,11 @@ import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
 
 //TODO: Specify "Either" on lower level
-trait TypedMorphirRuntime extends MorphirRuntime[Either, scala.Unit, UType] {
+trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {
   final def evaluate(
       entryPoint: Value[scala.Unit, UType],
       params: Value[scala.Unit, UType]
-  ): Either[MorphirRuntimeError, Data] =
+  ): RTAction[Any, MorphirRuntimeError, Data] =
     for {
       applied   <- applyParams(entryPoint, params)
       evaluated <- evaluate(applied)
@@ -24,22 +24,22 @@ trait TypedMorphirRuntime extends MorphirRuntime[Either, scala.Unit, UType] {
   def applyParams(
       entryPoint: Value[scala.Unit, UType],
       params: Value[scala.Unit, UType]*
-  ): Either[TypeError, Value[scala.Unit, UType]] =
+  ): RTAction[Any, TypeError, Value[scala.Unit, UType]] =
     entryPoint match {
       case Value.Reference.Typed(tpe, entryName) =>
         for {
           tpe <- unCurryTypeFunction(tpe, params.toList.map(_.attributes))
         } yield V.apply(tpe, entryPoint, params.head, params.tail: _*)
-      case other => Left(UnsupportedType(s"Entry point must be a Reference, instead found $other"))
+      case other => RTAction.fail(UnsupportedType(s"Entry point must be a Reference, instead found $other"))
     }
 
-  def evaluate(entryPoint: Value[scala.Unit, UType], params: Data): Either[MorphirRuntimeError, Data] = {
+  def evaluate(entryPoint: Value[scala.Unit, UType], params: Data): RTAction[Any, MorphirRuntimeError, Data] = {
     val toValue = ToMorphirValue.summon[Data].typed
     val inputIR = toValue(params)
     evaluate(entryPoint, inputIR)
   }
 
-  def evaluate(entryPoint: FQName, params: Data): Either[MorphirRuntimeError, Data] = {
+  def evaluate(entryPoint: FQName, params: Data): RTAction[Any, MorphirRuntimeError, Data] = {
     val toValue = ToMorphirValue.summon[Data].typed
     val inputIR = toValue(params)
     evaluate(entryPoint, inputIR)

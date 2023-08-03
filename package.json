@@ -7,13 +7,15 @@
     "examples/morphir-elm-projects/evaluator-tests"
   ],
   "dependencies": {
-    "@algolia/client-search": "^4.14.2",
-    "morphir-elm": "2.80.0"
+    "@algolia/client-search": "^4.14.2"
   },
   "scripts": {
     "make-models": "yarn workspace morphir-scala-evaluator-tests run make"
   },
   "resolutions": {
     "trim": "0.0.3"
+  },
+  "devDependencies": {
+    "morphir-elm": "^2.81.0"
   }
 }
