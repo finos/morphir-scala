@@ -15,7 +15,7 @@ trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {
   final def evaluate(
       entryPoint: Value[scala.Unit, UType],
       params: Value[scala.Unit, UType]
-  ): RuntimeOp[MorphirRuntimeError, Data] =
+  ): RT[MorphirRuntimeError, Data] =
     for {
       applied   <- applyParams(entryPoint, params)
       evaluated <- evaluate(applied)
@@ -24,22 +24,22 @@ trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {
   def applyParams(
       entryPoint: Value[scala.Unit, UType],
       params: Value[scala.Unit, UType]*
-  ): RuntimeOp[TypeError, Value[scala.Unit, UType]] =
+  ): RT[TypeError, Value[scala.Unit, UType]] =
     entryPoint match {
       case Value.Reference.Typed(tpe, entryName) =>
         for {
           tpe <- unCurryTypeFunction(tpe, params.toList.map(_.attributes))
         } yield V.apply(tpe, entryPoint, params.head, params.tail: _*)
-      case other => RuntimeOp.fail(UnsupportedType(s"Entry point must be a Reference, instead found $other"))
+      case other => RT.fail(UnsupportedType(s"Entry point must be a Reference, instead found $other"))
     }
 
-  def evaluate(entryPoint: Value[scala.Unit, UType], params: Data): RuntimeOp[MorphirRuntimeError, Data] = {
+  def evaluate(entryPoint: Value[scala.Unit, UType], params: Data): RT[MorphirRuntimeError, Data] = {
     val toValue = ToMorphirValue.summon[Data].typed
     val inputIR = toValue(params)
     evaluate(entryPoint, inputIR)
   }
 
-  def evaluate(entryPoint: FQName, params: Data): RuntimeOp[MorphirRuntimeError, Data] = {
+  def evaluate(entryPoint: FQName, params: Data): RT[MorphirRuntimeError, Data] = {
     val toValue = ToMorphirValue.summon[Data].typed
     val inputIR = toValue(params)
     evaluate(entryPoint, inputIR)

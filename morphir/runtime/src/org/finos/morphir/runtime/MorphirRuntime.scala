@@ -10,14 +10,14 @@ import org.finos.morphir.runtime.quick.QuickMorphirRuntime
 import zio.prelude.fx.ZPure
 trait MorphirRuntime[TA, VA] {
   import MorphirRuntime.*
-  def evaluate(entryPoint: Value[TA, VA], params: Value[TA, VA]): RuntimeOp[MorphirRuntimeError, Data]
-  def evaluate(entryPoint: Value[TA, VA], params: Data): RuntimeOp[MorphirRuntimeError, Data]
-  def evaluate(entryPoint: FQName, params: Data): RuntimeOp[MorphirRuntimeError, Data]
-  def evaluate(entryPoint: FQName, params: Value[TA, VA]): RuntimeOp[MorphirRuntimeError, Data]
+  def evaluate(entryPoint: Value[TA, VA], params: Value[TA, VA]): RT[MorphirRuntimeError, Data]
+  def evaluate(entryPoint: Value[TA, VA], params: Data): RT[MorphirRuntimeError, Data]
+  def evaluate(entryPoint: FQName, params: Data): RT[MorphirRuntimeError, Data]
+  def evaluate(entryPoint: FQName, params: Value[TA, VA]): RT[MorphirRuntimeError, Data]
   // TODO: applyParams can fail if things are bad, but we can't combine Fs yet
-  def applyParams(entryPoint: Value[TA, VA], params: Value[TA, VA]*): RuntimeOp[TypeError, Value[TA, VA]]
+  def applyParams(entryPoint: Value[TA, VA], params: Value[TA, VA]*): RT[TypeError, Value[TA, VA]]
 
-  def evaluate(value: Value[TA, VA]): RuntimeOp[EvaluationError, Data]
+  def evaluate(value: Value[TA, VA]): RT[EvaluationError, Data]
 
 }
 

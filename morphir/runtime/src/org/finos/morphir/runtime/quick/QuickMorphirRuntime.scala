@@ -23,26 +23,26 @@ private[runtime] case class QuickMorphirRuntime(library: Library, store: Store[s
     extends TypedMorphirRuntime {
   // private val store: Store[scala.Unit, UType] = Store.empty //
 
-  def evaluate(entryPoint: FQName, params: Value[scala.Unit, UType]): RuntimeOp[MorphirRuntimeError, Data] =
+  def evaluate(entryPoint: FQName, params: Value[scala.Unit, UType]): RT[MorphirRuntimeError, Data] =
     for {
       tpe <- fetchType(entryPoint)
       res <- evaluate(Value.Reference.Typed(tpe, entryPoint), params)
     } yield res
 
-  def evaluate(value: Value[scala.Unit, UType]): RuntimeOp[EvaluationError, Data] =
+  def evaluate(value: Value[scala.Unit, UType]): RT[EvaluationError, Data] =
     try
-      RuntimeOp.succeed(EvaluatorQuick.eval(value, store, library))
+      RT.succeed(EvaluatorQuick.eval(value, store, library))
     catch {
-      case e: EvaluationError => RuntimeOp.fail(e)
+      case e: EvaluationError => RT.fail(e)
     }
 
-  def fetchType(ref: FQName): RuntimeOp[MorphirRuntimeError, UType] = {
+  def fetchType(ref: FQName): RT[MorphirRuntimeError, UType] = {
     val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)
     val qName           = QName.fromTuple(mod, loc)
     val maybeSpec       = library.lookupValueSpecification(PackageName(pkg), QualifiedModuleName.fromPath(mod), loc)
     maybeSpec match {
-      case Some(spec) => RuntimeOp.succeed(specificationToType(spec))
-      case None       => RuntimeOp.fail(new SpecificationNotFound(s"Could not find $ref during initial type building"))
+      case Some(spec) => RT.succeed(specificationToType(spec))
+      case None       => RT.fail(new SpecificationNotFound(s"Could not find $ref during initial type building"))
     }
   }
 

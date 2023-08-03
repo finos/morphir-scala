@@ -12,19 +12,19 @@ object Utils {
   def specificationToType[TA](spec: V.Specification[TA]): Type[TA] =
     curryTypeFunction(spec.output, spec.inputs)
 
-  def unCurryTypeFunction[TA](curried: Type[TA], args: List[Type[TA]]): RuntimeOp[TypeError, Type[TA]] =
+  def unCurryTypeFunction[TA](curried: Type[TA], args: List[Type[TA]]): RT[TypeError, Type[TA]] =
     (curried, args) match {
       case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
         for {
           _           <- typeCheck(parameterType, head)
           appliedType <- unCurryTypeFunction(returnType, tail)
         } yield appliedType
-      case (tpe, Nil) => RuntimeOp.succeed(tpe)
+      case (tpe, Nil) => RT.succeed(tpe)
       case (nonFunction, head :: _) =>
-        RuntimeOp.fail(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
+        RT.fail(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
     }
   // TODO: Implement
-  def typeCheck[TA](t1: Type[TA], t2: Type[TA]): RuntimeOp[TypeError, Unit] = RuntimeOp.succeed(())
+  def typeCheck[TA](t1: Type[TA], t2: Type[TA]): RT[TypeError, Unit] = RT.succeed(())
   def curryTypeFunction[TA](inner: Type[TA], params: Chunk[(Name, Type[TA])]): Type[TA] =
     params match {
       case Chunk() => inner
