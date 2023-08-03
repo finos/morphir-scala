@@ -28,10 +28,6 @@ object Type {
   }
 }
 
-
-
-
-
 object TypeVisitorUsage {
   // val visitor = TypeVisitor.stateful(()) {
   //   case Type.Unit(_) => ???
