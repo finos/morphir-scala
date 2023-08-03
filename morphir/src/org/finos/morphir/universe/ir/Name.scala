@@ -136,6 +136,8 @@ object Name {
     val SnakeCase: Renderer = Renderer(Name.toSnakeCase)
     val TitleCase: Renderer = Renderer(Name.toTitleCase)
 
+    implicit val default: Renderer = TitleCase
+
     implicit class RendererOps(val self: Renderer) extends AnyVal {
       def apply(name: Name): String  = self(name)
       def render(name: Name): String = self(name)
