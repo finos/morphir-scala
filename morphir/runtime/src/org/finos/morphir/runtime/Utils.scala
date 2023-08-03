@@ -4,29 +4,27 @@ import V.Value
 import T.Type
 import org.finos.morphir.ir.{Name, QName, FQName}
 import org.finos.morphir.ir.Module.QualifiedModuleName
+import org.finos.morphir.runtime
 import zio.Chunk
-
-/**
- * This file
- */
 
 object Utils {
 
   def specificationToType[TA](spec: V.Specification[TA]): Type[TA] =
     curryTypeFunction(spec.output, spec.inputs)
 
-  def unCurryTypeFunction[TA](curried: Type[TA], args: List[Type[TA]]): Either[TypeError, Type[TA]] =
+  def unCurryTypeFunction[TA](curried: Type[TA], args: List[Type[TA]]): RuntimeOp[TypeError, Type[TA]] =
     (curried, args) match {
       case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
         for {
           _           <- typeCheck(parameterType, head)
           appliedType <- unCurryTypeFunction(returnType, tail)
         } yield appliedType
-      case (tpe, Nil)               => Right(tpe)
-      case (nonFunction, head :: _) => Left(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
+      case (tpe, Nil) => RuntimeOp.succeed(tpe)
+      case (nonFunction, head :: _) =>
+        RuntimeOp.fail(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
     }
   // TODO: Implement
-  def typeCheck[TA](t1: Type[TA], t2: Type[TA]): Either[TypeError, Unit] = Right(())
+  def typeCheck[TA](t1: Type[TA], t2: Type[TA]): RuntimeOp[TypeError, Unit] = RuntimeOp.succeed(())
   def curryTypeFunction[TA](inner: Type[TA], params: Chunk[(Name, Type[TA])]): Type[TA] =
     params match {
       case Chunk() => inner

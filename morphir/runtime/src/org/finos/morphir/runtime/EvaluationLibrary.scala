@@ -13,7 +13,7 @@ import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
 import org.finos.morphir.ir.Type.UType
 
-case class EvaluationLibrary(runtime: MorphirRuntime[Either, scala.Unit, UType], modulePrefix: Option[String]) {
+case class EvaluationLibrary(runtime: MorphirRuntime[scala.Unit, UType], modulePrefix: Option[String]) {
 
   def deriveData(input: Any): Data =
     input match {
@@ -30,7 +30,7 @@ case class EvaluationLibrary(runtime: MorphirRuntime[Either, scala.Unit, UType],
       case None         => s"$moduleName:$functionName"
     }
     val derived = deriveData(input)
-    val res     = runtime.evaluate(FQName.fromString(fullName), derived)
+    val res     = runtime.evaluate(FQName.fromString(fullName), derived).runEither
     res match {
       case Right(res)  => res
       case Left(error) => throw error
