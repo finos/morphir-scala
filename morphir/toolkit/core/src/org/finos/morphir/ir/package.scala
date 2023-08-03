@@ -5,6 +5,9 @@ package org.finos.morphir
 
 package object ir {
 
+  type Name = org.finos.morphir.universe.ir.Name
+  val Name: org.finos.morphir.universe.ir.Name.type = org.finos.morphir.universe.ir.Name
+
   type ModuleName = Module.ModuleName
   val ModuleName: Module.ModuleName.type = Module.ModuleName
 

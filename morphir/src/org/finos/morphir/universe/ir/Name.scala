@@ -1,5 +1,6 @@
 package org.finos.morphir.universe.ir
 
+import org.finos.morphir.datamodel.namespacing.*
 import scala.annotation.tailrec
 import zio.prelude.*
 final case class Name private (toList: List[String]) extends AnyVal {
@@ -53,6 +54,11 @@ final case class Name private (toList: List[String]) extends AnyVal {
   def render(implicit renderer: Name.Renderer): String = renderer(self)
 
   def toUpperCase: String = mkString(part => part.toUpperCase)("")
+
+  def toLocalName(implicit renderer: Name.Renderer): LocalName = {
+    val localNameStr = render
+    LocalName(localNameStr)
+  }
 
   def toLowerCase: String =
     mkString(part => part.toLowerCase)("")
