@@ -4,7 +4,7 @@ import V.Value
 import T.Type
 import org.finos.morphir.ir.{Name, QName, FQName}
 import org.finos.morphir.ir.Module.QualifiedModuleName
-import org.finos.morphir.runtime
+import org.finos.morphir.runtime.MorphirRuntime.RT
 import zio.Chunk
 
 object Utils {

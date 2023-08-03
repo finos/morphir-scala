@@ -5283,7 +5283,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"express@npm:^4.17.3":
+"express@npm:^4.17.3, express@npm:^4.18.2":
   version: 4.18.2
   resolution: "express@npm:4.18.2"
   dependencies:
@@ -7470,9 +7470,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"morphir-elm@npm:2.80.0":
-  version: 2.80.0
-  resolution: "morphir-elm@npm:2.80.0"
+"morphir-elm@npm:^2.81.0":
+  version: 2.81.1
+  resolution: "morphir-elm@npm:2.81.1"
   dependencies:
     "@morphir/typespec-sdk": ^0.1.0
     ajv: ^8.10.0
@@ -7480,7 +7480,7 @@ __metadata:
     chalk: ^4.1.1
     commander: ^9.0.0
     cookie-parser: ^1.4.6
-    express: ^4.17.3
+    express: ^4.18.2
     fs-extra: ^9.1.0
     get-stdin: ^8.0.0
     log-timestamp: ^0.3.0
@@ -7490,7 +7490,7 @@ __metadata:
     morphir: cli2/lib/morphir.js
     morphir-dapr: cli/morphir-dapr.js
     morphir-elm: cli/morphir-elm.js
-  checksum: 4513631c2f9628d51ef54150cf1805af7e73516eed88df7613427c1b0067d13fd7657335f533fe9976cbbbd85173f3dc5a5af0b5b6b7832b3454f86dd640c3b8
+  checksum: fc6f96426b28a4c598fab9ba4be8f90f040cab0bbee60a62d78eeea282c72c2f311b0a84cab66b4a74f2ee6769975bb7886f1447c15c75445e23302229cd703d
   languageName: node
   linkType: hard
 
@@ -7498,7 +7498,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "morphir-scala-evaluator-tests@workspace:examples/morphir-elm-projects/evaluator-tests"
   dependencies:
-    morphir-elm: 2.80.0
+    morphir-elm: ^2.81.0
   languageName: unknown
   linkType: soft
 
@@ -7507,7 +7507,7 @@ __metadata:
   resolution: "morphir-scala@workspace:."
   dependencies:
     "@algolia/client-search": ^4.14.2
-    morphir-elm: 2.80.0
+    morphir-elm: ^2.81.0
   languageName: unknown
   linkType: soft
 

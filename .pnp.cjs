@@ -44,7 +44,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageLocation": "./",\
           "packageDependencies": [\
             ["@algolia/client-search", "npm:4.14.2"],\
-            ["morphir-elm", "npm:2.80.0"]\
+            ["morphir-elm", "npm:2.81.1"]\
           ],\
           "linkType": "SOFT"\
         }]\
@@ -5299,12 +5299,12 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           ],\
           "linkType": "SOFT"\
         }],\
-        ["virtual:4b7d8bb1684f7f69bf042a03dae4d118ab00edf0e34f409e5270fb3cce9e5fcf8ce9581b8f5bc8597c1e50c52a23eba5d4eadeede8c58ab0be3187e2389e11d5#npm:2.1.1", {\
-          "packageLocation": "./.yarn/__virtual__/ajv-formats-virtual-967e01a5f8/0/cache/ajv-formats-npm-2.1.1-3cec02eae9-4a287d937f.zip/node_modules/ajv-formats/",\
+        ["virtual:4a16998d0333341c9edd73415023909a7caaca48188ac0a5e0115d37ab0df5986b59c212c2ab65f9a6304b7d2077e0d49d8021ee77c217ad6b5170481c7a527d#npm:2.1.1", {\
+          "packageLocation": "./.yarn/__virtual__/ajv-formats-virtual-0be29994a1/0/cache/ajv-formats-npm-2.1.1-3cec02eae9-4a287d937f.zip/node_modules/ajv-formats/",\
           "packageDependencies": [\
-            ["ajv-formats", "virtual:4b7d8bb1684f7f69bf042a03dae4d118ab00edf0e34f409e5270fb3cce9e5fcf8ce9581b8f5bc8597c1e50c52a23eba5d4eadeede8c58ab0be3187e2389e11d5#npm:2.1.1"],\
+            ["ajv-formats", "virtual:4a16998d0333341c9edd73415023909a7caaca48188ac0a5e0115d37ab0df5986b59c212c2ab65f9a6304b7d2077e0d49d8021ee77c217ad6b5170481c7a527d#npm:2.1.1"],\
             ["@types/ajv", null],\
-            ["ajv", "npm:8.11.2"]\
+            ["ajv", "npm:8.12.0"]\
           ],\
           "packagePeers": [\
             "@types/ajv",\
@@ -5312,12 +5312,12 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           ],\
           "linkType": "HARD"\
         }],\
-        ["virtual:8d2c234ffd2b662c87d90c764c6ba3217db19e0cf0f2bc32339591c89b6a64c6a4751582aa6e9dab31db926de66d1c009687892c0dc0a788dacc0da0b4fcbbb3#npm:2.1.1", {\
-          "packageLocation": "./.yarn/__virtual__/ajv-formats-virtual-4ec3f4ed50/0/cache/ajv-formats-npm-2.1.1-3cec02eae9-4a287d937f.zip/node_modules/ajv-formats/",\
+        ["virtual:4b7d8bb1684f7f69bf042a03dae4d118ab00edf0e34f409e5270fb3cce9e5fcf8ce9581b8f5bc8597c1e50c52a23eba5d4eadeede8c58ab0be3187e2389e11d5#npm:2.1.1", {\
+          "packageLocation": "./.yarn/__virtual__/ajv-formats-virtual-967e01a5f8/0/cache/ajv-formats-npm-2.1.1-3cec02eae9-4a287d937f.zip/node_modules/ajv-formats/",\
           "packageDependencies": [\
-            ["ajv-formats", "virtual:8d2c234ffd2b662c87d90c764c6ba3217db19e0cf0f2bc32339591c89b6a64c6a4751582aa6e9dab31db926de66d1c009687892c0dc0a788dacc0da0b4fcbbb3#npm:2.1.1"],\
+            ["ajv-formats", "virtual:4b7d8bb1684f7f69bf042a03dae4d118ab00edf0e34f409e5270fb3cce9e5fcf8ce9581b8f5bc8597c1e50c52a23eba5d4eadeede8c58ab0be3187e2389e11d5#npm:2.1.1"],\
             ["@types/ajv", null],\
-            ["ajv", "npm:8.12.0"]\
+            ["ajv", "npm:8.11.2"]\
           ],\
           "packagePeers": [\
             "@types/ajv",\
@@ -10269,13 +10269,13 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]\
       ]],\
       ["morphir-elm", [\
-        ["npm:2.80.0", {\
-          "packageLocation": "./.yarn/cache/morphir-elm-npm-2.80.0-8d2c234ffd-4513631c2f.zip/node_modules/morphir-elm/",\
+        ["npm:2.81.1", {\
+          "packageLocation": "./.yarn/cache/morphir-elm-npm-2.81.1-4a16998d03-fc6f96426b.zip/node_modules/morphir-elm/",\
           "packageDependencies": [\
-            ["morphir-elm", "npm:2.80.0"],\
+            ["morphir-elm", "npm:2.81.1"],\
             ["@morphir/typespec-sdk", "npm:0.1.0"],\
             ["ajv", "npm:8.12.0"],\
-            ["ajv-formats", "virtual:8d2c234ffd2b662c87d90c764c6ba3217db19e0cf0f2bc32339591c89b6a64c6a4751582aa6e9dab31db926de66d1c009687892c0dc0a788dacc0da0b4fcbbb3#npm:2.1.1"],\
+            ["ajv-formats", "virtual:4a16998d0333341c9edd73415023909a7caaca48188ac0a5e0115d37ab0df5986b59c212c2ab65f9a6304b7d2077e0d49d8021ee77c217ad6b5170481c7a527d#npm:2.1.1"],\
             ["chalk", "npm:4.1.2"],\
             ["commander", "npm:9.5.0"],\
             ["cookie-parser", "npm:1.4.6"],\
@@ -10284,7 +10284,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["get-stdin", "npm:8.0.0"],\
             ["log-timestamp", "npm:0.3.0"],\
             ["prettier", "npm:2.8.8"],\
-            ["vis-network", "virtual:8d2c234ffd2b662c87d90c764c6ba3217db19e0cf0f2bc32339591c89b6a64c6a4751582aa6e9dab31db926de66d1c009687892c0dc0a788dacc0da0b4fcbbb3#npm:9.1.6"]\
+            ["vis-network", "virtual:4a16998d0333341c9edd73415023909a7caaca48188ac0a5e0115d37ab0df5986b59c212c2ab65f9a6304b7d2077e0d49d8021ee77c217ad6b5170481c7a527d#npm:9.1.6"]\
           ],\
           "linkType": "HARD"\
         }]\
@@ -10295,7 +10295,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageDependencies": [\
             ["morphir-scala", "workspace:."],\
             ["@algolia/client-search", "npm:4.14.2"],\
-            ["morphir-elm", "npm:2.80.0"]\
+            ["morphir-elm", "npm:2.81.1"]\
           ],\
           "linkType": "SOFT"\
         }]\
@@ -10305,7 +10305,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageLocation": "./examples/morphir-elm-projects/evaluator-tests/",\
           "packageDependencies": [\
             ["morphir-scala-evaluator-tests", "workspace:examples/morphir-elm-projects/evaluator-tests"],\
-            ["morphir-elm", "npm:2.80.0"]\
+            ["morphir-elm", "npm:2.81.1"]\
           ],\
           "linkType": "SOFT"\
         }]\
@@ -14619,16 +14619,16 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
       ]],\
       ["vis-network", [\
         ["npm:9.1.6", {\
-          "packageLocation": "./.yarn/unplugged/vis-network-virtual-595c35a865/node_modules/vis-network/",\
+          "packageLocation": "./.yarn/unplugged/vis-network-virtual-519c929b11/node_modules/vis-network/",\
           "packageDependencies": [\
             ["vis-network", "npm:9.1.6"]\
           ],\
           "linkType": "SOFT"\
         }],\
-        ["virtual:8d2c234ffd2b662c87d90c764c6ba3217db19e0cf0f2bc32339591c89b6a64c6a4751582aa6e9dab31db926de66d1c009687892c0dc0a788dacc0da0b4fcbbb3#npm:9.1.6", {\
-          "packageLocation": "./.yarn/unplugged/vis-network-virtual-595c35a865/node_modules/vis-network/",\
+        ["virtual:4a16998d0333341c9edd73415023909a7caaca48188ac0a5e0115d37ab0df5986b59c212c2ab65f9a6304b7d2077e0d49d8021ee77c217ad6b5170481c7a527d#npm:9.1.6", {\
+          "packageLocation": "./.yarn/unplugged/vis-network-virtual-519c929b11/node_modules/vis-network/",\
           "packageDependencies": [\
-            ["vis-network", "virtual:8d2c234ffd2b662c87d90c764c6ba3217db19e0cf0f2bc32339591c89b6a64c6a4751582aa6e9dab31db926de66d1c009687892c0dc0a788dacc0da0b4fcbbb3#npm:9.1.6"],\
+            ["vis-network", "virtual:4a16998d0333341c9edd73415023909a7caaca48188ac0a5e0115d37ab0df5986b59c212c2ab65f9a6304b7d2077e0d49d8021ee77c217ad6b5170481c7a527d#npm:9.1.6"],\
             ["@egjs/hammerjs", null],\
             ["@types/component-emitter", null],\
             ["@types/egjs__hammerjs", null],\

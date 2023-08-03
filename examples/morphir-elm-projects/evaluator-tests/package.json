@@ -2,7 +2,7 @@
     "name": "morphir-scala-evaluator-tests",
     "private": true,
     "devDependencies": {
-        "morphir-elm": "2.80.0"
+        "morphir-elm": "^2.81.0"
     },
     "scripts": {
         "make": "morphir-elm make -f"
