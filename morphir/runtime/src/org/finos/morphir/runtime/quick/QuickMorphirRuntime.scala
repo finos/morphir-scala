@@ -18,8 +18,7 @@ import org.finos.morphir.ir.PackageModule.PackageName
 
 import scala.util.{Failure, Success, Try}
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
-import org.finos.morphir.runtime.MorphirEnv
-import org.finos.morphir.runtime.MorphirEnv
+import org.finos.morphir.runtime.environment.MorphirEnv
 
 private[runtime] case class QuickMorphirRuntime(library: Library, store: Store[scala.Unit, UType])
     extends TypedMorphirRuntime {

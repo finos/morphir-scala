@@ -10,6 +10,10 @@ trait IntModule {
   def fromInt64(value: Int64): URTAction[Basics.Integer]
 }
 
+object IntModule {
+  val live: IntModule = IntModuleLive()
+}
+
 case class IntModuleLive() extends IntModule {
   def fromInt8(value: Int8): URTAction[Basics.Integer]   = URTAction.succeed(Int.fromInt8(value))
   def fromInt16(value: Int16): URTAction[Basics.Integer] = URTAction.succeed(Int.fromInt16(value))

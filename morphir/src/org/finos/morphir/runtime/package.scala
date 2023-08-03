@@ -8,7 +8,6 @@ package object runtime {
 
   
 
-  type MorphirEnv = MorphirSdk with MorphirKernel
 
   type ??? = Nothing
 }

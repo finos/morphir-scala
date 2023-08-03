@@ -12,6 +12,7 @@ import org.finos.morphir.ir.{FQName, Type}
 import org.finos.morphir.ir.conversion.*
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
+import org.finos.morphir.runtime.environment.MorphirEnv
 
 object EvaluatorDDLTests extends MorphirBaseSpec {
   type MorphirRuntimeTyped = MorphirRuntime[Unit, Type.UType]
@@ -60,7 +61,9 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
       val fullName = s"Morphir.Examples.App:$moduleName:$functionName"
       val data     = deriveData(value)
 
-      runtime.evaluate(FQName.fromString(fullName), data).toZIOWith
+      runtime.evaluate(FQName.fromString(fullName), data)
+        .provideEnvionment(MorphirEnv.live)
+        .toZIOWith
     }
 
   val dogRecordConceptRaw = Concept.Struct(
@@ -401,7 +404,7 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
         test("Pi") {
           checkEvaluation("nativeReferenceTests", "nativeReferencePiTest")(Data.Decimal(scala.BigDecimal("3")))
         },
-        test("ModBy"){
+        test("ModBy") {
           checkEvaluation("nativeReferenceTests", "nativeReferenceModByTest", 7)(Data.Int(1))
         }
       ),

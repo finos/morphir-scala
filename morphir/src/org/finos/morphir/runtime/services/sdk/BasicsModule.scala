@@ -13,8 +13,11 @@ trait BasicsModule {
   def subtract[A](l: Basics.Integer, r: Basics.Integer): URTAction[Basics.Integer]
   def subtract[A](l: Basics.Float, r: Basics.Float): URTAction[Basics.Float]
 }
+object BasicsModule {
+  val live: BasicsModule = BasicsModuleLive()
+}
 
-abstract class BasicsModuleLive() extends BasicsModule {
+final case class BasicsModuleLive() extends BasicsModule {
   import _root_.morphir.sdk.Basics
 
   def add[A](l: Basics.Integer, r: Basics.Integer): URTAction[Basics.Integer] =

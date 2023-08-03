@@ -1,6 +1,6 @@
 package org.finos.morphir.runtime
 import zio.prelude.fx.*
-import zio.ZIO
+import zio.*
 
 /**
  * A runtime action that can be executed to produce a result
@@ -23,6 +23,9 @@ final case class RTAction[-R, +E, +A](computation: ZPure[Nothing, RTExecutionCon
 
   def map[B](f: A => B): RTAction[R, E, B] =
     RTAction(computation.map(f))
+
+  def provideEnvionment(r: ZEnvironment[R]): RTAction[Any, E, A] =
+    RTAction(computation.provideEnvironment(r))
 
   def runEither(implicit ev2: Any <:< R): Either[E, A] =
     runEitherWith(RTExecutionContext.default)

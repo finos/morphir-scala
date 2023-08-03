@@ -22,7 +22,3 @@ final case class KernelLive() extends Kernel {
   def accessVariable(name: Name): RTAction[Any, VariableAccessError, VariableRef] = ???
 
 }
-
-object KernelUsage {
-  
-}
