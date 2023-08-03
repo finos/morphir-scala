@@ -177,7 +177,7 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
   )
 
   def spec =
-    suite("Json Evaluation")(
+    suite("Evaluator MDM Specs")(
       suite("Constructor Tests")(
         test("Zero Arg") {
           for {

@@ -9,7 +9,7 @@ object EvaluatorElmTests extends MorphirBaseSpec {
     EvaluationLibrary("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json", "Morphir.Examples.App")
   def runTest(moduleName: String, functionName: String) = lib.runTestDDL(moduleName, functionName, ())
   def spec =
-    suite("Json Evaluation")(
+    suite("EvaluatorElmTests")(
       suite("Constructor Tests")(
         test("Zero Arg") {
           val actual   = runTest("constructorTests", "constructorZeroArgTest")
