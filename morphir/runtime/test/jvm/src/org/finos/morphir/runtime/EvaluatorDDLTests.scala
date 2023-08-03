@@ -60,7 +60,7 @@ object EvaluatorDDLTests extends MorphirBaseSpec {
       val fullName = s"Morphir.Examples.App:$moduleName:$functionName"
       val data     = deriveData(value)
 
-      runtime.evaluate(FQName.fromString(fullName), data).toZIO
+      runtime.evaluate(FQName.fromString(fullName), data).toZIOWith
     }
 
   val dogRecordConceptRaw = Concept.Struct(
