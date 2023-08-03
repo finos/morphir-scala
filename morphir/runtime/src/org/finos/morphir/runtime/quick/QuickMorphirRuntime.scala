@@ -29,7 +29,7 @@ private[runtime] case class QuickMorphirRuntime(library: Library, store: Store[s
       res <- evaluate(Value.Reference.Typed(tpe, entryPoint), params)
     } yield res
 
-  def evaluate(value: Value[scala.Unit, UType]): RTAction[Any, EvaluationError, Data] =
+  def evaluate(value: Value[scala.Unit, UType]): RTAction[org.finos.morphir.runtime.services.sdk.MorphirSdk, EvaluationError, Data] =
     try
       RTAction.succeed(EvaluatorQuick.eval(value, store, library))
     catch {
