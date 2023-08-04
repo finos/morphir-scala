@@ -110,6 +110,13 @@ object EvaluatorQuick {
       }
     }
 
+    def fromNative[TA, VA](native: NativeFunction): SDKValue[TA, VA] = {
+      native match {
+        case nf: NativeFunction2[_, _, _] => {
+        }
+      }
+    }
+
   def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept = {
     val intRef    = new BasicReference(Basics.intType)
     val boolRef   = new BasicReference(Basics.boolType)
