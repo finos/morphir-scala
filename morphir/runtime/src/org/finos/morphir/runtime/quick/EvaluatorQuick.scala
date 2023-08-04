@@ -96,6 +96,12 @@ object EvaluatorQuick {
       //case constructor: Result.ConstructorResult[TA, VA] => constructor //Special cases?
       //case record: Result.Record => record //I don't think we ever use these?
       case other => other //Anything can be passed through a generic function
+    }
+        def wrap[TA, VA](value: Any): Result[TA, VA] = {
+          value match {
+            case r: Result[TA, VA] => r //passed-through results from generic ops
+            case () => Result.Unit()
+            case m: Map[_, _] => Result.MapResult(m.toSeq.map { case (key, value) => (wrap(key), wrap(value)) }.toMap)
 
   def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept = {
     val intRef    = new BasicReference(Basics.intType)
