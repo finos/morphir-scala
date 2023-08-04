@@ -1,7 +1,7 @@
 package morphir.sdk
 import org.finos.morphir.extensibility.*
 
-object Basics extends MorphirSdkModule("morphir.sdk", "Basics") {
+object Basics extends MorphirSdkModule("Morphir.Sdk", "Basics") { module =>
 
   type Integer = org.finos.morphir.universe.sdk.Basics.Integer
   private val Integer: org.finos.morphir.universe.sdk.Basics.Integer.type =
@@ -13,10 +13,17 @@ object Basics extends MorphirSdkModule("morphir.sdk", "Basics") {
   private val Float: org.finos.morphir.universe.sdk.types.MFloat.type =
     org.finos.morphir.universe.sdk.Basics.Float
 
-  def add(a: Int): Int => Int          = b => a add b
-  def add(a: Int, b: Int): Int         = Integer(a.value + b.value)
-  def modBy(modulus: Int): Int => Int  = x => Integer(x % modulus)
-  def modBy(modulus: Int, a: Int): Int = Integer(a % modulus)
+  def add(a: Int): Int => Int  = b => a add b
+  def add(a: Int, b: Int): Int = Integer(a.value + b.value)
+  // def modBy(modulus: Int): Int => Int  = x => Integer(x % modulus)
+  // def modBy(modulus: Int, a: Int): Int = Integer(a % modulus)
+
+  object modBy extends NativeFunction2[Int, Int, Int] {
+    override def packageName: String     = module.packageName
+    override def moduleName: String      = module.moduleName
+    override def localName: String       = "modBy"
+    def apply(modulus: Int, a: Int): Int = Integer(a.value % modulus.value)
+  }
 
   /// A "Boolean" value. It can either be `True` or `False`.
   type Bool = scala.Boolean

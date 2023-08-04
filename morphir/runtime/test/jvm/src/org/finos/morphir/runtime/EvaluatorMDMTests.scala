@@ -58,7 +58,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
   def testEval(label: String)(moduleName: String, functionName: String, value: Any)(expected: => Data) =
     test(label) {
-      checkEvaluation(moduleName, functionName)(expected)
+      checkEvaluation(moduleName, functionName, value)(expected)
     }
 
   def runTest(moduleName: String, functionName: String): ZIO[MorphirRuntimeTyped, Throwable, Data] =
@@ -372,7 +372,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Pi")("nativeReferenceTests", "nativeReferencePiTest")(Data.Decimal(scala.BigDecimal("3"))),
         testEval("ModBy")("nativeReferenceTests", "nativeReferenceModByTest", 7)(
           Data.Int(1)
-        ) @@ TestAspect.ignore @@ TestAspect.tag("ignore until we complete wiring up native functions")
+        ) /* @@ TestAspect.ignore @@ TestAspect.tag("ignore until we complete wiring up native functions")*/
       ),
       suite("Patern Matching")(
         testEvaluation("Wildcard")("patternMatchTests", "patternMatchWildcardTest")(Data.String("Correct")),

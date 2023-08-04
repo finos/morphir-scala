@@ -18,6 +18,11 @@ import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.{MissingField, ResultDoesNotMatchType, UnsupportedType}
 
+import org.finos.morphir.runtime.services.sdk.*
+import org.finos.morphir.runtime.exports.*
+import org.finos.morphir.runtime.services.*
+import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
+import org.finos.morphir.runtime.environment.MorphirEnv
 object EvaluatorQuick {
   object FQString {
     def unapply(fqName: FQName): Option[String] = Some(fqName.toString())
@@ -51,6 +56,21 @@ object EvaluatorQuick {
 //    resultToMDM(result, tpe, dist)
 //  }
 
+  private[runtime] def evalAction(
+      value: Value[Unit, Type.UType],
+      store: Store[Unit, Type.UType],
+      library: Library
+  ): RTAction[MorphirEnv, EvaluationError, Data] =
+    RTAction.environmentWithPure[MorphirSdk] { env =>
+      val basics = env.get[BasicsModule]
+      // HACK: To work out
+      val modBy = _root_.morphir.sdk.Basics.modBy
+      try
+        RTAction.succeed(EvaluatorQuick.eval(value, store, library))
+      catch {
+        case e: EvaluationError => RTAction.fail(e)
+      }
+    }
   private[runtime] def eval(value: Value[Unit, Type.UType], store: Store[Unit, Type.UType], library: Library): Data = {
     val result = Loop.loop(value, store)
     resultToMDM(result, value.attributes, library)

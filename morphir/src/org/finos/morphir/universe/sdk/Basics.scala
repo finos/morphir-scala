@@ -23,6 +23,8 @@ object Basics {
     //   MorphirTypeTag.succeed(Type.Reference((), fqName, List.empty))
     // }
 
+    implicit def toLongUnsafe(value: Integer): Long = unwrap(value).toLong
+
     implicit final class IntegerSyntax(private val self: Integer) extends AnyVal {
       def value: SafeLong = unwrap(self)
 
