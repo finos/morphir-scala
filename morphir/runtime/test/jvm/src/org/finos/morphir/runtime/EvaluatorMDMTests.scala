@@ -14,7 +14,7 @@ import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
 import org.finos.morphir.runtime.environment.MorphirEnv
 
-object EvaluatorDDLTests extends MorphirBaseSpec {
+object EvaluatorMDMTests extends MorphirBaseSpec {
   type MorphirRuntimeTyped = MorphirRuntime[Unit, Type.UType]
 
   val morphirRuntimeLayer: ZLayer[Any, Throwable, MorphirRuntime[Unit, Type.UType]] =
