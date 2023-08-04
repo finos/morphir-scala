@@ -1,5 +1,3 @@
 package morphir.sdk
 
-object Maybe {
-  
-}
+object Maybe {}
