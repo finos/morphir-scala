@@ -211,7 +211,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Variable",
                             {},
                             [
@@ -1442,7 +1442,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Reference",
                             {},
                             [
@@ -1812,7 +1812,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Variable",
                             {},
                             [
@@ -2607,7 +2607,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Unit",
                             {}
                           ]
@@ -2646,7 +2646,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Variable",
                             {},
                             [
@@ -2746,7 +2746,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Tuple",
                             {},
                             [
@@ -2809,7 +2809,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Variable",
                             {},
                             [
@@ -3534,7 +3534,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Variable",
                             {},
                             [
@@ -3870,7 +3870,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Variable",
                             {},
                             [
@@ -4035,7 +4035,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Unit",
                             {}
                           ]
@@ -4133,7 +4133,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "ExtensibleRecord",
                             {},
                             [
@@ -5454,7 +5454,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "ExtensibleRecord",
                             {},
                             [
@@ -6360,7 +6360,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Unit",
                             {}
                           ]
@@ -6537,7 +6537,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Variable",
                             {},
                             [
@@ -7479,7 +7479,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Reference",
                             {},
                             [
@@ -7698,7 +7698,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Reference",
                             {},
                             [
@@ -7835,7 +7835,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Unit",
                             {}
                           ]
@@ -7954,7 +7954,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Unit",
                             {}
                           ]
@@ -8940,7 +8940,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Variable",
                             {},
                             [
@@ -9033,7 +9033,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Variable",
                             {},
                             [
@@ -9256,7 +9256,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Record",
                             {},
                             [
@@ -10361,7 +10361,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "ExtensibleRecord",
                             {},
                             [
@@ -10452,7 +10452,7 @@
                               ]
                             ]
                           ],
-                          "outputs" : [
+                          "output" : [
                             "Unit",
                             {}
                           ]
