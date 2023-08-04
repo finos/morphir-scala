@@ -69,7 +69,7 @@ object EvaluatorQuick {
       // HACK: To work out
       val modBy = _root_.morphir.sdk.Basics.modBy
 
-      def newValue = Scratch.fromNative[Unit, Type.UType](modBy)
+      def newValue = fromNative[Unit, Type.UType](modBy)
       def newName = FQName.fqn(modBy.packageName, modBy.moduleName, modBy.localName)
       def newStore = Store(store.definitions + (newName -> newValue), store.ctors, store.callStack)
       RTAction.succeed(EvaluatorQuick.eval(value, newStore, library))
@@ -97,32 +97,33 @@ object EvaluatorQuick {
       //case record: Result.Record => record //I don't think we ever use these?
       case other => other //Anything can be passed through a generic function
     }
-    def wrap[TA, VA](value: Any): Result[TA, VA] = {
-      value match {
-        case r: Result[TA, VA] => r //passed-through results from generic ops
-        case () => Result.Unit()
-        case m: Map[_, _] => Result.MapResult(m.toSeq.map { case (key, value) => (wrap(key), wrap(value)) }.toMap)
-        case l: List[_] => Result.ListResult(l.map(wrap(_)))
-        case (first, second) => Result.Tuple((wrap(first), wrap(second)))
-        case (first, second, third) => Result.Tuple((wrap(first), wrap(second), wrap(third)))
-        //TODO: Option, Result, LocalDate
-        case primitive => Result.Primitive(primitive) //TODO: Handle each case for safety's sake
-      }
+  }
+  def wrap[TA, VA](value: Any): Result[TA, VA] = {
+    value match {
+      case r: Result[TA, VA] => r //passed-through results from generic ops
+      case () => Result.Unit()
+      case m: Map[_, _] => Result.MapResult(m.toSeq.map { case (key, value) => (wrap(key), wrap(value)) }.toMap)
+      case l: List[_] => Result.ListResult(l.map(wrap(_)))
+      case (first, second) => Result.Tuple((wrap(first), wrap(second)))
+      case (first, second, third) => Result.Tuple((wrap(first), wrap(second), wrap(third)))
+      //TODO: Option, Result, LocalDate
+      case primitive => Result.Primitive(primitive) //TODO: Handle each case for safety's sake
     }
+  }
 
-    def fromNative[TA, VA](native: NativeFunction): SDKValue[TA, VA] = {
-      native match {
-        case nf: NativeFunction2[_, _, _] => {
-          val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
-            val unwrappedArg1 = unwrap(arg1)
-            val unwrappedArg2 = unwrap(arg2)
-            val res = nf.asInstanceOf[(Any, Any) => Any](unwrappedArg1, unwrappedArg2)
-            wrap(res)
-          }
-          SDKValue.SDKNativeFunction(nf.arity, f)
+  def fromNative[TA, VA](native: NativeFunction): SDKValue[TA, VA] = {
+    native match {
+      case nf: NativeFunction2[_, _, _] => {
+        val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
+          val unwrappedArg1 = unwrap(arg1)
+          val unwrappedArg2 = unwrap(arg2)
+          val res = nf.asInstanceOf[(Any, Any) => Any](unwrappedArg1, unwrappedArg2)
+          wrap(res)
         }
+        SDKValue.SDKNativeFunction(nf.arity, f)
       }
     }
+  }
 
   def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept = {
     val intRef    = new BasicReference(Basics.intType)
