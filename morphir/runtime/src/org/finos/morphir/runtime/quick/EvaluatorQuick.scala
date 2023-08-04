@@ -113,6 +113,13 @@ object EvaluatorQuick {
     def fromNative[TA, VA](native: NativeFunction): SDKValue[TA, VA] = {
       native match {
         case nf: NativeFunction2[_, _, _] => {
+          val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
+            val unwrappedArg1 = unwrap(arg1)
+            val unwrappedArg2 = unwrap(arg2)
+            val res = nf.asInstanceOf[(Any, Any) => Any](unwrappedArg1, unwrappedArg2)
+            wrap(res)
+          }
+          SDKValue.SDKNativeFunction(nf.arity, f)
         }
       }
     }
