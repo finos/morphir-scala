@@ -79,6 +79,12 @@ object EvaluatorQuick {
     resultToMDM(result, value.attributes, library)
   }
 
+  def unwrap[TA, VA](res: Result[TA, VA]): Any = {
+    res match {
+      case Result.Unit() => () // Ever used?
+      case Result.Primitive(value) => value //Duh
+
+
   def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept = {
     val intRef    = new BasicReference(Basics.intType)
     val boolRef   = new BasicReference(Basics.boolType)
