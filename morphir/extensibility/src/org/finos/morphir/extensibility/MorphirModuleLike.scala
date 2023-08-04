@@ -4,5 +4,3 @@ trait MorphirModuleLike {
   def packageName: String
   def moduleName: String
 }
-
-
