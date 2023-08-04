@@ -1,6 +1,6 @@
 package org.finos.morphir.ir.module
 
-import org.finos.morphir.ir.{AccessControlled, Documented, FQName, Name, Type, Value}
+import org.finos.morphir.ir.{AccessControlled, Documented, FQName, Name, QModuleName, Type, Value}
 
 import Type.Definition.{CustomType, TypeAlias}
 final case class Definition[+TA, +VA](

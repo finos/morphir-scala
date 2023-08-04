@@ -14,9 +14,9 @@ trait ModuleModule {
   final type ModuleName = morphir.ir.module.ModuleName
   final val ModuleName: morphir.ir.module.ModuleName.type = morphir.ir.module.ModuleName
 
-  final type QModuleName = morphir.ir.module.QModuleName
-  final val QModuleName: morphir.ir.module.QModuleName.type =
-    morphir.ir.module.QModuleName
+  final type QModuleName = morphir.ir.QModuleName
+  final val QModuleName: morphir.ir.QModuleName.type =
+    morphir.ir.QModuleName
 
   final type Specification[+TA] = morphir.ir.module.Specification[TA]
   final val Specification: morphir.ir.module.Specification.type = morphir.ir.module.Specification

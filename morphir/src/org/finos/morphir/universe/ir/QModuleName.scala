@@ -1,5 +1,5 @@
-package org.finos.morphir.ir.module
-import org.finos.morphir.ir.Path
+package org.finos.morphir.universe.ir
+import org.finos.morphir.universe.ir.Path
 
 final case class QModuleName(packageName: Path, module: Path) {
   lazy val toPath: Path     = packageName / module
