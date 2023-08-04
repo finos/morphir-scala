@@ -34,7 +34,6 @@ private[runtime] case class QuickMorphirRuntime(library: Library, store: Store[s
 
   def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
     RTAction.environmentWithPure[MorphirSdk] { env =>
-      
       try
         RTAction.succeed(EvaluatorQuick.eval(value, store, library))
       catch {
