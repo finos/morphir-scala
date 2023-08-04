@@ -259,7 +259,7 @@ trait MorphirJsonEncodingSupportV2 extends JsonEncodingHelpers {
     Json.encoder.contramap[ValueSpecification[A]] { specification =>
       Json.Obj(
         "inputs"  -> toJsonAstOrThrow(specification.inputs),
-        "outputs" -> toJsonAstOrThrow(specification.output)
+        "output" -> toJsonAstOrThrow(specification.output)
       )
     }
 
