@@ -1,11 +1,11 @@
 package org.finos.morphir.universe.ir
 
 import scala.annotation.tailrec
-
+import zio.Chunk
 private[morphir] trait PathLike {
   self =>
 
-  def ++(that: Path): Path  = Path(toList ++ that.toList)
+  def ++(that: Path): Path  = Path(segments ++ that.segments)
   def ::(name: Name): QName = QName(self.toPath, name)
 
   /** Indicates whether this path is empty. */
@@ -16,18 +16,21 @@ private[morphir] trait PathLike {
   def toPath: Path =
     self match {
       case path: Path => path
-      case _          => Path(self.toList)
+      case _          => Path(self.segments)
     }
 
   /** Constructs a new path by combining this path with the given name. */
-  def /(name: Name): Path = Path(toList ++ List(name))
+  def /(name: Name): Path = Path(segments ++ List(name))
 
   /** Constructs a new path by combining this path with the given path. */
-  def /(that: PathLike): Path = Path(toList ++ that.toList)
+  def /(that: PathLike): Path = Path(segments ++ that.toList)
   // def %(other: Path): PackageAndModulePath =
   //   PackageAndModulePath(PackageName(self), ModulePath(other))
 
   def zip(other: Path): (Path, Path) = (self.toPath, other)
+
+  def segments: IndexedSeq[Name]
+  def chunks: Chunk[Name]
 
   def toString(f: Name => String, separator: String): String =
     toList.map(f).mkString(separator)

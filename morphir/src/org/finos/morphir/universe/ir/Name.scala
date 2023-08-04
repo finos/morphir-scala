@@ -11,7 +11,7 @@ final case class Name private (toList: List[String]) extends AnyVal {
 
   def ++(that: Name): Name = Name(self.toList ++ that.toList)
 
-  def /(that: Name): Path = Path(List(self, that))
+  def /(that: Name): Path = Path(IndexedSeq(self, that))
 
   def humanize: List[String] = {
     val words                        = toList

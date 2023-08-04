@@ -8,6 +8,12 @@ package object ir {
   type Name = org.finos.morphir.universe.ir.Name
   val Name: org.finos.morphir.universe.ir.Name.type = org.finos.morphir.universe.ir.Name
 
+  type Path = org.finos.morphir.universe.ir.Path
+  val Path: org.finos.morphir.universe.ir.Path.type = org.finos.morphir.universe.ir.Path
+
+  type QName = org.finos.morphir.universe.ir.QName
+  val QName: org.finos.morphir.universe.ir.QName.type = org.finos.morphir.universe.ir.QName
+
   type ModuleName = Module.ModuleName
   val ModuleName: Module.ModuleName.type = Module.ModuleName
 

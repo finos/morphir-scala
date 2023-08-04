@@ -31,7 +31,7 @@ object QNameSpec extends MorphirBaseSpec {
         val name = Name.fromString("name")
         assertTrue(
           QName.getLocalName(QName(path, name)) == name,
-          QName.getModulePath(QName(path, name)) == path
+          QName.getModulePath(QName(path, name)).toPath == path
         )
       }
     ),

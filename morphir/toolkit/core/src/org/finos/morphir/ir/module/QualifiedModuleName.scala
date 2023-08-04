@@ -16,7 +16,7 @@ final case class QualifiedModuleName(namespace: Path, localName: Name) {
 }
 
 object QualifiedModuleName {
-  def fromPath(path: Path): QualifiedModuleName = path.segments match {
+  def fromPath(path: Path): QualifiedModuleName = path.chunks match {
     case Chunk()     => QualifiedModuleName(Path.empty, Name.empty)
     case Chunk(name) => QualifiedModuleName(Path.empty, name)
     case ns :+ name  => QualifiedModuleName(Path(ns), name)

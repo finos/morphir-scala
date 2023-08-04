@@ -27,7 +27,7 @@ package object ir {
     def apply(path: Path, name: Name): ModuleName = ModuleName(path / name)
 
     def apply(input: String): ModuleName =
-      ModuleName(Path(input.split('.').map(Name.fromString).toList))
+      ModuleName(Path.fromArray(input.split('.').map(Name.fromString)))
 
     def fromString(input: String): ModuleName = ModuleName(input)
 
@@ -36,11 +36,11 @@ package object ir {
 
       def name: Name =
         self match {
-          case ModuleName(Path(Nil))      => Name.empty
-          case ModuleName(Path(segments)) => segments.last
+          case ModuleName(Path(IndexedSeq())) => Name.empty
+          case ModuleName(Path(segments))     => segments.last
         }
 
-      def namespace: Namespace = Namespace(Path(self.value.toList.dropRight(1)))
+      def namespace: Namespace = Namespace(Path(self.value.segments.dropRight(1)))
 
       def toPath: Path = unwrap(self)
 
@@ -132,8 +132,8 @@ package object ir {
   type PackageName = PackageName.Type
 
   object PackageName extends Subtype[Path] {
-    def apply(firstPart: Name, rest: Name*): PackageName     = wrap(Path(firstPart :: rest.toList))
-    def apply(firstPart: String, rest: String*): PackageName = wrap(Path((firstPart :: rest.toList).map(Name(_))))
+    def apply(firstPart: Name, rest: Name*): PackageName     = wrap(Path.fromIterable(firstPart +: rest))
+    def apply(firstPart: String, rest: String*): PackageName = wrap(Path.fromIterable((firstPart +: rest).map(Name(_))))
 
     def fromPath(path: Path): PackageName = wrap(path)
 

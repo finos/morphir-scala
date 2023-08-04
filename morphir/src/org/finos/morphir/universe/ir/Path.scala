@@ -1,17 +1,34 @@
 package org.finos.morphir.universe.ir
 
+import org.finos.morphir.datamodel.namespacing.*
 import scala.annotation.tailrec
 import zio.prelude.*
 import fansi.Str
-final case class Path(toList: List[Name]) extends PathLike {
+import zio.Chunk
+final case class Path(segments: IndexedSeq[Name]) extends PathLike {
   self =>
+
+  def chunks: Chunk[Name] = Chunk.fromIterable(segments)
+
   def render(implicit renderer: Path.Renderer): String = renderer(self)
   def render(separator: String)(implicit nameRenderer: Name.Renderer): String =
     render(Path.Renderer(separator, nameRenderer))
+
+  def toList: List[Name] = segments.toList
+
+  def toPackageName(implicit renderer: Name.Renderer = Name.Renderer.TitleCase): PackageName = {
+    val nsSegments = PackageName.segments(segments.map(_.render))
+    PackageName.fromIterable(nsSegments)
+  }
+
+  def toNamespace(implicit renderer: Name.Renderer = Name.Renderer.TitleCase): Namespace = {
+    val nsSegments = Namespace.segments(segments.map(_.render))
+    Namespace.fromIterable(nsSegments)
+  }
 }
 
 object Path {
-  val empty: Path = Path(List.empty)
+  val empty: Path = Path(IndexedSeq.empty)
 
   def apply(first: String, rest: String*): Path =
     wrap((first +: rest).map(Name.fromString).toList)
@@ -20,9 +37,10 @@ object Path {
     if (rest.isEmpty) wrap(List(first))
     else wrap((first +: rest).toList)
 
-  private[morphir] def wrap(value: List[Name]): Path = Path(value)
+  private[morphir] def wrap(value: IndexedSeq[Name]): Path = Path(value)
+  private[morphir] def wrap(value: List[Name]): Path       = Path(value.toIndexedSeq)
 
-  private[morphir] def wrap(value: Array[Name]): Path = Path(value.toList)
+  private[morphir] def wrap(value: Array[Name]): Path = Path(value.toIndexedSeq)
 
   def fromString(str: String): Path = {
     val separatorRegex = """[^\w\s]+""".r
@@ -32,7 +50,8 @@ object Path {
   def toString(f: Name => String, separator: String, path: Path): String =
     path.toString(f, separator)
 
-  @inline def fromIterable(names: Iterable[Name]): Path = Path(names.toList)
+  @inline def fromArray(names: Array[Name]): Path       = Path(names.toIndexedSeq)
+  @inline def fromIterable(names: Iterable[Name]): Path = Path(names.toIndexedSeq)
   @inline def fromList(names: List[Name]): Path         = wrap(names)
 
   @inline def toList(path: Path): List[Name] = path.toList.toList
@@ -51,7 +70,7 @@ object Path {
       else false
   }
 
-  private[morphir] def unsafeMake(parts: Name*): Path = Path(parts.toList)
+  private[morphir] def unsafeMake(parts: Name*): Path = Path(parts.toIndexedSeq)
 
   final case class Renderer(separator: String, nameRenderer: Name.Renderer) extends (Path => String) {
     def apply(path: Path): String        = path.toString(nameRenderer, separator)
