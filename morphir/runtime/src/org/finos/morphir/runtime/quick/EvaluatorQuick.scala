@@ -102,6 +102,11 @@ object EvaluatorQuick {
             case r: Result[TA, VA] => r //passed-through results from generic ops
             case () => Result.Unit()
             case m: Map[_, _] => Result.MapResult(m.toSeq.map { case (key, value) => (wrap(key), wrap(value)) }.toMap)
+            case l: List[_] => Result.ListResult(l.map(wrap(_)))
+            case (first, second) => Result.Tuple((wrap(first), wrap(second)))
+            case (first, second, third) => Result.Tuple((wrap(first), wrap(second), wrap(third)))
+            //TODO: Option, Result, LocalDate
+            case primitive => Result.Primitive(primitive) //TODO: Handle each case for safety's sake
 
   def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept = {
     val intRef    = new BasicReference(Basics.intType)
