@@ -8,6 +8,8 @@ import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.Type.Type
 import org.finos.morphir.runtime.*
+import org.finos.morphir.runtime.exports.*
+import org.finos.morphir.runtime.services.sdk.MorphirSdk
 import org.finos.morphir.runtime.Utils.*
 import org.finos.morphir.ir.{QName, FQName}
 import org.finos.morphir.ir.conversion.*
@@ -31,10 +33,12 @@ private[runtime] case class QuickMorphirRuntime(library: Library, store: Store[s
     } yield res
 
   def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
-    try
-      RTAction.succeed(EvaluatorQuick.eval(value, store, library))
-    catch {
-      case e: EvaluationError => RTAction.fail(e)
+    RTAction.environmentWithPure[MorphirSdk] { env =>
+      try
+        RTAction.succeed(EvaluatorQuick.eval(value, store, library))
+      catch {
+        case e: EvaluationError => RTAction.fail(e)
+      }
     }
 
   def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {

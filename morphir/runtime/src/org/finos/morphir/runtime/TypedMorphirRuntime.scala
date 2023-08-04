@@ -10,6 +10,7 @@ import org.finos.morphir.ir.conversion.*
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
 import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.runtime.exports.*
 
 //TODO: Specify "Either" on lower level
 trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {

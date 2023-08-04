@@ -7,7 +7,7 @@ import org.finos.morphir.ir.FQName
 import Utils.*
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.runtime.environment.MorphirEnv
-import org.finos.morphir.runtime.RTAction
+import org.finos.morphir.runtime.exports.RTAction
 import org.finos.morphir.runtime.quick.QuickMorphirRuntime
 import zio.prelude.fx.ZPure
 trait MorphirRuntime[TA, VA] {

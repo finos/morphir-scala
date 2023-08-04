@@ -1,6 +1,7 @@
 package org.finos.morphir.runtime.services.kernel
 
 import org.finos.morphir.runtime.*
+import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.universe.ir.Name
 import zio.prelude.fx.ZPure
 
@@ -13,7 +14,7 @@ object Kernel {
   val live: Kernel = KernelLive()
 
   def accessVariable(name: Name): RTAction[Kernel, VariableAccessError, Any] =
-    RTAction(ZPure.serviceWith(_.accessVariable(name)))
+    RTAction.serviceWith(_.accessVariable(name))
 
 }
 

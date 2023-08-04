@@ -23,7 +23,7 @@ object Basics {
     //   MorphirTypeTag.succeed(Type.Reference((), fqName, List.empty))
     // }
 
-    implicit final class IntegerOps(val self: Integer) extends AnyVal {
+    implicit final class IntegerSyntax(private val self: Integer) extends AnyVal {
       def value: SafeLong = unwrap(self)
 
       def +(that: Integer): Integer = {
@@ -41,7 +41,7 @@ object Basics {
     def fromDouble(value: scala.Double): Float = wrap(value)
     def fromFloat(value: scala.Float): Float   = wrap(value.toDouble)
 
-    implicit final class FloatOps(val self: Float) extends AnyVal {
+    implicit final class FloatSyntax(val self: Float) extends AnyVal {
       def value: Double = unwrap(self)
 
       def +(that: Float): Float = {
