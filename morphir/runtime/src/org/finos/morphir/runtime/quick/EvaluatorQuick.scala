@@ -23,6 +23,7 @@ import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.runtime.services.*
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
 import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.extensibility.{NativeFunction, NativeFunction2}
 object EvaluatorQuick {
   object FQString {
     def unapply(fqName: FQName): Option[String] = Some(fqName.toString())
