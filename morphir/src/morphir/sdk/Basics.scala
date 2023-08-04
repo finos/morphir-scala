@@ -1,6 +1,7 @@
 package morphir.sdk
+import org.finos.morphir.extensibility.*
 
-object Basics {
+object Basics extends MorphirSdkModule("morphir.sdk", "Basics") {
 
   type Integer = org.finos.morphir.universe.sdk.Basics.Integer
   private val Integer: org.finos.morphir.universe.sdk.Basics.Integer.type =

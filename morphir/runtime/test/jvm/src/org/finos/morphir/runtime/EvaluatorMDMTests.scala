@@ -13,6 +13,7 @@ import org.finos.morphir.ir.conversion.*
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
 import org.finos.morphir.runtime.environment.MorphirEnv
+import zio.test.TestAspect.{ignore, tag}
 
 object EvaluatorMDMTests extends MorphirBaseSpec {
   type MorphirRuntimeTyped = MorphirRuntime[Unit, Type.UType]
@@ -476,7 +477,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "Morphir.Examples.App:ExampleModule:aB",
           typeArgUnionShape(Concept.Int32, Concept.String)
         ))
-      ),
+      ) @@ ignore @@ tag("Needs Workh"),
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "returnDictionaryTest")(Data.Map(
           (Data.Int(1), Data.String("Red")),

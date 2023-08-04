@@ -37,14 +37,14 @@ object Path {
     if (rest.isEmpty) wrap(List(first))
     else wrap((first +: rest).toList)
 
-  private[morphir] def wrap(value: IndexedSeq[Name]): Path = Path(value)
-  private[morphir] def wrap(value: List[Name]): Path       = Path(value.toIndexedSeq)
+  private[morphir] def wrap(value: Chunk[Name]): Path = Path(value)
+  private[morphir] def wrap(value: List[Name]): Path  = Path(value.toIndexedSeq)
 
   private[morphir] def wrap(value: Array[Name]): Path = Path(value.toIndexedSeq)
 
   def fromString(str: String): Path = {
     val separatorRegex = """[^\w\s]+""".r
-    wrap(separatorRegex.split(str).map(Name.fromString).toList)
+    fromArray(separatorRegex.split(str).map(Name.fromString))
   }
 
   def toString(f: Name => String, separator: String, path: Path): String =
