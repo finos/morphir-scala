@@ -32,6 +32,7 @@ object EvaluatorQuick {
   }
 
   type IntType = Long
+  type FloatType = Double
 
   // def evaluate[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Any = Result.unwrap(Loop.loop(ir, store))
 
@@ -56,6 +57,8 @@ object EvaluatorQuick {
 //    resultToMDM(result, tpe, dist)
 //  }
 
+
+
   private[runtime] def evalAction(
       value: Value[Unit, Type.UType],
       store: Store[Unit, Type.UType],
@@ -65,11 +68,11 @@ object EvaluatorQuick {
       val basics = env.get[BasicsModule]
       // HACK: To work out
       val modBy = _root_.morphir.sdk.Basics.modBy
-      try
-        RTAction.succeed(EvaluatorQuick.eval(value, store, library))
-      catch {
-        case e: EvaluationError => RTAction.fail(e)
-      }
+
+      def newValue = Scratch.fromNative[Unit, Type.UType](modBy)
+      def newName = FQName.fqn(modBy.packageName, modBy.moduleName, modBy.localName)
+      def newStore = Store(store.definitions + (newName -> newValue), store.ctors, store.callStack)
+      RTAction.succeed(EvaluatorQuick.eval(value, newStore, library))
     }
   private[runtime] def eval(value: Value[Unit, Type.UType], store: Store[Unit, Type.UType], library: Library): Data = {
     val result = Loop.loop(value, store)
