@@ -33,13 +33,8 @@ private[runtime] case class QuickMorphirRuntime(library: Library, store: Store[s
     } yield res
 
   def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
-    RTAction.environmentWithPure[MorphirSdk] { env =>
-      try
-        RTAction.succeed(EvaluatorQuick.eval(value, store, library))
-      catch {
-        case e: EvaluationError => RTAction.fail(e)
-      }
-    }
+        EvaluatorQuick.evalAction(value, store, library)
+
 
   def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
     val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)

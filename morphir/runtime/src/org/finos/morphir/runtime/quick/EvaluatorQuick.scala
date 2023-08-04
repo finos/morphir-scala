@@ -23,6 +23,7 @@ import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.runtime.services.*
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
 import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.extensibility.{NativeFunction, NativeFunction2}
 object EvaluatorQuick {
   object FQString {
     def unapply(fqName: FQName): Option[String] = Some(fqName.toString())
@@ -32,6 +33,7 @@ object EvaluatorQuick {
   }
 
   type IntType = Long
+  type FloatType = Double
 
   // def evaluate[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Any = Result.unwrap(Loop.loop(ir, store))
 
@@ -56,6 +58,8 @@ object EvaluatorQuick {
 //    resultToMDM(result, tpe, dist)
 //  }
 
+
+
   private[runtime] def evalAction(
       value: Value[Unit, Type.UType],
       store: Store[Unit, Type.UType],
@@ -65,15 +69,61 @@ object EvaluatorQuick {
       val basics = env.get[BasicsModule]
       // HACK: To work out
       val modBy = _root_.morphir.sdk.Basics.modBy
-      try
-        RTAction.succeed(EvaluatorQuick.eval(value, store, library))
-      catch {
-        case e: EvaluationError => RTAction.fail(e)
-      }
+
+      def newValue = fromNative[Unit, Type.UType](modBy)
+      def newName = FQName.fqn(modBy.packageName, modBy.moduleName, modBy.localName)
+      def newStore = Store(store.definitions + (newName -> newValue), store.ctors, store.callStack)
+      RTAction.succeed(EvaluatorQuick.eval(value, newStore, library))
     }
   private[runtime] def eval(value: Value[Unit, Type.UType], store: Store[Unit, Type.UType], library: Library): Data = {
     val result = Loop.loop(value, store)
     resultToMDM(result, value.attributes, library)
+  }
+
+  def unwrap[TA, VA](res: Result[TA, VA]): Any = {
+    res match {
+      case Result.Unit() => () // Ever used?
+      case Result.Primitive(value) => value //Duh
+      case Result.ListResult(elements)
+      => elements.map(unwrap(_)) //Needed for non-higher-order head, presumably others
+      case Result.Tuple(elements)
+      => //Needed for tuple.first, possibly others
+        val listed = Helpers.tupleToList(elements).getOrElse(throw new Exception("Invalid tuple returned to top level"))
+        val mapped = listed.map(unwrap(_))
+        Helpers.listToTuple(mapped)
+      case Result.MapResult(elements)
+      => elements.map { case (key, value) => unwrap(key) -> unwrap(value) } //Needed for non-higher order sized, others
+      //TODO: Option, Result, LocalDate
+      //case constructor: Result.ConstructorResult[TA, VA] => constructor //Special cases?
+      //case record: Result.Record => record //I don't think we ever use these?
+      case other => other //Anything can be passed through a generic function
+    }
+  }
+  def wrap[TA, VA](value: Any): Result[TA, VA] = {
+    value match {
+      case r: Result[TA, VA] => r //passed-through results from generic ops
+      case () => Result.Unit()
+      case m: Map[_, _] => Result.MapResult(m.toSeq.map { case (key, value) => (wrap(key), wrap(value)) }.toMap)
+      case l: List[_] => Result.ListResult(l.map(wrap(_)))
+      case (first, second) => Result.Tuple((wrap(first), wrap(second)))
+      case (first, second, third) => Result.Tuple((wrap(first), wrap(second), wrap(third)))
+      //TODO: Option, Result, LocalDate
+      case primitive => Result.Primitive(primitive) //TODO: Handle each case for safety's sake
+    }
+  }
+
+  def fromNative[TA, VA](native: NativeFunction): SDKValue[TA, VA] = {
+    native match {
+      case nf: NativeFunction2[_, _, _] => {
+        val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
+          val unwrappedArg1 = unwrap(arg1)
+          val unwrappedArg2 = unwrap(arg2)
+          val res = nf.asInstanceOf[(Any, Any) => Any](unwrappedArg1, unwrappedArg2)
+          wrap(res)
+        }
+        SDKValue.SDKNativeFunction(nf.arity, f)
+      }
+    }
   }
 
   def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept = {

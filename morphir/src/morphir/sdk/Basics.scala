@@ -1,7 +1,7 @@
 package morphir.sdk
 import org.finos.morphir.extensibility.*
 
-object Basics extends MorphirSdkModule("Morphir.Sdk", "Basics") { module =>
+object Basics extends MorphirSdkModule("Morphir.SDK", "Basics") { module =>
 
   type Integer = org.finos.morphir.universe.sdk.Basics.Integer
   private val Integer: org.finos.morphir.universe.sdk.Basics.Integer.type =
@@ -18,11 +18,11 @@ object Basics extends MorphirSdkModule("Morphir.Sdk", "Basics") { module =>
   // def modBy(modulus: Int): Int => Int  = x => Integer(x % modulus)
   // def modBy(modulus: Int, a: Int): Int = Integer(a % modulus)
 
-  object modBy extends NativeFunction2[Int, Int, Int] {
+  object modBy extends NativeFunction2[Long, Long, Long] {
     override def packageName: String     = module.packageName
     override def moduleName: String      = module.moduleName
     override def localName: String       = "modBy"
-    def apply(modulus: Int, a: Int): Int = Integer(a.value % modulus.value)
+    def apply(modulus: Long, a: Long): Long = a % modulus
   }
 
   /// A "Boolean" value. It can either be `True` or `False`.
