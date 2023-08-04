@@ -5,6 +5,9 @@ package org.finos.morphir
 
 package object ir {
 
+  type Documented[+A] = org.finos.morphir.universe.ir.Documented[A]
+  val Documented: org.finos.morphir.universe.ir.Documented.type = org.finos.morphir.universe.ir.Documented
+
   type Name = org.finos.morphir.universe.ir.Name
   val Name: org.finos.morphir.universe.ir.Name.type = org.finos.morphir.universe.ir.Name
 
