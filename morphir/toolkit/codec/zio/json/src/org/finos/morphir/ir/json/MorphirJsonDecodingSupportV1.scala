@@ -249,9 +249,9 @@ trait MorphirJsonDecodingSupportV1 {
   //   Json.Null.decoder.map(v => ())
 
   implicit def valueSpecificationDecoder[A: JsonDecoder]: JsonDecoder[ValueSpecification[A]] = {
-    final case class Spec[A](inputs: Chunk[(Name, Type[A])], outputs: Type[A])
+    final case class Spec[A](inputs: Chunk[(Name, Type[A])], output: Type[A])
     lazy val dec: JsonDecoder[Spec[A]] = DeriveJsonDecoder.gen
-    dec.map(spec => ValueSpecification(spec.inputs, spec.outputs))
+    dec.map(spec => ValueSpecification(spec.inputs, spec.output))
   }
 
   implicit def patternAsPatternDecoder[A: JsonDecoder]: JsonDecoder[Pattern.AsPattern[A]] =
