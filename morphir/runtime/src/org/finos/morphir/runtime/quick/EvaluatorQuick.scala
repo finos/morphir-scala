@@ -83,7 +83,19 @@ object EvaluatorQuick {
     res match {
       case Result.Unit() => () // Ever used?
       case Result.Primitive(value) => value //Duh
-
+      case Result.ListResult(elements)
+      => elements.map(unwrap(_)) //Needed for non-higher-order head, presumably others
+      case Result.Tuple(elements)
+      => //Needed for tuple.first, possibly others
+        val listed = Helpers.tupleToList(elements).getOrElse(throw new Exception("Invalid tuple returned to top level"))
+        val mapped = listed.map(unwrap(_))
+        Helpers.listToTuple(mapped)
+      case Result.MapResult(elements)
+      => elements.map { case (key, value) => unwrap(key) -> unwrap(value) } //Needed for non-higher order sized, others
+      //TODO: Option, Result, LocalDate
+      //case constructor: Result.ConstructorResult[TA, VA] => constructor //Special cases?
+      //case record: Result.Record => record //I don't think we ever use these?
+      case other => other //Anything can be passed through a generic function
 
   def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept = {
     val intRef    = new BasicReference(Basics.intType)
