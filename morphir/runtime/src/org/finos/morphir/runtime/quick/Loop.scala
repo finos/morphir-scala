@@ -220,7 +220,7 @@ object Loop {
 
   def handleReference[TA, VA](va: VA, name: FQName, store: Store[TA, VA]): Result[TA, VA] =
     store.getDefinition(name) match {
-      case None => throw DefinitionNotFound(s"name $name not found in store")
+      case None => throw DefinitionNotFound(s"name $name not found in store. Store contents: ${store.definitions.keys.map(_.toString).mkString("\n")}")
       case Some(SDKValue.SDKValueDefinition(valueDefinition)) =>
         if (valueDefinition.inputTypes.isEmpty) {
           loop(valueDefinition.body, store)
