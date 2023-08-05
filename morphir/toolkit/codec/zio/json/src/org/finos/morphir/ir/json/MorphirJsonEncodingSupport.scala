@@ -258,7 +258,7 @@ trait MorphirJsonEncodingSupport extends JsonEncodingHelpers {
   implicit def valueSpecificationEncoder[A: JsonEncoder]: JsonEncoder[ValueSpecification[A]] =
     Json.encoder.contramap[ValueSpecification[A]] { specification =>
       Json.Obj(
-        "inputs"  -> toJsonAstOrThrow(specification.inputs),
+        "inputs" -> toJsonAstOrThrow(specification.inputs),
         "output" -> toJsonAstOrThrow(specification.output)
       )
     }
