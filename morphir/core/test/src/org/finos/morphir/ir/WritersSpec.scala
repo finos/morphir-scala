@@ -430,21 +430,21 @@ object WritersSpec extends MorphirBaseSpec {
           suite("ValueSpecificationWriter")(
             test("Should support writing Morphir IR Value Specification")(
               expectAllEqual(
-                valueSpec -> """{"inputs":[[["name","1"],["Variable",1,["g"]]],[["name","2"],["Variable",2,["h"]]]],"outputs":["Variable",1,["g"]]}"""
+                valueSpec -> """{"inputs":[[["name","1"],["Variable",1,["g"]]],[["name","2"],["Variable",2,["h"]]]],"output":["Variable",1,["g"]]}"""
               )(unit => sut.ValueSpecificationWriter(sut.IntWriter).write(StringRenderer(), unit).toString)
             )
           ) +
             suite("ModuleSpecificationWriter")(
               test("Should support writing Morphir IR Module Specification")(
                 expectAllEqual(
-                  moduleSpec -> """{"types":[[["name","1"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","2"]],["Variable",1,["g"]]]}]],"values":[[["name","1"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Variable",1,["g"]]],[["name","2"],["Variable",2,["h"]]]],"outputs":["Variable",1,["g"]]}}]]}"""
+                  moduleSpec -> """{"types":[[["name","1"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","2"]],["Variable",1,["g"]]]}]],"values":[[["name","1"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Variable",1,["g"]]],[["name","2"],["Variable",2,["h"]]]],"output":["Variable",1,["g"]]}}]]}"""
                 )(unit => sut.ModuleSpecificationWriter(sut.IntWriter).write(StringRenderer(), unit).toString)
               )
             ) +
             suite("PackageSpecificationWriter")(
               test("Should support writing Morphir IR Package Specification")(
                 expectAllEqual(
-                  packageSpec -> """{"modules":[[[[["path"]],["name"]],{"types":[[["name","1"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","2"]],["Variable",1,["g"]]]}]],"values":[[["name","1"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Variable",1,["g"]]],[["name","2"],["Variable",2,["h"]]]],"outputs":["Variable",1,["g"]]}}]]}]]}"""
+                  packageSpec -> """{"modules":[[[[["path"]],["name"]],{"types":[[["name","1"],{"doc":"typeDoc1","value":["TypeAliasSpecification",[["name","2"]],["Variable",1,["g"]]]}]],"values":[[["name","1"],{"doc":"valueDoc1","value":{"inputs":[[["name","1"],["Variable",1,["g"]]],[["name","2"],["Variable",2,["h"]]]],"output":["Variable",1,["g"]]}}]]}]]}"""
                 )(unit => sut.PackageSpecificationWriter(sut.IntWriter).write(StringRenderer(), unit).toString)
               )
             )
