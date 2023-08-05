@@ -15,15 +15,13 @@ object Basics {
     val fqName: FQName         = FQName.fqn("Int")
     val fqNameInfo: FQNameInfo = FQNameInfo.fromFQName(fqName)
 
-    def fromInt(value: Int): Integer   = wrap(SafeLong(value))
-    def fromLong(value: Long): Integer = wrap(SafeLong(value))
+    implicit def fromInt(value: Int): Integer   = wrap(SafeLong(value))
+    implicit def fromLong(value: Long): Integer = wrap(SafeLong(value))
 
     // implicit val morphirTypeTag: MorphirTypeTag[Integer] = {
     //   val morphirType = ???
     //   MorphirTypeTag.succeed(Type.Reference((), fqName, List.empty))
     // }
-
-    implicit def toLongUnsafe(value: Integer): Long = unwrap(value).toLong
 
     implicit final class IntegerSyntax(private val self: Integer) extends AnyVal {
       def value: SafeLong = unwrap(self)

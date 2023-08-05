@@ -1,5 +1,6 @@
 package org.finos.morphir.extensibility
 import scala.collection.mutable.{IndexedSeq => MutIndexedSeq}
+
 trait MorphirModule {
   def packageName: String
   def moduleName: String
