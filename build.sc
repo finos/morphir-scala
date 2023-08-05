@@ -290,6 +290,9 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.com.lihaoyi.sourcecode,
+        Deps.com.lihaoyi.fansi,
+        Deps.com.lihaoyi.pprint,
+        Deps.org.typelevel.spire,
         Deps.dev.zio.`zio-prelude`
       )
 
@@ -463,7 +466,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
     def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
-      def platformSpecificModuleDeps = Seq(morphir, toolkit.core, toolkit.codec.zio.json)
+      def platformSpecificModuleDeps = Seq(extensibility, morphir, toolkit.core, toolkit.codec.zio.json)
     }
 
     object jvm extends Shared with MorphirJVMModule {
@@ -655,6 +658,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
           Deps.dev.zio.zio,
           Deps.dev.zio.`zio-prelude`,
           Deps.com.lihaoyi.pprint,
+          Deps.org.typelevel.spire,
           Deps.org.typelevel.`paiges-core`
         ) ++ Agg.when(!platform.isNative)(Deps.io.lemonlabs.`scala-uri`)
 

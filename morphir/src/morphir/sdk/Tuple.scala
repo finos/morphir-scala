@@ -1,6 +1,6 @@
 package morphir.sdk
 
-import morphir.sdk.extensibility.*
+import org.finos.morphir.extensibility.*
 
 object Tuple extends SdkModule("Morphir.Sdk", "Tuple") {
   // TODO: Requires PolyFunction

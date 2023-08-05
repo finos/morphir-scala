@@ -1,21 +1,20 @@
 package morphir.sdk
 
-import morphir.sdk.extensibility.*
 import org.finos.morphir.extensibility.*
-import org.finos.morphir.universe.sdk.Basics.Integer
+import org.finos.morphir.*
 
 object Basics extends SdkModule("Morphir.SDK", "Basics") { module =>
 
-  type Int   = org.finos.morphir.universe.sdk.Basics.Integer
-  type Float = org.finos.morphir.universe.sdk.Basics.Float
+  type Int   = MInt
+  type Float = MFloat
 
-  def add(a: Int): Int => Int  = b => a add b
-  def add(a: Int, b: Int): Int = Integer(a.value + b.value)
+  def add(a: Int): Int => Int  = b => a + b
+  def add(a: Int, b: Int): Int = a + b
   // def modBy(modulus: Int): Int => Int  = x => Integer(x % modulus)
   // def modBy(modulus: Int, a: Int): Int = Integer(a % modulus)
 
   val modBy = fun("modBy") { (modulus: Int, a: Int) =>
-    Integer(a.value % modulus.value)
+    a % modulus
   }
 
   /// A "Boolean" value. It can either be `True` or `False`.

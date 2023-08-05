@@ -1,11 +1,12 @@
 package morphir.sdk
-import morphir.sdk.extensibility.SdkModule
+import org.finos.morphir.*
+import org.finos.morphir.extensibility.*
 
 object Int extends SdkModule("Morphir.Sdk", "Int") {
-  type Int8  = org.finos.morphir.universe.sdk.Int.Int8
-  type Int16 = org.finos.morphir.universe.sdk.Int.Int16
-  type Int32 = org.finos.morphir.universe.sdk.Int.Int32
-  type Int64 = org.finos.morphir.universe.sdk.Int.Int64
+  type Int8  = MInt8
+  type Int16 = MInt16
+  type Int32 = MInt32
+  type Int64 = MInt64
 
   def fromInt8(value: Int8): Basics.Int   = ???
   def fromInt16(value: Int16): Basics.Int = ???

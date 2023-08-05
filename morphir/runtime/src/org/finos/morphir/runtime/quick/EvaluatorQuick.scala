@@ -32,7 +32,7 @@ object EvaluatorQuick {
     def unapply(fqName: FQName): Boolean = fqName == tpe.asInstanceOf[TT.Reference[Unit]].typeName
   }
 
-  type IntType   = _root_.morphir.sdk.Basics.Int
+  type IntType   = morphir.sdk.Basics.Int
   type FloatType = Double
 
   // def evaluate[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Any = Result.unwrap(Loop.loop(ir, store))
@@ -114,7 +114,7 @@ object EvaluatorQuick {
         val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
           val unwrappedArg1 = unwrap(arg1)
           val unwrappedArg2 = unwrap(arg2)
-          val res           = nf.asInstanceOf[(Any, Any) => Any](unwrappedArg1, unwrappedArg2)
+          val res           = nf.invokeExact(unwrappedArg1, unwrappedArg2)
           wrap(res)
         }
         SDKValue.SDKNativeFunction(nf.arity, f)
@@ -198,8 +198,10 @@ object EvaluatorQuick {
           }
           Data.Record(qName, tuples.toList)
         }
+      case (Concept.Int32, Result.Primitive(value: Long)) =>
+        Data.Int32(value.toInt)
       case (Concept.Int32, Result.Primitive(value: IntType)) =>
-        Data.Int(value.toInt)
+        Data.Int32(value.toInt)
       case (Concept.String, Result.Primitive(value: String)) =>
         Data.String(value)
       case (Concept.Boolean, Result.Primitive(value: Boolean)) =>
@@ -254,6 +256,10 @@ object EvaluatorQuick {
           Data.Tuple(inners)
         }
       case (Concept.Unit, Result.Unit()) => Data.Unit
+      case (badType, badResult @ Result.Primitive(value)) =>
+        throw new ResultDoesNotMatchType(
+          s"Could not match type $badType with result $badResult. The value was $value which is of type ${value.getClass()}}"
+        )
       case (badType, badResult) =>
         throw new ResultDoesNotMatchType(s"Could not match type $badType with result $badResult")
     }

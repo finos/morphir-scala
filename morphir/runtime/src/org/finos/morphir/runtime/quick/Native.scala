@@ -1,5 +1,6 @@
 package org.finos.morphir.runtime.quick
 
+import org.finos.morphir.*
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.{FQName, Module, MorphirIRFile, Name, QName, Type}
 import org.finos.morphir.runtime.*

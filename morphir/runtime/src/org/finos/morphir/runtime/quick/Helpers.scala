@@ -1,5 +1,6 @@
 package org.finos.morphir.runtime.quick
 
+import org.finos.morphir.*
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Literal.Literal.{
   BoolLiteral,

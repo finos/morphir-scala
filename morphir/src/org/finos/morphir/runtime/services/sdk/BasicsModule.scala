@@ -1,7 +1,6 @@
 package org.finos.morphir.runtime.services.sdk
 import org.finos.morphir.runtime.*
 import org.finos.morphir.runtime.exports.*
-import org.finos.morphir.universe.sdk.*
 import _root_.morphir.sdk.Basics
 import zio.ZEnvironment
 import zio.prelude.fx.ZPure
