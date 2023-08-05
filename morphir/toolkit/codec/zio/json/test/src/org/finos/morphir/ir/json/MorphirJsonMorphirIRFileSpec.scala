@@ -6,8 +6,17 @@ import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution._
 import org.finos.morphir.ir.Literal.Literal
 import org.finos.morphir.ir.Literal.Literal._
-import org.finos.morphir.ir.Module.{ModuleName, QualifiedModuleName, Definition => ModuleDefinition, Specification => ModuleSpecification}
-import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, Specification => PackageSpecification, USpecification => UPackageSpecification}
+import org.finos.morphir.ir.Module.{
+  ModuleName,
+  QualifiedModuleName,
+  Definition => ModuleDefinition,
+  Specification => ModuleSpecification
+}
+import org.finos.morphir.ir.PackageModule.{
+  Definition => PackageDefinition,
+  Specification => PackageSpecification,
+  USpecification => UPackageSpecification
+}
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.Type.{Type, Definition => TypeDefinition, Specification => TypeSpecification}
 import org.finos.morphir.ir.Value.{Pattern, Value, Definition => ValueDefinition, Specification => ValueSpecification}
