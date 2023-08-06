@@ -1,7 +1,8 @@
 package org.finos.morphir
+
 import zio.prelude.*
 
-private[morphir] trait ModuleNamingExports { self: naming.type =>
+private[morphir] trait ModuleNameExports { self: NameExports with PathExports =>
 
   /**
    * A module name is a unique identifier for a module within a package. It is represented by a pth, which is a list of
@@ -22,6 +23,7 @@ private[morphir] trait ModuleNamingExports { self: naming.type =>
     implicit final class ModuleNameOps(val self: ModuleName) {
       @inline def localName: Name = name
 
+      def /(name: Name): ModuleName = ModuleName.fromPath(modulePath.value / name)
       def name: Name =
         self match {
           case ModuleName(Path(IndexedSeq())) => Name.empty
@@ -35,21 +37,7 @@ private[morphir] trait ModuleNamingExports { self: naming.type =>
       def value: Path = unwrap(self)
     }
   }
-  type ModulePath = ModulePath.Type
 
-  object ModulePath extends Subtype[Path] {
-    val empty: ModulePath               = wrap(Path.empty)
-    def apply(parts: Name*): ModulePath = wrap(Path.fromList(parts.toList))
-
-    def fromPath(path: Path): ModulePath    = wrap(path)
-    def fromString(str: String): ModulePath = wrap(Path.fromString(str))
-
-    implicit class ModulePathOps(val modulePath: ModulePath) {
-      def /(name: Name): ModuleName = ModuleName.fromPath(modulePath.value / name)
-
-      @inline def toPath: Path = modulePath.value
-
-      @inline def value: Path = unwrap(modulePath)
-    }
-  }
 }
+
+

@@ -1,8 +1,9 @@
 package org.finos.morphir
 
-private[morphir] trait FQNameExports { self: naming.type =>
+private[morphir] trait FQNameExports {
+  self: NameExports with ModuleNameExports with PackageNameExports with PathExports with QNameExports =>
 
-  sealed case class FQName(packagePath: PackageName, modulePath: ModulePath, localName: Name) {
+  sealed case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) {
     def getPackagePath: Path = packagePath.toPath
 
     def getModulePath: Path = modulePath.toPath
@@ -27,13 +28,13 @@ private[morphir] trait FQNameExports { self: naming.type =>
     //      FQName(PackageName(packagePath), ModulePath(modulePath), localName)
 
     val fqName: Path => Path => Name => FQName = packagePath =>
-      modulePath => localName => FQName(PackageName.fromPath(packagePath), ModulePath.fromPath(modulePath), localName)
+      modulePath => localName => FQName(PackageName.fromPath(packagePath), ModuleName.fromPath(modulePath), localName)
 
     def fromQName(packagePath: Path, qName: QName): FQName =
       FQName(PackageName.fromPath(packagePath), QName.getModulePath(qName), QName.getLocalName(qName))
 
     def fromQName(qName: QName)(implicit options: FQNamingOptions): FQName =
-      FQName(options.defaultPackage, ModulePath.fromPath(QName.getModulePath(qName)), QName.getLocalName(qName))
+      FQName(options.defaultPackage, ModuleName.fromPath(QName.getModulePath(qName)), QName.getLocalName(qName))
 
     /** Get the package path part of a fully-qualified name. */
     def getPackagePath(fqName: FQName): Path = fqName.getPackagePath
@@ -46,11 +47,11 @@ private[morphir] trait FQNameExports { self: naming.type =>
 
     /** Convenience function to create a fully-qualified name from 3 strings */
     def fqn(packageName: String, moduleName: String, localName: String): FQName =
-      FQName(PackageName.fromString(packageName), ModulePath.fromString(moduleName), Name.fromString(localName))
+      FQName(PackageName.fromString(packageName), ModuleName.fromString(moduleName), Name.fromString(localName))
 
     /** Convenience function to create a fully-qualified name from 2 strings with default package name */
     def fqn(moduleName: String, localName: String)(implicit options: FQNamingOptions): FQName =
-      FQName(options.defaultPackage, ModulePath.fromPath(Path.fromString(moduleName)), Name.fromString(localName))
+      FQName(options.defaultPackage, ModuleName.fromPath(Path.fromString(moduleName)), Name.fromString(localName))
 
     /** Convenience function to create a fully-qualified name from 1 string with defaults for package and module */
     def fqn(localName: String)(implicit options: FQNamingOptions): FQName =
@@ -61,7 +62,7 @@ private[morphir] trait FQNameExports { self: naming.type =>
       FQName(context.packageName, context.moduleName, Name.fromString(localName))
 
     def fqn(moduleName: ModuleName)(implicit options: FQNamingOptions): FQName =
-      FQName(options.defaultPackage, ModulePath.fromPath(moduleName.namespace), moduleName.localName)
+      FQName(options.defaultPackage, ModuleName.fromPath(moduleName.namespace), moduleName.localName)
 
     def toString(fqName: FQName): String = fqName.toString
 

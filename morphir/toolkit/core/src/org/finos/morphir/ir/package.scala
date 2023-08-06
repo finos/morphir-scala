@@ -8,14 +8,14 @@ package object ir {
   type Documented[+A] = org.finos.morphir.universe.ir.Documented[A]
   val Documented: org.finos.morphir.universe.ir.Documented.type = org.finos.morphir.universe.ir.Documented
 
-  type Name = org.finos.morphir.universe.ir.Name
-  val Name: org.finos.morphir.universe.ir.Name.type = org.finos.morphir.universe.ir.Name
+  type Name = org.finos.morphir.naming.Name
+  val Name: org.finos.morphir.naming.Name.type = org.finos.morphir.naming.Name
 
-  type Path = org.finos.morphir.universe.ir.Path
-  val Path: org.finos.morphir.universe.ir.Path.type = org.finos.morphir.universe.ir.Path
+  type Path = org.finos.morphir.naming.Path
+  val Path: org.finos.morphir.naming.Path.type = org.finos.morphir.naming.Path
 
-  type QName = org.finos.morphir.universe.ir.QName
-  val QName: org.finos.morphir.universe.ir.QName.type = org.finos.morphir.universe.ir.QName
+  type QName = org.finos.morphir.naming.QName
+  val QName: org.finos.morphir.naming.QName.type = org.finos.morphir.naming.QName
 
   type QModuleName = org.finos.morphir.universe.ir.QModuleName
   val QModuleName: org.finos.morphir.universe.ir.QModuleName.type = org.finos.morphir.universe.ir.QModuleName

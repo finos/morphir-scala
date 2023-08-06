@@ -16,7 +16,6 @@ trait DynamicFunction extends ExtensionFunction {
   @inline final def invoke(args: List[Any], hints: Hints): Any = invokeDynamic(args, hints)
 }
 
-
 trait NativeFunction   extends ExtensionFunction
 trait ExternalFunction extends ExtensionFunction
 
@@ -73,3 +72,5 @@ final case class IntBinaryOp[T <: MInt](
   def invokeStrict(arg1: MInt, arg2: MInt)(implicit hints: Hints = defaultHints): MInt =
     f(arg1.asInstanceOf[T], arg2.asInstanceOf[T])
 }
+
+sealed trait SdkFunction extends NativeFunction {}

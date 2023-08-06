@@ -1,6 +1,6 @@
 package morphir.sdk
+import org.finos.morphir.extensibility.SdkModule
 import org.finos.morphir.*
-import org.finos.morphir.extensibility.*
 
 object Int extends SdkModule("Morphir.Sdk", "Int") {
   type Int8  = MInt8

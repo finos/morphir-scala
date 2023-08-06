@@ -1,4 +1,5 @@
 package org.finos.morphir.extensibility
+
 import scala.collection.mutable.{IndexedSeq => MutIndexedSeq}
 
 sealed trait MorphirModule {
@@ -19,5 +20,6 @@ sealed trait MorphirModule {
 abstract class ExtensionModule(val packageName: String, val moduleName: String) extends MorphirModule {}
 
 sealed abstract class NativeModule(val packageName: String, val moduleName: String) extends MorphirModule {}
+
 abstract class SdkModule(packageName: String, moduleName: String)
     extends NativeModule(packageName, moduleName) {}
