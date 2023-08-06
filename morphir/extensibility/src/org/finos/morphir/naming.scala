@@ -3,54 +3,13 @@ import scala.annotation.tailrec
 import zio.=!=
 import zio.prelude.*
 
-object naming {
-
-  /**
-   * A module name is a unique identifier for a module within a package. It is represented by a pth, which is a list of
-   * names.
-   */
-  type ModuleName = ModuleName.Type
-
-  object ModuleName extends Subtype[Path] {
-
-    def apply(path: Path, name: Name): ModuleName = ModuleName(path / name)
-
-    def apply(input: String): ModuleName =
-      ModuleName(Path.fromArray(input.split('.').map(Name.fromString)))
-
-    def fromString(input: String): ModuleName = ModuleName(input)
-
-    implicit class ModuleNameOps(val self: ModuleName) extends AnyVal {
-      @inline def localName: Name = name
-
-      def name: Name =
-        self match {
-          case ModuleName(Path(IndexedSeq())) => Name.empty
-          case ModuleName(Path(segments))     => segments.last
-        }
-
-      def namespace: Namespace = Namespace(Path(self.value.segments.dropRight(1)))
-
-      def toPath: Path = unwrap(self)
-
-      def value: Path = unwrap(self)
-    }
-  }
-  type ModulePath = ModulePath.Type
-
-  object ModulePath extends Subtype[Path] {
-    def apply(parts: Name*): ModulePath = wrap(Path.fromList(parts.toList))
-
-    def fromString(str: String): ModulePath = wrap(Path.fromString(str))
-
-    implicit class ModulePathOps(val modulePath: ModulePath) extends AnyVal {
-      def /(name: Name): ModuleName = ModuleName(modulePath.value / name)
-
-      @inline def toPath: Path = modulePath.value
-
-      @inline def value: Path = unwrap(modulePath)
-    }
-  }
+object naming
+    extends FQNameExports
+    with ModuleNamingExports
+    with NamingContextExports
+    with NamingErrorExports
+    with PackageNameExports
+    with QNameExports {
 
   implicit def modulePathToModuleName(modulePath: ModulePath): ModuleName = ModuleName(modulePath.value)
   implicit def moduleNameToModulePath(moduleName: ModuleName): ModulePath = ModulePath(moduleName.value)
@@ -201,7 +160,8 @@ object naming {
   type Namespace = Namespace.Type
 
   object Namespace extends Subtype[Path] {
-    def apply(parts: Name*): Namespace = Namespace(Path.fromList(parts.toList))
+    def apply(parts: Name*): Namespace  = Namespace(Path.fromList(parts.toList))
+    def fromPath(path: Path): Namespace = wrap(path)
 
     implicit class NamespaceOps(val namespace: Namespace) extends AnyVal {
       def /(name: Name): ModuleName = ModuleName(namespace.value / name)
@@ -256,26 +216,6 @@ object naming {
     }
   }
 
-  /**
-   * A package name is a globally unique identifier for a package. It is represented by a `Path` which is a list of
-   * names.
-   */
-  type PackageName = PackageName.Type
-
-  object PackageName extends Subtype[Path] {
-    def apply(firstPart: Name, rest: Name*): PackageName     = wrap(Path.fromIterable(firstPart +: rest))
-    def apply(firstPart: String, rest: String*): PackageName = wrap(Path.fromIterable((firstPart +: rest).map(Name(_))))
-
-    def fromPath(path: Path): PackageName = wrap(path)
-
-    def fromString(str: String): PackageName = wrap(Path.fromString(str))
-
-    implicit class PackageNameOps(val self: PackageName) extends AnyVal {
-      def value: Path = unwrap(self)
-
-      def toPath: Path = unwrap(self)
-    }
-  }
   final case class Path(segments: Vector[Name]) extends PathLike {
     self =>
 
@@ -385,35 +325,6 @@ object naming {
 
     /** Checks if this path is a prefix of provided path */
     def isPrefixOf(path: PathLike): Boolean = Path.isPrefixOf(self, path)
-  }
-
-  final case class QName(modulePath: Path, localName: Name) {
-    @inline def toTuple: (Path, Name) = (modulePath, localName)
-
-    override def toString: String =
-      modulePath.toString(Name.toTitleCase, ".") + ":" + localName.toCamelCase
-
-  }
-
-  object QName {
-    def toTuple(qName: QName): (Path, Name) = qName.toTuple
-
-    def fromTuple(tuple: (Path, Name)): QName = QName(tuple._1, tuple._2)
-
-    def fromName(modulePath: Path, localName: Name): QName = QName(modulePath, localName)
-
-    def getLocalName(qname: QName): Name = qname.localName
-
-    def getModulePath(qname: QName): ModulePath = ModulePath(qname.modulePath)
-
-    def toString(qName: QName): String = qName.toString
-
-    def fromString(str: String): Option[QName] =
-      str.split(":") match {
-        case Array(packageNameString, localNameString) =>
-          Some(QName(Path.fromString(packageNameString), Name.fromString(localNameString)))
-        case _ => None
-      }
   }
 
 }
