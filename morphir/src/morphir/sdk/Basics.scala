@@ -19,9 +19,9 @@ object Basics extends MorphirSdkModule("Morphir.SDK", "Basics") { module =>
   // def modBy(modulus: Int, a: Int): Int = Integer(a % modulus)
 
   object modBy extends NativeFunction2[Long, Long, Long] {
-    override def packageName: String     = module.packageName
-    override def moduleName: String      = module.moduleName
-    override def localName: String       = "modBy"
+    override def packageName: String        = module.packageName
+    override def moduleName: String         = module.moduleName
+    override def localName: String          = "modBy"
     def apply(modulus: Long, a: Long): Long = a % modulus
   }
 

@@ -19,6 +19,7 @@
         "RecordTests",
         "SimpleTests",
         "TupleTests",
+        "TypeCheckerTests",
         "UserDefinedReferenceTests",
         "SdkBasicsTests"
     ]
