@@ -1,19 +1,15 @@
 package org.finos.morphir.ir.sdk
 
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics.{boolType, intType}
-import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.Decimal.decimalType
 import org.finos.morphir.ir.sdk.Maybe.maybeType
 import org.finos.morphir.ir.sdk.Result.resultType
 import org.finos.morphir.ir.sdk.String.stringType
-import org.finos.morphir.syntax.NamingSyntax._
 
-object Number {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Number")
+object Number extends MorphirIRSdkModule("Number") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(name("Decimal") -> OpaqueTypeSpecification() ?? "Type that represents a Decimal."),
@@ -42,10 +38,10 @@ object Number {
     )
   )
 
-  lazy val numberType: UType                = reference(toFQName(moduleName, "Number"))
-  def numberType[A](attributes: A): Type[A] = reference(attributes, toFQName(moduleName, "Number"))
+  lazy val numberType: UType                = reference(fqn("Number"))
+  def numberType[A](attributes: A): Type[A] = reference(attributes, fqn("Number"))
 
-  lazy val divisionByZeroType: UType                = reference(toFQName(moduleName, "DivisionByZero"))
-  def divisionByZeroType[A](attributes: A): Type[A] = reference(attributes, toFQName(moduleName, "DivisionByZero"))
+  lazy val divisionByZeroType: UType                = reference(fqn("DivisionByZero"))
+  def divisionByZeroType[A](attributes: A): Type[A] = reference(attributes, fqn("DivisionByZero"))
 
 }

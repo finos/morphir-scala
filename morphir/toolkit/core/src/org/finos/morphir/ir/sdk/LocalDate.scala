@@ -1,18 +1,13 @@
 package org.finos.morphir.ir.sdk
 
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics.intType
-import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.Maybe.maybeType
 import org.finos.morphir.ir.sdk.String.stringType
-import org.finos.morphir.syntax.NamingSyntax._
 
-object LocalDate {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("LocalDate")
-
+object LocalDate extends MorphirIRSdkModule("LocalDate") {
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(name("LocalDate") -> OpaqueTypeSpecification() ?? "Type that represents a date concept."),
     values = Map(
@@ -29,7 +24,7 @@ object LocalDate {
     )
   )
 
-  lazy val localDateType: UType = reference(toFQName(moduleName, "LocalDate"))
+  lazy val localDateType: UType = reference(fqn("LocalDate"))
   def localDateType[A](attributes: A): Type[A] =
-    reference(attributes, toFQName(moduleName, "LocalDate"))
+    reference(attributes, fqn("LocalDate"))
 }

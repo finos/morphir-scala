@@ -1,19 +1,16 @@
 package org.finos.morphir.ir.sdk
 
+import org.finos.morphir.naming._
 import zio.Chunk
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type.{reference => tRef, _}
 import org.finos.morphir.ir.Value.{apply, reference, Value}
 import org.finos.morphir.ir.sdk.Basics._
-import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.List.listType
 import org.finos.morphir.ir.sdk.Maybe.maybeType
-import org.finos.morphir.ir.{FQName, Module, Name, Path}
-import org.finos.morphir.syntax.NamingSyntax._
+import org.finos.morphir.ir.Module
 
-object Dict {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Dict")
+object Dict extends MorphirIRSdkModule("Dict") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(
@@ -102,22 +99,22 @@ object Dict {
   )
 
   def dictType(keyType: UType, valueType: UType): UType =
-    tRef(toFQName(moduleName, "dict"), keyType, valueType)
+    tRef(fqn("Dict"), keyType, valueType)
 
   def dictType[A](attributes: A)(keyType: Type[A], valueType: Type[A]): Type[A] =
-    tRef(attributes, toFQName(moduleName, "dict"), keyType, valueType)
+    tRef(attributes, fqn("dict"), keyType, valueType)
 
   def fromListValue[TA, VA](attributes: VA)(list: Value[TA, VA]): Value[TA, VA] =
     apply(
       attributes,
-      reference(attributes, FQName(Path("morphir", "s", "d", "k"), Path("dict"), Name("from", "list"))),
+      reference(attributes, fqn("fromList")),
       list
     )
 
   def toListValue[TA, VA](attributes: VA)(list: Value[TA, VA]): Value[TA, VA] =
     apply(
       attributes,
-      reference(attributes, FQName(Path("morphir", "s", "d", "k"), Path("dict"), Name("to", "list"))),
+      reference(attributes, fqn("toList")),
       list
     )
 }

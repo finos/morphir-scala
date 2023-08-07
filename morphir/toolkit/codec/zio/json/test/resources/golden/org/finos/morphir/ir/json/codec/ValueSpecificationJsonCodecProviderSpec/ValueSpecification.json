@@ -83,7 +83,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Variable",
         [
           "CharLiteral",
@@ -127,7 +127,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Unit",
         [
           "CharLiteral",
@@ -151,7 +151,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Variable",
         [
           "StringLiteral",
@@ -294,7 +294,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Variable",
         [
           "FloatLiteral",
@@ -352,7 +352,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Tuple",
         [
           "StringLiteral",
@@ -409,7 +409,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Unit",
         [
           "CharLiteral",
@@ -434,7 +434,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Tuple",
         [
           "FloatLiteral",
@@ -725,7 +725,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Record",
         [
           "CharLiteral",
@@ -838,7 +838,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Variable",
         [
           "StringLiteral",
@@ -1112,7 +1112,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Unit",
         [
           "DecimalLiteral",
@@ -1179,7 +1179,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Unit",
         [
           "DecimalLiteral",
@@ -1220,7 +1220,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Variable",
         [
           "WholeNumberLiteral",
@@ -1294,7 +1294,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Unit",
         [
           "StringLiteral",
@@ -1586,7 +1586,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "ExtensibleRecord",
         [
           "WholeNumberLiteral",
@@ -1637,7 +1637,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Tuple",
         [
           "CharLiteral",
@@ -1856,7 +1856,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Reference",
         [
           "FloatLiteral",
@@ -1999,7 +1999,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Variable",
         [
           "CharLiteral",
@@ -2074,7 +2074,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Variable",
         [
           "FloatLiteral",
@@ -2119,7 +2119,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Tuple",
         [
           "CharLiteral",
@@ -2326,7 +2326,7 @@
           ]
         ]
       ],
-      "outputs" : [
+      "output" : [
         "Variable",
         [
           "WholeNumberLiteral",

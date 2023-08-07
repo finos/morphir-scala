@@ -1,11 +1,12 @@
 package org.finos.morphir.runtime.quick
 
-import org.finos.morphir.ir.FQName.getLocalName
-import org.finos.morphir.ir.Name.toTitleCase
+import org.finos.morphir.naming.*
+import org.finos.morphir.naming.FQName.getLocalName
+import org.finos.morphir.naming.Name.toTitleCase
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Value.{Pattern, Value}
 import org.finos.morphir.ir.distribution.Distribution.Library
-import org.finos.morphir.ir.{FQName, Module, Name, QName, Type}
+import org.finos.morphir.ir.{Module, Type}
 import zio.Chunk
 
 sealed trait SDKValue[TA, VA]
@@ -59,7 +60,7 @@ object Store {
     val valueBindings = lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
       accessControlledModule.value.values.map {
         case (localName, accessControlledValue) =>
-          val name       = FQName(packageName.toPath, moduleName.toPath, localName)
+          val name       = FQName(packageName, moduleName, localName)
           val definition = accessControlledValue.value.value
           val sdkDef     = SDKValue.SDKValueDefinition(definition)
           (name, sdkDef)
@@ -75,7 +76,7 @@ object Store {
               case Type.Definition.CustomType(_, accessControlledCtors) =>
                 val ctors = accessControlledCtors.value.toMap
                 ctors.map { case (ctorName, ctorArgs) =>
-                  val name = FQName(packageName.toPath, moduleName.toPath, ctorName)
+                  val name = FQName(packageName, moduleName, ctorName)
                   (name, SDKConstructor[Unit, Type.UType](ctorArgs.map(_._2).toList))
                 }
               case Type.Definition.TypeAlias(_, _) => Map.empty

@@ -1,12 +1,15 @@
 package org.finos.morphir.universe.ir
+
+import org.finos.morphir.naming.*
+
 import org.finos.morphir.universe.ir.Literal as Lit
 import zio.Chunk
 import ValueSpecification.Parameter
 
-final case class ValueSpecification[+TA](inputs: Chunk[Parameter[TA]], outputs: Type[TA]) {
+final case class ValueSpecification[+TA](inputs: Chunk[Parameter[TA]], output: Type[TA]) {
   self =>
   def map[TB](f: TA => TB): ValueSpecification[TB] =
-    ValueSpecification(inputs.map(_.map(f)), outputs.map(f))
+    ValueSpecification(inputs.map(_.map(f)), output.map(f))
 }
 
 object ValueSpecification {

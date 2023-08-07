@@ -16,12 +16,7 @@ import org.finos.morphir.ir.PackageModule.{
 import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, Type}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
 import org.finos.morphir.ir.Value.{Value, _}
-import org.finos.morphir.ir.module.{
-  Definition => ModuleDefinition,
-  QualifiedModuleName,
-  ModuleName,
-  Specification => ModuleSpecification
-}
+import org.finos.morphir.ir.module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 
 import scala.annotation.nowarn
 
@@ -36,10 +31,10 @@ trait MorphirJsonDecodingSupportV2 {
     case (packagePath, modulePath, localName) => FQName(packagePath, modulePath, localName)
   }
 
-  implicit val qualifiedModuleNameDecoder: JsonDecoder[QualifiedModuleName] =
-    JsonDecoder.tuple2[Path, Name].map { case (namespace, localName) =>
-      QualifiedModuleName(namespace, localName)
-    }
+  // implicit val qualifiedModuleNameDecoder: JsonDecoder[QualifiedModuleName] =
+  //   JsonDecoder.tuple2[Path, Name].map { case (namespace, localName) =>
+  //     QualifiedModuleName(namespace, localName)
+  //   }
   implicit def literalBoolDecoder: JsonDecoder[BoolLiteral] =
     JsonDecoder.tuple2[String, Boolean].mapOrFail {
       case ("BoolLiteral", value) => Right(BoolLiteral(value))
@@ -252,9 +247,9 @@ trait MorphirJsonDecodingSupportV2 {
   //   Json.Null.decoder.map(v => ())
 
   implicit def valueSpecificationDecoder[A: JsonDecoder]: JsonDecoder[ValueSpecification[A]] = {
-    final case class Spec[A](inputs: Chunk[(Name, Type[A])], outputs: Type[A])
+    final case class Spec[A](inputs: Chunk[(Name, Type[A])], output: Type[A])
     lazy val dec: JsonDecoder[Spec[A]] = DeriveJsonDecoder.gen
-    dec.map(spec => ValueSpecification(spec.inputs, spec.outputs))
+    dec.map(spec => ValueSpecification(spec.inputs, spec.output))
   }
 
   implicit def patternAsPatternDecoder[A: JsonDecoder]: JsonDecoder[Pattern.AsPattern[A]] =

@@ -1,4 +1,7 @@
 package org.finos.morphir.runtime
+
+import org.finos.morphir.naming.*
+
 import org.finos.morphir.ir.{Type as T, Value as V}
 import V.Value
 import T.Type

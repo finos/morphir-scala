@@ -1,5 +1,6 @@
 package org.finos.morphir.ir.module
 
+import org.finos.morphir.naming.*
 trait ModuleSpecFor[A] {
 
   def module: QualifiedModuleName

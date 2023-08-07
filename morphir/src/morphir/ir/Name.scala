@@ -1,10 +1,10 @@
 package morphir.ir
-import org.finos.morphir.universe.ir.{Name => MName}
+import org.finos.morphir.naming
 
 object Name {
-  type Name = MName
+  type Name = naming.Name
 
-  def fromString(str: String): Name   = MName.fromString(str)
+  def fromString(str: String): Name   = naming.Name.fromString(str)
   def toTitleCase(name: Name): String = name.toTitleCase
   def toCamelCase(name: Name): String = name.toCamelCase
   def toSnakeCase(name: Name): String = name.toSnakeCase

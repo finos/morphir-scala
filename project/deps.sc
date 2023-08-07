@@ -46,6 +46,7 @@ object Deps {
     }
     case object lihaoyi {
       val castor         = ivy"com.lihaoyi::castor::${Versions.castor}"
+      val fansi          = ivy"com.lihaoyi::fansi::${Versions.fansi}"
       val geny           = ivy"com.lihaoyi::geny::${Versions.geny}"
       val mainargs       = ivy"com.lihaoyi::mainargs::${Versions.`mainargs`}"
       val `os-lib`       = ivy"com.lihaoyi::os-lib::${Versions.`os-lib`}"
@@ -163,6 +164,7 @@ object Versions {
 
   val coursier        = "2.1.4"
   val expecty         = "0.16.0"
+  val fansi           = "0.4.0"
   val fs2             = "3.8.0"
   val geny            = "1.0.0"
   val `izumi-reflect` = "2.3.8"
@@ -171,7 +173,7 @@ object Versions {
   val mainargs        = "0.5.0"
   val `os-lib`        = "0.9.1"
   val paiges          = "0.4.3"
-  val scribe          = "3.11.8"
+  val scribe          = "3.11.9"
   val silencer        = "1.4.2"
   val `tasty-query`   = "0.5.6"
   val upickle         = "3.0.0-M1"

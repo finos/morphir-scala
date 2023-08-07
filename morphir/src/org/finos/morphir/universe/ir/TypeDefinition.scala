@@ -1,5 +1,7 @@
 package org.finos.morphir.universe.ir
 
+import org.finos.morphir.naming.*
+
 sealed trait TypeDefinition[+A] { self =>
   def map[B](f: A => B): TypeDefinition[B] = self match {
     case TypeDefinition.TypeAliasDefinition(typeParams, typeExpr) => ???

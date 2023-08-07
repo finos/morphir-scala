@@ -2,14 +2,10 @@ package org.finos.morphir.ir.sdk
 
 import zio.Chunk
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.CustomTypeSpecification
 import org.finos.morphir.ir.Type._
-import org.finos.morphir.ir.sdk.Common._
-import org.finos.morphir.syntax.NamingSyntax._
 
-object Month {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Month")
+object Month extends MorphirIRSdkModule("Month") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(
@@ -38,6 +34,6 @@ object Month {
     values = Map.empty
   )
 
-  lazy val dateType: UType                = reference(toFQName(moduleName, "Month"))
-  def dateType[A](attributes: A): Type[A] = reference(attributes, toFQName(moduleName, "Month"))
+  lazy val dateType: UType                = reference(fqn("Month"))
+  def dateType[A](attributes: A): Type[A] = reference(attributes, fqn("Month"))
 }

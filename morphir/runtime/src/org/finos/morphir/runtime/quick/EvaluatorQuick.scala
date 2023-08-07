@@ -1,11 +1,12 @@
 package org.finos.morphir.runtime.quick
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Value.TypedValue
 import org.finos.morphir.ir.Value as V
 import V.*
 import org.finos.morphir.ir.Type as T
 import org.finos.morphir.ir.Type.Type as TT
-import org.finos.morphir.ir.{FQName, Field, Module, Name, QName, Type}
+import org.finos.morphir.ir.{FQName, Field, Module, Type}
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.MorphirIRFile
@@ -17,17 +18,19 @@ import scala.collection.mutable
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.{MissingField, ResultDoesNotMatchType, UnsupportedType}
-import org.finos.morphir.runtime.services.sdk.*
-import org.finos.morphir.runtime.exports.*
-import org.finos.morphir.runtime.services.*
+
+import org.finos.morphir.runtime.services.sdk._
+import org.finos.morphir.runtime.exports._
+import org.finos.morphir.runtime.services._
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
 import org.finos.morphir.runtime.environment.MorphirEnv
-import org.finos.morphir.extensibility.{NativeFunction, NativeFunction2}
 import org.finos.morphir.runtime.Extractors.*
+import org.finos.morphir.extensibility._
+import SdkModuleDescriptors._
 
 object EvaluatorQuick {
 
-  type IntType   = Long
+  type IntType   = morphir.sdk.Basics.Int
   type FloatType = Double
 
   private[runtime] def evalAction(
@@ -38,13 +41,13 @@ object EvaluatorQuick {
     RTAction.environmentWithPure[MorphirSdk] { env =>
       val basics = env.get[BasicsModule]
       // HACK: To work out
-      val modBy = _root_.morphir.sdk.Basics.modBy
+      val modBy = Morphir.SDK.Basics.modBy
 
       def newValue = fromNative[Unit, Type.UType](modBy)
-      def newName  = FQName.fqn(modBy.packageName, modBy.moduleName, modBy.localName)
-      def newStore = Store(store.definitions + (newName -> newValue), store.ctors, store.callStack)
+      def newStore = Store(store.definitions + (modBy.name -> newValue), store.ctors, store.callStack)
       RTAction.succeed(EvaluatorQuick.eval(value, newStore, library))
     }
+
   private[runtime] def eval(value: Value[Unit, Type.UType], store: Store[Unit, Type.UType], library: Library): Data = {
     val result = Loop.loop(value, store)
     resultToMDM(result, value.attributes, library)
@@ -83,11 +86,19 @@ object EvaluatorQuick {
 
   def fromNative[TA, VA](native: NativeFunction): SDKValue[TA, VA] =
     native match {
+      case fn: DynamicNativeFunction2[_, _, _] =>
+        val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
+          val unwrappedArg1 = unwrap(arg1)
+          val unwrappedArg2 = unwrap(arg2)
+          val res           = fn.invokeDynamic(unwrappedArg1, unwrappedArg2)
+          wrap(res)
+        }
+        SDKValue.SDKNativeFunction(fn.arity, f)
       case nf: NativeFunction2[_, _, _] =>
         val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
           val unwrappedArg1 = unwrap(arg1)
           val unwrappedArg2 = unwrap(arg2)
-          val res           = nf.asInstanceOf[(Any, Any) => Any](unwrappedArg1, unwrappedArg2)
+          val res           = nf.invokeDynamic(unwrappedArg1, unwrappedArg2)
           wrap(res)
         }
         SDKValue.SDKNativeFunction(nf.arity, f)
@@ -121,8 +132,8 @@ object EvaluatorQuick {
           case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             typeToConcept(expr, dist, newBindings) match {
-              case Concept.Struct(fields) => Concept.Record(typeName.toQualifiedName, fields)
-              case other                  => Concept.Alias(typeName.toQualifiedName, other)
+              case Concept.Struct(fields) => Concept.Record(typeName, fields)
+              case other                  => Concept.Alias(typeName, other)
             }
           case Type.Specification.CustomTypeSpecification(typeParams, ctors) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
@@ -134,7 +145,7 @@ object EvaluatorQuick {
               val concepts: List[(EnumLabel, Concept)] = argTuples.toList
               Concept.Enum.Case(Label(conceptName), concepts)
             }
-            Concept.Enum(typeName.toQualifiedName, cases)
+            Concept.Enum(typeName, cases)
           case other => throw UnsupportedType(s"$other is not a recognized type")
         }
       case TT.Tuple(attributes, elements) =>
@@ -166,8 +177,10 @@ object EvaluatorQuick {
           }
           Data.Record(qName, tuples.toList)
         }
+      case (Concept.Int32, Result.Primitive(value: Long)) =>
+        Data.Int32(value.toInt)
       case (Concept.Int32, Result.Primitive(value: IntType)) =>
-        Data.Int(value.toInt)
+        Data.Int32(value.toInt)
       case (Concept.String, Result.Primitive(value: String)) =>
         Data.String(value)
       case (Concept.Boolean, Result.Primitive(value: Boolean)) =>
@@ -222,6 +235,10 @@ object EvaluatorQuick {
           Data.Tuple(inners)
         }
       case (Concept.Unit, Result.Unit()) => Data.Unit
+      case (badType, badResult @ Result.Primitive(value)) =>
+        throw new ResultDoesNotMatchType(
+          s"Could not match type $badType with result $badResult. The value was $value which is of type ${value.getClass()}}"
+        )
       case (badType, badResult) =>
         throw new ResultDoesNotMatchType(s"Could not match type $badType with result $badResult")
     }

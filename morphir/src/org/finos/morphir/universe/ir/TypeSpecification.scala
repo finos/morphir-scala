@@ -1,5 +1,6 @@
 package org.finos.morphir.universe.ir
 
+import org.finos.morphir.naming.*
 sealed trait TypeSpecification[+A] { self =>
   import TypeSpecification.*
 

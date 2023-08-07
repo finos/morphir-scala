@@ -418,7 +418,7 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
           (Name.fromString("name2"), variable[Int](678, "h"))
         )
         val actual =
-          """{"inputs":[[["name","1"],["variable",345,["g"]]],[["name","2"],["variable",678,["h"]]]],"outputs":["variable",111,["f"]]}"""
+          """{"inputs":[[["name","1"],["variable",345,["g"]]],[["name","2"],["variable",678,["h"]]]],"output":["variable",111,["f"]]}"""
         val expected = ValueSpecification[Int](inputs, variable[Int](111, "f"))
         assert(actual.fromJson[ValueSpecification[Int]])(objectEqualTo(Right(expected)))
       }
@@ -516,7 +516,7 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
           Map(name -> Documented("valueDoc1", ValueSpecification[Int](inputs, variable[Int](111, "f"))))
 
         val actual =
-          """{"types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["variable",345,["g"]]]]]],"values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["variable",345,["g"]]],[["name","2"],["variable",678,["h"]]]],"outputs":["variable",111,["f"]]}]]]}"""
+          """{"types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["variable",345,["g"]]]]]],"values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["variable",345,["g"]]],[["name","2"],["variable",678,["h"]]]],"output":["variable",111,["f"]]}]]]}"""
         val expected = ModuleSpecification[Int](typeMap, valueMap)
         assert(actual.fromJson[ModuleSpecification[Int]])(objectEqualTo(Right(expected)))
       }
@@ -544,10 +544,10 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
         val actual =
           """{ "modules": [
                 { "name":[["org"],["src"]],
-                  "spec":{"types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["variable",345,["g"]]]]]],"values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["variable",345,["g"]]],[["name","2"],["variable",678,["h"]]]],"outputs":["variable",111,["f"]]}]]]}
+                  "spec":{"types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["variable",345,["g"]]]]]],"values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["variable",345,["g"]]],[["name","2"],["variable",678,["h"]]]],"output":["variable",111,["f"]]}]]]}
                 },
                 { "name":[["org"],["test"]],
-                  "spec":{"types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["variable",345,["g"]]]]]],"values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["variable",345,["g"]]],[["name","2"],["variable",678,["h"]]]],"outputs":["variable",111,["f"]]}]]]}
+                  "spec":{"types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["variable",345,["g"]]]]]],"values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["variable",345,["g"]]],[["name","2"],["variable",678,["h"]]]],"output":["variable",111,["f"]]}]]]}
                 }
               ]
              }"""
@@ -830,13 +830,13 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
                 { "name":[["org"],["src"]],
                   "spec":{
                     "types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["unit",[]]]]]],
-                    "values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["unit",[]]],[["name","2"],["unit",[]]]],"outputs":["unit",[]]}]]]
+                    "values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["unit",[]]],[["name","2"],["unit",[]]]],"output":["unit",[]]}]]]
                   }
                 },
                 { "name":[["org"],["test"]],
                   "spec":{
                     "types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["unit",[]]]]]],
-                    "values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["unit",[]]],[["name","2"],["unit",[]]]],"outputs":["unit",[]]}]]]}}]}]],
+                    "values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["unit",[]]],[["name","2"],["unit",[]]]],"output":["unit",[]]}]]]}}]}]],
               {"modules":[
                 { "name":[["org"],["src"]],
                   "def":["public",{"types":[[["name"],["private",["typeDoc1",["type_alias_definition",[["name","1"],["name","2"]],["unit",[]]]]]]],"values":[[["name"],["private",["valueDoc1",{"inputTypes":[[["name","1"],["unit",[]],["unit",[]]],[["name","2"],["unit",[]],["unit",[]]]],"outputType":["unit",[]],"body":["constructor",["unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}]]]]}]
@@ -910,11 +910,11 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
                       { "name":[["org"],["src"]],
                         "spec":{ 
                           "types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["unit",[]]]]]],
-                          "values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["unit",[]]],[["name","2"],["unit",[]]]],"outputs":["unit",[]]}]]]
+                          "values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["unit",[]]],[["name","2"],["unit",[]]]],"output":["unit",[]]}]]]
                         }
                       },
                       { "name":[["org"],["test"]],
-                        "spec":{"types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["unit",[]]]]]],"values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["unit",[]]],[["name","2"],["unit",[]]]],"outputs":["unit",[]]}]]]}}]}]],
+                        "spec":{"types":[[["name"],["typeDoc1",["type_alias_specification",[["name","1"],["name","2"]],["unit",[]]]]]],"values":[[["name"],["valueDoc1",{"inputs":[[["name","1"],["unit",[]]],[["name","2"],["unit",[]]]],"output":["unit",[]]}]]]}}]}]],
                    {"modules":[
                       { "name":[["org"],["src"]],
                         "def":["public",{"types":[[["name"],["private",["typeDoc1",["type_alias_definition",[["name","1"],["name","2"]],["unit",[]]]]]]],"values":[[["name"],["private",["valueDoc1",{"inputTypes":[[["name","1"],["unit",[]],["unit",[]]],[["name","2"],["unit",[]],["unit",[]]]],"outputType":["unit",[]],"body":["constructor",["unit",[]],[[["test"]],[["java","home"]],["morphir"]]]}]]]]}]},

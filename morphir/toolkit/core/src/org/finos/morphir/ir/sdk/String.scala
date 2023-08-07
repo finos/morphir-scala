@@ -1,19 +1,15 @@
 package org.finos.morphir.ir.sdk
 
 import zio.Chunk
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics.{boolType, floatType, intType}
 import org.finos.morphir.ir.sdk.Char.charType
-import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.List.listType
 import org.finos.morphir.ir.sdk.Maybe.maybeType
 import org.finos.morphir.ir.{Module, NeedsAttributes}
-import org.finos.morphir.syntax.NamingSyntax._
 
-object String {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("String")
+object String extends MorphirIRSdkModule("String") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(name("String") -> OpaqueTypeSpecification() ?? "Type that represents a string of characters."),
@@ -65,9 +61,9 @@ object String {
     )
   )
 
-  lazy val stringType: UType = reference(toFQName(moduleName, "String"))
+  lazy val stringType: UType = reference(fqn("String"))
   def stringType[A](attributes: A)(implicit ev: NeedsAttributes[A]): Type[A] =
-    reference(attributes, toFQName(moduleName, "String"))
+    reference(attributes, fqn("String"))
 
   // todo nativeFunctions
 }

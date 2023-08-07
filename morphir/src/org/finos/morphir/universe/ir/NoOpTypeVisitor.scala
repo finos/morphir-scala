@@ -1,5 +1,5 @@
 package org.finos.morphir.universe.ir
-
+import org.finos.morphir.naming.*
 import org.finos.morphir.universe.ir.Type.{ExtensibleRecord, Field, Record, Reference, Tuple, Variable}
 
 object NoOpTypeVisitor extends TypeVisitor[Nothing, Unit, Any, Nothing, Unit, Nothing] {

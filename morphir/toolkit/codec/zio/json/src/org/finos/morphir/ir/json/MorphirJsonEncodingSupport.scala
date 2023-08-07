@@ -17,12 +17,7 @@ import org.finos.morphir.ir.PackageModule.{
 import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, Type}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
 import org.finos.morphir.ir.Value.{Value, _}
-import org.finos.morphir.ir.module.{
-  Definition => ModuleDefinition,
-  QualifiedModuleName,
-  ModuleName,
-  Specification => ModuleSpecification
-}
+import org.finos.morphir.ir.module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 
 trait MorphirJsonEncodingSupport extends JsonEncodingHelpers {
   implicit val unitEncoder: JsonEncoder[Unit] = Json.encoder.contramap(_ => Json.Obj())
@@ -44,10 +39,10 @@ trait MorphirJsonEncodingSupport extends JsonEncodingHelpers {
       )
     )
 
-  implicit val qualifiedModuleNameEncoder: JsonEncoder[QualifiedModuleName] =
-    Json.encoder.contramap[QualifiedModuleName](moduleName =>
-      Json.Arr(toJsonAstOrThrow(moduleName.namespace), toJsonAstOrThrow(moduleName.localName))
-    )
+  // implicit val qualifiedModuleNameEncoder: JsonEncoder[QualifiedModuleName] =
+  //   Json.encoder.contramap[QualifiedModuleName](moduleName =>
+  //     Json.Arr(toJsonAstOrThrow(moduleName.namespace), toJsonAstOrThrow(moduleName.localName))
+  //   )
 
   implicit def fieldEncoder[A: JsonEncoder]: JsonEncoder[Field[A]] =
     Json.encoder.contramap[Field[A]](field =>
@@ -258,8 +253,8 @@ trait MorphirJsonEncodingSupport extends JsonEncodingHelpers {
   implicit def valueSpecificationEncoder[A: JsonEncoder]: JsonEncoder[ValueSpecification[A]] =
     Json.encoder.contramap[ValueSpecification[A]] { specification =>
       Json.Obj(
-        "inputs"  -> toJsonAstOrThrow(specification.inputs),
-        "outputs" -> toJsonAstOrThrow(specification.output)
+        "inputs" -> toJsonAstOrThrow(specification.inputs),
+        "output" -> toJsonAstOrThrow(specification.output)
       )
     }
 

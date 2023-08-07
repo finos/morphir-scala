@@ -2,17 +2,13 @@ package org.finos.morphir.ir.sdk
 
 import zio.Chunk
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.TypeAliasSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics.boolType
-import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.List.listType
 import org.finos.morphir.ir.sdk.Result.resultType
-import org.finos.morphir.syntax.NamingSyntax._
 
-object ResultList {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("ResultList")
+object ResultList extends MorphirIRSdkModule("ResultList") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(
@@ -49,10 +45,10 @@ object ResultList {
   )
 
   def resultListType(errorType: UType, itemType: UType): UType =
-    reference(toFQName(moduleName, "ResultList"), errorType, itemType)
+    reference(fqn("ResultList"), errorType, itemType)
 
   def resultListType[A](attributes: A)(errorType: Type[A], itemType: Type[A]): Type[A] =
-    reference(attributes, toFQName(moduleName, "ResultList"), errorType, itemType)
+    reference(attributes, fqn("ResultList"), errorType, itemType)
 
   // todo nativefunctions
 }

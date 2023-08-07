@@ -1,14 +1,12 @@
 package org.finos.morphir.ir.sdk
 
+import org.finos.morphir.naming._
 import zio.Chunk
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.unit
 import org.finos.morphir.ir.Value.Specification
-import org.finos.morphir.ir.{Documented, Module, Name}
-import org.finos.morphir.syntax.NamingSyntax._
+import org.finos.morphir.ir.{Documented, Module}
 
-object Regex {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Regex")
+object Regex extends MorphirIRSdkModule("Regex") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map.empty,
