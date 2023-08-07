@@ -3,6 +3,11 @@ import scala.annotation.tailrec
 
 private[morphir] trait NameExports {
 
+  /**
+   * `Name` is an abstraction of human-readable identifiers made up of words. This abstraction allows us to use the same
+   * identifiers across various naming conventions used by the different frontend and backend languages Morphir
+   * integrates with.
+   */
   sealed case class Name private (toList: List[String]) {
     self =>
     def :+(that: String): Name = Name(self.toList :+ that)
