@@ -72,19 +72,21 @@ object Extractors {
 
 object Utils {
   import Extractors.*
-  def applyBindings(tpe : UType, bindings : Map[Name, UType])  : UType= {
-    tpe match{
+  def applyBindings(tpe: UType, bindings: Map[Name, UType]): UType =
+    tpe match {
       case Type.Variable(_, name) if bindings.contains(name) => bindings(name)
-      case Type.Tuple(_, elements) => T.tupleVar(elements.map(applyBindings(_, bindings)):_*)
-      case DictRef(keyType, valueType) => sdk.Dict.dictType(applyBindings(keyType, bindings), applyBindings(valueType, bindings))
-      case ListRef(elemType) => sdk.List.listType(applyBindings(elemType, bindings))
-      case MaybeRef(elemType)=>  sdk.Maybe.maybeType(applyBindings(elemType, bindings))
-      case Type.Record(_, argFields) => T.record(argFields.map(field => Field(field.name, applyBindings(field.data, bindings))))
-      case Type.Function(_, argType, retType) => T.function(applyBindings(argType, bindings), applyBindings(retType, bindings))
+      case Type.Tuple(_, elements)                           => T.tupleVar(elements.map(applyBindings(_, bindings)): _*)
+      case DictRef(keyType, valueType) =>
+        sdk.Dict.dictType(applyBindings(keyType, bindings), applyBindings(valueType, bindings))
+      case ListRef(elemType)  => sdk.List.listType(applyBindings(elemType, bindings))
+      case MaybeRef(elemType) => sdk.Maybe.maybeType(applyBindings(elemType, bindings))
+      case Type.Record(_, argFields) =>
+        T.record(argFields.map(field => Field(field.name, applyBindings(field.data, bindings))))
+      case Type.Function(_, argType, retType) =>
+        T.function(applyBindings(argType, bindings), applyBindings(retType, bindings))
       case Type.Reference(_, name, argTypes) => T.reference(name, argTypes.map(applyBindings(_, bindings)))
-      case other => other //leaf nodes
+      case other                             => other // leaf nodes
     }
-  }
 
   def typeCheckArg(arg: UType, param: UType, found: Map[Name, UType]): Either[TypeError, Map[Name, UType]] =
     (arg, param) match {
@@ -95,13 +97,13 @@ object Utils {
           Right(found + (name -> argType))
         }
       case (Type.Unit(_), Type.Unit(_)) => Right(found)
-      case (IntRef(), IntRef()) => Right(found) // Right?
-      case (Int32Ref(), Int32Ref()) => Right(found)
-      case (FloatRef(), FloatRef()) => Right(found)
-      case (StringRef(), StringRef()) => Right(found)
-      case (CharRef(), CharRef()) => Right(found)
-      case (BoolRef(), BoolRef()) => Right(found)
-      case (Type.Tuple(_, argElements), Type.Tuple(_, paramElements)) => {
+      case (IntRef(), IntRef())         => Right(found) // Right?
+      case (Int32Ref(), Int32Ref())     => Right(found)
+      case (FloatRef(), FloatRef())     => Right(found)
+      case (StringRef(), StringRef())   => Right(found)
+      case (CharRef(), CharRef())       => Right(found)
+      case (BoolRef(), BoolRef())       => Right(found)
+      case (Type.Tuple(_, argElements), Type.Tuple(_, paramElements)) =>
         if (argElements.length != paramElements.length) {
           Left(new TypeMismatch(s"Different tuple arity between arg $argElements and parameter $paramElements"))
         } else {
@@ -110,14 +112,12 @@ object Utils {
               acc.flatMap(found => typeCheckArg(argElement, paramElement, found))
           }
         }
-      }
-      case (DictRef(argKey, argValue), DictRef(paramKey, paramValue)) => {
+      case (DictRef(argKey, argValue), DictRef(paramKey, paramValue)) =>
         for {
-          keyBindings <- typeCheckArg(argKey, paramKey, found)
+          keyBindings   <- typeCheckArg(argKey, paramKey, found)
           valueBindings <- typeCheckArg(argValue, paramValue, keyBindings)
         } yield valueBindings
-      }
-      case (ListRef(argElement), ListRef(paramElement)) => typeCheckArg(argElement, paramElement, found)
+      case (ListRef(argElement), ListRef(paramElement))   => typeCheckArg(argElement, paramElement, found)
       case (MaybeRef(argElement), MaybeRef(paramElement)) => typeCheckArg(argElement, paramElement, found)
       case (Type.Record(_, argFields), Type.Record(_, paramFields)) =>
         if (argFields.length != paramFields.length) {
@@ -135,7 +135,8 @@ object Utils {
         } yield paramBindings
       case (Type.ExtensibleRecord(_, _, _), Type.ExtensibleRecord(_, _, _)) =>
         Left(UnsupportedType(s"Extensible record type not supported (yet)"))
-      case (Type.Reference(_, argTypeName, argTypeArgs), Type.Reference(_, paramTypeName, paramTypeArgs))if (argTypeName != paramTypeName) =>
+      case (Type.Reference(_, argTypeName, argTypeArgs), Type.Reference(_, paramTypeName, paramTypeArgs))
+          if (argTypeName != paramTypeName) =>
         argTypeArgs.zip(paramTypeArgs).foldLeft(Right(found): Either[TypeError, Map[Name, UType]]) {
           case (acc, (argTpe, paramTpe)) =>
             acc.flatMap(found => typeCheckArg(argTpe, paramTpe, found))
@@ -145,11 +146,15 @@ object Utils {
   def specificationToType[TA](spec: V.Specification[TA]): Type[TA] =
     curryTypeFunction(spec.output, spec.inputs)
 
-  def unCurryTypeFunction(curried: UType, args: List[UType], knownBindings : Map[Name, UType]): RTAction[Any, TypeError, UType] =
+  def unCurryTypeFunction(
+      curried: UType,
+      args: List[UType],
+      knownBindings: Map[Name, UType]
+  ): RTAction[Any, TypeError, UType] =
     (curried, args) match {
       case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
         for {
-          bindings           <- RTAction.fromEither(typeCheckArg(head, parameterType, knownBindings))
+          bindings    <- RTAction.fromEither(typeCheckArg(head, parameterType, knownBindings))
           appliedType <- unCurryTypeFunction(returnType, tail, bindings)
         } yield appliedType
       case (tpe, Nil) => RTAction.succeed(applyBindings(tpe, knownBindings))
