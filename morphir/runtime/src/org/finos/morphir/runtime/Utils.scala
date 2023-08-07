@@ -7,6 +7,10 @@ import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.runtime.exports.*
 import zio.Chunk
 
+object Extractors{
+
+}
+
 object Utils {
 
   def specificationToType[TA](spec: V.Specification[TA]): Type[TA] =
