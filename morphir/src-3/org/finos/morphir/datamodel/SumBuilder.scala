@@ -4,7 +4,11 @@ import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, QualifiedN
 
 import scala.reflect.ClassTag
 
-private[datamodel] case class SumBuilder(tpe: SumBuilder.SumType, variants: List[SumBuilder.Variant]) {
+private[datamodel] case class SumBuilder(
+    tpe: SumBuilder.SumType,
+    ordinalGetter: Any => Int,
+    variants: List[SumBuilder.Variant]
+) {
   private def failInsideNotProduct(derivedAs: Any) =
     throw new IllegalArgumentException(
       s"Inner enum data (for: ${tpe}) is only allowed to come from a Scala product but it was derived as: $derivedAs"
@@ -13,7 +17,6 @@ private[datamodel] case class SumBuilder(tpe: SumBuilder.SumType, variants: List
   lazy val enumType =
     tpe match {
       case SumBuilder.SumType.Enum(name) =>
-        // TODO variants shuold be constructed from ordinal
         val enumCases =
           variants.map { v =>
             v match {
@@ -40,22 +43,12 @@ private[datamodel] case class SumBuilder(tpe: SumBuilder.SumType, variants: List
     }
 
   def run(value: Any): Data = {
-    val usedVariant = {
-      val cls = value.getClass
-      variants.find(v => cls.isAssignableFrom(v.tag)) match {
-        case Some(value) => value
-        case None =>
-          val varNames = variants.map(v => s"${v.enumLabel}:${v.tag.getName}")
-          throw new IllegalArgumentException(
-            s"Cannot decode instance of ${value}:${cls.getName} because it was not a sub-type of any of the possibilities: ${varNames}"
-          )
-      }
-    }
+    val usedVariant = variants(ordinalGetter(value))
 
     val enumValues =
       usedVariant match {
         // for a enum case object, data-type is just a 'unit'
-        case SumBuilder.EnumSingleton(enumLabel, tag) =>
+        case SumBuilder.EnumSingleton(enumLabel) =>
           List()
 
         case v: SumBuilder.EnumProduct =>
@@ -85,19 +78,18 @@ private[datamodel] case class SumBuilder(tpe: SumBuilder.SumType, variants: List
 }
 object SumBuilder {
   sealed trait Variant {
-    def tag: Class[Any]
     def enumLabel: java.lang.String
   }
   sealed trait EnumVariant extends Variant
   // case object variant of a sealed trait or a enum case with no fields
-  case class EnumSingleton(enumLabel: java.lang.String, tag: Class[Any])
+  case class EnumSingleton(enumLabel: java.lang.String)
       extends EnumVariant
   // case class variant of sealed trait or enum case with fields
-  case class EnumProduct(enumLabel: java.lang.String, tag: Class[Any], deriver: GenericProductDeriver[Product])
+  case class EnumProduct(enumLabel: java.lang.String, deriver: GenericProductDeriver[Product])
       extends EnumVariant
 
   // for generic sums
-  case class SumVariant(enumLabel: java.lang.String, tag: Class[Any], deriver: Deriver[Any]) extends Variant
+  case class SumVariant(enumLabel: java.lang.String, deriver: Deriver[Any]) extends Variant
 
   sealed trait SumType
   object SumType {
