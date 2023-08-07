@@ -172,7 +172,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Function",
                       [
                         "CharLiteral",
@@ -360,7 +360,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Reference",
                       [
                         "CharLiteral",
@@ -725,7 +725,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Tuple",
                       [
                         "CharLiteral",
@@ -977,7 +977,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "DecimalLiteral",
@@ -1106,7 +1106,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Variable",
                       [
                         "CharLiteral",
@@ -1319,7 +1319,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Reference",
                       [
                         "BoolLiteral",
@@ -1549,7 +1549,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Variable",
                       [
                         "DecimalLiteral",
@@ -1673,7 +1673,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "StringLiteral",
@@ -1856,7 +1856,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "BoolLiteral",
@@ -1984,7 +1984,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Variable",
                       [
                         "CharLiteral",
@@ -2088,7 +2088,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "FloatLiteral",
@@ -2302,7 +2302,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Reference",
                       [
                         "CharLiteral",
@@ -2486,7 +2486,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Variable",
                       [
                         "DecimalLiteral",
@@ -2705,7 +2705,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "DecimalLiteral",
@@ -2777,7 +2777,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "FloatLiteral",
@@ -2909,7 +2909,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "ExtensibleRecord",
                       [
                         "FloatLiteral",
@@ -3097,7 +3097,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "BoolLiteral",
@@ -3151,7 +3151,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "FloatLiteral",
@@ -3278,7 +3278,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Variable",
                       [
                         "WholeNumberLiteral",
@@ -3550,7 +3550,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "DecimalLiteral",
@@ -3660,7 +3660,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "WholeNumberLiteral",
@@ -3717,7 +3717,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "ExtensibleRecord",
                       [
                         "BoolLiteral",
@@ -3857,7 +3857,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Variable",
                       [
                         "BoolLiteral",
@@ -3912,7 +3912,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "StringLiteral",
@@ -4106,7 +4106,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "FloatLiteral",
@@ -4158,7 +4158,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "BoolLiteral",
@@ -4604,7 +4604,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "StringLiteral",
@@ -4644,7 +4644,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "WholeNumberLiteral",
@@ -4756,7 +4756,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "BoolLiteral",
@@ -4792,7 +4792,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "ExtensibleRecord",
                       [
                         "BoolLiteral",
@@ -5048,7 +5048,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Variable",
                       [
                         "FloatLiteral",
@@ -5148,7 +5148,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Variable",
                       [
                         "FloatLiteral",
@@ -5670,7 +5670,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "CharLiteral",
@@ -5730,7 +5730,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Record",
                       [
                         "StringLiteral",
@@ -5898,7 +5898,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Variable",
                       [
                         "FloatLiteral",
@@ -6042,7 +6042,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Variable",
                       [
                         "CharLiteral",
@@ -6078,7 +6078,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "FloatLiteral",
@@ -6171,7 +6171,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Reference",
                       [
                         "BoolLiteral",
@@ -6337,7 +6337,7 @@
                         ]
                       ]
                     ],
-                    "outputs" : [
+                    "output" : [
                       "Unit",
                       [
                         "DecimalLiteral",

@@ -173,7 +173,7 @@ object Versions {
   val mainargs        = "0.5.0"
   val `os-lib`        = "0.9.1"
   val paiges          = "0.4.3"
-  val scribe          = "3.11.8"
+  val scribe          = "3.11.9"
   val silencer        = "1.4.2"
   val `tasty-query`   = "0.5.6"
   val upickle         = "3.0.0-M1"
