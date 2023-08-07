@@ -292,8 +292,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
         Deps.com.lihaoyi.sourcecode,
         Deps.com.lihaoyi.fansi,
         Deps.com.lihaoyi.pprint,
-        Deps.org.typelevel.spire,
-        Deps.dev.zio.`zio-prelude`
+        Deps.org.typelevel.spire
       )
 
       def platformSpecificModuleDeps = Seq(macros)

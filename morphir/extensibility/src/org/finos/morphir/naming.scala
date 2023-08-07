@@ -1,8 +1,4 @@
 package org.finos.morphir
-import scala.annotation.tailrec
-import zio.=!=
-import zio.prelude.*
-
 object naming
     extends FQNameExports
     with ModuleNameExports

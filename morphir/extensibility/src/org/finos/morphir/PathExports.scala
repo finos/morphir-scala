@@ -14,12 +14,6 @@ private[morphir] trait PathExports { self: NameExports =>
 
     def toList: List[Name] = segments.toList
 
-    def toPath: Path =
-      self match {
-        case path: Path => path
-        case _          => Path(self.segments)
-      }
-
     /** Constructs a new path by combining this path with the given name. */
     def /(name: Name): Path = Path(segments ++ List(name))
 
@@ -28,7 +22,7 @@ private[morphir] trait PathExports { self: NameExports =>
     // def %(other: Path): PackageAndModulePath =
     //   PackageAndModulePath(PackageName(self), ModulePath(other))
 
-    def zip(other: Path): (Path, Path) = (self.toPath, other)
+    def zip(other: Path): (Path, Path) = (self, other)
 
     def toString(f: Name => String, separator: String): String =
       toList.map(f).mkString(separator)

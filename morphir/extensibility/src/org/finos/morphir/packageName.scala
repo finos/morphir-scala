@@ -1,27 +1,26 @@
 package org.finos.morphir
-import zio.prelude.*
 private[morphir] trait PackageNameExports { self: naming.type =>
 
   /**
    * A package name is a globally unique identifier for a package. It is represented by a `Path` which is a list of
    * names.
    */
-  type PackageName = PackageName.Type
+  sealed case class PackageName(path: Path) { self =>
+    def ++(that: PackageName): PackageName = PackageName(path ++ that.path)
+    def ++(that: Path): PackageName        = PackageName(path ++ that)
 
-  object PackageName extends Subtype[Path] {
-    val empty: PackageName                                   = wrap(Path.empty)
-    def apply(firstPart: Name, rest: Name*): PackageName     = wrap(Path.fromIterable(firstPart +: rest))
-    def apply(firstPart: String, rest: String*): PackageName = wrap(Path.fromIterable((firstPart +: rest).map(Name(_))))
+    @inline def isEmpty: Boolean = path.isEmpty
+    @inline def toPath: Path     = path
+  }
 
-    def fromPath(path: Path): PackageName = wrap(path)
+  object PackageName {
+    val empty: PackageName = PackageName(Path.empty)
+    val root: PackageName  = PackageName(Path.empty)
 
-    def fromString(str: String): PackageName = wrap(Path.fromString(str))
+    def fromPath(path: Path): PackageName = PackageName(path)
 
-    implicit class PackageNameOps(val self: PackageName) {
-      def value: Path = unwrap(self)
+    def fromString(str: String): PackageName = PackageName(Path.fromString(str))
 
-      def toPath: Path = unwrap(self)
-    }
   }
 
   sealed case class PackageNamingContext(packageName: PackageName)
@@ -34,5 +33,4 @@ private[morphir] trait PackageNameExports { self: naming.type =>
     }
   }
 
-  
 }
