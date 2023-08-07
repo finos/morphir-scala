@@ -1,8 +1,9 @@
-package org.finos.morphir.ir
+package org.finos.morphir
 
-import zio.Chunk
 import org.finos.morphir.testing.MorphirBaseSpec
+import zio.Chunk
 import zio.test.*
+import naming.*
 
 object PathSpec extends MorphirBaseSpec {
   def spec = suite("Path")(
