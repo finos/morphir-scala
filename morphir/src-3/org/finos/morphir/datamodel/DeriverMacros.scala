@@ -4,7 +4,6 @@ import org.finos.morphir.datamodel.Deriver.UnionType
 import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, PartialName}
 
 import scala.quoted.*
-import scala.reflect.ClassTag
 import scala.deriving.Mirror
 
 trait GlobalDatamodelContext {
@@ -127,16 +126,6 @@ object DeriverMacros {
     // for some reason case objects are considered case classes (or at least have a case flag so make sure it's not a module)
     // also, for some reason in Scala 3, the List.:: instance is actually a case class!
     Expr(flags.is(Flags.Case) && !flags.is(Flags.Module) && !(TypeRepr.of[T] <:< TypeRepr.of[List[Any]]))
-  }
-
-  inline def summonClassTagOrFail[T]: Class[T] = ${ summonClassTagOrFailImpl[T] }
-  def summonClassTagOrFailImpl[T: Type](using Quotes): Expr[Class[T]] = {
-    import quotes.reflect._
-    Expr.summon[ClassTag[T]] match {
-      case Some(value) => '{ $value.runtimeClass.asInstanceOf[Class[T]] }
-      case None =>
-        report.errorAndAbort(s"A classTag for the type ${TypeRepr.of[T].show} could not be found!")
-    }
   }
 
   inline def showType[T]: String = ${ showTypeImpl[T] }

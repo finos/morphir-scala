@@ -54,7 +54,6 @@ object Deriver {
         // since this is actually a string that will be spliced in at runtime
         inline erasedValue[Elems] match {
           case _: (head *: tail) =>
-            val ct = summonClassTagOrFail[head].asInstanceOf[Class[Any]]
             // need to make sure that ALL of the matches inside here (including the `unionType` match)
             // is inline otherwise very strange things happen! Macros will run for even variants that shouldn't be matching
             // (i.e. because the other side of the case match branch is also running)
@@ -66,7 +65,10 @@ object Deriver {
                   if (isCaseClass[head]) {
                     summonProductDeriver[head] match {
                       case deriver: GenericProductDeriver[Product] @unchecked =>
-                        SumBuilder.EnumProduct(fieldName, ct, deriver)
+                        println(
+                          s"field ${typeName[head]}: ${fieldName} - ${deriver.builder.name.localName}(${deriver.builder.fields})"
+                        )
+                        SumBuilder.EnumProduct(fieldName, deriver)
                       case other =>
                         throw new IllegalArgumentException(
                           "Illegal state, should not be possible, summonProductDeriver always returns a GenericProductDeriver"
@@ -74,12 +76,12 @@ object Deriver {
                     }
                   } // enum case without fields
                   else {
-                    SumBuilder.EnumSingleton(fieldName, ct)
+                    SumBuilder.EnumSingleton(fieldName)
                   }
                 // for the sum-case just do regular recursive derivation
                 case UnionType.Sum =>
                   val deriver = summonDeriver[head].asInstanceOf[Deriver[Any]]
-                  SumBuilder.SumVariant(fieldName, ct, deriver)
+                  SumBuilder.SumVariant(fieldName, deriver)
               }
 
             // return the variant and recurse
@@ -139,6 +141,7 @@ object Deriver {
   inline def deriveSumFromMirror[T](m: Mirror.SumOf[T]): GenericSumDeriver[T] =
     inline if (isEnumOrSealedTrait[T]) {
       val sumTypeName = summonQualifiedName[T]
+      val enumName    = typeName[T]
 
       // The clause `inferUnionType` NEEDs to be  a macro otherwise we can't get the value
       // coming out if it to work with inline matches/ifs and if our matches/ifs are not inline
@@ -152,7 +155,16 @@ object Deriver {
       val builder =
         inline inferUnionType[T] match {
           case UnionType.Enum | UnionType.SealedTrait =>
-            SumBuilder(SumBuilder.SumType.Enum(sumTypeName), variants)
+            val ordinalGetter: Any => Int =
+              (v: Any) =>
+                v match {
+                  case t: T => m.ordinal(t)
+                  case _ =>
+                    throw new IllegalArgumentException(
+                      s"The value `$v` is not an instance of the needed enum class ${enumName}"
+                    )
+                }
+            SumBuilder(SumBuilder.SumType.Enum(sumTypeName), ordinalGetter, variants)
           case UnionType.Sum =>
             error("Simple union types not allowed yet in builder synthesis")
         }
