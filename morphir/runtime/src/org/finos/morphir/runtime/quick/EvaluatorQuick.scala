@@ -24,7 +24,9 @@ import org.finos.morphir.runtime.exports._
 import org.finos.morphir.runtime.services._
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
 import org.finos.morphir.runtime.environment.MorphirEnv
-import org.finos.morphir.extensibility.{NativeFunction, NativeFunction2}
+import org.finos.morphir.extensibility._
+import SdkModuleDescriptors._
+
 object EvaluatorQuick {
   object FQString {
     def unapply(fqName: FQName): Option[String] = Some(fqName.toString())
@@ -67,11 +69,10 @@ object EvaluatorQuick {
     RTAction.environmentWithPure[MorphirSdk] { env =>
       val basics = env.get[BasicsModule]
       // HACK: To work out
-      val modBy = _root_.morphir.sdk.Basics.modBy
+      val modBy = Morphir.SDK.Basics.modBy
 
       def newValue = fromNative[Unit, Type.UType](modBy)
-      def newName  = FQName.fqn(modBy.packageName, modBy.moduleName, modBy.localName)
-      def newStore = Store(store.definitions + (newName -> newValue), store.ctors, store.callStack)
+      def newStore = Store(store.definitions + (modBy.name -> newValue), store.ctors, store.callStack)
       RTAction.succeed(EvaluatorQuick.eval(value, newStore, library))
     }
 
@@ -101,12 +102,9 @@ object EvaluatorQuick {
     value match {
       case r: Result[_, _] => r.asInstanceOf[Result[TA, VA]] // passed-through results from generic ops
       case ()              => Result.Unit()
-      case m: Map[_, _]    =>
-        // val result = Result.MapResult(m.toSeq.map { case (key, value) =>
-        //   (wrap(key).asInstanceOf[Result[TA, VA]], wrap(value).asInstanceOf[Result[TA, VA]])
-        // }.toMap)
-        // result // .asInstanceOf[Result[TA, VA]]
-        ???
+      case m: Map[_, _] =>
+        val newMap = m.toSeq.map { case (key, value) => (wrap[TA, VA](key), wrap[TA, VA](value)) }.toMap
+        Result.MapResult(newMap)
       case l: List[_]             => Result.ListResult(l.map(wrap(_)))
       case (first, second)        => Result.Tuple((wrap(first), wrap(second)))
       case (first, second, third) => Result.Tuple((wrap(first), wrap(second), wrap(third)))
@@ -116,6 +114,14 @@ object EvaluatorQuick {
 
   def fromNative[TA, VA](native: NativeFunction): SDKValue[TA, VA] =
     native match {
+      case fn: DynamicNativeFunction2[_, _, _] =>
+        val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
+          val unwrappedArg1 = unwrap(arg1)
+          val unwrappedArg2 = unwrap(arg2)
+          val res           = fn.invokeDynamic(unwrappedArg1, unwrappedArg2)
+          wrap(res)
+        }
+        SDKValue.SDKNativeFunction(fn.arity, f)
       case nf: NativeFunction2[_, _, _] =>
         val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
           val unwrappedArg1 = unwrap(arg1)

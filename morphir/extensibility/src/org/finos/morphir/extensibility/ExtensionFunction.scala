@@ -1,10 +1,9 @@
 package org.finos.morphir.extensibility
-import org.finos.morphir.*
+import org.finos.morphir.naming._
+import org.finos.morphir._
 
 sealed trait ExtensionFunction {
-  def packageName: String
-  def moduleName: String
-  def localName: String
+  def name: FQName
   def arity: Int
   def defaultHints: Hints = Hints.empty
 
@@ -12,8 +11,7 @@ sealed trait ExtensionFunction {
 }
 
 trait DynamicFunction extends ExtensionFunction {
-  def invokeDynamic(args: List[Any], hints: Hints): Any
-  @inline final def invoke(args: List[Any], hints: Hints): Any = invokeDynamic(args, hints)
+  def invoke(args: List[Any], hints: Hints): Any
 }
 
 trait NativeFunction   extends ExtensionFunction
@@ -41,6 +39,16 @@ trait ExternalFunction extends ExtensionFunction
 //   }
 // }
 
+abstract class DynamicNativeFunction2[T1, T2, R](val name: FQName) extends NativeFunction with DynamicFunction {
+  final val arity = 2
+  def invokeDynamic(arg1: Any, arg2: Any, hints: Hints): Any
+  def invokeDynamic(arg1: Any, arg2: Any): Any = invokeDynamic(arg1, arg2, defaultHints)
+  override def invoke(args: List[Any], hints: Hints): Any = args match {
+    case List(arg1, arg2) => invokeDynamic(arg1, arg2, hints)
+    case _                => throw new IllegalArgumentException(s"Expected 2 arguments but got ${args.size}")
+  }
+}
+
 trait NativeFunction2[-T1, -T2, +R] extends NativeFunction with ((T1, T2) => R) {
   final val arity                        = 2
   final def apply(arg1: T1, arg2: T2): R = invokeStrict(arg1, arg2)(defaultHints)
@@ -55,19 +63,14 @@ trait NativeFunction2[-T1, -T2, +R] extends NativeFunction with ((T1, T2) => R) 
   }
 }
 
-final case class NativeFunc2[T1, T2, R](packageName: String, moduleName: String, localName: String, f: (T1, T2) => R)
+final case class NativeFunc2[T1, T2, R](name: FQName, f: (T1, T2) => R)
     extends NativeFunction2[T1, T2, R] {
   def invokeStrict(arg1: T1, arg2: T2)(implicit hints: Hints = defaultHints): R = f(arg1, arg2)
 }
 
 trait IntBinaryOperator extends NativeFunction2[MInt, MInt, MInt]
 
-final case class IntBinaryOp[T <: MInt](
-    packageName: String,
-    moduleName: String,
-    localName: String,
-    f: (T, T) => T
-) extends IntBinaryOperator {
+final case class IntBinaryOp[T <: MInt](name: FQName, f: (T, T) => T) extends IntBinaryOperator {
   def invokeStrict(arg1: MInt, arg2: MInt)(implicit hints: Hints = defaultHints): MInt =
     f(arg1.asInstanceOf[T], arg2.asInstanceOf[T])
 }

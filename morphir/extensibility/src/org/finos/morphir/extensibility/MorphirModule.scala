@@ -1,5 +1,5 @@
 package org.finos.morphir.extensibility
-
+import org.finos.morphir.naming._
 import scala.collection.mutable.{IndexedSeq => MutIndexedSeq}
 
 sealed trait MorphirModule {
@@ -14,7 +14,7 @@ sealed trait MorphirModule {
   }
 
   def fun[T1, T2, R](localName: String)(f: (T1, T2) => R): NativeFunc2[T1, T2, R] =
-    registerNativeFunction(NativeFunc2(packageName, moduleName, localName, f))
+    registerNativeFunction(NativeFunc2(FQName.fqn(packageName, moduleName, localName), f))
 }
 
 abstract class ExtensionModule(val packageName: String, val moduleName: String) extends MorphirModule {}

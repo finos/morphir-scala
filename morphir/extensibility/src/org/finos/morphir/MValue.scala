@@ -1,7 +1,7 @@
 package org.finos.morphir
-import spire.*
-import spire.math.*
-import spire.implicits.*
+import spire._
+import spire.math._
+import spire.implicits._
 
 import MValue.{MorphirDecimal, MorphirFloat, MorphirInt, PrimitiveFlags}
 

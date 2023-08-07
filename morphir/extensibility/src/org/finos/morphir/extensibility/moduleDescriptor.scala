@@ -1,6 +1,7 @@
 package org.finos.morphir.extensibility
 import org.finos.morphir.MorphirTag
 import org.finos.morphir.naming.*
+import org.finos.morphir.*
 
 sealed trait ModuleDescriptor { self =>
   type Type = self.type
@@ -28,6 +29,13 @@ sealed abstract class SdkModuleDescriptor(moduleName: String)(implicit packageNa
     extends ModuleDescriptor {
   override implicit val qualifiedModuleName: QualifiedModuleName =
     QualifiedModuleName(packageName, ModuleName.fromString(moduleName))
+
+  def fqn(name: String): FQName = FQName(
+    qualifiedModuleName.packageName,
+    qualifiedModuleName.modulePath,
+    Name.fromString(name)
+  )
+
 }
 
 object SdkModuleDescriptors {
@@ -42,6 +50,18 @@ object SdkModuleDescriptors {
         // type Type = Basics.type
 
         // TODO: Provide Function Descriptors
+        object modBy extends DynamicNativeFunction2[MInt, MInt, MInt](fqn("modBy")) {
+
+          def invokeStrict(modulus: MInt, n: MInt)(implicit hints: Hints = defaultHints): MInt = n % modulus
+          def invokeDynamic(modulus: Any, n: Any, hints: Hints = defaultHints): Any =
+            (modulus, n) match {
+              case (modulus: MInt, n: MInt) => invokeStrict(modulus, n)
+              case (modulus: Long, n: Long) => invokeStrict(MInt.fromLong(modulus), MInt.fromLong(n))
+              case _ => throw new IllegalArgumentException(
+                  s"Expected 2 arguments of type Int but got ${modulus.getClass} and ${n.getClass}"
+                )
+            }
+        }
       }
 
       case object String extends SdkModuleDescriptor("String") {
