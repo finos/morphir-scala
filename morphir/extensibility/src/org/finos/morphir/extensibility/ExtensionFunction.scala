@@ -41,8 +41,7 @@ trait ExternalFunction extends ExtensionFunction
 //   }
 // }
 
-trait NativeFunction2[T1, T2, R] extends NativeFunction with ((T1, T2) => R) {
-  type Result = R
+trait NativeFunction2[-T1, -T2, +R] extends NativeFunction with ((T1, T2) => R) {
   final val arity                        = 2
   final def apply(arg1: T1, arg2: T2): R = invokeStrict(arg1, arg2)(defaultHints)
 

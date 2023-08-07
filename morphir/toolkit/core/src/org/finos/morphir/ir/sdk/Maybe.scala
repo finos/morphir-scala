@@ -1,17 +1,12 @@
 package org.finos.morphir.ir.sdk
 
 import zio.Chunk
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.CustomTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.Value.{apply, constructor, RawValue, Value}
-import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.{Module, NeedsAttributes}
-import org.finos.morphir.syntax.NamingSyntax._
 
-object Maybe {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Maybe")
-
+object Maybe extends MorphirIRSdkModule("Maybe") {
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(
       name("Maybe") -> CustomTypeSpecification(
@@ -61,21 +56,21 @@ object Maybe {
   )
 
   def maybeType(itemType: UType): UType =
-    reference(toFQName(moduleName, "Maybe"), itemType)
+    reference(fqn("Maybe"), itemType)
 
   def maybeType[A](attributes: A, itemType: Type[A])(implicit ev: NeedsAttributes[A]): Type[A] =
-    reference(attributes, toFQName(moduleName, "Maybe"), itemType)
+    reference(attributes, fqn("Maybe"), itemType)
 
   def just(value: RawValue): RawValue =
-    apply(constructor(toFQName(moduleName, "Just")), value)
+    apply(constructor(fqn("Just")), value)
 
   def just[VA](va: VA)(value: Value[Nothing, VA])(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA] =
-    apply(va, constructor(va, toFQName(moduleName, "Just")), value)
+    apply(va, constructor(va, fqn("Just")), value)
 
   lazy val nothing: RawValue =
-    constructor(toFQName(moduleName, "Nothing"))
+    constructor(fqn("Nothing"))
   def nothing[VA](va: VA)(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA] =
-    constructor(va, toFQName(moduleName, "Nothing"))
+    constructor(va, fqn("Nothing"))
 
   // todo add nativeFunctions
 }

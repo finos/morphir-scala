@@ -1,17 +1,13 @@
 package org.finos.morphir.ir.sdk
 
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics.intType
-import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.Maybe.maybeType
 import org.finos.morphir.ir.sdk.String.stringType
-import org.finos.morphir.syntax.NamingSyntax._
 
-object LocalTime {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("LocalTime")
+object LocalTime extends MorphirIRSdkModule("LocalTime") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(name("LocalTime") -> OpaqueTypeSpecification() ?? "Type that represents a time concept."),
@@ -27,7 +23,7 @@ object LocalTime {
     )
   )
 
-  lazy val localTimeType: UType = reference(toFQName(moduleName, "localTime"))
+  lazy val localTimeType: UType = reference(fqn("LocalTime"))
   def localTimeType[A](attributes: A): Type[A] =
-    reference(attributes, toFQName(moduleName, "localTime"))
+    reference(attributes, fqn("LocalTime"))
 }

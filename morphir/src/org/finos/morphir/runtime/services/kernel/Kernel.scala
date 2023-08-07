@@ -1,8 +1,8 @@
 package org.finos.morphir.runtime.services.kernel
 
+import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.*
 import org.finos.morphir.runtime.exports.*
-import org.finos.morphir.universe.ir.Name
 import zio.prelude.fx.ZPure
 
 trait Kernel {

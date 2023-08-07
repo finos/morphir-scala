@@ -1,7 +1,7 @@
 package org.finos.morphir.ir.packages
-import org.finos.morphir.ir.module.{ModuleName, QualifiedModuleName, Specification => ModuleSpec}
+import org.finos.morphir.naming.*
+import org.finos.morphir.ir.module.{Specification => ModuleSpec}
 import org.finos.morphir.ir.Value.{Specification => ValueSpec}
-import org.finos.morphir.ir.{Name, Path}
 
 /**
  * Type that represents a package specification. A package specification only contains types that are exposed publicly
@@ -13,16 +13,13 @@ final case class Specification[+TA](modules: Map[ModuleName, ModuleSpec[TA]]) {
   def eraseAttributes: Specification[scala.Unit] = self.mapAttributes(_ => ())
 
   def lookupModuleSpecification(path: Path): Option[ModuleSpec[TA]] =
-    get(ModuleName.fromPath(path))
+    get(ModuleName(path))
 
   def get(moduleName: ModuleName): Option[ModuleSpec[TA]] =
     modules.get(moduleName)
 
-  def lookupTypeSpecification(path: Path, name: Name): Option[ModuleSpec[TA]] =
-    lookupTypeSpecification(QualifiedModuleName(path, name))
-
-  def lookupTypeSpecification(moduleName: QualifiedModuleName): Option[ModuleSpec[TA]] =
-    modules.get(moduleName)
+  def lookupTypeSpecification(modulePath: Path, name: Name): Option[ModuleSpec[TA]] = ???
+  /// lookupTypeSpecification(ModuleName(path, name))
 
   def mapAttributes[TB](func: TA => TB): Specification[TB] = Specification(modules.map { case (name, moduleSpec) =>
     (name, moduleSpec.mapAttributes(func))

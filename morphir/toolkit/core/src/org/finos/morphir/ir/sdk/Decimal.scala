@@ -1,7 +1,6 @@
 package org.finos.morphir.ir.sdk
 
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics._
@@ -10,8 +9,7 @@ import org.finos.morphir.ir.sdk.Maybe.maybeType
 import org.finos.morphir.ir.sdk.String.stringType
 import org.finos.morphir.syntax.NamingSyntax._
 
-object Decimal {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Decimal")
+object Decimal extends MorphirIRSdkModule("Decimal") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(
@@ -55,12 +53,12 @@ object Decimal {
   )
 
   lazy val decimalType: UType =
-    reference(toFQName(moduleName, "Decimal"))
+    reference(toFQName("Decimal"))
   def decimalType[A](attributes: A): Type[A] =
-    reference(attributes, toFQName(moduleName, "Decimal"))
+    reference(attributes, fqn("Decimal"))
 
   lazy val roundingModeType: UType =
-    reference(toFQName(moduleName, "RoundingMode"))
+    reference(toFQName("RoundingMode"))
   def roundingModeType[A](attributes: A): Type[A] =
-    reference(attributes, toFQName(moduleName, "RoundingMode"))
+    reference(attributes, fqn("RoundingMode"))
 }

@@ -1,6 +1,6 @@
 package org.finos.morphir.ir.module
-
-import org.finos.morphir.ir.{AccessControlled, Documented, FQName, Name, QModuleName, Type, Value}
+import org.finos.morphir.naming.*
+import org.finos.morphir.ir.{AccessControlled, Documented, Type, Value}
 
 import Type.Definition.{CustomType, TypeAlias}
 final case class Definition[+TA, +VA](
@@ -61,8 +61,8 @@ final case class Definition[+TA, +VA](
   }.toSet
 
   def collectReferences: Set[FQName] = collectTypeReferences ++ collectValueReferences
-  def dependsOnModules: Set[QModuleName] = self.collectReferences.map { case FQName(pp, mp, _) =>
-    QModuleName(pp.toPath, mp.toPath)
+  def dependsOnModules: Set[QualifiedModuleName] = self.collectReferences.map { case FQName(pp, mp, _) =>
+    QualifiedModuleName(pp.toPath, mp.toPath)
   }
 }
 

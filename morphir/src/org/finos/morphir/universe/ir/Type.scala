@@ -1,4 +1,5 @@
 package org.finos.morphir.universe.ir
+import org.finos.morphir.naming.*
 import org.finos.morphir.universe.ir.Type.ExtensibleRecord
 import org.finos.morphir.universe.ir.Type.Record
 import org.finos.morphir.universe.ir.Type.Reference

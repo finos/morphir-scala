@@ -1,4 +1,5 @@
 package org.finos.morphir.universe.ir
+import org.finos.morphir.naming.*
 import TypeSpecification.*
 
 final case class TypeSpec[Props[+_], +A](typeParams: List[Name], properties: Props[A])

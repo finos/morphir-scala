@@ -1,6 +1,7 @@
 package org.finos.morphir.ir
 package json
 
+import org.finos.morphir.naming.*
 import zio._
 import zio.json._
 import zio.json.ast.Json
@@ -16,12 +17,7 @@ import org.finos.morphir.ir.PackageModule.{
 import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, Type}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
 import org.finos.morphir.ir.Value.{Value, _}
-import org.finos.morphir.ir.module.{
-  Definition => ModuleDefinition,
-  QualifiedModuleName,
-  ModuleName,
-  Specification => ModuleSpecification
-}
+import org.finos.morphir.ir.module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 
 import scala.annotation.nowarn
 
@@ -36,10 +32,10 @@ trait MorphirJsonDecodingSupport {
     case (packagePath, modulePath, localName) => FQName(packagePath, modulePath, localName)
   }
 
-  implicit val qualifiedModuleNameDecoder: JsonDecoder[QualifiedModuleName] =
-    JsonDecoder.tuple2[Path, Name].map { case (namespace, localName) =>
-      QualifiedModuleName(namespace, localName)
-    }
+  // implicit val qualifiedModuleNameDecoder: JsonDecoder[QualifiedModuleName] =
+  //   JsonDecoder.tuple2[Path, Name].map { case (namespace, localName) =>
+  //     QualifiedModuleName(namespace, localName)
+  //   }
   implicit def literalBoolDecoder: JsonDecoder[BoolLiteral] =
     JsonDecoder.tuple2[String, Boolean].mapOrFail {
       case ("BoolLiteral", value) => Right(BoolLiteral(value))

@@ -2,6 +2,7 @@ package org.finos.morphir
 package ir
 package conversion
 
+import org.finos.morphir.naming.*
 import org.finos.morphir.datamodel.{Concept, Label}
 import org.finos.morphir.ir.{FQName, Type => T}
 import org.finos.morphir.ir.Type.{Type, UType}
@@ -71,8 +72,8 @@ object ToMorphirType {
       case Concept.LocalTime               => localTimeUType.as
       case Concept.Char                    => charUType.as
       case Concept.Unit                    => unitUType.as
-      case Concept.Alias(name, value)      => toUTypeConverter(T.reference(FQName.fromQualifiedName(name)))
-      case Concept.Enum(name, cases)       => toUTypeConverter(T.reference(FQName.fromQualifiedName(name)))
+      case Concept.Alias(name, value)      => toUTypeConverter(T.reference(name))
+      case Concept.Enum(name, cases)       => toUTypeConverter(T.reference(name))
       case Concept.List(elementType)       => listUType(conceptToTypeIR(elementType)).as
       case Concept.Optional(elementType)   => optionUType(conceptToTypeIR(elementType)).as
       case Concept.Map(keyType, valueType) => mapUType(conceptToTypeIR(keyType), conceptToTypeIR(valueType)).as

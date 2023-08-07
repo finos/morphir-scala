@@ -2,12 +2,9 @@ package org.finos.morphir.ir.sdk
 
 import zio.Chunk
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type._
-import org.finos.morphir.ir.sdk.Common._
 
-object Tuple {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Tuple")
+object Tuple extends MorphirIRSdkModule("Tuple") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map.empty,

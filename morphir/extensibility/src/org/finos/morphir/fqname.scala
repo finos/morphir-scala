@@ -1,13 +1,20 @@
 package org.finos.morphir
 
 private[morphir] trait FQNameExports {
-  self: NameExports with ModuleNameExports with PackageNameExports with PathExports with QualifiedModuleNameExports
+  self: NameExports with ModuleNameExports with NamespaceExports with PackageNameExports with PathExports
+    with QualifiedModuleNameExports
     with QNameExports =>
 
-  sealed case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) {
+  sealed case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) { self =>
     def getPackagePath: Path = packagePath.toPath
 
-    def getModulePath: Path = modulePath.toPath
+    def getModulePath: Path       = modulePath.toPath
+    def getModuleName: ModuleName = modulePath
+
+    /// Get the namespace of this FQName, which is just a slightly different representation of `modulePath`.
+    def namespace: Namespace = Namespace.fromModuleName(self.modulePath)
+    /// An alias for `packagePath`
+    def pack: PackageName = packagePath
 
     def toReferenceName: String = Seq(
       Path.toString(Name.toTitleCase, ".", packagePath.toPath),
@@ -25,6 +32,9 @@ private[morphir] trait FQNameExports {
   object FQName {
     //    def apply(packagePath: Path, modulePath: Path, localName: Name): FQName =
     //      FQName(PackageName(packagePath), ModulePath(modulePath), localName)
+
+    def apply(packageName: PackageName, namespace: Namespace, localName: Name): FQName =
+      FQName(packageName, namespace.toModuleName, localName)
 
     val fqName: Path => Path => Name => FQName = packagePath =>
       modulePath => localName => FQName(PackageName.fromPath(packagePath), ModuleName(modulePath), localName)

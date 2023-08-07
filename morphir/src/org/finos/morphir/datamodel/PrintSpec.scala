@@ -1,5 +1,6 @@
 package org.finos.morphir.datamodel
 
+import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.Concept
 import org.finos.morphir.datamodel.namespacing.QualifiedName
 import zio.Chunk

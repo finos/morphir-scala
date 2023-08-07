@@ -1,7 +1,7 @@
 package org.finos.morphir.ir.sdk
 
+import org.finos.morphir.naming._
 import zio.Chunk
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type.{Type, UType, reference => typeRef, tuple}
 import org.finos.morphir.ir.Value.{Value, reference => valRef}
@@ -11,9 +11,7 @@ import org.finos.morphir.ir.sdk.Maybe.maybeType
 import org.finos.morphir.ir.{Module, NeedsAttributes}
 import org.finos.morphir.syntax.NamingSyntax._
 
-object List {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("List")
-
+object List extends MorphirIRSdkModule("List") {
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(name("List") -> OpaqueTypeSpecification("a") ?? "Type that represents a list of values."),
     values = Map(
@@ -101,11 +99,11 @@ object List {
   )
 
   def listType(itemType: UType): UType =
-    typeRef(toFQName(moduleName, "List"), itemType)
+    typeRef(fqn("List"), itemType)
 
   def listType[A](attributes: A)(itemType: Type[A])(implicit ev: NeedsAttributes[A]): Type[A] =
-    typeRef(attributes, toFQName(moduleName, "List"), itemType)
+    typeRef(attributes, fqn("List"), itemType)
 
   def construct[VA](attributes: VA): Value[Nothing, VA] =
-    valRef(attributes, toFQName(moduleName, "cons"))
+    valRef(attributes, fqn("cons"))
 }

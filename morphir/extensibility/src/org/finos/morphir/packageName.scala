@@ -11,6 +11,11 @@ private[morphir] trait PackageNameExports { self: naming.type =>
 
     @inline def isEmpty: Boolean = path.isEmpty
     @inline def toPath: Path     = path
+
+    def render(implicit renderer: PathRenderer): String = renderer(path)
+    /// An alias for `render`
+    def show(implicit renderer: PathRenderer): String = render
+    override def toString(): String                   = render
   }
 
   object PackageName {
@@ -20,6 +25,10 @@ private[morphir] trait PackageNameExports { self: naming.type =>
     def fromPath(path: Path): PackageName = PackageName(path)
 
     def fromString(str: String): PackageName = PackageName(Path.fromString(str))
+    def fromIterable(segements: Iterable[Name]): PackageName =
+      PackageName(Path.fromIterable(segements))
+    def fromList(segments: List[Name]): PackageName =
+      PackageName(Path.fromList(segments))
 
   }
 }

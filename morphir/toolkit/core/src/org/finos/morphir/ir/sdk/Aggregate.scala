@@ -1,17 +1,13 @@
 package org.finos.morphir.ir.sdk
-
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics.{boolType, floatType}
-import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.List.listType
 import org.finos.morphir.syntax.NamingSyntax._
 
-object Aggregate {
-
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Aggregate")
+object Aggregate extends MorphirIRSdkModule("Aggregate") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(name("Aggregation") -> OpaqueTypeSpecification("a", "key") ?? ""),
@@ -55,8 +51,8 @@ object Aggregate {
   )
 
   def aggregationType(aType: UType, keyType: UType): UType =
-    reference(toFQName(moduleName, "Aggregation"), aType, keyType)
+    reference(toFQName("Aggregation"), aType, keyType)
 
   def aggregationType[A](attributes: A)(aType: Type[A], keyType: Type[A]): Type[A] =
-    reference(attributes, toFQName(moduleName, "Aggregation"), aType, keyType)
+    reference(attributes, toFQName("Aggregation"), aType, keyType)
 }

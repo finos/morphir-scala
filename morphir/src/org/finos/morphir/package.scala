@@ -2,6 +2,7 @@ package org.finos
 import zio.prelude.*
 import spire.math.SafeLong
 import zio.prelude.*
+import org.finos.morphir.naming.*
 import org.finos.morphir.universe.ir.*
 
 package object morphir {

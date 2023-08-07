@@ -1,16 +1,14 @@
 package org.finos.morphir.ir.sdk
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.{CustomTypeSpecification, OpaqueTypeSpecification}
 import org.finos.morphir.ir.Type.{Type, UType, reference => tRef, tuple, tupleVar}
 import org.finos.morphir.ir.Value._
-import org.finos.morphir.ir.sdk.Common._
-import org.finos.morphir.syntax.NamingSyntax._
 import org.finos.morphir.ir.NeedsAttributes
 
-object Basics {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Basics")
+object Basics extends MorphirIRSdkModule("Basics") {
+
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(
       name("Int")   -> OpaqueTypeSpecification() ?? "Type that represents an integer value.",
@@ -20,8 +18,8 @@ object Basics {
         "EQ",
         "GT"
       ) ?? "Represents the relative ordering of two things. The relations are less than, equal to, and greater than.",
-      name("Bool")  -> OpaqueTypeSpecification() ?? "Type that represents a boolean value.",
-      name("Never") -> OpaqueTypeSpecification() ?? "A value that can never happen."
+      n"Bool"  -> OpaqueTypeSpecification() ?? "Type that represents a boolean value.",
+      n"Never" -> OpaqueTypeSpecification() ?? "A value that can never happen."
     ),
     values = Map(
       // number
@@ -94,19 +92,19 @@ object Basics {
     )
   )
 
-  lazy val boolType: UType                 = tRef((toFQName(moduleName, "Bool")))
-  def boolType[A](attributes: A): Type[A]  = tRef(attributes, (toFQName(moduleName, "Bool")))
-  lazy val floatType: UType                = tRef((toFQName(moduleName, "Float")))
-  lazy val intType: UType                  = tRef(toFQName(moduleName, "Int"))
-  lazy val neverType: UType                = tRef((toFQName(moduleName, "Never")))
+  lazy val boolType: UType                 = tRef((fqn("Bool")))
+  def boolType[A](attributes: A): Type[A]  = tRef(attributes, (fqn("Bool")))
+  lazy val floatType: UType                = tRef((fqn("Float")))
+  lazy val intType: UType                  = tRef(fqn("Int"))
+  lazy val neverType: UType                = tRef((fqn("Never")))
   lazy val orderType: UType                = orderType(())
-  def orderType[A](attributes: A): Type[A] = tRef(attributes, (toFQName(moduleName, "Order")))
+  def orderType[A](attributes: A): Type[A] = tRef(attributes, (fqn("Order")))
 
-  def add: RawValue = reference(toFQName(moduleName, "add"))
+  def add: RawValue = reference(toFQName("add"))
   def add[A](attributes: A)(implicit ev: NeedsAttributes[A]): Value[Nothing, A] =
-    reference(attributes, toFQName(moduleName, "add"))
+    reference(attributes, fqn("add"))
 
-  def subtract: RawValue = reference(toFQName(moduleName, "subtract"))
+  def subtract: RawValue = reference(toFQName("subtract"))
   def subtract[A](attributes: A)(implicit ev: NeedsAttributes[A]): Value[Nothing, A] =
-    reference(attributes, toFQName(moduleName, "subtract"))
+    reference(attributes, fqn("subtract"))
 }

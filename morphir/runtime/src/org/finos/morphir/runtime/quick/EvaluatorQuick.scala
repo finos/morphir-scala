@@ -1,11 +1,12 @@
 package org.finos.morphir.runtime.quick
 
+import org.finos.morphir.naming.*
 import org.finos.morphir.ir.Value.TypedValue
 import org.finos.morphir.ir.Value as V
 import V.*
 import org.finos.morphir.ir.Type as T
 import org.finos.morphir.ir.Type.Type as TT
-import org.finos.morphir.ir.{FQName, Field, Module, Name, QName, Type}
+import org.finos.morphir.ir.{FQName, Field, Module, Type}
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.MorphirIRFile
@@ -100,9 +101,11 @@ object EvaluatorQuick {
     value match {
       case r: Result[_, _] => r.asInstanceOf[Result[TA, VA]] // passed-through results from generic ops
       case ()              => Result.Unit()
-      case m: Map[_, _]    => Result.MapResult(m.toSeq.map { case (key, value) => (wrap(key), wrap(value)) }.toMap)
-      case l: List[_]      => Result.ListResult(l.map(wrap(_)))
-      case (first, second) => Result.Tuple((wrap(first), wrap(second)))
+      case m: Map[_, _] =>
+        Result.MapResult(m.toSeq.map { case (key, value) => (wrap(key), wrap(value)) }.toMap)
+          .asInstanceOf[Result[TA, VA]]
+      case l: List[_]             => Result.ListResult(l.map(wrap(_)))
+      case (first, second)        => Result.Tuple((wrap(first), wrap(second)))
       case (first, second, third) => Result.Tuple((wrap(first), wrap(second), wrap(third)))
       // TODO: Option, Result, LocalDate
       case primitive => Result.Primitive(primitive) // TODO: Handle each case for safety's sake
@@ -114,7 +117,7 @@ object EvaluatorQuick {
         val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
           val unwrappedArg1 = unwrap(arg1)
           val unwrappedArg2 = unwrap(arg2)
-          val res           = nf.invokeExact(unwrappedArg1, unwrappedArg2)
+          val res           = nf.invokeDynamic(unwrappedArg1, unwrappedArg2)
           wrap(res)
         }
         SDKValue.SDKNativeFunction(nf.arity, f)
@@ -152,8 +155,8 @@ object EvaluatorQuick {
           case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             typeToConcept(expr, dist, newBindings) match {
-              case Concept.Struct(fields) => Concept.Record(typeName.toQualifiedName, fields)
-              case other                  => Concept.Alias(typeName.toQualifiedName, other)
+              case Concept.Struct(fields) => Concept.Record(typeName, fields)
+              case other                  => Concept.Alias(typeName, other)
             }
           case Type.Specification.CustomTypeSpecification(typeParams, ctors) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
@@ -165,7 +168,7 @@ object EvaluatorQuick {
               val concepts: List[(EnumLabel, Concept)] = argTuples.toList
               Concept.Enum.Case(Label(conceptName), concepts)
             }
-            Concept.Enum(typeName.toQualifiedName, cases)
+            Concept.Enum(typeName, cases)
           case other => throw UnsupportedType(s"$other is not a recognized type")
         }
       case TT.Tuple(attributes, elements) =>

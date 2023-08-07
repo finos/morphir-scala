@@ -1,5 +1,6 @@
 package org.finos.morphir
 
+import org.finos.morphir.naming
 // TODO:  Reintroduce later
 // import org.finos.morphir.sdk.ResultModule
 
@@ -8,11 +9,11 @@ package object ir {
   type Documented[+A] = org.finos.morphir.universe.ir.Documented[A]
   val Documented: org.finos.morphir.universe.ir.Documented.type = org.finos.morphir.universe.ir.Documented
 
-  type FQName = org.finos.morphir.naming.FQName
-  val FQName: org.finos.morphir.naming.FQName.type = org.finos.morphir.naming.FQName
+  type FQName = naming.FQName
+  val FQName: naming.FQName.type = naming.FQName
 
-  type Name = org.finos.morphir.naming.Name
-  val Name: org.finos.morphir.naming.Name.type = org.finos.morphir.naming.Name
+  type Name = naming.Name
+  val Name: naming.Name.type = naming.Name
 
   type Path = org.finos.morphir.naming.Path
   val Path: org.finos.morphir.naming.Path.type = org.finos.morphir.naming.Path
@@ -20,14 +21,14 @@ package object ir {
   type QName = org.finos.morphir.naming.QName
   val QName: org.finos.morphir.naming.QName.type = org.finos.morphir.naming.QName
 
-  type QModuleName = org.finos.morphir.universe.ir.QModuleName
-  val QModuleName: org.finos.morphir.universe.ir.QModuleName.type = org.finos.morphir.universe.ir.QModuleName
+  type QualifiedModuleName = naming.QualifiedModuleName
+  val QualifiedModuleName: naming.QualifiedModuleName.type = naming.QualifiedModuleName
 
-  type ModuleName = Module.ModuleName
-  val ModuleName: Module.ModuleName.type = Module.ModuleName
+  type ModuleName = naming.ModuleName
+  val ModuleName = naming.ModuleName
 
-  type PackageName = PackageModule.PackageName
-  val PackageName: PackageModule.PackageName.type = PackageModule.PackageName
+  type PackageName = naming.PackageName
+  val PackageName = naming.PackageName
 
   // TODO:  Reintroduce later
   // type PackageSpecification[+Annotations] = PackageModule.Specification[Annotations]

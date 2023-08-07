@@ -28,7 +28,10 @@ private[morphir] trait PathExports { self: NameExports =>
       toList.map(f).mkString(separator)
 
     /** Checks if this path is a prefix of provided path */
-    def isPrefixOf(path: Path): Boolean                 = Path.isPrefixOf(self, path)
+    def isPrefixOf(path: Path): Boolean = Path.isPrefixOf(self, path)
+
+    def parts(implicit renderer: PathRenderer): IndexedSeq[String] = segments.map(_.render(renderer.nameRenderer))
+
     def render(implicit renderer: PathRenderer): String = renderer(self)
     def render(separator: String)(implicit nameRenderer: NameRenderer): String =
       render(PathRenderer(separator, nameRenderer))
