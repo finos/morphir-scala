@@ -129,6 +129,15 @@ object NameSpec extends MorphirBaseSpec {
         }
         assertTrue(actual == "ironMan")
       }
+    ),
+    suite("String Interpolation")(
+      test("When using the n interpolator on a plain string") {
+        assertTrue(n"Foo" == Name.fromString("Foo"), n"Foo" == Name.fromList(List("foo")))
+      },
+      test("When using the n interpolator with an int value") {
+        val n = 42
+        assertTrue(n"Foo$n" == Name.fromString("Foo42"), n"Foo$n" == Name.fromList(List("foo", "42")))
+      }
     )
   )
 }
