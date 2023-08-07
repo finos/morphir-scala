@@ -1,7 +1,6 @@
 package org.finos.morphir
 
 import org.finos.morphir.testing.MorphirBaseSpec
-import zio.Chunk
 import zio.test.*
 import naming.*
 
@@ -9,71 +8,41 @@ object PathSpec extends MorphirBaseSpec {
   def spec = suite("Path")(
     suite("Creating a Path from a String")(
       test("It can be constructed from a simple string") {
-        assertTrue(Path.fromString("Person") == Path(Chunk(Name.fromString("person"))))
+        assertTrue(Path.fromString("Person") == Path(n"person"))
       },
       test("It can be constructed from a long string") {
-        assertTrue(
-          Path.fromString("She Sells Seashells") == Path(
-            Chunk(
-              Name.fromList(List("she", "sells", "seashells"))
-            )
-          )
-        )
+        assertTrue(Path.fromString("She Sells Seashells") == Path(n"she sells seashells"))
       },
       test("It can be constructed when given a dotted string") {
-        assertTrue(
-          Path.fromString("blog.Author") == Path(
-            Chunk(Name.fromList(List("blog")), Name.fromList(List("author")))
-          )
-        )
+        assertTrue(Path.fromString("blog.Author") == Path(n"blog", n"author"))
       },
       test("It can be constructed when given a '-' separated string") {
-        assertTrue(
-          Path.fromString("blog-Author") == Path(
-            Chunk(Name.fromList(List("blog")), Name.fromList(List("author")))
-          )
-        )
+        assertTrue(Path.fromString("blog-Author") == Path(n"blog", Name.fromList(List("author"))))
       },
       test("It can be constructed when given a '/' separated string") {
-        assertTrue(
-          Path.fromString("blog/Author") == Path(
-            Chunk(Name.fromList(List("blog")), Name.fromList(List("author")))
-          )
-        )
+        assertTrue(Path.fromString("blog/Author") == Path(Name.fromList("blog"), Name.fromList("author")))
       },
       test("It can be constructed when given a '\' separated string") {
-        assertTrue(
-          Path.fromString("blog\\Author") == Path(
-            Chunk(Name.fromList(List("blog")), Name.fromList(List("author")))
-          )
-        )
+        assertTrue(Path.fromString("blog\\Author") == Path(n"blog", n"author"))
       },
       test("It can be constructed when given a ':' separated string") {
-        assertTrue(
-          Path.fromString("blog:Author") == Path(
-            Chunk(Name.fromList(List("blog")), Name.fromList(List("author")))
-          )
-        )
+        assertTrue(Path.fromString("Morphir:SDK") == Path(n"Morphir", n"SDK"))
       },
       test("It can be constructed when given a ';' separated string") {
-        assertTrue(
-          Path.fromString("Blog ; Author") == Path(
-            Chunk(Name.fromList(List("blog")), Name.fromList(List("author")))
-          )
-        )
+        assertTrue(Path.fromString("Blog ; Author") == Path(n"blog", n"author"))
       },
       test("It can be constructed from Name arguments") {
         assertTrue(
-          Path(Name.fromString("projectfiles"), Name.fromString("filePath")) == Path(
-            Chunk(Name.fromList(List("projectfiles")), Name.fromList(List("file", "Path")))
+          Path(Name.fromString("projectfiles"), Name.fromString("filePath")) == Path.fromList(
+            List(Name.fromList(List("projectfiles")), Name.fromList(List("file", "path")))
           )
         )
       },
       test("It can be constructed from string arguments") {
         assertTrue(
-          Path("myCompany", "some Type") == Path(
-            Name.unsafeMake("my", "company"),
-            Name.unsafeMake("some", "type")
+          Path("myCompany", "some Type") == Path.fromList(
+            Name.fromList("my", "company"),
+            Name.fromList("some", "type")
           )
         )
       }
@@ -81,19 +50,15 @@ object PathSpec extends MorphirBaseSpec {
     suite("Transforming a Path into a String")(
       test("Paths with period and TitleCase") {
         val input = Path(
-          Chunk(
-            Name("foo", "bar"),
-            Name("baz")
-          )
+          Name("foo", "bar"),
+          Name("baz")
         )
         assertTrue(Path.toString(Name.toTitleCase, ".", input) == "FooBar.Baz")
       },
       test("Paths with slash and Snake_Case") {
         val input = Path(
-          Chunk(
-            Name("foo", "bar"),
-            Name("baz")
-          )
+          Name("foo", "bar"),
+          Name("baz")
         )
         assertTrue(Path.toString(Name.toSnakeCase, "/", input) == "foo_bar/baz")
       }
@@ -101,16 +66,22 @@ object PathSpec extends MorphirBaseSpec {
     suite("Transforming a Path into list of Names")(
       test("It can be constructed using toList") {
         assertTrue(
-          Path.toList(Path(Chunk(Name("Com", "Example"), Name("Hello", "World"))))
-            == List(Name("Com", "Example"), Name("Hello", "World"))
+          Path.toList(Path(Name("Com", "Example"), Name("Hello", "World"))) == List(
+            Name("Com", "Example"),
+            Name("Hello", "World")
+          )
         )
       }
     ),
     suite("Creating a Path from a Name")(
       test("It can be constructed from names")(
         assertTrue(
-          Name("Org") / Name("Finos") == Path(Chunk(Name("Org"), Name("Finos"))),
-          Name("Alpha") / Name("Beta") / Name("Gamma") == Path(Chunk(Name("Alpha"), Name("Beta"), Name("Gamma")))
+          Path.root / Name("Org") / Name("Finos") == Path(Vector(Name("Org"), Name("Finos"))),
+          Path.root / Name("Alpha") / Name("Beta") / Name("Gamma") == Path(Vector(
+            Name("Alpha"),
+            Name("Beta"),
+            Name("Gamma")
+          ))
         )
       )
     ),
@@ -132,6 +103,13 @@ object PathSpec extends MorphirBaseSpec {
         val prefix = sut
         assertTrue(Path.isPrefixOf(prefix = prefix, path = sut))
       }
+    ),
+    suite("ToString")(
+      test("The standard to String should return a String representation of the path using the default PathRenderer")(
+        assertTrue(
+          Path.fromString("foo/bar/baz").toString == "Foo.Bar.Baz"
+        )
+      )
     )
   )
 }

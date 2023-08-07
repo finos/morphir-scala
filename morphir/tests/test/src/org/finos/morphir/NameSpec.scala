@@ -103,13 +103,6 @@ object NameSpec extends MorphirBaseSpec {
         assertTrue(Name.fromIterable(List("fooBar", "fizzBuzz")) == Name("foo", "bar", "fizz", "buzz"))
       }
     ),
-    suite("unsafeMake")(
-      test("Creates the name as provided") {
-        assertTrue(
-          Name.unsafeMake("foo", "bar", "baz", "123").toList == List("foo", "bar", "baz", "123")
-        )
-      }
-    ),
     suite("Misc")(
       test("Name.toString") {
         assertTrue(Name.fromString("fooBar").toString == "[foo,bar]", Name.fromString("a").toString == "[a]")

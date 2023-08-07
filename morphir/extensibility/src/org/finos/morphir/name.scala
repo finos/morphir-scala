@@ -56,7 +56,7 @@ private[morphir] trait NameExports {
     def mkString(f: String => String)(sep: String): String =
       toList.map(f).mkString(sep)
 
-    def render(implicit renderer: NameRenderer): String = renderer(self)
+    def render(implicit renderer: NameRenderer): String = renderer.render(self)
 
     def toUpperCase: String = mkString(part => part.toUpperCase)("")
 
@@ -102,20 +102,25 @@ private[morphir] trait NameExports {
 
     private val pattern = """([a-zA-Z][a-z]*|[0-9]+)""".r
 
-    @inline def fromList(list: List[String]): Name = fromIterable(list)
+    /**
+     * Converts a list of strings into a name. NOTE: When this function is used, the strings are used as is to construct
+     * the name, and don't go through any processing. This behavior is desired here as it is consistent with Morphir's
+     * semantics for this function as defined in the `morphir-elm` project.
+     */
+    def fromList(list: List[String]): Name = Name(list)
+
+    /**
+     * Converts a list of strings into a name. NOTE: When this function is used, the strings are used as is to construct
+     * the name, and don't go through any processing. This behavior is desired here as it is consistent with Morphir's
+     * semantics for this function as defined in the `morphir-elm` project.
+     */
+    def fromList(list: String*): Name = fromList(list.toList)
 
     def fromIterable(iterable: Iterable[String]): Name =
       wrap(iterable.flatMap(str => pattern.findAllIn(str)).map(_.toLowerCase).toList)
 
     def fromString(str: String): Name =
       Name(pattern.findAllIn(str).toList.map(_.toLowerCase()))
-
-    /**
-     * Creates a new name from a chunk of strings without checking.
-     */
-    private[morphir] def unsafeMake(value: List[String]): Name = Name(value)
-
-    private[morphir] def unsafeMake(exactSegments: String*): Name = Name(exactSegments.toList)
 
     def toList(name: Name): List[String] = name.toList
 
@@ -136,21 +141,26 @@ private[morphir] trait NameExports {
 
   }
 
-  abstract class NameRenderer(rendererName: String) extends (Name => String) {
-    final def apply(name: Name): String = render(name)
-    def render(name: Name): String
-    override def toString: String = s"$rendererName Name Renderer"
+  trait NameRenderer extends (Name => String) {
+    final def render(name: Name): String = apply(name)
   }
 
   object NameRenderer {
-    def apply(rendererName: String)(f: Name => String): NameRenderer = new NameRenderer(rendererName) {
-      override def render(name: Name): String = f(name)
+    object CamelCase extends NameRenderer {
+      def apply(name: Name): String = name.toCamelCase
     }
 
-    val CamelCase: NameRenderer = NameRenderer("CamelCase")(Name.toCamelCase)
-    val KebabCase: NameRenderer = NameRenderer("KebabCase")(Name.toKebabCase)
-    val SnakeCase: NameRenderer = NameRenderer("SnakeCase")(Name.toSnakeCase)
-    val TitleCase: NameRenderer = NameRenderer("TitleCase")(Name.toTitleCase)
+    object KebabCase extends NameRenderer {
+      def apply(name: Name): String = name.toKebabCase
+    }
+
+    object SnakeCase extends NameRenderer {
+      def apply(name: Name): String = name.toSnakeCase
+    }
+
+    object TitleCase extends NameRenderer {
+      def apply(name: Name): String = name.toTitleCase
+    }
 
     implicit val default: NameRenderer = TitleCase
   }

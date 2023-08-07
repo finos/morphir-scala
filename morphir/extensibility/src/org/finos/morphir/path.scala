@@ -42,33 +42,43 @@ private[morphir] trait PathExports { self: NameExports =>
     //   val nsSegments = Namespace.segments(segments.map(_.render))
     //   Namespace.fromIterable(nsSegments)
     // }
+
+    override def toString(): String = render
   }
 
   object Path {
-    val empty: Path = Path(Vector.empty)
+    val separatorRegex = """[^\w\s]+""".r
+    val empty: Path    = Path(Vector.empty)
+    val root: Path     = Path(Vector.empty)
 
     def apply(first: String, rest: String*): Path =
-      wrap((first +: rest).map(Name.fromString).toList)
+      if (rest.isEmpty) Path(Vector(Name.fromString(first)))
+      else Path.fromIterable(Name.fromString(first) +: rest.map(Name.fromString(_)))
 
     def apply(first: Name, rest: Name*): Path =
-      if (rest.isEmpty) wrap(List(first))
-      else wrap((first +: rest).toList)
+      if (rest.isEmpty) Path(Vector(first))
+      else Path(first +: rest.toVector)
 
-    private[morphir] def wrap(value: Vector[Name]): Path = Path(value)
-    private[morphir] def wrap(value: List[Name]): Path   = Path(value.toVector)
-    private[morphir] def wrap(value: Array[Name]): Path  = Path(value.toVector)
-
-    def fromString(str: String): Path = {
-      val separatorRegex = """[^\w\s]+""".r
+    /**
+     * Translates a string into a path by splitting it into names along special characters. The algorithm will treat any
+     * non-word characters that are not spaces as a path separator.
+     */
+    def fromString(str: String): Path =
       fromArray(separatorRegex.split(str).map(Name.fromString))
-    }
 
     def toString(f: Name => String, separator: String, path: Path): String =
       path.toString(f, separator)
 
-    @inline def fromArray(names: Array[Name]): Path       = Path(names.toVector)
+    /// Converts an array of names into a path.
+    @inline def fromArray(names: Array[Name]): Path = Path(names.toVector)
+    /// Converts names into a path.
     @inline def fromIterable(names: Iterable[Name]): Path = Path(names.toVector)
-    @inline def fromList(names: List[Name]): Path         = Path(names.toVector)
+    /// Converts a list of names into a path.
+    @inline def fromList(names: List[Name]): Path = Path(names.toVector)
+    /// Converts a list of names into a path.
+    @inline def fromList(names: Name*): Path = Path(names.toVector)
+    /// Converts names into a path.
+    @inline def fromVector(names: Vector[Name]): Path = Path(names)
 
     @inline def toList(path: Path): List[Name] = path.toList.toList
 
@@ -94,10 +104,12 @@ private[morphir] trait PathExports { self: NameExports =>
     final def render(path: Path): String = apply(path)
   }
 
-  object Renderer {
+  object PathRenderer {
     val CamelCase: PathRenderer = PathRenderer(".", NameRenderer.CamelCase)
     val KebabCase: PathRenderer = PathRenderer(".", NameRenderer.KebabCase)
     val SnakeCase: PathRenderer = PathRenderer(".", NameRenderer.SnakeCase)
     val TitleCase: PathRenderer = PathRenderer(".", NameRenderer.TitleCase)
+
+    implicit val default: PathRenderer = TitleCase
   }
 }
