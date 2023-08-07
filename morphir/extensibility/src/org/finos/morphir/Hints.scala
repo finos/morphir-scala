@@ -11,5 +11,3 @@ object Hints {
     override def isEmpty: Boolean = true
   }
 }
-
-

@@ -11,7 +11,7 @@ sealed abstract class TypeError(message: String)       extends MorphirRuntimeErr
 
 final case class UnsupportedType(message: String)            extends TypeError(message)
 final case class TooManyArgs(message: String)                extends TypeError(message)
-final case class NativeFunctionTypeError(message: String)                extends TypeError(message)
+final case class NativeFunctionTypeError(message: String)    extends TypeError(message)
 final case class IrToDatamodelError(message: String)         extends EvaluationError(message)
 final case class MissingField(message: String)               extends EvaluationError(message)
 final case class UnexpectedType(message: String)             extends EvaluationError(message)

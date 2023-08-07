@@ -37,7 +37,7 @@ object SdkModuleDescriptors {
 
       // TODO: Write a test to check what MorphirTag looks like for all of these
 
-      // NOTE: We will want to use the MorphirTag to look up info of Modules, Types, and Valuesi      
+      // NOTE: We will want to use the MorphirTag to look up info of Modules, Types, and Valuesi
       case object Basics extends SdkModuleDescriptor("Basics") {
         // type Type = Basics.type
 
