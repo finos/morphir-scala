@@ -46,11 +46,9 @@ private[morphir] trait ModuleNameExports { self: NameExports with PathExports =>
     /// Create an empty module name.
     val empty: ModuleName = ModuleName(Path.empty)
 
-    def apply(input: String): ModuleName =
-      ModuleName.fromPath(Path.fromArray(input.split('.').map(Name.fromString)))
+    def apply(input: String): ModuleName = fromString(input)
 
-    def fromPath(path: Path): ModuleName      = ModuleName(path)
-    def fromString(input: String): ModuleName = ModuleName(input)
+    def fromString(input: String): ModuleName = ModuleName(Path.fromString(input))
   }
 
 }

@@ -22,15 +22,4 @@ private[morphir] trait PackageNameExports { self: naming.type =>
     def fromString(str: String): PackageName = PackageName(Path.fromString(str))
 
   }
-
-  sealed case class PackageNamingContext(packageName: PackageName)
-  object PackageNamingContext {
-    object morphir {
-      object sdk {
-        implicit val defaultPackageNamingContext: PackageNamingContext =
-          PackageNamingContext(PackageName.fromString("Morphir.Sdk"))
-      }
-    }
-  }
-
 }

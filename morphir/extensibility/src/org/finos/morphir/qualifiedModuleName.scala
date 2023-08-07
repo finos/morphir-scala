@@ -7,9 +7,13 @@ private[morphir] trait QualifiedModuleNameExports { self: PackageNameExports wit
     def toTuple: (Path, Path) = (packageName.toPath, modulePath.toPath)
   }
 
-  object QModuleName {
+  object QualifiedModuleName {
     def apply(packageName: Path, modulePath: Path): QualifiedModuleName =
-      QualifiedModuleName(PackageName.fromPath(packageName), ModuleName.fromPath(modulePath))
+      QualifiedModuleName(PackageName.fromPath(packageName), ModuleName(modulePath))
+
+    def apply(modulePath: String)(implicit packageName: PackageName): QualifiedModuleName =
+      QualifiedModuleName(packageName, ModuleName.fromString(modulePath))
+
     object AsTuple {
       def unapply(name: QualifiedModuleName): Option[(Path, Path)] =
         Some(name.toTuple)
