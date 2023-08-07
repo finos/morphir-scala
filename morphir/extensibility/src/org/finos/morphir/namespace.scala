@@ -1,16 +1,16 @@
 package org.finos.morphir
 
-import scala.annotation.tailrec
-import zio.=!=
-import zio.prelude.*
-
 private[morphir] trait NamespaceExports { self: NameExports with PathExports =>
-  type Namespace = Namespace.Type
+  sealed case class Namespace(path: Path) {
+    def ++(name: Namespace): Namespace = Namespace(path ++ path)
 
-  object Namespace extends Subtype[Path] {
-    def apply(parts: Name*): Namespace  = Namespace(Path.fromList(parts.toList))
-    def fromPath(path: Path): Namespace = wrap(path)
+    @inline def toPath: Path = path
 
-    def toPath(namespace: Namespace): Path = unwrap(namespace)
+  }
+
+  object Namespace {
+    def apply(parts: Name*): Namespace  = Namespace(Path.fromIterable(parts))
+    def fromPath(path: Path): Namespace = Namespace(path)
+
   }
 }

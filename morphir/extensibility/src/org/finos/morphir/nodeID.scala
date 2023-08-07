@@ -1,6 +1,7 @@
 package org.finos.morphir
 
 private[morphir] trait NodeIDExports { self: NameExports =>
+  import NodePath.*
 
   sealed case class NodePath(steps: Vector[NodePathStep]) { self =>
     import NodePathStep.*
@@ -43,7 +44,7 @@ private[morphir] trait NodeIDExports { self: NameExports =>
     def childByName(input: String): NodePathStep = ChildByName(Name.fromString(input))
     def childByIndex(index: Int): NodePathStep   = ChildByIndex(index)
 
-    final case class ChildByName(name: Name)  extends NodePathStep
-    final case class ChildByIndex(index: Int) extends NodePathStep
+    sealed case class ChildByName(name: Name)  extends NodePathStep
+    sealed case class ChildByIndex(index: Int) extends NodePathStep
   }
 }
