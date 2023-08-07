@@ -1,6 +1,6 @@
 package org.finos.morphir.runtime.quick
 
-import org.finos.morphir.naming.*
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Value.TypedValue
 import org.finos.morphir.ir.Value as V
 import V.*
@@ -19,9 +19,9 @@ import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.{MissingField, ResultDoesNotMatchType, UnsupportedType}
 
-import org.finos.morphir.runtime.services.sdk.*
-import org.finos.morphir.runtime.exports.*
-import org.finos.morphir.runtime.services.*
+import org.finos.morphir.runtime.services.sdk._
+import org.finos.morphir.runtime.exports._
+import org.finos.morphir.runtime.services._
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.extensibility.{NativeFunction, NativeFunction2}
@@ -101,9 +101,12 @@ object EvaluatorQuick {
     value match {
       case r: Result[_, _] => r.asInstanceOf[Result[TA, VA]] // passed-through results from generic ops
       case ()              => Result.Unit()
-      case m: Map[_, _] =>
-        Result.MapResult(m.toSeq.map { case (key, value) => (wrap(key), wrap(value)) }.toMap)
-          .asInstanceOf[Result[TA, VA]]
+      case m: Map[_, _]    =>
+        // val result = Result.MapResult(m.toSeq.map { case (key, value) =>
+        //   (wrap(key).asInstanceOf[Result[TA, VA]], wrap(value).asInstanceOf[Result[TA, VA]])
+        // }.toMap)
+        // result // .asInstanceOf[Result[TA, VA]]
+        ???
       case l: List[_]             => Result.ListResult(l.map(wrap(_)))
       case (first, second)        => Result.Tuple((wrap(first), wrap(second)))
       case (first, second, third) => Result.Tuple((wrap(first), wrap(second), wrap(third)))
