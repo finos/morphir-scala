@@ -10,11 +10,13 @@ private[morphir] trait NameExports {
    */
   sealed case class Name private (toList: List[String]) {
     self =>
-    def :+(that: String): Name = Name(self.toList :+ that)
+    // def :+(that: String): Name = Name(self.toList :+ that)
 
-    def +:(that: String): Name = Name(that +: self.toList)
+    // def +:(that: String): Name = Name(that +: self.toList)
 
     def ++(that: Name): Name = Name(self.toList ++ that.toList)
+
+    def +(that: String): Name = self ++ Name.fromString(that)
 
     // def /(that: Name): Path = Path(IndexedSeq(self, that))
 

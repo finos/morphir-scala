@@ -131,6 +131,13 @@ object NameSpec extends MorphirBaseSpec {
         val n = 42
         assertTrue(n"Foo$n" == Name.fromString("Foo42"), n"Foo$n" == Name.fromList(List("foo", "42")))
       }
+    ),
+    suite("Operators")(
+      suite("+")(
+        test("It should support adding a String to a Name") {
+          assertTrue(Name.fromString("Foo") + "bar" == Name.fromString("FooBar"))
+        }
+      )
     )
   )
 }
