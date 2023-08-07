@@ -476,8 +476,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           ),
           "Morphir.Examples.App:ExampleModule:aB",
           typeArgUnionShape(Concept.Int32, Concept.String)
-        ))
-      ) @@ ignore @@ tag("Needs Workh"),
+        )) @@ ignore @@ tag("Failing because of non-matching order of union cases")
+      ),
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "returnDictionaryTest")(Data.Map(
           (Data.Int(1), Data.String("Red")),
