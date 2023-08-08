@@ -1,6 +1,6 @@
 package org.finos.morphir.ir
 
-import org.finos.morphir.ir.Module.QualifiedModuleName
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.PackageModule.{Definition, Specification}
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.samples.ModuleExample._

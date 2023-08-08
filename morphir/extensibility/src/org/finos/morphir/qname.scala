@@ -1,9 +1,10 @@
 package org.finos.morphir
 
-private[morphir] trait QNameExports { self: NameExports with PathExports =>
+private[morphir] trait QNameExports { self: ModuleNameExports with NameExports with PathExports =>
 
   /// A qualified name (`QName`) is a combination of a module path and a local name.
-  sealed case class QName(modulePath: Path, localName: Name) {
+  sealed case class QName(moduleName: ModuleName, localName: Name) {
+    def modulePath: Path = moduleName.path
 
     /// Turn a qualified name into a tuple of a module path and a local name.
     @inline def toTuple: (Path, Name) = (modulePath, localName)
@@ -14,6 +15,13 @@ private[morphir] trait QNameExports { self: NameExports with PathExports =>
   }
 
   object QName {
+    val empty: QName = QName(ModuleName.empty, Name.empty)
+    def apply(modulePath: Path, localName: Name): QName =
+      QName(ModuleName(modulePath), localName)
+
+    def apply(moduleName: String, localName: String): QName =
+      QName(ModuleName.fromString(moduleName), Name.fromString(localName))
+
     /// Turn a qualified name into a tuple of a module path and a local name.
     def toTuple(qName: QName): (Path, Name) = qName.toTuple
 

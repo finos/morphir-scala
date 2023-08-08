@@ -6,10 +6,7 @@ import zio.json._
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution._
 import org.finos.morphir.ir.Literal.Literal._
-import org.finos.morphir.ir.Module.{
-  Definition => ModuleDefinition,
-  Specification => ModuleSpecification
-}
+import org.finos.morphir.ir.Module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 import org.finos.morphir.ir.PackageModule.{
   Definition => PackageDefinition,
   Specification => PackageSpecification,
@@ -147,7 +144,7 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
     suite("FQName")(
       test("will decode an empty FQName") {
         val actual   = "[[],[],[]]"
-        val expected = FQName(Path.empty, Path.empty, Name.empty)
+        val expected = FQName.empty
         assert(actual.fromJson[FQName])(objectEqualTo(Right(expected)))
       },
       test("will decode a FQName") {
