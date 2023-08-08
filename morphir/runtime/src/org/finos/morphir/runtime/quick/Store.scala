@@ -69,13 +69,13 @@ object Store {
         }
       }
 
-    val ctorBindings: Map[FQName, SDKConstructor[Unit, Type.UType]] =
-      lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
-        accessControlledModule.value.types.flatMap {
-          case (localName, accessControlledType) =>
-            val definition = accessControlledType.value.value
-            definition match {
-              case Type.Definition.CustomType(_, accessControlledCtors) =>
+      val ctorBindings: Map[FQName, SDKConstructor[Unit, Type.UType]] =
+        lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
+          accessControlledModule.value.types.flatMap {
+            case (localName, accessControlledType) =>
+              val definition = accessControlledType.value.value
+              definition match {
+                case Type.Definition.CustomType(_, accessControlledCtors) =>
                 val ctors = accessControlledCtors.value.toMap
                 ctors.map { case (ctorName, ctorArgs) =>
                   val name = FQName(packageName, moduleName, ctorName)
