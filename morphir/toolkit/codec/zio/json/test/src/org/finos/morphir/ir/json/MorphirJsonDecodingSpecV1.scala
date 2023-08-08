@@ -1,15 +1,13 @@
 package org.finos.morphir.ir
 package json
 
+import org.finos.morphir.naming._
 import zio.json._
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution._
-import org.finos.morphir.ir.Literal.Literal
 import org.finos.morphir.ir.Literal.Literal._
 import org.finos.morphir.ir.Module.{
   Definition => ModuleDefinition,
-  QualifiedModuleName,
-  ModuleName,
   Specification => ModuleSpecification
 }
 import org.finos.morphir.ir.PackageModule.{

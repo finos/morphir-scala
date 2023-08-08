@@ -2,9 +2,9 @@ package org.finos.morphir
 package ir
 package conversion
 
-import org.finos.morphir.naming.*
+import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.{Concept, Label}
-import org.finos.morphir.ir.{FQName, Type => T}
+import org.finos.morphir.ir.{Type => T}
 import org.finos.morphir.ir.Type.{Type, UType}
 
 import scala.collection.immutable.{Map, Set}

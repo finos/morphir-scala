@@ -1,7 +1,7 @@
 package org.finos.morphir
 package runtime
 
-import org.finos.morphir.ir.FQName
+import org.finos.morphir.naming._
 
 final case class StackFrame(symbols: SymbolTable) { self =>
   def ++(frame: StackFrame): StackFrame = copy(symbols = self.symbols ++ frame.symbols)

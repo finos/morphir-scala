@@ -1,7 +1,7 @@
 package org.finos.morphir
 package ir
 
-import org.finos.morphir.ir.Name
+import org.finos.morphir.naming._
 import zio.prelude._
 
 final case class Field[+T](name: Name, data: T) { self =>

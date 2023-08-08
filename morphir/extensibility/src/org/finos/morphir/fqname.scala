@@ -30,6 +30,7 @@ private[morphir] trait FQNameExports {
   }
 
   object FQName {
+    val empty:FQName = FQName(PackageName.empty, ModuleName.empty, Name.empty)
     //    def apply(packagePath: Path, modulePath: Path, localName: Name): FQName =
     //      FQName(PackageName(packagePath), ModulePath(modulePath), localName)
 

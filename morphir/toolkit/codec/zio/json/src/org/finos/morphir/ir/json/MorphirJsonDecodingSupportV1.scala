@@ -4,6 +4,7 @@ package json
 import zio._
 import zio.json._
 import zio.json.ast.Json
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution._
 import org.finos.morphir.ir.Literal.Literal

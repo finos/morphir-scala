@@ -2,10 +2,11 @@ package org.finos.morphir.runtime
 
 import org.finos.morphir.naming.*
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.{Type as T, Value as V}
 import V.Value
 import T.Type
-import org.finos.morphir.ir.{Name, QName, FQName, Field}
+import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.Type.UType
 import zio.Chunk

@@ -1,9 +1,9 @@
 package org.finos.morphir.runtime.quick
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.{Pattern, Value}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
-import org.finos.morphir.ir.{FQName, Name}
 import Helpers.{listToTuple, matchPatternCase, unpackLit}
 import SDKValue.{SDKNativeFunction, SDKNativeValue}
 import org.finos.morphir.runtime.{

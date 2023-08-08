@@ -3,13 +3,13 @@ package org.finos.morphir.ir.printing
 import fansi.Str
 import pprint.{Renderer, Tree, Truncated}
 import java.util.function.UnaryOperator
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Value.{Value => V}
 import org.finos.morphir.ir.Value
 import org.finos.morphir.ir.Type.{Type => T}
 import org.finos.morphir.ir.Type
 import pprint.Tree.Literal
 import zio.Chunk
-import org.finos.morphir.ir.FQName
 
 object PrintIR {
   def apply(

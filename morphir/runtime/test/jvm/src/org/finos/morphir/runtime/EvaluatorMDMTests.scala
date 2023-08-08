@@ -1,19 +1,14 @@
 package org.finos.morphir.runtime
 
-import org.finos.morphir.testing.MorphirBaseSpec
-import zio.{Console, Task, ZIO, ZLayer}
-import zio.test.{test, *}
-import org.finos.morphir.runtime.MorphirRuntime
-import org.finos.morphir.datamodel.{Data, Concept, Label, EnumLabel}
-import org.finos.morphir.datamodel.namespacing.Namespace.ns
-import org.finos.morphir.datamodel.namespacing.PackageName.root
-import org.finos.morphir.datamodel.Util.*
-import org.finos.morphir.ir.{FQName, Type}
-import org.finos.morphir.ir.conversion.*
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
+import org.finos.morphir.ir.Type
+import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.testing.MorphirBaseSpec
+import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
+import zio.{Console, ZIO, ZLayer}
 
 object EvaluatorMDMTests extends MorphirBaseSpec {
   type MorphirRuntimeTyped = MorphirRuntime[Unit, Type.UType]

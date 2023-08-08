@@ -2,7 +2,7 @@ package org.finos.morphir
 package ir
 package io
 
-import org.finos.morphir.ir.Name
+import org.finos.morphir.naming._
 import zio._
 
 trait TypeWriter[-Context, -Attributes] {

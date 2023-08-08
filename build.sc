@@ -684,7 +684,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       object testing extends CrossPlatform {
         trait Shared extends MorphirCommonModule {
           def ivyDeps                    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-magnolia`)
-          def platformSpecificModuleDeps = Seq(morphir.testing.zio, toolkit.core)
+          def platformSpecificModuleDeps = Seq(morphir, morphir.testing.zio, toolkit.core)
 
         }
         object jvm extends Shared with MorphirJVMModule {

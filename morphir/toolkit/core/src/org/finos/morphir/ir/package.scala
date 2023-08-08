@@ -1,6 +1,6 @@
 package org.finos.morphir
 
-import org.finos.morphir.naming
+import org.finos.morphir.naming._
 // TODO:  Reintroduce later
 // import org.finos.morphir.sdk.ResultModule
 
@@ -8,27 +8,6 @@ package object ir {
 
   type Documented[+A] = org.finos.morphir.universe.ir.Documented[A]
   val Documented: org.finos.morphir.universe.ir.Documented.type = org.finos.morphir.universe.ir.Documented
-
-  type FQName = naming.FQName
-  val FQName: naming.FQName.type = naming.FQName
-
-  type Name = naming.Name
-  val Name: naming.Name.type = naming.Name
-
-  type Path = org.finos.morphir.naming.Path
-  val Path: org.finos.morphir.naming.Path.type = org.finos.morphir.naming.Path
-
-  type QName = org.finos.morphir.naming.QName
-  val QName: org.finos.morphir.naming.QName.type = org.finos.morphir.naming.QName
-
-  type QualifiedModuleName = naming.QualifiedModuleName
-  val QualifiedModuleName: naming.QualifiedModuleName.type = naming.QualifiedModuleName
-
-  type ModuleName = naming.ModuleName
-  val ModuleName = naming.ModuleName
-
-  type PackageName = naming.PackageName
-  val PackageName = naming.PackageName
 
   // TODO:  Reintroduce later
   // type PackageSpecification[+Annotations] = PackageModule.Specification[Annotations]

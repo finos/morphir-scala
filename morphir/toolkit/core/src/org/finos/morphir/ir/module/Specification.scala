@@ -1,8 +1,9 @@
 package org.finos.morphir.ir.module
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Type.{Specification => TypeSpec}
 import org.finos.morphir.ir.Value.{Specification => ValueSpec}
-import org.finos.morphir.ir.{Documented, Name}
+import org.finos.morphir.ir.{Documented}
 
 final case class Specification[+TA](
     types: Map[Name, Documented[TypeSpec[TA]]],

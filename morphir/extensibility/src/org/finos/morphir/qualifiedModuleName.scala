@@ -10,6 +10,8 @@ private[morphir] trait QualifiedModuleNameExports { self: PackageNameExports wit
   }
 
   object QualifiedModuleName {
+    val empty: QualifiedModuleName = QualifiedModuleName(PackageName.empty, ModuleName.empty)
+
     def apply(packageName: Path, modulePath: Path): QualifiedModuleName =
       QualifiedModuleName(PackageName.fromPath(packageName), ModuleName(modulePath))
 

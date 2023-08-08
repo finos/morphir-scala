@@ -3,6 +3,7 @@ package ir
 package internal
 
 import scala.annotation.tailrec
+import org.finos.morphir.naming._
 import Literal.Lit
 import Pattern._
 import Type.{Type, UType}

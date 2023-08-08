@@ -1,32 +1,22 @@
 package org.finos.morphir.runtime.quick
 
-import org.finos.morphir.naming._
-import org.finos.morphir.ir.Value.TypedValue
-import org.finos.morphir.ir.Value as V
-import V.*
-import org.finos.morphir.ir.Type as T
-import org.finos.morphir.ir.Type.Type as TT
-import org.finos.morphir.ir.{FQName, Field, Module, Type}
-import org.finos.morphir.ir.Type.UType
-import org.finos.morphir.ir.distribution.Distribution.Library
-import org.finos.morphir.ir.MorphirIRFile
 import org.finos.morphir.datamodel.{Concept, Data, EnumLabel, Label}
-import SDKValue.{SDKNativeFunction, SDKNativeValue}
-import org.finos.morphir.ir.Distribution.Distribution.Library
-import zio.Chunk
-import scala.collection.mutable
-import org.finos.morphir.ir.sdk
-import org.finos.morphir.ir.sdk.Basics
-import org.finos.morphir.runtime.{MissingField, ResultDoesNotMatchType, UnsupportedType}
-
-import org.finos.morphir.runtime.services.sdk._
-import org.finos.morphir.runtime.exports._
-import org.finos.morphir.runtime.services._
-import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
-import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.extensibility.*
+import org.finos.morphir.extensibility.SdkModuleDescriptors.*
+import org.finos.morphir.ir.Type.Type as TT
+import org.finos.morphir.ir.Type
+import org.finos.morphir.ir.{Type as T, Value as V}
+import org.finos.morphir.ir.Value.*
+import org.finos.morphir.ir.distribution.Distribution.Library
+import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.Extractors.*
-import org.finos.morphir.extensibility._
-import SdkModuleDescriptors._
+import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.runtime.exports.*
+import org.finos.morphir.runtime.services.sdk.*
+import org.finos.morphir.runtime.{EvaluationError, MissingField, ResultDoesNotMatchType, UnsupportedType}
+import zio.Chunk
+
+import scala.collection.mutable
 
 object EvaluatorQuick {
 
@@ -34,8 +24,8 @@ object EvaluatorQuick {
   type FloatType = Double
 
   private[runtime] def evalAction(
-      value: Value[Unit, Type.UType],
-      store: Store[Unit, Type.UType],
+      value: Value[Unit, T.UType],
+      store: Store[Unit, T.UType],
       library: Library
   ): RTAction[MorphirEnv, EvaluationError, Data] =
     RTAction.environmentWithPure[MorphirSdk] { env =>
@@ -43,12 +33,12 @@ object EvaluatorQuick {
       // HACK: To work out
       val modBy = Morphir.SDK.Basics.modBy
 
-      def newValue = fromNative[Unit, Type.UType](modBy)
+      def newValue = fromNative[Unit, T.UType](modBy)
       def newStore = Store(store.definitions + (modBy.name -> newValue), store.ctors, store.callStack)
       RTAction.succeed(EvaluatorQuick.eval(value, newStore, library))
     }
 
-  private[runtime] def eval(value: Value[Unit, Type.UType], store: Store[Unit, Type.UType], library: Library): Data = {
+  private[runtime] def eval(value: Value[Unit, T.UType], store: Store[Unit, T.UType], library: Library): Data = {
     val result = Loop.loop(value, store)
     resultToMDM(result, value.attributes, library)
   }

@@ -1,7 +1,6 @@
-package org.finos.morphir
-package ir
-package generator
+package org.finos.morphir.ir.generator
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Type.Constructors
 import org.finos.morphir.ir.Type.Type
 import zio._

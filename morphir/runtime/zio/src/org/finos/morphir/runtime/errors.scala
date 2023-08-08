@@ -1,8 +1,7 @@
 package org.finos.morphir
 package runtime
 
-import ir.Name
-import zio.{Tag, ZIO}
+import org.finos.morphir.naming.*
 
 sealed abstract class KernelError(message: Option[String])
     extends Exception(message.orNull)

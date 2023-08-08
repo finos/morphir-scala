@@ -1,6 +1,6 @@
 package org.finos.morphir.runtime
 
-import org.finos.morphir.ir.FQName
+import org.finos.morphir.naming._
 import scala.annotation.tailrec
 
 final case class CallStack(resolver: Resolver, frames: List[StackFrame]) { self =>

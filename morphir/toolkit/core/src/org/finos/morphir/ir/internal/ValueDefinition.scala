@@ -2,6 +2,7 @@ package org.finos.morphir
 package ir
 package internal
 
+import org.finos.morphir.naming._
 import Literal.Lit
 import Type.{Type, UType}
 import Value.{RawValue, TypedValue}
