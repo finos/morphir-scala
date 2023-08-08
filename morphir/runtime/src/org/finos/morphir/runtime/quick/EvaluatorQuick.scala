@@ -95,13 +95,14 @@ object EvaluatorQuick {
         SDKValue.SDKNativeFunction(nf.arity, f)
     }
 
-  def typeToConcept(tpe: Type.Type[Unit], dist: Distribution, boundTypes: Map[Name, Concept]): Concept =
-    tpe match {
-      case TT.ExtensibleRecord(attributes, name, fields) =>
-        throw UnsupportedType("Extensible records not supported for DDL")
-      case TT.Function(attributes, argumentType, returnType) =>
-        throw UnsupportedType("Functiom types not supported for DDL")
-      case TT.Record(attributes, fields) => Concept.Struct(fields.map(field =>
+  def typeToConcept(tpe: Type.Type[Unit], dist: Distribution, boundTypes: Map[Name, Concept]): Concept = dist match {
+    case library: Library =>
+      tpe match {
+        case TT.ExtensibleRecord(attributes, name, fields) =>
+          throw UnsupportedType("Extensible records not supported for DDL")
+        case TT.Function(attributes, argumentType, returnType) =>
+          throw UnsupportedType("Functiom types not supported for DDL")
+        case TT.Record(attributes, fields) => Concept.Struct(fields.map(field =>
           (Label(field.name.toCamelCase), typeToConcept(field.data, dist, boundTypes))
         ).toList)
       case IntRef()    => Concept.Int32
@@ -144,6 +145,8 @@ object EvaluatorQuick {
       case TT.Unit(attributes)           => Concept.Unit
       case TT.Variable(attributes, name) => boundTypes(name)
     }
+      }
+
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
     (concept, result) match {
       case (Concept.Struct(fields), Result.Record(elements)) =>
