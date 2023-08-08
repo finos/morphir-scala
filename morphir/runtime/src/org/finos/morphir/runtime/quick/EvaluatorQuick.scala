@@ -118,7 +118,7 @@ object EvaluatorQuick {
       case DictRef(keyType, valType) =>
         Concept.Map(typeToConcept(keyType, dist, boundTypes), typeToConcept(valType, dist, boundTypes))
       case TT.Reference(attributes, typeName, typeArgs) =>
-        val lookedUp    = dist.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+        val lookedUp    = library.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dist, boundTypes))
         lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
           case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
