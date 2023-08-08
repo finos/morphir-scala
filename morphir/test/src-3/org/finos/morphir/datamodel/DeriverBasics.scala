@@ -1,11 +1,12 @@
 package org.finos.morphir.datamodel
 
+import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.namespacing.*
 
 class DataEncoderBasics extends munit.FunSuite {
 
   given rootName: GlobalDatamodelContext with {
-    override def value = root / "test" % ns / "enumwrapper"
+    override def value = root / "test" % "enumwrapper"
   }
 
   case class Person(name: String, age: Int)

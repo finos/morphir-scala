@@ -1,6 +1,6 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.datamodel.namespacing.{Namespace, QualifiedName}
+import org.finos.morphir.naming._
 
 import java.io.OutputStream
 import scala.collection.immutable.ListMap
@@ -69,10 +69,10 @@ object Data {
 
   case class Record private (values: scala.List[(Label, Data)], shape: Concept.Record) extends Data
   object Record {
-    def apply(namespace: QualifiedName, fields: (Label, Data)*): Record =
+    def apply(namespace: FQName, fields: (Label, Data)*): Record =
       apply(namespace, fields.toList)
 
-    def apply(namespace: QualifiedName, fields: scala.List[(Label, Data)]): Record = {
+    def apply(namespace: FQName, fields: scala.List[(Label, Data)]): Record = {
       val concept = Concept.Record(namespace, fields.map { case (label, data) => (label, data.shape) })
       Record(fields.toList, concept)
     }

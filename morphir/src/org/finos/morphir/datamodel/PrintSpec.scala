@@ -2,12 +2,11 @@ package org.finos.morphir.datamodel
 
 import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.Concept
-import org.finos.morphir.datamodel.namespacing.QualifiedName
 import zio.Chunk
 
 object PrintSpec {
 
-  private[datamodel] class QualifiedNameCollector extends ConceptStatefulTransformer[Chunk[QualifiedName]] {
+  private[datamodel] class QualifiedNameCollector extends ConceptStatefulTransformer[Chunk[FQName]] {
     override def of(c: Concept) =
       c match {
         case v @ Concept.Record(name, fields) => Stateful.succeedWithState(v)(chunk => chunk :+ name)
@@ -18,7 +17,7 @@ object PrintSpec {
   }
   private[datamodel] object QualifiedNameCollector {
     def collectFrom(c: Concept) =
-      (new QualifiedNameCollector().of(c)).run(Chunk[QualifiedName]()) match {
+      (new QualifiedNameCollector().of(c)).run(Chunk[FQName]()) match {
         case (chunk, _) => chunk
       }
   }
@@ -26,11 +25,11 @@ object PrintSpec {
   def of(concept: Concept): String = {
     val typesList = concept.collectAll
 
-    def printModuleDef(qn: QualifiedName) =
+    def printModuleDef(qn: FQName) =
       s"{- ============ Declaring ${s"${qn.pack.show}:${qn.namespace.show}:${qn.localName}"} ============ -}\n" +
         s"module ${qn.pack.show}.${qn.namespace.show} exposing (${qn.localName})"
 
-    def printImportDef(qn: QualifiedName) =
+    def printImportDef(qn: FQName) =
       s"{- Importing ${s"${qn.pack.show}:${qn.namespace.show}:${qn.localName}"} -}\n" +
         s"import ${qn.pack.show}.${qn.namespace.show} exposing (${qn.localName})"
 

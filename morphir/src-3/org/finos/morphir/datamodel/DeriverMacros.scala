@@ -1,17 +1,18 @@
 package org.finos.morphir.datamodel
 
 import org.finos.morphir.datamodel.Deriver.UnionType
-import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, PartialName}
+import org.finos.morphir.naming.QualifiedModuleName
+import org.finos.morphir.datamodel.namespacing.LocalName
 
 import scala.quoted.*
 import scala.deriving.Mirror
 
 trait GlobalDatamodelContext {
-  def value: PartialName
+  def value: QualifiedModuleName
 }
 
 trait TypeDatamodelContext[T] {
-  def value: PartialName
+  def value: QualifiedModuleName
   def nameOverride: Option[LocalName] = None
 }
 
@@ -24,21 +25,21 @@ object DeriverMacros {
     Expr(TypeRepr.of[T].typeSymbol.name)
   }
 
-  inline def summonNamespaceOrFail[T]: (PartialName, Option[LocalName]) = ${ summonNamespaceOrFailImpl[T] }
-  def summonNamespaceOrFailImpl[T: Type](using Quotes): Expr[(PartialName, Option[LocalName])] = {
+  inline def summonNamespaceOrFail[T]: (QualifiedModuleName, Option[LocalName]) = ${ summonNamespaceOrFailImpl[T] }
+  def summonNamespaceOrFailImpl[T: Type](using Quotes): Expr[(QualifiedModuleName, Option[LocalName])] = {
     import quotes.reflect._
 
-    def summonTypeNamespace(): Option[Expr[(PartialName, Option[LocalName])]] =
+    def summonTypeNamespace(): Option[Expr[(QualifiedModuleName, Option[LocalName])]] =
       Expr.summon[TypeDatamodelContext[T]].map(tns =>
         '{ ($tns.value, $tns.nameOverride) }
       )
 
-    def summonGlobalNamespace(): Option[Expr[(PartialName, Option[LocalName])]] =
+    def summonGlobalNamespace(): Option[Expr[(QualifiedModuleName, Option[LocalName])]] =
       Expr.summon[GlobalDatamodelContext].map(gns =>
         '{ ($gns.value, None) }
       )
 
-    val partialName: Expr[(PartialName, Option[LocalName])] =
+    val partialName: Expr[(QualifiedModuleName, Option[LocalName])] =
       summonTypeNamespace()
         .orElse(summonGlobalNamespace())
         .getOrElse {
