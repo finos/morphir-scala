@@ -17,6 +17,7 @@ private[datamodel] case class SumBuilder(
   lazy val enumType =
     tpe match {
       case SumBuilder.SumType.Enum(name) =>
+        // TODO variants shuold be constructed from ordinal
         val enumCases =
           variants.map { v =>
             v match {
