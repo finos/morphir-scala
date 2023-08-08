@@ -134,7 +134,9 @@ object Deps {
 
     case object typelevel {
       val `paiges-core` = ivy"org.typelevel::paiges-core::${Versions.paiges}"
-      val spire         = ivy"org.typelevel::spire::0.18.0"
+      val `scalac-compat-annotation` =
+        ivy"org.typelevel::scalac-compat-annotation:${Versions.`scalac-compat-annotation`}"
+      val spire = ivy"org.typelevel::spire::${Versions.spire}"
     }
   }
 }
@@ -162,28 +164,30 @@ object Versions {
       case _            => "4.5.11"
     }
 
-  val coursier        = "2.1.4"
-  val expecty         = "0.16.0"
-  val fansi           = "0.4.0"
-  val fs2             = "3.8.0"
-  val geny            = "1.0.0"
-  val `izumi-reflect` = "2.3.8"
-  val munit           = "1.0.0-M8"
-  val `munit-zio`     = "0.1.1"
-  val mainargs        = "0.5.0"
-  val `os-lib`        = "0.9.1"
-  val paiges          = "0.4.3"
-  val scribe          = "3.11.9"
-  val silencer        = "1.4.2"
-  val `tasty-query`   = "0.5.6"
-  val upickle         = "3.0.0-M1"
-  val zio             = "2.0.15"
-  val `zio-cli`       = "0.5.0"
-  val `zio-json`      = "0.6.0"
-  val `zio-parser`    = "0.1.9"
-  val `zio-prelude`   = "1.0.0-RC19"
-  val `zio-process`   = "0.7.2"
-  val `zio-schema`    = "0.4.12"
+  val coursier                   = "2.1.4"
+  val expecty                    = "0.16.0"
+  val fansi                      = "0.4.0"
+  val fs2                        = "3.8.0"
+  val geny                       = "1.0.0"
+  val `izumi-reflect`            = "2.3.8"
+  val munit                      = "1.0.0-M8"
+  val `munit-zio`                = "0.1.1"
+  val mainargs                   = "0.5.0"
+  val `os-lib`                   = "0.9.1"
+  val paiges                     = "0.4.3"
+  val `scalac-compat-annotation` = "0.1.2"
+  val scribe                     = "3.11.9"
+  val silencer                   = "1.4.2"
+  val spire                      = "0.18.0"
+  val `tasty-query`              = "0.5.6"
+  val upickle                    = "3.0.0-M1"
+  val zio                        = "2.0.15"
+  val `zio-cli`                  = "0.5.0"
+  val `zio-json`                 = "0.6.0"
+  val `zio-parser`               = "0.1.9"
+  val `zio-prelude`              = "1.0.0-RC19"
+  val `zio-process`              = "0.7.2"
+  val `zio-schema`               = "0.4.12"
 }
 
 object ScalaVersions {

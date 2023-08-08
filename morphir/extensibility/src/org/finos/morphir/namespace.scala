@@ -1,9 +1,11 @@
 package org.finos.morphir
 
 private[morphir] trait NamespaceExports { self: NameExports with PathExports with ModuleNameExports =>
-  sealed case class Namespace(path: Path) {
+  sealed case class Namespace(path: Path) { self =>
     def ++(name: Namespace): Namespace = Namespace(path ++ path)
     def /(segment: String): Namespace  = Namespace(path ++ Path.fromString(segment))
+    def /(names:String*):Namespace = Namespace(path ++ Path.fromIterable(names.map(Name.fromString(_))))
+    def /(names:Iterable[String]):Namespace = Namespace(path ++ Path.fromIterable(names.map(Name.fromString(_))))
 
     @inline def toPath: Path                                       = path
     def parts(implicit renderer: PathRenderer): IndexedSeq[String] = path.parts

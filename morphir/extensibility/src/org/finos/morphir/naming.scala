@@ -14,6 +14,9 @@ object naming
     def /(moduleName: ModuleName): QualifiedModuleName = QualifiedModuleName(self, moduleName)
   }
 
+  final implicit class QualifiedModuleNameSyntax(val self: QualifiedModuleName) extends AnyVal {
+  }
+
   final implicit class NameHelper(val sc: StringContext) extends AnyVal {
     def n(args: Any*): Name = {
       val interlaced = interlace(sc.parts, args.map(_.toString))
