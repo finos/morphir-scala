@@ -23,7 +23,7 @@ private[morphir] trait PackageNameExports { self: naming.type =>
     val empty: PackageName = PackageName(Path.empty)
     val root: PackageName  = PackageName(Path.empty)
 
-    val morphirSdk:PackageName = PackageName.fromString("Morphir.SDK")
+    // val morphirSdk:PackageName = PackageName.fromString("Morphir.SDK")
 
     def fromPath(path: Path): PackageName = PackageName(path)
 
@@ -32,7 +32,6 @@ private[morphir] trait PackageNameExports { self: naming.type =>
       PackageName(Path.fromIterable(segments))
     def fromList(segments: List[Name]): PackageName =
       PackageName(Path.fromList(segments))
-
 
   }
 }

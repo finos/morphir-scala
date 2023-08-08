@@ -1,7 +1,6 @@
 package org.finos.morphir.ir
-
+import org.finos.morphir.naming.*
 import org.finos.morphir.datamodel.namespacing.{PackageName => Pack, *}
-import org.finos.morphir.ir.Module.{QualifiedModuleName, ModuleName}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.Assertion.*
 import zio.test.*
@@ -20,9 +19,9 @@ object FQNameSpec extends MorphirBaseSpec {
         )
       },
       test("By using a QName with package name") {
-        val path  = Path.fromString("package Name")
-        val qName = QName(Path.fromString("qualified.Name.Path"), Name.fromString("localName"))
-        assertTrue(FQName.fromQName(path, qName) == FQName(path, qName.modulePath, qName.localName))
+        val packageName = PackageName.fromString("package Name")
+        val qName       = QName(Path.fromString("qualified.Name.Path"), Name.fromString("localName"))
+        assertTrue(FQName.fromQName(packageName, qName) == FQName(packageName, qName.modulePath, qName.localName))
       },
       test("By using a QName without package name using implicit defaults") {
         val pkg                               = PackageName(Path.fromString("package Name"))

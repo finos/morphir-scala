@@ -1,5 +1,6 @@
 package org.finos.morphir.ir
 
+import org.finos.morphir.naming.*
 import org.finos.morphir.ir.Module.Definition
 import org.finos.morphir.ir.Literal.stringLiteral
 import org.finos.morphir.samples.ModuleExample.*
