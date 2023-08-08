@@ -117,16 +117,16 @@ object EvaluatorQuick {
           Concept.Optional(typeToConcept(elementType, dist, boundTypes))
         case DictRef(keyType, valType) =>
           Concept.Map(typeToConcept(keyType, dist, boundTypes), typeToConcept(valType, dist, boundTypes))
-      case TT.Reference(attributes, typeName, typeArgs) =>
-        val lookedUp    = library.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
-        val conceptArgs = typeArgs.map(typeToConcept(_, dist, boundTypes))
-        lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
-          case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
-            val newBindings = typeParams.zip(conceptArgs).toMap
-            typeToConcept(expr, dist, newBindings) match {
-              case Concept.Struct(fields) => Concept.Record(typeName, fields)
-              case other                  => Concept.Alias(typeName, other)
-            }
+        case TT.Reference(attributes, typeName, typeArgs) =>
+          val lookedUp    = library.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+          val conceptArgs = typeArgs.map(typeToConcept(_, dist, boundTypes))
+          lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
+            case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
+              val newBindings = typeParams.zip(conceptArgs).toMap
+              typeToConcept(expr, dist, newBindings) match {
+                case Concept.Struct(fields) => Concept.Record(typeName, fields)
+                case other                  => Concept.Alias(typeName, other)
+              }
           case Type.Specification.CustomTypeSpecification(typeParams, ctors) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             val cases = ctors.toMap.toList.map { case (caseName, args) =>
