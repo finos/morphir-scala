@@ -15,6 +15,7 @@ final case class NativeFunctionTypeError(message: String)    extends TypeError(m
 final case class WrongRecordSize(message: String)            extends TypeError(message)
 final case class InferenceConflict(message: String)          extends TypeError(message)
 final case class NotImplementedType(message: String)         extends TypeError(message)
+final case class TypeMismatch(message: String)               extends TypeError(message)
 final case class IrToDatamodelError(message: String)         extends EvaluationError(message)
 final case class MissingField(message: String)               extends EvaluationError(message)
 final case class UnexpectedType(message: String)             extends EvaluationError(message)
