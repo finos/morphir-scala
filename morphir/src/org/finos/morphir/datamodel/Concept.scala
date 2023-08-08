@@ -1,7 +1,7 @@
 package org.finos.morphir.datamodel
 
+import org.finos.morphir.naming.FQName
 import org.finos.morphir.datamodel.Concept.Basic
-import org.finos.morphir.datamodel.namespacing.QualifiedName
 
 import scala.annotation.tailrec
 import zio.Chunk
@@ -68,9 +68,9 @@ object Concept {
   case object Unit      extends Basic[scala.Unit]
   case object Nothing   extends Basic[scala.Nothing]
 
-  case class Record(namespace: QualifiedName, fields: scala.List[(Label, Concept)]) extends Concept
+  case class Record(namespace: FQName, fields: scala.List[(Label, Concept)]) extends Concept
   object Record {
-    def apply(namespace: QualifiedName, fields: (Label, Concept)*) = new Record(namespace, fields.toList)
+    def apply(namespace: FQName, fields: (Label, Concept)*) = new Record(namespace, fields.toList)
   }
 
   case class Struct(fields: scala.List[(Label, Concept)]) extends Concept
@@ -78,7 +78,7 @@ object Concept {
     def apply(fields: (Label, Concept)*) = new Struct(fields.toList)
   }
 
-  case class Alias(name: QualifiedName, value: Concept) extends Concept
+  case class Alias(name: FQName, value: Concept) extends Concept
 
   case class List(elementType: Concept) extends Concept
 
@@ -147,10 +147,10 @@ object Concept {
    *   )
    * }}}
    */
-  case class Enum(name: QualifiedName, cases: scala.List[Enum.Case]) extends Concept
+  case class Enum(name: FQName, cases: scala.List[Enum.Case]) extends Concept
 
   object Enum {
-    def apply(name: QualifiedName, cases: Enum.Case*) =
+    def apply(name: FQName, cases: Enum.Case*) =
       new Enum(name, cases.toList)
 
     case class Case(label: Label, fields: scala.List[(EnumLabel, Concept)])

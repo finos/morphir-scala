@@ -1,16 +1,15 @@
 package org.finos.morphir.datamodel
 
+import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.{*, given}
 import org.finos.morphir.datamodel.Concept.Enum
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.datamodel.Data.Case
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.namespacing.*
-import org.finos.morphir.datamodel.namespacing.PackageName.root
-import org.finos.morphir.datamodel.namespacing.Namespace.ns
 
 object EnumGns {
-  val gns: PartialName = root / "morphir" :: ns / "test" / "todataenums"
+  val gns: QualifiedModuleName = root / "morphir" % "test" / "todataenums"
 }
 
 object EnumData1 {
@@ -64,7 +63,7 @@ class ToDataEnums extends munit.FunSuite {
   // is compiled and what is not
   val concept =
     Enum(
-      gns :: ("Foo"),
+      gns % "Foo",
       Enum.Case(l"Bar"),
       Enum.Case(l"Baz", (el"value", Concept.String))
     )
@@ -107,7 +106,7 @@ class ToDataEnums extends munit.FunSuite {
     assertEquals(
       Deriver.toData(stuff),
       Data.Record(
-        gns :: "Stuff",
+        gns   % "Stuff",
         l"a" -> Data.String("a_str"),
         l"b" -> Case(el"value" -> Data.String("baz_val"))("Baz", concept),
         l"c" -> Data.Int(123)
@@ -123,9 +122,9 @@ class ToDataEnums extends munit.FunSuite {
     assertEquals(
       Deriver.toData(stuff),
       Data.Record(
-        gns :: "Stuff",
+        gns   % "Stuff",
         l"a" -> Data.String("a_str"),
-        l"b" -> Data.Record(gns :: "Baz", l"value" -> Data.String("baz_val")),
+        l"b" -> Data.Record(gns % "Baz", l"value" -> Data.String("baz_val")),
         l"c" -> Data.Int(123)
       )
     )
@@ -138,7 +137,7 @@ class ToDataEnums extends munit.FunSuite {
     assertEquals(
       Deriver.toData(stuff),
       Data.Record(
-        gns :: "Stuff",
+        gns   % "Stuff",
         l"a" -> Data.String("a_str"),
         l"b" -> Case(el"value" -> Data.String("baz_val"))("Baz", concept),
         l"c" -> Data.Int(123)

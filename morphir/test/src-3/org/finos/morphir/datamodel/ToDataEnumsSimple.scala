@@ -6,8 +6,6 @@ import org.finos.morphir.datamodel.Data
 import org.finos.morphir.datamodel.Data.Case
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.namespacing.*
-import org.finos.morphir.datamodel.namespacing.PackageName.root
-import org.finos.morphir.datamodel.namespacing.Namespace.ns
 
 object EnumData4 {
   import EnumGns._
@@ -28,7 +26,7 @@ class ToDataEnumsSimple extends munit.FunSuite {
 
   val concept =
     Enum(
-      gns :: ("Foo"),
+      gns % ("Foo"),
       Enum.Case(l"Bar"),
       Enum.Case(l"Baz")
     )

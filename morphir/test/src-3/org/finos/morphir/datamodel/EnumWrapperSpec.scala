@@ -17,7 +17,7 @@ class EnumWrapperSpec extends munit.FunSuite {
   object MyUnit
 
   given rootName: GlobalDatamodelContext with {
-    override def value = root / "test" % ns / "enumwrapper"
+    override def value = root / "test" % "enumwrapper"
   }
 
   def enumMaker(label: String, data: Data, concept: Concept) =

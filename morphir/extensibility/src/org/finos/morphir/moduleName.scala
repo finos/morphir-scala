@@ -19,6 +19,10 @@ private[morphir] trait ModuleNameExports { self: NameExports with PathExports =>
     /// Construct a new module name by concatting the given local name to this module name.
     def /(name: String): ModuleName = ModuleName(path / Name(name))
 
+    // Need a non-symbolic version of this for QualifiedModuleName, strange compilation errors
+    // happen in QualifiedModuleName./(str: String) implementation when using `moduleName / str` otherwise
+    def addPart(name: String): ModuleName = ModuleName(path / Name(name))
+
     /// Check if the module name is empty.
     @inline def isEmpty: Boolean = path.isEmpty
 
