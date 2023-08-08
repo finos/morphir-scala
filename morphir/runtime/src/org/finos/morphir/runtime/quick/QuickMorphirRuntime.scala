@@ -35,12 +35,12 @@ private[runtime] case class QuickMorphirRuntime(dist: Distribution, store: Store
 
   def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = dist match {
     case library: Library =>
-    val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)
-    val maybeSpec       = library.lookupValueSpecification(PackageName(pkg), ModuleName(mod), loc)
-    maybeSpec match {
-      case Some(spec) => RTAction.succeed(specificationToType(spec))
-      case None       => RTAction.fail(new SpecificationNotFound(s"Could not find $ref during initial type building"))
-    }
+      val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)
+      val maybeSpec       = library.lookupValueSpecification(PackageName(pkg), ModuleName(mod), loc)
+      maybeSpec match {
+        case Some(spec) => RTAction.succeed(specificationToType(spec))
+        case None       => RTAction.fail(new SpecificationNotFound(s"Could not find $ref during initial type building"))
+      }
   }
 
 }
