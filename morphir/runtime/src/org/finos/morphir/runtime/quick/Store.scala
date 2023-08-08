@@ -56,15 +56,15 @@ final case class Store[TA, VA](
 }
 
 object Store {
-  def fromDistritubtion(dist: Distribution): Store[Unit, Type.UType] = dist match {
+  def fromDistribution(dist: Distribution): Store[Unit, Type.UType] = dist match {
     case lib: Library =>
       val packageName = lib.packageName
       val valueBindings = lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
         accessControlledModule.value.values.map {
           case (localName, accessControlledValue) =>
-            val name = FQName(packageName, moduleName, localName)
+            val name       = FQName(packageName, moduleName, localName)
             val definition = accessControlledValue.value.value
-            val sdkDef = SDKValue.SDKValueDefinition(definition)
+            val sdkDef     = SDKValue.SDKValueDefinition(definition)
             (name, sdkDef)
         }
       }
@@ -87,7 +87,6 @@ object Store {
       }
     Store(valueBindings ++ Native.native, ctorBindings ++ Native.nativeCtors, CallStackFrame(Map(), None))
   }
-}
 
   def empty[TA, VA]: Store[TA, VA] = {
     val plus: SDKValue[TA, VA] = SDKValue.SDKNativeFunction(
