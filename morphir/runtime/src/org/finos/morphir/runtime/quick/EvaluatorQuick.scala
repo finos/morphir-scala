@@ -111,12 +111,12 @@ object EvaluatorQuick {
         case BoolRef()   => Concept.Boolean
         case CharRef()   => Concept.Char
         case FloatRef()  => Concept.Decimal
-      case ListRef(elementType) =>
-        Concept.List(typeToConcept(elementType, dist, boundTypes))
-      case MaybeRef(elementType) =>
-        Concept.Optional(typeToConcept(elementType, dist, boundTypes))
-      case DictRef(keyType, valType) =>
-        Concept.Map(typeToConcept(keyType, dist, boundTypes), typeToConcept(valType, dist, boundTypes))
+        case ListRef(elementType) =>
+          Concept.List(typeToConcept(elementType, dist, boundTypes))
+        case MaybeRef(elementType) =>
+          Concept.Optional(typeToConcept(elementType, dist, boundTypes))
+        case DictRef(keyType, valType) =>
+          Concept.Map(typeToConcept(keyType, dist, boundTypes), typeToConcept(valType, dist, boundTypes))
       case TT.Reference(attributes, typeName, typeArgs) =>
         val lookedUp    = library.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dist, boundTypes))
