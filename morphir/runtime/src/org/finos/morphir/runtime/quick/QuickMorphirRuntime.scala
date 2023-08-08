@@ -46,11 +46,10 @@ private[runtime] case class QuickMorphirRuntime(library: Library, store: Store[s
 
 object QuickMorphirRuntime {
 
-  def fromDistribution(distribution: Distribution): QuickMorphirRuntime = {
-    val library = distribution
-      .asInstanceOf[Library]
-    val store = Store.fromLibrary(library)
-    QuickMorphirRuntime(library, store)
+  def fromDistribution(distribution: Distribution): QuickMorphirRuntime = distribution match {
+    case library: Library =>
+      val store = Store.fromDistribution(library)
+      QuickMorphirRuntime(library, store)
   }
 
   def fromDistributionRTAction(distribution: Distribution)
