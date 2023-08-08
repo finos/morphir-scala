@@ -29,10 +29,10 @@ trait ConceptStatefulTransformer[T] {
     }
 
   def of(c: Concept.Basic[_]): Stateful[Concept.Basic[_]] =
-    Stateful.const(c)
+    transform(c)
 
   def of(c: Concept.Any.type): Stateful[Concept.Any.type] =
-    Stateful.const(c)
+    transform(c)
 
   def of(c: Concept.Record): Stateful[Concept.Record] =
     for {
