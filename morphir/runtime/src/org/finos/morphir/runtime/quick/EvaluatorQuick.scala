@@ -127,17 +127,17 @@ object EvaluatorQuick {
                 case Concept.Struct(fields) => Concept.Record(typeName, fields)
                 case other                  => Concept.Alias(typeName, other)
               }
-          case Type.Specification.CustomTypeSpecification(typeParams, ctors) =>
-            val newBindings = typeParams.zip(conceptArgs).toMap
-            val cases = ctors.toMap.toList.map { case (caseName, args) =>
-              val argTuples = args.map { case (argName: Name, argType: Type.UType) =>
-                (EnumLabel.Named(argName.toCamelCase), typeToConcept(argType, dist, newBindings))
+            case Type.Specification.CustomTypeSpecification(typeParams, ctors) =>
+              val newBindings = typeParams.zip(conceptArgs).toMap
+              val cases = ctors.toMap.toList.map { case (caseName, args) =>
+                val argTuples = args.map { case (argName: Name, argType: Type.UType) =>
+                  (EnumLabel.Named(argName.toCamelCase), typeToConcept(argType, dist, newBindings))
+                }
+                val conceptName: String                  = caseName.toCamelCase
+                val concepts: List[(EnumLabel, Concept)] = argTuples.toList
+                Concept.Enum.Case(Label(conceptName), concepts)
               }
-              val conceptName: String                  = caseName.toCamelCase
-              val concepts: List[(EnumLabel, Concept)] = argTuples.toList
-              Concept.Enum.Case(Label(conceptName), concepts)
-            }
-            Concept.Enum(typeName, cases)
+              Concept.Enum(typeName, cases)
           case other => throw UnsupportedType(s"$other is not a recognized type")
         }
       case TT.Tuple(attributes, elements) =>
