@@ -6,16 +6,15 @@ import org.finos.morphir.datamodel.{Concept, Label}
 import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.FQName.fqn
 import org.finos.morphir.ir.Type.UType
+import org.finos.morphir.naming.QualifiedModuleName
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.Chunk
 import zio.test._
 import org.finos.morphir.datamodel.namespacing.*
-import org.finos.morphir.datamodel.namespacing.Namespace.ns
-import org.finos.morphir.datamodel.namespacing.PackageName.root
 
 object TypeConversionSpec extends MorphirBaseSpec {
   object pn {
-    val morphirIR: PartialName = root / "Morphir" % ns / "IR"
+    val morphirIR: PartialName = root / "Morphir" % "IR"
   }
 
   def spec = suite("TypeConversion Spec")(
@@ -183,11 +182,11 @@ object TypeConversionSpec extends MorphirBaseSpec {
         assertTrue(morphirType == T.reference(fqName))
       },
       test("Should be possible to convert a nested Concept Alias type to a Morphir type") {
-        val partial: PartialName = root / "Morphir" / "IR" / "Test" % ns / "Aliasing"
-        val name                 = partial                          % localName("SomeType")
-        val fqName               = fqn("Morphir.IR.Test", "Aliasing", "SomeType")
-        val concept              = Concept.Alias(name, Concept.Alias(partial % "OtherAlias", Concept.String))
-        val morphirType          = ToMorphirType.summon[Concept].withAttributesOf(concept).morphirType
+        val partial: QualifiedModuleName = root / "Morphir" / "IR" / "Test" % ns / "Aliasing"
+        val name                         = partial                          % localName("SomeType")
+        val fqName                       = fqn("Morphir.IR.Test", "Aliasing", "SomeType")
+        val concept                      = Concept.Alias(name, Concept.Alias(partial % "OtherAlias", Concept.String))
+        val morphirType                  = ToMorphirType.summon[Concept].withAttributesOf(concept).morphirType
         assertTrue(morphirType == T.reference(fqName))
       }
     )

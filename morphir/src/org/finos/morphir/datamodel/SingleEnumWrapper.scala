@@ -1,8 +1,8 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.datamodel.namespacing.PartialName
+import org.finos.morphir.naming._
 
-case class SingleEnumWrapper(label: String, innerShape: Concept, rootPath: PartialName) {
+case class SingleEnumWrapper(label: String, innerShape: Concept, rootPath: QualifiedModuleName) {
   def construct(value: Data) =
     Data.Case(
       EnumLabel.Empty -> value
@@ -15,7 +15,7 @@ case class SingleEnumWrapper(label: String, innerShape: Concept, rootPath: Parti
     )
 }
 
-case class UnitEnumWrapper(label: String, rootPath: PartialName) {
+case class UnitEnumWrapper(label: String, rootPath: QualifiedModuleName) {
   def construct =
     Data.Case()(label, this.concept)
 

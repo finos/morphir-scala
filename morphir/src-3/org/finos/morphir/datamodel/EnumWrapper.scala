@@ -1,10 +1,10 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.datamodel.namespacing.PartialName
+import org.finos.morphir.naming._
 
 extension (v: Data.Boolean.type) {
   def deriveEnumWrapperNamespaced[T](
-      partialName: PartialName,
+      partialName: QualifiedModuleName,
       label: String,
       fromScalaType: T => Boolean
   ): SpecificDeriver[T] =
@@ -25,7 +25,7 @@ extension (v: Data.Boolean.type) {
 
 extension (v: Data.Byte.type) {
   def deriveEnumWrapperNamespaced[T](
-      partialName: PartialName,
+      partialName: QualifiedModuleName,
       label: String,
       fromScalaType: T => Byte
   ): SpecificDeriver[T] =
@@ -46,7 +46,7 @@ extension (v: Data.Byte.type) {
 
 extension (v: Data.Decimal.type) {
   def deriveEnumWrapperNamespaced[T](
-      partialName: PartialName,
+      partialName: QualifiedModuleName,
       label: String,
       fromScalaType: T => scala.BigDecimal
   ): SpecificDeriver[T] =
@@ -67,7 +67,7 @@ extension (v: Data.Decimal.type) {
 
 extension (v: Data.Integer.type) {
   def deriveEnumWrapperNamespaced[T](
-      partialName: PartialName,
+      partialName: QualifiedModuleName,
       label: String,
       fromScalaType: T => scala.BigInt
   ): SpecificDeriver[T] =
@@ -88,7 +88,7 @@ extension (v: Data.Integer.type) {
 
 extension (v: Data.Int16.type) {
   def deriveEnumWrapperNamespaced[T](
-      partialName: PartialName,
+      partialName: QualifiedModuleName,
       label: String,
       fromScalaType: T => Short
   ): SpecificDeriver[T] =
@@ -109,7 +109,7 @@ extension (v: Data.Int16.type) {
 
 extension (v: Data.Int32.type) {
   def deriveEnumWrapperNamespaced[T](
-      partialName: PartialName,
+      partialName: QualifiedModuleName,
       label: String,
       fromScalaType: T => Int
   ): SpecificDeriver[T] =
@@ -130,7 +130,7 @@ extension (v: Data.Int32.type) {
 
 extension (v: Data.String.type) {
   def deriveEnumWrapperNamespaced[T](
-      partialName: PartialName,
+      partialName: QualifiedModuleName,
       label: String,
       fromScalaType: T => String
   ): SpecificDeriver[T] =
@@ -151,7 +151,7 @@ extension (v: Data.String.type) {
 
 extension (v: Data.LocalDate.type) {
   def deriveEnumWrapperNamespaced[T](
-      partialName: PartialName,
+      partialName: QualifiedModuleName,
       label: String,
       fromScalaType: T => java.time.LocalDate
   ): SpecificDeriver[T] =
@@ -172,7 +172,7 @@ extension (v: Data.LocalDate.type) {
 
 extension (v: Data.Month.type) {
   def deriveEnumWrapperNamespaced[T](
-      partialName: PartialName,
+      partialName: QualifiedModuleName,
       label: String,
       fromScalaType: T => java.time.Month
   ): SpecificDeriver[T] =
@@ -193,7 +193,7 @@ extension (v: Data.Month.type) {
 
 extension (v: Data.LocalTime.type) {
   def deriveEnumWrapperNamespaced[T](
-      partialName: PartialName,
+      partialName: QualifiedModuleName,
       label: String,
       fromScalaType: T => java.time.LocalTime
   ): SpecificDeriver[T] =
@@ -214,7 +214,7 @@ extension (v: Data.LocalTime.type) {
 
 extension (v: Data.Char.type) {
   def deriveEnumWrapperNamespaced[T](
-      partialName: PartialName,
+      partialName: QualifiedModuleName,
       label: String,
       fromScalaType: T => Char
   ): SpecificDeriver[T] =
@@ -235,7 +235,7 @@ extension (v: Data.Char.type) {
 
 extension (v: Data.Unit.type) {
   def deriveEnumWrapperNamespaced[T](
-      partialName: PartialName,
+      partialName: QualifiedModuleName,
       label: String
   ): SpecificDeriver[T] =
     new SpecificDeriver[T] {

@@ -6,10 +6,11 @@ private[morphir] trait PackageNameExports { self: naming.type =>
    * names.
    */
   sealed case class PackageName(path: Path) { self =>
-    def ++(that: PackageName): PackageName         = PackageName(path ++ that.path)
-    def ++(that: Path): PackageName                = PackageName(path ++ that)
-    def /(pathString: String)                      = PackageName(path ++ Path.fromString(pathString))
-    def %(modulePath: String): QualifiedModuleName = QualifiedModuleName(self, ModuleName.fromString(modulePath))
+    def ++(that: PackageName): PackageName           = PackageName(path ++ that.path)
+    def ++(that: Path): PackageName                  = PackageName(path ++ that)
+    def /(pathString: String)                        = PackageName(path ++ Path.fromString(pathString))
+    def %(modulePath: String): QualifiedModuleName   = QualifiedModuleName(self, ModuleName.fromString(modulePath))
+    def %(namespace: Namespace): QualifiedModuleName = QualifiedModuleName(self, namespace.toModuleName)
 
     @inline def isEmpty: Boolean = path.isEmpty
     @inline def toPath: Path     = path
