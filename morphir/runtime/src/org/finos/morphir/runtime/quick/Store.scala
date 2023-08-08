@@ -76,16 +76,16 @@ object Store {
               val definition = accessControlledType.value.value
               definition match {
                 case Type.Definition.CustomType(_, accessControlledCtors) =>
-                val ctors = accessControlledCtors.value.toMap
-                ctors.map { case (ctorName, ctorArgs) =>
-                  val name = FQName(packageName, moduleName, ctorName)
-                  (name, SDKConstructor[Unit, Type.UType](ctorArgs.map(_._2).toList))
-                }
-              case Type.Definition.TypeAlias(_, _) => Map.empty
-            }
+                  val ctors = accessControlledCtors.value.toMap
+                  ctors.map { case (ctorName, ctorArgs) =>
+                    val name = FQName(packageName, moduleName, ctorName)
+                    (name, SDKConstructor[Unit, Type.UType](ctorArgs.map(_._2).toList))
+                  }
+                case Type.Definition.TypeAlias(_, _) => Map.empty
+              }
+          }
         }
-      }
-    Store(valueBindings ++ Native.native, ctorBindings ++ Native.nativeCtors, CallStackFrame(Map(), None))
+      Store(valueBindings ++ Native.native, ctorBindings ++ Native.nativeCtors, CallStackFrame(Map(), None))
   }
 
   def empty[TA, VA]: Store[TA, VA] = {
