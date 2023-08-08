@@ -24,42 +24,14 @@ import org.finos.morphir.runtime.exports._
 import org.finos.morphir.runtime.services._
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
 import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.extensibility._
 import SdkModuleDescriptors._
 
 object EvaluatorQuick {
-  object FQString {
-    def unapply(fqName: FQName): Option[String] = Some(fqName.toString())
-  }
-  class BasicReference(tpe: UType) {
-    def unapply(fqName: FQName): Boolean = fqName == tpe.asInstanceOf[TT.Reference[Unit]].typeName
-  }
 
   type IntType   = morphir.sdk.Basics.Int
   type FloatType = Double
-
-  // def evaluate[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Any = Result.unwrap(Loop.loop(ir, store))
-
-//  def evalFunction(entryFQName: FQName, store: Store[Unit, Type.UType], input: Any): Any = {
-//    val ir        = scalaToIR(input)
-//    val applyNode = V.apply(V.reference(entryFQName), ir) :> T.unit // lies but I don't think we check?
-//    evaluate[Unit, Type.UType](applyNode, store)
-//  }
-
-//  def evalFunctionToMDM(entryFQName: FQName, store: Store[Unit, Type.UType], input: Any, dist: Library): Data = {
-//    val inputIR   = scalaToIR(input);
-//    val applyNode = V.apply(V.reference(entryFQName), inputIR) :> T.unit // lies but I don't think we check?
-//    val result    = Loop.loop(applyNode, store);
-//
-//    val tpe_raw: Type.Type[Unit] = store.getDefinition(entryFQName)
-//      .get
-//      .asInstanceOf[SDKValue.SDKValueDefinition[Unit, Type.UType]]
-//      .definition
-//      .outputType
-//
-//    // A bug in morphir-elm make may cause top-level definitions to incorrectly typecheck
-//    resultToMDM(result, tpe, dist)
-//  }
 
   private[runtime] def evalAction(
       value: Value[Unit, Type.UType],
@@ -100,11 +72,11 @@ object EvaluatorQuick {
     }
   def wrap[TA, VA](value: Any): Result[TA, VA] =
     value match {
-      case r: Result[_, _] => r.asInstanceOf[Result[TA, VA]] // passed-through results from generic ops
+      case r: Result[_, _] => r.asInstanceOf[Result[TA, VA]]
       case ()              => Result.Unit()
-      case m: Map[_, _] =>
-        val newMap = m.toSeq.map { case (key, value) => (wrap[TA, VA](key), wrap[TA, VA](value)) }.toMap
-        Result.MapResult(newMap)
+      case m: Map[_, _] => Result.MapResult(m.toSeq.map { case (key, value) =>
+          (wrap[TA, VA](key), wrap[TA, VA](value))
+        }.toMap)
       case l: List[_]             => Result.ListResult(l.map(wrap(_)))
       case (first, second)        => Result.Tuple((wrap(first), wrap(second)))
       case (first, second, third) => Result.Tuple((wrap(first), wrap(second), wrap(third)))
@@ -132,12 +104,7 @@ object EvaluatorQuick {
         SDKValue.SDKNativeFunction(nf.arity, f)
     }
 
-  def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept = {
-    val intRef    = new BasicReference(Basics.intType)
-    val boolRef   = new BasicReference(Basics.boolType)
-    val floatRef  = new BasicReference(Basics.floatType)
-    val stringRef = new BasicReference(sdk.String.stringType)
-    val charRef   = new BasicReference(sdk.Char.charType)
+  def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept =
     tpe match {
       case TT.ExtensibleRecord(attributes, name, fields) =>
         throw UnsupportedType("Extensible records not supported for DDL")
@@ -146,16 +113,17 @@ object EvaluatorQuick {
       case TT.Record(attributes, fields) => Concept.Struct(fields.map(field =>
           (Label(field.name.toCamelCase), typeToConcept(field.data, dist, boundTypes))
         ).toList)
-      case TT.Reference(attributes, intRef(), _)    => Concept.Int32
-      case TT.Reference(attributes, stringRef(), _) => Concept.String
-      case TT.Reference(attributes, boolRef(), _)   => Concept.Boolean
-      case TT.Reference(attributes, charRef(), _)   => Concept.Char
-      case TT.Reference(attributes, floatRef(), _)  => Concept.Decimal
-      case TT.Reference(attributes, FQString("Morphir.SDK:List:list"), Chunk(elementType)) =>
+      case IntRef()    => Concept.Int32
+      case Int32Ref()  => Concept.Int32
+      case StringRef() => Concept.String
+      case BoolRef()   => Concept.Boolean
+      case CharRef()   => Concept.Char
+      case FloatRef()  => Concept.Decimal
+      case ListRef(elementType) =>
         Concept.List(typeToConcept(elementType, dist, boundTypes))
-      case TT.Reference(attributes, FQString("Morphir.SDK:Maybe:maybe"), Chunk(elementType)) =>
+      case MaybeRef(elementType) =>
         Concept.Optional(typeToConcept(elementType, dist, boundTypes))
-      case TT.Reference(attributes, FQString("Morphir.SDK:Dict:dict"), Chunk(keyType, valType)) =>
+      case DictRef(keyType, valType) =>
         Concept.Map(typeToConcept(keyType, dist, boundTypes), typeToConcept(valType, dist, boundTypes))
       case TT.Reference(attributes, typeName, typeArgs) =>
         val lookedUp    = dist.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
@@ -185,7 +153,6 @@ object EvaluatorQuick {
       case TT.Unit(attributes)           => Concept.Unit
       case TT.Variable(attributes, name) => boundTypes(name)
     }
-  }
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
     (concept, result) match {
       case (Concept.Struct(fields), Result.Record(elements)) =>

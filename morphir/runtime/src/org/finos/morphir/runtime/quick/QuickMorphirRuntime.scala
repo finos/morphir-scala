@@ -35,7 +35,6 @@ private[runtime] case class QuickMorphirRuntime(library: Library, store: Store[s
 
   def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
     val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)
-    val qName           = QName.fromTuple(mod, loc)
     val maybeSpec       = library.lookupValueSpecification(PackageName(pkg), ModuleName(mod), loc)
     maybeSpec match {
       case Some(spec) => RTAction.succeed(specificationToType(spec))
