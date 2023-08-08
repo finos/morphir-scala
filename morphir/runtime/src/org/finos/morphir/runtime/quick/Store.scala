@@ -5,6 +5,7 @@ import org.finos.morphir.naming.FQName.getLocalName
 import org.finos.morphir.naming.Name.toTitleCase
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Value.{Pattern, Value}
+import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.{Module, Type}
 import zio.Chunk
@@ -55,17 +56,18 @@ final case class Store[TA, VA](
 }
 
 object Store {
-  def fromLibrary(lib: Library): Store[Unit, Type.UType] = {
-    val packageName = lib.packageName
-    val valueBindings = lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
-      accessControlledModule.value.values.map {
-        case (localName, accessControlledValue) =>
-          val name       = FQName(packageName, moduleName, localName)
-          val definition = accessControlledValue.value.value
-          val sdkDef     = SDKValue.SDKValueDefinition(definition)
-          (name, sdkDef)
+  def fromDistritubtion(dist: Distribution): Store[Unit, Type.UType] = dist match {
+    case lib: Library =>
+      val packageName = lib.packageName
+      val valueBindings = lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
+        accessControlledModule.value.values.map {
+          case (localName, accessControlledValue) =>
+            val name = FQName(packageName, moduleName, localName)
+            val definition = accessControlledValue.value.value
+            val sdkDef = SDKValue.SDKValueDefinition(definition)
+            (name, sdkDef)
+        }
       }
-    }
 
     val ctorBindings: Map[FQName, SDKConstructor[Unit, Type.UType]] =
       lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
@@ -85,6 +87,7 @@ object Store {
       }
     Store(valueBindings ++ Native.native, ctorBindings ++ Native.nativeCtors, CallStackFrame(Map(), None))
   }
+}
 
   def empty[TA, VA]: Store[TA, VA] = {
     val plus: SDKValue[TA, VA] = SDKValue.SDKNativeFunction(
