@@ -40,6 +40,8 @@ private[morphir] trait FQNameExports {
     val fqName: Path => Path => Name => FQName = packagePath =>
       modulePath => localName => FQName(PackageName.fromPath(packagePath), ModuleName(modulePath), localName)
 
+    def fromQName(qName: QName)(implicit packageName: PackageName): FQName = ???
+
     def fromQName(packagePath: Path, qName: QName): FQName =
       FQName(PackageName.fromPath(packagePath), ModuleName(qName.modulePath), qName.localName)
 
