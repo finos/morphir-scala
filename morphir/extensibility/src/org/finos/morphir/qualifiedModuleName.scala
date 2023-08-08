@@ -6,6 +6,7 @@ private[morphir] trait QualifiedModuleNameExports { self: PackageNameExports wit
   sealed case class QualifiedModuleName(packageName: PackageName, modulePath: ModuleName) { self =>
     def /(moduleName: ModuleName): QualifiedModuleName =
       QualifiedModuleName(self.packageName, self.modulePath ++ moduleName)
+
     def toTuple: (Path, Path) = (packageName.toPath, modulePath.toPath)
   }
 

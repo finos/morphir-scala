@@ -22,7 +22,6 @@ extension (self: Namespace) {
   def /(name: String): Namespace = Namespace(self.segments :+ NamespaceSegment(name))
   @targetName("namespaceSlashStringVar")
   def /(names: String*): Namespace = /(names)
-  @targetName("namespaceSlashStringChunk")
 }
 
 extension (self: PackageName) {
