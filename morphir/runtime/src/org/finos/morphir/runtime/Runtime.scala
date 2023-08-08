@@ -1,7 +1,6 @@
 package org.finos.morphir
 package runtime
 
-
 import org.finos.morphir.naming._
 trait Runtime { self =>
   import Runtime._
