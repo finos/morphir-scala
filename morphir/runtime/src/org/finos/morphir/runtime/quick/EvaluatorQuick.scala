@@ -103,8 +103,8 @@ object EvaluatorQuick {
         case TT.Function(attributes, argumentType, returnType) =>
           throw UnsupportedType("Functiom types not supported for DDL")
         case TT.Record(attributes, fields) => Concept.Struct(fields.map(field =>
-          (Label(field.name.toCamelCase), typeToConcept(field.data, dist, boundTypes))
-        ).toList)
+            (Label(field.name.toCamelCase), typeToConcept(field.data, dist, boundTypes))
+          ).toList)
         case IntRef()    => Concept.Int32
         case Int32Ref()  => Concept.Int32
         case StringRef() => Concept.String
@@ -118,7 +118,7 @@ object EvaluatorQuick {
         case DictRef(keyType, valType) =>
           Concept.Map(typeToConcept(keyType, dist, boundTypes), typeToConcept(valType, dist, boundTypes))
         case TT.Reference(attributes, typeName, typeArgs) =>
-          val lookedUp    = library.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+          val lookedUp = library.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
           val conceptArgs = typeArgs.map(typeToConcept(_, dist, boundTypes))
           lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
             case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
@@ -138,14 +138,14 @@ object EvaluatorQuick {
                 Concept.Enum.Case(Label(conceptName), concepts)
               }
               Concept.Enum(typeName, cases)
-          case other => throw UnsupportedType(s"$other is not a recognized type")
-        }
-      case TT.Tuple(attributes, elements) =>
-        Concept.Tuple(elements.map(element => typeToConcept(element, dist, boundTypes)).toList)
-      case TT.Unit(attributes)           => Concept.Unit
-      case TT.Variable(attributes, name) => boundTypes(name)
-    }
+            case other => throw UnsupportedType(s"$other is not a recognized type")
+          }
+        case TT.Tuple(attributes, elements) =>
+          Concept.Tuple(elements.map(element => typeToConcept(element, dist, boundTypes)).toList)
+        case TT.Unit(attributes)           => Concept.Unit
+        case TT.Variable(attributes, name) => boundTypes(name)
       }
+  }
 
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
     (concept, result) match {
