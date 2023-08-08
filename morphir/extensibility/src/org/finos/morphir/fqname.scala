@@ -30,7 +30,7 @@ private[morphir] trait FQNameExports {
   }
 
   object FQName {
-    val empty:FQName = FQName(PackageName.empty, ModuleName.empty, Name.empty)
+    val empty: FQName = FQName(PackageName.empty, ModuleName.empty, Name.empty)
     //    def apply(packagePath: Path, modulePath: Path, localName: Name): FQName =
     //      FQName(PackageName(packagePath), ModulePath(modulePath), localName)
 
@@ -40,7 +40,7 @@ private[morphir] trait FQNameExports {
     val fqName: Path => Path => Name => FQName = packagePath =>
       modulePath => localName => FQName(PackageName.fromPath(packagePath), ModuleName(modulePath), localName)
 
-    def fromQName(qName:QName)(implicit packageName:PackageName):FQName = ???
+    def fromQName(qName: QName)(implicit packageName: PackageName): FQName = ???
 
     def fromQName(packagePath: Path, qName: QName): FQName =
       FQName(PackageName.fromPath(packagePath), ModuleName(qName.modulePath), qName.localName)
