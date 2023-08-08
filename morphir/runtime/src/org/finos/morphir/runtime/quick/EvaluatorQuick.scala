@@ -7,6 +7,7 @@ import org.finos.morphir.ir.Type.Type as TT
 import org.finos.morphir.ir.Type
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Value.*
+import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.Extractors.*
@@ -26,7 +27,7 @@ object EvaluatorQuick {
   private[runtime] def evalAction(
       value: Value[Unit, T.UType],
       store: Store[Unit, T.UType],
-      library: Library
+      dist: Distribution
   ): RTAction[MorphirEnv, EvaluationError, Data] =
     RTAction.environmentWithPure[MorphirSdk] { env =>
       val basics = env.get[BasicsModule]
@@ -35,12 +36,12 @@ object EvaluatorQuick {
 
       def newValue = fromNative[Unit, T.UType](modBy)
       def newStore = Store(store.definitions + (modBy.name -> newValue), store.ctors, store.callStack)
-      RTAction.succeed(EvaluatorQuick.eval(value, newStore, library))
+      RTAction.succeed(EvaluatorQuick.eval(value, newStore, dist))
     }
 
-  private[runtime] def eval(value: Value[Unit, T.UType], store: Store[Unit, T.UType], library: Library): Data = {
+  private[runtime] def eval(value: Value[Unit, T.UType], store: Store[Unit, T.UType], dist: Distribution): Data = {
     val result = Loop.loop(value, store)
-    resultToMDM(result, value.attributes, library)
+    resultToMDM(result, value.attributes, dist)
   }
 
   def unwrap[TA, VA](res: Result[TA, VA]): Any =
@@ -94,7 +95,7 @@ object EvaluatorQuick {
         SDKValue.SDKNativeFunction(nf.arity, f)
     }
 
-  def typeToConcept(tpe: Type.Type[Unit], dist: Library, boundTypes: Map[Name, Concept]): Concept =
+  def typeToConcept(tpe: Type.Type[Unit], dist: Distribution, boundTypes: Map[Name, Concept]): Concept =
     tpe match {
       case TT.ExtensibleRecord(attributes, name, fields) =>
         throw UnsupportedType("Extensible records not supported for DDL")
@@ -233,7 +234,7 @@ object EvaluatorQuick {
         throw new ResultDoesNotMatchType(s"Could not match type $badType with result $badResult")
     }
 
-  def resultToMDM(result: Result[Unit, Type.UType], tpe: Type.Type[Unit], dist: Library): Data = {
+  def resultToMDM(result: Result[Unit, Type.UType], tpe: Type.Type[Unit], dist: Distribution): Data = {
     val concept = typeToConcept(tpe, dist, Map())
     resultAndConceptToData(result, concept)
   }
