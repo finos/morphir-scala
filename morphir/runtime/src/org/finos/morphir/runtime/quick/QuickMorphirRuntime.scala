@@ -20,7 +20,7 @@ import scala.util.{Failure, Success, Try}
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
 import org.finos.morphir.runtime.environment.MorphirEnv
 
-private[runtime] case class QuickMorphirRuntime(library: Library, store: Store[scala.Unit, UType])
+private[runtime] case class QuickMorphirRuntime(dist: Distribution, store: Store[scala.Unit, UType])
     extends TypedMorphirRuntime {
   // private val store: Store[scala.Unit, UType] = Store.empty //
 
@@ -31,9 +31,10 @@ private[runtime] case class QuickMorphirRuntime(library: Library, store: Store[s
     } yield res
 
   def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
-    EvaluatorQuick.evalAction(value, store, library)
+    EvaluatorQuick.evalAction(value, store, dist)
 
-  def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
+  def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = dist match {
+    case library: Library =>
     val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)
     val maybeSpec       = library.lookupValueSpecification(PackageName(pkg), ModuleName(mod), loc)
     maybeSpec match {
