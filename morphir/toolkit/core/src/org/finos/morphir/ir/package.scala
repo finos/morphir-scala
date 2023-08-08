@@ -1,15 +1,13 @@
 package org.finos.morphir
 
+import org.finos.morphir.naming._
 // TODO:  Reintroduce later
 // import org.finos.morphir.sdk.ResultModule
 
 package object ir {
 
-  type ModuleName = Module.ModuleName
-  val ModuleName: Module.ModuleName.type = Module.ModuleName
-
-  type PackageName = PackageModule.PackageName
-  val PackageName: PackageModule.PackageName.type = PackageModule.PackageName
+  type Documented[+A] = org.finos.morphir.universe.ir.Documented[A]
+  val Documented: org.finos.morphir.universe.ir.Documented.type = org.finos.morphir.universe.ir.Documented
 
   // TODO:  Reintroduce later
   // type PackageSpecification[+Annotations] = PackageModule.Specification[Annotations]

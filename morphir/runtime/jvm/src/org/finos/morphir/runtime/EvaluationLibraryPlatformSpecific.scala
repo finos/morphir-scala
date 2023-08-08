@@ -1,11 +1,12 @@
 package org.finos.morphir.runtime
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Value.TypedValue
 import org.finos.morphir.ir.Value as V
 import V.*
 import V.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Type as T
-import org.finos.morphir.ir.{FQName, Module, Name, QName, Type}
+import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.MorphirIRFile

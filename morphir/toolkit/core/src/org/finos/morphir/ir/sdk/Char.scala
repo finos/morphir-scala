@@ -1,15 +1,12 @@
 package org.finos.morphir.ir.sdk
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics.{boolType, intType}
-import org.finos.morphir.ir.sdk.Common.{toFQName, vSpec}
-import org.finos.morphir.syntax.NamingSyntax._
 
-object Char {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Char")
+object Char extends MorphirIRSdkModule("Char") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(
@@ -32,7 +29,7 @@ object Char {
     )
   )
 
-  lazy val charType: UType = reference(toFQName(moduleName, "Char"))
+  lazy val charType: UType = reference(fqn("Char"))
   def charType[A](attributes: A): Type[A] =
-    reference(attributes, toFQName(moduleName, "Char"))
+    reference(attributes, fqn("Char"))
 }

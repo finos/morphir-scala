@@ -1,6 +1,7 @@
 package org.finos.morphir.runtime.quick
 
-import org.finos.morphir.ir.{FQName, Name, Type}
+import org.finos.morphir.naming._
+import org.finos.morphir.ir.Type
 import org.finos.morphir.ir.{Value => V}
 import org.finos.morphir.ir.Value.*
 import zio.Chunk

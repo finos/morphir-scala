@@ -7,6 +7,7 @@ import java.io.File
 import org.finos.morphir.ir.Literal.Literal
 import org.finos.morphir.ir.Value.Value
 import org.finos.morphir.ir.generator.MorphirIRDeriveGen
+import org.finos.morphir.naming._
 import zio.test._
 import zio.json.golden.GoldenConfiguration
 import zio.test.magnolia.DeriveGen

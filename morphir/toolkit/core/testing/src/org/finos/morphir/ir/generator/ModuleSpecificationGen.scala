@@ -1,7 +1,7 @@
-package org.finos.morphir
-package ir
-package generator
+package org.finos.morphir.ir.generator
 
+import org.finos.morphir.naming._
+import org.finos.morphir.ir.Documented
 import org.finos.morphir.ir.Type.{Specification => TypeSpec}
 import org.finos.morphir.ir.Value.{Specification => ValueSpec}
 import org.finos.morphir.ir.module.{Specification => ModSpec}

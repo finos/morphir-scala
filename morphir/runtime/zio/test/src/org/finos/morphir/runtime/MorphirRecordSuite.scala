@@ -1,6 +1,6 @@
 package org.finos.morphir.runtime
 
-import org.finos.morphir.ir.Name
+import org.finos.morphir.naming.*
 import org.finos.morphir.testing.munit.MorphirTestSuite
 
 import scala.collection.immutable.ListMap

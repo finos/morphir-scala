@@ -1,9 +1,9 @@
 package org.finos.morphir.runtime.quick
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.{Pattern, Value}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
-import org.finos.morphir.ir.{FQName, Name}
 import Helpers.{listToTuple, matchPatternCase, unpackLit}
 import SDKValue.{SDKNativeFunction, SDKNativeValue}
 import org.finos.morphir.runtime.{
@@ -220,7 +220,9 @@ object Loop {
 
   def handleReference[TA, VA](va: VA, name: FQName, store: Store[TA, VA]): Result[TA, VA] =
     store.getDefinition(name) match {
-      case None => throw DefinitionNotFound(s"name $name not found in store")
+      case None => throw DefinitionNotFound(
+          s"name $name not found in store. Store contents: ${store.definitions.keys.map(_.toString).mkString("\n")}"
+        )
       case Some(SDKValue.SDKValueDefinition(valueDefinition)) =>
         if (valueDefinition.inputTypes.isEmpty) {
           loop(valueDefinition.body, store)

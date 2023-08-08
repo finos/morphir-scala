@@ -1,5 +1,6 @@
 package org.finos.morphir.ir
 
+import org.finos.morphir.naming._
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 

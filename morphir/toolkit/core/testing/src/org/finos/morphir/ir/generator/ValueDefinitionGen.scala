@@ -2,8 +2,9 @@ package org.finos.morphir
 package ir
 package generator
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Type.Type
-import org.finos.morphir.ir.Value.{Definition, Value}
+import org.finos.morphir.ir.Value.Value
 import zio._
 import zio.test.Gen
 

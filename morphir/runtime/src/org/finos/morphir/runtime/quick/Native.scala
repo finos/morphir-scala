@@ -1,7 +1,8 @@
 package org.finos.morphir.runtime.quick
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.distribution.Distribution.Library
-import org.finos.morphir.ir.{FQName, Module, MorphirIRFile, Name, QName, Type}
+import org.finos.morphir.ir.{Module, MorphirIRFile, Type}
 import org.finos.morphir.runtime.*
 import zio.Chunk
 

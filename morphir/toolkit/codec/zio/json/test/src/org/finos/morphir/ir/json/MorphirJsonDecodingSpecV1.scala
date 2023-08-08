@@ -1,17 +1,12 @@
 package org.finos.morphir.ir
 package json
 
+import org.finos.morphir.naming._
 import zio.json._
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution._
-import org.finos.morphir.ir.Literal.Literal
 import org.finos.morphir.ir.Literal.Literal._
-import org.finos.morphir.ir.Module.{
-  Definition => ModuleDefinition,
-  QualifiedModuleName,
-  ModuleName,
-  Specification => ModuleSpecification
-}
+import org.finos.morphir.ir.Module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 import org.finos.morphir.ir.PackageModule.{
   Definition => PackageDefinition,
   Specification => PackageSpecification,
@@ -117,20 +112,20 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
         assert(actual.fromJson[PackageName])(objectEqualTo(Right(expected)))
       }
     ),
-    suite("ModuleName")(
-      test("will decode an empty ModuleName") {
+    suite("QualifiedModuleName")(
+      test("will decode an empty QualifiedModuleName") {
         val actual   = "[[],[]]"
-        val expected = QualifiedModuleName(Path.empty, Name.empty)
+        val expected = QualifiedModuleName.empty
         assert(actual.fromJson[QualifiedModuleName])(objectEqualTo(Right(expected)))
       },
-      test("will decode a simple ModuleName") {
+      test("will decode a simple QualifiedModuleName") {
         val actual   = """[[["org"]],["src","test"]]"""
-        val expected = QualifiedModuleName(Path.fromString("org"), Name.fromString("SrcTest"))
+        val expected = QualifiedModuleName(PackageName.fromString("org"), ModuleName.fromString("SrcTest"))
         assert(actual.fromJson[QualifiedModuleName])(objectEqualTo(Right(expected)))
       },
-      test("will decode a ModuleName") {
+      test("will decode a QualifiedModuleName") {
         val actual   = """[[["src"],["test"],["scala"]],["src","test"]]"""
-        val expected = QualifiedModuleName(Path.fromString("src.test.scala"), Name.fromString("SrcTest"))
+        val expected = QualifiedModuleName(PackageName.fromString("src.test.scala"), ModuleName.fromString("SrcTest"))
         assert(actual.fromJson[QualifiedModuleName])(objectEqualTo(Right(expected)))
       }
     ),
@@ -149,7 +144,7 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
     suite("FQName")(
       test("will decode an empty FQName") {
         val actual   = "[[],[],[]]"
-        val expected = FQName(Path.empty, Path.empty, Name.empty)
+        val expected = FQName.empty
         assert(actual.fromJson[FQName])(objectEqualTo(Right(expected)))
       },
       test("will decode a FQName") {

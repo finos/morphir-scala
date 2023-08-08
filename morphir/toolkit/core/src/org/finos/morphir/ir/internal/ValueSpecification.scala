@@ -2,6 +2,7 @@ package org.finos.morphir
 package ir
 package internal
 
+import org.finos.morphir.naming._
 import zio.{Chunk, NonEmptyChunk}
 import Type.{tuple => tupleType, unit => unitType, Type, UType}
 import Literal.Lit

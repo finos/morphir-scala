@@ -1,7 +1,7 @@
 package org.finos.morphir
 package runtime
 
-import ir.Name
+import org.finos.morphir.naming._
 trait Runtime { self =>
   import Runtime._
 

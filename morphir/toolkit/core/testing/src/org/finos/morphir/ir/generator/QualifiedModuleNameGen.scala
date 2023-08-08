@@ -2,17 +2,21 @@ package org.finos.morphir
 package ir
 package generator
 
-import org.finos.morphir.ir.module.QualifiedModuleName
+import org.finos.morphir.naming._
 import zio.test.Gen
 
 trait QualifiedModuleNameGen {
-  final def qualifiedModuleName[R](namespace: Gen[R, Path], localName: Gen[R, Name]): Gen[R, QualifiedModuleName] =
+  final def qualifiedModuleName[R](
+      packageName: Gen[R, PackageName],
+      moduleName: Gen[R, ModuleName]
+  ): Gen[R, QualifiedModuleName] =
     for {
-      namespace <- namespace
-      localName <- localName
+      namespace <- packageName
+      localName <- moduleName
     } yield QualifiedModuleName(namespace, localName)
 
-  final val qualifiedModuleName: Gen[Any, QualifiedModuleName] = qualifiedModuleName(PathGen.path, NameGen.name)
+  final val qualifiedModuleName: Gen[Any, QualifiedModuleName] =
+    qualifiedModuleName(PackageNameGen.packageName, ModuleNameGen.moduleName)
 }
 
 object QualifiedModuleNameGen extends QualifiedModuleNameGen

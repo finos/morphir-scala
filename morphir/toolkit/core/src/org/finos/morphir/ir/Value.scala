@@ -3,6 +3,7 @@ package ir
 
 import Literal._
 import zio.Chunk
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.internal.PatternModule
 import org.finos.morphir.ir.sdk.List.listType
 import internal.{ValueDefinition, ValueSpecification}

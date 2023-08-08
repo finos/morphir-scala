@@ -1,7 +1,7 @@
 package org.finos.morphir
 package runtime
 
-import org.finos.morphir.ir.FQName
+import org.finos.morphir.naming._
 import zio.Tag
 
 final case class SymbolTable private (bindings: Map[Symbol, SymbolValue]) { self =>

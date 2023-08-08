@@ -1,7 +1,7 @@
 package org.finos.morphir.ir.sdk
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics.intType
@@ -11,7 +11,7 @@ import org.finos.morphir.syntax.NamingSyntax._
 
 object Int {
 
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Int")
+  val moduleName: ModuleName = ModuleName.fromString("Int")
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(

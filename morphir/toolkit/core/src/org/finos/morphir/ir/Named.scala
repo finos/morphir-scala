@@ -1,5 +1,5 @@
 package org.finos.morphir.ir
-
+import org.finos.morphir.naming._
 final case class Named[+A](name: Name, value: A) { self =>
   def map[B](f: A => B): Named[B]            = Named(name, f(value))
   def flatMap[B](f: A => Named[B]): Named[B] = f(value)

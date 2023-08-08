@@ -2,6 +2,7 @@ package org.finos.morphir
 package ir
 package generator
 
+import org.finos.morphir.naming._
 import zio.test.Gen
 
 trait FQNameGen {
@@ -14,7 +15,7 @@ trait FQNameGen {
       packagePath <- packagePathGen
       modulePath  <- modulePathGen
       name        <- localNameGen
-    } yield FQName(packagePath, modulePath, name)
+    } yield FQName(PackageName(packagePath), ModuleName(modulePath), name)
 
   final val fqName: Gen[Any, FQName] = fqName(PathGen.path, PathGen.path, NameGen.name)
 }

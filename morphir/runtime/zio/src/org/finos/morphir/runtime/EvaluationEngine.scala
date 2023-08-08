@@ -1,10 +1,11 @@
 package org.finos.morphir
 package runtime
 
+import org.finos.morphir.naming.*
 import ir.Value.{TypedValue, Value}
 import ir.Type.UType
 import Value.Folder
-import org.finos.morphir.ir.{FQName, Name, Type}
+import org.finos.morphir.ir.Type
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.Pattern
 import zio.*

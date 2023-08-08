@@ -1,16 +1,17 @@
 package org.finos.morphir.datamodel
 
+import org.finos.morphir.naming._
 import org.finos.morphir.datamodel
 
 import scala.reflect.ClassTag
 import scala.reflect.classTag
-import scala.quoted.*
-import scala.deriving.*
+import scala.quoted._
+import scala.deriving._
 import scala.compiletime.{codeOf, constValue, erasedValue, error, summonFrom, summonInline}
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.datamodel.Label
 import org.finos.morphir.datamodel.Concept
-import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, PackageName, PartialName, QualifiedName}
+import org.finos.morphir.datamodel.namespacing.{LocalName, PartialName, QualifiedName}
 
 trait Deriver[T] {
   final def apply(value: T): Data = derive(value)

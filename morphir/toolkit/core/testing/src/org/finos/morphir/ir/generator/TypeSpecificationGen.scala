@@ -2,6 +2,7 @@ package org.finos.morphir
 package ir
 package generator
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Type.Constructors
 import org.finos.morphir.ir.Type.Specification
 import org.finos.morphir.ir.Type.Type

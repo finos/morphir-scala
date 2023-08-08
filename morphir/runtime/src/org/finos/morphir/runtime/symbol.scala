@@ -1,7 +1,7 @@
 package org.finos.morphir
 package runtime
 
-import org.finos.morphir.ir.{FQName, Name}
+import org.finos.morphir.naming._
 import zio.Tag
 
 sealed trait Symbol { self =>

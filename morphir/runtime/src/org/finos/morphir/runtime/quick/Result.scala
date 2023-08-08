@@ -1,9 +1,10 @@
 package org.finos.morphir.runtime.quick
 
-import org.finos.morphir.ir.{FQName, Module, Name, QName, Type}
+import org.finos.morphir.naming._
+import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Value.{Pattern, Value}
-import org.finos.morphir.ir.Name.toTitleCase
+import Name.toTitleCase
 
 sealed trait Result[TA, VA]
 

@@ -1,5 +1,7 @@
 package org.finos.morphir.runtime.quick
 
+import org.finos.morphir.naming.*
+import org.finos.morphir.*
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Literal.Literal.{
   BoolLiteral,
@@ -9,7 +11,6 @@ import org.finos.morphir.ir.Literal.Literal.{
   StringLiteral,
   WholeNumberLiteral
 }
-import org.finos.morphir.ir.Name
 import org.finos.morphir.ir.{Value => V}
 import org.finos.morphir.ir.Value.Pattern.*
 

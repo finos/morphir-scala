@@ -3,6 +3,7 @@ package morphir
 package ir
 
 import zio.Chunk
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.generator.LiteralGen
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Type.defineField
@@ -93,11 +94,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
 
   def constructorSuite = suite("Constructor")(
     test("toString should return as expected") {
-      val fqName = morphir.ir.FQName(
-        morphir.ir.Path.fromString("Morphir.SDK"),
-        morphir.ir.Path.fromString("My.Models"),
-        Name("Transaction")
-      )
+      val fqName = pkg"Morphir.SDK" % "My.Models" % "Transaction"
       val constr = constructor(fqName)
       assertTrue(
         constr.toString == fqName.toReferenceName,
@@ -105,27 +102,19 @@ object ValueModuleSpec extends MorphirBaseSpec {
       )
     },
     test("Should support collecting nested variables") {
-      val fqName = morphir.ir.FQName(
-        morphir.ir.Path("Morphir.SDK"),
-        morphir.ir.Path("Morphir.SDK"),
-        Name("RecordType")
-      )
+      val fqName = pkg"Morphir.SDK" % "Morphir.SDK" % "RecordType"
       val constr = constructor(fqName)
       assertTrue(constr.collectVariables == Set.empty[Name])
     },
     test("Collect references should return as expected") {
-      val fqName = morphir.ir.FQName(
-        morphir.ir.Path("Morphir.SDK"),
-        morphir.ir.Path("Morphir.SDK"),
-        Name("RecordType")
-      )
+      val fqName = pkg"Morphir.SDK" % "Morphir.SDK" % "RecordType"
       val constr = constructor(fqName)
       assertTrue(constr.collectReferences == Set.empty[FQName])
     },
     test("Should support toRawValue") {
-      val fqName = morphir.ir.FQName(
-        morphir.ir.Path(Name("Morphir.SDK")),
-        morphir.ir.Path(Name("Morphir.SDK")),
+      val fqName = FQName(
+        Path(Name("Morphir.SDK")),
+        Path(Name("Morphir.SDK")),
         Name("RecordType")
       )
       val typeRef = Type.reference(fqName)
@@ -149,9 +138,9 @@ object ValueModuleSpec extends MorphirBaseSpec {
       assertTrue(des.collectVariables == Set(Name("x")))
     },
     test("Should support collecting references") {
-      val fq = morphir.ir.FQName(
-        morphir.ir.Path(Name("Morphir.SDK")),
-        morphir.ir.Path(Name("Morphir.SDK")),
+      val fq = FQName(
+        Path(Name("Morphir.SDK")),
+        Path(Name("Morphir.SDK")),
         Name("RecordType")
       )
       val des = destructure(
@@ -201,9 +190,9 @@ object ValueModuleSpec extends MorphirBaseSpec {
       val name = Name.fromString("Name")
       val fi   = field(string("String"), name)
 
-      val fqName = morphir.ir.FQName(
-        morphir.ir.Path("Morphir.SDK"),
-        morphir.ir.Path("Morphir.SDK"),
+      val fqName = FQName(
+        Path("Morphir.SDK"),
+        Path("Morphir.SDK"),
         Name("RecordType")
       )
       val name2 = Name.fromString("Name3")
@@ -266,14 +255,14 @@ object ValueModuleSpec extends MorphirBaseSpec {
       assertTrue(ife.collectVariables == Set(Name.fromString("y")))
     },
     test("Supports collecting references") {
-      val fqName = morphir.ir.FQName(
-        morphir.ir.Path(Name("Morphir.SDK")),
-        morphir.ir.Path(Name("Morphir.SDK")),
+      val fqName = FQName(
+        Path(Name("Morphir.SDK")),
+        Path(Name("Morphir.SDK")),
         Name("RecordType")
       )
-      val fqName2 = morphir.ir.FQName(
-        morphir.ir.Path(Name("Morphir.SDK")),
-        morphir.ir.Path(Name("Morphir.SDK")),
+      val fqName2 = FQName(
+        Path(Name("Morphir.SDK")),
+        Path(Name("Morphir.SDK")),
         Name("VariableType")
       )
       val ife = ifThenElse(
@@ -316,9 +305,9 @@ object ValueModuleSpec extends MorphirBaseSpec {
       )
     },
     test("Should support collecting nested references") {
-      val fqName = morphir.ir.FQName(
-        morphir.ir.Path(Name("Morphir.SDK")),
-        morphir.ir.Path(Name("Morphir.SDK")),
+      val fqName = FQName(
+        Path(Name("Morphir.SDK")),
+        Path(Name("Morphir.SDK")),
         Name("RecordType")
       )
 
@@ -674,9 +663,9 @@ object ValueModuleSpec extends MorphirBaseSpec {
       assertTrue(ref.toString == "Morphir.SDK.String.toUpperCase")
     },
     test("Should support collecting references") {
-      val fq = morphir.ir.FQName(
-        morphir.ir.Path(Name("Morphir.SDK")),
-        morphir.ir.Path(Name("Morphir.SDK")),
+      val fq = FQName(
+        Path(Name("Morphir.SDK")),
+        Path(Name("Morphir.SDK")),
         Name("RecordType")
       )
       val ref = reference(fq)
@@ -684,9 +673,9 @@ object ValueModuleSpec extends MorphirBaseSpec {
     },
     test("Collect variables should be empty") {
       val ref = reference(
-        morphir.ir.FQName(
-          morphir.ir.Path(Name("Morphir.SDK")),
-          morphir.ir.Path(Name("Morphir.SDK")),
+        FQName(
+          Path(Name("Morphir.SDK")),
+          Path(Name("Morphir.SDK")),
           Name("RecordType")
         )
       )

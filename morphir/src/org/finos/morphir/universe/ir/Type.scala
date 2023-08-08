@@ -1,7 +1,14 @@
 package org.finos.morphir.universe.ir
-import Type.*
+import org.finos.morphir.naming.*
+import org.finos.morphir.universe.ir.Type.ExtensibleRecord
+import org.finos.morphir.universe.ir.Type.Record
+import org.finos.morphir.universe.ir.Type.Reference
+import org.finos.morphir.universe.ir.Type.Tuple
+import org.finos.morphir.universe.ir.Type.Variable
 
 sealed trait Type[+A] {
+  import Type.*
+
   def map[B](f: A => B): Type[B] = ???
 }
 object Type {
@@ -20,4 +27,13 @@ object Type {
   final case class Field[+A](name: Name, tpe: Type[A]) {
     def map[B](f: A => B): Field[B] = Field(name, tpe.map(f))
   }
+}
+
+object TypeVisitorUsage {
+  // val visitor = TypeVisitor.stateful(()) {
+  //   case Type.Unit(_) => ???
+  //   case _            => ???
+  // }
+
+  // visitor[scala.Unit](Type.Unit(()))
 }

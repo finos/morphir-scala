@@ -1,4 +1,7 @@
 package org.finos.morphir.universe.ir
+
+import org.finos.morphir.naming.*
+
 import org.finos.morphir.universe.ir.Literal as Lit
 import zio.Chunk
 import ValueSpecification.Parameter

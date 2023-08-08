@@ -5,6 +5,7 @@ import zio._
 import zio.json._
 import zio.json.ast.Json
 import zio.json.internal.Write
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution._
 import org.finos.morphir.ir.Literal.Literal
@@ -17,12 +18,7 @@ import org.finos.morphir.ir.PackageModule.{
 import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, Type}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
 import org.finos.morphir.ir.Value.{Value, _}
-import org.finos.morphir.ir.module.{
-  Definition => ModuleDefinition,
-  QualifiedModuleName,
-  ModuleName,
-  Specification => ModuleSpecification
-}
+import org.finos.morphir.ir.module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 
 trait MorphirJsonEncodingSupportV2 extends JsonEncodingHelpers {
   implicit val unitEncoder: JsonEncoder[Unit] = Json.encoder.contramap(_ => Json.Obj())
@@ -46,7 +42,7 @@ trait MorphirJsonEncodingSupportV2 extends JsonEncodingHelpers {
 
   implicit val qualifiedModuleNameEncoder: JsonEncoder[QualifiedModuleName] =
     Json.encoder.contramap[QualifiedModuleName](moduleName =>
-      Json.Arr(toJsonAstOrThrow(moduleName.namespace), toJsonAstOrThrow(moduleName.localName))
+      Json.Arr(toJsonAstOrThrow(moduleName.packageName), toJsonAstOrThrow(moduleName.modulePath))
     )
 
   implicit def fieldEncoder[A: JsonEncoder]: JsonEncoder[Field[A]] =

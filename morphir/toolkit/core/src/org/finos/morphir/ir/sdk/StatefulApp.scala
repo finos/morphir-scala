@@ -2,15 +2,12 @@ package org.finos.morphir.ir.sdk
 
 import zio.Chunk
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Constructors
 import org.finos.morphir.ir.Type.Specification.CustomTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Maybe.maybeType
-import org.finos.morphir.syntax.NamingSyntax._
 
-object StatefulApp {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("StatefulApp")
+object StatefulApp extends MorphirIRSdkModule("StatefulApp") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(

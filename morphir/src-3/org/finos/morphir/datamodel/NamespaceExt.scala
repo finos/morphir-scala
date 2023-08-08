@@ -20,12 +20,8 @@ import scala.annotation.targetName
 extension (self: Namespace) {
   @targetName("namespaceSlashString")
   def /(name: String): Namespace = Namespace(self.segments :+ NamespaceSegment(name))
-  @targetName("namespaceSlashIterable")
-  def /(names: Iterable[String]): Namespace = Namespace(self.segments ++ names.map(NamespaceSegment(_)))
   @targetName("namespaceSlashStringVar")
   def /(names: String*): Namespace = /(names)
-  @targetName("namespaceSlashStringChunk")
-  def /(names: Chunk[String]): Namespace = Namespace(self.segments ++ names.map(NamespaceSegment(_)))
 }
 
 extension (self: PackageName) {

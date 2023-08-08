@@ -2,15 +2,11 @@ package org.finos.morphir.ir.sdk
 
 import zio.Chunk
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.CustomTypeSpecification
 import org.finos.morphir.ir.Type.{Constructors, Type, UType, reference, variable}
 import org.finos.morphir.ir.Value.{apply, constructor, Value}
-import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.Maybe.maybeType
-import org.finos.morphir.syntax.NamingSyntax._
-object Result {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Result")
+object Result extends MorphirIRSdkModule("Result") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(
@@ -74,15 +70,15 @@ object Result {
   )
 
   def resultType(errorType: UType, itemType: UType): UType =
-    reference(toFQName(moduleName, "result"), errorType, itemType)
+    reference(fqn("result"), errorType, itemType)
 
   def resultType[A](attributes: A)(errorType: Type[A], itemType: Type[A]): Type[A] =
-    reference(attributes, toFQName(moduleName, "result"), errorType, itemType)
+    reference(attributes, fqn("result"), errorType, itemType)
 
   def ok[TA, VA](va: VA)(value: Value[TA, VA]): Value[TA, VA] =
-    apply(va, constructor(va, toFQName(moduleName, "Ok")), (value))
+    apply(va, constructor(va, fqn("Ok")), (value))
 
   def err[TA, VA](va: VA)(error: Value[TA, VA]): Value[TA, VA] =
-    apply(va, constructor(va, toFQName(moduleName, "Err")), error)
+    apply(va, constructor(va, fqn("Err")), error)
   // todo add nativefunctions
 }

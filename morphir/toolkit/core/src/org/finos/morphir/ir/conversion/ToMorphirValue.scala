@@ -2,6 +2,7 @@ package org.finos.morphir
 package ir
 package conversion
 
+import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.{Concept, Data, EnumLabel, Label}
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.{TypedValue, Value}

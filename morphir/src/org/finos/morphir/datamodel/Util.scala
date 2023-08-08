@@ -1,4 +1,5 @@
 package org.finos.morphir.datamodel
+import org.finos.morphir.naming.Name
 
 import org.finos.morphir.datamodel.namespacing.{
   LocalName,
@@ -47,7 +48,7 @@ object Util {
         Namespace.fromIterable(segments)
       }
 
-      QualifiedName(packageName, namespace, LocalName(localName))
+      QualifiedName(packageName, namespace, Name.fromString(localName))
     }
   }
 

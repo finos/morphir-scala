@@ -1,6 +1,6 @@
 package org.finos.morphir.ir.generator
+import org.finos.morphir.naming.*
 
-import org.finos.morphir.ir.module.ModuleName
 import zio._
 import zio.test.Gen
 

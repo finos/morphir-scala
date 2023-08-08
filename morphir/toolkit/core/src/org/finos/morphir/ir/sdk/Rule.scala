@@ -2,17 +2,13 @@ package org.finos.morphir.ir.sdk
 
 import zio.Chunk
 import org.finos.morphir.ir.Module
-import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Type.Specification.TypeAliasSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.sdk.Basics.boolType
-import org.finos.morphir.ir.sdk.Common._
 import org.finos.morphir.ir.sdk.List.listType
 import org.finos.morphir.ir.sdk.Maybe.maybeType
-import org.finos.morphir.syntax.NamingSyntax._
 
-object Rule {
-  val moduleName: QualifiedModuleName = QualifiedModuleName.fromString("Rule")
+object Rule extends MorphirIRSdkModule("Rule") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(
@@ -31,8 +27,8 @@ object Rule {
   )
 
   def ruleType(itemType1: UType, itemType2: UType): UType =
-    reference(toFQName(moduleName, "Rule"), itemType1, itemType2)
+    reference(fqn("Rule"), itemType1, itemType2)
 
   def ruleType[A](attributes: A)(itemType1: Type[A], itemType2: Type[A]): Type[A] =
-    reference(attributes, toFQName(moduleName, "Rule"), itemType1, itemType2)
+    reference(attributes, fqn("Rule"), itemType1, itemType2)
 }

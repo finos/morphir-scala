@@ -3,20 +3,12 @@ package morphir
 package ir
 package module
 
+import org.finos.morphir.naming.*
+
 trait ModuleModule {
 
   final type Definition[+TA, +VA] = morphir.ir.module.Definition[TA, VA]
   final val Definition: morphir.ir.module.Definition.type = morphir.ir.module.Definition
-
-  final type QualifiedModuleName = morphir.ir.module.QualifiedModuleName
-  final val QualifiedModuleName: morphir.ir.module.QualifiedModuleName.type = morphir.ir.module.QualifiedModuleName
-
-  final type ModuleName = morphir.ir.module.ModuleName
-  final val ModuleName: morphir.ir.module.ModuleName.type = morphir.ir.module.ModuleName
-
-  final type QModuleName = morphir.ir.module.QModuleName
-  final val QModuleName: morphir.ir.module.QModuleName.type =
-    morphir.ir.module.QModuleName
 
   final type Specification[+TA] = morphir.ir.module.Specification[TA]
   final val Specification: morphir.ir.module.Specification.type = morphir.ir.module.Specification
