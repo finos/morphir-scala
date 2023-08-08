@@ -5,7 +5,7 @@ package codec
 
 import java.io.File
 import org.finos.morphir.ir.generator.MorphirIRDeriveGen
-import org.finos.morphir.ir.module.ModuleName
+import org.finos.morphir.naming._
 import zio.test._
 import zio.json.golden.GoldenConfiguration
 import zio.test.magnolia.DeriveGen
