@@ -8,6 +8,7 @@ private[morphir] trait PackageNameExports { self: naming.type =>
   sealed case class PackageName(path: Path) { self =>
     def ++(that: PackageName): PackageName = PackageName(path ++ that.path)
     def ++(that: Path): PackageName        = PackageName(path ++ that)
+    def /(pathString: String)              = PackageName(path ++ Path.fromString(pathString))
 
     @inline def isEmpty: Boolean = path.isEmpty
     @inline def toPath: Path     = path

@@ -80,6 +80,8 @@ private[morphir] trait PathExports { self: NameExports =>
     @inline def fromList(names: List[Name]): Path = Path(names.toVector)
     /// Converts a list of names into a path.
     @inline def fromList(names: Name*): Path = Path(names.toVector)
+
+    def fromStrings(names: String*): Path = Path(names.map(Name.fromString).toVector)
     /// Converts names into a path.
     @inline def fromVector(names: Vector[Name]): Path = Path(names)
 

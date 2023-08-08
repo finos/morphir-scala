@@ -2,10 +2,10 @@ package org.finos.morphir
 package ir
 package generator
 
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.PackageModule.{
   Definition => PackageDefinition,
-  PackageName,
   Specification => PackageSpecification,
   USpecification => UPackageSpecification
 }

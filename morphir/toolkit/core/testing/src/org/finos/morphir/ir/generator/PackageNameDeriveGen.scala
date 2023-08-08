@@ -1,6 +1,6 @@
 package org.finos.morphir.ir.generator
 
-import org.finos.morphir.ir.packages.PackageName
+import org.finos.morphir.naming._
 import zio.test.magnolia.DeriveGen
 import zio.test.magnolia.DeriveGen._
 
