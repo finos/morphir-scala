@@ -21,6 +21,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     } yield MorphirRuntime.quick(dist))
 
   val localDate = java.time.LocalDate.of(1900, 1, 20)
+  val localTime = java.time.LocalTime.from(234566)
   def deriveData(input: Any): Data =
     input match {
       case u: Unit             => Deriver.toData(u)
@@ -378,7 +379,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ) /* @@ TestAspect.ignore @@ TestAspect.tag("ignore until we complete wiring up native functions")*/
       ),
       suite("Morphir Types")(
-        testEval("LocalDate")("nativeReferenceTests", "localDatePassthrough", localDate)(Data.LocalDate(localDate))
+        testEval("LocalDate")("nativeReferenceTests", "localDatePassthrough", localDate)(Data.LocalDate(localDate)),
+        testEval("LocalDate")("nativeReferenceTests", "localTimePassthrough", localTime)(Data.LocalTime(localTime))
       ),
       suite("Patern Matching")(
         testEvaluation("Wildcard")("patternMatchTests", "patternMatchWildcardTest")(Data.String("Correct")),
