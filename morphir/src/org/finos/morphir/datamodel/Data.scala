@@ -107,6 +107,12 @@ object Data {
       def apply(elementShape: Concept) = new None(Concept.Optional(elementShape))
     }
   }
+  sealed trait Result extends Data
+  object Result {
+    case class Ok(data: Data, shape: Concept.Result) extends Result
+    case class Err(data: Data, shape: Concept.Result) extends Result
+  }
+
 
   case class List private[datamodel] (values: scala.List[Data], shape: Concept.List) extends Data
   object List {
