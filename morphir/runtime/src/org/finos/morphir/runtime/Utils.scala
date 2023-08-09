@@ -108,6 +108,10 @@ object Extractors {
   object LocalDateRef extends CommonReference {
     final val tpe = sdk.LocalDate.localDateType
   }
+
+  object LocalTimeRef extends CommonReference {
+    final val tpe = sdk.LocalTime.localTimeType
+  }
   object SimpleRef {
     def unapply(tpe: UType): Boolean = tpe match {
       case IntRef()        => true
