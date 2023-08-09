@@ -58,7 +58,11 @@ final case class Store[TA, VA](
 
 object Store {
   def fromDistributions(dists: Distribution*) : Store[Unit, Type.UType] = {
-    
+    dists.map{
+      case (l : Library) = {
+        val packageName = lib.packageName
+      }
+    }
   }
   def fromDistribution(dist: Distribution): Store[Unit, Type.UType] = dist match {
     case lib: Library =>
