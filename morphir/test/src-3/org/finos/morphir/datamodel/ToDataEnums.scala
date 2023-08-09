@@ -6,7 +6,6 @@ import org.finos.morphir.datamodel.Concept.Enum
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.datamodel.Data.Case
 import org.finos.morphir.datamodel.Util.*
-import org.finos.morphir.datamodel.namespacing.*
 
 object EnumGns {
   val gns: QualifiedModuleName = root / "morphir" % "test" / "todataenums"

@@ -9,15 +9,12 @@ import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.Chunk
 import zio.test._
-import org.finos.morphir.datamodel.namespacing.*
-import org.finos.morphir.datamodel.namespacing.Namespace.ns
-import org.finos.morphir.datamodel.namespacing.PackageName.root
 
 import java.time.temporal.ChronoField
 
 object ValueConversionSpec extends MorphirBaseSpec {
   object pn {
-    val morphirIR: PartialName = root / "Morphir" % ns / "IR"
+    val morphirIR: PartialName = root / "Morphir" % "IR"
   }
 
   def spec = suite("ValueConversion Spec")(

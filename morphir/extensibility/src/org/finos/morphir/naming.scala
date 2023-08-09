@@ -16,6 +16,7 @@ object naming
 
   final implicit class QualifiedModuleNameSyntax(val self: QualifiedModuleName) extends AnyVal {
     def %(localName: String): FQName = FQName(self.packageName, self.modulePath, Name.fromString(localName))
+    def %(name: Name): FQName        = FQName(self.packageName, self.modulePath, name)
   }
 
   final implicit class NamingHelper(val sc: StringContext) extends AnyVal {

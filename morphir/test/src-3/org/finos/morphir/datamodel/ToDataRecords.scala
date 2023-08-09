@@ -4,7 +4,6 @@ import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.Deriver
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.{*, given}
-import org.finos.morphir.datamodel.namespacing.*
 
 class ToDataRecords extends munit.FunSuite {
   val gns: QualifiedModuleName = root / "morphir" % "datamodel"

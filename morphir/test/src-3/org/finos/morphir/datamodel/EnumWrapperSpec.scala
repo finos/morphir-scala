@@ -1,6 +1,6 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.datamodel.namespacing.*
+import org.finos.morphir.naming._
 
 class EnumWrapperSpec extends munit.FunSuite {
   case class MyBool(value: Boolean)

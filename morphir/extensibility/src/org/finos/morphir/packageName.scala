@@ -21,6 +21,8 @@ private[morphir] trait PackageNameExports { self: naming.type =>
     override def toString(): String                   = render
   }
 
+  val root = PackageName.root
+
   object PackageName {
     val empty: PackageName = PackageName(Path.empty)
     val root: PackageName  = PackageName(Path.empty)

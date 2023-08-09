@@ -48,15 +48,14 @@ object DeriverMacros {
             s"""
                |Cannot find a namespace for the type $tpeStr and a global default namespace has also not
                |been found. To define a namespace for a specific type do the following:
-               |implicit val ns: TypeDatamodelContext[$tpeStr] = new TypeDatamodelContext[${TypeRepr.of[T].widen.show}] {
-               |  import org.finos.morphir.datamodel.namespacing.*
-               |  def value: Namespace = root / "path" / "to" / "my" / "package"
-               |}
+               |  implicit val ns: TypeDatamodelContext[$tpeStr] = new TypeDatamodelContext[${TypeRepr.of[T].widen.show}] {
+               |    def value: Namespace = root / "path" / "to" / "my" / "package"
+               |  }
                |
                |To define a global namespace for all types do the following:
                |  implicit val ns: GlobalDatamodelContext = new GlobalDatamodelContext {
-               |  def value: Namespace = root / "path" / "to" / "my" / "package"
-               |}
+               |    def value: Namespace = root / "path" / "to" / "my" / "package"
+               |  }
                |""".stripMargin
           )
         }
