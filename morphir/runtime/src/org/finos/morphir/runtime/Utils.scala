@@ -119,8 +119,14 @@ object Extractors {
         case SimpleRef() => None
         case Type.Reference(_, typeName, typeArgs) => {
           val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
-
+          lookedUpMatch{
+            case Some(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
+              val newBindings = typeParams.zip(typeArgs).toMap
+              Some(expr, newBindings)
+            case _ => None
+          }
         }
+        case _ => None
       }
 
     }
