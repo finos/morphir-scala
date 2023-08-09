@@ -91,7 +91,8 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
       val stream = new java.io.ByteArrayOutputStream()
       val writer = new java.io.BufferedWriter(new java.io.OutputStreamWriter(stream))
       t.printStackTrace(new java.io.PrintWriter(writer))
-      ???
+      writer.flush
+      stream.toString
     }
   }
 
