@@ -30,6 +30,10 @@ object Result {
   case class Unit[TA, VA]()                extends Result[TA, VA]
   case class Primitive[TA, VA](value: Any) extends Result[TA, VA]
 
+  case class LocalDate[TA, VA](value: java.time.LocalDate) extends Result[TA, VA]
+
+  case class LocalTime[TA, VA](value: java.time.LocalTime) extends Result[TA, VA]
+
   case class Tuple[TA, VA](elements: Any) extends Result[TA, VA]
 
   case class Record[TA, VA](elements: Map[Name, Result[TA, VA]]) extends Result[TA, VA]
