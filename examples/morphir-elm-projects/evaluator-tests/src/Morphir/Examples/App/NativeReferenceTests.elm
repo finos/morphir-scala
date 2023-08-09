@@ -54,5 +54,9 @@ nativeReferenceModByTest : Int -> Int
 nativeReferenceModByTest x = 
     modBy 3 x
 --expected = x % 3
+
 localDatePassthrough : LocalDate -> LocalDate
+localDatePassThrough x = x
+
+localDatePassthrough : LocalTime -> LocalTime
 localDatePassThrough x = x
