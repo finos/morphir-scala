@@ -198,6 +198,8 @@ object Utils {
       case (StringRef(), StringRef())   => Right(found)
       case (CharRef(), CharRef())       => Right(found)
       case (BoolRef(), BoolRef())       => Right(found)
+      case (LocalDateRef(), LocalDateRef()) => Right(found)
+      case (LocalTimeRef(), LocalTimeRef()) => Right(found)
       case (Type.Tuple(_, argElements), Type.Tuple(_, paramElements)) =>
         if (argElements.length != paramElements.length) {
           Left(new TypeMismatch(s"Different tuple arity between arg $argElements and parameter $paramElements"))
