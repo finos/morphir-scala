@@ -42,6 +42,13 @@ object ToMorphirType {
   implicit def optionUType[A](implicit elementToUType: ToMorphirUType[A]): ToMorphirUType[scala.Option[A]] =
     toUTypeConverter(sdk.Maybe.maybeType(elementToUType.morphirType))
 
+
+  implicit def resultUType[A, B](implicit
+                                 errToUType: ToMorphirUType[A],
+                                 okToUType: ToMorphirUType[B]
+                                ): ToMorphirUType[Map[A, B]] =
+    toUTypeConverter(sdk.Dict.dictType(errToUType.morphirType, okToUType.morphirType))
+
   implicit def listUType[A](implicit elementToUType: ToMorphirUType[A]): ToMorphirUType[scala.List[A]] =
     toUTypeConverter(sdk.List.listType(elementToUType.morphirType))
 
@@ -76,6 +83,7 @@ object ToMorphirType {
       case Concept.Enum(name, cases)       => toUTypeConverter(T.reference(name))
       case Concept.List(elementType)       => listUType(conceptToTypeIR(elementType)).as
       case Concept.Optional(elementType)   => optionUType(conceptToTypeIR(elementType)).as
+      case Concept.Result(errType, okType) => resultUType(conceptToTypeIR(errType), conceptToTypeIR(okType)).as
       case Concept.Map(keyType, valueType) => mapUType(conceptToTypeIR(keyType), conceptToTypeIR(valueType)).as
       case Concept.Struct(fields) =>
         val types: scala.List[(String, UType)] = fields.map {
