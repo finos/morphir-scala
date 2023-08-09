@@ -53,6 +53,7 @@ final case class Store[TA, VA](
   def getCtor(name: FQName): Option[SDKConstructor[TA, VA]] = ctors.get(name)
 
   def push(bindings: Map[Name, StoredValue[TA, VA]]) = Store(definitions, ctors, callStack.push(bindings))
+  def withBindingsFrom(other : Store[TA, VA]) = Store(definitions ++ other.definitions, ctors ++ other.ctors, callStack)
 }
 
 object Store {

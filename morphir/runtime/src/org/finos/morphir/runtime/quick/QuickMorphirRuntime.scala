@@ -54,6 +54,6 @@ object QuickMorphirRuntime {
 
   def fromDistributionRTAction(distribution: Distribution)
       : RTAction[MorphirEnv, MorphirRuntimeError, QuickMorphirRuntime] =
-    RTAction.succeed(fromDistribution(distribution))
+    RTAction.succeed(fromDistributions(distribution))
 
 }
