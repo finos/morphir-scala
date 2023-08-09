@@ -184,7 +184,9 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
             cmd.lines
               .map { linesChunk =>
                 if (linesChunk.filterNot(_ == "").isEmpty) {
-                  ???
+                  println(
+                    s"[WARNING] Diff between ${filePath.toString} and ${diffFilePath.toString} is empty! In the following command ${cmd.toString}"
+                  )
                 }
 
                 linesChunk.map { line =>
