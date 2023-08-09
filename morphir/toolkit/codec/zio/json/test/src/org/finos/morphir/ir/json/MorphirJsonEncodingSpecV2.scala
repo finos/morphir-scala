@@ -8,10 +8,7 @@ import zio.json._
 import org.finos.morphir.ir.distribution.Distribution._
 import org.finos.morphir.ir.Literal.Literal
 import org.finos.morphir.ir.Literal.Literal._
-import org.finos.morphir.ir.Module.{
-  Definition => ModuleDefinition,
-  Specification => ModuleSpecification
-}
+import org.finos.morphir.ir.Module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 import org.finos.morphir.ir.PackageModule.{
   Definition => PackageDefinition,
   Specification => PackageSpecification,

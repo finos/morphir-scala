@@ -1,6 +1,7 @@
 package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.naming.*
+import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.naming.FQName.getLocalName
 import org.finos.morphir.naming.Name.toTitleCase
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
@@ -53,57 +54,42 @@ final case class Store[TA, VA](
   def getCtor(name: FQName): Option[SDKConstructor[TA, VA]] = ctors.get(name)
 
   def push(bindings: Map[Name, StoredValue[TA, VA]]) = Store(definitions, ctors, callStack.push(bindings))
+  def withBindingsFrom(other: Store[TA, VA]) = Store(definitions ++ other.definitions, ctors ++ other.ctors, callStack)
+  def withDefinition(fqn: FQName, definition: SDKValue[TA, VA]): Store[TA, VA] =
+    Store(definitions + (fqn -> definition), ctors, callStack)
+  def withConstructor(fqn: FQName, constructor: SDKConstructor[TA, VA]): Store[TA, VA] =
+    Store(definitions, ctors + (fqn -> constructor), callStack)
 }
 
 object Store {
-  def fromDistribution(dist: Distribution): Store[Unit, Type.UType] = dist match {
-    case lib: Library =>
-      val packageName = lib.packageName
-      val valueBindings = lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
-        accessControlledModule.value.values.map {
-          case (localName, accessControlledValue) =>
-            val name       = FQName(packageName, moduleName, localName)
-            val definition = accessControlledValue.value.value
-            val sdkDef     = SDKValue.SDKValueDefinition(definition)
-            (name, sdkDef)
-        }
-      }
-
-      val ctorBindings: Map[FQName, SDKConstructor[Unit, Type.UType]] =
-        lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
-          accessControlledModule.value.types.flatMap {
-            case (localName, accessControlledType) =>
-              val definition = accessControlledType.value.value
-              definition match {
-                case Type.Definition.CustomType(_, accessControlledCtors) =>
-                  val ctors = accessControlledCtors.value.toMap
-                  ctors.map { case (ctorName, ctorArgs) =>
-                    val name = FQName(packageName, moduleName, ctorName)
-                    (name, SDKConstructor[Unit, Type.UType](ctorArgs.map(_._2).toList))
-                  }
-                case Type.Definition.TypeAlias(_, _) => Map.empty
-              }
+  def fromDistributions(dists: Distribution*): Store[Unit, Type.UType] =
+    dists.foldLeft(native) {
+      case (acc, lib: Library) =>
+        val packageName = lib.packageName
+        lib.packageDef.modules.foldLeft(acc) { case (acc, (moduleName, module)) =>
+          val withDefinitions = module.value.values.foldLeft(acc) { case (acc, (valueName, value)) =>
+            val name       = FQName(packageName, moduleName, valueName)
+            val definition = value.value.value
+            val sdkDef     = SDKValue.SDKValueDefinition[Unit, Type.UType](definition)
+            acc.withDefinition(name, sdkDef)
+          }
+          module.value.types.foldLeft(withDefinitions) { case (acc, (typeName, tpe)) =>
+            val typeDef = tpe.value.value
+            typeDef match {
+              case Type.Definition.CustomType(_, accessControlledCtors) =>
+                val ctors = accessControlledCtors.value.toMap
+                ctors.foldLeft(acc) { case (acc, (ctorName, ctorArgs)) =>
+                  val name = FQName(packageName, moduleName, ctorName)
+                  acc.withConstructor(name, SDKConstructor[Unit, Type.UType](ctorArgs.map(_._2).toList))
+                }
+              case Type.Definition.TypeAlias(_, _) => acc
+            }
           }
         }
-      Store(valueBindings ++ Native.native, ctorBindings ++ Native.nativeCtors, CallStackFrame(Map(), None))
-  }
+    }
 
-  def empty[TA, VA]: Store[TA, VA] = {
-    val plus: SDKValue[TA, VA] = SDKValue.SDKNativeFunction(
-      2,
-      (a: Result[TA, VA], b: Result[TA, VA]) =>
-        Result.Primitive(Result.unwrap(a).asInstanceOf[Long] + Result.unwrap(b).asInstanceOf[Long])
-    )
-
-    val lessThan: SDKValue[TA, VA] = SDKValue.SDKNativeFunction(
-      2,
-      (a: Result[TA, VA], b: Result[TA, VA]) =>
-        Result.Primitive(Result.unwrap(a).asInstanceOf[Long] < Result.unwrap(b).asInstanceOf[Long])
-    )
-    val native = Map(
-      FQName.fromString("Morphir.SDK:Basics:add")      -> plus,
-      FQName.fromString("Morphir.SDK:Basics:lessThan") -> lessThan
-    )
-    Store(native, Map(), CallStackFrame(Map(), None))
-  }
+  def empty[TA, VA]: Store[TA, VA] =
+    Store(Map(), Map(), CallStackFrame(Map(), None))
+  def native: Store[Unit, UType] =
+    Store(Native.native, Native.nativeCtors, CallStackFrame(Map(), None))
 }

@@ -103,6 +103,8 @@ object Concept {
    */
   case class Optional(elementType: Concept) extends Concept
 
+  case class Result(errType: Concept, okType: Concept) extends Concept
+
   /**
    * A discrimiated union type such as an ELM union (either with labels or not)
    *

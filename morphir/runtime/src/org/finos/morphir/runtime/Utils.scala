@@ -9,9 +9,38 @@ import T.Type
 import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.Type.UType
+import org.finos.morphir.ir.Module.{Specification => ModSpec}
 import zio.Chunk
 import org.finos.morphir.ir.sdk.Basics
+import org.finos.morphir.ir.distribution.Distribution
+import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.sdk
+import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
+import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
+
+class Distributions(dists: Map[PackageName, Distribution]) {
+
+  def lookupModuleSpecification(packageName: PackageName, module: ModuleName): Option[ModSpec.Raw] =
+    dists.get(packageName) match {
+      case Some(Library(_, _, packageDef)) =>
+        packageDef.toSpecification.modules.get(module)
+      case None => None
+    }
+
+  def lookupValueSpecification(
+      packageName: PackageName,
+      module: ModuleName,
+      localName: Name
+  ): Option[UValueSpec] =
+    lookupModuleSpecification(packageName, module).flatMap(_.lookupValueSpecification(localName))
+
+  def lookupTypeSpecification(pName: PackageName, module: ModuleName, localName: Name): Option[UTypeSpec] =
+    lookupModuleSpecification(pName, module).flatMap(_.lookupTypeSpecification(localName))
+}
+object Distributions {
+  def apply(dists: Distribution*): Distributions =
+    new Distributions(dists.map { case (lib: Library) => lib.packageName -> lib }.toMap)
+}
 
 object Extractors {
   object FQString {
@@ -30,6 +59,15 @@ object Extractors {
       tpe match {
         case Type.Reference(_, FQString("Morphir.SDK:Maybe:maybe"), Chunk(elementType)) =>
           Some(elementType)
+        case _ => None
+      }
+  }
+
+  object ResultRef {
+    def unapply(tpe: UType): Option[(UType, UType)] =
+      tpe match {
+        case Type.Reference(attributes, FQString("Morphir.SDK:Result:result"), Chunk(keyType, valType)) =>
+          Some((keyType, valType))
         case _ => None
       }
   }
@@ -68,10 +106,60 @@ object Extractors {
   object CharRef extends CommonReference {
     final val tpe = sdk.Char.charType
   }
+  object SimpleRef {
+    def unapply(tpe: UType): Boolean = tpe match {
+      case IntRef()        => true
+      case Int32Ref()      => true
+      case BoolRef()       => true
+      case FloatRef()      => true
+      case StringRef()     => true
+      case CharRef()       => true
+      case ListRef(_)      => true
+      case MaybeRef(_)     => true
+      case DictRef(_, _)   => true
+      case ResultRef(_, _) => true
+      case _               => false
+    }
+  }
+  class Dealiased(dists: Distributions) {
+    def unapply(tpe: UType): Option[(UType, Map[Name, UType])] = // If it's aliased we may need to grab bindings
+      tpe match {
+        case SimpleRef() => None
+        case Type.Reference(_, typeName, typeArgs) =>
+          val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+          lookedUp match {
+            case Some(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
+              val newBindings = typeParams.zip(typeArgs).toMap
+              Some(expr, newBindings)
+            case _ => None
+          }
+        case _ => None
+      }
+  }
 }
 
 object Utils {
   import Extractors.*
+
+  def dealias(original_tpe: UType, dists: Distributions, bindings: Map[Name, UType]): UType = {
+    def loop(tpe: UType, bindings: Map[Name, UType]): UType =
+      tpe match {
+        case SimpleRef() => applyBindings(tpe, bindings) // nothing further to look up
+        case Type.Reference(_, typeName, typeArgs) =>
+          val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+          lookedUp match {
+            case Some(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
+              val resolvedArgs = typeArgs.map(dealias(_, dists, bindings)) // I think?
+              val newBindings  = typeParams.zip(resolvedArgs).toMap
+              loop(expr, bindings ++ newBindings)
+            case Some(_) => applyBindings(tpe, bindings) // Can't dealias further
+            case None =>
+              throw new TypeNotFound(s"Unable to find $tpe while dealiasing $original_tpe") // TODO: Thread properly
+          }
+        case other => applyBindings(other, bindings) // Not an alias
+      }
+    loop(original_tpe, bindings)
+  }
   def applyBindings(tpe: UType, bindings: Map[Name, UType]): UType =
     tpe match {
       case Type.Variable(_, name) if bindings.contains(name) => bindings(name)
@@ -117,6 +205,11 @@ object Utils {
           keyBindings   <- typeCheckArg(argKey, paramKey, found)
           valueBindings <- typeCheckArg(argValue, paramValue, keyBindings)
         } yield valueBindings
+      case (ResultRef(argErr, argOk), ResultRef(paramErr, paramOk)) =>
+        for {
+          errBindings <- typeCheckArg(argErr, paramErr, found)
+          okBindings <- typeCheckArg(argOk, paramOk, errBindings)
+        } yield okBindings
       case (ListRef(argElement), ListRef(paramElement))   => typeCheckArg(argElement, paramElement, found)
       case (MaybeRef(argElement), MaybeRef(paramElement)) => typeCheckArg(argElement, paramElement, found)
       case (Type.Record(_, argFields), Type.Record(_, paramFields)) =>
@@ -136,7 +229,7 @@ object Utils {
       case (Type.ExtensibleRecord(_, _, _), Type.ExtensibleRecord(_, _, _)) =>
         Left(UnsupportedType(s"Extensible record type not supported (yet)"))
       case (Type.Reference(_, argTypeName, argTypeArgs), Type.Reference(_, paramTypeName, paramTypeArgs))
-          if (argTypeName != paramTypeName) =>
+          if (argTypeName == paramTypeName) =>
         argTypeArgs.zip(paramTypeArgs).foldLeft(Right(found): Either[TypeError, Map[Name, UType]]) {
           case (acc, (argTpe, paramTpe)) =>
             acc.flatMap(found => typeCheckArg(argTpe, paramTpe, found))
@@ -149,18 +242,28 @@ object Utils {
   def unCurryTypeFunction(
       curried: UType,
       args: List[UType],
+      dists: Distributions,
       knownBindings: Map[Name, UType]
-  ): RTAction[Any, TypeError, UType] =
+  ): RTAction[Any, TypeError, UType] = {
+    val dealiaser = new Dealiased(dists)
     (curried, args) match {
       case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
         for {
           bindings    <- RTAction.fromEither(typeCheckArg(head, parameterType, knownBindings))
-          appliedType <- unCurryTypeFunction(returnType, tail, bindings)
+          appliedType <- unCurryTypeFunction(returnType, tail, dists, bindings)
         } yield appliedType
       case (tpe, Nil) => RTAction.succeed(applyBindings(tpe, knownBindings))
+      case (dealiaser(inner, aliasBindings), args) =>
+        unCurryTypeFunction(inner, args, dists, knownBindings ++ aliasBindings)
       case (nonFunction, head :: _) =>
         RTAction.fail(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
     }
+  }
+  def isNative(fqn: FQName): Boolean = {
+    val example = FQName.fromString("Morphir.SDK:Basics:equal")
+    fqn.getPackagePath == example.getPackagePath
+  }
+
   // TODO: Implement
   def typeCheck[TA](t1: Type[TA], t2: Type[TA]): RTAction[Any, TypeError, Unit] = RTAction.succeed(())
   def curryTypeFunction[TA](inner: Type[TA], params: Chunk[(Name, Type[TA])]): Type[TA] =

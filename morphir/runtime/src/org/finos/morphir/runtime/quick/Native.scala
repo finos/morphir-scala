@@ -123,6 +123,12 @@ object Native {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive(Result.unwrap(a).asInstanceOf[Long] < Result.unwrap(b).asInstanceOf[Long])
   )
+
+  val equal: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    2,
+    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+      Result.Primitive(a == b)
+  )
   val cons: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
@@ -153,13 +159,18 @@ object Native {
 
   val just: SDKConstructor[Unit, Type.UType]    = SDKConstructor(List(Type.variable("contents")))
   val nothing: SDKConstructor[Unit, Type.UType] = SDKConstructor(List())
+  val ok: SDKConstructor[Unit, Type.UType]      = SDKConstructor(List(Type.variable("contents")))
+  val err: SDKConstructor[Unit, Type.UType]     = SDKConstructor(List(Type.variable("contents")))
 
   val nativeCtors: Map[FQName, SDKConstructor[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:Maybe:just")    -> just,
-    FQName.fromString("Morphir.SDK:Maybe:nothing") -> nothing
+    FQName.fromString("Morphir.SDK:Maybe:nothing") -> nothing,
+    FQName.fromString("Morphir.SDK:Result:ok")     -> ok,
+    FQName.fromString("Morphir.SDK:Result:err")    -> err
   )
 
   val native: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:Basics:equal")    -> equal,
     FQName.fromString("Morphir.SDK:Basics:and")      -> and,
     FQName.fromString("Morphir.SDK:Basics:or")       -> or,
     FQName.fromString("Morphir.SDK:Basics:pi")       -> pi,

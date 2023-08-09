@@ -28,7 +28,7 @@ object ToMorphirType {
 
   implicit val unitUType: ToMorphirUType[scala.Unit]               = toUTypeConverter(T.unit)
   implicit val boolUType: ToMorphirUType[Boolean]                  = toUTypeConverter(sdk.Basics.boolType)
-  implicit val intUType: ToMorphirUType[Int]                       = toUTypeConverter(sdk.Int.int32Type)
+  implicit val intUType: ToMorphirUType[Int]                       = toUTypeConverter(sdk.Basics.intType)
   implicit val stringUType: ToMorphirUType[String]                 = toUTypeConverter(sdk.String.stringType)
   implicit val byteUType: ToMorphirUType[Byte]                     = toUTypeConverter(sdk.Int.int8Type)
   implicit val shortUType: ToMorphirUType[Short]                   = toUTypeConverter(sdk.Int.int16Type)
@@ -41,6 +41,12 @@ object ToMorphirType {
 
   implicit def optionUType[A](implicit elementToUType: ToMorphirUType[A]): ToMorphirUType[scala.Option[A]] =
     toUTypeConverter(sdk.Maybe.maybeType(elementToUType.morphirType))
+
+  implicit def resultUType[A, B](implicit
+      errToUType: ToMorphirUType[A],
+      okToUType: ToMorphirUType[B]
+  ): ToMorphirUType[Map[A, B]] =
+    toUTypeConverter(sdk.Result.resultType(errToUType.morphirType, okToUType.morphirType))
 
   implicit def listUType[A](implicit elementToUType: ToMorphirUType[A]): ToMorphirUType[scala.List[A]] =
     toUTypeConverter(sdk.List.listType(elementToUType.morphirType))
@@ -76,6 +82,7 @@ object ToMorphirType {
       case Concept.Enum(name, cases)       => toUTypeConverter(T.reference(name))
       case Concept.List(elementType)       => listUType(conceptToTypeIR(elementType)).as
       case Concept.Optional(elementType)   => optionUType(conceptToTypeIR(elementType)).as
+      case Concept.Result(errType, okType) => resultUType(conceptToTypeIR(errType), conceptToTypeIR(okType)).as
       case Concept.Map(keyType, valueType) => mapUType(conceptToTypeIR(keyType), conceptToTypeIR(valueType)).as
       case Concept.Struct(fields) =>
         val types: scala.List[(String, UType)] = fields.map {
