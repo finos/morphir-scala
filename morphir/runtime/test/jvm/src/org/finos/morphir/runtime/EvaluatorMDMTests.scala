@@ -92,6 +92,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 //    dogRecordConcept
 //  )
 
+  def resultStringIntShape = Concept.Result(Concept.String, Concept.Int)
+
+  def resultBoolIntShape = Concept.Result(Concept.Bool, Concept.Int)
   def unionEnumShape: Concept.Enum = Concept.Enum(
     qn"Morphir/Examples/App:ConstructorTests:UnionType",
     List(
@@ -482,8 +485,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       suite("Optional Tests")(
         testEvaluation("Returns a Just 1")("optionTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),
         testEvaluation("Returns a None")("optionTests", "returnNoneIntTest")(Data.Optional.None(Concept.Int32)),
-        testEval("Returns success result")("optionTests", "returnResultType", 1)(Data.Optional.Some(Data.Int(1))),
-          testEval ("Returns success result") ("optionTests", "returnResultType", -1)(Data.Optional.Some(Data.Int(1)))
+        testEval("Returns success result")("optionTests", "returnResultType", 0)(Data.Result.Ok(Data.Int(0), resultStringIntShape)),
+          testEval ("Returns success result") ("optionTests", "returnResultType", -1)(Data.Result.Err(Data.String("Negative"), resultStringIntShape))
       )
     ).provideLayerShared(morphirRuntimeLayer)
 }
