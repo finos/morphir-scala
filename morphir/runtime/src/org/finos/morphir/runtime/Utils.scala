@@ -224,7 +224,7 @@ object Utils {
       case (Type.ExtensibleRecord(_, _, _), Type.ExtensibleRecord(_, _, _)) =>
         Left(UnsupportedType(s"Extensible record type not supported (yet)"))
       case (Type.Reference(_, argTypeName, argTypeArgs), Type.Reference(_, paramTypeName, paramTypeArgs))
-          if (argTypeName != paramTypeName) =>
+          if (argTypeName == paramTypeName) =>
         argTypeArgs.zip(paramTypeArgs).foldLeft(Right(found): Either[TypeError, Map[Name, UType]]) {
           case (acc, (argTpe, paramTpe)) =>
             acc.flatMap(found => typeCheckArg(argTpe, paramTpe, found))
