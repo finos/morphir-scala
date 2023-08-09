@@ -162,7 +162,7 @@ object Native {
   val fromMilliseconds: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
     (a: Result[Unit, Type.UType]) =>
-      Result.LocalTime(java.time.LocalTime.of(0, 0).plusNanos(Result.unwrap(a),asInstanceOf[Long] * 1000))
+      Result.LocalTime(java.time.LocalTime.of(0, 0).plusNanos(Result.unwrap(a).asInstanceOf[Long] * 1000))
   )
 
   val pi: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.Primitive(3.toDouble))
@@ -194,7 +194,8 @@ object Native {
     FQName.fromString("Morphir.SDK:List:cons")       -> cons,
     FQName.fromString("Morphir.SDK:List:concat")     -> concat,
     FQName.fromString("Morphir.SDK:List:map")        -> map,
-      FQName.fromString("Morphir.SDK:LocalDate:fromParts") -> fromParts
+      FQName.fromString("Morphir.SDK:LocalDate:fromParts") -> fromParts,
+        FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
   ) ++ Dict.sdk ++ String.sdk
 }
