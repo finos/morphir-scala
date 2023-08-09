@@ -108,7 +108,6 @@ object Extractors {
   object LocalDateRef extends CommonReference {
     final val tpe = sdk.LocalDate.localDateType
   }
-
   object LocalTimeRef extends CommonReference {
     final val tpe = sdk.LocalTime.localTimeType
   }
@@ -120,6 +119,8 @@ object Extractors {
       case FloatRef()      => true
       case StringRef()     => true
       case CharRef()       => true
+      case LocalDateRef() =>  true
+      case LocalTimeRef() =>  true
       case ListRef(_)      => true
       case MaybeRef(_)     => true
       case DictRef(_, _)   => true
