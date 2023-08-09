@@ -53,7 +53,7 @@ object MorphirJsonDecodingSpecV2 extends ZIOSpecDefault {
       },
       test("will decode a Name fromList") {
         val actual   = """["this","is","a","list"]"""
-        val expected = Name.fromList(List("This", "is", "a", "list"))
+        val expected = Name.fromList(List("this", "is", "a", "list"))
         assert(actual.fromJson[Name])(objectEqualTo(Right(expected)))
       }
     ),
@@ -115,12 +115,12 @@ object MorphirJsonDecodingSpecV2 extends ZIOSpecDefault {
         assert(actual.fromJson[QualifiedModuleName])(objectEqualTo(Right(expected)))
       },
       test("will decode a simple QualifiedModuleName") {
-        val actual   = """[[["org"]],["src","test"]]"""
+        val actual   = """[[["org"]],[["src","test"]]]"""
         val expected = QualifiedModuleName(PackageName.fromString("org"), ModuleName.fromString("SrcTest"))
         assert(actual.fromJson[QualifiedModuleName])(objectEqualTo(Right(expected)))
       },
       test("will decode a QualifiedModuleName") {
-        val actual   = """[[["src"],["test"],["scala"]],["src","test"]]"""
+        val actual   = """[[["src"],["test"],["scala"]],[["src","test"]]]"""
         val expected = QualifiedModuleName(PackageName.fromString("src.test.scala"), ModuleName.fromString("SrcTest"))
         assert(actual.fromJson[QualifiedModuleName])(objectEqualTo(Right(expected)))
       }
