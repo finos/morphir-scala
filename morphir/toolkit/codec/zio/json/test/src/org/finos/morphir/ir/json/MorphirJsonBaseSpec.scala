@@ -107,7 +107,14 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
       try
         patchFile.toString
       catch {
-        case e: Exception => ???
+        case e: Exception =>
+          s"""=================== Error ===================
+             |${e.stackTraceToString}
+             |=================== Expected ===================
+             |$expectedJson
+             |=================== Actual ===================
+             |$actualJson
+             |""".stripMargin
       }
     (errorsResult.toString, patchFileText)
   }
