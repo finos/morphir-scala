@@ -30,6 +30,9 @@ class Distributions(dists : Map[PackageName, Distribution]){
                                 localName: Name
                               ): Option[UValueSpec] =
     lookupModuleSpecification(packageName, module).flatMap(_.lookupValueSpecification(localName))
+
+  def lookupTypeSpecification(pName: PackageName, module: ModuleName, localName: Name): Option[UTypeSpec] =
+    lookupModuleSpecification(pName, module).flatMap(_.lookupTypeSpecification(localName))
 }
 object Distributions {
   def apply(dists: Distribution*): Distributions = {

@@ -27,7 +27,7 @@ object EvaluatorQuick {
   private[runtime] def evalAction(
       value: Value[Unit, T.UType],
       store: Store[Unit, T.UType],
-      dist: Distribution
+      dists: Distributions
   ): RTAction[MorphirEnv, EvaluationError, Data] =
     RTAction.environmentWithPure[MorphirSdk] { env =>
       val basics = env.get[BasicsModule]
@@ -39,9 +39,9 @@ object EvaluatorQuick {
       RTAction.succeed(EvaluatorQuick.eval(value, newStore, dist))
     }
 
-  private[runtime] def eval(value: Value[Unit, T.UType], store: Store[Unit, T.UType], dist: Distribution): Data = {
+  private[runtime] def eval(value: Value[Unit, T.UType], store: Store[Unit, T.UType], dists: Distributions): Data = {
     val result = Loop.loop(value, store)
-    resultToMDM(result, value.attributes, dist)
+    resultToMDM(result, value.attributes, dists)
   }
 
   def unwrap[TA, VA](res: Result[TA, VA]): Any =
@@ -95,15 +95,14 @@ object EvaluatorQuick {
         SDKValue.SDKNativeFunction(nf.arity, f)
     }
 
-  def typeToConcept(tpe: Type.Type[Unit], dist: Distribution, boundTypes: Map[Name, Concept]): Concept = dist match {
-    case library: Library =>
+  def typeToConcept(tpe: Type.Type[Unit], dists: Distributions, boundTypes: Map[Name, Concept]): Concept = {
       tpe match {
         case TT.ExtensibleRecord(attributes, name, fields) =>
           throw UnsupportedType("Extensible records not supported for DDL")
         case TT.Function(attributes, argumentType, returnType) =>
           throw UnsupportedType("Functiom types not supported for DDL")
         case TT.Record(attributes, fields) => Concept.Struct(fields.map(field =>
-            (Label(field.name.toCamelCase), typeToConcept(field.data, dist, boundTypes))
+            (Label(field.name.toCamelCase), typeToConcept(field.data, dists, boundTypes))
           ).toList)
         case IntRef()    => Concept.Int32
         case Int32Ref()  => Concept.Int32
@@ -112,18 +111,18 @@ object EvaluatorQuick {
         case CharRef()   => Concept.Char
         case FloatRef()  => Concept.Decimal
         case ListRef(elementType) =>
-          Concept.List(typeToConcept(elementType, dist, boundTypes))
+          Concept.List(typeToConcept(elementType, dists, boundTypes))
         case MaybeRef(elementType) =>
-          Concept.Optional(typeToConcept(elementType, dist, boundTypes))
+          Concept.Optional(typeToConcept(elementType, dists, boundTypes))
         case DictRef(keyType, valType) =>
-          Concept.Map(typeToConcept(keyType, dist, boundTypes), typeToConcept(valType, dist, boundTypes))
+          Concept.Map(typeToConcept(keyType, dists, boundTypes), typeToConcept(valType, dists, boundTypes))
         case TT.Reference(attributes, typeName, typeArgs) =>
-          val lookedUp = library.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
-          val conceptArgs = typeArgs.map(typeToConcept(_, dist, boundTypes))
+          val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+          val conceptArgs = typeArgs.map(typeToConcept(_, dists, boundTypes))
           lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
             case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
               val newBindings = typeParams.zip(conceptArgs).toMap
-              typeToConcept(expr, dist, newBindings) match {
+              typeToConcept(expr, dists, newBindings) match {
                 case Concept.Struct(fields) => Concept.Record(typeName, fields)
                 case other                  => Concept.Alias(typeName, other)
               }
@@ -131,7 +130,7 @@ object EvaluatorQuick {
               val newBindings = typeParams.zip(conceptArgs).toMap
               val cases = ctors.toMap.toList.map { case (caseName, args) =>
                 val argTuples = args.map { case (argName: Name, argType: Type.UType) =>
-                  (EnumLabel.Named(argName.toCamelCase), typeToConcept(argType, dist, newBindings))
+                  (EnumLabel.Named(argName.toCamelCase), typeToConcept(argType, dists, newBindings))
                 }
                 val conceptName: String                  = caseName.toCamelCase
                 val concepts: List[(EnumLabel, Concept)] = argTuples.toList
@@ -141,7 +140,7 @@ object EvaluatorQuick {
             case other => throw UnsupportedType(s"$other is not a recognized type")
           }
         case TT.Tuple(attributes, elements) =>
-          Concept.Tuple(elements.map(element => typeToConcept(element, dist, boundTypes)).toList)
+          Concept.Tuple(elements.map(element => typeToConcept(element, dists, boundTypes)).toList)
         case TT.Unit(attributes)           => Concept.Unit
         case TT.Variable(attributes, name) => boundTypes(name)
       }
@@ -238,7 +237,7 @@ object EvaluatorQuick {
     }
 
   def resultToMDM(result: Result[Unit, Type.UType], tpe: Type.Type[Unit], dist: Distribution): Data = {
-    val concept = typeToConcept(tpe, dist, Map())
+    val concept = typeToConcept(tpe, dists, Map())
     resultAndConceptToData(result, concept)
   }
 
