@@ -481,7 +481,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       ),
       suite("Optional Tests")(
         testEvaluation("Returns a Just 1")("optionTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),
-        testEvaluation("Returns a None")("optionTests", "returnNoneIntTest")(Data.Optional.None(Concept.Int32))
+        testEvaluation("Returns a None")("optionTests", "returnNoneIntTest")(Data.Optional.None(Concept.Int32)),
+        testEval("Returns success result")("optionTests", "returnResultType", 1)(Data.Optional.Some(Data.Int(1))),
+          testEval ("Returns success result") ("optionTests", "returnResultType", -1)(Data.Optional.Some(Data.Int(1)))
       )
     ).provideLayerShared(morphirRuntimeLayer)
 }
