@@ -54,6 +54,7 @@ final case class Store[TA, VA](
 
   def push(bindings: Map[Name, StoredValue[TA, VA]]) = Store(definitions, ctors, callStack.push(bindings))
   def withBindingsFrom(other: Store[TA, VA]) = Store(definitions ++ other.definitions, ctors ++ other.ctors, callStack)
+  def withDefinition(fqn)
 }
 
 object Store {
@@ -65,13 +66,20 @@ object Store {
           val withDefinitions = module.value.values.foldLeft(acc) { case (acc, (valueName, value)) =>
             val name       = FQName(packageName, moduleName, localName)
             val definition = value.value.value
-            val sdkDef     = SDKValue.SDKValueDefinition(definition)
-            acc.withDefinition(sdkDef)
+            val sdkDef     = SDKValue.SDKValueDefinition[Unit, Type.UType](definition)
+            acc.withDefinition(name -> sdkDef)
           }
           module.value.types.foldLeft(withDefinitions){ case (acc, (typeName, tpe)) => {
             val typeDef = tpe.value.value
             typeDef match {
-              
+              case Type.Definition.CustomType(_, accessControlledCtors) =>
+                val ctors = accessControlledCtors.value.toMap
+                ctors.foldLeft(acc){ case (ctorName, ctorArgs) =>
+                  val name = FQName(packageName, moduleName, ctorName)
+                  acc.withDefinition(name -> SDKConstructor[Unit, Type.UType](ctorArgs.map(_._2).toList))
+                }
+              case Type.Definition.TypeAlias(_, _) => acc
+
             }
           }
 
