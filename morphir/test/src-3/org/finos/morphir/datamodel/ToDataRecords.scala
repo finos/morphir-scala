@@ -3,7 +3,6 @@ package org.finos.morphir.datamodel
 import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.Deriver
 import org.finos.morphir.datamodel.Util.*
-import org.finos.morphir.datamodel.namespacing.LocalName
 import org.finos.morphir.datamodel.{*, given}
 import org.finos.morphir.datamodel.namespacing.*
 
@@ -38,8 +37,8 @@ class ToDataRecords extends munit.FunSuite {
     case class Person(name: String, age: Int)
     val tns: QualifiedModuleName = root / "override" % "datamodel"
     given TypeDatamodelContext[Person] with {
-      def value                                    = tns
-      override def nameOverride: Option[LocalName] = Some(LocalName("Person2"))
+      def value                               = tns
+      override def nameOverride: Option[Name] = Some(Name("Person2"))
     }
 
     assertEquals(

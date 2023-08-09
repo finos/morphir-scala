@@ -1,6 +1,5 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.datamodel.namespacing.LocalName
 import org.finos.morphir.naming._
 import scala.reflect.ClassTag
 

@@ -74,6 +74,9 @@ private[morphir] trait FQNameExports {
     def fromLocalName(localName: String)(implicit qualifiedModuleName: QualifiedModuleName): FQName =
       FQName(qualifiedModuleName.packageName, qualifiedModuleName.modulePath, Name.fromString(localName))
 
+    def fromLocalName(localName: Name)(implicit qualifiedModuleName: QualifiedModuleName): FQName =
+      FQName(qualifiedModuleName.packageName, qualifiedModuleName.modulePath, localName)
+
     def toString(fqName: FQName): String = fqName.toString
 
     /** Parse a string into a FQName using splitter as the separator between package, module, and local names */

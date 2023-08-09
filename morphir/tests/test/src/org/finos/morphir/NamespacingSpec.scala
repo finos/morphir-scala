@@ -1,6 +1,6 @@
 package org.finos.morphir
 import org.finos.morphir.naming.*
-import org.finos.morphir.datamodel.namespacing.{LocalName, QualifiedName}
+import org.finos.morphir.datamodel.namespacing.LocalName
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.Chunk
 import zio.test._
@@ -13,7 +13,7 @@ object NamespacingSpec extends MorphirBaseSpec {
         val namespace  = Namespace.ns / "bar"
         val pack       = PackageName.root / "baz"
         val qName      = localName.toQualified(pack, namespace)
-        val expectedQN = QualifiedName(pack, namespace, localName.toName)
+        val expectedQN = FQName(pack, namespace, localName.toName)
         assertTrue(qName == expectedQN)
       }
     ),
