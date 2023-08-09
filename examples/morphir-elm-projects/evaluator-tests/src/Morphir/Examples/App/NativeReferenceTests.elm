@@ -56,7 +56,7 @@ nativeReferenceModByTest x =
 --expected = x % 3
 
 localDatePassthrough : LocalDate -> LocalDate
-localDatePassThrough x = x
+localDatePassthrough x = x
 
 localTimePassthrough : LocalTime -> LocalTime
-localTimePassThrough x = x
+localTimePassthrough x = x
