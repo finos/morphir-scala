@@ -90,7 +90,6 @@ object Extractors {
   object IntRef extends CommonReference {
     final val tpe = Basics.intType
   }
-
   object Int32Ref extends CommonReference {
     final val tpe = sdk.Int.int32Type
   }
@@ -106,6 +105,12 @@ object Extractors {
   object CharRef extends CommonReference {
     final val tpe = sdk.Char.charType
   }
+  object LocalDateRef extends CommonReference {
+    final val tpe = sdk.LocalDate.localDateType
+  }
+  object LocalTimeRef extends CommonReference {
+    final val tpe = sdk.LocalTime.localTimeType
+  }
   object SimpleRef {
     def unapply(tpe: UType): Boolean = tpe match {
       case IntRef()        => true
@@ -114,6 +119,8 @@ object Extractors {
       case FloatRef()      => true
       case StringRef()     => true
       case CharRef()       => true
+      case LocalDateRef()  => true
+      case LocalTimeRef()  => true
       case ListRef(_)      => true
       case MaybeRef(_)     => true
       case DictRef(_, _)   => true
@@ -184,13 +191,15 @@ object Utils {
         } else {
           Right(found + (name -> argType))
         }
-      case (Type.Unit(_), Type.Unit(_)) => Right(found)
-      case (IntRef(), IntRef())         => Right(found) // Right?
-      case (Int32Ref(), Int32Ref())     => Right(found)
-      case (FloatRef(), FloatRef())     => Right(found)
-      case (StringRef(), StringRef())   => Right(found)
-      case (CharRef(), CharRef())       => Right(found)
-      case (BoolRef(), BoolRef())       => Right(found)
+      case (Type.Unit(_), Type.Unit(_))     => Right(found)
+      case (IntRef(), IntRef())             => Right(found) // Right?
+      case (Int32Ref(), Int32Ref())         => Right(found)
+      case (FloatRef(), FloatRef())         => Right(found)
+      case (StringRef(), StringRef())       => Right(found)
+      case (CharRef(), CharRef())           => Right(found)
+      case (BoolRef(), BoolRef())           => Right(found)
+      case (LocalDateRef(), LocalDateRef()) => Right(found)
+      case (LocalTimeRef(), LocalTimeRef()) => Right(found)
       case (Type.Tuple(_, argElements), Type.Tuple(_, paramElements)) =>
         if (argElements.length != paramElements.length) {
           Left(new TypeMismatch(s"Different tuple arity between arg $argElements and parameter $paramElements"))
@@ -208,7 +217,7 @@ object Utils {
       case (ResultRef(argErr, argOk), ResultRef(paramErr, paramOk)) =>
         for {
           errBindings <- typeCheckArg(argErr, paramErr, found)
-          okBindings <- typeCheckArg(argOk, paramOk, errBindings)
+          okBindings  <- typeCheckArg(argOk, paramOk, errBindings)
         } yield okBindings
       case (ListRef(argElement), ListRef(paramElement))   => typeCheckArg(argElement, paramElement, found)
       case (MaybeRef(argElement), MaybeRef(paramElement)) => typeCheckArg(argElement, paramElement, found)

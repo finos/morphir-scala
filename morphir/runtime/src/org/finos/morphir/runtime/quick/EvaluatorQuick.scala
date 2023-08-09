@@ -104,12 +104,14 @@ object EvaluatorQuick {
       case TT.Record(attributes, fields) => Concept.Struct(fields.map(field =>
           (Label(field.name.toCamelCase), typeToConcept(field.data, dists, boundTypes))
         ).toList)
-      case IntRef()    => Concept.Int32
-      case Int32Ref()  => Concept.Int32
-      case StringRef() => Concept.String
-      case BoolRef()   => Concept.Boolean
-      case CharRef()   => Concept.Char
-      case FloatRef()  => Concept.Decimal
+      case IntRef()       => Concept.Int32
+      case Int32Ref()     => Concept.Int32
+      case StringRef()    => Concept.String
+      case BoolRef()      => Concept.Boolean
+      case CharRef()      => Concept.Char
+      case FloatRef()     => Concept.Decimal
+      case LocalDateRef() => Concept.LocalDate
+      case LocalTimeRef() => Concept.LocalTime
       case ResultRef(errType, okType) =>
         Concept.Result(typeToConcept(errType, dists, boundTypes), typeToConcept(okType, dists, boundTypes))
       case ListRef(elementType) =>
@@ -181,6 +183,10 @@ object EvaluatorQuick {
         Data.Boolean(value)
       case (Concept.Char, Result.Primitive(value: Char)) =>
         Data.Char(value)
+      case (Concept.LocalDate, Result.LocalDate(value: java.time.LocalDate)) =>
+        Data.LocalDate(value)
+      case (Concept.LocalTime, Result.LocalTime(value: java.time.LocalTime)) =>
+        Data.LocalTime(value)
       case (Concept.Decimal, Result.Primitive(value: Double)) =>
         Data.Decimal(scala.BigDecimal(value))
       case (alias: Concept.Alias, result) => Data.Aliased(resultAndConceptToData(result, alias.value), alias)
