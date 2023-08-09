@@ -28,7 +28,7 @@ object ToMorphirType {
 
   implicit val unitUType: ToMorphirUType[scala.Unit]               = toUTypeConverter(T.unit)
   implicit val boolUType: ToMorphirUType[Boolean]                  = toUTypeConverter(sdk.Basics.boolType)
-  implicit val intUType: ToMorphirUType[Int]                       = toUTypeConverter(sdk.Int.int32Type)
+  implicit val intUType: ToMorphirUType[Int]                       = toUTypeConverter(sdk.Basics.intType)
   implicit val stringUType: ToMorphirUType[String]                 = toUTypeConverter(sdk.String.stringType)
   implicit val byteUType: ToMorphirUType[Byte]                     = toUTypeConverter(sdk.Int.int8Type)
   implicit val shortUType: ToMorphirUType[Short]                   = toUTypeConverter(sdk.Int.int16Type)
@@ -46,7 +46,7 @@ object ToMorphirType {
       errToUType: ToMorphirUType[A],
       okToUType: ToMorphirUType[B]
   ): ToMorphirUType[Map[A, B]] =
-    toUTypeConverter(sdk.Dict.dictType(errToUType.morphirType, okToUType.morphirType))
+    toUTypeConverter(sdk.Result.resultType(errToUType.morphirType, okToUType.morphirType))
 
   implicit def listUType[A](implicit elementToUType: ToMorphirUType[A]): ToMorphirUType[scala.List[A]] =
     toUTypeConverter(sdk.List.listType(elementToUType.morphirType))
