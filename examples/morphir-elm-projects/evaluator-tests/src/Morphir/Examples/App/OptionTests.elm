@@ -11,3 +11,12 @@ returnJustIntTest _ =
 returnNoneIntTest : () -> Maybe Int
 returnNoneIntTest _ =
     Nothing
+
+returnResultType : Int -> Result String Int
+returnResultType x = if x == 0 then Ok x else Err "Negative"
+
+resolveResultType : Result Bool Int -> Int
+resolveResultType res = case res of
+    Err false -> 0
+    Err true -> 1
+    Ok x -> x
