@@ -24,7 +24,6 @@ trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {
       evaluated <- evaluate(applied)
     } yield evaluated
 
-
   def evaluate(entryPoint: Value[scala.Unit, UType], params: Data): RTAction[MorphirEnv, MorphirRuntimeError, Data] = {
     val toValue = ToMorphirValue.summon[Data].typed
     val inputIR = toValue(params)

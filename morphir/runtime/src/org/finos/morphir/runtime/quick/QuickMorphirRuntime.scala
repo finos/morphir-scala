@@ -34,18 +34,18 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
     EvaluatorQuick.evalAction(value, store, dists)
 
   def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
-      val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)
-      val maybeSpec       = dists.lookupValueSpecification(PackageName(pkg), ModuleName(mod), loc)
-      maybeSpec match {
-        case Some(spec) => RTAction.succeed(specificationToType(spec))
-        case None       => RTAction.fail(new SpecificationNotFound(s"Could not find $ref during initial type building"))
-      }
+    val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)
+    val maybeSpec       = dists.lookupValueSpecification(PackageName(pkg), ModuleName(mod), loc)
+    maybeSpec match {
+      case Some(spec) => RTAction.succeed(specificationToType(spec))
+      case None       => RTAction.fail(new SpecificationNotFound(s"Could not find $ref during initial type building"))
+    }
   }
 
   def applyParams(
-                   entryPoint: Value[scala.Unit, UType],
-                   params: Value[scala.Unit, UType]*
-                 ): RTAction[Any, TypeError, Value[scala.Unit, UType]] =
+      entryPoint: Value[scala.Unit, UType],
+      params: Value[scala.Unit, UType]*
+  ): RTAction[Any, TypeError, Value[scala.Unit, UType]] =
     entryPoint match {
       case Value.Reference.Typed(tpe, entryName) =>
         for {
@@ -60,11 +60,11 @@ object QuickMorphirRuntime {
 
   def fromDistributions(distributions: Distribution*): QuickMorphirRuntime = {
     val store = Store.fromDistributions(distributions: _*)
-    QuickMorphirRuntime(Distributions(distributions:_*), store)
+    QuickMorphirRuntime(Distributions(distributions: _*), store)
   }
 
   def fromDistributionRTAction(distributions: Distribution*)
       : RTAction[MorphirEnv, MorphirRuntimeError, QuickMorphirRuntime] =
-    RTAction.succeed(fromDistributions(distributions:_*))
+    RTAction.succeed(fromDistributions(distributions: _*))
 
 }

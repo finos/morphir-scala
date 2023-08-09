@@ -58,7 +58,7 @@ final case class Store[TA, VA](
   def withDefinition(fqn: FQName, definition: SDKValue[TA, VA]): Store[TA, VA] =
     Store(definitions + (fqn -> definition), ctors, callStack)
   def withConstructor(fqn: FQName, constructor: SDKConstructor[TA, VA]): Store[TA, VA] =
-    Store(definitions, ctors +( fqn -> constructor), callStack)
+    Store(definitions, ctors + (fqn -> constructor), callStack)
 }
 
 object Store {
@@ -71,7 +71,7 @@ object Store {
             val name       = FQName(packageName, moduleName, valueName)
             val definition = value.value.value
             val sdkDef     = SDKValue.SDKValueDefinition[Unit, Type.UType](definition)
-            acc.withDefinition(name,  sdkDef)
+            acc.withDefinition(name, sdkDef)
           }
           module.value.types.foldLeft(withDefinitions) { case (acc, (typeName, tpe)) =>
             val typeDef = tpe.value.value
