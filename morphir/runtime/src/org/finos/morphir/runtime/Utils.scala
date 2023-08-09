@@ -113,6 +113,9 @@ object Extractors {
       case _ => false
     }
   }
+  class Dealiased(dists : Distribution){
+    def unapply(tpe : UType) : Option[(UType, Map[Name, UType])] 
+  }
 }
 
 object Utils {
