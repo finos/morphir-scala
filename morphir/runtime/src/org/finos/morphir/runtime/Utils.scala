@@ -117,7 +117,7 @@ object Extractors {
 object Utils {
   import Extractors.*
 
-  def dealias(original_tpe : UType, dists : Distributions) : Either[TypeError, UType] = {
+  def dealias(original_tpe : UType, dists : Distributions, bindings : Map[Name, UType]) : Either[TypeError, UType] = {
     def loop(tpe : UType, dists : Distributions, bindings : Map[Name, UType]) : Either[TypeError, UType] = {
       tpe match {
         case SimpleRef() => Right(applyBindings(tpe, bindings)) //nothing further to look up
@@ -128,11 +128,13 @@ object Utils {
               val resolvedArgs = typeArgs.map(dealias(_), bindings) //I think?
               val newBindings = typeParams.zip(resolvedArgs).toMap
               loop(expr, bindings ++ newBindings)
-            case Some(other) => Right(applyBindings(alias, bindings)) //So it's not a thing...
+            case Some(other) => Right(applyBindings(tpe, bindings)) //Can't dealias further
+            case None() => Left(TypeNotFound(s"Unable to find $tpe while dealiasing $original_tpe"))
           }
+        case other => Right(applyBindings(other, bindings)) //Not an alias
         }
-      case other => Right(applyBindings(other, bindings)) //Not an alias
     }
+    loop(original_tpe, dists, bindings)
   }
   def applyBindings(tpe: UType, bindings: Map[Name, UType]): UType =
     tpe match {
