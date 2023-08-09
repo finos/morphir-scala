@@ -59,9 +59,14 @@ final case class Store[TA, VA](
 object Store {
   def fromDistributions(dists: Distribution*) : Store[Unit, Type.UType] = {
     dists.foldLeft(native){
-      case (acc, l : Library) = {
+      case (acc, lib : Library) => {
         val packageName = lib.packageName
-  
+        lib.packageDef.modules.foldLeft(acc){case (acc, (moduleName, module)) => {
+            val withDefinitions = module.value.values.foldLeft(acc){case (acc, (valueName, value)) => {
+              
+            }}
+          }
+        }
       }
     }
   }
