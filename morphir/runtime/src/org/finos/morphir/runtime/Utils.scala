@@ -102,7 +102,14 @@ object Extractors {
   object SimpleRef{
     def unapply(tpe : UType) : Boolean = tpe match{
       case IntRef() => true
-      case Int32Ref => true
+      case Int32Ref() => true
+      case BoolRef() => true
+      case FloatRef() => true
+      case StringRef() => true
+      case CharRef => true
+      case ListRef(_) => true
+      case MaybeRef(_) => true
+      case DictRef(_, _) => true
     }
   }
 }
