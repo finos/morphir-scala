@@ -124,6 +124,11 @@ object Utils {
         case Type.Reference(_, typeName, typeArgs) =>
           val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
+            case Some(Type.Specification.TypeAliasSpecification(typeParams, expr)) =>
+              val resolvedArgs = typeArgs.map(dealias(_), bindings) //I think?
+              val newBindings = typeParams.zip(resolvedArgs).toMap
+              loop(expr, bindings ++ newBindings)
+            case Some(other) => Right(applyBindings(alias, bindings)) //So it's not a thing...
           }
         }
       case other => Right(applyBindings(other, bindings)) //Not an alias
