@@ -159,10 +159,19 @@ object Native {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType], c: Result[Unit, Type.UType]) =>
       Result.LocalDate(java.time.LocalDate.of(Result.unwrap(a).asInstanceOf[Long].toInt, Result.unwrap(b).asInstanceOf[Long].toInt, Result.unwrap(c).asInstanceOf[Long].toInt))
   )
+  def fromMillisecondsEpoch(millis : Long) : java.time.LocalTime =
+    java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault()).toLocalTime()
+
+  def fromMillisecondsNanos(millis: Long): java.time.LocalTime =
+    java.time.LocalTime.of(0, 0).plusNanos(millis * 1000000)
+
   val fromMilliseconds: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
-    (a: Result[Unit, Type.UType]) =>
-      Result.LocalTime(java.time.LocalTime.of(0, 0).plusNanos(Result.unwrap(a).asInstanceOf[Long] * 1000000))
+    (a: Result[Unit, Type.UType]) =>{
+      val millis = Result.unwrap(a).asInstanceOf[Long]
+      val time = fromMillisecondsEpoch(millis)
+      Result.LocalTime(time)
+    }
   )
 
   val pi: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.Primitive(3.toDouble))
