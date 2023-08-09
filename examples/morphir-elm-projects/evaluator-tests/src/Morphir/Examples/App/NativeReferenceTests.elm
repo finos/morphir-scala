@@ -54,5 +54,5 @@ nativeReferenceModByTest : Int -> Int
 nativeReferenceModByTest x = 
     modBy 3 x
 --expected = x % 3
-import Morphir.SDK.LocalDate
-nativeLocalDatePassthrough : 
+localDatePassthrough : LocalDate -> LocalDate
+localDatePassThrough x = x
