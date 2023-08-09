@@ -217,7 +217,7 @@ object Utils {
       dists : Distributions,
       knownBindings: Map[Name, UType]
   ): RTAction[Any, TypeError, UType] =
-    (dealias(curried, dists, Map()), args) match {
+    (curried, args) match {
       case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
         for {
           bindings    <- RTAction.fromEither(typeCheckArg(head, parameterType, knownBindings))
