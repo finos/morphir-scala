@@ -20,7 +20,7 @@ import scala.util.{Failure, Success, Try}
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
 import org.finos.morphir.runtime.environment.MorphirEnv
 
-private[runtime] case class QuickMorphirRuntime(dist: Distribution, store: Store[scala.Unit, UType])
+private[runtime] case class QuickMorphirRuntime(dists: List[Distribution], store: Store[scala.Unit, UType])
     extends TypedMorphirRuntime {
   // private val store: Store[scala.Unit, UType] = Store.empty //
 
@@ -49,7 +49,7 @@ object QuickMorphirRuntime {
 
   def fromDistributions(distributions: Distribution*): QuickMorphirRuntime = {
     val store = Store.fromDistributions(distributions: _*)
-    QuickMorphirRuntime(distributions.head, store)
+    QuickMorphirRuntime(distributions.toList, store)
   }
 
   def fromDistributionRTAction(distribution: Distribution)

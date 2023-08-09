@@ -13,6 +13,13 @@ import zio.Chunk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.sdk
 
+class Distributions(dists : Map[PackageName, Distribution]){
+
+}
+object Distributions(
+  def apply
+)
+
 object Extractors {
   object FQString {
     def unapply(fqName: FQName): Option[String] = Some(fqName.toString())
