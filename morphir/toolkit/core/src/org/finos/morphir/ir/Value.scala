@@ -160,7 +160,6 @@ object Value extends internal.PatternModule {
   final def intTyped(value: Int): TypedValue =
     LiteralValue.Typed(sdk.Basics.intType, Lit.int(value))
 
-
   final def lambda[TA, VA](attributes: VA, argumentPattern: Pattern[VA], body: Value[TA, VA]): Value[TA, VA] =
     Lambda(attributes, argumentPattern, body)
 

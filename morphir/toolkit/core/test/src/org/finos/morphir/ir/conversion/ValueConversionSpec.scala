@@ -125,8 +125,8 @@ object ValueConversionSpec extends MorphirBaseSpec {
       ))
     },
     test("Should be possible to convert a Data Int to a Morphir Int") {
-      val toValue      = ToMorphirValue.summon[Data].typed
-      val inputValue   = Data.Int(10)
+      val toValue    = ToMorphirValue.summon[Data].typed
+      val inputValue = Data.Int(10)
       val morphirInt = toValue(inputValue)
       assertTrue(morphirInt == V.intTyped(inputValue.value))
     },
@@ -188,7 +188,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val someAliasTypeName = pn.morphirIR % "someAlias"
         val expectedFQName    = fqn("Morphir", "IR", "someAlias")
         val inputValue        = Data.Aliased(Data.Int(10), Concept.Alias(someAliasTypeName, Concept.Int32))
-        val morphirInt      = toValue(inputValue)
+        val morphirInt        = toValue(inputValue)
         val result            = Value.literal(T.reference(expectedFQName), Lit.int(10))
         assertTrue(morphirInt == result)
       },
