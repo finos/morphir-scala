@@ -113,13 +113,13 @@ object Extractors {
       case _ => false
     }
   }
-  class Dealiased(dists : Distribution){
+  class Dealiased(dists : Distributions){
     def unapply(tpe : UType) : Option[(UType, Map[Name, UType])] = { //If it's aliased we may need to grab bindings
       tpe match{
         case SimpleRef() => None
         case Type.Reference(_, typeName, typeArgs) => {
           val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
-          lookedUpMatch{
+          lookedUp match{
             case Some(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
               val newBindings = typeParams.zip(typeArgs).toMap
               Some(expr, newBindings)
@@ -242,7 +242,7 @@ object Utils {
           appliedType <- unCurryTypeFunction(returnType, tail, dists, bindings)
         } yield appliedType
       case (tpe, Nil) => RTAction.succeed(applyBindings(tpe, knownBindings))
-      case (dealiaser(inner, aliasBindings), args) => uncurryTypeFunction(inner, args, dists, knownBindings ++ aliasBindings)
+      case (dealiaser(inner, aliasBindings), args) => unCurryTypeFunction(inner, args, dists, knownBindings ++ aliasBindings)
       case (nonFunction, head :: _) =>
         RTAction.fail(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
     }
