@@ -37,7 +37,7 @@ object Util {
       }
       val namespace = {
         val segments = moduleSplits.split("/").toList.map(s => Name(s))
-        Namespace.fromIterable(segments)
+        ModuleName.fromIterable(segments)
       }
 
       FQName(packageName, namespace, Name.fromString(localName))

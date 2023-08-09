@@ -11,8 +11,6 @@ private[morphir] trait FQNameExports {
     def getModulePath: Path       = modulePath.toPath
     def getModuleName: ModuleName = modulePath
 
-    /// Get the namespace of this FQName, which is just a slightly different representation of `modulePath`.
-    def namespace: Namespace = Namespace.fromModuleName(self.modulePath)
     /// An alias for `packagePath`
     def pack: PackageName = packagePath
 
@@ -33,9 +31,6 @@ private[morphir] trait FQNameExports {
     val empty: FQName = FQName(PackageName.empty, ModuleName.empty, Name.empty)
     //    def apply(packagePath: Path, modulePath: Path, localName: Name): FQName =
     //      FQName(PackageName(packagePath), ModulePath(modulePath), localName)
-
-    def apply(packageName: PackageName, namespace: Namespace, localName: Name): FQName =
-      FQName(packageName, namespace.toModuleName, localName)
 
     val fqName: Path => Path => Name => FQName = packagePath =>
       modulePath => localName => FQName(PackageName.fromPath(packagePath), ModuleName(modulePath), localName)

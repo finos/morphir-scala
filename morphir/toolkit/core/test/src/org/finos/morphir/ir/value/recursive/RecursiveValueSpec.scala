@@ -6,7 +6,9 @@ package recursive
 import zio.Chunk
 import org.finos.morphir.ir.sdk.Basics.{boolType, floatType, intType}
 import org.finos.morphir.ir.sdk.String.stringType
-import org.finos.morphir.ir.{FQName, Gens, Name, Type}
+import org.finos.morphir.naming.{FQName, Name}
+import org.finos.morphir.naming.FQName.fqn
+import org.finos.morphir.ir.Gens
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.Value.{Unit => UnitValue, List => ListValue, _}
 import org.finos.morphir.testing.MorphirBaseSpec

@@ -53,6 +53,10 @@ private[morphir] trait ModuleNameExports { self: NameExports with PathExports =>
     def apply(input: String): ModuleName = fromString(input)
 
     def fromString(input: String): ModuleName = ModuleName(Path.fromString(input))
+
+    def apply(parts: Name*): ModuleName                    = ModuleName(Path.fromIterable(parts))
+    def fromIterable(segments: Iterable[Name]): ModuleName = ModuleName(Path.fromIterable(segments))
+    def fromStrings(parts: String*): ModuleName            = ModuleName(Path.fromStrings(parts: _*))
   }
 
 }

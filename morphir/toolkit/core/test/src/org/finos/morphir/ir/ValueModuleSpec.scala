@@ -113,8 +113,8 @@ object ValueModuleSpec extends MorphirBaseSpec {
     },
     test("Should support toRawValue") {
       val fqName = FQName(
-        Path(Name("Morphir.SDK")),
-        Path(Name("Morphir.SDK")),
+        PackageName(Path(Name("Morphir.SDK"))),
+        ModuleName(Path(Name("Morphir.SDK"))),
         Name("RecordType")
       )
       val typeRef = Type.reference(fqName)
@@ -139,8 +139,8 @@ object ValueModuleSpec extends MorphirBaseSpec {
     },
     test("Should support collecting references") {
       val fq = FQName(
-        Path(Name("Morphir.SDK")),
-        Path(Name("Morphir.SDK")),
+        PackageName(Path(Name("Morphir.SDK"))),
+        ModuleName(Path(Name("Morphir.SDK"))),
         Name("RecordType")
       )
       val des = destructure(
@@ -191,8 +191,8 @@ object ValueModuleSpec extends MorphirBaseSpec {
       val fi   = field(string("String"), name)
 
       val fqName = FQName(
-        Path("Morphir.SDK"),
-        Path("Morphir.SDK"),
+        PackageName(Path(Name("Morphir.SDK"))),
+        ModuleName(Path(Name("Morphir.SDK"))),
         Name("RecordType")
       )
       val name2 = Name.fromString("Name3")
@@ -256,13 +256,13 @@ object ValueModuleSpec extends MorphirBaseSpec {
     },
     test("Supports collecting references") {
       val fqName = FQName(
-        Path(Name("Morphir.SDK")),
-        Path(Name("Morphir.SDK")),
+        PackageName(Path(Name("Morphir.SDK"))),
+        ModuleName(Path(Name("Morphir.SDK"))),
         Name("RecordType")
       )
       val fqName2 = FQName(
-        Path(Name("Morphir.SDK")),
-        Path(Name("Morphir.SDK")),
+        PackageName(Path(Name("Morphir.SDK"))),
+        ModuleName(Path(Name("Morphir.SDK"))),
         Name("VariableType")
       )
       val ife = ifThenElse(
@@ -306,8 +306,8 @@ object ValueModuleSpec extends MorphirBaseSpec {
     },
     test("Should support collecting nested references") {
       val fqName = FQName(
-        Path(Name("Morphir.SDK")),
-        Path(Name("Morphir.SDK")),
+        PackageName(Path(Name("Morphir.SDK"))),
+        ModuleName(Path(Name("Morphir.SDK"))),
         Name("RecordType")
       )
 
@@ -664,8 +664,8 @@ object ValueModuleSpec extends MorphirBaseSpec {
     },
     test("Should support collecting references") {
       val fq = FQName(
-        Path(Name("Morphir.SDK")),
-        Path(Name("Morphir.SDK")),
+        PackageName(Path(Name("Morphir.SDK"))),
+        ModuleName(Path(Name("Morphir.SDK"))),
         Name("RecordType")
       )
       val ref = reference(fq)
@@ -674,8 +674,8 @@ object ValueModuleSpec extends MorphirBaseSpec {
     test("Collect variables should be empty") {
       val ref = reference(
         FQName(
-          Path(Name("Morphir.SDK")),
-          Path(Name("Morphir.SDK")),
+          PackageName(Path(Name("Morphir.SDK"))),
+          ModuleName(Path(Name("Morphir.SDK"))),
           Name("RecordType")
         )
       )

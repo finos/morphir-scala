@@ -48,13 +48,15 @@ object DeriverMacros {
             s"""
                |Cannot find a namespace for the type $tpeStr and a global default namespace has also not
                |been found. To define a namespace for a specific type do the following:
-               |  implicit val ns: TypeDatamodelContext[$tpeStr] = new TypeDatamodelContext[${TypeRepr.of[T].widen.show}] {
-               |    def value: Namespace = root / "path" / "to" / "my" / "package"
+               |  implicit val ns: TypeDatamodelContext[$tpeStr] = new TypeDatamodelContext[${TypeRepr.of[
+                T
+              ].widen.show}] {
+               |    def value: QualifiedModuleName = root / "path" / "to" / "my" / "package"
                |  }
                |
                |To define a global namespace for all types do the following:
                |  implicit val ns: GlobalDatamodelContext = new GlobalDatamodelContext {
-               |    def value: Namespace = root / "path" / "to" / "my" / "package"
+               |    def value: QualifiedModuleName = root / "path" / "to" / "my" / "package"
                |  }
                |""".stripMargin
           )
@@ -139,7 +141,7 @@ object DeriverMacros {
     import quotes.reflect._
     def failNotProductOrSum() =
       report.errorAndAbort(
-        s"Cannot summon generic Deriver for the type (was not a Product or Sum): ${TypeRepr.of[T].widen.show} from `summonDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
+        s"Cannot summon generic Deriver for the type (was not a Product or Sum): ${TypeRepr.of[T].widen.show} from `summonDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
       )
 
     val specificDriver = Expr.summon[SpecificDeriver[T]]
@@ -154,7 +156,7 @@ object DeriverMacros {
             case Some(value) => value
             case _ =>
               report.errorAndAbort(
-                s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen.show} from `summonDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
+                s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen.show} from `summonDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
               )
           }
         } else if (Expr.summon[Mirror.SumOf[T]].nonEmpty) {
@@ -163,7 +165,7 @@ object DeriverMacros {
             case Some(value) => value
             case _ =>
               report.errorAndAbort(
-                s"Cannot summon specific or generic Sum Deriver for the sum type: ${tpe.widen.show} from `summonDeriver` (flags: ${flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
+                s"Cannot summon specific or generic Sum Deriver for the sum type: ${tpe.widen.show} from `summonDeriver` (flags: ${flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
               )
           }
         } else {
@@ -176,7 +178,7 @@ object DeriverMacros {
     import quotes.reflect._
     def failNotProduct() =
       report.errorAndAbort(
-        s"Cannot summon generic Deriver for the type (was not a Product): ${TypeRepr.of[T].widen.show} from `summonProductDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
+        s"Cannot summon generic Deriver for the type (was not a Product): ${TypeRepr.of[T].widen.show} from `summonProductDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
       )
     val tpe   = TypeRepr.of[T]
     val flags = tpe.typeSymbol.flags
@@ -193,7 +195,7 @@ object DeriverMacros {
             case Some(value) => value
             case _ =>
               report.errorAndAbort(
-                s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen.show} from `summonProductDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.Derivers.{given, _}"
+                s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen.show} from `summonProductDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
               )
           }
         } else

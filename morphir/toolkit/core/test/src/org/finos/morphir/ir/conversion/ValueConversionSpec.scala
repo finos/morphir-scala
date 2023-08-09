@@ -3,7 +3,8 @@ package ir
 package conversion
 
 import org.finos.morphir.datamodel.{Concept, Data, Label}
-import org.finos.morphir.ir.FQName.fqn
+import org.finos.morphir.naming._
+import org.finos.morphir.naming.FQName.fqn
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.testing.MorphirBaseSpec
@@ -14,7 +15,7 @@ import java.time.temporal.ChronoField
 
 object ValueConversionSpec extends MorphirBaseSpec {
   object pn {
-    val morphirIR: PartialName = root / "Morphir" % "IR"
+    val morphirIR: QualifiedModuleName = root / "Morphir" % "IR"
   }
 
   def spec = suite("ValueConversion Spec")(
