@@ -54,7 +54,8 @@ final case class Store[TA, VA](
 
   def push(bindings: Map[Name, StoredValue[TA, VA]]) = Store(definitions, ctors, callStack.push(bindings))
   def withBindingsFrom(other: Store[TA, VA]) = Store(definitions ++ other.definitions, ctors ++ other.ctors, callStack)
-  def withDefinition(fqn)
+  def withDefinition(fqn : FQName, definition : SDKValue[TA, VA]) : Store[TA, VA] = Store(definitions + fqn -> definition, ctors, callStack)
+  def withConstructor(fqn: FQName, constructor: SDKValue[TA, VA]): Store[TA, VA] = Store(definitions, ctors + fqn -> constructor, callStack)
 }
 
 object Store {
