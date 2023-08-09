@@ -44,7 +44,7 @@ object TypeConversionSpec extends MorphirBaseSpec {
     },
     test("Should be possible to convert a Scala List[Int] type to a Morphir List[Int] type") {
       val morphirType = ToMorphirType.summon[scala.List[Int]].withAttributesOf.morphirType
-      assertTrue(morphirType == sdk.List.listType(sdk.Int.int32Type))
+      assertTrue(morphirType == sdk.List.listType(sdk.Basics.intType))
     }
   )
 
@@ -75,7 +75,7 @@ object TypeConversionSpec extends MorphirBaseSpec {
     },
     test("Should be possible to convert a Concept Int32 type to a Morphir Integer type") {
       val morphirType = ToMorphirType.summon[Concept].withAttributesOf(Concept.Int32).morphirType
-      assertTrue(morphirType == sdk.Int.int32Type)
+      assertTrue(morphirType == sdk.Basics.intType)
     },
     test("Should be possible to convert a Concept String type to a Morphir String type") {
       val morphirType = ToMorphirType.summon[Concept].withAttributesOf(Concept.String).morphirType
