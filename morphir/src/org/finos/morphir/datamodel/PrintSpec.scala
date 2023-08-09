@@ -26,12 +26,12 @@ object PrintSpec {
     val typesList = concept.collectAll
 
     def printModuleDef(qn: FQName) =
-      s"{- ============ Declaring ${s"${qn.pack.show}:${qn.namespace.show}:${qn.localName}"} ============ -}\n" +
-        s"module ${qn.pack.show}.${qn.namespace.show} exposing (${qn.localName})"
+      s"{- ============ Declaring ${s"${qn.pack.show}:${qn.modulePath}:${qn.localName}"} ============ -}\n" +
+        s"module ${qn.pack.show}.${qn.modulePath} exposing (${qn.localName})"
 
     def printImportDef(qn: FQName) =
-      s"{- Importing ${s"${qn.pack.show}:${qn.namespace.show}:${qn.localName}"} -}\n" +
-        s"import ${qn.pack.show}.${qn.namespace.show} exposing (${qn.localName})"
+      s"{- Importing ${s"${qn.pack.show}:${qn.modulePath}:${qn.localName}"} -}\n" +
+        s"import ${qn.pack.show}.${qn.modulePath} exposing (${qn.localName})"
 
     def printFields(fields: List[(Label, Concept)]): String = {
       val fieldPrints = fields.map { case (label, field) =>

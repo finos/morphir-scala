@@ -7,7 +7,8 @@ import org.finos.morphir.ir.Type.Definition.{CustomType, TypeAlias}
 import org.finos.morphir.ir.Type.Specification.OpaqueTypeSpecification
 import org.finos.morphir.ir.Type.{Constructors, UType, variable => typeVar}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, USpecification => UValueSpec}
-import org.finos.morphir.ir.{AccessControlled, Documented, Name, Value}
+import org.finos.morphir.ir.{AccessControlled, Documented, Value}
+import org.finos.morphir.naming.Name
 
 object ModuleExample {
   val items: Map[Name, Chunk[(Name, UType)]] = Map {

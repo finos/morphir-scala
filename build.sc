@@ -580,7 +580,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     }
   }
 
-  object tests extends Module {
+  object tests extends CrossPlatform {
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.com.lihaoyi.sourcecode

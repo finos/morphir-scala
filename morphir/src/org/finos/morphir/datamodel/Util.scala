@@ -1,7 +1,6 @@
 package org.finos.morphir.datamodel
 
 import org.finos.morphir.naming._
-import org.finos.morphir.datamodel.namespacing.LocalName
 
 object Util {
   implicit class LabelHelper(val sc: StringContext) extends AnyVal {
@@ -38,7 +37,7 @@ object Util {
       }
       val namespace = {
         val segments = moduleSplits.split("/").toList.map(s => Name(s))
-        Namespace.fromIterable(segments)
+        ModuleName.fromIterable(segments)
       }
 
       FQName(packageName, namespace, Name.fromString(localName))

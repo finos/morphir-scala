@@ -1,9 +1,9 @@
 package org.finos.morphir.extensibility
 
 import org.finos.morphir.MorphirTag
-import org.finos.morphir.naming.*
+import org.finos.morphir.naming._
 import org.finos.morphir.testing.MorphirBaseSpec
-import zio.test.*
+import zio.test._
 
 import SdkModuleDescriptors.*
 object SdkModuleDescriptorsSpec extends MorphirBaseSpec {

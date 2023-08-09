@@ -132,7 +132,7 @@ trait TransformValue[T, TA, VA] extends Transform[T] {
       v           <- transform(value)
       attr        <- transformAttribute(v.attributes)
       branchOutOn <- of(v.branchOutOn) // the 'subject' of the pattern-match i.e. the `x` in `match x ...`
-      cases <- ofChunk(v.cases) { (casePattern, caseValue) =>
+      cases <- ofChunk(v.cases) { case (casePattern, caseValue) =>
         of(caseValue).map(caseValue => (casePattern, caseValue))
       }
     } yield Value.PatternMatch(attr, branchOutOn, cases)
@@ -141,7 +141,7 @@ trait TransformValue[T, TA, VA] extends Transform[T] {
     for {
       v    <- transform(value)
       attr <- transformAttribute(v.attributes)
-      fields <- ofChunk(v.fields) { (fieldName, fieldValue) =>
+      fields <- ofChunk(v.fields) { case (fieldName, fieldValue) =>
         of(fieldValue).map(fieldValue => (fieldName, fieldValue))
       }
     } yield Value.Record(attr, fields)

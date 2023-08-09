@@ -1,8 +1,8 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.naming.Namespace
+import org.finos.morphir.naming.PackageName
 
-final case class ConceptId(namespace: Namespace, module: String, name: String) extends HasId {
+final case class ConceptId(namespace: PackageName, module: String, name: String) extends HasId {
   override def id: ConceptId = this
 }
 
