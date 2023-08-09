@@ -20,11 +20,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       dist       <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
     } yield MorphirRuntime.quick(dist))
 
+  val localDate = java.time.LocalDate(1900, 1, 20)
   def deriveData(input: Any): Data =
     input match {
       case u: Unit             => Deriver.toData(u)
       case i: Int              => Deriver.toData(i)
       case s: String           => Deriver.toData(s)
+      case ld : LocalDate      => Deriver.toData(ld)
+      case lt : LocalTime      => Deriver.toData(lt)
       case Right(i: Int)       => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
       case Left(b: Boolean)    => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
       case (i: Int, s: String) => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
@@ -375,8 +378,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ) /* @@ TestAspect.ignore @@ TestAspect.tag("ignore until we complete wiring up native functions")*/
       ),
       suite("Morphir Types")(
-        val localDate = java.time.LocalDate(1900, 1, 20)
-        val localDate2 = java.time.LocalDate(1999, 2, 26)
         testEval("LocalDate")("nativeReferenceTests", "localDatePassthrough", localDate)(Data.LocalDate(localDate))
       )
       suite("Patern Matching")(
