@@ -25,6 +25,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case u: Unit             => Deriver.toData(u)
       case i: Int              => Deriver.toData(i)
       case s: String           => Deriver.toData(s)
+      case Right(i : Int)      => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
+      case Left(b : Boolean)   => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
       case (i: Int, s: String) => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
       case other               => throw new Exception(s"Couldn't derive $other")
     }
@@ -486,7 +488,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Returns a Just 1")("optionTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),
         testEvaluation("Returns a None")("optionTests", "returnNoneIntTest")(Data.Optional.None(Concept.Int32)),
         testEval("Returns success result")("optionTests", "returnResultType", 0)(Data.Result.Ok(Data.Int(0), resultStringIntShape)),
-          testEval ("Returns success result") ("optionTests", "returnResultType", -1)(Data.Result.Err(Data.String("Negative"), resultStringIntShape))
+        testEval ("Returns error result") ("optionTests", "returnResultType", -1)(Data.Result.Err(Data.String("Negative"), resultStringIntShape)),
+        testEval("Resolves success input")("optionTests", "resolveResultType", Right(5))(Data.Int(5)),
+        testEval("Resolves error input")("optionTests", "resolveResultType", Left(true))(Data.Int(1)),
+
       )
     ).provideLayerShared(morphirRuntimeLayer)
 }
