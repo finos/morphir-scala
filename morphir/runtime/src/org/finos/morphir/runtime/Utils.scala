@@ -90,7 +90,6 @@ object Extractors {
   object IntRef extends CommonReference {
     final val tpe = Basics.intType
   }
-
   object Int32Ref extends CommonReference {
     final val tpe = sdk.Int.int32Type
   }
@@ -105,6 +104,9 @@ object Extractors {
   }
   object CharRef extends CommonReference {
     final val tpe = sdk.Char.charType
+  }
+  object LocalDateRef extends CommonReference {
+    final val tpe = sdk.LocalDate.localDateType
   }
   object SimpleRef {
     def unapply(tpe: UType): Boolean = tpe match {

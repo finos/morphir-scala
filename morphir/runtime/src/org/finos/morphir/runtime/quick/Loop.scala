@@ -102,7 +102,7 @@ object Loop {
                 )
               )
               case 2 => (
-                (function.asInstanceOf[(Result[TA, VA], Result[TA, VA]) => Result[TA, VA]]) (
+                (function.asInstanceOf[(Result[TA, VA], Result[TA, VA], Result[TA, VA]) => Result[TA, VA]]) (
                   curried(0),
                   curried(1),
                   argValue
