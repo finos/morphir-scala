@@ -157,7 +157,7 @@ object Native {
   val fromParts: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     3,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType], c: Result[Unit, Type.UType]) =>
-      Result.Primitive(java.time.LocalDate.fromParts(Result.unwrap(a).asInstanceOf[Long], Result.unwrap(b).asInstanceOf[Long], Result.unwrap(c).asInstanceOf[Long])
+      Result.Primitive(java.time.LocalDate.of(Result.unwrap(a).asInstanceOf[Long].toInt, Result.unwrap(b).asInstanceOf[Long].toInt, Result.unwrap(c).asInstanceOf[Long].toInt))
   )
 
   val pi: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.Primitive(3.toDouble))
@@ -188,7 +188,8 @@ object Native {
     FQName.fromString("Morphir.SDK:Basics:lessThan") -> lessThan,
     FQName.fromString("Morphir.SDK:List:cons")       -> cons,
     FQName.fromString("Morphir.SDK:List:concat")     -> concat,
-    FQName.fromString("Morphir.SDK:List:map")        -> map
+    FQName.fromString("Morphir.SDK:List:map")        -> map,
+      FQName.fromString("Morphir.SDK:LocalDate:fromParts") -> fromParts
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
   ) ++ Dict.sdk ++ String.sdk
 }

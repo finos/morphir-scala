@@ -101,6 +101,13 @@ object Loop {
                   argValue
                 )
               )
+              case 2 => (
+                (function.asInstanceOf[(Result[TA, VA], Result[TA, VA]) => Result[TA, VA]]) (
+                  curried(0),
+                  curried(1),
+                  argValue
+                )
+                )
             }
           case x => Result.NativeFunction[TA, VA](x - 1, curried :+ argValue, function)
         }
