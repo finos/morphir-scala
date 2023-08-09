@@ -162,7 +162,7 @@ object Native {
   val fromMilliseconds: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
     (a: Result[Unit, Type.UType]) =>
-      Result.LocalTime(java.time.LocalTime.of(0, 0).plusNanos(Result.unwrap(a).asInstanceOf[Long] * 1000))
+      Result.LocalTime(java.time.LocalTime.of(0, 0).plusNanos(Result.unwrap(a).asInstanceOf[Long] * 1000000))
   )
 
   val pi: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.Primitive(3.toDouble))
