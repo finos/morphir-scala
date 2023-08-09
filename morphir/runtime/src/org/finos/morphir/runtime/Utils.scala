@@ -128,7 +128,6 @@ object Extractors {
         }
         case _ => None
       }
-
     }
   }
 }
@@ -234,7 +233,8 @@ object Utils {
       args: List[UType],
       dists : Distributions,
       knownBindings: Map[Name, UType]
-  ): RTAction[Any, TypeError, UType] =
+  ): RTAction[Any, TypeError, UType] = {
+    val dealiaser = Dealiased(dists)
     (curried, args) match {
       case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
         for {
@@ -242,9 +242,12 @@ object Utils {
           appliedType <- unCurryTypeFunction(returnType, tail, dists, bindings)
         } yield appliedType
       case (tpe, Nil) => RTAction.succeed(applyBindings(tpe, knownBindings))
+      case (dealiaser(inner, aliasBindings), args) => uncurryTypeFunction(inner, args, dists, knownBindings ++ aliasBindings)
       case (nonFunction, head :: _) =>
         RTAction.fail(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
     }
+  }
+
   // TODO: Implement
   def typeCheck[TA](t1: Type[TA], t2: Type[TA]): RTAction[Any, TypeError, Unit] = RTAction.succeed(())
   def curryTypeFunction[TA](inner: Type[TA], params: Chunk[(Name, Type[TA])]): Type[TA] =
