@@ -16,9 +16,11 @@ import org.finos.morphir.ir.sdk
 class Distributions(dists : Map[PackageName, Distribution]){
 
 }
-object Distributions(
-  def apply
-)
+object Distributions {
+  def apply(dists: List[Distributions]): Distributions {
+    Distributions (dists.map {case (lib: Library) => lib.packageName -> lib}).toMap
+  }
+}
 
 object Extractors {
   object FQString {
