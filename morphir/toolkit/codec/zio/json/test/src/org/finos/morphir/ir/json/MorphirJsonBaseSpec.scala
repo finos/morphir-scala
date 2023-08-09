@@ -87,7 +87,12 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
   )
 
   implicit class ThrowableExt(t: Throwable) {
-    def stackTraceToString: String = ???
+    def stackTraceToString: String = {
+      val stream = new java.io.ByteArrayOutputStream()
+      val writer = new java.io.BufferedWriter(new java.io.OutputStreamWriter(stream))
+      t.printStackTrace(new java.io.PrintWriter(writer))
+      ???
+    }
   }
 
   def doJsonDiff(expectedJson: String, actualJson: String) = {
