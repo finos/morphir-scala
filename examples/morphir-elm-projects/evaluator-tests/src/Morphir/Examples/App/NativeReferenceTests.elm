@@ -58,5 +58,5 @@ nativeReferenceModByTest x =
 localDatePassthrough : LocalDate -> LocalDate
 localDatePassThrough x = x
 
-localDatePassthrough : LocalTime -> LocalTime
-localDatePassThrough x = x
+localTimePassthrough : LocalTime -> LocalTime
+localTimePassThrough x = x
