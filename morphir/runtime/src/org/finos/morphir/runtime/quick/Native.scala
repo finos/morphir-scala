@@ -154,6 +154,11 @@ object Native {
 //
 //    }
 //  )
+  val fromParts: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    3,
+    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType], c: Result[Unit, Type.UType]) =>
+      Result.Primitive(java.time.LocalDate.fromParts(Result.unwrap(a).asInstanceOf[Long], Result.unwrap(b).asInstanceOf[Long], Result.unwrap(c).asInstanceOf[Long])
+  )
 
   val pi: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.Primitive(3.toDouble))
 
