@@ -92,9 +92,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 //    dogRecordConcept
 //  )
 
-  def resultStringIntShape = Concept.Result(Concept.String, Concept.Int)
+  def resultStringIntShape = Concept.Result(Concept.String, Concept.Int32)
 
-  def resultBoolIntShape = Concept.Result(Concept.Bool, Concept.Int)
+  def resultBoolIntShape = Concept.Result(Concept.Boolean, Concept.Int32)
   def unionEnumShape: Concept.Enum = Concept.Enum(
     qn"Morphir/Examples/App:ConstructorTests:UnionType",
     List(
