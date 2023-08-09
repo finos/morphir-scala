@@ -374,6 +374,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int(1)
         ) /* @@ TestAspect.ignore @@ TestAspect.tag("ignore until we complete wiring up native functions")*/
       ),
+      suite("Morphir Types")(
+        testEval
+      )
       suite("Patern Matching")(
         testEvaluation("Wildcard")("patternMatchTests", "patternMatchWildcardTest")(Data.String("Correct")),
         testEvaluation("Tuple")("patternMatchTests", "patternMatchTupleTest")(Data.String("Correct")),
