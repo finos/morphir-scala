@@ -20,7 +20,7 @@ import scala.util.{Failure, Success, Try}
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
 import org.finos.morphir.runtime.environment.MorphirEnv
 
-private[runtime] case class QuickMorphirRuntime(dists: List[Distribution], store: Store[scala.Unit, UType])
+private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Store[scala.Unit, UType])
     extends TypedMorphirRuntime {
   // private val store: Store[scala.Unit, UType] = Store.empty //
 
@@ -31,12 +31,12 @@ private[runtime] case class QuickMorphirRuntime(dists: List[Distribution], store
     } yield res
 
   def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
-    EvaluatorQuick.evalAction(value, store, dist)
+    EvaluatorQuick.evalAction(value, store, dists)
 
   def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = dist match {
     case library: Library =>
       val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)
-      val maybeSpec       = library.lookupValueSpecification(PackageName(pkg), ModuleName(mod), loc)
+      val maybeSpec       = dists.lookupValueSpecification(PackageName(pkg), ModuleName(mod), loc)
       maybeSpec match {
         case Some(spec) => RTAction.succeed(specificationToType(spec))
         case None       => RTAction.fail(new SpecificationNotFound(s"Could not find $ref during initial type building"))
@@ -49,7 +49,7 @@ object QuickMorphirRuntime {
 
   def fromDistributions(distributions: Distribution*): QuickMorphirRuntime = {
     val store = Store.fromDistributions(distributions: _*)
-    QuickMorphirRuntime(distributions.toList, store)
+    QuickMorphirRuntime(Distributions(distributions), store)
   }
 
   def fromDistributionRTAction(distribution: Distribution)

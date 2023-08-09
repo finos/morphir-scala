@@ -12,13 +12,28 @@ import org.finos.morphir.ir.Type.UType
 import zio.Chunk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.sdk
+import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
 
 class Distributions(dists : Map[PackageName, Distribution]){
 
+  def lookupModuleSpecification(packageName: PackageName, module: ModuleName): Option[ModSpec.Raw] =
+    dists.get(packageName) match {
+      case Some(Library(_, _, packageDef)) =>
+        packageDef.toSpecification.modules.get(module)
+      case None => None
+    }
+
+
+  def lookupValueSpecification(
+                                packageName: PackageName,
+                                module: ModuleName,
+                                localName: Name
+                              ): Option[UValueSpec] =
+    lookupModuleSpecification(packageName, module).flatMap(_.lookupValueSpecification(localName))
 }
 object Distributions {
-  def apply(dists: List[Distributions]): Distributions {
-    Distributions (dists.map {case (lib: Library) => lib.packageName -> lib}).toMap
+  def apply(dists: Distribution*): Distributions = {
+    Distributions(dists.map {case (lib: Library) => lib.packageName -> lib}.toMap)
   }
 }
 
