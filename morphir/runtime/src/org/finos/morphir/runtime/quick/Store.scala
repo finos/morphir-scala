@@ -89,21 +89,9 @@ object Store {
   }
 
   def empty[TA, VA]: Store[TA, VA] = {
-    val plus: SDKValue[TA, VA] = SDKValue.SDKNativeFunction(
-      2,
-      (a: Result[TA, VA], b: Result[TA, VA]) =>
-        Result.Primitive(Result.unwrap(a).asInstanceOf[Long] + Result.unwrap(b).asInstanceOf[Long])
-    )
-
-    val lessThan: SDKValue[TA, VA] = SDKValue.SDKNativeFunction(
-      2,
-      (a: Result[TA, VA], b: Result[TA, VA]) =>
-        Result.Primitive(Result.unwrap(a).asInstanceOf[Long] < Result.unwrap(b).asInstanceOf[Long])
-    )
-    val native = Map(
-      FQName.fromString("Morphir.SDK:Basics:add")      -> plus,
-      FQName.fromString("Morphir.SDK:Basics:lessThan") -> lessThan
-    )
-    Store(native, Map(), CallStackFrame(Map(), None))
+    Store(Map(), Map(), CallStackFrame(Map(), None))
+  }
+  def native : Store[Unit, UType] = {
+    Store(Native.native, Native.nativeCtors, CallStackFrame(Map(), None))
   }
 }
