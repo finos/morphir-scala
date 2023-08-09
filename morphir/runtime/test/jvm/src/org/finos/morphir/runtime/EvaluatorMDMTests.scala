@@ -375,9 +375,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ) /* @@ TestAspect.ignore @@ TestAspect.tag("ignore until we complete wiring up native functions")*/
       ),
       suite("Morphir Types")(
-        val localDate1 = java.time.LocalDate(1900, 1, 20)
+        val localDate = java.time.LocalDate(1900, 1, 20)
         val localDate2 = java.time.LocalDate(1999, 2, 26)
-        testEval("LocalDate")("nativeReferenceTests", "nativeReferenceModByTest", 7)
+        testEval("LocalDate")("nativeReferenceTests", "localDatePassthrough", localDate)(Data.LocalDate(localDate))
       )
       suite("Patern Matching")(
         testEvaluation("Wildcard")("patternMatchTests", "patternMatchWildcardTest")(Data.String("Correct")),
