@@ -110,6 +110,8 @@ object EvaluatorQuick {
       case BoolRef()   => Concept.Boolean
       case CharRef()   => Concept.Char
       case FloatRef()  => Concept.Decimal
+      case LocalDate() => Concept.LocalDate
+      case LocalTime() => Concept.LocalTime
       case ResultRef(errType, okType) =>
         Concept.Result(typeToConcept(errType, dists, boundTypes), typeToConcept(okType, dists, boundTypes))
       case ListRef(elementType) =>
@@ -183,7 +185,7 @@ object EvaluatorQuick {
         Data.Char(value)
       case (Concept.LocalDate, Result.LocalDate(value: java.time.LocalDate)) =>
         Data.LocalDate(value)
-      case (Concept.LocalTime, Result.LocalTime(value: java.time.LocalTate)) =>
+      case (Concept.LocalTime, Result.LocalTime(value: java.time.LocalTime)) =>
         Data.LocalTime(value)
       case (Concept.Decimal, Result.Primitive(value: Double)) =>
         Data.Decimal(scala.BigDecimal(value))
