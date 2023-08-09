@@ -104,12 +104,12 @@ object EvaluatorQuick {
       case TT.Record(attributes, fields) => Concept.Struct(fields.map(field =>
           (Label(field.name.toCamelCase), typeToConcept(field.data, dists, boundTypes))
         ).toList)
-      case IntRef()    => Concept.Int32
-      case Int32Ref()  => Concept.Int32
-      case StringRef() => Concept.String
-      case BoolRef()   => Concept.Boolean
-      case CharRef()   => Concept.Char
-      case FloatRef()  => Concept.Decimal
+      case IntRef()       => Concept.Int32
+      case Int32Ref()     => Concept.Int32
+      case StringRef()    => Concept.String
+      case BoolRef()      => Concept.Boolean
+      case CharRef()      => Concept.Char
+      case FloatRef()     => Concept.Decimal
       case LocalDateRef() => Concept.LocalDate
       case LocalTimeRef() => Concept.LocalTime
       case ResultRef(errType, okType) =>

@@ -24,15 +24,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   val localTime = java.time.LocalTime.of(10, 43, 26)
   def deriveData(input: Any): Data =
     input match {
-      case u: Unit             => Deriver.toData(u)
-      case i: Int              => Deriver.toData(i)
-      case s: String           => Deriver.toData(s)
-      case ld : java.time.LocalDate      => Deriver.toData(ld)
-      case lt : java.time.LocalTime      => Deriver.toData(lt)
-      case Right(i: Int)       => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
-      case Left(b: Boolean)    => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
-      case (i: Int, s: String) => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
-      case other               => throw new Exception(s"Couldn't derive $other")
+      case u: Unit                 => Deriver.toData(u)
+      case i: Int                  => Deriver.toData(i)
+      case s: String               => Deriver.toData(s)
+      case ld: java.time.LocalDate => Deriver.toData(ld)
+      case lt: java.time.LocalTime => Deriver.toData(lt)
+      case Right(i: Int)           => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
+      case Left(b: Boolean)        => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
+      case (i: Int, s: String)     => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
+      case other                   => throw new Exception(s"Couldn't derive $other")
     }
 
   def checkEvaluation(
