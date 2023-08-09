@@ -1,6 +1,7 @@
 package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.naming.*
+import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.naming.FQName.getLocalName
 import org.finos.morphir.naming.Name.toTitleCase
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
@@ -54,8 +55,10 @@ final case class Store[TA, VA](
 
   def push(bindings: Map[Name, StoredValue[TA, VA]]) = Store(definitions, ctors, callStack.push(bindings))
   def withBindingsFrom(other: Store[TA, VA]) = Store(definitions ++ other.definitions, ctors ++ other.ctors, callStack)
-  def withDefinition(fqn : FQName, definition : SDKValue[TA, VA]) : Store[TA, VA] = Store(definitions + fqn -> definition, ctors, callStack)
-  def withConstructor(fqn: FQName, constructor: SDKValue[TA, VA]): Store[TA, VA] = Store(definitions, ctors + fqn -> constructor, callStack)
+  def withDefinition(fqn: FQName, definition: SDKValue[TA, VA]): Store[TA, VA] =
+    Store(definitions + (fqn -> definition), ctors, callStack)
+  def withConstructor(fqn: FQName, constructor: SDKConstructor[TA, VA]): Store[TA, VA] =
+    Store(definitions, ctors +( fqn -> constructor), callStack)
 }
 
 object Store {
@@ -65,27 +68,23 @@ object Store {
         val packageName = lib.packageName
         lib.packageDef.modules.foldLeft(acc) { case (acc, (moduleName, module)) =>
           val withDefinitions = module.value.values.foldLeft(acc) { case (acc, (valueName, value)) =>
-            val name       = FQName(packageName, moduleName, localName)
+            val name       = FQName(packageName, moduleName, valueName)
             val definition = value.value.value
             val sdkDef     = SDKValue.SDKValueDefinition[Unit, Type.UType](definition)
-            acc.withDefinition(name -> sdkDef)
+            acc.withDefinition(name,  sdkDef)
           }
-          module.value.types.foldLeft(withDefinitions){ case (acc, (typeName, tpe)) => {
+          module.value.types.foldLeft(withDefinitions) { case (acc, (typeName, tpe)) =>
             val typeDef = tpe.value.value
             typeDef match {
               case Type.Definition.CustomType(_, accessControlledCtors) =>
                 val ctors = accessControlledCtors.value.toMap
-                ctors.foldLeft(acc){ case (ctorName, ctorArgs) =>
+                ctors.foldLeft(acc) { case (acc, (ctorName, ctorArgs)) =>
                   val name = FQName(packageName, moduleName, ctorName)
-                  acc.withDefinition(name -> SDKConstructor[Unit, Type.UType](ctorArgs.map(_._2).toList))
+                  acc.withConstructor(name, SDKConstructor[Unit, Type.UType](ctorArgs.map(_._2).toList))
                 }
               case Type.Definition.TypeAlias(_, _) => acc
-
             }
           }
-
-          }
-
         }
     }
   def fromDistribution(dist: Distribution): Store[Unit, Type.UType] = dist match {

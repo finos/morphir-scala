@@ -49,7 +49,7 @@ object QuickMorphirRuntime {
 
   def fromDistributions(distributions: Distribution*): QuickMorphirRuntime = {
     val store = Store.fromDistributions(distributions: _*)
-    QuickMorphirRuntime(distributions, store)
+    QuickMorphirRuntime(distributions.head, store)
   }
 
   def fromDistributionRTAction(distribution: Distribution)
