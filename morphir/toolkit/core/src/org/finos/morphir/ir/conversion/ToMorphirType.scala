@@ -46,7 +46,7 @@ object ToMorphirType {
       errToUType: ToMorphirUType[A],
       okToUType: ToMorphirUType[B]
   ): ToMorphirUType[Map[A, B]] =
-    toUTypeConverter(sdk.Dict.dictType(errToUType.morphirType, okToUType.morphirType))
+    toUTypeConverter(sdk.Result.resultType(errToUType.morphirType, okToUType.morphirType))
 
   implicit def listUType[A](implicit elementToUType: ToMorphirUType[A]): ToMorphirUType[scala.List[A]] =
     toUTypeConverter(sdk.List.listType(elementToUType.morphirType))

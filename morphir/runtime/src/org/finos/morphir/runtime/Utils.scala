@@ -208,7 +208,7 @@ object Utils {
       case (ResultRef(argErr, argOk), ResultRef(paramErr, paramOk)) =>
         for {
           errBindings <- typeCheckArg(argErr, paramErr, found)
-          okBindings <- typeCheckArg(arkOk, paramOk, errBindings)
+          okBindings <- typeCheckArg(argOk, paramOk, errBindings)
         } yield okBindings
       case (ListRef(argElement), ListRef(paramElement))   => typeCheckArg(argElement, paramElement, found)
       case (MaybeRef(argElement), MaybeRef(paramElement)) => typeCheckArg(argElement, paramElement, found)
