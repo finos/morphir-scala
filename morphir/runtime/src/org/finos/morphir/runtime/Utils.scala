@@ -106,7 +106,7 @@ object Extractors {
       case BoolRef() => true
       case FloatRef() => true
       case StringRef() => true
-      case CharRef => true
+      case CharRef() => true
       case ListRef(_) => true
       case MaybeRef(_) => true
       case DictRef(_, _) => true
@@ -117,9 +117,16 @@ object Extractors {
 object Utils {
   import Extractors.*
 
-  def dealias(tpe : UType, dists : Distributions) : UType = {
-    tpe match{
-      case
+  def dealias(original_tpe : UType, dists : Distributions) : Either[TypeError, UType] = {
+    def loop(tpe : UType, dists : Distributions, bindings : Map[Name, UType]) : Either[TypeError, UType] = {
+      tpe match {
+        case SimpleRef() => Right(applyBindings(tpe, bindings)) //nothing further to look up
+        case Type.Reference(_, typeName, typeArgs) =>
+          val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+          lookedUp match {
+          }
+        }
+      case other => Right(applyBindings(other, bindings)) //Not an alias
     }
   }
   def applyBindings(tpe: UType, bindings: Map[Name, UType]): UType =
