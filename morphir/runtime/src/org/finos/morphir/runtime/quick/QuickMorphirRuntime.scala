@@ -49,7 +49,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
     entryPoint match {
       case Value.Reference.Typed(tpe, entryName) =>
         for {
-          tpe <- unCurryTypeFunction(tpe, params.toList.map(_.attributes), Map())
+          tpe <- unCurryTypeFunction(tpe, params.toList.map(_.attributes), dists, Map())
         } yield V.apply(tpe, entryPoint, params.head, params.tail: _*)
       case other => RTAction.fail(UnsupportedType(s"Entry point must be a Reference, instead found $other"))
     }

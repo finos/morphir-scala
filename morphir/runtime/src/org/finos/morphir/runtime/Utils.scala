@@ -110,6 +110,7 @@ object Extractors {
       case ListRef(_) => true
       case MaybeRef(_) => true
       case DictRef(_, _) => true
+      case _ => false
     }
   }
 }
@@ -117,24 +118,24 @@ object Extractors {
 object Utils {
   import Extractors.*
 
-  def dealias(original_tpe : UType, dists : Distributions, bindings : Map[Name, UType]) : Either[TypeError, UType] = {
-    def loop(tpe : UType, dists : Distributions, bindings : Map[Name, UType]) : Either[TypeError, UType] = {
+  def dealias(original_tpe : UType, dists : Distributions, bindings : Map[Name, UType]) : UType = {
+    def loop(tpe : UType, bindings : Map[Name, UType]) : UType = {
       tpe match {
-        case SimpleRef() => Right(applyBindings(tpe, bindings)) //nothing further to look up
+        case SimpleRef() => applyBindings(tpe, bindings) //nothing further to look up
         case Type.Reference(_, typeName, typeArgs) =>
           val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
-            case Some(Type.Specification.TypeAliasSpecification(typeParams, expr)) =>
-              val resolvedArgs = typeArgs.map(dealias(_), bindings) //I think?
+            case Some(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
+              val resolvedArgs = typeArgs.map(dealias(_, dists, bindings)) //I think?
               val newBindings = typeParams.zip(resolvedArgs).toMap
               loop(expr, bindings ++ newBindings)
-            case Some(other) => Right(applyBindings(tpe, bindings)) //Can't dealias further
-            case None() => Left(TypeNotFound(s"Unable to find $tpe while dealiasing $original_tpe"))
+            case Some(_) => applyBindings(tpe, bindings) //Can't dealias further
+            case None => throw new TypeNotFound(s"Unable to find $tpe while dealiasing $original_tpe") //TODO: Thread properly
           }
-        case other => Right(applyBindings(other, bindings)) //Not an alias
+        case other => applyBindings(other, bindings) //Not an alias
         }
     }
-    loop(original_tpe, dists, bindings)
+    loop(original_tpe, bindings)
   }
   def applyBindings(tpe: UType, bindings: Map[Name, UType]): UType =
     tpe match {
@@ -213,13 +214,14 @@ object Utils {
   def unCurryTypeFunction(
       curried: UType,
       args: List[UType],
+      dists : Distributions,
       knownBindings: Map[Name, UType]
   ): RTAction[Any, TypeError, UType] =
-    (curried, args) match {
+    (dealias(curried, dists, Map()), args) match {
       case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
         for {
           bindings    <- RTAction.fromEither(typeCheckArg(head, parameterType, knownBindings))
-          appliedType <- unCurryTypeFunction(returnType, tail, bindings)
+          appliedType <- unCurryTypeFunction(returnType, tail, dists, bindings)
         } yield appliedType
       case (tpe, Nil) => RTAction.succeed(applyBindings(tpe, knownBindings))
       case (nonFunction, head :: _) =>
