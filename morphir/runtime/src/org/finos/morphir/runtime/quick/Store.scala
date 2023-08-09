@@ -68,6 +68,15 @@ object Store {
             val sdkDef     = SDKValue.SDKValueDefinition(definition)
             acc.withDefinition(sdkDef)
           }
+          module.value.types.foldLeft(withDefinitions){ case (acc, (typeName, tpe)) => {
+            val typeDef = tpe.value.value
+            typeDef match {
+              
+            }
+          }
+
+          }
+
         }
     }
   def fromDistribution(dist: Distribution): Store[Unit, Type.UType] = dist match {
