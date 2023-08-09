@@ -62,6 +62,15 @@ object Extractors {
         case _ => None
       }
   }
+
+  object ResultRef {
+    def unapply(tpe: UType): Option[(UType, UType)] =
+      tpe match {
+        case Type.Reference(attributes, FQString("Morphir.SDK:Result:result"), Chunk(keyType, valType)) =>
+          Some((keyType, valType))
+        case _ => None
+      }
+  }
   object DictRef {
     def unapply(tpe: UType): Option[(UType, UType)] =
       tpe match {
@@ -108,6 +117,7 @@ object Extractors {
       case ListRef(_)    => true
       case MaybeRef(_)   => true
       case DictRef(_, _) => true
+      case ResultRef(_, _) => true
       case _             => false
     }
   }
