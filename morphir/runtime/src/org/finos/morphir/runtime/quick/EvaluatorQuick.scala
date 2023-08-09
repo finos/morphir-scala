@@ -8,7 +8,6 @@ import org.finos.morphir.ir.Type
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Value.*
 import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.environment.MorphirEnv
@@ -236,7 +235,7 @@ object EvaluatorQuick {
         throw new ResultDoesNotMatchType(s"Could not match type $badType with result $badResult")
     }
 
-  def resultToMDM(result: Result[Unit, Type.UType], tpe: Type.Type[Unit], dist: Distribution): Data = {
+  def resultToMDM(result: Result[Unit, Type.UType], tpe: Type.Type[Unit], dists: Distributions): Data = {
     val concept = typeToConcept(tpe, dists, Map())
     resultAndConceptToData(result, concept)
   }

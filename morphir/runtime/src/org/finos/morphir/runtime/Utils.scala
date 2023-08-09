@@ -9,8 +9,11 @@ import T.Type
 import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.Type.UType
+import org.finos.morphir.ir.Module.{Specification => ModSpec}
 import zio.Chunk
 import org.finos.morphir.ir.sdk.Basics
+import org.finos.morphir.ir.distribution.Distribution
+import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
 
