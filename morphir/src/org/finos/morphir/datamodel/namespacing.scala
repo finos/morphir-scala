@@ -10,6 +10,7 @@ object namespacing {
 
   val ns = Namespace.ns
 
+  // TODO Remove LocalName
   type LocalName = LocalName.Type
   object LocalName extends Subtype[String] {
     implicit final class LocalNameOps(val self: LocalName) extends AnyVal {
