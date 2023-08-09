@@ -123,6 +123,12 @@ object Native {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive(Result.unwrap(a).asInstanceOf[Long] < Result.unwrap(b).asInstanceOf[Long])
   )
+
+  val equal: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    2,
+    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+      Result.Primitive(a == b)
+  )
   val cons: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
@@ -160,6 +166,7 @@ object Native {
   )
 
   val native: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:Basics:equal") -> equal,
     FQName.fromString("Morphir.SDK:Basics:and")      -> and,
     FQName.fromString("Morphir.SDK:Basics:or")       -> or,
     FQName.fromString("Morphir.SDK:Basics:pi")       -> pi,
