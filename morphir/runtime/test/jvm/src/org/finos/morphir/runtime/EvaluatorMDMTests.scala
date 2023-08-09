@@ -21,7 +21,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     } yield MorphirRuntime.quick(dist))
 
   val localDate = java.time.LocalDate.of(1900, 1, 20)
-  val localTime = java.time.LocalTime.from(234566)
+  val localTime = java.time.LocalTime.of(10, 43, 26)
   def deriveData(input: Any): Data =
     input match {
       case u: Unit             => Deriver.toData(u)
