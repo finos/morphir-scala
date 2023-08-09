@@ -157,7 +157,7 @@ object Native {
   val fromParts: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     3,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType], c: Result[Unit, Type.UType]) =>
-      Result.Primitive(java.time.LocalDate.of(Result.unwrap(a).asInstanceOf[Long].toInt, Result.unwrap(b).asInstanceOf[Long].toInt, Result.unwrap(c).asInstanceOf[Long].toInt))
+      Result.LocalDate(java.time.LocalDate.of(Result.unwrap(a).asInstanceOf[Long].toInt, Result.unwrap(b).asInstanceOf[Long].toInt, Result.unwrap(c).asInstanceOf[Long].toInt))
   )
 
   val pi: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.Primitive(3.toDouble))

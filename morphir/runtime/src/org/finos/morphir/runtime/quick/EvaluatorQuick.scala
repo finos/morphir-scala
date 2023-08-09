@@ -110,8 +110,8 @@ object EvaluatorQuick {
       case BoolRef()   => Concept.Boolean
       case CharRef()   => Concept.Char
       case FloatRef()  => Concept.Decimal
-      case LocalDate() => Concept.LocalDate
-      case LocalTime() => Concept.LocalTime
+      case LocalDateRef() => Concept.LocalDate
+      case LocalTimeRef() => Concept.LocalTime
       case ResultRef(errType, okType) =>
         Concept.Result(typeToConcept(errType, dists, boundTypes), typeToConcept(okType, dists, boundTypes))
       case ListRef(elementType) =>
