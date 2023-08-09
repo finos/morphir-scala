@@ -112,6 +112,18 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         V.constructor(FQName.fromString("Morphir.SDK:Maybe:just"), shape.morphirType),
         dataToIR(data)
       )
+    case Data.Result.Err(data, shape) =>
+      V.apply(
+        shape.morphirType,
+        V.constructor(FQName.fromString("Morphir.SDK:Result:err"), shape.morphirType),
+        dataToIR(data)
+      )
+    case Data.Result.Ok(data, shape) =>
+      V.apply(
+        shape.morphirType,
+        V.constructor(FQName.fromString("Morphir.SDK:Result:ok"), shape.morphirType),
+        dataToIR(data)
+      )
     case Data.List(values, shape) =>
       val valuesList = values.map { data => dataToIR(data) }
       V.list(shape.morphirType, zio.Chunk.fromIterable(valuesList))
