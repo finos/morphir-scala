@@ -63,7 +63,10 @@ object Store {
         val packageName = lib.packageName
         lib.packageDef.modules.foldLeft(acc){case (acc, (moduleName, module)) => {
             val withDefinitions = module.value.values.foldLeft(acc){case (acc, (valueName, value)) => {
-              
+              val name = FQName(packageName, moduleName, localName)
+              val definition = value.value.value
+              val sdkDef = SDKValue.SDKValueDefinition(definition)
+              acc.withDefinition(sdkDef)
             }}
           }
         }
