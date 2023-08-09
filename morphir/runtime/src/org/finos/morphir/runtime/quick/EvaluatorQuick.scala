@@ -181,6 +181,10 @@ object EvaluatorQuick {
         Data.Boolean(value)
       case (Concept.Char, Result.Primitive(value: Char)) =>
         Data.Char(value)
+      case (Concept.LocalDate, Result.LocalDate(value: java.time.LocalDate)) =>
+        Data.LocalDate(value)
+      case (Concept.LocalTime, Result.LocalTime(value: java.time.LocalTate)) =>
+        Data.LocalTime(value)
       case (Concept.Decimal, Result.Primitive(value: Double)) =>
         Data.Decimal(scala.BigDecimal(value))
       case (alias: Concept.Alias, result) => Data.Aliased(resultAndConceptToData(result, alias.value), alias)
