@@ -51,7 +51,7 @@ object MorphirJsonEncodingSpecV2 extends ZIOSpecDefault {
         assert(actual.toJson)(stringEqualTo(expected))
       },
       test("will encode a Name fromList") {
-        val actual   = Name.fromList(List("This", "is", "a", "list"))
+        val actual   = Name.fromList(List("this", "is", "a", "list"))
         val expected = """["this","is","a","list"]"""
         assert(actual.toJson)(stringEqualTo(expected))
       }
@@ -115,12 +115,12 @@ object MorphirJsonEncodingSpecV2 extends ZIOSpecDefault {
       },
       test("will encode a simple QualifiedModuleName") {
         val actual   = QualifiedModuleName(Path.fromString("org"), Path.fromString("SrcTest"))
-        val expected = """[[["org"]],["src","test"]]"""
+        val expected = """[[["org"]],[["src","test"]]]"""
         assert(actual.toJson)(stringEqualTo(expected))
       },
       test("will encode a QualifiedModuleName") {
         val actual   = QualifiedModuleName(Path.fromString("src.test.scala"), Path.fromString("SrcTest"))
-        val expected = """[[["src"],["test"],["scala"]],["src","test"]]"""
+        val expected = """[[["src"],["test"],["scala"]],[["src","test"]]]"""
         assert(actual.toJson)(stringEqualTo(expected))
       }
     ),

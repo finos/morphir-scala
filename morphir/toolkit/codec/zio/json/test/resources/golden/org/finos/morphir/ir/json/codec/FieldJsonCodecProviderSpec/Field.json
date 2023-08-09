@@ -5,7 +5,7 @@
         "omicron",
         "mu",
         "alpha",
-        "september"
+        "September"
       ],
       "tpe" : [
         "DecimalLiteral",
@@ -15,7 +15,7 @@
     {
       "name" : [
         "benchmark",
-        "june"
+        "June"
       ],
       "tpe" : [
         "BoolLiteral",
@@ -44,9 +44,9 @@
     },
     {
       "name" : [
-        "december",
+        "December",
         "lambda",
-        "august"
+        "August"
       ],
       "tpe" : [
         "DecimalLiteral",
@@ -55,8 +55,8 @@
     },
     {
       "name" : [
-        "september",
-        "october",
+        "September",
+        "October",
         "psi"
       ],
       "tpe" : [
@@ -66,7 +66,7 @@
     },
     {
       "name" : [
-        "june",
+        "June",
         "company",
         "minute"
       ],
@@ -87,7 +87,7 @@
     },
     {
       "name" : [
-        "february",
+        "February",
         "psi"
       ],
       "tpe" : [
@@ -109,7 +109,7 @@
     },
     {
       "name" : [
-        "november",
+        "November",
         "pi",
         "id"
       ],
@@ -129,7 +129,7 @@
     },
     {
       "name" : [
-        "june",
+        "June",
         "left"
       ],
       "tpe" : [
@@ -151,10 +151,10 @@
     {
       "name" : [
         "state",
-        "april",
+        "April",
         "system",
-        "may",
-        "may"
+        "May",
+        "May"
       ],
       "tpe" : [
         "BoolLiteral",
@@ -175,7 +175,7 @@
         "market",
         "iota",
         "delta",
-        "march",
+        "March",
         "market"
       ],
       "tpe" : [
@@ -186,7 +186,7 @@
     {
       "name" : [
         "market",
-        "april",
+        "April",
         "upsilon"
       ],
       "tpe" : [
@@ -196,7 +196,7 @@
     },
     {
       "name" : [
-        "december"
+        "December"
       ],
       "tpe" : [
         "DecimalLiteral",
@@ -205,11 +205,11 @@
     },
     {
       "name" : [
-        "december",
+        "December",
         "id",
-        "october",
-        "april",
-        "january"
+        "October",
+        "April",
+        "January"
       ],
       "tpe" : [
         "BoolLiteral",
