@@ -24,17 +24,6 @@ trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {
       evaluated <- evaluate(applied)
     } yield evaluated
 
-  def applyParams(
-      entryPoint: Value[scala.Unit, UType],
-      params: Value[scala.Unit, UType]*
-  ): RTAction[Any, TypeError, Value[scala.Unit, UType]] =
-    entryPoint match {
-      case Value.Reference.Typed(tpe, entryName) =>
-        for {
-          tpe <- unCurryTypeFunction(tpe, params.toList.map(_.attributes), Map())
-        } yield V.apply(tpe, entryPoint, params.head, params.tail: _*)
-      case other => RTAction.fail(UnsupportedType(s"Entry point must be a Reference, instead found $other"))
-    }
 
   def evaluate(entryPoint: Value[scala.Unit, UType], params: Data): RTAction[MorphirEnv, MorphirRuntimeError, Data] = {
     val toValue = ToMorphirValue.summon[Data].typed

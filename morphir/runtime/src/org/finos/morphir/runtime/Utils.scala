@@ -99,10 +99,22 @@ object Extractors {
   object CharRef extends CommonReference {
     final val tpe = sdk.Char.charType
   }
+  object SimpleRef{
+    def unapply(tpe : UType) : Boolean = tpe match{
+      case IntRef() => true
+      case Int32Ref => true
+    }
+  }
 }
 
 object Utils {
   import Extractors.*
+
+  def dealias(tpe : UType, dists : Distributions) : UType = {
+    tpe match{
+      case
+    }
+  }
   def applyBindings(tpe: UType, bindings: Map[Name, UType]): UType =
     tpe match {
       case Type.Variable(_, name) if bindings.contains(name) => bindings(name)
