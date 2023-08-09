@@ -42,11 +42,10 @@ object ToMorphirType {
   implicit def optionUType[A](implicit elementToUType: ToMorphirUType[A]): ToMorphirUType[scala.Option[A]] =
     toUTypeConverter(sdk.Maybe.maybeType(elementToUType.morphirType))
 
-
   implicit def resultUType[A, B](implicit
-                                 errToUType: ToMorphirUType[A],
-                                 okToUType: ToMorphirUType[B]
-                                ): ToMorphirUType[Map[A, B]] =
+      errToUType: ToMorphirUType[A],
+      okToUType: ToMorphirUType[B]
+  ): ToMorphirUType[Map[A, B]] =
     toUTypeConverter(sdk.Dict.dictType(errToUType.morphirType, okToUType.morphirType))
 
   implicit def listUType[A](implicit elementToUType: ToMorphirUType[A]): ToMorphirUType[scala.List[A]] =

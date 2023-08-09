@@ -189,9 +189,15 @@ object EvaluatorQuick {
         Data.List(inners, elementConcept)
       case (Concept.Optional(elementShape), Result.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), List())) =>
         Data.Optional.None(elementShape)
-      case (shape @ Concept.Result(_, okType), Result.ConstructorResult(FQString("Morphir.SDK:Result:ok"), List(value))) =>
+      case (
+            shape @ Concept.Result(_, okType),
+            Result.ConstructorResult(FQString("Morphir.SDK:Result:ok"), List(value))
+          ) =>
         Data.Result.Ok(resultAndConceptToData(value, okType), shape)
-      case (shape @ Concept.Result(errType, _), Result.ConstructorResult(FQString("Morphir.SDK:Result:err"), List(value))) =>
+      case (
+            shape @ Concept.Result(errType, _),
+            Result.ConstructorResult(FQString("Morphir.SDK:Result:err"), List(value))
+          ) =>
         Data.Result.Err(resultAndConceptToData(value, errType), shape)
       case (
             Concept.Optional(elementShape),

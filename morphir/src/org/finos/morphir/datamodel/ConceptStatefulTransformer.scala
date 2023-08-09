@@ -24,7 +24,7 @@ trait ConceptStatefulTransformer[T] {
       case c: Concept.Map      => of(c)
       case c: Concept.Tuple    => of(c)
       case c: Concept.Optional => of(c)
-      case c: Concept.Result => of(c)
+      case c: Concept.Result   => of(c)
       case c: Concept.Enum     => of(c)
       case c: Concept.Union    => of(c)
     }
@@ -83,9 +83,9 @@ trait ConceptStatefulTransformer[T] {
 
   def of(c: Concept.Result): Stateful[Concept.Result] =
     for {
-      c <- transform(c)
+      c   <- transform(c)
       err <- of(c.errType)
-      ok <- of(c.okType)
+      ok  <- of(c.okType)
     } yield Concept.Result(err, ok)
 
   def of(c: Concept.Enum): Stateful[Concept.Enum] =

@@ -150,7 +150,7 @@ object PrintSpec {
           s"Maybe $rhs"
         case Concept.Result(errType, okType) =>
           val err = printConcept(errType)
-          val ok = printConcept(okType)
+          val ok  = printConcept(okType)
           s"Result $err $ok"
 
         case e: Concept.Enum =>
