@@ -48,8 +48,8 @@ private[runtime] case class QuickMorphirRuntime(dist: Distribution, store: Store
 object QuickMorphirRuntime {
 
   def fromDistributions(distributions: Distribution*): QuickMorphirRuntime = {
-      val store = Store.fromDistributions(distributions:_*)
-      QuickMorphirRuntime(distributions, store)
+    val store = Store.fromDistributions(distributions: _*)
+    QuickMorphirRuntime(distributions, store)
   }
 
   def fromDistributionRTAction(distribution: Distribution)

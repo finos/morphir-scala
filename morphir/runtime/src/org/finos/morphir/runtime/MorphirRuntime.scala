@@ -22,5 +22,5 @@ trait MorphirRuntime[TA, VA] {
 object MorphirRuntime extends MorphirRuntimePlatformSpecific {
 
   def quick(distributions: Distribution*): MorphirRuntime[scala.Unit, UType] =
-    QuickMorphirRuntime.fromDistributions(distributions:_*)
+    QuickMorphirRuntime.fromDistributions(distributions: _*)
 }

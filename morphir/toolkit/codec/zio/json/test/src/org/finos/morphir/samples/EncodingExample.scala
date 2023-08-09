@@ -11,10 +11,7 @@ import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, Spec
 import org.finos.morphir.ir.Type.{Definition as TypeDefinition, Specification as TypeSpecification, *}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
 import org.finos.morphir.ir.Value.{Value, _}
-import org.finos.morphir.ir.module.{
-  Definition => ModuleDefinition,
-  Specification => ModuleSpecification
-}
+import org.finos.morphir.ir.module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.ir.printing.DetailLevel
 import org.finos.morphir.ir.printing.FieldNames

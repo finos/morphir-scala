@@ -53,26 +53,23 @@ final case class Store[TA, VA](
   def getCtor(name: FQName): Option[SDKConstructor[TA, VA]] = ctors.get(name)
 
   def push(bindings: Map[Name, StoredValue[TA, VA]]) = Store(definitions, ctors, callStack.push(bindings))
-  def withBindingsFrom(other : Store[TA, VA]) = Store(definitions ++ other.definitions, ctors ++ other.ctors, callStack)
+  def withBindingsFrom(other: Store[TA, VA]) = Store(definitions ++ other.definitions, ctors ++ other.ctors, callStack)
 }
 
 object Store {
-  def fromDistributions(dists: Distribution*) : Store[Unit, Type.UType] = {
-    dists.foldLeft(native){
-      case (acc, lib : Library) => {
+  def fromDistributions(dists: Distribution*): Store[Unit, Type.UType] =
+    dists.foldLeft(native) {
+      case (acc, lib: Library) =>
         val packageName = lib.packageName
-        lib.packageDef.modules.foldLeft(acc){case (acc, (moduleName, module)) => {
-            val withDefinitions = module.value.values.foldLeft(acc){case (acc, (valueName, value)) => {
-              val name = FQName(packageName, moduleName, localName)
-              val definition = value.value.value
-              val sdkDef = SDKValue.SDKValueDefinition(definition)
-              acc.withDefinition(sdkDef)
-            }}
+        lib.packageDef.modules.foldLeft(acc) { case (acc, (moduleName, module)) =>
+          val withDefinitions = module.value.values.foldLeft(acc) { case (acc, (valueName, value)) =>
+            val name       = FQName(packageName, moduleName, localName)
+            val definition = value.value.value
+            val sdkDef     = SDKValue.SDKValueDefinition(definition)
+            acc.withDefinition(sdkDef)
           }
         }
-      }
     }
-  }
   def fromDistribution(dist: Distribution): Store[Unit, Type.UType] = dist match {
     case lib: Library =>
       val packageName = lib.packageName
@@ -105,10 +102,8 @@ object Store {
       Store(valueBindings ++ Native.native, ctorBindings ++ Native.nativeCtors, CallStackFrame(Map(), None))
   }
 
-  def empty[TA, VA]: Store[TA, VA] = {
+  def empty[TA, VA]: Store[TA, VA] =
     Store(Map(), Map(), CallStackFrame(Map(), None))
-  }
-  def native : Store[Unit, UType] = {
+  def native: Store[Unit, UType] =
     Store(Native.native, Native.nativeCtors, CallStackFrame(Map(), None))
-  }
 }
