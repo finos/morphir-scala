@@ -110,6 +110,8 @@ object EvaluatorQuick {
       case BoolRef()   => Concept.Boolean
       case CharRef()   => Concept.Char
       case FloatRef()  => Concept.Decimal
+      case ResultRef(errType, okType) =>
+        Concept.Result(typeToConcept(errType, dists, boundTypes), typeToConcept(okType, dists, boundTypes))
       case ListRef(elementType) =>
         Concept.List(typeToConcept(elementType, dists, boundTypes))
       case MaybeRef(elementType) =>
@@ -187,6 +189,10 @@ object EvaluatorQuick {
         Data.List(inners, elementConcept)
       case (Concept.Optional(elementShape), Result.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), List())) =>
         Data.Optional.None(elementShape)
+      case (shape @ Concept.Result(_, okType), Result.ConstructorResult(FQString("Morphir.SDK:Result:ok"), List(value))) =>
+        Data.Result.Ok(resultAndConceptToData(value, okType), shape)
+      case (shape @ Concept.Result(errType, _), Result.ConstructorResult(FQString("Morphir.SDK:Result:err"), List(value))) =>
+        Data.Result.Err(resultAndConceptToData(value, errType), shape)
       case (
             Concept.Optional(elementShape),
             Result.ConstructorResult(
