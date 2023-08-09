@@ -33,8 +33,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
   def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
     EvaluatorQuick.evalAction(value, store, dists)
 
-  def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = dist match {
-    case library: Library =>
+  def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
       val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)
       val maybeSpec       = dists.lookupValueSpecification(PackageName(pkg), ModuleName(mod), loc)
       maybeSpec match {
@@ -49,11 +48,11 @@ object QuickMorphirRuntime {
 
   def fromDistributions(distributions: Distribution*): QuickMorphirRuntime = {
     val store = Store.fromDistributions(distributions: _*)
-    QuickMorphirRuntime(Distributions(distributions), store)
+    QuickMorphirRuntime(Distributions(distributions:_*), store)
   }
 
-  def fromDistributionRTAction(distribution: Distribution)
+  def fromDistributionRTAction(distributions: Distribution*)
       : RTAction[MorphirEnv, MorphirRuntimeError, QuickMorphirRuntime] =
-    RTAction.succeed(fromDistributions(distribution))
+    RTAction.succeed(fromDistributions(distributions:_*))
 
 }

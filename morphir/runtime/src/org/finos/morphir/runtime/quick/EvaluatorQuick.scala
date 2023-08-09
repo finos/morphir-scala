@@ -10,6 +10,7 @@ import org.finos.morphir.ir.Value.*
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.Extractors.*
+import org.finos.morphir.runtime.Distributions
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.runtime.services.sdk.*
@@ -35,7 +36,7 @@ object EvaluatorQuick {
 
       def newValue = fromNative[Unit, T.UType](modBy)
       def newStore = Store(store.definitions + (modBy.name -> newValue), store.ctors, store.callStack)
-      RTAction.succeed(EvaluatorQuick.eval(value, newStore, dist))
+      RTAction.succeed(EvaluatorQuick.eval(value, newStore, dists))
     }
 
   private[runtime] def eval(value: Value[Unit, T.UType], store: Store[Unit, T.UType], dists: Distributions): Data = {

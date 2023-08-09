@@ -16,6 +16,7 @@ import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
+import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
 
 class Distributions(dists : Map[PackageName, Distribution]){
 
@@ -39,7 +40,7 @@ class Distributions(dists : Map[PackageName, Distribution]){
 }
 object Distributions {
   def apply(dists: Distribution*): Distributions = {
-    Distributions(dists.map {case (lib: Library) => lib.packageName -> lib}.toMap)
+    new Distributions(dists.map {case (lib: Library) => lib.packageName -> lib}.toMap)
   }
 }
 
