@@ -87,37 +87,6 @@ object Store {
           }
         }
     }
-  def fromDistribution(dist: Distribution): Store[Unit, Type.UType] = dist match {
-    case lib: Library =>
-      val packageName = lib.packageName
-      val valueBindings = lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
-        accessControlledModule.value.values.map {
-          case (localName, accessControlledValue) =>
-            val name       = FQName(packageName, moduleName, localName)
-            val definition = accessControlledValue.value.value
-            val sdkDef     = SDKValue.SDKValueDefinition(definition)
-            (name, sdkDef)
-        }
-      }
-
-      val ctorBindings: Map[FQName, SDKConstructor[Unit, Type.UType]] =
-        lib.packageDef.modules.flatMap { case (moduleName, accessControlledModule) =>
-          accessControlledModule.value.types.flatMap {
-            case (localName, accessControlledType) =>
-              val definition = accessControlledType.value.value
-              definition match {
-                case Type.Definition.CustomType(_, accessControlledCtors) =>
-                  val ctors = accessControlledCtors.value.toMap
-                  ctors.map { case (ctorName, ctorArgs) =>
-                    val name = FQName(packageName, moduleName, ctorName)
-                    (name, SDKConstructor[Unit, Type.UType](ctorArgs.map(_._2).toList))
-                  }
-                case Type.Definition.TypeAlias(_, _) => Map.empty
-              }
-          }
-        }
-      Store(valueBindings ++ Native.native, ctorBindings ++ Native.nativeCtors, CallStackFrame(Map(), None))
-  }
 
   def empty[TA, VA]: Store[TA, VA] =
     Store(Map(), Map(), CallStackFrame(Map(), None))
