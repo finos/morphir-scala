@@ -1,7 +1,6 @@
 package org.finos.morphir.datamodel
 
 import org.finos.morphir.naming._
-import org.finos.morphir.datamodel.namespacing.*
 
 class DataEncoderBasics extends munit.FunSuite {
 

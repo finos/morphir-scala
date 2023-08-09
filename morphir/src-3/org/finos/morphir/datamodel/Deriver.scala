@@ -11,7 +11,6 @@ import scala.compiletime.{codeOf, constValue, erasedValue, error, summonFrom, su
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.datamodel.Label
 import org.finos.morphir.datamodel.Concept
-import org.finos.morphir.datamodel.namespacing.LocalName
 
 trait Deriver[T] {
   final def apply(value: T): Data = derive(value)
@@ -130,13 +129,13 @@ object Deriver {
     }
 
   inline def summonQualifiedName[T] = {
-    val (partialName: QualifiedModuleName, localNameOverride: Option[LocalName]) =
+    val (partialName: QualifiedModuleName, localNameOverride: Option[Name]) =
       DeriverMacros.summonNamespaceOrFail[T]
     val localName =
       localNameOverride.getOrElse {
-        LocalName(DeriverMacros.typeName[T])
+        Name(DeriverMacros.typeName[T])
       }
-    FQName.fromLocalName(localName.value)(partialName)
+    FQName.fromLocalName(localName)(partialName)
   }
 
   inline def deriveSumFromMirror[T](m: Mirror.SumOf[T]): GenericSumDeriver[T] =

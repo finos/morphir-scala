@@ -7,8 +7,6 @@ private[morphir] trait QualifiedModuleNameExports {
   sealed case class QualifiedModuleName(packageName: PackageName, modulePath: ModuleName) { self =>
     def /(moduleName: ModuleName): QualifiedModuleName =
       QualifiedModuleName(self.packageName, self.modulePath ++ moduleName)
-    def /(namespace: Namespace): QualifiedModuleName =
-      QualifiedModuleName(self.packageName, namespace.toModuleName)
     def /(namespaceAddition: String): QualifiedModuleName =
       QualifiedModuleName(self.packageName, modulePath.addPart(namespaceAddition))
 

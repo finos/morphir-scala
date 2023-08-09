@@ -1,7 +1,8 @@
 package org.finos.morphir.ir.sdk
 
 import org.finos.morphir.ir.Type
-import org.finos.morphir.ir.{Gens, Path}
+import org.finos.morphir.naming._
+import org.finos.morphir.ir.Gens
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
