@@ -244,9 +244,9 @@ object Utils {
         RTAction.fail(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
     }
   }
-  def isNative(fqn : FQName) : Boolean{
+  def isNative(fqn : FQName) : Boolean = {
     val example = FQName.fromString("Morphir.SDK:Basics:equal")
-    fqn.getPackagePath() == example.getPackagePath()
+    fqn.getPackagePath == example.getPackagePath
   }
 
   // TODO: Implement

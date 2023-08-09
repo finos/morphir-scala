@@ -222,7 +222,7 @@ object Loop {
   def handleReference[TA, VA](va: VA, name: FQName, store: Store[TA, VA]): Result[TA, VA] =
     store.getDefinition(name) match {
       case None => {
-        val filtered = store.definition.keys.filter(Utils.isNative(_))
+        val filtered = store.definitions.keys.filter(Utils.isNative(_))
         throw DefinitionNotFound(
           s"name $name not found in store. Store contents: ${filtered.map(_.toString).mkString("\n")}"
         )
