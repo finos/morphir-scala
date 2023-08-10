@@ -270,7 +270,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
           Data.Record(recordName, List(Label("1") -> Data.String("Testing Record"), Label("2") -> Data.False))
         val actual = toValue(inputValue)
         val result = V.record(
-          T.record(Chunk("1" -> sdk.String.stringType, "2" -> sdk.Basics.boolType): _*),
+          T.reference(recordName),
           "1" -> V.string(sdk.String.stringType, "Testing Record"),
           "2" -> Lit.False
         )
