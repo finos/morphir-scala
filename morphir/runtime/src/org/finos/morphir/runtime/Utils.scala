@@ -129,7 +129,7 @@ object Extractors {
       case _               => false
     }
   }
-  // Extractor object that unwraps a single layer of aliasing, and gives and type names bound in the process
+  // Extractor object that unwraps a single layer of aliasing, and gives any type names that were bound in the process
   class Dealiased(dists: Distributions) {
     def unapply(tpe: UType): Option[(UType, Map[Name, UType])] = // If it's aliased we may need to grab bindings
       tpe match {
