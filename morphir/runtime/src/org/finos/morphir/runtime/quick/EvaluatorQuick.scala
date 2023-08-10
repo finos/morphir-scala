@@ -136,7 +136,7 @@ object EvaluatorQuick {
               val argTuples = args.map { case (argName: Name, argType: Type.UType) =>
                 (EnumLabel.Named(argName.toCamelCase), typeToConcept(argType, dists, newBindings))
               }
-              val conceptName: String                  = caseName.toCamelCase
+              val conceptName: String                  = caseName.toTitleCase
               val concepts: List[(EnumLabel, Concept)] = argTuples.toList
               Concept.Enum.Case(Label(conceptName), concepts)
             }
@@ -220,7 +220,7 @@ object EvaluatorQuick {
       case (enumConcept @ Concept.Enum(name, cases), Result.ConstructorResult(fqName, args)) =>
         val fieldMap = cases.map { case Concept.Enum.Case(Label(string), fields) => string -> fields }.toMap
         val fields = fieldMap.getOrElse(
-          fqName.localName.toCamelCase,
+          fqName.localName.toTitleCase,
           throw new ResultDoesNotMatchType(s"Failed to find constructor ${fqName.localName} among ${fieldMap.keys}")
         )
         if (args.length != fields.length)
@@ -230,7 +230,7 @@ object EvaluatorQuick {
           val argData = zipped.map { case (innerResult, (argName, argConcept)) =>
             (argName, resultAndConceptToData(innerResult, argConcept))
           }
-          Data.Case(argData, fqName.toString, enumConcept)
+          Data.Case(argData, fqName.localName.toTitleCase, enumConcept)
         }
       case (Concept.Tuple(conceptElements), Result.Tuple(resultElements)) =>
         val listed = Helpers.tupleToList[Unit, Type.UType](resultElements).get
