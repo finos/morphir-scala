@@ -90,12 +90,12 @@ object ToMorphirType {
         }
         // TODO: When we provide MorphirType map this to a spec or definition
         toUTypeConverter(T.record(types: _*))
-      case Concept.Record(_, fields) =>
-        val types: scala.List[(String, UType)] = fields.map {
-          case (k: Label, v: Concept) => (k.value, conceptToTypeIR(v).morphirType)
-        }
-        // TODO: When we provide MorphirType map this to a spec or definition
-        toUTypeConverter(T.record(types: _*))
+
+      // Treat a record as an aliased reference on the type level, on the value level it has fields
+      // Record('Pack.Mod.Person', [name, age]) on the type-level is just Reference(Pack.Mod.Person)
+      // on the value level it's the equivalent of a record behind a type alias e.g. `person:Person; person = {name:"", age:""}`
+      case Concept.Record(name, fields) =>
+        toUTypeConverter(T.reference(name))
 
       case Concept.Tuple(values) =>
         val types: scala.List[UType] = values.map(conceptToTypeIR(_).morphirType)

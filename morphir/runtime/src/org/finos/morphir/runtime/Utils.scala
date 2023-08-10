@@ -111,7 +111,8 @@ object Extractors {
   object LocalTimeRef extends CommonReference {
     final val tpe = sdk.LocalTime.localTimeType
   }
-  object SimpleRef {
+  // Matches references to known SDK-defined types
+  object SDKRef {
     def unapply(tpe: UType): Boolean = tpe match {
       case IntRef()        => true
       case Int32Ref()      => true
@@ -128,10 +129,11 @@ object Extractors {
       case _               => false
     }
   }
+  // Extractor object that unwraps a single layer of aliasing, and gives any type names that were bound in the process
   class Dealiased(dists: Distributions) {
     def unapply(tpe: UType): Option[(UType, Map[Name, UType])] = // If it's aliased we may need to grab bindings
       tpe match {
-        case SimpleRef() => None
+        case SDKRef() => None
         case Type.Reference(_, typeName, typeArgs) =>
           val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
@@ -151,7 +153,7 @@ object Utils {
   def dealias(original_tpe: UType, dists: Distributions, bindings: Map[Name, UType]): UType = {
     def loop(tpe: UType, bindings: Map[Name, UType]): UType =
       tpe match {
-        case SimpleRef() => applyBindings(tpe, bindings) // nothing further to look up
+        case SDKRef() => applyBindings(tpe, bindings) // nothing further to look up
         case Type.Reference(_, typeName, typeArgs) =>
           val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
@@ -183,7 +185,9 @@ object Utils {
       case other                             => other // leaf nodes
     }
 
-  def typeCheckArg(arg: UType, param: UType, found: Map[Name, UType]): Either[TypeError, Map[Name, UType]] =
+  def typeCheckArg(arg: UType, param: UType, found: Map[Name, UType])(
+      implicit options: RTExecutionContext.Options
+  ): Either[TypeError, Map[Name, UType]] =
     (arg, param) match {
       case (argType, Type.Variable(_, name)) =>
         if (found.contains(name) && found(name) != argType) {
@@ -243,7 +247,17 @@ object Utils {
           case (acc, (argTpe, paramTpe)) =>
             acc.flatMap(found => typeCheckArg(argTpe, paramTpe, found))
         }
-      case (otherArg, otherParam) => Left(NotImplementedType(s"Cannot match $otherArg with $otherParam"))
+      case (otherArg, otherParam) =>
+        options.enableTyper match {
+          case EnableTyper.Enabled =>
+            Left(NotImplementedType(s"Cannot match $otherArg with $otherParam"))
+          case EnableTyper.Warn =>
+            println(s"[WARNING] Cannot match $otherArg with $otherParam")
+            Right(found)
+          case EnableTyper.Disabled =>
+            Right(found)
+        }
+
     }
   def specificationToType[TA](spec: V.Specification[TA]): Type[TA] =
     curryTypeFunction(spec.output, spec.inputs)
@@ -253,7 +267,7 @@ object Utils {
       args: List[UType],
       dists: Distributions,
       knownBindings: Map[Name, UType]
-  ): RTAction[Any, TypeError, UType] = {
+  )(implicit options: RTExecutionContext.Options): RTAction[Any, TypeError, UType] = {
     val dealiaser = new Dealiased(dists)
     (curried, args) match {
       case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
