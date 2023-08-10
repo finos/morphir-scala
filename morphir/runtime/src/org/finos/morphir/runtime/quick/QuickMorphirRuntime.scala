@@ -53,7 +53,6 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
         } yield V.apply(tpe, entryPoint, params.head, params.tail: _*)
       case other => RTAction.fail(UnsupportedType(s"Entry point must be a Reference, instead found $other"))
     }
-
 }
 
 object QuickMorphirRuntime {
