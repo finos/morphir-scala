@@ -1,5 +1,6 @@
 package org.finos.morphir
-private[morphir] trait PackageNameExports { self: naming.type =>
+
+trait PackageNameModule { self: naming.type =>
 
   /**
    * A package name is a globally unique identifier for a package. It is represented by a `Path` which is a list of

@@ -1,9 +1,9 @@
 package org.finos.morphir
 
-private[morphir] trait QualifiedModuleNameExports {
-  self: PackageNameExports with PathExports with ModuleNameExports with NamespaceExports =>
+trait QualifiedModuleNameModule {
+  self: PackageNameModule with PathModule with ModuleNameModule with NamespaceModule =>
 
-  /// A qualified moduule name is a globally unique identifier for a module. It is represented by the combination of a package name and the module name.
+  /// A qualified module name is a globally unique identifier for a module. It is represented by the combination of a package name and the module name.
   sealed case class QualifiedModuleName(packageName: PackageName, modulePath: ModuleName) { self =>
     def /(moduleName: ModuleName): QualifiedModuleName =
       QualifiedModuleName(self.packageName, self.modulePath ++ moduleName)

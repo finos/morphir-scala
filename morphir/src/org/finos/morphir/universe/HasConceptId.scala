@@ -2,6 +2,6 @@ package org.finos.morphir.universe
 
 import org.finos.morphir.universe.ir.*
 
-trait HasId {
+trait HasConceptId {
   def id: ConceptId
 }

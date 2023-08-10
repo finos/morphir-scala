@@ -1,6 +1,6 @@
 package org.finos.morphir
 
-private[morphir] trait ModuleNameExports { self: NameExports with PathExports =>
+trait ModuleNameModule { self: NameModule with PathModule =>
 
   /**
    * A module name is a unique identifier for a module within a package. It is represented by a `Path`, which is a

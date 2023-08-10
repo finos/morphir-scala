@@ -1,8 +1,8 @@
 package org.finos.morphir
 
 private[morphir] trait NodeIDExports {
-  self: FQNameExports with NameExports with PathExports with PackageNameExports with ModuleNameExports
-    with QualifiedModuleNameExports =>
+  self: FQNameModule with NameModule with PathModule with PackageNameModule with ModuleNameModule
+    with QualifiedModuleNameModule =>
   import NodePath.*
 
   /**

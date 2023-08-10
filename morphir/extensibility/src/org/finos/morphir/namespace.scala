@@ -1,6 +1,6 @@
 package org.finos.morphir
 
-private[morphir] trait NamespaceExports { self: NameExports with PathExports with ModuleNameExports =>
+trait NamespaceModule { self: NameModule with PathModule with ModuleNameModule =>
   sealed case class Namespace(path: Path) { self =>
     def ++(name: Namespace): Namespace        = Namespace(path ++ path)
     def /(segment: String): Namespace         = Namespace(path ++ Path.fromString(segment))

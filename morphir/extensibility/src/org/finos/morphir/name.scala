@@ -1,7 +1,7 @@
 package org.finos.morphir
 import scala.annotation.tailrec
 
-private[morphir] trait NameExports {
+trait NameModule {
 
   /**
    * `Name` is an abstraction of human-readable identifiers made up of words. This abstraction allows us to use the same

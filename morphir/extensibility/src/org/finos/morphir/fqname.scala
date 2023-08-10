@@ -1,9 +1,9 @@
 package org.finos.morphir
 
-private[morphir] trait FQNameExports {
-  self: NameExports with ModuleNameExports with NamespaceExports with PackageNameExports with PathExports
-    with QualifiedModuleNameExports
-    with QNameExports =>
+trait FQNameModule {
+  self: NameModule with ModuleNameModule with NamespaceModule with PackageNameModule with PathModule
+    with QualifiedModuleNameModule
+    with QNameModule =>
 
   sealed case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) { self =>
     def getPackagePath: Path = packagePath.toPath

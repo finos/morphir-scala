@@ -2,7 +2,7 @@ package org.finos.morphir.extensibility
 import org.finos.morphir.naming._
 import org.finos.morphir._
 
-sealed trait ExtensionFunction {
+sealed trait ExtensionFunc {
   def name: FQName
   def arity: Int
   def defaultHints: Hints = Hints.empty
@@ -10,12 +10,12 @@ sealed trait ExtensionFunction {
   def invoke(args: List[Any], hints: Hints): Any
 }
 
-trait DynamicFunction extends ExtensionFunction {
+trait DynamicFunction extends ExtensionFunc {
   def invoke(args: List[Any], hints: Hints): Any
 }
 
-trait NativeFunction   extends ExtensionFunction
-trait ExternalFunction extends ExtensionFunction
+trait NativeFunction   extends ExtensionFunc
+trait ExternalFunction extends ExtensionFunc
 
 // trait NativeFunction0[R] extends NativeFunction with Function0[R] {
 //   type Result = R
