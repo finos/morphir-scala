@@ -172,16 +172,15 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         case Value.Variable(attributes, name) => Value.Variable(alias, name)
       }
     case Data.Case(values, enumLabel, shape) =>
-
-      //Okay I have an outermost thing type - the union's shape - and an innermost value - the constructor itself
-      //So from the outside I walk down, building up a type by continually wrapping the outer type...?
-      //And I build a value by wrapping types?
-      def curryFunctionValue(fqn : FQName, outerTpe : UType, fields : List[TypedValue]) : TypedValue = {
-        fields match{
+      // Okay I have an outermost thing type - the union's shape - and an innermost value - the constructor itself
+      // So from the outside I walk down, building up a type by continually wrapping the outer type...?
+      // And I build a value by wrapping types?
+      def curryFunctionValue(fqn: FQName, outerTpe: UType, fields: List[TypedValue]): TypedValue =
+        fields match {
           case Nil => V.constructor(fqn, outerTpe)
-          case head :: tail => V.apply(outerTpe, curryFunctionValue(fqn, Type.function((), head.attributes, outerTpe), tail), head)
+          case head :: tail =>
+            V.apply(outerTpe, curryFunctionValue(fqn, Type.function((), head.attributes, outerTpe), tail), head)
         }
-      }
       val args = values.map { case (_, data) => dataToIR(data) }.reverse
       val name = shape.name.copy(localName = Name.fromString(enumLabel))
       curryFunctionValue(name, shape.morphirType, args)
