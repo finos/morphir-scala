@@ -7,6 +7,7 @@ import org.finos.morphir.datamodel.{Concept, Data, EnumLabel, Label}
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.{TypedValue, Value}
 import org.finos.morphir.ir.{Type => T, Value => V}
+import org.finos.morphir.ir.Type.UType
 
 import java.time.Month
 import java.time.temporal.ChronoField
@@ -171,18 +172,19 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         case Value.Variable(attributes, name) => Value.Variable(alias, name)
       }
     case Data.Case(values, enumLabel, shape) =>
-      val constructor = V.constructor(shape.morphirType, enumLabel)
-      val args = values.map { case (label, data) =>
-        V.apply(
-          data.shape.morphirType,
-          V.constructor(data.shape.morphirType, "FQName ???"), // TODO: where is the FQName?
-          dataToIR(data)
-        )
+
+      //Okay I have an outermost thing type - the union's shape - and an innermost value - the constructor itself
+      //So from the outside I walk down, building up a type by continually wrapping the outer type...?
+      //And I build a value by wrapping types?
+      def curryFunctionValue(fqn : FQName, outerTpe : UType, fields : List[TypedValue]) : TypedValue = {
+        fields match{
+          case Nil => V.constructor(fqn, outerTpe)
+          case head :: tail => V.apply(outerTpe, curryFunctionValue(fqn, Type.function((), head.attributes, outerTpe), tail), head)
+        }
       }
-      if (args.isEmpty)
-        constructor
-      else
-        V.apply(shape.morphirType, constructor, args.head, args.tail: _*)
+      val args = values.map { case (_, data) => dataToIR(data) }.reverse
+      val name = shape.name.copy(localName = Name.fromString(enumLabel))
+      curryFunctionValue(name, shape.morphirType, args)
 
     case Data.Union(value, shape) => ??? // TODO: to be implemented
   }
