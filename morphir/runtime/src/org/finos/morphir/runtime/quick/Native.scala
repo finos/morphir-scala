@@ -198,7 +198,7 @@ object Native {
     FQName.fromString("Morphir.SDK:Basics:and")                 -> and,
     FQName.fromString("Morphir.SDK:Basics:or")                  -> or,
     FQName.fromString("Morphir.SDK:Basics:pi")                  -> pi,
-    //FQName.fromString("Morphir.SDK:Basics:add")                 -> plus,
+    FQName.fromString("Morphir.SDK:Basics:add")                 -> plus,
     FQName.fromString("Morphir.SDK:Basics:subtract")            -> subtract,
     FQName.fromString("Morphir.SDK:Basics:divide")              -> divide,
     FQName.fromString("Morphir.SDK:Basics:negate")              -> negate,

@@ -237,8 +237,6 @@ object Loop {
              | Hint: $hint
              | For that package, store contains:
              | \t${filtered.map(_.toString).mkString("\n\t")}""".stripMargin
-
-
         )
       case Some(SDKValue.SDKValueDefinition(valueDefinition)) =>
         if (valueDefinition.inputTypes.isEmpty) {
