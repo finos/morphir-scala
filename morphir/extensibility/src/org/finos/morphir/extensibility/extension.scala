@@ -1,32 +1,35 @@
 package org.finos.morphir.extensibility
-import org.finos.morphir.naming._
 import org.finos.morphir._
+import org.finos.morphir.naming._
 
-trait ExtensionNode   extends HasId         {}
-trait ExtensionMember extends ExtensionNode {}
-abstract class ExtensionModule extends ExtensionNode {
-  def exports: IndexedSeq[ExtensionMember]
-}
+trait ExtensionsModule { self: TypeModule with TypeSpecModule =>
+  trait ExtensionNode extends HasId {}
 
-abstract class ExtensionFunction extends ExtensionMember { self =>
-  def spec: TypeModule#TypeSpecification
-  def defn: TypeModule#TypeDefinition
-  def name: FQName = self.id match {
-    case NodeID.ValueID(fqn, _) => fqn
-    case _                      => throw new Exception("ExtensionFunction.id must be a ValueID")
+  trait ExtensionMember extends ExtensionNode {}
+
+  abstract class ExtensionModule extends ExtensionNode {
+    def exports: IndexedSeq[ExtensionMember]
   }
-  def invoke(args: List[Any]): Any
-  def arity: Int
-  def defaultHints: Hints = Hints.empty
-  def invoke(args: List[Any], hints: Hints): Any
-}
 
-object ExtensionFunction {
-  def unapply(input: Any): Option[(NodeID, FQName, Int, Hints)] = input match {
-    case extFunc: ExtensionFunction => Some((extFunc.id, extFunc.name, extFunc.arity, extFunc.defaultHints))
-    case _                          => None
+  abstract class ExtensionFunction extends ExtensionMember { self =>
+
+    def specification: TypeSpecification[Any]
+
+    def definition: TypeDefinition
+
+    def name: FQName
+    def nodeID: NodeID = NodeID.ValueID(name, NodePath.empty)
+    def invoke(args: List[Any]): Any
+
+    def arity: Int
+
+    def defaultHints: Hints = Hints.empty
+
+    def invoke(args: List[Any], hints: Hints): Any
   }
-}
 
-sealed trait TypeSpec
-sealed trait TypeDef
+  object ExtensionFunction {
+//    def unapply(value:Any):Option[()]
+  }
+
+}
