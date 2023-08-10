@@ -183,7 +183,9 @@ object Utils {
       case other                             => other // leaf nodes
     }
 
-  def typeCheckArg(arg: UType, param: UType, found: Map[Name, UType]): Either[TypeError, Map[Name, UType]] =
+  def typeCheckArg(arg: UType, param: UType, found: Map[Name, UType])(
+      implicit options: RTExecutionContext.Options
+  ): Either[TypeError, Map[Name, UType]] =
     (arg, param) match {
       case (argType, Type.Variable(_, name)) =>
         if (found.contains(name) && found(name) != argType) {
@@ -243,7 +245,17 @@ object Utils {
           case (acc, (argTpe, paramTpe)) =>
             acc.flatMap(found => typeCheckArg(argTpe, paramTpe, found))
         }
-      case (otherArg, otherParam) => Left(NotImplementedType(s"Cannot match $otherArg with $otherParam"))
+      case (otherArg, otherParam) =>
+        options.enableTyper match {
+          case EnableTyper.Enabled =>
+            Left(NotImplementedType(s"Cannot match $otherArg with $otherParam"))
+          case EnableTyper.Warn =>
+            println(s"[WARNING] Cannot match $otherArg with $otherParam")
+            Right(found)
+          case EnableTyper.Disabled =>
+            Right(found)
+        }
+
     }
   def specificationToType[TA](spec: V.Specification[TA]): Type[TA] =
     curryTypeFunction(spec.output, spec.inputs)
@@ -253,7 +265,7 @@ object Utils {
       args: List[UType],
       dists: Distributions,
       knownBindings: Map[Name, UType]
-  ): RTAction[Any, TypeError, UType] = {
+  )(implicit options: RTExecutionContext.Options): RTAction[Any, TypeError, UType] = {
     val dealiaser = new Dealiased(dists)
     (curried, args) match {
       case (Type.Function(attributes, parameterType, returnType), head :: tail) =>

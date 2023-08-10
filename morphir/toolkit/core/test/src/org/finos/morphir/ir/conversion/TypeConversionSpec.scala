@@ -143,7 +143,7 @@ object TypeConversionSpec extends MorphirBaseSpec {
         val recordName    = pn.morphirIR % "Record1"
         val conceptRecord = Concept.Record(recordName, List(Label("1") -> Concept.String, Label("2") -> Concept.Char))
         val morphirType   = ToMorphirType.summon[Concept].withAttributesOf(conceptRecord).morphirType
-        assertTrue(morphirType == T.record(Chunk("1" -> sdk.String.stringType, "2" -> sdk.Char.charType): _*))
+        assertTrue(morphirType == T.reference(recordName))
       }
     ),
     suite("Concept.Map")(

@@ -19,6 +19,7 @@ import org.finos.morphir.datamodel.*
 import scala.util.{Failure, Success, Try}
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
 import org.finos.morphir.runtime.environment.MorphirEnv
+import zio.prelude.fx.ZPure
 
 private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Store[scala.Unit, UType])
     extends TypedMorphirRuntime {
@@ -46,13 +47,18 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
       entryPoint: Value[scala.Unit, UType],
       params: Value[scala.Unit, UType]*
   ): RTAction[Any, TypeError, Value[scala.Unit, UType]] =
-    entryPoint match {
-      case Value.Reference.Typed(tpe, entryName) =>
-        for {
-          tpe <- unCurryTypeFunction(tpe, params.toList.map(_.attributes), dists, Map())
-        } yield V.apply(tpe, entryPoint, params.head, params.tail: _*)
-      case other => RTAction.fail(UnsupportedType(s"Entry point must be a Reference, instead found $other"))
-    }
+    for {
+      ctx <- ZPure.get[RTExecutionContext]
+      out <- {
+        entryPoint match {
+          case Value.Reference.Typed(tpe, entryName) =>
+            for {
+              tpe <- unCurryTypeFunction(tpe, params.toList.map(_.attributes), dists, Map())(ctx.options)
+            } yield V.apply(tpe, entryPoint, params.head, params.tail: _*)
+          case other => RTAction.fail(UnsupportedType(s"Entry point must be a Reference, instead found $other"))
+        }
+      }
+    } yield out
 
 }
 
