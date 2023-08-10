@@ -229,9 +229,14 @@ object Loop {
   def handleReference[TA, VA](va: VA, name: FQName, store: Store[TA, VA]): Result[TA, VA] =
     store.getDefinition(name) match {
       case None =>
-        val filtered = store.definitions.keys.filter(Utils.isNative(_))
+        val filtered = store.definitions.keys.filter(_.getPackagePath == name.getPackagePath)
+        val hint = if (Utils.isNative(name)) "You might be calling an unimplemented native function"
+        else "You might be calling a function not defined in the given distributions"
         throw DefinitionNotFound(
-          s"name $name not found in store. Store contents: ${filtered.map(_.toString).mkString("\n")}"
+          s"""name $name not found in store.
+             | Hint: $hint
+             | For that package, store contains:
+             | \t${filtered.map(_.toString).mkString("\n\t")}""".stripMargin
         )
       case Some(SDKValue.SDKValueDefinition(valueDefinition)) =>
         if (valueDefinition.inputTypes.isEmpty) {

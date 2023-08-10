@@ -111,7 +111,8 @@ object Extractors {
   object LocalTimeRef extends CommonReference {
     final val tpe = sdk.LocalTime.localTimeType
   }
-  object SimpleRef {
+  // Matches references to known SDK-defined types
+  object SDKRef {
     def unapply(tpe: UType): Boolean = tpe match {
       case IntRef()        => true
       case Int32Ref()      => true
@@ -128,10 +129,11 @@ object Extractors {
       case _               => false
     }
   }
+  // Extractor object that unwraps a single layer of aliasing, and gives any type names that were bound in the process
   class Dealiased(dists: Distributions) {
     def unapply(tpe: UType): Option[(UType, Map[Name, UType])] = // If it's aliased we may need to grab bindings
       tpe match {
-        case SimpleRef() => None
+        case SDKRef() => None
         case Type.Reference(_, typeName, typeArgs) =>
           val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
@@ -151,7 +153,7 @@ object Utils {
   def dealias(original_tpe: UType, dists: Distributions, bindings: Map[Name, UType]): UType = {
     def loop(tpe: UType, bindings: Map[Name, UType]): UType =
       tpe match {
-        case SimpleRef() => applyBindings(tpe, bindings) // nothing further to look up
+        case SDKRef() => applyBindings(tpe, bindings) // nothing further to look up
         case Type.Reference(_, typeName, typeArgs) =>
           val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
