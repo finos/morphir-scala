@@ -105,20 +105,20 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     qn"Morphir/Examples/App:ConstructorTests:UnionType",
     List(
       Concept.Enum.Case(
-        Label("oneArg"),
+        Label("OneArg"),
         List(
           (EnumLabel.Named("arg1"), Concept.Int32)
         )
       ),
       Concept.Enum.Case(
-        Label("twoArg"),
+        Label("TwoArg"),
         List(
           (EnumLabel.Named("arg1"), Concept.Int32),
           (EnumLabel.Named("arg2"), Concept.String)
         )
       ),
       Concept.Enum.Case(
-        Label("zeroArg"),
+        Label("ZeroArg"),
         List()
       )
     )
@@ -128,14 +128,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     qn"Morphir/Examples/App:ExampleModule:TypeArgUnion",
     List(
       Concept.Enum.Case(
-        Label("b"),
+        Label("B"),
         List(Tuple2(
           EnumLabel.Named("arg1"),
           c2
         ))
       ),
       Concept.Enum.Case(
-        Label("aB"),
+        Label("AB"),
         List(
           (
             EnumLabel.Named("arg1"),
@@ -148,14 +148,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       Concept.Enum.Case(
-        Label("a"),
+        Label("A"),
         List((
           EnumLabel.Named("arg1"),
           c1
         ))
       ),
       Concept.Enum.Case(
-        Label("dictBA"),
+        Label("DictBA"),
         List((
           EnumLabel.Named("arg1"),
           Concept.Map(
@@ -165,7 +165,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ))
       ),
       Concept.Enum.Case(
-        Label("maybeA"),
+        Label("MaybeA"),
         List((
           EnumLabel.Named("arg1"),
           Concept.Optional(c1)
@@ -176,12 +176,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
   val zeroArg: Data = Data.Case(
     List(),
-    "Morphir.Examples.App:ConstructorTests:zeroArg",
+    "ZeroArg",
     unionEnumShape
   )
   def oneArg(i: Int): Data = Data.Case(
     List((EnumLabel.Named("arg1"), Data.Int(i))),
-    "Morphir.Examples.App:ConstructorTests:oneArg",
+    "OneArg",
     unionEnumShape
   )
   def twoArg(i: Int, s: String): Data = Data.Case(
@@ -189,7 +189,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       (EnumLabel.Named("arg1"), Data.Int(i)),
       (EnumLabel.Named("arg2"), Data.String(s))
     ),
-    "Morphir.Examples.App:ConstructorTests:twoArg",
+    "TwoArg",
     unionEnumShape
   )
 
