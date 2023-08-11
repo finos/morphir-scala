@@ -535,6 +535,18 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("Resolves error input")("optionTests", "resolveResultType", Left(true))(Data.Int(1))
       ),
       suite("SDK Basics Tests")(
+       testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest4")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest5")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest6")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest7")(Data.Boolean(true)),
+        testEvaluation("Or")("sdkBasicsTests", "sdkOrTest")(Data.Boolean(true)),
+        testEvaluation("LogBase")("sdkBasicsTests", "sdkLogBaseTest")(Data.Decimal(2.0)),
+        testEvaluation("Plus overflow")("sdkBasicsTests", "sdkIntOverflowTest")(
+          Data.Int(3)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("Plus Float")("sdkBasicsTests", "sdkAddFloatTest")(
+          Data.Decimal(3.0)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
         testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyTest")(Data.Int(6)) @@ ignore @@ TestAspect.tag(
           "Not Implemented yet"
         ),
