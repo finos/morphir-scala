@@ -78,17 +78,17 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     case Data.Int32(value: scala.Int)         => V.int(value.morphirType, value)
     case Data.String(value: java.lang.String) => V.string(value.morphirType, value)
     case Data.LocalDate(value: java.time.LocalDate) =>
-      V.apply(
+      V.typedApplyRef(
         value.morphirType,
-        V.reference(value.morphirType, FQName.fromString("Morphir.SDK:LocalDate:fromParts")),
+        V.reference(FQName.fromString("Morphir.SDK:LocalDate:fromParts")),
         V.intTyped(value.getYear),
         V.intTyped(value.getMonthValue),
         V.intTyped(value.getDayOfMonth)
       )
     case Data.LocalTime(value: java.time.LocalTime) =>
-      V.apply(
+      V.typedApplyRef(
         value.morphirType,
-        V.reference(value.morphirType, FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds")),
+        V.reference(FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds")),
         V.intTyped(value.get(ChronoField.MILLI_OF_DAY))
       )
     case Data.Month(value: java.time.Month) => value match {
@@ -108,21 +108,21 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     case Data.Optional.None(shape: Concept.Optional) =>
       V.constructor("Morphir.SDK:Maybe:Nothing", shape.morphirType)
     case Data.Optional.Some(data, shape) =>
-      V.apply(
+      V.typedApplyRef(
         shape.morphirType,
-        V.constructor(FQName.fromString("Morphir.SDK:Maybe:just"), shape.morphirType),
+        V.constructor(FQName.fromString("Morphir.SDK:Maybe:just")),
         dataToIR(data)
       )
     case Data.Result.Err(data, shape) =>
-      V.apply(
+      V.typedApplyRef(
         shape.morphirType,
-        V.constructor(FQName.fromString("Morphir.SDK:Result:err"), shape.morphirType),
+        V.constructor(FQName.fromString("Morphir.SDK:Result:err")),
         dataToIR(data)
       )
     case Data.Result.Ok(data, shape) =>
-      V.apply(
+      V.typedApplyRef(
         shape.morphirType,
-        V.constructor(FQName.fromString("Morphir.SDK:Result:ok"), shape.morphirType),
+        V.constructor(FQName.fromString("Morphir.SDK:Result:ok")),
         dataToIR(data)
       )
     case Data.List(values, shape) =>
@@ -133,9 +133,9 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
       val tuples = values.map { case (key, value) =>
         V.tuple(tupleShape.morphirType, dataToIR(key), dataToIR(value))
       }
-      V.apply(
+      V.typedApplyRef(
         shape.morphirType,
-        V.reference(shape.morphirType, FQName.fromString("Morphir.SDK:Dict:fromList")),
+        V.reference(FQName.fromString("Morphir.SDK:Dict:fromList")),
         V.list(Concept.List(tupleShape).morphirType, zio.Chunk.fromIterable(tuples))
       )
 
