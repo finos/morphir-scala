@@ -23,7 +23,7 @@ object PrintSpec {
       }
   }
 
-  import PathRenderer.TitleCase.given
+  import PathRenderer.TitleCase._
 
   def of(concept: Concept): String = {
     val typesList = concept.collectAll
