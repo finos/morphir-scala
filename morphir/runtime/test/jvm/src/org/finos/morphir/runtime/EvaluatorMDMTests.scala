@@ -376,6 +376,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Boolean")("literalTests", "litBoolTest")(Data.Boolean(true)),
         testEvaluation("Whole Number")("literalTests", "litWholeNumberLiteralTest")(Data.Int(5))
       ),
+      suite("LocalDate")(
+        // TODO: Need to fix implementation of Optional LocalDate
+        testEvaluation("fromParts")("localDateTests", "fromPartsTest")(
+          Data.Optional.Some(Data.LocalDate(localDate))
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
+      ),
       suite("LocalTime")(
         testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime))
       ),
@@ -529,6 +535,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("Resolves error input")("optionTests", "resolveResultType", Left(true))(Data.Int(1))
       ),
       suite("SDK Basics Tests")(
+        testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyTest")(Data.Int(6)) @@ ignore @@ TestAspect.tag(
+          "Not Implemented yet"
+        ),
+        testEvaluation("Integer Divide")("sdkBasicsTests", "sdkIntegerDivideTest")(
+          Data.Decimal(2.0)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("Divide by 0")("sdkBasicsTests", "sdkDivideByZeroTest")(
+          Data.Decimal(2.0)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
         testEvaluation("LessThanFloat")("sdkBasicsTests", "sdkLessThanTestFloat")(
           Data.Boolean(true)
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
