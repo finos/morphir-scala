@@ -14,7 +14,7 @@ extension (v: Data.Boolean.type) {
       override def concept: Concept            = wrapper.concept
     }
   inline def deriveEnumWrapper[T](label: String, fromScalaType: T => Boolean): SpecificDeriver[T] = {
-    val (partialName, _) = DeriverMacros.summonNamespaceOrFail[T]
+    val (partialName, _, _) = DeriverMacros.summonNamespaceOrFail[T]
     deriveEnumWrapperNamespaced(partialName, label, fromScalaType)
   }
   inline def deriveEnumWrapper[T](fromScalaType: T => Boolean): SpecificDeriver[T] = {
@@ -35,7 +35,7 @@ extension (v: Data.Byte.type) {
       override def concept: Concept            = wrapper.concept
     }
   inline def deriveEnumWrapper[T](label: String, fromScalaType: T => Byte): SpecificDeriver[T] = {
-    val (partialName, _) = DeriverMacros.summonNamespaceOrFail[T]
+    val (partialName, _, _) = DeriverMacros.summonNamespaceOrFail[T]
     deriveEnumWrapperNamespaced(partialName, label, fromScalaType)
   }
   inline def deriveEnumWrapper[T](fromScalaType: T => Byte): SpecificDeriver[T] = {
@@ -56,7 +56,7 @@ extension (v: Data.Decimal.type) {
       override def concept: Concept            = wrapper.concept
     }
   inline def deriveEnumWrapper[T](label: String, fromScalaType: T => scala.BigDecimal): SpecificDeriver[T] = {
-    val (partialName, _) = DeriverMacros.summonNamespaceOrFail[T]
+    val (partialName, _, _) = DeriverMacros.summonNamespaceOrFail[T]
     deriveEnumWrapperNamespaced(partialName, label, fromScalaType)
   }
   inline def deriveEnumWrapper[T](fromScalaType: T => scala.BigDecimal): SpecificDeriver[T] = {
@@ -77,7 +77,7 @@ extension (v: Data.Integer.type) {
       override def concept: Concept            = wrapper.concept
     }
   inline def deriveEnumWrapper[T](label: String, fromScalaType: T => scala.BigInt): SpecificDeriver[T] = {
-    val (partialName, _) = DeriverMacros.summonNamespaceOrFail[T]
+    val (partialName, _, _) = DeriverMacros.summonNamespaceOrFail[T]
     deriveEnumWrapperNamespaced(partialName, label, fromScalaType)
   }
   inline def deriveEnumWrapper[T](fromScalaType: T => scala.BigInt): SpecificDeriver[T] = {
@@ -98,7 +98,7 @@ extension (v: Data.Int16.type) {
       override def concept: Concept            = wrapper.concept
     }
   inline def deriveEnumWrapper[T](label: String, fromScalaType: T => Short): SpecificDeriver[T] = {
-    val (partialName, _) = DeriverMacros.summonNamespaceOrFail[T]
+    val (partialName, _, _) = DeriverMacros.summonNamespaceOrFail[T]
     deriveEnumWrapperNamespaced(partialName, label, fromScalaType)
   }
   inline def deriveEnumWrapper[T](fromScalaType: T => Short): SpecificDeriver[T] = {
@@ -119,7 +119,7 @@ extension (v: Data.Int32.type) {
       override def concept: Concept            = wrapper.concept
     }
   inline def deriveEnumWrapper[T](label: String, fromScalaType: T => Int): SpecificDeriver[T] = {
-    val (partialName, _) = DeriverMacros.summonNamespaceOrFail[T]
+    val (partialName, _, _) = DeriverMacros.summonNamespaceOrFail[T]
     deriveEnumWrapperNamespaced(partialName, label, fromScalaType)
   }
   inline def deriveEnumWrapper[T](fromScalaType: T => Int): SpecificDeriver[T] = {
@@ -140,7 +140,7 @@ extension (v: Data.String.type) {
       override def concept: Concept            = wrapper.concept
     }
   inline def deriveEnumWrapper[T](label: String, fromScalaType: T => String): SpecificDeriver[T] = {
-    val (partialName, _) = DeriverMacros.summonNamespaceOrFail[T]
+    val (partialName, _, _) = DeriverMacros.summonNamespaceOrFail[T]
     deriveEnumWrapperNamespaced(partialName, label, fromScalaType)
   }
   inline def deriveEnumWrapper[T](fromScalaType: T => String): SpecificDeriver[T] = {
@@ -161,7 +161,7 @@ extension (v: Data.LocalDate.type) {
       override def concept: Concept            = wrapper.concept
     }
   inline def deriveEnumWrapper[T](label: String, fromScalaType: T => java.time.LocalDate): SpecificDeriver[T] = {
-    val (partialName, _) = DeriverMacros.summonNamespaceOrFail[T]
+    val (partialName, _, _) = DeriverMacros.summonNamespaceOrFail[T]
     deriveEnumWrapperNamespaced(partialName, label, fromScalaType)
   }
   inline def deriveEnumWrapper[T](fromScalaType: T => java.time.LocalDate): SpecificDeriver[T] = {
@@ -182,7 +182,7 @@ extension (v: Data.Month.type) {
       override def concept: Concept            = wrapper.concept
     }
   inline def deriveEnumWrapper[T](label: String, fromScalaType: T => java.time.Month): SpecificDeriver[T] = {
-    val (partialName, _) = DeriverMacros.summonNamespaceOrFail[T]
+    val (partialName, _, _) = DeriverMacros.summonNamespaceOrFail[T]
     deriveEnumWrapperNamespaced(partialName, label, fromScalaType)
   }
   inline def deriveEnumWrapper[T](fromScalaType: T => java.time.Month): SpecificDeriver[T] = {
@@ -203,7 +203,7 @@ extension (v: Data.LocalTime.type) {
       override def concept: Concept            = wrapper.concept
     }
   inline def deriveEnumWrapper[T](label: String, fromScalaType: T => java.time.LocalTime): SpecificDeriver[T] = {
-    val (partialName, _) = DeriverMacros.summonNamespaceOrFail[T]
+    val (partialName, _, _) = DeriverMacros.summonNamespaceOrFail[T]
     deriveEnumWrapperNamespaced(partialName, label, fromScalaType)
   }
   inline def deriveEnumWrapper[T](fromScalaType: T => java.time.LocalTime): SpecificDeriver[T] = {
@@ -224,7 +224,7 @@ extension (v: Data.Char.type) {
       override def concept: Concept            = wrapper.concept
     }
   inline def deriveEnumWrapper[T](label: String, fromScalaType: T => Char): SpecificDeriver[T] = {
-    val (partialName, _) = DeriverMacros.summonNamespaceOrFail[T]
+    val (partialName, _, _) = DeriverMacros.summonNamespaceOrFail[T]
     deriveEnumWrapperNamespaced(partialName, label, fromScalaType)
   }
   inline def deriveEnumWrapper[T](fromScalaType: T => Char): SpecificDeriver[T] = {
@@ -244,7 +244,7 @@ extension (v: Data.Unit.type) {
       override def concept: Concept            = wrapper.concept
     }
   inline def deriveEnumWrapper[T](label: String): SpecificDeriver[T] = {
-    val (partialName, _) = DeriverMacros.summonNamespaceOrFail[T]
+    val (partialName, _, _) = DeriverMacros.summonNamespaceOrFail[T]
     deriveEnumWrapperNamespaced(partialName, label)
   }
   inline def deriveEnumWrapper[T]: SpecificDeriver[T] = {

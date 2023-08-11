@@ -119,9 +119,9 @@ object Deriver {
 
   inline def deriveProductFromMirror[T](m: Mirror.ProductOf[T]): GenericProductDeriver[T & Product] =
     inline if (isCaseClass[T]) {
-      val caseClassName  = summonQualifiedName[T]
-      val stageListTuple = deriveProductFields[m.MirroredElemLabels, m.MirroredElemTypes](0)
-      val mirrorProduct  = ProductBuilder.MirrorProduct(caseClassName, stageListTuple)
+      val (caseClassName, _) = summonQualifiedName[T]
+      val stageListTuple     = deriveProductFields[m.MirroredElemLabels, m.MirroredElemTypes](0)
+      val mirrorProduct      = ProductBuilder.MirrorProduct(caseClassName, stageListTuple)
       GenericProductDeriver
         .make[T & Product](mirrorProduct)
     } else {
@@ -129,19 +129,19 @@ object Deriver {
     }
 
   inline def summonQualifiedName[T] = {
-    val (partialName: QualifiedModuleName, localNameOverride: Option[Name]) =
+    val (partialName: QualifiedModuleName, enumTranslation: EnumTranslation, localNameOverride: Option[Name]) =
       DeriverMacros.summonNamespaceOrFail[T]
     val localName =
       localNameOverride.getOrElse {
         Name(DeriverMacros.typeName[T])
       }
-    FQName.fromLocalName(localName)(partialName)
+    (FQName.fromLocalName(localName)(partialName), enumTranslation)
   }
 
   inline def deriveSumFromMirror[T](m: Mirror.SumOf[T]): GenericSumDeriver[T] =
     inline if (isEnumOrSealedTrait[T]) {
-      val sumTypeName = summonQualifiedName[T]
-      val enumName    = typeName[T]
+      val (sumTypeName, enumTranslation) = summonQualifiedName[T]
+      val enumName                       = typeName[T]
 
       // The clause `inferUnionType` NEEDs to be  a macro otherwise we can't get the value
       // coming out if it to work with inline matches/ifs and if our matches/ifs are not inline
@@ -164,7 +164,7 @@ object Deriver {
                       s"The value `$v` is not an instance of the needed enum class ${enumName}"
                     )
                 }
-            SumBuilder(SumBuilder.SumType.Enum(sumTypeName), ordinalGetter, variants)
+            SumBuilder(SumBuilder.SumType.Enum(sumTypeName), enumTranslation, ordinalGetter, variants)
           case UnionType.Sum =>
             error("Simple union types not allowed yet in builder synthesis")
         }

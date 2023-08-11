@@ -1,8 +1,8 @@
-package org.finos.morphir.ir.json.util
+package org.finos.morphir.util
 
+import scala.collection.immutable
 import scala.collection.immutable.ListMap
 import scala.reflect.ClassTag
-import scala.collection.immutable
 
 object Compare {
   sealed trait Diff
