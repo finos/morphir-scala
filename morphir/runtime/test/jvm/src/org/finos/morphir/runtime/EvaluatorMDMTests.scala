@@ -535,6 +535,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("Resolves error input")("optionTests", "resolveResultType", Left(true))(Data.Int(1))
       ),
       suite("SDK Basics Tests")(
+        testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
+        testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int(2)),
+        testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Decimal(2.0)),
+        testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
+        testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),
+        testEvaluation("LessThanInt")("sdkBasicsTests", "sdkLessThanTestInt")(Data.Boolean(true)),
         testEvaluation("ToFloat")("sdkBasicsTests", "toFloatTest")(Data.Decimal(2.0)),
         testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest")(Data.Int(-3)),
         testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest2")(Data.Int(3)),
