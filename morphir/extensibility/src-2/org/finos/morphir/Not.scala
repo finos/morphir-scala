@@ -11,7 +11,7 @@ sealed trait Not[A]
 object Not {
 
   /**
-   * Derives a `Not[A]` instance when an instance of `A` is not in implciit scope.
+   * Derives a `Not[A]` instance when an instance of `A` is not in implicit scope.
    */
   implicit def Not[A]: Not[A] =
     new Not[A] {}
