@@ -1,13 +1,17 @@
 package org.finos.morphir
 
 import org.finos.morphir.naming._
+import org.finos.morphir.mir
 // TODO:  Reintroduce later
 // import org.finos.morphir.sdk.ResultModule
 
 package object ir {
 
-  type Documented[+A] = org.finos.morphir.universe.ir.Documented[A]
-  val Documented: org.finos.morphir.universe.ir.Documented.type = org.finos.morphir.universe.ir.Documented
+  type AccessControlled[+A] = mir.AccessControlled[A]
+  val AccessControlled: mir.AccessControlled.type = mir.AccessControlled
+
+  type Documented[+A] = mir.Documented[A]
+  val Documented: mir.Documented.type = mir.Documented
 
   // TODO:  Reintroduce later
   // type PackageSpecification[+Annotations] = PackageModule.Specification[Annotations]
