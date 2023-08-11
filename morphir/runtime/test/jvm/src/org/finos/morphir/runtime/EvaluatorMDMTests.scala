@@ -346,12 +346,24 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.List(List(), Concept.String),
           Data.List(Data.String("Car"), Data.String("Plane"), Data.String("Truck"))
         )),
+        testEvaluation("Concat")("listTests", "listConcatTest")(Data.List(
+          Data.Int(1),
+          Data.Int(2),
+          Data.Int(3),
+          Data.Int(4),
+          Data.Int(5)
+        )),
         testEvaluation("Flatten")("listTests", "listFlattenTest")(Data.List(
           Data.String("Red"),
           Data.String("Blue"),
           Data.String("Car"),
           Data.String("Plane"),
           Data.String("Truck")
+        )),
+        testEvaluation("Map")("listTests", "listMapTest")(Data.List(
+          Data.Decimal(3.0),
+          Data.Decimal(4.0),
+          Data.Decimal(5.0)
         )),
         testEvaluation("Singleton")("listTests", "listSingletonTest")(
           Data.List(Data.Int(6))
@@ -363,6 +375,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Char")("literalTests", "litCharTest")(Data.Char('f')),
         testEvaluation("Boolean")("literalTests", "litBoolTest")(Data.Boolean(true)),
         testEvaluation("Whole Number")("literalTests", "litWholeNumberLiteralTest")(Data.Int(5))
+      ),
+      suite("LocalTime")(
+        testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime))
       ),
       suite("Native References")(
         testEvaluation("Map")("nativeReferenceTests", "nativeReferenceMapTest")(Data.List(
@@ -514,6 +529,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("Resolves error input")("optionTests", "resolveResultType", Left(true))(Data.Int(1))
       ),
       suite("SDK Basics Tests")(
+        testEvaluation("LessThanFloat")("sdkBasicsTests", "sdkLessThanTestFloat")(
+          Data.Boolean(true)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
         testEvaluation("LessThanChar")("sdkBasicsTests", "sdkLessThanTestChar")(
           Data.Boolean(true)
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
