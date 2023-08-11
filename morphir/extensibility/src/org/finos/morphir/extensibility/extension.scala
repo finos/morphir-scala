@@ -2,12 +2,16 @@ package org.finos.morphir.extensibility
 import org.finos.morphir._
 import org.finos.morphir.naming._
 
-trait ExtensionsModule { self: TypeModule with TypeSpecModule =>
+abstract class ExtensionsModule(val ir: AllIRModules) { self =>
+  import ir._
+
   trait ExtensionNode extends HasId {}
 
-  trait ExtensionMember extends ExtensionNode {}
+  trait ExtensionMember extends RuntimeExtension {}
 
-  abstract class ExtensionModule extends ExtensionNode {
+  trait RuntimeExtension extends ExtensionNode
+
+  abstract class ExtensionModule extends RuntimeExtension {
     def exports: IndexedSeq[ExtensionMember]
   }
 
@@ -15,7 +19,7 @@ trait ExtensionsModule { self: TypeModule with TypeSpecModule =>
 
     def specification: TypeSpecification[Any]
 
-    def definition: TypeDefinition
+    def definition: TypeDefinition[Any]
 
     def name: FQName
     def nodeID: NodeID = NodeID.ValueID(name, NodePath.empty)

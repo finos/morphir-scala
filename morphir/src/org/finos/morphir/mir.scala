@@ -1,3 +1,3 @@
 package org.finos.morphir
 
-object mir extends Names with TypeModule with TypeSpecModule
+object mir extends AllIRModules {}

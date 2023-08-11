@@ -1,6 +1,6 @@
 package org.finos.morphir.universe.ir
 
-import org.finos.morphir.naming.*
+import org.finos.morphir.naming._
 
 sealed trait TypeDefinition[+A] { self =>
   def map[B](f: A => B): TypeDefinition[B] = self match {

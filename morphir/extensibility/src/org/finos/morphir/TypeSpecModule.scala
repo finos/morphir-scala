@@ -58,7 +58,6 @@ trait TypeSpecModule { self: TypeModule =>
     }
   }
 
-  sealed trait TypeDefinition
 
   sealed case class TypeConstructors[+A](byName: Map[Name, TypeConstructor[A]]) {
     def map[B](f: A => B): TypeConstructors[B] = TypeConstructors(byName.view.mapValues(_.map(f)).toMap)
