@@ -1,8 +1,10 @@
-package org.finos.morphir
+package org.finos.morphir.internal
+
+import org.finos.morphir.TypeSpecModule
 import org.finos.morphir.naming.*
 trait TypeDefModule { self: AccessControlledModule with TypeModule with TypeSpecModule =>
 
-  import TypeDefinition._
+  import TypeDefinition.*
   sealed trait TypeDefinition[+Attribs] { self =>
     def map[B](f: Attribs => B): TypeDefinition[B] = self match {
       case TypeAliasDefinition(typeParams, typeExp) => TypeAliasDefinition(typeParams, typeExp.map(f))

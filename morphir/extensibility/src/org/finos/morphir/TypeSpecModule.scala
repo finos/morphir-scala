@@ -1,5 +1,6 @@
 package org.finos.morphir
-import org.finos.morphir.naming._
+import org.finos.morphir.internal.TypeModule
+import org.finos.morphir.naming.*
 trait TypeSpecModule { self: TypeModule =>
 
   sealed trait TypeSpecification[+A] { self =>

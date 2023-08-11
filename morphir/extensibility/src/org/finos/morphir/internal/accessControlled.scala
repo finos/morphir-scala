@@ -1,4 +1,4 @@
-package org.finos.morphir
+package org.finos.morphir.internal
 
 trait AccessControlledModule {
 

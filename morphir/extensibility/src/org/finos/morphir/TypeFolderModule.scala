@@ -1,5 +1,7 @@
 package org.finos.morphir
-import org.finos.morphir.naming._
+import org.finos.morphir.internal.TypeModule
+import org.finos.morphir.naming.*
+
 import scala.annotation.tailrec
 trait TypeFolderModule { self: TypeModule =>
   import Type._
