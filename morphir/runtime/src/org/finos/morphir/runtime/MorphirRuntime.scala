@@ -26,5 +26,3 @@ object MorphirRuntime extends MorphirRuntimePlatformSpecific {
   def quick(distributions: Distribution*): MorphirRuntime[scala.Unit, UType] =
     QuickMorphirRuntime.fromDistributions(distributions: _*)
 }
-
-
