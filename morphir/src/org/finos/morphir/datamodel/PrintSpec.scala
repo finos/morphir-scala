@@ -9,10 +9,10 @@ object PrintSpec {
   private[datamodel] class QualifiedNameCollector extends ConceptStatefulTransformer[Chunk[FQName]] {
     override def of(c: Concept) =
       c match {
-        case v @ Concept.Record(name, fields) => Stateful.succeedWithState(v)(chunk => chunk :+ name)
-        case v @ Concept.Alias(name, value)   => Stateful.succeedWithState(v)(chunk => chunk :+ name)
-        case v @ Concept.Enum(name, cases)    => Stateful.succeedWithState(v)(chunk => chunk :+ name)
-        case other                            => super.of(other)
+        case v @ Concept.Record(name, _) => Stateful.succeedWithState(v)(chunk => chunk :+ name)
+        case v @ Concept.Alias(name, _)  => Stateful.succeedWithState(v)(chunk => chunk :+ name)
+        case v @ Concept.Enum(name, _)   => Stateful.succeedWithState(v)(chunk => chunk :+ name)
+        case other                       => super.of(other)
       }
   }
   private[datamodel] object QualifiedNameCollector {
@@ -157,7 +157,7 @@ object PrintSpec {
           if (isTopLevel) printEnumDef(e)
           else e.name.localName.toString
 
-        case Concept.Union(cases) => "<UNION NOT SUPPORTED IN ELM>"
+        case Concept.Union(_) => "<UNION NOT SUPPORTED IN ELM>"
       }
 
     val out = typesList.map(tpe => printConcept(tpe, true) + "\n")

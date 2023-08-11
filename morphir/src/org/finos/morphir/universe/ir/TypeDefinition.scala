@@ -4,8 +4,8 @@ import org.finos.morphir.naming._
 
 sealed trait TypeDefinition[+A] { self =>
   def map[B](f: A => B): TypeDefinition[B] = self match {
-    case TypeDefinition.TypeAliasDefinition(typeParams, typeExpr) => ???
-    case TypeDefinition.CustomTypeDefinition(typeParams, ctors)   => ???
+    case TypeDefinition.TypeAliasDefinition(_, _)  => ???
+    case TypeDefinition.CustomTypeDefinition(_, _) => ???
   }
 }
 

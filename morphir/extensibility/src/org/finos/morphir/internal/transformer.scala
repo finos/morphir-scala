@@ -40,18 +40,18 @@ trait TypeTransformerModule { self: TypeModule =>
       @tailrec
       def loop(in: List[Type[A]], out: List[Either[Type[A], Z]]): List[Z] =
         in match {
-          case (t @ ExtensibleRecord(attributes, name, fields)) :: types =>
+          case (t @ ExtensibleRecord(_, _, fields)) :: types =>
             val fieldTypeExprs = fields.map(_.data).toList
             loop(fieldTypeExprs ++ types, Left(t) :: out)
-          case (t @ Function(attributes, argumentType, returnType)) :: types =>
+          case (t @ Function(_, argumentType, returnType)) :: types =>
             loop(argumentType :: returnType :: types, Left(t) :: out)
-          case (t @ Record(attributes, fields)) :: types =>
+          case (t @ Record(_, fields)) :: types =>
             val fieldTypeExprs = fields.map(_.data).toList
             loop(fieldTypeExprs ++ types, Left(t) :: out)
-          case (t @ Reference(attributes, typeName, typeParams)) :: types =>
-            loop(typeParams.toList ++ types, Left(t) :: out)
-          case (t @ Tuple(attributes, elements)) :: types =>
-            loop(elements.toList ++ types, Left(t) :: out)
+          case (t @ Reference(_, _, typeParams)) :: types =>
+            loop(typeParams ++ types, Left(t) :: out)
+          case (t @ Tuple(_, elements)) :: types =>
+            loop(elements ++ types, Left(t) :: out)
           case (t @ UnitType(attributes)) :: types => loop(types, Right(unitCase(context, t, attributes)) :: out)
           case (t @ Variable(attributes, name)) :: types =>
             loop(types, Right(variableCase(context, t, attributes, name)) :: out)
@@ -85,7 +85,7 @@ trait TypeTransformerModule { self: TypeModule =>
                 val elements = acc.take(arity).toList
                 val rest     = acc.drop(arity)
                 tupleCase(context, t, attributes, elements) :: rest
-              case (acc, Left(t)) =>
+              case (_, Left(t)) =>
                 throw new IllegalStateException(
                   s"Unexpected type ${t.getClass.getSimpleName()} encountered during transformation. (Type Expr: $t)"
                 )

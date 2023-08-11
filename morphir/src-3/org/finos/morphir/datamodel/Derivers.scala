@@ -2,8 +2,8 @@ package org.finos.morphir.datamodel
 
 import scala.reflect.ClassTag
 import scala.reflect.classTag
-import scala.quoted.*
-import scala.deriving.*
+import scala.quoted._
+import scala.deriving._
 import scala.compiletime.{codeOf, constValue, erasedValue, error, summonFrom, summonInline}
 import scala.BigInt
 import scala.BigDecimal

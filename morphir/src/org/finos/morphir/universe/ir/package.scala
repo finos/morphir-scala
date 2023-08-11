@@ -1,9 +1,10 @@
 package org.finos.morphir.universe
 
 import org.finos.morphir.mir
-
 import zio.=!=
 import zio.prelude._
+
+import scala.annotation.nowarn
 
 package object ir {
 
@@ -21,7 +22,8 @@ package object ir {
 
   type RawTypeInfo = RawTypeInfo.Type
   object RawTypeInfo extends Subtype[TypeInfo[scala.Unit]] {
-    def apply[A](typeInfo: TypeInfo[A])(implicit ev: A =!= scala.Unit): RawTypeInfo = wrap(typeInfo.map(_ => ()))
+    def apply[A](typeInfo: TypeInfo[A])(implicit @nowarn ev: A =!= scala.Unit): RawTypeInfo =
+      wrap(typeInfo.map(_ => ()))
 
   }
 }

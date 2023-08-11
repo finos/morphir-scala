@@ -52,59 +52,176 @@ trait TypeModule { self: DocumentedModule =>
     }
 
     final def foldLeft[Z](z: Z)(f: (Z, Type[A]) => Z): Z = {
-      @tailrec
-      def loop(z: Z, typ: Type[A], stack: List[Type[A]]): Z =
-        (z, typ) match {
-          case (z, ExtensibleRecord(_, _, List(head, tail @ _*))) =>
-            val rest = tail.map(_.data).toList
-            loop(z, head.data, rest ++ stack)
-          case (z, Function(_, argumentType, returnType)) =>
-            loop(z, argumentType, returnType :: stack)
-          case (z, Record(_, List(head, tail @ _*))) =>
-            val rest = tail.map(_.data).toList
-            loop(z, head.data, rest ++ stack)
-          case (z, Reference(_, _, List(head, tail @ _*))) =>
-            loop(z, head, tail.toList ++ stack)
-          case (z, Tuple(_, List(head, tail @ _*))) =>
-            loop(z, head, tail.toList ++ stack)
-          case (z, _) =>
-            stack match {
-              case head :: tail => loop(z, head, tail)
-              case Nil          => z
-            }
-        }
 
-      loop(z, self, Nil)
+      @tailrec
+      def loop(remaining: List[Type[A]], acc: Z): Z = remaining match {
+        case Nil => acc
+        case head :: tail => head match {
+            case e: ExtensibleRecord[A] =>
+              loop(e.fields.map(_.data).view.toList ++ tail, f(acc, e))
+
+            case fun: Function[A] =>
+              loop(fun.argumentType :: fun.returnType :: tail, f(acc, fun))
+
+            case rec: Record[A] =>
+              loop(rec.fields.map(_.data).view.toList ++ tail, f(acc, rec))
+
+            case ref: Reference[A] =>
+              loop(ref.typeParams.view.toList ++ tail, f(acc, ref))
+
+            case t: Tuple[A] =>
+              loop(t.elements.view.toList ++ tail, f(acc, t))
+
+            case u: Unit[A] =>
+              loop(tail, f(acc, u))
+
+            case v: Variable[A] =>
+              loop(tail, f(acc, v))
+          }
+      }
+
+      loop(List(this), z)
     }
 
     final def foldLeftSome[Z](z: Z)(f: PartialFunction[(Z, Type[A]), Z]): Z = {
-      @tailrec
-      def loop(z: Z, typ: Type[A], stack: List[Type[A]]): Z =
-        (f.applyOrElse[(Z, Type[A]), Z](z -> typ, _ => z), typ) match {
-          case (z, ExtensibleRecord(_, _, List(head, tail @ _*))) =>
-            val rest = tail.map(_.data).toList
-            loop(z, head.data, rest ++ stack)
-          case (z, Function(_, argumentType, returnType)) =>
-            loop(z, argumentType, returnType :: stack)
-          case (z, Record(_, List(head, tail @ _*))) =>
-            val rest = tail.map(_.data).toList
-            loop(z, head.data, rest ++ stack)
-          case (z, Reference(_, _, List(head, tail @ _*))) =>
-            loop(z, head, tail.toList ++ stack)
-          case (z, Tuple(_, List(head, tail @ _*))) =>
-            loop(z, head, tail.toList ++ stack)
-          case (z, _) =>
-            stack match {
-              case head :: tail => loop(z, head, tail)
-              case Nil          => z
-            }
-        }
 
-      loop(z, self, Nil)
+      @tailrec
+      def loop(remaining: List[Type[A]], acc: Z): Z = remaining match {
+        case Nil => acc
+        case head :: tail =>
+          val newAcc = if (f.isDefinedAt((acc, head))) f((acc, head)) else acc
+          head match {
+            case ExtensibleRecord(_, _, fields) =>
+              loop(fields.map(_.data) ++ tail, newAcc)
+
+            case Function(_, argumentType, returnType) =>
+              loop(argumentType :: returnType :: tail, newAcc)
+
+            case Record(_, fields) =>
+              loop(fields.map(_.data) ++ tail, newAcc)
+
+            case Reference(_, _, typeParams) =>
+              loop(typeParams ++ tail, newAcc)
+
+            case Tuple(_, elements) =>
+              loop(elements ++ tail, newAcc)
+
+            // The following
+            case Unit(_) =>
+              loop(tail, newAcc)
+
+            case Variable(_, _) =>
+              loop(tail, newAcc)
+          }
+      }
+
+      loop(List(this), z)
+    }
+
+    def foldUp[Z](z: Z)(f: (Type[A], List[Z]) => Z): Z = {
+      def loop(node: Type[A], childrenResults: List[Z] = Nil): Z = node match {
+        case e: ExtensibleRecord[A] =>
+          val childrenValues = e.fields.map(field => loop(field.data))
+          f(e, childrenValues)
+
+        case fun: Function[A] =>
+          val argValue = loop(fun.argumentType)
+          val retValue = loop(fun.returnType)
+          f(fun, List(argValue, retValue))
+
+        case rec: Record[A] =>
+          val childrenValues = rec.fields.map(field => loop(field.data))
+          f(rec, childrenValues)
+
+        case ref: Reference[A] =>
+          val typeParamValues = ref.typeParams.map(tp => loop(tp))
+          f(ref, typeParamValues)
+
+        case t: Tuple[A] =>
+          val elementValues = t.elements.map(e => loop(e))
+          f(t, elementValues)
+
+        case u: Unit[A] =>
+          f(u, Nil)
+
+        case v: Variable[A] =>
+          f(v, Nil)
+      }
+
+      loop(this)
     }
 
     def map[B](f: A => B): Type[B] = ???
+
+//    def transform[B](f: Type[A] => Type[B]): Type[B] = {
+//
+//      // Explicit stack to avoid blowing up the call stack
+//      var stack: List[(Type[A], List[Type[B]])] = List((this, Nil))
+//      var result: Option[Type[B]]               = None
+//
+//      @scala.annotation.tailrec
+//      def processStack(): scala.Unit = stack match {
+//        case Nil => ()
+//
+//        case (current, siblings) :: rest =>
+//          current match {
+//            case e: ExtensibleRecord[A] =>
+//              val transformedFields = e.fields.map(field => field.copy(data = field.data.transform(f)))
+//              val newNode: Type[B]  = f(ExtensibleRecord(e.attributes, e.name, transformedFields))
+//              if (transformedFields.isEmpty) {
+//                stack = rest
+//                result = Some(newNode)
+//              } else {
+//                stack = (transformedFields.head.data, transformedFields.tail.map(_.data)) :: stack
+//              }
+//
+//            case fun: Function[A] =>
+//              val argType          = fun.argumentType.transform(f)
+//              val returnType       = fun.returnType.transform(f)
+//              val newNode: Type[B] = f(Function(fun.attributes, argType, returnType))
+//              stack = rest
+//              result = Some(newNode)
+//
+//            case rec: Record[A] =>
+//              val transformedFields = rec.fields.map(field => field.copy(data = field.data.transform(f)))
+//              val newNode: Type[B]  = f(Record(rec.attributes, transformedFields))
+//              if (transformedFields.isEmpty) {
+//                stack = rest
+//                result = Some(newNode)
+//              } else {
+//                stack = (transformedFields.head.data, transformedFields.tail.map(_.data)) :: stack
+//              }
+//
+//            case ref: Reference[A] =>
+//              val typeParams       = ref.typeParams.map(_.transform(f))
+//              val newNode: Type[B] = f(Reference(ref.attributes, ref.typeName, typeParams))
+//              stack = rest
+//              result = Some(newNode)
+//
+//            case t: Tuple[A] =>
+//              val elements         = t.elements.map(_.transform(f))
+//              val newNode: Type[B] = f(Tuple(t.attributes, elements))
+//              stack = rest
+//              result = Some(newNode)
+//
+//            case u: Unit[A] =>
+//              val newNode: Type[B] = f(u)
+//              stack = rest
+//              result = Some(newNode)
+//
+//            case v: Variable[A] =>
+//              val newNode: Type[B] = f(v)
+//              stack = rest
+//              result = Some(newNode)
+//          }
+//      }
+//
+//      processStack()
+//      result.getOrElse(throw new RuntimeException("Transformation failed. This shouldn't happen."))
+//    }
+
   }
+
   object Type {
 
     def reference[A](attributes: A)(name: FQName, typeParams: List[Type[A]] = List.empty): Reference[A] =
