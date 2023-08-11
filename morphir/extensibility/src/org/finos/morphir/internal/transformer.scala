@@ -1,10 +1,9 @@
-package org.finos.morphir
-import org.finos.morphir.internal.TypeModule
+package org.finos.morphir.internal
+
 import org.finos.morphir.naming.*
 
 import scala.annotation.tailrec
-trait TypeFolderModule { self: TypeModule =>
-  import Type._
+trait TypeTransformerModule { self: TypeModule =>
   trait TypeFolder[-Context, -Attrib, Z] {
     def extensibleRecordCase(
         context: Context,
@@ -35,9 +34,9 @@ trait TypeFolderModule { self: TypeModule =>
 
   object TypeFolder {
 
-    import Type.{Unit => UnitType, _}
+    import Type.{Unit as UnitType, *}
     final def foldContext[C, A, Z](self: Type[A])(context: C, folder: TypeFolder[C, A, Z]): Z = {
-      import folder._
+      import folder.*
       @tailrec
       def loop(in: List[Type[A]], out: List[Either[Type[A], Z]]): List[Z] =
         in match {

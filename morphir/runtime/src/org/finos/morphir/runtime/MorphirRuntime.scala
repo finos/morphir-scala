@@ -1,6 +1,6 @@
 package org.finos.morphir.runtime
-import org.finos.morphir.AllIRModules
 import org.finos.morphir.datamodel.Data
+import org.finos.morphir.internal.AllTypeLevelModules
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.Value.Value
 import org.finos.morphir.ir.distribution.Distribution

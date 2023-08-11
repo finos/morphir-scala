@@ -1,10 +1,10 @@
-package org.finos.morphir
-import org.finos.morphir.internal.TypeModule
+package org.finos.morphir.internal
+
 import org.finos.morphir.naming.*
-trait TypeSpecModule { self: TypeModule =>
+trait typeSpec { self: TypeModule =>
 
   sealed trait TypeSpecification[+A] { self =>
-    import TypeSpecification._
+    import TypeSpecification.*
 
     final def properties: Properties =
       self match {

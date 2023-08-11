@@ -1,8 +1,9 @@
 package org.finos.morphir.extensibility
-import org.finos.morphir._
-import org.finos.morphir.naming._
+import org.finos.morphir.*
+import org.finos.morphir.internal.AllTypeLevelModules
+import org.finos.morphir.naming.*
 
-abstract class ExtensionsModule(val ir: AllIRModules) { self =>
+abstract class ExtensionsModule(val ir: AllTypeLevelModules) { self =>
   import ir._
 
   trait ExtensionNode extends HasId {}
