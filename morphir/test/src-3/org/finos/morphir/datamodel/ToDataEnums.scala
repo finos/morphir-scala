@@ -14,7 +14,8 @@ object EnumGns {
 object EnumData1 {
   import EnumGns._
   implicit val gnsImpl: GlobalDatamodelContext = new GlobalDatamodelContext {
-    def value = gns
+    def value                    = gns
+    override def enumTranslation = EnumTranslation.MutiFieldConstructor
   }
 
   sealed trait Foo
@@ -27,7 +28,8 @@ object EnumData1 {
 object EnumData2 {
   import EnumGns._
   implicit val gnsImpl: GlobalDatamodelContext = new GlobalDatamodelContext {
-    def value = gns
+    def value                    = gns
+    override def enumTranslation = EnumTranslation.MutiFieldConstructor
   }
 
   enum Foo {
@@ -41,11 +43,13 @@ object EnumData2 {
 object EnumData3 {
   import EnumGns._
   implicit val gnsImpl: TypeDatamodelContext[Foo] = new TypeDatamodelContext[Foo] {
-    def value = gns
+    def value                    = gns
+    override def enumTranslation = EnumTranslation.MutiFieldConstructor
   }
 
   implicit val gnsImpl2: TypeDatamodelContext[Baz] = new TypeDatamodelContext[Baz] {
-    def value = gns
+    def value                    = gns
+    override def enumTranslation = EnumTranslation.MutiFieldConstructor
   }
 
   sealed trait Foo

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter.Indenter
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter
 import com.fasterxml.jackson.core.util.DefaultIndenter
+import org.finos.morphir.util.{Compare, PrintDiff}
 
 object CustomAssert {
   def stringEqualTo(thatRaw: String): Assertion[String] =

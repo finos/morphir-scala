@@ -9,11 +9,13 @@ import scala.deriving.Mirror
 
 trait GlobalDatamodelContext {
   def value: QualifiedModuleName
+  def enumTranslation: EnumTranslation = EnumTranslation.SingleFieldWithRecord
 }
 
 trait TypeDatamodelContext[T] {
   def value: QualifiedModuleName
-  def nameOverride: Option[Name] = None
+  def nameOverride: Option[Name]       = None
+  def enumTranslation: EnumTranslation = EnumTranslation.SingleFieldWithRecord
 }
 
 object DeriverMacros {
@@ -25,21 +27,22 @@ object DeriverMacros {
     Expr(TypeRepr.of[T].typeSymbol.name)
   }
 
-  inline def summonNamespaceOrFail[T]: (QualifiedModuleName, Option[Name]) = ${ summonNamespaceOrFailImpl[T] }
-  def summonNamespaceOrFailImpl[T: Type](using Quotes): Expr[(QualifiedModuleName, Option[Name])] = {
+  inline def summonNamespaceOrFail[T]: (QualifiedModuleName, EnumTranslation, Option[Name]) =
+    ${ summonNamespaceOrFailImpl[T] }
+  def summonNamespaceOrFailImpl[T: Type](using Quotes): Expr[(QualifiedModuleName, EnumTranslation, Option[Name])] = {
     import quotes.reflect._
 
-    def summonTypeNamespace(): Option[Expr[(QualifiedModuleName, Option[Name])]] =
+    def summonTypeNamespace(): Option[Expr[(QualifiedModuleName, EnumTranslation, Option[Name])]] =
       Expr.summon[TypeDatamodelContext[T]].map(tns =>
-        '{ ($tns.value, $tns.nameOverride) }
+        '{ ($tns.value, $tns.enumTranslation, $tns.nameOverride) }
       )
 
-    def summonGlobalNamespace(): Option[Expr[(QualifiedModuleName, Option[Name])]] =
+    def summonGlobalNamespace(): Option[Expr[(QualifiedModuleName, EnumTranslation, Option[Name])]] =
       Expr.summon[GlobalDatamodelContext].map(gns =>
-        '{ ($gns.value, None) }
+        '{ ($gns.value, $gns.enumTranslation, None) }
       )
 
-    val partialName: Expr[(QualifiedModuleName, Option[Name])] =
+    val partialName: Expr[(QualifiedModuleName, EnumTranslation, Option[Name])] =
       summonTypeNamespace()
         .orElse(summonGlobalNamespace())
         .getOrElse {

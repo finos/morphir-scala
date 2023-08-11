@@ -67,7 +67,9 @@ object Data {
     def apply(values: Data*): Tuple = Tuple(values.toList)
   }
 
-  case class Record private (values: scala.List[(Label, Data)], shape: Concept.Record) extends Data
+  case class Record private (values: scala.List[(Label, Data)], shape: Concept.Record) extends Data {
+    def toStruct = Data.Struct(values)
+  }
   object Record {
     def apply(namespace: FQName, fields: (Label, Data)*): Record =
       apply(namespace, fields.toList)

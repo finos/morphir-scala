@@ -68,7 +68,9 @@ object Concept {
   case object Unit      extends Basic[scala.Unit]
   case object Nothing   extends Basic[scala.Nothing]
 
-  case class Record(namespace: FQName, fields: scala.List[(Label, Concept)]) extends Concept
+  case class Record(namespace: FQName, fields: scala.List[(Label, Concept)]) extends Concept {
+    def toStruct: Concept.Struct = Concept.Struct(fields: _*)
+  }
   object Record {
     def apply(namespace: FQName, fields: (Label, Concept)*) = new Record(namespace, fields.toList)
   }

@@ -88,7 +88,6 @@ object ToMorphirType {
         val types: scala.List[(String, UType)] = fields.map {
           case (k: Label, v: Concept) => (k.value, conceptToTypeIR(v).morphirType)
         }
-        // TODO: When we provide MorphirType map this to a spec or definition
         toUTypeConverter(T.record(types: _*))
 
       // Treat a record as an aliased reference on the type level, on the value level it has fields

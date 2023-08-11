@@ -144,6 +144,9 @@ object Loop {
                |loc : $loc
                |Store contents from that package:
                |  ${store.ctors.keys.filter(_.getPackagePath == pkg).map(_.toString).mkString("\n\t")}
+               |
+               |Other Store Contents:
+               |  ${store.ctors.keys.map(_.toString).mkString("\n\t")}
                |""".stripMargin
           )
         }

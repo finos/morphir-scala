@@ -1,12 +1,13 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.Concept
+import org.finos.morphir.naming.*
 import zio.Chunk
+import org.finos.morphir.datamodel.*
 
 object PrintSpec {
 
-  private[datamodel] class QualifiedNameCollector extends ConceptStatefulTransformer[Chunk[FQName]] {
+  class QualifiedNameCollector extends ConceptStatefulTransformer[Chunk[FQName]] {
     override def of(c: Concept) =
       c match {
         case v @ Concept.Record(name, _) => Stateful.succeedWithState(v)(chunk => chunk :+ name)
@@ -15,23 +16,25 @@ object PrintSpec {
         case other                       => super.of(other)
       }
   }
-  private[datamodel] object QualifiedNameCollector {
+  object QualifiedNameCollector {
     def collectFrom(c: Concept) =
       (new QualifiedNameCollector().of(c)).run(Chunk[FQName]()) match {
         case (chunk, _) => chunk
       }
   }
 
+  import PathRenderer.TitleCase._
+
   def of(concept: Concept): String = {
     val typesList = concept.collectAll
 
     def printModuleDef(qn: FQName) =
-      s"{- ============ Declaring ${s"${qn.pack.show}:${qn.modulePath}:${qn.localName}"} ============ -}\n" +
-        s"module ${qn.pack.show}.${qn.modulePath} exposing (${qn.localName})"
+      s"{- ============ Declaring ${s"${qn.pack.render}:${qn.modulePath.path.render}:${qn.localName.render}"} ============ -}\n" +
+        s"module ${qn.pack.render}.${qn.modulePath.path.render} exposing (${qn.localName.render})"
 
     def printImportDef(qn: FQName) =
-      s"{- Importing ${s"${qn.pack.show}:${qn.modulePath}:${qn.localName}"} -}\n" +
-        s"import ${qn.pack.show}.${qn.modulePath} exposing (${qn.localName})"
+      s"{- Importing ${s"${qn.pack.render}:${qn.modulePath.path.render}:${qn.localName.render}"} -}\n" +
+        s"import ${qn.pack.render}.${qn.modulePath.path.render} exposing (${qn.localName.render})"
 
     def printFields(fields: List[(Label, Concept)]): String = {
       val fieldPrints = fields.map { case (label, field) =>
@@ -48,7 +51,7 @@ object PrintSpec {
     }
 
     def printRecordDef(r: Concept.Record) = {
-      val alias       = s"type alias ${r.namespace.localName} ="
+      val alias       = s"type alias ${r.namespace.localName.render} ="
       val fieldPrints = printFields(r.fields)
       val allFieldPrints =
         alias + "\n" + "  " + fieldPrints
@@ -92,7 +95,7 @@ object PrintSpec {
 
       printModuleDef(e.name) + "\n" +
         importDefsPrint +
-        s"type ${e.name.localName}" + "\n" + casePrintString
+        s"type ${e.name.localName.render}" + "\n" + casePrintString
     }
 
     def printRecordInfo(r: Concept.Record) = {
@@ -121,7 +124,7 @@ object PrintSpec {
 
         case r: Concept.Record =>
           if (isTopLevel) printRecordInfo(r)
-          else r.namespace.localName.toString
+          else r.namespace.localName.render
 
         case Concept.Struct(fields) =>
           printFields(fields)
@@ -130,7 +133,7 @@ object PrintSpec {
         //      we need a folder that collects QNames (what about things inside of record? should record def handle that?)
         case Concept.Alias(name, value) =>
           val rhs = printConcept(value)
-          s"${printModuleDef(name)}\ntype alias ${name.localName} = $rhs".stripMargin
+          s"${printModuleDef(name)}\ntype alias ${name.localName.render} = $rhs".stripMargin
 
         case Concept.List(elementType) =>
           val rhs = printConcept(elementType)
@@ -155,7 +158,7 @@ object PrintSpec {
 
         case e: Concept.Enum =>
           if (isTopLevel) printEnumDef(e)
-          else e.name.localName.toString
+          else e.name.localName.render
 
         case Concept.Union(_) => "<UNION NOT SUPPORTED IN ELM>"
       }

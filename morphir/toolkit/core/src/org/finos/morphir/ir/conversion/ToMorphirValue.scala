@@ -138,9 +138,15 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         V.reference(shape.morphirType, FQName.fromString("Morphir.SDK:Dict:fromList")),
         V.list(Concept.List(tupleShape).morphirType, zio.Chunk.fromIterable(tuples))
       )
+
     case record: Data.Record =>
       val fields = record.values.map { case (Label(name), value) => (name, dataToIR(value)) }
       V.record(record.shape.morphirType, fields: _*)
+
+    case struct: Data.Struct =>
+      val fields = struct.values.map { case (Label(name), value) => (name, dataToIR(value)) }
+      V.record(struct.shape.morphirType, fields: _*)
+
     case tuple: Data.Tuple =>
       val values = tuple.values.map { data => dataToIR(data) }
       V.tuple(tuple.shape.morphirType, zio.Chunk.fromIterable(values))

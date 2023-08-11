@@ -346,13 +346,28 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.List(List(), Concept.String),
           Data.List(Data.String("Car"), Data.String("Plane"), Data.String("Truck"))
         )),
+        testEvaluation("Concat")("listTests", "listConcatTest")(Data.List(
+          Data.Int(1),
+          Data.Int(2),
+          Data.Int(3),
+          Data.Int(4),
+          Data.Int(5)
+        )),
         testEvaluation("Flatten")("listTests", "listFlattenTest")(Data.List(
           Data.String("Red"),
           Data.String("Blue"),
           Data.String("Car"),
           Data.String("Plane"),
           Data.String("Truck")
-        ))
+        )),
+        testEvaluation("Map")("listTests", "listMapTest")(Data.List(
+          Data.Decimal(3.0),
+          Data.Decimal(4.0),
+          Data.Decimal(5.0)
+        )),
+        testEvaluation("Singleton")("listTests", "listSingletonTest")(
+          Data.List(Data.Int(6))
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
       ),
       suite("Literals")(
         testEvaluation("String")("literalTests", "litStringTest")(Data.String("Bloop")),
@@ -360,6 +375,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Char")("literalTests", "litCharTest")(Data.Char('f')),
         testEvaluation("Boolean")("literalTests", "litBoolTest")(Data.Boolean(true)),
         testEvaluation("Whole Number")("literalTests", "litWholeNumberLiteralTest")(Data.Int(5))
+      ),
+      suite("LocalDate")(
+        // TODO: Need to fix implementation of Optional LocalDate
+        testEvaluation("fromParts")("localDateTests", "fromPartsTest")(
+          Data.Optional.Some(Data.LocalDate(localDate))
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
+      ),
+      suite("LocalTime")(
+        testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime))
       ),
       suite("Native References")(
         testEvaluation("Map")("nativeReferenceTests", "nativeReferenceMapTest")(Data.List(
@@ -490,10 +514,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Returns a dictionary")("dictionaryTests", "returnDictionaryTest")(Data.Map(
           (Data.Int(1), Data.String("Red")),
           (Data.Int(2), Data.String("Blue"))
-        ))
+        )),
+        testEvaluation("Get")("dictionaryTests", "dictGetTest")(Data.Optional.Some(Data.String("Cat")))
       ),
       suite("Optional Tests")(
         testEvaluation("Returns a Just 1")("optionTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),
+        testEvaluation("Option String")("optionTests", "returnJustStringTest")(
+          Data.Optional.Some(Data.String("Hello"))
+        ),
         testEvaluation("Returns a None")("optionTests", "returnNoneIntTest")(Data.Optional.None(Concept.Int32)),
         testEval("Returns success result")("optionTests", "returnResultType", 0)(Data.Result.Ok(
           Data.Int(0),
@@ -505,6 +533,47 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )),
         testEval("Resolves success input")("optionTests", "resolveResultType", Right(5))(Data.Int(5)),
         testEval("Resolves error input")("optionTests", "resolveResultType", Left(true))(Data.Int(1))
+      ),
+      suite("SDK Basics Tests")(
+        testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
+        testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int(2)),
+        testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Decimal(2.0)),
+        testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
+        testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),
+        testEvaluation("LessThanInt")("sdkBasicsTests", "sdkLessThanTestInt")(Data.Boolean(true)),
+        testEvaluation("ToFloat")("sdkBasicsTests", "toFloatTest")(Data.Decimal(2.0)),
+        testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest")(Data.Int(-3)),
+        testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest2")(Data.Int(3)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest2")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest3")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest4")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest5")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest6")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest7")(Data.Boolean(true)),
+        testEvaluation("Or")("sdkBasicsTests", "sdkOrTest")(Data.Boolean(true)),
+        testEvaluation("LogBase")("sdkBasicsTests", "sdkLogBaseTest")(Data.Decimal(2.0)),
+        testEvaluation("Plus overflow")("sdkBasicsTests", "sdkIntOverflowTest")(
+          Data.Int(3)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("Plus Float")("sdkBasicsTests", "sdkAddFloatTest")(
+          Data.Decimal(3.0)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyTest")(Data.Int(6)) @@ ignore @@ TestAspect.tag(
+          "Not Implemented yet"
+        ),
+        testEvaluation("Integer Divide")("sdkBasicsTests", "sdkIntegerDivideTest")(
+          Data.Decimal(2.0)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("Divide by 0")("sdkBasicsTests", "sdkDivideByZeroTest")(
+          Data.Decimal(2.0)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("LessThanFloat")("sdkBasicsTests", "sdkLessThanTestFloat")(
+          Data.Boolean(true)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("LessThanChar")("sdkBasicsTests", "sdkLessThanTestChar")(
+          Data.Boolean(true)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
       )
     ).provideLayerShared(morphirRuntimeLayer)
 }
