@@ -1,4 +1,4 @@
-package org.finos.morphir.ir.json.util
+package org.finos.morphir.util
 
 object PrintDiff {
   def apply(value: Compare.Diff) = new PrintDiff().apply(value)
@@ -6,12 +6,10 @@ object PrintDiff {
 
 private class PrintDiff(val defaultWidth: Int = 150) extends pprint.Walker {
   import fansi.Str
+  import pprint.Tree.{Apply, Infix, KeyValue, Lazy}
   import pprint.{Renderer, Tree, Truncated}
+
   import java.util.function.UnaryOperator
-  import pprint.Tree.Apply
-  import pprint.Tree.KeyValue
-  import pprint.Tree.Lazy
-  import pprint.Tree.Infix
 
   // Show field names e.g.
   // Property(ir = Ident(name = "inst"), name = "currentDate") vs
