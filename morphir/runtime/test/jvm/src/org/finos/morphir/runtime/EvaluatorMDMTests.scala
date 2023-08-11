@@ -352,7 +352,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.String("Car"),
           Data.String("Plane"),
           Data.String("Truck")
-        ))
+        )),
+        testEvaluation("Singleton")("listTests", "listSingletonTest")(
+          Data.List(Data.Int(6))
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
       ),
       suite("Literals")(
         testEvaluation("String")("literalTests", "litStringTest")(Data.String("Bloop")),
@@ -490,10 +493,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Returns a dictionary")("dictionaryTests", "returnDictionaryTest")(Data.Map(
           (Data.Int(1), Data.String("Red")),
           (Data.Int(2), Data.String("Blue"))
-        ))
+        )),
+        testEvaluation("Get")("dictionaryTests", "dictGetTest")(Data.Optional.Some(Data.String("Cat")))
       ),
       suite("Optional Tests")(
         testEvaluation("Returns a Just 1")("optionTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),
+        testEvaluation("Option String")("optionTests", "returnJustStringTest")(
+          Data.Optional.Some(Data.String("Hello"))
+        ),
         testEvaluation("Returns a None")("optionTests", "returnNoneIntTest")(Data.Optional.None(Concept.Int32)),
         testEval("Returns success result")("optionTests", "returnResultType", 0)(Data.Result.Ok(
           Data.Int(0),
@@ -505,6 +512,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )),
         testEval("Resolves success input")("optionTests", "resolveResultType", Right(5))(Data.Int(5)),
         testEval("Resolves error input")("optionTests", "resolveResultType", Left(true))(Data.Int(1))
+      ),
+      suite("SDK Basics Tests")(
+        testEvaluation("LessThanChar")("sdkBasicsTests", "sdkLessThanTestChar")(
+          Data.Boolean(true)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
       )
     ).provideLayerShared(morphirRuntimeLayer)
 }
