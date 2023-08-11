@@ -1,3 +1,3 @@
 package org.finos.morphir
-
-object mir extends AllIRModules {}
+import org.finos.morphir.internal.{AllMiscModules, AllTypeLevelModules}
+object mir extends AllMiscModules with AllTypeLevelModules {}

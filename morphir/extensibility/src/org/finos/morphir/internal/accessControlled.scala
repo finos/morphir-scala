@@ -29,6 +29,9 @@ trait AccessControlledModule {
       case AccessControlled(Access.Public, a)  => a
       case AccessControlled(Access.Private, a) => a
     }
+
+    def zip[B](that: AccessControlled[B]): AccessControlled[(A, B)] =
+      AccessControlled(access, (value, that.value))
   }
 
   object AccessControlled {

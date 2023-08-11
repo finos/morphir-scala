@@ -1,7 +1,8 @@
-package org.finos.morphir.ir
+package org.finos.morphir
+import org.finos.morphir.mir.AccessControlled
 
 import org.finos.morphir.testing.MorphirBaseSpec
-import zio.test._
+import zio.test.*
 
 object AccessControlledSpec extends MorphirBaseSpec {
   def spec = suite("AccessControlled")(
