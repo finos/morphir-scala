@@ -135,6 +135,18 @@ object Loop {
       case Some(SDKConstructor(List()))    => Result.ConstructorResult(name, List())
       case Some(SDKConstructor(arguments)) => Result.ConstructorFunction[TA, VA](name, arguments, List())
       case None =>
+        {
+          val (pkg, mod, loc) = (name.getPackagePath, name.getModulePath, name.localName)
+          throw new ConstructorNotFound(
+            s"""Constructor mising from store:
+               |pkg : $pkg
+               |mod : $mod
+               |loc : $loc
+               |Store contents from that package:
+               |  ${store.ctors.keys.filter(_.getPackagePath == pkg).map(_.toString).mkString("\n\t")}
+               |""".stripMargin
+          )
+        }
         throw ConstructorNotFound(s"$name not found in constructor store. Store contents: ${store.ctors.keys}")
     }
 
