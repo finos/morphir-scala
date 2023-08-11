@@ -1,12 +1,13 @@
 module Morphir.Examples.App.OptionTests exposing (..)
 
 
-{-
--}
-
 returnJustIntTest : () -> Maybe Int
 returnJustIntTest _ = 
     Just 1
+
+returnJustStringTest : () -> Maybe String
+returnJustStringTest _ =
+    Just "Hello"
 
 returnNoneIntTest : () -> Maybe Int
 returnNoneIntTest _ =
