@@ -1,5 +1,5 @@
 module Morphir.Examples.App.ListTests exposing (..)
-import List exposing (map, (::))
+import List exposing (..)
 
 
 
@@ -8,6 +8,12 @@ listEmptyTest : () -> List Int
 listEmptyTest _ = 
     []
 --expected = []
+
+--Test: List/Singleton
+listSingletonTest : () -> List Int
+listSingletonTest _ =
+    singleton 6
+--expected = [6]
 
 --Test: List/Single
 listSingleTest : () -> List Int
@@ -30,6 +36,12 @@ listNestedTest _ =
         ["Car", "Plane", "Truck"]
     ]
 --expected = [["Red", "Blue"],[],["Car", "Plane", "Truck"] ]
+
+--Test: List/Concat
+listConcatTest : () -> List Int
+listConcatTest _ =
+    concat [[1,2],[3],[4,5]]
+--expected = [1,2,3,4,5]
 
 --Test: List/Flatten
 --import List exposing (map, (::))
@@ -54,3 +66,15 @@ listFlattenTest _ =
         in
             flatten nested
 --expected = ["Red","Blue","Car","Plane","Truck"]
+
+--Test: List/Map
+listMapTest : () -> List Float
+listMapTest _ =
+    map toFloat [3,4,5]
+--expected = [3.0,4.0,5.0]
+
+--Test: List/Map
+listMapTest2 : () -> List Bool
+listMapTest2 _ =
+    map not [True,False,True]
+--expected = [False,True,False]
