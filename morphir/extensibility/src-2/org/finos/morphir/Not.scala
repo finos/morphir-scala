@@ -1,6 +1,6 @@
 package org.finos.morphir
 
-import scala.annotation.implicitAmbiguous
+import scala.annotation.{implicitAmbiguous, unused}
 
 /**
  * Provides implicit evidence that an instance of `A` is not in implicit scope.
@@ -21,7 +21,7 @@ object Not {
    * this will cause implicit search to fail due to ambiguous implicits, preventing an instance of `Not[A]` from being
    * in implicit scope when an instance of `A` is in implicit scope.
    */
-  implicit def NotAmbiguous1[A](implicit ev: A): Not[A] =
+  implicit def NotAmbiguous1[A](implicit @unused ev: A): Not[A] =
     new Not[A] {}
 
   /**
@@ -29,6 +29,6 @@ object Not {
    * this will cause implicit search to fail due to ambiguous implicits, preventing an instance of `Not[A]` from being
    * in implicit scope when an instance of `A` is in implicit scope.
    */
-  implicit def NotAmbiguous2[A](implicit ev: A): Not[A] =
+  implicit def NotAmbiguous2[A](implicit @unused ev: A): Not[A] =
     new Not[A] {}
 }
