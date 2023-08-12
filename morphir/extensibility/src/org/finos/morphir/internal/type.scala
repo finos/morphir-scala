@@ -124,7 +124,39 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with
       loop(List(this), z)
     }
 
-    def foldUp[Z](f: (Type[A], Z) => Z)(combine: (Z, Z) => Z): Z = ???
+    final def foldRight[Z](z: Z)(f: (A, Z) => Z): Z = foldUp(z) {
+      case (typ, acc) => f(typ.attributes, acc)
+    }
+
+    final def foldUp[Z](z: Z)(f: (Type[A], Z) => Z): Z = {
+      val stack = collection.mutable.Stack[Type[A]](this)
+      var acc   = z
+      while (stack.nonEmpty) {
+        val current = stack.pop()
+        current match {
+          case e @ ExtensibleRecord(_, _, _) =>
+            stack.pushAll(e.fields.map(_.data))
+
+          case fun @ Function(_, _, _) =>
+            stack.push(fun.argumentType, fun.returnType)
+
+          case rec @ Record(_, _) =>
+            stack.pushAll(rec.fields.map(_.data))
+
+          case ref: Reference[A] =>
+            stack.pushAll(ref.typeParams)
+
+          case t @ Tuple(_, _) =>
+            stack.pushAll(t.elements)
+          case UnitType(_) =>
+            ()
+          case Variable(_, _) =>
+            ()
+        }
+        acc = f(current, acc)
+      }
+      acc
+    }
 
     def fold[Z](
         unitCase0: A => Z,
@@ -220,6 +252,8 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with
       case (acc, _) => acc + 1
     }
 
+    def tag: Int
+
     /**
      * Transform traverses the type tree in a stack safe manner.
      */
@@ -229,20 +263,54 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with
 
   object Type {
 
+    object Attributes {
+      def unapply[A](typ: Type[A]): Option[A] = Some(typ.attributes)
+    }
     def reference[A](attributes: A)(name: FQName, typeParams: List[Type[A]] = List.empty): Reference[A] =
       Reference(attributes, name, typeParams)
 
-    sealed case class ExtensibleRecord[+A](attributes: A, name: Name, fields: List[Field[A]]) extends Type[A]
-    sealed case class Function[+A](attributes: A, argumentType: Type[A], returnType: Type[A]) extends Type[A]
-    sealed case class Record[+A](attributes: A, fields: List[Field[A]])                       extends Type[A]
-    sealed case class Reference[+A](attributes: A, typeName: FQName, typeParams: List[Type[A]])
-        extends Type[A]
-    sealed case class Tuple[+A](attributes: A, elements: List[Type[A]]) extends Type[A]
-    sealed case class Unit[+A](attributes: A)                           extends Type[A]
-    sealed case class Variable[+A](attributes: A, name: Name)           extends Type[A]
+    sealed case class ExtensibleRecord[+A](attributes: A, name: Name, fields: List[Field[A]]) extends Type[A] {
+      override def tag: Int = Tags.ExtensibleRecord
+    }
+    sealed case class Function[+A](attributes: A, argumentType: Type[A], returnType: Type[A]) extends Type[A] {
+      override def tag: Int = Tags.Function
+    }
+    sealed case class Record[+A](attributes: A, fields: List[Field[A]]) extends Type[A] {
+      override def tag: Int = Tags.Record
+    }
+    sealed case class Reference[+A](attributes: A, typeName: FQName, typeParams: List[Type[A]]) extends Type[A] {
+      override def tag: Int = Tags.Reference
+    }
+    sealed case class Tuple[+A](attributes: A, elements: List[Type[A]]) extends Type[A] {
+      override def tag: Int = Tags.Tuple
+    }
+    sealed case class Unit[+A](attributes: A) extends Type[A] {
+      override def tag: Int = Tags.Unit
+    }
+    sealed case class Variable[+A](attributes: A, name: Name) extends Type[A] {
+      override def tag: Int = Tags.Variable
+    }
 
     implicit val CovariantTypeInstance: Covariant[Type] = new Covariant[Type] {
       override def map[A, B](fa: Type[A])(f: A => B): Type[B] = fa.map(f)
+    }
+
+    private object Tags {
+      final val ExtensibleRecord = 0
+      final val Function         = 1
+      final val Record           = 2
+      final val Reference        = 3
+      final val Tuple            = 4
+      final val Unit             = 5
+      final val Variable         = 6
+    }
+
+    private[Type] type Process[+A, +Z] = (Type[A], List[Z])
+
+    private[Type] object Process {
+      def apply[A, Z](tpe: Type[A], children: List[Z]): Process[A, Z]       = (tpe, Nil)
+      def unapply[A, Z](process: Process[A, Z]): Option[(Type[A], List[Z])] = Some(process)
+
     }
   }
 
