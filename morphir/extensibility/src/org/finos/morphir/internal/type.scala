@@ -4,13 +4,18 @@ import org.finos.morphir.functional._
 import org.finos.morphir.naming._
 
 import scala.annotation.tailrec
-trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule =>
+trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with TypeTransformerModule =>
 
-  sealed trait Type[+A] { self =>
-    import Type.*
+  sealed trait TypeExpr { self =>
+    def attributes: Any
+
+  }
+  sealed trait Type[+A] extends TypeExpr { self =>
+    import Type.{Unit => UnitType, _}
+    type AttributesType <: A
 
     def ??(doc: String): Documented[Type[A]] = Documented(doc, this)
-    def attributes: A
+    override def attributes: A
 
     final def exists(f: PartialFunction[Type[A], Any]): Boolean = find(f).isDefined
 
@@ -46,7 +51,7 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule =>
       loop(self, Nil)
     }
 
-    def fieldCount: Int = foldLeftSome[Int](0) {
+    lazy val fieldCount: Int = foldLeftSome[Int](0) {
       case (acc, Record(_, fields))              => acc + fields.size
       case (acc, ExtensibleRecord(_, _, fields)) => acc + fields.size
       case (acc, _)                              => acc
@@ -73,7 +78,7 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule =>
             case t: Tuple[A] =>
               loop(t.elements.view.toList ++ tail, f(acc, t))
 
-            case u: Unit[A] =>
+            case u: UnitType[A] =>
               loop(tail, f(acc, u))
 
             case v: Variable[A] =>
@@ -108,7 +113,7 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule =>
               loop(elements ++ tail, newAcc)
 
             // The following
-            case Unit(_) =>
+            case UnitType(_) =>
               loop(tail, newAcc)
 
             case Variable(_, _) =>
@@ -142,7 +147,7 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule =>
           val elementValues = t.elements.map(e => loop(e))
           f(t, elementValues)
 
-        case u: Unit[A] =>
+        case u: UnitType[A] =>
           f(u, Nil)
 
         case v: Variable[A] =>
@@ -152,7 +157,99 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule =>
       loop(this)
     }
 
-    def map[B](f: A => B): Type[B] = ???
+    def fold[Z](
+        unitCase0: A => Z,
+        variableCase0: (A, Name) => Z,
+        extensibleRecordCase0: (A, Name, List[IField[Z]]) => Z,
+        functionCase0: (A, Z, Z) => Z,
+        recordCase0: (A, List[IField[Z]]) => Z,
+        referenceCase0: (A, FQName, List[Z]) => Z,
+        tupleCase0: (A, List[Z]) => Z
+    ): Z = TypeFolder.foldContext[Any, A, Z](self, ())(
+      new TypeFolder[Any, A, Z] {
+        def unitCase(context: Any, tpe: Type[A], attributes: A): Z = unitCase0(attributes)
+
+        def variableCase(context: Any, tpe: Type[A], attributes: A, name: Name): Z = variableCase0(attributes, name)
+
+        def extensibleRecordCase(context: Any, tpe: Type[A], attributes: A, name: Name, fields: List[IField[Z]]): Z =
+          extensibleRecordCase0(attributes, name, fields)
+
+        def functionCase(context: Any, tpe: Type[A], attributes: A, argumentType: Z, returnType: Z): Z =
+          functionCase0(attributes, argumentType, returnType)
+
+        def recordCase(context: Any, tpe: Type[A], attributes: A, fields: List[IField[Z]]): Z =
+          recordCase0(attributes, fields)
+
+        def referenceCase(context: Any, tpe: Type[A], attributes: A, typeName: FQName, typeParams: List[Z]): Z =
+          referenceCase0(attributes, typeName, typeParams)
+
+        def tupleCase(context: Any, tpe: Type[A], attributes: A, elements: List[Z]): Z =
+          tupleCase0(attributes, elements)
+      }
+    )
+
+    def mapAttributes[B](f: A => B): Type[B] = {
+      sealed trait ProcessTask
+      case class Process[T >: Type[A]](node: T, processedChildren: List[Type[B]]) extends ProcessTask
+
+      @scala.annotation.tailrec
+      def loop(stack: List[ProcessTask], accumulator: List[Type[B]]): Type[B] = stack match {
+        case Nil => accumulator.head
+        case Process(node, children) :: tail => node match {
+            case e @ ExtensibleRecord(_, _, _) if children.length < e.fields.length =>
+              loop(Process(e.fields(children.length).data, Nil) :: stack, accumulator)
+            case e @ ExtensibleRecord(_, _, _) =>
+              val newFields = children.takeRight(e.fields.length).map(t => Field(t.asInstanceOf[Field[B]].name, t))
+              loop(tail, ExtensibleRecord(f(e.attributes.asInstanceOf[A]), e.name, newFields.reverse) :: accumulator)
+
+            case fun @ Function(_, _, _) if children.isEmpty =>
+              loop(Process(fun.argumentType, Nil) :: stack, accumulator)
+            case fun @ Function(_, _, _) if children.length == 1 =>
+              loop(Process(fun.returnType, Nil) :: stack, accumulator)
+            case fun @ Function(_, _, _) =>
+              loop(tail, Function(f(fun.attributes.asInstanceOf[A]), children(1), children.head) :: accumulator)
+
+            case rec @ Record(_, _) if children.length < rec.fields.length =>
+              loop(Process(rec.fields(children.length).data, Nil) :: stack, accumulator)
+            case rec @ Record(_, _) =>
+              val newFields = children.takeRight(rec.fields.length).map(t => Field(t.asInstanceOf[Field[B]].name, t))
+              loop(tail, Record(f(rec.attributes.asInstanceOf[A]), newFields.reverse) :: accumulator)
+
+            case ref @ Reference(_, _, _) if children.length < ref.typeParams.length =>
+              loop(Process(ref.typeParams(children.length), Nil) :: stack, accumulator)
+            case ref @ Reference(_, _, _) =>
+              loop(tail, Reference(f(ref.attributes.asInstanceOf[A]), ref.typeName, children.reverse) :: accumulator)
+
+            case t @ Tuple(_, _) if children.length < t.elements.length =>
+              loop(Process(t.elements(children.length), Nil) :: stack, accumulator)
+            case t @ Tuple(_, _) =>
+              loop(tail, Tuple(f(t.attributes.asInstanceOf[A]), children.reverse) :: accumulator)
+
+            case u @ UnitType(_) =>
+              loop(tail, UnitType(f(u.attributes.asInstanceOf[A])) :: accumulator)
+
+            case v @ Variable(_, _) =>
+              loop(tail, Variable(f(v.attributes.asInstanceOf[A]), v.name) :: accumulator)
+          }
+      }
+
+      loop(List(Process(this, Nil)), Nil)
+    }
+
+    final def map[B](f: A => B): Type[B] =
+      fold[Type[B]](
+        attributes => UnitType(f(attributes)),
+        (attributes, name) => Variable(f(attributes), name),
+        (attributes, name, fields) => ExtensibleRecord(f(attributes), name, fields.asInstanceOf[List[Field[B]]]),
+        (attributes, argumentType, returnType) => Function(f(attributes), argumentType, returnType),
+        (attributes, fields) => Record(f(attributes), fields.asInstanceOf[List[Field[B]]]),
+        (attributes, typeName, typeParams) => Reference(f(attributes), typeName, typeParams),
+        (attributes, elements) => Tuple(f(attributes), elements)
+      )
+
+    lazy val size: Long = foldLeft(0L) {
+      case (acc, _) => acc + 1
+    }
 
 //    def transform[B](f: Type[A] => Type[B]): Type[B] = {
 //
@@ -260,7 +357,9 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule =>
     def map[B](f: A => B)(implicit covariant: Covariant[F]): FieldK[F, B] =
       FieldK(name, covariant.map(data)(f))
   }
-  object FieldK {}
+  object FieldK {
+    def apply[F[+_], A](name: String, data: F[A]): FieldK[F, A] = FieldK(Name.fromString(name), data)
+  }
 
   type IField[+A] = FieldK[Id, A]
   object IField {

@@ -36,8 +36,8 @@ trait TypeTransformerModule { self: TypeModule =>
   object TypeFolder {
 
     import Type.{Unit as UnitType, *}
-    final def foldContext[C, A, Z](self: Type[A])(context: C, folder: TypeFolder[C, A, Z]): Z = {
-      import folder.*
+    final def foldContext[C, A, Z](self: Type[A], context: C)(folder: TypeFolder[C, A, Z]): Z = {
+      import folder._
       @tailrec
       def loop(in: List[Type[A]], out: List[Either[Type[A], Z]]): List[Z] =
         in match {
