@@ -124,38 +124,7 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with
       loop(List(this), z)
     }
 
-    def foldUp[Z](z: Z)(f: (Type[A], List[Z]) => Z): Z = {
-      def loop(node: Type[A], childrenResults: List[Z] = Nil): Z = node match {
-        case e: ExtensibleRecord[A] =>
-          val childrenValues = e.fields.map(field => loop(field.data))
-          f(e, childrenValues)
-
-        case fun: Function[A] =>
-          val argValue = loop(fun.argumentType)
-          val retValue = loop(fun.returnType)
-          f(fun, List(argValue, retValue))
-
-        case rec: Record[A] =>
-          val childrenValues = rec.fields.map(field => loop(field.data))
-          f(rec, childrenValues)
-
-        case ref: Reference[A] =>
-          val typeParamValues = ref.typeParams.map(tp => loop(tp))
-          f(ref, typeParamValues)
-
-        case t: Tuple[A] =>
-          val elementValues = t.elements.map(e => loop(e))
-          f(t, elementValues)
-
-        case u: UnitType[A] =>
-          f(u, Nil)
-
-        case v: Variable[A] =>
-          f(v, Nil)
-      }
-
-      loop(this)
-    }
+    def foldUp[Z](f: (Type[A], Z) => Z)(combine: (Z, Z) => Z): Z = ???
 
     def fold[Z](
         unitCase0: A => Z,
@@ -251,72 +220,10 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with
       case (acc, _) => acc + 1
     }
 
-//    def transform[B](f: Type[A] => Type[B]): Type[B] = {
-//
-//      // Explicit stack to avoid blowing up the call stack
-//      var stack: List[(Type[A], List[Type[B]])] = List((this, Nil))
-//      var result: Option[Type[B]]               = None
-//
-//      @scala.annotation.tailrec
-//      def processStack(): scala.Unit = stack match {
-//        case Nil => ()
-//
-//        case (current, siblings) :: rest =>
-//          current match {
-//            case e: ExtensibleRecord[A] =>
-//              val transformedFields = e.fields.map(field => field.copy(data = field.data.transform(f)))
-//              val newNode: Type[B]  = f(ExtensibleRecord(e.attributes, e.name, transformedFields))
-//              if (transformedFields.isEmpty) {
-//                stack = rest
-//                result = Some(newNode)
-//              } else {
-//                stack = (transformedFields.head.data, transformedFields.tail.map(_.data)) :: stack
-//              }
-//
-//            case fun: Function[A] =>
-//              val argType          = fun.argumentType.transform(f)
-//              val returnType       = fun.returnType.transform(f)
-//              val newNode: Type[B] = f(Function(fun.attributes, argType, returnType))
-//              stack = rest
-//              result = Some(newNode)
-//
-//            case rec: Record[A] =>
-//              val transformedFields = rec.fields.map(field => field.copy(data = field.data.transform(f)))
-//              val newNode: Type[B]  = f(Record(rec.attributes, transformedFields))
-//              if (transformedFields.isEmpty) {
-//                stack = rest
-//                result = Some(newNode)
-//              } else {
-//                stack = (transformedFields.head.data, transformedFields.tail.map(_.data)) :: stack
-//              }
-//
-//            case ref: Reference[A] =>
-//              val typeParams       = ref.typeParams.map(_.transform(f))
-//              val newNode: Type[B] = f(Reference(ref.attributes, ref.typeName, typeParams))
-//              stack = rest
-//              result = Some(newNode)
-//
-//            case t: Tuple[A] =>
-//              val elements         = t.elements.map(_.transform(f))
-//              val newNode: Type[B] = f(Tuple(t.attributes, elements))
-//              stack = rest
-//              result = Some(newNode)
-//
-//            case u: Unit[A] =>
-//              val newNode: Type[B] = f(u)
-//              stack = rest
-//              result = Some(newNode)
-//
-//            case v: Variable[A] =>
-//              val newNode: Type[B] = f(v)
-//              stack = rest
-//              result = Some(newNode)
-//          }
-//      }
-//
-//      processStack()
-//      result.getOrElse(throw new RuntimeException("Transformation failed. This shouldn't happen."))
-//    }
+    /**
+     * Transform traverses the type tree in a stack safe manner.
+     */
+    def transform[A0 >: A, S, Z](transformFunc: (S, Type[A0]) => (S, Z)): (S, Z) = ???
 
   }
 
@@ -352,10 +259,18 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with
     }
   }
 
-  sealed case class FieldK[F[+_], +A](name: Name, data: F[A]) {
+  sealed case class FieldK[F[+_], +A](name: Name, data: F[A]) { self =>
     @inline def tpe[A0 >: A](implicit ev: F[A] <:< Type[A0]): F[A0] = data
     def map[B](f: A => B)(implicit covariant: Covariant[F]): FieldK[F, B] =
       FieldK(name, covariant.map(data)(f))
+
+    /// Map the name of the field to get a new field.
+    def mapFieldName(f: Name => Name): FieldK[F, A] = FieldK(f(name), data)
+
+    /// Map the type of the field to get a new field.
+    def mapFieldType[A0 >: A, B](f: F[A0] => F[B])(implicit ev: F[A0] <:< Type[A0]): FieldK[F, B] =
+      self.copy(data = f(self.tpe))
+
   }
   object FieldK {
     def apply[F[+_], A](name: String, data: F[A]): FieldK[F, A] = FieldK(Name.fromString(name), data)

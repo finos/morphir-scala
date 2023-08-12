@@ -7,11 +7,22 @@ import zio.test.*
 object TypeSpec extends MorphirBaseSpec {
   def spec = suite("TypeSpec")(
     suite("Type[+A]")(
+      extensibleRecordSuite,
+      functionSuite,
+      recordSuite,
       tupleSuite,
+      referenceSuite,
       unitSuite,
       variableSuite
     )
   )
+
+  def extensibleRecordSuite = suite("ExtensibleRecord")()
+  def functionSuite         = suite("Function")()
+
+  def recordSuite = suite("Record")()
+
+  def referenceSuite = suite("Reference")()
 
   def tupleSuite = suite("Tuple")(
     suite("Mapping")(
