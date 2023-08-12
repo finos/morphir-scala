@@ -1,6 +1,7 @@
 package org.finos.morphir.internal
 
-import org.finos.morphir.naming.*
+import org.finos.morphir.functional._
+import org.finos.morphir.naming._
 
 import scala.annotation.tailrec
 trait TypeTransformerModule { self: TypeModule =>
@@ -10,12 +11,12 @@ trait TypeTransformerModule { self: TypeModule =>
         tpe: Type[Attrib],
         attributes: Attrib,
         name: Name,
-        fields: List[FieldT[Z]]
+        fields: List[IField[Z]]
     ): Z
 
     def functionCase(context: Context, tpe: Type[Attrib], attributes: Attrib, argumentType: Z, returnType: Z): Z
 
-    def recordCase(context: Context, tpe: Type[Attrib], attributes: Attrib, fields: List[FieldT[Z]]): Z
+    def recordCase(context: Context, tpe: Type[Attrib], attributes: Attrib, fields: List[IField[Z]]): Z
 
     def referenceCase(
         context: Context,
@@ -62,8 +63,8 @@ trait TypeTransformerModule { self: TypeModule =>
                 val size       = t.fields.size
                 val fieldTypes = acc.take(size)
                 val rest       = acc.drop(size)
-                val fields: List[FieldT[Z]] = t.fields.zip(fieldTypes).map { case (field, fieldType) =>
-                  FieldT(field.name, fieldType)
+                val fields = t.fields.zip(fieldTypes).map { case (field, fieldType) =>
+                  IField(field.name, fieldType)
                 }
                 extensibleRecordCase(context, t, attributes, name, fields) :: rest
               case (acc, Left(t @ Function(attributes, _, _))) =>
@@ -73,7 +74,7 @@ trait TypeTransformerModule { self: TypeModule =>
                 val size       = t.fields.size
                 val fieldTypes = acc.take(size)
                 val rest       = acc.drop(size)
-                val fields = t.fields.zip(fieldTypes).map { case (field, fieldType) => FieldT(field.name, fieldType) }
+                val fields = t.fields.zip(fieldTypes).map { case (field, fieldType) => IField(field.name, fieldType) }
                 recordCase(context, t, attributes, fields) :: rest
               case (acc, Left(t @ Reference(attributes, typeName, _))) =>
                 val size       = t.typeParams.size
@@ -95,4 +96,5 @@ trait TypeTransformerModule { self: TypeModule =>
       loop(List(self), List.empty).head
     }
   }
+
 }

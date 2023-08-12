@@ -1,4 +1,4 @@
-package org.finos.morphir.capability
+package org.finos.morphir.functional
 
 trait Covariant[F[+_]] {
   def map[A, B](fa: F[A])(f: A => B): F[B]

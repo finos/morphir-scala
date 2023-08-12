@@ -92,7 +92,7 @@ object Compare {
     try
       cls.getSimpleName
     catch {
-      case e: Throwable => cls.getName
+      case _: Throwable => cls.getName
     }
 
   private def className(cls: Class[_]) = {

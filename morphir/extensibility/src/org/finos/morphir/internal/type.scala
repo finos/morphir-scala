@@ -1,9 +1,10 @@
 package org.finos.morphir.internal
 
+import org.finos.morphir.functional._
 import org.finos.morphir.naming._
 
 import scala.annotation.tailrec
-trait TypeModule { self: DocumentedModule =>
+trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule =>
 
   sealed trait Type[+A] { self =>
     import Type.*
@@ -20,7 +21,7 @@ trait TypeModule { self: DocumentedModule =>
           case Some(z) => Some(z)
           case None =>
             typ match {
-              case ExtensibleRecord(_, _, List(head, tail @ _*)) =>
+              case ExtensibleRecord(_, _, head :: tail) =>
                 val next = head.data
                 val rest = tail.map(_.data) ++: stack
                 loop(next, rest)
@@ -236,29 +237,35 @@ trait TypeModule { self: DocumentedModule =>
     sealed case class Unit[+A](attributes: A)                           extends Type[A]
     sealed case class Variable[+A](attributes: A, name: Name)           extends Type[A]
 
+    implicit val CovariantTypeInstance: Covariant[Type] = new Covariant[Type] {
+      override def map[A, B](fa: Type[A])(f: A => B): Type[B] = fa.map(f)
+    }
   }
 
-  type Field[+A] = FieldT[Type[A]]
+  type Field[+A] = FieldK[Type, A]
   object Field {
-    def apply[A](name: String, tpe: Type[A]): Field[A] = FieldT(Name.fromString(name), tpe)
-    def apply[A](name: Name, tpe: Type[A]): Field[A]   = FieldT(name, tpe)
-
-  }
-
-  sealed case class FieldT[+T](name: Name, data: T) {
-    @inline def tpe: T = data
-
-    def flatMap[T1](f: T => FieldT[T1]): FieldT[T1] = f(data)
-    def map[T1](f: T => T1): FieldT[T1]             = copy(data = f(data))
-  }
-  object FieldT {
+    def apply[A](name: String, tpe: Type[A]): Field[A] = FieldK(Name.fromString(name), tpe)
+    def apply[A](name: Name, tpe: Type[A]): Field[A]   = FieldK(name, tpe)
 
     type Untyped = Field[Unit]
 
     object Untyped {
-      def apply(name: Name): FieldT[Unit] = FieldT(name, ())
-
+      // def apply(name: Name): Field[Unit] = Field(name, ())
       def unapply(field: Field[Unit]): Name = field.name
     }
   }
+
+  sealed case class FieldK[F[+_], +A](name: Name, data: F[A]) {
+    @inline def tpe[A0 >: A](implicit ev: F[A] <:< Type[A0]): F[A0] = data
+    def map[B](f: A => B)(implicit covariant: Covariant[F]): FieldK[F, B] =
+      FieldK(name, covariant.map(data)(f))
+  }
+  object FieldK {}
+
+  type IField[+A] = FieldK[Id, A]
+  object IField {
+    def apply[A](name: String, data: A): IField[A] = FieldK(Name.fromString(name), Id[A](data))
+    def apply[A](name: Name, data: A): IField[A]   = FieldK(name, Id[A](data))
+  }
+
 }
