@@ -112,7 +112,7 @@ class TypeChecker(dists: Distributions) {
     def handleUnitValue(tpe : UType, context : Context) : TypeCheckerResult = {
         List()
     }
-    def handleUpdateRecord(tpe : UType, valueToUpdate : Name, Map[Name, TypedValue], context : Context) : TypeCheckerResult = {
+    def handleUpdateRecord(tpe : UType, valueToUpdate : Name, fields : Map[Name, TypedValue], context : Context) : TypeCheckerResult = {
         List()
     }
     def handleVariable(tpe : UType, name : Name, context : Context) : TypeCheckerResult = {

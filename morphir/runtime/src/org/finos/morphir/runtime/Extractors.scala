@@ -120,5 +120,22 @@ object Extractors {
         }
     }
   }
-  object Values {}
+  object Values {
+    object SomeConstructor {
+      def unapply(value: TypedValue): Option[TypedValue] =
+        value match {
+          case Value.Apply(attributes, Value.Constructor(_, FQString("Morphir.SDK:Maybe:just")), something) =>
+            Some(something)
+          case _ => None
+        }
+    }
+    object NoneConstructor {
+      def unapply(value: TypedValue): Boolean =
+        value match {
+          case Value.Constructor(_, FQString("Morphir.SDK:Maybe:nothing")) =>
+            true
+          case _ => false
+        }
+    }
+  }
 }
