@@ -220,6 +220,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       }
     }
   }
+
   object extensibility extends CrossPlatform with CrossValue {
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
       def ivyDeps = super.ivyDeps() ++ Agg(
@@ -393,6 +394,41 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
         def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
       }
     }
+  }
+
+  object meta extends CrossPlatform with CrossValue {
+    trait Shared extends MorphirCommonModule with MorphirPublishModule {
+
+      def compileIvyDeps = T {
+        super.compileIvyDeps() ++ Agg.when(scalaVersion().startsWith("2."))(
+          Deps.org.`scala-lang`.`scala-reflect`(scalaVersion())
+        ) ++ Agg.when(scalaVersion().startsWith("3."))(
+          Deps.org.`scala-lang`.`scala3-compiler`(scalaVersion())
+        )
+      }
+
+      def generatedSources = T {
+        val metaDir = T.dest / "org" / "finos" / "morphir" / "meta"
+        os.makeDir.all(metaDir)
+
+        os.write(metaDir / "data.scala", ShapelyCodeGen.data)
+        os.write(metaDir / "derivable.scala", ShapelyCodeGen.derivable)
+
+        if (isScala3(scalaVersion())) {
+          os.write(metaDir / "compat.scala", ShapelyCodeGen.compat)
+        }
+
+        super.generatedSources() ++ Seq(PathRef(T.dest))
+      }
+
+      def scalacOptions = T {
+        super.scalacOptions().filterNot(_.startsWith("-Xfatal-warnings"))
+      }
+    }
+
+    object jvm    extends Shared with MorphirJVMModule
+    object js     extends Shared with MorphirJSModule
+    object native extends Shared with MorphirNativeModule
   }
 
   object runtime extends CrossPlatform with CrossValue {
