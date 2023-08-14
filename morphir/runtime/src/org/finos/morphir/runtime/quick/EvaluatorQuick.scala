@@ -110,8 +110,10 @@ object EvaluatorQuick {
       case BoolRef()      => Concept.Boolean
       case CharRef()      => Concept.Char
       case FloatRef()     => Concept.Decimal
+      case DecimalRef()   => Concept.Decimal
       case LocalDateRef() => Concept.LocalDate
       case LocalTimeRef() => Concept.LocalTime
+
       case ResultRef(errType, okType) =>
         Concept.Result(typeToConcept(errType, dists, boundTypes), typeToConcept(okType, dists, boundTypes))
       case ListRef(elementType) =>
@@ -189,6 +191,14 @@ object EvaluatorQuick {
         Data.LocalTime(value)
       case (Concept.Decimal, Result.Primitive(value: Double)) =>
         Data.Decimal(scala.BigDecimal(value))
+      case (Concept.Decimal, Result.Primitive(value: Float)) =>
+        Data.Decimal(scala.BigDecimal(value.toDouble))
+      case (Concept.Decimal, Result.Primitive(value: Int)) =>
+        Data.Decimal(scala.BigDecimal(value))
+      case (Concept.Decimal, Result.Primitive(value: Long)) =>
+        Data.Decimal(scala.BigDecimal(value))
+      case (Concept.Decimal, Result.Primitive(value: BigDecimal)) =>
+        Data.Decimal(value)
       case (alias: Concept.Alias, result) => Data.Aliased(resultAndConceptToData(result, alias.value), alias)
       case (Concept.List(elementConcept), Result.ListResult(elements)) =>
         val inners = elements.map(element => resultAndConceptToData(element, elementConcept))

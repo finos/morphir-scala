@@ -10,7 +10,7 @@ import internal.{ValueDefinition, ValueSpecification}
 import org.finos.morphir.ir.{Type => T, Value => V}
 import scala.annotation.unused
 
-/**
+/*
  * In functional programming data and logic are treated the same way and we refer to both as values. This module
  * provides the building blocks for those values (data and logic) in the Morphir IR.
  *
@@ -72,6 +72,17 @@ object Value extends internal.PatternModule {
   final def apply(function: RawValue, argument: RawValue): Apply.Raw = Apply.Raw(function, argument)
   final def apply(function: RawValue, argument: RawValue, arguments: RawValue*) =
     Apply.Raw(function, ::(argument, arguments.toList))
+
+  final def applyInferType(finalType: UType, core: RawValue, args: TypedValue*): TypedValue = {
+    def loop(outerType: UType, core: RawValue, reversedArgs: TypedValue*): TypedValue =
+      reversedArgs match {
+        case Nil => core :> outerType
+        case head :: tail =>
+          val f = loop(T.Type.Function((), head.attributes, outerType), core, tail: _*)
+          Apply(outerType, f, head)
+      }
+    loop(finalType, core, args.toList.reverse: _*)
+  }
 
   // final def apply(function: TypedValue, argument: TypedValue, arguments: TypedValue*): TypedValue =
   //   Apply.Typed(function, argument, arguments: _*)
@@ -493,7 +504,7 @@ object Value extends internal.PatternModule {
 
   implicit class RawValueExtensions(private val self: RawValue) extends AnyVal {
 
-    /**
+    /*
      * Ascribe the given type to this `RawValue` and all its children.
      * ===NOTE===
      * This is a recursive operation and all children of this `RawValue` will also be ascribed with the given value.

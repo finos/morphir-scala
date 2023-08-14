@@ -60,9 +60,9 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     case Data.Unit           => V.unit(().morphirType)
     case Data.Boolean(value) => if (value) Literal.Lit.True else Literal.Lit.False
     case Data.Byte(value: scala.Byte) =>
-      V.apply(
+      V.applyInferType(
         value.morphirType,
-        V.reference(value.morphirType, FQName.fromString("Morphir.SDK:Int:toInt8")),
+        V.reference(FQName.fromString("Morphir.SDK:Int:toInt8")),
         V.intTyped(value.toInt)
       )
     case Data.Char(value: scala.Char)          => V.literal(value.morphirType, Lit.char(value))
@@ -70,25 +70,25 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     case Data.Integer(value: scala.BigInt) =>
       V.intTyped(value.toInt) // TODO: to be fixed when Integer is mapped to BigInt
     case Data.Int16(value: scala.Short) =>
-      V.apply(
+      V.applyInferType(
         value.morphirType,
-        V.reference(value.morphirType, FQName.fromString("Morphir.SDK:Int:toInt16")),
+        V.reference(FQName.fromString("Morphir.SDK:Int:toInt16")),
         V.intTyped(value.toInt)
       )
     case Data.Int32(value: scala.Int)         => V.int(value.morphirType, value)
     case Data.String(value: java.lang.String) => V.string(value.morphirType, value)
     case Data.LocalDate(value: java.time.LocalDate) =>
-      V.apply(
+      V.applyInferType(
         value.morphirType,
-        V.reference(value.morphirType, FQName.fromString("Morphir.SDK:LocalDate:fromParts")),
+        V.reference(FQName.fromString("Morphir.SDK:LocalDate:fromParts")),
         V.intTyped(value.getYear),
         V.intTyped(value.getMonthValue),
         V.intTyped(value.getDayOfMonth)
       )
     case Data.LocalTime(value: java.time.LocalTime) =>
-      V.apply(
+      V.applyInferType(
         value.morphirType,
-        V.reference(value.morphirType, FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds")),
+        V.reference(FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds")),
         V.intTyped(value.get(ChronoField.MILLI_OF_DAY))
       )
     case Data.Month(value: java.time.Month) => value match {
@@ -108,21 +108,21 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     case Data.Optional.None(shape: Concept.Optional) =>
       V.constructor("Morphir.SDK:Maybe:Nothing", shape.morphirType)
     case Data.Optional.Some(data, shape) =>
-      V.apply(
+      V.applyInferType(
         shape.morphirType,
-        V.constructor(FQName.fromString("Morphir.SDK:Maybe:just"), shape.morphirType),
+        V.constructor(FQName.fromString("Morphir.SDK:Maybe:just")),
         dataToIR(data)
       )
     case Data.Result.Err(data, shape) =>
-      V.apply(
+      V.applyInferType(
         shape.morphirType,
-        V.constructor(FQName.fromString("Morphir.SDK:Result:err"), shape.morphirType),
+        V.constructor(FQName.fromString("Morphir.SDK:Result:err")),
         dataToIR(data)
       )
     case Data.Result.Ok(data, shape) =>
-      V.apply(
+      V.applyInferType(
         shape.morphirType,
-        V.constructor(FQName.fromString("Morphir.SDK:Result:ok"), shape.morphirType),
+        V.constructor(FQName.fromString("Morphir.SDK:Result:ok")),
         dataToIR(data)
       )
     case Data.List(values, shape) =>
@@ -133,9 +133,9 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
       val tuples = values.map { case (key, value) =>
         V.tuple(tupleShape.morphirType, dataToIR(key), dataToIR(value))
       }
-      V.apply(
+      V.applyInferType(
         shape.morphirType,
-        V.reference(shape.morphirType, FQName.fromString("Morphir.SDK:Dict:fromList")),
+        V.reference(FQName.fromString("Morphir.SDK:Dict:fromList")),
         V.list(Concept.List(tupleShape).morphirType, zio.Chunk.fromIterable(tuples))
       )
 
@@ -181,15 +181,20 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
       // Okay I have an outermost thing type - the union's shape - and an innermost value - the constructor itself
       // So from the outside I walk down, building up a type by continually wrapping the outer type...?
       // And I build a value by wrapping types?
-      def curryFunctionValue(fqn: FQName, outerTpe: UType, fields: List[TypedValue]): TypedValue =
-        fields match {
-          case Nil => V.constructor(fqn, outerTpe)
-          case head :: tail =>
-            V.apply(outerTpe, curryFunctionValue(fqn, Type.function(head.attributes, outerTpe), tail), head)
-        }
-      val args = values.map { case (_, data) => dataToIR(data) }.reverse
-      val name = shape.name.copy(localName = Name.fromString(enumLabel))
-      curryFunctionValue(name, shape.morphirType, args)
+//      def curryFunctionValue(fqn: FQName, outerTpe: UType, fields: List[TypedValue]): TypedValue =
+//        fields match {
+//          case Nil => V.constructor(fqn, outerTpe)
+//          case head :: tail =>
+//            V.apply(outerTpe, curryFunctionValue(fqn, Type.function((), head.attributes, outerTpe), tail), head)
+//        }
+//      val args = values.map { case (_, data) => dataToIR(data) }.reverse
+//      val name = shape.name.copy(localName = Name.fromString(enumLabel))
+//      curryFunctionValue(name, shape.morphirType, args)
+      V.applyInferType(
+        shape.morphirType,
+        V.constructor(shape.name.copy(localName = Name.fromString(enumLabel))),
+        values.map { case (_, data) => dataToIR(data) }: _*
+      )
 
     case Data.Union(_, _) => ??? // TODO: to be implemented
   }

@@ -99,6 +99,9 @@ object Extractors {
   object FloatRef extends CommonReference {
     final val tpe = Basics.floatType
   }
+  object DecimalRef extends CommonReference {
+    final val tpe = sdk.Decimal.decimalType
+  }
   object StringRef extends CommonReference {
     final val tpe = sdk.String.stringType
   }
