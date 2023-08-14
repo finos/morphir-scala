@@ -121,6 +121,12 @@ object Extractors {
     }
   }
   object Values {
+    object ApplyChain {
+      def unapply(value: TypedValue): Option[(TypedValue, List[TypedValue])] = value match {
+        case Value.Apply(_, ApplyChain(inner, args), arg) => Some(inner, args :+ arg)
+        case other => Some(other, List())
+      }
+    }
     object SomeConstructor {
       def unapply(value: TypedValue): Option[TypedValue] =
         value match {
