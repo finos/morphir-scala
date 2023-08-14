@@ -2,6 +2,7 @@ package zio
 
 import zio.stream.{ZChannel, ZSink, ZStream}
 import scala.collection.immutable.Queue as ScalaQueue
+import scala.annotation.nowarn
 import zio._
 
 object ZStreamCompat {
@@ -27,7 +28,8 @@ object ZStreamCompat {
         innerFinalizers: Scope
     ): ZIO[R1, Option[Nothing], Chunk[Option[B]]] = {
 
-      def pullNonEmpty[R, E, A](pull: ZIO[R, Option[E], Chunk[A]]): ZIO[R, Option[E], Chunk[A]] =
+      @nowarn
+      def pullNonEmpty[R, E, A1](pull: ZIO[R, Option[E], Chunk[A1]]): ZIO[R, Option[E], Chunk[A1]] =
         pull.flatMap(as => if (as.nonEmpty) ZIO.succeed(as) else pullNonEmpty(pull))
 
       def pullOuter(
