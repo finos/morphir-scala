@@ -58,9 +58,18 @@ object Result {
       s"Record(${elements.map { case (key, value) => s"$key -> ${value.succinct(depth - 1)}" }.mkString(", ")})"
     }
   }
-  case class ListResult[TA, VA](elements: List[Result[TA, VA]])               extends Result[TA, VA]
-  case class MapResult[TA, VA](elements: Map[Result[TA, VA], Result[TA, VA]]) extends Result[TA, VA]
 
+  case class ListResult[TA, VA](elements: List[Result[TA, VA]]) extends Result[TA, VA] {
+    override def succinct(depth: Int) = if (depth == 0) "List(..)" else {
+      s"List(${elements.map(value => value.succinct(depth - 1)).mkString(", ")})"
+    }
+  }
+
+  case class MapResult[TA, VA](elements: Map[Result[TA, VA], Result[TA, VA]]) extends Result[TA, VA] {
+    override def succinct(depth: Int) = if (depth == 0) "Dict(..)" else {
+      s"Dict(${elements.map { case (key, value) => s"${key.succinct(depth - 1)} -> ${value.succinct(depth - 1)}" }.mkString(", ")})"
+    }
+  }
   case class Applied[TA, VA](
       body: Value[TA, VA],
       curried: List[(Name, Result[TA, VA])],
