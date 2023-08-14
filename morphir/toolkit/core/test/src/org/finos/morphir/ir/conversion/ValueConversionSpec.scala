@@ -96,9 +96,9 @@ object ValueConversionSpec extends MorphirBaseSpec {
       val toValue     = ToMorphirValue.summon[Data].typed
       val inputValue  = Data.Byte(java.lang.Byte.MAX_VALUE)
       val morphirInt8 = toValue(inputValue)
-      assertTrue(morphirInt8 == V.apply(
+      assertTrue(morphirInt8 == V.typedApplyRef(
         sdk.Int.int8Type,
-        V.reference(sdk.Int.int8Type, FQName.fromString("Morphir.SDK:Int:toInt8")),
+        V.reference(FQName.fromString("Morphir.SDK:Int:toInt8")),
         V.intTyped(inputValue.value)
       ))
     },
@@ -118,9 +118,9 @@ object ValueConversionSpec extends MorphirBaseSpec {
       val toValue      = ToMorphirValue.summon[Data].typed
       val inputValue   = Data.Int16(java.lang.Short.MAX_VALUE)
       val morphirInt16 = toValue(inputValue)
-      assertTrue(morphirInt16 == V.apply(
+      assertTrue(morphirInt16 == V.typedApplyRef(
         sdk.Int.int16Type,
-        V.reference(sdk.Int.int16Type, FQName.fromString("Morphir.SDK:Int:toInt16")),
+        V.reference(FQName.fromString("Morphir.SDK:Int:toInt16")),
         V.intTyped(inputValue.value)
       ))
     },
@@ -134,9 +134,9 @@ object ValueConversionSpec extends MorphirBaseSpec {
       val toValue          = ToMorphirValue.summon[Data].typed
       val inputValue       = Data.LocalDate(java.time.LocalDate.of(2013, 9, 3))
       val morphirLocalDate = toValue(inputValue)
-      assertTrue(morphirLocalDate == V.apply(
+      assertTrue(morphirLocalDate == V.typedApplyRef(
         sdk.LocalDate.localDateType,
-        V.reference(sdk.LocalDate.localDateType, FQName.fromString("Morphir.SDK:LocalDate:fromParts")),
+        V.reference(FQName.fromString("Morphir.SDK:LocalDate:fromParts")),
         V.intTyped(2013),
         V.intTyped(9),
         V.intTyped(3)
@@ -146,9 +146,9 @@ object ValueConversionSpec extends MorphirBaseSpec {
       val toValue          = ToMorphirValue.summon[Data].typed
       val inputValue       = Data.LocalTime(java.time.LocalTime.now)
       val morphirLocalTime = toValue(inputValue)
-      assertTrue(morphirLocalTime == V.apply(
+      assertTrue(morphirLocalTime == V.typedApplyRef(
         sdk.LocalTime.localTimeType,
-        V.reference(sdk.LocalTime.localTimeType, FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds")),
+        V.reference(FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds")),
         V.intTyped(inputValue.value.get(ChronoField.MILLI_OF_DAY))
       ))
     },
@@ -346,9 +346,9 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val inputValue = Data.Map.empty(Concept.String, Concept.Int32)
         val actual     = toValue(inputValue)
         val shape      = sdk.Dict.dictType(sdk.String.stringType, sdk.Basics.intType)
-        val result = V.apply(
+        val result = V.typedApplyRef(
           shape,
-          V.reference(shape, FQName.fromString("Morphir.SDK:Dict:fromList")),
+          V.reference(FQName.fromString("Morphir.SDK:Dict:fromList")),
           V.list(
             sdk.List.listType(T.tuple(Chunk(sdk.String.stringType, sdk.Basics.intType))),
             zio.Chunk.empty
