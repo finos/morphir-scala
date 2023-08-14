@@ -30,8 +30,14 @@ object Result {
           s"$other returned to top level, only Unit, Primitive, List, Tuples, Constructed Types and Records are supported"
         )
     }
-  case class Unit[TA, VA]()                extends Result[TA, VA]
-  case class Primitive[TA, VA](value: Any) extends Result[TA, VA]
+
+  case class Unit[TA, VA]() extends Result[TA, VA] {
+    override def succinct(depth: Int) = "Unit"
+  }
+
+  case class Primitive[TA, VA](value: Any) extends Result[TA, VA] {
+    override def succinct(depth: Int) = s"Primitive($value)"
+  }
 
   case class LocalDate[TA, VA](value: java.time.LocalDate) extends Result[TA, VA]
 
