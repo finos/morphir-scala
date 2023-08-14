@@ -46,10 +46,18 @@ object Result {
   case class LocalTime[TA, VA](value: java.time.LocalTime) extends Result[TA, VA] {
     override def succinct(depth: Int) = s"LocalTime($value)"
   }
-  case class Tuple[TA, VA](elements: Any) extends Result[TA, VA]
 
-  case class Record[TA, VA](elements: Map[Name, Result[TA, VA]]) extends Result[TA, VA]
+  case class Tuple[TA, VA](elements: Any) extends Result[TA, VA] {
+    override def succinct(depth: Int) = if (depth == 0) "Tuple(...)" else {
+      s"Tuple(${Helpers.tupleToList(elements).map(_.asInstanceOf[Result[TA, VA]]).map(_.succinct(depth - 1)).mkString(", ")})"
+    }
+  }
 
+  case class Record[TA, VA](elements: Map[Name, Result[TA, VA]]) extends Result[TA, VA] {
+    override def succinct(depth: Int) = if (depth == 0) "Record(..)" else {
+      s"Record(${elements.map { case (key, value) => s"$key -> ${value.succinct(depth - 1)}" }.mkString(", ")})"
+    }
+  }
   case class ListResult[TA, VA](elements: List[Result[TA, VA]])               extends Result[TA, VA]
   case class MapResult[TA, VA](elements: Map[Result[TA, VA], Result[TA, VA]]) extends Result[TA, VA]
 
