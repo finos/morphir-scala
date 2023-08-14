@@ -190,7 +190,11 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
 //      val args = values.map { case (_, data) => dataToIR(data) }.reverse
 //      val name = shape.name.copy(localName = Name.fromString(enumLabel))
 //      curryFunctionValue(name, shape.morphirType, args)
-      V.typedApplyRef(shape.morphirType, V.constructor(shape.name.copy(localName = Name.fromString(enumLabel))), values.map { case (_, data) => dataToIR(data) }:_*)
+      V.typedApplyRef(
+        shape.morphirType,
+        V.constructor(shape.name.copy(localName = Name.fromString(enumLabel))),
+        values.map { case (_, data) => dataToIR(data) }: _*
+      )
 
     case Data.Union(value, shape) => ??? // TODO: to be implemented
   }
