@@ -96,7 +96,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
       val toValue     = ToMorphirValue.summon[Data].typed
       val inputValue  = Data.Byte(java.lang.Byte.MAX_VALUE)
       val morphirInt8 = toValue(inputValue)
-      assertTrue(morphirInt8 == V.typedApplyRef(
+      assertTrue(morphirInt8 == V.typedRefApply(
         sdk.Int.int8Type,
         V.reference(FQName.fromString("Morphir.SDK:Int:toInt8")),
         V.intTyped(inputValue.value)
@@ -163,11 +163,10 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val toValue               = ToMorphirValue.summon[Data].typed
         val inputValue            = Data.Optional.Some(Data.String("Optional string"))
         val morphirOptionalString = toValue(inputValue)
-        val result = V.apply(
+        val result = V.typedRefApply(
           sdk.Maybe.maybeType(sdk.String.stringType),
           V.constructor(
-            FQName.fromString("Morphir.SDK:Maybe:just"),
-            sdk.Maybe.maybeType(sdk.String.stringType)
+            FQName.fromString("Morphir.SDK:Maybe:just")
           ), // TODO check
           V.string(sdk.String.stringType, "Optional string")
         )
@@ -214,9 +213,9 @@ object ValueConversionSpec extends MorphirBaseSpec {
           Chunk(
             Lit.True,
             V.unit(Type.unit),
-            V.apply(
+            V.typedRefApply(
               sdk.Int.int8Type,
-              V.reference(sdk.Int.int8Type, FQName.fromString("Morphir.SDK:Int:toInt8")),
+              V.reference(FQName.fromString("Morphir.SDK:Int:toInt8")),
               V.intTyped(java.lang.Byte.MAX_VALUE)
             )
           )
@@ -283,9 +282,9 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val inputValue = Data.Map(Data.String("Index 1") -> Data.Int(3), Data.String("Index 2") -> Data.Int(71))
         val actual     = toValue(inputValue)
         val shape      = sdk.Dict.dictType(sdk.String.stringType, sdk.Basics.intType)
-        val result = V.apply(
+        val result = V.typedRefApply(
           shape,
-          V.reference(shape, FQName.fromString("Morphir.SDK:Dict:fromList")),
+          V.reference(FQName.fromString("Morphir.SDK:Dict:fromList")),
           V.list(
             sdk.List.listType(T.tuple(Chunk(sdk.String.stringType, sdk.Basics.intType))),
             zio.Chunk(

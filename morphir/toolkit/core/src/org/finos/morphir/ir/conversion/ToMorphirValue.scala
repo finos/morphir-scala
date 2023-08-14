@@ -60,9 +60,9 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     case Data.Unit           => V.unit(().morphirType)
     case Data.Boolean(value) => if (value) Literal.Lit.True else Literal.Lit.False
     case Data.Byte(value: scala.Byte) =>
-      V.apply(
+      V.typedRefApply(
         value.morphirType,
-        V.reference(value.morphirType, FQName.fromString("Morphir.SDK:Int:toInt8")),
+        V.reference(FQName.fromString("Morphir.SDK:Int:toInt8")),
         V.intTyped(value)
       )
     case Data.Char(value: scala.Char)          => V.literal(value.morphirType, Lit.char(value))
