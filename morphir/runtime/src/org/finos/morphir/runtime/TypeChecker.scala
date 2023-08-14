@@ -97,22 +97,22 @@ class TypeChecker(dists: Distributions) {
     def handleListValue(tpe : UType, elements : List[TypedValue], context : Context) : TypeCheckerResult = {
         List()
     }
-    def handlePatternMatch(tpe : UType, value : TypedValue, cases : , context : Context) : TypeCheckerResult = {
+    def handlePatternMatch(tpe : UType, value : TypedValue, cases : List[(Pattern[UType], TypedValue)], context : Context) : TypeCheckerResult = {
         List()
     }
-    def handleRecord(tpe : UType, fields, context : Context) : TypeCheckerResult = {
+    def handleRecord(tpe : UType, List[(Name, TypedValue)], context : Context) : TypeCheckerResult = {
         List()
     }
     def handleReference(tpe : UType, fqn : FQName, context : Context) : TypeCheckerResult = {
         List()
     }
-    def handleTuple(tpe : UType, elements, context : Context) : TypeCheckerResult = {
+    def handleTuple(tpe : UType, elements: List[TypedValue], context : Context) : TypeCheckerResult = {
         List()
     }
     def handleUnitValue(tpe : UType, context : Context) : TypeCheckerResult = {
         List()
     }
-    def handlepdateRecord(tpe : UType, valueToUpdate, fields, context : Context) : TypeCheckerResult = {
+    def handleUpdateRecord(tpe : UType, valueToUpdate : Name, Map[Name, TypedValue], context : Context) : TypeCheckerResult = {
         List()
     }
     def handleVariable(tpe : UType, name : Name, context : Context) : TypeCheckerResult = {
