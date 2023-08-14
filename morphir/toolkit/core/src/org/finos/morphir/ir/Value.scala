@@ -72,7 +72,7 @@ object Value extends internal.PatternModule {
   final def apply(function: RawValue, argument: RawValue, arguments: RawValue*) =
     Apply.Raw(function, ::(argument, arguments.toList))
 
-  final def typedApplyRef(finalType: UType, core: RawValue, args: TypedValue*): TypedValue = {
+  final def applyInferType(finalType: UType, core: RawValue, args: TypedValue*): TypedValue = {
     def loop(outerType: UType, core: RawValue, reversedArgs: TypedValue*): TypedValue =
       reversedArgs match {
         case Nil => core :> outerType
