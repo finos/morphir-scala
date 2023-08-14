@@ -90,7 +90,12 @@ object Result {
 
   case class ConstructorFunction[TA, VA](name: FQName, arguments: List[VA], curried: List[Result[TA, VA]])
       extends Result[TA, VA]
-  case class ConstructorResult[TA, VA](name: FQName, values: List[Result[TA, VA]]) extends Result[TA, VA]
+
+  case class ConstructorResult[TA, VA](name: FQName, values: List[Result[TA, VA]]) extends Result[TA, VA] {
+    override def succinct(depth: Int) = if (depth == 0) s"${name.toString}(..)" else {
+      s"${name.toString}(${values.map(value => value.succinct(depth - 1)).mkString(", ")})"
+    }
+  }
 
   case class NativeFunction[TA, VA](arguments: Int, curried: List[Result[TA, VA]], function: Any)
       extends Result[TA, VA] {}
