@@ -6,7 +6,10 @@ import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *
 import org.finos.morphir.ir.Value.{Pattern, Value}
 import Name.toTitleCase
 
-sealed trait Result[TA, VA]
+sealed trait Result[TA, VA]{
+  def succinct(depth : Int) : String = s"${this.getClass} (Default implementation)"
+  def succinct : String = succinct(2)
+}
 
 object Result {
 
