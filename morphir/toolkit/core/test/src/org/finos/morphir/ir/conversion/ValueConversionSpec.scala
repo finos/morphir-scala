@@ -331,7 +331,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
                   V.string(sdk.String.stringType, "Index 2"),
                   V.list(
                     sdk.List.listType(sdk.Basics.intType),
-                    zio.Chunk(V.intTyped(2), V.intTyped(f71))
+                    zio.Chunk(V.intTyped(2), V.intTyped(71))
                   )
                 )
               )
