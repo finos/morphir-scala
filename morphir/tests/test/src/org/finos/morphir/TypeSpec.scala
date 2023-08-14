@@ -22,7 +22,9 @@ object TypeSpec extends MorphirBaseSpec {
 
   def recordSuite = suite("Record")()
 
-  def referenceSuite = suite("Reference")()
+  def referenceSuite = suite("Reference")(
+    suite("ToString")()
+  )
 
   def tupleSuite = suite("Tuple")(
     suite("Mapping")(
@@ -55,6 +57,14 @@ object TypeSpec extends MorphirBaseSpec {
   )
 
   def unitSuite = suite("Unit")(
+    suite("ToString")(
+      test("It should provide an appropriate String representation of the type expr") {
+        val sut = Type.Unit(())
+        assertTrue(
+          sut.toString == "()"
+        )
+      }
+    ),
     suite("Mapping")(
       test("Mapping a Unit[Int] using toString should return a Unit[String]") {
         val actual   = Type.Unit(42)
@@ -80,6 +90,14 @@ object TypeSpec extends MorphirBaseSpec {
   )
 
   def variableSuite = suite("Variable")(
+    suite("ToString")(
+      test("It should provide an appropriate String representation of the type expr") {
+        val sut = Type.Variable(100, n"SomeVar")
+        assertTrue(
+          sut.toString == "someVar"
+        )
+      }
+    ),
     suite("Mapping")(
       test("Mapping a Variable[Int] using toString should return a Variable[String]") {
         val sut      = Type.Variable(100, n"Acme")

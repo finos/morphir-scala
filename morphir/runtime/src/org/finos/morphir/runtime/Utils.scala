@@ -66,7 +66,7 @@ object Extractors {
   object ResultRef {
     def unapply(tpe: UType): Option[(UType, UType)] =
       tpe match {
-        case Type.Reference(attributes, FQString("Morphir.SDK:Result:result"), Chunk(keyType, valType)) =>
+        case Type.Reference(_, FQString("Morphir.SDK:Result:result"), Chunk(keyType, valType)) =>
           Some((keyType, valType))
         case _ => None
       }
@@ -74,7 +74,7 @@ object Extractors {
   object DictRef {
     def unapply(tpe: UType): Option[(UType, UType)] =
       tpe match {
-        case Type.Reference(attributes, FQString("Morphir.SDK:Dict:dict"), Chunk(keyType, valType)) =>
+        case Type.Reference(_, FQString("Morphir.SDK:Dict:dict"), Chunk(keyType, valType)) =>
           Some((keyType, valType))
         case _ => None
       }
@@ -139,7 +139,7 @@ object Extractors {
           lookedUp match {
             case Some(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
               val newBindings = typeParams.zip(typeArgs).toMap
-              Some(expr, newBindings)
+              Some((expr, newBindings))
             case _ => None
           }
         case _ => None
@@ -270,7 +270,7 @@ object Utils {
   )(implicit options: RTExecutionContext.Options): RTAction[Any, TypeError, UType] = {
     val dealiaser = new Dealiased(dists)
     (curried, args) match {
-      case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
+      case (Type.Function(_, parameterType, returnType), head :: tail) =>
         for {
           bindings    <- RTAction.fromEither(typeCheckArg(head, parameterType, knownBindings))
           appliedType <- unCurryTypeFunction(returnType, tail, dists, bindings)

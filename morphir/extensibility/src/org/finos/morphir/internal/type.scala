@@ -51,13 +51,13 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with
       loop(self, Nil)
     }
 
-    lazy val fieldCount: Int = foldLeftSome[Int](0) {
+    lazy val fieldCount: Int = foldDownSome[Int](0) {
       case (acc, Record(_, fields))              => acc + fields.size
       case (acc, ExtensibleRecord(_, _, fields)) => acc + fields.size
       case (acc, _)                              => acc
     }
 
-    final def foldLeft[Z](z: Z)(f: (Z, Type[A]) => Z): Z = {
+    final def foldDown[Z](z: Z)(f: (Z, Type[A]) => Z): Z = {
 
       @tailrec
       def loop(remaining: List[Type[A]], acc: Z): Z = remaining match {
@@ -89,7 +89,7 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with
       loop(List(this), z)
     }
 
-    final def foldLeftSome[Z](z: Z)(f: PartialFunction[(Z, Type[A]), Z]): Z = {
+    final def foldDownSome[Z](z: Z)(f: PartialFunction[(Z, Type[A]), Z]): Z = {
 
       @tailrec
       def loop(remaining: List[Type[A]], acc: Z): Z = remaining match {
@@ -122,6 +122,14 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with
       }
 
       loop(List(this), z)
+    }
+
+    final def foldLeft[Z](z: Z)(f: (Z, A) => Z): Z = foldDown(z) {
+      case (acc, typ) => f(acc, typ.attributes)
+    }
+
+    final def foldLeftSome[Z](z: Z)(f: PartialFunction[(Z, A), Z]): Z = foldDownSome(z) {
+      case (acc, typ) => f((acc, typ.attributes))
     }
 
     final def foldRight[Z](z: Z)(f: (A, Z) => Z): Z = foldUp(z) {
@@ -157,6 +165,40 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with
       }
       acc
     }
+
+    final def foldUpSome[Z](z: Z)(f: PartialFunction[(Type[A], Z), Z]): Z = {
+      val stack = collection.mutable.Stack[Type[A]](this)
+      var acc   = z
+      while (stack.nonEmpty) {
+        val current = stack.pop()
+        current match {
+          case e @ ExtensibleRecord(_, _, _) =>
+            stack.pushAll(e.fields.map(_.data))
+
+          case fun @ Function(_, _, _) =>
+            stack.push(fun.argumentType, fun.returnType)
+
+          case rec @ Record(_, _) =>
+            stack.pushAll(rec.fields.map(_.data))
+
+          case ref: Reference[A] =>
+            stack.pushAll(ref.typeParams)
+
+          case t @ Tuple(_, _) =>
+            stack.pushAll(t.elements)
+          case UnitType(_) =>
+            ()
+          case Variable(_, _) =>
+            ()
+        }
+        if (f.isDefinedAt((current, acc))) {
+          acc = f((current, acc))
+        }
+      }
+      acc
+    }
+
+    def fold[A1 >: A](z: A1)(f: (A1, A1) => A1): A1 = foldLeft(z)(f)
 
     def fold[Z](
         unitCase0: A => Z,
@@ -254,17 +296,23 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with
 
     def tag: Int
 
-    /**
-     * Transform traverses the type tree in a stack safe manner.
-     */
-    def transform[A0 >: A, S, Z](transformFunc: (S, Type[A0]) => (S, Z)): (S, Z) = ???
-
+    override def toString: String = {
+      val sb = new StringBuilder()
+      foldUp(sb) {
+        case (t @ Type.Reference(_, FQName.ReferenceName(referenceName), _), sb) =>
+          sb.append((referenceName :: t.typeParams.map(_.toString)).mkString(" "))
+        case (Type.Unit(_), sb)           => sb.append("()")
+        case (Type.Variable(_, name), sb) => sb.append(name.toCamelCase)
+        case _                            => sb
+      }
+      sb.toString()
+    }
   }
 
   object Type {
 
     object Attributes {
-      def unapply[A](typ: Type[A]): Option[A] = Some(typ.attributes)
+      def unapply[A](typ: Type[A]): Some[A] = Some(typ.attributes)
     }
     def reference[A](attributes: A)(name: FQName, typeParams: List[Type[A]] = List.empty): Reference[A] =
       Reference(attributes, name, typeParams)

@@ -88,6 +88,10 @@ trait FQNameModule {
 
     def fromString(fqNameString: String)(implicit options: FQNamingOptions): FQName =
       fromString(fqNameString, options.defaultSeparator)
+
+    object ReferenceName {
+      def unapply(fqName: FQName): Some[String] = Some(fqName.toReferenceName)
+    }
   }
 
   sealed case class FQNamingOptions(defaultPackage: PackageName, defaultModule: ModuleName, defaultSeparator: String)

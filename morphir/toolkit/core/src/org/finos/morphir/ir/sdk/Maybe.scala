@@ -5,6 +5,7 @@ import org.finos.morphir.ir.Type.Specification.CustomTypeSpecification
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.Value.{apply, constructor, RawValue, Value}
 import org.finos.morphir.ir.{Module, NeedsAttributes}
+import scala.annotation.unused
 
 object Maybe extends MorphirIRSdkModule("Maybe") {
   val moduleSpec: Module.USpecification = Module.USpecification(
@@ -58,18 +59,18 @@ object Maybe extends MorphirIRSdkModule("Maybe") {
   def maybeType(itemType: UType): UType =
     reference(fqn("Maybe"), itemType)
 
-  def maybeType[A](attributes: A, itemType: Type[A])(implicit ev: NeedsAttributes[A]): Type[A] =
+  def maybeType[A](attributes: A, itemType: Type[A])(implicit @unused ev: NeedsAttributes[A]): Type[A] =
     reference(attributes, fqn("Maybe"), itemType)
 
   def just(value: RawValue): RawValue =
     apply(constructor(fqn("Just")), value)
 
-  def just[VA](va: VA)(value: Value[Nothing, VA])(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA] =
+  def just[VA](va: VA)(value: Value[Nothing, VA])(implicit @unused ev: NeedsAttributes[VA]): Value[Nothing, VA] =
     apply(va, constructor(va, fqn("Just")), value)
 
   lazy val nothing: RawValue =
     constructor(fqn("Nothing"))
-  def nothing[VA](va: VA)(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA] =
+  def nothing[VA](va: VA)(implicit @unused ev: NeedsAttributes[VA]): Value[Nothing, VA] =
     constructor(va, fqn("Nothing"))
 
   // todo add nativeFunctions

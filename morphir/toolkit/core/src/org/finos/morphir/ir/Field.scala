@@ -31,7 +31,7 @@ object Field {
     /**
      * Attributes the field with the given `attributes`.
      */
-    def attributeTypeAs[Attributes](attributes: => Attributes): Field[Type[Attributes]] =
+    def attributeTypeAs[Attribs](attributes: => Attribs): Field[Type[Attribs]] =
       Field(self.name, self.data.mapAttributes(_ => attributes))
 
     /**

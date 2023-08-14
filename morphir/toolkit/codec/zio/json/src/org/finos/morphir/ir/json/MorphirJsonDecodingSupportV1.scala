@@ -19,7 +19,7 @@ import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification 
 import org.finos.morphir.ir.Value.{Value, _}
 import org.finos.morphir.ir.module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 
-import scala.annotation.nowarn
+import scala.annotation.{nowarn, unused}
 
 trait MorphirJsonDecodingSupportV1 {
   implicit val unitDecoder: JsonDecoder[Unit] = JsonDecoder.list[String].mapOrFail {
@@ -245,8 +245,8 @@ trait MorphirJsonDecodingSupportV1 {
   //   Json.Null.decoder.map(v => ())
 
   implicit def valueSpecificationDecoder[A: JsonDecoder]: JsonDecoder[ValueSpecification[A]] = {
-    final case class Spec[A](inputs: Chunk[(Name, Type[A])], output: Type[A])
-    lazy val dec: JsonDecoder[Spec[A]] = DeriveJsonDecoder.gen
+    final case class Spec(inputs: Chunk[(Name, Type[A])], output: Type[A])
+    lazy val dec: JsonDecoder[Spec] = DeriveJsonDecoder.gen
     dec.map(spec => ValueSpecification(spec.inputs, spec.output))
   }
 
@@ -330,44 +330,44 @@ trait MorphirJsonDecodingSupportV1 {
       patternAsPatternDecoder[A].widen[Pattern[A]]
 
   implicit def moduleSpecificationDecoder[TA](implicit
-      decoder: JsonDecoder[TA]
+      @unused decoder: JsonDecoder[TA]
   ): JsonDecoder[ModuleSpecification[TA]] = {
-    final case class Spec[TA](
+    final case class Spec(
         types: List[(Name, Documented[TypeSpecification[TA]])],
         values: List[(Name, Documented[ValueSpecification[TA]])]
     )
-    lazy val dec: JsonDecoder[Spec[TA]] = DeriveJsonDecoder.gen
+    lazy val dec: JsonDecoder[Spec] = DeriveJsonDecoder.gen
     dec.map(spec => ModuleSpecification(spec.types.toMap, spec.values.toMap))
   }
 
   implicit def moduleDefinitionDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[ModuleDefinition[TA, VA]] = {
-    final case class Def[TA, VA](
+    final case class Def(
         types: List[(Name, AccessControlled[Documented[TypeDefinition[TA]]])],
         values: List[(Name, AccessControlled[Documented[ValueDefinition[TA, VA]]])]
     )
-    lazy val dec1: JsonDecoder[Def[TA, VA]] = DeriveJsonDecoder.gen
+    lazy val dec1: JsonDecoder[Def] = DeriveJsonDecoder.gen
     dec1.map(d => ModuleDefinition(d.types.toMap, d.values.toMap))
   }
 
   // final case class Specification[+TA](modules: Map[ModuleName, ModuleSpec[TA]]) {
   implicit def packageModuleSpecificationDecoder[TA: JsonDecoder]: JsonDecoder[PackageSpecification[TA]] = {
-    final case class Module[TA](name: ModuleName, spec: ModuleSpecification[TA])
-    final case class Spec[TA](modules: List[Module[TA]])
+    final case class Module(name: ModuleName, spec: ModuleSpecification[TA])
+    final case class Spec(modules: List[Module])
 
-    implicit val modDec: JsonDecoder[Module[TA]] = DeriveJsonDecoder.gen
-    lazy val _                                   = modDec // This is to suppress unused local val warning
-    lazy val dec: JsonDecoder[Spec[TA]]          = DeriveJsonDecoder.gen
+    implicit val modDec: JsonDecoder[Module] = DeriveJsonDecoder.gen
+    lazy val _                               = modDec // This is to suppress unused local val warning
+    lazy val dec: JsonDecoder[Spec]          = DeriveJsonDecoder.gen
     dec.map(s => PackageSpecification(s.modules.map(m => m.name -> m.spec).toMap))
   }
 
   implicit def packageModuleDefinitionDecoder[TA: JsonDecoder, VA: JsonDecoder]
       : JsonDecoder[PackageDefinition[TA, VA]] = {
-    final case class Module[TA, VA](name: ModuleName, `def`: AccessControlled[ModuleDefinition[TA, VA]])
-    final case class Spec[TA, VA](modules: List[Module[TA, VA]])
+    final case class Module(name: ModuleName, `def`: AccessControlled[ModuleDefinition[TA, VA]])
+    final case class Spec(modules: List[Module])
 
-    implicit val modDec: JsonDecoder[Module[TA, VA]] = DeriveJsonDecoder.gen
-    lazy val _                                       = modDec // This is to suppress unused local val warning
-    lazy val dec: JsonDecoder[Spec[TA, VA]]          = DeriveJsonDecoder.gen
+    implicit val modDec: JsonDecoder[Module] = DeriveJsonDecoder.gen
+    lazy val _                               = modDec // This is to suppress unused local val warning
+    lazy val dec: JsonDecoder[Spec]          = DeriveJsonDecoder.gen
     dec.map(d => PackageDefinition(d.modules.map(m => m.name -> m.`def`).toMap))
   }
 

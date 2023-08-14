@@ -2,6 +2,7 @@ package org.finos.morphir
 package runtime
 
 import org.finos.morphir.naming._
+import scala.annotation.unused
 import zio.Tag
 
 final case class SymbolTable private (bindings: Map[Symbol, SymbolValue]) { self =>
@@ -17,7 +18,7 @@ final case class SymbolTable private (bindings: Map[Symbol, SymbolValue]) { self
 
   def apply(symbol: Symbol): SymbolValue = bindings(symbol)
 
-  def bind[A](symbol: Symbol, value: A)(implicit ev: Not[A =:= SymbolValue], tagged: Tag[A]): SymbolTable =
+  def bind[A](symbol: Symbol, value: A)(implicit @unused ev: Not[A =:= SymbolValue], tagged: Tag[A]): SymbolTable =
     copy(bindings = self.bindings + (symbol -> SymbolValue.typed(value)))
 
   def get(symbol: Symbol): Option[SymbolValue] = bindings.get(symbol)

@@ -7,7 +7,7 @@ import zio.Chunk
 import Literal.Literal
 import Pattern._
 
-private[internal] sealed trait Pattern[+A] { self =>
+sealed trait Pattern[+A] { self =>
   def attributes: A
 
   def map[B](f: A => B): Pattern[B] = self match {

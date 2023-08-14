@@ -428,6 +428,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
     def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
+      def ivyDeps                    = Agg(Deps.org.typelevel.`scalac-compat-annotation`)
       def platformSpecificModuleDeps = Seq(extensibility, morphir, toolkit.core, toolkit.codec.zio.json)
     }
 

@@ -78,8 +78,8 @@ object ToMorphirType {
       case Concept.LocalTime               => localTimeUType.as
       case Concept.Char                    => charUType.as
       case Concept.Unit                    => unitUType.as
-      case Concept.Alias(name, value)      => toUTypeConverter(T.reference(name))
-      case Concept.Enum(name, cases)       => toUTypeConverter(T.reference(name))
+      case Concept.Alias(name, _)          => toUTypeConverter(T.reference(name))
+      case Concept.Enum(name, _)           => toUTypeConverter(T.reference(name))
       case Concept.List(elementType)       => listUType(conceptToTypeIR(elementType)).as
       case Concept.Optional(elementType)   => optionUType(conceptToTypeIR(elementType)).as
       case Concept.Result(errType, okType) => resultUType(conceptToTypeIR(errType), conceptToTypeIR(okType)).as
@@ -93,16 +93,16 @@ object ToMorphirType {
       // Treat a record as an aliased reference on the type level, on the value level it has fields
       // Record('Pack.Mod.Person', [name, age]) on the type-level is just Reference(Pack.Mod.Person)
       // on the value level it's the equivalent of a record behind a type alias e.g. `person:Person; person = {name:"", age:""}`
-      case Concept.Record(name, fields) =>
+      case Concept.Record(name, _) =>
         toUTypeConverter(T.reference(name))
 
       case Concept.Tuple(values) =>
         val types: scala.List[UType] = values.map(conceptToTypeIR(_).morphirType)
         toUTypeConverter(T.tupleVar(types: _*))
 
-      case Concept.Any          => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
-      case Concept.Nothing      => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
-      case Concept.Union(cases) => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
+      case Concept.Any      => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
+      case Concept.Nothing  => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
+      case Concept.Union(_) => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
     }
 
   final class SummonPartiallyApplied[A](private val dummy: Boolean = true) extends AnyVal {

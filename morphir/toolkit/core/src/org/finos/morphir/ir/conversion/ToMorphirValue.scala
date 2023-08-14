@@ -56,14 +56,14 @@ trait ToMorphirTypedValueInstances extends ToMorphirTypedValueInstancesLowPriori
 trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
   import ToMorphirUType._
 
-  implicit def dataToIR[Data]: ToMorphirTypedValue[Data] = {
+  implicit lazy val dataToIR: ToMorphirTypedValue[Data] = {
     case Data.Unit           => V.unit(().morphirType)
     case Data.Boolean(value) => if (value) Literal.Lit.True else Literal.Lit.False
     case Data.Byte(value: scala.Byte) =>
       V.apply(
         value.morphirType,
         V.reference(value.morphirType, FQName.fromString("Morphir.SDK:Int:toInt8")),
-        V.intTyped(value)
+        V.intTyped(value.toInt)
       )
     case Data.Char(value: scala.Char)          => V.literal(value.morphirType, Lit.char(value))
     case Data.Decimal(value: scala.BigDecimal) => V.decimal(value.morphirType, value)
@@ -73,7 +73,7 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
       V.apply(
         value.morphirType,
         V.reference(value.morphirType, FQName.fromString("Morphir.SDK:Int:toInt16")),
-        V.intTyped(value)
+        V.intTyped(value.toInt)
       )
     case Data.Int32(value: scala.Int)         => V.int(value.morphirType, value)
     case Data.String(value: java.lang.String) => V.string(value.morphirType, value)
@@ -153,29 +153,29 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     case Data.Aliased(data, shape) =>
       val alias = shape.morphirType
       dataToIR(data) match {
-        case Value.Apply(attributes, function, argument) => Value.Apply(alias, function, argument)
-        case Value.Constructor(attributes, name)         => Value.Constructor(alias, name)
-        case Value.Destructure(attributes, pattern, valueToDestruct, inValue) =>
+        case Value.Apply(_, function, argument) => Value.Apply(alias, function, argument)
+        case Value.Constructor(_, name)         => Value.Constructor(alias, name)
+        case Value.Destructure(_, pattern, valueToDestruct, inValue) =>
           Value.Destructure(alias, pattern, valueToDestruct, inValue)
-        case Value.Field(attributes, subjectValue, fieldName) => Value.Field(alias, subjectValue, fieldName)
-        case Value.FieldFunction(attributes, name)            => Value.FieldFunction(alias, name)
-        case Value.IfThenElse(attributes, condition, thenBranch, elseBranch) =>
+        case Value.Field(_, subjectValue, fieldName) => Value.Field(alias, subjectValue, fieldName)
+        case Value.FieldFunction(_, name)            => Value.FieldFunction(alias, name)
+        case Value.IfThenElse(_, condition, thenBranch, elseBranch) =>
           Value.IfThenElse(alias, condition, thenBranch, elseBranch)
-        case Value.Lambda(attributes, argumentPattern, body) => Value.Lambda(alias, argumentPattern, body)
-        case Value.LetDefinition(attributes, valueName, valueDefinition, inValue) =>
+        case Value.Lambda(_, argumentPattern, body) => Value.Lambda(alias, argumentPattern, body)
+        case Value.LetDefinition(_, valueName, valueDefinition, inValue) =>
           Value.LetDefinition(alias, valueName, valueDefinition, inValue)
-        case Value.LetRecursion(attributes, valueDefinitions, inValue) =>
+        case Value.LetRecursion(_, valueDefinitions, inValue) =>
           Value.LetRecursion(alias, valueDefinitions, inValue)
-        case Value.List(attributes, elements)                   => Value.List(alias, elements)
-        case Value.Literal(attributes, literal)                 => Value.Literal(alias, literal)
-        case Value.PatternMatch(attributes, branchOutOn, cases) => Value.PatternMatch(alias, branchOutOn, cases)
-        case Value.Record(attributes, fields)                   => Value.Record(alias, fields)
-        case Value.Reference(attributes, fullyQualifiedName)    => Value.Reference(alias, fullyQualifiedName)
-        case Value.Tuple(attributes, elements)                  => Value.Tuple(alias, elements)
-        case Value.Unit(attributes)                             => Value.Unit(alias)
-        case Value.UpdateRecord(attributes, valueToUpdate, fieldsToUpdate) =>
+        case Value.List(_, elements)                   => Value.List(alias, elements)
+        case Value.Literal(_, literal)                 => Value.Literal(alias, literal)
+        case Value.PatternMatch(_, branchOutOn, cases) => Value.PatternMatch(alias, branchOutOn, cases)
+        case Value.Record(_, fields)                   => Value.Record(alias, fields)
+        case Value.Reference(_, fullyQualifiedName)    => Value.Reference(alias, fullyQualifiedName)
+        case Value.Tuple(_, elements)                  => Value.Tuple(alias, elements)
+        case Value.Unit(_)                             => Value.Unit(alias)
+        case Value.UpdateRecord(_, valueToUpdate, fieldsToUpdate) =>
           Value.UpdateRecord(alias, valueToUpdate, fieldsToUpdate)
-        case Value.Variable(attributes, name) => Value.Variable(alias, name)
+        case Value.Variable(_, name) => Value.Variable(alias, name)
       }
     case Data.Case(values, enumLabel, shape) =>
       // Okay I have an outermost thing type - the union's shape - and an innermost value - the constructor itself
@@ -191,7 +191,7 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
       val name = shape.name.copy(localName = Name.fromString(enumLabel))
       curryFunctionValue(name, shape.morphirType, args)
 
-    case Data.Union(value, shape) => ??? // TODO: to be implemented
+    case Data.Union(_, _) => ??? // TODO: to be implemented
   }
 
   implicit val unitTyped: ToMorphirTypedValue[scala.Unit] = makeTyped { v =>
