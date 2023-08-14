@@ -6,8 +6,10 @@ sealed trait ShowBuilder {
   protected def out: Appendable
   private var indentation = 0
 
-  def str(value: Any): Unit =
+  def str(value: Any): Unit = {
     out.append(value.toString)
+    ()
+  }
 
   def line(value: Any): Unit = {
     str(value)
@@ -32,6 +34,7 @@ sealed trait ShowBuilder {
   def newline(): Unit = {
     out.append("\n")
     out.append("  " * indentation)
+    ()
   }
 
 }

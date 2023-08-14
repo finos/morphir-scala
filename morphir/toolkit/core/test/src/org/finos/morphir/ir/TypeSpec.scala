@@ -191,7 +191,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         "age"   -> reference(fqn("Morphir.SDK", "Int", "Int")),
         "items" -> reference(fqn("Morphir.SDK", "List", "List"), reference(fqn("Morphir.SDK", "String", "String")))
       )
-      val actual = sut.mapReferenceName { case FQName(_, module, localName) =>
+      val actual = sut.mapReferenceName { case FQName(_, _, localName) =>
         FQName(PackageName.fromString("Acme.SDK"), ModuleName.fromString("Basics"), localName)
       }
       assertTrue(

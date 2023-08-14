@@ -97,7 +97,9 @@ trait TypeModule { module =>
   final def field[A](tuple: (String, Type[A])): FieldT[A] = Field(Name.fromString(tuple._1), tuple._2)
 
   // Function constructors
-  final def function[A](attributes: A, argumentType: Type[A], returnType: Type[A]): Type[A] =
+  final def function[A](attributes: A, argumentType: Type[A], returnType: Type[A])(implicit
+      @unused ev: NeedsAttributes[A]
+  ): Type[A] =
     Type.Function(attributes, argumentType, returnType)
 
   final def function(argumentType: UType, returnType: UType): UType =

@@ -220,35 +220,6 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       }
     }
   }
-
-  object elm extends Module {
-    object facade extends CrossPlatform with CrossValue {
-      trait Shared extends MorphirCommonModule with MorphirPublishModule {
-
-        def platformSpecificModuleDeps = Seq(morphir)
-      }
-
-      object jvm extends Shared with MorphirJVMModule {
-        object test extends ScalaTests with TestModule.Munit {
-          def ivyDeps = super.ivyDeps() ++ Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-
-        }
-      }
-
-      object js extends Shared with MorphirJSModule {
-        object test extends ScalaJSTests with TestModule.Munit {
-          def ivyDeps = super.ivyDeps() ++ Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-        }
-      }
-
-      object native extends Shared with MorphirNativeModule {
-        object test extends ScalaNativeTests with TestModule.Munit {
-          def ivyDeps = super.ivyDeps() ++ Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-        }
-      }
-    }
-  }
-
   object extensibility extends CrossPlatform with CrossValue {
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
       def ivyDeps = super.ivyDeps() ++ Agg(

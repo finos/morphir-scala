@@ -172,7 +172,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
     suite("Field")(
       suite("Attributed")(
         test("It should be possible to construct a field access given attributes a subject/target and a field name") {
-          val subject = variable("person")
+          val subject = variable(stringType, "person")
           val actual  = field(stringType, subject, "firstName")
           assertTrue(
             actual == Field(stringType, subject, "firstName"),

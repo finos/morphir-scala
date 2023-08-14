@@ -141,11 +141,11 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
 
     case record: Data.Record =>
       val fields = record.values.map { case (Label(name), value) => (name, dataToIR(value)) }
-      V.record(record.shape.morphirType, fields: _*)
+      Value.Record(record.shape.morphirType, fields: _*)
 
     case struct: Data.Struct =>
       val fields = struct.values.map { case (Label(name), value) => (name, dataToIR(value)) }
-      V.record(struct.shape.morphirType, fields: _*)
+      Value.Record(struct.shape.morphirType, fields: _*)
 
     case tuple: Data.Tuple =>
       val values = tuple.values.map { data => dataToIR(data) }
@@ -185,7 +185,7 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         fields match {
           case Nil => V.constructor(fqn, outerTpe)
           case head :: tail =>
-            V.apply(outerTpe, curryFunctionValue(fqn, Type.function((), head.attributes, outerTpe), tail), head)
+            V.apply(outerTpe, curryFunctionValue(fqn, Type.function(head.attributes, outerTpe), tail), head)
         }
       val args = values.map { case (_, data) => dataToIR(data) }.reverse
       val name = shape.name.copy(localName = Name.fromString(enumLabel))

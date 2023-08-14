@@ -95,7 +95,7 @@ object Value extends internal.PatternModule {
   final def constructor(name: String, tpe: UType): TypedValue              = Constructor.Typed(name, tpe)
   final def constructor(name: FQName, tpe: UType): TypedValue              = Constructor.Typed(name, tpe)
 
-  final def decimal[A](attributes: A, value: BigDecimal): Value[Nothing, A] =
+  final def decimal[A](attributes: A, value: BigDecimal)(implicit @unused ev: NeedsAttributes[A]): Value[Nothing, A] =
     LiteralValue(attributes, Lit.decimal(value))
   final def decimal(value: BigDecimal): RawValue = LiteralValue.Raw(Lit.decimal(value))
 
@@ -380,10 +380,12 @@ object Value extends internal.PatternModule {
   final def patternMatch(branchOutOn: RawValue, cases: (UPattern, RawValue)*): RawValue =
     PatternMatch.Raw(branchOutOn, cases: _*)
 
-  final def record[TA, VA](attributes: VA, fields: (String, Value[TA, VA])*)(implicit
-      @unused ev: Not[VA =:= (String, Value[TA, VA])]
+  final def record[TA, VA](attributes: VA, firstField: (String, Value[TA, VA]), fields: (String, Value[TA, VA])*)(
+      implicit
+      @unused ev: Not[VA =:= (String, Value[TA, VA])],
+      @unused ev1: NeedsAttributes[VA]
   ): Value[TA, VA] =
-    Record(attributes, fields: _*)
+    Record(attributes, (firstField +: fields): _*)
 
   final def record[TA, VA](attributes: VA, f: Record.Builder[TA, VA] => Any)(implicit
       @unused ev: IsNotAValue[VA]
