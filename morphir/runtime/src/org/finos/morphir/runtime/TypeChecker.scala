@@ -3,7 +3,7 @@ package org.finos.morphir.runtime
 import org.finos.morphir.naming._
 import org.finos.morphir.naming._
 import org.finos.morphir.ir.{Type as T, Value as V}
-import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
+import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec, UDefinition => UValueDef}
 import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
@@ -85,19 +85,19 @@ class TypeChecker(dists: Distributions) {
     def handleIfThenElse(tpe : UType, condition : TypedValue, thenValue : TypedValue, elseValue : TypedValue, context : Context) : TypeCheckerResult = {
         List()
     }
-    def handleLambda(tpe : UType, pattern, body : TypedValue, context : Context) : TypeCheckerResult = {
+    def handleLambda(tpe : UType, pattern : Pattern, body : TypedValue, context : Context) : TypeCheckerResult = {
         List()
     }
-    def handleLetDefinition(tpe : UType, name : Name, definition, inValue : TypedValue, context : Context) : TypeCheckerResult = {
+    def handleLetDefinition(tpe : UType, name : Name, definition : UValueDef, inValue : TypedValue, context : Context) : TypeCheckerResult = {
         List()
     }
-    def handleLetRecursion(tpe : UType, definitions, inValue : TypedValue, context : Context) : TypeCheckerResult = {
+    def handleLetRecursion(tpe : UType, definitions: Map[Name, UValueDef], inValue : TypedValue, context : Context) : TypeCheckerResult = {
         List()
     }
-    def handleListValue(tpe : UType, elements, context : Context) : TypeCheckerResult = {
+    def handleListValue(tpe : UType, elements : List[TypedValue], context : Context) : TypeCheckerResult = {
         List()
     }
-    def handlePatternMatch(tpe : UType, value : TypedValue, cases, context : Context) : TypeCheckerResult = {
+    def handlePatternMatch(tpe : UType, value : TypedValue, cases : , context : Context) : TypeCheckerResult = {
         List()
     }
     def handleRecord(tpe : UType, fields, context : Context) : TypeCheckerResult = {

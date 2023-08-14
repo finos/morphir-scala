@@ -20,9 +20,6 @@ import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
 import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
 
-
-
-
 object Utils {
   import Extractors.*
 
@@ -171,6 +168,5 @@ object Utils {
       case chunk =>
         curryTypeFunction(Type.Function(getattributes(inner), chunk.head._2, inner), chunk.tail)
     }
-
 
 }

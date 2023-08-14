@@ -9,7 +9,6 @@ final case class MorphirIRDecodingError(message: String) extends MorphirRuntimeE
 sealed abstract class EvaluationError(message: String) extends MorphirRuntimeError(message)
 sealed abstract class TypeError(message: String)       extends MorphirRuntimeError(message)
 
-
 final case class UnsupportedType(message: String)         extends TypeError(message)
 final case class TooManyArgs(message: String)             extends TypeError(message)
 final case class NativeFunctionTypeError(message: String) extends TypeError(message)
@@ -18,8 +17,9 @@ final case class InferenceConflict(message: String)       extends TypeError(mess
 final case class NotImplementedType(message: String)      extends TypeError(message)
 final case class TypeMismatch(message: String)            extends TypeError(message)
 final case class TypeNotFound(message: String)            extends TypeError(message)
-final case class ManyErrors(errors : TypeError*)            extends TypeError("\n"+errors.map(_.toString).mkString("\n"))
-final case class TypeCheckerErrors(errors : List[GoodTypeError])            extends EvaluationError("\n"+errors.map(_.toString).mkString("\n"))
+final case class ManyErrors(errors: TypeError*) extends TypeError("\n" + errors.map(_.toString).mkString("\n"))
+final case class TypeCheckerErrors(errors: List[GoodTypeError])
+    extends EvaluationError("\n" + errors.map(_.toString).mkString("\n"))
 
 final case class IrToDatamodelError(message: String)         extends EvaluationError(message)
 final case class MissingField(message: String)               extends EvaluationError(message)

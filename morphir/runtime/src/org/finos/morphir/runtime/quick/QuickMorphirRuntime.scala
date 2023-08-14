@@ -35,10 +35,9 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
     val errors = new TypeChecker(dists).check(value)
     for {
       ctx <- ZPure.get[RTExecutionContext]
-      _ <- if (errors.length == 0) RTAction.succeed(()) else RTAction.fail(TypeCheckerErrors(errors))
+      _   <- if (errors.length == 0) RTAction.succeed(()) else RTAction.fail(TypeCheckerErrors(errors))
       res <- EvaluatorQuick.evalAction(value, store, dists)
     } yield res
-
 
   def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
     val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)

@@ -6,9 +6,9 @@ import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *
 import org.finos.morphir.ir.Value.{Pattern, Value}
 import Name.toTitleCase
 
-sealed trait Result[TA, VA]{
-  def succinct(depth : Int) : String = s"${this.getClass} (Default implementation)"
-  def succinct : String = succinct(2)
+sealed trait Result[TA, VA] {
+  def succinct(depth: Int): String = s"${this.getClass} (Default implementation)"
+  def succinct: String             = succinct(2)
 }
 
 object Result {
@@ -48,25 +48,29 @@ object Result {
   }
 
   case class Tuple[TA, VA](elements: Any) extends Result[TA, VA] {
-    override def succinct(depth: Int) = if (depth == 0) "Tuple(...)" else {
+    override def succinct(depth: Int) = if (depth == 0) "Tuple(...)"
+    else {
       s"Tuple(${Helpers.tupleToList(elements).map(_.asInstanceOf[Result[TA, VA]]).map(_.succinct(depth - 1)).mkString(", ")})"
     }
   }
 
   case class Record[TA, VA](elements: Map[Name, Result[TA, VA]]) extends Result[TA, VA] {
-    override def succinct(depth: Int) = if (depth == 0) "Record(..)" else {
+    override def succinct(depth: Int) = if (depth == 0) "Record(..)"
+    else {
       s"Record(${elements.map { case (key, value) => s"$key -> ${value.succinct(depth - 1)}" }.mkString(", ")})"
     }
   }
 
   case class ListResult[TA, VA](elements: List[Result[TA, VA]]) extends Result[TA, VA] {
-    override def succinct(depth: Int) = if (depth == 0) "List(..)" else {
+    override def succinct(depth: Int) = if (depth == 0) "List(..)"
+    else {
       s"List(${elements.map(value => value.succinct(depth - 1)).mkString(", ")})"
     }
   }
 
   case class MapResult[TA, VA](elements: Map[Result[TA, VA], Result[TA, VA]]) extends Result[TA, VA] {
-    override def succinct(depth: Int) = if (depth == 0) "Dict(..)" else {
+    override def succinct(depth: Int) = if (depth == 0) "Dict(..)"
+    else {
       s"Dict(${elements.map { case (key, value) => s"${key.succinct(depth - 1)} -> ${value.succinct(depth - 1)}" }.mkString(", ")})"
     }
   }
@@ -92,7 +96,8 @@ object Result {
       extends Result[TA, VA]
 
   case class ConstructorResult[TA, VA](name: FQName, values: List[Result[TA, VA]]) extends Result[TA, VA] {
-    override def succinct(depth: Int) = if (depth == 0) s"${name.toString}(..)" else {
+    override def succinct(depth: Int) = if (depth == 0) s"${name.toString}(..)"
+    else {
       s"${name.toString}(${values.map(value => value.succinct(depth - 1)).mkString(", ")})"
     }
   }

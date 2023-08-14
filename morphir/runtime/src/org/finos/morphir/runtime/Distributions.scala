@@ -11,7 +11,7 @@ import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 import zio.Chunk
 
-class Distributions(dists: Map[PackageName, Distribution]){
+class Distributions(dists: Map[PackageName, Distribution]) {
   def lookupModuleSpecification(packageName: PackageName, module: ModuleName): Option[ModSpec.Raw] =
     dists.get(packageName) match {
       case Some(Library(_, _, packageDef)) =>
@@ -32,7 +32,7 @@ class Distributions(dists: Map[PackageName, Distribution]){
     lookupModuleSpecification(pName, module).flatMap(_.lookupTypeSpecification(localName))
 
   def lookupTypeSpecification(fqName: FQName): Option[UTypeSpec] = {}
-  def getDists : Map[PackageName, Distribution] = dists
+  def getDists: Map[PackageName, Distribution]                   = dists
 }
 
 object Distributions {
