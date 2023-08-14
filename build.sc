@@ -90,6 +90,7 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
       trait ItestCross extends MillIntegrationTestModule with Cross.Module[String]
     }
   }
+
 }
 trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
   import DevMode._
@@ -396,7 +397,8 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     }
   }
 
-  object meta extends CrossPlatform with CrossValue {
+  object meta extends CrossPlatform with CrossValue { metaModule =>
+
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
 
       def compileIvyDeps = T {
@@ -408,17 +410,11 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       }
 
       def generatedSources = T {
-        val metaDir = T.dest / "org" / "finos" / "morphir" / "meta"
-        os.makeDir.all(metaDir)
-
-        os.write(metaDir / "data.scala", ShapelyCodeGen.data)
-        os.write(metaDir / "derivable.scala", ShapelyCodeGen.derivable)
-
-        if (isScala3(scalaVersion())) {
-          os.write(metaDir / "compat.scala", ShapelyCodeGen.compat)
+        if (isScala3()) {
+          super.generatedSources() ++ shared.code.meta.generatedSources() ++ shared.code.meta.compat.generatedSources()
+        } else {
+          super.generatedSources() ++ shared.code.meta.generatedSources()
         }
-
-        super.generatedSources() ++ Seq(PathRef(T.dest))
       }
 
       def scalacOptions = T {
@@ -466,37 +462,6 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       }
     }
 
-    object zio extends CrossPlatform with CrossValue {
-      def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
-      trait Shared extends MorphirCommonModule with MorphirPublishModule {
-        def ivyDeps                    = super.ivyDeps() ++ Agg(Deps.dev.zio.zio, Deps.dev.zio.`zio-prelude`)
-        def platformSpecificModuleDeps = Seq(morphir, runtime, toolkit.core)
-      }
-
-      object jvm extends Shared with MorphirJVMModule {
-        object test extends ScalaTests with TestModule.Munit {
-          def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-          def moduleDeps = super.moduleDeps ++ Agg(
-            testing.munit.jvm,
-            testing.munit.zio.jvm
-          )
-        }
-      }
-
-      object js extends Shared with MorphirJSModule {
-        object test extends ScalaJSTests with TestModule.Munit {
-          def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-          def moduleDeps = super.moduleDeps ++ Agg(testing.munit.js, testing.munit.zio.js)
-        }
-      }
-
-      object native extends Shared with MorphirNativeModule {
-        object test extends ScalaNativeTests with TestModule.Munit {
-          def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-          def moduleDeps = super.moduleDeps ++ Agg(testing.munit.native, testing.munit.zio.native)
-        }
-      }
-    }
   }
 
   object testing extends Module {
@@ -589,7 +554,11 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
   }
 
   object tests extends CrossPlatform {
+
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
+      def generatedSources = T {
+        super.generatedSources() ++ shared.code.meta.examples.generatedSources()
+      }
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.com.lihaoyi.sourcecode
       )
@@ -598,12 +567,14 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
     object jvm extends Shared with MorphirJVMModule {
       object test extends ScalaTests with TestModule.ZioTest {
+
         def ivyDeps = Agg(
           Deps.com.lihaoyi.`os-lib`,
           Deps.com.lihaoyi.sourcecode,
           Deps.dev.zio.`zio-test`,
           Deps.dev.zio.`zio-test-sbt`
         )
+
         def moduleDeps = super.moduleDeps ++ Agg(testing.zio.jvm)
       }
     }
@@ -788,6 +759,43 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
 }
 
+object shared extends Module {
+
+  object code extends Module {
+    object meta extends Module {
+
+      object compat extends Module {
+        def generatedSources = T {
+          val metaDir = T.dest / "org" / "finos" / "morphir" / "meta"
+          os.makeDir.all(metaDir)
+
+          os.write(metaDir / "compat.scala", ShapelyCodeGen.compat)
+
+          Seq(PathRef(T.dest))
+        }
+      }
+      object examples extends Module {
+        def generatedSources: T[Seq[mill.api.PathRef]] = T {
+          val metaDir = T.dest / "wheels" / "enums"
+          os.makeDir.all(metaDir)
+          os.write(metaDir / "GeneratedEnums.scala", ExamplesCodeGen.enums)
+          Seq(PathRef(T.dest))
+        }
+      }
+
+      def generatedSources = T {
+        val metaDir = T.dest / "org" / "finos" / "morphir" / "meta"
+        os.makeDir.all(metaDir)
+
+        os.write(metaDir / "data.scala", ShapelyCodeGen.data)
+        os.write(metaDir / "derivable.scala", ShapelyCodeGen.derivable)
+
+        Seq(PathRef(T.dest))
+      }
+
+    }
+  }
+}
 object site extends Docusaurus2Module with MDocModule {
   val workspaceDir = millbuild.build.millSourcePath
 
