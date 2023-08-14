@@ -119,6 +119,10 @@ object Extractors {
           case _ => None
         }
     }
+
+    class FunctionOnion(dists: Distributions) {
+      val dealiaser = Dealiased(dists)
+    }
   }
   object Values {
     object ApplyChain {
