@@ -31,7 +31,7 @@ object MorphirTypeError {
   case class CannotDealias(err: LookupError, msg: String = "Cannot dealias type")
       extends MorphirTypeError(s"$msg: ${err.getMsg}")
   case class TypeVariableMissing(name : Name) extends MorphirTypeError(s"Missing type variable $name.toTitleCase")
-  case class ValueMissing(value: TypedValue)             extends MorphirTypeError("Todo")
+  case class DefinitionMissing(err : LookupError)             extends MorphirTypeError(s"Cannot find definition: ${err.getMsg}")
   case class ConstructorMissing(fqn: FQName, tpe: UType) extends MorphirTypeError("Todo")
   case class ModuleMissing(modName: ModuleName)          extends MorphirTypeError("Todo")
   case class PackageMissing(pckName: PackageName)        extends MorphirTypeError("Todo")

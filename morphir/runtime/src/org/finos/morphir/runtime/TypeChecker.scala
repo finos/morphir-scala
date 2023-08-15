@@ -93,7 +93,7 @@ class TypeChecker(dists: Distributions) {
       }
       case (Type.Variable(_, name), _) => context.getTypeVariable(name) match {
         case None => List(new TypeVariableMissing(name))
-        case some(lookedUp) => conformsTo(lookedUp, declaredType, context)
+        case Some(lookedUp) => conformsTo(lookedUp, declaredType, context)
       }
       case (left @LeafType(), right @ LeafType()) => {
         if (left == right) List() else List(TypesMismatch(left, right, "value type does not match declared type"))
@@ -261,6 +261,9 @@ class TypeChecker(dists: Distributions) {
   def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
     val spec = dists.lookupTypeSpecification(fqn)
+    spec match{
+      case Left(err) => List()
+    }
     val curried = Utils.curryTypeFunction(spec)
 
     // TODO: Check the value dealiases to a definition that translates to this tpe
