@@ -100,10 +100,16 @@ class TypeChecker(dists: Distributions) {
     //TODO: Check value must be pattern
     fromChildren
   }
-  def handleConstructor(tpe: UType, fqn : FQName, context: Context): TypeCheckerResult =
-    List()
-  def handleFieldValue(tpe: UType, recordValue: TypedValue, name: Name, context: Context): TypeCheckerResult =
-    List()
+  def handleConstructor(tpe: UType, fqn : FQName, context: Context): TypeCheckerResult = {
+    val fromChildren = List()
+    //TODO: Check it's a function onion for a type with that constructor
+    fromChildren
+  }
+  def handleFieldValue(tpe: UType, recordValue: TypedValue, name: Name, context: Context): TypeCheckerResult = {
+    val fromChildren = check(recordVale, context)
+    //TODO: Check the value dealiases to a record which has that name
+    fromChildren
+  }
   def handleFieldFunction(tpe: UType, name: Name, context: Context): TypeCheckerResult =
     List()
   def handleIfThenElse(
