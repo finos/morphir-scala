@@ -117,7 +117,8 @@ class TypeChecker(dists: Distributions) {
     val fromTpe =
       dealias(function.attributes, context) match {
         case Right(Type.Function(_, paramType, returnType)) =>
-          helper(paramType != argument.attributes, new ArgumentDoesNotMatchParameter(argument, paramType)) ++
+          //TODO: Better than !=
+          helper(paramType != argument.attributes, new ArgumentDoesNotMatchParameter(argument, argument.attributes, paramType)) ++
             helper(returnType != tpe, new TypesMismatch(tpe, returnType, "Function return does not match apply node"))
         case Right(other) => List(new ApplyToNonFunction(other, argument.attributes))
         case Left(err) => List(err)
