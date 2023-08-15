@@ -214,7 +214,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
     "TwoArg",
     unionEnumShape
   )
-  val validString : TypedValue = V.string(Basics.stringType, "Green")
+  val validString : TypedValue = V.string(sdk.String.stringType, "Green")
   val intToInt : TypedValue = V.reference(T.function(Basics.intType, Basics.intType), FQName.fromString("Morphir/Examples/App:TypeCheckerTests:intToInt"))
 
   def spec =
@@ -226,6 +226,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
         },
         test("Apply arg type wrong"){
           val badApply : TypedValue = V.apply(Basics.intType, intToInt, validString)
+          testTypeCheck(badApply)(0)
         }
       ).provideLayerShared(typeCheckerLayer),
       suite("IfThenElse Tests")(
