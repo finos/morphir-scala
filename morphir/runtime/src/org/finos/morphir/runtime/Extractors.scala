@@ -111,10 +111,10 @@ object Extractors {
           case Type.Reference(_, typeName, typeArgs) =>
             val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
             lookedUp match {
-              case Some(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
+              case Right(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
                 val newBindings = typeParams.zip(typeArgs).toMap
                 Some(expr, newBindings)
-              case _ => None
+              case _ => None //Missing name, but failing extractors cause problems
             }
           case _ => None
         }
