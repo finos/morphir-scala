@@ -32,26 +32,37 @@ object MorphirTypeError {
         s"Tried to apply ${succinct(arg)} to ${succinct(nonFunction)} of type ${succinct(nonFunction.attributes)}, which is not a function"
       )
 
-  case class LiteralTypeMismatch(lit : Lit, tpe : UType) extends MorphirTypeError(s"Literal $lit is not of type ${succinct(tpe)}")
+  case class LiteralTypeMismatch(lit: Lit, tpe: UType)
+      extends MorphirTypeError(s"Literal $lit is not of type ${succinct(tpe)}")
   case class ImproperType(tpe: UType, msg: String) extends MorphirTypeError(s"$msg. Found: ${succinct(tpe)}")
 
-  case class ImproperTypeSpec(fqn : FQName, spec: UTypeSpec, msg: String) extends MorphirTypeError(s"$msg. $fqn points to: ${succinct(spec)}")
+  case class ImproperTypeSpec(fqn: FQName, spec: UTypeSpec, msg: String)
+      extends MorphirTypeError(s"$msg. $fqn points to: ${succinct(spec)}")
   case class CannotDealias(err: LookupError, msg: String = "Cannot dealias type")
       extends MorphirTypeError(s"$msg: ${err.getMsg}")
-  case class TypeVariableMissing(name : Name) extends MorphirTypeError(s"Missing type variable $name.toTitleCase")
-  case class DefinitionMissing(err : LookupError)             extends MorphirTypeError(s"Cannot find definition: ${err.getMsg}")
-  case class TypeMissing(err: LookupError) extends MorphirTypeError(s"Cannot find type: ${err.getMsg}")
-  case class OtherTypeError(msg : String) extends MorphirTypeError(msg)
-  case class TypeLacksField(tpe : UType, field : Name, msg : String) extends MorphirTypeError(s"${succinct(tpe)} lacks field ${field.toCamelCase}. $msg")
-  case class TypeHasExtraField(tpe: UType, contract: UType, field: Name) extends MorphirTypeError(s"${succinct(tpe)} has field ${field.toCamelCase}, which is not included in ${succinct(contract)}")
+  case class TypeVariableMissing(name: Name)     extends MorphirTypeError(s"Missing type variable $name.toTitleCase")
+  case class DefinitionMissing(err: LookupError) extends MorphirTypeError(s"Cannot find definition: ${err.getMsg}")
+  case class TypeMissing(err: LookupError)       extends MorphirTypeError(s"Cannot find type: ${err.getMsg}")
+  case class OtherTypeError(msg: String)         extends MorphirTypeError(msg)
+  case class TypeLacksField(tpe: UType, field: Name, msg: String)
+      extends MorphirTypeError(s"${succinct(tpe)} lacks field ${field.toCamelCase}. $msg")
+  case class TypeHasExtraField(tpe: UType, contract: UType, field: Name) extends MorphirTypeError(
+        s"${succinct(tpe)} has field ${field.toCamelCase}, which is not included in ${succinct(contract)}"
+      )
 
-  case class ValueLacksField(value : TypedValue, contract : UType,  field: Name) extends MorphirTypeError(s"${succinct(value)} lacks field ${field.toCamelCase}, which is required by ${succinct(contract)}")
-  case class ValueHasExtraField(value : TypedValue, contract: UType, field: Name) extends MorphirTypeError(s"${succinct(value)} has field ${field.toCamelCase}, which is not included in ${succinct(contract)}")
-  case class TypeHasDifferentFieldType(first : UType, second : UType, field : Name, firstTpe : UType, secondTpe : UType) extends MorphirTypeError(
-    s"tpe for field ${field.toCamelCase} is ${succinct(firstTpe)} in ${succinct(first)} but ${succinct(secondTpe)} in ${succinct(second)}"
-  )
-  case class ConstructorMissing(err: LookupError, tpe: UType) extends MorphirTypeError(s"Cannot find definition of type ${succinct(tpe)}: ${err.getMsg}")
-  case class ModuleMissing(modName: ModuleName)          extends MorphirTypeError("Todo")
-  case class PackageMissing(pckName: PackageName)        extends MorphirTypeError("Todo")
-  case class Unimplemented(s: String)                    extends MorphirTypeError(s)
+  case class ValueLacksField(value: TypedValue, contract: UType, field: Name) extends MorphirTypeError(
+        s"${succinct(value)} lacks field ${field.toCamelCase}, which is required by ${succinct(contract)}"
+      )
+  case class ValueHasExtraField(value: TypedValue, contract: UType, field: Name) extends MorphirTypeError(
+        s"${succinct(value)} has field ${field.toCamelCase}, which is not included in ${succinct(contract)}"
+      )
+  case class TypeHasDifferentFieldType(first: UType, second: UType, field: Name, firstTpe: UType, secondTpe: UType)
+      extends MorphirTypeError(
+        s"tpe for field ${field.toCamelCase} is ${succinct(firstTpe)} in ${succinct(first)} but ${succinct(secondTpe)} in ${succinct(second)}"
+      )
+  case class ConstructorMissing(err: LookupError, tpe: UType)
+      extends MorphirTypeError(s"Cannot find definition of type ${succinct(tpe)}: ${err.getMsg}")
+  case class ModuleMissing(modName: ModuleName)   extends MorphirTypeError("Todo")
+  case class PackageMissing(pckName: PackageName) extends MorphirTypeError("Todo")
+  case class Unimplemented(s: String)             extends MorphirTypeError(s)
 }

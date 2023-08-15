@@ -162,20 +162,18 @@ object Utils {
     fqn.getPackagePath == example.getPackagePath
   }
 
-  def uncurryFunctionType(functionTpe : UType) : (UType, Chunk[UType]) = {
+  def uncurryFunctionType(functionTpe: UType): (UType, Chunk[UType]) =
     functionTpe match {
-      case Type.Function(_, innerFunction, arg) => {
+      case Type.Function(_, innerFunction, arg) =>
         val (ret, args) = uncurryFunctionType(innerFunction)
         (ret, args :+ arg)
-      }
       case other => (other, Chunk())
     }
-  }
   def curryTypeFunction[TA](inner: Type[TA], params: Chunk[(Name, Type[TA])]): Type[TA] =
     params match {
       case Chunk() => inner
       case chunk =>
-        curryTypeFunction(Type.Function(inner.attributes, chunk.head._2, inner), chunk.tail) //TODO: Backwards?
+        curryTypeFunction(Type.Function(inner.attributes, chunk.head._2, inner), chunk.tail) // TODO: Backwards?
     }
 
 }

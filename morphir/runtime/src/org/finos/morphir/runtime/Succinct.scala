@@ -38,12 +38,11 @@ object Succinct {
     def apply[VA](pattern: Pattern[VA]): String = apply(pattern, 2)
 
   }
-  object TypeSpec{
-    def apply[TA](spec : T.Specification[TA], depth : Int) : String = {
-      spec match{
+  object TypeSpec {
+    def apply[TA](spec: T.Specification[TA], depth: Int): String =
+      spec match {
         case other => other.getClass.getSimpleName
       }
-    }
-    def apply[TA](spec : T.Specification[TA]) : String= apply(spec, 2)
+    def apply[TA](spec: T.Specification[TA]): String = apply(spec, 2)
   }
 }
