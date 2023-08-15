@@ -90,10 +90,11 @@ object TypeCheckerTests extends MorphirBaseSpec {
         .provideEnvironment(MorphirEnv.live)
         .toZIOWith(RTExecutionContext.default)
     }
-  def testTypeCheck(value : TypedValue, expectedErrors : Int) : ZIO[TypeChecker, Throwable, TestResult] = {
+  def testTypeCheck(value : TypedValue)(expectedErrors : Int) : ZIO[TypeChecker, Throwable, TestResult] = {
     for {
-      
-    }
+      errors <- runTypeCheck(value)
+      assert <- if (errors.length == expectedErrors) assertCompletes else assertTrue(errors.map(_.getMsg) == List())
+    } yield assert
   }
   def runTypeCheck(value : TypedValue) : ZIO[TypeChecker, Throwable, List[MorphirTypeError]] =
   ZIO.serviceWithZIO[TypeChecker]{ checker =>
@@ -224,10 +225,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
       suite("Apply Node")(
         test("Zero Arg") {
           val badApply : TypedValue = V.apply(Basics.intType, V.intTyped(1), V.intTyped(1))
-          for {
-            actual <- runTypeCheck(badApply)
-            expected = List()
-          } yield assertTrue(actual == expected)
+          testTypeCheck(badApply)(0)
         }
       ).provideLayerShared(typeCheckerLayer),
       suite("Destructure Tests")(
