@@ -84,6 +84,7 @@ class TypeChecker(dists: Distributions) {
     loop(tpe, None, context)
   }
 
+  def conformsTo(valueType: UType, declaredType: UType): List[MorphirTypeError] = conformsTo(valueType, declaredType, Context.empty)
   def conformsTo(valueType : UType, declaredType : UType, context : Context) : List[MorphirTypeError] = {
     import Extractors.Types.*
     (valueType, declaredType) match {
