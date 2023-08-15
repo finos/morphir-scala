@@ -334,6 +334,17 @@ class TypeChecker(dists: Distributions) {
 
     val fromTpe = dealias(tpe, context) match {
       case Right(recordTpe@Type.Record(_, tpeFields)) =>
+        val tpeFieldSet: Set[Name] = tpeFields.map(_._1).toSet
+        val valFieldSet: Set[Name] = valFields.map(_._1).toSet
+        // println(s"Type checking a record and we see ${tpeFieldSet.map(_._1)} vs ${valFieldSet.map(_._1)}")
+        val missingFromTpe = tpeFieldSet
+          .diff(valFieldSet).toList.map(missing => MissingRecordField(recordTpe, missing))
+        val missingFromValue = valFieldSet
+          .diff(tpeFieldSet).toList.map(bonus => ExtraRecordField(recordTpe, bonus))
+        val valFieldMap: Map[Name, TypedValue] = valFields.toMap
+        val tpeFieldMap: Map[Name, UType] = tpeFields.map(field => field.name -> field.data).toMap
+        val conflicts = tpeFieldSet.intersect(valFieldSet).flatMap(name =>
+          checkTypesAgree(valFieldMap(name).attributes, tpeFieldMap(name), context)
         )
         missingFromTpe ++ missingFromValue ++ conflicts
       case Right(other) => List(ImproperType(other, s"Found ${other.getClass}while expecting record"))
