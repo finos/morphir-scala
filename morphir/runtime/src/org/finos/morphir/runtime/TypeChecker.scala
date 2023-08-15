@@ -55,7 +55,7 @@ class TypeChecker(dists: Distributions) {
   def dealias(tpe: UType, context: Context): Either[MorphirTypeError, UType] = {
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[MorphirTypeError, UType] =
       tpe match {
-        case ref@NativeRef() => Right(ref) // TODO: Bindings
+        case ref@Extractors.Types.NativeRef() => Right(ref) // TODO: Bindings
         case Type.Reference(_, typeName, typeArgs) =>
           val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
