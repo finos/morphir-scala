@@ -4,7 +4,7 @@ import org.finos.morphir.naming._
 import org.finos.morphir.naming._
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Literal.Lit
-import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec, UDefinition => UValueDef}
+import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec, TypeDefinition => TypedValueDef}
 import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
@@ -63,7 +63,7 @@ class TypeChecker(dists: Distributions) {
       case Destructure(tpe, pattern, valueToDestruct, inValue) =>
         handleDestructure(tpe, pattern, valueToDestruct, inValue, context)
       case Constructor(tpe, name)             => handleConstructor(tpe, name, context)
-      case FieldValue(tpe, recordValue, name) => handleField(tpe, recordValue, name, context)
+      case FieldValue(tpe, recordValue, name) => handleFieldValue(tpe, recordValue, name, context)
       case FieldFunction(tpe, name)           => handleFieldFunction(tpe, name, context)
       case IfThenElse(tpe, condition, thenValue, elseValue) =>
         handleIfThenElse(tpe, condition, thenValue, elseValue, context)
@@ -84,9 +84,9 @@ class TypeChecker(dists: Distributions) {
       List()
     def handleApply(tpe: UType, function: TypedValue, argument: TypedValue, context: Context): TypeCheckerResult =
       List()
-    def handleDestructure(tpe: UType, pattern: Pattern, value : TypedValue, inValue : Value, context: Context): TypeCheckerResult =
+    def handleDestructure(tpe: UType, pattern: Pattern[UType], value : TypedValue, inValue : TypedValue, context: Context): TypeCheckerResult =
       List()
-    def handleConstructor(tpe: UType, function: TypedValue, argument: TypedValue, context: Context): TypeCheckerResult =
+    def handleConstructor(tpe: UType, fqn : FQName, context: Context): TypeCheckerResult =
       List()
     def handleFieldValue(tpe: UType, recordValue: TypedValue, name: Name, context: Context): TypeCheckerResult =
       List()
@@ -100,7 +100,7 @@ class TypeChecker(dists: Distributions) {
         context: Context
     ): TypeCheckerResult =
       List()
-    def handleLambda(tpe: UType, pattern: Pattern, body: TypedValue, context: Context): TypeCheckerResult =
+    def handleLambda(tpe: UType, pattern: Pattern[UType], body: TypedValue, context: Context): TypeCheckerResult =
       List()
     def handleLetDefinition(
         tpe: UType,
