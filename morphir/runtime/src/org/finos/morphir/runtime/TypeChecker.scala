@@ -4,7 +4,7 @@ import org.finos.morphir.naming._
 import org.finos.morphir.naming._
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Literal.Lit
-import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec, TypeDefinition => TypedValueDef}
+import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec, TypedDefinition => TypedValueDef}
 import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
@@ -76,7 +76,7 @@ class TypeChecker(dists: Distributions) {
       case Record(tpe, fields)                      => handleRecord(tpe, fields.toList, context)
       case Reference(tpe, name)                     => handleReference(tpe, name, context)
       case Tuple(tpe, elements)                     => handleTuple(tpe, elements.toList, context)
-      case UnitValue(va)                            => handleUnit(va, context)
+      case UnitValue(va)                            => handleUnitValue(va, context)
       case UpdateRecord(tpe, valueToUpdate, fields) => handleUpdateRecord(tpe, valueToUpdate, fields, context)
       case Variable(tpe, name)                      => handleVariable(tpe, name, store)
     }
@@ -105,14 +105,14 @@ class TypeChecker(dists: Distributions) {
     def handleLetDefinition(
         tpe: UType,
         name: Name,
-        definition: UValueDef,
+        definition: TypedValueDef,
         inValue: TypedValue,
         context: Context
     ): TypeCheckerResult =
       List()
     def handleLetRecursion(
         tpe: UType,
-        definitions: Map[Name, UValueDef],
+        definitions: Map[Name, TypedValueDef],
         inValue: TypedValue,
         context: Context
     ): TypeCheckerResult =
