@@ -24,13 +24,12 @@ object TypeCheckerTests extends MorphirBaseSpec {
       dist       <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
     } yield MorphirRuntime.quick(dist))
 
-  val typeCheckerLayer : ZLayer[Any, Throwable, TypeChecker] =
+  val typeCheckerLayer: ZLayer[Any, Throwable, TypeChecker] =
     ZLayer(for {
       irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
-      _ <- Console.printLine(s"Loading distribution from $irFilePath")
-      dist <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
-    } yield TypeChecker(Distributions(dist))
-    )
+      _          <- Console.printLine(s"Loading distribution from $irFilePath")
+      dist       <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
+    } yield TypeChecker(Distributions(dist)))
   val localDate = java.time.LocalDate.of(1900, 1, 20)
   val localTime = java.time.LocalTime.of(10, 43, 26)
   def deriveData(input: Any): Data =
@@ -45,8 +44,6 @@ object TypeCheckerTests extends MorphirBaseSpec {
       case (i: Int, s: String)     => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
       case other                   => throw new Exception(s"Couldn't derive $other")
     }
-
-
 
   def checkEvaluation(
       moduleName: String,
@@ -90,18 +87,18 @@ object TypeCheckerTests extends MorphirBaseSpec {
         .provideEnvironment(MorphirEnv.live)
         .toZIOWith(RTExecutionContext.default)
     }
-  def testTypeCheck(value : TypedValue)(expectedErrors : Int) : ZIO[TypeChecker, Throwable, TestResult] = {
+  def testTypeCheck(value: TypedValue)(expectedErrors: Int): ZIO[TypeChecker, Throwable, TestResult] =
     for {
       errors <- runTypeCheck(value)
-      assert <- if (errors.length == expectedErrors) assertCompletes else assertTrue(errors.map(_.getMsg) == List())
+      errorMsgs = errors.map(_.getMsg)
+      assert <- if (errors.length == expectedErrors) assertCompletes else assertTrue(errorMsgs == List())
     } yield assert
-  }
-  def runTypeCheck(value : TypedValue) : ZIO[TypeChecker, Throwable, List[MorphirTypeError]] =
-  ZIO.serviceWithZIO[TypeChecker]{ checker =>
-    ZIO.succeed(checker.check(value))
+  def runTypeCheck(value: TypedValue): ZIO[TypeChecker, Throwable, List[MorphirTypeError]] =
+    ZIO.serviceWithZIO[TypeChecker] { checker =>
+      ZIO.succeed(checker.check(value))
 //      .provideEnvironment(MorphirEnv.live)
 //      .toZIOWith(RTExecutionContext.default)
-  }
+    }
 
   val dogRecordConceptRaw = Concept.Struct(
     List(
@@ -122,8 +119,6 @@ object TypeCheckerTests extends MorphirBaseSpec {
 //    dogRecordDataRaw(name, number),
 //    dogRecordConcept
 //  )
-
-
 
   def resultStringIntShape = Concept.Result(Concept.String, Concept.Int32)
 
@@ -223,42 +218,11 @@ object TypeCheckerTests extends MorphirBaseSpec {
   def spec =
     suite("Type Checker Unhappy Paths")(
       suite("Apply Node")(
-        test("Zero Arg") {
-          val badApply : TypedValue = V.apply(Basics.intType, V.intTyped(1), V.intTyped(1))
+        test("Apply to non function") {
+          val badApply: TypedValue = V.apply(Basics.intType, V.intTyped(1), V.intTyped(1))
           testTypeCheck(badApply)(0)
         }
       ).provideLayerShared(typeCheckerLayer),
-      suite("Destructure Tests")(
-        test("As") {
-          for {
-            actual <- runTest("destructureTests", "destructureAsTest")
-            expected = Data.Int(5)
-          } yield assertTrue(actual == expected)
-        },
-        test("Tuple") {
-          for {
-            actual <- runTest("destructureTests", "destructureTupleTest")
-            expected = Data.Tuple(Data.Int(1), Data.Int(2))
-          } yield assertTrue(actual == expected)
-        },
-        test("Constructor") {
-          for {
-            actual <- runTest("destructureTests", "destructureConstructorTest")
-            expected = Data.Tuple(Data.Int(5), Data.String("red"))
-          } yield assertTrue(actual == expected)
-        },
-        testEvaluation("Unit")("destructureTests", "destructureUnitTest")(Data.Int(4)),
-        testEvaluation("AsTwice")("destructureTests", "destructureAsTwiceTest")(Data.Tuple(Data.Int(5), Data.Int(5))),
-        testEvaluation("Tuple Twice")("destructureTests", "destructureTupleTwiceTest")(Data.Tuple(
-          Data.String("Blue"),
-          Data.Int(5),
-          Data.Tuple(Data.Int(5), Data.String("Blue"))
-        )),
-        testEvaluation("Directly Nested")("destructureTests", "destructureDirectTest")(Data.Tuple(
-          Data.Int(6),
-          Data.String("Green")
-        ))
-      ),
       suite("IfThenElse Tests")(
         testEvaluation("True Branch")("ifThenElseTests", "ifThenElseTrueTest")(Data.String("Correct")),
         testEvaluation("False Branch")("ifThenElseTests", "ifThenElseFalseTest")(Data.String("Correct")),

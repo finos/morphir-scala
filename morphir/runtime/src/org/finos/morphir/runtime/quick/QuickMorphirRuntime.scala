@@ -40,10 +40,10 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
     } yield res
 
   def fetchType(fqn: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
-    val maybeSpec       = dists.lookupValueSpecification(fqn)
+    val maybeSpec = dists.lookupValueSpecification(fqn)
     maybeSpec match {
       case Right(spec) => RTAction.succeed(specificationToType(spec))
-      case Left(err)       => RTAction.fail(new SpecificationNotFound(s"Lookup failure: ${err.getMsg}"))
+      case Left(err)   => RTAction.fail(new SpecificationNotFound(s"Lookup failure: ${err.getMsg}"))
     }
   }
 

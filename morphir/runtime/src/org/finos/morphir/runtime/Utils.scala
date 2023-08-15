@@ -17,8 +17,6 @@ import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
 import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
 
-
-
 object Utils {
   import Extractors.Types.*
 
@@ -135,30 +133,30 @@ object Utils {
     curryTypeFunction(spec.output, spec.inputs)
 
   def unCurryTypeFunction(
-        curried: UType,
-        args: List[TypedValue],
-        dists: Distributions,
-        knownBindings: Map[Name, UType]
-    )(implicit options: RTExecutionContext.Options): RTAction[Any, TypeError, UType] = {
-      val dealiaser = new Dealiased(dists)
-      (curried, args) match {
-        case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
-          for {
+      curried: UType,
+      args: List[TypedValue],
+      dists: Distributions,
+      knownBindings: Map[Name, UType]
+  )(implicit options: RTExecutionContext.Options): RTAction[Any, TypeError, UType] = {
+    val dealiaser = new Dealiased(dists)
+    (curried, args) match {
+      case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
+        for {
 
-  //          errors <- RTAction.succeed(new ArgTypeChecker(dists).reallyTypeCheckArg(head, parameterType, ""))
-            bindings <- RTAction.fromEither(typeCheckArg(head.attributes, parameterType, knownBindings))
-  //          _ <- RTAction.fail( new ManyErrors(errors: _*))
-  ////          errors = new TypeChecker().reallyTypeCheckArg(head, parameterType, "")
-  ////          _ <- RTAction.fail(new ManyErrors(errors:_*))
-            appliedType <- unCurryTypeFunction(returnType, tail, dists, bindings)
-          } yield appliedType
-        case (tpe, Nil) => RTAction.succeed(applyBindings(tpe, knownBindings))
-        case (dealiaser(inner, aliasBindings), args) =>
-          unCurryTypeFunction(inner, args, dists, knownBindings ++ aliasBindings)
-        case (nonFunction, head :: _) =>
-          RTAction.fail(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
-      }
+          //          errors <- RTAction.succeed(new ArgTypeChecker(dists).reallyTypeCheckArg(head, parameterType, ""))
+          bindings <- RTAction.fromEither(typeCheckArg(head.attributes, parameterType, knownBindings))
+          //          _ <- RTAction.fail( new ManyErrors(errors: _*))
+          ////          errors = new TypeChecker().reallyTypeCheckArg(head, parameterType, "")
+          ////          _ <- RTAction.fail(new ManyErrors(errors:_*))
+          appliedType <- unCurryTypeFunction(returnType, tail, dists, bindings)
+        } yield appliedType
+      case (tpe, Nil) => RTAction.succeed(applyBindings(tpe, knownBindings))
+      case (dealiaser(inner, aliasBindings), args) =>
+        unCurryTypeFunction(inner, args, dists, knownBindings ++ aliasBindings)
+      case (nonFunction, head :: _) =>
+        RTAction.fail(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
     }
+  }
   def isNative(fqn: FQName): Boolean = {
     val example = FQName.fromString("Morphir.SDK:Basics:equal")
     fqn.getPackagePath == example.getPackagePath

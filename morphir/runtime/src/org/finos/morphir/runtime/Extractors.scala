@@ -113,7 +113,7 @@ object Extractors {
               case Right(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
                 val newBindings = typeParams.zip(typeArgs).toMap
                 Some(expr, newBindings)
-              case _ => None //Missing name, but failing extractors cause problems
+              case _ => None // Missing name, but failing extractors cause problems
             }
           case _ => None
         }
