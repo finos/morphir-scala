@@ -22,13 +22,14 @@ import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
 
 object Succinct{
   object Value{
-
+    def apply[TA, VA](value : Value[TA, VA], depth : Int)
+    def apply[TA, VA](value: Value[TA, VA])
   }
   object Type{
 
   }
   object Value{
-    
+
   }
 }
 
