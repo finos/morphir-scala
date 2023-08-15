@@ -33,7 +33,11 @@ object TypeCheckerTests extends MorphirBaseSpec {
     } yield TypeChecker(Distributions(dist)))
 
   def testTypeConforms(tpe1: UType, tpe2 : UType) : ZIO[TypeChecker, Throwable, TestResult] = {
-    ???
+    ZIO.serviceWithZIO[TypeChecker] { checker =>
+      for{
+        
+      }
+    }
   }
   def testTypeCheck(value: TypedValue)(expectedErrors: Int): ZIO[TypeChecker, Throwable, TestResult] =
     ZIO.serviceWithZIO[TypeChecker] { checker =>
