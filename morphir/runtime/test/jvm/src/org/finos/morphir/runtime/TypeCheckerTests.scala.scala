@@ -83,8 +83,14 @@ object TypeCheckerTests extends MorphirBaseSpec {
         test("Strings are not ints") {
           testTypeCheck(invalidInt)(1)
         },
-        test("ints are not Strings") {
+        test("Ints are not Strings") {
           testTypeCheck(V.int(1) :> sdk.String.stringType)(0)
+        },
+        test("Ints are not Floats") {
+          testTypeCheck(V.int(1) :> sdk.Basics.floatType)(0)
+        },
+        test("Bools are not Floats") {
+          testTypeCheck(V.bool(true) :> sdk.Basics.floatType)(0)
         }
         // TODO: Other lit tests
       )
