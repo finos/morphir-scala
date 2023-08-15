@@ -22,6 +22,12 @@ class Distributions(dists: Map[PackageName, Distribution]) {
       case None => None
     }
 
+    def lookupTypeSpecification(pName: PackageName, module: ModuleName, localName: Name): Option[UTypeSpec] =
+      lookupModuleSpecification(pName, module).flatMap(_.lookupTypeSpecification(localName))
+
+    def lookupTypeSpecification(fqn: FQName): Option[UTypeSpec] =
+      lookupTypeSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)
+
   def lookupValueSpecification(
       packageName: PackageName,
       module: ModuleName,
