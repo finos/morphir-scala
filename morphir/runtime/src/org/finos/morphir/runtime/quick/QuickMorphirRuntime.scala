@@ -39,12 +39,11 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
       res <- EvaluatorQuick.evalAction(value, store, dists)
     } yield res
 
-  def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
-    val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)
-    val maybeSpec       = dists.lookupValueSpecification(PackageName(pkg), ModuleName(mod), loc)
+  def fetchType(fqn: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
+    val maybeSpec       = dists.lookupValueSpecification(fqn)
     maybeSpec match {
-      case Some(spec) => RTAction.succeed(specificationToType(spec))
-      case None       => RTAction.fail(new SpecificationNotFound(s"Could not find $ref during initial type building"))
+      case Right(spec) => RTAction.succeed(specificationToType(spec))
+      case Left(err)       => RTAction.fail(new SpecificationNotFound(s"Lookup failure: ${err.getMsg}"))
     }
   }
 
