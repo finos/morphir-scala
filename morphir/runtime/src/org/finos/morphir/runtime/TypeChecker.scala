@@ -175,8 +175,12 @@ class TypeChecker(dists: Distributions) {
     //TODO: Check value must be one of the patterns
     fromChildren
   }
-  def handleRecord(tpe: UType, fields: List[(Name, TypedValue)], context: Context): TypeCheckerResult =
-    List()
+  def handleRecord(tpe: UType, fields: List[(Name, TypedValue)], context: Context): TypeCheckerResult = {
+    val fromChildren = fields.map(check(_._2, context))
+    //TODO: Check tpe dealises to a record
+    //TODO: Check each field agrees with the type from the name
+    fromChildren
+  }
   def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult =
     List()
   def handleTuple(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult =
