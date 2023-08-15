@@ -86,7 +86,9 @@ object Extractors {
     }
     object LeafType{
       def unapply(tpe : Utype) : boolean = {
-        
+        tpe match {
+          case Reference(_, _, Chunk()) => true
+        }
       }
     }
     object NonNativeRef {
