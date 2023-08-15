@@ -42,6 +42,8 @@ object MorphirTypeError {
   case class DefinitionMissing(err : LookupError)             extends MorphirTypeError(s"Cannot find definition: ${err.getMsg}")
   case class TypeMissing(err: LookupError) extends MorphirTypeError(s"Cannot find type: ${err.getMsg}")
   case class OtherTypeError(msg : String) extends MorphirTypeError(msg)
+  case class TypeLacksField(tpe : UType, contract : UType, field : Name) extends MorphirTypeError(s"${suscinct(tpe)} lacks field ${field.toCamelCase}, which is required by ${succinct(contract)}")
+  case class TypeHasExtraField(tpe: UType, contract: UType, field: Name) extends MorphirTypeError(s"${suscinct(tpe)} has field ${field.toCamelCase}, which is not included in ${succinct(contract)}")
   case class ConstructorMissing(err: LookupError, tpe: UType) extends MorphirTypeError(s"Cannot find definition of type ${succinct(tpe)}: ${err.getMsg}")
   case class ModuleMissing(modName: ModuleName)          extends MorphirTypeError("Todo")
   case class PackageMissing(pckName: PackageName)        extends MorphirTypeError("Todo")
