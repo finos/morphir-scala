@@ -54,6 +54,24 @@ class TypeChecker(dists: Distributions) {
 
   def dealias(tpe: UType, context: Context): Either[GoodTypeError, UType] = {
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[GoodTypeError, UType] =
+      tpe match {
+        case ref@SDKRef() => Right(ref) // TODO: Bindings
+        case Type.Reference(_, typeName, typeArgs) =>
+          val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+          lookedUp match {
+            case Some(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
+              val newBindings = typeParams.zip(typeArgs).toMap
+              loop(expr, original_fqn.orElse(Some(typeName)), context.withBindings(newBindings))
+            case Some(_) => Right(tpe) // TODO: Bindings
+            case None =>
+              original_fqn match {
+                case Some(original) =>
+                  Left(new TypeMissing(typeName, dists, s"Unable to find while dealiasing $original"))
+                case None =>
+                  Left(new TypeMissing(typeName, dists, s"Unable to dealias"))
+              }
+          }
+        case other => Right(other) // TODO: Bindings
       }
 
     loop(tpe, None, context)
