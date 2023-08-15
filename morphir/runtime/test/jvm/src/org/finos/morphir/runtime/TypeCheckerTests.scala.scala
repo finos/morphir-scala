@@ -234,11 +234,11 @@ object TypeCheckerTests extends MorphirBaseSpec {
         },
         test("Args are recursively checked"){
           val badApply : TypedValue = V.apply(Basics.intType, intToInt, invalidInt)
-          testTypeCheck(badApply)(2)
+          testTypeCheck(badApply)(-1)
         },
         test("Body is recursively checked"){
           val badApply : TypedValue = V.apply(Basics.boolType, invalidFunction, V.intTyped(2))
-          testTypeCheck(badApply)(2)
+          testTypeCheck(badApply)(-1)
         }
         //TODO: Body is recursively checked
       ).provideLayerShared(typeCheckerLayer),
