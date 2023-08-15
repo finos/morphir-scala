@@ -193,6 +193,7 @@ class TypeChecker(dists: Distributions) {
           List(new ImproperTypeSpec(name, other, s"Type union expected"))
         case Left(err) => List(new TypeMissing(err))
       }
+      case other => List(new ImproperType(other, s"Reference to type union expected"))
     }
     // TODO: Check it's a function onion for a type with that constructor
     fromChildren
