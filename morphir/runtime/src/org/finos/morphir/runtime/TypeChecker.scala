@@ -160,8 +160,7 @@ class TypeChecker(dists: Distributions) {
     val fromTpe =
       dealias(function.attributes, context) match {
         case Right(Type.Function(_, paramType, returnType)) =>
-          // TODO: Better than !=
-          conformsTo(argument.attributes, paramType) ++ conformsTo(returnType, tpe)
+          conformsTo(argument.attributes, paramType, context) ++ conformsTo(returnType, tpe, context) //TODO: Useful context lost here
         case Right(other) => List(new ApplyToNonFunction(function, argument))
         case Left(err)    => List(err)
       }
