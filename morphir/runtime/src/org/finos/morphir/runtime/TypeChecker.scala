@@ -51,6 +51,13 @@ class TypeChecker(dists: Distributions) {
   private def nameMissingType(fqn: FQName, dists: Distributions): MorphirTypeError        = {???}
   private def nameMissingConstructor(fqn: FQName, tpe: UType, dists: Distributions): MorphirTypeError = {???}
   private def pretty(tpe: UType, depthBudget: Int): String                                            = {???}
+
+  def dealias(tpe: UType, context: Context): Either[GoodTypeError, UType] = {
+    def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[GoodTypeError, UType] =
+      }
+
+    loop(tpe, None, context)
+  }
   private def pretty(tpe: UType): String                                                              = pretty(tpe, 2)
   def check(suspect: TypedValue): TypeCheckerResult =
     check(suspect, Context.empty)
@@ -89,8 +96,16 @@ class TypeChecker(dists: Distributions) {
 
   def handleApply(tpe: UType, function: TypedValue, argument: TypedValue, context: Context): TypeCheckerResult = {
     val fromChildren = check(function, context) ++ check(argument, context)
+    val fromTpe =
+      dealias(function.attributes, context) match {
+        case Right(Type.Function(_, paramType, returnType)) =>
+          helper(paramType != argument.attributes, new ArgumentDoesNotMatchParameter(argument, paramType)) ++
+            helper(returnType != tpe, new TypesMismatch(tpe, returnType, "Function return does not match apply node"))
+        case Right(other) => List(new ApplyToNonFunction(other, argument.attributes))
+        case Left(err) => List(err)
+      }
     //TODO: Check it's a function with matching arg and return
-    fromChildren
+    fromChildren ++ fromTpe
   }
 
   def handleDestructure(tpe: UType, pattern: Pattern[UType], value : TypedValue, inValue : TypedValue, context: Context): TypeCheckerResult = {
@@ -200,7 +215,7 @@ class TypeChecker(dists: Distributions) {
       fields: Map[Name, TypedValue],
       context: Context
   ): TypeCheckerResult = {
-    val fromChildren = check(valueToUpdate, context) ++ fields.flatMap{case (_, value) => check(value), context}
+    val fromChildren = check(valueToUpdate, context) ++ fields.flatMap{case (_, value) => check(value, context)}
     //TODO: Check the value dealiases to a record which has that name
     fromChildren
   }
