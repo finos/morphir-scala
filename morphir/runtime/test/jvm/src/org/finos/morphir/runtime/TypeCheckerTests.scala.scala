@@ -84,7 +84,8 @@ object TypeCheckerTests extends MorphirBaseSpec {
         .toZIOWith(RTExecutionContext.default)
     }
 
-  def runTypeCheck(value : TypedValue) : ZIO[MrphirRuntimeTyped, Throwable, Data] = {
+  def runTypeCheck(value : TypedValue) : ZIO[MorphirRuntimeTyped, Throwable, Data] =
+  ZIO.serviceWithZIO[MorphirRuntimeTyped]{ runtime =>
     runtime.evaluate(value)
       .provideEnvironment(MorphirEnv.live)
       .toZIOWith(RTExecutionContext.default)
@@ -211,9 +212,9 @@ object TypeCheckerTests extends MorphirBaseSpec {
     suite("Type Checker Unhappy Paths")(
       suite("Apply Node")(
         test("Zero Arg") {
-          val badApply = V.apply(Basics.intType, V.int(1), V.Int(1))
+          val badApply = V.apply(Basics.intType, V.int(1), V.int(1))
           for {
-            actual <- runTest("constructorTests", "constructorZeroArgTest")
+            actual <- runTypeCheck()
             expected = zeroArg
           } yield assertTrue(actual == expected)
         }
