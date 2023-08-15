@@ -35,7 +35,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
   def testTypeCheck(value: TypedValue)(expectedErrors: Int): ZIO[TypeChecker, Throwable, TestResult] =
     for {
       errors <- runTypeCheck(value)
-      errorMsgs = errors.map(s"\n\t${_.getMsg"})
+      errorMsgs = errors.map(error => s"\n\t${error.getMsg}").mkString("")
       assert <- if (errors.length == expectedErrors) assertCompletes
       else assertTrue(errorMsgs == s"Expected $expectedErrors errors")
     } yield assert // TODO: Cleaner "fails" impl

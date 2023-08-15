@@ -88,7 +88,7 @@ class TypeChecker(dists: Distributions) {
   def check(suspect: TypedValue, parentContext: Context): TypeCheckerResult = {
     import Value.{Unit as UnitValue, List as ListValue, Field as FieldValue, *}
     val context = parentContext.withDepth(parentContext.depth + 1)
-    dealias(suspect.attributes) match{
+    dealias(suspect.attributes, context) match{
       case Right(tpe) => suspect match {
         case Literal(_, lit) => handleLiteral(tpe, lit, context)
         case Apply(_, function, argument) => handleApply(tpe, function, argument, context)
@@ -114,8 +114,6 @@ class TypeChecker(dists: Distributions) {
       }
       case Left(err) => List(err)
     }
-
-
   }
   def handleLiteral(tpe: UType, literal: Lit, context: Context): TypeCheckerResult = {
     import Extractors.Types.*
