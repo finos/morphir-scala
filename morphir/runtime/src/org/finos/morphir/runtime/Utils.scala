@@ -162,7 +162,7 @@ object Utils {
     fqn.getPackagePath == example.getPackagePath
   }
 
-  def uncurryTypeFunction(functionTpe : UType) : (UType, Chunk[UType]) = {
+  def uncurryFunctionType(functionTpe : UType) : (UType, Chunk[UType]) = {
     functioTpe match {
       case Type.Function(_, innerFunction, arg) => {
         val (ret, args) = uncurryTypeFunction(innerFunction)

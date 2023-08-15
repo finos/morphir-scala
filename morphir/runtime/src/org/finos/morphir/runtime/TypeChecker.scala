@@ -184,7 +184,7 @@ class TypeChecker(dists: Distributions) {
     val fromChildren = List()
     val (ret, args) = Utils.uncurryFunctionType(tpe) //TODO: Interleaved function type w/ aliases.
     val fromTpe = ret match{
-      case Type.Referene(_, name, typeArgs) => dists.lookupTypeSpecification(name) match {
+      case Type.ReferenCe(_, name, typeArgs) => dists.lookupTypeSpecification(name) match {
         case Right(T.Specification.CustomTypeSpecification(typeParams, ctors)) =>
           // (typeArgs.zip(typeParams)).flatMap{case (arg, param) => checkTypesAgree(arg, param, context)}
           List()
