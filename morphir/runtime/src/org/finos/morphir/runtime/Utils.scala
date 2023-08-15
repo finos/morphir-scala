@@ -165,10 +165,10 @@ object Utils {
   def uncurryTypeFunction(functionTpe : UType) : (UType, Chunk[UType]) = {
     functioTpe match {
       case Type.Function(_, innerFunction, arg) => {
-        (ret, args) = uncurryTypeFunction(innerFunction)
+        val (ret, args) = uncurryTypeFunction(innerFunction)
         (ret, args :+ arg)
       }
-
+      case other => (other, Chunk())
     }
   }
   def curryTypeFunction[TA](inner: Type[TA], params: Chunk[(Name, Type[TA])]): Type[TA] =
