@@ -35,9 +35,9 @@ object TypeCheckerTests extends MorphirBaseSpec {
   def testTypeCheck(value: TypedValue)(expectedErrors: Int): ZIO[TypeChecker, Throwable, TestResult] =
     for {
       errors <- runTypeCheck(value)
-      errorMsgs = errors.map(_.getMsg)
+      errorMsgs = errors.map(s"\n\t${_.getMsg"})
       assert <- if (errors.length == expectedErrors) assertCompletes
-      else assertTrue(errorMsgs == List("Unexpected Errors Found"))
+      else assertTrue(errorMsgs == s"Expected $expectedErrors errors")
     } yield assert // TODO: Cleaner "fails" impl
   def runTypeCheck(value: TypedValue): ZIO[TypeChecker, Throwable, List[MorphirTypeError]] =
     ZIO.serviceWithZIO[TypeChecker] { checker =>
@@ -65,7 +65,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
           val badApply: TypedValue = V.apply(Basics.intType, intToInt, validString)
           testTypeCheck(badApply)(1)
         },
-        test("Apply arg type wrong") {
+        test("Apply return type wrong") {
           val badApply: TypedValue = V.apply(Basics.boolType, intToInt, V.intTyped(1))
           testTypeCheck(badApply)(1)
         },
@@ -80,17 +80,17 @@ object TypeCheckerTests extends MorphirBaseSpec {
         // TODO: Body is recursively checked
       ),
       suite("Literal Node")(
-        test("Strings are not ints") {
+        test("Strings are not Ints") {
           testTypeCheck(invalidInt)(1)
         },
         test("Ints are not Strings") {
-          testTypeCheck(V.int(1) :> sdk.String.stringType)(0)
+          testTypeCheck(V.int(1) :> sdk.String.stringType)(1)
         },
         test("Ints are not Floats") {
-          testTypeCheck(V.int(1) :> sdk.Basics.floatType)(0)
+          testTypeCheck(V.int(1) :> sdk.Basics.floatType)(1)
         },
         test("Bools are not Floats") {
-          testTypeCheck(V.bool(true) :> sdk.Basics.floatType)(0)
+          testTypeCheck(V.boolean(true) :> sdk.Basics.floatType)(1)
         }
         // TODO: Other lit tests
       )
