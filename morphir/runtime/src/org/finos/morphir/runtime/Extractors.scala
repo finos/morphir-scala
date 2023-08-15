@@ -84,10 +84,13 @@ object Extractors {
     object LocalTimeRef extends CommonReference {
       final val tpe = sdk.LocalTime.localTimeType
     }
+    
     object LeafType{
       def unapply(tpe : Utype) : boolean = {
         tpe match {
-          case Reference(_, _, Chunk()) => true
+          case Type.Reference(_, _, Chunk()) => true
+          case Type.Unit => true
+          case _ => false
         }
       }
     }
