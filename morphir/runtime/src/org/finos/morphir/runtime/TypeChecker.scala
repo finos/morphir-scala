@@ -22,11 +22,11 @@ import MorphirTypeError.*
 object TypeChecker {
   type TypeCheckerResult = List[MorphirTypeError]
   case class Context(
-      bindings: Map[Name, UType],
+      typeBindings: Map[Name, UType],
       depth: Int,
       prefix: String
   ) {
-    def withBindings(bindings: Map[Name, UType]) = this.copy(bindings = bindings)
+    def withTypeBindings(typeBindings: Map[Name, UType]) = this.copy(typeBindings = typeBindings)
     def withDepth(depth: Int)                    = this.copy(depth = depth)
     def withPrefix(prefix: String)               = this.copy(prefix = prefix)
   }
@@ -34,6 +34,7 @@ object TypeChecker {
     def empty = Context(Map(), 0, "")
   }
   def helper(condition: Boolean, error: MorphirTypeError) = if (condition) List(error) else List()
+  def getTypeVariable(name : Name) : Option[UType] = typeBindings.get(name)
 }
 
 class TypeChecker(dists: Distributions) {
@@ -83,7 +84,8 @@ class TypeChecker(dists: Distributions) {
   }
   def conformsTo(valueType : UType, declaredType : UType, context : Context) : List[MorphirTypeError] = {
     (valueType, declaredType) match {
-      
+      //        case (_, Type.Variable(_, name)) => List(Unimplemented("Tell Ned to add variable bindings"))
+      //        case (Type.Variable(_, name), _) => List(Unimplemented("Tell Ned to add variable bindings"))
     }
   }
 
