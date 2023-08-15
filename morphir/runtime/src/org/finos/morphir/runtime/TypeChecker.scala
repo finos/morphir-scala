@@ -110,8 +110,11 @@ class TypeChecker(dists: Distributions) {
     //TODO: Check the value dealiases to a record which has that name
     fromChildren
   }
-  def handleFieldFunction(tpe: UType, name: Name, context: Context): TypeCheckerResult =
-    List()
+  def handleFieldFunction(tpe: UType, name: Name, context: Context): TypeCheckerResult = {
+    val fromChildren = List()
+    //TODO: Uh... Nothing.
+    fromChildren
+  }
   def handleIfThenElse(
       tpe: UType,
       condition: TypedValue,
