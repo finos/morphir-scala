@@ -85,23 +85,23 @@ object Extractors {
     object LocalTimeRef extends CommonReference {
       final val tpe = sdk.LocalTime.localTimeType
     }
-    // Matches references to known SDK-defined types
-    object SDKRef {
-      def unapply(tpe: UType): Boolean = tpe match {
-        case IntRef()        => true
-        case Int32Ref()      => true
-        case BoolRef()       => true
-        case FloatRef()      => true
-        case StringRef()     => true
-        case CharRef()       => true
-        case LocalDateRef()  => true
-        case LocalTimeRef()  => true
-        case ListRef(_)      => true
-        case MaybeRef(_)     => true
-        case DictRef(_, _)   => true
-        case ResultRef(_, _) => true
-        case _               => false
-      }
+
+    object NonNativeRef {
+      def unapply(tpe: UType): Option[(FQName, Chunk[UType])] =
+        tpe match {
+          case Type.Reference(_, name, args)
+            if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
+            Some((name, args))
+          case _ => None
+        }
+    }
+    object NativeRef {
+      def unapply(tpe: UType): Boolean =
+        tpe match {
+          case Type.Reference(_, name, _)
+            if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) => true
+          case _ => false
+        }
     }
     // Extractor object that unwraps a single layer of aliasing, and gives any type names that were bound in the process
     class Dealiased(dists: Distributions) {
