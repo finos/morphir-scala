@@ -190,7 +190,7 @@ class TypeChecker(dists: Distributions) {
           List()
         // TODO: Constructor specific checks
         case Some(other) =>
-          List(new ImproperTypeSpec(other, s"${pretty(tpe, 2)} should have produced a type union"))
+          List(new ImproperTypeSpec(other, s"Type union expected"))
         case None => List(new ConstructorMissing(fqn, wrapped, dists))
       }
     }
