@@ -33,11 +33,11 @@ object TypeCheckerTests extends MorphirBaseSpec {
     } yield TypeChecker(Distributions(dist)))
 
   def testTypeConforms(tpe1: UType, tpe2 : UType) : ZIO[TypeChecker, Throwable, TestResult] = {
-    
+    ???
   }
   def testTypeCheck(value: TypedValue)(expectedErrors: Int): ZIO[TypeChecker, Throwable, TestResult] =
     for {
-      errors <- runTypeCheck(value)
+      errors <- ZIO.succeed(checker.check(value))
       errorMsgs = errors.map(error => s"\n\t${error.getMsg}").mkString("")
       assert <- if (errors.length == expectedErrors) assertCompletes
       else assertTrue(errorMsgs == s"Expected $expectedErrors errors")

@@ -86,7 +86,7 @@ object Extractors {
     }
     //Matches anything w/o nested subtypes
     object LeafType{
-      def unapply(tpe : Utype) : boolean = {
+      def unapply(tpe : UType) : Boolean = {
         tpe match {
           case Type.Reference(_, _, Chunk()) => true
           case Type.Unit => true
