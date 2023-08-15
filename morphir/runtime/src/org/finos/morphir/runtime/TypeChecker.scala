@@ -134,7 +134,11 @@ class TypeChecker(dists: Distributions) {
       case (MaybeRef(valueElement), MaybeRef(declaredElement)) =>
         conformsTo(valueElement, declaredElement, context)
       case (Type.Reference(_, valueName, valueArgs), Type.Reference(_, declaredName, declaredArgs)) if valueName == valueArgs => {
-        
+        if (valueArgs.length != declaredArgs.length)
+          List(new OtherTypeError(s"Reference $valueName has different number of parameters (${valueArgs.length} vs ${declaredArgs.length}"))
+        else
+          valueArgs.zip(declaredArgs).map{case (declared, value) => conformsTo(declard, Value)}
+
       }
       case (valueOther, declaredOther) if valueOther.getClass == declaredOther.getClass => List(new Unimplemented(s"No matching support for ${Succinct.Type(valueOther)} vs ${Succinct.Type(declaredOther)}"))
       case (valueOther, declaredOther) => List(new TypesMismatch(valueOther, declaredOther, "Different types"))
