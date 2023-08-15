@@ -3,7 +3,7 @@ package org.finos.morphir.runtime
 import org.finos.morphir.naming._
 import org.finos.morphir.naming._
 import org.finos.morphir.ir.{Type as T, Value as V}
-import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec, UDefinition => UValueDef}
+import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec, TypedDefinition => TypedValueDef}
 import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.Module.{Specification => ModSpec}
 import org.finos.morphir.ir.sdk
@@ -59,7 +59,7 @@ class Distributions(dists: Map[PackageName, Distribution]) {
   ): Option[UValueDef] =
     lookupModuleDefinition(packageName, module).flatMap(_.lookupValueDefinition(localName))
 
-  def lookupValueDefinition(fqn: FQName): Option[ValueDefinition[scala.Unit, UType]] =
+  def lookupValueDefinition(fqn: FQName): Option[TypedValueDef] =
     lookupValueDefinition(fqn.packagePath, fqn.modulePath, fqn.localName)
   def getDists: Map[PackageName, Distribution] = dists
 }
