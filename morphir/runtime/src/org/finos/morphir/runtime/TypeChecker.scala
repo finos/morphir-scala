@@ -57,7 +57,6 @@ class TypeChecker(dists: Distributions) {
   private def nameMissingValue(value: TypedValue, dists: Distributions): MorphirTypeError             = ???
   private def nameMissingType(fqn: FQName, dists: Distributions): MorphirTypeError                    = ???
   private def nameMissingConstructor(fqn: FQName, tpe: UType, dists: Distributions): MorphirTypeError = ???
-  private def pretty(tpe: UType, depthBudget: Int): String                                            = ???
 
   def dealias(tpe: UType, context: Context): Either[MorphirTypeError, UType] = {
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[MorphirTypeError, UType] =
@@ -82,9 +81,12 @@ class TypeChecker(dists: Distributions) {
       }
     loop(tpe, None, context)
   }
-  def conformsTo(valueType : UType, interfaceType : UType, context : Context) : List[MorphirTypeError] = {
-    List()
+  def conformsTo(valueType : UType, declaredType : UType, context : Context) : List[MorphirTypeError] = {
+    (valueType, declaredType) match {
+      
+    }
   }
+
   def check(suspect: TypedValue): TypeCheckerResult =
     check(suspect, Context.empty)
   def check(suspect: TypedValue, parentContext: Context): TypeCheckerResult = {
