@@ -95,7 +95,9 @@ object TypeCheckerTests extends MorphirBaseSpec {
         // TODO: Other lit tests
       ),
       suite("Type confomrity")(
-        
+        test("IntType is not StringType"){
+          
+        }
       )
     ).provideLayerShared(typeCheckerLayer)
 }
