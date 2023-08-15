@@ -182,7 +182,7 @@ class TypeChecker(dists: Distributions) {
   }
   def handleConstructor(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
-    val fromTpe
+    val fromTpe = uncurryFunctionType
     // TODO: Check it's a function onion for a type with that constructor
     fromChildren
   }

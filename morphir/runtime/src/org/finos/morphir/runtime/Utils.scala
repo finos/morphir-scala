@@ -132,7 +132,7 @@ object Utils {
   def specificationToType[TA](spec: V.Specification[TA]): Type[TA] =
     curryTypeFunction(spec.output, spec.inputs)
 
-  def unCurryTypeFunction(
+  def findTypeBindings(
       curried: UType,
       args: List[TypedValue],
       dists: Distributions,
@@ -148,11 +148,11 @@ object Utils {
           //          _ <- RTAction.fail( new ManyErrors(errors: _*))
           ////          errors = new TypeChecker().reallyTypeCheckArg(head, parameterType, "")
           ////          _ <- RTAction.fail(new ManyErrors(errors:_*))
-          appliedType <- unCurryTypeFunction(returnType, tail, dists, bindings)
+          appliedType <- findTypeBindings(returnType, tail, dists, bindings)
         } yield appliedType
       case (tpe, Nil) => RTAction.succeed(applyBindings(tpe, knownBindings))
       case (dealiaser(inner, aliasBindings), args) =>
-        unCurryTypeFunction(inner, args, dists, knownBindings ++ aliasBindings)
+        findTypeBindings(inner, args, dists, knownBindings ++ aliasBindings)
       case (nonFunction, head :: _) =>
         RTAction.fail(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
     }
