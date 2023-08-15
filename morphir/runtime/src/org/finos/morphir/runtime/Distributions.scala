@@ -14,6 +14,11 @@ import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution.Library
 import zio.Chunk
 
+sealed abstract class LookupError extends Exception
+case class MissingPackage(pkgName : PackageName) extends LookupError
+case class MissingModule(pkgName: PackageName, modName : ModuleName)
+case class MissingType(pkgName : PackageName, modName: ModuleName, typeName : Name)
+
 class Distributions(dists: Map[PackageName, Distribution]) {
   def lookupModuleSpecification(packageName: PackageName, module: ModuleName): Option[ModSpec.Raw] =
     dists.get(packageName) match {
