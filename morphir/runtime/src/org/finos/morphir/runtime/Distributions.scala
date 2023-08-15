@@ -14,6 +14,7 @@ import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution.Library
 import zio.Chunk
 
+//TODO: Error hierarchy and code should reflect possibility of specification lookup
 sealed abstract class LookupError(msg : String) extends Exception(msg)
 case class MissingPackage(pkgName : PackageName) extends LookupError(s"Package ${pkgName.toString} not found")
 case class MissingModule(pkgName: PackageName, modName : ModuleName) extends LookupError(s"Package ${pkgName.toString} does not contain module ${modName.toString}")
@@ -32,37 +33,40 @@ class Distributions(dists: Map[PackageName, Distribution]) {
       case None => Left(new MissingPackage(packageName))
     }
 
-  def lookupModuleDefinition(packageName: PackageName, module: ModuleName): Option[ModDef[Unit, UType]] =
+  def lookupModuleDefinition(packageName: PackageName, module: ModuleName): Either[LookupError, ModDef[Unit, UType]] =
     dists.get(packageName) match {
       case Some(Library(_, _, packageDef)) =>
-        packageDef.modules.get(module).map(_.value)
-      case None => None
+        packageDef.modules.get(module) match {
+          case Some(module) => Right(module)
+          case None => Left(new MissingModule(pkgName, modName))
+        }
+      case None => Left(new MissingPackage(packageName))
     }
 
-  def lookupTypeSpecification(pName: PackageName, module: ModuleName, localName: Name): Option[UTypeSpec] =
+  def lookupTypeSpecification(pName: PackageName, module: ModuleName, localName: Name): Either[LookupError, UTypeSpec] =
     lookupModuleSpecification(pName, module).flatMap(_.lookupTypeSpecification(localName))
 
-  def lookupTypeSpecification(fqn: FQName): Option[UTypeSpec] =
+  def lookupTypeSpecification(fqn: FQName): Either[LookupError, UTypeSpec] =
     lookupTypeSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)
 
   def lookupValueSpecification(
       packageName: PackageName,
       module: ModuleName,
       localName: Name
-  ): Option[UValueSpec] =
+  ): Either[LookupError, UValueSpec] =
     lookupModuleSpecification(packageName, module).flatMap(_.lookupValueSpecification(localName))
 
-  def lookupValueSpecification(fqn: FQName): Option[UValueSpec] =
+  def lookupValueSpecification(fqn: FQName): Either[LookupError, UValueSpec] =
     lookupValueSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)
 
   def lookupValueDefinition(
       packageName: PackageName,
       module: ModuleName,
       localName: Name
-  ): Option[TypedValueDef] =
+  ): Either[LookupError, TypedValueDef] =
     lookupModuleDefinition(packageName, module).flatMap(_.lookupValueDefinition(localName))
 
-  def lookupValueDefinition(fqn: FQName): Option[TypedValueDef] =
+  def lookupValueDefinition(fqn: FQName): Either[LookupError, TypedValueDef] =
     lookupValueDefinition(fqn.packagePath, fqn.modulePath, fqn.localName)
   def getDists: Map[PackageName, Distribution] = dists
 }
