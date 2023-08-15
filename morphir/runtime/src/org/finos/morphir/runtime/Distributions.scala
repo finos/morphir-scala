@@ -3,7 +3,7 @@ package org.finos.morphir.runtime
 import org.finos.morphir.naming._
 import org.finos.morphir.naming._
 import org.finos.morphir.ir.{Type as T, Value as V}
-import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
+import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec, UDefinition => UValueDef}
 import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.Module.{Specification => ModSpec}
 import org.finos.morphir.ir.sdk
@@ -22,11 +22,18 @@ class Distributions(dists: Map[PackageName, Distribution]) {
       case None => None
     }
 
-    def lookupTypeSpecification(pName: PackageName, module: ModuleName, localName: Name): Option[UTypeSpec] =
-      lookupModuleSpecification(pName, module).flatMap(_.lookupTypeSpecification(localName))
+  def lookupModuleDefinition(packageName: PackageName, module: ModuleName): Option[ModDef[Unit, UType]] =
+    dists.get(packageName) match {
+      case Some(Library(_, _, packageDef)) =>
+        packageDef.modules.get(module).map(_.value)
+      case None => None
+    }
 
-    def lookupTypeSpecification(fqn: FQName): Option[UTypeSpec] =
-      lookupTypeSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)
+  def lookupTypeSpecification(pName: PackageName, module: ModuleName, localName: Name): Option[UTypeSpec] =
+    lookupModuleSpecification(pName, module).flatMap(_.lookupTypeSpecification(localName))
+
+  def lookupTypeSpecification(fqn: FQName): Option[UTypeSpec] =
+    lookupTypeSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)
 
   def lookupValueSpecification(
       packageName: PackageName,
@@ -49,7 +56,7 @@ class Distributions(dists: Map[PackageName, Distribution]) {
       packageName: PackageName,
       module: ModuleName,
       localName: Name
-  ): Option[ValueDefinition[scala.Unit, UType]] =
+  ): Option[UValueDef] =
     lookupModuleDefinition(packageName, module).flatMap(_.lookupValueDefinition(localName))
 
   def lookupValueDefinition(fqn: FQName): Option[ValueDefinition[scala.Unit, UType]] =
