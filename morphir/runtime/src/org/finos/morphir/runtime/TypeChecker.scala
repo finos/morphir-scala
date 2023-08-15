@@ -260,11 +260,11 @@ class TypeChecker(dists: Distributions) {
   }
   def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
-    val fromType = dists.lookupTypeSpecification(fqn) match{
+    val fromType = dists.lookupValueSpecification(fqn) match{
       case Left(err) => List(new DefinitionMissing(err))
       case Right(spec) => {
         val curried = Utils.curryTypeFunction(spec.output, spec.inputs)
-        conformsTo(curried, tpe)
+        conformsTo(curried, tpe, context)
       }
     }
     fromChildren ++ fromType
