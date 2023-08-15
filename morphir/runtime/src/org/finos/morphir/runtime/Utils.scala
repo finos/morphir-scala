@@ -163,9 +163,9 @@ object Utils {
   }
 
   def uncurryFunctionType(functionTpe : UType) : (UType, Chunk[UType]) = {
-    functioTpe match {
+    functionTpe match {
       case Type.Function(_, innerFunction, arg) => {
-        val (ret, args) = uncurryTypeFunction(innerFunction)
+        val (ret, args) = uncurryFunctionType(innerFunction)
         (ret, args :+ arg)
       }
       case other => (other, Chunk())
