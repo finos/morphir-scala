@@ -139,16 +139,28 @@ class TypeChecker(dists: Distributions) {
       definition: TypedValueDef,
       inValue: TypedValue,
       context: Context
-  ): TypeCheckerResult =
-    List()
+  ): TypeCheckerResult = {
+    val fromChildren = check(inValue, context)
+    //TODO: Manage Store
+    //TODO: Check definition body
+    //TODO: Check definition body w/ argument types added to store
+    fromChildren
+  }
   def handleLetRecursion(
       tpe: UType,
       definitions: Map[Name, TypedValueDef],
       inValue: TypedValue,
       context: Context
-  ): TypeCheckerResult =
-    List()
-  def handleListValue(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult =
+  ): TypeCheckerResult = {
+    val fromChildren = check(inValue, context)
+    //TODO: Manage store
+    //TODO: Check definition types and add to stores
+    fromChildren
+  }
+  def handleListValue(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
+    val fromChildren = elements.map(check(_, context))
+    //TODO: Check the value dealiases to a record which has that name
+    fromChildren
     List()
   def handlePatternMatch(
       tpe: UType,
