@@ -225,7 +225,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
             expected = List()
           } yield assertTrue(actual == expected)
         }
-      ),
+      ).provideLayerShared(typeCheckerLayer),
       suite("Destructure Tests")(
         test("As") {
           for {
@@ -574,5 +574,5 @@ object TypeCheckerTests extends MorphirBaseSpec {
           Data.Boolean(true)
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
       )
-    ).provideLayerShared(morphirRuntimeLayer).provideLayerShared(typeCheckerLayer)
+    ).provideLayerShared(morphirRuntimeLayer)
 }
