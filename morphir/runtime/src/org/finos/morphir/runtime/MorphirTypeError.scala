@@ -15,8 +15,8 @@ abstract class MorphirTypeError(msg: String) extends Exception(msg){
   def getMsg : String = msg
 }
 object MorphirTypeError {
-  def succinct(value : Value[TA, VA]) : String= Succinct.Value(value)
-  def succinct(value: Vale[TA, VA]) : String = Succinct.Value(value)
+  def succinct[TA, VA](value : Value[TA, VA]) : String= Succinct.Value(value)
+  def succinct[TA](tpe : Type[TA]) : String = Succinct.Type(tpe)
   case class TypesMismatch(tpe1: UType, tpe2: UType, msg : String)                           extends MorphirTypeError(s"$msg: ${Succinct.Type(tp1)} vs ${Sucinct.Type(tpe2)}")
   case class ArgumentDoesNotMatchParameter(arg: TypedValue, param: UType) extends MorphirTypeError(s"Argument ${Succinct.Value(arg)}  of type ${Succinct.Type(arg.attributes)} does not match parameter ${Succinct.Type(param)}")
   case class ApplyToNonFunction(arg : TypedValue, nonFunction : TypedValue) extneds MorphirTypeErr(s"Tried to apply ${Succinct.}")
