@@ -26,9 +26,15 @@ object Succinct{
     def apply[TA, VA](value: Value[TA, VA])
   }
   object Type{
+    def apply[TA](tpe: Type[TA], depth: Int)
+
+    def apply[TA](tpe : Type[TA])
 
   }
   object Value{
+    def apply[TA, VA](value: Value[TA, VA], depth: Int)
+
+    def apply[TA, VA](value: Value[TA, VA])
 
   }
 }
