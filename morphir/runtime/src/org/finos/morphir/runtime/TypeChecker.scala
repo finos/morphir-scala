@@ -103,10 +103,14 @@ class TypeChecker(dists: Distributions) {
           //Note reversed order - covariance vs. contravariance.
           conformsTo(valueRet, declaredRet, context) ++ conformsTo(declaredArg, valueArg, context)
         }
+      //TODO: Consider covariance/contravariance
       case (DictRef(firstKey, firstValue), DictRef(secondKey, secondValue)) =>
         conformsTo(firstKey, secondKey, context) ++ conformsTo(firstValue, secondValue, context)
       case (ResultRef(firstErr, firstOk), ResultRef(secondErr, secondOk)) =>
         conformsTo(firstErr, secondErr, context) ++ conformsTo(firstOk, secondOk, context)
+      case (ListRef(firstElement), ListRef(secondElement)) => conformsTo(firstElement, secondElement, context)
+      case (MaybeRef(firstElement), MaybeRef(secondElement)) =>
+        conformsTo(firstElement, secondElement, context)
 
     }
   }
