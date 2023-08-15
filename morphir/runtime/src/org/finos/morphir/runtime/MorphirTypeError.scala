@@ -9,6 +9,7 @@ import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
+import org.finos.morphir.ir.Literal.Lit
 import zio.Chunk
 
 abstract class MorphirTypeError(msg: String) extends Exception(msg) {
@@ -25,6 +26,7 @@ object MorphirTypeError {
   case class ApplyToNonFunction(nonFunction: TypedValue, arg: TypedValue) extends MorphirTypeError(
         s"Tried to apply ${succinct(arg)} to ${succinct(nonFunction)} of type ${succinct(nonFunction.attributes)}, which is not a function"
       )
+  case class LiteralTypeMismatch(lit : Lit, tpe : UType) extends MorphirTypeError(s"Literal $lit is not of type ${succinct(tpe)}")
   case class ImproperType(tpe: UType, message: String) extends MorphirTypeError("Todo")
   case class CannotDealias(err: LookupError, msg: String = "Cannot dealias type")
       extends MorphirTypeError(s"$msg: ${err.getMsg}")
