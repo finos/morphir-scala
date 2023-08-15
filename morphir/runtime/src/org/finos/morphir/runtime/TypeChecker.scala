@@ -60,7 +60,7 @@ class TypeChecker(dists: Distributions) {
         case Type.Reference(_, typeName, typeArgs) =>
           val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
-            case Some(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
+            case Right(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
               val newBindings = typeParams.zip(typeArgs).toMap
               loop(expr, original_fqn.orElse(Some(typeName)), context.withBindings(newBindings))
             case Right(_) => Right(tpe) // TODO: Bindings

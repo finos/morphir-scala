@@ -16,7 +16,7 @@ abstract class MorphirTypeError(msg: String) extends Exception(msg){
 }
 object MorphirTypeError {
   case class TypesMismatch(tpe1: UType, tpe2: UType)                           extends MorphirTypeError("Todo")
-  case class ArgumentDoesNotMatchParameter(arg: TypedValue, param: TypedValue) extends MorphirTypeError("Todo")
+  case class ArgumentDoesNotMatchParameter(arg: TypedValue, param: UType, msg : String) extends MorphirTypeError(msg)
   case class ImproperType(tpe: UType, message: String)                         extends MorphirTypeError("Todo")
   case class CannotDealias(err : LookupError, msg : String = "Cannot dealias type")                                  extends MorphirTypeError(s"$msg: ${err.getMsg}")
   case class ValueMissing(value: TypedValue)                                   extends MorphirTypeError("Todo")
