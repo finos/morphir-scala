@@ -112,7 +112,14 @@ class TypeChecker(dists: Distributions) {
               conformsTo(first, second, context)
           }
         }
-      case (Type.Record(_, firstFields), Type.Record(_, secondFields)) =>
+      case (Type.Record(_, firstFields), Type.Record(_, secondFields)) => {
+        val tpeFieldSet: Set[Name] = tpeFields.map(_._1).toSet
+        val valFieldSet: Set[Name] = valFields.map(_._1).toSet
+        // println(s"Type checking a record and we see ${tpeFieldSet.map(_._1)} vs ${valFieldSet.map(_._1)}")
+        val missingFromTpe = tpeFieldSet
+          .diff(valFieldSet).toList.map(missing => MissingRecordField(recordTpe, missing))
+        val missingFromValue = valFieldSet
+          .diff(tpeFieldSet).toList.map(bonus => ExtraRecordField(recordTpe, bonus))
         if (firstFields.length != secondFields.length) {
           List(new TypesMismatch(first, second, "Record lengths differ (${firstField.length} vs ${secondElements.length})")) // TODO: Details!
         } else {
@@ -121,6 +128,7 @@ class TypeChecker(dists: Distributions) {
               conformsTo(firstField.data, secondField.data, context)
           }
         }
+      }
       //TODO: Consider covariance/contravariance
       case (DictRef(firstKey, firstValue), DictRef(secondKey, secondValue)) =>
         conformsTo(firstKey, secondKey, context) ++ conformsTo(firstValue, secondValue, context)
