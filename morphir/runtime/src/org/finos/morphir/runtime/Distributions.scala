@@ -15,7 +15,9 @@ import org.finos.morphir.ir.distribution.Distribution.Library
 import zio.Chunk
 
 //TODO: Error hierarchy and code should reflect possibility of specification lookup
-sealed abstract class LookupError(msg : String) extends Exception(msg)
+sealed abstract class LookupError(msg : String) extends Exception(msg) {
+  def getMsg: String = msg
+}
 case class MissingPackage(pkgName : PackageName) extends LookupError(s"Package ${pkgName.toString} not found")
 case class MissingModule(pkgName: PackageName, modName : ModuleName) extends LookupError(s"Package ${pkgName.toString} does not contain module ${modName.toString}")
 case class MissingType(pkgName : PackageName, modName: ModuleName, typeName : Name) extends LookupError(s"Module ${pkgName.toString}:${modName.toString} has no type named ${typeName.toTitleCase}")
@@ -37,7 +39,7 @@ class Distributions(dists: Map[PackageName, Distribution]) {
     dists.get(pkgName) match {
       case Some(Library(_, _, packageDef)) =>
         packageDef.modules.get(modName) match {
-          case Some(module) => Right(module)
+          case Some(module) => Right(module.value)
           case None => Left(new MissingModule(pkgName, modName))
         }
       case None => Left(new MissingPackage(pkgName))
@@ -82,5 +84,5 @@ class Distributions(dists: Map[PackageName, Distribution]) {
 
 object Distributions {
   def apply(dists: Distribution*): Distributions =
-    new Distributions(dists.map { case (lib: Library) => lib.pkgName -> lib }.toMap)
+    new Distributions(dists.map { case (lib: Library) => lib.packageName -> lib }.toMap)
 }

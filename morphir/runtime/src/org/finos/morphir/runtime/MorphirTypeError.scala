@@ -11,12 +11,14 @@ import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 import zio.Chunk
 
-abstract class MorphirTypeError(msg: String) extends Exception(msg)
+abstract class MorphirTypeError(msg: String) extends Exception(msg){
+  def getMsg : String = msg
+}
 object MorphirTypeError {
   case class TypesMismatch(tpe1: UType, tpe2: UType)                           extends MorphirTypeError("Todo")
   case class ArgumentDoesNotMatchParameter(arg: TypedValue, param: TypedValue) extends MorphirTypeError("Todo")
   case class ImproperType(tpe: UType, message: String)                         extends MorphirTypeError("Todo")
-  case class CannotDealias(err : LookupError, msg : String = "Cannot dealias type")                                  extends MorphirTypeError(s"$msg: ${err.msg}")
+  case class CannotDealias(err : LookupError, msg : String = "Cannot dealias type")                                  extends MorphirTypeError(s"$msg: ${err.getMsg}")
   case class ValueMissing(value: TypedValue)                                   extends MorphirTypeError("Todo")
   case class ConstructorMissing(fqn: FQName, tpe: UType)                       extends MorphirTypeError("Todo")
   case class ModuleMissing(modName: ModuleName)                                extends MorphirTypeError("Todo")
