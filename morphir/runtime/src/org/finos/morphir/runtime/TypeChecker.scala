@@ -100,7 +100,7 @@ class TypeChecker(dists: Distributions) {
     def handlePatternMatch(tpe : UType, value : TypedValue, cases : List[(Pattern[UType], TypedValue)], context : Context) : TypeCheckerResult = {
         List()
     }
-    def handleRecord(tpe : UType, List[(Name, TypedValue)], context : Context) : TypeCheckerResult = {
+    def handleRecord(tpe : UType, fields : List[(Name, TypedValue)], context : Context) : TypeCheckerResult = {
         List()
     }
     def handleReference(tpe : UType, fqn : FQName, context : Context) : TypeCheckerResult = {
