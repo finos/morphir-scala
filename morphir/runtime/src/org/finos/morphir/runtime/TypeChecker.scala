@@ -242,6 +242,7 @@ class TypeChecker(dists: Distributions) {
   }
   def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
+
     // TODO: Check the value dealiases to a definition that translates to this tpe
     fromChildren
   }

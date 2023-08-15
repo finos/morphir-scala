@@ -77,7 +77,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
           val badApply: TypedValue = V.apply(Basics.boolType, invalidFunction, V.intTyped(2))
           testTypeCheck(badApply)(-1)
         }
-        // TODO: Body is recursively checked
+        // TODO: Aliased function type
       ),
       suite("Literal Node")(
         test("Strings are not Ints") {

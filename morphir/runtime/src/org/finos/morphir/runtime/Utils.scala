@@ -162,8 +162,6 @@ object Utils {
     fqn.getPackagePath == example.getPackagePath
   }
 
-  // TODO: Implement
-  def typeCheck[TA](t1: Type[TA], t2: Type[TA]): RTAction[Any, TypeError, Unit] = RTAction.succeed(())
   def curryTypeFunction[TA](inner: Type[TA], params: Chunk[(Name, Type[TA])]): Type[TA] =
     params match {
       case Chunk() => inner
