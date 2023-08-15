@@ -159,16 +159,22 @@ class TypeChecker(dists: Distributions) {
   }
   def handleListValue(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
     val fromChildren = elements.map(check(_, context))
-    //TODO: Check the value dealiases to a record which has that name
+    //TODO: Check tpe is a list, check children types agree w/ parent type (probably only report one mismatch, but inspect all values
     fromChildren
-    List()
+  }
   def handlePatternMatch(
       tpe: UType,
       value: TypedValue,
       cases: List[(Pattern[UType], TypedValue)],
       context: Context
-  ): TypeCheckerResult =
-    List()
+  ): TypeCheckerResult = {
+    val fromChildren = check(value, context)
+    //TODO: Check values from each case
+    //TODO: Manage store
+    //TODO: Check each case's pattern can be it's value
+    //TODO: Check value must be one of the patterns
+    fromChildren
+  }
   def handleRecord(tpe: UType, fields: List[(Name, TypedValue)], context: Context): TypeCheckerResult =
     List()
   def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult =
