@@ -302,17 +302,16 @@ class TypeChecker(dists: Distributions) {
     fromChildren
   }
   def handleListValue(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
+    //We expect declared element types to be the same, but values may differ; so we only grab the first set of errors at the type level, but fully explore all elements.
     val fromChildren = elements.flatMap(check(_, context))
     val fromTpe = tpe match{
       case ListRef(elementType) =>
-                val fromSignature = List() // checkTypesAgree(tpe, elementType, context) TODO: What was this?
-                val fromElements = elements.foldLeft(List(): List[GoodTypeError]) { (acc, next) =>
-                  acc ++ checkTypesAgree(elementType, next.attributes, context)
-                  //            if (acc.size != 0) acc else {
-                  //              checkTypesAgree(elementType, next.attributes, context) //Check each element vs. the declared element type (only keep first errors)
-                  //            }
-                }
-                fromSignature ++ fromElements
+        elements.foldLeft(List(): List[MorphirTypeError]) { (acc, next) =>
+          acc ++ checkConforms(elementType, next.attributes, context)
+            if (acc.size != 0) acc else {
+              checkConforms(elementType, next.attributes, context) //Check each element vs. the declared element type (only keep first errors)
+            }
+        }
       case other=> List(ImproperType(other, s"Expected list"))
     }
     // TODO: Check tpe is a list, check children types agree w/ parent type (probably only report one mismatch, but inspect all values
