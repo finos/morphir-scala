@@ -332,11 +332,10 @@ class TypeChecker(dists: Distributions) {
   def handleRecord(tpe: UType, fields: List[(Name, TypedValue)], context: Context): TypeCheckerResult = {
     val fromChildren = fields.flatMap { case (_, value) => check(value, context) }
 
-    val fromTpe = dealias(tpe, context) match {
-      case Right(recordTpe@Type.Record(_, tpeFields)) =>
+    val fromTpe = tpe match {
+      case recordTpe@Type.Record(_, tpeFields) =>
         val tpeFieldSet: Set[Name] = tpeFields.map(_._1).toSet
         val valFieldSet: Set[Name] = valFields.map(_._1).toSet
-        // println(s"Type checking a record and we see ${tpeFieldSet.map(_._1)} vs ${valFieldSet.map(_._1)}")
         val missingFromTpe = tpeFieldSet
           .diff(valFieldSet).toList.map(missing => MissingRecordField(recordTpe, missing))
         val missingFromValue = valFieldSet
@@ -347,8 +346,7 @@ class TypeChecker(dists: Distributions) {
           checkTypesAgree(valFieldMap(name).attributes, tpeFieldMap(name), context)
         )
         missingFromTpe ++ missingFromValue ++ conflicts
-      case Right(other) => List(ImproperType(other, s"Found ${other.getClass}while expecting record"))
-      case Left(error) => List(error)
+      case other => List(ImproperType(other, "Value is of type Record"))
     }
     // TODO: Check tpe dealises to a record
     // TODO: Check each field agrees with the type from the name
