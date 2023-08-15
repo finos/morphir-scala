@@ -13,6 +13,7 @@ import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
 import zio.{Console, ZIO, ZLayer}
+import org.finos.morphir.ir.Value.RawValueExtensions
 
 object TypeCheckerTests extends MorphirBaseSpec {
   type MorphirRuntimeTyped = MorphirRuntime[Unit, UType]
@@ -96,8 +97,6 @@ object TypeCheckerTests extends MorphirBaseSpec {
   def runTypeCheck(value: TypedValue): ZIO[TypeChecker, Throwable, List[MorphirTypeError]] =
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       ZIO.succeed(checker.check(value))
-//      .provideEnvironment(MorphirEnv.live)
-//      .toZIOWith(RTExecutionContext.default)
     }
 
   val dogRecordConceptRaw = Concept.Struct(
@@ -215,10 +214,11 @@ object TypeCheckerTests extends MorphirBaseSpec {
     unionEnumShape
   )
   val validString : TypedValue = V.string(sdk.String.stringType, "Green")
+  val invalidString : TypedValue = V.int(1) :> sdk>string.stringType
   val intToInt : TypedValue = V.reference(T.function(Basics.intType, Basics.intType), FQName.fromString("Morphir/Examples/App:TypeCheckerTests:intToInt"))
 
   def spec =
-    suite("Type Checker Unhappy Paths")(
+    suite("Type Checker Tests")(
       suite("Apply Node")(
         test("Apply to non function") {
           val badApply: TypedValue = V.apply(Basics.intType, V.intTyped(1), V.intTyped(1))
@@ -226,6 +226,10 @@ object TypeCheckerTests extends MorphirBaseSpec {
         },
         test("Apply arg type wrong"){
           val badApply : TypedValue = V.apply(Basics.intType, intToInt, validString)
+          testTypeCheck(badApply)(0)
+        },
+        test("Apply arg type wrong") {
+          val badApply: TypedValue = V.apply(Basics.boolType, intToInt, V.intTyped(1))
           testTypeCheck(badApply)(0)
         }
       ).provideLayerShared(typeCheckerLayer),

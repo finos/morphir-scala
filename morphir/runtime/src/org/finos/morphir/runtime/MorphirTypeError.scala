@@ -20,7 +20,7 @@ object MorphirTypeError {
   case class TypesMismatch(tpe1: UType, tpe2: UType, msg: String)
       extends MorphirTypeError(s"$msg: succinct(tp1)} vs ${succinct(tpe2)}")
   case class ArgumentDoesNotMatchParameter(arg: TypedValue, param: UType) extends MorphirTypeError(
-        s"Argument ${succinct(arg)}  of type ${succinct(arg.attributes)} does not match parameter succinct(param)}"
+        s"Argument ${succinct(arg)}  of type ${succinct(arg.attributes)} does not match parameter ${succinct(param)}"
       )
   case class ApplyToNonFunction(nonFunction: TypedValue, arg: TypedValue) extends MorphirTypeError(
         s"Tried to apply ${succinct(arg)} to ${succinct(nonFunction)} of type ${succinct(nonFunction.attributes)}, which is not a function"
