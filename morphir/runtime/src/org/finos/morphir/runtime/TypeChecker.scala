@@ -84,8 +84,10 @@ class TypeChecker(dists: Distributions) {
   }
   def conformsTo(valueType : UType, declaredType : UType, context : Context) : List[MorphirTypeError] = {
     (valueType, declaredType) match {
-      //        case (_, Type.Variable(_, name)) => List(Unimplemented("Tell Ned to add variable bindings"))
-      //        case (Type.Variable(_, name), _) => List(Unimplemented("Tell Ned to add variable bindings"))
+              case (_, Type.Variable(_, name)) => context.getTypeVariable(name) match {
+                case None => List(new TypeVariableMissing(name))
+              }
+              case (Type.Variable(_, name), _) => List(Unimplemented("Tell Ned to add variable bindings"))
     }
   }
 
