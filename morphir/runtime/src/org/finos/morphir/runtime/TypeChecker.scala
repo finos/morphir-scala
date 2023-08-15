@@ -267,8 +267,8 @@ class TypeChecker(dists: Distributions) {
       context: Context
   ): TypeCheckerResult = {
     val fromChildren = check(condition, context) ++ check(thenValue, context) ++ check(elseValue, context)
-    // TODO: Check condition is boolean and branches agree withe ach other/tpe
-    fromChildren
+    val internal = conformsTo(thenValue.attributes, tpe, context) ++ conformsTo(elseValue.attributes, tpe, context) ++ conformsTo(condition.attributes, Basics.boolType, context)
+    fromChildren ++ internal
   }
   def handleLambda(tpe: UType, pattern: Pattern[UType], body: TypedValue, context: Context): TypeCheckerResult = {
     val fromChildren = check(body, context)
