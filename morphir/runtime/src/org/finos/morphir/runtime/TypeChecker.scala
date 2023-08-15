@@ -86,9 +86,12 @@ class TypeChecker(dists: Distributions) {
     (valueType, declaredType) match {
               case (_, Type.Variable(_, name)) => context.getTypeVariable(name) match {
                 case None => List(new TypeVariableMissing(name))
+                case some(lookedUp) => conformsTo(valueType, lookedUp, context) //TODO: Type parameter wrangling
               }
-              case (Type.Variable(_, name), _) => List(Unimplemented("Tell Ned to add variable bindings"))
-    }
+              case (Type.Variable(_, name), _) => context.getTypeVariable(name) match {
+                case None => List(new TypeVariableMissing(name))
+                case some(lookedUp) => conformsTo(lookedUp, declaredType, context)
+              }
   }
 
   def check(suspect: TypedValue): TypeCheckerResult =

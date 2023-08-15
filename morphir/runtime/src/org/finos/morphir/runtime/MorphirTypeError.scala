@@ -30,6 +30,7 @@ object MorphirTypeError {
   case class ImproperType(tpe: UType, message: String) extends MorphirTypeError("Todo")
   case class CannotDealias(err: LookupError, msg: String = "Cannot dealias type")
       extends MorphirTypeError(s"$msg: ${err.getMsg}")
+  case class TypeVariableMissing(name : Name) extends MorphirTypeError(s"Missing type variable $name.toTitleCase")
   case class ValueMissing(value: TypedValue)             extends MorphirTypeError("Todo")
   case class ConstructorMissing(fqn: FQName, tpe: UType) extends MorphirTypeError("Todo")
   case class ModuleMissing(modName: ModuleName)          extends MorphirTypeError("Todo")
