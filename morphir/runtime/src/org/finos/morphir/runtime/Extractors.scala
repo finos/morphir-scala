@@ -84,7 +84,11 @@ object Extractors {
     object LocalTimeRef extends CommonReference {
       final val tpe = sdk.LocalTime.localTimeType
     }
-
+    object LeafType{
+      def unapply(tpe : Utype) : boolean = {
+        
+      }
+    }
     object NonNativeRef {
       def unapply(tpe: UType): Option[(FQName, Chunk[UType])] =
         tpe match {
