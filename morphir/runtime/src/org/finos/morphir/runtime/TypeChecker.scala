@@ -138,9 +138,7 @@ class TypeChecker(dists: Distributions) {
         if (valueArgs.length != declaredArgs.length)
           List(new OtherTypeError(s"Reference $valueName has different number of parameters (${valueArgs.length} vs ${declaredArgs.length}"))
         else
-          valueArgs.zip(declaredArgs).map{case (value, declared) => conformsTo(value, declared, context)}
-
-
+          valueArgs.zip(declaredArgs).toList.flatMap{case (value, declared) => conformsTo(value, declared, context)}
       }
       case (dealiased(value, valueArgs), declared) => conformsTo(value, declared, context) //TODO: Bindings, left side only!
       case (value, dealiased(declared, declaredArgs)) => conformsTo(value, declared, context) //TODO: Bindings, right side only!
@@ -323,13 +321,15 @@ class TypeChecker(dists: Distributions) {
   }
   def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
-    val fromType = dists.lookupValueSpecification(fqn) match{
+    val fromType = if (!Utils.isNative(fqn)) {
+      dists.lookupValueSpecification(fqn) match{
       case Left(err) => List(new DefinitionMissing(err))
       case Right(spec) => {
         val curried = Utils.curryTypeFunction(spec.output, spec.inputs)
         conformsTo(curried, tpe, context)
       }
     }
+    } else List() //TODO: Handle native type references
     fromChildren ++ fromType
   }
   def handleTuple(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
