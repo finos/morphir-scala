@@ -21,12 +21,12 @@ import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => V
 import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
 
 object Utils {
-  import Extractors.*
+  import Extractors.Types*
 
   def dealias(original_tpe: UType, dists: Distributions, bindings: Map[Name, UType]): UType = {
     def loop(tpe: UType, bindings: Map[Name, UType]): UType =
       tpe match {
-        case SDKRef() => applyBindings(tpe, bindings) // nothing further to look up
+        case NativeRef() => applyBindings(tpe, bindings) // nothing further to look up
         case Type.Reference(_, typeName, typeArgs) =>
           val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
