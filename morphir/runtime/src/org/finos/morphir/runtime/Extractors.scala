@@ -160,5 +160,25 @@ object Extractors {
           case _ => false
         }
     }
+
+    object NonNativeRef {
+      def unapply(value: TypedValue): Option[(UType, FQName)] =
+        value match {
+          case Value.Reference(tpe, name)
+            if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
+            Some(tpe, name)
+          case _ => None
+        }
+    }
+
+    object NativeRef {
+      def unapply(value: TypedValue): Option[(UType, FQName)] =
+        value match {
+          case Value.Reference(tpe, name)
+            if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
+            Some(tpe, name)
+          case _ => None
+        }
+    }
   }
 }
