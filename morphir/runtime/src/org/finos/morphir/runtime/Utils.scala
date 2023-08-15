@@ -22,7 +22,7 @@ import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
 
 object Succinct{
   object Value{
-    import Value.*
+    import V.Value.*
     def apply[TA, VA](value : Value[TA, VA], depth : Int) : String ={
       value match {
         case Literal(lit) => s"Literal($lit)"
@@ -32,6 +32,7 @@ object Succinct{
     def apply[TA, VA](value: Value[TA, VA]): String = apply(value, 2)
   }
   object Type{
+    import T.Type.*
     def apply[TA](tpe: Type[TA], depth: Int): String ={
       tpe match{
         case other => other.getClass
