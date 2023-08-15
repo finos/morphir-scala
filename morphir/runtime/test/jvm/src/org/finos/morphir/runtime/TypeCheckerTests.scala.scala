@@ -90,7 +90,11 @@ object TypeCheckerTests extends MorphirBaseSpec {
         .provideEnvironment(MorphirEnv.live)
         .toZIOWith(RTExecutionContext.default)
     }
-
+  def testTypeCheck(value : TypedValue, expectedErrors : Int) : ZIO[TypeChecker, Throwable, TestResult] = {
+    for {
+      
+    }
+  }
   def runTypeCheck(value : TypedValue) : ZIO[TypeChecker, Throwable, List[MorphirTypeError]] =
   ZIO.serviceWithZIO[TypeChecker]{ checker =>
     ZIO.succeed(checker.check(value))
