@@ -25,8 +25,8 @@ object Succinct{
     import V.Value.*
     def apply[TA, VA](value : Value[TA, VA], depth : Int) : String ={
       value match {
-        case Literal(lit) => s"Literal($lit)"
-        case other => other.getClass
+        case Literal(_, lit) => s"Literal($lit)"
+        case other => other.getClass.getSimpleName
       }
     }
     def apply[TA, VA](value: Value[TA, VA]): String = apply(value, 2)
@@ -35,7 +35,7 @@ object Succinct{
     import T.Type.*
     def apply[TA](tpe: Type[TA], depth: Int): String ={
       tpe match{
-        case other => other.getClass
+        case other => other.getClass.getSimpleName
       }
     }
 
@@ -45,7 +45,7 @@ object Succinct{
   object Pattern{
     def apply[VA](pattern: Pattern[VA], depth: Int): String ={
       pattern match {
-        case other => other.getClass
+        case other => other.getClass.getSimpleName
       }
     }
     def apply[VA](pattern: Pattern[VA]): String = apply(pattern, 2)
