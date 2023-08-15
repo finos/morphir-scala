@@ -112,6 +112,15 @@ class TypeChecker(dists: Distributions) {
               conformsTo(first, second, context)
           }
         }
+      case (Type.Record(_, firstFields), Type.Record(_, secondFields)) =>
+        if (firstFields.length != secondFields.length) {
+          List(new TypesMismatch(first, second, "Record lengths differ (${firstField.length} vs ${secondElements.length})")) // TODO: Details!
+        } else {
+          firstFields.toList.zip(secondFields).flatMap {
+            case (firstField, secondField) =>
+              conformsTo(firstField.data, secondField.data, context)
+          }
+        }
       //TODO: Consider covariance/contravariance
       case (DictRef(firstKey, firstValue), DictRef(secondKey, secondValue)) =>
         conformsTo(firstKey, secondKey, context) ++ conformsTo(firstValue, secondValue, context)
