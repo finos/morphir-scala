@@ -29,12 +29,13 @@ object TypeChecker {
     def withTypeBindings(typeBindings: Map[Name, UType]) = this.copy(typeBindings = typeBindings)
     def withDepth(depth: Int)                    = this.copy(depth = depth)
     def withPrefix(prefix: String)               = this.copy(prefix = prefix)
+
+    def getTypeVariable(name: Name): Option[UType] = typeBindings.get(name)
   }
   object Context {
     def empty = Context(Map(), 0, "")
   }
   def helper(condition: Boolean, error: MorphirTypeError) = if (condition) List(error) else List()
-  def getTypeVariable(name : Name) : Option[UType] = typeBindings.get(name)
 }
 
 class TypeChecker(dists: Distributions) {
@@ -52,7 +53,7 @@ class TypeChecker(dists: Distributions) {
         val modPart             = if (mod1 != mod2) s"{$mod1 </=/> $mod2}" else mod1
         val locPart = if (loc1 != loc2) s"{${loc1.toTitleCase} </=/> ${loc2.toTitleCase}" else loc1.toTitleCase
         s"$packPart:$modPart:$locPart"
-      case _ => s"(${pretty(tpe1, 2)} vs ${pretty(tpe2, 2)})"
+      case _ => s"(${Succinct.Type(tpe1, 2)} vs ${Succinct.Type(tpe2, 2)})"
     }
   }
   private def nameMissingValue(value: TypedValue, dists: Distributions): MorphirTypeError             = ???

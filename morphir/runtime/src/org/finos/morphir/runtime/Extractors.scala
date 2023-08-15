@@ -89,7 +89,7 @@ object Extractors {
       def unapply(tpe : UType) : Boolean = {
         tpe match {
           case Type.Reference(_, _, Chunk()) => true
-          case Type.Unit => true
+          case Type.Unit(_) => true
           case _ => false
         }
       }
