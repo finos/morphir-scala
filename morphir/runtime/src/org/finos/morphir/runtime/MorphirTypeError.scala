@@ -36,7 +36,7 @@ object MorphirTypeError {
       extends MorphirTypeError(s"$msg: ${err.getMsg}")
   case class TypeVariableMissing(name : Name) extends MorphirTypeError(s"Missing type variable $name.toTitleCase")
   case class DefinitionMissing(err : LookupError)             extends MorphirTypeError(s"Cannot find definition: ${err.getMsg}")
-  case class ConstructorMissing(fqn: FQName, tpe: UType) extends MorphirTypeError("Todo")
+  case class ConstructorMissing(err: LookupError, tpe: UType) extends MorphirTypeError(s"Cannot find definition of type ${succinct(tpe)}: ${err.getMsg}")
   case class ModuleMissing(modName: ModuleName)          extends MorphirTypeError("Todo")
   case class PackageMissing(pckName: PackageName)        extends MorphirTypeError("Todo")
   case class Unimplemented(s: String)                    extends MorphirTypeError(s)
