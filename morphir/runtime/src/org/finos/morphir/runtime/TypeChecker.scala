@@ -177,12 +177,12 @@ class TypeChecker(dists: Distributions) {
     val fromChildren = check(value, context) ++ check(inValue, context)
     // TODO: Check pattern can be value
     // TODO: Check value must be pattern
-    val fromTpe = conformsTo(inValue, tpe, context)
+    val fromTpe = conformsTo(inValue.attributes, tpe, context)
     fromTpe ++ fromChildren
   }
   def handleConstructor(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
-    val fromTpe = uncurryFunctionType
+    val (ret, args) = Utils.uncurryFunctionType(tpe) //TODO: Interleaved function type w/ aliases.
     // TODO: Check it's a function onion for a type with that constructor
     fromChildren
   }
