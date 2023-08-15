@@ -114,9 +114,15 @@ class TypeChecker(dists: Distributions) {
   }
   def handleLiteral(tpe: UType, literal: Lit, context: Context): TypeCheckerResult = {
     import Extractors.Types.*
+    import Lit.*
     val fromChildren = List()
     (literal, tpe) match {
-
+      case StringLiteral(value) => value
+      case FloatLiteral(value) => value
+      case CharLiteral(value) => value
+      case BoolLiteral(value) => value
+      case WholeNumberLiteral(value) => value
+      case DecimalLiteral(value) => value
     }
     fromChildren
   }
