@@ -22,11 +22,14 @@ case class MissingDefinition(pkgName: PackageName, modName: ModuleName, defName 
 case class MissingConstructor(pkgName: PackageName, modName: ModuleName, ctorName : Name) extends LookupError(s"Module ${pkgName.toString}:${modName.toString} has no constructor named ${ctorName.toTitleCase}")
 
 class Distributions(dists: Map[PackageName, Distribution]) {
-  def lookupModuleSpecification(packageName: PackageName, module: ModuleName): Option[ModSpec.Raw] =
+  def lookupModuleSpecification(packageName: PackageName, module: ModuleName): Either[LookupError, ModSpec.Raw] =
     dists.get(packageName) match {
       case Some(Library(_, _, packageDef)) =>
-        packageDef.toSpecification.modules.get(module)
-      case None => None
+        packageDef.toSpecification.modules.get(module) match{
+          case Some(module) => Right(module)
+          case None => Left(new MissingModule(pkgName, modName))
+        }
+      case None => Left(new MissingPackage(packageName))
     }
 
   def lookupModuleDefinition(packageName: PackageName, module: ModuleName): Option[ModDef[Unit, UType]] =
