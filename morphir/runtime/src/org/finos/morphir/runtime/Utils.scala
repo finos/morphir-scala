@@ -34,7 +34,7 @@ object Succinct{
   object Type{
     def apply[TA](tpe: Type[TA], depth: Int): String ={
       tpe match{
-
+        case other => other.getClass
       }
     }
 
@@ -44,7 +44,7 @@ object Succinct{
   object Pattern{
     def apply[VA](pattern: Pattern[VA], depth: Int): String ={
       pattern match {
-
+        case other => other.getClass
       }
     }
     def apply[VA](pattern: Pattern[VA]): String = apply(pattern, 2)
