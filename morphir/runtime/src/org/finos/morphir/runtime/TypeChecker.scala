@@ -113,8 +113,11 @@ class TypeChecker(dists: Distributions) {
     }
   }
   def handleLiteral(tpe: UType, literal: Lit, context: Context): TypeCheckerResult = {
+    import Extractors.Types.*
     val fromChildren = List()
-    // TODO: Check lit agrees
+    (literal, tpe) match {
+
+    }
     fromChildren
   }
 
