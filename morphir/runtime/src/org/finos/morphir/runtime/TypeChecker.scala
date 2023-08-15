@@ -181,20 +181,31 @@ class TypeChecker(dists: Distributions) {
     //TODO: Check each field agrees with the type from the name
     fromChildren
   }
-  def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult =
-    List()
-  def handleTuple(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult =
-    List()
+  def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
+    val fromChildren = List()
+    //TODO: Check the value dealiases to a definition that translates to this tpe
+    fromChildren
+  }
+  def handleTuple(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
+    val fromChildren = elements.map(check(_, context))
+    //TODO: Check tpe dealiases to a tuple
+    //TODO: Check tuple types vs. nested value types
+    fromChildren
+  }
   def handleUnitValue(tpe: UType, context: Context): TypeCheckerResult =
-    List()
+    List() //Pass
   def handleUpdateRecord(
       tpe: UType,
       valueToUpdate: TypedValue,
       fields: Map[Name, TypedValue],
       context: Context
-  ): TypeCheckerResult =
-    List()
+  ): TypeCheckerResult = {
+    val fromChildren = check(valueToUpdate, context) ++ fields.map(check(_._2), context)
+    //TODO: Check the value dealiases to a record which has that name
+    fromChildren
+  }
   def handleVariable(tpe: UType, name: Name, context: Context): TypeCheckerResult =
+    //TODO: Keep that in the context
     List()
 
 }
