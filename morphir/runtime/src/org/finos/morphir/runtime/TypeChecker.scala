@@ -119,8 +119,7 @@ class TypeChecker(dists: Distributions) {
           .diff(declaredFieldSet).toList.map(missing => TypeLacksField(recordTpe, missing))
         val missingFromDeclared = declaredFieldSet
           .diff(valueFieldSet).toList.map(bonus => TypeHasExtraField(recordTpe, bonus))
-        if (valueFields.length != declaredFields.length) {
-          List(new TypesMismatch(value, declared, "Record lengths differ (${valueField.length} vs ${declaredElements.length})")) // TODO: Details!
+        valudFieldSet.intersect(declaredFieldSet)
         } else {
           valueFields.toList.zip(declaredFields).flatMap {
             case (valueField, declaredField) =>
