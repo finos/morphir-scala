@@ -45,10 +45,10 @@ class TypeChecker(dists: Distributions) {
           case _ => s"(${pretty(tpe1, 2)} vs ${pretty(tpe2, 2)})"
         }
   }
-  private def nameMissingValue(value: TypedValue, dists: Distributions): MorphirTypeError = {}
-  private def nameMissingType(fqn: FQName, dists: Distributions): MorphirTypeError        = {}
-  private def nameMissingConstructor(fqn: FQName, tpe: UType, dists: Distributions): MorphirTypeError = {}
-  private def pretty(tpe: UType, depthBudget: Int): String                                            = {}
+  private def nameMissingValue(value: TypedValue, dists: Distributions): MorphirTypeError = {"Todo"}
+  private def nameMissingType(fqn: FQName, dists: Distributions): MorphirTypeError        = {"Todo"}
+  private def nameMissingConstructor(fqn: FQName, tpe: UType, dists: Distributions): MorphirTypeError = {"TOdo"}
+  private def pretty(tpe: UType, depthBudget: Int): String                                            = {"Todo"}
   private def pretty(tpe: UType): String                                                              = pretty(tpe, 2)
   def check(suspect: TypedValue): TypeCheckerResult =
     check(suspect, Context.empty)
