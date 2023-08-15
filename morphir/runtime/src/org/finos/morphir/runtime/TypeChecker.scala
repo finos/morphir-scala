@@ -183,6 +183,11 @@ class TypeChecker(dists: Distributions) {
   def handleConstructor(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
     val (ret, args) = Utils.uncurryFunctionType(tpe) //TODO: Interleaved function type w/ aliases.
+    val fromTpe = ret match{
+      case Type.Referene(_, name, typeArgs) => dists.lookupTypeSpecification(name) match {
+
+      }
+    }
     // TODO: Check it's a function onion for a type with that constructor
     fromChildren
   }
