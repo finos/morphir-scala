@@ -41,6 +41,7 @@ object TypeChecker {
 class TypeChecker(dists: Distributions) {
   import TypeChecker.*
   private val functionOnion = Extractors.Types.FunctionOnion(dists)
+  private val dealiased = Extractors.Types.Dealiased(dists)
   private def nameThatMismatch(tpe1: UType, tpe2: UType): String = {
     import Extractors.Types.*
     (tpe1, tpe2) match {
@@ -138,6 +139,7 @@ class TypeChecker(dists: Distributions) {
           List(new OtherTypeError(s"Reference $valueName has different number of parameters (${valueArgs.length} vs ${declaredArgs.length}"))
         else
           valueArgs.zip(declaredArgs).map{case (declared, value) => conformsTo(declard, Value)}
+
 
       }
       case (valueOther, declaredOther) if valueOther.getClass == declaredOther.getClass => List(new Unimplemented(s"No matching support for ${Succinct.Type(valueOther)} vs ${Succinct.Type(declaredOther)}"))
