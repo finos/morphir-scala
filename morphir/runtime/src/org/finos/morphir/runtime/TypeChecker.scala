@@ -82,7 +82,9 @@ class TypeChecker(dists: Distributions) {
       }
     loop(tpe, None, context)
   }
-  private def pretty(tpe: UType): String = pretty(tpe, 2)
+  def conformsTo(valueType : UType, interfaceType : UType, context : Context) : List[MorphirTypeError] = {
+    List()
+  }
   def check(suspect: TypedValue): TypeCheckerResult =
     check(suspect, Context.empty)
   def check(suspect: TypedValue, parentContext: Context): TypeCheckerResult = {
@@ -242,6 +244,8 @@ class TypeChecker(dists: Distributions) {
   }
   def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
+    val spec = dists.lookupTypeSpecification(fqn)
+    val curried = Utils.curryTypeFunction(spec)
 
     // TODO: Check the value dealiases to a definition that translates to this tpe
     fromChildren
