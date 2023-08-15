@@ -23,18 +23,18 @@ import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
 object Succinct{
   object Value{
     def apply[TA, VA](value : Value[TA, VA], depth : Int)
-    def apply[TA, VA](value: Value[TA, VA])
+    def apply[TA, VA](value: Value[TA, VA]) = apply(value, 2)
   }
   object Type{
     def apply[TA](tpe: Type[TA], depth: Int)
 
-    def apply[TA](tpe : Type[TA])
+    def apply[TA](tpe : Type[TA]) = apply(tpe, 2)
 
   }
-  object Value{
-    def apply[TA, VA](value: Value[TA, VA], depth: Int)
+  object Pattern{
+    def apply[VA](pattern: Pattern[VA], depth: Int)
 
-    def apply[TA, VA](value: Value[TA, VA])
+    def apply[VA](pattern: Pattern[VA]) = apply(pattern, 2)
 
   }
 }
