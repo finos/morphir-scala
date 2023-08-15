@@ -29,7 +29,7 @@ object TypeChecker {
 }
 
 class TypeChecker(dists: Distributions) {
-  private val functionOnion                                                               = FunctionOnion(dists)
+  private val functionOnion                                                               = Extractors.Types.FunctionOnion(dists)
   private def nameThatMismatch(tpe1: UType, tpe2: UType): String                          = {}
   private def nameMissingValue(value: TypedValue, dists: Distributions): MorphirTypeError = {}
   private def nameMissingType(fqn: FQName, dists: Distributions): MorphirTypeError        = {}
