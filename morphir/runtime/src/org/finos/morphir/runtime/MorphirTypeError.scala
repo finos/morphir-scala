@@ -11,7 +11,7 @@ import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 import zio.Chunk
 
-trait MorphirTypeError extends MorphirRuntimeError
+trait MorphirTypeError(msg: String) extends MorphirRuntimeError(msg)
 object MorphirTypeError {
   case class TypesMismatch(tpe1: UType, tpe2: UType)                           extends GoodTypeError("Todo")
   case class ArgumentDoesNotMatchParameter(arg: TypedValue, param: TypedValue) extends GoodTypeError("Todo")

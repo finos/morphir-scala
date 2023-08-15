@@ -90,7 +90,7 @@ object Extractors {
       def unapply(tpe: UType): Option[(FQName, Chunk[UType])] =
         tpe match {
           case Type.Reference(_, name, args)
-            if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
+              if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
             Some((name, args))
           case _ => None
         }
@@ -99,7 +99,7 @@ object Extractors {
       def unapply(tpe: UType): Boolean =
         tpe match {
           case Type.Reference(_, name, _)
-            if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) => true
+              if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) => true
           case _ => false
         }
     }
@@ -126,9 +126,9 @@ object Extractors {
       def unapply(tpe: UType): Option[(UType, List[UType])] = {
         val myself = this
         tpe match {
-          case fun@Type.Function(_, arg, myself(inner, args)) =>
+          case fun @ Type.Function(_, arg, myself(inner, args)) =>
             Some(inner, args :+ arg)
-          case ref@dealiaser(myself(inner, args), bindings) =>
+          case ref @ dealiaser(myself(inner, args), bindings) =>
             Some(inner, args)
           // TODO: BINDINGS
           case other =>
@@ -141,7 +141,7 @@ object Extractors {
     object ApplyChain {
       def unapply(value: TypedValue): Option[(TypedValue, List[TypedValue])] = value match {
         case Value.Apply(_, ApplyChain(inner, args), arg) => Some(inner, args :+ arg)
-        case other => Some(other, List())
+        case other                                        => Some(other, List())
       }
     }
     object SomeConstructor {
@@ -165,7 +165,7 @@ object Extractors {
       def unapply(value: TypedValue): Option[(UType, FQName)] =
         value match {
           case Value.Reference(tpe, name)
-            if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
+              if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
             Some(tpe, name)
           case _ => None
         }
@@ -175,7 +175,7 @@ object Extractors {
       def unapply(value: TypedValue): Option[(UType, FQName)] =
         value match {
           case Value.Reference(tpe, name)
-            if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
+              if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
             Some(tpe, name)
           case _ => None
         }

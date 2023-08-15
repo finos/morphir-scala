@@ -41,14 +41,14 @@ class TypeChecker(dists: Distributions) {
   def check(suspect: TypedValue, parentContext: Context) = {
     import Value.{Unit as UnitValue, List as ListValue, Field as FieldValue, *}
     val context = parentContext.withDepth(parentContext.depth + 1)
-    suspect match{
+    suspect match {
       case Literal(tpe, lit)              => handleLiteral(tpe, lit, context)
       case Apply(tpe, function, argument) => handleApply(tpe, function, argument, store, context)
       case Destructure(tpe, pattern, valueToDestruct, inValue) =>
         handleDestructure(tpe, pattern, valueToDestruct, inValue, store, context)
-      case Constructor(tpe, name)        => handleConstructor(tpe, name, store, context)
+      case Constructor(tpe, name)             => handleConstructor(tpe, name, store, context)
       case FieldValue(tpe, recordValue, name) => handleField(tpe, recordValue, name, store, context)
-      case FieldFunction(tpe, name)      => handleFieldFunction(tpe, name, context)
+      case FieldFunction(tpe, name)           => handleFieldFunction(tpe, name, context)
       case IfThenElse(tpe, condition, thenValue, elseValue) =>
         handleIfThenElse(tpe, condition, thenValue, elseValue, store, context)
       case Lambda(tpe, pattern, body) => handleLambda(tpe, pattern, body, store, context)
@@ -60,64 +60,73 @@ class TypeChecker(dists: Distributions) {
       case Record(tpe, fields)                      => handleRecord(tpe, fields.toList, store, context)
       case Reference(tpe, name)                     => handleReference(tpe, name, store, context)
       case Tuple(tpe, elements)                     => handleTuple(tpe, elements.toList, store, context)
-      case UnitValue(va)                                => handleUnit(va, context)
+      case UnitValue(va)                            => handleUnit(va, context)
       case UpdateRecord(tpe, valueToUpdate, fields) => handleUpdateRecord(tpe, valueToUpdate, fields, store, context)
       case Variable(tpe, name)                      => handleVariable(tpe, name, store)
     }
-    def handleLiteral(tpe : UType, function: TypedValue, argument : TypedValue, context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleApply(tpe : UType, function: TypedValue, argument : TypedValue, context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleDestructure(tpe : UType, function: TypedValue, argument : TypedValue, context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleConstructor(tpe : UType, function: TypedValue, argument : TypedValue, context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleFieldValue(tpe : UType, recordValue : TypedValue, name : Name, context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleFieldFunction(tpe : UType, name : Name, context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleIfThenElse(tpe : UType, condition : TypedValue, thenValue : TypedValue, elseValue : TypedValue, context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleLambda(tpe : UType, pattern : Pattern, body : TypedValue, context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleLetDefinition(tpe : UType, name : Name, definition : UValueDef, inValue : TypedValue, context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleLetRecursion(tpe : UType, definitions: Map[Name, UValueDef], inValue : TypedValue, context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleListValue(tpe : UType, elements : List[TypedValue], context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handlePatternMatch(tpe : UType, value : TypedValue, cases : List[(Pattern[UType], TypedValue)], context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleRecord(tpe : UType, fields : List[(Name, TypedValue)], context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleReference(tpe : UType, fqn : FQName, context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleTuple(tpe : UType, elements: List[TypedValue], context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleUnitValue(tpe : UType, context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleUpdateRecord(tpe : UType, valueToUpdate : Name, fields : Map[Name, TypedValue], context : Context) : TypeCheckerResult = {
-        List()
-    }
-    def handleVariable(tpe : UType, name : Name, context : Context) : TypeCheckerResult = {
-        List()
-    }
+    def handleLiteral(tpe: UType, function: TypedValue, argument: TypedValue, context: Context): TypeCheckerResult =
+      List()
+    def handleApply(tpe: UType, function: TypedValue, argument: TypedValue, context: Context): TypeCheckerResult =
+      List()
+    def handleDestructure(tpe: UType, function: TypedValue, argument: TypedValue, context: Context): TypeCheckerResult =
+      List()
+    def handleConstructor(tpe: UType, function: TypedValue, argument: TypedValue, context: Context): TypeCheckerResult =
+      List()
+    def handleFieldValue(tpe: UType, recordValue: TypedValue, name: Name, context: Context): TypeCheckerResult =
+      List()
+    def handleFieldFunction(tpe: UType, name: Name, context: Context): TypeCheckerResult =
+      List()
+    def handleIfThenElse(
+        tpe: UType,
+        condition: TypedValue,
+        thenValue: TypedValue,
+        elseValue: TypedValue,
+        context: Context
+    ): TypeCheckerResult =
+      List()
+    def handleLambda(tpe: UType, pattern: Pattern, body: TypedValue, context: Context): TypeCheckerResult =
+      List()
+    def handleLetDefinition(
+        tpe: UType,
+        name: Name,
+        definition: UValueDef,
+        inValue: TypedValue,
+        context: Context
+    ): TypeCheckerResult =
+      List()
+    def handleLetRecursion(
+        tpe: UType,
+        definitions: Map[Name, UValueDef],
+        inValue: TypedValue,
+        context: Context
+    ): TypeCheckerResult =
+      List()
+    def handleListValue(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult =
+      List()
+    def handlePatternMatch(
+        tpe: UType,
+        value: TypedValue,
+        cases: List[(Pattern[UType], TypedValue)],
+        context: Context
+    ): TypeCheckerResult =
+      List()
+    def handleRecord(tpe: UType, fields: List[(Name, TypedValue)], context: Context): TypeCheckerResult =
+      List()
+    def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult =
+      List()
+    def handleTuple(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult =
+      List()
+    def handleUnitValue(tpe: UType, context: Context): TypeCheckerResult =
+      List()
+    def handleUpdateRecord(
+        tpe: UType,
+        valueToUpdate: Name,
+        fields: Map[Name, TypedValue],
+        context: Context
+    ): TypeCheckerResult =
+      List()
+    def handleVariable(tpe: UType, name: Name, context: Context): TypeCheckerResult =
+      List()
   }
 
 }
