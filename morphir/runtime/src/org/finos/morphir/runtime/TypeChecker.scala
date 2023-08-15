@@ -121,8 +121,11 @@ class TypeChecker(dists: Distributions) {
       thenValue: TypedValue,
       elseValue: TypedValue,
       context: Context
-  ): TypeCheckerResult =
-    List()
+  ): TypeCheckerResult = {
+    val fromChildren = check(condition, context) ++ check(thenValue, context)++ check(elseValue, context)
+    //TODO: Check condition is boolean and branches agree withe ach other/tpe
+    fromChildren
+  }
   def handleLambda(tpe: UType, pattern: Pattern[UType], body: TypedValue, context: Context): TypeCheckerResult =
     List()
   def handleLetDefinition(
