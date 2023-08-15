@@ -185,13 +185,13 @@ class TypeChecker(dists: Distributions) {
     val (ret, args) = Utils.uncurryFunctionType(tpe) //TODO: Interleaved function type w/ aliases.
     val fromTpe = ret match{
       case Type.Referene(_, name, typeArgs) => dists.lookupTypeSpecification(name) match {
-        case Some(T.Specification.CustomTypeSpecification(typeParams, ctors)) =>
+        case Right(T.Specification.CustomTypeSpecification(typeParams, ctors)) =>
           // (typeArgs.zip(typeParams)).flatMap{case (arg, param) => checkTypesAgree(arg, param, context)}
           List()
         // TODO: Constructor specific checks
-        case Some(other) =>
-          List(new ImproperTypeSpec(other, s"Type union expected"))
-        case None => List(new ConstructorMissing(fqn, wrapped, dists))
+        case Right(other) =>
+          List(new ImproperTypeSpec(name, other, s"Type union expected"))
+        case Left(err) => List(new ConstructorMissing(err))
       }
     }
     // TODO: Check it's a function onion for a type with that constructor
