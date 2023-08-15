@@ -111,7 +111,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
           testTypeConforms(Basics.intType, sdk.String.stringType)(1)
         },
         test("UnitType is not StringType") {
-          testTypeConforms(T.unit(()), sdk.String.stringType)(1-)
+          testTypeConforms(T.unit(()), sdk.String.stringType)(1)
         }
       )
     ).provideLayerShared(typeCheckerLayer)

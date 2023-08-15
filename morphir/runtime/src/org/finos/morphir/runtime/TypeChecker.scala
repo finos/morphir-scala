@@ -164,7 +164,6 @@ class TypeChecker(dists: Distributions) {
         case Right(other) => List(new ApplyToNonFunction(function, argument))
         case Left(err)    => List(err)
       }
-    // TODO: Check it's a function with matching arg and return
     fromChildren ++ fromTpe
   }
 
@@ -176,13 +175,14 @@ class TypeChecker(dists: Distributions) {
       context: Context
   ): TypeCheckerResult = {
     val fromChildren = check(value, context) ++ check(inValue, context)
-    // TODO: Check inValue matches tpe
     // TODO: Check pattern can be value
     // TODO: Check value must be pattern
-    fromChildren
+    val fromTpe = conformsTo(inValue, tpe, context)
+    fromTpe ++ fromChildren
   }
   def handleConstructor(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
+    val fromTpe
     // TODO: Check it's a function onion for a type with that constructor
     fromChildren
   }
