@@ -187,8 +187,14 @@ class TypeChecker(dists: Distributions) {
       case Type.Reference(_, name, typeArgs) => dists.lookupTypeSpecification(name) match {
         case Right(T.Specification.CustomTypeSpecification(typeParams, ctors)) =>
           // (typeArgs.zip(typeParams)).flatMap{case (arg, param) => checkTypesAgree(arg, param, context)}
-          List()
-        // TODO: Constructor specific checks
+          val missedName = helper(fqn.packageName != name.packageName || fqn.moduleName != name.moduleName, new OtherTypeError(s"Constructor $fqn does not match type name $name"))
+          val fromCtor = ctors.get(fqn.localName) match {
+            case Some => List()
+            //TODO: compare args to ctor args
+            case None => List(new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName}"))
+          }
+          missedName ++ fromCtor
+          //TODO: Bindings
         case Right(other) =>
           List(new ImproperTypeSpec(name, other, s"Type union expected"))
         case Left(err) => List(new TypeMissing(err))
