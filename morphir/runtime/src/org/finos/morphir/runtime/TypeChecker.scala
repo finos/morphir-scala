@@ -106,7 +106,7 @@ class TypeChecker(dists: Distributions) {
     fromChildren
   }
   def handleFieldValue(tpe: UType, recordValue: TypedValue, name: Name, context: Context): TypeCheckerResult = {
-    val fromChildren = check(recordVale, context)
+    val fromChildren = check(recordValue, context)
     //TODO: Check the value dealiases to a record which has that name
     fromChildren
   }
@@ -158,7 +158,7 @@ class TypeChecker(dists: Distributions) {
     fromChildren
   }
   def handleListValue(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
-    val fromChildren = elements.map(check(_, context))
+    val fromChildren = elements.flatMap(check(_, context))
     //TODO: Check tpe is a list, check children types agree w/ parent type (probably only report one mismatch, but inspect all values
     fromChildren
   }
@@ -176,7 +176,7 @@ class TypeChecker(dists: Distributions) {
     fromChildren
   }
   def handleRecord(tpe: UType, fields: List[(Name, TypedValue)], context: Context): TypeCheckerResult = {
-    val fromChildren = fields.map(check(_._2, context))
+    val fromChildren = fields.flatMap{case (_, value) => check(value, context)}
     //TODO: Check tpe dealises to a record
     //TODO: Check each field agrees with the type from the name
     fromChildren
@@ -187,7 +187,7 @@ class TypeChecker(dists: Distributions) {
     fromChildren
   }
   def handleTuple(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
-    val fromChildren = elements.map(check(_, context))
+    val fromChildren = elements.flatMap(check(_, context))
     //TODO: Check tpe dealiases to a tuple
     //TODO: Check tuple types vs. nested value types
     fromChildren
@@ -200,12 +200,13 @@ class TypeChecker(dists: Distributions) {
       fields: Map[Name, TypedValue],
       context: Context
   ): TypeCheckerResult = {
-    val fromChildren = check(valueToUpdate, context) ++ fields.map(check(_._2), context)
+    val fromChildren = check(valueToUpdate, context) ++ fields.flatMap{case (_, value) => check(value), context}
     //TODO: Check the value dealiases to a record which has that name
     fromChildren
   }
   def handleVariable(tpe: UType, name: Name, context: Context): TypeCheckerResult =
     //TODO: Keep that in the context
+    //TODONT: Do not re-check the body - only make sure that the tpe matches this
     List()
 
 }
