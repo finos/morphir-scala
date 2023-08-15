@@ -260,11 +260,13 @@ class TypeChecker(dists: Distributions) {
   }
   def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
-    val spec = dists.lookupTypeSpecification(fqn)
-    spec match{
-      case Left(err) => List()
+    val spec = dists.lookupTypeSpecification(fqn) match{
+      case Left(err) => List(new DefinitionMissing(err))
+      case Right(spec) => {
+        val curried = Utils.curryTypeFunction(spec)
+
+      }
     }
-    val curried = Utils.curryTypeFunction(spec)
 
     // TODO: Check the value dealiases to a definition that translates to this tpe
     fromChildren
