@@ -117,12 +117,13 @@ class TypeChecker(dists: Distributions) {
     import Lit.*
     val fromChildren = List()
     (literal, tpe) match {
-      case (StringLiteral(value), StringRef()) => List
-      case (FloatLiteral(value), FloatRef()) => value
-      case (CharLiteral(value), CharRef()) => value
-      case (BoolLiteral(value), BoolRef()) => value
-      case (WholeNumberLiteral(value), IntRef()) => value //TODO: "WholeNumberRef" extractor
-      case (DecimalLiteral(value), DecimalRef()) => value
+      case (StringLiteral(_), StringRef()) => List()
+      case (FloatLiteral(_), FloatRef()) => List()
+      case (CharLiteral(_), CharRef()) => List()
+      case (BoolLiteral(_), BoolRef()) => List()
+      case (WholeNumberLiteral(_), IntRef()) => List() //TODO: "WholeNumberRef" extractor
+      case (DecimalLiteral(_), DecimalRef()) => List()
+      case (otherLit, otherTpe) => 
     }
     fromChildren
   }
