@@ -3,7 +3,6 @@ package org.finos.morphir.runtime
 import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
-import org.finos.morphir.ir.Type
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
 import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
@@ -16,9 +15,9 @@ import zio.test.TestAspect.{ignore, tag}
 import zio.{Console, ZIO, ZLayer}
 
 object TypeCheckerTests extends MorphirBaseSpec {
-  type MorphirRuntimeTyped = MorphirRuntime[Unit, Type.UType]
+  type MorphirRuntimeTyped = MorphirRuntime[Unit, UType]
 
-  val morphirRuntimeLayer: ZLayer[Any, Throwable, MorphirRuntime[Unit, Type.UType]] =
+  val morphirRuntimeLayer: ZLayer[Any, Throwable, MorphirRuntime[Unit, UType]] =
     ZLayer(for {
       irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
       _          <- Console.printLine(s"Loading distribution from $irFilePath")
@@ -39,6 +38,8 @@ object TypeCheckerTests extends MorphirBaseSpec {
       case (i: Int, s: String)     => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
       case other                   => throw new Exception(s"Couldn't derive $other")
     }
+
+
 
   def checkEvaluation(
       moduleName: String,
@@ -201,36 +202,12 @@ object TypeCheckerTests extends MorphirBaseSpec {
   )
 
   def spec =
-    suite("Evaluator MDM Specs")(
-      suite("Constructor Tests")(
+    suite("Type Checker Unhappy Paths")(
+      suite("Apply Node")(
         test("Zero Arg") {
           for {
             actual <- runTest("constructorTests", "constructorZeroArgTest")
             expected = zeroArg
-          } yield assertTrue(actual == expected)
-        },
-        test("One Arg") {
-          for {
-            actual <- runTest("constructorTests", "constructorOneArgAppliedTest")
-            expected = oneArg(5)
-          } yield assertTrue(actual == expected)
-        },
-        test("Two Arg") {
-          for {
-            actual <- runTest("constructorTests", "constructorTwoArgAppliedTest")
-            expected = twoArg(5, "Red")
-          } yield assertTrue(actual == expected)
-        },
-        test("Two Arg Curried") {
-          for {
-            actual <- runTest("constructorTests", "constructorTwoArgCurriedTest")
-            expected = twoArg(5, "Blue")
-          } yield assertTrue(actual == expected)
-        },
-        test("Lazy Function") {
-          for {
-            actual <- runTest("constructorTests", "lazyFunctionTest")
-            expected = Data.Tuple(Data.Int(5), Data.Int(5))
           } yield assertTrue(actual == expected)
         }
       ),
