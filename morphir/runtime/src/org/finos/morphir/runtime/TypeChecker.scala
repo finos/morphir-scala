@@ -138,10 +138,12 @@ class TypeChecker(dists: Distributions) {
         if (valueArgs.length != declaredArgs.length)
           List(new OtherTypeError(s"Reference $valueName has different number of parameters (${valueArgs.length} vs ${declaredArgs.length}"))
         else
-          valueArgs.zip(declaredArgs).map{case (declared, value) => conformsTo(declard, Value)}
+          valueArgs.zip(declaredArgs).map{case (value, declared) => conformsTo(value, declared, context)}
 
 
       }
+      case (dealiased(value, valueArgs), declared) => conformsTo(value, declared, context) //TODO: Bindings, left side only!
+      case (value, dealiased(declared, declaredArgs)) => conformsTo(value, declared, context) //TODO: Bindings, right side only!
       case (valueOther, declaredOther) if valueOther.getClass == declaredOther.getClass => List(new Unimplemented(s"No matching support for ${Succinct.Type(valueOther)} vs ${Succinct.Type(declaredOther)}"))
       case (valueOther, declaredOther) => List(new TypesMismatch(valueOther, declaredOther, "Different types"))
     }
