@@ -103,6 +103,15 @@ class TypeChecker(dists: Distributions) {
           //Note reversed order - covariance vs. contravariance.
           conformsTo(valueRet, declaredRet, context) ++ conformsTo(declaredArg, valueArg, context)
         }
+      case (first@Type.Tuple(_, firstElements), second@Type.Tuple(_, secondElements)) =>
+        if (firstElements.length != secondElements.length) {
+          List(new TupleWrongSize(first, second))
+        } else {
+          firstElements.toList.zip(secondElements).flatMap {
+            case (first, second) =>
+              checkTypesAgree(first, second, context)
+          }
+        }
       //TODO: Consider covariance/contravariance
       case (DictRef(firstKey, firstValue), DictRef(secondKey, secondValue)) =>
         conformsTo(firstKey, secondKey, context) ++ conformsTo(firstValue, secondValue, context)
