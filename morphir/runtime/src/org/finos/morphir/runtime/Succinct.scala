@@ -38,4 +38,7 @@ object Succinct {
     def apply[VA](pattern: Pattern[VA]): String = apply(pattern, 2)
 
   }
+  object TypeSpec{
+    def apply[TA](spec : T.Specification[TA, depth : Int])
+  }
 }
