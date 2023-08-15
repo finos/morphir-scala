@@ -21,7 +21,7 @@ import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => V
 import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
 
 object Utils {
-  import Extractors.Types*
+  import Extractors.Types.*
 
   def dealias(original_tpe: UType, dists: Distributions, bindings: Map[Name, UType]): UType = {
     def loop(tpe: UType, bindings: Map[Name, UType]): UType =

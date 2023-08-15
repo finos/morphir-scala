@@ -9,7 +9,7 @@ import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Value.*
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.*
-import org.finos.morphir.runtime.Extractors.*
+import org.finos.morphir.runtime.Extractors.Types.*
 import org.finos.morphir.runtime.Distributions
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
@@ -95,22 +95,22 @@ object EvaluatorQuick {
         SDKValue.SDKNativeFunction(nf.arity, f)
     }
 
-  def typeToConcept(tpe: Type.Type[Unit], dists: Distributions, boundTypes: Map[Name, Concept]): Concept =
+  def typeToConcept(tpe: Type.Type[Unit], dists: Distributions, boundTypes: Map[Name, Concept]): Concept = {
     tpe match {
       case TT.ExtensibleRecord(attributes, name, fields) =>
         throw UnsupportedType("Extensible records not supported for DDL")
       case TT.Function(attributes, argumentType, returnType) =>
         throw UnsupportedType("Functiom types not supported for DDL")
       case TT.Record(attributes, fields) => Concept.Struct(fields.map(field =>
-          (Label(field.name.toCamelCase), typeToConcept(field.data, dists, boundTypes))
-        ).toList)
-      case IntRef()       => Concept.Int32
-      case Int32Ref()     => Concept.Int32
-      case StringRef()    => Concept.String
-      case BoolRef()      => Concept.Boolean
-      case CharRef()      => Concept.Char
-      case FloatRef()     => Concept.Decimal
-      case DecimalRef()   => Concept.Decimal
+        (Label(field.name.toCamelCase), typeToConcept(field.data, dists, boundTypes))
+      ).toList)
+      case IntRef() => Concept.Int32
+      case Int32Ref() => Concept.Int32
+      case StringRef() => Concept.String
+      case BoolRef() => Concept.Boolean
+      case CharRef() => Concept.Char
+      case FloatRef() => Concept.Decimal
+      case DecimalRef() => Concept.Decimal
       case LocalDateRef() => Concept.LocalDate
       case LocalTimeRef() => Concept.LocalTime
 
@@ -123,14 +123,14 @@ object EvaluatorQuick {
       case DictRef(keyType, valType) =>
         Concept.Map(typeToConcept(keyType, dists, boundTypes), typeToConcept(valType, dists, boundTypes))
       case TT.Reference(attributes, typeName, typeArgs) =>
-        val lookedUp    = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+        val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dists, boundTypes))
         lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
           case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             typeToConcept(expr, dists, newBindings) match {
               case Concept.Struct(fields) => Concept.Record(typeName, fields)
-              case other                  => Concept.Alias(typeName, other)
+              case other => Concept.Alias(typeName, other)
             }
           case Type.Specification.CustomTypeSpecification(typeParams, ctors) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
@@ -138,7 +138,7 @@ object EvaluatorQuick {
               val argTuples = args.map { case (argName: Name, argType: Type.UType) =>
                 (EnumLabel.Named(argName.toCamelCase), typeToConcept(argType, dists, newBindings))
               }
-              val conceptName: String                  = caseName.toTitleCase
+              val conceptName: String = caseName.toTitleCase
               val concepts: List[(EnumLabel, Concept)] = argTuples.toList
               Concept.Enum.Case(Label(conceptName), concepts)
             }
@@ -147,10 +147,10 @@ object EvaluatorQuick {
         }
       case TT.Tuple(attributes, elements) =>
         Concept.Tuple(elements.map(element => typeToConcept(element, dists, boundTypes)).toList)
-      case TT.Unit(attributes)           => Concept.Unit
+      case TT.Unit(attributes) => Concept.Unit
       case TT.Variable(attributes, name) => boundTypes(name)
     }
-
+  }
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
     (concept, result) match {
       case (Concept.Struct(fields), Result.Record(elements)) =>
