@@ -20,6 +20,10 @@ import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
 import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
 
+object Succinct{
+  
+}
+
 object Utils {
   import Extractors.Types.*
 
