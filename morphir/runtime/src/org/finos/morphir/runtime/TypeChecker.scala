@@ -112,17 +112,17 @@ class TypeChecker(dists: Distributions) {
               conformsTo(value, declared, context)
           }
         }
-      case (Type.Record(_, valueFields), Type.Record(_, declaredFields)) => {
+      case (valueTpe @ Type.Record(_, valueFields), declaredTpe @Type.Record(_, declaredFields)) => {
         val valueFieldSet: Set[Name] = valueFields.map(_._1).toSet
         val declaredFieldSet: Set[Name] = declaredFields.map(_._1).toSet
         val missingFromValue= valueFieldSet
-          .diff(declaredFieldSet).toList.map(missing => TypeLacksField(recordTpe, missing))
+          .diff(declaredFieldSet).toList.map(missing => TypeLacksField(valueTpe, declaredTpe, missing))
         val missingFromDeclared = declaredFieldSet
-          .diff(valueFieldSet).toList.map(bonus => TypeHasExtraField(recordTpe, bonus))
+          .diff(valueFieldSet).toList.map(bonus => TypeHasExtraField(valueTpe, declaredTpe, bonus))
         val sharedFields = valueFieldSet.intersect(declaredFieldSet)
-        val valueFieldMap: Map[Name, TypedValue] = valueFields.map(field => field.name -> field.data).toMap
+        val valueFieldMap: Map[Name, UType] = valueFields.map(field => field.name -> field.data).toMap
         val declaredFieldMap: Map[Name, UType] = declaredFields.map(field => field.name -> field.data).toMap
-        val conflicts = sharedFields.map(field => conformsTo(valueFieldMap(field), declaredFieldMap(field), context))
+        val conflicts = sharedFields.flatMap(field => conformsTo(valueFieldMap(field), declaredFieldMap(field), context))
         missingFromValue ++ missingFromDeclared ++ conflicts
       }
       //TODO: Consider covariance/contravariance
@@ -133,6 +133,9 @@ class TypeChecker(dists: Distributions) {
       case (ListRef(valueElement), ListRef(declaredElement)) => conformsTo(valueElement, declaredElement, context)
       case (MaybeRef(valueElement), MaybeRef(declaredElement)) =>
         conformsTo(valueElement, declaredElement, context)
+      case (Type.Reference(_, valueName, valueArgs), Type.Reference(_, declaredName, declaredArgs)) if valueName == valueArgs => {
+        
+      }
       case (valueOther, declaredOther) if valueOther.getClass == declaredOther.getClass => List(new Unimplemented(s"No matching support for ${Succinct.Type(valueOther)} vs ${Succinct.Type(declaredOther)}"))
       case (valueOther, declaredOther) => List(new TypesMismatch(valueOther, declaredOther, "Different types"))
     }

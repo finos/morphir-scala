@@ -42,8 +42,8 @@ object MorphirTypeError {
   case class DefinitionMissing(err : LookupError)             extends MorphirTypeError(s"Cannot find definition: ${err.getMsg}")
   case class TypeMissing(err: LookupError) extends MorphirTypeError(s"Cannot find type: ${err.getMsg}")
   case class OtherTypeError(msg : String) extends MorphirTypeError(msg)
-  case class TypeLacksField(tpe : UType, contract : UType, field : Name) extends MorphirTypeError(s"${suscinct(tpe)} lacks field ${field.toCamelCase}, which is required by ${succinct(contract)}")
-  case class TypeHasExtraField(tpe: UType, contract: UType, field: Name) extends MorphirTypeError(s"${suscinct(tpe)} has field ${field.toCamelCase}, which is not included in ${succinct(contract)}")
+  case class TypeLacksField(tpe : UType, contract : UType, field : Name) extends MorphirTypeError(s"${succinct(tpe)} lacks field ${field.toCamelCase}, which is required by ${succinct(contract)}")
+  case class TypeHasExtraField(tpe: UType, contract: UType, field: Name) extends MorphirTypeError(s"${succinct(tpe)} has field ${field.toCamelCase}, which is not included in ${succinct(contract)}")
   case class TypeHasDifferentFieldType(first : UType, second : UType, field : Name, firstTpe : UType, secondTpe : UType) extends MorphirTypeError(
     s"tpe for field ${field.toCamelCase} is ${succinct(firstTpe)} in ${succinct(first)} but ${succinct(secondTpe)} in ${succinct(second)}"
   )
