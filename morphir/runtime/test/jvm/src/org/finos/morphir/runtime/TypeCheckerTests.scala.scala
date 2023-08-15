@@ -32,6 +32,9 @@ object TypeCheckerTests extends MorphirBaseSpec {
       dist       <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
     } yield TypeChecker(Distributions(dist)))
 
+  def testTypeConforms(tpe1: UType, tpe2 : UType) : ZIO[TypeChecker, Throwable, TestResult] = {
+    
+  }
   def testTypeCheck(value: TypedValue)(expectedErrors: Int): ZIO[TypeChecker, Throwable, TestResult] =
     for {
       errors <- runTypeCheck(value)
@@ -96,7 +99,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
       ),
       suite("Type confomrity")(
         test("IntType is not StringType"){
-          
+
         }
       )
     ).provideLayerShared(typeCheckerLayer)
