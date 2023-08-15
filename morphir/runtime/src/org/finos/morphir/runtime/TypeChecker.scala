@@ -134,7 +134,7 @@ class TypeChecker(dists: Distributions) {
       case (ListRef(valueElement), ListRef(declaredElement)) => conformsTo(valueElement, declaredElement, context)
       case (MaybeRef(valueElement), MaybeRef(declaredElement)) =>
         conformsTo(valueElement, declaredElement, context)
-      case (Type.Reference(_, valueName, valueArgs), Type.Reference(_, declaredName, declaredArgs)) if valueName == valueArgs => {
+      case (Type.Reference(_, valueName, valueArgs), Type.Reference(_, declaredName, declaredArgs)) if valueName == declaredName => {
         if (valueArgs.length != declaredArgs.length)
           List(new OtherTypeError(s"Reference $valueName has different number of parameters (${valueArgs.length} vs ${declaredArgs.length}"))
         else
