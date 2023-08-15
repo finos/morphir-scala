@@ -5,7 +5,7 @@ import org.finos.morphir.naming._
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec, TypedDefinition => TypedValueDef}
 import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
-import org.finos.morphir.ir.Module.{Specification => ModSpec}
+import org.finos.morphir.ir.Module.{Specification => ModSpec, Definition => ModDef}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.Field
@@ -42,13 +42,6 @@ class Distributions(dists: Map[PackageName, Distribution]) {
   ): Option[UValueSpec] =
     lookupModuleSpecification(packageName, module).flatMap(_.lookupValueSpecification(localName))
 
-  def lookupValueSpecification(
-      packageName: PackageName,
-      module: ModuleName,
-      localName: Name
-  ): Option[UValueSpec] =
-    lookupModuleSpecification(packageName, module).flatMap(_.lookupValueSpecification(localName))
-
   def lookupValueSpecification(fqn: FQName): Option[UValueSpec] =
     lookupValueSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)
 
@@ -56,7 +49,7 @@ class Distributions(dists: Map[PackageName, Distribution]) {
       packageName: PackageName,
       module: ModuleName,
       localName: Name
-  ): Option[UValueDef] =
+  ): Option[TypedValueDef] =
     lookupModuleDefinition(packageName, module).flatMap(_.lookupValueDefinition(localName))
 
   def lookupValueDefinition(fqn: FQName): Option[TypedValueDef] =

@@ -56,7 +56,7 @@ object Value extends internal.PatternModule {
   final type RawValue       = Value.RawValue
   final type TypedValue     = Value.TypedValue
   final type USpecification = ValueSpecification[scala.Unit]
-  final type TypedDefinition = ValueDefinition[Type.UType, scala.Unit]
+  final type TypedDefinition = ValueDefinition[scala.Unit, Type.UType]
 
   import Type.{Type, UType}
   import Value.{Literal => LiteralValue, _}
