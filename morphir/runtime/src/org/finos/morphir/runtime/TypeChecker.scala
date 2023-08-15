@@ -118,9 +118,9 @@ class TypeChecker(dists: Distributions) {
       dealias(function.attributes, context) match {
         case Right(Type.Function(_, paramType, returnType)) =>
           //TODO: Better than !=
-          helper(paramType != argument.attributes, new ArgumentDoesNotMatchParameter(argument, argument.attributes, paramType)) ++
+          helper(paramType != argument.attributes, new ArgumentDoesNotMatchParameter(argument, paramType)) ++
             helper(returnType != tpe, new TypesMismatch(tpe, returnType, "Function return does not match apply node"))
-        case Right(other) => List(new ApplyToNonFunction(other, argument.attributes))
+        case Right(other) => List(new ApplyToNonFunction(function, argument))
         case Left(err) => List(err)
       }
     //TODO: Check it's a function with matching arg and return

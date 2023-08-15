@@ -19,7 +19,7 @@ object MorphirTypeError {
   def succinct[TA](tpe : Type[TA]) : String = Succinct.Type(tpe)
   case class TypesMismatch(tpe1: UType, tpe2: UType, msg : String)                           extends MorphirTypeError(s"$msg: succinct(tp1)} vs ${succinct(tpe2)}")
   case class ArgumentDoesNotMatchParameter(arg: TypedValue, param: UType) extends MorphirTypeError(s"Argument ${succinct(arg)}  of type ${succinct(arg.attributes)} does not match parameter succinct(param)}")
-  case class ApplyToNonFunction(arg : TypedValue, nonFunction : TypedValue) extneds MorphirTypeErr(s"Tried to apply ${sucinct(arg)} to ${succinct(nonFunction)} of type ${succinct(nonFunction.attributes)}, which is not a function")
+  case class ApplyToNonFunction(nonFunction : TypedValue,arg : TypedValue) extends MorphirTypeError(s"Tried to apply ${succinct(arg)} to ${succinct(nonFunction)} of type ${succinct(nonFunction.attributes)}, which is not a function")
   case class ImproperType(tpe: UType, message: String)                         extends MorphirTypeError("Todo")
   case class CannotDealias(err : LookupError, msg : String = "Cannot dealias type")                                  extends MorphirTypeError(s"$msg: ${err.getMsg}")
   case class ValueMissing(value: TypedValue)                                   extends MorphirTypeError("Todo")
