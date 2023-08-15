@@ -54,7 +54,7 @@ class TypeChecker(dists: Distributions) {
   private def pretty(tpe: UType): String                                                              = pretty(tpe, 2)
   def check(suspect: TypedValue): TypeCheckerResult =
     check(suspect, Context.empty)
-  def check(suspect: TypedValue, parentContext: Context) = {
+  def check(suspect: TypedValue, parentContext: Context): TypeCheckerResult = {
     import Value.{Unit as UnitValue, List as ListValue, Field as FieldValue, *}
     val context = parentContext.withDepth(parentContext.depth + 1)
     suspect match {
@@ -78,7 +78,7 @@ class TypeChecker(dists: Distributions) {
       case Tuple(tpe, elements)                     => handleTuple(tpe, elements.toList, context)
       case UnitValue(va)                            => handleUnitValue(va, context)
       case UpdateRecord(tpe, valueToUpdate, fields) => handleUpdateRecord(tpe, valueToUpdate, fields, context)
-      case Variable(tpe, name)                      => handleVariable(tpe, name, store)
+      case Variable(tpe, name)                      => handleVariable(tpe, name, context)
     }
     def handleLiteral(tpe: UType, literal : Lit, context: Context): TypeCheckerResult =
       List()
@@ -136,7 +136,7 @@ class TypeChecker(dists: Distributions) {
       List()
     def handleUpdateRecord(
         tpe: UType,
-        valueToUpdate: Name,
+        valueToUpdate: TypedValue,
         fields: Map[Name, TypedValue],
         context: Context
     ): TypeCheckerResult =
