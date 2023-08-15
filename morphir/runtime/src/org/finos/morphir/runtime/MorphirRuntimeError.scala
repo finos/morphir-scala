@@ -18,7 +18,7 @@ final case class NotImplementedType(message: String)      extends TypeError(mess
 final case class TypeMismatch(message: String)            extends TypeError(message)
 final case class TypeNotFound(message: String)            extends TypeError(message)
 final case class ManyErrors(errors: TypeError*) extends TypeError("\n" + errors.map(_.toString).mkString("\n"))
-final case class TypeCheckerErrors(errors: List[GoodTypeError])
+final case class TypeCheckerErrors(errors: List[MorphirTypeError])
     extends EvaluationError("\n" + errors.map(_.toString).mkString("\n"))
 
 final case class IrToDatamodelError(message: String)         extends EvaluationError(message)

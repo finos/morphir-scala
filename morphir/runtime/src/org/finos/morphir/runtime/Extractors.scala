@@ -107,7 +107,7 @@ object Extractors {
     class Dealiased(dists: Distributions) {
       def unapply(tpe: UType): Option[(UType, Map[Name, UType])] = // If it's aliased we may need to grab bindings
         tpe match {
-          case NativeRef(_, _) => None
+          case NativeRef() => None
           case Type.Reference(_, typeName, typeArgs) =>
             val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
             lookedUp match {
