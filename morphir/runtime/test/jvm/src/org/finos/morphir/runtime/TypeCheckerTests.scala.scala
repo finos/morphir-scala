@@ -92,8 +92,8 @@ object TypeCheckerTests extends MorphirBaseSpec {
     for {
       errors <- runTypeCheck(value)
       errorMsgs = errors.map(_.getMsg)
-      assert <- if (errors.length == expectedErrors) assertCompletes else assertTrue(errorMsgs == List())
-    } yield assertTrue(errorMsgs == List("Unexpected Errors Found")) //TODO: Cleaner "fails" impl
+      assert <- if (errors.length == expectedErrors) assertCompletes else assertTrue(errorMsgs == List("Unexpected Errors Found"))
+    } yield assert//TODO: Cleaner "fails" impl
   def runTypeCheck(value: TypedValue): ZIO[TypeChecker, Throwable, List[MorphirTypeError]] =
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       ZIO.succeed(checker.check(value))
