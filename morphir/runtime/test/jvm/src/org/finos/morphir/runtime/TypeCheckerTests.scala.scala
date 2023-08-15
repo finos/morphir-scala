@@ -214,7 +214,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
     "TwoArg",
     unionEnumShape
   )
-  val add = V.reference(T.Function(T.int, T.int))
+  val intToInt : TypedValue = V.reference(Type.function(T.int, T.int), FQName.fromString("Morphir/Examples/App:TypeCheckerTests:intToInt"))
 
   def spec =
     suite("Type Checker Unhappy Paths")(
