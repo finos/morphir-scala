@@ -119,17 +119,14 @@ class TypeChecker(dists: Distributions) {
     import Extractors.Types.*
     import Lit.*
     val fromChildren = List()
-    val matchErrors = dealias(tpe, context) match {
-      case Right(dealiasedTpe) => (literal, dealiasedTpe) match {
-        case (StringLiteral (_), StringRef () ) => List ()
-        case (FloatLiteral (_), FloatRef () ) => List ()
-        case (CharLiteral (_), CharRef () ) => List ()
-        case (BoolLiteral (_), BoolRef () ) => List ()
-        case (WholeNumberLiteral (_), IntRef () ) => List () //TODO: "WholeNumberRef" extractor
-        case (DecimalLiteral (_), DecimalRef () ) => List ()
-        case (otherLit, otherTpe) => List (new LiteralTypeMismatch(otherLit, otherTpe))
-        }
-      case Left(err) => List(err)
+    val matchErrors = (literal, tpe) match {
+      case (StringLiteral (_), StringRef () ) => List ()
+      case (FloatLiteral (_), FloatRef () ) => List ()
+      case (CharLiteral (_), CharRef () ) => List ()
+      case (BoolLiteral (_), BoolRef () ) => List ()
+      case (WholeNumberLiteral (_), IntRef () ) => List () //TODO: "WholeNumberRef" extractor
+      case (DecimalLiteral (_), DecimalRef () ) => List ()
+      case (otherLit, otherTpe) => List (new LiteralTypeMismatch(otherLit, otherTpe))
     }
     fromChildren ++ matchErrors
   }
