@@ -23,6 +23,7 @@ object Succinct {
     import T.Type.*
     def apply[TA](tpe: Type[TA], depth: Int): String =
       tpe match {
+        case Reference(_, fqName, args) => s"$fqName ${args.map(apply(_, depth - 1)).mkString(" ")}"
         case other => other.getClass.getSimpleName
       }
 
