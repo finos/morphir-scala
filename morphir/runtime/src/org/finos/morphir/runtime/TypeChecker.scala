@@ -144,6 +144,5 @@ class TypeChecker(dists: Distributions) {
     List()
   def handleVariable(tpe: UType, name: Name, context: Context): TypeCheckerResult =
     List()
-  }
 
 }

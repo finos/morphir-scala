@@ -166,7 +166,7 @@ object Utils {
     params match {
       case Chunk() => inner
       case chunk =>
-        curryTypeFunction(Type.Function(getattributes(inner), chunk.head._2, inner), chunk.tail)
+        curryTypeFunction(Type.Function(inner.attributes, chunk.head._2, inner), chunk.tail)
     }
 
 }
