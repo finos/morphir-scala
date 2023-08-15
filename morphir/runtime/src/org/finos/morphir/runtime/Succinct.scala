@@ -39,6 +39,7 @@ object Succinct {
 
   }
   object TypeSpec{
-    def apply[TA](spec : T.Specification[TA, depth : Int])
+    def apply[TA](spec : T.Specification[TA], depth : Int) : String
+    def apply[TA](spec : T.Specification[TA]) : String= apply(spec, 2)
   }
 }
