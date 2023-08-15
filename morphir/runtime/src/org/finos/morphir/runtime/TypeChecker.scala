@@ -119,13 +119,11 @@ class TypeChecker(dists: Distributions) {
           .diff(declaredFieldSet).toList.map(missing => TypeLacksField(recordTpe, missing))
         val missingFromDeclared = declaredFieldSet
           .diff(valueFieldSet).toList.map(bonus => TypeHasExtraField(recordTpe, bonus))
-        valudFieldSet.intersect(declaredFieldSet)
-        } else {
-          valueFields.toList.zip(declaredFields).flatMap {
-            case (valueField, declaredField) =>
-              conformsTo(valueField.data, declaredField.data, context)
-          }
-        }
+        val sharedFields = valueFieldSet.intersect(declaredFieldSet)
+        val valueFieldMap: Map[Name, TypedValue] = valueFields.map(field => field.name -> field.data).toMap
+        val declaredFieldMap: Map[Name, UType] = declaredFields.map(field => field.name -> field.data).toMap
+        val conflicts = sharedFields.map(field => conformsTo(valueFieldMap(field), declaredFieldMap(field), context))
+        missingFromValue ++ missingFromDeclared ++ conflicts
       }
       //TODO: Consider covariance/contravariance
       case (DictRef(valueKey, valueValue), DictRef(declaredKey, declaredValue)) =>
