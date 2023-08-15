@@ -69,7 +69,7 @@ class TypeChecker(dists: Distributions) {
           lookedUp match {
             case Right(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
               val newBindings = typeParams.zip(typeArgs).toMap
-              loop(expr, original_fqn.orElse(Some(typeName)), context.withBindings(newBindings))
+              loop(expr, original_fqn.orElse(Some(typeName)), context.withTypeBindings(newBindings))
             case Right(_) => Right(tpe) // TODO: Bindings
             case Left(lookupErr) =>
               original_fqn match {
@@ -89,7 +89,7 @@ class TypeChecker(dists: Distributions) {
     (valueType, declaredType) match {
       case (_, Type.Variable(_, name)) => context.getTypeVariable(name) match {
         case None => List(new TypeVariableMissing(name))
-        case some(lookedUp) => conformsTo(valueType, lookedUp, context) //TODO: Type parameter wrangling
+        case Some(lookedUp) => conformsTo(valueType, lookedUp, context) //TODO: Type parameter wrangling
       }
       case (Type.Variable(_, name), _) => context.getTypeVariable(name) match {
         case None => List(new TypeVariableMissing(name))
