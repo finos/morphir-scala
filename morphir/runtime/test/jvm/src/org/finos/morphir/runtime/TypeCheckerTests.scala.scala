@@ -1,9 +1,14 @@
 package org.finos.morphir.runtime
 
+import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
 import org.finos.morphir.ir.Type
-import org.finos.morphir.naming.*
+import org.finos.morphir.ir.{Type as T, Value as V}
+import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
+import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
+import org.finos.morphir.ir.sdk
+import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
@@ -97,6 +102,8 @@ object TypeCheckerTests extends MorphirBaseSpec {
 //    dogRecordDataRaw(name, number),
 //    dogRecordConcept
 //  )
+
+
 
   def resultStringIntShape = Concept.Result(Concept.String, Concept.Int32)
 
