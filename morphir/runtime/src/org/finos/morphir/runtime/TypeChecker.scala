@@ -113,13 +113,12 @@ class TypeChecker(dists: Distributions) {
           }
         }
       case (Type.Record(_, valueFields), Type.Record(_, declaredFields)) => {
-        val tpeFieldSet: Set[Name] = tpeFields.map(_._1).toSet
-        val valFieldSet: Set[Name] = valFields.map(_._1).toSet
-        // println(s"Type checking a record and we see ${tpeFieldSet.map(_._1)} vs ${valFieldSet.map(_._1)}")
-        val missingFromTpe = tpeFieldSet
-          .diff(valFieldSet).toList.map(missing => MissingRecordField(recordTpe, missing))
-        val missingFromValue = valFieldSet
-          .diff(tpeFieldSet).toList.map(bonus => ExtraRecordField(recordTpe, bonus))
+        val valueFieldSet: Set[Name] = valueFields.map(_._1).toSet
+        val declaredFieldSet: Set[Name] = declaredFields.map(_._1).toSet
+        val missingFromValue= valueFieldSet
+          .diff(declaredFieldSet).toList.map(missing => TypeLacksField(recordTpe, missing))
+        val missingFromDeclared = declaredFieldSet
+          .diff(valueFieldSet).toList.map(bonus => TypeHasExtraField(recordTpe, bonus))
         if (valueFields.length != declaredFields.length) {
           List(new TypesMismatch(value, declared, "Record lengths differ (${valueField.length} vs ${declaredElements.length})")) // TODO: Details!
         } else {
