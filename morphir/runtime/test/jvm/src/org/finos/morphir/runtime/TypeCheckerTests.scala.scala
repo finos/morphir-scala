@@ -87,7 +87,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
         },
         test("Body is recursively checked") {
           val badApply: TypedValue = V.apply(Basics.boolType, invalidFunction, V.intTyped(2))
-          testTypeCheck(badApply)(-1)
+          testTypeCheck(badApply)(1)
         }
         // TODO: Aliased function type
       ),
@@ -108,7 +108,10 @@ object TypeCheckerTests extends MorphirBaseSpec {
       ),
       suite("Type confomrity")(
         test("IntType is not StringType"){
-          testTypeConforms(Basics.intType, sdk.String.stringType)(0)
+          testTypeConforms(Basics.intType, sdk.String.stringType)(1)
+        },
+        test("UnitType is not StringType") {
+          testTypeConforms(T.unit(()), sdk.String.stringType)(1-)
         }
       )
     ).provideLayerShared(typeCheckerLayer)
