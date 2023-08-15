@@ -305,16 +305,15 @@ class TypeChecker(dists: Distributions) {
     //We expect declared element types to be the same, but values may differ; so we only grab the first set of errors at the type level, but fully explore all elements.
     val fromChildren = elements.flatMap(check(_, context))
     val fromTpe = tpe match{
-      case ListRef(elementType) =>
+      case Extractors.Types.ListRef(elementType) =>
         elements.foldLeft(List(): List[MorphirTypeError]) { (acc, next) =>
-          acc ++ checkConforms(elementType, next.attributes, context)
+          acc ++ conformsTo(elementType, next.attributes, context)
             if (acc.size != 0) acc else {
-              checkConforms(elementType, next.attributes, context) //Check each element vs. the declared element type (only keep first errors)
+              conformsTo(elementType, next.attributes, context) //Check each element vs. the declared element type (only keep first errors)
             }
         }
       case other=> List(ImproperType(other, s"Expected list"))
     }
-    // TODO: Check tpe is a list, check children types agree w/ parent type (probably only report one mismatch, but inspect all values
     fromChildren ++ fromTpe
   }
   def handlePatternMatch(
@@ -332,6 +331,7 @@ class TypeChecker(dists: Distributions) {
   }
   def handleRecord(tpe: UType, fields: List[(Name, TypedValue)], context: Context): TypeCheckerResult = {
     val fromChildren = fields.flatMap { case (_, value) => check(value, context) }
+    
     // TODO: Check tpe dealises to a record
     // TODO: Check each field agrees with the type from the name
     fromChildren
