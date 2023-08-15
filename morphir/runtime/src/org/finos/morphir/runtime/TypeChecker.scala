@@ -126,8 +126,13 @@ class TypeChecker(dists: Distributions) {
     //TODO: Check condition is boolean and branches agree withe ach other/tpe
     fromChildren
   }
-  def handleLambda(tpe: UType, pattern: Pattern[UType], body: TypedValue, context: Context): TypeCheckerResult =
-    List()
+  def handleLambda(tpe: UType, pattern: Pattern[UType], body: TypedValue, context: Context): TypeCheckerResult = {
+    val fromChildren = check(body, context)
+    //TODO: Check tpe is a function
+    //TODO: Check tpe's argument matches (strictly) with pattern
+    //TODO: Figure out variable bindings
+    fromChildren
+  }
   def handleLetDefinition(
       tpe: UType,
       name: Name,
