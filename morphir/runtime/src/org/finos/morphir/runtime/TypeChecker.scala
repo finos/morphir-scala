@@ -303,21 +303,21 @@ class TypeChecker(dists: Distributions) {
   }
   def handleListValue(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
     val fromChildren = elements.flatMap(check(_, context))
-    val fromTpe = dealias(tpe, context) match {
-      //        case Right(ListRef(elementType)) =>
-      //          val fromSignature = List() // checkTypesAgree(tpe, elementType, context) TODO: What was this?
-      //          val fromElements = elements.foldLeft(List(): List[GoodTypeError]) { (acc, next) =>
-      //            acc ++ checkTypesAgree(elementType, next.attributes, context)
-      //            //            if (acc.size != 0) acc else {
-      //            //              checkTypesAgree(elementType, next.attributes, context) //Check each element vs. the declared element type (only keep first errors)
-      //            //            }
-      //          }
-      //          fromSignature ++ fromElements
-      //        case Right(other) => List(ImproperType(other, s"Found ${other.getClass} while expecting list"))
-      //        case Left(error) => List(error)
-      //      }
+    val fromTpe = tpe match{
+      case Right(ListRef(elementType)) =>
+                val fromSignature = List() // checkTypesAgree(tpe, elementType, context) TODO: What was this?
+                val fromElements = elements.foldLeft(List(): List[GoodTypeError]) { (acc, next) =>
+                  acc ++ checkTypesAgree(elementType, next.attributes, context)
+                  //            if (acc.size != 0) acc else {
+                  //              checkTypesAgree(elementType, next.attributes, context) //Check each element vs. the declared element type (only keep first errors)
+                  //            }
+                }
+                fromSignature ++ fromElements
+      case Right(other) => List(ImproperType(other, s"Found ${other.getClass} while expecting list"))
+      case Left(error) => List(error)
+    }
     // TODO: Check tpe is a list, check children types agree w/ parent type (probably only report one mismatch, but inspect all values
-    fromChildren
+    fromChildren ++ fromTpe
   }
   def handlePatternMatch(
       tpe: UType,
