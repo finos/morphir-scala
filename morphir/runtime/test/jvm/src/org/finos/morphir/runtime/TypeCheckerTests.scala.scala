@@ -93,6 +93,9 @@ object TypeCheckerTests extends MorphirBaseSpec {
           testTypeCheck(V.boolean(true) :> sdk.Basics.floatType)(1)
         }
         // TODO: Other lit tests
+      ),
+      suite("Type confomrity")(
+        
       )
     ).provideLayerShared(typeCheckerLayer)
 }
