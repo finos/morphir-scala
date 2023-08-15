@@ -29,7 +29,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
       irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
       _ <- Console.printLine(s"Loading distribution from $irFilePath")
       dist <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
-    } yield TypeChecker(dist)
+    } yield TypeChecker(Distributions(dist))
     )
   val localDate = java.time.LocalDate.of(1900, 1, 20)
   val localTime = java.time.LocalTime.of(10, 43, 26)
@@ -91,11 +91,11 @@ object TypeCheckerTests extends MorphirBaseSpec {
         .toZIOWith(RTExecutionContext.default)
     }
 
-  def runTypeCheck(value : TypedValue) : ZIO[MorphirRuntimeTyped, Throwable, Data] =
-  ZIO.serviceWithZIO[MorphirRuntimeTyped]{ runtime =>
-    runtime.evaluate(value)
-      .provideEnvironment(MorphirEnv.live)
-      .toZIOWith(RTExecutionContext.default)
+  def runTypeCheck(value : TypedValue) : ZIO[TypeChecker, Throwable, Data] =
+  ZIO.serviceWithZIO[TypeChecker]{ checker =>
+    ZIO.succeed(checker.check(value))
+//      .provideEnvironment(MorphirEnv.live)
+//      .toZIOWith(RTExecutionContext.default)
   }
 
   val dogRecordConceptRaw = Concept.Struct(
