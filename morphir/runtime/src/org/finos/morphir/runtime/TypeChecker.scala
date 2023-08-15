@@ -103,6 +103,10 @@ class TypeChecker(dists: Distributions) {
           //Note reversed order - covariance vs. contravariance.
           conformsTo(valueRet, declaredRet, context) ++ conformsTo(declaredArg, valueArg, context)
         }
+      case (DictRef(firstKey, firstValue), DictRef(secondKey, secondValue)) =>
+        conformsTo(firstKey, secondKey, context) ++ conformsTo(firstValue, secondValue, context)
+      case (ResultRef(firstErr, firstOk), ResultRef(secondErr, secondOk)) =>
+        conformsTo(firstErr, secondErr, context) ++ conformsTo(firstOk, secondOk, context)
 
     }
   }
@@ -186,7 +190,6 @@ class TypeChecker(dists: Distributions) {
     val fromTpe = ret match{
       case Type.Reference(_, name, typeArgs) => dists.lookupTypeSpecification(name) match {
         case Right(T.Specification.CustomTypeSpecification(typeParams, ctors)) =>
-          // (typeArgs.zip(typeParams)).flatMap{case (arg, param) => checkTypesAgree(arg, param, context)}
           val missedName = helper(fqn.packagePath != name.packagePath || fqn.modulePath != name.modulePath, new OtherTypeError(s"Constructor $fqn does not match type name $name"))
           val fromCtor = ctors.toMap.get(fqn.localName) match {
             case Some(_) => List()
