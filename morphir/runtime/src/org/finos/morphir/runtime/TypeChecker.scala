@@ -105,11 +105,11 @@ class TypeChecker(dists: Distributions) {
         }
       case (first@Type.Tuple(_, firstElements), second@Type.Tuple(_, secondElements)) =>
         if (firstElements.length != secondElements.length) {
-          List(new TupleWrongSize(first, second))
+          List(new TypesMismatch(first, second, s"Tuple sizes differ (${firstElements.length} vs ${secondElements.length})"))
         } else {
           firstElements.toList.zip(secondElements).flatMap {
             case (first, second) =>
-              checkTypesAgree(first, second, context)
+              conformsTo(first, second, context)
           }
         }
       //TODO: Consider covariance/contravariance
@@ -120,7 +120,8 @@ class TypeChecker(dists: Distributions) {
       case (ListRef(firstElement), ListRef(secondElement)) => conformsTo(firstElement, secondElement, context)
       case (MaybeRef(firstElement), MaybeRef(secondElement)) =>
         conformsTo(firstElement, secondElement, context)
-
+      case (firstOther, secondOther) if firstOther.getClass == secondOther.getClass => List(new Unimplemented(s"No matching support for ${Succinct.Type(firstOther)} vs ${Succinct.Type(secondOther)}"))
+      case (firstOther, secondOther) => List(new TypesMismatch(firstOther, secondOther, "Different types"))
     }
   }
 
