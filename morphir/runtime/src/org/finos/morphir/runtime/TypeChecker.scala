@@ -29,26 +29,27 @@ object TypeChecker {
 }
 
 class TypeChecker(dists: Distributions) {
+  import TypeChecker.*
   private val functionOnion                                                               = Extractors.Types.FunctionOnion(dists)
   private def nameThatMismatch(tpe1: UType, tpe2: UType): String                          = {
     import Extractors.Types.*
-        (tpe1, tpe2) match {
-          case (NonNativeRef(fqn1, args1), NonNativeRef(fqn2, args2)) if fqn1 == fqn2 =>
-            s"Refs to $fqn1 have different type args"
-          case (NonNativeRef(fqn1, _), NonNativeRef(fqn2, _)) =>
-            val (pack1, mod1, loc1) = (fqn1.packagePath, fqn1.modulePath, fqn1.localName)
-            val (pack2, mod2, loc2) = (fqn2.packagePath, fqn2.modulePath, fqn2.localName)
-            val packPart = if (pack1 != pack2) s"{$pack1 </=/> $pack2}" else pack1
-            val modPart = if (mod1 != mod2) s"{$mod1 </=/> $mod2}" else mod1
-            val locPart = if (loc1 != loc2) s"{${loc1.toTitleCase} </=/> ${loc2.toTitleCase}" else loc1.toTitleCase
-            s"$packPart:$modPart:$locPart"
-          case _ => s"(${pretty(tpe1, 2)} vs ${pretty(tpe2, 2)})"
-        }
+    (tpe1, tpe2) match {
+      case (NonNativeRef(fqn1, args1), NonNativeRef(fqn2, args2)) if fqn1 == fqn2 =>
+        s"Refs to $fqn1 have different type args"
+      case (NonNativeRef(fqn1, _), NonNativeRef(fqn2, _)) =>
+        val (pack1, mod1, loc1) = (fqn1.packagePath, fqn1.modulePath, fqn1.localName)
+        val (pack2, mod2, loc2) = (fqn2.packagePath, fqn2.modulePath, fqn2.localName)
+        val packPart = if (pack1 != pack2) s"{$pack1 </=/> $pack2}" else pack1
+        val modPart = if (mod1 != mod2) s"{$mod1 </=/> $mod2}" else mod1
+        val locPart = if (loc1 != loc2) s"{${loc1.toTitleCase} </=/> ${loc2.toTitleCase}" else loc1.toTitleCase
+        s"$packPart:$modPart:$locPart"
+      case _ => s"(${pretty(tpe1, 2)} vs ${pretty(tpe2, 2)})"
+    }
   }
-  private def nameMissingValue(value: TypedValue, dists: Distributions): MorphirTypeError = {"Todo"}
-  private def nameMissingType(fqn: FQName, dists: Distributions): MorphirTypeError        = {"Todo"}
-  private def nameMissingConstructor(fqn: FQName, tpe: UType, dists: Distributions): MorphirTypeError = {"TOdo"}
-  private def pretty(tpe: UType, depthBudget: Int): String                                            = {"Todo"}
+  private def nameMissingValue(value: TypedValue, dists: Distributions): MorphirTypeError = {???}
+  private def nameMissingType(fqn: FQName, dists: Distributions): MorphirTypeError        = {???}
+  private def nameMissingConstructor(fqn: FQName, tpe: UType, dists: Distributions): MorphirTypeError = {???}
+  private def pretty(tpe: UType, depthBudget: Int): String                                            = {???}
   private def pretty(tpe: UType): String                                                              = pretty(tpe, 2)
   def check(suspect: TypedValue): TypeCheckerResult =
     check(suspect, Context.empty)
