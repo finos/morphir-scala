@@ -21,7 +21,15 @@ import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => V
 import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
 
 object Succinct{
-  
+  object Value{
+
+  }
+  object Type{
+
+  }
+  object Value{
+    
+  }
 }
 
 object Utils {
