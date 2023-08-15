@@ -117,7 +117,7 @@ class TypeChecker(dists: Distributions) {
         val valueFieldSet: Set[Name] = valueFields.map(_._1).toSet
         val declaredFieldSet: Set[Name] = declaredFields.map(_._1).toSet
         val missingFromValue= valueFieldSet
-          .diff(declaredFieldSet).toList.map(missing => TypeLacksField(valueTpe, declaredTpe, missing))
+          .diff(declaredFieldSet).toList.map(missing => TypeLacksField(valueTpe, missing, s"Required by ${Succinct.Type(declaredTpe)}"))
         val missingFromDeclared = declaredFieldSet
           .diff(valueFieldSet).toList.map(bonus => TypeHasExtraField(valueTpe, declaredTpe, bonus))
         val sharedFields = valueFieldSet.intersect(declaredFieldSet)
@@ -240,17 +240,23 @@ class TypeChecker(dists: Distributions) {
       }
       case other => List(new ImproperType(other, s"Reference to type union expected"))
     }
-    // TODO: Check it's a function onion for a type with that constructor
     fromChildren
   }
   def handleFieldValue(tpe: UType, recordValue: TypedValue, name: Name, context: Context): TypeCheckerResult = {
     val fromChildren = check(recordValue, context)
-    // TODO: Check the value dealiases to a record which has that name
-    fromChildren
+    val fromTpe = recordValue.attributes match{
+      case Type.Record(_, fields) => {
+        fields.map(field => field.name -> field.data).toMap.get(name) match {
+          case None => List(new TypeLacksField(tpe, name, "Referenced by field none"))
+          case Some(fieldTpe) => conformsTo(fieldTpe, tpe, context)
+        }
+      }
+    }
+    fromChildren ++ fromTpe
   }
   def handleFieldFunction(tpe: UType, name: Name, context: Context): TypeCheckerResult = {
     val fromChildren = List()
-    // TODO: Uh... Nothing.
+    // TODO: tpe should be... function from extensible record type to ???
     fromChildren
   }
   def handleIfThenElse(
