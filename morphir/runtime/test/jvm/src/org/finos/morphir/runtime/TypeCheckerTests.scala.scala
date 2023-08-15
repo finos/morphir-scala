@@ -25,8 +25,11 @@ object TypeCheckerTests extends MorphirBaseSpec {
     } yield MorphirRuntime.quick(dist))
 
   val typeCheckerLayer : ZLayer[Any, Throwable, TypeChecker] =
-    ZLayer(
-      
+    ZLayer(for {
+      irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
+      _ <- Console.printLine(s"Loading distribution from $irFilePath")
+      dist <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
+    }
     )
   val localDate = java.time.LocalDate.of(1900, 1, 20)
   val localTime = java.time.LocalTime.of(10, 43, 26)
