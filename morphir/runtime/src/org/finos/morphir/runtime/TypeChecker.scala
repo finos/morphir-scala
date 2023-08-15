@@ -91,28 +91,28 @@ class TypeChecker(dists: Distributions) {
     dealias(suspect.attributes) match{
       case Right(tpe) => suspect match {
         case Literal(_, lit) => handleLiteral(tpe, lit, context)
-        case Apply(tpe, function, argument) => handleApply(tpe, function, argument, context)
-        case Destructure(tpe, pattern, valueToDestruct, inValue) =>
+        case Apply(_, function, argument) => handleApply(tpe, function, argument, context)
+        case Destructure(_, pattern, valueToDestruct, inValue) =>
           handleDestructure(tpe, pattern, valueToDestruct, inValue, context)
-        case Constructor(tpe, name) => handleConstructor(tpe, name, context)
-        case FieldValue(tpe, recordValue, name) => handleFieldValue(tpe, recordValue, name, context)
-        case FieldFunction(tpe, name) => handleFieldFunction(tpe, name, context)
-        case IfThenElse(tpe, condition, thenValue, elseValue) =>
+        case Constructor(_, name) => handleConstructor(tpe, name, context)
+        case FieldValue(_, recordValue, name) => handleFieldValue(tpe, recordValue, name, context)
+        case FieldFunction(_, name) => handleFieldFunction(tpe, name, context)
+        case IfThenElse(_, condition, thenValue, elseValue) =>
           handleIfThenElse(tpe, condition, thenValue, elseValue, context)
-        case Lambda(tpe, pattern, body) => handleLambda(tpe, pattern, body, context)
-        case LetDefinition(tpe, name, definition, inValue) =>
+        case Lambda(_, pattern, body) => handleLambda(tpe, pattern, body, context)
+        case LetDefinition(_, name, definition, inValue) =>
           handleLetDefinition(tpe, name, definition, inValue, context)
-        case LetRecursion(tpe, definitions, inValue) => handleLetRecursion(tpe, definitions, inValue, context)
-        case ListValue(tpe, elements) => handleListValue(tpe, elements.toList, context)
-        case PatternMatch(tpe, value, cases) => handlePatternMatch(tpe, value, cases.toList, context)
-        case Record(tpe, fields) => handleRecord(tpe, fields.toList, context)
-        case Reference(tpe, name) => handleReference(tpe, name, context)
-        case Tuple(tpe, elements) => handleTuple(tpe, elements.toList, context)
-        case UnitValue(va) => handleUnitValue(va, context)
-        case UpdateRecord(tpe, valueToUpdate, fields) => handleUpdateRecord(tpe, valueToUpdate, fields, context)
-        case Variable(tpe, name) => handleVariable(tpe, name, context)
+        case LetRecursion(_, definitions, inValue) => handleLetRecursion(tpe, definitions, inValue, context)
+        case ListValue(_, elements) => handleListValue(tpe, elements.toList, context)
+        case PatternMatch(_, value, cases) => handlePatternMatch(tpe, value, cases.toList, context)
+        case Record(_, fields) => handleRecord(tpe, fields.toList, context)
+        case Reference(_, name) => handleReference(tpe, name, context)
+        case Tuple(_, elements) => handleTuple(tpe, elements.toList, context)
+        case UnitValue(_) => handleUnitValue(tpe, context)
+        case UpdateRecord(_, valueToUpdate, fields) => handleUpdateRecord(tpe, valueToUpdate, fields, context)
+        case Variable(_, name) => handleVariable(tpe, name, context)
       }
-      case Left(err) => List(er)
+      case Left(err) => List(err)
     }
 
 
