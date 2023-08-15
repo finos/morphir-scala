@@ -43,8 +43,11 @@ class Distributions(dists: Map[PackageName, Distribution]) {
       case None => Left(new MissingPackage(packageName))
     }
 
-  def lookupTypeSpecification(pName: PackageName, module: ModuleName, localName: Name): Either[LookupError, UTypeSpec] =
-    lookupModuleSpecification(pName, module).flatMap(_.lookupTypeSpecification(localName))
+  def lookupTypeSpecification(pkgName: PackageName, modName: ModuleName, localName: Name): Either[LookupError, UTypeSpec] =
+    lookupModuleSpecification(pkgName, modName).flatMap(_.lookupTypeSpecification(localName) match{
+      case Some(tpe) => Right(tpe)
+      case None => Left(new MissingType(pkgName, modName = ???, localName))
+    })
 
   def lookupTypeSpecification(fqn: FQName): Either[LookupError, UTypeSpec] =
     lookupTypeSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)
@@ -54,7 +57,10 @@ class Distributions(dists: Map[PackageName, Distribution]) {
       module: ModuleName,
       localName: Name
   ): Either[LookupError, UValueSpec] =
-    lookupModuleSpecification(packageName, module).flatMap(_.lookupValueSpecification(localName))
+    lookupModuleSpecification(packageName, module).flatMap(_.lookupValueSpecification(localName) match {
+      case Some(tpe) => Right(tpe)
+      case None => Left(new MissingDefinition(pkgName, modName = ???, localName))
+    })
 
   def lookupValueSpecification(fqn: FQName): Either[LookupError, UValueSpec] =
     lookupValueSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)
@@ -64,7 +70,10 @@ class Distributions(dists: Map[PackageName, Distribution]) {
       module: ModuleName,
       localName: Name
   ): Either[LookupError, TypedValueDef] =
-    lookupModuleDefinition(packageName, module).flatMap(_.lookupValueDefinition(localName))
+    lookupModuleDefinition(packageName, module).flatMap(_.lookupValueDefinition(localName) match {
+      case Some(tpe) => Right(tpe)
+      case None => Left(new MissingDefinition(pkgName, modName = ???, localName))
+    })
 
   def lookupValueDefinition(fqn: FQName): Either[LookupError, TypedValueDef] =
     lookupValueDefinition(fqn.packagePath, fqn.modulePath, fqn.localName)
