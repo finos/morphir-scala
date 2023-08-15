@@ -161,8 +161,7 @@ class TypeChecker(dists: Distributions) {
       dealias(function.attributes, context) match {
         case Right(Type.Function(_, paramType, returnType)) =>
           // TODO: Better than !=
-          helper(paramType != argument.attributes, new ArgumentDoesNotMatchParameter(argument, paramType)) ++
-            helper(returnType != tpe, new TypesMismatch(tpe, returnType, "Function return does not match apply node"))
+          conformsTo(argument.attributes, paramType) ++ conformsTo(returnType, tpe)
         case Right(other) => List(new ApplyToNonFunction(function, argument))
         case Left(err)    => List(err)
       }
