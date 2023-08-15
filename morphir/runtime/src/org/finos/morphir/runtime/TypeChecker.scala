@@ -103,16 +103,16 @@ class TypeChecker(dists: Distributions) {
           //Note reversed order - covariance vs. contravariance.
           conformsTo(valueRet, declaredRet, context) ++ conformsTo(declaredArg, valueArg, context)
         }
-      case (first@Type.Tuple(_, firstElements), second@Type.Tuple(_, secondElements)) =>
-        if (firstElements.length != secondElements.length) {
-          List(new TypesMismatch(first, second, s"Tuple sizes differ (${firstElements.length} vs ${secondElements.length})"))
+      case (value@Type.Tuple(_, valueElements), declared@Type.Tuple(_, declaredElements)) =>
+        if (valueElements.length != declaredElements.length) {
+          List(new TypesMismatch(value, declared, s"Tuple sizes differ (${valueElements.length} vs ${declaredElements.length})"))
         } else {
-          firstElements.toList.zip(secondElements).flatMap {
-            case (first, second) =>
-              conformsTo(first, second, context)
+          valueElements.toList.zip(declaredElements).flatMap {
+            case (value, declared) =>
+              conformsTo(value, declared, context)
           }
         }
-      case (Type.Record(_, firstFields), Type.Record(_, secondFields)) => {
+      case (Type.Record(_, valueFields), Type.Record(_, declaredFields)) => {
         val tpeFieldSet: Set[Name] = tpeFields.map(_._1).toSet
         val valFieldSet: Set[Name] = valFields.map(_._1).toSet
         // println(s"Type checking a record and we see ${tpeFieldSet.map(_._1)} vs ${valFieldSet.map(_._1)}")
@@ -120,25 +120,25 @@ class TypeChecker(dists: Distributions) {
           .diff(valFieldSet).toList.map(missing => MissingRecordField(recordTpe, missing))
         val missingFromValue = valFieldSet
           .diff(tpeFieldSet).toList.map(bonus => ExtraRecordField(recordTpe, bonus))
-        if (firstFields.length != secondFields.length) {
-          List(new TypesMismatch(first, second, "Record lengths differ (${firstField.length} vs ${secondElements.length})")) // TODO: Details!
+        if (valueFields.length != declaredFields.length) {
+          List(new TypesMismatch(value, declared, "Record lengths differ (${valueField.length} vs ${declaredElements.length})")) // TODO: Details!
         } else {
-          firstFields.toList.zip(secondFields).flatMap {
-            case (firstField, secondField) =>
-              conformsTo(firstField.data, secondField.data, context)
+          valueFields.toList.zip(declaredFields).flatMap {
+            case (valueField, declaredField) =>
+              conformsTo(valueField.data, declaredField.data, context)
           }
         }
       }
       //TODO: Consider covariance/contravariance
-      case (DictRef(firstKey, firstValue), DictRef(secondKey, secondValue)) =>
-        conformsTo(firstKey, secondKey, context) ++ conformsTo(firstValue, secondValue, context)
-      case (ResultRef(firstErr, firstOk), ResultRef(secondErr, secondOk)) =>
-        conformsTo(firstErr, secondErr, context) ++ conformsTo(firstOk, secondOk, context)
-      case (ListRef(firstElement), ListRef(secondElement)) => conformsTo(firstElement, secondElement, context)
-      case (MaybeRef(firstElement), MaybeRef(secondElement)) =>
-        conformsTo(firstElement, secondElement, context)
-      case (firstOther, secondOther) if firstOther.getClass == secondOther.getClass => List(new Unimplemented(s"No matching support for ${Succinct.Type(firstOther)} vs ${Succinct.Type(secondOther)}"))
-      case (firstOther, secondOther) => List(new TypesMismatch(firstOther, secondOther, "Different types"))
+      case (DictRef(valueKey, valueValue), DictRef(declaredKey, declaredValue)) =>
+        conformsTo(valueKey, declaredKey, context) ++ conformsTo(valueValue, declaredValue, context)
+      case (ResultRef(valueErr, valueOk), ResultRef(declaredErr, declaredOk)) =>
+        conformsTo(valueErr, declaredErr, context) ++ conformsTo(valueOk, declaredOk, context)
+      case (ListRef(valueElement), ListRef(declaredElement)) => conformsTo(valueElement, declaredElement, context)
+      case (MaybeRef(valueElement), MaybeRef(declaredElement)) =>
+        conformsTo(valueElement, declaredElement, context)
+      case (valueOther, declaredOther) if valueOther.getClass == declaredOther.getClass => List(new Unimplemented(s"No matching support for ${Succinct.Type(valueOther)} vs ${Succinct.Type(declaredOther)}"))
+      case (valueOther, declaredOther) => List(new TypesMismatch(valueOther, declaredOther, "Different types"))
     }
   }
 
