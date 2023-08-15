@@ -36,12 +36,14 @@ object TypeCheckerTests extends MorphirBaseSpec {
     ???
   }
   def testTypeCheck(value: TypedValue)(expectedErrors: Int): ZIO[TypeChecker, Throwable, TestResult] =
-    for {
-      errors <- ZIO.succeed(checker.check(value))
-      errorMsgs = errors.map(error => s"\n\t${error.getMsg}").mkString("")
-      assert <- if (errors.length == expectedErrors) assertCompletes
-      else assertTrue(errorMsgs == s"Expected $expectedErrors errors")
-    } yield assert // TODO: Cleaner "fails" impl
+    ZIO.serviceWithZIO[TypeChecker] { checker =>
+      for {
+        errors <- ZIO.succeed(checker.check(value))
+        errorMsgs = errors.map(error => s"\n\t${error.getMsg}").mkString("")
+        assert <- if (errors.length == expectedErrors) assertCompletes
+        else assertTrue(errorMsgs == s"Expected $expectedErrors errors")
+      } yield assert // TODO: Cleaner "fails" impl
+    }
   def runTypeCheck(value: TypedValue): ZIO[TypeChecker, Throwable, List[MorphirTypeError]] =
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       ZIO.succeed(checker.check(value))
