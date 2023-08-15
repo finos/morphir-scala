@@ -124,11 +124,11 @@ class TypeChecker(dists: Distributions) {
         case (BoolLiteral (_), BoolRef () ) => List ()
         case (WholeNumberLiteral (_), IntRef () ) => List () //TODO: "WholeNumberRef" extractor
         case (DecimalLiteral (_), DecimalRef () ) => List ()
-        case (otherLit, otherTpe) => List ()
+        case (otherLit, otherTpe) => List (new LiteralTypeMismatch(otherLit, otherTpe))
         }
       case Left(err) => List(err)
     }
-    fromChildren
+    fromChildren ++ matchErrors
   }
 
   def handleApply(tpe: UType, function: TypedValue, argument: TypedValue, context: Context): TypeCheckerResult = {

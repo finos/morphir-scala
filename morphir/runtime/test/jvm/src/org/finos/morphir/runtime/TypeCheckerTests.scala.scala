@@ -234,7 +234,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
         },
         test("Args are recursively checked"){
           val badApply : TypedValue = V.apply(Basics.intType, intToInt, invalidInt)
-          testTypeCheck(badApply)(-1)
+          testTypeCheck(badApply)(1)
         },
         test("Body is recursively checked"){
           val badApply : TypedValue = V.apply(Basics.boolType, invalidFunction, V.intTyped(2))
@@ -244,7 +244,10 @@ object TypeCheckerTests extends MorphirBaseSpec {
       ).provideLayerShared(typeCheckerLayer),
       suite("Literal Node")(
         test("Strings are not ints"){
-          testTypeCheck(invalidInt)(0)
+          testTypeCheck(invalidInt)(1)
+        },
+        test("ints are not Strings"){
+          testTypeCheck(V.int(1) :> sdk.String.stringType)(0)
         }
       ).provideLayerShared(typeCheckerLayer),
       suite("Lambda Tests")(
