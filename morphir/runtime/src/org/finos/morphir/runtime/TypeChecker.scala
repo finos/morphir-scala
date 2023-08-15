@@ -12,7 +12,7 @@ import org.finos.morphir.runtime.exports.*
 import zio.Chunk
 
 object TypeChecker {
-  type TypeCheckerResult = List[GoodTypeError]
+  type TypeCheckerResult = List[MorphirTypeError]
   case class Context(
       bindings: Map[Name, UType],
       depth: Int,
@@ -25,7 +25,7 @@ object TypeChecker {
   object Context {
     def empty = Context(Map(), 0, "")
   }
-  def helper(condition: Boolean, error: GoodTypeError) = if (condition) List(error) else List()
+  def helper(condition: Boolean, error: MorphirTypeError) = if (condition) List(error) else List()
 }
 
 class TypeChecker(dists: Distributions) {
