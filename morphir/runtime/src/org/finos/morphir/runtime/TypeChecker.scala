@@ -83,9 +83,9 @@ class TypeChecker(dists: Distributions) {
       }
     loop(tpe, None, context)
   }
+
   def conformsTo(valueType : UType, declaredType : UType, context : Context) : List[MorphirTypeError] = {
     import Extractors.Types.*
-
     (valueType, declaredType) match {
       case (_, Type.Variable(_, name)) => context.getTypeVariable(name) match {
         case None => List(new TypeVariableMissing(name))
