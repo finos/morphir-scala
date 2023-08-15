@@ -19,7 +19,7 @@ object MorphirTypeError {
   def succinct[TA, VA](value: Value[TA, VA]): String = Succinct.Value(value)
   def succinct[TA](tpe: Type[TA]): String            = Succinct.Type(tpe)
 
-  def succinct[TA](spec: TT.Specification[TA]): String = Succinct.Type(spec.getClass.simpleName())
+  def succinct[TA](spec: T.Specification[TA]): String = Succinct.Type(spec.getClass.simpleName())
   case class TypesMismatch(tpe1: UType, tpe2: UType, msg: String)
       extends MorphirTypeError(s"$msg: ${succinct(tpe1)} vs ${succinct(tpe2)}")
   case class ArgumentDoesNotMatchParameter(arg: TypedValue, param: UType) extends MorphirTypeError(
@@ -31,7 +31,7 @@ object MorphirTypeError {
   case class LiteralTypeMismatch(lit : Lit, tpe : UType) extends MorphirTypeError(s"Literal $lit is not of type ${succinct(tpe)}")
   case class ImproperType(tpe: UType, msg: String) extends MorphirTypeError(s"$msg. Found: ${succinct(tpe)}")
 
-  case class ImproperTypeSpec(fqn : FQName, spec: USpecification, msg: String) extends MorphirTypeError(s"$msg. $fqn points to: ${succinct(tpe)}")
+  case class ImproperTypeSpec(fqn : FQName, spec: UTypeSpec, msg: String) extends MorphirTypeError(s"$msg. $fqn points to: ${succinct(spec)}")
   case class CannotDealias(err: LookupError, msg: String = "Cannot dealias type")
       extends MorphirTypeError(s"$msg: ${err.getMsg}")
   case class TypeVariableMissing(name : Name) extends MorphirTypeError(s"Missing type variable $name.toTitleCase")
