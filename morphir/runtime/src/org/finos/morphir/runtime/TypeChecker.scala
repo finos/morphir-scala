@@ -11,6 +11,7 @@ import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.MorphirTypeError.CannotDealias
 import org.finos.morphir.runtime.exports.*
+import MorphirTypeError.*
 
 object TypeChecker {
   type TypeCheckerResult = List[MorphirTypeError]
