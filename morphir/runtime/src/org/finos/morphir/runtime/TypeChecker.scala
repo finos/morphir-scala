@@ -81,12 +81,25 @@ class TypeChecker(dists: Distributions) {
       case Variable(tpe, name) => handleVariable(tpe, name, context)
     }
   }
-  def handleLiteral(tpe: UType, literal : Lit, context: Context): TypeCheckerResult =
-    List()
-  def handleApply(tpe: UType, function: TypedValue, argument: TypedValue, context: Context): TypeCheckerResult =
-    List()
-  def handleDestructure(tpe: UType, pattern: Pattern[UType], value : TypedValue, inValue : TypedValue, context: Context): TypeCheckerResult =
-    List()
+  def handleLiteral(tpe: UType, literal : Lit, context: Context): TypeCheckerResult = {
+    val fromChildren = List()
+    //TODO: Check lit agrees
+    fromChildren
+  }
+
+  def handleApply(tpe: UType, function: TypedValue, argument: TypedValue, context: Context): TypeCheckerResult = {
+    val fromChildren = check(function, context) ++ check(argument, context)
+    //TODO: Check it's a function with matching arg and return
+    fromChildren
+  }
+
+  def handleDestructure(tpe: UType, pattern: Pattern[UType], value : TypedValue, inValue : TypedValue, context: Context): TypeCheckerResult = {
+    val fromChildren = check(value, context) ++ check(inValue, context)
+    //TODO: Check inValue matches tpe
+    //TODO: Check pattern can be value
+    //TODO: Check value must be pattern
+    fromChildren
+  }
   def handleConstructor(tpe: UType, fqn : FQName, context: Context): TypeCheckerResult =
     List()
   def handleFieldValue(tpe: UType, recordValue: TypedValue, name: Name, context: Context): TypeCheckerResult =
