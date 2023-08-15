@@ -242,6 +242,11 @@ object TypeCheckerTests extends MorphirBaseSpec {
         }
         //TODO: Body is recursively checked
       ).provideLayerShared(typeCheckerLayer),
+      suite("Literal Node")(
+        test("Strings are not ints"){
+          testTypeCheck(invalidInt)(0)
+        }
+      ).provideLayerShared(typeCheckerLayer),
       suite("Lambda Tests")(
         testEvaluation("As")("lambdaTests", "lambdaAsTest")(Data.Tuple(Data.Int(5), Data.Int(5))),
         testEvaluation("Tuple")("lambdaTests", "lambdaTupleTest")(Data.Tuple(Data.Int(0), Data.Int(1))),
