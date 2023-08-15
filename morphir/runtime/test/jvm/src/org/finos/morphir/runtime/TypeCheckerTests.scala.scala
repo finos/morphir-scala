@@ -24,6 +24,10 @@ object TypeCheckerTests extends MorphirBaseSpec {
       dist       <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
     } yield MorphirRuntime.quick(dist))
 
+  val typeCheckerLayer : ZLayer[Any, Throwable, TypeChecker] =
+    ZLayer(
+      
+    )
   val localDate = java.time.LocalDate.of(1900, 1, 20)
   val localTime = java.time.LocalTime.of(10, 43, 26)
   def deriveData(input: Any): Data =
@@ -212,9 +216,9 @@ object TypeCheckerTests extends MorphirBaseSpec {
     suite("Type Checker Unhappy Paths")(
       suite("Apply Node")(
         test("Zero Arg") {
-          val badApply = V.apply(Basics.intType, V.int(1), V.int(1))
+          val badApply : TypedValue = V.apply(Basics.intType, V.intTyped(1), V.intTyped(1))
           for {
-            actual <- runTypeCheck()
+            actual <- runTypeCheck(badApply)
             expected = zeroArg
           } yield assertTrue(actual == expected)
         }
