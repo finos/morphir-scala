@@ -365,16 +365,16 @@ class TypeChecker(dists: Distributions) {
   }
   def handleTuple(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
     val fromTpe = tpe match {
-      //        case tupleTpe@Type.Tuple(_, elementTypes) =>
-      //          helper(
-      //            elementTypes.length != elements.length,
-      //            new TupleSizeMismatch(tupleTpe, elementTypes.length, elements.length)
-      //          ) ++
-      //            (elements.map(_.attributes)).zip(elementTypes).flatMap { case (actual, declared) =>
-      //              checkTypesAgree(actual, declared, context)
-      //            }
-      //        case other => List(new ImproperType(other, "Tuple expected"))
-      //      }
+              case tupleTpe@Type.Tuple(_, elementTypes) =>
+                helper(
+                  elementTypes.length != elements.length,
+                  new TupleSizeMismatch(tupleTpe, elementTypes.length, elements.length)
+                ) ++
+                  (elements.map(_.attributes)).zip(elementTypes).flatMap { case (actual, declared) =>
+                    checkTypesAgree(actual, declared, context)
+                  }
+              case other => List(new ImproperType(other, "Tuple expected"))
+            }
     val fromChildren = elements.flatMap(check(_, context))
     // TODO: Check tpe dealiases to a tuple
     // TODO: Check tuple types vs. nested value types
