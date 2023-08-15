@@ -40,11 +40,16 @@ class Distributions(dists: Map[PackageName, Distribution]) {
   def lookupValueSpecification(fqn: FQName): Option[UValueSpec] =
     lookupValueSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)
 
-  def lookupTypeSpecification(pName: PackageName, module: ModuleName, localName: Name): Option[UTypeSpec] =
-    lookupModuleSpecification(pName, module).flatMap(_.lookupTypeSpecification(localName))
 
-  def lookupTypeSpecification(fqn: FQName): Option[UTypeSpec] =
-    lookupTypeSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)
+  def lookupValueDefinition(
+                             packageName: PackageName,
+                             module: ModuleName,
+                             localName: Name
+                           ): Option[ValueDefinition[scala.Unit, UType]] =
+    lookupModuleDefinition(packageName, module).flatMap(_.lookupValueDefinition(localName))
+
+  def lookupValueDefinition(fqn: FQName): Option[ValueDefinition[scala.Unit, UType]] =
+    lookupValueDefinition(fqn.packagePath, fqn.modulePath, fqn.localName)
   def getDists: Map[PackageName, Distribution]                   = dists
 }
 
