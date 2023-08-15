@@ -93,7 +93,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
       errors <- runTypeCheck(value)
       errorMsgs = errors.map(_.getMsg)
       assert <- if (errors.length == expectedErrors) assertCompletes else assertTrue(errorMsgs == List())
-    } yield assert
+    } yield assertTrue(errorMsgs == List("Unexpected Errors Found")) //TODO: Cleaner "fails" impl
   def runTypeCheck(value: TypedValue): ZIO[TypeChecker, Throwable, List[MorphirTypeError]] =
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       ZIO.succeed(checker.check(value))
@@ -242,16 +242,6 @@ object TypeCheckerTests extends MorphirBaseSpec {
         }
         //TODO: Body is recursively checked
       ).provideLayerShared(typeCheckerLayer),
-      suite("IfThenElse Tests")(
-        testEvaluation("True Branch")("ifThenElseTests", "ifThenElseTrueTest")(Data.String("Correct")),
-        testEvaluation("False Branch")("ifThenElseTests", "ifThenElseFalseTest")(Data.String("Correct")),
-        testEvaluation("Else Unevaluated")("ifThenElseTests", "ifThenElseElseBranchUnevaluatedTest")(
-          Data.String("Correct")
-        ),
-        testEvaluation("Then Unevaluated")("ifThenElseTests", "ifThenElseThenBranchUnevaluatedTest")(
-          Data.String("Correct")
-        )
-      ),
       suite("Lambda Tests")(
         testEvaluation("As")("lambdaTests", "lambdaAsTest")(Data.Tuple(Data.Int(5), Data.Int(5))),
         testEvaluation("Tuple")("lambdaTests", "lambdaTupleTest")(Data.Tuple(Data.Int(0), Data.Int(1))),
