@@ -97,11 +97,13 @@ class TypeChecker(dists: Distributions) {
         case Some(lookedUp) => conformsTo(lookedUp, declaredType, context)
       }
       case (left @LeafType(), right @ LeafType()) => {
-        if (left == right) List() else List(TypesMismatch(left, right, "value type does not match declared type"))
+        if (left == right) List() else List(TypesMismatch(left, right, "Value type does not match declared type"))
+      }
       case (Type.Function(_, valueArg, valueRet), Type.Function(_, declaredArg, declaredRet)) => {
+          //Note reversed order - covariance vs. contravariance.
           conformsTo(valueRet, declaredRet, context) ++ conformsTo(declaredArg, valueArg, context)
         }
-    }
+
     }
   }
 
