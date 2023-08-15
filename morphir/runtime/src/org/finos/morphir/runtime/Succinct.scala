@@ -39,7 +39,11 @@ object Succinct {
 
   }
   object TypeSpec{
-    def apply[TA](spec : T.Specification[TA], depth : Int) : String
+    def apply[TA](spec : T.Specification[TA], depth : Int) : String = {
+      spec match{
+        case other => other.getClass.getSimpleName
+      }
+    }
     def apply[TA](spec : T.Specification[TA]) : String= apply(spec, 2)
   }
 }
