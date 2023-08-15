@@ -83,15 +83,21 @@ class TypeChecker(dists: Distributions) {
     loop(tpe, None, context)
   }
   def conformsTo(valueType : UType, declaredType : UType, context : Context) : List[MorphirTypeError] = {
+    import Extractors.Types.*
+
     (valueType, declaredType) match {
-              case (_, Type.Variable(_, name)) => context.getTypeVariable(name) match {
-                case None => List(new TypeVariableMissing(name))
-                case some(lookedUp) => conformsTo(valueType, lookedUp, context) //TODO: Type parameter wrangling
-              }
-              case (Type.Variable(_, name), _) => context.getTypeVariable(name) match {
-                case None => List(new TypeVariableMissing(name))
-                case some(lookedUp) => conformsTo(lookedUp, declaredType, context)
-              }
+      case (_, Type.Variable(_, name)) => context.getTypeVariable(name) match {
+        case None => List(new TypeVariableMissing(name))
+        case some(lookedUp) => conformsTo(valueType, lookedUp, context) //TODO: Type parameter wrangling
+      }
+      case (Type.Variable(_, name), _) => context.getTypeVariable(name) match {
+        case None => List(new TypeVariableMissing(name))
+        case some(lookedUp) => conformsTo(lookedUp, declaredType, context)
+      }
+      case (left @LeafType(), right @ LeafType()) => {
+        if (left == right) List() else List(TypesMismatch(left, right, "value type does not match declared type"))
+    }
+    }
   }
 
   def check(suspect: TypedValue): TypeCheckerResult =

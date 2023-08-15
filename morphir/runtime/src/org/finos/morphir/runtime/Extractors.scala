@@ -84,7 +84,7 @@ object Extractors {
     object LocalTimeRef extends CommonReference {
       final val tpe = sdk.LocalTime.localTimeType
     }
-    
+    //Matches anything w/o nested subtypes
     object LeafType{
       def unapply(tpe : Utype) : boolean = {
         tpe match {
