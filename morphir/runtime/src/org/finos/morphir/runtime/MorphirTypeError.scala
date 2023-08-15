@@ -45,8 +45,8 @@ object MorphirTypeError {
   case class TypeLacksField(tpe : UType, field : Name, msg : String) extends MorphirTypeError(s"${succinct(tpe)} lacks field ${field.toCamelCase}. $msg")
   case class TypeHasExtraField(tpe: UType, contract: UType, field: Name) extends MorphirTypeError(s"${succinct(tpe)} has field ${field.toCamelCase}, which is not included in ${succinct(contract)}")
 
-  case class ValueLacksField(value : TypedValue, contract : UType,  field: Name, msg: String) extends MorphirTypeError(s"${succinct(value)} lacks field ${field.toCamelCase}, which is required by ${succinct(contract)}")
-  case class ValueHasExtraField(tpe: UType, contract: UType, field: Name) extends MorphirTypeError(s"${succinct(value)} has field ${field.toCamelCase}, which is not included in ${succinct(contract)}")
+  case class ValueLacksField(value : TypedValue, contract : UType,  field: Name) extends MorphirTypeError(s"${succinct(value)} lacks field ${field.toCamelCase}, which is required by ${succinct(contract)}")
+  case class ValueHasExtraField(value : TypedValue, contract: UType, field: Name) extends MorphirTypeError(s"${succinct(value)} has field ${field.toCamelCase}, which is not included in ${succinct(contract)}")
   case class TypeHasDifferentFieldType(first : UType, second : UType, field : Name, firstTpe : UType, secondTpe : UType) extends MorphirTypeError(
     s"tpe for field ${field.toCamelCase} is ${succinct(firstTpe)} in ${succinct(first)} but ${succinct(secondTpe)} in ${succinct(second)}"
   )

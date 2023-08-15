@@ -169,7 +169,7 @@ class TypeChecker(dists: Distributions) {
         case LetRecursion(_, definitions, inValue) => handleLetRecursion(tpe, definitions, inValue, context)
         case ListValue(_, elements) => handleListValue(tpe, elements.toList, context)
         case PatternMatch(_, value, cases) => handlePatternMatch(tpe, value, cases.toList, context)
-        case Record(_, fields) => handleRecord(tpe, fields.toList, context)
+        case recordValue @Record(_, fields) => handleRecord(tpe, fields.toList, recordValue, context)
         case Reference(_, name) => handleReference(tpe, name, context)
         case Tuple(_, elements) => handleTuple(tpe, elements.toList, context)
         case UnitValue(_) => handleUnitValue(tpe, context)
@@ -329,28 +329,26 @@ class TypeChecker(dists: Distributions) {
     // TODO: Check value must be one of the patterns
     fromChildren
   }
-  def handleRecord(tpe: UType, fields: List[(Name, TypedValue)], context: Context): TypeCheckerResult = {
-    val fromChildren = fields.flatMap { case (_, value) => check(value, context) }
+  def handleRecord(tpe: UType, valFields: List[(Name, TypedValue)], value : Value.Record[Unit, UType], context: Context): TypeCheckerResult = {
+    val fromChildren = valFields.flatMap { case (_, value) => check(value, context) }
 
     val fromTpe = tpe match {
       case recordTpe@Type.Record(_, tpeFields) =>
         val tpeFieldSet: Set[Name] = tpeFields.map(_._1).toSet
         val valFieldSet: Set[Name] = valFields.map(_._1).toSet
         val missingFromTpe = tpeFieldSet
-          .diff(valFieldSet).toList.map(missing => MissingRecordField(recordTpe, missing))
+          .diff(valFieldSet).toList.map(missing => ValueLacksField(value, recordTpe, missing))
         val missingFromValue = valFieldSet
-          .diff(tpeFieldSet).toList.map(bonus => ExtraRecordField(recordTpe, bonus))
+          .diff(tpeFieldSet).toList.map(bonus => ValueHasExtraField(value ,recordTpe, bonus))
         val valFieldMap: Map[Name, TypedValue] = valFields.toMap
         val tpeFieldMap: Map[Name, UType] = tpeFields.map(field => field.name -> field.data).toMap
         val conflicts = tpeFieldSet.intersect(valFieldSet).flatMap(name =>
-          checkTypesAgree(valFieldMap(name).attributes, tpeFieldMap(name), context)
+          conformsTo(valFieldMap(name).attributes, tpeFieldMap(name), context)
         )
         missingFromTpe ++ missingFromValue ++ conflicts
       case other => List(ImproperType(other, "Value is of type Record"))
     }
-    // TODO: Check tpe dealises to a record
-    // TODO: Check each field agrees with the type from the name
-    fromChildren
+    fromChildren ++ fromTpe
   }
   def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
