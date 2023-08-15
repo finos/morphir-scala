@@ -191,7 +191,7 @@ class TypeChecker(dists: Distributions) {
         // TODO: Constructor specific checks
         case Right(other) =>
           List(new ImproperTypeSpec(name, other, s"Type union expected"))
-        case Left(err) => List(new ConstructorMissing(err))
+        case Left(err) => List(new TypeMissing(err))
       }
     }
     // TODO: Check it's a function onion for a type with that constructor
