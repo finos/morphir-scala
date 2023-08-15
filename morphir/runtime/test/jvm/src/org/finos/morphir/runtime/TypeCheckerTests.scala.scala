@@ -216,26 +216,31 @@ object TypeCheckerTests extends MorphirBaseSpec {
   val validString : TypedValue = V.string(sdk.String.stringType, "Green")
   val invalidInt : TypedValue = V.string("Red") :> sdk.Basics.intType
   val intToInt : TypedValue = V.reference(T.function(Basics.intType, Basics.intType), FQName.fromString("Morphir/Examples/App:TypeCheckerTests:intToInt"))
-
+  val invalidFunction : TypedValue = V.reference(T.function(Basics.intType, Basics.boolType), FQName.fromString("Morphir/Examples/App:TypeCheckerTests:intToInt"))
   def spec =
     suite("Type Checker Tests")(
       suite("Apply Node")(
         test("Apply to non function") {
           val badApply: TypedValue = V.apply(Basics.intType, V.intTyped(1), V.intTyped(1))
-          testTypeCheck(badApply)(0)
+          testTypeCheck(badApply)(1)
         },
         test("Apply arg type wrong"){
           val badApply : TypedValue = V.apply(Basics.intType, intToInt, validString)
-          testTypeCheck(badApply)(0)
+          testTypeCheck(badApply)(1)
         },
         test("Apply arg type wrong") {
           val badApply: TypedValue = V.apply(Basics.boolType, intToInt, V.intTyped(1))
-          testTypeCheck(badApply)(0)
+          testTypeCheck(badApply)(1)
         },
         test("Args are recursively checked"){
           val badApply : TypedValue = V.apply(Basics.intType, intToInt, invalidInt)
-          testTypeCheck(badApply)(0)
+          testTypeCheck(badApply)(1)
+        },
+        test("Body is recursively checked"){
+          val badApply : TypedValue = V.apply(Basics.boolType, invalidFunction, V.intTyped(2))
+          testTypeCheck(badApply)(1)
         }
+        //TODO: Body is recursively checked
       ).provideLayerShared(typeCheckerLayer),
       suite("IfThenElse Tests")(
         testEvaluation("True Branch")("ifThenElseTests", "ifThenElseTrueTest")(Data.String("Correct")),
