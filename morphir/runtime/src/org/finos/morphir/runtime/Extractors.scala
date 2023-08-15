@@ -122,6 +122,19 @@ object Extractors {
 
     class FunctionOnion(dists: Distributions) {
       val dealiaser = Dealiased(dists)
+
+      def unapply(tpe: UType): Option[(UType, List[UType])] = {
+        val myself = this
+        tpe match {
+          case fun@Type.Function(_, arg, myself(inner, args)) =>
+            Some(inner, args :+ arg)
+          case ref@dealiaser(myself(inner, args), bindings) =>
+            Some(inner, args)
+          // TODO: BINDINGS
+          case other =>
+            Some(other, List())
+        }
+      }
     }
   }
   object Values {
