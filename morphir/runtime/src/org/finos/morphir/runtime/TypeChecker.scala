@@ -121,8 +121,8 @@ class TypeChecker(dists: Distributions) {
       case (FloatLiteral(value), FloatRef()) => value
       case (CharLiteral(value), CharRef()) => value
       case (BoolLiteral(value), BoolRef()) => value
-      case (WholeNumberLiteral(value), IntRef()) => value
-      case DecimalLiteral(value) => value
+      case (WholeNumberLiteral(value), IntRef()) => value //TODO: "WholeNumberRef" extractor
+      case (DecimalLiteral(value), DecimalRef()) => value
     }
     fromChildren
   }
