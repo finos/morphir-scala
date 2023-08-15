@@ -1,16 +1,16 @@
 package org.finos.morphir.runtime
 
-import org.finos.morphir.naming._
-import org.finos.morphir.naming._
+import org.finos.morphir.naming.*
+import org.finos.morphir.naming.*
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Literal.Lit
-import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec, TypedDefinition => TypedValueDef}
-import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
+import org.finos.morphir.ir.Value.{Pattern, TypedValue, Value, TypedDefinition as TypedValueDef, USpecification as UValueSpec}
+import org.finos.morphir.ir.Type.{Type, UType, USpecification as UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.Field
+import org.finos.morphir.runtime.MorphirTypeError.CannotDealias
 import org.finos.morphir.runtime.exports.*
-import zio.Chunk
 
 object TypeChecker {
   type TypeCheckerResult = List[MorphirTypeError]
@@ -62,18 +62,17 @@ class TypeChecker(dists: Distributions) {
             case Some(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
               val newBindings = typeParams.zip(typeArgs).toMap
               loop(expr, original_fqn.orElse(Some(typeName)), context.withBindings(newBindings))
-            case Some(_) => Right(tpe) // TODO: Bindings
-            case None =>
+            case Right(_) => Right(tpe) // TODO: Bindings
+            case Left(lookupErr) =>
               original_fqn match {
                 case Some(original) =>
-                  Left(new TypeMissing(typeName, dists, s"Unable to find while dealiasing $original"))
+                  Left(new CannotDealias(lookupErr, s"Unable to dealias (nested beneath $original"))
                 case None =>
-                  Left(new TypeMissing(typeName, dists, s"Unable to dealias"))
+                  Left(new CannotDealias(lookupErr))
               }
           }
         case other => Right(other) // TODO: Bindings
       }
-
     loop(tpe, None, context)
   }
   private def pretty(tpe: UType): String                                                              = pretty(tpe, 2)
