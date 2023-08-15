@@ -214,6 +214,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
     "TwoArg",
     unionEnumShape
   )
+  val add = V.reference(T.Function(T.int, T.int))
 
   def spec =
     suite("Type Checker Unhappy Paths")(
@@ -221,6 +222,9 @@ object TypeCheckerTests extends MorphirBaseSpec {
         test("Apply to non function") {
           val badApply: TypedValue = V.apply(Basics.intType, V.intTyped(1), V.intTyped(1))
           testTypeCheck(badApply)(0)
+        }
+        test("Apply arg type wrong"){
+          val badApply : TypedValue = V.Apply(Basics.IntType, V.lambda)
         }
       ).provideLayerShared(typeCheckerLayer),
       suite("IfThenElse Tests")(
