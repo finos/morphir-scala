@@ -411,14 +411,23 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
       def generatedSources = T {
         if (isScala3()) {
-          super.generatedSources() ++ shared.code.meta.generatedSources() ++ shared.code.meta.compat.generatedSources()
+          super.generatedSources() ++
+            // Add data.scala and derivable.scala
+            shared.code.meta.generatedSources() ++
+            // Add compat.scala
+            shared.code.meta.compat.generatedSources()
         } else {
+          // Only add data.scala and derivable.scala
           super.generatedSources() ++ shared.code.meta.generatedSources()
         }
       }
 
       def scalacOptions = T {
-        super.scalacOptions().filterNot(_.startsWith("-Xfatal-warnings"))
+        Seq(
+          "-deprecation",
+          "-feature",
+          "-language:higherKinds"
+        )
       }
     }
 
@@ -557,12 +566,12 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
       def generatedSources = T {
-        super.generatedSources() ++ shared.code.meta.examples.generatedSources()
+        super.generatedSources() //NOTE: Issue with this generation /*++ shared.code.meta.examples.generatedSources()*/
       }
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.com.lihaoyi.sourcecode
       )
-      def platformSpecificModuleDeps = Seq(extensibility, macros, morphir)
+      def platformSpecificModuleDeps = Seq(extensibility, macros, meta, morphir)
     }
 
     object jvm extends Shared with MorphirJVMModule {
