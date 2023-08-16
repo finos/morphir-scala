@@ -64,5 +64,8 @@ object MorphirTypeError {
       extends MorphirTypeError(s"Cannot find definition of type ${succinct(tpe)}: ${err.getMsg}")
   case class ModuleMissing(modName: ModuleName)   extends MorphirTypeError("Todo")
   case class PackageMissing(pckName: PackageName) extends MorphirTypeError("Todo")
+
+  abstract class SizeMismatch(first: Int, second: Int, msg: String) extends MorphirTypeError(s"$msg: ($first vs $second)")
+  case class ArgNumberMismatch(first: Int, second: Int, msg: String) extends SizeMismatch(first: Int, second: Int, msg: String)
   case class Unimplemented(s: String)             extends MorphirTypeError(s)
 }

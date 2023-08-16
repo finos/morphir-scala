@@ -247,8 +247,8 @@ class TypeChecker(dists: Distributions) {
               new OtherTypeError(s"Constructor $fqn does not match type name $name")
             )
             val fromCtor = ctors.toMap.get(fqn.localName) match {
-              case Some(_) => List()
-              // TODO: compare args to ctor args
+              case Some(ctorArgs) => helper(args.len != ctorArgs.len, new )
+
               case None =>
                 List(new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName}"))
             }
