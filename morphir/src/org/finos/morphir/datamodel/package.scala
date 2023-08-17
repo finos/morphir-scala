@@ -80,9 +80,10 @@ package object datamodel {
   implicit def optionDeriver[T](implicit elementDeriver: Deriver[T]): CustomDeriver[Option[T]] =
     new CustomDeriver[Option[T]] {
       def derive(value: Option[T]) =
-        value match
+        value match {
           case Some(value) => Data.Optional.Some(elementDeriver.derive(value), elementDeriver.concept)
           case None        => Data.Optional.None(elementDeriver.concept)
+        }
       def concept = Concept.Optional(elementDeriver.concept)
     }
 
