@@ -1,6 +1,7 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.naming._
+import org.finos.morphir.naming.*
+import org.finos.morphir.util.{DetailLevel, PrintMDM}
 
 import java.io.OutputStream
 import scala.collection.immutable.ListMap
@@ -8,6 +9,31 @@ import scala.collection.mutable
 
 sealed trait Data extends geny.Writable {
   def shape: Concept
+
+  def getNameString: Option[String] =
+    getName.map(_.localName.toTitleCase)
+  def getName: Option[FQName] =
+    this match {
+      case basic: Data.Basic[_] => None
+      case v: Data.Case         => Some(v.shape.name)
+      case v: Data.Tuple        => None
+      case v: Data.Record       => Some(v.shape.namespace)
+      case v: Data.Struct       => None
+      case v: Data.Optional     => None
+      case v: Data.Result       => None
+      case v: Data.List         => None
+      case v: Data.Map          => None
+      case v: Data.Union        => None
+      case v: Data.Aliased      => Some(v.shape.name)
+    }
+
+  def toStringPretty: String = toStringPretty(true)
+  def toStringPretty(color: Boolean, detailLevel: DetailLevel = DetailLevel.BirdsEye): String =
+    if (color)
+      PrintMDM(this, detailLevel).toString
+    else
+      PrintMDM(this, detailLevel).plainText
+
   def writeBytesTo(out: OutputStream): Unit = {
     // TODO: Implement writing
   }

@@ -35,13 +35,6 @@ object Deriver {
         error(s"Cannot find specific deriver for type: ${showType[T]}")
     }
 
-  sealed trait UnionType
-  object UnionType {
-    case object SealedTrait extends UnionType
-    case object Enum        extends UnionType
-    case object Sum         extends UnionType
-  }
-
   private inline def deriveSumVariants[Fields <: Tuple, Elems <: Tuple](
       inline unionType: UnionType
   ): List[SumBuilder.Variant] =

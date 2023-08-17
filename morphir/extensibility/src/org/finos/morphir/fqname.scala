@@ -5,7 +5,6 @@ private[morphir] trait FQNameExports {
     with QualifiedModuleNameExports
     with QNameExports =>
 
-  // TODO additional naming functions
   sealed case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) { self =>
     def getPackagePath: Path = packagePath.toPath
 
@@ -25,6 +24,12 @@ private[morphir] trait FQNameExports {
       Path.toString(Name.toTitleCase, ".", packagePath.toPath),
       Path.toString(Name.toTitleCase, ".", modulePath.toPath),
       Name.toCamelCase(localName)
+    ).mkString(":")
+
+    def toStringTitleCase: String = Array(
+      Path.toString(Name.toTitleCase, ".", packagePath.toPath),
+      Path.toString(Name.toTitleCase, ".", modulePath.toPath),
+      Name.toTitleCase(this.localName)
     ).mkString(":")
   }
 
