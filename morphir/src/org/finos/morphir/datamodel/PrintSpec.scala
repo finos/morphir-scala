@@ -168,7 +168,7 @@ object PrintSpec {
 
     case class ConceptDef(defString: String, name: FQName, imports: List[FQName])
 
-    /**
+    /*
      * Here we only care about things that introduce new definitions i.e. Concept.Alias, Concept.Record, and
      * Concept.Enum. Everything just needs to have it's internal definitions collected and then printed. It's only for
      * Aliases, Records, and Enums that we need to actually handle their definitions on the top-level.

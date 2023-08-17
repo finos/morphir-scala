@@ -58,9 +58,6 @@ object Deriver {
                   if (isCaseClass[head]) {
                     summonProductDeriver[head] match {
                       case deriver: GenericProductDeriver[Product] @unchecked =>
-                        println(
-                          s"field ${typeName[head]}: ${fieldName} - ${deriver.builder.name.localName}(${deriver.builder.fields})"
-                        )
                         SumBuilder.EnumProduct(fieldName, deriver)
                       case other =>
                         throw new IllegalArgumentException(
