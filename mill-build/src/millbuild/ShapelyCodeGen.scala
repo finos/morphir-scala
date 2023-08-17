@@ -228,6 +228,8 @@ object ShapelyCodeGen {
 
     s"""package org.finos.morphir.meta
        |
+       |import scala.annotation._
+       |
        |private[meta] trait DerivableGenerated[F[_]] {
        |  implicit def caseclass1[A, A1](implicit X: XFunctor[F], F1: Lazy[F[A1]]): F[CaseClass1[A, A1]] =
        |     X.xmap(F1.value)(t => CaseClass1(t), c => c._1)
@@ -237,12 +239,14 @@ object ShapelyCodeGen {
        |
        |${caseclasses.mkString("\n\n")}
        |
+       |  @nowarn
        |  implicit def sealedtrait1[A, A1 <: A](implicit X: XFunctor[F], F1: Lazy[F[A1]]): F[SealedTrait1[A, A1]] =
        |    X.xmap(F1.value)(
        |      v => SealedTrait._1(v),
        |      { case SealedTrait._1(v) => v }
        |    )
        |
+       |  @nowarn
        |  implicit def sealedtrait2[A, A1 <: A, A2 <: A](implicit X: XFunctor[F], D: Decide[F], F1: Lazy[F[A1]], F2: Lazy[F[A2]]): F[SealedTrait2[A, A1, A2]] =
        |    X.xmap(D.decide(F1.value, F2.value))(
        |      {
