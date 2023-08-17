@@ -2,6 +2,8 @@ package org.finos.morphir.datamodel
 
 import org.finos.morphir.naming.FQName
 import org.finos.morphir.datamodel.Concept.Basic
+import org.finos.morphir.datamodel.PrintSpec.WriteFiles
+import org.finos.morphir.util.{DetailLevel, PrintMDM}
 
 import scala.annotation.tailrec
 import zio.Chunk
@@ -19,6 +21,36 @@ sealed trait Concept { self =>
     (new Concept.Collector[T](p).of(self)).run(Chunk[T]()) match {
       case (chunk, _) => chunk
     }
+
+  def getNameString: Option[String] =
+    getName.map(_.localName.toTitleCase)
+  def getName: Option[FQName] =
+    this match {
+      case c: Concept.Basic[_] => None
+      case c: Concept.Any.type => None
+      case c: Concept.Record   => Some(c.namespace)
+      case c: Concept.Struct   => None
+      case c: Concept.Alias    => Some(c.name)
+      case c: Concept.List     => None
+      case c: Concept.Map      => None
+      case c: Concept.Tuple    => None
+      case c: Concept.Optional => None
+      case c: Concept.Result   => None
+      case c: Concept.Enum     => Some(c.name)
+      case c: Concept.Union    => None
+    }
+
+  def toStringPretty: String = toStringPretty(true)
+  def toStringPretty(color: Boolean, detailLevel: DetailLevel = DetailLevel.BirdsEye): String =
+    if (color)
+      PrintMDM(this, detailLevel).toString
+    else
+      PrintMDM(this, detailLevel).plainText
+
+  def toMorphirElm: String =
+    toMorphirElm(WriteFiles.Skip)
+  def toMorphirElm(writeFiles: WriteFiles): String =
+    PrintSpec.of(this, writeFiles = writeFiles)
 }
 
 object Concept {
