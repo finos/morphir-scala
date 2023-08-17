@@ -189,13 +189,8 @@ object PrintSpec {
         case Concept.Union(cases)            => None
       }
 
-    /**
-     * @param concept
-     *   The shape to print
-     * @param isInside
-     *   Is it inside of a parent constructor (e.g. in a enum typedef constructor)
-     * @return
-     *   The printed shape
+    /*
+     * isInside - Is it inside of a parent constructor (e.g. in a enum typedef constructor)
      */
     def printDef(concept: Concept, isInside: Boolean = true): String =
       concept match {
