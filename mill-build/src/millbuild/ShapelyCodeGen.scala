@@ -47,6 +47,7 @@ object ShapelyCodeGen {
         if (i > 12) ""
         else s"""
                 |object SealedTrait$i {
+                |  @nowarn
                 |  def either[A, $tparams](st: SealedTrait$i[A, $tparams_]): $either = st match {
                 |    ${toEithers.mkString("\n    ")}
                 |  }
