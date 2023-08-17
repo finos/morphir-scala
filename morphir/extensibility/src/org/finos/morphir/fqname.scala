@@ -25,6 +25,12 @@ private[morphir] trait FQNameExports {
       Path.toString(Name.toTitleCase, ".", modulePath.toPath),
       Name.toCamelCase(localName)
     ).mkString(":")
+
+    def toStringTitleCase: String = Array(
+      Path.toString(Name.toTitleCase, ".", packagePath.toPath),
+      Path.toString(Name.toTitleCase, ".", modulePath.toPath),
+      Name.toTitleCase(this.localName)
+    ).mkString(":")
   }
 
   object FQName {

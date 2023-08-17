@@ -1,7 +1,7 @@
 package org.finos.morphir.datamodel
 
 import org.finos.morphir.naming._
-import org.finos.morphir.datamodel.Deriver.UnionType
+import org.finos.morphir.datamodel.UnionType
 import org.finos.morphir.naming.QualifiedModuleName
 
 import scala.quoted.*
