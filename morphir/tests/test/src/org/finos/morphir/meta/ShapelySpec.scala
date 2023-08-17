@@ -16,11 +16,8 @@ object ShapelySpec extends MorphirBaseSpec {
       testRoundtrip(Baz()),
       testRoundtrip(Car)
     ),
-//    suite("SealedTrait")(
-//      testRoundtrip[Gaz, SealedTrait4[Gaz, Foo, Bar, Baz, Car.type]](Foo("hello"): Gaz)
-//    ),
     suite("SealedTrait")(
-//      testRoundtrip[Gaz, SealedTrait4[Gaz, Foo, Bar, Baz, Car.type]](Foo("hello"): Gaz)
+      testRoundtrip[Gaz, SealedTrait4[Gaz, Foo, Bar, Baz, Car.type]](Foo("hello"): Gaz),
       test("Roundtrip testing for Gaz") {
         val original = Foo("hello"): Gaz
         val S        = Shapely[Gaz, SealedTrait4[Gaz, Foo, Bar, Baz, Car.type]]
@@ -33,17 +30,17 @@ object ShapelySpec extends MorphirBaseSpec {
       testRoundtrip(PolyFoo("hello", 1))
     ),
     suite("PolySealedTrait")(
-      // testRoundtrip(PolyFoo("hello", 1): Poly[Any]),
-//      test("Roundtrip testing of Poly[Any]") {
-//        val original = PolyFoo("hello", 1): Poly[Any]
-//        val S        = Shapely[Poly[Any], SealedTrait2[Poly[Any], PolyFoo, PolyBar]]
-//        val encoded  = S.to(original)
-//        val decoded  = S.from(encoded)
-//        assertTrue(decoded == original)
-//      }
+      testRoundtrip(PolyFoo("hello", 1): Poly[Any]),
+      test("Roundtrip testing of Poly[Any]") {
+        val original = PolyFoo("hello", 1): Poly[Any]
+        val S        = Shapely[Poly[Any], SealedTrait2[Poly[Any], PolyFoo, PolyBar]]
+        val encoded  = S.to(original)
+        val decoded  = S.from(encoded)
+        assertTrue(decoded == original)
+      }
     ),
     suite("Recursive")(
-      // testRoundtrip(Branch(List(Leaf("hello"), Leaf("world"))): ATree)
+      testRoundtrip(Branch(List(Leaf("hello"), Leaf("world"))): ATree)
     )
   )
 
