@@ -5,6 +5,7 @@ private[morphir] trait FQNameExports {
     with QualifiedModuleNameExports
     with QNameExports =>
 
+  // TODO additional naming functions
   sealed case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) { self =>
     def getPackagePath: Path = packagePath.toPath
 
