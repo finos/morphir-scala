@@ -1,11 +1,11 @@
 package org.finos.morphir.datamodel
 
 import scala.deriving.*
-import org.finos.morphir.datamodel.SpecificDeriver
+import org.finos.morphir.datamodel.CustomDeriver
 
-extension [A](da: SpecificDeriver[A])
+extension [A](da: CustomDeriver[A])
   inline def aliasedAs(alias: String) =
-    new SpecificDeriver[A] {
+    new CustomDeriver[A] {
       override def derive(value: A): Data =
         Data.Aliased(da.derive(value), this.concept)
       override def concept: Concept.Alias = {
