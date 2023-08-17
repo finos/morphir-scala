@@ -18,7 +18,7 @@ trait Deriver[T] {
   def concept: Concept
 }
 
-object Deriver {
+object Deriver extends DeriverInstances {
   import DeriverTypes._
   import DeriverMacros._
 

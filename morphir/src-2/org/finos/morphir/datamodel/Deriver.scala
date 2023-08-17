@@ -7,7 +7,7 @@ trait Deriver[A] {
   def concept: Concept
 }
 
-object Deriver {
+object Deriver extends DeriverInstances {
   def toData[A](value: A)(implicit deriver: Deriver[A]): Data =
     deriver.derive(value)
 }

@@ -1,4 +1,4 @@
-package org.finos.morphir
+package org.finos.morphir.datamodel
 
 import scala.BigInt
 import scala.BigDecimal
@@ -10,7 +10,7 @@ import scala.collection.immutable.ListMap
 import scala.collection.mutable
 import scala.collection.mutable.LinkedHashMap
 
-package object datamodel {
+trait DeriverInstances {
 
   implicit val booleanDeriver: CustomDeriver[Boolean] = new CustomDeriver[Boolean] {
     def derive(value: Boolean) = Data.Boolean(value)
