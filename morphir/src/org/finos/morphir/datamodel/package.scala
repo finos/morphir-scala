@@ -17,68 +17,68 @@ import scala.collection.mutable.LinkedHashMap
 
 package object datamodel {
 
-  implicit val booleanDeriver: SpecificDeriver[Boolean] = new SpecificDeriver[Boolean] {
+  implicit val booleanDeriver: CustomDeriver[Boolean] = new CustomDeriver[Boolean] {
     def derive(value: Boolean) = Data.Boolean(value)
     def concept                = Concept.Boolean
   }
 
-  implicit val byteDeriver: SpecificDeriver[Byte] = new SpecificDeriver[Byte] {
+  implicit val byteDeriver: CustomDeriver[Byte] = new CustomDeriver[Byte] {
     def derive(value: Byte) = Data.Byte(value)
     def concept             = Concept.Byte
   }
 
-  implicit val bigDecimalDeriver: SpecificDeriver[BigDecimal] = new SpecificDeriver[BigDecimal] {
+  implicit val bigDecimalDeriver: CustomDeriver[BigDecimal] = new CustomDeriver[BigDecimal] {
     def derive(value: BigDecimal) = Data.Decimal(value)
     def concept                   = Concept.Decimal
   }
 
-  implicit val bigIntDeriver: SpecificDeriver[BigInt] = new SpecificDeriver[BigInt] {
+  implicit val bigIntDeriver: CustomDeriver[BigInt] = new CustomDeriver[BigInt] {
     def derive(value: BigInt) = Data.Integer(value)
     def concept               = Concept.Integer
   }
 
-  implicit val shortDeriver: SpecificDeriver[Short] = new SpecificDeriver[Short] {
+  implicit val shortDeriver: CustomDeriver[Short] = new CustomDeriver[Short] {
     def derive(value: Short) = Data.Int16(value)
     def concept              = Concept.Int16
   }
 
-  implicit val intDeriver: SpecificDeriver[Int] = new SpecificDeriver[Int] {
+  implicit val intDeriver: CustomDeriver[Int] = new CustomDeriver[Int] {
     def derive(value: Int) = Data.Int32(value)
     def concept            = Concept.Int32
   }
 
-  implicit val stringDeriver: SpecificDeriver[String] = new SpecificDeriver[String] {
+  implicit val stringDeriver: CustomDeriver[String] = new CustomDeriver[String] {
     def derive(value: String) = Data.String(value)
     def concept               = Concept.String
   }
 
-  implicit val localDateDeriver: SpecificDeriver[LocalDate] = new SpecificDeriver[LocalDate] {
+  implicit val localDateDeriver: CustomDeriver[LocalDate] = new CustomDeriver[LocalDate] {
     def derive(value: LocalDate) = Data.LocalDate(value)
     def concept                  = Concept.LocalDate
   }
 
-  implicit val monthDeriver: SpecificDeriver[Month] = new SpecificDeriver[Month] {
+  implicit val monthDeriver: CustomDeriver[Month] = new CustomDeriver[Month] {
     def derive(value: Month) = Data.Month(value)
     def concept              = Concept.Month
   }
 
-  implicit val localTimeDeriver: SpecificDeriver[LocalTime] = new SpecificDeriver[LocalTime] {
+  implicit val localTimeDeriver: CustomDeriver[LocalTime] = new CustomDeriver[LocalTime] {
     def derive(value: LocalTime) = Data.LocalTime(value)
     def concept                  = Concept.LocalTime
   }
 
-  implicit val charDeriver: SpecificDeriver[Char] = new SpecificDeriver[Char] {
+  implicit val charDeriver: CustomDeriver[Char] = new CustomDeriver[Char] {
     def derive(value: Char) = Data.Char(value)
     def concept             = Concept.Char
   }
 
-  implicit val unitDeriver: SpecificDeriver[Unit] = new SpecificDeriver[Unit] {
+  implicit val unitDeriver: CustomDeriver[Unit] = new CustomDeriver[Unit] {
     def derive(value: Unit) = Data.Unit
     def concept             = Concept.Unit
   }
 
-  implicit def optionDeriver[T](implicit elementDeriver: Deriver[T]): SpecificDeriver[Option[T]] =
-    new SpecificDeriver[Option[T]] {
+  implicit def optionDeriver[T](implicit elementDeriver: Deriver[T]): CustomDeriver[Option[T]] =
+    new CustomDeriver[Option[T]] {
       def derive(value: Option[T]) =
         value match
           case Some(value) => Data.Optional.Some(elementDeriver.derive(value), elementDeriver.concept)
@@ -86,19 +86,19 @@ package object datamodel {
       def concept = Concept.Optional(elementDeriver.concept)
     }
 
-  implicit def optionSomeDeriver[T](implicit elementDeriver: Deriver[T]): SpecificDeriver[Some[T]] =
-    new SpecificDeriver[Some[T]] {
+  implicit def optionSomeDeriver[T](implicit elementDeriver: Deriver[T]): CustomDeriver[Some[T]] =
+    new CustomDeriver[Some[T]] {
       def derive(value: Some[T]) = Data.Optional.Some(elementDeriver.derive(value.value), elementDeriver.concept)
       def concept                = Concept.Optional(elementDeriver.concept)
     }
 
-  implicit val optionNoneDeriver: SpecificDeriver[scala.None.type] = new SpecificDeriver[scala.None.type] {
+  implicit val optionNoneDeriver: CustomDeriver[scala.None.type] = new CustomDeriver[scala.None.type] {
     def derive(value: scala.None.type) = Data.Optional.None(Concept.Nothing)
     def concept                        = Concept.Optional(Concept.Nothing)
   }
 
-  implicit def listDeriver[T](implicit elementDeriver: Deriver[T]): SpecificDeriver[List[T]] =
-    new SpecificDeriver[List[T]] {
+  implicit def listDeriver[T](implicit elementDeriver: Deriver[T]): CustomDeriver[List[T]] =
+    new CustomDeriver[List[T]] {
       def derive(value: scala.List[T]) = {
         def toData(value: T) = elementDeriver.derive(value)
         // Take the schema from the elementDeriver instead of the list elements
@@ -123,8 +123,8 @@ package object datamodel {
   implicit def linkedMapDeriver[K, V](implicit
       keyDeriver: Deriver[K],
       valueDeriver: Deriver[V]
-  ): SpecificDeriver[mutable.LinkedHashMap[K, V]] =
-    new SpecificDeriver[LinkedHashMap[K, V]] {
+  ): CustomDeriver[mutable.LinkedHashMap[K, V]] =
+    new CustomDeriver[LinkedHashMap[K, V]] {
       def derive(value: LinkedHashMap[K, V]) = {
         def toData(value: (K, V)) = (keyDeriver.derive(value._1), valueDeriver.derive(value._2))
         Data.Map.copyFrom(value.map(toData(_)), Concept.Map(keyDeriver.concept, valueDeriver.concept))
@@ -136,14 +136,14 @@ package object datamodel {
   implicit def listMapDeriver[K, V](implicit
       keyDeriver: Deriver[K],
       valueDeriver: Deriver[V]
-  ): SpecificDeriver[ListMap[K, V]] =
-    new SpecificDeriver[ListMap[K, V]] {
+  ): CustomDeriver[ListMap[K, V]] =
+    new CustomDeriver[ListMap[K, V]] {
       def derive(value: ListMap[K, V]): Data = linkedMapDeriver[K, V].derive(LinkedHashMap.from(value))
       def concept: Concept                   = linkedMapDeriver[K, V].concept
     }
 
-  implicit def mapDeriver[K, V](implicit keyDeriver: Deriver[K], valueDeriver: Deriver[V]): SpecificDeriver[Map[K, V]] =
-    new SpecificDeriver[Map[K, V]] {
+  implicit def mapDeriver[K, V](implicit keyDeriver: Deriver[K], valueDeriver: Deriver[V]): CustomDeriver[Map[K, V]] =
+    new CustomDeriver[Map[K, V]] {
       def derive(value: Map[K, V]): Data = linkedMapDeriver[K, V].derive(LinkedHashMap.from(value))
       def concept: Concept               = linkedMapDeriver[K, V].concept
     }
