@@ -144,7 +144,7 @@ class PrintIR(
           }
 
         case v: Data.Case =>
-          val body = v.values.asInstanceOf[scala.List[(EnumLabel, Data)]].map { (enumLabel, data) =>
+          val body = v.values.asInstanceOf[scala.List[(EnumLabel, Data)]].map { case (enumLabel, data) =>
             enumLabel match {
               case EnumLabel.Empty        => Tree.KeyValue("<EMPTY>", treeify(data))
               case EnumLabel.Named(value) => Tree.KeyValue(s"<${value}>", treeify(data))
