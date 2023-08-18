@@ -18,7 +18,7 @@ trait Deriver[T] {
   def concept: Concept
 }
 
-object Deriver {
+object Deriver extends DeriverInstances {
   import DeriverTypes._
   import DeriverMacros._
 
@@ -30,17 +30,10 @@ object Deriver {
 
   inline def summonSpecificDeriver[T] =
     summonFrom {
-      case deriver: SpecificDeriver[T] => deriver
+      case deriver: CustomDeriver[T] => deriver
       case _ =>
         error(s"Cannot find specific deriver for type: ${showType[T]}")
     }
-
-  sealed trait UnionType
-  object UnionType {
-    case object SealedTrait extends UnionType
-    case object Enum        extends UnionType
-    case object Sum         extends UnionType
-  }
 
   private inline def deriveSumVariants[Fields <: Tuple, Elems <: Tuple](
       inline unionType: UnionType
@@ -65,9 +58,6 @@ object Deriver {
                   if (isCaseClass[head]) {
                     summonProductDeriver[head] match {
                       case deriver: GenericProductDeriver[Product] @unchecked =>
-                        println(
-                          s"field ${typeName[head]}: ${fieldName} - ${deriver.builder.name.localName}(${deriver.builder.fields})"
-                        )
                         SumBuilder.EnumProduct(fieldName, deriver)
                       case other =>
                         throw new IllegalArgumentException(
@@ -103,7 +93,7 @@ object Deriver {
           case _: (head *: tail) =>
             val derivationStage =
               summonDeriver[head] match {
-                case deriver: SpecificDeriver[Any] @unchecked =>
+                case deriver: CustomDeriver[Any] @unchecked =>
                   ProductBuilder.Leaf(fieldName, i, deriver)
                 case deriver: GenericProductDeriver[Product] @unchecked =>
                   ProductBuilder.Product(fieldName, i, deriver)
@@ -182,7 +172,7 @@ object Deriver {
     summonFrom {
       // If there is a leaf-level deriver, summon that first. Do NOT EVER try to summon Deriver[T]
       // directly because you will can run into infinite recursive derivation.
-      case deriver: SpecificDeriver[T] =>
+      case deriver: CustomDeriver[T] =>
         deriver
       case ev: Mirror.Of[T] =>
         inline ev match {

@@ -16,7 +16,7 @@ private[datamodel] sealed trait ProductBuilderField extends ProductBuilder {
   def field: String
 }
 private[datamodel] object ProductBuilder {
-  case class Leaf(field: String, index: Int, deriver: SpecificDeriver[Any]) extends ProductBuilderField {
+  case class Leaf(field: String, index: Int, deriver: CustomDeriver[Any]) extends ProductBuilderField {
     def run(parent: scala.Product) = deriver.derive(parent.productElement(index))
   }
 

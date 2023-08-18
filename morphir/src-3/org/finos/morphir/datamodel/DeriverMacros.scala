@@ -1,7 +1,7 @@
 package org.finos.morphir.datamodel
 
 import org.finos.morphir.naming._
-import org.finos.morphir.datamodel.Deriver.UnionType
+import org.finos.morphir.datamodel.UnionType
 import org.finos.morphir.naming.QualifiedModuleName
 
 import scala.quoted.*
@@ -147,7 +147,7 @@ object DeriverMacros {
         s"Cannot summon generic Deriver for the type (was not a Product or Sum): ${TypeRepr.of[T].widen.show} from `summonDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
       )
 
-    val specificDriver = Expr.summon[SpecificDeriver[T]]
+    val specificDriver = Expr.summon[CustomDeriver[T]]
     specificDriver match {
       case Some(value) => value
       case None =>
@@ -188,7 +188,7 @@ object DeriverMacros {
 
     // Even if it's a product-deriver, try to grab a specific deriver for it first because certain things
     // (e.g. the `::` class) should be as specific derivers (i.e. SpecificDeriver[List[T]]) instead of the generic one
-    val specificDriver = Expr.summon[SpecificDeriver[T]]
+    val specificDriver = Expr.summon[CustomDeriver[T]]
     specificDriver match {
       case Some(value) => value
       case None =>
