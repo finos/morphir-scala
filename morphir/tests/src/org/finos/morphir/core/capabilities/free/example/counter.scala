@@ -1,5 +1,5 @@
 package org.finos.morphir.core.capabilities.free.example
-import org.finos.morphir.core.capabilities.free.*
+import org.finos.morphir.core.capabilities.free.Free
 
 object counter {
   object grammar {
@@ -23,7 +23,7 @@ object counter {
     }
   }
   object dsl {
-    import grammar.*
+    import grammar.{CounterError, CounterExpr}
     // Create a Free dsl over the counter grammar
     type Counter[+E, +A] = Free[CounterExpr, E, A]
 
@@ -35,9 +35,8 @@ object counter {
   }
 
   object interpreters {
-    import grammar.*
-    import grammar.CounterExpr.*
-    import dsl.Counter
+    import grammar.{CounterError, CounterExpr}
+    import CounterExpr._
 
     def unsafeInterpreter(initialValue: Int): Free.UnsafeInterpreter[CounterExpr] = {
       var counter = initialValue
