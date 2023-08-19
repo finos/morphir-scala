@@ -331,52 +331,10 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
   object lib extends Module {
 
     object interop extends CrossPlatform {
-      trait Shared extends MorphirCommonModule with MorphirPublishModule {}
-      object jvm extends Shared with MorphirJVMModule {
-        object test extends ScalaTests with TestModule.Munit {
-          def ivyDeps = Agg(Deps.org.scalameta.munit)
-        }
-      }
-      object js extends Shared with MorphirJSModule {
-        object test extends ScalaJSTests with TestModule.Munit {
-          def ivyDeps = Agg(Deps.org.scalameta.munit)
-        }
-      }
-      object native extends Shared with MorphirNativeModule {
-        object test extends ScalaNativeTests with TestModule.Munit {
-          def ivyDeps = Agg(Deps.org.scalameta.munit)
-        }
-      }
-    }
-  }
-  object macros extends CrossPlatform {
-    trait Shared extends MorphirCommonModule with MorphirPublishModule {
-      def compileIvyDeps = T {
-        super.compileIvyDeps() ++ Agg.when(scalaVersion().startsWith("2."))(
-          Deps.org.`scala-lang`.`scala-reflect`(scalaVersion()),
-          Deps.org.`scala-lang`.`scala-compiler`(scalaVersion())
-        )
-      }
-
-      def scalacOptions = T {
-        super.scalacOptions().concatIf(isScala213())("-language:experimental.macros")
-      }
-    }
-
-    object jvm extends Shared with MorphirJVMModule {
-      object test extends ScalaTests with TestModule.Munit {
-        def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-      }
-    }
-    object js extends Shared with MorphirJSModule {
-      object test extends ScalaTests with TestModule.Munit {
-        def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-      }
-    }
-    object native extends Shared with MorphirNativeModule {
-      object test extends ScalaTests with TestModule.Munit {
-        def ivyDeps = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-      }
+      trait Shared  extends MorphirCommonModule with MorphirPublishModule {}
+      object jvm    extends Shared with MorphirJVMModule
+      object js     extends Shared with MorphirJSModule
+      object native extends Shared with MorphirNativeModule
     }
   }
 
