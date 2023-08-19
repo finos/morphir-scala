@@ -4,12 +4,8 @@ import java.nio.file.Paths
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
-object VFilePathSpec extends MorphirBaseSpec {
+object VFilePathSpec extends MorphirBaseSpec with VFilePathSpecPlatformSpecific {
   def spec = suite("VfilePathSpec")(
-    test("It should be possible to create from a Path") {
-      val testPath = Paths.get("home", "test", "path")
-      val actual   = VFilePath(testPath)
-      assertTrue(actual.fullPath == testPath.toString)
-    }
+    platformSpecificSuite
   )
 }

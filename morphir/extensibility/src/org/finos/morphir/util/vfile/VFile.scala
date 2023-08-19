@@ -17,10 +17,9 @@ final case class VFile(path: VFilePath, contents: VFileContents, properties: Pro
 //  private[vfile] def acceptInternal[A](visitor: InternalVisitor[A]): TailCalls.TailRec[A]
 }
 
-object VFile {
+object VFile extends VFilePlatformSpecific {
   def directory(path: VFilePath, children: VFile*): VFile =
     VFile(path, VFileContents.VFiles(children.toVector), PropertyBag.empty, PropertyBag.empty)
-  def fileRef(path: Path): VFile = fileRef(VFilePath(path))
   def fileRef(path: VFilePath): VFile =
     VFile(path, contents = VFileContents.Uninitialized, properties = PropertyBag.empty, PropertyBag.empty)
   def mixed(path: VFilePath, contents: VFileContents*): VFile =

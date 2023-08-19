@@ -2,7 +2,6 @@ package org.finos.morphir.util.vfile
 
 import java.net.URI
 import java.nio.file.{Path, Paths}
-
 sealed trait VFilePath { self =>
   lazy val fullPath: String = self match {
     case VFilePath.FromPath(path) => path.toString
