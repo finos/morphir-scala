@@ -5,6 +5,9 @@ import org.finos.morphir.datamodel.Concept.Enum
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.datamodel.Data.Case
 import org.finos.morphir.datamodel.Util.*
+import org.finos.morphir.testing.MorphirBaseSpec
+import zio.test.*
+import zio.test.Assertion.*
 
 object EnumData4 {
   import EnumGns._
@@ -36,7 +39,7 @@ object EnumData5 {
   val deriver = Deriver.gen[Foo]
 }
 
-class ToDataEnumsSimple extends munit.FunSuite {
+object ToDataEnumsSimpleSpec extends MorphirBaseSpec {
   import EnumGns._
 
   val concept =
@@ -46,18 +49,6 @@ class ToDataEnumsSimple extends munit.FunSuite {
       Enum.Case(l"Baz")
     )
 
-  test("Enum Data 4") {
-    import EnumData4._
-    assertEquals(deriver.derive(Foo.Bar), Case()("Bar", concept))
-  }
-
-  test("Enum Data 4.1") {
-    import EnumData4._
-    interceptMessage[IllegalArgumentException]("The value `null` is not an instance of the needed enum class Foo") {
-      deriver.derive(null)
-    }
-  }
-
   val concept2 =
     Enum(
       gns % ("Foo"),
@@ -65,21 +56,32 @@ class ToDataEnumsSimple extends munit.FunSuite {
       Enum.Case(Label("Baz"), EnumLabel.Empty -> Concept.Struct(Label("value") -> Concept.String))
     )
 
-  test("Enum Data 5 - Concept") {
-    import EnumData5._
-    assertEquals(deriver.concept, concept2)
-  }
+  def spec = suite("ToDataEnumSimpleSpec")(
+    test("Enum Data 4") {
+      import EnumData4._
+      assertTrue(deriver.derive(Foo.Bar) == Case()("Bar", concept))
+    },
+    test("Enum Data 4.1") {
+      import EnumData4._
+      assert(deriver.derive(null))(throws(isSubtype[IllegalArgumentException](
+        hasMessage(equalTo("The value `null` is not an instance of the needed enum class Foo"))
+      )))
 
-  test("Enum Data 5 - NoVals") {
-    import EnumData5._
-    assertEquals(deriver.derive(Foo.Bar), Case(List(), "Bar", concept2))
-  }
-
-  test("Enum Data 5 - Value") {
-    import EnumData5._
-    assertEquals(
-      deriver.derive(Foo.Baz("something")),
-      Case(EnumLabel.Empty -> Data.Struct(l"value" -> Data.String("something")))("Baz", concept2)
-    )
-  }
+    },
+    test("Enum Data 5 - Concept") {
+      import EnumData5._
+      assertTrue(deriver.concept == concept2)
+    },
+    test("Enum Data 5 - NoVals") {
+      import EnumData5._
+      assertTrue(deriver.derive(Foo.Bar) == Case(List(), "Bar", concept2))
+    },
+    test("Enum Data 5 - Value") {
+      import EnumData5._
+      assertTrue(
+        deriver.derive(Foo.Baz("something")) ==
+          Case(EnumLabel.Empty -> Data.Struct(l"value" -> Data.String("something")))("Baz", concept2)
+      )
+    }
+  )
 }
