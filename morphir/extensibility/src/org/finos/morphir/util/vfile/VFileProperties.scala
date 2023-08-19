@@ -1,5 +1,5 @@
-package org.finos.morphir.toolkit.vfile
-import org.finos.morphir.toolkit.props.Property
+package org.finos.morphir.util.vfile
+import org.finos.morphir.util.props.Property
 
 import java.nio.charset.{Charset, StandardCharsets}
 object VFileProperties {

@@ -1,13 +1,11 @@
-package org.finos.morphir.toolkit.vfile
+package org.finos.morphir.util.vfile
 
-import org.finos.morphir.toolkit.props.{Property, PropertyBag}
-import org.typelevel.paiges.*
+import org.finos.morphir.util.props.{Property, PropertyBag}
 
-import scala.util.control.TailCalls
 import java.nio.file.Path
+import org.typelevel.paiges._
 
 final case class VFile(path: VFilePath, contents: VFileContents, properties: PropertyBag, data: PropertyBag) { self =>
-  import VFile._
   import Property.Binding
   def ++=(bindings: Seq[Binding[_]]): VFile = copy(properties = properties ++= bindings)
 //  def accept[A](visitor:ExternalVisitor[A]):A = self match {

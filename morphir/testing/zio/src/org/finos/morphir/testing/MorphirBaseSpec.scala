@@ -9,6 +9,11 @@ import scala.annotation.nowarn
 abstract class MorphirBaseSpec extends ZIOSpecDefault {
   override def aspects = Chunk(TestAspect.timeout(90.seconds))
 
+  def assertEquals[Actual, Expected <: Actual](actual: Actual, expected: Expected)(
+      implicit @nowarn sourceLocation: SourceLocation
+  ): TestResult =
+    assertTrue(actual == expected)
+
   def tableTest[A, Actual, Expected <: Actual](label: String)(colA: String)(first: (A, Expected), rest: (A, Expected)*)(
       when: A => Actual
   )(implicit sourceLocation: SourceLocation) = {

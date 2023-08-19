@@ -1,4 +1,4 @@
-package org.finos.morphir.toolkit.vfile
+package org.finos.morphir.util.vfile
 
 import java.net.URI
 import java.nio.file.{Path, Paths}

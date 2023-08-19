@@ -144,7 +144,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       super.scalacOptions() ++ additionalOptions
     }
 
-    def platformSpecificModuleDeps = Seq(extensibility, macros)
+    def platformSpecificModuleDeps = Seq(extensibility, meta)
   }
 
   object jvm    extends Shared with MorphirJVMModule
@@ -211,10 +211,12 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
         Deps.com.lihaoyi.sourcecode,
         Deps.com.lihaoyi.fansi,
         Deps.com.lihaoyi.pprint,
+        Deps.dev.zio.`izumi-reflect`,
+        Deps.org.typelevel.`paiges-core`,
         Deps.org.typelevel.spire
       )
 
-      def platformSpecificModuleDeps = Seq(macros)
+      def platformSpecificModuleDeps = Seq(meta)
     }
 
     object jvm    extends Shared with MorphirJVMModule
@@ -506,7 +508,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.com.lihaoyi.sourcecode
       )
-      def platformSpecificModuleDeps = Seq(extensibility, macros, meta, morphir)
+      def platformSpecificModuleDeps = Seq(extensibility, meta, morphir)
     }
 
     object jvm extends Shared with MorphirJVMModule {
@@ -668,39 +670,6 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       }
     }
   }
-
-  object vfile extends CrossPlatform with CrossValue {
-    def enableNative(module: Module) = !crossValue.startsWith("3") && !devMode
-    trait Shared extends MorphirCommonModule with MorphirPublishModule {
-      def ivyDeps = Agg(
-        Deps.com.lihaoyi.sourcecode,
-        Deps.com.lihaoyi.geny,
-        Deps.com.lihaoyi.pprint,
-        Deps.org.typelevel.`paiges-core`
-      )
-
-      def platformSpecificModuleDeps = Seq(morphir.toolkit.util)
-    }
-
-    object jvm extends Shared with MorphirJVMModule {
-      object test extends ScalaTests with TestModule.Munit {
-        def ivyDeps = Agg(Deps.org.scalameta.munit)
-      }
-    }
-
-    object js extends Shared with MorphirJSModule {
-      object test extends ScalaTests with TestModule.Munit {
-        def ivyDeps = Agg(Deps.org.scalameta.munit)
-      }
-    }
-
-    object native extends Shared with MorphirNativeModule {
-      object test extends ScalaTests with TestModule.Munit {
-        def ivyDeps = Agg(Deps.org.scalameta.munit)
-      }
-    }
-  }
-
 }
 
 object shared extends Module {

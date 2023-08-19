@@ -1,4 +1,4 @@
-package org.finos.morphir.toolkit.props
+package org.finos.morphir.util.props
 
 sealed trait PropertyChangeInterceptor[A] extends ((A, A) => A)
 object PropertyChangeInterceptor {

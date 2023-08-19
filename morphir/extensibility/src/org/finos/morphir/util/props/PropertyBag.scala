@@ -1,6 +1,6 @@
-package org.finos.morphir.toolkit.props
+package org.finos.morphir.util.props
 
-import org.finos.morphir.toolkit.props.Property.Binding
+import org.finos.morphir.util.props.Property.Binding
 
 final class PropertyBag private (private val map: Map[Property[Any], AnyRef]) {
   self =>

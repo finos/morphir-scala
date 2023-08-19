@@ -1,6 +1,6 @@
-package org.finos.morphir.toolkit.props
-
+package org.finos.morphir.util.props
 import izumi.reflect.Tag
+
 sealed class Property[A](
     val name: String,
     val initial: A,

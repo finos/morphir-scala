@@ -1,4 +1,4 @@
-package org.finos.morphir.toolkit.vfile
+package org.finos.morphir.util.vfile
 
 import org.typelevel.paiges._
 
