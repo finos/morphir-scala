@@ -147,26 +147,9 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     def platformSpecificModuleDeps = Seq(extensibility, macros)
   }
 
-  object jvm extends Shared with MorphirJVMModule {
-    object test extends ScalaTests with TestModule.Munit {
-      def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-      def moduleDeps = super.moduleDeps ++ Agg(testing.munit.jvm)
-    }
-  }
-
-  object js extends Shared with MorphirJSModule {
-    object test extends ScalaJSTests with TestModule.Munit {
-      def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-      def moduleDeps = super.moduleDeps ++ Agg(testing.munit.js)
-    }
-  }
-
-  object native extends Shared with MorphirNativeModule {
-    object test extends ScalaNativeTests with TestModule.Munit {
-      def ivyDeps    = Agg(Deps.org.scalameta.munit, Deps.org.scalameta.`munit-scalacheck`)
-      def moduleDeps = super.moduleDeps ++ Agg(testing.munit.native)
-    }
-  }
+  object jvm    extends Shared with MorphirJVMModule
+  object js     extends Shared with MorphirJSModule
+  object native extends Shared with MorphirNativeModule
 
   object contrib extends Module {
     object knowledge extends CrossPlatform with CrossValue {
@@ -489,15 +472,9 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
         }
       }
 
-      object jvm extends Shared with MorphirJVMModule {
-        object test extends ScalaTests with TestModule.Munit
-      }
-      object js extends Shared with MorphirJSModule {
-        object test extends ScalaJSTests with TestModule.Munit
-      }
-      object native extends Shared with MorphirNativeModule {
-        object test extends ScalaNativeTests with TestModule.Munit
-      }
+      object jvm    extends Shared with MorphirJVMModule
+      object js     extends Shared with MorphirJSModule
+      object native extends Shared with MorphirNativeModule
 
       object macros extends CrossPlatform with CrossValue {
         trait Shared extends MorphirCommonModule {
@@ -566,7 +543,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
       def generatedSources = T {
-        super.generatedSources() //NOTE: Issue with this generation /*++ shared.code.meta.examples.generatedSources()*/
+        super.generatedSources() // NOTE: Issue with this generation /*++ shared.code.meta.examples.generatedSources()*/
       }
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.com.lihaoyi.sourcecode
