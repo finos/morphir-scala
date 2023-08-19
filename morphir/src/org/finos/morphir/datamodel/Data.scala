@@ -14,17 +14,17 @@ sealed trait Data extends geny.Writable {
     getName.map(_.localName.toTitleCase)
   def getName: Option[FQName] =
     this match {
-      case basic: Data.Basic[_] => None
-      case v: Data.Case         => Some(v.shape.name)
-      case v: Data.Tuple        => None
-      case v: Data.Record       => Some(v.shape.namespace)
-      case v: Data.Struct       => None
-      case v: Data.Optional     => None
-      case v: Data.Result       => None
-      case v: Data.List         => None
-      case v: Data.Map          => None
-      case v: Data.Union        => None
-      case v: Data.Aliased      => Some(v.shape.name)
+      case _: Data.Basic[_] => None
+      case v: Data.Case     => Some(v.shape.name)
+      case _: Data.Tuple    => None
+      case v: Data.Record   => Some(v.shape.namespace)
+      case _: Data.Struct   => None
+      case _: Data.Optional => None
+      case _: Data.Result   => None
+      case _: Data.List     => None
+      case _: Data.Map      => None
+      case _: Data.Union    => None
+      case v: Data.Aliased  => Some(v.shape.name)
     }
 
   def toStringPretty: String = toStringPretty(true)

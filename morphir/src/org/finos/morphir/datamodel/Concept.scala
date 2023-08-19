@@ -26,18 +26,18 @@ sealed trait Concept { self =>
     getName.map(_.localName.toTitleCase)
   def getName: Option[FQName] =
     this match {
-      case c: Concept.Basic[_] => None
-      case c: Concept.Any.type => None
+      case _: Concept.Basic[_] => None
+      case _: Concept.Any.type => None
       case c: Concept.Record   => Some(c.namespace)
-      case c: Concept.Struct   => None
+      case _: Concept.Struct   => None
       case c: Concept.Alias    => Some(c.name)
-      case c: Concept.List     => None
-      case c: Concept.Map      => None
-      case c: Concept.Tuple    => None
-      case c: Concept.Optional => None
-      case c: Concept.Result   => None
+      case _: Concept.List     => None
+      case _: Concept.Map      => None
+      case _: Concept.Tuple    => None
+      case _: Concept.Optional => None
+      case _: Concept.Result   => None
       case c: Concept.Enum     => Some(c.name)
-      case c: Concept.Union    => None
+      case _: Concept.Union    => None
     }
 
   def toStringPretty: String = toStringPretty(true)

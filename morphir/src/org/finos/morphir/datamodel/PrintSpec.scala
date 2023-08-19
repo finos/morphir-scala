@@ -7,6 +7,7 @@ import org.finos.morphir.datamodel.*
 import org.finos.morphir.datamodel.PrintSpec.WriteFiles.WriteToPath
 
 import java.nio.file.{FileSystem, OpenOption, StandardOpenOption}
+import scala.annotation._
 
 object PrintSpec {
 
@@ -16,11 +17,11 @@ object PrintSpec {
 
     override def of(c: Concept) =
       c match {
-        case v @ Concept.Record(name, fields) => addToState(v)(name)
-        case v @ Concept.Alias(name, value)   => addToState(v)(name)
-        case v @ Concept.Enum(name, cases)    => addToState(v)(name)
-        case v: Concept.List                  => addToState(v)(FQName.fromString("Morphir.SDK:List:List"))
-        case v: Concept.Map                   => addToState(v)(FQName.fromString("Morphir.SDK:Dict:Dict"))
+        case v @ Concept.Record(name, _) => addToState(v)(name)
+        case v @ Concept.Alias(name, _)  => addToState(v)(name)
+        case v @ Concept.Enum(name, _)   => addToState(v)(name)
+        case v: Concept.List             => addToState(v)(FQName.fromString("Morphir.SDK:List:List"))
+        case v: Concept.Map              => addToState(v)(FQName.fromString("Morphir.SDK:Dict:Dict"))
         case v: Concept.Basic[_] =>
           v match {
             // Assuming that ToMorphirValue maps bytes to ints and this is a "standard" definition
@@ -45,6 +46,8 @@ object PrintSpec {
       }
   }
 
+  @nowarn
+  // NOTE: Is this needed, if not remove
   private implicit class ConceptOptsExt(c: Concept) {
     def isMultiArg =
       c match {
@@ -175,18 +178,18 @@ object PrintSpec {
      */
     def handleDef(concept: Concept, isTopLevel: Boolean = false): Option[ConceptDef] =
       concept match {
-        case v: Concept.Basic[_]             => None
-        case v: Concept.Any.type             => None
-        case v: Concept.Record               => Some(handleRecord(v))
-        case v: Concept.Struct               => None
-        case v: Concept.Alias                => Some(handleAlias(v))
-        case Concept.List(elementType)       => None
-        case Concept.Map(keyType, valueType) => None
-        case Concept.Tuple(values)           => None
-        case Concept.Optional(elementType)   => None
-        case Concept.Result(errType, okType) => None
-        case e: Concept.Enum                 => Some(handleEnum(e))
-        case Concept.Union(cases)            => None
+        case _: Concept.Basic[_]  => None
+        case _: Concept.Any.type  => None
+        case v: Concept.Record    => Some(handleRecord(v))
+        case _: Concept.Struct    => None
+        case v: Concept.Alias     => Some(handleAlias(v))
+        case Concept.List(_)      => None
+        case Concept.Map(_, _)    => None
+        case Concept.Tuple(_)     => None
+        case Concept.Optional(_)  => None
+        case Concept.Result(_, _) => None
+        case e: Concept.Enum      => Some(handleEnum(e))
+        case Concept.Union(_)     => None
       }
 
     /*
@@ -201,10 +204,10 @@ object PrintSpec {
             case _               => basic.toString
           }
 
-        case Concept.Any                => "Any"
-        case r: Concept.Record          => r.namespace.localName.render
-        case Concept.Struct(fields)     => printFields(fields)
-        case Concept.Alias(name, value) => name.localName.render
+        case Concept.Any            => "Any"
+        case r: Concept.Record      => r.namespace.localName.render
+        case Concept.Struct(fields) => printFields(fields)
+        case Concept.Alias(name, _) => name.localName.render
         case Concept.List(elementType) =>
           s"List ${printDef(elementType)}"
             .inParensIf(isInside)
@@ -226,8 +229,8 @@ object PrintSpec {
           val ok  = printDef(okType)
           s"Result $err $ok".inParensIf(isInside)
 
-        case e: Concept.Enum      => e.name.localName.render
-        case Concept.Union(cases) => "<UNION NOT SUPPORTED IN ELM>"
+        case e: Concept.Enum  => e.name.localName.render
+        case Concept.Union(_) => "<UNION NOT SUPPORTED IN ELM>"
       }
 
     val defs = typesList.map(tpe => handleDef(tpe, true)).collect { case Some(conceptDef) => conceptDef }
