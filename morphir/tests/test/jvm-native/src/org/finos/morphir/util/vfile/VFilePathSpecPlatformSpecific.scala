@@ -11,5 +11,3 @@ trait VFilePathSpecPlatformSpecific { self: VFilePathSpec.type =>
     }
   )
 }
-
-
