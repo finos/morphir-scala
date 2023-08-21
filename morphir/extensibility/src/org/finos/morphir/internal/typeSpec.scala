@@ -25,19 +25,19 @@ trait TypeSpecModule { self: TypeModule =>
           spec.copy(derivationProps = props)
       }
 
-    def typeParams: List[Name]
+    def typeParams: Vector[Name]
 
   }
 
   object TypeSpecification {
-    sealed case class TypeAliasSpecification[+A](typeParams: List[Name], expr: Type[A]) extends TypeSpecification[A]
+    sealed case class TypeAliasSpecification[+A](typeParams: Vector[Name], expr: Type[A]) extends TypeSpecification[A]
 
-    sealed case class OpaqueTypeSpecification(typeParams: List[Name]) extends TypeSpecification[Nothing]
+    sealed case class OpaqueTypeSpecification(typeParams: Vector[Name]) extends TypeSpecification[Nothing]
 
-    sealed case class CustomTypeSpecification[+A](typeParams: List[Name], ctors: TypeConstructors[A])
+    sealed case class CustomTypeSpecification[+A](typeParams: Vector[Name], ctors: TypeConstructors[A])
         extends TypeSpecification[A]
 
-    sealed case class DerivedTypeSpecification[+A](typeParams: List[Name], derivationProps: Properties.DerivedType[A])
+    sealed case class DerivedTypeSpecification[+A](typeParams: Vector[Name], derivationProps: Properties.DerivedType[A])
         extends TypeSpecification[A]
 
     sealed trait Properties {
@@ -59,14 +59,20 @@ trait TypeSpecModule { self: TypeModule =>
     }
   }
 
-  sealed case class TypeConstructors[+A](byName: Map[Name, TypeConstructor[A]]) {
+  sealed case class TypeConstructors[+A](byName: Map[Name, TypeConstructorArgs[A]]) {
     def map[B](f: A => B): TypeConstructors[B] = TypeConstructors(byName.view.mapValues(_.map(f)).toMap)
 
-    @inline def toMap: Map[Name, TypeConstructor[A]] = byName
+    @inline def toMap: Map[Name, TypeConstructorArgs[A]] = byName
   }
 
   object TypeConstructors {
-    implicit def toMap[A](ctors: TypeConstructors[A]): Map[Name, TypeConstructor[A]] = ctors.byName
+    def fromCtors[A](
+        ctor: (Name, TypeConstructorArgs[A]),
+        ctors: (Name, TypeConstructorArgs[A])*
+    ): TypeConstructors[A] =
+      TypeConstructors((ctor +: ctors).toMap)
+
+    implicit def toMap[A](ctors: TypeConstructors[A]): Map[Name, TypeConstructorArgs[A]] = ctors.byName
   }
 
   sealed case class TypeConstructorArg[+A](name: Name, tpe: Type[A]) {
@@ -74,6 +80,7 @@ trait TypeSpecModule { self: TypeModule =>
   }
 
   object TypeConstructorArg {
+    def fromTuple[A](arg: (Name, Type[A])): TypeConstructorArg[A]        = TypeConstructorArg(arg._1, arg._2)
     implicit def toTuple[A](arg: TypeConstructorArg[A]): (Name, Type[A]) = (arg.name, arg.tpe)
   }
 
@@ -85,10 +92,17 @@ trait TypeSpecModule { self: TypeModule =>
   }
 
   object TypeConstructorArgs {
+    def apply[A](args: TypeConstructorArg[A]*): TypeConstructorArgs[A]                = TypeConstructorArgs(args.toList)
     implicit def toList[A](args: TypeConstructorArgs[A]): List[TypeConstructorArg[A]] = args.args
   }
 
   sealed case class TypeConstructor[+A](name: Name, args: TypeConstructorArgs[A]) {
     def map[B](f: A => B): TypeConstructor[B] = copy(args = args.map(f))
   }
+
+  def tCtorArg[A](name: Name, tpe: Type[A]): TypeConstructorArg[A] = TypeConstructorArg(name, tpe)
+  def tCtorArg[A](pair: (Name, Type[A])): TypeConstructorArg[A]    = TypeConstructorArg.fromTuple(pair)
+
+  def tCtorArgs[A](args: TypeConstructorArg[A]*): TypeConstructorArgs[A]        = TypeConstructorArgs(args.toList)
+  def typeCtors[A](ctors: (Name, TypeConstructorArgs[A])*): TypeConstructors[A] = TypeConstructors(ctors.toMap)
 }

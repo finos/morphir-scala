@@ -42,7 +42,7 @@ trait TypeInfoModule { self: TypeModule with TypeSpecModule with TypeDefModule =
 
     def ofOpaque(fqn: FQName, typeParams: Name*): TypeInfo = {
       val tpe  = Type.Reference(Attributes.empty, fqn, typeParams.map(Type.Variable(Attributes.empty, _)).toList)
-      val spec = TypeSpecification.OpaqueTypeSpecification(typeParams.toList)
+      val spec = TypeSpecification.OpaqueTypeSpecification(typeParams.toVector)
       GenericTypeInfo.TypeAndSpec(fqn, tpe, spec)
     }
 

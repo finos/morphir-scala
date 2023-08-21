@@ -341,6 +341,10 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with
     sealed case class Reference[+A](attributes: A, typeName: FQName, typeParams: List[Type[A]]) extends Type[A] {
       override def tag: Int = Tags.Reference
     }
+    object Reference {
+      def apply[A](attributes: A, typeName: FQName, typeParams: Type[A]*): Reference[A] =
+        Reference(attributes, typeName, typeParams.toList)
+    }
     sealed case class Tuple[+A](attributes: A, elements: List[Type[A]]) extends Type[A] {
       override def tag: Int = Tags.Tuple
     }
