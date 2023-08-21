@@ -170,11 +170,10 @@ trait CommonScalaModule extends ScalaModule {
         filterScala2_12Options(commonCompilerOptions) ++ compilerOptions2_12_Only ++ Seq(
           "-language:existentials",
           "-Yrangepos",
-          "-Xsource:3",
-          "-Xfatal-warnings"
+          "-Xsource:3"
         )
       case Array("2", _, _) =>
-        commonCompilerOptions ++ Seq("-language:existentials", "-Yrangepos", "-Xsource:3", "-Xfatal-warnings")
+        commonCompilerOptions ++ Seq("-language:existentials", "-Yrangepos", "-Xsource:3")
       case Array("3", _, _) =>
         filterScala3Options(commonCompilerOptions) ++ Seq(
           // TODO: Enable later
@@ -186,8 +185,12 @@ trait CommonScalaModule extends ScalaModule {
       case _ =>
         Seq()
     }
-    val fatalWarnings = sys.env.get("CI").map(_.toBoolean).getOrElse(false)
-    if (fatalWarnings)
+    val disableFatalWarnings = sys.env.get("DISABLE_WARNINGS_AS_ERRORS").map(_.toBoolean).getOrElse(false)
+    val isCIBuild            = sys.env.get("CI").map(_.toBoolean).getOrElse(false)
+
+    // Warnings as errors are always enabled for the CI build
+    // and can be disabled by setting the DISABLE_WARNINGS_AS_ERRORS environment variable to true
+    if (isCIBuild || !disableFatalWarnings)
       options ++ Seq("-Xfatal-warnings")
     else
       options
