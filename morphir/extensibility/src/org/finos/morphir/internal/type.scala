@@ -231,6 +231,18 @@ trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with
       }
     )
 
+    /// Tells if a type is an intrinsic type or if it is a user-defined type.
+    final def isIntrinsic: Boolean = self match {
+      case Reference(_, _, _) => false
+      case _                  => true
+    }
+
+    /// Tells if the type is a reference to a type.
+    final def isReference: Boolean = self match {
+      case Reference(_, _, _) => true
+      case _                  => false
+    }
+
     def mapAttributes[B](f: A => B): Type[B] = {
       sealed trait ProcessTask
       case class Process[T >: Type[A]](node: T, processedChildren: List[Type[B]]) extends ProcessTask
