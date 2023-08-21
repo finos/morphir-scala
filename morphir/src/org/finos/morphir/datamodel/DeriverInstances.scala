@@ -72,6 +72,35 @@ trait DeriverInstances {
     def concept             = Concept.Unit
   }
 
+  implicit def eitherDeriver[L, R](implicit
+      leftDeriver: Deriver[L],
+      rightDeriver: Deriver[R]
+  ): CustomDeriver[Either[L, R]] =
+    new CustomDeriver[Either[L, R]] {
+      def derive(value: Either[L, R]) =
+        value match {
+          case Right(value) => Data.Result.Ok(rightDeriver.derive(value), this.concept)
+          case Left(value)  => Data.Result.Err(leftDeriver.derive(value), this.concept)
+        }
+      def concept: Concept.Result = Concept.Result(leftDeriver.concept, rightDeriver.concept)
+    }
+
+  implicit def rightDeriver[L, R](implicit
+      leftDeriver: Deriver[L],
+      rightDeriver: Deriver[R]
+  ): CustomDeriver[Right[L, R]] = eitherDeriver[L, R](leftDeriver, rightDeriver).contramap(v => v)
+
+  implicit def leftDeriver[L, R](implicit
+      leftDeriver: Deriver[L],
+      rightDeriver: Deriver[R]
+  ): CustomDeriver[Left[L, R]] = eitherDeriver[L, R](leftDeriver, rightDeriver).contramap(v => v)
+
+  implicit def leftDeriver[L](implicit leftDeriver: Deriver[L]): CustomDeriver[Left[L, Nothing]] =
+    new CustomDeriver[Left[L, Nothing]] {
+      def derive(value: Left[L, Nothing]) = Data.Result.Err(leftDeriver.derive(value.value), this.concept)
+      def concept: Concept.Result         = Concept.Result(leftDeriver.concept, Concept.Nothing)
+    }
+
   implicit def optionDeriver[T](implicit elementDeriver: Deriver[T]): CustomDeriver[Option[T]] =
     new CustomDeriver[Option[T]] {
       def derive(value: Option[T]) =
