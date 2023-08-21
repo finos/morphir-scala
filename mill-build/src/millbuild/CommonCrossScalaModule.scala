@@ -2,12 +2,11 @@ package millbuild
 
 import mill._, scalalib._, scalafmt._
 import java.util.Properties
-trait CommonCrossScalaModule extends CrossScalaModule with CommonCoursierModule with CommonScalaModule with ScalafmtModule { self =>
-
-}
+trait CommonCrossScalaModule extends CrossScalaModule with CommonCoursierModule with CommonScalaModule
+    with ScalafmtModule { self => }
 
 trait CommonScalaModule extends ScalaModule {
-  def compilerPlugins(scalaVersion:String) =
+  def compilerPlugins(scalaVersion: String) =
     if (isScala2(scalaVersion))
       Agg(
         ivy"org.typelevel:::kind-projector:0.13.2",
@@ -31,9 +30,9 @@ trait CommonScalaModule extends ScalaModule {
   def partialVersion(version: String): Option[(Int, Int)] = {
     val partial = version.split('.').take(2)
     for {
-      major <- partial.headOption
+      major    <- partial.headOption
       majorInt <- major.toIntOption
-      minor <- partial.lastOption
+      minor    <- partial.lastOption
       minorInt <- minor.toIntOption
     } yield (majorInt, minorInt)
   }
@@ -100,61 +99,61 @@ trait CommonScalaModule extends ScalaModule {
   lazy val commonCompilerOptions = Seq(
     "-deprecation", // Emit warning and location for usages of deprecated APIs.
     "-encoding",
-    "utf-8", // Specify character encoding used by source files.
-    "-explaintypes", // Explain type errors in more detail.
-    "-feature", // Emit warning and location for usages of features that should be imported explicitly.
+    "utf-8",                  // Specify character encoding used by source files.
+    "-explaintypes",          // Explain type errors in more detail.
+    "-feature",               // Emit warning and location for usages of features that should be imported explicitly.
     "-language:existentials", // Existential types (besides wildcard types) can be written and inferred
     "-language:experimental.macros", // Allow macro definition (besides implementation and application)
-    "-language:higherKinds", // Allow higher-kinded types
+    "-language:higherKinds",         // Allow higher-kinded types
     "-language:implicitConversions", // Allow definition of implicit functions called views
-    "-unchecked", // Enable additional warnings where generated code depends on assumptions.
-    "-Xcheckinit", // Wrap field accessors to throw an exception on uninitialized access.
-    "-Xlint:adapted-args", // Warn if an argument list is modified to match the receiver.
-    "-Xlint:constant", // Evaluation of a constant arithmetic expression results in an error.
-    "-Xlint:delayedinit-select", // Selecting member of DelayedInit.
-    "-Xlint:doc-detached", // A Scaladoc comment appears to be detached from its element.
-    "-Xlint:inaccessible", // Warn about inaccessible types in method signatures.
-    "-Xlint:infer-any", // Warn when a type argument is inferred to be `Any`.
-    "-Xlint:missing-interpolator", // A string literal appears to be missing an interpolator id.
-    "-Xlint:nullary-unit", // Warn when nullary methods return Unit.
-    "-Xlint:option-implicit", // Option.apply used implicit view.
+    "-unchecked",                    // Enable additional warnings where generated code depends on assumptions.
+    "-Xcheckinit",                   // Wrap field accessors to throw an exception on uninitialized access.
+    "-Xlint:adapted-args",           // Warn if an argument list is modified to match the receiver.
+    "-Xlint:constant",               // Evaluation of a constant arithmetic expression results in an error.
+    "-Xlint:delayedinit-select",     // Selecting member of DelayedInit.
+    "-Xlint:doc-detached",           // A Scaladoc comment appears to be detached from its element.
+    "-Xlint:inaccessible",           // Warn about inaccessible types in method signatures.
+    "-Xlint:infer-any",              // Warn when a type argument is inferred to be `Any`.
+    "-Xlint:missing-interpolator",   // A string literal appears to be missing an interpolator id.
+    "-Xlint:nullary-unit",           // Warn when nullary methods return Unit.
+    "-Xlint:option-implicit",        // Option.apply used implicit view.
     "-Xlint:package-object-classes", // Class or object defined in package object.
     "-Xlint:poly-implicit-overload", // Parameterized overloaded implicit methods are not visible as view bounds.
-    "-Xlint:private-shadow", // A private field (or class parameter) shadows a superclass field.
-    "-Xlint:stars-align", // Pattern sequence wildcard must align with sequence component.
-    "-Xlint:type-parameter-shadow", // A local type parameter shadows a type already in scope.
-    "-Ywarn-dead-code", // Warn when dead code is identified.
-    "-Ywarn-extra-implicit", // Warn when more than one implicit parameter section is defined.
-    "-Ywarn-numeric-widen", // Warn when numerics are widened.
-    "-Ywarn-unused:implicits", // Warn if an implicit parameter is unused.
-    //TODO: Re-enable this once we've cleaned up the codebase
-    //"-Ywarn-unused:imports", // Warn if an import selector is not referenced.
-    //"-Ywarn-unused:locals", // Warn if a local definition is unused.
-    "-Ywarn-unused:patvars", // Warn if a variable bound in a pattern is unused.
+    "-Xlint:private-shadow",         // A private field (or class parameter) shadows a superclass field.
+    "-Xlint:stars-align",            // Pattern sequence wildcard must align with sequence component.
+    "-Xlint:type-parameter-shadow",  // A local type parameter shadows a type already in scope.
+    "-Ywarn-dead-code",              // Warn when dead code is identified.
+    "-Ywarn-extra-implicit",         // Warn when more than one implicit parameter section is defined.
+    "-Ywarn-numeric-widen",          // Warn when numerics are widened.
+    "-Ywarn-unused:implicits",       // Warn if an implicit parameter is unused.
+    // TODO: Re-enable this once we've cleaned up the codebase
+    // "-Ywarn-unused:imports", // Warn if an import selector is not referenced.
+    // "-Ywarn-unused:locals", // Warn if a local definition is unused.
+    "-Ywarn-unused:patvars",  // Warn if a variable bound in a pattern is unused.
     "-Ywarn-unused:privates", // Warn if a private member is unused.
-    "-Ywarn-value-discard", // Warn when non-Unit expression results are unused.
-    "-Xfatal-warnings" // Fail the compilation if there are any warnings.
+    "-Ywarn-value-discard"    // Warn when non-Unit expression results are unused.
+    // "-Xfatal-warnings" // Fail the compilation if there are any warnings.
   )
 
   lazy val compilerOptions2_12_Only =
-  // These are unrecognized for Scala 2.13.
+    // These are unrecognized for Scala 2.13.
     Seq(
-      "-Xfuture", // Turn on future language features.
+      "-Xfuture",                         // Turn on future language features.
       "-Xlint:by-name-right-associative", // By-name parameter of right associative operator.
-      "-Xlint:nullary-override", // Warn when non-nullary `def f()' overrides nullary `def f'.
-      "-Xlint:unsound-match", // Pattern match may not be typesafe.
+      "-Xlint:nullary-override",          // Warn when non-nullary `def f()' overrides nullary `def f'.
+      "-Xlint:unsound-match",             // Pattern match may not be typesafe.
       "-Yno-adapted-args", // Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver.
-      "-Ypartial-unification", // Enable partial unification in type constructor inference
-      "-Ywarn-inaccessible", // Warn about inaccessible types in method signatures.
-      "-Ywarn-infer-any", // Warn when a type argument is inferred to be `Any`.
+      "-Ypartial-unification",   // Enable partial unification in type constructor inference
+      "-Ywarn-inaccessible",     // Warn about inaccessible types in method signatures.
+      "-Ywarn-infer-any",        // Warn when a type argument is inferred to be `Any`.
       "-Ywarn-nullary-override", // Warn when non-nullary `def f()' overrides nullary `def f'.
-      "-Ywarn-nullary-unit" // Warn when nullary methods return Unit.
+      "-Ywarn-nullary-unit"      // Warn when nullary methods return Unit.
     )
 
   def priorTo2_13(scalaVersion: String): Boolean =
     partialVersion(scalaVersion) match {
       case Some((2, minor)) if minor < 13 => true
-      case _ => false
+      case _                              => false
     }
 
   def targetScalacOptions(scalaVersion: String) =
@@ -172,13 +171,14 @@ trait CommonScalaModule extends ScalaModule {
           "-language:existentials",
           "-Yrangepos",
           "-Xsource:3",
-          "-Xfatal-warnings")
+          "-Xfatal-warnings"
+        )
       case Array("2", _, _) =>
         commonCompilerOptions ++ Seq("-language:existentials", "-Yrangepos", "-Xsource:3", "-Xfatal-warnings")
       case Array("3", _, _) =>
         filterScala3Options(commonCompilerOptions) ++ Seq(
-          //TODO: Enable later
-          //"-source:3.0-migration",
+          // TODO: Enable later
+          // "-source:3.0-migration",
           "-Xignore-scala2-macros",
           "-Yretain-trees",
           "-Wvalue-discard"
@@ -202,7 +202,6 @@ trait CommonScalaModule extends ScalaModule {
 
   def filterScala2_12Options(opts: Seq[String]) =
     opts.filterNot(_ == "-Xlint:missing-interpolator")
-
 
   //  def compileIvyDeps = T{
   //    if(scalaVersion().startsWith("2.")) {
