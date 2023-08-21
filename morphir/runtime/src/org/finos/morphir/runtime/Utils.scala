@@ -90,8 +90,14 @@ object Extractors {
   object IntRef extends CommonReference {
     final val tpe = Basics.intType
   }
+  object Int16Ref extends CommonReference {
+    final val tpe = sdk.Int.int16Type
+  }
   object Int32Ref extends CommonReference {
     final val tpe = sdk.Int.int32Type
+  }
+  object Int64Ref extends CommonReference {
+    final val tpe = sdk.Int.int64Type
   }
   object BoolRef extends CommonReference {
     final val tpe = Basics.boolType
@@ -200,7 +206,12 @@ object Utils {
         }
       case (Type.Unit(_), Type.Unit(_))     => Right(found)
       case (IntRef(), IntRef())             => Right(found) // Right?
+      case (IntRef(), Int16Ref())           => Right(found)
+      case (IntRef(), Int32Ref())           => Right(found)
+      case (IntRef(), Int64Ref())           => Right(found)
+      case (Int16Ref(), Int16Ref())         => Right(found)
       case (Int32Ref(), Int32Ref())         => Right(found)
+      case (Int64Ref(), Int64Ref())         => Right(found)
       case (FloatRef(), FloatRef())         => Right(found)
       case (StringRef(), StringRef())       => Right(found)
       case (CharRef(), CharRef())           => Right(found)

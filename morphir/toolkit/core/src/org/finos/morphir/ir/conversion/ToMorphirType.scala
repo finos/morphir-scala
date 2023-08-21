@@ -72,6 +72,7 @@ object ToMorphirType {
       case Concept.Integer                 => bigIntUType.as
       case Concept.Int16                   => shortUType.as
       case Concept.Int32                   => intUType.as
+      case Concept.Int64                   => intUType.as
       case Concept.String                  => stringUType.as
       case Concept.LocalDate               => localDateUType.as
       case Concept.Month                   => monthUType.as

@@ -105,7 +105,9 @@ object EvaluatorQuick {
           (Label(field.name.toCamelCase), typeToConcept(field.data, dists, boundTypes))
         ).toList)
       case IntRef()       => Concept.Int32
+      case Int16Ref()     => Concept.Int16
       case Int32Ref()     => Concept.Int32
+      case Int64Ref()     => Concept.Int64
       case StringRef()    => Concept.String
       case BoolRef()      => Concept.Boolean
       case CharRef()      => Concept.Char
@@ -175,10 +177,28 @@ object EvaluatorQuick {
           }
           Data.Record(qName, tuples.toList)
         }
+
+      case (Concept.Int16, Result.Primitive(value: Int)) =>
+        Data.Int16(value.toShort)
+      case (Concept.Int16, Result.Primitive(value: Long)) =>
+        Data.Int16(value.toShort)
+      case (Concept.Int16, Result.Primitive(value: IntType)) =>
+        Data.Int16(value.toInt.toShort)
+
+      case (Concept.Int32, Result.Primitive(value: Int)) =>
+        Data.Int32(value.toInt)
       case (Concept.Int32, Result.Primitive(value: Long)) =>
         Data.Int32(value.toInt)
       case (Concept.Int32, Result.Primitive(value: IntType)) =>
         Data.Int32(value.toInt)
+
+      case (Concept.Int64, Result.Primitive(value: Int)) =>
+        Data.Int64(value.toLong)
+      case (Concept.Int64, Result.Primitive(value: Long)) =>
+        Data.Int64(value.toLong)
+      case (Concept.Int64, Result.Primitive(value: IntType)) =>
+        Data.Int64(value.toLong)
+
       case (Concept.String, Result.Primitive(value: String)) =>
         Data.String(value)
       case (Concept.Boolean, Result.Primitive(value: Boolean)) =>

@@ -83,9 +83,7 @@ object DeriverMacros {
   def inferUnionTypeImpl[T: Type](using Quotes): Expr[UnionType] = {
     import quotes.reflect._
     val flags = flagsOf[T]
-    if (flags.is(Flags.Sealed & Flags.Trait))
-      '{ UnionType.SealedTrait }
-    else if (flags.is(Flags.Enum))
+    if (flags.is(Flags.Sealed & Flags.Trait) || flags.is(Flags.Enum))
       '{ UnionType.Enum }
     else report.errorAndAbort(
       s"Type ${TypeRepr.of[T].show} is not a sealed trait or enum and Unions are not supported yet"

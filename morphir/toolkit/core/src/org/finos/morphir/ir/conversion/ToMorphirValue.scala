@@ -75,7 +75,9 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         V.reference(FQName.fromString("Morphir.SDK:Int:toInt16")),
         V.intTyped(value.toInt)
       )
-    case Data.Int32(value: scala.Int)         => V.int(value.morphirType, value)
+    case Data.Int32(value: scala.Int)  => V.int(value.morphirType, value)
+    case Data.Int64(value: scala.Long) => V.long(sdk.Basics.intType, value)
+
     case Data.String(value: java.lang.String) => V.string(value.morphirType, value)
     case Data.LocalDate(value: java.time.LocalDate) =>
       V.applyInferType(
