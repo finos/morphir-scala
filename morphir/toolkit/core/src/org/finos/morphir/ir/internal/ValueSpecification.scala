@@ -17,7 +17,7 @@ private[ir] case class ValueSpecification[+TA](inputs: Chunk[(Name, Type[TA])], 
 }
 
 private[ir] object ValueSpecification {
-  def create[Attributes](inputs: (Name, Type[Attributes])*): CreatePartiallyApplied[Attributes] =
+  def create[Attribs](inputs: (Name, Type[Attribs])*): CreatePartiallyApplied[Attribs] =
     new CreatePartiallyApplied(() => Chunk.fromIterable(inputs))
 
   type Raw = ValueSpecification[scala.Unit]

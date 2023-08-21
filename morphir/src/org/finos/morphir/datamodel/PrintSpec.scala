@@ -4,57 +4,15 @@ import org.finos.morphir.datamodel.Concept
 import org.finos.morphir.naming.*
 import zio.Chunk
 import org.finos.morphir.datamodel.*
-import org.finos.morphir.datamodel.PrintSpec.WriteFiles.WriteToPath
 
-import java.nio.file.{FileSystem, OpenOption, StandardOpenOption}
+import java.nio.file.Path as JPath
+import java.nio.file.{FileSystem, Files, OpenOption, StandardOpenOption}
+import java.util.Comparator
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.*
 
 object PrintSpec {
 
-  class QualifiedNameCollector extends ConceptStatefulTransformer[Chunk[FQName]] {
-    private def addToState(v: Concept)(value: FQName) =
-      Stateful.succeedWithState(v)(chunk => chunk :+ value)
-
-    override def of(c: Concept) =
-      c match {
-        case v @ Concept.Record(name, fields) => addToState(v)(name)
-        case v @ Concept.Alias(name, value)   => addToState(v)(name)
-        case v @ Concept.Enum(name, cases)    => addToState(v)(name)
-        case v: Concept.List                  => addToState(v)(FQName.fromString("Morphir.SDK:List:List"))
-        case v: Concept.Map                   => addToState(v)(FQName.fromString("Morphir.SDK:Dict:Dict"))
-        case v: Concept.Basic[_] =>
-          v match {
-            // Assuming that ToMorphirValue maps bytes to ints and this is a "standard" definition
-            case Concept.Byte      => throw new RuntimeException("Morphir Byte (Int8) not supported yet")
-            case Concept.Decimal   => addToState(v)(FQName.fromString("Morphir.SDK:Decimal:Decimal"))
-            case Concept.Integer   => throw new RuntimeException("Morphir Integer (BigInt) not supported yet")
-            case Concept.Int16     => addToState(v)(FQName.fromString("Morphir.SDK:Int:Int16"))
-            case Concept.Int32     => addToState(v)(FQName.fromString("Morphir.SDK:Int:Int"))
-            case Concept.LocalDate => addToState(v)(FQName.fromString("Morphir.SDK:LocalDate:LocalDate"))
-            case Concept.Month     => addToState(v)(FQName.fromString("Morphir.SDK:Month:Month"))
-            case Concept.LocalTime => addToState(v)(FQName.fromString("Morphir.SDK:LocalTime:LocalTime"))
-            case other             => super.of(other)
-          }
-
-        case other => super.of(other)
-      }
-  }
-  object QualifiedNameCollector {
-    def collectFrom(c: Concept) =
-      (new QualifiedNameCollector().of(c)).run(Chunk[FQName]()) match {
-        case (chunk, _) => chunk
-      }
-  }
-
-  private implicit class ConceptOptsExt(c: Concept) {
-    def isMultiArg =
-      c match {
-        case _: Concept.List     => true
-        case _: Concept.Map      => true
-        case _: Concept.Optional => true
-        case _: Concept.Result   => true
-        case _                   => false
-      }
-  }
   private implicit class StringExt(s: String) {
     def inParensIf(cond: Boolean) =
       if (cond)
@@ -65,18 +23,70 @@ object PrintSpec {
 
   import PathRenderer.TitleCase.*
 
-  trait WriteFiles
-  object WriteFiles {
-    case class WriteToPath(path: java.nio.file.Path) extends WriteFiles
-    object Skip                                      extends WriteFiles
+  sealed trait HeadingPrint
+  case object HeadingPrint {
+    case object AllHeadings        extends HeadingPrint
+    case object JustFileSeparators extends HeadingPrint
+    case object None               extends HeadingPrint
   }
 
-  def of(concept: Concept, writeFiles: WriteFiles = WriteFiles.Skip, printHeadings: Boolean = true): String = {
+  def writeToFiles(concept: Concept, path: java.nio.file.Path, printHeadings: HeadingPrint = HeadingPrint.None) = {
+    import java.io.File
+    import zio.*
+
+    val allModules = print(concept, printHeadings)
+
+    for {
+      dumpDir <- ZIO.succeed(path.toFile)
+      _ <- ZIO.attempt {
+        if (dumpDir.exists()) {
+          deleteWalk(path)
+        }
+      }
+      _ <- {
+        val filesWrites =
+          allModules.map { case (qualifiedModule, content) =>
+            val packagePath         = qualifiedModule.packageName.path.segments.map(_.render)
+            val modulePathUntilFile = qualifiedModule.modulePath.path.segments.map(_.render)
+            val fullFilePath        = (packagePath ++ modulePathUntilFile).mkString("/")
+            val elmFile             = new File(dumpDir, fullFilePath + ".elm")
+            println(s"---------------------- Writing File: ${elmFile} ----------------------")
+
+            elmFile.getParentFile.mkdirs()
+
+            import java.nio.file.{Paths, Files}
+            import java.nio.charset.StandardCharsets
+
+            ZIO.attempt {
+              Files.write(
+                elmFile.toPath,
+                content.getBytes(StandardCharsets.UTF_8)
+              )
+            }
+          }
+        ZIO.collectAll(filesWrites)
+      }
+    } yield ()
+  }
+
+  def of(concept: Concept, printHeadings: HeadingPrint = HeadingPrint.AllHeadings): String = {
+    val allModules = print(concept, printHeadings)
+    val allContent = allModules.map(_._2).mkString("\n\n")
+    allContent
+  }
+
+  private[morphir] def print(concept: Concept, printHeadings: HeadingPrint = HeadingPrint.AllHeadings) = {
     val typesList = concept.collectAll
+    val (printFileHeadings, printImportHeadings) =
+      printHeadings match {
+        case HeadingPrint.AllHeadings        => (true, true)
+        case HeadingPrint.JustFileSeparators => (true, false)
+        case HeadingPrint.None               => (false, false)
+      }
 
     def printModuleDef(qn: FQName) = {
       val heading =
-        if (printHeadings)
+        if (printFileHeadings)
           s"{- ============ Declaring ${s"${qn.pack.render}:${qn.modulePath.path.render}:${qn.localName.render}"} ============ -}\n"
         else ""
 
@@ -85,7 +95,7 @@ object PrintSpec {
 
     def printImportDef(qn: FQName) = {
       val heading =
-        if (printHeadings) {
+        if (printImportHeadings) {
           s"{- Importing ${s"${qn.pack.render}:${qn.modulePath.path.render}:${qn.localName.render}"} -}\n"
         } else ""
 
@@ -175,18 +185,18 @@ object PrintSpec {
      */
     def handleDef(concept: Concept, isTopLevel: Boolean = false): Option[ConceptDef] =
       concept match {
-        case v: Concept.Basic[_]             => None
-        case v: Concept.Any.type             => None
-        case v: Concept.Record               => Some(handleRecord(v))
-        case v: Concept.Struct               => None
-        case v: Concept.Alias                => Some(handleAlias(v))
-        case Concept.List(elementType)       => None
-        case Concept.Map(keyType, valueType) => None
-        case Concept.Tuple(values)           => None
-        case Concept.Optional(elementType)   => None
-        case Concept.Result(errType, okType) => None
-        case e: Concept.Enum                 => Some(handleEnum(e))
-        case Concept.Union(cases)            => None
+        case _: Concept.Basic[_] => None
+        case _: Concept.Any.type => None
+        case v: Concept.Record   => Some(handleRecord(v))
+        case _: Concept.Struct   => None
+        case v: Concept.Alias    => Some(handleAlias(v))
+        case _: Concept.List     => None
+        case _: Concept.Map      => None
+        case _: Concept.Tuple    => None
+        case _: Concept.Optional => None
+        case _: Concept.Result   => None
+        case e: Concept.Enum     => Some(handleEnum(e))
+        case _: Concept.Union    => None
       }
 
     /*
@@ -201,10 +211,10 @@ object PrintSpec {
             case _               => basic.toString
           }
 
-        case Concept.Any                => "Any"
-        case r: Concept.Record          => r.namespace.localName.render
-        case Concept.Struct(fields)     => printFields(fields)
-        case Concept.Alias(name, value) => name.localName.render
+        case Concept.Any            => "Any"
+        case r: Concept.Record      => r.namespace.localName.render
+        case Concept.Struct(fields) => printFields(fields)
+        case Concept.Alias(name, _) => name.localName.render
         case Concept.List(elementType) =>
           s"List ${printDef(elementType)}"
             .inParensIf(isInside)
@@ -226,8 +236,8 @@ object PrintSpec {
           val ok  = printDef(okType)
           s"Result $err $ok".inParensIf(isInside)
 
-        case e: Concept.Enum      => e.name.localName.render
-        case Concept.Union(cases) => "<UNION NOT SUPPORTED IN ELM>"
+        case e: Concept.Enum  => e.name.localName.render
+        case Concept.Union(_) => "<UNION NOT SUPPORTED IN ELM>"
       }
 
     val defs = typesList.map(tpe => handleDef(tpe, true)).collect { case Some(conceptDef) => conceptDef }
@@ -276,43 +286,7 @@ object PrintSpec {
         (qualifiedModuleName, moduleText)
       }.sortBy(_._1.sortKey)
 
-    val allContent =
-      allModules.map(_._2).mkString("\n\n")
-
-    def writeToFiles(path: java.nio.file.Path) = {
-      import java.io.File
-
-      val dumpDir = path.toFile
-      if (dumpDir.exists()) {
-        val deleted = dumpDir.delete()
-        if (!deleted) throw new RuntimeException(s"Could not delete the file: ${dumpDir}")
-      }
-
-      for ((qualifiedModule, content) <- allModules) {
-        val packagePath         = qualifiedModule.packageName.path.segments.map(_.render)
-        val modulePathUntilFile = qualifiedModule.modulePath.path.segments.map(_.render)
-        val fullFilePath        = (packagePath ++ modulePathUntilFile).mkString("/")
-        val elmFile             = new File(dumpDir, fullFilePath + ".elm")
-        println(s"---------------------- File: ${elmFile} ----------------------")
-
-        elmFile.getParentFile.mkdirs()
-
-        import java.nio.file.{Paths, Files}
-        import java.nio.charset.StandardCharsets
-
-        Files.write(
-          elmFile.toPath,
-          content.getBytes(StandardCharsets.UTF_8)
-        )
-      }
-    }
-
-    writeFiles match {
-      case WriteToPath(path) => writeToFiles(path)
-      case _                 =>
-    }
-
-    allContent
+    allModules
   }
 
   implicit class FQNameExt(name: FQName) {
@@ -323,4 +297,15 @@ object PrintSpec {
   implicit class QualifiedModuleNameExt(name: QualifiedModuleName) {
     def sortKey = (name.packageName.path.render, name.modulePath.toPath.render)
   }
+
+  private def deleteWalk(dir: JPath) = {
+    import java.util.stream.{Stream => JStream}
+    val filesSorted: JStream[JPath] =
+      Files
+        .walk(dir) // Traverse the file tree in depth-first order
+        .sorted(Comparator.reverseOrder())
+    val filesToDelete = filesSorted.iterator().asScala.toList
+    filesToDelete.foreach(Files.delete(_))
+  }
+
 }

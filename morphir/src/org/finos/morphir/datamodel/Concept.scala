@@ -2,7 +2,6 @@ package org.finos.morphir.datamodel
 
 import org.finos.morphir.naming.FQName
 import org.finos.morphir.datamodel.Concept.Basic
-import org.finos.morphir.datamodel.PrintSpec.WriteFiles
 import org.finos.morphir.util.{DetailLevel, PrintMDM}
 
 import scala.annotation.tailrec
@@ -26,18 +25,18 @@ sealed trait Concept { self =>
     getName.map(_.localName.toTitleCase)
   def getName: Option[FQName] =
     this match {
-      case c: Concept.Basic[_] => None
-      case c: Concept.Any.type => None
+      case _: Concept.Basic[_] => None
+      case _: Concept.Any.type => None
       case c: Concept.Record   => Some(c.namespace)
-      case c: Concept.Struct   => None
+      case _: Concept.Struct   => None
       case c: Concept.Alias    => Some(c.name)
-      case c: Concept.List     => None
-      case c: Concept.Map      => None
-      case c: Concept.Tuple    => None
-      case c: Concept.Optional => None
-      case c: Concept.Result   => None
+      case _: Concept.List     => None
+      case _: Concept.Map      => None
+      case _: Concept.Tuple    => None
+      case _: Concept.Optional => None
+      case _: Concept.Result   => None
       case c: Concept.Enum     => Some(c.name)
-      case c: Concept.Union    => None
+      case _: Concept.Union    => None
     }
 
   def toStringPretty: String = toStringPretty(true)
@@ -47,10 +46,8 @@ sealed trait Concept { self =>
     else
       PrintMDM(this, detailLevel).plainText
 
-  def toMorphirElm: String =
-    toMorphirElm(WriteFiles.Skip)
-  def toMorphirElm(writeFiles: WriteFiles): String =
-    PrintSpec.of(this, writeFiles = writeFiles)
+  def toMorphirElm: String                           = PrintSpec.of(this)
+  def writeMorphirElmFiles(path: java.nio.file.Path) = PrintSpec.writeToFiles(this, path)
 }
 
 object Concept {
@@ -92,6 +89,7 @@ object Concept {
   case object Integer   extends Basic[scala.BigInt]
   case object Int16     extends Basic[Short]
   case object Int32     extends Basic[Int]
+  case object Int64     extends Basic[Long]
   case object String    extends Basic[java.lang.String]
   case object LocalDate extends Basic[java.time.LocalDate]
   case object Month     extends Basic[java.time.Month]

@@ -1,7 +1,7 @@
 package org.finos.morphir
 import scala.annotation.tailrec
 
-private[morphir] trait PathExports { self: NameExports =>
+trait PathModule { self: NameModule =>
 
   sealed case class Path(segments: Vector[Name]) {
     self =>

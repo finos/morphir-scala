@@ -73,7 +73,7 @@ object Store {
             val sdkDef     = SDKValue.SDKValueDefinition[Unit, Type.UType](definition)
             acc.withDefinition(name, sdkDef)
           }
-          module.value.types.foldLeft(withDefinitions) { case (acc, (typeName, tpe)) =>
+          module.value.types.foldLeft(withDefinitions) { case (acc, (_, tpe)) =>
             val typeDef = tpe.value.value
             typeDef match {
               case Type.Definition.CustomType(_, accessControlledCtors) =>

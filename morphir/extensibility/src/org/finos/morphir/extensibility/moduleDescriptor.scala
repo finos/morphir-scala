@@ -52,7 +52,7 @@ object SdkModuleDescriptors {
         // TODO: Provide Function Descriptors
         object modBy extends DynamicNativeFunction2[MInt, MInt, MInt](fqn("modBy")) {
 
-          def invokeStrict(modulus: MInt, n: MInt)(implicit hints: Hints = defaultHints): MInt = n % modulus
+          def invokeStrict(modulus: MInt, n: MInt): MInt = n % modulus
           def invokeDynamic(modulus: Any, n: Any, hints: Hints = defaultHints): Any =
             (modulus, n) match {
               case (modulus: MInt, n: MInt) => invokeStrict(modulus, n)

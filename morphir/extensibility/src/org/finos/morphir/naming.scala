@@ -1,14 +1,5 @@
 package org.finos.morphir
-object naming
-    extends FQNameExports
-    with ModuleNameExports
-    with NameExports
-    with NamespaceExports
-    with NodeIDExports
-    with PathExports
-    with PackageNameExports
-    with QualifiedModuleNameExports
-    with QNameExports {
+object naming extends Names {
 
   final implicit class PackageNameSyntax(val self: PackageName) extends AnyVal {
     def /(moduleName: ModuleName): QualifiedModuleName = QualifiedModuleName(self, moduleName)

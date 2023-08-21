@@ -6,9 +6,9 @@
 package org.finos.morphir
 
 import java.util.concurrent.TimeUnit
+import scala.annotation.nowarn
 import scala.collection.immutable.ListMap
-import scala.concurrent.duration.{Duration => ScalaDuration}
-import scala.language.implicitConversions
+import scala.concurrent.duration.Duration as ScalaDuration
 
 /**
  * `Dumper` is an abstraction that describes the ability to render a value of type `A` to some format (most likely human
@@ -1048,6 +1048,7 @@ object Dumper extends DumperVersionSpecific with DumperSyntax {
    * The `Dumper`instance for `Nothing`. Note that since there are no values of type `Nothing` this `Dumper` instance
    * can never be called.
    */
+  @nowarn
   implicit val NothingDumper: Dumper[Nothing] =
     n => n
 

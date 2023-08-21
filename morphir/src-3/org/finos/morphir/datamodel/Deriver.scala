@@ -52,8 +52,7 @@ object Deriver extends DeriverInstances {
             // (i.e. because the other side of the case match branch is also running)
             val variant =
               inline unionType match {
-                // UnionType.Enum |
-                case UnionType.SealedTrait =>
+                case UnionType.Enum =>
                   // enum case with fields
                   if (isCaseClass[head]) {
                     summonProductDeriver[head] match {
@@ -144,7 +143,7 @@ object Deriver extends DeriverInstances {
 
       val builder =
         inline inferUnionType[T] match {
-          case UnionType.Enum | UnionType.SealedTrait =>
+          case UnionType.Enum =>
             val ordinalGetter: Any => Int =
               (v: Any) =>
                 v match {

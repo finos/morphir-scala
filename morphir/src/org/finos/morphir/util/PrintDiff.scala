@@ -52,7 +52,7 @@ private class PrintDiff(val defaultWidth: Int = 150) extends pprint.Walker {
     val (b, bDup) = duplicateTree(bRaw)
 
     val (smallLabel, smallTree, smallDepth) :: (largeLabel, largeTree, largeDepth) :: Nil =
-      List(("a", a, countMaxDepth(aDup)), ("b", b, countMaxDepth(bDup))).sortBy(_._3)
+      (List(("a", a, countMaxDepth(aDup)), ("b", b, countMaxDepth(bDup))).sortBy(_._3)): @unchecked
 
     // Activate this logic if one tree is 5x as large as the other or bigger
     val largeTreeTruncated =
@@ -63,8 +63,9 @@ private class PrintDiff(val defaultWidth: Int = 150) extends pprint.Walker {
       }
 
     // put them back into a/b order by sort by the labels which will be either "a", or "b"
-    val (aLabel, aOut) :: (bLabel, bOut) :: Nil =
-      List((smallLabel, smallTree), (largeLabel, largeTreeTruncated)).sortBy(_._1)
+    val (_, aOut) :: (_, bOut) :: Nil =
+      // NOTE: Please verify this is correct had to be marked with @unchecked to eliminate a warning
+      (List((smallLabel, smallTree), (largeLabel, largeTreeTruncated)).sortBy(_._1)): @unchecked
 
     (aOut, bOut)
   }
@@ -110,11 +111,11 @@ private class PrintDiff(val defaultWidth: Int = 150) extends pprint.Walker {
   // make sure to copy the tree before doing it
   def countMaxDepth(tree: Tree, currDepth: Int = 0): Int =
     tree match {
-      case Apply(prefix, body)  => body.toList.map(countMaxDepth(_, currDepth + 1)).maxOption.getOrElse(0)
-      case KeyValue(key, value) => countMaxDepth(value, currDepth + 1)
-      case Lazy(body0)          => currDepth // don't know what to do about lazy trees for now
-      case Infix(lhs, op, rhs)  => Math.max(countMaxDepth(lhs, currDepth + 1), countMaxDepth(rhs, currDepth + 1))
-      case Tree.Literal(body)   => currDepth
+      case Apply(_, body)     => body.toList.map(countMaxDepth(_, currDepth + 1)).maxOption.getOrElse(0)
+      case KeyValue(_, value) => countMaxDepth(value, currDepth + 1)
+      case Lazy(_)            => currDepth // don't know what to do about lazy trees for now
+      case Infix(lhs, _, rhs) => Math.max(countMaxDepth(lhs, currDepth + 1), countMaxDepth(rhs, currDepth + 1))
+      case Tree.Literal(_)    => currDepth
     }
 
   override def treeify(x: Any, escapeUnicode: Boolean, showFieldNames: Boolean): Tree = x match {

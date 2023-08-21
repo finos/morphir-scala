@@ -2,14 +2,16 @@ package org.finos.morphir
 package runtime
 
 import org.finos.morphir.naming._
+import org.typelevel.scalaccompat.annotation.{targetName3 => targetName}
+import scala.annotation.unused
 import zio.Tag
 
 sealed trait Symbol { self =>
-  @compat.targetName("append")
-  def :=[A](value: A)(implicit ev: Not[A =:= SymbolValue], tagged: Tag[A]): SymbolBinding =
+  @targetName("append")
+  def :=[A](value: A)(implicit @unused ev: Not[A =:= SymbolValue], tagged: Tag[A]): SymbolBinding =
     SymbolBinding(self, SymbolValue.Typed(value, tagged))
 
-  @compat.targetName("append")
+  @targetName("append")
   def :=(value: SymbolValue): SymbolBinding = SymbolBinding(self, value)
 }
 object Symbol {

@@ -1,6 +1,6 @@
 package org.finos.morphir
 
-private[morphir] trait NamespaceExports { self: NameExports with PathExports with ModuleNameExports =>
+trait NamespaceModule { self: NameModule with PathModule with ModuleNameModule =>
   sealed case class Namespace(path: Path) { self =>
     def ++(name: Namespace): Namespace        = Namespace(path ++ path)
     def /(segment: String): Namespace         = Namespace(path ++ Path.fromString(segment))
@@ -8,7 +8,7 @@ private[morphir] trait NamespaceExports { self: NameExports with PathExports wit
     def /(names: Iterable[String]): Namespace = Namespace(path ++ Path.fromIterable(names.map(Name.fromString(_))))
 
     @inline def toPath: Path                                            = path
-    def parts(implicit renderer: NamespaceRenderer): IndexedSeq[String] = path.parts
+    def parts(implicit renderer: NamespaceRenderer): IndexedSeq[String] = path.parts(renderer)
 
     def render(implicit renderer: NamespaceRenderer): String = renderer(path)
     /// An alias for `render`
@@ -42,5 +42,7 @@ private[morphir] trait NamespaceExports { self: NameExports with PathExports wit
     val TitleCase: NamespaceRenderer = NamespaceRenderer(".", NameRenderer.TitleCase)
 
     implicit val default: NamespaceRenderer = TitleCase
+    implicit def toPathRenderer(renderer: NamespaceRenderer): PathRenderer =
+      PathRenderer(renderer.separator, renderer.nameRenderer)
   }
 }

@@ -4,8 +4,15 @@ import zio.internal.stacktracer.SourceLocation
 import zio.{test as _, *}
 import zio.test.*
 
+import scala.annotation.nowarn
+
 abstract class MorphirBaseSpec extends ZIOSpecDefault {
   override def aspects = Chunk(TestAspect.timeout(90.seconds))
+
+  def assertEquals[Actual, Expected <: Actual](actual: Actual, expected: Expected)(
+      implicit @nowarn sourceLocation: SourceLocation
+  ): TestResult =
+    assertTrue(actual == expected)
 
   def tableTest[A, Actual, Expected <: Actual](label: String)(colA: String)(first: (A, Expected), rest: (A, Expected)*)(
       when: A => Actual
@@ -26,7 +33,7 @@ abstract class MorphirBaseSpec extends ZIOSpecDefault {
 
   def expectAllEqual[A, Actual, Expected <: Actual](first: (A, Expected), rest: (A, Expected)*)(
       when: A => Actual
-  )(implicit sourceLocation: SourceLocation): TestResult = {
+  )(implicit @nowarn sourceLocation: SourceLocation): TestResult = {
     def onRow(row: (A, Expected)) = {
       val (a, expected) = row
       val actual        = when(a)
@@ -37,7 +44,7 @@ abstract class MorphirBaseSpec extends ZIOSpecDefault {
 
   def expectAll[A, Actual, Expected <: Actual](first: (A, Expected), rest: (A, Expected)*)(
       assert: (A, Expected) => TestResult
-  )(implicit sourceLocation: SourceLocation): TestResult = {
+  )(implicit @nowarn sourceLocation: SourceLocation): TestResult = {
     def onRow(row: (A, Expected)) = {
       val (a, expected) = row
       assert(a, expected)

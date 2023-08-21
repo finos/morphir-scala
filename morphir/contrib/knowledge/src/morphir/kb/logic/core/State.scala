@@ -1,7 +1,7 @@
 package morphir.knowledge.logic.core
 
 import scala.reflect.ClassTag
-
+import scala.annotation.nowarn
 final case class State(
     private[knowledge] val fields: Fields,
     private[knowledge] val fieldConstraints: Map[Field[_], List[FieldConstraint]] = Map.empty
@@ -39,6 +39,7 @@ final case class State(
 
   def dynamicValueOf(value: Value): Value = fields.dynamicValueOf(value)
 
+  @nowarn
   private def getConstrainedBy(fieldConstraint: FieldConstraint): List[Field[_]] =
     fieldConstraints.collect { case (field, constraints) if constraints.contains(fieldConstraint) => field }.toList
 

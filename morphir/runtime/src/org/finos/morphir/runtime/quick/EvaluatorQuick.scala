@@ -97,15 +97,17 @@ object EvaluatorQuick {
 
   def typeToConcept(tpe: Type.Type[Unit], dists: Distributions, boundTypes: Map[Name, Concept]): Concept =
     tpe match {
-      case TT.ExtensibleRecord(attributes, name, fields) =>
-        throw UnsupportedType("Extensible records not supported for DDL")
-      case TT.Function(attributes, argumentType, returnType) =>
-        throw UnsupportedType("Functiom types not supported for DDL")
-      case TT.Record(attributes, fields) => Concept.Struct(fields.map(field =>
+      case TT.ExtensibleRecord(_, _, _) =>
+        throw UnsupportedType("Extensible records not supported for Morphir data model")
+      case TT.Function(_, _, _) =>
+        throw UnsupportedType("Functiom types not supported for Morphir data model")
+      case TT.Record(_, fields) => Concept.Struct(fields.map(field =>
           (Label(field.name.toCamelCase), typeToConcept(field.data, dists, boundTypes))
         ).toList)
       case IntRef()       => Concept.Int32
+      case Int16Ref()     => Concept.Int16
       case Int32Ref()     => Concept.Int32
+      case Int64Ref()     => Concept.Int64
       case StringRef()    => Concept.String
       case BoolRef()      => Concept.Boolean
       case CharRef()      => Concept.Char
@@ -122,7 +124,7 @@ object EvaluatorQuick {
         Concept.Optional(typeToConcept(elementType, dists, boundTypes))
       case DictRef(keyType, valType) =>
         Concept.Map(typeToConcept(keyType, dists, boundTypes), typeToConcept(valType, dists, boundTypes))
-      case TT.Reference(attributes, typeName, typeArgs) =>
+      case TT.Reference(_, typeName, typeArgs) =>
         val lookedUp    = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dists, boundTypes))
         lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
@@ -145,10 +147,10 @@ object EvaluatorQuick {
             Concept.Enum(typeName, cases)
           case other => throw UnsupportedType(s"$other is not a recognized type")
         }
-      case TT.Tuple(attributes, elements) =>
+      case TT.Tuple(_, elements) =>
         Concept.Tuple(elements.map(element => typeToConcept(element, dists, boundTypes)).toList)
-      case TT.Unit(attributes)           => Concept.Unit
-      case TT.Variable(attributes, name) => boundTypes(name)
+      case TT.Unit(_)           => Concept.Unit
+      case TT.Variable(_, name) => boundTypes(name)
     }
 
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
@@ -175,10 +177,28 @@ object EvaluatorQuick {
           }
           Data.Record(qName, tuples.toList)
         }
+
+      case (Concept.Int16, Result.Primitive(value: Int)) =>
+        Data.Int16(value.toShort)
+      case (Concept.Int16, Result.Primitive(value: Long)) =>
+        Data.Int16(value.toShort)
+      case (Concept.Int16, Result.Primitive(value: IntType)) =>
+        Data.Int16(value.toInt.toShort)
+
+      case (Concept.Int32, Result.Primitive(value: Int)) =>
+        Data.Int32(value.toInt)
       case (Concept.Int32, Result.Primitive(value: Long)) =>
         Data.Int32(value.toInt)
       case (Concept.Int32, Result.Primitive(value: IntType)) =>
         Data.Int32(value.toInt)
+
+      case (Concept.Int64, Result.Primitive(value: Int)) =>
+        Data.Int64(value.toLong)
+      case (Concept.Int64, Result.Primitive(value: Long)) =>
+        Data.Int64(value.toLong)
+      case (Concept.Int64, Result.Primitive(value: IntType)) =>
+        Data.Int64(value.toLong)
+
       case (Concept.String, Result.Primitive(value: String)) =>
         Data.String(value)
       case (Concept.Boolean, Result.Primitive(value: Boolean)) =>
@@ -192,7 +212,7 @@ object EvaluatorQuick {
       case (Concept.Decimal, Result.Primitive(value: Double)) =>
         Data.Decimal(scala.BigDecimal(value))
       case (Concept.Decimal, Result.Primitive(value: Float)) =>
-        Data.Decimal(scala.BigDecimal(value))
+        Data.Decimal(scala.BigDecimal(value.toDouble))
       case (Concept.Decimal, Result.Primitive(value: Int)) =>
         Data.Decimal(scala.BigDecimal(value))
       case (Concept.Decimal, Result.Primitive(value: Long)) =>
@@ -227,7 +247,7 @@ object EvaluatorQuick {
           (resultAndConceptToData(key, keyConcept), resultAndConceptToData(value, valConcept))
         }
         Data.Map.copyFrom(mutable.LinkedHashMap.from(inners), mapConcept)
-      case (enumConcept @ Concept.Enum(name, cases), Result.ConstructorResult(fqName, args)) =>
+      case (enumConcept @ Concept.Enum(_, cases), Result.ConstructorResult(fqName, args)) =>
         val fieldMap = cases.map { case Concept.Enum.Case(Label(string), fields) => string -> fields }.toMap
         val fields = fieldMap.getOrElse(
           fqName.localName.toTitleCase,
@@ -284,7 +304,7 @@ object EvaluatorQuick {
       case x: Int            => V.int(x)
       case s: String         => V.string(s)
       case b: Boolean        => V.boolean(b)
-      case elements: List[_] => V.list(elements.map(scalaToIR(_)))
+      case elements: List[t] => V.list(elements.map(scalaToIR(_)): _*)
       case values: Map[_, _] =>
         val tuples = values.map { case (key, value) => V.tuple(scalaToIR(key), scalaToIR(value)) }.toSeq
         V.apply(V.reference(FQName.fromString("Morphir.SDK:Dict:fromList")), V.list(tuples: _*))

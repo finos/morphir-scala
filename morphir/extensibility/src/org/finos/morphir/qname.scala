@@ -1,6 +1,6 @@
 package org.finos.morphir
 
-private[morphir] trait QNameExports { self: ModuleNameExports with NameExports with PathExports =>
+trait QNameModule { self: ModuleNameModule with NameModule with PathModule =>
 
   /// A qualified name (`QName`) is a combination of a module path and a local name.
   sealed case class QName(moduleName: ModuleName, localName: Name) {

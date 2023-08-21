@@ -71,7 +71,7 @@ class PrintIR(
   object MorphirValue {
     def unapply(any: Any) =
       any match {
-        case value: Value.Value[_, _] =>
+        case _: Value.Value[_, _] =>
           Some(
             any
               .getClass()
@@ -97,8 +97,8 @@ class PrintIR(
     case MorphirValue(name) =>
       val existingTree =
         super.treeify(x, escapeUnicode, showFieldNames) match {
-          case Tree.Apply(name, content) => content
-          case other                     => Iterator(other)
+          case Tree.Apply(_, content) => content
+          case other                  => Iterator(other)
         }
       Tree.Apply(s"${name}", existingTree)
 

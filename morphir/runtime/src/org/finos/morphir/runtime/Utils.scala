@@ -66,7 +66,7 @@ object Extractors {
   object ResultRef {
     def unapply(tpe: UType): Option[(UType, UType)] =
       tpe match {
-        case Type.Reference(attributes, FQString("Morphir.SDK:Result:result"), Chunk(keyType, valType)) =>
+        case Type.Reference(_, FQString("Morphir.SDK:Result:result"), Chunk(keyType, valType)) =>
           Some((keyType, valType))
         case _ => None
       }
@@ -74,7 +74,7 @@ object Extractors {
   object DictRef {
     def unapply(tpe: UType): Option[(UType, UType)] =
       tpe match {
-        case Type.Reference(attributes, FQString("Morphir.SDK:Dict:dict"), Chunk(keyType, valType)) =>
+        case Type.Reference(_, FQString("Morphir.SDK:Dict:dict"), Chunk(keyType, valType)) =>
           Some((keyType, valType))
         case _ => None
       }
@@ -90,8 +90,14 @@ object Extractors {
   object IntRef extends CommonReference {
     final val tpe = Basics.intType
   }
+  object Int16Ref extends CommonReference {
+    final val tpe = sdk.Int.int16Type
+  }
   object Int32Ref extends CommonReference {
     final val tpe = sdk.Int.int32Type
+  }
+  object Int64Ref extends CommonReference {
+    final val tpe = sdk.Int.int64Type
   }
   object BoolRef extends CommonReference {
     final val tpe = Basics.boolType
@@ -142,7 +148,7 @@ object Extractors {
           lookedUp match {
             case Some(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
               val newBindings = typeParams.zip(typeArgs).toMap
-              Some(expr, newBindings)
+              Some((expr, newBindings))
             case _ => None
           }
         case _ => None
@@ -200,7 +206,12 @@ object Utils {
         }
       case (Type.Unit(_), Type.Unit(_))     => Right(found)
       case (IntRef(), IntRef())             => Right(found) // Right?
+      case (IntRef(), Int16Ref())           => Right(found)
+      case (IntRef(), Int32Ref())           => Right(found)
+      case (IntRef(), Int64Ref())           => Right(found)
+      case (Int16Ref(), Int16Ref())         => Right(found)
       case (Int32Ref(), Int32Ref())         => Right(found)
+      case (Int64Ref(), Int64Ref())         => Right(found)
       case (FloatRef(), FloatRef())         => Right(found)
       case (StringRef(), StringRef())       => Right(found)
       case (CharRef(), CharRef())           => Right(found)
@@ -273,7 +284,7 @@ object Utils {
   )(implicit options: RTExecutionContext.Options): RTAction[Any, TypeError, UType] = {
     val dealiaser = new Dealiased(dists)
     (curried, args) match {
-      case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
+      case (Type.Function(_, parameterType, returnType), head :: tail) =>
         for {
           bindings    <- RTAction.fromEither(typeCheckArg(head, parameterType, knownBindings))
           appliedType <- unCurryTypeFunction(returnType, tail, dists, bindings)
