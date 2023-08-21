@@ -17,12 +17,12 @@ sdkAddTest _ =
   Test: SdkBasics/add
   Expected = 3
 -}
-sdkAddTest64: () -> Int64
-sdkAddTest64 _ =
+sdkAddTest64: {a: Int64, b: Int64} -> Int64
+sdkAddTest64 t =
     let
         f x y = x + y
     in
-        f 1 2
+        f t.a t.b
 
 {-
   Test: SdkBasics/intOverflow
@@ -54,12 +54,12 @@ sdkSubtractTest _ =
   Test: SdkBasics/subtract
   Expected = 2
 -}
-sdkSubtractTest64: () -> Int
-sdkSubtractTest64 _ =
+sdkSubtractTest64: {a: Int64, b: Int64} -> Int64
+sdkSubtractTest64 t =
     let
         f x y = x - y
     in
-        f 4 2
+        f t.a t.b
 
 {-
   Test: SdkBasics/multiply

@@ -90,6 +90,17 @@ object EnumWrapperSpec extends MorphirBaseSpec {
         myInt32Deriver.derive(myInt32) == maker.construct(myInt32Data)
       )
     },
+    test("Int64 Deriver") {
+      given CustomDeriver[MyInt64] = Data.Int64.deriveEnumWrapper("MyInt64Label", _.value)
+      val myInt32Data              = Data.Int64(123)
+      val maker                    = enumMaker("MyInt64Label", myInt64Data, Concept.Int64)
+      val myInt32                  = MyInt64(123)
+      val myInt32Deriver           = Deriver.gen[MyInt64]
+      assertTrue(
+        myInt64Deriver.concept == maker.concept,
+        myInt64Deriver.derive(myInt64) == maker.construct(myInt64Data)
+      )
+    },
     test("String Deriver") {
       given CustomDeriver[MyString] = Data.String.deriveEnumWrapper("MyStringLabel", _.value)
       val myStringData              = Data.String("123")

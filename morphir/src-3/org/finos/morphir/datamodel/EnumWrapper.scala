@@ -128,6 +128,27 @@ extension (v: Data.Int32.type) {
   }
 }
 
+extension (v: Data.Int64.type) {
+  def deriveEnumWrapperNamespaced[T](
+      partialName: QualifiedModuleName,
+      label: String,
+      fromScalaType: T => Long
+  ): CustomDeriver[T] =
+    new CustomDeriver[T] {
+      val wrapper                              = SingleEnumWrapper(label, Concept.Int64, partialName)
+      override def derive(value: T): Data.Case = wrapper.construct(Data.Int64(fromScalaType(value)))
+      override def concept: Concept            = wrapper.concept
+    }
+  inline def deriveEnumWrapper[T](label: String, fromScalaType: T => Long): CustomDeriver[T] = {
+    val (partialName, _, _) = DeriverMacros.summonNamespaceOrFail[T]
+    deriveEnumWrapperNamespaced(partialName, label, fromScalaType)
+  }
+  inline def deriveEnumWrapper[T](fromScalaType: T => Long): CustomDeriver[T] = {
+    val name = DeriverMacros.typeName[T]
+    deriveEnumWrapper(name, fromScalaType)
+  }
+}
+
 extension (v: Data.String.type) {
   def deriveEnumWrapperNamespaced[T](
       partialName: QualifiedModuleName,

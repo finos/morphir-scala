@@ -539,8 +539,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int(2)),
         testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int64(3)),
         testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int64(2)),
-        testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest64")(Data.Int64(3)),
-        testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest64")(Data.Int64(2)),
+        testEval("Plus")("sdkBasicsTests", "sdkAddTest64", abStruct(1, 2))(Data.Int64(3)),
+        testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest64", abStruct(4, 2))(Data.Int64(2)),
         testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Decimal(2.0)),
         testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
         testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),
@@ -580,4 +580,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
       )
     ).provideLayerShared(morphirRuntimeLayer)
+
+  def abStruct(a: Long, b: Long) = Data.Struct(Label("a") -> Data.Int64(a), Label("b") -> Data.Int64(b))
 }
