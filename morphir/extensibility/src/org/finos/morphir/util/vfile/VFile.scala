@@ -1,12 +1,12 @@
 package org.finos.morphir.util.vfile
 
-import org.finos.morphir.util.props.{Property, PropertyBag}
+import org.finos.morphir.util.attribs.{Attribute, Attributes}
 
 import java.nio.file.Path
 import org.typelevel.paiges._
 
-final case class VFile(path: VFilePath, contents: VFileContents, properties: PropertyBag, data: PropertyBag) { self =>
-  import Property.Binding
+final case class VFile(path: VFilePath, contents: VFileContents, properties: Attributes, data: Attributes) { self =>
+  import Attribute.Binding
   def ++=(bindings: Seq[Binding[_]]): VFile = copy(properties = properties ++= bindings)
 //  def accept[A](visitor:ExternalVisitor[A]):A = self match {
 //    case FileReference(path) => visitor.fileReference(path)
@@ -19,15 +19,15 @@ final case class VFile(path: VFilePath, contents: VFileContents, properties: Pro
 
 object VFile extends VFilePlatformSpecific {
   def directory(path: VFilePath, children: VFile*): VFile =
-    VFile(path, VFileContents.VFiles(children.toVector), PropertyBag.empty, PropertyBag.empty)
+    VFile(path, VFileContents.VFiles(children.toVector), Attributes.empty, Attributes.empty)
   def fileRef(path: VFilePath): VFile =
-    VFile(path, contents = VFileContents.Uninitialized, properties = PropertyBag.empty, PropertyBag.empty)
+    VFile(path, contents = VFileContents.Uninitialized, properties = Attributes.empty, Attributes.empty)
   def mixed(path: VFilePath, contents: VFileContents*): VFile =
-    VFile(path, VFileContents.Mixed(contents.toVector), PropertyBag.empty, PropertyBag.empty)
+    VFile(path, VFileContents.Mixed(contents.toVector), Attributes.empty, Attributes.empty)
   def sourceFile(path: VFilePath, document: Doc): VFile =
-    VFile(path, VFileContents.TextDocument(document), PropertyBag.empty, PropertyBag.empty)
+    VFile(path, VFileContents.TextDocument(document), Attributes.empty, Attributes.empty)
   def sourceFile(path: VFilePath, text: String): VFile =
-    VFile(path, VFileContents.Text(text), PropertyBag.empty, PropertyBag.empty)
+    VFile(path, VFileContents.Text(text), Attributes.empty, Attributes.empty)
 
   trait InternalVisitor[A] {
     def fileReference(path: VFilePath): A

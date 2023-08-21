@@ -1,13 +1,13 @@
 package org.finos.morphir.util.vfile
-import org.finos.morphir.util.props.Property
+import org.finos.morphir.util.attribs.Attribute
 
 import java.nio.charset.{Charset, StandardCharsets}
 object VFileProperties {
 
-  val isEmpty: Property[Boolean] =
-    Property("isEmpty", false)
+  val isEmpty: Attribute[Boolean] =
+    Attribute("isEmpty", false)
 
-  val characterSet: Property[Charset] =
-    Property("characterSet", StandardCharsets.UTF_8)
+  val characterSet: Attribute[Charset] =
+    Attribute("characterSet", StandardCharsets.UTF_8)
 
 }

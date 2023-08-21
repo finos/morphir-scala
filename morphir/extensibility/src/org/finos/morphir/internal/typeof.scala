@@ -1,12 +1,14 @@
 package org.finos.morphir.internal
-import org.finos.morphir.naming._
-import org.finos.morphir.extensibility.SdkModuleDescriptors._
+import org.finos.morphir.naming.*
+import org.finos.morphir.extensibility.SdkModuleDescriptors.*
+import org.finos.morphir.util.attribs.Attributes
 
 trait TypeOfModule { self: TypeModule with TypeInfoModule =>
 
   trait TypeOf[T] {
-    final def tpe: Type[_] = typeInfo.tpe
-    def typeInfo: TypeInfo[_]
+    def apply(): TypeInfo[Attributes]
+    final def tpe: Type[Attributes]          = typeInfo.tpe
+    final def typeInfo: TypeInfo[Attributes] = apply()
   }
 
   object TypeOf {
@@ -14,13 +16,12 @@ trait TypeOfModule { self: TypeModule with TypeInfoModule =>
 
     def apply[T](implicit typeOf: TypeOf[T]): TypeOf[T] = typeOf
 
-    implicit val boolean: TypeOf[Boolean] = new TypeOf[Boolean] {
-      override def typeInfo: TypeInfo[_] = {
-        val fqn = Morphir.SDK.Basics.fqn("Bool")
-        val tpe = Type.Reference((), fqn, List.empty)
-        TypeInfo.TypeOnly(tpe)
-      }
+    implicit val boolean: TypeOf[Boolean] = () => {
+      val fqn = Morphir.SDK.Basics.fqn("Bool")
+      val tpe = Type.Reference(Attributes.empty, fqn, List.empty)
+      TypeInfo.fromType(tpe)
     }
   }
+
 
 }
