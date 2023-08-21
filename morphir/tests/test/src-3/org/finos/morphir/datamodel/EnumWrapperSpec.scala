@@ -9,6 +9,7 @@ object EnumWrapperSpec extends MorphirBaseSpec {
   case class MyInteger(value: scala.BigInt)
   case class MyInt16(value: scala.Short)
   case class MyInt32(value: scala.Int)
+  case class MyInt64(value: scala.Long)
   case class MyString(value: java.lang.String)
   case class MyLocalDate(value: java.time.LocalDate)
   case class MyMonth(value: java.time.Month)
@@ -92,10 +93,10 @@ object EnumWrapperSpec extends MorphirBaseSpec {
     },
     test("Int64 Deriver") {
       given CustomDeriver[MyInt64] = Data.Int64.deriveEnumWrapper("MyInt64Label", _.value)
-      val myInt32Data              = Data.Int64(123)
+      val myInt64Data              = Data.Int64(123)
       val maker                    = enumMaker("MyInt64Label", myInt64Data, Concept.Int64)
-      val myInt32                  = MyInt64(123)
-      val myInt32Deriver           = Deriver.gen[MyInt64]
+      val myInt64                  = MyInt64(123)
+      val myInt64Deriver           = Deriver.gen[MyInt64]
       assertTrue(
         myInt64Deriver.concept == maker.concept,
         myInt64Deriver.derive(myInt64) == maker.construct(myInt64Data)
