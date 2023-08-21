@@ -42,7 +42,7 @@ object Attribute {
   final case class Binding[V](property: Attribute[V], value: V)
 }
 
-sealed abstract case class AttributeValue[V] private(value: V, tag: Tag[V])
+sealed abstract case class AttributeValue[V] private (value: V, tag: Tag[V])
 object AttributeValue {
   def apply[V](value: V)(implicit tag: Tag[V]): AttributeValue[V] = new AttributeValue(value, tag) {}
 }

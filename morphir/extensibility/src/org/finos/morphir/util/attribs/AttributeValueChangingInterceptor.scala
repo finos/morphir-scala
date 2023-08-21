@@ -7,7 +7,9 @@ object AttributeValueChangingInterceptor {
     override def apply(v1: A, v2: A): A = f(v1, v2)
   }
 
-  def KeepNewValue[A]: AttributeValueChangingInterceptor[A] = AttributeValueChangingInterceptor((_, newValue) => newValue)
+  def KeepNewValue[A]: AttributeValueChangingInterceptor[A] =
+    AttributeValueChangingInterceptor((_, newValue) => newValue)
 
-  def KeepOldValue[A]: AttributeValueChangingInterceptor[A] = AttributeValueChangingInterceptor((oldValue, _) => oldValue)
+  def KeepOldValue[A]: AttributeValueChangingInterceptor[A] =
+    AttributeValueChangingInterceptor((oldValue, _) => oldValue)
 }
