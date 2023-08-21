@@ -537,6 +537,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       suite("SDK Basics Tests")(
         testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
         testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int(2)),
+        testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int64(3)),
+        testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int64(2)),
+        testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest64")(Data.Int64(3)),
+        testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest64")(Data.Int64(2)),
         testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Decimal(2.0)),
         testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
         testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),

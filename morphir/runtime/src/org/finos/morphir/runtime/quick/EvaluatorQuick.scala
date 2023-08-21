@@ -175,10 +175,21 @@ object EvaluatorQuick {
           }
           Data.Record(qName, tuples.toList)
         }
+
+      case (Concept.Int32, Result.Primitive(value: Int)) =>
+        Data.Int32(value.toInt)
       case (Concept.Int32, Result.Primitive(value: Long)) =>
         Data.Int32(value.toInt)
       case (Concept.Int32, Result.Primitive(value: IntType)) =>
         Data.Int32(value.toInt)
+
+      case (Concept.Int64, Result.Primitive(value: Int)) =>
+        Data.Int64(value.toLong)
+      case (Concept.Int64, Result.Primitive(value: Long)) =>
+        Data.Int64(value.toLong)
+      case (Concept.Int64, Result.Primitive(value: IntType)) =>
+        Data.Int64(value.toLong)
+
       case (Concept.String, Result.Primitive(value: String)) =>
         Data.String(value)
       case (Concept.Boolean, Result.Primitive(value: Boolean)) =>

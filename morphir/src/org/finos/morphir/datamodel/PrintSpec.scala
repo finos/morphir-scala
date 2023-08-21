@@ -8,20 +8,11 @@ import org.finos.morphir.datamodel.*
 import java.nio.file.Path as JPath
 import java.nio.file.{FileSystem, Files, OpenOption, StandardOpenOption}
 import java.util.Comparator
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.*
 
 object PrintSpec {
 
-  private implicit class ConceptOptsExt(c: Concept) {
-    def isMultiArg =
-      c match {
-        case _: Concept.List     => true
-        case _: Concept.Map      => true
-        case _: Concept.Optional => true
-        case _: Concept.Result   => true
-        case _                   => false
-      }
-  }
   private implicit class StringExt(s: String) {
     def inParensIf(cond: Boolean) =
       if (cond)
@@ -194,18 +185,18 @@ object PrintSpec {
      */
     def handleDef(concept: Concept, isTopLevel: Boolean = false): Option[ConceptDef] =
       concept match {
-        case v: Concept.Basic[_]             => None
-        case v: Concept.Any.type             => None
-        case v: Concept.Record               => Some(handleRecord(v))
-        case v: Concept.Struct               => None
-        case v: Concept.Alias                => Some(handleAlias(v))
-        case Concept.List(elementType)       => None
-        case Concept.Map(keyType, valueType) => None
-        case Concept.Tuple(values)           => None
-        case Concept.Optional(elementType)   => None
-        case Concept.Result(errType, okType) => None
-        case e: Concept.Enum                 => Some(handleEnum(e))
-        case Concept.Union(cases)            => None
+        case _: Concept.Basic[_] => None
+        case _: Concept.Any.type => None
+        case v: Concept.Record   => Some(handleRecord(v))
+        case _: Concept.Struct   => None
+        case v: Concept.Alias    => Some(handleAlias(v))
+        case _: Concept.List     => None
+        case _: Concept.Map      => None
+        case _: Concept.Tuple    => None
+        case _: Concept.Optional => None
+        case _: Concept.Result   => None
+        case e: Concept.Enum     => Some(handleEnum(e))
+        case _: Concept.Union    => None
       }
 
     /*
@@ -220,10 +211,10 @@ object PrintSpec {
             case _               => basic.toString
           }
 
-        case Concept.Any                => "Any"
-        case r: Concept.Record          => r.namespace.localName.render
-        case Concept.Struct(fields)     => printFields(fields)
-        case Concept.Alias(name, value) => name.localName.render
+        case Concept.Any            => "Any"
+        case r: Concept.Record      => r.namespace.localName.render
+        case Concept.Struct(fields) => printFields(fields)
+        case Concept.Alias(name, _) => name.localName.render
         case Concept.List(elementType) =>
           s"List ${printDef(elementType)}"
             .inParensIf(isInside)
@@ -245,8 +236,8 @@ object PrintSpec {
           val ok  = printDef(okType)
           s"Result $err $ok".inParensIf(isInside)
 
-        case e: Concept.Enum      => e.name.localName.render
-        case Concept.Union(cases) => "<UNION NOT SUPPORTED IN ELM>"
+        case e: Concept.Enum  => e.name.localName.render
+        case Concept.Union(_) => "<UNION NOT SUPPORTED IN ELM>"
       }
 
     val defs = typesList.map(tpe => handleDef(tpe, true)).collect { case Some(conceptDef) => conceptDef }

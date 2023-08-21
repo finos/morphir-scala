@@ -42,6 +42,11 @@ trait DeriverInstances {
     def concept            = Concept.Int32
   }
 
+  implicit val longDeriver: CustomDeriver[Long] = new CustomDeriver[Long] {
+    def derive(value: Long) = Data.Int64(value)
+    def concept             = Concept.Int64
+  }
+
   implicit val stringDeriver: CustomDeriver[String] = new CustomDeriver[String] {
     def derive(value: String) = Data.String(value)
     def concept               = Concept.String

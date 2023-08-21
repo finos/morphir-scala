@@ -1,5 +1,7 @@
 module Morphir.Examples.App.SdkBasicsTests exposing (..)
 
+import Morphir.SDK.Int exposing (Int64)
+
 {-
   Test: SdkBasics/add
   Expected = 3
@@ -12,9 +14,20 @@ sdkAddTest _ =
         f 1 2
 
 {-
+  Test: SdkBasics/add
+  Expected = 3
+-}
+sdkAddTest64: () -> Int64
+sdkAddTest64 _ =
+    let
+        f x y = x + y
+    in
+        f 1 2
+
+{-
   Test: SdkBasics/intOverflow
   Expected = 3
-  
+
   Scala's Int.MaxValue is (2^31) -1 = 2147483647
   Elm's numerical ranges are platform-dependent
   The values below will produce 36893488147419103000 from the JS engine
@@ -32,6 +45,17 @@ sdkIntOverflowTest _ =
 -}
 sdkSubtractTest: () -> Int
 sdkSubtractTest _ =
+    let
+        f x y = x - y
+    in
+        f 4 2
+
+{-
+  Test: SdkBasics/subtract
+  Expected = 2
+-}
+sdkSubtractTest64: () -> Int
+sdkSubtractTest64 _ =
     let
         f x y = x - y
     in
@@ -62,7 +86,7 @@ sdkAddFloatTest _ =
 {-
   Test: SdkBasics/floatOverflow
   Expected = 3
-  
+
   Scala's Float.MaxValue is 3.4028235E38
   Elm's numerical ranges are platform-dependent
   The values below will produce 6.80564733841877e+38 from the JS engine
@@ -256,7 +280,7 @@ sdkTruncateTest2 _ =
 sdkModByTest: () -> Int
 sdkModByTest _ =
     let
-        f x y = modBy x y 
+        f x y = modBy x y
     in
         f 3 20
 
@@ -267,7 +291,7 @@ sdkModByTest _ =
 sdkRemainderByTest: () -> Int
 sdkRemainderByTest _ =
     let
-        f x y = remainderBy x y 
+        f x y = remainderBy x y
     in
         f 3 20
 
@@ -412,7 +436,7 @@ sdkEulersNumberTest _ =
     let
         f = e
     in
-        f 
+        f
 
 {-
   Test: SdkBasics/pi
@@ -423,7 +447,7 @@ sdkPiTest _ =
     let
         f = pi
     in
-        f 
+        f
 
 {-
   Test: SdkBasics/cos
@@ -1163,7 +1187,7 @@ sdkOrTest _ =
   Expected: True
 -}
 sdkXorTest: () -> Bool
-sdkXorTest _ = 
+sdkXorTest _ =
     let
         f x y = xor x y
     in

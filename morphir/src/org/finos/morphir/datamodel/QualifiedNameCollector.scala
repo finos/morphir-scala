@@ -9,11 +9,11 @@ class QualifiedNameCollector extends ConceptStatefulTransformer[Chunk[FQName]] {
 
   override def of(c: Concept) =
     c match {
-      case v @ Concept.Record(name, fields) => addToState(v)(name)
-      case v @ Concept.Alias(name, value)   => addToState(v)(name)
-      case v @ Concept.Enum(name, cases)    => addToState(v)(name)
-      case v: Concept.List                  => addToState(v)(FQName.fromString("Morphir.SDK:List:List"))
-      case v: Concept.Map                   => addToState(v)(FQName.fromString("Morphir.SDK:Dict:Dict"))
+      case v @ Concept.Record(name, _) => addToState(v)(name)
+      case v @ Concept.Alias(name, _)  => addToState(v)(name)
+      case v @ Concept.Enum(name, _)   => addToState(v)(name)
+      case v: Concept.List             => addToState(v)(FQName.fromString("Morphir.SDK:List:List"))
+      case v: Concept.Map              => addToState(v)(FQName.fromString("Morphir.SDK:Dict:Dict"))
       case v: Concept.Basic[_] =>
         v match {
           // Assuming that ToMorphirValue maps bytes to ints and this is a "standard" definition
