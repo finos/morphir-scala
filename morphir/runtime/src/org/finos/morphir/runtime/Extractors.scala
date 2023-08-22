@@ -121,7 +121,7 @@ object Extractors {
             lookedUp match {
               case Right(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
                 val newBindings = typeParams.zip(typeArgs).toMap
-                Some(expr, newBindings)
+                Some((expr, newBindings))
               case _ => None // Missing name, but failing extractors cause problems
             }
           case _ => None
@@ -135,12 +135,12 @@ object Extractors {
         val myself = this
         tpe match {
           case fun @ Type.Function(_, arg, myself(inner, args)) =>
-            Some(inner, args :+ arg)
+            Some((inner, args :+ arg))
           case ref @ dealiaser(myself(inner, args), bindings) =>
-            Some(inner, args)
+            Some((inner, args))
           // TODO: BINDINGS
           case other =>
-            Some(other, List())
+            Some((other, List()))
         }
       }
     }
