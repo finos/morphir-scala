@@ -55,9 +55,9 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
   def typeCheck(value: Value[scala.Unit, UType]) : RTAction[MorphirEnv, EvaluationError, Unit] = for {
     ctx <- ZPure.get[RTExecutionContext]
     result <- ctx.options.enableTyper match {
-      case EnableTyper.Disabled => RTAction.succeed(())
-      case EnableTyper.Warn => RTAction.succeed(())
-      case EnableTyper.Enabled => RTAction.succeed(())
+      case EnableTyper.Disabled => RTAction.succeed[RTExecutionContext, Unit](())
+      case EnableTyper.Warn => RTAction.succeed[RTExecutionContext, Unit](())
+      case EnableTyper.Enabled => RTAction.succeed[RTExecutionContext, Unit](())
     }
   } yield result
 
