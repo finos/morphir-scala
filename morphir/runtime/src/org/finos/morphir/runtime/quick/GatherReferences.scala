@@ -119,13 +119,13 @@ object GatherReferences {
     }
 
     ir match {
-      case Value.Literal(_, _)              => empty
+      case Value.Literal(_, _)                => empty
       case Value.Apply(_, function, argument) => loop(function) ++ loop(argument)
       case Value.Destructure(_, pattern, valueToDestruct, inValue) =>
         loop(valueToDestruct) ++ loop(inValue) ++ patternLoop(pattern)
       case Value.Constructor(_, fqn)      => empty.withConstructor(fqn)
       case Value.Field(_, recordValue, _) => loop(recordValue)
-      case Value.FieldFunction(_, _)   => empty
+      case Value.FieldFunction(_, _)      => empty
       case Value.IfThenElse(_, condition, thenValue, elseValue) =>
         loop(condition) ++ loop(thenValue) ++ loop(elseValue)
       case Value.Lambda(_, pattern, body) => patternLoop(pattern) ++ loop(body)
@@ -141,7 +141,7 @@ object GatherReferences {
       case Value.Tuple(_, elements)                     => fold(elements)
       case Value.Unit(_)                                => empty
       case Value.UpdateRecord(_, valueToUpdate, fields) => loop(valueToUpdate) ++ fold(fields.map(_._2))
-      case Value.Variable(_, _)                      => empty
+      case Value.Variable(_, _)                         => empty
     }
   }
   def patternLoop(pattern: Pattern[UType]): ReferenceSet = {
@@ -151,7 +151,7 @@ object GatherReferences {
     }
     pattern match {
       case _: WildcardPattern[_]                        => empty
-      case AsPattern(_, innerPattern, _)             => patternLoop(innerPattern)
+      case AsPattern(_, innerPattern, _)                => patternLoop(innerPattern)
       case _: UnitPattern[_]                            => empty
       case LiteralPattern(_, _)                         => empty
       case _: EmptyListPattern[_]                       => empty
