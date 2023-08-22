@@ -134,9 +134,9 @@ object Extractors {
       def unapply(tpe: UType): Option[(UType, List[UType])] = {
         val myself = this
         tpe match {
-          case fun @ Type.Function(_, arg, myself(inner, args)) =>
+          case Type.Function(_, arg, myself(inner, args)) =>
             Some((inner, args :+ arg))
-          case ref @ dealiaser(myself(inner, args), bindings) =>
+          case dealiaser(myself(inner, args), _) =>
             Some((inner, args))
           // TODO: BINDINGS
           case other =>
@@ -148,8 +148,8 @@ object Extractors {
   object Values {
     object ApplyChain {
       def unapply(value: TypedValue): Option[(TypedValue, List[TypedValue])] = value match {
-        case Value.Apply(_, ApplyChain(inner, args), arg) => Some(inner, args :+ arg)
-        case other                                        => Some(other, List())
+        case Value.Apply(_, ApplyChain(inner, args), arg) => Some((inner, args :+ arg))
+        case other                                        => Some((other, List()))
       }
     }
     object SomeConstructor {
@@ -174,7 +174,7 @@ object Extractors {
         value match {
           case Value.Reference(tpe, name)
               if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
-            Some(tpe, name)
+            Some((tpe, name))
           case _ => None
         }
     }
@@ -184,7 +184,7 @@ object Extractors {
         value match {
           case Value.Reference(tpe, name)
               if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
-            Some(tpe, name)
+            Some((tpe, name))
           case _ => None
         }
     }
