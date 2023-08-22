@@ -13,6 +13,8 @@
         "LetRecursionTests",
         "ListTests",
         "LiteralTests",
+        "LocalDateTests",
+        "LocalTimeTests",
         "MyMap",
         "NativeReferenceTests",
         "PatternMatchTests",

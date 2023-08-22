@@ -2,13 +2,12 @@ package org.finos.morphir
 package ir
 
 import zio.Chunk
+import org.finos.morphir.naming._
 import org.finos.morphir.syntax.NamingSyntax
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 import org.finos.morphir.ir.Type.*
 import org.finos.morphir.ir.Type.Type.{ExtensibleRecord, Function, Record, Reference, Tuple, Unit, Variable}
-import org.finos.morphir.ir.packages.PackageName
-import org.finos.morphir.ir.module.QualifiedModuleName
 
 import scala.annotation.nowarn
 
@@ -192,7 +191,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         "age"   -> reference(fqn("Morphir.SDK", "Int", "Int")),
         "items" -> reference(fqn("Morphir.SDK", "List", "List"), reference(fqn("Morphir.SDK", "String", "String")))
       )
-      val actual = sut.mapReferenceName { case FQName(_, module, localName) =>
+      val actual = sut.mapReferenceName { case FQName(_, _, localName) =>
         FQName(PackageName.fromString("Acme.SDK"), ModuleName.fromString("Basics"), localName)
       }
       assertTrue(
@@ -342,8 +341,8 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
     ),
     suite("With Attributes")(
       test("testing construction given attributes, FQName and Chunk no type parameters") {
-        val refName = pkg("packageName") % "moduleName" % "localName"
-        val actual  = reference(Source.Location.default, refName)
+        val refName: FQName = pkg("packageName") % "moduleName" % "localName"
+        val actual          = reference(Source.Location.default, refName)
         assertTrue(
           actual.attributes == Source.Location.default,
           actual.collectReferences == Set(refName),

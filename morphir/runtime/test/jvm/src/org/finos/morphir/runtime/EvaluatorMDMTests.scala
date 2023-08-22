@@ -20,13 +20,21 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       dist       <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
     } yield MorphirRuntime.quick(dist))
 
+  val localDate = java.time.LocalDate.of(1900, 1, 20)
+  val localTime = java.time.LocalTime.of(10, 43, 26)
   def deriveData(input: Any): Data =
     input match {
-      case u: Unit             => Deriver.toData(u)
-      case i: Int              => Deriver.toData(i)
-      case s: String           => Deriver.toData(s)
-      case (i: Int, s: String) => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
-      case other               => throw new Exception(s"Couldn't derive $other")
+      case u: Unit                 => Deriver.toData(u)
+      case i: Int                  => Deriver.toData(i)
+      case s: String               => Deriver.toData(s)
+      case ld: java.time.LocalDate => Deriver.toData(ld)
+      case lt: java.time.LocalTime => Deriver.toData(lt)
+      case Right(i: Int)           => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
+      case Left(b: Boolean)        => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
+      case (i: Int, s: String)     => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
+      // If the data is already derived, just use it!
+      case data: Data => data
+      case other      => throw new Exception(s"Couldn't derive $other")
     }
 
   def checkEvaluation(
@@ -92,24 +100,27 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 //    dogRecordConcept
 //  )
 
+  def resultStringIntShape = Concept.Result(Concept.String, Concept.Int32)
+
+  def resultBoolIntShape = Concept.Result(Concept.Boolean, Concept.Int32)
   def unionEnumShape: Concept.Enum = Concept.Enum(
     qn"Morphir/Examples/App:ConstructorTests:UnionType",
     List(
       Concept.Enum.Case(
-        Label("oneArg"),
+        Label("OneArg"),
         List(
           (EnumLabel.Named("arg1"), Concept.Int32)
         )
       ),
       Concept.Enum.Case(
-        Label("twoArg"),
+        Label("TwoArg"),
         List(
           (EnumLabel.Named("arg1"), Concept.Int32),
           (EnumLabel.Named("arg2"), Concept.String)
         )
       ),
       Concept.Enum.Case(
-        Label("zeroArg"),
+        Label("ZeroArg"),
         List()
       )
     )
@@ -119,14 +130,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     qn"Morphir/Examples/App:ExampleModule:TypeArgUnion",
     List(
       Concept.Enum.Case(
-        Label("b"),
+        Label("B"),
         List(Tuple2(
           EnumLabel.Named("arg1"),
           c2
         ))
       ),
       Concept.Enum.Case(
-        Label("aB"),
+        Label("AB"),
         List(
           (
             EnumLabel.Named("arg1"),
@@ -139,14 +150,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       Concept.Enum.Case(
-        Label("a"),
+        Label("A"),
         List((
           EnumLabel.Named("arg1"),
           c1
         ))
       ),
       Concept.Enum.Case(
-        Label("dictBA"),
+        Label("DictBA"),
         List((
           EnumLabel.Named("arg1"),
           Concept.Map(
@@ -156,7 +167,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ))
       ),
       Concept.Enum.Case(
-        Label("maybeA"),
+        Label("MaybeA"),
         List((
           EnumLabel.Named("arg1"),
           Concept.Optional(c1)
@@ -167,12 +178,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
   val zeroArg: Data = Data.Case(
     List(),
-    "Morphir.Examples.App:ConstructorTests:zeroArg",
+    "ZeroArg",
     unionEnumShape
   )
   def oneArg(i: Int): Data = Data.Case(
     List((EnumLabel.Named("arg1"), Data.Int(i))),
-    "Morphir.Examples.App:ConstructorTests:oneArg",
+    "OneArg",
     unionEnumShape
   )
   def twoArg(i: Int, s: String): Data = Data.Case(
@@ -180,7 +191,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       (EnumLabel.Named("arg1"), Data.Int(i)),
       (EnumLabel.Named("arg2"), Data.String(s))
     ),
-    "Morphir.Examples.App:ConstructorTests:twoArg",
+    "TwoArg",
     unionEnumShape
   )
 
@@ -337,13 +348,28 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.List(List(), Concept.String),
           Data.List(Data.String("Car"), Data.String("Plane"), Data.String("Truck"))
         )),
+        testEvaluation("Concat")("listTests", "listConcatTest")(Data.List(
+          Data.Int(1),
+          Data.Int(2),
+          Data.Int(3),
+          Data.Int(4),
+          Data.Int(5)
+        )),
         testEvaluation("Flatten")("listTests", "listFlattenTest")(Data.List(
           Data.String("Red"),
           Data.String("Blue"),
           Data.String("Car"),
           Data.String("Plane"),
           Data.String("Truck")
-        ))
+        )),
+        testEvaluation("Map")("listTests", "listMapTest")(Data.List(
+          Data.Decimal(3.0),
+          Data.Decimal(4.0),
+          Data.Decimal(5.0)
+        )),
+        testEvaluation("Singleton")("listTests", "listSingletonTest")(
+          Data.List(Data.Int(6))
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
       ),
       suite("Literals")(
         testEvaluation("String")("literalTests", "litStringTest")(Data.String("Bloop")),
@@ -351,6 +377,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Char")("literalTests", "litCharTest")(Data.Char('f')),
         testEvaluation("Boolean")("literalTests", "litBoolTest")(Data.Boolean(true)),
         testEvaluation("Whole Number")("literalTests", "litWholeNumberLiteralTest")(Data.Int(5))
+      ),
+      suite("LocalDate")(
+        // TODO: Need to fix implementation of Optional LocalDate
+        testEvaluation("fromParts")("localDateTests", "fromPartsTest")(
+          Data.Optional.Some(Data.LocalDate(localDate))
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
+      ),
+      suite("LocalTime")(
+        testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime))
       ),
       suite("Native References")(
         testEvaluation("Map")("nativeReferenceTests", "nativeReferenceMapTest")(Data.List(
@@ -368,6 +403,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("ModBy")("nativeReferenceTests", "nativeReferenceModByTest", 7)(
           Data.Int(1)
         ) /* @@ TestAspect.ignore @@ TestAspect.tag("ignore until we complete wiring up native functions")*/
+      ),
+      suite("Morphir Types")(
+        testEval("LocalDate")("nativeReferenceTests", "localDatePassthrough", localDate)(Data.LocalDate(localDate)),
+        testEval("LocalDate")("nativeReferenceTests", "localTimePassthrough", localTime)(Data.LocalTime(localTime))
       ),
       suite("Patern Matching")(
         testEvaluation("Wildcard")("patternMatchTests", "patternMatchWildcardTest")(Data.String("Correct")),
@@ -477,11 +516,70 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Returns a dictionary")("dictionaryTests", "returnDictionaryTest")(Data.Map(
           (Data.Int(1), Data.String("Red")),
           (Data.Int(2), Data.String("Blue"))
-        ))
+        )),
+        testEvaluation("Get")("dictionaryTests", "dictGetTest")(Data.Optional.Some(Data.String("Cat")))
       ),
       suite("Optional Tests")(
         testEvaluation("Returns a Just 1")("optionTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),
-        testEvaluation("Returns a None")("optionTests", "returnNoneIntTest")(Data.Optional.None(Concept.Int32))
+        testEvaluation("Option String")("optionTests", "returnJustStringTest")(
+          Data.Optional.Some(Data.String("Hello"))
+        ),
+        testEvaluation("Returns a None")("optionTests", "returnNoneIntTest")(Data.Optional.None(Concept.Int32)),
+        testEval("Returns success result")("optionTests", "returnResultType", 0)(Data.Result.Ok(
+          Data.Int(0),
+          resultStringIntShape
+        )),
+        testEval("Returns error result")("optionTests", "returnResultType", -1)(Data.Result.Err(
+          Data.String("Negative"),
+          resultStringIntShape
+        )),
+        testEval("Resolves success input")("optionTests", "resolveResultType", Right(5))(Data.Int(5)),
+        testEval("Resolves error input")("optionTests", "resolveResultType", Left(true))(Data.Int(1))
+      ),
+      suite("SDK Basics Tests")(
+        testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
+        testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int(2)),
+        testEval("Plus")("sdkBasicsTests", "sdkAddTest64", abStruct(1L, 2L))(Data.Int64(3)),
+        testEval("Minus")("sdkBasicsTests", "sdkSubtractTest64", abStruct(4L, 2L))(Data.Int64(2)),
+        testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Decimal(2.0)),
+        testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
+        testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),
+        testEvaluation("LessThanInt")("sdkBasicsTests", "sdkLessThanTestInt")(Data.Boolean(true)),
+        testEvaluation("ToFloat")("sdkBasicsTests", "toFloatTest")(Data.Decimal(2.0)),
+        testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest")(Data.Int(-3)),
+        testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest2")(Data.Int(3)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest2")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest3")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest4")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest5")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest6")(Data.Boolean(true)),
+        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest7")(Data.Boolean(true)),
+        testEvaluation("Or")("sdkBasicsTests", "sdkOrTest")(Data.Boolean(true)),
+        testEvaluation("LogBase")("sdkBasicsTests", "sdkLogBaseTest")(Data.Decimal(2.0)),
+        testEvaluation("Plus overflow")("sdkBasicsTests", "sdkIntOverflowTest")(
+          Data.Int(3)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("Plus Float")("sdkBasicsTests", "sdkAddFloatTest")(
+          Data.Decimal(3.0)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyTest")(Data.Int(6)) @@ ignore @@ TestAspect.tag(
+          "Not Implemented yet"
+        ),
+        testEvaluation("Integer Divide")("sdkBasicsTests", "sdkIntegerDivideTest")(
+          Data.Decimal(2.0)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("Divide by 0")("sdkBasicsTests", "sdkDivideByZeroTest")(
+          Data.Decimal(2.0)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("LessThanFloat")("sdkBasicsTests", "sdkLessThanTestFloat")(
+          Data.Boolean(true)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("LessThanChar")("sdkBasicsTests", "sdkLessThanTestChar")(
+          Data.Boolean(true)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
       )
     ).provideLayerShared(morphirRuntimeLayer)
+
+  def abStruct(a: Long, b: Long) = Data.Struct(Label("a") -> Data.Int64(a), Label("b") -> Data.Int64(b))
 }

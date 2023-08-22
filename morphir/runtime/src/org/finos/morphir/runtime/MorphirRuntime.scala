@@ -1,9 +1,11 @@
 package org.finos.morphir.runtime
 import org.finos.morphir.datamodel.Data
+import org.finos.morphir.internal.AllTypeLevelModules
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.Value.Value
 import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.naming.*
+import org.finos.morphir.naming._
+
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.RTAction
 import org.finos.morphir.runtime.quick.QuickMorphirRuntime
@@ -21,6 +23,6 @@ trait MorphirRuntime[TA, VA] {
 
 object MorphirRuntime extends MorphirRuntimePlatformSpecific {
 
-  def quick(distribution: Distribution): MorphirRuntime[scala.Unit, UType] =
-    QuickMorphirRuntime.fromDistribution(distribution)
+  def quick(distributions: Distribution*): MorphirRuntime[scala.Unit, UType] =
+    QuickMorphirRuntime.fromDistributions(distributions: _*)
 }

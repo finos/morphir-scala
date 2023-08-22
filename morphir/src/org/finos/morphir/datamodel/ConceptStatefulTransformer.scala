@@ -24,15 +24,16 @@ trait ConceptStatefulTransformer[T] {
       case c: Concept.Map      => of(c)
       case c: Concept.Tuple    => of(c)
       case c: Concept.Optional => of(c)
+      case c: Concept.Result   => of(c)
       case c: Concept.Enum     => of(c)
       case c: Concept.Union    => of(c)
     }
 
   def of(c: Concept.Basic[_]): Stateful[Concept.Basic[_]] =
-    Stateful.const(c)
+    transform(c)
 
   def of(c: Concept.Any.type): Stateful[Concept.Any.type] =
-    Stateful.const(c)
+    transform(c)
 
   def of(c: Concept.Record): Stateful[Concept.Record] =
     for {
@@ -79,6 +80,13 @@ trait ConceptStatefulTransformer[T] {
       c    <- transform(c)
       elem <- of(c.elementType)
     } yield Concept.Optional(elem)
+
+  def of(c: Concept.Result): Stateful[Concept.Result] =
+    for {
+      c   <- transform(c)
+      err <- of(c.errType)
+      ok  <- of(c.okType)
+    } yield Concept.Result(err, ok)
 
   def of(c: Concept.Enum): Stateful[Concept.Enum] =
     for {

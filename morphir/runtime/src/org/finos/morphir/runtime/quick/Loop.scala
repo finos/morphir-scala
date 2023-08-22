@@ -13,7 +13,8 @@ import org.finos.morphir.runtime.{
   MissingField,
   UnexpectedType,
   UnmatchedPattern,
-  VariableNotFound
+  VariableNotFound,
+  Utils
 }
 
 object Loop {
@@ -100,6 +101,13 @@ object Loop {
                   argValue
                 )
               )
+              case 2 => (
+                (function.asInstanceOf[(Result[TA, VA], Result[TA, VA], Result[TA, VA]) => Result[TA, VA]])(
+                  curried(0),
+                  curried(1),
+                  argValue
+                )
+              )
             }
           case x => Result.NativeFunction[TA, VA](x - 1, curried :+ argValue, function)
         }
@@ -127,7 +135,19 @@ object Loop {
       case Some(SDKConstructor(List()))    => Result.ConstructorResult(name, List())
       case Some(SDKConstructor(arguments)) => Result.ConstructorFunction[TA, VA](name, arguments, List())
       case None =>
-        throw ConstructorNotFound(s"$name not found in constructor store. Store contents: ${store.ctors.keys}")
+        val (pkg, mod, loc) = (name.getPackagePath, name.getModulePath, name.localName)
+        throw new ConstructorNotFound(
+          s"""Constructor mising from store:
+             |pkg : $pkg
+             |mod : $mod
+             |loc : $loc
+             |Store contents from that package:
+             |  ${store.ctors.keys.filter(_.getPackagePath == pkg).map(_.toString).mkString("\n\t")}
+             |
+             |Other Store Contents:
+             |  ${store.ctors.keys.map(_.toString).mkString("\n\t")}
+             |""".stripMargin
+        )
     }
 
   def handleField[TA, VA](
@@ -220,8 +240,15 @@ object Loop {
 
   def handleReference[TA, VA](va: VA, name: FQName, store: Store[TA, VA]): Result[TA, VA] =
     store.getDefinition(name) match {
-      case None => throw DefinitionNotFound(
-          s"name $name not found in store. Store contents: ${store.definitions.keys.map(_.toString).mkString("\n")}"
+      case None =>
+        val filtered = store.definitions.keys.filter(_.getPackagePath == name.getPackagePath)
+        val hint = if (Utils.isNative(name)) "You might be calling an unimplemented native function"
+        else "You might be calling a function not defined in the given distributions"
+        throw DefinitionNotFound(
+          s"""name $name not found in store.
+             | Hint: $hint
+             | For that package, store contains:
+             | \t${filtered.map(_.toString).mkString("\n\t")}""".stripMargin
         )
       case Some(SDKValue.SDKValueDefinition(valueDefinition)) =>
         if (valueDefinition.inputTypes.isEmpty) {

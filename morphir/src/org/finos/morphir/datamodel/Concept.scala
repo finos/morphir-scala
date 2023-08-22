@@ -1,7 +1,8 @@
 package org.finos.morphir.datamodel
 
+import org.finos.morphir.naming.FQName
 import org.finos.morphir.datamodel.Concept.Basic
-import org.finos.morphir.datamodel.namespacing.QualifiedName
+import org.finos.morphir.util.{DetailLevel, PrintMDM}
 
 import scala.annotation.tailrec
 import zio.Chunk
@@ -19,6 +20,34 @@ sealed trait Concept { self =>
     (new Concept.Collector[T](p).of(self)).run(Chunk[T]()) match {
       case (chunk, _) => chunk
     }
+
+  def getNameString: Option[String] =
+    getName.map(_.localName.toTitleCase)
+  def getName: Option[FQName] =
+    this match {
+      case _: Concept.Basic[_] => None
+      case _: Concept.Any.type => None
+      case c: Concept.Record   => Some(c.namespace)
+      case _: Concept.Struct   => None
+      case c: Concept.Alias    => Some(c.name)
+      case _: Concept.List     => None
+      case _: Concept.Map      => None
+      case _: Concept.Tuple    => None
+      case _: Concept.Optional => None
+      case _: Concept.Result   => None
+      case c: Concept.Enum     => Some(c.name)
+      case _: Concept.Union    => None
+    }
+
+  def toStringPretty: String = toStringPretty(true)
+  def toStringPretty(color: Boolean, detailLevel: DetailLevel = DetailLevel.BirdsEye): String =
+    if (color)
+      PrintMDM(this, detailLevel).toString
+    else
+      PrintMDM(this, detailLevel).plainText
+
+  def toMorphirElm: String                           = PrintSpec.of(this)
+  def writeMorphirElmFiles(path: java.nio.file.Path) = PrintSpec.writeToFiles(this, path)
 }
 
 object Concept {
@@ -60,6 +89,7 @@ object Concept {
   case object Integer   extends Basic[scala.BigInt]
   case object Int16     extends Basic[Short]
   case object Int32     extends Basic[Int]
+  case object Int64     extends Basic[Long]
   case object String    extends Basic[java.lang.String]
   case object LocalDate extends Basic[java.time.LocalDate]
   case object Month     extends Basic[java.time.Month]
@@ -68,9 +98,11 @@ object Concept {
   case object Unit      extends Basic[scala.Unit]
   case object Nothing   extends Basic[scala.Nothing]
 
-  case class Record(namespace: QualifiedName, fields: scala.List[(Label, Concept)]) extends Concept
+  case class Record(namespace: FQName, fields: scala.List[(Label, Concept)]) extends Concept {
+    def toStruct: Concept.Struct = Concept.Struct(fields: _*)
+  }
   object Record {
-    def apply(namespace: QualifiedName, fields: (Label, Concept)*) = new Record(namespace, fields.toList)
+    def apply(namespace: FQName, fields: (Label, Concept)*) = new Record(namespace, fields.toList)
   }
 
   case class Struct(fields: scala.List[(Label, Concept)]) extends Concept
@@ -78,7 +110,7 @@ object Concept {
     def apply(fields: (Label, Concept)*) = new Struct(fields.toList)
   }
 
-  case class Alias(name: QualifiedName, value: Concept) extends Concept
+  case class Alias(name: FQName, value: Concept) extends Concept
 
   case class List(elementType: Concept) extends Concept
 
@@ -102,6 +134,8 @@ object Concept {
    * Coproduct types in other languages (e.g. Haskell) work similarly.
    */
   case class Optional(elementType: Concept) extends Concept
+
+  case class Result(errType: Concept, okType: Concept) extends Concept
 
   /**
    * A discrimiated union type such as an ELM union (either with labels or not)
@@ -147,10 +181,10 @@ object Concept {
    *   )
    * }}}
    */
-  case class Enum(name: QualifiedName, cases: scala.List[Enum.Case]) extends Concept
+  case class Enum(name: FQName, cases: scala.List[Enum.Case]) extends Concept
 
   object Enum {
-    def apply(name: QualifiedName, cases: Enum.Case*) =
+    def apply(name: FQName, cases: Enum.Case*) =
       new Enum(name, cases.toList)
 
     case class Case(label: Label, fields: scala.List[(EnumLabel, Concept)])

@@ -1,10 +1,10 @@
 package org.finos
 
-import zio.prelude.*
+import zio.prelude._
 import spire.math.SafeLong
-import zio.prelude.*
-import org.finos.morphir.naming.*
-import org.finos.morphir.universe.ir.*
+import zio.prelude._
+import org.finos.morphir.naming._
+import org.finos.morphir.universe.ir._
 
 package object morphir {
 
@@ -18,8 +18,8 @@ package object morphir {
 
     implicit def fromInt(value: Int): MorphirInt          = wrap(SafeLong(value))
     implicit def fromLong(value: Long): MorphirInt        = wrap(SafeLong(value))
-    def fromMorphirInt8(value: MorphirInt8): MorphirInt   = wrap(SafeLong(value))
-    def fromMorphirInt16(value: MorphirInt16): MorphirInt = wrap(SafeLong(value))
+    def fromMorphirInt8(value: MorphirInt8): MorphirInt   = wrap(SafeLong(value.toInt))
+    def fromMorphirInt16(value: MorphirInt16): MorphirInt = wrap(SafeLong(value.toInt))
     def fromMorphirInt32(value: MorphirInt32): MorphirInt = wrap(SafeLong(value))
     def fromMorphirInt64(value: MorphirInt64): MorphirInt = wrap(SafeLong(value))
 
@@ -44,11 +44,19 @@ package object morphir {
   type MorphirInt8 = Int8.Type
   object Int8 extends Subtype[Byte] {
     def fromByte(value: Byte): MorphirInt8 = wrap(value)
+    final implicit class Int8Ops(val self: MorphirInt8) extends AnyVal {
+      def value: Byte = unwrap(self)
+      def toInt: Int  = value.toInt
+    }
   }
 
   type MorphirInt16 = Int16.Type
   object Int16 extends Subtype[Short] {
     def fromShort(value: Short): MorphirInt16 = wrap(value)
+    implicit final class Int16Ops(val self: MorphirInt16) extends AnyVal {
+      def value: Short = unwrap(self)
+      def toInt: Int   = value.toInt
+    }
   }
 
   type MorphirInt32 = MorphirInt32.Type

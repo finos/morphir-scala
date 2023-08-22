@@ -31,12 +31,12 @@ trait Kernel {
   def or(goals: List[Goal]): Goal = goals.foldLeft(Goal.fail)(Goal.or(_, _))
   def or(goals: Goal*): Goal      = or(goals.toList)
 
-  def run(constraint: Constraint, state: State): SStream = {
+  final def run(constraint: Constraint, state: State): SStream = {
     val goal = constraintConverter.convertToGoal(ConstraintModel(constraint))
     goal(state)
   }
 
-  def run(constraint: Constraint): SStream = run(constraint, State.empty)
+  final def run(constraint: Constraint): SStream = run(constraint, State.empty)
 
   def run(goal: Goal, state: State): SStream = goal(state)
   def run(goal: Goal): SStream               = run(goal, State.empty)

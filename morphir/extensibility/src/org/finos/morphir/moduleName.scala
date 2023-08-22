@@ -1,6 +1,6 @@
 package org.finos.morphir
 
-private[morphir] trait ModuleNameExports { self: NameExports with PathExports =>
+trait ModuleNameModule { self: NameModule with PathModule =>
 
   /**
    * A module name is a unique identifier for a module within a package. It is represented by a `Path`, which is a
@@ -18,6 +18,10 @@ private[morphir] trait ModuleNameExports { self: NameExports with PathExports =>
     def /(name: Name): ModuleName = ModuleName(path / name)
     /// Construct a new module name by concatting the given local name to this module name.
     def /(name: String): ModuleName = ModuleName(path / Name(name))
+
+    // Need a non-symbolic version of this for QualifiedModuleName, strange compilation errors
+    // happen in QualifiedModuleName./(str: String) implementation when using `moduleName / str` otherwise
+    def addPart(name: String): ModuleName = ModuleName(path / Name(name))
 
     /// Check if the module name is empty.
     @inline def isEmpty: Boolean = path.isEmpty
@@ -49,6 +53,10 @@ private[morphir] trait ModuleNameExports { self: NameExports with PathExports =>
     def apply(input: String): ModuleName = fromString(input)
 
     def fromString(input: String): ModuleName = ModuleName(Path.fromString(input))
+
+    def apply(parts: Name*): ModuleName                    = ModuleName(Path.fromIterable(parts))
+    def fromIterable(segments: Iterable[Name]): ModuleName = ModuleName(Path.fromIterable(segments))
+    def fromStrings(parts: String*): ModuleName            = ModuleName(Path.fromStrings(parts: _*))
   }
 
 }

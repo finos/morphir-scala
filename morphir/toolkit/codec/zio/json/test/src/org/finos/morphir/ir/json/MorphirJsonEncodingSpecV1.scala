@@ -2,17 +2,13 @@ package org.finos.morphir
 package ir
 package json
 
+import org.finos.morphir.naming._
 import zio._
 import zio.json._
 import org.finos.morphir.ir.distribution.Distribution._
 import org.finos.morphir.ir.Literal.Literal
 import org.finos.morphir.ir.Literal.Literal._
-import org.finos.morphir.ir.Module.{
-  Definition => ModuleDefinition,
-  QualifiedModuleName,
-  ModuleName,
-  Specification => ModuleSpecification
-}
+import org.finos.morphir.ir.Module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 import org.finos.morphir.ir.PackageModule.{
   Definition => PackageDefinition,
   Specification => PackageSpecification,
@@ -55,7 +51,7 @@ object MorphirJsonEncodingSpecV1 extends MorphirJsonBaseSpec {
         assert(actual.toJson)(stringEqualTo(expected))
       },
       test("will encode a Name fromList") {
-        val actual   = Name.fromList(List("This", "is", "a", "list"))
+        val actual   = Name.fromList(List("this", "is", "a", "list"))
         val expected = """["this","is","a","list"]"""
         assert(actual.toJson)(stringEqualTo(expected))
       }
@@ -78,17 +74,17 @@ object MorphirJsonEncodingSpecV1 extends MorphirJsonBaseSpec {
       }
     ),
     suite("ModuleName")(
-      test("will encode an empty Path") {
+      test("will encode an empty ModuleName") {
         val actual   = ModuleName(Path.empty)
         val expected = "[]"
         assert(actual.toJson)(stringEqualTo(expected))
       },
-      test("will encode a simple Path") {
+      test("will encode a simple ModuleName") {
         val actual   = ModuleName(Path.fromString("org"))
         val expected = """[["org"]]"""
         assert(actual.toJson)(stringEqualTo(expected))
       },
-      test("will encode a Path") {
+      test("will encode a ModuleName") {
         val actual   = ModuleName(Path.fromString("org.foo.bar"))
         val expected = """[["org"],["foo"],["bar"]]"""
         assert(actual.toJson)(stringEqualTo(expected))
@@ -113,18 +109,18 @@ object MorphirJsonEncodingSpecV1 extends MorphirJsonBaseSpec {
     ),
     suite("QualifiedModuleName")(
       test("will encode an empty QualifiedModuleName") {
-        val actual   = QualifiedModuleName(Path.empty, Name.empty)
+        val actual   = QualifiedModuleName(Path.empty, Path.empty)
         val expected = "[[],[]]"
         assert(actual.toJson)(stringEqualTo(expected))
       },
       test("will encode a simple QualifiedModuleName") {
-        val actual   = QualifiedModuleName(Path.fromString("org"), Name.fromString("SrcTest"))
-        val expected = """[[["org"]],["src","test"]]"""
+        val actual   = QualifiedModuleName(Path.fromString("org"), Path.fromString("SrcTest"))
+        val expected = """[[["org"]],[["src","test"]]]"""
         assert(actual.toJson)(stringEqualTo(expected))
       },
       test("will encode a QualifiedModuleName") {
-        val actual   = QualifiedModuleName(Path.fromString("src.test.scala"), Name.fromString("SrcTest"))
-        val expected = """[[["src"],["test"],["scala"]],["src","test"]]"""
+        val actual   = QualifiedModuleName(Path.fromString("src.test.scala"), Path.fromString("SrcTest"))
+        val expected = """[[["src"],["test"],["scala"]],[["src","test"]]]"""
         assert(actual.toJson)(stringEqualTo(expected))
       }
     ),
@@ -142,7 +138,7 @@ object MorphirJsonEncodingSpecV1 extends MorphirJsonBaseSpec {
     ),
     suite("FQName")(
       test("will encode an empty FQName") {
-        val actual   = FQName(Path.empty, Path.empty, Name.empty)
+        val actual   = FQName.empty
         val expected = "[[],[],[]]"
         assert(actual.toJson)(stringEqualTo(expected))
       },

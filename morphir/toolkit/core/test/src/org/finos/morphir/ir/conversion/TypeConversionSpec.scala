@@ -4,18 +4,16 @@ package conversion
 
 import org.finos.morphir.datamodel.{Concept, Label}
 import org.finos.morphir.ir.{Type => T, Value => V}
-import org.finos.morphir.ir.FQName.fqn
 import org.finos.morphir.ir.Type.UType
+import org.finos.morphir.naming._
+import org.finos.morphir.naming.FQName.fqn
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.Chunk
 import zio.test._
-import org.finos.morphir.datamodel.namespacing.*
-import org.finos.morphir.datamodel.namespacing.Namespace.ns
-import org.finos.morphir.datamodel.namespacing.PackageName.root
 
 object TypeConversionSpec extends MorphirBaseSpec {
   object pn {
-    val morphirIR: PartialName = root / "Morphir" % ns / "IR"
+    val morphirIR: QualifiedModuleName = root / "Morphir" % "IR"
   }
 
   def spec = suite("TypeConversion Spec")(
@@ -46,7 +44,7 @@ object TypeConversionSpec extends MorphirBaseSpec {
     },
     test("Should be possible to convert a Scala List[Int] type to a Morphir List[Int] type") {
       val morphirType = ToMorphirType.summon[scala.List[Int]].withAttributesOf.morphirType
-      assertTrue(morphirType == sdk.List.listType(sdk.Int.int32Type))
+      assertTrue(morphirType == sdk.List.listType(sdk.Basics.intType))
     }
   )
 
@@ -77,7 +75,7 @@ object TypeConversionSpec extends MorphirBaseSpec {
     },
     test("Should be possible to convert a Concept Int32 type to a Morphir Integer type") {
       val morphirType = ToMorphirType.summon[Concept].withAttributesOf(Concept.Int32).morphirType
-      assertTrue(morphirType == sdk.Int.int32Type)
+      assertTrue(morphirType == sdk.Basics.intType)
     },
     test("Should be possible to convert a Concept String type to a Morphir String type") {
       val morphirType = ToMorphirType.summon[Concept].withAttributesOf(Concept.String).morphirType
@@ -145,7 +143,7 @@ object TypeConversionSpec extends MorphirBaseSpec {
         val recordName    = pn.morphirIR % "Record1"
         val conceptRecord = Concept.Record(recordName, List(Label("1") -> Concept.String, Label("2") -> Concept.Char))
         val morphirType   = ToMorphirType.summon[Concept].withAttributesOf(conceptRecord).morphirType
-        assertTrue(morphirType == T.record(Chunk("1" -> sdk.String.stringType, "2" -> sdk.Char.charType): _*))
+        assertTrue(morphirType == T.reference(recordName))
       }
     ),
     suite("Concept.Map")(
@@ -176,18 +174,18 @@ object TypeConversionSpec extends MorphirBaseSpec {
         assertTrue(morphirType == T.reference(fqn("Morphir", "IR.Testing", "SomeType")))
       },
       test("Should be possible to convert a complex Concept Alias type to a Morphir type") {
-        val name        = root / "Morphir" / "IR" / "Test" % ns / "Aliasing" % "SomeType"
+        val name        = root / "Morphir" / "IR" / "Test" % "Aliasing" % "SomeType"
         val fqName      = fqn("Morphir.IR.Test", "Aliasing", "SomeType")
         val concept     = Concept.Alias(name, Concept.Map(Concept.String, Concept.List(Concept.Integer)))
         val morphirType = ToMorphirType.summon[Concept].withAttributesOf(concept).morphirType
         assertTrue(morphirType == T.reference(fqName))
       },
       test("Should be possible to convert a nested Concept Alias type to a Morphir type") {
-        val partial: PartialName = root / "Morphir" / "IR" / "Test" % ns / "Aliasing"
-        val name                 = partial                          % localName("SomeType")
-        val fqName               = fqn("Morphir.IR.Test", "Aliasing", "SomeType")
-        val concept              = Concept.Alias(name, Concept.Alias(partial % "OtherAlias", Concept.String))
-        val morphirType          = ToMorphirType.summon[Concept].withAttributesOf(concept).morphirType
+        val partial: QualifiedModuleName = root / "Morphir" / "IR" / "Test" % "Aliasing"
+        val name                         = partial                          % Name.fromString("SomeType")
+        val fqName                       = fqn("Morphir.IR.Test", "Aliasing", "SomeType")
+        val concept                      = Concept.Alias(name, Concept.Alias(partial % "OtherAlias", Concept.String))
+        val morphirType                  = ToMorphirType.summon[Concept].withAttributesOf(concept).morphirType
         assertTrue(morphirType == T.reference(fqName))
       }
     )

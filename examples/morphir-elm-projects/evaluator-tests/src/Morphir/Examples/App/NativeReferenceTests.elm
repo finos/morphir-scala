@@ -8,6 +8,8 @@ module Morphir.Examples.App.NativeReferenceTests exposing (..)
 -}
 
 import List exposing (map)
+import Morphir.SDK.LocalDate exposing (LocalDate)
+import Morphir.SDK.LocalTime exposing (LocalTime)
         
 --Test: NativeReference/Map
 --import List exposing (map)
@@ -52,3 +54,9 @@ nativeReferenceModByTest : Int -> Int
 nativeReferenceModByTest x = 
     modBy 3 x
 --expected = x % 3
+
+localDatePassthrough : LocalDate -> LocalDate
+localDatePassthrough x = x
+
+localTimePassthrough : LocalTime -> LocalTime
+localTimePassthrough x = x

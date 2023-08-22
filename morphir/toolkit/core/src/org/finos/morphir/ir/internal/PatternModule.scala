@@ -3,6 +3,7 @@ package ir
 package internal
 
 import org.finos.morphir.naming._
+import scala.annotation.unused
 import zio.Chunk
 import Literal.Literal
 import PatternModule._
@@ -46,7 +47,9 @@ trait PatternModule { module =>
       name = alias
     )
 
-  def asPattern[A](attributes: A, pattern: Pattern[A], name: Name)(implicit ev: NeedsAttributes[A]): Pattern[A] =
+  def asPattern[A](attributes: A, pattern: Pattern[A], name: Name)(implicit
+      @unused ev: NeedsAttributes[A]
+  ): Pattern[A] =
     AsPattern(attributes, pattern, name)
 
   final def asPattern[A](attributes: A, pattern: Pattern[A], alias: String): Pattern[A] =
@@ -165,7 +168,9 @@ trait PatternModule { module =>
   final def tuplePattern[A](attributes: A, patterns: Chunk[Pattern[A]]): Pattern[A] =
     Pattern.TuplePattern(attributes = attributes, elementPatterns = patterns)
 
-  final def tuplePattern[A](attributes: A, patterns: Pattern[A]*)(implicit ev: Not[A <:< Pattern[_]]): Pattern[A] =
+  final def tuplePattern[A](attributes: A, patterns: Pattern[A]*)(implicit
+      @unused ev: Not[A <:< Pattern[_]]
+  ): Pattern[A] =
     Pattern.TuplePattern(attributes = attributes, elementPatterns = Chunk.fromIterable(patterns))
 
   final def tuplePattern(patterns: Chunk[UPattern]): UPattern =
@@ -177,8 +182,9 @@ trait PatternModule { module =>
   final def unitPattern: UPattern                     = Pattern.UnitPattern(())
   final def unitPattern[A](attributes: A): Pattern[A] = Pattern.UnitPattern(attributes)
 
-  def wildcardPattern[A](attributes: A)(implicit ev: NeedsAttributes[A]): Pattern[A] = WildcardPattern(attributes)
-  lazy val wildcardPattern: UPattern                                                 = WildcardPattern(())
+  def wildcardPattern[A](attributes: A)(implicit @unused ev: NeedsAttributes[A]): Pattern[A] =
+    WildcardPattern(attributes)
+  lazy val wildcardPattern: UPattern = WildcardPattern(())
 
   final def toString[A](pattern: Pattern[A]): String = pattern.toString()
 

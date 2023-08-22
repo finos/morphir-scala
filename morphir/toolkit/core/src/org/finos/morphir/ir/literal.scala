@@ -2,6 +2,7 @@ package org.finos.morphir
 package ir
 
 import java.math.{BigDecimal => BigDec}
+import scala.annotation.unused
 import Type.UType
 import Value.{RawValue, TypedValue, Value, literal}
 import Value.{Definition => ValueDefinition}
@@ -23,7 +24,7 @@ object Literal { module =>
     Literal.DecimalLiteral(BigDecimal(value))
   def floatLiteral(value: Double): Literal     = Literal.FloatLiteral(value)
   def floatLiteral(value: Float): Literal      = Literal.FloatLiteral(value.toDouble)
-  def intLiteral(value: Int): Literal          = Literal.WholeNumberLiteral(value)
+  def intLiteral(value: Int): Literal          = Literal.WholeNumberLiteral(value.toLong)
   def stringLiteral(value: String): Literal    = Literal.StringLiteral(value)
   def wholeNumberLiteral(value: Long): Literal = Literal.WholeNumberLiteral(value)
 
@@ -47,7 +48,7 @@ object Literal { module =>
       case WholeNumberLiteral(value) => value.toString()
     }
 
-    final def toTypedValue(implicit ev: InferredTypeOf[Literal]): Value.TypedValue =
+    final def toTypedValue(implicit @unused ev: InferredTypeOf[Literal]): Value.TypedValue =
       literal(inferredType, self)
 
     final def toValueDef: ValueDefinition[Unit, UType] = ValueDefinition.fromLiteral(self)
@@ -63,7 +64,7 @@ object Literal { module =>
     def double(value: Double): Literal  = FloatLiteral(value)
     def float(value: Double): Literal   = FloatLiteral(value)
     def float(value: Float): Literal    = FloatLiteral(value.toDouble)
-    def int(value: Int): Literal        = WholeNumberLiteral(value)
+    def int(value: Int): Literal        = WholeNumberLiteral(value.toLong)
     def long(value: Long): Literal      = WholeNumberLiteral(value)
     def string(value: String): Literal  = StringLiteral(value)
     def wholeNumber(value: Long): Literal =

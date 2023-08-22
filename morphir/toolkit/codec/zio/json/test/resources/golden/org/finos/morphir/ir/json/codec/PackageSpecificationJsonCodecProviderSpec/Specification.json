@@ -6,25 +6,25 @@
           [
             [
               "beta",
-              "december",
+              "December",
               "benchmark"
             ],
             [
-              "june",
-              "february",
+              "June",
+              "February",
               "state",
               "minute"
             ],
             [
               "time",
-              "march",
+              "March",
               "world"
             ],
             [
-              "april",
-              "april",
-              "december",
-              "october"
+              "April",
+              "April",
+              "December",
+              "October"
             ]
           ],
           {
@@ -35,7 +35,7 @@
                   "zeta",
                   "eta",
                   "zeta",
-                  "september"
+                  "September"
                 ],
                 {
                   "doc" : "April",
@@ -46,7 +46,7 @@
                         "alpha",
                         "upsilon",
                         "psi",
-                        "june",
+                        "June",
                         "company"
                       ],
                       [
@@ -63,7 +63,7 @@
               ],
               [
                 [
-                  "january",
+                  "January",
                   "state",
                   "nu",
                   "rho"
@@ -78,26 +78,26 @@
                       ],
                       [
                         "omicron",
-                        "november",
+                        "November",
                         "pi",
                         "id"
                       ],
                       [
-                        "august",
-                        "february",
-                        "june"
+                        "August",
+                        "February",
+                        "June"
                       ]
                     ],
                     [
                       [
                         [
-                          "june",
+                          "June",
                           "left"
                         ],
                         [
                           [
                             [
-                              "february"
+                              "February"
                             ],
                             [
                               "Tuple",
@@ -120,7 +120,7 @@
                                     "March"
                                   ],
                                   [
-                                    "april",
+                                    "April",
                                     "system"
                                   ]
                                 ]
@@ -129,8 +129,8 @@
                           ],
                           [
                             [
-                              "february",
-                              "february"
+                              "February",
+                              "February"
                             ],
                             [
                               "Unit",
@@ -202,11 +202,11 @@
         [
           [
             [
-              "december",
+              "December",
               "id",
-              "october",
-              "april",
-              "january"
+              "October",
+              "April",
+              "January"
             ]
           ],
           {
@@ -215,9 +215,9 @@
                 [
                   "home",
                   "xi",
-                  "november",
+                  "November",
                   "minute",
-                  "june"
+                  "June"
                 ],
                 {
                   "doc" : "July",
@@ -226,7 +226,7 @@
                     [
                       [
                         "tau",
-                        "april"
+                        "April"
                       ],
                       [
                         "id",
@@ -245,21 +245,21 @@
                             "phi"
                           ],
                           [
-                            "april",
+                            "April",
                             "eta"
                           ],
                           [
-                            "november"
+                            "November"
                           ],
                           [
                             "time",
-                            "october",
+                            "October",
                             "beta",
                             "zeta",
                             "pi"
                           ],
                           [
-                            "october",
+                            "October",
                             "minute",
                             "beta",
                             "country",
@@ -268,24 +268,24 @@
                         ],
                         [
                           [
-                            "november",
-                            "november",
+                            "November",
+                            "November",
                             "delta",
-                            "november",
+                            "November",
                             "lambda"
                           ],
                           [
                             "entity",
-                            "february",
+                            "February",
                             "system",
                             "title",
                             "phi"
                           ],
                           [
                             "country",
-                            "october",
-                            "october",
-                            "january",
+                            "October",
+                            "October",
+                            "January",
                             "psi"
                           ],
                           [
@@ -293,7 +293,7 @@
                             "xi"
                           ],
                           [
-                            "february",
+                            "February",
                             "beta"
                           ]
                         ],
@@ -333,7 +333,7 @@
                 [
                   "country",
                   "benchmark",
-                  "june",
+                  "June",
                   "iota"
                 ],
                 {
@@ -352,7 +352,7 @@
                           ],
                           [
                             "iota",
-                            "october",
+                            "October",
                             "family",
                             "psi",
                             "part"
@@ -369,9 +369,9 @@
                       [
                         [
                           [
-                            "september",
+                            "September",
                             "iota",
-                            "july"
+                            "July"
                           ],
                           [
                             "epsilon"
@@ -381,7 +381,7 @@
                           [
                             "minute",
                             "theta",
-                            "march",
+                            "March",
                             "fact"
                           ],
                           [
@@ -392,15 +392,15 @@
                             "upsilon"
                           ],
                           [
-                            "august"
+                            "August"
                           ]
                         ],
                         [
                           "money",
                           "id",
-                          "august",
+                          "August",
                           "id",
-                          "february"
+                          "February"
                         ]
                       ],
                       [
@@ -437,7 +437,7 @@
           [
             [
               "group",
-              "september"
+              "September"
             ],
             [
               "family",
@@ -448,13 +448,13 @@
             ],
             [
               "epsilon",
-              "november",
+              "November",
               "source",
-              "april"
+              "April"
             ],
             [
-              "september",
-              "january"
+              "September",
+              "January"
             ]
           ],
           {
@@ -470,8 +470,8 @@
                     "OpaqueTypeSpecification",
                     [
                       [
-                        "october",
-                        "may",
+                        "October",
+                        "May",
                         "book",
                         "right"
                       ]
@@ -481,8 +481,8 @@
               ],
               [
                 [
-                  "december",
-                  "march",
+                  "December",
+                  "March",
                   "minute"
                 ],
                 {
@@ -491,13 +491,13 @@
                     "TypeAliasSpecification",
                     [
                       [
-                        "december",
+                        "December",
                         "xi",
                         "chi"
                       ],
                       [
                         "day",
-                        "march"
+                        "March"
                       ]
                     ],
                     [
@@ -511,7 +511,7 @@
                           [
                             "owner",
                             "lambda",
-                            "september",
+                            "September",
                             "delta",
                             "psi"
                           ],
@@ -523,12 +523,12 @@
                           ],
                           [
                             "week",
-                            "october",
-                            "june"
+                            "October",
+                            "June"
                           ],
                           [
                             "valid",
-                            "october",
+                            "October",
                             "lot",
                             "problem",
                             "system"
@@ -543,16 +543,16 @@
                             "description"
                           ],
                           [
-                            "november",
+                            "November",
                             "epsilon",
                             "state",
-                            "september"
+                            "September"
                           ],
                           [
                             "world",
                             "book",
                             "lambda",
-                            "february",
+                            "February",
                             "nu"
                           ]
                         ],
@@ -572,26 +572,26 @@
                           [
                             [
                               [
-                                "january",
-                                "december",
+                                "January",
+                                "December",
                                 "number",
                                 "beta",
-                                "june"
+                                "June"
                               ],
                               [
                                 "tau",
-                                "july"
+                                "July"
                               ],
                               [
                                 "psi",
                                 "source",
                                 "gamma",
                                 "omega",
-                                "november"
+                                "November"
                               ],
                               [
                                 "eta",
-                                "february",
+                                "February",
                                 "lambda",
                                 "beta"
                               ]
@@ -601,14 +601,14 @@
                                 "theta",
                                 "rate",
                                 "eta",
-                                "february",
-                                "march"
+                                "February",
+                                "March"
                               ]
                             ],
                             [
                               "title",
                               "name",
-                              "june",
+                              "June",
                               "zeta"
                             ]
                           ],
@@ -657,7 +657,7 @@
                             8954355850259526562
                           ],
                           [
-                            "september",
+                            "September",
                             "name",
                             "kappa",
                             "parent"
@@ -673,9 +673,9 @@
               [
                 [
                   "zeta",
-                  "june",
-                  "february",
-                  "april"
+                  "June",
+                  "February",
+                  "April"
                 ],
                 {
                   "doc" : "source",
@@ -696,18 +696,18 @@
                             "number"
                           ],
                           [
-                            "march",
+                            "March",
                             "delta",
                             "gamma",
                             "parent",
-                            "february"
+                            "February"
                           ]
                         ]
                       ],
                       [
                         [
-                          "may",
-                          "july",
+                          "May",
+                          "July",
                           "owner",
                           "phi"
                         ],
@@ -718,8 +718,8 @@
                             false
                           ],
                           [
-                            "september",
-                            "august",
+                            "September",
+                            "August",
                             "description"
                           ]
                         ]
@@ -741,7 +741,7 @@
                           [
                             "system",
                             "fact",
-                            "february",
+                            "February",
                             "psi",
                             "left"
                           ]
@@ -770,23 +770,23 @@
             [
               "pi",
               "number",
-              "september",
+              "September",
               "omega",
-              "august"
+              "August"
             ],
             [
-              "august",
+              "August",
               "theta",
-              "february"
+              "February"
             ],
             [
-              "november",
+              "November",
               "group"
             ],
             [
               "parent",
               "work",
-              "october",
+              "October",
               "iota",
               "rate"
             ],
@@ -802,9 +802,9 @@
             "types" : [
               [
                 [
-                  "december",
-                  "september",
-                  "september",
+                  "December",
+                  "September",
+                  "September",
                   "chi",
                   "business"
                 ],
@@ -817,18 +817,18 @@
                         "iota"
                       ],
                       [
-                        "december",
+                        "December",
                         "job",
-                        "june",
-                        "may",
-                        "july"
+                        "June",
+                        "May",
+                        "July"
                       ]
                     ],
                     [
                       [
                         [
                           "description",
-                          "february",
+                          "February",
                           "system",
                           "theta",
                           "zeta"
@@ -836,8 +836,8 @@
                         [
                           [
                             [
-                              "august",
-                              "october"
+                              "August",
+                              "October"
                             ],
                             [
                               "Variable",
@@ -848,9 +848,9 @@
                               [
                                 "world",
                                 "country",
-                                "september",
+                                "September",
                                 "book",
-                                "may"
+                                "May"
                               ]
                             ]
                           ]
@@ -863,9 +863,9 @@
                         [
                           [
                             [
-                              "april",
-                              "april",
-                              "december",
+                              "April",
+                              "April",
+                              "December",
                               "theta",
                               "kappa"
                             ],
@@ -907,7 +907,7 @@
               ],
               [
                 [
-                  "december",
+                  "December",
                   "government",
                   "currency",
                   "upsilon",
@@ -922,7 +922,7 @@
                         "currency",
                         "lambda",
                         "book",
-                        "november"
+                        "November"
                       ]
                     ],
                     [
@@ -952,8 +952,8 @@
                       [
                         [
                           "number",
-                          "july",
-                          "december"
+                          "July",
+                          "December"
                         ],
                         [
                           "Unit",
@@ -965,7 +965,7 @@
                       ],
                       [
                         [
-                          "october",
+                          "October",
                           "state"
                         ],
                         [
@@ -997,7 +997,7 @@
         [
           [
             [
-              "september"
+              "September"
             ]
           ],
           {
@@ -1015,11 +1015,11 @@
                     "TypeAliasSpecification",
                     [
                       [
-                        "october",
+                        "October",
                         "id",
-                        "october",
-                        "november",
-                        "june"
+                        "October",
+                        "November",
+                        "June"
                       ]
                     ],
                     [
@@ -1034,11 +1034,11 @@
                       [
                         {
                           "name" : [
-                            "september",
+                            "September",
                             "eta",
                             "number",
                             "beta",
-                            "may"
+                            "May"
                           ],
                           "tpe" : [
                             "Unit",
@@ -1057,7 +1057,7 @@
                 [
                   "phi",
                   "omicron",
-                  "february",
+                  "February",
                   "rho"
                 ],
                 {
@@ -1087,7 +1087,7 @@
                   "sigma",
                   "market",
                   "phi",
-                  "january"
+                  "January"
                 ],
                 {
                   "doc" : "book",
@@ -1095,7 +1095,7 @@
                     "inputs" : [
                       [
                         [
-                          "december"
+                          "December"
                         ],
                         [
                           "Unit",
@@ -1114,7 +1114,7 @@
                       ],
                       [
                         "source",
-                        "march",
+                        "March",
                         "phi",
                         "omicron",
                         "omicron"
@@ -1130,13 +1130,13 @@
           [
             [
               "upsilon",
-              "february",
+              "February",
               "beta",
               "eta"
             ],
             [
               "psi",
-              "november",
+              "November",
               "omicron",
               "sigma",
               "to"
@@ -1146,7 +1146,7 @@
             "types" : [
               [
                 [
-                  "february"
+                  "February"
                 ],
                 {
                   "doc" : "December",
@@ -1161,7 +1161,7 @@
                     [
                       [
                         [
-                          "june"
+                          "June"
                         ],
                         [
                           [
@@ -1175,14 +1175,14 @@
                                 "valid"
                               ],
                               [
-                                "september",
+                                "September",
                                 "fact"
                               ],
                               [
                                 {
                                   "name" : [
                                     "source",
-                                    "august",
+                                    "August",
                                     "time",
                                     "alpha"
                                   ],
@@ -1209,7 +1209,7 @@
                               "lambda",
                               "tau",
                               "omega",
-                              "september"
+                              "September"
                             ],
                             [
                               "Reference",
@@ -1221,7 +1221,7 @@
                                 [
                                   [
                                     "valid",
-                                    "january"
+                                    "January"
                                   ],
                                   [
                                     "iota"
@@ -1229,22 +1229,22 @@
                                 ],
                                 [
                                   [
-                                    "november",
+                                    "November",
                                     "time",
                                     "month"
                                   ],
                                   [
                                     "phi",
                                     "rho",
-                                    "may",
+                                    "May",
                                     "source"
                                   ],
                                   [
-                                    "july"
+                                    "July"
                                   ]
                                 ],
                                 [
-                                  "november",
+                                  "November",
                                   "beta"
                                 ]
                               ],
@@ -1256,7 +1256,7 @@
                                     true
                                   ],
                                   [
-                                    "june"
+                                    "June"
                                   ]
                                 ],
                                 [
@@ -1298,7 +1298,7 @@
                             "lot"
                           ],
                           [
-                            "july",
+                            "July",
                             "currency",
                             "system",
                             "rho",
@@ -1336,13 +1336,13 @@
                             "psi"
                           ],
                           [
-                            "february",
-                            "july",
+                            "February",
+                            "July",
                             "title",
-                            "march"
+                            "March"
                           ],
                           [
-                            "december",
+                            "December",
                             "area"
                           ],
                           [
@@ -1356,13 +1356,13 @@
                             "upsilon",
                             "area",
                             "mu",
-                            "february"
+                            "February"
                           ],
                           [
-                            "august"
+                            "August"
                           ],
                           [
-                            "august",
+                            "August",
                             "name"
                           ],
                           [
@@ -1370,17 +1370,17 @@
                           ],
                           [
                             "chi",
-                            "september",
+                            "September",
                             "owner",
                             "book",
                             "theta"
                           ]
                         ],
                         [
-                          "february",
-                          "february",
+                          "February",
+                          "February",
                           "rate",
-                          "october"
+                          "October"
                         ]
                       ],
                       [
@@ -1396,8 +1396,8 @@
                                 "state",
                                 "lambda",
                                 "job",
-                                "january",
-                                "november"
+                                "January",
+                                "November"
                               ],
                               "tpe" : [
                                 "Unit",
@@ -1420,13 +1420,13 @@
                                 [
                                   [
                                     [
-                                      "november",
+                                      "November",
                                       "rate",
                                       "theta",
                                       "part"
                                     ],
                                     [
-                                      "august",
+                                      "August",
                                       "problem",
                                       "lambda",
                                       "day",
@@ -1434,10 +1434,10 @@
                                     ],
                                     [
                                       "currency",
-                                      "january",
-                                      "february",
+                                      "January",
+                                      "February",
                                       "fact",
-                                      "may"
+                                      "May"
                                     ]
                                   ],
                                   [
@@ -1448,7 +1448,7 @@
                                     ],
                                     [
                                       "rho",
-                                      "may",
+                                      "May",
                                       "mu",
                                       "entity"
                                     ],
@@ -1465,15 +1465,15 @@
                                       "beta"
                                     ],
                                     [
-                                      "march",
-                                      "september",
-                                      "march",
+                                      "March",
+                                      "September",
+                                      "March",
                                       "gamma"
                                     ]
                                   ],
                                   [
                                     "market",
-                                    "april",
+                                    "April",
                                     "tau",
                                     "right"
                                   ]
@@ -1488,7 +1488,7 @@
                                     [
                                       {
                                         "name" : [
-                                          "january",
+                                          "January",
                                           "time"
                                         ],
                                         "tpe" : [
@@ -1500,7 +1500,7 @@
                                           [
                                             "chi",
                                             "epsilon",
-                                            "june"
+                                            "June"
                                           ]
                                         ]
                                       }
@@ -1518,7 +1518,7 @@
               ],
               [
                 [
-                  "november",
+                  "November",
                   "iota",
                   "mu",
                   "from",
@@ -1541,10 +1541,10 @@
                             "o"
                           ],
                           [
-                            "september",
+                            "September",
                             "kappa",
-                            "march",
-                            "april"
+                            "March",
+                            "April"
                           ]
                         ]
                       ]
@@ -1559,7 +1559,7 @@
                         "kappa",
                         "epsilon",
                         "rho",
-                        "july"
+                        "July"
                       ]
                     ]
                   }
@@ -1575,11 +1575,11 @@
         [
           [
             [
-              "december",
+              "December",
               "part",
               "omicron",
               "business",
-              "december"
+              "December"
             ],
             [
               "phi",
@@ -1589,14 +1589,14 @@
               "omega"
             ],
             [
-              "november",
-              "june",
-              "december",
+              "November",
+              "June",
+              "December",
               "time"
             ],
             [
               "number",
-              "june",
+              "June",
               "job",
               "currency"
             ],
@@ -1618,7 +1618,7 @@
                       [
                         "right",
                         "work",
-                        "june"
+                        "June"
                       ],
                       [
                         "family",
@@ -1632,7 +1632,7 @@
                         "-9031992820469128596"
                       ],
                       [
-                        "december",
+                        "December",
                         "pi",
                         "time"
                       ]
@@ -1645,7 +1645,7 @@
               [
                 [
                   "work",
-                  "february",
+                  "February",
                   "government",
                   "rho"
                 ],
@@ -1656,7 +1656,7 @@
                       [
                         [
                           "id",
-                          "september",
+                          "September",
                           "epsilon"
                         ],
                         [
@@ -1666,7 +1666,7 @@
                             "`"
                           ],
                           [
-                            "november",
+                            "November",
                             "year",
                             "rate"
                           ]
@@ -1710,14 +1710,14 @@
                       [
                         "psi",
                         "delta",
-                        "february",
-                        "december",
+                        "February",
+                        "December",
                         "lambda"
                       ],
                       [
                         "tau",
                         "week",
-                        "november"
+                        "November"
                       ]
                     ]
                   ]
@@ -1726,8 +1726,8 @@
               [
                 [
                   "parent",
-                  "june",
-                  "may",
+                  "June",
+                  "May",
                   "rho"
                 ],
                 {
@@ -1737,17 +1737,17 @@
                     [
                       [
                         "money",
-                        "february"
+                        "February"
                       ],
                       [
                         "country",
                         "pi",
-                        "november",
+                        "November",
                         "lot"
                       ],
                       [
-                        "march",
-                        "january",
+                        "March",
+                        "January",
                         "omega",
                         "lambda"
                       ]
@@ -1774,7 +1774,7 @@
                                   "name" : [
                                     "market",
                                     "rho",
-                                    "january",
+                                    "January",
                                     "week",
                                     "iota"
                                   ],
@@ -1794,9 +1794,9 @@
                           ],
                           [
                             [
-                              "november",
-                              "july",
-                              "november"
+                              "November",
+                              "July",
+                              "November"
                             ],
                             [
                               "Unit",
@@ -1818,7 +1818,7 @@
                 [
                   "delta",
                   "name",
-                  "march"
+                  "March"
                 ],
                 {
                   "doc" : "company",
@@ -1826,9 +1826,9 @@
                     "inputs" : [
                       [
                         [
-                          "february",
-                          "july",
-                          "october",
+                          "February",
+                          "July",
+                          "October",
                           "omega"
                         ],
                         [
@@ -1839,13 +1839,13 @@
                           ],
                           [
                             "company",
-                            "august"
+                            "August"
                           ]
                         ]
                       ],
                       [
                         [
-                          "april"
+                          "April"
                         ],
                         [
                           "Unit",
@@ -1877,18 +1877,18 @@
           [
             [
               "valid",
-              "august",
-              "july"
+              "August",
+              "July"
             ],
             [
               "to",
               "name",
-              "march",
+              "March",
               "name"
             ],
             [
-              "september",
-              "march",
+              "September",
+              "March",
               "country"
             ]
           ],
@@ -1897,8 +1897,8 @@
               [
                 [
                   "company",
-                  "june",
-                  "november",
+                  "June",
+                  "November",
                   "delta"
                 ],
                 {
@@ -1911,8 +1911,8 @@
                       ],
                       [
                         "year",
-                        "february",
-                        "may"
+                        "February",
+                        "May"
                       ]
                     ]
                   ]
@@ -1929,7 +1929,7 @@
                     "TypeAliasSpecification",
                     [
                       [
-                        "may"
+                        "May"
                       ],
                       [
                         "number",
@@ -1946,8 +1946,8 @@
                         false
                       ],
                       [
-                        "july",
-                        "july"
+                        "July",
+                        "July"
                       ]
                     ]
                   ]
@@ -1959,8 +1959,8 @@
                 [
                   "epsilon",
                   "description",
-                  "may",
-                  "september",
+                  "May",
+                  "September",
                   "name"
                 ],
                 {
@@ -1969,7 +1969,7 @@
                     "inputs" : [
                       [
                         [
-                          "february"
+                          "February"
                         ],
                         [
                           "Variable",
@@ -1979,7 +1979,7 @@
                           ],
                           [
                             "year",
-                            "may"
+                            "May"
                           ]
                         ]
                       ]
@@ -2002,7 +2002,7 @@
               [
                 [
                   "group",
-                  "april",
+                  "April",
                   "rho"
                 ],
                 {
@@ -2024,8 +2024,8 @@
                             "to",
                             "system",
                             "alpha",
-                            "june",
-                            "october"
+                            "June",
+                            "October"
                           ],
                           [
                             {
@@ -2044,9 +2044,9 @@
                             {
                               "name" : [
                                 "sigma",
-                                "may",
+                                "May",
                                 "part",
-                                "october"
+                                "October"
                               ],
                               "tpe" : [
                                 "Variable",
@@ -2056,8 +2056,8 @@
                                 ],
                                 [
                                   "problem",
-                                  "june",
-                                  "august",
+                                  "June",
+                                  "August",
                                   "family"
                                 ]
                               ]
@@ -2068,7 +2068,7 @@
                       [
                         [
                           "epsilon",
-                          "july",
+                          "July",
                           "kappa",
                           "world",
                           "theta"
@@ -2081,8 +2081,8 @@
                           ],
                           [
                             "alpha",
-                            "september",
-                            "january",
+                            "September",
+                            "January",
                             "beta"
                           ]
                         ]
@@ -2109,13 +2109,13 @@
           [
             [
               "day",
-              "november",
-              "september",
-              "october"
+              "November",
+              "September",
+              "October"
             ],
             [
               "job",
-              "november"
+              "November"
             ]
           ],
           {
@@ -2135,8 +2135,8 @@
                         "tau",
                         "parent",
                         "mu",
-                        "august",
-                        "september"
+                        "August",
+                        "September"
                       ],
                       [
                         "home",
@@ -2155,10 +2155,10 @@
                     [
                       [
                         [
-                          "july",
+                          "July",
                           "year",
                           "kappa",
-                          "september",
+                          "September",
                           "xi"
                         ],
                         [
@@ -2195,8 +2195,8 @@
                                 "government"
                               ],
                               [
-                                "october",
-                                "june"
+                                "October",
+                                "June"
                               ]
                             ]
                           ]
@@ -2204,9 +2204,9 @@
                       ],
                       [
                         [
-                          "september",
-                          "february",
-                          "august"
+                          "September",
+                          "February",
+                          "August"
                         ],
                         [
                           [
@@ -2225,7 +2225,7 @@
                             [
                               "money",
                               "kappa",
-                              "june",
+                              "June",
                               "source",
                               "entity"
                             ],
@@ -2237,7 +2237,7 @@
                               ],
                               [
                                 "xi",
-                                "july",
+                                "July",
                                 "alpha"
                               ]
                             ]
@@ -2262,7 +2262,7 @@
                         [
                           "from",
                           "beta",
-                          "october",
+                          "October",
                           "system",
                           "chi"
                         ],
@@ -2294,7 +2294,7 @@
                                 true
                               ],
                               [
-                                "december",
+                                "December",
                                 "kappa"
                               ]
                             ]
@@ -2314,20 +2314,20 @@
                             "source",
                             "pi",
                             "left",
-                            "may",
+                            "May",
                             "benchmark"
                           ]
                         ],
                         [
                           [
                             "month",
-                            "july",
+                            "July",
                             "group"
                           ],
                           [
                             "mu",
-                            "july",
-                            "february"
+                            "July",
+                            "February"
                           ]
                         ],
                         [
@@ -2335,7 +2335,7 @@
                           "rho",
                           "job",
                           "area",
-                          "march"
+                          "March"
                         ]
                       ],
                       [
@@ -2346,7 +2346,7 @@
                             "T"
                           ],
                           [
-                            "january",
+                            "January",
                             "work",
                             "xi",
                             "beta"
@@ -2381,7 +2381,7 @@
                   "omicron",
                   "part",
                   "pi",
-                  "december"
+                  "December"
                 ],
                 {
                   "doc" : "May",
@@ -2393,7 +2393,7 @@
                         "phi"
                       ],
                       [
-                        "may",
+                        "May",
                         "kappa",
                         "kappa"
                       ]
@@ -2403,7 +2403,7 @@
               ],
               [
                 [
-                  "february",
+                  "February",
                   "group"
                 ],
                 {
@@ -2413,19 +2413,19 @@
                     [
                       [
                         "psi",
-                        "july",
+                        "July",
                         "eta",
                         "month",
                         "upsilon"
                       ],
                       [
                         "psi",
-                        "august",
+                        "August",
                         "year"
                       ],
                       [
-                        "october",
-                        "may",
+                        "October",
+                        "May",
                         "rate",
                         "alpha",
                         "phi"
@@ -2461,7 +2461,7 @@
             "values" : [
               [
                 [
-                  "february",
+                  "February",
                   "chi"
                 ],
                 {
@@ -2470,7 +2470,7 @@
                     "inputs" : [
                       [
                         [
-                          "july",
+                          "July",
                           "week"
                         ],
                         [
@@ -2480,8 +2480,8 @@
                             "time"
                           ],
                           [
-                            "february",
-                            "april"
+                            "February",
+                            "April"
                           ]
                         ]
                       ]
@@ -2509,14 +2509,14 @@
         [
           [
             [
-              "june"
+              "June"
             ]
           ],
           {
             "types" : [
               [
                 [
-                  "april",
+                  "April",
                   "zeta",
                   "market"
                 ],
@@ -2528,18 +2528,18 @@
                       [
                         "omicron",
                         "psi",
-                        "july"
+                        "July"
                       ],
                       [
                         "parent",
-                        "september"
+                        "September"
                       ],
                       [
-                        "july",
+                        "July",
                         "currency",
                         "sigma",
                         "kappa",
-                        "august"
+                        "August"
                       ]
                     ],
                     [
@@ -2551,7 +2551,7 @@
                           [
                             [
                               "day",
-                              "july"
+                              "July"
                             ],
                             [
                               "Variable",
@@ -2560,16 +2560,16 @@
                                 false
                               ],
                               [
-                                "october",
-                                "june",
-                                "august",
+                                "October",
+                                "June",
+                                "August",
                                 "delta"
                               ]
                             ]
                           ],
                           [
                             [
-                              "september"
+                              "September"
                             ],
                             [
                               "Reference",
@@ -2581,34 +2581,34 @@
                                 [
                                   [
                                     "chi",
-                                    "february",
-                                    "june",
-                                    "july"
+                                    "February",
+                                    "June",
+                                    "July"
                                   ],
                                   [
                                     "id",
                                     "number",
-                                    "october"
+                                    "October"
                                   ],
                                   [
                                     "id"
                                   ],
                                   [
-                                    "august",
+                                    "August",
                                     "zeta",
-                                    "november"
+                                    "November"
                                   ]
                                 ],
                                 [
                                   [
                                     "job",
-                                    "january",
+                                    "January",
                                     "description",
-                                    "november"
+                                    "November"
                                   ]
                                 ],
                                 [
-                                  "november",
+                                  "November",
                                   "part",
                                   "chi"
                                 ]
@@ -2649,8 +2649,8 @@
                                     true
                                   ],
                                   [
-                                    "september",
-                                    "september",
+                                    "September",
+                                    "September",
                                     "week",
                                     "theta"
                                   ]
@@ -2678,7 +2678,7 @@
                         [
                           "nu",
                           "kappa",
-                          "march",
+                          "March",
                           "left"
                         ],
                         [
@@ -2692,7 +2692,7 @@
                       [
                         [
                           "state",
-                          "august",
+                          "August",
                           "id",
                           "lot"
                         ],
@@ -2717,9 +2717,9 @@
               ],
               [
                 [
-                  "march",
+                  "March",
                   "beta",
-                  "july"
+                  "July"
                 ],
                 {
                   "doc" : "May",
@@ -2728,10 +2728,10 @@
                       [
                         [
                           "right",
-                          "november",
-                          "november",
+                          "November",
+                          "November",
                           "zeta",
-                          "june"
+                          "June"
                         ],
                         [
                           "Unit",
@@ -2745,9 +2745,9 @@
                         [
                           "upsilon",
                           "chi",
-                          "september",
+                          "September",
                           "mu",
-                          "december"
+                          "December"
                         ],
                         [
                           "Function",
@@ -2795,7 +2795,7 @@
             [
               "gamma",
               "eta",
-              "july",
+              "July",
               "week",
               "upsilon"
             ],
@@ -2810,9 +2810,9 @@
             "types" : [
               [
                 [
-                  "october",
+                  "October",
                   "omicron",
-                  "april"
+                  "April"
                 ],
                 {
                   "doc" : "pi",
@@ -2820,15 +2820,15 @@
                     "TypeAliasSpecification",
                     [
                       [
-                        "december",
-                        "november",
+                        "December",
+                        "November",
                         "day"
                       ],
                       [
-                        "october",
+                        "October",
                         "lot",
                         "system",
-                        "september"
+                        "September"
                       ],
                       [
                         "zeta",
@@ -2860,7 +2860,7 @@
                     "TypeAliasSpecification",
                     [
                       [
-                        "september"
+                        "September"
                       ]
                     ],
                     [
@@ -2870,8 +2870,8 @@
                         ";"
                       ],
                       [
-                        "august",
-                        "october"
+                        "August",
+                        "October"
                       ]
                     ]
                   ]
@@ -2891,7 +2891,7 @@
                     "inputs" : [
                       [
                         [
-                          "september",
+                          "September",
                           "name",
                           "sigma",
                           "state",
@@ -2904,7 +2904,7 @@
                             0.256531403584063
                           ],
                           [
-                            "july"
+                            "July"
                           ]
                         ]
                       ]
@@ -2923,7 +2923,7 @@
                         {
                           "name" : [
                             "area",
-                            "november",
+                            "November",
                             "world",
                             "psi",
                             "theta"
@@ -2941,11 +2941,11 @@
                                 "August"
                               ],
                               [
-                                "march",
-                                "november",
-                                "may",
+                                "March",
+                                "November",
+                                "May",
                                 "iota",
-                                "december"
+                                "December"
                               ]
                             ],
                             [
@@ -2975,7 +2975,7 @@
               "phi"
             ],
             [
-              "june",
+              "June",
               "iota"
             ]
           ],
@@ -2983,7 +2983,7 @@
             "types" : [
               [
                 [
-                  "november",
+                  "November",
                   "gamma"
                 ],
                 {
@@ -2993,25 +2993,25 @@
                     [
                       [
                         "job",
-                        "march",
-                        "july",
+                        "March",
+                        "July",
                         "business"
                       ]
                     ],
                     [
                       [
                         [
-                          "march",
+                          "March",
                           "business",
-                          "september"
+                          "September"
                         ],
                         [
                           [
                             [
-                              "october",
+                              "October",
                               "rho",
                               "title",
-                              "august"
+                              "August"
                             ],
                             [
                               "Variable",
@@ -3020,10 +3020,10 @@
                                 "job"
                               ],
                               [
-                                "july",
+                                "July",
                                 "company",
                                 "chi",
-                                "november",
+                                "November",
                                 "name"
                               ]
                             ]
@@ -3051,7 +3051,7 @@
                         [
                           [
                             [
-                              "july"
+                              "July"
                             ],
                             [
                               "Unit",
@@ -3081,7 +3081,7 @@
                         [
                           "alpha",
                           "group",
-                          "october",
+                          "October",
                           "nu"
                         ],
                         [
@@ -3091,7 +3091,7 @@
                             "-2149291113021867114"
                           ],
                           [
-                            "july",
+                            "July",
                             "day"
                           ]
                         ]
@@ -3119,7 +3119,7 @@
                         [
                           "market",
                           "week",
-                          "september",
+                          "September",
                           "beta"
                         ],
                         [
@@ -3143,7 +3143,7 @@
                                 0.9222036693233239
                               ],
                               [
-                                "december",
+                                "December",
                                 "lambda"
                               ]
                             ]
@@ -3168,16 +3168,16 @@
           [
             [
               "valid",
-              "may",
-              "july",
+              "May",
+              "July",
               "lambda",
-              "january"
+              "January"
             ],
             [
               "currency",
               "business",
-              "september",
-              "january"
+              "September",
+              "January"
             ],
             [
               "company",
@@ -3189,7 +3189,7 @@
             "types" : [
               [
                 [
-                  "may"
+                  "May"
                 ],
                 {
                   "doc" : "day",
@@ -3198,7 +3198,7 @@
                     [
                       [
                         "kappa",
-                        "october",
+                        "October",
                         "sigma",
                         "upsilon"
                       ],
@@ -3225,7 +3225,7 @@
                   "chi",
                   "title",
                   "epsilon",
-                  "march"
+                  "March"
                 ],
                 {
                   "doc" : "xi",
@@ -3233,13 +3233,13 @@
                     "OpaqueTypeSpecification",
                     [
                       [
-                        "july",
+                        "July",
                         "pi",
-                        "january"
+                        "January"
                       ],
                       [
                         "mu",
-                        "december",
+                        "December",
                         "area",
                         "valid"
                       ]
@@ -3259,9 +3259,9 @@
                     "inputs" : [
                       [
                         [
-                          "march",
+                          "March",
                           "fact",
-                          "october"
+                          "October"
                         ],
                         [
                           "Variable",
@@ -3271,9 +3271,9 @@
                           ],
                           [
                             "pi",
-                            "february",
+                            "February",
                             "rate",
-                            "april"
+                            "April"
                           ]
                         ]
                       ]
@@ -3302,7 +3302,7 @@
         [
           [
             [
-              "march",
+              "March",
               "time",
               "delta"
             ],
@@ -3320,7 +3320,7 @@
             "types" : [
               [
                 [
-                  "march",
+                  "March",
                   "description",
                   "work",
                   "area",
@@ -3343,7 +3343,7 @@
               ],
               [
                 [
-                  "february"
+                  "February"
                 ],
                 {
                   "doc" : "world",
@@ -3351,7 +3351,7 @@
                     "CustomTypeSpecification",
                     [
                       [
-                        "december",
+                        "December",
                         "id"
                       ],
                       [
@@ -3361,17 +3361,17 @@
                     [
                       [
                         [
-                          "march",
+                          "March",
                           "pi",
-                          "march",
+                          "March",
                           "omicron",
                           "xi"
                         ],
                         [
                           [
                             [
-                              "december",
-                              "february",
+                              "December",
+                              "February",
                               "parent"
                             ],
                             [
@@ -3382,9 +3382,9 @@
                               ],
                               [
                                 "owner",
-                                "december",
+                                "December",
                                 "iota",
-                                "june"
+                                "June"
                               ]
                             ]
                           ]
@@ -3409,7 +3409,7 @@
                               [
                                 "theta",
                                 "phi",
-                                "september"
+                                "September"
                               ]
                             ]
                           ],
@@ -3417,7 +3417,7 @@
                             [
                               "book",
                               "eta",
-                              "september",
+                              "September",
                               "government"
                             ],
                             [
@@ -3450,8 +3450,8 @@
                     "inputs" : [
                       [
                         [
-                          "april",
-                          "september"
+                          "April",
+                          "September"
                         ],
                         [
                           "Record",
@@ -3462,7 +3462,7 @@
                           [
                             {
                               "name" : [
-                                "june"
+                                "June"
                               ],
                               "tpe" : [
                                 "Unit",
@@ -3474,10 +3474,10 @@
                             },
                             {
                               "name" : [
-                                "july",
+                                "July",
                                 "id",
                                 "minute",
-                                "august",
+                                "August",
                                 "parent"
                               ],
                               "tpe" : [
@@ -3487,11 +3487,11 @@
                                   "z"
                                 ],
                                 [
-                                  "february",
-                                  "march",
+                                  "February",
+                                  "March",
                                   "title",
-                                  "april",
-                                  "september"
+                                  "April",
+                                  "September"
                                 ]
                               ]
                             }
@@ -3500,7 +3500,7 @@
                       ],
                       [
                         [
-                          "september"
+                          "September"
                         ],
                         [
                           "Record",
@@ -3511,7 +3511,7 @@
                           [
                             {
                               "name" : [
-                                "january",
+                                "January",
                                 "company"
                               ],
                               "tpe" : [
@@ -3533,10 +3533,10 @@
                             },
                             {
                               "name" : [
-                                "september",
-                                "december",
+                                "September",
+                                "December",
                                 "omega",
-                                "january"
+                                "January"
                               ],
                               "tpe" : [
                                 "Unit",
@@ -3573,7 +3573,7 @@
               "theta"
             ],
             [
-              "march",
+              "March",
               "year",
               "source",
               "omega",
@@ -3588,7 +3588,7 @@
               [
                 [
                   "iota",
-                  "march"
+                  "March"
                 ],
                 {
                   "doc" : "tau",
@@ -3596,13 +3596,13 @@
                     "TypeAliasSpecification",
                     [
                       [
-                        "june",
+                        "June",
                         "zeta"
                       ],
                       [
                         "fact",
                         "phi",
-                        "february",
+                        "February",
                         "zeta"
                       ],
                       [
@@ -3623,9 +3623,9 @@
             "values" : [
               [
                 [
-                  "february",
+                  "February",
                   "tau",
-                  "february",
+                  "February",
                   "alpha",
                   "epsilon"
                 ],
@@ -3635,8 +3635,8 @@
                     "inputs" : [
                       [
                         [
-                          "may",
-                          "may",
+                          "May",
+                          "May",
                           "pi"
                         ],
                         [
@@ -3683,7 +3683,7 @@
                       [
                         [
                           "week",
-                          "december",
+                          "December",
                           "chi"
                         ],
                         [
@@ -3703,8 +3703,8 @@
                       ],
                       [
                         [
-                          "february",
-                          "january",
+                          "February",
+                          "January",
                           "name",
                           "owner"
                         ],
@@ -3725,12 +3725,12 @@
                       ],
                       [
                         "book",
-                        "april"
+                        "April"
                       ],
                       [
                         {
                           "name" : [
-                            "may",
+                            "May",
                             "epsilon",
                             "lambda",
                             "lambda"
@@ -3744,15 +3744,15 @@
                             [
                               "group",
                               "id",
-                              "february",
+                              "February",
                               "delta"
                             ],
                             [
                               {
                                 "name" : [
-                                  "december",
+                                  "December",
                                   "nu",
-                                  "november",
+                                  "November",
                                   "theta"
                                 ],
                                 "tpe" : [
@@ -3762,7 +3762,7 @@
                                     "-2609562401312898550"
                                   ],
                                   [
-                                    "august"
+                                    "August"
                                   ]
                                 ]
                               }
@@ -3790,13 +3790,13 @@
             [
               "rho",
               "chi",
-              "june",
+              "June",
               "epsilon",
-              "july"
+              "July"
             ],
             [
               "minute",
-              "june",
+              "June",
               "psi",
               "entity"
             ],
@@ -3815,10 +3815,10 @@
               [
                 [
                   "government",
-                  "july",
+                  "July",
                   "problem",
                   "mu",
-                  "september"
+                  "September"
                 ],
                 {
                   "doc" : "May",
@@ -3826,7 +3826,7 @@
                     "OpaqueTypeSpecification",
                     [
                       [
-                        "may",
+                        "May",
                         "epsilon",
                         "day"
                       ]
@@ -3873,7 +3873,7 @@
               [
                 [
                   "beta",
-                  "february",
+                  "February",
                   "fact",
                   "alpha",
                   "zeta"
@@ -3884,7 +3884,7 @@
                     "inputs" : [
                       [
                         [
-                          "august"
+                          "August"
                         ],
                         [
                           "Unit",
@@ -3898,7 +3898,7 @@
                         [
                           "gamma",
                           "id",
-                          "may"
+                          "May"
                         ],
                         [
                           "Variable",
@@ -3933,10 +3933,10 @@
           [
             [
               "valid",
-              "march"
+              "March"
             ],
             [
-              "july",
+              "July",
               "zeta",
               "chi",
               "gamma",
@@ -3951,7 +3951,7 @@
               [
                 [
                   "name",
-                  "january"
+                  "January"
                 ],
                 {
                   "doc" : "phi",
@@ -3970,8 +3970,8 @@
                       ],
                       [
                         "family",
-                        "february",
-                        "november",
+                        "February",
+                        "November",
                         "week"
                       ]
                     ]
@@ -3989,9 +3989,9 @@
                     [
                       [
                         "xi",
-                        "december",
+                        "December",
                         "system",
-                        "december"
+                        "December"
                       ],
                       [
                         "number",
@@ -4014,9 +4014,9 @@
                     "inputs" : [
                       [
                         [
-                          "may",
-                          "january",
-                          "march"
+                          "May",
+                          "January",
+                          "March"
                         ],
                         [
                           "ExtensibleRecord",
@@ -4025,16 +4025,16 @@
                             -6075399000265264341
                           ],
                           [
-                            "september",
+                            "September",
                             "omicron",
-                            "october",
+                            "October",
                             "upsilon"
                           ],
                           [
                             {
                               "name" : [
-                                "june",
-                                "july"
+                                "June",
+                                "July"
                               ],
                               "tpe" : [
                                 "Function",
@@ -4056,10 +4056,10 @@
                                     0.7677716440265587
                                   ],
                                   [
-                                    "may",
+                                    "May",
                                     "delta",
                                     "delta",
-                                    "february",
+                                    "February",
                                     "upsilon"
                                   ]
                                 ]
@@ -4067,10 +4067,10 @@
                             },
                             {
                               "name" : [
-                                "january",
+                                "January",
                                 "time",
-                                "january",
-                                "february"
+                                "January",
+                                "February"
                               ],
                               "tpe" : [
                                 "Variable",
@@ -4091,8 +4091,8 @@
                           "psi",
                           "day",
                           "money",
-                          "february",
-                          "october"
+                          "February",
+                          "October"
                         ],
                         [
                           "Variable",
@@ -4126,8 +4126,8 @@
                     "inputs" : [
                       [
                         [
-                          "june",
-                          "may"
+                          "June",
+                          "May"
                         ],
                         [
                           "Variable",
@@ -4143,11 +4143,11 @@
                       ],
                       [
                         [
-                          "july",
+                          "July",
                           "month",
                           "delta",
-                          "march",
-                          "january"
+                          "March",
+                          "January"
                         ],
                         [
                           "Unit",
@@ -4174,15 +4174,15 @@
         [
           [
             [
-              "december",
+              "December",
               "epsilon",
               "rho",
-              "july",
+              "July",
               "phi"
             ],
             [
               "title",
-              "june"
+              "June"
             ],
             [
               "psi",
@@ -4196,8 +4196,8 @@
             "types" : [
               [
                 [
-                  "december",
-                  "november"
+                  "December",
+                  "November"
                 ],
                 {
                   "doc" : "September",
@@ -4212,7 +4212,7 @@
                       ],
                       [
                         "part",
-                        "march"
+                        "March"
                       ],
                       [
                         "lambda"
@@ -4224,9 +4224,9 @@
               [
                 [
                   "family",
-                  "january",
+                  "January",
                   "business",
-                  "january",
+                  "January",
                   "group"
                 ],
                 {
@@ -4247,8 +4247,8 @@
                         "book",
                         "gamma",
                         "lambda",
-                        "june",
-                        "may"
+                        "June",
+                        "May"
                       ]
                     ],
                     [
@@ -4261,7 +4261,7 @@
                             [
                               "phi",
                               "eta",
-                              "march",
+                              "March",
                               "gamma"
                             ],
                             [
@@ -4280,10 +4280,10 @@
                                   [
                                     [
                                       [
-                                        "february",
-                                        "may",
+                                        "February",
+                                        "May",
                                         "alpha",
-                                        "january"
+                                        "January"
                                       ]
                                     ],
                                     [
@@ -4291,10 +4291,10 @@
                                         "sigma"
                                       ],
                                       [
-                                        "may",
+                                        "May",
                                         "pi",
-                                        "may",
-                                        "april"
+                                        "May",
+                                        "April"
                                       ],
                                       [
                                         "state",
@@ -4304,12 +4304,12 @@
                                       [
                                         "left",
                                         "valid",
-                                        "may",
-                                        "march"
+                                        "May",
+                                        "March"
                                       ]
                                     ],
                                     [
-                                      "december",
+                                      "December",
                                       "book",
                                       "xi"
                                     ]
@@ -4322,7 +4322,7 @@
                                         false
                                       ],
                                       [
-                                        "december",
+                                        "December",
                                         "day",
                                         "title"
                                       ]
@@ -4343,7 +4343,7 @@
                             [
                               "month",
                               "iota",
-                              "september"
+                              "September"
                             ],
                             [
                               "ExtensibleRecord",
@@ -4360,7 +4360,7 @@
                                   "name" : [
                                     "family",
                                     "omega",
-                                    "january"
+                                    "January"
                                   ],
                                   "tpe" : [
                                     "Tuple",
@@ -4386,14 +4386,14 @@
                                           "o"
                                         ],
                                         [
-                                          "october",
-                                          "july",
+                                          "October",
+                                          "July",
                                           "from"
                                         ],
                                         [
                                           {
                                             "name" : [
-                                              "may",
+                                              "May",
                                               "id"
                                             ],
                                             "tpe" : [
@@ -4413,29 +4413,29 @@
                                                   [
                                                     "to",
                                                     "upsilon",
-                                                    "may"
+                                                    "May"
                                                   ],
                                                   [
                                                     "omega",
-                                                    "january",
-                                                    "december",
-                                                    "june"
+                                                    "January",
+                                                    "December",
+                                                    "June"
                                                   ]
                                                 ],
                                                 [
                                                   [
-                                                    "october",
-                                                    "february"
+                                                    "October",
+                                                    "February"
                                                   ],
                                                   [
                                                     "xi",
-                                                    "july"
+                                                    "July"
                                                   ]
                                                 ],
                                                 [
                                                   "psi",
-                                                  "september",
-                                                  "july"
+                                                  "September",
+                                                  "July"
                                                 ]
                                               ],
                                               [
@@ -4461,7 +4461,7 @@
                       ],
                       [
                         [
-                          "july",
+                          "July",
                           "beta",
                           "world",
                           "upsilon",
@@ -4486,8 +4486,8 @@
                                     "entity",
                                     "state",
                                     "xi",
-                                    "november",
-                                    "january"
+                                    "November",
+                                    "January"
                                   ],
                                   "tpe" : [
                                     "Unit",
@@ -4528,7 +4528,7 @@
             "values" : [
               [
                 [
-                  "august",
+                  "August",
                   "fact"
                 ],
                 {
@@ -4537,7 +4537,7 @@
                     "inputs" : [
                       [
                         [
-                          "march"
+                          "March"
                         ],
                         [
                           "Unit",
@@ -4549,7 +4549,7 @@
                       ],
                       [
                         [
-                          "june",
+                          "June",
                           "area",
                           "name"
                         ],
@@ -4562,7 +4562,7 @@
                           [
                             {
                               "name" : [
-                                "october"
+                                "October"
                               ],
                               "tpe" : [
                                 "Variable",
@@ -4572,16 +4572,16 @@
                                 ],
                                 [
                                   "iota",
-                                  "august",
+                                  "August",
                                   "epsilon",
-                                  "march",
+                                  "March",
                                   "part"
                                 ]
                               ]
                             },
                             {
                               "name" : [
-                                "september",
+                                "September",
                                 "benchmark",
                                 "xi"
                               ],
@@ -4592,11 +4592,11 @@
                                   -6140663342735495111
                                 ],
                                 [
-                                  "december",
+                                  "December",
                                   "book",
                                   "omega",
-                                  "february",
-                                  "july"
+                                  "February",
+                                  "July"
                                 ]
                               ]
                             }
@@ -4616,7 +4616,7 @@
               ],
               [
                 [
-                  "october",
+                  "October",
                   "nu",
                   "beta",
                   "day"
@@ -4628,8 +4628,8 @@
                       [
                         [
                           "xi",
-                          "october",
-                          "january"
+                          "October",
+                          "January"
                         ],
                         [
                           "Variable",
@@ -4638,7 +4638,7 @@
                             "-6672381453947952946"
                           ],
                           [
-                            "may",
+                            "May",
                             "day"
                           ]
                         ]
@@ -4665,18 +4665,18 @@
           [
             [
               "time",
-              "may"
+              "May"
             ],
             [
               "currency",
-              "april"
+              "April"
             ],
             [
               "rho"
             ],
             [
               "iota",
-              "november",
+              "November",
               "job"
             ],
             [
@@ -4689,8 +4689,8 @@
             "types" : [
               [
                 [
-                  "may",
-                  "september",
+                  "May",
+                  "September",
                   "pi"
                 ],
                 {
@@ -4700,7 +4700,7 @@
                     [
                       [
                         "right",
-                        "december",
+                        "December",
                         "xi"
                       ],
                       [
@@ -4714,7 +4714,7 @@
               [
                 [
                   "time",
-                  "february"
+                  "February"
                 ],
                 {
                   "doc" : "iota",
@@ -4768,10 +4768,10 @@
               ],
               [
                 [
-                  "april",
-                  "february",
-                  "may",
-                  "october"
+                  "April",
+                  "February",
+                  "May",
+                  "October"
                 ],
                 {
                   "doc" : "fact",
@@ -4779,8 +4779,8 @@
                     "inputs" : [
                       [
                         [
-                          "december",
-                          "april",
+                          "December",
+                          "April",
                           "zeta"
                         ],
                         [
@@ -4817,8 +4817,8 @@
                               true
                             ],
                             [
-                              "july",
-                              "february",
+                              "July",
+                              "February",
                               "rate"
                             ]
                           ]
@@ -4839,18 +4839,18 @@
           [
             [
               "lambda",
-              "march"
+              "March"
             ],
             [
               "eta",
-              "may",
-              "january",
+              "May",
+              "January",
               "fact",
-              "december"
+              "December"
             ],
             [
               "tau",
-              "january",
+              "January",
               "theta",
               "id"
             ]
@@ -4859,8 +4859,8 @@
             "types" : [
               [
                 [
-                  "june",
-                  "september",
+                  "June",
+                  "September",
                   "kappa"
                 ],
                 {
@@ -4880,7 +4880,7 @@
                       ],
                       [
                         "beta",
-                        "february",
+                        "February",
                         "benchmark",
                         "iota",
                         "alpha"
@@ -4894,7 +4894,7 @@
                   "chi",
                   "family",
                   "alpha",
-                  "june"
+                  "June"
                 ],
                 {
                   "doc" : "November",
@@ -4935,10 +4935,10 @@
                     "inputs" : [
                       [
                         [
-                          "november",
+                          "November",
                           "lot",
-                          "january",
-                          "november"
+                          "January",
+                          "November"
                         ],
                         [
                           "Unit",
@@ -4950,8 +4950,8 @@
                       ],
                       [
                         [
-                          "may",
-                          "september",
+                          "May",
+                          "September",
                           "home"
                         ],
                         [
@@ -4965,8 +4965,8 @@
                               "name" : [
                                 "currency",
                                 "country",
-                                "september",
-                                "may"
+                                "September",
+                                "May"
                               ],
                               "tpe" : [
                                 "Function",
@@ -4981,15 +4981,15 @@
                                     "week"
                                   ],
                                   [
-                                    "july"
+                                    "July"
                                   ],
                                   [
                                     {
                                       "name" : [
                                         "sigma",
                                         "beta",
-                                        "march",
-                                        "september",
+                                        "March",
+                                        "September",
                                         "minute"
                                       ],
                                       "tpe" : [
@@ -5013,10 +5013,10 @@
                             },
                             {
                               "name" : [
-                                "november",
+                                "November",
                                 "description",
                                 "zeta",
-                                "october"
+                                "October"
                               ],
                               "tpe" : [
                                 "Record",
@@ -5028,10 +5028,10 @@
                                   {
                                     "name" : [
                                       "name",
-                                      "november",
-                                      "february",
+                                      "November",
+                                      "February",
                                       "eta",
-                                      "may"
+                                      "May"
                                     ],
                                     "tpe" : [
                                       "Unit",
@@ -5055,8 +5055,8 @@
                         0.4585096218266511
                       ],
                       [
-                        "february",
-                        "may"
+                        "February",
+                        "May"
                       ]
                     ]
                   }
@@ -5064,8 +5064,8 @@
               ],
               [
                 [
-                  "july",
-                  "october"
+                  "July",
+                  "October"
                 ],
                 {
                   "doc" : "October",
@@ -5073,8 +5073,8 @@
                     "inputs" : [
                       [
                         [
-                          "march",
-                          "march"
+                          "March",
+                          "March"
                         ],
                         [
                           "Reference",
@@ -5087,23 +5087,23 @@
                               [
                                 "left",
                                 "number",
-                                "december",
-                                "april",
+                                "December",
+                                "April",
                                 "pi"
                               ]
                             ],
                             [
                               [
-                                "january",
-                                "december",
-                                "september",
+                                "January",
+                                "December",
+                                "September",
                                 "mu",
-                                "may"
+                                "May"
                               ],
                               [
                                 "phi",
-                                "february",
-                                "november",
+                                "February",
+                                "November",
                                 "delta",
                                 "omicron"
                               ],
@@ -5113,13 +5113,13 @@
                               ],
                               [
                                 "delta",
-                                "april",
+                                "April",
                                 "omega"
                               ],
                               [
                                 "phi",
                                 "sigma",
-                                "august",
+                                "August",
                                 "iota",
                                 "tau"
                               ]
@@ -5155,8 +5155,8 @@
                         0.40386507840664165
                       ],
                       [
-                        "october",
-                        "november"
+                        "October",
+                        "November"
                       ]
                     ]
                   }
@@ -5172,8 +5172,8 @@
         [
           [
             [
-              "october",
-              "september",
+              "October",
+              "September",
               "psi",
               "pi"
             ],
@@ -5187,8 +5187,8 @@
               "upsilon"
             ],
             [
-              "january",
-              "january",
+              "January",
+              "January",
               "eta"
             ]
           ],
@@ -5208,7 +5208,7 @@
                         "upsilon"
                       ],
                       [
-                        "september",
+                        "September",
                         "gamma",
                         "kappa",
                         "mu"
@@ -5230,9 +5230,9 @@
               ],
               [
                 [
-                  "june",
+                  "June",
                   "number",
-                  "march",
+                  "March",
                   "lambda",
                   "nu"
                 ],
@@ -5242,7 +5242,7 @@
                     "CustomTypeSpecification",
                     [
                       [
-                        "april",
+                        "April",
                         "psi",
                         "currency"
                       ],
@@ -5265,7 +5265,7 @@
                         [
                           [
                             [
-                              "october",
+                              "October",
                               "right",
                               "money"
                             ],
@@ -5282,7 +5282,7 @@
                                   "-2018134117831658405"
                                 ],
                                 [
-                                  "december",
+                                  "December",
                                   "gamma"
                                 ]
                               ],
@@ -5307,7 +5307,7 @@
                                     [
                                       "sigma",
                                       "tau",
-                                      "november"
+                                      "November"
                                     ]
                                   ],
                                   [
@@ -5317,9 +5317,9 @@
                                       true
                                     ],
                                     [
-                                      "february",
-                                      "january",
-                                      "october"
+                                      "February",
+                                      "January",
+                                      "October"
                                     ],
                                     [
                                       {
@@ -5339,18 +5339,18 @@
                                                 "iota"
                                               ],
                                               [
-                                                "may",
-                                                "december",
-                                                "april",
+                                                "May",
+                                                "December",
+                                                "April",
                                                 "xi"
                                               ],
                                               [
                                                 "benchmark",
-                                                "october"
+                                                "October"
                                               ],
                                               [
-                                                "september",
-                                                "april",
+                                                "September",
+                                                "April",
                                                 "eta",
                                                 "money",
                                                 "rho"
@@ -5367,14 +5367,14 @@
                                                 "parent"
                                               ],
                                               [
-                                                "november",
+                                                "November",
                                                 "lot",
-                                                "december",
+                                                "December",
                                                 "alpha",
                                                 "system"
                                               ],
                                               [
-                                                "november"
+                                                "November"
                                               ],
                                               [
                                                 "upsilon",
@@ -5383,7 +5383,7 @@
                                               [
                                                 "omicron",
                                                 "world",
-                                                "may",
+                                                "May",
                                                 "beta"
                                               ]
                                             ],
@@ -5391,7 +5391,7 @@
                                               "gamma",
                                               "delta",
                                               "system",
-                                              "february"
+                                              "February"
                                             ]
                                           ],
                                           [
@@ -5432,8 +5432,8 @@
                                                       ],
                                                       [
                                                         "theta",
-                                                        "may",
-                                                        "march",
+                                                        "May",
+                                                        "March",
                                                         "money"
                                                       ],
                                                       [
@@ -5444,7 +5444,7 @@
                                                       ],
                                                       [
                                                         "money",
-                                                        "march",
+                                                        "March",
                                                         "name"
                                                       ]
                                                     ],
@@ -5452,11 +5452,11 @@
                                                       [
                                                         "kappa",
                                                         "upsilon",
-                                                        "april",
-                                                        "june"
+                                                        "April",
+                                                        "June"
                                                       ],
                                                       [
-                                                        "february"
+                                                        "February"
                                                       ],
                                                       [
                                                         "minute",
@@ -5469,7 +5469,7 @@
                                                     [
                                                       "minute",
                                                       "number",
-                                                      "november",
+                                                      "November",
                                                       "year",
                                                       "area"
                                                     ]
@@ -5484,7 +5484,7 @@
                                                       [
                                                         [
                                                           [
-                                                            "june",
+                                                            "June",
                                                             "omega"
                                                           ],
                                                           [
@@ -5498,10 +5498,10 @@
                                                         ],
                                                         [
                                                           [
-                                                            "february",
-                                                            "april",
-                                                            "february",
-                                                            "december"
+                                                            "February",
+                                                            "April",
+                                                            "February",
+                                                            "December"
                                                           ],
                                                           [
                                                             "work"
@@ -5512,7 +5512,7 @@
                                                           ]
                                                         ],
                                                         [
-                                                          "june",
+                                                          "June",
                                                           "business",
                                                           "valid",
                                                           "description",
@@ -5545,7 +5545,7 @@
                                                             },
                                                             {
                                                               "name" : [
-                                                                "june"
+                                                                "June"
                                                               ],
                                                               "tpe" : [
                                                                 "Variable",
@@ -5554,7 +5554,7 @@
                                                                   "-8845583490181575396"
                                                                 ],
                                                                 [
-                                                                  "august"
+                                                                  "August"
                                                                 ]
                                                               ]
                                                             }
@@ -5591,8 +5591,8 @@
                                   ],
                                   [
                                     "beta",
-                                    "february",
-                                    "august",
+                                    "February",
+                                    "August",
                                     "chi"
                                   ]
                                 ]
@@ -5611,9 +5611,9 @@
                                 true
                               ],
                               [
-                                "march",
+                                "March",
                                 "group",
-                                "january",
+                                "January",
                                 "business"
                               ]
                             ]
@@ -5628,7 +5628,7 @@
             "values" : [
               [
                 [
-                  "october"
+                  "October"
                 ],
                 {
                   "doc" : "March",
@@ -5639,7 +5639,7 @@
                           "theta",
                           "delta",
                           "phi",
-                          "november",
+                          "November",
                           "description"
                         ],
                         [
@@ -5682,11 +5682,11 @@
               ],
               [
                 [
-                  "december",
+                  "December",
                   "minute",
                   "entity",
                   "iota",
-                  "march"
+                  "March"
                 ],
                 {
                   "doc" : "gamma",
@@ -5705,8 +5705,8 @@
                           ],
                           [
                             "epsilon",
-                            "november",
-                            "august",
+                            "November",
+                            "August",
                             "sigma",
                             "number"
                           ]
@@ -5714,8 +5714,8 @@
                       ],
                       [
                         [
-                          "october",
-                          "october"
+                          "October",
+                          "October"
                         ],
                         [
                           "Variable",
@@ -5724,8 +5724,8 @@
                             0.18194870564009114
                           ],
                           [
-                            "june",
-                            "september"
+                            "June",
+                            "September"
                           ]
                         ]
                       ]
@@ -5739,10 +5739,10 @@
                       [
                         {
                           "name" : [
-                            "june",
+                            "June",
                             "rate",
                             "month",
-                            "august",
+                            "August",
                             "market"
                           ],
                           "tpe" : [
@@ -5770,13 +5770,13 @@
             [
               "name",
               "family",
-              "january",
-              "september"
+              "January",
+              "September"
             ],
             [
               "owner",
               "theta",
-              "august"
+              "August"
             ],
             [
               "home"
@@ -5784,17 +5784,17 @@
             [
               "minute",
               "year",
-              "march"
+              "March"
             ]
           ],
           {
             "types" : [
               [
                 [
-                  "april",
-                  "september",
+                  "April",
+                  "September",
                   "family",
-                  "november"
+                  "November"
                 ],
                 {
                   "doc" : "May",
@@ -5810,7 +5810,7 @@
                       [
                         "upsilon",
                         "home",
-                        "january"
+                        "January"
                       ]
                     ],
                     [
@@ -5820,17 +5820,17 @@
                         "October"
                       ],
                       [
-                        "december",
+                        "December",
                         "parent",
                         "family",
-                        "february"
+                        "February"
                       ],
                       [
                         {
                           "name" : [
                             "upsilon",
-                            "september",
-                            "september"
+                            "September",
+                            "September"
                           ],
                           "tpe" : [
                             "Variable",
@@ -5841,7 +5841,7 @@
                             [
                               "mu",
                               "country",
-                              "march"
+                              "March"
                             ]
                           ]
                         }
@@ -5854,7 +5854,7 @@
             "values" : [
               [
                 [
-                  "february"
+                  "February"
                 ],
                 {
                   "doc" : "world",
@@ -5875,9 +5875,9 @@
                             0.4760311344557643
                           ],
                           [
-                            "july",
+                            "July",
                             "nu",
-                            "june"
+                            "June"
                           ]
                         ]
                       ],
@@ -5927,7 +5927,7 @@
                 [
                   "job",
                   "iota",
-                  "september"
+                  "September"
                 ],
                 {
                   "doc" : "right",
@@ -5937,14 +5937,14 @@
                       [
                         "from",
                         "problem",
-                        "october"
+                        "October"
                       ],
                       [
                         "omega"
                       ],
                       [
-                        "october",
-                        "august"
+                        "October",
+                        "August"
                       ]
                     ],
                     [
@@ -5955,8 +5955,8 @@
                       ],
                       [
                         "week",
-                        "march",
-                        "april",
+                        "March",
+                        "April",
                         "lot"
                       ]
                     ]
@@ -6049,7 +6049,7 @@
                         "I"
                       ],
                       [
-                        "june"
+                        "June"
                       ]
                     ]
                   }
@@ -6059,7 +6059,7 @@
                 [
                   "epsilon",
                   "chi",
-                  "december"
+                  "December"
                 ],
                 {
                   "doc" : "title",
@@ -6067,7 +6067,7 @@
                     "inputs" : [
                       [
                         [
-                          "october"
+                          "October"
                         ],
                         [
                           "Unit",
@@ -6098,9 +6098,9 @@
         [
           [
             [
-              "may",
-              "january",
-              "november"
+              "May",
+              "January",
+              "November"
             ],
             [
               "rate",
@@ -6123,16 +6123,16 @@
                         "book",
                         "currency",
                         "gamma",
-                        "september",
-                        "april"
+                        "September",
+                        "April"
                       ],
                       [
                         "gamma"
                       ],
                       [
-                        "september",
+                        "September",
                         "source",
-                        "september"
+                        "September"
                       ]
                     ]
                   ]
@@ -6143,9 +6143,9 @@
               [
                 [
                   "problem",
-                  "february",
+                  "February",
                   "eta",
-                  "december"
+                  "December"
                 ],
                 {
                   "doc" : "week",
@@ -6180,10 +6180,10 @@
                       [
                         [
                           [
-                            "june"
+                            "June"
                           ],
                           [
-                            "january",
+                            "January",
                             "delta",
                             "month"
                           ]
@@ -6191,23 +6191,23 @@
                         [
                           [
                             "phi",
-                            "february",
+                            "February",
                             "alpha",
-                            "april"
+                            "April"
                           ],
                           [
-                            "may"
+                            "May"
                           ],
                           [
                             "xi",
                             "theta",
-                            "august",
+                            "August",
                             "nu",
-                            "august"
+                            "August"
                           ],
                           [
                             "eta",
-                            "october",
+                            "October",
                             "pi"
                           ]
                         ],
@@ -6224,8 +6224,8 @@
                             0.09179805381983175
                           ],
                           [
-                            "march",
-                            "march",
+                            "March",
+                            "March",
                             "psi"
                           ]
                         ],
@@ -6245,7 +6245,7 @@
                 [
                   "omicron",
                   "to",
-                  "april"
+                  "April"
                 ],
                 {
                   "doc" : "delta",
@@ -6253,7 +6253,7 @@
                     "inputs" : [
                       [
                         [
-                          "june"
+                          "June"
                         ],
                         [
                           "Variable",
@@ -6265,7 +6265,7 @@
                             "problem",
                             "omicron",
                             "owner",
-                            "may"
+                            "May"
                           ]
                         ]
                       ],
@@ -6273,7 +6273,7 @@
                         [
                           "eta",
                           "chi",
-                          "august"
+                          "August"
                         ],
                         [
                           "Reference",
@@ -6284,24 +6284,24 @@
                           [
                             [
                               [
-                                "march",
+                                "March",
                                 "month",
                                 "alpha",
-                                "march"
+                                "March"
                               ]
                             ],
                             [
                               [
                                 "book",
                                 "family",
-                                "may"
+                                "May"
                               ]
                             ],
                             [
                               "book",
-                              "july",
-                              "march",
-                              "august"
+                              "July",
+                              "March",
+                              "August"
                             ]
                           ],
                           [
@@ -6312,10 +6312,10 @@
                                 4029568107537469733
                               ],
                               [
-                                "july",
+                                "July",
                                 "work",
-                                "october",
-                                "january"
+                                "October",
+                                "January"
                               ],
                               [
                                 {

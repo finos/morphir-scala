@@ -123,6 +123,12 @@ object Native {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive(Result.unwrap(a).asInstanceOf[Long] < Result.unwrap(b).asInstanceOf[Long])
   )
+
+  val equal: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    2,
+    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+      Result.Primitive(a == b)
+  )
   val cons: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
@@ -148,31 +154,62 @@ object Native {
 //
 //    }
 //  )
+  val fromParts: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    3,
+    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType], c: Result[Unit, Type.UType]) =>
+      Result.LocalDate(java.time.LocalDate.of(
+        Result.unwrap(a).asInstanceOf[Long].toInt,
+        Result.unwrap(b).asInstanceOf[Long].toInt,
+        Result.unwrap(c).asInstanceOf[Long].toInt
+      ))
+  )
+  val utc = java.time.ZoneId.of("UTC")
+  def fromMillisecondsEpoch(millis: Long): java.time.LocalTime =
+    java.time.Instant.ofEpochMilli(millis).atZone(utc).toLocalTime()
+
+  def fromMillisecondsNanos(millis: Long): java.time.LocalTime =
+    java.time.LocalTime.of(0, 0).plusNanos(millis * 1000000)
+
+  val fromMilliseconds: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    1,
+    (a: Result[Unit, Type.UType]) => {
+      val millis = Result.unwrap(a).asInstanceOf[Long]
+      val time   = fromMillisecondsEpoch(millis)
+      Result.LocalTime(time)
+    }
+  )
 
   val pi: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.Primitive(3.toDouble))
 
   val just: SDKConstructor[Unit, Type.UType]    = SDKConstructor(List(Type.variable("contents")))
   val nothing: SDKConstructor[Unit, Type.UType] = SDKConstructor(List())
+  val ok: SDKConstructor[Unit, Type.UType]      = SDKConstructor(List(Type.variable("contents")))
+  val err: SDKConstructor[Unit, Type.UType]     = SDKConstructor(List(Type.variable("contents")))
 
   val nativeCtors: Map[FQName, SDKConstructor[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:Maybe:just")    -> just,
-    FQName.fromString("Morphir.SDK:Maybe:nothing") -> nothing
+    FQName.fromString("Morphir.SDK:Maybe:nothing") -> nothing,
+    FQName.fromString("Morphir.SDK:Result:ok")     -> ok,
+    FQName.fromString("Morphir.SDK:Result:err")    -> err
   )
 
   val native: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:Basics:and")      -> and,
-    FQName.fromString("Morphir.SDK:Basics:or")       -> or,
-    FQName.fromString("Morphir.SDK:Basics:pi")       -> pi,
-    FQName.fromString("Morphir.SDK:Basics:add")      -> plus,
-    FQName.fromString("Morphir.SDK:Basics:subtract") -> subtract,
-    FQName.fromString("Morphir.SDK:Basics:divide")   -> divide,
-    FQName.fromString("Morphir.SDK:Basics:negate")   -> negate,
-    FQName.fromString("Morphir.SDK:Basics:toFloat")  -> toFloat,
-    FQName.fromString("Morphir.SDK:Basics:logBase")  -> log,
-    FQName.fromString("Morphir.SDK:Basics:lessThan") -> lessThan,
-    FQName.fromString("Morphir.SDK:List:cons")       -> cons,
-    FQName.fromString("Morphir.SDK:List:concat")     -> concat,
-    FQName.fromString("Morphir.SDK:List:map")        -> map
+    FQName.fromString("Morphir.SDK:Basics:equal")               -> equal,
+    FQName.fromString("Morphir.SDK:Basics:and")                 -> and,
+    FQName.fromString("Morphir.SDK:Basics:or")                  -> or,
+    FQName.fromString("Morphir.SDK:Basics:pi")                  -> pi,
+    FQName.fromString("Morphir.SDK:Basics:add")                 -> plus,
+    FQName.fromString("Morphir.SDK:Basics:subtract")            -> subtract,
+    FQName.fromString("Morphir.SDK:Basics:divide")              -> divide,
+    FQName.fromString("Morphir.SDK:Basics:negate")              -> negate,
+    FQName.fromString("Morphir.SDK:Basics:toFloat")             -> toFloat,
+    FQName.fromString("Morphir.SDK:Basics:logBase")             -> log,
+    FQName.fromString("Morphir.SDK:Basics:lessThan")            -> lessThan,
+    FQName.fromString("Morphir.SDK:List:cons")                  -> cons,
+    FQName.fromString("Morphir.SDK:List:concat")                -> concat,
+    FQName.fromString("Morphir.SDK:List:map")                   -> map,
+    FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
+    FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
   ) ++ Dict.sdk ++ String.sdk
 }

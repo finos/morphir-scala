@@ -8,8 +8,9 @@ import org.finos.morphir.ir.internal.PatternModule
 import org.finos.morphir.ir.sdk.List.listType
 import internal.{ValueDefinition, ValueSpecification}
 import org.finos.morphir.ir.{Type => T, Value => V}
+import scala.annotation.unused
 
-/**
+/*
  * In functional programming data and logic are treated the same way and we refer to both as values. This module
  * provides the building blocks for those values (data and logic) in the Morphir IR.
  *
@@ -65,12 +66,23 @@ object Value extends internal.PatternModule {
       function: Value[TA, VA],
       argument: Value[TA, VA],
       arguments: Value[TA, VA]*
-  )(implicit ev: IsNotAValue[VA]): Value[TA, VA] =
+  )(implicit @unused ev: IsNotAValue[VA]): Value[TA, VA] =
     Apply(attributes, function, argument, arguments: _*)
 
   final def apply(function: RawValue, argument: RawValue): Apply.Raw = Apply.Raw(function, argument)
   final def apply(function: RawValue, argument: RawValue, arguments: RawValue*) =
     Apply.Raw(function, ::(argument, arguments.toList))
+
+  final def applyInferType(finalType: UType, core: RawValue, args: TypedValue*): TypedValue = {
+    def loop(outerType: UType, core: RawValue, reversedArgs: TypedValue*): TypedValue =
+      reversedArgs match {
+        case Nil => core :> outerType
+        case head :: tail =>
+          val f = loop(T.Type.Function((), head.attributes, outerType), core, tail: _*)
+          Apply(outerType, f, head)
+      }
+    loop(finalType, core, args.toList.reverse: _*)
+  }
 
   // final def apply(function: TypedValue, argument: TypedValue, arguments: TypedValue*): TypedValue =
   //   Apply.Typed(function, argument, arguments: _*)
@@ -94,7 +106,7 @@ object Value extends internal.PatternModule {
   final def constructor(name: String, tpe: UType): TypedValue              = Constructor.Typed(name, tpe)
   final def constructor(name: FQName, tpe: UType): TypedValue              = Constructor.Typed(name, tpe)
 
-  final def decimal[A](attributes: A, value: BigDecimal): Value[Nothing, A] =
+  final def decimal[A](attributes: A, value: BigDecimal)(implicit @unused ev: NeedsAttributes[A]): Value[Nothing, A] =
     LiteralValue(attributes, Lit.decimal(value))
   final def decimal(value: BigDecimal): RawValue = LiteralValue.Raw(Lit.decimal(value))
 
@@ -158,7 +170,9 @@ object Value extends internal.PatternModule {
   final def int[A](attributes: A, value: Int): Value[Nothing, A] = LiteralValue(attributes, Lit.int(value))
   final def int(value: Int): RawValue                            = LiteralValue.Raw(Lit.int(value))
   final def intTyped(value: Int): TypedValue =
-    LiteralValue.Typed(sdk.Int.int32Type, Lit.int(value))
+    LiteralValue.Typed(sdk.Basics.intType, Lit.int(value))
+
+  final def long[A](attributes: A, value: Long): Value[Nothing, A] = LiteralValue(attributes, Lit.long(value))
 
   final def lambda[TA, VA](attributes: VA, argumentPattern: Pattern[VA], body: Value[TA, VA]): Value[TA, VA] =
     Lambda(attributes, argumentPattern, body)
@@ -294,7 +308,7 @@ object Value extends internal.PatternModule {
   final def list[TA, VA](attributes: VA, values: Chunk[Value[TA, VA]]): Value[TA, VA] =
     List(attributes, values)
 
-  final def list[TA, VA](attributes: VA, values: Value[TA, VA]*)(implicit ev: IsNotAValue[VA]): Value[TA, VA] =
+  final def list[TA, VA](attributes: VA, values: Value[TA, VA]*)(implicit @unused ev: IsNotAValue[VA]): Value[TA, VA] =
     List(attributes, values: _*)
 
   final def list(elements: Chunk[RawValue]): RawValue = List.Raw(elements)
@@ -379,13 +393,15 @@ object Value extends internal.PatternModule {
   final def patternMatch(branchOutOn: RawValue, cases: (UPattern, RawValue)*): RawValue =
     PatternMatch.Raw(branchOutOn, cases: _*)
 
-  final def record[TA, VA](attributes: VA, fields: (String, Value[TA, VA])*)(implicit
-      ev: Not[VA =:= (String, Value[TA, VA])]
+  final def record[TA, VA](attributes: VA, firstField: (String, Value[TA, VA]), fields: (String, Value[TA, VA])*)(
+      implicit
+      @unused ev: Not[VA =:= (String, Value[TA, VA])],
+      @unused ev1: NeedsAttributes[VA]
   ): Value[TA, VA] =
-    Record(attributes, fields: _*)
+    Record(attributes, (firstField +: fields): _*)
 
   final def record[TA, VA](attributes: VA, f: Record.Builder[TA, VA] => Any)(implicit
-      ev: IsNotAValue[VA]
+      @unused ev: IsNotAValue[VA]
   ): Value[TA, VA] = {
     val builder = Record.Builder[TA, VA]()
     f(builder)
@@ -402,11 +418,13 @@ object Value extends internal.PatternModule {
   // final def record(firstField: (Name, RawValue), otherFields: (Name, RawValue)*): RawValue =
   //   Record.Raw(firstField +: Chunk.fromIterable(otherFields))
 
-  def reference[VA](attributes: VA, fullyQualifiedName: FQName)(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA] =
+  def reference[VA](attributes: VA, fullyQualifiedName: FQName)(implicit
+      @unused ev: NeedsAttributes[VA]
+  ): Value[Nothing, VA] =
     Reference(attributes, fullyQualifiedName)
 
   final def reference[A](attributes: A, fullyQualifiedName: String)(implicit
-      ev: NeedsAttributes[A]
+      @unused ev: NeedsAttributes[A]
   ): Value[Nothing, A] =
     Reference(attributes, fullyQualifiedName)
   final def reference(fullyQualifiedName: String, tpe: UType): TypedValue = Reference.Typed(tpe, fullyQualifiedName)
@@ -435,7 +453,7 @@ object Value extends internal.PatternModule {
 
   final def tuple[TA, VA](attributes: VA, elements: Chunk[Value[TA, VA]]): Value[TA, VA] = Tuple(attributes, elements)
   final def tuple[TA, VA](attributes: VA, first: Value[TA, VA], second: Value[TA, VA], otherElements: Value[TA, VA]*)(
-      implicit ev: IsNotAValue[VA]
+      implicit @unused ev: IsNotAValue[VA]
   ): Value[TA, VA] = Tuple(attributes, first +: second +: Chunk.fromIterable(otherElements))
 
   final def tuple(elements: RawValue*): RawValue       = Tuple.Raw(elements: _*)
@@ -443,12 +461,12 @@ object Value extends internal.PatternModule {
   final def tuple(element: (RawValue, UType), elements: (RawValue, UType)*): TypedValue =
     Tuple.Typed(Chunk.fromIterable((element +: elements).map { case (v, t) => v :> t }))
 
-  def unit[VA](attributes: VA)(implicit ev: NeedsAttributes[VA]): Value[Nothing, VA] = Unit(attributes)
-  final val unit: RawValue                                                           = Unit(())
-  lazy val unitTyped: TypedValue                                                     = Unit.Typed(T.unit)
+  def unit[VA](attributes: VA)(implicit @unused ev: NeedsAttributes[VA]): Value[Nothing, VA] = Unit(attributes)
+  final val unit: RawValue                                                                   = Unit(())
+  lazy val unitTyped: TypedValue                                                             = Unit.Typed(T.unit)
 
   def update[TA, VA](attributes: VA, valueToUpdate: Value[TA, VA], fieldsToUpdate: Map[Name, Value[TA, VA]])(implicit
-      ev: NeedsAttributes[VA]
+      @unused ev: NeedsAttributes[VA]
   ): Value[TA, VA] = UpdateRecord(attributes, valueToUpdate, fieldsToUpdate)
 
   final def update[TA, VA](
@@ -484,11 +502,11 @@ object Value extends internal.PatternModule {
     literal(Lit.wholeNumber(value))
 
   final def wholeNumber(value: Int): RawValue =
-    literal(Lit.wholeNumber(value))
+    literal(Lit.wholeNumber(value.toLong))
 
   implicit class RawValueExtensions(private val self: RawValue) extends AnyVal {
 
-    /**
+    /*
      * Ascribe the given type to this `RawValue` and all its children.
      * ===NOTE===
      * This is a recursive operation and all children of this `RawValue` will also be ascribed with the given value.

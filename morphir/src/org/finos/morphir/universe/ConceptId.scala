@@ -2,7 +2,7 @@ package org.finos.morphir.universe
 
 import org.finos.morphir.universe.ir.*
 
-final case class ConceptId(namespace: String, name: String) extends HasId {
+final case class ConceptId(namespace: String, name: String) extends HasConceptId {
   override def id: ConceptId = this
 }
 

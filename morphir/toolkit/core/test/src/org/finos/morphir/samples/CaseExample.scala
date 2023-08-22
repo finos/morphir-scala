@@ -9,7 +9,7 @@ import org.finos.morphir.ir.Type.{Type, UType, reference => typeRef, unitType}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, RawValue, _}
 import org.finos.morphir.ir.sdk.Basics.{add, intType, subtract}
 import org.finos.morphir.ir.sdk.{String => StringModule}
-import org.finos.morphir.ir.{FQName, Name, Path}
+import org.finos.morphir.naming._
 import org.finos.morphir.syntax.AllSyntax
 
 object CaseExample extends AllSyntax {
@@ -277,11 +277,11 @@ object CaseExample extends AllSyntax {
   )
 
   val personName: FQName =
-    morphir.ir.FQName(morphir.ir.Path(Name("")), morphir.ir.Path(Name("")), Name("Person"))
+    FQName(PackageName(Path(Name(""))), ModuleName(Path(Name(""))), Name("Person"))
   lazy val recordTypeName: FQName =
-    morphir.ir.FQName(
-      morphir.ir.Path(Name("Morphir.SDK")),
-      morphir.ir.Path(Name("Morphir.SDK")),
+    FQName(
+      PackageName(Path(Name("Morphir.SDK"))),
+      ModuleName(Path(Name("Morphir.SDK"))),
       Name("RecordType")
     )
 
@@ -297,19 +297,19 @@ object CaseExample extends AllSyntax {
     )
 
   lazy val accountTypeName: FQName = FQName(
-    Path(Name("Morphir.SDK")),
-    Path(Name("Morphir.SDK.Account")),
+    PackageName(Path(Name("Morphir.SDK"))),
+    ModuleName(Path(Name("Morphir.SDK.Account"))),
     Name("Account")
   )
 
   lazy val savingsAccountTypeName: FQName = FQName(
-    Path(Name("Morphir.SDK")),
-    Path(Name("Morphir.SDK.Account")),
+    PackageName(Path(Name("Morphir.SDK"))),
+    ModuleName(Path(Name("Morphir.SDK.Account"))),
     Name("SavingsAccount")
   )
   lazy val checkingAccountTypeName: FQName = FQName(
-    Path(Name("Morphir.SDK")),
-    Path(Name("Morphir.SDK.Account")),
+    PackageName(Path(Name("Morphir.SDK"))),
+    ModuleName(Path(Name("Morphir.SDK.Account"))),
     Name("CheckingAccount")
   )
 

@@ -86,14 +86,37 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
     ) // comparing primitive types and manage numbers (100.00 == 100)
   )
 
+  implicit class ThrowableExt(t: Throwable) {
+    def stackTraceToString: String = {
+      val stream = new java.io.ByteArrayOutputStream()
+      val writer = new java.io.BufferedWriter(new java.io.OutputStreamWriter(stream))
+      t.printStackTrace(new java.io.PrintWriter(writer))
+      writer.flush
+      stream.toString
+    }
+  }
+
   def doJsonDiff(expectedJson: String, actualJson: String) = {
     val jsondiff     = DiffGenerator.diff(expectedJson, actualJson, jsonMatcher)
     val errorsResult = OnlyErrorDiffViewer.from(jsondiff)
     // create a patch file text
-    var patch = PatchDiffViewer.from(jsondiff);
+    // var patch = PatchDiffViewer.from(jsondiff);
     // use the viewer to collect diff data
-    var patchFile = PatchDiffViewer.from(jsondiff);
-    (errorsResult.toString, patchFile.toString)
+    val patchFile = PatchDiffViewer.from(jsondiff);
+    val patchFileText =
+      try
+        patchFile.toString
+      catch {
+        case e: Exception =>
+          s"""=================== Error ===================
+             |${e.stackTraceToString}
+             |=================== Expected ===================
+             |$expectedJson
+             |=================== Actual ===================
+             |$actualJson
+             |""".stripMargin
+      }
+    (errorsResult.toString, patchFileText)
   }
 
   def writeContentToFile(path: Path, content: String)(implicit trace: Trace): IO[IOException, Unit] = {
@@ -128,7 +151,7 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
           val sampleJson        = sample.toJsonPretty
           val currentSampleJson = currentSample.toJsonPretty
 
-          val (errors, patchFile) = doJsonDiff(sampleJson, currentSampleJson)
+          val (errors, _) = doJsonDiff(sampleJson, currentSampleJson)
 
           (if (structureDiff.length <= 20) {
              Console.printLine(
@@ -148,8 +171,8 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
                    |${errors}
                    |""".stripMargin
              )
-           }) *>
-            (
+           }) *> {
+            val cmd =
               Command(
                 "git",
                 "diff",
@@ -157,18 +180,25 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
                 "--no-index",
                 filePath.toString,
                 diffFilePath.toString
-              ).lines
-                .map { linesChunk =>
-                  linesChunk.map { line =>
-                    line
-                      .replace(diffFilePath.toString, filePath.toString)
-                      .replace(Paths.get("").toAbsolutePath().toString, "")
-                  }
+              )
+            cmd.lines
+              .map { linesChunk =>
+                if (linesChunk.filterNot(_ == "").isEmpty) {
+                  println(
+                    s"[WARNING] Diff between ${filePath.toString} and ${diffFilePath.toString} is empty! In the following command ${cmd.toString}"
+                  )
                 }
-                .flatMap { lines =>
-                  writeContentToFile(patchFilePath, lines.mkString("\n") + "\n")
+
+                linesChunk.map { line =>
+                  line
+                    .replace(diffFilePath.toString, filePath.toString)
+                    .replace(Paths.get("").toAbsolutePath().toString, "")
                 }
-            ) *>
+              }
+              .flatMap { lines =>
+                writeContentToFile(patchFilePath, lines.mkString("\n") + "\n")
+              }
+          } *>
             writeSampleToFile(diffFilePath, sample) *>
             // ZIO.succeed(assertTrue(sample == currentSample))
             ZIO.succeed(assertTrue(false))

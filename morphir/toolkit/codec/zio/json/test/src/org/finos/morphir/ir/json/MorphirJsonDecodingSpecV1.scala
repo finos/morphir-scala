@@ -57,7 +57,7 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
       },
       test("will decode a Name fromList") {
         val actual   = """["this","is","a","list"]"""
-        val expected = Name.fromList(List("This", "is", "a", "list"))
+        val expected = Name.fromList(List("this", "is", "a", "list"))
         assert(actual.fromJson[Name])(objectEqualTo(Right(expected)))
       }
     ),
@@ -112,20 +112,20 @@ object MorphirJsonDecodingSpecV1 extends ZIOSpecDefault {
         assert(actual.fromJson[PackageName])(objectEqualTo(Right(expected)))
       }
     ),
-    suite("ModuleName")(
-      test("will decode an empty ModuleName") {
+    suite("QualifiedModuleName")(
+      test("will decode an empty QualifiedModuleName") {
         val actual   = "[[],[]]"
-        val expected = QualifiedModuleName(Path.empty, Name.empty)
+        val expected = QualifiedModuleName.empty
         assert(actual.fromJson[QualifiedModuleName])(objectEqualTo(Right(expected)))
       },
-      test("will decode a simple ModuleName") {
-        val actual   = """[[["org"]],["src","test"]]"""
-        val expected = QualifiedModuleName(Path.fromString("org"), Name.fromString("SrcTest"))
+      test("will decode a simple QualifiedModuleName") {
+        val actual   = """[[["org"]],[["src","test"]]]"""
+        val expected = QualifiedModuleName(PackageName.fromString("org"), ModuleName.fromString("SrcTest"))
         assert(actual.fromJson[QualifiedModuleName])(objectEqualTo(Right(expected)))
       },
-      test("will decode a ModuleName") {
-        val actual   = """[[["src"],["test"],["scala"]],["src","test"]]"""
-        val expected = QualifiedModuleName(Path.fromString("src.test.scala"), Name.fromString("SrcTest"))
+      test("will decode a QualifiedModuleName") {
+        val actual   = """[[["src"],["test"],["scala"]],[["src","test"]]]"""
+        val expected = QualifiedModuleName(PackageName.fromString("src.test.scala"), ModuleName.fromString("SrcTest"))
         assert(actual.fromJson[QualifiedModuleName])(objectEqualTo(Right(expected)))
       }
     ),

@@ -1,14 +1,6 @@
 package org.finos.morphir.datamodel
-import org.finos.morphir.naming.Name
 
-import org.finos.morphir.datamodel.namespacing.{
-  LocalName,
-  Namespace,
-  NamespaceSegment,
-  PackageName,
-  PackageSegment,
-  QualifiedName
-}
+import org.finos.morphir.naming._
 
 object Util {
   implicit class LabelHelper(val sc: StringContext) extends AnyVal {
@@ -26,7 +18,7 @@ object Util {
   }
 
   implicit class QualifiedNameHelper(val sc: StringContext) extends AnyVal {
-    def qn(args: Any*): QualifiedName = {
+    def qn(args: Any*): FQName = {
       val interlaced = interlace(sc.parts, args.map(_.toString)).mkString
       // Allow deliniation via ":" or "::"
       // Make sure :: is 1st here otherwise regex won't split right
@@ -40,15 +32,15 @@ object Util {
       val localName     = splits(2)
 
       val packageName = {
-        val segments = packageSplits.split("/").toList.map(s => PackageSegment(s))
+        val segments = packageSplits.split("/").toList.map(s => Name(s))
         PackageName.fromIterable(segments)
       }
       val namespace = {
-        val segments = moduleSplits.split("/").toList.map(s => NamespaceSegment(s))
-        Namespace.fromIterable(segments)
+        val segments = moduleSplits.split("/").toList.map(s => Name(s))
+        ModuleName.fromIterable(segments)
       }
 
-      QualifiedName(packageName, namespace, Name.fromString(localName))
+      FQName(packageName, namespace, Name.fromString(localName))
     }
   }
 

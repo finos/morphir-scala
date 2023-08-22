@@ -1,6 +1,7 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.datamodel.namespacing.{Namespace, QualifiedName}
+import org.finos.morphir.naming.*
+import org.finos.morphir.util.{DetailLevel, PrintMDM}
 
 import java.io.OutputStream
 import scala.collection.immutable.ListMap
@@ -8,6 +9,31 @@ import scala.collection.mutable
 
 sealed trait Data extends geny.Writable {
   def shape: Concept
+
+  def getNameString: Option[String] =
+    getName.map(_.localName.toTitleCase)
+  def getName: Option[FQName] =
+    this match {
+      case _: Data.Basic[_] => None
+      case v: Data.Case     => Some(v.shape.name)
+      case _: Data.Tuple    => None
+      case v: Data.Record   => Some(v.shape.namespace)
+      case _: Data.Struct   => None
+      case _: Data.Optional => None
+      case _: Data.Result   => None
+      case _: Data.List     => None
+      case _: Data.Map      => None
+      case _: Data.Union    => None
+      case v: Data.Aliased  => Some(v.shape.name)
+    }
+
+  def toStringPretty: String = toStringPretty(true)
+  def toStringPretty(color: Boolean, detailLevel: DetailLevel = DetailLevel.BirdsEye): String =
+    if (color)
+      PrintMDM(this, detailLevel).toString
+    else
+      PrintMDM(this, detailLevel).plainText
+
   def writeBytesTo(out: OutputStream): Unit = {
     // TODO: Implement writing
   }
@@ -26,6 +52,7 @@ object Data {
   case class Integer(value: scala.BigInt)          extends Basic[scala.BigInt]        { val shape = Concept.Integer   }
   case class Int16(value: scala.Short)             extends Basic[Short]               { val shape = Concept.Int16     }
   case class Int32(value: scala.Int)               extends Basic[Int]                 { val shape = Concept.Int32     }
+  case class Int64(value: scala.Long)              extends Basic[Long]                { val shape = Concept.Int64     }
   case class String(value: java.lang.String)       extends Basic[java.lang.String]    { val shape = Concept.String    }
   case class LocalDate(value: java.time.LocalDate) extends Basic[java.time.LocalDate] { val shape = Concept.LocalDate }
   case class Month(value: java.time.Month)         extends Basic[java.time.Month]     { val shape = Concept.Month     }
@@ -67,12 +94,14 @@ object Data {
     def apply(values: Data*): Tuple = Tuple(values.toList)
   }
 
-  case class Record private (values: scala.List[(Label, Data)], shape: Concept.Record) extends Data
+  case class Record private (values: scala.List[(Label, Data)], shape: Concept.Record) extends Data {
+    def toStruct = Data.Struct(values)
+  }
   object Record {
-    def apply(namespace: QualifiedName, fields: (Label, Data)*): Record =
+    def apply(namespace: FQName, fields: (Label, Data)*): Record =
       apply(namespace, fields.toList)
 
-    def apply(namespace: QualifiedName, fields: scala.List[(Label, Data)]): Record = {
+    def apply(namespace: FQName, fields: scala.List[(Label, Data)]): Record = {
       val concept = Concept.Record(namespace, fields.map { case (label, data) => (label, data.shape) })
       Record(fields.toList, concept)
     }
@@ -106,6 +135,11 @@ object Data {
     object None {
       def apply(elementShape: Concept) = new None(Concept.Optional(elementShape))
     }
+  }
+  sealed trait Result extends Data
+  object Result {
+    case class Ok(data: Data, shape: Concept.Result)  extends Result
+    case class Err(data: Data, shape: Concept.Result) extends Result
   }
 
   case class List private[datamodel] (values: scala.List[Data], shape: Concept.List) extends Data

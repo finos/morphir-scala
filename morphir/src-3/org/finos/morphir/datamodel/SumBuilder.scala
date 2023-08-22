@@ -1,11 +1,11 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.datamodel.namespacing.{LocalName, Namespace, QualifiedName, PackageName}
-
+import org.finos.morphir.naming._
 import scala.reflect.ClassTag
 
 private[datamodel] case class SumBuilder(
     tpe: SumBuilder.SumType,
+    enumTranslation: EnumTranslation,
     ordinalGetter: Any => Int,
     variants: List[SumBuilder.Variant]
 ) {
@@ -17,6 +17,7 @@ private[datamodel] case class SumBuilder(
   lazy val enumType =
     tpe match {
       case SumBuilder.SumType.Enum(name) =>
+        // TODO variants shuold be constructed from ordinal
         val enumCases =
           variants.map { v =>
             v match {
@@ -25,14 +26,19 @@ private[datamodel] case class SumBuilder(
                 Concept.Enum.Case(Label(v.enumLabel), List())
 
               case variant: SumBuilder.EnumProduct =>
-                val enumVariantFields =
+                val structMembers =
                   variant.deriver.concept match {
-                    case Concept.Record(_, fields) =>
-                      fields.map { case (label, concept) => (EnumLabel(label.value), concept) }
+                    case record: Concept.Record =>
+                      enumTranslation match {
+                        case EnumTranslation.SingleFieldWithRecord =>
+                          List(EnumLabel.Empty -> record.toStruct)
+                        case EnumTranslation.MutiFieldConstructor =>
+                          record.fields.map { case (label, concept) => (EnumLabel(label.value), concept) }
+                      }
                     case other =>
                       failInsideNotProduct(other)
                   }
-                Concept.Enum.Case(Label(v.enumLabel), enumVariantFields)
+                Concept.Enum.Case(Label(v.enumLabel), structMembers)
 
               case variant: SumBuilder.Variant =>
                 throw new IllegalArgumentException("Non-Discrimiated union decoding is not supported yet.")
@@ -56,8 +62,33 @@ private[datamodel] case class SumBuilder(
             case p: Product =>
               val enumCaseRecord = v.deriver.derive(p)
               enumCaseRecord match {
-                case Data.Record(_, values) =>
-                  values.map { case (label, data) => (EnumLabel(label.value), data) }
+                case record: Data.Record =>
+                  /*
+                  Translate:
+                    sealed trait Foo
+                    case class Bar(blin: String, blu: Int)
+                    case object Baz
+                    === or ===
+                    enum Foo {
+                      case Bar(blin: String, blu: Int)
+                      case Baz
+                    }
+                    === into when EnumTranslation.MultiFieldConstructor ===
+                    type Foo
+                      = Bar String Int
+                      | Baz
+                    === into when EnumTranslation.SingleFieldWithRecord ===
+                    type Foo
+                      = Bar { blin: String blu: Int }
+                      | Baz
+                   */
+                  enumTranslation match {
+                    case EnumTranslation.SingleFieldWithRecord =>
+                      List(EnumLabel.Empty -> record.toStruct)
+                    case EnumTranslation.MutiFieldConstructor =>
+                      record.values.map { case (label, data) => (EnumLabel(label.value), data) }
+                  }
+
                 case other =>
                   failInsideNotProduct(other)
               }
@@ -93,11 +124,7 @@ object SumBuilder {
 
   sealed trait SumType
   object SumType {
-    case class Enum(name: QualifiedName) extends SumType
-    object Enum {
-      def apply(name: String, ns: Namespace, pack: PackageName) = new Enum(QualifiedName(pack, ns, LocalName(name)))
-    }
-
+    case class Enum(name: FQName) extends SumType
     // TODO Union for non-discrimited unions
   }
 }

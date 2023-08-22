@@ -1,7 +1,7 @@
 package org.finos.morphir.ir
 package json
 
-import org.finos.morphir.naming.*
+import org.finos.morphir.naming._
 import zio._
 import zio.json._
 import zio.json.ast.Json
@@ -19,7 +19,7 @@ import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification 
 import org.finos.morphir.ir.Value.{Value, _}
 import org.finos.morphir.ir.module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 
-import scala.annotation.nowarn
+import scala.annotation.{nowarn, unused}
 
 trait MorphirJsonDecodingSupport {
   implicit val unitDecoder: JsonDecoder[Unit]               = Json.decoder.map(_ => ())
@@ -32,10 +32,11 @@ trait MorphirJsonDecodingSupport {
     case (packagePath, modulePath, localName) => FQName(packagePath, modulePath, localName)
   }
 
-  // implicit val qualifiedModuleNameDecoder: JsonDecoder[QualifiedModuleName] =
-  //   JsonDecoder.tuple2[Path, Name].map { case (namespace, localName) =>
-  //     QualifiedModuleName(namespace, localName)
-  //   }
+  implicit val qualifiedModuleNameDecoder: JsonDecoder[QualifiedModuleName] =
+    JsonDecoder.tuple2[Path, Path].map { case (packageName, modulePath) =>
+      QualifiedModuleName(packageName, modulePath)
+    }
+
   implicit def literalBoolDecoder: JsonDecoder[BoolLiteral] =
     JsonDecoder.tuple2[String, Boolean].mapOrFail {
       case ("BoolLiteral", value) => Right(BoolLiteral(value))
@@ -81,8 +82,8 @@ trait MorphirJsonDecodingSupport {
       literalWholeNumberDecoder.widen[Literal]
 
   implicit def fieldDecoder[A: JsonDecoder]: JsonDecoder[Field[A]] = {
-    final case class FieldLike[A](name: Name, tpe: A)
-    lazy val dec: JsonDecoder[FieldLike[A]] = DeriveJsonDecoder.gen
+    final case class FieldLike(name: Name, tpe: A)
+    lazy val dec: JsonDecoder[FieldLike] = DeriveJsonDecoder.gen
     dec.map(f => Field(f.name, f.tpe))
   }
 
@@ -248,8 +249,8 @@ trait MorphirJsonDecodingSupport {
   //   Json.Null.decoder.map(v => ())
 
   implicit def valueSpecificationDecoder[A: JsonDecoder]: JsonDecoder[ValueSpecification[A]] = {
-    final case class Spec[A](inputs: Chunk[(Name, Type[A])], output: Type[A])
-    lazy val dec: JsonDecoder[Spec[A]] = DeriveJsonDecoder.gen
+    final case class Spec(inputs: Chunk[(Name, Type[A])], output: Type[A])
+    lazy val dec: JsonDecoder[Spec] = DeriveJsonDecoder.gen
     dec.map(spec => ValueSpecification(spec.inputs, spec.output))
   }
 
@@ -333,36 +334,36 @@ trait MorphirJsonDecodingSupport {
       patternAsPatternDecoder[A].widen[Pattern[A]]
 
   implicit def moduleSpecificationDecoder[TA](implicit
-      decoder: JsonDecoder[TA]
+      @unused decoder: JsonDecoder[TA]
   ): JsonDecoder[ModuleSpecification[TA]] = {
-    final case class Spec[TA](
+    final case class Spec(
         types: List[(Name, Documented[TypeSpecification[TA]])],
         values: List[(Name, Documented[ValueSpecification[TA]])]
     )
-    lazy val dec: JsonDecoder[Spec[TA]] = DeriveJsonDecoder.gen
+    lazy val dec: JsonDecoder[Spec] = DeriveJsonDecoder.gen
     dec.map(spec => ModuleSpecification(spec.types.toMap, spec.values.toMap))
   }
 
   implicit def moduleDefinitionDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[ModuleDefinition[TA, VA]] = {
-    final case class Def[TA, VA](
+    final case class Def(
         types: List[(Name, AccessControlled[Documented[TypeDefinition[TA]]])],
         values: List[(Name, AccessControlled[Documented[ValueDefinition[TA, VA]]])]
     )
-    lazy val dec1: JsonDecoder[Def[TA, VA]] = DeriveJsonDecoder.gen
+    lazy val dec1: JsonDecoder[Def] = DeriveJsonDecoder.gen
     dec1.map(d => ModuleDefinition(d.types.toMap, d.values.toMap))
   }
 
   // final case class Specification[+TA](modules: Map[ModuleName, ModuleSpec[TA]]) {
   implicit def packageModuleSpecificationDecoder[TA: JsonDecoder]: JsonDecoder[PackageSpecification[TA]] = {
-    final case class Spec[TA](modules: List[(ModuleName, ModuleSpecification[TA])])
-    lazy val dec: JsonDecoder[Spec[TA]] = DeriveJsonDecoder.gen
+    final case class Spec(modules: List[(ModuleName, ModuleSpecification[TA])])
+    lazy val dec: JsonDecoder[Spec] = DeriveJsonDecoder.gen
     dec.map(s => PackageSpecification(s.modules.map(m => m._1 -> m._2).toMap))
   }
 
   implicit def packageModuleDefinitionDecoder[TA: JsonDecoder, VA: JsonDecoder]
       : JsonDecoder[PackageDefinition[TA, VA]] = {
-    final case class Spec[TA, VA](modules: List[(ModuleName, AccessControlled[ModuleDefinition[TA, VA]])])
-    lazy val dec: JsonDecoder[Spec[TA, VA]] = DeriveJsonDecoder.gen
+    final case class Spec(modules: List[(ModuleName, AccessControlled[ModuleDefinition[TA, VA]])])
+    lazy val dec: JsonDecoder[Spec] = DeriveJsonDecoder.gen
     dec.map(d => PackageDefinition(d.modules.map(m => m._1 -> m._2).toMap))
   }
 

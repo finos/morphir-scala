@@ -1,9 +1,10 @@
 package org.finos.morphir
 
-private[morphir] trait FQNameExports {
-  self: NameExports with ModuleNameExports with NamespaceExports with PackageNameExports with PathExports
-    with QualifiedModuleNameExports
-    with QNameExports =>
+trait FQNameModule {
+  self: NameModule with ModuleNameModule with NamespaceModule with PackageNameModule with PathModule
+    with QualifiedModuleNameModule
+    with QNameModule
+    with NamingOptionsModule =>
 
   sealed case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) { self =>
     def getPackagePath: Path = packagePath.toPath
@@ -11,8 +12,6 @@ private[morphir] trait FQNameExports {
     def getModulePath: Path       = modulePath.toPath
     def getModuleName: ModuleName = modulePath
 
-    /// Get the namespace of this FQName, which is just a slightly different representation of `modulePath`.
-    def namespace: Namespace = Namespace.fromModuleName(self.modulePath)
     /// An alias for `packagePath`
     def pack: PackageName = packagePath
 
@@ -27,23 +26,27 @@ private[morphir] trait FQNameExports {
       Path.toString(Name.toTitleCase, ".", modulePath.toPath),
       Name.toCamelCase(localName)
     ).mkString(":")
+
+    def toStringTitleCase: String = Array(
+      Path.toString(Name.toTitleCase, ".", packagePath.toPath),
+      Path.toString(Name.toTitleCase, ".", modulePath.toPath),
+      Name.toTitleCase(this.localName)
+    ).mkString(":")
   }
 
   object FQName {
-    val empty:FQName = FQName(PackageName.empty, ModuleName.empty, Name.empty)
+    val empty: FQName = FQName(PackageName.empty, ModuleName.empty, Name.empty)
     //    def apply(packagePath: Path, modulePath: Path, localName: Name): FQName =
     //      FQName(PackageName(packagePath), ModulePath(modulePath), localName)
-
-    def apply(packageName: PackageName, namespace: Namespace, localName: Name): FQName =
-      FQName(packageName, namespace.toModuleName, localName)
 
     val fqName: Path => Path => Name => FQName = packagePath =>
       modulePath => localName => FQName(PackageName.fromPath(packagePath), ModuleName(modulePath), localName)
 
-    def fromQName(qName:QName)(implicit packageName:PackageName):FQName = ???
-
     def fromQName(packagePath: Path, qName: QName): FQName =
       FQName(PackageName.fromPath(packagePath), ModuleName(qName.modulePath), qName.localName)
+
+    def fromQName(qName: QName)(implicit packageName: PackageName): FQName =
+      FQName(packageName, ModuleName(qName.modulePath), qName.localName)
 
     def fromQName(qName: QName)(implicit options: FQNamingOptions): FQName =
       FQName(options.defaultPackage, ModuleName(QName.getModulePath(qName)), QName.getLocalName(qName))
@@ -73,6 +76,9 @@ private[morphir] trait FQNameExports {
     def fromLocalName(localName: String)(implicit qualifiedModuleName: QualifiedModuleName): FQName =
       FQName(qualifiedModuleName.packageName, qualifiedModuleName.modulePath, Name.fromString(localName))
 
+    def fromLocalName(localName: Name)(implicit qualifiedModuleName: QualifiedModuleName): FQName =
+      FQName(qualifiedModuleName.packageName, qualifiedModuleName.modulePath, localName)
+
     def toString(fqName: FQName): String = fqName.toString
 
     /** Parse a string into a FQName using splitter as the separator between package, module, and local names */
@@ -89,13 +95,10 @@ private[morphir] trait FQNameExports {
 
     def fromString(fqNameString: String)(implicit options: FQNamingOptions): FQName =
       fromString(fqNameString, options.defaultSeparator)
-  }
 
-  sealed case class FQNamingOptions(defaultPackage: PackageName, defaultModule: ModuleName, defaultSeparator: String)
-
-  object FQNamingOptions {
-    implicit val default: FQNamingOptions =
-      FQNamingOptions(PackageName.empty, ModuleName.empty, ":")
+    object ReferenceName {
+      def unapply(fqName: FQName): Some[String] = Some(fqName.toReferenceName)
+    }
   }
 
   sealed case class FQNameParsingError(invalidName: String)

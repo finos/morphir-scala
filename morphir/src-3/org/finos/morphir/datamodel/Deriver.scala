@@ -11,7 +11,6 @@ import scala.compiletime.{codeOf, constValue, erasedValue, error, summonFrom, su
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.datamodel.Label
 import org.finos.morphir.datamodel.Concept
-import org.finos.morphir.datamodel.namespacing.{LocalName, PartialName, QualifiedName}
 
 trait Deriver[T] {
   final def apply(value: T): Data = derive(value)
@@ -19,7 +18,7 @@ trait Deriver[T] {
   def concept: Concept
 }
 
-object Deriver {
+object Deriver extends DeriverInstances {
   import DeriverTypes._
   import DeriverMacros._
 
@@ -31,17 +30,10 @@ object Deriver {
 
   inline def summonSpecificDeriver[T] =
     summonFrom {
-      case deriver: SpecificDeriver[T] => deriver
+      case deriver: CustomDeriver[T] => deriver
       case _ =>
         error(s"Cannot find specific deriver for type: ${showType[T]}")
     }
-
-  sealed trait UnionType
-  object UnionType {
-    case object SealedTrait extends UnionType
-    case object Enum        extends UnionType
-    case object Sum         extends UnionType
-  }
 
   private inline def deriveSumVariants[Fields <: Tuple, Elems <: Tuple](
       inline unionType: UnionType
@@ -60,15 +52,11 @@ object Deriver {
             // (i.e. because the other side of the case match branch is also running)
             val variant =
               inline unionType match {
-                // UnionType.Enum |
-                case UnionType.SealedTrait =>
+                case UnionType.Enum =>
                   // enum case with fields
                   if (isCaseClass[head]) {
                     summonProductDeriver[head] match {
                       case deriver: GenericProductDeriver[Product] @unchecked =>
-                        println(
-                          s"field ${typeName[head]}: ${fieldName} - ${deriver.builder.name.localName}(${deriver.builder.fields})"
-                        )
                         SumBuilder.EnumProduct(fieldName, deriver)
                       case other =>
                         throw new IllegalArgumentException(
@@ -104,7 +92,7 @@ object Deriver {
           case _: (head *: tail) =>
             val derivationStage =
               summonDeriver[head] match {
-                case deriver: SpecificDeriver[Any] @unchecked =>
+                case deriver: CustomDeriver[Any] @unchecked =>
                   ProductBuilder.Leaf(fieldName, i, deriver)
                 case deriver: GenericProductDeriver[Product] @unchecked =>
                   ProductBuilder.Product(fieldName, i, deriver)
@@ -120,9 +108,9 @@ object Deriver {
 
   inline def deriveProductFromMirror[T](m: Mirror.ProductOf[T]): GenericProductDeriver[T & Product] =
     inline if (isCaseClass[T]) {
-      val caseClassName  = summonQualifiedName[T]
-      val stageListTuple = deriveProductFields[m.MirroredElemLabels, m.MirroredElemTypes](0)
-      val mirrorProduct  = ProductBuilder.MirrorProduct(caseClassName, stageListTuple)
+      val (caseClassName, _) = summonQualifiedName[T]
+      val stageListTuple     = deriveProductFields[m.MirroredElemLabels, m.MirroredElemTypes](0)
+      val mirrorProduct      = ProductBuilder.MirrorProduct(caseClassName, stageListTuple)
       GenericProductDeriver
         .make[T & Product](mirrorProduct)
     } else {
@@ -130,19 +118,19 @@ object Deriver {
     }
 
   inline def summonQualifiedName[T] = {
-    val (partialName: PartialName, localNameOverride: Option[LocalName]) =
+    val (partialName: QualifiedModuleName, enumTranslation: EnumTranslation, localNameOverride: Option[Name]) =
       DeriverMacros.summonNamespaceOrFail[T]
     val localName =
       localNameOverride.getOrElse {
-        LocalName(DeriverMacros.typeName[T])
+        Name(DeriverMacros.typeName[T])
       }
-    QualifiedName(partialName, localName)
+    (FQName.fromLocalName(localName)(partialName), enumTranslation)
   }
 
   inline def deriveSumFromMirror[T](m: Mirror.SumOf[T]): GenericSumDeriver[T] =
     inline if (isEnumOrSealedTrait[T]) {
-      val sumTypeName = summonQualifiedName[T]
-      val enumName    = typeName[T]
+      val (sumTypeName, enumTranslation) = summonQualifiedName[T]
+      val enumName                       = typeName[T]
 
       // The clause `inferUnionType` NEEDs to be  a macro otherwise we can't get the value
       // coming out if it to work with inline matches/ifs and if our matches/ifs are not inline
@@ -155,7 +143,7 @@ object Deriver {
 
       val builder =
         inline inferUnionType[T] match {
-          case UnionType.Enum | UnionType.SealedTrait =>
+          case UnionType.Enum =>
             val ordinalGetter: Any => Int =
               (v: Any) =>
                 v match {
@@ -165,7 +153,7 @@ object Deriver {
                       s"The value `$v` is not an instance of the needed enum class ${enumName}"
                     )
                 }
-            SumBuilder(SumBuilder.SumType.Enum(sumTypeName), ordinalGetter, variants)
+            SumBuilder(SumBuilder.SumType.Enum(sumTypeName), enumTranslation, ordinalGetter, variants)
           case UnionType.Sum =>
             error("Simple union types not allowed yet in builder synthesis")
         }
@@ -183,7 +171,7 @@ object Deriver {
     summonFrom {
       // If there is a leaf-level deriver, summon that first. Do NOT EVER try to summon Deriver[T]
       // directly because you will can run into infinite recursive derivation.
-      case deriver: SpecificDeriver[T] =>
+      case deriver: CustomDeriver[T] =>
         deriver
       case ev: Mirror.Of[T] =>
         inline ev match {

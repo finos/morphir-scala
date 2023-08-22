@@ -1,6 +1,7 @@
 package org.finos.morphir.ir
 
 import zio.Chunk
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.Type.Constructors
 import org.finos.morphir.ir.Type._
 import org.finos.morphir.ir.Type.Type._
@@ -108,8 +109,8 @@ object TypeModuleSpec extends MorphirBaseSpec {
         )
       },
       test("testing second function constructor") {
-        val param1  = variable("v1")
-        val retType = tupleVar(variable("v3"), variable("v4"))
+        val param1  = variable("Test", "v1")
+        val retType = tupleWithAttr("(v3,v4)", variable("Alpha", "v3"), variable("Omega", "v4"))
         val actual  = function("Hello", param1, retType)
         assertTrue(
           actual == Function("Hello", param1, retType)

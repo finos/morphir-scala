@@ -11,15 +11,11 @@ import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, Spec
 import org.finos.morphir.ir.Type.{Definition as TypeDefinition, Specification as TypeSpecification, *}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
 import org.finos.morphir.ir.Value.{Value, _}
-import org.finos.morphir.ir.module.{
-  Definition => ModuleDefinition,
-  QualifiedModuleName,
-  ModuleName,
-  Specification => ModuleSpecification
-}
+import org.finos.morphir.ir.module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.ir.printing.DetailLevel
 import org.finos.morphir.ir.printing.FieldNames
+import org.finos.morphir.naming._
 
 object EncodingExample {
   import MorphirJsonDecodingSupport._
@@ -34,8 +30,8 @@ object EncodingExample {
   def encode(): Unit = {
     object Refs {
       val `morphir.SDK`             = PackageName.fromString("morphir.SDK")
-      val `basics`                  = Module.ModuleName.fromString("basics")
-      val `list`                    = Module.ModuleName.fromString("list")
+      val `basics`                  = ModuleName.fromString("basics")
+      val `list`                    = ModuleName.fromString("list")
       val `morphir.SDK.basics.int`  = FQName(`morphir.SDK`, `basics`, Name("int"))
       val `morphir.SDK.basics.bool` = FQName(`morphir.SDK`, `basics`, Name("bool"))
       val `morphir.SDK.list.list`   = FQName(`morphir.SDK`, `list`, Name("list"))

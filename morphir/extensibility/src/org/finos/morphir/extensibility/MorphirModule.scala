@@ -17,7 +17,7 @@ sealed trait MorphirModule {
     registerNativeFunction(NativeFunc2(FQName.fqn(packageName, moduleName, localName), f))
 }
 
-abstract class ExtensionModule(val packageName: String, val moduleName: String) extends MorphirModule {}
+abstract class UserModule(val packageName: String, val moduleName: String) extends MorphirModule {}
 
 sealed abstract class NativeModule(val packageName: String, val moduleName: String) extends MorphirModule {}
 

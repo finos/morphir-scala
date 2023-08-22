@@ -21,7 +21,7 @@ final case class Flux[+A](private val stream: ZStream[Any, Nothing, Option[A]]) 
   def runCollect: ZIO[Any, Nothing, Chunk[A]] =
     stream.collectSome.runCollect
 
-  def runCollectN(n: Int): ZIO[Any, Nothing, Chunk[A]] =
+  def runCollectN(n: => Long): ZIO[Any, Nothing, Chunk[A]] =
     stream.collectSome.take(n).runCollect
 }
 
