@@ -21,52 +21,51 @@ import scala.collection.immutable.ListMap
 
 object GatherRefsSpec extends MorphirBaseSpec {
   val dist     = EvaluationLibrary.loadDistribution("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json")
-  val mattDist = EvaluationLibrary.loadDistribution("./examples/morphir-elm-projects/matt-instrument/morphir-ir.json")
-  val maestroDist = EvaluationLibrary.loadDistribution("./examples/morphir-elm-projects/maestro-sdk/morphir-ir.json")
-  val mappingDist = EvaluationLibrary.loadDistribution("./examples/morphir-elm-projects/mapping-logic/morphir-ir.json")
+  //Pretend the following is a distinct distribution like an SDK (when using the instrument, it should be one or more such)
+  val otherDist = EvaluationLibrary.loadDistribution("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json")
   val example: FQName = FQName.fromString("Morphir.SDK:Basics:and")
   val existing        = Native.native.keys
 
   def spec = suite("Exploration")(
     suite("From Distribution")(
-      test("Everything") {
+      test("Everything from Tests") {
         val stuff = GatherReferences.fromDistributions(dist)
         val defs  = stuff.definitions.map(_.toString).mkString("\n")
         assertTrue(defs == "")
       },
-      test("SDK Defs") {
+      test("SDK Defs from Tests") {
         val stuff  = GatherReferences.fromDistributions(dist)
         val defs   = stuff.definitions.filter(_.getPackagePath == example.getPackagePath)
         val string = defs.map(_.toString).mkString("\n")
         assertTrue(string == "")
       },
-      test("SDK Defs from Mapping") {
-        val stuff  = GatherReferences.fromDistributions(mattDist)
+      test("SDK Defs from Distribution") {
+        val stuff  = GatherReferences.fromDistributions(dist)
         val defs   = stuff.definitions.filter(_.getPackagePath == example.getPackagePath)
         val string = defs.map(_.toString).mkString("\n")
         assertTrue(string == "")
       },
       test("SDK Defs from Everywhere") {
-        val stuff  = GatherReferences.fromDistributions(mattDist, mappingDist, maestroDist)
+        val stuff  = GatherReferences.fromDistributions(dist, otherDist)
         val defs   = stuff.definitions.filter(_.getPackagePath == example.getPackagePath)
         val string = defs.map(_.toString).mkString("\n")
         assertTrue(string == "")
       },
-      test("Missing Defs from Mapping") {
-        val stuff  = GatherReferences.fromDistributions(mattDist)
+      test("Missing Defs from Tests") {
+        val stuff  = GatherReferences.fromDistributions(dist)
         val defs   = stuff.definitions.filter(_.getPackagePath == example.getPackagePath).diff(existing.toSet)
         val string = defs.map(_.toString).mkString("\n")
         assertTrue(string == "")
       },
       test("Missing SDK Defs from Everywhere") {
-        val stuff  = GatherReferences.fromDistributions(mattDist, mappingDist, maestroDist)
+        val stuff  = GatherReferences.fromDistributions(dist, otherDist)
         val defs   = stuff.definitions.filter(_.getPackagePath == example.getPackagePath).diff(existing.toSet)
         val string = defs.map(_.toString).mkString("\n")
         assertTrue(string == "")
       },
       test("Only actually used") {
-        val stuff     = GatherReferences.fromDistributions(mattDist)
-        val moreStuff = GatherReferences.fromEntrySet(stuff, mattDist, mappingDist, maestroDist)
+        val stuff     = GatherReferences.fromDistributions(dist)
+        val moreStuff = GatherReferences.fromEntrySet(stuff, dist, otherDist)
         val defs   = moreStuff.definitions // .filter(_.getPackagePath == example.getPackagePath)//.diff(existing.toSet)
         val string = defs.map(_.toString).mkString("\n")
         assertTrue(string == "")
