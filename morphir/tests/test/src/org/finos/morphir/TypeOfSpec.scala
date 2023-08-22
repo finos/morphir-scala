@@ -1,13 +1,23 @@
 package org.finos.morphir
 
-import org.finos.morphir.mir._
-import org.finos.morphir.naming._
+import org.finos.morphir.mir.*
+import org.finos.morphir.naming.*
 import org.finos.morphir.testing.MorphirBaseSpec
-import zio.test._
+import org.finos.morphir.testing.model._
+import zio.test.*
 
 object TypeOfSpec extends MorphirBaseSpec {
 
-  def collectionsSuite = suite("Collections")()
+  def collectionsSuite = suite("Collections")(
+    test("It should be possible to get the proper type info for a list of strings") {
+      val actual = TypeOf[List[String]]
+      assertTrue(
+        actual.fqName == Some(fqn"Morphir.SDK:List:List"),
+        actual.getType.isReference,
+        actual.typeInfo.isOpaque
+      )
+    }
+  )
 
   def primitivesSuite = suite("Primitives")(
     test("It should be possible to get the proper type info for a string") {
@@ -28,8 +38,25 @@ object TypeOfSpec extends MorphirBaseSpec {
     }
   )
 
+  def productsSuite = suite("Products")(
+    suite("Case Classes/Records")(
+      test("It should be possible to get type info on a Person top level case class") {
+        val actual = TypeOf[Person]
+        assertTrue(
+          actual.fqName.isEmpty,
+          !actual.getType.isReference,
+          !actual.typeInfo.isOpaque
+        )
+      }
+    )
+  )
+
+  def sumTypesSuite = suite("Sum Types")()
+
   def spec = suite("TypeOfSpec")(
     collectionsSuite,
-    primitivesSuite
+    primitivesSuite,
+    productsSuite,
+    sumTypesSuite
   )
 }
