@@ -1,5 +1,6 @@
 package org.finos.morphir
 
+// TODO printing options
 trait QualifiedModuleNameModule {
   self: PackageNameModule with PathModule with ModuleNameModule with NamespaceModule =>
 
