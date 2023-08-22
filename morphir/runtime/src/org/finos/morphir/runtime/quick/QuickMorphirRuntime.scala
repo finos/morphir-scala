@@ -32,12 +32,14 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
     } yield res
 
   def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] = {
-    val errors = new TypeChecker(dists).check(value)
+    //val errors = new TypeChecker(dists).check(value)
     for {
-      ctx <- ZPure.get[RTExecutionContext]
-      _ <- if (errors.length == 0) RTAction.succeed(()) else {
-        RTAction.fail(TypeCheckerErrors(errors))
-      }
+//      ctx <- ZPure.get[RTExecutionContext]
+//
+//      _ <- if (errors.length == 0) RTAction.succeed(()) else {
+//        RTAction.fail(TypeCheckerErrors(errors))
+//      }
+      _ <- typeCheck(value)
       res <- EvaluatorQuick.evalAction(value, store, dists)
     } yield res
   }
@@ -53,9 +55,11 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
   def typeCheck(value: Value[scala.Unit, UType]) : RTAction[MorphirEnv, MorphirRuntimeError, Unit] = for {
     ctx <- ZPure.get[RTExecutionContext]
     result <- ctx.options.enableTyper match {
+      case EnableTyper.Disabled => RTAction.succeed(())
+      case EnableTyper.Warn => RTAction.succeed(())
+      case EnableTyper.Enabled => RTAction.succeed(())
     }
-
-  } yield Result
+  } yield result
 
   def applyParams(
       entryPoint: Value[scala.Unit, UType],
