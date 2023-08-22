@@ -20,8 +20,8 @@ import zio.{test as _, *}
 import scala.collection.immutable.ListMap
 
 object GatherRefsSpec extends MorphirBaseSpec {
-  val dist     = EvaluationLibrary.loadDistribution("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json")
-  //Pretend the following is a distinct distribution like an SDK (when using the instrument, it should be one or more such)
+  val dist = EvaluationLibrary.loadDistribution("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json")
+  // Pretend the following is a distinct distribution like an SDK (when using the instrument, it should be one or more such)
   val otherDist = EvaluationLibrary.loadDistribution("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json")
   val example: FQName = FQName.fromString("Morphir.SDK:Basics:and")
   val existing        = Native.native.keys
