@@ -57,8 +57,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
       case EnableTyper.Disabled => RTAction.succeed[RTExecutionContext, Unit](())
       case EnableTyper.Warn     => {
         val errors = new TypeChecker(dists).check(value)
-        for error <- errors do
-          println(s"TYPE WARNING: $error")
+        errors.foreach(error => println(s"TYPE WARNING: $error"))
         RTAction.succeed[RTExecutionContext, Unit](())
       }
       case EnableTyper.Enabled  => {
