@@ -42,7 +42,7 @@ trait QualifiedModuleNameModule {
       fromString(fqNameString, options.defaultSeparator)
 
     /** Convenience function to create a fully-qualified name from 2 strings with default package name */
-    def qmn(packageName: String, moduleName: String)(implicit options: FQNamingOptions): QualifiedModuleName =
+    def qmn(packageName: String, moduleName: String): QualifiedModuleName =
       QualifiedModuleName(PackageName.fromString(packageName), ModuleName(Path.fromString(moduleName)))
 
     /** Convenience function to create a fully-qualified name from 1 string with defaults for package and module */
