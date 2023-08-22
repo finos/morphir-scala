@@ -1,7 +1,8 @@
 package org.finos.morphir
 
 trait NodeIDModule {
-  self: FQNameModule with NameModule with PathModule with PackageNameModule with ModuleNameModule
+  self: FQNameModule with NamingOptionsModule with NameModule with PathModule with PackageNameModule
+    with ModuleNameModule
     with QualifiedModuleNameModule =>
   import NodePath.*
 
