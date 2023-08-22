@@ -9,6 +9,7 @@ import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 import zio.Chunk
+import Extractors.Types
 
 object Extractors {
 
@@ -128,7 +129,7 @@ object Extractors {
     }
 
     class FunctionOnion(dists: Distributions) {
-      val dealiaser = Dealiased(dists)
+      val dealiaser = new Dealiased(dists)
 
       def unapply(tpe: UType): Option[(UType, List[UType])] = {
         val myself = this
