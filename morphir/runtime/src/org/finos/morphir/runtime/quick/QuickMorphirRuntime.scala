@@ -31,18 +31,17 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
       res <- evaluate(Value.Reference.Typed(tpe, entryPoint), params)
     } yield res
 
-  def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] = {
-    //val errors = new TypeChecker(dists).check(value)
+  def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
+    // val errors = new TypeChecker(dists).check(value)
     for {
 //      ctx <- ZPure.get[RTExecutionContext]
 //
 //      _ <- if (errors.length == 0) RTAction.succeed(()) else {
 //        RTAction.fail(TypeCheckerErrors(errors))
 //      }
-      _ <- typeCheck(value)
+      _   <- typeCheck(value)
       res <- EvaluatorQuick.evalAction(value, store, dists)
     } yield res
-  }
 
   def fetchType(fqn: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
     val maybeSpec = dists.lookupValueSpecification(fqn)
@@ -52,12 +51,21 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
     }
   }
 
-  def typeCheck(value: Value[scala.Unit, UType]) : RTAction[MorphirEnv, EvaluationError, Unit] = for {
+  def typeCheck(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Unit] = for {
     ctx <- ZPure.get[RTExecutionContext]
     result <- ctx.options.enableTyper match {
       case EnableTyper.Disabled => RTAction.succeed[RTExecutionContext, Unit](())
-      case EnableTyper.Warn => RTAction.succeed[RTExecutionContext, Unit](())
-      case EnableTyper.Enabled => RTAction.succeed[RTExecutionContext, Unit](())
+      case EnableTyper.Warn     => {
+        val errors = new TypeChecker(dists).check(value)
+        for error <- errors do
+          println(s"TYPE WARNING: $error")
+        RTAction.succeed[RTExecutionContext, Unit](())
+      }
+      case EnableTyper.Enabled  => {
+        val errors = new TypeChecker(dists).check(value)
+        if (errors.length ==0) RTAction.succeed[RTExecutionContext, Unit](())
+        else RTAction.fail(TypeCheckerErrors(errors))
+      }
     }
   } yield result
 

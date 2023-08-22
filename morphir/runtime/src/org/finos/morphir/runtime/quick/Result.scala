@@ -50,7 +50,7 @@ object Result {
   case class Tuple[TA, VA](elements: Any) extends Result[TA, VA] {
     override def succinct(depth: Int) = if (depth == 0) "Tuple(...)"
     else {
-      s"Tuple(${Helpers.tupleToList(elements).map((res : Any) => res.asInstanceOf[Result[TA, VA]]).map(_.succinct(depth - 1)).mkString(", ")})"
+      s"Tuple(${Helpers.tupleToList(elements).map((res: Any) => res.asInstanceOf[Result[TA, VA]]).map(_.succinct(depth - 1)).mkString(", ")})"
     }
   }
 

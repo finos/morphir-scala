@@ -60,10 +60,15 @@ class TypeChecker(dists: Distributions) {
   private def nameMissingValue(value: TypedValue, dists: Distributions): MorphirTypeError             = ???
   private def nameMissingType(fqn: FQName, dists: Distributions): MorphirTypeError                    = ???
   private def nameMissingConstructor(fqn: FQName, tpe: UType, dists: Distributions): MorphirTypeError = ???
-  def checkList(argList : List[UType], paramList : List[UType], value : TypedValue, contract : UType, context : Context) = { //Maybe that should be in context?
+  def checkList(
+      argList: List[UType],
+      paramList: List[UType],
+      value: TypedValue,
+      contract: UType,
+      context: Context
+  ) = // Maybe that should be in context?
     if (argList.size != paramList.size)
       new ArgNumberMismatch(argList.size, paramList.size, s"Incorrect arity between ")
-  }
   def dealias(tpe: UType, context: Context): Either[MorphirTypeError, UType] = {
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[MorphirTypeError, UType] =
       tpe match {
@@ -250,7 +255,7 @@ class TypeChecker(dists: Distributions) {
               new OtherTypeError(s"Constructor $fqn does not match type name $name")
             )
             val fromCtor = ctors.toMap.get(fqn.localName) match {
-              case Some(ctorArgs) => List()//helper(args.len != ctorArgs.len, new )
+              case Some(ctorArgs) => List() // helper(args.len != ctorArgs.len, new )
 
               case None =>
                 List(new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName}"))
