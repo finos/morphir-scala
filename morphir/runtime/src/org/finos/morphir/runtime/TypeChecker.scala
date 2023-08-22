@@ -40,8 +40,8 @@ object TypeChecker {
 
 class TypeChecker(dists: Distributions) {
   import TypeChecker.*
-  private val functionOnion = Extractors.Types.FunctionOnion(dists)
-  private val dealiased     = Extractors.Types.Dealiased(dists)
+  private val functionOnion = new Extractors.Types.FunctionOnion(dists)
+  private val dealiased     = new Extractors.Types.Dealiased(dists)
   private def nameThatMismatch(tpe1: UType, tpe2: UType): String = {
     import Extractors.Types.*
     (tpe1, tpe2) match {
@@ -120,8 +120,8 @@ class TypeChecker(dists: Distributions) {
           }
         }
       case (valueTpe @ Type.Record(_, valueFields), declaredTpe @ Type.Record(_, declaredFields)) =>
-        val valueFieldSet: Set[Name]    = valueFields.map(_._1).toSet
-        val declaredFieldSet: Set[Name] = declaredFields.map(_._1).toSet
+        val valueFieldSet: Set[Name]    = valueFields.map(_.name).toSet
+        val declaredFieldSet: Set[Name] = declaredFields.map(_.name).toSet
         val missingFromValue = valueFieldSet
           .diff(declaredFieldSet).toList.map(missing =>
             TypeLacksField(valueTpe, missing, s"Required by ${Succinct.Type(declaredTpe)}")
@@ -370,7 +370,7 @@ class TypeChecker(dists: Distributions) {
 
     val fromTpe = tpe match {
       case recordTpe @ Type.Record(_, tpeFields) =>
-        val tpeFieldSet: Set[Name] = tpeFields.map(_._1).toSet
+        val tpeFieldSet: Set[Name] = tpeFields.map(_.name).toSet
         val valFieldSet: Set[Name] = valFields.map(_._1).toSet
         val missingFromTpe = tpeFieldSet
           .diff(valFieldSet).toList.map(missing => ValueLacksField(value, recordTpe, missing))
