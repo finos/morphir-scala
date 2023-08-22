@@ -14,9 +14,10 @@ trait TypeOfModule extends TypeOfModuleVersionSpecific {
   trait TypeOf[A] {
     def apply(): TypeInfo
 
-    @inline final def getType: Type[Attributes] = apply().tpe
+    @inline final def fqName: Option[FQName]    = typeInfo.fqName
+    @inline final def getType: Type[Attributes] = typeInfo.tpe
     @inline final def tpe: Type[Attributes]     = typeInfo.tpe
-    @inline final def typeInfo: TypeInfo        = apply()
+    @inline lazy val typeInfo: TypeInfo         = apply()
   }
 
   object TypeOf extends TypeOfCompanionVersionSpecific {

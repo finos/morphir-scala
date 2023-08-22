@@ -207,14 +207,20 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
   object extensibility extends CrossPlatform with CrossValue {
     trait Shared extends MorphirCommonModule with MorphirPublishModule {
-      def ivyDeps = super.ivyDeps() ++ Agg(
-        Deps.com.lihaoyi.sourcecode,
-        Deps.com.lihaoyi.fansi,
-        Deps.com.lihaoyi.pprint,
-        Deps.dev.zio.`izumi-reflect`,
-        Deps.org.typelevel.`paiges-core`,
-        Deps.org.typelevel.spire
-      )
+      def ivyDeps = T {
+        super.ivyDeps() ++ Agg(
+          Deps.com.lihaoyi.sourcecode,
+          Deps.com.lihaoyi.fansi,
+          Deps.com.lihaoyi.pprint,
+          Deps.dev.zio.`izumi-reflect`,
+          Deps.org.typelevel.`paiges-core`,
+          Deps.org.typelevel.spire
+        ) ++ Agg.when(isScala3())(
+          Deps.com.softwaremill.magnolia_3.magnolia
+        ) ++ Agg.when(isScala2())(
+          Deps.com.softwaremill.magnolia_2.magnolia
+        )
+      }
 
       def platformSpecificModuleDeps = Seq(meta)
     }

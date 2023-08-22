@@ -23,6 +23,10 @@ trait CommonScalaModule extends ScalaModule {
     scalaVersion().startsWith("3.")
   }
 
+  def isScala2: T[Boolean] = T {
+    scalaVersion().startsWith("2.")
+  }
+
   def isScala213: T[Boolean] = T {
     scalaVersion().startsWith("2.13.")
   }
