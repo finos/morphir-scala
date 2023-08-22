@@ -31,13 +31,16 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
       res <- evaluate(Value.Reference.Typed(tpe, entryPoint), params)
     } yield res
 
-  def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
+  def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] = {
     val errors = new TypeChecker(dists).check(value)
     for {
       ctx <- ZPure.get[RTExecutionContext]
-      _   <- if (errors.length == 0) RTAction.succeed(()) else RTAction.fail(TypeCheckerErrors(errors))
+      _ <- if (errors.length == 0) RTAction.succeed(()) else {
+        RTAction.fail(TypeCheckerErrors(errors))
+      }
       res <- EvaluatorQuick.evalAction(value, store, dists)
     } yield res
+  }
 
   def fetchType(fqn: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
     val maybeSpec = dists.lookupValueSpecification(fqn)
@@ -46,6 +49,13 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
       case Left(err)   => RTAction.fail(new SpecificationNotFound(s"Lookup failure: ${err.getMsg}"))
     }
   }
+
+  def typeCheck(value: Value[scala.Unit, UType]) : RTAction[MorphirEnv, MorphirRuntimeError, Unit] = for {
+    ctx <- ZPure.get[RTExecutionContext]
+    result <- ctx.options.enableTyper match {
+    }
+
+  } yield Result
 
   def applyParams(
       entryPoint: Value[scala.Unit, UType],
