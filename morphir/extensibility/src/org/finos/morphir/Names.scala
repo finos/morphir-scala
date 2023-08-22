@@ -10,3 +10,4 @@ trait Names
     with PackageNameModule
     with QualifiedModuleNameModule
     with QNameModule
+    with NamingOptionsModule

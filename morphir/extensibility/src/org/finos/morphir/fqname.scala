@@ -3,7 +3,8 @@ package org.finos.morphir
 trait FQNameModule {
   self: NameModule with ModuleNameModule with NamespaceModule with PackageNameModule with PathModule
     with QualifiedModuleNameModule
-    with QNameModule =>
+    with QNameModule
+    with NamingOptionsModule =>
 
   sealed case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) { self =>
     def getPackagePath: Path = packagePath.toPath
@@ -98,13 +99,6 @@ trait FQNameModule {
     object ReferenceName {
       def unapply(fqName: FQName): Some[String] = Some(fqName.toReferenceName)
     }
-  }
-
-  sealed case class FQNamingOptions(defaultPackage: PackageName, defaultModule: ModuleName, defaultSeparator: String)
-
-  object FQNamingOptions {
-    implicit val default: FQNamingOptions =
-      FQNamingOptions(PackageName.empty, ModuleName.empty, ":")
   }
 
   sealed case class FQNameParsingError(invalidName: String)
