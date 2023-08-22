@@ -30,7 +30,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
       irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
       _          <- Console.printLine(s"Loading distribution from $irFilePath")
       dist       <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
-    } yield TypeChecker(Distributions(dist)))
+    } yield new TypeChecker(Distributions(dist)))
 
   def testTypeConforms(tpe1: UType, tpe2: UType)(expectedErrors: Int): ZIO[TypeChecker, Throwable, TestResult] =
     ZIO.serviceWithZIO[TypeChecker] { checker =>
@@ -110,7 +110,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
           testTypeConforms(Basics.intType, sdk.String.stringType)(1)
         },
         test("UnitType is not StringType") {
-          testTypeConforms(T.unit(()), sdk.String.stringType)(1)
+          testTypeConforms(T.unit, sdk.String.stringType)(1)
         }
       )
     ).provideLayerShared(typeCheckerLayer)
