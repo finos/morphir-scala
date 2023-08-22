@@ -1,6 +1,9 @@
-morphir4s - FINOS
+# morphir-scala - FINOS
+
 Copyright 2022 - 2022 FINOS
 
 This product includes software developed at the Fintech Open Source Foundation (https://www.finos.org/).
 
+This product includes source code from the following third-party libraries/projects:
 
+- [Shapely](https://gitlab.com/fommil/shapely) project which is [licensed](docs/licenses/shapely/LICENSE) under the [BSD 2-Clause "Simplified" License](https://gitlab.com/fommil/shapely).

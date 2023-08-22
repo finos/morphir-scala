@@ -631,7 +631,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     test("It should support collecting nested variables") {
       val someVar = variable("someVar")
 
-      val rec = record("fieldA" -> string("string1"), "fieldB" -> someVar)
+      val rec = recordRaw("fieldA" -> string("string1"), "fieldB" -> someVar)
       assertTrue(rec.collectVariables == Set(Name.fromString("someVar")))
     },
     test("It should support collecting references") {
@@ -650,7 +650,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     },
     test("toRawValue should return as expected") {
       val recordType = Type.record(defineField("timeout", intType))
-      val rec        = Record(recordType, fields("timeout" -> int(30000)))
+      val rec        = Record(recordType, fields("timeout" -> intTyped(30000)))
 
       assertTrue(rec.toRawValue == Record((), fields("timeout" -> int(30000))))
     }

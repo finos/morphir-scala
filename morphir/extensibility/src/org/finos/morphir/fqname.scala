@@ -1,9 +1,10 @@
 package org.finos.morphir
 
-private[morphir] trait FQNameExports {
-  self: NameExports with ModuleNameExports with NamespaceExports with PackageNameExports with PathExports
-    with QualifiedModuleNameExports
-    with QNameExports =>
+trait FQNameModule {
+  self: NameModule with ModuleNameModule with NamespaceModule with PackageNameModule with PathModule
+    with QualifiedModuleNameModule
+    with QNameModule
+    with NamingOptionsModule =>
 
   sealed case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) { self =>
     def getPackagePath: Path = packagePath.toPath
@@ -24,6 +25,12 @@ private[morphir] trait FQNameExports {
       Path.toString(Name.toTitleCase, ".", packagePath.toPath),
       Path.toString(Name.toTitleCase, ".", modulePath.toPath),
       Name.toCamelCase(localName)
+    ).mkString(":")
+
+    def toStringTitleCase: String = Array(
+      Path.toString(Name.toTitleCase, ".", packagePath.toPath),
+      Path.toString(Name.toTitleCase, ".", modulePath.toPath),
+      Name.toTitleCase(this.localName)
     ).mkString(":")
   }
 
@@ -88,13 +95,10 @@ private[morphir] trait FQNameExports {
 
     def fromString(fqNameString: String)(implicit options: FQNamingOptions): FQName =
       fromString(fqNameString, options.defaultSeparator)
-  }
 
-  sealed case class FQNamingOptions(defaultPackage: PackageName, defaultModule: ModuleName, defaultSeparator: String)
-
-  object FQNamingOptions {
-    implicit val default: FQNamingOptions =
-      FQNamingOptions(PackageName.empty, ModuleName.empty, ":")
+    object ReferenceName {
+      def unapply(fqName: FQName): Some[String] = Some(fqName.toReferenceName)
+    }
   }
 
   sealed case class FQNameParsingError(invalidName: String)

@@ -32,7 +32,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case Right(i: Int)           => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
       case Left(b: Boolean)        => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
       case (i: Int, s: String)     => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
-      case other                   => throw new Exception(s"Couldn't derive $other")
+      // If the data is already derived, just use it!
+      case data: Data => data
+      case other      => throw new Exception(s"Couldn't derive $other")
     }
 
   def checkEvaluation(
@@ -537,6 +539,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       suite("SDK Basics Tests")(
         testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
         testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int(2)),
+        testEval("Plus")("sdkBasicsTests", "sdkAddTest64", abStruct(1L, 2L))(Data.Int64(3)),
+        testEval("Minus")("sdkBasicsTests", "sdkSubtractTest64", abStruct(4L, 2L))(Data.Int64(2)),
         testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Decimal(2.0)),
         testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
         testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),
@@ -576,4 +580,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
       )
     ).provideLayerShared(morphirRuntimeLayer)
+
+  def abStruct(a: Long, b: Long) = Data.Struct(Label("a") -> Data.Int64(a), Label("b") -> Data.Int64(b))
 }

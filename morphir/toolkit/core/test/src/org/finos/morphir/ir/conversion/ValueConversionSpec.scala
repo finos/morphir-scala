@@ -99,7 +99,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
       assertTrue(morphirInt8 == V.applyInferType(
         sdk.Int.int8Type,
         V.reference(FQName.fromString("Morphir.SDK:Int:toInt8")),
-        V.intTyped(inputValue.value)
+        V.intTyped(inputValue.value.toInt)
       ))
     },
     test("Should be possible to convert a Data Char to a Morphir Char") {
@@ -121,7 +121,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
       assertTrue(morphirInt16 == V.applyInferType(
         sdk.Int.int16Type,
         V.reference(FQName.fromString("Morphir.SDK:Int:toInt16")),
-        V.intTyped(inputValue.value)
+        V.intTyped(inputValue.value.toInt)
       ))
     },
     test("Should be possible to convert a Data Int to a Morphir Int") {

@@ -67,7 +67,12 @@ object Utils {
         }
       case (Type.Unit(_), Type.Unit(_))     => Right(found)
       case (IntRef(), IntRef())             => Right(found) // Right?
+      case (IntRef(), Int16Ref())           => Right(found)
+      case (IntRef(), Int32Ref())           => Right(found)
+      case (IntRef(), Int64Ref())           => Right(found)
+      case (Int16Ref(), Int16Ref())         => Right(found)
       case (Int32Ref(), Int32Ref())         => Right(found)
+      case (Int64Ref(), Int64Ref())         => Right(found)
       case (FloatRef(), FloatRef())         => Right(found)
       case (StringRef(), StringRef())       => Right(found)
       case (CharRef(), CharRef())           => Right(found)
@@ -140,7 +145,7 @@ object Utils {
   )(implicit options: RTExecutionContext.Options): RTAction[Any, TypeError, UType] = {
     val dealiaser = new Dealiased(dists)
     (curried, args) match {
-      case (Type.Function(attributes, parameterType, returnType), head :: tail) =>
+      case (Type.Function(_, parameterType, returnType), head :: tail) =>
         for {
 
           //          errors <- RTAction.succeed(new ArgTypeChecker(dists).reallyTypeCheckArg(head, parameterType, ""))

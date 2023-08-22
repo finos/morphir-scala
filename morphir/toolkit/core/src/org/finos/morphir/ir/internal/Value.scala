@@ -2,7 +2,7 @@ package org.finos.morphir
 package ir
 package internal
 
-import scala.annotation.tailrec
+import scala.annotation.{tailrec, unused}
 import org.finos.morphir.naming._
 import Literal.Lit
 import Pattern._
@@ -72,7 +72,7 @@ sealed trait Value[+TA, +VA] { self =>
       in match {
         case (v @ Apply(_, function, argument)) :: values =>
           loop(function :: argument :: values, Left(v) :: out)
-        case (v @ Destructure(attributes, pattern, valueToDestruct, inValue)) :: values =>
+        case (v @ Destructure(_, _, valueToDestruct, inValue)) :: values =>
           loop(valueToDestruct :: inValue :: values, Left(v) :: out)
         case (v @ Constructor(attributes, name)) :: values =>
           loop(values, Right(constructorCase(context, v, attributes, name)) :: out)
@@ -80,19 +80,19 @@ sealed trait Value[+TA, +VA] { self =>
           loop(subjectValue :: values, Left(v) :: out)
         case (v @ FieldFunction(attributes, name)) :: values =>
           loop(values, Right(fieldFunctionCase(context, v, attributes, name)) :: out)
-        case (v @ IfThenElse(attributes, condition, thenValue, elseValue)) :: values =>
+        case (v @ IfThenElse(_, condition, thenValue, elseValue)) :: values =>
           loop(condition :: thenValue :: elseValue :: values, Left(v) :: out)
         case (v @ Lambda(_, _, body)) :: values =>
           loop(body :: values, Left(v) :: out)
-        case (v @ LetDefinition(attributes, name, definition, inValue)) :: values =>
+        case (v @ LetDefinition(_, _, definition, inValue)) :: values =>
           loop(definition.body :: inValue :: values, Left(v) :: out)
-        case (v @ LetRecursion(attributes, definitions, inValue)) :: values =>
+        case (v @ LetRecursion(_, definitions, inValue)) :: values =>
           loop(definitions.values.map(_.body).toList ::: inValue :: values, Left(v) :: out)
         case (v @ ListValue(_, elements)) :: values =>
           loop(elements.toList ++ values, Left(v) :: out)
         case (v @ Literal(attributes, lit)) :: values =>
           loop(values, Right(literalCase(context, v, attributes, lit)) :: out)
-        case (v @ PatternMatch(attributes, value, cases)) :: values =>
+        case (v @ PatternMatch(_, value, cases)) :: values =>
           loop(value :: cases.map(_._2).toList ++ values, Left(v) :: out)
         case (v @ Record(_, fields)) :: values =>
           val fieldValues = fields.map(_._2).toList
@@ -231,33 +231,33 @@ sealed trait Value[+TA, +VA] { self =>
     @tailrec
     def loop(z: Z, value: Value[TA, VA], stack: List[Value[TA, VA]]): Z =
       (f.applyOrElse[(Z, Value[TA, VA]), Z](z -> value, _ => z), value) match {
-        case (z, v @ Apply(_, function, argument)) =>
-          loop(z, function, argument :: stack)
-        case (z, v @ Destructure(_, _, valueToDestruct, inValue)) =>
-          loop(z, valueToDestruct, inValue :: stack)
-        case (z, v @ Field(_, value, _)) =>
+        case (z, v @ Apply(_, _, _)) =>
+          loop(z, v.function, v.argument :: stack)
+        case (z, v @ Destructure(_, _, _, _)) =>
+          loop(z, v.valueToDestruct, v.inValue :: stack)
+        case (z, Field(_, value, _)) =>
           loop(z, value, stack)
-        case (z, v @ IfThenElse(_, condition, thenBranch, elseBranch)) =>
+        case (z, IfThenElse(_, condition, thenBranch, elseBranch)) =>
           loop(z, condition, thenBranch :: elseBranch :: stack)
-        case (z, v @ Lambda(_, _, body)) =>
+        case (z, Lambda(_, _, body)) =>
           loop(z, body, stack)
-        case (z, v @ LetDefinition(_, _, Value.Definition(_, _, body), inValue)) =>
+        case (z, LetDefinition(_, _, Value.Definition(_, _, body), inValue)) =>
           loop(z, body, inValue :: stack)
-        case (z, v @ LetRecursion(_, valueDefs, inValue)) =>
+        case (z, LetRecursion(_, valueDefs, inValue)) =>
           val values = valueDefs.values.map(_.body).toList ++ scala.List(inValue)
           loop(z, values.head, values.tail ++ stack)
-        case (z, v @ ListValue(_, Chunk(head, tail @ _*))) =>
+        case (z, ListValue(_, Chunk(head, tail @ _*))) =>
           loop(z, head, tail.toList ++ stack)
-        case (z, v @ PatternMatch(_, branchOutOn, cases)) =>
+        case (z, PatternMatch(_, branchOutOn, cases)) =>
           val values = cases.map(_._2).toList
           loop(z, branchOutOn, values ++ stack)
-        case (z, v @ Record(_, Chunk((_, value), tail @ _*))) =>
+        case (z, Record(_, Chunk((_, value), tail @ _*))) =>
           loop(z, value, tail.map(_._2).toList ++ stack)
-        case (z, v @ Tuple(_, Chunk(head, tail @ _*))) =>
+        case (z, Tuple(_, Chunk(head, tail @ _*))) =>
           loop(z, head, tail.toList ++ stack)
-        case (z, v @ UpdateRecord(_, valueToUpdate, fields)) =>
-          val values = fields.values.toList
-          loop(z, valueToUpdate, values ++ stack)
+        case (z, v @ UpdateRecord(_, _, _)) =>
+          val values = v.fieldsToUpdate.values.toList
+          loop(z, v.valueToUpdate, values ++ stack)
         case (z, _) =>
           stack match {
             case Nil          => z
@@ -368,7 +368,7 @@ object Value {
       arguments.foldLeft(Apply(attributes, function, argument)) { case (acc, arg) => Apply(acc.attributes, acc, arg) }
 
     def apply[TA, VA](attributes: VA, function: Value[TA, VA], arguments: scala.List[Value[TA, VA]])(implicit
-        ev: NeedsAttributes[VA]
+        @unused ev: NeedsAttributes[VA]
     ): Value[TA, VA] =
       arguments match {
         case Nil => function
@@ -391,8 +391,8 @@ object Value {
         }
 
       def unapply(value: RawValue): Option[(RawValue, RawValue)] = value match {
-        case Apply(attributes, function, argument) => Some((function, argument))
-        case _                                     => None
+        case Apply(_, function, argument) => Some((function, argument))
+        case _                            => None
       }
     }
 
@@ -499,8 +499,8 @@ object Value {
         Field(target.attributes, target, Name.fromString(name))
 
       def unapply(value: RawValue): Option[(RawValue, Name)] = value match {
-        case Field(attributes, target, name) => Some((target, name))
-        case _                               => None
+        case Field(_, target, name) => Some((target, name))
+        case _                      => None
       }
     }
 
@@ -598,8 +598,8 @@ object Value {
         Lambda(body.attributes, argumentPattern, body)
 
       def unapply(value: RawValue): Option[(UPattern, RawValue)] = value match {
-        case Lambda(attributes, argumentPattern, body) => Some((argumentPattern, body))
-        case _                                         => None
+        case Lambda(_, argumentPattern, body) => Some((argumentPattern, body))
+        case _                                => None
       }
     }
 
@@ -763,9 +763,9 @@ object Value {
     object Typed {
       def apply(tpe: UType, elements: Chunk[TypedValue]): Typed = List(tpe, elements)
 
-      def apply(elements: NonEmptyChunk[TypedValue]): Typed =
-        // val tpe = sdk.List.listType(elements.head.attributes)
-        List( /*tpe*/ ???, elements)
+      // def apply(elements: NonEmptyChunk[TypedValue]): Typed =
+      //   // val tpe = sdk.List.listType(elements.head.attributes)
+      //   List( /*tpe*/ ???, elements)
 
       def apply(tpe: UType, elements: TypedValue*): Typed =
         List(tpe, Chunk.fromIterable(elements))

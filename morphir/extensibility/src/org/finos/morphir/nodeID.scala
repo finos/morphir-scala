@@ -1,8 +1,9 @@
 package org.finos.morphir
 
-private[morphir] trait NodeIDExports {
-  self: FQNameExports with NameExports with PathExports with PackageNameExports with ModuleNameExports
-    with QualifiedModuleNameExports =>
+trait NodeIDModule {
+  self: FQNameModule with NamingOptionsModule with NameModule with PathModule with PackageNameModule
+    with ModuleNameModule
+    with QualifiedModuleNameModule =>
   import NodePath.*
 
   /**
@@ -54,6 +55,7 @@ private[morphir] trait NodeIDExports {
       }
     }
   }
+  type NodeIDCompanion = NodeID.type
   object NodeID {
 
     def fromQualifiedName(qualifiedModuleName: QualifiedModuleName): NodeID =
@@ -153,5 +155,9 @@ private[morphir] trait NodeIDExports {
 
     sealed case class ChildByName(name: Name)  extends NodePathStep
     sealed case class ChildByIndex(index: Int) extends NodePathStep
+  }
+
+  trait HasId {
+    def id: NodeID
   }
 }

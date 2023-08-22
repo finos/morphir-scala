@@ -151,7 +151,7 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
           val sampleJson        = sample.toJsonPretty
           val currentSampleJson = currentSample.toJsonPretty
 
-          val (errors, patchFile) = doJsonDiff(sampleJson, currentSampleJson)
+          val (errors, _) = doJsonDiff(sampleJson, currentSampleJson)
 
           (if (structureDiff.length <= 20) {
              Console.printLine(

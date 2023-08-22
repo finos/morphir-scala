@@ -2,6 +2,7 @@ package org.finos.morphir.foundations.platform.services.internal.events
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
+import scala.annotation.nowarn
 
 @js.native
 @JSImport("events", "EventEmitter")
@@ -11,7 +12,7 @@ class EventEmitter() extends IEventEmitter {
 
 @js.native
 trait IEventEmitter extends js.Object {
-  var Domain: Domain = js.native
+  @nowarn var Domain: Domain = js.native
 
   def addListener(eventName: String, listener: js.Function): this.type = js.native
   def emit(name: String, args: js.Any*): Boolean                       = js.native
@@ -43,7 +44,7 @@ object EventEmitterOptions {
 @JSImport("events", JSImport.Namespace)
 object EventEmitter extends js.Object {
 
-  var usingDomains: Boolean = js.native
+  @nowarn var usingDomains: Boolean = js.native
 }
 
 @js.native

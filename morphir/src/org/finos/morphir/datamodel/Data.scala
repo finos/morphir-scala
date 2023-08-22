@@ -1,6 +1,7 @@
 package org.finos.morphir.datamodel
 
-import org.finos.morphir.naming._
+import org.finos.morphir.naming.*
+import org.finos.morphir.util.{DetailLevel, PrintMDM}
 
 import java.io.OutputStream
 import scala.collection.immutable.ListMap
@@ -8,6 +9,31 @@ import scala.collection.mutable
 
 sealed trait Data extends geny.Writable {
   def shape: Concept
+
+  def getNameString: Option[String] =
+    getName.map(_.localName.toTitleCase)
+  def getName: Option[FQName] =
+    this match {
+      case _: Data.Basic[_] => None
+      case v: Data.Case     => Some(v.shape.name)
+      case _: Data.Tuple    => None
+      case v: Data.Record   => Some(v.shape.namespace)
+      case _: Data.Struct   => None
+      case _: Data.Optional => None
+      case _: Data.Result   => None
+      case _: Data.List     => None
+      case _: Data.Map      => None
+      case _: Data.Union    => None
+      case v: Data.Aliased  => Some(v.shape.name)
+    }
+
+  def toStringPretty: String = toStringPretty(true)
+  def toStringPretty(color: Boolean, detailLevel: DetailLevel = DetailLevel.BirdsEye): String =
+    if (color)
+      PrintMDM(this, detailLevel).toString
+    else
+      PrintMDM(this, detailLevel).plainText
+
   def writeBytesTo(out: OutputStream): Unit = {
     // TODO: Implement writing
   }
@@ -26,6 +52,7 @@ object Data {
   case class Integer(value: scala.BigInt)          extends Basic[scala.BigInt]        { val shape = Concept.Integer   }
   case class Int16(value: scala.Short)             extends Basic[Short]               { val shape = Concept.Int16     }
   case class Int32(value: scala.Int)               extends Basic[Int]                 { val shape = Concept.Int32     }
+  case class Int64(value: scala.Long)              extends Basic[Long]                { val shape = Concept.Int64     }
   case class String(value: java.lang.String)       extends Basic[java.lang.String]    { val shape = Concept.String    }
   case class LocalDate(value: java.time.LocalDate) extends Basic[java.time.LocalDate] { val shape = Concept.LocalDate }
   case class Month(value: java.time.Month)         extends Basic[java.time.Month]     { val shape = Concept.Month     }

@@ -77,7 +77,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
       ctx <- ZPure.get[RTExecutionContext]
       out <- {
         entryPoint match {
-          case Value.Reference.Typed(tpe, entryName) =>
+          case Value.Reference.Typed(tpe, _) =>
             for {
               tpe <- findTypeBindings(tpe, params.toList, dists, Map())(ctx.options)
             } yield V.apply(tpe, entryPoint, params.head, params.tail: _*)

@@ -76,7 +76,7 @@ sealed trait Free[F[+_, +_], +E, +A] { self =>
                 case Nil                                     => Right(a.asInstanceOf[A])
               }
           }
-        case free @ Free.Sequence(fa, onSuccess, onFailure) =>
+        case free @ Free.Sequence(fa, _, _) =>
           loop(fa, (free :: stack).asInstanceOf[List[Free.Sequence[F, Any, Any, Any, Any]]])
       }
     loop(self, Nil)
