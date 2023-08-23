@@ -20,6 +20,7 @@ object Extractors {
     object ListRef {
       def unapply(tpe: UType): Option[UType] =
         tpe match {
+          // TODO: The SDK specification should make these names available, without requiring a type argument
           case Type.Reference(_, FQString("Morphir.SDK:List:list"), Chunk(elementType)) =>
             Some(elementType)
           case _ => None

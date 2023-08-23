@@ -55,16 +55,14 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
     ctx <- ZPure.get[RTExecutionContext]
     result <- ctx.options.enableTyper match {
       case EnableTyper.Disabled => RTAction.succeed[RTExecutionContext, Unit](())
-      case EnableTyper.Warn     => {
+      case EnableTyper.Warn =>
         val errors = new TypeChecker(dists).check(value)
         errors.foreach(error => println(s"TYPE WARNING: $error"))
         RTAction.succeed[RTExecutionContext, Unit](())
-      }
-      case EnableTyper.Enabled  => {
+      case EnableTyper.Enabled =>
         val errors = new TypeChecker(dists).check(value)
-        if (errors.length ==0) RTAction.succeed[RTExecutionContext, Unit](())
+        if (errors.length == 0) RTAction.succeed[RTExecutionContext, Unit](())
         else RTAction.fail(TypeCheckerErrors(errors))
-      }
     }
   } yield result
 
