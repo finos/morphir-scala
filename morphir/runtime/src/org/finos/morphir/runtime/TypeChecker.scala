@@ -68,7 +68,9 @@ class TypeChecker(dists: Distributions) {
       context: Context
   ) = // Maybe that should be in context?
     if (argList.size != paramList.size)
-      new ArgNumberMismatch(argList.size, paramList.size, s"Incorrect arity between ")
+      List(new ArgNumberMismatch(argList.size, paramList.size, s"Incorrect arity between "))
+    else
+      List()
   def dealias(tpe: UType, context: Context): Either[MorphirTypeError, UType] = {
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[MorphirTypeError, UType] =
       tpe match {

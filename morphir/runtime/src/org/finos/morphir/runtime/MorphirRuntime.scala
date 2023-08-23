@@ -14,7 +14,6 @@ trait MorphirRuntime[TA, VA] {
   def evaluate(entryPoint: Value[TA, VA], params: Data): RTAction[MorphirEnv, MorphirRuntimeError, Data]
   def evaluate(entryPoint: FQName, params: Data): RTAction[MorphirEnv, MorphirRuntimeError, Data]
   def evaluate(entryPoint: FQName, params: Value[TA, VA]): RTAction[MorphirEnv, MorphirRuntimeError, Data]
-  // TODO: applyParams can fail if things are bad, but we can't combine Fs yet
   def applyParams(entryPoint: Value[TA, VA], params: Value[TA, VA]*): RTAction[MorphirEnv, TypeError, Value[TA, VA]]
 
   def evaluate(value: Value[TA, VA]): RTAction[MorphirEnv, EvaluationError, Data]

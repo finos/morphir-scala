@@ -108,7 +108,7 @@ object Extractors {
       def unapply(tpe: UType): Option[(FQName, Chunk[UType])] =
         tpe match {
           case Type.Reference(_, name, args)
-              //TODO: Use single thing for checking name/ref is native
+              //TODO: NATIVE_CHECK
               if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
             Some((name, args))
           case _ => None
@@ -119,14 +119,14 @@ object Extractors {
       def unapply(tpe: UType): Boolean =
         tpe match {
           case Type.Reference(_, name, _)
-            //TODO: Use single thing for checking name/ref is native
+            //TODO: NATIVE_CHECK
               if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) => true
           case _ => false
         }
     }
     // Extractor object that unwraps a single layer of aliasing, and gives any type names that were bound in the process
     class Dealiased(dists: Distributions) {
-      //TODO: Consider just applying the bindings?
+      //TODO: DEALIASING_CLEANUP
       def unapply(tpe: UType): Option[(UType, Map[Name, UType])] = // If it's aliased we may need to grab bindings
         tpe match {
           case NativeRef() => None
@@ -160,13 +160,14 @@ object Extractors {
     }
   }
   object Values {
+    //Extractor that helps handle currying
     object ApplyChain {
       def unapply(value: TypedValue): Option[(TypedValue, List[TypedValue])] = value match {
         case Value.Apply(_, ApplyChain(inner, args), arg) => Some((inner, args :+ arg))
         case other                                        => Some((other, List()))
       }
     }
-    object SomeConstructor {
+    object JustConstructor {
       def unapply(value: TypedValue): Option[TypedValue] =
         value match {
           case Value.Apply(attributes, Value.Constructor(_, FQString("Morphir.SDK:Maybe:just")), something) =>
@@ -174,7 +175,7 @@ object Extractors {
           case _ => None
         }
     }
-    object NoneConstructor {
+    object NothingConstructor {
       def unapply(value: TypedValue): Boolean =
         value match {
           case Value.Constructor(_, FQString("Morphir.SDK:Maybe:nothing")) =>
@@ -187,6 +188,7 @@ object Extractors {
       def unapply(value: TypedValue): Option[(UType, FQName)] =
         value match {
           case Value.Reference(tpe, name)
+            //TODO: NATIVE_CHECK
               if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
             Some((tpe, name))
           case _ => None
@@ -197,6 +199,7 @@ object Extractors {
       def unapply(value: TypedValue): Option[(UType, FQName)] =
         value match {
           case Value.Reference(tpe, name)
+            //TODO: NATIVE_CHECK
               if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
             Some((tpe, name))
           case _ => None
