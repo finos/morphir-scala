@@ -46,8 +46,8 @@ class TypeChecker(dists: Distributions) {
   def nameThatMismatch(tpe1: UType, tpe2: UType): String = {
     import Extractors.Types.*
     (tpe1, tpe2) match {
-      case (NonNativeRef(fqn1, args1@_), NonNativeRef(fqn2, args2@_)) if fqn1 == fqn2 =>
-        s"Refs to $fqn1 have different type args"
+      case (NonNativeRef(fqn1, _), NonNativeRef(fqn2, _)) if fqn1 == fqn2 =>
+        s"Refs to $fqn1 have different type args" //This method shouldn't be called otehrwise
       case (NonNativeRef(fqn1, _), NonNativeRef(fqn2, _)) =>
         val (pack1, mod1, loc1) = (fqn1.packagePath, fqn1.modulePath, fqn1.localName)
         val (pack2, mod2, loc2) = (fqn2.packagePath, fqn2.modulePath, fqn2.localName)
@@ -61,14 +61,13 @@ class TypeChecker(dists: Distributions) {
   def checkList(
       argList: List[UType],
       paramList: List[UType],
-      value: TypedValue,
-      contract: UType,
       context: Context
   ) = // Maybe that should be in context?
     if (argList.size != paramList.size)
-      List(new ArgNumberMismatch(argList.size, paramList.size, s"Incorrect arity between "))
+      List(new ArgNumberMismatch(argList.size, paramList.size, s"${context.prefix} : Different arities: "))
     else
-      List()
+      argList.zip(paramList).flatMal{case (arg, param) => conformsTo(arg, param, context)}
+
   def dealias(tpe: UType, context: Context): Either[MorphirTypeError, UType] = {
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[MorphirTypeError, UType] =
       tpe match {
@@ -155,9 +154,9 @@ class TypeChecker(dists: Distributions) {
           ))
         else
           valueArgs.zip(declaredArgs).toList.flatMap { case (value, declared) => conformsTo(value, declared, context) }
-      case (dealiased(value, valueArgs), declared) =>
+      case (dealiased(value, valueArgs@_), declared) =>
         conformsTo(value, declared, context) // TODO: Bindings, left side only!
-      case (value, dealiased(declared, declaredArgs)) =>
+      case (value, dealiased(declared, declaredArgs@_)) =>
         conformsTo(value, declared, context) // TODO: Bindings, right side only!
       case (valueOther, declaredOther) if valueOther.getClass == declaredOther.getClass =>
         List(
@@ -225,7 +224,7 @@ class TypeChecker(dists: Distributions) {
             tpe,
             context
           ) // TODO: Useful context lost here
-        case Right(other) => List(new ApplyToNonFunction(function, argument))
+        case Right(other) => List(new ApplyToNonFunction(function, other))
         case Left(err)    => List(err)
       }
     fromChildren ++ fromTpe
@@ -233,7 +232,7 @@ class TypeChecker(dists: Distributions) {
 
   def handleDestructure(
       tpe: UType,
-      pattern: Pattern[UType],
+      pattern@_: Pattern[UType],
       value: TypedValue,
       inValue: TypedValue,
       context: Context
@@ -255,8 +254,9 @@ class TypeChecker(dists: Distributions) {
               new OtherTypeError(s"Constructor $fqn does not match type name $name")
             )
             val fromCtor = ctors.toMap.get(fqn.localName) match {
-              case Some(ctorArgs) => List() // helper(args.len != ctorArgs.len, new )
-
+              case Some(ctorArgs) =>  {
+                checkList(args, ctorArgs, context.withPrefix(s"Comparing $fqn value to looked up type ${Sucinct.Type(tpe)}"))
+              }
               case None =>
                 List(new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName}"))
             }
