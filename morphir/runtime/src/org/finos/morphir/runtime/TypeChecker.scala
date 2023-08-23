@@ -66,7 +66,7 @@ class TypeChecker(dists: Distributions) {
     if (argList.size != paramList.size)
       List(new ArgNumberMismatch(argList.size, paramList.size, s"${context.prefix} : Different arities: "))
     else
-      argList.zip(paramList).flatMal{case (arg, param) => conformsTo(arg, param, context)}
+      argList.zip(paramList).flatMap{case (arg, param) => conformsTo(arg, param, context)}
 
   def dealias(tpe: UType, context: Context): Either[MorphirTypeError, UType] = {
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[MorphirTypeError, UType] =
@@ -224,7 +224,7 @@ class TypeChecker(dists: Distributions) {
             tpe,
             context
           ) // TODO: Useful context lost here
-        case Right(other) => List(new ApplyToNonFunction(function, other))
+        case Right(o_) => List(new ApplyToNonFunction(function, argument))
         case Left(err)    => List(err)
       }
     fromChildren ++ fromTpe
@@ -232,7 +232,7 @@ class TypeChecker(dists: Distributions) {
 
   def handleDestructure(
       tpe: UType,
-      pattern@_: Pattern[UType],
+      pattern: Pattern[UType],
       value: TypedValue,
       inValue: TypedValue,
       context: Context
@@ -255,7 +255,7 @@ class TypeChecker(dists: Distributions) {
             )
             val fromCtor = ctors.toMap.get(fqn.localName) match {
               case Some(ctorArgs) =>  {
-                checkList(args, ctorArgs, context.withPrefix(s"Comparing $fqn value to looked up type ${Sucinct.Type(tpe)}"))
+                checkList(args.toList, ctorArgs.toList, context.withPrefix(s"Comparing $fqn value to looked up type ${Succinct.Type(tpe)}"))
               }
               case None =>
                 List(new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName}"))
@@ -284,8 +284,12 @@ class TypeChecker(dists: Distributions) {
   }
   def handleFieldFunction(tpe: UType, name: Name, context: Context): TypeCheckerResult = {
     val fromChildren = List()
+    val fromTpe = tpe match{
+      case Type.Function(_, _, _) => List()
+      case other => List(new ImproperType("Field function should be function:", other))
+    }
     // TODO: tpe should be... function from extensible record type to ???
-    fromChildren
+    fromChildren ++ fromTpe
   }
   def handleIfThenElse(
       tpe: UType,
