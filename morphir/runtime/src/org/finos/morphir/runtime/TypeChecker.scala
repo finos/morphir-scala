@@ -38,16 +38,17 @@ object TypeChecker {
   def helper(condition: Boolean, error: MorphirTypeError) = if (condition) List(error) else List()
 }
 
-class TypeChecker(dists: Distributions) {
+//TODO: This is final because references to ValueDefinition are private, and thus letDefinition and letRecursion handlers cannot be overridden. There may be a better way to handle this.
+final class TypeChecker(dists: Distributions) {
   import TypeChecker.*
-  //private val functionOnion = new Extractors.Types.FunctionOnion(dists)
-  private val dealiased     = new Extractors.Types.Dealiased(dists)
-  //TODO: Use or remove
+  // private val functionOnion = new Extractors.Types.FunctionOnion(dists)
+  private val dealiased = new Extractors.Types.Dealiased(dists)
+  // TODO: Use or remove
   def nameThatMismatch(tpe1: UType, tpe2: UType): String = {
     import Extractors.Types.*
     (tpe1, tpe2) match {
       case (NonNativeRef(fqn1, _), NonNativeRef(fqn2, _)) if fqn1 == fqn2 =>
-        s"Refs to $fqn1 have different type args" //This method shouldn't be called otehrwise
+        s"Refs to $fqn1 have different type args" // This method shouldn't be called otehrwise
       case (NonNativeRef(fqn1, _), NonNativeRef(fqn2, _)) =>
         val (pack1, mod1, loc1) = (fqn1.packagePath, fqn1.modulePath, fqn1.localName)
         val (pack2, mod2, loc2) = (fqn2.packagePath, fqn2.modulePath, fqn2.localName)
@@ -66,7 +67,7 @@ class TypeChecker(dists: Distributions) {
     if (argList.size != paramList.size)
       List(new ArgNumberMismatch(argList.size, paramList.size, s"${context.prefix} : Different arities: "))
     else
-      argList.zip(paramList).flatMap{case (arg, param) => conformsTo(arg, param, context)}
+      argList.zip(paramList).flatMap { case (arg, param) => conformsTo(arg, param, context) }
 
   def dealias(tpe: UType, context: Context): Either[MorphirTypeError, UType] = {
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[MorphirTypeError, UType] =
@@ -154,9 +155,9 @@ class TypeChecker(dists: Distributions) {
           ))
         else
           valueArgs.zip(declaredArgs).toList.flatMap { case (value, declared) => conformsTo(value, declared, context) }
-      case (dealiased(value, valueArgs@_), declared) =>
+      case (dealiased(value, valueArgs @ _), declared) =>
         conformsTo(value, declared, context) // TODO: Bindings, left side only!
-      case (value, dealiased(declared, declaredArgs@_)) =>
+      case (value, dealiased(declared, declaredArgs @ _)) =>
         conformsTo(value, declared, context) // TODO: Bindings, right side only!
       case (valueOther, declaredOther) if valueOther.getClass == declaredOther.getClass =>
         List(
@@ -224,8 +225,8 @@ class TypeChecker(dists: Distributions) {
             tpe,
             context
           ) // TODO: Useful context lost here
-        case Right(_) => List(new ApplyToNonFunction(function, argument))
-        case Left(err)    => List(err)
+        case Right(_)  => List(new ApplyToNonFunction(function, argument))
+        case Left(err) => List(err)
       }
     fromChildren ++ fromTpe
   }
@@ -247,17 +248,20 @@ class TypeChecker(dists: Distributions) {
     val fromChildren = List()
     val (ret, args)  = Utils.uncurryFunctionType(tpe) // TODO: Interleaved function type w/ aliases.
     val fromTpe = ret match {
-      //TODO: Handle bindings
-      case Type.Reference(_, name, typeArgs@_) => dists.lookupTypeSpecification(name) match {
-          case Right(T.Specification.CustomTypeSpecification(typeParams@_, ctors)) =>
+      // TODO: Handle bindings
+      case Type.Reference(_, name, typeArgs @ _) => dists.lookupTypeSpecification(name) match {
+          case Right(T.Specification.CustomTypeSpecification(typeParams @ _, ctors)) =>
             val missedName = helper(
               fqn.packagePath != name.packagePath || fqn.modulePath != name.modulePath,
               new OtherTypeError(s"Constructor $fqn does not match type name $name")
             )
             val fromCtor = ctors.toMap.get(fqn.localName) match {
-              case Some(ctorArgs) =>  {
-                checkList(args.toList, ctorArgs.toList.map(_._2), context.withPrefix(s"Comparing $fqn value to looked up type ${Succinct.Type(tpe)}"))
-              }
+              case Some(ctorArgs) =>
+                checkList(
+                  args.toList,
+                  ctorArgs.toList.map(_._2),
+                  context.withPrefix(s"Comparing $fqn value to looked up type ${Succinct.Type(tpe)}")
+                )
               case None =>
                 List(new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName}"))
             }
@@ -285,9 +289,9 @@ class TypeChecker(dists: Distributions) {
   }
   def handleFieldFunction(tpe: UType, name: Name, context: Context): TypeCheckerResult = {
     val fromChildren = List()
-    val fromTpe = tpe match{
+    val fromTpe = tpe match {
       case Type.Function(_, _, _) => List()
-      case other => List(new ImproperType(other, "Field function should be function:"))
+      case other                  => List(new ImproperType(other, "Field function should be function:"))
     }
     // TODO: tpe should be... function from extensible record type to ???
     fromChildren ++ fromTpe
@@ -411,7 +415,7 @@ class TypeChecker(dists: Distributions) {
   }
   def handleTuple(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
     val fromTpe = tpe match {
-      case tupleTpe @ Type.Tuple(_, elementTypes) =>
+      case Type.Tuple(_, elementTypes) =>
         helper(
           elementTypes.length != elements.length,
           new OtherTypeError(
@@ -424,7 +428,7 @@ class TypeChecker(dists: Distributions) {
       case other => List(new ImproperType(other, "Tuple expected"))
     }
     val fromChildren = elements.flatMap(check(_, context))
-    fromChildren
+    fromChildren ++ fromTpe
   }
   def handleUnitValue(tpe: UType, context: Context): TypeCheckerResult =
     List() // Pass
@@ -436,16 +440,15 @@ class TypeChecker(dists: Distributions) {
   ): TypeCheckerResult = {
     val fromChildren = check(valueToUpdate, context) ++ fields.flatMap { case (_, value) => check(value, context) }
     val fromTpe = tpe match {
-      //TODO: Review this type - does the output have to be the same as the input?
-      case Type.Record(_, tpeFields) => {
+      // TODO: Review this type - does the output have to be the same as the input?
+      case Type.Record(_, tpeFields) =>
         val fieldMap = tpeFields.map(field => field.name -> field.data).toMap
-        conformsTo(valueToUpdate.attributes, tpe) ++ fields.flatMap(field => {
+        conformsTo(valueToUpdate.attributes, tpe) ++ fields.flatMap { field =>
           fieldMap.get(field._1) match {
-            case None => List(TypeLacksField(tpe, field, "Tried to update record field which is not present"))
-            case Some(found) => conformsTo(field._2, found, context)
+            case None        => List(TypeLacksField(tpe, field._1, "Tried to update record field which is not present"))
+            case Some(found) => conformsTo(field._2.attributes, found, context)
           }
-        })
-      }
+        }
       case other => List(new ImproperType(other, "Record type expected"))
     }
     fromChildren

@@ -53,12 +53,12 @@ object Extractors {
     }
     trait CommonReference {
       val tpe: UType
-      //TODO: Consider exposing more at the SDK level, so that these type names may be looked up w/o the "asInstanceOf"
+      // TODO: Consider exposing more at the SDK level, so that these type names may be looked up w/o the "asInstanceOf"
       def ref = tpe.asInstanceOf[Type.Reference[Unit]]
       def unapply(argTpe: UType): Boolean =
         argTpe match {
           case Type.Reference(_, fqName, Chunk()) if fqName == ref.typeName => true
-          case _                                                                                               => false
+          case _                                                            => false
         }
     }
     object IntRef extends CommonReference {
@@ -103,30 +103,30 @@ object Extractors {
           case _                             => false
         }
     }
-    //Matches any reference that does not come from the morphir SDK
+    // Matches any reference that does not come from the morphir SDK
     object NonNativeRef {
       def unapply(tpe: UType): Option[(FQName, Chunk[UType])] =
         tpe match {
           case Type.Reference(_, name, args)
-              //TODO: NATIVE_CHECK
+              // TODO: NATIVE_CHECK
               if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
             Some((name, args))
           case _ => None
         }
     }
-    //Matches any reference that does come from the DK
+    // Matches any reference that does come from the DK
     object NativeRef {
       def unapply(tpe: UType): Boolean =
         tpe match {
           case Type.Reference(_, name, _)
-            //TODO: NATIVE_CHECK
+              // TODO: NATIVE_CHECK
               if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) => true
           case _ => false
         }
     }
     // Extractor object that unwraps a single layer of aliasing, and gives any type names that were bound in the process
     class Dealiased(dists: Distributions) {
-      //TODO: DEALIASING_CLEANUP
+      // TODO: DEALIASING_CLEANUP
       def unapply(tpe: UType): Option[(UType, Map[Name, UType])] = // If it's aliased we may need to grab bindings
         tpe match {
           case NativeRef() => None
@@ -160,7 +160,7 @@ object Extractors {
     }
   }
   object Values {
-    //Extractor that helps handle currying
+    // Extractor that helps handle currying
     object ApplyChain {
       def unapply(value: TypedValue): Option[(TypedValue, List[TypedValue])] = value match {
         case Value.Apply(_, ApplyChain(inner, args), arg) => Some((inner, args :+ arg))
@@ -188,7 +188,7 @@ object Extractors {
       def unapply(value: TypedValue): Option[(UType, FQName)] =
         value match {
           case Value.Reference(tpe, name)
-            //TODO: NATIVE_CHECK
+              // TODO: NATIVE_CHECK
               if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
             Some((tpe, name))
           case _ => None
@@ -199,7 +199,7 @@ object Extractors {
       def unapply(value: TypedValue): Option[(UType, FQName)] =
         value match {
           case Value.Reference(tpe, name)
-            //TODO: NATIVE_CHECK
+              // TODO: NATIVE_CHECK
               if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
             Some((tpe, name))
           case _ => None

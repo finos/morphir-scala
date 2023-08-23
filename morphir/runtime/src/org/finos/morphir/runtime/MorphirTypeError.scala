@@ -16,8 +16,8 @@ abstract class MorphirTypeError(msg: String) extends Exception(msg) {
   def getMsg: String = msg
 }
 object MorphirTypeError {
-  def succinct[TA, VA](value: Value[TA, VA]): String = Succinct.Value(value)
-  def succinct[TA](tpe: Type[TA]): String            = Succinct.Type(tpe)
+  def succinct[TA, VA](value: Value[TA, VA]): String  = Succinct.Value(value)
+  def succinct[TA](tpe: Type[TA]): String             = Succinct.Type(tpe)
   def succinct[TA](spec: T.Specification[TA]): String = Succinct.TypeSpec(spec)
 
   case class TypesMismatch(tpe1: UType, tpe2: UType, msg: String)
@@ -59,15 +59,13 @@ object MorphirTypeError {
       extends MorphirTypeError(
         s"tpe for field ${field.toCamelCase} is ${succinct(firstTpe)} in ${succinct(first)} but ${succinct(secondTpe)} in ${succinct(second)}"
       )
-  case class ConstructorMissing(err: LookupError, fqn : FQName)
+  case class ConstructorMissing(err: LookupError, fqn: FQName)
       extends MorphirTypeError(s"Cannot find constructor $fqn: ${err.getMsg}")
-  case class ModuleMissing(modName: ModuleName)   extends MorphirTypeError("Todo")
-  case class PackageMissing(pckName: PackageName) extends MorphirTypeError("Todo")
 
   abstract class SizeMismatch(first: Int, second: Int, msg: String)
       extends MorphirTypeError(s"$msg: ($first vs $second)")
   case class ArgNumberMismatch(first: Int, second: Int, msg: String)
       extends SizeMismatch(first: Int, second: Int, msg: String)
-  case class Unimplemented(s: String) extends MorphirTypeError(s)
+  case class Unimplemented(s: String)    extends MorphirTypeError(s)
   case class OtherTypeError(msg: String) extends MorphirTypeError(msg)
 }
