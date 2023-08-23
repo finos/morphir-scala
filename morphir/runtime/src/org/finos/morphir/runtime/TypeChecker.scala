@@ -224,7 +224,7 @@ class TypeChecker(dists: Distributions) {
             tpe,
             context
           ) // TODO: Useful context lost here
-        case Right(o_) => List(new ApplyToNonFunction(function, argument))
+        case Right(_) => List(new ApplyToNonFunction(function, argument))
         case Left(err)    => List(err)
       }
     fromChildren ++ fromTpe
@@ -286,7 +286,7 @@ class TypeChecker(dists: Distributions) {
     val fromChildren = List()
     val fromTpe = tpe match{
       case Type.Function(_, _, _) => List()
-      case other => List(new ImproperType("Field function should be function:", other))
+      case other => List(new ImproperType(other, "Field function should be function:"))
     }
     // TODO: tpe should be... function from extensible record type to ???
     fromChildren ++ fromTpe
@@ -434,7 +434,16 @@ class TypeChecker(dists: Distributions) {
       context: Context
   ): TypeCheckerResult = {
     val fromChildren = check(valueToUpdate, context) ++ fields.flatMap { case (_, value) => check(value, context) }
-    // TODO: Check the value dealiases to a record which has that name
+    val fromTpe = tpe match {
+      //TODO: Review this type - does the output have to be the same as the input?
+      case Type.Record(_, tpeFields) => {
+        val fieldMap = tpeFields.map(field => field.name -> field.data).toMap
+        conformsTo(valueToUpdate.attributes, tpe) ++ fields.flatMap(field => {
+          fieldMap.get
+        })
+      }
+      case other => List(new ImproperType(other, "Record type expected"))
+    }
     fromChildren
   }
   def handleVariable(tpe: UType, name: Name, context: Context): TypeCheckerResult =
