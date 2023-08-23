@@ -53,24 +53,23 @@ object Extractors {
     }
     trait CommonReference {
       val tpe: UType
+      //TODO: Consider exposing more at the SDK level, so that these type names may be looked up w/o the "asInstanceOf"
+      def ref = tpe.asInstanceOf[Type.Reference[Unit]]
       def unapply(argTpe: UType): Boolean =
         argTpe match {
-          case Type.Reference(_, fqName, Chunk()) if fqName == tpe.asInstanceOf[Type.Reference[Unit]].typeName => true
+          case Type.Reference(_, fqName, Chunk()) if fqName == ref.typeName => true
           case _                                                                                               => false
         }
     }
     object IntRef extends CommonReference {
       final val tpe = Basics.intType
     }
-
     object Int16Ref extends CommonReference {
       final val tpe = sdk.Int.int16Type
     }
-
     object Int32Ref extends CommonReference {
       final val tpe = sdk.Int.int32Type
     }
-
     object Int64Ref extends CommonReference {
       final val tpe = sdk.Int.int64Type
     }
@@ -104,25 +103,30 @@ object Extractors {
           case _                             => false
         }
     }
+    //Matches any reference that does not come from the morphir SDK
     object NonNativeRef {
       def unapply(tpe: UType): Option[(FQName, Chunk[UType])] =
         tpe match {
           case Type.Reference(_, name, args)
+              //TODO: Use single thing for checking name/ref is native
               if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
             Some((name, args))
           case _ => None
         }
     }
+    //Matches any reference that does come from the DK
     object NativeRef {
       def unapply(tpe: UType): Boolean =
         tpe match {
           case Type.Reference(_, name, _)
+            //TODO: Use single thing for checking name/ref is native
               if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) => true
           case _ => false
         }
     }
     // Extractor object that unwraps a single layer of aliasing, and gives any type names that were bound in the process
     class Dealiased(dists: Distributions) {
+      //TODO: Consider just applying the bindings?
       def unapply(tpe: UType): Option[(UType, Map[Name, UType])] = // If it's aliased we may need to grab bindings
         tpe match {
           case NativeRef() => None
