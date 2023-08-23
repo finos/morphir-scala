@@ -307,18 +307,18 @@ object Utils {
     params match {
       case Chunk() => inner
       case chunk =>
-        curryTypeFunction(Type.Function(getattributes(inner), chunk.head._2, inner), chunk.tail)
+        curryTypeFunction(Type.Function(getAttributes(inner), chunk.head._2, inner), chunk.tail)
     }
 
-  def getattributes[TA](tpe: Type[TA]): TA =
-    tpe match {
-      case Type.ExtensibleRecord(attributes, _, _) => attributes
-      case Type.Function(attributes, _, _)         => attributes
-      case Type.Record(attributes, _)              => attributes
-      case Type.Reference(attributes, _, _)        => attributes // TODO: Ignored type arguments here might be an issue
-      case Type.Tuple(attributes, _)               => attributes
-      case Type.Unit(attributes)                   => attributes
-      case Type.Variable(attributes, _)            => attributes
-    }
-
+  def getAttributes[TA](tpe: Type[TA]): TA =
+    tpe.attributes
+//    tpe match {
+//      case Type.ExtensibleRecord(attributes, _, _) => attributes
+//      case Type.Function(attributes, _, _)         => attributes
+//      case Type.Record(attributes, _)              => attributes
+//      case Type.Reference(attributes, _, _)        => attributes // TODO: Ignored type arguments here might be an issue
+//      case Type.Tuple(attributes, _)               => attributes
+//      case Type.Unit(attributes)                   => attributes
+//      case Type.Variable(attributes, _)            => attributes
+//    }
 }
