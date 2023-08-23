@@ -247,15 +247,16 @@ class TypeChecker(dists: Distributions) {
     val fromChildren = List()
     val (ret, args)  = Utils.uncurryFunctionType(tpe) // TODO: Interleaved function type w/ aliases.
     val fromTpe = ret match {
-      case Type.Reference(_, name, typeArgs) => dists.lookupTypeSpecification(name) match {
-          case Right(T.Specification.CustomTypeSpecification(typeParams, ctors)) =>
+      //TODO: Handle bindings
+      case Type.Reference(_, name, typeArgs@_) => dists.lookupTypeSpecification(name) match {
+          case Right(T.Specification.CustomTypeSpecification(typeParams@_, ctors)) =>
             val missedName = helper(
               fqn.packagePath != name.packagePath || fqn.modulePath != name.modulePath,
               new OtherTypeError(s"Constructor $fqn does not match type name $name")
             )
             val fromCtor = ctors.toMap.get(fqn.localName) match {
               case Some(ctorArgs) =>  {
-                checkList(args.toList, ctorArgs.toList, context.withPrefix(s"Comparing $fqn value to looked up type ${Succinct.Type(tpe)}"))
+                checkList(args.toList, ctorArgs.toList.map(_._2), context.withPrefix(s"Comparing $fqn value to looked up type ${Succinct.Type(tpe)}"))
               }
               case None =>
                 List(new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName}"))
@@ -439,7 +440,10 @@ class TypeChecker(dists: Distributions) {
       case Type.Record(_, tpeFields) => {
         val fieldMap = tpeFields.map(field => field.name -> field.data).toMap
         conformsTo(valueToUpdate.attributes, tpe) ++ fields.flatMap(field => {
-          fieldMap.get
+          fieldMap.get(field._1) match {
+            case None => List(TypeLacksField(tpe, field, "Tried to update record field which is not present"))
+            case Some(found) => conformsTo(field._2, found, context)
+          }
         })
       }
       case other => List(new ImproperType(other, "Record type expected"))
