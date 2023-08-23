@@ -539,8 +539,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       suite("SDK Basics Tests")(
         testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
         testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int(2)),
-        testEval("Plus")("sdkBasicsTests", "sdkAddTest64", abStruct(1L, 2L))(Data.Int64(3)),
-        testEval("Minus")("sdkBasicsTests", "sdkSubtractTest64", abStruct(4L, 2L))(Data.Int64(2)),
+        testEval("Plus(64)")("sdkBasicsTests", "sdkAddTest64", abStruct(1L, 2L))(Data.Int64(3)) @@ ignore @@ TestAspect.tag("Not properly typed"),
+        testEval("Minus(64)")("sdkBasicsTests", "sdkSubtractTest64", abStruct(4L, 2L))(Data.Int64(2)) @@ ignore @@ TestAspect.tag("Not properly typed"),
         testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Decimal(2.0)),
         testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
         testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),

@@ -278,7 +278,7 @@ class TypeChecker(dists: Distributions) {
           case None           => List(new TypeLacksField(tpe, name, "Referenced by field none"))
           case Some(fieldTpe) => conformsTo(fieldTpe, tpe, context)
         }
-      case other => List(new ImproperType(other, s"Reference type expected"))
+      case other => List(new ImproperType(other, s"Reference type expected and let's make recompile"))
     }
     fromChildren ++ fromTpe
   }

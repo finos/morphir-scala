@@ -61,8 +61,17 @@ object Extractors {
     object IntRef extends CommonReference {
       final val tpe = Basics.intType
     }
+
+    object Int16Ref extends CommonReference {
+      final val tpe = sdk.Int.int16Type
+    }
+
     object Int32Ref extends CommonReference {
       final val tpe = sdk.Int.int32Type
+    }
+
+    object Int64Ref extends CommonReference {
+      final val tpe = sdk.Int.int64Type
     }
     object BoolRef extends CommonReference {
       final val tpe = Basics.boolType

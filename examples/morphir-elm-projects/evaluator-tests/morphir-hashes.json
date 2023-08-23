@@ -22,5 +22,6 @@
     "src/Morphir/Examples/App/SimpleTests.elm": "f7794a1165f7fe3e5df89b84d0bdbcd8",
     "src/Morphir/Examples/App/SkdBasicTests.elm": "930eb32abe511d003720cfaffcc114b0",
     "src/Morphir/Examples/App/TupleTests.elm": "2c80092fe40ef7666906ee42214376ac",
+    "src/Morphir/Examples/App/TypeCheckerTests.elm": "11f2f667ce69629d1412791c49a765de",
     "src/Morphir/Examples/App/UserDefinedReferenceTests.elm": "9bf29afa60bad03b200d08ac8f099b99"
 }
