@@ -43,12 +43,12 @@ object MorphirTypeError {
   case class TypeVariableMissing(name: Name)     extends MorphirTypeError(s"Missing type variable $name.toTitleCase")
   case class DefinitionMissing(err: LookupError) extends MorphirTypeError(s"Cannot find definition: ${err.getMsg}")
   case class TypeMissing(err: LookupError)       extends MorphirTypeError(s"Cannot find type: ${err.getMsg}")
+
   case class TypeLacksField(tpe: UType, field: Name, msg: String)
       extends MorphirTypeError(s"${succinct(tpe)} lacks field ${field.toCamelCase}. $msg")
   case class TypeHasExtraField(tpe: UType, contract: UType, field: Name) extends MorphirTypeError(
         s"${succinct(tpe)} has field ${field.toCamelCase}, which is not included in ${succinct(contract)}"
       )
-
   case class ValueLacksField(value: TypedValue, contract: UType, field: Name) extends MorphirTypeError(
         s"${succinct(value)} lacks field ${field.toCamelCase}, which is required by ${succinct(contract)}"
       )
@@ -59,8 +59,8 @@ object MorphirTypeError {
       extends MorphirTypeError(
         s"tpe for field ${field.toCamelCase} is ${succinct(firstTpe)} in ${succinct(first)} but ${succinct(secondTpe)} in ${succinct(second)}"
       )
-  case class ConstructorMissing(err: LookupError, tpe: UType)
-      extends MorphirTypeError(s"Cannot find definition of type ${succinct(tpe)}: ${err.getMsg}")
+  case class ConstructorMissing(err: LookupError, fqn : FQName)
+      extends MorphirTypeError(s"Cannot find constructor $fqn: ${err.getMsg}")
   case class ModuleMissing(modName: ModuleName)   extends MorphirTypeError("Todo")
   case class PackageMissing(pckName: PackageName) extends MorphirTypeError("Todo")
 

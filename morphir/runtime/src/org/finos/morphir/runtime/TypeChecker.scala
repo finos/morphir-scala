@@ -42,10 +42,11 @@ class TypeChecker(dists: Distributions) {
   import TypeChecker.*
   //private val functionOnion = new Extractors.Types.FunctionOnion(dists)
   private val dealiased     = new Extractors.Types.Dealiased(dists)
+  //TODO: Use or remove
   def nameThatMismatch(tpe1: UType, tpe2: UType): String = {
     import Extractors.Types.*
     (tpe1, tpe2) match {
-      case (NonNativeRef(fqn1, args1), NonNativeRef(fqn2, args2)) if fqn1 == fqn2 =>
+      case (NonNativeRef(fqn1, args1@_), NonNativeRef(fqn2, args2@_)) if fqn1 == fqn2 =>
         s"Refs to $fqn1 have different type args"
       case (NonNativeRef(fqn1, _), NonNativeRef(fqn2, _)) =>
         val (pack1, mod1, loc1) = (fqn1.packagePath, fqn1.modulePath, fqn1.localName)
