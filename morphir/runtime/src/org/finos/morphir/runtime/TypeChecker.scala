@@ -40,9 +40,9 @@ object TypeChecker {
 
 class TypeChecker(dists: Distributions) {
   import TypeChecker.*
-  private val functionOnion = new Extractors.Types.FunctionOnion(dists)
+  //private val functionOnion = new Extractors.Types.FunctionOnion(dists)
   private val dealiased     = new Extractors.Types.Dealiased(dists)
-  private def nameThatMismatch(tpe1: UType, tpe2: UType): String = {
+  def nameThatMismatch(tpe1: UType, tpe2: UType): String = {
     import Extractors.Types.*
     (tpe1, tpe2) match {
       case (NonNativeRef(fqn1, args1), NonNativeRef(fqn2, args2)) if fqn1 == fqn2 =>
@@ -57,9 +57,6 @@ class TypeChecker(dists: Distributions) {
       case _ => s"(${Succinct.Type(tpe1, 2)} vs ${Succinct.Type(tpe2, 2)})"
     }
   }
-  private def nameMissingValue(value: TypedValue, dists: Distributions): MorphirTypeError             = ???
-  private def nameMissingType(fqn: FQName, dists: Distributions): MorphirTypeError                    = ???
-  private def nameMissingConstructor(fqn: FQName, tpe: UType, dists: Distributions): MorphirTypeError = ???
   def checkList(
       argList: List[UType],
       paramList: List[UType],

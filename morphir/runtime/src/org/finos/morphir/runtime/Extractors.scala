@@ -38,7 +38,7 @@ object Extractors {
     object ResultRef {
       def unapply(tpe: UType): Option[(UType, UType)] =
         tpe match {
-          case Type.Reference(attributes, FQString("Morphir.SDK:Result:result"), Chunk(keyType, valType)) =>
+          case Type.Reference(_, FQString("Morphir.SDK:Result:result"), Chunk(keyType, valType)) =>
             Some((keyType, valType))
           case _ => None
         }
@@ -46,7 +46,7 @@ object Extractors {
     object DictRef {
       def unapply(tpe: UType): Option[(UType, UType)] =
         tpe match {
-          case Type.Reference(attributes, FQString("Morphir.SDK:Dict:dict"), Chunk(keyType, valType)) =>
+          case Type.Reference(_, FQString("Morphir.SDK:Dict:dict"), Chunk(keyType, valType)) =>
             Some((keyType, valType))
           case _ => None
         }
@@ -170,7 +170,7 @@ object Extractors {
     object JustConstructor {
       def unapply(value: TypedValue): Option[TypedValue] =
         value match {
-          case Value.Apply(attributes, Value.Constructor(_, FQString("Morphir.SDK:Maybe:just")), something) =>
+          case Value.Apply(_, Value.Constructor(_, FQString("Morphir.SDK:Maybe:just")), something) =>
             Some(something)
           case _ => None
         }

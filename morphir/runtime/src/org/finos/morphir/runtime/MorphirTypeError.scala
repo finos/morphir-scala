@@ -69,4 +69,5 @@ object MorphirTypeError {
   case class ArgNumberMismatch(first: Int, second: Int, msg: String)
       extends SizeMismatch(first: Int, second: Int, msg: String)
   case class Unimplemented(s: String) extends MorphirTypeError(s)
+  case class OtherTypeError(msg: String) extends MorphirTypeError(msg)
 }
