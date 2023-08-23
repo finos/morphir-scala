@@ -9,6 +9,8 @@ import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 
+//Utlity object (mostly for errors) to give briefer versions of Values/Types by only showing the top few levels
+//Additional cases should be filled out as needed (WIP)
 object Succinct {
   object Value {
     import V.Value.*
