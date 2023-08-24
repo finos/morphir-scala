@@ -67,7 +67,7 @@ object TypeError {
   final case class TypeVariableMissing(name: Name) extends TypeError(s"Missing type variable $name.toTitleCase")
   final case class DefinitionMissing(err: LookupError)
       extends TypeError(s"Cannot find definition: ${err.getMsg}")
-  final case class TypeMissing(fqn : FQName, err: LookupError) extends TypeError(s"Cannot find $fqn: ${err.getMsg}")
+  final case class TypeMissing(fqn: FQName, err: LookupError) extends TypeError(s"Cannot find $fqn: ${err.getMsg}")
 
   final case class TypeLacksField(tpe: UType, field: Name, msg: String)
       extends TypeError(s"${succinct(tpe)} lacks field ${field.toCamelCase}. $msg")

@@ -115,18 +115,19 @@ object Extractors {
     }
     // Matches any reference that does come from the DK
     object NativeRef {
-      def unapply(tpe: UType): Boolean =
+      def unapply(tpe: UType): Option[(FQName, Chunk[UType])] =
         tpe match {
-          case Type.Reference(_, name, _)
-              if (Utils.isNative(name)) => true
-          case _ => false
+          case Type.Reference(_, name, args)
+              if (Utils.isNative(name)) =>
+            Some((name, args))
+          case _ => None
         }
     }
     // Extractor object that unwraps a single layer of aliasing, applying any bindings that were discovered in the process
     class Dealiased(dists: Distributions) {
       def unapply(tpe: UType): Option[UType] = // If it's aliased we may need to grab bindings
         tpe match {
-          case NativeRef() => None
+          case NativeRef(_, _) => None
           case Type.Reference(_, typeName, typeArgs) =>
             val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
             lookedUp match {

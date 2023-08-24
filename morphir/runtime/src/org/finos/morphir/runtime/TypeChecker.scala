@@ -3,7 +3,13 @@ package org.finos.morphir.runtime
 import org.finos.morphir.naming.*
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Literal.Lit
-import org.finos.morphir.ir.Value.{Pattern, TypedValue, Value, TypedDefinition as TypedValueDef, USpecification as UValueSpec}
+import org.finos.morphir.ir.Value.{
+  Pattern,
+  TypedValue,
+  Value,
+  TypedDefinition as TypedValueDef,
+  USpecification as UValueSpec
+}
 import org.finos.morphir.ir.Type.{Type, UType, USpecification as UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
@@ -11,7 +17,6 @@ import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.TypeError.CannotDealias
 import org.finos.morphir.runtime.exports.*
 import TypeError.*
-import org.finos.morphir.runtime.Extractors.Values.NativeRef
 
 object TypeChecker {
   type TypeCheckerResult = List[TypeError]
@@ -69,7 +74,7 @@ final class TypeChecker(dists: Distributions) {
   def dealias(tpe: UType, context: Context): Either[TypeError, UType] = {
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[TypeError, UType] =
       tpe match {
-        case ref @ Extractors.Types.NativeRef() => Right(ref)
+        case ref @ Extractors.Types.NativeRef(_, _) => Right(ref)
         case Type.Reference(_, typeName, typeArgs) =>
           val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
@@ -236,6 +241,7 @@ final class TypeChecker(dists: Distributions) {
     fromTpe ++ fromChildren
   }
   def handleConstructor(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
+    import Extractors.Types.*
     val fromChildren = List()
     val (ret, args)  = Utils.uncurryFunctionType(tpe) // TODO: Interleaved function type w/ aliases.
     val fromTpe = ret match {
@@ -259,10 +265,10 @@ final class TypeChecker(dists: Distributions) {
             missedName ++ fromCtor
           case Right(other) =>
             List(new ImproperTypeSpec(name, other, s"Type union expected"))
-          case Left(err) => List(new TypeMissing(err))
+          case Left(err) => List(new TypeMissing(name, err))
         }
-      case NativeRef => List()
-      case other => List(new ImproperType(other, s"Reference to type union expected"))
+      case NativeRef(_, _) => List() // TODO: check native constructor calls
+      case other           => List(new ImproperType(other, s"Reference to type union expected"))
     }
     fromChildren ++ fromTpe
   }
