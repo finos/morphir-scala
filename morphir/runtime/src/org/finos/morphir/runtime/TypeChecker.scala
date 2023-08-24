@@ -153,7 +153,7 @@ final class TypeChecker(dists: Distributions) {
         conformsTo(value, declared, context) // TODO: Bindings, right side only!
       case (valueOther, declaredOther) if valueOther.getClass == declaredOther.getClass =>
         List(
-          new Unimplemented(s"No matching support for ${Succinct.Type(valueOther)} vs ${Succinct.Type(declaredOther)}")
+          new UnimplementedType(s"No matching support for ${Succinct.Type(valueOther)} vs ${Succinct.Type(declaredOther)}")
         )
       case (valueOther, declaredOther) => List(new TypesMismatch(valueOther, declaredOther, "Different types of type"))
     }

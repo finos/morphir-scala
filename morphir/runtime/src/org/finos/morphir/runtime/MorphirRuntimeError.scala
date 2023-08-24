@@ -96,7 +96,7 @@ object TypeError {
   final case class ArgNumberMismatch(first: Int, second: Int, msg: String)
       extends SizeMismatch(first: Int, second: Int, msg: String)
   final casee class InferenceMismatch(msg : String) extends TypeError(msg)
-  final case class Unimplemented(msg: String)    extends TypeError(msg)
+  final case class UnimplementedType(msg: String)    extends TypeError(msg)
   final case class OtherTypeError(msg: String) extends TypeError(msg)
   final case class ManyTypeErrorsErrors(errors: List[TypeError])
       extends EvaluationError("\n" + errors.map(_.toString).mkString("\n"))
