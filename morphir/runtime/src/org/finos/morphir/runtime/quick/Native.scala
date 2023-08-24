@@ -49,6 +49,20 @@ object Dict {
   )
 }
 
+object Set {
+  val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    1,
+    (l: Result[Unit, Type.UType]) => {
+      val list = l.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
+      Result.SetResult(list.toSet)
+    }
+  )
+
+  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:Set:fromList") -> fromList
+  )
+}
+
 object String {
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
@@ -211,5 +225,5 @@ object Native {
     FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
-  ) ++ Dict.sdk ++ String.sdk
+  ) ++ Dict.sdk ++ Set.sdk ++ String.sdk
 }
