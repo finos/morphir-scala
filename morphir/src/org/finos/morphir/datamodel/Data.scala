@@ -23,6 +23,7 @@ sealed trait Data extends geny.Writable {
       case _: Data.Result   => None
       case _: Data.List     => None
       case _: Data.Map      => None
+      case _: Data.Set      => None
       case _: Data.Union    => None
       case v: Data.Aliased  => Some(v.shape.name)
     }
@@ -177,6 +178,16 @@ object Data {
 
     def empty(keyShape: Concept, valueShape: Concept) =
       new Map(mutable.LinkedHashMap.empty, Concept.Map(keyShape, valueShape))
+  }
+
+  case class Set private[datamodel] (values: mutable.Set[Data], shape: Concept.Set) extends Data
+
+  object Set {
+    def apply(values: mutable.Set[Data], elementShape: Concept) =
+      new Set(values, Concept.Set(elementShape))
+
+    def apply(value: Data, rest: Data*) =
+      new Set(mutable.Set(value) ++ rest.to(mutable.Set), Concept.Set(value.shape))
   }
 
   /**
