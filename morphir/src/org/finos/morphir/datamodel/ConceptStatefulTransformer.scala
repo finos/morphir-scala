@@ -25,6 +25,7 @@ trait ConceptStatefulTransformer[T] {
       case c: Concept.Tuple    => of(c)
       case c: Concept.Optional => of(c)
       case c: Concept.Result   => of(c)
+      case c: Concept.Set      => of(c)
       case c: Concept.Enum     => of(c)
       case c: Concept.Union    => of(c)
     }
