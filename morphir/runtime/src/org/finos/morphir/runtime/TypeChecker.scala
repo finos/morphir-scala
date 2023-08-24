@@ -74,14 +74,16 @@ final class TypeChecker(dists: Distributions) {
   def dealias(tpe: UType, context: Context): Either[TypeError, UType] = {
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[TypeError, UType] =
       tpe match {
-        case ref @ Extractors.Types.NativeRef() => Right(ref) // TODO: Bindings
+        case ref @ Extractors.Types.NativeRef() => Right(ref)
         case Type.Reference(_, typeName, typeArgs) =>
           val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
             case Right(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
-              val newBindings = typeParams.zip(typeArgs).toMap
-              loop(expr, original_fqn.orElse(Some(typeName)), context.withTypeBindings(newBindings))
-            case Right(_) => Right(tpe) // TODO: Bindings
+              val newBindings         = typeParams.zip(typeArgs).toMap
+              val withBindingsApplied = Utils.applyBindings(expr, newBindings)
+              loop(withBindingsApplied, original_fqn.orElse(Some(typeName)), context)
+            case Right(_) =>
+              Right(tpe)
             case Left(lookupErr) =>
               original_fqn match {
                 case Some(original) =>
@@ -90,7 +92,7 @@ final class TypeChecker(dists: Distributions) {
                   Left(new CannotDealias(lookupErr))
               }
           }
-        case other => Right(other) // TODO: Bindings
+        case other => Right(other)
       }
     loop(tpe, None, context)
   }
@@ -102,8 +104,8 @@ final class TypeChecker(dists: Distributions) {
     (valueType, declaredType) match {
       // TODO: Make variables fail if missing when binding support is up to the task
       case (_, Type.Variable(_, name)) => context.getTypeVariable(name) match {
-          case None           => List()                                   // List(new TypeVariableMissing(name))
-          case Some(lookedUp) => conformsTo(valueType, lookedUp, context) // TODO: Bindings
+          case None           => List() // List(new TypeVariableMissing(name))
+          case Some(lookedUp) => conformsTo(valueType, lookedUp, context)
         }
       case (Type.Variable(_, name), _) => context.getTypeVariable(name) match {
           case None           => List() // List(new TypeVariableMissing(name))

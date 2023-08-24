@@ -21,25 +21,6 @@ import TypeError.*
 object Utils {
   import Extractors.Types.*
 
-//  def dealias(original_tpe: UType, dists: Distributions, bindings: Map[Name, UType]): UType = {
-//    def loop(tpe: UType, bindings: Map[Name, UType]): UType =
-//      tpe match {
-//        case NativeRef() => applyBindings(tpe, bindings) // nothing further to look up
-//        case Type.Reference(_, typeName, typeArgs) =>
-//          val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
-//          lookedUp match {
-//            case Some(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
-//              val resolvedArgs = typeArgs.map(dealias(_, dists, bindings)) // I think?
-//              val newBindings  = typeParams.zip(resolvedArgs).toMap
-//              loop(expr, bindings ++ newBindings)
-//            case Some(_) => applyBindings(tpe, bindings) // Can't dealias further
-//            case None =>
-//              throw new TypeNotFound(s"Unable to find $tpe while dealiasing $original_tpe") // TODO: Thread properly
-//          }
-//        case other => applyBindings(other, bindings) // Not an alias
-//      }
-//    loop(original_tpe, bindings)
-//  }
   // Recurses over a type tree and applies known bindings (i.e., replaces variables with their bound type)
   def applyBindings(tpe: UType, bindings: Map[Name, UType]): UType =
     tpe match {
@@ -150,7 +131,7 @@ object Utils {
     (curried, args) match {
       case (Type.Function(_, parameterType, returnType), head :: tail) =>
         for {
-          bindings <- RTAction.fromEither(typeCheckArg(head.attributes, parameterType, knownBindings))
+          bindings    <- RTAction.fromEither(typeCheckArg(head.attributes, parameterType, knownBindings))
           appliedType <- findTypeBindings(returnType, tail, dists, bindings)
         } yield appliedType
       case (tpe, Nil) => RTAction.succeed(applyBindings(tpe, knownBindings))

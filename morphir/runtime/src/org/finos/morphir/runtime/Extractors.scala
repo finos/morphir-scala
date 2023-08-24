@@ -139,7 +139,7 @@ object Extractors {
         }
     }
 
-    //Extractor object that uncurries a function type, dealiasing along the way to reeturn a result value and flat list of arguments
+    // Extractor object that uncurries a function type, dealiasing along the way to reeturn a result value and flat list of arguments
     class CurriedOnion(dists: Distributions) {
       val dealiaser = new Dealiased(dists)
       def unapply(tpe: UType): Option[(UType, List[UType])] = {
