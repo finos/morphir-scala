@@ -14,12 +14,12 @@ import org.finos.morphir.ir.Type.{Type, UType, USpecification as UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.Field
-import org.finos.morphir.runtime.MorphirTypeError.CannotDealias
+import org.finos.morphir.runtime.TypeError.CannotDealias
 import org.finos.morphir.runtime.exports.*
-import MorphirTypeError.*
+import TypeError.*
 
 object TypeChecker {
-  type TypeCheckerResult = List[MorphirTypeError]
+  type TypeCheckerResult = List[TypeError]
   // Object to carry data for making tracking local type bindings and context information for better error messages
   case class Context(
       typeBindings: Map[Name, UType],
@@ -35,7 +35,7 @@ object TypeChecker {
   object Context {
     def empty = Context(Map(), 0, "")
   }
-  def helper(condition: Boolean, error: MorphirTypeError) = if (condition) List(error) else List()
+  def helper(condition: Boolean, error: TypeError) = if (condition) List(error) else List()
 }
 
 //TODO: This is final because references to ValueDefinition are private, and thus letDefinition and letRecursion handlers cannot be overridden. There may be a better way to handle this.
@@ -71,8 +71,8 @@ final class TypeChecker(dists: Distributions) {
       argList.zip(paramList).flatMap { case (arg, param) => conformsTo(arg, param, context) }
 
   // Fully dealises a type. (Note that it dos not dealias branching types, such as if a tuple has an aliased member
-  def dealias(tpe: UType, context: Context): Either[MorphirTypeError, UType] = {
-    def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[MorphirTypeError, UType] =
+  def dealias(tpe: UType, context: Context): Either[TypeError, UType] = {
+    def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[TypeError, UType] =
       tpe match {
         case ref @ Extractors.Types.NativeRef() => Right(ref) // TODO: Bindings
         case Type.Reference(_, typeName, typeArgs) =>
@@ -95,9 +95,9 @@ final class TypeChecker(dists: Distributions) {
     loop(tpe, None, context)
   }
 
-  def conformsTo(valueType: UType, declaredType: UType): List[MorphirTypeError] =
+  def conformsTo(valueType: UType, declaredType: UType): List[TypeError] =
     conformsTo(valueType, declaredType, Context.empty)
-  def conformsTo(valueType: UType, declaredType: UType, context: Context): List[MorphirTypeError] = {
+  def conformsTo(valueType: UType, declaredType: UType, context: Context): List[TypeError] = {
     import Extractors.Types.*
     (valueType, declaredType) match {
       // TODO: Make variables fail if missing when binding support is up to the task
@@ -343,7 +343,7 @@ final class TypeChecker(dists: Distributions) {
     val fromChildren = elements.flatMap(check(_, context))
     val fromTpe = tpe match {
       case Extractors.Types.ListRef(elementType) =>
-        elements.foldLeft(List(): List[MorphirTypeError]) { (acc, next) =>
+        elements.foldLeft(List(): List[TypeError]) { (acc, next) =>
           acc ++ conformsTo(elementType, next.attributes, context)
           if (acc.size != 0) acc
           else {
