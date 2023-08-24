@@ -172,6 +172,11 @@ object TypeConversionSpec extends MorphirBaseSpec {
         val morphirType = ToMorphirType.summon[Concept].withAttributesOf(concept).morphirType
         assertTrue(morphirType == sdk.Set.setType(sdk.String.stringType))
       },
+      test("Should be possible to convert a complex Concept Set type to a Morphir Set type") {
+        val concept     = Concept.Set(Concept.List(Concept.Integer))
+        val morphirType = ToMorphirType.summon[Concept].withAttributesOf(concept).morphirType
+        assertTrue(morphirType == sdk.Set.setType(sdk.List.listType(sdk.Basics.intType)))
+      },
       test("Should be possible to convert a nested Concept Set type to a Morphir Set type") {
         val concept     = Concept.Set(Concept.Set(Concept.Decimal))
         val morphirType = ToMorphirType.summon[Concept].withAttributesOf(concept).morphirType
