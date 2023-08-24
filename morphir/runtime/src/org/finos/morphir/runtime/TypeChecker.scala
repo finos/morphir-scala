@@ -147,10 +147,10 @@ final class TypeChecker(dists: Distributions) {
           declaredArgs.toList,
           context.withPrefix(s"Comparing arguments on reference $valueName")
         )
-      case (dealiased(value, valueArgs @ _), declared) =>
-        conformsTo(value, declared, context) // TODO: Bindings, left side only!
-      case (value, dealiased(declared, declaredArgs @ _)) =>
-        conformsTo(value, declared, context) // TODO: Bindings, right side only!
+      case (dealiased(value), declared) =>
+        conformsTo(value, declared, context)
+      case (value, dealiased(declared)) =>
+        conformsTo(value, declared, context)
       case (valueOther, declaredOther) if valueOther.getClass == declaredOther.getClass =>
         List(
           new UnimplementedType(

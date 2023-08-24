@@ -159,8 +159,8 @@ object Utils {
           appliedType <- findTypeBindings(returnType, tail, dists, bindings)
         } yield appliedType
       case (tpe, Nil) => RTAction.succeed(applyBindings(tpe, knownBindings))
-      case (dealiaser(inner, aliasBindings), args) =>
-        findTypeBindings(inner, args, dists, knownBindings ++ aliasBindings)
+      case (dealiaser(inner), args) =>
+        findTypeBindings(inner, args, dists, knownBindings)
       case (nonFunction, head :: _) =>
         RTAction.fail(new ImproperType(nonFunction, s"Tried to apply argument ${Succinct.Value(head)} to non-function"))
     }

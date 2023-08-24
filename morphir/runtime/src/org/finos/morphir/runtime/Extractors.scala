@@ -147,9 +147,8 @@ object Extractors {
         tpe match {
           case Type.Function(_, arg, myself(inner, args)) =>
             Some((inner, args :+ arg))
-          case dealiaser(myself(inner, args), _) =>
+          case dealiaser(myself(inner, args)) =>
             Some((inner, args))
-          // TODO: BINDINGS
           case other =>
             Some((other, List()))
         }
