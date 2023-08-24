@@ -70,7 +70,7 @@ final class TypeChecker(dists: Distributions) {
     else
       argList.zip(paramList).flatMap { case (arg, param) => conformsTo(arg, param, context) }
 
-  //Fully dealises a type. (Note that it dos not dealias branching types, such as if a tuple has an aliased
+  //Fully dealises a type. (Note that it dos not dealias branching types, such as if a tuple has an aliased member
   def dealias(tpe: UType, context: Context): Either[MorphirTypeError, UType] = {
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[MorphirTypeError, UType] =
       tpe match {
@@ -102,7 +102,7 @@ final class TypeChecker(dists: Distributions) {
     (valueType, declaredType) match {
       case (_, Type.Variable(_, name)) => context.getTypeVariable(name) match {
           case None           => List(new TypeVariableMissing(name))
-          case Some(lookedUp) => conformsTo(valueType, lookedUp, context) // TODO: Type parameter wrangling
+          case Some(lookedUp) => conformsTo(valueType, lookedUp, context) // TODO: Bindings
         }
       case (Type.Variable(_, name), _) => context.getTypeVariable(name) match {
           case None           => List(new TypeVariableMissing(name))
@@ -111,37 +111,27 @@ final class TypeChecker(dists: Distributions) {
       case (left @ LeafType(), right @ LeafType()) =>
         if (left == right) List() else List(TypesMismatch(left, right, "Value type does not match declared type"))
       case (Type.Function(_, valueArg, valueRet), Type.Function(_, declaredArg, declaredRet)) =>
-        // Note reversed order - covariance vs. contravariance.
         conformsTo(valueRet, declaredRet, context) ++ conformsTo(declaredArg, valueArg, context)
       case (value @ Type.Tuple(_, valueElements), declared @ Type.Tuple(_, declaredElements)) =>
-        if (valueElements.length != declaredElements.length) {
-          List(new TypesMismatch(
-            value,
-            declared,
-            s"Tuple sizes differ (${valueElements.length} vs ${declaredElements.length})"
-          ))
-        } else {
-          valueElements.toList.zip(declaredElements).flatMap {
-            case (value, declared) =>
-              conformsTo(value, declared, context)
-          }
-        }
+        checkList(valueElements, declaredElements, "Comparing Tuples")
       case (valueTpe @ Type.Record(_, valueFields), declaredTpe @ Type.Record(_, declaredFields)) =>
+        //Map both to sets
         val valueFieldSet: Set[Name]    = valueFields.map(_.name).toSet
         val declaredFieldSet: Set[Name] = declaredFields.map(_.name).toSet
+        //Use .diff to find if some are entirely absent from the other
         val missingFromValue = valueFieldSet
           .diff(declaredFieldSet).toList.map(missing =>
             TypeLacksField(valueTpe, missing, s"Required by ${Succinct.Type(declaredTpe)}")
           )
         val missingFromDeclared = declaredFieldSet
           .diff(valueFieldSet).toList.map(bonus => TypeHasExtraField(valueTpe, declaredTpe, bonus))
+        //For everything shared, lookup types in both and ensure they match
         val sharedFields                       = valueFieldSet.intersect(declaredFieldSet)
         val valueFieldMap: Map[Name, UType]    = valueFields.map(field => field.name -> field.data).toMap
         val declaredFieldMap: Map[Name, UType] = declaredFields.map(field => field.name -> field.data).toMap
         val conflicts =
           sharedFields.flatMap(field => conformsTo(valueFieldMap(field), declaredFieldMap(field), context))
         missingFromValue ++ missingFromDeclared ++ conflicts
-      // TODO: Consider covariance/contravariance
       case (DictRef(valueKey, valueValue), DictRef(declaredKey, declaredValue)) =>
         conformsTo(valueKey, declaredKey, context) ++ conformsTo(valueValue, declaredValue, context)
       case (ResultRef(valueErr, valueOk), ResultRef(declaredErr, declaredOk)) =>
