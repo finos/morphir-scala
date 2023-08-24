@@ -110,7 +110,7 @@ object Utils {
           paramBindings <- typeCheckArg(argReturn, paramReturn, argBindings)
         } yield paramBindings
       case (Type.ExtensibleRecord(_, _, _), Type.ExtensibleRecord(_, _, _)) =>
-        Left(UnsupportedType(s"Extensible record type not supported (yet)"))
+        Left(new UnimplementedType(s"Extensible record type not supported (yet)"))
       case (Type.Reference(_, argTypeName, argTypeArgs), Type.Reference(_, paramTypeName, paramTypeArgs))
           if (argTypeName == paramTypeName) =>
         argTypeArgs.zip(paramTypeArgs).foldLeft(Right(found): Either[TypeError, Map[Name, UType]]) {
@@ -120,7 +120,7 @@ object Utils {
       case (otherArg, otherParam) =>
         options.enableTyper match {
           case EnableTyper.Enabled =>
-            Left(UnimplementedType(s"Cannot match $otherArg with $otherParam"))
+            Left(new UnimplementedType(s"Cannot match $otherArg with $otherParam"))
           case EnableTyper.Warn =>
             println(s"[WARNING] Cannot match $otherArg with $otherParam")
             Right(found)

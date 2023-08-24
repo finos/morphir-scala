@@ -31,6 +31,7 @@ final case class SpecificationNotFound(message: String)      extends EvaluationE
 final case class ConstructorNotFound(message: String)        extends EvaluationError(message)
 final case class ResultDoesNotMatchType(message: String)     extends EvaluationError(message)
 final case class FunctionReturnedToTopLevel(message: String) extends EvaluationError(message)
+final case class UnsupportedType(message: String)   extends EvaluationError(message)
 final case class UnsupportedTypeParameter(message: String)   extends EvaluationError(message)
 final case class NotImplemented(message: String)             extends EvaluationError(message)
 
