@@ -146,7 +146,8 @@ object Native {
   )
   val singleton: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
-    (a: Result[Unit, Type.UType]) => {}
+    (l: Result[Unit, Type.UType]) =>
+      Result.ListResult(List(l))
   )
   val map: SDKValue[Unit, Type.UType] = SDKValue.SDKValueDefinition(
     MapImpl.ir
@@ -211,6 +212,7 @@ object Native {
     FQName.fromString("Morphir.SDK:Basics:lessThan")            -> lessThan,
     FQName.fromString("Morphir.SDK:List:cons")                  -> cons,
     FQName.fromString("Morphir.SDK:List:concat")                -> concat,
+    FQName.fromString("Morphir.SDK:List:singleton")             -> singleton,
     FQName.fromString("Morphir.SDK:List:map")                   -> map,
     FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
