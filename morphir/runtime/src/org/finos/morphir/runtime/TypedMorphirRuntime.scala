@@ -13,7 +13,6 @@ import org.finos.morphir.datamodel.*
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
 
-//TODO: Specify "Either" on lower level
 trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {
   final def evaluate(
       entryPoint: Value[scala.Unit, UType],
