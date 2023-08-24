@@ -359,12 +359,15 @@ final class TypeChecker(dists: Distributions) {
       context: Context
   ): TypeCheckerResult = {
     val fromChildren = check(value, context)
-    val casesMatch = cases.flatMap{case }
+    val casesMatch = cases.flatMap{case (pattern, caseValue) => {
+      conformsTo(value.attributes, pattern, context.withPrefix("Checking Pattern:")) ++
+        comformsTo(caseValue.attributes, tpe, context)
+    }}
     // TODO: Check values from each case
     // TODO: Manage store
     // TODO: Check each case's pattern can be its value
     // TODO: Check value must be one of the patterns
-    fromChildren ++ conformsTo(toe)
+    fromChildren ++ casesMatch
   }
   def handleRecord(
       tpe: UType,
