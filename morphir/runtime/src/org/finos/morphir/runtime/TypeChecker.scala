@@ -113,7 +113,7 @@ final class TypeChecker(dists: Distributions) {
       case (Type.Function(_, valueArg, valueRet), Type.Function(_, declaredArg, declaredRet)) =>
         conformsTo(valueRet, declaredRet, context) ++ conformsTo(declaredArg, valueArg, context)
       case (value @ Type.Tuple(_, valueElements), declared @ Type.Tuple(_, declaredElements)) =>
-        checkList(valueElements, declaredElements, "Comparing Tuples")
+        checkList(valueElements.toList, declaredElements.toList, context.withPrefix("Comparing Tuples:"))
       case (valueTpe @ Type.Record(_, valueFields), declaredTpe @ Type.Record(_, declaredFields)) =>
         //Map both to sets
         val valueFieldSet: Set[Name]    = valueFields.map(_.name).toSet
@@ -141,12 +141,7 @@ final class TypeChecker(dists: Distributions) {
         conformsTo(valueElement, declaredElement, context)
       case (Type.Reference(_, valueName, valueArgs), Type.Reference(_, declaredName, declaredArgs))
           if valueName == declaredName =>
-        if (valueArgs.length != declaredArgs.length)
-          List(new OtherTypeError(
-            s"Reference $valueName has different number of parameters (${valueArgs.length} vs ${declaredArgs.length}"
-          ))
-        else
-          valueArgs.zip(declaredArgs).toList.flatMap { case (value, declared) => conformsTo(value, declared, context) }
+            checkList(valueArgs, declaredArgs, context.withPrefix("Comparing arguments on reference $valueName"))
       case (dealiased(value, valueArgs @ _), declared) =>
         conformsTo(value, declared, context) // TODO: Bindings, left side only!
       case (value, dealiased(declared, declaredArgs @ _)) =>
@@ -155,7 +150,7 @@ final class TypeChecker(dists: Distributions) {
         List(
           new Unimplemented(s"No matching support for ${Succinct.Type(valueOther)} vs ${Succinct.Type(declaredOther)}")
         )
-      case (valueOther, declaredOther) => List(new TypesMismatch(valueOther, declaredOther, "Different types"))
+      case (valueOther, declaredOther) => List(new TypesMismatch(valueOther, declaredOther, "Different types of type"))
     }
   }
 
@@ -252,7 +247,7 @@ final class TypeChecker(dists: Distributions) {
                 checkList(
                   args.toList,
                   ctorArgs.toList.map(_._2),
-                  context.withPrefix(s"Comparing $fqn value to looked up type ${Succinct.Type(tpe)}")
+                  context.withPrefix(s"Comparing $fqn constructor value to looked up type ${Succinct.Type(tpe)}")
                 )
               case None =>
                 List(new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName}"))
@@ -275,7 +270,7 @@ final class TypeChecker(dists: Distributions) {
           case None           => List(new TypeLacksField(tpe, name, "Referenced by field none"))
           case Some(fieldTpe) => conformsTo(fieldTpe, tpe, context)
         }
-      case other => List(new ImproperType(other, s"Reference type expected and let's make recompile"))
+      case other => List(new ImproperType(other, s"Reference type expected"))
     }
     fromChildren ++ fromTpe
   }
