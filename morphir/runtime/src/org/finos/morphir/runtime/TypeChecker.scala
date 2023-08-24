@@ -141,7 +141,7 @@ final class TypeChecker(dists: Distributions) {
         conformsTo(valueElement, declaredElement, context)
       case (Type.Reference(_, valueName, valueArgs), Type.Reference(_, declaredName, declaredArgs))
           if valueName == declaredName =>
-            checkList(valueArgs, declaredArgs, context.withPrefix("Comparing arguments on reference $valueName"))
+            checkList(valueArgs.toList, declaredArgs.toList, context.withPrefix("Comparing arguments on reference $valueName"))
       case (dealiased(value, valueArgs @ _), declared) =>
         conformsTo(value, declared, context) // TODO: Bindings, left side only!
       case (value, dealiased(declared, declaredArgs @ _)) =>
@@ -360,7 +360,7 @@ final class TypeChecker(dists: Distributions) {
   ): TypeCheckerResult = {
     val fromChildren = check(value, context)
     val casesMatch = cases.flatMap{case (pattern, caseValue) => {
-      conformsTo(value.attributes, pattern, context.withPrefix("Checking Pattern:")) ++
+      conformsTo(value.attributes, pattern.attributes, context.withPrefix("Checking Pattern:")) ++
         comformsTo(caseValue.attributes, tpe, context)
     }}
     // TODO: Check values from each case
@@ -426,7 +426,6 @@ final class TypeChecker(dists: Distributions) {
   ): TypeCheckerResult = {
     val fromChildren = check(valueToUpdate, context) ++ fields.flatMap { case (_, value) => check(value, context) }
     val fromTpe = tpe match {
-      // TODO: Review this type - does the output have to be the same as the input?
       case Type.Record(_, tpeFields) =>
         val fieldMap = tpeFields.map(field => field.name -> field.data).toMap
         conformsTo(valueToUpdate.attributes, tpe) ++ fields.flatMap { field =>
@@ -437,7 +436,7 @@ final class TypeChecker(dists: Distributions) {
         }
       case other => List(new ImproperType(other, "Record type expected"))
     }
-    fromChildren
+    fromChildren ++ fromTpe
   }
   def handleVariable(tpe: UType, name: Name, context: Context): TypeCheckerResult =
     // TODO: Keep that in the context
