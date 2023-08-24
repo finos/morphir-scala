@@ -49,6 +49,7 @@ object EvaluatorQuick {
       case Result.Unit()               => ()                      // Ever used?
       case Result.Primitive(value)     => value                   // Duh
       case Result.ListResult(elements) => elements.map(unwrap(_)) // Needed for non-higher-order head, presumably others
+      case Result.SetResult(elements)  => elements.map(unwrap(_)) // Needed for non-higher-order head, presumably others
       case Result.Tuple(elements) => // Needed for tuple.first, possibly others
         val listed = Helpers.tupleToList(elements).getOrElse(throw new Exception("Invalid tuple returned to top level"))
         val mapped = listed.map(unwrap(_))
@@ -69,6 +70,7 @@ object EvaluatorQuick {
           (wrap[TA, VA](key), wrap[TA, VA](value))
         }.toMap)
       case l: List[_]             => Result.ListResult(l.map(wrap(_)))
+      case s: Set[_]              => Result.SetResult(s.map(wrap(_)))
       case (first, second)        => Result.Tuple((wrap(first), wrap(second)))
       case (first, second, third) => Result.Tuple((wrap(first), wrap(second), wrap(third)))
       // TODO: Option, Result, LocalDate
@@ -124,6 +126,8 @@ object EvaluatorQuick {
         Concept.Optional(typeToConcept(elementType, dists, boundTypes))
       case DictRef(keyType, valType) =>
         Concept.Map(typeToConcept(keyType, dists, boundTypes), typeToConcept(valType, dists, boundTypes))
+      case SetRef(elementType) =>
+        Concept.Set(typeToConcept(elementType, dists, boundTypes))
       case TT.Reference(_, typeName, typeArgs) =>
         val lookedUp    = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dists, boundTypes))
@@ -223,6 +227,9 @@ object EvaluatorQuick {
       case (Concept.List(elementConcept), Result.ListResult(elements)) =>
         val inners = elements.map(element => resultAndConceptToData(element, elementConcept))
         Data.List(inners, elementConcept)
+      case (Concept.Set(elementConcept), Result.SetResult(elements)) =>
+        val inners = elements.map(element => resultAndConceptToData(element, elementConcept))
+        Data.Set(mutable.Set.from(inners), elementConcept)
       case (Concept.Optional(elementShape), Result.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), List())) =>
         Data.Optional.None(elementShape)
       case (
