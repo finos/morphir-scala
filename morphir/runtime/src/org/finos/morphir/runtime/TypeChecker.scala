@@ -113,7 +113,7 @@ final class TypeChecker(dists: Distributions) {
         if (left == right) List() else List(TypesMismatch(left, right, "Value type does not match declared type"))
       case (Type.Function(_, valueArg, valueRet), Type.Function(_, declaredArg, declaredRet)) =>
         conformsTo(valueRet, declaredRet, context) ++ conformsTo(declaredArg, valueArg, context)
-      case (value @ Type.Tuple(_, valueElements), declared @ Type.Tuple(_, declaredElements)) =>
+      case (Type.Tuple(_, valueElements), Type.Tuple(_, declaredElements)) =>
         checkList(valueElements.toList, declaredElements.toList, context.withPrefix("Comparing Tuples:"))
       case (valueTpe @ Type.Record(_, valueFields), declaredTpe @ Type.Record(_, declaredFields)) =>
         // Map both to sets
@@ -145,7 +145,7 @@ final class TypeChecker(dists: Distributions) {
         checkList(
           valueArgs.toList,
           declaredArgs.toList,
-          context.withPrefix("Comparing arguments on reference $valueName")
+          context.withPrefix(s"Comparing arguments on reference $valueName")
         )
       case (dealiased(value, valueArgs @ _), declared) =>
         conformsTo(value, declared, context) // TODO: Bindings, left side only!
