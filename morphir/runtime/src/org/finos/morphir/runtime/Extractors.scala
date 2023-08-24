@@ -109,7 +109,7 @@ object Extractors {
         tpe match {
           case Type.Reference(_, name, args)
               // TODO: NATIVE_CHECK
-              if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
+              if (!Utils.isNative(name)) =>
             Some((name, args))
           case _ => None
         }
@@ -120,7 +120,7 @@ object Extractors {
         tpe match {
           case Type.Reference(_, name, _)
               // TODO: NATIVE_CHECK
-              if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) => true
+              if (Utils.isNative(name)) => true
           case _ => false
         }
     }
