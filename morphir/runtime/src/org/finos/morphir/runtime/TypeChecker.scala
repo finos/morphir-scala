@@ -3,13 +3,7 @@ package org.finos.morphir.runtime
 import org.finos.morphir.naming.*
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Literal.Lit
-import org.finos.morphir.ir.Value.{
-  Pattern,
-  TypedValue,
-  Value,
-  TypedDefinition as TypedValueDef,
-  USpecification as UValueSpec
-}
+import org.finos.morphir.ir.Value.{Pattern, TypedValue, Value, TypedDefinition as TypedValueDef, USpecification as UValueSpec}
 import org.finos.morphir.ir.Type.{Type, UType, USpecification as UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
@@ -17,6 +11,7 @@ import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.TypeError.CannotDealias
 import org.finos.morphir.runtime.exports.*
 import TypeError.*
+import org.finos.morphir.runtime.Extractors.Values.NativeRef
 
 object TypeChecker {
   type TypeCheckerResult = List[TypeError]
@@ -244,7 +239,7 @@ final class TypeChecker(dists: Distributions) {
     val fromChildren = List()
     val (ret, args)  = Utils.uncurryFunctionType(tpe) // TODO: Interleaved function type w/ aliases.
     val fromTpe = ret match {
-      case Type.Reference(_, name, typeArgs) => dists.lookupTypeSpecification(name) match {
+      case NonNativeRef(name, typeArgs) => dists.lookupTypeSpecification(name) match {
           case Right(T.Specification.CustomTypeSpecification(typeParams, ctors)) =>
             val newBindings = typeParams.toList.zip(typeArgs.toList).toMap
             val missedName = helper(
@@ -266,6 +261,7 @@ final class TypeChecker(dists: Distributions) {
             List(new ImproperTypeSpec(name, other, s"Type union expected"))
           case Left(err) => List(new TypeMissing(err))
         }
+      case NativeRef => List()
       case other => List(new ImproperType(other, s"Reference to type union expected"))
     }
     fromChildren ++ fromTpe
