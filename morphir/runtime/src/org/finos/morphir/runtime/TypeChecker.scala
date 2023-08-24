@@ -300,6 +300,10 @@ final class TypeChecker(dists: Distributions) {
   }
   def handleLambda(tpe: UType, pattern: Pattern[UType], body: TypedValue, context: Context): TypeCheckerResult = {
     val fromChildren = check(body, context)
+    val fromTpe = tpe match {
+      case Type.Function(_, arg, ret) => conformsTo(ret, body.attributes, context) ++ conformsTo(pattern.attributes, arg, context)
+      case other => List(new ImproperType(other, "Field function should be function:"))
+    }
     // TODO: Check tpe is a function
     // TODO: Check tpe's argument matches (strictly) with pattern
     // TODO: Figure out variable bindings
