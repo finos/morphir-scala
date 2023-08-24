@@ -41,6 +41,7 @@ object Utils {
 //  }
   def applyBindings(tpe: UType, bindings: Map[Name, UType]): UType =
     tpe match {
+      case l @ LeafType                                      => l
       case Type.Variable(_, name) if bindings.contains(name) => bindings(name)
       case Type.Tuple(_, elements)                           => T.tupleVar(elements.map(applyBindings(_, bindings)): _*)
       case DictRef(keyType, valueType) =>
@@ -52,7 +53,6 @@ object Utils {
       case Type.Function(_, argType, retType) =>
         T.function(applyBindings(argType, bindings), applyBindings(retType, bindings))
       case Type.Reference(_, name, argTypes) => T.reference(name, argTypes.map(applyBindings(_, bindings)))
-      case other                             => other // leaf nodes
     }
 
   def typeCheckArg(arg: UType, param: UType, found: Map[Name, UType])(

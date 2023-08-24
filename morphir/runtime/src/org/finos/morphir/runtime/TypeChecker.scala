@@ -20,7 +20,7 @@ import MorphirTypeError.*
 
 object TypeChecker {
   type TypeCheckerResult = List[MorphirTypeError]
-  //Object to carry data for making tracking local type bindings and context information for better error messages
+  // Object to carry data for making tracking local type bindings and context information for better error messages
   case class Context(
       typeBindings: Map[Name, UType],
       depth: Int,
@@ -43,7 +43,7 @@ final class TypeChecker(dists: Distributions) {
   import TypeChecker.*
   private val dealiased = new Extractors.Types.Dealiased(dists)
   // TODO: Use or remove
-  //String utility to improve visibility of names when types don't match
+  // String utility to improve visibility of names when types don't match
   def nameThatMismatch(tpe1: UType, tpe2: UType): String = {
     import Extractors.Types.*
     (tpe1, tpe2) match {
@@ -59,7 +59,7 @@ final class TypeChecker(dists: Distributions) {
       case _ => s"(${Succinct.Type(tpe1, 2)} vs ${Succinct.Type(tpe2, 2)})"
     }
   }
-  //Helper to check that two lists of types (such as tuple or arguments) match, both in length and contents
+  // Helper to check that two lists of types (such as tuple or arguments) match, both in length and contents
   def checkList(
       argList: List[UType],
       paramList: List[UType],
@@ -70,7 +70,7 @@ final class TypeChecker(dists: Distributions) {
     else
       argList.zip(paramList).flatMap { case (arg, param) => conformsTo(arg, param, context) }
 
-  //Fully dealises a type. (Note that it dos not dealias branching types, such as if a tuple has an aliased member
+  // Fully dealises a type. (Note that it dos not dealias branching types, such as if a tuple has an aliased member
   def dealias(tpe: UType, context: Context): Either[MorphirTypeError, UType] = {
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[MorphirTypeError, UType] =
       tpe match {
@@ -100,12 +100,13 @@ final class TypeChecker(dists: Distributions) {
   def conformsTo(valueType: UType, declaredType: UType, context: Context): List[MorphirTypeError] = {
     import Extractors.Types.*
     (valueType, declaredType) match {
+      //TODO: Make variables fail if missing when binding support is up to the task
       case (_, Type.Variable(_, name)) => context.getTypeVariable(name) match {
-          case None           => List(new TypeVariableMissing(name))
+          case None           => List() //List(new TypeVariableMissing(name))
           case Some(lookedUp) => conformsTo(valueType, lookedUp, context) // TODO: Bindings
         }
       case (Type.Variable(_, name), _) => context.getTypeVariable(name) match {
-          case None           => List(new TypeVariableMissing(name))
+          case None           => List()//List(new TypeVariableMissing(name))
           case Some(lookedUp) => conformsTo(lookedUp, declaredType, context)
         }
       case (left @ LeafType(), right @ LeafType()) =>
@@ -115,17 +116,17 @@ final class TypeChecker(dists: Distributions) {
       case (value @ Type.Tuple(_, valueElements), declared @ Type.Tuple(_, declaredElements)) =>
         checkList(valueElements.toList, declaredElements.toList, context.withPrefix("Comparing Tuples:"))
       case (valueTpe @ Type.Record(_, valueFields), declaredTpe @ Type.Record(_, declaredFields)) =>
-        //Map both to sets
+        // Map both to sets
         val valueFieldSet: Set[Name]    = valueFields.map(_.name).toSet
         val declaredFieldSet: Set[Name] = declaredFields.map(_.name).toSet
-        //Use .diff to find if some are entirely absent from the other
+        // Use .diff to find if some are entirely absent from the other
         val missingFromValue = valueFieldSet
           .diff(declaredFieldSet).toList.map(missing =>
             TypeLacksField(valueTpe, missing, s"Required by ${Succinct.Type(declaredTpe)}")
           )
         val missingFromDeclared = declaredFieldSet
           .diff(valueFieldSet).toList.map(bonus => TypeHasExtraField(valueTpe, declaredTpe, bonus))
-        //For everything shared, lookup types in both and ensure they match
+        // For everything shared, lookup types in both and ensure they match
         val sharedFields                       = valueFieldSet.intersect(declaredFieldSet)
         val valueFieldMap: Map[Name, UType]    = valueFields.map(field => field.name -> field.data).toMap
         val declaredFieldMap: Map[Name, UType] = declaredFields.map(field => field.name -> field.data).toMap
@@ -141,7 +142,11 @@ final class TypeChecker(dists: Distributions) {
         conformsTo(valueElement, declaredElement, context)
       case (Type.Reference(_, valueName, valueArgs), Type.Reference(_, declaredName, declaredArgs))
           if valueName == declaredName =>
-            checkList(valueArgs.toList, declaredArgs.toList, context.withPrefix("Comparing arguments on reference $valueName"))
+        checkList(
+          valueArgs.toList,
+          declaredArgs.toList,
+          context.withPrefix("Comparing arguments on reference $valueName")
+        )
       case (dealiased(value, valueArgs @ _), declared) =>
         conformsTo(value, declared, context) // TODO: Bindings, left side only!
       case (value, dealiased(declared, declaredArgs @ _)) =>
@@ -301,7 +306,8 @@ final class TypeChecker(dists: Distributions) {
   def handleLambda(tpe: UType, pattern: Pattern[UType], body: TypedValue, context: Context): TypeCheckerResult = {
     val fromChildren = check(body, context)
     val fromTpe = tpe match {
-      case Type.Function(_, arg, ret) => conformsTo(ret, body.attributes, context) ++ conformsTo(pattern.attributes, arg, context)
+      case Type.Function(_, arg, ret) =>
+        conformsTo(ret, body.attributes, context) ++ conformsTo(pattern.attributes, arg, context)
       case other => List(new ImproperType(other, "Field function should be function:"))
     }
     // TODO: Check tpe's argument matches (strictly) with pattern
@@ -359,10 +365,10 @@ final class TypeChecker(dists: Distributions) {
       context: Context
   ): TypeCheckerResult = {
     val fromChildren = check(value, context)
-    val casesMatch = cases.flatMap{case (pattern, caseValue) => {
+    val casesMatch = cases.flatMap { case (pattern, caseValue) =>
       conformsTo(value.attributes, pattern.attributes, context.withPrefix("Checking Pattern:")) ++
         conformsTo(caseValue.attributes, tpe, context)
-    }}
+    }
     // TODO: Check values from each case
     // TODO: Manage store
     // TODO: Check each case's pattern can be its value
