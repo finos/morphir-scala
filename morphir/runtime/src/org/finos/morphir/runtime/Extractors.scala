@@ -108,7 +108,6 @@ object Extractors {
       def unapply(tpe: UType): Option[(FQName, Chunk[UType])] =
         tpe match {
           case Type.Reference(_, name, args)
-              // TODO: NATIVE_CHECK
               if (!Utils.isNative(name)) =>
             Some((name, args))
           case _ => None
@@ -119,15 +118,13 @@ object Extractors {
       def unapply(tpe: UType): Boolean =
         tpe match {
           case Type.Reference(_, name, _)
-              // TODO: NATIVE_CHECK
               if (Utils.isNative(name)) => true
           case _ => false
         }
     }
-    // Extractor object that unwraps a single layer of aliasing, and gives any type names that were bound in the process
+    // Extractor object that unwraps a single layer of aliasing, applying any bindings that were discovered in the process
     class Dealiased(dists: Distributions) {
-      // TODO: DEALIASING_CLEANUP
-      def unapply(tpe: UType): Option[(UType, Map[Name, UType])] = // If it's aliased we may need to grab bindings
+      def unapply(tpe: UType): Option[UType] = // If it's aliased we may need to grab bindings
         tpe match {
           case NativeRef() => None
           case Type.Reference(_, typeName, typeArgs) =>
@@ -135,16 +132,16 @@ object Extractors {
             lookedUp match {
               case Right(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
                 val newBindings = typeParams.zip(typeArgs).toMap
-                Some((expr, newBindings))
+                Some(Utils.applyBindings(expr, newBindings))
               case _ => None // Missing name, but failing extractors cause problems
             }
           case _ => None
         }
     }
 
-    class FunctionOnion(dists: Distributions) {
+    //Extractor object that uncurries a function type, dealiasing along the way to reeturn a result value and flat list of arguments
+    class CurriedOnion(dists: Distributions) {
       val dealiaser = new Dealiased(dists)
-
       def unapply(tpe: UType): Option[(UType, List[UType])] = {
         val myself = this
         tpe match {
