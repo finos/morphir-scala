@@ -144,6 +144,10 @@ object Native {
       Result.ListResult(flattened)
     }
   )
+  val singleton: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    1,
+    (a: Result[Unit, Type.UType]) => {}
+  )
   val map: SDKValue[Unit, Type.UType] = SDKValue.SDKValueDefinition(
     MapImpl.ir
   )
