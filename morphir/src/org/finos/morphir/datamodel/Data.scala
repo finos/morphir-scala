@@ -188,6 +188,16 @@ object Data {
 
     def apply(value: Data, rest: Data*) =
       new Set(mutable.Set(value) ++ rest.to(mutable.Set), Concept.Set(value.shape))
+
+    def empty(elementShape: Concept) =
+      new Set(mutable.Set(), Concept.Set(elementShape))
+
+    def validated(values: mutable.HashSet[Data]): Option[Set] =
+      // Validate that element-type of everything is the same
+      if (values.nonEmpty && values.forall(_.shape == values.head.shape))
+        Some(Set(values, Concept.Set(values.head.shape)))
+      else
+        None
   }
 
   /**
