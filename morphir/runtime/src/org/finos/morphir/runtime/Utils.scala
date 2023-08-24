@@ -54,6 +54,16 @@ object Extractors {
         case _ => None
       }
   }
+
+  object SetRef {
+    def unapply(tpe: UType): Option[UType] =
+      tpe match {
+        case Type.Reference(_, FQString("Morphir.SDK:Set:set"), Chunk(elementType)) =>
+          Some(elementType)
+        case _ => None
+      }
+  }
+
   object MaybeRef {
     def unapply(tpe: UType): Option[UType] =
       tpe match {
