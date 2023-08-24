@@ -229,6 +229,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           } yield assertTrue(actual == expected)
         }
       ),
+//      suite("Decimal Tests")(
+//        testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("1.2"))
+//      ),
       suite("Destructure Tests")(
         test("As") {
           for {
@@ -369,6 +372,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )),
         testEvaluation("Singleton")("listTests", "listSingletonTest")(
           Data.List(Data.Int(6))
+        ),
+        testEvaluation("isEmpty")("listTests", "listIsEmptyTest")(
+          (Data.List(List(), Concept.Int32))
         )
       ),
       suite("Literals")(
@@ -408,7 +414,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("LocalDate")("nativeReferenceTests", "localDatePassthrough", localDate)(Data.LocalDate(localDate)),
         testEval("LocalDate")("nativeReferenceTests", "localTimePassthrough", localTime)(Data.LocalTime(localTime))
       ),
-      suite("Patern Matching")(
+      suite("Pattern Matching")(
         testEvaluation("Wildcard")("patternMatchTests", "patternMatchWildcardTest")(Data.String("Correct")),
         testEvaluation("Tuple")("patternMatchTests", "patternMatchTupleTest")(Data.String("Correct")),
         testEvaluation("Constructor")("patternMatchTests", "patternMatchConstructorTest")(Data.String("Correct")),

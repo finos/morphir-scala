@@ -65,6 +65,7 @@ object String {
     FQName.fromString("Morphir.SDK:String:right")  -> right
   )
 }
+
 object Native {
   val and: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
@@ -153,7 +154,7 @@ object Native {
     1,
     (l: Result[Unit, Type.UType]) => {
       val list = l.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
-      Result.Primitive(list.elements.length == 0)
+      Result.Primitive(list.length == 0)
     }
   )
   val map: SDKValue[Unit, Type.UType] = SDKValue.SDKValueDefinition(
@@ -220,6 +221,7 @@ object Native {
     FQName.fromString("Morphir.SDK:List:cons")                  -> cons,
     FQName.fromString("Morphir.SDK:List:concat")                -> concat,
     FQName.fromString("Morphir.SDK:List:singleton")             -> singleton,
+    FQName.fromString("Morphir.SDK:List:isEmpty")               -> isEmpty,
     FQName.fromString("Morphir.SDK:List:map")                   -> map,
     FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
