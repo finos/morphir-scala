@@ -6,7 +6,7 @@ import org.finos.morphir.datamodel.{Concept, Data, Label}
 import org.finos.morphir.naming._
 import org.finos.morphir.naming.FQName.fqn
 import org.finos.morphir.ir.Literal.Lit
-import org.finos.morphir.ir.{Type => T, Value => V}
+import org.finos.morphir.ir.{sdk, Type => T, Value => V}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.Chunk
 import zio.test._
@@ -259,6 +259,23 @@ object ValueConversionSpec extends MorphirBaseSpec {
             zio.Chunk(V.intTyped(10), V.intTyped(20), V.intTyped(30))
           )
         ))
+      }
+    ),
+    suite("Data.Set")(
+      test("Should be possible to convert a Data Set Int type to a Morphir Set type") {
+        val toValue    = ToMorphirValue.summon[Data].typed
+        val inputValue = Data.Set(Data.Int(3), Data.Int(71))
+        val actual     = toValue(inputValue)
+        val shape      = sdk.Set.setType(sdk.Basics.intType)
+        val result = V.applyInferType(
+          shape,
+          V.reference(FQName.fromString("Morphir.SDK:Set:fromList")),
+          V.list(
+            shape,
+            zio.Chunk(V.intTyped(3), V.intTyped(71))
+          )
+        )
+        assertTrue(actual == result)
       }
     ),
     suite("Data.Record")(
