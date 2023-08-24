@@ -150,12 +150,7 @@ object Utils {
     (curried, args) match {
       case (Type.Function(_, parameterType, returnType), head :: tail) =>
         for {
-
-          //          errors <- RTAction.succeed(new ArgTypeChecker(dists).reallyTypeCheckArg(head, parameterType, ""))
           bindings <- RTAction.fromEither(typeCheckArg(head.attributes, parameterType, knownBindings))
-          //          _ <- RTAction.fail( new ManyErrors(errors: _*))
-          ////          errors = new TypeChecker().reallyTypeCheckArg(head, parameterType, "")
-          ////          _ <- RTAction.fail(new ManyErrors(errors:_*))
           appliedType <- findTypeBindings(returnType, tail, dists, bindings)
         } yield appliedType
       case (tpe, Nil) => RTAction.succeed(applyBindings(tpe, knownBindings))
