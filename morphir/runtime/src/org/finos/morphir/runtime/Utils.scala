@@ -44,7 +44,7 @@ object Utils {
     tpe match {
       case l @ LeafType()                                      => l
       case Type.Variable(_, name) if bindings.contains(name) => bindings(name)
-      case Type.Variable(_, name) if !bindings.contains(name) => T.variable(name) //Not an error - may be unbound in this context
+      case Type.Variable(_, name)=> T.variable(name) //Not an error - may be unbound in this context
       case Type.Tuple(_, elements)                           => T.tupleVar(elements.map(applyBindings(_, bindings)): _*)
       case DictRef(keyType, valueType) =>
         sdk.Dict.dictType(applyBindings(keyType, bindings), applyBindings(valueType, bindings))
@@ -57,7 +57,7 @@ object Utils {
       case Type.Function(_, argType, retType) =>
         T.function(applyBindings(argType, bindings), applyBindings(retType, bindings))
       case Type.Reference(_, name, argTypes) => T.reference(name, argTypes.map(applyBindings(_, bindings)))
-      case other => throw new Exception("Unmatched type during application of bindings (this should be unreachable)")
+      case Type.Unit => T.unit()
     }
 
   def typeCheckArg(arg: UType, param: UType, found: Map[Name, UType])(
