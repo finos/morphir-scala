@@ -369,7 +369,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )),
         testEvaluation("Singleton")("listTests", "listSingletonTest")(
           Data.List(Data.Int(6))
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
+        )
       ),
       suite("Literals")(
         testEvaluation("String")("literalTests", "litStringTest")(Data.String("Bloop")),
