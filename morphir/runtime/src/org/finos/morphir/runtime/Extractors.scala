@@ -185,8 +185,7 @@ object Extractors {
       def unapply(value: TypedValue): Option[(UType, FQName)] =
         value match {
           case Value.Reference(tpe, name)
-              // TODO: NATIVE_CHECK
-              if (name.packagePath != Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
+              if (!Utils.isNative(name)) =>
             Some((tpe, name))
           case _ => None
         }
@@ -196,8 +195,7 @@ object Extractors {
       def unapply(value: TypedValue): Option[(UType, FQName)] =
         value match {
           case Value.Reference(tpe, name)
-              // TODO: NATIVE_CHECK
-              if (name.packagePath == Basics.intType.asInstanceOf[Type.Reference[Unit]].typeName.packagePath) =>
+              if (Utils.isNative(name)) =>
             Some((tpe, name))
           case _ => None
         }
