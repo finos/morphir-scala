@@ -100,13 +100,13 @@ final class TypeChecker(dists: Distributions) {
   def conformsTo(valueType: UType, declaredType: UType, context: Context): List[MorphirTypeError] = {
     import Extractors.Types.*
     (valueType, declaredType) match {
-      //TODO: Make variables fail if missing when binding support is up to the task
+      // TODO: Make variables fail if missing when binding support is up to the task
       case (_, Type.Variable(_, name)) => context.getTypeVariable(name) match {
-          case None           => List() //List(new TypeVariableMissing(name))
+          case None           => List()                                   // List(new TypeVariableMissing(name))
           case Some(lookedUp) => conformsTo(valueType, lookedUp, context) // TODO: Bindings
         }
       case (Type.Variable(_, name), _) => context.getTypeVariable(name) match {
-          case None           => List()//List(new TypeVariableMissing(name))
+          case None           => List() // List(new TypeVariableMissing(name))
           case Some(lookedUp) => conformsTo(lookedUp, declaredType, context)
         }
       case (left @ LeafType(), right @ LeafType()) =>

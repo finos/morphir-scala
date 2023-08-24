@@ -57,9 +57,10 @@ object Utils {
       case Type.Function(_, argType, retType) =>
         T.function(applyBindings(argType, bindings), applyBindings(retType, bindings))
       case Type.Reference(_, name, argTypes) => T.reference(name, argTypes.map(applyBindings(_, bindings)))
-      case Type.Unit => T.unit()
+      case Type.Unit(_) => T.unit
     }
 
+  //Checks an argument against a paramter, and returns and inferable generic types from the pair (or an error)
   def typeCheckArg(arg: UType, param: UType, found: Map[Name, UType])(
       implicit options: RTExecutionContext.Options
   ): Either[TypeError, Map[Name, UType]] =
@@ -70,20 +71,7 @@ object Utils {
         } else {
           Right(found + (name -> argType))
         }
-      case (Type.Unit(_), Type.Unit(_))     => Right(found)
-      case (IntRef(), IntRef())             => Right(found) // Right?
-      case (IntRef(), Int16Ref())           => Right(found)
-      case (IntRef(), Int32Ref())           => Right(found)
-      case (IntRef(), Int64Ref())           => Right(found)
-      case (Int16Ref(), Int16Ref())         => Right(found)
-      case (Int32Ref(), Int32Ref())         => Right(found)
-      case (Int64Ref(), Int64Ref())         => Right(found)
-      case (FloatRef(), FloatRef())         => Right(found)
-      case (StringRef(), StringRef())       => Right(found)
-      case (CharRef(), CharRef())           => Right(found)
-      case (BoolRef(), BoolRef())           => Right(found)
-      case (LocalDateRef(), LocalDateRef()) => Right(found)
-      case (LocalTimeRef(), LocalTimeRef()) => Right(found)
+      case (l @ LeafType(), r @ LeafType()) if l == r => Right(found)
       case (Type.Tuple(_, argElements), Type.Tuple(_, paramElements)) =>
         if (argElements.length != paramElements.length) {
           Left(new TypeMismatch(s"Different tuple arity between arg $argElements and parameter $paramElements"))
