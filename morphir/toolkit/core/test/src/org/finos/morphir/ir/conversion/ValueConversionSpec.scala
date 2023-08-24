@@ -262,6 +262,21 @@ object ValueConversionSpec extends MorphirBaseSpec {
       }
     ),
     suite("Data.Set")(
+      test("Should be possible to convert a empty Data Set of Strings to a Morphir Set type") {
+        val toValue    = ToMorphirValue.summon[Data].typed
+        val inputValue = Data.Set.empty(Concept.String)
+        val actual     = toValue(inputValue)
+        val shape      = sdk.Set.setType(sdk.String.stringType)
+        val result = V.applyInferType(
+          shape,
+          V.reference(FQName.fromString("Morphir.SDK:Set:fromList")),
+          V.list(
+            sdk.Set.setType(sdk.String.stringType),
+            zio.Chunk()
+          )
+        )
+        assertTrue(actual == result)
+      },
       test("Should be possible to convert a Data Set Int type to a Morphir Set type") {
         val toValue    = ToMorphirValue.summon[Data].typed
         val inputValue = Data.Set(Data.Int(3), Data.Int(71))
