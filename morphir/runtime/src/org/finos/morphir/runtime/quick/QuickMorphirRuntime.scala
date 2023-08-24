@@ -32,13 +32,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
     } yield res
 
   def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
-    // val errors = new TypeChecker(dists).check(value)
     for {
-//      ctx <- ZPure.get[RTExecutionContext]
-//
-//      _ <- if (errors.length == 0) RTAction.succeed(()) else {
-//        RTAction.fail(TypeCheckerErrors(errors))
-//      }
       _   <- typeCheck(value)
       res <- EvaluatorQuick.evalAction(value, store, dists)
     } yield res
@@ -78,7 +72,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
             for {
               tpe <- findTypeBindings(tpe, params.toList, dists, Map())(ctx.options)
             } yield V.apply(tpe, entryPoint, params.head, params.tail: _*)
-          case other => RTAction.fail(UnsupportedType(s"Entry point must be a Reference, instead found $other"))
+          case other => RTAction.fail(new TypeError.OtherTypeError(s"Entry point must be a Reference, instead found ${Succinct.Value(other)}"))
         }
       }
     } yield out

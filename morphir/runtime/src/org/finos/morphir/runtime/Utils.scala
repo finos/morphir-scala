@@ -154,7 +154,7 @@ object Utils {
       case (dealiaser(inner, aliasBindings), args) =>
         findTypeBindings(inner, args, dists, knownBindings ++ aliasBindings)
       case (nonFunction, head :: _) =>
-        RTAction.fail(TooManyArgs(s"Tried to apply argument $head to non-function $nonFunction"))
+        RTAction.fail(new ImproperType(nonFunction, s"Tried to apply argument ${Succinct.Value(head)} to non-function"))
     }
   }
   def isNative(fqn: FQName): Boolean = {
