@@ -149,6 +149,11 @@ object Native {
     (l: Result[Unit, Type.UType]) =>
       Result.ListResult(List(l))
   )
+  val isEmpty: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    1,
+    (l: Result[Unit, Type.UType]) =>
+      Result.ListResult(List(l))
+  )
   val map: SDKValue[Unit, Type.UType] = SDKValue.SDKValueDefinition(
     MapImpl.ir
   )
