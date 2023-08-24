@@ -361,7 +361,7 @@ final class TypeChecker(dists: Distributions) {
     val fromChildren = check(value, context)
     val casesMatch = cases.flatMap{case (pattern, caseValue) => {
       conformsTo(value.attributes, pattern.attributes, context.withPrefix("Checking Pattern:")) ++
-        comformsTo(caseValue.attributes, tpe, context)
+        conformsTo(caseValue.attributes, tpe, context)
     }}
     // TODO: Check values from each case
     // TODO: Manage store
@@ -410,7 +410,7 @@ final class TypeChecker(dists: Distributions) {
   def handleTuple(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
     val fromTpe = tpe match {
       case Type.Tuple(_, elementTypes) =>
-        checkList(elements.map(_.attributes), elementTypes, context)
+        checkList(elements.map(_.attributes), elementTypes.toList, context)
       case other => List(new ImproperType(other, "Tuple expected"))
     }
     val fromChildren = elements.flatMap(check(_, context))
