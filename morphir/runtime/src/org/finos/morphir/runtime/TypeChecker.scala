@@ -304,10 +304,9 @@ final class TypeChecker(dists: Distributions) {
       case Type.Function(_, arg, ret) => conformsTo(ret, body.attributes, context) ++ conformsTo(pattern.attributes, arg, context)
       case other => List(new ImproperType(other, "Field function should be function:"))
     }
-    // TODO: Check tpe is a function
     // TODO: Check tpe's argument matches (strictly) with pattern
     // TODO: Figure out variable bindings
-    fromChildren
+    fromChildren ++ fromTpe
   }
   def handleLetDefinition(
       tpe: UType,
@@ -320,7 +319,7 @@ final class TypeChecker(dists: Distributions) {
     // TODO: Manage Store
     // TODO: Check definition body
     // TODO: Check definition body w/ argument types added to store
-    fromChildren
+    fromChildren ++ conformsTo(inValue.attributes, tpe)
   }
   def handleLetRecursion(
       tpe: UType,
@@ -331,7 +330,7 @@ final class TypeChecker(dists: Distributions) {
     val fromChildren = check(inValue, context)
     // TODO: Manage store
     // TODO: Check definition types and add to stores
-    fromChildren
+    fromChildren ++ conformsTo(inValue.attributes, tpe)
   }
   def handleListValue(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
     // We expect declared element types to be the same, but values may differ; so we only grab the first set of errors at the type level, but fully explore all elements.
@@ -360,11 +359,12 @@ final class TypeChecker(dists: Distributions) {
       context: Context
   ): TypeCheckerResult = {
     val fromChildren = check(value, context)
+    val casesMatch = cases.flatMap{case }
     // TODO: Check values from each case
     // TODO: Manage store
-    // TODO: Check each case's pattern can be it's value
+    // TODO: Check each case's pattern can be its value
     // TODO: Check value must be one of the patterns
-    fromChildren
+    fromChildren ++ conformsTo(toe)
   }
   def handleRecord(
       tpe: UType,
