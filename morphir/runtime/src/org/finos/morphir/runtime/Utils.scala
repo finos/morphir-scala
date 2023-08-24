@@ -159,5 +159,4 @@ object Utils {
       case chunk =>
         curryTypeFunction(Type.Function(inner.attributes, chunk.head._2, inner), chunk.tail) // TODO: Backwards?
     }
-
 }
