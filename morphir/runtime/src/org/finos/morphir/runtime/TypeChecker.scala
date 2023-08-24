@@ -244,9 +244,9 @@ final class TypeChecker(dists: Distributions) {
     val fromChildren = List()
     val (ret, args)  = Utils.uncurryFunctionType(tpe) // TODO: Interleaved function type w/ aliases.
     val fromTpe = ret match {
-      // TODO: Handle bindings
-      case Type.Reference(_, name, typeArgs @ _) => dists.lookupTypeSpecification(name) match {
-          case Right(T.Specification.CustomTypeSpecification(typeParams @ _, ctors)) =>
+      case Type.Reference(_, name, typeArgs) => dists.lookupTypeSpecification(name) match {
+          case Right(T.Specification.CustomTypeSpecification(typeParams, ctors)) =>
+            val newBindings = typeParams.toList.zip(typeArgs.toList).toMap
             val missedName = helper(
               fqn.packagePath != name.packagePath || fqn.modulePath != name.modulePath,
               new OtherTypeError(s"Constructor $fqn does not match type name $name")
@@ -255,21 +255,20 @@ final class TypeChecker(dists: Distributions) {
               case Some(ctorArgs) =>
                 checkList(
                   args.toList,
-                  ctorArgs.toList.map(_._2),
+                  ctorArgs.toList.map(_._2).map(Utils.applyBindings(_, newBindings)),
                   context.withPrefix(s"Comparing $fqn constructor value to looked up type ${Succinct.Type(tpe)}")
                 )
               case None =>
                 List(new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName}"))
             }
             missedName ++ fromCtor
-          // TODO: Bindings
           case Right(other) =>
             List(new ImproperTypeSpec(name, other, s"Type union expected"))
           case Left(err) => List(new TypeMissing(err))
         }
       case other => List(new ImproperType(other, s"Reference to type union expected"))
     }
-    fromChildren
+    fromChildren ++ fromTpe
   }
   def handleFieldValue(tpe: UType, recordValue: TypedValue, name: Name, context: Context): TypeCheckerResult = {
     val fromChildren = check(recordValue, context)
