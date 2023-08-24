@@ -20,6 +20,7 @@ import MorphirTypeError.*
 
 object TypeChecker {
   type TypeCheckerResult = List[MorphirTypeError]
+  //Object to carry data for making tracking local type bindings and context information for better error messages
   case class Context(
       typeBindings: Map[Name, UType],
       depth: Int,
@@ -40,9 +41,9 @@ object TypeChecker {
 //TODO: This is final because references to ValueDefinition are private, and thus letDefinition and letRecursion handlers cannot be overridden. There may be a better way to handle this.
 final class TypeChecker(dists: Distributions) {
   import TypeChecker.*
-  // private val functionOnion = new Extractors.Types.FunctionOnion(dists)
   private val dealiased = new Extractors.Types.Dealiased(dists)
   // TODO: Use or remove
+  //String utility to improve visibility of names when types don't match
   def nameThatMismatch(tpe1: UType, tpe2: UType): String = {
     import Extractors.Types.*
     (tpe1, tpe2) match {
@@ -58,6 +59,7 @@ final class TypeChecker(dists: Distributions) {
       case _ => s"(${Succinct.Type(tpe1, 2)} vs ${Succinct.Type(tpe2, 2)})"
     }
   }
+  //Helper to check that two lists of types (such as tuple or arguments) match, both in length and contents
   def checkList(
       argList: List[UType],
       paramList: List[UType],
@@ -68,6 +70,7 @@ final class TypeChecker(dists: Distributions) {
     else
       argList.zip(paramList).flatMap { case (arg, param) => conformsTo(arg, param, context) }
 
+  //Fully dealises a type. (Note that it dos not dealias branching types, such as if a tuple has an aliased
   def dealias(tpe: UType, context: Context): Either[MorphirTypeError, UType] = {
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[MorphirTypeError, UType] =
       tpe match {
