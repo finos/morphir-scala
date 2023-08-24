@@ -91,13 +91,13 @@ object TypeError {
   final case class ConstructorMissing(err: LookupError, fqn: FQName)
       extends TypeError(s"Cannot find constructor $fqn: ${err.getMsg}")
 
-  abstract class SizeMismatch(first: Int, second: Int, msg: String)
+  class SizeMismatch(first: Int, second: Int, msg: String)
       extends TypeError(s"$msg: ($first vs $second)")
   final case class ArgNumberMismatch(first: Int, second: Int, msg: String)
       extends SizeMismatch(first: Int, second: Int, msg: String)
   final case class InferenceConflict(msg : String) extends TypeError(msg)
   final case class UnimplementedType(msg: String)    extends TypeError(msg)
   final case class OtherTypeError(msg: String) extends TypeError(msg)
-  final case class ManyTypeErrorsErrors(errors: List[TypeError])
+  final case class ManyTypeErrors(errors: List[TypeError])
       extends EvaluationError("\n" + errors.map(_.toString).mkString("\n"))
 }

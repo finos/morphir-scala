@@ -62,7 +62,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
       case EnableTyper.Enabled =>
         val errors = new TypeChecker(dists).check(value)
         if (errors.length == 0) RTAction.succeed[RTExecutionContext, Unit](())
-        else RTAction.fail(TypeCheckerErrors(errors))
+        else RTAction.fail(TypeError.ManyTypeErrors(errors))
     }
   } yield result
 
