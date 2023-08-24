@@ -9,6 +9,7 @@ import org.finos.morphir.ir.Value.Value
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.distribution.Distribution
+import scala.collection.immutable.Set
 import zio.Chunk
 
 object GatherReferences {
