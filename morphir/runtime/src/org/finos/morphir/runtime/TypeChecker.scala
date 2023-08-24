@@ -410,15 +410,7 @@ final class TypeChecker(dists: Distributions) {
   def handleTuple(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
     val fromTpe = tpe match {
       case Type.Tuple(_, elementTypes) =>
-        helper(
-          elementTypes.length != elements.length,
-          new OtherTypeError(
-            s"Value typed as tuple with ${elementTypes.length} elements has ${elements.length} elements."
-          )
-        ) ++
-          (elements.map(_.attributes)).zip(elementTypes).flatMap { case (actual, declared) =>
-            conformsTo(actual, declared, context)
-          }
+        checkList(elements.map(_.attributes), elementTypes, context)
       case other => List(new ImproperType(other, "Tuple expected"))
     }
     val fromChildren = elements.flatMap(check(_, context))
