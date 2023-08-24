@@ -36,7 +36,7 @@ object RTError {
 
   final case class ConstructorNotFound(message: String) extends EvaluationError(message)
 
-  //final case class TypeNotFound(message: String)               extends EvaluationError(message)
+  // final case class TypeNotFound(message: String)               extends EvaluationError(message)
   final case class ResultDoesNotMatchType(message: String) extends EvaluationError(message)
 
   final case class FunctionReturnedToTopLevel(message: String) extends EvaluationError(message)

@@ -72,7 +72,9 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
             for {
               tpe <- findTypeBindings(tpe, params.toList, dists, Map())(ctx.options)
             } yield V.apply(tpe, entryPoint, params.head, params.tail: _*)
-          case other => RTAction.fail(new TypeError.OtherTypeError(s"Entry point must be a Reference, instead found ${Succinct.Value(other)}"))
+          case other => RTAction.fail(
+              new TypeError.OtherTypeError(s"Entry point must be a Reference, instead found ${Succinct.Value(other)}")
+            )
         }
       }
     } yield out

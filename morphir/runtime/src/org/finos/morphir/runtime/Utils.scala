@@ -40,13 +40,13 @@ object Utils {
 //      }
 //    loop(original_tpe, bindings)
 //  }
-  //Recurses over a type tree and applies known bindings (i.e., replaces variables with their bound type)
+  // Recurses over a type tree and applies known bindings (i.e., replaces variables with their bound type)
   def applyBindings(tpe: UType, bindings: Map[Name, UType]): UType =
     tpe match {
-      case l @ LeafType()                                      => l
+      case l @ LeafType()                                    => l
       case Type.Variable(_, name) if bindings.contains(name) => bindings(name)
-      case Type.Variable(_, name)=> T.variable(name) //Not an error - may be unbound in this context
-      case Type.Tuple(_, elements)                           => T.tupleVar(elements.map(applyBindings(_, bindings)): _*)
+      case Type.Variable(_, name)  => T.variable(name) // Not an error - may be unbound in this context
+      case Type.Tuple(_, elements) => T.tupleVar(elements.map(applyBindings(_, bindings)): _*)
       case DictRef(keyType, valueType) =>
         sdk.Dict.dictType(applyBindings(keyType, bindings), applyBindings(valueType, bindings))
       case ListRef(elemType)  => sdk.List.listType(applyBindings(elemType, bindings))
@@ -58,11 +58,11 @@ object Utils {
       case Type.Function(_, argType, retType) =>
         T.function(applyBindings(argType, bindings), applyBindings(retType, bindings))
       case Type.Reference(_, name, argTypes) => T.reference(name, argTypes.map(applyBindings(_, bindings)))
-      case Type.Unit(_) => T.unit
+      case Type.Unit(_)                      => T.unit
     }
 
-  //Checks an argument against a paramter, and returns and inferable generic types from the pair (or an error)
-  //TODO: Move to type checker, or remove altogether
+  // Checks an argument against a paramter, and returns and inferable generic types from the pair (or an error)
+  // TODO: Move to type checker, or remove altogether
   def typeCheckArg(arg: UType, param: UType, found: Map[Name, UType])(
       implicit options: RTExecutionContext.Options
   ): Either[TypeError, Map[Name, UType]] =
@@ -76,7 +76,11 @@ object Utils {
       case (l @ LeafType(), r @ LeafType()) if l == r => Right(found)
       case (Type.Tuple(_, argElements), Type.Tuple(_, paramElements)) =>
         if (argElements.length != paramElements.length) {
-          Left(new SizeMismatch(argElements.length, paramElements.length, s"Different tuple arity between arg $argElements and parameter $paramElements"))
+          Left(new SizeMismatch(
+            argElements.length,
+            paramElements.length,
+            s"Different tuple arity between arg $argElements and parameter $paramElements"
+          ))
         } else {
           argElements.zip(paramElements).foldLeft(Right(found): Either[TypeError, Map[Name, UType]]) {
             case (acc, (argElement, paramElement)) =>
@@ -97,7 +101,11 @@ object Utils {
       case (MaybeRef(argElement), MaybeRef(paramElement)) => typeCheckArg(argElement, paramElement, found)
       case (Type.Record(_, argFields), Type.Record(_, paramFields)) =>
         if (argFields.length != paramFields.length) {
-          Left(new SizeMismatch(argFields.length, paramFields.length, s"Record lengths differ between arg : $argFields and param: $paramFields"))
+          Left(new SizeMismatch(
+            argFields.length,
+            paramFields.length,
+            s"Record lengths differ between arg : $argFields and param: $paramFields"
+          ))
         } else {
           argFields.zip(paramFields).foldLeft(Right(found): Either[TypeError, Map[Name, UType]]) {
             case (acc, (argField, paramField)) =>
