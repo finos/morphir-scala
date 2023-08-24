@@ -78,3 +78,15 @@ listMapTest2 : () -> List Bool
 listMapTest2 _ =
     map not [True,False,True]
 --expected = [False,True,False]
+
+--Test: List/isEmpty
+listIsEmptyTest1 : () -> Bool
+listIsEmptyTest1 _ =
+    isEmpty []
+--expected = True
+
+--Test: List/isEmpty
+listIsEmptyTest2 : () -> Bool
+listIsEmptyTest2 _ =
+    isEmpty [1]
+--expected = False
