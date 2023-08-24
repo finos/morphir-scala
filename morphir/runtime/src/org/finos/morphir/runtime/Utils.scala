@@ -61,6 +61,7 @@ object Utils {
     }
 
   //Checks an argument against a paramter, and returns and inferable generic types from the pair (or an error)
+  //TODO: Move to type checker, or remove altogether
   def typeCheckArg(arg: UType, param: UType, found: Map[Name, UType])(
       implicit options: RTExecutionContext.Options
   ): Either[TypeError, Map[Name, UType]] =
@@ -74,7 +75,7 @@ object Utils {
       case (l @ LeafType(), r @ LeafType()) if l == r => Right(found)
       case (Type.Tuple(_, argElements), Type.Tuple(_, paramElements)) =>
         if (argElements.length != paramElements.length) {
-          Left(new TypeMismatch(s"Different tuple arity between arg $argElements and parameter $paramElements"))
+          Left(new SizeMismatch(argElements.length, paramElements.length, s"Different tuple arity between arg $argElements and parameter $paramElements"))
         } else {
           argElements.zip(paramElements).foldLeft(Right(found): Either[TypeError, Map[Name, UType]]) {
             case (acc, (argElement, paramElement)) =>
