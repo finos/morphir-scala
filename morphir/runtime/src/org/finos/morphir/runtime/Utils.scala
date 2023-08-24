@@ -16,6 +16,7 @@ import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
 import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
+import TypeError.*
 
 object Utils {
   import Extractors.Types.*
@@ -96,7 +97,7 @@ object Utils {
       case (MaybeRef(argElement), MaybeRef(paramElement)) => typeCheckArg(argElement, paramElement, found)
       case (Type.Record(_, argFields), Type.Record(_, paramFields)) =>
         if (argFields.length != paramFields.length) {
-          Left(WrongRecordSize(s"Record lengths differ between arg : $argFields and param: $paramFields"))
+          Left(new SizeMismatch(argFields.length, paramFields.length, s"Record lengths differ between arg : $argFields and param: $paramFields"))
         } else {
           argFields.zip(paramFields).foldLeft(Right(found): Either[TypeError, Map[Name, UType]]) {
             case (acc, (argField, paramField)) =>
@@ -119,7 +120,7 @@ object Utils {
       case (otherArg, otherParam) =>
         options.enableTyper match {
           case EnableTyper.Enabled =>
-            Left(NotImplementedType(s"Cannot match $otherArg with $otherParam"))
+            Left(UnimplementedType(s"Cannot match $otherArg with $otherParam"))
           case EnableTyper.Warn =>
             println(s"[WARNING] Cannot match $otherArg with $otherParam")
             Right(found)
