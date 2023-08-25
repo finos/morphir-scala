@@ -55,6 +55,13 @@ object List {
     }
   )
 
+  val cons: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    2,
+    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
+      val listB = b.asInstanceOf[Result.ListResult[Unit, Type.UType]]
+      Result.ListResult(a :: listB.elements)
+    }
+  )
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:List:append") -> append
   )
