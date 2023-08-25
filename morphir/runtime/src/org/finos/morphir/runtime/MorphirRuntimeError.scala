@@ -100,5 +100,5 @@ object TypeError {
   final case class UnimplementedType(msg: String) extends TypeError(msg)
   final case class OtherTypeError(msg: String)    extends TypeError(msg)
   final case class ManyTypeErrors(errors: List[TypeError])
-      extends EvaluationError("\n" + errors.map(_.toString).mkString("\n"))
+      extends TypeError("\n" + errors.map(_.toString).mkString("\n"))
 }
