@@ -2,6 +2,7 @@ package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.ir.Type
 import org.finos.morphir.naming._
+import org.finos.morphir.runtime.TypeMismatch
 
 import scala.collection.mutable
 
@@ -75,6 +76,7 @@ object BasicsSDK {
         case (Result.ListResult(aElements), Result.ListResult(bElements)) =>
           Result.ListResult(aElements.appendedAll(bElements))
         case (Result.Primitive(a: String), Result.Primitive(b: String)) => Result.Primitive(a + b)
+        case (other1, other2) => throw new TypeMismatch(s"Append called on unrecognized types: $other1, $other2")
       }
   )
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
