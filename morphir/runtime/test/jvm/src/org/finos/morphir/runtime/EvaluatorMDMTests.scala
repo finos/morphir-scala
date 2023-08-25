@@ -30,13 +30,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case s: String               => Deriver.toData(s)
       case ld: java.time.LocalDate => Deriver.toData(ld)
       case lt: java.time.LocalTime => Deriver.toData(lt)
-      case List(elements)          => {
+      case List(elements) =>
         val mappedElements = elements.map(Deriver.toData())
-        Data.List(mappedElements.head, mappedElements.tail:_*)
-      }
-      case Right(i: Int)           => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
-      case Left(b: Boolean)        => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
-      case (i: Int, s: String)     => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
+        Data.List(mappedElements.head, mappedElements.tail: _*)
+      case Right(i: Int)       => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
+      case Left(b: Boolean)    => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
+      case (i: Int, s: String) => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
       // If the data is already derived, just use it!
       case data: Data => data
       case other      => throw new Exception(s"Couldn't derive $other")
