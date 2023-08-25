@@ -46,12 +46,19 @@ object Dict {
   )
 }
 object List{
-  val append: SDKValue[Unit, Type.UType] = {
+  val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    2,
+    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
+      val listA = a.asInstanceOf[Result.ListResult[Unit, Type.UType]]
+      val listB = b.asInstanceOf[Result.ListResult[Unit, Type.UType]]
+      Result.ListResult(listA.elements.appendedAll(listB.elements))
+    }
+  )
 
-  }
+
 }
 object Basics{
-  
+
 }
 object Set {
   val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
