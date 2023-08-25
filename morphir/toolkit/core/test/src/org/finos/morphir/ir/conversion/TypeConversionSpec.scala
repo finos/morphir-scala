@@ -157,13 +157,30 @@ object TypeConversionSpec extends MorphirBaseSpec {
         val morphirType = ToMorphirType.summon[Concept].withAttributesOf(concept).morphirType
         assertTrue(morphirType == sdk.Dict.dictType(sdk.String.stringType, sdk.List.listType(sdk.Basics.intType)))
       },
-      test("Should be possible to convert a nest Concept Map type to a Morphir Dict type") {
+      test("Should be possible to convert a nested Concept Map type to a Morphir Dict type") {
         val concept     = Concept.Map(Concept.String, Concept.Map(Concept.Integer, Concept.Decimal))
         val morphirType = ToMorphirType.summon[Concept].withAttributesOf(concept).morphirType
         assertTrue(morphirType == sdk.Dict.dictType(
           sdk.String.stringType,
           sdk.Dict.dictType(sdk.Basics.intType, sdk.Decimal.decimalType)
         ))
+      }
+    ),
+    suite("Concept.Set")(
+      test("Should be possible to convert a simple Concept Set type to a Morphir Set type") {
+        val concept     = Concept.Set(Concept.String)
+        val morphirType = ToMorphirType.summon[Concept].withAttributesOf(concept).morphirType
+        assertTrue(morphirType == sdk.Set.setType(sdk.String.stringType))
+      },
+      test("Should be possible to convert a complex Concept Set type to a Morphir Set type") {
+        val concept     = Concept.Set(Concept.List(Concept.Integer))
+        val morphirType = ToMorphirType.summon[Concept].withAttributesOf(concept).morphirType
+        assertTrue(morphirType == sdk.Set.setType(sdk.List.listType(sdk.Basics.intType)))
+      },
+      test("Should be possible to convert a nested Concept Set type to a Morphir Set type") {
+        val concept     = Concept.Set(Concept.Set(Concept.Decimal))
+        val morphirType = ToMorphirType.summon[Concept].withAttributesOf(concept).morphirType
+        assertTrue(morphirType == sdk.Set.setType(sdk.Set.setType(sdk.Decimal.decimalType)))
       }
     ),
     suite("Concept.Alias")(

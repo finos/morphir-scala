@@ -6,6 +6,8 @@ import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *
 import org.finos.morphir.ir.Value.{Pattern, Value}
 import Name.toTitleCase
 
+import scala.collection.mutable
+
 sealed trait Result[TA, VA]
 
 object Result {
@@ -15,6 +17,7 @@ object Result {
       case Unit()               => ()
       case Primitive(value)     => value
       case ListResult(elements) => elements.map(unwrap(_))
+      case SetResult(elements)  => elements.map(unwrap(_))
       case Tuple(elements) =>
         val listed = Helpers.tupleToList(elements).getOrElse(throw new Exception("Invalid tuple returned to top level"))
         val mapped = listed.map(unwrap(_))
@@ -24,10 +27,11 @@ object Result {
       case ConstructorResult(name, values) => (toTitleCase(name.localName), values.map(unwrap(_)))
       case other =>
         throw new Exception(
-          s"$other returned to top level, only Unit, Primitive, List, Tuples, Constructed Types and Records are supported"
+          s"$other returned to top level, only Unit, Primitive, List, Maps, Sets, Tuples, Constructed Types and Records are supported"
         )
     }
-  case class Unit[TA, VA]()                extends Result[TA, VA]
+  case class Unit[TA, VA]() extends Result[TA, VA]
+
   case class Primitive[TA, VA](value: Any) extends Result[TA, VA]
 
   case class LocalDate[TA, VA](value: java.time.LocalDate) extends Result[TA, VA]
@@ -38,8 +42,11 @@ object Result {
 
   case class Record[TA, VA](elements: Map[Name, Result[TA, VA]]) extends Result[TA, VA]
 
-  case class ListResult[TA, VA](elements: List[Result[TA, VA]])               extends Result[TA, VA]
-  case class MapResult[TA, VA](elements: Map[Result[TA, VA], Result[TA, VA]]) extends Result[TA, VA]
+  case class ListResult[TA, VA](elements: List[Result[TA, VA]]) extends Result[TA, VA]
+
+  case class SetResult[TA, VA](elements: mutable.LinkedHashSet[Result[TA, VA]]) extends Result[TA, VA]
+
+  case class MapResult[TA, VA](elements: mutable.LinkedHashMap[Result[TA, VA], Result[TA, VA]]) extends Result[TA, VA]
 
   case class Applied[TA, VA](
       body: Value[TA, VA],
@@ -65,5 +72,4 @@ object Result {
 
   case class NativeFunction[TA, VA](arguments: Int, curried: List[Result[TA, VA]], function: Any)
       extends Result[TA, VA] {}
-
 }

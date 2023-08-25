@@ -14,6 +14,7 @@ class QualifiedNameCollector extends ConceptStatefulTransformer[Chunk[FQName]] {
       case v @ Concept.Enum(name, _)   => addToState(v)(name)
       case v: Concept.List             => addToState(v)(FQName.fromString("Morphir.SDK:List:List"))
       case v: Concept.Map              => addToState(v)(FQName.fromString("Morphir.SDK:Dict:Dict"))
+      case v: Concept.Set              => addToState(v)(FQName.fromString("Morphir.SDK:Set:Set"))
       case v: Concept.Basic[_] =>
         v match {
           // Assuming that ToMorphirValue maps bytes to ints and this is a "standard" definition

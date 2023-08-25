@@ -1,12 +1,9 @@
 package org.finos.morphir.runtime.quick
 
+import org.finos.morphir.ir.Type
 import org.finos.morphir.naming._
-import org.finos.morphir.ir.distribution.Distribution.Library
-import org.finos.morphir.ir.{Module, MorphirIRFile, Type}
-import org.finos.morphir.runtime.*
-import zio.Chunk
 
-import scala.io.Source
+import scala.collection.mutable
 
 object Dict {
   val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
@@ -21,7 +18,7 @@ object Dict {
             .asInstanceOf[(Result[Unit, Type.UType], Result[Unit, Type.UType])]
           asTuple._1 -> asTuple._2
         }
-        .toMap
+        .to(mutable.LinkedHashMap)
       Result.MapResult(mapped)
     }
   )
@@ -46,6 +43,20 @@ object Dict {
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:Dict:fromList") -> fromList,
     FQName.fromString("Morphir.SDK:Dict:get")      -> get
+  )
+}
+
+object Set {
+  val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    1,
+    (l: Result[Unit, Type.UType]) => {
+      val list = l.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
+      Result.SetResult(list.to(mutable.LinkedHashSet))
+    }
+  )
+
+  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:Set:fromList") -> fromList
   )
 }
 
@@ -163,7 +174,9 @@ object Native {
         Result.unwrap(c).asInstanceOf[Long].toInt
       ))
   )
+
   val utc = java.time.ZoneId.of("UTC")
+
   def fromMillisecondsEpoch(millis: Long): java.time.LocalTime =
     java.time.Instant.ofEpochMilli(millis).atZone(utc).toLocalTime()
 
@@ -211,5 +224,5 @@ object Native {
     FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
-  ) ++ Dict.sdk ++ String.sdk
+  ) ++ Dict.sdk ++ Set.sdk ++ String.sdk
 }
