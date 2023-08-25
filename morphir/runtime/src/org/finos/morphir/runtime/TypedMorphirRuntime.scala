@@ -16,7 +16,8 @@ import org.finos.morphir.runtime.exports.*
 trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {
   final def evaluate(
       entryPoint: Value[scala.Unit, UType],
-      params: Value[scala.Unit, UType]
+      param: Value[scala.Unit, UType],
+      params: Value[scala.Unit, UType]*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
       applied   <- applyParams(entryPoint, params)
