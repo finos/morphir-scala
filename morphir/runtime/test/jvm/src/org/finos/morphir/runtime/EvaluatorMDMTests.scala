@@ -512,6 +512,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           typeArgUnionShape(Concept.Int32, Concept.String)
         )) @@ ignore @@ tag("Failing because of non-matching order of union cases")
       ),
+      suite("Type-based tests")(
+        testEvaluation("Applies arguments in correct order")("typeCheckerTests", twoArgEntry, Data.Int(3), Data.String("Green"))(Data.Tuple(Data.Int(3), Data.String("Green")))
+      )
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "returnDictionaryTest")(Data.Map(
           (Data.Int(1), Data.String("Red")),
