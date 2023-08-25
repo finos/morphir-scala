@@ -2,7 +2,7 @@ package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.naming.*
 import org.finos.morphir.ir.Type.UType
-import org.finos.morphir.ir.Value.Value
+import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue}
 import org.finos.morphir.ir.Value as V
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.ir.distribution.Distribution
@@ -68,10 +68,12 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
       ctx <- ZPure.get[RTExecutionContext]
       out <- {
         entryPoint match {
-          case Value.Reference.Typed(tpe, _) =>
+          case Value.Reference.Typed(tpe, fqn) =>
             for {
               tpe <- findTypeBindings(tpe, params.toList, dists, Map())(ctx.options)
-            } yield V.apply(tpe, entryPoint, params.head, params.tail: _*)
+            } yield {
+              V.applyInferType(tpe, V.reference(fqn), params:_*)
+            }
           case other => RTAction.fail(
               new TypeError.OtherTypeError(s"Entry point must be a Reference, instead found ${Succinct.Value(other)}")
             )
