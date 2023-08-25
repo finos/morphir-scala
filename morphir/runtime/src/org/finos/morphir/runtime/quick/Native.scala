@@ -54,10 +54,16 @@ object List{
       Result.ListResult(listA.elements.appendedAll(listB.elements))
     }
   )
-
-
 }
 object Basics{
+  val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    2,
+    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
+      val listA = a.asInstanceOf[Result.ListResult[Unit, Type.UType]]
+      val listB = b.asInstanceOf[Result.ListResult[Unit, Type.UType]]
+      Result.ListResult(listA.elements.appendedAll(listB.elements))
+    }
+  )
 
 }
 object Set {
