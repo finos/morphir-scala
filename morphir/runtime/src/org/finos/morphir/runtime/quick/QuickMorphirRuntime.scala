@@ -25,10 +25,14 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
     extends TypedMorphirRuntime {
   // private val store: Store[scala.Unit, UType] = Store.empty //
 
-  def evaluate(entryPoint: FQName, param: Value[scala.Unit, UType], params: Value[scala.Unit, UType]*): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
+  def evaluate(
+      entryPoint: FQName,
+      param: Value[scala.Unit, UType],
+      params: Value[scala.Unit, UType]*
+  ): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
       tpe <- fetchType(entryPoint)
-      res <- evaluate(Value.Reference.Typed(tpe, entryPoint), param, params:_*)
+      res <- evaluate(Value.Reference.Typed(tpe, entryPoint), param, params: _*)
     } yield res
 
   def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
@@ -71,9 +75,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
           case Value.Reference.Typed(tpe, fqn) =>
             for {
               tpe <- findTypeBindings(tpe, params.toList, dists, Map())(ctx.options)
-            } yield {
-              V.applyInferType(tpe, V.reference(fqn), params:_*)
-            }
+            } yield V.applyInferType(tpe, V.reference(fqn), params: _*)
           case other => RTAction.fail(
               new TypeError.OtherTypeError(s"Entry point must be a Reference, instead found ${Succinct.Value(other)}")
             )

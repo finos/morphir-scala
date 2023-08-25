@@ -29,13 +29,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case s: String               => Deriver.toData(s)
       case ld: java.time.LocalDate => Deriver.toData(ld)
       case lt: java.time.LocalTime => Deriver.toData(lt)
-      case list : List[_]          => {
+      case list: List[_] =>
         val mapped = list.map(deriveData(_))
-        Data.List(mapped.head, mapped.tail:_*)
-      }
-      case Right(i: Int)           => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
-      case Left(b: Boolean)        => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
-      case (i: Int, s: String)     => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
+        Data.List(mapped.head, mapped.tail: _*)
+      case Right(i: Int)       => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
+      case Left(b: Boolean)    => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
+      case (i: Int, s: String) => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
       // If the data is already derived, just use it!
       case data: Data => data
       case other      => throw new Exception(s"Couldn't derive $other")
@@ -68,7 +67,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       checkEvaluation(moduleName, functionName, List(value))(expected)
     }
 
-
   def testEvalMultiple(label: String)(moduleName: String, functionName: String, values: List[Any])(expected: => Data) =
     test(label) {
       checkEvaluation(moduleName, functionName, values)(expected)
@@ -86,7 +84,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       val fullName = s"Morphir.Examples.App:$moduleName:$functionName"
       val data     = values.map(deriveData(_))
 
-      runtime.evaluate(FQName.fromString(fullName), data.head, data.tail:_*)
+      runtime.evaluate(FQName.fromString(fullName), data.head, data.tail: _*)
         .provideEnvironment(MorphirEnv.live)
         .toZIOWith(RTExecutionContext.default)
     }
@@ -524,7 +522,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )) @@ ignore @@ tag("Failing because of non-matching order of union cases")
       ),
       suite("Type-based tests")(
-        testEvalMultiple("Applies arguments in correct order")("typeCheckerTests", "twoArgEntry", List(Data.Int(3), Data.String("Green")))(Data.Tuple(Data.Int(3), Data.String("Green")))
+        testEvalMultiple("Applies arguments in correct order")(
+          "typeCheckerTests",
+          "twoArgEntry",
+          List(Data.Int(3), Data.String("Green"))
+        )(Data.Tuple(Data.Int(3), Data.String("Green")))
       ),
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "returnDictionaryTest")(Data.Map(
