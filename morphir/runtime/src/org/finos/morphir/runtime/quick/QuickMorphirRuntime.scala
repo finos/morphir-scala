@@ -25,10 +25,10 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
     extends TypedMorphirRuntime {
   // private val store: Store[scala.Unit, UType] = Store.empty //
 
-  def evaluate(entryPoint: FQName, params: Value[scala.Unit, UType]): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
+  def evaluate(entryPoint: FQName, param: Value[scala.Unit, UType], params: Value[scala.Unit, UType]*): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
       tpe <- fetchType(entryPoint)
-      res <- evaluate(Value.Reference.Typed(tpe, entryPoint), params)
+      res <- evaluate(Value.Reference.Typed(tpe, entryPoint), param, params:_*)
     } yield res
 
   def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
