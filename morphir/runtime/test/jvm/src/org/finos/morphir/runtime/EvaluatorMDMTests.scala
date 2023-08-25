@@ -30,7 +30,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case s: String               => Deriver.toData(s)
       case ld: java.time.LocalDate => Deriver.toData(ld)
       case lt: java.time.LocalTime => Deriver.toData(lt)
-      case List(elements) =>
+      case elements: List[_] =>
         val mappedElements = elements.map(Deriver.toData())
         Data.List(mappedElements.head, mappedElements.tail: _*)
       case Right(i: Int)       => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
