@@ -140,11 +140,12 @@ object Native {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive(a == b)
   )
-  val cons: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+  val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
+      val listA = a.asInstanceOf[Result.ListResult[Unit, Type.UType]]
       val listB = b.asInstanceOf[Result.ListResult[Unit, Type.UType]]
-      Result.ListResult(a :: listB.elements)
+      Result.ListResult(listA.elements.appendedAll(listB.elements))
     }
   )
   val concat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
