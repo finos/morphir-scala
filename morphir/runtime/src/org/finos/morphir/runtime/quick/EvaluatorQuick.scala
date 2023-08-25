@@ -66,13 +66,13 @@ object EvaluatorQuick {
     value match {
       case r: Result[_, _] => r.asInstanceOf[Result[TA, VA]]
       case ()              => Result.Unit()
-      case m: Map[_, _] => Result.MapResult(m.toSeq.map { case (key, value) =>
+      case m: mutable.LinkedHashMap[_, _] => Result.MapResult(m.map { case (key, value) =>
           (wrap[TA, VA](key), wrap[TA, VA](value))
-        }.toMap)
-      case l: List[_]             => Result.ListResult(l.map(wrap(_)))
-      case s: Set[_]              => Result.SetResult(s.map(wrap(_)))
-      case (first, second)        => Result.Tuple((wrap(first), wrap(second)))
-      case (first, second, third) => Result.Tuple((wrap(first), wrap(second), wrap(third)))
+        })
+      case l: List[_]                  => Result.ListResult(l.map(wrap(_)))
+      case s: mutable.LinkedHashSet[_] => Result.SetResult(s.map(wrap(_)))
+      case (first, second)             => Result.Tuple((wrap(first), wrap(second)))
+      case (first, second, third)      => Result.Tuple((wrap(first), wrap(second), wrap(third)))
       // TODO: Option, Result, LocalDate
       case primitive => Result.Primitive(primitive) // TODO: Handle each case for safety's sake
     }
@@ -250,10 +250,10 @@ object EvaluatorQuick {
             )
           ) => Data.Optional.Some(resultAndConceptToData(value, elementShape))
       case (mapConcept @ Concept.Map(keyConcept, valConcept), Result.MapResult(elements)) =>
-        val inners = elements.toList.map { case (key, value) =>
+        val inners = elements.map { case (key, value) =>
           (resultAndConceptToData(key, keyConcept), resultAndConceptToData(value, valConcept))
         }
-        Data.Map.copyFrom(mutable.LinkedHashMap.from(inners), mapConcept)
+        Data.Map.copyFrom(inners, mapConcept)
       case (enumConcept @ Concept.Enum(_, cases), Result.ConstructorResult(fqName, args)) =>
         val fieldMap = cases.map { case Concept.Enum.Case(Label(string), fields) => string -> fields }.toMap
         val fields = fieldMap.getOrElse(
