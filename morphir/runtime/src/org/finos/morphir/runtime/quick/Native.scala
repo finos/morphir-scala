@@ -64,8 +64,8 @@ object Basics{
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       (a, b) match{
-        case (Result.ListResult(aElements), Result.ListResult(bElements)) = Result.List
-        case (Result.Primitive(a : String), Result.Primitive(b : String))
+        case (Result.ListResult(aElements), Result.ListResult(bElements)) => Result.ListResult(aElements.append(bElements))
+        case (Result.Primitive(a : String), Result.Primitive(b : String)) => Result.Primitive(a + b)
     }
   )
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
