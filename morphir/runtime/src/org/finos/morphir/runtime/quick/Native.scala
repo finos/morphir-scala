@@ -62,10 +62,10 @@ object List{
 object Basics{
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
-    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
-      val listA = a.asInstanceOf[Result.ListResult[Unit, Type.UType]]
-      val listB = b.asInstanceOf[Result.ListResult[Unit, Type.UType]]
-      Result.ListResult(listA.elements.appendedAll(listB.elements))
+    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+      (a, b) match{
+        case (Result.ListResult(aElements), Result.ListResult(bElements)) 
+        case (Result.Primitive(a : String), Result.Primitive(b : String))
     }
   )
 
