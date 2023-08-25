@@ -28,7 +28,7 @@ trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {
     val toValue = ToMorphirValue.summon[Data].typed
     val inputIR = toValue(params)
     val inputIRs = params.map(toValue(_))
-    evaluate(entryPoint, inputIR)
+    evaluate(entryPoint, inputIR, inputIRs)
   }
 
   def evaluate(entryPoint: FQName, params: Data): RTAction[MorphirEnv, MorphirRuntimeError, Data] = {
