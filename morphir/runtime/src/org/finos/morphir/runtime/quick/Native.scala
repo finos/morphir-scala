@@ -73,7 +73,7 @@ object BasicsSDK {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       (a, b) match {
         case (Result.ListResult(aElements), Result.ListResult(bElements)) =>
-          Result.ListResult(aElements.append(bElements))
+          Result.ListResult(aElements.appendedAll(bElements))
         case (Result.Primitive(a: String), Result.Primitive(b: String)) => Result.Primitive(a + b)
       }
   )
@@ -247,7 +247,6 @@ object Native {
     FQName.fromString("Morphir.SDK:Basics:toFloat")             -> toFloat,
     FQName.fromString("Morphir.SDK:Basics:logBase")             -> log,
     FQName.fromString("Morphir.SDK:Basics:lessThan")            -> lessThan,
-    FQName.fromString("Morphir.SDK:List:cons")                  -> cons,
     FQName.fromString("Morphir.SDK:List:concat")                -> concat,
     FQName.fromString("Morphir.SDK:List:map")                   -> map,
     FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
