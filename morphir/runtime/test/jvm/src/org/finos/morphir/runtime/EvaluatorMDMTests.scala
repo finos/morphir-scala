@@ -48,9 +48,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   def checkEvaluation(
       moduleName: String,
       functionName: String,
-      value: Any
+      values: List[Any]
   )(expected: => Data): ZIO[MorphirRuntimeTyped, Throwable, TestResult] =
-    runTest(moduleName, functionName, value).map { actual =>
+    runTest(moduleName, functionName, values).map { actual =>
       assertTrue(actual == expected)
     }
 
@@ -61,21 +61,28 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
   def testEval(label: String)(moduleName: String, functionName: String, value: Any)(expected: => Data) =
     test(label) {
-      checkEvaluation(moduleName, functionName, value)(expected)
+      checkEvaluation(moduleName, functionName, List(value))(expected)
+    }
+
+
+  def testEval(label: String)(moduleName: String, functionName: String, values: List[Any])(expected: => Data) =
+    test(label) {
+      checkEvaluation(moduleName, functionName, values)(expected)
     }
 
   def runTest(moduleName: String, functionName: String): ZIO[MorphirRuntimeTyped, Throwable, Data] =
-    runTest(moduleName, functionName, ())
+    runTest(moduleName, functionName, List[()])
+
   def runTest(
       moduleName: String,
       functionName: String,
-      value: Any
+      values: List[Any]
   ): ZIO[MorphirRuntimeTyped, Throwable, Data] =
     ZIO.serviceWithZIO[MorphirRuntimeTyped] { runtime =>
       val fullName = s"Morphir.Examples.App:$moduleName:$functionName"
-      val data     = deriveData(value)
+      val data     = values.map(deriveData(_))
 
-      runtime.evaluate(FQName.fromString(fullName), data)
+      runtime.evaluate(FQName.fromString(fullName), data:_*)
         .provideEnvironment(MorphirEnv.live)
         .toZIOWith(RTExecutionContext.default)
     }
@@ -513,7 +520,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )) @@ ignore @@ tag("Failing because of non-matching order of union cases")
       ),
       suite("Type-based tests")(
-        testEvaluation("Applies arguments in correct order")("typeCheckerTests", twoArgEntry, Data.Int(3), Data.String("Green"))(Data.Tuple(Data.Int(3), Data.String("Green")))
+        testEvaluation("Applies arguments in correct order")("typeCheckerTests", "twoArgEntry", Data.Int(3), Data.String("Green"))(Data.Tuple(Data.Int(3), Data.String("Green")))
       )
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "returnDictionaryTest")(Data.Map(
