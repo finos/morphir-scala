@@ -45,7 +45,14 @@ object Dict {
     FQName.fromString("Morphir.SDK:Dict:get")      -> get
   )
 }
+object List{
+  val append: SDKValue[Unit, Type.UType] = {
 
+  }
+}
+object Basics{
+  
+}
 object Set {
   val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
