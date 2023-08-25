@@ -62,7 +62,6 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
 
   def applyParams(
       entryPoint: Value[scala.Unit, UType],
-      param: Value[scala.Unit, UType],
       params: Value[scala.Unit, UType]*
   ): RTAction[Any, TypeError, Value[scala.Unit, UType]] =
     for {

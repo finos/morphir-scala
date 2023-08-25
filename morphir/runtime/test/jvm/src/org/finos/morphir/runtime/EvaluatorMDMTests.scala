@@ -65,7 +65,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     }
 
 
-  def testEval(label: String)(moduleName: String, functionName: String, values: List[Any])(expected: => Data) =
+  def testEvalMultiple(label: String)(moduleName: String, functionName: String, values: List[Any])(expected: => Data) =
     test(label) {
       checkEvaluation(moduleName, functionName, values)(expected)
     }

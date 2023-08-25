@@ -20,7 +20,7 @@ trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {
       params: Value[scala.Unit, UType]*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
-      applied   <- applyParams(entryPoint, param, params:_*)
+      applied   <- applyParams(entryPoint, (param +: params):_*)
       evaluated <- evaluate(applied)
     } yield evaluated
 
