@@ -63,7 +63,8 @@ object List {
     }
   )
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:List:append") -> append
+    FQName.fromString("Morphir.SDK:List:append") -> append,
+    FQName.fromString("Morphir.SDK:List:cons")   -> cons
   )
 }
 object Basics {
