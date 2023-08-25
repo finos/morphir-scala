@@ -57,7 +57,6 @@ object Result {
     }
   }
 
-
   case class SetResult[TA, VA](elements: mutable.LinkedHashSet[Result[TA, VA]]) extends Result[TA, VA]
 
   case class Record[TA, VA](elements: Map[Name, Result[TA, VA]]) extends Result[TA, VA] {
