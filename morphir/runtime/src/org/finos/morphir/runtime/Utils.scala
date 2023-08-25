@@ -2,8 +2,8 @@ package org.finos.morphir.runtime
 
 import org.finos.morphir.naming._
 import org.finos.morphir.ir.{Type as T, Value as V}
-import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue}
-import org.finos.morphir.ir.Type.{Type, UType}
+import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
+import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.Field
@@ -118,7 +118,7 @@ object Utils {
         }
 
     }
-  def specificationToType[TA](spec: V.Specification[TA]): Type[TA] =
+  def specificationToType(spec: UValueSpec): UType =
     curryTypeFunction(spec.output, spec.inputs)
 
   def findTypeBindings(
@@ -153,10 +153,12 @@ object Utils {
         (ret, args :+ arg)
       case other => (other, Chunk())
     }
-  def curryTypeFunction[TA](inner: Type[TA], params: Chunk[(Name, Type[TA])]): Type[TA] =
+    //So we get foo Int -> String -> (Int, String)
+    // We make a Int -> Int, String
+  def curryTypeFunction(inner: UType, params: Chunk[(Name, UType)]): UType =
     params match {
       case Chunk() => inner
       case chunk =>
-        curryTypeFunction(Type.Function(inner.attributes, chunk.head._2, inner), chunk.tail) // TODO: Backwards?
+        T.function(chunk.head._2, curryTypeFunction(inner, chunk.tail))
     }
 }
