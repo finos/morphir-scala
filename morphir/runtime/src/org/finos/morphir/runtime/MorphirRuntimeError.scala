@@ -36,7 +36,7 @@ final case class UnsupportedTypeParameter(message: String)   extends EvaluationE
 final case class NotImplemented(message: String)             extends EvaluationError(message)
 
 //TODO: This should be a separate error class, but interface changes required to make that happen
-abstract class TypeError(msg: String) extends EvaluationError(msg) {
+abstract class TypeError(msg: String) extends MorphirRuntimeError(msg) {
   def getMsg: String = msg
 }
 object TypeError {

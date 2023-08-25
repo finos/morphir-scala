@@ -35,7 +35,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
       res <- evaluate(Value.Reference.Typed(tpe, entryPoint), param, params: _*)
     } yield res
 
-  def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
+  def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
       _   <- typeCheck(value)
       res <- EvaluatorQuick.evalAction(value, store, dists)
@@ -49,7 +49,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
     }
   }
 
-  def typeCheck(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Unit] = for {
+  def typeCheck(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, TypeError, Unit] = for {
     ctx <- ZPure.get[RTExecutionContext]
     result <- ctx.options.enableTyper match {
       case EnableTyper.Disabled => RTAction.succeed[RTExecutionContext, Unit](())
