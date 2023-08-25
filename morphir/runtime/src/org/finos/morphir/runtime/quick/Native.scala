@@ -54,6 +54,10 @@ object List{
       Result.ListResult(listA.elements.appendedAll(listB.elements))
     }
   )
+
+  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:List:append") -> append,
+  )
 }
 object Basics{
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
