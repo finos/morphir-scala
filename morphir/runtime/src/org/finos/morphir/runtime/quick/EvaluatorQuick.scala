@@ -229,7 +229,7 @@ object EvaluatorQuick {
         Data.List(inners, elementConcept)
       case (Concept.Set(elementConcept), Result.SetResult(elements)) =>
         val inners = elements.map(element => resultAndConceptToData(element, elementConcept))
-        Data.Set(mutable.Set.from(inners), elementConcept)
+        Data.Set(inners, elementConcept)
       case (Concept.Optional(elementShape), Result.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), List())) =>
         Data.Optional.None(elementShape)
       case (

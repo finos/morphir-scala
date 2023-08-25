@@ -4,8 +4,7 @@ import org.finos.morphir.naming.*
 import org.finos.morphir.util.{DetailLevel, PrintMDM}
 
 import java.io.OutputStream
-import scala.collection.immutable.ListMap
-import scala.collection.mutable
+import scala.collection.{immutable, mutable}
 
 sealed trait Data extends geny.Writable {
   def shape: Concept
@@ -180,19 +179,19 @@ object Data {
       new Map(mutable.LinkedHashMap.empty, Concept.Map(keyShape, valueShape))
   }
 
-  case class Set private[datamodel] (values: mutable.Set[Data], shape: Concept.Set) extends Data
+  case class Set private[datamodel] (values: immutable.Set[Data], shape: Concept.Set) extends Data
 
   object Set {
-    def apply(values: mutable.Set[Data], elementShape: Concept) =
+    def apply(values: immutable.Set[Data], elementShape: Concept) =
       new Set(values, Concept.Set(elementShape))
 
     def apply(value: Data, rest: Data*) =
-      new Set(mutable.Set(value) ++ rest.to(mutable.Set), Concept.Set(value.shape))
+      new Set(immutable.Set(value) ++ rest.to(mutable.Set), Concept.Set(value.shape))
 
     def empty(elementShape: Concept) =
-      new Set(mutable.Set(), Concept.Set(elementShape))
+      new Set(immutable.Set(), Concept.Set(elementShape))
 
-    def validated(values: mutable.HashSet[Data]): Option[Set] =
+    def validated(values: immutable.Set[Data]): Option[Set] =
       // Validate that element-type of everything is the same
       if (values.nonEmpty && values.forall(_.shape == values.head.shape))
         Some(Set(values, Concept.Set(values.head.shape)))
