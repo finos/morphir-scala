@@ -55,6 +55,10 @@ nativeReferenceModByTest x =
     modBy 3 x
 --expected = x % 3
 
+listAppend : List a -> List a -> List a
+listAppend left right = append left right
+
+
 localDatePassthrough : LocalDate -> LocalDate
 localDatePassthrough x = x
 
