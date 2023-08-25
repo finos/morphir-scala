@@ -5,7 +5,7 @@ import org.finos.morphir.naming._
 
 import scala.collection.mutable
 
-object Dict {
+object DictSDK {
   val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
     (l: Result[Unit, Type.UType]) => {
@@ -45,7 +45,7 @@ object Dict {
     FQName.fromString("Morphir.SDK:Dict:get")      -> get
   )
 }
-object List {
+object ListSDK {
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
@@ -67,7 +67,7 @@ object List {
     FQName.fromString("Morphir.SDK:List:cons")   -> cons
   )
 }
-object Basics {
+object BasicsSDK {
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
@@ -82,7 +82,7 @@ object Basics {
   )
 
 }
-object Set {
+object SetSDK {
   val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
     (l: Result[Unit, Type.UType]) => {
@@ -96,7 +96,7 @@ object Set {
   )
 }
 
-object String {
+object StringSDK {
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
@@ -253,5 +253,5 @@ object Native {
     FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
-  ) ++ Dict.sdk ++ Set.sdk ++ String.sdk ++ List.sdk ++ Basics.sdk
+  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ ListSDK.sdk ++ BasicsSDK.sdk
 }
