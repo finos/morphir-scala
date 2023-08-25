@@ -22,7 +22,6 @@ trait MorphirRuntime[TA, VA] {
       param: Value[TA, VA],
       params: Value[TA, VA]*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data]
-  // def applyParams(entryPoint: Value[TA, VA], params: Value[TA, VA]*): RTAction[MorphirEnv, TypeError, Value[TA, VA]]
 
   def applyParams(entryPoint: Value[TA, VA], params: Value[TA, VA]*): RTAction[MorphirEnv, TypeError, Value[TA, VA]]
 
