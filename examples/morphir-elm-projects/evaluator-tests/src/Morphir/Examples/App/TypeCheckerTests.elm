@@ -15,3 +15,6 @@ withInt : (List Int) -> Int
 withInt l = case l of
     head :: _ -> head
     _ -> withParam l
+
+twoArgEntry : Int -> String -> (Int, String)
+twoArgEntry i s = (i, s)
