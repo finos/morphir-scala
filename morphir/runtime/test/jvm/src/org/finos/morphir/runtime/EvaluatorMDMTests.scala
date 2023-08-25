@@ -71,7 +71,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     }
 
   def runTest(moduleName: String, functionName: String): ZIO[MorphirRuntimeTyped, Throwable, Data] =
-    runTest(moduleName, functionName, List[()])
+    runTest(moduleName, functionName, List(()))
 
   def runTest(
       moduleName: String,
@@ -82,7 +82,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       val fullName = s"Morphir.Examples.App:$moduleName:$functionName"
       val data     = values.map(deriveData(_))
 
-      runtime.evaluate(FQName.fromString(fullName), data:_*)
+      runtime.evaluate(FQName.fromString(fullName), data.head, data.tail:_*)
         .provideEnvironment(MorphirEnv.live)
         .toZIOWith(RTExecutionContext.default)
     }
@@ -520,8 +520,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )) @@ ignore @@ tag("Failing because of non-matching order of union cases")
       ),
       suite("Type-based tests")(
-        testEvaluation("Applies arguments in correct order")("typeCheckerTests", "twoArgEntry", Data.Int(3), Data.String("Green"))(Data.Tuple(Data.Int(3), Data.String("Green")))
-      )
+        testEval("Applies arguments in correct order")("typeCheckerTests", "twoArgEntry", List(Data.Int(3), Data.String("Green")))(Data.Tuple(Data.Int(3), Data.String("Green")))
+      ),
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "returnDictionaryTest")(Data.Map(
           (Data.Int(1), Data.String("Red")),
