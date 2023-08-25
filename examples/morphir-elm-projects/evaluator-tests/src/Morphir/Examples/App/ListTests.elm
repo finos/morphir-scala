@@ -1,5 +1,5 @@
 module Morphir.Examples.App.ListTests exposing (..)
-import List exposing (map, singleton, concat)
+import List exposing (..)
 
 
 
