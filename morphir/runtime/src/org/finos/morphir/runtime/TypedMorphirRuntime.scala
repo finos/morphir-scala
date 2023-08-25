@@ -20,11 +20,11 @@ trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {
       params: Value[scala.Unit, UType]*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
-      applied   <- applyParams(entryPoint, (param :: params):_*)
+      applied   <- applyParams(entryPoint, param, params:_*)
       evaluated <- evaluate(applied)
     } yield evaluated
 
-  def evaluate(entryPoint: Value[scala.Unit, UType], params: Data): RTAction[MorphirEnv, MorphirRuntimeError, Data] = {
+  def evaluate(entryPoint: Value[scala.Unit, UType], param: Data, params: Data*): RTAction[MorphirEnv, MorphirRuntimeError, Data] = {
     val toValue = ToMorphirValue.summon[Data].typed
     val inputIR = toValue(params)
     val inputIRs = params.map(toValue(_))
