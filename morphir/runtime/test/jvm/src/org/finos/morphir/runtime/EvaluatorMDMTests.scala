@@ -22,6 +22,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
   val localDate = java.time.LocalDate.of(1900, 1, 20)
   val localTime = java.time.LocalTime.of(10, 43, 26)
+
   def deriveData(input: Any): Data =
     input match {
       case u: Unit                 => Deriver.toData(u)
@@ -66,6 +67,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
   def runTest(moduleName: String, functionName: String): ZIO[MorphirRuntimeTyped, Throwable, Data] =
     runTest(moduleName, functionName, ())
+
   def runTest(
       moduleName: String,
       functionName: String,
@@ -86,11 +88,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       (Label("number"), Concept.Int32)
     )
   )
+
   def dogRecordData(name: String, number: Int) = Data.Record(
     qn"Morphir/Examples/App:RecordTests:RecordType",
     (Label("name"), Data.String(name)),
     (Label("number"), Data.Int32(number))
   )
+
 //  val dogRecordConcept = Concept.Alias(
 //    qn"Morphir/Examples/App:RecordTests:RecordType",
 //    dogRecordConceptRaw
@@ -103,6 +107,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   def resultStringIntShape = Concept.Result(Concept.String, Concept.Int32)
 
   def resultBoolIntShape = Concept.Result(Concept.Boolean, Concept.Int32)
+
   def unionEnumShape: Concept.Enum = Concept.Enum(
     qn"Morphir/Examples/App:ConstructorTests:UnionType",
     List(
@@ -181,11 +186,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     "ZeroArg",
     unionEnumShape
   )
+
   def oneArg(i: Int): Data = Data.Case(
     List((EnumLabel.Named("arg1"), Data.Int(i))),
     "OneArg",
     unionEnumShape
   )
+
   def twoArg(i: Int, s: String): Data = Data.Case(
     List(
       (EnumLabel.Named("arg1"), Data.Int(i)),
@@ -525,7 +532,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "returnDictionaryTest")(Data.Map(
           (Data.Int(1), Data.String("Red")),
-          (Data.Int(2), Data.String("Blue"))
+          (Data.Int(2), Data.String("Blue")),
+          (Data.Int(3), Data.String("Orange")),
+          (Data.Int(4), Data.String("White")),
+          (Data.Int(5), Data.String("Green"))
         )),
         testEvaluation("Get")("dictionaryTests", "dictGetTest")(Data.Optional.Some(Data.String("Cat")))
       ),
