@@ -16,6 +16,8 @@ trait MorphirRuntime[TA, VA] {
   def evaluate(entryPoint: FQName, param : Value[TA, VA], params: Value[TA, VA]): RTAction[MorphirEnv, MorphirRuntimeError, Data]
   def applyParams(entryPoint: Value[TA, VA], params: Value[TA, VA]*): RTAction[MorphirEnv, TypeError, Value[TA, VA]]
 
+  def applyParams(entryPoint: Value[TA, VA], param : Value[TA, VA],params: Value[TA, VA]*): RTAction[MorphirEnv, TypeError, Value[TA, VA]]
+
   def evaluate(value: Value[TA, VA]): RTAction[MorphirEnv, EvaluationError, Data]
 
 }
