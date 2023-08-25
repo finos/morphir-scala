@@ -21,6 +21,7 @@
         "RecordTests",
         "SetTests",
         "SimpleTests",
+        "StringTests",
         "TupleTests",
         "TypeCheckerTests",
         "UserDefinedReferenceTests",

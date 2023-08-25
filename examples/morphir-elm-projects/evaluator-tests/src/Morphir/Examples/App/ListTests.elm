@@ -1,5 +1,5 @@
 module Morphir.Examples.App.ListTests exposing (..)
-import List exposing (..)
+import List exposing (map, singleton, concat)
 
 
 
@@ -78,3 +78,6 @@ listMapTest2 : () -> List Bool
 listMapTest2 _ =
     map not [True,False,True]
 --expected = [False,True,False]
+
+listAppend : List a -> List a -> List a
+listAppend l r = append l r
