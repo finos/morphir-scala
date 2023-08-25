@@ -7,7 +7,7 @@ import Dict exposing (Dict)
 
 returnDictionaryTest : () -> Dict Int String
 returnDictionaryTest _ = 
-    Dict.fromList [(1, "Red"), (2, "Blue")]
+    Dict.fromList [(1, "Red"), (2, "Blue"), (3, "Orange"), (4, "White"), (5, "Green")]
 
 --Test: Dict/Get
 dictGetTest : () -> Maybe String
