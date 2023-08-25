@@ -26,6 +26,7 @@ object Succinct {
     def apply[TA](tpe: Type[TA], depth: Int): String =
       tpe match {
         case Reference(_, fqName, args) => s"$fqName ${args.map(apply(_, depth - 1)).mkString(" ")}"
+        case Tuple(_, elements) => s"(${elements.map(apply(_, depth - 1)).mkString(", ")})"
         case Function(_, arg, ret) => s"(${apply(arg, depth -1)} -> ${apply(ret, depth-1)}})"
         case other                      => other.getClass.getSimpleName
       }
