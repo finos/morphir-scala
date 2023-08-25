@@ -45,7 +45,7 @@ object Dict {
     FQName.fromString("Morphir.SDK:Dict:get")      -> get
   )
 }
-object List{
+object List {
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
@@ -56,20 +56,21 @@ object List{
   )
 
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:List:append") -> append,
+    FQName.fromString("Morphir.SDK:List:append") -> append
   )
 }
-object Basics{
+object Basics {
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
-      (a, b) match{
-        case (Result.ListResult(aElements), Result.ListResult(bElements)) => Result.ListResult(aElements.append(bElements))
-        case (Result.Primitive(a : String), Result.Primitive(b : String)) => Result.Primitive(a + b)
-    }
+      (a, b) match {
+        case (Result.ListResult(aElements), Result.ListResult(bElements)) =>
+          Result.ListResult(aElements.append(bElements))
+        case (Result.Primitive(a: String), Result.Primitive(b: String)) => Result.Primitive(a + b)
+      }
   )
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:Basics:append") -> append,
+    FQName.fromString("Morphir.SDK:Basics:append") -> append
   )
 
 }
