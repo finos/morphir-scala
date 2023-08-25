@@ -167,14 +167,6 @@ object Native {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive(a == b)
   )
-  val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
-    2,
-    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
-      val listA = a.asInstanceOf[Result.ListResult[Unit, Type.UType]]
-      val listB = b.asInstanceOf[Result.ListResult[Unit, Type.UType]]
-      Result.ListResult(listA.elements.appendedAll(listB.elements))
-    }
-  )
   val concat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
     (l: Result[Unit, Type.UType]) => {
@@ -252,5 +244,5 @@ object Native {
     FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
-  ) ++ Dict.sdk ++ Set.sdk ++ String.sdk
+  ) ++ Dict.sdk ++ Set.sdk ++ String.sdk ++ List.sdk ++ Basics.sdk
 }
