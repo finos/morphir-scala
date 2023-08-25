@@ -154,10 +154,9 @@ object Utils {
       case other => (other, Chunk())
     }
   def curryTypeFunction(inner: UType, params: Chunk[(Name, UType)]): UType =
-    val res = params match {
+    params match {
       case Chunk() => inner
       case chunk =>
         T.function(chunk.head._2, curryTypeFunction(inner, chunk.tail))
     }
-    res
 }
