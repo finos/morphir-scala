@@ -4,7 +4,6 @@ import org.finos.morphir.naming.*
 import org.finos.morphir.util.{DetailLevel, PrintMDM}
 
 import java.io.OutputStream
-import scala.collection.immutable.ListMap
 import scala.collection.mutable
 
 sealed trait Data extends geny.Writable {
@@ -23,6 +22,7 @@ sealed trait Data extends geny.Writable {
       case _: Data.Result   => None
       case _: Data.List     => None
       case _: Data.Map      => None
+      case _: Data.Set      => None
       case _: Data.Union    => None
       case v: Data.Aliased  => Some(v.shape.name)
     }
@@ -177,6 +177,26 @@ object Data {
 
     def empty(keyShape: Concept, valueShape: Concept) =
       new Map(mutable.LinkedHashMap.empty, Concept.Map(keyShape, valueShape))
+  }
+
+  case class Set private[datamodel] (values: mutable.LinkedHashSet[Data], shape: Concept.Set) extends Data
+
+  object Set {
+    def apply(values: mutable.LinkedHashSet[Data], elementShape: Concept) =
+      new Set(values, Concept.Set(elementShape))
+
+    def apply(value: Data, rest: Data*) =
+      new Set(mutable.LinkedHashSet.from(value +: rest.toList), Concept.Set(value.shape))
+
+    def empty(elementShape: Concept) =
+      new Set(mutable.LinkedHashSet(), Concept.Set(elementShape))
+
+    def validated(values: mutable.LinkedHashSet[Data]): Option[Set] =
+      // Validate that element-type of everything is the same
+      if (values.nonEmpty && values.forall(_.shape == values.head.shape))
+        Some(Set(values, Concept.Set(values.head.shape)))
+      else
+        None
   }
 
   /**

@@ -192,6 +192,7 @@ object PrintSpec {
         case v: Concept.Alias    => Some(handleAlias(v))
         case _: Concept.List     => None
         case _: Concept.Map      => None
+        case _: Concept.Set      => None
         case _: Concept.Tuple    => None
         case _: Concept.Optional => None
         case _: Concept.Result   => None
@@ -221,6 +222,10 @@ object PrintSpec {
 
         case Concept.Map(keyType, valueType) =>
           s"Dict ${printDef(keyType)} ${printDef(valueType)}"
+            .inParensIf(isInside)
+
+        case Concept.Set(elementType) =>
+          s"Set ${printDef(elementType)}"
             .inParensIf(isInside)
 
         case Concept.Tuple(values) =>

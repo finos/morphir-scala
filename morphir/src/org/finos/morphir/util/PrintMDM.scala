@@ -182,6 +182,9 @@ class PrintIR(
         case v: Data.Map =>
           Tree.ofData(v)(v.values.toList.map(treeify(_)))
 
+        case v: Data.Set =>
+          Tree.ofData(v)(v.values.toList.map(r => treeify(r)))
+
         case v: Data.Union =>
           Tree.ofData(v)(List(treeify(v.value)))
 
@@ -220,6 +223,9 @@ class PrintIR(
 
         case v @ Concept.Map(keyType, valueType) =>
           Tree.ofConcept(v)(List(treeify(keyType), treeify(valueType)))
+
+        case v @ Concept.Set(elementType) =>
+          Tree.ofConcept(v)(List(treeify(elementType)))
 
         case v: Concept.Tuple =>
           Tree.ofConcept(v)(v.values.map(treeify(_)))
