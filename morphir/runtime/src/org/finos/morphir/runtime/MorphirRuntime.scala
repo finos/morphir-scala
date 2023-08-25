@@ -10,10 +10,10 @@ import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.RTAction
 import org.finos.morphir.runtime.quick.QuickMorphirRuntime
 trait MorphirRuntime[TA, VA] {
-  def evaluate(entryPoint: Value[TA, VA], params: Value[TA, VA]): RTAction[MorphirEnv, MorphirRuntimeError, Data]
-  def evaluate(entryPoint: Value[TA, VA], params: Data): RTAction[MorphirEnv, MorphirRuntimeError, Data]
-  def evaluate(entryPoint: FQName, params: Data): RTAction[MorphirEnv, MorphirRuntimeError, Data]
-  def evaluate(entryPoint: FQName, params: Value[TA, VA]): RTAction[MorphirEnv, MorphirRuntimeError, Data]
+  def evaluate(entryPoint: Value[TA, VA], params: Value[TA, VA]*): RTAction[MorphirEnv, MorphirRuntimeError, Data]
+  def evaluate(entryPoint: Value[TA, VA], params: Data*): RTAction[MorphirEnv, MorphirRuntimeError, Data]
+  def evaluate(entryPoint: FQName, params: Data*): RTAction[MorphirEnv, MorphirRuntimeError, Data]
+  def evaluate(entryPoint: FQName, params: Value[TA, VA]*): RTAction[MorphirEnv, MorphirRuntimeError, Data]
   def applyParams(entryPoint: Value[TA, VA], params: Value[TA, VA]*): RTAction[MorphirEnv, TypeError, Value[TA, VA]]
 
   def evaluate(value: Value[TA, VA]): RTAction[MorphirEnv, EvaluationError, Data]
