@@ -156,9 +156,14 @@ object Utils {
     //So we get foo Int -> String -> (Int, String)
     // We make a Int -> Int, String
   def curryTypeFunction(inner: UType, params: Chunk[(Name, UType)]): UType =
-    params match {
+    //Should be 1 -> (2 -> (3 -> Inner)))
+    //Inner 1, 2 3
+    //1->
+    val res = params match {
       case Chunk() => inner
       case chunk =>
         T.function(chunk.head._2, curryTypeFunction(inner, chunk.tail))
     }
+    println(s"FOUND: ${Succinct.Type(res, 4)}")
+    res
 }
