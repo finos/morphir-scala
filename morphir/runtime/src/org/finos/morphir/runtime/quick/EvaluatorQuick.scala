@@ -10,6 +10,7 @@ import org.finos.morphir.ir.Value.*
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.Extractors.*
+import org.finos.morphir.runtime.Extractors.Types.*
 import org.finos.morphir.runtime.Distributions
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
@@ -156,7 +157,6 @@ object EvaluatorQuick {
       case TT.Unit(_)           => Concept.Unit
       case TT.Variable(_, name) => boundTypes(name)
     }
-
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
     (concept, result) match {
       case (Concept.Struct(fields), Result.Record(elements)) =>
