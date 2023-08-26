@@ -88,7 +88,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
       runtime.evaluate(FQName.fromString(fullName), data.head, data.tail: _*)
         .provideEnvironment(MorphirEnv.live)
-        .toZIOWith(RTExecutionContext.default)
+        .toZIOWith(RTExecutionContext.typeChecked)
     }
 
   val dogRecordConceptRaw = Concept.Struct(
@@ -383,7 +383,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Decimal(4.0),
           Data.Decimal(5.0)
         )),
-        testEvalMultiple("Append (and infer type")("ListTests", "listAppend", List(List(1, 2), List(false, true)))(
+        testEvalMultiple("Append (and infer type")(
+          "ListTests",
+          "listAppend",
+          List(List(true, true), List(false, true))
+        )(
           Data.List(Data.True, Data.True, Data.False, Data.True)
         ),
         testEvaluation("Singleton")("listTests", "listSingletonTest")(
