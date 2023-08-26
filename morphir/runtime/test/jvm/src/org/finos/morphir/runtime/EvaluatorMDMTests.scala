@@ -26,6 +26,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   def deriveData(input: Any): Data =
     input match {
       case u: Unit                 => Deriver.toData(u)
+      case b : Boolean             => Deriver.toData(b)
       case i: Int                  => Deriver.toData(i)
       case s: String               => Deriver.toData(s)
       case ld: java.time.LocalDate => Deriver.toData(ld)

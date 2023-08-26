@@ -49,6 +49,13 @@ object Utils {
   ): Either[TypeError, Map[Name, UType]] = {
     def failIfChecked(error : TypeError): Either[TypeError, Map[Name, UType]] =
       options.enableTyper match {
+        case EnableTyper.Enabled =>
+          Left(new TypesMismatch(otherArg, otherParam, "Unable to match entry point arg to param"))
+        case EnableTyper.Warn =>
+          println(s"[WARNING] Cannot match $otherArg with $otherParam")
+          Right(found)
+        case EnableTyper.Disabled =>
+          Right(found)
       }
     (arg, param) match {
       case (argType, Type.Variable(_, name)) =>
