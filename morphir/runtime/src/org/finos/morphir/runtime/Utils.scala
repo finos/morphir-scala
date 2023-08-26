@@ -50,7 +50,7 @@ object Utils {
     def failIfChecked(error : TypeError): Either[TypeError, Map[Name, UType]] =
       options.enableTyper match {
         case EnableTyper.Enabled =>
-          Left(new TypesMismatch(otherArg, otherParam, "Unable to match entry point arg to param"))
+          Left(error)
         case EnableTyper.Warn =>
           println(s"[WARNING] Cannot match $otherArg with $otherParam")
           Right(found)
@@ -60,14 +60,14 @@ object Utils {
     (arg, param) match {
       case (argType, Type.Variable(_, name)) =>
         if (found.contains(name) && found(name) != argType) {
-          Left(InferenceConflict(s"Both ${found(name)} and $argType bound to type variable $name"))
+          failIfChecked(InferenceConflict(s"Both ${found(name)} and $argType bound to type variable $name"))
         } else {
           Right(found + (name -> argType))
         }
       case (l @ LeafType(), r @ LeafType()) if l == r => Right(found)
       case (Type.Tuple(_, argElements), Type.Tuple(_, paramElements)) =>
         if (argElements.length != paramElements.length) {
-          Left(new SizeMismatch(
+          failIfChecked(new SizeMismatch(
             argElements.length,
             paramElements.length,
             s"Different tuple arity between arg $argElements and parameter $paramElements"
@@ -92,7 +92,7 @@ object Utils {
       case (MaybeRef(argElement), MaybeRef(paramElement)) => typeCheckArg(argElement, paramElement, found)
       case (Type.Record(_, argFields), Type.Record(_, paramFields)) =>
         if (argFields.length != paramFields.length) {
-          Left(new SizeMismatch(
+          failIfChecked(new SizeMismatch(
             argFields.length,
             paramFields.length,
             s"Record lengths differ between arg : $argFields and param: $paramFields"
@@ -109,7 +109,7 @@ object Utils {
           paramBindings <- typeCheckArg(argReturn, paramReturn, argBindings)
         } yield paramBindings
       case (Type.ExtensibleRecord(_, _, _), Type.ExtensibleRecord(_, _, _)) =>
-        Left(new UnimplementedType(s"Extensible record type not supported (yet)"))
+        failIfChecked(new UnimplementedType(s"Extensible record type not supported (yet)"))
       case (Type.Reference(_, argTypeName, argTypeArgs), Type.Reference(_, paramTypeName, paramTypeArgs))
           if (argTypeName == paramTypeName) =>
         argTypeArgs.zip(paramTypeArgs).foldLeft(Right(found): Either[TypeError, Map[Name, UType]]) {
@@ -117,6 +117,7 @@ object Utils {
             acc.flatMap(found => typeCheckArg(argTpe, paramTpe, found))
         }
       case (otherArg, otherParam) =>
+        failIfChecked()
     }
   }
 
