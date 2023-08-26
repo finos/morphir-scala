@@ -382,6 +382,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Decimal(4.0),
           Data.Decimal(5.0)
         )),
+        testEvalMultiple("Apped (and infer type")("ListTests", "listAppend", List(List(true, true), List(false, true)))
+        (Data.List(Data.True, Data.True, Data.False, Data.True))
         testEvaluation("Singleton")("listTests", "listSingletonTest")(
           Data.List(Data.Int(6))
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
