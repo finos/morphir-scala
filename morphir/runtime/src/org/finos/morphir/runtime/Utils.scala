@@ -47,12 +47,12 @@ object Utils {
   def typeCheckArg(arg: UType, param: UType, found: Map[Name, UType])(
       implicit options: RTExecutionContext.Options
   ): Either[TypeError, Map[Name, UType]] = {
-    def failIfChecked(error : TypeError): Either[TypeError, Map[Name, UType]] =
+    def failIfChecked(error: TypeError): Either[TypeError, Map[Name, UType]] =
       options.enableTyper match {
         case EnableTyper.Enabled =>
           Left(error)
         case EnableTyper.Warn =>
-          println(s"[WARNING] Cannot match $otherArg with $otherParam")
+          println(s"[WARNING] ${error.getMsg}")
           Right(found)
         case EnableTyper.Disabled =>
           Right(found)
@@ -117,7 +117,7 @@ object Utils {
             acc.flatMap(found => typeCheckArg(argTpe, paramTpe, found))
         }
       case (otherArg, otherParam) =>
-        failIfChecked()
+        failIfChecked(TypesMismatch(otherArg, otherParam, "Could not match arg to param on entry point"))
     }
   }
 
