@@ -506,7 +506,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ))
       ),
       suite("String")(
-        testEvalMultiple("String Append")("stringTests", "stringAppend", List(Data.Strng("Do"), Data.String("Bop")))(
+        testEvalMultiple("String Append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
           Data.String("DoBop")
         )
       ),

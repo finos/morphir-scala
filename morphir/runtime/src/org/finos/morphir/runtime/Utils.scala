@@ -46,7 +46,10 @@ object Utils {
   // TODO: Move to type checker, or remove altogether
   def typeCheckArg(arg: UType, param: UType, found: Map[Name, UType])(
       implicit options: RTExecutionContext.Options
-  ): Either[TypeError, Map[Name, UType]] =
+  ): Either[TypeError, Map[Name, UType]] = {
+    def failIfChecked(error : TypeError): Either[TypeError, Map[Name, UType]] =
+      options.enableTyper match {
+      }
     (arg, param) match {
       case (argType, Type.Variable(_, name)) =>
         if (found.contains(name) && found(name) != argType) {
@@ -107,16 +110,9 @@ object Utils {
             acc.flatMap(found => typeCheckArg(argTpe, paramTpe, found))
         }
       case (otherArg, otherParam) =>
-        options.enableTyper match {
-          case EnableTyper.Enabled =>
-            Left(new TypesMismatch(otherArg, otherParam, "Unable to match entry point arg to param"))
-          case EnableTyper.Warn =>
-            println(s"[WARNING] Cannot match $otherArg with $otherParam")
-            Right(found)
-          case EnableTyper.Disabled =>
-            Right(found)
-        }
     }
+  }
+
   def specificationToType(spec: UValueSpec): UType =
     curryTypeFunction(spec.output, spec.inputs)
 
