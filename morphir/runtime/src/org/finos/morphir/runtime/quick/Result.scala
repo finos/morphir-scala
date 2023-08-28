@@ -57,7 +57,12 @@ object Result {
     }
   }
 
-  case class SetResult[TA, VA](elements: mutable.LinkedHashSet[Result[TA, VA]]) extends Result[TA, VA]
+  case class SetResult[TA, VA](elements: mutable.LinkedHashSet[Result[TA, VA]]) extends Result[TA, VA] {
+    override def succinct(depth: Int) = if (depth == 0) "Set(..)"
+    else {
+      s"Set(${elements.map(value => value.succinct(depth - 1)).mkString(", ")})"
+    }
+  }
 
   case class Record[TA, VA](elements: Map[Name, Result[TA, VA]]) extends Result[TA, VA] {
     override def succinct(depth: Int) = if (depth == 0) "Record(..)"
