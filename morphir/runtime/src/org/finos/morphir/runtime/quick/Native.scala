@@ -2,10 +2,11 @@ package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.ir.Type
 import org.finos.morphir.naming._
+import org.finos.morphir.runtime.UnsupportedType
 
 import scala.collection.mutable
 
-object Dict {
+object DictSDK {
   val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
     (l: Result[Unit, Type.UType]) => {
@@ -45,8 +46,45 @@ object Dict {
     FQName.fromString("Morphir.SDK:Dict:get")      -> get
   )
 }
+object ListSDK {
+  val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    2,
+    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
+      val listA = a.asInstanceOf[Result.ListResult[Unit, Type.UType]]
+      val listB = b.asInstanceOf[Result.ListResult[Unit, Type.UType]]
+      Result.ListResult(listA.elements.appendedAll(listB.elements))
+    }
+  )
 
-object Set {
+  val cons: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    2,
+    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
+      val listB = b.asInstanceOf[Result.ListResult[Unit, Type.UType]]
+      Result.ListResult(a :: listB.elements)
+    }
+  )
+  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:List:append") -> append,
+    FQName.fromString("Morphir.SDK:List:cons")   -> cons
+  )
+}
+object BasicsSDK {
+  val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    2,
+    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+      (a, b) match {
+        case (Result.ListResult(aElements), Result.ListResult(bElements)) =>
+          Result.ListResult(aElements.appendedAll(bElements))
+        case (Result.Primitive(a: String), Result.Primitive(b: String)) => Result.Primitive(a + b)
+        case (other1, other2) => throw new UnsupportedType(s"Append called on unrecognized types: $other1, $other2")
+      }
+  )
+  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:Basics:append") -> append
+  )
+
+}
+object SetSDK {
   val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
     (l: Result[Unit, Type.UType]) => {
@@ -60,7 +98,7 @@ object Set {
   )
 }
 
-object String {
+object StringSDK {
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
@@ -140,13 +178,6 @@ object Native {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive(a == b)
   )
-  val cons: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
-    2,
-    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
-      val listB = b.asInstanceOf[Result.ListResult[Unit, Type.UType]]
-      Result.ListResult(a :: listB.elements)
-    }
-  )
   val concat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
     (l: Result[Unit, Type.UType]) => {
@@ -218,11 +249,10 @@ object Native {
     FQName.fromString("Morphir.SDK:Basics:toFloat")             -> toFloat,
     FQName.fromString("Morphir.SDK:Basics:logBase")             -> log,
     FQName.fromString("Morphir.SDK:Basics:lessThan")            -> lessThan,
-    FQName.fromString("Morphir.SDK:List:cons")                  -> cons,
     FQName.fromString("Morphir.SDK:List:concat")                -> concat,
     FQName.fromString("Morphir.SDK:List:map")                   -> map,
     FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
-  ) ++ Dict.sdk ++ Set.sdk ++ String.sdk
+  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ ListSDK.sdk ++ BasicsSDK.sdk
 }

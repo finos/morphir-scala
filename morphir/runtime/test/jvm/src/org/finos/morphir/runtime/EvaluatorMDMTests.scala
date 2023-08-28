@@ -26,6 +26,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   def deriveData(input: Any): Data =
     input match {
       case u: Unit                 => Deriver.toData(u)
+      case b: Boolean              => Deriver.toData(b)
       case i: Int                  => Deriver.toData(i)
       case s: String               => Deriver.toData(s)
       case ld: java.time.LocalDate => Deriver.toData(ld)
@@ -87,7 +88,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
       runtime.evaluate(FQName.fromString(fullName), data.head, data.tail: _*)
         .provideEnvironment(MorphirEnv.live)
-        .toZIOWith(RTExecutionContext.default)
+        .toZIOWith(RTExecutionContext.typeChecked)
     }
 
   val dogRecordConceptRaw = Concept.Struct(
@@ -382,6 +383,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Decimal(4.0),
           Data.Decimal(5.0)
         )),
+        testEvalMultiple("Append (and infer type")(
+          "ListTests",
+          "listAppend",
+          List(List(true, true), List(false, true))
+        )(
+          Data.List(Data.True, Data.True, Data.False, Data.True)
+        ),
         testEvaluation("Singleton")("listTests", "listSingletonTest")(
           Data.List(Data.Int(6))
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
@@ -501,6 +509,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.Tuple(Data.Int(4), Data.String("Five"))
           )
         ))
+      ),
+      suite("String")(
+        testEvalMultiple("String Append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
+          Data.String("DoBop")
+        )
       ),
       suite("References To user Defined Members")(
         testEvaluation("Reference to value")("userDefinedReferenceTests", "userDefinedReferenceValueTest")(Data.Int(5)),
