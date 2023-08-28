@@ -9,12 +9,6 @@ listEmptyTest _ =
     []
 --expected = []
 
---Test: List/Singleton
-listSingletonTest : () -> List Int
-listSingletonTest _ =
-    singleton 6
---expected = [6]
-
 --Test: List/Single
 listSingleTest : () -> List Int
 listSingleTest _ = 
@@ -78,3 +72,15 @@ listMapTest2 : () -> List Bool
 listMapTest2 _ =
     map not [True,False,True]
 --expected = [False,True,False]
+
+--Test: List/Singleton
+listSingletonTest : () -> List Int
+listSingletonTest _ =
+    singleton 6
+--expected = [6]
+
+--Test: List/isEmpty
+listIsEmptyTest : () -> Bool
+listIsEmptyTest _ =
+    isEmpty []
+--expected = True
