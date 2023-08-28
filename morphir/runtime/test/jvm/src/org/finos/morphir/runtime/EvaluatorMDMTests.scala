@@ -229,9 +229,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           } yield assertTrue(actual == expected)
         }
       ),
-//      suite("Decimal Tests")(
-//        testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("1.2"))
-//      ),
       suite("Destructure Tests")(
         test("As") {
           for {
