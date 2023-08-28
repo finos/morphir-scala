@@ -369,7 +369,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )),
         testEvaluation("Singleton")("listTests", "listSingletonTest")(
           Data.List(Data.Int(6))
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
+        ),
+        testEvaluation("isEmpty")("listTests", "listIsEmptyTest")(
+          (Data.Boolean(true))
+        )
       ),
       suite("Literals")(
         testEvaluation("String")("literalTests", "litStringTest")(Data.String("Bloop")),
@@ -408,7 +411,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("LocalDate")("nativeReferenceTests", "localDatePassthrough", localDate)(Data.LocalDate(localDate)),
         testEval("LocalDate")("nativeReferenceTests", "localTimePassthrough", localTime)(Data.LocalTime(localTime))
       ),
-      suite("Patern Matching")(
+      suite("Pattern Matching")(
         testEvaluation("Wildcard")("patternMatchTests", "patternMatchWildcardTest")(Data.String("Correct")),
         testEvaluation("Tuple")("patternMatchTests", "patternMatchTupleTest")(Data.String("Correct")),
         testEvaluation("Constructor")("patternMatchTests", "patternMatchConstructorTest")(Data.String("Correct")),
