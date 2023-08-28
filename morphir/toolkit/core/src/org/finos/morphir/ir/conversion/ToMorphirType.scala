@@ -2,10 +2,11 @@ package org.finos.morphir
 package ir
 package conversion
 
-import org.finos.morphir.naming._
+import org.finos.morphir.naming.*
 import org.finos.morphir.datamodel.{Concept, Label}
-import org.finos.morphir.ir.{Type => T}
+import org.finos.morphir.ir.Type as T
 import org.finos.morphir.ir.Type.{Type, UType}
+import zio.Chunk
 
 import scala.collection.immutable.{Map, Set}
 
@@ -95,8 +96,15 @@ object ToMorphirType {
       // Treat a record as an aliased reference on the type level, on the value level it has fields
       // Record('Pack.Mod.Person', [name, age]) on the type-level is just Reference(Pack.Mod.Person)
       // on the value level it's the equivalent of a record behind a type alias e.g. `person:Person; person = {name:"", age:""}`
-      case Concept.Record(name, _) =>
-        toUTypeConverter(T.reference(name))
+      case c @ Concept.Record(name, _) =>
+        // If there are type-parameters defined on the record, make these into morphir types
+        val typeParams =
+          if (c.meta.typeParams.nonEmpty)
+            Chunk.fromIterable(c.meta.typeParams.map(conceptToTypeIR(_).morphirType))
+          else
+            Chunk.empty
+        // Create the record type adding any type-params as needed
+        toUTypeConverter(T.reference(name, typeParams = typeParams))
 
       case Concept.Tuple(values) =>
         val types: scala.List[UType] = values.map(conceptToTypeIR(_).morphirType)
