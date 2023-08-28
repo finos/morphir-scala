@@ -2,7 +2,7 @@ package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.naming.*
 import org.finos.morphir.ir.Type.UType
-import org.finos.morphir.ir.Value.Value
+import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue}
 import org.finos.morphir.ir.Value as V
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.ir.distribution.Distribution
@@ -25,23 +25,44 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
     extends TypedMorphirRuntime {
   // private val store: Store[scala.Unit, UType] = Store.empty //
 
-  def evaluate(entryPoint: FQName, params: Value[scala.Unit, UType]): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
+  def evaluate(
+      entryPoint: FQName,
+      param: Value[scala.Unit, UType],
+      params: Value[scala.Unit, UType]*
+  ): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
       tpe <- fetchType(entryPoint)
-      res <- evaluate(Value.Reference.Typed(tpe, entryPoint), params)
+      res <- evaluate(Value.Reference.Typed(tpe, entryPoint), param, params: _*)
     } yield res
 
-  def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, EvaluationError, Data] =
-    EvaluatorQuick.evalAction(value, store, dists)
+  def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
+    for {
+      _   <- typeCheck(value)
+      res <- EvaluatorQuick.evalAction(value, store, dists)
+    } yield res
 
-  def fetchType(ref: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
-    val (pkg, mod, loc) = (ref.getPackagePath, ref.getModulePath, ref.localName)
-    val maybeSpec       = dists.lookupValueSpecification(PackageName(pkg), ModuleName(mod), loc)
+  def fetchType(fqn: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
+    val maybeSpec = dists.lookupValueSpecification(fqn)
     maybeSpec match {
-      case Some(spec) => RTAction.succeed(specificationToType(spec))
-      case None       => RTAction.fail(new SpecificationNotFound(s"Could not find $ref during initial type building"))
+      case Right(spec) => RTAction.succeed(specificationToType(spec))
+      case Left(err)   => RTAction.fail(new SpecificationNotFound(s"Lookup failure: ${err.getMsg}"))
     }
   }
+
+  def typeCheck(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, TypeError, Unit] = for {
+    ctx <- ZPure.get[RTExecutionContext]
+    result <- ctx.options.enableTyper match {
+      case EnableTyper.Disabled => RTAction.succeed[RTExecutionContext, Unit](())
+      case EnableTyper.Warn =>
+        val errors = new TypeChecker(dists).check(value)
+        errors.foreach(error => println(s"TYPE WARNING: $error"))
+        RTAction.succeed[RTExecutionContext, Unit](())
+      case EnableTyper.Enabled =>
+        val errors = new TypeChecker(dists).check(value)
+        if (errors.length == 0) RTAction.succeed[RTExecutionContext, Unit](())
+        else RTAction.fail(TypeError.ManyTypeErrors(errors))
+    }
+  } yield result
 
   def applyParams(
       entryPoint: Value[scala.Unit, UType],
@@ -51,11 +72,13 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
       ctx <- ZPure.get[RTExecutionContext]
       out <- {
         entryPoint match {
-          case Value.Reference.Typed(tpe, _) =>
+          case Value.Reference.Typed(tpe, fqn) =>
             for {
-              tpe <- unCurryTypeFunction(tpe, params.toList.map(_.attributes), dists, Map())(ctx.options)
-            } yield V.apply(tpe, entryPoint, params.head, params.tail: _*)
-          case other => RTAction.fail(UnsupportedType(s"Entry point must be a Reference, instead found $other"))
+              tpe <- findTypeBindings(tpe, params.toList, dists, Map())(ctx.options)
+            } yield V.applyInferType(tpe, V.reference(fqn), params: _*)
+          case other => RTAction.fail(
+              new TypeError.OtherTypeError(s"Entry point must be a Reference, instead found ${Succinct.Value(other)}")
+            )
         }
       }
     } yield out

@@ -96,7 +96,8 @@ class PrintIR(
     fansi.Str.join(tokenized)
   }
 
-  def treeify(x: Any): Tree = this.treeify(x, escapeUnicode, showFieldNames)
+  def treeify(x: Any): Tree      = this.treeify(x, escapeUnicode, showFieldNames)
+  def treeifySuper(x: Any): Tree = super.treeify(x, escapeUnicode, showFieldNames)
 
   override def treeify(x: Any, escapeUnicode: Boolean, showFieldNames: Boolean): Tree = x match {
 
@@ -140,7 +141,7 @@ class PrintIR(
             case v: Data.LocalDate => Tree.Literal(v.toString)
             case v: Data.Month     => Tree.Literal(v.toString)
             case v: Data.LocalTime => Tree.Literal(v.toString)
-            case _                 => treeify(v)
+            case _                 => treeifySuper(v)
           }
 
         case v: Data.Case =>
@@ -181,6 +182,9 @@ class PrintIR(
         case v: Data.Map =>
           Tree.ofData(v)(v.values.toList.map(treeify(_)))
 
+        case v: Data.Set =>
+          Tree.ofData(v)(v.values.toList.map(r => treeify(r)))
+
         case v: Data.Union =>
           Tree.ofData(v)(List(treeify(v.value)))
 
@@ -219,6 +223,9 @@ class PrintIR(
 
         case v @ Concept.Map(keyType, valueType) =>
           Tree.ofConcept(v)(List(treeify(keyType), treeify(valueType)))
+
+        case v @ Concept.Set(elementType) =>
+          Tree.ofConcept(v)(List(treeify(elementType)))
 
         case v: Concept.Tuple =>
           Tree.ofConcept(v)(v.values.map(treeify(_)))
