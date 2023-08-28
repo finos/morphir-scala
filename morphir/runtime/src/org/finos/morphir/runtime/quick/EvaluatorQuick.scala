@@ -10,6 +10,7 @@ import org.finos.morphir.ir.Value.*
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.Extractors.*
+import org.finos.morphir.runtime.Extractors.Types.*
 import org.finos.morphir.runtime.Distributions
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
@@ -49,6 +50,7 @@ object EvaluatorQuick {
       case Result.Unit()               => ()                      // Ever used?
       case Result.Primitive(value)     => value                   // Duh
       case Result.ListResult(elements) => elements.map(unwrap(_)) // Needed for non-higher-order head, presumably others
+      case Result.SetResult(elements)  => elements.map(unwrap(_)) // Needed for non-higher-order head, presumably others
       case Result.Tuple(elements) => // Needed for tuple.first, possibly others
         val listed = Helpers.tupleToList(elements).getOrElse(throw new Exception("Invalid tuple returned to top level"))
         val mapped = listed.map(unwrap(_))
@@ -65,12 +67,13 @@ object EvaluatorQuick {
     value match {
       case r: Result[_, _] => r.asInstanceOf[Result[TA, VA]]
       case ()              => Result.Unit()
-      case m: Map[_, _] => Result.MapResult(m.toSeq.map { case (key, value) =>
+      case m: mutable.LinkedHashMap[_, _] => Result.MapResult(m.map { case (key, value) =>
           (wrap[TA, VA](key), wrap[TA, VA](value))
-        }.toMap)
-      case l: List[_]             => Result.ListResult(l.map(wrap(_)))
-      case (first, second)        => Result.Tuple((wrap(first), wrap(second)))
-      case (first, second, third) => Result.Tuple((wrap(first), wrap(second), wrap(third)))
+        })
+      case l: List[_]                  => Result.ListResult(l.map(wrap(_)))
+      case s: mutable.LinkedHashSet[_] => Result.SetResult(s.map(wrap(_)))
+      case (first, second)             => Result.Tuple((wrap(first), wrap(second)))
+      case (first, second, third)      => Result.Tuple((wrap(first), wrap(second), wrap(third)))
       // TODO: Option, Result, LocalDate
       case primitive => Result.Primitive(primitive) // TODO: Handle each case for safety's sake
     }
@@ -124,6 +127,8 @@ object EvaluatorQuick {
         Concept.Optional(typeToConcept(elementType, dists, boundTypes))
       case DictRef(keyType, valType) =>
         Concept.Map(typeToConcept(keyType, dists, boundTypes), typeToConcept(valType, dists, boundTypes))
+      case SetRef(elementType) =>
+        Concept.Set(typeToConcept(elementType, dists, boundTypes))
       case TT.Reference(_, typeName, typeArgs) =>
         val lookedUp    = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dists, boundTypes))
@@ -152,7 +157,6 @@ object EvaluatorQuick {
       case TT.Unit(_)           => Concept.Unit
       case TT.Variable(_, name) => boundTypes(name)
     }
-
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
     (concept, result) match {
       case (Concept.Struct(fields), Result.Record(elements)) =>
@@ -223,6 +227,9 @@ object EvaluatorQuick {
       case (Concept.List(elementConcept), Result.ListResult(elements)) =>
         val inners = elements.map(element => resultAndConceptToData(element, elementConcept))
         Data.List(inners, elementConcept)
+      case (Concept.Set(elementConcept), Result.SetResult(elements)) =>
+        val inners = elements.map(element => resultAndConceptToData(element, elementConcept))
+        Data.Set(inners, elementConcept)
       case (Concept.Optional(elementShape), Result.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), List())) =>
         Data.Optional.None(elementShape)
       case (
@@ -243,10 +250,10 @@ object EvaluatorQuick {
             )
           ) => Data.Optional.Some(resultAndConceptToData(value, elementShape))
       case (mapConcept @ Concept.Map(keyConcept, valConcept), Result.MapResult(elements)) =>
-        val inners = elements.toList.map { case (key, value) =>
+        val inners = elements.map { case (key, value) =>
           (resultAndConceptToData(key, keyConcept), resultAndConceptToData(value, valConcept))
         }
-        Data.Map.copyFrom(mutable.LinkedHashMap.from(inners), mapConcept)
+        Data.Map.copyFrom(inners, mapConcept)
       case (enumConcept @ Concept.Enum(_, cases), Result.ConstructorResult(fqName, args)) =>
         val fieldMap = cases.map { case Concept.Enum.Case(Label(string), fields) => string -> fields }.toMap
         val fields = fieldMap.getOrElse(

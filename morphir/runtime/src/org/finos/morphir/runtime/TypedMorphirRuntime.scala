@@ -13,26 +13,32 @@ import org.finos.morphir.datamodel.*
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
 
-//TODO: Specify "Either" on lower level
 trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {
   final def evaluate(
       entryPoint: Value[scala.Unit, UType],
-      params: Value[scala.Unit, UType]
+      param: Value[scala.Unit, UType],
+      params: Value[scala.Unit, UType]*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
-      applied   <- applyParams(entryPoint, params)
+      applied   <- applyParams(entryPoint, (param +: params): _*)
       evaluated <- evaluate(applied)
     } yield evaluated
 
-  def evaluate(entryPoint: Value[scala.Unit, UType], params: Data): RTAction[MorphirEnv, MorphirRuntimeError, Data] = {
-    val toValue = ToMorphirValue.summon[Data].typed
-    val inputIR = toValue(params)
-    evaluate(entryPoint, inputIR)
+  def evaluate(
+      entryPoint: Value[scala.Unit, UType],
+      param: Data,
+      params: Data*
+  ): RTAction[MorphirEnv, MorphirRuntimeError, Data] = {
+    val toValue  = ToMorphirValue.summon[Data].typed
+    val inputIR  = toValue(param)
+    val inputIRs = params.map(toValue(_))
+    evaluate(entryPoint, inputIR, inputIRs: _*)
   }
 
-  def evaluate(entryPoint: FQName, params: Data): RTAction[MorphirEnv, MorphirRuntimeError, Data] = {
-    val toValue = ToMorphirValue.summon[Data].typed
-    val inputIR = toValue(params)
-    evaluate(entryPoint, inputIR)
+  def evaluate(entryPoint: FQName, param: Data, params: Data*): RTAction[MorphirEnv, MorphirRuntimeError, Data] = {
+    val toValue  = ToMorphirValue.summon[Data].typed
+    val inputIR  = toValue(param)
+    val inputIRs = params.map(toValue(_))
+    evaluate(entryPoint, inputIR, inputIRs: _*)
   }
 }

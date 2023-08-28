@@ -84,3 +84,6 @@ listIsEmptyTest : () -> Bool
 listIsEmptyTest _ =
     isEmpty []
 --expected = True
+
+listAppend : List a -> List a -> List a
+listAppend l r = append l r

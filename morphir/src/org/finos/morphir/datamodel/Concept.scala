@@ -32,6 +32,7 @@ sealed trait Concept { self =>
       case c: Concept.Alias    => Some(c.name)
       case _: Concept.List     => None
       case _: Concept.Map      => None
+      case _: Concept.Set      => None
       case _: Concept.Tuple    => None
       case _: Concept.Optional => None
       case _: Concept.Result   => None
@@ -115,6 +116,8 @@ object Concept {
   case class List(elementType: Concept) extends Concept
 
   case class Map(keyType: Concept, valueType: Concept) extends Concept
+
+  case class Set(elementType: Concept) extends Concept
 
   case class Tuple(values: scala.List[Concept]) extends Concept
 
