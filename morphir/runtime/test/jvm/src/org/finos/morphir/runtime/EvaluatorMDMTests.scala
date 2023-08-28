@@ -371,7 +371,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.List(Data.Int(6))
         ),
         testEvaluation("isEmpty")("listTests", "listIsEmptyTest")(
-          (Data.List(List(), Concept.Int32))
+          (Data.Boolean(true))
         )
       ),
       suite("Literals")(
