@@ -107,17 +107,17 @@ object EvaluatorQuick {
       case TT.Record(_, fields) => Concept.Struct(fields.map(field =>
           (Label(field.name.toCamelCase), typeToConcept(field.data, dists, boundTypes))
         ).toList)
-      case IntRef()       => Concept.Int32
-      case Int16Ref()     => Concept.Int16
-      case Int32Ref()     => Concept.Int32
-      case Int64Ref()     => Concept.Int64
-      case StringRef()    => Concept.String
-      case BoolRef()      => Concept.Boolean
-      case CharRef()      => Concept.Char
-      case FloatRef()     => Concept.Decimal
-      case DecimalRef()   => Concept.Decimal
-      case LocalDateRef() => Concept.LocalDate
-      case LocalTimeRef() => Concept.LocalTime
+      case IntRef()       => Concept.Int32()
+      case Int16Ref()     => Concept.Int16()
+      case Int32Ref()     => Concept.Int32()
+      case Int64Ref()     => Concept.Int64()
+      case StringRef()    => Concept.String()
+      case BoolRef()      => Concept.Boolean()
+      case CharRef()      => Concept.Char()
+      case FloatRef()     => Concept.Decimal()
+      case DecimalRef()   => Concept.Decimal()
+      case LocalDateRef() => Concept.LocalDate()
+      case LocalTimeRef() => Concept.LocalTime()
 
       case ResultRef(errType, okType) =>
         Concept.Result(typeToConcept(errType, dists, boundTypes), typeToConcept(okType, dists, boundTypes))
@@ -154,7 +154,7 @@ object EvaluatorQuick {
         }
       case TT.Tuple(_, elements) =>
         Concept.Tuple(elements.map(element => typeToConcept(element, dists, boundTypes)).toList)
-      case TT.Unit(_)           => Concept.Unit
+      case TT.Unit(_)           => Concept.Unit()
       case TT.Variable(_, name) => boundTypes(name)
     }
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
@@ -182,46 +182,46 @@ object EvaluatorQuick {
           Data.Record(qName, tuples.toList)
         }
 
-      case (Concept.Int16, Result.Primitive(value: Int)) =>
+      case (Concept.Int16(), Result.Primitive(value: Int)) =>
         Data.Int16(value.toShort)
-      case (Concept.Int16, Result.Primitive(value: Long)) =>
+      case (Concept.Int16(), Result.Primitive(value: Long)) =>
         Data.Int16(value.toShort)
-      case (Concept.Int16, Result.Primitive(value: IntType)) =>
+      case (Concept.Int16(), Result.Primitive(value: IntType)) =>
         Data.Int16(value.toInt.toShort)
 
-      case (Concept.Int32, Result.Primitive(value: Int)) =>
+      case (Concept.Int32(), Result.Primitive(value: Int)) =>
         Data.Int32(value.toInt)
-      case (Concept.Int32, Result.Primitive(value: Long)) =>
+      case (Concept.Int32(), Result.Primitive(value: Long)) =>
         Data.Int32(value.toInt)
-      case (Concept.Int32, Result.Primitive(value: IntType)) =>
+      case (Concept.Int32(), Result.Primitive(value: IntType)) =>
         Data.Int32(value.toInt)
 
-      case (Concept.Int64, Result.Primitive(value: Int)) =>
+      case (Concept.Int64(), Result.Primitive(value: Int)) =>
         Data.Int64(value.toLong)
-      case (Concept.Int64, Result.Primitive(value: Long)) =>
+      case (Concept.Int64(), Result.Primitive(value: Long)) =>
         Data.Int64(value.toLong)
-      case (Concept.Int64, Result.Primitive(value: IntType)) =>
+      case (Concept.Int64(), Result.Primitive(value: IntType)) =>
         Data.Int64(value.toLong)
 
-      case (Concept.String, Result.Primitive(value: String)) =>
+      case (Concept.String(), Result.Primitive(value: String)) =>
         Data.String(value)
-      case (Concept.Boolean, Result.Primitive(value: Boolean)) =>
+      case (Concept.Boolean(), Result.Primitive(value: Boolean)) =>
         Data.Boolean(value)
-      case (Concept.Char, Result.Primitive(value: Char)) =>
+      case (Concept.Char(), Result.Primitive(value: Char)) =>
         Data.Char(value)
-      case (Concept.LocalDate, Result.LocalDate(value: java.time.LocalDate)) =>
+      case (Concept.LocalDate(), Result.LocalDate(value: java.time.LocalDate)) =>
         Data.LocalDate(value)
-      case (Concept.LocalTime, Result.LocalTime(value: java.time.LocalTime)) =>
+      case (Concept.LocalTime(), Result.LocalTime(value: java.time.LocalTime)) =>
         Data.LocalTime(value)
-      case (Concept.Decimal, Result.Primitive(value: Double)) =>
+      case (Concept.Decimal(), Result.Primitive(value: Double)) =>
         Data.Decimal(scala.BigDecimal(value))
-      case (Concept.Decimal, Result.Primitive(value: Float)) =>
+      case (Concept.Decimal(), Result.Primitive(value: Float)) =>
         Data.Decimal(scala.BigDecimal(value.toDouble))
-      case (Concept.Decimal, Result.Primitive(value: Int)) =>
+      case (Concept.Decimal(), Result.Primitive(value: Int)) =>
         Data.Decimal(scala.BigDecimal(value))
-      case (Concept.Decimal, Result.Primitive(value: Long)) =>
+      case (Concept.Decimal(), Result.Primitive(value: Long)) =>
         Data.Decimal(scala.BigDecimal(value))
-      case (Concept.Decimal, Result.Primitive(value: BigDecimal)) =>
+      case (Concept.Decimal(), Result.Primitive(value: BigDecimal)) =>
         Data.Decimal(value)
       case (alias: Concept.Alias, result) => Data.Aliased(resultAndConceptToData(result, alias.value), alias)
       case (Concept.List(elementConcept), Result.ListResult(elements)) =>
@@ -281,7 +281,7 @@ object EvaluatorQuick {
           }
           Data.Tuple(inners)
         }
-      case (Concept.Unit, Result.Unit()) => Data.Unit
+      case (Concept.Unit(), Result.Unit()) => Data.Unit
       case (badType, badResult @ Result.Primitive(value)) =>
         throw new ResultDoesNotMatchType(
           s"Could not match type $badType with result $badResult. The value was $value which is of type ${value.getClass()}}"

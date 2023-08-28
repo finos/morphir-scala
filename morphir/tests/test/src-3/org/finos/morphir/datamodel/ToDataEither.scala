@@ -10,9 +10,9 @@ import org.finos.morphir.testing.MorphirBaseSpec
 
 object ToDataEither extends MorphirBaseSpec {
 
-  val eitherConcept = Concept.Result(Concept.String, Concept.Int32)
-  val rightConcept  = Concept.Result(Concept.String, Concept.Nothing)
-  val leftConcept   = Concept.Result(Concept.Nothing, Concept.Int32)
+  val eitherConcept = Concept.Result(Concept.String(), Concept.Int32())
+  val rightConcept  = Concept.Result(Concept.String(), Concept.Nothing())
+  val leftConcept   = Concept.Result(Concept.Nothing(), Concept.Int32())
 
   def spec = suite("ToDataEither")(
     test("Derive Either (right)") {

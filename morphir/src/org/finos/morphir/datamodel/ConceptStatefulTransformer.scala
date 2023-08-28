@@ -16,7 +16,7 @@ trait ConceptStatefulTransformer[T] {
   def of(c: Concept): Stateful[Concept] =
     c match {
       case c: Concept.Basic[_] => of(c)
-      case c: Concept.Any.type => of(c)
+      case c: Concept.Any      => of(c)
       case c: Concept.Record   => of(c)
       case c: Concept.Struct   => of(c)
       case c: Concept.Alias    => of(c)
@@ -33,7 +33,7 @@ trait ConceptStatefulTransformer[T] {
   def of(c: Concept.Basic[_]): Stateful[Concept.Basic[_]] =
     transform(c)
 
-  def of(c: Concept.Any.type): Stateful[Concept.Any.type] =
+  def of(c: Concept.Any): Stateful[Concept.Any] =
     transform(c)
 
   def of(c: Concept.Record): Stateful[Concept.Record] =

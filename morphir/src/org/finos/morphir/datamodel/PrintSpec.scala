@@ -186,7 +186,7 @@ object PrintSpec {
     def handleDef(concept: Concept, isTopLevel: Boolean = false): Option[ConceptDef] =
       concept match {
         case _: Concept.Basic[_] => None
-        case _: Concept.Any.type => None
+        case _: Concept.Any      => None
         case v: Concept.Record   => Some(handleRecord(v))
         case _: Concept.Struct   => None
         case v: Concept.Alias    => Some(handleAlias(v))
@@ -207,12 +207,12 @@ object PrintSpec {
       concept match {
         case basic: Concept.Basic[_] =>
           basic match {
-            case Concept.Boolean => "Bool"
-            case Concept.Int32   => "Int"
-            case _               => basic.toString
+            case _: Concept.Boolean => "Bool"
+            case _: Concept.Int32   => "Int"
+            case _                  => basic.toString
           }
 
-        case Concept.Any            => "Any"
+        case _: Concept.Any         => "Any"
         case r: Concept.Record      => r.namespace.localName.render
         case Concept.Struct(fields) => printFields(fields)
         case Concept.Alias(name, _) => name.localName.render

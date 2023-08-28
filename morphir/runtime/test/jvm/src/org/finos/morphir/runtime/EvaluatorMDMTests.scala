@@ -92,8 +92,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
   val dogRecordConceptRaw = Concept.Struct(
     List(
-      (Label("name"), Concept.String),
-      (Label("number"), Concept.Int32)
+      (Label("name"), Concept.String()),
+      (Label("number"), Concept.Int32())
     )
   )
 
@@ -112,9 +112,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 //    dogRecordConcept
 //  )
 
-  def resultStringIntShape = Concept.Result(Concept.String, Concept.Int32)
-
-  def resultBoolIntShape = Concept.Result(Concept.Boolean, Concept.Int32)
+  def resultStringIntShape = Concept.Result(Concept.String(), Concept.Int32())
+  def resultBoolIntShape   = Concept.Result(Concept.Boolean(), Concept.Int32())
 
   def unionEnumShape: Concept.Enum = Concept.Enum(
     qn"Morphir/Examples/App:ConstructorTests:UnionType",
@@ -122,14 +121,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       Concept.Enum.Case(
         Label("OneArg"),
         List(
-          (EnumLabel.Named("arg1"), Concept.Int32)
+          (EnumLabel.Named("arg1"), Concept.Int32())
         )
       ),
       Concept.Enum.Case(
         Label("TwoArg"),
         List(
-          (EnumLabel.Named("arg1"), Concept.Int32),
-          (EnumLabel.Named("arg2"), Concept.String)
+          (EnumLabel.Named("arg1"), Concept.Int32()),
+          (EnumLabel.Named("arg2"), Concept.String())
         )
       ),
       Concept.Enum.Case(
@@ -348,7 +347,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ))
       ),
       suite("Lists")(
-        testEvaluation("Empty")("listTests", "listEmptyTest")(Data.List(List(), Concept.Int32)),
+        testEvaluation("Empty")("listTests", "listEmptyTest")(Data.List(List(), Concept.Int32())),
         testEvaluation("Single")("listTests", "listSingleTest")(Data.List(Data.Int(0))),
         testEvaluation("Several")("listTests", "listSeveralTest")(Data.List(
           Data.Int(0),
@@ -360,7 +359,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )),
         testEvaluation("Nested")("listTests", "listNestedTest")(Data.List(
           Data.List(Data.String("Red"), Data.String("Blue")),
-          Data.List(List(), Concept.String),
+          Data.List(List(), Concept.String()),
           Data.List(Data.String("Car"), Data.String("Plane"), Data.String("Truck"))
         )),
         testEvaluation("Concat")("listTests", "listConcatTest")(Data.List(
@@ -534,7 +533,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             (EnumLabel.Named("arg2"), Data.String("Red"))
           ),
           "Morphir.Examples.App:ExampleModule:aB",
-          typeArgUnionShape(Concept.Int32, Concept.String)
+          typeArgUnionShape(Concept.Int32(), Concept.String())
         )) @@ ignore @@ tag("Failing because of non-matching order of union cases")
       ),
       suite("Type-based tests")(
@@ -559,7 +558,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Option String")("optionTests", "returnJustStringTest")(
           Data.Optional.Some(Data.String("Hello"))
         ),
-        testEvaluation("Returns a None")("optionTests", "returnNoneIntTest")(Data.Optional.None(Concept.Int32)),
+        testEvaluation("Returns a None")("optionTests", "returnNoneIntTest")(Data.Optional.None(Concept.Int32())),
         testEval("Returns success result")("optionTests", "returnResultType", 0)(Data.Result.Ok(
           Data.Int(0),
           resultStringIntShape

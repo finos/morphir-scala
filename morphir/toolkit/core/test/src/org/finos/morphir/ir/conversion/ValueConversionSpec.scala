@@ -174,7 +174,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
       },
       test("Should be possible to convert a Data Optional None to a Morphir Maybe Nothing") {
         val toValue               = ToMorphirValue.summon[Data].typed
-        val inputValue            = Data.Optional.None(Concept.String)
+        val inputValue            = Data.Optional.None(Concept.String())
         val morphirOptionalString = toValue(inputValue)
         val result =
           V.constructor(FQName.fromString("Morphir.SDK:Maybe:Nothing"), sdk.Maybe.maybeType(sdk.String.stringType))
@@ -186,7 +186,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val toValue           = ToMorphirValue.summon[Data].typed
         val someAliasTypeName = pn.morphirIR % "someAlias"
         val expectedFQName    = fqn("Morphir", "IR", "someAlias")
-        val inputValue        = Data.Aliased(Data.Int(10), Concept.Alias(someAliasTypeName, Concept.Int32))
+        val inputValue        = Data.Aliased(Data.Int(10), Concept.Alias(someAliasTypeName, Concept.Int32()))
         val morphirInt        = toValue(inputValue)
         val result            = Value.literal(T.reference(expectedFQName), Lit.int(10))
         assertTrue(morphirInt == result)
@@ -196,7 +196,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val inputValue =
           Data.Aliased(
             Data.List(Data.True, Data.False, Data.True),
-            Concept.Alias(pn.morphirIR % "Alias1", Concept.List(Concept.Boolean))
+            Concept.Alias(pn.morphirIR % "Alias1", Concept.List(Concept.Boolean()))
           )
         val actual = toValue(inputValue)
         val result = V.list(T.reference("Morphir:IR:Alias1"), zio.Chunk(Lit.True, Lit.False, Lit.True))
@@ -226,7 +226,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
     suite("Data.List")(
       test("Should be possible to convert a empty Data List of Strings to a Morphir List type") {
         val toValue    = ToMorphirValue.summon[Data].typed
-        val inputValue = Data.List.empty(Concept.String)
+        val inputValue = Data.List.empty(Concept.String())
         val actual     = toValue(inputValue)
         assertTrue(actual == V.list(sdk.List.listType(sdk.String.stringType), zio.Chunk.empty))
       },
@@ -264,7 +264,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
     suite("Data.Set")(
       test("Should be possible to convert a empty Data Set of Strings to a Morphir Set type") {
         val toValue    = ToMorphirValue.summon[Data].typed
-        val inputValue = Data.Set.empty(Concept.String)
+        val inputValue = Data.Set.empty(Concept.String())
         val actual     = toValue(inputValue)
         val shape      = sdk.Set.setType(sdk.String.stringType)
         val result = V.applyInferType(
@@ -374,7 +374,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
       },
       test("Should be possible to convert an empty Data Map to a Morphir Dict") {
         val toValue    = ToMorphirValue.summon[Data].typed
-        val inputValue = Data.Map.empty(Concept.String, Concept.Int32)
+        val inputValue = Data.Map.empty(Concept.String(), Concept.Int32())
         val actual     = toValue(inputValue)
         val shape      = sdk.Dict.dictType(sdk.String.stringType, sdk.Basics.intType)
         val result = V.applyInferType(

@@ -197,7 +197,7 @@ class PrintIR(
     def of(c: Concept) =
       c match {
         case v: Concept.Basic[_] => Tree.Literal(v.printName)
-        case v: Concept.Any.type => Tree.Literal(v.printName)
+        case v: Concept.Any      => Tree.Literal(v.printName)
 
         case v: Concept.Record =>
           val caseNames =

@@ -45,20 +45,24 @@ object Data {
 
   def Int(value: Int) = Int32(value)
 
-  sealed trait Basic[+A]                           extends Data
-  case class Boolean(value: scala.Boolean)         extends Basic[scala.Boolean]       { val shape = Concept.Boolean   }
-  case class Byte(value: scala.Byte)               extends Basic[Byte]                { val shape = Concept.Byte      }
-  case class Decimal(value: scala.BigDecimal)      extends Basic[scala.BigDecimal]    { val shape = Concept.Decimal   }
-  case class Integer(value: scala.BigInt)          extends Basic[scala.BigInt]        { val shape = Concept.Integer   }
-  case class Int16(value: scala.Short)             extends Basic[Short]               { val shape = Concept.Int16     }
-  case class Int32(value: scala.Int)               extends Basic[Int]                 { val shape = Concept.Int32     }
-  case class Int64(value: scala.Long)              extends Basic[Long]                { val shape = Concept.Int64     }
-  case class String(value: java.lang.String)       extends Basic[java.lang.String]    { val shape = Concept.String    }
-  case class LocalDate(value: java.time.LocalDate) extends Basic[java.time.LocalDate] { val shape = Concept.LocalDate }
-  case class Month(value: java.time.Month)         extends Basic[java.time.Month]     { val shape = Concept.Month     }
-  case class LocalTime(value: java.time.LocalTime) extends Basic[java.time.LocalTime] { val shape = Concept.LocalTime }
-  case class Char(value: scala.Char)               extends Basic[scala.Char]          { val shape = Concept.Char      }
-  case object Unit                                 extends Basic[scala.Unit]          { val shape = Concept.Unit      }
+  sealed trait Basic[+A]                      extends Data
+  case class Boolean(value: scala.Boolean)    extends Basic[scala.Boolean]    { val shape = Concept.Boolean() }
+  case class Byte(value: scala.Byte)          extends Basic[Byte]             { val shape = Concept.Byte()    }
+  case class Decimal(value: scala.BigDecimal) extends Basic[scala.BigDecimal] { val shape = Concept.Decimal() }
+  case class Integer(value: scala.BigInt)     extends Basic[scala.BigInt]     { val shape = Concept.Integer() }
+  case class Int16(value: scala.Short)        extends Basic[Short]            { val shape = Concept.Int16()   }
+  case class Int32(value: scala.Int)          extends Basic[Int]              { val shape = Concept.Int32()   }
+  case class Int64(value: scala.Long)         extends Basic[Long]             { val shape = Concept.Int64()   }
+  case class String(value: java.lang.String)  extends Basic[java.lang.String] { val shape = Concept.String()  }
+  case class LocalDate(value: java.time.LocalDate) extends Basic[java.time.LocalDate] {
+    val shape = Concept.LocalDate()
+  }
+  case class Month(value: java.time.Month) extends Basic[java.time.Month] { val shape = Concept.Month() }
+  case class LocalTime(value: java.time.LocalTime) extends Basic[java.time.LocalTime] {
+    val shape = Concept.LocalTime()
+  }
+  case class Char(value: scala.Char) extends Basic[scala.Char] { val shape = Concept.Char() }
+  case object Unit                   extends Basic[scala.Unit] { val shape = Concept.Unit() }
 
   // Needed for Scala 3 extension methods to work
   object Boolean   {}

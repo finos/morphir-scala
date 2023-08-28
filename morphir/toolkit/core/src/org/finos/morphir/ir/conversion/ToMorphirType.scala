@@ -66,19 +66,19 @@ object ToMorphirType {
 
   implicit def conceptToTypeIR(concept: Concept): ToMorphirUType[Concept] =
     concept match {
-      case Concept.Boolean                 => boolUType.as
-      case Concept.Byte                    => byteUType.as
-      case Concept.Decimal                 => decimalUType.as
-      case Concept.Integer                 => bigIntUType.as
-      case Concept.Int16                   => shortUType.as
-      case Concept.Int32                   => intUType.as
-      case Concept.Int64                   => intUType.as
-      case Concept.String                  => stringUType.as
-      case Concept.LocalDate               => localDateUType.as
-      case Concept.Month                   => monthUType.as
-      case Concept.LocalTime               => localTimeUType.as
-      case Concept.Char                    => charUType.as
-      case Concept.Unit                    => unitUType.as
+      case Concept.Boolean()               => boolUType.as
+      case Concept.Byte()                  => byteUType.as
+      case Concept.Decimal()               => decimalUType.as
+      case Concept.Integer()               => bigIntUType.as
+      case Concept.Int16()                 => shortUType.as
+      case Concept.Int32()                 => intUType.as
+      case Concept.Int64()                 => intUType.as
+      case Concept.String()                => stringUType.as
+      case Concept.LocalDate()             => localDateUType.as
+      case Concept.Month()                 => monthUType.as
+      case Concept.LocalTime()             => localTimeUType.as
+      case Concept.Char()                  => charUType.as
+      case Concept.Unit()                  => unitUType.as
       case Concept.Alias(name, _)          => toUTypeConverter(T.reference(name))
       case Concept.Enum(name, _)           => toUTypeConverter(T.reference(name))
       case Concept.List(elementType)       => listUType(conceptToTypeIR(elementType)).as
@@ -102,9 +102,9 @@ object ToMorphirType {
         val types: scala.List[UType] = values.map(conceptToTypeIR(_).morphirType)
         toUTypeConverter(T.tupleVar(types: _*))
 
-      case Concept.Any      => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
-      case Concept.Nothing  => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
-      case Concept.Union(_) => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
+      case Concept.Any()     => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
+      case Concept.Nothing() => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
+      case Concept.Union(_)  => toUTypeConverter(sdk.Basics.neverType) // TODO: map this to the correct type
     }
 
   final class SummonPartiallyApplied[A](private val dummy: Boolean = true) extends AnyVal {

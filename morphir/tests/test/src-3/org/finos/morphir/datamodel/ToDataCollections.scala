@@ -17,7 +17,7 @@ object ToDataCollections extends MorphirBaseSpec {
     test("Primitive List - Empty") {
       assertTrue(
         Deriver.toData(List[Int]()) ==
-          Data.List.empty(Concept.Int32)
+          Data.List.empty(Concept.Int32())
       )
     },
     test("Primitive Map") {
@@ -35,7 +35,7 @@ object ToDataCollections extends MorphirBaseSpec {
       )
     },
     test("Empty Map") {
-      val schema = Data.Map.empty(Concept.String, Concept.Int32)
+      val schema = Data.Map.empty(Concept.String(), Concept.Int32())
       assertTrue(
         Deriver.toData(LinkedHashMap[String, Int]()) == schema,
         Deriver.toData(ListMap[String, Int]()) == schema,

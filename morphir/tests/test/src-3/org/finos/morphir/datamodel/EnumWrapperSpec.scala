@@ -28,7 +28,7 @@ object EnumWrapperSpec extends MorphirBaseSpec {
     test("Bool Deriver") {
       given CustomDeriver[MyBool] = Data.Boolean.deriveEnumWrapper("MyBoolLabel", _.value)
       val myBoolData              = Data.Boolean(true)
-      val maker                   = enumMaker("MyBoolLabel", myBoolData, Concept.Boolean)
+      val maker                   = enumMaker("MyBoolLabel", myBoolData, Concept.Boolean())
       val myBool                  = MyBool(true)
       val myBoolDeriver           = Deriver.gen[MyBool]
       assertTrue(
@@ -39,7 +39,7 @@ object EnumWrapperSpec extends MorphirBaseSpec {
     test("Byte Deriver") {
       given CustomDeriver[MyByte] = Data.Byte.deriveEnumWrapper("MyByteLabel", _.value)
       val myByteData              = Data.Byte(1)
-      val maker                   = enumMaker("MyByteLabel", myByteData, Concept.Byte)
+      val maker                   = enumMaker("MyByteLabel", myByteData, Concept.Byte())
       val myByte                  = MyByte(1.toByte)
       val myByteDeriver           = Deriver.gen[MyByte]
       assertTrue(
@@ -50,7 +50,7 @@ object EnumWrapperSpec extends MorphirBaseSpec {
     test("Decimal Deriver") {
       given CustomDeriver[MyDecimal] = Data.Decimal.deriveEnumWrapper("MyDecimalLabel", _.value)
       val myDecimalData              = Data.Decimal(BigDecimal(123))
-      val maker                      = enumMaker("MyDecimalLabel", myDecimalData, Concept.Decimal)
+      val maker                      = enumMaker("MyDecimalLabel", myDecimalData, Concept.Decimal())
       val myDecimal                  = MyDecimal(BigDecimal(123))
       val myDecimalDeriver           = Deriver.gen[MyDecimal]
       assertTrue(
@@ -61,7 +61,7 @@ object EnumWrapperSpec extends MorphirBaseSpec {
     test("Integer Deriver") {
       given CustomDeriver[MyInteger] = Data.Integer.deriveEnumWrapper("MyIntegerLabel", _.value)
       val myIntegerData              = Data.Integer(123)
-      val maker                      = enumMaker("MyIntegerLabel", myIntegerData, Concept.Integer)
+      val maker                      = enumMaker("MyIntegerLabel", myIntegerData, Concept.Integer())
       val myInteger                  = MyInteger(123)
       val myIntegerDeriver           = Deriver.gen[MyInteger]
       assertTrue(
@@ -72,7 +72,7 @@ object EnumWrapperSpec extends MorphirBaseSpec {
     test("Int16 Deriver") {
       given CustomDeriver[MyInt16] = Data.Int16.deriveEnumWrapper("MyInt16Label", _.value)
       val myInt16Data              = Data.Int16(123)
-      val maker                    = enumMaker("MyInt16Label", myInt16Data, Concept.Int16)
+      val maker                    = enumMaker("MyInt16Label", myInt16Data, Concept.Int16())
       val myInt16                  = MyInt16(123)
       val myInt16Deriver           = Deriver.gen[MyInt16]
       assertTrue(
@@ -83,7 +83,7 @@ object EnumWrapperSpec extends MorphirBaseSpec {
     test("Int32 Deriver") {
       given CustomDeriver[MyInt32] = Data.Int32.deriveEnumWrapper("MyInt32Label", _.value)
       val myInt32Data              = Data.Int32(123)
-      val maker                    = enumMaker("MyInt32Label", myInt32Data, Concept.Int32)
+      val maker                    = enumMaker("MyInt32Label", myInt32Data, Concept.Int32())
       val myInt32                  = MyInt32(123)
       val myInt32Deriver           = Deriver.gen[MyInt32]
       assertTrue(
@@ -94,7 +94,7 @@ object EnumWrapperSpec extends MorphirBaseSpec {
     test("Int64 Deriver") {
       given CustomDeriver[MyInt64] = Data.Int64.deriveEnumWrapper("MyInt64Label", _.value)
       val myInt64Data              = Data.Int64(123)
-      val maker                    = enumMaker("MyInt64Label", myInt64Data, Concept.Int64)
+      val maker                    = enumMaker("MyInt64Label", myInt64Data, Concept.Int64())
       val myInt64                  = MyInt64(123)
       val myInt64Deriver           = Deriver.gen[MyInt64]
       assertTrue(
@@ -105,7 +105,7 @@ object EnumWrapperSpec extends MorphirBaseSpec {
     test("String Deriver") {
       given CustomDeriver[MyString] = Data.String.deriveEnumWrapper("MyStringLabel", _.value)
       val myStringData              = Data.String("123")
-      val maker                     = enumMaker("MyStringLabel", myStringData, Concept.String)
+      val maker                     = enumMaker("MyStringLabel", myStringData, Concept.String())
       val myString                  = MyString("123")
       val myStringDeriver           = Deriver.gen[MyString]
       assertTrue(
@@ -116,7 +116,7 @@ object EnumWrapperSpec extends MorphirBaseSpec {
     test("LocalDate Deriver") {
       given CustomDeriver[MyLocalDate] = Data.LocalDate.deriveEnumWrapper("MyLocalDateLabel", _.value)
       val myLocalDateData              = Data.LocalDate(java.time.LocalDate.now)
-      val maker                        = enumMaker("MyLocalDateLabel", myLocalDateData, Concept.LocalDate)
+      val maker                        = enumMaker("MyLocalDateLabel", myLocalDateData, Concept.LocalDate())
       val myLocalDate                  = MyLocalDate(java.time.LocalDate.now)
       val myLocalDateDeriver           = Deriver.gen[MyLocalDate]
       assertTrue(
@@ -127,7 +127,7 @@ object EnumWrapperSpec extends MorphirBaseSpec {
     test("Char Deriver") {
       given CustomDeriver[MyChar] = Data.Char.deriveEnumWrapper("MyCharLabel", _.value)
       val myCharData              = Data.Char('a')
-      val maker                   = enumMaker("MyCharLabel", myCharData, Concept.Char)
+      val maker                   = enumMaker("MyCharLabel", myCharData, Concept.Char())
       val myChar                  = MyChar('a')
       val myCharDeriver           = Deriver.gen[MyChar]
       assertTrue(myCharDeriver.concept == maker.concept, myCharDeriver.derive(myChar) == maker.construct(myCharData))

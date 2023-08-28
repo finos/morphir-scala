@@ -9,7 +9,7 @@ extension (v: Data.Boolean.type) {
       fromScalaType: T => Boolean
   ): CustomDeriver[T] =
     new CustomDeriver[T] {
-      val wrapper                              = SingleEnumWrapper(label, Concept.Boolean, partialName)
+      val wrapper                              = SingleEnumWrapper(label, Concept.Boolean(), partialName)
       override def derive(value: T): Data.Case = wrapper.construct(Data.Boolean(fromScalaType(value)))
       override def concept: Concept            = wrapper.concept
     }
@@ -30,7 +30,7 @@ extension (v: Data.Byte.type) {
       fromScalaType: T => Byte
   ): CustomDeriver[T] =
     new CustomDeriver[T] {
-      val wrapper                              = SingleEnumWrapper(label, Concept.Byte, partialName)
+      val wrapper                              = SingleEnumWrapper(label, Concept.Byte(), partialName)
       override def derive(value: T): Data.Case = wrapper.construct(Data.Byte(fromScalaType(value)))
       override def concept: Concept            = wrapper.concept
     }
@@ -51,7 +51,7 @@ extension (v: Data.Decimal.type) {
       fromScalaType: T => scala.BigDecimal
   ): CustomDeriver[T] =
     new CustomDeriver[T] {
-      val wrapper                              = SingleEnumWrapper(label, Concept.Decimal, partialName)
+      val wrapper                              = SingleEnumWrapper(label, Concept.Decimal(), partialName)
       override def derive(value: T): Data.Case = wrapper.construct(Data.Decimal(fromScalaType(value)))
       override def concept: Concept            = wrapper.concept
     }
@@ -72,7 +72,7 @@ extension (v: Data.Integer.type) {
       fromScalaType: T => scala.BigInt
   ): CustomDeriver[T] =
     new CustomDeriver[T] {
-      val wrapper                              = SingleEnumWrapper(label, Concept.Integer, partialName)
+      val wrapper                              = SingleEnumWrapper(label, Concept.Integer(), partialName)
       override def derive(value: T): Data.Case = wrapper.construct(Data.Integer(fromScalaType(value)))
       override def concept: Concept            = wrapper.concept
     }
@@ -93,7 +93,7 @@ extension (v: Data.Int16.type) {
       fromScalaType: T => Short
   ): CustomDeriver[T] =
     new CustomDeriver[T] {
-      val wrapper                              = SingleEnumWrapper(label, Concept.Int16, partialName)
+      val wrapper                              = SingleEnumWrapper(label, Concept.Int16(), partialName)
       override def derive(value: T): Data.Case = wrapper.construct(Data.Int16(fromScalaType(value)))
       override def concept: Concept            = wrapper.concept
     }
@@ -114,7 +114,7 @@ extension (v: Data.Int32.type) {
       fromScalaType: T => Int
   ): CustomDeriver[T] =
     new CustomDeriver[T] {
-      val wrapper                              = SingleEnumWrapper(label, Concept.Int32, partialName)
+      val wrapper                              = SingleEnumWrapper(label, Concept.Int32(), partialName)
       override def derive(value: T): Data.Case = wrapper.construct(Data.Int32(fromScalaType(value)))
       override def concept: Concept            = wrapper.concept
     }
@@ -135,7 +135,7 @@ extension (v: Data.Int64.type) {
       fromScalaType: T => Long
   ): CustomDeriver[T] =
     new CustomDeriver[T] {
-      val wrapper                              = SingleEnumWrapper(label, Concept.Int64, partialName)
+      val wrapper                              = SingleEnumWrapper(label, Concept.Int64(), partialName)
       override def derive(value: T): Data.Case = wrapper.construct(Data.Int64(fromScalaType(value)))
       override def concept: Concept            = wrapper.concept
     }
@@ -156,7 +156,7 @@ extension (v: Data.String.type) {
       fromScalaType: T => String
   ): CustomDeriver[T] =
     new CustomDeriver[T] {
-      val wrapper                              = SingleEnumWrapper(label, Concept.String, partialName)
+      val wrapper                              = SingleEnumWrapper(label, Concept.String(), partialName)
       override def derive(value: T): Data.Case = wrapper.construct(Data.String(fromScalaType(value)))
       override def concept: Concept            = wrapper.concept
     }
@@ -177,7 +177,7 @@ extension (v: Data.LocalDate.type) {
       fromScalaType: T => java.time.LocalDate
   ): CustomDeriver[T] =
     new CustomDeriver[T] {
-      val wrapper                              = SingleEnumWrapper(label, Concept.LocalDate, partialName)
+      val wrapper                              = SingleEnumWrapper(label, Concept.LocalDate(), partialName)
       override def derive(value: T): Data.Case = wrapper.construct(Data.LocalDate(fromScalaType(value)))
       override def concept: Concept            = wrapper.concept
     }
@@ -198,7 +198,7 @@ extension (v: Data.Month.type) {
       fromScalaType: T => java.time.Month
   ): CustomDeriver[T] =
     new CustomDeriver[T] {
-      val wrapper                              = SingleEnumWrapper(label, Concept.Month, partialName)
+      val wrapper                              = SingleEnumWrapper(label, Concept.Month(), partialName)
       override def derive(value: T): Data.Case = wrapper.construct(Data.Month(fromScalaType(value)))
       override def concept: Concept            = wrapper.concept
     }
@@ -219,7 +219,7 @@ extension (v: Data.LocalTime.type) {
       fromScalaType: T => java.time.LocalTime
   ): CustomDeriver[T] =
     new CustomDeriver[T] {
-      val wrapper                              = SingleEnumWrapper(label, Concept.LocalTime, partialName)
+      val wrapper                              = SingleEnumWrapper(label, Concept.LocalTime(), partialName)
       override def derive(value: T): Data.Case = wrapper.construct(Data.LocalTime(fromScalaType(value)))
       override def concept: Concept            = wrapper.concept
     }
@@ -240,7 +240,7 @@ extension (v: Data.Char.type) {
       fromScalaType: T => Char
   ): CustomDeriver[T] =
     new CustomDeriver[T] {
-      val wrapper                              = SingleEnumWrapper(label, Concept.Char, partialName)
+      val wrapper                              = SingleEnumWrapper(label, Concept.Char(), partialName)
       override def derive(value: T): Data.Case = wrapper.construct(Data.Char(fromScalaType(value)))
       override def concept: Concept            = wrapper.concept
     }

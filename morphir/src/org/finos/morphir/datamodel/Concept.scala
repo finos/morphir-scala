@@ -8,8 +8,12 @@ import scala.annotation.tailrec
 import zio.Chunk
 import zio.prelude.fx.ZPure
 
+import scala.collection.immutable.List
+
 //TODO: Keep this non-GADT version as Concept and make a GADT version `Schema[A]`
 sealed trait Concept { self =>
+  def meta: Concept.Meta
+
   def collectAll: Chunk[Concept] =
     (new Concept.Collector[Concept](PartialFunction.fromFunction(x => x)).of(self))
       .run(Chunk[Concept]()) match {
@@ -26,7 +30,7 @@ sealed trait Concept { self =>
   def getName: Option[FQName] =
     this match {
       case _: Concept.Basic[_] => None
-      case _: Concept.Any.type => None
+      case _: Concept.Any      => None
       case c: Concept.Record   => Some(c.namespace)
       case _: Concept.Struct   => None
       case c: Concept.Alias    => Some(c.name)
@@ -52,74 +56,161 @@ sealed trait Concept { self =>
 }
 
 object Concept {
-  sealed trait Basic[+A] extends Concept
+  case class Meta(typeParams: scala.List[Concept])
+  object Meta {
+    def default = Meta(scala.List())
+  }
+
+  sealed abstract class Basic[+A] extends Concept
 
   object Basic {
-    type Boolean = Concept.Boolean.type
+    type Boolean = Concept.Boolean
     val Boolean = Concept.Boolean
-    type Byte = Concept.Byte.type
+    type Byte = Concept.Byte
     val Byte = Concept.Byte
-    type Decimal = Concept.Decimal.type
+    type Decimal = Concept.Decimal
     val Decimal = Concept.Decimal
-    type Integer = Concept.Integer.type
+    type Integer = Concept.Integer
     val Integer = Concept.Integer
-    type Int16 = Concept.Int16.type
+    type Int16 = Concept.Int16
     val Int16 = Concept.Int16
-    type Int32 = Concept.Int32.type
+    type Int32 = Concept.Int32
     val Int32 = Concept.Int32
-    type String = Concept.String.type
+    type String = Concept.String
     val String = Concept.String
-    type LocalDate = Concept.LocalDate.type
+    type LocalDate = Concept.LocalDate
     val LocalDate = Concept.LocalDate
-    type Month = Concept.Month.type
+    type Month = Concept.Month
     val Month = Concept.Month
-    type LocalTime = Concept.LocalTime.type
+    type LocalTime = Concept.LocalTime
     val LocalTime = Concept.LocalTime
-    type Char = Concept.Char.type
+    type Char = Concept.Char
     val Char = Concept.Char
-    type Unit = Concept.Unit.type
+    type Unit = Concept.Unit
     val Unit = Concept.Unit
   }
 
   /// Represents any concept but also means that you have no reasonable idea of the shape of the associated data
-  case object Any extends Concept
+  case class Any() extends Concept {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Any { override def meta = newMeta }
+  }
 
-  case object Boolean   extends Basic[scala.Boolean]
-  case object Byte      extends Basic[Byte]
-  case object Decimal   extends Basic[scala.BigDecimal]
-  case object Integer   extends Basic[scala.BigInt]
-  case object Int16     extends Basic[Short]
-  case object Int32     extends Basic[Int]
-  case object Int64     extends Basic[Long]
-  case object String    extends Basic[java.lang.String]
-  case object LocalDate extends Basic[java.time.LocalDate]
-  case object Month     extends Basic[java.time.Month]
-  case object LocalTime extends Basic[java.time.LocalTime]
-  case object Char      extends Basic[scala.Char]
-  case object Unit      extends Basic[scala.Unit]
-  case object Nothing   extends Basic[scala.Nothing]
+  case class Boolean() extends Basic[scala.Boolean] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Boolean { override def meta = newMeta }
+  }
 
-  case class Record(namespace: FQName, fields: scala.List[(Label, Concept)]) extends Concept {
-    def toStruct: Concept.Struct = Concept.Struct(fields: _*)
+  case class Byte() extends Basic[Byte] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Byte { override def meta = newMeta }
+  }
+
+  case class Decimal() extends Basic[scala.BigDecimal] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Decimal { override def meta = newMeta }
+  }
+
+  case class Integer() extends Basic[scala.BigInt] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Integer { override def meta = newMeta }
+  }
+
+  case class Int16() extends Basic[Short] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Int16 { override def meta = newMeta }
+  }
+
+  case class Int32() extends Basic[Int] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Int32 { override def meta = newMeta }
+  }
+
+  case class Int64() extends Basic[Long] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Int64 { override def meta = newMeta }
+  }
+
+  case class String() extends Basic[java.lang.String] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new String { override def meta = newMeta }
+  }
+
+  case class LocalDate() extends Basic[java.time.LocalDate] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new LocalDate { override def meta = newMeta }
+  }
+
+  case class Month() extends Basic[java.time.Month] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Month { override def meta = newMeta }
+  }
+
+  case class LocalTime() extends Basic[java.time.LocalTime] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new LocalTime { override def meta = newMeta }
+  }
+
+  case class Char() extends Basic[scala.Char] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Char { override def meta = newMeta }
+  }
+
+  case class Unit() extends Basic[scala.Unit] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Unit { override def meta = newMeta }
+  }
+
+  case class Nothing() extends Basic[scala.Nothing] {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Nothing { override def meta = newMeta }
+  }
+
+  case class Record(namespace: FQName, fields: scala.List[(Label, Concept)])
+      extends Concept { self =>
+    def toStruct                = new Struct(fields) { override def meta = self.meta }
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Record(namespace, fields) { override def meta = newMeta }
   }
   object Record {
     def apply(namespace: FQName, fields: (Label, Concept)*) = new Record(namespace, fields.toList)
   }
 
-  case class Struct(fields: scala.List[(Label, Concept)]) extends Concept
+  case class Struct(fields: scala.List[(Label, Concept)]) extends Concept {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Struct(fields) { override def meta = newMeta }
+  }
   object Struct {
     def apply(fields: (Label, Concept)*) = new Struct(fields.toList)
   }
 
-  case class Alias(name: FQName, value: Concept) extends Concept
+  case class Alias(name: FQName, value: Concept) extends Concept {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Alias(name, value) { override def meta = newMeta }
+  }
 
-  case class List(elementType: Concept) extends Concept
+  case class List(elementType: Concept) extends Concept {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new List(elementType) { override def meta = newMeta }
+  }
 
-  case class Map(keyType: Concept, valueType: Concept) extends Concept
+  case class Map(keyType: Concept, valueType: Concept) extends Concept {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Map(keyType, valueType) { override def meta = newMeta }
+  }
 
-  case class Set(elementType: Concept) extends Concept
+  case class Set(elementType: Concept) extends Concept {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Set(elementType) { override def meta = newMeta }
+  }
 
-  case class Tuple(values: scala.List[Concept]) extends Concept
+  case class Tuple(values: scala.List[Concept]) extends Concept {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Tuple(values) { override def meta = newMeta }
+  }
+  object Tuple {
+    def apply(values: Concept*) = new Tuple(values.toList)
+  }
 
   /**
    * We can only know if an optional-value is Some or None on the value-level, not the type-level because the
@@ -136,9 +227,15 @@ object Concept {
    * }}}
    * Coproduct types in other languages (e.g. Haskell) work similarly.
    */
-  case class Optional(elementType: Concept) extends Concept
+  case class Optional(elementType: Concept) extends Concept {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Optional(elementType) { override def meta = newMeta }
+  }
 
-  case class Result(errType: Concept, okType: Concept) extends Concept
+  case class Result(errType: Concept, okType: Concept) extends Concept {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Result(errType, okType) { override def meta = newMeta }
+  }
 
   /**
    * A discrimiated union type such as an ELM union (either with labels or not)
@@ -184,9 +281,13 @@ object Concept {
    *   )
    * }}}
    */
-  case class Enum(name: FQName, cases: scala.List[Enum.Case]) extends Concept
+  case class Enum(name: FQName, cases: scala.List[Enum.Case]) extends Concept {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Enum(name, cases) { override def meta = newMeta }
+  }
 
   object Enum {
+
     def apply(name: FQName, cases: Enum.Case*) =
       new Enum(name, cases.toList)
 
@@ -208,7 +309,14 @@ object Concept {
    *   Union(Schema.Int, Schema.String)
    * }}}
    */
-  case class Union(cases: scala.List[Concept]) extends Concept
+  case class Union(cases: scala.List[Concept]) extends Concept {
+    def meta                    = Meta.default
+    def withMeta(newMeta: Meta) = new Union(cases) { override def meta = newMeta }
+  }
+
+  object Union {
+    def apply(cases: Concept*) = new Union(cases.toList)
+  }
 
   /** Collector to help with Traversal */
   class Collector[T](p: PartialFunction[Concept, T])
