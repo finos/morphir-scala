@@ -5,8 +5,9 @@ import Dict exposing (Dict)
 {-
 -}
 
-returnDictionaryTest : () -> Dict Int String
-returnDictionaryTest _ = 
+--Test: Dict/fromList
+dictFromListTest : () -> Dict Int String
+dictFromListTest _ =
     Dict.fromList [(1, "Red"), (2, "Blue"), (3, "Orange"), (4, "White"), (5, "Green")]
 
 --Test: Dict/Get
