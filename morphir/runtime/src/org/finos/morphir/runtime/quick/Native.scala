@@ -125,6 +125,11 @@ object Native {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive(Result.unwrap(a).asInstanceOf[Boolean] || Result.unwrap(b).asInstanceOf[Boolean])
   )
+  val not: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    1,
+    (a: Result[Unit, Type.UType]) =>
+      Result.Primitive(!Result.unwrap(a).asInstanceOf[Boolean])
+  )
   val plus: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
@@ -254,6 +259,7 @@ object Native {
     FQName.fromString("Morphir.SDK:Basics:equal")               -> equal,
     FQName.fromString("Morphir.SDK:Basics:and")                 -> and,
     FQName.fromString("Morphir.SDK:Basics:or")                  -> or,
+    FQName.fromString("Morphir.SDK:Basics:not")                 -> not,
     FQName.fromString("Morphir.SDK:Basics:pi")                  -> pi,
     FQName.fromString("Morphir.SDK:Basics:add")                 -> plus,
     FQName.fromString("Morphir.SDK:Basics:subtract")            -> subtract,
