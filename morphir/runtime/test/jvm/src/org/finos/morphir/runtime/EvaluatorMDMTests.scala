@@ -383,6 +383,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Decimal(4.0),
           Data.Decimal(5.0)
         )),
+        testEvaluation("Map")("listTests", "listMapTest2")(Data.List(
+          Data.Boolean(false),
+          Data.Boolean(true),
+          Data.Boolean(false)
+        )),
         testEvalMultiple("Append (and infer type")(
           "ListTests",
           "listAppend",
@@ -561,7 +566,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )(Data.Tuple(Data.Int(3), Data.String("Green")))
       ),
       suite("Dictionary Tests")(
-        testEvaluation("Returns a dictionary")("dictionaryTests", "returnDictionaryTest")(Data.Map(
+        testEvaluation("Returns a dictionary")("dictionaryTests", "dictFromListTest")(Data.Map(
           (Data.Int(1), Data.String("Red")),
           (Data.Int(2), Data.String("Blue")),
           (Data.Int(3), Data.String("Orange")),
@@ -611,6 +616,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest6")(Data.Boolean(true)),
         testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest7")(Data.Boolean(true)),
         testEvaluation("Or")("sdkBasicsTests", "sdkOrTest")(Data.Boolean(true)),
+        testEvaluation("Not")("sdkBasicsTests", "sdkNotTest")(Data.Boolean(false)),
         testEvaluation("LogBase")("sdkBasicsTests", "sdkLogBaseTest")(Data.Decimal(2.0)),
         testEvaluation("Plus overflow")("sdkBasicsTests", "sdkIntOverflowTest")(
           Data.Int(3)
