@@ -111,6 +111,11 @@ object StringSDK {
       Result.Primitive(Result.unwrap(a).toString)
   )
   val fromFloat: SDKValue[Unit, Type.UType] = fromInt
+  val toInt: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
+    1,
+    (a: Result[Unit, Type.UType]) => {
+      val optional = Result.unwrap(a).asInstanceOf[String].toIntOption
+    }
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:String:append") -> append,
     FQName.fromString("Morphir.SDK:String:right")  -> right
