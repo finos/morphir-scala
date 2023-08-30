@@ -658,7 +658,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       suite("String Tests")(
         testEvaluation("left")("StringTests", "stringLeftTest")(Data.String("Mu")),
         testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
-        testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25"))
+        testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
+        testEvaluation("fromFloat")("StringTests", "stringFromFloatTest")(Data.String("1.5")),
+        testEvaluation("toInt")("StringTests", "stringToIntTest")(Data.Optional.Some(Data.Int(25))),
+        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),
+        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false))
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
