@@ -1,11 +1,11 @@
 package org.finos.morphir.runtime.quick
 
-import org.finos.morphir.naming._
+import org.finos.morphir.naming.*
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.{Pattern, Value}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
 import Helpers.{listToTuple, matchPatternCase, unpackLit}
-import SDKValue.{SDKNativeFunction, SDKNativeValue}
+import SDKValue.{SDKNativeFunction, SDKNativeInnerFunction, SDKNativeValue}
 import org.finos.morphir.runtime.{
   ConstructorNotFound,
   DefinitionNotFound,
@@ -13,8 +13,8 @@ import org.finos.morphir.runtime.{
   MissingField,
   UnexpectedType,
   UnmatchedPattern,
-  VariableNotFound,
-  Utils
+  Utils,
+  VariableNotFound
 }
 
 object Loop {
@@ -43,7 +43,7 @@ object Loop {
       case Variable(va, name)                      => handleVariable(va, name, store)
     }
 
-  def handleLiteral[TA, VA](va: VA, literal: Lit) = Result.Primitive[TA, VA](unpackLit(literal))
+  def handleLiteral[TA, VA](va: VA, literal: Lit) = Result.Primitive.makeOrFail[TA, VA, Any](unpackLit(literal))
 
   def handleApply[TA, VA](
       va: VA,
@@ -53,6 +53,15 @@ object Loop {
   ): Result[TA, VA] = {
     val functionValue = loop(function, store)
     val argValue      = loop(argument, store)
+    handleApplyResult(va, functionValue, argValue, store)
+  }
+
+  def handleApplyResult[TA, VA](
+      va: VA,
+      functionValue: Result[TA, VA],
+      argValue: Result[TA, VA],
+      store: Store[TA, VA]
+  ): Result[TA, VA] =
     functionValue match {
       case Result.FieldFunction(name) =>
         argValue match {
@@ -113,7 +122,6 @@ object Loop {
         }
       case other => throw new UnexpectedType(s"$other is not a function")
     }
-  }
 
   def handleDestructure[TA, VA](
       va: VA,
@@ -260,8 +268,11 @@ object Loop {
             List(),
             store.callStack
           )
-      case Some(SDKNativeValue(value))                  => value
-      case Some(SDKNativeFunction(arguments, function)) => Result.NativeFunction(arguments, List(), function)
+      case Some(SDKNativeValue(value)) => value
+      case Some(SDKNativeFunction(function)) =>
+        Result.NativeFunction(function.numArgs, List(), function.f)
+      case Some(SDKNativeInnerFunction(storeFunction)) =>
+        Result.NativeFunction(storeFunction.numArgs, List(), storeFunction.f(store))
     }
 
   def handleTuple[TA, VA](va: VA, elements: List[Value[TA, VA]], store: Store[TA, VA]): Result[TA, VA] = {

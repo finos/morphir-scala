@@ -48,6 +48,7 @@ object Data {
   sealed trait Basic[+A]                           extends Data
   case class Boolean(value: scala.Boolean)         extends Basic[scala.Boolean]       { val shape = Concept.Boolean   }
   case class Byte(value: scala.Byte)               extends Basic[Byte]                { val shape = Concept.Byte      }
+  case class Float(value: scala.Double)            extends Basic[scala.Double]        { val shape = Concept.Float     }
   case class Decimal(value: scala.BigDecimal)      extends Basic[scala.BigDecimal]    { val shape = Concept.Decimal   }
   case class Integer(value: scala.BigInt)          extends Basic[scala.BigInt]        { val shape = Concept.Integer   }
   case class Int16(value: scala.Short)             extends Basic[Short]               { val shape = Concept.Int16     }

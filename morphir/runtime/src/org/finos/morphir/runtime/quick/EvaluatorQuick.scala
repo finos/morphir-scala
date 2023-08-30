@@ -75,27 +75,29 @@ object EvaluatorQuick {
       case (first, second)             => Result.Tuple((wrap(first), wrap(second)))
       case (first, second, third)      => Result.Tuple((wrap(first), wrap(second), wrap(third)))
       // TODO: Option, Result, LocalDate
-      case primitive => Result.Primitive(primitive) // TODO: Handle each case for safety's sake
+      case intType: IntType => Result.Primitive.Long(intType.toLong)
+      case primitive        => Result.Primitive.makeOrFail(primitive)
     }
 
   def fromNative[TA, VA](native: NativeFunction): SDKValue[TA, VA] =
     native match {
       case fn: DynamicNativeFunction2[_, _, _] =>
-        val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
-          val unwrappedArg1 = unwrap(arg1)
-          val unwrappedArg2 = unwrap(arg2)
-          val res           = fn.invokeDynamic(unwrappedArg1, unwrappedArg2)
-          wrap(res)
-        }
-        SDKValue.SDKNativeFunction(fn.arity, f)
+        val f = {
+          (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) =>
+            val unwrappedArg1 = unwrap(arg1)
+            val unwrappedArg2 = unwrap(arg2)
+            val res           = fn.invokeDynamic(unwrappedArg1, unwrappedArg2)
+            wrap(res)
+        }.asInstanceOf[Function2[Result[TA, VA], Result[TA, VA], Result[TA, VA]]]
+        SDKValue.SDKNativeFunction(NativeFunctionSignature.Fun2(f))
       case nf: NativeFunction2[_, _, _] =>
-        val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
+        val f = { (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) =>
           val unwrappedArg1 = unwrap(arg1)
           val unwrappedArg2 = unwrap(arg2)
           val res           = nf.invokeDynamic(unwrappedArg1, unwrappedArg2)
           wrap(res)
-        }
-        SDKValue.SDKNativeFunction(nf.arity, f)
+        }.asInstanceOf[Function2[Result[TA, VA], Result[TA, VA], Result[TA, VA]]]
+        SDKValue.SDKNativeFunction(NativeFunctionSignature.Fun2(f))
     }
 
   def typeToConcept(tpe: Type.Type[Unit], dists: Distributions, boundTypes: Map[Name, Concept]): Concept =
@@ -114,7 +116,7 @@ object EvaluatorQuick {
       case StringRef()    => Concept.String
       case BoolRef()      => Concept.Boolean
       case CharRef()      => Concept.Char
-      case FloatRef()     => Concept.Decimal
+      case FloatRef()     => Concept.Float
       case DecimalRef()   => Concept.Decimal
       case LocalDateRef() => Concept.LocalDate
       case LocalTimeRef() => Concept.LocalTime
@@ -182,47 +184,38 @@ object EvaluatorQuick {
           Data.Record(qName, tuples.toList)
         }
 
-      case (Concept.Int16, Result.Primitive(value: Int)) =>
+      case (Concept.Int16, Result.Primitive.Int(value)) =>
         Data.Int16(value.toShort)
-      case (Concept.Int16, Result.Primitive(value: Long)) =>
-        Data.Int16(value.toShort)
-      case (Concept.Int16, Result.Primitive(value: IntType)) =>
-        Data.Int16(value.toInt.toShort)
-
-      case (Concept.Int32, Result.Primitive(value: Int)) =>
+      case (Concept.Int32, Result.Primitive.Int(value)) =>
+        Data.Int32(value)
+      case (Concept.Int32, Result.Primitive.LongBounded(value)) =>
+        // TODO Better error for this case
         Data.Int32(value.toInt)
-      case (Concept.Int32, Result.Primitive(value: Long)) =>
-        Data.Int32(value.toInt)
-      case (Concept.Int32, Result.Primitive(value: IntType)) =>
-        Data.Int32(value.toInt)
+      case (Concept.Int64, Result.Primitive.LongBounded(value)) =>
+        Data.Int64(value)
 
-      case (Concept.Int64, Result.Primitive(value: Int)) =>
-        Data.Int64(value.toLong)
-      case (Concept.Int64, Result.Primitive(value: Long)) =>
-        Data.Int64(value.toLong)
-      case (Concept.Int64, Result.Primitive(value: IntType)) =>
-        Data.Int64(value.toLong)
-
-      case (Concept.String, Result.Primitive(value: String)) =>
+      case (Concept.String, Result.Primitive.String(value)) =>
         Data.String(value)
-      case (Concept.Boolean, Result.Primitive(value: Boolean)) =>
+      case (Concept.Boolean, Result.Primitive.Boolean(value)) =>
         Data.Boolean(value)
-      case (Concept.Char, Result.Primitive(value: Char)) =>
+      case (Concept.Char, Result.Primitive.Char(value)) =>
         Data.Char(value)
       case (Concept.LocalDate, Result.LocalDate(value: java.time.LocalDate)) =>
         Data.LocalDate(value)
       case (Concept.LocalTime, Result.LocalTime(value: java.time.LocalTime)) =>
         Data.LocalTime(value)
-      case (Concept.Decimal, Result.Primitive(value: Double)) =>
-        Data.Decimal(scala.BigDecimal(value))
-      case (Concept.Decimal, Result.Primitive(value: Float)) =>
-        Data.Decimal(scala.BigDecimal(value.toDouble))
-      case (Concept.Decimal, Result.Primitive(value: Int)) =>
-        Data.Decimal(scala.BigDecimal(value))
-      case (Concept.Decimal, Result.Primitive(value: Long)) =>
-        Data.Decimal(scala.BigDecimal(value))
-      case (Concept.Decimal, Result.Primitive(value: BigDecimal)) =>
+
+      case (Concept.Float, Result.Primitive.Float(value)) =>
+        Data.Float(value.toDouble)
+      case (Concept.Float, Result.Primitive.Double(value)) =>
+        Data.Float(value)
+      case (Concept.Float, Result.Primitive.BigDecimal(value)) =>
+        Data.Float(value.toDouble)
+
+      // handles Primitive.Double/Float/Int/Long/BigDecimal
+      case (Concept.Decimal, Result.Primitive.DecimalBounded(value)) =>
         Data.Decimal(value)
+
       case (alias: Concept.Alias, result) => Data.Aliased(resultAndConceptToData(result, alias.value), alias)
       case (Concept.List(elementConcept), Result.ListResult(elements)) =>
         val inners = elements.map(element => resultAndConceptToData(element, elementConcept))
