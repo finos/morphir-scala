@@ -23,6 +23,12 @@ stringFromIntTest _ =
     fromInt 25
 --expected = "25"
 
+--Test: String/fromFloat
+stringFromFloatTest : () -> String
+stringFromFloatTest _ =
+    fromFloat 1.5
+--expected = "1.5"
+
 --Test: String/toInt
 stringToIntTest : () -> Maybe Int
 stringToIntTest _ =

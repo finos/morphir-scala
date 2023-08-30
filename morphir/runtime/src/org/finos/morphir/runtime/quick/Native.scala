@@ -112,7 +112,7 @@ object StringSDK {
     optional match {
       case Some(value) => Result.ConstructorResult(
           FQName.fromString("Morphir.SDK:Maybe:just"),
-          List(Result.Primitive[Unit, Type.UType](value))
+          List(Result.Primitive.Int[Unit, Type.UType](value))
         )
       case None => Result.ConstructorResult(
           FQName.fromString("Morphir.SDK:Maybe:nothing"),
