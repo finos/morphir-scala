@@ -16,3 +16,9 @@ stringRightTest : () -> String
 stringRightTest _ =
     right 2 "Scully"
 --expected = "ly"
+
+--Test: String/fromInt
+stringFromIntTest : () -> String
+stringFromIntTest _ =
+    fromInt 25
+--expected = "25"
