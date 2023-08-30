@@ -4,8 +4,10 @@ import org.finos.morphir.naming.*
 import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Value.{Pattern, Value}
+
 import scala.collection.mutable.LinkedHashMap
 import Name.toTitleCase
+import org.finos.morphir.runtime.UnexpectedType
 
 import scala.collection.mutable
 
@@ -32,14 +34,15 @@ object Result {
       case ListResult(elements) => elements.map(unwrap(_))
       case SetResult(elements)  => elements.map(unwrap(_))
       case Tuple(elements) =>
-        val listed = Helpers.tupleToList(elements).getOrElse(throw new Exception("Invalid tuple returned to top level"))
+        val listed =
+          Helpers.tupleToList(elements).getOrElse(throw new UnexpectedType("Invalid tuple returned to top level"))
         val mapped = listed.map(unwrap(_))
         Helpers.listToTuple(mapped)
       case Record(elements)                => elements.map { case (name, value) => name.toCamelCase -> unwrap(value) }
       case MapResult(elements)             => elements.map { case (key, value) => unwrap(key) -> unwrap(value) }
       case ConstructorResult(name, values) => (toTitleCase(name.localName), values.map(unwrap(_)))
       case other =>
-        throw new Exception(
+        throw new UnexpectedType(
           s"$other returned to top level, only Unit, Primitive, List, Maps, Sets, Tuples, Constructed Types and Records are supported"
         )
     }
@@ -48,7 +51,7 @@ object Result {
     arg match {
       case Result.ListResult(list) => list
       case _ =>
-        throw new Exception(
+        throw new UnexpectedType(
           s"Cannot unwrap the value `${arg}` into a primitive ListResult value. It is not a list result!"
         )
     }
@@ -57,7 +60,7 @@ object Result {
     arg match {
       case Result.MapResult(map) => map
       case _ =>
-        throw new Exception(
+        throw new UnexpectedType(
           s"Cannot unwrap the value `${arg}` into a primitive ListResult value. It is not a list result!"
         )
     }
@@ -66,11 +69,11 @@ object Result {
     arg match {
       case Primitive.Boolean(v) => v
       case _: Primitive[_, _, _] =>
-        throw new Exception(
+        throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a Boolean value because it was not a Primitive.Boolean"
         )
       case _ =>
-        throw new Exception(s"Cannot unwrap the value `${arg}` into a primitive Boolean. It is not a primitive!")
+        throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Boolean. It is not a primitive!")
     }
 
   def unwrapInt[TA, VA](arg: Result[TA, VA]): Int =
@@ -78,15 +81,15 @@ object Result {
       case Primitive.Int(v) => v
       case Primitive.Long(v) =>
         if (v > Integer.MAX_VALUE)
-          throw new Exception(s"Cannot unwrap ${arg} into an integer because it's value is too large")
+          throw new UnexpectedType(s"Cannot unwrap ${arg} into an integer because it's value is too large")
         else
           v.toInt
       case _: Primitive[_, _, _] =>
-        throw new Exception(
+        throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a Int value because it was not a Primitive.Int"
         )
       case _ =>
-        throw new Exception(s"Cannot unwrap the value `${arg}` into a primitive Int. It is not a primitive!")
+        throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Int. It is not a primitive!")
     }
 
   def unwrapLong[TA, VA](arg: Result[TA, VA]): Long =
@@ -94,34 +97,34 @@ object Result {
       case Primitive.Int(v)  => v.toLong
       case Primitive.Long(v) => v
       case _: Primitive[_, _, _] =>
-        throw new Exception(
+        throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a Long value because it was not a Primitive.Long"
         )
       case _ =>
-        throw new Exception(s"Cannot unwrap the value `${arg}` into a primitive Long. It is not a primitive!")
+        throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Long. It is not a primitive!")
     }
 
   def unwrapString[TA, VA](arg: Result[TA, VA]): String =
     arg match {
       case Primitive.String(v) => v
       case _: Primitive[_, _, _] =>
-        throw new Exception(
+        throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a String value because it was not a Primitive.String"
         )
       case _ =>
-        throw new Exception(s"Cannot unwrap the value `${arg}` into a primitive String. It is not a primitive!")
+        throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive String. It is not a primitive!")
     }
 
   def unwrapPrimitive[TA, VA](arg: Result[TA, VA]): Primitive[TA, VA, _] =
     arg match {
       case p: Primitive[_, _, _] => p.asInstanceOf[Primitive[TA, VA, _]]
-      case _                     => throw new Exception(s"Cannot unwrap the value `${arg}` into a primitive")
+      case _                     => throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive")
     }
 
   def unwrapNumeric[TA, VA](arg: Result[TA, VA]): Primitive.Numeric[TA, VA, _] =
     arg match {
       case p: Primitive.Numeric[_, _, _] => p.asInstanceOf[Primitive.Numeric[TA, VA, _]]
-      case _                             => throw new Exception(s"Cannot unwrap the value `${arg}` into a primitive")
+      case _ => throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive")
     }
 
   case class NumericsWithHelper[T](
@@ -147,7 +150,7 @@ object Result {
     val a = unwrapNumeric(arg1)
     val b = unwrapNumeric(arg2)
     if (a.numericType != b.numericType) {
-      throw new Exception(
+      throw new UnexpectedType(
         s"Error unwrapping the Primitive Numerics ${arg1} and ${arg2} into a common type, they have different numeric types: ${a.numericType} versus ${b.numericType}"
       )
     }
@@ -261,7 +264,7 @@ object Result {
     def makeOrFail[TA, VA, T](value: T): Primitive[TA, VA, T] =
       make[TA, VA, T](value) match {
         case Some(value) => value
-        case None => throw new Exception(
+        case None => throw new UnexpectedType(
             s"Cannot unwrap value `$value` into a primitive. It is a ${value.getClass}. Valid Primitive values are: Int, Long, String, Boolean, Char, Double, BigDecimal, Float"
           )
       }

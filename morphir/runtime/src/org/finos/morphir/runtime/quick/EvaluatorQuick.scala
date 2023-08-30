@@ -11,11 +11,18 @@ import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.Extractors.Types.*
-import org.finos.morphir.runtime.Distributions
+import org.finos.morphir.runtime.{
+  Distributions,
+  EvaluationError,
+  MissingField,
+  ResultDoesNotMatchType,
+  UnexpectedType,
+  UnmatchedPattern,
+  UnsupportedType
+}
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.runtime.services.sdk.*
-import org.finos.morphir.runtime.{EvaluationError, MissingField, ResultDoesNotMatchType, UnsupportedType}
 import zio.Chunk
 
 import scala.collection.mutable
@@ -52,7 +59,8 @@ object EvaluatorQuick {
       case Result.ListResult(elements) => elements.map(unwrap(_)) // Needed for non-higher-order head, presumably others
       case Result.SetResult(elements)  => elements.map(unwrap(_)) // Needed for non-higher-order head, presumably others
       case Result.Tuple(elements) => // Needed for tuple.first, possibly others
-        val listed = Helpers.tupleToList(elements).getOrElse(throw new Exception("Invalid tuple returned to top level"))
+        val listed =
+          Helpers.tupleToList(elements).getOrElse(throw new UnexpectedType("Invalid tuple returned to top level"))
         val mapped = listed.map(unwrap(_))
         Helpers.listToTuple(mapped)
       case Result.MapResult(elements) => elements.map { case (key, value) =>
@@ -134,7 +142,7 @@ object EvaluatorQuick {
       case TT.Reference(_, typeName, typeArgs) =>
         val lookedUp    = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dists, boundTypes))
-        lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
+        lookedUp.getOrElse(throw new UnexpectedType(s"Could not find spec for $typeName")) match {
           case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             typeToConcept(expr, dists, newBindings) match {
@@ -317,7 +325,7 @@ object EvaluatorQuick {
         curry(constructor, mappedArgs)
       case (a, b)    => V.tuple(Chunk(scalaToIR(a), scalaToIR(b)))
       case (a, b, c) => V.tuple(Chunk(scalaToIR(a), scalaToIR(b), scalaToIR(c)))
-      case other     => throw new Exception(s"I don't know how to decompose $other")
+      case other     => throw new UnmatchedPattern(s"I don't know how to decompose $other")
     }
 
 }
