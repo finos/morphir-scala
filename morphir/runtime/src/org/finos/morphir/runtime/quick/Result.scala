@@ -131,7 +131,15 @@ object Result {
       fractionalHelper: Option[scala.Fractional[T]],
       integralHelper: Option[scala.Integral[T]]
   )
+  case class NumericWithHelper[T](
+      value: T,
+      helper: scala.Numeric[T],
+      fractionalHelper: Option[scala.Fractional[T]],
+      integralHelper: Option[scala.Integral[T]]
+  )
 
+  // Without a function that unwraps both types together with the numeric, it is very difficult to get all the
+  // types to line up correctly for the Numeric instance to properly recognize what type it is supposed to take
   def unwrapNumericsWithHelper[TA, VA, N](
       arg1: Result[TA, VA],
       arg2: Result[TA, VA]
@@ -146,6 +154,16 @@ object Result {
     NumericsWithHelper[N](
       a.value.asInstanceOf[N],
       b.value.asInstanceOf[N],
+      a.numericHelper.asInstanceOf[scala.Numeric[N]],
+      a.fractionalHelper.asInstanceOf[Option[scala.Fractional[N]]],
+      a.integralHelper.asInstanceOf[Option[scala.Integral[N]]]
+    )
+  }
+
+  def unwrapNumericWithHelper[TA, VA, N](arg: Result[TA, VA]): NumericWithHelper[N] = {
+    val a = unwrapNumeric(arg)
+    NumericWithHelper[N](
+      a.value.asInstanceOf[N],
       a.numericHelper.asInstanceOf[scala.Numeric[N]],
       a.fractionalHelper.asInstanceOf[Option[scala.Fractional[N]]],
       a.integralHelper.asInstanceOf[Option[scala.Integral[N]]]

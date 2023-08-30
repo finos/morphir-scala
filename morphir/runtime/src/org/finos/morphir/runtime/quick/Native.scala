@@ -160,9 +160,8 @@ object Native {
     }
   val negate: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
     (a: Result[Unit, Type.UType]) =>
-      val numeric = a.unwrapNumeric
-      val negated = numeric.numericHelper.negate(numeric.value)
-      Result.Primitive.makeOrFail(negated)
+      val components = Result.unwrapNumericWithHelper[Unit, Type.UType, Any](a)
+      Result.Primitive.makeOrFail(components.helper.negate(components.value))
   }
 
   val toFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
