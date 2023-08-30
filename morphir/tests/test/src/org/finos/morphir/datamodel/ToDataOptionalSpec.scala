@@ -20,7 +20,7 @@ object ToDataOptionalSpec extends MorphirBaseSpec {
     test("Option None") {
       assertTrue(
         Deriver.toData(None) ==
-          Data.Optional.None(Concept.Nothing)
+          Data.Optional.None(Concept.Nothing())
       )
     }
   )

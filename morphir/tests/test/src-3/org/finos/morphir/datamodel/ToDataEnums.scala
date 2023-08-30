@@ -70,7 +70,7 @@ object ToDataEnumsSpec extends MorphirBaseSpec {
     Enum(
       gns % "Foo",
       Enum.Case(l"Bar"),
-      Enum.Case(l"Baz", (el"value", Concept.String))
+      Enum.Case(l"Baz", (el"value", Concept.String()))
     )
 
   def spec = suite("ToDataEnums Spec")(

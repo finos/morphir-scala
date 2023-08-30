@@ -14,67 +14,67 @@ trait DeriverInstances {
 
   implicit val booleanDeriver: CustomDeriver[Boolean] = new CustomDeriver[Boolean] {
     def derive(value: Boolean) = Data.Boolean(value)
-    def concept                = Concept.Boolean
+    def concept                = Concept.Boolean()
   }
 
   implicit val byteDeriver: CustomDeriver[Byte] = new CustomDeriver[Byte] {
     def derive(value: Byte) = Data.Byte(value)
-    def concept             = Concept.Byte
+    def concept             = Concept.Byte()
   }
 
   implicit val bigDecimalDeriver: CustomDeriver[BigDecimal] = new CustomDeriver[BigDecimal] {
     def derive(value: BigDecimal) = Data.Decimal(value)
-    def concept                   = Concept.Decimal
+    def concept                   = Concept.Decimal()
   }
 
   implicit val bigIntDeriver: CustomDeriver[BigInt] = new CustomDeriver[BigInt] {
     def derive(value: BigInt) = Data.Integer(value)
-    def concept               = Concept.Integer
+    def concept               = Concept.Integer()
   }
 
   implicit val shortDeriver: CustomDeriver[Short] = new CustomDeriver[Short] {
     def derive(value: Short) = Data.Int16(value)
-    def concept              = Concept.Int16
+    def concept              = Concept.Int16()
   }
 
   implicit val intDeriver: CustomDeriver[Int] = new CustomDeriver[Int] {
     def derive(value: Int) = Data.Int32(value)
-    def concept            = Concept.Int32
+    def concept            = Concept.Int32()
   }
 
   implicit val longDeriver: CustomDeriver[Long] = new CustomDeriver[Long] {
     def derive(value: Long) = Data.Int64(value)
-    def concept             = Concept.Int64
+    def concept             = Concept.Int64()
   }
 
   implicit val stringDeriver: CustomDeriver[String] = new CustomDeriver[String] {
     def derive(value: String) = Data.String(value)
-    def concept               = Concept.String
+    def concept               = Concept.String()
   }
 
   implicit val localDateDeriver: CustomDeriver[LocalDate] = new CustomDeriver[LocalDate] {
     def derive(value: LocalDate) = Data.LocalDate(value)
-    def concept                  = Concept.LocalDate
+    def concept                  = Concept.LocalDate()
   }
 
   implicit val monthDeriver: CustomDeriver[Month] = new CustomDeriver[Month] {
     def derive(value: Month) = Data.Month(value)
-    def concept              = Concept.Month
+    def concept              = Concept.Month()
   }
 
   implicit val localTimeDeriver: CustomDeriver[LocalTime] = new CustomDeriver[LocalTime] {
     def derive(value: LocalTime) = Data.LocalTime(value)
-    def concept                  = Concept.LocalTime
+    def concept                  = Concept.LocalTime()
   }
 
   implicit val charDeriver: CustomDeriver[Char] = new CustomDeriver[Char] {
     def derive(value: Char) = Data.Char(value)
-    def concept             = Concept.Char
+    def concept             = Concept.Char()
   }
 
   implicit val unitDeriver: CustomDeriver[Unit] = new CustomDeriver[Unit] {
     def derive(value: Unit) = Data.Unit
-    def concept             = Concept.Unit
+    def concept             = Concept.Unit()
   }
 
   implicit def eitherDeriver[L, R](implicit
@@ -103,7 +103,7 @@ trait DeriverInstances {
   implicit def leftDeriver[L](implicit leftDeriver: Deriver[L]): CustomDeriver[Left[L, Nothing]] =
     new CustomDeriver[Left[L, Nothing]] {
       def derive(value: Left[L, Nothing]) = Data.Result.Err(leftDeriver.derive(value.value), this.concept)
-      def concept: Concept.Result         = Concept.Result(leftDeriver.concept, Concept.Nothing)
+      def concept: Concept.Result         = Concept.Result(leftDeriver.concept, Concept.Nothing())
     }
 
   implicit def optionDeriver[T](implicit elementDeriver: Deriver[T]): CustomDeriver[Option[T]] =
@@ -123,8 +123,8 @@ trait DeriverInstances {
     }
 
   implicit val optionNoneDeriver: CustomDeriver[scala.None.type] = new CustomDeriver[scala.None.type] {
-    def derive(value: scala.None.type) = Data.Optional.None(Concept.Nothing)
-    def concept                        = Concept.Optional(Concept.Nothing)
+    def derive(value: scala.None.type) = Data.Optional.None(Concept.Nothing())
+    def concept                        = Concept.Optional(Concept.Nothing())
   }
 
   implicit def listDeriver[T](implicit elementDeriver: Deriver[T]): CustomDeriver[List[T]] =
