@@ -134,7 +134,11 @@ object StringSDK {
 
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:String:append") -> append,
-    FQName.fromString("Morphir.SDK:String:right")  -> right
+    FQName.fromString("Morphir.SDK:String:left")  -> left,
+    FQName.fromString("Morphir.SDK:String:right")  -> right,
+    FQName.fromString("Morphir.SDK:String:fromInt")  -> fromInt,
+    FQName.fromString("Morphir.SDK:String:fromFloat")  -> fromFloat,
+    FQName.fromString("Morphir.SDK:String:toInt")  -> toInt
   )
 }
 object Native {
