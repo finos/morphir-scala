@@ -92,7 +92,6 @@ object StringSDK {
     SDKValue.SDKNativeFunction.fun2((a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive.String(a.unwrapString + b.unwrapString)
     )
-
   val left: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     2,
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) => {
@@ -102,43 +101,39 @@ object StringSDK {
       )
     }
   )
-
   val right: SDKValue[Unit, Type.UType] =
     SDKValue.SDKNativeFunction.fun2((a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive.String(b.unwrapString.takeRight(a.unwrapInt))
     )
-
   val fromInt: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
     (a: Result[Unit, Type.UType]) =>
       Result.Primitive(Result.unwrap(a).toString)
   )
-
   val fromFloat: SDKValue[Unit, Type.UType] = fromInt
-
   val toInt: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction(
     1,
     (a: Result[Unit, Type.UType]) => {
       val optional = Result.unwrap(a).asInstanceOf[String].toIntOption
       optional match {
         case Some(value) => Result.ConstructorResult(
-          FQName.fromString("Morphir.SDK:Maybe:just"),
-          List(Result.Primitive[Unit, Type.UType](value))
-        )
+            FQName.fromString("Morphir.SDK:Maybe:just"),
+            List(Result.Primitive[Unit, Type.UType](value))
+          )
         case None => Result.ConstructorResult(
-          FQName.fromString("Morphir.SDK:Maybe:nothing"),
-          List()
-        )
+            FQName.fromString("Morphir.SDK:Maybe:nothing"),
+            List()
+          )
       }
     }
-
+  )
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:String:append") -> append,
-    FQName.fromString("Morphir.SDK:String:left")  -> left,
-    FQName.fromString("Morphir.SDK:String:right")  -> right,
-    FQName.fromString("Morphir.SDK:String:fromInt")  -> fromInt,
-    FQName.fromString("Morphir.SDK:String:fromFloat")  -> fromFloat,
-    FQName.fromString("Morphir.SDK:String:toInt")  -> toInt
+    FQName.fromString("Morphir.SDK:String:append")    -> append,
+    FQName.fromString("Morphir.SDK:String:left")      -> left,
+    FQName.fromString("Morphir.SDK:String:right")     -> right,
+    FQName.fromString("Morphir.SDK:String:fromInt")   -> fromInt,
+    FQName.fromString("Morphir.SDK:String:fromFloat") -> fromFloat,
+    FQName.fromString("Morphir.SDK:String:toInt")     -> toInt
   )
 }
 object Native {
