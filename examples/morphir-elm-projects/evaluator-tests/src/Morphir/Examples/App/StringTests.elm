@@ -22,3 +22,9 @@ stringFromIntTest : () -> String
 stringFromIntTest _ =
     fromInt 25
 --expected = "25"
+
+--Test: String/toInt
+stringToIntTest : () -> Maybe Int
+stringToIntTest _ =
+    toInt "25"
+--expected = Just 25
