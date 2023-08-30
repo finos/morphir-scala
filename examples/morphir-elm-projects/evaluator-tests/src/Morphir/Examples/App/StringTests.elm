@@ -34,3 +34,9 @@ stringIsEmptyTest1 : () -> Bool
 stringIsEmptyTest1 _ =
     isEmpty ""
 --expected = True
+
+--Test: String/isEmpty
+stringIsEmptyTest2 : () -> Bool
+stringIsEmptyTest2 _ =
+    isEmpty "content"
+--expected = False
