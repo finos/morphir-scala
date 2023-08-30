@@ -86,6 +86,7 @@ object Concept {
 
   case object Boolean   extends Basic[scala.Boolean]
   case object Byte      extends Basic[Byte]
+  case object Float     extends Basic[scala.Float]
   case object Decimal   extends Basic[scala.BigDecimal]
   case object Integer   extends Basic[scala.BigInt]
   case object Int16     extends Basic[Short]

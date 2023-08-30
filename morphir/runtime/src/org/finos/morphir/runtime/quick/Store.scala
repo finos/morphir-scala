@@ -16,8 +16,30 @@ sealed trait SDKValue[TA, VA]
 case class SDKConstructor[TA, VA](arguments: List[VA])
 object SDKValue {
   case class SDKValueDefinition[TA, VA](definition: Definition[TA, VA]) extends SDKValue[TA, VA]
-  case class SDKNativeFunction[TA, VA](arguments: Int, function: Any)   extends SDKValue[TA, VA]
-  case class SDKNativeValue[TA, VA](value: Result[TA, VA])              extends SDKValue[TA, VA]
+  case class SDKNativeFunction[TA, VA](function: NativeFunctionSignature[TA, VA]) extends SDKValue[TA, VA] {
+    def arguments = function.numArgs
+  }
+
+  object SDKNativeFunction {
+    import NativeFunctionSignature._
+    def fun1[TA, VA](f: Result[TA, VA] => Result[TA, VA]) =
+      new SDKNativeFunction(Fun1[TA, VA](f))
+    def fun2[TA, VA](f: (Result[TA, VA], Result[TA, VA]) => Result[TA, VA]) =
+      new SDKNativeFunction(Fun2[TA, VA](f))
+    def fun3[TA, VA](f: (Result[TA, VA], Result[TA, VA], Result[TA, VA]) => Result[TA, VA]) =
+      new SDKNativeFunction(Fun3[TA, VA](f))
+    def fun4[TA, VA](f: (Result[TA, VA], Result[TA, VA], Result[TA, VA], Result[TA, VA]) => Result[TA, VA]) =
+      new SDKNativeFunction(Fun4[TA, VA](f))
+    def fun5[TA, VA](f: (Result[TA, VA], Result[TA, VA], Result[TA, VA], Result[TA, VA]) => Result[TA, VA]) =
+      new SDKNativeFunction(Fun5[TA, VA](f))
+  }
+
+  case class SDKNativeInnerFunction[TA, VA](function: NativeFunctionSignatureAdv[TA, VA])
+      extends SDKValue[TA, VA] {
+    def arguments = function.numArgs
+  }
+
+  case class SDKNativeValue[TA, VA](value: Result[TA, VA]) extends SDKValue[TA, VA]
 }
 
 sealed trait StoredValue[TA, VA]

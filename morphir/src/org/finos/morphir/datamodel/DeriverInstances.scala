@@ -22,6 +22,16 @@ trait DeriverInstances {
     def concept             = Concept.Byte
   }
 
+  implicit val doubleDeriver: CustomDeriver[Double] = new CustomDeriver[Double] {
+    def derive(value: Double) = Data.Float(value)
+    def concept               = Concept.Float
+  }
+
+  implicit val floatDeriver: CustomDeriver[Float] = new CustomDeriver[Float] {
+    def derive(value: Float) = Data.Float(value.toDouble)
+    def concept              = Concept.Float
+  }
+
   implicit val bigDecimalDeriver: CustomDeriver[BigDecimal] = new CustomDeriver[BigDecimal] {
     def derive(value: BigDecimal) = Data.Decimal(value)
     def concept                   = Concept.Decimal

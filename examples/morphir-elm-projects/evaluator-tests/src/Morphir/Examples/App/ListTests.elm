@@ -61,11 +61,29 @@ listFlattenTest _ =
             flatten nested
 --expected = ["Red","Blue","Car","Plane","Truck"]
 
+--Test: List/Filter
+listFilterTest : () -> List Int
+listFilterTest _ =
+    filter (\n -> n > 3) [3,4,5,6]
+--expected = [4,5,6]
+
 --Test: List/Map
-listMapTest : () -> List Float
+listMapTest : () -> List Int
 listMapTest _ =
+    map (\n -> n + 1) [3,4,5]
+--expected = [4,5,6]
+
+--Test: List/Map Native
+listMapTestNative : () -> List Float
+listMapTestNative _ =
     map toFloat [3,4,5]
 --expected = [3.0,4.0,5.0]
+
+--Test: List/Map + Casting
+listMapTestWithCasting : () -> List Float
+listMapTestWithCasting _ =
+    map (\n -> n + 1) [3,4,5]
+--expected = [4.0,5.0,6.0]
 
 --Test: List/Map
 listMapTest2 : () -> List Bool

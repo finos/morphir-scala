@@ -68,6 +68,7 @@ object ToMorphirType {
     concept match {
       case Concept.Boolean                 => boolUType.as
       case Concept.Byte                    => byteUType.as
+      case Concept.Float                   => decimalUType.as
       case Concept.Decimal                 => decimalUType.as
       case Concept.Integer                 => bigIntUType.as
       case Concept.Int16                   => shortUType.as
