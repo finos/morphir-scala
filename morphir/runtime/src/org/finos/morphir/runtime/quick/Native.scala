@@ -229,6 +229,13 @@ object StringSDK {
   val fromFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1((a: Result[Unit, Type.UType]) =>
     Result.Primitive.String(a.unwrapFloat.toString)
   )
+  val toInt: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (a: Result[Unit, Type.UType]) =>
+    val optional = a.unwrapString.toIntOption
+    optional match {
+      case Some(value) => Result.ConstructorResult(
+        FQName.fromString("Morphir.SDK:Maybe:just"),
+        List(Result.Primitive.Int[Unit, Type.UType](value))
+      )
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:String:append") -> append,
     FQName.fromString("Morphir.SDK:String:right")  -> right,
