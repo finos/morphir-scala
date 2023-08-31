@@ -94,9 +94,8 @@ object StringSDK {
     )
   val left: SDKValue[Unit, Type.UType] =
     SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
-      val stringLength = Result.unwrap(b).asInstanceOf[String].length
       Result.Primitive.String(
-        Result.unwrap(b).asInstanceOf[String].dropRight(stringLength - Result.unwrap(a).asInstanceOf[Long].toInt)
+        b.unwrapString.dropRight(b.unwrapString.length - a.unwrapInt)
       )
     }
   val right: SDKValue[Unit, Type.UType] =
