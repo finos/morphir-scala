@@ -81,4 +81,4 @@ dictUpdateTest2 _ =
         aliceAndBob = Dict.fromList [ ( "Alice", 1 ), ( "Bob", 2 ) ]
     in
         Dict.update "Bob" (\_ -> Nothing) aliceAndBob
---expected = Dict.fromList [ ( "Alice", 1 ), ( "Bob", 6 ) ]
+--expected = Dict.fromList [ ( "Alice", 1 ) ]
