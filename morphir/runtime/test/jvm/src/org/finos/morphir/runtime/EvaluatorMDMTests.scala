@@ -388,17 +388,17 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int(5),
           Data.Int(6)
         )),
-        testEvaluation("Map")("listTests", "listMapTestNative")(Data.List(
+        testEvaluation("Map Native")("listTests", "listMapTestNative")(Data.List(
           Data.Float(3.0),
           Data.Float(4.0),
           Data.Float(5.0)
         )),
-        testEvaluation("Map")("listTests", "listMapTestWithCasting")(Data.List(
+        testEvaluation("Map with casting")("listTests", "listMapTestWithCasting")(Data.List(
           Data.Float(4.0),
           Data.Float(5.0),
           Data.Float(6.0)
         )),
-        testEvaluation("Map")("listTests", "listMapTest2")(Data.List(
+        testEvaluation("Map2")("listTests", "listMapTest2")(Data.List(
           Data.Boolean(false),
           Data.Boolean(true),
           Data.Boolean(false)
@@ -425,6 +425,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ),
         testEvaluation("isEmpty")("listTests", "listIsEmptyTest")(
           (Data.Boolean(true))
+        ),
+        testEvaluation("length")("listTests", "listLengthTest")(
+          (Data.Int32(6))
         )
       ),
       suite("Literals")(
@@ -607,7 +610,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Filters a dictionary")("dictionaryTests", "dictFilterTest")(Data.Map(
           (Data.Int(3), Data.String("Blue")),
           (Data.Int(4), Data.String("Blue"))
-        ))
+        )),
+        testEvaluation("Singleton")("dictionaryTests", "dictSingletonTest")(Data.Map((
+          Data.Int(6),
+          Data.String("Puppies")
+        ))),
       ),
       suite("Optional Tests")(
         testEvaluation("Returns a Just 1")("optionTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),
