@@ -217,6 +217,7 @@ object BasicsSDK {
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:Basics:append") -> append
   )
+}
 
 object StringSDK {
   val length: SDKValue[Unit, Type.UType] =
