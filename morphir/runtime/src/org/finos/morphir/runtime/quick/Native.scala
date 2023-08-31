@@ -233,9 +233,15 @@ object StringSDK {
     val optional = a.unwrapString.toIntOption
     optional match {
       case Some(value) => Result.ConstructorResult(
-        FQName.fromString("Morphir.SDK:Maybe:just"),
-        List(Result.Primitive.Int[Unit, Type.UType](value))
-      )
+          FQName.fromString("Morphir.SDK:Maybe:just"),
+          List(Result.Primitive.Int[Unit, Type.UType](value))
+        )
+      case None => Result.ConstructorResult(
+          FQName.fromString("Morphir.SDK:Maybe:nothing"),
+          List()
+        )
+    }
+  }
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:String:append") -> append,
     FQName.fromString("Morphir.SDK:String:right")  -> right,
