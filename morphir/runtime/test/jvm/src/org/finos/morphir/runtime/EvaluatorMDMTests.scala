@@ -611,10 +611,25 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           (Data.Int(3), Data.String("Blue")),
           (Data.Int(4), Data.String("Blue"))
         )),
+        testEvaluation("Empty")("dictionaryTests", "dictEmptyTest")(Data.Map.empty(Concept.String, Concept.Int32)),
         testEvaluation("Singleton")("dictionaryTests", "dictSingletonTest")(Data.Map((
           Data.Int(6),
           Data.String("Puppies")
         ))),
+        testEvaluation("Keys")("dictionaryTests", "dictKeysTest")(Data.List(
+          Data.Int(1),
+          Data.Int(2),
+          Data.Int(3),
+          Data.Int(4),
+          Data.Int(5)
+        )),
+        testEvaluation("Update")("dictionaryTests", "dictUpdateTest")(Data.Map(
+          (Data.String("Alice"), Data.Int(1)),
+          (Data.String("Bob"), Data.Int(6))
+        )),
+        testEvaluation ("Update - delete key")("dictionaryTests", "dictUpdateTest2")(Data.Map(
+          (Data.String("Alice"), Data.Int(1))
+        ))
       ),
       suite("Optional Tests")(
         testEvaluation("Returns a Just 1")("optionTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),
