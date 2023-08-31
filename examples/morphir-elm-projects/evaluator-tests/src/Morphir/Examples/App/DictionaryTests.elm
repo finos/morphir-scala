@@ -51,6 +51,20 @@ dictSingletonTest _ =
 --expected = Dict(6 -> "Puppies")
 
 
+--Test: Dict/update
+times3 : Maybe Int -> Maybe Int
+times3 x =
+  case x of
+    Just num -> Just <| num * 3
+    Nothing -> Just 0
+
+dictUpdateTest : () -> Dict String Int
+dictUpdateTest _ =
+    let
+        aliceAndBob = Dict.fromList [ ( "Alice", 1 ), ( "Bob", 2 ) ]
+    in
+        Dict.update "Bob" times3 aliceAndBob
+--expected = Dict.fromList [ ( "Alice", 1 ), ( "Bob", 6 ) ]
 
 --Test: Dict/update - delete key
 dictUpdateTest2 : () -> Dict String Int
