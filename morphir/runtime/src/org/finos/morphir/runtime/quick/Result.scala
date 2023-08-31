@@ -387,9 +387,17 @@ object Result {
     }
   }
 
+  sealed trait NativeFunctionResult[TA, VA] extends Result[TA, VA]
+
   case class NativeFunction[TA, VA](
       arguments: Int,
       curried: List[Result[TA, VA]],
       function: NativeFunctionSignature[TA, VA]
-  ) extends Result[TA, VA] {}
+  ) extends NativeFunctionResult[TA, VA] {}
+
+  case class NativeInnerFunction[TA, VA](
+      arguments: Int,
+      curried: List[Result[TA, VA]],
+      function: NativeFunctionSignatureAdv[TA, VA]
+  ) extends NativeFunctionResult[TA, VA] {}
 }

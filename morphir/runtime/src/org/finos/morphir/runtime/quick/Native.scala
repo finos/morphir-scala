@@ -1,24 +1,30 @@
 package org.finos.morphir.runtime.quick
 
+import org.finos.morphir.extensibility.SdkModuleDescriptors.Morphir
 import org.finos.morphir.ir.Type
+
 import org.finos.morphir.naming._
 import org.finos.morphir.runtime.{IllegalValue, UnexpectedType, UnsupportedType}
 import org.finos.morphir.runtime.quick.Result.Primitive
 import org.finos.morphir.runtime.Extractors._
 import scala.collection.mutable
+import org.finos.morphir.runtime.UnsupportedType
+import org.finos.morphir.runtime.quick.Result.Primitive
+import scala.collection.mutable
 
 object DictSDK {
+  // === ELM Function ===
+  // filter : (k -> v -> Bool) -> Dict k v -> Dict comparable v
+  // filter isGood dict =
+  //   foldl (\k v d -> if isGood k v then insert k v d else d) empty dict
   val filter: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
-      (store: Store[Unit, Type.UType]) => (f: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
+      (evaluator: Loop[Unit, Type.UType]) => (isGood: Result[Unit, Type.UType], dictRaw: Result[Unit, Type.UType]) =>
         {
-          val dictMap = l.unwrapMap
+          val dictMap = dictRaw.unwrapMap
           val newDict =
             dictMap.filter { case (k, v) =>
-              val partialAppliedF =
-                Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), f, k, store)
-              val result =
-                Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), partialAppliedF, v, store)
+              val result = evaluator.handleApplyResult2(Type.UType.Unit(()), isGood, k, v)
               result.unwrapBoolean
             }
           Result.MapResult(newDict)
@@ -52,16 +58,7 @@ object DictSDK {
   val get: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
     (key: Result[Unit, Type.UType], m: Result[Unit, Type.UType]) =>
       val map = m.unwrapMap
-      map.get(key) match {
-        case Some(value) => Result.ConstructorResult(
-            FQName.fromString("Morphir.SDK:Maybe:just"),
-            List(value)
-          )
-        case None => Result.ConstructorResult(
-            FQName.fromString("Morphir.SDK:Maybe:nothing"),
-            List()
-          )
-      }
+      optionToMaybe(map.get(key))
   }
 
   val singleton: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
@@ -89,19 +86,20 @@ object DictSDK {
 
   val update: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun3 {
+      // === ELM Function ===
       // update : comparable -> (Maybe v -> Maybe v) -> Dict comparable v -> Dict comparable v
       // update targetKey alter dictionary =
       // case alter(get targetKey dictionary) of
       //   Just value -> insert targetKey value dictionary
       //   Nothing    -> remove targetKey dictionary
-      (store: Store[Unit, Type.UType]) => (
+      (evaluator: Loop[Unit, Type.UType]) => (
           targetKeyRaw: Result[Unit, Type.UType],
           alterRaw: Result[Unit, Type.UType],
           dictRaw: Result[Unit, Type.UType]
       ) =>
         val dict      = dictRaw.unwrapMap.clone() // make sure to clone it to not modify original one
         val currValue = optionToMaybe(dict.get(targetKeyRaw))
-        val newValue  = Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), alterRaw, currValue, store)
+        val newValue  = evaluator.handleApplyResult(Type.UType.Unit(()), alterRaw, currValue)
 
         newValue match {
           case Result.ConstructorResult(FQString("Morphir.SDK:Maybe:just"), List(value)) =>
@@ -132,24 +130,24 @@ object DictSDK {
     FQName.fromString("Morphir.SDK:Dict:keys")      -> keys,
     FQName.fromString("Morphir.SDK:Dict:toList")    -> toList,
     FQName.fromString("Morphir.SDK:Dict:singleton") -> singleton,
-    FQName.fromString("Morphir.SDK:Dict:update")    -> update
+    FQName.fromString("Morphir.SDK:Dict:update")    -> update,
+    FQName.fromString("Morphir.SDK:Dict:fromList")  -> fromList,
+    FQName.fromString("Morphir.SDK:Dict:get")       -> get,
+    FQName.fromString("Morphir.SDK:Dict:filter")    -> filter,
+    FQName.fromString("Morphir.SDK:Dict:insert")    -> insert,
+    FQName.fromString("Morphir.SDK:Dict:empty")     -> empty
   )
 }
 
 object ListSDK {
   val foldl: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun3 {
-      (store: Store[Unit, Type.UType]) =>
+      (evaluator: Loop[Unit, Type.UType]) =>
         (f: Result[Unit, Type.UType], first: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
           {
             val list = l.unwrapList
             list.foldLeft(first) { (b, a) => // Note that elm does (a, b) => b, scala does it in the opposite way
-              val partialAppliedF =
-                Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), f, a, store)
-              val result =
-                Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), partialAppliedF, b, store)
-
-              result
+              evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, b)
             }
           }
     }
@@ -412,11 +410,11 @@ object Native {
 
   val filter: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
-      (store: Store[Unit, Type.UType]) => (f: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
+      (evaluator: Loop[Unit, Type.UType]) => (f: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
         val list = l.unwrapList
         val out =
           list.filter(elem =>
-            Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), f, elem, store).unwrapBoolean
+            evaluator.handleApplyResult(Type.UType.Unit(()), f, elem).unwrapBoolean
           )
         Result.ListResult(out)
     }
@@ -424,11 +422,11 @@ object Native {
 
   val map: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
-      (store: Store[Unit, Type.UType]) => (f: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
+      (evaluator: Loop[Unit, Type.UType]) => (f: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
         val list = l.unwrapList
         val out =
           list.map(elem =>
-            Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), f, elem, store)
+            evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
           )
         Result.ListResult(out)
     }

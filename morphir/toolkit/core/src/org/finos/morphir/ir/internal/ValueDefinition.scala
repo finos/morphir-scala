@@ -8,7 +8,8 @@ import Type.{Type, UType}
 import Value.{RawValue, TypedValue}
 import zio.Chunk
 
-private[ir] final case class ValueDefinition[+TA, +VA](
+// needs to be scoped on morphir because they are used in the type-checker (in runtime)
+private[morphir] final case class ValueDefinition[+TA, +VA](
     inputTypes: Chunk[(Name, VA, Type[TA])],
     outputType: Type[TA],
     body: Value[TA, VA]
@@ -19,7 +20,7 @@ private[ir] final case class ValueDefinition[+TA, +VA](
 
 }
 
-private[ir] object ValueDefinition {
+private[morphir] object ValueDefinition {
   def apply[TA, VA](outputType: Type[TA], body: Value[TA, VA]): ValueDefinition[TA, VA] =
     ValueDefinition(Chunk.empty, outputType, body)
 
