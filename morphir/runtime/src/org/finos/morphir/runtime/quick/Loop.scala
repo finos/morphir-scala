@@ -101,7 +101,7 @@ object Loop {
 
         }
       case Result.NativeFunction(arguments, curried, function) =>
-        def assertNumArgs(num: Int) =
+        def assertCurriedNumArgs(num: Int) =
           if (curried.size != num) throw new IllegalValue(
             s"Curried wrong number of (uncurried) args. Needed ${function.numArgs} args but got (${curried.size}) when applying the function $function"
           )
@@ -110,20 +110,20 @@ object Loop {
           case 1 =>
             function match {
               case NativeFunctionSignature.Fun1(f) =>
-                assertNumArgs(1)
-                f(curried(0))
+                assertCurriedNumArgs(0)
+                f(argValue)
               case NativeFunctionSignature.Fun2(f) =>
-                assertNumArgs(2)
-                f(curried(0), curried(1))
+                assertCurriedNumArgs(1)
+                f(curried(0), argValue)
               case NativeFunctionSignature.Fun3(f) =>
-                assertNumArgs(3)
-                f(curried(0), curried(1), curried(2))
+                assertCurriedNumArgs(2)
+                f(curried(0), curried(1), argValue)
               case NativeFunctionSignature.Fun4(f) =>
-                assertNumArgs(4)
-                f(curried(0), curried(1), curried(2), curried(3))
+                assertCurriedNumArgs(3)
+                f(curried(0), curried(1), curried(2), argValue)
               case NativeFunctionSignature.Fun5(f) =>
-                assertNumArgs(5)
-                f(curried(0), curried(1), curried(2), curried(3), curried(4))
+                assertCurriedNumArgs(4)
+                f(curried(0), curried(1), curried(2), curried(3), argValue)
             }
           // If there are more arguments left in the native-signature, that needs we have more uncurrying to do
           case x => Result.NativeFunction[TA, VA](x - 1, curried :+ argValue, function)
