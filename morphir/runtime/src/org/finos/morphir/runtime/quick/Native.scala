@@ -223,6 +223,12 @@ object StringSDK {
     SDKValue.SDKNativeFunction.fun2((a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive.String(b.unwrapString.takeRight(a.unwrapInt))
     )
+  val fromInt: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1((a: Result[Unit, Type.UType]) =>
+    Result.Primitive.String(a.unwrapInt.toString)
+  )
+  val fromFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1((a: Result[Unit, Type.UType]) =>
+    Result.Primitive.String(a.unwrapFloat.toString)
+  )
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:String:append") -> append,
     FQName.fromString("Morphir.SDK:String:right")  -> right,
