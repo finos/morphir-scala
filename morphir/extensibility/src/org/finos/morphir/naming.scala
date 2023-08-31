@@ -27,6 +27,11 @@ object naming extends Names {
       Name.fromString(interlaced.mkString)
     }
 
+    def qmn(args: Any*): QualifiedModuleName = {
+      val interlaced = interlace(sc.parts, args.map(_.toString))
+      QualifiedModuleName.fromString(interlaced.mkString)
+    }
+
     def name(args: Any*): Name = {
       val interlaced = interlace(sc.parts, args.map(_.toString))
       Name.fromString(interlaced.mkString)

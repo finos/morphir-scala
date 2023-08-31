@@ -41,9 +41,9 @@ object TypeOfSpec extends MorphirBaseSpec {
   def productsSuite = suite("Products")(
     suite("Case Classes/Records")(
       test("It should be possible to get type info on a Person top level case class") {
-        val actual = TypeOf[Person]
+        val actual = TypeOf.gen[Person]
         assertTrue(
-          actual.fqName.isEmpty,
+          actual.fqName == Some(fqn"Morphir.SDK.Test:Model:Person"),
           !actual.getType.isReference,
           !actual.typeInfo.isOpaque
         )

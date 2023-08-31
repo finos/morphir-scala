@@ -64,6 +64,6 @@ trait TypeOfModule extends TypeOfModuleVersionSpecific {
     }
   }
 
-  def typeof[A](implicit typeOfInstance: TypeOf[A]): TypeOf[A] = typeOfInstance
+  def typeOf[A](implicit typeOfInstance: TypeOf[A]): TypeOf[A] = typeOfInstance
 
 }
