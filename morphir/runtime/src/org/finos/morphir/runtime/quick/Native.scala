@@ -103,6 +103,12 @@ object DictSDK {
         val currValue = optionToMaybe(dict.get(targetKeyRaw))
         val newValue  = Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), alterRaw, currValue, store)
 
+        newValue match {
+          case Result.ConstructorResult(FQString("Morphir.SDK:Maybe:just"), List(value)) =>
+            dict += ((targetKeyRaw, value))
+          case _
+            dict.remove(targetKeyRaw)
+        }
         Result.MapResult(dict)
     }
   }
