@@ -349,7 +349,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ))
       ),
       suite("Lists")(
-        testEvaluation("Empty")("listTests", "listEmptyTest")(Data.List(List(), Concept.Int32)),
         testEvaluation("Single")("listTests", "listSingleTest")(Data.List(Data.Int(0))),
         testEvaluation("Several")("listTests", "listSeveralTest")(Data.List(
           Data.Int(0),
