@@ -277,7 +277,7 @@ object Loop {
 
   def handleTuple[TA, VA](va: VA, elements: List[Value[TA, VA]], store: Store[TA, VA]): Result[TA, VA] = {
     val evaluatedElements = elements.map(loop(_, store))
-    Result.Tuple(listToTuple(evaluatedElements))
+    Result.Tuple(TupleSigniture.fromList(evaluatedElements))
   }
 
   def handleUnit[TA, VA](va: VA): Result[TA, VA] = Result.Unit()

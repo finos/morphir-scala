@@ -23,6 +23,7 @@ sealed abstract class EvaluationError(message: String) extends MorphirRuntimeErr
 final case class IrToDatamodelError(message: String)         extends EvaluationError(message)
 final case class MissingField(message: String)               extends EvaluationError(message)
 final case class UnexpectedType(message: String)             extends EvaluationError(message)
+final case class IllegalValue(message: String)               extends EvaluationError(message)
 final case class UnmatchedPattern(message: String)           extends EvaluationError(message)
 final case class FunctionWithoutParameters(message: String)  extends EvaluationError(message)
 final case class VariableNotFound(message: String)           extends EvaluationError(message)
