@@ -75,6 +75,18 @@ object DictSDK {
       Result.ListResult(map.keys.toList)
   }
 
+  private def optionToMaybe(opt: Option[Result[Unit, Type.UType]]) =
+    opt match {
+      case Some(value) => Result.ConstructorResult(
+          FQName.fromString("Morphir.SDK:Maybe:just"),
+          List(value)
+        )
+      case None => Result.ConstructorResult(
+          FQName.fromString("Morphir.SDK:Maybe:nothing"),
+          List()
+        )
+    }
+
 
   val insert: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun3 {
     (key: Result[Unit, Type.UType], value: Result[Unit, Type.UType], m: Result[Unit, Type.UType]) =>
@@ -84,12 +96,16 @@ object DictSDK {
   }
 
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:Dict:fromList") -> fromList,
-    FQName.fromString("Morphir.SDK:Dict:toList")   -> toList,
-    FQName.fromString("Morphir.SDK:Dict:get")      -> get,
-    FQName.fromString("Morphir.SDK:Dict:filter")   -> filter,
-    FQName.fromString("Morphir.SDK:Dict:insert")   -> insert,
-    FQName.fromString("Morphir.SDK:Dict:empty")    -> empty
+    FQName.fromString("Morphir.SDK:Dict:empty")     -> empty,
+    FQName.fromString("Morphir.SDK:Dict:fromList")  -> fromList,
+    FQName.fromString("Morphir.SDK:Dict:filter")    -> filter,
+    FQName.fromString("Morphir.SDK:Dict:fromList")  -> fromList,
+    FQName.fromString("Morphir.SDK:Dict:get")       -> get,
+    FQName.fromString("Morphir.SDK:Dict:insert")    -> insert,
+    FQName.fromString("Morphir.SDK:Dict:keys")      -> keys,
+    FQName.fromString("Morphir.SDK:Dict:toList")    -> toList,
+    FQName.fromString("Morphir.SDK:Dict:singleton") -> singleton,
+    FQName.fromString("Morphir.SDK:Dict:update")    -> update
   )
 }
 
@@ -294,6 +310,13 @@ object Native {
       val list = l.unwrapList
       Result.Primitive.Boolean(list.length == 0)
   }
+
+  val length: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
+    (l: Result[Unit, Type.UType]) =>
+      val list = l.unwrapList
+      Result.Primitive.Int(list.length)
+  }
+
   val filter: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
       (store: Store[Unit, Type.UType]) => (f: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
