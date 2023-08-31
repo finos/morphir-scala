@@ -194,6 +194,10 @@ object SetSDK {
       val setR = r.asInstanceOf[Result.SetResult[Unit, Type.UType]].elements
       Result.Primitive.Boolean(setR.contains(l))
     }
+  val size: SDKValue[Unit, Type.UType] =
+    SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+      Result.Primitive.Int(arg.asInstanceOf[Result.SetResult[Unit, Type.UType]].elements.size)
+    }
 }
 
 object BasicsSDK {
