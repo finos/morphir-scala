@@ -242,10 +242,18 @@ object StringSDK {
         )
     }
   }
+  val isEmpty: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1((a: Result[Unit, Type.UType]) =>
+    Result.Primitive.Boolean(a.unwrapString.length == 0)
+  )
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:String:append") -> append,
-    FQName.fromString("Morphir.SDK:String:right")  -> right,
-    FQName.fromString("Morphir.SDK:String:length") -> length
+    FQName.fromString("Morphir.SDK:String:append")    -> append,
+    FQName.fromString("Morphir.SDK:String:length")    -> length,
+    FQName.fromString("Morphir.SDK:String:left")      -> left,
+    FQName.fromString("Morphir.SDK:String:right")     -> right,
+    FQName.fromString("Morphir.SDK:String:fromInt")   -> fromInt,
+    FQName.fromString("Morphir.SDK:String:fromFloat") -> fromFloat,
+    FQName.fromString("Morphir.SDK:String:toInt")     -> toInt,
+    FQName.fromString("Morphir.SDK:String:isEmpty")   -> isEmpty
   )
 }
 object Native {
