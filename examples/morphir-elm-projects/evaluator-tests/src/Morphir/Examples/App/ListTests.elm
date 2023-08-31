@@ -5,12 +5,6 @@ import Dict exposing (Dict)
 
 
 
---Test: List/Empty
-listEmptyTest : () -> List Int
-listEmptyTest _ = 
-    []
---expected = []
-
 --Test: List/Single
 listSingleTest : () -> List Int
 listSingleTest _ = 
@@ -112,10 +106,16 @@ listSingletonTest _ =
 --expected = [6]
 
 --Test: List/isEmpty
-listIsEmptyTest : () -> Bool
-listIsEmptyTest _ =
+listIsEmptyTest1 : () -> Bool
+listIsEmptyTest1 _ =
     isEmpty []
 --expected = True
+
+--Test: List/isEmpty
+listIsEmptyTest2 : () -> Bool
+listIsEmptyTest2 _ =
+    isEmpty [1]
+--expected = False
 
 listAppend : List a -> List a -> List a
 listAppend l r = append l r
