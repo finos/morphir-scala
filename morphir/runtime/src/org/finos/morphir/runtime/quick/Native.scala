@@ -213,6 +213,12 @@ object StringSDK {
     SDKValue.SDKNativeFunction.fun2((a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive.String(a.unwrapString + b.unwrapString)
     )
+  val left: SDKValue[Unit, Type.UType] =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+      Result.Primitive.String(
+        b.unwrapString.dropRight(b.unwrapString.length - a.unwrapInt)
+      )
+    }
   val right: SDKValue[Unit, Type.UType] =
     SDKValue.SDKNativeFunction.fun2((a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive.String(b.unwrapString.takeRight(a.unwrapInt))
