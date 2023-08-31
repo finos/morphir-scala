@@ -1,7 +1,7 @@
 package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.ir.Type
-import org.finos.morphir.naming.*
+import org.finos.morphir.naming._
 import org.finos.morphir.runtime.{IllegalValue, UnexpectedType, UnsupportedType}
 import org.finos.morphir.runtime.quick.Result.Primitive
 import org.finos.morphir.runtime.Extractors._
