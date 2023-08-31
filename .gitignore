@@ -3,6 +3,7 @@ MyBug.scala
 
 # Elm build products
 elm-stuff/
+elm.json
 
 # Docusaurus generated folders
 website/translated_docs/
@@ -440,6 +441,7 @@ website/static/api
 
 .bsp/
 .vscode/settings.json
+.vscode/
 
 build.user.sbt
 build.user.properties

@@ -388,21 +388,31 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int(5),
           Data.Int(6)
         )),
-        testEvaluation("Map")("listTests", "listMapTestNative")(Data.List(
+        testEvaluation("Map Native")("listTests", "listMapTestNative")(Data.List(
           Data.Float(3.0),
           Data.Float(4.0),
           Data.Float(5.0)
         )),
-        testEvaluation("Map")("listTests", "listMapTestWithCasting")(Data.List(
+        testEvaluation("Map with casting")("listTests", "listMapTestWithCasting")(Data.List(
           Data.Float(4.0),
           Data.Float(5.0),
           Data.Float(6.0)
         )),
-        testEvaluation("Map")("listTests", "listMapTest2")(Data.List(
+        testEvaluation("Map2")("listTests", "listMapTest2")(Data.List(
           Data.Boolean(false),
           Data.Boolean(true),
           Data.Boolean(false)
         )),
+        testEvaluation("Fold Left")("listTests", "listFoldLeftTest")(
+          Data.String("<foo|bar|baz|")
+        ),
+        testEvaluation("Fold Left Advanced")("listTests", "listFoldLeftAdvTest")(
+          Data.Map(
+            Data.String("foo")   -> Data.Int(3),
+            Data.String("barr")  -> Data.Int(4),
+            Data.String("bazzz") -> Data.Int(5)
+          )
+        ),
         testEvalMultiple("Append (and infer type")(
           "ListTests",
           "listAppend",
@@ -415,6 +425,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ),
         testEvaluation("isEmpty")("listTests", "listIsEmptyTest")(
           (Data.Boolean(true))
+        ),
+        testEvaluation("length")("listTests", "listLengthTest")(
+          (Data.Int32(6))
         )
       ),
       suite("Literals")(
@@ -588,7 +601,35 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           (Data.Int(4), Data.String("White")),
           (Data.Int(5), Data.String("Green"))
         )),
-        testEvaluation("Get")("dictionaryTests", "dictGetTest")(Data.Optional.Some(Data.String("Cat")))
+        testEvaluation("Converts a dictionary into a list")("dictionaryTests", "dictToListTest")(Data.List(
+          Data.Tuple(Data.Int(1), Data.String("Red")),
+          Data.Tuple(Data.Int(2), Data.String("Blue")),
+          Data.Tuple(Data.Int(3), Data.String("Orange"))
+        )),
+        testEvaluation("Get")("dictionaryTests", "dictGetTest")(Data.Optional.Some(Data.String("Cat"))),
+        testEvaluation("Filters a dictionary")("dictionaryTests", "dictFilterTest")(Data.Map(
+          (Data.Int(3), Data.String("Blue")),
+          (Data.Int(4), Data.String("Blue"))
+        )),
+        testEvaluation("Empty")("dictionaryTests", "dictEmptyTest")(Data.Map.empty(Concept.String, Concept.Int32)),
+        testEvaluation("Singleton")("dictionaryTests", "dictSingletonTest")(Data.Map((
+          Data.Int(6),
+          Data.String("Puppies")
+        ))),
+        testEvaluation("Keys")("dictionaryTests", "dictKeysTest")(Data.List(
+          Data.Int(1),
+          Data.Int(2),
+          Data.Int(3),
+          Data.Int(4),
+          Data.Int(5)
+        )),
+        testEvaluation("Update")("dictionaryTests", "dictUpdateTest")(Data.Map(
+          (Data.String("Alice"), Data.Int(1)),
+          (Data.String("Bob"), Data.Int(6))
+        )),
+        testEvaluation("Update - delete key")("dictionaryTests", "dictUpdateTest2")(Data.Map(
+          (Data.String("Alice"), Data.Int(1))
+        ))
       ),
       suite("Optional Tests")(
         testEvaluation("Returns a Just 1")("optionTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),

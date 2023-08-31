@@ -2,29 +2,56 @@ package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.ir.Type
 import org.finos.morphir.naming._
-import org.finos.morphir.runtime.UnsupportedType
-
+import org.finos.morphir.runtime.{IllegalValue, UnexpectedType, UnsupportedType}
+import org.finos.morphir.runtime.quick.Result.Primitive
+import org.finos.morphir.runtime.Extractors._
 import scala.collection.mutable
 
 object DictSDK {
+  val filter: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+    NativeFunctionSignatureAdv.Fun2 {
+      (store: Store[Unit, Type.UType]) => (f: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
+        {
+          val dictMap = l.unwrapMap
+          val newDict =
+            dictMap.filter { case (k, v) =>
+              val partialAppliedF =
+                Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), f, k, store)
+              val result =
+                Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), partialAppliedF, v, store)
+              result.unwrapBoolean
+            }
+          Result.MapResult(newDict)
+        }
+    }
+  }
+
   val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
     (l: Result[Unit, Type.UType]) =>
-      val list = l.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
-      val mapped = list
+      val list = l.unwrapList
+      val mappedList = list
         .map { input =>
-          val asTuple = input
-            .asInstanceOf[Result.Tuple[Unit, Type.UType]]
-            .elements
-            .asInstanceOf[(Result[Unit, Type.UType], Result[Unit, Type.UType])]
-          asTuple._1 -> asTuple._2
+          input.unwrapTuple match {
+            case TupleSigniture.Tup2((a, b)) => (a, b)
+            case _ =>
+              throw new IllegalValue(s"Input to Dict.fromList was not a Tuple2-based element, it was: `$input`")
+          }
         }
-        .to(mutable.LinkedHashMap)
-      Result.MapResult(mapped)
+      Result.MapResult(mutable.LinkedHashMap(mappedList: _*))
   }
+
+  val toList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
+    (d: Result[Unit, Type.UType]) =>
+      val dict     = d.unwrapMap
+      val elements = dict.toList.map { case (k, v) => Result.Tuple(TupleSigniture.Tup2((k, v))) }
+      Result.ListResult(elements)
+  }
+
+  val empty: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.MapResult(mutable.LinkedHashMap()))
 
   val get: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
     (key: Result[Unit, Type.UType], m: Result[Unit, Type.UType]) =>
-      val map = m.asInstanceOf[Result.MapResult[Unit, Type.UType]].elements
+      val map = m.unwrapMap
       map.get(key) match {
         case Some(value) => Result.ConstructorResult(
             FQName.fromString("Morphir.SDK:Maybe:just"),
@@ -37,12 +64,97 @@ object DictSDK {
       }
   }
 
+  val singleton: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
+    (key: Result[Unit, Type.UType], value: Result[Unit, Type.UType]) =>
+      Result.MapResult(mutable.LinkedHashMap.from(List(key -> value)))
+  }
+
+  val keys: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
+    (m: Result[Unit, Type.UType]) =>
+      val map = m.unwrapMap
+      Result.ListResult(map.keys.toList)
+  }
+
+  private def optionToMaybe(opt: Option[Result[Unit, Type.UType]]): Result[Unit, Type.UType] =
+    opt match {
+      case Some(value) => Result.ConstructorResult(
+          FQName.fromString("Morphir.SDK:Maybe:just"),
+          List(value)
+        )
+      case None => Result.ConstructorResult(
+          FQName.fromString("Morphir.SDK:Maybe:nothing"),
+          List()
+        )
+    }
+
+  val update: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+    NativeFunctionSignatureAdv.Fun3 {
+      // update : comparable -> (Maybe v -> Maybe v) -> Dict comparable v -> Dict comparable v
+      // update targetKey alter dictionary =
+      // case alter(get targetKey dictionary) of
+      //   Just value -> insert targetKey value dictionary
+      //   Nothing    -> remove targetKey dictionary
+      (store: Store[Unit, Type.UType]) => (
+          targetKeyRaw: Result[Unit, Type.UType],
+          alterRaw: Result[Unit, Type.UType],
+          dictRaw: Result[Unit, Type.UType]
+      ) =>
+        val dict      = dictRaw.unwrapMap.clone() // make sure to clone it to not modify original one
+        val currValue = optionToMaybe(dict.get(targetKeyRaw))
+        val newValue  = Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), alterRaw, currValue, store)
+
+        newValue match {
+          case Result.ConstructorResult(FQString("Morphir.SDK:Maybe:just"), List(value)) =>
+            dict += ((targetKeyRaw, value))
+          case Result.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), _) =>
+            dict.remove(targetKeyRaw)
+          case _ =>
+            throw new IllegalValue(s"Expected a Result.Constructor of Morphir.SDK:Maybe:just/nothing but got $newValue")
+        }
+        Result.MapResult(dict)
+    }
+  }
+
+  val insert: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun3 {
+    (key: Result[Unit, Type.UType], value: Result[Unit, Type.UType], m: Result[Unit, Type.UType]) =>
+      val map = m.unwrapMap.clone() // because LinkedHashMap is mutable MAKE SURE TO CLONE IT before inserting things
+      map += ((key, value))
+      Result.MapResult(map)
+  }
+
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:Dict:fromList") -> fromList,
-    FQName.fromString("Morphir.SDK:Dict:get")      -> get
+    FQName.fromString("Morphir.SDK:Dict:empty")     -> empty,
+    FQName.fromString("Morphir.SDK:Dict:fromList")  -> fromList,
+    FQName.fromString("Morphir.SDK:Dict:filter")    -> filter,
+    FQName.fromString("Morphir.SDK:Dict:fromList")  -> fromList,
+    FQName.fromString("Morphir.SDK:Dict:get")       -> get,
+    FQName.fromString("Morphir.SDK:Dict:insert")    -> insert,
+    FQName.fromString("Morphir.SDK:Dict:keys")      -> keys,
+    FQName.fromString("Morphir.SDK:Dict:toList")    -> toList,
+    FQName.fromString("Morphir.SDK:Dict:singleton") -> singleton,
+    FQName.fromString("Morphir.SDK:Dict:update")    -> update
   )
 }
+
 object ListSDK {
+  val foldl: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+    NativeFunctionSignatureAdv.Fun3 {
+      (store: Store[Unit, Type.UType]) =>
+        (f: Result[Unit, Type.UType], first: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
+          {
+            val list = l.unwrapList
+            list.foldLeft(first) { (b, a) => // Note that elm does (a, b) => b, scala does it in the opposite way
+              val partialAppliedF =
+                Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), f, a, store)
+              val result =
+                Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), partialAppliedF, b, store)
+
+              result
+            }
+          }
+    }
+  }
+
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       val listA = a.asInstanceOf[Result.ListResult[Unit, Type.UType]]
@@ -56,6 +168,7 @@ object ListSDK {
       Result.ListResult(a :: listB.elements)
   }
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:List:foldl")  -> foldl,
     FQName.fromString("Morphir.SDK:List:append") -> append,
     FQName.fromString("Morphir.SDK:List:cons")   -> cons
   )
@@ -88,6 +201,10 @@ object SetSDK {
 }
 
 object StringSDK {
+  val length: SDKValue[Unit, Type.UType] =
+    SDKValue.SDKNativeFunction.fun1((arg: Result[Unit, Type.UType]) =>
+      Result.Primitive.Int(arg.unwrapString.length)
+    )
   val append: SDKValue[Unit, Type.UType] =
     SDKValue.SDKNativeFunction.fun2((a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive.String(a.unwrapString + b.unwrapString)
@@ -125,6 +242,7 @@ object StringSDK {
     Result.Primitive.Boolean(a.unwrapString.length == 0)
   )
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:String:length") -> length
     FQName.fromString("Morphir.SDK:String:append")    -> append,
     FQName.fromString("Morphir.SDK:String:left")      -> left,
     FQName.fromString("Morphir.SDK:String:right")     -> right,
@@ -198,16 +316,25 @@ object Native {
   }
 
   val toFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (a: Result[Unit, Type.UType]) => Result.Primitive.Double(a.unwrapLong.toDouble)
+    (a: Result[Unit, Type.UType]) =>
+      val output =
+        a.unwrapNumeric match {
+          case Primitive.Int(value)        => value.toDouble
+          case Primitive.Long(value)       => value.toDouble
+          case Primitive.Double(value)     => value
+          case Primitive.BigDecimal(value) => value.toDouble
+          case Primitive.Float(value)      => value.toDouble
+        }
+      Result.Primitive.Double(output)
   }
   val log: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
-      val denominator = Math.log(a.unwrapFloat)
+      val denominator = Math.log(a.unwrapDouble)
       val asDouble =
         if (denominator == 0)
           Double.PositiveInfinity
         else
-          Math.log(b.unwrapFloat) / denominator
+          Math.log(b.unwrapDouble) / denominator
       Result.Primitive.Double(asDouble)
   }
 
@@ -225,21 +352,31 @@ object Native {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       Result.Primitive.Boolean(a == b)
   }
+
   val concat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
     (l: Result[Unit, Type.UType]) =>
       val list      = l.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
       val flattened = list.flatMap(inner => inner.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements)
       Result.ListResult(flattened)
   }
+
   val singleton: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
     (l: Result[Unit, Type.UType]) =>
       Result.ListResult(List(l))
   }
+
   val isEmpty: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
     (l: Result[Unit, Type.UType]) =>
-      val list = l.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
+      val list = l.unwrapList
       Result.Primitive.Boolean(list.length == 0)
   }
+
+  val length: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
+    (l: Result[Unit, Type.UType]) =>
+      val list = l.unwrapList
+      Result.Primitive.Int(list.length)
+  }
+
   val filter: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
       (store: Store[Unit, Type.UType]) => (f: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
@@ -318,6 +455,7 @@ object Native {
     FQName.fromString("Morphir.SDK:List:isEmpty")               -> isEmpty,
     FQName.fromString("Morphir.SDK:List:map")                   -> map,
     FQName.fromString("Morphir.SDK:List:filter")                -> filter,
+    FQName.fromString("Morphir.SDK:List:length")                -> length,
     FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map

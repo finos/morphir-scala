@@ -18,11 +18,13 @@ sealed trait Result[TA, VA] {
   def unwrapString    = Result.unwrapString(this)
   def unwrapInt       = Result.unwrapInt(this)
   def unwrapBoolean   = Result.unwrapBoolean(this)
+  def unwrapDouble    = Result.unwrapDouble(this)
   def unwrapLong      = Result.unwrapLong(this)
   def unwrapFloat     = Result.unwrapFloat(this)
   def unwrapPrimitive = Result.unwrapPrimitive(this)
   def unwrapNumeric   = Result.unwrapNumeric(this)
   def unwrapList      = Result.unwrapList(this)
+  def unwrapTuple     = Result.unwrapTuple(this)
   def unwrapMap       = Result.unwrapMap(this)
 }
 
@@ -35,9 +37,7 @@ object Result {
       case ListResult(elements) => elements.map(unwrap(_))
       case SetResult(elements)  => elements.map(unwrap(_))
       case Tuple(elements) =>
-        val listed =
-          Helpers.tupleToList(elements).getOrElse(throw new UnexpectedType("Invalid tuple returned to top level"))
-        val mapped = listed.map(unwrap(_))
+        val mapped = elements.toList.map(unwrap(_))
         Helpers.listToTuple(mapped)
       case Record(elements)                => elements.map { case (name, value) => name.toCamelCase -> unwrap(value) }
       case MapResult(elements)             => elements.map { case (key, value) => unwrap(key) -> unwrap(value) }
@@ -53,7 +53,7 @@ object Result {
       case Result.ListResult(list) => list
       case _ =>
         throw new UnexpectedType(
-          s"Cannot unwrap the value `${arg}` into a primitive ListResult value. It is not a list result!"
+          s"Cannot unwrap the value `${arg}` into a ListResult value. It is not a list result!"
         )
     }
 
@@ -62,7 +62,16 @@ object Result {
       case Result.MapResult(map) => map
       case _ =>
         throw new UnexpectedType(
-          s"Cannot unwrap the value `${arg}` into a primitive ListResult value. It is not a list result!"
+          s"Cannot unwrap the value `${arg}` into a MapResult value. It is not a list result!"
+        )
+    }
+
+  def unwrapTuple[TA, VA](arg: Result[TA, VA]): TupleSigniture[TA, VA] =
+    arg match {
+      case Result.Tuple(tup) => tup
+      case _ =>
+        throw new UnexpectedType(
+          s"Cannot unwrap the value `${arg}` into a MapResult value. It is not a list result!"
         )
     }
 
@@ -75,6 +84,17 @@ object Result {
         )
       case _ =>
         throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Boolean. It is not a primitive!")
+    }
+
+  def unwrapDouble[TA, VA](arg: Result[TA, VA]): Double =
+    arg match {
+      case Primitive.Double(v) => v
+      case _: Primitive[_, _, _] =>
+        throw new UnexpectedType(
+          s"Could not unwrap the primitive `${arg}` into a Double value because it was not a Primitive.Double"
+        )
+      case _ =>
+        throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Double. It is not a primitive!")
     }
 
   def unwrapInt[TA, VA](arg: Result[TA, VA]): Int =
@@ -137,7 +157,7 @@ object Result {
   def unwrapNumeric[TA, VA](arg: Result[TA, VA]): Primitive.Numeric[TA, VA, _] =
     arg match {
       case p: Primitive.Numeric[_, _, _] => p.asInstanceOf[Primitive.Numeric[TA, VA, _]]
-      case _ => throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive")
+      case _ => throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive numeric")
     }
 
   case class NumericsWithHelper[T](
@@ -240,6 +260,7 @@ object Result {
       lazy val fractionalHelper = Some(implicitly[scala.Fractional[scala.BigDecimal]])
       lazy val integralHelper   = None
     }
+    // TODO Morphir Float type is a double, why do we have this???
     case class Float[TA, VA](value: scala.Float) extends Numeric[TA, VA, scala.Float] {
       val numericType           = Numeric.Type.Float
       lazy val numericHelper    = implicitly[scala.Numeric[scala.Float]]
@@ -304,10 +325,10 @@ object Result {
     override def succinct(depth: Int) = s"LocalTime($value)"
   }
 
-  case class Tuple[TA, VA](elements: Any) extends Result[TA, VA] {
+  case class Tuple[TA, VA](elements: TupleSigniture[TA, VA]) extends Result[TA, VA] {
     override def succinct(depth: Int) = if (depth == 0) "Tuple(...)"
     else {
-      s"Tuple(${Helpers.tupleToList(elements).map((res: Any) => res.asInstanceOf[Result[TA, VA]]).map(_.succinct(depth - 1)).mkString(", ")})"
+      s"Tuple(${elements.toList.map(_.succinct(depth - 1)).mkString(", ")})"
     }
   }
 
@@ -366,6 +387,9 @@ object Result {
     }
   }
 
-  case class NativeFunction[TA, VA](arguments: Int, curried: List[Result[TA, VA]], function: Any)
-      extends Result[TA, VA] {}
+  case class NativeFunction[TA, VA](
+      arguments: Int,
+      curried: List[Result[TA, VA]],
+      function: NativeFunctionSignature[TA, VA]
+  ) extends Result[TA, VA] {}
 }

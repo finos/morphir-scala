@@ -43,10 +43,7 @@ object Helpers {
           tailBindings <- matchPatternCase(tailPattern, Result.ListResult(tail))
         } yield headBindings ++ tailBindings
       case (TuplePattern(_, patterns), Result.Tuple(tuple)) =>
-        for {
-          listedTuple: List[Result[TA, VA]] <- tupleToList[TA, VA](tuple)
-          res                               <- matchListOfPatterns(patterns.toList, listedTuple)
-        } yield res
+        matchListOfPatterns(patterns.toList, tuple.toList)
       case (ConstructorPattern(_, patternName, patterns), Result.ConstructorResult(valueName, values))
           if patternName == valueName =>
         matchListOfPatterns(patterns.toList, values)
@@ -67,42 +64,6 @@ object Helpers {
         } yield priorBindings ++ newBindings
       }
     } yield res
-
-  def tupleToList[TA, VA](tuple: Any): Option[List[Result[TA, VA]]] = {
-    val anyList = tuple match {
-      case Tuple1(a)                                     => Some(List(a))
-      case (a, b)                                        => Some(List(a, b))
-      case (a, b, c)                                     => Some(List(a, b, c))
-      case (a, b, c, d)                                  => Some(List(a, b, c, d))
-      case (a, b, c, d, e)                               => Some(List(a, b, c, d, e))
-      case (a, b, c, d, e, f)                            => Some(List(a, b, c, d, e, f))
-      case (a, b, c, d, e, f, g)                         => Some(List(a, b, c, d, e, f, g))
-      case (a, b, c, d, e, f, g, h)                      => Some(List(a, b, c, d, e, f, g, h))
-      case (a, b, c, d, e, f, g, h, i)                   => Some(List(a, b, c, d, e, f, g, h, i))
-      case (a, b, c, d, e, f, g, h, i, j)                => Some(List(a, b, c, d, e, f, g, h, i, j))
-      case (a, b, c, d, e, f, g, h, i, j, k)             => Some(List(a, b, c, d, e, f, g, h, i, j, k))
-      case (a, b, c, d, e, f, g, h, i, j, k, l)          => Some(List(a, b, c, d, e, f, g, h, i, j, k, l))
-      case (a, b, c, d, e, f, g, h, i, j, k, l, m)       => Some(List(a, b, c, d, e, f, g, h, i, j, k, l, m))
-      case (a, b, c, d, e, f, g, h, i, j, k, l, m, n)    => Some(List(a, b, c, d, e, f, g, h, i, j, k, l, m, n))
-      case (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) => Some(List(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o))
-      case (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) =>
-        Some(List(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p))
-      case (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) =>
-        Some(List(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q))
-      case (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) =>
-        Some(List(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r))
-      case (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) =>
-        Some(List(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s))
-      case (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) =>
-        Some(List(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t))
-      case (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) =>
-        Some(List(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u))
-      case (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) =>
-        Some(List(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v))
-      case _ => None
-    }
-    anyList.map(_.map(_.asInstanceOf[Result[TA, VA]]))
-  }
 
   def listToTuple(
       items: List[Any]
