@@ -627,7 +627,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           (Data.String("Alice"), Data.Int(1)),
           (Data.String("Bob"), Data.Int(6))
         )),
-        testEvaluation ("Update - delete key")("dictionaryTests", "dictUpdateTest2")(Data.Map(
+        testEvaluation("Update - delete key")("dictionaryTests", "dictUpdateTest2")(Data.Map(
           (Data.String("Alice"), Data.Int(1))
         ))
       ),

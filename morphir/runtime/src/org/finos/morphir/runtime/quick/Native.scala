@@ -108,7 +108,8 @@ object DictSDK {
             dict += ((targetKeyRaw, value))
           case Result.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), _) =>
             dict.remove(targetKeyRaw)
-          case _ => throw new IllegalValue(s"Expected a Result.Constructor of Morphir.SDK:Maybe:just/nothing but got $newValue")
+          case _ =>
+            throw new IllegalValue(s"Expected a Result.Constructor of Morphir.SDK:Maybe:just/nothing but got $newValue")
         }
         Result.MapResult(dict)
     }
