@@ -1,5 +1,7 @@
 module Morphir.Examples.App.ListTests exposing (..)
 import List exposing (..)
+import Dict
+import Dict exposing (Dict)
 
 
 
@@ -66,6 +68,18 @@ listFilterTest : () -> List Int
 listFilterTest _ =
     filter (\n -> n > 3) [3,4,5,6]
 --expected = [4,5,6]
+
+--Test: List/FoldLeft
+listFoldLeftTest : () -> String
+listFoldLeftTest _ =
+    foldl (\elem acc -> acc ++ elem ++ "|") "<" ["foo","bar","baz"]
+--expected = [4,5,6]
+
+--Test: List/FoldLeft - Advanced
+listFoldLeftAdvTest : () -> Dict String Int
+listFoldLeftAdvTest _ =
+    foldl (\elem acc -> Dict.insert elem (String.length elem) acc) Dict.empty ["foo","barr","bazzz"]
+--expected = [Dict (foo, 3), (barr, 4), (bazzz, 5)]
 
 --Test: List/Map
 listMapTest : () -> List Int

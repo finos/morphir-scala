@@ -18,6 +18,7 @@ sealed trait Result[TA, VA] {
   def unwrapString    = Result.unwrapString(this)
   def unwrapInt       = Result.unwrapInt(this)
   def unwrapBoolean   = Result.unwrapBoolean(this)
+  def unwrapDouble    = Result.unwrapDouble(this)
   def unwrapLong      = Result.unwrapLong(this)
   def unwrapPrimitive = Result.unwrapPrimitive(this)
   def unwrapNumeric   = Result.unwrapNumeric(this)
@@ -52,7 +53,7 @@ object Result {
       case Result.ListResult(list) => list
       case _ =>
         throw new UnexpectedType(
-          s"Cannot unwrap the value `${arg}` into a primitive ListResult value. It is not a list result!"
+          s"Cannot unwrap the value `${arg}` into a ListResult value. It is not a list result!"
         )
     }
 
@@ -61,7 +62,7 @@ object Result {
       case Result.MapResult(map) => map
       case _ =>
         throw new UnexpectedType(
-          s"Cannot unwrap the value `${arg}` into a primitive ListResult value. It is not a list result!"
+          s"Cannot unwrap the value `${arg}` into a MapResult value. It is not a list result!"
         )
     }
 
@@ -74,6 +75,17 @@ object Result {
         )
       case _ =>
         throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Boolean. It is not a primitive!")
+    }
+
+  def unwrapDouble[TA, VA](arg: Result[TA, VA]): Double =
+    arg match {
+      case Primitive.Double(v) => v
+      case _: Primitive[_, _, _] =>
+        throw new UnexpectedType(
+          s"Could not unwrap the primitive `${arg}` into a Double value because it was not a Primitive.Double"
+        )
+      case _ =>
+        throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Double. It is not a primitive!")
     }
 
   def unwrapInt[TA, VA](arg: Result[TA, VA]): Int =
@@ -124,7 +136,7 @@ object Result {
   def unwrapNumeric[TA, VA](arg: Result[TA, VA]): Primitive.Numeric[TA, VA, _] =
     arg match {
       case p: Primitive.Numeric[_, _, _] => p.asInstanceOf[Primitive.Numeric[TA, VA, _]]
-      case _ => throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive")
+      case _ => throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive numeric")
     }
 
   case class NumericsWithHelper[T](
@@ -227,6 +239,7 @@ object Result {
       lazy val fractionalHelper = Some(implicitly[scala.Fractional[scala.BigDecimal]])
       lazy val integralHelper   = None
     }
+    // TODO Morphir Float type is a double, why do we have this???
     case class Float[TA, VA](value: scala.Float) extends Numeric[TA, VA, scala.Float] {
       val numericType           = Numeric.Type.Float
       lazy val numericHelper    = implicitly[scala.Numeric[scala.Float]]

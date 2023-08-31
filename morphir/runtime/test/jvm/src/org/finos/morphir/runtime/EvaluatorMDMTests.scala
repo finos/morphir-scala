@@ -403,6 +403,16 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Boolean(true),
           Data.Boolean(false)
         )),
+        testEvaluation("Fold Left")("listTests", "listFoldLeftTest")(
+          Data.String("<foo|bar|baz|")
+        ),
+        testEvaluation("Fold Left Advanced")("listTests", "listFoldLeftAdvTest")(
+          Data.Map(
+            Data.String("foo")   -> Data.Int(3),
+            Data.String("barr")  -> Data.Int(4),
+            Data.String("bazzz") -> Data.Int(5)
+          )
+        ),
         testEvalMultiple("Append (and infer type")(
           "ListTests",
           "listAppend",
@@ -588,7 +598,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           (Data.Int(4), Data.String("White")),
           (Data.Int(5), Data.String("Green"))
         )),
-        testEvaluation("Get")("dictionaryTests", "dictGetTest")(Data.Optional.Some(Data.String("Cat")))
+        testEvaluation("Get")("dictionaryTests", "dictGetTest")(Data.Optional.Some(Data.String("Cat"))),
+        testEvaluation("Filters a dictionary")("dictionaryTests", "dictFilterTest")(Data.Map(
+          (Data.Int(3), Data.String("Blue")),
+          (Data.Int(4), Data.String("Blue"))
+        ))
       ),
       suite("Optional Tests")(
         testEvaluation("Returns a Just 1")("optionTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),
