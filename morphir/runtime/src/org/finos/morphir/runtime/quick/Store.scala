@@ -30,7 +30,13 @@ object SDKValue {
       new SDKNativeFunction(Fun3[TA, VA](f))
     def fun4[TA, VA](f: (Result[TA, VA], Result[TA, VA], Result[TA, VA], Result[TA, VA]) => Result[TA, VA]) =
       new SDKNativeFunction(Fun4[TA, VA](f))
-    def fun5[TA, VA](f: (Result[TA, VA], Result[TA, VA], Result[TA, VA], Result[TA, VA]) => Result[TA, VA]) =
+    def fun5[TA, VA](f: (
+        Result[TA, VA],
+        Result[TA, VA],
+        Result[TA, VA],
+        Result[TA, VA],
+        Result[TA, VA]
+    ) => Result[TA, VA]) =
       new SDKNativeFunction(Fun5[TA, VA](f))
   }
 

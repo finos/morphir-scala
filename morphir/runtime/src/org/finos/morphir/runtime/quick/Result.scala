@@ -23,6 +23,7 @@ sealed trait Result[TA, VA] {
   def unwrapPrimitive = Result.unwrapPrimitive(this)
   def unwrapNumeric   = Result.unwrapNumeric(this)
   def unwrapList      = Result.unwrapList(this)
+  def unwrapTuple     = Result.unwrapTuple(this)
   def unwrapMap       = Result.unwrapMap(this)
 }
 
@@ -35,9 +36,7 @@ object Result {
       case ListResult(elements) => elements.map(unwrap(_))
       case SetResult(elements)  => elements.map(unwrap(_))
       case Tuple(elements) =>
-        val listed =
-          Helpers.tupleToList(elements).getOrElse(throw new UnexpectedType("Invalid tuple returned to top level"))
-        val mapped = listed.map(unwrap(_))
+        val mapped = elements.toList.map(unwrap(_))
         Helpers.listToTuple(mapped)
       case Record(elements)                => elements.map { case (name, value) => name.toCamelCase -> unwrap(value) }
       case MapResult(elements)             => elements.map { case (key, value) => unwrap(key) -> unwrap(value) }
@@ -60,6 +59,15 @@ object Result {
   def unwrapMap[TA, VA](arg: Result[TA, VA]): LinkedHashMap[Result[TA, VA], Result[TA, VA]] =
     arg match {
       case Result.MapResult(map) => map
+      case _ =>
+        throw new UnexpectedType(
+          s"Cannot unwrap the value `${arg}` into a MapResult value. It is not a list result!"
+        )
+    }
+
+  def unwrapTuple[TA, VA](arg: Result[TA, VA]): TupleSigniture[TA, VA] =
+    arg match {
+      case Result.Tuple(tup) => tup
       case _ =>
         throw new UnexpectedType(
           s"Cannot unwrap the value `${arg}` into a MapResult value. It is not a list result!"
@@ -304,10 +312,10 @@ object Result {
     override def succinct(depth: Int) = s"LocalTime($value)"
   }
 
-  case class Tuple[TA, VA](elements: Any) extends Result[TA, VA] {
+  case class Tuple[TA, VA](elements: TupleSigniture[TA, VA]) extends Result[TA, VA] {
     override def succinct(depth: Int) = if (depth == 0) "Tuple(...)"
     else {
-      s"Tuple(${Helpers.tupleToList(elements).map((res: Any) => res.asInstanceOf[Result[TA, VA]]).map(_.succinct(depth - 1)).mkString(", ")})"
+      s"Tuple(${elements.toList.map(_.succinct(depth - 1)).mkString(", ")})"
     }
   }
 
@@ -366,6 +374,9 @@ object Result {
     }
   }
 
-  case class NativeFunction[TA, VA](arguments: Int, curried: List[Result[TA, VA]], function: Any)
-      extends Result[TA, VA] {}
+  case class NativeFunction[TA, VA](
+      arguments: Int,
+      curried: List[Result[TA, VA]],
+      function: NativeFunctionSignature[TA, VA]
+  ) extends Result[TA, VA] {}
 }

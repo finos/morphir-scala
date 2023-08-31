@@ -598,6 +598,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           (Data.Int(4), Data.String("White")),
           (Data.Int(5), Data.String("Green"))
         )),
+        testEvaluation("Converts a dictionary into a list")("dictionaryTests", "dictToListTest")(Data.List(
+          Data.Tuple(Data.Int(1), Data.String("Red")),
+          Data.Tuple(Data.Int(2), Data.String("Blue")),
+          Data.Tuple(Data.Int(3), Data.String("Orange"))
+        )),
         testEvaluation("Get")("dictionaryTests", "dictGetTest")(Data.Optional.Some(Data.String("Cat"))),
         testEvaluation("Filters a dictionary")("dictionaryTests", "dictFilterTest")(Data.Map(
           (Data.Int(3), Data.String("Blue")),

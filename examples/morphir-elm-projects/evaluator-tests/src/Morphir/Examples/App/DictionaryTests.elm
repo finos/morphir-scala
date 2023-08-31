@@ -5,6 +5,13 @@ import Dict exposing (Dict)
 {-
 -}
 
+dictToListTest: () -> List (Int, String)
+dictToListTest _ =
+  let
+    dict = Dict.fromList [(1, "Red"), (2, "Blue"), (3, "Orange")]
+  in
+    Dict.toList dict
+
 dictFilterTest: () -> Dict Int String
 dictFilterTest _ =
     let

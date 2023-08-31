@@ -2,7 +2,7 @@ package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.ir.Type
 import org.finos.morphir.naming.*
-import org.finos.morphir.runtime.UnsupportedType
+import org.finos.morphir.runtime.{IllegalValue, UnexpectedType, UnsupportedType}
 import org.finos.morphir.runtime.quick.Result.Primitive
 
 import scala.collection.mutable
@@ -28,17 +28,23 @@ object DictSDK {
 
   val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
     (l: Result[Unit, Type.UType]) =>
-      val list = l.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
-      val mapped = list
+      val list = l.unwrapList
+      val mappedList = list
         .map { input =>
-          val asTuple = input
-            .asInstanceOf[Result.Tuple[Unit, Type.UType]]
-            .elements
-            .asInstanceOf[(Result[Unit, Type.UType], Result[Unit, Type.UType])]
-          asTuple._1 -> asTuple._2
+          input.unwrapTuple match {
+            case TupleSigniture.Tup2((a, b)) => (a, b)
+            case _ =>
+              throw new IllegalValue(s"Input to Dict.fromList was not a Tuple2-based element, it was: `$input`")
+          }
         }
-        .to(mutable.LinkedHashMap)
-      Result.MapResult(mapped)
+      Result.MapResult(mutable.LinkedHashMap(mappedList: _*))
+  }
+
+  val toList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
+    (d: Result[Unit, Type.UType]) =>
+      val dict     = d.unwrapMap
+      val elements = dict.toList.map { case (k, v) => Result.Tuple(TupleSigniture.Tup2((k, v))) }
+      Result.ListResult(elements)
   }
 
   val empty: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.MapResult(mutable.LinkedHashMap()))
@@ -67,6 +73,7 @@ object DictSDK {
 
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:Dict:fromList") -> fromList,
+    FQName.fromString("Morphir.SDK:Dict:toList")   -> toList,
     FQName.fromString("Morphir.SDK:Dict:get")      -> get,
     FQName.fromString("Morphir.SDK:Dict:filter")   -> filter,
     FQName.fromString("Morphir.SDK:Dict:insert")   -> insert,

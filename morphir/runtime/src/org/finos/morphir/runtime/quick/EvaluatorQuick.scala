@@ -59,8 +59,7 @@ object EvaluatorQuick {
       case Result.ListResult(elements) => elements.map(unwrap(_)) // Needed for non-higher-order head, presumably others
       case Result.SetResult(elements)  => elements.map(unwrap(_)) // Needed for non-higher-order head, presumably others
       case Result.Tuple(elements) => // Needed for tuple.first, possibly others
-        val listed =
-          Helpers.tupleToList(elements).getOrElse(throw new UnexpectedType("Invalid tuple returned to top level"))
+        val listed = elements.toList
         val mapped = listed.map(unwrap(_))
         Helpers.listToTuple(mapped)
       case Result.MapResult(elements) => elements.map { case (key, value) =>
@@ -80,8 +79,8 @@ object EvaluatorQuick {
         })
       case l: List[_]                  => Result.ListResult(l.map(wrap(_)))
       case s: mutable.LinkedHashSet[_] => Result.SetResult(s.map(wrap(_)))
-      case (first, second)             => Result.Tuple((wrap(first), wrap(second)))
-      case (first, second, third)      => Result.Tuple((wrap(first), wrap(second), wrap(third)))
+      case (first, second)             => Result.Tuple(TupleSigniture.Tup2((wrap(first), wrap(second))))
+      case (first, second, third)      => Result.Tuple(TupleSigniture.Tup3((wrap(first), wrap(second), wrap(third))))
       // TODO: Option, Result, LocalDate
       case intType: IntType => Result.Primitive.Long(intType.toLong)
       case primitive        => Result.Primitive.makeOrFail(primitive)
@@ -271,7 +270,7 @@ object EvaluatorQuick {
           Data.Case(argData, fqName.localName.toTitleCase, enumConcept)
         }
       case (Concept.Tuple(conceptElements), Result.Tuple(resultElements)) =>
-        val listed = Helpers.tupleToList[Unit, Type.UType](resultElements).get
+        val listed = resultElements.toList
         if (conceptElements.length != listed.length) {
           throw new ResultDoesNotMatchType(
             s"Tuple type elements $conceptElements of different length than result $resultElements"
