@@ -1,5 +1,5 @@
 module Morphir.Examples.App.StringTests exposing (..)
-import String exposing (append)
+import Morphir.SDK.String as String
 
 stringAppend : String -> String -> String
 stringAppend l r = append l r

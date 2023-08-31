@@ -1,8 +1,8 @@
 module Morphir.Examples.App.ListTests exposing (..)
 import List exposing (..)
+import List as List
 import Dict
 import Dict exposing (Dict)
-
 
 
 --Test: List/Single
@@ -118,7 +118,7 @@ listIsEmptyTest2 _ =
 --expected = False
 
 listAppend : List a -> List a -> List a
-listAppend l r = append l r
+listAppend l r = List.append l r
 
 --Test: List/length
 listLengthTest : () -> Int
