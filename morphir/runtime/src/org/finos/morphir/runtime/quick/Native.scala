@@ -218,19 +218,6 @@ object BasicsSDK {
     FQName.fromString("Morphir.SDK:Basics:append") -> append
   )
 
-}
-object SetSDK {
-  val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (l: Result[Unit, Type.UType]) =>
-      val list = l.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
-      Result.SetResult(list.to(mutable.LinkedHashSet))
-  }
-
-  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:Set:fromList") -> fromList
-  )
-}
-
 object StringSDK {
   val length: SDKValue[Unit, Type.UType] =
     SDKValue.SDKNativeFunction.fun1((arg: Result[Unit, Type.UType]) =>
