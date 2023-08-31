@@ -528,6 +528,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int(3),
           Data.Int(4),
           Data.Int(5)
+        )),
+        testEvaluation("toList")("setTests", "setToListTest")(Data.List(
+          Data.Int(0),
+          Data.Int(1),
+          Data.Int(2),
+          Data.Int(3),
+          Data.Int(4),
+          Data.Int(5)
         ))
       ),
       suite("Simple")(
