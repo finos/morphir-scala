@@ -73,24 +73,32 @@ final case class CallStackFrame[TA, VA](
 }
 
 final case class Store[TA, VA](
-    definitions: Map[FQName, SDKValue[TA, VA]],
-    ctors: Map[FQName, SDKConstructor[TA, VA]],
     callStack: CallStackFrame[TA, VA]
 ) {
-  def getVariable(name: Name): Option[StoredValue[TA, VA]]  = callStack.get(name)
-  def getDefinition(name: FQName): Option[SDKValue[TA, VA]] = definitions.get(name)
-  def getCtor(name: FQName): Option[SDKConstructor[TA, VA]] = ctors.get(name)
-
-  def push(bindings: Map[Name, StoredValue[TA, VA]]) = Store(definitions, ctors, callStack.push(bindings))
-  def withBindingsFrom(other: Store[TA, VA]) = Store(definitions ++ other.definitions, ctors ++ other.ctors, callStack)
-  def withDefinition(fqn: FQName, definition: SDKValue[TA, VA]): Store[TA, VA] =
-    Store(definitions + (fqn -> definition), ctors, callStack)
-  def withConstructor(fqn: FQName, constructor: SDKConstructor[TA, VA]): Store[TA, VA] =
-    Store(definitions, ctors + (fqn -> constructor), callStack)
+  def getVariable(name: Name): Option[StoredValue[TA, VA]] = callStack.get(name)
+  def push(bindings: Map[Name, StoredValue[TA, VA]])       = Store(callStack.push(bindings))
 }
 
 object Store {
-  def fromDistributions(dists: Distribution*): Store[Unit, Type.UType] =
+  def empty[TA, VA] = Store[TA, VA](CallStackFrame(Map(), None))
+}
+
+final case class GlobalDefs[TA, VA](
+    definitions: Map[FQName, SDKValue[TA, VA]],
+    ctors: Map[FQName, SDKConstructor[TA, VA]]
+) {
+  def getDefinition(name: FQName): Option[SDKValue[TA, VA]] = definitions.get(name)
+  def withBindingsFrom(other: GlobalDefs[TA, VA]) =
+    GlobalDefs(definitions ++ other.definitions, ctors ++ other.ctors)
+  def withDefinition(fqn: FQName, definition: SDKValue[TA, VA]): GlobalDefs[TA, VA] =
+    GlobalDefs(definitions + (fqn -> definition), ctors)
+  def withConstructor(fqn: FQName, constructor: SDKConstructor[TA, VA]): GlobalDefs[TA, VA] =
+    GlobalDefs(definitions, ctors + (fqn -> constructor))
+  def getCtor(name: FQName): Option[SDKConstructor[TA, VA]] = ctors.get(name)
+}
+
+object GlobalDefs {
+  def fromDistributions(dists: Distribution*): GlobalDefs[Unit, Type.UType] =
     dists.foldLeft(native) {
       case (acc, lib: Library) =>
         val packageName = lib.packageName
@@ -116,8 +124,8 @@ object Store {
         }
     }
 
-  def empty[TA, VA]: Store[TA, VA] =
-    Store(Map(), Map(), CallStackFrame(Map(), None))
-  def native: Store[Unit, UType] =
-    Store(Native.native, Native.nativeCtors, CallStackFrame(Map(), None))
+  def empty[TA, VA]: GlobalDefs[TA, VA] =
+    GlobalDefs(Map(), Map())
+  def native: GlobalDefs[Unit, UType] =
+    GlobalDefs(Native.native, Native.nativeCtors)
 }

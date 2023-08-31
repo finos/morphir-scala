@@ -18,14 +18,14 @@ import org.finos.morphir.runtime.{
   VariableNotFound
 }
 
-object Loop {
-  def loop[TA, VA](ir: Value[TA, VA], store: Store[TA, VA]): Result[TA, VA] =
+private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
+  def loop(ir: Value[TA, VA], store: Store[TA, VA]): Result[TA, VA] =
     ir match {
       case Literal(va, lit)              => handleLiteral(va, lit)
       case Apply(va, function, argument) => handleApply(va, function, argument, store)
       case Destructure(va, pattern, valueToDestruct, inValue) =>
         handleDestructure(va, pattern, valueToDestruct, inValue, store)
-      case Constructor(va, name)        => handleConstructor(va, name, store)
+      case Constructor(va, name)        => handleConstructor(va, name)
       case Field(va, recordValue, name) => handleField(va, recordValue, name, store)
       case FieldFunction(va, name)      => handleFieldFunction(va, name)
       case IfThenElse(va, condition, thenValue, elseValue) =>
@@ -44,9 +44,9 @@ object Loop {
       case Variable(va, name)                      => handleVariable(va, name, store)
     }
 
-  def handleLiteral[TA, VA](va: VA, literal: Lit) = Result.Primitive.makeOrFail[TA, VA, Any](unpackLit(literal))
+  def handleLiteral(va: VA, literal: Lit) = Result.Primitive.makeOrFail[TA, VA, Any](unpackLit(literal))
 
-  def handleApply[TA, VA](
+  def handleApply(
       va: VA,
       function: Value[TA, VA],
       argument: Value[TA, VA],
@@ -54,14 +54,26 @@ object Loop {
   ): Result[TA, VA] = {
     val functionValue = loop(function, store)
     val argValue      = loop(argument, store)
-    handleApplyResult(va, functionValue, argValue, store)
+    handleApplyResult(va, functionValue, argValue)
   }
 
-  def handleApplyResult[TA, VA](
+  def handleApplyResult2(
       va: VA,
       functionValue: Result[TA, VA],
-      argValue: Result[TA, VA],
-      store: Store[TA, VA]
+      arg1: Result[TA, VA],
+      arg2: Result[TA, VA]
+  ): Result[TA, VA] = {
+    val partiallyAppliedFunction =
+      handleApplyResult(va, functionValue, arg1)
+    val result =
+      handleApplyResult(va, partiallyAppliedFunction, arg2)
+    result
+  }
+
+  def handleApplyResult(
+      va: VA,
+      functionValue: Result[TA, VA],
+      argValue: Result[TA, VA]
   ): Result[TA, VA] =
     functionValue match {
       case Result.FieldFunction(name) =>
@@ -74,14 +86,14 @@ object Loop {
         val newBindings = matchPatternCase[TA, VA](pattern, argValue)
           .getOrElse(throw UnmatchedPattern(s"Lambda argument did not match expected pattern"))
           .map { case (name, value) => name -> StoredValue.Eager(value) }
-        loop(body, Store(store.definitions, store.ctors, context.push(newBindings)))
+        loop(body, Store(context.push(newBindings)))
       case Result.DefinitionFunction(body, arguments, curried, closingContext) =>
         arguments match {
           case (name, _, _) :: Nil =>
             val newBindings = (curried :+ (name -> argValue)).map { case (name, value) =>
               name -> StoredValue.Eager(value)
             }.toMap
-            loop(body, Store(store.definitions, store.ctors, closingContext.push(newBindings)))
+            loop(body, Store(closingContext.push(newBindings)))
           case (name, _, _) :: tail =>
             Result.DefinitionFunction(body, tail, curried :+ (name -> argValue), closingContext)
           case Nil =>
@@ -100,7 +112,15 @@ object Loop {
             )
 
         }
-      case Result.NativeFunction(arguments, curried, function) =>
+      case nativeFunctionResult: Result.NativeFunctionResult[_, _] =>
+        val (arguments, curried, function) =
+          nativeFunctionResult match {
+            case Result.NativeFunction(arguments, curried, function) =>
+              (arguments, curried, function)
+            case Result.NativeInnerFunction(arguments, curried, function) =>
+              (arguments, curried, function.injectEvaluator(this))
+          }
+
         def assertCurriedNumArgs(num: Int) =
           if (curried.size != num) throw new IllegalValue(
             s"Curried wrong number of (uncurried) args. Needed ${function.numArgs} args but got (${curried.size}) when applying the function $function"
@@ -131,7 +151,7 @@ object Loop {
       case other => throw new UnexpectedType(s"$other is not a function")
     }
 
-  def handleDestructure[TA, VA](
+  def handleDestructure(
       va: VA,
       pattern: Pattern[VA],
       valueToDestruct: Value[TA, VA],
@@ -146,8 +166,8 @@ object Loop {
     }
   }
 
-  def handleConstructor[TA, VA](va: VA, name: FQName, store: Store[TA, VA]): Result[TA, VA] =
-    store.getCtor(name) match {
+  def handleConstructor(va: VA, name: FQName): Result[TA, VA] =
+    globals.getCtor(name) match {
       case Some(SDKConstructor(List()))    => Result.ConstructorResult(name, List())
       case Some(SDKConstructor(arguments)) => Result.ConstructorFunction[TA, VA](name, arguments, List())
       case None =>
@@ -158,15 +178,15 @@ object Loop {
              |mod : $mod
              |loc : $loc
              |Store contents from that package:
-             |  ${store.ctors.keys.filter(_.getPackagePath == pkg).map(_.toString).mkString("\n\t")}
+             |  ${globals.ctors.keys.filter(_.getPackagePath == pkg).map(_.toString).mkString("\n\t")}
              |
              |Other Store Contents:
-             |  ${store.ctors.keys.map(_.toString).mkString("\n\t")}
+             |  ${globals.ctors.keys.map(_.toString).mkString("\n\t")}
              |""".stripMargin
         )
     }
 
-  def handleField[TA, VA](
+  def handleField(
       va: VA,
       recordValue: Value[TA, VA],
       fieldName: Name,
@@ -178,9 +198,9 @@ object Loop {
       case other => throw new UnexpectedType(s"Expected record but found $other")
     }
 
-  def handleFieldFunction[TA, VA](va: VA, name: Name): Result[TA, VA] = Result.FieldFunction(name)
+  def handleFieldFunction(va: VA, name: Name): Result[TA, VA] = Result.FieldFunction(name)
 
-  def handleIfThenElse[TA, VA](
+  def handleIfThenElse(
       va: VA,
       condition: Value[TA, VA],
       thenValue: Value[TA, VA],
@@ -193,7 +213,7 @@ object Loop {
       case other                   => throw new UnexpectedType(s"$other is not a boolean result")
     }
 
-  def handleLambda[TA, VA](
+  def handleLambda(
       va: VA,
       pattern: Pattern[VA],
       body: Value[TA, VA],
@@ -201,7 +221,7 @@ object Loop {
   ): Result[TA, VA] =
     Result.LambdaFunction(body, pattern, store.callStack)
 
-  def handleLetDefinition[TA, VA](
+  def handleLetDefinition(
       va: VA,
       valueName: Name,
       valueDefinition: Definition[TA, VA],
@@ -215,7 +235,7 @@ object Loop {
     loop(inValue, store.push(Map(valueName -> StoredValue.Eager(value))))
   }
 
-  def handleLetRecursion[TA, VA](
+  def handleLetRecursion(
       va: VA,
       definitions: Map[Name, Definition[TA, VA]],
       inValue: Value[TA, VA],
@@ -227,10 +247,10 @@ object Loop {
     loop(inValue, store.push(siblings))
   }
 
-  def handleListValue[TA, VA](va: VA, elements: List[Value[TA, VA]], store: Store[TA, VA]): Result[TA, VA] =
+  def handleListValue(va: VA, elements: List[Value[TA, VA]], store: Store[TA, VA]): Result[TA, VA] =
     Result.ListResult(elements.map(loop(_, store)))
 
-  def handlePatternMatch[TA, VA](
+  def handlePatternMatch(
       va: VA,
       value: Value[TA, VA],
       cases: List[(Pattern[VA], Value[TA, VA])],
@@ -251,13 +271,13 @@ object Loop {
     loop(inValue, store.push(bindings.map { case (name, value) => name -> StoredValue.Eager(value) }))
   }
 
-  def handleRecord[TA, VA](va: VA, fields: List[(Name, Value[TA, VA])], store: Store[TA, VA]): Result[TA, VA] =
+  def handleRecord(va: VA, fields: List[(Name, Value[TA, VA])], store: Store[TA, VA]): Result[TA, VA] =
     Result.Record(fields.map { case (name, value) => name -> loop(value, store) }.toMap)
 
-  def handleReference[TA, VA](va: VA, name: FQName, store: Store[TA, VA]): Result[TA, VA] =
-    store.getDefinition(name) match {
+  def handleReference(va: VA, name: FQName, store: Store[TA, VA]): Result[TA, VA] =
+    globals.getDefinition(name) match {
       case None =>
-        val filtered = store.definitions.keys.filter(_.getPackagePath == name.getPackagePath)
+        val filtered = globals.definitions.keys.filter(_.getPackagePath == name.getPackagePath)
         val hint = if (Utils.isNative(name)) "You might be calling an unimplemented native function"
         else "You might be calling a function not defined in the given distributions"
         throw DefinitionNotFound(
@@ -279,18 +299,18 @@ object Loop {
       case Some(SDKNativeValue(value)) => value
       case Some(SDKNativeFunction(function)) =>
         Result.NativeFunction(function.numArgs, List(), function)
-      case Some(SDKNativeInnerFunction(storeFunction)) =>
-        Result.NativeFunction(storeFunction.numArgs, List(), storeFunction.applyStore(store))
+      case Some(SDKNativeInnerFunction(function)) =>
+        Result.NativeInnerFunction(function.numArgs, List(), function)
     }
 
-  def handleTuple[TA, VA](va: VA, elements: List[Value[TA, VA]], store: Store[TA, VA]): Result[TA, VA] = {
+  def handleTuple(va: VA, elements: List[Value[TA, VA]], store: Store[TA, VA]): Result[TA, VA] = {
     val evaluatedElements = elements.map(loop(_, store))
     Result.Tuple(TupleSigniture.fromList(evaluatedElements))
   }
 
-  def handleUnit[TA, VA](va: VA): Result[TA, VA] = Result.Unit()
+  def handleUnit(va: VA): Result[TA, VA] = Result.Unit()
 
-  def handleUpdateRecord[TA, VA](
+  def handleUpdateRecord(
       va: VA,
       valueToUpdate: Value[TA, VA],
       fields: Map[Name, Value[TA, VA]],
@@ -303,7 +323,7 @@ object Loop {
       case other => throw UnexpectedType(s"$other is not a record")
     }
 
-  def handleVariable[TA, VA](va: VA, name: Name, store: Store[TA, VA]) =
+  def handleVariable(va: VA, name: Name, store: Store[TA, VA]) =
     store.getVariable(name) match {
       case None                         => throw VariableNotFound(s"Variable $name not found")
       case Some(StoredValue.Eager(res)) => res
