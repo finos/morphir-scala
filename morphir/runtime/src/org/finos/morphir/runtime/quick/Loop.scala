@@ -18,7 +18,7 @@ import org.finos.morphir.runtime.{
   VariableNotFound
 }
 
-case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
+private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
   def loop(ir: Value[TA, VA], store: Store[TA, VA]): Result[TA, VA] =
     ir match {
       case Literal(va, lit)              => handleLiteral(va, lit)
