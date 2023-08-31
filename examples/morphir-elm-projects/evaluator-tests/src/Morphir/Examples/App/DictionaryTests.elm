@@ -49,3 +49,14 @@ dictSingletonTest : () -> Dict Int String
 dictSingletonTest _ =
     Dict.singleton 6 "Puppies"
 --expected = Dict(6 -> "Puppies")
+
+
+
+--Test: Dict/update - delete key
+dictUpdateTest2 : () -> Dict String Int
+dictUpdateTest2 _ =
+    let
+        aliceAndBob = Dict.fromList [ ( "Alice", 1 ), ( "Bob", 2 ) ]
+    in
+        Dict.update "Bob" (\_ -> Nothing) aliceAndBob
+--expected = Dict.fromList [ ( "Alice", 1 ), ( "Bob", 6 ) ]
