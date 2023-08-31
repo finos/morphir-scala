@@ -15,17 +15,17 @@ import zio.Chunk
 object GatherReferences {
   type TypedValue = Value[Unit, UType]
   // Gather references from distribution*
-  // Also from Store? (Yeah, redundancy is okay, and there are
+  // Also from GlobalDefs? (Yeah, redundancy is okay, and there are
   // Helper: Recursively explore value
-  // Diff vs. Store
-  def fromStore(store: Store[Unit, UType]): ReferenceSet =
-    store.definitions.map { case (name, value) =>
+  // Diff vs. GlobalDefs
+  def fromGlobalDefs(globals: GlobalDefs[Unit, UType]): ReferenceSet =
+    globals.definitions.map { case (name, value) =>
       value match {
         case SDKValue.SDKValueDefinition(definition) => loop(definition.body).withDefinition(name) // TODO: Types!
         case _                                       => ReferenceSet.empty.withDefinition(name)
       }
     }.foldLeft(ReferenceSet.empty)((acc, next) => acc ++ next) ++
-      store.ctors.keys.foldLeft(ReferenceSet.empty)((acc, next) => acc.withConstructor(next))
+      globals.ctors.keys.foldLeft(ReferenceSet.empty)((acc, next) => acc.withConstructor(next))
 
   def fromEntrySet(entrySet: ReferenceSet, dists: Distribution*): ReferenceSet = {
     val mapped = dists.map(dist => (dist.asInstanceOf[Library].packageName, dist)).toMap
