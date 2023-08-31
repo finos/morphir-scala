@@ -21,7 +21,7 @@ import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
 import org.finos.morphir.runtime.environment.MorphirEnv
 import zio.prelude.fx.ZPure
 
-private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Store[scala.Unit, UType])
+private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: GlobalDefs[scala.Unit, UType])
     extends TypedMorphirRuntime {
   // private val store: Store[scala.Unit, UType] = Store.empty //
 
@@ -38,7 +38,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
   def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
       _   <- typeCheck(value)
-      res <- EvaluatorQuick.evalAction(value, store, dists)
+      res <- EvaluatorQuick.evalAction(value, globals, dists)
     } yield res
 
   def fetchType(fqn: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
@@ -88,8 +88,8 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, store: Sto
 object QuickMorphirRuntime {
 
   def fromDistributions(distributions: Distribution*): QuickMorphirRuntime = {
-    val store = Store.fromDistributions(distributions: _*)
-    QuickMorphirRuntime(Distributions(distributions: _*), store)
+    val globalDefs = GlobalDefs.fromDistributions(distributions: _*)
+    QuickMorphirRuntime(Distributions(distributions: _*), globalDefs)
   }
 
   def fromDistributionRTAction(distributions: Distribution*)

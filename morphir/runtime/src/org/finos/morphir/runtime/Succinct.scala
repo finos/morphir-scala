@@ -28,7 +28,7 @@ object Succinct {
         case Reference(_, fqName, args) => s"$fqName ${args.map(apply(_, depth - 1)).mkString(" ")}"
         case Tuple(_, elements)         => s"(${elements.map(apply(_, depth - 1)).mkString(", ")})"
         case Function(_, arg, ret)      => s"(${apply(arg, depth - 1)} -> ${apply(ret, depth - 1)}})"
-        case other                      => other.getClass.getSimpleName
+        case other                      => other.getClass.getName
       }
 
     def apply[TA](tpe: Type[TA]): String = apply(tpe, 2)
@@ -37,7 +37,7 @@ object Succinct {
   object Pattern {
     def apply[VA](pattern: Pattern[VA], depth: Int): String =
       pattern match {
-        case other => other.getClass.getSimpleName
+        case other => other.getClass.getName
       }
     def apply[VA](pattern: Pattern[VA]): String = apply(pattern, 2)
 
