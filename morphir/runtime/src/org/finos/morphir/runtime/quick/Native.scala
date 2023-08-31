@@ -189,6 +189,11 @@ object SetSDK {
       val set = arg.asInstanceOf[Result.SetResult[Unit, Type.UType]].elements
       Result.ListResult(set.to(List))
     }
+  val member: SDKValue[Unit, Type.UType] =
+    SDKValue.SDKNativeFunction.fun2 { (l: Result[Unit, Type.UType], r: Result[Unit, Type.UType]) =>
+      val setR = r.asInstanceOf[Result.SetResult[Unit, Type.UType]].elements
+      Result.Primitive.Boolean(setR.contains(l))
+    }
 }
 
 object BasicsSDK {
