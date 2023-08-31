@@ -177,6 +177,15 @@ object ListSDK {
     FQName.fromString("Morphir.SDK:List:isEmpty") -> isEmpty
   )
 }
+
+object SetSDK {
+  val fromList: SDKValue[Unit, Type.UType] =
+    SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+      val list = arg.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
+      Result.SetResult(list.to(mutable.LinkedHashSet))
+    }
+}
+
 object BasicsSDK {
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2(
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
