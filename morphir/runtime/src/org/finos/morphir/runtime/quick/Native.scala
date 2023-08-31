@@ -198,6 +198,12 @@ object SetSDK {
     SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
       Result.Primitive.Int(arg.asInstanceOf[Result.SetResult[Unit, Type.UType]].elements.size)
     }
+  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:Set:fromList") -> fromList,
+    FQName.fromString("Morphir.SDK:Set:toList")   -> toList,
+    FQName.fromString("Morphir.SDK:Set:member")   -> member,
+    FQName.fromString("Morphir.SDK:Set:size")     -> size
+  )
 }
 
 object BasicsSDK {
@@ -486,5 +492,5 @@ object Native {
     FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
-  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ ListSDK.sdk ++ BasicsSDK.sdk
+  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ ListSDK.sdk ++ SetSDK.sdk ++ BasicsSDK.sdk
 }
