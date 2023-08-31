@@ -75,7 +75,7 @@ object DictSDK {
       Result.ListResult(map.keys.toList)
   }
 
-  private def optionToMaybe(opt: Option[Result[Unit, Type.UType]]) =
+  private def optionToMaybe(opt: Option[Result[Unit, Type.UType]]): Result[Unit, Type.UType] =
     opt match {
       case Some(value) => Result.ConstructorResult(
           FQName.fromString("Morphir.SDK:Maybe:just"),
