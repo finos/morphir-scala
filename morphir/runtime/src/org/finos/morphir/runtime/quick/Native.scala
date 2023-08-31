@@ -87,6 +87,25 @@ object DictSDK {
         )
     }
 
+  val update: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+    NativeFunctionSignatureAdv.Fun3 {
+      // update : comparable -> (Maybe v -> Maybe v) -> Dict comparable v -> Dict comparable v
+      // update targetKey alter dictionary =
+      // case alter(get targetKey dictionary) of
+      //   Just value -> insert targetKey value dictionary
+      //   Nothing    -> remove targetKey dictionary
+      (store: Store[Unit, Type.UType]) => (
+          targetKeyRaw: Result[Unit, Type.UType],
+          alterRaw: Result[Unit, Type.UType],
+          dictRaw: Result[Unit, Type.UType]
+      ) =>
+        val dict      = dictRaw.unwrapMap.clone() // make sure to clone it to not modify original one
+        val currValue = optionToMaybe(dict.get(targetKeyRaw))
+        val newValue  = Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), alterRaw, currValue, store)
+
+        Result.MapResult(dict)
+    }
+  }
 
   val insert: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun3 {
     (key: Result[Unit, Type.UType], value: Result[Unit, Type.UType], m: Result[Unit, Type.UType]) =>
