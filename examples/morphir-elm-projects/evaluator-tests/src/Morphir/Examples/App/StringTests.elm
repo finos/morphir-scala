@@ -1,4 +1,5 @@
 module Morphir.Examples.App.StringTests exposing (..)
+import Morphir.SDK.String exposing (String, left, right, fromInt, toInt, fromFloat, isEmpty)
 import Morphir.SDK.String as String
 
 stringAppend : String -> String -> String
@@ -39,3 +40,9 @@ stringIsEmptyTest1 : () -> Bool
 stringIsEmptyTest1 _ =
     isEmpty ""
 --expected = True
+
+--Test: String/isEmpty
+stringIsEmptyTest2 : () -> Bool
+stringIsEmptyTest2 _ =
+    isEmpty "content"
+--expected = False
