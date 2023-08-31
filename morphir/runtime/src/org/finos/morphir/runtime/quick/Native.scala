@@ -184,6 +184,11 @@ object SetSDK {
       val list = arg.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
       Result.SetResult(list.to(mutable.LinkedHashSet))
     }
+  val toList: SDKValue[Unit, Type.UType] =
+    SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+      val set = arg.asInstanceOf[Result.SetResult[Unit, Type.UType]].elements
+      Result.ListResult(set.to(List))
+    }
 }
 
 object BasicsSDK {
