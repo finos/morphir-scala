@@ -119,3 +119,9 @@ listIsEmptyTest _ =
 
 listAppend : List a -> List a -> List a
 listAppend l r = append l r
+
+--Test: List/length
+listLengthTest : () -> Int
+listLengthTest _ =
+    length [1, 2, 3, 4, 5, 6]
+--expected = 6
