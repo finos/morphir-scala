@@ -12,19 +12,19 @@ import org.finos.morphir.runtime.UnsupportedType
 import org.finos.morphir.runtime.quick.Result.Primitive
 import scala.collection.mutable
 
-// TODO simplify evaluator calls
 object DictSDK {
+  // === ELM Function ===
+  // filter : (k -> v -> Bool) -> Dict k v -> Dict comparable v
+  // filter isGood dict =
+  //   foldl (\k v d -> if isGood k v then insert k v d else d) empty dict
   val filter: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
-      (evaluator: Loop[Unit, Type.UType]) => (f: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
+      (evaluator: Loop[Unit, Type.UType]) => (isGood: Result[Unit, Type.UType], dictRaw: Result[Unit, Type.UType]) =>
         {
-          val dictMap = l.unwrapMap
+          val dictMap = dictRaw.unwrapMap
           val newDict =
             dictMap.filter { case (k, v) =>
-              val partialAppliedF =
-                evaluator.handleApplyResult(Type.UType.Unit(()), f, k)
-              val result =
-                evaluator.handleApplyResult(Type.UType.Unit(()), partialAppliedF, v)
+              val result = evaluator.handleApplyResult2(Type.UType.Unit(()), isGood, k, v)
               result.unwrapBoolean
             }
           Result.MapResult(newDict)
@@ -86,6 +86,7 @@ object DictSDK {
 
   val update: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun3 {
+      // === ELM Function ===
       // update : comparable -> (Maybe v -> Maybe v) -> Dict comparable v -> Dict comparable v
       // update targetKey alter dictionary =
       // case alter(get targetKey dictionary) of
@@ -102,7 +103,7 @@ object DictSDK {
 
         newValue match {
           case Result.ConstructorResult(FQString("Morphir.SDK:Maybe:just"), List(value)) =>
-            dict += ((targetKeyRaw, newValue))
+            dict += ((targetKeyRaw, value))
           case Result.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), _) =>
             dict.remove(targetKeyRaw)
           case _ =>
@@ -146,12 +147,7 @@ object ListSDK {
           {
             val list = l.unwrapList
             list.foldLeft(first) { (b, a) => // Note that elm does (a, b) => b, scala does it in the opposite way
-              val partialAppliedF =
-                evaluator.handleApplyResult(Type.UType.Unit(()), f, a)
-              val result =
-                evaluator.handleApplyResult(Type.UType.Unit(()), partialAppliedF, b)
-
-              result
+              evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, b)
             }
           }
     }

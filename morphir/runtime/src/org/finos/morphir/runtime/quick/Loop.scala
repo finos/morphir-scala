@@ -57,6 +57,19 @@ case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
     handleApplyResult(va, functionValue, argValue)
   }
 
+  def handleApplyResult2(
+      va: VA,
+      functionValue: Result[TA, VA],
+      arg1: Result[TA, VA],
+      arg2: Result[TA, VA]
+  ): Result[TA, VA] = {
+    val partiallyAppliedFunction =
+      handleApplyResult(va, functionValue, arg1)
+    val result =
+      handleApplyResult(va, partiallyAppliedFunction, arg2)
+    result
+  }
+
   def handleApplyResult(
       va: VA,
       functionValue: Result[TA, VA],
