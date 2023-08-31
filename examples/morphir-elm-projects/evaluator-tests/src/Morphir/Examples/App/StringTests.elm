@@ -27,3 +27,15 @@ stringFromFloatTest : () -> String
 stringFromFloatTest _ =
     fromFloat 1.5
 --expected = "1.5"
+
+--Test: String/toInt
+stringToIntTest : () -> Maybe Int
+stringToIntTest _ =
+    toInt "25"
+--expected = Just 25
+
+--Test: String/isEmpty
+stringIsEmptyTest1 : () -> Bool
+stringIsEmptyTest1 _ =
+    isEmpty ""
+--expected = True
