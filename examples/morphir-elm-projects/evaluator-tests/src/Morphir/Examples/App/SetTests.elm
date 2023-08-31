@@ -19,3 +19,15 @@ setMemberTest1 : () -> Bool
 setMemberTest1 _ =
     member 1 (Set.fromList [0, 1, 2])
 --expected = true
+
+--Test: Set/member
+setMemberTest2 : () -> Bool
+setMemberTest2 _ =
+    member 5 (Set.fromList [0, 1, 2])
+--expected = false
+
+--Test: Set/size
+setSizeTest : () -> Int
+setSizeTest _ =
+    size (Set.fromList [0, 1, 2])
+--expected = 3
