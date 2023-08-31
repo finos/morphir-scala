@@ -50,6 +50,14 @@ dictSingletonTest _ =
     Dict.singleton 6 "Puppies"
 --expected = Dict(6 -> "Puppies")
 
+--Test: Dict/keys
+dictKeysTest : () -> List Int
+dictKeysTest _ =
+    let
+        someMap = Dict.fromList [(1, "Red"), (2, "Blue"), (3, "Orange"), (4, "White"), (5, "Green")]
+    in
+        Dict.keys someMap
+--expected = [1,2,3,4,5]
 
 --Test: Dict/update
 times3 : Maybe Int -> Maybe Int
