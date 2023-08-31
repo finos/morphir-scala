@@ -7,8 +7,10 @@ import org.finos.morphir.ir.Value.{Pattern, Value}
 
 import scala.collection.mutable.LinkedHashMap
 import Name.toTitleCase
-import org.finos.morphir.runtime.UnexpectedType
+import org.finos.morphir.runtime.Extractors.FQString
+import org.finos.morphir.runtime.{IllegalValue, UnexpectedType}
 
+import scala.collection.immutable.List
 import scala.collection.mutable
 
 sealed trait Result[TA, VA] {
@@ -372,6 +374,17 @@ object Result {
     else {
       s"${name.toString}(${values.map(value => value.succinct(depth - 1)).mkString(", ")})"
     }
+  }
+  object ConstructorResult {
+    def unwrapMaybeAsOption[TA, VA](result: Result[TA, VA]) =
+      result match {
+        case Result.ConstructorResult(FQString("Morphir.SDK:Maybe:just"), List(value)) =>
+          Some(value)
+        case Result.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), _) =>
+          None
+        case _ =>
+          throw new IllegalValue(s"Expected a Constructor of Morphir.SDK:Maybe:just/nothing but got: ${result}")
+      }
   }
 
   case class NativeFunction[TA, VA](

@@ -2,12 +2,61 @@ package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.ir.Type
 import org.finos.morphir.naming.*
+import org.finos.morphir.runtime.Extractors.FQString
 import org.finos.morphir.runtime.{IllegalValue, UnexpectedType, UnsupportedType}
 import org.finos.morphir.runtime.quick.Result.Primitive
 
 import scala.collection.mutable
 
+object NativeHelper {
+  def evaluate(functionValue: Result[Unit, Type.UType], arg: Result[Unit, Type.UType], store: Store[Unit, Type.UType]) =
+    Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), functionValue, arg, store)
+
+  def evaluate2(
+      functionValue: Result[Unit, Type.UType],
+      arg1: Result[Unit, Type.UType],
+      arg2: Result[Unit, Type.UType],
+      store: Store[Unit, Type.UType]
+  ) =
+    Loop.handleApplyResult2[Unit, Type.UType](Type.UType.Unit(()), functionValue, arg1, arg2, store)
+}
+
 object DictSDK {
+  val update: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+    NativeFunctionSignatureAdv.Fun3 {
+      // update : comparable -> (Maybe v -> Maybe v) -> Dict comparable v -> Dict comparable v
+      // update targetKey alter dictionary =
+      // case alter(get targetKey dictionary) of
+      //   Just value -> insert targetKey value dictionary
+      //   Nothing    -> remove targetKey dictionary
+      (store: Store[Unit, Type.UType]) => (
+          targetKeyRaw: Result[Unit, Type.UType],
+          alterRaw: Result[Unit, Type.UType],
+          dictRaw: Result[Unit, Type.UType]
+      ) =>
+        val dict      = dictRaw.unwrapMap.clone() // make sure to clone it to not modify original one
+        val currValue = optionToMaybe(dict.get(targetKeyRaw))
+        val newValue  = NativeHelper.evaluate(alterRaw, currValue, store)
+        Result.ConstructorResult.unwrapMaybeAsOption(newValue) match {
+          case Some(value) => dict += ((targetKeyRaw, value))
+          case None        => dict.remove(targetKeyRaw)
+        }
+        Result.MapResult(dict)
+    }
+  }
+
+  private def optionToMaybe(opt: Option[Result[Unit, Type.UType]]) =
+    opt match {
+      case Some(value) => Result.ConstructorResult(
+          FQName.fromString("Morphir.SDK:Maybe:just"),
+          List(value)
+        )
+      case None => Result.ConstructorResult(
+          FQName.fromString("Morphir.SDK:Maybe:nothing"),
+          List()
+        )
+    }
+
   val filter: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
       (store: Store[Unit, Type.UType]) => (f: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
@@ -15,10 +64,7 @@ object DictSDK {
           val dictMap = l.unwrapMap
           val newDict =
             dictMap.filter { case (k, v) =>
-              val partialAppliedF =
-                Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), f, k, store)
-              val result =
-                Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), partialAppliedF, v, store)
+              val result = NativeHelper.evaluate2(f, k, v, store)
               result.unwrapBoolean
             }
           Result.MapResult(newDict)
@@ -72,6 +118,7 @@ object DictSDK {
   }
 
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:Dict:update")   -> update,
     FQName.fromString("Morphir.SDK:Dict:fromList") -> fromList,
     FQName.fromString("Morphir.SDK:Dict:toList")   -> toList,
     FQName.fromString("Morphir.SDK:Dict:get")      -> get,
@@ -88,12 +135,7 @@ object ListSDK {
           {
             val list = l.unwrapList
             list.foldLeft(first) { (b, a) => // Note that elm does (a, b) => b, scala does it in the opposite way
-              val partialAppliedF =
-                Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), f, a, store)
-              val result =
-                Loop.handleApplyResult[Unit, Type.UType](Type.UType.Unit(()), partialAppliedF, b, store)
-
-              result
+              NativeHelper.evaluate2(f, a, b, store)
             }
           }
     }

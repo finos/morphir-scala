@@ -57,6 +57,20 @@ object Loop {
     handleApplyResult(va, functionValue, argValue, store)
   }
 
+  def handleApplyResult2[TA, VA](
+      va: VA,
+      functionValue: Result[TA, VA],
+      arg1: Result[TA, VA],
+      arg2: Result[TA, VA],
+      store: Store[TA, VA]
+  ): Result[TA, VA] = {
+    val partiallyAppliedFunction =
+      Loop.handleApplyResult[TA, VA](va, functionValue, arg1, store)
+    val result =
+      Loop.handleApplyResult[TA, VA](va, partiallyAppliedFunction, arg2, store)
+    result
+  }
+
   def handleApplyResult[TA, VA](
       va: VA,
       functionValue: Result[TA, VA],
