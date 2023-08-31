@@ -198,16 +198,16 @@ object Native {
   }
 
   val toFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (a: Result[Unit, Type.UType]) => Result.Primitive.Double(Result.unwrap(a).asInstanceOf[Long].toDouble)
+    (a: Result[Unit, Type.UType]) => Result.Primitive.Double(a.unwrapLong.toDouble)
   }
   val log: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
-      val denominator = Math.log(Result.unwrap(a).asInstanceOf[Double])
+      val denominator = Math.log(a.unwrapFloat)
       val asDouble =
         if (denominator == 0)
           Double.PositiveInfinity
         else
-          Math.log(Result.unwrap(b).asInstanceOf[Double]) / denominator
+          Math.log(b.unwrapFloat) / denominator
       Result.Primitive.Double(asDouble)
   }
 
@@ -279,7 +279,7 @@ object Native {
 
   val fromMilliseconds: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
     (a: Result[Unit, Type.UType]) =>
-      val millis = Result.unwrap(a).asInstanceOf[Long]
+      val millis = a.unwrapLong
       val time   = fromMillisecondsEpoch(millis)
       Result.LocalTime(time)
   }
