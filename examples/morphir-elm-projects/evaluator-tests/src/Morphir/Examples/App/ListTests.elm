@@ -1,5 +1,7 @@
 module Morphir.Examples.App.ListTests exposing (..)
 import List exposing (..)
+import Dict
+import Dict exposing (Dict)
 
 
 
@@ -8,12 +10,6 @@ listEmptyTest : () -> List Int
 listEmptyTest _ = 
     []
 --expected = []
-
---Test: List/Singleton
-listSingletonTest : () -> List Int
-listSingletonTest _ =
-    singleton 6
---expected = [6]
 
 --Test: List/Single
 listSingleTest : () -> List Int
@@ -67,14 +63,59 @@ listFlattenTest _ =
             flatten nested
 --expected = ["Red","Blue","Car","Plane","Truck"]
 
+--Test: List/Filter
+listFilterTest : () -> List Int
+listFilterTest _ =
+    filter (\n -> n > 3) [3,4,5,6]
+--expected = [4,5,6]
+
+--Test: List/FoldLeft
+listFoldLeftTest : () -> String
+listFoldLeftTest _ =
+    foldl (\elem acc -> acc ++ elem ++ "|") "<" ["foo","bar","baz"]
+--expected = [4,5,6]
+
+--Test: List/FoldLeft - Advanced
+listFoldLeftAdvTest : () -> Dict String Int
+listFoldLeftAdvTest _ =
+    foldl (\elem acc -> Dict.insert elem (String.length elem) acc) Dict.empty ["foo","barr","bazzz"]
+--expected = [Dict (foo, 3), (barr, 4), (bazzz, 5)]
+
 --Test: List/Map
-listMapTest : () -> List Float
+listMapTest : () -> List Int
 listMapTest _ =
+    map (\n -> n + 1) [3,4,5]
+--expected = [4,5,6]
+
+--Test: List/Map Native
+listMapTestNative : () -> List Float
+listMapTestNative _ =
     map toFloat [3,4,5]
 --expected = [3.0,4.0,5.0]
+
+--Test: List/Map + Casting
+listMapTestWithCasting : () -> List Float
+listMapTestWithCasting _ =
+    map (\n -> n + 1) [3,4,5]
+--expected = [4.0,5.0,6.0]
 
 --Test: List/Map
 listMapTest2 : () -> List Bool
 listMapTest2 _ =
     map not [True,False,True]
 --expected = [False,True,False]
+
+--Test: List/Singleton
+listSingletonTest : () -> List Int
+listSingletonTest _ =
+    singleton 6
+--expected = [6]
+
+--Test: List/isEmpty
+listIsEmptyTest : () -> Bool
+listIsEmptyTest _ =
+    isEmpty []
+--expected = True
+
+listAppend : List a -> List a -> List a
+listAppend l r = append l r

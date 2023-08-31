@@ -52,4 +52,11 @@ trait EvaluationLibraryPlatformSpecific {
         .mapError(MorphirIRDecodingError(_))
     } yield morphirIRFile.distribution
 
+  def loadValueFromFileZIO(fileName: String): Task[TypedValue] =
+    for {
+      fileContents <- ZIO.readFile(fileName)
+      value <- ZIO.fromEither(fileContents.fromJson[TypedValue])
+        .mapError(MorphirIRDecodingError(_))
+    } yield value
+
 }

@@ -1,20 +1,21 @@
 package org.finos.morphir.runtime.quick
 
-import org.finos.morphir.naming._
+import org.finos.morphir.naming.*
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.{Pattern, Value}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
 import Helpers.{listToTuple, matchPatternCase, unpackLit}
-import SDKValue.{SDKNativeFunction, SDKNativeValue}
+import SDKValue.{SDKNativeFunction, SDKNativeInnerFunction, SDKNativeValue}
 import org.finos.morphir.runtime.{
   ConstructorNotFound,
   DefinitionNotFound,
   FunctionWithoutParameters,
+  IllegalValue,
   MissingField,
   UnexpectedType,
   UnmatchedPattern,
-  VariableNotFound,
-  Utils
+  Utils,
+  VariableNotFound
 }
 
 object Loop {
@@ -43,7 +44,7 @@ object Loop {
       case Variable(va, name)                      => handleVariable(va, name, store)
     }
 
-  def handleLiteral[TA, VA](va: VA, literal: Lit) = Result.Primitive[TA, VA](unpackLit(literal))
+  def handleLiteral[TA, VA](va: VA, literal: Lit) = Result.Primitive.makeOrFail[TA, VA, Any](unpackLit(literal))
 
   def handleApply[TA, VA](
       va: VA,
@@ -53,6 +54,15 @@ object Loop {
   ): Result[TA, VA] = {
     val functionValue = loop(function, store)
     val argValue      = loop(argument, store)
+    handleApplyResult(va, functionValue, argValue, store)
+  }
+
+  def handleApplyResult[TA, VA](
+      va: VA,
+      functionValue: Result[TA, VA],
+      argValue: Result[TA, VA],
+      store: Store[TA, VA]
+  ): Result[TA, VA] =
     functionValue match {
       case Result.FieldFunction(name) =>
         argValue match {
@@ -91,29 +101,35 @@ object Loop {
 
         }
       case Result.NativeFunction(arguments, curried, function) =>
+        def assertCurriedNumArgs(num: Int) =
+          if (curried.size != num) throw new IllegalValue(
+            s"Curried wrong number of (uncurried) args. Needed ${function.numArgs} args but got (${curried.size}) when applying the function $function"
+          )
+        // Once the uncurrying is done, we can call the function since we have all of the arguments available
         arguments match {
           case 1 =>
-            curried.size match {
-              case 0 => ((function.asInstanceOf[(Result[TA, VA]) => Result[TA, VA]])(argValue))
-              case 1 => (
-                (function.asInstanceOf[(Result[TA, VA], Result[TA, VA]) => Result[TA, VA]])(
-                  curried(0),
-                  argValue
-                )
-              )
-              case 2 => (
-                (function.asInstanceOf[(Result[TA, VA], Result[TA, VA], Result[TA, VA]) => Result[TA, VA]])(
-                  curried(0),
-                  curried(1),
-                  argValue
-                )
-              )
+            function match {
+              case NativeFunctionSignature.Fun1(f) =>
+                assertCurriedNumArgs(0)
+                f(argValue)
+              case NativeFunctionSignature.Fun2(f) =>
+                assertCurriedNumArgs(1)
+                f(curried(0), argValue)
+              case NativeFunctionSignature.Fun3(f) =>
+                assertCurriedNumArgs(2)
+                f(curried(0), curried(1), argValue)
+              case NativeFunctionSignature.Fun4(f) =>
+                assertCurriedNumArgs(3)
+                f(curried(0), curried(1), curried(2), argValue)
+              case NativeFunctionSignature.Fun5(f) =>
+                assertCurriedNumArgs(4)
+                f(curried(0), curried(1), curried(2), curried(3), argValue)
             }
+          // If there are more arguments left in the native-signature, that needs we have more uncurrying to do
           case x => Result.NativeFunction[TA, VA](x - 1, curried :+ argValue, function)
         }
       case other => throw new UnexpectedType(s"$other is not a function")
     }
-  }
 
   def handleDestructure[TA, VA](
       va: VA,
@@ -260,13 +276,16 @@ object Loop {
             List(),
             store.callStack
           )
-      case Some(SDKNativeValue(value))                  => value
-      case Some(SDKNativeFunction(arguments, function)) => Result.NativeFunction(arguments, List(), function)
+      case Some(SDKNativeValue(value)) => value
+      case Some(SDKNativeFunction(function)) =>
+        Result.NativeFunction(function.numArgs, List(), function)
+      case Some(SDKNativeInnerFunction(storeFunction)) =>
+        Result.NativeFunction(storeFunction.numArgs, List(), storeFunction.applyStore(store))
     }
 
   def handleTuple[TA, VA](va: VA, elements: List[Value[TA, VA]], store: Store[TA, VA]): Result[TA, VA] = {
     val evaluatedElements = elements.map(loop(_, store))
-    Result.Tuple(listToTuple(evaluatedElements))
+    Result.Tuple(TupleSigniture.fromList(evaluatedElements))
   }
 
   def handleUnit[TA, VA](va: VA): Result[TA, VA] = Result.Unit()

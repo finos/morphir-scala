@@ -59,15 +59,16 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
   implicit lazy val dataToIR: ToMorphirTypedValue[Data] = {
     case Data.Unit           => V.unit(().morphirType)
     case Data.Boolean(value) => if (value) Literal.Lit.True else Literal.Lit.False
-    case Data.Byte(value: scala.Byte) =>
+    case Data.Byte(value) =>
       V.applyInferType(
         value.morphirType,
         V.reference(FQName.fromString("Morphir.SDK:Int:toInt8")),
         V.intTyped(value.toInt)
       )
-    case Data.Char(value: scala.Char)          => V.literal(value.morphirType, Lit.char(value))
-    case Data.Decimal(value: scala.BigDecimal) => V.decimal(value.morphirType, value)
-    case Data.Integer(value: scala.BigInt) =>
+    case Data.Char(value)    => V.literal(value.morphirType, Lit.char(value))
+    case Data.Float(value)   => V.literal(value)
+    case Data.Decimal(value) => V.decimal(value.morphirType, value)
+    case Data.Integer(value) =>
       V.intTyped(value.toInt) // TODO: to be fixed when Integer is mapped to BigInt
     case Data.Int16(value: scala.Short) =>
       V.applyInferType(
@@ -75,11 +76,11 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         V.reference(FQName.fromString("Morphir.SDK:Int:toInt16")),
         V.intTyped(value.toInt)
       )
-    case Data.Int32(value: scala.Int)  => V.int(value.morphirType, value)
-    case Data.Int64(value: scala.Long) => V.long(sdk.Basics.intType, value)
+    case Data.Int32(value) => V.int(value.morphirType, value)
+    case Data.Int64(value) => V.long(sdk.Basics.intType, value)
 
-    case Data.String(value: java.lang.String) => V.string(value.morphirType, value)
-    case Data.LocalDate(value: java.time.LocalDate) =>
+    case Data.String(value) => V.string(value.morphirType, value)
+    case Data.LocalDate(value) =>
       V.applyInferType(
         value.morphirType,
         V.reference(FQName.fromString("Morphir.SDK:LocalDate:fromParts")),
@@ -87,13 +88,13 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         V.intTyped(value.getMonthValue),
         V.intTyped(value.getDayOfMonth)
       )
-    case Data.LocalTime(value: java.time.LocalTime) =>
+    case Data.LocalTime(value) =>
       V.applyInferType(
         value.morphirType,
         V.reference(FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds")),
         V.intTyped(value.get(ChronoField.MILLI_OF_DAY))
       )
-    case Data.Month(value: java.time.Month) => value match {
+    case Data.Month(value) => value match {
         case Month.JANUARY   => V.constructor("Morphir.SDK:Month:January", value.morphirType)
         case Month.FEBRUARY  => V.constructor("Morphir.SDK:Month:February", value.morphirType)
         case Month.MARCH     => V.constructor("Morphir.SDK:Month:March", value.morphirType)
@@ -107,7 +108,7 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         case Month.NOVEMBER  => V.constructor("Morphir.SDK:Month:November", value.morphirType)
         case Month.DECEMBER  => V.constructor("Morphir.SDK:Month:December", value.morphirType)
       }
-    case Data.Optional.None(shape: Concept.Optional) =>
+    case Data.Optional.None(shape) =>
       V.constructor("Morphir.SDK:Maybe:Nothing", shape.morphirType)
     case Data.Optional.Some(data, shape) =>
       V.applyInferType(
@@ -139,6 +140,13 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         shape.morphirType,
         V.reference(FQName.fromString("Morphir.SDK:Dict:fromList")),
         V.list(Concept.List(tupleShape).morphirType, zio.Chunk.fromIterable(tuples))
+      )
+    case Data.Set(values, shape) =>
+      val valuesList = values.map { data => dataToIR(data) }
+      V.applyInferType(
+        shape.morphirType,
+        V.reference(FQName.fromString("Morphir.SDK:Set:fromList")),
+        V.list(shape.morphirType, zio.Chunk.fromIterable(valuesList))
       )
 
     case record: Data.Record =>

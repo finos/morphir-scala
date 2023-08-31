@@ -5,9 +5,24 @@ import Dict exposing (Dict)
 {-
 -}
 
-returnDictionaryTest : () -> Dict Int String
-returnDictionaryTest _ = 
-    Dict.fromList [(1, "Red"), (2, "Blue")]
+dictToListTest: () -> List (Int, String)
+dictToListTest _ =
+  let
+    dict = Dict.fromList [(1, "Red"), (2, "Blue"), (3, "Orange")]
+  in
+    Dict.toList dict
+
+dictFilterTest: () -> Dict Int String
+dictFilterTest _ =
+    let
+        dict = Dict.fromList [(1, "Red"), (2, "Blue"), (3, "Blue"), (4, "Blue"), (5, "Green")]
+    in
+        Dict.filter (\k v -> k > 2 && v == "Blue") dict
+
+--Test: Dict/fromList
+dictFromListTest : () -> Dict Int String
+dictFromListTest _ =
+    Dict.fromList [(1, "Red"), (2, "Blue"), (3, "Orange"), (4, "White"), (5, "Green")]
 
 --Test: Dict/Get
 dictGetTest : () -> Maybe String

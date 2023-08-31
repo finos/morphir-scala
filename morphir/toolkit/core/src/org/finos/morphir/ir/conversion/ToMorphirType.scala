@@ -68,6 +68,7 @@ object ToMorphirType {
     concept match {
       case Concept.Boolean                 => boolUType.as
       case Concept.Byte                    => byteUType.as
+      case Concept.Float                   => decimalUType.as
       case Concept.Decimal                 => decimalUType.as
       case Concept.Integer                 => bigIntUType.as
       case Concept.Int16                   => shortUType.as
@@ -85,6 +86,7 @@ object ToMorphirType {
       case Concept.Optional(elementType)   => optionUType(conceptToTypeIR(elementType)).as
       case Concept.Result(errType, okType) => resultUType(conceptToTypeIR(errType), conceptToTypeIR(okType)).as
       case Concept.Map(keyType, valueType) => mapUType(conceptToTypeIR(keyType), conceptToTypeIR(valueType)).as
+      case Concept.Set(elementType)        => setUType(conceptToTypeIR(elementType)).as
       case Concept.Struct(fields) =>
         val types: scala.List[(String, UType)] = fields.map {
           case (k: Label, v: Concept) => (k.value, conceptToTypeIR(v).morphirType)

@@ -10,11 +10,19 @@ import org.finos.morphir.ir.Value.*
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.Extractors.*
-import org.finos.morphir.runtime.Distributions
+import org.finos.morphir.runtime.Extractors.Types.*
+import org.finos.morphir.runtime.{
+  Distributions,
+  EvaluationError,
+  MissingField,
+  ResultDoesNotMatchType,
+  UnexpectedType,
+  UnmatchedPattern,
+  UnsupportedType
+}
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.runtime.services.sdk.*
-import org.finos.morphir.runtime.{EvaluationError, MissingField, ResultDoesNotMatchType, UnsupportedType}
 import zio.Chunk
 
 import scala.collection.mutable
@@ -49,8 +57,9 @@ object EvaluatorQuick {
       case Result.Unit()               => ()                      // Ever used?
       case Result.Primitive(value)     => value                   // Duh
       case Result.ListResult(elements) => elements.map(unwrap(_)) // Needed for non-higher-order head, presumably others
+      case Result.SetResult(elements)  => elements.map(unwrap(_)) // Needed for non-higher-order head, presumably others
       case Result.Tuple(elements) => // Needed for tuple.first, possibly others
-        val listed = Helpers.tupleToList(elements).getOrElse(throw new Exception("Invalid tuple returned to top level"))
+        val listed = elements.toList
         val mapped = listed.map(unwrap(_))
         Helpers.listToTuple(mapped)
       case Result.MapResult(elements) => elements.map { case (key, value) =>
@@ -65,34 +74,37 @@ object EvaluatorQuick {
     value match {
       case r: Result[_, _] => r.asInstanceOf[Result[TA, VA]]
       case ()              => Result.Unit()
-      case m: Map[_, _] => Result.MapResult(m.toSeq.map { case (key, value) =>
+      case m: mutable.LinkedHashMap[_, _] => Result.MapResult(m.map { case (key, value) =>
           (wrap[TA, VA](key), wrap[TA, VA](value))
-        }.toMap)
-      case l: List[_]             => Result.ListResult(l.map(wrap(_)))
-      case (first, second)        => Result.Tuple((wrap(first), wrap(second)))
-      case (first, second, third) => Result.Tuple((wrap(first), wrap(second), wrap(third)))
+        })
+      case l: List[_]                  => Result.ListResult(l.map(wrap(_)))
+      case s: mutable.LinkedHashSet[_] => Result.SetResult(s.map(wrap(_)))
+      case (first, second)             => Result.Tuple(TupleSigniture.Tup2((wrap(first), wrap(second))))
+      case (first, second, third)      => Result.Tuple(TupleSigniture.Tup3((wrap(first), wrap(second), wrap(third))))
       // TODO: Option, Result, LocalDate
-      case primitive => Result.Primitive(primitive) // TODO: Handle each case for safety's sake
+      case intType: IntType => Result.Primitive.Long(intType.toLong)
+      case primitive        => Result.Primitive.makeOrFail(primitive)
     }
 
   def fromNative[TA, VA](native: NativeFunction): SDKValue[TA, VA] =
     native match {
       case fn: DynamicNativeFunction2[_, _, _] =>
-        val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
-          val unwrappedArg1 = unwrap(arg1)
-          val unwrappedArg2 = unwrap(arg2)
-          val res           = fn.invokeDynamic(unwrappedArg1, unwrappedArg2)
-          wrap(res)
-        }
-        SDKValue.SDKNativeFunction(fn.arity, f)
+        val f = {
+          (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) =>
+            val unwrappedArg1 = unwrap(arg1)
+            val unwrappedArg2 = unwrap(arg2)
+            val res           = fn.invokeDynamic(unwrappedArg1, unwrappedArg2)
+            wrap(res)
+        }.asInstanceOf[Function2[Result[TA, VA], Result[TA, VA], Result[TA, VA]]]
+        SDKValue.SDKNativeFunction(NativeFunctionSignature.Fun2(f))
       case nf: NativeFunction2[_, _, _] =>
-        val f = (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) => {
+        val f = { (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) =>
           val unwrappedArg1 = unwrap(arg1)
           val unwrappedArg2 = unwrap(arg2)
           val res           = nf.invokeDynamic(unwrappedArg1, unwrappedArg2)
           wrap(res)
-        }
-        SDKValue.SDKNativeFunction(nf.arity, f)
+        }.asInstanceOf[Function2[Result[TA, VA], Result[TA, VA], Result[TA, VA]]]
+        SDKValue.SDKNativeFunction(NativeFunctionSignature.Fun2(f))
     }
 
   def typeToConcept(tpe: Type.Type[Unit], dists: Distributions, boundTypes: Map[Name, Concept]): Concept =
@@ -111,7 +123,7 @@ object EvaluatorQuick {
       case StringRef()    => Concept.String
       case BoolRef()      => Concept.Boolean
       case CharRef()      => Concept.Char
-      case FloatRef()     => Concept.Decimal
+      case FloatRef()     => Concept.Float
       case DecimalRef()   => Concept.Decimal
       case LocalDateRef() => Concept.LocalDate
       case LocalTimeRef() => Concept.LocalTime
@@ -124,10 +136,12 @@ object EvaluatorQuick {
         Concept.Optional(typeToConcept(elementType, dists, boundTypes))
       case DictRef(keyType, valType) =>
         Concept.Map(typeToConcept(keyType, dists, boundTypes), typeToConcept(valType, dists, boundTypes))
+      case SetRef(elementType) =>
+        Concept.Set(typeToConcept(elementType, dists, boundTypes))
       case TT.Reference(_, typeName, typeArgs) =>
         val lookedUp    = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dists, boundTypes))
-        lookedUp.getOrElse(throw new Exception(s"Could not find spec for $typeName")) match {
+        lookedUp.getOrElse(throw new UnexpectedType(s"Could not find spec for $typeName")) match {
           case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             typeToConcept(expr, dists, newBindings) match {
@@ -152,7 +166,6 @@ object EvaluatorQuick {
       case TT.Unit(_)           => Concept.Unit
       case TT.Variable(_, name) => boundTypes(name)
     }
-
   def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
     (concept, result) match {
       case (Concept.Struct(fields), Result.Record(elements)) =>
@@ -178,51 +191,45 @@ object EvaluatorQuick {
           Data.Record(qName, tuples.toList)
         }
 
-      case (Concept.Int16, Result.Primitive(value: Int)) =>
+      case (Concept.Int16, Result.Primitive.Int(value)) =>
         Data.Int16(value.toShort)
-      case (Concept.Int16, Result.Primitive(value: Long)) =>
-        Data.Int16(value.toShort)
-      case (Concept.Int16, Result.Primitive(value: IntType)) =>
-        Data.Int16(value.toInt.toShort)
-
-      case (Concept.Int32, Result.Primitive(value: Int)) =>
+      case (Concept.Int32, Result.Primitive.Int(value)) =>
+        Data.Int32(value)
+      case (Concept.Int32, Result.Primitive.LongBounded(value)) =>
+        // TODO Better error for this case
         Data.Int32(value.toInt)
-      case (Concept.Int32, Result.Primitive(value: Long)) =>
-        Data.Int32(value.toInt)
-      case (Concept.Int32, Result.Primitive(value: IntType)) =>
-        Data.Int32(value.toInt)
+      case (Concept.Int64, Result.Primitive.LongBounded(value)) =>
+        Data.Int64(value)
 
-      case (Concept.Int64, Result.Primitive(value: Int)) =>
-        Data.Int64(value.toLong)
-      case (Concept.Int64, Result.Primitive(value: Long)) =>
-        Data.Int64(value.toLong)
-      case (Concept.Int64, Result.Primitive(value: IntType)) =>
-        Data.Int64(value.toLong)
-
-      case (Concept.String, Result.Primitive(value: String)) =>
+      case (Concept.String, Result.Primitive.String(value)) =>
         Data.String(value)
-      case (Concept.Boolean, Result.Primitive(value: Boolean)) =>
+      case (Concept.Boolean, Result.Primitive.Boolean(value)) =>
         Data.Boolean(value)
-      case (Concept.Char, Result.Primitive(value: Char)) =>
+      case (Concept.Char, Result.Primitive.Char(value)) =>
         Data.Char(value)
       case (Concept.LocalDate, Result.LocalDate(value: java.time.LocalDate)) =>
         Data.LocalDate(value)
       case (Concept.LocalTime, Result.LocalTime(value: java.time.LocalTime)) =>
         Data.LocalTime(value)
-      case (Concept.Decimal, Result.Primitive(value: Double)) =>
-        Data.Decimal(scala.BigDecimal(value))
-      case (Concept.Decimal, Result.Primitive(value: Float)) =>
-        Data.Decimal(scala.BigDecimal(value.toDouble))
-      case (Concept.Decimal, Result.Primitive(value: Int)) =>
-        Data.Decimal(scala.BigDecimal(value))
-      case (Concept.Decimal, Result.Primitive(value: Long)) =>
-        Data.Decimal(scala.BigDecimal(value))
-      case (Concept.Decimal, Result.Primitive(value: BigDecimal)) =>
+
+      case (Concept.Float, Result.Primitive.Float(value)) =>
+        Data.Float(value.toDouble)
+      case (Concept.Float, Result.Primitive.Double(value)) =>
+        Data.Float(value)
+      case (Concept.Float, Result.Primitive.BigDecimal(value)) =>
+        Data.Float(value.toDouble)
+
+      // handles Primitive.Double/Float/Int/Long/BigDecimal
+      case (Concept.Decimal, Result.Primitive.DecimalBounded(value)) =>
         Data.Decimal(value)
+
       case (alias: Concept.Alias, result) => Data.Aliased(resultAndConceptToData(result, alias.value), alias)
       case (Concept.List(elementConcept), Result.ListResult(elements)) =>
         val inners = elements.map(element => resultAndConceptToData(element, elementConcept))
         Data.List(inners, elementConcept)
+      case (Concept.Set(elementConcept), Result.SetResult(elements)) =>
+        val inners = elements.map(element => resultAndConceptToData(element, elementConcept))
+        Data.Set(inners, elementConcept)
       case (Concept.Optional(elementShape), Result.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), List())) =>
         Data.Optional.None(elementShape)
       case (
@@ -243,10 +250,10 @@ object EvaluatorQuick {
             )
           ) => Data.Optional.Some(resultAndConceptToData(value, elementShape))
       case (mapConcept @ Concept.Map(keyConcept, valConcept), Result.MapResult(elements)) =>
-        val inners = elements.toList.map { case (key, value) =>
+        val inners = elements.map { case (key, value) =>
           (resultAndConceptToData(key, keyConcept), resultAndConceptToData(value, valConcept))
         }
-        Data.Map.copyFrom(mutable.LinkedHashMap.from(inners), mapConcept)
+        Data.Map.copyFrom(inners, mapConcept)
       case (enumConcept @ Concept.Enum(_, cases), Result.ConstructorResult(fqName, args)) =>
         val fieldMap = cases.map { case Concept.Enum.Case(Label(string), fields) => string -> fields }.toMap
         val fields = fieldMap.getOrElse(
@@ -263,7 +270,7 @@ object EvaluatorQuick {
           Data.Case(argData, fqName.localName.toTitleCase, enumConcept)
         }
       case (Concept.Tuple(conceptElements), Result.Tuple(resultElements)) =>
-        val listed = Helpers.tupleToList[Unit, Type.UType](resultElements).get
+        val listed = resultElements.toList
         if (conceptElements.length != listed.length) {
           throw new ResultDoesNotMatchType(
             s"Tuple type elements $conceptElements of different length than result $resultElements"
@@ -317,7 +324,7 @@ object EvaluatorQuick {
         curry(constructor, mappedArgs)
       case (a, b)    => V.tuple(Chunk(scalaToIR(a), scalaToIR(b)))
       case (a, b, c) => V.tuple(Chunk(scalaToIR(a), scalaToIR(b), scalaToIR(c)))
-      case other     => throw new Exception(s"I don't know how to decompose $other")
+      case other     => throw new UnmatchedPattern(s"I don't know how to decompose $other")
     }
 
 }
