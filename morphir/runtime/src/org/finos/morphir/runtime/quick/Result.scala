@@ -19,6 +19,7 @@ sealed trait Result[TA, VA] {
   def unwrapInt       = Result.unwrapInt(this)
   def unwrapBoolean   = Result.unwrapBoolean(this)
   def unwrapLong      = Result.unwrapLong(this)
+  def unwrapFloat     = Result.unwrapFloat(this)
   def unwrapPrimitive = Result.unwrapPrimitive(this)
   def unwrapNumeric   = Result.unwrapNumeric(this)
   def unwrapList      = Result.unwrapList(this)

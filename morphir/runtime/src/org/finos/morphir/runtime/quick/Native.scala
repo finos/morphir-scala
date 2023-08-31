@@ -104,9 +104,11 @@ object StringSDK {
       Result.Primitive.String(b.unwrapString.takeRight(a.unwrapInt))
     )
   val fromInt: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1((a: Result[Unit, Type.UType]) =>
-    Result.Primitive.String(a.unwrapString)
+    Result.Primitive.String(a.unwrapInt.toString)
   )
-  val fromFloat: SDKValue[Unit, Type.UType] = fromInt
+  val fromFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1((a: Result[Unit, Type.UType]) =>
+    Result.Primitive.String(a.unwrapFloat.toString)
+  )
   val toInt: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (a: Result[Unit, Type.UType]) =>
     val optional = a.unwrapString.toIntOption
     optional match {
