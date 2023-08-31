@@ -154,23 +154,27 @@ object ListSDK {
           }
     }
   }
-
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       val listA = a.asInstanceOf[Result.ListResult[Unit, Type.UType]]
       val listB = b.asInstanceOf[Result.ListResult[Unit, Type.UType]]
       Result.ListResult(listA.elements.appendedAll(listB.elements))
   }
-
   val cons: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       val listB = b.asInstanceOf[Result.ListResult[Unit, Type.UType]]
       Result.ListResult(a :: listB.elements)
   }
+  val isEmpty: SDKValue[Unit, Type.UType] =
+    SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+      val listA = arg.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
+      Result.Primitive.Boolean(listA.size == 0)
+    }
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:List:foldl")  -> foldl,
-    FQName.fromString("Morphir.SDK:List:append") -> append,
-    FQName.fromString("Morphir.SDK:List:cons")   -> cons
+    FQName.fromString("Morphir.SDK:List:foldl")   -> foldl,
+    FQName.fromString("Morphir.SDK:List:append")  -> append,
+    FQName.fromString("Morphir.SDK:List:cons")    -> cons,
+    FQName.fromString("Morphir.SDK:List:isEmpty") -> isEmpty
   )
 }
 object BasicsSDK {

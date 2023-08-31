@@ -349,7 +349,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ))
       ),
       suite("Lists")(
-        testEvaluation("Empty")("listTests", "listEmptyTest")(Data.List(List(), Concept.Int32)),
         testEvaluation("Single")("listTests", "listSingleTest")(Data.List(Data.Int(0))),
         testEvaluation("Several")("listTests", "listSeveralTest")(Data.List(
           Data.Int(0),
@@ -423,8 +422,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Singleton")("listTests", "listSingletonTest")(
           Data.List(Data.Int(6))
         ),
-        testEvaluation("isEmpty")("listTests", "listIsEmptyTest")(
+        testEvaluation("isEmpty")("listTests", "listIsEmptyTest1")(
           (Data.Boolean(true))
+        ),
+        testEvaluation("isEmpty")("listTests", "listIsEmptyTest2")(
+          (Data.Boolean(false))
         ),
         testEvaluation("length")("listTests", "listLengthTest")(
           (Data.Int32(6))
