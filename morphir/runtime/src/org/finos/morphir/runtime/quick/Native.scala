@@ -7,6 +7,7 @@ import org.finos.morphir.runtime.quick.Result.Primitive
 import org.finos.morphir.runtime.Extractors._
 import scala.collection.mutable
 
+// TODO simplify evaluator calls
 object DictSDK {
   val filter: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
