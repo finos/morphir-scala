@@ -43,7 +43,7 @@ object DictSDK {
   val toList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
     (d: Result[Unit, Type.UType]) =>
       val dict     = d.unwrapMap
-      val elements = dict.toList.map { case (k, v) => Result.Tuple(TupleSigniture.Tup2(k, v)) }
+      val elements = dict.toList.map { case (k, v) => Result.Tuple(TupleSigniture.Tup2((k, v))) }
       Result.ListResult(elements)
   }
 

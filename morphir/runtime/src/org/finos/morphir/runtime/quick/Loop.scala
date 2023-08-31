@@ -10,6 +10,7 @@ import org.finos.morphir.runtime.{
   ConstructorNotFound,
   DefinitionNotFound,
   FunctionWithoutParameters,
+  IllegalValue,
   MissingField,
   UnexpectedType,
   UnmatchedPattern,
@@ -100,24 +101,31 @@ object Loop {
 
         }
       case Result.NativeFunction(arguments, curried, function) =>
+        def assertNumArgs(num: Int) =
+          if (curried.size != num) throw new IllegalValue(
+            s"Curried wrong number of (uncurried) args. Needed ${function.numArgs} args but got (${curried.size}) when applying the function $function"
+          )
+        // Once the uncurrying is done, we can call the function since we have all of the arguments available
         arguments match {
           case 1 =>
-            curried.size match {
-              case 0 => ((function.asInstanceOf[(Result[TA, VA]) => Result[TA, VA]])(argValue))
-              case 1 => (
-                (function.asInstanceOf[(Result[TA, VA], Result[TA, VA]) => Result[TA, VA]])(
-                  curried(0),
-                  argValue
-                )
-              )
-              case 2 => (
-                (function.asInstanceOf[(Result[TA, VA], Result[TA, VA], Result[TA, VA]) => Result[TA, VA]])(
-                  curried(0),
-                  curried(1),
-                  argValue
-                )
-              )
+            function match {
+              case NativeFunctionSignature.Fun1(f) =>
+                assertNumArgs(1)
+                f(curried(0))
+              case NativeFunctionSignature.Fun2(f) =>
+                assertNumArgs(2)
+                f(curried(0), curried(1))
+              case NativeFunctionSignature.Fun3(f) =>
+                assertNumArgs(3)
+                f(curried(0), curried(1), curried(2))
+              case NativeFunctionSignature.Fun4(f) =>
+                assertNumArgs(4)
+                f(curried(0), curried(1), curried(2), curried(3))
+              case NativeFunctionSignature.Fun5(f) =>
+                assertNumArgs(5)
+                f(curried(0), curried(1), curried(2), curried(3), curried(4))
             }
+          // If there are more arguments left in the native-signature, that needs we have more uncurrying to do
           case x => Result.NativeFunction[TA, VA](x - 1, curried :+ argValue, function)
         }
       case other => throw new UnexpectedType(s"$other is not a function")
@@ -270,9 +278,9 @@ object Loop {
           )
       case Some(SDKNativeValue(value)) => value
       case Some(SDKNativeFunction(function)) =>
-        Result.NativeFunction(function.numArgs, List(), function.f)
+        Result.NativeFunction(function.numArgs, List(), function)
       case Some(SDKNativeInnerFunction(storeFunction)) =>
-        Result.NativeFunction(storeFunction.numArgs, List(), storeFunction.f(store))
+        Result.NativeFunction(storeFunction.numArgs, List(), storeFunction.applyStore(store))
     }
 
   def handleTuple[TA, VA](va: VA, elements: List[Value[TA, VA]], store: Store[TA, VA]): Result[TA, VA] = {
