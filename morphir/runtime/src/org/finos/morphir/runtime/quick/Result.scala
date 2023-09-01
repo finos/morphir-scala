@@ -21,6 +21,7 @@ sealed trait Result[TA, VA] {
   def unwrapDouble    = Result.unwrapDouble(this)
   def unwrapLong      = Result.unwrapLong(this)
   def unwrapFloat     = Result.unwrapFloat(this)
+  def unwrapDecimal   = Result.unwrapDecimal(this)
   def unwrapPrimitive = Result.unwrapPrimitive(this)
   def unwrapNumeric   = Result.unwrapNumeric(this)
   def unwrapList      = Result.unwrapList(this)
@@ -29,24 +30,6 @@ sealed trait Result[TA, VA] {
 }
 
 object Result {
-
-  def unwrap[TA, VA](arg: Result[TA, VA]): Any =
-    arg match {
-      case Unit()               => ()
-      case Primitive(value)     => value
-      case ListResult(elements) => elements.map(unwrap(_))
-      case SetResult(elements)  => elements.map(unwrap(_))
-      case Tuple(elements) =>
-        val mapped = elements.toList.map(unwrap(_))
-        Helpers.listToTuple(mapped)
-      case Record(elements)                => elements.map { case (name, value) => name.toCamelCase -> unwrap(value) }
-      case MapResult(elements)             => elements.map { case (key, value) => unwrap(key) -> unwrap(value) }
-      case ConstructorResult(name, values) => (toTitleCase(name.localName), values.map(unwrap(_)))
-      case other =>
-        throw new UnexpectedType(
-          s"$other returned to top level, only Unit, Primitive, List, Maps, Sets, Tuples, Constructed Types and Records are supported"
-        )
-    }
 
   def unwrapList[TA, VA](arg: Result[TA, VA]): List[Result[TA, VA]] =
     arg match {
@@ -66,7 +49,7 @@ object Result {
         )
     }
 
-  def unwrapTuple[TA, VA](arg: Result[TA, VA]): TupleSigniture[TA, VA] =
+  def unwrapTuple[TA, VA](arg: Result[TA, VA]): List[Result[TA, VA]] =
     arg match {
       case Result.Tuple(tup) => tup
       case _ =>
@@ -86,9 +69,10 @@ object Result {
         throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Boolean. It is not a primitive!")
     }
 
+  // A Moprhir/ELM float is a Java Double, calling this unwrapDouble since that's the Java datatype being returned
   def unwrapDouble[TA, VA](arg: Result[TA, VA]): Double =
     arg match {
-      case Primitive.Double(v) => v
+      case Primitive.Float(v) => v
       case _: Primitive[_, _, _] =>
         throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a Double value because it was not a Primitive.Double"
@@ -115,14 +99,26 @@ object Result {
 
   def unwrapFloat[TA, VA](arg: Result[TA, VA]): Double =
     arg match {
-      case Primitive.Float(v)  => v.toDouble
-      case Primitive.Double(v) => v
+      case Primitive.Float(v) => v.toDouble
       case _: Primitive[_, _, _] =>
         throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a Float value because it was not a Primitive.Float"
         )
       case _ =>
         throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Float. It is not a primitive!")
+    }
+
+  def unwrapDecimal[TA, VA](arg: Result[TA, VA]): BigDecimal =
+    arg match {
+      case Primitive.BigDecimal(v) => v
+      case _: Primitive[_, _, _] =>
+        throw new UnexpectedType(
+          s"Could not unwrap the primitive `${arg}` into a BigDecimal value because it was not a Primitive.BigDecimal"
+        )
+      case _ =>
+        throw UnexpectedType(
+          s"Cannot unwrap the value `${arg}` into a primitive BigDecimal. It is not a primitive!"
+        )
     }
 
   def unwrapLong[TA, VA](arg: Result[TA, VA]): Long =
@@ -231,7 +227,6 @@ object Result {
         case object Int        extends Numeric.Type
         case object Long       extends Numeric.Type
         case object Float      extends Numeric.Type
-        case object Double     extends Numeric.Type
         case object BigDecimal extends Numeric.Type
       }
     }
@@ -248,8 +243,9 @@ object Result {
       lazy val fractionalHelper = None
       lazy val integralHelper   = Some(implicitly[scala.Integral[scala.Long]])
     }
-    case class Double[TA, VA](value: scala.Double) extends Numeric[TA, VA, scala.Double] {
-      val numericType           = Numeric.Type.Double
+    // A Morphir/ELM Float is the same as a Java Double
+    case class Float[TA, VA](value: scala.Double) extends Numeric[TA, VA, scala.Double] {
+      val numericType           = Numeric.Type.Float
       lazy val numericHelper    = implicitly[scala.Numeric[scala.Double]]
       lazy val fractionalHelper = Some(implicitly[scala.Fractional[scala.Double]])
       lazy val integralHelper   = None
@@ -260,18 +256,10 @@ object Result {
       lazy val fractionalHelper = Some(implicitly[scala.Fractional[scala.BigDecimal]])
       lazy val integralHelper   = None
     }
-    // TODO Morphir Float type is a double, why do we have this???
-    case class Float[TA, VA](value: scala.Float) extends Numeric[TA, VA, scala.Float] {
-      val numericType           = Numeric.Type.Float
-      lazy val numericHelper    = implicitly[scala.Numeric[scala.Float]]
-      lazy val fractionalHelper = Some(implicitly[scala.Fractional[scala.Float]])
-      lazy val integralHelper   = None
-    }
 
     object DecimalBounded {
       def unapply(resultValue: Result.Primitive.Numeric[_, _, _]): Option[scala.BigDecimal] =
         resultValue match {
-          case Primitive.Double(v)     => Some(scala.BigDecimal(v))
           case Primitive.Float(v)      => Some(scala.BigDecimal(v.toDouble))
           case Primitive.Int(v)        => Some(scala.BigDecimal(v))
           case Primitive.Long(v)       => Some(scala.BigDecimal(v))
@@ -310,9 +298,9 @@ object Result {
         case v: java.lang.String => Some(Primitive.String[TA, VA](v).asInstanceOf[Primitive[TA, VA, T]])
         case v: scala.Boolean    => Some(Primitive.Boolean[TA, VA](v).asInstanceOf[Primitive[TA, VA, T]])
         case v: scala.Char       => Some(Primitive.Char[TA, VA](v).asInstanceOf[Primitive[TA, VA, T]])
-        case v: scala.Double     => Some(Primitive.Double[TA, VA](v).asInstanceOf[Primitive[TA, VA, T]])
         case v: scala.BigDecimal => Some(Primitive.BigDecimal[TA, VA](v).asInstanceOf[Primitive[TA, VA, T]])
-        case v: scala.Float      => Some(Primitive.Float[TA, VA](v).asInstanceOf[Primitive[TA, VA, T]])
+        case v: scala.Float      => Some(Primitive.Float[TA, VA](v.toDouble).asInstanceOf[Primitive[TA, VA, T]])
+        case v: scala.Double     => Some(Primitive.Float[TA, VA](v).asInstanceOf[Primitive[TA, VA, T]])
         case _                   => None
       }
   }
@@ -325,11 +313,14 @@ object Result {
     override def succinct(depth: Int) = s"LocalTime($value)"
   }
 
-  case class Tuple[TA, VA](elements: TupleSigniture[TA, VA]) extends Result[TA, VA] {
+  case class Tuple[TA, VA](elements: List[Result[TA, VA]]) extends Result[TA, VA] {
     override def succinct(depth: Int) = if (depth == 0) "Tuple(...)"
     else {
-      s"Tuple(${elements.toList.map(_.succinct(depth - 1)).mkString(", ")})"
+      s"Tuple(${elements.map(_.succinct(depth - 1)).mkString(", ")})"
     }
+  }
+  object Tuple {
+    def apply[TA, VA](elements: Result[TA, VA]*) = new Result.Tuple[TA, VA](elements.toList)
   }
 
   case class SetResult[TA, VA](elements: mutable.LinkedHashSet[Result[TA, VA]]) extends Result[TA, VA] {

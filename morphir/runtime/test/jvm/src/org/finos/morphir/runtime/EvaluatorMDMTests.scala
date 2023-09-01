@@ -286,6 +286,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.String("Correct")
         )
       ),
+      suite("Decimal Tests")(
+        testEvaluation("fromFloat")("decimalTests", "decimalFromFloatTest")(Data.Decimal(1.2)),
+        testEvaluation("toFloat")("decimalTests", "decimalToFloatTest")(Data.Float(1.5)),
+        testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("1.2"))
+      ),
       suite("Lambda Tests")(
         testEvaluation("As")("lambdaTests", "lambdaAsTest")(Data.Tuple(Data.Int(5), Data.Int(5))),
         testEvaluation("Tuple")("lambdaTests", "lambdaTupleTest")(Data.Tuple(Data.Int(0), Data.Int(1))),
@@ -528,7 +533,18 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int(3),
           Data.Int(4),
           Data.Int(5)
-        ))
+        )),
+        testEvaluation("toList")("setTests", "setToListTest")(Data.List(
+          Data.Int(0),
+          Data.Int(1),
+          Data.Int(2),
+          Data.Int(3),
+          Data.Int(4),
+          Data.Int(5)
+        )),
+        testEvaluation("member")("setTests", "setMemberTest1")(Data.Boolean(true)),
+        testEvaluation("member")("setTests", "setMemberTest2")(Data.Boolean(false)),
+        testEvaluation("size")("setTests", "setSizeTest")(Data.Int(3))
       ),
       suite("Simple")(
         testEvaluation("Unit")("simpleTests", "simpleUnitTest")(Data.Unit)
@@ -546,7 +562,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.String("Four"),
             Data.Tuple(Data.Int(4), Data.String("Five"))
           )
-        ))
+        )),
+        testEvaluation("First")("tupleTests", "tupleFirstTest")(Data.Int(1)),
+        testEvaluation("Second")("tupleTests", "tupleSecondTest")(Data.Int(2))
       ),
       suite("String")(
         testEvalMultiple("String Append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
@@ -703,7 +721,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
         testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
         testEvaluation("fromFloat")("StringTests", "stringFromFloatTest")(Data.String("1.5")),
-        testEvaluation("toInt")("StringTests", "stringToIntTest")(Data.Optional.Some(Data.Int(25))),
+        testEvaluation("toInt")("StringTests", "stringToIntTest1")(Data.Optional.Some(Data.Int(25))),
+        testEvaluation("toInt")("StringTests", "stringToIntTest2")(Data.Optional.None(Concept.Int32)),
         testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),
         testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false))
       )

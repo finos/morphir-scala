@@ -30,10 +30,16 @@ stringFromFloatTest _ =
 --expected = "1.5"
 
 --Test: String/toInt
-stringToIntTest : () -> Maybe Int
-stringToIntTest _ =
+stringToIntTest1 : () -> Maybe Int
+stringToIntTest1 _ =
     toInt "25"
 --expected = Just 25
+
+--Test: String/toInt
+stringToIntTest2 : () -> Maybe Int
+stringToIntTest2 _ =
+    toInt "notAnInt"
+--expected = Nothing
 
 --Test: String/isEmpty
 stringIsEmptyTest1 : () -> Bool
