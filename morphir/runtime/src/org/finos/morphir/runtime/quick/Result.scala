@@ -21,6 +21,7 @@ sealed trait Result[TA, VA] {
   def unwrapDouble    = Result.unwrapDouble(this)
   def unwrapLong      = Result.unwrapLong(this)
   def unwrapFloat     = Result.unwrapFloat(this)
+  def unwrapDecimal   = Result.unwrapDecimal(this)
   def unwrapPrimitive = Result.unwrapPrimitive(this)
   def unwrapNumeric   = Result.unwrapNumeric(this)
   def unwrapList      = Result.unwrapList(this)
@@ -105,6 +106,19 @@ object Result {
         )
       case _ =>
         throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Float. It is not a primitive!")
+    }
+
+  def unwrapDecimal[TA, VA](arg: Result[TA, VA]): BigDecimal =
+    arg match {
+      case Primitive.BigDecimal(v) => v
+      case _: Primitive[_, _, _] =>
+        throw new UnexpectedType(
+          s"Could not unwrap the primitive `${arg}` into a BigDecimal value because it was not a Primitive.BigDecimal"
+        )
+      case _ =>
+        throw UnexpectedType(
+          s"Cannot unwrap the value `${arg}` into a primitive BigDecimal. It is not a primitive!"
+        )
     }
 
   def unwrapLong[TA, VA](arg: Result[TA, VA]): Long =
