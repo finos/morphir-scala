@@ -557,7 +557,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.String("Four"),
             Data.Tuple(Data.Int(4), Data.String("Five"))
           )
-        ))
+        )),
+        testEvaluation("First")("tupleTests", "tupleFirstTest")(Data.Int(1)),
+        testEvaluation("Second")("tupleTests", "tupleSecondTest")(Data.Int(2))
       ),
       suite("String")(
         testEvalMultiple("String Append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
