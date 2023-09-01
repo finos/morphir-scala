@@ -721,7 +721,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
         testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
         testEvaluation("fromFloat")("StringTests", "stringFromFloatTest")(Data.String("1.5")),
-        testEvaluation("toInt")("StringTests", "stringToIntTest")(Data.Optional.Some(Data.Int(25))),
+        testEvaluation("toInt")("StringTests", "stringToIntTest1")(Data.Optional.Some(Data.Int(25))),
+        testEvaluation("toInt")("StringTests", "stringToIntTest2")(Data.Optional.None(Concept.Int32)),
         testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),
         testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false))
       )
