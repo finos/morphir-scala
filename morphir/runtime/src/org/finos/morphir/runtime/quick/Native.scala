@@ -175,6 +175,35 @@ object ListSDK {
     FQName.fromString("Morphir.SDK:List:isEmpty") -> isEmpty
   )
 }
+
+object SetSDK {
+  val fromList: SDKValue[Unit, Type.UType] =
+    SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+      val list = arg.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
+      Result.SetResult(list.to(mutable.LinkedHashSet))
+    }
+  val toList: SDKValue[Unit, Type.UType] =
+    SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+      val set = arg.asInstanceOf[Result.SetResult[Unit, Type.UType]].elements
+      Result.ListResult(set.to(List))
+    }
+  val member: SDKValue[Unit, Type.UType] =
+    SDKValue.SDKNativeFunction.fun2 { (l: Result[Unit, Type.UType], r: Result[Unit, Type.UType]) =>
+      val setR = r.asInstanceOf[Result.SetResult[Unit, Type.UType]].elements
+      Result.Primitive.Boolean(setR.contains(l))
+    }
+  val size: SDKValue[Unit, Type.UType] =
+    SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+      Result.Primitive.Int(arg.asInstanceOf[Result.SetResult[Unit, Type.UType]].elements.size)
+    }
+  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:Set:fromList") -> fromList,
+    FQName.fromString("Morphir.SDK:Set:toList")   -> toList,
+    FQName.fromString("Morphir.SDK:Set:member")   -> member,
+    FQName.fromString("Morphir.SDK:Set:size")     -> size
+  )
+}
+
 object BasicsSDK {
   val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2(
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
@@ -187,18 +216,6 @@ object BasicsSDK {
   )
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
     FQName.fromString("Morphir.SDK:Basics:append") -> append
-  )
-
-}
-object SetSDK {
-  val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (l: Result[Unit, Type.UType]) =>
-      val list = l.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
-      Result.SetResult(list.to(mutable.LinkedHashSet))
-  }
-
-  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:Set:fromList") -> fromList
   )
 }
 
@@ -461,5 +478,5 @@ object Native {
     FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
-  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ ListSDK.sdk ++ BasicsSDK.sdk
+  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ ListSDK.sdk ++ SetSDK.sdk ++ BasicsSDK.sdk
 }
