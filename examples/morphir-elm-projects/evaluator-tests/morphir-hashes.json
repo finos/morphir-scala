@@ -1,6 +1,7 @@
 {
     "src/Morphir/Examples/App/ConstructorTests.elm": "56fdf0bd81a5d4b51e8e94cf16d01c05",
     "src/Morphir/Examples/App/CurrentTest.elm": "7217989153ede6e82dfe1edb324e8aa5",
+    "src/Morphir/Examples/App/DecimalTests.elm": "a12d066d3cc616ac003e77e94a98362a",
     "src/Morphir/Examples/App/DestructureTests.elm": "130b60a9f5c1f62b9e1394b2b1b74339",
     "src/Morphir/Examples/App/DictionaryTests.elm": "72a29d9747542d51d1b7535b37676cae",
     "src/Morphir/Examples/App/EllieStuff.elm": "f9259184f634d714dabcd8ec90f07e7a",
@@ -10,7 +11,7 @@
     "src/Morphir/Examples/App/LambdaTests.elm": "09090aa4162a5142e4b80c9209f0f6c4",
     "src/Morphir/Examples/App/LetDefinitionTests.elm": "b8981542e487ee7ade8b90e1e2a6073d",
     "src/Morphir/Examples/App/LetRecursionTests.elm": "e66cd3a8d23cc3c5e0e3f65fc21f7618",
-    "src/Morphir/Examples/App/ListTests.elm": "1f33713d5a925c81a73bba7423a6a561",
+    "src/Morphir/Examples/App/ListTests.elm": "0a59ff0e37452fa31ce1c7ec61a79d82",
     "src/Morphir/Examples/App/LiteralTests.elm": "6f06586ae6503c5293c64d16e0360bd3",
     "src/Morphir/Examples/App/LocalDateTests.elm": "a77f3af4f0f5e327de55bc8e09bea568",
     "src/Morphir/Examples/App/LocalTimeTests.elm": "73b42eb147386ec56135f2902f218995",
@@ -19,11 +20,11 @@
     "src/Morphir/Examples/App/OptionTests.elm": "7be9a6971b4cd70e2f622664ebaf8a16",
     "src/Morphir/Examples/App/PatternMatchTests.elm": "2d597bd3d8d6353fe4fc5f4d9b739fca",
     "src/Morphir/Examples/App/RecordTests.elm": "bf6e25596923414d93d9bc532f35293e",
-    "src/Morphir/Examples/App/SdkBasicTests.elm": "b742d59063447516cc851a0b87751e58",
-    "src/Morphir/Examples/App/SetTests.elm": "72a2dcc13ebc592e3f63c9733e064443",
+    "src/Morphir/Examples/App/SdkBasicTests.elm": "2d0d94e068bc861bd36a3e0d68026d02",
+    "src/Morphir/Examples/App/SetTests.elm": "c4badcc0cddae4fd0460e6c127b95dff",
     "src/Morphir/Examples/App/SimpleTests.elm": "f7794a1165f7fe3e5df89b84d0bdbcd8",
-    "src/Morphir/Examples/App/StringTests.elm": "27820272a720e3091698413c85bedc51",
-    "src/Morphir/Examples/App/TupleTests.elm": "2c80092fe40ef7666906ee42214376ac",
+    "src/Morphir/Examples/App/StringTests.elm": "2fcc81a21762731efd6dd96fa352e2e6",
+    "src/Morphir/Examples/App/TupleTests.elm": "a40513a80ded695c76cf09f161592d6e",
     "src/Morphir/Examples/App/TypeCheckerTests.elm": "6da55ef4bc0d30651b1119c3b84206d2",
     "src/Morphir/Examples/App/UserDefinedReferenceTests.elm": "9bf29afa60bad03b200d08ac8f099b99"
 }
