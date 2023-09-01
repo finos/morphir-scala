@@ -86,8 +86,8 @@ object EvaluatorQuick {
         })
       case l: List[_]                  => Result.ListResult(l.map(wrap(_)))
       case s: mutable.LinkedHashSet[_] => Result.SetResult(s.map(wrap(_)))
-      case (first, second)             => Result.Tuple(TupleSigniture.Tup2((wrap(first), wrap(second))))
-      case (first, second, third)      => Result.Tuple(TupleSigniture.Tup3((wrap(first), wrap(second), wrap(third))))
+      case (first, second)             => Result.Tuple(wrap(first), wrap(second))
+      case (first, second, third)      => Result.Tuple(wrap(first), wrap(second), wrap(third))
       // TODO: Option, Result, LocalDate
       case intType: IntType => Result.Primitive.Long(intType.toLong)
       case primitive        => Result.Primitive.makeOrFail(primitive)
@@ -221,8 +221,6 @@ object EvaluatorQuick {
 
       case (Concept.Float, Result.Primitive.Float(value)) =>
         Data.Float(value.toDouble)
-      case (Concept.Float, Result.Primitive.Double(value)) =>
-        Data.Float(value)
       case (Concept.Float, Result.Primitive.BigDecimal(value)) =>
         Data.Float(value.toDouble)
 

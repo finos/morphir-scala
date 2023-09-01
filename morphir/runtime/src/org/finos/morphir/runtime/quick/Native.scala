@@ -37,8 +37,9 @@ object DictSDK {
       val list = l.unwrapList
       val mappedList = list
         .map { input =>
+          // unwrap the element that is in the list provided to the Dict.fromList function. It has to be a Tuple2
           input.unwrapTuple match {
-            case TupleSigniture.Tup2((a, b)) => (a, b)
+            case List(a, b) => (a, b)
             case _ =>
               throw new IllegalValue(s"Input to Dict.fromList was not a Tuple2-based element, it was: `$input`")
           }
@@ -49,7 +50,7 @@ object DictSDK {
   val toList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
     (d: Result[Unit, Type.UType]) =>
       val dict     = d.unwrapMap
-      val elements = dict.toList.map { case (k, v) => Result.Tuple(TupleSigniture.Tup2((k, v))) }
+      val elements = dict.toList.map { case (k, v) => Result.Tuple(k, v) }
       Result.ListResult(elements)
   }
 
@@ -336,15 +337,14 @@ object Native {
 
   val toFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
     (a: Result[Unit, Type.UType]) =>
-      val output =
-        a.unwrapNumeric match {
-          case Primitive.Int(value)        => value.toDouble
-          case Primitive.Long(value)       => value.toDouble
-          case Primitive.Double(value)     => value
-          case Primitive.BigDecimal(value) => value.toDouble
-          case Primitive.Float(value)      => value.toDouble
-        }
-      Result.Primitive.Double(output)
+      def wrap(num: Double) = Result.Primitive.Float[Unit, Type.UType](num)
+      a.unwrapNumeric match {
+        // if it's already a float, don't need to re-wrap it
+        case float: Primitive.Float[_, _] => float
+        case Primitive.Int(value)         => wrap(value.toDouble)
+        case Primitive.Long(value)        => wrap(value.toDouble)
+        case Primitive.BigDecimal(value)  => wrap(value.toDouble)
+      }
   }
   val log: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
     (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
@@ -354,7 +354,7 @@ object Native {
           Double.PositiveInfinity
         else
           Math.log(b.unwrapDouble) / denominator
-      Result.Primitive.Double(asDouble)
+      Result.Primitive.Float(asDouble)
   }
 
   val lessThan: SDKValue[Unit, Type.UType] =
@@ -435,12 +435,12 @@ object Native {
 
   val fromMilliseconds: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
     (a: Result[Unit, Type.UType]) =>
-      val millis = Result.unwrap(a).asInstanceOf[Long]
+      val millis = a.unwrapLong
       val time   = fromMillisecondsEpoch(millis)
       Result.LocalTime(time)
   }
 
-  val pi: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.Primitive.Double(3.toDouble))
+  val pi: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.Primitive.Float(3.toDouble))
 
   val just: SDKConstructor[Unit, Type.UType]    = SDKConstructor(List(Type.variable("contents")))
   val nothing: SDKConstructor[Unit, Type.UType] = SDKConstructor(List())
