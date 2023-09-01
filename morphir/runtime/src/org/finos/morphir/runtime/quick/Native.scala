@@ -276,6 +276,13 @@ object StringSDK {
     val first: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
       arg.unwrapTuple.toList.head
     }
+    val second: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+      val length = arg.unwrapTuple.toList.length
+      if (length < 2) {
+        throw new IllegalValue(s"Tuple with length `$length` has too few elements")
+      }
+      arg.unwrapTuple.toList(1)
+    }
 
 object Native {
   private def handleSameNumerics(
