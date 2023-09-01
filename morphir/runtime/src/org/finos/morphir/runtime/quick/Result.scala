@@ -112,6 +112,14 @@ object Result {
     arg match {
       case Primitive.BigDecimal(v) => v
       case _: Primitive[_, _, _] =>
+      throw new UnexpectedType(
+        s"Could not unwrap the primitive `${arg}` into a BigDecimal value because it was not a Primitive.BigDecimal"
+      )
+      case _ => 
+        throw UnexpectedType(
+          s"Cannot unwrap the value `${arg}` into a primitive BigDecimal. It is not a primitive!"
+        )
+    }
 
   def unwrapLong[TA, VA](arg: Result[TA, VA]): Long =
     arg match {

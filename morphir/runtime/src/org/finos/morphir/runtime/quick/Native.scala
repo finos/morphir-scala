@@ -278,7 +278,7 @@ object DecimalSDK {
     Result.Primitive.BigDecimal(BigDecimal.valueOf(arg.unwrapFloat))
   }
   val toFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
-    Result.Primitive.Float(arg.unwrapDecimal.toFloat)
+    Result.Primitive.Float(arg.unwrapDecimal.toDouble)
   }
   val asString: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
     Result.Primitive.String(arg.unwrapDecimal.toString)

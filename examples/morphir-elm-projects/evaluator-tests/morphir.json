@@ -5,6 +5,7 @@
         "ConstructorTests",
         "DestructureTests",
         "DictionaryTests",
+        "DecimalTests",
         "OptionTests",
         "ExampleModule",
         "IfThenElseTests",
