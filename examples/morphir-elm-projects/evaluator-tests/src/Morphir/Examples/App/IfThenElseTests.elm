@@ -10,7 +10,7 @@ module Morphir.Examples.App.IfThenElseTests exposing (..)
 
 --Test: IfThenElse/True
 ifThenElseTrueTest : () -> String
-ifThenElseTrueTest _ = 
+ifThenElseTrueTest u = 
     if True then "Correct" else "Incorrect"
 --expected = "Correct"
 

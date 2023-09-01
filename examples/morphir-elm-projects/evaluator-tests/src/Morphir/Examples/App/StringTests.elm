@@ -1,5 +1,5 @@
 module Morphir.Examples.App.StringTests exposing (..)
-import Morphir.SDK.String exposing (String, left, right, fromInt, toInt, fromFloat, isEmpty)
+import Morphir.SDK.String exposing (String, left, right, fromInt, toInt, fromFloat, isEmpty, append)
 import Morphir.SDK.String as String
 
 stringAppend : String -> String -> String
