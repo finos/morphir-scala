@@ -273,6 +273,14 @@ object StringSDK {
   )
 }
 
+object DecimalSDK {
+  val fromFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+    Result.Primitive.BigDecimal(BigDecimal.valueOf(arg.unwrapFloat))
+  }
+  val toFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+    Result.Primitive.Float(arg.unwrapDecimal.toFloat)
+  }
+
 object TupleSDK {
   val first: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
     arg.unwrapTuple.toList.head
