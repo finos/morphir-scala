@@ -1,4 +1,5 @@
 module Morphir.Examples.App.TupleTests exposing (..)
+import Morphir.SDK.Tuple exposing (..)
 
 
 --Test: Tuple/Two
@@ -18,3 +19,9 @@ tupleNestedTest : () ->(Int, (String, (Int, String)))
 tupleNestedTest _ = 
     (5, ("Four",(4, "Five")))
 --expected = (5, ("Four",(4, "Five")))
+
+--Test: Tuple/first
+tupleFirstTest : () -> Int
+tupleFirstTest _ =
+    first (1, 2)
+--expected = 1
