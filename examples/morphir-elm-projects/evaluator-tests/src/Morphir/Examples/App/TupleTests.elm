@@ -25,3 +25,9 @@ tupleFirstTest : () -> Int
 tupleFirstTest _ =
     first (1, 2)
 --expected = 1
+
+--Test: Tuple/second
+tupleSecondTest : () -> Int
+tupleSecondTest _ =
+    second (1, 2)
+--expected = 2
