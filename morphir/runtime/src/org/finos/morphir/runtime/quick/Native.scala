@@ -280,6 +280,15 @@ object DecimalSDK {
   val toFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
     Result.Primitive.Float(arg.unwrapDecimal.toFloat)
   }
+  val asString: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+    Result.Primitive.String(arg.unwrapDecimal.toString)
+  }
+  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:Decimal:fromFloat") -> fromFloat,
+    FQName.fromString("Morphir.SDK:Decimal:toFloat")   -> toFloat,
+    FQName.fromString("Morphir.SDK:Decimal:toString")  -> asString
+  )
+}
 
 object TupleSDK {
   val first: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
