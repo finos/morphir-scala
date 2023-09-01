@@ -305,7 +305,7 @@ private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
 
   def handleTuple(va: VA, elements: List[Value[TA, VA]], store: Store[TA, VA]): Result[TA, VA] = {
     val evaluatedElements = elements.map(loop(_, store))
-    Result.Tuple(TupleSigniture.fromList(evaluatedElements))
+    Result.Tuple(evaluatedElements)
   }
 
   def handleUnit(va: VA): Result[TA, VA] = Result.Unit()
