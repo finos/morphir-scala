@@ -283,6 +283,11 @@ object StringSDK {
       }
       arg.unwrapTuple.toList(1)
     }
+    val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+      FQName.fromString("Morphir.SDK:Tuple:first") -> first,
+      FQName.fromString("Morphir.SDK:Tuple:second") -> second
+    )
+  }
 
 object Native {
   private def handleSameNumerics(
@@ -490,5 +495,5 @@ object Native {
     FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
-  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ ListSDK.sdk ++ SetSDK.sdk ++ BasicsSDK.sdk
+  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ ListSDK.sdk ++ SetSDK.sdk ++ TupleSDK.sdk ++ BasicsSDK.sdk
 }
