@@ -417,6 +417,18 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.String("bazzz") -> Data.Int(5)
           )
         ),
+        testEvaluation("List.any with True Output")("listTests", "listAnyTrueTest")(
+          Data.Boolean(true)
+        ),
+        testEvaluation("List.any with True Output")("listTests", "listAnyFalseTest")(
+          Data.Boolean(false)
+        ),
+        testEvaluation("List Parittion")("listTests", "listPartitionTest")(
+          Data.Tuple(
+            Data.List(Data.Int(1), Data.Int(3), Data.Int(5)),
+            Data.List(Data.Int(2), Data.Int(4))
+          )
+        ),
         testEvalMultiple("Append (and infer type")(
           "ListTests",
           "listAppend",
@@ -680,7 +692,16 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Float(2.0)),
         testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
         testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),
-        testEvaluation("LessThanInt")("sdkBasicsTests", "sdkLessThanTestInt")(Data.Boolean(true)),
+        testEvaluation("x < y - True")("sdkBasicsTests", "sdkLessThanTestIntTrue")(Data.Boolean(true)),
+        testEvaluation("x < y - False")("sdkBasicsTests", "sdkLessThanTestIntFalse")(Data.Boolean(false)),
+        testEvaluation("x > y - True")("sdkBasicsTests", "sdkGreaterThanTestIntTrue")(Data.Boolean(true)),
+        testEvaluation("x > y - False")("sdkBasicsTests", "sdkGreaterThanTestIntFalse")(Data.Boolean(false)),
+        testEvaluation("x >= y - True A")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntTrue1")(Data.Boolean(true)),
+        testEvaluation("x >= y - True B")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntTrue2")(Data.Boolean(true)),
+        testEvaluation("x >= y - False")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntFalse")(Data.Boolean(false)),
+        testEvaluation("x <= y - True A")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue1")(Data.Boolean(true)),
+        testEvaluation("x <= y - True B")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue2")(Data.Boolean(true)),
+        testEvaluation("x <= y - False")("sdkBasicsTests", "sdkLessThanOrEqualTestIntFalse")(Data.Boolean(false)),
         testEvaluation("ToFloat")("sdkBasicsTests", "toFloatTest")(Data.Float(2.0)),
         testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest")(Data.Int(-3)),
         testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest2")(Data.Int(3)),
