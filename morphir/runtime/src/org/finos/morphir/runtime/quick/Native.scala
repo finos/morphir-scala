@@ -271,23 +271,24 @@ object StringSDK {
     FQName.fromString("Morphir.SDK:String:toInt")     -> toInt,
     FQName.fromString("Morphir.SDK:String:isEmpty")   -> isEmpty
   )
+}
 
-  object TupleSDK {
-    val first: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
-      arg.unwrapTuple.toList.head
-    }
-    val second: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
-      val length = arg.unwrapTuple.toList.length
-      if (length < 2) {
-        throw new IllegalValue(s"Tuple with length `$length` has too few elements")
-      }
-      arg.unwrapTuple.toList(1)
-    }
-    val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-      FQName.fromString("Morphir.SDK:Tuple:first") -> first,
-      FQName.fromString("Morphir.SDK:Tuple:second") -> second
-    )
+object TupleSDK {
+  val first: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+    arg.unwrapTuple.toList.head
   }
+  val second: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+    val length = arg.unwrapTuple.toList.length
+    if (length < 2) {
+      throw new IllegalValue(s"Tuple with length `$length` has too few elements")
+    }
+    arg.unwrapTuple.toList(1)
+  }
+  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:Tuple:first")  -> first,
+    FQName.fromString("Morphir.SDK:Tuple:second") -> second
+  )
+}
 
 object Native {
   private def handleSameNumerics(
