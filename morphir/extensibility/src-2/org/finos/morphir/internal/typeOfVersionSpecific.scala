@@ -1,6 +1,6 @@
 package org.finos.morphir.internal
 import magnolia1._
-import org.finos.morphir.annotation.qualifiedModuleName
+import org.finos.morphir.annotation._
 import org.finos.morphir.naming._
 import org.finos.morphir.util.attribs.Attributes
 trait TypeOfModuleVersionSpecific {
@@ -20,7 +20,21 @@ trait TypeOfModuleVersionSpecific {
       }.toList
       val annotations = ctx.annotations ++ ctx.inheritedAnnotations ++ ctx.typeAnnotations
       val fqName: Option[FQName] = annotations.collectFirst {
-        case qualifiedModuleName(moduleName) => moduleName % ctx.typeName.short
+        case fullyQualifiedName(pkg, mod, local) =>
+          val packageName = PackageName.fromString(pkg)
+          val moduleName  = ModuleName.fromString(mod)
+          val localName   = Name.fromString(local)
+          packageName % moduleName % localName
+        case qualifiedModuleName(pkg, mod) =>
+          val packageName = PackageName.fromString(pkg)
+          val moduleName  = ModuleName.fromString(mod)
+          val localName   = Name.fromString(ctx.typeName.short)
+          packageName % moduleName % localName
+        case packageName(pkg) =>
+          val packageName = PackageName.fromString(pkg)
+          val moduleName  = ModuleName.fromString(ctx.typeName.owner)
+          val localName   = Name.fromString(ctx.typeName.short)
+          packageName % moduleName % localName
       }
 
       val recordType: Type[Attributes] = Type.Record(Attributes.empty, fields)

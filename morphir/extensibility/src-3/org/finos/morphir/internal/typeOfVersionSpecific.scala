@@ -1,11 +1,12 @@
 package org.finos.morphir.internal
-import magnolia1._
-import org.finos.morphir.annotation.qualifiedModuleName
+import magnolia1.{TypeInfo => TypeName, _}
+import org.finos.morphir.annotation._
 import org.finos.morphir.naming._
 import org.finos.morphir.util.attribs.Attributes
 import scala.deriving.Mirror
 trait TypeOfModuleVersionSpecific {
-  self: TypeModule with TypeSpecModule with TypeDefModule with TypeOfModule with TypeInfoModule =>
+  self: AccessControlledModule with TypeModule with TypeSpecModule with TypeDefModule with TypeOfModule
+    with TypeInfoModule =>
   import TypeDefinition._
   import TypeSpecification._
 
@@ -16,10 +17,8 @@ trait TypeOfModuleVersionSpecific {
         val tpe: Type[Attributes] = param.typeclass.typeInfo.tpe
         Field(name, tpe)
       }.toList
-      val fqName: Option[FQName] = ctx.annotations.collectFirst {
-        case qualifiedModuleName(moduleName) => moduleName % ctx.typeInfo.short
-      }
-
+      val annotations                  = ctx.annotations ++ ctx.inheritedAnnotations ++ ctx.typeAnnotations
+      val fqName: Option[FQName]       = deriveFQName(ctx.typeInfo, annotations)
       val recordType: Type[Attributes] = Type.Record(Attributes.empty, fields)
       // TODO: Get more details for this
       fqName match {
@@ -29,16 +28,58 @@ trait TypeOfModuleVersionSpecific {
             GenericTypeInfo.TypeOnly(recordType, None)
         case Some(fqName) =>
           // Given that we know the FQName for this type, we are able to return a type alias
-          val spec = TypeAliasSpecification(Vector.empty /* Need to fill out type params if any*/, recordType)
-          val defn = TypeAliasDefinition(Vector.empty, recordType)
+          val spec = TypeAliasSpecification(Vector.empty /*TODO: Need to fill out type params if any*/, recordType)
+          val defn = TypeAliasDefinition(Vector.empty /*TODO: Need to fill out type params if any*/, recordType)
           () => GenericTypeInfo.Full(fqName, recordType, spec, defn)
       }
 
     }
-    def split[T](sealedTrait: SealedTrait[TypeOf, T]): TypeOf[T] = new TypeOf[T] {
-      def apply() =
-        // TODO: Get this working
-        GenericTypeInfo.TypeOnly(Type.Unit(Attributes.empty), None)
+    def split[T](ctx: SealedTrait[TypeOf, T]): TypeOf[T] = new TypeOf[T] {
+      def apply() = {
+        val cases = ctx.subtypes.map { subtype =>
+          val name = Name.fromString(subtype.typeInfo.short)
+          val args = TypeConstructorArgs.empty[Attributes]
+          TypeConstructor(name, args)
+        }
+
+        val ctors                  = TypeConstructors(cases.toMap)
+        val annotations            = ctx.annotations ++ ctx.inheritedAnnotations ++ ctx.typeAnnotations
+        val fqName: Option[FQName] = deriveFQName(ctx.typeInfo, annotations)
+
+        fqName match {
+          case Some(fqName) =>
+            val typeParams = Vector.empty // TODO: Need to fill out type params if any
+            val typeRef = Type.Reference(
+              Attributes.empty,
+              fqName,
+              typeParams.map(Type.Variable(Attributes.empty, _)).toList
+            )
+
+            val spec = TypeSpecification.custom(typeParams, ctors)
+            val defn = TypeDefinition.custom(typeParams, ctors)
+            GenericTypeInfo.Full(fqName, typeRef, spec, defn)
+          case None =>
+            ???
+        }
+      }
+    }
+
+    def deriveFQName(typeInfo: TypeName, annotations: IArray[Any]): Option[FQName] = annotations.collectFirst {
+      case fullyQualifiedName(pkg, mod, local) =>
+        val packageName = PackageName.fromString(pkg)
+        val moduleName  = ModuleName.fromString(mod)
+        val localName   = Name.fromString(local)
+        packageName % moduleName % localName
+      case qualifiedModuleName(pkg, mod) =>
+        val packageName = PackageName.fromString(pkg)
+        val moduleName  = ModuleName.fromString(mod)
+        val localName   = Name.fromString(typeInfo.short)
+        packageName % moduleName % localName
+      case packageName(pkg) =>
+        val packageName = PackageName.fromString(pkg)
+        val moduleName  = ModuleName.fromString(typeInfo.owner)
+        val localName   = Name.fromString(typeInfo.short)
+        packageName % moduleName % localName
     }
 
     inline given gen[A](using Mirror.Of[A]): TypeOf[A] = derived
