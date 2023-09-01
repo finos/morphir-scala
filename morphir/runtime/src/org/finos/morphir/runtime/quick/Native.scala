@@ -271,7 +271,12 @@ object StringSDK {
     FQName.fromString("Morphir.SDK:String:toInt")     -> toInt,
     FQName.fromString("Morphir.SDK:String:isEmpty")   -> isEmpty
   )
-}
+
+  object TupleSDK {
+    val first: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+      arg.unwrapTuple.toList.head
+    }
+
 object Native {
   private def handleSameNumerics(
       a: Result[Unit, Type.UType],
