@@ -20,6 +20,7 @@ sealed trait Result[TA, VA] {
   def unwrapBoolean   = Result.unwrapBoolean(this)
   def unwrapDouble    = Result.unwrapDouble(this)
   def unwrapLong      = Result.unwrapLong(this)
+  def unwrapFloat     = Result.unwrapFloat(this)
   def unwrapPrimitive = Result.unwrapPrimitive(this)
   def unwrapNumeric   = Result.unwrapNumeric(this)
   def unwrapList      = Result.unwrapList(this)
@@ -110,6 +111,18 @@ object Result {
         )
       case _ =>
         throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Int. It is not a primitive!")
+    }
+
+  def unwrapFloat[TA, VA](arg: Result[TA, VA]): Double =
+    arg match {
+      case Primitive.Float(v)  => v.toDouble
+      case Primitive.Double(v) => v
+      case _: Primitive[_, _, _] =>
+        throw new UnexpectedType(
+          s"Could not unwrap the primitive `${arg}` into a Float value because it was not a Primitive.Float"
+        )
+      case _ =>
+        throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Float. It is not a primitive!")
     }
 
   def unwrapLong[TA, VA](arg: Result[TA, VA]): Long =
@@ -374,9 +387,17 @@ object Result {
     }
   }
 
+  sealed trait NativeFunctionResult[TA, VA] extends Result[TA, VA]
+
   case class NativeFunction[TA, VA](
       arguments: Int,
       curried: List[Result[TA, VA]],
       function: NativeFunctionSignature[TA, VA]
-  ) extends Result[TA, VA] {}
+  ) extends NativeFunctionResult[TA, VA] {}
+
+  case class NativeInnerFunction[TA, VA](
+      arguments: Int,
+      curried: List[Result[TA, VA]],
+      function: NativeFunctionSignatureAdv[TA, VA]
+  ) extends NativeFunctionResult[TA, VA] {}
 }

@@ -34,7 +34,7 @@ object EvaluatorQuick {
 
   private[runtime] def evalAction(
       value: Value[Unit, T.UType],
-      store: Store[Unit, T.UType],
+      globals: GlobalDefs[Unit, T.UType],
       dists: Distributions
   ): RTAction[MorphirEnv, EvaluationError, Data] =
     RTAction.environmentWithPure[MorphirSdk] { env =>
@@ -43,13 +43,20 @@ object EvaluatorQuick {
       val modBy = Morphir.SDK.Basics.modBy
 
       def newValue = fromNative[Unit, T.UType](modBy)
-      def newStore = Store(store.definitions + (modBy.name -> newValue), store.ctors, store.callStack)
+      def newStore = GlobalDefs(globals.definitions + (modBy.name -> newValue), globals.ctors)
       RTAction.succeed(EvaluatorQuick.eval(value, newStore, dists))
     }
 
-  private[runtime] def eval(value: Value[Unit, T.UType], store: Store[Unit, T.UType], dists: Distributions): Data = {
-    val result = Loop.loop(value, store)
-    resultToMDM(result, value.attributes, dists)
+  private[runtime] def eval(
+      value: Value[Unit, T.UType],
+      globals: GlobalDefs[Unit, T.UType],
+      dists: Distributions
+  ): Data = {
+    // Does type-checking when producing MDM concept so want to catch typechecking first
+    val concept = typeToConcept(value.attributes, dists, Map())
+    // Run the evaluation loop
+    val result = Loop(globals).loop(value, Store.empty[Unit, T.UType])
+    resultToMDM(result, concept)
   }
 
   def unwrap[TA, VA](res: Result[TA, VA]): Any =
@@ -290,10 +297,8 @@ object EvaluatorQuick {
         throw new ResultDoesNotMatchType(s"Could not match type $badType with result $badResult")
     }
 
-  def resultToMDM(result: Result[Unit, Type.UType], tpe: Type.Type[Unit], dists: Distributions): Data = {
-    val concept = typeToConcept(tpe, dists, Map())
+  def resultToMDM(result: Result[Unit, Type.UType], concept: Concept): Data =
     resultAndConceptToData(result, concept)
-  }
 
   case class Record(values: Map[String, Any])
   object Record {

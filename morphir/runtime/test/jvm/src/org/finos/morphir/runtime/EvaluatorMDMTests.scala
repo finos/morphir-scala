@@ -349,7 +349,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ))
       ),
       suite("Lists")(
-        testEvaluation("Empty")("listTests", "listEmptyTest")(Data.List(List(), Concept.Int32)),
         testEvaluation("Single")("listTests", "listSingleTest")(Data.List(Data.Int(0))),
         testEvaluation("Several")("listTests", "listSeveralTest")(Data.List(
           Data.Int(0),
@@ -388,17 +387,17 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int(5),
           Data.Int(6)
         )),
-        testEvaluation("Map")("listTests", "listMapTestNative")(Data.List(
+        testEvaluation("Map Native")("listTests", "listMapTestNative")(Data.List(
           Data.Float(3.0),
           Data.Float(4.0),
           Data.Float(5.0)
         )),
-        testEvaluation("Map")("listTests", "listMapTestWithCasting")(Data.List(
+        testEvaluation("Map with casting")("listTests", "listMapTestWithCasting")(Data.List(
           Data.Float(4.0),
           Data.Float(5.0),
           Data.Float(6.0)
         )),
-        testEvaluation("Map")("listTests", "listMapTest2")(Data.List(
+        testEvaluation("Map2")("listTests", "listMapTest2")(Data.List(
           Data.Boolean(false),
           Data.Boolean(true),
           Data.Boolean(false)
@@ -423,8 +422,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Singleton")("listTests", "listSingletonTest")(
           Data.List(Data.Int(6))
         ),
-        testEvaluation("isEmpty")("listTests", "listIsEmptyTest")(
+        testEvaluation("isEmpty")("listTests", "listIsEmptyTest1")(
           (Data.Boolean(true))
+        ),
+        testEvaluation("isEmpty")("listTests", "listIsEmptyTest2")(
+          (Data.Boolean(false))
+        ),
+        testEvaluation("length")("listTests", "listLengthTest")(
+          (Data.Int32(6))
         )
       ),
       suite("Literals")(
@@ -607,6 +612,25 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Filters a dictionary")("dictionaryTests", "dictFilterTest")(Data.Map(
           (Data.Int(3), Data.String("Blue")),
           (Data.Int(4), Data.String("Blue"))
+        )),
+        testEvaluation("Empty")("dictionaryTests", "dictEmptyTest")(Data.Map.empty(Concept.String, Concept.Int32)),
+        testEvaluation("Singleton")("dictionaryTests", "dictSingletonTest")(Data.Map((
+          Data.Int(6),
+          Data.String("Puppies")
+        ))),
+        testEvaluation("Keys")("dictionaryTests", "dictKeysTest")(Data.List(
+          Data.Int(1),
+          Data.Int(2),
+          Data.Int(3),
+          Data.Int(4),
+          Data.Int(5)
+        )),
+        testEvaluation("Update")("dictionaryTests", "dictUpdateTest")(Data.Map(
+          (Data.String("Alice"), Data.Int(1)),
+          (Data.String("Bob"), Data.Int(6))
+        )),
+        testEvaluation("Update - delete key")("dictionaryTests", "dictUpdateTest2")(Data.Map(
+          (Data.String("Alice"), Data.Int(1))
         ))
       ),
       suite("Optional Tests")(
@@ -673,6 +697,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("LessThanChar")("sdkBasicsTests", "sdkLessThanTestChar")(
           Data.Boolean(true)
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
+      ),
+      suite("String Tests")(
+        testEvaluation("left")("StringTests", "stringLeftTest")(Data.String("Mu")),
+        testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
+        testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
+        testEvaluation("fromFloat")("StringTests", "stringFromFloatTest")(Data.String("1.5")),
+        testEvaluation("toInt")("StringTests", "stringToIntTest")(Data.Optional.Some(Data.Int(25))),
+        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),
+        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false))
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
