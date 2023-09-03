@@ -31,8 +31,8 @@ def bspInstall(jobs: Int = 1) = T.command {
   mill.bsp.BSP.install(jobs)
 }
 
-def idea(ev: Evaluator) = T.command {
-  mill.scalalib.GenIdea.idea(ev)
+def idea(ev: Evaluator.AllBootstrapEvaluators) = T.command {
+  mill.idea.GenIdea.idea(ev)
 }
 
 // With this we can now just do ./mill reformatAll __.sources
