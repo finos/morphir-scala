@@ -141,6 +141,48 @@ object DictSDK {
 }
 
 object ListSDK {
+  val any: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+    NativeFunctionSignatureAdv.Fun2 {
+      // === ELM ===
+      // -- NOTE: This is equivalent of Scala's List.exists function
+      // any : (a -> Bool) -> List a -> Bool
+      // any isOkay list =
+      //   case list of
+      //     [] -> False
+      //     x :: xs -> if isOkay x then True else any isOkay xs
+      (evaluator: Loop[Unit, Type.UType]) => (isOkay: Result[Unit, Type.UType], listRaw: Result[Unit, Type.UType]) =>
+        {
+          val list = listRaw.unwrapList
+          val output =
+            list.exists(elem =>
+              evaluator.handleApplyResult(Type.UType.Unit(()), isOkay, elem).unwrapBoolean
+            )
+          Result.Primitive.Boolean(output)
+        }
+    }
+  }
+
+  val partition: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+    NativeFunctionSignatureAdv.Fun2 {
+      // === ELM ===
+      // -- The signature of the ELM function is this. This is equivalent of Scala's List.partition
+      // partition : (a -> Bool) -> List a -> (List a, List a)
+      // partition pred list = ...
+      (evaluator: Loop[Unit, Type.UType]) => (pred: Result[Unit, Type.UType], listRaw: Result[Unit, Type.UType]) =>
+        {
+          val list = listRaw.unwrapList
+          val (left, right) =
+            list.partition(elem =>
+              evaluator.handleApplyResult(Type.UType.Unit(()), pred, elem).unwrapBoolean
+            )
+          Result.Tuple[Unit, Type.UType](
+            Result.ListResult[Unit, Type.UType](left),
+            Result.ListResult[Unit, Type.UType](right)
+          )
+        }
+    }
+  }
+
   val foldl: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun3 {
       (evaluator: Loop[Unit, Type.UType]) =>
@@ -170,10 +212,12 @@ object ListSDK {
       Result.Primitive.Boolean(listA.size == 0)
     }
   val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
-    FQName.fromString("Morphir.SDK:List:foldl")   -> foldl,
-    FQName.fromString("Morphir.SDK:List:append")  -> append,
-    FQName.fromString("Morphir.SDK:List:cons")    -> cons,
-    FQName.fromString("Morphir.SDK:List:isEmpty") -> isEmpty
+    FQName.fromString("Morphir.SDK:List:foldl")     -> foldl,
+    FQName.fromString("Morphir.SDK:List:append")    -> append,
+    FQName.fromString("Morphir.SDK:List:cons")      -> cons,
+    FQName.fromString("Morphir.SDK:List:isEmpty")   -> isEmpty,
+    FQName.fromString("Morphir.SDK:List:any")       -> any,
+    FQName.fromString("Morphir.SDK:List:partition") -> partition
   )
 }
 
@@ -272,6 +316,41 @@ object StringSDK {
     FQName.fromString("Morphir.SDK:String:isEmpty")   -> isEmpty
   )
 }
+
+object DecimalSDK {
+  val fromFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+    Result.Primitive.BigDecimal(BigDecimal.valueOf(arg.unwrapFloat))
+  }
+  val toFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+    Result.Primitive.Float(arg.unwrapDecimal.toDouble)
+  }
+  val asString: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+    Result.Primitive.String(arg.unwrapDecimal.toString)
+  }
+  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:Decimal:fromFloat") -> fromFloat,
+    FQName.fromString("Morphir.SDK:Decimal:toFloat")   -> toFloat,
+    FQName.fromString("Morphir.SDK:Decimal:toString")  -> asString
+  )
+}
+
+object TupleSDK {
+  val first: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+    arg.unwrapTuple.toList.head
+  }
+  val second: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+    val length = arg.unwrapTuple.toList.length
+    if (length < 2) {
+      throw new IllegalValue(s"Tuple with length `$length` has too few elements")
+    }
+    arg.unwrapTuple.toList(1)
+  }
+  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+    FQName.fromString("Morphir.SDK:Tuple:first")  -> first,
+    FQName.fromString("Morphir.SDK:Tuple:second") -> second
+  )
+}
+
 object Native {
   private def handleSameNumerics(
       a: Result[Unit, Type.UType],
@@ -362,9 +441,19 @@ object Native {
       handleSameNumerics(a, b) { (a, b, helper) => helper.lt(a, b) }
     }
 
+  val lessThanOrEqual: SDKValue[Unit, Type.UType] =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+      handleSameNumerics(a, b) { (a, b, helper) => helper.lteq(a, b) }
+    }
+
   val greaterThan: SDKValue[Unit, Type.UType] =
     SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
       handleSameNumerics(a, b) { (a, b, helper) => helper.gt(a, b) }
+    }
+
+  val greaterThanOrEqual: SDKValue[Unit, Type.UType] =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+      handleSameNumerics(a, b) { (a, b, helper) => helper.gteq(a, b) }
     }
 
   val equal: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
@@ -469,6 +558,8 @@ object Native {
     FQName.fromString("Morphir.SDK:Basics:logBase")             -> log,
     FQName.fromString("Morphir.SDK:Basics:lessThan")            -> lessThan,
     FQName.fromString("Morphir.SDK:Basics:greaterThan")         -> greaterThan,
+    FQName.fromString("Morphir.SDK:Basics:lessThanOrEqual")     -> lessThanOrEqual,
+    FQName.fromString("Morphir.SDK:Basics:greaterThanOrEqual")  -> greaterThanOrEqual,
     FQName.fromString("Morphir.SDK:List:concat")                -> concat,
     FQName.fromString("Morphir.SDK:List:singleton")             -> singleton,
     FQName.fromString("Morphir.SDK:List:isEmpty")               -> isEmpty,
@@ -478,5 +569,5 @@ object Native {
     FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
-  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ ListSDK.sdk ++ SetSDK.sdk ++ BasicsSDK.sdk
+  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ ListSDK.sdk ++ SetSDK.sdk ++ DecimalSDK.sdk ++ TupleSDK.sdk ++ BasicsSDK.sdk
 }

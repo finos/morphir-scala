@@ -4,22 +4,21 @@ import List as List
 import Dict
 import Dict exposing (Dict)
 
-
 --Test: List/Single
 listSingleTest : () -> List Int
-listSingleTest _ = 
+listSingleTest _ =
     [0]
 --expected = [0]
 
 --Test: List/Several
 listSeveralTest : () -> List Int
-listSeveralTest _ = 
+listSeveralTest _ =
     [0, 1, 2, 3, 4, 5]
 --expected = [0, 1, 2, 3, 4, 5]
 
 --Test: List/Nested
 listNestedTest : () -> List (List String)
-listNestedTest _ = 
+listNestedTest _ =
     [
         ["Red", "Blue"],
         [],
@@ -36,8 +35,8 @@ listConcatTest _ =
 --Test: List/Flatten
 --import List exposing (map, (::))
 listFlattenTest : () -> List (String)
-listFlattenTest _ = 
-    let 
+listFlattenTest _ =
+    let
         nested = [
             ["Red", "Blue"],
             [],
@@ -45,7 +44,7 @@ listFlattenTest _ =
     in
         let
             flatten : List (List String) -> List String
-            flatten l = 
+            flatten l =
                 case l of
                     (head :: tail) :: big_tail ->
                         head :: flatten (tail :: big_tail)
@@ -56,6 +55,21 @@ listFlattenTest _ =
         in
             flatten nested
 --expected = ["Red","Blue","Car","Plane","Truck"]
+
+--Test: List/Any - True
+listAnyTrueTest : () -> Bool
+listAnyTrueTest _ = any (\x -> modBy 2 x == 0) [1,2,3,4]
+--expected = True
+
+--Test: List/Any - False
+listAnyFalseTest : () -> Bool
+listAnyFalseTest _ = any (\x -> modBy 2 x == 0) [1,3,5]
+--expected = False
+
+--Test: List/Partition
+listPartitionTest: () -> (List Int, List Int)
+listPartitionTest _ = partition (\x -> modBy 2 x == 1) [1,2,3,4,5]
+--expected = [[1,3,5], [2,4]]
 
 --Test: List/Filter
 listFilterTest : () -> List Int
