@@ -1,5 +1,4 @@
 package org.finos.morphir.internal
-import org.finos.morphir.meta.*
 import org.finos.morphir.naming.*
 import org.finos.morphir.extensibility.SdkModuleDescriptors.*
 import org.finos.morphir.util.attribs.Attributes
