@@ -1,31 +1,37 @@
 package org.finos.morphir.cli
 
-import java.nio.file.Paths
+import java.nio.file.*
+
+import org.finos.morphir.service.*
+import org.finos.morphir.util.vfile.*
 import zio.*
 import zio.cli.*
 import zio.cli.HelpDoc.Span.text
-import org.finos.morphir.command.*
-import CommandExecutor.given
 object MorphirCliMain extends ZIOCliDefault {
   val cliApp = CliApp.make(
     name = "morphir-cli",
     version = "0.1.0",
     summary = text("Morphir CLI"),
     command = commands.Morphir.root
-  ) { cmd =>
-    for {
-      _ <- Console.printLine(s"Executing command: $cmd")
-      _ <- cmd.execute()
-      _ <- Console.printLine("Command executed")
-    } yield ()
+  )(executeCommand(_).provide(MorphirSetup.live, MorphirElmDriver.live))
 
+  private def executeCommand(command: MorphirCommand) = command match {
+    case MorphirCommand.Setup(morphirHomeDir) => MorphirSetup.setup(morphirHomeDir)
+    case MorphirCommand.ElmInit(morphirHomeDir, projectDir) =>
+      MorphirElmDriver.init(VFilePath.fromJava(morphirHomeDir), VFilePath.fromJava(projectDir))
+    case MorphirCommand.ElmMake(projectDir, output, fallbackCli) =>
+      MorphirElmDriver.make(VFilePath.fromJava(projectDir), VFilePath.fromJava(output), fallbackCli)
   }
 
-  object commands extends SetupCommandModule {
+  object commands {
 
     object Elm {
-      val init = Command("init").withHelp("Initialize for use with Morphir's Elm tooling.").map { _ =>
-        MorphirCommand.ElmInit()
+      val init = {
+        val projectDir = Options.directory("project-dir").alias("p").withDefault(Paths.get("."))
+
+        Command("init", projectDir).withHelp("Initialize for use with Morphir's Elm tooling.").map { projectDir =>
+          MorphirCommand.ElmInit(Paths.get("~"), projectDir)
+        }
       }
 
       val make = {
@@ -45,8 +51,11 @@ object MorphirCliMain extends ZIOCliDefault {
 
     object Morphir {
 
-      val setup = Command("setup").withHelp("Setup morphir-cli for use.").map { _ => MorphirCommand.Setup() }
-      val root  = Command("morphir-cli").subcommands(setup, Elm.root)
+      val setup = Command("setup").withHelp("Setup morphir-cli for use.").map { _ =>
+        val morphirHomeDir = Paths.get("~")
+        MorphirCommand.Setup(morphirHomeDir)
+      }
+      val root = Command("morphir-cli").subcommands(setup, Elm.root)
     }
   }
 }
