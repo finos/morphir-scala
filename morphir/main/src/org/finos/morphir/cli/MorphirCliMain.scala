@@ -4,13 +4,13 @@ import java.nio.file.*
 
 import org.finos.morphir.service.*
 import org.finos.morphir.util.vfile.*
-import zio.*
+import zio.{BuildInfo => _, _}
 import zio.cli.*
 import zio.cli.HelpDoc.Span.text
 object MorphirCliMain extends ZIOCliDefault {
   val cliApp = CliApp.make(
     name = "morphir-cli",
-    version = "0.1.0",
+    version = BuildInfo.version,
     summary = text("Morphir CLI"),
     command = commands.Morphir.root
   )(executeCommand(_).provide(MorphirSetup.live, MorphirElmDriver.live))
@@ -21,6 +21,8 @@ object MorphirCliMain extends ZIOCliDefault {
       MorphirElmDriver.init(VFilePath.fromJava(morphirHomeDir), VFilePath.fromJava(projectDir))
     case MorphirCommand.ElmMake(projectDir, output, fallbackCli) =>
       MorphirElmDriver.make(VFilePath.fromJava(projectDir), VFilePath.fromJava(output), fallbackCli)
+    case MorphirCommand.ElmRestore(elmHome, projectDir) =>
+      MorphirElmDriver.restore(VFilePath.fromJava(elmHome), VFilePath.fromJava(projectDir))
   }
 
   object commands {
@@ -46,7 +48,17 @@ object MorphirCliMain extends ZIOCliDefault {
         }
       }
 
-      val root = Command("elm").withHelp("Elm specific commands for morphir-cli.").subcommands(init, make)
+      val restore = {
+        val elmHome    = Options.directory("elm-home").alias("e").withDefault(Paths.get("~/.elm"))
+        val projectDir = Options.directory("project-dir").alias("p").withDefault(Paths.get("."))
+        Command("restore", elmHome ++ projectDir).withHelp(
+          "Restore a Morphir project that uses Elm as its front-end modelling language.."
+        ).map { case (elmHome, projectDir) =>
+          MorphirCommand.ElmRestore(elmHome, projectDir)
+        }
+      }
+
+      val root = Command("elm").withHelp("Elm specific commands for morphir-cli.").subcommands(init, make, restore)
     }
 
     object Morphir {

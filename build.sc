@@ -11,6 +11,7 @@ import millbuild.crossplatform._
 import millbuild.settings._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind
+import mill.contrib.buildinfo.BuildInfo
 
 implicit val buildSettings: BuildSettings = interp.watchValue(MyBuild.cachedBuildSettings)
 
@@ -91,15 +92,31 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
     }
   }
 
-  object main extends CommonScalaModule with MorphirPublishModule {
+  object main extends CommonScalaModule with MorphirPublishModule with BuildInfo {
+
+    def buildInfoPackageName = "org.finos.morphir.cli"
+
+    def buildInfoMembers = Seq(
+      BuildInfo.Value("version", publishVersion()),
+      BuildInfo.Value("scalaVersion", scalaVersion())
+    )
+
     val mainScalaVersion = morphirScalaVersion
-    def scalaVersion     = T { mainScalaVersion }
+
+    def packageDescription =
+      "The morphir-main package. This is the main entry point for the morphir tooling, including the morphir-cli."
+
+    def scalaVersion = T { mainScalaVersion }
     def ivyDeps = Agg(
       Deps.com.lihaoyi.fansi,
       Deps.com.lihaoyi.pprint,
       Deps.com.lihaoyi.sourcecode,
       Deps.dev.zio.zio,
-      Deps.dev.zio.`zio-cli`
+      Deps.dev.zio.`zio-cli`,
+      Deps.dev.zio.`zio-config`,
+      Deps.dev.zio.config.magnolia,
+      Deps.dev.zio.config.refined,
+      Deps.dev.zio.config.typesafe
     )
 
     def moduleDeps =
