@@ -30,6 +30,16 @@ object Deps {
       }
     }
 
+    case object geirsson {
+      case object metaconfig {
+        val core    = ivy"com.geirsson::metaconfig-core::${Versions.metaconfig}"
+        val docs    = ivy"com.geirsson::metaconfig-docs::${Versions.metaconfig}"
+        val json    = ivy"com.geirsson::metaconfig-json::${Versions.metaconfig}"
+        val pprint  = ivy"com.geirsson::metaconfig-pprint::${Versions.metaconfig}"
+        val sconfig = ivy"com.geirsson::metaconfig-sconfig::${Versions.metaconfig}"
+      }
+    }
+
     case object github {
       case object arturopala {
         val `buffer-and-slice` = ivy"com.github.arturopala::buffer-and-slice:${Versions.`buffer-and-slice`}"
@@ -178,6 +188,7 @@ object Versions {
   val fs2                        = "3.8.0"
   val geny                       = "1.0.0"
   val `izumi-reflect`            = "2.3.8"
+  val metaconfig                 = "0.11.1"
   val munit                      = "1.0.0-M8"
   val `munit-zio`                = "0.1.1"
   val mainargs                   = "0.5.0"
