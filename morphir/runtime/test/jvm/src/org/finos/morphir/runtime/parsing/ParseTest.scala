@@ -1,12 +1,14 @@
-package org.finos.morphir.runtime
+package org.finos.morphir.runtime.parsing
 
 import org.finos.morphir.ir.MorphirIRFile
 import org.finos.morphir.ir.distribution.Distribution
-import zio.{Runtime, Unsafe, ZIO}
-import zio.json.*
+import org.finos.morphir.runtime.MorphirIRDecodingError
 import zio.System.os
-import java.nio.file.{Paths, Files}
+import zio.json.*
+import zio.{Runtime, Unsafe, ZIO}
+
 import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Paths}
 
 object ParseTest {
   def run[E, A](zio: ZIO[Any, E, A]) = Unsafe.unsafe { implicit u =>
