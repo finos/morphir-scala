@@ -4,33 +4,42 @@ import org.finos.morphir.internal.AllTypeLevelModules
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.Value.Value
 import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.naming._
-
+import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.RTAction
 import org.finos.morphir.runtime.quick.QuickMorphirRuntime
-trait MorphirRuntime[TA, VA] {
+
+trait MorphirRuntime {
+  type TypeAttribs
+  type ValueAttribs
+
   def evaluate(
-      entryPoint: Value[TA, VA],
-      param: Value[TA, VA],
-      params: Value[TA, VA]*
+      entryPoint: Value[TypeAttribs, ValueAttribs],
+      param: Value[TypeAttribs, ValueAttribs],
+      params: Value[TypeAttribs, ValueAttribs]*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data]
-  def evaluate(entryPoint: Value[TA, VA], param: Data, params: Data*): RTAction[MorphirEnv, MorphirRuntimeError, Data]
+  def evaluate(
+      entryPoint: Value[TypeAttribs, ValueAttribs],
+      param: Data,
+      params: Data*
+  ): RTAction[MorphirEnv, MorphirRuntimeError, Data]
   def evaluate(entryPoint: FQName, param: Data, params: Data*): RTAction[MorphirEnv, MorphirRuntimeError, Data]
   def evaluate(
       entryPoint: FQName,
-      param: Value[TA, VA],
-      params: Value[TA, VA]*
+      param: Value[TypeAttribs, ValueAttribs],
+      params: Value[TypeAttribs, ValueAttribs]*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data]
 
-  def applyParams(entryPoint: Value[TA, VA], params: Value[TA, VA]*): RTAction[MorphirEnv, TypeError, Value[TA, VA]]
+  def applyParams(
+      entryPoint: Value[TypeAttribs, ValueAttribs],
+      params: Value[TypeAttribs, ValueAttribs]*
+  ): RTAction[MorphirEnv, TypeError, Value[TypeAttribs, ValueAttribs]]
 
-  def evaluate(value: Value[TA, VA]): RTAction[MorphirEnv, MorphirRuntimeError, Data]
+  def evaluate(value: Value[TypeAttribs, ValueAttribs]): RTAction[MorphirEnv, MorphirRuntimeError, Data]
 
 }
 
 object MorphirRuntime extends MorphirRuntimePlatformSpecific {
-
-  def quick(distributions: Distribution*): MorphirRuntime[scala.Unit, UType] =
+  def quick(distributions: Distribution*): TypedMorphirRuntime =
     QuickMorphirRuntime.fromDistributions(distributions: _*)
 }
