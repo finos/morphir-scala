@@ -13,7 +13,10 @@ import org.finos.morphir.datamodel.*
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
 
-trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {
+trait TypedMorphirRuntime extends MorphirRuntime {
+  type TypeAttribs  = TypedMorphirRuntime.TypeAttribs
+  type ValueAttribs = TypedMorphirRuntime.ValueAttribs
+
   final def evaluate(
       entryPoint: Value[scala.Unit, UType],
       param: Value[scala.Unit, UType],
@@ -41,4 +44,11 @@ trait TypedMorphirRuntime extends MorphirRuntime[scala.Unit, UType] {
     val inputIRs = params.map(toValue(_))
     evaluate(entryPoint, inputIR, inputIRs: _*)
   }
+}
+
+object TypedMorphirRuntime {
+  final type TypeAttribs  = scala.Unit
+  final type ValueAttribs = UType
+  type RuntimeValue       = Value[TypeAttribs, ValueAttribs]
+  type RuntimeDefinition  = Value.Definition[TypeAttribs, ValueAttribs]
 }

@@ -11,14 +11,15 @@ import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.distribution.Distribution
 import scala.collection.immutable.Set
 import zio.Chunk
+import org.finos.morphir.runtime.TypedMorphirRuntime.{TypeAttribs, ValueAttribs}
 
 object GatherReferences {
-  type TypedValue = Value[Unit, UType]
+  type TypedValue = Value[TypeAttribs, ValueAttribs]
   // Gather references from distribution*
   // Also from GlobalDefs? (Yeah, redundancy is okay, and there are
   // Helper: Recursively explore value
   // Diff vs. GlobalDefs
-  def fromGlobalDefs(globals: GlobalDefs[Unit, UType]): ReferenceSet =
+  def fromGlobalDefs(globals: GlobalDefs): ReferenceSet =
     globals.definitions.map { case (name, value) =>
       value match {
         case SDKValue.SDKValueDefinition(definition) => loop(definition.body).withDefinition(name) // TODO: Types!
