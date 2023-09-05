@@ -13,6 +13,8 @@ import org.finos.morphir.runtime.UnexpectedType
 
 import scala.collection.mutable
 
+// Represents a Morphir-Evaluator result. Typed on TypedMorphirRuntime.TypeAttribs, TypedMorphirRuntime.ValueAttribs
+// instead of a a Generic VA/TA since the latter is not necessary.
 sealed trait Result {
   def succinct(depth: Int): String = s"${this.getClass} (Default implementation)"
   def succinct: String             = succinct(2)
