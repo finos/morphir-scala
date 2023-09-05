@@ -16,9 +16,7 @@ import zio.{Console, ZIO, ZLayer}
 import org.finos.morphir.ir.Value.RawValueExtensions
 
 object TypeCheckerTests extends MorphirBaseSpec {
-  type MorphirRuntimeTyped = MorphirRuntime[Unit, UType]
-
-  val morphirRuntimeLayer: ZLayer[Any, Throwable, MorphirRuntime[Unit, UType]] =
+  val morphirRuntimeLayer: ZLayer[Any, Throwable, TypedMorphirRuntime] =
     ZLayer(for {
       irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
       _          <- Console.printLine(s"Loading distribution from $irFilePath")

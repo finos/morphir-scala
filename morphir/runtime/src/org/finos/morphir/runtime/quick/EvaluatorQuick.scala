@@ -11,6 +11,7 @@ import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.Extractors.Types.*
+import org.finos.morphir.runtime.TypedMorphirRuntime.{TypeAttribs, ValueAttribs}
 import org.finos.morphir.runtime.{
   Distributions,
   EvaluationError,
@@ -33,8 +34,8 @@ object EvaluatorQuick {
   type FloatType = Double
 
   private[runtime] def evalAction(
-      value: Value[Unit, T.UType],
-      globals: GlobalDefs[Unit, T.UType],
+      value: Value[TypeAttribs, ValueAttribs],
+      globals: GlobalDefs,
       dists: Distributions
   ): RTAction[MorphirEnv, EvaluationError, Data] =
     RTAction.environmentWithPure[MorphirSdk] { env =>
@@ -42,24 +43,24 @@ object EvaluatorQuick {
       // HACK: To work out
       val modBy = Morphir.SDK.Basics.modBy
 
-      def newValue = fromNative[Unit, T.UType](modBy)
+      def newValue = fromNative(modBy)
       def newStore = GlobalDefs(globals.definitions + (modBy.name -> newValue), globals.ctors)
       RTAction.succeed(EvaluatorQuick.eval(value, newStore, dists))
     }
 
   private[runtime] def eval(
-      value: Value[Unit, T.UType],
-      globals: GlobalDefs[Unit, T.UType],
+      value: Value[TypeAttribs, ValueAttribs],
+      globals: GlobalDefs,
       dists: Distributions
   ): Data = {
     // Does type-checking when producing MDM concept so want to catch typechecking first
     val concept = typeToConcept(value.attributes, dists, Map())
     // Run the evaluation loop
-    val result = Loop(globals).loop(value, Store.empty[Unit, T.UType])
+    val result = Loop(globals).loop(value, Store.empty)
     resultToMDM(result, concept)
   }
 
-  def unwrap[TA, VA](res: Result[TA, VA]): Any =
+  def unwrap(res: Result): Any =
     res match {
       case Result.Unit()               => ()                      // Ever used?
       case Result.Primitive(value)     => value                   // Duh
@@ -73,16 +74,16 @@ object EvaluatorQuick {
           unwrap(key) -> unwrap(value)
         } // Needed for non-higher order sized, others
       // TODO: Option, Result, LocalDate
-      // case constructor: Result.ConstructorResult[TA, VA] => constructor //Special cases?
+      // case constructor: Result.ConstructorResult => constructor //Special cases?
       // case record: Result.Record => record //I don't think we ever use these?
       case other => other // Anything can be passed through a generic function
     }
-  def wrap[TA, VA](value: Any): Result[TA, VA] =
+  def wrap(value: Any): Result =
     value match {
-      case r: Result[_, _] => r.asInstanceOf[Result[TA, VA]]
-      case ()              => Result.Unit()
+      case r: Result => r.asInstanceOf[Result]
+      case ()        => Result.Unit()
       case m: mutable.LinkedHashMap[_, _] => Result.MapResult(m.map { case (key, value) =>
-          (wrap[TA, VA](key), wrap[TA, VA](value))
+          (wrap(key), wrap(value))
         })
       case l: List[_]                  => Result.ListResult(l.map(wrap(_)))
       case s: mutable.LinkedHashSet[_] => Result.SetResult(s.map(wrap(_)))
@@ -93,24 +94,24 @@ object EvaluatorQuick {
       case primitive        => Result.Primitive.makeOrFail(primitive)
     }
 
-  def fromNative[TA, VA](native: NativeFunction): SDKValue[TA, VA] =
+  def fromNative(native: NativeFunction): SDKValue =
     native match {
       case fn: DynamicNativeFunction2[_, _, _] =>
         val f = {
-          (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) =>
+          (arg1: Result, arg2: Result) =>
             val unwrappedArg1 = unwrap(arg1)
             val unwrappedArg2 = unwrap(arg2)
             val res           = fn.invokeDynamic(unwrappedArg1, unwrappedArg2)
             wrap(res)
-        }.asInstanceOf[Function2[Result[TA, VA], Result[TA, VA], Result[TA, VA]]]
+        }.asInstanceOf[Function2[Result, Result, Result]]
         SDKValue.SDKNativeFunction(NativeFunctionSignature.Fun2(f))
       case nf: NativeFunction2[_, _, _] =>
-        val f = { (arg1: Result[Unit, T.UType], arg2: Result[Unit, T.UType]) =>
+        val f = { (arg1: Result, arg2: Result) =>
           val unwrappedArg1 = unwrap(arg1)
           val unwrappedArg2 = unwrap(arg2)
           val res           = nf.invokeDynamic(unwrappedArg1, unwrappedArg2)
           wrap(res)
-        }.asInstanceOf[Function2[Result[TA, VA], Result[TA, VA], Result[TA, VA]]]
+        }.asInstanceOf[Function2[Result, Result, Result]]
         SDKValue.SDKNativeFunction(NativeFunctionSignature.Fun2(f))
     }
 
@@ -173,7 +174,7 @@ object EvaluatorQuick {
       case TT.Unit(_)           => Concept.Unit
       case TT.Variable(_, name) => boundTypes(name)
     }
-  def resultAndConceptToData(result: Result[Unit, Type.UType], concept: Concept): Data =
+  def resultAndConceptToData(result: Result, concept: Concept): Data =
     (concept, result) match {
       case (Concept.Struct(fields), Result.Record(elements)) =>
         if (fields.length != elements.size) {
@@ -295,7 +296,7 @@ object EvaluatorQuick {
         throw new ResultDoesNotMatchType(s"Could not match type $badType with result $badResult")
     }
 
-  def resultToMDM(result: Result[Unit, Type.UType], concept: Concept): Data =
+  def resultToMDM(result: Result, concept: Concept): Data =
     resultAndConceptToData(result, concept)
 
   case class Record(values: Map[String, Any])

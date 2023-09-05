@@ -17,9 +17,9 @@ object DictSDK {
   // filter : (k -> v -> Bool) -> Dict k v -> Dict comparable v
   // filter isGood dict =
   //   foldl (\k v d -> if isGood k v then insert k v d else d) empty dict
-  val filter: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+  val filter: SDKValue = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
-      (evaluator: Loop[Unit, Type.UType]) => (isGood: Result[Unit, Type.UType], dictRaw: Result[Unit, Type.UType]) =>
+      (evaluator: Loop) => (isGood: Result, dictRaw: Result) =>
         {
           val dictMap = dictRaw.unwrapMap
           val newDict =
@@ -32,8 +32,8 @@ object DictSDK {
     }
   }
 
-  val fromList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (l: Result[Unit, Type.UType]) =>
+  val fromList: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (l: Result) =>
       val list = l.unwrapList
       val mappedList = list
         .map { input =>
@@ -47,33 +47,33 @@ object DictSDK {
       Result.MapResult(mutable.LinkedHashMap(mappedList: _*))
   }
 
-  val toList: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (d: Result[Unit, Type.UType]) =>
+  val toList: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (d: Result) =>
       val dict     = d.unwrapMap
       val elements = dict.toList.map { case (k, v) => Result.Tuple(k, v) }
       Result.ListResult(elements)
   }
 
-  val empty: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.MapResult(mutable.LinkedHashMap()))
+  val empty: SDKValue = SDKValue.SDKNativeValue(Result.MapResult(mutable.LinkedHashMap()))
 
-  val get: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
-    (key: Result[Unit, Type.UType], m: Result[Unit, Type.UType]) =>
+  val get: SDKValue = SDKValue.SDKNativeFunction.fun2 {
+    (key: Result, m: Result) =>
       val map = m.unwrapMap
       optionToMaybe(map.get(key))
   }
 
-  val singleton: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
-    (key: Result[Unit, Type.UType], value: Result[Unit, Type.UType]) =>
+  val singleton: SDKValue = SDKValue.SDKNativeFunction.fun2 {
+    (key: Result, value: Result) =>
       Result.MapResult(mutable.LinkedHashMap.from(List(key -> value)))
   }
 
-  val keys: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (m: Result[Unit, Type.UType]) =>
+  val keys: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (m: Result) =>
       val map = m.unwrapMap
       Result.ListResult(map.keys.toList)
   }
 
-  private def optionToMaybe(opt: Option[Result[Unit, Type.UType]]): Result[Unit, Type.UType] =
+  private def optionToMaybe(opt: Option[Result]): Result =
     opt match {
       case Some(value) => Result.ConstructorResult(
           FQName.fromString("Morphir.SDK:Maybe:just"),
@@ -85,7 +85,7 @@ object DictSDK {
         )
     }
 
-  val update: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+  val update: SDKValue = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun3 {
       // === ELM Function ===
       // update : comparable -> (Maybe v -> Maybe v) -> Dict comparable v -> Dict comparable v
@@ -93,10 +93,10 @@ object DictSDK {
       // case alter(get targetKey dictionary) of
       //   Just value -> insert targetKey value dictionary
       //   Nothing    -> remove targetKey dictionary
-      (evaluator: Loop[Unit, Type.UType]) => (
-          targetKeyRaw: Result[Unit, Type.UType],
-          alterRaw: Result[Unit, Type.UType],
-          dictRaw: Result[Unit, Type.UType]
+      (evaluator: Loop) => (
+          targetKeyRaw: Result,
+          alterRaw: Result,
+          dictRaw: Result
       ) =>
         val dict      = dictRaw.unwrapMap.clone() // make sure to clone it to not modify original one
         val currValue = optionToMaybe(dict.get(targetKeyRaw))
@@ -114,14 +114,14 @@ object DictSDK {
     }
   }
 
-  val insert: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun3 {
-    (key: Result[Unit, Type.UType], value: Result[Unit, Type.UType], m: Result[Unit, Type.UType]) =>
+  val insert: SDKValue = SDKValue.SDKNativeFunction.fun3 {
+    (key: Result, value: Result, m: Result) =>
       val map = m.unwrapMap.clone() // because LinkedHashMap is mutable MAKE SURE TO CLONE IT before inserting things
       map += ((key, value))
       Result.MapResult(map)
   }
 
-  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+  val sdk: Map[FQName, SDKValue] = Map(
     FQName.fromString("Morphir.SDK:Dict:empty")     -> empty,
     FQName.fromString("Morphir.SDK:Dict:fromList")  -> fromList,
     FQName.fromString("Morphir.SDK:Dict:filter")    -> filter,
@@ -141,7 +141,7 @@ object DictSDK {
 }
 
 object ListSDK {
-  val any: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+  val any: SDKValue = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
       // === ELM ===
       // -- NOTE: This is equivalent of Scala's List.exists function
@@ -150,7 +150,7 @@ object ListSDK {
       //   case list of
       //     [] -> False
       //     x :: xs -> if isOkay x then True else any isOkay xs
-      (evaluator: Loop[Unit, Type.UType]) => (isOkay: Result[Unit, Type.UType], listRaw: Result[Unit, Type.UType]) =>
+      (evaluator: Loop) => (isOkay: Result, listRaw: Result) =>
         {
           val list = listRaw.unwrapList
           val output =
@@ -162,56 +162,55 @@ object ListSDK {
     }
   }
 
-  val partition: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+  val partition: SDKValue = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
       // === ELM ===
       // -- The signature of the ELM function is this. This is equivalent of Scala's List.partition
       // partition : (a -> Bool) -> List a -> (List a, List a)
       // partition pred list = ...
-      (evaluator: Loop[Unit, Type.UType]) => (pred: Result[Unit, Type.UType], listRaw: Result[Unit, Type.UType]) =>
+      (evaluator: Loop) => (pred: Result, listRaw: Result) =>
         {
           val list = listRaw.unwrapList
           val (left, right) =
             list.partition(elem =>
               evaluator.handleApplyResult(Type.UType.Unit(()), pred, elem).unwrapBoolean
             )
-          Result.Tuple[Unit, Type.UType](
-            Result.ListResult[Unit, Type.UType](left),
-            Result.ListResult[Unit, Type.UType](right)
+          Result.Tuple(
+            Result.ListResult(left),
+            Result.ListResult(right)
           )
         }
     }
   }
 
-  val foldl: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+  val foldl: SDKValue = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun3 {
-      (evaluator: Loop[Unit, Type.UType]) =>
-        (f: Result[Unit, Type.UType], first: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
-          {
-            val list = l.unwrapList
-            list.foldLeft(first) { (b, a) => // Note that elm does (a, b) => b, scala does it in the opposite way
-              evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, b)
-            }
+      (evaluator: Loop) => (f: Result, first: Result, l: Result) =>
+        {
+          val list = l.unwrapList
+          list.foldLeft(first) { (b, a) => // Note that elm does (a, b) => b, scala does it in the opposite way
+            evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, b)
           }
+        }
     }
   }
-  val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
-    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
-      val listA = a.asInstanceOf[Result.ListResult[Unit, Type.UType]]
-      val listB = b.asInstanceOf[Result.ListResult[Unit, Type.UType]]
+  val append: SDKValue = SDKValue.SDKNativeFunction.fun2 {
+    (a: Result, b: Result) =>
+      val listA = a.asInstanceOf[Result.ListResult]
+      val listB = b.asInstanceOf[Result.ListResult]
       Result.ListResult(listA.elements.appendedAll(listB.elements))
   }
-  val cons: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
-    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
-      val listB = b.asInstanceOf[Result.ListResult[Unit, Type.UType]]
+  val cons: SDKValue = SDKValue.SDKNativeFunction.fun2 {
+    (a: Result, b: Result) =>
+      val listB = b.asInstanceOf[Result.ListResult]
       Result.ListResult(a :: listB.elements)
   }
-  val isEmpty: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
-      val listA = arg.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
+  val isEmpty: SDKValue =
+    SDKValue.SDKNativeFunction.fun1 { (arg: Result) =>
+      val listA = arg.asInstanceOf[Result.ListResult].elements
       Result.Primitive.Boolean(listA.size == 0)
     }
-  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+  val sdk: Map[FQName, SDKValue] = Map(
     FQName.fromString("Morphir.SDK:List:foldl")     -> foldl,
     FQName.fromString("Morphir.SDK:List:append")    -> append,
     FQName.fromString("Morphir.SDK:List:cons")      -> cons,
@@ -222,26 +221,26 @@ object ListSDK {
 }
 
 object SetSDK {
-  val fromList: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
-      val list = arg.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
+  val fromList: SDKValue =
+    SDKValue.SDKNativeFunction.fun1 { (arg: Result) =>
+      val list = arg.asInstanceOf[Result.ListResult].elements
       Result.SetResult(list.to(mutable.LinkedHashSet))
     }
-  val toList: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
-      val set = arg.asInstanceOf[Result.SetResult[Unit, Type.UType]].elements
+  val toList: SDKValue =
+    SDKValue.SDKNativeFunction.fun1 { (arg: Result) =>
+      val set = arg.asInstanceOf[Result.SetResult].elements
       Result.ListResult(set.to(List))
     }
-  val member: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2 { (l: Result[Unit, Type.UType], r: Result[Unit, Type.UType]) =>
-      val setR = r.asInstanceOf[Result.SetResult[Unit, Type.UType]].elements
+  val member: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (l: Result, r: Result) =>
+      val setR = r.asInstanceOf[Result.SetResult].elements
       Result.Primitive.Boolean(setR.contains(l))
     }
-  val size: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
-      Result.Primitive.Int(arg.asInstanceOf[Result.SetResult[Unit, Type.UType]].elements.size)
+  val size: SDKValue =
+    SDKValue.SDKNativeFunction.fun1 { (arg: Result) =>
+      Result.Primitive.Int(arg.asInstanceOf[Result.SetResult].elements.size)
     }
-  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+  val sdk: Map[FQName, SDKValue] = Map(
     FQName.fromString("Morphir.SDK:Set:fromList") -> fromList,
     FQName.fromString("Morphir.SDK:Set:toList")   -> toList,
     FQName.fromString("Morphir.SDK:Set:member")   -> member,
@@ -250,51 +249,50 @@ object SetSDK {
 }
 
 object BasicsSDK {
-  val append: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2(
-    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
-      (a, b) match {
-        case (Result.ListResult(aElements), Result.ListResult(bElements)) =>
-          Result.ListResult(aElements.appendedAll(bElements))
-        case (Result.Primitive.String(a), Result.Primitive.String(b)) => Result.Primitive.String(a + b)
-        case (other1, other2) => throw new UnsupportedType(s"Append called on unrecognized types: $other1, $other2")
-      }
+  val append: SDKValue = SDKValue.SDKNativeFunction.fun2((a: Result, b: Result) =>
+    (a, b) match {
+      case (Result.ListResult(aElements), Result.ListResult(bElements)) =>
+        Result.ListResult(aElements.appendedAll(bElements))
+      case (Result.Primitive.String(a), Result.Primitive.String(b)) => Result.Primitive.String(a + b)
+      case (other1, other2) => throw new UnsupportedType(s"Append called on unrecognized types: $other1, $other2")
+    }
   )
-  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+  val sdk: Map[FQName, SDKValue] = Map(
     FQName.fromString("Morphir.SDK:Basics:append") -> append
   )
 }
 
 object StringSDK {
-  val length: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun1((arg: Result[Unit, Type.UType]) =>
+  val length: SDKValue =
+    SDKValue.SDKNativeFunction.fun1((arg: Result) =>
       Result.Primitive.Int(arg.unwrapString.length)
     )
-  val append: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2((a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val append: SDKValue =
+    SDKValue.SDKNativeFunction.fun2((a: Result, b: Result) =>
       Result.Primitive.String(a.unwrapString + b.unwrapString)
     )
-  val left: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val left: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result, b: Result) =>
       Result.Primitive.String(
         b.unwrapString.dropRight(b.unwrapString.length - a.unwrapInt)
       )
     }
-  val right: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2((a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val right: SDKValue =
+    SDKValue.SDKNativeFunction.fun2((a: Result, b: Result) =>
       Result.Primitive.String(b.unwrapString.takeRight(a.unwrapInt))
     )
-  val fromInt: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1((a: Result[Unit, Type.UType]) =>
+  val fromInt: SDKValue = SDKValue.SDKNativeFunction.fun1((a: Result) =>
     Result.Primitive.String(a.unwrapInt.toString)
   )
-  val fromFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1((a: Result[Unit, Type.UType]) =>
+  val fromFloat: SDKValue = SDKValue.SDKNativeFunction.fun1((a: Result) =>
     Result.Primitive.String(a.unwrapFloat.toString)
   )
-  val toInt: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (a: Result[Unit, Type.UType]) =>
+  val toInt: SDKValue = SDKValue.SDKNativeFunction.fun1 { (a: Result) =>
     val optional = a.unwrapString.toIntOption
     optional match {
       case Some(value) => Result.ConstructorResult(
           FQName.fromString("Morphir.SDK:Maybe:just"),
-          List(Result.Primitive.Int[Unit, Type.UType](value))
+          List(Result.Primitive.Int(value))
         )
       case None => Result.ConstructorResult(
           FQName.fromString("Morphir.SDK:Maybe:nothing"),
@@ -302,10 +300,10 @@ object StringSDK {
         )
     }
   }
-  val isEmpty: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1((a: Result[Unit, Type.UType]) =>
+  val isEmpty: SDKValue = SDKValue.SDKNativeFunction.fun1((a: Result) =>
     Result.Primitive.Boolean(a.unwrapString.length == 0)
   )
-  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+  val sdk: Map[FQName, SDKValue] = Map(
     FQName.fromString("Morphir.SDK:String:append")    -> append,
     FQName.fromString("Morphir.SDK:String:length")    -> length,
     FQName.fromString("Morphir.SDK:String:left")      -> left,
@@ -318,16 +316,16 @@ object StringSDK {
 }
 
 object DecimalSDK {
-  val fromFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+  val fromFloat: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: Result) =>
     Result.Primitive.BigDecimal(BigDecimal.valueOf(arg.unwrapFloat))
   }
-  val toFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+  val toFloat: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: Result) =>
     Result.Primitive.Float(arg.unwrapDecimal.toDouble)
   }
-  val asString: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+  val asString: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: Result) =>
     Result.Primitive.String(arg.unwrapDecimal.toString)
   }
-  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+  val sdk: Map[FQName, SDKValue] = Map(
     FQName.fromString("Morphir.SDK:Decimal:fromFloat") -> fromFloat,
     FQName.fromString("Morphir.SDK:Decimal:toFloat")   -> toFloat,
     FQName.fromString("Morphir.SDK:Decimal:toString")  -> asString
@@ -335,17 +333,17 @@ object DecimalSDK {
 }
 
 object TupleSDK {
-  val first: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+  val first: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: Result) =>
     arg.unwrapTuple.toList.head
   }
-  val second: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 { (arg: Result[Unit, Type.UType]) =>
+  val second: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: Result) =>
     val length = arg.unwrapTuple.toList.length
     if (length < 2) {
       throw new IllegalValue(s"Tuple with length `$length` has too few elements")
     }
     arg.unwrapTuple.toList(1)
   }
-  val sdk: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+  val sdk: Map[FQName, SDKValue] = Map(
     FQName.fromString("Morphir.SDK:Tuple:first")  -> first,
     FQName.fromString("Morphir.SDK:Tuple:second") -> second
   )
@@ -353,46 +351,46 @@ object TupleSDK {
 
 object Native {
   private def handleSameNumerics(
-      a: Result[Unit, Type.UType],
-      b: Result[Unit, Type.UType]
-  )(f: (Any, Any, scala.Numeric[Any]) => Any): Result.Primitive[Unit, Type.UType, _] = {
-    val components = Result.unwrapNumericsWithHelper[Unit, Type.UType, Any](a, b)
-    Result.Primitive.makeOrFail[Unit, Type.UType, Any](f(components.a, components.b, components.helper))
+      a: Result,
+      b: Result
+  )(f: (Any, Any, scala.Numeric[Any]) => Any): Result.Primitive[_] = {
+    val components = Result.unwrapNumericsWithHelper[Any](a, b)
+    Result.Primitive.makeOrFail[Any](f(components.a, components.b, components.helper))
   }
 
   private def handleBooleans(
-      a: Result[Unit, Type.UType],
-      b: Result[Unit, Type.UType]
+      a: Result,
+      b: Result
   )(f: (Boolean, Boolean) => Boolean) = {
     val aBool = Result.unwrapBoolean(a)
     val bBool = Result.unwrapBoolean(b)
-    Result.Primitive.Boolean[Unit, Type.UType](f(aBool, bBool))
+    Result.Primitive.Boolean(f(aBool, bBool))
   }
 
-  val and: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val and: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result, b: Result) =>
       handleBooleans(a, b)(_ && _)
     }
-  val or: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val or: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result, b: Result) =>
       handleBooleans(a, b)(_ || _)
     }
-  val not: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1((a: Result[Unit, Type.UType]) =>
+  val not: SDKValue = SDKValue.SDKNativeFunction.fun1((a: Result) =>
     Result.Primitive.Boolean(!a.unwrapBoolean)
   )
-  val plus: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val plus: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result, b: Result) =>
       handleSameNumerics(a, b) { (aNum, bNum, helper) => helper.plus(aNum, bNum) }
     }
-  val subtract: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val subtract: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result, b: Result) =>
       handleSameNumerics(a, b) { (aNum, bNum, helper) => helper.minus(aNum, bNum) }
     }
-  val divide: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val divide: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result, b: Result) =>
       handleSameNumerics(a, b) { (aNum, bNum, helper) =>
         // scala.Numeric does not handle division, it's part of scala.Fractional or scala.Integral, need to get the right one
-        val components        = Result.unwrapNumericsWithHelper[Unit, Type.UType, Any](a, b)
+        val components        = Result.unwrapNumericsWithHelper[Any](a, b)
         val divideIntegers    = components.integralHelper.map(helper => helper.quot(components.a, components.b))
         val divideFractionals = components.fractionalHelper.map(helper => helper.div(components.a, components.b))
         divideIntegers
@@ -404,29 +402,29 @@ object Native {
           }
       }
     }
-  val multiply: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val multiply: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result, b: Result) =>
       handleSameNumerics(a, b) { (aNum, bNum, helper) => helper.times(aNum, bNum) }
     }
-  val negate: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (a: Result[Unit, Type.UType]) =>
-      val components = Result.unwrapNumericWithHelper[Unit, Type.UType, Any](a)
+  val negate: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (a: Result) =>
+      val components = Result.unwrapNumericWithHelper[Any](a)
       Result.Primitive.makeOrFail(components.helper.negate(components.value))
   }
 
-  val toFloat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (a: Result[Unit, Type.UType]) =>
-      def wrap(num: Double) = Result.Primitive.Float[Unit, Type.UType](num)
+  val toFloat: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (a: Result) =>
+      def wrap(num: Double) = Result.Primitive.Float(num)
       a.unwrapNumeric match {
         // if it's already a float, don't need to re-wrap it
-        case float: Primitive.Float[_, _] => float
-        case Primitive.Int(value)         => wrap(value.toDouble)
-        case Primitive.Long(value)        => wrap(value.toDouble)
-        case Primitive.BigDecimal(value)  => wrap(value.toDouble)
+        case float: Primitive.Float      => float
+        case Primitive.Int(value)        => wrap(value.toDouble)
+        case Primitive.Long(value)       => wrap(value.toDouble)
+        case Primitive.BigDecimal(value) => wrap(value.toDouble)
       }
   }
-  val log: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
-    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val log: SDKValue = SDKValue.SDKNativeFunction.fun2 {
+    (a: Result, b: Result) =>
       val denominator = Math.log(a.unwrapDouble)
       val asDouble =
         if (denominator == 0)
@@ -436,58 +434,58 @@ object Native {
       Result.Primitive.Float(asDouble)
   }
 
-  val lessThan: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val lessThan: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result, b: Result) =>
       handleSameNumerics(a, b) { (a, b, helper) => helper.lt(a, b) }
     }
 
-  val lessThanOrEqual: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val lessThanOrEqual: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result, b: Result) =>
       handleSameNumerics(a, b) { (a, b, helper) => helper.lteq(a, b) }
     }
 
-  val greaterThan: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val greaterThan: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result, b: Result) =>
       handleSameNumerics(a, b) { (a, b, helper) => helper.gt(a, b) }
     }
 
-  val greaterThanOrEqual: SDKValue[Unit, Type.UType] =
-    SDKValue.SDKNativeFunction.fun2 { (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val greaterThanOrEqual: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (a: Result, b: Result) =>
       handleSameNumerics(a, b) { (a, b, helper) => helper.gteq(a, b) }
     }
 
-  val equal: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun2 {
-    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType]) =>
+  val equal: SDKValue = SDKValue.SDKNativeFunction.fun2 {
+    (a: Result, b: Result) =>
       Result.Primitive.Boolean(a == b)
   }
 
-  val concat: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (l: Result[Unit, Type.UType]) =>
-      val list      = l.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements
-      val flattened = list.flatMap(inner => inner.asInstanceOf[Result.ListResult[Unit, Type.UType]].elements)
+  val concat: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (l: Result) =>
+      val list      = l.asInstanceOf[Result.ListResult].elements
+      val flattened = list.flatMap(inner => inner.asInstanceOf[Result.ListResult].elements)
       Result.ListResult(flattened)
   }
 
-  val singleton: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (l: Result[Unit, Type.UType]) =>
+  val singleton: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (l: Result) =>
       Result.ListResult(List(l))
   }
 
-  val isEmpty: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (l: Result[Unit, Type.UType]) =>
+  val isEmpty: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (l: Result) =>
       val list = l.unwrapList
       Result.Primitive.Boolean(list.length == 0)
   }
 
-  val length: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (l: Result[Unit, Type.UType]) =>
+  val length: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (l: Result) =>
       val list = l.unwrapList
       Result.Primitive.Int(list.length)
   }
 
-  val filter: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+  val filter: SDKValue = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
-      (evaluator: Loop[Unit, Type.UType]) => (f: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
+      (evaluator: Loop) => (f: Result, l: Result) =>
         val list = l.unwrapList
         val out =
           list.filter(elem =>
@@ -497,9 +495,9 @@ object Native {
     }
   }
 
-  val map: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeInnerFunction {
+  val map: SDKValue = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
-      (evaluator: Loop[Unit, Type.UType]) => (f: Result[Unit, Type.UType], l: Result[Unit, Type.UType]) =>
+      (evaluator: Loop) => (f: Result, l: Result) =>
         val list = l.unwrapList
         val out =
           list.map(elem =>
@@ -509,8 +507,8 @@ object Native {
     }
   }
 
-  val fromParts: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun3 {
-    (a: Result[Unit, Type.UType], b: Result[Unit, Type.UType], c: Result[Unit, Type.UType]) =>
+  val fromParts: SDKValue = SDKValue.SDKNativeFunction.fun3 {
+    (a: Result, b: Result, c: Result) =>
       Result.LocalDate(java.time.LocalDate.of(a.unwrapInt, b.unwrapInt, c.unwrapInt))
   }
 
@@ -522,28 +520,28 @@ object Native {
   def fromMillisecondsNanos(millis: Long): java.time.LocalTime =
     java.time.LocalTime.of(0, 0).plusNanos(millis * 1000000)
 
-  val fromMilliseconds: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeFunction.fun1 {
-    (a: Result[Unit, Type.UType]) =>
+  val fromMilliseconds: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (a: Result) =>
       val millis = a.unwrapLong
       val time   = fromMillisecondsEpoch(millis)
       Result.LocalTime(time)
   }
 
-  val pi: SDKValue[Unit, Type.UType] = SDKValue.SDKNativeValue(Result.Primitive.Float(3.toDouble))
+  val pi: SDKValue = SDKValue.SDKNativeValue(Result.Primitive.Float(3.toDouble))
 
-  val just: SDKConstructor[Unit, Type.UType]    = SDKConstructor(List(Type.variable("contents")))
-  val nothing: SDKConstructor[Unit, Type.UType] = SDKConstructor(List())
-  val ok: SDKConstructor[Unit, Type.UType]      = SDKConstructor(List(Type.variable("contents")))
-  val err: SDKConstructor[Unit, Type.UType]     = SDKConstructor(List(Type.variable("contents")))
+  val just: SDKConstructor    = SDKConstructor(List(Type.variable("contents")))
+  val nothing: SDKConstructor = SDKConstructor(List())
+  val ok: SDKConstructor      = SDKConstructor(List(Type.variable("contents")))
+  val err: SDKConstructor     = SDKConstructor(List(Type.variable("contents")))
 
-  val nativeCtors: Map[FQName, SDKConstructor[Unit, Type.UType]] = Map(
+  val nativeCtors: Map[FQName, SDKConstructor] = Map(
     FQName.fromString("Morphir.SDK:Maybe:just")    -> just,
     FQName.fromString("Morphir.SDK:Maybe:nothing") -> nothing,
     FQName.fromString("Morphir.SDK:Result:ok")     -> ok,
     FQName.fromString("Morphir.SDK:Result:err")    -> err
   )
 
-  val native: Map[FQName, SDKValue[Unit, Type.UType]] = Map(
+  val native: Map[FQName, SDKValue] = Map(
     FQName.fromString("Morphir.SDK:Basics:equal")               -> equal,
     FQName.fromString("Morphir.SDK:Basics:and")                 -> and,
     FQName.fromString("Morphir.SDK:Basics:or")                  -> or,
