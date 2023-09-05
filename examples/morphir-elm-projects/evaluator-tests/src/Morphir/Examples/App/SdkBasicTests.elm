@@ -110,17 +110,6 @@ sdkSubtractFloatTest _ =
         f 4.0 2.0
 
 {-
-  Test: SdkBasics/multiplyFloat
-  Expected = 6.0
--}
-sdkMultiplyFloatTest: () -> Float
-sdkMultiplyFloatTest _ =
-    let
-        f x y = x * y
-    in
-        f 2.0 3.0
-
-{-
   Test: SdkBasics/divide
   Expected = 2.0
 -}
@@ -130,6 +119,28 @@ sdkDivideTest _ =
         f x y = x / y
     in
         f 20.0 10.0
+
+{-
+  Test: SdkBasics/divide - Int
+  Expected = 20
+-}
+sdkMultiplyIntTest: () -> Int
+sdkMultiplyIntTest _ =
+    let
+        f x y = x * y
+    in
+        f 2 10
+
+{-
+  Test: SdkBasics/multiplyFloat
+  Expected = 6.0
+-}
+sdkMultiplyFloatTest: () -> Float
+sdkMultiplyFloatTest _ =
+    let
+        f x y = x * y
+    in
+        f 2.0 10.0
 
 {-
   Test: SdkBasics/divideByZero
@@ -194,7 +205,7 @@ sdkRoundTest _ =
     let
         f x = round x
     in
-        f 4.25
+        f 123.456
 
 {-
   Test: SdkBasics/round2
@@ -205,7 +216,7 @@ sdkRoundTest2 _ =
     let
         f x = round x
     in
-        f 4
+        f 123
 
 {-
   Test: SdkBasics/floor

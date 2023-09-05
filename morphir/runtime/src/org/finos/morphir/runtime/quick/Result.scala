@@ -89,10 +89,10 @@ object Result {
     arg match {
       case Primitive.Int(v) => v
       case Primitive.Long(v) =>
-        if (v > Integer.MAX_VALUE)
-          throw new UnexpectedType(s"Cannot unwrap ${arg} into an integer because it's value is too large")
-        else
+        if (v.isValidInt)
           v.toInt
+        else
+          throw new UnexpectedType(s"Cannot unwrap ${arg} into an integer because it's value is too large or too small")
       case _: Primitive[_] =>
         throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a Int value because it was not a Primitive.Int"
