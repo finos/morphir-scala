@@ -14,15 +14,7 @@
     <img src="https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod" />
 </a>
 
-<a href="https://javadoc.io/doc/org.finos.morphir/morphir-runtime_3/latest/index.html">
-    <img src="https://img.shields.io/badge/Scaladoc-latest-blue" />
-</a>
-<a href="https://index.scala-lang.org/finos/morphir-scala">
-    <img src="https://img.shields.io/maven-central/v/org.finos.morphir/morphir-runtime_3?style=flat-square&color=blue" />
-</a>
-<a href="https://index.scala-lang.org/finos/morphir-scala">
-    <img src="https://img.shields.io/nexus/s/org.finos.morphir/morphir-runtime_3?server=https%3A%2F%2Foss.sonatype.org%2F&label=nexus-snapshots" />
-</a>
+[![Scaladoc](https://img.shields.io/badge/Scaladoc-latest-blue)](https://javadoc.io/doc/org.finos.morphir/morphir-runtime_3/latest/index.html) [![Scaladex](https://img.shields.io/maven-central/v/org.finos.morphir/morphir-runtime_3?style=flat-square&label=Scaladex)]("https://index.scala-lang.org/finos/morphir-scala") [![Sonatype Releases](https://img.shields.io/nexus/r/https/oss.sonatype.org/org.finos.morphir/morphir_3.svg?label=Sonatype%20Release)](https://oss.sonatype.org/content/repositories/releases/org/finos/morphir/morphir_3/) [![Sonatype Snapshots](https://img.shields.io/nexus/s/https/oss.sonatype.org/org.finos.morphir/morphir_3.svg?label=Sonatype%20Snapshot)](https://oss.sonatype.org/content/repositories/snapshots/org/finos/morphir/morphir_3/)
 
 
 Morphir is a library of tools that works to capture business logic as data.
