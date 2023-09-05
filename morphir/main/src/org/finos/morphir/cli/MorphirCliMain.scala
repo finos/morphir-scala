@@ -3,6 +3,7 @@ package org.finos.morphir.cli
 import java.nio.file.*
 
 import org.finos.morphir.service.*
+import org.finos.morphir.runtime.service.*
 import org.finos.morphir.util.vfile.*
 import zio.{BuildInfo => _, _}
 import zio.cli.*
@@ -13,10 +14,11 @@ object MorphirCliMain extends ZIOCliDefault {
     version = BuildInfo.version,
     summary = text("Morphir CLI"),
     command = commands.Morphir.root
-  )(executeCommand(_).provide(MorphirSetup.live, MorphirElmDriver.live))
+  )(executeCommand(_).provide(MorphirSetup.live, MorphirElmDriver.live, MorphirRuntimeDriver.live))
 
   private def executeCommand(command: MorphirCommand) = command match {
     case MorphirCommand.Setup(morphirHomeDir) => MorphirSetup.setup(morphirHomeDir)
+    case MorphirCommand.Test(irFiles)         => MorphirRuntimeDriver.test()
     case MorphirCommand.ElmInit(morphirHomeDir, projectDir) =>
       MorphirElmDriver.init(VFilePath.fromJava(morphirHomeDir), VFilePath.fromJava(projectDir))
     case MorphirCommand.ElmMake(projectDir, output, fallbackCli) =>
@@ -58,7 +60,9 @@ object MorphirCliMain extends ZIOCliDefault {
         }
       }
 
-      val root = Command("elm").withHelp("Elm specific commands for morphir-cli.").subcommands(init, make, restore)
+      val root =
+        Command("elm").withHelp("Elm specific commands for morphir-cli.").subcommands(init, make, restore)
+
     }
 
     object Morphir {
@@ -67,7 +71,15 @@ object MorphirCliMain extends ZIOCliDefault {
         val morphirHomeDir = Paths.get("~")
         MorphirCommand.Setup(morphirHomeDir)
       }
-      val root = Command("morphir-cli").subcommands(setup, Elm.root)
+
+      def root = Command("morphir-cli").subcommands(Elm.root, setup, test)
+
+      val test = {
+        val irFiles = Args.file("ir-files").repeat
+        Command("test", irFiles).withHelp("Test Morphir models using the Morphir Runtime.").map { irFiles =>
+          MorphirCommand.Test(irFiles)
+        }
+      }
     }
   }
 }
