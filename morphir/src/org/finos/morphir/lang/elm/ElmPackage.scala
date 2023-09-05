@@ -4,74 +4,43 @@ import semver.Version
 import zio.Chunk
 import zio.prelude._
 
-final case class ElmPackage(name: ElmPackageName)
+final case class ElmPackage(
+    name: ElmPackageName,
+    summary: String,
+    license: String,
+    version: Version,
+    exposedModules: Exposed,
+    elmVersion: Range,
+    dependencies: Map[ElmPackageName, Range],
+    testDependencies: Map[ElmPackageName, Range]
+)
 
-object ElmPackage {}
-
-final case class ElmPackageName(author: String, project: String) { self =>
-  override def toString(): String = s"$author/$project"
+object ElmPackage {
+  def apply(name: ElmPackageName, summary: String, license: String): ElmPackage = {
+    val dependencies = Map[ElmPackageName, Range]()
+    ElmPackage(
+      name = name,
+      summary = summary,
+      license = license,
+      version = Version(1, 0, 0),
+      exposedModules = Exposed.Plain.empty,
+      elmVersion = Range(Version(0, 19, 0), Version(0, 20, 0), false),
+      dependencies = dependencies,
+      testDependencies = Map.empty
+    )
+  }
 }
 
-object ElmPackageName {
+final case class Range(lower: Version, upper: Version, upperInclusive: Boolean) { self => }
 
-  def fromString(input: String): Validation[String, ElmPackageName] = {
-    val parts = input.split("/")
-    if (parts.length != 2) {
-      Validation.fail(s"Invalid package name: $input, a valid package name looks like \"author/project\".")
-    } else {
-      val author  = parts(0)
-      val project = parts(1)
-      Validation.validateWith(validateAuthor(author), validateProject(project)) { case (author, project) =>
-        ElmPackageName(author, project)
-      }
-    }
+sealed trait Exposed extends Product with Serializable
+object Exposed {
+  final case class Plain(items: List[String]) extends Exposed
+  object Plain {
+    val empty: Plain = Plain(List.empty)
   }
-
-  def validateAuthor(author: String): Validation[String, String] = {
-    def validate(f: String => Boolean)(message: String): Validation[String, String] =
-      Validation.fromPredicateWith(message)(author)(f)
-
-    validateAll(
-      validate(_.nonEmpty)("""Author name may not be empty. A valid package name looks like "author/project"!"""),
-      validate(!_.startsWith("-"))(
-        "Author name may not start with a dash. Please use your github username or organization!"
-      ),
-      validate(!_.endsWith("-"))(
-        "Author name may not end with a dash. Please use your github username or organization!"
-      ),
-      validate(!_.contains("--"))(
-        "Author name may not contain a double dash. Please use your github username or organization!"
-      ),
-      validate(_.size <= 39)(
-        "Author name may not be over 39 characters long. Please use your github username or organization!"
-      ),
-      validate(_.forall(c => c.isLetterOrDigit || c == '-'))(
-        "Author name may only contain ascii alphanumeric characters (or dashes)."
-      )
-    )
+  final case class Structured(items: Map[String, List[String]]) extends Exposed
+  object Structured {
+    val empty: Structured = Structured(Map.empty)
   }
-
-  def validateProject(project: String): Validation[String, String] = {
-    def validate(f: String => Boolean)(message: String): Validation[String, String] =
-      Validation.fromPredicateWith(message)(project)(f)
-
-    validateAll(
-      validate(_.nonEmpty)("""Project name may not be empty. A valid package name looks like "author/project"!"""),
-      validate(!_.contains("--"))("Project name may not contain a double dash."),
-      validate(!_.endsWith("-"))("Project name may not end with a dash."),
-      validate(_.forall(c => c.isLetterOrDigit || c == '-'))(
-        "Project name may only contain lowercase letters, digits, and dashes."
-      ),
-      validate(_.headOption.map(c => !(c.isLetter && c.isLower)).getOrElse(false))(
-        "Project name must start with a letter."
-      )
-    )
-  }
-
-  private def validateAll(
-      first: Validation[String, String],
-      rest: Validation[String, String]*
-  ): Validation[String, String] =
-    rest.foldLeft(first) { case (acc, validation) => acc <& validation }
-
 }
