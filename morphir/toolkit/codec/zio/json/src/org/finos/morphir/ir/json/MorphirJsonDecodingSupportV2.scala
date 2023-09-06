@@ -74,12 +74,14 @@ trait MorphirJsonDecodingSupportV2 {
     }
 
   implicit def literalDecoder: JsonDecoder[Literal] =
-    literalBoolDecoder.widen[Literal] orElse
-      literalCharDecoder.widen[Literal] orElse
-      literalDecimalDecoder.widen[Literal] orElse
-      literalFloatDecoder.widen[Literal] orElse
-      literalStringDecoder.widen[Literal] orElse
-      literalWholeNumberDecoder.widen[Literal]
+    zio.json.TagBasedParser[Literal] {
+      case "BoolLiteral"        => literalBoolDecoder.widen[Literal]
+      case "CharLiteral"        => literalCharDecoder.widen[Literal]
+      case "DecimalLiteral"     => literalDecimalDecoder.widen[Literal]
+      case "FloatLiteral"       => literalFloatDecoder.widen[Literal]
+      case "StringLiteral"      => literalStringDecoder.widen[Literal]
+      case "WholeNumberLiteral" => literalWholeNumberDecoder.widen[Literal]
+    }
 
   implicit def fieldDecoder[A: JsonDecoder]: JsonDecoder[Field[A]] = {
     final case class FieldLike(name: Name, tpe: A)
@@ -173,15 +175,16 @@ trait MorphirJsonDecodingSupportV2 {
         )
     }
 
-  @nowarn("msg=Implicit resolves to enclosing method typeDecoder")
   implicit def typeDecoder[A: JsonDecoder]: JsonDecoder[Type[A]] =
-    unitCaseTypeDecoder[A].widen[Type[A]] orElse
-      variableCaseTypeDecoder[A].widen[Type[A]] orElse
-      tupleCaseTypeDecoder[A].widen[Type[A]] orElse
-      recordCaseTypeDecoder[A].widen[Type[A]] orElse
-      extensibleRecordCaseTypeDecoder[A].widen[Type[A]] orElse
-      functionCaseTypeDecoder[A].widen[Type[A]] orElse
-      referenceCaseTypeDecoder[A].widen[Type[A]]
+    zio.json.TagBasedParser[Type[A]] {
+      case "ExtensibleRecord" => extensibleRecordCaseTypeDecoder[A].widen
+      case "Function"         => functionCaseTypeDecoder[A].widen
+      case "Record"           => recordCaseTypeDecoder[A].widen
+      case "Reference"        => referenceCaseTypeDecoder[A].widen
+      case "Tuple"            => tupleCaseTypeDecoder[A].widen
+      case "Unit"             => unitCaseTypeDecoder[A].widen
+      case "Variable"         => variableCaseTypeDecoder[A].widen
+    }
 
   implicit def constructorDecoder[A: JsonDecoder]: JsonDecoder[Constructors[A]] =
     JsonDecoder.list[(Name, Chunk[(Name, Type[A])])].map {
@@ -206,8 +209,10 @@ trait MorphirJsonDecodingSupportV2 {
     }
 
   implicit def typeDefinitionDecoder[A: JsonDecoder]: JsonDecoder[TypeDefinition[A]] =
-    typeDefinitionTypeAliasDecoder[A].widen[TypeDefinition[A]] orElse
-      typeDefinitionCustomTypeDecoder[A].widen[TypeDefinition[A]]
+    zio.json.TagBasedParser[TypeDefinition[A]] {
+      case "CustomTypeDefinition" => typeDefinitionCustomTypeDecoder[A].widen
+      case "TypeAliasDefinition"  => typeDefinitionTypeAliasDecoder[A].widen
+    }
 
   implicit def typeSpecificationTypeAliasDecoder[A: JsonDecoder]
       : JsonDecoder[TypeSpecification.TypeAliasSpecification[A]] =
@@ -236,9 +241,11 @@ trait MorphirJsonDecodingSupportV2 {
     }
 
   implicit def typeSpecificationDecoder[A: JsonDecoder]: JsonDecoder[TypeSpecification[A]] =
-    typeSpecificationTypeAliasDecoder[A].widen[TypeSpecification[A]] orElse
-      typeSpecificationCustomTypeDecoder[A].widen[TypeSpecification[A]] orElse
-      typeSpecificationOpaqueTypeDecoder.widen[TypeSpecification[A]]
+    zio.json.TagBasedParser[TypeSpecification[A]] {
+      case "CustomTypeSpecification" => typeSpecificationCustomTypeDecoder[A].widen
+      case "OpaqueTypeSpecification" => typeSpecificationOpaqueTypeDecoder.widen
+      case "TypeAliasSpecification"  => typeSpecificationTypeAliasDecoder[A].widen
+    }
 
   implicit def valueDefinitionDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[ValueDefinition[TA, VA]] = {
     lazy val dec: JsonDecoder[ValueDefinition[TA, VA]] = DeriveJsonDecoder.gen
@@ -324,14 +331,16 @@ trait MorphirJsonDecodingSupportV2 {
     }
 
   implicit def patternDecoder[A: JsonDecoder]: JsonDecoder[Pattern[A]] =
-    patternEmptyListPatternDecoder[A].widen[Pattern[A]] orElse
-      patternWildcardPatternDecoder[A].widen[Pattern[A]] orElse
-      patternUnitPatternDecoder[A].widen[Pattern[A]] orElse
-      patternLiteralPatternDecoder[A].widen[Pattern[A]] orElse
-      patternTuplePatternDecoder[A].widen[Pattern[A]] orElse
-      patternHeadTailPatternDecoder[A].widen[Pattern[A]] orElse
-      patternConstructorPatternDecoder[A].widen[Pattern[A]] orElse
-      patternAsPatternDecoder[A].widen[Pattern[A]]
+    zio.json.TagBasedParser[Pattern[A]] {
+      case "as_pattern"          => patternAsPatternDecoder[A].widen
+      case "constructor_pattern" => patternConstructorPatternDecoder[A].widen
+      case "empty_list_pattern"  => patternEmptyListPatternDecoder[A].widen
+      case "head_tail_pattern"   => patternHeadTailPatternDecoder[A].widen
+      case "literal_pattern"     => patternLiteralPatternDecoder[A].widen
+      case "tuple_pattern"       => patternTuplePatternDecoder[A].widen
+      case "unit_pattern"        => patternUnitPatternDecoder[A].widen
+      case "wildcard_pattern"    => patternWildcardPatternDecoder[A].widen
+    }
 
   implicit def moduleSpecificationDecoder[TA](implicit
       @unused decoder: JsonDecoder[TA]
@@ -565,26 +574,27 @@ trait MorphirJsonDecodingSupportV2 {
         )
     }
 
-  @nowarn("msg=Implicit resolves to enclosing method valueDecoder")
   implicit def valueDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[Value[TA, VA]] =
-    constructorValueJsonDecoder[VA].widen[Value[TA, VA]] orElse
-      fieldFunctionValueJsonDecoder[VA].widen[Value[TA, VA]] orElse
-      literalValueJsonDecoder[VA].widen[Value[TA, VA]] orElse
-      referenceValueJsonDecoder[VA].widen[Value[TA, VA]] orElse
-      unitValueJsonDecoder[VA].widen[Value[TA, VA]] orElse
-      variableValueJsonDecoder[VA].widen[Value[TA, VA]] orElse
-      applyValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
-      destructureValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
-      fieldValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
-      ifThenElseValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
-      lambdaValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
-      letDefinitionValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
-      letRecursionValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
-      listValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
-      patternMatchValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
-      recordValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
-      tupleValueJsonDecoder[TA, VA].widen[Value[TA, VA]] orElse
-      updateRecordValueJsonDecoder[TA, VA].widen[Value[TA, VA]]
+    zio.json.TagBasedParser[Value[TA, VA]] {
+      case "constructor"    => constructorValueJsonDecoder[VA].widen
+      case "field_function" => fieldFunctionValueJsonDecoder[VA].widen
+      case "literal"        => literalValueJsonDecoder[VA].widen
+      case "reference"      => referenceValueJsonDecoder[VA].widen
+      case "unit"           => unitValueJsonDecoder[VA].widen
+      case "variable"       => variableValueJsonDecoder[VA].widen
+      case "apply"          => applyValueJsonDecoder[TA, VA].widen
+      case "destructure"    => destructureValueJsonDecoder[TA, VA].widen
+      case "field"          => fieldValueJsonDecoder[TA, VA].widen
+      case "if_then_else"   => ifThenElseValueJsonDecoder[TA, VA].widen
+      case "lambda"         => lambdaValueJsonDecoder[TA, VA].widen
+      case "let_definition" => letDefinitionValueJsonDecoder[TA, VA].widen
+      case "let_recursion"  => letRecursionValueJsonDecoder[TA, VA].widen
+      case "list"           => listValueJsonDecoder[TA, VA].widen
+      case "pattern_match"  => patternMatchValueJsonDecoder[TA, VA].widen
+      case "record"         => recordValueJsonDecoder[TA, VA].widen
+      case "tuple"          => tupleValueJsonDecoder[TA, VA].widen
+      case "update_record"  => updateRecordValueJsonDecoder[TA, VA].widen
+    }
 
   implicit def distributionLibraryJsonDecoder: JsonDecoder[Library] =
     JsonDecoder
