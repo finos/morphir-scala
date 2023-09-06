@@ -77,12 +77,14 @@ trait MorphirJsonDecodingSupportV1 {
     }
 
   implicit def literalDecoder: JsonDecoder[Literal] =
-    literalBoolDecoder.widen[Literal] orElse
-      literalCharDecoder.widen[Literal] orElse
-      literalDecimalDecoder.widen[Literal] orElse
-      literalFloatDecoder.widen[Literal] orElse
-      literalStringDecoder.widen[Literal] orElse
-      literalWholeNumberDecoder.widen[Literal]
+    zio.json.TagBasedParser[Literal] {
+      case "bool_literal"    => literalBoolDecoder.widen[Literal]
+      case "char_literal"    => literalCharDecoder.widen[Literal]
+      case "decimal_literal" => literalDecimalDecoder.widen[Literal]
+      case "float_literal"   => literalFloatDecoder.widen[Literal]
+      case "string_literal"  => literalStringDecoder.widen[Literal]
+      case "int_literal"     => literalWholeNumberDecoder.widen[Literal]
+    }
 
   implicit def fieldDecoder[A: JsonDecoder]: JsonDecoder[Field[A]] =
     JsonDecoder.tuple2[Name, A].map { case (name, fieldType) => Field(name, fieldType) }
@@ -203,8 +205,10 @@ trait MorphirJsonDecodingSupportV1 {
     }
 
   implicit def typeDefinitionDecoder[A: JsonDecoder]: JsonDecoder[TypeDefinition[A]] =
-    typeDefinitionTypeAliasDecoder[A].widen[TypeDefinition[A]] orElse
-      typeDefinitionCustomTypeDecoder[A].widen[TypeDefinition[A]]
+    zio.json.TagBasedParser[TypeDefinition[A]] {
+      case "custom_type_definition" => typeDefinitionCustomTypeDecoder[A].widen
+      case "type_alias_definition"  => typeDefinitionTypeAliasDecoder[A].widen
+    }
 
   implicit def typeSpecificationTypeAliasDecoder[A: JsonDecoder]
       : JsonDecoder[TypeSpecification.TypeAliasSpecification[A]] =
