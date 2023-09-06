@@ -169,15 +169,16 @@ trait MorphirJsonDecodingSupportV1 {
         )
     }
 
-  @nowarn("msg=Implicit resolves to enclosing method typeDecoder")
   implicit def typeDecoder[A: JsonDecoder]: JsonDecoder[Type[A]] =
-    unitCaseTypeDecoder[A].widen[Type[A]] orElse
-      variableCaseTypeDecoder[A].widen[Type[A]] orElse
-      tupleCaseTypeDecoder[A].widen[Type[A]] orElse
-      recordCaseTypeDecoder[A].widen[Type[A]] orElse
-      extensibleRecordCaseTypeDecoder[A].widen[Type[A]] orElse
-      functionCaseTypeDecoder[A].widen[Type[A]] orElse
-      referenceCaseTypeDecoder[A].widen[Type[A]]
+    zio.json.TagBasedParser[Type[A]] {
+      case "extensible_record" => extensibleRecordCaseTypeDecoder[A].widen
+      case "function"          => functionCaseTypeDecoder[A].widen
+      case "record"            => recordCaseTypeDecoder[A].widen
+      case "reference"         => referenceCaseTypeDecoder[A].widen
+      case "tuple"             => tupleCaseTypeDecoder[A].widen
+      case "unit"              => unitCaseTypeDecoder[A].widen
+      case "variable"          => variableCaseTypeDecoder[A].widen
+    }
 
   implicit def constructorDecoder[A: JsonDecoder]: JsonDecoder[Constructors[A]] =
     JsonDecoder.list[(Name, Chunk[(Name, Type[A])])].map {
@@ -232,9 +233,11 @@ trait MorphirJsonDecodingSupportV1 {
     }
 
   implicit def typeSpecificationDecoder[A: JsonDecoder]: JsonDecoder[TypeSpecification[A]] =
-    typeSpecificationTypeAliasDecoder[A].widen[TypeSpecification[A]] orElse
-      typeSpecificationCustomTypeDecoder[A].widen[TypeSpecification[A]] orElse
-      typeSpecificationOpaqueTypeDecoder.widen[TypeSpecification[A]]
+    zio.json.TagBasedParser[TypeSpecification[A]] {
+      case "custom_type_specification" => typeSpecificationCustomTypeDecoder[A].widen
+      case "opaque_type_specification" => typeSpecificationOpaqueTypeDecoder.widen
+      case "type_alias_specification"  => typeSpecificationTypeAliasDecoder[A].widen
+    }
 
   implicit def valueDefinitionDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[ValueDefinition[TA, VA]] = {
     lazy val dec: JsonDecoder[ValueDefinition[TA, VA]] = DeriveJsonDecoder.gen
