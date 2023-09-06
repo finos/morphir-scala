@@ -3,6 +3,7 @@ import zio._
 import java.nio.file.Path
 
 enum MorphirCommand {
+  case Develop(port: Int, host: String, projectDir: Path)
   case Setup(morphirHomeDir: Path)
   case Test(irFiles: List[Path])
   case ElmInit(morphirHomeDir: Path, projectDir: Path)

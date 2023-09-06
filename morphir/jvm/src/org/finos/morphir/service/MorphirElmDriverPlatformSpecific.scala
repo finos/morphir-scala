@@ -7,6 +7,14 @@ trait MorphirElmDriverPlatformSpecific {
   val live: ULayer[MorphirElmDriver] = ZLayer.succeed(MorphirElmDriverLive)
 
   object MorphirElmDriverLive extends MorphirElmDriver {
+    def develop(port: Int, host: String, projectDir: VFilePath): Task[Unit] = for {
+      _ <- Console.printLine("Elm develop command executed")
+      _ <- Console.printLine(s"\tport: $port")
+      _ <- Console.printLine(s"\thost: $host")
+      _ <- Console.printLine(s"\tprojectDir: $projectDir")
+      _ <- Console.printLine("Elm develop command executed")
+    } yield ()
+
     def init(morphirHomeDir: VFilePath, projectDir: VFilePath): Task[Unit] = for {
       _ <- Console.printLine("Elm init command executing")
       _ <- Console.printLine(s"\tmorphirHomeDir: $morphirHomeDir")

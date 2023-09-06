@@ -17,6 +17,8 @@ object MorphirCliMain extends ZIOCliDefault {
   )(executeCommand(_).provide(MorphirSetup.live, MorphirElmDriver.live, MorphirRuntimeDriver.live))
 
   private def executeCommand(command: MorphirCommand) = command match {
+    case MorphirCommand.Develop(port, host, projectDir) =>
+      MorphirElmDriver.develop(port, host, VFilePath.fromJava(projectDir))
     case MorphirCommand.Setup(morphirHomeDir) => MorphirSetup.setup(morphirHomeDir)
     case MorphirCommand.Test(irFiles)         => MorphirRuntimeDriver.test()
     case MorphirCommand.ElmInit(morphirHomeDir, projectDir) =>
@@ -67,12 +69,24 @@ object MorphirCliMain extends ZIOCliDefault {
 
     object Morphir {
 
+      val develop = {
+        val port       = Options.integer("port").alias("p").withDefault(BigInt(3000)).map(_.intValue)
+        val host       = Options.text("host").alias("h").withDefault("localhost")
+        val projectDir = Options.directory("project-dir").alias("i").withDefault(Paths.get("."))
+
+        Command("develop", port ++ host ++ projectDir).withHelp(
+          "Start up a web server and expose developer tools through a web UI."
+        ).map { case (port, host, projectDir) =>
+          MorphirCommand.Develop(port, host, projectDir)
+        }
+      }
+
       val setup = Command("setup").withHelp("Setup morphir-cli for use.").map { _ =>
         val morphirHomeDir = Paths.get("~")
         MorphirCommand.Setup(morphirHomeDir)
       }
 
-      def root = Command("morphir-cli").subcommands(Elm.root, setup, test)
+      def root = Command("morphir-cli").subcommands(develop, Elm.root, setup, test)
 
       val test = {
         val irFiles = Args.file("ir-files").repeat
