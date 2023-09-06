@@ -66,6 +66,7 @@ class PrintIR(
     fansi.Str.join(tokenized)
   }
 
+  //Can there be a "TreeifyWithDepth" option?
   def treeify(x: Any): Tree = this.treeify(x, escapeUnicode, showFieldNames)
 
   object MorphirValue {
