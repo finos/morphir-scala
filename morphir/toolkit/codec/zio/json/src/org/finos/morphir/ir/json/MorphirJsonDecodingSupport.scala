@@ -331,14 +331,16 @@ trait MorphirJsonDecodingSupport {
     }
 
   implicit def patternDecoder[A: JsonDecoder]: JsonDecoder[Pattern[A]] =
-    patternEmptyListPatternDecoder[A].widen[Pattern[A]] orElse
-      patternWildcardPatternDecoder[A].widen[Pattern[A]] orElse
-      patternUnitPatternDecoder[A].widen[Pattern[A]] orElse
-      patternLiteralPatternDecoder[A].widen[Pattern[A]] orElse
-      patternTuplePatternDecoder[A].widen[Pattern[A]] orElse
-      patternHeadTailPatternDecoder[A].widen[Pattern[A]] orElse
-      patternConstructorPatternDecoder[A].widen[Pattern[A]] orElse
-      patternAsPatternDecoder[A].widen[Pattern[A]]
+    zio.json.TagBasedParser[Pattern[A]] {
+      case "AsPattern"          => patternAsPatternDecoder[A].widen
+      case "ConstructorPattern" => patternConstructorPatternDecoder[A].widen
+      case "EmptyListPattern"   => patternEmptyListPatternDecoder[A].widen
+      case "HeadTailPattern"    => patternHeadTailPatternDecoder[A].widen
+      case "LiteralPattern"     => patternLiteralPatternDecoder[A].widen
+      case "TuplePattern"       => patternTuplePatternDecoder[A].widen
+      case "UnitPattern"        => patternUnitPatternDecoder[A].widen
+      case "WildcardPattern"    => patternWildcardPatternDecoder[A].widen
+    }
 
   implicit def moduleSpecificationDecoder[TA](implicit
       @unused decoder: JsonDecoder[TA]
