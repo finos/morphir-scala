@@ -8,7 +8,3 @@ object ElmProject {
 }
 
 final case class AppDependencies(direct: Map[String, Version], indirect: Map[String, Version])
-
-
-
-
