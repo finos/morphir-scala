@@ -1,18 +1,18 @@
 package org.finos.morphir.ir
 package json
 
-import org.finos.morphir.naming.*
-import zio.*
-import zio.json.*
+import zio._
+import zio.json._
 import zio.json.ast.Json
+import org.finos.morphir.naming._
 import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.ir.distribution.Distribution.*
+import org.finos.morphir.ir.distribution.Distribution._
 import org.finos.morphir.ir.Literal.Literal
-import org.finos.morphir.ir.Literal.Literal.*
+import org.finos.morphir.ir.Literal.Literal._
 import org.finos.morphir.ir.PackageModule.{
-  Definition as PackageDefinition,
-  Specification as PackageSpecification,
-  USpecification as UPackageSpecification
+  Definition => PackageDefinition,
+  Specification => PackageSpecification,
+  USpecification => UPackageSpecification
 }
 import org.finos.morphir.ir.Type.{Constructors, Type, Definition as TypeDefinition, Specification as TypeSpecification}
 import org.finos.morphir.ir.Value.{Definition as ValueDefinition, Specification as ValueSpecification}
@@ -21,9 +21,7 @@ import org.finos.morphir.ir.module.{Definition as ModuleDefinition, Specificatio
 import zio.json.JsonDecoder.{JsonError, UnsafeJson}
 import zio.json.internal.RetractReader
 
-import java.nio.CharBuffer
 import scala.annotation.{nowarn, unused}
-import scala.util.control.Breaks._
 
 trait MorphirJsonDecodingSupport {
   implicit val unitDecoder: JsonDecoder[Unit]               = Json.decoder.map(_ => ())
@@ -569,7 +567,6 @@ trait MorphirJsonDecodingSupport {
         )
     }
 
-  @nowarn("msg=Implicit resolves to enclosing method valueDecoder")
   implicit def valueDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[Value[TA, VA]] =
     zio.json.TagBasedParser[Value[TA, VA]] {
       case "Constructor"   => constructorValueJsonDecoder[VA].widen
