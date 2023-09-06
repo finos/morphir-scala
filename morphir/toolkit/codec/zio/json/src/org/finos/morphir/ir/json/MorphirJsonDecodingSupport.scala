@@ -14,12 +14,10 @@ import org.finos.morphir.ir.PackageModule.{
   Specification => PackageSpecification,
   USpecification => UPackageSpecification
 }
-import org.finos.morphir.ir.Type.{Constructors, Type, Definition as TypeDefinition, Specification as TypeSpecification}
-import org.finos.morphir.ir.Value.{Definition as ValueDefinition, Specification as ValueSpecification}
-import org.finos.morphir.ir.Value.{Value, *}
-import org.finos.morphir.ir.module.{Definition as ModuleDefinition, Specification as ModuleSpecification}
-import zio.json.JsonDecoder.{JsonError, UnsafeJson}
-import zio.json.internal.RetractReader
+import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, Type}
+import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
+import org.finos.morphir.ir.Value.{Value, _}
+import org.finos.morphir.ir.module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 
 import scala.annotation.{nowarn, unused}
 
@@ -242,9 +240,11 @@ trait MorphirJsonDecodingSupport {
     }
 
   implicit def typeSpecificationDecoder[A: JsonDecoder]: JsonDecoder[TypeSpecification[A]] =
-    typeSpecificationTypeAliasDecoder[A].widen[TypeSpecification[A]] orElse
-      typeSpecificationCustomTypeDecoder[A].widen[TypeSpecification[A]] orElse
-      typeSpecificationOpaqueTypeDecoder.widen[TypeSpecification[A]]
+    zio.json.TagBasedParser[TypeSpecification[A]] {
+      case "CustomTypeSpecification" => typeSpecificationCustomTypeDecoder[A].widen
+      case "OpaqueTypeSpecification" => typeSpecificationOpaqueTypeDecoder.widen
+      case "TypeAliasSpecification"  => typeSpecificationTypeAliasDecoder[A].widen
+    }
 
   implicit def valueDefinitionDecoder[TA: JsonDecoder, VA: JsonDecoder]: JsonDecoder[ValueDefinition[TA, VA]] = {
     lazy val dec: JsonDecoder[ValueDefinition[TA, VA]] = DeriveJsonDecoder.gen
