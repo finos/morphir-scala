@@ -1,12 +1,12 @@
 package org.finos.morphir.service
 
 import zio._
+import zio.process._
 
 trait ProcessIOPlatformSpecific {
   val live: ULayer[ProcessIO] = ZLayer.succeed(ProcessIOLive)
 
-  case object ProcessIOLive extends ProcessIO { self =>
-    def exec(command: String, args: String*): Task[ExitCode] =
-      ZIO.fail(new Exception(s"${self.getClass().getSimpleName()}::exec Not implemented"))
+  object ProcessIOLive extends ProcessIO {
+    def exec(command: String, args: String*): Task[ExitCode] = Command(command, args: _*).inheritIO.exitCode
   }
 }

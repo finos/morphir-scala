@@ -5,7 +5,7 @@ import zio._
 trait ProcessIOPlatformSpecific {
   val live: ULayer[ProcessIO] = ZLayer.succeed(ProcessIOLive)
 
-  case object ProcessIOLive extends ProcessIO { self =>
+  object ProcessIOLive extends ProcessIO { self =>
     def exec(command: String, args: String*): Task[ExitCode] =
       ZIO.fail(new Exception(s"${self.getClass().getSimpleName()}::exec Not implemented"))
   }

@@ -14,7 +14,11 @@ object MorphirCliMain extends ZIOCliDefault {
     version = BuildInfo.version,
     summary = text("Morphir CLI"),
     command = commands.Morphir.root
-  )(executeCommand(_).provide(MorphirSetup.live, MorphirElmDriver.live, MorphirRuntimeDriver.live))
+  )(executeCommand(_).provide(
+    MorphirSetup.live,
+    MorphirElmDriver.live,
+    MorphirRuntimeDriver.live
+  ))
 
   private def executeCommand(command: MorphirCommand) = command match {
     case MorphirCommand.Develop(port, host, projectDir) =>

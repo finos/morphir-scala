@@ -178,6 +178,8 @@ trait CommonScalaModule extends ScalaModule {
         filterScala3Options(commonCompilerOptions) ++ Seq(
           // TODO: Enable later
           // "-source:3.0-migration",
+          "-explain",
+          "-explain-types",
           "-Xignore-scala2-macros",
           "-Yretain-trees",
           "-Wvalue-discard"

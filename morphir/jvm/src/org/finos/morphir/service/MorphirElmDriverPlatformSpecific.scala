@@ -4,14 +4,36 @@ import org.finos.morphir.util.vfile._
 import zio._
 
 trait MorphirElmDriverPlatformSpecific {
-  val live: ULayer[MorphirElmDriver] = ZLayer.succeed(MorphirElmDriverLive)
+  // val live: ZLayer[ProcessIO, Nothing, MorphirElmDriver] = ZLayer {
+  //   for {
+  //     processIO <- ZIO.service[ProcessIO]
+  //   } yield MorphirElmDriverLive(processIO)
+  // }
 
-  object MorphirElmDriverLive extends MorphirElmDriver {
+  // HACK: Scala 3 blows up when I try and use the above code. I'm not sure why.
+  val live: ZLayer[Any, Nothing, MorphirElmDriver] = ProcessIO.live >>> ZLayer {
+    for {
+      processIO <- ZIO.service[ProcessIO]
+    } yield MorphirElmDriverLive(processIO)
+  }
+
+  sealed case class MorphirElmDriverLive(processIO: ProcessIO) extends MorphirElmDriver {
     def develop(port: Int, host: String, projectDir: VFilePath): Task[Unit] = for {
-      _ <- Console.printLine("Elm develop command executed")
-      _ <- Console.printLine(s"\tport: $port")
-      _ <- Console.printLine(s"\thost: $host")
-      _ <- Console.printLine(s"\tprojectDir: $projectDir")
+      _ <- Console.printLine("Elm develop command executing")
+      _ <- ZIO.logDebug(s"\tport: $port")
+      _ <- ZIO.logDebug(s"\thost: $host")
+      _ <- ZIO.logDebug(s"\tprojectDir: $projectDir")
+      exitCode <- processIO.exec(
+        "morphir-elm",
+        "develop",
+        "--port",
+        port.toString,
+        "--host",
+        host,
+        "--project-dir",
+        projectDir.toString
+      )
+      _ <- Console.printLine(s"\texitCode: $exitCode")
       _ <- Console.printLine("Elm develop command executed")
     } yield ()
 
