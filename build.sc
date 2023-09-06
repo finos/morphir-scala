@@ -173,6 +173,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       Deps.org.typelevel.`paiges-core`,
       Deps.org.typelevel.spire,
       Deps.dev.zio.zio,
+      Deps.dev.zio.`zio-json`,
       Deps.dev.zio.`zio-prelude`
     )
     def compileIvyDeps = super.compileIvyDeps() ++ (if (crossScalaVersion.startsWith("2."))
@@ -192,9 +193,18 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     def platformSpecificModuleDeps = Seq(extensibility)
   }
 
-  object jvm    extends Shared with MorphirJVMModule
-  object js     extends Shared with MorphirJSModule
-  object native extends Shared with MorphirNativeModule
+  object jvm extends Shared with MorphirJVMModule {
+    def ivyDeps = super.ivyDeps() ++ Agg(
+      Deps.dev.zio.`zio-nio`,
+      Deps.dev.zio.`zio-process`
+    )
+  }
+  object js extends Shared with MorphirJSModule
+  object native extends Shared with MorphirNativeModule {
+    def ivyDeps = super.ivyDeps() ++ Agg(
+      Deps.dev.zio.`zio-nio`
+    )
+  }
 
   object contrib extends Module {
     object knowledge extends CrossPlatform with CrossValue {
@@ -570,12 +580,19 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
             //   def moduleDeps = super.moduleDeps ++ Agg(testing.js, morphir.testing.zio.js)
             // }
           }
+
+          object native extends Shared with MorphirNativeModule {
+            // object test extends ScalaTests with TestModule.ZioTest {
+            //   def ivyDeps = super.ivyDeps() ++ Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
+            //   def moduleDeps = super.moduleDeps ++ Agg(testing.native, morphir.testing.zio.native)
+            // }
+          }
         }
       }
     }
 
     object core extends CrossPlatform with CrossValue {
-      def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
+      def enableNative(module: Module): Boolean = !devMode
 
       trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
         def ivyDeps = Agg(

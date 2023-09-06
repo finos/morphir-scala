@@ -85,6 +85,7 @@ object Deps {
       val `zio-json`: Dep      = ivy"dev.zio::zio-json::${Versions.`zio-json`}"
       val `zio-json-golden`    = ivy"dev.zio::zio-json-golden::${Versions.`zio-json`}"
       val `zio-parser`         = ivy"dev.zio::zio-parser::${Versions.`zio-parser`}"
+      val `zio-nio`            = ivy"dev.zio::zio-nio::${Versions.`zio-nio`}"
       val `zio-prelude`        = prelude()
       val `zio-prelude-macros` = prelude.macros
       val `zio-process`        = ivy"dev.zio::zio-process::${Versions.`zio-process`}"
@@ -203,7 +204,8 @@ object Versions {
   val zio                        = "2.0.16"
   val `zio-cli`                  = "0.5.0"
   val `zio-config`               = "4.0.0-RC16"
-  val `zio-json`                 = "0.6.1"
+  val `zio-json`                 = "0.6.2"
+  val `zio-nio`                  = "2.0.2"
   val `zio-parser`               = "0.1.9"
   val `zio-prelude`              = "1.0.0-RC20"
   val `zio-process`              = "0.7.2"
