@@ -71,6 +71,7 @@ object Deps {
       val `izumi-reflect`      = ivy"dev.zio::izumi-reflect::${Versions.`izumi-reflect`}"
       val zio: Dep             = ivy"dev.zio::zio::${Versions.zio}"
       val `zio-cli`            = ivy"dev.zio::zio-cli::${Versions.`zio-cli`}"
+      val `zio-config`         = config()
       val `zio-json`: Dep      = ivy"dev.zio::zio-json::${Versions.`zio-json`}"
       val `zio-json-golden`    = ivy"dev.zio::zio-json-golden::${Versions.`zio-json`}"
       val `zio-parser`         = ivy"dev.zio::zio-parser::${Versions.`zio-parser`}"
@@ -81,6 +82,13 @@ object Deps {
       val `zio-test`           = ivy"dev.zio::zio-test::${Versions.zio}"
       val `zio-test-magnolia`  = ivy"dev.zio::zio-test-magnolia::${Versions.zio}"
       val `zio-test-sbt`       = ivy"dev.zio::zio-test-sbt::${Versions.zio}"
+
+      object config {
+        def apply(): Dep = ivy"dev.zio::zio-config::${Versions.`zio-config`}"
+        val magnolia     = ivy"dev.zio::zio-config-magnolia::${Versions.`zio-config`}"
+        val refined      = ivy"dev.zio::zio-config-refined::${Versions.`zio-config`}"
+        val typesafe     = ivy"dev.zio::zio-config-typesafe::${Versions.`zio-config`}"
+      }
 
       case object prelude {
         def apply(): Dep = ivy"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
@@ -183,6 +191,7 @@ object Versions {
   val upickle                    = "3.0.0-M1"
   val zio                        = "2.0.16"
   val `zio-cli`                  = "0.5.0"
+  val `zio-config`               = "4.0.0-RC16"
   val `zio-json`                 = "0.6.1"
   val `zio-parser`               = "0.1.9"
   val `zio-prelude`              = "1.0.0-RC20"

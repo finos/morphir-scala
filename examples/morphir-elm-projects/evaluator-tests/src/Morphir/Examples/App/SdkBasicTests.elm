@@ -110,17 +110,6 @@ sdkSubtractFloatTest _ =
         f 4.0 2.0
 
 {-
-  Test: SdkBasics/multiplyFloat
-  Expected = 6.0
--}
-sdkMultiplyFloatTest: () -> Float
-sdkMultiplyFloatTest _ =
-    let
-        f x y = x * y
-    in
-        f 2.0 3.0
-
-{-
   Test: SdkBasics/divide
   Expected = 2.0
 -}
@@ -130,6 +119,28 @@ sdkDivideTest _ =
         f x y = x / y
     in
         f 20.0 10.0
+
+{-
+  Test: SdkBasics/divide - Int
+  Expected = 20
+-}
+sdkMultiplyIntTest: () -> Int
+sdkMultiplyIntTest _ =
+    let
+        f x y = x * y
+    in
+        f 2 10
+
+{-
+  Test: SdkBasics/multiplyFloat
+  Expected = 6.0
+-}
+sdkMultiplyFloatTest: () -> Float
+sdkMultiplyFloatTest _ =
+    let
+        f x y = x * y
+    in
+        f 2.0 10.0
 
 {-
   Test: SdkBasics/divideByZero
@@ -194,7 +205,7 @@ sdkRoundTest _ =
     let
         f x = round x
     in
-        f 4.25
+        f 123.456
 
 {-
   Test: SdkBasics/round2
@@ -205,7 +216,7 @@ sdkRoundTest2 _ =
     let
         f x = round x
     in
-        f 4
+        f 123
 
 {-
   Test: SdkBasics/floor
@@ -745,12 +756,83 @@ sdkNotEqualTest7 _ =
   Test: SdkBasics/lessThanInt
   Expected: True
 -}
-sdkLessThanTestInt: () -> Bool
-sdkLessThanTestInt _ =
-    let
-        f x y = x < y
-    in
-        f 2 4
+sdkLessThanTestIntTrue: () -> Bool
+sdkLessThanTestIntTrue _ =
+    let f x y = x < y in f 2 4
+
+{-
+  Test: SdkBasics/lessThanInt
+  Expected: False
+-}
+sdkLessThanTestIntFalse: () -> Bool
+sdkLessThanTestIntFalse _ =
+    let f x y = x < y in f 5 4
+
+
+{-
+  Test: SdkBasics/greaterThanInt
+  Expected: True
+-}
+sdkGreaterThanTestIntTrue: () -> Bool
+sdkGreaterThanTestIntTrue _ =
+    let f x y = x > y in f 4 2
+
+{-
+  Test: SdkBasics/greaterThanInt
+  Expected: False
+-}
+sdkGreaterThanTestIntFalse: () -> Bool
+sdkGreaterThanTestIntFalse _ =
+    let f x y = x > y in f 1 2
+
+{-
+  Test: SdkBasics/greaterThanEqualsInt (1)
+  Expected: True
+-}
+sdkGreaterThanOrEqualTestIntTrue1: () -> Bool
+sdkGreaterThanOrEqualTestIntTrue1 _ =
+    let f x y = x >= y in f 4 2
+
+{-
+  Test: SdkBasics/greaterThanEqualsInt (2)
+  Expected: True
+-}
+sdkGreaterThanOrEqualTestIntTrue2: () -> Bool
+sdkGreaterThanOrEqualTestIntTrue2 _ =
+    let f x y = x >= y in f 2 2
+
+{-
+  Test: SdkBasics/greaterThanEqualsInt
+  Expected: False
+-}
+sdkGreaterThanOrEqualTestIntFalse: () -> Bool
+sdkGreaterThanOrEqualTestIntFalse _ =
+    let f x y = x >= y in f 1 2
+
+{-
+  Test: SdkBasics/lessThanEqualsInt (1)
+  Expected: True
+-}
+sdkLessThanOrEqualTestIntTrue1: () -> Bool
+sdkLessThanOrEqualTestIntTrue1 _ =
+    let f x y = x <= y in f 2 4
+
+{-
+  Test: SdkBasics/lessThanEqualsInt (2)
+  Expected: True
+-}
+sdkLessThanOrEqualTestIntTrue2: () -> Bool
+sdkLessThanOrEqualTestIntTrue2 _ =
+    let f x y = x <= y in f 2 2
+
+{-
+  Test: SdkBasics/lessThanEqualsInt
+  Expected: False
+-}
+sdkLessThanOrEqualTestIntFalse: () -> Bool
+sdkLessThanOrEqualTestIntFalse _ =
+    let f x y = x <= y in f 2 1
+
 
 {-
   Test: SdkBasics/lessThanFloat

@@ -11,9 +11,7 @@ import zio.test.TestAspect.{ignore, tag}
 import zio.{Console, ZIO, ZLayer}
 
 object EvaluatorMDMTests extends MorphirBaseSpec {
-  type MorphirRuntimeTyped = MorphirRuntime[Unit, Type.UType]
-
-  val morphirRuntimeLayer: ZLayer[Any, Throwable, MorphirRuntime[Unit, Type.UType]] =
+  val morphirRuntimeLayer: ZLayer[Any, Throwable, TypedMorphirRuntime] =
     ZLayer(for {
       irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
       _          <- Console.printLine(s"Loading distribution from $irFilePath")
@@ -45,7 +43,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   def checkEvaluation(
       moduleName: String,
       functionName: String
-  )(expected: => Data): ZIO[MorphirRuntimeTyped, Throwable, TestResult] =
+  )(expected: => Data): ZIO[TypedMorphirRuntime, Throwable, TestResult] =
     runTest(moduleName, functionName).map { actual =>
       assertTrue(actual == expected)
     }
@@ -54,7 +52,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       moduleName: String,
       functionName: String,
       values: List[Any]
-  )(expected: => Data): ZIO[MorphirRuntimeTyped, Throwable, TestResult] =
+  )(expected: => Data): ZIO[TypedMorphirRuntime, Throwable, TestResult] =
     runTest(moduleName, functionName, values).map { actual =>
       assertTrue(actual == expected)
     }
@@ -74,15 +72,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       checkEvaluation(moduleName, functionName, values)(expected)
     }
 
-  def runTest(moduleName: String, functionName: String): ZIO[MorphirRuntimeTyped, Throwable, Data] =
+  def runTest(moduleName: String, functionName: String): ZIO[TypedMorphirRuntime, Throwable, Data] =
     runTest(moduleName, functionName, List(()))
 
   def runTest(
       moduleName: String,
       functionName: String,
       values: List[Any]
-  ): ZIO[MorphirRuntimeTyped, Throwable, Data] =
-    ZIO.serviceWithZIO[MorphirRuntimeTyped] { runtime =>
+  ): ZIO[TypedMorphirRuntime, Throwable, Data] =
+    ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
       val fullName = s"Morphir.Examples.App:$moduleName:$functionName"
       val data     = values.map(deriveData(_))
 
@@ -286,6 +284,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.String("Correct")
         )
       ),
+      suite("Decimal Tests")(
+        testEvaluation("fromFloat")("decimalTests", "decimalFromFloatTest")(Data.Decimal(1.2)),
+        testEvaluation("toFloat")("decimalTests", "decimalToFloatTest")(Data.Float(1.5)),
+        testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("1.2"))
+      ),
       suite("Lambda Tests")(
         testEvaluation("As")("lambdaTests", "lambdaAsTest")(Data.Tuple(Data.Int(5), Data.Int(5))),
         testEvaluation("Tuple")("lambdaTests", "lambdaTupleTest")(Data.Tuple(Data.Int(0), Data.Int(1))),
@@ -410,6 +413,18 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.String("foo")   -> Data.Int(3),
             Data.String("barr")  -> Data.Int(4),
             Data.String("bazzz") -> Data.Int(5)
+          )
+        ),
+        testEvaluation("List.any with True Output")("listTests", "listAnyTrueTest")(
+          Data.Boolean(true)
+        ),
+        testEvaluation("List.any with True Output")("listTests", "listAnyFalseTest")(
+          Data.Boolean(false)
+        ),
+        testEvaluation("List Parittion")("listTests", "listPartitionTest")(
+          Data.Tuple(
+            Data.List(Data.Int(1), Data.Int(3), Data.Int(5)),
+            Data.List(Data.Int(2), Data.Int(4))
           )
         ),
         testEvalMultiple("Append (and infer type")(
@@ -557,7 +572,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.String("Four"),
             Data.Tuple(Data.Int(4), Data.String("Five"))
           )
-        ))
+        )),
+        testEvaluation("First")("tupleTests", "tupleFirstTest")(Data.Int(1)),
+        testEvaluation("Second")("tupleTests", "tupleSecondTest")(Data.Int(2))
       ),
       suite("String")(
         testEvalMultiple("String Append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
@@ -671,9 +688,22 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int64(2)
         ) @@ ignore @@ TestAspect.tag("Not properly typed"),
         testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Float(2.0)),
+        testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyIntTest")(Data.Int(20)),
+        testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyFloatTest")(Data.Float(20.0)),
+        testEvaluation("Round")("sdkBasicsTests", "sdkRoundTest")(Data.Int(123)),
+        testEvaluation("Round")("sdkBasicsTests", "sdkRoundTest2")(Data.Int(123)),
         testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
         testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),
-        testEvaluation("LessThanInt")("sdkBasicsTests", "sdkLessThanTestInt")(Data.Boolean(true)),
+        testEvaluation("x < y - True")("sdkBasicsTests", "sdkLessThanTestIntTrue")(Data.Boolean(true)),
+        testEvaluation("x < y - False")("sdkBasicsTests", "sdkLessThanTestIntFalse")(Data.Boolean(false)),
+        testEvaluation("x > y - True")("sdkBasicsTests", "sdkGreaterThanTestIntTrue")(Data.Boolean(true)),
+        testEvaluation("x > y - False")("sdkBasicsTests", "sdkGreaterThanTestIntFalse")(Data.Boolean(false)),
+        testEvaluation("x >= y - True A")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntTrue1")(Data.Boolean(true)),
+        testEvaluation("x >= y - True B")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntTrue2")(Data.Boolean(true)),
+        testEvaluation("x >= y - False")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntFalse")(Data.Boolean(false)),
+        testEvaluation("x <= y - True A")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue1")(Data.Boolean(true)),
+        testEvaluation("x <= y - True B")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue2")(Data.Boolean(true)),
+        testEvaluation("x <= y - False")("sdkBasicsTests", "sdkLessThanOrEqualTestIntFalse")(Data.Boolean(false)),
         testEvaluation("ToFloat")("sdkBasicsTests", "toFloatTest")(Data.Float(2.0)),
         testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest")(Data.Int(-3)),
         testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest2")(Data.Int(3)),
@@ -714,7 +744,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
         testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
         testEvaluation("fromFloat")("StringTests", "stringFromFloatTest")(Data.String("1.5")),
-        testEvaluation("toInt")("StringTests", "stringToIntTest")(Data.Optional.Some(Data.Int(25))),
+        testEvaluation("toInt")("StringTests", "stringToIntTest1")(Data.Optional.Some(Data.Int(25))),
+        testEvaluation("toInt")("StringTests", "stringToIntTest2")(Data.Optional.None(Concept.Int32)),
         testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),
         testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false))
       )
