@@ -25,18 +25,31 @@ For the first time, business logic can be shared, stored, translated and visuali
 
 Provides Scala language bindings and JVM based tooling for Morphir.
 
-## Gitpod
+## Installation
+
+You can install the `morphir-cli` in the following ways:
+
+**Using Coursier**
+
+```
+cs install --channel https://raw.githubusercontent.com/finos/morphir-scala/main/coursier-channel.json morphir-cli
+```
+
+---
+## Development
+
+### Gitpod
 
 Click the button below to start a new development environment and start contributing right away:
 
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/finos/morphir-scala)
 
-## How to build and test
+### How to build and test
 
 Morphir-jvm use [mill](https://com-lihaoyi.github.io/mill) as its build tool.
 
-### IntelliJ Setup for Linux
+#### IntelliJ Setup for Linux
 
 If you are using IntelliJ IDEA to edit morphir-jvm's Scala code, you can create the
 IntelliJ project files via:
@@ -45,7 +58,7 @@ IntelliJ project files via:
 ./mill mill.scalalib.GenIdea/idea
 ````
 
-### BSP Setup
+#### BSP Setup
 
 If you are using Visual Studio Code, IntelliJ, or any of the Editors which support BSP you can also generate BSP config files via:
 
@@ -61,7 +74,7 @@ You can also try the following to use the `mill-contrib-bloop` plugin to install
 
 
 
-### Run Tests
+#### Run Tests
 
 ```bash
 ./mill __.test
@@ -73,7 +86,7 @@ or in watch mode:
 ./mill -w __.test
 ```
 
-### Formatting Code
+#### Formatting Code
 
 Code needs to be formatted according to `scalafmt` rules. To run `scalafmt` on all the source code using:
 
@@ -95,9 +108,7 @@ or in watch mode to reformat changed files:
 ./mill -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
 ```
 
-#
-
-### IntelliJ Setup for Windows
+#### IntelliJ Setup for Windows
 
 If you are using IntelliJ IDEA to edit morphir-scala's Scala code, you can create the
 IntelliJ project files via or use the **BSP Setup** option (BSP is the recommended approach):
@@ -106,7 +117,7 @@ IntelliJ project files via or use the **BSP Setup** option (BSP is the recommend
 .\mill -i mill.scalalib.GenIdea/idea
 ```
 
-### BSP Setup
+#### BSP Setup
 
 If you are using Visual Studio Code, IntelliJ, or any of the Editors which support BSP you can also generate BSP config files via:
 
@@ -122,7 +133,7 @@ You can also try the following to use the `mill-contrib-bloop` plugin to install
 .\mill -i --import ivy:com.lihaoyi::mill-contrib-bloop:  mill.contrib.bloop.Bloop/install
 ```
 
-### Run Tests
+#### Run Tests
 
 ```
 .\mill -i __.test
@@ -134,7 +145,7 @@ or in watch mode:
 .\mill -i -w __.test
 ```
 
-### Formatting Code
+#### Formatting Code
 
 Code needs to be formatted according to `scalafmt` rules. To run `scalafmt` on all the source code using:
 
@@ -148,24 +159,24 @@ or in watch mode to reformat changed files:
 .\mill -i -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
 ```
 
-### Building website
+#### Building website
 
 ```
 ./mill -i __.docusaurusBuild
 ```
 
-### Running website locally
+#### Running website locally
 ```
 ./mill -i __.docusaurusServe 
 ```
 
 
-## Roadmap
+### Roadmap
 
 Watch for updates.
 
 
-## Contributing
+### Contributing
 
 1. Fork it (<https://github.com/finos/morphir-scala/fork>)
 2. Create your feature branch (`git checkout -b feature/fooBar`)
@@ -179,7 +190,7 @@ _NOTE:_ Commits and pull requests to FINOS repositories will only be accepted fr
 *Need an ICLA? Unsure if you are covered under an existing CCLA? Email [help@finos.org](mailto:help@finos.org)*
 
 
-## License
+### License
 
 Copyright 2022 FINOS
 

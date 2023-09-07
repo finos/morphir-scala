@@ -8,6 +8,6 @@
         "dependencies": [
             "org.finos.morphir:morphir-main_3:latest.release"
         ],
-        "maincClass": "org.finos.morphir.cli.MorphirCliMain"
+        "mainClass": "org.finos.morphir.cli.MorphirCliMain"
     }
 }
