@@ -199,11 +199,38 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       Deps.dev.zio.`zio-process`
     )
   }
-  object js extends Shared with MorphirJSModule
+  object js extends Shared with MorphirJSModule {
+    def publishArtifacts = T {
+      val baseName = s"${artifactId()}-${publishVersion()}"
+      PublishModule.PublishData(
+        artifactMetadata(),
+        Seq(
+          jar()       -> s"$baseName.jar",
+          sourceJar() -> s"$baseName-sources.jar",
+          // Don't publish docJar for now. Hitting weird Scala 3 bug
+          // docJar()    -> s"$baseName-javadoc.jar",
+          pom() -> s"$baseName.pom"
+        ) ++ extraPublish().map(p => (p.file, s"$baseName${p.classifierPart}.${p.ext}"))
+      )
+    }
+  }
   object native extends Shared with MorphirNativeModule {
     def ivyDeps = super.ivyDeps() ++ Agg(
       Deps.dev.zio.`zio-nio`
     )
+    def publishArtifacts = T {
+      val baseName = s"${artifactId()}-${publishVersion()}"
+      PublishModule.PublishData(
+        artifactMetadata(),
+        Seq(
+          jar()       -> s"$baseName.jar",
+          sourceJar() -> s"$baseName-sources.jar",
+          // Don't publish docJar for now. Hitting weird Scala 3 bug
+          // docJar()    -> s"$baseName-javadoc.jar",
+          pom() -> s"$baseName.pom"
+        ) ++ extraPublish().map(p => (p.file, s"$baseName${p.classifierPart}.${p.ext}"))
+      )
+    }
   }
 
   object contrib extends Module {

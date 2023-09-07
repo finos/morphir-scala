@@ -1,6 +1,5 @@
 package org.finos.morphir.lang.elm.semver
 
-import enumeratum.values._
 import zio.Chunk
 import zio.prelude._
 
