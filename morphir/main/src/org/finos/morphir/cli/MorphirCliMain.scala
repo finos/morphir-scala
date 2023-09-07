@@ -21,8 +21,8 @@ object MorphirCliMain extends ZIOCliDefault {
   ))
 
   private def executeCommand(command: MorphirCommand) = command match {
-    case MorphirCommand.Develop(port, host, projectDir) =>
-      MorphirElmDriver.develop(port, host, VFilePath.fromJava(projectDir))
+    case MorphirCommand.Develop(port, host, projectDir, openInBrowser) =>
+      MorphirElmDriver.develop(port, host, VFilePath.fromJava(projectDir), openInBrowser)
     case MorphirCommand.Setup(morphirHomeDir) => MorphirSetup.setup(morphirHomeDir)
     case MorphirCommand.Test(irFiles)         => MorphirRuntimeDriver.test()
     case MorphirCommand.ElmInit(morphirHomeDir, projectDir) =>
@@ -89,11 +89,12 @@ object MorphirCliMain extends ZIOCliDefault {
         val projectDir = Options.directory("project-dir").alias("i").withDefault(
           Paths.get(".")
         ) ?? "Root directory of the project where morphir.json is located."
+        val openInBrowser = Options.boolean("open-in-browser").alias("o") ?? "Open in browser."
 
-        Command("develop", port ++ host ++ projectDir).withHelp(
+        Command("develop", port ++ host ++ projectDir ++ openInBrowser).withHelp(
           "Start up a web server and expose developer tools through a web UI."
-        ).map { case (port, host, projectDir) =>
-          MorphirCommand.Develop(port, host, projectDir)
+        ).map { case (port, host, projectDir, openInBrowser) =>
+          MorphirCommand.Develop(port, host, projectDir, openInBrowser)
         }
       }
 

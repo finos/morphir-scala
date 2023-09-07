@@ -8,7 +8,7 @@ import zio._
  */
 trait MorphirElmDriver {
   /// Execute the `morphir-elm develop` command
-  def develop(port: Int, host: String, projectDir: VFilePath): Task[Unit]
+  def develop(port: Int, host: String, projectDir: VFilePath, openInBrowser: Boolean = false): Task[Unit]
 
   /// Initialize the current directory/workspace for use with Morphir's Elm tooling.
   def init(morphirHomeDir: VFilePath, projectDir: VFilePath): Task[Unit]
@@ -30,8 +30,13 @@ trait MorphirElmDriver {
 object MorphirElmDriver extends MorphirElmDriverPlatformSpecific {
 
   /// Execute the `morphir-elm develop` command
-  def develop(port: Int, host: String, projectDir: VFilePath): ZIO[MorphirElmDriver, Throwable, Unit] =
-    ZIO.serviceWithZIO[MorphirElmDriver](_.develop(port, host, projectDir))
+  def develop(
+      port: Int,
+      host: String,
+      projectDir: VFilePath,
+      openInBrowser: Boolean = false
+  ): ZIO[MorphirElmDriver, Throwable, Unit] =
+    ZIO.serviceWithZIO[MorphirElmDriver](_.develop(port, host, projectDir, openInBrowser))
 
   /// Initialize the current directory/workspace for use with Morphir's Elm tooling.
   def init(morphirHomeDir: VFilePath, projectDir: VFilePath): ZIO[MorphirElmDriver, Throwable, Unit] =

@@ -17,13 +17,15 @@ trait MorphirElmDriverPlatformSpecific {
     } yield MorphirElmDriverLive(processIO)
   }
 
-  sealed case class MorphirElmDriverLive(processIO: ProcessIO) extends MorphirElmDriver {
-    def develop(port: Int, host: String, projectDir: VFilePath): Task[Unit] = for {
+  sealed case class MorphirElmDriverLive(processIO: ProcessIO) extends MorphirElmDriver { self =>
+    import zio.process._
+    def develop(port: Int, host: String, projectDir: VFilePath, openInBrowser: Boolean = false): Task[Unit] = for {
       _ <- Console.printLine("Elm develop command executing")
       _ <- ZIO.logDebug(s"\tport: $port")
       _ <- ZIO.logDebug(s"\thost: $host")
       _ <- ZIO.logDebug(s"\tprojectDir: $projectDir")
-      exitCode <- processIO.exec(
+      _ <- Console.printLine(s"\topenInBrowser: $openInBrowser")
+      process <- Command(
         "morphir-elm",
         "develop",
         "--port",
@@ -32,9 +34,11 @@ trait MorphirElmDriverPlatformSpecific {
         host,
         "--project-dir",
         projectDir.toString
-      )
-      _ <- Console.printLine(s"\texitCode: $exitCode")
-      _ <- Console.printLine("Elm develop command executed")
+      ).run
+      stdOutFiber <- process.stdout.linesStream.foreach(Console.printLine(_)).fork
+      stdErrFiber <- process.stderr.linesStream.foreach(Console.printLine(_)).fork
+      _           <- if (openInBrowser) self.openInBrowser(s"http://$host:$port") else ZIO.unit
+      _           <- Fiber.joinAll(List(stdOutFiber, stdErrFiber))
     } yield ()
 
     def init(morphirHomeDir: VFilePath, projectDir: VFilePath): Task[Unit] = for {
@@ -78,6 +82,18 @@ trait MorphirElmDriverPlatformSpecific {
         _ <- Console.printLine(s"\telmHome: $elmHome")
         _ <- Console.printLine(s"\tprojectDir: $projectDir")
         _ <- Console.printLine("Elm restore command executed")
+      } yield ()
+
+    private def openInBrowser(url: String): ZIO[Any, Throwable, Unit] =
+      for {
+        os <- System.property("os.name")
+        _  <- Console.printLine(s"Opening $url in browser for OS: $os")
+        _ <- os match {
+          case Some("Linux") => processIO.exec("xdg-open", url)
+          case Some("Mac OS X") =>
+            processIO.exec("open", url)
+          case _ => ZIO.unit
+        }
       } yield ()
   }
 }
