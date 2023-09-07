@@ -688,6 +688,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int64(2)
         ) @@ ignore @@ TestAspect.tag("Not properly typed"),
         testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Float(2.0)),
+        testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyIntTest")(Data.Int(20)),
+        testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyFloatTest")(Data.Float(20.0)),
+        testEvaluation("Round")("sdkBasicsTests", "sdkRoundTest")(Data.Int(123)),
+        testEvaluation("Round")("sdkBasicsTests", "sdkRoundTest2")(Data.Int(123)),
         testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
         testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),
         testEvaluation("x < y - True")("sdkBasicsTests", "sdkLessThanTestIntTrue")(Data.Boolean(true)),

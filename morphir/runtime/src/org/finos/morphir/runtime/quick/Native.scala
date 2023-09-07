@@ -406,6 +406,22 @@ object Native {
     SDKValue.SDKNativeFunction.fun2 { (a: Result, b: Result) =>
       handleSameNumerics(a, b) { (aNum, bNum, helper) => helper.times(aNum, bNum) }
     }
+
+  val round: SDKValue =
+    SDKValue.SDKNativeFunction.fun1 { (arg: Result) =>
+      val unwrapped: Double = arg.unwrapFloat
+      // Math.round(float) returns an int but Math.round(double) returns a long
+      // so we need to cast back into an int
+      val rounded: Int = {
+        val rounded: Long = Math.round(unwrapped)
+        if (rounded.isValidInt) rounded.toInt
+        else throw new IllegalValue(
+          s"Error rounding ${unwrapped} into an Integer. It could not be casted into an it because it is too large or too small."
+        )
+      }
+      Result.Primitive.Int(rounded)
+    }
+
   val negate: SDKValue = SDKValue.SDKNativeFunction.fun1 {
     (a: Result) =>
       val components = Result.unwrapNumericWithHelper[Any](a)
@@ -551,6 +567,7 @@ object Native {
     FQName.fromString("Morphir.SDK:Basics:subtract")            -> subtract,
     FQName.fromString("Morphir.SDK:Basics:divide")              -> divide,
     FQName.fromString("Morphir.SDK:Basics:multiply")            -> multiply,
+    FQName.fromString("Morphir.SDK:Basics:round")               -> round,
     FQName.fromString("Morphir.SDK:Basics:negate")              -> negate,
     FQName.fromString("Morphir.SDK:Basics:toFloat")             -> toFloat,
     FQName.fromString("Morphir.SDK:Basics:logBase")             -> log,
