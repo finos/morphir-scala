@@ -19,27 +19,34 @@ trait MorphirElmDriverPlatformSpecific {
 
   sealed case class MorphirElmDriverLive(processIO: ProcessIO) extends MorphirElmDriver { self =>
     import zio.process._
-    def develop(port: Int, host: String, projectDir: VFilePath, openInBrowser: Boolean = false): Task[Unit] = for {
-      _ <- Console.printLine("Elm develop command executing")
-      _ <- ZIO.logDebug(s"\tport: $port")
-      _ <- ZIO.logDebug(s"\thost: $host")
-      _ <- ZIO.logDebug(s"\tprojectDir: $projectDir")
-      _ <- Console.printLine(s"\topenInBrowser: $openInBrowser")
-      process <- Command(
-        "morphir-elm",
-        "develop",
-        "--port",
-        port.toString,
-        "--host",
-        host,
-        "--project-dir",
-        projectDir.toString
-      ).run
-      stdOutFiber <- process.stdout.linesStream.foreach(Console.printLine(_)).fork
-      stdErrFiber <- process.stderr.linesStream.foreach(Console.printLine(_)).fork
-      _           <- if (openInBrowser) self.openInBrowser(s"http://$host:$port") else ZIO.unit
-      _           <- Fiber.joinAll(List(stdOutFiber, stdErrFiber))
-    } yield ()
+    def develop(port: Int, host: String, projectDir: VFilePath, openInBrowser: Boolean = false): Task[Unit] = {
+      val shutdownPromptJob = for {
+        _ <- Console.printLine(
+          s"Press enter to stop the Elm development server"
+        )
+        _ <- Console.readLine
+      } yield ()
+
+      for {
+        _ <- ZIO.logDebug(s"\tport: $port")
+        _ <- ZIO.logDebug(s"\thost: $host")
+        _ <- ZIO.logDebug(s"\tprojectDir: $projectDir")
+        _ <- ZIO.logDebug(s"\topenInBrowser: $openInBrowser")
+        serverFiber <- processIO.exec(
+          "morphir-elm",
+          "develop",
+          "--port",
+          port.toString,
+          "--host",
+          host,
+          "--project-dir",
+          projectDir.toString
+        ).fork
+        _ <- if (openInBrowser) launchInBrowser(s"http://$host:$port") else ZIO.unit
+        // Now let's wait for the server to shutdown or for the user to press enter
+        _ <- serverFiber.join race shutdownPromptJob
+      } yield ()
+    }
 
     def init(morphirHomeDir: VFilePath, projectDir: VFilePath): Task[Unit] = for {
       _ <- Console.printLine("Elm init command executing")
@@ -84,16 +91,17 @@ trait MorphirElmDriverPlatformSpecific {
         _ <- Console.printLine("Elm restore command executed")
       } yield ()
 
-    private def openInBrowser(url: String): ZIO[Any, Throwable, Unit] =
+    private def launchInBrowser(url: String): ZIO[Any, Throwable, Unit] = {
+      val notify = Console.printLine(s"Attempting to open $url in browser")
       for {
         os <- System.property("os.name")
-        _  <- Console.printLine(s"Opening $url in browser for OS: $os")
         _ <- os match {
-          case Some("Linux") => processIO.exec("xdg-open", url)
+          case Some("Linux") => notify *> processIO.exec("xdg-open", url)
           case Some("Mac OS X") =>
-            processIO.exec("open", url)
+            notify *> processIO.exec("open", url)
           case _ => ZIO.unit
         }
       } yield ()
+    }
   }
 }
