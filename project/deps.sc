@@ -30,6 +30,16 @@ object Deps {
       }
     }
 
+    case object geirsson {
+      case object metaconfig {
+        val core    = ivy"com.geirsson::metaconfig-core::${Versions.metaconfig}"
+        val docs    = ivy"com.geirsson::metaconfig-docs::${Versions.metaconfig}"
+        val json    = ivy"com.geirsson::metaconfig-json::${Versions.metaconfig}"
+        val pprint  = ivy"com.geirsson::metaconfig-pprint::${Versions.metaconfig}"
+        val sconfig = ivy"com.geirsson::metaconfig-sconfig::${Versions.metaconfig}"
+      }
+    }
+
     case object github {
       case object arturopala {
         val `buffer-and-slice` = ivy"com.github.arturopala::buffer-and-slice:${Versions.`buffer-and-slice`}"
@@ -75,6 +85,7 @@ object Deps {
       val `zio-json`: Dep      = ivy"dev.zio::zio-json::${Versions.`zio-json`}"
       val `zio-json-golden`    = ivy"dev.zio::zio-json-golden::${Versions.`zio-json`}"
       val `zio-parser`         = ivy"dev.zio::zio-parser::${Versions.`zio-parser`}"
+      val `zio-nio`            = ivy"dev.zio::zio-nio::${Versions.`zio-nio`}"
       val `zio-prelude`        = prelude()
       val `zio-prelude-macros` = prelude.macros
       val `zio-process`        = ivy"dev.zio::zio-process::${Versions.`zio-process`}"
@@ -178,6 +189,7 @@ object Versions {
   val fs2                        = "3.8.0"
   val geny                       = "1.0.0"
   val `izumi-reflect`            = "2.3.8"
+  val metaconfig                 = "0.11.1"
   val munit                      = "1.0.0-M8"
   val `munit-zio`                = "0.1.1"
   val mainargs                   = "0.5.0"
@@ -193,6 +205,7 @@ object Versions {
   val `zio-cli`                  = "0.5.0"
   val `zio-config`               = "4.0.0-RC16"
   val `zio-json`                 = "0.6.2"
+  val `zio-nio`                  = "2.0.2"
   val `zio-parser`               = "0.1.9"
   val `zio-prelude`              = "1.0.0-RC20"
   val `zio-process`              = "0.7.2"

@@ -86,4 +86,9 @@ package object morphir {
       def add(that: MorphirFloat): MorphirFloat = this + that
     }
   }
+
+  final implicit class ZValidationOps[+W, +E, +A](private val self: ZValidation[W, E, A]) extends AnyVal {
+    def isFailure: Boolean = self.fold(_ => true, _ => false)
+    def errors: List[E]    = self.fold(_.toList, _ => Nil)
+  }
 }
