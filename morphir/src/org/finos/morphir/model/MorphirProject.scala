@@ -2,6 +2,7 @@ package org.finos.morphir.model
 
 import zio.json._
 
+/// Represents the structure of a Morphir project.
 final case class MorphirProject(
     name: String,
     sourceDirectory: String,
