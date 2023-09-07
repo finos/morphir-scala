@@ -7,6 +7,12 @@ enum MorphirCommand {
   case Setup(morphirHomeDir: Path)
   case Test(irFiles: List[Path])
   case ElmInit(morphirHomeDir: Path, projectDir: Path)
-  case ElmMake(projectDir: Path, output: Path, fallbackCli: Boolean = false)
+  case ElmMake(
+      projectDir: Path,
+      output: Path,
+      typesOnly: Boolean,
+      fallbackCli: Boolean = false,
+      indentJson: Boolean = false
+  )
   case ElmRestore(elmHome: Path, projectDir: Path)
 }

@@ -44,12 +44,32 @@ trait MorphirElmDriverPlatformSpecific {
       _ <- Console.printLine("Elm init command executed")
     } yield ()
 
-    def make(projectDir: VFilePath, output: VFilePath, fallbackCli: Boolean = false): Task[Seq[VFile]] = for {
-      _ <- Console.printLine("Elm make command executed")
-      _ <- Console.printLine(s"\tprojectDir: $projectDir")
-      _ <- Console.printLine(s"\toutput: $output")
-      _ <- Console.printLine(s"\tfallbackCli: $fallbackCli")
-      _ <- Console.printLine("Elm make command executed")
+    def make(
+        projectDir: VFilePath,
+        output: VFilePath,
+        typesOnly: Boolean = false,
+        fallbackCli: Boolean = false,
+        indentJson: Boolean = false
+    ): Task[Seq[VFile]] = for {
+      _ <- ZIO.logDebug(s"\toutput: $output")
+      _ <- ZIO.logDebug(s"\ttypesOnly: $typesOnly")
+      _ <- ZIO.logDebug(s"\tfallbackCli: $fallbackCli")
+      _ <- ZIO.logDebug(s"\tindentJson: $indentJson")
+      exitCode <- processIO.exec(
+        "morphir-elm",
+        "make",
+        "--project-dir",
+        projectDir.toString,
+        "--output",
+        output.toString,
+        "--types-only",
+        typesOnly.toString,
+        "--fallback-cli",
+        fallbackCli.toString,
+        "--indent-json",
+        indentJson.toString
+      )
+      _ <- Console.printLine(s"\texitCode: $exitCode")
     } yield Seq.empty
 
     def restore(elmHome: VFilePath, projectDir: VFilePath): Task[Unit] =

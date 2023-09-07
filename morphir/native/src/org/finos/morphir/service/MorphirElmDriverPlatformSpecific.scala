@@ -22,11 +22,19 @@ trait MorphirElmDriverPlatformSpecific {
       _ <- Console.printLine("Elm init command executed")
     } yield ()
 
-    def make(projectDir: VFilePath, output: VFilePath, fallbackCli: Boolean = false): Task[Seq[VFile]] = for {
+    def make(
+        projectDir: VFilePath,
+        output: VFilePath,
+        typesOnly: Boolean = false,
+        fallbackCli: Boolean = false,
+        indentJson: Boolean = false
+    ): Task[Seq[VFile]] = for {
       _ <- Console.printLine("Elm make command executed")
       _ <- Console.printLine(s"\tprojectDir: $projectDir")
       _ <- Console.printLine(s"\toutput: $output")
+      _ <- Console.printLine(s"\ttypesOnly: $typesOnly")
       _ <- Console.printLine(s"\tfallbackCli: $fallbackCli")
+      _ <- Console.printLine(s"\tindentJson: $indentJson")
       _ <- Console.printLine("Elm make command executed")
     } yield Seq.empty
 

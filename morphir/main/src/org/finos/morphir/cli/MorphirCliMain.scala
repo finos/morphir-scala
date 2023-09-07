@@ -27,7 +27,7 @@ object MorphirCliMain extends ZIOCliDefault {
     case MorphirCommand.Test(irFiles)         => MorphirRuntimeDriver.test()
     case MorphirCommand.ElmInit(morphirHomeDir, projectDir) =>
       MorphirElmDriver.init(VFilePath.fromJava(morphirHomeDir), VFilePath.fromJava(projectDir))
-    case MorphirCommand.ElmMake(projectDir, output, fallbackCli) =>
+    case MorphirCommand.ElmMake(projectDir, output, typesOnly, fallbackCli, indentJson) =>
       MorphirElmDriver.make(VFilePath.fromJava(projectDir), VFilePath.fromJava(output), fallbackCli)
     case MorphirCommand.ElmRestore(elmHome, projectDir) =>
       MorphirElmDriver.restore(VFilePath.fromJava(elmHome), VFilePath.fromJava(projectDir))
@@ -45,14 +45,22 @@ object MorphirCliMain extends ZIOCliDefault {
       }
 
       val make = {
-        val projectDir  = Options.directory("project-dir").alias("p").withDefault(Paths.get("."))
-        val output      = Options.directory("output").alias("o").withDefault(Paths.get("morphir-ir.json"))
-        val fallbackCli = Options.boolean("fallback-cli").alias("f").withDefault(false)
+        val projectDir = Options.directory("project-dir").alias("p").withDefault(
+          Paths.get(".")
+        ) ?? "Root directory of the project where morphir.json is located."
+        val output = Options.file("output").alias("o").withDefault(
+          Paths.get("morphir-ir.json")
+        ) ?? "Target file location where the Morphir IR will be saved."
+        val typesOnly =
+          Options.boolean("types-only").alias("t") ?? "Only include type information in the IR, no values."
+        val fallbackCli =
+          Options.boolean("fallback-cli").alias("f") ?? "Use the old (non-incremental) CLI make function."
+        val indentJson = Options.boolean("indent-json").alias("i") ?? "Use indentation in the generated JSON file."
 
-        Command("make", projectDir ++ output ++ fallbackCli).withHelp(
-          "Make a Morphir project that uses Elm as its front-end modelling language.."
-        ).map { case (projectDir, output, fallbackCli) =>
-          MorphirCommand.ElmMake(projectDir, output, fallbackCli)
+        Command("make", projectDir ++ output ++ typesOnly ++ fallbackCli ++ indentJson).withHelp(
+          "Translate Elm sources to Morphir IR."
+        ).map { case (projectDir, output, typesOnly, fallbackCli, indentJson) =>
+          MorphirCommand.ElmMake(projectDir, output, typesOnly, fallbackCli, indentJson)
         }
       }
 
@@ -74,9 +82,13 @@ object MorphirCliMain extends ZIOCliDefault {
     object Morphir {
 
       val develop = {
-        val port       = Options.integer("port").alias("p").withDefault(BigInt(3000)).map(_.intValue)
-        val host       = Options.text("host").alias("h").withDefault("localhost")
-        val projectDir = Options.directory("project-dir").alias("i").withDefault(Paths.get("."))
+        val port = Options.integer("port").alias("p").withDefault(BigInt(3000)).map(
+          _.intValue
+        ) ?? "Port to bind the web server to."
+        val host = Options.text("host").alias("h").withDefault("localhost") ?? "Host to bind the web server to."
+        val projectDir = Options.directory("project-dir").alias("i").withDefault(
+          Paths.get(".")
+        ) ?? "Root directory of the project where morphir.json is located."
 
         Command("develop", port ++ host ++ projectDir).withHelp(
           "Start up a web server and expose developer tools through a web UI."
