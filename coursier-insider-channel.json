@@ -3,6 +3,7 @@
         "repositories": [
             "central",
             "sonatype:releases",
+            "sonatype:snapshots",
             "typesafe:ivy-releases"
         ],
         "dependencies": [
