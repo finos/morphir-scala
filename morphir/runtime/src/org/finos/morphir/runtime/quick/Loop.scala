@@ -46,7 +46,7 @@ private[morphir] case class Loop(globals: GlobalDefs) {
       case Variable(va, name)                      => handleVariable(va, name, store)
     }
 
-  def handleLiteral(va: ValueAttribs, literal: Lit) = Result.Primitive.makeOrFail[Any](unpackLit(literal))
+  def handleLiteral(va: ValueAttribs, literal: Lit) = unpackLit(literal)
 
   def handleApply(
       va: ValueAttribs,
