@@ -84,7 +84,7 @@ object MInt {
     try
       Some(fromStringUnsafe(str))
     catch {
-      case e: NumberFormatException => None
+      case _: NumberFormatException => None
     }
 }
 object MBool   {}
