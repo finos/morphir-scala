@@ -1,5 +1,6 @@
 module Morphir.Examples.App.ExampleModule exposing (five, tupleReverse, parametricFunction, publicFunction, outputRecordFunction, inputRecordFunction, outputUnionFunction, inputUnionFunction, ModuleRecord, ModuleSingleUnion(..), ModuleUnion(..), TypeArgUnion(..), TypeArgRecord(..))
 import Dict exposing (Dict)
+import Morphir.Examples.App.TestUtils exposing (..)
 
 type alias ModuleRecord = {name : String, truth : Bool}
 type ModuleUnion = Center | Up Int | Down Int

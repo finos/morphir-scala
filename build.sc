@@ -173,6 +173,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       Deps.org.typelevel.`paiges-core`,
       Deps.org.typelevel.spire,
       Deps.dev.zio.zio,
+      Deps.dev.zio.`zio-json`,
       Deps.dev.zio.`zio-prelude`
     )
     def compileIvyDeps = super.compileIvyDeps() ++ (if (crossScalaVersion.startsWith("2."))
@@ -192,9 +193,45 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     def platformSpecificModuleDeps = Seq(extensibility)
   }
 
-  object jvm    extends Shared with MorphirJVMModule
-  object js     extends Shared with MorphirJSModule
-  object native extends Shared with MorphirNativeModule
+  object jvm extends Shared with MorphirJVMModule {
+    def ivyDeps = super.ivyDeps() ++ Agg(
+      Deps.dev.zio.`zio-nio`,
+      Deps.dev.zio.`zio-process`
+    )
+  }
+  object js extends Shared with MorphirJSModule {
+    def publishArtifacts = T {
+      val baseName = s"${artifactId()}-${publishVersion()}"
+      PublishModule.PublishData(
+        artifactMetadata(),
+        Seq(
+          jar()       -> s"$baseName.jar",
+          sourceJar() -> s"$baseName-sources.jar",
+          // Don't publish docJar for now. Hitting weird Scala 3 bug
+          // docJar()    -> s"$baseName-javadoc.jar",
+          pom() -> s"$baseName.pom"
+        ) ++ extraPublish().map(p => (p.file, s"$baseName${p.classifierPart}.${p.ext}"))
+      )
+    }
+  }
+  object native extends Shared with MorphirNativeModule {
+    def ivyDeps = super.ivyDeps() ++ Agg(
+      Deps.dev.zio.`zio-nio`
+    )
+    def publishArtifacts = T {
+      val baseName = s"${artifactId()}-${publishVersion()}"
+      PublishModule.PublishData(
+        artifactMetadata(),
+        Seq(
+          jar()       -> s"$baseName.jar",
+          sourceJar() -> s"$baseName-sources.jar",
+          // Don't publish docJar for now. Hitting weird Scala 3 bug
+          // docJar()    -> s"$baseName-javadoc.jar",
+          pom() -> s"$baseName.pom"
+        ) ++ extraPublish().map(p => (p.file, s"$baseName${p.classifierPart}.${p.ext}"))
+      )
+    }
+  }
 
   object contrib extends Module {
     object knowledge extends CrossPlatform with CrossValue {
@@ -494,6 +531,8 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       trait Shared extends MorphirCommonCrossModule {
         def ivyDeps = Agg(
           ivy"io.github.cquiroz::scala-java-time::2.5.0",
+          Deps.dev.zio.`zio-json`,
+          Deps.dev.zio.`zio-prelude`,
           Deps.dev.zio.`zio-test`,
           Deps.dev.zio.`zio-test-sbt`
         )
@@ -569,12 +608,19 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
             //   def moduleDeps = super.moduleDeps ++ Agg(testing.js, morphir.testing.zio.js)
             // }
           }
+
+          object native extends Shared with MorphirNativeModule {
+            // object test extends ScalaTests with TestModule.ZioTest {
+            //   def ivyDeps = super.ivyDeps() ++ Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
+            //   def moduleDeps = super.moduleDeps ++ Agg(testing.native, morphir.testing.zio.native)
+            // }
+          }
         }
       }
     }
 
     object core extends CrossPlatform with CrossValue {
-      def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
+      def enableNative(module: Module): Boolean = !devMode
 
       trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
         def ivyDeps = Agg(

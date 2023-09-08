@@ -48,6 +48,8 @@ trait CommonScalaModule extends ScalaModule {
     super.scalacOptions() ++ options ++ additionalScalacOptions()
   }
 
+  def scalaDocOptions = super.scalaDocOptions() ++ Seq("-no-link-warnings")
+
   override def scalacPluginIvyDeps: Target[Agg[Dep]] = T {
     super.scalacPluginIvyDeps() ++ compilerPlugins(scalaVersion())
   }
@@ -178,6 +180,8 @@ trait CommonScalaModule extends ScalaModule {
         filterScala3Options(commonCompilerOptions) ++ Seq(
           // TODO: Enable later
           // "-source:3.0-migration",
+          "-explain",
+          "-explain-types",
           "-Xignore-scala2-macros",
           "-Yretain-trees",
           "-Wvalue-discard"

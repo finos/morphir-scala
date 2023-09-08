@@ -8,6 +8,7 @@ import org.finos.morphir.ir.Value.{Pattern, Value}
 
 import scala.collection.mutable.LinkedHashMap
 import Name.toTitleCase
+import org.finos.morphir.MInt
 import org.finos.morphir.runtime.TypedMorphirRuntime.{RuntimeValue, TypeAttribs, ValueAttribs}
 import org.finos.morphir.runtime.UnexpectedType
 
@@ -87,8 +88,7 @@ object Result {
 
   def unwrapInt(arg: Result): Int =
     arg match {
-      case Primitive.Int(v) => v
-      case Primitive.Long(v) =>
+      case Primitive.Int(v) =>
         if (v.isValidInt)
           v.toInt
         else
@@ -127,8 +127,7 @@ object Result {
 
   def unwrapLong(arg: Result): Long =
     arg match {
-      case Primitive.Int(v)  => v.toLong
-      case Primitive.Long(v) => v
+      case Primitive.Int(v) => v.toLong
       case _: Primitive[_] =>
         throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a Long value because it was not a Primitive.Long"
@@ -229,24 +228,22 @@ object Result {
       sealed trait Type
       object Type {
         case object Int        extends Numeric.Type
-        case object Long       extends Numeric.Type
         case object Float      extends Numeric.Type
         case object BigDecimal extends Numeric.Type
       }
     }
 
-    case class Int(value: scala.Int) extends Numeric[scala.Int] {
-      val numericType           = Numeric.Type.Int
-      lazy val numericHelper    = implicitly[scala.Numeric[scala.Int]]
-      lazy val fractionalHelper = None
-      lazy val integralHelper   = Some(implicitly[scala.Integral[scala.Int]])
+    case class Int(value: MInt) extends Numeric[MInt] {
+      val numericType      = Numeric.Type.Int
+      def numericHelper    = org.finos.morphir.mIntIsNumeric
+      def fractionalHelper = None
+      def integralHelper   = Some(org.finos.morphir.mIntIsIntegral)
     }
-    case class Long(value: scala.Long) extends Numeric[scala.Long] {
-      val numericType           = Numeric.Type.Long
-      lazy val numericHelper    = implicitly[scala.Numeric[scala.Long]]
-      lazy val fractionalHelper = None
-      lazy val integralHelper   = Some(implicitly[scala.Integral[scala.Long]])
+    object Int {
+      def apply(value: scala.Int)  = new Int(MInt.fromInt(value))
+      def apply(value: scala.Long) = new Int(MInt.fromLong(value))
     }
+
     // A Morphir/ELM Float is the same as a Java Double
     case class Float(value: scala.Double) extends Numeric[scala.Double] {
       val numericType           = Numeric.Type.Float
@@ -265,18 +262,8 @@ object Result {
       def unapply(resultValue: Result.Primitive.Numeric[_]): Option[scala.BigDecimal] =
         resultValue match {
           case Primitive.Float(v)      => Some(scala.BigDecimal(v.toDouble))
-          case Primitive.Int(v)        => Some(scala.BigDecimal(v))
-          case Primitive.Long(v)       => Some(scala.BigDecimal(v))
+          case Primitive.Int(v)        => Some(v.toBigDecimal)
           case Primitive.BigDecimal(v) => Some(v)
-        }
-    }
-
-    object LongBounded {
-      def unapply(resultValue: Result): Option[scala.Long] =
-        resultValue match {
-          case Primitive.Long(v) => Some(v)
-          case Primitive.Int(v)  => Some(v.toLong)
-          case _                 => None
         }
     }
 
@@ -297,8 +284,9 @@ object Result {
 
     def make[T](value: T): Option[Primitive[T]] =
       value match {
-        case v: scala.Int        => Some(Primitive.Int(v).asInstanceOf[Primitive[T]])
-        case v: scala.Long       => Some(Primitive.Long(v).asInstanceOf[Primitive[T]])
+        case v: MInt             => Some(Primitive.Int(v).asInstanceOf[Primitive[T]])
+        case v: scala.Int        => Some(Primitive.Int(MInt.fromInt(v)).asInstanceOf[Primitive[T]])
+        case v: scala.Long       => Some(Primitive.Int(MInt.fromLong(v)).asInstanceOf[Primitive[T]])
         case v: java.lang.String => Some(Primitive.String(v).asInstanceOf[Primitive[T]])
         case v: scala.Boolean    => Some(Primitive.Boolean(v).asInstanceOf[Primitive[T]])
         case v: scala.Char       => Some(Primitive.Char(v).asInstanceOf[Primitive[T]])

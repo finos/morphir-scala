@@ -86,4 +86,29 @@ package object morphir {
       def add(that: MorphirFloat): MorphirFloat = this + that
     }
   }
+
+  final implicit class ZValidationOps[+W, +E, +A](private val self: ZValidation[W, E, A]) extends AnyVal {
+    def isFailure: Boolean = self.fold(_ => true, _ => false)
+    def errors: List[E]    = self.fold(_.toList, _ => Nil)
+  }
+
+  implicit val mIntIsIntegral: scala.Integral[MInt] = new scala.math.Integral[MInt] {
+    override def plus(x: MInt, y: MInt): MInt           = x + y
+    override def minus(x: MInt, y: MInt): MInt          = x - y
+    override def times(x: MInt, y: MInt): MInt          = x * y
+    override def negate(x: MInt): MInt                  = x.unary_-
+    override def fromInt(x: Int): MInt                  = MInt.fromInt(x)
+    override def parseString(str: String): Option[MInt] = MInt.fromString(str)
+    override def toInt(x: MInt): Int                    = x.toInt
+    override def toLong(x: MInt): Long                  = x.toLong
+    override def toFloat(x: MInt): Float                = x.toFloat
+    override def toDouble(x: MInt): Double              = x.toDouble
+    override def compare(x: MInt, y: MInt): Int         = x.compare(y)
+
+    override def quot(x: MInt, y: MInt): MInt = x / y
+    override def rem(x: MInt, y: MInt): MInt  = x % y
+  }
+
+  // Has to be After mIntIsIntegral or it will assign a null reference
+  implicit val mIntIsNumeric: scala.Numeric[MInt] = mIntIsIntegral
 }

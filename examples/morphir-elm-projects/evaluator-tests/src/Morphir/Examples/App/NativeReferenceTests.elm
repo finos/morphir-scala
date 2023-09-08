@@ -1,4 +1,5 @@
 module Morphir.Examples.App.NativeReferenceTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 
 {-
     TODO:
@@ -11,26 +12,31 @@ import List exposing (map)
 import Morphir.SDK.LocalDate exposing (LocalDate)
 import Morphir.SDK.LocalTime exposing (LocalTime)
         
---Test: NativeReference/Map
---import List exposing (map)
-nativeReferenceMapTest : () -> List (Int, Int)
-nativeReferenceMapTest _ = 
-    map (\x -> (x, x)) [1, 2, 3]
---expected = [(1,1),(2,2),(3,3)]
+ {-|
+ Test: NativeReference/Map
+ expected = [(1,1),(2,2),(3,3)]
+-}
+nativeReferenceMapTest : TestContext ->List (Int, Int)
+nativeReferenceMapTest ctx = test ctx 
+    (map (\x -> (x, x)) [1, 2, 3])
 
---Test: NativeReference/Add
-nativeReferenceAddTest : () -> Int
-nativeReferenceAddTest _ = 
+{-|
+    Test: NativeReference/Add
+    expected = 3
+-}
+nativeReferenceAddTest : TestContext ->Int
+nativeReferenceAddTest ctx = test ctx 
     let
         f x y = x + y
     in
         f 1 2
---expected = 3
 
---Test: NativeReference/CurriedLog
---import Basics exposing (logBase)
-nativeReferenceCurriedLogTest : () -> Float
-nativeReferenceCurriedLogTest _ = 
+{-|
+    Test: NativeReference/CurriedLog
+    expected = Infinity
+-}
+nativeReferenceCurriedLogTest : TestContext ->Float
+nativeReferenceCurriedLogTest ctx = test ctx 
     let 
         curried = 
             let
@@ -39,21 +45,22 @@ nativeReferenceCurriedLogTest _ =
                 f 1
     in
         curried 2
---expected = Infinity
 
---Test: NativeReference/Pi
---import Basics exposing (pi)
-nativeReferencePiTest : () -> Float
-nativeReferencePiTest _ = 
+{-|
+    Test: NativeReference/Pi
+    expected = 3
+-}
+nativeReferencePiTest : TestContext ->Float
+nativeReferencePiTest ctx = test ctx 
     pi
---expected = 3
 
---Test: NativeReference/modBy
---import Basics exposing (pi)
+{-|
+    Test: NativeReference/ModBy
+    expected = x % 3
+-}
 nativeReferenceModByTest : Int -> Int
 nativeReferenceModByTest x = 
-    modBy 3 x
---expected = x % 3
+    (modBy 3 x)
 
 localDatePassthrough : LocalDate -> LocalDate
 localDatePassthrough x = x

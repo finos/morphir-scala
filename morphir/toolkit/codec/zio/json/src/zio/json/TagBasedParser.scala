@@ -20,7 +20,7 @@ case class TagBasedParser[T](pf: PartialFunction[String, JsonDecoder[T]]) extend
     breakable {
       while (true) {
         readChar = in.nextNonWhitespace()
-        if (readChar != 0 && readChar.isLetter) {
+        if (readChar != 0 && (readChar.isLetter || readChar == '_')) {
           // buff.append returns itself (so that you can chain it) but we don't care about that here
           val _ = buff.append(readChar)
         } else {

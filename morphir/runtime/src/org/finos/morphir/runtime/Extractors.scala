@@ -70,6 +70,7 @@ object Extractors {
           case _                                                            => false
         }
     }
+
     object IntRef extends CommonReference {
       final val tpe = Basics.intType
     }

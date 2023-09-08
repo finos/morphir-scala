@@ -1,0 +1,13 @@
+{
+    "morphir-cli": {
+        "repositories": [
+            "central",
+            "sonatype:releases",
+            "typesafe:ivy-releases"
+        ],
+        "dependencies": [
+            "org.finos.morphir:morphir-main_3:latest.release"
+        ],
+        "mainClass": "org.finos.morphir.cli.MorphirCliMain"
+    }
+}

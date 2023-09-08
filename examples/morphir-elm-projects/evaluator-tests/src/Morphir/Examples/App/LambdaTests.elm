@@ -1,5 +1,6 @@
 module Morphir.Examples.App.LambdaTests exposing (..)
 import Morphir.Examples.App.ExampleModule exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 
 {-
     Module for lambda tests
@@ -14,55 +15,66 @@ import Morphir.Examples.App.ExampleModule exposing (..)
         Apply lambda twice, shadowing things in context each time, and seeing original binding second time
 -}
 
---Test: Lambda/As (Lambda with as pattern in binding)
 {-Double binding needed or compielr treats as let definition-}
-lambdaAsTest : () -> (Int, Int)
-lambdaAsTest _ = 
+{-|
+    Test: Lambda/As (Lambda with as pattern in binding)
+    expected = (5, 5)
+-}
+lambdaAsTest : TestContext ->(Int, Int)
+lambdaAsTest ctx = test ctx 
     let
         l = \(x as y) -> (x, y)
     in
         l 5
---expected = (5, 5)
 
---Test: Lambda/As (Lambda with tuple pattern in binding)
-lambdaTupleTest : () -> (Int, Int)
-lambdaTupleTest _ = 
+{-|
+    Test: Lambda/As (Lambda with tuple pattern in binding)
+    expected = (1, 0)
+-}
+lambdaTupleTest : TestContext ->(Int, Int)
+lambdaTupleTest ctx = test ctx 
     let
         l = \(x, y) -> (y, x)
     in
         l (1, 0)
---expected = (0, 1)
 
---define SingleBranchConstructor
 type SingleBranchConstructor = Just Int String
---Test: Lambda/Constuctor (Lambda with constructor pattern in argument)
---uses SingleBranchConstructor
-lambdaConstructorTest : () -> (String, Int)
-lambdaConstructorTest _ = 
+{-|
+    Test: Lambda/Constructor (Lambda with constructor pattern in argument)
+    expected = ("Red", 5)
+-}
+lambdaConstructorTest : TestContext ->(String, Int)
+lambdaConstructorTest ctx = test ctx 
     let
         l = \(Just x y) -> (y, x)
     in
         l (Just 5 "Red")
---expected = ("Red", 5)
 
---Test: Lambda/Unit (Lambda with unit pattern in argument)
-lambdaUnitTest : () -> String
-lambdaUnitTest _ = 
+{-|
+    Test: Lambda/Unit (Lambda with unit pattern in argument)
+    expected = "Correct"
+-}
+lambdaUnitTest : TestContext ->String
+lambdaUnitTest ctx = test ctx 
     let
         l = \() -> "Correct"
     in
         l ()
---expected = "Correct"
 
---Test: Lambda/Direct (Lambda applied to directly nested IR)
-lambdaDirectTest : () -> (Int, Int)
-lambdaDirectTest _ = 
-    (\(x, y) -> (y, x))(1, 0)
---expected = (0, 1)
+{-|
+    Test: Lambda/Direct (Lambda applied to directly nested IR)
+    expected = (0, 1)
+-}
+lambdaDirectTest : TestContext ->(Int, Int)
+lambdaDirectTest ctx = test ctx 
+    ((\(x, y) -> (y, x))(1, 0))
 
---Test: Lambda/Scope (lambdas use lexical scope)
-lambdaScopeTest : () -> (Int, (Int, Int))
-lambdaScopeTest _ = 
+{-|
+    Test: Lambda/Scope (lambdas use lexical scope)
+    expected = (3, (4, 5))
+-}
+lambdaScopeTest : TestContext ->(Int, (Int, Int))
+lambdaScopeTest ctx = test ctx 
     let
         l = 
             let
@@ -74,11 +86,13 @@ lambdaScopeTest _ =
             c = 3
         in
             (c, l 4)
---expected = (3, (4, 5))
 
---Test: Lambda/HigherOrder
-lambdaHigherOrderTest : () -> (Int, Int, Int)
-lambdaHigherOrderTest _ = 
+{-|
+    Test: Lambda/HigherOrder (lambdas can be passed as arguments)
+    expected = (3, 4, 5)
+-}
+lambdaHigherOrderTest : TestContext ->(Int, Int, Int)
+lambdaHigherOrderTest ctx = test ctx 
     let
         l = 
             let
@@ -90,13 +104,14 @@ lambdaHigherOrderTest _ =
             c = 3
         in
             l c 4
---expected = (3, 4, 5)
 
---Test: Lambda/UserDefined
-lambdaUserDefinedTest : () -> (Int, String)
-lambdaUserDefinedTest _ = 
+{-|
+    Test: Lambda/UserDefined (Lambda destructuring user-defined constructor)
+    expected = (5, "Red"
+-}
+lambdaUserDefinedTest : TestContext ->(Int, String)
+lambdaUserDefinedTest ctx = test ctx 
     let
         l = \(Only s i) -> (i, s)
     in
         l (Only "Red" 5)
---expected = (5, "Red")
