@@ -1,4 +1,5 @@
 module Morphir.Examples.App.PatternMatchTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 {-
 Test cased for PatternMatch
 TODO:
@@ -9,10 +10,12 @@ Unhappy:
     No case matches (elm compiler precludes this)
 -}
 
-
---Test: PatternMatch/Wildcard
-patternMatchWildcardTest : () -> String
-patternMatchWildcardTest _ = 
+{-|
+    Test: PatternMatch/Wildcard
+    expected = "Correct"
+-}
+patternMatchWildcardTest : TestContext ->String
+patternMatchWildcardTest ctx = test ctx 
     let 
         match : List Int -> String
         match x = case x of
@@ -26,11 +29,13 @@ patternMatchWildcardTest _ =
                 "Correct"
     in
         match ([4, 5, 6])
---expected = "Correct"
 
---Test: PatternMatch/Tuple
-patternMatchTupleTest : () -> String
-patternMatchTupleTest _ = 
+{-|
+    Test: PatternMatch/Tuple
+    expected = "Correct"
+-}
+patternMatchTupleTest : TestContext ->String
+patternMatchTupleTest ctx = test ctx 
     let 
         match : (Int, String, String) -> String
         match x = case x of
@@ -46,16 +51,16 @@ patternMatchTupleTest _ =
                 "An earlier item should have matched"
     in
         match (1, "Car", "Correct")
---expected = "Correct"
 
 
---define PatternMatchUnionTestType
 type PatternMatchUnionTestType = TwoArg Int String | OtherTwoArg Int String | OneArg Int | ZeroArg
 
---Test: PatternMatch/Constructor
---uses PatternMatchUnionTestType
-patternMatchConstructorTest : () -> String
-patternMatchConstructorTest _ = 
+{-|
+    Test: PatternMatch/Constructor
+    expected = "Correct"
+-}
+patternMatchConstructorTest : TestContext ->String
+patternMatchConstructorTest ctx = test ctx 
     let 
         match : PatternMatchUnionTestType -> String
         match x = case x of
@@ -75,12 +80,13 @@ patternMatchConstructorTest _ =
                 "An earlier item should have matched"
     in
         match (TwoArg 3 "Correct")
---expected = "Correct"
 
---Test: PatternMatch/ZeroArgConstructor
---uses PatternMatchUnionTestType
-patternMatchZeroArgConstructorTest : () -> String
-patternMatchZeroArgConstructorTest _ = 
+{-|
+    Test: PatternMatch/ZeroArgConstructor
+    expected = "Correct"
+-}
+patternMatchZeroArgConstructorTest : TestContext ->String
+patternMatchZeroArgConstructorTest ctx = test ctx 
     let 
         match : PatternMatchUnionTestType -> String
         match x = case x of
@@ -94,11 +100,13 @@ patternMatchZeroArgConstructorTest _ =
                 "An earlier item should have matched"
     in
         match ZeroArg
---expected = "Correct"
 
---Test: PatternMatch/EmptyList
-patternMatchEmptyListTest : () -> String
-patternMatchEmptyListTest _ = 
+{-|
+    Test: PatternMatch/EmptyList
+    expected = "Correct"
+-}
+patternMatchEmptyListTest : TestContext ->String
+patternMatchEmptyListTest ctx = test ctx 
     let 
         match : List String -> String
         match x = case x of
@@ -110,11 +118,13 @@ patternMatchEmptyListTest _ =
                 "Correct"
     in
         match []
---expected = "Correct"
 
---Test: PatternMatch/HeadTail
-patternMatchHeadTailTest : () -> (String, String)
-patternMatchHeadTailTest _ = 
+{-|
+    Test: PatternMatch/HeadTail
+    expected = ("Dog", "Red")
+-}
+patternMatchHeadTailTest : TestContext ->(String, String)
+patternMatchHeadTailTest ctx = test ctx 
     let 
         match : List String -> (String, String)
         match x = case x of
@@ -130,11 +140,13 @@ patternMatchHeadTailTest _ =
                 ("An earlier item should have matched", "")
     in
         match ["Red", "Dog", "Blue", "Car"]
---expected = ("Dog", "Red")
 
---Test: PatternMatch/Literal
-patternMatchLiteralTest : () -> String
-patternMatchLiteralTest _ = 
+{-|
+    Test: PatternMatch/Literal
+    expected = "Correct"
+-}
+patternMatchLiteralTest : TestContext ->String
+patternMatchLiteralTest ctx = test ctx 
     let 
         match : String -> String
         match x = case x of
@@ -146,11 +158,13 @@ patternMatchLiteralTest _ =
                 "An earlier item should have matched"
     in
         match "Yes"
---expected = "Correct"
 
---Test: PatternMatch/RepeatedAs
-patternMatchRepeatedAsTest : () -> (Int, (Int, Int))
-patternMatchRepeatedAsTest _ = 
+{-|
+    Test: PatternMatch/RepeatedAs
+    expected = (2, (1, 2))
+-}
+patternMatchRepeatedAsTest : TestContext ->(Int, (Int, Int))
+patternMatchRepeatedAsTest ctx = test ctx 
     let 
         match : (Int, Int) -> (Int, (Int, Int))
         match x = case x of
@@ -162,4 +176,3 @@ patternMatchRepeatedAsTest _ =
                 (0, (0, 0))
     in
         match (1, 2)
---expected = (2, (1, 2))

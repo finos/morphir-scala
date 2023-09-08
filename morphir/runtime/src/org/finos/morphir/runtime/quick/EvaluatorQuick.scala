@@ -29,8 +29,6 @@ import zio.Chunk
 import scala.collection.mutable
 
 object EvaluatorQuick {
-
-  type IntType   = morphir.sdk.Basics.Int
   type FloatType = Double
 
   private[runtime] def evalAction(
@@ -90,8 +88,7 @@ object EvaluatorQuick {
       case (first, second)             => Result.Tuple(wrap(first), wrap(second))
       case (first, second, third)      => Result.Tuple(wrap(first), wrap(second), wrap(third))
       // TODO: Option, Result, LocalDate
-      case intType: IntType => Result.Primitive.Long(intType.toLong)
-      case primitive        => Result.Primitive.makeOrFail(primitive)
+      case primitive => Result.Primitive.makeOrFail(primitive)
     }
 
   def fromNative(native: NativeFunction): SDKValue =
@@ -202,12 +199,9 @@ object EvaluatorQuick {
       case (Concept.Int16, Result.Primitive.Int(value)) =>
         Data.Int16(value.toShort)
       case (Concept.Int32, Result.Primitive.Int(value)) =>
-        Data.Int32(value)
-      case (Concept.Int32, Result.Primitive.LongBounded(value)) =>
-        // TODO Better error for this case
         Data.Int32(value.toInt)
-      case (Concept.Int64, Result.Primitive.LongBounded(value)) =>
-        Data.Int64(value)
+      case (Concept.Int64, Result.Primitive.Int(value)) =>
+        Data.Int64(value.toLong)
 
       case (Concept.String, Result.Primitive.String(value)) =>
         Data.String(value)

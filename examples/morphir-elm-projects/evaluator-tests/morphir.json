@@ -24,6 +24,7 @@
         "SimpleTests",
         "StringTests",
         "TupleTests",
+        "TestUtils",
         "TypeCheckerTests",
         "UserDefinedReferenceTests",
         "SdkBasicsTests"

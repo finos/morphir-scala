@@ -1,4 +1,5 @@
 module Morphir.Examples.App.UserDefinedReferenceTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 
 {-
     TODO: Check expected values vs. elm (Ellie is not friendly to multiple modules)
@@ -7,17 +8,20 @@ module Morphir.Examples.App.UserDefinedReferenceTests exposing (..)
 import Morphir.Examples.App.ExampleModule exposing (..)
 import Dict exposing (Dict)
 
---Test: UserDefinedReference/Value
---import Morphir.Examples.App.ExampleModule exposing (..)
-userDefinedReferenceValueTest : () -> Int
-userDefinedReferenceValueTest _ = 
+{-|
+    Test: UserDefinedReference/Value
+    expected = 5
+-}
+userDefinedReferenceValueTest : TestContext ->Int
+userDefinedReferenceValueTest ctx = test ctx 
     five
---expected = 5
 
---Test: UserDefinedReference/CurriedFunction
---import Morphir.Examples.App.ExampleModule exposing (..)
-userDefinedReferenceCurriedTest : () -> String
-userDefinedReferenceCurriedTest _ = 
+{-|
+    Test: UserDefinedReference/CurriedFunction
+    expected = "Correct"
+-}
+userDefinedReferenceCurriedTest : TestContext ->String
+userDefinedReferenceCurriedTest ctx = test ctx 
     let 
         curried = outputUnionFunction "Up"
     in
@@ -28,48 +32,51 @@ userDefinedReferenceCurriedTest _ =
                 "Correct"
             _ ->
                 "An earlier branch should have matched"
---expected = "Correct"
 
---Test: UserDefinedReference/SimpleFunction
---import Morphir.Examples.App.ExampleModule exposing (..)
-userDefinedReferenceSimpleFunctionTest : () -> (Int, Int)
-userDefinedReferenceSimpleFunctionTest _ = 
-    tupleReverse (2, 1)
---expected = (1, 2)
+{-|
+    Test: UserDefinedReference/SimpleFunction
+    expected = (1, 2)
+-}
+userDefinedReferenceSimpleFunctionTest : TestContext ->(Int, Int)
+userDefinedReferenceSimpleFunctionTest ctx = test ctx 
+    (tupleReverse (2, 1))
 
---Test: UserDefinedReference/PublicPrivate Calls public function which relies on private function
---import Morphir.Examples.App.ExampleModule exposing (..)
-userDefinedReferencePublicPrivateTest : () -> Int
-userDefinedReferencePublicPrivateTest _ = 
-   publicFunction 5
---expected = 10
+{-|
+    Test: UserDefinedReference/PublicPrivate Calls public function which relies on private function
+    expected = 10
+-}
+userDefinedReferencePublicPrivateTest : TestContext ->Int
+userDefinedReferencePublicPrivateTest ctx = test ctx 
+   (publicFunction 5)
 
---Test: UserDefinedReference/Record
---import Morphir.Examples.App.ExampleModule exposing (..)
-userDefinedReferenceRecordTest : () -> String
-userDefinedReferenceRecordTest _ = 
+{-|
+    Test: UserDefinedReference/Record
+    expected = "Tom Tit Tot"
+-}
+userDefinedReferenceRecordTest : TestContext ->String
+userDefinedReferenceRecordTest ctx = test ctx 
     let
-        f : () -> ModuleRecord
+        f : () ->ModuleRecord
         f _ = outputRecordFunction "Tom Tit Tot"
     in  
         let
             liar = f()
         in
             {liar | truth = True}.name
---expected = "Tom Tit Tot"
 
---Test: UserDefinedReference/Union
---import Morphir.Examples.App.ExampleModule exposing (..)
-userDefinedReferenceUnionTest : () -> Int
-userDefinedReferenceUnionTest _ = 
+{-|
+Test: UserDefinedReference/Union
+expected = -6
+-}
+userDefinedReferenceUnionTest : TestContext ->Int
+userDefinedReferenceUnionTest ctx = test ctx 
     let
-        f : () -> ModuleUnion
-        f _ = Down 6
+        f : () ->ModuleUnion
+        f _ =  Down 6
     in  
         inputUnionFunction (f ())
---expected = -6
 
-{-
+{-|
     Test: UserDefinedReference/TypeArgUnion
     --import Morphir.Examples.App.ExampleModule exposing (..)
     --input (1, "Red")
@@ -80,10 +87,8 @@ typeArgUnionTest tuple =
     let (i, s) = tuple in
     AB i s
 
-{-
+{-|
     Test: UserDefinedReference/TypeArgUnionMaybe
-    --import Morphir.Examples.App.ExampleModule exposing (..)
-    --import Dict exposing (Dict)
     --input (0, "Red")
     --expected = TypeArgUnion.MaybeA True
 -}
@@ -94,8 +99,6 @@ typeArgUnionMaybeFunction tuple =
 
     {-
     Test: UserDefinedReference/TypeArgUnionMaybe
-    --import Morphir.Examples.App.ExampleModule exposing (..)
-    --import Dict exposing (Dict)
     --input (0, "Red")
     --expected = TypeArgUnion.MaybeA True
 -}
