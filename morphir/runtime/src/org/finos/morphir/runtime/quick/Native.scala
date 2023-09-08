@@ -435,7 +435,6 @@ object Native {
         // if it's already a float, don't need to re-wrap it
         case float: Primitive.Float      => float
         case Primitive.Int(value)        => wrap(value.toDouble)
-        case Primitive.Long(value)       => wrap(value.toDouble)
         case Primitive.BigDecimal(value) => wrap(value.toDouble)
       }
   }
