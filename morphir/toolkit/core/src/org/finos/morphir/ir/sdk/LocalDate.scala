@@ -12,7 +12,7 @@ object LocalDate extends MorphirIRSdkModule("LocalDate") {
     types = Map(name("LocalDate") -> OpaqueTypeSpecification() ?? "Type that represents a date concept."),
     values = Map(
       vSpec("fromISO", "iso" -> stringType)(maybeType(localDateType)),
-      vSpec("fromDaysAfterEpoch", "days" -> intType)(localDateType),
+      vSpec("fromParts", "year" -> intType, "month" -> intType, "day" -> intType)(maybeType(localDateType)),
       vSpec("diffInDays", "date1" -> localDateType, "date2" -> localDateType)(intType),
       vSpec("diffInWeeks", "date1" -> localDateType, "date2" -> localDateType)(intType),
       vSpec("diffInMonths", "date1" -> localDateType, "date2" -> localDateType)(intType),
