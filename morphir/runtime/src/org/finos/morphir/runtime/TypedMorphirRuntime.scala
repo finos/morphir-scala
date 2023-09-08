@@ -45,7 +45,6 @@ trait TypedMorphirRuntime extends MorphirRuntime {
     evaluate(entryPoint, inputIR, inputIRs: _*)
   }
 
-  
 }
 
 object TypedMorphirRuntime {

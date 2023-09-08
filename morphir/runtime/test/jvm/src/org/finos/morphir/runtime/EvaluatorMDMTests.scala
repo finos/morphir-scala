@@ -84,7 +84,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       val fullName = s"Morphir.Examples.App:$moduleName:$functionName"
       val data     = values.map(deriveData(_))
       if (data.isEmpty)
-        runtime.evaluate(FQName.fromString(fullName), Data.Record(FQName.fromString("Morphir.Examples.App:TestUtils:testContext ")))
+        runtime.evaluate(
+          FQName.fromString(fullName),
+          Data.Record(FQName.fromString("Morphir.Examples.App:TestUtils:testContext "))
+        )
           .provideEnvironment(MorphirEnv.live)
           .toZIOWith(RTExecutionContext.typeChecked)
       else

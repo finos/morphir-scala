@@ -118,8 +118,8 @@ expected = [4,5,6]
 -}
 listMapTest : TestContext ->List Int
 listMapTest ctx = test ctx
-    map (\n -> n + 1) [3,4,5]
-
+    (map (\n -> n + 1) [3,4,5]
+)
 {-|
 Test: List/Map Native
 expected = [3.0,4.0,5.0]
