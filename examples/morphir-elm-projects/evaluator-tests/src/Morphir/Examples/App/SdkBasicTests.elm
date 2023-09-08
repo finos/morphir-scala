@@ -1,4 +1,5 @@
 module Morphir.Examples.App.SdkBasicsTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 
 import Morphir.SDK.Int exposing (Int64)
 
@@ -6,8 +7,8 @@ import Morphir.SDK.Int exposing (Int64)
   Test: SdkBasics/add
   Expected = 3
 -}
-sdkAddTest: () -> Int
-sdkAddTest _ =
+sdkAddTest: TestContext ->Int
+sdkAddTest ctx = test ctx
     let
         f x y = x + y
     in
@@ -32,8 +33,8 @@ sdkAddTest64 t =
   Elm's numerical ranges are platform-dependent
   The values below will produce 36893488147419103000 from the JS engine
 -}
-sdkIntOverflowTest: () -> Int
-sdkIntOverflowTest _ =
+sdkIntOverflowTest: TestContext ->Int
+sdkIntOverflowTest ctx = test ctx
     let
         f x y = x + y
     in
@@ -43,8 +44,8 @@ sdkIntOverflowTest _ =
   Test: SdkBasics/subtract
   Expected = 2
 -}
-sdkSubtractTest: () -> Int
-sdkSubtractTest _ =
+sdkSubtractTest: TestContext ->Int
+sdkSubtractTest ctx = test ctx
     let
         f x y = x - y
     in
@@ -65,8 +66,8 @@ sdkSubtractTest64 t =
   Test: SdkBasics/multiply
   Expected = 6
 -}
-sdkMultiplyTest: () -> Int
-sdkMultiplyTest _ =
+sdkMultiplyTest: TestContext ->Int
+sdkMultiplyTest ctx = test ctx
     let
         f x y = x * y
     in
@@ -76,8 +77,8 @@ sdkMultiplyTest _ =
   Test: SdkBasics/addFloat
   Expected = 3.0
 -}
-sdkAddFloatTest: () -> Float
-sdkAddFloatTest _ =
+sdkAddFloatTest: TestContext ->Float
+sdkAddFloatTest ctx = test ctx
     let
         f x y = x + y
     in
@@ -91,8 +92,8 @@ sdkAddFloatTest _ =
   Elm's numerical ranges are platform-dependent
   The values below will produce 6.80564733841877e+38 from the JS engine
 -}
-sdkFloatOverflowTest: () -> Float
-sdkFloatOverflowTest _ =
+sdkFloatOverflowTest: TestContext ->Float
+sdkFloatOverflowTest ctx = test ctx
     let
         f x y = x + y
     in
@@ -102,8 +103,8 @@ sdkFloatOverflowTest _ =
   Test: SdkBasics/subtractFloat
   Expected = 2.0
 -}
-sdkSubtractFloatTest: () -> Float
-sdkSubtractFloatTest _ =
+sdkSubtractFloatTest: TestContext ->Float
+sdkSubtractFloatTest ctx = test ctx
     let
         f x y = x - y
     in
@@ -113,8 +114,8 @@ sdkSubtractFloatTest _ =
   Test: SdkBasics/divide
   Expected = 2.0
 -}
-sdkDivideTest: () -> Float
-sdkDivideTest _ =
+sdkDivideTest: TestContext ->Float
+sdkDivideTest ctx = test ctx
     let
         f x y = x / y
     in
@@ -124,8 +125,8 @@ sdkDivideTest _ =
   Test: SdkBasics/divide - Int
   Expected = 20
 -}
-sdkMultiplyIntTest: () -> Int
-sdkMultiplyIntTest _ =
+sdkMultiplyIntTest: TestContext ->Int
+sdkMultiplyIntTest ctx = test ctx
     let
         f x y = x * y
     in
@@ -135,8 +136,8 @@ sdkMultiplyIntTest _ =
   Test: SdkBasics/multiplyFloat
   Expected = 6.0
 -}
-sdkMultiplyFloatTest: () -> Float
-sdkMultiplyFloatTest _ =
+sdkMultiplyFloatTest: TestContext ->Float
+sdkMultiplyFloatTest ctx = test ctx
     let
         f x y = x * y
     in
@@ -146,8 +147,8 @@ sdkMultiplyFloatTest _ =
   Test: SdkBasics/divideByZero
   Expected = Infinity
 -}
-sdkDivideByZeroTest: () -> Float
-sdkDivideByZeroTest _ =
+sdkDivideByZeroTest: TestContext ->Float
+sdkDivideByZeroTest ctx = test ctx
     let
         f x y = x / y
     in
@@ -157,8 +158,8 @@ sdkDivideByZeroTest _ =
   Test: SdkBasics/integerDivide
   Expected = 2
 -}
-sdkIntegerDivideTest: () -> Int
-sdkIntegerDivideTest _ =
+sdkIntegerDivideTest: TestContext ->Int
+sdkIntegerDivideTest ctx = test ctx
     let
         f x y = x // y
     in
@@ -168,8 +169,8 @@ sdkIntegerDivideTest _ =
   Test: SdkBasics/toFloat
   Expected = 2.0
 -}
-toFloatTest: () -> Float
-toFloatTest _ =
+toFloatTest: TestContext ->Float
+toFloatTest ctx = test ctx
     let
         f x = toFloat x
     in f 2
@@ -178,8 +179,8 @@ toFloatTest _ =
   Test: SdkBasics/power
   Expected = 16
 -}
-sdkPowerTest: () -> Int
-sdkPowerTest _ =
+sdkPowerTest: TestContext ->Int
+sdkPowerTest ctx = test ctx
     let
         f x y = x ^ y
     in
@@ -189,8 +190,8 @@ sdkPowerTest _ =
   Test: SdkBasics/powerFloat
   Expected = 16
 -}
-sdkPowerFloatTest: () -> Float
-sdkPowerFloatTest _ =
+sdkPowerFloatTest: TestContext ->Float
+sdkPowerFloatTest ctx = test ctx
     let
         f x y = x ^ y
     in
@@ -200,8 +201,8 @@ sdkPowerFloatTest _ =
   Test: SdkBasics/round
   Expected = 4
 -}
-sdkRoundTest: () -> Int
-sdkRoundTest _ =
+sdkRoundTest: TestContext ->Int
+sdkRoundTest ctx = test ctx
     let
         f x = round x
     in
@@ -211,8 +212,8 @@ sdkRoundTest _ =
   Test: SdkBasics/round2
   Expected = 4
 -}
-sdkRoundTest2: () -> Int
-sdkRoundTest2 _ =
+sdkRoundTest2: TestContext ->Int
+sdkRoundTest2 ctx = test ctx
     let
         f x = round x
     in
@@ -222,8 +223,8 @@ sdkRoundTest2 _ =
   Test: SdkBasics/floor
   Expected = 5
 -}
-sdkFloorTest: () -> Int
-sdkFloorTest _ =
+sdkFloorTest: TestContext ->Int
+sdkFloorTest ctx = test ctx
     let
         f x = floor x
     in
@@ -233,8 +234,8 @@ sdkFloorTest _ =
   Test: SdkBasics/floor2
   Expected = 5
 -}
-sdkFloorTest2: () -> Int
-sdkFloorTest2 _ =
+sdkFloorTest2: TestContext ->Int
+sdkFloorTest2 ctx = test ctx
     let
         f x = floor x
     in
@@ -244,8 +245,8 @@ sdkFloorTest2 _ =
   Test: SdkBasics/ceiling
   Expected = 8
 -}
-sdkCeilingTest: () -> Int
-sdkCeilingTest _ =
+sdkCeilingTest: TestContext ->Int
+sdkCeilingTest ctx = test ctx
     let
         f x = ceiling x
     in
@@ -255,8 +256,8 @@ sdkCeilingTest _ =
   Test: SdkBasics/ceiling2
   Expected = 8
 -}
-sdkCeilingTest2: () -> Int
-sdkCeilingTest2 _ =
+sdkCeilingTest2: TestContext ->Int
+sdkCeilingTest2 ctx = test ctx
     let
         f x = ceiling x
     in
@@ -266,8 +267,8 @@ sdkCeilingTest2 _ =
   Test: SdkBasics/truncate
   Expected = 5
 -}
-sdkTruncateTest: () -> Int
-sdkTruncateTest _ =
+sdkTruncateTest: TestContext ->Int
+sdkTruncateTest ctx = test ctx
     let
         f x = truncate x
     in
@@ -277,8 +278,8 @@ sdkTruncateTest _ =
   Test: SdkBasics/truncate2
   Expected = 5
 -}
-sdkTruncateTest2: () -> Int
-sdkTruncateTest2 _ =
+sdkTruncateTest2: TestContext ->Int
+sdkTruncateTest2 ctx = test ctx
     let
         f x = truncate x
     in
@@ -288,8 +289,8 @@ sdkTruncateTest2 _ =
   Test: SdkBasics/modBy
   Expected = 2
 -}
-sdkModByTest: () -> Int
-sdkModByTest _ =
+sdkModByTest: TestContext ->Int
+sdkModByTest ctx = test ctx
     let
         f x y = modBy x y
     in
@@ -299,8 +300,8 @@ sdkModByTest _ =
   Test: SdkBasics/remainderBy
   Expected = 2
 -}
-sdkRemainderByTest: () -> Int
-sdkRemainderByTest _ =
+sdkRemainderByTest: TestContext ->Int
+sdkRemainderByTest ctx = test ctx
     let
         f x y = remainderBy x y
     in
@@ -310,8 +311,8 @@ sdkRemainderByTest _ =
   Test: SdkBasics/negate
   Expected = -3
 -}
-sdkNegateTest: () -> Int
-sdkNegateTest _ =
+sdkNegateTest: TestContext ->Int
+sdkNegateTest ctx = test ctx
     let
         f x = negate x
     in
@@ -321,8 +322,8 @@ sdkNegateTest _ =
   Test: SdkBasics/negate2
   Expected = 3
 -}
-sdkNegateTest2: () -> Int
-sdkNegateTest2 _ =
+sdkNegateTest2: TestContext ->Int
+sdkNegateTest2 ctx = test ctx
     let
         f x = negate x
     in
@@ -332,8 +333,8 @@ sdkNegateTest2 _ =
   Test: SdkBasics/abs
   Expected = 3
 -}
-sdkAbsTest: () -> Int
-sdkAbsTest _ =
+sdkAbsTest: TestContext ->Int
+sdkAbsTest ctx = test ctx
     let
         f x = abs x
     in
@@ -343,8 +344,8 @@ sdkAbsTest _ =
   Test: SdkBasics/abs2
   Expected = 3
 -}
-sdkAbsTest2: () -> Int
-sdkAbsTest2 _ =
+sdkAbsTest2: TestContext ->Int
+sdkAbsTest2 ctx = test ctx
     let
         f x = abs x
     in
@@ -354,8 +355,8 @@ sdkAbsTest2 _ =
   Test: SdkBasics/clamp
   Expected = 100
 -}
-sdkClampTest: () -> Int
-sdkClampTest _ =
+sdkClampTest: TestContext ->Int
+sdkClampTest ctx = test ctx
     let
         f x y z = clamp x y z
     in
@@ -365,8 +366,8 @@ sdkClampTest _ =
   Test: SdkBasics/clamp2
   Expected = 100
 -}
-sdkClampTest2: () -> Int
-sdkClampTest2 _ =
+sdkClampTest2: TestContext ->Int
+sdkClampTest2 ctx = test ctx
     let
         f x y z = clamp x y z
     in
@@ -376,8 +377,8 @@ sdkClampTest2 _ =
   Test: SdkBasics/clamp3
   Expected = 200
 -}
-sdkClampTest3: () -> Int
-sdkClampTest3 _ =
+sdkClampTest3: TestContext ->Int
+sdkClampTest3 ctx = test ctx
     let
         f x y z = clamp x y z
     in
@@ -387,8 +388,8 @@ sdkClampTest3 _ =
   Test: SdkBasics/isNan
   Expected = True
 -}
-sdkIsNaNTest: () -> Bool
-sdkIsNaNTest _ =
+sdkIsNaNTest: TestContext ->Bool
+sdkIsNaNTest ctx = test ctx
     let
         f x = isNaN x
     in
@@ -398,8 +399,8 @@ sdkIsNaNTest _ =
   Test: SdkBasics/isInfinite
   Expected = True
 -}
-sdkIsInfiniteTest: () -> Bool
-sdkIsInfiniteTest _ =
+sdkIsInfiniteTest: TestContext ->Bool
+sdkIsInfiniteTest ctx = test ctx
     let
         f x = isInfinite x
     in
@@ -409,8 +410,8 @@ sdkIsInfiniteTest _ =
   Test: SdkBasics/sqrt
   Expected = 4
 -}
-sdkSqrtTest: () -> Float
-sdkSqrtTest _ =
+sdkSqrtTest: TestContext ->Float
+sdkSqrtTest ctx = test ctx
     let
         f x = sqrt x
     in
@@ -420,8 +421,8 @@ sdkSqrtTest _ =
   Test: SdkBasics/logBase
   Expected: 2
 -}
-sdkLogBaseTest: () -> Float
-sdkLogBaseTest _ =
+sdkLogBaseTest: TestContext ->Float
+sdkLogBaseTest ctx = test ctx
     let
         f x y = logBase x y
     in
@@ -431,8 +432,8 @@ sdkLogBaseTest _ =
   Test: SdkBasics/logBase2
   Expected: 8
 -}
-sdkLogBaseTest2: () -> Float
-sdkLogBaseTest2 _ =
+sdkLogBaseTest2: TestContext ->Float
+sdkLogBaseTest2 ctx = test ctx
     let
         f x y = logBase x y
     in
@@ -442,8 +443,8 @@ sdkLogBaseTest2 _ =
   Test: SdkBasics/eulersNumber
   Expected: 2.718281828459045
 -}
-sdkEulersNumberTest: () -> Float
-sdkEulersNumberTest _ =
+sdkEulersNumberTest: TestContext ->Float
+sdkEulersNumberTest ctx = test ctx
     let
         f = e
     in
@@ -453,8 +454,8 @@ sdkEulersNumberTest _ =
   Test: SdkBasics/pi
   Expected: 3.141592653589793
 -}
-sdkPiTest: () -> Float
-sdkPiTest _ =
+sdkPiTest: TestContext ->Float
+sdkPiTest ctx = test ctx
     let
         f = pi
     in
@@ -464,8 +465,8 @@ sdkPiTest _ =
   Test: SdkBasics/cos
   Expected: 0.5000000000000001
 -}
-sdkCosTest: () -> Float
-sdkCosTest _ =
+sdkCosTest: TestContext ->Float
+sdkCosTest ctx = test ctx
     let
         f x = cos x
     in
@@ -475,8 +476,8 @@ sdkCosTest _ =
   Test: SdkBasics/sin
   Expected: 0.8660254037844386
 -}
-sdkSinTest: () -> Float
-sdkSinTest _ =
+sdkSinTest: TestContext ->Float
+sdkSinTest ctx = test ctx
     let
         f x = sin x
     in
@@ -486,8 +487,8 @@ sdkSinTest _ =
   Test: SdkBasics/tan
   Expected: 0.9999999999999999
 -}
-sdkTanTest: () -> Float
-sdkTanTest _ =
+sdkTanTest: TestContext ->Float
+sdkTanTest ctx = test ctx
     let
         f x = tan x
     in
@@ -497,8 +498,8 @@ sdkTanTest _ =
   Test: SdkBasics/acos
   Expected: 1.0471975511965979
 -}
-sdkACosTest: () -> Float
-sdkACosTest _ =
+sdkACosTest: TestContext ->Float
+sdkACosTest ctx = test ctx
     let
         f x = acos x
     in
@@ -508,8 +509,8 @@ sdkACosTest _ =
   Test: SdkBasics/asin
   Expected: 0.5235987755982989
 -}
-sdkASinTest: () -> Float
-sdkASinTest _ =
+sdkASinTest: TestContext ->Float
+sdkASinTest ctx = test ctx
     let
         f x = asin x
     in
@@ -519,8 +520,8 @@ sdkASinTest _ =
   Test: SdkBasics/atan
   Expected: 0.7853981633974483
 -}
-sdkATanTest: () -> Float
-sdkATanTest _ =
+sdkATanTest: TestContext ->Float
+sdkATanTest ctx = test ctx
     let
         f x = atan x
     in
@@ -530,8 +531,8 @@ sdkATanTest _ =
   Test: SdkBasics/atan2
   Expected: 0.7853981633974483
 -}
-sdkATan2Test: () -> Float
-sdkATan2Test _ =
+sdkATan2Test: TestContext ->Float
+sdkATan2Test ctx = test ctx
     let
         f x y = atan2 x y
     in
@@ -541,8 +542,8 @@ sdkATan2Test _ =
   Test: SdkBasics/degrees
   Expected: 3.141592653589793
 -}
-sdkDegreesTest: () -> Float
-sdkDegreesTest _ =
+sdkDegreesTest: TestContext ->Float
+sdkDegreesTest ctx = test ctx
     let
         f x = degrees x
     in
@@ -552,8 +553,8 @@ sdkDegreesTest _ =
   Test: SdkBasics/radians
   Expected: 3.141592653589793
 -}
-sdkRadiansTest: () -> Float
-sdkRadiansTest _ =
+sdkRadiansTest: TestContext ->Float
+sdkRadiansTest ctx = test ctx
     let
         f x = radians x
     in
@@ -563,8 +564,8 @@ sdkRadiansTest _ =
   Test: SdkBasics/turns
   Expected: 3.141592653589793
 -}
-sdkTurnsTest: () -> Float
-sdkTurnsTest _ =
+sdkTurnsTest: TestContext ->Float
+sdkTurnsTest ctx = test ctx
     let
         f x = turns x
     in
@@ -574,8 +575,8 @@ sdkTurnsTest _ =
   Test: SdkBasics/toPolar
   Expected: (5,0.9272952180016122)
 -}
-sdkToPolarTest: () -> (Float, Float)
-sdkToPolarTest _ =
+sdkToPolarTest: TestContext ->(Float, Float)
+sdkToPolarTest ctx = test ctx
     let
         f x = toPolar x
     in
@@ -585,8 +586,8 @@ sdkToPolarTest _ =
   Test: SdkBasics/fromPolar
   Expected: ~(1, 1)
 -}
-sdkFromPolarTest: () -> (Float, Float)
-sdkFromPolarTest _ =
+sdkFromPolarTest: TestContext ->(Float, Float)
+sdkFromPolarTest ctx = test ctx
     let
         f x = fromPolar x
     in
@@ -598,8 +599,8 @@ sdkFromPolarTest _ =
   Test: SdkBasics/equal
   Expected: True
 -}
-sdkEqualTest: () -> Bool
-sdkEqualTest _ =
+sdkEqualTest: TestContext ->Bool
+sdkEqualTest ctx = test ctx
     let
         f x y = x == y
     in
@@ -609,8 +610,8 @@ sdkEqualTest _ =
   Test: SdkBasics/equal2
   Expected: True
 -}
-sdkEqualTest2: () -> Bool
-sdkEqualTest2 _ =
+sdkEqualTest2: TestContext ->Bool
+sdkEqualTest2 ctx = test ctx
     let
         f x y = x == y
     in
@@ -620,8 +621,8 @@ sdkEqualTest2 _ =
   Test: SdkBasics/equal3
   Expected: True
 -}
-sdkEqualTest3: () -> Bool
-sdkEqualTest3 _ =
+sdkEqualTest3: TestContext ->Bool
+sdkEqualTest3 ctx = test ctx
     let
         f x y = x == y
     in
@@ -631,8 +632,8 @@ sdkEqualTest3 _ =
   Test: SdkBasics/equal4
   Expected: True
 -}
-sdkEqualTest4: () -> Bool
-sdkEqualTest4 _ =
+sdkEqualTest4: TestContext ->Bool
+sdkEqualTest4 ctx = test ctx
     let
         f x y = x == y
     in
@@ -642,8 +643,8 @@ sdkEqualTest4 _ =
   Test: SdkBasics/equal5
   Expected: True
 -}
-sdkEqualTest5: () -> Bool
-sdkEqualTest5 _ =
+sdkEqualTest5: TestContext ->Bool
+sdkEqualTest5 ctx = test ctx
     let
         f x y = x == y
     in
@@ -653,8 +654,8 @@ sdkEqualTest5 _ =
   Test: SdkBasics/equal6
   Expected: True
 -}
-sdkEqualTest6: () -> Bool
-sdkEqualTest6 _ =
+sdkEqualTest6: TestContext ->Bool
+sdkEqualTest6 ctx = test ctx
     let
         f x y = x == y
     in
@@ -664,8 +665,8 @@ sdkEqualTest6 _ =
   Test: SdkBasics/equal7
   Expected: True
 -}
-sdkEqualTest7: () -> Bool
-sdkEqualTest7 _ =
+sdkEqualTest7: TestContext ->Bool
+sdkEqualTest7 ctx = test ctx
     let
         f x y = x == y
     in
@@ -677,8 +678,8 @@ sdkEqualTest7 _ =
   Test: SdkBasics/notEqual
   Expected: True
 -}
-sdkNotEqualTest: () -> Bool
-sdkNotEqualTest _ =
+sdkNotEqualTest: TestContext ->Bool
+sdkNotEqualTest ctx = test ctx
     let
         f x y = x /= y
     in
@@ -688,8 +689,8 @@ sdkNotEqualTest _ =
   Test: SdkBasics/notEqual2
   Expected: True
 -}
-sdkNotEqualTest2: () -> Bool
-sdkNotEqualTest2 _ =
+sdkNotEqualTest2: TestContext ->Bool
+sdkNotEqualTest2 ctx = test ctx
     let
         f x y = x /= y
     in
@@ -699,8 +700,8 @@ sdkNotEqualTest2 _ =
   Test: SdkBasics/notEqual3
   Expected: True
 -}
-sdkNotEqualTest3: () -> Bool
-sdkNotEqualTest3 _ =
+sdkNotEqualTest3: TestContext ->Bool
+sdkNotEqualTest3 ctx = test ctx
     let
         f x y = x /= y
     in
@@ -710,8 +711,8 @@ sdkNotEqualTest3 _ =
   Test: SdkBasics/notEqual4
   Expected: True
 -}
-sdkNotEqualTest4: () -> Bool
-sdkNotEqualTest4 _ =
+sdkNotEqualTest4: TestContext ->Bool
+sdkNotEqualTest4 ctx = test ctx
     let
         f x y = x /= y
     in
@@ -721,8 +722,8 @@ sdkNotEqualTest4 _ =
   Test: SdkBasics/notEqual5
   Expected: True
 -}
-sdkNotEqualTest5: () -> Bool
-sdkNotEqualTest5 _ =
+sdkNotEqualTest5: TestContext ->Bool
+sdkNotEqualTest5 ctx = test ctx
     let
         f x y = x /= y
     in
@@ -732,8 +733,8 @@ sdkNotEqualTest5 _ =
   Test: SdkBasics/notEqual6
   Expected: True
 -}
-sdkNotEqualTest6: () -> Bool
-sdkNotEqualTest6 _ =
+sdkNotEqualTest6: TestContext ->Bool
+sdkNotEqualTest6 ctx = test ctx
     let
         f x y = x /= y
     in
@@ -743,8 +744,8 @@ sdkNotEqualTest6 _ =
   Test: SdkBasics/notEqual7
   Expected: True
 -}
-sdkNotEqualTest7: () -> Bool
-sdkNotEqualTest7 _ =
+sdkNotEqualTest7: TestContext ->Bool
+sdkNotEqualTest7 ctx = test ctx
     let
         f x y = x /= y
     in
@@ -756,16 +757,16 @@ sdkNotEqualTest7 _ =
   Test: SdkBasics/lessThanInt
   Expected: True
 -}
-sdkLessThanTestIntTrue: () -> Bool
-sdkLessThanTestIntTrue _ =
+sdkLessThanTestIntTrue: TestContext ->Bool
+sdkLessThanTestIntTrue ctx = test ctx
     let f x y = x < y in f 2 4
 
 {-
   Test: SdkBasics/lessThanInt
   Expected: False
 -}
-sdkLessThanTestIntFalse: () -> Bool
-sdkLessThanTestIntFalse _ =
+sdkLessThanTestIntFalse: TestContext ->Bool
+sdkLessThanTestIntFalse ctx = test ctx
     let f x y = x < y in f 5 4
 
 
@@ -773,64 +774,64 @@ sdkLessThanTestIntFalse _ =
   Test: SdkBasics/greaterThanInt
   Expected: True
 -}
-sdkGreaterThanTestIntTrue: () -> Bool
-sdkGreaterThanTestIntTrue _ =
+sdkGreaterThanTestIntTrue: TestContext ->Bool
+sdkGreaterThanTestIntTrue ctx = test ctx
     let f x y = x > y in f 4 2
 
 {-
   Test: SdkBasics/greaterThanInt
   Expected: False
 -}
-sdkGreaterThanTestIntFalse: () -> Bool
-sdkGreaterThanTestIntFalse _ =
+sdkGreaterThanTestIntFalse: TestContext ->Bool
+sdkGreaterThanTestIntFalse ctx = test ctx
     let f x y = x > y in f 1 2
 
 {-
   Test: SdkBasics/greaterThanEqualsInt (1)
   Expected: True
 -}
-sdkGreaterThanOrEqualTestIntTrue1: () -> Bool
-sdkGreaterThanOrEqualTestIntTrue1 _ =
+sdkGreaterThanOrEqualTestIntTrue1: TestContext ->Bool
+sdkGreaterThanOrEqualTestIntTrue1 ctx = test ctx
     let f x y = x >= y in f 4 2
 
 {-
   Test: SdkBasics/greaterThanEqualsInt (2)
   Expected: True
 -}
-sdkGreaterThanOrEqualTestIntTrue2: () -> Bool
-sdkGreaterThanOrEqualTestIntTrue2 _ =
+sdkGreaterThanOrEqualTestIntTrue2: TestContext ->Bool
+sdkGreaterThanOrEqualTestIntTrue2 ctx = test ctx
     let f x y = x >= y in f 2 2
 
 {-
   Test: SdkBasics/greaterThanEqualsInt
   Expected: False
 -}
-sdkGreaterThanOrEqualTestIntFalse: () -> Bool
-sdkGreaterThanOrEqualTestIntFalse _ =
+sdkGreaterThanOrEqualTestIntFalse: TestContext ->Bool
+sdkGreaterThanOrEqualTestIntFalse ctx = test ctx
     let f x y = x >= y in f 1 2
 
 {-
   Test: SdkBasics/lessThanEqualsInt (1)
   Expected: True
 -}
-sdkLessThanOrEqualTestIntTrue1: () -> Bool
-sdkLessThanOrEqualTestIntTrue1 _ =
+sdkLessThanOrEqualTestIntTrue1: TestContext ->Bool
+sdkLessThanOrEqualTestIntTrue1 ctx = test ctx
     let f x y = x <= y in f 2 4
 
 {-
   Test: SdkBasics/lessThanEqualsInt (2)
   Expected: True
 -}
-sdkLessThanOrEqualTestIntTrue2: () -> Bool
-sdkLessThanOrEqualTestIntTrue2 _ =
+sdkLessThanOrEqualTestIntTrue2: TestContext ->Bool
+sdkLessThanOrEqualTestIntTrue2 ctx = test ctx
     let f x y = x <= y in f 2 2
 
 {-
   Test: SdkBasics/lessThanEqualsInt
   Expected: False
 -}
-sdkLessThanOrEqualTestIntFalse: () -> Bool
-sdkLessThanOrEqualTestIntFalse _ =
+sdkLessThanOrEqualTestIntFalse: TestContext ->Bool
+sdkLessThanOrEqualTestIntFalse ctx = test ctx
     let f x y = x <= y in f 2 1
 
 
@@ -838,8 +839,8 @@ sdkLessThanOrEqualTestIntFalse _ =
   Test: SdkBasics/lessThanFloat
   Expected: True
 -}
-sdkLessThanTestFloat: () -> Bool
-sdkLessThanTestFloat _ =
+sdkLessThanTestFloat: TestContext ->Bool
+sdkLessThanTestFloat ctx = test ctx
     let
         f x y = x < y
     in
@@ -849,8 +850,8 @@ sdkLessThanTestFloat _ =
   Test: SdkBasics/lessThanChar
   Expected: True
 -}
-sdkLessThanTestChar: () -> Bool
-sdkLessThanTestChar _ =
+sdkLessThanTestChar: TestContext ->Bool
+sdkLessThanTestChar ctx = test ctx
     let
         f x y = x < y
     in
@@ -860,8 +861,8 @@ sdkLessThanTestChar _ =
   Test: SdkBasics/lessThanString
   Expected: True
 -}
-sdkLessThanTestString: () -> Bool
-sdkLessThanTestString _ =
+sdkLessThanTestString: TestContext ->Bool
+sdkLessThanTestString ctx = test ctx
     let
         f x y = x < y
     in
@@ -871,8 +872,8 @@ sdkLessThanTestString _ =
   Test: SdkBasics/lessThanTuple
   Expected: True
 -}
-sdkLessThanTestTuple: () -> Bool
-sdkLessThanTestTuple _ =
+sdkLessThanTestTuple: TestContext ->Bool
+sdkLessThanTestTuple ctx = test ctx
     let
         f x y = x < y
     in
@@ -882,8 +883,8 @@ sdkLessThanTestTuple _ =
   Test: SdkBasics/lessThanList
   Expected: True
 -}
-sdkLessThanTestList: () -> Bool
-sdkLessThanTestList _ =
+sdkLessThanTestList: TestContext ->Bool
+sdkLessThanTestList ctx = test ctx
     let
         f x y = x < y
     in
@@ -895,8 +896,8 @@ sdkLessThanTestList _ =
   Test: SdkBasics/lessThanOrEqualInt
   Expected: True
 -}
-sdkLessThanOrEqualTestInt: () -> Bool
-sdkLessThanOrEqualTestInt _ =
+sdkLessThanOrEqualTestInt: TestContext ->Bool
+sdkLessThanOrEqualTestInt ctx = test ctx
     let
         f x y = x <= y
     in
@@ -906,8 +907,8 @@ sdkLessThanOrEqualTestInt _ =
   Test: SdkBasics/lessThanOrEqualFloat
   Expected: True
 -}
-sdkLessThanOrEqualTestFloat: () -> Bool
-sdkLessThanOrEqualTestFloat _ =
+sdkLessThanOrEqualTestFloat: TestContext ->Bool
+sdkLessThanOrEqualTestFloat ctx = test ctx
     let
         f x y = x <= y
     in
@@ -917,8 +918,8 @@ sdkLessThanOrEqualTestFloat _ =
   Test: SdkBasics/lessThanOrEqualChar
   Expected: True
 -}
-sdkLessThanOrEqualTestChar: () -> Bool
-sdkLessThanOrEqualTestChar _ =
+sdkLessThanOrEqualTestChar: TestContext ->Bool
+sdkLessThanOrEqualTestChar ctx = test ctx
     let
         f x y = x <= y
     in
@@ -928,8 +929,8 @@ sdkLessThanOrEqualTestChar _ =
   Test: SdkBasics/lessThanOrEqualString
   Expected: True
 -}
-sdkLessThanOrEqualTestString: () -> Bool
-sdkLessThanOrEqualTestString _ =
+sdkLessThanOrEqualTestString: TestContext ->Bool
+sdkLessThanOrEqualTestString ctx = test ctx
     let
         f x y = x <= y
     in
@@ -939,8 +940,8 @@ sdkLessThanOrEqualTestString _ =
   Test: SdkBasics/lessThanOrEqualTuple
   Expected: True
 -}
-sdkLessThanOrEqualTestTuple: () -> Bool
-sdkLessThanOrEqualTestTuple _ =
+sdkLessThanOrEqualTestTuple: TestContext ->Bool
+sdkLessThanOrEqualTestTuple ctx = test ctx
     let
         f x y = x <= y
     in
@@ -950,8 +951,8 @@ sdkLessThanOrEqualTestTuple _ =
   Test: SdkBasics/lessThanOrEqualList
   Expected: True
 -}
-sdkLessThanOrEqualTestList: () -> Bool
-sdkLessThanOrEqualTestList _ =
+sdkLessThanOrEqualTestList: TestContext ->Bool
+sdkLessThanOrEqualTestList ctx = test ctx
     let
         f x y = x <= y
     in
@@ -963,8 +964,8 @@ sdkLessThanOrEqualTestList _ =
   Test: SdkBasics/greaterThanInt
   Expected: False
 -}
-sdkGreaterThanTestInt: () -> Bool
-sdkGreaterThanTestInt _ =
+sdkGreaterThanTestInt: TestContext ->Bool
+sdkGreaterThanTestInt ctx = test ctx
     let
         f x y = x > y
     in
@@ -974,8 +975,8 @@ sdkGreaterThanTestInt _ =
   Test: SdkBasics/greaterThanFloat
   Expected: False
 -}
-sdkGreaterThanTestFloat: () -> Bool
-sdkGreaterThanTestFloat _ =
+sdkGreaterThanTestFloat: TestContext ->Bool
+sdkGreaterThanTestFloat ctx = test ctx
     let
         f x y = x > y
     in
@@ -985,8 +986,8 @@ sdkGreaterThanTestFloat _ =
   Test: SdkBasics/greaterThanChar
   Expected: False
 -}
-sdkGreaterThanTestChar: () -> Bool
-sdkGreaterThanTestChar _ =
+sdkGreaterThanTestChar: TestContext ->Bool
+sdkGreaterThanTestChar ctx = test ctx
     let
         f x y = x > y
     in
@@ -996,8 +997,8 @@ sdkGreaterThanTestChar _ =
   Test: SdkBasics/greaterThanString
   Expected: False
 -}
-sdkGreaterThanTestString: () -> Bool
-sdkGreaterThanTestString _ =
+sdkGreaterThanTestString: TestContext ->Bool
+sdkGreaterThanTestString ctx = test ctx
     let
         f x y = x > y
     in
@@ -1007,8 +1008,8 @@ sdkGreaterThanTestString _ =
   Test: SdkBasics/greaterThanTuple
   Expected: False
 -}
-sdkGreaterThanTestTuple: () -> Bool
-sdkGreaterThanTestTuple _ =
+sdkGreaterThanTestTuple: TestContext ->Bool
+sdkGreaterThanTestTuple ctx = test ctx
     let
         f x y = x > y
     in
@@ -1018,8 +1019,8 @@ sdkGreaterThanTestTuple _ =
   Test: SdkBasics/greaterThanList
   Expected: False
 -}
-sdkGreaterThanTestList: () -> Bool
-sdkGreaterThanTestList _ =
+sdkGreaterThanTestList: TestContext ->Bool
+sdkGreaterThanTestList ctx = test ctx
     let
         f x y = x > y
     in
@@ -1031,8 +1032,8 @@ sdkGreaterThanTestList _ =
   Test: SdkBasics/greaterThanOrEqualInt
   Expected: False
 -}
-sdkGreaterThanOrEqualTestInt: () -> Bool
-sdkGreaterThanOrEqualTestInt _ =
+sdkGreaterThanOrEqualTestInt: TestContext ->Bool
+sdkGreaterThanOrEqualTestInt ctx = test ctx
     let
         f x y = x >= y
     in
@@ -1042,8 +1043,8 @@ sdkGreaterThanOrEqualTestInt _ =
   Test: SdkBasics/greaterThanOrEqualFloat
   Expected: False
 -}
-sdkGreaterThanOrEqualTestFloat: () -> Bool
-sdkGreaterThanOrEqualTestFloat _ =
+sdkGreaterThanOrEqualTestFloat: TestContext ->Bool
+sdkGreaterThanOrEqualTestFloat ctx = test ctx
     let
         f x y = x >= y
     in
@@ -1053,8 +1054,8 @@ sdkGreaterThanOrEqualTestFloat _ =
   Test: SdkBasics/greaterThanOrEqualChar
   Expected: False
 -}
-sdkGreaterThanOrEqualTestChar: () -> Bool
-sdkGreaterThanOrEqualTestChar _ =
+sdkGreaterThanOrEqualTestChar: TestContext ->Bool
+sdkGreaterThanOrEqualTestChar ctx = test ctx
     let
         f x y = x >= y
     in
@@ -1064,8 +1065,8 @@ sdkGreaterThanOrEqualTestChar _ =
   Test: SdkBasics/greaterThanOrEqualString
   Expected: False
 -}
-sdkGreaterThanOrEqualTestString: () -> Bool
-sdkGreaterThanOrEqualTestString _ =
+sdkGreaterThanOrEqualTestString: TestContext ->Bool
+sdkGreaterThanOrEqualTestString ctx = test ctx
     let
         f x y = x >= y
     in
@@ -1075,8 +1076,8 @@ sdkGreaterThanOrEqualTestString _ =
   Test: SdkBasics/greaterThanOrEqualTuple
   Expected: False
 -}
-sdkGreaterThanOrEqualTestTuple: () -> Bool
-sdkGreaterThanOrEqualTestTuple _ =
+sdkGreaterThanOrEqualTestTuple: TestContext ->Bool
+sdkGreaterThanOrEqualTestTuple ctx = test ctx
     let
         f x y = x >= y
     in
@@ -1086,8 +1087,8 @@ sdkGreaterThanOrEqualTestTuple _ =
   Test: SdkBasics/greaterThanOrEqualList
   Expected: False
 -}
-sdkGreaterThanOrEqualTestList: () -> Bool
-sdkGreaterThanOrEqualTestList _ =
+sdkGreaterThanOrEqualTestList: TestContext ->Bool
+sdkGreaterThanOrEqualTestList ctx = test ctx
     let
         f x y = x >= y
     in
@@ -1099,8 +1100,8 @@ sdkGreaterThanOrEqualTestList _ =
   Test: SdkBasics/maxInt
   Expected: 4
 -}
-sdkMaxTestInt: () -> Int
-sdkMaxTestInt _ =
+sdkMaxTestInt: TestContext ->Int
+sdkMaxTestInt ctx = test ctx
     let
         f x y = max x y
     in
@@ -1110,8 +1111,8 @@ sdkMaxTestInt _ =
   Test: SdkBasics/maxFloat
   Expected: 4.0
 -}
-sdkMaxTestFloat: () -> Float
-sdkMaxTestFloat _ =
+sdkMaxTestFloat: TestContext ->Float
+sdkMaxTestFloat ctx = test ctx
     let
         f x y = max x y
     in
@@ -1121,8 +1122,8 @@ sdkMaxTestFloat _ =
   Test: SdkBasics/maxChar
   Expected: 'b'
 -}
-sdkMaxTestChar: () -> Char
-sdkMaxTestChar _ =
+sdkMaxTestChar: TestContext ->Char
+sdkMaxTestChar ctx = test ctx
     let
         f x y = max x y
     in
@@ -1132,8 +1133,8 @@ sdkMaxTestChar _ =
   Test: SdkBasics/maxString
   Expected: "BB"
 -}
-sdkMaxTestString: () -> String
-sdkMaxTestString _ =
+sdkMaxTestString: TestContext ->String
+sdkMaxTestString ctx = test ctx
     let
         f x y = max x y
     in
@@ -1143,8 +1144,8 @@ sdkMaxTestString _ =
   Test: SdkBasics/maxTuple
   Expected: (2, 3)
 -}
-sdkMaxTestTuple: () -> ( number, number1 )
-sdkMaxTestTuple _ =
+sdkMaxTestTuple: TestContext ->( number, number1 )
+sdkMaxTestTuple ctx = test ctx
     let
         f x y = max x y
     in
@@ -1154,8 +1155,8 @@ sdkMaxTestTuple _ =
   Test: SdkBasics/maxList
   Expected: [2, 3]
 -}
-sdkMaxTestList: () -> List number
-sdkMaxTestList _ =
+sdkMaxTestList: TestContext ->List number
+sdkMaxTestList ctx = test ctx
     let
         f x y = max x y
     in
@@ -1167,8 +1168,8 @@ sdkMaxTestList _ =
   Test: SdkBasics/minInt
   Expected: 2
 -}
-sdkMinTestInt: () -> Int
-sdkMinTestInt _ =
+sdkMinTestInt: TestContext ->Int
+sdkMinTestInt ctx = test ctx
     let
         f x y = min x y
     in
@@ -1178,8 +1179,8 @@ sdkMinTestInt _ =
   Test: SdkBasics/minFloat
   Expected: 2.0
 -}
-sdkMinTestFloat: () -> Float
-sdkMinTestFloat _ =
+sdkMinTestFloat: TestContext ->Float
+sdkMinTestFloat ctx = test ctx
     let
         f x y = min x y
     in
@@ -1189,8 +1190,8 @@ sdkMinTestFloat _ =
   Test: SdkBasics/minChar
   Expected: 'a'
 -}
-sdkMinTestChar: () -> Char
-sdkMinTestChar _ =
+sdkMinTestChar: TestContext ->Char
+sdkMinTestChar ctx = test ctx
     let
         f x y = min x y
     in
@@ -1200,8 +1201,8 @@ sdkMinTestChar _ =
   Test: SdkBasics/minString
   Expected: "AA"
 -}
-sdkMinTestString: () -> String
-sdkMinTestString _ =
+sdkMinTestString: TestContext ->String
+sdkMinTestString ctx = test ctx
     let
         f x y = min x y
     in
@@ -1211,8 +1212,8 @@ sdkMinTestString _ =
   Test: SdkBasics/minTuple
   Expected: (1, 2)
 -}
-sdkMinTestTuple: () -> ( number, number1 )
-sdkMinTestTuple _ =
+sdkMinTestTuple: TestContext ->( number, number1 )
+sdkMinTestTuple ctx = test ctx
     let
         f x y = min x y
     in
@@ -1222,8 +1223,8 @@ sdkMinTestTuple _ =
   Test: SdkBasics/minList
   Expected: [1, 2]
 -}
-sdkMinTestList: () -> List number
-sdkMinTestList _ =
+sdkMinTestList: TestContext ->List number
+sdkMinTestList ctx = test ctx
     let
         f x y = min x y
     in
@@ -1235,8 +1236,8 @@ sdkMinTestList _ =
   Test: SdkBasics/not
   Expected: False
 -}
-sdkNotTest: () -> Bool
-sdkNotTest _ =
+sdkNotTest: TestContext ->Bool
+sdkNotTest ctx = test ctx
     let
         f x = not x
     in
@@ -1246,8 +1247,8 @@ sdkNotTest _ =
   Test: SdkBasics/and
   Expected: False
 -}
-sdkAndTest: () -> Bool
-sdkAndTest _ =
+sdkAndTest: TestContext ->Bool
+sdkAndTest ctx = test ctx
     let
         f x y = x && y
     in
@@ -1257,8 +1258,8 @@ sdkAndTest _ =
   Test: SdkBasics/or
   Expected: True
 -}
-sdkOrTest: () -> Bool
-sdkOrTest _ =
+sdkOrTest: TestContext ->Bool
+sdkOrTest ctx = test ctx
     let
         f x y = x || y
     in
@@ -1268,8 +1269,8 @@ sdkOrTest _ =
   Test: SdkBasics/xor
   Expected: True
 -}
-sdkXorTest: () -> Bool
-sdkXorTest _ =
+sdkXorTest: TestContext ->Bool
+sdkXorTest ctx = test ctx
     let
         f x y = xor x y
     in
@@ -1281,8 +1282,8 @@ sdkXorTest _ =
   Test: SdkBasics/appendString
   Expected: "aa-bb"
 -}
-sdkAppendStringTest: () -> String
-sdkAppendStringTest _ =
+sdkAppendStringTest: TestContext ->String
+sdkAppendStringTest ctx = test ctx
     let
         f x y = String.append x y
     in
@@ -1292,8 +1293,8 @@ sdkAppendStringTest _ =
   Test: SdkBasics/appendList
   Expected: [1, 2, 3, 4]
 -}
-sdkAppendListTest: () -> List number
-sdkAppendListTest _ =
+sdkAppendListTest: TestContext ->List number
+sdkAppendListTest ctx = test ctx
     let
         f x y = List.append x y
     in
@@ -1306,8 +1307,8 @@ sdkAppendListTest _ =
   Test: SdkBasics/identityInt
   Expected: 4
 -}
-sdkIdentityTestInt: () -> Int
-sdkIdentityTestInt _ =
+sdkIdentityTestInt: TestContext ->Int
+sdkIdentityTestInt ctx = test ctx
     let
         f x = identity x
     in
@@ -1317,8 +1318,8 @@ sdkIdentityTestInt _ =
   Test: SdkBasics/identityFloat
   Expected: 4.0
 -}
-sdkIdentityTestFloat: () -> Float
-sdkIdentityTestFloat _ =
+sdkIdentityTestFloat: TestContext ->Float
+sdkIdentityTestFloat ctx = test ctx
     let
         f x = identity x
     in
@@ -1328,8 +1329,8 @@ sdkIdentityTestFloat _ =
   Test: SdkBasics/identityChar
   Expected: 'b'
 -}
-sdkIdentityTestChar: () -> Char
-sdkIdentityTestChar _ =
+sdkIdentityTestChar: TestContext ->Char
+sdkIdentityTestChar ctx = test ctx
     let
         f x = identity x
     in
@@ -1339,8 +1340,8 @@ sdkIdentityTestChar _ =
   Test: SdkBasics/identityString
   Expected: "BB"
 -}
-sdkIdentityTestString: () -> String
-sdkIdentityTestString _ =
+sdkIdentityTestString: TestContext ->String
+sdkIdentityTestString ctx = test ctx
     let
         f x = identity x
     in
@@ -1350,8 +1351,8 @@ sdkIdentityTestString _ =
   Test: SdkBasics/identityTuple
   Expected: (2, 3)
 -}
-sdkIdentityTestTuple: () -> ( number, number1 )
-sdkIdentityTestTuple _ =
+sdkIdentityTestTuple: TestContext ->( number, number1 )
+sdkIdentityTestTuple ctx = test ctx
     let
         f x = identity x
     in
@@ -1361,8 +1362,8 @@ sdkIdentityTestTuple _ =
   Test: SdkBasics/identityList
   Expected: [2, 3]
 -}
-sdkIdentityTestList: () -> List number
-sdkIdentityTestList _ =
+sdkIdentityTestList: TestContext ->List number
+sdkIdentityTestList ctx = test ctx
     let
         f x = identity x
     in
@@ -1374,8 +1375,8 @@ sdkIdentityTestList _ =
   Test: SdkBasics/identityInt
   Expected: 4
 -}
-sdkIdentityTestInt: () -> Int
-sdkIdentityTestInt _ =
+sdkIdentityTestInt: TestContext ->Int
+sdkIdentityTestInt ctx = test ctx
     let
         f x = identity x
     in
@@ -1385,8 +1386,8 @@ sdkIdentityTestInt _ =
   Test: SdkBasics/identityFloat
   Expected: 4.0
 -}
-sdkIdentityTestFloat: () -> Float
-sdkIdentityTestFloat _ =
+sdkIdentityTestFloat: TestContext ->Float
+sdkIdentityTestFloat ctx = test ctx
     let
         f x = identity x
     in
@@ -1396,8 +1397,8 @@ sdkIdentityTestFloat _ =
   Test: SdkBasics/identityChar
   Expected: 'b'
 -}
-sdkIdentityTestChar: () -> Char
-sdkIdentityTestChar _ =
+sdkIdentityTestChar: TestContext ->Char
+sdkIdentityTestChar ctx = test ctx
     let
         f x = identity x
     in
@@ -1407,8 +1408,8 @@ sdkIdentityTestChar _ =
   Test: SdkBasics/identityString
   Expected: "BB"
 -}
-sdkIdentityTestString: () -> String
-sdkIdentityTestString _ =
+sdkIdentityTestString: TestContext ->String
+sdkIdentityTestString ctx = test ctx
     let
         f x = identity x
     in
@@ -1418,8 +1419,8 @@ sdkIdentityTestString _ =
   Test: SdkBasics/identityTuple
   Expected: (2, 3)
 -}
-sdkIdentityTestTuple: () -> ( number, number1 )
-sdkIdentityTestTuple _ =
+sdkIdentityTestTuple: TestContext ->( number, number1 )
+sdkIdentityTestTuple ctx = test ctx
     let
         f x = identity x
     in
@@ -1429,8 +1430,8 @@ sdkIdentityTestTuple _ =
   Test: SdkBasics/identityList
   Expected: [2, 3]
 -}
-sdkIdentityTestList: () -> List number
-sdkIdentityTestList _ =
+sdkIdentityTestList: TestContext ->List number
+sdkIdentityTestList ctx = test ctx
     let
         f x = identity x
     in
@@ -1442,8 +1443,8 @@ sdkIdentityTestList _ =
   Test: SdkBasics/alwaysInt
   Expected: [0]
 -}
-sdkAlwaysTestInt: () -> List Int
-sdkAlwaysTestInt _ =
+sdkAlwaysTestInt: TestContext ->List Int
+sdkAlwaysTestInt ctx = test ctx
     let
         f x = List.map (always 0) x
     in
@@ -1453,8 +1454,8 @@ sdkAlwaysTestInt _ =
   Test: SdkBasics/alwaysFloat
   Expected: [0.0]
 -}
-sdkAlwaysTestFloat: () -> List Float
-sdkAlwaysTestFloat _ =
+sdkAlwaysTestFloat: TestContext ->List Float
+sdkAlwaysTestFloat ctx = test ctx
     let
         f x = List.map (always 0.0) x
     in
@@ -1464,8 +1465,8 @@ sdkAlwaysTestFloat _ =
   Test: SdkBasics/alwaysChar
   Expected: ['a']
 -}
-sdkAlwaysTestChar: () -> List Char
-sdkAlwaysTestChar _ =
+sdkAlwaysTestChar: TestContext ->List Char
+sdkAlwaysTestChar ctx = test ctx
     let
         f x = List.map (always 'a') x
     in
@@ -1475,8 +1476,8 @@ sdkAlwaysTestChar _ =
   Test: SdkBasics/alwaysString
   Expected: ["A"]
 -}
-sdkAlwaysTestString: () -> List String
-sdkAlwaysTestString _ =
+sdkAlwaysTestString: TestContext ->List String
+sdkAlwaysTestString ctx = test ctx
     let
         f x = List.map (always "A") x
     in
@@ -1488,8 +1489,8 @@ sdkAlwaysTestString _ =
   Test: SdkBasics/composeLeft
   Expected: False
 -}
-sdkComposeLeftTest: () -> Bool
-sdkComposeLeftTest _ =
+sdkComposeLeftTest: TestContext ->Bool
+sdkComposeLeftTest ctx = test ctx
     let
         f x y z = x << y << z
         g = f not not not
@@ -1500,8 +1501,8 @@ sdkComposeLeftTest _ =
   Test: SdkBasics/composeRight
   Expected: True
 -}
-sdkComposeRightTest: () -> Bool
-sdkComposeRightTest _ =
+sdkComposeRightTest: TestContext ->Bool
+sdkComposeRightTest ctx = test ctx
     let
         f x y z = x >> y >> z
         g = f not not not

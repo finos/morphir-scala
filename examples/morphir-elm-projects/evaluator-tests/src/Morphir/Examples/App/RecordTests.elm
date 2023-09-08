@@ -1,4 +1,5 @@
 module Morphir.Examples.App.RecordTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 
 import List exposing (map)
 
@@ -19,15 +20,15 @@ type alias RecordType = {name : String, number : Int}
 
 --Test: Record/FieldTest
 --uses RecordType
-recordFieldTest : () -> String
-recordFieldTest _ = 
+recordFieldTest : TestContext ->String
+recordFieldTest ctx = test ctx 
     {name = "Correct", number = 0}.name
 --expected = "Correct"
 
 --Test: Record/FielFromBoundTest
 --uses RecordType
-recordFieldFromBoundTest : () -> String
-recordFieldFromBoundTest _ = 
+recordFieldFromBoundTest : TestContext ->String
+recordFieldFromBoundTest ctx = test ctx 
     let
         myRecord = {name = "Correct", number = 0}
     in
@@ -39,8 +40,8 @@ type alias RecordType = {name : String, number : Int}
 
 --Test: FieldFunction/Apply
 --uses RecordType
-fieldFunctionApplyTest : () -> String
-fieldFunctionApplyTest _ = 
+fieldFunctionApplyTest : TestContext ->String
+fieldFunctionApplyTest ctx = test ctx 
     let
         myRecord = {name = "Correct", number = 0}
         f = .name
@@ -50,8 +51,8 @@ fieldFunctionApplyTest _ =
 
 --Test: FieldFunction/ApplyTwice
 --uses RecordType
-fieldFunctionApplyTwiceTest : () -> (Int, Int)
-fieldFunctionApplyTwiceTest _ = 
+fieldFunctionApplyTwiceTest : TestContext ->(Int, Int)
+fieldFunctionApplyTwiceTest ctx = test ctx 
     let
         record1 = {name = "Correct", number = 1}
         record2 = {name = "Correct", number = 2}
@@ -63,8 +64,8 @@ fieldFunctionApplyTwiceTest _ =
 --Test: FieldFunction/Unapplied
 --uses RecordType
 --dubiousData
-fieldFunctionUnappliedTest : () -> RecordType -> Int
-fieldFunctionUnappliedTest _ = 
+fieldFunctionUnappliedTest : TestContext ->RecordType -> Int
+fieldFunctionUnappliedTest ctx = test ctx 
     .number
 --expected = <function>
 
@@ -72,8 +73,8 @@ fieldFunctionUnappliedTest _ =
 --Test: FieldFunction/Map
 --import import List exposing map
 --uses RecordType
-fieldFunctionMapTest : () -> List String
-fieldFunctionMapTest _ = 
+fieldFunctionMapTest : TestContext ->List String
+fieldFunctionMapTest ctx = test ctx 
     let
         l = [
             {name = "Soso", number = 3},
@@ -87,8 +88,8 @@ fieldFunctionMapTest _ =
 --expected = ["Soso", "Ponyo", "Odin"]
 --Test: Record/Simple
 --uses RecordType
-recordSimpleTest : () -> RecordType
-recordSimpleTest _ = 
+recordSimpleTest : TestContext ->RecordType
+recordSimpleTest ctx = test ctx 
     {name = "Fido", number = 5}
 --expected = {name = "Fido", number = 5}
 
@@ -98,8 +99,8 @@ type alias NestedRecordType = {name : String, records : List RecordType}
 --Test: Record/Nested
 --uses RecordType
 --uses NestedRecordType
-recordNestedTest : () -> NestedRecordType
-recordNestedTest _ = 
+recordNestedTest : TestContext ->NestedRecordType
+recordNestedTest ctx = test ctx 
     {name = "Dogs", records = [
         {name = "Ponyo", number = 3}, 
         {name = "Soso", number = 3}
@@ -108,8 +109,8 @@ recordNestedTest _ =
 
 --Test: UpdateRecord/Simple
 --uses RecordType
-updateRecordSimpleTest : () ->String
-updateRecordSimpleTest _ = 
+updateRecordSimpleTest : TestContext ->String
+updateRecordSimpleTest ctx = test ctx 
     let
         initial = {name = "Ponyo", number = 5}
     in
@@ -118,8 +119,8 @@ updateRecordSimpleTest _ =
 
 --Test: UpdateRecord/Full
 --uses RecordType
-updateRecordFullTest : () -> RecordType
-updateRecordFullTest _ = 
+updateRecordFullTest : TestContext ->RecordType
+updateRecordFullTest ctx = test ctx 
     let
         initial = {name = "Ponyo", number = 5}
     in
@@ -128,8 +129,8 @@ updateRecordFullTest _ =
 
 --Test: UpdateRecord/Immutable (ensure record updates are not using mutation)
 --uses RecordType
-updateRecordImmutableTest : () -> List RecordType
-updateRecordImmutableTest _ = 
+updateRecordImmutableTest : TestContext ->List RecordType
+updateRecordImmutableTest ctx = test ctx 
     let
         initial = {name = "Ponyo", number = 4}
     in

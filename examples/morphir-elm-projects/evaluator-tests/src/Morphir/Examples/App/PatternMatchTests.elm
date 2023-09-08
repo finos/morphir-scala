@@ -1,4 +1,5 @@
 module Morphir.Examples.App.PatternMatchTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 {-
 Test cased for PatternMatch
 TODO:
@@ -11,8 +12,8 @@ Unhappy:
 
 
 --Test: PatternMatch/Wildcard
-patternMatchWildcardTest : () -> String
-patternMatchWildcardTest _ = 
+patternMatchWildcardTest : TestContext ->String
+patternMatchWildcardTest ctx = test ctx 
     let 
         match : List Int -> String
         match x = case x of
@@ -29,8 +30,8 @@ patternMatchWildcardTest _ =
 --expected = "Correct"
 
 --Test: PatternMatch/Tuple
-patternMatchTupleTest : () -> String
-patternMatchTupleTest _ = 
+patternMatchTupleTest : TestContext ->String
+patternMatchTupleTest ctx = test ctx 
     let 
         match : (Int, String, String) -> String
         match x = case x of
@@ -54,8 +55,8 @@ type PatternMatchUnionTestType = TwoArg Int String | OtherTwoArg Int String | On
 
 --Test: PatternMatch/Constructor
 --uses PatternMatchUnionTestType
-patternMatchConstructorTest : () -> String
-patternMatchConstructorTest _ = 
+patternMatchConstructorTest : TestContext ->String
+patternMatchConstructorTest ctx = test ctx 
     let 
         match : PatternMatchUnionTestType -> String
         match x = case x of
@@ -79,8 +80,8 @@ patternMatchConstructorTest _ =
 
 --Test: PatternMatch/ZeroArgConstructor
 --uses PatternMatchUnionTestType
-patternMatchZeroArgConstructorTest : () -> String
-patternMatchZeroArgConstructorTest _ = 
+patternMatchZeroArgConstructorTest : TestContext ->String
+patternMatchZeroArgConstructorTest ctx = test ctx 
     let 
         match : PatternMatchUnionTestType -> String
         match x = case x of
@@ -97,8 +98,8 @@ patternMatchZeroArgConstructorTest _ =
 --expected = "Correct"
 
 --Test: PatternMatch/EmptyList
-patternMatchEmptyListTest : () -> String
-patternMatchEmptyListTest _ = 
+patternMatchEmptyListTest : TestContext ->String
+patternMatchEmptyListTest ctx = test ctx 
     let 
         match : List String -> String
         match x = case x of
@@ -113,8 +114,8 @@ patternMatchEmptyListTest _ =
 --expected = "Correct"
 
 --Test: PatternMatch/HeadTail
-patternMatchHeadTailTest : () -> (String, String)
-patternMatchHeadTailTest _ = 
+patternMatchHeadTailTest : TestContext ->(String, String)
+patternMatchHeadTailTest ctx = test ctx 
     let 
         match : List String -> (String, String)
         match x = case x of
@@ -133,8 +134,8 @@ patternMatchHeadTailTest _ =
 --expected = ("Dog", "Red")
 
 --Test: PatternMatch/Literal
-patternMatchLiteralTest : () -> String
-patternMatchLiteralTest _ = 
+patternMatchLiteralTest : TestContext ->String
+patternMatchLiteralTest ctx = test ctx 
     let 
         match : String -> String
         match x = case x of
@@ -149,8 +150,8 @@ patternMatchLiteralTest _ =
 --expected = "Correct"
 
 --Test: PatternMatch/RepeatedAs
-patternMatchRepeatedAsTest : () -> (Int, (Int, Int))
-patternMatchRepeatedAsTest _ = 
+patternMatchRepeatedAsTest : TestContext ->(Int, (Int, Int))
+patternMatchRepeatedAsTest ctx = test ctx 
     let 
         match : (Int, Int) -> (Int, (Int, Int))
         match x = case x of

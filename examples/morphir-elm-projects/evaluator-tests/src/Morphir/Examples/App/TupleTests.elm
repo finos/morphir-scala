@@ -1,33 +1,34 @@
 module Morphir.Examples.App.TupleTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 import Morphir.SDK.Tuple exposing (..)
 
 
 --Test: Tuple/Two
-tupleTwoTest : () ->(Int, Int)
-tupleTwoTest _ = 
+tupleTwoTest : TestContext ->(Int, Int)
+tupleTwoTest ctx = test ctx 
     (5, 4)
 --expected = (5, 4)
 
 --Test: Tuple/Three
-tupleThreeTest : () ->(Int, Bool, String)
-tupleThreeTest _ = 
+tupleThreeTest : TestContext ->(Int, Bool, String)
+tupleThreeTest ctx = test ctx 
     (0, True, "Green")
 --expected =  (0, True, Green)
 
 --Test: Tuple/Nested
-tupleNestedTest : () ->(Int, (String, (Int, String)))
-tupleNestedTest _ = 
+tupleNestedTest : TestContext ->(Int, (String, (Int, String)))
+tupleNestedTest ctx = test ctx 
     (5, ("Four",(4, "Five")))
 --expected = (5, ("Four",(4, "Five")))
 
 --Test: Tuple/first
-tupleFirstTest : () -> Int
-tupleFirstTest _ =
+tupleFirstTest : TestContext ->Int
+tupleFirstTest ctx = test ctx
     first (1, 2)
 --expected = 1
 
 --Test: Tuple/second
-tupleSecondTest : () -> Int
-tupleSecondTest _ =
+tupleSecondTest : TestContext ->Int
+tupleSecondTest ctx = test ctx
     second (1, 2)
 --expected = 2

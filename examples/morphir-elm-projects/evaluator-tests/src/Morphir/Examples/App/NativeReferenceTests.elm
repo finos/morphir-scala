@@ -1,4 +1,5 @@
 module Morphir.Examples.App.NativeReferenceTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 
 {-
     TODO:
@@ -13,14 +14,14 @@ import Morphir.SDK.LocalTime exposing (LocalTime)
         
 --Test: NativeReference/Map
 --import List exposing (map)
-nativeReferenceMapTest : () -> List (Int, Int)
-nativeReferenceMapTest _ = 
+nativeReferenceMapTest : TestContext ->List (Int, Int)
+nativeReferenceMapTest ctx = test ctx 
     map (\x -> (x, x)) [1, 2, 3]
 --expected = [(1,1),(2,2),(3,3)]
 
 --Test: NativeReference/Add
-nativeReferenceAddTest : () -> Int
-nativeReferenceAddTest _ = 
+nativeReferenceAddTest : TestContext ->Int
+nativeReferenceAddTest ctx = test ctx 
     let
         f x y = x + y
     in
@@ -29,8 +30,8 @@ nativeReferenceAddTest _ =
 
 --Test: NativeReference/CurriedLog
 --import Basics exposing (logBase)
-nativeReferenceCurriedLogTest : () -> Float
-nativeReferenceCurriedLogTest _ = 
+nativeReferenceCurriedLogTest : TestContext ->Float
+nativeReferenceCurriedLogTest ctx = test ctx 
     let 
         curried = 
             let
@@ -43,8 +44,8 @@ nativeReferenceCurriedLogTest _ =
 
 --Test: NativeReference/Pi
 --import Basics exposing (pi)
-nativeReferencePiTest : () -> Float
-nativeReferencePiTest _ = 
+nativeReferencePiTest : TestContext ->Float
+nativeReferencePiTest ctx = test ctx 
     pi
 --expected = 3
 

@@ -1,4 +1,5 @@
 module Morphir.Examples.App.UserDefinedReferenceTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 
 {-
     TODO: Check expected values vs. elm (Ellie is not friendly to multiple modules)
@@ -9,15 +10,15 @@ import Dict exposing (Dict)
 
 --Test: UserDefinedReference/Value
 --import Morphir.Examples.App.ExampleModule exposing (..)
-userDefinedReferenceValueTest : () -> Int
-userDefinedReferenceValueTest _ = 
+userDefinedReferenceValueTest : TestContext ->Int
+userDefinedReferenceValueTest ctx = test ctx 
     five
 --expected = 5
 
 --Test: UserDefinedReference/CurriedFunction
 --import Morphir.Examples.App.ExampleModule exposing (..)
-userDefinedReferenceCurriedTest : () -> String
-userDefinedReferenceCurriedTest _ = 
+userDefinedReferenceCurriedTest : TestContext ->String
+userDefinedReferenceCurriedTest ctx = test ctx 
     let 
         curried = outputUnionFunction "Up"
     in
@@ -32,24 +33,24 @@ userDefinedReferenceCurriedTest _ =
 
 --Test: UserDefinedReference/SimpleFunction
 --import Morphir.Examples.App.ExampleModule exposing (..)
-userDefinedReferenceSimpleFunctionTest : () -> (Int, Int)
-userDefinedReferenceSimpleFunctionTest _ = 
+userDefinedReferenceSimpleFunctionTest : TestContext ->(Int, Int)
+userDefinedReferenceSimpleFunctionTest ctx = test ctx 
     tupleReverse (2, 1)
 --expected = (1, 2)
 
 --Test: UserDefinedReference/PublicPrivate Calls public function which relies on private function
 --import Morphir.Examples.App.ExampleModule exposing (..)
-userDefinedReferencePublicPrivateTest : () -> Int
-userDefinedReferencePublicPrivateTest _ = 
+userDefinedReferencePublicPrivateTest : TestContext ->Int
+userDefinedReferencePublicPrivateTest ctx = test ctx 
    publicFunction 5
 --expected = 10
 
 --Test: UserDefinedReference/Record
 --import Morphir.Examples.App.ExampleModule exposing (..)
-userDefinedReferenceRecordTest : () -> String
-userDefinedReferenceRecordTest _ = 
+userDefinedReferenceRecordTest : TestContext ->String
+userDefinedReferenceRecordTest ctx = test ctx 
     let
-        f : () -> ModuleRecord
+        f : () ->ModuleRecord
         f _ = outputRecordFunction "Tom Tit Tot"
     in  
         let
@@ -60,11 +61,11 @@ userDefinedReferenceRecordTest _ =
 
 --Test: UserDefinedReference/Union
 --import Morphir.Examples.App.ExampleModule exposing (..)
-userDefinedReferenceUnionTest : () -> Int
-userDefinedReferenceUnionTest _ = 
+userDefinedReferenceUnionTest : TestContext ->Int
+userDefinedReferenceUnionTest ctx = test ctx 
     let
-        f : () -> ModuleUnion
-        f _ = Down 6
+        f : () ->ModuleUnion
+        f _ =  Down 6
     in  
         inputUnionFunction (f ())
 --expected = -6

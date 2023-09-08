@@ -1,16 +1,17 @@
 module Morphir.Examples.App.OptionTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 
 
-returnJustIntTest : () -> Maybe Int
-returnJustIntTest _ = 
+returnJustIntTest : TestContext ->Maybe Int
+returnJustIntTest ctx = test ctx 
     Just 1
 
-returnJustStringTest : () -> Maybe String
-returnJustStringTest _ =
+returnJustStringTest : TestContext ->Maybe String
+returnJustStringTest ctx = test ctx
     Just "Hello"
 
-returnNoneIntTest : () -> Maybe Int
-returnNoneIntTest _ =
+returnNoneIntTest : TestContext ->Maybe Int
+returnNoneIntTest ctx = test ctx
     Nothing
 
 returnResultType : Int -> Result String Int

@@ -1,4 +1,5 @@
 module Morphir.Examples.App.LiteralTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 {-
     Note that "DecimalLiteral" appears in the IR definition, but not these tests.
     I cannot find anything that compiles to such
@@ -6,8 +7,8 @@ module Morphir.Examples.App.LiteralTests exposing (..)
 -}
 
 --Test: Literal/String
-litStringTest : () -> String
-litStringTest _ =
+litStringTest : TestContext ->String
+litStringTest ctx = test ctx
     let
         value : String
         value = "Bloop"
@@ -16,8 +17,8 @@ litStringTest _ =
 --expected = "Bloop"
 
 --Test: Literal/Float
-litFloatTest : () -> Float
-litFloatTest _ = 
+litFloatTest : TestContext ->Float
+litFloatTest ctx = test ctx 
     let
         value : Float
         value = 5.0
@@ -26,8 +27,8 @@ litFloatTest _ =
 --expected = 5.0
 
 --Test: Literal/Char
-litCharTest : () -> Char
-litCharTest _ = 
+litCharTest : TestContext ->Char
+litCharTest ctx = test ctx 
     let
         value : Char
         value = 'f'
@@ -36,8 +37,8 @@ litCharTest _ =
 --expected = 'f'
 
 --Test: Literal/Bool
-litBoolTest : () -> Bool
-litBoolTest _ = 
+litBoolTest : TestContext ->Bool
+litBoolTest ctx = test ctx 
     let
         value : Bool
         value = True
@@ -46,8 +47,8 @@ litBoolTest _ =
 --expected = True
 
 --Test: Literal/WholeNumber
-litWholeNumberLiteralTest : () -> Int
-litWholeNumberLiteralTest _ = 
+litWholeNumberLiteralTest : TestContext ->Int
+litWholeNumberLiteralTest ctx = test ctx 
     let
         value : Int
         value = 5

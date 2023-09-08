@@ -1,8 +1,9 @@
 module Morphir.Examples.App.SimpleTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 
         
 --Test: Simple/Unit
-simpleUnitTest : () ->()
-simpleUnitTest _ = 
+simpleUnitTest : TestContext ->()
+simpleUnitTest ctx = test ctx 
     ()
 --expected = ()

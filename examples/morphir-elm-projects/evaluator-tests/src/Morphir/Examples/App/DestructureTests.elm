@@ -1,4 +1,5 @@
 module Morphir.Examples.App.DestructureTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 
 {-
     Not all patterns can be destructured in legal elm code, but morphir tooling compiles them anyway.
@@ -15,8 +16,8 @@ module Morphir.Examples.App.DestructureTests exposing (..)
 
 
 --Test: Destructure/As
-destructureAsTest : () -> Int
-destructureAsTest _ = 
+destructureAsTest : TestContext ->Int
+destructureAsTest ctx = test ctx 
     let
         destructure : Int -> Int
         destructure toDestructure =
@@ -29,8 +30,8 @@ destructureAsTest _ =
 --expected = 5
 
 --Test: Destructure/Tuple
-destructureTupleTest : () -> (Int, Int)
-destructureTupleTest _ = 
+destructureTupleTest : TestContext ->(Int, Int)
+destructureTupleTest ctx = test ctx 
     let
         destructure : (Int, Int) -> (Int, Int)
         destructure toDestructure =
@@ -47,8 +48,8 @@ type SingleBranchConstructor = Just Int String
 
 --Test: Destructure/Constructor
 --uses SingleBranchConstructor
-destructureConstructorTest : () -> (Int, String)
-destructureConstructorTest _ = 
+destructureConstructorTest : TestContext ->(Int, String)
+destructureConstructorTest ctx = test ctx 
     let
         destructure : SingleBranchConstructor -> (Int, String)
         destructure toDestructure =
@@ -61,10 +62,10 @@ destructureConstructorTest _ =
 --expected = (5, "red")
 
 --Test: Destructure/Unit
-destructureUnitTest : () -> Int
-destructureUnitTest _ = 
+destructureUnitTest : TestContext ->Int
+destructureUnitTest ctx = test ctx 
     let
-        destructure : () -> Int
+        destructure : () ->Int
         destructure toDestructure =
             let
                 () = toDestructure
@@ -75,8 +76,8 @@ destructureUnitTest _ =
 --expected = 4
 
 --Test: Destructure/AsTwice
-destructureAsTwiceTest : () -> (Int, Int)
-destructureAsTwiceTest _ = 
+destructureAsTwiceTest : TestContext ->(Int, Int)
+destructureAsTwiceTest ctx = test ctx 
     let
         destructure : Int -> (Int, Int)
         destructure toDestructure =
@@ -89,8 +90,8 @@ destructureAsTwiceTest _ =
 --expected = (5, 5)
 
 --Test: Destructure/TupleTwice
-destructureTupleTwiceTest : () -> (String, Int, (Int, String))
-destructureTupleTwiceTest _ = 
+destructureTupleTwiceTest : TestContext ->(String, Int, (Int, String))
+destructureTupleTwiceTest ctx = test ctx 
     let
         destructure : (Int, String) -> (String, Int, (Int, String))
         destructure toDestructure =
@@ -103,8 +104,8 @@ destructureTupleTwiceTest _ =
 --expected = ("Blue", 5, (5, "Blue"))
 
 --Test: Destructure/Direct destructure directly nested IR
-destructureDirectTest : () -> (Int, String)
-destructureDirectTest _ = 
+destructureDirectTest : TestContext ->(Int, String)
+destructureDirectTest ctx = test ctx 
     let
         (x, y) = ("Green", 6)
     in
@@ -114,8 +115,8 @@ destructureDirectTest _ =
 
 --Test: Destructure/HeadTail
 --invalid-elm: List types have multiple variants, and as such, cannot be used in destructure
-destructureHeadTailTest : () -> Int
-destructureHeadTailTest _ = 
+destructureHeadTailTest : TestContext ->Int
+destructureHeadTailTest ctx = test ctx 
     let
         destructure : List Int -> Int
         destructure toDestructure =
@@ -129,8 +130,8 @@ destructureHeadTailTest _ =
 
 --Test: Destructure/Literal
 --invalid-elm: Literal patterns have multiple values, and as such, cannot be used in destructure
-destructureLiteralTest : () -> Int
-destructureLiteralTest _ = 
+destructureLiteralTest : TestContext ->Int
+destructureLiteralTest ctx = test ctx 
     let
         destructure : Int -> Int
         destructure toDestructure =
@@ -144,8 +145,8 @@ destructureLiteralTest _ =
 
 --Test: Destructure/EmptyList
 --invalid-elm: List patterns have multiple variants, and as such, cannot be used in destructure
-destructureEmptyListTest : () -> String
-destructureEmptyListTest _ = 
+destructureEmptyListTest : TestContext ->String
+destructureEmptyListTest ctx = test ctx 
     let
         destructure : List Int -> String
         destructure toDestructure =

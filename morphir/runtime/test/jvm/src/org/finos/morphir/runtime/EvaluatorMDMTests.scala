@@ -73,7 +73,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     }
 
   def runTest(moduleName: String, functionName: String): ZIO[TypedMorphirRuntime, Throwable, Data] =
-    runTest(moduleName, functionName, List(()))
+    runTest(moduleName, functionName, List())
 
   def runTest(
       moduleName: String,
@@ -83,10 +83,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
       val fullName = s"Morphir.Examples.App:$moduleName:$functionName"
       val data     = values.map(deriveData(_))
-
-      runtime.evaluate(FQName.fromString(fullName), data.head, data.tail: _*)
-        .provideEnvironment(MorphirEnv.live)
-        .toZIOWith(RTExecutionContext.typeChecked)
+      if (data.isEmpty)
+        runtime.evaluate(FQName.fromString(fullName), Data.Record(FQName.fromString("Morphir.Examples.App:TestUtils:testContext ")))
+          .provideEnvironment(MorphirEnv.live)
+          .toZIOWith(RTExecutionContext.typeChecked)
+      else
+        runtime.evaluate(FQName.fromString(fullName), data.head, data.tail: _*)
+          .provideEnvironment(MorphirEnv.live)
+          .toZIOWith(RTExecutionContext.typeChecked)
     }
 
   val dogRecordConceptRaw = Concept.Struct(
