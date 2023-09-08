@@ -200,37 +200,13 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     )
   }
   object js extends Shared with MorphirJSModule {
-    def publishArtifacts = T {
-      val baseName = s"${artifactId()}-${publishVersion()}"
-      PublishModule.PublishData(
-        artifactMetadata(),
-        Seq(
-          jar()       -> s"$baseName.jar",
-          sourceJar() -> s"$baseName-sources.jar",
-          // Don't publish docJar for now. Hitting weird Scala 3 bug
-          // docJar()    -> s"$baseName-javadoc.jar",
-          pom() -> s"$baseName.pom"
-        ) ++ extraPublish().map(p => (p.file, s"$baseName${p.classifierPart}.${p.ext}"))
-      )
-    }
+    def docSources: T[Seq[PathRef]] = T { Seq.empty[PathRef] }
   }
   object native extends Shared with MorphirNativeModule {
     def ivyDeps = super.ivyDeps() ++ Agg(
       Deps.dev.zio.`zio-nio`
     )
-    def publishArtifacts = T {
-      val baseName = s"${artifactId()}-${publishVersion()}"
-      PublishModule.PublishData(
-        artifactMetadata(),
-        Seq(
-          jar()       -> s"$baseName.jar",
-          sourceJar() -> s"$baseName-sources.jar",
-          // Don't publish docJar for now. Hitting weird Scala 3 bug
-          // docJar()    -> s"$baseName-javadoc.jar",
-          pom() -> s"$baseName.pom"
-        ) ++ extraPublish().map(p => (p.file, s"$baseName${p.classifierPart}.${p.ext}"))
-      )
-    }
+    def docSources: T[Seq[PathRef]] = T { Seq.empty[PathRef] }
   }
 
   object contrib extends Module {
