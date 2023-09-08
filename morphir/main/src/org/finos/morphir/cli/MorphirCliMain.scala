@@ -25,6 +25,8 @@ object MorphirCliMain extends ZIOCliDefault {
       MorphirElmDriver.develop(port, host, VFilePath.fromJava(projectDir), openInBrowser)
     case MorphirCommand.Setup(morphirHomeDir) => MorphirSetup.setup(morphirHomeDir)
     case MorphirCommand.Test(irFiles)         => MorphirRuntimeDriver.test()
+    case MorphirCommand.ElmDevelop(port, host, projectDir, openInBrowser) =>
+      MorphirElmDriver.develop(port, host, VFilePath.fromJava(projectDir), openInBrowser)
     case MorphirCommand.ElmInit(morphirHomeDir, projectDir) =>
       MorphirElmDriver.init(VFilePath.fromJava(morphirHomeDir), VFilePath.fromJava(projectDir))
     case MorphirCommand.ElmMake(projectDir, output, typesOnly, fallbackCli, indentJson) =>
@@ -36,6 +38,24 @@ object MorphirCliMain extends ZIOCliDefault {
   object commands {
 
     object Elm {
+
+      val develop = {
+        val port = Options.integer("port").alias("p").withDefault(BigInt(3000)).map(
+          _.intValue
+        ) ?? "Port to bind the web server to."
+        val host = Options.text("host").alias("h").withDefault("localhost") ?? "Host to bind the web server to."
+        val projectDir = Options.directory("project-dir").alias("i").withDefault(
+          Paths.get(".")
+        ) ?? "Root directory of the project where morphir.json is located."
+        val openInBrowser = Options.boolean("open-in-browser").alias("o") ?? "Open in browser."
+
+        Command("develop", port ++ host ++ projectDir ++ openInBrowser).withHelp(
+          "Start up a web server and expose developer tools through a web UI."
+        ).map { case (port, host, projectDir, openInBrowser) =>
+          MorphirCommand.ElmDevelop(port, host, projectDir, openInBrowser)
+        }
+      }
+
       val init = {
         val projectDir = Options.directory("project-dir").alias("p").withDefault(Paths.get("."))
 
@@ -75,7 +95,7 @@ object MorphirCliMain extends ZIOCliDefault {
       }
 
       val root =
-        Command("elm").withHelp("Elm specific commands for morphir-cli.").subcommands(init, make, restore)
+        Command("elm").withHelp("Elm specific commands for morphir-cli.").subcommands(develop, init, make, restore)
 
     }
 

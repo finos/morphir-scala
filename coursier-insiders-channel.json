@@ -1,5 +1,5 @@
 {
-    "morphir-insiders-cli": {
+    "morphir-cli": {
         "repositories": [
             "central",
             "sonatype:releases",
