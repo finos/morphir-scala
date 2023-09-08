@@ -19,7 +19,6 @@ letDefinitionMakeTupleTest ctx = test ctx
     in
         (x, x)
 
---Test: LetDefinition/Nested
 {-|
     Test : LetDefinition/Nested
     expected = (2, 2)
@@ -85,9 +84,8 @@ letDefinitionApplyTwiceTest ctx = test ctx
         in
             (curried 1, curried 2)
 
---Test: LetDefinition/DoNotRun Ensures defined function runs only when argument is applied, even if it is not used
 {-|
-    Test : LetDefinition/DoNotRun
+    Test : LetDefinition/DoNotRun Ensures defined function runs only when argument is applied, even if it is not used
     expected = "Correct"
 -}
 letDefinitionDoNotRunTest : TestContext ->String
@@ -99,7 +97,6 @@ letDefinitionDoNotRunTest ctx = test ctx
             f x = hang ()
         in
             "Correct"
---expected = "Correct"
 
 {-|
     Test : LetDefinition/ScopeTest

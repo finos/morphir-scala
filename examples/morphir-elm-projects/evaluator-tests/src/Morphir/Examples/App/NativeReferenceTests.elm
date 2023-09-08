@@ -12,24 +12,29 @@ import List exposing (map)
 import Morphir.SDK.LocalDate exposing (LocalDate)
 import Morphir.SDK.LocalTime exposing (LocalTime)
         
---Test: NativeReference/Map
---import List exposing (map)
+ {-|
+ Test: NativeReference/Map
+ expected = [(1,1),(2,2),(3,3)]
+-}
 nativeReferenceMapTest : TestContext ->List (Int, Int)
 nativeReferenceMapTest ctx = test ctx 
     map (\x -> (x, x)) [1, 2, 3]
---expected = [(1,1),(2,2),(3,3)]
 
---Test: NativeReference/Add
+{-|
+    Test: NativeReference/Add
+    expected = 3
+-}
 nativeReferenceAddTest : TestContext ->Int
 nativeReferenceAddTest ctx = test ctx 
     let
         f x y = x + y
     in
         f 1 2
---expected = 3
 
---Test: NativeReference/CurriedLog
---import Basics exposing (logBase)
+{-|
+    Test: NativeReference/CurriedLog
+    expected = Infinity
+-}
 nativeReferenceCurriedLogTest : TestContext ->Float
 nativeReferenceCurriedLogTest ctx = test ctx 
     let 
@@ -40,21 +45,22 @@ nativeReferenceCurriedLogTest ctx = test ctx
                 f 1
     in
         curried 2
---expected = Infinity
 
---Test: NativeReference/Pi
---import Basics exposing (pi)
+{-|
+    Test: NativeReference/Pi
+    expected = 3
+-}
 nativeReferencePiTest : TestContext ->Float
 nativeReferencePiTest ctx = test ctx 
     pi
---expected = 3
 
---Test: NativeReference/modBy
---import Basics exposing (pi)
+{-|
+    Test: NativeReference/ModBy
+    expected = x % 3
+-}
 nativeReferenceModByTest : Int -> Int
 nativeReferenceModByTest x = 
     modBy 3 x
---expected = x % 3
 
 localDatePassthrough : LocalDate -> LocalDate
 localDatePassthrough x = x

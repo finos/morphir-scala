@@ -5,8 +5,10 @@ import Morphir.Examples.App.TestUtils exposing (..)
     I cannot find anything that compiles to such
     It seems to be partially supported at best, even in Elm
 -}
-
---Test: Literal/String
+{-|
+Test: Literal/String
+expected = "Bloop"
+-}
 litStringTest : TestContext ->String
 litStringTest ctx = test ctx
     let
@@ -14,9 +16,11 @@ litStringTest ctx = test ctx
         value = "Bloop"
     in
         value
---expected = "Bloop"
 
---Test: Literal/Float
+{-|
+Test: Literal/Float
+expected = 5.0
+-}
 litFloatTest : TestContext ->Float
 litFloatTest ctx = test ctx 
     let
@@ -24,9 +28,11 @@ litFloatTest ctx = test ctx
         value = 5.0
     in
         value
---expected = 5.0
 
---Test: Literal/Char
+{-|
+Test: Literal/Char
+expected = 'f'
+-}
 litCharTest : TestContext ->Char
 litCharTest ctx = test ctx 
     let
@@ -34,9 +40,11 @@ litCharTest ctx = test ctx
         value = 'f'
     in
         value
---expected = 'f'
 
---Test: Literal/Bool
+{-|
+Test: Literal/Bool
+expected = True
+-}
 litBoolTest : TestContext ->Bool
 litBoolTest ctx = test ctx 
     let
@@ -44,9 +52,11 @@ litBoolTest ctx = test ctx
         value = True
     in
         value
---expected = True
 
---Test: Literal/WholeNumber
+{-|
+Test: Literal/WholeNumber
+expected = 5
+-}
 litWholeNumberLiteralTest : TestContext ->Int
 litWholeNumberLiteralTest ctx = test ctx 
     let
@@ -54,4 +64,3 @@ litWholeNumberLiteralTest ctx = test ctx
         value = 5
     in
         value
---expected = 5

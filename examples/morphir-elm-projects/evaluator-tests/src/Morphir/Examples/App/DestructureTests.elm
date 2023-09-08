@@ -14,8 +14,10 @@ import Morphir.Examples.App.TestUtils exposing (..)
 -}
 
 
-
---Test: Destructure/As
+{-|
+    Test: Destructure/As
+    expected = 5
+-}
 destructureAsTest : TestContext ->Int
 destructureAsTest ctx = test ctx 
     let
@@ -27,9 +29,11 @@ destructureAsTest ctx = test ctx
                 x
     in
         destructure 5
---expected = 5
 
---Test: Destructure/Tuple
+{-|
+    Test: Destructure/Tuple
+    expected = (1, 2)
+-}
 destructureTupleTest : TestContext ->(Int, Int)
 destructureTupleTest ctx = test ctx 
     let
@@ -41,13 +45,13 @@ destructureTupleTest ctx = test ctx
                 (y, x)
     in
         destructure (2, 1)
---expected = (1, 2)
 
---define SingleBranchConstructor
 type SingleBranchConstructor = Just Int String
 
---Test: Destructure/Constructor
---uses SingleBranchConstructor
+{-|
+    Test: Destructure/Constructor
+    expected = (5, "red")
+-}
 destructureConstructorTest : TestContext ->(Int, String)
 destructureConstructorTest ctx = test ctx 
     let
@@ -59,9 +63,11 @@ destructureConstructorTest ctx = test ctx
                 (x, y)
     in
         destructure (Just 5 "red")
---expected = (5, "red")
 
---Test: Destructure/Unit
+{-|
+    Test: Destructure/Unit
+    expected = 4
+-}
 destructureUnitTest : TestContext ->Int
 destructureUnitTest ctx = test ctx 
     let
@@ -73,9 +79,11 @@ destructureUnitTest ctx = test ctx
                 4
     in
         destructure ()
---expected = 4
 
---Test: Destructure/AsTwice
+{-|
+    Test: Destructure/AsTwice
+    expected = (5, 5)
+-}
 destructureAsTwiceTest : TestContext ->(Int, Int)
 destructureAsTwiceTest ctx = test ctx 
     let
@@ -87,9 +95,11 @@ destructureAsTwiceTest ctx = test ctx
                 (x, x)
     in
         destructure 5
---expected = (5, 5)
 
---Test: Destructure/TupleTwice
+{-|
+    Test: Destructure/TupleTwice
+    expected = ("Blue", 5, (5, "Blue"))
+-}
 destructureTupleTwiceTest : TestContext ->(String, Int, (Int, String))
 destructureTupleTwiceTest ctx = test ctx 
     let
@@ -101,20 +111,22 @@ destructureTupleTwiceTest ctx = test ctx
                 (y, x, z)
     in
         destructure (5, "Blue")
---expected = ("Blue", 5, (5, "Blue"))
 
---Test: Destructure/Direct destructure directly nested IR
+{-|
+    Test: Destructure/Direct destructure directly nested IR
+    expected = (6, "Green")
+-}
 destructureDirectTest : TestContext ->(Int, String)
 destructureDirectTest ctx = test ctx 
     let
         (x, y) = ("Green", 6)
     in
         (y, x)
---expected = (6, "Green")
 
-
---Test: Destructure/HeadTail
---invalid-elm: List types have multiple variants, and as such, cannot be used in destructure
+{-|
+    Test: Destructure/HeadTail
+    expected = 5
+-}
 destructureHeadTailTest : TestContext ->Int
 destructureHeadTailTest ctx = test ctx 
     let
@@ -126,10 +138,11 @@ destructureHeadTailTest ctx = test ctx
                 x
     in
         destructure [5]
---expected = 5
 
---Test: Destructure/Literal
---invalid-elm: Literal patterns have multiple values, and as such, cannot be used in destructure
+{-|
+    Test: Destructure/Literal
+    expected = 4
+-}
 destructureLiteralTest : TestContext ->Int
 destructureLiteralTest ctx = test ctx 
     let
@@ -141,10 +154,11 @@ destructureLiteralTest ctx = test ctx
                 4
     in
         destructure 5
---expected = 4
 
---Test: Destructure/EmptyList
---invalid-elm: List patterns have multiple variants, and as such, cannot be used in destructure
+{-|
+    Test: Destructure/EmptyList
+    expected = "Correct"
+-}
 destructureEmptyListTest : TestContext ->String
 destructureEmptyListTest ctx = test ctx 
     let
@@ -156,4 +170,3 @@ destructureEmptyListTest ctx = test ctx
                 "Correct"
     in
         destructure []
---expected = "Correct"
