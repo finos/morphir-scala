@@ -1,4 +1,5 @@
 module Morphir.Examples.App.LetDefinitionTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 
 {-
     Unhappy:
@@ -7,18 +8,23 @@ module Morphir.Examples.App.LetDefinitionTests exposing (..)
     Shadowing
 -}
 
---Test: LetDefinition/MakeTuple
-letDefinitionMakeTupleTest : () -> (Int, Int)
-letDefinitionMakeTupleTest _ = 
+{-|
+    Test : LetDefinition/MakeTuple
+    expected = (1, 1)
+-}
+letDefinitionMakeTupleTest : TestContext ->(Int, Int)
+letDefinitionMakeTupleTest ctx = test ctx 
     let
         x = 1
     in
         (x, x)
---expected = (1, 1)
 
---Test: LetDefinition/Nested
-letDefinitionNestedTest : () -> (Int, Int)
-letDefinitionNestedTest _ = 
+{-|
+    Test : LetDefinition/Nested
+    expected = (2, 2)
+-}
+letDefinitionNestedTest : TestContext ->(Int, Int)
+letDefinitionNestedTest ctx = test ctx 
     let
         x = 
             let
@@ -27,29 +33,35 @@ letDefinitionNestedTest _ =
                 y
     in
         (x, x)
---expected = (2, 2)
 
---Test: LetDefinition/SimpleFunction
-letDefinitionSimpleFunctionTest : () -> (Int, Int)
-letDefinitionSimpleFunctionTest _ = 
+{-|
+    Test : LetDefinition/SimpleFunction
+    expected = (3, 3)
+-}
+letDefinitionSimpleFunctionTest : TestContext ->(Int, Int)
+letDefinitionSimpleFunctionTest ctx = test ctx 
     let
         f x = (x, x)
     in
         f 3
---expected = (3, 3)
 
---Test: LetDefinition/TwoArgFunction
-letDefinitionTwoArgFunctionFunctionTest : () -> (Int, Int)
-letDefinitionTwoArgFunctionFunctionTest _ = 
+{-|
+    Test : LetDefinition/TwoArgFunction
+    expected = (3, 2)
+-}
+letDefinitionTwoArgFunctionFunctionTest : TestContext ->(Int, Int)
+letDefinitionTwoArgFunctionFunctionTest ctx = test ctx 
     let
         f x y = (y, x)
     in
         f 2 3
---expected = (3, 2)
 
---Test: LetDefinition/Curried
-letDefinitionCurriedTest : () -> (Int, Int)
-letDefinitionCurriedTest _ = 
+{-|
+    Test : LetDefinition/Curried
+    expected = (2, 0)
+-}
+letDefinitionCurriedTest : TestContext ->(Int, Int)
+letDefinitionCurriedTest ctx = test ctx 
     let
         f x y = (y, x)
     in
@@ -57,11 +69,13 @@ letDefinitionCurriedTest _ =
             curried = f 0
         in
             curried 2
---expected = (2, 0)
 
---Test: LetDefinition/ApplyTwice
-letDefinitionApplyTwiceTest : () -> ((Int, Int), (Int, Int))
-letDefinitionApplyTwiceTest _ = 
+{-|
+    Test : LetDefinition/ApplyTwice
+    expected = ((1, 0), (2, 0))
+-}
+letDefinitionApplyTwiceTest : TestContext ->((Int, Int), (Int, Int))
+letDefinitionApplyTwiceTest ctx = test ctx 
     let
         f x y = (y, x)
     in
@@ -69,11 +83,13 @@ letDefinitionApplyTwiceTest _ =
             curried= f 0
         in
             (curried 1, curried 2)
---expected = ((1, 0), (2, 0))
 
---Test: LetDefinition/DoNotRun Ensures defined function runs only when argument is applied, even if it is not used
-letDefinitionDoNotRunTest : () -> String
-letDefinitionDoNotRunTest _ = 
+{-|
+    Test : LetDefinition/DoNotRun Ensures defined function runs only when argument is applied, even if it is not used
+    expected = "Correct"
+-}
+letDefinitionDoNotRunTest : TestContext ->String
+letDefinitionDoNotRunTest ctx = test ctx 
     let
         hang _ = hang ()
     in
@@ -81,11 +97,13 @@ letDefinitionDoNotRunTest _ =
             f x = hang ()
         in
             "Correct"
---expected = "Correct"
 
---Test: LetDefinition/ScopeTest Let definitions should use lexical scope
-letDefinitionScopeTest : () -> (Int, (Int, Int))
-letDefinitionScopeTest _ = 
+{-|
+    Test : LetDefinition/ScopeTest
+    expected = (3, (4, 5))
+-}
+letDefinitionScopeTest : TestContext ->(Int, (Int, Int))
+letDefinitionScopeTest ctx = test ctx 
     let
         f = 
             let
@@ -100,4 +118,13 @@ letDefinitionScopeTest _ =
             c = 3
         in
             (c, f 4)
---expected = (3, (4, 5))
+{-|
+    Test : LetDefinition/ComplexBind
+    expected(True) = 4
+-}
+letDefinitionComplexBind : Bool -> Int
+letDefinitionComplexBind b = 
+    let
+        x = if b then 1 else 2
+    in
+        x + 3

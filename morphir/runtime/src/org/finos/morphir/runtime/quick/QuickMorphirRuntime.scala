@@ -41,6 +41,11 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
       res <- EvaluatorQuick.evalAction(value, globals, dists)
     } yield res
 
+  def evaluate(entryPoint: FQName): RTAction[MorphirEnv, MorphirRuntimeError, Data] = for {
+    tpe <- fetchType(entryPoint)
+    res <- evaluate(Value.Reference.Typed(tpe, entryPoint))
+  } yield res
+
   def fetchType(fqn: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
     val maybeSpec = dists.lookupValueSpecification(fqn)
     maybeSpec match {
