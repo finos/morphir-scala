@@ -10,8 +10,10 @@ Unhappy:
     No case matches (elm compiler precludes this)
 -}
 
-
---Test: PatternMatch/Wildcard
+{-|
+    Test: PatternMatch/Wildcard
+    expected = "Correct"
+-}
 patternMatchWildcardTest : TestContext ->String
 patternMatchWildcardTest ctx = test ctx 
     let 
@@ -27,9 +29,11 @@ patternMatchWildcardTest ctx = test ctx
                 "Correct"
     in
         match ([4, 5, 6])
---expected = "Correct"
 
---Test: PatternMatch/Tuple
+{-|
+    Test: PatternMatch/Tuple
+    expected = "Correct"
+-}
 patternMatchTupleTest : TestContext ->String
 patternMatchTupleTest ctx = test ctx 
     let 
@@ -47,14 +51,14 @@ patternMatchTupleTest ctx = test ctx
                 "An earlier item should have matched"
     in
         match (1, "Car", "Correct")
---expected = "Correct"
 
 
---define PatternMatchUnionTestType
 type PatternMatchUnionTestType = TwoArg Int String | OtherTwoArg Int String | OneArg Int | ZeroArg
 
---Test: PatternMatch/Constructor
---uses PatternMatchUnionTestType
+{-|
+    Test: PatternMatch/Constructor
+    expected = "Correct"
+-}
 patternMatchConstructorTest : TestContext ->String
 patternMatchConstructorTest ctx = test ctx 
     let 
@@ -76,10 +80,11 @@ patternMatchConstructorTest ctx = test ctx
                 "An earlier item should have matched"
     in
         match (TwoArg 3 "Correct")
---expected = "Correct"
 
---Test: PatternMatch/ZeroArgConstructor
---uses PatternMatchUnionTestType
+{-|
+    Test: PatternMatch/ZeroArgConstructor
+    expected = "Correct"
+-}
 patternMatchZeroArgConstructorTest : TestContext ->String
 patternMatchZeroArgConstructorTest ctx = test ctx 
     let 
@@ -95,9 +100,11 @@ patternMatchZeroArgConstructorTest ctx = test ctx
                 "An earlier item should have matched"
     in
         match ZeroArg
---expected = "Correct"
 
---Test: PatternMatch/EmptyList
+{-|
+    Test: PatternMatch/EmptyList
+    expected = "Correct"
+-}
 patternMatchEmptyListTest : TestContext ->String
 patternMatchEmptyListTest ctx = test ctx 
     let 
@@ -111,9 +118,11 @@ patternMatchEmptyListTest ctx = test ctx
                 "Correct"
     in
         match []
---expected = "Correct"
 
---Test: PatternMatch/HeadTail
+{-|
+    Test: PatternMatch/HeadTail
+    expected = ("Dog", "Red")
+-}
 patternMatchHeadTailTest : TestContext ->(String, String)
 patternMatchHeadTailTest ctx = test ctx 
     let 
@@ -131,9 +140,11 @@ patternMatchHeadTailTest ctx = test ctx
                 ("An earlier item should have matched", "")
     in
         match ["Red", "Dog", "Blue", "Car"]
---expected = ("Dog", "Red")
 
---Test: PatternMatch/Literal
+{-|
+    Test: PatternMatch/Literal
+    expected = "Correct"
+-}
 patternMatchLiteralTest : TestContext ->String
 patternMatchLiteralTest ctx = test ctx 
     let 
@@ -147,9 +158,11 @@ patternMatchLiteralTest ctx = test ctx
                 "An earlier item should have matched"
     in
         match "Yes"
---expected = "Correct"
 
---Test: PatternMatch/RepeatedAs
+{-|
+    Test: PatternMatch/RepeatedAs
+    expected = (2, (1, 2))
+-}
 patternMatchRepeatedAsTest : TestContext ->(Int, (Int, Int))
 patternMatchRepeatedAsTest ctx = test ctx 
     let 
@@ -163,4 +176,3 @@ patternMatchRepeatedAsTest ctx = test ctx
                 (0, (0, 0))
     in
         match (1, 2)
---expected = (2, (1, 2))

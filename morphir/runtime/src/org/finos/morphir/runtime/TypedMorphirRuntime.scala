@@ -44,7 +44,6 @@ trait TypedMorphirRuntime extends MorphirRuntime {
     val inputIRs = params.map(toValue(_))
     evaluate(entryPoint, inputIR, inputIRs: _*)
   }
-
 }
 
 object TypedMorphirRuntime {

@@ -15,31 +15,35 @@ import List exposing (map)
         Field function applied to record that lacks field
 -}
 
---define RecordType
+
 type alias RecordType = {name : String, number : Int}
 
---Test: Record/FieldTest
---uses RecordType
+{-|
+    Test: Record/Field
+    expected = "Correct"
+-}
 recordFieldTest : TestContext ->String
 recordFieldTest ctx = test ctx 
     {name = "Correct", number = 0}.name
---expected = "Correct"
 
---Test: Record/FielFromBoundTest
---uses RecordType
+{-|
+    Test: Record/FieldFromBound
+    expected = "Correct"
+-}
 recordFieldFromBoundTest : TestContext ->String
 recordFieldFromBoundTest ctx = test ctx 
     let
         myRecord = {name = "Correct", number = 0}
     in
         myRecord.name
---expected = "Correct"
 
---define RecordType
+
 type alias RecordType = {name : String, number : Int}
 
---Test: FieldFunction/Apply
---uses RecordType
+{-|
+    Test: FieldFunction/Apply
+    expected = "Correct"
+-}
 fieldFunctionApplyTest : TestContext ->String
 fieldFunctionApplyTest ctx = test ctx 
     let
@@ -47,10 +51,11 @@ fieldFunctionApplyTest ctx = test ctx
         f = .name
     in
         f myRecord
---expected = "Correct"
 
---Test: FieldFunction/ApplyTwice
---uses RecordType
+{-|
+    Test: FieldFunction/ApplyTwice
+    expected = (1, 2)
+-}
 fieldFunctionApplyTwiceTest : TestContext ->(Int, Int)
 fieldFunctionApplyTwiceTest ctx = test ctx 
     let
@@ -59,20 +64,20 @@ fieldFunctionApplyTwiceTest ctx = test ctx
         f = .number
     in
         (f record1, f record2)
---expected = (1, 2)
 
---Test: FieldFunction/Unapplied
---uses RecordType
---dubiousData
+{-|
+    Test: FieldFunction/Unapplied
+    @dubiousData
+    expected = <function>
+-}
 fieldFunctionUnappliedTest : TestContext ->RecordType -> Int
 fieldFunctionUnappliedTest ctx = test ctx 
     .number
---expected = <function>
 
-
---Test: FieldFunction/Map
---import import List exposing map
---uses RecordType
+{-|
+    Test: FieldFunction/Map
+    expected = ["Soso", "Ponyo", "Odin"]
+-}
 fieldFunctionMapTest : TestContext ->List String
 fieldFunctionMapTest ctx = test ctx 
     let
@@ -85,50 +90,54 @@ fieldFunctionMapTest ctx = test ctx
             f = .name
         in
             map f l
---expected = ["Soso", "Ponyo", "Odin"]
---Test: Record/Simple
---uses RecordType
+
+{-|
+    Test: Record/Simple
+    expected = {name = "Fido", number = 5}
+-}
 recordSimpleTest : TestContext ->RecordType
 recordSimpleTest ctx = test ctx 
     {name = "Fido", number = 5}
---expected = {name = "Fido", number = 5}
 
---define NestedRecordType
 type alias NestedRecordType = {name : String, records : List RecordType}
 
---Test: Record/Nested
---uses RecordType
---uses NestedRecordType
+{-|
+    Test: Record/Nested
+    expected = {name = "Dogs", records = [{"Ponyo", 3}, {"Soso", 3}]}
+-}
 recordNestedTest : TestContext ->NestedRecordType
 recordNestedTest ctx = test ctx 
     {name = "Dogs", records = [
         {name = "Ponyo", number = 3}, 
         {name = "Soso", number = 3}
     ]}
---expected = {name = "Dogs", records = [{"Ponyo", 3}, {"Soso", 3}]}
 
---Test: UpdateRecord/Simple
---uses RecordType
+{-|
+    Test: UpdateRecord/Simple
+    expected = "Soso"
+-}
 updateRecordSimpleTest : TestContext ->String
 updateRecordSimpleTest ctx = test ctx 
     let
         initial = {name = "Ponyo", number = 5}
     in
         {initial | name = "Soso"}.name
---expected = "Soso"
 
---Test: UpdateRecord/Full
---uses RecordType
+{-|
+    Test: UpdateRecord/Full
+    expected = {"Soso", 5}
+-}
 updateRecordFullTest : TestContext ->RecordType
 updateRecordFullTest ctx = test ctx 
     let
         initial = {name = "Ponyo", number = 5}
     in
         {initial | name = "Soso"}
---expected = {"Soso", 5}
 
---Test: UpdateRecord/Immutable (ensure record updates are not using mutation)
---uses RecordType
+{-|
+    Test: UpdateRecord/Immutable
+    expected = [{"Soso, 4"}, {"Ponyo", 5}]
+-}
 updateRecordImmutableTest : TestContext ->List RecordType
 updateRecordImmutableTest ctx = test ctx 
     let
@@ -138,4 +147,3 @@ updateRecordImmutableTest ctx = test ctx
             {initial | name = "Soso"},
             {initial | number = 5}
         ]
---expected = [{"Soso, 4"}, {"Ponyo", 5}]
