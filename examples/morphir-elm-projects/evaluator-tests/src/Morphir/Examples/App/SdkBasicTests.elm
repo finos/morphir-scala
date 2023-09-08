@@ -3,7 +3,7 @@ import Morphir.Examples.App.TestUtils exposing (..)
 
 import Morphir.SDK.Int exposing (Int64)
 
-{-
+{-|
   Test: SdkBasics/add
   Expected = 3
 -}
@@ -14,7 +14,7 @@ sdkAddTest ctx = test ctx
     in
         f 1 2
 
-{-
+{-|
   Test: SdkBasics/add
   Expected = 3
 -}
@@ -25,7 +25,7 @@ sdkAddTest64 t =
     in
         f t.a t.b
 
-{-
+{-|
   Test: SdkBasics/intOverflow
   Expected = 3
 
@@ -40,7 +40,7 @@ sdkIntOverflowTest ctx = test ctx
     in
         f (2 ^ 64) (2 ^ 64)
 
-{-
+{-|
   Test: SdkBasics/subtract
   Expected = 2
 -}
@@ -51,7 +51,7 @@ sdkSubtractTest ctx = test ctx
     in
         f 4 2
 
-{-
+{-|
   Test: SdkBasics/subtract
   Expected = 2
 -}
@@ -62,7 +62,7 @@ sdkSubtractTest64 t =
     in
         f t.a t.b
 
-{-
+{-|
   Test: SdkBasics/multiply
   Expected = 6
 -}
@@ -73,7 +73,7 @@ sdkMultiplyTest ctx = test ctx
     in
         f 2 3
 
-{-
+{-|
   Test: SdkBasics/addFloat
   Expected = 3.0
 -}
@@ -84,7 +84,7 @@ sdkAddFloatTest ctx = test ctx
     in
         f 1.0 2.0
 
-{-
+{-|
   Test: SdkBasics/floatOverflow
   Expected = 3
 
@@ -99,7 +99,7 @@ sdkFloatOverflowTest ctx = test ctx
     in
         f (2.0 ^ 128) (2.0 ^ 128)
 
-{-
+{-|
   Test: SdkBasics/subtractFloat
   Expected = 2.0
 -}
@@ -110,7 +110,7 @@ sdkSubtractFloatTest ctx = test ctx
     in
         f 4.0 2.0
 
-{-
+{-|
   Test: SdkBasics/divide
   Expected = 2.0
 -}
@@ -121,7 +121,7 @@ sdkDivideTest ctx = test ctx
     in
         f 20.0 10.0
 
-{-
+{-|
   Test: SdkBasics/divide - Int
   Expected = 20
 -}
@@ -132,7 +132,7 @@ sdkMultiplyIntTest ctx = test ctx
     in
         f 2 10
 
-{-
+{-|
   Test: SdkBasics/multiplyFloat
   Expected = 6.0
 -}
@@ -143,7 +143,7 @@ sdkMultiplyFloatTest ctx = test ctx
     in
         f 2.0 10.0
 
-{-
+{-|
   Test: SdkBasics/divideByZero
   Expected = Infinity
 -}
@@ -154,7 +154,7 @@ sdkDivideByZeroTest ctx = test ctx
     in
         f 20.0 0
 
-{-
+{-|
   Test: SdkBasics/integerDivide
   Expected = 2
 -}
@@ -165,7 +165,7 @@ sdkIntegerDivideTest ctx = test ctx
     in
         f 20 10
 
-{-
+{-|
   Test: SdkBasics/toFloat
   Expected = 2.0
 -}
@@ -175,7 +175,7 @@ toFloatTest ctx = test ctx
         f x = toFloat x
     in f 2
 
-{-
+{-|
   Test: SdkBasics/power
   Expected = 16
 -}
@@ -186,7 +186,7 @@ sdkPowerTest ctx = test ctx
     in
         f 4 2
 
-{-
+{-|
   Test: SdkBasics/powerFloat
   Expected = 16
 -}
@@ -197,7 +197,7 @@ sdkPowerFloatTest ctx = test ctx
     in
         f 4 2
 
-{-
+{-|
   Test: SdkBasics/round
   Expected = 4
 -}
@@ -208,7 +208,7 @@ sdkRoundTest ctx = test ctx
     in
         f 123.456
 
-{-
+{-|
   Test: SdkBasics/round2
   Expected = 4
 -}
@@ -219,7 +219,7 @@ sdkRoundTest2 ctx = test ctx
     in
         f 123
 
-{-
+{-|
   Test: SdkBasics/floor
   Expected = 5
 -}
@@ -230,7 +230,7 @@ sdkFloorTest ctx = test ctx
     in
         f 5.75
 
-{-
+{-|
   Test: SdkBasics/floor2
   Expected = 5
 -}
@@ -241,7 +241,7 @@ sdkFloorTest2 ctx = test ctx
     in
         f 5
 
-{-
+{-|
   Test: SdkBasics/ceiling
   Expected = 8
 -}
@@ -252,7 +252,7 @@ sdkCeilingTest ctx = test ctx
     in
         f 7.25
 
-{-
+{-|
   Test: SdkBasics/ceiling2
   Expected = 8
 -}
@@ -263,7 +263,7 @@ sdkCeilingTest2 ctx = test ctx
     in
         f 8
 
-{-
+{-|
   Test: SdkBasics/truncate
   Expected = 5
 -}
@@ -274,7 +274,7 @@ sdkTruncateTest ctx = test ctx
     in
         f 5.25
 
-{-
+{-|
   Test: SdkBasics/truncate2
   Expected = 5
 -}
@@ -285,7 +285,7 @@ sdkTruncateTest2 ctx = test ctx
     in
         f 5
 
-{-
+{-|
   Test: SdkBasics/modBy
   Expected = 2
 -}
@@ -296,7 +296,7 @@ sdkModByTest ctx = test ctx
     in
         f 3 20
 
-{-
+{-|
   Test: SdkBasics/remainderBy
   Expected = 2
 -}
@@ -307,7 +307,7 @@ sdkRemainderByTest ctx = test ctx
     in
         f 3 20
 
-{-
+{-|
   Test: SdkBasics/negate
   Expected = -3
 -}
@@ -318,7 +318,7 @@ sdkNegateTest ctx = test ctx
     in
         f 3
 
-{-
+{-|
   Test: SdkBasics/negate2
   Expected = 3
 -}
@@ -329,7 +329,7 @@ sdkNegateTest2 ctx = test ctx
     in
         f -3
 
-{-
+{-|
   Test: SdkBasics/abs
   Expected = 3
 -}
@@ -340,7 +340,7 @@ sdkAbsTest ctx = test ctx
     in
         f -3
 
-{-
+{-|
   Test: SdkBasics/abs2
   Expected = 3
 -}
@@ -351,7 +351,7 @@ sdkAbsTest2 ctx = test ctx
     in
         f 3
 
-{-
+{-|
   Test: SdkBasics/clamp
   Expected = 100
 -}
@@ -362,7 +362,7 @@ sdkClampTest ctx = test ctx
     in
         f 100 200 50
 
-{-
+{-|
   Test: SdkBasics/clamp2
   Expected = 100
 -}
@@ -373,7 +373,7 @@ sdkClampTest2 ctx = test ctx
     in
         f 100 200 100
 
-{-
+{-|
   Test: SdkBasics/clamp3
   Expected = 200
 -}
@@ -384,7 +384,7 @@ sdkClampTest3 ctx = test ctx
     in
         f 100 200 201
 
-{-
+{-|
   Test: SdkBasics/isNan
   Expected = True
 -}
@@ -395,7 +395,7 @@ sdkIsNaNTest ctx = test ctx
     in
         f (0/0)
 
-{-
+{-|
   Test: SdkBasics/isInfinite
   Expected = True
 -}
@@ -406,7 +406,7 @@ sdkIsInfiniteTest ctx = test ctx
     in
         f (1/0)
 
-{-
+{-|
   Test: SdkBasics/sqrt
   Expected = 4
 -}
@@ -417,7 +417,7 @@ sdkSqrtTest ctx = test ctx
     in
         f 16
 
-{-
+{-|
   Test: SdkBasics/logBase
   Expected: 2
 -}
@@ -428,7 +428,7 @@ sdkLogBaseTest ctx = test ctx
     in
         f 10 100
 
-{-
+{-|
   Test: SdkBasics/logBase2
   Expected: 8
 -}
@@ -439,7 +439,7 @@ sdkLogBaseTest2 ctx = test ctx
     in
         f 2 256
 
-{-
+{-|
   Test: SdkBasics/eulersNumber
   Expected: 2.718281828459045
 -}
@@ -450,7 +450,7 @@ sdkEulersNumberTest ctx = test ctx
     in
         f
 
-{-
+{-|
   Test: SdkBasics/pi
   Expected: 3.141592653589793
 -}
@@ -461,7 +461,7 @@ sdkPiTest ctx = test ctx
     in
         f
 
-{-
+{-|
   Test: SdkBasics/cos
   Expected: 0.5000000000000001
 -}
@@ -472,7 +472,7 @@ sdkCosTest ctx = test ctx
     in
         f (degrees 60)
 
-{-
+{-|
   Test: SdkBasics/sin
   Expected: 0.8660254037844386
 -}
@@ -483,7 +483,7 @@ sdkSinTest ctx = test ctx
     in
         f (degrees 60)
 
-{-
+{-|
   Test: SdkBasics/tan
   Expected: 0.9999999999999999
 -}
@@ -494,7 +494,7 @@ sdkTanTest ctx = test ctx
     in
         f (degrees 45)
 
-{-
+{-|
   Test: SdkBasics/acos
   Expected: 1.0471975511965979
 -}
@@ -505,7 +505,7 @@ sdkACosTest ctx = test ctx
     in
         f (1/2)
 
-{-
+{-|
   Test: SdkBasics/asin
   Expected: 0.5235987755982989
 -}
@@ -516,7 +516,7 @@ sdkASinTest ctx = test ctx
     in
         f (1/2)
 
-{-
+{-|
   Test: SdkBasics/atan
   Expected: 0.7853981633974483
 -}
@@ -527,7 +527,7 @@ sdkATanTest ctx = test ctx
     in
         f 1
 
-{-
+{-|
   Test: SdkBasics/atan2
   Expected: 0.7853981633974483
 -}
@@ -538,7 +538,7 @@ sdkATan2Test ctx = test ctx
     in
         f 1 1
 
-{-
+{-|
   Test: SdkBasics/degrees
   Expected: 3.141592653589793
 -}
@@ -549,7 +549,7 @@ sdkDegreesTest ctx = test ctx
     in
         f 180
 
-{-
+{-|
   Test: SdkBasics/radians
   Expected: 3.141592653589793
 -}
@@ -560,7 +560,7 @@ sdkRadiansTest ctx = test ctx
     in
         f pi
 
-{-
+{-|
   Test: SdkBasics/turns
   Expected: 3.141592653589793
 -}
@@ -571,7 +571,7 @@ sdkTurnsTest ctx = test ctx
     in
         f (1/2)
 
-{-
+{-|
   Test: SdkBasics/toPolar
   Expected: (5,0.9272952180016122)
 -}
@@ -582,7 +582,7 @@ sdkToPolarTest ctx = test ctx
     in
         f (3, 4)
 
-{-
+{-|
   Test: SdkBasics/fromPolar
   Expected: ~(1, 1)
 -}
@@ -595,7 +595,7 @@ sdkFromPolarTest ctx = test ctx
 
 -----
 
-{-
+{-|
   Test: SdkBasics/equal
   Expected: True
 -}
@@ -606,7 +606,7 @@ sdkEqualTest ctx = test ctx
     in
         f 2 2
 
-{-
+{-|
   Test: SdkBasics/equal2
   Expected: True
 -}
@@ -617,7 +617,7 @@ sdkEqualTest2 ctx = test ctx
     in
         f 2.0 2.0
 
-{-
+{-|
   Test: SdkBasics/equal3
   Expected: True
 -}
@@ -628,7 +628,7 @@ sdkEqualTest3 ctx = test ctx
     in
         f True True
 
-{-
+{-|
   Test: SdkBasics/equal4
   Expected: True
 -}
@@ -639,7 +639,7 @@ sdkEqualTest4 ctx = test ctx
     in
         f 'a' 'a'
 
-{-
+{-|
   Test: SdkBasics/equal5
   Expected: True
 -}
@@ -650,7 +650,7 @@ sdkEqualTest5 ctx = test ctx
     in
         f "yo" "yo"
 
-{-
+{-|
   Test: SdkBasics/equal6
   Expected: True
 -}
@@ -661,7 +661,7 @@ sdkEqualTest6 ctx = test ctx
     in
         f [1, 2] [1, 2]
 
-{-
+{-|
   Test: SdkBasics/equal7
   Expected: True
 -}
@@ -674,7 +674,7 @@ sdkEqualTest7 ctx = test ctx
 
 -----
 
-{-
+{-|
   Test: SdkBasics/notEqual
   Expected: True
 -}
@@ -685,7 +685,7 @@ sdkNotEqualTest ctx = test ctx
     in
         f 1 2
 
-{-
+{-|
   Test: SdkBasics/notEqual2
   Expected: True
 -}
@@ -696,7 +696,7 @@ sdkNotEqualTest2 ctx = test ctx
     in
         f 1.0 2.0
 
-{-
+{-|
   Test: SdkBasics/notEqual3
   Expected: True
 -}
@@ -707,7 +707,7 @@ sdkNotEqualTest3 ctx = test ctx
     in
         f False True
 
-{-
+{-|
   Test: SdkBasics/notEqual4
   Expected: True
 -}
@@ -718,7 +718,7 @@ sdkNotEqualTest4 ctx = test ctx
     in
         f 'a' 'b'
 
-{-
+{-|
   Test: SdkBasics/notEqual5
   Expected: True
 -}
@@ -729,7 +729,7 @@ sdkNotEqualTest5 ctx = test ctx
     in
         f "yo" "yoo"
 
-{-
+{-|
   Test: SdkBasics/notEqual6
   Expected: True
 -}
@@ -740,7 +740,7 @@ sdkNotEqualTest6 ctx = test ctx
     in
         f [1, 2] [1, 2, 3]
 
-{-
+{-|
   Test: SdkBasics/notEqual7
   Expected: True
 -}
@@ -753,7 +753,7 @@ sdkNotEqualTest7 ctx = test ctx
 
 -----
 
-{-
+{-|
   Test: SdkBasics/lessThanInt
   Expected: True
 -}
@@ -761,7 +761,7 @@ sdkLessThanTestIntTrue: TestContext ->Bool
 sdkLessThanTestIntTrue ctx = test ctx
     let f x y = x < y in f 2 4
 
-{-
+{-|
   Test: SdkBasics/lessThanInt
   Expected: False
 -}
@@ -770,7 +770,7 @@ sdkLessThanTestIntFalse ctx = test ctx
     let f x y = x < y in f 5 4
 
 
-{-
+{-|
   Test: SdkBasics/greaterThanInt
   Expected: True
 -}
@@ -778,7 +778,7 @@ sdkGreaterThanTestIntTrue: TestContext ->Bool
 sdkGreaterThanTestIntTrue ctx = test ctx
     let f x y = x > y in f 4 2
 
-{-
+{-|
   Test: SdkBasics/greaterThanInt
   Expected: False
 -}
@@ -786,7 +786,7 @@ sdkGreaterThanTestIntFalse: TestContext ->Bool
 sdkGreaterThanTestIntFalse ctx = test ctx
     let f x y = x > y in f 1 2
 
-{-
+{-|
   Test: SdkBasics/greaterThanEqualsInt (1)
   Expected: True
 -}
@@ -794,7 +794,7 @@ sdkGreaterThanOrEqualTestIntTrue1: TestContext ->Bool
 sdkGreaterThanOrEqualTestIntTrue1 ctx = test ctx
     let f x y = x >= y in f 4 2
 
-{-
+{-|
   Test: SdkBasics/greaterThanEqualsInt (2)
   Expected: True
 -}
@@ -802,7 +802,7 @@ sdkGreaterThanOrEqualTestIntTrue2: TestContext ->Bool
 sdkGreaterThanOrEqualTestIntTrue2 ctx = test ctx
     let f x y = x >= y in f 2 2
 
-{-
+{-|
   Test: SdkBasics/greaterThanEqualsInt
   Expected: False
 -}
@@ -810,7 +810,7 @@ sdkGreaterThanOrEqualTestIntFalse: TestContext ->Bool
 sdkGreaterThanOrEqualTestIntFalse ctx = test ctx
     let f x y = x >= y in f 1 2
 
-{-
+{-|
   Test: SdkBasics/lessThanEqualsInt (1)
   Expected: True
 -}
@@ -818,7 +818,7 @@ sdkLessThanOrEqualTestIntTrue1: TestContext ->Bool
 sdkLessThanOrEqualTestIntTrue1 ctx = test ctx
     let f x y = x <= y in f 2 4
 
-{-
+{-|
   Test: SdkBasics/lessThanEqualsInt (2)
   Expected: True
 -}
@@ -826,7 +826,7 @@ sdkLessThanOrEqualTestIntTrue2: TestContext ->Bool
 sdkLessThanOrEqualTestIntTrue2 ctx = test ctx
     let f x y = x <= y in f 2 2
 
-{-
+{-|
   Test: SdkBasics/lessThanEqualsInt
   Expected: False
 -}
@@ -835,7 +835,7 @@ sdkLessThanOrEqualTestIntFalse ctx = test ctx
     let f x y = x <= y in f 2 1
 
 
-{-
+{-|
   Test: SdkBasics/lessThanFloat
   Expected: True
 -}
@@ -846,7 +846,7 @@ sdkLessThanTestFloat ctx = test ctx
     in
         f 2.0 4.0
 
-{-
+{-|
   Test: SdkBasics/lessThanChar
   Expected: True
 -}
@@ -857,7 +857,7 @@ sdkLessThanTestChar ctx = test ctx
     in
         f 'a' 'b'
 
-{-
+{-|
   Test: SdkBasics/lessThanString
   Expected: True
 -}
@@ -868,7 +868,7 @@ sdkLessThanTestString ctx = test ctx
     in
         f "AA" "BB"
 
-{-
+{-|
   Test: SdkBasics/lessThanTuple
   Expected: True
 -}
@@ -879,7 +879,7 @@ sdkLessThanTestTuple ctx = test ctx
     in
         f (1, 2) (2, 3)
 
-{-
+{-|
   Test: SdkBasics/lessThanList
   Expected: True
 -}
@@ -892,7 +892,7 @@ sdkLessThanTestList ctx = test ctx
 
 -----
 
-{-
+{-|
   Test: SdkBasics/lessThanOrEqualInt
   Expected: True
 -}
@@ -903,7 +903,7 @@ sdkLessThanOrEqualTestInt ctx = test ctx
     in
         f 2 4
 
-{-
+{-|
   Test: SdkBasics/lessThanOrEqualFloat
   Expected: True
 -}
@@ -914,7 +914,7 @@ sdkLessThanOrEqualTestFloat ctx = test ctx
     in
         f 2.0 4.0
 
-{-
+{-|
   Test: SdkBasics/lessThanOrEqualChar
   Expected: True
 -}
@@ -925,7 +925,7 @@ sdkLessThanOrEqualTestChar ctx = test ctx
     in
         f 'a' 'b'
 
-{-
+{-|
   Test: SdkBasics/lessThanOrEqualString
   Expected: True
 -}
@@ -936,7 +936,7 @@ sdkLessThanOrEqualTestString ctx = test ctx
     in
         f "AA" "BB"
 
-{-
+{-|
   Test: SdkBasics/lessThanOrEqualTuple
   Expected: True
 -}
@@ -947,7 +947,7 @@ sdkLessThanOrEqualTestTuple ctx = test ctx
     in
         f (1, 2) (2, 3)
 
-{-
+{-|
   Test: SdkBasics/lessThanOrEqualList
   Expected: True
 -}
@@ -960,7 +960,7 @@ sdkLessThanOrEqualTestList ctx = test ctx
 
 -----
 
-{-
+{-|
   Test: SdkBasics/greaterThanInt
   Expected: False
 -}
@@ -971,7 +971,7 @@ sdkGreaterThanTestInt ctx = test ctx
     in
         f 2 4
 
-{-
+{-|
   Test: SdkBasics/greaterThanFloat
   Expected: False
 -}
@@ -982,7 +982,7 @@ sdkGreaterThanTestFloat ctx = test ctx
     in
         f 2.0 4.0
 
-{-
+{-|
   Test: SdkBasics/greaterThanChar
   Expected: False
 -}
@@ -993,7 +993,7 @@ sdkGreaterThanTestChar ctx = test ctx
     in
         f 'a' 'b'
 
-{-
+{-|
   Test: SdkBasics/greaterThanString
   Expected: False
 -}
@@ -1004,7 +1004,7 @@ sdkGreaterThanTestString ctx = test ctx
     in
         f "AA" "BB"
 
-{-
+{-|
   Test: SdkBasics/greaterThanTuple
   Expected: False
 -}
@@ -1015,7 +1015,7 @@ sdkGreaterThanTestTuple ctx = test ctx
     in
         f (1, 2) (2, 3)
 
-{-
+{-|
   Test: SdkBasics/greaterThanList
   Expected: False
 -}
@@ -1028,7 +1028,7 @@ sdkGreaterThanTestList ctx = test ctx
 
 -----
 
-{-
+{-|
   Test: SdkBasics/greaterThanOrEqualInt
   Expected: False
 -}
@@ -1039,7 +1039,7 @@ sdkGreaterThanOrEqualTestInt ctx = test ctx
     in
         f 2 4
 
-{-
+{-|
   Test: SdkBasics/greaterThanOrEqualFloat
   Expected: False
 -}
@@ -1050,7 +1050,7 @@ sdkGreaterThanOrEqualTestFloat ctx = test ctx
     in
         f 2.0 4.0
 
-{-
+{-|
   Test: SdkBasics/greaterThanOrEqualChar
   Expected: False
 -}
@@ -1061,7 +1061,7 @@ sdkGreaterThanOrEqualTestChar ctx = test ctx
     in
         f 'a' 'b'
 
-{-
+{-|
   Test: SdkBasics/greaterThanOrEqualString
   Expected: False
 -}
@@ -1072,7 +1072,7 @@ sdkGreaterThanOrEqualTestString ctx = test ctx
     in
         f "AA" "BB"
 
-{-
+{-|
   Test: SdkBasics/greaterThanOrEqualTuple
   Expected: False
 -}
@@ -1083,7 +1083,7 @@ sdkGreaterThanOrEqualTestTuple ctx = test ctx
     in
         f (1, 2) (2, 3)
 
-{-
+{-|
   Test: SdkBasics/greaterThanOrEqualList
   Expected: False
 -}
@@ -1096,7 +1096,7 @@ sdkGreaterThanOrEqualTestList ctx = test ctx
 
 -----
 
-{-
+{-|
   Test: SdkBasics/maxInt
   Expected: 4
 -}
@@ -1107,7 +1107,7 @@ sdkMaxTestInt ctx = test ctx
     in
         f 2 4
 
-{-
+{-|
   Test: SdkBasics/maxFloat
   Expected: 4.0
 -}
@@ -1118,7 +1118,7 @@ sdkMaxTestFloat ctx = test ctx
     in
         f 2.0 4.0
 
-{-
+{-|
   Test: SdkBasics/maxChar
   Expected: 'b'
 -}
@@ -1129,7 +1129,7 @@ sdkMaxTestChar ctx = test ctx
     in
         f 'a' 'b'
 
-{-
+{-|
   Test: SdkBasics/maxString
   Expected: "BB"
 -}
@@ -1140,7 +1140,7 @@ sdkMaxTestString ctx = test ctx
     in
         f "AA" "BB"
 
-{-
+{-|
   Test: SdkBasics/maxTuple
   Expected: (2, 3)
 -}
@@ -1151,7 +1151,7 @@ sdkMaxTestTuple ctx = test ctx
     in
         f (1, 2) (2, 3)
 
-{-
+{-|
   Test: SdkBasics/maxList
   Expected: [2, 3]
 -}
@@ -1164,7 +1164,7 @@ sdkMaxTestList ctx = test ctx
 
 -----
 
-{-
+{-|
   Test: SdkBasics/minInt
   Expected: 2
 -}
@@ -1175,7 +1175,7 @@ sdkMinTestInt ctx = test ctx
     in
         f 2 4
 
-{-
+{-|
   Test: SdkBasics/minFloat
   Expected: 2.0
 -}
@@ -1186,7 +1186,7 @@ sdkMinTestFloat ctx = test ctx
     in
         f 2.0 4.0
 
-{-
+{-|
   Test: SdkBasics/minChar
   Expected: 'a'
 -}
@@ -1197,7 +1197,7 @@ sdkMinTestChar ctx = test ctx
     in
         f 'a' 'b'
 
-{-
+{-|
   Test: SdkBasics/minString
   Expected: "AA"
 -}
@@ -1208,7 +1208,7 @@ sdkMinTestString ctx = test ctx
     in
         f "AA" "BB"
 
-{-
+{-|
   Test: SdkBasics/minTuple
   Expected: (1, 2)
 -}
@@ -1219,7 +1219,7 @@ sdkMinTestTuple ctx = test ctx
     in
         f (1, 2) (2, 3)
 
-{-
+{-|
   Test: SdkBasics/minList
   Expected: [1, 2]
 -}
@@ -1232,7 +1232,7 @@ sdkMinTestList ctx = test ctx
 
 -----
 
-{-
+{-|
   Test: SdkBasics/not
   Expected: False
 -}
@@ -1243,7 +1243,7 @@ sdkNotTest ctx = test ctx
     in
         f True
 
-{-
+{-|
   Test: SdkBasics/and
   Expected: False
 -}
@@ -1254,7 +1254,7 @@ sdkAndTest ctx = test ctx
     in
         f True False
 
-{-
+{-|
   Test: SdkBasics/or
   Expected: True
 -}
@@ -1265,7 +1265,7 @@ sdkOrTest ctx = test ctx
     in
         f True False
 
-{-
+{-|
   Test: SdkBasics/xor
   Expected: True
 -}
@@ -1278,7 +1278,7 @@ sdkXorTest ctx = test ctx
 
 -----
 
-{-
+{-|
   Test: SdkBasics/appendString
   Expected: "aa-bb"
 -}
@@ -1289,7 +1289,7 @@ sdkAppendStringTest ctx = test ctx
     in
         f "aa-" "bb"
 
-{-
+{-|
   Test: SdkBasics/appendList
   Expected: [1, 2, 3, 4]
 -}
@@ -1303,7 +1303,7 @@ sdkAppendListTest ctx = test ctx
 -----
 
 
-{-
+{-|
   Test: SdkBasics/identityInt
   Expected: 4
 -}
@@ -1314,7 +1314,7 @@ sdkIdentityTestInt ctx = test ctx
     in
         f 4
 
-{-
+{-|
   Test: SdkBasics/identityFloat
   Expected: 4.0
 -}
@@ -1325,7 +1325,7 @@ sdkIdentityTestFloat ctx = test ctx
     in
         f 4.0
 
-{-
+{-|
   Test: SdkBasics/identityChar
   Expected: 'b'
 -}
@@ -1336,7 +1336,7 @@ sdkIdentityTestChar ctx = test ctx
     in
         f 'b'
 
-{-
+{-|
   Test: SdkBasics/identityString
   Expected: "BB"
 -}
@@ -1347,7 +1347,7 @@ sdkIdentityTestString ctx = test ctx
     in
         f "BB"
 
-{-
+{-|
   Test: SdkBasics/identityTuple
   Expected: (2, 3)
 -}
@@ -1358,7 +1358,7 @@ sdkIdentityTestTuple ctx = test ctx
     in
         f (2, 3)
 
-{-
+{-|
   Test: SdkBasics/identityList
   Expected: [2, 3]
 -}
@@ -1371,7 +1371,7 @@ sdkIdentityTestList ctx = test ctx
 
 -----
 
-{-
+{-|
   Test: SdkBasics/identityInt
   Expected: 4
 -}
@@ -1382,7 +1382,7 @@ sdkIdentityTestInt ctx = test ctx
     in
         f 4
 
-{-
+{-|
   Test: SdkBasics/identityFloat
   Expected: 4.0
 -}
@@ -1393,7 +1393,7 @@ sdkIdentityTestFloat ctx = test ctx
     in
         f 4.0
 
-{-
+{-|
   Test: SdkBasics/identityChar
   Expected: 'b'
 -}
@@ -1404,7 +1404,7 @@ sdkIdentityTestChar ctx = test ctx
     in
         f 'b'
 
-{-
+{-|
   Test: SdkBasics/identityString
   Expected: "BB"
 -}
@@ -1415,7 +1415,7 @@ sdkIdentityTestString ctx = test ctx
     in
         f "BB"
 
-{-
+{-|
   Test: SdkBasics/identityTuple
   Expected: (2, 3)
 -}
@@ -1426,7 +1426,7 @@ sdkIdentityTestTuple ctx = test ctx
     in
         f (2, 3)
 
-{-
+{-|
   Test: SdkBasics/identityList
   Expected: [2, 3]
 -}
@@ -1439,7 +1439,7 @@ sdkIdentityTestList ctx = test ctx
 
 -----
 
-{-
+{-|
   Test: SdkBasics/alwaysInt
   Expected: [0]
 -}
@@ -1450,7 +1450,7 @@ sdkAlwaysTestInt ctx = test ctx
     in
         f [4]
 
-{-
+{-|
   Test: SdkBasics/alwaysFloat
   Expected: [0.0]
 -}
@@ -1461,7 +1461,7 @@ sdkAlwaysTestFloat ctx = test ctx
     in
         f [4.0]
 
-{-
+{-|
   Test: SdkBasics/alwaysChar
   Expected: ['a']
 -}
@@ -1472,7 +1472,7 @@ sdkAlwaysTestChar ctx = test ctx
     in
         f ['b']
 
-{-
+{-|
   Test: SdkBasics/alwaysString
   Expected: ["A"]
 -}
@@ -1485,7 +1485,7 @@ sdkAlwaysTestString ctx = test ctx
 
 -----
 
-{-
+{-|
   Test: SdkBasics/composeLeft
   Expected: False
 -}
@@ -1497,7 +1497,7 @@ sdkComposeLeftTest ctx = test ctx
     in
         g True
 
-{-
+{-|
   Test: SdkBasics/composeRight
   Expected: True
 -}

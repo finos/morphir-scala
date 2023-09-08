@@ -18,7 +18,7 @@ import Morphir.SDK.LocalTime exposing (LocalTime)
 -}
 nativeReferenceMapTest : TestContext ->List (Int, Int)
 nativeReferenceMapTest ctx = test ctx 
-    map (\x -> (x, x)) [1, 2, 3]
+    (map (\x -> (x, x)) [1, 2, 3])
 
 {-|
     Test: NativeReference/Add
@@ -60,7 +60,7 @@ nativeReferencePiTest ctx = test ctx
 -}
 nativeReferenceModByTest : Int -> Int
 nativeReferenceModByTest x = 
-    modBy 3 x
+    (modBy 3 x)
 
 localDatePassthrough : LocalDate -> LocalDate
 localDatePassthrough x = x

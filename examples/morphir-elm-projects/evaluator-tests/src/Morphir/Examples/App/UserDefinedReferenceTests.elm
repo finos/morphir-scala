@@ -39,7 +39,7 @@ userDefinedReferenceCurriedTest ctx = test ctx
 -}
 userDefinedReferenceSimpleFunctionTest : TestContext ->(Int, Int)
 userDefinedReferenceSimpleFunctionTest ctx = test ctx 
-    tupleReverse (2, 1)
+    (tupleReverse (2, 1))
 
 {-|
     Test: UserDefinedReference/PublicPrivate Calls public function which relies on private function
@@ -47,7 +47,7 @@ userDefinedReferenceSimpleFunctionTest ctx = test ctx
 -}
 userDefinedReferencePublicPrivateTest : TestContext ->Int
 userDefinedReferencePublicPrivateTest ctx = test ctx 
-   publicFunction 5
+   (publicFunction 5)
 
 {-|
     Test: UserDefinedReference/Record

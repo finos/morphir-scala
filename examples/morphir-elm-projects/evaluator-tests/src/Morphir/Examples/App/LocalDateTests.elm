@@ -8,4 +8,4 @@ expected = Just (1900 Jan 20)
 -}
 fromPartsTest : TestContext ->Maybe LocalDate
 fromPartsTest ctx = test ctx
-    fromParts 1900 1 20
+    (fromParts 1900 1 20)

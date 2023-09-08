@@ -15,7 +15,7 @@ expected = Just "Hello"
 -}
 returnJustStringTest : TestContext ->Maybe String
 returnJustStringTest ctx = test ctx
-    Just "Hello"
+    (Just "Hello")
 
 {-|
 Test: Option/NoneInt

@@ -8,4 +8,4 @@ import Morphir.Examples.App.TestUtils exposing (..)
 -}
 fromMillisecondsTest : TestContext ->LocalTime
 fromMillisecondsTest ctx = test ctx
-    fromMilliseconds 38606000
+    (fromMilliseconds 38606000)

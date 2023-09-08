@@ -12,7 +12,7 @@ stringAppend l r = append l r
 -}
 stringLeftTest : TestContext ->String
 stringLeftTest ctx = test ctx
-    left 2 "Mulder"
+    (left 2 "Mulder")
 
 {-|
     Test: String/right
@@ -20,7 +20,7 @@ stringLeftTest ctx = test ctx
 -}
 stringRightTest : TestContext ->String
 stringRightTest ctx = test ctx
-    right 2 "Scully"
+    (right 2 "Scully")
 
 {-|
     Test: String/fromInt
@@ -28,7 +28,7 @@ stringRightTest ctx = test ctx
 -}
 stringFromIntTest : TestContext ->String
 stringFromIntTest ctx = test ctx
-    fromInt 25
+    (fromInt 25)
 
 {-|
     Test: String/fromFloat
@@ -36,7 +36,7 @@ stringFromIntTest ctx = test ctx
 -}
 stringFromFloatTest : TestContext ->String
 stringFromFloatTest ctx = test ctx
-    fromFloat 1.5
+    (fromFloat 1.5)
 
 {-|
     Test: String/toInt
@@ -44,7 +44,7 @@ stringFromFloatTest ctx = test ctx
 -}
 stringToIntTest1 : TestContext ->Maybe Int
 stringToIntTest1 ctx = test ctx
-    toInt "25"
+    (toInt "25")
 
 {-|
     Test: String/toInt - Invalid
@@ -52,7 +52,7 @@ stringToIntTest1 ctx = test ctx
 -}
 stringToIntTest2 : TestContext ->Maybe Int
 stringToIntTest2 ctx = test ctx
-    toInt "notAnInt"
+    (toInt "notAnInt")
 
 {-|
     Test: String/isEmpty - True
@@ -60,7 +60,7 @@ stringToIntTest2 ctx = test ctx
 -}
 stringIsEmptyTest1 : TestContext ->Bool
 stringIsEmptyTest1 ctx = test ctx
-    isEmpty ""
+    (isEmpty "")
 
 {-|
     Test: String/isEmpty - False
@@ -68,4 +68,4 @@ stringIsEmptyTest1 ctx = test ctx
 -}
 stringIsEmptyTest2 : TestContext ->Bool
 stringIsEmptyTest2 ctx = test ctx
-    isEmpty "content"
+    (isEmpty "content")
