@@ -33,6 +33,7 @@ object MorphirCliMain extends ZIOCliDefault {
       MorphirElmDriver.make(VFilePath.fromJava(projectDir), VFilePath.fromJava(output), fallbackCli)
     case MorphirCommand.ElmRestore(elmHome, projectDir) =>
       MorphirElmDriver.restore(VFilePath.fromJava(elmHome), VFilePath.fromJava(projectDir))
+    case MorphirCommand.ElmTest(projectDir) => MorphirElmDriver.test(VFilePath.fromJava(projectDir))
   }
 
   object commands {
@@ -94,9 +95,24 @@ object MorphirCliMain extends ZIOCliDefault {
         }
       }
 
-      val root =
-        Command("elm").withHelp("Elm specific commands for morphir-cli.").subcommands(develop, init, make, restore)
+      lazy val root =
+        Command("elm").withHelp("Elm specific commands for morphir-cli.").subcommands(
+          develop,
+          init,
+          make,
+          restore,
+          test
+        )
 
+      val test = {
+        val projectDir = Options.directory("project-dir").alias("p").withDefault(
+          Paths.get(".")
+        ) ?? "Root directory of the project where morphir.json is located."
+
+        Command("test", projectDir).withHelp("Test Morphir models using morphir-elm.").map { projectDir =>
+          MorphirCommand.ElmTest(projectDir)
+        }
+      }
     }
 
     object Morphir {

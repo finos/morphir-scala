@@ -24,6 +24,10 @@ trait MorphirElmDriver {
 
   /// Restore the Elm dependencies for the current project/workspace.
   def restore(elmHome: VFilePath, projectDir: VFilePath): Task[Unit]
+
+  /// Start testing the models.
+  def test(projectDir: VFilePath): Task[Unit]
+
 }
 
 /// Provides constructors and accessors for a MorphirElmDriver.
@@ -61,4 +65,8 @@ object MorphirElmDriver extends MorphirElmDriverPlatformSpecific {
   /// Restore the Elm dependencies for the current project/workspace.
   def restore(elmHome: VFilePath, projectDir: VFilePath): ZIO[MorphirElmDriver, Throwable, Unit] =
     ZIO.serviceWithZIO[MorphirElmDriver](_.restore(elmHome, projectDir))
+
+  /// Start testing the models.
+  def test(projectDir: VFilePath): ZIO[MorphirElmDriver, Throwable, Unit] =
+    ZIO.serviceWithZIO[MorphirElmDriver](_.test(projectDir))
 }

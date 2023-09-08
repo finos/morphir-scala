@@ -16,4 +16,5 @@ enum MorphirCommand {
       indentJson: Boolean = false
   )
   case ElmRestore(elmHome: Path, projectDir: Path)
+  case ElmTest(projectDir: Path)
 }

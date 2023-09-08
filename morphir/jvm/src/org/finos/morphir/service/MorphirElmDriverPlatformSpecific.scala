@@ -91,6 +91,18 @@ trait MorphirElmDriverPlatformSpecific {
         _ <- Console.printLine("Elm restore command executed")
       } yield ()
 
+    def test(projectDir: VFilePath): Task[Unit] =
+      for {
+        _ <- ZIO.logDebug(s"Executing tests...")
+        _ <- ZIO.logDebug(s"\tprojectDir: $projectDir")
+        _ <- processIO.exec(
+          "morphir-elm",
+          "test",
+          "--project-dir",
+          projectDir.toString
+        )
+      } yield ()
+
     private def launchInBrowser(url: String): ZIO[Any, Throwable, Unit] = {
       val notify = Console.printLine(s"Attempting to open $url in browser")
       for {
