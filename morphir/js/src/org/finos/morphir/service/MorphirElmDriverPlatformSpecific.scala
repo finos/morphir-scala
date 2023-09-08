@@ -46,5 +46,12 @@ trait MorphirElmDriverPlatformSpecific {
         _ <- Console.printLine(s"\tprojectDir: $projectDir")
         _ <- Console.printLine("Elm restore command executed")
       } yield ()
+
+    def test(projectDir: VFilePath): Task[Unit] =
+      for {
+        _ <- Console.printLine("Elm test command executed")
+        _ <- Console.printLine(s"\tprojectDir: $projectDir")
+        _ <- Console.printLine("Elm test command executed")
+      } yield ()
   }
 }
