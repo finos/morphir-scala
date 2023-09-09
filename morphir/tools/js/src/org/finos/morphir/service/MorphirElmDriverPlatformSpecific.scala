@@ -7,7 +7,7 @@ trait MorphirElmDriverPlatformSpecific {
   val live: ULayer[MorphirElmDriver] = ZLayer.succeed(MorphirElmDriverLive)
 
   object MorphirElmDriverLive extends MorphirElmDriver {
-    def develop(port: Int, host: String, projectDir: VFilePath, openInBrowser: Boolean = false): Task[Unit] = for {
+    def develop(port: Int, host: String, projectDir: VPath, openInBrowser: Boolean = false): Task[Unit] = for {
       _ <- Console.printLine("Elm develop command executed")
       _ <- Console.printLine(s"\tport: $port")
       _ <- Console.printLine(s"\thost: $host")
@@ -16,7 +16,7 @@ trait MorphirElmDriverPlatformSpecific {
       _ <- Console.printLine("Elm develop command executed")
     } yield ()
 
-    def init(morphirHomeDir: VFilePath, projectDir: VFilePath): Task[Unit] = for {
+    def init(morphirHomeDir: VPath, projectDir: VPath): Task[Unit] = for {
       _ <- Console.printLine("Elm init command executing")
       _ <- Console.printLine(s"\tmorphirHomeDir: $morphirHomeDir")
       _ <- Console.printLine(s"\tprojectDir: $projectDir")
@@ -24,8 +24,8 @@ trait MorphirElmDriverPlatformSpecific {
     } yield ()
 
     def make(
-        projectDir: VFilePath,
-        output: VFilePath,
+        projectDir: VPath,
+        output: VPath,
         typesOnly: Boolean = false,
         fallbackCli: Boolean = false,
         indentJson: Boolean = false
@@ -39,7 +39,7 @@ trait MorphirElmDriverPlatformSpecific {
       _ <- Console.printLine("Elm make command executed")
     } yield Seq.empty
 
-    def restore(elmHome: VFilePath, projectDir: VFilePath): Task[Unit] =
+    def restore(elmHome: VPath, projectDir: VPath): Task[Unit] =
       for {
         _ <- Console.printLine("Elm restore command executed")
         _ <- Console.printLine(s"\telmHome: $elmHome")
@@ -47,7 +47,7 @@ trait MorphirElmDriverPlatformSpecific {
         _ <- Console.printLine("Elm restore command executed")
       } yield ()
 
-    def test(projectDir: VFilePath): Task[Unit] =
+    def test(projectDir: VPath): Task[Unit] =
       for {
         _ <- Console.printLine("Elm test command executed")
         _ <- Console.printLine(s"\tprojectDir: $projectDir")

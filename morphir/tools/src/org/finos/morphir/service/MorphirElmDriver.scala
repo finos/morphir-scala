@@ -8,25 +8,25 @@ import zio._
  */
 trait MorphirElmDriver {
   /// Execute the `morphir-elm develop` command
-  def develop(port: Int, host: String, projectDir: VFilePath, openInBrowser: Boolean = false): Task[Unit]
+  def develop(port: Int, host: String, projectDir: VPath, openInBrowser: Boolean = false): Task[Unit]
 
   /// Initialize the current directory/workspace for use with Morphir's Elm tooling.
-  def init(morphirHomeDir: VFilePath, projectDir: VFilePath): Task[Unit]
+  def init(morphirHomeDir: VPath, projectDir: VPath): Task[Unit]
 
   /// Compule Elm sources into Morphir IR.
   def make(
-      projectDir: VFilePath,
-      output: VFilePath,
+      projectDir: VPath,
+      output: VPath,
       typesOnly: Boolean = false,
       fallbackCli: Boolean = false,
       indentJson: Boolean = false
   ): Task[Seq[VFile]]
 
   /// Restore the Elm dependencies for the current project/workspace.
-  def restore(elmHome: VFilePath, projectDir: VFilePath): Task[Unit]
+  def restore(elmHome: VPath, projectDir: VPath): Task[Unit]
 
   /// Start testing the models.
-  def test(projectDir: VFilePath): Task[Unit]
+  def test(projectDir: VPath): Task[Unit]
 
 }
 
@@ -37,19 +37,19 @@ object MorphirElmDriver extends MorphirElmDriverPlatformSpecific {
   def develop(
       port: Int,
       host: String,
-      projectDir: VFilePath,
+      projectDir: VPath,
       openInBrowser: Boolean = false
   ): ZIO[MorphirElmDriver, Throwable, Unit] =
     ZIO.serviceWithZIO[MorphirElmDriver](_.develop(port, host, projectDir, openInBrowser))
 
   /// Initialize the current directory/workspace for use with Morphir's Elm tooling.
-  def init(morphirHomeDir: VFilePath, projectDir: VFilePath): ZIO[MorphirElmDriver, Throwable, Unit] =
+  def init(morphirHomeDir: VPath, projectDir: VPath): ZIO[MorphirElmDriver, Throwable, Unit] =
     ZIO.serviceWithZIO[MorphirElmDriver](_.init(morphirHomeDir, projectDir))
 
   /// Compule Elm sources into Morphir IR.
   def make(
-      projectDir: VFilePath,
-      output: VFilePath,
+      projectDir: VPath,
+      output: VPath,
       typesOnly: Boolean = false,
       fallbackCli: Boolean = false,
       indentJson: Boolean = false
@@ -63,10 +63,10 @@ object MorphirElmDriver extends MorphirElmDriverPlatformSpecific {
     ))
 
   /// Restore the Elm dependencies for the current project/workspace.
-  def restore(elmHome: VFilePath, projectDir: VFilePath): ZIO[MorphirElmDriver, Throwable, Unit] =
+  def restore(elmHome: VPath, projectDir: VPath): ZIO[MorphirElmDriver, Throwable, Unit] =
     ZIO.serviceWithZIO[MorphirElmDriver](_.restore(elmHome, projectDir))
 
   /// Start testing the models.
-  def test(projectDir: VFilePath): ZIO[MorphirElmDriver, Throwable, Unit] =
+  def test(projectDir: VPath): ZIO[MorphirElmDriver, Throwable, Unit] =
     ZIO.serviceWithZIO[MorphirElmDriver](_.test(projectDir))
 }

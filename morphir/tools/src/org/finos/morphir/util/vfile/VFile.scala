@@ -5,7 +5,7 @@ import org.finos.morphir.util.attribs.{Attribute, Attributes}
 import java.nio.file.Path
 import org.typelevel.paiges._
 
-final case class VFile(path: VFilePath, contents: VFileContents, properties: Attributes, data: Attributes) { self =>
+final case class VFile(path: VPath, contents: VFileContents, properties: Attributes, data: Attributes) { self =>
   import Attribute.Binding
   def ++=(bindings: Seq[Binding[_]]): VFile = copy(properties = properties ++= bindings)
 //  def accept[A](visitor:ExternalVisitor[A]):A = self match {
@@ -18,27 +18,27 @@ final case class VFile(path: VFilePath, contents: VFileContents, properties: Att
 }
 
 object VFile extends VFilePlatformSpecific {
-  def directory(path: VFilePath, children: VFile*): VFile =
+  def directory(path: VPath, children: VFile*): VFile =
     VFile(path, VFileContents.VFiles(children.toVector), Attributes.empty, Attributes.empty)
-  def fileRef(path: VFilePath): VFile =
+  def fileRef(path: VPath): VFile =
     VFile(path, contents = VFileContents.Uninitialized, properties = Attributes.empty, Attributes.empty)
-  def mixed(path: VFilePath, contents: VFileContents*): VFile =
+  def mixed(path: VPath, contents: VFileContents*): VFile =
     VFile(path, VFileContents.Mixed(contents.toVector), Attributes.empty, Attributes.empty)
-  def sourceFile(path: VFilePath, document: Doc): VFile =
+  def sourceFile(path: VPath, document: Doc): VFile =
     VFile(path, VFileContents.TextDocument(document), Attributes.empty, Attributes.empty)
-  def sourceFile(path: VFilePath, text: String): VFile =
+  def sourceFile(path: VPath, text: String): VFile =
     VFile(path, VFileContents.Text(text), Attributes.empty, Attributes.empty)
 
   trait InternalVisitor[A] {
-    def fileReference(path: VFilePath): A
-    def sourceFile(path: VFilePath, document: Doc): A
-    def directory(path: VFilePath, children: Vector[A]): A
+    def fileReference(path: VPath): A
+    def sourceFile(path: VPath, document: Doc): A
+    def directory(path: VPath, children: Vector[A]): A
   }
 
   trait ExternalVisitor[+A] {
-    def fileReference(path: VFilePath): A
-    def sourceFile(path: VFilePath, document: Doc): A
-    def directory(path: VFilePath, children: Vector[VFile]): A
+    def fileReference(path: VPath): A
+    def sourceFile(path: VPath, document: Doc): A
+    def directory(path: VPath, children: Vector[VFile]): A
   }
 
 }

@@ -9,10 +9,10 @@ trait FileIOPlatformSpecific {
 
   object FileIOLive extends FileIO {
 
-    def readFileText(path: VFilePath): IO[IOException, String] =
+    def readFileText(path: VPath): IO[IOException, String] =
       ZIO.fail(new IOException(s"FileIOLive::readFileText Not implemented"))
 
-    def readLines(path: VFilePath): IO[IOException, List[String]] =
+    def readLines(path: VPath): IO[IOException, List[String]] =
       ZIO.fail(new IOException(s"FileIOLive::readFileText Not implemented"))
   }
 }

@@ -1,5 +1,5 @@
 package org.finos.morphir.util.vfile
 import zio.test._
-trait VFilePathSpecPlatformSpecific { self: VFilePathSpec.type =>
+trait VPathSpecPlatformSpecific { self: VPathSpec.type =>
   def platformSpecificSuite = suite("PlatformSpecific")()
 }

@@ -19,7 +19,7 @@ trait MorphirElmDriverPlatformSpecific {
 
   sealed case class MorphirElmDriverLive(processIO: ProcessIO) extends MorphirElmDriver { self =>
     import zio.process._
-    def develop(port: Int, host: String, projectDir: VFilePath, openInBrowser: Boolean = false): Task[Unit] = {
+    def develop(port: Int, host: String, projectDir: VPath, openInBrowser: Boolean = false): Task[Unit] = {
       val shutdownPromptJob = for {
         _ <- Console.printLine(
           s"Press enter to stop the Elm development server"
@@ -48,7 +48,7 @@ trait MorphirElmDriverPlatformSpecific {
       } yield ()
     }
 
-    def init(morphirHomeDir: VFilePath, projectDir: VFilePath): Task[Unit] = for {
+    def init(morphirHomeDir: VPath, projectDir: VPath): Task[Unit] = for {
       _ <- Console.printLine("Elm init command executing")
       _ <- Console.printLine(s"\tmorphirHomeDir: $morphirHomeDir")
       _ <- Console.printLine(s"\tprojectDir: $projectDir")
@@ -56,8 +56,8 @@ trait MorphirElmDriverPlatformSpecific {
     } yield ()
 
     def make(
-        projectDir: VFilePath,
-        output: VFilePath,
+        projectDir: VPath,
+        output: VPath,
         typesOnly: Boolean = false,
         fallbackCli: Boolean = false,
         indentJson: Boolean = false
@@ -83,7 +83,7 @@ trait MorphirElmDriverPlatformSpecific {
       _ <- Console.printLine(s"\texitCode: $exitCode")
     } yield Seq.empty
 
-    def restore(elmHome: VFilePath, projectDir: VFilePath): Task[Unit] =
+    def restore(elmHome: VPath, projectDir: VPath): Task[Unit] =
       for {
         _ <- Console.printLine("Elm restore command executed")
         _ <- Console.printLine(s"\telmHome: $elmHome")
@@ -91,7 +91,7 @@ trait MorphirElmDriverPlatformSpecific {
         _ <- Console.printLine("Elm restore command executed")
       } yield ()
 
-    def test(projectDir: VFilePath): Task[Unit] =
+    def test(projectDir: VPath): Task[Unit] =
       for {
         _ <- ZIO.logDebug(s"Executing tests...")
         _ <- ZIO.logDebug(s"\tprojectDir: $projectDir")

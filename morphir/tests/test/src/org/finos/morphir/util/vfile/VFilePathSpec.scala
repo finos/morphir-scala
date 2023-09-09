@@ -4,8 +4,8 @@ import java.nio.file.Paths
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
-object VFilePathSpec extends MorphirBaseSpec with VFilePathSpecPlatformSpecific {
-  def spec = suite("VfilePathSpec")(
+object VPathSpec extends MorphirBaseSpec with VPathSpecPlatformSpecific {
+  def spec = suite("VPathSpec")(
     platformSpecificSuite
   )
 }
