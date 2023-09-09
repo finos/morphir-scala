@@ -3,7 +3,9 @@ package millbuild
 import mill._, scalalib._, scalafmt._
 import java.util.Properties
 trait CommonCrossScalaModule extends CrossScalaModule with CommonCoursierModule with CommonScalaModule
-    with ScalafmtModule { self => }
+    with ScalafmtModule { self =>
+      
+}
 
 trait CommonScalaModule extends ScalaModule {
   def compilerPlugins(scalaVersion: String) =
@@ -16,11 +18,11 @@ trait CommonScalaModule extends ScalaModule {
       Agg()
 
   def disableFatalWarnings = T.input {
-    sys.env.get("DISABLE_WARNINGS_AS_ERRORS").map(_.toBoolean).getOrElse(false)
+    T.env.get("DISABLE_WARNINGS_AS_ERRORS").map(_.toBoolean).getOrElse(false)
   }
 
   def isCIBuild = T.input {
-    sys.env.get("CI").map(_.toBoolean).getOrElse(false)
+    T.env.get("CI").map(_.toBoolean).getOrElse(false)
   }
 
   def isScala3(scalaVersion: String): Boolean = scalaVersion.startsWith("3.")
@@ -181,7 +183,7 @@ trait CommonScalaModule extends ScalaModule {
     else if (scalaVersion.startsWith("3.")) Seq("-target:11")
     else Seq.empty // when we get Scala 4...
 
-  def scalacOptions(scalaVersion: String, optimize: Boolean, isCIBuild:Boolean, disableFatalWarnings:Boolean) = {
+  def scalacOptions(scalaVersion: String, optimize: Boolean, isCIBuild: Boolean, disableFatalWarnings: Boolean) = {
 
     val versionParts = scalaVersion.split("\\.")
     val options = versionParts match {

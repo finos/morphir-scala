@@ -2,8 +2,10 @@ import $meta._
 import $ivy.`de.tototec::de.tobiasroeser.mill.integrationtest::0.7.1`
 import $ivy.`io.chris-kipp::mill-ci-release::0.1.9`
 import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
+import $ivy.`com.carlosedp::mill-aliases::0.4.1`
 import $file.project.deps, deps.{Deps, MillVersions, Versions => Vers}
 import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
+import com.carlosedp.aliases._
 import de.tobiasroeser.mill.integrationtest._
 import io.kipp.mill.ci.release.CiReleaseModule
 import millbuild._
@@ -679,4 +681,13 @@ object site extends Docusaurus2Module with MDocModule {
   override def watchedMDocsDestination: T[Option[os.Path]] = T(Some(docusaurusBuild().path / "docs"))
   override def compiledMdocs: Sources                      = T.sources(mdoc().path)
   object test extends ScalaTests with TestModule.Munit {}
+}
+
+object MyAliases extends Aliases {
+  def fmt         = alias("mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources")
+  def checkfmt    = alias("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources")
+  def deps        = alias("mill.scalalib.Dependency/showUpdates")
+  def testall     = alias("__.test")
+  def compileall  = alias("__.compile")
+  def comptestall = alias("__.compile", "__.test")
 }
