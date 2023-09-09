@@ -204,19 +204,12 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     def platformSpecificModuleDeps = Seq(annotations)
   }
 
-  object jvm extends Shared with MorphirJVMModule {
-    def ivyDeps = super.ivyDeps() ++ Agg(
-      Deps.dev.zio.`zio-nio`,
-      Deps.dev.zio.`zio-process`
-    )
-  }
+  object jvm extends Shared with MorphirJVMModule
+
   object js extends Shared with MorphirJSModule {
     def docSources: T[Seq[PathRef]] = T { Seq.empty[PathRef] }
   }
   object native extends Shared with MorphirNativeModule {
-    def ivyDeps = super.ivyDeps() ++ Agg(
-      Deps.dev.zio.`zio-nio`
-    )
     def docSources: T[Seq[PathRef]] = T { Seq.empty[PathRef] }
   }
 
@@ -675,9 +668,18 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       def platformSpecificModuleDeps = Seq(morphir, morphir.toolkit.codec.zio.json)
     }
 
-    object jvm    extends Shared with MorphirJVMModule
-    object js     extends Shared with MorphirJSModule
-    object native extends Shared with MorphirNativeModule
+    object jvm extends Shared with MorphirJVMModule {
+      def ivyDeps = super.ivyDeps() ++ Agg(
+        Deps.dev.zio.`zio-nio`,
+        Deps.dev.zio.`zio-process`
+      )
+    }
+    object js extends Shared with MorphirJSModule
+    object native extends Shared with MorphirNativeModule {
+      def ivyDeps = super.ivyDeps() ++ Agg(
+        Deps.dev.zio.`zio-nio`
+      )
+    }
   }
 }
 
