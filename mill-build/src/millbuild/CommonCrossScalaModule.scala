@@ -65,7 +65,7 @@ trait CommonScalaModule extends ScalaModule {
     super.scalacOptions() ++ options ++ additionalScalacOptions()
   }
 
-  def scalaDocOptions = filterScala3DocOptions(super.scalaDocOptions() ++ Seq("-no-link-warnings"))
+  def scalaDocOptions = filterScala3DocOptions(super.scalaDocOptions())
 
   override def scalacPluginIvyDeps: Target[Agg[Dep]] = T {
     super.scalacPluginIvyDeps() ++ compilerPlugins(scalaVersion())

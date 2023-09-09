@@ -596,7 +596,13 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
         Deps.dev.zio.`zio-process`
       )
     }
-    object js extends Shared with MorphirJSModule
+    object js extends Shared with MorphirJSModule {
+      def docSources = T.sources {
+        Lib.findSourceFiles(super.docSources(), Seq("tasty"))
+          .map(PathRef(_))
+          //.filterNot(_.path.last.contains("ProcessIOPlat"))
+      }
+    }
     object native extends Shared with MorphirNativeModule {
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.dev.zio.`zio-nio`

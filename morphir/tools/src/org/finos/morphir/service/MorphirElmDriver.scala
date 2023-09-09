@@ -7,13 +7,16 @@ import zio._
  * may not be directily backed by the `morphir-elm` CLI.
  */
 trait MorphirElmDriver {
-  /// Execute the `morphir-elm develop` command
+
+  /**
+   * Execute the `morphir-elm develop` command
+   */
   def develop(port: Int, host: String, projectDir: VPath, openInBrowser: Boolean = false): Task[Unit]
 
-  /// Initialize the current directory/workspace for use with Morphir's Elm tooling.
+  /** Initialize the current directory/workspace for use with Morphir's Elm tooling. */
   def init(morphirHomeDir: VPath, projectDir: VPath): Task[Unit]
 
-  /// Compule Elm sources into Morphir IR.
+  /** Compule Elm sources into Morphir IR. */
   def make(
       projectDir: VPath,
       output: VPath,
@@ -22,15 +25,15 @@ trait MorphirElmDriver {
       indentJson: Boolean = false
   ): Task[Seq[VFile]]
 
-  /// Restore the Elm dependencies for the current project/workspace.
+  /** Restore the Elm dependencies for the current project/workspace. */
   def restore(elmHome: VPath, projectDir: VPath): Task[Unit]
 
-  /// Start testing the models.
+  /** Start testing the models. */
   def test(projectDir: VPath): Task[Unit]
 
 }
 
-/// Provides constructors and accessors for a MorphirElmDriver.
+/** Provides constructors and accessors for a MorphirElmDriver. */
 object MorphirElmDriver extends MorphirElmDriverPlatformSpecific {
 
   /// Execute the `morphir-elm develop` command
