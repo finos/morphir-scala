@@ -4,13 +4,13 @@ package runtime
 import org.finos.morphir.naming._
 import scala.annotation.unused
 import zio.Tag
-
+import org.typelevel.scalaccompat.annotation.{targetName3 => targetName}
 final case class SymbolTable private (bindings: Map[Symbol, SymbolValue]) { self =>
-  @compat.targetName("append")
+  @targetName("append")
   def ++(symbols: SymbolTable): SymbolTable = copy(bindings = bindings ++ symbols.bindings)
-  @compat.targetName("append")
+  @targetName("append")
   def +(binding: SymbolBinding): SymbolTable = copy(bindings = bindings + (binding.symbol -> binding.value))
-  @compat.targetName("append")
+  @targetName("append")
   def ++=(newBindings: Seq[SymbolBinding]): SymbolTable = {
     val finalBindings = newBindings.foldLeft(bindings)((acc, binding) => acc + (binding.symbol -> binding.value))
     copy(bindings = finalBindings)

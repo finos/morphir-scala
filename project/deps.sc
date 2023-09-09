@@ -90,6 +90,7 @@ object Deps {
       val zio: Dep             = ivy"dev.zio::zio::${Versions.zio}"
       val `zio-cli`            = ivy"dev.zio::zio-cli::${Versions.`zio-cli`}"
       val `zio-config`         = config()
+      val `zio-interop-cats`   = ivy"dev.zio::zio-interop-cats::${Versions.`zio-interop-cats`}"
       val `zio-json`: Dep      = ivy"dev.zio::zio-json::${Versions.`zio-json`}"
       val `zio-json-golden`    = ivy"dev.zio::zio-json-golden::${Versions.`zio-json`}"
       val `zio-parser`         = ivy"dev.zio::zio-parser::${Versions.`zio-parser`}"
@@ -160,16 +161,22 @@ object Deps {
     }
 
     case object typelevel {
+      val `cats-core`   = cats.core
       val `paiges-core` = ivy"org.typelevel::paiges-core::${Versions.paiges}"
       val `scalac-compat-annotation` =
         ivy"org.typelevel::scalac-compat-annotation:${Versions.`scalac-compat-annotation`}"
       val spire = ivy"org.typelevel::spire::${Versions.spire}"
+
+      case object cats {
+        val core = ivy"org.typelevel::cats-core::${Versions.cats}"
+      }
     }
   }
 }
 
 object Versions {
   val castor = "0.2.1"
+  val cats   = "2.10.0"
 
   val enumeratum = "1.7.3"
 
@@ -212,6 +219,7 @@ object Versions {
   val zio                        = "2.0.16"
   val `zio-cli`                  = "0.5.0"
   val `zio-config`               = "4.0.0-RC16"
+  val `zio-interop-cats`         = "23.0.0.8"
   val `zio-json`                 = "0.6.2"
   val `zio-nio`                  = "2.0.2"
   val `zio-parser`               = "0.1.9"
