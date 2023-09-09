@@ -9,7 +9,9 @@ final case class VFilePath(path: Path) extends VFilePathPlatformSpecific { self 
    */
   def /(name: String): VFilePath = VFilePath(path / name)
 
-  def elements: List[String] = path.names.map(_.toString).toList
+  def elements: List[String]    = path.names.map(_.toString).toList
+  override def toString: String = path.toString
+  override def hashCode(): Int  = path.hashCode()
 }
 
 object VFilePath extends VFilePathCompanionPlatformSpecific {

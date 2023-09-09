@@ -518,7 +518,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.com.lihaoyi.sourcecode
       )
-      def platformSpecificModuleDeps = Seq(morphir, runtime)
+      def platformSpecificModuleDeps = Seq(morphir, runtime, tools)
     }
 
     object jvm extends Shared with MorphirJVMModule {
