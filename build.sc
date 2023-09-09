@@ -179,7 +179,6 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       Deps.dev.zio.zio,
       Deps.dev.zio.`zio-json`,
       Deps.dev.zio.`zio-prelude`,
-      Deps.org.typelevel.`paiges-core`,
       Deps.org.typelevel.spire
     ) ++ Agg.when(isScala3())(
       Deps.com.softwaremill.magnolia_3.magnolia
@@ -588,6 +587,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
         Deps.dev.zio.`zio-prelude`,
         Deps.dev.zio.`zio-streams`,
         Deps.com.lihaoyi.pprint,
+        Deps.org.typelevel.cats.core,
         Deps.org.typelevel.spire,
         Deps.org.typelevel.`paiges-core`
       ) ++ Agg.when(!platform.isNative)(Deps.dev.zio.`zio-interop-cats`)

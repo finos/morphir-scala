@@ -161,16 +161,22 @@ object Deps {
     }
 
     case object typelevel {
+      val `cats-core`   = cats.core
       val `paiges-core` = ivy"org.typelevel::paiges-core::${Versions.paiges}"
       val `scalac-compat-annotation` =
         ivy"org.typelevel::scalac-compat-annotation:${Versions.`scalac-compat-annotation`}"
       val spire = ivy"org.typelevel::spire::${Versions.spire}"
+
+      case object cats {
+        val core = ivy"org.typelevel::cats-core::${Versions.cats}"
+      }
     }
   }
 }
 
 object Versions {
   val castor = "0.2.1"
+  val cats   = "2.10.0"
 
   val enumeratum = "1.7.3"
 
