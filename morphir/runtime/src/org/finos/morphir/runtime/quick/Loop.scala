@@ -6,6 +6,8 @@ import org.finos.morphir.ir.Value.{Pattern, Value}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
 import Helpers.{listToTuple, matchPatternCase, unpackLit}
 import SDKValue.{SDKNativeFunction, SDKNativeInnerFunction, SDKNativeValue}
+import org.finos.morphir.ir.Type.UType
+import org.finos.morphir.runtime.TypedMorphirRuntime.{RuntimeDefinition, RuntimeValue, TypeAttribs, ValueAttribs}
 import org.finos.morphir.runtime.{
   ConstructorNotFound,
   DefinitionNotFound,
@@ -18,8 +20,8 @@ import org.finos.morphir.runtime.{
   VariableNotFound
 }
 
-private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
-  def loop(ir: Value[TA, VA], store: Store[TA, VA]): Result[TA, VA] =
+private[morphir] case class Loop(globals: GlobalDefs) {
+  def loop(ir: RuntimeValue, store: Store): Result =
     ir match {
       case Literal(va, lit)              => handleLiteral(va, lit)
       case Apply(va, function, argument) => handleApply(va, function, argument, store)
@@ -44,25 +46,25 @@ private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
       case Variable(va, name)                      => handleVariable(va, name, store)
     }
 
-  def handleLiteral(va: VA, literal: Lit) = Result.Primitive.makeOrFail[TA, VA, Any](unpackLit(literal))
+  def handleLiteral(va: ValueAttribs, literal: Lit) = unpackLit(literal)
 
   def handleApply(
-      va: VA,
-      function: Value[TA, VA],
-      argument: Value[TA, VA],
-      store: Store[TA, VA]
-  ): Result[TA, VA] = {
+      va: ValueAttribs,
+      function: RuntimeValue,
+      argument: RuntimeValue,
+      store: Store
+  ): Result = {
     val functionValue = loop(function, store)
     val argValue      = loop(argument, store)
     handleApplyResult(va, functionValue, argValue)
   }
 
   def handleApplyResult2(
-      va: VA,
-      functionValue: Result[TA, VA],
-      arg1: Result[TA, VA],
-      arg2: Result[TA, VA]
-  ): Result[TA, VA] = {
+      va: ValueAttribs,
+      functionValue: Result,
+      arg1: Result,
+      arg2: Result
+  ): Result = {
     val partiallyAppliedFunction =
       handleApplyResult(va, functionValue, arg1)
     val result =
@@ -71,10 +73,10 @@ private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
   }
 
   def handleApplyResult(
-      va: VA,
-      functionValue: Result[TA, VA],
-      argValue: Result[TA, VA]
-  ): Result[TA, VA] =
+      va: ValueAttribs,
+      functionValue: Result,
+      argValue: Result
+  ): Result =
     functionValue match {
       case Result.FieldFunction(name) =>
         argValue match {
@@ -83,7 +85,7 @@ private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
           case other => throw UnexpectedType(s"Expected record but found $other")
         }
       case Result.LambdaFunction(body, pattern, context) =>
-        val newBindings = matchPatternCase[TA, VA](pattern, argValue)
+        val newBindings = matchPatternCase(pattern, argValue)
           .getOrElse(throw UnmatchedPattern(s"Lambda argument did not match expected pattern"))
           .map { case (name, value) => name -> StoredValue.Eager(value) }
         loop(body, Store(context.push(newBindings)))
@@ -104,15 +106,15 @@ private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
         }
       case Result.ConstructorFunction(name, arguments, curried) =>
         arguments match {
-          case _ :: Nil  => Result.ConstructorResult[TA, VA](name, curried :+ argValue)
-          case _ :: tail => Result.ConstructorFunction[TA, VA](name, tail, curried :+ argValue)
+          case _ :: Nil  => Result.ConstructorResult(name, curried :+ argValue)
+          case _ :: tail => Result.ConstructorFunction(name, tail, curried :+ argValue)
           case Nil =>
             throw FunctionWithoutParameters(
               s"Tried to apply to constructor function with no arguments (should not exist)"
             )
 
         }
-      case nativeFunctionResult: Result.NativeFunctionResult[_, _] =>
+      case nativeFunctionResult: Result.NativeFunctionResult =>
         val (arguments, curried, function) =
           nativeFunctionResult match {
             case Result.NativeFunction(arguments, curried, function) =>
@@ -146,30 +148,31 @@ private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
                 f(curried(0), curried(1), curried(2), curried(3), argValue)
             }
           // If there are more arguments left in the native-signature, that needs we have more uncurrying to do
-          case x => Result.NativeFunction[TA, VA](x - 1, curried :+ argValue, function)
+          case x => Result.NativeFunction(x - 1, curried :+ argValue, function)
         }
       case other => throw new UnexpectedType(s"$other is not a function")
     }
 
   def handleDestructure(
-      va: VA,
-      pattern: Pattern[VA],
-      valueToDestruct: Value[TA, VA],
-      inValue: Value[TA, VA],
-      store: Store[TA, VA]
-  ): Result[TA, VA] = {
+      va: ValueAttribs,
+      pattern: Pattern[ValueAttribs],
+      valueToDestruct: RuntimeValue,
+      inValue: RuntimeValue,
+      store: Store
+  ): Result = {
     val value = loop(valueToDestruct, store)
-    matchPatternCase[TA, VA](pattern, value) match {
+    matchPatternCase(pattern, value) match {
       case None => throw UnmatchedPattern(s"Value $value does not match pattern $pattern")
       case Some(bindings) =>
         loop(inValue, store.push(bindings.map { case (name, value) => name -> StoredValue.Eager(value) }))
     }
   }
 
-  def handleConstructor(va: VA, name: FQName): Result[TA, VA] =
+  def handleConstructor(va: ValueAttribs, name: FQName): Result =
     globals.getCtor(name) match {
-      case Some(SDKConstructor(List()))    => Result.ConstructorResult(name, List())
-      case Some(SDKConstructor(arguments)) => Result.ConstructorFunction[TA, VA](name, arguments, List())
+      case Some(SDKConstructor(List())) => Result.ConstructorResult(name, List())
+      case Some(SDKConstructor(arguments)) =>
+        Result.ConstructorFunction(name, arguments, List())
       case None =>
         val (pkg, mod, loc) = (name.getPackagePath, name.getModulePath, name.localName)
         throw new ConstructorNotFound(
@@ -187,25 +190,25 @@ private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
     }
 
   def handleField(
-      va: VA,
-      recordValue: Value[TA, VA],
+      va: ValueAttribs,
+      recordValue: RuntimeValue,
       fieldName: Name,
-      store: Store[TA, VA]
-  ): Result[TA, VA] =
+      store: Store
+  ): Result =
     loop(recordValue, store) match {
       case Result.Record(fields) =>
         fields.getOrElse(fieldName, throw MissingField(s"Record fields $fields do not contain name $fieldName"))
       case other => throw new UnexpectedType(s"Expected record but found $other")
     }
 
-  def handleFieldFunction(va: VA, name: Name): Result[TA, VA] = Result.FieldFunction(name)
+  def handleFieldFunction(va: ValueAttribs, name: Name): Result = Result.FieldFunction(name)
 
   def handleIfThenElse(
-      va: VA,
-      condition: Value[TA, VA],
-      thenValue: Value[TA, VA],
-      elseValue: Value[TA, VA],
-      store: Store[TA, VA]
+      va: ValueAttribs,
+      condition: RuntimeValue,
+      thenValue: RuntimeValue,
+      elseValue: RuntimeValue,
+      store: Store
   ) =
     loop(condition, store) match {
       case Result.Primitive(true)  => loop(thenValue, store)
@@ -214,19 +217,19 @@ private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
     }
 
   def handleLambda(
-      va: VA,
-      pattern: Pattern[VA],
-      body: Value[TA, VA],
-      store: Store[TA, VA]
-  ): Result[TA, VA] =
+      va: ValueAttribs,
+      pattern: Pattern[ValueAttribs],
+      body: RuntimeValue,
+      store: Store
+  ): Result =
     Result.LambdaFunction(body, pattern, store.callStack)
 
   def handleLetDefinition(
-      va: VA,
+      va: ValueAttribs,
       valueName: Name,
-      valueDefinition: Definition[TA, VA],
-      inValue: Value[TA, VA],
-      store: Store[TA, VA]
+      valueDefinition: RuntimeDefinition,
+      inValue: RuntimeValue,
+      store: Store
   ) = {
     val value =
       if (valueDefinition.inputTypes.isEmpty) loop(valueDefinition.body, store)
@@ -236,31 +239,31 @@ private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
   }
 
   def handleLetRecursion(
-      va: VA,
-      definitions: Map[Name, Definition[TA, VA]],
-      inValue: Value[TA, VA],
-      store: Store[TA, VA]
-  ): Result[TA, VA] = {
+      va: ValueAttribs,
+      definitions: Map[Name, Definition[TypeAttribs, ValueAttribs]],
+      inValue: RuntimeValue,
+      store: Store
+  ): Result = {
     val siblings = definitions.map { case (name, definition) =>
       name -> StoredValue.Lazy(definition, store.callStack, definitions)
     }
     loop(inValue, store.push(siblings))
   }
 
-  def handleListValue(va: VA, elements: List[Value[TA, VA]], store: Store[TA, VA]): Result[TA, VA] =
+  def handleListValue(va: ValueAttribs, elements: List[RuntimeValue], store: Store): Result =
     Result.ListResult(elements.map(loop(_, store)))
 
   def handlePatternMatch(
-      va: VA,
-      value: Value[TA, VA],
-      cases: List[(Pattern[VA], Value[TA, VA])],
-      store: Store[TA, VA]
-  ): Result[TA, VA] = {
+      va: ValueAttribs,
+      value: RuntimeValue,
+      cases: List[(Pattern[ValueAttribs], RuntimeValue)],
+      store: Store
+  ): Result = {
     val evaluated = loop(value, store)
 
     def firstPatternMatching(
-        remainingCases: List[(Pattern[VA], Value[TA, VA])]
-    ): (Value[TA, VA], Map[Name, Result[TA, VA]]) =
+        remainingCases: List[(Pattern[ValueAttribs], RuntimeValue)]
+    ): (RuntimeValue, Map[Name, Result]) =
       remainingCases match {
         case (pattern, inValue) :: tail =>
           matchPatternCase(pattern, evaluated).map((inValue, _)).getOrElse(firstPatternMatching(tail))
@@ -271,10 +274,10 @@ private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
     loop(inValue, store.push(bindings.map { case (name, value) => name -> StoredValue.Eager(value) }))
   }
 
-  def handleRecord(va: VA, fields: List[(Name, Value[TA, VA])], store: Store[TA, VA]): Result[TA, VA] =
+  def handleRecord(va: ValueAttribs, fields: List[(Name, RuntimeValue)], store: Store): Result =
     Result.Record(fields.map { case (name, value) => name -> loop(value, store) }.toMap)
 
-  def handleReference(va: VA, name: FQName, store: Store[TA, VA]): Result[TA, VA] =
+  def handleReference(va: ValueAttribs, name: FQName, store: Store): Result =
     globals.getDefinition(name) match {
       case None =>
         val filtered = globals.definitions.keys.filter(_.getPackagePath == name.getPackagePath)
@@ -303,19 +306,19 @@ private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
         Result.NativeInnerFunction(function.numArgs, List(), function)
     }
 
-  def handleTuple(va: VA, elements: List[Value[TA, VA]], store: Store[TA, VA]): Result[TA, VA] = {
+  def handleTuple(va: ValueAttribs, elements: List[RuntimeValue], store: Store): Result = {
     val evaluatedElements = elements.map(loop(_, store))
     Result.Tuple(evaluatedElements)
   }
 
-  def handleUnit(va: VA): Result[TA, VA] = Result.Unit()
+  def handleUnit(va: ValueAttribs): Result = Result.Unit()
 
   def handleUpdateRecord(
-      va: VA,
-      valueToUpdate: Value[TA, VA],
-      fields: Map[Name, Value[TA, VA]],
-      store: Store[TA, VA]
-  ): Result[TA, VA] =
+      va: ValueAttribs,
+      valueToUpdate: RuntimeValue,
+      fields: Map[Name, RuntimeValue],
+      store: Store
+  ): Result =
     loop(valueToUpdate, store) match {
       case Result.Record(oldFields) =>
         val newFields = fields.map { case (name, value) => name -> loop(value, store) }
@@ -323,12 +326,12 @@ private[morphir] case class Loop[TA, VA](globals: GlobalDefs[TA, VA]) {
       case other => throw UnexpectedType(s"$other is not a record")
     }
 
-  def handleVariable(va: VA, name: Name, store: Store[TA, VA]) =
+  def handleVariable(va: ValueAttribs, name: Name, store: Store) =
     store.getVariable(name) match {
       case None                         => throw VariableNotFound(s"Variable $name not found")
       case Some(StoredValue.Eager(res)) => res
       case Some(StoredValue.Lazy(definition, parentContext, siblings)) =>
-        val newBindings: Map[Name, StoredValue[TA, VA]] = siblings.map { case (name, sibling) =>
+        val newBindings: Map[Name, StoredValue] = siblings.map { case (name, sibling) =>
           name -> StoredValue.Lazy(sibling, parentContext, siblings)
         }
         if (definition.inputTypes.isEmpty)

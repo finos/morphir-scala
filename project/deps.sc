@@ -30,6 +30,16 @@ object Deps {
       }
     }
 
+    case object geirsson {
+      case object metaconfig {
+        val core    = ivy"com.geirsson::metaconfig-core::${Versions.metaconfig}"
+        val docs    = ivy"com.geirsson::metaconfig-docs::${Versions.metaconfig}"
+        val json    = ivy"com.geirsson::metaconfig-json::${Versions.metaconfig}"
+        val pprint  = ivy"com.geirsson::metaconfig-pprint::${Versions.metaconfig}"
+        val sconfig = ivy"com.geirsson::metaconfig-sconfig::${Versions.metaconfig}"
+      }
+    }
+
     case object github {
       case object arturopala {
         val `buffer-and-slice` = ivy"com.github.arturopala::buffer-and-slice:${Versions.`buffer-and-slice`}"
@@ -79,9 +89,11 @@ object Deps {
       val `izumi-reflect`      = ivy"dev.zio::izumi-reflect::${Versions.`izumi-reflect`}"
       val zio: Dep             = ivy"dev.zio::zio::${Versions.zio}"
       val `zio-cli`            = ivy"dev.zio::zio-cli::${Versions.`zio-cli`}"
+      val `zio-config`         = config()
       val `zio-json`: Dep      = ivy"dev.zio::zio-json::${Versions.`zio-json`}"
       val `zio-json-golden`    = ivy"dev.zio::zio-json-golden::${Versions.`zio-json`}"
       val `zio-parser`         = ivy"dev.zio::zio-parser::${Versions.`zio-parser`}"
+      val `zio-nio`            = ivy"dev.zio::zio-nio::${Versions.`zio-nio`}"
       val `zio-prelude`        = prelude()
       val `zio-prelude-macros` = prelude.macros
       val `zio-process`        = ivy"dev.zio::zio-process::${Versions.`zio-process`}"
@@ -89,6 +101,13 @@ object Deps {
       val `zio-test`           = ivy"dev.zio::zio-test::${Versions.zio}"
       val `zio-test-magnolia`  = ivy"dev.zio::zio-test-magnolia::${Versions.zio}"
       val `zio-test-sbt`       = ivy"dev.zio::zio-test-sbt::${Versions.zio}"
+
+      object config {
+        def apply(): Dep = ivy"dev.zio::zio-config::${Versions.`zio-config`}"
+        val magnolia     = ivy"dev.zio::zio-config-magnolia::${Versions.`zio-config`}"
+        val refined      = ivy"dev.zio::zio-config-refined::${Versions.`zio-config`}"
+        val typesafe     = ivy"dev.zio::zio-config-typesafe::${Versions.`zio-config`}"
+      }
 
       case object prelude {
         def apply(): Dep = ivy"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
@@ -178,6 +197,7 @@ object Versions {
   val fs2                        = "3.8.0"
   val geny                       = "1.0.0"
   val `izumi-reflect`            = "2.3.8"
+  val metaconfig                 = "0.11.1"
   val munit                      = "1.0.0-M8"
   val `munit-zio`                = "0.1.1"
   val mainargs                   = "0.5.0"
@@ -191,7 +211,9 @@ object Versions {
   val upickle                    = "3.0.0-M1"
   val zio                        = "2.0.16"
   val `zio-cli`                  = "0.5.0"
-  val `zio-json`                 = "0.6.1"
+  val `zio-config`               = "4.0.0-RC16"
+  val `zio-json`                 = "0.6.2"
+  val `zio-nio`                  = "2.0.2"
   val `zio-parser`               = "0.1.9"
   val `zio-prelude`              = "1.0.0-RC20"
   val `zio-process`              = "0.7.2"
@@ -202,10 +224,10 @@ object ScalaVersions {
   import DevMode._
   val all      = if (devMode) Seq(scala3x) else Seq(scala213, scala3x)
   def scala213 = "2.13.11"
-  def scala3x  = "3.3.0"
+  def scala3x  = "3.3.1"
 
-  def scalaJSVersion     = "1.13.1"
-  def scalaNativeVersion = "0.4.14"
+  def scalaJSVersion     = "1.13.2"
+  def scalaNativeVersion = "0.4.15"
   def millScalaVersion   = "2.13.10"
 }
 

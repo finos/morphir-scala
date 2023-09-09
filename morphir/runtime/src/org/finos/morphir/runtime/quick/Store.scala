@@ -9,96 +9,97 @@ import org.finos.morphir.ir.Value.{Pattern, Value}
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.{Module, Type}
+import org.finos.morphir.runtime.TypedMorphirRuntime.{RuntimeDefinition, TypeAttribs, ValueAttribs}
 import zio.Chunk
 
-sealed trait SDKValue[TA, VA]
+sealed trait SDKValue
 
-case class SDKConstructor[TA, VA](arguments: List[VA])
+case class SDKConstructor(arguments: List[ValueAttribs])
 object SDKValue {
-  case class SDKValueDefinition[TA, VA](definition: Definition[TA, VA]) extends SDKValue[TA, VA]
-  case class SDKNativeFunction[TA, VA](function: NativeFunctionSignature[TA, VA]) extends SDKValue[TA, VA] {
+  case class SDKValueDefinition(definition: RuntimeDefinition) extends SDKValue
+  case class SDKNativeFunction(function: NativeFunctionSignature) extends SDKValue {
     def arguments = function.numArgs
   }
 
   object SDKNativeFunction {
     import NativeFunctionSignature._
-    def fun1[TA, VA](f: Result[TA, VA] => Result[TA, VA]) =
-      new SDKNativeFunction(Fun1[TA, VA](f))
-    def fun2[TA, VA](f: (Result[TA, VA], Result[TA, VA]) => Result[TA, VA]) =
-      new SDKNativeFunction(Fun2[TA, VA](f))
-    def fun3[TA, VA](f: (Result[TA, VA], Result[TA, VA], Result[TA, VA]) => Result[TA, VA]) =
-      new SDKNativeFunction(Fun3[TA, VA](f))
-    def fun4[TA, VA](f: (Result[TA, VA], Result[TA, VA], Result[TA, VA], Result[TA, VA]) => Result[TA, VA]) =
-      new SDKNativeFunction(Fun4[TA, VA](f))
-    def fun5[TA, VA](f: (
-        Result[TA, VA],
-        Result[TA, VA],
-        Result[TA, VA],
-        Result[TA, VA],
-        Result[TA, VA]
-    ) => Result[TA, VA]) =
-      new SDKNativeFunction(Fun5[TA, VA](f))
+    def fun1(f: Result => Result) =
+      new SDKNativeFunction(Fun1(f))
+    def fun2(f: (Result, Result) => Result) =
+      new SDKNativeFunction(Fun2(f))
+    def fun3(f: (Result, Result, Result) => Result) =
+      new SDKNativeFunction(Fun3(f))
+    def fun4(f: (Result, Result, Result, Result) => Result) =
+      new SDKNativeFunction(Fun4(f))
+    def fun5(f: (
+        Result,
+        Result,
+        Result,
+        Result,
+        Result
+    ) => Result) =
+      new SDKNativeFunction(Fun5(f))
   }
 
-  case class SDKNativeInnerFunction[TA, VA](function: NativeFunctionSignatureAdv[TA, VA])
-      extends SDKValue[TA, VA] {
+  case class SDKNativeInnerFunction(function: NativeFunctionSignatureAdv)
+      extends SDKValue {
     def arguments = function.numArgs
   }
 
-  case class SDKNativeValue[TA, VA](value: Result[TA, VA]) extends SDKValue[TA, VA]
+  case class SDKNativeValue(value: Result) extends SDKValue
 }
 
-sealed trait StoredValue[TA, VA]
+sealed trait StoredValue
 object StoredValue {
-  case class Eager[TA, VA](value: Result[TA, VA]) extends StoredValue[TA, VA]
-  case class Lazy[TA, VA](
-      toEvaluate: Definition[TA, VA],
-      parentContext: CallStackFrame[TA, VA],
-      siblings: Map[Name, Definition[TA, VA]]
-  ) extends StoredValue[TA, VA]
+  case class Eager(value: Result) extends StoredValue
+  case class Lazy(
+      toEvaluate: RuntimeDefinition,
+      parentContext: CallStackFrame,
+      siblings: Map[Name, RuntimeDefinition]
+  ) extends StoredValue
 }
 
-final case class CallStackFrame[TA, VA](
-    bindings: Map[Name, StoredValue[TA, VA]],
-    parent: Option[CallStackFrame[TA, VA]]
+final case class CallStackFrame(
+    bindings: Map[Name, StoredValue],
+    parent: Option[CallStackFrame]
 ) {
-  def get(name: Name): Option[StoredValue[TA, VA]] =
+  def get(name: Name): Option[StoredValue] =
     (bindings.get(name), parent) match {
       case (Some(res), _)            => Some(res)
       case (None, Some(parentFrame)) => parentFrame.get(name)
       case (None, None)              => None
     }
-  def push(bindings: Map[Name, StoredValue[TA, VA]]): CallStackFrame[TA, VA] =
-    CallStackFrame[TA, VA](bindings, Some(this))
+  def push(bindings: Map[Name, StoredValue]): CallStackFrame =
+    CallStackFrame(bindings, Some(this))
 }
 
-final case class Store[TA, VA](
-    callStack: CallStackFrame[TA, VA]
+final case class Store(
+    callStack: CallStackFrame
 ) {
-  def getVariable(name: Name): Option[StoredValue[TA, VA]] = callStack.get(name)
-  def push(bindings: Map[Name, StoredValue[TA, VA]])       = Store(callStack.push(bindings))
+  def getVariable(name: Name): Option[StoredValue] = callStack.get(name)
+  def push(bindings: Map[Name, StoredValue])       = Store(callStack.push(bindings))
 }
 
 object Store {
-  def empty[TA, VA] = Store[TA, VA](CallStackFrame(Map(), None))
+  def empty = Store(CallStackFrame(Map(), None))
 }
 
-final case class GlobalDefs[TA, VA](
-    definitions: Map[FQName, SDKValue[TA, VA]],
-    ctors: Map[FQName, SDKConstructor[TA, VA]]
+final case class GlobalDefs(
+    definitions: Map[FQName, SDKValue],
+    ctors: Map[FQName, SDKConstructor]
 ) {
-  def getDefinition(name: FQName): Option[SDKValue[TA, VA]] = definitions.get(name)
-  def withBindingsFrom(other: GlobalDefs[TA, VA]) =
+  def getDefinition(name: FQName): Option[SDKValue] = definitions.get(name)
+  def withBindingsFrom(other: GlobalDefs) =
     GlobalDefs(definitions ++ other.definitions, ctors ++ other.ctors)
-  def withDefinition(fqn: FQName, definition: SDKValue[TA, VA]): GlobalDefs[TA, VA] =
+  def withDefinition(fqn: FQName, definition: SDKValue): GlobalDefs =
     GlobalDefs(definitions + (fqn -> definition), ctors)
-  def withConstructor(fqn: FQName, constructor: SDKConstructor[TA, VA]): GlobalDefs[TA, VA] =
+  def withConstructor(fqn: FQName, constructor: SDKConstructor): GlobalDefs =
     GlobalDefs(definitions, ctors + (fqn -> constructor))
-  def getCtor(name: FQName): Option[SDKConstructor[TA, VA]] = ctors.get(name)
+  def getCtor(name: FQName): Option[SDKConstructor] = ctors.get(name)
 }
 
 object GlobalDefs {
-  def fromDistributions(dists: Distribution*): GlobalDefs[Unit, Type.UType] =
+  def fromDistributions(dists: Distribution*): GlobalDefs =
     dists.foldLeft(native) {
       case (acc, lib: Library) =>
         val packageName = lib.packageName
@@ -106,7 +107,7 @@ object GlobalDefs {
           val withDefinitions = module.value.values.foldLeft(acc) { case (acc, (valueName, value)) =>
             val name       = FQName(packageName, moduleName, valueName)
             val definition = value.value.value
-            val sdkDef     = SDKValue.SDKValueDefinition[Unit, Type.UType](definition)
+            val sdkDef     = SDKValue.SDKValueDefinition(definition)
             acc.withDefinition(name, sdkDef)
           }
           module.value.types.foldLeft(withDefinitions) { case (acc, (_, tpe)) =>
@@ -116,7 +117,7 @@ object GlobalDefs {
                 val ctors = accessControlledCtors.value.toMap
                 ctors.foldLeft(acc) { case (acc, (ctorName, ctorArgs)) =>
                   val name = FQName(packageName, moduleName, ctorName)
-                  acc.withConstructor(name, SDKConstructor[Unit, Type.UType](ctorArgs.map(_._2).toList))
+                  acc.withConstructor(name, SDKConstructor(ctorArgs.map(_._2).toList))
                 }
               case Type.Definition.TypeAlias(_, _) => acc
             }
@@ -124,8 +125,8 @@ object GlobalDefs {
         }
     }
 
-  def empty[TA, VA]: GlobalDefs[TA, VA] =
+  def empty: GlobalDefs =
     GlobalDefs(Map(), Map())
-  def native: GlobalDefs[Unit, UType] =
+  def native: GlobalDefs =
     GlobalDefs(Native.native, Native.nativeCtors)
 }

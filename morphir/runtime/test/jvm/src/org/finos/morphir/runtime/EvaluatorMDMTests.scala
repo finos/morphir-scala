@@ -11,9 +11,7 @@ import zio.test.TestAspect.{ignore, tag}
 import zio.{Console, ZIO, ZLayer}
 
 object EvaluatorMDMTests extends MorphirBaseSpec {
-  type MorphirRuntimeTyped = MorphirRuntime[Unit, Type.UType]
-
-  val morphirRuntimeLayer: ZLayer[Any, Throwable, MorphirRuntime[Unit, Type.UType]] =
+  val morphirRuntimeLayer: ZLayer[Any, Throwable, TypedMorphirRuntime] =
     ZLayer(for {
       irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
       _          <- Console.printLine(s"Loading distribution from $irFilePath")
@@ -45,7 +43,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   def checkEvaluation(
       moduleName: String,
       functionName: String
-  )(expected: => Data): ZIO[MorphirRuntimeTyped, Throwable, TestResult] =
+  )(expected: => Data): ZIO[TypedMorphirRuntime, Throwable, TestResult] =
     runTest(moduleName, functionName).map { actual =>
       assertTrue(actual == expected)
     }
@@ -54,7 +52,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       moduleName: String,
       functionName: String,
       values: List[Any]
-  )(expected: => Data): ZIO[MorphirRuntimeTyped, Throwable, TestResult] =
+  )(expected: => Data): ZIO[TypedMorphirRuntime, Throwable, TestResult] =
     runTest(moduleName, functionName, values).map { actual =>
       assertTrue(actual == expected)
     }
@@ -74,21 +72,28 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       checkEvaluation(moduleName, functionName, values)(expected)
     }
 
-  def runTest(moduleName: String, functionName: String): ZIO[MorphirRuntimeTyped, Throwable, Data] =
-    runTest(moduleName, functionName, List(()))
+  def runTest(moduleName: String, functionName: String): ZIO[TypedMorphirRuntime, Throwable, Data] =
+    runTest(moduleName, functionName, List())
 
   def runTest(
       moduleName: String,
       functionName: String,
       values: List[Any]
-  ): ZIO[MorphirRuntimeTyped, Throwable, Data] =
-    ZIO.serviceWithZIO[MorphirRuntimeTyped] { runtime =>
+  ): ZIO[TypedMorphirRuntime, Throwable, Data] =
+    ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
       val fullName = s"Morphir.Examples.App:$moduleName:$functionName"
       val data     = values.map(deriveData(_))
-
-      runtime.evaluate(FQName.fromString(fullName), data.head, data.tail: _*)
-        .provideEnvironment(MorphirEnv.live)
-        .toZIOWith(RTExecutionContext.typeChecked)
+      if (data.isEmpty)
+        runtime.evaluate(
+          FQName.fromString(fullName),
+          Data.Record(FQName.fromString("Morphir.Examples.App:TestUtils:testContext "))
+        )
+          .provideEnvironment(MorphirEnv.live)
+          .toZIOWith(RTExecutionContext.typeChecked)
+      else
+        runtime.evaluate(FQName.fromString(fullName), data.head, data.tail: _*)
+          .provideEnvironment(MorphirEnv.live)
+          .toZIOWith(RTExecutionContext.typeChecked)
     }
 
   val dogRecordConceptRaw = Concept.Struct(
@@ -690,6 +695,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int64(2)
         ) @@ ignore @@ TestAspect.tag("Not properly typed"),
         testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Float(2.0)),
+        testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyIntTest")(Data.Int(20)),
+        testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyFloatTest")(Data.Float(20.0)),
+        testEvaluation("Round")("sdkBasicsTests", "sdkRoundTest")(Data.Int(123)),
+        testEvaluation("Round")("sdkBasicsTests", "sdkRoundTest2")(Data.Int(123)),
         testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
         testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),
         testEvaluation("x < y - True")("sdkBasicsTests", "sdkLessThanTestIntTrue")(Data.Boolean(true)),

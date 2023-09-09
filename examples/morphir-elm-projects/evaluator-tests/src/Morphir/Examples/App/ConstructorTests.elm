@@ -1,4 +1,5 @@
 module Morphir.Examples.App.ConstructorTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 
 {-
     Partially-applied constructors are debateably still "Data"
@@ -8,46 +9,53 @@ module Morphir.Examples.App.ConstructorTests exposing (..)
         Constructor with reference to nothing (dead) (Canot compile with elm)
 -}
 
---define UnionType
 type UnionType = TwoArg Int String | OneArg Int | ZeroArg
 
---Test: Constructor/ZeroArg
---uses UnionType
-constructorZeroArgTest : () -> UnionType
-constructorZeroArgTest _ = 
+
+{-|
+Test: Constructor/ZeroArg
+expected = UnionType.ZeroArg()
+-}
+constructorZeroArgTest : TestContext ->UnionType
+constructorZeroArgTest ctx = test ctx 
     ZeroArg
---expected = UnionType.ZeroArg()
 
---Test: Constructor/OneArgApplied
---uses UnionType
-constructorOneArgAppliedTest : () -> UnionType
-constructorOneArgAppliedTest _ = 
-    OneArg 5
---expected = UnionType.OneArg(5)
+{-|
+Test: Constructor/OneArgApplied
+expected = UnionType.OneArg(5)
+-}
+constructorOneArgAppliedTest : TestContext ->UnionType
+constructorOneArgAppliedTest ctx = test ctx 
+    (OneArg 5)
 
---Test: Constructor/TwoArgApplied
---uses UnionType
-constructorTwoArgAppliedTest : () -> UnionType
-constructorTwoArgAppliedTest _ = 
-    TwoArg 5 "Red"
---expected = UnionType.TwoArg(5, "Red")
+{-|
+Test: Constructor/TwoArgApplied
+expected = UnionType.TwoArg(5, "Red")
+-}
+constructorTwoArgAppliedTest : TestContext ->UnionType
+constructorTwoArgAppliedTest ctx = test ctx 
+    (TwoArg 5 "Red")
 
---Test: Constructor/TwoArgCurried
---uses UnionType
-constructorTwoArgCurriedTest : () -> UnionType
-constructorTwoArgCurriedTest _ = 
+
+{-|
+    Test: Constructor/TwoArgCurried
+    expected = UnionType.TwoArg(5, "Blue")
+    dubious-data
+-}
+constructorTwoArgCurriedTest : TestContext ->UnionType
+constructorTwoArgCurriedTest ctx = test ctx 
     let 
         curried = TwoArg 5
     in
         curried "Blue"
---expected = UnionType.TwoArg(5, "Blue")
 
---define LazyFunction
 type LazyFunction = Lazy (Int -> (Int, Int)) Int
---Test: Constructor/LazyFunction Stores a function and an argument in a constructor, then applies it with a lambda
---uses LazyFunction
-lazyFunctionTest : () -> (Int, Int)
-lazyFunctionTest _ = 
+{-|
+Test: Constructor/LazyFunction Stores a function and an argument in a constructor, then applies it with a lambda
+expected = (5, 5)
+-}
+lazyFunctionTest : TestContext ->(Int, Int)
+lazyFunctionTest ctx = test ctx 
     let 
         lazyFunction : LazyFunction
         lazyFunction = 
@@ -60,15 +68,16 @@ lazyFunctionTest _ =
             apply = \(Lazy f arg) -> f arg
         in
             apply lazyFunction
---expected = (5, 5)
+--
 
---Test: Constructor/LazyFunction Stores a function and an argument in a constructor, then applies it with a lambda
---uses UnionType
---dubiousData
-constructorTwoArgPartiallyAppliedTest : () -> String -> UnionType
-constructorTwoArgPartiallyAppliedTest _ = 
+{-|
+    Test: Constructor/TwoArgPartiallyApplied
+    expected = <function>
+    dubious-data
+-}
+constructorTwoArgPartiallyAppliedTest : TestContext ->String -> UnionType
+constructorTwoArgPartiallyAppliedTest ctx = test ctx 
     let 
         curried = TwoArg 5
     in
         curried
---expected = <function>

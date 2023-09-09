@@ -23,9 +23,18 @@ final case class MInt(value: MorphirInt, flags: PrimitiveFlags) extends MPrimiti
   def %(that: MInt): MInt = MInt(value % that.value, flags)
   def unary_- : MInt      = MInt(-value, flags)
 
-  def toInt: Int   = value.toInt
-  def toLong: Long = value.toLong
+  def toShort: Short           = value.toShort
+  def toInt: Int               = value.toInt
+  def toLong: Long             = value.toLong
+  def toFloat: Float           = value.toFloat
+  def toDouble: Double         = value.toDouble
+  def toBigDecimal: BigDecimal = value.toBigDecimal
+  def isValidInt: Boolean      = value.isValidInt
+  def isValidLong: Boolean     = value.isValidLong
+
+  def compare(other: MInt): Int = value.compare(other.value)
 }
+
 final case class MInt8(value: Byte, flags: PrimitiveFlags)          extends MPrimitive[Byte]
 final case class MInt16(value: Short, flags: PrimitiveFlags)        extends MPrimitive[Short]
 final case class MInt32(value: Int, flags: PrimitiveFlags)          extends MPrimitive[Int]
@@ -67,6 +76,16 @@ object MInt {
   def fromIntLiteral(value: Int): MInt     = MInt(SafeLong(value), PrimitiveFlags(isLiteral = true))
   implicit def fromLong(value: Long): MInt = MInt(SafeLong(value), PrimitiveFlags(isLiteral = false))
   def fromLongLiteral(value: Long): MInt   = MInt(SafeLong(value), PrimitiveFlags(isLiteral = true))
+
+  @throws[NumberFormatException]
+  def fromStringUnsafe(str: String): MInt = MInt(BigInt(str), PrimitiveFlags(isLiteral = false))
+
+  def fromString(str: String): Option[MInt] =
+    try
+      Some(fromStringUnsafe(str))
+    catch {
+      case _: NumberFormatException => None
+    }
 }
 object MBool   {}
 object MFloat  {}

@@ -21,25 +21,30 @@ import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
 import org.finos.morphir.runtime.environment.MorphirEnv
 import zio.prelude.fx.ZPure
 
-private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: GlobalDefs[scala.Unit, UType])
+private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: GlobalDefs)
     extends TypedMorphirRuntime {
   // private val store: Store[scala.Unit, UType] = Store.empty //
 
   def evaluate(
       entryPoint: FQName,
-      param: Value[scala.Unit, UType],
-      params: Value[scala.Unit, UType]*
+      param: Value[TypeAttribs, ValueAttribs],
+      params: Value[TypeAttribs, ValueAttribs]*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
       tpe <- fetchType(entryPoint)
       res <- evaluate(Value.Reference.Typed(tpe, entryPoint), param, params: _*)
     } yield res
 
-  def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
+  def evaluate(value: Value[TypeAttribs, ValueAttribs]): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
       _   <- typeCheck(value)
       res <- EvaluatorQuick.evalAction(value, globals, dists)
     } yield res
+
+  def evaluate(entryPoint: FQName): RTAction[MorphirEnv, MorphirRuntimeError, Data] = for {
+    tpe <- fetchType(entryPoint)
+    res <- evaluate(Value.Reference.Typed(tpe, entryPoint))
+  } yield res
 
   def fetchType(fqn: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
     val maybeSpec = dists.lookupValueSpecification(fqn)
@@ -49,7 +54,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
     }
   }
 
-  def typeCheck(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, TypeError, Unit] = for {
+  def typeCheck(value: Value[TypeAttribs, ValueAttribs]): RTAction[MorphirEnv, TypeError, Unit] = for {
     ctx <- ZPure.get[RTExecutionContext]
     result <- ctx.options.enableTyper match {
       case EnableTyper.Disabled => RTAction.succeed[RTExecutionContext, Unit](())
@@ -65,9 +70,9 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
   } yield result
 
   def applyParams(
-      entryPoint: Value[scala.Unit, UType],
-      params: Value[scala.Unit, UType]*
-  ): RTAction[Any, TypeError, Value[scala.Unit, UType]] =
+      entryPoint: Value[TypeAttribs, ValueAttribs],
+      params: Value[TypeAttribs, ValueAttribs]*
+  ): RTAction[Any, TypeError, Value[TypeAttribs, ValueAttribs]] =
     for {
       ctx <- ZPure.get[RTExecutionContext]
       out <- {

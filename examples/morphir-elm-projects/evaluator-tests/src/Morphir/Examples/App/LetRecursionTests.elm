@@ -1,4 +1,5 @@
 module Morphir.Examples.App.LetRecursionTests exposing (..)
+import Morphir.Examples.App.TestUtils exposing (..)
 
 {-
     TODO:
@@ -7,19 +8,25 @@ module Morphir.Examples.App.LetRecursionTests exposing (..)
         In general, it is difficult to see the IR that Elm (not Morphir) creates, so expected behavior of LetRecursion nodes remains speculative
     Shadowing
 -}
---Test: LetRecursion/Fibonacci
-letRecursionFibonacciTest : () -> Int
-letRecursionFibonacciTest _ = 
+
+{-|
+Test : LetRecursion/Fibonacci
+expected = 34
+-}
+letRecursionFibonacciTest : TestContext ->Int
+letRecursionFibonacciTest ctx = test ctx 
     let
         fib : Int -> Int
         fib x = if (x < 2) then 1 else (fib (x - 1)) + (fib (x - 2))
     in
         fib 8
---expected = 34
 
---Test: LetRecursion/MutualRecursion Mutually recursive functions grab last items on a list.
-letRecursionMutualTest : () -> (Int, Int)
-letRecursionMutualTest _ = 
+{-|
+Test : LetRecursion/MutualRecursion
+expected = (8, 9)
+-}
+letRecursionMutualTest : TestContext ->(Int, Int)
+letRecursionMutualTest ctx = test ctx 
     let
         f : List Int -> (Int, Int)
         f l = case l of
@@ -42,4 +49,3 @@ letRecursionMutualTest _ =
             
     in
         f [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
---expected = (8, 9)
