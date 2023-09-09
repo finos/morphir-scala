@@ -110,10 +110,12 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
 
     def scalaVersion = T { mainScalaVersion }
     def ivyDeps = Agg(
+      Deps.co.fs2.`fs2-io`,
       Deps.com.lihaoyi.fansi,
       Deps.com.lihaoyi.pprint,
       Deps.com.lihaoyi.sourcecode,
       Deps.dev.zio.zio,
+      Deps.dev.zio.`zio-interop-cats`,
       Deps.dev.zio.`zio-cli`,
       Deps.dev.zio.`zio-config`,
       Deps.dev.zio.config.magnolia,
@@ -124,7 +126,8 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
     def moduleDeps =
       Seq(
         morphir(mainScalaVersion).jvm,
-        morphir(mainScalaVersion).runtime.jvm
+        morphir(mainScalaVersion).runtime.jvm,
+        morphir(mainScalaVersion).tools.jvm
       )
   }
 
@@ -654,6 +657,27 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
         // }
       }
     }
+  }
+
+  object tools extends CrossPlatform {
+    trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
+      def ivyDeps = Agg(
+        Deps.co.fs2.`fs2-io`,
+        Deps.com.lihaoyi.sourcecode,
+        Deps.dev.zio.zio,
+        Deps.dev.zio.`zio-prelude`,
+        Deps.dev.zio.`zio-streams`,
+        Deps.com.lihaoyi.pprint,
+        Deps.org.typelevel.spire,
+        Deps.org.typelevel.`paiges-core`
+      ) ++ Agg.when(!platform.isNative)(Deps.dev.zio.`zio-interop-cats`)
+
+      def platformSpecificModuleDeps = Seq(morphir, morphir.toolkit.codec.zio.json)
+    }
+
+    object jvm    extends Shared with MorphirJVMModule
+    object js     extends Shared with MorphirJSModule
+    object native extends Shared with MorphirNativeModule
   }
 }
 

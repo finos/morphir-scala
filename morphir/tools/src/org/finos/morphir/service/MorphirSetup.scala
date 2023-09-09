@@ -1,6 +1,6 @@
 package org.finos.morphir.service
-import java.nio.file.Path
-import zio.*
+import zio._
+import fs2.io.file.{Files, Path}
 
 trait MorphirSetup {
   def setup(morphirHomeDir: Path): zio.Task[Unit]
