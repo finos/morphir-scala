@@ -3,26 +3,26 @@ package org.finos.morphir.util.vfile
 import cats.kernel.Monoid
 import cats.syntax.all._
 import fs2.io.file.Path
-object VPath extends VPathCompanionPlatformSpecific {
+object VPath extends VPathCompanionApi {
   val empty: VPath                       = new VPath(Monoid[Path].empty)
   def combine(x: VPath, y: VPath): VPath = new VPath(x.path / y.path)
   def compare(x: VPath, y: VPath): Int   = x.path.compare(y.path)
 }
 
-final case class VPath private[vfile](path: Path) extends Product with Serializable {
+final case class VPath private[vfile] (path: Path) extends Product with Serializable {
 
   def /(name: String): VPath = new VPath(path / name)
 
   def /(that: VPath): VPath = VPath(path / that.path)
 
-  def absolute: VPath                      = VPath(path.absolute)
-  def elements: List[String]               = path.names.map(_.toString).toList
+  def absolute: VPath                  = VPath(path.absolute)
+  def elements: List[String]           = path.names.map(_.toString).toList
   def endsWith(input: String): Boolean = path.endsWith(input)
-  def endsWith(that: VPath): Boolean       = path.endsWith(that.path)
-  def ext: String                          = path.extName
-  def fileName: VPath                      = VPath(path.fileName)
-  def fileNameString: String               = path.fileName.toString
-  def isAbsolute: Boolean                  = path.isAbsolute
+  def endsWith(that: VPath): Boolean   = path.endsWith(that.path)
+  def ext: String                      = path.extName
+  def fileName: VPath                  = VPath(path.fileName)
+  def fileNameString: String           = path.fileName.toString
+  def isAbsolute: Boolean              = path.isAbsolute
 
   def normalize: VPath                    = VPath(path.normalize)
   def parent: Option[VPath]               = path.parent.map(VPath(_))
@@ -35,5 +35,3 @@ final case class VPath private[vfile](path: Path) extends Product with Serializa
 
   override def toString: String = path.toString
 }
-
-
