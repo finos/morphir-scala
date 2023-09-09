@@ -3,9 +3,7 @@ package millbuild
 import mill._, scalalib._, scalafmt._
 import java.util.Properties
 trait CommonCrossScalaModule extends CrossScalaModule with CommonCoursierModule with CommonScalaModule
-    with ScalafmtModule { self =>
-      
-}
+    with ScalafmtModule { self => }
 
 trait CommonScalaModule extends ScalaModule {
   def compilerPlugins(scalaVersion: String) =
@@ -67,7 +65,7 @@ trait CommonScalaModule extends ScalaModule {
     super.scalacOptions() ++ options ++ additionalScalacOptions()
   }
 
-  def scalaDocOptions = super.scalaDocOptions() ++ Seq("-no-link-warnings")
+  def scalaDocOptions = filterScala3DocOptions(super.scalaDocOptions() ++ Seq("-no-link-warnings"))
 
   override def scalacPluginIvyDeps: Target[Agg[Dep]] = T {
     super.scalacPluginIvyDeps() ++ compilerPlugins(scalaVersion())
@@ -223,6 +221,11 @@ trait CommonScalaModule extends ScalaModule {
       .filterNot(_.startsWith("-Ywarn-"))
       .filterNot(_ == "-explaintypes")
       .filterNot(_ == "-Xcheckinit")
+
+  def filterScala3DocOptions(opts: Seq[String]) =
+    opts.filterNot(_.startsWith("-Xfatal"))
+      .filterNot(_.startsWith("-Ywarn"))
+      .filterNot(_.startsWith("-W"))
 
   def filterScala2_12Options(opts: Seq[String]) =
     opts.filterNot(_ == "-Xlint:missing-interpolator")

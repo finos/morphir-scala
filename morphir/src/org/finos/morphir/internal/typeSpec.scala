@@ -1,17 +1,18 @@
 package org.finos.morphir.internal
 
 import org.finos.morphir.naming._
+
 trait TypeSpecModule { self: TypeModule =>
 
   sealed trait TypeSpecification[+A] { self =>
-    import TypeSpecification.*
+    import TypeSpecification._
 
     final def properties: Properties =
       self match {
-        case TypeAliasSpecification(_, expr)              => Properties.TypeAlias(expr)
-        case CustomTypeSpecification(_, ctors)            => Properties.CustomType(ctors)
-        case DerivedTypeSpecification(_, derivationProps) => derivationProps
-        case OpaqueTypeSpecification(_)                   => Properties.OpaqueType
+        case spec @ TypeAliasSpecification(_, _)   => Properties.TypeAlias(spec.expr)
+        case spec @ CustomTypeSpecification(_, _)  => Properties.CustomType(spec.ctors)
+        case spec @ DerivedTypeSpecification(_, _) => spec.derivationProps
+        case OpaqueTypeSpecification(_)            => Properties.OpaqueType
       }
 
     final def map[B](f: A => B): TypeSpecification[B] =
@@ -43,9 +44,7 @@ trait TypeSpecModule { self: TypeModule =>
     sealed case class DerivedTypeSpecification[+A](typeParams: Vector[Name], derivationProps: Properties.DerivedType[A])
         extends TypeSpecification[A]
 
-    sealed trait Properties {
-      self =>
-    }
+    sealed trait Properties
 
     object Properties {
       sealed case class TypeAlias[+T](expr: T) extends Properties
@@ -107,9 +106,6 @@ trait TypeSpecModule { self: TypeModule =>
     def apply[A](name: Name, args: TypeConstructorArgs[A]): TypeConstructor[A]    = (name, args)
     def unapply[A](arg: TypeConstructor[A]): Some[(Name, TypeConstructorArgs[A])] = Some(arg)
   }
-  // sealed case class TypeConstructor[+A](name: Name, args: TypeConstructorArgs[A]) {
-  //   def map[B](f: A => B): TypeConstructor[B] = copy(args = args.map(f))
-  // }
 
   def tCtorArg[A](name: Name, tpe: Type[A]): TypeConstructorArg[A] = TypeConstructorArg(name, tpe)
   def tCtorArg[A](pair: (Name, Type[A])): TypeConstructorArg[A]    = TypeConstructorArg.fromTuple(pair)

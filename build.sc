@@ -204,13 +204,8 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
   }
 
   object jvm extends Shared with MorphirJVMModule
-
-  object js extends Shared with MorphirJSModule {
-    def docSources: T[Seq[PathRef]] = T { Seq.empty[PathRef] }
-  }
-  object native extends Shared with MorphirNativeModule {
-    def docSources: T[Seq[PathRef]] = T { Seq.empty[PathRef] }
-  }
+  object js extends Shared with MorphirJSModule 
+  object native extends Shared with MorphirNativeModule
 
   object contrib extends Module {
     object knowledge extends CrossPlatform with CrossValue {
