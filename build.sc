@@ -123,7 +123,6 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
 
     def moduleDeps =
       Seq(
-        morphir(mainScalaVersion).extensibility.jvm,
         morphir(mainScalaVersion).jvm,
         morphir(mainScalaVersion).runtime.jvm
       )
@@ -199,7 +198,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       super.scalacOptions() ++ additionalOptions
     }
 
-    def platformSpecificModuleDeps = Seq(annotations, extensibility)
+    def platformSpecificModuleDeps = Seq(annotations)
   }
 
   object jvm extends Shared with MorphirJVMModule {
@@ -274,30 +273,6 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
   object annotations extends CrossPlatform with CrossValue {
     trait Shared  extends MorphirCommonCrossModule with MorphirPublishModule
-    object jvm    extends Shared with MorphirJVMModule
-    object js     extends Shared with MorphirJSModule
-    object native extends Shared with MorphirNativeModule
-  }
-
-  object extensibility extends CrossPlatform with CrossValue {
-    trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
-      def ivyDeps = T {
-        super.ivyDeps() ++ Agg(
-          Deps.com.lihaoyi.sourcecode,
-          Deps.com.lihaoyi.fansi,
-          Deps.com.lihaoyi.pprint,
-          Deps.dev.zio.`izumi-reflect`,
-          Deps.org.typelevel.`paiges-core`,
-          Deps.org.typelevel.spire
-        ) ++ Agg.when(isScala3())(
-          Deps.com.softwaremill.magnolia_3.magnolia
-        ) ++ Agg.when(isScala2())(
-          Deps.com.softwaremill.magnolia_2.magnolia
-        )
-      }
-
-    }
-
     object jvm    extends Shared with MorphirJVMModule
     object js     extends Shared with MorphirJSModule
     object native extends Shared with MorphirNativeModule
@@ -424,7 +399,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
     trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
       def ivyDeps                    = Agg(Deps.org.typelevel.`scalac-compat-annotation`)
-      def platformSpecificModuleDeps = Seq(extensibility, morphir, toolkit.core, toolkit.codec.zio.json)
+      def platformSpecificModuleDeps = Seq(morphir, toolkit.core, toolkit.codec.zio.json)
     }
 
     object jvm extends Shared with MorphirJVMModule {
@@ -547,7 +522,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.com.lihaoyi.sourcecode
       )
-      def platformSpecificModuleDeps = Seq(extensibility, morphir)
+      def platformSpecificModuleDeps = Seq(morphir, runtime)
     }
 
     object jvm extends Shared with MorphirJVMModule {
