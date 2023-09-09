@@ -1,7 +1,6 @@
 package org.finos.morphir.cli
 
 import java.nio.file.{Path => JPath, Paths}
-import fs2.io.file.Path
 import org.finos.morphir.service._
 import org.finos.morphir.runtime.service._
 import org.finos.morphir.util.vfile._
@@ -22,18 +21,18 @@ object MorphirCliMain extends ZIOCliDefault {
 
   private def executeCommand(command: MorphirCommand) = command match {
     case MorphirCommand.Develop(port, host, projectDir, openInBrowser) =>
-      MorphirElmDriver.develop(port, host, VFilePath.fromJava(projectDir), openInBrowser)
-    case MorphirCommand.Setup(morphirHomeDir) => MorphirSetup.setup(Path.fromNioPath(morphirHomeDir))
+      MorphirElmDriver.develop(port, host, VFilePath(projectDir), openInBrowser)
+    case MorphirCommand.Setup(morphirHomeDir) => MorphirSetup.setup(VFilePath(morphirHomeDir))
     case MorphirCommand.Test(irFiles)         => MorphirRuntimeDriver.test()
     case MorphirCommand.ElmDevelop(port, host, projectDir, openInBrowser) =>
-      MorphirElmDriver.develop(port, host, VFilePath.fromJava(projectDir), openInBrowser)
+      MorphirElmDriver.develop(port, host, VFilePath(projectDir), openInBrowser)
     case MorphirCommand.ElmInit(morphirHomeDir, projectDir) =>
-      MorphirElmDriver.init(VFilePath.fromJava(morphirHomeDir), VFilePath.fromJava(projectDir))
+      MorphirElmDriver.init(VFilePath(morphirHomeDir), VFilePath(projectDir))
     case MorphirCommand.ElmMake(projectDir, output, typesOnly, fallbackCli, indentJson) =>
-      MorphirElmDriver.make(VFilePath.fromJava(projectDir), VFilePath.fromJava(output), fallbackCli)
+      MorphirElmDriver.make(VFilePath(projectDir), VFilePath(output), fallbackCli)
     case MorphirCommand.ElmRestore(elmHome, projectDir) =>
-      MorphirElmDriver.restore(VFilePath.fromJava(elmHome), VFilePath.fromJava(projectDir))
-    case MorphirCommand.ElmTest(projectDir) => MorphirElmDriver.test(VFilePath.fromJava(projectDir))
+      MorphirElmDriver.restore(VFilePath(elmHome), VFilePath(projectDir))
+    case MorphirCommand.ElmTest(projectDir) => MorphirElmDriver.test(VFilePath(projectDir))
   }
 
   object commands {

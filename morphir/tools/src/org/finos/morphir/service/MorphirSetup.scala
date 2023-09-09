@@ -1,16 +1,17 @@
 package org.finos.morphir.service
+
+import org.finos.morphir.util.vfile._
 import zio._
-import fs2.io.file.{Files, Path}
 
 trait MorphirSetup {
-  def setup(morphirHomeDir: Path): zio.Task[Unit]
+  def setup(morphirHomeDir: VFilePath): zio.Task[Unit]
 }
 
 object MorphirSetup {
   val live: ULayer[MorphirSetup] = ZLayer.succeed(MorphirSetupLive)
 
   object MorphirSetupLive extends MorphirSetup {
-    def setup(morphirHomeDir: Path): zio.Task[Unit] =
+    def setup(morphirHomeDir: VFilePath): zio.Task[Unit] =
       for {
         _ <- Console.printLine("Setup command executing")
         _ <- Console.printLine(s"\tmorphirHomeDir: $morphirHomeDir")
@@ -18,6 +19,6 @@ object MorphirSetup {
       } yield ()
   }
 
-  def setup(morphirHomeDir: Path): zio.ZIO[MorphirSetup, Throwable, Unit] =
+  def setup(morphirHomeDir: VFilePath): zio.ZIO[MorphirSetup, Throwable, Unit] =
     ZIO.serviceWithZIO[MorphirSetup](_.setup(morphirHomeDir))
 }
