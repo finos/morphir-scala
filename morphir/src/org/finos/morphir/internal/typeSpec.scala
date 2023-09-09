@@ -1,6 +1,6 @@
 package org.finos.morphir.internal
 
-import org.finos.morphir.naming.*
+import org.finos.morphir.naming._
 trait TypeSpecModule { self: TypeModule =>
 
   sealed trait TypeSpecification[+A] { self =>
@@ -30,6 +30,9 @@ trait TypeSpecModule { self: TypeModule =>
   }
 
   object TypeSpecification {
+    def custom[A](typeParams: Vector[Name], ctors: TypeConstructors[A]): TypeSpecification[A] =
+      CustomTypeSpecification(typeParams, ctors)
+
     sealed case class TypeAliasSpecification[+A](typeParams: Vector[Name], expr: Type[A]) extends TypeSpecification[A]
 
     sealed case class OpaqueTypeSpecification(typeParams: Vector[Name]) extends TypeSpecification[Nothing]
@@ -93,12 +96,20 @@ trait TypeSpecModule { self: TypeModule =>
 
   object TypeConstructorArgs {
     def apply[A](args: TypeConstructorArg[A]*): TypeConstructorArgs[A]                = TypeConstructorArgs(args.toList)
+    def empty[A]: TypeConstructorArgs[A]                                              = TypeConstructorArgs(Nil)
     implicit def toList[A](args: TypeConstructorArgs[A]): List[TypeConstructorArg[A]] = args.args
   }
 
-  sealed case class TypeConstructor[+A](name: Name, args: TypeConstructorArgs[A]) {
-    def map[B](f: A => B): TypeConstructor[B] = copy(args = args.map(f))
+  type TypeConstructor[+A] = (Name, TypeConstructorArgs[A])
+  object TypeConstructor {
+    def apply[A](name: String): TypeConstructor[A] = (Name.fromString(name), TypeConstructorArgs.empty[A])
+    def apply[A](name: Name): TypeConstructor[A]   = (name, TypeConstructorArgs.empty[A])
+    def apply[A](name: Name, args: TypeConstructorArgs[A]): TypeConstructor[A]    = (name, args)
+    def unapply[A](arg: TypeConstructor[A]): Some[(Name, TypeConstructorArgs[A])] = Some(arg)
   }
+  // sealed case class TypeConstructor[+A](name: Name, args: TypeConstructorArgs[A]) {
+  //   def map[B](f: A => B): TypeConstructor[B] = copy(args = args.map(f))
+  // }
 
   def tCtorArg[A](name: Name, tpe: Type[A]): TypeConstructorArg[A] = TypeConstructorArg(name, tpe)
   def tCtorArg[A](pair: (Name, Type[A])): TypeConstructorArg[A]    = TypeConstructorArg.fromTuple(pair)

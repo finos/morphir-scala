@@ -74,6 +74,14 @@ object Deps {
       case object common {
         val tagging = ivy"com.softwaremill.common::tagging::2.3.4"
       }
+
+      case object magnolia_2 {
+        val magnolia = ivy"com.softwaremill.magnolia1_2::magnolia::1.1.4"
+      }
+
+      case object magnolia_3 {
+        val magnolia = ivy"com.softwaremill.magnolia1_3::magnolia::1.3.3"
+      }
     }
   }
   case object dev {

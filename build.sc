@@ -2,8 +2,10 @@ import $meta._
 import $ivy.`de.tototec::de.tobiasroeser.mill.integrationtest::0.7.1`
 import $ivy.`io.chris-kipp::mill-ci-release::0.1.9`
 import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
+import $ivy.`com.carlosedp::mill-aliases::0.4.1`
 import $file.project.deps, deps.{Deps, MillVersions, Versions => Vers}
 import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
+import com.carlosedp.aliases._
 import de.tobiasroeser.mill.integrationtest._
 import io.kipp.mill.ci.release.CiReleaseModule
 import millbuild._
@@ -121,7 +123,6 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
 
     def moduleDeps =
       Seq(
-        morphir(mainScalaVersion).extensibility.jvm,
         morphir(mainScalaVersion).jvm,
         morphir(mainScalaVersion).runtime.jvm
       )
@@ -167,15 +168,22 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
   trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
     def ivyDeps = super.ivyDeps() ++ Agg(
       Deps.com.beachape.enumeratum,
+      Deps.com.lihaoyi.fansi,
       Deps.com.lihaoyi.geny,
       Deps.com.lihaoyi.sourcecode,
       Deps.com.lihaoyi.pprint,
-      Deps.org.typelevel.`paiges-core`,
-      Deps.org.typelevel.spire,
+      Deps.dev.zio.`izumi-reflect`,
       Deps.dev.zio.zio,
       Deps.dev.zio.`zio-json`,
-      Deps.dev.zio.`zio-prelude`
+      Deps.dev.zio.`zio-prelude`,
+      Deps.org.typelevel.`paiges-core`,
+      Deps.org.typelevel.spire
+    ) ++ Agg.when(isScala3())(
+      Deps.com.softwaremill.magnolia_3.magnolia
+    ) ++ Agg.when(isScala2())(
+      Deps.com.softwaremill.magnolia_2.magnolia
     )
+
     def compileIvyDeps = super.compileIvyDeps() ++ (if (crossScalaVersion.startsWith("2."))
                                                       Agg(
                                                         Deps.org.`scala-lang`.`scala-reflect`(crossScalaVersion),
@@ -190,7 +198,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       super.scalacOptions() ++ additionalOptions
     }
 
-    def platformSpecificModuleDeps = Seq(extensibility)
+    def platformSpecificModuleDeps = Seq(annotations)
   }
 
   object jvm extends Shared with MorphirJVMModule {
@@ -263,19 +271,8 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     }
   }
 
-  object extensibility extends CrossPlatform with CrossValue {
-    trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
-      def ivyDeps = super.ivyDeps() ++ Agg(
-        Deps.com.lihaoyi.sourcecode,
-        Deps.com.lihaoyi.fansi,
-        Deps.com.lihaoyi.pprint,
-        Deps.dev.zio.`izumi-reflect`,
-        Deps.org.typelevel.`paiges-core`,
-        Deps.org.typelevel.spire
-      )
-
-    }
-
+  object annotations extends CrossPlatform with CrossValue {
+    trait Shared  extends MorphirCommonCrossModule with MorphirPublishModule
     object jvm    extends Shared with MorphirJVMModule
     object js     extends Shared with MorphirJSModule
     object native extends Shared with MorphirNativeModule
@@ -402,7 +399,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
     trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
       def ivyDeps                    = Agg(Deps.org.typelevel.`scalac-compat-annotation`)
-      def platformSpecificModuleDeps = Seq(extensibility, morphir, toolkit.core, toolkit.codec.zio.json)
+      def platformSpecificModuleDeps = Seq(morphir, toolkit.core, toolkit.codec.zio.json)
     }
 
     object jvm extends Shared with MorphirJVMModule {
@@ -525,7 +522,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.com.lihaoyi.sourcecode
       )
-      def platformSpecificModuleDeps = Seq(extensibility, morphir)
+      def platformSpecificModuleDeps = Seq(morphir, runtime)
     }
 
     object jvm extends Shared with MorphirJVMModule {
@@ -673,4 +670,13 @@ object site extends Docusaurus2Module with MDocModule {
   override def watchedMDocsDestination: T[Option[os.Path]] = T(Some(docusaurusBuild().path / "docs"))
   override def compiledMdocs: Sources                      = T.sources(mdoc().path)
   object test extends ScalaTests with TestModule.Munit {}
+}
+
+object MyAliases extends Aliases {
+  def fmt         = alias("mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources")
+  def checkfmt    = alias("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources")
+  def deps        = alias("mill.scalalib.Dependency/showUpdates")
+  def testall     = alias("__.test")
+  def compileall  = alias("__.compile")
+  def comptestall = alias("__.compile", "__.test")
 }

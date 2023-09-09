@@ -7,6 +7,7 @@ trait AllTypeLevelModules
     with TypeSpecModule
     with TypeDefModule
     with TypeInfoModule
+    with TypeOfModule
     with TypeTransformerModule {}
 
 trait AllMiscModules extends AccessControlledModule with DocumentedModule

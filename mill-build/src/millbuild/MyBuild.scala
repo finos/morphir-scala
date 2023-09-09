@@ -11,6 +11,8 @@ object MyBuild extends ExternalModule {
     BuildSettings.load()
   }
 
+  def devMode = T.input { T.env.getOrElse("MORPHIR_SCALA_DEV_MODE", false) == "true" }
+
   def showBuildSettings() = T.command {
     val settings = buildSettings()
     pprint.pprintln(settings)

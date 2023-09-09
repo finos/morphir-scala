@@ -12,6 +12,11 @@ object naming extends Names {
 
   final implicit class NamingHelper(val sc: StringContext) extends AnyVal {
 
+    def fqn(args: Any*): FQName = {
+      val interlaced = interlace(sc.parts, args.map(_.toString))
+      FQName.fromString(interlaced.mkString)
+    }
+
     def mod(args: Any*): ModuleName = {
       val interlaced = interlace(sc.parts, args.map(_.toString))
       ModuleName.fromString(interlaced.mkString)
@@ -20,6 +25,11 @@ object naming extends Names {
     def n(args: Any*): Name = {
       val interlaced = interlace(sc.parts, args.map(_.toString))
       Name.fromString(interlaced.mkString)
+    }
+
+    def qmn(args: Any*): QualifiedModuleName = {
+      val interlaced = interlace(sc.parts, args.map(_.toString))
+      QualifiedModuleName.fromString(interlaced.mkString)
     }
 
     def name(args: Any*): Name = {

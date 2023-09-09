@@ -7,6 +7,7 @@ trait TypeInfoModule { self: TypeModule with TypeSpecModule with TypeDefModule =
 
   sealed trait GenericTypeInfo[+A] { self =>
     import GenericTypeInfo._
+    import TypeSpecification._
 
     /// Get the FQName of the type if it is available.
     /// NOTE: Intrinsic types like `Unit`, `Tuple`, `Function`, and un-aliased `Record`s do not have a fully qualified name.
@@ -19,6 +20,25 @@ trait TypeInfoModule { self: TypeModule with TypeSpecModule with TypeDefModule =
     @inline final def getType: Type[A] = tpe
 
     @inline final def isIntrinsic: Boolean = tpe.isIntrinsic
+
+    final def isOpaque: Boolean = self match {
+      case TypeAndSpec(_, _, OpaqueTypeSpecification(_)) => true
+      case _                                             => false
+    }
+    @inline final def isFull: Boolean = self match {
+      case Full(_, _, _, _) => true
+      case _                => false
+    }
+
+    @inline final def isTypeAndSpec: Boolean = self match {
+      case TypeAndSpec(_, _, _) => true
+      case _                    => false
+    }
+
+    @inline final def isTypeOnly: Boolean = self match {
+      case TypeOnly(_, _) => true
+      case _              => false
+    }
 
     def tpe: Type[A]
   }

@@ -12,6 +12,17 @@ trait TypeDefModule { self: AccessControlledModule with TypeModule with TypeSpec
   }
 
   object TypeDefinition {
+    @inline def alias[A](typeParams: Vector[Name], typeExpr: Type[A]): TypeDefinition[A] =
+      TypeAliasDefinition(typeParams, typeExpr)
+
+    @inline def alias[A](typeExpr: Type[A]): TypeDefinition[A] = alias(Vector.empty, typeExpr)
+
+    @inline def custom[A](typeParams: Vector[Name], ctors: TypeConstructors[A]): TypeDefinition[A] =
+      CustomTypeDefinition(typeParams, AccessControlled.publicAccess(ctors))
+
+    def custom[A](typeParams: Vector[Name], ctors: AccessControlled[TypeConstructors[A]]): TypeDefinition[A] =
+      CustomTypeDefinition(typeParams, ctors)
+
     sealed case class TypeAliasDefinition[+A](typeParams: Vector[Name], typeExpr: Type[A]) extends TypeDefinition[A]
     sealed case class CustomTypeDefinition[+A](typeParams: Vector[Name], ctors: AccessControlled[TypeConstructors[A]])
         extends TypeDefinition[A]
