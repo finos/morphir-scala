@@ -215,7 +215,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
           Deps.com.lihaoyi.sourcecode,
           Deps.dev.zio.`zio-streams`
         )
-        def platformSpecificModuleDeps = Seq(toolkit.core)
+        def platformSpecificModuleDeps = Seq(morphir)
       }
 
       object jvm extends Shared with MorphirJVMModule {
@@ -316,7 +316,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
     trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
       def ivyDeps                    = Agg(Deps.org.typelevel.`scalac-compat-annotation`)
-      def platformSpecificModuleDeps = Seq(morphir, toolkit.core, toolkit.codec.zio.json)
+      def platformSpecificModuleDeps = Seq(morphir, toolkit.codec.zio.json)
     }
 
     object jvm extends Shared with MorphirJVMModule {
@@ -348,14 +348,17 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
   }
 
-  object testing extends CrossPlatform with CrossValue {
-    trait Shared extends MorphirCommonCrossModule {
-      def ivyDeps                    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-magnolia`)
-      def platformSpecificModuleDeps = Seq(morphir, morphir.testing.zio)
+  object testing extends Module {
+    object generators extends CrossPlatform with CrossValue {
+      trait Shared extends MorphirCommonCrossModule {
+        def ivyDeps = Agg(Deps.dev.zio.`zio-test`) ++ Agg.when(!platform.isNative)(Deps.dev.zio.`zio-test-magnolia`)
+        def platformSpecificModuleDeps = Seq(morphir)
 
+      }
+      object jvm    extends Shared with MorphirJVMModule
+      object js     extends Shared with MorphirJSModule
+      object native extends Shared with MorphirJSModule
     }
-    object jvm extends Shared with MorphirJVMModule
-    object js  extends Shared with MorphirJSModule
 
     object munit extends CrossPlatform {
       trait Shared extends MorphirCommonCrossModule {
@@ -460,21 +463,21 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
           Deps.dev.zio.`zio-test-sbt`
         )
 
-        def moduleDeps = super.moduleDeps ++ Agg(testing.jvm, testing.zio.jvm)
+        def moduleDeps = super.moduleDeps ++ Agg(testing.generators.jvm, testing.zio.jvm)
       }
     }
 
     object js extends Shared with MorphirJSModule {
       object test extends ScalaJSTests with TestModule.ZioTest {
         def ivyDeps    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
-        def moduleDeps = super.moduleDeps ++ Agg(testing.js, testing.zio.js)
+        def moduleDeps = super.moduleDeps ++ Agg(testing.generators.js, testing.zio.js)
       }
     }
 
     object native extends Shared with MorphirNativeModule {
       object test extends ScalaNativeTests with TestModule.ZioTest {
         def ivyDeps    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
-        def moduleDeps = super.moduleDeps ++ Agg(testing.zio.native)
+        def moduleDeps = super.moduleDeps ++ Agg(testing.generators.native, testing.zio.native)
       }
     }
   }
@@ -486,8 +489,9 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
         object json extends CrossPlatform with CrossValue {
           trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
             def ivyDeps                    = Agg(Deps.dev.zio.`zio-json`)
-            def platformSpecificModuleDeps = Seq(core)
+            def platformSpecificModuleDeps = Seq(morphir)
           }
+
           object jvm extends Shared with MorphirJVMModule {
             object test extends ScalaTests with TestModule.ZioTest {
               def ivyDeps =
@@ -497,59 +501,13 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
                   Deps.dev.zio.`zio-process`
                 )
 
-              def moduleDeps = super.moduleDeps ++ Agg(morphir.testing.jvm, morphir.testing.zio.jvm)
+              def moduleDeps = super.moduleDeps ++ Agg(morphir.testing.generators.jvm, morphir.testing.zio.jvm)
             }
           }
-          object js extends Shared with MorphirJSModule {
-            // object test extends ScalaTests with TestModule.ZioTest {
-            //   def ivyDeps = super.ivyDeps() ++ Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
-            //   def moduleDeps = super.moduleDeps ++ Agg(testing.js, morphir.testing.zio.js)
-            // }
-          }
 
-          object native extends Shared with MorphirNativeModule {
-            // object test extends ScalaTests with TestModule.ZioTest {
-            //   def ivyDeps = super.ivyDeps() ++ Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
-            //   def moduleDeps = super.moduleDeps ++ Agg(testing.native, morphir.testing.zio.native)
-            // }
-          }
+          object js     extends Shared with MorphirJSModule
+          object native extends Shared with MorphirNativeModule
         }
-      }
-    }
-
-    object core extends CrossPlatform with CrossValue {
-      def enableNative(module: Module): Boolean = !devMode
-
-      trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
-        def ivyDeps = Agg(
-          Deps.com.lihaoyi.sourcecode,
-          Deps.dev.zio.zio,
-          Deps.dev.zio.`zio-prelude`,
-          Deps.com.lihaoyi.pprint,
-          Deps.org.typelevel.spire,
-          Deps.org.typelevel.`paiges-core`
-        ) ++ Agg.when(!platform.isNative)(Deps.io.lemonlabs.`scala-uri`)
-
-        def platformSpecificModuleDeps = Seq(morphir, lib.interop)
-      }
-      object jvm extends Shared with MorphirJVMModule {
-        object test extends ScalaTests with TestModule.ZioTest {
-          def ivyDeps    = super.ivyDeps() ++ Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
-          def moduleDeps = super.moduleDeps ++ Agg(testing.jvm, morphir.testing.zio.jvm)
-        }
-      }
-      object js extends Shared with MorphirJSModule {
-        // object test extends ScalaTests with TestModule.ZioTest {
-        //   def ivyDeps = super.ivyDeps() ++ Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
-        //   def moduleDeps = super.moduleDeps ++ Agg(testing.js, morphir.testing.zio.js)
-        // }
-
-      }
-      object native extends Shared with MorphirNativeModule {
-        // object test extends ScalaTests with TestModule.ZioTest {
-        //   def ivyDeps = super.ivyDeps() ++ Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
-        //   def moduleDeps = super.moduleDeps ++ Agg(testing.native, morphir.testing.zio.native)
-        // }
       }
     }
   }
