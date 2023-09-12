@@ -35,6 +35,36 @@ You can install the `morphir-cli` in the following ways:
 cs install --channel https://raw.githubusercontent.com/finos/morphir-scala/main/coursier-channel.json morphir-cli
 ```
 
+Then run the CLI:
+
+```
+morphir-cli setup
+```
+
+We also offer an insiders channel that grants access to snapshot releases of the CLI.
+
+```
+cs install --channel https://raw.githubusercontent.com/finos/morphir-scala/main/coursier-channel.json morphir-insiders-cli
+```
+
+Then run the CLI:
+
+```
+morphir-cli setup
+```
+
+NOTE: The main channel above (non-insiders), also offers insiders builds under the name `morphir-insiders-cli`:
+
+```
+cs install --channel https://raw.githubusercontent.com/finos/morphir-scala/main/coursier-channel.json morphir-insiders-cli
+```
+
+Then run the CLI:
+
+```
+morphir-insiders-cli setup
+```
+
 ---
 ## Development
 

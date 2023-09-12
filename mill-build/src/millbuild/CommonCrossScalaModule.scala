@@ -15,12 +15,24 @@ trait CommonScalaModule extends ScalaModule {
     else
       Agg()
 
+  def disableFatalWarnings = T.input {
+    T.env.get("DISABLE_WARNINGS_AS_ERRORS").map(_.toBoolean).getOrElse(false)
+  }
+
+  def isCIBuild = T.input {
+    T.env.get("CI").map(_.toBoolean).getOrElse(false)
+  }
+
   def isScala3(scalaVersion: String): Boolean = scalaVersion.startsWith("3.")
 
   def isScala2(scalaVersion: String): Boolean = scalaVersion.startsWith("2.")
 
   def isScala3: T[Boolean] = T {
     scalaVersion().startsWith("3.")
+  }
+
+  def isScala2: T[Boolean] = T {
+    scalaVersion().startsWith("2.")
   }
 
   def isScala213: T[Boolean] = T {
@@ -44,11 +56,16 @@ trait CommonScalaModule extends ScalaModule {
   def optimize: T[Boolean] = T(false)
 
   def scalacOptions: Target[Seq[String]] = T {
-    val options = scalacOptions(scalaVersion(), optimize())
+    val options = scalacOptions(
+      scalaVersion(),
+      optimize = optimize(),
+      isCIBuild = isCIBuild(),
+      disableFatalWarnings = disableFatalWarnings()
+    )
     super.scalacOptions() ++ options ++ additionalScalacOptions()
   }
 
-  def scalaDocOptions = super.scalaDocOptions() ++ Seq("-no-link-warnings")
+  def scalaDocOptions = filterScala3DocOptions(super.scalaDocOptions())
 
   override def scalacPluginIvyDeps: Target[Agg[Dep]] = T {
     super.scalacPluginIvyDeps() ++ compilerPlugins(scalaVersion())
@@ -164,7 +181,7 @@ trait CommonScalaModule extends ScalaModule {
     else if (scalaVersion.startsWith("3.")) Seq("-target:11")
     else Seq.empty // when we get Scala 4...
 
-  def scalacOptions(scalaVersion: String, optimize: Boolean) = {
+  def scalacOptions(scalaVersion: String, optimize: Boolean, isCIBuild: Boolean, disableFatalWarnings: Boolean) = {
 
     val versionParts = scalaVersion.split("\\.")
     val options = versionParts match {
@@ -189,8 +206,6 @@ trait CommonScalaModule extends ScalaModule {
       case _ =>
         Seq()
     }
-    val disableFatalWarnings = sys.env.get("DISABLE_WARNINGS_AS_ERRORS").map(_.toBoolean).getOrElse(false)
-    val isCIBuild            = sys.env.get("CI").map(_.toBoolean).getOrElse(false)
 
     // Warnings as errors are always enabled for the CI build
     // and can be disabled by setting the DISABLE_WARNINGS_AS_ERRORS environment variable to true
@@ -206,6 +221,11 @@ trait CommonScalaModule extends ScalaModule {
       .filterNot(_.startsWith("-Ywarn-"))
       .filterNot(_ == "-explaintypes")
       .filterNot(_ == "-Xcheckinit")
+
+  def filterScala3DocOptions(opts: Seq[String]) =
+    opts.filterNot(_.startsWith("-Xfatal"))
+      .filterNot(_.startsWith("-Ywarn"))
+      .filterNot(_.startsWith("-W"))
 
   def filterScala2_12Options(opts: Seq[String]) =
     opts.filterNot(_ == "-Xlint:missing-interpolator")
