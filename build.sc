@@ -278,7 +278,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
         }
 
         object jvm extends Shared with MorphirJVMModule {
-          object test extends ScalaTests with TestModule.Munit {
+          object test extends ScalaTests with TestModule.ZioTest {
             def ivyDeps: T[Agg[Dep]] = Agg(
               Deps.dev.zio.`zio-json-golden`,
               ivy"io.github.deblockt:json-diff:0.0.6",
