@@ -76,7 +76,7 @@ object Deps {
       }
 
       case object magnolia_2 {
-        val magnolia = ivy"com.softwaremill.magnolia1_2::magnolia::1.1.4"
+        val magnolia = ivy"com.softwaremill.magnolia1_2::magnolia::1.1.6"
       }
 
       case object magnolia_3 {
@@ -201,7 +201,7 @@ object Versions {
   val coursier                   = "2.1.4"
   val expecty                    = "0.16.0"
   val fansi                      = "0.4.0"
-  val fs2                        = "3.8.0"
+  val fs2                        = "3.9.1"
   val geny                       = "1.0.0"
   val `izumi-reflect`            = "2.3.8"
   val metaconfig                 = "0.11.1"
@@ -219,7 +219,7 @@ object Versions {
   val zio                        = "2.0.16"
   val `zio-cli`                  = "0.5.0"
   val `zio-config`               = "4.0.0-RC16"
-  val `zio-interop-cats`         = "23.0.0.8"
+  val `zio-interop-cats`         = "23.0.03"
   val `zio-json`                 = "0.6.2"
   val `zio-nio`                  = "2.0.2"
   val `zio-parser`               = "0.1.9"
