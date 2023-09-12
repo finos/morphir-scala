@@ -4,7 +4,6 @@ package ir
 
 import zio.Chunk
 import org.finos.morphir.naming._
-import org.finos.morphir.ir.generator.LiteralGen
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Type.defineField
 import org.finos.morphir.ir.Type.{Type => IrType, UType}
@@ -15,7 +14,7 @@ import org.finos.morphir.ir.sdk.Basics.{boolType, floatType, intType}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
-object ValueModuleSpec extends MorphirBaseSpec {
+object ValueModuleSpec extends MorphirBaseSpec with ValueModuleSpecPlatformSpecific {
 
   val boolType: UType                  = Type.reference(FQName.fromString("Morphir.SDK:Morphir.SDK.Basics:Bool"))
   def listType(itemType: UType): UType = Type.reference(FQName.fromString("Morphir.SDK:List:List"), itemType)
