@@ -2,7 +2,6 @@ package org.finos.morphir.internal
 
 trait AllTypeLevelModules
     extends AccessControlledModule
-    with DocumentedModule
     with TypeModule
     with TypeSpecModule
     with TypeDefModule
@@ -10,4 +9,4 @@ trait AllTypeLevelModules
     with TypeOfModule
     with TypeTransformerModule {}
 
-trait AllMiscModules extends AccessControlledModule with DocumentedModule
+trait AllMiscModules extends AccessControlledModule

@@ -2,6 +2,7 @@ package org.finos.morphir
 package ir
 package internal
 
+import org.finos.morphir.util.attribs.Attributes
 import org.finos.morphir.naming._
 import scala.annotation.unused
 import zio.Chunk

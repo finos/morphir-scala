@@ -1,6 +1,6 @@
 package org.finos.morphir.syntax
 
-import org.finos.morphir.naming.*
+import org.finos.morphir.naming._
 
 trait NamingSyntax {
   def fqn(packageName: String, module: String, localName: String): FQName = FQName.fqn(packageName, module, localName)

@@ -10,8 +10,8 @@ package object ir {
   type AccessControlled[+A] = mir.AccessControlled[A]
   val AccessControlled: mir.AccessControlled.type = mir.AccessControlled
 
-  type Documented[+A] = mir.Documented[A]
-  val Documented: mir.Documented.type = mir.Documented
+  type Documented[+A] = org.finos.morphir.model.ir.Documented[A]
+  val Documented: org.finos.morphir.model.ir.Documented.type = org.finos.morphir.model.ir.Documented
 
   // TODO:  Reintroduce later
   // type PackageSpecification[+Annotations] = PackageModule.Specification[Annotations]
