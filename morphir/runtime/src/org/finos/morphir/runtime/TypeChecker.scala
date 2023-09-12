@@ -261,7 +261,7 @@ final class TypeChecker(dists: Distributions) {
                   context.withPrefix(s"Comparing $fqn constructor value to looked up type ${PrintIR(tpe)}")
                 )
               case None =>
-                List(new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName}"))
+                List(new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName.toCamelCase}"))
             }
             missedName ++ fromCtor
           case Right(other) =>

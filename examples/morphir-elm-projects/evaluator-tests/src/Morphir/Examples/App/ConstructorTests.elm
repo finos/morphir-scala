@@ -13,6 +13,38 @@ type UnionType = TwoArg Int String | OneArg Int | ZeroArg
 
 
 {-|
+    Test: Constructor/Inpurs
+    Tests ability of evaluator to take simple constructors as input
+-}
+constructorInputTest : UnionType -> (Int, String)
+constructorInputTest arg =
+    case arg of
+        ZeroArg ->
+            (0, "ZeroArg")
+        OneArg x ->
+            (x, "OneArg")
+        TwoArg x y ->
+            (x, y) 
+
+type NestedType = OneNested UnionType | TwoNested UnionType Int
+
+{-|
+    Test: Constructor/Nested
+    Tests ability of evaluator to take nested constructors as input
+-}
+
+constructorNestedInputTest : NestedType -> (String, (Int, String))
+constructorNestedInputTest arg = 
+    case arg of
+        OneNested z ->
+            ("OneNested", constructorInputTest z)
+        TwoNested z x ->
+            ("TwoNested", (
+                x,
+                Tuple.second (constructorInputTest z)
+            ))
+
+{-|
 Test: Constructor/ZeroArg
 expected = UnionType.ZeroArg()
 -}

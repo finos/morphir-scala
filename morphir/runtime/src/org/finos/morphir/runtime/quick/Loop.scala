@@ -24,7 +24,7 @@ import org.finos.morphir.runtime.{
 private[morphir] case class Loop(globals: GlobalDefs) {
   def loop(ir: RuntimeValue, store: Store): Result = {
     println(s"""
-            =====LOOPING: ${PrintIR(ir, detailLevel = DetailLevel.Detailed
+            =====LOOPING: ${PrintIR(ir, detailLevel = DetailLevel.BirdsEye
     )}
             =====toString: ${ir.toString}
             """.stripMargin)
