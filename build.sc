@@ -200,11 +200,11 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       super.scalacOptions() ++ additionalOptions
     }
 
-    def platformSpecificModuleDeps = Seq(annotations)
+    def moduleDeps = Seq(annotations.jvm)
   }
 
-  object jvm extends Shared with MorphirJVMModule
-  object js extends Shared with MorphirJSModule 
+  object jvm    extends Shared with MorphirJVMModule
+  object js     extends Shared with MorphirJSModule
   object native extends Shared with MorphirNativeModule
 
   object contrib extends Module {
@@ -262,10 +262,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
   }
 
   object annotations extends CrossPlatform with CrossValue {
-    trait Shared  extends MorphirCommonCrossModule with MorphirPublishModule
-    object jvm    extends Shared with MorphirJVMModule
-    object js     extends Shared with MorphirJSModule
-    object native extends Shared with MorphirNativeModule
+    object jvm extends MorphirJVMModule with MorphirPublishModule
   }
 
   object interop extends Module {
@@ -439,7 +436,8 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.com.lihaoyi.sourcecode
       )
-      def platformSpecificModuleDeps = Seq(morphir, runtime, tools)
+      override def moduleDeps: Seq[PublishModule] = super.moduleDeps ++ Seq(morphir.annotations.jvm)
+      def platformSpecificModuleDeps              = Seq(morphir, runtime, tools)
     }
 
     object jvm extends Shared with MorphirJVMModule {
@@ -600,7 +598,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       def docSources = T.sources {
         Lib.findSourceFiles(super.docSources(), Seq("tasty"))
           .map(PathRef(_))
-          //.filterNot(_.path.last.contains("ProcessIOPlat"))
+        // .filterNot(_.path.last.contains("ProcessIOPlat"))
       }
     }
     object native extends Shared with MorphirNativeModule {
