@@ -310,7 +310,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     def enableNative(module: Module): Boolean = crossValue.startsWith("2.13.") && !devMode
     trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
       def ivyDeps                    = Agg(Deps.org.typelevel.`scalac-compat-annotation`)
-      def platformSpecificModuleDeps = Seq(morphir, toolkit.codec.zio.json)
+      def platformSpecificModuleDeps = Seq(morphir, morphir.interop.zio.json)
     }
 
     object jvm extends Shared with MorphirJVMModule {
@@ -490,7 +490,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
         Deps.org.typelevel.`paiges-core`
       ) ++ Agg.when(!platform.isNative)(Deps.dev.zio.`zio-interop-cats`)
 
-      def platformSpecificModuleDeps = Seq(morphir, morphir.toolkit.codec.zio.json)
+      def platformSpecificModuleDeps = Seq(morphir, morphir.interop.zio.json)
     }
 
     object jvm extends Shared with MorphirJVMModule {
