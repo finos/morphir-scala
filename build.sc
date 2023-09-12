@@ -357,7 +357,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       }
       object jvm    extends Shared with MorphirJVMModule
       object js     extends Shared with MorphirJSModule
-      object native extends Shared with MorphirJSModule
+      object native extends Shared with MorphirNativeModule
     }
 
     object munit extends CrossPlatform {

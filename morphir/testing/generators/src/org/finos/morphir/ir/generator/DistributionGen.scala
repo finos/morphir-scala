@@ -10,8 +10,6 @@ import org.finos.morphir.ir.PackageModule.{
   USpecification => UPackageSpecification
 }
 import zio.test.Gen
-import zio.test.magnolia.DeriveGen
-import zio.test.magnolia.DeriveGen._
 
 trait DistributionGen {
 
