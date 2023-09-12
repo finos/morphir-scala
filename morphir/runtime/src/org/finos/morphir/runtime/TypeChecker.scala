@@ -16,6 +16,7 @@ import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.TypeError.CannotDealias
 import org.finos.morphir.runtime.exports.*
+import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import TypeError.*
 
 object TypeChecker {
@@ -56,7 +57,7 @@ final class TypeChecker(dists: Distributions) {
         val modPart             = if (mod1 != mod2) s"{$mod1 </=/> $mod2}" else mod1
         val locPart = if (loc1 != loc2) s"{${loc1.toTitleCase} </=/> ${loc2.toTitleCase}" else loc1.toTitleCase
         s"$packPart:$modPart:$locPart"
-      case _ => s"(${Succinct.Type(tpe1, 2)} vs ${Succinct.Type(tpe2, 2)})"
+      case _ => s"(${PrintIR(tpe1)} vs ${PrintIR(tpe2)})"
     }
   }
   // Helper to check that two lists of types (such as tuple or arguments) match, both in length and contents
@@ -124,7 +125,7 @@ final class TypeChecker(dists: Distributions) {
         // Use .diff to find if some are entirely absent from the other
         val missingFromValue = valueFieldSet
           .diff(declaredFieldSet).toList.map(missing =>
-            TypeLacksField(valueTpe, missing, s"Required by ${Succinct.Type(declaredTpe)}")
+            TypeLacksField(valueTpe, missing, s"Required by ${PrintIR(declaredTpe)}")
           )
         val missingFromDeclared = declaredFieldSet
           .diff(valueFieldSet).toList.map(bonus => TypeHasExtraField(valueTpe, declaredTpe, bonus))
@@ -156,7 +157,7 @@ final class TypeChecker(dists: Distributions) {
       case (valueOther, declaredOther) if valueOther.getClass == declaredOther.getClass =>
         List(
           new UnimplementedType(
-            s"No matching support for ${Succinct.Type(valueOther)} vs ${Succinct.Type(declaredOther)}"
+            s"No matching support for ${PrintIR(valueOther)} vs $PrintIR(declaredOther)}"
           )
         )
       case (valueOther, declaredOther) => List(new TypesMismatch(valueOther, declaredOther, "Different types of type"))
@@ -257,7 +258,7 @@ final class TypeChecker(dists: Distributions) {
                 checkList(
                   args.toList,
                   ctorArgs.toList.map(_._2).map(Utils.applyBindings(_, newBindings)),
-                  context.withPrefix(s"Comparing $fqn constructor value to looked up type ${Succinct.Type(tpe)}")
+                  context.withPrefix(s"Comparing $fqn constructor value to looked up type ${PrintIR(tpe)}")
                 )
               case None =>
                 List(new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName}"))

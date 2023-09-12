@@ -8,6 +8,7 @@ import Helpers.{listToTuple, matchPatternCase, unpackLit}
 import SDKValue.{SDKNativeFunction, SDKNativeInnerFunction, SDKNativeValue}
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.runtime.TypedMorphirRuntime.{RuntimeDefinition, RuntimeValue, TypeAttribs, ValueAttribs}
+import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import org.finos.morphir.runtime.{
   ConstructorNotFound,
   DefinitionNotFound,
@@ -21,7 +22,12 @@ import org.finos.morphir.runtime.{
 }
 
 private[morphir] case class Loop(globals: GlobalDefs) {
-  def loop(ir: RuntimeValue, store: Store): Result =
+  def loop(ir: RuntimeValue, store: Store): Result = {
+    println(s"""
+            =====LOOPING: ${PrintIR(ir, detailLevel = DetailLevel.Detailed
+    )}
+            =====toString: ${ir.toString}
+            """.stripMargin)
     ir match {
       case Literal(va, lit)              => handleLiteral(va, lit)
       case Apply(va, function, argument) => handleApply(va, function, argument, store)
@@ -45,6 +51,7 @@ private[morphir] case class Loop(globals: GlobalDefs) {
       case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
       case Variable(va, name)                      => handleVariable(va, name, store)
     }
+  }
 
   def handleLiteral(va: ValueAttribs, literal: Lit) = unpackLit(literal)
 
@@ -80,16 +87,16 @@ private[morphir] case class Loop(globals: GlobalDefs) {
     functionValue match {
       case Result.FieldFunction(name) =>
         argValue match {
-          case Result.Record(fields) =>
-            fields.getOrElse(name, throw MissingField(s"Record fields $fields do not contain name $name"))
-          case other => throw UnexpectedType(s"Expected record but found $other")
+          case record @Result.Record(fields) =>
+            fields.getOrElse(name, throw MissingField(s"Record fields ${PrintIR(record)} do not contain name $name"))
+          case other => throw UnexpectedType(s"Expected record but found ${PrintIR(other)}")
         }
       case Result.LambdaFunction(body, pattern, context) =>
         val newBindings = matchPatternCase(pattern, argValue)
-          .getOrElse(throw UnmatchedPattern(s"Lambda argument did not match expected pattern"))
+          .getOrElse(throw UnmatchedPattern(s"Lambda argument ${PrintIR(argValue)} did not match expected pattern ${PrintIR(pattern)}"))
           .map { case (name, value) => name -> StoredValue.Eager(value) }
         loop(body, Store(context.push(newBindings)))
-      case Result.DefinitionFunction(body, arguments, curried, closingContext) =>
+      case function @ Result.DefinitionFunction(body, arguments, curried, closingContext) =>
         arguments match {
           case (name, _, _) :: Nil =>
             val newBindings = (curried :+ (name -> argValue)).map { case (name, value) =>
@@ -100,17 +107,17 @@ private[morphir] case class Loop(globals: GlobalDefs) {
             Result.DefinitionFunction(body, tail, curried :+ (name -> argValue), closingContext)
           case Nil =>
             throw FunctionWithoutParameters(
-              "Tried to apply definition function with no un-applied arguments (should not exist)"
+              s"Tried to apply definition function ${PrintIR(function)} with no un-applied arguments (should not exist)"
             )
 
         }
-      case Result.ConstructorFunction(name, arguments, curried) =>
+      case function @ Result.ConstructorFunction(name, arguments, curried) =>
         arguments match {
           case _ :: Nil  => Result.ConstructorResult(name, curried :+ argValue)
           case _ :: tail => Result.ConstructorFunction(name, tail, curried :+ argValue)
           case Nil =>
             throw FunctionWithoutParameters(
-              s"Tried to apply to constructor function with no arguments (should not exist)"
+              s"Tried to apply to constructor function ${PrintIR(function)} with no arguments (should not exist)"
             )
 
         }
@@ -125,7 +132,7 @@ private[morphir] case class Loop(globals: GlobalDefs) {
 
         def assertCurriedNumArgs(num: Int) =
           if (curried.size != num) throw new IllegalValue(
-            s"Curried wrong number of (uncurried) args. Needed ${function.numArgs} args but got (${curried.size}) when applying the function $function"
+            s"Curried wrong number of (uncurried) args. Needed ${function.numArgs} args but got (${curried.size}) when applying the function ${PrintIR(function)}"
           )
         // Once the uncurrying is done, we can call the function since we have all of the arguments available
         arguments match {
@@ -150,7 +157,7 @@ private[morphir] case class Loop(globals: GlobalDefs) {
           // If there are more arguments left in the native-signature, that needs we have more uncurrying to do
           case x => Result.NativeFunction(x - 1, curried :+ argValue, function)
         }
-      case other => throw new UnexpectedType(s"$other is not a function")
+      case other => throw new UnexpectedType(s"${PrintIR(other)} is not a function")
     }
 
   def handleDestructure(
@@ -162,7 +169,7 @@ private[morphir] case class Loop(globals: GlobalDefs) {
   ): Result = {
     val value = loop(valueToDestruct, store)
     matchPatternCase(pattern, value) match {
-      case None => throw UnmatchedPattern(s"Value $value does not match pattern $pattern")
+      case None => throw UnmatchedPattern(s"Value ${PrintIR(value)} does not match pattern  ${PrintIR(pattern)}")
       case Some(bindings) =>
         loop(inValue, store.push(bindings.map { case (name, value) => name -> StoredValue.Eager(value) }))
     }
@@ -196,9 +203,9 @@ private[morphir] case class Loop(globals: GlobalDefs) {
       store: Store
   ): Result =
     loop(recordValue, store) match {
-      case Result.Record(fields) =>
-        fields.getOrElse(fieldName, throw MissingField(s"Record fields $fields do not contain name $fieldName"))
-      case other => throw new UnexpectedType(s"Expected record but found $other")
+      case record @Result.Record(fields) =>
+        fields.getOrElse(fieldName, throw MissingField(s"Record fields of ${PrintIR(record)} do not contain name $fieldName"))
+      case other => throw new UnexpectedType(s"Expected record but found ${PrintIR(other)}")
     }
 
   def handleFieldFunction(va: ValueAttribs, name: Name): Result = Result.FieldFunction(name)
@@ -213,7 +220,7 @@ private[morphir] case class Loop(globals: GlobalDefs) {
     loop(condition, store) match {
       case Result.Primitive(true)  => loop(thenValue, store)
       case Result.Primitive(false) => loop(elseValue, store)
-      case other                   => throw new UnexpectedType(s"$other is not a boolean result")
+      case other                   => throw new UnexpectedType(s"${PrintIR(other)} is not a boolean result")
     }
 
   def handleLambda(
@@ -267,7 +274,7 @@ private[morphir] case class Loop(globals: GlobalDefs) {
       remainingCases match {
         case (pattern, inValue) :: tail =>
           matchPatternCase(pattern, evaluated).map((inValue, _)).getOrElse(firstPatternMatching(tail))
-        case Nil => throw UnmatchedPattern(s"$evaluated did not match any pattern from $cases")
+        case Nil => throw UnmatchedPattern(s"${PrintIR(evaluated)} did not match any pattern from ${PrintIR(evaluated)}")
       }
 
     val (inValue, bindings) = firstPatternMatching(cases)
@@ -323,7 +330,7 @@ private[morphir] case class Loop(globals: GlobalDefs) {
       case Result.Record(oldFields) =>
         val newFields = fields.map { case (name, value) => name -> loop(value, store) }
         Result.Record(oldFields ++ newFields)
-      case other => throw UnexpectedType(s"$other is not a record")
+      case other => throw UnexpectedType(s"${PrintIR(other)} is not a record")
     }
 
   def handleVariable(va: ValueAttribs, name: Name, store: Store) =
