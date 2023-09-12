@@ -136,6 +136,7 @@ case class PrintIR(
       .replace("$", ".")
       .replace("org.finos.morphir.ir.TypeModule.Type", "T")
       .replace("org.finos.morphir.ir.internal.Value", "V")
+      .replace("org.finos.morphir.ir.internal.Pattern", "Pattern")
 
   /**
    * Extractor for any MorphirIR we want to treat specially for naming/depth limiting:
