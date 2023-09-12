@@ -746,19 +746,19 @@ object RecursiveValueSpec extends MorphirBaseSpec {
         test("It should support construction given attributes") {
           val accountType = Type.record(
             ir.Type.field(Name.fromString("accountNumber"), stringType),
-            ir.Type.field(Name.fromString("balance"), floatType)
+            ir.Type.field(Name.fromString("balance"), intType)
           )
           val attributes = accountType
           val account    = variable(accountType, "account")
-          val actual     = update(accountType, account, "balance" -> float(floatType, 42000.00f))
+          val actual     = update(accountType, account, "balance" -> int(intType, 42000))
           assertTrue(
             actual == UpdateRecord(
               attributes,
               account,
-              "balance" -> float(floatType, 42000.00f)
+              "balance" -> int(intType, 42000)
             ),
             actual.attributes == attributes,
-            actual.toString() == "{ account | balance = 42000.0 }",
+            actual.toString() == "{ account | balance = 42000 }",
             actual.isData == false
           )
         }
@@ -766,14 +766,14 @@ object RecursiveValueSpec extends MorphirBaseSpec {
       suite("Unattributed")(
         test("It should support construction given no attributes") {
           val account = variable("account")
-          val actual  = update(account, "balance" -> float(42000.00f))
+          val actual  = update(account, "balance" -> int(4200000))
           assertTrue(
             actual == UpdateRecord.Raw(
               account,
-              "balance" -> float(42000.00f)
+              "balance" -> int(4200000)
             ),
             actual.attributes == (),
-            actual.toString() == "{ account | balance = 42000.0 }",
+            actual.toString() == "{ account | balance = 4200000 }",
             actual.isData == false
           )
         }
