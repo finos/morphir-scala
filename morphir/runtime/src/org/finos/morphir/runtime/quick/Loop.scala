@@ -24,8 +24,7 @@ import org.finos.morphir.runtime.{
 private[morphir] case class Loop(globals: GlobalDefs) {
   def loop(ir: RuntimeValue, store: Store): Result = {
     println(s"""
-            =====LOOPING: ${PrintIR(ir, detailLevel = DetailLevel.BirdsEye
-    )}
+            =====LOOPING: ${PrintIR(ir, detailLevel = DetailLevel.BirdsEye)}
             =====toString: ${ir.toString}
             """.stripMargin)
     ir match {
@@ -87,13 +86,15 @@ private[morphir] case class Loop(globals: GlobalDefs) {
     functionValue match {
       case Result.FieldFunction(name) =>
         argValue match {
-          case record @Result.Record(fields) =>
+          case record @ Result.Record(fields) =>
             fields.getOrElse(name, throw MissingField(s"Record fields ${PrintIR(record)} do not contain name $name"))
           case other => throw UnexpectedType(s"Expected record but found ${PrintIR(other)}")
         }
       case Result.LambdaFunction(body, pattern, context) =>
         val newBindings = matchPatternCase(pattern, argValue)
-          .getOrElse(throw UnmatchedPattern(s"Lambda argument ${PrintIR(argValue)} did not match expected pattern ${PrintIR(pattern)}"))
+          .getOrElse(throw UnmatchedPattern(
+            s"Lambda argument ${PrintIR(argValue)} did not match expected pattern ${PrintIR(pattern)}"
+          ))
           .map { case (name, value) => name -> StoredValue.Eager(value) }
         loop(body, Store(context.push(newBindings)))
       case function @ Result.DefinitionFunction(body, arguments, curried, closingContext) =>
@@ -203,8 +204,11 @@ private[morphir] case class Loop(globals: GlobalDefs) {
       store: Store
   ): Result =
     loop(recordValue, store) match {
-      case record @Result.Record(fields) =>
-        fields.getOrElse(fieldName, throw MissingField(s"Record fields of ${PrintIR(record)} do not contain name $fieldName"))
+      case record @ Result.Record(fields) =>
+        fields.getOrElse(
+          fieldName,
+          throw MissingField(s"Record fields of ${PrintIR(record)} do not contain name $fieldName")
+        )
       case other => throw new UnexpectedType(s"Expected record but found ${PrintIR(other)}")
     }
 
@@ -274,7 +278,8 @@ private[morphir] case class Loop(globals: GlobalDefs) {
       remainingCases match {
         case (pattern, inValue) :: tail =>
           matchPatternCase(pattern, evaluated).map((inValue, _)).getOrElse(firstPatternMatching(tail))
-        case Nil => throw UnmatchedPattern(s"${PrintIR(evaluated)} did not match any pattern from ${PrintIR(evaluated)}")
+        case Nil =>
+          throw UnmatchedPattern(s"${PrintIR(evaluated)} did not match any pattern from ${PrintIR(evaluated)}")
       }
 
     val (inValue, bindings) = firstPatternMatching(cases)

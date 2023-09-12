@@ -81,15 +81,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       values: List[Any]
   ): ZIO[TypedMorphirRuntime, Throwable, Data] =
     ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
-      val data     = values.map(deriveData(_))
+      val data = values.map(deriveData(_))
       runTestMDM(moduleName, functionName, data)
     }
 
   def runTestMDM(
-               moduleName: String,
-               functionName: String,
-               data : List[Data]
-             ): ZIO[TypedMorphirRuntime, Throwable, Data] =
+      moduleName: String,
+      functionName: String,
+      data: List[Data]
+  ): ZIO[TypedMorphirRuntime, Throwable, Data] =
     ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
       val fullName = s"Morphir.Examples.App:$moduleName:$functionName"
       if (data.isEmpty)
