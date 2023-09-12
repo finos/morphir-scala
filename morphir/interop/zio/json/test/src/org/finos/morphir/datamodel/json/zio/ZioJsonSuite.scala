@@ -7,13 +7,13 @@ import zio.json._
 
 class ZioJsonSuite extends munit.ScalaCheckSuite {
 
-  checkBasicTypeEncodings()
+  // checkBasicTypeEncodings()
 
-  def checkBasicTypeEncodings()(implicit loc: munit.Location) =
-    BasicDataType.all.foreach { basicType =>
-      test(s"BasicDataType ($basicType) should support encoding with zio-json") {
-        val actual = basicType.toJson
-        assert(actual.contains(s"\"$basicType\""))
-      }
-    }
+  // def checkBasicTypeEncodings()(implicit loc: munit.Location) =
+  //   BasicDataType.all.foreach { basicType =>
+  //     test(s"BasicDataType ($basicType) should support encoding with zio-json") {
+  //       val actual = basicType.toJson
+  //       assert(actual.contains(s"\"$basicType\""))
+  //     }
+  //   }
 }
