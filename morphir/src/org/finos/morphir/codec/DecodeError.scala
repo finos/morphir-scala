@@ -5,7 +5,7 @@ import zio.Cause
 import scala.util.control.NoStackTrace
 
 sealed trait DecodeError extends Exception with NoStackTrace { self =>
-  def message:String
+  def message: String
   override def getMessage: String = message
 
   def and(that: DecodeError): DecodeError = DecodeError.And(self, that)
