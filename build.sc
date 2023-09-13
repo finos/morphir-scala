@@ -200,11 +200,11 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       super.scalacOptions() ++ additionalOptions
     }
 
-    def platformSpecificModuleDeps = Seq(annotations)
+    def platformSpecificModuleDeps = Seq(extensibility)
   }
 
-  object jvm extends Shared with MorphirJVMModule
-  object js extends Shared with MorphirJSModule 
+  object jvm    extends Shared with MorphirJVMModule
+  object js     extends Shared with MorphirJSModule
   object native extends Shared with MorphirNativeModule
 
   object contrib extends Module {
@@ -261,8 +261,19 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     }
   }
 
-  object annotations extends CrossPlatform with CrossValue {
-    trait Shared  extends MorphirCommonCrossModule with MorphirPublishModule
+  object extensibility extends CrossPlatform with CrossValue {
+
+    trait Shared extends MorphirCommonCrossModule with MorphirPublishModule with BuildInfo {
+
+      def buildInfoPackageName = "org.finos.morphir.extensibility"
+
+      def buildInfoMembers = Seq(
+        BuildInfo.Value("version", publishVersion()),
+        BuildInfo.Value("scalaVersion", scalaVersion()),
+        BuildInfo.Value("platform", platform.toString)
+      )
+    }
+
     object jvm    extends Shared with MorphirJVMModule
     object js     extends Shared with MorphirJSModule
     object native extends Shared with MorphirNativeModule
@@ -439,7 +450,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.com.lihaoyi.sourcecode
       )
-      def platformSpecificModuleDeps = Seq(morphir, runtime, tools)
+      def platformSpecificModuleDeps = Seq(extensibility, morphir, runtime, tools)
     }
 
     object jvm extends Shared with MorphirJVMModule {
@@ -600,7 +611,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       def docSources = T.sources {
         Lib.findSourceFiles(super.docSources(), Seq("tasty"))
           .map(PathRef(_))
-          //.filterNot(_.path.last.contains("ProcessIOPlat"))
+        // .filterNot(_.path.last.contains("ProcessIOPlat"))
       }
     }
     object native extends Shared with MorphirNativeModule {
