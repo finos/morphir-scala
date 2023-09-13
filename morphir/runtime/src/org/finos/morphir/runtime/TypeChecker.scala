@@ -16,6 +16,7 @@ import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.TypeError.CannotDealias
 import org.finos.morphir.runtime.exports.*
+import org.finos.morphir.runtime.quick.GatherReferences
 import zio.Chunk
 import TypeError.*
 
@@ -115,6 +116,17 @@ final class TypeChecker(dists: Distributions) {
         case other => Right(other)
       }
     loop(tpe, None, context)
+  }
+  def checkAllDefinitions(): List[TypeError] =
+    GatherReferences.fromDistributions(dists.getDists.values.toList: _*).definitions.toList.filter(
+      !Utils.isNative(_)
+    ).flatMap(checkDefinitionBody(_))
+  def checkDefinitionBody(fqn: FQName): List[TypeError] = {
+    val maybeDefinition = dists.lookupValueDefinition(fqn)
+    maybeDefinition match {
+      case Left(error)       => List(new DefinitionMissing(error))
+      case Right(definition) => check(definition.body)
+    }
   }
 
   def conformsTo(valueType: UType, declaredType: UType): List[TypeError] =
@@ -230,6 +242,7 @@ final class TypeChecker(dists: Distributions) {
       case (BoolLiteral(_), BoolRef())       => List()
       case (WholeNumberLiteral(_), IntRef()) => List() // TODO: "WholeNumberRef" extractor
       case (DecimalLiteral(_), DecimalRef()) => List()
+      case (_, Type.Variable(_, _))          => List() // TODO: Type variable handling
       case (otherLit, otherTpe)              => List(new LiteralTypeMismatch(otherLit, otherTpe))
     }
     fromChildren ++ matchErrors
@@ -305,13 +318,14 @@ final class TypeChecker(dists: Distributions) {
   }
   def handleFieldValue(tpe: UType, recordValue: TypedValue, name: Name, context: Context): TypeCheckerResult = {
     val fromChildren = check(recordValue, context)
-    val fromTpe = recordValue.attributes match {
-      case Type.Record(_, fields) =>
+    val fromTpe = dealias(recordValue.attributes, context) match {
+      case Right(Type.Record(_, fields)) =>
         fields.map(field => field.name -> field.data).toMap.get(name) match {
           case None           => List(new TypeLacksField(tpe, name, "Referenced by field none"))
           case Some(fieldTpe) => conformsTo(fieldTpe, tpe, context)
         }
-      case other => List(new ImproperType(other, s"Reference type expected"))
+      case Right(other) => List(new ImproperType(other, s"Record type expected"))
+      case Left(err)    => List(err)
     }
     fromChildren ++ fromTpe
   }
@@ -440,11 +454,13 @@ final class TypeChecker(dists: Distributions) {
   def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
     val fromType = if (!Utils.isNative(fqn)) {
-      dists.lookupValueSpecification(fqn) match {
+      dists.lookupValueDefinition(fqn) match {
         case Left(err) => List(new DefinitionMissing(err))
-        case Right(spec) =>
+        case Right(definition) =>
+          val spec    = definition.toSpecification
           val curried = Utils.curryTypeFunction(spec.output, spec.inputs)
           conformsTo(curried, tpe, context)
+
       }
     } else List() // TODO: Handle native type references
     fromChildren ++ fromType
