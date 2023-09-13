@@ -316,13 +316,13 @@ final class TypeChecker(dists: Distributions) {
   }
   def handleFieldValue(tpe: UType, recordValue: TypedValue, name: Name, context: Context): TypeCheckerResult = {
     val fromChildren = check(recordValue, context)
-    val fromTpe = recordValue.attributes match {
-      case Type.Record(_, fields) =>
+    val fromTpe = dealias(recordValue.attributes, context) match {
+      case Right(Type.Record(_, fields)) =>
         fields.map(field => field.name -> field.data).toMap.get(name) match {
           case None           => List(new TypeLacksField(tpe, name, "Referenced by field none"))
           case Some(fieldTpe) => conformsTo(fieldTpe, tpe, context)
         }
-      case other => List(new ImproperType(other, s"Reference type expected"))
+      case other => List(new ImproperType(other, s"Record type expected"))
     }
     fromChildren ++ fromTpe
   }
