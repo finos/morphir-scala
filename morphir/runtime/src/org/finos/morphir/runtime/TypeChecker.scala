@@ -120,8 +120,8 @@ final class TypeChecker(dists: Distributions) {
   def checkDefinitionBody(fqn : FQName) : List[TypeError] = {
     val maybeDefinition = dists.lookupValueDefinition(fqn)
     maybeDefinition match{
-      Left(error) => List(new DefinitionMissing(error))
-      Right(definition) => 
+      case Left(error) => List(new DefinitionMissing(error))
+      case Right(definition) => check(definitio.body)
     }
   }
 
