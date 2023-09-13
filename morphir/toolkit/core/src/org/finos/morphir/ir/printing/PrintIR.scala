@@ -10,6 +10,7 @@ import org.finos.morphir.ir.Value
 import org.finos.morphir.ir.Type.Type as T
 import org.finos.morphir.ir.Type
 import pprint.Tree.{Apply, Literal}
+//import org.finos.morphir.runtime.quick.Result //??
 import zio.Chunk
 
 object PrintIR {
@@ -150,7 +151,8 @@ case class PrintIR(
       case _: Value.Definition[_, _] => true
       case _: Type.Specification[_]  => true
       case _: Type.Definition[_]     => true
-      case _                         => false
+      //case _ : Result => true
+      case _                         => true
     }
   }
 

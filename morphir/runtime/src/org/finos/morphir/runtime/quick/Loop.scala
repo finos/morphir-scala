@@ -23,11 +23,7 @@ import org.finos.morphir.runtime.{
 
 private[morphir] case class Loop(globals: GlobalDefs) {
   def loop(ir: RuntimeValue, store: Store): Result = {
-    println(s"""
-            =====LOOPING: ${PrintIR(ir, detailLevel = DetailLevel.BirdsEye)}
-            =====toString: ${ir.toString}
-            """.stripMargin)
-    ir match {
+    val result = ir match {
       case Literal(va, lit)              => handleLiteral(va, lit)
       case Apply(va, function, argument) => handleApply(va, function, argument, store)
       case Destructure(va, pattern, valueToDestruct, inValue) =>
@@ -50,6 +46,13 @@ private[morphir] case class Loop(globals: GlobalDefs) {
       case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
       case Variable(va, name)                      => handleVariable(va, name, store)
     }
+    println(
+      s"""
+            =====LOOPING: ${PrintIR(ir, detailLevel = DetailLevel.BirdsEye)}
+            =====toString: ${ir.toString}
+            =====RESULT: ${PrintIR(result, detailLevel = DetailLevel.Medium)}
+            """.stripMargin)
+    result
   }
 
   def handleLiteral(va: ValueAttribs, literal: Lit) = unpackLit(literal)
