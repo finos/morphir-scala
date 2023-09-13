@@ -39,6 +39,9 @@ object TypeCheckerTests extends MorphirBaseSpec {
         else assertTrue(errorMsgs == s"Expected $expectedErrors errors")
       } yield assert
     }
+  def checkDefinition(fqn : FQName) : ZIO[TypeChecker, Throwable, TestResult] = {
+
+  }
   def testTypeCheck(value: TypedValue)(expectedErrors: Int): ZIO[TypeChecker, Throwable, TestResult] =
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       for {

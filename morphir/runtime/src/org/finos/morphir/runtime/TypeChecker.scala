@@ -117,6 +117,14 @@ final class TypeChecker(dists: Distributions) {
     loop(tpe, None, context)
   }
 
+  def checkDefinitionBody(fqn : FQName) : List[TypeError] = {
+    val maybeDefinition = dists.lookupValueDefinition(fqn)
+    maybeDefinition match{
+      Left(error) => List(new DefinitionMissing(error))
+      Right(definition) => 
+    }
+  }
+
   def conformsTo(valueType: UType, declaredType: UType): List[TypeError] =
     conformsTo(valueType, declaredType, Context.empty)
   def conformsTo(valueType: UType, declaredType: UType, context: Context): List[TypeError] = {
