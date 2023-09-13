@@ -75,6 +75,9 @@ object TypeCheckerTests extends MorphirBaseSpec {
   )
   def spec =
     suite("Type Checker Tests")(
+      suite("Happy Paths Tests")(
+
+      ),
       suite("Apply Node")(
         test("Apply to non function") {
           val badApply: TypedValue = V.apply(Basics.intType, V.intTyped(1), V.intTyped(1))
