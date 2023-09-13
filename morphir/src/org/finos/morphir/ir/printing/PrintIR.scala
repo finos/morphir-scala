@@ -197,11 +197,11 @@ case class PrintIR(
       case MorphirIR() =>
         x match {
           case V.Record(tpe, fields) =>
-            if fields.length <= depth then withDepth(depth - fields.length).treeifyHelper(x)
+            if (fields.length <= depth) then withDepth(depth - fields.length).treeifyHelper(x)
             else Tree.Literal(x.getClass.getName)
-          case other => withDepth(depth - 1).treeifyHelper(x)
+          case other => withDepth(depth - 1).treeifyHelper(other)
         }
-      case other => treeifyHelper(x)
+      case other => treeifyHelper(other)
     }
   def treeifyNoDepth(x: Any): Tree =
     treeifyHelper(x)
