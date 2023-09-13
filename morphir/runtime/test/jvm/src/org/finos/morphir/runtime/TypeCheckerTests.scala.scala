@@ -89,6 +89,9 @@ object TypeCheckerTests extends MorphirBaseSpec {
       suite("Happy Paths Tests")(
         test("Lookup single definition"){
           checkDefinition(FQName.fromString("Morphir/Examples/App:TypeCheckerTests:intToInt"))
+        },
+        test("Check all definitions") {
+          checkAllDefinitions()
         }
       ),
       suite("Apply Node")(
