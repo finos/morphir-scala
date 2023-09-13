@@ -76,7 +76,9 @@ object TypeCheckerTests extends MorphirBaseSpec {
   def spec =
     suite("Type Checker Tests")(
       suite("Happy Paths Tests")(
-
+        test("Lookup single definition"){
+          checkDefinition(FQName.fromString("Morphir/Examples/App:TypeCheckerTests:intToInt"))
+        }
       ),
       suite("Apply Node")(
         test("Apply to non function") {
