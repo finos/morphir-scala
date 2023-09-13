@@ -138,12 +138,13 @@ case class PrintIR(
       .replace("org.finos.morphir.ir.TypeModule.Type", "T")
       .replace("org.finos.morphir.ir.internal.Value", "V")
       .replace("org.finos.morphir.ir.internal.Pattern", "Pattern")
+      .replace("org.finos.morphir.ir.Literal.Literal", "Literal")
 
   /**
    * Extractor for any MorphirIR we want to treat specially for naming/depth limiting:
    */
   object MorphirIR {
-    def unapply[T](any: T): Boolean = any match {
+    def unapply(any: Any): Boolean = any match {
       case _: Type.Type[_]           => true
       case _: Value.Value[_, _]      => true
       case _: Value.Pattern[_]       => true
@@ -197,8 +198,10 @@ case class PrintIR(
       case MorphirIR() =>
         x match {
           case V.Record(tpe, fields) =>
-            if (fields.length <= depth) then withDepth(depth - fields.length).treeifyHelper(x)
-            else Tree.Literal(x.getClass.getName)
+            if (fields.length <= depth)
+              withDepth(depth - fields.length).treeifyHelper(x)
+            else
+              Tree.Literal(x.getClass.getName)
           case other => withDepth(depth - 1).treeifyHelper(other)
         }
       case other => treeifyHelper(other)
