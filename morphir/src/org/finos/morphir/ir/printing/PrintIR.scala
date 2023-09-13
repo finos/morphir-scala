@@ -188,16 +188,16 @@ case class PrintIR(
           case name: Name => Tree.Literal(name.toCamelCase)
           case T.Reference(_, fqn, Chunk()) =>
             Tree.Literal(s"tRef(${fqnv(fqn)})")
-          case T.Reference(_, fqn, tpes) =>
+          case T.Reference(_, fqn, _) =>
             Tree.Literal(s"tRef(${fqnv(fqn)}) [..]")
-          case V.Reference(tpe, fqn) =>
+          case V.Reference(_, fqn) =>
             Tree.Literal(s"vRef(${fqnv(fqn)})")
           case V.Literal(_, l) => treeifyHelper(l)
-          case other           => Tree.Literal(s"${x.getClass.getName}(..)")
+          case other           => Tree.Literal(s"${other.getClass.getName}(..)")
         }
       case MorphirIR() =>
         x match {
-          case V.Record(tpe, fields) =>
+          case V.Record(_, fields) =>
             if (fields.length <= depth)
               withDepth(depth - fields.length).treeifyHelper(x)
             else
