@@ -1,10 +1,11 @@
 package org.finos.morphir.internal
 
 import org.finos.morphir.functional._
+import org.finos.morphir.model.ir._
 import org.finos.morphir.naming._
 
 import scala.annotation.tailrec
-trait TypeModule extends TypeModuleVersionSpecific { self: DocumentedModule with TypeTransformerModule =>
+trait TypeModule extends TypeModuleVersionSpecific { self: TypeTransformerModule =>
 
   sealed trait TypeExpr { self =>
     def attributes: Any
