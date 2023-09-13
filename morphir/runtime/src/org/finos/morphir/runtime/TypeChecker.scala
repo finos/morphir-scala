@@ -453,11 +453,14 @@ final class TypeChecker(dists: Distributions) {
   def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
     val fromType = if (!Utils.isNative(fqn)) {
-      dists.lookupValueSpecification(fqn) match {
-        case Left(err) => List(new DefinitionMissing(err))
-        case Right(spec) =>
-          val curried = Utils.curryTypeFunction(spec.output, spec.inputs)
+      dists.lookupValueDefinition(fqn) match {
+        case Left(err) =>  List(new DefinitionMissing(err))
+        case Right(definition) =>{
+          val spec = definition.toSpecification
+          val curried = Utils.curryTypeFunction(spec.toSpecification.output, spec.toSpecification.inputs)
           conformsTo(curried, tpe, context)
+
+        }
       }
     } else List() // TODO: Handle native type references
     fromChildren ++ fromType
