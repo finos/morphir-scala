@@ -39,7 +39,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
         else assertTrue(errorMsgs == s"Expected $expectedErrors errors")
       } yield assert
     }
-  def checkDefinition(fqn : FQName) : ZIO[TypeChecker, Throwable, TestResult] = {
+  def checkDefinition(fqn: FQName): ZIO[TypeChecker, Throwable, TestResult] =
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       for {
         errors <- ZIO.succeed(checker.checkDefinitionBody(fqn))
@@ -48,9 +48,8 @@ object TypeCheckerTests extends MorphirBaseSpec {
         else assertTrue(errorMsgs == s"Expected no errors")
       } yield assert // TODO: Cleaner "fails" impl
     }
-  }
 
-  def checkAllDefinitions(): ZIO[TypeChecker, Throwable, TestResult] = {
+  def checkAllDefinitions(): ZIO[TypeChecker, Throwable, TestResult] =
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       for {
         errors <- ZIO.succeed(checker.checkAllDefinitions())
@@ -59,7 +58,6 @@ object TypeCheckerTests extends MorphirBaseSpec {
         else assertTrue(errorMsgs == s"Expected no errors")
       } yield assert // TODO: Cleaner "fails" impl
     }
-  }
   def testTypeCheck(value: TypedValue)(expectedErrors: Int): ZIO[TypeChecker, Throwable, TestResult] =
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       for {
@@ -87,7 +85,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
   def spec =
     suite("Type Checker Tests")(
       suite("Happy Paths Tests")(
-        test("Lookup single definition"){
+        test("Lookup single definition") {
           checkDefinition(FQName.fromString("Morphir/Examples/App:TypeCheckerTests:intToInt"))
         },
         test("Check all definitions") {

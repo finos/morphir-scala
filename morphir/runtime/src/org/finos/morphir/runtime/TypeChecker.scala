@@ -117,13 +117,14 @@ final class TypeChecker(dists: Distributions) {
       }
     loop(tpe, None, context)
   }
-  def checkAllDefinitions() : List[TypeError] = {
-    GatherReferences.fromDistributions(dists.getDists.values.toList:_*).definitions.toList.filter(!Utils.isNative(_)).flatMap(checkDefinitionBody(_))
-  }
-  def checkDefinitionBody(fqn : FQName) : List[TypeError] = {
+  def checkAllDefinitions(): List[TypeError] =
+    GatherReferences.fromDistributions(dists.getDists.values.toList: _*).definitions.toList.filter(
+      !Utils.isNative(_)
+    ).flatMap(checkDefinitionBody(_))
+  def checkDefinitionBody(fqn: FQName): List[TypeError] = {
     val maybeDefinition = dists.lookupValueDefinition(fqn)
-    maybeDefinition match{
-      case Left(error) => List(new DefinitionMissing(error))
+    maybeDefinition match {
+      case Left(error)       => List(new DefinitionMissing(error))
       case Right(definition) => check(definition.body)
     }
   }
@@ -241,7 +242,7 @@ final class TypeChecker(dists: Distributions) {
       case (BoolLiteral(_), BoolRef())       => List()
       case (WholeNumberLiteral(_), IntRef()) => List() // TODO: "WholeNumberRef" extractor
       case (DecimalLiteral(_), DecimalRef()) => List()
-      case (_, Type.Variable(_, _))         => List() //TODO: Type variable handling
+      case (_, Type.Variable(_, _))          => List() // TODO: Type variable handling
       case (otherLit, otherTpe)              => List(new LiteralTypeMismatch(otherLit, otherTpe))
     }
     fromChildren ++ matchErrors
@@ -324,7 +325,7 @@ final class TypeChecker(dists: Distributions) {
           case Some(fieldTpe) => conformsTo(fieldTpe, tpe, context)
         }
       case Right(other) => List(new ImproperType(other, s"Record type expected"))
-      case Left(err) => List(err)
+      case Left(err)    => List(err)
     }
     fromChildren ++ fromTpe
   }
@@ -454,13 +455,12 @@ final class TypeChecker(dists: Distributions) {
     val fromChildren = List()
     val fromType = if (!Utils.isNative(fqn)) {
       dists.lookupValueDefinition(fqn) match {
-        case Left(err) =>  List(new DefinitionMissing(err))
-        case Right(definition) =>{
-          val spec = definition.toSpecification
+        case Left(err) => List(new DefinitionMissing(err))
+        case Right(definition) =>
+          val spec    = definition.toSpecification
           val curried = Utils.curryTypeFunction(spec.output, spec.inputs)
           conformsTo(curried, tpe, context)
 
-        }
       }
     } else List() // TODO: Handle native type references
     fromChildren ++ fromType
