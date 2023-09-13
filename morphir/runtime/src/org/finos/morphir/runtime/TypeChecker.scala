@@ -241,6 +241,7 @@ final class TypeChecker(dists: Distributions) {
       case (BoolLiteral(_), BoolRef())       => List()
       case (WholeNumberLiteral(_), IntRef()) => List() // TODO: "WholeNumberRef" extractor
       case (DecimalLiteral(_), DecimalRef()) => List()
+      case (_, Type.Variable(_, _))         => List() //TODO: Type variable handling
       case (otherLit, otherTpe)              => List(new LiteralTypeMismatch(otherLit, otherTpe))
     }
     fromChildren ++ matchErrors
@@ -322,7 +323,8 @@ final class TypeChecker(dists: Distributions) {
           case None           => List(new TypeLacksField(tpe, name, "Referenced by field none"))
           case Some(fieldTpe) => conformsTo(fieldTpe, tpe, context)
         }
-      case other => List(new ImproperType(other, s"Record type expected"))
+      case Right(other) => List(new ImproperType(other, s"Record type expected"))
+      case Left(err) => List(err)
     }
     fromChildren ++ fromTpe
   }
