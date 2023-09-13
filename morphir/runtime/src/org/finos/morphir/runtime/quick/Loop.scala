@@ -51,7 +51,8 @@ private[morphir] case class Loop(globals: GlobalDefs) {
             =====LOOPING: ${PrintIR(ir, detailLevel = DetailLevel.BirdsEye)}
             =====toString: ${ir.toString}
             =====RESULT: ${PrintIR(result, detailLevel = DetailLevel.Medium)}
-            """.stripMargin)
+            """.stripMargin
+    )
     result
   }
 

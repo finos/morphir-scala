@@ -151,8 +151,8 @@ case class PrintIR(
       case _: Value.Definition[_, _] => true
       case _: Type.Specification[_]  => true
       case _: Type.Definition[_]     => true
-      //case _ : Result => true
-      case _                         => true
+      // case _ : Result => true
+      case _ => true
     }
   }
 

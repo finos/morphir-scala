@@ -290,7 +290,9 @@ final class TypeChecker(dists: Distributions) {
                     )
                   case None =>
                     List(
-                      new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName.toCamelCase}")
+                      new OtherTypeError(
+                        s"Constructor type $name exists, but does not have arm for ${fqn.localName.toCamelCase}"
+                      )
                     )
                 }
                 missedName ++ fromCtor
