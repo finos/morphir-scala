@@ -457,7 +457,7 @@ final class TypeChecker(dists: Distributions) {
         case Left(err) =>  List(new DefinitionMissing(err))
         case Right(definition) =>{
           val spec = definition.toSpecification
-          val curried = Utils.curryTypeFunction(spec.toSpecification.output, spec.toSpecification.inputs)
+          val curried = Utils.curryTypeFunction(spec.output, spec.inputs)
           conformsTo(curried, tpe, context)
 
         }
