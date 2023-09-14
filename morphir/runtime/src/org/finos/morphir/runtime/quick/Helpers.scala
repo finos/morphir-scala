@@ -13,7 +13,8 @@ import org.finos.morphir.ir.Literal.Literal.{
 }
 import org.finos.morphir.ir.Value as V
 import org.finos.morphir.ir.Value.Pattern.*
-import org.finos.morphir.runtime.TypedMorphirRuntime.ValueAttribs
+import org.finos.morphir.runtime.RTValue
+import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.ValueAttribs
 
 object Helpers {
 

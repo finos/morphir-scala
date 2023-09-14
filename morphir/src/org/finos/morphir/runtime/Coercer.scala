@@ -1,7 +1,7 @@
-package org.finos.morphir.runtime.quick
+package org.finos.morphir.runtime
 
-import org.finos.morphir.runtime.quick.RTValue
-import org.finos.morphir.runtime.quick.RTValue._
+import org.finos.morphir.runtime.RTValue
+import org.finos.morphir.runtime.RTValue.*
 
 trait Coercer[T] {
   def coerce(result: RTValue): T
