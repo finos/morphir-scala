@@ -1,16 +1,16 @@
-package org.finos.morphir.runtime.quick.nativesdk
+package org.finos.morphir.runtime.sdk
 
 import org.finos.morphir.ir.Type
-import org.finos.morphir.runtime.quick.{
+import org.finos.morphir.runtime.*
+import org.finos.morphir.runtime.internal.{
   DynamicNativeFunction,
   DynamicNativeFunction1,
   DynamicNativeFunction2,
   DynamicNativeFunction3,
-  Loop,
-  NativeContext,
-  RTValue
+  NativeContext
 }
-import org.finos.morphir.runtime.quick.{RTValue => RT}
+import org.finos.morphir.runtime.RTValue
+import org.finos.morphir.runtime.{RTValue => RT}
 
 object ListSDK {
 

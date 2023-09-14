@@ -1,14 +1,14 @@
 package org.finos.morphir.runtime.quick
 
-import org.finos.morphir.extensibility.SdkModuleDescriptors.Morphir
 import org.finos.morphir.ir.Type
+import org.finos.morphir.naming.*
+import org.finos.morphir.runtime.{IllegalValue, RTValue, SDKConstructor, SDKValue, UnexpectedType, UnsupportedType}
+import org.finos.morphir.runtime.RTValue.Primitive
+import org.finos.morphir.runtime.Extractors.*
+import org.finos.morphir.runtime.internal.{InvokeableEvaluator, NativeFunctionSignatureAdv}
+import org.finos.morphir.runtime.*
 
-import org.finos.morphir.naming._
-import org.finos.morphir.runtime.{IllegalValue, UnexpectedType, UnsupportedType}
-import org.finos.morphir.runtime.quick.RTValue.Primitive
-import org.finos.morphir.runtime.Extractors._
 import scala.collection.mutable
-import org.finos.morphir.runtime.UnsupportedType
 import scala.collection.mutable
 
 object DictSDK {
@@ -18,7 +18,7 @@ object DictSDK {
   //   foldl (\k v d -> if isGood k v then insert k v d else d) empty dict
   val filter: SDKValue = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
-      (evaluator: Loop) => (isGood: RTValue, dictRaw: RTValue) =>
+      (evaluator: InvokeableEvaluator) => (isGood: RTValue, dictRaw: RTValue) =>
         {
           val dictMap = dictRaw.coerceMap.value
           val newDict =
@@ -92,7 +92,7 @@ object DictSDK {
       // case alter(get targetKey dictionary) of
       //   Just value -> insert targetKey value dictionary
       //   Nothing    -> remove targetKey dictionary
-      (evaluator: Loop) => (
+      (evaluator: InvokeableEvaluator) => (
           targetKeyRaw: RTValue,
           alterRaw: RTValue,
           dictRaw: RTValue

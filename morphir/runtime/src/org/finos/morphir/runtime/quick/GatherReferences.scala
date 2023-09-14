@@ -1,6 +1,6 @@
 package org.finos.morphir.runtime.quick
 
-import org.finos.morphir.naming._
+import org.finos.morphir.naming.*
 import org.finos.morphir.ir.Value.{Pattern, Value as V}
 import org.finos.morphir.ir.Type as T
 import org.finos.morphir.ir.Type.Type
@@ -9,9 +9,11 @@ import org.finos.morphir.ir.Value.Value
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.distribution.Distribution
+import org.finos.morphir.runtime.SDKValue
+
 import scala.collection.immutable.Set
 import zio.Chunk
-import org.finos.morphir.runtime.TypedMorphirRuntime.{TypeAttribs, ValueAttribs}
+import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{TypeAttribs, ValueAttribs}
 
 object GatherReferences {
   type TypedValue = Value[TypeAttribs, ValueAttribs]

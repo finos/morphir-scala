@@ -1,11 +1,11 @@
-package org.finos.morphir.runtime.quick
+package org.finos.morphir.runtime.internal
 
 import org.finos.morphir.Hints
 import org.finos.morphir.naming.*
-import org.finos.morphir.runtime.IllegalValue
-import org.finos.morphir.runtime.quick.RTValue.Primitive
+import org.finos.morphir.runtime.RTValue
+import org.finos.morphir.runtime.{IllegalValue, RTValue}
 
-case class NativeContext(evaluator: Loop, hints: Hints = Hints.empty)
+case class NativeContext(evaluator: InvokeableEvaluator, hints: Hints = Hints.empty)
 
 sealed trait DynamicNativeFunction {
   def name: String

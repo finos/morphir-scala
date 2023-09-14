@@ -17,6 +17,7 @@ import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.TypeError.CannotDealias
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.runtime.quick.GatherReferences
+import org.finos.morphir.runtime.internal.Succinct
 import zio.Chunk
 import TypeError.*
 
