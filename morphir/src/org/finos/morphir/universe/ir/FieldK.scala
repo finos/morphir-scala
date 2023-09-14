@@ -18,4 +18,6 @@ final case class FieldK[F[+_], +A](name: Name, data: F[A]) { self =>
 }
 object FieldK {
   def apply[F[+_], A](name: String, data: F[A]): FieldK[F, A] = FieldK(Name.fromString(name), data)
+
+  implicit def toField[A](field: IField[Type[A]]): Field[A] = Field(field.name, Id.unwrap(field.data))
 }

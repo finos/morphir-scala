@@ -18,8 +18,11 @@ package object ir {
     def apply[A](name: String, tpe: Type[A]): Field[A] = FieldK(Name.fromString(name), tpe)
     def apply[A](name: Name, tpe: Type[A]): Field[A]   = FieldK(name, tpe)
 
+    @inline def define[A](name: String, fieldType: Type[A]): Field[A] = Field(name, fieldType)
+    @inline def define[A](name: Name, fieldType: Type[A]): Field[A]   = Field(name, fieldType)
+
     type Attributed = Field[Attributes]
-    object Attributes {
+    object Attributed {
       def unapply(field: Field[Attributes]): Some[(Attributes, Name, Type[Attributes])] =
         Some((field.tpe.attributes, field.name, field.tpe))
     }

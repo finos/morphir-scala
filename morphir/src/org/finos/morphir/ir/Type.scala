@@ -566,7 +566,7 @@ trait TypeModule { module =>
     /**
      * Uses the specified function to map the FQName of any type references to another FQName.
      */
-    final def mapReferenceName(f: FQName => FQName): Type[A] = foldContext(())(Folder.MapReferenceName(f))
+    final def transformReferenceName(f: FQName => FQName): Type[A] = foldContext(())(Folder.MapReferenceName(f))
 
     final def satisfies(check: PartialFunction[Type[A], Boolean]): Boolean =
       check.lift(self).getOrElse(false)

@@ -17,7 +17,20 @@ sealed trait Type[+A] extends TypeExpr { self =>
   type AttributesType <: A
 
   def ??(doc: String): Documented[Type[A]] = Documented(doc, this)
+
   override def attributes: A
+
+  final def collectReferences: Set[FQName] = foldDownSome(Set.empty[FQName]) {
+    case (acc, Reference(_, typeName, _)) => acc + typeName
+    case (acc, _)                         => acc
+  }
+
+  final def collectVariables: Set[Name] = foldDownSome(Set.empty[Name]) {
+    case (acc, Variable(_, name)) => acc + name
+    case (acc, _)                 => acc
+  }
+
+  final def eraseAttributes: UType = UType(self.mapAttributes(_ => ()))
 
   final def exists(f: PartialFunction[Type[A], Any]): Boolean = find(f).isDefined
 
@@ -51,6 +64,11 @@ sealed trait Type[+A] extends TypeExpr { self =>
       }
 
     loop(self, Nil)
+  }
+
+  def findAll[Z](f: PartialFunction[Type[A], Z]): List[Z] = foldDownSome[List[Z]](Nil) {
+    case (acc, typ) if f.isDefinedAt(typ) => f(typ) :: acc
+    case (acc, _)                         => acc
   }
 
   lazy val fieldCount: Int = foldDownSome[Int](0) {
@@ -233,6 +251,9 @@ sealed trait Type[+A] extends TypeExpr { self =>
     }
   )
 
+  final def foldContext[C, A1 >: A, Z](context: C)(folder: TypeFolder[C, A1, Z]): Z =
+    TypeFolder.foldContext(self, context)(folder)
+
   /// Tells if a type is an intrinsic type or if it is a user-defined type.
   final def isIntrinsic: Boolean = self match {
     case Reference(_, _, _) => false
@@ -321,6 +342,41 @@ sealed trait Type[+A] extends TypeExpr { self =>
     }
     sb.toString()
   }
+
+  // final def transformDownSome[A1 >: A](f: PartialFunction[Type[A1], Type[A1]]): Type[A1] = {
+  //   def loop(stack:List[Type[A]],):Type[A1] =
+  // }
+
+  final def satisfies(check: PartialFunction[Type[A], Boolean]): Boolean =
+    check.lift(self).getOrElse(false)
+
+  /**
+   * Uses the specified function to map the FQName of any type references to another FQName.
+   */
+  final def transformReferenceName(f: FQName => FQName): Type[A] = foldContext(())(TypeMapReferenceName(f))
+
+  // TODOD: Support writing throw a writer visitor
+  // def write[Context](context: Context)(writer: TypeWriter[Context, A]): Unit =
+  //   self match {
+  //     case ExtensibleRecord(_, _, _)  => ???
+  //     case Function(_, _, _)          => ???
+  //     case Record(_, _)               => ???
+  //     case Reference(_, _, _)         => ???
+  //     case Tuple(_, _)                => ???
+  //     case UnitType(attributes)       => writer.writeUnit(context, attributes)
+  //     case Variable(attributes, name) => writer.writeVariable(context, attributes, name)
+  //   }
+
+  // def writeZIO[Context: Tag](writer: TypeWriter[Context, A]): ZIO[Context, Throwable, Unit] =
+  //   self match {
+  //     case ExtensibleRecord(_, _, _)  => ???
+  //     case Function(_, _, _)          => ???
+  //     case Record(_, _)               => ???
+  //     case Reference(_, _, _)         => ???
+  //     case Tuple(_, _)                => ???
+  //     case UnitType(attributes)       => writer.writeUnitZIO(attributes)
+  //     case Variable(attributes, name) => writer.writeVariableZIO(attributes, name)
+  //   }
 }
 
 object Type {

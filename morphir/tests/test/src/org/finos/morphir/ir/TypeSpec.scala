@@ -185,13 +185,13 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       val actual = variable("a") ?? "Some type variable"
       assertTrue(actual.doc == "Some type variable")
     },
-    test("Calling mapReferenceName should remap the name of a reference type using the provided function") {
+    test("Calling transformReferenceName should remap the name of a reference type using the provided function") {
       val sut = record(
         "name"  -> reference(fqn("Morphir.SDK", "String", "String")),
         "age"   -> reference(fqn("Morphir.SDK", "Int", "Int")),
         "items" -> reference(fqn("Morphir.SDK", "List", "List"), reference(fqn("Morphir.SDK", "String", "String")))
       )
-      val actual = sut.mapReferenceName { case FQName(_, _, localName) =>
+      val actual = sut.transformReferenceName { case FQName(_, _, localName) =>
         FQName(PackageName.fromString("Acme.SDK"), ModuleName.fromString("Basics"), localName)
       }
       assertTrue(

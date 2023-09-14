@@ -1,6 +1,7 @@
 package org.finos.morphir.universe.ir
 
 import org.finos.morphir.naming._
+import org.finos.morphir.util.attribs._
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 
@@ -23,6 +24,39 @@ object TypeSpec extends MorphirBaseSpec {
   def recordSuite = suite("Record")()
 
   def referenceSuite = suite("Reference")(
+    suite("collectReferences")(
+      test("Calling collectReference on a Reference with no type variables should yield a single FQName") {
+        val fqName = pkg"Morphir.SDK" % "Basics" % "String"
+        val sut    = Type.Reference(Attributes.empty, fqName, Nil)
+        val actual = sut.collectReferences
+        assertTrue(
+          actual == Set(sut.typeName)
+        )
+      },
+      test(
+        "Calling collectReferences on a Reference with type variables (such as List a) should yield all relevant FQNames"
+      ) {
+        val listTypeName = pkg"Morphir.SDK" % "List" % "List"
+        val int          = KnownTypes.int
+        val sut          = Type.Reference(Attributes.empty, listTypeName, int)
+        val actual       = sut.collectReferences
+        assertTrue(
+          actual == Set(listTypeName, int.typeName)
+        )
+      },
+      test(
+        "Calling collectReferences on a Reference with type variables (such as Dict key value) should yield all relevant FQNames"
+      ) {
+        val listTypeName = pkg"Morphir.SDK" % "Dict" % "Dict"
+        val stringRef    = KnownTypes.string
+        val intRef       = KnownTypes.int
+        val sut          = Type.Reference(Attributes.empty, listTypeName, stringRef, intRef)
+        val actual       = sut.collectReferences
+        assertTrue(
+          actual == Set(listTypeName, intRef.typeName, stringRef.typeName)
+        )
+      }
+    ),
     suite("ToString")()
   )
 
