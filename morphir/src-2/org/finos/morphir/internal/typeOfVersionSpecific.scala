@@ -3,8 +3,10 @@ import magnolia1._
 import org.finos.morphir.annotation._
 import org.finos.morphir.naming._
 import org.finos.morphir.util.attribs.Attributes
+import org.finos.morphir.universe.ir.{Field, Type}
+
 trait TypeOfModuleVersionSpecific {
-  self: TypeModule with TypeSpecModule with TypeDefModule with TypeOfModule with TypeInfoModule =>
+  self: TypeSpecModule with TypeDefModule with TypeOfModule with TypeInfoModule =>
 
   import TypeDefinition._
   import TypeSpecification._

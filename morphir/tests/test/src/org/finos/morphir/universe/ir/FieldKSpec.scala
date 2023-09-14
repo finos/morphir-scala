@@ -1,8 +1,7 @@
-package org.finos.morphir
+package org.finos.morphir.universe.ir
 
 import org.finos.morphir.testing.MorphirBaseSpec
 import org.finos.morphir.naming._
-import org.finos.morphir.mir._
 import zio.test._
 object FieldKSpec extends MorphirBaseSpec {
   def spec = suite("FieldKSpec")(

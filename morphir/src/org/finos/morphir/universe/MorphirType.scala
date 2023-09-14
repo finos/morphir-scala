@@ -1,7 +1,8 @@
 package org.finos.morphir.universe
 
-import org.finos.morphir.naming.*
-import org.finos.morphir.universe.ir.*
+import org.finos.morphir.naming._
+import org.finos.morphir.util.attribs._
+import org.finos.morphir.universe.ir._
 
 //TODO: Make a sealed trait for IntrinisicTypeSpec and IntrinsicTypeDef (which is private only to the morphir library), TypeSpec and TypeDef, and ExtermalTypeSpec
 sealed trait MorphirType extends HasConceptId {}

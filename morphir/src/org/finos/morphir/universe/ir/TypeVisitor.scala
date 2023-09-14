@@ -1,6 +1,7 @@
 package org.finos.morphir.universe.ir
-import org.finos.morphir.naming.*
-import org.finos.morphir.universe.ir.Type.{ExtensibleRecord, Field, Record, Reference, Tuple, Variable}
+
+import org.finos.morphir.naming._
+import org.finos.morphir.universe.ir.Type.{ExtensibleRecord, Record, Reference, Tuple, Variable}
 
 trait TypeVisitor[+W, S, -R, +E, +A, +Attrib] {
   import TypeVisitor.*

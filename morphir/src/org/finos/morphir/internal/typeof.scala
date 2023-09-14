@@ -1,10 +1,11 @@
 package org.finos.morphir.internal
-import org.finos.morphir.naming.*
-import org.finos.morphir.extensibility.SdkModuleDescriptors.*
+import org.finos.morphir.naming._
+import org.finos.morphir.extensibility.SdkModuleDescriptors._
+import org.finos.morphir.universe.ir.{Field, Type}
 import org.finos.morphir.util.attribs.Attributes
 
 trait TypeOfModule extends TypeOfModuleVersionSpecific {
-  self: TypeModule with TypeDefModule with TypeSpecModule with TypeInfoModule with AccessControlledModule =>
+  self: TypeDefModule with TypeSpecModule with TypeInfoModule with AccessControlledModule =>
   import AccessControlled._
   import TypeDefinition._
   import TypeSpecification._

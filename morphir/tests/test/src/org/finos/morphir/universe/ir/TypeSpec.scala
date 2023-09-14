@@ -1,9 +1,9 @@
-package org.finos.morphir
+package org.finos.morphir.universe.ir
 
 import org.finos.morphir.naming._
-import org.finos.morphir.mir._
 import org.finos.morphir.testing.MorphirBaseSpec
-import zio.test.*
+import zio.test._
+
 object TypeSpec extends MorphirBaseSpec {
   def spec = suite("TypeSpec")(
     suite("Type[+A]")(
