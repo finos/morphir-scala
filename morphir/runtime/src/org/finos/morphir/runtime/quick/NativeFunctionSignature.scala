@@ -5,21 +5,21 @@ sealed trait NativeFunctionSignature {
   def f: Any
 }
 object NativeFunctionSignature {
-  case class Fun1(f: Result => Result)
+  case class Fun1(f: RTValue => RTValue)
       extends NativeFunctionSignature { val numArgs = 1 }
-  case class Fun2(f: (Result, Result) => Result)
+  case class Fun2(f: (RTValue, RTValue) => RTValue)
       extends NativeFunctionSignature { val numArgs = 2 }
-  case class Fun3(f: (Result, Result, Result) => Result)
+  case class Fun3(f: (RTValue, RTValue, RTValue) => RTValue)
       extends NativeFunctionSignature { val numArgs = 3 }
-  case class Fun4(f: (Result, Result, Result, Result) => Result)
+  case class Fun4(f: (RTValue, RTValue, RTValue, RTValue) => RTValue)
       extends NativeFunctionSignature { val numArgs = 4 }
   case class Fun5(f: (
-      Result,
-      Result,
-      Result,
-      Result,
-      Result
-  ) => Result)
+      RTValue,
+      RTValue,
+      RTValue,
+      RTValue,
+      RTValue
+  ) => RTValue)
       extends NativeFunctionSignature { val numArgs = 5 }
 }
 
@@ -38,25 +38,25 @@ sealed trait NativeFunctionSignatureAdv {
     }
 }
 object NativeFunctionSignatureAdv {
-  case class Fun1(f: Loop => Result => Result)
+  case class Fun1(f: Loop => RTValue => RTValue)
       extends NativeFunctionSignatureAdv { val numArgs = 1 }
-  case class Fun2(f: Loop => (Result, Result) => Result)
+  case class Fun2(f: Loop => (RTValue, RTValue) => RTValue)
       extends NativeFunctionSignatureAdv { val numArgs = 2 }
-  case class Fun3(f: Loop => (Result, Result, Result) => Result)
+  case class Fun3(f: Loop => (RTValue, RTValue, RTValue) => RTValue)
       extends NativeFunctionSignatureAdv { val numArgs = 3 }
   case class Fun4(f: Loop => (
-      Result,
-      Result,
-      Result,
-      Result
-  ) => Result)
+      RTValue,
+      RTValue,
+      RTValue,
+      RTValue
+  ) => RTValue)
       extends NativeFunctionSignatureAdv { val numArgs = 4 }
   case class Fun5(f: Loop => (
-      Result,
-      Result,
-      Result,
-      Result,
-      Result
-  ) => Result)
+      RTValue,
+      RTValue,
+      RTValue,
+      RTValue,
+      RTValue
+  ) => RTValue)
       extends NativeFunctionSignatureAdv { val numArgs = 5 }
 }

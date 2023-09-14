@@ -17,35 +17,35 @@ import org.finos.morphir.runtime.TypedMorphirRuntime.ValueAttribs
 
 object Helpers {
 
-  def unpackLit(literal: Lit): Result.Primitive[_] = literal match {
-    case StringLiteral(value)      => Result.Primitive.String(value)
-    case FloatLiteral(value)       => Result.Primitive.Float(value)
-    case CharLiteral(value)        => Result.Primitive.Char(value)
-    case BoolLiteral(value)        => Result.Primitive.Boolean(value)
-    case WholeNumberLiteral(value) => Result.Primitive.Int(MInt.fromLong(value))
-    case DecimalLiteral(value)     => Result.Primitive.BigDecimal(value)
+  def unpackLit(literal: Lit): RTValue.Primitive[_] = literal match {
+    case StringLiteral(value)      => RTValue.Primitive.String(value)
+    case FloatLiteral(value)       => RTValue.Primitive.Float(value)
+    case CharLiteral(value)        => RTValue.Primitive.Char(value)
+    case BoolLiteral(value)        => RTValue.Primitive.Boolean(value)
+    case WholeNumberLiteral(value) => RTValue.Primitive.Int(MInt.fromLong(value))
+    case DecimalLiteral(value)     => RTValue.Primitive.BigDecimal(value)
   }
 
   def matchPatternCase(
       pattern: V.Pattern[ValueAttribs],
-      value: Result
-  ): Option[Map[Name, Result]] =
+      value: RTValue
+  ): Option[Map[Name, RTValue]] =
     (pattern, value) match {
       case (_: WildcardPattern[ValueAttribs], _) => Some(Map.empty)
       case (AsPattern(_, innerPattern, name), innerValue) =>
         matchPatternCase(innerPattern, value).map(innerBindings => innerBindings + (name -> innerValue))
-      case (_: UnitPattern[ValueAttribs], Result.Unit()) => Some(Map.empty)
-      case (LiteralPattern(_, literal), innerValue: Result.Primitive[_]) if unpackLit(literal) == innerValue =>
+      case (_: UnitPattern[ValueAttribs], RTValue.Unit()) => Some(Map.empty)
+      case (LiteralPattern(_, literal), innerValue: RTValue.Primitive[_]) if unpackLit(literal) == innerValue =>
         Some(Map.empty)
-      case (_: EmptyListPattern[ValueAttribs], Result.ListResult(List())) => Some(Map.empty)
-      case (HeadTailPattern(_, headPattern, tailPattern), Result.ListResult(head :: tail)) =>
+      case (_: EmptyListPattern[ValueAttribs], RTValue.List(List())) => Some(Map.empty)
+      case (HeadTailPattern(_, headPattern, tailPattern), RTValue.List(head :: tail)) =>
         for {
           headBindings <- matchPatternCase(headPattern, head)
-          tailBindings <- matchPatternCase(tailPattern, Result.ListResult(tail))
+          tailBindings <- matchPatternCase(tailPattern, RTValue.List(tail))
         } yield headBindings ++ tailBindings
-      case (TuplePattern(_, patterns), Result.Tuple(tuple)) =>
+      case (TuplePattern(_, patterns), RTValue.Tuple(tuple)) =>
         matchListOfPatterns(patterns.toList, tuple.toList)
-      case (ConstructorPattern(_, patternName, patterns), Result.ConstructorResult(valueName, values))
+      case (ConstructorPattern(_, patternName, patterns), RTValue.ConstructorResult(valueName, values))
           if patternName == valueName =>
         matchListOfPatterns(patterns.toList, values)
       // TODO: Destructure records
@@ -54,11 +54,11 @@ object Helpers {
 
   private def matchListOfPatterns(
       patterns: List[V.Pattern[ValueAttribs]],
-      values: List[Result]
-  ): Option[Map[Name, Result]] =
+      values: List[RTValue]
+  ): Option[Map[Name, RTValue]] =
     for {
       zipped <- if (patterns.length == values.length) Some(patterns.zip(values)) else None
-      res <- zipped.foldLeft(Some(Map.empty): Option[Map[Name, Result]]) { case (bindings, (p, v)) =>
+      res <- zipped.foldLeft(Some(Map.empty): Option[Map[Name, RTValue]]) { case (bindings, (p, v)) =>
         for {
           priorBindings <- bindings
           newBindings   <- matchPatternCase(p, v)
