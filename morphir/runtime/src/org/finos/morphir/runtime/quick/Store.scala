@@ -23,21 +23,21 @@ object SDKValue {
 
   object SDKNativeFunction {
     import NativeFunctionSignature._
-    def fun1(f: Result => Result) =
+    def fun1(f: RTValue => RTValue) =
       new SDKNativeFunction(Fun1(f))
-    def fun2(f: (Result, Result) => Result) =
+    def fun2(f: (RTValue, RTValue) => RTValue) =
       new SDKNativeFunction(Fun2(f))
-    def fun3(f: (Result, Result, Result) => Result) =
+    def fun3(f: (RTValue, RTValue, RTValue) => RTValue) =
       new SDKNativeFunction(Fun3(f))
-    def fun4(f: (Result, Result, Result, Result) => Result) =
+    def fun4(f: (RTValue, RTValue, RTValue, RTValue) => RTValue) =
       new SDKNativeFunction(Fun4(f))
     def fun5(f: (
-        Result,
-        Result,
-        Result,
-        Result,
-        Result
-    ) => Result) =
+        RTValue,
+        RTValue,
+        RTValue,
+        RTValue,
+        RTValue
+    ) => RTValue) =
       new SDKNativeFunction(Fun5(f))
   }
 
@@ -46,12 +46,12 @@ object SDKValue {
     def arguments = function.numArgs
   }
 
-  case class SDKNativeValue(value: Result) extends SDKValue
+  case class SDKNativeValue(value: RTValue) extends SDKValue
 }
 
 sealed trait StoredValue
 object StoredValue {
-  case class Eager(value: Result) extends StoredValue
+  case class Eager(value: RTValue) extends StoredValue
   case class Lazy(
       toEvaluate: RuntimeDefinition,
       parentContext: CallStackFrame,
@@ -128,5 +128,5 @@ object GlobalDefs {
   def empty: GlobalDefs =
     GlobalDefs(Map(), Map())
   def native: GlobalDefs =
-    GlobalDefs(Native.native, Native.nativeCtors)
+    GlobalDefs(Native.native ++ NativeSDK.resolvedFunctions, Native.nativeCtors)
 }
