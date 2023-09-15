@@ -136,7 +136,7 @@ final class TypeChecker(dists: Distributions) {
     import Extractors.Types.*
     (valueType, declaredType) match {
       // Dealias everything first! You need to do this before the (LeafValue, LeafValue) check
-      // and possibly the Type.Reference check.
+      // and possibly the Type.Reference check (See elm error w/ unused type argument)
       case (dealiased(value), declared) =>
         conformsTo(value, declared, context)
       case (value, dealiased(declared)) =>
