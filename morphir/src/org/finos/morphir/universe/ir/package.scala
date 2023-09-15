@@ -13,32 +13,38 @@ package object ir {
   type AccessControlled[+A] = mir.AccessControlled[A]
   val AccessControlled: mir.AccessControlled.type = mir.AccessControlled
 
-  type Field[+A] = FieldK[Type, A]
-  object Field {
-    def apply[A](name: String, tpe: Type[A]): Field[A] = FieldK(Name.fromString(name), tpe)
-    def apply[A](name: Name, tpe: Type[A]): Field[A]   = FieldK(name, tpe)
+  // type Field[+A] = FieldK[Type, A]
+  // object Field {
+  //   def apply[A](name: String, tpe: Type[A]): Field[A] = FieldK(Name.fromString(name), tpe)
+  //   def apply[A](name: Name, tpe: Type[A]): Field[A]   = FieldK(name, tpe)
 
-    @inline def define[A](name: String, fieldType: Type[A]): Field[A] = Field(name, fieldType)
-    @inline def define[A](name: Name, fieldType: Type[A]): Field[A]   = Field(name, fieldType)
+  //   @inline def define[A](name: String, fieldType: Type[A]): Field[A] = Field(name, fieldType)
+  //   @inline def define[A](name: Name, fieldType: Type[A]): Field[A]   = Field(name, fieldType)
 
-    type Attributed = Field[Attributes]
-    object Attributed {
-      def unapply(field: Field[Attributes]): Some[(Attributes, Name, Type[Attributes])] =
-        Some((field.tpe.attributes, field.name, field.tpe))
-    }
+  //   type Attributed = Field[Attributes]
+  //   object Attributed {
+  //     def unapply(field: Field[Attributes]): Some[(Attributes, Name, Type[Attributes])] =
+  //       Some((field.tpe.attributes, field.name, field.tpe))
+  //   }
 
-    type Untyped = Field[Unit]
+  //   type Untyped = Field[Unit]
 
-    object Untyped {
-      // def apply(name: Name): Field[Unit] = Field(name, ())
-      def unapply(field: Field[Unit]): Name = field.name
-    }
-  }
+  //   object Untyped {
+  //     // def apply(name: Name): Field[Unit] = Field(name, ())
+  //     def unapply(field: Field[Unit]): Name = field.name
+  //   }
+  // }
 
   type IField[+A] = FieldK[Id, A]
   object IField {
     def apply[A](name: String, data: A): IField[A] = FieldK(Name.fromString(name), Id[A](data))
     def apply[A](name: Name, data: A): IField[A]   = FieldK(name, Id[A](data))
+  }
+
+  type FieldT[+A] = FieldK[Type, A]
+  object FieldT {
+    def apply[A](name: String, tpe: Type[A]): FieldT[A] = FieldK(Name.fromString(name), tpe)
+    def apply[A](name: Name, tpe: Type[A]): FieldT[A]   = FieldK(name, tpe)
   }
 
   type UType = RawType

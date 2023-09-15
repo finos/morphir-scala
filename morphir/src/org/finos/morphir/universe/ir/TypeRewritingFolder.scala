@@ -13,7 +13,7 @@ trait TypeRewritingFolder[-Context, Attrib] extends TypeFolder[Context, Attrib, 
       name: Name,
       fields: List[IField[Type[Attrib]]]
   ): Type[Attrib] =
-    ExtensibleRecord(attributes, name, fields.map(f => Field(f.name, Id.unwrap(f.data))))
+    ExtensibleRecord(attributes, name, fields.map(f => FieldT(f.name, Id.unwrap(f.data))))
 
   override def functionCase(
       context: Context,
@@ -30,7 +30,7 @@ trait TypeRewritingFolder[-Context, Attrib] extends TypeFolder[Context, Attrib, 
       attributes: Attrib,
       fields: List[IField[Type[Attrib]]]
   ): Type[Attrib] =
-    Record(attributes, fields.map(f => Field(f.name, Id.unwrap(f.data))))
+    Record(attributes, fields.map(f => FieldT(f.name, Id.unwrap(f.data))))
 
   def referenceCase(
       context: Context,

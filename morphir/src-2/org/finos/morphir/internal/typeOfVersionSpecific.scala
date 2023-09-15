@@ -3,7 +3,7 @@ import magnolia1._
 import org.finos.morphir.annotation._
 import org.finos.morphir.naming._
 import org.finos.morphir.util.attribs.Attributes
-import org.finos.morphir.universe.ir.{Field, Type}
+import org.finos.morphir.universe.ir.{FieldT, Type}
 
 trait TypeOfModuleVersionSpecific {
   self: TypeSpecModule with TypeDefModule with TypeOfModule with TypeInfoModule =>
@@ -18,7 +18,7 @@ trait TypeOfModuleVersionSpecific {
       val fields = ctx.parameters.map { param =>
         val name                  = Name.fromString(param.label)
         val tpe: Type[Attributes] = param.typeclass.typeInfo.tpe
-        Field(name, tpe)
+        FieldT(name, tpe)
       }.toList
       val annotations = ctx.annotations ++ ctx.inheritedAnnotations ++ ctx.typeAnnotations
       val fqName: Option[FQName] = annotations.collectFirst {

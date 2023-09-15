@@ -12,7 +12,7 @@ object NoOpTypeVisitor extends TypeVisitor[Nothing, Unit, Any, Nothing, Unit, No
   override def visitExtensibleRecord[Attrib1 >: Nothing](
       attributes: Attrib1,
       name: Name,
-      fields: List[Field[Attrib1]]
+      fields: List[FieldT[Attrib1]]
   ): ZPure[Nothing, Unit, Unit, Any, Nothing, Unit] =
     ZPure.unit[Unit]
 
@@ -31,7 +31,7 @@ object NoOpTypeVisitor extends TypeVisitor[Nothing, Unit, Any, Nothing, Unit, No
 
   override def visitRecord[Attrib1 >: Nothing](
       attributes: Attrib1,
-      fields: List[Field[Attrib1]]
+      fields: List[FieldT[Attrib1]]
   ): ZPure[Nothing, Unit, Unit, Any, Nothing, Unit] =
     ZPure.unit[Unit]
 

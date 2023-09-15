@@ -11,10 +11,14 @@ object Type extends TypeModule
 
 trait TypeModule { module =>
 
-  type FieldK[F[+_], +A] = universe.ir.FieldK[F, A]
-  val FieldK: universe.ir.FieldK.type = universe.ir.FieldK
   type Field[+A] = universe.ir.Field[A]
   val Field: universe.ir.Field.type = universe.ir.Field
+
+  type FieldK[F[+_], +A] = universe.ir.FieldK[F, A]
+  val FieldK: universe.ir.FieldK.type = universe.ir.FieldK
+
+  type FieldT[+A] = universe.ir.FieldT[A]
+  val FieldT: universe.ir.FieldT.type = universe.ir.FieldT
 
   type UConstructors = module.Constructors[scala.Unit]
   val UConstructors: module.Constructors.type = module.Constructors
@@ -35,26 +39,26 @@ trait TypeModule { module =>
     curry(paramTypes)
   }
 
-  final def defineField(name: Name, fieldType: UType): Field[Unit] = Field(name, fieldType)
+  final def defineField(name: Name, fieldType: UType): FieldT[Unit] = FieldT(name, fieldType)
 
-  final def defineField(name: String, fieldType: UType): Field[Unit] = Field(Name.fromString(name), fieldType)
+  final def defineField(name: String, fieldType: UType): FieldT[Unit] = FieldT(Name.fromString(name), fieldType)
 
   final def emptyTuple[A](attributes: A)(implicit @unused ev: NeedsAttributes[A]): Type[A] =
     Type.Tuple(attributes, List.empty)
   lazy val emptyTuple: UType = Type.Tuple((), List.empty)
 
   // Extensible record constructors
-  def extensibleRecord[A](attributes: A, name: Name, fields: List[Field[A]])(implicit
+  def extensibleRecord[A](attributes: A, name: Name, fields: List[FieldT[A]])(implicit
       @unused ev: NeedsAttributes[A]
   ): Type[A] =
     Type.ExtensibleRecord(attributes, name, fields)
 
-  final def extensibleRecord[A](attributes: A, name: String, fields: List[Field[A]])(implicit
+  final def extensibleRecord[A](attributes: A, name: String, fields: List[FieldT[A]])(implicit
       @unused ev: NeedsAttributes[A]
   ): Type[A] =
     extensibleRecord(attributes, Name.fromString(name), fields)
 
-  final def extensibleRecord[A](attributes: A, name: String, field: Field[A], fields: Field[A]*)(implicit
+  final def extensibleRecord[A](attributes: A, name: String, field: FieldT[A], fields: FieldT[A]*)(implicit
       @unused ev: NeedsAttributes[A]
   ): Type[A] =
     extensibleRecord(attributes, Name.fromString(name), field :: fields.toList)
@@ -63,7 +67,7 @@ trait TypeModule { module =>
       @unused ev: NeedsAttributes[A]
   ): Type[A] = {
     val fieldsChunk = fields.map { case (name, typeExpr) =>
-      Field(Name.fromString(name), typeExpr)
+      FieldT(Name.fromString(name), typeExpr)
     }.toList
     Type.ExtensibleRecord(attributes, name, fieldsChunk)
   }
@@ -73,30 +77,30 @@ trait TypeModule { module =>
   ): Type[A] =
     extensibleRecord(attributes, Name.fromString(name), fields: _*)
 
-  final def extensibleRecord(name: Name, fields: List[Field[Unit]]): UType =
+  final def extensibleRecord(name: Name, fields: List[FieldT[Unit]]): UType =
     Type.ExtensibleRecord((), name, fields)
 
-  final def extensibleRecord(name: String, fields: List[Field[Unit]]): UType =
+  final def extensibleRecord(name: String, fields: List[FieldT[Unit]]): UType =
     Type.ExtensibleRecord((), Name.fromString(name), fields)
 
   final def extensibleRecord(name: Name, fields: (String, UType)*): UType = {
-    val fieldsList = fields.map { case (name, typeExpr) => Field(Name.fromString(name), typeExpr) }.toList
+    val fieldsList = fields.map { case (name, typeExpr) => FieldT(Name.fromString(name), typeExpr) }.toList
     Type.ExtensibleRecord((), name, fieldsList)
   }
 
   final def extensibleRecord(name: String, fields: (String, UType)*): UType =
     extensibleRecord(Name.fromString(name), fields: _*)
 
-  final def extensibleRecordWithFields(name: Name, fields: Field[Unit]*): UType =
+  final def extensibleRecordWithFields(name: Name, fields: FieldT[Unit]*): UType =
     Type.ExtensibleRecord((), name, fields.toList)
 
-  final def extensibleRecordWithFields(name: String, fields: Field[Unit]*): UType =
+  final def extensibleRecordWithFields(name: String, fields: FieldT[Unit]*): UType =
     Type.ExtensibleRecord((), Name.fromString(name), fields.toList)
 
-  final def field[A](name: String, tpe: Type[A]): Field[A] = Field(Name.fromString(name), tpe)
-  final def field[A](name: Name, tpe: Type[A]): Field[A]   = Field(name, tpe)
+  final def field[A](name: String, tpe: Type[A]): FieldT[A] = FieldT(Name.fromString(name), tpe)
+  final def field[A](name: Name, tpe: Type[A]): FieldT[A]   = FieldT(name, tpe)
 
-  final def field[A](tuple: (String, Type[A])): Field[A] = Field(Name.fromString(tuple._1), tuple._2)
+  final def field[A](tuple: (String, Type[A])): FieldT[A] = FieldT(Name.fromString(tuple._1), tuple._2)
 
   // Function constructors
   final def function[A](attributes: A, argumentType: Type[A], returnType: Type[A])(implicit
@@ -110,17 +114,17 @@ trait TypeModule { module =>
   final def mapTypeAttributes[A, B](tpe: Type[A])(f: A => B): Type[B] = tpe.mapAttributes(f)
 
   // Record constructors
-  final def record[A](attributes: A, fields: List[Field[A]])(implicit @unused ev: NeedsAttributes[A]): Type[A] =
+  final def record[A](attributes: A, fields: List[FieldT[A]])(implicit @unused ev: NeedsAttributes[A]): Type[A] =
     Type.Record(attributes, fields)
 
-  final def record(fields: List[Field[Unit]]): UType =
+  final def record(fields: List[FieldT[Unit]]): UType =
     Type.Record((), fields)
 
-  final def record(field: Field[Unit], fields: Field[Unit]*): UType =
+  final def record(field: FieldT[Unit], fields: FieldT[Unit]*): UType =
     Type.Record((), field :: fields.toList)
 
   final def record(fields: (String, UType)*): UType =
-    Type.Record((), fields.map { case (name, typeExpr) => Field(Name.fromString(name), typeExpr) }.toList)
+    Type.Record((), fields.map { case (name, typeExpr) => FieldT(Name.fromString(name), typeExpr) }.toList)
 
   final def reference[A](attributes: A, typeName: FQName, typeParams: List[Type[A]])(implicit
       @unused ev: NeedsAttributes[A]

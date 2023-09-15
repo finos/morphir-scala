@@ -278,7 +278,7 @@ sealed trait Type[+A] extends TypeExpr { self =>
           case e @ ExtensibleRecord(_, _, _) if children.length < e.fields.length =>
             loop(Process(e.fields(children.length).data, Nil) :: stack, accumulator)
           case e @ ExtensibleRecord(_, _, _) =>
-            val newFields = children.takeRight(e.fields.length).map(t => Field(t.asInstanceOf[Field[B]].name, t))
+            val newFields = children.takeRight(e.fields.length).map(t => FieldT(t.asInstanceOf[FieldT[B]].name, t))
             loop(tail, ExtensibleRecord(f(e.attributes.asInstanceOf[A]), e.name, newFields.reverse) :: accumulator)
 
           case fun @ Function(_, _, _) if children.isEmpty =>
@@ -291,7 +291,7 @@ sealed trait Type[+A] extends TypeExpr { self =>
           case rec @ Record(_, _) if children.length < rec.fields.length =>
             loop(Process(rec.fields(children.length).data, Nil) :: stack, accumulator)
           case rec @ Record(_, _) =>
-            val newFields = children.takeRight(rec.fields.length).map(t => Field(t.asInstanceOf[Field[B]].name, t))
+            val newFields = children.takeRight(rec.fields.length).map(t => FieldT(t.asInstanceOf[FieldT[B]].name, t))
             loop(tail, Record(f(rec.attributes.asInstanceOf[A]), newFields.reverse) :: accumulator)
 
           case ref @ Reference(_, _, _) if children.length < ref.typeParams.length =>
@@ -319,9 +319,9 @@ sealed trait Type[+A] extends TypeExpr { self =>
     fold[Type[B]](
       attributes => UnitType(f(attributes)),
       (attributes, name) => Variable(f(attributes), name),
-      (attributes, name, fields) => ExtensibleRecord(f(attributes), name, fields.asInstanceOf[List[Field[B]]]),
+      (attributes, name, fields) => ExtensibleRecord(f(attributes), name, fields.asInstanceOf[List[FieldT[B]]]),
       (attributes, argumentType, returnType) => Function(f(attributes), argumentType, returnType),
-      (attributes, fields) => Record(f(attributes), fields.asInstanceOf[List[Field[B]]]),
+      (attributes, fields) => Record(f(attributes), fields.asInstanceOf[List[FieldT[B]]]),
       (attributes, typeName, typeParams) => Reference(f(attributes), typeName, typeParams),
       (attributes, elements) => Tuple(f(attributes), elements)
     )
@@ -390,13 +390,13 @@ object Type {
   def reference[A](attributes: A)(name: FQName, typeParams: List[Type[A]] = List.empty): Reference[A] =
     Reference(attributes, name, typeParams)
 
-  sealed case class ExtensibleRecord[+A](attributes: A, name: Name, fields: List[Field[A]]) extends Type[A] {
+  sealed case class ExtensibleRecord[+A](attributes: A, name: Name, fields: List[FieldT[A]]) extends Type[A] {
     override def tag: Int = Tags.ExtensibleRecord
   }
   sealed case class Function[+A](attributes: A, argumentType: Type[A], returnType: Type[A]) extends Type[A] {
     override def tag: Int = Tags.Function
   }
-  sealed case class Record[+A](attributes: A, fields: List[Field[A]]) extends Type[A] {
+  sealed case class Record[+A](attributes: A, fields: List[FieldT[A]]) extends Type[A] {
     override def tag: Int = Tags.Record
   }
   sealed case class Reference[+A](attributes: A, typeName: FQName, typeParams: List[Type[A]]) extends Type[A] {
