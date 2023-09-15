@@ -88,7 +88,7 @@ class PrintIR(
     case fqname: FQName if (detailLevel.compressFQNames) =>
       Tree.Literal(fqname.toString)
 
-    case T.Reference(_, fqname, Chunk()) if (detailLevel.compressReferences) =>
+    case T.Reference(_, fqname, Nil) if (detailLevel.compressReferences) =>
       Tree.Literal(s"${fqname.toString}")
 
     case T.Reference(_, fqname, tpes) if (detailLevel.compressReferences) =>

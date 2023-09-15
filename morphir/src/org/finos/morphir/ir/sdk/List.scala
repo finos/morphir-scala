@@ -90,10 +90,10 @@ object List extends MorphirIRSdkModule("List") {
       vSpec("take", "n" -> intType, "list" -> listType(tVar("a")))(listType(tVar("a"))),
       vSpec("drop", "n" -> intType, "list" -> listType(tVar("a")))(listType(tVar("a"))),
       vSpec("partition", "f" -> tFun(tVar("a"))(boolType), "list" -> listType(tVar("a")))(
-        tuple(Chunk(listType(tVar("a")), listType(tVar("a"))))
+        tuple(listType(tVar("a")) :: listType(tVar("a")) :: Nil)
       ),
-      vSpec("unzip", "list" -> listType(tuple(Chunk(tVar("a"), tVar("b")))))(
-        tuple(Chunk(listType(tVar("a")), listType(tVar("b"))))
+      vSpec("unzip", "list" -> listType(tuple(tVar("a") :: tVar("b") :: Nil)))(
+        tuple(scala.List(listType(tVar("a")), listType(tVar("b"))))
       )
     )
   )

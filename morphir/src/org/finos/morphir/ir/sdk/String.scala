@@ -41,7 +41,7 @@ object String extends MorphirIRSdkModule("String") {
       vSpec("fromFloat", "a" -> floatType)(stringType),
       vSpec("fromChar", "ch" -> charType)(stringType),
       vSpec("cons", "ch" -> charType, "s" -> stringType)(stringType),
-      vSpec("uncons", "s" -> stringType)(maybeType(tuple(Chunk(charType, stringType)))),
+      vSpec("uncons", "s" -> stringType)(maybeType(tuple(scala.List(charType, stringType)))),
       vSpec("toList", "s" -> stringType)(listType(charType)),
       vSpec("fromList", "a" -> listType(charType))(stringType),
       vSpec("toUpper", "s" -> stringType)(stringType),

@@ -39,7 +39,7 @@ object ResultList extends MorphirIRSdkModule("ResultList") {
       vSpec("errors", "list" -> resultListType(tVar("e"), tVar("a")))(listType(tVar("e"))),
       vSpec("successes", "list" -> resultListType(tVar("e"), tVar("a")))(listType(tVar("a"))),
       vSpec("partition", "list" -> resultListType(tVar("e"), tVar("a")))(
-        tuple(Chunk(listType(tVar("e")), listType(tVar("a"))))
+        tuple(scala.List(listType(tVar("e")), listType(tVar("a"))))
       )
     )
   )

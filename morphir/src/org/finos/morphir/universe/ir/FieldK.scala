@@ -4,7 +4,12 @@ import org.finos.morphir.naming._
 import zio.prelude._
 
 final case class FieldK[F[+_], +A](name: Name, data: F[A]) { self =>
+
+  // def forEach[G[+_]: IdentityBoth: Covariant, U](f: A => G[U]): G[Field[U]] =
+  //   f(self.data).map(newType => self.copy(data = newType))
+
   @inline def tpe[A0 >: A](implicit ev: F[A] <:< Type[A0]): F[A0] = data
+
   def map[B](f: A => B)(implicit covariant: Covariant[F]): FieldK[F, B] =
     FieldK(name, data.map(f))
 
@@ -20,4 +25,24 @@ object FieldK {
   def apply[F[+_], A](name: String, data: F[A]): FieldK[F, A] = FieldK(Name.fromString(name), data)
 
   implicit def toField[A](field: IField[Type[A]]): Field[A] = Field(field.name, Id.unwrap(field.data))
+
+  final implicit class FieldOps[A](private val self: Field[A]) extends AnyVal {
+
+    def fieldType: Type[A] = self.data
+
+    /**
+     * Attributes the field with the given `attributes`.
+     */
+    def attributeTypeAs[Attribs](attributes: => Attribs): Field[Attribs] =
+      Field(self.name, self.data.mapAttributes(_ => attributes))
+
+    /**
+     * Attributes the field's type using the given function.
+     */
+    def attributeTypeWith[B](f: A => B): Field[B] =
+      Field(self.name, self.data.mapAttributes(f))
+
+    def mapAttributes[B](f: A => B): Field[B] =
+      Field(self.name, self.data.mapAttributes(f))
+  }
 }

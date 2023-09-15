@@ -5,6 +5,7 @@ import org.finos.morphir.universe.ir.Type.{Unit => UnitType, _}
 
 import scala.annotation.tailrec
 import zio.prelude._
+import zio.Task
 import scala.annotation.unused
 
 sealed trait TypeExpr { self =>
@@ -381,6 +382,8 @@ sealed trait Type[+A] extends TypeExpr { self =>
 
 object Type {
 
+  def mapTypeAttributes[A](tpe: Type[A]): MapTypeAttributes[A] = new MapTypeAttributes(() => tpe)
+
   object Attributes {
     def unapply[A](typ: Type[A]): Some[A] = Some(typ.attributes)
   }
@@ -433,6 +436,19 @@ object Type {
     def apply[A, Z](tpe: Type[A], children: List[Z]): Process[A, Z]       = (tpe, Nil)
     def unapply[A, Z](process: Process[A, Z]): Option[(Type[A], List[Z])] = Some(process)
 
+  }
+  trait ForEachZIO[-Context, -Attrib] extends TypeFolder[Context, Attrib, Task[scala.Unit]] {}
+
+  implicit val CovariantType: Covariant[Type] = new Covariant[Type] {
+    override def map[A, B](f: A => B): Type[A] => Type[B] = tpe => tpe.mapAttributes(f)
+  }
+
+  final class MapTypeAttributes[+A](val input: () => Type[A]) {
+    def apply[B](f: A => B): Type[B] = input().map(f)
+  }
+
+  implicit class UTypeExtensions(private val self: UType) {
+    def -->(that: UType): UType = UType(Type.Function((), self, that))
   }
 }
 
