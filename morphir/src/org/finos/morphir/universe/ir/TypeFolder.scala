@@ -11,12 +11,12 @@ trait TypeFolder[-Context, -Attrib, Z] {
       tpe: Type[Attrib],
       attributes: Attrib,
       name: Name,
-      fields: List[IField[Z]]
+      fields: List[Field[Z]]
   ): Z
 
   def functionCase(context: Context, tpe: Type[Attrib], attributes: Attrib, argumentType: Z, returnType: Z): Z
 
-  def recordCase(context: Context, tpe: Type[Attrib], attributes: Attrib, fields: List[IField[Z]]): Z
+  def recordCase(context: Context, tpe: Type[Attrib], attributes: Attrib, fields: List[Field[Z]]): Z
 
   def referenceCase(
       context: Context,
@@ -64,7 +64,7 @@ object TypeFolder {
               val fieldTypes = acc.take(size)
               val rest       = acc.drop(size)
               val fields = t.fields.zip(fieldTypes).map { case (field, fieldType) =>
-                IField(field.name, fieldType)
+                Field(field.name, fieldType)
               }
               extensibleRecordCase(context, t, attributes, name, fields) :: rest
             case (acc, Left(t @ Function(attributes, _, _))) =>
@@ -74,7 +74,7 @@ object TypeFolder {
               val size       = t.fields.size
               val fieldTypes = acc.take(size)
               val rest       = acc.drop(size)
-              val fields     = t.fields.zip(fieldTypes).map { case (field, fieldType) => IField(field.name, fieldType) }
+              val fields     = t.fields.zip(fieldTypes).map { case (field, fieldType) => Field(field.name, fieldType) }
               recordCase(context, t, attributes, fields) :: rest
             case (acc, Left(t @ Reference(attributes, typeName, _))) =>
               val size       = t.typeParams.size

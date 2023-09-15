@@ -35,10 +35,16 @@ package object ir {
   //   }
   // }
 
-  type IField[+A] = FieldK[Id, A]
-  object IField {
-    def apply[A](name: String, data: A): IField[A] = FieldK(Name.fromString(name), Id[A](data))
-    def apply[A](name: Name, data: A): IField[A]   = FieldK(name, Id[A](data))
+  // type IField[+A] = FieldK[Id, A]
+  // object IField {
+  //   def apply[A](name: String, data: A): IField[A] = FieldK(Name.fromString(name), Id[A](data))
+  //   def apply[A](name: Name, data: A): IField[A]   = FieldK(name, Id[A](data))
+  // }
+
+  type FieldK[+F[+_], +A] = Field[F[A]]
+  object FieldK {
+    def apply[F[+_], A](name: String, data: F[A]): FieldK[F, A] = Field(Name.fromString(name), data)
+    def apply[F[+_], A](name: Name, data: F[A]): FieldK[F, A]   = Field(name, data)
   }
 
   type FieldT[+A] = FieldK[Type, A]

@@ -224,9 +224,9 @@ sealed trait Type[+A] extends TypeExpr { self =>
   def fold[Z](
       unitCase0: A => Z,
       variableCase0: (A, Name) => Z,
-      extensibleRecordCase0: (A, Name, List[IField[Z]]) => Z,
+      extensibleRecordCase0: (A, Name, List[Field[Z]]) => Z,
       functionCase0: (A, Z, Z) => Z,
-      recordCase0: (A, List[IField[Z]]) => Z,
+      recordCase0: (A, List[Field[Z]]) => Z,
       referenceCase0: (A, FQName, List[Z]) => Z,
       tupleCase0: (A, List[Z]) => Z
   ): Z = TypeFolder.foldContext[Any, A, Z](self, ())(
@@ -235,13 +235,13 @@ sealed trait Type[+A] extends TypeExpr { self =>
 
       def variableCase(context: Any, tpe: Type[A], attributes: A, name: Name): Z = variableCase0(attributes, name)
 
-      def extensibleRecordCase(context: Any, tpe: Type[A], attributes: A, name: Name, fields: List[IField[Z]]): Z =
+      def extensibleRecordCase(context: Any, tpe: Type[A], attributes: A, name: Name, fields: List[Field[Z]]): Z =
         extensibleRecordCase0(attributes, name, fields)
 
       def functionCase(context: Any, tpe: Type[A], attributes: A, argumentType: Z, returnType: Z): Z =
         functionCase0(attributes, argumentType, returnType)
 
-      def recordCase(context: Any, tpe: Type[A], attributes: A, fields: List[IField[Z]]): Z =
+      def recordCase(context: Any, tpe: Type[A], attributes: A, fields: List[Field[Z]]): Z =
         recordCase0(attributes, fields)
 
       def referenceCase(context: Any, tpe: Type[A], attributes: A, typeName: FQName, typeParams: List[Z]): Z =

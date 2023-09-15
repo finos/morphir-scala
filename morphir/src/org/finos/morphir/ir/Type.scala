@@ -11,11 +11,11 @@ object Type extends TypeModule
 
 trait TypeModule { module =>
 
-  // type Field[+A] = universe.ir.Field[A]
-  // val Field: universe.ir.Field.type = universe.ir.Field
+  type Field[+A] = universe.ir.Field[A]
+  val Field: universe.ir.Field.type = universe.ir.Field
 
   type FieldK[F[+_], +A] = universe.ir.FieldK[F, A]
-  val FieldK: universe.ir.FieldK.type = universe.ir.FieldK
+  val FieldK: universe.ir.Field.type = universe.ir.Field
 
   type FieldT[+A] = universe.ir.FieldT[A]
   val FieldT: universe.ir.FieldT.type = universe.ir.FieldT

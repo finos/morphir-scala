@@ -19,7 +19,7 @@ trait TypeVisitor[+W, S, -R, +E, +A, +Attrib] {
     case Variable(attributes, name)                          => visitVariable(attributes, name)
   }
 
-  def visit[Attrib1 >: Attrib](typ: FieldT[Attrib1]): ZPure[W, S, S, R, E, A] = visitField(typ.name, typ.tpe)
+  def visit[Attrib1 >: Attrib](typ: FieldT[Attrib1]): ZPure[W, S, S, R, E, A] = visitField(typ.name, typ.data)
 
   /// Visit attributes. NOTE: visiting attributes doesn't allow you to return a value only modify state or write to the log.
   def visitAttributes[Attrib1 >: Attrib](attributes: Attrib1): ZPure[W, S, S, R, Nothing, Unit]

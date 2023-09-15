@@ -6,11 +6,18 @@ import zio.prelude._
 
 final case class Field[+A](name: Name, data: A) { self =>
 
+  @inline def fieldType[A0](implicit ev: A <:< Type[A0]): Type[A0] = data
+
   def forEach[G[+_]: IdentityBoth: Covariant, B](f: A => G[B]): G[Field[B]] =
     f(self.data).map(newType => self.copy(data = newType))
 
   def map[B](f: A => B): Field[B] = Field(name, f(data))
 
+  def mapFieldType[A0, A1](f: Type[A0] => Type[A1])(implicit ev: A <:< Type[A0]): Field[Type[A1]] =
+    self.copy(data = f(self.data))
+
+  /// Map the name of the field to get a new field.
+  def transformFieldName(f: Name => Name): Field[A] = Field(f(name), data)
 }
 
 object Field {
