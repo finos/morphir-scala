@@ -5,22 +5,27 @@ import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.{Pattern, Value}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
 import Helpers.{listToTuple, matchPatternCase, unpackLit}
-import SDKValue.{SDKNativeFunction, SDKNativeInnerFunction, SDKNativeValue}
+import org.finos.morphir.runtime.SDKValue.{SDKNativeFunction, SDKNativeInnerFunction, SDKNativeValue}
 import org.finos.morphir.ir.Type.UType
-import org.finos.morphir.runtime.TypedMorphirRuntime.{RuntimeDefinition, RuntimeValue, TypeAttribs, ValueAttribs}
+import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{RuntimeDefinition, RuntimeValue, TypeAttribs, ValueAttribs}
+import org.finos.morphir.runtime.internal.{NativeFunctionSignature, StoredValue}
+import org.finos.morphir.runtime.internal.InvokeableEvaluator
 import org.finos.morphir.runtime.{
   ConstructorNotFound,
   DefinitionNotFound,
   FunctionWithoutParameters,
   IllegalValue,
   MissingField,
+  RTValue,
+  SDKConstructor,
+  SDKValue,
   UnexpectedType,
   UnmatchedPattern,
   Utils,
   VariableNotFound
 }
 
-private[morphir] case class Loop(globals: GlobalDefs) {
+private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluator {
   def loop(ir: RuntimeValue, store: Store): RTValue =
     ir match {
       case Literal(va, lit)              => handleLiteral(va, lit)

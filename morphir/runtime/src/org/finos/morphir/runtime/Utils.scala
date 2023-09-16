@@ -15,6 +15,7 @@ import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
 import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
+import org.finos.morphir.runtime.internal.Succinct
 import TypeError.*
 
 object Utils {

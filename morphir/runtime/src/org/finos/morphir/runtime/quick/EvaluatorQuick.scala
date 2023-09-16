@@ -9,11 +9,12 @@ import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.Extractors.Types.*
-import org.finos.morphir.runtime.TypedMorphirRuntime.{TypeAttribs, ValueAttribs}
+import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{TypeAttribs, ValueAttribs}
 import org.finos.morphir.runtime.{
   Distributions,
   EvaluationError,
   MissingField,
+  RTValue,
   ResultDoesNotMatchType,
   UnexpectedType,
   UnmatchedPattern,

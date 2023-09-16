@@ -1,4 +1,6 @@
-package org.finos.morphir.runtime.quick
+package org.finos.morphir.runtime.internal
+
+import org.finos.morphir.runtime.RTValue
 
 sealed trait NativeFunctionSignature {
   def numArgs: Int
@@ -26,32 +28,32 @@ object NativeFunctionSignature {
 // Advanced native function that takes a store
 sealed trait NativeFunctionSignatureAdv {
   def numArgs: Int
-  def f: Loop => Any
+  def f: InvokeableEvaluator => Any
   // Apply the store an convert back to a regular function
-  def injectEvaluator(loop: Loop) =
+  def injectEvaluator(evaluator: InvokeableEvaluator) =
     this match {
-      case NativeFunctionSignatureAdv.Fun1(f) => NativeFunctionSignature.Fun1(f(loop))
-      case NativeFunctionSignatureAdv.Fun2(f) => NativeFunctionSignature.Fun2(f(loop))
-      case NativeFunctionSignatureAdv.Fun3(f) => NativeFunctionSignature.Fun3(f(loop))
-      case NativeFunctionSignatureAdv.Fun4(f) => NativeFunctionSignature.Fun4(f(loop))
-      case NativeFunctionSignatureAdv.Fun5(f) => NativeFunctionSignature.Fun5(f(loop))
+      case NativeFunctionSignatureAdv.Fun1(f) => NativeFunctionSignature.Fun1(f(evaluator))
+      case NativeFunctionSignatureAdv.Fun2(f) => NativeFunctionSignature.Fun2(f(evaluator))
+      case NativeFunctionSignatureAdv.Fun3(f) => NativeFunctionSignature.Fun3(f(evaluator))
+      case NativeFunctionSignatureAdv.Fun4(f) => NativeFunctionSignature.Fun4(f(evaluator))
+      case NativeFunctionSignatureAdv.Fun5(f) => NativeFunctionSignature.Fun5(f(evaluator))
     }
 }
 object NativeFunctionSignatureAdv {
-  case class Fun1(f: Loop => RTValue => RTValue)
+  case class Fun1(f: InvokeableEvaluator => RTValue => RTValue)
       extends NativeFunctionSignatureAdv { val numArgs = 1 }
-  case class Fun2(f: Loop => (RTValue, RTValue) => RTValue)
+  case class Fun2(f: InvokeableEvaluator => (RTValue, RTValue) => RTValue)
       extends NativeFunctionSignatureAdv { val numArgs = 2 }
-  case class Fun3(f: Loop => (RTValue, RTValue, RTValue) => RTValue)
+  case class Fun3(f: InvokeableEvaluator => (RTValue, RTValue, RTValue) => RTValue)
       extends NativeFunctionSignatureAdv { val numArgs = 3 }
-  case class Fun4(f: Loop => (
+  case class Fun4(f: InvokeableEvaluator => (
       RTValue,
       RTValue,
       RTValue,
       RTValue
   ) => RTValue)
       extends NativeFunctionSignatureAdv { val numArgs = 4 }
-  case class Fun5(f: Loop => (
+  case class Fun5(f: InvokeableEvaluator => (
       RTValue,
       RTValue,
       RTValue,

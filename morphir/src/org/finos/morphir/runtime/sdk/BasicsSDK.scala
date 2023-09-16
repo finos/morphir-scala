@@ -1,9 +1,9 @@
-package org.finos.morphir.runtime.quick.nativesdk
+package org.finos.morphir.runtime.sdk
 
 import org.finos.morphir.Hints
-import org.finos.morphir.runtime.IllegalValue
-import org.finos.morphir.runtime.quick.{DynamicNativeFunction, NativeContext, NumericFunction2, NumericHelpers, RTValue}
-import org.finos.morphir.runtime.quick.RTValue.Primitive
+import org.finos.morphir.runtime.RTValue.Primitive
+import org.finos.morphir.runtime.internal.{DynamicNativeFunction, NativeContext, NumericFunction2, NumericHelpers}
+import org.finos.morphir.runtime.{IllegalValue, RTValue}
 
 object BasicsSDK {
   type AnyNum = Any

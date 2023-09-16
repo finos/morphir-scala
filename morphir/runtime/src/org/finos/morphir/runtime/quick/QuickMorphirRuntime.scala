@@ -15,6 +15,7 @@ import org.finos.morphir.runtime.Utils.*
 import org.finos.morphir.ir.conversion.*
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
+import org.finos.morphir.runtime.internal.Succinct
 
 import scala.util.{Failure, Success, Try}
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}

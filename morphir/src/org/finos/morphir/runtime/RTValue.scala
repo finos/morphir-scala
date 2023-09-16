@@ -1,22 +1,23 @@
-package org.finos.morphir.runtime.quick
+package org.finos.morphir.runtime
 
-import org.finos.morphir.naming.*
-import org.finos.morphir.ir.{Module, Type}
-import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Type.Type
+import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Value.{Pattern, Value}
-
-import scala.collection.mutable.LinkedHashMap
+import org.finos.morphir.ir.{Module, Type}
+import org.finos.morphir.naming.*
 import Name.toTitleCase
 import org.finos.morphir.MInt
 import org.finos.morphir.datamodel.Concept.Result
-import org.finos.morphir.runtime.TypedMorphirRuntime.{RuntimeValue, TypeAttribs, ValueAttribs}
+import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{RuntimeValue, TypeAttribs, ValueAttribs}
+import org.finos.morphir.runtime.internal.{NativeFunctionSignature, NativeFunctionSignatureAdv}
 import org.finos.morphir.runtime.{IllegalValue, UnexpectedType}
+import org.finos.morphir.runtime.internal.CallStackFrame
 
 import scala.collection.mutable
+import scala.collection.mutable.LinkedHashMap
 
 // TODO Rename to RTValue
-// Represents a Morphir-Evaluator result. Typed on TypedMorphirRuntime.TypeAttribs, TypedMorphirRuntime.ValueAttribs
+// Represents a Morphir-Evaluator result. Typed on TypedMorphirRuntimeDefs.TypeAttribs, TypedMorphirRuntimeDefs.ValueAttribs
 // instead of a a Generic VA/TA since the latter is not necessary.
 sealed trait RTValue {
   def succinct(depth: Int): String = s"${this.getClass} (Default implementation)"
