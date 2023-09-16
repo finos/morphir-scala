@@ -3,10 +3,9 @@ package org.finos.morphir.runtime
 import org.finos.morphir.naming._
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue}
-import org.finos.morphir.ir.Type.{Type, UType}
+import org.finos.morphir.ir.Type.{Field, Type, UType}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
-import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 
 //Utlity object (mostly for errors) to give briefer versions of Values/Types by only showing the top few levels

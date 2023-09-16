@@ -11,25 +11,28 @@ object Type extends TypeModule
 
 trait TypeModule { module =>
 
-  type Field[+A] = universe.ir.Field[A]
-  val Field: universe.ir.Field.type = universe.ir.Field
+  final type Field[+A] = universe.ir.Field[A]
+  final val Field: universe.ir.Field.type = universe.ir.Field
 
-  type FieldK[F[+_], +A] = universe.ir.FieldK[F, A]
-  val FieldK: universe.ir.Field.type = universe.ir.Field
+  final type FieldK[F[+_], +A] = universe.ir.FieldK[F, A]
+  final val FieldK: universe.ir.Field.type = universe.ir.Field
 
-  type FieldT[+A] = universe.ir.FieldT[A]
-  val FieldT: universe.ir.FieldT.type = universe.ir.FieldT
+  final type FieldT[+A] = universe.ir.FieldT[A]
+  final val FieldT: universe.ir.FieldT.type = universe.ir.FieldT
 
-  type UConstructors = module.Constructors[scala.Unit]
-  val UConstructors: module.Constructors.type = module.Constructors
+  final type Type[+A] = org.finos.morphir.universe.ir.Type[A]
+  final val Type = org.finos.morphir.universe.ir.Type
 
-  type UDefinition = module.Definition[scala.Unit]
-  val UDefinition: module.Definition.type = module.Definition
+  final type UConstructors = module.Constructors[scala.Unit]
+  final val UConstructors: module.Constructors.type = module.Constructors
 
-  type USpecification = module.Specification[scala.Unit]
+  final type UDefinition = module.Definition[scala.Unit]
+  final val UDefinition: module.Definition.type = module.Definition
 
-  type UType = module.Type[scala.Unit]
-  val UType = module.Type
+  final type USpecification = module.Specification[scala.Unit]
+
+  final type UType = module.Type[scala.Unit]
+  final val UType = module.Type
 
   final def curriedFunction(paramTypes: List[UType], returnType: UType): UType = {
     def curry(args: List[UType]): UType = args match {
@@ -358,9 +361,6 @@ trait TypeModule { module =>
         }
     }
   }
-
-  final type Type[+A] = org.finos.morphir.universe.ir.Type[A]
-  final val Type = org.finos.morphir.universe.ir.Type
 
   trait MorphirTypeModule {
     def typeAttributes[A](tpe: Type[A]): A                        = module.typeAttributes(tpe)

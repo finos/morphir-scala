@@ -16,7 +16,13 @@ import org.finos.morphir.ir.PackageModule.{
   Specification => PackageSpecification,
   USpecification => UPackageSpecification
 }
-import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, Type}
+import org.finos.morphir.ir.Type.{
+  Constructors,
+  Definition => TypeDefinition,
+  Field,
+  Specification => TypeSpecification,
+  Type
+}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
 import org.finos.morphir.ir.Value.{Value, _}
 import org.finos.morphir.ir.module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
@@ -406,7 +412,7 @@ trait MorphirJsonEncodingSupportV1 extends JsonEncodingHelpers {
     }
 
   implicit def extensibleRecordTypeJsonEncoder[A: JsonEncoder]: JsonEncoder[Type.ExtensibleRecord[A]] =
-    JsonEncoder.tuple4[String, A, Name, Chunk[Field[Type[A]]]].contramap {
+    JsonEncoder.tuple4[String, A, Name, scala.List[Field[Type[A]]]].contramap {
       case Type.ExtensibleRecord(attributes, name, fields) => ("extensible_record", attributes, name, fields)
     }
 
@@ -417,18 +423,18 @@ trait MorphirJsonEncodingSupportV1 extends JsonEncodingHelpers {
     }
 
   implicit def recordTypeJsonEncoder[A: JsonEncoder]: JsonEncoder[Type.Record[A]] =
-    JsonEncoder.tuple3[String, A, Chunk[Field[Type[A]]]].contramap { case Type.Record(attributes, fields) =>
+    JsonEncoder.tuple3[String, A, scala.List[Field[Type[A]]]].contramap { case Type.Record(attributes, fields) =>
       ("record", attributes, fields)
     }
 
   implicit def referenceTypeJsonEncoder[A: JsonEncoder]: JsonEncoder[Type.Reference[A]] =
-    JsonEncoder.tuple4[String, A, FQName, Chunk[Type[A]]].contramap {
+    JsonEncoder.tuple4[String, A, FQName, scala.List[Type[A]]].contramap {
       case Type.Reference(attributes, typeName, typeParams) =>
         ("reference", attributes, typeName, typeParams)
     }
 
   implicit def tupleTypeJsonEncoder[A: JsonEncoder]: JsonEncoder[Type.Tuple[A]] =
-    JsonEncoder.tuple3[String, A, Chunk[Type[A]]].contramap { case Type.Tuple(attributes, elements) =>
+    JsonEncoder.tuple3[String, A, scala.List[Type[A]]].contramap { case Type.Tuple(attributes, elements) =>
       ("tuple", attributes, elements)
     }
 

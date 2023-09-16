@@ -31,7 +31,7 @@ sealed trait Type[+A] extends TypeExpr { self =>
     case (acc, _)                 => acc
   }
 
-  final def eraseAttributes: UType = UType(self.mapAttributes(_ => ()))
+  final def eraseAttributes: UType = self.mapAttributes(_ => ())
 
   final def exists(f: PartialFunction[Type[A], Any]): Boolean = find(f).isDefined
 
@@ -332,17 +332,7 @@ sealed trait Type[+A] extends TypeExpr { self =>
 
   def tag: Int
 
-  override def toString: String = {
-    val sb = new StringBuilder()
-    foldUp(sb) {
-      case (t @ Type.Reference(_, FQName.ReferenceName(referenceName), _), sb) =>
-        sb.append((referenceName :: t.typeParams.map(_.toString)).mkString(" "))
-      case (Type.Unit(_), sb)           => sb.append("()")
-      case (Type.Variable(_, name), sb) => sb.append(name.toCamelCase)
-      case _                            => sb
-    }
-    sb.toString()
-  }
+  override def toString: String = foldContext(())(TypeFolder.ToString)
 
   // final def transformDownSome[A1 >: A](f: PartialFunction[Type[A1], Type[A1]]): Type[A1] = {
   //   def loop(stack:List[Type[A]],):Type[A1] =
@@ -387,33 +377,64 @@ object Type {
   object Attributes {
     def unapply[A](typ: Type[A]): Some[A] = Some(typ.attributes)
   }
-  def reference[A](attributes: A)(name: FQName, typeParams: List[Type[A]] = List.empty): Reference[A] =
-    Reference(attributes, name, typeParams)
 
   sealed case class ExtensibleRecord[+A](attributes: A, name: Name, fields: List[FieldT[A]]) extends Type[A] {
     override def tag: Int = Tags.ExtensibleRecord
   }
+
+  object ExtensibleRecord {
+    def apply[A](attributes: A, name: String, fields: List[FieldT[A]]): ExtensibleRecord[A] =
+      ExtensibleRecord(attributes, Name.fromString(name), fields)
+
+    def apply[A](attributes: A, name: String, fields: FieldT[A]*): ExtensibleRecord[A] =
+      ExtensibleRecord(attributes, Name.fromString(name), fields.toList)
+
+    def apply[A](attributes: A, name: Name, fields: FieldT[A]*): ExtensibleRecord[A] =
+      ExtensibleRecord(attributes, name, fields.toList)
+  }
+
   sealed case class Function[+A](attributes: A, argumentType: Type[A], returnType: Type[A]) extends Type[A] {
     override def tag: Int = Tags.Function
   }
+
   sealed case class Record[+A](attributes: A, fields: List[FieldT[A]]) extends Type[A] {
     override def tag: Int = Tags.Record
   }
+  object Record {
+    def apply[A](attributes: A, fields: FieldT[A]*): Record[A] = Record(attributes, fields.toList)
+  }
+
   sealed case class Reference[+A](attributes: A, typeName: FQName, typeParams: List[Type[A]]) extends Type[A] {
     override def tag: Int = Tags.Reference
   }
+
   object Reference {
+    def apply[A](attributes: A, typeName: String, typeParams: List[Type[A]]): Reference[A] =
+      Reference(attributes, FQName.fromString(typeName), typeParams)
+
+    def apply[A](attributes: A, typeName: String, typeParams: Type[A]*): Reference[A] =
+      Reference(attributes, FQName.fromString(typeName), typeParams.toList)
+
     def apply[A](attributes: A, typeName: FQName, typeParams: Type[A]*): Reference[A] =
       Reference(attributes, typeName, typeParams.toList)
   }
+
   sealed case class Tuple[+A](attributes: A, elements: List[Type[A]]) extends Type[A] {
     override def tag: Int = Tags.Tuple
+  }
+  object Tuple {
+    def apply[A](attributes: A, elements: Type[A]*): Tuple[A] = Tuple(attributes, elements.toList)
   }
   sealed case class Unit[+A](attributes: A) extends Type[A] {
     override def tag: Int = Tags.Unit
   }
   sealed case class Variable[+A](attributes: A, name: Name) extends Type[A] {
     override def tag: Int = Tags.Variable
+  }
+  object Variable {
+    def apply[A](attributes: A, name: String): Variable[A] = Variable(attributes, Name.fromString(name))
+    def apply(name: Name): Variable[scala.Unit]            = Variable((), name)
+    def apply(name: String): Variable[scala.Unit]          = Variable((), name)
   }
 
   implicit val CovariantTypeInstance: Covariant[Type] = new Covariant[Type] {
@@ -448,7 +469,7 @@ object Type {
   }
 
   implicit class UTypeExtensions(private val self: UType) {
-    def -->(that: UType): UType = UType(Type.Function((), self, that))
+    def -->(that: UType): UType = Type.Function((), self, that)
   }
 }
 

@@ -95,4 +95,43 @@ object TypeFolder {
 
     loop(List(self), List.empty).head
   }
+
+  object ToString extends TypeFolder[Any, Any, String] {
+    def extensibleRecordCase(
+        context: Any,
+        tpe: Type[Any],
+        attributes: Any,
+        name: Name,
+        fields: List[Field[String]]
+    ): String = {
+      val fieldList = fields.map(field => field.name.toCamelCase + " : " + field.data).mkString(", ")
+      s"{ ${name.toCamelCase} | $fieldList }"
+    }
+    def functionCase(
+        context: Any,
+        tpe: Type[Any],
+        attributes: Any,
+        argumentType: String,
+        returnType: String
+    ): String =
+      tpe match {
+        case Function(_, argumentType: Function[Any], _) => s"($argumentType) -> $returnType"
+        case _                                           => s"$argumentType -> $returnType"
+      }
+    def recordCase(context: Any, tpe: Type[Any], attributes: Any, fields: List[Field[String]]): String =
+      fields.map(field => field.name.toCamelCase + " : " + field.data).mkString("{ ", ", ", " }")
+    def referenceCase(
+        context: Any,
+        tpe: Type[Any],
+        attributes: Any,
+        typeName: FQName,
+        typeParams: List[String]
+    ): String =
+      (typeName.toReferenceName +: typeParams).mkString(" ")
+    def tupleCase(context: Any, tpe: Type[Any], attributes: Any, elements: List[String]): String =
+      elements.mkString("(", ", ", ")")
+    def unitCase(context: Any, tpe: Type[Any], attributes: Any): String                 = "()"
+    def variableCase(context: Any, tpe: Type[Any], attributes: Any, name: Name): String = name.toCamelCase
+  }
+
 }

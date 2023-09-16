@@ -135,7 +135,7 @@ object TypeConversionSpec extends MorphirBaseSpec {
       test("Should be possible to convert a Concept Tuple type to a Morphir tuple type") {
         val conceptTuple = Concept.Tuple(List(Concept.Boolean, Concept.Unit, Concept.Byte))
         val morphirType  = ToMorphirType.summon[Concept].withAttributesOf(conceptTuple).morphirType
-        assertTrue(morphirType == T.tuple(Chunk(sdk.Basics.boolType, Type.unit, sdk.Int.int8Type)))
+        assertTrue(morphirType == T.tuple(List(sdk.Basics.boolType, Type.unit, sdk.Int.int8Type)))
       }
     ),
     suite("Concept.Record")(

@@ -43,7 +43,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         val fieldA = field("fieldA", variable("A"))
         val fieldB = field("fieldB", variable("B"))
         val fieldC = field("fieldC", variable("C"))
-        val sut    = extensibleRecord("RecordWithThreeFields", Chunk(fieldA, fieldB, fieldC))
+        val sut    = extensibleRecord("RecordWithThreeFields", List(fieldA, fieldB, fieldC))
         val result = sut.foldLeft(0) { case (acc, _) =>
           acc + 1
         }
@@ -54,8 +54,8 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         val f2     = field("second", variable("there"))
         val f3     = field("third", tupleVar(variable("v3"), variable("v4")))
         val n1     = Name("SomeName")
-        val actual = extensibleRecord(n1, zio.Chunk(f1, f2, f3))
-        assertTrue(actual == ExtensibleRecord(n1, f1, f2, f3))
+        val actual = extensibleRecord(n1, List(f1, f2, f3))
+        assertTrue(actual == ExtensibleRecord((), n1, f1, f2, f3))
       },
       test("testing second extensible record constructor") {
         val f1     = field("first", variable("hello"))
@@ -70,9 +70,9 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         val f1     = field("first", variable("hello"))
         val f2     = field("second", variable("there"))
         val f3     = field("third", tupleVar(variable("v3"), variable("v4")))
-        val actual = extensibleRecord("SomeName", zio.Chunk(f1, f2, f3))
+        val actual = extensibleRecord("SomeName", List(f1, f2, f3))
         assertTrue(
-          actual == ExtensibleRecord("SomeName", Chunk(f1, f2, f3)),
+          actual == ExtensibleRecord((), "SomeName", List(f1, f2, f3)),
           actual.toString() == "{ someName | first : hello, second : there, third : (v3, v4) }"
         )
       },
@@ -94,7 +94,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         val secondField = field("second", variable("world"))
         val tupleField  = field("tupleField", tupleVar(variable("v3"), variable("v4")))
         val recordName  = Name.fromString("MyRecord")
-        val sut         = extensibleRecord(recordName, Chunk(firstField, secondField, tupleField))
+        val sut         = extensibleRecord(recordName, List(firstField, secondField, tupleField))
         assertTrue(sut.toString == "{ myRecord | first : hello, second : world, tupleField : (v3, v4) }")
       }
     )
@@ -135,14 +135,14 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         val returnType = variable("Output")
         val actual     = function(param, returnType)
         assertTrue(
-          actual == Function(param, returnType),
+          actual == Function((), param, returnType),
           actual.toString() == "input -> output"
         )
       },
       test("testing function with function argument") {
         val actual = function(function(variable("A"), variable("B")), variable("C"))
         assertTrue(
-          actual == Function(Function(Variable((), "A"), Variable((), "B")), Variable((), "C")),
+          actual == Function((), Function((), Variable((), "A"), Variable((), "B")), Variable((), "C")),
           actual.toString() == "(a -> b) -> c"
         )
       },
@@ -152,7 +152,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         val retType = tupleVar(variable("v3"), variable("v4"))
         val actual  = function(param1, function(param2, retType))
         assertTrue(
-          actual == Function(param1, Function(param2, retType)),
+          actual == Function((), param1, Function((), param2, retType)),
           actual.toString() == "v1 -> v2 -> (v3, v4)"
         )
       },
@@ -162,7 +162,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         val retType = tupleVar(variable("v3"), variable("v4"))
         val actual  = function(param1, function(param2, retType))
         assertTrue(
-          actual == Function(param1, Function(param2, retType))
+          actual == Function((), param1, Function((), param2, retType))
         )
       }
     ),
@@ -223,30 +223,30 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       }
     ),
     suite("Without Attributes")(
-      test("When constructing using the constructor accepting a Chunk of fields") {
+      test("When constructing using the constructor accepting a List of fields") {
         val firstField  = field("first", variable("hello"))
         val secondField = field("second", variable("world"))
         val tupleField  = field("tupleField", tupleVar(variable("v3"), variable("v4")))
-        val sut         = record(Chunk(firstField, secondField, tupleField))
+        val sut         = record(List(firstField, secondField, tupleField))
         assertTrue(sut.toString == "{ first : hello, second : world, tupleField : (v3, v4) }", sut.size == 6)
-      },
-      test("testing unattributed record constructor given a chunk of fields") {
-        val var1   = field("first", variable("hello"))
-        val var2   = field("second", variable("there"))
-        val chunk  = zio.Chunk(var1, var2)
-        val actual = record(chunk)
-        assertTrue(
-          actual.fieldCount == 2,
-          actual == Record(var1, var2),
-          actual.toString() == "{ first : hello, second : there }"
-        )
       },
       test("testing unattributed record constructor given a list of fields") {
         val var1   = field("first", variable("hello"))
         val var2   = field("second", variable("there"))
+        val chunk  = List(var1, var2)
+        val actual = record(chunk)
+        assertTrue(
+          actual.fieldCount == 2,
+          actual == Record((), var1, var2),
+          actual.toString() == "{ first : hello, second : there }"
+        )
+      },
+      test("testing unattributed record constructor given a variadic list of fields") {
+        val var1   = field("first", variable("hello"))
+        val var2   = field("second", variable("there"))
         val actual = record(var1, var2)
         assertTrue(
-          actual == Record(var1, var2),
+          actual == Record((), var1, var2),
           actual.toString() == "{ first : hello, second : there }"
         )
       },
@@ -257,7 +257,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         val actual      = record(nameField, ageField, salaryField)
         assertTrue(
           actual.attributes == (),
-          actual == Record(field(nameField), field(ageField), field(salaryField)),
+          actual == Record((), field(nameField), field(ageField), field(salaryField)),
           actual.fieldCount == 3,
           actual.toString() == "{ name : Morphir.SDK.Morphir.SDK.Basics.String, age : Morphir.SDK.Morphir.SDK.Basics.Int, salary : Morphir.SDK.Morphir.SDK.Basics.Double }"
         )
@@ -280,18 +280,19 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       }
     ),
     suite("Without Attributes")(
-      test("testing construction given a FQName and Chunk of types") {
+      test("testing construction given a FQName and List of types") {
         val v1     = variable("v1")
         val v2     = variable("v2")
         val v3     = tupleVar(variable("v3"), variable("v4"))
         val fqn1   = FQName.fqn("packageName", "moduleName", "localName")
-        val actual = reference(fqn1, Chunk(v1, v2, v3))
+        val actual = reference(fqn1, List(v1, v2, v3))
         assertTrue(
           actual == Reference(
+            (),
             fqn1,
             Variable((), "v1"),
             Variable((), "v2"),
-            Tuple(Variable((), "v3"), Variable((), "v4"))
+            Tuple((), Variable((), "v3"), Variable((), "v4"))
           ),
           actual.exists { case Reference(attributes, fqName, typeParams) =>
             attributes == () && fqName == fqn1 && typeParams.contains(v1) && typeParams.contains(v2) && typeParams
@@ -313,12 +314,12 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
           }
         )
       },
-      test("testing construction given packageName, moduleName, localName and a Chunk of Types") {
+      test("testing construction given packageName, moduleName, localName and a List of Types") {
         val v1     = variable("v1")
         val v2     = variable("v2")
         val v3     = tupleVar(variable("v3"), variable("v4"))
         val fqn1   = FQName.fqn("packageName", "moduleName", "localName")
-        val actual = reference("packageName", "moduleName", "localName", Chunk(v1, v2, v3))
+        val actual = reference("packageName", "moduleName", "localName", List(v1, v2, v3))
         assertTrue(
           actual.exists { case Reference(_, fqName, typeParams) =>
             fqName == fqn1 && typeParams.contains(v1) && typeParams.contains(v2) && typeParams.contains(v3)
@@ -349,7 +350,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
           actual == Reference(Source.Location.default, refName)
         )
       },
-      test("testing construction given attributes, FQName, and a Chunk of types") {
+      test("testing construction given attributes, FQName, and a list of types") {
         val v1 = variable(Source.Location.default, "V1")
         val v2 = variable(Source.Location.default.offsetRowBy(1), "V2")
         val v3 = tupleWithAttr(
@@ -358,7 +359,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
           variable(Source.Location.default.offsetRowBy(3), "v4")
         )
         val refName = FQName.fqn("PackageName", "ModuleName", "LocalName")
-        val actual  = reference(Source.Location.default.offsetRowBy(6), refName, Chunk(v1, v2, v3))
+        val actual  = reference(Source.Location.default.offsetRowBy(6), refName, List(v1, v2, v3))
         assertTrue(
           actual.toString == "PackageName.ModuleName.LocalName v1 v2 (v3, v4)",
           actual.attributes == Source.Location.default.offsetRowBy(6),
@@ -399,7 +400,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       assertTrue(actual == 1)
     },
     test("size of Reference with a single typeParam") {
-      val sut    = Reference[Any]((), FQName.fromString("x"), Chunk(Type.Variable[Any]((), Name.fromString("y"))))
+      val sut    = Reference[Any]((), FQName.fromString("x"), List(Type.Variable[Any]((), Name.fromString("y"))))
       val actual = sut.size
       assertTrue(actual == 2)
     }
@@ -412,19 +413,19 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         sut.size == 1,
         sut.toString == "()",
         sut.attributes == "Attributes",
-        sut == Tuple("Attributes", Chunk.empty)
+        sut == Tuple("Attributes", Nil)
       )
     },
     test("testing tuple constructor when given a Chunk") {
       val helloVar = variable("hello")
       val worldVar = variable("world")
-      val chunk    = Chunk(helloVar, worldVar)
-      val actual   = tuple(chunk)
+      val elements = List(helloVar, worldVar)
+      val actual   = tuple(elements)
       assertTrue(
         actual.size == 3,
         actual.toString == "(hello, world)",
         actual.attributes == (),
-        actual == Tuple((), chunk)
+        actual == Tuple((), elements)
       )
     },
     test("testing tuple constructor when given multiple un-attributed elements") {
@@ -436,7 +437,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         actual.size == 4,
         actual.toString == "(one, two, three)",
         actual.attributes == (),
-        actual == Tuple((), Chunk(var1, var2, var3))
+        actual == Tuple((), List(var1, var2, var3))
       )
     },
     test("testing tuple with attributes constructor") {
@@ -448,7 +449,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         actual.size == 4,
         actual.toString == "(a, b, c)",
         actual.attributes == "(a, b, c)",
-        actual == Tuple("(a, b, c)", Chunk(varA, varB, varC))
+        actual == Tuple("(a, b, c)", List(varA, varB, varC))
       )
     },
     test("When calling foldLeft it should work as expected") {
@@ -484,20 +485,20 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         actual.toString() == "()"
       )
     },
-    test("testing tuple constructor when given a chunk") {
+    test("testing tuple constructor when given a List") {
       val var1   = variable("hello")
       val var2   = variable("there")
-      val chunk  = zio.Chunk(var1, var2)
+      val chunk  = List(var1, var2)
       val actual = tuple(chunk)
       assertTrue(
         actual.toString == "(hello, there)",
         actual.exists { case Tuple(attributes, elements) =>
           attributes == () && elements.contains(var1) && elements.contains(var2)
         },
-        actual == Tuple(Variable((), "hello"), Variable((), "there")),
+        actual == Tuple((), Variable((), "hello"), Variable((), "there")),
         actual match {
-          case Tuple(attributes, Chunk(v1, v2)) => attributes == () && v1 == var1 && v2 == var2
-          case _                                => false
+          case Tuple(attributes, List(v1, v2)) => attributes == () && v1 == var1 && v2 == var2
+          case _                               => false
         }
       )
     },

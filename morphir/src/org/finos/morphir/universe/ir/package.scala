@@ -53,8 +53,8 @@ package object ir {
     def apply[A](name: Name, tpe: Type[A]): FieldT[A]   = FieldK(name, tpe)
   }
 
-  type UType = RawType
-  val UType: RawType.type = RawType
+  type UType = Type[scala.Unit]
+  final val UType: Type.type = Type
 
   type RawType = RawType.Type
   object RawType extends Subtype[Type[scala.Unit]]
