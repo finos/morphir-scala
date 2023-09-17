@@ -233,7 +233,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     loop(condition, store) match {
       case RTValue.Primitive(true)  => loop(thenValue, store)
       case RTValue.Primitive(false) => loop(elseValue, store)
-      case other                   => throw new UnexpectedType(s"${PrintIR(other)} is not a boolean result")
+      case other                    => throw new UnexpectedType(s"${PrintIR(other)} is not a boolean result")
     }
 
   def handleLambda(
