@@ -4,8 +4,8 @@ import org.finos.morphir.MorphirTag
 import org.finos.morphir.naming._
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
+import org.finos.morphir.runtime.NativeSDK.Morphir
 
-import SdkModuleDescriptors.*
 object SdkModuleDescriptorsSpec extends MorphirBaseSpec {
   def spec = suite("SdkModuleDescriptorsSpec")(
   )

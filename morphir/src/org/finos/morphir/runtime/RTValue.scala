@@ -1,71 +1,74 @@
-package org.finos.morphir.runtime.quick
+package org.finos.morphir.runtime
 
-import org.finos.morphir.naming.*
-import org.finos.morphir.ir.{Module, Type}
-import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Type.Type
+import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Value.{Pattern, Value}
-
-import scala.collection.mutable.LinkedHashMap
+import org.finos.morphir.ir.{Module, Type}
+import org.finos.morphir.naming.*
 import Name.toTitleCase
 import org.finos.morphir.MInt
-import org.finos.morphir.runtime.TypedMorphirRuntime.{RuntimeValue, TypeAttribs, ValueAttribs}
-import org.finos.morphir.runtime.UnexpectedType
+import org.finos.morphir.datamodel.Concept.Result
+import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{RuntimeValue, TypeAttribs, ValueAttribs}
+import org.finos.morphir.runtime.internal.{NativeFunctionSignature, NativeFunctionSignatureAdv}
+import org.finos.morphir.runtime.{IllegalValue, UnexpectedType}
+import org.finos.morphir.runtime.internal.CallStackFrame
 
 import scala.collection.mutable
+import scala.collection.mutable.LinkedHashMap
 
-// Represents a Morphir-Evaluator result. Typed on TypedMorphirRuntime.TypeAttribs, TypedMorphirRuntime.ValueAttribs
+// TODO Rename to RTValue
+// Represents a Morphir-Evaluator result. Typed on TypedMorphirRuntimeDefs.TypeAttribs, TypedMorphirRuntimeDefs.ValueAttribs
 // instead of a a Generic VA/TA since the latter is not necessary.
-sealed trait Result {
+sealed trait RTValue {
   def succinct(depth: Int): String = s"${this.getClass} (Default implementation)"
   def succinct: String             = succinct(2)
-
-  def unwrapString    = Result.unwrapString(this)
-  def unwrapInt       = Result.unwrapInt(this)
-  def unwrapBoolean   = Result.unwrapBoolean(this)
-  def unwrapDouble    = Result.unwrapDouble(this)
-  def unwrapLong      = Result.unwrapLong(this)
-  def unwrapFloat     = Result.unwrapFloat(this)
-  def unwrapDecimal   = Result.unwrapDecimal(this)
-  def unwrapPrimitive = Result.unwrapPrimitive(this)
-  def unwrapNumeric   = Result.unwrapNumeric(this)
-  def unwrapList      = Result.unwrapList(this)
-  def unwrapTuple     = Result.unwrapTuple(this)
-  def unwrapMap       = Result.unwrapMap(this)
 }
 
-object Result {
+object RTValue {
+  sealed trait ValueResult[T] extends RTValue {
+    def value: T
+  }
+  sealed trait Function extends RTValue
 
-  def unwrapList(arg: Result): List[Result] =
+  def coerceList(arg: RTValue) =
     arg match {
-      case Result.ListResult(list) => list
+      case v: RTValue.List => v
       case _ =>
         throw new UnexpectedType(
-          s"Cannot unwrap the value `${arg}` into a ListResult value. It is not a list result!"
+          s"Cannot unwrap the value `${arg}` into a ListResult value. It is not a List-based result!"
         )
     }
 
-  def unwrapMap(arg: Result): LinkedHashMap[Result, Result] =
+  def coerceSet(arg: RTValue) =
     arg match {
-      case Result.MapResult(map) => map
+      case v: RTValue.Set => v
+      case _ =>
+        throw new UnexpectedType(
+          s"Cannot unwrap the value `${arg}` into a SetResult value. It is not a Set-based result!"
+        )
+    }
+
+  def coerceMap(arg: RTValue) =
+    arg match {
+      case v: RTValue.Map => v
+      case _ =>
+        throw new UnexpectedType(
+          s"Cannot unwrap the value `${arg}` into a MapResult value. It is not a Map-based result!"
+        )
+    }
+
+  def coerceTuple(arg: RTValue) =
+    arg match {
+      case v: RTValue.Tuple => v
       case _ =>
         throw new UnexpectedType(
           s"Cannot unwrap the value `${arg}` into a MapResult value. It is not a list result!"
         )
     }
 
-  def unwrapTuple(arg: Result): List[Result] =
+  def coerceBoolean(arg: RTValue) =
     arg match {
-      case Result.Tuple(tup) => tup
-      case _ =>
-        throw new UnexpectedType(
-          s"Cannot unwrap the value `${arg}` into a MapResult value. It is not a list result!"
-        )
-    }
-
-  def unwrapBoolean(arg: Result): Boolean =
-    arg match {
-      case Primitive.Boolean(v) => v
+      case v: Primitive.Boolean => v
       case _: Primitive[_] =>
         throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a Boolean value because it was not a Primitive.Boolean"
@@ -75,9 +78,9 @@ object Result {
     }
 
   // A Moprhir/ELM float is a Java Double, calling this unwrapDouble since that's the Java datatype being returned
-  def unwrapDouble(arg: Result): Double =
+  def coerceDouble(arg: RTValue) =
     arg match {
-      case Primitive.Float(v) => v
+      case v: Primitive.Float => v
       case _: Primitive[_] =>
         throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a Double value because it was not a Primitive.Double"
@@ -86,13 +89,9 @@ object Result {
         throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Double. It is not a primitive!")
     }
 
-  def unwrapInt(arg: Result): Int =
+  def coerceInt(arg: RTValue) =
     arg match {
-      case Primitive.Int(v) =>
-        if (v.isValidInt)
-          v.toInt
-        else
-          throw new UnexpectedType(s"Cannot unwrap ${arg} into an integer because it's value is too large or too small")
+      case v: Primitive.Int => v
       case _: Primitive[_] =>
         throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a Int value because it was not a Primitive.Int"
@@ -101,9 +100,9 @@ object Result {
         throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Int. It is not a primitive!")
     }
 
-  def unwrapFloat(arg: Result): Double =
+  def coerceFloat(arg: RTValue) =
     arg match {
-      case Primitive.Float(v) => v.toDouble
+      case v: Primitive.Float => v
       case _: Primitive[_] =>
         throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a Float value because it was not a Primitive.Float"
@@ -112,9 +111,9 @@ object Result {
         throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Float. It is not a primitive!")
     }
 
-  def unwrapDecimal(arg: Result): BigDecimal =
+  def coerceDecimal(arg: RTValue) =
     arg match {
-      case Primitive.BigDecimal(v) => v
+      case v: Primitive.BigDecimal => v
       case _: Primitive[_] =>
         throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a BigDecimal value because it was not a Primitive.BigDecimal"
@@ -125,9 +124,9 @@ object Result {
         )
     }
 
-  def unwrapLong(arg: Result): Long =
+  def coerceLong(arg: RTValue) =
     arg match {
-      case Primitive.Int(v) => v.toLong
+      case v: Primitive.Int => v
       case _: Primitive[_] =>
         throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a Long value because it was not a Primitive.Long"
@@ -136,9 +135,9 @@ object Result {
         throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Long. It is not a primitive!")
     }
 
-  def unwrapString(arg: Result): String =
+  def coerceString(arg: RTValue) =
     arg match {
-      case Primitive.String(v) => v
+      case v: Primitive.String => v
       case _: Primitive[_] =>
         throw new UnexpectedType(
           s"Could not unwrap the primitive `${arg}` into a String value because it was not a Primitive.String"
@@ -147,16 +146,24 @@ object Result {
         throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive String. It is not a primitive!")
     }
 
-  def unwrapPrimitive(arg: Result): Primitive[_] =
+  def coercePrimitive(arg: RTValue): Primitive[_] =
     arg match {
       case p: Primitive[_] => p.asInstanceOf[Primitive[_]]
       case _               => throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive")
     }
 
-  def unwrapNumeric(arg: Result): Primitive.Numeric[_] =
+  def coerceNumeric(arg: RTValue): Primitive.Numeric[_] =
     arg match {
-      case p: Primitive.Numeric[_] => p.asInstanceOf[Primitive.Numeric[_]]
+      // Need a typecast because can't match on `p: Primitive.Numeric[_]` since there's
+      // no actually Primitive.Numeric that has a type of `Any`.
+      case p: Primitive.Numeric[_] => p
       case _ => throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive numeric")
+    }
+
+  def coerceFunction(arg: RTValue): Function =
+    arg match {
+      case f: Function => f
+      case _           => throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a function")
     }
 
   case class NumericsWithHelper[T](
@@ -176,11 +183,11 @@ object Result {
   // Without a function that unwraps both types together with the numeric, it is very difficult to get all the
   // types to line up correctly for the Numeric instance to properly recognize what type it is supposed to take
   def unwrapNumericsWithHelper[N](
-      arg1: Result,
-      arg2: Result
+      arg1: RTValue,
+      arg2: RTValue
   ): NumericsWithHelper[N] = {
-    val a = unwrapNumeric(arg1)
-    val b = unwrapNumeric(arg2)
+    val a = coerceNumeric(arg1)
+    val b = coerceNumeric(arg2)
     if (a.numericType != b.numericType) {
       throw new UnexpectedType(
         s"Error unwrapping the Primitive Numerics ${arg1} and ${arg2} into a common type, they have different numeric types: ${a.numericType} versus ${b.numericType}"
@@ -195,8 +202,8 @@ object Result {
     )
   }
 
-  def unwrapNumericWithHelper[N](arg: Result): NumericWithHelper[N] = {
-    val a = unwrapNumeric(arg)
+  def unwrapNumericWithHelper[N](arg: RTValue): NumericWithHelper[N] = {
+    val a = coerceNumeric(arg)
     NumericWithHelper[N](
       a.value.asInstanceOf[N],
       a.numericHelper.asInstanceOf[scala.Numeric[N]],
@@ -205,11 +212,11 @@ object Result {
     )
   }
 
-  case class Unit() extends Result {
+  case class Unit() extends RTValue {
     override def succinct(depth: Int) = "Unit"
   }
 
-  sealed trait Primitive[T] extends Result {
+  sealed trait Primitive[T] extends ValueResult[T] {
     def value: T
     def isNumeric                     = false
     override def succinct(depth: Int) = s"Primitive($value)"
@@ -218,18 +225,38 @@ object Result {
   object Primitive {
     sealed trait Numeric[T] extends Primitive[T] {
       override def isNumeric = false
-      def numericType: Numeric.Type
+      def numericType: Numeric.Type[T]
       def value: T
       def numericHelper: scala.Numeric[T]
       def fractionalHelper: Option[scala.Fractional[T]]
       def integralHelper: Option[scala.Integral[T]]
     }
     object Numeric {
-      sealed trait Type
+      sealed trait Type[T] {
+        def makeOrFail(value: Any): Numeric[T]
+      }
       object Type {
-        case object Int        extends Numeric.Type
-        case object Float      extends Numeric.Type
-        case object BigDecimal extends Numeric.Type
+        case object Int extends Numeric.Type[MInt] {
+          override def makeOrFail(value: Any): Numeric[MInt] =
+            value match {
+              case v: MInt => Primitive.Int(v)
+              case _       => throw IllegalValue(s"The value $value is not an MInt")
+            }
+        }
+        case object Float extends Numeric.Type[scala.Double] {
+          override def makeOrFail(value: Any): Numeric[scala.Double] =
+            value match {
+              case v: scala.Double => Primitive.Float(v)
+              case _               => throw IllegalValue(s"The value $value is not a Double")
+            }
+        }
+        case object BigDecimal extends Numeric.Type[scala.BigDecimal] {
+          override def makeOrFail(value: Any): Numeric[scala.BigDecimal] =
+            value match {
+              case v: scala.BigDecimal => Primitive.BigDecimal(v)
+              case _                   => throw IllegalValue(s"The value $value is not a BigDecimal")
+            }
+        }
       }
     }
 
@@ -238,6 +265,13 @@ object Result {
       def numericHelper    = org.finos.morphir.mIntIsNumeric
       def fractionalHelper = None
       def integralHelper   = Some(org.finos.morphir.mIntIsIntegral)
+      def valueAsInt =
+        if (value.isValidInt)
+          value.toInt
+        else
+          throw new UnexpectedType(
+            s"Cannot unwrap ${value} into an integer because it's value is too large or too small"
+          )
     }
     object Int {
       def apply(value: scala.Int)  = new Int(MInt.fromInt(value))
@@ -259,7 +293,7 @@ object Result {
     }
 
     object DecimalBounded {
-      def unapply(resultValue: Result.Primitive.Numeric[_]): Option[scala.BigDecimal] =
+      def unapply(resultValue: RTValue.Primitive.Numeric[_]): Option[scala.BigDecimal] =
         resultValue match {
           case Primitive.Float(v)      => Some(scala.BigDecimal(v.toDouble))
           case Primitive.Int(v)        => Some(v.toBigDecimal)
@@ -282,6 +316,11 @@ object Result {
           )
       }
 
+    // TODO: This kinds of logic is highly problematic in many places (e.g. in a mod function if we were to use it)
+    //       because it creates a value based on the input-type, not based on the expected output type. For example,
+    //       say for instance that somehow the output of an scala-based implementaton of mod(a, b) was a string but elm
+    //       expects an MInt. This would return it as string instead. Therefore we need to move away from using this logic
+    //       and return expected types as opposed to input types.
     def make[T](value: T): Option[Primitive[T]] =
       value match {
         case v: MInt             => Some(Primitive.Int(v).asInstanceOf[Primitive[T]])
@@ -297,46 +336,52 @@ object Result {
       }
   }
 
-  case class LocalDate(value: java.time.LocalDate) extends Result {
+  case class LocalDate(value: java.time.LocalDate) extends ValueResult[java.time.LocalDate] {
     override def succinct(depth: Int) = s"LocalDate($value)"
   }
 
-  case class LocalTime(value: java.time.LocalTime) extends Result {
+  case class LocalTime(value: java.time.LocalTime) extends ValueResult[java.time.LocalTime] {
     override def succinct(depth: Int) = s"LocalTime($value)"
   }
 
-  case class Tuple(elements: List[Result]) extends Result {
+  case class Tuple(elements: scala.List[RTValue]) extends ValueResult[scala.List[RTValue]] {
+    def value = elements
     override def succinct(depth: Int) = if (depth == 0) "Tuple(...)"
     else {
       s"Tuple(${elements.map(_.succinct(depth - 1)).mkString(", ")})"
     }
   }
   object Tuple {
-    def apply(elements: Result*) = new Result.Tuple(elements.toList)
+    def apply(elements: RTValue*) = new RTValue.Tuple(elements.toList)
   }
 
-  case class SetResult(elements: mutable.LinkedHashSet[Result]) extends Result {
+  case class Set(elements: mutable.LinkedHashSet[RTValue]) extends ValueResult[mutable.LinkedHashSet[RTValue]] {
+    def value = elements
     override def succinct(depth: Int) = if (depth == 0) "Set(..)"
     else {
       s"Set(${elements.map(value => value.succinct(depth - 1)).mkString(", ")})"
     }
   }
 
-  case class Record(elements: Map[Name, Result]) extends Result {
+  case class Record(elements: collection.Map[Name, RTValue]) extends ValueResult[collection.Map[Name, RTValue]] {
+    def value = elements
     override def succinct(depth: Int) = if (depth == 0) "Record(..)"
     else {
       s"Record(${elements.map { case (key, value) => s"$key -> ${value.succinct(depth - 1)}" }.mkString(", ")})"
     }
   }
 
-  case class ListResult(elements: List[Result]) extends Result {
+  case class List(elements: scala.List[RTValue]) extends ValueResult[scala.List[RTValue]] {
+    def value = elements
     override def succinct(depth: Int) = if (depth == 0) "List(..)"
     else {
       s"List(${elements.map(value => value.succinct(depth - 1)).mkString(", ")})"
     }
   }
 
-  case class MapResult(elements: mutable.LinkedHashMap[Result, Result]) extends Result {
+  case class Map(elements: mutable.LinkedHashMap[RTValue, RTValue])
+      extends ValueResult[mutable.LinkedHashMap[RTValue, RTValue]] {
+    def value = elements
     override def succinct(depth: Int) = if (depth == 0) "Dict(..)"
     else {
       s"Dict(${elements.map { case (key, value) => s"${key.succinct(depth - 1)} -> ${value.succinct(depth - 1)}" }.mkString(", ")})"
@@ -344,43 +389,43 @@ object Result {
   }
   case class Applied(
       body: RuntimeValue,
-      curried: List[(Name, Result)],
+      curried: scala.List[(Name, RTValue)],
       closingContext: CallStackFrame
   )
 
-  case class FieldFunction(fieldName: Name) extends Result
+  case class FieldFunction(fieldName: Name) extends Function
 
   case class LambdaFunction(body: RuntimeValue, pattern: Pattern[ValueAttribs], closingContext: CallStackFrame)
-      extends Result
+      extends Function
 
   case class DefinitionFunction(
       body: RuntimeValue,
-      arguments: List[(Name, ValueAttribs, Type[TypeAttribs])],
-      curried: List[(Name, Result)],
+      arguments: scala.List[(Name, ValueAttribs, Type[TypeAttribs])],
+      curried: scala.List[(Name, RTValue)],
       closingContext: CallStackFrame
-  ) extends Result
+  ) extends RTValue
 
-  case class ConstructorFunction(name: FQName, arguments: List[ValueAttribs], curried: List[Result])
-      extends Result
+  case class ConstructorFunction(name: FQName, arguments: scala.List[ValueAttribs], curried: scala.List[RTValue])
+      extends Function
 
-  case class ConstructorResult(name: FQName, values: List[Result]) extends Result {
+  case class ConstructorResult(name: FQName, values: scala.List[RTValue]) extends RTValue {
     override def succinct(depth: Int) = if (depth == 0) s"${name.toString}(..)"
     else {
       s"${name.toString}(${values.map(value => value.succinct(depth - 1)).mkString(", ")})"
     }
   }
 
-  sealed trait NativeFunctionResult extends Result
+  sealed trait NativeFunctionResult extends Function
 
   case class NativeFunction(
       arguments: Int,
-      curried: List[Result],
+      curried: scala.List[RTValue],
       function: NativeFunctionSignature
   ) extends NativeFunctionResult {}
 
   case class NativeInnerFunction(
       arguments: Int,
-      curried: List[Result],
+      curried: scala.List[RTValue],
       function: NativeFunctionSignatureAdv
   ) extends NativeFunctionResult {}
 }

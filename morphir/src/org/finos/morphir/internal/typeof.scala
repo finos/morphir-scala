@@ -1,7 +1,7 @@
 package org.finos.morphir.internal
 import org.finos.morphir.naming.*
-import org.finos.morphir.extensibility.SdkModuleDescriptors.*
 import org.finos.morphir.util.attribs.Attributes
+import org.finos.morphir.runtime.NativeSDK.Morphir
 
 trait TypeOfModule extends TypeOfModuleVersionSpecific {
   self: TypeModule with TypeDefModule with TypeSpecModule with TypeInfoModule with AccessControlledModule =>
