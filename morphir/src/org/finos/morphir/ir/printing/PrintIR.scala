@@ -121,7 +121,7 @@ case class PrintIR(
       case _: Value.Definition[_, _]                           => Some("VDef.")
       case _: Type.Specification[_]                            => Some("TSpec.")
       case _: Type.Definition[_]                               => Some("TDef.")
-      case other if other.getClass.getName.endsWith("RTValue") => Some("RTValue.")
+      case other if other.getClass.getName.contains("RTValue") => Some("RT.")
       case _                                                   => None
     }
   }
@@ -160,11 +160,11 @@ case class PrintIR(
           // Assume compression for these cases
           case name: Name => Tree.Literal(name.toCamelCase)
           case T.Reference(_, fqn, Chunk()) =>
-            Tree.Literal(s"tRef(${fqnv(fqn)})")
+            Tree.Literal(s"Ref(${fqnv(fqn)})")
           case T.Reference(_, fqn, _) =>
-            Tree.Literal(s"tRef(${fqnv(fqn)}) [..]")
+            Tree.Literal(s"Ref(${fqnv(fqn)}) [..]")
           case V.Reference(_, fqn) =>
-            Tree.Literal(s"vRef(${fqnv(fqn)})")
+            Tree.Literal(s"Ref(${fqnv(fqn)})")
           case V.Literal(_, l) => treeifyHelper(l)
           case other           => Tree.Literal(s"${other.getClass.getName}(..)")
         }
@@ -188,10 +188,10 @@ case class PrintIR(
       Tree.Literal(fqnv(fqn))
 
     case T.Reference(_, fqn, Chunk()) if (detailLevel.compressReferences) =>
-      Tree.Literal(s"tRef(${fqnv(fqn)})")
+      Tree.Literal(s"Ref(${fqnv(fqn)})")
 
     case T.Reference(_, fqn, tpes) if (detailLevel.compressReferences) =>
-      Tree.Apply(s"tRef(${fqnv(fqn)}):", tpes.map(treeify(_)).iterator)
+      Tree.Apply(s"Ref(${fqnv(fqn)}):", tpes.map(treeify(_)).iterator)
 
     case other => super.treeify(other, escapeUnicode, this.detailLevel.showFieldNames)
   }
