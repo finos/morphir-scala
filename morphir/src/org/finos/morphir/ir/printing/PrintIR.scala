@@ -99,7 +99,6 @@ case class PrintIR(
   // Can there be a "TreeifyWithDepth" option?
   def treeify(x: Any): Tree = this.treeify(x, escapeUnicode, this.detailLevel.showFieldNames)
 
-
   def fqnv(fqn: FQName): String = detailLevel.fqnView(fqn)
   def simplifyName(full: String): String =
     full
@@ -110,20 +109,20 @@ case class PrintIR(
       .replace("org.finos.morphir.ir.Literal.Literal", "")
 
   /**
-   * Extractor for any MorphirIR we want to treat specially for naming/depth limiting.
-   * Returns a prefix used to clarify which nodes are which.
+   * Extractor for any MorphirIR we want to treat specially for naming/depth limiting. Returns a prefix used to clarify
+   * which nodes are which.
    */
   object AstNode {
     def unapply(any: Any): Option[String] = any match {
-      case _: Type.Type[_] => Some("T.")
-      case _: Value.Value[_, _] => Some("V.")
-      case _: Value.Pattern[_] => Some("Pattern.")
-      case _: Value.Specification[_] => Some("VSpec.")
-      case _: Value.Definition[_, _] => Some("VDef.")
-      case _: Type.Specification[_] => Some("TSpec.")
-      case _: Type.Definition[_] => Some("TDef.")
+      case _: Type.Type[_]                                     => Some("T.")
+      case _: Value.Value[_, _]                                => Some("V.")
+      case _: Value.Pattern[_]                                 => Some("Pattern.")
+      case _: Value.Specification[_]                           => Some("VSpec.")
+      case _: Value.Definition[_, _]                           => Some("VDef.")
+      case _: Type.Specification[_]                            => Some("TSpec.")
+      case _: Type.Definition[_]                               => Some("TDef.")
       case other if other.getClass.getName.endsWith("RTValue") => Some("RTValue.")
-      case _ => None
+      case _                                                   => None
     }
   }
 
@@ -137,9 +136,9 @@ case class PrintIR(
    */
 
   override def treeify(x: Any, escapeUnicode: Boolean, showFieldNames: Boolean): Tree = {
-    val prefix : String = x match {
+    val prefix: String = x match {
       case AstNode(p) => p
-      case _ => ""
+      case _          => ""
     }
     val existing: Tree = detailLevel.depthLimit match {
       case Some(depth) => treeifyWithDepth(x, depth)
