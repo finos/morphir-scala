@@ -105,6 +105,8 @@ trait TypeModule { module =>
 
   final def field[A](tuple: (String, Type[A])): FieldT[A] = FieldT(Name.fromString(tuple._1), tuple._2)
 
+  final def fields[A](fields: Field[A]*): List[Field[A]] = fields.toList
+
   // Function constructors
   final def function[A](attributes: A, argumentType: Type[A], returnType: Type[A])(implicit
       @unused ev: NeedsAttributes[A]
