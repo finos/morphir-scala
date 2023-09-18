@@ -99,61 +99,31 @@ case class PrintIR(
   // Can there be a "TreeifyWithDepth" option?
   def treeify(x: Any): Tree = this.treeify(x, escapeUnicode, this.detailLevel.showFieldNames)
 
-  object MorphirValue {
-    def unapply(any: Any): Option[String] =
-      any match {
-        case _: Value.Value[_, _] =>
-          Some(
-            any
-              .getClass()
-              .getName()
-              .replace("org.finos.morphir.ir.internal.Value", "V")
-              .replace("$", ".")
-          )
-        case _ =>
-          None
-      }
-  }
 
-  object MorphirType {
-    def unapply(any: Any): Option[String] =
-      any match {
-        case _: Type.Type[_] =>
-          // throw new Exception(s"$any, ${any.getClass().getName()}")
-          Some(
-            any
-              .getClass()
-              .getName()
-              .replace("$", ".")
-              .replace("org.finos.morphir.ir.TypeModule.Type", "T")
-          )
-        case _ =>
-          None
-      }
-  }
   def fqnv(fqn: FQName): String = detailLevel.fqnView(fqn)
   def simplifyName(full: String): String =
     full
       .replace("$", ".")
-      .replace("org.finos.morphir.ir.TypeModule.Type", "T")
-      .replace("org.finos.morphir.ir.internal.Value", "V")
-      .replace("org.finos.morphir.ir.internal.Pattern", "Pattern")
-      .replace("org.finos.morphir.ir.Literal.Literal", "Literal")
+      .replace("org.finos.morphir.ir.TypeModule.Type", "")
+      .replace("org.finos.morphir.ir.internal.Value", "")
+      .replace("org.finos.morphir.ir.internal.Pattern", "")
+      .replace("org.finos.morphir.ir.Literal.Literal", "")
 
   /**
-   * Extractor for any MorphirIR we want to treat specially for naming/depth limiting:
+   * Extractor for any MorphirIR we want to treat specially for naming/depth limiting.
+   * Returns a prefix used to clarify which nodes are which.
    */
-  object MorphirIR {
-    def unapply(any: Any): Boolean = any match {
-      case _: Type.Type[_]           => true
-      case _: Value.Value[_, _]      => true
-      case _: Value.Pattern[_]       => true
-      case _: Value.Specification[_] => true
-      case _: Value.Definition[_, _] => true
-      case _: Type.Specification[_]  => true
-      case _: Type.Definition[_]     => true
-      // case _ : Result => true
-      case _ => true
+  object AstNode {
+    def unapply(any: Any): Option[String] = any match {
+      case _: Type.Type[_] => Some("T.")
+      case _: Value.Value[_, _] => Some("V.")
+      case _: Value.Pattern[_] => Some("Pattern.")
+      case _: Value.Specification[_] => Some("VSpec.")
+      case _: Value.Definition[_, _] => Some("VDef.")
+      case _: Type.Specification[_] => Some("TSpec.")
+      case _: Type.Definition[_] => Some("TDef.")
+      case other if other.getClass.getName.endsWith("RTValue") => Some("RTValue.")
+      case _ => None
     }
   }
 
@@ -167,13 +137,17 @@ case class PrintIR(
    */
 
   override def treeify(x: Any, escapeUnicode: Boolean, showFieldNames: Boolean): Tree = {
+    val prefix : String = x match {
+      case AstNode(p) => p
+      case _ => ""
+    }
     val existing: Tree = detailLevel.depthLimit match {
       case Some(depth) => treeifyWithDepth(x, depth)
       case None        => treeifyNoDepth(x)
     }
     existing match {
-      case Apply(prefix, body) => Apply(simplifyName(prefix), body)
-      case Literal(body)       => Literal(simplifyName(body))
+      case Apply(prefix, body) => Apply(prefix + simplifyName(prefix), body)
+      case Literal(body)       => Literal(prefix + simplifyName(body))
       case other               => other
     }
 
@@ -181,7 +155,7 @@ case class PrintIR(
 
   def treeifyWithDepth(x: Any, depth: Int): Tree =
     x match {
-      case MorphirIR() if depth <= 0 =>
+      case AstNode(_) if depth <= 0 =>
         x match {
           // Leafs can display even at depth 0
           // Assume compression for these cases
@@ -195,7 +169,7 @@ case class PrintIR(
           case V.Literal(_, l) => treeifyHelper(l)
           case other           => Tree.Literal(s"${other.getClass.getName}(..)")
         }
-      case MorphirIR() =>
+      case AstNode(_) =>
         x match {
           case V.Record(_, fields) =>
             if (fields.length <= depth)
