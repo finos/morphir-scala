@@ -96,7 +96,6 @@ case class PrintIR(
 
   def withDepth(depth: Int): PrintIR = this.copy(detailLevel = detailLevel.copy(depthLimit = Some(depth)))
 
-  // Can there be a "TreeifyWithDepth" option?
   def treeify(x: Any): Tree = this.treeify(x, escapeUnicode, this.detailLevel.showFieldNames)
 
   def fqnv(fqn: FQName): String = detailLevel.fqnView(fqn)
@@ -125,15 +124,6 @@ case class PrintIR(
       case _                                                   => None
     }
   }
-
-  /**
-   * Entry/dispatch site for treeify function Should: -check depth if appropriate -handle references? -handle FQNames?
-   * -handle name shortening
-   * @param x
-   * @param escapeUnicode
-   * @param showFieldNames
-   * @return
-   */
 
   override def treeify(x: Any, escapeUnicode: Boolean, showFieldNames: Boolean): Tree = {
     val node_prefix: String = x match {
