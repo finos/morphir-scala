@@ -81,7 +81,7 @@ case class PrintIR(
 ) extends pprint.Walker {
   val escapeUnicode                 = false
   val defaultHeight: Int            = Integer.MAX_VALUE
-  val defaultIndent: Int            = 3
+  val defaultIndent: Int            = 2
   val colorLiteral: fansi.Attrs     = fansi.Color.Green
   val colorApplyPrefix: fansi.Attrs = fansi.Color.Yellow
   var verbose: Boolean              = false
