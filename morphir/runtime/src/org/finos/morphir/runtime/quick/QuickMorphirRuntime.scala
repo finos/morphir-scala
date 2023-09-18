@@ -20,6 +20,7 @@ import scala.util.{Failure, Success, Try}
 import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
 import org.finos.morphir.runtime.environment.MorphirEnv
 import zio.prelude.fx.ZPure
+import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 
 private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: GlobalDefs)
     extends TypedMorphirRuntime {
@@ -82,7 +83,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
               tpe <- findTypeBindings(tpe, params.toList, dists, Map())(ctx.options)
             } yield V.applyInferType(tpe, V.reference(fqn), params: _*)
           case other => RTAction.fail(
-              new TypeError.OtherTypeError(s"Entry point must be a Reference, instead found ${Succinct.Value(other)}")
+              new TypeError.OtherTypeError(s"Entry point must be a Reference, instead found ${PrintIR(other)}")
             )
         }
       }

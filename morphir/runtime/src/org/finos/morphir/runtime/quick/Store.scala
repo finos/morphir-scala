@@ -9,69 +9,10 @@ import org.finos.morphir.ir.Value.{Pattern, Value}
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.{Module, Type}
-import org.finos.morphir.runtime.TypedMorphirRuntime.{RuntimeDefinition, TypeAttribs, ValueAttribs}
+import org.finos.morphir.runtime.{NativeSDK, RTValue, SDKConstructor, SDKValue}
+import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{RuntimeDefinition, TypeAttribs, ValueAttribs}
+import org.finos.morphir.runtime.internal.{CallStackFrame, StoredValue}
 import zio.Chunk
-
-sealed trait SDKValue
-
-case class SDKConstructor(arguments: List[ValueAttribs])
-object SDKValue {
-  case class SDKValueDefinition(definition: RuntimeDefinition) extends SDKValue
-  case class SDKNativeFunction(function: NativeFunctionSignature) extends SDKValue {
-    def arguments = function.numArgs
-  }
-
-  object SDKNativeFunction {
-    import NativeFunctionSignature._
-    def fun1(f: Result => Result) =
-      new SDKNativeFunction(Fun1(f))
-    def fun2(f: (Result, Result) => Result) =
-      new SDKNativeFunction(Fun2(f))
-    def fun3(f: (Result, Result, Result) => Result) =
-      new SDKNativeFunction(Fun3(f))
-    def fun4(f: (Result, Result, Result, Result) => Result) =
-      new SDKNativeFunction(Fun4(f))
-    def fun5(f: (
-        Result,
-        Result,
-        Result,
-        Result,
-        Result
-    ) => Result) =
-      new SDKNativeFunction(Fun5(f))
-  }
-
-  case class SDKNativeInnerFunction(function: NativeFunctionSignatureAdv)
-      extends SDKValue {
-    def arguments = function.numArgs
-  }
-
-  case class SDKNativeValue(value: Result) extends SDKValue
-}
-
-sealed trait StoredValue
-object StoredValue {
-  case class Eager(value: Result) extends StoredValue
-  case class Lazy(
-      toEvaluate: RuntimeDefinition,
-      parentContext: CallStackFrame,
-      siblings: Map[Name, RuntimeDefinition]
-  ) extends StoredValue
-}
-
-final case class CallStackFrame(
-    bindings: Map[Name, StoredValue],
-    parent: Option[CallStackFrame]
-) {
-  def get(name: Name): Option[StoredValue] =
-    (bindings.get(name), parent) match {
-      case (Some(res), _)            => Some(res)
-      case (None, Some(parentFrame)) => parentFrame.get(name)
-      case (None, None)              => None
-    }
-  def push(bindings: Map[Name, StoredValue]): CallStackFrame =
-    CallStackFrame(bindings, Some(this))
-}
 
 final case class Store(
     callStack: CallStackFrame
@@ -128,5 +69,5 @@ object GlobalDefs {
   def empty: GlobalDefs =
     GlobalDefs(Map(), Map())
   def native: GlobalDefs =
-    GlobalDefs(Native.native, Native.nativeCtors)
+    GlobalDefs(Native.native ++ NativeSDK.resolvedFunctions, Native.nativeCtors)
 }
