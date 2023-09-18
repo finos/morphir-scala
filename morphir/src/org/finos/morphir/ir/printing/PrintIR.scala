@@ -44,7 +44,7 @@ object DetailLevel {
         compressReferences = false,
         showFieldNames = true,
         fqnView = FQNameView.ModuleLocal,
-        depthLimit = Some(4)
+        depthLimit = Some(3)
       )
   object BirdsEye extends DetailLevel(
         compressNames = true,
@@ -163,10 +163,12 @@ case class PrintIR(
             Tree.Literal(s"Ref(${fqnv(fqn)})")
           case T.Reference(_, fqn, _) =>
             Tree.Literal(s"Ref(${fqnv(fqn)}) [..]")
+          case T.Variable(_, name) => s"Variable(${name.toCamelCase})"
           case V.Reference(_, fqn) =>
             Tree.Literal(s"Ref(${fqnv(fqn)})")
-          case V.Literal(_, l) => treeifyHelper(l)
-          case other           => Tree.Literal(s"${other.getClass.getName}(..)")
+          case V.Literal(_, l)     => treeifyHelper(l)
+          case V.Variable(_, name) => Tree.Literal(s"Variable(${name.toCamelCase})")
+          case other               => Tree.Literal(s"${other.getClass.getName}(..)")
         }
       case AstNode(_) =>
         x match {
