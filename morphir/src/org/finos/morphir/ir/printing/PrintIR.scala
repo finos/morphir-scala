@@ -103,10 +103,10 @@ case class PrintIR(
   def simplifyName(full: String): String =
     full
       .replace("$", ".")
-      .replace("org.finos.morphir.ir.TypeModule.Type", "")
-      .replace("org.finos.morphir.ir.internal.Value", "")
-      .replace("org.finos.morphir.ir.internal.Pattern", "")
-      .replace("org.finos.morphir.ir.Literal.Literal", "")
+      .replace("org.finos.morphir.ir.TypeModule.Type.", "")
+      .replace("org.finos.morphir.ir.internal.Value.", "")
+      .replace("org.finos.morphir.ir.internal.Pattern.", "")
+      .replace("org.finos.morphir.ir.Literal.Literal.", "")
 
   /**
    * Extractor for any MorphirIR we want to treat specially for naming/depth limiting. Returns a prefix used to clarify
@@ -136,7 +136,7 @@ case class PrintIR(
    */
 
   override def treeify(x: Any, escapeUnicode: Boolean, showFieldNames: Boolean): Tree = {
-    val prefix: String = x match {
+    val node_prefix: String = x match {
       case AstNode(p) => p
       case _          => ""
     }
@@ -145,8 +145,8 @@ case class PrintIR(
       case None        => treeifyNoDepth(x)
     }
     existing match {
-      case Apply(prefix, body) => Apply(prefix + simplifyName(prefix), body)
-      case Literal(body)       => Literal(prefix + simplifyName(body))
+      case Apply(prefix, body) => Apply(node_prefix + simplifyName(prefix), body)
+      case Literal(body)       => Literal(node_prefix + simplifyName(body))
       case other               => other
     }
 

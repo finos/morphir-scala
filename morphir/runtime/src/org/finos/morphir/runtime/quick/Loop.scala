@@ -55,7 +55,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       s"""
             =====LOOPING: ${PrintIR(ir, detailLevel = DetailLevel.BirdsEye)}
             =====toString: ${ir.toString}
-            =====RESULT: ${PrintIR(result, detailLevel = DetailLevel.Medium)}
+            =====RESULT: ${PrintIR(result, detailLevel = DetailLevel.BirdsEye)}
             """.stripMargin
     )
     result
