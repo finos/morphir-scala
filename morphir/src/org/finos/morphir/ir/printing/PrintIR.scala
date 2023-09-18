@@ -109,7 +109,7 @@ case class PrintIR(
 
   /**
    * Extractor for any MorphirIR we want to treat specially for naming/depth limiting. Returns a prefix used to clarify
-   * which nodes are which.
+   * which nodes are which, for help with duplicate names.
    */
   object AstNode {
     def unapply(any: Any): Option[String] = any match {
