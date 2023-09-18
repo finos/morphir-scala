@@ -163,7 +163,7 @@ case class PrintIR(
             Tree.Literal(s"Ref(${fqnv(fqn)})")
           case T.Reference(_, fqn, _) =>
             Tree.Literal(s"Ref(${fqnv(fqn)}) [..]")
-          case T.Variable(_, name) => s"Variable(${name.toCamelCase})"
+          case T.Variable(_, name) => Tree.Literal(s"Variable(${name.toCamelCase})")
           case V.Reference(_, fqn) =>
             Tree.Literal(s"Ref(${fqnv(fqn)})")
           case V.Literal(_, l)     => treeifyHelper(l)
