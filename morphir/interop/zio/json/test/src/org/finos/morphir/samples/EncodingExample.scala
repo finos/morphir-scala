@@ -73,7 +73,7 @@ object EncodingExample {
         case Right(value) => value
         case Left(error)  => throw new RuntimeException(error)
       }
-    println(PrintIR(decoded, DetailLevel.BirdsEye, FieldNames.Hide))
+    println(PrintIR(decoded, DetailLevel.BirdsEye.copy(showFieldNames = false)))
     ()
   }
 

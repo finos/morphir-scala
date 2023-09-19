@@ -10,7 +10,7 @@ import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.Literal.Lit
-import org.finos.morphir.runtime.internal.Succinct
+import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import zio.Chunk
 
 sealed abstract class MorphirRuntimeError(message: String) extends Exception(message)
@@ -21,17 +21,18 @@ final case class MorphirIRDecodingError(message: String) extends MorphirRuntimeE
 
 sealed abstract class EvaluationError(message: String) extends MorphirRuntimeError(message)
 
-final case class IrToDatamodelError(message: String)         extends EvaluationError(message)
-final case class MissingField(message: String)               extends EvaluationError(message)
-final case class UnexpectedType(message: String)             extends EvaluationError(message)
-final case class IllegalValue(message: String)               extends EvaluationError(message)
-final case class UnmatchedPattern(message: String)           extends EvaluationError(message)
-final case class FunctionWithoutParameters(message: String)  extends EvaluationError(message)
-final case class VariableNotFound(message: String)           extends EvaluationError(message)
-final case class DefinitionNotFound(message: String)         extends EvaluationError(message)
-final case class SpecificationNotFound(message: String)      extends EvaluationError(message)
-final case class ConstructorNotFound(message: String)        extends EvaluationError(message)
-final case class ResultDoesNotMatchType(message: String)     extends EvaluationError(message)
+final case class IrToDatamodelError(message: String)        extends EvaluationError(message)
+final case class MissingField(message: String)              extends EvaluationError(message)
+final case class UnexpectedType(message: String)            extends EvaluationError(message)
+final case class IllegalValue(message: String)              extends EvaluationError(message)
+final case class UnmatchedPattern(message: String)          extends EvaluationError(message)
+final case class FunctionWithoutParameters(message: String) extends EvaluationError(message)
+final case class VariableNotFound(message: String)          extends EvaluationError(message)
+final case class DefinitionNotFound(message: String)        extends EvaluationError(message)
+final case class SpecificationNotFound(message: String)     extends EvaluationError(message)
+final case class ConstructorNotFound(message: String)       extends EvaluationError(message)
+final case class ResultDoesNotMatchType(message: String)    extends EvaluationError(message)
+
 final case class VariableAccessError(message: String)        extends EvaluationError(message)
 final case class FunctionReturnedToTopLevel(message: String) extends EvaluationError(message)
 final case class UnsupportedType(message: String)            extends EvaluationError(message)
@@ -43,9 +44,7 @@ abstract class TypeError(msg: String) extends MorphirRuntimeError(msg) {
   def getMsg: String = msg
 }
 object TypeError {
-  def succinct[TA, VA](value: Value[TA, VA]): String  = Succinct.Value(value)
-  def succinct[TA](tpe: Type[TA]): String             = Succinct.Type(tpe)
-  def succinct[TA](spec: T.Specification[TA]): String = Succinct.TypeSpec(spec)
+  def succinct(any: Any): String = PrintIR(any, detailLevel = DetailLevel.BirdsEye).toString
 
   final case class TypesMismatch(tpe1: UType, tpe2: UType, msg: String)
       extends TypeError(s"$msg: ${succinct(tpe1)} vs ${succinct(tpe2)}")
