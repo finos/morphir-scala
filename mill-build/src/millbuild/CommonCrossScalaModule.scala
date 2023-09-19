@@ -192,7 +192,7 @@ trait CommonScalaModule extends ScalaModule {
           "-Xsource:3"
         )
       case Array("2", _, _) =>
-        commonCompilerOptions ++ Seq("-language:existentials", "-Yrangepos", "-Xsource:3")
+        commonCompilerOptions ++ Seq("-language:existentials", "-Yrangepos", "-Xsource:3", "-Wconf:cat=scala3-migration:s")
       case Array("3", _, _) =>
         filterScala3Options(commonCompilerOptions) ++ Seq(
           // TODO: Enable later
