@@ -16,6 +16,8 @@ import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.TypeError.CannotDealias
 import org.finos.morphir.runtime.exports.*
+import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
+import org.finos.morphir.runtime.quick.GatherReferences
 import zio.Chunk
 import TypeError.*
 
@@ -57,7 +59,7 @@ final class TypeChecker(dists: Distributions) {
         val modPart             = if (mod1 != mod2) s"{$mod1 </=/> $mod2}" else mod1
         val locPart = if (loc1 != loc2) s"{${loc1.toTitleCase} </=/> ${loc2.toTitleCase}" else loc1.toTitleCase
         s"$packPart:$modPart:$locPart"
-      case _ => s"(${Succinct.Type(tpe1, 2)} vs ${Succinct.Type(tpe2, 2)})"
+      case _ => s"(${PrintIR(tpe1)} vs ${PrintIR(tpe2)})"
     }
   }
   // Helper to check that two lists of types (such as tuple or arguments) match, both in length and contents
@@ -116,6 +118,17 @@ final class TypeChecker(dists: Distributions) {
       }
     loop(tpe, None, context)
   }
+  def checkAllDefinitions(): List[TypeError] =
+    GatherReferences.fromDistributions(dists.getDists.values.toList: _*).definitions.toList.filter(
+      !Utils.isNative(_)
+    ).flatMap(checkDefinitionBody(_))
+  def checkDefinitionBody(fqn: FQName): List[TypeError] = {
+    val maybeDefinition = dists.lookupValueDefinition(fqn)
+    maybeDefinition match {
+      case Left(error)       => List(new DefinitionMissing(error))
+      case Right(definition) => check(definition.body)
+    }
+  }
 
   def conformsTo(valueType: UType, declaredType: UType): List[TypeError] =
     conformsTo(valueType, declaredType, Context.empty)
@@ -123,7 +136,7 @@ final class TypeChecker(dists: Distributions) {
     import Extractors.Types.*
     (valueType, declaredType) match {
       // Dealias everything first! You need to do this before the (LeafValue, LeafValue) check
-      // and possibly the Type.Reference check.
+      // and possibly the Type.Reference check (See elm error w/ unused type argument)
       case (dealiased(value), declared) =>
         conformsTo(value, declared, context)
       case (value, dealiased(declared)) =>
@@ -149,7 +162,7 @@ final class TypeChecker(dists: Distributions) {
         // Use .diff to find if some are entirely absent from the other
         val missingFromValue = valueFieldSet
           .diff(declaredFieldSet).toList.map(missing =>
-            TypeLacksField(valueTpe, missing, s"Required by ${Succinct.Type(declaredTpe)}")
+            TypeLacksField(valueTpe, missing, s"Required by ${PrintIR(declaredTpe)}")
           )
         val missingFromDeclared = declaredFieldSet
           .diff(valueFieldSet).toList.map(bonus => TypeHasExtraField(valueTpe, declaredTpe, bonus))
@@ -180,7 +193,7 @@ final class TypeChecker(dists: Distributions) {
       case (valueOther, declaredOther) if valueOther.getClass == declaredOther.getClass =>
         List(
           new UnimplementedType(
-            s"No matching support for ${Succinct.Type(valueOther)} vs ${Succinct.Type(declaredOther)}"
+            s"No matching support for ${PrintIR(valueOther)} vs $PrintIR(declaredOther)}"
           )
         )
       case (valueOther, declaredOther) => List(new TypesMismatch(valueOther, declaredOther, "Different types of type"))
@@ -230,6 +243,7 @@ final class TypeChecker(dists: Distributions) {
       case (BoolLiteral(_), BoolRef())       => List()
       case (WholeNumberLiteral(_), IntRef()) => List() // TODO: "WholeNumberRef" extractor
       case (DecimalLiteral(_), DecimalRef()) => List()
+      case (_, Type.Variable(_, _))          => List() // TODO: Type variable handling
       case (otherLit, otherTpe)              => List(new LiteralTypeMismatch(otherLit, otherTpe))
     }
     fromChildren ++ matchErrors
@@ -285,11 +299,13 @@ final class TypeChecker(dists: Distributions) {
                     checkList(
                       args.toList,
                       ctorArgs.toList.map(_._2).map(Utils.applyBindings(_, newBindings)),
-                      context.withPrefix(s"Comparing $fqn constructor value to looked up type ${Succinct.Type(tpe)}")
+                      context.withPrefix(s"Comparing $fqn constructor value to looked up type ${PrintIR(tpe)}")
                     )
                   case None =>
                     List(
-                      new OtherTypeError(s"Constructor type $name exists, but does not have arm for ${fqn.localName}")
+                      new OtherTypeError(
+                        s"Constructor type $name exists, but does not have arm for ${fqn.localName.toCamelCase}"
+                      )
                     )
                 }
                 missedName ++ fromCtor
@@ -305,13 +321,14 @@ final class TypeChecker(dists: Distributions) {
   }
   def handleFieldValue(tpe: UType, recordValue: TypedValue, name: Name, context: Context): TypeCheckerResult = {
     val fromChildren = check(recordValue, context)
-    val fromTpe = recordValue.attributes match {
-      case Type.Record(_, fields) =>
+    val fromTpe = dealias(recordValue.attributes, context) match {
+      case Right(Type.Record(_, fields)) =>
         fields.map(field => field.name -> field.data).toMap.get(name) match {
           case None           => List(new TypeLacksField(tpe, name, "Referenced by field none"))
           case Some(fieldTpe) => conformsTo(fieldTpe, tpe, context)
         }
-      case other => List(new ImproperType(other, s"Reference type expected"))
+      case Right(other) => List(new ImproperType(other, s"Record type expected"))
+      case Left(err)    => List(err)
     }
     fromChildren ++ fromTpe
   }
@@ -440,11 +457,13 @@ final class TypeChecker(dists: Distributions) {
   def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
     val fromChildren = List()
     val fromType = if (!Utils.isNative(fqn)) {
-      dists.lookupValueSpecification(fqn) match {
+      dists.lookupValueDefinition(fqn) match {
         case Left(err) => List(new DefinitionMissing(err))
-        case Right(spec) =>
+        case Right(definition) =>
+          val spec    = definition.toSpecification
           val curried = Utils.curryTypeFunction(spec.output, spec.inputs)
           conformsTo(curried, tpe, context)
+
       }
     } else List() // TODO: Handle native type references
     fromChildren ++ fromType

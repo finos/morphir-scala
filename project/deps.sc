@@ -216,14 +216,14 @@ object Versions {
   val spire                      = "0.18.0"
   val `tasty-query`              = "0.5.6"
   val upickle                    = "3.0.0-M1"
-  val zio                        = "2.0.16"
+  val zio                        = "2.0.17"
   val `zio-cli`                  = "0.5.0"
   val `zio-config`               = "4.0.0-RC16"
   val `zio-interop-cats`         = "23.0.03"
   val `zio-json`                 = "0.6.2"
   val `zio-nio`                  = "2.0.2"
   val `zio-parser`               = "0.1.9"
-  val `zio-prelude`              = "1.0.0-RC20"
+  val `zio-prelude`              = "1.0.0-RC21"
   val `zio-process`              = "0.7.2"
   val `zio-schema`               = "0.4.12"
 }
@@ -231,7 +231,7 @@ object Versions {
 object ScalaVersions {
   import DevMode._
   val all      = if (devMode) Seq(scala3x) else Seq(scala213, scala3x)
-  def scala213 = "2.13.11"
+  def scala213 = "2.13.12"
   def scala3x  = "3.3.1"
 
   def scalaJSVersion     = "1.13.2"

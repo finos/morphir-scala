@@ -16,6 +16,8 @@ import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
 import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
+
+import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import TypeError.*
 
 object Utils {
@@ -60,7 +62,9 @@ object Utils {
     (arg, param) match {
       case (argType, Type.Variable(_, name)) =>
         if (found.contains(name) && found(name) != argType) {
-          failIfChecked(InferenceConflict(s"Both ${found(name)} and $argType bound to type variable $name"))
+          failIfChecked(
+            InferenceConflict(s"Both ${PrintIR(found(name))} and ${PrintIR(argType)} bound to type variable $name")
+          )
         } else {
           Right(found + (name -> argType))
         }
@@ -70,7 +74,7 @@ object Utils {
           failIfChecked(new SizeMismatch(
             argElements.length,
             paramElements.length,
-            s"Different tuple arity between arg $argElements and parameter $paramElements"
+            s"Different tuple arity between arg ${PrintIR(argElements)} and parameter ${PrintIR(paramElements)}"
           ))
         } else {
           argElements.zip(paramElements).foldLeft(Right(found): Either[TypeError, Map[Name, UType]]) {
@@ -95,7 +99,7 @@ object Utils {
           failIfChecked(new SizeMismatch(
             argFields.length,
             paramFields.length,
-            s"Record lengths differ between arg : $argFields and param: $paramFields"
+            s"Record lengths differ between arg : ${PrintIR(argFields)} and param: ${PrintIR(paramFields)}"
           ))
         } else {
           argFields.zip(paramFields).foldLeft(Right(found): Either[TypeError, Map[Name, UType]]) {
@@ -141,7 +145,7 @@ object Utils {
       case (dealiaser(inner), args) =>
         findTypeBindings(inner, args, dists, knownBindings)
       case (nonFunction, head :: _) =>
-        RTAction.fail(new ImproperType(nonFunction, s"Tried to apply argument ${Succinct.Value(head)} to non-function"))
+        RTAction.fail(new ImproperType(nonFunction, s"Tried to apply argument ${PrintIR(head)} to non-function"))
     }
   }
   def isNative(fqn: FQName): Boolean = {
