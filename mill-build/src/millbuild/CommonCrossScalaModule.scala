@@ -65,7 +65,15 @@ trait CommonScalaModule extends ScalaModule {
     super.scalacOptions() ++ options ++ additionalScalacOptions()
   }
 
-  def scalaDocOptions = filterScala3DocOptions(super.scalaDocOptions())
+  def scalaDocOptions = T {
+    val extraOptions =  
+      if (isScala213()) {
+        Seq("-Wconf:cat=scala3-migration:s")
+      } else {
+        Seq.empty
+      }
+    filterScala3DocOptions(super.scalaDocOptions()) ++ extraOptions
+  }
 
   override def scalacPluginIvyDeps: Target[Agg[Dep]] = T {
     super.scalacPluginIvyDeps() ++ compilerPlugins(scalaVersion())
