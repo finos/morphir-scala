@@ -197,10 +197,10 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: |
-            out/morphir/2.13.11/**/jvm/
+            out/morphir/2.13.12/**/jvm/
             out/morphir/build/
-          key: ${{ runner.os }}-mill-jvm-11-2.13.11-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-jvm-11-2.13.11-${{ github.sha }}-
+          key: ${{ runner.os }}-mill-jvm-11-2.13.12-${{ github.sha }}-${{ hashFiles('out') }}
+          restore-keys: ${{ runner.os }}-mill-jvm-11-2.13.12-${{ github.sha }}-
 
       - name: Restore Scala 3.3 JVM Build Output From Cache
         uses: actions/cache/restore@v3
@@ -214,9 +214,9 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: |
-            out/morphir/2.13.11/**/js/
-          key: ${{ runner.os }}-mill-js-11-2.13.11-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-js-11-2.13.11-${{ github.sha }}-
+            out/morphir/2.13.12/**/js/
+          key: ${{ runner.os }}-mill-js-11-2.13.12-${{ github.sha }}-${{ hashFiles('out') }}
+          restore-keys: ${{ runner.os }}-mill-js-11-2.13.12-${{ github.sha }}-
 
       - name: Restore Scala 3.3 JS Build Output From Cache
         uses: actions/cache/restore@v3
@@ -230,9 +230,9 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: |
-            out/morphir/2.13.11/**/native/
-          key: ${{ runner.os }}-mill-native-11-2.13.11-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-native-11-2.13.11-${{ github.sha }}-
+            out/morphir/2.13.12/**/native/
+          key: ${{ runner.os }}-mill-native-11-2.13.12-${{ github.sha }}-${{ hashFiles('out') }}
+          restore-keys: ${{ runner.os }}-mill-native-11-2.13.12-${{ github.sha }}-
 
       - name: Restore Scala 3.3 Native Build Output From Cache
         uses: actions/cache/restore@v3
