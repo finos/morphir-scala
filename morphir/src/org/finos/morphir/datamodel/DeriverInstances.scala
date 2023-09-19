@@ -44,7 +44,7 @@ trait DeriverInstances {
 
   implicit val shortDeriver: CustomDeriver[Short] = new CustomDeriver[Short] {
     def derive(value: Short):Data = Data.Int16(value)
-    def concept:Cncept              = Concept.Int16
+    def concept:Concept              = Concept.Int16
   }
 
   implicit val intDeriver: CustomDeriver[Int] = new CustomDeriver[Int] {
@@ -54,37 +54,37 @@ trait DeriverInstances {
 
   implicit val longDeriver: CustomDeriver[Long] = new CustomDeriver[Long] {
     def derive(value: Long):Data = Data.Int64(value)
-    def concept             = Concept.Int64
+    def concept:Concept             = Concept.Int64
   }
 
   implicit val stringDeriver: CustomDeriver[String] = new CustomDeriver[String] {
     def derive(value: String):Data = Data.String(value)
-    def concept               = Concept.String
+    def concept:Concept               = Concept.String
   }
 
   implicit val localDateDeriver: CustomDeriver[LocalDate] = new CustomDeriver[LocalDate] {
     def derive(value: LocalDate):Data = Data.LocalDate(value)
-    def concept                  = Concept.LocalDate
+    def concept:Concept                  = Concept.LocalDate
   }
 
   implicit val monthDeriver: CustomDeriver[Month] = new CustomDeriver[Month] {
     def derive(value: Month):Data = Data.Month(value)
-    def concept              = Concept.Month
+    def concept:Concept              = Concept.Month
   }
 
   implicit val localTimeDeriver: CustomDeriver[LocalTime] = new CustomDeriver[LocalTime] {
     def derive(value: LocalTime):Data = Data.LocalTime(value)
-    def concept                  = Concept.LocalTime
+    def concept:Concept                  = Concept.LocalTime
   }
 
   implicit val charDeriver: CustomDeriver[Char] = new CustomDeriver[Char] {
     def derive(value: Char):Data = Data.Char(value)
-    def concept             = Concept.Char
+    def concept:Concept             = Concept.Char
   }
 
   implicit val unitDeriver: CustomDeriver[Unit] = new CustomDeriver[Unit] {
-    def derive(value: Unit) = Data.Unit
-    def concept             = Concept.Unit
+    def derive(value: Unit):Data = Data.Unit
+    def concept:Concept             = Concept.Unit
   }
 
   implicit def eitherDeriver[L, R](implicit
@@ -92,7 +92,7 @@ trait DeriverInstances {
       rightDeriver: Deriver[R]
   ): CustomDeriver[Either[L, R]] =
     new CustomDeriver[Either[L, R]] {
-      def derive(value: Either[L, R]) =
+      def derive(value: Either[L, R]):Data =
         value match {
           case Right(value) => Data.Result.Ok(rightDeriver.derive(value), this.concept)
           case Left(value)  => Data.Result.Err(leftDeriver.derive(value), this.concept)
@@ -112,34 +112,34 @@ trait DeriverInstances {
 
   implicit def leftDeriver[L](implicit leftDeriver: Deriver[L]): CustomDeriver[Left[L, Nothing]] =
     new CustomDeriver[Left[L, Nothing]] {
-      def derive(value: Left[L, Nothing]) = Data.Result.Err(leftDeriver.derive(value.value), this.concept)
+      def derive(value: Left[L, Nothing]):Data = Data.Result.Err(leftDeriver.derive(value.value), this.concept)
       def concept: Concept.Result         = Concept.Result(leftDeriver.concept, Concept.Nothing)
     }
 
   implicit def optionDeriver[T](implicit elementDeriver: Deriver[T]): CustomDeriver[Option[T]] =
     new CustomDeriver[Option[T]] {
-      def derive(value: Option[T]) =
+      def derive(value: Option[T]):Data =
         value match {
           case Some(value) => Data.Optional.Some(elementDeriver.derive(value), elementDeriver.concept)
           case None        => Data.Optional.None(elementDeriver.concept)
         }
-      def concept = Concept.Optional(elementDeriver.concept)
+      def concept:Concept = Concept.Optional(elementDeriver.concept)
     }
 
   implicit def optionSomeDeriver[T](implicit elementDeriver: Deriver[T]): CustomDeriver[Some[T]] =
     new CustomDeriver[Some[T]] {
-      def derive(value: Some[T]) = Data.Optional.Some(elementDeriver.derive(value.value), elementDeriver.concept)
-      def concept                = Concept.Optional(elementDeriver.concept)
+      def derive(value: Some[T]):Data = Data.Optional.Some(elementDeriver.derive(value.value), elementDeriver.concept)
+      def concept:Concept                = Concept.Optional(elementDeriver.concept)
     }
 
   implicit val optionNoneDeriver: CustomDeriver[scala.None.type] = new CustomDeriver[scala.None.type] {
-    def derive(value: scala.None.type) = Data.Optional.None(Concept.Nothing)
-    def concept                        = Concept.Optional(Concept.Nothing)
+    def derive(value: scala.None.type):Data = Data.Optional.None(Concept.Nothing)
+    def concept:Concept                        = Concept.Optional(Concept.Nothing)
   }
 
   implicit def listDeriver[T](implicit elementDeriver: Deriver[T]): CustomDeriver[List[T]] =
     new CustomDeriver[List[T]] {
-      def derive(value: scala.List[T]) = {
+      def derive(value: scala.List[T]):Data = {
         def toData(value: T) = elementDeriver.derive(value)
         // Take the schema from the elementDeriver instead of the list elements
         // because even if the elements themeselves have more specific schemas than the derver schema,
@@ -165,7 +165,7 @@ trait DeriverInstances {
       valueDeriver: Deriver[V]
   ): CustomDeriver[mutable.LinkedHashMap[K, V]] =
     new CustomDeriver[LinkedHashMap[K, V]] {
-      def derive(value: LinkedHashMap[K, V]) = {
+      def derive(value: LinkedHashMap[K, V]):Data = {
         def toData(value: (K, V)) = (keyDeriver.derive(value._1), valueDeriver.derive(value._2))
         Data.Map.copyFrom(value.map(toData(_)), Concept.Map(keyDeriver.concept, valueDeriver.concept))
       }
