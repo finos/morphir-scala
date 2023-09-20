@@ -11,7 +11,45 @@ import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
+import org.finos.morphir.datamodel.{Concept, Data}
 import zio.Chunk
+
+implicit class ErrorInterpolator(sc: StringContext) {
+  def err(args: Any*): String = {
+    val messageBits = sc.parts
+    val processed = args.map(process(_))
+    messageBits.head + processed.zip(messageBits.tail).flatMap { case (message, ir) => List(message, ir) }.mkString("")
+    //(messageBits.map(bit => s"from sc.parts: $bit\n") ++ args.map(bit => s"from args: $bit\n")).mkString("")
+  }
+    
+  def process(astLike: Any): String = {
+    if (isASTLike(astLike))
+      s""" {
+         |\t Elm: $astLike
+         |\t IR: ${PrintIR(astLike)}
+         |}""".stripMargin
+    else
+      astLike.toString
+  }
+
+  def isIR(any: Any): Boolean = any match {
+    case _: Type[_] => true
+    case _: Value[_, _] => true
+    case _: Pattern[_] => true
+    case _: V.Specification[_] => true
+    case _: V.Definition[_, _] => true
+    case _: T.Specification[_] => true
+    case _: T.Definition[_] => true
+    case _ => false
+  }
+
+  def isASTLike(any: Any): Boolean = any match {
+    case _: RTValue => true
+    case _: Data => true
+    case _: Concept => true
+    case other => isIR(other)
+  }
+}
 
 sealed abstract class MorphirRuntimeError(message: String) extends Exception(message)
 
@@ -47,14 +85,11 @@ object TypeError {
   def succinct(any: Any): String = PrintIR(any, detailLevel = DetailLevel.BirdsEye).toString
 
   final case class TypesMismatch(tpe1: UType, tpe2: UType, msg: String)
-      extends TypeError(s"$msg: ${succinct(tpe1)} vs ${succinct(tpe2)}")
+      extends TypeError(err"$msg: $tpe1 vs $tpe2")
 
-  final case class ArgumentDoesNotMatchParameter(arg: TypedValue, param: UType) extends TypeError(
-        s"Argument ${succinct(arg)}  of type ${succinct(arg.attributes)} does not match parameter ${succinct(param)}"
-      )
 
   final case class ApplyToNonFunction(nonFunction: TypedValue, arg: TypedValue) extends TypeError(
-        s"Tried to apply ${succinct(arg)} to ${succinct(nonFunction)} of type ${succinct(nonFunction.attributes)}, which is not a function"
+        err"Tried to apply $arg to $nonFunction of type ${nonFunction.attributes}, which is not a function"
       )
 
   final case class LiteralTypeMismatch(lit: Lit, tpe: UType)
