@@ -10,10 +10,9 @@ import org.finos.morphir.ir.Value.{
   TypedDefinition as TypedValueDef,
   USpecification as UValueSpec
 }
-import org.finos.morphir.ir.Type.{Type, UType, USpecification as UTypeSpec}
+import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification as UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
-import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.TypeError.CannotDealias
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}

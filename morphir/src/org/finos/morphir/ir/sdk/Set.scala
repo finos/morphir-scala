@@ -34,7 +34,7 @@ object Set extends MorphirIRSdkModule("Set") {
         setType(tVar("comparable"))
       ),
       vSpec("partition", "f" -> tFun(tVar("comparable"))(boolType), "set" -> setType(tVar("comparable")))(
-        tuple(Chunk(setType(tVar("comparable")), setType(tVar("comparable"))))
+        tuple(scala.List(setType(tVar("comparable")), setType(tVar("comparable"))))
       ),
       vSpec("union", "set1" -> setType(tVar("comparable")), "set2" -> setType(tVar("comparable")))(
         setType(tVar("comparable"))

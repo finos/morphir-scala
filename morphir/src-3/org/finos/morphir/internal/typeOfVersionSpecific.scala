@@ -2,10 +2,12 @@ package org.finos.morphir.internal
 import magnolia1.{TypeInfo => TypeName, _}
 import org.finos.morphir.annotation._
 import org.finos.morphir.naming._
+import org.finos.morphir.universe.ir.{FieldT, Type}
+
 import org.finos.morphir.util.attribs.Attributes
 import scala.deriving.Mirror
 trait TypeOfModuleVersionSpecific {
-  self: AccessControlledModule with TypeModule with TypeSpecModule with TypeDefModule with TypeOfModule
+  self: AccessControlledModule with TypeSpecModule with TypeDefModule with TypeOfModule
     with TypeInfoModule =>
   import TypeDefinition._
   import TypeSpecification._
@@ -15,7 +17,7 @@ trait TypeOfModuleVersionSpecific {
       val fields = ctx.parameters.map { param =>
         val name                  = Name.fromString(param.label)
         val tpe: Type[Attributes] = param.typeclass.typeInfo.tpe
-        Field(name, tpe)
+        FieldT(name, tpe)
       }.toList
       val annotations                  = ctx.annotations ++ ctx.inheritedAnnotations ++ ctx.typeAnnotations
       val fqName: Option[FQName]       = deriveFQName(ctx.typeInfo, annotations)
@@ -48,7 +50,7 @@ trait TypeOfModuleVersionSpecific {
 
         fqName match {
           case Some(fqName) =>
-            val typeParams = Vector.empty // TODO: Need to fill out type params if any
+            val typeParams = Vector.empty[Name] // TODO: Need to fill out type params if any
             val typeRef = Type.Reference(
               Attributes.empty,
               fqName,

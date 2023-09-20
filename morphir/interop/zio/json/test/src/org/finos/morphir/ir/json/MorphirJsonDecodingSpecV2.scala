@@ -239,7 +239,7 @@ object MorphirJsonDecodingSpecV2 extends ZIOSpecDefault {
         val var2 = Field(Name("second"), variable[Int](345, "g"))
         val actual =
           """["Record",1,[{"name":["first"],"tpe":["Variable",123,["f"]]},{"name":["second"],"tpe":["Variable",345,["g"]]}]]"""
-        val expected = record(1, zio.Chunk(var1, var2))
+        val expected = record(1, List(var1, var2))
         assertTrue(
           actual.fromJson[Type[Int]] == Right(expected)
         )
@@ -249,7 +249,7 @@ object MorphirJsonDecodingSpecV2 extends ZIOSpecDefault {
         val var2 = Field(Name("second"), variable[Int](345, "g"))
         val actual =
           """["ExtensibleRecord",1,["some","name"],[{"name":["first"],"tpe":["Variable",123,["f"]]},{"name":["second"],"tpe":["Variable",345,["g"]]}]]"""
-        val expected = Type.ExtensibleRecord(1, Name.fromString("someName"), zio.Chunk(var1, var2))
+        val expected = Type.ExtensibleRecord(1, Name.fromString("someName"), var1, var2)
         assertTrue(
           actual.fromJson[Type[Int]] == Right(expected)
         )
@@ -258,7 +258,7 @@ object MorphirJsonDecodingSpecV2 extends ZIOSpecDefault {
         val var1     = variable[Int](123, "f")
         val var2     = variable[Int](345, "g")
         val actual   = """["Tuple",1,[["Variable",123,["f"]],["Variable",345,["g"]]]]"""
-        val expected = Type.Tuple(1, zio.Chunk(var1, var2))
+        val expected = Type.Tuple(1, var1, var2)
         assertTrue(
           actual.fromJson[Type[Int]] == Right(expected)
         )
@@ -268,7 +268,7 @@ object MorphirJsonDecodingSpecV2 extends ZIOSpecDefault {
         val var2 = variable[Int](345, "g")
         val actual =
           """["Reference",1,[[["test"]],[["java","home"]],["morphir"]],[["Variable",123,["f"]],["Variable",345,["g"]]]]"""
-        val expected = Type.Reference(1, FQName.fromString("test:JavaHome:morphir"), zio.Chunk(var1, var2))
+        val expected = Type.Reference(1, FQName.fromString("test:JavaHome:morphir"), var1, var2)
         assertTrue(
           actual.fromJson[Type[Int]] == Right(expected)
         )

@@ -961,7 +961,7 @@ object Value {
     type Typed = Tuple[scala.Unit, UType]
     object Typed {
       def apply(elements: Chunk[TypedValue]): Typed = {
-        val tpe = Type.Tuple((), elements.map(_.attributes))
+        val tpe = Type.Tuple((), elements.map(_.attributes).toList)
         Tuple(tpe, elements)
       }
 

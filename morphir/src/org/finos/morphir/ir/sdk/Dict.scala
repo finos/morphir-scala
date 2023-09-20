@@ -42,8 +42,8 @@ object Dict extends MorphirIRSdkModule("Dict") {
       vSpec("size", "dict" -> dictType(tVar("comparable"), tVar("v")))(intType),
       vSpec("keys", "dict" -> dictType(tVar("k"), tVar("v")))(listType(tVar("k"))),
       vSpec("values", "dict" -> dictType(tVar("k"), tVar("v")))(listType(tVar("v"))),
-      vSpec("toList", "dict" -> dictType(tVar("k"), tVar("v")))(listType(tuple(Chunk(tVar("k"), tVar("v"))))),
-      vSpec("fromList", "list" -> listType(tuple(Chunk(tVar("comparable"), tVar("v")))))(
+      vSpec("toList", "dict" -> dictType(tVar("k"), tVar("v")))(listType(tuple(scala.List(tVar("k"), tVar("v"))))),
+      vSpec("fromList", "list" -> listType(tuple(scala.List(tVar("comparable"), tVar("v")))))(
         dictType(tVar("comparable"), tVar("v"))
       ),
       vSpec("map", "f" -> tFun(tVar("k"), tVar("a"))(tVar("b")), "dict" -> dictType(tVar("k"), tVar("a")))(
@@ -70,7 +70,7 @@ object Dict extends MorphirIRSdkModule("Dict") {
         "partition",
         "f"    -> tFun(tVar("comparable"), tVar("v"))(boolType),
         "dict" -> dictType(tVar("comparable"), tVar("v"))
-      )(tuple(Chunk(dictType(tVar("comparable"), tVar("v")), dictType(tVar("comparable"), tVar("v"))))),
+      )(tuple(scala.List(dictType(tVar("comparable"), tVar("v")), dictType(tVar("comparable"), tVar("v"))))),
       vSpec(
         "union",
         "dict1" -> dictType(tVar("comparable"), tVar("v")),

@@ -3,6 +3,7 @@ package ir
 package generator
 
 import org.finos.morphir.naming._
+import org.finos.morphir.ir.Type.Field
 import zio.test.Gen
 
 trait FieldGen {

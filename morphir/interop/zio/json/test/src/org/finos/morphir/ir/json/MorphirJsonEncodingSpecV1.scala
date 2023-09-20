@@ -236,14 +236,14 @@ object MorphirJsonEncodingSpecV1 extends MorphirJsonBaseSpec {
       test("will encode TypeCase.RecordCase") {
         val var1     = Field(Name("first"), variable[Int](123, "f"))
         val var2     = Field(Name("second"), variable[Int](345, "g"))
-        val actual   = record(1, zio.Chunk(var1, var2))
+        val actual   = record(1, fields(var1, var2))
         val expected = """["record",1,[[["first"],["variable",123,["f"]]],[["second"],["variable",345,["g"]]]]]"""
         assert(actual.toJson)(stringEqualTo(expected))
       },
       test("will encode TypeCase.ExtensibleRecordCase") {
         val var1   = Field(Name("first"), variable[Int](123, "f"))
         val var2   = Field(Name("second"), variable[Int](345, "g"))
-        val actual = extensibleRecord(1, Name.fromString("someName"), zio.Chunk(var1, var2))
+        val actual = extensibleRecord(1, Name.fromString("someName"), fields(var1, var2))
         val expected =
           """["extensible_record",1,["some","name"],[[["first"],["variable",123,["f"]]],[["second"],["variable",345,["g"]]]]]"""
         assert(actual.toJson)(stringEqualTo(expected))
@@ -258,7 +258,7 @@ object MorphirJsonEncodingSpecV1 extends MorphirJsonBaseSpec {
       test("will encode TypeCase.ReferenceCase") {
         val var1   = variable[Int](123, "f")
         val var2   = variable[Int](345, "g")
-        val actual = reference(1, FQName.fromString("test:JavaHome:morphir"), zio.Chunk(var1, var2))
+        val actual = reference(1, FQName.fromString("test:JavaHome:morphir"), var1, var2)
         val expected =
           """["reference",1,[[["test"]],[["java","home"]],["morphir"]],[["variable",123,["f"]],["variable",345,["g"]]]]"""
         assert(actual.toJson)(stringEqualTo(expected))

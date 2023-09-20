@@ -5,6 +5,7 @@ package codec
 
 import java.io.File
 import org.finos.morphir.ir.Literal.Literal
+import org.finos.morphir.ir.Type.Field
 import org.finos.morphir.ir.generator.MorphirIRDeriveGen
 import zio.test._
 import zio.json.golden.GoldenConfiguration

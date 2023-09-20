@@ -1,4 +1,5 @@
 package org.finos.morphir.functional
+import zio.prelude._
 
 trait IsNotCovariant[-A] extends Serializable
 

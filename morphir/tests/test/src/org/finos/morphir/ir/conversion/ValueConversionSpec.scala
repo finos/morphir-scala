@@ -209,7 +209,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val inputValue   = Data.Tuple(List(Data.True, Data.Unit, Data.Byte(java.lang.Byte.MAX_VALUE)))
         val morphirTuple = toValue(inputValue)
         val result = V.tuple(
-          T.tuple(Chunk(sdk.Basics.boolType, Type.unit, sdk.Int.int8Type)),
+          T.tuple(sdk.Basics.boolType :: Type.unit :: sdk.Int.int8Type :: Nil),
           Chunk(
             Lit.True,
             V.unit(Type.unit),
@@ -318,14 +318,14 @@ object ValueConversionSpec extends MorphirBaseSpec {
           shape,
           V.reference(FQName.fromString("Morphir.SDK:Dict:fromList")),
           V.list(
-            sdk.List.listType(T.tuple(Chunk(sdk.String.stringType, sdk.Basics.intType))),
+            sdk.List.listType(T.tuple(sdk.String.stringType :: sdk.Basics.intType :: Nil)),
             zio.Chunk(
               V.tuple(
-                T.tuple(Chunk(sdk.String.stringType, sdk.Basics.intType)),
+                T.tuple(sdk.String.stringType :: sdk.Basics.intType :: Nil),
                 Chunk(V.string(sdk.String.stringType, "Index 1"), V.intTyped(3))
               ),
               V.tuple(
-                T.tuple(Chunk(sdk.String.stringType, sdk.Basics.intType)),
+                T.tuple(sdk.String.stringType :: sdk.Basics.intType :: Nil),
                 Chunk(V.string(sdk.String.stringType, "Index 2"), V.intTyped(71))
               )
             )
@@ -345,10 +345,10 @@ object ValueConversionSpec extends MorphirBaseSpec {
           shape,
           V.reference(FQName.fromString("Morphir.SDK:Dict:fromList")),
           V.list(
-            sdk.List.listType(T.tuple(Chunk(sdk.String.stringType, sdk.List.listType(sdk.Basics.intType)))),
+            sdk.List.listType(T.tuple(scala.List(sdk.String.stringType, sdk.List.listType(sdk.Basics.intType)))),
             zio.Chunk(
               V.tuple(
-                T.tuple(Chunk(sdk.String.stringType, sdk.List.listType(sdk.Basics.intType))),
+                T.tuple(scala.List(sdk.String.stringType, sdk.List.listType(sdk.Basics.intType))),
                 Chunk(
                   V.string(sdk.String.stringType, "Index 1"),
                   V.list(
@@ -358,7 +358,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
                 )
               ),
               V.tuple(
-                T.tuple(Chunk(sdk.String.stringType, sdk.List.listType(sdk.Basics.intType))),
+                T.tuple(scala.List(sdk.String.stringType, sdk.List.listType(sdk.Basics.intType))),
                 Chunk(
                   V.string(sdk.String.stringType, "Index 2"),
                   V.list(
@@ -381,7 +381,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
           shape,
           V.reference(FQName.fromString("Morphir.SDK:Dict:fromList")),
           V.list(
-            sdk.List.listType(T.tuple(Chunk(sdk.String.stringType, sdk.Basics.intType))),
+            sdk.List.listType(T.tuple(scala.List(sdk.String.stringType, sdk.Basics.intType))),
             zio.Chunk.empty
           )
         )
