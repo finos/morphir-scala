@@ -223,7 +223,7 @@ object Versions {
   val `zio-json`                 = "0.6.2"
   val `zio-nio`                  = "2.0.2"
   val `zio-parser`               = "0.1.9"
-  val `zio-prelude`              = "1.0.0-RC20"
+  val `zio-prelude`              = "1.0.0-RC21"
   val `zio-process`              = "0.7.2"
   val `zio-schema`               = "0.4.12"
 }
@@ -231,7 +231,7 @@ object Versions {
 object ScalaVersions {
   import DevMode._
   val all      = if (devMode) Seq(scala3x) else Seq(scala213, scala3x)
-  def scala213 = "2.13.11"
+  def scala213 = "2.13.12"
   def scala3x  = "3.3.1"
 
   def scalaJSVersion     = "1.13.2"

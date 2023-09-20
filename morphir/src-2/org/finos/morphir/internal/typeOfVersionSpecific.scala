@@ -56,7 +56,7 @@ trait TypeOfModuleVersionSpecific {
     }
 
     def split[T](sealedTrait: SealedTrait[TypeOf, T]): TypeOf[T] = new TypeOf[T] {
-      def apply() =
+      def apply(): TypeInfo =
         // TODO: Get this working
         GenericTypeInfo.TypeOnly(Type.Unit(Attributes.empty), None)
     }

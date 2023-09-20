@@ -21,7 +21,7 @@ object NativeSDK {
       }
 
       case object Basics extends SdkModuleDescriptor("Basics") {
-        val functions = scala.List(
+        val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun2(sdk.BasicsSDK.modBy.asNative2),
           NativeFunctionAdapter.Fun2(sdk.BasicsSDK.greaterThan.asNative2),
           NativeFunctionAdapter.Fun2(sdk.BasicsSDK.greaterThanOrEqual.asNative2),
@@ -31,7 +31,7 @@ object NativeSDK {
       }
 
       case object List extends SdkModuleDescriptor("List") {
-        val functions = scala.List(
+        val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun1(ListSDK.concat),
           NativeFunctionAdapter.Fun1(ListSDK.singleton),
           NativeFunctionAdapter.Fun1(ListSDK.isEmpty),

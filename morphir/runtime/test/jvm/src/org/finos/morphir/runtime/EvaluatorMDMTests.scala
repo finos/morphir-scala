@@ -81,8 +81,17 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       values: List[Any]
   ): ZIO[TypedMorphirRuntime, Throwable, Data] =
     ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
+      val data = values.map(deriveData(_))
+      runTestMDM(moduleName, functionName, data)
+    }
+
+  def runTestMDM(
+      moduleName: String,
+      functionName: String,
+      data: List[Data]
+  ): ZIO[TypedMorphirRuntime, Throwable, Data] =
+    ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
       val fullName = s"Morphir.Examples.App:$moduleName:$functionName"
-      val data     = values.map(deriveData(_))
       if (data.isEmpty)
         runtime.evaluate(
           FQName.fromString(fullName),
@@ -219,6 +228,24 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   def spec =
     suite("Evaluator MDM Specs")(
       suite("Constructor Tests")(
+        test("Zero Arg Input") {
+          for {
+            actual <- runTestMDM("constructorTests", "constructorInputTest", List(zeroArg))
+            expected = Data.Tuple(Data.Int(0), Data.String("ZeroArg"))
+          } yield assertTrue(actual == expected)
+        },
+        test("One Arg Input") {
+          for {
+            actual <- runTestMDM("constructorTests", "constructorInputTest", List(oneArg(4)))
+            expected = Data.Tuple(Data.Int(4), Data.String("OneArg"))
+          } yield assertTrue(actual == expected)
+        },
+        test("Two Arg Input") {
+          for {
+            actual <- runTest("constructorTests", "constructorInputTest", List(twoArg(5, "TwoArgActualArg")))
+            expected = Data.Tuple(Data.Int(5), Data.String("TwoArgActualArg"))
+          } yield assertTrue(actual == expected)
+        },
         test("Zero Arg") {
           for {
             actual <- runTest("constructorTests", "constructorZeroArgTest")
