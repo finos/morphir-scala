@@ -1,7 +1,7 @@
 package org.finos.morphir.runtime
 
 import org.finos.morphir.naming.*
-import org.finos.morphir.ir.{Type as T, Value as V}
+import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.{
   Pattern,

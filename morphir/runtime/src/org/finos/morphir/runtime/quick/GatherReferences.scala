@@ -1,8 +1,8 @@
 package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.naming.*
-import org.finos.morphir.ir.Value.{Pattern, Value as V}
-import org.finos.morphir.ir.Type as T
+import org.finos.morphir.ir.Value.{Pattern, Value => V}
+import org.finos.morphir.ir.{Type => T}
 import org.finos.morphir.ir.Type.Type
 import org.finos.morphir.ir.Value.Pattern.*
 import org.finos.morphir.ir.Value.Value

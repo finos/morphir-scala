@@ -1,9 +1,9 @@
 package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.datamodel.{Concept, Data, EnumLabel, Label}
-import org.finos.morphir.ir.Type.Type as TT
+import org.finos.morphir.ir.Type.{Type => TT}
 import org.finos.morphir.ir.Type
-import org.finos.morphir.ir.{Type as T, Value as V}
+import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.*
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.*

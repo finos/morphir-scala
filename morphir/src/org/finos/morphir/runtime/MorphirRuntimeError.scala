@@ -2,7 +2,7 @@ package org.finos.morphir.runtime
 
 import org.finos.morphir.naming._
 import org.finos.morphir.naming._
-import org.finos.morphir.ir.{Type as T, Value as V}
+import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
 import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.sdk
@@ -17,12 +17,12 @@ import zio.Chunk
 implicit class ErrorInterpolator(sc: StringContext) {
   def err(args: Any*): String = {
     val messageBits = sc.parts
-    val processed = args.map(process(_))
+    val processed   = args.map(process(_))
     messageBits.head + processed.zip(messageBits.tail).flatMap { case (message, ir) => List(message, ir) }.mkString("")
-    //(messageBits.map(bit => s"from sc.parts: $bit\n") ++ args.map(bit => s"from args: $bit\n")).mkString("")
+    // (messageBits.map(bit => s"from sc.parts: $bit\n") ++ args.map(bit => s"from args: $bit\n")).mkString("")
   }
-    
-  def process(astLike: Any): String = {
+
+  def process(astLike: Any): String =
     if (isASTLike(astLike))
       s""" {
          |\t Elm: $astLike
@@ -30,24 +30,23 @@ implicit class ErrorInterpolator(sc: StringContext) {
          |}""".stripMargin
     else
       astLike.toString
-  }
 
   def isIR(any: Any): Boolean = any match {
-    case _: Type[_] => true
-    case _: Value[_, _] => true
-    case _: Pattern[_] => true
+    case _: Type[_]            => true
+    case _: Value[_, _]        => true
+    case _: Pattern[_]         => true
     case _: V.Specification[_] => true
     case _: V.Definition[_, _] => true
     case _: T.Specification[_] => true
-    case _: T.Definition[_] => true
-    case _ => false
+    case _: T.Definition[_]    => true
+    case _                     => false
   }
 
   def isASTLike(any: Any): Boolean = any match {
     case _: RTValue => true
-    case _: Data => true
+    case _: Data    => true
     case _: Concept => true
-    case other => isIR(other)
+    case other      => isIR(other)
   }
 }
 
@@ -86,7 +85,6 @@ object TypeError {
 
   final case class TypesMismatch(tpe1: UType, tpe2: UType, msg: String)
       extends TypeError(err"$msg: $tpe1 vs $tpe2")
-
 
   final case class ApplyToNonFunction(nonFunction: TypedValue, arg: TypedValue) extends TypeError(
         err"Tried to apply $arg to $nonFunction of type ${nonFunction.attributes}, which is not a function"

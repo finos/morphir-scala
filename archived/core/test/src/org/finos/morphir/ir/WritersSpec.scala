@@ -11,8 +11,8 @@ import org.finos.morphir.ir.Path.Path
 import org.finos.morphir.ir.Package.PackageName
 import org.finos.morphir.ir.Module as M
 import org.finos.morphir.ir.Package as P
-import org.finos.morphir.ir.Type as T
-import org.finos.morphir.ir.Value as V
+import org.finos.morphir.ir{Type => T}
+import org.finos.morphir.ir.{Value => V}
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.Chunk
 import zio.test._

@@ -18,8 +18,8 @@ import Type.Type
 import Value.Value
 import ir.Module as M
 import ir.Package as P
-import ir.Type as T
-import ir.Value as V
+import ir{Type => T}
+import ir.{Value => V}
 import ir.AccessControlled
 
 trait IRWriters extends IRValueWriters { self: Annotator =>
