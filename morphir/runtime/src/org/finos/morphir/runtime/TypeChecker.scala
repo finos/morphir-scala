@@ -262,7 +262,7 @@ final class TypeChecker(dists: Distributions) {
         case Right(_)  => List(new ApplyToNonFunction(function, argument))
         case Left(err) => List(err)
       }
-    fromChildren ++ fromTpe ++ List(new ApplyToNonFunction(function, argument))
+    fromChildren ++ fromTpe
   }
 
   def handleDestructure(
