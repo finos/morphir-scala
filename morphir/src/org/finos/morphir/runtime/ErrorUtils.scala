@@ -7,7 +7,7 @@ import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification =>
 import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.printing.PrintIR
 
-object ErrorInterpolator {
+object ErrorUtils {
   implicit class ErrorInterpolator(sc: StringContext) {
     def err(args: Any*): String = {
       val messageBits = sc.parts

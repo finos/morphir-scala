@@ -12,7 +12,7 @@ import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import zio.Chunk
-import org.finos.morphir.runtime.ErrorInterpolator.{*, given}
+import org.finos.morphir.runtime.ErrorUtils.ErrorInterpolator
 
 sealed abstract class MorphirRuntimeError(message: String) extends Exception(message)
 
