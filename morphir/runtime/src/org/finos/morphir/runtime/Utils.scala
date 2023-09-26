@@ -3,10 +3,9 @@ package org.finos.morphir.runtime
 import org.finos.morphir.naming._
 import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
-import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
+import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
-import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.Module.{Specification => ModSpec}
 import zio.Chunk

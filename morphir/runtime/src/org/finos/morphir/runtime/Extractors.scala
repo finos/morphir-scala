@@ -3,10 +3,9 @@ package org.finos.morphir.runtime
 import org.finos.morphir.naming._
 import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
-import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
+import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
-import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 import zio.Chunk
 import Extractors.Types
@@ -21,7 +20,7 @@ object Extractors {
       def unapply(tpe: UType): Option[UType] =
         tpe match {
           // TODO: The SDK specification should make these names available, without requiring a type argument
-          case Type.Reference(_, FQString("Morphir.SDK:List:list"), Chunk(elementType)) =>
+          case Type.Reference(_, FQString("Morphir.SDK:List:list"), List(elementType)) =>
             Some(elementType)
           case _ => None
         }
@@ -30,7 +29,7 @@ object Extractors {
     object SetRef {
       def unapply(tpe: UType): Option[UType] =
         tpe match {
-          case Type.Reference(_, FQString("Morphir.SDK:Set:set"), Chunk(elementType)) =>
+          case Type.Reference(_, FQString("Morphir.SDK:Set:set"), List(elementType)) =>
             Some(elementType)
           case _ => None
         }
@@ -38,7 +37,7 @@ object Extractors {
     object MaybeRef {
       def unapply(tpe: UType): Option[UType] =
         tpe match {
-          case Type.Reference(_, FQString("Morphir.SDK:Maybe:maybe"), Chunk(elementType)) =>
+          case Type.Reference(_, FQString("Morphir.SDK:Maybe:maybe"), List(elementType)) =>
             Some(elementType)
           case _ => None
         }
@@ -47,7 +46,7 @@ object Extractors {
     object ResultRef {
       def unapply(tpe: UType): Option[(UType, UType)] =
         tpe match {
-          case Type.Reference(_, FQString("Morphir.SDK:Result:result"), Chunk(keyType, valType)) =>
+          case Type.Reference(_, FQString("Morphir.SDK:Result:result"), List(keyType, valType)) =>
             Some((keyType, valType))
           case _ => None
         }
@@ -55,7 +54,7 @@ object Extractors {
     object DictRef {
       def unapply(tpe: UType): Option[(UType, UType)] =
         tpe match {
-          case Type.Reference(_, FQString("Morphir.SDK:Dict:dict"), Chunk(keyType, valType)) =>
+          case Type.Reference(_, FQString("Morphir.SDK:Dict:dict"), List(keyType, valType)) =>
             Some((keyType, valType))
           case _ => None
         }
@@ -66,8 +65,8 @@ object Extractors {
       def ref = tpe.asInstanceOf[Type.Reference[Unit]]
       def unapply(argTpe: UType): Boolean =
         argTpe match {
-          case Type.Reference(_, fqName, Chunk()) if fqName == ref.typeName => true
-          case _                                                            => false
+          case Type.Reference(_, fqName, Nil) if fqName == ref.typeName => true
+          case _                                                        => false
         }
     }
 
@@ -108,14 +107,14 @@ object Extractors {
     object LeafType {
       def unapply(tpe: UType): Boolean =
         tpe match {
-          case Type.Reference(_, _, Chunk()) => true
-          case Type.Unit(_)                  => true
-          case _                             => false
+          case Type.Reference(_, _, Nil) => true
+          case Type.Unit(_)              => true
+          case _                         => false
         }
     }
     // Matches any reference that does not come from the morphir SDK
     object NonNativeRef {
-      def unapply(tpe: UType): Option[(FQName, Chunk[UType])] =
+      def unapply(tpe: UType): Option[(FQName, List[UType])] =
         tpe match {
           case Type.Reference(_, name, args)
               if (!Utils.isNative(name)) =>
@@ -125,7 +124,7 @@ object Extractors {
     }
     // Matches any reference that does come from the DK
     object NativeRef {
-      def unapply(tpe: UType): Option[(FQName, Chunk[UType])] =
+      def unapply(tpe: UType): Option[(FQName, List[UType])] =
         tpe match {
           case Type.Reference(_, name, args)
               if (Utils.isNative(name)) =>

@@ -14,7 +14,13 @@ import org.finos.morphir.ir.PackageModule.{
   Specification => PackageSpecification,
   USpecification => UPackageSpecification
 }
-import org.finos.morphir.ir.Type.{Constructors, Definition => TypeDefinition, Specification => TypeSpecification, Type}
+import org.finos.morphir.ir.Type.{
+  Constructors,
+  Definition => TypeDefinition,
+  Field,
+  Specification => TypeSpecification,
+  Type
+}
 import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification => ValueSpecification}
 import org.finos.morphir.ir.Value.{Value, _}
 import org.finos.morphir.ir.module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
@@ -104,7 +110,7 @@ trait MorphirJsonDecodingSupportV1 {
     }
 
   implicit def extensibleRecordCaseTypeDecoder[A: JsonDecoder]: JsonDecoder[Type.ExtensibleRecord[A]] =
-    JsonDecoder.tuple4[String, A, Name, Chunk[Field[Type[A]]]].mapOrFail {
+    JsonDecoder.tuple4[String, A, Name, scala.List[Field[Type[A]]]].mapOrFail {
       case ("extensible_record", attributes, name, fields) =>
         Right(Type.ExtensibleRecord(attributes, name, fields))
       case (other, attributes, name, fields) =>
@@ -122,7 +128,7 @@ trait MorphirJsonDecodingSupportV1 {
     }
 
   implicit def recordCaseTypeDecoder[A: JsonDecoder]: JsonDecoder[Type.Record[A]] =
-    JsonDecoder.tuple3[String, A, Chunk[Field[Type[A]]]].mapOrFail {
+    JsonDecoder.tuple3[String, A, scala.List[Field[Type[A]]]].mapOrFail {
       case ("record", attributes, fields) =>
         Right(Type.Record(attributes, fields))
       case (other, attributes, fields) =>
@@ -132,7 +138,7 @@ trait MorphirJsonDecodingSupportV1 {
     }
 
   implicit def referenceCaseTypeDecoder[A: JsonDecoder]: JsonDecoder[Type.Reference[A]] =
-    JsonDecoder.tuple4[String, A, FQName, Chunk[Type[A]]].mapOrFail {
+    JsonDecoder.tuple4[String, A, FQName, scala.List[Type[A]]].mapOrFail {
       case ("reference", attributes, typeName, typeParams) =>
         Right(Type.Reference(attributes, typeName, typeParams))
       case (other, attributes, typeName, typeParams) =>
@@ -142,7 +148,7 @@ trait MorphirJsonDecodingSupportV1 {
     }
 
   implicit def tupleCaseTypeDecoder[A: JsonDecoder]: JsonDecoder[Type.Tuple[A]] =
-    JsonDecoder.tuple3[String, A, Chunk[Type[A]]].mapOrFail {
+    JsonDecoder.tuple3[String, A, scala.List[Type[A]]].mapOrFail {
       case ("tuple", attributes, elements) =>
         Right(Type.Tuple(attributes, elements))
       case (other, attributes, elements) =>

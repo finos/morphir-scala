@@ -23,7 +23,7 @@ object StatefulApp extends MorphirIRSdkModule("StatefulApp") {
                   function(
                     variable(name("c")),
                     tuple(
-                      Chunk(
+                      scala.List(
                         maybeType(variable(name("s"))),
                         variable(name("e"))
                       )

@@ -149,7 +149,7 @@ case class PrintIR(
           // Leafs can display even at depth 0
           // Assume compression for these cases
           case name: Name => Tree.Literal(name.toCamelCase)
-          case T.Reference(_, fqn, Chunk()) =>
+          case T.Reference(_, fqn, Nil) =>
             Tree.Literal(s"Ref(${fqnv(fqn)})")
           case T.Reference(_, fqn, _) =>
             Tree.Literal(s"Ref(${fqnv(fqn)}) [..]")
@@ -179,7 +179,7 @@ case class PrintIR(
     case fqn: FQName if (detailLevel.compressFQNames) =>
       Tree.Literal(fqnv(fqn))
 
-    case T.Reference(_, fqn, Chunk()) if (detailLevel.compressReferences) =>
+    case T.Reference(_, fqn, Nil) if (detailLevel.compressReferences) =>
       Tree.Literal(s"Ref(${fqnv(fqn)})")
 
     case T.Reference(_, fqn, tpes) if (detailLevel.compressReferences) =>

@@ -1,6 +1,7 @@
 package org.finos.morphir.universe.ir
-import org.finos.morphir.naming.*
-import org.finos.morphir.universe.ir.Type.{ExtensibleRecord, Field, Record, Reference, Tuple, Variable}
+
+import org.finos.morphir.naming._
+import org.finos.morphir.universe.ir.Type.{ExtensibleRecord, Record, Reference, Tuple, Variable}
 
 trait TypeVisitor[+W, S, -R, +E, +A, +Attrib] {
   import TypeVisitor.*
@@ -18,7 +19,7 @@ trait TypeVisitor[+W, S, -R, +E, +A, +Attrib] {
     case Variable(attributes, name)                          => visitVariable(attributes, name)
   }
 
-  def visit[Attrib1 >: Attrib](typ: Field[Attrib1]): ZPure[W, S, S, R, E, A] = visitField(typ.name, typ.tpe)
+  def visit[Attrib1 >: Attrib](typ: FieldT[Attrib1]): ZPure[W, S, S, R, E, A] = visitField(typ.name, typ.data)
 
   /// Visit attributes. NOTE: visiting attributes doesn't allow you to return a value only modify state or write to the log.
   def visitAttributes[Attrib1 >: Attrib](attributes: Attrib1): ZPure[W, S, S, R, Nothing, Unit]
@@ -26,7 +27,7 @@ trait TypeVisitor[+W, S, -R, +E, +A, +Attrib] {
   def visitExtensibleRecord[Attrib1 >: Attrib](
       attributes: Attrib1,
       name: Name,
-      fields: List[Field[Attrib1]]
+      fields: List[FieldT[Attrib1]]
   ): ZPure[W, S, S, R, E, A]
   def visitField[Attrib1 >: Attrib](name: Name, tpe: Type[Attrib1]): ZPure[W, S, S, R, E, A]
 
@@ -36,7 +37,7 @@ trait TypeVisitor[+W, S, -R, +E, +A, +Attrib] {
       returnType: Type[Attrib1]
   ): ZPure[W, S, S, R, E, A]
 
-  def visitRecord[Attrib1 >: Attrib](attributes: Attrib1, fields: List[Field[Attrib1]]): ZPure[W, S, S, R, E, A]
+  def visitRecord[Attrib1 >: Attrib](attributes: Attrib1, fields: List[FieldT[Attrib1]]): ZPure[W, S, S, R, E, A]
 
   def visitReference[Attrib1 >: Attrib](
       attributes: Attrib1,

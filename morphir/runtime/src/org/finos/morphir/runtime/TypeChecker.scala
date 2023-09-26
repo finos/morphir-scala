@@ -1,7 +1,7 @@
 package org.finos.morphir.runtime
 
 import org.finos.morphir.naming.*
-import org.finos.morphir.ir.{Type => T, Value => V}
+import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.Value.{
   Pattern,
@@ -10,10 +10,9 @@ import org.finos.morphir.ir.Value.{
   TypedDefinition as TypedValueDef,
   USpecification as UValueSpec
 }
-import org.finos.morphir.ir.Type.{Type, UType, USpecification as UTypeSpec}
+import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification as UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
-import org.finos.morphir.ir.Field
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import org.finos.morphir.runtime.quick.GatherReferences
@@ -310,7 +309,7 @@ final class TypeChecker(dists: Distributions) {
                 }
                 missedName ++ fromCtor
               case Right(other) =>
-                List(new ImproperTypeSpec(name, other, "Type union expected"))
+                List(new ImproperTypeSpec(name, other, s"Type union expected"))
               case Left(err) => List(new TypeMissing(name, err))
             }
           case NativeRef(_, _) => List() // TODO: check native constructor calls

@@ -541,10 +541,12 @@ object site extends Docusaurus2Module with MDocModule {
 }
 
 object MyAliases extends Aliases {
-  def fmt         = alias("mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources")
-  def checkfmt    = alias("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources")
-  def deps        = alias("mill.scalalib.Dependency/showUpdates")
-  def testall     = alias("__.test")
-  def compileall  = alias("__.compile")
-  def comptestall = alias("__.compile", "__.test")
+  def fmt           = alias("mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources")
+  def checkfmt      = alias("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources")
+  def deps          = alias("mill.scalalib.Dependency/showUpdates")
+  def testall       = alias("__.test")
+  def testJVM       = alias("morphir.__.jvm.__.test")
+  def testJVMCached = alias("morphir.__.jvm.__.testCached")
+  def compileall    = alias("__.compile")
+  def comptestall   = alias("__.compile", "__.test")
 }
