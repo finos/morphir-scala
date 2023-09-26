@@ -10,7 +10,7 @@ import org.finos.morphir.ir.printing.PrintIR
 
 object ErrorUtils {
   implicit class ErrorInterpolator(sc: StringContext) {
-
+    //format: off
     /**
      * This interpolator is intended to format errors with potentially bulky arguments which we wish to display as both
      * IR and native elm. As such it takes the IR arguments and replaces them with a numeric ID in the string, and then
@@ -33,6 +33,7 @@ object ErrorUtils {
      * @return
      *   A human-readable error with the IR elements formatted for display after the error message.
      */
+      //format: on
     def err(args: Any*): String = {
       val indexed = args.zipWithIndex
       val irArgs = indexed
