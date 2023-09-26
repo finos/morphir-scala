@@ -10,9 +10,30 @@ import org.finos.morphir.ir.printing.PrintIR
 
 object ErrorUtils {
   implicit class ErrorInterpolator(sc: StringContext) {
+
+    /**
+     * This interpolator is intended to format errors with potentially bulky arguments which we wish to display as both
+     * IR and native elm. As such it takes the IR arguments and replaces them with a numeric ID in the string, and then
+     * prints them after the message in formatted blocks. For instance:
+     *
+     * Value type does not match declared type: (0) vs (1)
+     * \========== 0: ==========
+     * \| ====Elm====
+     * \| | (1, 2)
+     * \| ====IR====
+     * \| | T.Tuple(T.Ref(int), T.Ref(int))
+     * \========== 1: ==========
+     * \| ====Elm====
+     * \| | ()
+     * \| ====IR====
+     * \| | T.Unit(())
+     *
+     * @param args
+     *   Either IR or non-IR elements to be displayed; IR elements will be handled specially.
+     * @return
+     *   A human-readable error with the IR elements formatted for display after the error message.
+     */
     def err(args: Any*): String = {
-      // Okay so we want to:
-      // Turn the AST parts into (1), (2), etc
       val indexed = args.zipWithIndex
       val irArgs = indexed
         .filter { case (arg, _) => isIR(arg) }
@@ -26,10 +47,6 @@ object ErrorUtils {
         }
       }
       val messageBits = sc.parts
-      // val processed   = args.map(process(_))
-//      messageBits.head + processed.zip(messageBits.tail).flatMap { case (message, ir) => List(message, ir) }.mkString(
-//        ""
-//      )
       val explanation = sc.s(processed: _*)
       val terms = irArgs.values.map { case (argIndex, arg) =>
         process(s" $argIndex: ", arg)
