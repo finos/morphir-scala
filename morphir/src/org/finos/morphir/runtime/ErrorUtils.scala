@@ -47,13 +47,11 @@ object ErrorUtils {
           case None               => arg.toString
         }
       }
-      val messageBits = sc.parts
       val explanation = sc.s(processed: _*)
       val terms = irArgs.values.map { case (argIndex, arg) =>
         process(s" $argIndex: ", arg)
       }.mkString
       explanation + "\n" + terms
-      // (messageBits.map(bit => s"from sc.parts: $bit\n") ++ args.map(bit => s"from args: $bit\n")).mkString("")
     }
 
     def process(title: String, astLike: Any): String = {
