@@ -183,7 +183,7 @@ case class PrintIR(
       Tree.Literal(s"Ref(${fqnv(fqn)})")
 
     case T.Reference(_, fqn, tpes) if (detailLevel.compressReferences) =>
-      Tree.Apply(s"Ref(${fqnv(fqn)}):", tpes.map(treeify(_)).iterator)
+      Tree.Apply(s"Ref(${fqnv(fqn)})", tpes.map(treeify(_)).iterator)
 
     case other => super.treeify(other, escapeUnicode, this.detailLevel.showFieldNames)
   }

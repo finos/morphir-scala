@@ -32,23 +32,16 @@ object ErrorUtils {
 //      )
       val explanation = sc.s(processed: _*)
       val terms = irArgs.values.map { case (argIndex, arg) =>
-        process2(s" $argIndex: ", arg)
+        process(s" $argIndex: ", arg)
       }.mkString
       explanation + "\n" + terms
       // (messageBits.map(bit => s"from sc.parts: $bit\n") ++ args.map(bit => s"from args: $bit\n")).mkString("")
     }
 
-    def process(astLike: Any): String =
-      if (isASTLike(astLike)) {
-        headerize("ELM:", astLike.toString) +
-          headerize("IR:", PrintIR(astLike).toString)
-      } else
-        astLike.toString
-
-    def process2(title: String, astLike: Any): String = {
+    def process(title: String, astLike: Any): String = {
       val elmBody = barIndentBlock("Elm", astLike.toString)
-      val irBody  = barIndentBlock("IR", PrintIR(astLike).toString)
-      barBlock(barIndentBlock(title, elmBody + irBody))
+      val irBody  = barIndentBlock("IR", PrintIR(astLike).plainText)
+      barBlock(barIndentBlock(title, elmBody + irBody, barWidth = 10)) // Console likes to drop leading |?
     }
     def isIR(any: Any): Boolean = any match {
       case _: Type[_]            => true
@@ -74,10 +67,12 @@ object ErrorUtils {
       else "\t" + line
     }.mkString("\n")
 
-    def barIndentBlock(header: String, body: String): String =
-      "====" + header + "====\n" +
-        body.split("\n").map("|\t" + _).mkString("\n") +
+    def barIndentBlock(header: String, body: String, barWidth: Int = 4): String = {
+      val bodyLines = body.split("\n").map("|\t" + _)
+      ("=" * barWidth) + header + ("=" * barWidth) + "\n" +
+        bodyLines.mkString("\n") +
         "\n"
+    }
 
     def barIndentBlockTerminated(header: String, body: String): String =
       barIndentBlock(header, body) +
