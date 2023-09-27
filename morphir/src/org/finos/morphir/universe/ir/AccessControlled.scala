@@ -12,20 +12,20 @@ final case class AccessControlled[+A](access: Access, value: A) {
 
   def fold[B](ifPublic: A => B, ifPrivate: A => B): B =
     access match {
-      case Access.Public => ifPublic(self.value)
+      case Access.Public  => ifPublic(self.value)
       case Access.Private => ifPrivate(self.value)
     }
 
   def withPublicAccess: Option[A] = self match {
     case AccessControlled(Access.Public, a) => Some(a)
-    case _ => None
+    case _                                  => None
   }
 
   /**
    * Get the value with private access level. Will always return the value.
    */
   def withPrivateAccess: A = self match {
-    case AccessControlled(Access.Public, a) => a
+    case AccessControlled(Access.Public, a)  => a
     case AccessControlled(Access.Private, a) => a
   }
 

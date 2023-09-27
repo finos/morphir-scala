@@ -28,9 +28,7 @@ object AccessControlled {
 
   def withAccess[A](access: Access): WithAccessPartiallyApplied = new WithAccessPartiallyApplied(access)
 
-
-
-  final val WithPublicAccess: AC.WithPublicAccess.type = AC.WithPublicAccess
+  final val WithPublicAccess: AC.WithPublicAccess.type   = AC.WithPublicAccess
   final val WithPrivateAccess: AC.WithPrivateAccess.type = AC.WithPrivateAccess
 
   object helpers {
