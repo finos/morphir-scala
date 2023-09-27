@@ -9,10 +9,6 @@ import zio.prelude._
 import scala.annotation.nowarn
 
 package object ir {
-
-  type AccessControlled[+A] = mir.AccessControlled[A]
-  val AccessControlled: mir.AccessControlled.type = mir.AccessControlled
-
   // type Field[+A] = FieldK[Type, A]
   // object Field {
   //   def apply[A](name: String, tpe: Type[A]): Field[A] = FieldK(Name.fromString(name), tpe)

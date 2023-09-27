@@ -7,8 +7,8 @@ import org.finos.morphir.mir
 
 package object ir {
 
-  type AccessControlled[+A] = mir.AccessControlled[A]
-  val AccessControlled: mir.AccessControlled.type = mir.AccessControlled
+  type AccessControlled[+A] = org.finos.morphir.universe.ir.AccessControlled[A]
+  val AccessControlled:  org.finos.morphir.universe.ir.AccessControlled.type =  org.finos.morphir.universe.ir.AccessControlled
 
   type Documented[+A] = org.finos.morphir.universe.ir.Documented[A]
   val Documented: org.finos.morphir.universe.ir.Documented.type = org.finos.morphir.universe.ir.Documented
