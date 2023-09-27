@@ -11,7 +11,7 @@ import org.finos.morphir.ir.Literal.Literal.{
   StringLiteral,
   WholeNumberLiteral
 }
-import org.finos.morphir.ir.Value as V
+import org.finos.morphir.ir.{Value => V}
 import org.finos.morphir.ir.Value.Pattern.*
 import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.ValueAttribs
