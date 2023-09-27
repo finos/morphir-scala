@@ -15,9 +15,10 @@ import org.finos.morphir.runtime.ErrorUtils.ErrorInterpolator
 
 sealed abstract class MorphirRuntimeError(message: String) extends Exception(message)
 
-final case class DerivationError(message: String)        extends MorphirRuntimeError(message)
-final case class DatamodelToIrError(message: String)     extends MorphirRuntimeError(message)
-final case class MorphirIRDecodingError(message: String) extends MorphirRuntimeError(message)
+final case class ConfigurationError(message: String, underlying: Option[Exception]) extends MorphirRuntimeError(message)
+final case class DerivationError(message: String)                                   extends MorphirRuntimeError(message)
+final case class DatamodelToIrError(message: String)                                extends MorphirRuntimeError(message)
+final case class MorphirIRDecodingError(message: String)                            extends MorphirRuntimeError(message)
 
 sealed abstract class EvaluationError(message: String) extends MorphirRuntimeError(message)
 
