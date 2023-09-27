@@ -227,6 +227,14 @@ sealed trait Value[+TA, +VA] { self =>
     )
   )
 
+  /**
+   * foldDown
+   * foldDownSome
+   * foldUp
+   * foldUpSome
+   */
+
+
   final def foldLeft[Z](z: Z)(f: PartialFunction[(Z, Value[TA, VA]), Z]): Z = {
     @tailrec
     def loop(z: Z, value: Value[TA, VA], stack: List[Value[TA, VA]]): Z =
