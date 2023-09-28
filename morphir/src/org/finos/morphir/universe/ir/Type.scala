@@ -79,7 +79,6 @@ sealed trait Type[+A] extends TypeExpr { self =>
   }
 
   final def foldDown[Z](z: Z)(f: (Z, Type[A]) => Z): Z = {
-
     @tailrec
     def loop(remaining: List[Type[A]], acc: Z): Z = remaining match {
       case Nil => acc

@@ -227,13 +227,128 @@ sealed trait Value[+TA, +VA] { self =>
     )
   )
 
-  /**
-   * foldDown
-   * foldDownSome
-   * foldUp
-   * foldUpSome
-   */
+//  final def foldDown[Z](z : Z)(f : (Z, Value[TA, VA]) => Z) : Z = {
+//    @tailrec
+//    def loop(remaining : List[Value[TA, VA]], acc : Z) : Z = {
+//      remaining match {
+//        case head :: tail => {
+//          val newAcc = f(acc, head)
+//          head match {
+//            case Apply(_, function, argument) => loop(function :: argument :: tail, newAcc)
+//            case Constructor(_, _) => loop(tail, newAcc)
+//            case Destructure(_, _, valueToDestruct, inValue) => loop(valueToDestruct :: inValue :: tail, newAcc)
+//            case Field(_, subjectValue, _) => loop(subjectValue :: tail, newAcc)
+//            case FieldFunction(_, _) => loop(tail, newAcc)
+//            case IfThenElse(_, condition, thenBranch, elseBranch) => loop(condition :: thenBranch :: elseBranch :: tail, newAcc)
+//            case Lambda(_, _, body) => loop(body :: tail, newAcc)
+//            case LetDefinition(_, _, Definition(_, _, body), inValue) => loop(body :: inValue :: tail, newAcc)
+//            case LetRecursion(_, valueDefinitions, inValue) => loop(valueDefinitions.values.map(_.body).toList ++ (inValue :: tail), newAcc)
+//            case ListValue(_, elements) => loop(elements.toList ++ tail, newAcc)
+//            case Literal(_, _) => loop(tail, newAcc)
+//            case PatternMatch(_, branchOutOn, cases) => loop(branchOutOn :: cases.map(_._2).toList ++ tail, newAcc)
+//            case Record(_, fields) => loop(fields.map(_._2).toList ++ tail, newAcc)
+//            case Reference(_, _) => loop(tail, newAcc)
+//            case Tuple(_, elements) => loop(elements.toList ++ tail, newAcc)
+//            case Unit(_) => loop(tail, newAcc)
+//            case UpdateRecord(_, valueToUpdate, fieldsToUpdate) => loop(valueToUpdate :: fieldsToUpdate.map(_._2).toList ++ tail, newAcc)
+//            case Variable(_, _) => loop(tail, newAcc)
+//          }
+//        }
+//        case Nil => acc
+//      }
+//    }
+//    loop(List(this), z)
+//  }
+//
+//  //Note: I think this could just be foldDown(z)((acc, head) => f.applyOrElse((acc, head), _._1))
+//  final def foldDownSome[Z](z : Z)(f : PartialFunction[(Z, Value[TA, VA]), Z]) : Z = {
+//    @tailrec
+//    def loop(remaining : List[Value[TA, VA]], acc : Z) : Z = {
+//      remaining match {
+//        case head::tail => {
+//          val newAcc = f.applyOrElse((acc, head), _._1)
+//          head match {
+//            case Apply(_, function, argument) => loop(function :: argument :: tail, newAcc)
+//            case Constructor(_, _) => loop(tail, newAcc)
+//            case Destructure(_, _, valueToDestruct, inValue) => loop(valueToDestruct :: inValue :: tail, newAcc)
+//            case Field(_, subjectValue, _) => loop(subjectValue :: tail, newAcc)
+//            case FieldFunction(_, _) => loop(tail, newAcc)
+//            case IfThenElse(_, condition, thenBranch, elseBranch) => loop(condition :: thenBranch :: elseBranch :: tail, newAcc)
+//            case Lambda(_, _, body) => loop(body :: tail, newAcc)
+//            case LetDefinition(_, _, Definition(_, _, body), inValue) => loop(body :: inValue :: tail, newAcc)
+//            case LetRecursion(_, valueDefinitions, inValue) => loop(valueDefinitions.values.map(_.body).toList ++ (inValue :: tail), newAcc)
+//            case ListValue(_, elements) => loop(elements.toList ++ tail, newAcc)
+//            case Literal(_, _) => loop(tail, newAcc)
+//            case PatternMatch(_, branchOutOn, cases) => loop(branchOutOn :: cases.map(_._2).toList ++ tail, newAcc)
+//            case Record(_, fields) => loop(fields.map(_._2).toList ++ tail, newAcc)
+//            case Reference(_, _) => loop(tail, newAcc)
+//            case Tuple(_, elements) => loop(elements.toList ++ tail, newAcc)
+//            case Unit(_) => loop(tail, newAcc)
+//            case UpdateRecord(_, valueToUpdate, fieldsToUpdate) => loop(valueToUpdate :: fieldsToUpdate.map(_._2).toList ++ tail, newAcc)
+//            case Variable(_, _) => loop(tail, newAcc)
+//          }
+//        }
+//        case Nil => acc
+//      }
+//    }
+//    loop(List(this), z)
+//  }
 
+  final def foldUp[Z](z: Z)(f: (Z, Value[TA, VA]) => Z): Z = {
+    def untreed: List[Value[TA, VA]] = postOrder
+    untreed.foldLeft(z)(f)
+  }
+  final def foldUpSome[Z](z: Z)(f: PartialFunction[(Z, Value[TA, VA]), Z]): Z = {
+    val fullF = ((acc: Z, value: Value[TA, VA]) => f.applyOrElse((acc, value), _._1))
+    foldUp(z)(fullF)
+  }
+  final def foldDown[Z](z: Z)(f: (Z, Value[TA, VA]) => Z): Z = {
+    def untreed: List[Value[TA, VA]] = preOrder
+    untreed.foldLeft(z)(f)
+  }
+
+  final def foldDownSome[Z](z: Z)(f: PartialFunction[(Z, Value[TA, VA]), Z]): Z = {
+    val fullF = ((acc: Z, value: Value[TA, VA]) => f.applyOrElse((acc, value), _._1))
+    foldDown(z)(fullF)
+  }
+
+  final def listChildren(): List[Value[TA, VA]] =
+    this match {
+      case Apply(_, function, argument)                         => List(function, argument)
+      case Constructor(_, _)                                    => List()
+      case Destructure(_, _, valueToDestruct, inValue)          => List(valueToDestruct, inValue)
+      case Field(_, subjectValue, _)                            => List(subjectValue)
+      case FieldFunction(_, _)                                  => List()
+      case IfThenElse(_, condition, thenBranch, elseBranch)     => List(condition, thenBranch, elseBranch)
+      case Lambda(_, _, body)                                   => List(body)
+      case LetDefinition(_, _, Definition(_, _, body), inValue) => List(body, inValue)
+      case LetRecursion(_, valueDefinitions, inValue)           => valueDefinitions.values.map(_.body).toList :+ inValue
+      case ListValue(_, elements)                               => elements.toList
+      case Literal(_, _)                                        => List()
+      case PatternMatch(_, branchOutOn, cases)                  => branchOutOn :: cases.map(_._2).toList
+      case Record(_, fields)                                    => fields.map(_._2).toList
+      case Reference(_, _)                                      => List()
+      case Tuple(_, elements)                                   => elements.toList
+      case Unit(_)                                              => List()
+      case UpdateRecord(_, valueToUpdate, fieldsToUpdate)       => valueToUpdate :: fieldsToUpdate.map(_._2).toList
+      case Variable(_, _)                                       => List()
+    }
+  def preOrder: List[Value[TA, VA]] = {
+    @tailrec
+    def loop(acc: List[Value[TA, VA]], remaining: List[Value[TA, VA]]): List[Value[TA, VA]] = remaining match {
+      case head :: tail => loop(acc :+ head, head.listChildren() ++ tail)
+      case Nil          => acc
+    }
+    loop(List(), List(this))
+  }
+  def postOrder: List[Value[TA, VA]] = {
+    @tailrec
+    def loop(acc: List[Value[TA, VA]], remaining: List[Value[TA, VA]]): List[Value[TA, VA]] = remaining match {
+      case head :: tail => loop(acc :+ head, head.listChildren().reverse ++ tail)
+      case Nil          => acc
+    }
+    loop(List(), List(this)).reverse
+  }
 
   final def foldLeft[Z](z: Z)(f: PartialFunction[(Z, Value[TA, VA]), Z]): Z = {
     @tailrec
