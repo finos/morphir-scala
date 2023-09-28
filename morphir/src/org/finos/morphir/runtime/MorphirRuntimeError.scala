@@ -2,7 +2,7 @@ package org.finos.morphir.runtime
 
 import org.finos.morphir.naming._
 import org.finos.morphir.naming._
-import org.finos.morphir.ir.{Type as T, Value as V}
+import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
 import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.sdk
@@ -11,6 +11,7 @@ import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import zio.Chunk
+import org.finos.morphir.runtime.ErrorUtils.ErrorInterpolator
 
 sealed abstract class MorphirRuntimeError(message: String) extends Exception(message)
 
@@ -46,60 +47,62 @@ object TypeError {
   def succinct(any: Any): String = PrintIR(any, detailLevel = DetailLevel.BirdsEye).toString
 
   final case class TypesMismatch(tpe1: UType, tpe2: UType, msg: String)
-      extends TypeError(s"$msg: ${succinct(tpe1)} vs ${succinct(tpe2)}")
-
-  final case class ArgumentDoesNotMatchParameter(arg: TypedValue, param: UType) extends TypeError(
-        s"Argument ${succinct(arg)}  of type ${succinct(arg.attributes)} does not match parameter ${succinct(param)}"
-      )
+      extends TypeError(err"$msg: $tpe1 vs $tpe2")
 
   final case class ApplyToNonFunction(nonFunction: TypedValue, arg: TypedValue) extends TypeError(
-        s"Tried to apply ${succinct(arg)} to ${succinct(nonFunction)} of type ${succinct(nonFunction.attributes)}, which is not a function"
+        err"Tried to apply $arg to $nonFunction of type ${nonFunction.attributes}, which is not a function"
       )
 
   final case class LiteralTypeMismatch(lit: Lit, tpe: UType)
-      extends TypeError(s"Literal $lit is not of type ${succinct(tpe)}")
+      extends TypeError(err"Literal $lit is not of type $tpe")
 
-  final case class ImproperType(tpe: UType, msg: String) extends TypeError(s"$msg. Found: ${succinct(tpe)}")
+  final case class ImproperType(tpe: UType, msg: String) extends TypeError(err"$msg. Found: $tpe")
   final case class ImproperTypeSpec(fqn: FQName, spec: UTypeSpec, msg: String)
-      extends TypeError(s"$msg. $fqn points to: ${succinct(spec)}")
+      extends TypeError(err"$msg. $fqn points to: $spec")
 
   final case class CannotDealias(err: LookupError, msg: String = "Cannot dealias type")
-      extends TypeError(s"$msg: ${err.getMsg}")
-  final case class TypeVariableMissing(name: Name) extends TypeError(s"Missing type variable $name.toTitleCase")
+      extends TypeError(err"$msg: ${err.getMsg}")
+  final case class TypeVariableMissing(name: Name) extends TypeError(err"Missing type variable ${name.toTitleCase}")
   final case class DefinitionMissing(err: LookupError)
-      extends TypeError(s"Cannot find definition: ${err.getMsg}")
-  final case class TypeMissing(fqn: FQName, err: LookupError) extends TypeError(s"Cannot find $fqn: ${err.getMsg}")
+      extends TypeError(err"Cannot find definition: ${err.getMsg}")
+  final case class TypeMissing(fqn: FQName, err: LookupError) extends TypeError(err"Cannot find $fqn: ${err.getMsg}")
 
   final case class TypeLacksField(tpe: UType, field: Name, msg: String)
-      extends TypeError(s"${succinct(tpe)} lacks field ${field.toCamelCase}. $msg")
+      extends TypeError(err"$tpe lacks field <${field.toCamelCase}>. $msg")
   final case class TypeHasExtraField(tpe: UType, contract: UType, field: Name) extends TypeError(
-        s"${succinct(tpe)} has field ${field.toCamelCase}, which is not included in ${succinct(contract)}"
+        err"$tpe has field <${field.toCamelCase}>, which is not included in $contract"
       )
   final case class ValueLacksField(value: TypedValue, contract: UType, field: Name) extends TypeError(
-        s"${succinct(value)} lacks field ${field.toCamelCase}, which is required by ${succinct(contract)}"
+        err"$value lacks field <${field.toCamelCase}>, which is required by $contract"
       )
   final case class ValueHasExtraField(value: TypedValue, contract: UType, field: Name) extends TypeError(
-        s"${succinct(value)} has field ${field.toCamelCase}, which is not included in ${succinct(contract)}"
+        err"$value has field <${field.toCamelCase}>, which is not included in $contract"
       )
-  final case class TypeHasDifferentFieldType(
-      first: UType,
-      second: UType,
-      field: Name,
-      firstTpe: UType,
-      secondTpe: UType
-  ) extends TypeError(
-        s"tpe for field ${field.toCamelCase} is ${succinct(firstTpe)} in ${succinct(first)} but ${succinct(secondTpe)} in ${succinct(second)}"
-      )
+//  final case class TypeHasDifferentFieldType(
+//      first: UType,
+//      second: UType,
+//      field: Name,
+//      firstTpe: UType,
+//      secondTpe: UType
+//  ) extends TypeError(
+//        s"tpe for field ${field.toCamelCase} is ${succinct(firstTpe)} in ${succinct(first)} but ${succinct(secondTpe)} in ${succinct(second)}"
+//      )
   final case class ConstructorMissing(err: LookupError, fqn: FQName)
-      extends TypeError(s"Cannot find constructor $fqn: ${err.getMsg}")
+      extends TypeError(err"Cannot find constructor $fqn: ${err.getMsg}")
 
   class SizeMismatch(first: Int, second: Int, msg: String)
-      extends TypeError(s"$msg: ($first vs $second)")
+      extends TypeError(err"$msg: ($first vs $second)")
   final case class ArgNumberMismatch(first: Int, second: Int, msg: String)
       extends SizeMismatch(first: Int, second: Int, msg: String)
   final case class InferenceConflict(msg: String) extends TypeError(msg)
   final case class UnimplementedType(msg: String) extends TypeError(msg)
   final case class OtherTypeError(msg: String)    extends TypeError(msg)
   final case class ManyTypeErrors(errors: List[TypeError])
-      extends TypeError("\n" + errors.map(_.toString).mkString("\n"))
+      extends TypeError("\n" + errors.map(err =>
+        s"""
+           |${err.getClass.getName.split(".").lastOption.getOrElse(err.getClass.getName)}:
+           |${err.getMsg}
+           """
+      )
+        .mkString("\n"))
 }

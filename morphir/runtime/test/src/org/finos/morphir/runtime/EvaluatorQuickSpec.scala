@@ -3,8 +3,8 @@
 //
 //import org.finos.morphir.testing.MorphirBaseSpec
 //import ir.Name
-//import org.finos.morphir.ir.Type as T
-//import org.finos.morphir.ir.Value as V
+//import org.finos.morphir.ir.{Type => T}
+//import org.finos.morphir.ir.{Value => V}
 //
 //import scala.collection.immutable.ListMap
 //import zio.{test as _, *}

@@ -13,7 +13,6 @@ import org.finos.morphir.ir.Value.{
 import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification as UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
-import org.finos.morphir.runtime.TypeError.CannotDealias
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import org.finos.morphir.runtime.quick.GatherReferences
@@ -164,7 +163,8 @@ final class TypeChecker(dists: Distributions) {
             TypeLacksField(valueTpe, missing, s"Required by ${PrintIR(declaredTpe)}")
           )
         val missingFromDeclared = declaredFieldSet
-          .diff(valueFieldSet).toList.map(bonus => TypeHasExtraField(valueTpe, declaredTpe, bonus))
+          .diff(valueFieldSet)
+          .toList.map(bonus => TypeHasExtraField(valueTpe, declaredTpe, bonus))
         // For everything shared, lookup types in both and ensure they match
         val sharedFields                       = valueFieldSet.intersect(declaredFieldSet)
         val valueFieldMap: Map[Name, UType]    = valueFields.map(field => field.name -> field.data).toMap
@@ -321,9 +321,9 @@ final class TypeChecker(dists: Distributions) {
   def handleFieldValue(tpe: UType, recordValue: TypedValue, name: Name, context: Context): TypeCheckerResult = {
     val fromChildren = check(recordValue, context)
     val fromTpe = dealias(recordValue.attributes, context) match {
-      case Right(Type.Record(_, fields)) =>
+      case Right(rTpe @ Type.Record(_, fields)) =>
         fields.map(field => field.name -> field.data).toMap.get(name) match {
-          case None           => List(new TypeLacksField(tpe, name, "Referenced by field none"))
+          case None           => List(new TypeLacksField(rTpe, name, "Referenced by field node"))
           case Some(fieldTpe) => conformsTo(fieldTpe, tpe, context)
         }
       case Right(other) => List(new ImproperType(other, s"Record type expected"))
@@ -440,9 +440,11 @@ final class TypeChecker(dists: Distributions) {
         val tpeFieldSet: Set[Name] = tpeFields.map(_.name).toSet
         val valFieldSet: Set[Name] = valFields.map(_._1).toSet
         val missingFromTpe = tpeFieldSet
-          .diff(valFieldSet).toList.map(missing => ValueLacksField(value, recordTpe, missing))
+          .diff(valFieldSet)
+          .toList.map(missing => ValueLacksField(value, recordTpe, missing))
         val missingFromValue = valFieldSet
-          .diff(tpeFieldSet).toList.map(bonus => ValueHasExtraField(value, recordTpe, bonus))
+          .diff(tpeFieldSet)
+          .toList.map(bonus => ValueHasExtraField(value, recordTpe, bonus))
         val valFieldMap: Map[Name, TypedValue] = valFields.toMap
         val tpeFieldMap: Map[Name, UType]      = tpeFields.map(field => field.name -> field.data).toMap
         val conflicts = tpeFieldSet.intersect(valFieldSet).flatMap(name =>

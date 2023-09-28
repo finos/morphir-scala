@@ -7,7 +7,7 @@ import org.finos.morphir.ir.conversion.*
 import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.printing.{DetailLevel, FieldNames, PrintIR}
 import org.finos.morphir.ir.sdk.Basics
-import org.finos.morphir.ir.{Documented, Module, MorphirIRFile, Type as T, Value as V}
+import org.finos.morphir.ir.{Documented, Module, MorphirIRFile, Type => T, Value => V}
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.*
 import org.finos.morphir.testing.MorphirBaseSpec

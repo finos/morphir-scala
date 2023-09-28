@@ -3,7 +3,7 @@ package org.finos.morphir.runtime
 import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
-import org.finos.morphir.ir.{Type as T, Value as V}
+import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
 import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.sdk
