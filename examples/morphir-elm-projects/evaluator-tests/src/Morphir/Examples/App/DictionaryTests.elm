@@ -98,3 +98,6 @@ dictUpdateTest2 ctx = test ctx
         aliceAndBob = Dict.fromList [ ( "Alice", 1 ), ( "Bob", 2 ) ]
     in
         Dict.update "Bob" (\_ -> Nothing) aliceAndBob
+
+dictMemberTest : Dict String a -> Boolean
+dictMemberTest dict = Dict.member "Waldo" dict
