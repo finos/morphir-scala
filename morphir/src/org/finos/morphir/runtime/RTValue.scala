@@ -16,7 +16,7 @@ import org.finos.morphir.runtime.internal.CallStackFrame
 import scala.collection.mutable
 import scala.collection.mutable.LinkedHashMap
 
-// TODO Rename to RTValue
+// TODO Integrate errors into reporting format
 // Represents a Morphir-Evaluator result. Typed on TypedMorphirRuntimeDefs.TypeAttribs, TypedMorphirRuntimeDefs.ValueAttribs
 // instead of a a Generic VA/TA since the latter is not necessary.
 sealed trait RTValue {
@@ -36,6 +36,15 @@ object RTValue {
       case _ =>
         throw new UnexpectedType(
           s"Cannot unwrap the value `${arg}` into a ListResult value. It is not a List-based result!"
+        )
+    }
+
+  def coerceConstructorResult(arg: RTValue) =
+    arg match {
+      case v: RTValue.ConstructorResult => v
+      case _ =>
+        throw new UnexpectedType(
+          s"Cannot unwrap the value `${arg}` into a ConstructorResult value. It is not a Constructor result!"
         )
     }
 
@@ -408,6 +417,7 @@ object RTValue {
   case class ConstructorFunction(name: FQName, arguments: scala.List[ValueAttribs], curried: scala.List[RTValue])
       extends Function
 
+  // TODO: We are currently using this for Maybe and Result types; those should be promoted to their own RTValues
   case class ConstructorResult(name: FQName, values: scala.List[RTValue]) extends RTValue {
     override def succinct(depth: Int) = if (depth == 0) s"${name.toString}(..)"
     else {

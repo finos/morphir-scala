@@ -46,6 +46,9 @@ object Coercer {
   implicit val listCoercer: Coercer[RTValue.List] = new Coercer[RTValue.List] {
     def coerce(result: RTValue): RTValue.List = RTValue.coerceList(result)
   }
+  implicit val constructorResultCoercer: Coercer[RTValue.ConstructorResult] = new Coercer[RTValue.ConstructorResult] {
+    def coerce(result: RTValue): RTValue.ConstructorResult = RTValue.coerceConstructorResult(result)
+  }
 
   implicit val functionCoercer: Coercer[RTValue.Function] = new Coercer[RTValue.Function] {
     def coerce(result: RTValue): RTValue.Function = RTValue.coerceFunction(result)
