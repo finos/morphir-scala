@@ -26,9 +26,9 @@ import org.finos.morphir.naming._
  *   - Adding special cases to Constructor pattern matching to recognize these forms
  *   - Changing the RTValue to MDM process to reflect the new form
  *   - In this file:
- *   - \- Remove toOption and toMaybe
- *   - \- Change the types from RT.ConstructorResult to RT.Maybe
- *   - \- change toOption(arg) calls to arg.value and toMaybe(result) calls to RT.Maybe(result)
+ *   - Remove toOption and toMaybe
+ *   - Change the types from RT.ConstructorResult to RT.Maybe
+ *   - Change toOption(arg) calls to arg.value and toMaybe(result) calls to RT.Maybe(result)
  */
 object MaybeSDK {
   private def toOption(arg: RT.ConstructorResult): Option[RT] =
