@@ -279,9 +279,8 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
         case (pattern, inValue) :: tail =>
           matchPatternCase(pattern, evaluated).map((inValue, _)).getOrElse(firstPatternMatching(tail))
         case Nil =>
-          throw UnmatchedPattern(s"${PrintIR(evaluated)} did not match any pattern from ${PrintIR(evaluated)}")
+          throw UnmatchedPattern(s"${PrintIR(evaluated)} did not match any pattern from ${cases.map(PrintIR(_))}")
       }
-
     val (inValue, bindings) = firstPatternMatching(cases)
     loop(inValue, store.push(bindings.map { case (name, value) => name -> StoredValue.Eager(value) }))
   }

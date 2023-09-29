@@ -13,13 +13,13 @@ test context res =
         _ -> res
  
 infinite : TestContext ->Bool
-infinite ctx = test ctx infinite ()
+infinite ctx = test ctx infinite {}
 
-test : TestContext ->Bool
-test ctx = test ctx 
-    let f = (&&) False in
-    f (infinite ())
---expected = ()
+myTest : TestContext ->Bool
+myTest ctx = test ctx 
+    True
+
+output = myTest{}
 
 main : Html ()
-main = text (Debug.toString (test () ))
+main = text (Debug.toString output)

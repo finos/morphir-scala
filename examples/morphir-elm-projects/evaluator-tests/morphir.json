@@ -6,7 +6,7 @@
         "DestructureTests",
         "DictionaryTests",
         "DecimalTests",
-        "OptionTests",
+        "MaybeTests",
         "ExampleModule",
         "IfThenElseTests",
         "LambdaTests",

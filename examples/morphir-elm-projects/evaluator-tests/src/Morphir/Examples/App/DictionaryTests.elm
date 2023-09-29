@@ -44,6 +44,17 @@ dictGetTest ctx = test ctx
         Dict.get "Tom" animals
 
 {-|
+    Test: Dict/GetMissing
+    expected = Just "Cat"
+-}
+dictGetMissingTest : TestContext ->Maybe String
+dictGetMissingTest ctx = test ctx
+    let
+        animals = Dict.fromList [ ("Tom", "Cat"), ("Jerry", "Mouse") ]
+    in
+        Dict.get "Cujo" animals
+
+{-|
     Test: Dict/emtpy
     expected = Dict.empty
 -}
