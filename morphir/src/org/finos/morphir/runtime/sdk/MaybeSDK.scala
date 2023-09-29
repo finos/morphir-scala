@@ -9,6 +9,7 @@ import org.finos.morphir.runtime.internal.{
   DynamicNativeFunction3,
   NativeContext
 }
+import org.finos.morphir.runtime.MorphirRuntimeError.UnexpectedType
 import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.{RTValue => RT}
 import org.finos.morphir.naming._

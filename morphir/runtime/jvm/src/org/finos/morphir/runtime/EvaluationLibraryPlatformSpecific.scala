@@ -16,6 +16,7 @@ import zio.json.*
 import zio.*
 import org.finos.morphir.ir.json.MorphirJsonSupport.*
 import org.finos.morphir.runtime.quick.{EvaluatorQuick, Store}
+import org.finos.morphir.runtime.MorphirRuntimeError.*
 
 trait EvaluationLibraryPlatformSpecific {
   def apply(fileName: String, prefix: Option[String] = None): EvaluationLibrary = {

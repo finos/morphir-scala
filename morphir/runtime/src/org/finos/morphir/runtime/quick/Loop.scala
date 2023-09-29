@@ -11,18 +11,15 @@ import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{RuntimeDefinition, Run
 import org.finos.morphir.runtime.internal.{NativeFunctionSignature, StoredValue}
 import org.finos.morphir.runtime.internal.InvokeableEvaluator
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
-import org.finos.morphir.runtime.{
+import org.finos.morphir.runtime.{RTValue, SDKConstructor, SDKValue, Utils}
+import org.finos.morphir.runtime.MorphirRuntimeError.{
   ConstructorNotFound,
   DefinitionNotFound,
   FunctionWithoutParameters,
   IllegalValue,
   MissingField,
-  RTValue,
-  SDKConstructor,
-  SDKValue,
   UnexpectedType,
   UnmatchedPattern,
-  Utils,
   VariableNotFound
 }
 
@@ -88,6 +85,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
         argValue match {
           case record @ RTValue.Record(fields) =>
             fields.getOrElse(name, throw MissingField(s"Record fields ${PrintIR(record)} do not contain name $name"))
+          // TODO: Use err interpolator
           case other => throw UnexpectedType(s"Expected record but found ${PrintIR(other)}")
         }
       case RTValue.LambdaFunction(body, pattern, context) =>
