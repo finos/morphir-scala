@@ -417,6 +417,7 @@ object RTValue {
   case class ConstructorFunction(name: FQName, arguments: scala.List[ValueAttribs], curried: scala.List[RTValue])
       extends Function
 
+  // TODO: We are currently using this for Maybe and Result types; those should be promoted to their own RTValues
   case class ConstructorResult(name: FQName, values: scala.List[RTValue]) extends RTValue {
     override def succinct(depth: Int) = if (depth == 0) s"${name.toString}(..)"
     else {

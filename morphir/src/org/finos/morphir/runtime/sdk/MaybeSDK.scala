@@ -17,6 +17,18 @@ import org.finos.morphir.naming._
  * The "Maybe" SDK functions somewhat differently from ListSDK or others, because Maybe is not handled as a specific
  * RTValue but through the general RTConstructor type. This is because it is treated as such in the IR - Maybe values
  * are initialized with constructors and pattern matched as such.
+ *
+ * TODO: This distinction should be refactored away. This entails:
+ *   - Adding RTValue variants for Maybe (and Result, while we're at it)
+ *   - Adding all supportig code for such (coercers + anything else)
+ *   - Adding special cases to the Apply handling for Constructors, to create these special RTValues instead of the
+ *     general form
+ *   - Adding special cases to Constructor pattern matching to recognize these forms
+ *   - Changing the RTValue to MDM process to reflect the new form
+ *   - In this file:
+ *   - \- Remove toOption and toMaybe
+ *   - \- Change the types from RT.ConstructorRestult to RT.Maybe
+ *   - \- change toOption(arg) calls to arg.value and toMaybe(result) calls to RT.Maybe(result)
  */
 object MaybeSDK {
   private def toOption(arg: RT.ConstructorResult): Option[RT] =
