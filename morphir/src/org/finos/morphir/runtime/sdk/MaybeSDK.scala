@@ -20,14 +20,14 @@ import org.finos.morphir.naming._
  *
  * TODO: This distinction should be refactored away. This entails:
  *   - Adding RTValue variants for Maybe (and Result, while we're at it)
- *   - Adding all supportig code for such (coercers + anything else)
+ *   - Adding all supporting code for such (coercers + anything else)
  *   - Adding special cases to the Apply handling for Constructors, to create these special RTValues instead of the
  *     general form
  *   - Adding special cases to Constructor pattern matching to recognize these forms
  *   - Changing the RTValue to MDM process to reflect the new form
  *   - In this file:
  *   - \- Remove toOption and toMaybe
- *   - \- Change the types from RT.ConstructorRestult to RT.Maybe
+ *   - \- Change the types from RT.ConstructorResult to RT.Maybe
  *   - \- change toOption(arg) calls to arg.value and toMaybe(result) calls to RT.Maybe(result)
  */
 object MaybeSDK {
