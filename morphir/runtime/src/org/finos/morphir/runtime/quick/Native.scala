@@ -60,6 +60,23 @@ object DictSDK {
       val map = m.coerceMap.value
       optionToMaybe(map.get(key))
   }
+  val member: SDKValue = SDKValue.SDKNativeFunction.fun2 {
+    (key: RTValue, m: RTValue) =>
+      val map = m.coerceMap.value
+      RTValue.Primitive.Boolean(map.contains(key))
+  }
+
+  val isEmpty: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (m: RTValue) =>
+      val map = m.coerceMap.value
+      RTValue.Primitive.Boolean(map.isEmpty)
+  }
+
+  val size: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (m: RTValue) =>
+      val map = m.coerceMap.value
+      RTValue.Primitive.Int(map.size)
+  }
 
   val singleton: SDKValue = SDKValue.SDKNativeFunction.fun2 {
     (key: RTValue, value: RTValue) =>
@@ -70,6 +87,12 @@ object DictSDK {
     (m: RTValue) =>
       val map = m.coerceMap.value
       RTValue.List(map.keys.toList)
+  }
+
+  val values: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (m: RTValue) =>
+      val map = m.coerceMap.value
+      RTValue.List(map.values.toList)
   }
 
   private def optionToMaybe(opt: Option[RTValue]): RTValue =
@@ -127,8 +150,12 @@ object DictSDK {
     FQName.fromString("Morphir.SDK:Dict:filter")    -> filter,
     FQName.fromString("Morphir.SDK:Dict:fromList")  -> fromList,
     FQName.fromString("Morphir.SDK:Dict:get")       -> get,
+    FQName.fromString("Morphir.SDK:Dict:member")    -> member,
+    FQName.fromString("Morphir.SDK:Dict:isEmpty")   -> isEmpty,
+    FQName.fromString("Morphir.SDK:Dict:size")      -> size,
     FQName.fromString("Morphir.SDK:Dict:insert")    -> insert,
     FQName.fromString("Morphir.SDK:Dict:keys")      -> keys,
+    FQName.fromString("Morphir.SDK:Dict:values")    -> values,
     FQName.fromString("Morphir.SDK:Dict:toList")    -> toList,
     FQName.fromString("Morphir.SDK:Dict:singleton") -> singleton,
     FQName.fromString("Morphir.SDK:Dict:update")    -> update,
