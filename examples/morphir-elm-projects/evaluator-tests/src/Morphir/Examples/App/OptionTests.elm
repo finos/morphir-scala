@@ -44,3 +44,9 @@ resolveResultType res = case res of
     Err False -> 0
     Err True -> 1
     Ok x -> x
+
+matchInput : Maybe String -> String
+matchInput input = case input of
+    Just "Red" -> "Found Red"
+    Just other -> other
+    Nothing -> "Let's say green"
