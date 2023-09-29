@@ -60,6 +60,11 @@ object DictSDK {
       val map = m.coerceMap.value
       optionToMaybe(map.get(key))
   }
+  val member: SDKValue = SDKValue.SDKNativeFunction.fun2 {
+    (key: RTValue, m: RTValue) =>
+      val map = m.coerceMap.value
+      RTValue.Primitive.Boolean(map.contains(key))
+  }
 
   val singleton: SDKValue = SDKValue.SDKNativeFunction.fun2 {
     (key: RTValue, value: RTValue) =>
