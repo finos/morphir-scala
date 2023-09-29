@@ -88,6 +88,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
         argValue match {
           case record @ RTValue.Record(fields) =>
             fields.getOrElse(name, throw MissingField(s"Record fields ${PrintIR(record)} do not contain name $name"))
+            //TODO: Use err interpolator
           case other => throw UnexpectedType(s"Expected record but found ${PrintIR(other)}")
         }
       case RTValue.LambdaFunction(body, pattern, context) =>
