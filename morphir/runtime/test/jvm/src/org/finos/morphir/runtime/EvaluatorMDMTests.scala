@@ -32,6 +32,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case list: List[_] =>
         val mapped = list.map(deriveData(_))
         Data.List(mapped.head, mapped.tail: _*)
+      case map : Map[_, _] =>
+        val mapped = map.toList
+
+      case Some(a : Any) => Data.Optional.Some(deriveData(a))
+      case None => Data.Optional.None(Concept.String)
       case Right(i: Int)       => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
       case Left(b: Boolean)    => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
       case (i: Int, s: String) => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
@@ -321,7 +326,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       suite("Decimal Tests")(
         testEvaluation("fromFloat")("decimalTests", "decimalFromFloatTest")(Data.Decimal(1.2)),
         testEvaluation("toFloat")("decimalTests", "decimalToFloatTest")(Data.Float(1.5)),
-        testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("1.2"))
+        testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("1.2")),
+        testEval ("aprTest")("decimalTests", "aprTestWrapped", 234)(Data.Decimal(2.34))
       ),
       suite("Lambda Tests")(
         testEvaluation("As")("lambdaTests", "lambdaAsTest")(Data.Tuple(Data.Int(5), Data.Int(5))),
@@ -671,6 +677,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Tuple(Data.Int(3), Data.String("Orange"))
         )),
         testEvaluation("Get")("dictionaryTests", "dictGetTest")(Data.Optional.Some(Data.String("Cat"))),
+        testEvaluation("GetMissing")("dictionaryTests", "dictGetMissingTest")(Data.Optional.None(Concept.String)),
         testEvaluation("Filters a dictionary")("dictionaryTests", "dictFilterTest")(Data.Map(
           (Data.Int(3), Data.String("Blue")),
           (Data.Int(4), Data.String("Blue"))
@@ -710,6 +717,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           resultStringIntShape
         )),
         testEval("Resolves success input")("optionTests", "resolveResultType", Right(5))(Data.Int(5)),
+        testEval("Resolves success input")("optionTests", "matchInput", Some("Blue"))(Data.Int(5)),
+        testEval("Resolves success input")("optionTests", "matchInput", None)(Data.Int(5)),
         testEval("Resolves error input")("optionTests", "resolveResultType", Left(true))(Data.Int(1))
       ),
       suite("SDK Basics Tests")(
