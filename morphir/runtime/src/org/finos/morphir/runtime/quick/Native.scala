@@ -2,7 +2,8 @@ package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.ir.Type
 import org.finos.morphir.naming.*
-import org.finos.morphir.runtime.{IllegalValue, RTValue, SDKConstructor, SDKValue, UnexpectedType, UnsupportedType}
+import org.finos.morphir.runtime.{RTValue, SDKConstructor, SDKValue}
+import org.finos.morphir.runtime.MorphirRuntimeError.{IllegalValue, UnexpectedType, UnsupportedType}
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.internal.{InvokeableEvaluator, NativeFunctionSignatureAdv}

@@ -17,6 +17,7 @@ import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => V
 import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
 
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
+import org.finos.morphir.runtime.MorphirRuntimeError.*
 import TypeError.*
 
 object Utils {

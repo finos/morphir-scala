@@ -10,7 +10,7 @@ import org.finos.morphir.MInt
 import org.finos.morphir.datamodel.Concept.Result
 import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{RuntimeValue, TypeAttribs, ValueAttribs}
 import org.finos.morphir.runtime.internal.{NativeFunctionSignature, NativeFunctionSignatureAdv}
-import org.finos.morphir.runtime.{IllegalValue, UnexpectedType}
+import org.finos.morphir.runtime.MorphirRuntimeError.{IllegalValue, UnexpectedType}
 import org.finos.morphir.runtime.internal.CallStackFrame
 
 import scala.collection.mutable

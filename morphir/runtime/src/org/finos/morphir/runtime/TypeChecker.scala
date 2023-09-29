@@ -17,6 +17,7 @@ import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import org.finos.morphir.runtime.quick.GatherReferences
 import zio.Chunk
+import org.finos.morphir.runtime.MorphirRuntimeError.*
 import TypeError.*
 
 object TypeChecker {

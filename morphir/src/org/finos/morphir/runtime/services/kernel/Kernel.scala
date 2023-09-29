@@ -4,7 +4,7 @@ import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.*
 import org.finos.morphir.runtime.exports.*
 import zio.prelude.fx.ZPure
-import org.finos.morphir.runtime.VariableAccessError
+import org.finos.morphir.runtime.MorphirRuntimeError.VariableAccessError
 
 trait Kernel {
   type VariableRef = Any // TODO: Replace with appropriate type

@@ -17,7 +17,8 @@ import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
 
 import scala.util.{Failure, Success, Try}
-import org.finos.morphir.runtime.{EvaluationError, MorphirRuntimeError}
+import org.finos.morphir.runtime.MorphirRuntimeError
+import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.environment.MorphirEnv
 import zio.prelude.fx.ZPure
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}

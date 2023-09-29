@@ -8,6 +8,7 @@ import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.RTAction
 import org.finos.morphir.runtime.quick.QuickMorphirRuntime
+import org.finos.morphir.runtime.MorphirRuntimeError.*
 
 trait MorphirRuntime {
   type TypeAttribs

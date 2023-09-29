@@ -10,16 +10,8 @@ import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.Extractors.Types.*
 import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{TypeAttribs, ValueAttribs}
-import org.finos.morphir.runtime.{
-  Distributions,
-  EvaluationError,
-  MissingField,
-  RTValue,
-  ResultDoesNotMatchType,
-  UnexpectedType,
-  UnmatchedPattern,
-  UnsupportedType
-}
+import org.finos.morphir.runtime.{Distributions, RTValue}
+import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.runtime.services.sdk.*
@@ -86,14 +78,14 @@ object EvaluatorQuick {
       case TT.Reference(_, typeName, typeArgs) =>
         val lookedUp    = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dists, boundTypes))
-        lookedUp.getOrElse(throw new UnexpectedType(s"Could not find spec for $typeName")) match {
-          case Type.Specification.TypeAliasSpecification(typeParams, expr) =>
+        lookedUp match {
+          case Right(Type.Specification.TypeAliasSpecification(typeParams, expr)) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             typeToConcept(expr, dists, newBindings) match {
               case Concept.Struct(fields) => Concept.Record(typeName, fields)
               case other                  => Concept.Alias(typeName, other)
             }
-          case Type.Specification.CustomTypeSpecification(typeParams, ctors) =>
+          case Right(Type.Specification.CustomTypeSpecification(typeParams, ctors)) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             val cases = ctors.toMap.toList.map { case (caseName, args) =>
               val argTuples = args.map { case (argName: Name, argType: Type.UType) =>
@@ -104,7 +96,8 @@ object EvaluatorQuick {
               Concept.Enum.Case(Label(conceptName), concepts)
             }
             Concept.Enum(typeName, cases)
-          case other => throw UnsupportedType(s"$other is not a recognized type")
+          case Right(other) => throw UnsupportedType(s"$other is not a recognized type")
+          case Left(err)    => throw SpecificationNotFound(s"Missing type specification on entry point: ${err.getMsg}")
         }
       case TT.Tuple(_, elements) =>
         Concept.Tuple(elements.map(element => typeToConcept(element, dists, boundTypes)).toList)

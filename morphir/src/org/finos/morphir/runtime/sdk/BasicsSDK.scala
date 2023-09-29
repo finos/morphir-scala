@@ -3,7 +3,8 @@ package org.finos.morphir.runtime.sdk
 import org.finos.morphir.Hints
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.internal.{DynamicNativeFunction, NativeContext, NumericFunction2, NumericHelpers}
-import org.finos.morphir.runtime.{IllegalValue, RTValue}
+import org.finos.morphir.runtime.RTValue
+import org.finos.morphir.runtime.MorphirRuntimeError.IllegalValue
 
 object BasicsSDK {
   type AnyNum = Any
