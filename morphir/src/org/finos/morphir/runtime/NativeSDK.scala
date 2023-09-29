@@ -45,6 +45,11 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.cons)
         )
       }
+      case object Maybe extends SdkModuleDescriptor(moduleName = " Maybe"){
+        val functions : List[NativeFunctionAdapter] = scala.List(
+
+        )
+      }
     }
   }
 
