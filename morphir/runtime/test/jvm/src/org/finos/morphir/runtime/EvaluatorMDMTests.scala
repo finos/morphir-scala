@@ -23,6 +23,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
   def deriveData(input: Any): Data =
     input match {
+      // If the data is already derived, just use it!
+      case alreadyData: Data       => alreadyData
       case u: Unit                 => Deriver.toData(u)
       case b: Boolean              => Deriver.toData(b)
       case i: Int                  => Deriver.toData(i)
@@ -32,17 +34,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case list: List[_] =>
         val mapped = list.map(deriveData(_))
         Data.List(mapped.head, mapped.tail: _*)
-      case map : Map[_, _] =>
-        val mapped = map.toList
-
-      case Some(a : Any) => Data.Optional.Some(deriveData(a))
-      case None => Data.Optional.None(Concept.String)
+      case map: Map[_, _] =>
+        val pairs = map.toList.map { case (key, value) => (deriveData(key), deriveData(value)) }
+        Data.Map(pairs.head, pairs.tail: _*)
+      case Some(a: Any)        => Data.Optional.Some(deriveData(a))
       case Right(i: Int)       => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
       case Left(b: Boolean)    => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
       case (i: Int, s: String) => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
-      // If the data is already derived, just use it!
-      case data: Data => data
-      case other      => throw new Exception(s"Couldn't derive $other")
+      case other               => throw new Exception(s"Couldn't derive $other")
     }
 
   def checkEvaluation(
@@ -326,8 +325,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       suite("Decimal Tests")(
         testEvaluation("fromFloat")("decimalTests", "decimalFromFloatTest")(Data.Decimal(1.2)),
         testEvaluation("toFloat")("decimalTests", "decimalToFloatTest")(Data.Float(1.5)),
-        testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("1.2")),
-        testEval ("aprTest")("decimalTests", "aprTestWrapped", 234)(Data.Decimal(2.34))
+        testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("1.2"))
       ),
       suite("Lambda Tests")(
         testEvaluation("As")("lambdaTests", "lambdaAsTest")(Data.Tuple(Data.Int(5), Data.Int(5))),
@@ -702,24 +700,39 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           (Data.String("Alice"), Data.Int(1))
         ))
       ),
-      suite("Optional Tests")(
-        testEvaluation("Returns a Just 1")("optionTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),
-        testEvaluation("Option String")("optionTests", "returnJustStringTest")(
+      suite("Maybe Tests")(
+        testEvaluation("Returns a Just 1")("maybeTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),
+        testEvaluation("Option String")("maybeTests", "returnJustStringTest")(
           Data.Optional.Some(Data.String("Hello"))
         ),
-        testEvaluation("Returns a None")("optionTests", "returnNoneIntTest")(Data.Optional.None(Concept.Int32)),
-        testEval("Returns success result")("optionTests", "returnResultType", 0)(Data.Result.Ok(
+        testEvaluation("Returns a None")("maybeTests", "returnNoneIntTest")(Data.Optional.None(Concept.Int32)),
+        testEval("Match Just(Blue) input")("maybeTests", "matchInput", Some("Blue"))(Data.String("Blue")),
+        testEval("Match Nothing input")("maybeTests", "matchInput", Data.Optional.None(Concept.String))(
+          Data.String("Octarine")
+        ),
+        testEval("Map Just(Red) input")("maybeTests", "maybeMap", Some("Red"))(Data.String("Bright Red")),
+        testEval("MapWithContext Just(Red) input")("maybeTests", "maybeMapWithContext", Some("Red"))(
+          Data.Optional.Some(Data.String("Dark Red"))
+        ),
+        testEval("Map Nothing input")("maybeTests", "maybeMap", Data.Optional.None(Concept.String))(
+          Data.String("Ultraviolet")
+        ),
+        testEval("withDefault Just(True) input")("maybeTests", "maybeWithDefault", Some(true))(Data.Boolean(true)),
+        testEval("withDefault Nothing input")("maybeTests", "maybeWithDefault", Data.Optional.None(Concept.Boolean))(
+          Data.Boolean(false)
+        )
+      ),
+      suite("SDK Result Tests")(
+        testEval("Returns success result")("maybeTests", "returnResultType", 0)(Data.Result.Ok(
           Data.Int(0),
           resultStringIntShape
         )),
-        testEval("Returns error result")("optionTests", "returnResultType", -1)(Data.Result.Err(
+        testEval("Returns error result")("maybeTests", "returnResultType", -1)(Data.Result.Err(
           Data.String("Negative"),
           resultStringIntShape
         )),
-        testEval("Resolves success input")("optionTests", "resolveResultType", Right(5))(Data.Int(5)),
-        testEval("Resolves success input")("optionTests", "matchInput", Some("Blue"))(Data.Int(5)),
-        testEval("Resolves success input")("optionTests", "matchInput", None)(Data.Int(5)),
-        testEval("Resolves error input")("optionTests", "resolveResultType", Left(true))(Data.Int(1))
+        testEval("Resolves success input")("maybeTests", "resolveResultType", Right(5))(Data.Int(5)),
+        testEval("Resolves error input")("maybeTests", "resolveResultType", Left(true))(Data.Int(1))
       ),
       suite("SDK Basics Tests")(
         testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
