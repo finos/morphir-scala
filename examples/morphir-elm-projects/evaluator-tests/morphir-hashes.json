@@ -3,7 +3,7 @@
     "src/Morphir/Examples/App/CurrentTest.elm": "50e051270588d22c6832b0bf82a96915",
     "src/Morphir/Examples/App/DecimalTests.elm": "4f3d1584cc871ab9b64fd1509bb50b0c",
     "src/Morphir/Examples/App/DestructureTests.elm": "d4d40e231085aa6607e8347ad58970e0",
-    "src/Morphir/Examples/App/DictionaryTests.elm": "7e9a9dc87b547519f44e92169838ad46",
+    "src/Morphir/Examples/App/DictionaryTests.elm": "d4b6b2f177b58319a4a3c3c667353a87",
     "src/Morphir/Examples/App/EllieStuff.elm": "7531019fab7c0c2e60971258ad23c10f",
     "src/Morphir/Examples/App/EnumTest.elm": "4a7d3aca45cfb4edf208d0e883bc49a9",
     "src/Morphir/Examples/App/ExampleModule.elm": "f3fbbf0a879fadeb20959408583b1a73",
@@ -25,7 +25,7 @@
     "src/Morphir/Examples/App/SimpleTests.elm": "b3a48a627b7ab69e2ba20c85bc121996",
     "src/Morphir/Examples/App/StringTests.elm": "0489c606935f782c9b85bc9f84e440aa",
     "src/Morphir/Examples/App/TestUtils.elm": "bfb70d90bfce6bae6310aaf7db4271a8",
-    "src/Morphir/Examples/App/TupleTests.elm": "f44595b14587ef94416d97d5ea920ffb",
+    "src/Morphir/Examples/App/TupleTests.elm": "836b2cdfca46bf4aaa6e8060ac643123",
     "src/Morphir/Examples/App/TypeCheckerTests.elm": "6da55ef4bc0d30651b1119c3b84206d2",
     "src/Morphir/Examples/App/UserDefinedReferenceTests.elm": "869811628634d7cc5098efaa061879fd"
 }

@@ -37,11 +37,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case map: Map[_, _] =>
         val pairs = map.toList.map { case (key, value) => (deriveData(key), deriveData(value)) }
         Data.Map(pairs.head, pairs.tail: _*)
-      case Some(a: Any)        => Data.Optional.Some(deriveData(a))
-      case Right(i: Int)       => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
-      case Left(b: Boolean)    => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
-      case (i: Int, s: String) => Data.Tuple(Deriver.toData(i), Deriver.toData(s))
-      case other               => throw new Exception(s"Couldn't derive $other")
+      case Some(a: Any)           => Data.Optional.Some(deriveData(a))
+      case Right(i: Int)          => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
+      case Left(b: Boolean)       => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
+      case (first, second)        => Data.Tuple(deriveData(first), deriveData(second))
+      case (first, second, third) => Data.Tuple(deriveData(first), deriveData(second), deriveData(third))
+      case other                  => throw new Exception(s"Couldn't derive $other")
     }
 
   def checkEvaluation(
@@ -597,7 +598,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       suite("Simple")(
         testEvaluation("Unit")("simpleTests", "simpleUnitTest")(Data.Unit)
       ),
-      suite("Simple[Tuple]")(
+      suite("Tuple")(
         testEvaluation("Tuple(2)")("tupleTests", "tupleTwoTest")(Data.Tuple(List(Data.Int(5), Data.Int(4)))),
         testEvaluation("Tuple(3)")("tupleTests", "tupleThreeTest")(Data.Tuple(
           Data.Int(0),
@@ -612,7 +613,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )
         )),
         testEvaluation("First")("tupleTests", "tupleFirstTest")(Data.Int(1)),
-        testEvaluation("Second")("tupleTests", "tupleSecondTest")(Data.Int(2))
+        testEvaluation("Second")("tupleTests", "tupleSecondTest")(Data.Int(2)),
+        testEval("Derive from Destructure Int")("tupleTests", "tupleDeriveDestructureTest", (1, "Red"))(Data.Int(1)),
+        testEval("Derive from Destructure String")("tupleTests", "tupleDeriveDestructureTest", ("Red", 1))(
+          Data.String("Red")
+        )
       ),
       suite("String")(
         testEvalMultiple("String Append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
@@ -676,6 +681,48 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )),
         testEvaluation("Get")("dictionaryTests", "dictGetTest")(Data.Optional.Some(Data.String("Cat"))),
         testEvaluation("GetMissing")("dictionaryTests", "dictGetMissingTest")(Data.Optional.None(Concept.String)),
+        testEval("MemberTrue")(
+          "dictionaryTests",
+          "dictMemberTest",
+          Data.Map(
+            (Data.String("Bob"), Data.Int(0)),
+            (Data.String("Waldo"), Data.Int(1))
+          )
+        )(Data.Boolean(true)),
+        testEval("MemberFalse")(
+          "dictionaryTests",
+          "dictMemberTest",
+          Data.Map(
+            (Data.String("Bob"), Data.Int(0))
+          )
+        )(Data.Boolean(false)),
+        testEval("MemberEmpty")("dictionaryTests", "dictMemberTest", Data.Map.empty(Concept.String, Concept.Boolean))(
+          Data.Boolean(false)
+        ),
+        testEval("Size 2")(
+          "dictionaryTests",
+          "dictSizeTest",
+          Data.Map(
+            (Data.String("Bob"), Data.Int(0)),
+            (Data.String("Waldo"), Data.Int(1))
+          )
+        )(Data.Int(2)),
+        testEval("Size Empty")("dictionaryTests", "dictSizeTest", Data.Map.empty(Concept.Integer, Concept.Boolean))(
+          Data.Int(0)
+        ),
+        testEval("isEmpty false")(
+          "dictionaryTests",
+          "dictIsEmptyTest",
+          Data.Map(
+            (Data.String("Bob"), Data.Int(0)),
+            (Data.String("Waldo"), Data.Int(1))
+          )
+        )(Data.Boolean(false)),
+        testEval("isEmpty True")(
+          "dictionaryTests",
+          "dictIsEmptyTest",
+          Data.Map.empty(Concept.Integer, Concept.Boolean)
+        )(Data.Boolean(true)),
         testEvaluation("Filters a dictionary")("dictionaryTests", "dictFilterTest")(Data.Map(
           (Data.Int(3), Data.String("Blue")),
           (Data.Int(4), Data.String("Blue"))
@@ -692,6 +739,20 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int(4),
           Data.Int(5)
         )),
+        testEval("Values")(
+          "dictionaryTests",
+          "dictValuesTest",
+          Data.Map(
+            (Data.String("Waldo"), Data.Int(0)),
+            (Data.String("Bob"), Data.Int(1))
+          )
+        )(Data.List(
+          Data.Int(0),
+          Data.Int(1)
+        )),
+        testEval("Values Empty")("dictionaryTests", "dictValuesTest", Data.Map.empty(Concept.Integer, Concept.Boolean))(
+          Data.List.empty(Concept.Boolean)
+        ),
         testEvaluation("Update")("dictionaryTests", "dictUpdateTest")(Data.Map(
           (Data.String("Alice"), Data.Int(1)),
           (Data.String("Bob"), Data.Int(6))
