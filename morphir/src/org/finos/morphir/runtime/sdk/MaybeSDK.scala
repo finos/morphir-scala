@@ -32,7 +32,7 @@ import org.finos.morphir.naming._
  *   - Change toOption(arg) calls to arg.value and toMaybe(result) calls to RT.Maybe(result)
  */
 object MaybeSDK {
-  private def toOption(arg: RT.ConstructorResult): Option[RT] =
+  private[sdk] def eitherToOption(arg: RT.ConstructorResult): Option[RT] =
     arg match {
       case RTValue.ConstructorResult(fqn, List(value)) if fqn == FQName.fromString("Morphir.SDK:Maybe:Just") =>
         Some(value)
@@ -40,7 +40,7 @@ object MaybeSDK {
       case RTValue.ConstructorResult(fqn, args) =>
         throw new UnexpectedType(s"Expected Just(something) or Nothing, found $fqn(${args}")
     }
-  private def toMaybe(arg: Option[RT]): RT.ConstructorResult =
+  private[sdk] def resultToMaybe(arg: Option[RT]): RT.ConstructorResult =
     arg match {
       case Some(value) => RTValue.ConstructorResult(FQName.fromString("Morphir.SDK:Maybe:Just"), List(value))
       case None        => RTValue.ConstructorResult(FQName.fromString("Morphir.SDK:Maybe:Nothing"), List())
@@ -49,13 +49,13 @@ object MaybeSDK {
   val map = DynamicNativeFunction2("map") {
     (ctx: NativeContext) => (f: RT.Function, maybeRaw: RT.ConstructorResult) =>
       {
-        val out = toOption(maybeRaw).map(elem => ctx.evaluator.handleApplyResult(Type.variable("a"), f, elem))
-        toMaybe(out)
+        val out = eitherToOption(maybeRaw).map(elem => ctx.evaluator.handleApplyResult(Type.variable("a"), f, elem))
+        resultToMaybe(out)
       }
   }
   val withDefault = DynamicNativeFunction2("withDefault") {
     (ctx: NativeContext) => (default: RT, maybeRaw: RT.ConstructorResult) =>
-      toOption(maybeRaw).getOrElse(default)
+      eitherToOption(maybeRaw).getOrElse(default)
   }
 
 }
