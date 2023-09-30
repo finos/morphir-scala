@@ -808,6 +808,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "resultMap",
           Data.Result.Ok.withErrConcept(Data.String("Red"), Concept.String)
         )(Data.String("Bright Red")),
+        testEval("Map Err(MyError) input")(
+          "resultTests",
+          "resultMap",
+          Data.Result.Err.withOkConcept(Data.String("MyError"), Concept.String)
+        )(
+          Data.String("Error: MyError")
+        ),
         testEval("MapWithContext Ok(Red) input")(
           "resultTests",
           "resultMapWithContext",
@@ -815,12 +822,17 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )(
           Data.Result.Ok.withErrConcept(Data.String("Dark Red"), Concept.Boolean)
         ),
-        testEval("Map Err(MyError) input")(
+        testEval("MapError Ok(Energy) input")(
           "resultTests",
-          "resultMap",
-          Data.Result.Err.withOkConcept(Data.String("MyError"), Concept.String)
+          "resultMapError",
+          Data.Result.Ok.withErrConcept(Data.String("Energy"), Concept.String)
+        )(Data.String("Fine: Energy")),
+        testEval("MapError Err(Matter) input")(
+          "resultTests",
+          "resultMapError",
+          Data.Result.Err.withOkConcept(Data.String("Matter"), Concept.String)
         )(
-          Data.String("Error: MyError")
+          Data.String("Anti-Matter")
         ),
         testEval("withDefault Ok(True) input")(
           "resultTests",
@@ -833,7 +845,27 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Result.Err.withOkConcept(Data.Boolean(true), Concept.Boolean)
         )(
           Data.Boolean(false)
-        )
+        ),
+        testEval("toMaybe Ok(Red) input")(
+          "resultTests",
+          "resultToMaybe",
+          Data.Result.Ok.withErrConcept(Data.String("Red"), Concept.Boolean)
+        )(Data.Optional.Some(Data.String("Red"))),
+        testEval("toMaybe Err(true) input")(
+          "resultTests",
+          "resultToMaybe",
+          Data.Result.Err.withOkConcept(Data.Boolean(true), Concept.String)
+        )(Data.Optional.None(Concept.String)),
+        testEval("fromMaybe Just 3 input")(
+          "resultTests",
+          "resultFromMaybe",
+          Data.Optional.Some(Data.Int(3))
+        )(Data.Result.Ok.withErrConcept(Data.Int(3), Concept.String)),
+        testEval("fromMaybe Nothing input")(
+          "resultTests",
+          "resultFromMaybe",
+          Data.Optional.None(Concept.Int32)
+        )(Data.Result.Err.withOkConcept(Data.String("Undefined"), Concept.Int32))
       ),
       suite("SDK Basics Tests")(
         testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),

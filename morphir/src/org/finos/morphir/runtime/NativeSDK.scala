@@ -54,7 +54,10 @@ object NativeSDK {
       case object Result extends SdkModuleDescriptor(moduleName = "Result") {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun2(ResultSDK.map),
-          NativeFunctionAdapter.Fun2(ResultSDK.withDefault)
+          NativeFunctionAdapter.Fun2(ResultSDK.mapError),
+          NativeFunctionAdapter.Fun2(ResultSDK.withDefault),
+          NativeFunctionAdapter.Fun1(ResultSDK.toMaybe),
+          NativeFunctionAdapter.Fun2(ResultSDK.fromMaybe)
         )
 
       }

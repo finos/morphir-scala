@@ -43,7 +43,7 @@ expected(Err "Matter") = "Anti-Matter"
 -}
 resultMapError : Result String String -> String
 resultMapError input = 
-    case (Result.map (\x -> "Anti-" ++ x) input) of
+    case (Result.mapError (\x -> "Anti-" ++ x) input) of
         Ok ok -> "Fine: " ++ ok
         Err err-> err
 
@@ -93,5 +93,5 @@ expected(Just 3) = Ok 3
 expected(Nothing) = Err Undefined
 -}
 resultFromMaybe : Maybe Int -> Result String Int
-esultFromMaybe input = 
+resultFromMaybe input = 
     Result.fromMaybe "Undefined" input

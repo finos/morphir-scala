@@ -20,7 +20,7 @@
     "src/Morphir/Examples/App/NativeReferenceTests.elm": "5cbdacad10dc55d08988556b94f1ae37",
     "src/Morphir/Examples/App/PatternMatchTests.elm": "c5d78637659d939f1124a8a10aa5cfa4",
     "src/Morphir/Examples/App/RecordTests.elm": "94671d0b58dfd19950458d50f1f0329e",
-    "src/Morphir/Examples/App/ResultTests.elm": "2e93bbacbe4b8a0386f0661c555bbd86",
+    "src/Morphir/Examples/App/ResultTests.elm": "a4467e928837d61c9ac0882453a478c9",
     "src/Morphir/Examples/App/SdkBasicTests.elm": "c6d36889eb62d0f32e9107b411e2ce8a",
     "src/Morphir/Examples/App/SetTests.elm": "4fe877b1af94706199aca42384529c3c",
     "src/Morphir/Examples/App/SimpleTests.elm": "b3a48a627b7ab69e2ba20c85bc121996",
