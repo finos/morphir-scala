@@ -13,7 +13,7 @@ import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import zio.Chunk
 import org.finos.morphir.runtime.ErrorUtils.ErrorInterpolator
 
-sealed abstract class MorphirRuntimeError(message: String) extends Exception(message)
+sealed trait MorphirRuntimeError(message: String) extends Exception(message)
 
 object MorphirRuntimeError {
   final case class DerivationError(message: String) extends MorphirRuntimeError(message)
