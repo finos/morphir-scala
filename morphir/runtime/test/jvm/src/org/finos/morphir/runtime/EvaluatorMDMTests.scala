@@ -38,11 +38,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         val pairs = map.toList.map { case (key, value) => (deriveData(key), deriveData(value)) }
         Data.Map(pairs.head, pairs.tail: _*)
       case Some(a: Any)           => Data.Optional.Some(deriveData(a))
-      case Right(i: Int)          => Data.Result.Ok(Data.Int(i), resultBoolIntShape)
-      case Left(b: Boolean)       => Data.Result.Err(Data.Boolean(b), resultBoolIntShape)
       case (first, second)        => Data.Tuple(deriveData(first), deriveData(second))
       case (first, second, third) => Data.Tuple(deriveData(first), deriveData(second), deriveData(third))
-      case other                  => throw new Exception(s"Couldn't derive $other")
+      case e: Either[_, _] => throw new Exception(
+          s"Couldn't derive $e (Hint: I can't tell what the other side of the either would be. Use Data constructors directly instead."
+        )
+      case other => throw new Exception(s"Couldn't derive $other")
     }
 
   def checkEvaluation(
@@ -784,16 +785,87 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("SDK Result Tests")(
-        testEval("Returns success result")("maybeTests", "returnResultType", 0)(Data.Result.Ok(
+        testEval("Returns success result")("resultTests", "returnResultType", 0)(Data.Result.Ok(
           Data.Int(0),
           resultStringIntShape
         )),
-        testEval("Returns error result")("maybeTests", "returnResultType", -1)(Data.Result.Err(
+        testEval("Returns error result")("resultTests", "returnResultType", -1)(Data.Result.Err(
           Data.String("Negative"),
           resultStringIntShape
         )),
-        testEval("Resolves success input")("maybeTests", "resolveResultType", Right(5))(Data.Int(5)),
-        testEval("Resolves error input")("maybeTests", "resolveResultType", Left(true))(Data.Int(1))
+        testEval("Resolves success input")(
+          "resultTests",
+          "resolveResultType",
+          Data.Result.Ok.withErrConcept(Data.Int(5), Concept.Boolean)
+        )(Data.Int(5)),
+        testEval("Resolves error input")(
+          "resultTests",
+          "resolveResultType",
+          Data.Result.Err.withOkConcept(Data.Boolean(true), Concept.Integer)
+        )(Data.Int(1)),
+        testEval("Map Ok(Red) input")(
+          "resultTests",
+          "resultMap",
+          Data.Result.Ok.withErrConcept(Data.String("Red"), Concept.String)
+        )(Data.String("Bright Red")),
+        testEval("Map Err(MyError) input")(
+          "resultTests",
+          "resultMap",
+          Data.Result.Err.withOkConcept(Data.String("MyError"), Concept.String)
+        )(
+          Data.String("Error: MyError")
+        ),
+        testEval("MapWithContext Ok(Red) input")(
+          "resultTests",
+          "resultMapWithContext",
+          Data.Result.Ok.withErrConcept(Data.String("Red"), Concept.Boolean)
+        )(
+          Data.Result.Ok.withErrConcept(Data.String("Dark Red"), Concept.Boolean)
+        ),
+        testEval("MapError Ok(Energy) input")(
+          "resultTests",
+          "resultMapError",
+          Data.Result.Ok.withErrConcept(Data.String("Energy"), Concept.String)
+        )(Data.String("Fine: Energy")),
+        testEval("MapError Err(Matter) input")(
+          "resultTests",
+          "resultMapError",
+          Data.Result.Err.withOkConcept(Data.String("Matter"), Concept.String)
+        )(
+          Data.String("Anti-Matter")
+        ),
+        testEval("withDefault Ok(True) input")(
+          "resultTests",
+          "resultWithDefault",
+          Data.Result.Ok.withErrConcept(Data.Boolean(true), Concept.Boolean)
+        )(Data.Boolean(true)),
+        testEval("withDefault Err(true) input")(
+          "resultTests",
+          "resultWithDefault",
+          Data.Result.Err.withOkConcept(Data.Boolean(true), Concept.Boolean)
+        )(
+          Data.Boolean(false)
+        ),
+        testEval("toMaybe Ok(Red) input")(
+          "resultTests",
+          "resultToMaybe",
+          Data.Result.Ok.withErrConcept(Data.String("Red"), Concept.Boolean)
+        )(Data.Optional.Some(Data.String("Red"))),
+        testEval("toMaybe Err(true) input")(
+          "resultTests",
+          "resultToMaybe",
+          Data.Result.Err.withOkConcept(Data.Boolean(true), Concept.String)
+        )(Data.Optional.None(Concept.String)),
+        testEval("fromMaybe Just 3 input")(
+          "resultTests",
+          "resultFromMaybe",
+          Data.Optional.Some(Data.Int(3))
+        )(Data.Result.Ok.withErrConcept(Data.Int(3), Concept.String)),
+        testEval("fromMaybe Nothing input")(
+          "resultTests",
+          "resultFromMaybe",
+          Data.Optional.None(Concept.Int32)
+        )(Data.Result.Err.withOkConcept(Data.String("Undefined"), Concept.Int32))
       ),
       suite("SDK Basics Tests")(
         testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),

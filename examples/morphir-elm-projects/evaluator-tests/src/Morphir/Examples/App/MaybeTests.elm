@@ -77,22 +77,3 @@ maybeWithDefault : Maybe Bool -> Bool
 maybeWithDefault input = 
     Maybe.withDefault False input
 
-{-|
-Test: Result/Return
-expected(0) = Ok 0
-expected(1) = Err "Negative"
--}
-returnResultType : Int -> Result String Int
-returnResultType x = if x == 0 then Ok x else Err "Negative"
-
-{-|
-Test: Result/Resolve
-expected(Ok 0) = 0
-expected(Error False) = 0
-expected(Error True) = 1
--}
-resolveResultType : Result Bool Int -> Int
-resolveResultType res = case res of
-    Err False -> 0
-    Err True -> 1
-    Ok x -> x
