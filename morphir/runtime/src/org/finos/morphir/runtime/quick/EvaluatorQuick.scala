@@ -104,27 +104,28 @@ object EvaluatorQuick {
       case TT.Unit(_)           => Concept.Unit
       case TT.Variable(_, name) => boundTypes(name)
     }
-  def resultAndConceptToData(result: RTValue, concept: Concept): Data =
+  def resultAndConceptToData(result: RTValue, concept: Concept): Data = {
+    import RTValueToMDMError.*
     (concept, result) match {
-      case (Concept.Struct(fields), RTValue.Record(elements)) =>
+      case (Concept.Struct(fields), record @ RTValue.Record(elements)) =>
         if (fields.length != elements.size) {
           throw ResultDoesNotMatchType(s"$fields has different number of elements than $elements")
         } else {
-          val tuples = fields.map { case (Label(name), innerConcept) =>
+          val tuples = fields.map { case (label, innerConcept) =>
             val value =
-              elements.getOrElse(Name(name), throw new MissingField(s"Type expected $name but not found in $elements"))
-            (Label(name), resultAndConceptToData(value, innerConcept))
+              elements.getOrElse(Name(label.value), throw new MissingField(record, label))
+            (label, resultAndConceptToData(value, innerConcept))
           }
           Data.Struct(tuples.toList)
         }
-      case (Concept.Record(qName, fields), RTValue.Record(elements)) =>
+      case (Concept.Record(qName, fields), record @ RTValue.Record(elements)) =>
         if (fields.length != elements.size) {
           throw ResultDoesNotMatchType(s"$fields has different number of elements than $elements")
         } else {
-          val tuples = fields.map { case (Label(name), innerConcept) =>
+          val tuples = fields.map { case (label, innerConcept) =>
             val value =
-              elements.getOrElse(Name(name), throw new MissingField(s"Type expected $name but not found in $elements"))
-            (Label(name), resultAndConceptToData(value, innerConcept))
+              elements.getOrElse(Name(label.value), throw new MissingField(record, label))
+            (label, resultAndConceptToData(value, innerConcept))
           }
           Data.Record(qName, tuples.toList)
         }
@@ -222,6 +223,7 @@ object EvaluatorQuick {
       case (badType, badResult) =>
         throw new ResultDoesNotMatchType(s"Could not match type $badType with result $badResult")
     }
+  }
 
   def resultToMDM(result: RTValue, concept: Concept): Data =
     resultAndConceptToData(result, concept)

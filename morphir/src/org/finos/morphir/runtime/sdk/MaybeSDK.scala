@@ -38,7 +38,11 @@ object MaybeSDK {
         Some(value)
       case RTValue.ConstructorResult(fqn, List()) if fqn == FQName.fromString("Morphir.SDK:Maybe:Nothing") => None
       case RTValue.ConstructorResult(fqn, args) =>
-        throw new UnexpectedType(s"Expected Just(something) or Nothing, found $fqn(${args}")
+        throw new UnexpectedType(
+          s"Morphir.SDK:Maybe:just value or Morphir.SDK:Maybe:nothing",
+          arg,
+          "Expected due to use in a native function"
+        )
     }
   private[sdk] def resultToMaybe(arg: Option[RT]): RT.ConstructorResult =
     arg match {

@@ -7,6 +7,7 @@ import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Value.{Pattern, TypedValue, Value, USpecification as UValueSpec}
 import org.finos.morphir.ir.Type.{Type, UType, USpecification as UTypeSpec}
 import org.finos.morphir.ir.printing.PrintIR
+import org.finos.morphir.util.PrintMDM
 
 object ErrorUtils {
   implicit class ErrorInterpolator(sc: StringContext) {
@@ -37,7 +38,7 @@ object ErrorUtils {
     def err(args: Any*): String = {
       val indexed = args.zipWithIndex
       val irArgs = indexed
-        .filter { case (arg, _) => isIR(arg) }
+        .filter { case (arg, _) => isASTLike(arg) }
         .zipWithIndex
         .map { case ((arg, mainIndex), argIndex) => (mainIndex, (argIndex, arg)) }
         .toMap
@@ -54,11 +55,19 @@ object ErrorUtils {
       explanation + "\n" + terms
     }
 
-    def process(title: String, astLike: Any): String = {
-      val elmBody = barIndentBlock("Elm", astLike.toString)
-      val irBody  = barIndentBlock("IR", PrintIR(astLike).plainText)
-      barBlock(barIndentBlock(title, elmBody + irBody, barWidth = 10)) // Console likes to drop leading |?
-    }
+    def process(title: String, astLike: Any): String =
+      if (isMDM(astLike)) {
+        val mdmBody = barIndentBlock("MDM", PrintMDM(astLike).plainText)
+        barBlock(barIndentBlock(title, mdmBody, barWidth = 10)) // Console likes to drop leading |?
+      } else if (isIR(astLike)) {
+        val elmBody = barIndentBlock("Elm", astLike.toString)
+        val irBody  = barIndentBlock("IR", PrintIR(astLike).plainText)
+        barBlock(barIndentBlock(title, elmBody + irBody, barWidth = 10)) // Console likes to drop leading |?
+      } else {
+        // TODO: RTValue probably needs its own Printer
+        val astBody = barIndentBlock("AST", PrintIR(astLike).plainText)
+        barBlock(barIndentBlock(title, astBody, barWidth = 10)) // Console likes to drop leading |?
+      }
     def isIR(any: Any): Boolean = any match {
       case _: Type[_]            => true
       case _: Value[_, _]        => true
@@ -69,12 +78,15 @@ object ErrorUtils {
       case _: T.Definition[_]    => true
       case _                     => false
     }
+    def isMDM(any: Any): Boolean = any match {
+      case _: Data    => true
+      case _: Concept => true
+      case other      => false
+    }
 
     def isASTLike(any: Any): Boolean = any match {
       case _: RTValue => true
-      case _: Data    => true
-      case _: Concept => true
-      case other      => isIR(other)
+      case other      => isMDM(other) || isIR(other)
     }
 
     def indentBlock(s: String): String = s.split("\n").map("\t" + _).mkString("\n")

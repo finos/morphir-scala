@@ -20,7 +20,8 @@ import org.finos.morphir.runtime.MorphirRuntimeError.{
   MissingField,
   UnexpectedType,
   UnmatchedPattern,
-  VariableNotFound
+  VariableNotFound,
+  WrongNumberOfArguments
 }
 
 private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluator {
@@ -84,9 +85,12 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       case RTValue.FieldFunction(name) =>
         argValue match {
           case record @ RTValue.Record(fields) =>
-            fields.getOrElse(name, throw MissingField(s"Record fields ${PrintIR(record)} do not contain name $name"))
-          // TODO: Use err interpolator
-          case other => throw UnexpectedType(s"Expected record but found ${PrintIR(other)}")
+            fields.getOrElse(name, throw MissingField(record, name))
+          case other => throw UnexpectedType(
+              "Record",
+              other,
+              hint = "Expected because this value was passed as an argument to a field function "
+            )
         }
       case RTValue.LambdaFunction(body, pattern, context) =>
         val newBindings = matchPatternCase(pattern, argValue)
@@ -130,9 +134,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
           }
 
         def assertCurriedNumArgs(num: Int) =
-          if (curried.size != num) throw new IllegalValue(
-            s"Curried wrong number of (uncurried) args. Needed ${function.numArgs} args but got (${curried.size}) when applying the function ${PrintIR(function)}"
-          )
+          if (curried.size != num) throw new WrongNumberOfArguments(nativeFunctionResult, num)
         // Once the uncurrying is done, we can call the function since we have all of the arguments available
         arguments match {
           case 1 =>
@@ -153,10 +155,11 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
                 assertCurriedNumArgs(4)
                 f(curried(0), curried(1), curried(2), curried(3), argValue)
             }
-          // If there are more arguments left in the native-signature, that needs we have more uncurrying to do
+          // If there are more arguments left in the native-signature, that needs we have more arguments to apply
           case x => RTValue.NativeFunction(x - 1, curried :+ argValue, function)
         }
-      case other => throw new UnexpectedType(s"${PrintIR(other)} is not a function")
+      case other =>
+        throw new UnexpectedType("Function", other, hint = "Expected because this was found in an Apply position")
     }
 
   def handleDestructure(
@@ -205,9 +208,13 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       case record @ RTValue.Record(fields) =>
         fields.getOrElse(
           fieldName,
-          throw MissingField(s"Record fields of ${PrintIR(record)} do not contain name $fieldName")
+          throw MissingField(record, fieldName)
         )
-      case other => throw new UnexpectedType(s"Expected record but found ${PrintIR(other)}")
+      case other => throw new UnexpectedType(
+          "Record",
+          other,
+          hint = s"Expected because I tried to access .${fieldName.toCamelCase}"
+        )
     }
 
   def handleFieldFunction(va: ValueAttribs, name: Name): RTValue = RTValue.FieldFunction(name)
@@ -222,7 +229,11 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     loop(condition, store) match {
       case RTValue.Primitive(true)  => loop(thenValue, store)
       case RTValue.Primitive(false) => loop(elseValue, store)
-      case other                    => throw new UnexpectedType(s"${PrintIR(other)} is not a boolean result")
+      case other => throw new UnexpectedType(
+          "Boolean",
+          other,
+          hint = "Expected because I found this in the condition of an if statement"
+        )
     }
 
   def handleLambda(
@@ -332,7 +343,8 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       case RTValue.Record(oldFields) =>
         val newFields = fields.map { case (name, value) => name -> loop(value, store) }
         RTValue.Record(oldFields ++ newFields)
-      case other => throw UnexpectedType(s"${PrintIR(other)} is not a record")
+      case other =>
+        throw UnexpectedType("Record", other, hint = "Expected because I found this in an update record node")
     }
 
   def handleVariable(va: ValueAttribs, name: Name, store: Store) =

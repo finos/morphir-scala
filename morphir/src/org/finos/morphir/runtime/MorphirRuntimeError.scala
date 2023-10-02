@@ -12,27 +12,43 @@ import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import zio.Chunk
 import org.finos.morphir.runtime.ErrorUtils.ErrorInterpolator
+import org.finos.morphir.datamodel.{Concept, Data, EnumLabel, Label}
 
 sealed trait MorphirRuntimeError extends Throwable {
   def message: String
+  override def getMessage = message
+
 }
 
 object MorphirRuntimeError {
-  final case class DerivationError(message: String) extends MorphirRuntimeError
-
-  final case class DatamodelToIrError(message: String) extends MorphirRuntimeError
 
   final case class MorphirIRDecodingError(message: String) extends MorphirRuntimeError
 
   sealed trait EvaluationError extends MorphirRuntimeError
 
-  final case class IrToDatamodelError(message: String) extends EvaluationError
+  final case class MissingField(value: RTValue.Record, field: Name) extends EvaluationError {
+    def message = err"Record $value does not contain field ${field.toCamelCase}"
+  }
 
-  final case class MissingField(message: String) extends EvaluationError
+  sealed trait RTValueToMDMError extends MorphirRuntimeError
+  object RTValueToMDMError {
+    final case class MissingField(value: RTValue.Record, field: Label) extends EvaluationError {
+      def message = err"Record $value appeared in result without expected field $field"
+    }
+  }
 
-  final case class UnexpectedType(message: String) extends EvaluationError
+  final case class UnexpectedType(expected: String, found: RTValue, hint: String = "") extends EvaluationError {
+    def message = err"Expected $expected but found $found. ${if (hint != "") "Hint: " + hint else ""}"
+  }
+  final case class FailedCoercion(message: String) extends EvaluationError
 
   final case class IllegalValue(message: String) extends EvaluationError
+
+  final case class WrongNumberOfArguments(function: RTValue.NativeFunctionResult, applied: Int)
+      extends EvaluationError {
+    def message =
+      err"Applied wrong number of args. Needed ${function.arguments} args but got $applied when applying the function $function}"
+  }
 
   final case class UnmatchedPattern(message: String) extends EvaluationError
 

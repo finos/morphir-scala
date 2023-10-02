@@ -30,7 +30,7 @@ object ResultSDK {
         Right(ok)
       case RT.ConstructorResult(fqn, List(err)) if fqn == FQName.fromString("Morphir.SDK:Result:Err") => Left(err)
       case RT.ConstructorResult(fqn, args) =>
-        throw new UnexpectedType(s"Expected Ok(value) or Err(err), found $fqn(${args}")
+        throw new UnexpectedType(s"Ok(value) or Err(err)", arg, hint = "Expected due to use in a native function")
     }
   private[sdk] def eitherToResult(arg: Either[RT, RT]): RT.ConstructorResult =
     arg match {

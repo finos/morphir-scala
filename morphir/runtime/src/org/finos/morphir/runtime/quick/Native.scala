@@ -41,7 +41,11 @@ object DictSDK {
           input.coerceTuple.value match {
             case List(a, b) => (a, b)
             case _ =>
-              throw new IllegalValue(s"Input to Dict.fromList was not a Tuple2-based element, it was: `$input`")
+              throw new UnexpectedType(
+                s"Tuple2-based element",
+                input,
+                hint = "Expected because this was passed to Dict.fromList"
+              )
           }
         }
       RTValue.Map(mutable.LinkedHashMap(mappedList: _*))
@@ -131,7 +135,11 @@ object DictSDK {
           case RTValue.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), _) =>
             dict.remove(targetKeyRaw)
           case _ =>
-            throw new IllegalValue(s"Expected a Result.Constructor of Morphir.SDK:Maybe:just/nothing but got $newValue")
+            throw new UnexpectedType(
+              s"Morphir.SDK:Maybe:just value or Morphir.SDK:Maybe:nothing",
+              newValue,
+              hint = "Expected because this was returned from Dict.update native function"
+            )
         }
         RTValue.Map(dict)
     }
@@ -289,7 +297,7 @@ object TupleSDK {
   val second: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: RTValue) =>
     val length = arg.coerceTuple.value.length
     if (length < 2) {
-      throw new IllegalValue(s"Tuple with length `$length` has too few elements")
+      throw new UnexpectedType("(Tuple of at least two elements)", arg, "Expected because Tuple.second was called")
     }
     arg.coerceTuple.value(1)
   }
