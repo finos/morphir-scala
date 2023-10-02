@@ -50,7 +50,9 @@ object MorphirRuntimeError {
       err"Applied wrong number of args. Needed ${function.arguments} args but got $applied when applying the function $function}"
   }
 
-  final case class UnmatchedPattern(message: String) extends EvaluationError
+  final case class UnmatchedPattern(value: RTValue, node: Any, patterns: Pattern[UType]*) extends EvaluationError {
+    def message = err"Failed to match $value to any pattern from $patterns in node $node"
+  }
 
   final case class FunctionWithoutParameters(message: String) extends EvaluationError
 

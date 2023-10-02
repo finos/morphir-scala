@@ -257,7 +257,7 @@ object EvaluatorQuick {
         curry(constructor, mappedArgs)
       case (a, b)    => V.tuple(Chunk(scalaToIR(a), scalaToIR(b)))
       case (a, b, c) => V.tuple(Chunk(scalaToIR(a), scalaToIR(b), scalaToIR(c)))
-      case other     => throw new UnmatchedPattern(s"I don't know how to decompose $other")
+      case other     => throw new UnsupportedType(s"I don't know how to decompose $other")
     }
 
 }

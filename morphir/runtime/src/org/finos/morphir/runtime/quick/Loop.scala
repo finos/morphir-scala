@@ -29,8 +29,8 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     ir match {
       case Literal(va, lit)              => handleLiteral(va, lit)
       case Apply(va, function, argument) => handleApply(va, function, argument, store)
-      case Destructure(va, pattern, valueToDestruct, inValue) =>
-        handleDestructure(va, pattern, valueToDestruct, inValue, store)
+      case node @ Destructure(va, pattern, valueToDestruct, inValue) =>
+        handleDestructure(va, node, pattern, valueToDestruct, inValue, store)
       case Constructor(va, name)        => handleConstructor(va, name)
       case Field(va, recordValue, name) => handleField(va, recordValue, name, store)
       case FieldFunction(va, name)      => handleFieldFunction(va, name)
@@ -41,7 +41,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
         handleLetDefinition(va, name, definition, inValue, store)
       case LetRecursion(va, definitions, inValue)  => handleLetRecursion(va, definitions, inValue, store)
       case ListValue(va, elements)                 => handleListValue(va, elements.toList, store)
-      case PatternMatch(va, value, cases)          => handlePatternMatch(va, value, cases.toList, store)
+      case node @ PatternMatch(va, value, cases)   => handlePatternMatch(va, node, value, cases.toList, store)
       case Record(va, fields)                      => handleRecord(va, fields.toList, store)
       case Reference(va, name)                     => handleReference(va, name, store)
       case Tuple(va, elements)                     => handleTuple(va, elements.toList, store)
@@ -95,7 +95,9 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       case RTValue.LambdaFunction(body, pattern, context) =>
         val newBindings = matchPatternCase(pattern, argValue)
           .getOrElse(throw UnmatchedPattern(
-            s"Lambda argument ${PrintIR(argValue)} did not match expected pattern ${PrintIR(pattern)}"
+            argValue,
+            functionValue,
+            pattern
           ))
           .map { case (name, value) => name -> StoredValue.Eager(value) }
         loop(body, Store(context.push(newBindings)))
@@ -164,6 +166,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
 
   def handleDestructure(
       va: ValueAttribs,
+      node: RuntimeValue,
       pattern: Pattern[ValueAttribs],
       valueToDestruct: RuntimeValue,
       inValue: RuntimeValue,
@@ -171,7 +174,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
   ): RTValue = {
     val value = loop(valueToDestruct, store)
     matchPatternCase(pattern, value) match {
-      case None => throw UnmatchedPattern(s"Value ${PrintIR(value)} does not match pattern  ${PrintIR(pattern)}")
+      case None => throw UnmatchedPattern(value, node, pattern)
       case Some(bindings) =>
         loop(inValue, store.push(bindings.map { case (name, value) => name -> StoredValue.Eager(value) }))
     }
@@ -275,6 +278,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
 
   def handlePatternMatch(
       va: ValueAttribs,
+      node: RuntimeValue,
       value: RuntimeValue,
       cases: List[(Pattern[ValueAttribs], RuntimeValue)],
       store: Store
@@ -288,7 +292,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
         case (pattern, inValue) :: tail =>
           matchPatternCase(pattern, evaluated).map((inValue, _)).getOrElse(firstPatternMatching(tail))
         case Nil =>
-          throw UnmatchedPattern(s"${PrintIR(evaluated)} did not match any pattern from ${cases.map(PrintIR(_))}")
+          throw UnmatchedPattern(evaluated, node, cases.map(_._1): _*)
       }
     val (inValue, bindings) = firstPatternMatching(cases)
     loop(inValue, store.push(bindings.map { case (name, value) => name -> StoredValue.Eager(value) }))

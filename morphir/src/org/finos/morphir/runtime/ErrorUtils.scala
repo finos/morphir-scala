@@ -9,6 +9,8 @@ import org.finos.morphir.ir.Type.{Type, UType, USpecification as UTypeSpec}
 import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.util.PrintMDM
 
+import java.util
+
 object ErrorUtils {
   implicit class ErrorInterpolator(sc: StringContext) {
     //format: off
@@ -69,24 +71,27 @@ object ErrorUtils {
         barBlock(barIndentBlock(title, astBody, barWidth = 10)) // Console likes to drop leading |?
       }
     def isIR(any: Any): Boolean = any match {
-      case _: Type[_]            => true
-      case _: Value[_, _]        => true
-      case _: Pattern[_]         => true
-      case _: V.Specification[_] => true
-      case _: V.Definition[_, _] => true
-      case _: T.Specification[_] => true
-      case _: T.Definition[_]    => true
-      case _                     => false
+      case _: Type[_]                                 => true
+      case _: Value[_, _]                             => true
+      case _: Pattern[_]                              => true
+      case _: V.Specification[_]                      => true
+      case _: V.Definition[_, _]                      => true
+      case _: T.Specification[_]                      => true
+      case _: T.Definition[_]                         => true
+      case iterable: Iterable[_] if !iterable.isEmpty => isIR(iterable.head)
+      case _                                          => false
     }
     def isMDM(any: Any): Boolean = any match {
-      case _: Data    => true
-      case _: Concept => true
-      case other      => false
+      case _: Data                                    => true
+      case _: Concept                                 => true
+      case iterable: Iterable[_] if !iterable.isEmpty => isMDM(iterable.head)
+      case other                                      => false
     }
 
     def isASTLike(any: Any): Boolean = any match {
-      case _: RTValue => true
-      case other      => isMDM(other) || isIR(other)
+      case _: RTValue                                 => true
+      case iterable: Iterable[_] if !iterable.isEmpty => isASTLike(iterable.head)
+      case other                                      => isMDM(other) || isIR(other)
     }
 
     def indentBlock(s: String): String = s.split("\n").map("\t" + _).mkString("\n")
