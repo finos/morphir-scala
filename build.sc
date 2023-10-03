@@ -219,28 +219,26 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       }
 
       object jvm extends Shared with MorphirJVMModule {
-        object test extends ScalaTests with TestModule.Munit {
+        object test extends ScalaTests with TestModule.ZioTest {
           def ivyDeps = Agg(
             Deps.dev.zio.zio,
             Deps.dev.zio.`zio-streams`,
-            Deps.com.eed3si9n.expecty.expecty,
-            Deps.org.scalameta.munit,
-            Deps.org.scalameta.`munit-scalacheck`
+            Deps.dev.zio.`zio-test`,
+            Deps.dev.zio.`zio-test-sbt`
           )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.munit.jvm, testing.munit.zio.jvm)
+          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.jvm, testing.zio.jvm)
         }
       }
 
       object js extends Shared with MorphirJSModule {
-        object test extends ScalaJSTests with TestModule.Munit {
+        object test extends ScalaJSTests with TestModule.ZioTest {
           def ivyDeps = Agg(
             Deps.dev.zio.zio,
             Deps.dev.zio.`zio-streams`,
-            Deps.com.eed3si9n.expecty.expecty,
-            Deps.org.scalameta.munit,
-            Deps.org.scalameta.`munit-scalacheck`
+            Deps.dev.zio.`zio-test`,
+            Deps.dev.zio.`zio-test-sbt`
           )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.munit.js, testing.munit.zio.js)
+          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.js, testing.zio.js)
         }
       }
 

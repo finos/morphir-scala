@@ -44,6 +44,17 @@ dictGetTest ctx = test ctx
         Dict.get "Tom" animals
 
 {-|
+    Test: Dict/GetMissing
+    expected = Just "Cat"
+-}
+dictGetMissingTest : TestContext ->Maybe String
+dictGetMissingTest ctx = test ctx
+    let
+        animals = Dict.fromList [ ("Tom", "Cat"), ("Jerry", "Mouse") ]
+    in
+        Dict.get "Cujo" animals
+
+{-|
     Test: Dict/emtpy
     expected = Dict.empty
 -}
@@ -98,3 +109,38 @@ dictUpdateTest2 ctx = test ctx
         aliceAndBob = Dict.fromList [ ( "Alice", 1 ), ( "Bob", 2 ) ]
     in
         Dict.update "Bob" (\_ -> Nothing) aliceAndBob
+
+{-|
+    Test: Dict/member
+    expected(Map("Waldo" -> 0)) = True
+    expected(Map("Bob" -> 0)) = False
+    expected(Map()) = False
+-}
+dictMemberTest : Dict String a -> Bool
+dictMemberTest dict = Dict.member "Waldo" dict
+
+
+{-|
+    Test: Dict/isEmpty
+    expected(Map("Waldo" -> 0)) = True
+    expected(Map()) = False
+-}
+dictIsEmptyTest : Dict key value -> Bool
+dictIsEmptyTest dict = Dict.isEmpty dict
+
+
+{-|
+    Test: Dict/size
+    expected(Map("Waldo" -> 0, "Bob" -> 1)) = 2
+    expected(Map()) = 0
+-}
+dictSizeTest : Dict key value -> Int
+dictSizeTest dict = Dict.size dict
+
+{-|
+    Test: Dict/values
+    expected(Map("Waldo" -> 0, "Bob" -> 1)) = List(0, 1)
+    expected(Map()) = List()
+-}
+dictValuesTest : Dict key value -> List value
+dictValuesTest dict = Dict.values dict
