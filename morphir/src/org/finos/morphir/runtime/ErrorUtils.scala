@@ -85,7 +85,7 @@ object ErrorUtils {
       case _: Data                                    => true
       case _: Concept                                 => true
       case iterable: Iterable[_] if !iterable.isEmpty => isMDM(iterable.head)
-      case other                                      => false
+      case _                                          => false
     }
 
     def isASTLike(any: Any): Boolean = any match {
