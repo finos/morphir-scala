@@ -35,7 +35,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       for {
         errors <- ZIO.succeed(checker.conformsTo(tpe1, tpe2))
-        errorMsgs = errors.map(error => s"\n\t${error.getMsg}").mkString("")
+        errorMsgs = errors.map(error => s"\n\t${error.getMessage}").mkString("")
         assert <- if (errors.length == expectedErrors) assertCompletes
         else assertTrue(errorMsgs == s"Expected $expectedErrors errors")
       } yield assert
@@ -44,7 +44,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       for {
         errors <- ZIO.succeed(checker.checkDefinitionBody(fqn))
-        errorMsgs = errors.map(error => s"\n\t${error.getMsg}").mkString("")
+        errorMsgs = errors.map(error => s"\n\t${error.getMessage}").mkString("")
         assert <- if (errors.length == 0) assertCompletes
         else assertTrue(errorMsgs == s"Expected no errors")
       } yield assert // TODO: Cleaner "fails" impl
@@ -54,7 +54,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       for {
         errors <- ZIO.succeed(checker.checkAllDefinitions())
-        errorMsgs = errors.map(error => s"\n\t${error.getMsg}").mkString("")
+        errorMsgs = errors.map(error => s"\n\t${error.getMessage}").mkString("")
         assert <- if (errors.length == 0) assertCompletes
         else assertTrue(errorMsgs == s"Expected no errors")
       } yield assert // TODO: Cleaner "fails" impl
@@ -63,7 +63,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       for {
         errors <- ZIO.succeed(checker.check(value))
-        errorMsgs = errors.map(error => s"\n\t${error.getMsg}").mkString("")
+        errorMsgs = errors.map(error => s"\n\t${error.getMessage}").mkString("")
         assert <- if (errors.length == expectedErrors) assertCompletes
         else assertTrue(errorMsgs == s"Expected $expectedErrors errors")
       } yield assert // TODO: Cleaner "fails" impl

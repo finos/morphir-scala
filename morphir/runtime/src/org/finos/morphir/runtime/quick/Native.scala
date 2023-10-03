@@ -3,7 +3,7 @@ package org.finos.morphir.runtime.quick
 import org.finos.morphir.ir.Type
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.{RTValue, SDKConstructor, SDKValue}
-import org.finos.morphir.runtime.MorphirRuntimeError.{IllegalValue, UnexpectedType, UnsupportedType}
+import org.finos.morphir.runtime.MorphirRuntimeError.{IllegalValue, UnexpectedType, UnsupportedType, WrongArgumentTypes}
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.internal.{InvokeableEvaluator, NativeFunctionSignatureAdv}
@@ -210,7 +210,8 @@ object BasicsSDK {
       case (RTValue.List(aElements), RTValue.List(bElements)) =>
         RTValue.List(aElements.appendedAll(bElements))
       case (RTValue.Primitive.String(a), RTValue.Primitive.String(b)) => RTValue.Primitive.String(a + b)
-      case (other1, other2) => throw new UnsupportedType(s"Append called on unrecognized types: $other1, $other2")
+      case (other1, other2) =>
+        throw new WrongArgumentTypes(s"Apend must be called on two Lists or two Strings", other1, other2)
     }
   )
   val sdk: Map[FQName, SDKValue] = Map(

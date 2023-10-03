@@ -15,8 +15,7 @@ import org.finos.morphir.runtime.{RTValue, SDKConstructor, SDKValue, Utils}
 import org.finos.morphir.runtime.MorphirRuntimeError.{
   ConstructorNotFound,
   DefinitionNotFound,
-  FunctionWithoutParameters,
-  IllegalValue,
+  InvalidState,
   MissingField,
   UnexpectedType,
   UnmatchedPattern,
@@ -111,7 +110,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
           case (name, _, _) :: tail =>
             RTValue.DefinitionFunction(body, tail, curried :+ (name -> argValue), closingContext)
           case Nil =>
-            throw FunctionWithoutParameters(
+            throw InvalidState(
               s"Tried to apply definition function ${PrintIR(function)} with no un-applied arguments (should not exist)"
             )
 
@@ -121,7 +120,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
           case _ :: Nil  => RTValue.ConstructorResult(name, curried :+ argValue)
           case _ :: tail => RTValue.ConstructorFunction(name, tail, curried :+ argValue)
           case Nil =>
-            throw FunctionWithoutParameters(
+            throw InvalidState(
               s"Tried to apply to constructor function ${PrintIR(function)} with no arguments (should not exist)"
             )
 
@@ -353,7 +352,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
 
   def handleVariable(va: ValueAttribs, name: Name, store: Store) =
     store.getVariable(name) match {
-      case None                         => throw VariableNotFound(s"Variable $name not found")
+      case None                         => throw VariableNotFound(name)
       case Some(StoredValue.Eager(res)) => res
       case Some(StoredValue.Lazy(definition, parentContext, siblings)) =>
         val newBindings: Map[Name, StoredValue] = siblings.map { case (name, sibling) =>

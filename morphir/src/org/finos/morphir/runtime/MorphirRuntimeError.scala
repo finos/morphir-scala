@@ -1,10 +1,10 @@
 package org.finos.morphir.runtime
 
-import org.finos.morphir.naming._
-import org.finos.morphir.naming._
-import org.finos.morphir.ir.{Type => T, Value => V}
-import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
-import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification => UTypeSpec}
+import org.finos.morphir.naming.*
+import org.finos.morphir.naming.*
+import org.finos.morphir.ir.{Type as T, Value as V}
+import org.finos.morphir.ir.Value.{Pattern, TypedValue, Value, USpecification as UValueSpec}
+import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification as UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.exports.*
@@ -13,6 +13,8 @@ import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import zio.Chunk
 import org.finos.morphir.runtime.ErrorUtils.ErrorInterpolator
 import org.finos.morphir.datamodel.{Concept, Data, EnumLabel, Label}
+
+import scala.collection.immutable.{AbstractSeq, LinearSeq}
 
 sealed trait MorphirRuntimeError extends Throwable {
   def message: String
@@ -28,13 +30,6 @@ object MorphirRuntimeError {
 
   final case class MissingField(value: RTValue.Record, field: Name) extends EvaluationError {
     def message = err"Record $value does not contain field ${field.toCamelCase}"
-  }
-
-  sealed trait RTValueToMDMError extends MorphirRuntimeError
-  object RTValueToMDMError {
-    final case class MissingField(value: RTValue.Record, field: Label) extends EvaluationError {
-      def message = err"Record $value appeared in result without expected field $field"
-    }
   }
 
   final case class UnexpectedType(expected: String, found: RTValue, hint: String = "") extends EvaluationError {
@@ -54,33 +49,86 @@ object MorphirRuntimeError {
     def message = err"Failed to match $value to any pattern from $patterns in node $node"
   }
 
-  final case class FunctionWithoutParameters(message: String) extends EvaluationError
+  final case class VariableNotFound(name: Name) extends EvaluationError {
+    def message = err"Variable ${name.toCamelCase} not found in store."
+  }
 
-  final case class VariableNotFound(message: String) extends EvaluationError
-
+  // TODO: Message definition should live in this class, but requires visibility of Utils functions not present here.
   final case class DefinitionNotFound(message: String) extends EvaluationError
 
   final case class SpecificationNotFound(message: String) extends EvaluationError
 
   final case class ConstructorNotFound(message: String) extends EvaluationError
 
-  final case class ResultDoesNotMatchType(message: String) extends EvaluationError
+  final case class ResultTypeMismatch(result: RTValue, concept: Concept, explanation: String) extends EvaluationError {
+    def message =
+      err"""Result $result cannot be matched to type $concept. $explanation.
+           (This type was derived from the entry point. These may be nested within broader result/type trees.""".stripMargin
+  }
+  final case class WrongArgumentTypes(msg: String, args: RTValue*) extends EvaluationError {
+    def message = args.toList match {
+      case List(argOne)                   => err"Wrong argument type passed: $argOne. $msg"
+      case List(argOne, argTwo)           => err"Wrong argument types passed: $argOne, $argTwo. $msg"
+      case List(argOne, argTwo, argThree) => err"Wrong argument types passed: $argOne, $argTwo, $argThree. $msg"
+      case other                          => err"Wrong argument types passed:$other. $msg"
+    }
+  }
 
   final case class VariableAccessError(message: String) extends EvaluationError
 
-  final case class FunctionReturnedToTopLevel(message: String) extends EvaluationError
-
-  final case class UnsupportedType(message: String) extends EvaluationError
-
-  final case class UnsupportedTypeParameter(message: String) extends EvaluationError
-
-  final case class NotImplemented(message: String) extends EvaluationError
-
-  // TODO: This should be a separate error class, but interface changes required to make that happen
-  sealed trait TypeError extends MorphirRuntimeError {
-    def getMsg: String = message
+  final case class UnsupportedType(tpe: UType, reason: String) extends EvaluationError {
+    def message = err"Type $tpe not supported. $reason"
   }
 
+  final case class UnsupportedTypeSpecification(spec: UTypeSpec, reason: String) extends EvaluationError {
+    def message = err"Type SPecification $spec not supported. $reason"
+  }
+
+  final case class InvalidState(context: String) extends EvaluationError {
+    def message = s"$context (This should not be reachable, and indicates an evaluator bug."
+  }
+  final case class NotImplemented(message: String) extends EvaluationError
+
+  // LookupErrors are a generic form of error that can occur at different points
+  sealed trait LookupError extends EvaluationError with TypeError {
+    def withContext(newContext: String): LookupError
+  }
+  object LookupError {
+    case class MissingPackage(pkgName: PackageName, context: String = "") extends LookupError {
+      def message                         = s"Package ${pkgName.toString} not found"
+      def withContext(newContext: String) = this.copy(context = context + "\n" + newContext)
+    }
+    case class MissingModule(pkgName: PackageName, modName: ModuleName, context: String = "")
+        extends LookupError {
+      def message = s"Package ${pkgName.toString} does not contain module ${modName.toString}. $context"
+
+      def withContext(newContext: String) = this.copy(context = context + "\n" + newContext)
+    }
+
+    case class MissingType(pkgName: PackageName, modName: ModuleName, typeName: Name, context: String = "")
+        extends LookupError {
+      def message =
+        (s"Module ${pkgName.toString}:${modName.toString} has no type named ${typeName.toTitleCase}. $context")
+
+      def withContext(newContext: String) = this.copy(context = context + "\n" + newContext)
+    }
+    case class MissingDefinition(pkgName: PackageName, modName: ModuleName, defName: Name, context: String = "")
+        extends LookupError {
+      def message =
+        s"Module ${pkgName.toString}:${modName.toString} has no definition named ${defName.toCamelCase}. $context"
+
+      def withContext(newContext: String) = this.copy(context = context + "\n" + newContext)
+    }
+  }
+
+  sealed trait RTValueToMDMError extends MorphirRuntimeError
+  object RTValueToMDMError {
+    final case class MissingField(value: RTValue.Record, field: Label) extends RTValueToMDMError {
+      def message = err"Record $value appeared in result without expected field $field"
+    }
+  }
+
+  sealed trait TypeError extends MorphirRuntimeError
   object TypeError {
 
     final case class TypesMismatch(tpe1: UType, tpe2: UType, msg: String)
@@ -104,17 +152,17 @@ object MorphirRuntimeError {
     }
     final case class CannotDealias(err: LookupError, msg: String = "Cannot dealias type")
         extends TypeError {
-      def message = err"$msg: ${err.getMsg}"
+      def message = err"$msg: ${err.message}"
     }
     final case class TypeVariableMissing(name: Name) extends TypeError {
       def message = err"Missing type variable ${name.toTitleCase}"
     }
     final case class DefinitionMissing(err: LookupError)
         extends TypeError {
-      def message = err"Cannot find definition: ${err.getMsg}"
+      def message = err"Cannot find definition: ${err.message}"
     }
     final case class TypeMissing(fqn: FQName, err: LookupError) extends TypeError {
-      def message = err"Cannot find $fqn: ${err.getMsg}"
+      def message = err"Cannot find $fqn: ${err.message}"
     }
     final case class TypeLacksField(tpe: UType, field: Name, msg: String)
         extends TypeError {
@@ -143,7 +191,7 @@ object MorphirRuntimeError {
     //      )
     final case class ConstructorMissing(err: LookupError, fqn: FQName)
         extends TypeError {
-      def message = err"Cannot find constructor $fqn: ${err.getMsg}"
+      def message = err"Cannot find constructor $fqn: ${err.message}"
     }
     class SizeMismatch(first: Int, second: Int, msg: String)
         extends TypeError {
@@ -163,7 +211,7 @@ object MorphirRuntimeError {
       def message = ("\n" + errors.map(err =>
         s"""
              |${err.getClass.getName.split(".").lastOption.getOrElse(err.getClass.getName)}:
-             |${err.getMsg}
+             |${err.message}
            """
       ).mkString("\n"))
     }

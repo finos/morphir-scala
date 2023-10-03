@@ -54,7 +54,7 @@ object Utils {
         case EnableTyper.Enabled =>
           Left(error)
         case EnableTyper.Warn =>
-          println(s"[WARNING] ${error.getMsg}")
+          println(s"[WARNING] ${error.message}")
           Right(found)
         case EnableTyper.Disabled =>
           Right(found)

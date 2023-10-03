@@ -47,9 +47,14 @@ object EvaluatorQuick {
   def typeToConcept(tpe: Type.Type[Unit], dists: Distributions, boundTypes: Map[Name, Concept]): Concept =
     tpe match {
       case TT.ExtensibleRecord(_, _, _) =>
-        throw UnsupportedType("Extensible records not supported for Morphir data model")
+        throw NotImplemented("Extensible records not supported for Morphir data model.")
       case TT.Function(_, _, _) =>
-        throw UnsupportedType("Functiom types not supported for Morphir data model")
+        throw UnsupportedType(
+          tpe,
+          """Function type found in return from entry point.
+            |Was there a function nested beneath the type your entry point returns?
+            |""".stripMargin
+        )
       case TT.Record(_, fields) => Concept.Struct(fields.map(field =>
           (Label(field.name.toCamelCase), typeToConcept(field.data, dists, boundTypes))
         ).toList)
@@ -96,8 +101,11 @@ object EvaluatorQuick {
               Concept.Enum.Case(Label(conceptName), concepts)
             }
             Concept.Enum(typeName, cases)
-          case Right(other) => throw UnsupportedType(s"$other is not a recognized type")
-          case Left(err)    => throw SpecificationNotFound(s"Missing type specification on entry point: ${err.getMsg}")
+          case Right(other) => throw UnsupportedTypeSpecification(
+              other,
+              "This specification was found as part of the return type from the entry point. Cannot generate Concept for MDM return."
+            )
+          case Left(err) => throw err.withContext("Error finding type specification defined in entry point function")
         }
       case TT.Tuple(_, elements) =>
         Concept.Tuple(elements.map(element => typeToConcept(element, dists, boundTypes)).toList)
@@ -109,7 +117,11 @@ object EvaluatorQuick {
     (concept, result) match {
       case (Concept.Struct(fields), record @ RTValue.Record(elements)) =>
         if (fields.length != elements.size) {
-          throw ResultDoesNotMatchType(s"$fields has different number of elements than $elements")
+          throw ResultTypeMismatch(
+            result,
+            concept,
+            s"Concept.Struct and RTValue.Record both indicate records, but different number of fields (${fields.length} vs ${elements.size}"
+          )
         } else {
           val tuples = fields.map { case (label, innerConcept) =>
             val value =
@@ -120,7 +132,11 @@ object EvaluatorQuick {
         }
       case (Concept.Record(qName, fields), record @ RTValue.Record(elements)) =>
         if (fields.length != elements.size) {
-          throw ResultDoesNotMatchType(s"$fields has different number of elements than $elements")
+          throw ResultTypeMismatch(
+            result,
+            concept,
+            s"Concept.Record and RTValue.Record both indicate records, but different number of fields (${fields.length} vs ${elements.size}"
+          )
         } else {
           val tuples = fields.map { case (label, innerConcept) =>
             val value =
@@ -192,10 +208,18 @@ object EvaluatorQuick {
         val fieldMap = cases.map { case Concept.Enum.Case(Label(string), fields) => string -> fields }.toMap
         val fields = fieldMap.getOrElse(
           fqName.localName.toTitleCase,
-          throw new ResultDoesNotMatchType(s"Failed to find constructor ${fqName.localName} among ${fieldMap.keys}")
+          throw new ResultTypeMismatch(
+            result,
+            concept,
+            s"Concept Enum has no branch for ${fqName.localName.toTitleCase}"
+          )
         )
         if (args.length != fields.length)
-          throw new ResultDoesNotMatchType(s"Parameter lengths differ between $args and $fields")
+          throw new ResultTypeMismatch(
+            result,
+            concept,
+            s"Concept enum expects ${fields.length} argument, but result has ${args.length}"
+          )
         else {
           val zipped = args.zip(fields)
           val argData = zipped.map { case (innerResult, (argName, argConcept)) =>
@@ -204,10 +228,12 @@ object EvaluatorQuick {
           Data.Case(argData, fqName.localName.toTitleCase, enumConcept)
         }
       case (Concept.Tuple(conceptElements), RTValue.Tuple(resultElements)) =>
-        val listed = resultElements.toList
+        val listed = resultElements
         if (conceptElements.length != listed.length) {
-          throw new ResultDoesNotMatchType(
-            s"Tuple type elements $conceptElements of different length than result $resultElements"
+          throw new ResultTypeMismatch(
+            result,
+            concept,
+            s"Concept expects ${conceptElements.length}-Tuple, but result is ${listed.length}-Tuple"
           )
         } else {
           val inners = conceptElements.zip(listed).map { case (innerConcept, innerResult) =>
@@ -216,12 +242,8 @@ object EvaluatorQuick {
           Data.Tuple(inners)
         }
       case (Concept.Unit, RTValue.Unit()) => Data.Unit
-      case (badType, badResult @ RTValue.Primitive(value)) =>
-        throw new ResultDoesNotMatchType(
-          s"Could not match type $badType with result $badResult. The value was $value which is of type ${value.getClass()}}"
-        )
-      case (badType, badResult) =>
-        throw new ResultDoesNotMatchType(s"Could not match type $badType with result $badResult")
+      case _ =>
+        throw new ResultTypeMismatch(result, concept, s"(No matching arm for this combination of concept and result.)")
     }
   }
 
@@ -237,27 +259,6 @@ object EvaluatorQuick {
     args match {
       case Nil          => f
       case head :: tail => curry(V.apply(f, head), tail)
-    }
-  def scalaToIR(value: Any): RawValue =
-    value match {
-      case ()                => V.unit
-      case x: Int            => V.int(x)
-      case s: String         => V.string(s)
-      case b: Boolean        => V.boolean(b)
-      case elements: List[t] => V.list(elements.map(scalaToIR(_)): _*)
-      case values: Map[_, _] =>
-        val tuples = values.map { case (key, value) => V.tuple(scalaToIR(key), scalaToIR(value)) }.toSeq
-        V.apply(V.reference(FQName.fromString("Morphir.SDK:Dict:fromList")), V.list(tuples: _*))
-      case Record(values) =>
-        val fields = values.map { case (name, value) => (name, scalaToIR(value)) }.toSeq
-        V.recordRaw(fields: _*)
-      case Constructor(name, args) =>
-        val mappedArgs  = args.map(scalaToIR(_))
-        val constructor = V.constructor(FQName.fromString(name))
-        curry(constructor, mappedArgs)
-      case (a, b)    => V.tuple(Chunk(scalaToIR(a), scalaToIR(b)))
-      case (a, b, c) => V.tuple(Chunk(scalaToIR(a), scalaToIR(b), scalaToIR(c)))
-      case other     => throw new UnsupportedType(s"I don't know how to decompose $other")
     }
 
 }
