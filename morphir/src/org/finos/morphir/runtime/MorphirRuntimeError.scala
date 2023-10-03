@@ -54,17 +54,11 @@ object MorphirRuntimeError {
   }
 
   // TODO: Message definition should live in this class, but requires visibility of Utils functions not present here.
+  // TODO: Ideally these would fall under "Lookup Errors", but they do not come from the Distributions packet or equivalent structure
   final case class DefinitionNotFound(message: String) extends EvaluationError
-
-  final case class SpecificationNotFound(message: String) extends EvaluationError
 
   final case class ConstructorNotFound(message: String) extends EvaluationError
 
-  final case class ResultTypeMismatch(result: RTValue, concept: Concept, explanation: String) extends EvaluationError {
-    def message =
-      err"""Result $result cannot be matched to type $concept. $explanation.
-           (This type was derived from the entry point. These may be nested within broader result/type trees.""".stripMargin
-  }
   final case class WrongArgumentTypes(msg: String, args: RTValue*) extends EvaluationError {
     def message = args.toList match {
       case List(argOne)                   => err"Wrong argument type passed: $argOne. $msg"
@@ -81,16 +75,17 @@ object MorphirRuntimeError {
   }
 
   final case class UnsupportedTypeSpecification(spec: UTypeSpec, reason: String) extends EvaluationError {
-    def message = err"Type SPecification $spec not supported. $reason"
+    def message = err"Type Specification $spec not supported. $reason"
   }
 
   final case class InvalidState(context: String) extends EvaluationError {
-    def message = s"$context (This should not be reachable, and indicates an evaluator bug."
+    def message = s"$context (This should not be reachable, and indicates an evaluator bug.)"
   }
   final case class NotImplemented(message: String) extends EvaluationError
 
   // LookupErrors are a generic form of error that can occur at different points
   sealed trait LookupError extends EvaluationError with TypeError {
+    // it is often useful to be able to attach context when a lookup failed from called code.
     def withContext(newContext: String): LookupError
   }
   object LookupError {
@@ -126,6 +121,13 @@ object MorphirRuntimeError {
     final case class MissingField(value: RTValue.Record, field: Label) extends RTValueToMDMError {
       def message = err"Record $value appeared in result without expected field $field"
     }
+
+    final case class ResultTypeMismatch(result: RTValue, concept: Concept, explanation: String)
+        extends EvaluationError {
+      def message =
+        err"""Result $result cannot be matched to type $concept. $explanation.
+             (This type was derived from the entry point. These may be nested within broader result/type trees.""".stripMargin
+    }
   }
 
   sealed trait TypeError extends MorphirRuntimeError
@@ -135,34 +137,26 @@ object MorphirRuntimeError {
         extends TypeError {
       def message = (err"$msg: $tpe1 vs $tpe2")
     }
-    final case class ApplyToNonFunction(nonFunction: TypedValue, arg: TypedValue) extends TypeError {
-      def message = err"Tried to apply $arg to $nonFunction of type ${nonFunction.attributes}, which is not a function"
+    final case class ApplyToNonFunction(applyNode: TypedValue, nonFunction: TypedValue, arg: TypedValue)
+        extends TypeError {
+      def message =
+        err"$applyNode tried to apply $arg to $nonFunction of type ${nonFunction.attributes}, which is not a function"
     }
 
     final case class LiteralTypeMismatch(lit: Lit, tpe: UType)
         extends TypeError {
       def message = err"Literal $lit is not of type $tpe"
     }
-    final case class ImproperType(tpe: UType, msg: String) extends TypeError {
-      def message = (err"$msg. Found: $tpe")
+    final case class ImproperType(tpe: UType, explanation: String) extends TypeError {
+      def message = (err"Improper Type: $explanation. Found: $tpe")
     }
-    final case class ImproperTypeSpec(fqn: FQName, spec: UTypeSpec, msg: String)
+    final case class ImproperTypeSpec(fqn: FQName, spec: UTypeSpec, explanation: String)
         extends TypeError {
-      def message = err"$msg. $fqn points to: $spec"
+      def message = err"Improper Type Specification found: $explanation. $fqn points to: $spec"
     }
-    final case class CannotDealias(err: LookupError, msg: String = "Cannot dealias type")
+    final case class CannotDealias(err: LookupError, xplanation: String = "Cannot dealias type")
         extends TypeError {
-      def message = err"$msg: ${err.message}"
-    }
-    final case class TypeVariableMissing(name: Name) extends TypeError {
-      def message = err"Missing type variable ${name.toTitleCase}"
-    }
-    final case class DefinitionMissing(err: LookupError)
-        extends TypeError {
-      def message = err"Cannot find definition: ${err.message}"
-    }
-    final case class TypeMissing(fqn: FQName, err: LookupError) extends TypeError {
-      def message = err"Cannot find $fqn: ${err.message}"
+      def message = err"$xplanation: ${err.message}"
     }
     final case class TypeLacksField(tpe: UType, field: Name, msg: String)
         extends TypeError {
@@ -189,10 +183,6 @@ object MorphirRuntimeError {
     //  ) extends TypeError(
     //        s"tpe for field ${field.toCamelCase} is ${succinct(firstTpe)} in ${succinct(first)} but ${succinct(secondTpe)} in ${succinct(second)}"
     //      )
-    final case class ConstructorMissing(err: LookupError, fqn: FQName)
-        extends TypeError {
-      def message = err"Cannot find constructor $fqn: ${err.message}"
-    }
     class SizeMismatch(first: Int, second: Int, msg: String)
         extends TypeError {
       def message = err"$msg: ($first vs $second)"
@@ -200,10 +190,19 @@ object MorphirRuntimeError {
     final case class ArgNumberMismatch(first: Int, second: Int, msg: String)
         extends SizeMismatch(first: Int, second: Int, msg: String)
 
-    final case class InferenceConflict(message: String) extends TypeError
+    final case class InferenceConflict(older: UType, newer: UType, name: Name) extends TypeError {
+      def message =
+        err"While trying to bind the type variables of the entry point function, the input matched type variable ${name.toCamelCase} with $older and then also $newer, which are not the same."
+    }
 
-    final case class UnimplementedType(message: String) extends TypeError
+    final case class UnknownTypeMismatch(tpe1: UType, tpe2: UType, hint: String = "") extends TypeError {
+      def message =
+        err"Could not match $tpe1 to $tpe2, but it is unclear why. ${if (hint != "") "Hint: " + hint else ""}"
+    }
 
+    final case class UnsupportedType(tpe: UType, hint: String = "") extends TypeError {
+      def message = err"$tpe is not currently supported.  ${if (hint != "") "Hint: " + hint else ""}"
+    }
     final case class OtherTypeError(message: String) extends TypeError
 
     final case class ManyTypeErrors(errors: List[TypeError])
