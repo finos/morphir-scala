@@ -412,7 +412,7 @@ object RTValue {
       arguments: scala.List[(Name, ValueAttribs, Type[TypeAttribs])],
       curried: scala.List[(Name, RTValue)],
       closingContext: CallStackFrame
-  ) extends RTValue
+  ) extends Function
 
   case class ConstructorFunction(name: FQName, arguments: scala.List[ValueAttribs], curried: scala.List[RTValue])
       extends Function
