@@ -2,7 +2,7 @@ package org.finos.morphir.runtime
 
 import org.finos.morphir.naming._
 import org.finos.morphir.naming._
-import org.finos.morphir.ir.{Type as T, Value as V}
+import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.{
   Value,
   Pattern,
@@ -15,6 +15,8 @@ import org.finos.morphir.ir.Module.{Specification => ModSpec, Definition => ModD
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.exports._
+import org.finos.morphir.runtime.MorphirRuntimeError.LookupError
+import org.finos.morphir.runtime.MorphirRuntimeError.LookupError.*
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution.Library
 import zio.Chunk

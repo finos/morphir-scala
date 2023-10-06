@@ -111,6 +111,17 @@ listFoldLeftAdvTest : TestContext ->Dict String Int
 listFoldLeftAdvTest ctx = test ctx
     (foldl (\elem acc -> Dict.insert elem (String.length elem) acc) Dict.empty ["foo","barr","bazzz"])
 
+addOne : Int -> Int
+addOne n = n + 1
+{-|
+Test: List/MapWithDefinition
+Description = morphir-elm only compiles top-level definitions to the definition form, and all local ones to lambdas.
+excpected(List(1, 2, 3)) = List(2, 3, 4)
+-}
+listMapDefinitionTest : List Int -> List Int
+listMapDefinitionTest l = map addOne l
+
+
 {-|
 Test: List/Map
 expected = [4,5,6]

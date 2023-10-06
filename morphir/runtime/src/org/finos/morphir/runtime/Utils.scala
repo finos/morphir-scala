@@ -1,7 +1,7 @@
 package org.finos.morphir.runtime
 
 import org.finos.morphir.naming._
-import org.finos.morphir.ir.{Type as T, Value as V}
+import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
 import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.sdk
@@ -17,6 +17,7 @@ import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => V
 import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
 
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
+import org.finos.morphir.runtime.MorphirRuntimeError.*
 import TypeError.*
 
 object Utils {
@@ -53,7 +54,7 @@ object Utils {
         case EnableTyper.Enabled =>
           Left(error)
         case EnableTyper.Warn =>
-          println(s"[WARNING] ${error.getMsg}")
+          println(s"[WARNING] ${error.message}")
           Right(found)
         case EnableTyper.Disabled =>
           Right(found)
@@ -62,7 +63,7 @@ object Utils {
       case (argType, Type.Variable(_, name)) =>
         if (found.contains(name) && found(name) != argType) {
           failIfChecked(
-            InferenceConflict(s"Both ${PrintIR(found(name))} and ${PrintIR(argType)} bound to type variable $name")
+            InferenceConflict(found(name), argType, name)
           )
         } else {
           Right(found + (name -> argType))
@@ -111,8 +112,8 @@ object Utils {
           argBindings   <- typeCheckArg(argArg, paramArg, found)
           paramBindings <- typeCheckArg(argReturn, paramReturn, argBindings)
         } yield paramBindings
-      case (Type.ExtensibleRecord(_, _, _), Type.ExtensibleRecord(_, _, _)) =>
-        failIfChecked(new UnimplementedType(s"Extensible record type not supported (yet)"))
+      case (first @ Type.ExtensibleRecord(_, _, _), Type.ExtensibleRecord(_, _, _)) =>
+        failIfChecked(new TypeError.UnsupportedType(first, hint = s"Extensible record type not supported (yet)"))
       case (Type.Reference(_, argTypeName, argTypeArgs), Type.Reference(_, paramTypeName, paramTypeArgs))
           if (argTypeName == paramTypeName) =>
         argTypeArgs.zip(paramTypeArgs).foldLeft(Right(found): Either[TypeError, Map[Name, UType]]) {
@@ -120,7 +121,7 @@ object Utils {
             acc.flatMap(found => typeCheckArg(argTpe, paramTpe, found))
         }
       case (otherArg, otherParam) =>
-        failIfChecked(TypesMismatch(otherArg, otherParam, "Could not match arg to param on entry point"))
+        failIfChecked(UnknownTypeMismatch(otherArg, otherParam, "Could not match arg to param on entry point"))
     }
   }
 

@@ -2,7 +2,7 @@ package org.finos.morphir.runtime.parsing
 
 import org.finos.morphir.ir.MorphirIRFile
 import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.runtime.MorphirIRDecodingError
+import org.finos.morphir.runtime.MorphirRuntimeError.MorphirIRDecodingError
 import zio.System.os
 import zio.json.*
 import zio.{Runtime, Unsafe, ZIO}

@@ -2,12 +2,12 @@ package org.finos.morphir.internal
 import magnolia1.{TypeInfo => TypeName, _}
 import org.finos.morphir.annotation._
 import org.finos.morphir.naming._
-import org.finos.morphir.universe.ir.{FieldT, Type}
+import org.finos.morphir.universe.ir.{AccessControlled, FieldT, Type}
 
 import org.finos.morphir.util.attribs.Attributes
 import scala.deriving.Mirror
 trait TypeOfModuleVersionSpecific {
-  self: AccessControlledModule with TypeSpecModule with TypeDefModule with TypeOfModule
+  self: TypeSpecModule with TypeDefModule with TypeOfModule
     with TypeInfoModule =>
   import TypeDefinition._
   import TypeSpecification._

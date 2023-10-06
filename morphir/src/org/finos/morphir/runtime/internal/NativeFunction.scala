@@ -3,7 +3,7 @@ package org.finos.morphir.runtime.internal
 import org.finos.morphir.Hints
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.RTValue
-import org.finos.morphir.runtime.{IllegalValue, RTValue}
+import org.finos.morphir.runtime.MorphirRuntimeError.IllegalValue
 
 case class NativeContext(evaluator: InvokeableEvaluator, hints: Hints = Hints.empty)
 
