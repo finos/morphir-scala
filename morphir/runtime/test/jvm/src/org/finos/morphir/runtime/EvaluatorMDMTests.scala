@@ -430,6 +430,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int(5),
           Data.Int(6)
         )),
+        testEval("MapDefinition")("listTests", "listMapDefinitionTest", List(1, 2, 3))(Data.List(
+          Data.Int(2),
+          Data.Int(3),
+          Data.Int(4)
+        )),
         testEvaluation("Map Native")("listTests", "listMapTestNative")(Data.List(
           Data.Float(3.0),
           Data.Float(4.0),

@@ -366,7 +366,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     object munit extends CrossPlatform {
       trait Shared extends MorphirCommonCrossModule {
         def ivyDeps = Agg(
-          ivy"io.github.cquiroz::scala-java-time::2.5.0",
+          Deps.io.github.cquiroz.`scala-java-time`,
           Deps.com.eed3si9n.expecty.expecty,
           Deps.org.scalameta.munit,
           Deps.org.scalameta.`munit-scalacheck`
@@ -392,7 +392,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
           }
 
           def ivyDeps = super.ivyDeps() ++ Agg(
-            ivy"io.github.cquiroz::scala-java-time::2.5.0",
+            Deps.io.github.cquiroz.`scala-java-time`,
             Deps.com.eed3si9n.expecty.expecty,
             Deps.org.scalameta.munit,
             Deps.org.scalameta.`munit-scalacheck`
@@ -451,7 +451,9 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
     trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
       def ivyDeps = super.ivyDeps() ++ Agg(
-        Deps.com.lihaoyi.sourcecode
+        Deps.com.lihaoyi.sourcecode,
+        Deps.io.github.cquiroz.`scala-java-time`,
+        Deps.io.github.cquiroz.`scala-java-time-tzdb`
       )
       def platformSpecificModuleDeps = Seq(extensibility, morphir, runtime, tools)
     }
@@ -478,6 +480,10 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     }
 
     object native extends Shared with MorphirNativeModule {
+      def ivyDeps = super.ivyDeps() ++ Agg(
+        Deps.com.github.lolgab.`scala-native-crypto`
+      )
+
       object test extends ScalaNativeTests with TestModule.ZioTest {
         def ivyDeps    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
         def moduleDeps = super.moduleDeps ++ Agg(testing.generators.native, testing.zio.native)

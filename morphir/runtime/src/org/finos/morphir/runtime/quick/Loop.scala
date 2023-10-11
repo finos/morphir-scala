@@ -15,12 +15,12 @@ import org.finos.morphir.runtime.{RTValue, SDKConstructor, SDKValue, Utils}
 import org.finos.morphir.runtime.MorphirRuntimeError.{
   ConstructorNotFound,
   DefinitionNotFound,
-  FunctionWithoutParameters,
-  IllegalValue,
+  InvalidState,
   MissingField,
   UnexpectedType,
   UnmatchedPattern,
-  VariableNotFound
+  VariableNotFound,
+  WrongNumberOfArguments
 }
 
 private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluator {
@@ -28,8 +28,8 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     ir match {
       case Literal(va, lit)              => handleLiteral(va, lit)
       case Apply(va, function, argument) => handleApply(va, function, argument, store)
-      case Destructure(va, pattern, valueToDestruct, inValue) =>
-        handleDestructure(va, pattern, valueToDestruct, inValue, store)
+      case node @ Destructure(va, pattern, valueToDestruct, inValue) =>
+        handleDestructure(va, node, pattern, valueToDestruct, inValue, store)
       case Constructor(va, name)        => handleConstructor(va, name)
       case Field(va, recordValue, name) => handleField(va, recordValue, name, store)
       case FieldFunction(va, name)      => handleFieldFunction(va, name)
@@ -40,7 +40,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
         handleLetDefinition(va, name, definition, inValue, store)
       case LetRecursion(va, definitions, inValue)  => handleLetRecursion(va, definitions, inValue, store)
       case ListValue(va, elements)                 => handleListValue(va, elements.toList, store)
-      case PatternMatch(va, value, cases)          => handlePatternMatch(va, value, cases.toList, store)
+      case node @ PatternMatch(va, value, cases)   => handlePatternMatch(va, node, value, cases.toList, store)
       case Record(va, fields)                      => handleRecord(va, fields.toList, store)
       case Reference(va, name)                     => handleReference(va, name, store)
       case Tuple(va, elements)                     => handleTuple(va, elements.toList, store)
@@ -84,14 +84,19 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       case RTValue.FieldFunction(name) =>
         argValue match {
           case record @ RTValue.Record(fields) =>
-            fields.getOrElse(name, throw MissingField(s"Record fields ${PrintIR(record)} do not contain name $name"))
-          // TODO: Use err interpolator
-          case other => throw UnexpectedType(s"Expected record but found ${PrintIR(other)}")
+            fields.getOrElse(name, throw MissingField(record, name))
+          case other => throw UnexpectedType(
+              "Record",
+              other,
+              hint = "Expected because this value was passed as an argument to a field function "
+            )
         }
       case RTValue.LambdaFunction(body, pattern, context) =>
         val newBindings = matchPatternCase(pattern, argValue)
           .getOrElse(throw UnmatchedPattern(
-            s"Lambda argument ${PrintIR(argValue)} did not match expected pattern ${PrintIR(pattern)}"
+            argValue,
+            functionValue,
+            pattern
           ))
           .map { case (name, value) => name -> StoredValue.Eager(value) }
         loop(body, Store(context.push(newBindings)))
@@ -105,7 +110,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
           case (name, _, _) :: tail =>
             RTValue.DefinitionFunction(body, tail, curried :+ (name -> argValue), closingContext)
           case Nil =>
-            throw FunctionWithoutParameters(
+            throw InvalidState(
               s"Tried to apply definition function ${PrintIR(function)} with no un-applied arguments (should not exist)"
             )
 
@@ -115,7 +120,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
           case _ :: Nil  => RTValue.ConstructorResult(name, curried :+ argValue)
           case _ :: tail => RTValue.ConstructorFunction(name, tail, curried :+ argValue)
           case Nil =>
-            throw FunctionWithoutParameters(
+            throw InvalidState(
               s"Tried to apply to constructor function ${PrintIR(function)} with no arguments (should not exist)"
             )
 
@@ -130,9 +135,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
           }
 
         def assertCurriedNumArgs(num: Int) =
-          if (curried.size != num) throw new IllegalValue(
-            s"Curried wrong number of (uncurried) args. Needed ${function.numArgs} args but got (${curried.size}) when applying the function ${PrintIR(function)}"
-          )
+          if (curried.size != num) throw new WrongNumberOfArguments(nativeFunctionResult, num)
         // Once the uncurrying is done, we can call the function since we have all of the arguments available
         arguments match {
           case 1 =>
@@ -153,14 +156,16 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
                 assertCurriedNumArgs(4)
                 f(curried(0), curried(1), curried(2), curried(3), argValue)
             }
-          // If there are more arguments left in the native-signature, that needs we have more uncurrying to do
+          // If there are more arguments left in the native-signature, that needs we have more arguments to apply
           case x => RTValue.NativeFunction(x - 1, curried :+ argValue, function)
         }
-      case other => throw new UnexpectedType(s"${PrintIR(other)} is not a function")
+      case other =>
+        throw new UnexpectedType("Function", other, hint = "Expected because this was found in an Apply position")
     }
 
   def handleDestructure(
       va: ValueAttribs,
+      node: RuntimeValue,
       pattern: Pattern[ValueAttribs],
       valueToDestruct: RuntimeValue,
       inValue: RuntimeValue,
@@ -168,7 +173,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
   ): RTValue = {
     val value = loop(valueToDestruct, store)
     matchPatternCase(pattern, value) match {
-      case None => throw UnmatchedPattern(s"Value ${PrintIR(value)} does not match pattern  ${PrintIR(pattern)}")
+      case None => throw UnmatchedPattern(value, node, pattern)
       case Some(bindings) =>
         loop(inValue, store.push(bindings.map { case (name, value) => name -> StoredValue.Eager(value) }))
     }
@@ -205,9 +210,13 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       case record @ RTValue.Record(fields) =>
         fields.getOrElse(
           fieldName,
-          throw MissingField(s"Record fields of ${PrintIR(record)} do not contain name $fieldName")
+          throw MissingField(record, fieldName)
         )
-      case other => throw new UnexpectedType(s"Expected record but found ${PrintIR(other)}")
+      case other => throw new UnexpectedType(
+          "Record",
+          other,
+          hint = s"Expected because I tried to access .${fieldName.toCamelCase}"
+        )
     }
 
   def handleFieldFunction(va: ValueAttribs, name: Name): RTValue = RTValue.FieldFunction(name)
@@ -222,7 +231,11 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     loop(condition, store) match {
       case RTValue.Primitive(true)  => loop(thenValue, store)
       case RTValue.Primitive(false) => loop(elseValue, store)
-      case other                    => throw new UnexpectedType(s"${PrintIR(other)} is not a boolean result")
+      case other => throw new UnexpectedType(
+          "Boolean",
+          other,
+          hint = "Expected because I found this in the condition of an if statement"
+        )
     }
 
   def handleLambda(
@@ -264,6 +277,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
 
   def handlePatternMatch(
       va: ValueAttribs,
+      node: RuntimeValue,
       value: RuntimeValue,
       cases: List[(Pattern[ValueAttribs], RuntimeValue)],
       store: Store
@@ -277,7 +291,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
         case (pattern, inValue) :: tail =>
           matchPatternCase(pattern, evaluated).map((inValue, _)).getOrElse(firstPatternMatching(tail))
         case Nil =>
-          throw UnmatchedPattern(s"${PrintIR(evaluated)} did not match any pattern from ${cases.map(PrintIR(_))}")
+          throw UnmatchedPattern(evaluated, node, cases.map(_._1): _*)
       }
     val (inValue, bindings) = firstPatternMatching(cases)
     loop(inValue, store.push(bindings.map { case (name, value) => name -> StoredValue.Eager(value) }))
@@ -332,12 +346,13 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       case RTValue.Record(oldFields) =>
         val newFields = fields.map { case (name, value) => name -> loop(value, store) }
         RTValue.Record(oldFields ++ newFields)
-      case other => throw UnexpectedType(s"${PrintIR(other)} is not a record")
+      case other =>
+        throw UnexpectedType("Record", other, hint = "Expected because I found this in an update record node")
     }
 
   def handleVariable(va: ValueAttribs, name: Name, store: Store) =
     store.getVariable(name) match {
-      case None                         => throw VariableNotFound(s"Variable $name not found")
+      case None                         => throw VariableNotFound(name)
       case Some(StoredValue.Eager(res)) => res
       case Some(StoredValue.Lazy(definition, parentContext, siblings)) =>
         val newBindings: Map[Name, StoredValue] = siblings.map { case (name, sibling) =>

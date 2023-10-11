@@ -10,7 +10,7 @@ import org.finos.morphir.MInt
 import org.finos.morphir.datamodel.Concept.Result
 import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{RuntimeValue, TypeAttribs, ValueAttribs}
 import org.finos.morphir.runtime.internal.{NativeFunctionSignature, NativeFunctionSignatureAdv}
-import org.finos.morphir.runtime.MorphirRuntimeError.{IllegalValue, UnexpectedType}
+import org.finos.morphir.runtime.MorphirRuntimeError.{IllegalValue, FailedCoercion}
 import org.finos.morphir.runtime.internal.CallStackFrame
 
 import scala.collection.mutable
@@ -34,7 +34,7 @@ object RTValue {
     arg match {
       case v: RTValue.List => v
       case _ =>
-        throw new UnexpectedType(
+        throw new FailedCoercion(
           s"Cannot unwrap the value `${arg}` into a ListResult value. It is not a List-based result!"
         )
     }
@@ -43,7 +43,7 @@ object RTValue {
     arg match {
       case v: RTValue.ConstructorResult => v
       case _ =>
-        throw new UnexpectedType(
+        throw new FailedCoercion(
           s"Cannot unwrap the value `${arg}` into a ConstructorResult value. It is not a Constructor result!"
         )
     }
@@ -52,7 +52,7 @@ object RTValue {
     arg match {
       case v: RTValue.Set => v
       case _ =>
-        throw new UnexpectedType(
+        throw new FailedCoercion(
           s"Cannot unwrap the value `${arg}` into a SetResult value. It is not a Set-based result!"
         )
     }
@@ -61,7 +61,7 @@ object RTValue {
     arg match {
       case v: RTValue.Map => v
       case _ =>
-        throw new UnexpectedType(
+        throw new FailedCoercion(
           s"Cannot unwrap the value `${arg}` into a MapResult value. It is not a Map-based result!"
         )
     }
@@ -70,7 +70,7 @@ object RTValue {
     arg match {
       case v: RTValue.Tuple => v
       case _ =>
-        throw new UnexpectedType(
+        throw new FailedCoercion(
           s"Cannot unwrap the value `${arg}` into a MapResult value. It is not a list result!"
         )
     }
@@ -79,11 +79,11 @@ object RTValue {
     arg match {
       case v: Primitive.Boolean => v
       case _: Primitive[_] =>
-        throw new UnexpectedType(
+        throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a Boolean value because it was not a Primitive.Boolean"
         )
       case _ =>
-        throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Boolean. It is not a primitive!")
+        throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a primitive Boolean. It is not a primitive!")
     }
 
   // A Moprhir/ELM float is a Java Double, calling this unwrapDouble since that's the Java datatype being returned
@@ -91,44 +91,44 @@ object RTValue {
     arg match {
       case v: Primitive.Float => v
       case _: Primitive[_] =>
-        throw new UnexpectedType(
+        throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a Double value because it was not a Primitive.Double"
         )
       case _ =>
-        throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Double. It is not a primitive!")
+        throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a primitive Double. It is not a primitive!")
     }
 
   def coerceInt(arg: RTValue) =
     arg match {
       case v: Primitive.Int => v
       case _: Primitive[_] =>
-        throw new UnexpectedType(
+        throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a Int value because it was not a Primitive.Int"
         )
       case _ =>
-        throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Int. It is not a primitive!")
+        throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a primitive Int. It is not a primitive!")
     }
 
   def coerceFloat(arg: RTValue) =
     arg match {
       case v: Primitive.Float => v
       case _: Primitive[_] =>
-        throw new UnexpectedType(
+        throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a Float value because it was not a Primitive.Float"
         )
       case _ =>
-        throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Float. It is not a primitive!")
+        throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a primitive Float. It is not a primitive!")
     }
 
   def coerceDecimal(arg: RTValue) =
     arg match {
       case v: Primitive.BigDecimal => v
       case _: Primitive[_] =>
-        throw new UnexpectedType(
+        throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a BigDecimal value because it was not a Primitive.BigDecimal"
         )
       case _ =>
-        throw UnexpectedType(
+        throw FailedCoercion(
           s"Cannot unwrap the value `${arg}` into a primitive BigDecimal. It is not a primitive!"
         )
     }
@@ -137,28 +137,28 @@ object RTValue {
     arg match {
       case v: Primitive.Int => v
       case _: Primitive[_] =>
-        throw new UnexpectedType(
+        throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a Long value because it was not a Primitive.Long"
         )
       case _ =>
-        throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive Long. It is not a primitive!")
+        throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a primitive Long. It is not a primitive!")
     }
 
   def coerceString(arg: RTValue) =
     arg match {
       case v: Primitive.String => v
       case _: Primitive[_] =>
-        throw new UnexpectedType(
+        throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a String value because it was not a Primitive.String"
         )
       case _ =>
-        throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive String. It is not a primitive!")
+        throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a primitive String. It is not a primitive!")
     }
 
   def coercePrimitive(arg: RTValue): Primitive[_] =
     arg match {
       case p: Primitive[_] => p.asInstanceOf[Primitive[_]]
-      case _               => throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive")
+      case _               => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a primitive")
     }
 
   def coerceNumeric(arg: RTValue): Primitive.Numeric[_] =
@@ -166,13 +166,13 @@ object RTValue {
       // Need a typecast because can't match on `p: Primitive.Numeric[_]` since there's
       // no actually Primitive.Numeric that has a type of `Any`.
       case p: Primitive.Numeric[_] => p
-      case _ => throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a primitive numeric")
+      case _ => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a primitive numeric")
     }
 
   def coerceFunction(arg: RTValue): Function =
     arg match {
       case f: Function => f
-      case _           => throw new UnexpectedType(s"Cannot unwrap the value `${arg}` into a function")
+      case _           => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a function")
     }
 
   case class NumericsWithHelper[T](
@@ -198,7 +198,7 @@ object RTValue {
     val a = coerceNumeric(arg1)
     val b = coerceNumeric(arg2)
     if (a.numericType != b.numericType) {
-      throw new UnexpectedType(
+      throw new FailedCoercion(
         s"Error unwrapping the Primitive Numerics ${arg1} and ${arg2} into a common type, they have different numeric types: ${a.numericType} versus ${b.numericType}"
       )
     }
@@ -278,7 +278,7 @@ object RTValue {
         if (value.isValidInt)
           value.toInt
         else
-          throw new UnexpectedType(
+          throw new FailedCoercion(
             s"Cannot unwrap ${value} into an integer because it's value is too large or too small"
           )
     }
@@ -320,7 +320,7 @@ object RTValue {
     def makeOrFail[T](value: T): Primitive[T] =
       make[T](value) match {
         case Some(value) => value
-        case None => throw new UnexpectedType(
+        case None => throw new FailedCoercion(
             s"Cannot unwrap value `$value` into a primitive. It is a ${value.getClass}. Valid Primitive values are: Int, Long, String, Boolean, Char, Double, BigDecimal, Float"
           )
       }
@@ -412,7 +412,7 @@ object RTValue {
       arguments: scala.List[(Name, ValueAttribs, Type[TypeAttribs])],
       curried: scala.List[(Name, RTValue)],
       closingContext: CallStackFrame
-  ) extends RTValue
+  ) extends Function
 
   case class ConstructorFunction(name: FQName, arguments: scala.List[ValueAttribs], curried: scala.List[RTValue])
       extends Function
@@ -425,7 +425,10 @@ object RTValue {
     }
   }
 
-  sealed trait NativeFunctionResult extends Function
+  sealed trait NativeFunctionResult extends Function {
+    def arguments: Int
+    def curried: scala.List[RTValue]
+  }
 
   case class NativeFunction(
       arguments: Int,

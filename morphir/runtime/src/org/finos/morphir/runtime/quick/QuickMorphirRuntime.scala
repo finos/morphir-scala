@@ -52,7 +52,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
     val maybeSpec = dists.lookupValueSpecification(fqn)
     maybeSpec match {
       case Right(spec) => RTAction.succeed(specificationToType(spec))
-      case Left(err)   => RTAction.fail(new SpecificationNotFound(s"Lookup failure: ${err.getMsg}"))
+      case Left(err)   => RTAction.fail(err.withContext("Cannot find Entry Point:"))
     }
   }
 
