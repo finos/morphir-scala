@@ -39,7 +39,7 @@ trait TransformType[T, A] extends Transform[T] {
     for {
       v    <- transform(value)
       attr <- transformAttribute(v.attributes)
-      fields <- ofChunk(v.fields) { field =>
+      fields <- ofList(v.fields) { field =>
         of(field.data).map(data => field.copy(data = data))
       }
     } yield Type.ExtensibleRecord(attr, v.name, fields)
@@ -56,7 +56,7 @@ trait TransformType[T, A] extends Transform[T] {
     for {
       v    <- transform(value)
       attr <- transformAttribute(v.attributes)
-      fields <- ofChunk(v.fields) { field =>
+      fields <- ofList(v.fields) { field =>
         of(field.data).map(data => field.copy(data = data))
       }
     } yield Type.Record(attr, fields)
@@ -65,13 +65,13 @@ trait TransformType[T, A] extends Transform[T] {
     for {
       v          <- transform(value)
       attr       <- transformAttribute(v.attributes)
-      typeParams <- ofChunk(v.typeParams)(of(_))
+      typeParams <- ofList(v.typeParams)(of(_))
     } yield Type.Reference(attr, v.typeName, typeParams)
 
   def of(value: Type.Tuple[A]): Stateful[T, Type.Tuple[A]] =
     for {
       v      <- transform(value)
       attr   <- transformAttribute(v.attributes)
-      fields <- ofChunk(v.elements)(of(_))
+      fields <- ofList(v.elements)(of(_))
     } yield Type.Tuple(attr, fields)
 }

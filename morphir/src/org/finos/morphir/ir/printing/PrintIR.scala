@@ -5,9 +5,9 @@ import pprint.{Renderer, Tree, Truncated}
 
 import java.util.function.UnaryOperator
 import org.finos.morphir.naming.*
-import org.finos.morphir.ir.Value.{emptyTuple, Value as V}
+import org.finos.morphir.ir.Value.{emptyTuple, Value => V}
 import org.finos.morphir.ir.Value
-import org.finos.morphir.ir.Type.Type as T
+import org.finos.morphir.ir.Type.{Type => T}
 import org.finos.morphir.ir.Type
 import pprint.Tree.{Apply, Literal}
 //import org.finos.morphir.runtime.quick.Result //??
@@ -149,7 +149,7 @@ case class PrintIR(
           // Leafs can display even at depth 0
           // Assume compression for these cases
           case name: Name => Tree.Literal(name.toCamelCase)
-          case T.Reference(_, fqn, Chunk()) =>
+          case T.Reference(_, fqn, Nil) =>
             Tree.Literal(s"Ref(${fqnv(fqn)})")
           case T.Reference(_, fqn, _) =>
             Tree.Literal(s"Ref(${fqnv(fqn)}) [..]")
@@ -179,11 +179,11 @@ case class PrintIR(
     case fqn: FQName if (detailLevel.compressFQNames) =>
       Tree.Literal(fqnv(fqn))
 
-    case T.Reference(_, fqn, Chunk()) if (detailLevel.compressReferences) =>
+    case T.Reference(_, fqn, Nil) if (detailLevel.compressReferences) =>
       Tree.Literal(s"Ref(${fqnv(fqn)})")
 
     case T.Reference(_, fqn, tpes) if (detailLevel.compressReferences) =>
-      Tree.Apply(s"Ref(${fqnv(fqn)}):", tpes.map(treeify(_)).iterator)
+      Tree.Apply(s"Ref(${fqnv(fqn)})", tpes.map(treeify(_)).iterator)
 
     case other => super.treeify(other, escapeUnicode, this.detailLevel.showFieldNames)
   }

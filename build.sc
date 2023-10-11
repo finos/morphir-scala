@@ -219,28 +219,26 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       }
 
       object jvm extends Shared with MorphirJVMModule {
-        object test extends ScalaTests with TestModule.Munit {
+        object test extends ScalaTests with TestModule.ZioTest {
           def ivyDeps = Agg(
             Deps.dev.zio.zio,
             Deps.dev.zio.`zio-streams`,
-            Deps.com.eed3si9n.expecty.expecty,
-            Deps.org.scalameta.munit,
-            Deps.org.scalameta.`munit-scalacheck`
+            Deps.dev.zio.`zio-test`,
+            Deps.dev.zio.`zio-test-sbt`
           )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.munit.jvm, testing.munit.zio.jvm)
+          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.jvm, testing.zio.jvm)
         }
       }
 
       object js extends Shared with MorphirJSModule {
-        object test extends ScalaJSTests with TestModule.Munit {
+        object test extends ScalaJSTests with TestModule.ZioTest {
           def ivyDeps = Agg(
             Deps.dev.zio.zio,
             Deps.dev.zio.`zio-streams`,
-            Deps.com.eed3si9n.expecty.expecty,
-            Deps.org.scalameta.munit,
-            Deps.org.scalameta.`munit-scalacheck`
+            Deps.dev.zio.`zio-test`,
+            Deps.dev.zio.`zio-test-sbt`
           )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.munit.js, testing.munit.zio.js)
+          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.js, testing.zio.js)
         }
       }
 
@@ -368,7 +366,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     object munit extends CrossPlatform {
       trait Shared extends MorphirCommonCrossModule {
         def ivyDeps = Agg(
-          ivy"io.github.cquiroz::scala-java-time::2.5.0",
+          Deps.io.github.cquiroz.`scala-java-time`,
           Deps.com.eed3si9n.expecty.expecty,
           Deps.org.scalameta.munit,
           Deps.org.scalameta.`munit-scalacheck`
@@ -394,7 +392,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
           }
 
           def ivyDeps = super.ivyDeps() ++ Agg(
-            ivy"io.github.cquiroz::scala-java-time::2.5.0",
+            Deps.io.github.cquiroz.`scala-java-time`,
             Deps.com.eed3si9n.expecty.expecty,
             Deps.org.scalameta.munit,
             Deps.org.scalameta.`munit-scalacheck`
@@ -453,7 +451,9 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
     trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
       def ivyDeps = super.ivyDeps() ++ Agg(
-        Deps.com.lihaoyi.sourcecode
+        Deps.com.lihaoyi.sourcecode,
+        Deps.io.github.cquiroz.`scala-java-time`,
+        Deps.io.github.cquiroz.`scala-java-time-tzdb`
       )
       def platformSpecificModuleDeps = Seq(extensibility, morphir, runtime, tools)
     }
@@ -480,6 +480,10 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     }
 
     object native extends Shared with MorphirNativeModule {
+      def ivyDeps = super.ivyDeps() ++ Agg(
+        Deps.com.github.lolgab.`scala-native-crypto`
+      )
+
       object test extends ScalaNativeTests with TestModule.ZioTest {
         def ivyDeps    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
         def moduleDeps = super.moduleDeps ++ Agg(testing.generators.native, testing.zio.native)
@@ -541,10 +545,12 @@ object site extends Docusaurus2Module with MDocModule {
 }
 
 object MyAliases extends Aliases {
-  def fmt         = alias("mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources")
-  def checkfmt    = alias("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources")
-  def deps        = alias("mill.scalalib.Dependency/showUpdates")
-  def testall     = alias("__.test")
-  def compileall  = alias("__.compile")
-  def comptestall = alias("__.compile", "__.test")
+  def fmt           = alias("mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources")
+  def checkfmt      = alias("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources")
+  def deps          = alias("mill.scalalib.Dependency/showUpdates")
+  def testall       = alias("__.test")
+  def testJVM       = alias("morphir.__.jvm.__.test")
+  def testJVMCached = alias("morphir.__.jvm.__.testCached")
+  def compileall    = alias("__.compile")
+  def comptestall   = alias("__.compile", "__.test")
 }

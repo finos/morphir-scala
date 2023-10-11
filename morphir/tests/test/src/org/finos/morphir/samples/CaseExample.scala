@@ -316,15 +316,15 @@ object CaseExample extends AllSyntax {
   lazy val savingsAccountTypeConstructor: TypeConstructorInfo = TypeConstructorInfo(
     containingType = accountTypeName,
     typeParams = Chunk.empty,
-    typeArgs = Chunk(Name.fromString("arg1") -> typeRef(FQName.fromString("Morphir.SDK.String"), Chunk.empty))
+    typeArgs = Chunk(Name.fromString("arg1") -> typeRef(FQName.fromString("Morphir.SDK.String"), Nil))
   )
 
   lazy val checkingAccountTypeConstructor: TypeConstructorInfo = TypeConstructorInfo(
     containingType = accountTypeName,
     typeParams = Chunk.empty,
     typeArgs = Chunk(
-      Name.fromString("arg1") -> typeRef(FQName.fromString(":Morphir.SDK:String"), Chunk.empty),
-      Name.fromString("arg2") -> typeRef(FQName.fromString(":Morphir.SDK:Int"), Chunk.empty)
+      Name.fromString("arg1") -> typeRef(FQName.fromString(":Morphir.SDK:String"), Nil),
+      Name.fromString("arg2") -> typeRef(FQName.fromString(":Morphir.SDK:Int"), Nil)
     )
   )
 

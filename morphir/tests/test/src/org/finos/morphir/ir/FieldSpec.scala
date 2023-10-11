@@ -2,6 +2,7 @@ package org.finos.morphir
 package ir
 
 import org.finos.morphir.ir.StringOps
+import org.finos.morphir.ir.Type.Field
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test._
 

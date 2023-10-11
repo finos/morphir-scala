@@ -41,3 +41,11 @@ expected = 2
 tupleSecondTest : TestContext ->Int
 tupleSecondTest ctx = test ctx
     (second (1, 2))
+
+
+{-|
+Test : Tuple/deriveDestructure
+expected("Red", 1) = "Red"
+-}
+tupleDeriveDestructureTest : (a, b) -> a
+tupleDeriveDestructureTest (first, _) = first

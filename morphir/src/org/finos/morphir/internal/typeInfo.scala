@@ -1,9 +1,11 @@
 package org.finos.morphir.internal
 
 import org.finos.morphir.naming._
+import org.finos.morphir.universe.ir.{Field, Type}
 import org.finos.morphir.util.attribs.Attributes
 
-trait TypeInfoModule { self: TypeModule with TypeSpecModule with TypeDefModule =>
+import org.finos.morphir.universe.ir.{Field, Type}
+trait TypeInfoModule { self: TypeSpecModule with TypeDefModule =>
 
   sealed trait GenericTypeInfo[+A] { self =>
     import GenericTypeInfo._

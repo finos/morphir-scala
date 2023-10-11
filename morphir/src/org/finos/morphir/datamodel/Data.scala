@@ -144,8 +144,15 @@ object Data {
   }
   sealed trait Result extends Data
   object Result {
-    case class Ok(data: Data, shape: Concept.Result)  extends Result
+    case class Ok(data: Data, shape: Concept.Result) extends Result
+    object Ok {
+      def withErrConcept(data: Data, errConcept: Concept) = Ok(data, Concept.Result(errConcept, data.shape))
+    }
     case class Err(data: Data, shape: Concept.Result) extends Result
+
+    object Err {
+      def withOkConcept(data: Data, okConcept: Concept) = Err(data, Concept.Result(data.shape, okConcept))
+    }
   }
 
   case class List private[datamodel] (values: scala.List[Data], shape: Concept.List) extends Data

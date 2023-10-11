@@ -2,7 +2,8 @@ package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.ir.Type
 import org.finos.morphir.naming.*
-import org.finos.morphir.runtime.{IllegalValue, RTValue, SDKConstructor, SDKValue, UnexpectedType, UnsupportedType}
+import org.finos.morphir.runtime.{RTValue, SDKConstructor, SDKValue}
+import org.finos.morphir.runtime.MorphirRuntimeError.{IllegalValue, UnexpectedType, UnsupportedType, WrongArgumentTypes}
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.internal.{InvokeableEvaluator, NativeFunctionSignatureAdv}
@@ -40,7 +41,11 @@ object DictSDK {
           input.coerceTuple.value match {
             case List(a, b) => (a, b)
             case _ =>
-              throw new IllegalValue(s"Input to Dict.fromList was not a Tuple2-based element, it was: `$input`")
+              throw new UnexpectedType(
+                s"Tuple2-based element",
+                input,
+                hint = "Expected because this was passed to Dict.fromList"
+              )
           }
         }
       RTValue.Map(mutable.LinkedHashMap(mappedList: _*))
@@ -60,6 +65,23 @@ object DictSDK {
       val map = m.coerceMap.value
       optionToMaybe(map.get(key))
   }
+  val member: SDKValue = SDKValue.SDKNativeFunction.fun2 {
+    (key: RTValue, m: RTValue) =>
+      val map = m.coerceMap.value
+      RTValue.Primitive.Boolean(map.contains(key))
+  }
+
+  val isEmpty: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (m: RTValue) =>
+      val map = m.coerceMap.value
+      RTValue.Primitive.Boolean(map.isEmpty)
+  }
+
+  val size: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (m: RTValue) =>
+      val map = m.coerceMap.value
+      RTValue.Primitive.Int(map.size)
+  }
 
   val singleton: SDKValue = SDKValue.SDKNativeFunction.fun2 {
     (key: RTValue, value: RTValue) =>
@@ -70,6 +92,12 @@ object DictSDK {
     (m: RTValue) =>
       val map = m.coerceMap.value
       RTValue.List(map.keys.toList)
+  }
+
+  val values: SDKValue = SDKValue.SDKNativeFunction.fun1 {
+    (m: RTValue) =>
+      val map = m.coerceMap.value
+      RTValue.List(map.values.toList)
   }
 
   private def optionToMaybe(opt: Option[RTValue]): RTValue =
@@ -107,7 +135,11 @@ object DictSDK {
           case RTValue.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), _) =>
             dict.remove(targetKeyRaw)
           case _ =>
-            throw new IllegalValue(s"Expected a Result.Constructor of Morphir.SDK:Maybe:just/nothing but got $newValue")
+            throw new UnexpectedType(
+              s"Morphir.SDK:Maybe:just value or Morphir.SDK:Maybe:nothing",
+              newValue,
+              hint = "Expected because this was returned from Dict.update native function"
+            )
         }
         RTValue.Map(dict)
     }
@@ -127,8 +159,12 @@ object DictSDK {
     FQName.fromString("Morphir.SDK:Dict:filter")    -> filter,
     FQName.fromString("Morphir.SDK:Dict:fromList")  -> fromList,
     FQName.fromString("Morphir.SDK:Dict:get")       -> get,
+    FQName.fromString("Morphir.SDK:Dict:member")    -> member,
+    FQName.fromString("Morphir.SDK:Dict:isEmpty")   -> isEmpty,
+    FQName.fromString("Morphir.SDK:Dict:size")      -> size,
     FQName.fromString("Morphir.SDK:Dict:insert")    -> insert,
     FQName.fromString("Morphir.SDK:Dict:keys")      -> keys,
+    FQName.fromString("Morphir.SDK:Dict:values")    -> values,
     FQName.fromString("Morphir.SDK:Dict:toList")    -> toList,
     FQName.fromString("Morphir.SDK:Dict:singleton") -> singleton,
     FQName.fromString("Morphir.SDK:Dict:update")    -> update,
@@ -174,7 +210,8 @@ object BasicsSDK {
       case (RTValue.List(aElements), RTValue.List(bElements)) =>
         RTValue.List(aElements.appendedAll(bElements))
       case (RTValue.Primitive.String(a), RTValue.Primitive.String(b)) => RTValue.Primitive.String(a + b)
-      case (other1, other2) => throw new UnsupportedType(s"Append called on unrecognized types: $other1, $other2")
+      case (other1, other2) =>
+        throw new WrongArgumentTypes(s"Append must be called on two Lists or two Strings", other1, other2)
     }
   )
   val sdk: Map[FQName, SDKValue] = Map(
@@ -261,7 +298,7 @@ object TupleSDK {
   val second: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: RTValue) =>
     val length = arg.coerceTuple.value.length
     if (length < 2) {
-      throw new IllegalValue(s"Tuple with length `$length` has too few elements")
+      throw new UnexpectedType("(Tuple of at least two elements)", arg, "Expected because Tuple.second was called")
     }
     arg.coerceTuple.value(1)
   }
