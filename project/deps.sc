@@ -50,6 +50,10 @@ object Deps {
         val `silencer-plugin` = ivy"com.github.ghik:::silencer-plugin:${Versions.silencer}"
       }
 
+      case object lolgab {
+        val `scala-native-crypto` = ivy"com.github.lolgab::scala-native-crypto::${Versions.`scala-native-crypto`}"
+      }
+
       case object poslegm {
         val `munit-zio` = ivy"com.github.poslegm::munit-zio::${Versions.`munit-zio`}"
       }
@@ -140,13 +144,22 @@ object Deps {
     case object `get-coursier` {
       val coursier = ivy"io.get-coursier::coursier::${Versions.coursier}"
     }
+    case object github {
+      case object cquiroz {
+        val `scala-java-time`      = ivy"io.github.cquiroz::scala-java-time::${Versions.`scala-java-time`}"
+        val `scala-java-time-tzdb` = ivy"io.github.cquiroz::scala-java-time-tzdb::${Versions.`scala-java-time`}"
+      }
+    }
     case object lemonlabs {
       val `scala-uri` = ivy"io.lemonlabs::scala-uri::4.0.3"
     }
   }
   case object org {
     case object `scala-lang` {
-      def `scala-compiler`(scalaVersion: String): Dep  = ivy"org.scala-lang:scala-compiler:$scalaVersion"
+      def `scala-compiler`(scalaVersion: String): Dep =
+        if (scalaVersion.startsWith("3")) ivy"org.scala-lang::scala3-compiler:$scalaVersion"
+        else ivy"org.scala-lang:scala-compiler:$scalaVersion"
+      def `scala-library`(scalaVersion: String): Dep   = ivy"org.scala-lang:scala-library:$scalaVersion"
       def `scala-reflect`(scalaVersion: String): Dep   = ivy"org.scala-lang:scala-reflect:$scalaVersion"
       def `scala3-compiler`(scalaVersion: String): Dep = ivy"org.scala-lang::scala3-compiler:$scalaVersion"
       def `scala3-tasty-inspector`(scalaVersion: String): Dep =
@@ -194,22 +207,24 @@ object Versions {
 
   def semanticDb(partialVersion: Option[(Int, Int)]): String =
     partialVersion match {
-      case Some((2, _)) => "4.5.11"
-      case _            => "4.5.11"
+      case Some((2, _)) => "4.8.11"
+      case _            => "4.8.11"
     }
 
   val coursier                   = "2.1.4"
   val expecty                    = "0.16.0"
   val fansi                      = "0.4.0"
-  val fs2                        = "3.9.1"
+  val fs2                        = "3.9.2"
   val geny                       = "1.0.0"
   val `izumi-reflect`            = "2.3.8"
   val metaconfig                 = "0.11.1"
-  val munit                      = "1.0.0-M8"
+  val munit                      = "1.0.0-M10"
   val `munit-zio`                = "0.1.1"
   val mainargs                   = "0.5.0"
   val `os-lib`                   = "0.9.1"
   val paiges                     = "0.4.3"
+  val `scala-java-time`          = "2.5.0"
+  val `scala-native-crypto`      = "0.0.4"
   val `scalac-compat-annotation` = "0.1.2"
   val scribe                     = "3.11.9"
   val silencer                   = "1.4.2"
@@ -234,7 +249,7 @@ object ScalaVersions {
   def scala213 = "2.13.12"
   def scala3x  = "3.3.1"
 
-  def scalaJSVersion     = "1.13.2"
+  def scalaJSVersion     = "1.14.0"
   def scalaNativeVersion = "0.4.15"
   def millScalaVersion   = "2.13.10"
 }
