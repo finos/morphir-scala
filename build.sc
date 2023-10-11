@@ -453,8 +453,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       def ivyDeps = super.ivyDeps() ++ Agg(
         Deps.com.lihaoyi.sourcecode,
         Deps.io.github.cquiroz.`scala-java-time`,
-        Deps.io.github.cquiroz.`scala-java-time-tzdb`,
-        Deps.com.github.lolgab.`scala-native-crypto`
+        Deps.io.github.cquiroz.`scala-java-time-tzdb`
       )
       def platformSpecificModuleDeps = Seq(extensibility, morphir, runtime, tools)
     }
@@ -481,6 +480,10 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     }
 
     object native extends Shared with MorphirNativeModule {
+      def ivyDeps = super.ivyDeps() ++ Agg(
+        Deps.com.github.lolgab.`scala-native-crypto`
+      )
+
       object test extends ScalaNativeTests with TestModule.ZioTest {
         def ivyDeps    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
         def moduleDeps = super.moduleDeps ++ Agg(testing.generators.native, testing.zio.native)

@@ -249,7 +249,7 @@ object ScalaVersions {
   def scala213 = "2.13.12"
   def scala3x  = "3.3.1"
 
-  def scalaJSVersion     = "1.13.2"
+  def scalaJSVersion     = "1.14.0"
   def scalaNativeVersion = "0.4.15"
   def millScalaVersion   = "2.13.10"
 }
