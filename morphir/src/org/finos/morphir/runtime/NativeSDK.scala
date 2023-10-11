@@ -45,11 +45,27 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.cons)
         )
       }
+      case object Maybe extends SdkModuleDescriptor(moduleName = "Maybe") {
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun2(MaybeSDK.map),
+          NativeFunctionAdapter.Fun2(MaybeSDK.withDefault)
+        )
+      }
+      case object Result extends SdkModuleDescriptor(moduleName = "Result") {
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun2(ResultSDK.map),
+          NativeFunctionAdapter.Fun2(ResultSDK.mapError),
+          NativeFunctionAdapter.Fun2(ResultSDK.withDefault),
+          NativeFunctionAdapter.Fun1(ResultSDK.toMaybe),
+          NativeFunctionAdapter.Fun2(ResultSDK.fromMaybe)
+        )
+
+      }
     }
   }
 
   val resolvedFunctions: Map[FQName, SDKValue] = {
     import Morphir.SDK.*
-    Basics.resolvedFunctions ++ List.resolvedFunctions
+    Basics.resolvedFunctions ++ List.resolvedFunctions ++ Maybe.resolvedFunctions ++ Result.resolvedFunctions
   }
 }

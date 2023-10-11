@@ -3,12 +3,13 @@ package org.finos.morphir.runtime
 import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
-import org.finos.morphir.ir.{Type as T, Value as V}
+import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
 import org.finos.morphir.ir.Type.{Type, UType, USpecification => UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
@@ -34,7 +35,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       for {
         errors <- ZIO.succeed(checker.conformsTo(tpe1, tpe2))
-        errorMsgs = errors.map(error => s"\n\t${error.getMsg}").mkString("")
+        errorMsgs = errors.map(error => s"\n\t${error.getMessage}").mkString("")
         assert <- if (errors.length == expectedErrors) assertCompletes
         else assertTrue(errorMsgs == s"Expected $expectedErrors errors")
       } yield assert
@@ -43,7 +44,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       for {
         errors <- ZIO.succeed(checker.checkDefinitionBody(fqn))
-        errorMsgs = errors.map(error => s"\n\t${error.getMsg}").mkString("")
+        errorMsgs = errors.map(error => s"\n\t${error.getMessage}").mkString("")
         assert <- if (errors.length == 0) assertCompletes
         else assertTrue(errorMsgs == s"Expected no errors")
       } yield assert // TODO: Cleaner "fails" impl
@@ -53,7 +54,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       for {
         errors <- ZIO.succeed(checker.checkAllDefinitions())
-        errorMsgs = errors.map(error => s"\n\t${error.getMsg}").mkString("")
+        errorMsgs = errors.map(error => s"\n\t${error.getMessage}").mkString("")
         assert <- if (errors.length == 0) assertCompletes
         else assertTrue(errorMsgs == s"Expected no errors")
       } yield assert // TODO: Cleaner "fails" impl
@@ -62,7 +63,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
     ZIO.serviceWithZIO[TypeChecker] { checker =>
       for {
         errors <- ZIO.succeed(checker.check(value))
-        errorMsgs = errors.map(error => s"\n\t${error.getMsg}").mkString("")
+        errorMsgs = errors.map(error => s"\n\t${error.getMessage}").mkString("")
         assert <- if (errors.length == expectedErrors) assertCompletes
         else assertTrue(errorMsgs == s"Expected $expectedErrors errors")
       } yield assert // TODO: Cleaner "fails" impl

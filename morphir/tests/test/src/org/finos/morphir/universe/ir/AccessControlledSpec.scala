@@ -1,5 +1,4 @@
-package org.finos.morphir
-import org.finos.morphir.mir.AccessControlled
+package org.finos.morphir.universe.ir
 
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*

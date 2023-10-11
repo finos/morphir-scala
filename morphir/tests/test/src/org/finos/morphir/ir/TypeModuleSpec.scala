@@ -64,10 +64,10 @@ object TypeModuleSpec extends MorphirBaseSpec {
       test("testing first record constructor") {
         val var1   = field("first", variable("hello"))
         val var2   = field("second", variable("there"))
-        val chunk  = zio.Chunk(var1, var2)
+        val chunk  = List(var1, var2)
         val actual = record(chunk)
         assertTrue(
-          actual == Record(Chunk(var1, var2))
+          actual == Record((), List(var1, var2))
         )
       },
       test("testing second record constructor") {
@@ -75,7 +75,7 @@ object TypeModuleSpec extends MorphirBaseSpec {
         val var2   = field("second", variable("there"))
         val actual = record(var1, var2)
         assertTrue(
-          actual == Record(var1, var2)
+          actual == Record((), var1, var2)
         )
       }
     ),
@@ -83,10 +83,10 @@ object TypeModuleSpec extends MorphirBaseSpec {
       test("testing first tuple constructor") {
         val var1   = variable("hello")
         val var2   = variable("there")
-        val chunk  = zio.Chunk(var1, var2)
+        val chunk  = List(var1, var2)
         val actual = tuple(chunk)
         assertTrue(
-          actual == Tuple.withElements(var1, var2),
+          actual == Tuple((), var1, var2),
           actual.attributes == ()
         )
       },
@@ -95,7 +95,7 @@ object TypeModuleSpec extends MorphirBaseSpec {
         val var2   = variable("there")
         val actual = tupleVar(var1, var2)
         assertTrue(
-          actual == Tuple.withElements(var1, var2)
+          actual == Tuple((), var1, var2)
         )
       }
     ),
@@ -105,7 +105,7 @@ object TypeModuleSpec extends MorphirBaseSpec {
         val retType = tupleVar(variable("v3"), variable("v4"))
         val actual  = function(param1, retType)
         assertTrue(
-          actual == Function(param1, retType)
+          actual == Function((), param1, retType)
         )
       },
       test("testing second function constructor") {
@@ -123,10 +123,10 @@ object TypeModuleSpec extends MorphirBaseSpec {
         val f2     = field("second", variable("there"))
         val f3     = field("third", tupleVar(variable("v3"), variable("v4")))
         val n1     = Name("SomeName")
-        val actual = extensibleRecord(n1, zio.Chunk(f1, f2, f3))
+        val actual = extensibleRecord(n1, List(f1, f2, f3))
         assertTrue(
-          actual == ExtensibleRecord(n1, Chunk(f1, f2, f3)),
-          actual == ExtensibleRecord("SomeName", f1, f2, f3)
+          actual == ExtensibleRecord((), n1, List(f1, f2, f3)),
+          actual == ExtensibleRecord((), "SomeName", f1, f2, f3)
         )
       },
       test("testing second extensible record constructor") {
@@ -136,16 +136,16 @@ object TypeModuleSpec extends MorphirBaseSpec {
         val n1     = Name("SomeName")
         val actual = extensibleRecordWithFields(n1, f1, f2, f3)
         assertTrue(
-          actual == ExtensibleRecord(n1, Chunk(f1, f2, f3))
+          actual == ExtensibleRecord((), n1, List(f1, f2, f3))
         )
       },
       test("testing third extensible record constructor") {
         val f1     = field("first", variable("hello"))
         val f2     = field("second", variable("there"))
         val f3     = field("third", tupleVar(variable("v3"), variable("v4")))
-        val actual = extensibleRecord("SomeName", zio.Chunk(f1, f2, f3))
+        val actual = extensibleRecord("SomeName", List(f1, f2, f3))
         assertTrue(
-          actual == ExtensibleRecord(Name.fromString("SomeName"), Chunk(f1, f2, f3))
+          actual == ExtensibleRecord((), Name.fromString("SomeName"), List(f1, f2, f3))
         )
       },
       test("testing fourth extensible record constructor") {
@@ -154,7 +154,7 @@ object TypeModuleSpec extends MorphirBaseSpec {
         val f3     = field("third", tupleVar(variable("v3"), variable("v4")))
         val actual = extensibleRecordWithFields("SomeName", f1, f2, f3)
         assertTrue(
-          actual == ExtensibleRecord(Name.fromString("SomeName"), Chunk(f1, f2, f3))
+          actual == ExtensibleRecord((), Name.fromString("SomeName"), List(f1, f2, f3))
         )
       }
     ),
@@ -164,9 +164,9 @@ object TypeModuleSpec extends MorphirBaseSpec {
         val v2     = variable("v2")
         val v3     = tupleVar(variable("v3"), variable("v4"))
         val fqn1   = FQName.fqn("packageName", "moduleName", "localName")
-        val actual = reference(fqn1, zio.Chunk(v1, v2, v3))
+        val actual = reference(fqn1, List(v1, v2, v3))
         assertTrue(
-          actual == Reference(fqn1)(v1, v2, v3)
+          actual == Reference((), fqn1, v1, v2, v3)
         )
       },
       test("testing second reference constructor") {
@@ -176,7 +176,7 @@ object TypeModuleSpec extends MorphirBaseSpec {
         val fqn1   = FQName.fqn("packageName", "moduleName", "localName")
         val actual = reference(fqn1, v1, v2, v3)
         assertTrue(
-          actual == Reference(fqn1)(v1, v2, v3)
+          actual == Reference((), fqn1, v1, v2, v3)
         )
       },
       test("testing third reference constructor") {
@@ -184,9 +184,9 @@ object TypeModuleSpec extends MorphirBaseSpec {
         val v2     = variable("v2")
         val v3     = tupleVar(variable("v3"), variable("v4"))
         val fqn1   = FQName.fqn("packageName", "moduleName", "localName")
-        val actual = reference("packageName", "moduleName", "localName", zio.Chunk(v1, v2, v3))
+        val actual = reference("packageName", "moduleName", "localName", List(v1, v2, v3))
         assertTrue(
-          actual == Reference(fqn1)(v1, v2, v3)
+          actual == Reference((), fqn1, v1, v2, v3)
         )
       },
       test("testing fourth reference constructor") {
@@ -196,7 +196,7 @@ object TypeModuleSpec extends MorphirBaseSpec {
         val fqn1   = FQName.fqn("packageName", "moduleName", "localName")
         val actual = reference("packageName", "moduleName", "localName", v1, v2, v3)
         assertTrue(
-          actual == Reference(fqn1)(v1, v2, v3)
+          actual == Reference((), fqn1, v1, v2, v3)
         )
       }
     ),

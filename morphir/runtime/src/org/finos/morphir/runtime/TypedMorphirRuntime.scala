@@ -3,7 +3,7 @@ package org.finos.morphir.runtime
 import org.finos.morphir.naming._
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.Value.Value
-import org.finos.morphir.ir.Value as V
+import org.finos.morphir.ir.{Value => V}
 import org.finos.morphir.datamodel.Data
 import Utils.*
 import org.finos.morphir.ir.distribution.Distribution

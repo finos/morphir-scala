@@ -7,11 +7,12 @@ import org.finos.morphir.mir
 
 package object ir {
 
-  type AccessControlled[+A] = mir.AccessControlled[A]
-  val AccessControlled: mir.AccessControlled.type = mir.AccessControlled
+  type AccessControlled[+A] = org.finos.morphir.universe.ir.AccessControlled[A]
+  val AccessControlled: org.finos.morphir.universe.ir.AccessControlled.type =
+    org.finos.morphir.universe.ir.AccessControlled
 
-  type Documented[+A] = org.finos.morphir.model.ir.Documented[A]
-  val Documented: org.finos.morphir.model.ir.Documented.type = org.finos.morphir.model.ir.Documented
+  type Documented[+A] = org.finos.morphir.universe.ir.Documented[A]
+  val Documented: org.finos.morphir.universe.ir.Documented.type = org.finos.morphir.universe.ir.Documented
 
   // TODO:  Reintroduce later
   // type PackageSpecification[+Annotations] = PackageModule.Specification[Annotations]
@@ -30,7 +31,7 @@ package object ir {
     import org.finos.morphir.ir.Type.{FieldT, Type}
 
     def <:>[A](tpe: Type[A]): FieldT[A] =
-      Field(Name.fromString(self), tpe)
+      FieldT(Name.fromString(self), tpe)
 
     //   def <:>[A](tpe: nonrecursive.Type[A]): nonrecursive.Field[nonrecursive.Type[A]] =
     //     nonrecursive.Field(Name.fromString(self), tpe)

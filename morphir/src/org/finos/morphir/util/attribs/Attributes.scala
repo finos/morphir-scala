@@ -29,6 +29,7 @@ final class Attributes private (private val map: Map[Attribute[Any], AnyRef]) {
 }
 
 object Attributes {
+  type Id[A]
   val empty: Attributes = new Attributes(Map.empty)
   def apply(bindings: Binding[_]*): Attributes =
     empty ++= bindings

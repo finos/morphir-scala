@@ -1,6 +1,7 @@
 package org.finos.morphir.universe.ir
 import org.finos.morphir.naming.*
-import org.finos.morphir.universe.ir.Type.{ExtensibleRecord, Field, Record, Reference, Tuple, Variable}
+import org.finos.morphir.universe.ir.Field
+import org.finos.morphir.universe.ir.Type.{ExtensibleRecord, Record, Reference, Tuple, Variable}
 
 object NoOpTypeVisitor extends TypeVisitor[Nothing, Unit, Any, Nothing, Unit, Nothing] {
   import zio.prelude.fx.*
@@ -11,7 +12,7 @@ object NoOpTypeVisitor extends TypeVisitor[Nothing, Unit, Any, Nothing, Unit, No
   override def visitExtensibleRecord[Attrib1 >: Nothing](
       attributes: Attrib1,
       name: Name,
-      fields: List[Field[Attrib1]]
+      fields: List[FieldT[Attrib1]]
   ): ZPure[Nothing, Unit, Unit, Any, Nothing, Unit] =
     ZPure.unit[Unit]
 
@@ -30,7 +31,7 @@ object NoOpTypeVisitor extends TypeVisitor[Nothing, Unit, Any, Nothing, Unit, No
 
   override def visitRecord[Attrib1 >: Nothing](
       attributes: Attrib1,
-      fields: List[Field[Attrib1]]
+      fields: List[FieldT[Attrib1]]
   ): ZPure[Nothing, Unit, Unit, Any, Nothing, Unit] =
     ZPure.unit[Unit]
 

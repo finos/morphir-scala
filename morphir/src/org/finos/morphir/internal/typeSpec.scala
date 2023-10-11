@@ -1,8 +1,9 @@
 package org.finos.morphir.internal
 
 import org.finos.morphir.naming._
+import org.finos.morphir.universe.ir.{AccessControlled, Field, Type}
 
-trait TypeSpecModule { self: TypeModule =>
+trait TypeSpecModule { self =>
 
   sealed trait TypeSpecification[+A] { self =>
     import TypeSpecification._

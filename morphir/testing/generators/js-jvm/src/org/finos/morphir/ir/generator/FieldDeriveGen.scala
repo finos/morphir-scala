@@ -2,6 +2,7 @@ package org.finos.morphir
 package ir
 package generator
 
+import org.finos.morphir.ir.Type.Field
 import zio.test.magnolia.DeriveGen
 import zio.test.magnolia.DeriveGen._
 

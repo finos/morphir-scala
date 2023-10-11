@@ -3,7 +3,7 @@ package ir
 package generator
 
 import org.finos.morphir.naming._
-import org.finos.morphir.ir.Type.Type
+import org.finos.morphir.ir.Type.{Field, Type}
 import zio._
 import zio.test.Gen
 
@@ -11,7 +11,7 @@ trait TypeGen {
   final def extensibleRecord[R, A](
       attributesGen: Gen[R, A],
       nameGen: Gen[R, Name],
-      fieldsGen: Gen[R, Chunk[Field[Type[A]]]]
+      fieldsGen: Gen[R, List[Field[Type[A]]]]
   ): Gen[R, Type.ExtensibleRecord[A]] =
     for {
       attributes <- attributesGen
@@ -20,7 +20,7 @@ trait TypeGen {
     } yield Type.ExtensibleRecord(attributes, name, fields)
 
   final def extensibleRecordFromAttributes[R, A](implicit attributes: Gen[R, A]): Gen[R, Type.ExtensibleRecord[A]] =
-    extensibleRecord(attributes, NameGen.name, chunkOfFieldsTypesGen)
+    extensibleRecord(attributes, NameGen.name, listOfFieldsTypesGen)
 
   final def function[R, A](attributesGen: Gen[R, A], typeGen: Gen[R, Type[A]]): Gen[R, Type.Function[A]] = for {
     attributes   <- attributesGen
@@ -33,7 +33,7 @@ trait TypeGen {
 
   final def recordType[R, A](
       attributesGen: Gen[R, A],
-      fieldsGen: Gen[R, Chunk[Field[Type[A]]]]
+      fieldsGen: Gen[R, List[Field[Type[A]]]]
   ): Gen[R, Type.Record[A]] =
     for {
       attributes <- attributesGen
@@ -41,12 +41,12 @@ trait TypeGen {
     } yield Type.Record(attributes, fields)
 
   final def recordTypeFromAttributes[R, A](implicit attributes: Gen[R, A]): Gen[R, Type.Record[A]] =
-    recordType(attributes, chunkOfFieldsTypesGen)
+    recordType(attributes, listOfFieldsTypesGen)
 
   final def referenceType[R, A](
       attributesGen: Gen[R, A],
       typeNameGen: Gen[R, FQName],
-      typeParamsGen: Gen[R, Chunk[Type[A]]]
+      typeParamsGen: Gen[R, List[Type[A]]]
   ): Gen[R, Type.Reference[A]] = for {
     attributes <- attributesGen
     typeName   <- typeNameGen
@@ -54,16 +54,16 @@ trait TypeGen {
   } yield Type.Reference(attributes, typeName, typeParams)
 
   final def referenceTypeFromAttributes[R, A](implicit attributes: Gen[R, A]): Gen[R, Type.Reference[A]] =
-    referenceType(attributes, FQNameGen.fqName, chunkOfTypesGen)
+    referenceType(attributes, FQNameGen.fqName, listOfTypesGen)
 
-  final def tupleType[R, A](attributesGen: Gen[R, A], elementsGen: Gen[R, Chunk[Type[A]]]): Gen[R, Type.Tuple[A]] =
+  final def tupleType[R, A](attributesGen: Gen[R, A], elementsGen: Gen[R, List[Type[A]]]): Gen[R, Type.Tuple[A]] =
     for {
       attributes <- attributesGen
       elements   <- elementsGen
     } yield Type.Tuple(attributes, elements)
 
   final def tupleTypeFromAttributes[R, A](implicit attributes: Gen[R, A]): Gen[R, Type.Tuple[A]] =
-    tupleType(attributes, chunkOfTypesGen)
+    tupleType(attributes, listOfTypesGen)
 
   final def unitType[R, A](implicit attributesGen: Gen[R, A]): Gen[R, Type.Unit[A]] = for {
     attributes <- attributesGen
@@ -97,11 +97,11 @@ trait TypeGen {
       )
     )
 
-  private final def chunkOfTypesGen[R, A](implicit attributesGen: Gen[R, A]): Gen[R, Chunk[Type[A]]] =
-    Gen.chunkOfBounded[R, Type[A]](1, 2)(typeGen)
+  private final def listOfTypesGen[R, A](implicit attributesGen: Gen[R, A]): Gen[R, List[Type[A]]] =
+    Gen.listOfBounded[R, Type[A]](1, 2)(typeGen)
 
-  private final def chunkOfFieldsTypesGen[R, A](implicit attributesGen: Gen[R, A]): Gen[R, Chunk[Field[Type[A]]]] =
-    Gen.chunkOfBounded[R, Field[Type[A]]](1, 2)(FieldGen.fieldFromAttributes(typeGen))
+  private final def listOfFieldsTypesGen[R, A](implicit attributesGen: Gen[R, A]): Gen[R, List[Field[Type[A]]]] =
+    Gen.listOfBounded[R, Field[Type[A]]](1, 2)(FieldGen.fieldFromAttributes(typeGen))
 }
 
 object TypeGen extends TypeGen
