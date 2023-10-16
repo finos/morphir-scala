@@ -29,7 +29,7 @@ object EvaluatorQuick {
   ): RTAction[MorphirEnv, EvaluationError, Data] =
     RTAction.environmentWithPure[MorphirSdk] { env =>
       def newStore = GlobalDefs(globals.definitions, globals.ctors)
-      RTAction.succeed(EvaluatorQuick.eval(value, newStore, dists))
+      RTAction.attempt(EvaluatorQuick.eval(value, newStore, dists)).refineToOrDie[EvaluationError]
     }
 
   private[runtime] def eval(
