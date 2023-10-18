@@ -532,7 +532,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 object site extends Docusaurus2Module with MDocModule {
   val workspaceDir = millbuild.build.millSourcePath
 
-  override def scalaMdocVersion: T[String] = T("2.3.7")
+  override def scalaMdocVersion: T[String] = T("2.3.8")
   override def scalaVersion                = T(docsScalaVersion)
   // MD Sources that must be compiled with Scala MDoc
   override def mdocSources = T.sources(workspaceDir / "docs")
