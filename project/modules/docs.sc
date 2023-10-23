@@ -6,7 +6,7 @@ import os.Path
 
 trait MDocModule extends ScalaModule {
 
-  def scalaMdocVersion: T[String] = T("2.3.7")
+  def scalaMdocVersion: T[String] = T("2.3.8")
 
   def scalaMdocDep: T[Dep] = T(ivy"org.scalameta::mdoc:${scalaMdocVersion()}")
 
