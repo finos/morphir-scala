@@ -753,7 +753,7 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
       }
     ),
     suite("Distribution")(
-      test("will encode Distribution.Library") {
+      test("will decode Distribution.Library") {
         val packageName = PackageName.fromString("morphir.SDK")
         val name        = Name.fromString("name")
         val name1       = Name.fromString("name1")
@@ -809,10 +809,20 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         assert(actual.fromJson[Library])(objectEqualTo(Right(expected))) &&
         assert(actual.fromJson[Distribution])(objectEqualTo(Right(expected)))
 
+      },
+      test("will decode Distribution.Bundle") {
+        val packageName  = PackageName.fromString("morphir.SDK")
+        val packageName2 = PackageName.fromString("morphir.SDK.copy")
+        val name         = Name.fromString("name")
+        val name1        = Name.fromString("name1")
+        val name2        = Name.fromString("name2")
+        val modName1     = ModuleName.fromString("org.src")
+        val modName2     = ModuleName.fromString("org.test")
+
       }
     ),
     suite("MorphirIRFile")(
-      test("will encode Distribution.Library") {
+      test("will decode code Distribution.Library from MorphirIRFile") {
         val packageName = PackageName.fromString("morphir.SDK")
         val name        = Name.fromString("name")
         val name1       = Name.fromString("name1")
