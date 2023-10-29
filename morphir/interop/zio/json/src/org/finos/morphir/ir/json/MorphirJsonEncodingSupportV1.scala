@@ -520,6 +520,17 @@ trait MorphirJsonEncodingSupportV1 extends JsonEncodingHelpers {
         ("library", packageName, dependencies.toList, packageDef)
       }
 
+  implicit def libEncoder: JsonEncoder[Lib] =
+    Json.encoder.contramap[Lib] { lib =>
+      Json.Obj(
+        "dependencies" -> toJsonAstOrThrow(
+          lib.dependencies.toList.map { case (dependencies, packageDef) =>
+            Json.Arr(toJsonAstOrThrow(dependencies), toJsonAstOrThrow(packageDef))
+          }
+        ),
+        "packageDef" -> toJsonAstOrThrow(lib.packageDef)
+      )
+    }
 
   implicit def distributionBundleJsonEncoder: JsonEncoder[Bundle] =
     JsonEncoder
