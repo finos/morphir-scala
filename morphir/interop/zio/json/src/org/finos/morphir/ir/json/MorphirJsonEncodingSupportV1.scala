@@ -520,10 +520,19 @@ trait MorphirJsonEncodingSupportV1 extends JsonEncodingHelpers {
         ("library", packageName, dependencies.toList, packageDef)
       }
 
+
+  implicit def distributionBundleJsonEncoder: JsonEncoder[Bundle] =
+    JsonEncoder
+      .tuple2[String, List[(PackageName, Lib)]]
+      .contramap { case Bundle(libraries) =>
+        ("bundle", libraries.toList)
+      }
+
   implicit def distributionEncoder: JsonEncoder[Distribution] =
     new JsonEncoder[Distribution] {
       def unsafeEncode(a: Distribution, indent: Option[Int], out: Write): Unit = a match {
         case library: Library => distributionLibraryJsonEncoder.unsafeEncode(library, indent, out)
+        case bundle: Bundle   => distributionBundleJsonEncoder.unsafeEncode(bundle, indent, out)
       }
     }
 
