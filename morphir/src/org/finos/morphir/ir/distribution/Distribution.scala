@@ -10,6 +10,15 @@ import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => V
 
 sealed trait Distribution
 object Distribution {
+  final case class Lib(
+      dependencies: Map[PackageName, UPackageSpecification],
+      packageDef: PackageDefinition.Typed
+  ) { self =>
+
+    def lookupValueDefinition(qName: QName): Option[ValueDefinition[scala.Unit, UType]] =
+      packageDef.lookupModuleDefinition(qName.modulePath).flatMap(_.lookupValueDefinition(qName.localName))
+  }
+
   final case class Library(
       packageName: PackageName,
       dependencies: Map[PackageName, UPackageSpecification],
@@ -45,9 +54,6 @@ object Distribution {
     ): Option[UValueSpec] =
       lookupModuleSpecification(packageName, module).flatMap(_.lookupValueSpecification(localName))
 
-    def lookupValueDefinition(qName: QName): Option[ValueDefinition[scala.Unit, UType]] =
-      packageDef.lookupModuleDefinition(qName.modulePath).flatMap(_.lookupValueDefinition(qName.localName))
-
     def lookupPackageSpecification: UPackageSpecification = packageDef.toSpecificationWithPrivate.eraseAttributes
 
     @inline def lookupPackageName: PackageName = packageName
@@ -56,5 +62,13 @@ object Distribution {
         dependencyPackageName: PackageName,
         dependencyPackageSpec: UPackageSpecification
     ): Distribution = Library(packageName, dependencies + (dependencyPackageName -> dependencyPackageSpec), packageDef)
+
+    def toLib: Lib = Lib(dependencies, packageDef)
   }
+
+  def toLibsMap(dists: Distribution*): Map[PackageName, Lib] =
+    dists.flatMap {
+      case (library: Library) => List(library.packageName -> library.toLib)
+      case (bundle: Bundle)   => bundle.libraries.toList
+    }.toMap
 }
