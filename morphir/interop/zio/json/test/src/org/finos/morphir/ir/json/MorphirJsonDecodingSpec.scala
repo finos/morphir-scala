@@ -819,6 +819,18 @@ object MorphirJsonDecodingSpec extends ZIOSpecDefault {
         val modName1     = ModuleName.fromString("org.src")
         val modName2     = ModuleName.fromString("org.test")
 
+        val specTypeMap = Map(
+          name -> Documented(
+            "typeDoc1",
+            TypeSpecification.TypeAliasSpecification[scala.Unit](zio.Chunk(name1, name2), unit)
+          )
+        )
+        val inputs       = zio.Chunk((name1, unit), (name2, unit))
+        val specValueMap = Map(name -> Documented("valueDoc1", ValueSpecification[scala.Unit](inputs, unit)))
+
+        val modSpec = ModuleSpecification[scala.Unit](specTypeMap, specValueMap)
+        val pkgSpec = PackageSpecification[scala.Unit](Map(modName1 -> modSpec, modName2 -> modSpec))
+
       }
     ),
     suite("MorphirIRFile")(
