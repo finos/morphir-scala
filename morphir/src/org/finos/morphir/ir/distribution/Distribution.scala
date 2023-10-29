@@ -19,6 +19,14 @@ object Distribution {
       packageDef.lookupModuleDefinition(qName.modulePath).flatMap(_.lookupValueDefinition(qName.localName))
   }
 
+  final case class Bundle(
+      libraries: Map[PackageName, Lib]
+  ) extends Distribution { self =>
+
+    def insertBundle(bundle: Bundle): Distribution    = Bundle(libraries ++ bundle.libraries)
+    def insertLibrary(library: Library): Distribution = Bundle(libraries + (library.packageName -> library.toLib))
+  }
+
   final case class Library(
       packageName: PackageName,
       dependencies: Map[PackageName, UPackageSpecification],
@@ -65,6 +73,12 @@ object Distribution {
 
     def toLib: Lib = Lib(dependencies, packageDef)
   }
+
+
+  def toLibrary(packageName: PackageName, lib: Lib): Library = Library(packageName, lib.dependencies, lib.packageDef)
+  def toLibraries(dists: Distribution*): List[Library] = toLibsMap(dists: _*)
+    .map { case (packageName, lib) => toLibrary(packageName, lib) }
+    .toList
 
   def toLibsMap(dists: Distribution*): Map[PackageName, Lib] =
     dists.flatMap {
