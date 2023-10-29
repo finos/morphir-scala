@@ -4,10 +4,11 @@ import org.finos.morphir.naming.*
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.naming.FQName.getLocalName
 import org.finos.morphir.naming.Name.toTitleCase
+import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, USpecification => UPackageSpecification}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Value.{Pattern, Value}
 import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.ir.distribution.Distribution.Library
+import org.finos.morphir.ir.distribution.Distribution.*
 import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.runtime.{NativeSDK, RTValue, SDKConstructor, SDKValue}
 import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{RuntimeDefinition, TypeAttribs, ValueAttribs}
@@ -40,30 +41,31 @@ final case class GlobalDefs(
 }
 
 object GlobalDefs {
-  def fromDistributions(dists: Distribution*): GlobalDefs =
-    dists.foldLeft(native) {
-      case (acc, lib: Library) =>
-        val packageName = lib.packageName
-        lib.packageDef.modules.foldLeft(acc) { case (acc, (moduleName, module)) =>
-          val withDefinitions = module.value.values.foldLeft(acc) { case (acc, (valueName, value)) =>
-            val name       = FQName(packageName, moduleName, valueName)
-            val definition = value.value.value
-            val sdkDef     = SDKValue.SDKValueDefinition(definition)
-            acc.withDefinition(name, sdkDef)
-          }
-          module.value.types.foldLeft(withDefinitions) { case (acc, (_, tpe)) =>
-            val typeDef = tpe.value.value
-            typeDef match {
-              case Type.Definition.CustomType(_, accessControlledCtors) =>
-                val ctors = accessControlledCtors.value.toMap
-                ctors.foldLeft(acc) { case (acc, (ctorName, ctorArgs)) =>
-                  val name = FQName(packageName, moduleName, ctorName)
-                  acc.withConstructor(name, SDKConstructor(ctorArgs.map(_._2).toList))
-                }
-              case Type.Definition.TypeAlias(_, _) => acc
+  def createDefs(
+      acc: GlobalDefs,
+      packageName: PackageName,
+      dependencies: Map[PackageName, UPackageSpecification],
+      packageDef: PackageDefinition.Typed
+  ): GlobalDefs =
+    packageDef.modules.foldLeft(acc) { case (acc, (moduleName, module)) =>
+      val withDefinitions = module.value.values.foldLeft(acc) { case (acc, (valueName, value)) =>
+        val name       = FQName(packageName, moduleName, valueName)
+        val definition = value.value.value
+        val sdkDef     = SDKValue.SDKValueDefinition(definition)
+        acc.withDefinition(name, sdkDef)
+      }
+      module.value.types.foldLeft(withDefinitions) { case (acc, (_, tpe)) =>
+        val typeDef = tpe.value.value
+        typeDef match {
+          case Type.Definition.CustomType(_, accessControlledCtors) =>
+            val ctors = accessControlledCtors.value.toMap
+            ctors.foldLeft(acc) { case (acc, (ctorName, ctorArgs)) =>
+              val name = FQName(packageName, moduleName, ctorName)
+              acc.withConstructor(name, SDKConstructor(ctorArgs.map(_._2).toList))
             }
-          }
+          case Type.Definition.TypeAlias(_, _) => acc
         }
+      }
     }
 
   def empty: GlobalDefs =
