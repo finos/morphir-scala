@@ -7,7 +7,6 @@ import V.*
 import V.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.{Type => T}
 import org.finos.morphir.ir.{Module, Type}
-import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.MorphirIRFile
 import org.finos.morphir.runtime.MorphirRuntime
@@ -28,8 +27,6 @@ trait EvaluationLibraryPlatformSpecific {
     val distribution = morphirIRFile
       .getOrElse(throw new Exception(morphirIRFile.toString))
       .distribution
-//      .asInstanceOf[Library]
-//    val store = Store.fromLibrary(library)
     EvaluationLibrary(MorphirRuntime.quick(distribution), prefix)
   }
 
@@ -59,5 +56,4 @@ trait EvaluationLibraryPlatformSpecific {
       value <- ZIO.fromEither(fileContents.fromJson[TypedValue])
         .mapError(MorphirIRDecodingError(_))
     } yield value
-
 }
