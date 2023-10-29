@@ -74,6 +74,20 @@ object Distribution {
     def toLib: Lib = Lib(dependencies, packageDef)
   }
 
+  def toBundle(
+      packageName: PackageName,
+      dependencies: Map[PackageName, UPackageSpecification],
+      packageDef: PackageDefinition.Typed
+  ): Bundle = Bundle(Map(packageName -> Lib(dependencies, packageDef)))
+
+  def toBundle(packageName: PackageName, lib: Lib): Bundle = Bundle(Map(packageName -> lib))
+  def toBundle(dists: Distribution*): Bundle               = Bundle(toLibsMap(dists: _*))
+
+  def toLibrary(
+      packageName: PackageName,
+      dependencies: Map[PackageName, UPackageSpecification],
+      packageDef: PackageDefinition.Typed
+  ): Library = Library(packageName, dependencies, packageDef)
 
   def toLibrary(packageName: PackageName, lib: Lib): Library = Library(packageName, lib.dependencies, lib.packageDef)
   def toLibraries(dists: Distribution*): List[Library] = toLibsMap(dists: _*)
