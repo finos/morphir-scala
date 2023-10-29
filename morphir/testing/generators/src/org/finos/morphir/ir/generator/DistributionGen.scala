@@ -30,6 +30,15 @@ trait DistributionGen {
       PackageDefinitionGen.packageDefinitionFromAttributes(Gen.unit, TypeGen.typeGen(Gen.unit))
     )
 
+  final def bundleDistribution(
+      mapOfLibGen: Gen[Any, Map[PackageName, Distribution.Lib]]
+  ): Gen[Any, Distribution.Bundle] = for {
+    mapOfLib <- mapOfLibGen
+  } yield Distribution.Bundle(mapOfLib)
+
+  final val bundleDistribution: Gen[Any, Distribution.Bundle] =
+    bundleDistribution(mapOfLibGen)
+
   final def distribution: Gen[Any, Distribution] = Gen.oneOf(libraryDistribution, bundleDistribution)
 
   private final def libDistribution(
