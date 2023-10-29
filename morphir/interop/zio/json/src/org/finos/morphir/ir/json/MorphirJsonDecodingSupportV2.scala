@@ -620,6 +620,17 @@ trait MorphirJsonDecodingSupportV2 {
     dec.map(l => Lib(l.dependencies.map(d => d._1 -> d._2).toMap, l.packageDef))
   }
 
+  implicit def distributionBundleJsonDecoder: JsonDecoder[Bundle] =
+    JsonDecoder
+      .tuple2[String, List[(PackageName, Lib)]]
+      .mapOrFail {
+        case ("Bundle", libraries) =>
+          Right(Bundle(libraries.toMap))
+        case (other, libraries) =>
+          Left(
+            s"Expected Bundle, got $other with libraries: $libraries"
+          )
+      }
 
   implicit def distributionDecoder: JsonDecoder[Distribution] =
     zio.json.TagBasedParser[Distribution] {
