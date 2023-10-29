@@ -30,7 +30,19 @@ trait DistributionGen {
       PackageDefinitionGen.packageDefinitionFromAttributes(Gen.unit, TypeGen.typeGen(Gen.unit))
     )
 
-  final def distribution: Gen[Any, Distribution] = Gen.oneOf(libraryDistribution)
+  private final def libDistribution(
+      dependenciesGen: Gen[Any, Map[PackageName, UPackageSpecification]],
+      packageDefGen: Gen[Any, PackageDefinition.Typed]
+  ): Gen[Any, Distribution.Lib] = for {
+    dependencies <- dependenciesGen
+    packageDef   <- packageDefGen
+  } yield Distribution.Lib(dependencies, packageDef)
+
+  private final def mapOfLibGen: Gen[Any, Map[PackageName, Distribution.Lib]] =
+    Gen.mapOfBounded(2, 3)(
+      PackageNameGen.packageName,
+      libDistribution
+    )
 
   private final def mapOfDependenciesGen: Gen[Any, Map[PackageName, PackageSpecification[Unit]]] =
     Gen.mapOfBounded(1, 2)(
