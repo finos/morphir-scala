@@ -6,7 +6,6 @@ import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue}
 import org.finos.morphir.ir.{Value => V}
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.Type.Type
 import org.finos.morphir.runtime.*
 import org.finos.morphir.runtime.exports.*
