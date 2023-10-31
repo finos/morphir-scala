@@ -47,7 +47,7 @@ object GlobalDefs {
       case (acc, (packageName, lib)) => createDefs(acc, packageName, lib.dependencies, lib.packageDef)
     }
   }
-  
+
   def createDefs(
       acc: GlobalDefs,
       packageName: PackageName,
