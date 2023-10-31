@@ -23,8 +23,10 @@ object Distribution {
       libraries: Map[PackageName, Lib]
   ) extends Distribution { self =>
 
-    def insertBundle(bundle: Bundle): Distribution    = Bundle(libraries ++ bundle.libraries)
-    def insertLibrary(library: Library): Distribution = Bundle(libraries + (library.packageName -> library.toLib))
+    def insert(dist: Distribution): Distribution = dist match {
+      case bundle: Bundle   => Bundle(libraries ++ bundle.libraries)
+      case library: Library => Bundle(libraries + (library.packageName -> library.toLib))
+    }
   }
 
   final case class Library(
