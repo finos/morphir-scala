@@ -16,20 +16,6 @@ trait MorphirBundle {
 }
 
 object MorphirBundle {
-  val live: ULayer[MorphirBundle] = ZLayer.succeed(MorphirBundleLive)
-
-  object MorphirBundleLive extends MorphirBundle {
-    def bundle(outputBundleIRFilePath: VPath, irFiles: List[VPath]): Task[Unit] =
-      for {
-        _             <- Console.printLine("Bundle command executing")
-        _             <- Console.printLine(s"\toutputBundleIRFilePath: $outputBundleIRFilePath")
-        _             <- Console.printLine(s"\tirFiles: $irFiles")
-        distributions <- ZIO.collectAll { irFiles.map { irFile => loadDistributionFromFileZIO(irFile.toString) } }
-        bundle        <- ZIO.attempt { Distribution.toBundle(distributions: _*) }
-        writtenPath   <- writeDistrubtionToFileZIO(bundle, outputBundleIRFilePath)
-        _             <- Console.printLine(s"\tBundle IR file created: $writtenPath")
-        _             <- Console.printLine("Bundle command executed")
-      } yield ()
 
     // TODO: Possibly refactor when FileIO operations are completed
     def loadDistributionFromFileZIO(fileName: String): Task[Distribution] =
