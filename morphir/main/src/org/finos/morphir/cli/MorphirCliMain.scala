@@ -14,12 +14,15 @@ object MorphirCliMain extends ZIOCliDefault {
     summary = text("Morphir CLI"),
     command = commands.Morphir.root
   )(executeCommand(_).provide(
+    MorphirBundle.live,
     MorphirSetup.live,
     MorphirElmDriver.live,
     MorphirRuntimeDriver.live
   ))
 
   private def executeCommand(command: MorphirCommand) = command match {
+    case MorphirCommand.Bundle(outputBundleIRFilePath, irFiles) =>
+      MorphirBundle.bundle(VPath(outputBundleIRFilePath), irFiles.map(VPath(_)))
     case MorphirCommand.Develop(port, host, projectDir, openInBrowser) =>
       MorphirElmDriver.develop(port, host, VPath(projectDir), openInBrowser)
     case MorphirCommand.Setup(morphirHomeDir) => MorphirSetup.setup(VPath(morphirHomeDir))
@@ -116,6 +119,19 @@ object MorphirCliMain extends ZIOCliDefault {
 
     object Morphir {
 
+      val bundle = {
+        val irFiles = Args.file("ir-files").atLeast(1) ?? "Morphir IR files to bundle"
+        val outputBundleIRFilePath = Options.file("output").alias("o").withDefault(
+          Paths.get("morphir-ir.json")
+        ) ?? "Target file location where the Morphir Bundle IR file will be saved."
+
+        Command("bundle", outputBundleIRFilePath, irFiles).withHelp(
+          "Bundle Morphir IR models using the Morphir Runtime."
+        ).map { (output, files) =>
+          MorphirCommand.Bundle(output, files)
+        }
+      }
+
       val develop = {
         val port = Options.integer("port").alias("p").withDefault(BigInt(3000)).map(
           _.intValue
@@ -138,7 +154,7 @@ object MorphirCliMain extends ZIOCliDefault {
         MorphirCommand.Setup(morphirHomeDir)
       }
 
-      def root = Command("morphir-cli").subcommands(develop, Elm.root, setup, test)
+      def root = Command("morphir-cli").subcommands(bundle, develop, Elm.root, setup, test)
 
       val test = {
         val irFiles = Args.file("ir-files").repeat

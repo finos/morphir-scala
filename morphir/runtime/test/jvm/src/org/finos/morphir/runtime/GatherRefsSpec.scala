@@ -4,7 +4,6 @@ import org.finos.morphir.datamodel.*
 import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.conversion.*
-import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.printing.{DetailLevel, FieldNames, PrintIR}
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.{Documented, Module, MorphirIRFile, Type => T, Value => V}
