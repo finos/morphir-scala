@@ -3,8 +3,6 @@ package org.finos.morphir.runtime
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Value.{Pattern, Value}
-import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.ir.distribution.Distribution.Library
 import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.naming.*
 import org.finos.morphir.naming.FQName.getLocalName

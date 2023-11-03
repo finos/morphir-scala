@@ -7,7 +7,7 @@ import org.finos.morphir.ir.Type.Type
 import org.finos.morphir.ir.Value.Pattern.*
 import org.finos.morphir.ir.Value.Value
 import org.finos.morphir.ir.Type.UType
-import org.finos.morphir.ir.distribution.Distribution.Library
+import org.finos.morphir.ir.distribution.Distribution.Lib
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.runtime.SDKValue
 
@@ -31,14 +31,15 @@ object GatherReferences {
       globals.ctors.keys.foldLeft(ReferenceSet.empty)((acc, next) => acc.withConstructor(next))
 
   def fromEntrySet(entrySet: ReferenceSet, dists: Distribution*): ReferenceSet = {
-    val mapped = dists.map(dist => (dist.asInstanceOf[Library].packageName, dist)).toMap
+    val mapped = Distribution.toLibsMap(dists: _*)
+
     def f(known: Set[FQName], ref: FQName): Set[FQName] = {
       // if (depth > 100) throw new Exception(s"Still recursing on $next with known values ${known.toList.mkString("\n")}")
       val (pkg, mod, loc) = (ref.pack, ref.getModulePath, ref.localName)
       val qName           = QName(mod, loc)
       mapped.get(pkg) match {
-        case Some(dist) =>
-          val definition = dist.asInstanceOf[Library].lookupValueDefinition(qName).get
+        case Some(lib) =>
+          val definition = lib.lookupValueDefinition(qName).get
           val discovered = loop(definition.body).definitions
           val newbs      = discovered.diff(known)
           println(s"Exploring $ref found $discovered")
@@ -49,14 +50,16 @@ object GatherReferences {
     val found = entrySet.definitions.foldLeft(entrySet.definitions)((acc, newb) => acc ++ f(acc, newb))
     ReferenceSet(entrySet.definitions ++ found, Set(), Set())
   }
+
   def fromDistributions(dists: Distribution*): ReferenceSet =
-    dists.foldLeft(ReferenceSet.empty)((acc: ReferenceSet, dist: Distribution) =>
-      acc ++ (dist match {
-        case l: Library => fromLibrary(l)
-      })
-    )
-  def fromLibrary(lib: Library): ReferenceSet = {
-    val packageName = lib.packageName
+    fromDistributionLibs(Distribution.toLibsMap(dists: _*))
+
+  def fromDistributionLibs(libs: Map[PackageName, Lib]): ReferenceSet =
+    libs.foldLeft(ReferenceSet.empty) { case (acc: ReferenceSet, (packageName: PackageName, lib: Lib)) =>
+      acc ++ fromLib(packageName, lib)
+    }
+
+  def fromLib(packageName: PackageName, lib: Lib): ReferenceSet = {
     val valueReferences: List[ReferenceSet] =
       lib.packageDef.modules.toList.flatMap { case (moduleName, accessControlledModule) =>
         accessControlledModule.value.values.map {

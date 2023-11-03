@@ -117,10 +117,12 @@ final class TypeChecker(dists: Distributions) {
       }
     loop(tpe, None, context)
   }
+
   def checkAllDefinitions(): List[TypeError] =
-    GatherReferences.fromDistributions(dists.getDists.values.toList: _*).definitions.toList.filter(
+    GatherReferences.fromDistributionLibs(dists.getDists).definitions.toList.filter(
       !Utils.isNative(_)
     ).flatMap(checkDefinitionBody(_))
+
   def checkDefinitionBody(fqn: FQName): List[TypeError] = {
     val maybeDefinition = dists.lookupValueDefinition(fqn)
     maybeDefinition match {
@@ -131,6 +133,7 @@ final class TypeChecker(dists: Distributions) {
 
   def conformsTo(valueType: UType, declaredType: UType): List[TypeError] =
     conformsTo(valueType, declaredType, Context.empty)
+
   def conformsTo(valueType: UType, declaredType: UType, context: Context): List[TypeError] = {
     import Extractors.Types.*
     (valueType, declaredType) match {
