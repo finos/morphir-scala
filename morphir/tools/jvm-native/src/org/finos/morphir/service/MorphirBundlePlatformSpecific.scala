@@ -39,12 +39,12 @@ trait MorphirBundlePlatformSpecific {
       for {
         morphirIRFile <- ZIO.attempt { MorphirIRFile(MorphirIRVersion.Default, bundle) }
         irJson        <- ZIO.attempt { morphirIRFile.toJson }
-        irFilePath:Path = path.path.toNioPath
-        directory:Path = irFilePath.getParent()
+        irFilePath: Path = path.path.toNioPath
+        directory: Path  = irFilePath.getParent()
         _ <- ZIO.attempt {
-          if(Files.notExists(directory)) Files.createDirectories(directory) else directory
+          if (Files.notExists(directory)) Files.createDirectories(directory) else directory
         }
-        path          <- ZIO.attempt { Files.write(path.path.toNioPath, irJson.getBytes(StandardCharsets.UTF_8)) }
+        path <- ZIO.attempt { Files.write(path.path.toNioPath, irJson.getBytes(StandardCharsets.UTF_8)) }
       } yield VPath(path)
   }
 }
