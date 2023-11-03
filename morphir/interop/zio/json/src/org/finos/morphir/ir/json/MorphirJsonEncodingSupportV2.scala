@@ -526,10 +526,30 @@ trait MorphirJsonEncodingSupportV2 extends JsonEncodingHelpers {
         ("Library", packageName, dependencies.toList, packageDef)
       }
 
+  implicit def libEncoder: JsonEncoder[Lib] =
+    Json.encoder.contramap[Lib] { lib =>
+      Json.Obj(
+        "dependencies" -> toJsonAstOrThrow(
+          lib.dependencies.toList.map { case (dependencies, packageDef) =>
+            Json.Arr(toJsonAstOrThrow(dependencies), toJsonAstOrThrow(packageDef))
+          }
+        ),
+        "packageDef" -> toJsonAstOrThrow(lib.packageDef)
+      )
+    }
+
+  implicit def distributionBundleJsonEncoder: JsonEncoder[Bundle] =
+    JsonEncoder
+      .tuple2[String, List[(PackageName, Lib)]]
+      .contramap { case Bundle(libraries) =>
+        ("Bundle", libraries.toList)
+      }
+
   implicit def distributionEncoder: JsonEncoder[Distribution] =
     new JsonEncoder[Distribution] {
       def unsafeEncode(a: Distribution, indent: Option[Int], out: Write): Unit = a match {
         case library: Library => distributionLibraryJsonEncoder.unsafeEncode(library, indent, out)
+        case bundle: Bundle   => distributionBundleJsonEncoder.unsafeEncode(bundle, indent, out)
       }
     }
 

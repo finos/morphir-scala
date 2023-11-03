@@ -18,13 +18,13 @@ import org.finos.morphir.runtime.exports._
 import org.finos.morphir.runtime.MorphirRuntimeError.LookupError
 import org.finos.morphir.runtime.MorphirRuntimeError.LookupError.*
 import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.ir.distribution.Distribution.Library
+import org.finos.morphir.ir.distribution.Distribution.*
 import zio.Chunk
 
-class Distributions(dists: Map[PackageName, Distribution]) {
+class Distributions(dists: Map[PackageName, Distribution.Lib]) {
   def lookupModuleSpecification(pkgName: PackageName, modName: ModuleName): Either[LookupError, ModSpec.Raw] =
     dists.get(pkgName) match {
-      case Some(Library(_, _, packageDef)) =>
+      case Some(Lib(_, packageDef)) =>
         packageDef.toSpecification.modules.get(modName) match {
           case Some(module) => Right(module)
           case None         => Left(new MissingModule(pkgName, modName))
@@ -34,7 +34,7 @@ class Distributions(dists: Map[PackageName, Distribution]) {
 
   def lookupModuleDefinition(pkgName: PackageName, modName: ModuleName): Either[LookupError, ModDef[Unit, UType]] =
     dists.get(pkgName) match {
-      case Some(Library(_, _, packageDef)) =>
+      case Some(Lib(_, packageDef)) =>
         packageDef.modules.get(modName) match {
           case Some(module) => Right(module.value)
           case None         => Left(new MissingModule(pkgName, modName))
@@ -80,10 +80,11 @@ class Distributions(dists: Map[PackageName, Distribution]) {
 
   def lookupValueDefinition(fqn: FQName): Either[LookupError, TypedValueDef] =
     lookupValueDefinition(fqn.packagePath, fqn.modulePath, fqn.localName)
-  def getDists: Map[PackageName, Distribution] = dists
+
+  def getDists: Map[PackageName, Distribution.Lib] = dists
 }
 
 object Distributions {
   def apply(dists: Distribution*): Distributions =
-    new Distributions(dists.map { case (lib: Library) => lib.packageName -> lib }.toMap)
+    new Distributions(Distribution.toLibsMap(dists: _*))
 }

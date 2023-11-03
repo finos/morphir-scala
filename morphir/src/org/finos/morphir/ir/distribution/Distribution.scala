@@ -10,6 +10,25 @@ import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => V
 
 sealed trait Distribution
 object Distribution {
+  final case class Lib(
+      dependencies: Map[PackageName, UPackageSpecification],
+      packageDef: PackageDefinition.Typed
+  ) { self =>
+
+    def lookupValueDefinition(qName: QName): Option[ValueDefinition[scala.Unit, UType]] =
+      packageDef.lookupModuleDefinition(qName.modulePath).flatMap(_.lookupValueDefinition(qName.localName))
+  }
+
+  final case class Bundle(
+      libraries: Map[PackageName, Lib]
+  ) extends Distribution { self =>
+
+    def insert(dist: Distribution): Distribution = dist match {
+      case bundle: Bundle   => Bundle(libraries ++ bundle.libraries)
+      case library: Library => Bundle(libraries + (library.packageName -> library.toLib))
+    }
+  }
+
   final case class Library(
       packageName: PackageName,
       dependencies: Map[PackageName, UPackageSpecification],
@@ -45,9 +64,6 @@ object Distribution {
     ): Option[UValueSpec] =
       lookupModuleSpecification(packageName, module).flatMap(_.lookupValueSpecification(localName))
 
-    def lookupValueDefinition(qName: QName): Option[ValueDefinition[scala.Unit, UType]] =
-      packageDef.lookupModuleDefinition(qName.modulePath).flatMap(_.lookupValueDefinition(qName.localName))
-
     def lookupPackageSpecification: UPackageSpecification = packageDef.toSpecificationWithPrivate.eraseAttributes
 
     @inline def lookupPackageName: PackageName = packageName
@@ -56,5 +72,33 @@ object Distribution {
         dependencyPackageName: PackageName,
         dependencyPackageSpec: UPackageSpecification
     ): Distribution = Library(packageName, dependencies + (dependencyPackageName -> dependencyPackageSpec), packageDef)
+
+    def toLib: Lib = Lib(dependencies, packageDef)
   }
+
+  def toBundle(
+      packageName: PackageName,
+      dependencies: Map[PackageName, UPackageSpecification],
+      packageDef: PackageDefinition.Typed
+  ): Bundle = Bundle(Map(packageName -> Lib(dependencies, packageDef)))
+
+  def toBundle(packageName: PackageName, lib: Lib): Bundle = Bundle(Map(packageName -> lib))
+  def toBundle(dists: Distribution*): Bundle               = Bundle(toLibsMap(dists: _*))
+
+  def toLibrary(
+      packageName: PackageName,
+      dependencies: Map[PackageName, UPackageSpecification],
+      packageDef: PackageDefinition.Typed
+  ): Library = Library(packageName, dependencies, packageDef)
+
+  def toLibrary(packageName: PackageName, lib: Lib): Library = Library(packageName, lib.dependencies, lib.packageDef)
+  def toLibraries(dists: Distribution*): List[Library] = toLibsMap(dists: _*)
+    .map { case (packageName, lib) => toLibrary(packageName, lib) }
+    .toList
+
+  def toLibsMap(dists: Distribution*): Map[PackageName, Lib] =
+    dists.flatMap {
+      case (library: Library) => List(library.packageName -> library.toLib)
+      case (bundle: Bundle)   => bundle.libraries.toList
+    }.toMap
 }

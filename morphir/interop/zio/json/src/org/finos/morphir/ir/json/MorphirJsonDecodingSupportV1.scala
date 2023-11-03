@@ -618,8 +618,29 @@ trait MorphirJsonDecodingSupportV1 {
           )
       }
 
+  implicit def libDecoder: JsonDecoder[Lib] = {
+    case class LibTemp(dependencies: List[(PackageName, UPackageSpecification)], packageDef: PackageDefinition.Typed)
+    lazy val dec: JsonDecoder[LibTemp] = DeriveJsonDecoder.gen
+    dec.map(l => Lib(l.dependencies.map(d => d._1 -> d._2).toMap, l.packageDef))
+  }
+
+  implicit def distributionBundleJsonDecoder: JsonDecoder[Bundle] =
+    JsonDecoder
+      .tuple2[String, List[(PackageName, Lib)]]
+      .mapOrFail {
+        case ("bundle", libraries) =>
+          Right(Bundle(libraries.toMap))
+        case (other, libraries) =>
+          Left(
+            s"Expected bundle, got $other with libraries: $libraries"
+          )
+      }
+
   implicit def distributionDecoder: JsonDecoder[Distribution] =
-    distributionLibraryJsonDecoder.widen[Distribution]
+    zio.json.TagBasedParser[Distribution] {
+      case "library" => distributionLibraryJsonDecoder.widen[Distribution]
+      case "bundle"  => distributionBundleJsonDecoder.widen[Distribution]
+    }
 
   implicit val morphirIRVersionDecoder: JsonDecoder[MorphirIRVersion] = JsonDecoder.int.map {
     case 1 => MorphirIRVersion.V1_0
