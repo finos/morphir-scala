@@ -1,13 +1,12 @@
 package org.finos.morphir.service
 
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.json.MorphirJsonSupport.*
 import org.finos.morphir.ir.MorphirIRFile
 import org.finos.morphir.ir.MorphirIRVersion
 import org.finos.morphir.util.vfile.*
-import scala.io.Source
 import zio.*
 import zio.json.*
 
@@ -40,6 +39,11 @@ trait MorphirBundlePlatformSpecific {
       for {
         morphirIRFile <- ZIO.attempt { MorphirIRFile(MorphirIRVersion.Default, bundle) }
         irJson        <- ZIO.attempt { morphirIRFile.toJson }
+        irFilePath:Path = path.path.toNioPath
+        directory:Path = irFilePath.getParent()
+        _ <- ZIO.attempt {
+          if(Files.notExists(directory)) Files.createDirectories(directory) else directory
+        }
         path          <- ZIO.attempt { Files.write(path.path.toNioPath, irJson.getBytes(StandardCharsets.UTF_8)) }
       } yield VPath(path)
   }
