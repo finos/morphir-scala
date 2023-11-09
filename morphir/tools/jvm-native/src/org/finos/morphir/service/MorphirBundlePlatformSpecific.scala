@@ -27,6 +27,17 @@ trait MorphirBundlePlatformSpecific {
         _             <- Console.printLine("Bundle command executed")
       } yield ()
 
+    def library(outputDir: VPath, irFiles: List[VPath]): Task[Unit] =
+      for {
+        _             <- Console.printLine("Library command executing")
+        _             <- Console.printLine(s"\toutputDir: $outputDir")
+      } yield ()
+
+    def createPathsForLibs(libraries: List[Distribution], outputDir: VPath): List[(Distribution, VPath)] =
+      libraries.zip(LazyList.from(1)).map { (library, index) =>
+        (library, outputDir / s"morphir-ir${index}.json")
+      }
+
     // TODO: Possibly refactor when FileIO operations are completed
     def loadDistributionFromFileZIO(fileName: String): Task[Distribution] =
       for {
