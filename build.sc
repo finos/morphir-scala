@@ -1,3 +1,4 @@
+import mill.scalalib.publish.PublishInfo
 import $meta._
 import $ivy.`de.tototec::de.tobiasroeser.mill.integrationtest::0.7.1`
 import $ivy.`io.chris-kipp::mill-ci-release::0.1.9`
@@ -102,6 +103,10 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
       BuildInfo.Value("version", publishVersion()),
       BuildInfo.Value("scalaVersion", scalaVersion())
     )
+
+    override def extraPublish: T[Seq[PublishInfo]] = T {
+      Seq(PublishInfo(file = assembly(), classifier = Some("assembly"), ivyConfig = "compile"))
+    }
 
     val mainScalaVersion = morphirScalaVersion
 
