@@ -12,7 +12,6 @@ trait MorphirBundle {
   def library(outputDir: VPath, irFiles: List[VPath]): Task[Unit]
   def library(outputDir: Path, irFiles: List[Path]): Task[Unit] =
     library(VPath(outputDir), irFiles.map(VPath(_)))
-
 }
 
 object MorphirBundle extends MorphirBundlePlatformSpecific {
