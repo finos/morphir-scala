@@ -123,11 +123,11 @@ object MorphirCliMain extends ZIOCliDefault {
 
       val bundle = {
         val irFiles = Args.file("ir-files").atLeast(1) ?? "Morphir IR files to bundle"
-        val outputBundleIRFilePath = Options.file("output").alias("o").withDefault(
+        val outputPath = Options.file("output").alias("o").withDefault(
           Paths.get("morphir-ir.json")
         ) ?? "Target file location where the Bundle Morphir IR file will be saved."
 
-        Command("bundle", outputBundleIRFilePath, irFiles).withHelp(
+        Command("bundle", outputPath, irFiles).withHelp(
           "Bundle Morphir IR models using the Morphir Runtime."
         ).map { (output, files) =>
           MorphirCommand.Bundle(output, files)

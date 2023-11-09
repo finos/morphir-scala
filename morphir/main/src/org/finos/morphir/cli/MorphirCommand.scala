@@ -3,7 +3,7 @@ import zio._
 import java.nio.file.Path
 
 enum MorphirCommand {
-  case Bundle(outputBundleIRFilePath: Path, irFiles: List[Path])
+  case Bundle(outputPath: Path, irFiles: List[Path])
   case Develop(port: Int, host: String, projectDir: Path, openInBrowser: Boolean)
   case Library(outputDir: Path, irFiles: List[Path])
   case Setup(morphirHomeDir: Path)
