@@ -16,7 +16,7 @@ trait MorphirBundlePlatformSpecific {
         _ <- Console.printLine("Bundle command executed")
       } yield ()
 
-    def bundle(outputPath: VPath, irFiles: List[VPath]): Task[Unit] =
+    def bundle(outputPath: Path, irFiles: List[Path]): Task[Unit] =
       for {
         _ <- Console.printLine("Bundle command executing")
         _ <- Console.printLine(s"\toutputPath: $outputPath")
