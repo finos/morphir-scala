@@ -27,6 +27,9 @@ trait MorphirBundlePlatformSpecific {
         _             <- Console.printLine("Bundle command executed")
       } yield ()
 
+    def bundle(outputPath: Path, irFiles: List[Path]): Task[Unit] =
+      bundle(VPath(outputPath), irFiles.map(VPath(_)))
+
     def library(outputDir: VPath, irFiles: List[VPath]): Task[Unit] =
       for {
         _             <- Console.printLine("Library command executing")
@@ -39,6 +42,9 @@ trait MorphirBundlePlatformSpecific {
         _             <- ZIO.foreach(paths) { path => Console.printLine(s"\tLibrary Morphir IR file created: $path") }
         _             <- Console.printLine("Library command executed")
       } yield ()
+
+    def library(outputDir: Path, irFiles: List[Path]): Task[Unit] =
+      library(VPath(outputDir), irFiles.map(VPath(_)))
 
     def createPathsForLibs(libraries: List[Distribution], outputDir: VPath): List[(Distribution, VPath)] =
       libraries.zip(LazyList.from(1)).map { case (library: Distribution, index: Int) =>
