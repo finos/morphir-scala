@@ -31,6 +31,13 @@ trait MorphirBundlePlatformSpecific {
       for {
         _             <- Console.printLine("Library command executing")
         _             <- Console.printLine(s"\toutputDir: $outputDir")
+        _             <- Console.printLine(s"\tirFiles: $irFiles")
+        distributions <- ZIO.collectAll { irFiles.map { irFile => loadDistributionFromFileZIO(irFile.toString) } }
+        libraries     <- ZIO.attempt { Distribution.toLibraries(distributions: _*) }
+        libsWithPaths <- ZIO.attempt(createPathsForLibs(libraries, outputDir))
+        paths         <- ZIO.foreach(libsWithPaths) { (lib, path) => writeDistributionToFileZIO(lib, path) }
+        _             <- ZIO.foreach(paths) { path => Console.printLine(s"\tLibrary Morphir IR file created: $path") }
+        _             <- Console.printLine("Library command executed")
       } yield ()
 
     def createPathsForLibs(libraries: List[Distribution], outputDir: VPath): List[(Distribution, VPath)] =
