@@ -3,12 +3,12 @@ package org.finos.morphir.service
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
 import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.ir.json.MorphirJsonSupport.*
+import org.finos.morphir.ir.json.MorphirJsonSupport._
 import org.finos.morphir.ir.MorphirIRFile
 import org.finos.morphir.ir.MorphirIRVersion
-import org.finos.morphir.util.vfile.*
-import zio.*
-import zio.json.*
+import org.finos.morphir.util.vfile._
+import zio._
+import zio.json._
 
 trait MorphirBundlePlatformSpecific {
   val live: ULayer[MorphirBundle] = ZLayer.succeed(MorphirBundleLive)

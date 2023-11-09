@@ -1,7 +1,7 @@
 package org.finos.morphir.service
 
-import org.finos.morphir.util.vfile.*
-import zio.*
+import org.finos.morphir.util.vfile._
+import zio._
 
 trait MorphirBundlePlatformSpecific {
   val live: ULayer[MorphirBundle] = ZLayer.succeed(MorphirBundleLive)

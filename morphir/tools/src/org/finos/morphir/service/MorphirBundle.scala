@@ -1,8 +1,8 @@
 package org.finos.morphir.service
 
 import java.nio.file.Path
-import org.finos.morphir.util.vfile.*
-import zio.*
+import org.finos.morphir.util.vfile._
+import zio._
 
 trait MorphirBundle {
   def bundle(outputPath: VPath, irFiles: List[VPath]): Task[Unit]
