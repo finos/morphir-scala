@@ -5,6 +5,7 @@ import java.nio.file.Path
 enum MorphirCommand {
   case Bundle(outputBundleIRFilePath: Path, irFiles: List[Path])
   case Develop(port: Int, host: String, projectDir: Path, openInBrowser: Boolean)
+  case Library(outputDir: Path, irFiles: List[Path])
   case Setup(morphirHomeDir: Path)
   case Test(irFiles: List[Path])
   case ElmDevelop(port: Int, host: String, projectDir: Path, openInBrowser: Boolean)
