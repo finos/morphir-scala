@@ -151,6 +151,20 @@ object MorphirCliMain extends ZIOCliDefault {
         }
       }
 
+      val library = {
+        val irFiles =
+          Args.file("ir-files").atLeast(1) ?? "Bundle Morphir IR file(s) to be split into Library Morphir IR File(s)"
+        val outputDir = Options.directory("output").alias("o").withDefault(
+          Paths.get(".")
+        ) ?? "Target directory where Library Morphir IR file(s) will be created."
+
+        Command("library", outputDir, irFiles).withHelp(
+          "Split Bundle Morphir IR model(s) into Library Morphir IR model(s) using the Morphir Runtime."
+        ).map { (output, files) =>
+          MorphirCommand.Library(output, files)
+        }
+      }
+
       val setup = Command("setup").withHelp("Setup morphir-cli for use.").map { _ =>
         val morphirHomeDir = Paths.get("~")
         MorphirCommand.Setup(morphirHomeDir)
