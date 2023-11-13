@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+# This is a wrapper script, that automatically downloads morphir-cli from GitHub release pages
+# It tries to read the required morphir-cli version in this order:
+#  1) MORPHIR_CLI_VERSION env variable
+#  2) --morphir-cli-version parameter
+#  3) reads from .morphir-cli-version file
+#  3) reads from .config/morphir-cli-version file
+#  5) tries to fetch newest from Github
+#  6) DEFAULT_MORPHIR_CLI_VERSION set in this file
+#
+# Script Version: 0.4.10
+#
