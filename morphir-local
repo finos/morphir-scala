@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+# construct a fat jar locally
+./mill morphir.main.assembly
+
+exec java -jar ./out/morphir/main/assembly.dest/out.jar "$@"
+
