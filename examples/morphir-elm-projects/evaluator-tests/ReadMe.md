@@ -48,7 +48,7 @@ Thus, we settled on a pattern enabled by the code in `TestUtils.elm`:
 type alias TestContext = {}
 
 test : TestContext -> a -> a
-test context res = 
+test context res =
     case context of
         _ -> res
 ```
@@ -59,8 +59,9 @@ It is essentially `ident` with an extra unused argument. This is used in tests l
 
 ```
 ifThenElseTrueTest : TestContext ->String
-ifThenElseTrueTest ctx = test ctx
-    if True then "Correct" else "Incorrect"
+ifThenElseTrueTest ctx =
+    test ctx <|
+        if True then "Correct" else "Incorrect"
 ```
 
 A note on variable grouping:
@@ -68,8 +69,9 @@ If your test body is itself a function call, as in:
 
 ```
 myTest : TestContext -> Int
-myTest ctx = test ctx
-    foo 1
+myTest ctx =
+    test ctx <|
+        foo 1
 ```
 
 then the compiler groups the arguments as:
@@ -85,8 +87,9 @@ which can then have the argument applied to it. However, this hits a bug in `mor
 To avoid hitting that bug in every case, we explicitly group the argument in this case, as follows:
 ```
 myTest : TestContext -> Int
-myTest ctx = test ctx
-    (foo 1)
+myTest ctx =
+    test ctx <|
+        foo 1
 ```
 
 Functions that actually take (used!) arguments may ignore all of this.

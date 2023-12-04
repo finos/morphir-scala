@@ -6,6 +6,7 @@
         "elm-format": "^0.8.5"
     },
     "scripts": {
+        "format": "elm-format --yes .",
         "make": "morphir-elm make"
     }
 }

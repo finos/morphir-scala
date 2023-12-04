@@ -1,8 +1,12 @@
 module Morphir.Examples.App.TestUtils exposing (..)
 
-type alias TestContext = {}
+
+type alias TestContext =
+    {}
+
 
 test : TestContext -> a -> a
-test context res = 
+test context res =
     case context of
-        _ -> res
+        _ ->
+            res
