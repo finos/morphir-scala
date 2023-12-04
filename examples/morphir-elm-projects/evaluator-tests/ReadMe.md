@@ -1,4 +1,15 @@
+## Code Formatting and Style
 
+We use `elm-format` to auto-format code.  This has numerous benefits that are explained all over the web, please see,
+for instance, the explanation in the README for [elm-format](https://github.com/avh4/elm-format).
+
+For now, formatting is not enforced by anything in the build or CICD pipeline, but please remember to run elm-format
+before submitting a PR.
+
+Auto-formatting has been made available through this command.
+```
+npm run format
+```
 
 ### Documentation formatting:
 
