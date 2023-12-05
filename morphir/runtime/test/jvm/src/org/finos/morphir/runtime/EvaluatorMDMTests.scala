@@ -503,7 +503,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         // TODO: Need to fix implementation of Optional LocalDate
         testEvaluation("fromParts")("localDateTests", "fromPartsTest")(
           Data.Optional.Some(Data.LocalDate(localDate))
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvalMultiple("addWeeks")("localDateTests", "addWeeksTest", List(2, localDate))(
+          Data.LocalDate(localDate.plusWeeks(2))
+        )
       ),
       suite("LocalTime")(
         testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime))

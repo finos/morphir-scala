@@ -175,6 +175,12 @@ object RTValue {
       case _           => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a function")
     }
 
+  def coerceLocalDate(arg: RTValue): LocalDate =
+    arg match {
+      case ld: LocalDate => ld
+      case _             => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a LocalDate")
+    }
+
   case class NumericsWithHelper[T](
       a: T,
       b: T,
