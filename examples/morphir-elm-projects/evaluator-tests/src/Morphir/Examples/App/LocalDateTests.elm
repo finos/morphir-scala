@@ -27,3 +27,12 @@ expected = 1900-02-03
 addWeeksTest : Int -> LocalDate -> LocalDate
 addWeeksTest weeks date =
     addWeeks weeks date
+
+
+{-| Test: LocalDate diffInDays
+input = 1900-01-20, 1902-10-16
+expected = -999
+-}
+diffInDaysTest : LocalDate -> LocalDate -> Int
+diffInDaysTest localDate1 localDate2 =
+    diffInDays localDate1 localDate2

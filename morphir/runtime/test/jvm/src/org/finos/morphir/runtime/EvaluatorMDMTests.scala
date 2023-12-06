@@ -506,6 +506,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
         testEvalMultiple("addWeeks")("localDateTests", "addWeeksTest", List(2, localDate))(
           Data.LocalDate(localDate.plusWeeks(2))
+        ),
+        testEvalMultiple("diffInDays")("localDateTests", "diffInDaysTest", List(localDate, localDate.plusDays(999)))(
+          Data.Int(999)
         )
       ),
       suite("LocalTime")(

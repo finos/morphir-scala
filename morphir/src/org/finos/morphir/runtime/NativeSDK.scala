@@ -66,7 +66,8 @@ object NativeSDK {
 
       case object LocalDate extends SdkModuleDescriptor(moduleName = "LocalDate") {
         val functions: List[NativeFunctionAdapter] = scala.List(
-          NativeFunctionAdapter.Fun2(LocalDateSDK.addWeeks)
+          NativeFunctionAdapter.Fun2(LocalDateSDK.addWeeks),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.diffInDays)
         )
       }
     }
