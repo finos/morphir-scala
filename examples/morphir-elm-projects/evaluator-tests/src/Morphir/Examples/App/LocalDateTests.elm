@@ -36,3 +36,10 @@ expected = -999
 diffInDaysTest : LocalDate -> LocalDate -> Int
 diffInDaysTest localDate1 localDate2 =
     diffInDays localDate1 localDate2
+
+
+{-| Test: LocalDate fromISO
+-}
+fromISOTest : String -> Maybe LocalDate
+fromISOTest iso =
+    fromISO iso
