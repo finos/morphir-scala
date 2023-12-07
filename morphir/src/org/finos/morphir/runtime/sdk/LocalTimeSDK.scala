@@ -25,4 +25,16 @@ object LocalTimeSDK {
       (secondsArg: RTValue.Primitive.Int, localTimeArg: RTValue.LocalTime) =>
         localTimeArg.update(_.plusSeconds(secondsArg.value.toInt))
   }
+
+  val diffInSeconds = DynamicNativeFunction2("diffInSeconds") {
+    (_: NativeContext) =>
+      (localTimeArg1: RTValue.LocalTime, localTimeArg2: RTValue.LocalTime) => {
+        val lt1 = localTimeArg1.value
+        val lt2 = localTimeArg2.value
+        // NOTE: this behavior (a - b) is the opposite of LocalDate's diffIn* (b - a)
+        //       in order to conform to the morphir-elm SDK implementation exactly.
+        val diffInSeconds = lt1.toSecondOfDay - lt2.toSecondOfDay
+        RTValue.Primitive.Int(diffInSeconds)
+      }
+  }
 }

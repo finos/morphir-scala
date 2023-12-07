@@ -36,3 +36,10 @@ addMinutesTest =
 addSecondsTest : Int -> LocalTime -> LocalTime
 addSecondsTest =
     addSeconds
+
+
+{-| Test: LocalTime diffInSeconds
+-}
+diffInSecondsTest : LocalTime -> LocalTime -> Int
+diffInSecondsTest =
+    diffInSeconds

@@ -77,6 +77,7 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(LocalTimeSDK.addHours),
           NativeFunctionAdapter.Fun2(LocalTimeSDK.addMinutes),
           NativeFunctionAdapter.Fun2(LocalTimeSDK.addSeconds),
+          NativeFunctionAdapter.Fun2(LocalTimeSDK.diffInSeconds),
         )
       }
     }

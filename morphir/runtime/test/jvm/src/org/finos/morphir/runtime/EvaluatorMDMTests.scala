@@ -537,6 +537,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvalMultiple("addMinutes negative")("localTimeTests", "addMinutesTest", List(-2, localTime))(Data.LocalTime(localTime.minusMinutes(2))),
         testEvalMultiple("addSeconds")("localTimeTests", "addSecondsTest", List(2, localTime))(Data.LocalTime(localTime.plusSeconds(2))),
         testEvalMultiple("addSeconds negative")("localTimeTests", "addSecondsTest", List(-2, localTime))(Data.LocalTime(localTime.minusSeconds(2))),
+        // NOTE: diffInSeconds is implemented a - b (instead of b - a) for conformity to morphir-elm impl
+        testEvalMultiple("diffInSeconds")("localTimeTests", "diffInSecondsTest", List(localTime, localTime.plusSeconds(2)))(Data.Int(-2)),
+        testEvalMultiple("diffInSeconds negative")("localTimeTests", "diffInSecondsTest", List(localTime, localTime.minusSeconds(2)))(Data.Int(2)),
       ),
       suite("Native References")(
         testEvaluation("Map")("nativeReferenceTests", "nativeReferenceMapTest")(Data.List(
