@@ -65,4 +65,8 @@ object Coercer {
   implicit val localDateCoercer: Coercer[RTValue.LocalDate] = new Coercer[RTValue.LocalDate] {
     def coerce(result: RTValue): RTValue.LocalDate = RTValue.coerceLocalDate(result)
   }
+
+  implicit val localTimeCoercer: Coercer[RTValue.LocalTime] = new Coercer[RTValue.LocalTime] {
+    def coerce(result: RTValue): RTValue.LocalTime = RTValue.coerceLocalTime(result)
+  }
 }

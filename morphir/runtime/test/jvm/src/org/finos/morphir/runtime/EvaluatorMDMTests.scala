@@ -527,10 +527,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ),
         testEval("fromISO invalid iso ordinal")("localDateTests", "fromISOTest", "1900-366")(
           Data.Optional.None(Concept.LocalDate)
-        )
+        ),
       ),
       suite("LocalTime")(
-        testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime))
+        testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime)),
+        testEvaluation("addHours")("localTimeTests", "addHoursTest")(Data.LocalTime(localTime.plusHours(2))),
       ),
       suite("Native References")(
         testEvaluation("Map")("nativeReferenceTests", "nativeReferenceMapTest")(Data.List(

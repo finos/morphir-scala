@@ -71,11 +71,24 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(LocalDateSDK.fromISO)
         )
       }
+
+      case object LocalTime extends SdkModuleDescriptor(moduleName = "LocalTime") {
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun2(LocalTimeSDK.addHours),
+          NativeFunctionAdapter.Fun2(LocalTimeSDK.addMinutes),
+        )
+      }
     }
   }
 
   val resolvedFunctions: Map[FQName, SDKValue] = {
     import Morphir.SDK.*
-    Basics.resolvedFunctions ++ List.resolvedFunctions ++ Maybe.resolvedFunctions ++ Result.resolvedFunctions ++ LocalDate.resolvedFunctions
+
+    Basics.resolvedFunctions
+      ++ List.resolvedFunctions
+      ++ Maybe.resolvedFunctions
+      ++ Result.resolvedFunctions
+      ++ LocalDate.resolvedFunctions
+      ++ LocalTime.resolvedFunctions
   }
 }
