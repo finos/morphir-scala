@@ -4,6 +4,8 @@ import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.internal.*
 
 import java.time.LocalTime as JLocalTime
+import java.time.format.DateTimeFormatter as JDateTimeFormatter
+import scala.util.control.NonFatal
 
 object LocalTimeSDK {
   extension (rtLt: RTValue.LocalTime)
@@ -35,6 +37,17 @@ object LocalTimeSDK {
         //       in order to conform to the morphir-elm SDK implementation exactly.
         val diffInSeconds = lt1.toSecondOfDay - lt2.toSecondOfDay
         RTValue.Primitive.Int(diffInSeconds)
+      }
+  }
+
+  val fromISO = DynamicNativeFunction1("fromISO") {
+    (_: NativeContext) =>
+      (isoArg: RTValue.Primitive.String) => {
+        val maybeLocalTime =
+          try Some(JLocalTime.parse(isoArg.value, JDateTimeFormatter.ISO_LOCAL_TIME))
+          catch { case NonFatal(_) => None }
+        val maybeLocalTimeRT = maybeLocalTime.map(RTValue.LocalTime.apply)
+        MaybeSDK.resultToMaybe(maybeLocalTimeRT)
       }
   }
 }

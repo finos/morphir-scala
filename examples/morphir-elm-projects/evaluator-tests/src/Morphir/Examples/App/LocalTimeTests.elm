@@ -43,3 +43,10 @@ addSecondsTest =
 diffInSecondsTest : LocalTime -> LocalTime -> Int
 diffInSecondsTest =
     diffInSeconds
+
+
+{-| Test: LocalTime fromISO
+-}
+fromISOTest : String -> Maybe LocalTime
+fromISOTest =
+    fromISO

@@ -540,6 +540,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         // NOTE: diffInSeconds is implemented a - b (instead of b - a) for conformity to morphir-elm impl
         testEvalMultiple("diffInSeconds")("localTimeTests", "diffInSecondsTest", List(localTime, localTime.plusSeconds(2)))(Data.Int(-2)),
         testEvalMultiple("diffInSeconds negative")("localTimeTests", "diffInSecondsTest", List(localTime, localTime.minusSeconds(2)))(Data.Int(2)),
+        testEval("fromISO valid iso time")("localTimeTests", "fromISOTest", "10:43:26.111111111")(
+          Data.Optional.Some(Data.LocalTime(java.time.LocalTime.of(10, 43, 26, 111111111)))
+        ),
+        testEval("fromISO valid iso time no seconds")("localTimeTests", "fromISOTest", "10:43")(
+          Data.Optional.Some(Data.LocalTime(java.time.LocalTime.of(10, 43, 0)))
+        ),
+        testEval("fromISO invalid iso time")("localTimeTests", "fromISOTest", "10:43:26+00:00")(
+          Data.Optional.None(Concept.LocalTime)
+        ),
       ),
       suite("Native References")(
         testEvaluation("Map")("nativeReferenceTests", "nativeReferenceMapTest")(Data.List(
