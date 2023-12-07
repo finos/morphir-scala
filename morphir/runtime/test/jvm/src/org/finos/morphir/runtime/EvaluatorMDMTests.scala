@@ -531,9 +531,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       ),
       suite("LocalTime")(
         testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime)),
-        testEvaluation("addHours")("localTimeTests", "addHoursTest")(Data.LocalTime(localTime.plusHours(2))),
-        testEvaluation("addMinutes")("localTimeTests", "addMinutesTest")(Data.LocalTime(localTime.plusMinutes(2))),
-        testEvaluation("addSeconds")("localTimeTests", "addSecondsTest")(Data.LocalTime(localTime.plusSeconds(2))),
+        testEvalMultiple("addHours")("localTimeTests", "addHoursTest", List(2, localTime))(Data.LocalTime(localTime.plusHours(2))),
+        testEvalMultiple("addHours negative")("localTimeTests", "addHoursTest", List(-2, localTime))(Data.LocalTime(localTime.minusHours(2))),
+        testEvalMultiple("addMinutes")("localTimeTests", "addMinutesTest", List(2, localTime))(Data.LocalTime(localTime.plusMinutes(2))),
+        testEvalMultiple("addMinutes negative")("localTimeTests", "addMinutesTest", List(-2, localTime))(Data.LocalTime(localTime.minusMinutes(2))),
+        testEvalMultiple("addSeconds")("localTimeTests", "addSecondsTest", List(2, localTime))(Data.LocalTime(localTime.plusSeconds(2))),
+        testEvalMultiple("addSeconds negative")("localTimeTests", "addSecondsTest", List(-2, localTime))(Data.LocalTime(localTime.minusSeconds(2))),
       ),
       suite("Native References")(
         testEvaluation("Map")("nativeReferenceTests", "nativeReferenceMapTest")(Data.List(

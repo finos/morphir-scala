@@ -19,25 +19,20 @@ fromMillisecondsTest ctx =
 {-| Test: LocalTime addHours
 expected = java.time.LocalTime(12, 43, 26)
 -}
-addHoursTest : TestContext -> LocalTime
-addHoursTest ctx =
-    test ctx <|
-        addHours 2 (fromMilliseconds 38606000)
+addHoursTest : Int -> LocalTime -> LocalTime
+addHoursTest =
+    addHours
 
 
 {-| Test: LocalTime addMinutes
-expected = java.time.LocalTime(10, 45, 26)
 -}
-addMinutesTest : TestContext -> LocalTime
-addMinutesTest ctx =
-    test ctx <|
-        addMinutes 2 (fromMilliseconds 38606000)
+addMinutesTest : Int -> LocalTime -> LocalTime
+addMinutesTest =
+    addMinutes
 
 
 {-| Test: LocalTime addSeconds
-expected = java.time.LocalTime(10, 43, 28)
 -}
-addSecondsTest : TestContext -> LocalTime
-addSecondsTest ctx =
-    test ctx <|
-        addSeconds 2 (fromMilliseconds 38606000)
+addSecondsTest : Int -> LocalTime -> LocalTime
+addSecondsTest =
+    addSeconds
