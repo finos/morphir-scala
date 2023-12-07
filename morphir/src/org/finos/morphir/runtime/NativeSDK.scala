@@ -76,6 +76,7 @@ object NativeSDK {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun2(LocalTimeSDK.addHours),
           NativeFunctionAdapter.Fun2(LocalTimeSDK.addMinutes),
+          NativeFunctionAdapter.Fun2(LocalTimeSDK.addSeconds),
         )
       }
     }

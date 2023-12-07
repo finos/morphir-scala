@@ -533,6 +533,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime)),
         testEvaluation("addHours")("localTimeTests", "addHoursTest")(Data.LocalTime(localTime.plusHours(2))),
         testEvaluation("addMinutes")("localTimeTests", "addMinutesTest")(Data.LocalTime(localTime.plusMinutes(2))),
+        testEvaluation("addSeconds")("localTimeTests", "addSecondsTest")(Data.LocalTime(localTime.plusSeconds(2))),
       ),
       suite("Native References")(
         testEvaluation("Map")("nativeReferenceTests", "nativeReferenceMapTest")(Data.List(

@@ -20,4 +20,9 @@ object LocalTimeSDK {
       (minutesArg: RTValue.Primitive.Int, localTimeArg: RTValue.LocalTime) =>
         localTimeArg.update(_.plusMinutes(minutesArg.value.toInt))
   }
+  val addSeconds = DynamicNativeFunction2("addSeconds") {
+    (_: NativeContext) =>
+      (secondsArg: RTValue.Primitive.Int, localTimeArg: RTValue.LocalTime) =>
+        localTimeArg.update(_.plusSeconds(secondsArg.value.toInt))
+  }
 }
