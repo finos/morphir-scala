@@ -29,7 +29,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Setup Scala and Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: "temurin"
           java-version: "17"
@@ -61,7 +61,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Setup Scala and Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: "temurin"
           java-version: ${{ matrix.java }}
@@ -95,7 +95,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Setup Scala and Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: "temurin"
           java-version: ${{ matrix.java }}
@@ -138,7 +138,7 @@ jobs:
           version: latest
           platform: x64
       - name: Setup Scala and Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: "temurin"
           java-version: ${{ matrix.java }}
@@ -182,7 +182,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         with:
           java-version: "11"
           distribution: temurin
