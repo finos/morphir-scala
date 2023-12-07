@@ -23,3 +23,12 @@ addHoursTest : TestContext -> LocalTime
 addHoursTest ctx =
     test ctx <|
         addHours 2 (fromMilliseconds 38606000)
+
+
+{-| Test: LocalTime addMinutes
+expected = java.time.LocalTime(10, 45, 26)
+-}
+addMinutesTest : TestContext -> LocalTime
+addMinutesTest ctx =
+    test ctx <|
+        addMinutes 2 (fromMilliseconds 38606000)
