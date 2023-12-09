@@ -527,19 +527,39 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ),
         testEval("fromISO invalid iso ordinal")("localDateTests", "fromISOTest", "1900-366")(
           Data.Optional.None(Concept.LocalDate)
-        ),
+        )
       ),
       suite("LocalTime")(
         testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime)),
-        testEvalMultiple("addHours")("localTimeTests", "addHoursTest", List(2, localTime))(Data.LocalTime(localTime.plusHours(2))),
-        testEvalMultiple("addHours negative")("localTimeTests", "addHoursTest", List(-2, localTime))(Data.LocalTime(localTime.minusHours(2))),
-        testEvalMultiple("addMinutes")("localTimeTests", "addMinutesTest", List(2, localTime))(Data.LocalTime(localTime.plusMinutes(2))),
-        testEvalMultiple("addMinutes negative")("localTimeTests", "addMinutesTest", List(-2, localTime))(Data.LocalTime(localTime.minusMinutes(2))),
-        testEvalMultiple("addSeconds")("localTimeTests", "addSecondsTest", List(2, localTime))(Data.LocalTime(localTime.plusSeconds(2))),
-        testEvalMultiple("addSeconds negative")("localTimeTests", "addSecondsTest", List(-2, localTime))(Data.LocalTime(localTime.minusSeconds(2))),
+        testEvalMultiple("addHours")("localTimeTests", "addHoursTest", List(2, localTime))(
+          Data.LocalTime(localTime.plusHours(2))
+        ),
+        testEvalMultiple("addHours negative")("localTimeTests", "addHoursTest", List(-2, localTime))(
+          Data.LocalTime(localTime.minusHours(2))
+        ),
+        testEvalMultiple("addMinutes")("localTimeTests", "addMinutesTest", List(2, localTime))(
+          Data.LocalTime(localTime.plusMinutes(2))
+        ),
+        testEvalMultiple("addMinutes negative")("localTimeTests", "addMinutesTest", List(-2, localTime))(
+          Data.LocalTime(localTime.minusMinutes(2))
+        ),
+        testEvalMultiple("addSeconds")("localTimeTests", "addSecondsTest", List(2, localTime))(
+          Data.LocalTime(localTime.plusSeconds(2))
+        ),
+        testEvalMultiple("addSeconds negative")("localTimeTests", "addSecondsTest", List(-2, localTime))(
+          Data.LocalTime(localTime.minusSeconds(2))
+        ),
         // NOTE: diffInSeconds is implemented a - b (instead of b - a) for conformity to morphir-elm impl
-        testEvalMultiple("diffInSeconds")("localTimeTests", "diffInSecondsTest", List(localTime, localTime.plusSeconds(2)))(Data.Int(-2)),
-        testEvalMultiple("diffInSeconds negative")("localTimeTests", "diffInSecondsTest", List(localTime, localTime.minusSeconds(2)))(Data.Int(2)),
+        testEvalMultiple("diffInSeconds")(
+          "localTimeTests",
+          "diffInSecondsTest",
+          List(localTime, localTime.plusSeconds(2))
+        )(Data.Int(-2)),
+        testEvalMultiple("diffInSeconds negative")(
+          "localTimeTests",
+          "diffInSecondsTest",
+          List(localTime, localTime.minusSeconds(2))
+        )(Data.Int(2)),
         testEval("fromISO valid iso time")("localTimeTests", "fromISOTest", "10:43:26.111111111")(
           Data.Optional.Some(Data.LocalTime(java.time.LocalTime.of(10, 43, 26, 111111111)))
         ),
@@ -548,7 +568,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ),
         testEval("fromISO invalid iso time")("localTimeTests", "fromISOTest", "10:43:26+00:00")(
           Data.Optional.None(Concept.LocalTime)
-        ),
+        )
       ),
       suite("Native References")(
         testEvaluation("Map")("nativeReferenceTests", "nativeReferenceMapTest")(Data.List(

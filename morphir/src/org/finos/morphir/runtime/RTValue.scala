@@ -184,9 +184,8 @@ object RTValue {
   def coerceLocalTime(arg: RTValue): LocalTime =
     arg match {
       case lt: LocalTime => lt
-      case _ => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a LocalTime")
+      case _             => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a LocalTime")
     }
-
 
   case class NumericsWithHelper[T](
       a: T,
