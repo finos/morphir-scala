@@ -2,3 +2,5 @@ sbt linguist-vendored
 website/* linguist-vendored
 docs/* linguist-vendored
 
+# Treat huge morphir json blobs as binary files. Don't show diff
+morphir-ir.json binary
