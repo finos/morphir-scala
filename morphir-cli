@@ -1,11 +1,11 @@
 #!/usr/bin/env sh
 
-# This is a wrapper script, that automatically downloads morphir-cli from GitHub release pages
+# This is a wrapper script, that automatically downloads morphir-cli from maven
 # It tries to read the required morphir-cli version in this order:
-#  1) MORPHIR_CLI_VERSION env variable
-#  2) --morphir-cli-version parameter
+#  1) --morphir-cli-version parameter
+#  2) MORPHIR_CLI_VERSION env variable
 #  3) reads from .morphir-cli-version file
-#  3) reads from .config/morphir-cli-version file
+#  4) reads from .config/morphir-cli-version file
 #  5) tries to fetch newest from Github
 #  6) DEFAULT_MORPHIR_CLI_VERSION set in this file
 #
@@ -16,11 +16,6 @@ set -e
 
 if [ -z "${DEFAULT_MORPHIR_CLI_VERSION}" ] ; then
   DEFAULT_MORPHIR_CLI_VERSION="0.4.0-RC08"
-fi
-
-
-if [ -z "${GITHUB_RELEASE_CDN}" ] ; then
-  GITHUB_RELEASE_CDN=""
 fi
 
 
@@ -35,6 +30,7 @@ if [ "$1" = "--morphir-cli-version" ] ; then
   shift
   if [ "x$1" != "x" ] ; then
     MORPHIR_CLI_VERSION="$1"
+    echo "1 - Will use MORPHIR_CLI_VERSION=$MORPHIR_CLI_VERSION" 1>&2
     shift
   else
     echo "You specified --morphir-cli-version without a version." 1>&2
@@ -51,10 +47,10 @@ fi
 if [ -z "${MORPHIR_CLI_VERSION}" ] ; then
   if [ -f ".morphir-cli-version" ] ; then
     MORPHIR_CLI_VERSION="$(head -n 1 .morphir-cli-version 2> /dev/null)"
-    echo "MORPHIR_CLI_VERSION1=$MORPHIR_CLI_VERSION"
+    echo "2 - Will use MORPHIR_CLI_VERSION=$MORPHIR_CLI_VERSION" 1>&2
   elif [ -f ".config/morphir-cli-version" ] ; then
     MORPHIR_CLI_VERSION="$(head -n 1 .config/morphir-cli-version 2> /dev/null)"
-    echo "MORPHIR_CLI_VERSION2=$MORPHIR_CLI_VERSION"
+    echo "3 - Will use MORPHIR_CLI_VERSION=$MORPHIR_CLI_VERSION" 1>&2
   fi
 fi
 
@@ -86,7 +82,7 @@ if [ -z "${MORPHIR_CLI_VERSION}" ] ; then
   if [ -n "$(find -L "${MORPHIR_CLI_DOWNLOAD_PATH}/.latest" -prune -newer "${MORPHIR_CLI_DOWNLOAD_PATH}/.expire_latest")" ]; then
     # we know a current latest version
     MORPHIR_CLI_VERSION=$(head -n 1 "${MORPHIR_CLI_DOWNLOAD_PATH}"/.latest 2> /dev/null)
-    echo "MORPHIR_CLI_VERSION3=$MORPHIR_CLI_VERSION"
+    echo "4 - Will use MORPHIR_CLI_VERSION=$MORPHIR_CLI_VERSION" 1>&2
   fi
 
   if [ -z "${MORPHIR_CLI_VERSION}" ] ; then
@@ -94,91 +90,19 @@ if [ -z "${MORPHIR_CLI_VERSION}" ] ; then
     echo "Retrieving latest morphir-cli version ..." 1>&2
     LANG=C ${CURL_CMD} -s -i -f -I ${MORPHIR_CLI_REPO_URL}/releases/latest 2> /dev/null  | grep --ignore-case Location: | sed s'/^.*tag\///' | sed 's/^v//' | tr -d '\r\n' > "${MORPHIR_CLI_DOWNLOAD_PATH}/.latest"
     MORPHIR_CLI_VERSION=$(head -n 1 "${MORPHIR_CLI_DOWNLOAD_PATH}"/.latest 2> /dev/null)
-    echo "MORPHIR_CLI_VERSION4=$MORPHIR_CLI_VERSION"
+    echo "5 - Will use MORPHIR_CLI_VERSION=$MORPHIR_CLI_VERSION" 1>&2
   fi
 
   if [ -z "${MORPHIR_CLI_VERSION}" ] ; then
     # Last resort
     MORPHIR_CLI_VERSION="${DEFAULT_MORPHIR_CLI_VERSION}"
-    echo "MORPHIR_CLI_VERSION5=$MORPHIR_CLI_VERSION"
-
-    echo "Falling back to hardcoded morphir-cli version ${MORPHIR_CLI_VERSION}" 1>&2
+    echo "6 - Will use fall back to hardcoded MORPHIR_CLI_VERSION=$MORPHIR_CLI_VERSION" 1>&2
   else
-    echo "Using morphir-cli version ${MORPHIR_CLI_VERSION}" 1>&2
+    echo "7 - Will use MORPHIR_CLI_VERSION=$MORPHIR_CLI_VERSION" 1>&2
   fi
 fi
 
 MORPHIR_CLI="${MORPHIR_CLI_DOWNLOAD_PATH}/${MORPHIR_CLI_VERSION}"
-
-# try_to_use_system_morphir-cli() {
-#   if [ "$(uname)" != "Linux" ]; then
-#     return 0
-#   fi
-
-#   MORPHIR_CLI_IN_PATH="$(command -v morphir-cli || true)"
-
-#   if [ -z "${MORPHIR_CLI_IN_PATH}" ]; then
-#     return 0
-#   fi
-
-#   SYSTEM_MORPHIR_CLI_FIRST_TWO_BYTES=$(head --bytes=2 "${MORPHIR_CLI_IN_PATH}")
-#   if [ "${SYSTEM_MORPHIR_CLI_FIRST_TWO_BYTES}" = "#!" ]; then
-# 	  # MORPHIR_CLI_IN_PATH is (very likely) a shell script and not the morphir_cli
-# 	  # executable, ignore it.
-# 	  return 0
-#   fi
-
-#   SYSTEM_MORPHIR_CLI_PATH=$(readlink -e "${MORPHIR_CLI_IN_PATH}")
-#   SYSTEM_MORPHIR_CLI_SIZE=$(stat --format=%s "${SYSTEM_MORPHIR_CLI_PATH}")
-#   SYSTEM_MORPHIR_CLI_MTIME=$(stat --format=%y "${SYSTEM_MORPHIR_CLI_PATH}")
-
-#   if [ ! -d "${MORPHIR_CLI_USER_CACHE_DIR}" ]; then
-#     mkdir -p "${MORPHIR_CLI_USER_CACHE_DIR}"
-#   fi
-
-#   SYSTEM_MORPHIR_CLI_INFO_FILE="${MORPHIR_CLI_USER_CACHE_DIR}/system-morphir-info"
-#   if [ -f "${SYSTEM_MORPHIR_CLI_INFO_FILE}" ]; then
-#     parseSystemMillInfo() {
-#         LINE_NUMBER="${1}"
-#         # Select the line number of the SYSTEM_MORPHIR_CLI_INFO_FILE, cut the
-#         # variable definition in that line in two halves and return
-#         # the value, and finally remove the quotes.
-#         sed -n "${LINE_NUMBER}p" "${SYSTEM_MORPHIR_CLI_INFO_FILE}" |\
-#             cut -d= -f2 |\
-#             sed 's/"\(.*\)"/\1/'
-#     }
-
-#     CACHED_SYSTEM_MORPHIR_CLI_PATH=$(parseSystemMillInfo 1)
-#     CACHED_SYSTEM_MORPHIR_CLI_VERSION=$(parseSystemMillInfo 2)
-#     CACHED_SYSTEM_MORPHIR_CLI_SIZE=$(parseSystemMillInfo 3)
-#     CACHED_SYSTEM_MORPHIR_CLI_MTIME=$(parseSystemMillInfo 4)
-
-#     if [ "${SYSTEM_MORPHIR_CLI_PATH}" = "${CACHED_SYSTEM_MORPHIR_CLI_PATH}" ] \
-#            && [ "${SYSTEM_MORPHIR_CLI_SIZE}" = "${CACHED_SYSTEM_MORPHIR_CLI_SIZE}" ] \
-#            && [ "${SYSTEM_MORPHIR_CLI_MTIME}" = "${CACHED_SYSTEM_MORPHIR_CLI_MTIME}" ]; then
-#       if [ "${CACHED_SYSTEM_MORPHIR_CLI_VERSION}" = "${MORPHIR_CLI_VERSION}" ]; then
-#           MORPHIR_CLI="${SYSTEM_MORPHIR_CLI_PATH}"
-#           return 0
-#       else
-#           return 0
-#       fi
-#     fi
-#   fi
-
-#   SYSTEM_MORPHIR_CLI_VERSION=$(${SYSTEM_MORPHIR_CLI_PATH} --version | head -n1 | sed -n 's/^Mill.*version \(.*\)/\1/p')
-
-#   cat <<EOF > "${SYSTEM_MORPHIR_CLI_INFO_FILE}"
-# CACHED_SYSTEM_MORPHIR_CLI_PATH="${SYSTEM_MORPHIR_CLI_PATH}"
-# CACHED_SYSTEM_MORPHIR_CLI_VERSION="${SYSTEM_MORPHIR_CLI_VERSION}"
-# CACHED_SYSTEM_MORPHIR_CLI_SIZE="${SYSTEM_MORPHIR_CLI_SIZE}"
-# CACHED_SYSTEM_MORPHIR_CLI_MTIME="${SYSTEM_MORPHIR_CLI_MTIME}"
-# EOF
-
-#   if [ "${SYSTEM_MORPHIR_CLI_VERSION}" = "${MORPHIR_CLI_VERSION}" ]; then
-#     MORPHIR_CLI="${SYSTEM_MORPHIR_CLI_PATH}"
-#   fi
-# }
-# try_to_use_system_morphir-cli
 
 # If not already downloaded, download it
 if [ ! -s "${MORPHIR_CLI}" ] ; then

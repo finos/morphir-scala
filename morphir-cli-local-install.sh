@@ -1,4 +1,8 @@
 #!/usr/bin/env sh
+#
+# Coursier script builds and publishes morphir-cli locally and installs it in coursier directory as 'morphir-cli-local'
+#
+
 echo "Running ./mill __.publishLocal"
 
 # local publishing
