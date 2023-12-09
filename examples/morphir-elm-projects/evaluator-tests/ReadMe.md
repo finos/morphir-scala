@@ -1,4 +1,15 @@
+## Code Formatting and Style
 
+We use `elm-format` to auto-format code.  This has numerous benefits that are explained all over the web, please see,
+for instance, the explanation in the README for [elm-format](https://github.com/avh4/elm-format).
+
+For now, formatting is not enforced by anything in the build or CICD pipeline, but please remember to run elm-format
+before submitting a PR.
+
+Auto-formatting has been made available through this command.
+```
+npm run format
+```
 
 ### Documentation formatting:
 
@@ -48,7 +59,7 @@ Thus, we settled on a pattern enabled by the code in `TestUtils.elm`:
 type alias TestContext = {}
 
 test : TestContext -> a -> a
-test context res = 
+test context res =
     case context of
         _ -> res
 ```
@@ -59,8 +70,9 @@ It is essentially `ident` with an extra unused argument. This is used in tests l
 
 ```
 ifThenElseTrueTest : TestContext ->String
-ifThenElseTrueTest ctx = test ctx
-    if True then "Correct" else "Incorrect"
+ifThenElseTrueTest ctx =
+    test ctx <|
+        if True then "Correct" else "Incorrect"
 ```
 
 A note on variable grouping:
@@ -68,8 +80,9 @@ If your test body is itself a function call, as in:
 
 ```
 myTest : TestContext -> Int
-myTest ctx = test ctx
-    foo 1
+myTest ctx =
+    test ctx <|
+        foo 1
 ```
 
 then the compiler groups the arguments as:
@@ -85,8 +98,9 @@ which can then have the argument applied to it. However, this hits a bug in `mor
 To avoid hitting that bug in every case, we explicitly group the argument in this case, as follows:
 ```
 myTest : TestContext -> Int
-myTest ctx = test ctx
-    (foo 1)
+myTest ctx =
+    test ctx <|
+        foo 1
 ```
 
 Functions that actually take (used!) arguments may ignore all of this.
