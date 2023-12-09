@@ -8,13 +8,12 @@ import java.time.format.DateTimeFormatter as JDateTimeFormatter
 import scala.util.control.NonFatal
 
 object LocalDateSDK {
-  extension (rtLd: RTValue.LocalDate)
-    def update(f: JLocalDate => JLocalDate): RTValue.LocalDate =
-      rtLd.copy(value = f(rtLd.value))
+  def update(rtLd: RTValue.LocalDate)(f: JLocalDate => JLocalDate): RTValue.LocalDate =
+    rtLd.copy(value = f(rtLd.value))
 
   val addWeeks = DynamicNativeFunction2("addWeeks") {
     (_: NativeContext) => (weeksArg: RTValue.Primitive.Int, localDateArg: RTValue.LocalDate) =>
-      localDateArg.update(_.plusWeeks(weeksArg.value.toInt))
+      update(localDateArg)(_.plusWeeks(weeksArg.value.toLong))
   }
 
   val diffInDays = DynamicNativeFunction2("diffInDays") {
