@@ -10,6 +10,12 @@ import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
 import zio.{Console, ZIO, ZLayer}
 
+/**
+ * The below reads as “This is a Scala test named ModBy which refers to a function named nativeReferenceModByTest in the
+ * module nativeReferenceTests; it should be called with 7, and the result is expected to be 1.
+ *
+ * testEval("ModBy")("nativeReferenceTests", "nativeReferenceModByTest", 7)( Data.Int(1) )
+ */
 object EvaluatorMDMTests extends MorphirBaseSpec {
   val morphirRuntimeLayer: ZLayer[Any, Throwable, TypedMorphirRuntime] =
     ZLayer(for {
@@ -28,6 +34,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case u: Unit                 => Deriver.toData(u)
       case b: Boolean              => Deriver.toData(b)
       case i: Int                  => Deriver.toData(i)
+      case f: Float                => Deriver.toData(f)
       case s: String               => Deriver.toData(s)
       case ld: java.time.LocalDate => Deriver.toData(ld)
       case lt: java.time.LocalTime => Deriver.toData(lt)
@@ -585,7 +592,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Pi")("nativeReferenceTests", "nativeReferencePiTest")(Data.Float(3)),
         testEval("ModBy")("nativeReferenceTests", "nativeReferenceModByTest", 7)(
           Data.Int(1)
-        ) /* @@ TestAspect.ignore @@ TestAspect.tag("ignore until we complete wiring up native functions")*/
+        ),
+        testEval("Ceiling")("nativeReferenceTests", "nativeReferenceCeilingTest", 3.88f)(Data.Int(4))
       ),
       suite("Morphir Types")(
         testEval("LocalDate")("nativeReferenceTests", "localDatePassthrough", localDate)(Data.LocalDate(localDate)),

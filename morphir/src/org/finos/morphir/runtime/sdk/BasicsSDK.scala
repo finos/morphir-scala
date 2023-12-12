@@ -2,12 +2,18 @@ package org.finos.morphir.runtime.sdk
 
 import org.finos.morphir.Hints
 import org.finos.morphir.runtime.RTValue.Primitive
-import org.finos.morphir.runtime.internal.{DynamicNativeFunction, NativeContext, NumericFunction2, NumericHelpers}
+import org.finos.morphir.runtime.internal._
 import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.MorphirRuntimeError.IllegalValue
 
 object BasicsSDK {
   type AnyNum = Any
+
+  val ceiling = DynamicNativeFunction1("ceiling") {
+    (_: NativeContext) =>
+      (a: Primitive.Float) =>
+        Primitive.Int(a.value.ceil.toInt)
+  }
 
   val modBy = NumericFunction2("modBy") {
     (numricHelpers: NumericHelpers[AnyNum], _) =>
