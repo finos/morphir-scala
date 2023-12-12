@@ -34,7 +34,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case u: Unit                 => Deriver.toData(u)
       case b: Boolean              => Deriver.toData(b)
       case i: Int                  => Deriver.toData(i)
-      case f: Float                => Deriver.toData(f)
+      case d: Double               => Deriver.toData(d)
       case s: String               => Deriver.toData(s)
       case ld: java.time.LocalDate => Deriver.toData(ld)
       case lt: java.time.LocalTime => Deriver.toData(lt)
@@ -593,7 +593,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("ModBy")("nativeReferenceTests", "nativeReferenceModByTest", 7)(
           Data.Int(1)
         ),
-        testEval("Ceiling")("nativeReferenceTests", "nativeReferenceCeilingTest", 3.88f)(Data.Int(4))
+        testEval("Ceiling")("nativeReferenceTests", "nativeReferenceCeilingTest", 3.88)(Data.Int(4)),
+        testEval("Abs")("nativeReferenceTests", "nativeReferenceAbsTest", Data.Float(-5.0))(Data.Float(5.0))
+//        testEval("Abs")("nativeReferenceTests", "nativeReferenceAbsTest", Data.Int(-5))(Data.Int(5))
       ),
       suite("Morphir Types")(
         testEval("LocalDate")("nativeReferenceTests", "localDatePassthrough", localDate)(Data.LocalDate(localDate)),

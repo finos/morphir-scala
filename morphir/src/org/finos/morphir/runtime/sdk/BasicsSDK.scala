@@ -10,9 +10,18 @@ object BasicsSDK {
   type AnyNum = Any
 
   val ceiling = DynamicNativeFunction1("ceiling") {
-    (_: NativeContext) =>
-      (a: Primitive.Float) =>
-        Primitive.Int(a.value.ceil.toInt)
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Int(a.value.ceil.toInt)
+  }
+
+  val abs = NumericFunction1("abs") {
+    (numericHelpers: NumericHelpers[AnyNum], _) => (arg1: AnyNum) =>
+      {
+        println(s"arg1: ${arg1.getClass()}")
+        val result = numericHelpers.numericHelper.abs(arg1)
+        println(s"result: ${result.getClass()}")
+        numericHelpers.numericType.makeOrFail(result)
+      }
   }
 
   val modBy = NumericFunction2("modBy") {

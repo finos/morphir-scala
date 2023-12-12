@@ -84,7 +84,7 @@ class NumericFunction1[
     T <: RTValue.Primitive.Numeric[Any],
     R <: RTValue
 ](val name: String)(val f: (NumericHelpers[Any], NativeContext) => (T) => R) {
-  def asDynamicNativeFunction2 =
+  def asNative1 =
     DynamicNativeFunction1[T, R](name) { (ctx: NativeContext) => (arg: T) =>
       {
         val helper =
