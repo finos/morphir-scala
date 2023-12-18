@@ -11,8 +11,6 @@ object NativeSDK {
 
   import Coercer.*
 
-//  implicit def numericCoercer[]: Coercer[RTValue.Primitive.Numeric[Any]] = Coercer.numericCoercer[Any]
-
   object Morphir {
     object SDK {
 

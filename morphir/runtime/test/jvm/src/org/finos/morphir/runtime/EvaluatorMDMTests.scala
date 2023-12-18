@@ -948,7 +948,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("Truncate 2")("sdkBasicsTests", "basicsTruncateTest", -1.2)(Data.Int(-1)),
         testEval("Truncate 3")("sdkBasicsTests", "basicsTruncateTest", .4)(Data.Int(0)),
         testEval("Truncate 4")("sdkBasicsTests", "basicsTruncateTest", -.4)(Data.Int(0)),
-        testEval("IntegerDivide")("sdkBasicsTests", "basicsIntegerDivideTest", 12)(Data.Int(2)),
+        testEvalMultiple("IntegerDivide")("sdkBasicsTests", "basicsIntegerDivideTest", List(12, 2))(
+          Data.Int(6)
+        ),
+        testEvalMultiple("IntegerDivide 2")("sdkBasicsTests", "basicsIntegerDivideTest", List(12, 1))(
+          Data.Int(12)
+        ),
         testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0)),
         testEval("Always")("sdkBasicsTests", "basicsAlwaysTest", 0)(Data.List(Data.Int(0))),
         testEval("Always 2")("sdkBasicsTests", "basicsAlwaysTest", Data.Char('z'))(Data.List(Data.Char('z'))),

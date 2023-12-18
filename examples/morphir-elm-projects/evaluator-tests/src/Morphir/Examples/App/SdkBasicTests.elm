@@ -2,7 +2,7 @@ module Morphir.Examples.App.SdkBasicsTests exposing (..)
 
 import Morphir.Examples.App.TestUtils exposing (..)
 import Morphir.SDK.Int exposing (Int64)
-import Morphir.SDK.Basics exposing (power)
+import Morphir.SDK.Basics exposing (power, integerDivide)
 
 {-| Test: SdkBasics/add
 Expected = 3
@@ -1849,10 +1849,10 @@ basicsFloorTest : Float -> Int
 basicsFloorTest x =
     floor x
 
-basicsIntegerDivideTest : Int -> Int
-basicsIntegerDivideTest x =
-    x // 5
-
+basicsIntegerDivideTest : Int -> Int -> Int
+basicsIntegerDivideTest x y =
+    integerDivide x y
+    
 basicsAbsTest : Float -> Float
 basicsAbsTest x =
     abs x
@@ -1892,4 +1892,3 @@ basicsTruncateTest x =
 basicsXorTest : Bool -> Bool -> Bool
 basicsXorTest x y =
     xor x y
-
