@@ -592,10 +592,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Pi")("nativeReferenceTests", "nativeReferencePiTest")(Data.Float(3)),
         testEval("ModBy")("nativeReferenceTests", "nativeReferenceModByTest", 7)(
           Data.Int(1)
-        ),
-        testEval("Ceiling")("nativeReferenceTests", "nativeReferenceCeilingTest", 3.88)(Data.Int(4)),
-        testEval("Abs")("nativeReferenceTests", "nativeReferenceAbsTest", Data.Float(-5.0))(Data.Float(5.0))
-//        testEval("Abs")("nativeReferenceTests", "nativeReferenceAbsTest", Data.Int(-5))(Data.Int(5))
+        )
       ),
       suite("Morphir Types")(
         testEval("LocalDate")("nativeReferenceTests", "localDatePassthrough", localDate)(Data.LocalDate(localDate)),
@@ -945,6 +942,36 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )(Data.Result.Err.withOkConcept(Data.String("Undefined"), Concept.Int32))
       ),
       suite("SDK Basics Tests")(
+        testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
+        testEval("Floor")("sdkBasicsTests", "basicsFloorTest", 3.88)(Data.Int(3)),
+        testEval("Truncate")("sdkBasicsTests", "basicsTruncateTest", 1.2)(Data.Int(1)),
+        testEval("Truncate 2")("sdkBasicsTests", "basicsTruncateTest", -1.2)(Data.Int(-1)),
+        testEval("Truncate 3")("sdkBasicsTests", "basicsTruncateTest", .4)(Data.Int(0)),
+        testEval("Truncate 4")("sdkBasicsTests", "basicsTruncateTest", -.4)(Data.Int(0)),
+        testEval("IntegerDivide")("sdkBasicsTests", "basicsIntegerDivideTest", 12)(Data.Int(2)),
+        testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0)),
+        testEval("Always")("sdkBasicsTests", "basicsAlwaysTest", 0)(Data.List(Data.Int(0))),
+        testEval("Always 2")("sdkBasicsTests", "basicsAlwaysTest", Data.Char('z'))(Data.List(Data.Char('z'))),
+        testEvalMultiple("Clamp")("sdkBasicsTests", "basicsClampTest", List(100, 200, 1000))(Data.Int(200)),
+        testEvalMultiple("Clamp 2")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 50.0))(Data.Float(100.0)),
+        testEvalMultiple("Power")("sdkBasicsTests", "basicsPowerTest", List(4.0, 5.0))(Data.Float(1024)),
+        testEvalMultiple("Power")("sdkBasicsTests", "basicsPowerTest", List(4, 5))(Data.Int(1024)),
+        testEvalMultiple("RemainderBy")("sdkBasicsTests", "basicsRemainderByTest", List(4, 21))(Data.Int(1)),
+        testEvalMultiple("RemainderBy 2")("sdkBasicsTests", "basicsRemainderByTest", List(4, -21))(Data.Int(-1)),
+        testEval("Sqrt")("sdkBasicsTests", "basicsSqrtTest", Data.Float(9.0))(Data.Float(3.0)),
+        testEval("Identity")("sdkBasicsTests", "basicsIdentityTest", Data.Float(-5.0))(Data.Float(-5.0)),
+        testEvalMultiple("Xor")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(true), Data.Boolean(true)))(
+          Data.Boolean(false)
+        ),
+        testEvalMultiple("Xor 2")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(true), Data.Boolean(false)))(
+          Data.Boolean(true)
+        ),
+        testEvalMultiple("Xor 3")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(false), Data.Boolean(true)))(
+          Data.Boolean(true)
+        ),
+        testEvalMultiple("Xor 4")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(false), Data.Boolean(false)))(
+          Data.Boolean(false)
+        ),
         testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
         testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int(2)),
         testEval("Plus(64)")("sdkBasicsTests", "sdkAddTest64", abStruct(1L, 2L))(
@@ -992,9 +1019,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyTest")(Data.Int(6)) @@ ignore @@ TestAspect.tag(
           "Not Implemented yet"
         ),
-        testEvaluation("Integer Divide")("sdkBasicsTests", "sdkIntegerDivideTest")(
-          Data.Decimal(2.0)
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
         testEvaluation("Divide by 0")("sdkBasicsTests", "sdkDivideByZeroTest")(
           Data.Decimal(2.0)
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),

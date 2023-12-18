@@ -89,18 +89,3 @@ localDatePassthrough x =
 localTimePassthrough : LocalTime -> LocalTime
 localTimePassthrough x =
     x
-
-
-nativeReferenceCeilingTest : Float -> Int
-nativeReferenceCeilingTest x =
-    ceiling x
-
-
-nativeReferenceAbsTest : Float -> Float
-nativeReferenceAbsTest x =
-    abs x
-
-
--- nativeReferenceAbsTest : Int -> Int
--- nativeReferenceAbsTest x =
---     abs x

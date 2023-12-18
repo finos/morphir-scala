@@ -33,7 +33,7 @@ object Basics extends MorphirIRSdkModule("Basics") {
       vSpec("round", "a" -> floatType)(intType),
       vSpec("floor", "a" -> floatType)(intType),
       vSpec("ceiling", "a" -> floatType)(intType),
-      vSpec("truncat", "a" -> floatType)(intType),
+      vSpec("truncate", "a" -> floatType)(intType),
       vSpec("modBy", "a" -> intType, "b" -> intType)(intType),
       vSpec("remainderBy", "a" -> intType, "b" -> intType)(intType),
       vSpec("negate", "a" -> tVar("number"))(tVar("number")),

@@ -81,25 +81,27 @@ case class NumericHelpers[T](
 }
 
 class NumericFunction1[
-    T <: RTValue.Primitive.Numeric[Any],
-    R <: RTValue
-](val name: String)(val f: (NumericHelpers[Any], NativeContext) => (T) => R) {
+    T <: RTValue.Primitive.Numeric[N],
+    R <: RTValue,
+    N
+](val name: String)(val f: (NumericHelpers[N], NativeContext) => T => R) {
   def asNative1 =
     DynamicNativeFunction1[T, R](name) { (ctx: NativeContext) => (arg: T) =>
       {
         val helper =
-          NumericHelpers[Any](arg.numericType, arg.numericHelper, arg.integralHelper, arg.fractionalHelper)
+          NumericHelpers[N](arg.numericType, arg.numericHelper, arg.integralHelper, arg.fractionalHelper)
         f(helper, ctx)(arg)
       }
     }
 }
 
 object NumericFunction1 {
-  def apply[
-      T <: RTValue.Primitive.Numeric[Any],
-      R <: RTValue
-  ](name: String)(f: (NumericHelpers[Any], NativeContext) => (T) => R) =
-    new NumericFunction1(name)(f)
+
+  def apply[T](name: String)(f: (NumericHelpers[T], NativeContext) => (T) => RTValue) =
+    new NumericFunction1(name)((h: NumericHelpers[T], ctx: NativeContext) =>
+      (a: RTValue.Primitive.Numeric[T]) =>
+        f(h, ctx)(a.value)
+    )
 }
 
 class NumericFunction2[
@@ -123,15 +125,42 @@ class NumericFunction2[
 }
 
 object NumericFunction2 {
-//  def apply[
-//      T <: RTValue.Primitive.Numeric[Any],
-//      R <: RTValue
-//  ](name: String)(f: (NumericHelpers[Any], NativeContext) => (T, T) => R) =
-//    new NumericFunction2(name)(f)
-
   def apply[T](name: String)(f: (NumericHelpers[T], NativeContext) => (T, T) => RTValue) =
     new NumericFunction2(name)((h: NumericHelpers[T], ctx: NativeContext) =>
       (a: RTValue.Primitive.Numeric[T], b: RTValue.Primitive.Numeric[T]) =>
         f(h, ctx)(a.value, b.value)
+    )
+}
+
+class NumericFunction3[
+    T <: RTValue.Primitive.Numeric[N],
+    R <: RTValue,
+    N
+](val name: String)(val f: (NumericHelpers[N], NativeContext) => (T, T, T) => R) {
+  def asNative3 =
+    DynamicNativeFunction3[T, T, T, R](name) { (ctx: NativeContext) => (arg1: T, arg2: T, arg3: T) =>
+      {
+        if (arg1.numericType != arg2.numericType) {
+          throw IllegalValue(
+            s"The values $arg1 and $arg2 are not of the same numeric type (${arg1.numericType} versus ${arg2.numericType})."
+          )
+        }
+        if (arg2.numericType != arg3.numericType) {
+          throw IllegalValue(
+            s"The values $arg2 and $arg3 are not of the same numeric type (${arg2.numericType} versus ${arg3.numericType})."
+          )
+        }
+        val helper =
+          NumericHelpers[N](arg1.numericType, arg1.numericHelper, arg1.integralHelper, arg1.fractionalHelper)
+        f(helper, ctx)(arg1, arg2, arg3)
+      }
+    }
+}
+
+object NumericFunction3 {
+  def apply[T](name: String)(f: (NumericHelpers[T], NativeContext) => (T, T, T) => RTValue) =
+    new NumericFunction3(name)((h: NumericHelpers[T], ctx: NativeContext) =>
+      (a: RTValue.Primitive.Numeric[T], b: RTValue.Primitive.Numeric[T], c: RTValue.Primitive.Numeric[T]) =>
+        f(h, ctx)(a.value, b.value, c.value)
     )
 }
