@@ -86,11 +86,11 @@ class NumericFunction1[
     N
 ](val name: String)(val f: (NumericHelpers[N], NativeContext) => T => R) {
   def asNative1 =
-    DynamicNativeFunction1[T, R](name) { (ctx: NativeContext) => (arg: T) =>
+    DynamicNativeFunction1[T, R](name) { (ctx: NativeContext) => (arg1: T) =>
       {
         val helper =
-          NumericHelpers[N](arg.numericType, arg.numericHelper, arg.integralHelper, arg.fractionalHelper)
-        f(helper, ctx)(arg)
+          NumericHelpers[N](arg1.numericType, arg1.numericHelper, arg1.integralHelper, arg1.fractionalHelper)
+        f(helper, ctx)(arg1)
       }
     }
 }

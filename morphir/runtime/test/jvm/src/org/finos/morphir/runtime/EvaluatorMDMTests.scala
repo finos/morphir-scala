@@ -954,6 +954,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("Always 2")("sdkBasicsTests", "basicsAlwaysTest", Data.Char('z'))(Data.List(Data.Char('z'))),
         testEvalMultiple("Clamp")("sdkBasicsTests", "basicsClampTest", List(100, 200, 1000))(Data.Int(200)),
         testEvalMultiple("Clamp 2")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 50.0))(Data.Float(100.0)),
+        testEvalMultiple("Clamp 3")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 150.0))(Data.Float(150.0)),
+        testEvalMultiple("Clamp 4")("sdkBasicsTests", "basicsClampTest", List(100, 200, 150))(Data.Int(150)),
         testEvalMultiple("Power")("sdkBasicsTests", "basicsPowerTest", List(4.0, 5.0))(Data.Float(1024)),
         testEvalMultiple("Power")("sdkBasicsTests", "basicsPowerTest", List(4, 5))(Data.Int(1024)),
         testEvalMultiple("RemainderBy")("sdkBasicsTests", "basicsRemainderByTest", List(4, 21))(Data.Int(1)),

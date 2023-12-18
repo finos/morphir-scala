@@ -22,7 +22,8 @@ object BasicsSDK {
 
   val truncate = DynamicNativeFunction1("truncate") {
     (_: NativeContext) => (a: Primitive.Float) =>
-      if (a.value < 0) Primitive.Int(a.value.floor.toInt + 1)
+      // truncate rounds negative numbers *towards zero*
+      if (a.value < 0) Primitive.Int(a.value.ceil.toInt)
       else Primitive.Int(a.value.floor.toInt)
   }
 
