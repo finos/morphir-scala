@@ -21,7 +21,7 @@
     "src/Morphir/Examples/App/PatternMatchTests.elm": "2f8139955168de0e9e7061aa351e466c",
     "src/Morphir/Examples/App/RecordTests.elm": "818e85f5a21e5808bb487010d75d57cd",
     "src/Morphir/Examples/App/ResultTests.elm": "ad4c52566a73bc2fa46ad65946e41d61",
-    "src/Morphir/Examples/App/SdkBasicTests.elm": "be92af974c0ce138ff462e0e75dafa64",
+    "src/Morphir/Examples/App/SdkBasicTests.elm": "6a8a4ac4b04639d91ae94fa71dc96aab",
     "src/Morphir/Examples/App/SetTests.elm": "d2c29edf3ef589a123ae5a9bfd892b1f",
     "src/Morphir/Examples/App/SimpleTests.elm": "443d3bfdd8a53223afbcbe215b815099",
     "src/Morphir/Examples/App/StringTests.elm": "93eca77df1a94efcdd66a3008084b065",

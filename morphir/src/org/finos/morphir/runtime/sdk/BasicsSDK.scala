@@ -42,6 +42,10 @@ object BasicsSDK {
       Primitive.Boolean(a.value ^ b.value)
   }
 
+  /**
+   * Note: While the Elm docs specify this fn as a -> b -> a, with partial application giving b -> a, implementing it as
+   * a simple identity, ignoring the second param, works.
+   */
   val always = DynamicNativeFunction2("always") {
     (_: NativeContext) => (a: RTValue, _: RTValue) =>
       a
