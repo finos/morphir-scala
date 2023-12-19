@@ -24,6 +24,8 @@ sealed trait MorphirRuntimeError extends Throwable {
 
 object MorphirRuntimeError {
 
+  final case class ConfigurationError(message: String, underlying: Option[Exception])
+      extends MorphirRuntimeError(message)
   final case class MorphirIRDecodingError(message: String) extends MorphirRuntimeError
 
   sealed trait EvaluationError extends MorphirRuntimeError
