@@ -34,7 +34,8 @@ object BasicsSDK {
 
   val integerDivide = DynamicNativeFunction2("integerDivide") {
     (_: NativeContext) => (a: Primitive.Int, b: Primitive.Int) =>
-      Primitive.Int(a.value / b.value)
+      if (b.valueAsInt == 0) Primitive.Int(0)
+      else Primitive.Int(a.value / b.value)
   }
 
   val xor = DynamicNativeFunction2("xor") {
