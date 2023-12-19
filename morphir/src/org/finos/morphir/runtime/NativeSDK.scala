@@ -23,7 +23,19 @@ object NativeSDK {
 
       case object Basics extends SdkModuleDescriptor("Basics") {
         val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun1(sdk.BasicsSDK.ceiling),
+          NativeFunctionAdapter.Fun1(sdk.BasicsSDK.floor),
+          NativeFunctionAdapter.Fun1(sdk.BasicsSDK.truncate),
+          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.integerDivide),
+          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.always),
+          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.xor),
+          NativeFunctionAdapter.Fun1(sdk.BasicsSDK.identity),
+          NativeFunctionAdapter.Fun3(sdk.BasicsSDK.clamp.asNative3),
+          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.power),
+          NativeFunctionAdapter.Fun1(sdk.BasicsSDK.abs.asNative1),
           NativeFunctionAdapter.Fun2(sdk.BasicsSDK.modBy.asNative2),
+          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.remainderBy.asNative2),
+          NativeFunctionAdapter.Fun1(sdk.BasicsSDK.sqrt),
           NativeFunctionAdapter.Fun2(sdk.BasicsSDK.greaterThan.asNative2),
           NativeFunctionAdapter.Fun2(sdk.BasicsSDK.greaterThanOrEqual.asNative2),
           NativeFunctionAdapter.Fun2(sdk.BasicsSDK.lessThan.asNative2),

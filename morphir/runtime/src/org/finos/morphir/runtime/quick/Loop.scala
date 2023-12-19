@@ -24,8 +24,8 @@ import org.finos.morphir.runtime.MorphirRuntimeError.{
 }
 
 private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluator {
-  def loop(ir: RuntimeValue, store: Store): RTValue =
-    ir match {
+  def loop(ir: RuntimeValue, store: Store): RTValue = {
+    val result = ir match {
       case Literal(va, lit)              => handleLiteral(va, lit)
       case Apply(va, function, argument) => handleApply(va, function, argument, store)
       case node @ Destructure(va, pattern, valueToDestruct, inValue) =>
@@ -48,6 +48,16 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
       case Variable(va, name)                      => handleVariable(va, name, store)
     }
+    result match {
+      case v: RTValue.Primitive[_] =>
+        v.value match {
+          case _: Float => throw new RuntimeException(s"\n\n\nir: $ir")
+          case _        =>
+        }
+      case _ =>
+    }
+    result
+  }
 
   def handleLiteral(va: ValueAttribs, literal: Lit) = unpackLit(literal)
 
