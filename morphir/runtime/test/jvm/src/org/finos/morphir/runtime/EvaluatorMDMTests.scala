@@ -507,10 +507,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Whole Number")("literalTests", "litWholeNumberLiteralTest")(Data.Int(5))
       ),
       suite("LocalDate")(
-        // TODO: Need to fix implementation of Optional LocalDate
         testEvaluation("fromParts")("localDateTests", "fromPartsTest")(
           Data.Optional.Some(Data.LocalDate(localDate))
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        ),
+        testEvaluation("fromParts invalid")("localDateTests", "fromPartsInvalidTest")(
+          Data.Optional.None(Concept.LocalDate)
+        ),
         suite("fromOrdinalDate")(
           testEvalMultiple("fromOrdinalDate valid")("localDateTests", "fromOrdinalDateTest", List(1900, 20))(
             Data.LocalDate(localDate)

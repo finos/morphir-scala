@@ -33,6 +33,21 @@ object LocalDateSDK {
       }
   }
 
+  val fromParts = DynamicNativeFunction3("fromParts") {
+    (_: NativeContext) =>
+      (yearArg: RTValue.Primitive.Int, monthArg: RTValue.Primitive.Int, dayArg: RTValue.Primitive.Int) =>
+        {
+          val year  = yearArg.value.toInt
+          val month = monthArg.value.toInt
+          val day   = dayArg.value.toInt
+
+          val maybeLocalDate   = tryOption(java.time.LocalDate.of(year, month, day))
+          val maybeLocalDateRt = maybeLocalDate.map(RTValue.LocalDate.apply)
+
+          MaybeSDK.resultToMaybe(maybeLocalDateRt)
+        }
+  }
+
   val addWeeks = DynamicNativeFunction2("addWeeks") {
     (_: NativeContext) => (weeksArg: RTValue.Primitive.Int, localDateArg: RTValue.LocalDate) =>
       update(localDateArg)(_.plusWeeks(weeksArg.value.toLong))
