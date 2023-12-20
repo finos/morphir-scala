@@ -43,3 +43,10 @@ diffInDaysTest localDate1 localDate2 =
 fromISOTest : String -> Maybe LocalDate
 fromISOTest iso =
     fromISO iso
+
+
+{-| Test: LocalDate:fromOrdinalDate
+-}
+fromOrdinalDateTest : Int -> Int -> LocalDate
+fromOrdinalDateTest year dayOfYear =
+    fromOrdinalDate year dayOfYear
