@@ -43,6 +43,12 @@ object Coercer {
         RTValue.coerceNumeric(result).asInstanceOf[RTValue.Primitive.Numeric[T]]
     }
 
+  implicit val fallbackNumericCoercer: Coercer[RTValue.Primitive.Numeric[_]] =
+    new Coercer[RTValue.Primitive.Numeric[_]] {
+      def coerce(result: RTValue): RTValue.Primitive.Numeric[_] =
+        RTValue.coerceNumeric(result).asInstanceOf[RTValue.Primitive.Numeric[_]]
+    }
+
   implicit val listCoercer: Coercer[RTValue.List] = new Coercer[RTValue.List] {
     def coerce(result: RTValue): RTValue.List = RTValue.coerceList(result)
   }
@@ -60,5 +66,13 @@ object Coercer {
 
   implicit val mapCoercer: Coercer[RTValue.Map] = new Coercer[RTValue.Map] {
     def coerce(result: RTValue): RTValue.Map = RTValue.coerceMap(result)
+  }
+
+  implicit val localDateCoercer: Coercer[RTValue.LocalDate] = new Coercer[RTValue.LocalDate] {
+    def coerce(result: RTValue): RTValue.LocalDate = RTValue.coerceLocalDate(result)
+  }
+
+  implicit val localTimeCoercer: Coercer[RTValue.LocalTime] = new Coercer[RTValue.LocalTime] {
+    def coerce(result: RTValue): RTValue.LocalTime = RTValue.coerceLocalTime(result)
   }
 }

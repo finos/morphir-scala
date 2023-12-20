@@ -10,6 +10,12 @@ import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
 import zio.{Console, ZIO, ZLayer}
 
+/**
+ * The below reads as “This is a Scala test named ModBy which refers to a function named nativeReferenceModByTest in the
+ * module nativeReferenceTests; it should be called with 7, and the result is expected to be 1.
+ *
+ * testEval("ModBy")("nativeReferenceTests", "nativeReferenceModByTest", 7)( Data.Int(1) )
+ */
 object EvaluatorMDMTests extends MorphirBaseSpec {
   val morphirRuntimeLayer: ZLayer[Any, Throwable, TypedMorphirRuntime] =
     ZLayer(for {
@@ -28,6 +34,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case u: Unit                 => Deriver.toData(u)
       case b: Boolean              => Deriver.toData(b)
       case i: Int                  => Deriver.toData(i)
+      case d: Double               => Deriver.toData(d)
       case s: String               => Deriver.toData(s)
       case ld: java.time.LocalDate => Deriver.toData(ld)
       case lt: java.time.LocalTime => Deriver.toData(lt)
@@ -503,10 +510,72 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         // TODO: Need to fix implementation of Optional LocalDate
         testEvaluation("fromParts")("localDateTests", "fromPartsTest")(
           Data.Optional.Some(Data.LocalDate(localDate))
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvalMultiple("addWeeks")("localDateTests", "addWeeksTest", List(2, localDate))(
+          Data.LocalDate(localDate.plusWeeks(2))
+        ),
+        testEvalMultiple("diffInDays")("localDateTests", "diffInDaysTest", List(localDate, localDate.plusDays(999)))(
+          Data.Int(999)
+        ),
+        testEval("fromISO valid iso date")("localDateTests", "fromISOTest", "1900-01-20")(
+          Data.Optional.Some(Data.LocalDate(localDate))
+        ),
+        testEval("fromISO valid iso week")("localDateTests", "fromISOTest", "1900-W03-6")(
+          Data.Optional.Some(Data.LocalDate(localDate))
+        ),
+        testEval("fromISO valid iso ordinal")("localDateTests", "fromISOTest", "1900-020")(
+          Data.Optional.Some(Data.LocalDate(localDate))
+        ),
+        testEval("fromISO invalid iso date")("localDateTests", "fromISOTest", "1900-44-55")(
+          Data.Optional.None(Concept.LocalDate)
+        ),
+        testEval("fromISO invalid iso week")("localDateTests", "fromISOTest", "1900-W01-8")(
+          Data.Optional.None(Concept.LocalDate)
+        ),
+        testEval("fromISO invalid iso ordinal")("localDateTests", "fromISOTest", "1900-366")(
+          Data.Optional.None(Concept.LocalDate)
+        )
       ),
       suite("LocalTime")(
-        testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime))
+        testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime)),
+        testEvalMultiple("addHours")("localTimeTests", "addHoursTest", List(2, localTime))(
+          Data.LocalTime(localTime.plusHours(2))
+        ),
+        testEvalMultiple("addHours negative")("localTimeTests", "addHoursTest", List(-2, localTime))(
+          Data.LocalTime(localTime.minusHours(2))
+        ),
+        testEvalMultiple("addMinutes")("localTimeTests", "addMinutesTest", List(2, localTime))(
+          Data.LocalTime(localTime.plusMinutes(2))
+        ),
+        testEvalMultiple("addMinutes negative")("localTimeTests", "addMinutesTest", List(-2, localTime))(
+          Data.LocalTime(localTime.minusMinutes(2))
+        ),
+        testEvalMultiple("addSeconds")("localTimeTests", "addSecondsTest", List(2, localTime))(
+          Data.LocalTime(localTime.plusSeconds(2))
+        ),
+        testEvalMultiple("addSeconds negative")("localTimeTests", "addSecondsTest", List(-2, localTime))(
+          Data.LocalTime(localTime.minusSeconds(2))
+        ),
+        // NOTE: diffInSeconds is implemented a - b (instead of b - a) for conformity to morphir-elm impl
+        testEvalMultiple("diffInSeconds")(
+          "localTimeTests",
+          "diffInSecondsTest",
+          List(localTime, localTime.plusSeconds(2))
+        )(Data.Int(-2)),
+        testEvalMultiple("diffInSeconds negative")(
+          "localTimeTests",
+          "diffInSecondsTest",
+          List(localTime, localTime.minusSeconds(2))
+        )(Data.Int(2)),
+        testEval("fromISO valid iso time")("localTimeTests", "fromISOTest", "10:43:26.111111111")(
+          Data.Optional.Some(Data.LocalTime(java.time.LocalTime.of(10, 43, 26, 111111111)))
+        ),
+        testEval("fromISO valid iso time no seconds")("localTimeTests", "fromISOTest", "10:43")(
+          Data.Optional.Some(Data.LocalTime(java.time.LocalTime.of(10, 43, 0)))
+        ),
+        testEval("fromISO invalid iso time")("localTimeTests", "fromISOTest", "10:43:26+00:00")(
+          Data.Optional.None(Concept.LocalTime)
+        )
       ),
       suite("Native References")(
         testEvaluation("Map")("nativeReferenceTests", "nativeReferenceMapTest")(Data.List(
@@ -523,7 +592,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Pi")("nativeReferenceTests", "nativeReferencePiTest")(Data.Float(3)),
         testEval("ModBy")("nativeReferenceTests", "nativeReferenceModByTest", 7)(
           Data.Int(1)
-        ) /* @@ TestAspect.ignore @@ TestAspect.tag("ignore until we complete wiring up native functions")*/
+        )
       ),
       suite("Morphir Types")(
         testEval("LocalDate")("nativeReferenceTests", "localDatePassthrough", localDate)(Data.LocalDate(localDate)),
@@ -873,6 +942,43 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )(Data.Result.Err.withOkConcept(Data.String("Undefined"), Concept.Int32))
       ),
       suite("SDK Basics Tests")(
+        testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
+        testEval("Floor")("sdkBasicsTests", "basicsFloorTest", 3.88)(Data.Int(3)),
+        testEval("Truncate")("sdkBasicsTests", "basicsTruncateTest", 1.2)(Data.Int(1)),
+        testEval("Truncate 2")("sdkBasicsTests", "basicsTruncateTest", -1.2)(Data.Int(-1)),
+        testEval("Truncate 3")("sdkBasicsTests", "basicsTruncateTest", .4)(Data.Int(0)),
+        testEval("Truncate 4")("sdkBasicsTests", "basicsTruncateTest", -.4)(Data.Int(0)),
+        testEvalMultiple("IntegerDivide")("sdkBasicsTests", "basicsIntegerDivideTest", List(12, 2))(
+          Data.Int(6)
+        ),
+        testEvalMultiple("IntegerDivide 2")("sdkBasicsTests", "basicsIntegerDivideTest", List(12, 0))(
+          Data.Int(0)
+        ),
+        testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0)),
+        testEval("Always")("sdkBasicsTests", "basicsAlwaysTest", 0)(Data.List(Data.Int(0))),
+        testEval("Always 2")("sdkBasicsTests", "basicsAlwaysTest", Data.Char('z'))(Data.List(Data.Char('z'))),
+        testEvalMultiple("Clamp")("sdkBasicsTests", "basicsClampTest", List(100, 200, 1000))(Data.Int(200)),
+        testEvalMultiple("Clamp 2")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 50.0))(Data.Float(100.0)),
+        testEvalMultiple("Clamp 3")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 150.0))(Data.Float(150.0)),
+        testEvalMultiple("Clamp 4")("sdkBasicsTests", "basicsClampTest", List(100, 200, 150))(Data.Int(150)),
+        testEvalMultiple("Power")("sdkBasicsTests", "basicsPowerTest", List(4.0, 5.0))(Data.Float(1024)),
+        testEvalMultiple("Power")("sdkBasicsTests", "basicsPowerTest", List(4, 5))(Data.Int(1024)),
+        testEvalMultiple("RemainderBy")("sdkBasicsTests", "basicsRemainderByTest", List(4, 21))(Data.Int(1)),
+        testEvalMultiple("RemainderBy 2")("sdkBasicsTests", "basicsRemainderByTest", List(4, -21))(Data.Int(-1)),
+        testEval("Sqrt")("sdkBasicsTests", "basicsSqrtTest", Data.Float(9.0))(Data.Float(3.0)),
+        testEval("Identity")("sdkBasicsTests", "basicsIdentityTest", Data.Float(-5.0))(Data.Float(-5.0)),
+        testEvalMultiple("Xor")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(true), Data.Boolean(true)))(
+          Data.Boolean(false)
+        ),
+        testEvalMultiple("Xor 2")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(true), Data.Boolean(false)))(
+          Data.Boolean(true)
+        ),
+        testEvalMultiple("Xor 3")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(false), Data.Boolean(true)))(
+          Data.Boolean(true)
+        ),
+        testEvalMultiple("Xor 4")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(false), Data.Boolean(false)))(
+          Data.Boolean(false)
+        ),
         testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
         testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int(2)),
         testEval("Plus(64)")("sdkBasicsTests", "sdkAddTest64", abStruct(1L, 2L))(
@@ -920,9 +1026,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyTest")(Data.Int(6)) @@ ignore @@ TestAspect.tag(
           "Not Implemented yet"
         ),
-        testEvaluation("Integer Divide")("sdkBasicsTests", "sdkIntegerDivideTest")(
-          Data.Decimal(2.0)
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
         testEvaluation("Divide by 0")("sdkBasicsTests", "sdkDivideByZeroTest")(
           Data.Decimal(2.0)
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
