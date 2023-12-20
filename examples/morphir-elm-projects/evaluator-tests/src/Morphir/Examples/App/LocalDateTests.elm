@@ -87,3 +87,10 @@ dayTest localDate =
 dayOfWeekTest : LocalDate -> DayOfWeek
 dayOfWeekTest localDate =
     dayOfWeek localDate
+
+
+{-| Test: LocalDate:fromCalendarDate
+-}
+fromCalendarDateTest : Int -> Month -> Int -> LocalDate
+fromCalendarDateTest year month day =
+    fromCalendarDate year month day

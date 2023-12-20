@@ -556,6 +556,43 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.LocalDate(java.time.LocalDate.of(java.time.Year.MIN_VALUE, 1, 20))
           )
         ),
+        suite("fromCalendarDate")(
+          testEvalMultiple("fromCalendarDate valid")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(1900, java.time.Month.JANUARY, 20)
+          )(
+            Data.LocalDate(localDate)
+          ),
+          testEvalMultiple("fromCalendarDate clamped day, positive")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(1900, java.time.Month.JANUARY, 9999)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1900, 1, 31))
+          ),
+          testEvalMultiple("fromCalendarDate clamped day, negative")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(1900, java.time.Month.JANUARY, -9999)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1900, 1, 1))
+          ),
+          testEvalMultiple("fromCalendarDate clamped year, positive")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(java.time.Year.MAX_VALUE + 1, java.time.Month.JANUARY, 20)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(java.time.Year.MAX_VALUE, 1, 20))
+          ),
+          testEvalMultiple("fromCalendarDate clamped year, negative")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(java.time.Year.MIN_VALUE - 1, java.time.Month.JANUARY, 20)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(java.time.Year.MIN_VALUE, 1, 20))
+          )
+        ),
         testEvalMultiple("addWeeks")("localDateTests", "addWeeksTest", List(2, localDate))(
           Data.LocalDate(localDate.plusWeeks(2))
         ),
