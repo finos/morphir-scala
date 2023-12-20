@@ -2,7 +2,7 @@ module Morphir.Examples.App.SdkBasicsTests exposing (..)
 
 import Morphir.Examples.App.TestUtils exposing (..)
 import Morphir.SDK.Int exposing (Int64)
-
+import Morphir.SDK.Basics exposing (power, integerDivide)
 
 {-| Test: SdkBasics/add
 Expected = 3
@@ -1840,3 +1840,79 @@ sdkComposeRightTest ctx =
                 f not not not
         in
         g False
+
+{-| Test: SdkBasics/basicsCeilingTest
+-}
+basicsCeilingTest : Float -> Int
+basicsCeilingTest x =
+    ceiling x
+
+{-| Test: SdkBasics/basicsFloorTest
+-}
+basicsFloorTest : Float -> Int
+basicsFloorTest x =
+    floor x
+
+{-| Test: SdkBasics/basicsIntegerDivideTest
+-}
+basicsIntegerDivideTest : Int -> Int -> Int
+basicsIntegerDivideTest x y =
+    integerDivide x y
+    
+{-| Test: SdkBasics/basicsAbsTest
+-}
+basicsAbsTest : Float -> Float
+basicsAbsTest x =
+    abs x
+
+{-| Test: SdkBasics/basicsAlwaysTest
+-}
+basicsAlwaysTest : a -> List a
+basicsAlwaysTest x =
+    let
+        f y =
+            List.map (always x) y
+    in
+    f [ 4 ]
+
+{-| Test: SdkBasics/basicsClampTest
+-}
+basicsClampTest : a -> a -> a -> a
+basicsClampTest min max x =
+    clamp min max x
+
+{-| Test: SdkBasics/basicsIdentityTest
+-}
+basicsIdentityTest : a -> a
+basicsIdentityTest x =
+    x
+
+{-| Test: SdkBasics/basicsPowerTest
+-}
+basicsPowerTest : a -> a -> a
+basicsPowerTest n x =
+    power n x
+
+{-| Test: SdkBasics/basicsRemainderByTest
+-}
+basicsRemainderByTest : Int -> Int -> Int
+basicsRemainderByTest x y =
+    remainderBy x y
+
+{-| Test: SdkBasics/basicsSqrtTest
+-}
+basicsSqrtTest : Float -> Float
+basicsSqrtTest x =
+    sqrt x
+
+{-| Test: SdkBasics/basicsTruncateTest
+-}
+basicsTruncateTest : Float -> Int
+basicsTruncateTest x =
+    truncate x
+
+{-| Test: SdkBasics/basicsXorTest
+-}
+basicsXorTest : Bool -> Bool -> Bool
+basicsXorTest x y =
+    xor x y

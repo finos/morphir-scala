@@ -43,6 +43,12 @@ object Coercer {
         RTValue.coerceNumeric(result).asInstanceOf[RTValue.Primitive.Numeric[T]]
     }
 
+  implicit val fallbackNumericCoercer: Coercer[RTValue.Primitive.Numeric[_]] =
+    new Coercer[RTValue.Primitive.Numeric[_]] {
+      def coerce(result: RTValue): RTValue.Primitive.Numeric[_] =
+        RTValue.coerceNumeric(result).asInstanceOf[RTValue.Primitive.Numeric[_]]
+    }
+
   implicit val listCoercer: Coercer[RTValue.List] = new Coercer[RTValue.List] {
     def coerce(result: RTValue): RTValue.List = RTValue.coerceList(result)
   }
