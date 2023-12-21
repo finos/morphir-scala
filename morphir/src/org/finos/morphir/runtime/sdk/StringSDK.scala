@@ -55,11 +55,7 @@ object StringSDK {
 
   val join = DynamicNativeFunction2("join") {
     (context: NativeContext) => (sep: RTString, list: RT.List) =>
-      val result = list.elements.zipWithIndex.foldLeft("") { (x, y) =>
-        val withSep =
-          if (y._2 < list.elements.length - 1) coerceString(y._1).value ++ sep.value else coerceString(y._1).value
-        x ++ withSep
-      }
+      val result = list.elements.map(s => coerceString(s).value).mkString(sep.value)
       RTString(result)
   }
 
