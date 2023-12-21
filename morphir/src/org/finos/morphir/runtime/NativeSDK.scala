@@ -17,8 +17,18 @@ object NativeSDK {
       implicit val packageName: PackageName = PackageName.fromString("Morphir.SDK")
 
       case object String extends SdkModuleDescriptor("String") {
-        // TODO Add methods
-        val functions = scala.List()
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun2(StringSDK.append),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.concat),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.contains),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.dropLeft),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.dropRight),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.endsWith),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.join),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.length),
+          NativeFunctionAdapter.Fun3(sdk.StringSDK.padLeft),
+          NativeFunctionAdapter.Fun3(sdk.StringSDK.padRight),
+        )
       }
 
       case object Basics extends SdkModuleDescriptor("Basics") {
@@ -105,5 +115,6 @@ object NativeSDK {
       ++ Result.resolvedFunctions
       ++ LocalDate.resolvedFunctions
       ++ LocalTime.resolvedFunctions
+      ++ String.resolvedFunctions
   }
 }
