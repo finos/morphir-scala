@@ -30,4 +30,18 @@ object StringSDK {
         val str = list.value.foldLeft("")((x, y) => x + coerceString(y).value)
         RTString(str)
   }
+
+  val contains = DynamicNativeFunction2("contains") {
+    (context: NativeContext) =>
+      (substring: RTString, str: RTString) =>
+        val result = str.value.contains(substring.value)
+        RT.Primitive.Boolean(result)
+  }
+
+  val dropLeft = DynamicNativeFunction2("dropLeft") {
+    (context: NativeContext) =>
+      (int: RT.Primitive.Int, str: RTString) =>
+        val result = str.value.drop(int.valueAsInt)
+        RTString(result)
+  }
 }
