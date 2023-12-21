@@ -1,7 +1,7 @@
 module Morphir.Examples.App.ListTests exposing (..)
 
 import Dict exposing (Dict)
-import List as List exposing (..)
+import List exposing (..)
 import Morphir.Examples.App.TestUtils exposing (..)
 
 

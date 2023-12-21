@@ -83,10 +83,9 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     case Data.LocalDate(value) =>
       V.applyInferType(
         value.morphirType,
-        V.reference(FQName.fromString("Morphir.SDK:LocalDate:fromParts")),
+        V.reference(FQName.fromString("Morphir.SDK:LocalDate:fromOrdinalDate")),
         V.intTyped(value.getYear),
-        V.intTyped(value.getMonthValue),
-        V.intTyped(value.getDayOfMonth)
+        V.intTyped(value.getDayOfYear)
       )
     case Data.LocalTime(value) =>
       V.applyInferType(

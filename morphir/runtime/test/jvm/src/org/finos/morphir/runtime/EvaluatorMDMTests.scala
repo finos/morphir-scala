@@ -507,10 +507,52 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Whole Number")("literalTests", "litWholeNumberLiteralTest")(Data.Int(5))
       ),
       suite("LocalDate")(
-        // TODO: Need to fix implementation of Optional LocalDate
         testEvaluation("fromParts")("localDateTests", "fromPartsTest")(
           Data.Optional.Some(Data.LocalDate(localDate))
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        ),
+        testEvaluation("fromParts invalid")("localDateTests", "fromPartsInvalidTest")(
+          Data.Optional.None(Concept.LocalDate)
+        ),
+        suite("fromOrdinalDate")(
+          testEvalMultiple("fromOrdinalDate valid")("localDateTests", "fromOrdinalDateTest", List(1900, 20))(
+            Data.LocalDate(localDate)
+          ),
+          testEvalMultiple("fromOrdinalDate clamped day pos, not leap year")(
+            "localDateTests",
+            "fromOrdinalDateTest",
+            List(1900, 366)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1900, 12, 31))
+          ),
+          testEvalMultiple("fromOrdinalDate clamped day pos, leap year")(
+            "localDateTests",
+            "fromOrdinalDateTest",
+            List(1904, 367)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1904, 12, 31))
+          ),
+          testEvalMultiple("fromOrdinalDate clamped day neg")(
+            "localDateTests",
+            "fromOrdinalDateTest",
+            List(1900, -9999)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1900, 1, 1))
+          ),
+          testEvalMultiple("fromOrdinalDate clamped year pos")(
+            "localDateTests",
+            "fromOrdinalDateTest",
+            List(java.time.Year.MAX_VALUE + 1, 20)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(java.time.Year.MAX_VALUE, 1, 20))
+          ),
+          testEvalMultiple("fromOrdinalDate clamped year neg")(
+            "localDateTests",
+            "fromOrdinalDateTest",
+            List(java.time.Year.MIN_VALUE - 1, 20)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(java.time.Year.MIN_VALUE, 1, 20))
+          )
+        ),
         testEvalMultiple("addWeeks")("localDateTests", "addWeeksTest", List(2, localDate))(
           Data.LocalDate(localDate.plusWeeks(2))
         ),

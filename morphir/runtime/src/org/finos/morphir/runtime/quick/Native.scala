@@ -413,15 +413,6 @@ object Native {
       RTValue.Primitive.Boolean(a == b)
   }
 
-  val fromParts: SDKValue = SDKValue.SDKNativeFunction.fun3 {
-    (a: RTValue, b: RTValue, c: RTValue) =>
-      RTValue.LocalDate(java.time.LocalDate.of(
-        a.coerceInt.value.toInt,
-        b.coerceInt.value.toInt,
-        c.coerceInt.value.toInt
-      ))
-  }
-
   val utc = java.time.ZoneId.of("UTC")
 
   def fromMillisecondsEpoch(millis: Long): java.time.LocalTime =
@@ -465,7 +456,6 @@ object Native {
     FQName.fromString("Morphir.SDK:Basics:negate")              -> negate,
     FQName.fromString("Morphir.SDK:Basics:toFloat")             -> toFloat,
     FQName.fromString("Morphir.SDK:Basics:logBase")             -> log,
-    FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
   ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ SetSDK.sdk ++ DecimalSDK.sdk ++ TupleSDK.sdk ++ BasicsSDK.sdk
