@@ -70,6 +70,36 @@ stringStartsWith ref str =
 
 {-|
 
+    Test: String/slice
+
+-}
+stringSlice : Int -> Int -> String -> String
+stringSlice start end str =
+    slice start end str
+
+
+{-|
+
+    Test: String/split
+
+-}
+stringSplit : String -> String -> List String
+stringSplit sep str =
+    split sep str
+
+
+{-|
+
+    Test: String/startsWith
+
+-}
+stringStartsWith : String -> String -> Bool
+stringStartsWith ref str =
+    startsWith ref str
+
+
+{-|
+
     Test: String/fromInt
     expected = "25"
 
@@ -114,6 +144,16 @@ stringToIntTest2 : TestContext -> Maybe Int
 stringToIntTest2 ctx =
     test ctx
         (toInt "notAnInt")
+
+
+{-|
+
+    Test: String/toFloat
+
+-}
+stringToFloat : String -> Maybe Float
+stringToFloat str =
+    String.toFloat str
 
 
 {-|
