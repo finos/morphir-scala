@@ -810,6 +810,27 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )(
           Data.String("LOWERCASED")
         ),
+        testEval("trim")(
+          "stringTests",
+          "stringTrim",
+          "                   hello world        "
+        )(
+          Data.String("hello world")
+        ),
+        testEval("trimLeft")(
+          "stringTests",
+          "stringTrimLeft",
+          "                   hello world        "
+        )(
+          Data.String("hello world        ")
+        ),
+        testEval("trimRight")(
+          "stringTests",
+          "stringTrimRight",
+          "                   hello world        "
+        )(
+          Data.String("                   hello world")
+        ),
         testEvaluation("left")("StringTests", "stringLeftTest")(Data.String("Mu")),
         testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
         testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
