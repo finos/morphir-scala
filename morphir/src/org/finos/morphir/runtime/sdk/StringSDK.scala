@@ -69,4 +69,25 @@ object StringSDK {
         }
         RTString(result)
   }
+
+  val length = DynamicNativeFunction1("length") {
+    (context: NativeContext) =>
+      (str: RTString) =>
+        val length = str.value.length
+        RT.Primitive.Int(length)
+  }
+
+  val padLeft = DynamicNativeFunction3("padLeft") {
+    (context: NativeContext) =>
+      (n: RT.Primitive.Int, ch: RT.Primitive.Char, str: RTString) =>
+        val result = (ch.value.toString * n.valueAsInt) ++ str.value
+        RTString(result)
+  }
+
+  val padRight = DynamicNativeFunction3("padRight") {
+    (context: NativeContext) =>
+      (n: RT.Primitive.Int, ch: RT.Primitive.Char, str: RTString) =>
+        val result = str.value ++ (ch.value.toString * n.valueAsInt)
+        RTString(result)
+  }
 }
