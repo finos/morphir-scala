@@ -699,6 +699,16 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvalMultiple("append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
           Data.String("DoBop")
         ),
+        testEvaluation("left")("StringTests", "stringLeftTest")(Data.String("Mu")),
+        testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
+        testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
+        testEvaluation("fromFloat")("StringTests", "stringFromFloatTest")(Data.String("1.5")),
+        testEvaluation("toFloat")("StringTests", "stringToFloatTest1")(Data.Optional.Some(Data.Float(1.5))),
+        testEvaluation("toFloat")("StringTests", "stringToFloatTest2")(Data.Optional.None(Concept.Float)),
+        testEvaluation("toInt")("StringTests", "stringToIntTest1")(Data.Optional.Some(Data.Int(25))),
+        testEvaluation("toInt")("StringTests", "stringToIntTest2")(Data.Optional.None(Concept.Int32)),
+        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),
+        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false))
       ),
       suite("References To user Defined Members")(
         testEvaluation("Reference to value")("userDefinedReferenceTests", "userDefinedReferenceValueTest")(Data.Int(5)),
