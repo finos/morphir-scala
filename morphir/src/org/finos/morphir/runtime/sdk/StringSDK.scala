@@ -90,4 +90,25 @@ object StringSDK {
         val result = str.value ++ (ch.value.toString * n.valueAsInt)
         RTString(result)
   }
+
+  val right = DynamicNativeFunction2("right") {
+    (context: NativeContext) =>
+      (n: RT.Primitive.Int, str: RTString) =>
+        val result = str.value.substring(str.value.length - n.valueAsInt)
+        RTString(result)
+  }
+
+  val slice = DynamicNativeFunction3("slice") {
+    (context: NativeContext) =>
+      (start: RT.Primitive.Int, end: RT.Primitive.Int, str: RTString) =>
+        val result = str.value.slice(start.valueAsInt, end.valueAsInt)
+        RTString(result)
+  }
+
+  val split = DynamicNativeFunction2("split") {
+    (context: NativeContext) =>
+      (sep: RTString, str: RTString) =>
+        val result = str.value.split(sep.value).toList.map(RTString(_))
+        RT.List(result)
+  }
 }
