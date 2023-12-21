@@ -82,71 +82,61 @@ object StringSDK {
   }
 
   val right = DynamicNativeFunction2("right") {
-    (context: NativeContext) =>
-      (n: RT.Primitive.Int, str: RTString) =>
+    (context: NativeContext) => (n: RT.Primitive.Int, str: RTString) =>
         val result = str.value.substring(str.value.length - n.valueAsInt)
         RTString(result)
   }
 
   val slice = DynamicNativeFunction3("slice") {
-    (context: NativeContext) =>
-      (start: RT.Primitive.Int, end: RT.Primitive.Int, str: RTString) =>
+    (context: NativeContext) => (start: RT.Primitive.Int, end: RT.Primitive.Int, str: RTString) =>
         val result = str.value.slice(start.valueAsInt, end.valueAsInt)
         RTString(result)
   }
 
   val split = DynamicNativeFunction2("split") {
-    (context: NativeContext) =>
-      (sep: RTString, str: RTString) =>
+    (context: NativeContext) => (sep: RTString, str: RTString) =>
         val result = str.value.split(sep.value).toList.map(RTString(_))
         RT.List(result)
   }
 
   val startsWith = DynamicNativeFunction2("startsWith") {
-    (context: NativeContext) =>
-      (ref: RTString, str: RTString) =>
+    (context: NativeContext) => (ref: RTString, str: RTString) =>
         val result = str.value.startsWith(ref.value)
         RT.Primitive.Boolean(result)
   }
 
   val toFloat = DynamicNativeFunction1("toFloat") {
-    (context: NativeContext) =>
-      (str: RTString) =>
+    (context: NativeContext) => (str: RTString) =>
         val result = str.value.toFloatOption.flatMap(RT.Primitive.make(_))
         MaybeSDK.resultToMaybe(result)
   }
 
   val toLower = DynamicNativeFunction1("toLower") {
-    (context: NativeContext) =>
-      (str: RTString) =>
+    (context: NativeContext) => (str: RTString) =>
         val result = str.value.toLowerCase
         RTString(result)
   }
 
   val toUpper = DynamicNativeFunction1("toUpper") {
-    (context: NativeContext) =>
-      (str: RTString) =>
+    (context: NativeContext) => (str: RTString) =>
         val result = str.value.toUpperCase
         RTString(result)
   }
 
   val trim = DynamicNativeFunction1("trim") {
-    (context: NativeContext) =>
-      (str: RTString) =>
+    (context: NativeContext) => (str: RTString) =>
         val result = str.value.strip()
         RTString(result)
   }
 
   val trimLeft = DynamicNativeFunction1("trimLeft") {
-    (context: NativeContext) =>
-      (str: RTString) =>
+    (context: NativeContext) => (str: RTString) =>
         val result = str.value.stripLeading()
         RTString(result)
   }
 
   val trimRight = DynamicNativeFunction1("trimRight") {
-    (context: NativeContext) =>
-      (str: RTString) =>
+    (context: NativeContext) => (str: RTString) =>
         val result = str.value.stripTrailing()
         RTString(result)
   }
