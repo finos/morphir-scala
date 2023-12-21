@@ -17,4 +17,17 @@ import scala.collection.StringOps
 
 object StringSDK {
 
+  val append = DynamicNativeFunction2("append") {
+    (context: NativeContext) =>
+      (str1: RTString, str2: RTString) =>
+        val appended = str1.value :++ str2.value
+        RTString(appended)
+  }
+
+  val concat = DynamicNativeFunction1("concat") {
+    (context: NativeContext) =>
+      (list: RT.List) =>
+        val str = list.value.foldLeft("")((x, y) => x + coerceString(y).value)
+        RTString(str)
+  }
 }
