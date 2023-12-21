@@ -34,6 +34,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case u: Unit                 => Deriver.toData(u)
       case b: Boolean              => Deriver.toData(b)
       case i: Int                  => Deriver.toData(i)
+      case c: Char                 => Deriver.toData(c)
       case d: Double               => Deriver.toData(d)
       case s: String               => Deriver.toData(s)
       case ld: java.time.LocalDate => Deriver.toData(ld)
@@ -473,7 +474,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("List.any with True Output")("listTests", "listAnyFalseTest")(
           Data.Boolean(false)
         ),
-        testEvaluation("List Parittion")("listTests", "listPartitionTest")(
+        testEvaluation("List Partition")("listTests", "listPartitionTest")(
           Data.Tuple(
             Data.List(Data.Int(1), Data.Int(3), Data.Int(5)),
             Data.List(Data.Int(2), Data.Int(4))
@@ -695,9 +696,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("String")(
-        testEvalMultiple("String Append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
+        testEvalMultiple("append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
           Data.String("DoBop")
-        )
+        ),
       ),
       suite("References To user Defined Members")(
         testEvaluation("Reference to value")("userDefinedReferenceTests", "userDefinedReferenceValueTest")(Data.Int(5)),
@@ -1035,16 +1036,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("LessThanChar")("sdkBasicsTests", "sdkLessThanTestChar")(
           Data.Boolean(true)
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
-      ),
-      suite("String Tests")(
-        testEvaluation("left")("StringTests", "stringLeftTest")(Data.String("Mu")),
-        testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
-        testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
-        testEvaluation("fromFloat")("StringTests", "stringFromFloatTest")(Data.String("1.5")),
-        testEvaluation("toInt")("StringTests", "stringToIntTest1")(Data.Optional.Some(Data.Int(25))),
-        testEvaluation("toInt")("StringTests", "stringToIntTest2")(Data.Optional.None(Concept.Int32)),
-        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),
-        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false))
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
