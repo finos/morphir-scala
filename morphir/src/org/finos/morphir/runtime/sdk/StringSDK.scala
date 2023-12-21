@@ -44,4 +44,29 @@ object StringSDK {
         val result = str.value.drop(int.valueAsInt)
         RTString(result)
   }
+
+  val dropRight = DynamicNativeFunction2("dropRight") {
+    (context: NativeContext) =>
+      (int: RT.Primitive.Int, str: RTString) =>
+        val result = str.value.dropRight(int.valueAsInt)
+        RTString(result)
+  }
+
+  val endsWith = DynamicNativeFunction2("endsWith") {
+    (context: NativeContext) =>
+      (ref: RTString, str: RTString) =>
+        val result = str.value.endsWith(ref.value)
+        RT.Primitive.Boolean(result)
+  }
+
+  val join = DynamicNativeFunction2("join") {
+    (context: NativeContext) =>
+      (sep: RTString, list: RT.List) =>
+        val result = list.elements.zipWithIndex.foldLeft("") { (x, y) =>
+          val withSep =
+            if (y._2 < list.elements.length - 1) coerceString(y._1).value ++ sep.value else coerceString(y._1).value
+          x ++ withSep
+        }
+        RTString(result)
+  }
 }
