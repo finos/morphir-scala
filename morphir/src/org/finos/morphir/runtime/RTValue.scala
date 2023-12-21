@@ -155,6 +155,17 @@ object RTValue {
         throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a primitive String. It is not a primitive!")
     }
 
+  def coerceChar(arg: RTValue) =
+    arg match {
+      case v: Primitive.Char => v
+      case _: Primitive[_] =>
+        throw new FailedCoercion(
+          s"Could not unwrap the primitive `${arg}` into a Char value because it was not a Primitive.Char"
+        )
+      case _ =>
+        throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a primitive Char. It is not a primitive!")
+    }
+
   def coercePrimitive(arg: RTValue): Primitive[_] =
     arg match {
       case p: Primitive[_] => p.asInstanceOf[Primitive[_]]
