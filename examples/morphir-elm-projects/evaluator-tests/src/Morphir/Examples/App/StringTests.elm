@@ -1,9 +1,14 @@
 module Morphir.Examples.App.StringTests exposing (..)
 
 import Morphir.Examples.App.TestUtils exposing (..)
-import Morphir.SDK.String as String exposing (String, append, fromFloat, fromInt, isEmpty, left, right, toInt)
+import Morphir.SDK.String as String exposing (..)
 
 
+{-|
+
+    Test: String/append
+
+-}
 stringAppend : String -> String -> String
 stringAppend l r =
     append l r
@@ -79,6 +84,16 @@ stringToIntTest2 : TestContext -> Maybe Int
 stringToIntTest2 ctx =
     test ctx
         (toInt "notAnInt")
+
+
+{-|
+
+    Test: String/toFloat
+
+-}
+stringToFloat : String -> Maybe Float
+stringToFloat str =
+    String.toFloat str
 
 
 {-|
