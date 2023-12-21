@@ -18,36 +18,31 @@ import scala.collection.StringOps
 object StringSDK {
 
   val append = DynamicNativeFunction2("append") {
-    (context: NativeContext) =>
-      (str1: RTString, str2: RTString) =>
+    (context: NativeContext) => (str1: RTString, str2: RTString) =>
         val appended = str1.value :++ str2.value
         RTString(appended)
   }
 
   val concat = DynamicNativeFunction1("concat") {
-    (context: NativeContext) =>
-      (list: RT.List) =>
+    (context: NativeContext) => (list: RT.List) =>
         val str = list.value.foldLeft("")((x, y) => x + coerceString(y).value)
         RTString(str)
   }
 
   val contains = DynamicNativeFunction2("contains") {
-    (context: NativeContext) =>
-      (substring: RTString, str: RTString) =>
+    (context: NativeContext) => (substring: RTString, str: RTString) =>
         val result = str.value.contains(substring.value)
         RT.Primitive.Boolean(result)
   }
 
   val dropLeft = DynamicNativeFunction2("dropLeft") {
-    (context: NativeContext) =>
-      (int: RT.Primitive.Int, str: RTString) =>
+    (context: NativeContext) => (int: RT.Primitive.Int, str: RTString) =>
         val result = str.value.drop(int.valueAsInt)
         RTString(result)
   }
 
   val dropRight = DynamicNativeFunction2("dropRight") {
-    (context: NativeContext) =>
-      (int: RT.Primitive.Int, str: RTString) =>
+    (context: NativeContext) => (int: RT.Primitive.Int, str: RTString) =>
         val result = str.value.dropRight(int.valueAsInt)
         RTString(result)
   }
