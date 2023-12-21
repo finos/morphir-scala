@@ -192,3 +192,53 @@ stringIsEmptyTest2 : TestContext -> Bool
 stringIsEmptyTest2 ctx =
     test ctx
         (isEmpty "content")
+
+
+{-|
+
+    Test: String/toLower
+
+-}
+stringToLower : String -> String
+stringToLower str =
+    toLower str
+
+
+{-|
+
+    Test: String/toUpper
+
+-}
+stringToUpper : String -> String
+stringToUpper str =
+    toUpper str
+
+
+{-|
+
+    Test: String/trim
+
+-}
+stringTrim : String -> String
+stringTrim str =
+    trim str
+
+
+{-|
+
+    Test: String/trimLeft
+
+-}
+stringTrimLeft : String -> String
+stringTrimLeft str =
+    trimLeft str
+
+
+{-|
+
+    Test: String/trimRight
+
+-}
+stringTrimRight : String -> String
+stringTrimRight str =
+    trimRight str
