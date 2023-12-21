@@ -66,6 +66,46 @@ stringEndsWith ref str =
 
 {-|
 
+    Test: String/join
+
+-}
+stringJoin : String -> List String -> String
+stringJoin sep list =
+    join sep list
+
+
+{-|
+
+    Test: String/length
+
+-}
+stringLength : String -> Int
+stringLength str =
+    length str
+
+
+{-|
+
+    Test: String/padLeft
+
+-}
+stringPadLeft : Int -> Char -> String -> String
+stringPadLeft n ch str =
+    padLeft n ch str
+
+
+{-|
+
+    Test: String/padRight
+
+-}
+stringPadRight : Int -> Char -> String -> String
+stringPadRight n ch str =
+    padRight n ch str
+
+
+{-|
+
     Test: String/left
     expected = "Mu"
 
