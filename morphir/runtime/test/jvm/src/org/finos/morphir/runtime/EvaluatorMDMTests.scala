@@ -775,6 +775,41 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )(
           Data.String("yummmm")
         ),
+        testEvalMultiple("slice")(
+          "stringTests",
+          "stringSlice",
+          List(4, 11, "This is a complete sentence.")
+        )(
+          Data.String(" is a c")
+        ),
+        testEvalMultiple("startsWith true")(
+          "stringTests",
+          "stringStartsWith",
+          List("Doctor", "Doctor Smith")
+        )(
+          Data.True
+        ),
+        testEvalMultiple("startsWith false")(
+          "stringTests",
+          "stringStartsWith",
+          List("Mister", "Doctor Smith")
+        )(
+          Data.False
+        ),
+        testEval("toLower")(
+          "stringTests",
+          "stringToLower",
+          "CAPITALIZED"
+        )(
+          Data.String("capitalized")
+        ),
+        testEval("toUpper")(
+          "stringTests",
+          "stringToUpper",
+          "lowercased"
+        )(
+          Data.String("LOWERCASED")
+        ),
         testEvaluation("left")("StringTests", "stringLeftTest")(Data.String("Mu")),
         testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
         testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
