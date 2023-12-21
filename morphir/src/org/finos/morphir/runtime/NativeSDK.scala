@@ -28,6 +28,16 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(sdk.StringSDK.length),
           NativeFunctionAdapter.Fun3(sdk.StringSDK.padLeft),
           NativeFunctionAdapter.Fun3(sdk.StringSDK.padRight),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.right),
+          NativeFunctionAdapter.Fun3(sdk.StringSDK.slice),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.split),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.startsWith),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.toFloat),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.toLower),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.toUpper),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.trim),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.trimLeft),
+          NativeFunctionAdapter.Fun1(StringSDK.trimRight)
         )
       }
 
