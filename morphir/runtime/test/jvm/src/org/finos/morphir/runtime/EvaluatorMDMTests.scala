@@ -699,6 +699,46 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvalMultiple("append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
           Data.String("DoBop")
         ),
+        testEval("concat")(
+          "stringTests",
+          "stringConcat",
+          List(
+            "abc",
+            "def",
+            " ",
+            "ghi"
+          )
+        )(
+          Data.String("abcdef ghi")
+        ),
+        testEvalMultiple("contains true")(
+          "stringTests",
+          "stringContains",
+          List("cat", "cataracts")
+        )(
+          Data.True
+        ),
+        testEvalMultiple("contains false")(
+          "stringTests",
+          "stringContains",
+          List("dog", "cataracts")
+        )(
+          Data.False
+        ),
+        testEvalMultiple("dropLeft")(
+          "stringTests",
+          "stringDropLeft",
+          List(3, "String")
+        )(
+          Data.String("ing")
+        ),
+        testEvalMultiple("dropRight")(
+          "stringTests",
+          "stringDropRight",
+          List(3, "String")
+        )(
+          Data.String("Str")
+        ),
         testEvaluation("left")("StringTests", "stringLeftTest")(Data.String("Mu")),
         testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
         testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
