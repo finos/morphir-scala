@@ -111,4 +111,25 @@ object StringSDK {
         val result = str.value.split(sep.value).toList.map(RTString(_))
         RT.List(result)
   }
+
+  val startsWith = DynamicNativeFunction2("startsWith") {
+    (context: NativeContext) =>
+      (ref: RTString, str: RTString) =>
+        val result = str.value.startsWith(ref.value)
+        RT.Primitive.Boolean(result)
+  }
+
+  val toFloat = DynamicNativeFunction1("toFloat") {
+    (context: NativeContext) =>
+      (str: RTString) =>
+        val result = str.value.toFloatOption.flatMap(RT.Primitive.make(_))
+        MaybeSDK.resultToMaybe(result)
+  }
+
+  val toLower = DynamicNativeFunction1("toLower") {
+    (context: NativeContext) =>
+      (str: RTString) =>
+        val result = str.value.toLowerCase
+        RTString(result)
+  }
 }
