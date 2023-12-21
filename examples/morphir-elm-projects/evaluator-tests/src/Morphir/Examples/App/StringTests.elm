@@ -16,6 +16,56 @@ stringAppend l r =
 
 {-|
 
+    Test: String/concat
+
+-}
+stringConcat : List String -> String
+stringConcat l =
+    concat l
+
+
+{-|
+
+    Test: String/contains
+
+-}
+stringContains : String -> String -> Bool
+stringContains substring str =
+    contains substring str
+
+
+{-|
+
+    Test: String/dropLeft
+
+-}
+stringDropLeft : Int -> String -> String
+stringDropLeft n str =
+    dropLeft n str
+
+
+{-|
+
+    Test: String/dropRight
+
+-}
+stringDropRight : Int -> String -> String
+stringDropRight n str =
+    dropRight n str
+
+
+{-|
+
+    Test: String/endsWith
+
+-}
+stringEndsWith : String -> String -> Bool
+stringEndsWith ref str =
+    endsWith ref str
+
+
+{-|
+
     Test: String/left
     expected = "Mu"
 
