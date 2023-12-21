@@ -739,6 +739,42 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )(
           Data.String("Str")
         ),
+        testEvalMultiple("endsWith true")(
+          "stringTests",
+          "stringEndsWith",
+          List("ing", "Singing")
+        )(
+          Data.True
+        ),
+        testEvalMultiple("endsWith false")(
+          "stringTests",
+          "stringEndsWith",
+          List("sing", "Singing")
+        )(
+          Data.False
+        ),
+        testEvalMultiple("join")(
+          "stringTests",
+          "stringJoin",
+          List(", ", List("Apple", "Orange", "Yellow"))
+        )(
+          Data.String("Apple, Orange, Yellow")
+        ),
+        testEval("length")("StringTests", "stringLength", "Length Of String")(Data.Int(16)),
+        testEvalMultiple("padLeft")(
+          "stringTests",
+          "stringPadLeft",
+          List(3, 'm', " yum")
+        )(
+          Data.String("mmm yum")
+        ),
+        testEvalMultiple("padRight")(
+          "stringTests",
+          "stringPadRight",
+          List(3, 'm', "yum")
+        )(
+          Data.String("yummmm")
+        ),
         testEvaluation("left")("StringTests", "stringLeftTest")(Data.String("Mu")),
         testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
         testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
