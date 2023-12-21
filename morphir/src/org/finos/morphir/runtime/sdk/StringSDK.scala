@@ -132,4 +132,32 @@ object StringSDK {
         val result = str.value.toLowerCase
         RTString(result)
   }
+
+  val toUpper = DynamicNativeFunction1("toUpper") {
+    (context: NativeContext) =>
+      (str: RTString) =>
+        val result = str.value.toUpperCase
+        RTString(result)
+  }
+
+  val trim = DynamicNativeFunction1("trim") {
+    (context: NativeContext) =>
+      (str: RTString) =>
+        val result = str.value.strip()
+        RTString(result)
+  }
+
+  val trimLeft = DynamicNativeFunction1("trimLeft") {
+    (context: NativeContext) =>
+      (str: RTString) =>
+        val result = str.value.stripLeading()
+        RTString(result)
+  }
+
+  val trimRight = DynamicNativeFunction1("trimRight") {
+    (context: NativeContext) =>
+      (str: RTString) =>
+        val result = str.value.stripTrailing()
+        RTString(result)
+  }
 }
