@@ -124,6 +124,30 @@ stringFromFloatTest ctx =
 
 {-|
 
+    Test: String/toFloat
+    expected = Just 1.5
+
+-}
+stringToFloatTest1 : TestContext -> Maybe Float
+stringToFloatTest1 ctx =
+    test ctx
+        (String.toFloat "1.5")
+
+
+{-|
+
+    Test: String/toFloat - Invalid
+    expected = Nothing
+
+-}
+stringToFloatTest2 : TestContext -> Maybe Float
+stringToFloatTest2 ctx =
+    test ctx
+        (String.toFloat "not a float")
+
+
+{-|
+
     Test: String/toInt
     expected = Just 25
 
@@ -144,26 +168,6 @@ stringToIntTest2 : TestContext -> Maybe Int
 stringToIntTest2 ctx =
     test ctx
         (toInt "notAnInt")
-
-
-{-|
-
-    Test: String/toFloat
-
--}
-stringToFloat : String -> Maybe Float
-stringToFloat str =
-    String.toFloat str
-
-
-{-|
-
-    Test: String/toFloat
-
--}
-stringToFloat : String -> Maybe Float
-stringToFloat str =
-    String.toFloat str
 
 
 {-|
