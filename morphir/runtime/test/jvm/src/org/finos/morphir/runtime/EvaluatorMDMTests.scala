@@ -579,6 +579,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ),
         testEval("fromISO invalid iso ordinal")("localDateTests", "fromISOTest", "1900-366")(
           Data.Optional.None(Concept.LocalDate)
+        ),
+        testEval("year")("localDateTests", "yearTest", localDate)(Data.Int(1900)),
+        testEval("month")("localDateTests", "monthTest", localDate)(Data.Month(java.time.Month.JANUARY)),
+        testEval("monthNumber")("localDateTests", "monthNumberTest", localDate)(Data.Int(1)),
+        testEval("day")("localDateTests", "dayTest", localDate)(Data.Int(20)),
+        testEval("dayOfWeek")("localDateTests", "dayOfWeekTest", localDate)(
+          Data.DayOfWeek(java.time.DayOfWeek.SATURDAY)
         )
       ),
       suite("LocalTime")(

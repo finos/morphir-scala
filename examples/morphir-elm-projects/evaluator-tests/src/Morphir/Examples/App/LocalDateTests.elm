@@ -52,3 +52,38 @@ fromISOTest iso =
 fromOrdinalDateTest : Int -> Int -> LocalDate
 fromOrdinalDateTest year dayOfYear =
     fromOrdinalDate year dayOfYear
+
+
+{-| Test: LocalDate:year
+-}
+yearTest : LocalDate -> Int
+yearTest localDate =
+    year localDate
+
+
+{-| Test: LocalDate:month
+-}
+monthTest : LocalDate -> Month
+monthTest localDate =
+    month localDate
+
+
+{-| Test: LocalDate:monthNumber
+-}
+monthNumberTest : LocalDate -> Int
+monthNumberTest localDate =
+    monthNumber localDate
+
+
+{-| Test: LocalDate:day
+-}
+dayTest : LocalDate -> Int
+dayTest localDate =
+    day localDate
+
+
+{-| Test: LocalDate:dayOfWeek
+-}
+dayOfWeekTest : LocalDate -> DayOfWeek
+dayOfWeekTest localDate =
+    dayOfWeek localDate

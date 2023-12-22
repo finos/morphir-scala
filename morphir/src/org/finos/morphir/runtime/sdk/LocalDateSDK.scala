@@ -4,7 +4,13 @@ import org.finos.morphir.naming.FQName
 import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.internal.*
 
-import java.time.{LocalDate as JLocalDate, Year as JYear}
+import java.time.{
+  DayOfWeek as JDayOfWeek,
+  LocalDate as JLocalDate,
+  Month as JMonth,
+  Year as JYear,
+  YearMonth as JYearMonth
+}
 import java.time.format.DateTimeFormatter as JDateTimeFormatter
 import scala.util.control.NonFatal
 
@@ -87,5 +93,26 @@ object LocalDateSDK {
         val maybeLocalDateRT = maybeLocalDate.map(RTValue.LocalDate.apply)
         MaybeSDK.resultToMaybe(maybeLocalDateRT)
       }
+  }
+
+  val year = DynamicNativeFunction1("year") {
+    (_: NativeContext) => (localDate: RTValue.LocalDate) => RTValue.Primitive.Int(localDate.value.getYear)
+  }
+
+  val month = DynamicNativeFunction1("month") {
+    (_: NativeContext) => (localDate: RTValue.LocalDate) => RTValue.Month.fromJavaMonth(localDate.value.getMonth)
+  }
+
+  val monthNumber = DynamicNativeFunction1("monthNumber") {
+    (_: NativeContext) => (localDate: RTValue.LocalDate) => RTValue.Primitive.Int(localDate.value.getMonth.getValue)
+  }
+
+  val day = DynamicNativeFunction1("day") {
+    (_: NativeContext) => (localDate: RTValue.LocalDate) => RTValue.Primitive.Int(localDate.value.getDayOfMonth)
+  }
+
+  val dayOfWeek = DynamicNativeFunction1("dayOfWeek") {
+    (_: NativeContext) => (localDate: RTValue.LocalDate) =>
+      RTValue.DayOfWeek.fromJavaDayOfWeek(localDate.value.getDayOfWeek)
   }
 }
