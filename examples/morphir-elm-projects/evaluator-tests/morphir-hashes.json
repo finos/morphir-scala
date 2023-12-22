@@ -13,7 +13,7 @@
     "src/Morphir/Examples/App/LetRecursionTests.elm": "34aca5346310d8874524854dd9c58e7b",
     "src/Morphir/Examples/App/ListTests.elm": "589276f12ac6d1a11062ca6943dfff25",
     "src/Morphir/Examples/App/LiteralTests.elm": "e7e578d1005014e3800a9e5058405152",
-    "src/Morphir/Examples/App/LocalDateTests.elm": "027fcbb7a20c202f29ac792c56d4d9f0",
+    "src/Morphir/Examples/App/LocalDateTests.elm": "483e00c25f78b4becdea7d9bf1cc3810",
     "src/Morphir/Examples/App/LocalTimeTests.elm": "9e2e1cd8b89e5ddf4bdf655a2c5812fd",
     "src/Morphir/Examples/App/MaybeTests.elm": "aa97c7750fab67efc7e65c4ef45f2078",
     "src/Morphir/Examples/App/MyMap.elm": "81160d8bf93061cdf69d1eed29dc696f",

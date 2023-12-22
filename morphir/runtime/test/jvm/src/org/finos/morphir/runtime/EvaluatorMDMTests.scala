@@ -593,6 +593,166 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.LocalDate(java.time.LocalDate.of(java.time.Year.MIN_VALUE, 1, 20))
           )
         ),
+        suite("Month enum support")(
+          suite("as input")(
+            testEvalMultiple("January")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.JANUARY, 20)
+            )(
+              Data.LocalDate(localDate)
+            ),
+            testEvalMultiple("February")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.FEBRUARY, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 2, 20))
+            ),
+            testEvalMultiple("March")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.MARCH, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 3, 20))
+            ),
+            testEvalMultiple("April")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.APRIL, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 4, 20))
+            ),
+            testEvalMultiple("May")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.MAY, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 5, 20))
+            ),
+            testEvalMultiple("June")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.JUNE, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 6, 20))
+            ),
+            testEvalMultiple("July")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.JULY, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 7, 20))
+            ),
+            testEvalMultiple("August")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.AUGUST, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 8, 20))
+            ),
+            testEvalMultiple("September")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.SEPTEMBER, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 9, 20))
+            ),
+            testEvalMultiple("October")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.OCTOBER, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 10, 20))
+            ),
+            testEvalMultiple("November")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.NOVEMBER, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 11, 20))
+            ),
+            testEvalMultiple("December")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.DECEMBER, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 12, 20))
+            )
+          ),
+          suite("as output")(
+            testEval("January")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 1, 20))(
+              Data.Month(java.time.Month.JANUARY)
+            ),
+            testEval("February")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 2, 20))(
+              Data.Month(java.time.Month.FEBRUARY)
+            ),
+            testEval("March")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 3, 20))(
+              Data.Month(java.time.Month.MARCH)
+            ),
+            testEval("April")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 4, 20))(
+              Data.Month(java.time.Month.APRIL)
+            ),
+            testEval("May")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 5, 20))(
+              Data.Month(java.time.Month.MAY)
+            ),
+            testEval("June")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 6, 20))(
+              Data.Month(java.time.Month.JUNE)
+            ),
+            testEval("July")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 7, 20))(
+              Data.Month(java.time.Month.JULY)
+            ),
+            testEval("August")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 8, 20))(
+              Data.Month(java.time.Month.AUGUST)
+            ),
+            testEval("September")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 9, 20))(
+              Data.Month(java.time.Month.SEPTEMBER)
+            ),
+            testEval("October")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 10, 20))(
+              Data.Month(java.time.Month.OCTOBER)
+            ),
+            testEval("November")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 11, 20))(
+              Data.Month(java.time.Month.NOVEMBER)
+            ),
+            testEval("December")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 12, 20))(
+              Data.Month(java.time.Month.DECEMBER)
+            )
+          )
+        ),
+        suite("DayOfWeek enum support")(
+          suite("as input")(
+            testEval("Monday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.MONDAY)(Data.Int(1)),
+            testEval("Tuesday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.TUESDAY)(Data.Int(2)),
+            testEval("Wednesday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.WEDNESDAY)(Data.Int(3)),
+            testEval("Thursday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.THURSDAY)(Data.Int(4)),
+            testEval("Friday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.FRIDAY)(Data.Int(5)),
+            testEval("Saturday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.SATURDAY)(Data.Int(6)),
+            testEval("Sunday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.SUNDAY)(Data.Int(7))
+          ),
+          suite("as output")(
+            testEval("Monday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 15))(
+              Data.DayOfWeek(java.time.DayOfWeek.MONDAY)
+            ),
+            testEval("Tuesday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 16))(
+              Data.DayOfWeek(java.time.DayOfWeek.TUESDAY)
+            ),
+            testEval("Wednesday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 17))(
+              Data.DayOfWeek(java.time.DayOfWeek.WEDNESDAY)
+            ),
+            testEval("Thursday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 18))(
+              Data.DayOfWeek(java.time.DayOfWeek.THURSDAY)
+            ),
+            testEval("Friday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 19))(
+              Data.DayOfWeek(java.time.DayOfWeek.FRIDAY)
+            ),
+            testEval("Saturday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 20))(
+              Data.DayOfWeek(java.time.DayOfWeek.SATURDAY)
+            ),
+            testEval("Sunday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 21))(
+              Data.DayOfWeek(java.time.DayOfWeek.SUNDAY)
+            )
+          )
+        ),
         testEvalMultiple("addWeeks")("localDateTests", "addWeeksTest", List(2, localDate))(
           Data.LocalDate(localDate.plusWeeks(2))
         ),
