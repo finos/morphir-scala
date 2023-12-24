@@ -824,6 +824,48 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )(
           Data.String(" is a c")
         ),
+        testEvalMultiple("split sentence")(
+          "stringTests",
+          "stringSplit",
+          List(" ", "This is a complete sentence.")
+        )(
+          Data.List(
+            Data.String("This"),
+            Data.String("is"),
+            Data.String("a"),
+            Data.String("complete"),
+            Data.String("sentence.")
+          )
+        ),
+        testEvalMultiple("split letter")(
+          "stringTests",
+          "stringSplit",
+          List("o", "foo")
+        )(
+          Data.List(
+            Data.String("f")
+          )
+        ),
+        testEvalMultiple("split no separator")(
+          "stringTests",
+          "stringSplit",
+          List("", "foo")
+        )(
+          Data.List(
+            Data.String("f"),
+            Data.String("o"),
+            Data.String("o")
+          )
+        ),
+        testEvalMultiple("split no strings")(
+          "stringTests",
+          "stringSplit",
+          List("", "")
+        )(
+          Data.List(
+            Data.String("")
+          )
+        ),
         testEvalMultiple("startsWith true")(
           "stringTests",
           "stringStartsWith",
@@ -877,8 +919,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
         testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
         testEvaluation("fromFloat")("StringTests", "stringFromFloatTest")(Data.String("1.5")),
-        testEvaluation("toFloat")("StringTests", "stringToFloatTest1")(Data.Optional.Some(Data.Float(1.5))),
-        testEvaluation("toFloat")("StringTests", "stringToFloatTest2")(Data.Optional.None(Concept.Float)),
+        testEvaluation("toFloat")("StringTests", "stringGoodToFloatTest")(Data.Optional.Some(Data.Float(1.5))),
+        testEvaluation("toFloat")("StringTests", "stringBadToFloatTest")(Data.Optional.None(Concept.Float)),
         testEvaluation("toInt")("StringTests", "stringToIntTest1")(Data.Optional.Some(Data.Int(25))),
         testEvaluation("toInt")("StringTests", "stringToIntTest2")(Data.Optional.None(Concept.Int32)),
         testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),

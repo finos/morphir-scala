@@ -188,8 +188,8 @@ stringFromFloatTest ctx =
     expected = Just 1.5
 
 -}
-stringToFloatTest1 : TestContext -> Maybe Float
-stringToFloatTest1 ctx =
+stringGoodToFloatTest : TestContext -> Maybe Float
+stringGoodToFloatTest ctx =
     test ctx
         (String.toFloat "1.5")
 
@@ -200,8 +200,8 @@ stringToFloatTest1 ctx =
     expected = Nothing
 
 -}
-stringToFloatTest2 : TestContext -> Maybe Float
-stringToFloatTest2 ctx =
+stringBadToFloatTest : TestContext -> Maybe Float
+stringBadToFloatTest ctx =
     test ctx
         (String.toFloat "not a float")
 
