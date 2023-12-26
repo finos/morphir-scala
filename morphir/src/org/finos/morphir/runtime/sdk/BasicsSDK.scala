@@ -1,5 +1,6 @@
 package org.finos.morphir.runtime.sdk
 
+import org.finos.morphir.ir.Type
 import org.finos.morphir.Hints
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.SDKValue
@@ -63,7 +64,7 @@ object BasicsSDK {
         val result = numericHelpers.numericHelper.abs(arg1)
         numericHelpers.numericType.makeOrFail(result)
       }
-  }
+  }.asNative1
 
   val clamp = NumericFunction3("clamp") {
     (numericHelpers: NumericHelpers[AnyNum], _) => (min: AnyNum, max: AnyNum, x: AnyNum) =>
@@ -75,7 +76,7 @@ object BasicsSDK {
           else max
         numericHelpers.numericType.makeOrFail(result)
       }
-  }
+  }.asNative3
 
   val power = DynamicNativeFunction2("power") {
     (_: NativeContext) => (a: Primitive.Numeric[_], b: Primitive.Numeric[_]) =>
@@ -96,7 +97,7 @@ object BasicsSDK {
           val output = numricHelpers.integralHelperOrThrow.rem(arg2, arg1)
           numricHelpers.numericType.makeOrFail(output)
         }
-  }
+  }.asNative2
 
   /**
    * Modulo and remainder operators differ with respect to negative values. With a remainder operator, the sign of the
@@ -117,25 +118,33 @@ object BasicsSDK {
           }
         numricHelpers.numericType.makeOrFail(output)
       }
-  }
+  }.asNative2
 
   val greaterThan = NumericFunction2("greaterThan") {
     (h: NumericHelpers[Any], _) => (a: AnyNum, b: AnyNum) =>
       Primitive.Boolean(h.numericHelper.gt(a, b))
-  }
+  }.asNative2
 
   val greaterThanOrEqual = NumericFunction2("greaterThanOrEqual") {
     (h: NumericHelpers[Any], _) => (a: AnyNum, b: AnyNum) =>
       Primitive.Boolean(h.numericHelper.gteq(a, b))
-  }
+  }.asNative2
 
   val lessThan = NumericFunction2("lessThan") {
     (h: NumericHelpers[Any], _) => (a: AnyNum, b: AnyNum) =>
       Primitive.Boolean(h.numericHelper.lt(a, b))
-  }
+  }.asNative2
 
   val lessThanOrEqual = NumericFunction2("lessThanOrEqual") {
     (h: NumericHelpers[Any], _) => (a: AnyNum, b: AnyNum) =>
       Primitive.Boolean(h.numericHelper.lteq(a, b))
+  }.asNative2
+
+  val composeRight = DynamicNativeFunction3("composeRight") {
+    (ctx: NativeContext) => (f1: RTValue.Function, f2: RTValue.Function, arg: RTValue) =>
+      {
+        val res1 = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f1, arg)
+        ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f2, res1)
+      }
   }
 }

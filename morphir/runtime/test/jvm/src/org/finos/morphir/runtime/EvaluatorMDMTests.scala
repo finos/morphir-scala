@@ -1527,7 +1527,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
         testEvaluation("LessThanChar")("sdkBasicsTests", "sdkLessThanTestChar")(
           Data.Boolean(true)
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("ComposeRight (>>)")("sdkBasicsTests", "sdkComposeRightTest")(Data.Int(603))
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
