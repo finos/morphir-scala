@@ -91,10 +91,9 @@ object StringSDK {
 
   /**
    * This implementation follows the morphir-jvm implementation and is different from the Morphir elm implementation.
-   * The following are examples of what to expect:
-   * split("o", "foo")
-   *  - java: ["f"]
-   *  - elm: ["f", "o", "o"]
+   * The following are examples of what to expect: split("o", "foo")
+   *   - java: ["f"]
+   *   - elm: ["f", "o", "o"]
    *
    * split("o{", foo")
    *   - java: throws Exception
