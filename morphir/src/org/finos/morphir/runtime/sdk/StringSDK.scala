@@ -83,6 +83,9 @@ object StringSDK {
       RTString(result)
   }
 
+  /**
+   * This doesn't support negative indexes that would be supported in Morphir elm.
+   */
   val slice = DynamicNativeFunction3("slice") {
     (context: NativeContext) => (start: RT.Primitive.Int, end: RT.Primitive.Int, str: RTString) =>
       val result = str.value.slice(start.valueAsInt, end.valueAsInt)
@@ -101,7 +104,10 @@ object StringSDK {
    */
   val split = DynamicNativeFunction2("split") {
     (context: NativeContext) => (sep: RTString, str: RTString) =>
-      val result = str.value.split(sep.value).toList.map(RTString(_))
+      val result = sep.value match {
+        case "" => str.value.split(sep.value).toList.map(RTString(_))
+        case _  => str.value.split(sep.value.toCharArray).toList.map(RTString(_))
+      }
       RT.List(result)
   }
 

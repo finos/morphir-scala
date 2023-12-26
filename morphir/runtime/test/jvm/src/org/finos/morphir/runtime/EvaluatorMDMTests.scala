@@ -866,6 +866,28 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.String("")
           )
         ),
+        testEvalMultiple("split .")(
+          "stringTests",
+          "stringSplit",
+          List(".", "1.2.3.4")
+        )(
+          Data.List(
+            Data.String("1"),
+            Data.String("2"),
+            Data.String("3"),
+            Data.String("4")
+          )
+        ),
+        testEvalMultiple("split {")(
+          "stringTests",
+          "stringSplit",
+          List("{", "{1}")
+        )(
+          Data.List(
+            Data.String(""),
+            Data.String("1}")
+          )
+        ),
         testEvalMultiple("startsWith true")(
           "stringTests",
           "stringStartsWith",
