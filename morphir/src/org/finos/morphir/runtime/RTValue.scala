@@ -13,8 +13,8 @@ import org.finos.morphir.runtime.internal.{NativeFunctionSignature, NativeFuncti
 import org.finos.morphir.runtime.MorphirRuntimeError.{IllegalValue, FailedCoercion}
 import org.finos.morphir.runtime.internal.CallStackFrame
 
+import scala.collection.immutable.{List as ScalaList, Set as ScalaSet, Map as ScalaMap}
 import scala.collection.mutable
-import scala.collection.mutable.LinkedHashMap
 
 // TODO Integrate errors into reporting format
 // Represents a Morphir-Evaluator result. Typed on TypedMorphirRuntimeDefs.TypeAttribs, TypedMorphirRuntimeDefs.ValueAttribs
@@ -198,6 +198,18 @@ object RTValue {
       case _             => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a LocalTime")
     }
 
+  def coerceMonth(arg: RTValue): ConstructorResult =
+    arg match {
+      case month: ConstructorResult if Month.isMonth(month) => month
+      case _ => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a Month")
+    }
+
+  def coerceDayOfWeek(arg: RTValue): ConstructorResult =
+    arg match {
+      case dayOfWeek: ConstructorResult if DayOfWeek.isDayOfWeek(dayOfWeek) => dayOfWeek
+      case _ => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a DayOfWeek")
+    }
+
   case class NumericsWithHelper[T](
       a: T,
       b: T,
@@ -374,6 +386,129 @@ object RTValue {
 
   case class LocalTime(value: java.time.LocalTime) extends ValueResult[java.time.LocalTime] {
     override def succinct(depth: Int) = s"LocalTime($value)"
+  }
+
+  object Month {
+    private final case class MonthData(
+        fqn: FQName,
+        javaMonth: java.time.Month
+    ) {
+      val constructorResult: ConstructorResult = ConstructorResult(fqn, ScalaList())
+    }
+
+    private object MonthData {
+      val January   = MonthData(fqn"Morphir.SDK:LocalDate:January", java.time.Month.JANUARY)
+      val February  = MonthData(fqn"Morphir.SDK:LocalDate:February", java.time.Month.FEBRUARY)
+      val March     = MonthData(fqn"Morphir.SDK:LocalDate:March", java.time.Month.MARCH)
+      val April     = MonthData(fqn"Morphir.SDK:LocalDate:April", java.time.Month.APRIL)
+      val May       = MonthData(fqn"Morphir.SDK:LocalDate:May", java.time.Month.MAY)
+      val June      = MonthData(fqn"Morphir.SDK:LocalDate:June", java.time.Month.JUNE)
+      val July      = MonthData(fqn"Morphir.SDK:LocalDate:July", java.time.Month.JULY)
+      val August    = MonthData(fqn"Morphir.SDK:LocalDate:August", java.time.Month.AUGUST)
+      val September = MonthData(fqn"Morphir.SDK:LocalDate:September", java.time.Month.SEPTEMBER)
+      val October   = MonthData(fqn"Morphir.SDK:LocalDate:October", java.time.Month.OCTOBER)
+      val November  = MonthData(fqn"Morphir.SDK:LocalDate:November", java.time.Month.NOVEMBER)
+      val December  = MonthData(fqn"Morphir.SDK:LocalDate:December", java.time.Month.DECEMBER)
+
+      val all: ScalaSet[MonthData] =
+        ScalaSet(January, February, March, April, May, June, July, August, September, October, November, December)
+
+      val byConstructorResult: ScalaMap[ConstructorResult, MonthData] = all.map(m => m.constructorResult -> m).toMap
+      val byJavaMonth: ScalaMap[java.time.Month, MonthData]           = all.map(m => m.javaMonth -> m).toMap
+    }
+
+    val January: ConstructorResult   = MonthData.January.constructorResult
+    val February: ConstructorResult  = MonthData.February.constructorResult
+    val March: ConstructorResult     = MonthData.March.constructorResult
+    val April: ConstructorResult     = MonthData.April.constructorResult
+    val May: ConstructorResult       = MonthData.May.constructorResult
+    val June: ConstructorResult      = MonthData.June.constructorResult
+    val July: ConstructorResult      = MonthData.July.constructorResult
+    val August: ConstructorResult    = MonthData.August.constructorResult
+    val September: ConstructorResult = MonthData.September.constructorResult
+    val October: ConstructorResult   = MonthData.October.constructorResult
+    val November: ConstructorResult  = MonthData.November.constructorResult
+    val December: ConstructorResult  = MonthData.December.constructorResult
+
+    val allFqns: ScalaSet[FQName] = MonthData.all.map(_.fqn).toSet
+
+    def isMonth(constructorResult: ConstructorResult): Boolean =
+      MonthData.byConstructorResult.contains(constructorResult)
+
+    def fromJavaMonth(month: java.time.Month): ConstructorResult = {
+      val monthData = MonthData.byJavaMonth.get(month)
+        .getOrElse(throw new Exception(s"unreachable branch reached: unknown java.time.Month $month"))
+      monthData.constructorResult
+    }
+
+    def fromConstructorResult(monthConstructorResult: RTValue.ConstructorResult): Option[java.time.Month] =
+      MonthData.byConstructorResult.get(monthConstructorResult).map(_.javaMonth)
+
+    def coerceJavaMonth(monthArg: RTValue): java.time.Month =
+      fromConstructorResult(coerceMonth(monthArg))
+        .getOrElse(throw new FailedCoercion(s"Cannot unwrap the value `${monthArg}` into a Month"))
+
+    def unapply(arg: RTValue): Option[java.time.Month] =
+      arg match {
+        case cr: ConstructorResult => fromConstructorResult(cr)
+        case _                     => None
+      }
+  }
+
+  object DayOfWeek {
+    private final case class DayOfWeekData(
+        fqn: FQName,
+        javaDayOfWeek: java.time.DayOfWeek
+    ) {
+      val constructorResult: ConstructorResult = ConstructorResult(fqn, ScalaList())
+    }
+
+    private object DayOfWeekData {
+      val Monday    = DayOfWeekData(fqn"Morphir.SDK:LocalDate:Monday", java.time.DayOfWeek.MONDAY)
+      val Tuesday   = DayOfWeekData(fqn"Morphir.SDK:LocalDate:Tuesday", java.time.DayOfWeek.TUESDAY)
+      val Wednesday = DayOfWeekData(fqn"Morphir.SDK:LocalDate:Wednesday", java.time.DayOfWeek.WEDNESDAY)
+      val Thursday  = DayOfWeekData(fqn"Morphir.SDK:LocalDate:Thursday", java.time.DayOfWeek.THURSDAY)
+      val Friday    = DayOfWeekData(fqn"Morphir.SDK:LocalDate:Friday", java.time.DayOfWeek.FRIDAY)
+      val Saturday  = DayOfWeekData(fqn"Morphir.SDK:LocalDate:Saturday", java.time.DayOfWeek.SATURDAY)
+      val Sunday    = DayOfWeekData(fqn"Morphir.SDK:LocalDate:Sunday", java.time.DayOfWeek.SUNDAY)
+
+      val all: ScalaSet[DayOfWeekData] = ScalaSet(Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)
+
+      val byConstructorResult: ScalaMap[ConstructorResult, DayOfWeekData] = all.map(m => m.constructorResult -> m).toMap
+      val byJavaDayOfWeek: ScalaMap[java.time.DayOfWeek, DayOfWeekData]   = all.map(m => m.javaDayOfWeek -> m).toMap
+    }
+
+    val Monday    = DayOfWeekData.Monday.constructorResult
+    val Tuesday   = DayOfWeekData.Tuesday.constructorResult
+    val Wednesday = DayOfWeekData.Wednesday.constructorResult
+    val Thursday  = DayOfWeekData.Thursday.constructorResult
+    val Friday    = DayOfWeekData.Friday.constructorResult
+    val Saturday  = DayOfWeekData.Saturday.constructorResult
+    val Sunday    = DayOfWeekData.Sunday.constructorResult
+
+    val allFqns: ScalaSet[FQName] = DayOfWeekData.all.map(_.fqn).toSet
+
+    def isDayOfWeek(constructorResult: ConstructorResult): Boolean =
+      DayOfWeekData.byConstructorResult.contains(constructorResult)
+
+    def fromJavaDayOfWeek(dayOfWeek: java.time.DayOfWeek): ConstructorResult = {
+      val dayOfWeekData = DayOfWeekData.byJavaDayOfWeek.get(dayOfWeek)
+        .getOrElse(throw new Exception(s"unreachable branch reached: unknown java.time.DayOfWeek $dayOfWeek"))
+      dayOfWeekData.constructorResult
+    }
+
+    def fromConstructorResult(dayOfWeekConstructorResult: RTValue.ConstructorResult): Option[java.time.DayOfWeek] =
+      DayOfWeekData.byConstructorResult.get(dayOfWeekConstructorResult).map(_.javaDayOfWeek)
+
+    def coerceJavaDayOfWeek(dayOfWeekArg: RTValue): java.time.DayOfWeek =
+      fromConstructorResult(coerceMonth(dayOfWeekArg))
+        .getOrElse(throw new FailedCoercion(s"Cannot unwrap the value `${dayOfWeekArg}` into a Month"))
+
+    def unapply(arg: RTValue): Option[java.time.DayOfWeek] =
+      arg match {
+        case cr: ConstructorResult => fromConstructorResult(cr)
+        case _                     => None
+      }
   }
 
   case class Tuple(elements: scala.List[RTValue]) extends ValueResult[scala.List[RTValue]] {

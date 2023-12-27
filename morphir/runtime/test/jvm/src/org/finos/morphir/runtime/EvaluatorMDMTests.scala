@@ -30,15 +30,17 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   def deriveData(input: Any): Data =
     input match {
       // If the data is already derived, just use it!
-      case alreadyData: Data       => alreadyData
-      case u: Unit                 => Deriver.toData(u)
-      case b: Boolean              => Deriver.toData(b)
-      case i: Int                  => Deriver.toData(i)
-      case c: Char                 => Deriver.toData(c)
-      case d: Double               => Deriver.toData(d)
-      case s: String               => Deriver.toData(s)
-      case ld: java.time.LocalDate => Deriver.toData(ld)
-      case lt: java.time.LocalTime => Deriver.toData(lt)
+      case alreadyData: Data        => alreadyData
+      case u: Unit                  => Deriver.toData(u)
+      case b: Boolean               => Deriver.toData(b)
+      case i: Int                   => Deriver.toData(i)
+      case c: Char                  => Deriver.toData(c)
+      case d: Double                => Deriver.toData(d)
+      case s: String                => Deriver.toData(s)
+      case ld: java.time.LocalDate  => Deriver.toData(ld)
+      case m: java.time.Month       => Deriver.toData(m)
+      case dow: java.time.DayOfWeek => Deriver.toData(dow)
+      case lt: java.time.LocalTime  => Deriver.toData(lt)
       case list: List[_] =>
         val mapped = list.map(deriveData(_))
         Data.List(mapped.head, mapped.tail: _*)

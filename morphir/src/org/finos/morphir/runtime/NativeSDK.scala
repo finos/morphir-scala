@@ -1,7 +1,7 @@
 package org.finos.morphir.runtime
 
 import org.finos.morphir.extensibility.SdkModuleDescriptor
-import org.finos.morphir.naming.*
+import org.finos.morphir.naming._
 import org.finos.morphir.runtime.internal.NativeFunctionAdapter
 import org.finos.morphir.runtime.sdk._
 import org.finos.morphir.runtime.sdk.ListSDK
@@ -9,7 +9,7 @@ import org.finos.morphir.{Hints, ModuleDescriptor, MorphirTag, naming}
 
 object NativeSDK {
 
-  import Coercer.*
+  import Coercer._
 
   object Morphir {
     object SDK {
@@ -104,6 +104,16 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(LocalDateSDK.diffInDays),
           NativeFunctionAdapter.Fun1(LocalDateSDK.fromISO)
         )
+
+        private val enumSDKConstructor = SDKConstructor(scala.List())
+
+        // Morphir.SDK:LocalDate:Month
+        private val monthCtors = RTValue.Month.allFqns.map(fqn => fqn -> enumSDKConstructor).toMap
+
+        // Morphir.SDK:LocalDate:DayOfWeek
+        private val dayOfWeekCtors = RTValue.DayOfWeek.allFqns.map(fqn => fqn -> enumSDKConstructor).toMap
+
+        override val ctors: Map[FQName, SDKConstructor] = monthCtors ++ dayOfWeekCtors
       }
 
       case object LocalTime extends SdkModuleDescriptor(moduleName = "LocalTime") {
@@ -118,15 +128,20 @@ object NativeSDK {
     }
   }
 
-  val resolvedFunctions: Map[FQName, SDKValue] = {
-    import Morphir.SDK.*
-
-    Basics.resolvedFunctions
-      ++ List.resolvedFunctions
-      ++ Maybe.resolvedFunctions
-      ++ Result.resolvedFunctions
-      ++ LocalDate.resolvedFunctions
-      ++ LocalTime.resolvedFunctions
-      ++ String.resolvedFunctions
+  val modules: Seq[SdkModuleDescriptor] = {
+    import Morphir.SDK._
+    Seq(
+      Basics,
+      List,
+      LocalDate,
+      LocalTime,
+      Maybe,
+      Result,
+      String
+    )
   }
+
+  val resolvedFunctions: Map[FQName, SDKValue] = modules.map(_.resolvedFunctions).reduce(_ ++ _)
+
+  val ctors: Map[FQName, SDKConstructor] = modules.map(_.ctors).reduce(_ ++ _)
 }
