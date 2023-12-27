@@ -43,23 +43,24 @@ object NativeSDK {
 
       case object Basics extends SdkModuleDescriptor("Basics") {
         val functions: List[NativeFunctionAdapter] = scala.List(
-          NativeFunctionAdapter.Fun1(sdk.BasicsSDK.ceiling),
-          NativeFunctionAdapter.Fun1(sdk.BasicsSDK.floor),
-          NativeFunctionAdapter.Fun1(sdk.BasicsSDK.truncate),
-          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.integerDivide),
-          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.always),
-          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.xor),
-          NativeFunctionAdapter.Fun1(sdk.BasicsSDK.identity),
-          NativeFunctionAdapter.Fun3(sdk.BasicsSDK.clamp.asNative3),
-          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.power),
-          NativeFunctionAdapter.Fun1(sdk.BasicsSDK.abs.asNative1),
-          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.modBy.asNative2),
-          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.remainderBy.asNative2),
-          NativeFunctionAdapter.Fun1(sdk.BasicsSDK.sqrt),
-          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.greaterThan.asNative2),
-          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.greaterThanOrEqual.asNative2),
-          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.lessThan.asNative2),
-          NativeFunctionAdapter.Fun2(sdk.BasicsSDK.lessThanOrEqual.asNative2)
+          NativeFunctionAdapter.Fun1(BasicsSDK.ceiling),
+          NativeFunctionAdapter.Fun1(BasicsSDK.floor),
+          NativeFunctionAdapter.Fun1(BasicsSDK.truncate),
+          NativeFunctionAdapter.Fun2(BasicsSDK.integerDivide),
+          NativeFunctionAdapter.Fun2(BasicsSDK.always),
+          NativeFunctionAdapter.Fun2(BasicsSDK.xor),
+          NativeFunctionAdapter.Fun1(BasicsSDK.identity),
+          NativeFunctionAdapter.Fun3(BasicsSDK.clamp),
+          NativeFunctionAdapter.Fun2(BasicsSDK.power),
+          NativeFunctionAdapter.Fun1(BasicsSDK.abs),
+          NativeFunctionAdapter.Fun2(BasicsSDK.modBy),
+          NativeFunctionAdapter.Fun2(BasicsSDK.remainderBy),
+          NativeFunctionAdapter.Fun1(BasicsSDK.sqrt),
+          NativeFunctionAdapter.Fun2(BasicsSDK.greaterThan),
+          NativeFunctionAdapter.Fun2(BasicsSDK.greaterThanOrEqual),
+          NativeFunctionAdapter.Fun2(BasicsSDK.lessThan),
+          NativeFunctionAdapter.Fun2(BasicsSDK.lessThanOrEqual),
+          NativeFunctionAdapter.Fun3(BasicsSDK.composeRight)
         )
       }
 

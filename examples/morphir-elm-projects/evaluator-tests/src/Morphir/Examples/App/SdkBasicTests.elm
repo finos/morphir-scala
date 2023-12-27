@@ -1828,19 +1828,29 @@ sdkComposeLeftTest ctx =
 
 
 {-| Test: SdkBasics/composeRight
-Expected: True
+Expected: 603
 -}
-sdkComposeRightTest : TestContext -> Bool
+sdkComposeRightTest : TestContext -> Int
 sdkComposeRightTest ctx =
     test ctx <|
         let
             f x y z =
                 x >> y >> z
 
+            add5 x =
+                x + 5
+
+            mul100 x =
+                x * 100
+
+            add3 x =
+                x + 3
+
             g =
-                f not not not
+                f add5 mul100 add3
         in
-        g False
+        g 1
+
 
 
 {-| Test: SdkBasics/basicsCeilingTest
