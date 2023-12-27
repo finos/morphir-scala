@@ -52,3 +52,72 @@ fromISOTest iso =
 fromOrdinalDateTest : Int -> Int -> LocalDate
 fromOrdinalDateTest year dayOfYear =
     fromOrdinalDate year dayOfYear
+
+
+{-| Test: LocalDate:year
+-}
+yearTest : LocalDate -> Int
+yearTest localDate =
+    year localDate
+
+
+{-| Test: LocalDate:month
+-}
+monthTest : LocalDate -> Month
+monthTest localDate =
+    month localDate
+
+
+{-| Test: LocalDate:monthNumber
+-}
+monthNumberTest : LocalDate -> Int
+monthNumberTest localDate =
+    monthNumber localDate
+
+
+{-| Test: LocalDate:day
+-}
+dayTest : LocalDate -> Int
+dayTest localDate =
+    day localDate
+
+
+{-| Test: LocalDate:dayOfWeek
+-}
+dayOfWeekTest : LocalDate -> DayOfWeek
+dayOfWeekTest localDate =
+    dayOfWeek localDate
+
+
+{-| Test: LocalDate:fromCalendarDate
+-}
+fromCalendarDateTest : Int -> Month -> Int -> LocalDate
+fromCalendarDateTest year month day =
+    fromCalendarDate year month day
+
+
+{-| Test: test input support for DayOfWeek enum
+-}
+dayOfWeekAsInputTest : DayOfWeek -> Int
+dayOfWeekAsInputTest dayOfWeek =
+    case dayOfWeek of
+        Monday ->
+            1
+
+        Tuesday ->
+            2
+
+        Wednesday ->
+            3
+
+        Thursday ->
+            4
+
+        Friday ->
+            5
+
+        Saturday ->
+            6
+
+        Sunday ->
+            7
