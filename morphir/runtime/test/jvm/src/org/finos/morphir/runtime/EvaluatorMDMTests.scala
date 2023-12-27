@@ -591,6 +591,20 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             List(java.time.Year.MIN_VALUE - 1, java.time.Month.JANUARY, 20)
           )(
             Data.LocalDate(java.time.LocalDate.of(java.time.Year.MIN_VALUE, 1, 20))
+          ),
+          testEvalMultiple("fromCalendarDate clamped leap year day")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(1900, java.time.Month.FEBRUARY, 29)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1900, 2, 28))
+          ),
+          testEvalMultiple("fromCalendarDate valid leap year day")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(1904, java.time.Month.FEBRUARY, 29)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1904, 2, 29))
           )
         ),
         suite("Month enum support")(
