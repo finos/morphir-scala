@@ -837,6 +837,16 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.String("sentence.")
           )
         ),
+        testEvalMultiple("split phrase")(
+          "stringTests",
+          "stringSplit",
+          List("complete", "This is a complete sentence.")
+        )(
+          Data.List(
+            Data.String("This is a "),
+            Data.String(" sentence.")
+          )
+        ),
         testEvalMultiple("split letter")(
           "stringTests",
           "stringSplit",
@@ -886,6 +896,17 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.List(
             Data.String(""),
             Data.String("1}")
+          )
+        ),
+        testEvalMultiple("split .{")(
+          "stringTests",
+          "stringSplit",
+          List(".{", "ab.{c.{d")
+        )(
+          Data.List(
+            Data.String("ab"),
+            Data.String("c"),
+            Data.String("d")
           )
         ),
         testEvalMultiple("startsWith true")(

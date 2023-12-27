@@ -104,10 +104,7 @@ object StringSDK {
    */
   val split = DynamicNativeFunction2("split") {
     (context: NativeContext) => (sep: RTString, str: RTString) =>
-      val result = sep.value match {
-        case "" => str.value.split(sep.value).toList.map(RTString(_))
-        case _  => str.value.split(sep.value.toCharArray).toList.map(RTString(_))
-      }
+      val result = str.value.split(java.util.regex.Pattern.quote(sep.value)).toList.map(RTString(_))
       RT.List(result)
   }
 
