@@ -83,7 +83,8 @@ object NativeSDK {
       case object Maybe extends SdkModuleDescriptor(moduleName = "Maybe") {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun2(MaybeSDK.map),
-          NativeFunctionAdapter.Fun2(MaybeSDK.withDefault)
+          NativeFunctionAdapter.Fun2(MaybeSDK.withDefault),
+          NativeFunctionAdapter.Fun2(MaybeSDK.andThen)
         )
       }
 
