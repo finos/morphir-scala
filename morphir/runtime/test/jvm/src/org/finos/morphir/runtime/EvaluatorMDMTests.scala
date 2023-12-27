@@ -34,6 +34,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case u: Unit                 => Deriver.toData(u)
       case b: Boolean              => Deriver.toData(b)
       case i: Int                  => Deriver.toData(i)
+      case c: Char                 => Deriver.toData(c)
       case d: Double               => Deriver.toData(d)
       case s: String               => Deriver.toData(s)
       case ld: java.time.LocalDate => Deriver.toData(ld)
@@ -473,7 +474,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("List.any with True Output")("listTests", "listAnyFalseTest")(
           Data.Boolean(false)
         ),
-        testEvaluation("List Parittion")("listTests", "listPartitionTest")(
+        testEvaluation("List Partition")("listTests", "listPartitionTest")(
           Data.Tuple(
             Data.List(Data.Int(1), Data.Int(3), Data.Int(5)),
             Data.List(Data.Int(2), Data.Int(4))
@@ -737,9 +738,236 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("String")(
-        testEvalMultiple("String Append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
+        testEvalMultiple("append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
           Data.String("DoBop")
-        )
+        ),
+        testEval("concat")(
+          "stringTests",
+          "stringConcat",
+          List(
+            "abc",
+            "def",
+            " ",
+            "ghi"
+          )
+        )(
+          Data.String("abcdef ghi")
+        ),
+        testEvalMultiple("contains true")(
+          "stringTests",
+          "stringContains",
+          List("cat", "cataracts")
+        )(
+          Data.True
+        ),
+        testEvalMultiple("contains false")(
+          "stringTests",
+          "stringContains",
+          List("dog", "cataracts")
+        )(
+          Data.False
+        ),
+        testEvalMultiple("dropLeft")(
+          "stringTests",
+          "stringDropLeft",
+          List(3, "String")
+        )(
+          Data.String("ing")
+        ),
+        testEvalMultiple("dropRight")(
+          "stringTests",
+          "stringDropRight",
+          List(3, "String")
+        )(
+          Data.String("Str")
+        ),
+        testEvalMultiple("endsWith true")(
+          "stringTests",
+          "stringEndsWith",
+          List("ing", "Singing")
+        )(
+          Data.True
+        ),
+        testEvalMultiple("endsWith false")(
+          "stringTests",
+          "stringEndsWith",
+          List("sing", "Singing")
+        )(
+          Data.False
+        ),
+        testEvalMultiple("join")(
+          "stringTests",
+          "stringJoin",
+          List(", ", List("Apple", "Orange", "Yellow"))
+        )(
+          Data.String("Apple, Orange, Yellow")
+        ),
+        testEval("length")("StringTests", "stringLength", "Length Of String")(Data.Int(16)),
+        testEvalMultiple("padLeft")(
+          "stringTests",
+          "stringPadLeft",
+          List(3, 'm', " yum")
+        )(
+          Data.String("mmm yum")
+        ),
+        testEvalMultiple("padRight")(
+          "stringTests",
+          "stringPadRight",
+          List(3, 'm', "yum")
+        )(
+          Data.String("yummmm")
+        ),
+        testEvalMultiple("slice")(
+          "stringTests",
+          "stringSlice",
+          List(4, 11, "This is a complete sentence.")
+        )(
+          Data.String(" is a c")
+        ),
+        testEvalMultiple("split sentence")(
+          "stringTests",
+          "stringSplit",
+          List(" ", "This is a complete sentence.")
+        )(
+          Data.List(
+            Data.String("This"),
+            Data.String("is"),
+            Data.String("a"),
+            Data.String("complete"),
+            Data.String("sentence.")
+          )
+        ),
+        testEvalMultiple("split phrase")(
+          "stringTests",
+          "stringSplit",
+          List("complete", "This is a complete sentence.")
+        )(
+          Data.List(
+            Data.String("This is a "),
+            Data.String(" sentence.")
+          )
+        ),
+        testEvalMultiple("split letter")(
+          "stringTests",
+          "stringSplit",
+          List("o", "foo")
+        )(
+          Data.List(
+            Data.String("f")
+          )
+        ),
+        testEvalMultiple("split no separator")(
+          "stringTests",
+          "stringSplit",
+          List("", "foo")
+        )(
+          Data.List(
+            Data.String("f"),
+            Data.String("o"),
+            Data.String("o")
+          )
+        ),
+        testEvalMultiple("split no strings")(
+          "stringTests",
+          "stringSplit",
+          List("", "")
+        )(
+          Data.List(
+            Data.String("")
+          )
+        ),
+        testEvalMultiple("split .")(
+          "stringTests",
+          "stringSplit",
+          List(".", "1.2.3.4")
+        )(
+          Data.List(
+            Data.String("1"),
+            Data.String("2"),
+            Data.String("3"),
+            Data.String("4")
+          )
+        ),
+        testEvalMultiple("split {")(
+          "stringTests",
+          "stringSplit",
+          List("{", "{1}")
+        )(
+          Data.List(
+            Data.String(""),
+            Data.String("1}")
+          )
+        ),
+        testEvalMultiple("split .{")(
+          "stringTests",
+          "stringSplit",
+          List(".{", "ab.{c.{d")
+        )(
+          Data.List(
+            Data.String("ab"),
+            Data.String("c"),
+            Data.String("d")
+          )
+        ),
+        testEvalMultiple("startsWith true")(
+          "stringTests",
+          "stringStartsWith",
+          List("Doctor", "Doctor Smith")
+        )(
+          Data.True
+        ),
+        testEvalMultiple("startsWith false")(
+          "stringTests",
+          "stringStartsWith",
+          List("Mister", "Doctor Smith")
+        )(
+          Data.False
+        ),
+        testEval("toLower")(
+          "stringTests",
+          "stringToLower",
+          "CAPITALIZED"
+        )(
+          Data.String("capitalized")
+        ),
+        testEval("toUpper")(
+          "stringTests",
+          "stringToUpper",
+          "lowercased"
+        )(
+          Data.String("LOWERCASED")
+        ),
+        testEval("trim")(
+          "stringTests",
+          "stringTrim",
+          "                   hello world        "
+        )(
+          Data.String("hello world")
+        ),
+        testEval("trimLeft")(
+          "stringTests",
+          "stringTrimLeft",
+          "                   hello world        "
+        )(
+          Data.String("hello world        ")
+        ),
+        testEval("trimRight")(
+          "stringTests",
+          "stringTrimRight",
+          "                   hello world        "
+        )(
+          Data.String("                   hello world")
+        ),
+        testEvaluation("left")("StringTests", "stringLeftTest")(Data.String("Mu")),
+        testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
+        testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
+        testEvaluation("fromFloat")("StringTests", "stringFromFloatTest")(Data.String("1.5")),
+        testEvaluation("toFloat")("StringTests", "stringGoodToFloatTest")(Data.Optional.Some(Data.Float(1.5))),
+        testEvaluation("toFloat")("StringTests", "stringBadToFloatTest")(Data.Optional.None(Concept.Float)),
+        testEvaluation("toInt")("StringTests", "stringToIntTest1")(Data.Optional.Some(Data.Int(25))),
+        testEvaluation("toInt")("StringTests", "stringToIntTest2")(Data.Optional.None(Concept.Int32)),
+        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),
+        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false))
       ),
       suite("References To user Defined Members")(
         testEvaluation("Reference to value")("userDefinedReferenceTests", "userDefinedReferenceValueTest")(Data.Int(5)),
@@ -1080,16 +1308,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("LessThanChar")("sdkBasicsTests", "sdkLessThanTestChar")(
           Data.Boolean(true)
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
-      ),
-      suite("String Tests")(
-        testEvaluation("left")("StringTests", "stringLeftTest")(Data.String("Mu")),
-        testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
-        testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
-        testEvaluation("fromFloat")("StringTests", "stringFromFloatTest")(Data.String("1.5")),
-        testEvaluation("toInt")("StringTests", "stringToIntTest1")(Data.Optional.Some(Data.Int(25))),
-        testEvaluation("toInt")("StringTests", "stringToIntTest2")(Data.Optional.None(Concept.Int32)),
-        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),
-        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false))
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
