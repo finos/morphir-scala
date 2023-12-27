@@ -280,3 +280,10 @@ dictPartitionPredicateOperatesOnKeyAndValueTest ctx =
         in
         Dict.partition pred <|
             Dict.fromList [ ( "Waldo", 0 ), ( "Bob", 1 ), ( "Rob", 0 ), ( "Lob", 1 ) ]
+
+
+{-| Test: Dict/remove
+-}
+dictRemoveTest : String -> Dict String Int -> Dict String Int
+dictRemoveTest key dict =
+    Dict.remove key dict

@@ -1385,6 +1385,28 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
               )
             )
           )
+        ),
+        suite("remove")(
+          testEvalMultiple("removes entries")("dictionaryTests", "dictRemoveTest", List("a", Map("a" -> 1, "b" -> 2)))(
+            Data.Map(Data.String("b") -> Data.Int(2))
+          ),
+          testEvalMultiple("no changes for missing entries")(
+            "dictionaryTests",
+            "dictRemoveTest",
+            List("q", Map("a" -> 1, "b" -> 2))
+          )(
+            Data.Map(
+              Data.String("a") -> Data.Int(1),
+              Data.String("b") -> Data.Int(2)
+            )
+          ),
+          testEvalMultiple("removes entries from empty dicts")(
+            "dictionaryTests",
+            "dictRemoveTest",
+            List("a", Data.Map.empty(Concept.String, Concept.Int32))
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )
         )
       ),
       suite("Maybe Tests")(

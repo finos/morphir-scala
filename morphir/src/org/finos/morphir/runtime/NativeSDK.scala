@@ -136,7 +136,8 @@ object NativeSDK {
 
       case object Dict extends SdkModuleDescriptor(moduleName = "Dict") {
         val functions: List[NativeFunctionAdapter] = scala.List(
-          NativeFunctionAdapter.Fun2(DictSDK.partition)
+          NativeFunctionAdapter.Fun2(DictSDK.partition),
+          NativeFunctionAdapter.Fun2(DictSDK.remove)
         )
       }
     }

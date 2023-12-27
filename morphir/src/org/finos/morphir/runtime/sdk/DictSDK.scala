@@ -18,4 +18,13 @@ object DictSDK {
         RTValue.Tuple(RTValue.Map(part1), RTValue.Map(part2))
       }
   }
+
+  val remove = DynamicNativeFunction2("remove") {
+    (ctx: NativeContext) => (comp: RTValue, dict: RTValue.Map) =>
+      {
+        val newDict = dict.value.clone() // clone to avoid mutating the caller's dict
+        newDict.remove(comp)
+        RTValue.Map(newDict)
+      }
+  }
 }
