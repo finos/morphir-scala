@@ -1324,7 +1324,68 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )),
         testEvaluation("Update - delete key")("dictionaryTests", "dictUpdateTest2")(Data.Map(
           (Data.String("Alice"), Data.Int(1))
-        ))
+        )),
+        suite("Partition")(
+          testEvaluation("partitions")("dictionaryTests", "dictPartitionTest")(
+            Data.Tuple(
+              Data.Map(
+                Data.String("Bob") -> Data.Int(1)
+              ),
+              Data.Map(
+                Data.String("Waldo") -> Data.Int(0)
+              )
+            )
+          ),
+          testEvaluation("partitions an empty dict")("dictionaryTests", "dictPartitionEmptyTest")(
+            Data.Tuple(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          ),
+          testEvaluation("with partitioning result reversed")("dictionaryTests", "dictPartitionInversePredTest")(
+            Data.Tuple(
+              Data.Map(
+                Data.String("Waldo") -> Data.Int(0)
+              ),
+              Data.Map(
+                Data.String("Bob") -> Data.Int(1)
+              )
+            )
+          ),
+          testEvaluation("partitions when all entries match pred")("dictionaryTests", "dictPartitionAllMatchTest")(
+            Data.Tuple(
+              Data.Map(
+                Data.String("Waldo") -> Data.Int(0),
+                Data.String("Bob")   -> Data.Int(1)
+              ),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          ),
+          testEvaluation("partitions when no entries match pred")("dictionaryTests", "dictPartitionNoneMatchTest")(
+            Data.Tuple(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map(
+                Data.String("Bob")   -> Data.Int(1),
+                Data.String("Waldo") -> Data.Int(0)
+              )
+            )
+          ),
+          testEvaluation("partitions with predicate based on key and value")(
+            "dictionaryTests",
+            "dictPartitionPredicateOperatesOnKeyAndValueTest"
+          )(
+            Data.Tuple(
+              Data.Map(
+                Data.String("Bob") -> Data.Int(1),
+                Data.String("Lob") -> Data.Int(1)
+              ),
+              Data.Map(
+                Data.String("Waldo") -> Data.Int(0),
+                Data.String("Rob")   -> Data.Int(0)
+              )
+            )
+          )
+        )
       ),
       suite("Maybe Tests")(
         testEvaluation("Returns a Just 1")("maybeTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),

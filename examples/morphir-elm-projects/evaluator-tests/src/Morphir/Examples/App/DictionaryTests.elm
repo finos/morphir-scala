@@ -209,3 +209,74 @@ dictSizeTest dict =
 dictValuesTest : Dict key value -> List value
 dictValuesTest dict =
     Dict.values dict
+
+
+{-| Test: Dict/partition
+expected = Tuple2(Map("Bob" -> 1), Map("Waldo" -> 0))
+-}
+dictPartitionTest : TestContext -> ( Dict String Int, Dict String Int )
+dictPartitionTest ctx =
+    test ctx <|
+        Dict.partition (\k _ -> String.startsWith "B" k) <|
+            Dict.fromList [ ( "Waldo", 0 ), ( "Bob", 1 ) ]
+
+
+{-| Test: Dict/partition
+expected = Tuple2(Map(), Map())
+-}
+dictPartitionEmptyTest : TestContext -> ( Dict String Int, Dict String Int )
+dictPartitionEmptyTest ctx =
+    test ctx <|
+        Dict.partition (\_ _ -> True) <|
+            Dict.fromList []
+
+
+{-| Test: Dict/partition
+expected = Tuple2(Map("Waldo" -> 0), Map("Bob" -> 1))
+-}
+dictPartitionInversePredTest : TestContext -> ( Dict String Int, Dict String Int )
+dictPartitionInversePredTest ctx =
+    test ctx <|
+        Dict.partition (\k _ -> not (String.startsWith "B" k)) <|
+            Dict.fromList [ ( "Waldo", 0 ), ( "Bob", 1 ) ]
+
+
+{-| Test: Dict/partition
+expected = Tuple2(Map("Waldo" -> 0, "Bob" -> 1), Map())
+-}
+dictPartitionAllMatchTest : TestContext -> ( Dict String Int, Dict String Int )
+dictPartitionAllMatchTest ctx =
+    test ctx <|
+        Dict.partition (\_ _ -> True) <|
+            Dict.fromList [ ( "Waldo", 0 ), ( "Bob", 1 ) ]
+
+
+{-| Test: Dict/partition
+expected = Tuple2(Map(), Map("Waldo" -> 0, "Bob" -> 1))
+-}
+dictPartitionNoneMatchTest : TestContext -> ( Dict String Int, Dict String Int )
+dictPartitionNoneMatchTest ctx =
+    test ctx <|
+        Dict.partition (\_ _ -> False) <|
+            Dict.fromList [ ( "Waldo", 0 ), ( "Bob", 1 ) ]
+
+
+{-| Test: Dict/partition
+expected = Tuple2(Map("Bob" -> 1, "Lob" -> 1), Map("Rob" -> 0, "Waldo" -> 1))
+-}
+dictPartitionPredicateOperatesOnKeyAndValueTest : TestContext -> ( Dict String Int, Dict String Int )
+dictPartitionPredicateOperatesOnKeyAndValueTest ctx =
+    test ctx <|
+        let
+            keyMatches k =
+                String.length k
+                    == 3
+
+            valMatches v =
+                v == 1
+
+            pred k v =
+                keyMatches k && valMatches v
+        in
+        Dict.partition pred <|
+            Dict.fromList [ ( "Waldo", 0 ), ( "Bob", 1 ), ( "Rob", 0 ), ( "Lob", 1 ) ]
