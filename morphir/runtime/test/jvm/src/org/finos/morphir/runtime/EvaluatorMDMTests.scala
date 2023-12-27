@@ -1346,7 +1346,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("withDefault Just(True) input")("maybeTests", "maybeWithDefault", Some(true))(Data.Boolean(true)),
         testEval("withDefault Nothing input")("maybeTests", "maybeWithDefault", Data.Optional.None(Concept.Boolean))(
           Data.Boolean(false)
-        )
+        ),
+        testEval("andThen 0 input")("maybeTests", "maybeAndThen", 0)(Data.Optional.None(Concept.Float)),
+        testEval("andThen 1 input")("maybeTests", "maybeAndThen", 1)(Data.Optional.Some(Data.Float(1.0))),
+        testEval("andThen 2 input")("maybeTests", "maybeAndThen", 2)(Data.Optional.None(Concept.Float))
       ),
       suite("SDK Result Tests")(
         testEval("Returns success result")("resultTests", "returnResultType", 0)(Data.Result.Ok(

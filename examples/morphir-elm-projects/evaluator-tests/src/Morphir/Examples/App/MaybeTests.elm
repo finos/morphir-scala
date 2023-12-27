@@ -94,3 +94,36 @@ expected(Nothing) = False
 maybeWithDefault : Maybe Bool -> Bool
 maybeWithDefault input =
     Maybe.withDefault False input
+
+
+{-| Test: Maybe/andThen
+Description: Tests native function Maybe.andThen
+expected(1) = Just 1.0
+expected(0) = Nothing
+expected(N) = Nothing
+-}
+maybeAndThen : Int -> Maybe Float
+maybeAndThen input =
+    let
+        validateIsZeroOrOne : Int -> Maybe Int
+        validateIsZeroOrOne x =
+            case x of
+                0 ->
+                    Just 0
+
+                1 ->
+                    Just 1
+
+                _ ->
+                    Nothing
+
+        inverse : Int -> Maybe Float
+        inverse x =
+            if x == 0 then
+                Nothing
+
+            else
+                Just (1 / toFloat x)
+    in
+    validateIsZeroOrOne input
+        |> Maybe.andThen inverse
