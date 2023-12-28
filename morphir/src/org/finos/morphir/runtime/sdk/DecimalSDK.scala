@@ -47,4 +47,34 @@ object DecimalSDK {
       Decimal(result)
   }
 
+  val gt = DynamicNativeFunction("gt") {
+    (_: NativeContext) => () =>
+      Decimal(result)
+  }
+
+  val gte = DynamicNativeFunction("gte") {
+    (_: NativeContext) => () =>
+      Decimal(result)
+  }
+
+  val lt = DynamicNativeFunction("lt") {
+    (_: NativeContext) => () =>
+      Decimal(result)
+  }
+
+  val lte = DynamicNativeFunction("lte") {
+    (_: NativeContext) => () =>
+      Decimal(result)
+  }
+
+  val minusOne = DynamicNativeFunction("minusOne") {
+    (_: NativeContext) => () =>
+      Decimal(result)
+  }
+
+  val mul = DynamicNativeFunction("mul") {
+    (_: NativeContext) => () =>
+      Decimal(result)
+  }
+
 }
