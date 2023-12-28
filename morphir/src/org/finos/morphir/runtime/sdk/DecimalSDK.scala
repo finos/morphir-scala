@@ -1,115 +1,128 @@
 package org.finos.morphir.runtime.sdk
 
+import org.finos.morphir.datamodel.Schema.Primitive
+import org.finos.morphir.runtime.internal.{
+  DynamicNativeFunction,
+  DynamicNativeFunction1,
+  DynamicNativeFunction2,
+  DynamicNativeFunction3,
+  NativeContext
+}
+import org.finos.morphir.runtime.RTValue
+import org.finos.morphir.runtime.RTValue as RT
+import org.finos.morphir.runtime.RTValue.Primitive.BigDecimal as RTDecimal
+
 object DecimalSDK {
 
   val abs = DynamicNativeFunction("abs") {
-    (_: NativeContext) => () =>
-      Decimal(result)
+    (_: NativeContext) => (dec: RTDecimal) =>
+      val result = dec.value.abs
+      RTDecimal(result)
   }
 
   val add = DynamicNativeFunction("add") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val bps = DynamicNativeFunction("bps") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val compare = DynamicNativeFunction("compare") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val div = DynamicNativeFunction("div") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val divWithDefault = DynamicNativeFunction("divWithDefault") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val eq = DynamicNativeFunction("eq") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val fromInt = DynamicNativeFunction("fromInt") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val fromString = DynamicNativeFunction("fromString") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val gt = DynamicNativeFunction("gt") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val gte = DynamicNativeFunction("gte") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val lt = DynamicNativeFunction("lt") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val lte = DynamicNativeFunction("lte") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val minusOne = DynamicNativeFunction("minusOne") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val mul = DynamicNativeFunction("mul") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val negate = DynamicNativeFunction("negate") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val neq = DynamicNativeFunction("neq") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val one = DynamicNativeFunction("one") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val round = DynamicNativeFunction("round") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val sub = DynamicNativeFunction("sub") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val truncate = DynamicNativeFunction("truncate") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
   val zero = DynamicNativeFunction("zero") {
     (_: NativeContext) => () =>
-      Decimal(result)
+      RTDecimal(result)
   }
 
 }
