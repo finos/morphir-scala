@@ -117,8 +117,21 @@ object ListSDK {
     (context: NativeContext) => (a: RT.List, b: RT.List) =>
       RT.List(a.elements.appendedAll(b.elements))
   }
+
   val cons = DynamicNativeFunction2("cons") {
     (context: NativeContext) => (a: RTValue, listB: RT.List) =>
       RT.List(a :: listB.elements)
+  }
+
+  val all = DynamicNativeFunction2("all") {
+    (context: NativeContext) => (predicate: RTValue.Function, list: RT.List) =>
+      {
+        val result = list.elements.forall { elem =>
+          context.evaluator.handleApplyResult(Type.UType.Unit(()), predicate, elem)
+            .coerceBoolean
+            .value
+        }
+        RT.Primitive.Boolean(result)
+      }
   }
 }

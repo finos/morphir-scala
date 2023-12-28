@@ -76,7 +76,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.partition),
           NativeFunctionAdapter.Fun3(ListSDK.foldl),
           NativeFunctionAdapter.Fun2(ListSDK.append),
-          NativeFunctionAdapter.Fun2(ListSDK.cons)
+          NativeFunctionAdapter.Fun2(ListSDK.cons),
+          NativeFunctionAdapter.Fun2(ListSDK.all),
         )
       }
 

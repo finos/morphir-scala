@@ -500,6 +500,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ),
         testEvaluation("length")("listTests", "listLengthTest")(
           (Data.Int32(6))
+        ),
+        suite("all")(
+          testEval("predicate is true for all")("listTests", "listAllTest", List(1, 2, 3))(
+            Data.Boolean(true)
+          ),
+          testEval("predicate is not true for all")("listTests", "listAllTest", List(2, 3, 4))(
+            Data.Boolean(false)
+          )
         )
       ),
       suite("Literals")(

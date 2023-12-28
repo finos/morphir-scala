@@ -209,10 +209,19 @@ listAppend l r =
     List.append l r
 
 
-{-| Test: List/lenght
+{-| Test: List/length
 expected = 6
 -}
 listLengthTest : TestContext -> Int
 listLengthTest ctx =
     test ctx <|
         length [ 1, 2, 3, 4, 5, 6 ]
+
+
+{-| Test: List/all
+expected([1, 2, 3]) = True
+expected([2, 3, 4]) = False
+-}
+listAllTest : List Int -> Bool
+listAllTest list =
+    List.all (\x -> x < 4) list
