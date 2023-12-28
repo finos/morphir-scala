@@ -21,7 +21,8 @@ object DecimalSDK {
   }
 
   val add = DynamicNativeFunction("add") {
-    (_: NativeContext) => () =>
+    (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
+      val result = dec1.value + dec2.value
       RTDecimal(result)
   }
 
@@ -30,14 +31,17 @@ object DecimalSDK {
       RTDecimal(result)
   }
 
+  // todo
   val compare = DynamicNativeFunction("compare") {
-    (_: NativeContext) => () =>
+    (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
+      val result = dec1.value.compare(dec2.value)
       RTDecimal(result)
   }
 
   val div = DynamicNativeFunction("div") {
-    (_: NativeContext) => () =>
-      RTDecimal(result)
+    (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
+      val result = tryOption(dec1.value / dec2.value).map(RTDecimal(_))
+      MaybeSDK.resultToMaybe(result)
   }
 
   val divWithDefault = DynamicNativeFunction("divWithDefault") {

@@ -10,8 +10,10 @@ import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.util.PrintMDM
 
 import java.util
+import scala.util.control.NonFatal
 
 object ErrorUtils {
+
   implicit class ErrorInterpolator(sc: StringContext) {
     //format: off
     /**
@@ -121,4 +123,10 @@ object ErrorUtils {
         barBlockNoDup(body)
       ) + "\n" // + ("=" * (header.length + 8) + "\n")
   }
+
+  def tryOption[A](block: => A): Option[A] =
+    try Some(block)
+    catch {
+      case NonFatal(_) => None
+    }
 }
