@@ -1430,9 +1430,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("withDefault Nothing input")("maybeTests", "maybeWithDefault", Data.Optional.None(Concept.Boolean))(
           Data.Boolean(false)
         ),
-        testEval("andThen 0 input")("maybeTests", "maybeAndThen", 0)(Data.Optional.None(Concept.Float)),
-        testEval("andThen 1 input")("maybeTests", "maybeAndThen", 1)(Data.Optional.Some(Data.Float(1.0))),
-        testEval("andThen 2 input")("maybeTests", "maybeAndThen", 2)(Data.Optional.None(Concept.Float))
+        suite("andThen")(
+          testEval("first output is Just, second is Nothing")("maybeTests", "maybeAndThen", 0)(
+            Data.Optional.None(Concept.Float)
+          ),
+          testEval("both outputs are Just")("maybeTests", "maybeAndThen", 1)(Data.Optional.Some(Data.Float(1.0))),
+          testEval("first output is Nothing")("maybeTests", "maybeAndThen", 2)(Data.Optional.None(Concept.Float))
+        )
       ),
       suite("SDK Result Tests")(
         testEval("Returns success result")("resultTests", "returnResultType", 0)(Data.Result.Ok(
@@ -1515,7 +1519,18 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "resultTests",
           "resultFromMaybe",
           Data.Optional.None(Concept.Int32)
-        )(Data.Result.Err.withOkConcept(Data.String("Undefined"), Concept.Int32))
+        )(Data.Result.Err.withOkConcept(Data.String("Undefined"), Concept.Int32)),
+        suite("andThen")(
+          testEval("both results are Ok")("resultTests", "resultAndThen", 1)(
+            Data.Result.Ok(Data.Float(1.0), Concept.Result(Concept.String, Concept.Float))
+          ),
+          testEval("first result is Err")("resultTests", "resultAndThen", 2)(
+            Data.Result.Err(Data.String("invalid"), Concept.Result(Concept.String, Concept.Float))
+          ),
+          testEval("first result is Ok, second is Err")("resultTests", "resultAndThen", 0)(
+            Data.Result.Err(Data.String("undefined"), Concept.Result(Concept.String, Concept.Float))
+          )
+        )
       ),
       suite("SDK Basics Tests")(
         testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),

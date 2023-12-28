@@ -32,6 +32,7 @@ object ResultSDK {
       case RT.ConstructorResult(_, _) =>
         throw new UnexpectedType(s"Ok(value) or Err(err)", arg, hint = "Expected due to use in a native function")
     }
+
   private[sdk] def eitherToResult(arg: Either[RT, RT]): RT.ConstructorResult =
     arg match {
       case Right(ok) => RT.ConstructorResult(FQName.fromString("Morphir.SDK:Result:Ok"), List(ok))
@@ -54,15 +55,18 @@ object ResultSDK {
         eitherToResult(out)
       }
   }
+
   val withDefault = DynamicNativeFunction2("withDefault") {
     (ctx: NativeContext) => (default: RT, resultRaw: RT.ConstructorResult) =>
       resultToEither(resultRaw).getOrElse(default)
   }
+
   val toMaybe = DynamicNativeFunction1("toMaybe") {
     (ctx: NativeContext) => (resultRaw: RT.ConstructorResult) =>
       val out = resultToEither(resultRaw).toOption
       MaybeSDK.resultToMaybe(out)
   }
+
   val fromMaybe = DynamicNativeFunction2("fromMaybe") {
     (ctx: NativeContext) => (err: RT, maybeRaw: RT.ConstructorResult) =>
       val out = MaybeSDK.eitherToOption(maybeRaw) match {
@@ -72,4 +76,15 @@ object ResultSDK {
       eitherToResult(out)
   }
 
+  val andThen = DynamicNativeFunction2("andThen") {
+    (ctx: NativeContext) => (callback: RT.Function, resultRaw: RT.ConstructorResult) =>
+      {
+        val out = resultToEither(resultRaw).flatMap { elem =>
+          val fromCallbackRaw = ctx.evaluator.handleApplyResult(Type.variable("a"), callback, elem)
+          val fromCallbackCr  = RT.coerceConstructorResult(fromCallbackRaw)
+          resultToEither(fromCallbackCr)
+        }
+        eitherToResult(out)
+      }
+  }
 }

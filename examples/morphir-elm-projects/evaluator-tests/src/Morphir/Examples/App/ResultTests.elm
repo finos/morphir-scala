@@ -114,3 +114,36 @@ expected(Nothing) = Err Undefined
 resultFromMaybe : Maybe Int -> Result String Int
 resultFromMaybe input =
     Result.fromMaybe "Undefined" input
+
+
+{-| Test: Result/andThen
+Description: Tests native function Result.andThen
+expected(1) = Ok 1.0
+expected(0) = Err "undefined"
+expected(N) = Err "invalid"
+-}
+resultAndThen : Int -> Result String Float
+resultAndThen input =
+    let
+        validateIsZeroOrOne : Int -> Result String Int
+        validateIsZeroOrOne x =
+            case x of
+                0 ->
+                    Ok 0
+
+                1 ->
+                    Ok 1
+
+                _ ->
+                    Err "invalid"
+
+        inverse : Int -> Result String Float
+        inverse x =
+            if x == 0 then
+                Err "undefined"
+
+            else
+                Ok (1 / toFloat x)
+    in
+    validateIsZeroOrOne input
+        |> Result.andThen inverse
