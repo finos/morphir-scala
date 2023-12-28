@@ -77,4 +77,39 @@ object DecimalSDK {
       Decimal(result)
   }
 
+  val negate = DynamicNativeFunction("negate") {
+    (_: NativeContext) => () =>
+      Decimal(result)
+  }
+
+  val neq = DynamicNativeFunction("neq") {
+    (_: NativeContext) => () =>
+      Decimal(result)
+  }
+
+  val one = DynamicNativeFunction("one") {
+    (_: NativeContext) => () =>
+      Decimal(result)
+  }
+
+  val round = DynamicNativeFunction("round") {
+    (_: NativeContext) => () =>
+      Decimal(result)
+  }
+
+  val sub = DynamicNativeFunction("sub") {
+    (_: NativeContext) => () =>
+      Decimal(result)
+  }
+
+  val truncate = DynamicNativeFunction("truncate") {
+    (_: NativeContext) => () =>
+      Decimal(result)
+  }
+
+  val zero = DynamicNativeFunction("zero") {
+    (_: NativeContext) => () =>
+      Decimal(result)
+  }
+
 }
