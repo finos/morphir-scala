@@ -1515,7 +1515,18 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "resultTests",
           "resultFromMaybe",
           Data.Optional.None(Concept.Int32)
-        )(Data.Result.Err.withOkConcept(Data.String("Undefined"), Concept.Int32))
+        )(Data.Result.Err.withOkConcept(Data.String("Undefined"), Concept.Int32)),
+        suite("andThen")(
+          testEval("both results are Ok")("resultTests", "resultAndThen", 1)(
+            Data.Result.Ok(Data.Float(1.0), Concept.Result(Concept.String, Concept.Float))
+          ),
+          testEval("first result is Err")("resultTests", "resultAndThen", 2)(
+            Data.Result.Err(Data.String("invalid"), Concept.Result(Concept.String, Concept.Float))
+          ),
+          testEval("first result is Ok, second is Err")("resultTests", "resultAndThen", 0)(
+            Data.Result.Err(Data.String("undefined"), Concept.Result(Concept.String, Concept.Float))
+          )
+        )
       ),
       suite("SDK Basics Tests")(
         testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),

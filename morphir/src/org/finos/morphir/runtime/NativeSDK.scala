@@ -94,7 +94,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ResultSDK.mapError),
           NativeFunctionAdapter.Fun2(ResultSDK.withDefault),
           NativeFunctionAdapter.Fun1(ResultSDK.toMaybe),
-          NativeFunctionAdapter.Fun2(ResultSDK.fromMaybe)
+          NativeFunctionAdapter.Fun2(ResultSDK.fromMaybe),
+          NativeFunctionAdapter.Fun2(ResultSDK.andThen)
         )
       }
 
