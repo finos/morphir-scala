@@ -133,6 +133,13 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(LocalTimeSDK.fromISO)
         )
       }
+
+      case object Dict extends SdkModuleDescriptor(moduleName = "Dict") {
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun2(DictSDK.partition),
+          NativeFunctionAdapter.Fun2(DictSDK.remove)
+        )
+      }
     }
   }
 
@@ -140,6 +147,7 @@ object NativeSDK {
     import Morphir.SDK._
     Seq(
       Basics,
+      Dict,
       List,
       LocalDate,
       LocalTime,
