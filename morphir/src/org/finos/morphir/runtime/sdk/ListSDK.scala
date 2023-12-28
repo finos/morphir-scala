@@ -134,4 +134,15 @@ object ListSDK {
         RT.Primitive.Boolean(result)
       }
   }
+
+  val concatMap = DynamicNativeFunction2("concatMap") {
+    (ctx: NativeContext) => (f: RT.Function, listRaw: RT.List) =>
+      {
+        val out = listRaw.value.flatMap { elem =>
+          val resultListRaw = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
+          RT.coerceList(resultListRaw).elements
+        }
+        RT.List(out)
+      }
+  }
 }

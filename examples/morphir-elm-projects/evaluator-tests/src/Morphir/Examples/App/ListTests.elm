@@ -225,3 +225,13 @@ expected([2, 3, 4]) = False
 listAllTest : List Int -> Bool
 listAllTest list =
     List.all (\x -> x < 4) list
+
+
+{-| Test: List/concatMap
+expected([1, 2, 3]) = [1, 1, 2, 2, 3, 3]
+expected([3]) = [3, 3]
+expected([]) = []
+-}
+listConcatMapTest : List Int -> List Int
+listConcatMapTest list =
+    List.concatMap (\x -> [ x, x ]) list

@@ -508,6 +508,28 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("predicate is not true for all")("listTests", "listAllTest", List(2, 3, 4))(
             Data.Boolean(false)
           )
+        ),
+        suite("concatMap")(
+          testEval("concatenates mapped result")("listTests", "listConcatMapTest", List(1, 2, 3))(
+            Data.List(
+              Data.Int(1),
+              Data.Int(1),
+              Data.Int(2),
+              Data.Int(2),
+              Data.Int(3),
+              Data.Int(3)
+            )
+          ),
+          testEval("produces empty list on empty list input")(
+            "listTests",
+            "listConcatMapTest",
+            Data.List.empty(Concept.Int32)
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEval("produces flat output for a single result list")("listTests", "listConcatMapTest", List(3))(
+            Data.List(Data.Int(3), Data.Int(3))
+          )
         )
       ),
       suite("Literals")(

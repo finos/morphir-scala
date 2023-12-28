@@ -78,6 +78,7 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.append),
           NativeFunctionAdapter.Fun2(ListSDK.cons),
           NativeFunctionAdapter.Fun2(ListSDK.all),
+          NativeFunctionAdapter.Fun2(ListSDK.concatMap)
         )
       }
 
