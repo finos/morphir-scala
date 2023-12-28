@@ -1,6 +1,7 @@
 package org.finos.morphir.runtime.sdk
 
 import org.finos.morphir.datamodel.Schema.Primitive
+import org.finos.morphir.runtime.ErrorUtils.tryOption
 import org.finos.morphir.runtime.internal.{
   DynamicNativeFunction,
   DynamicNativeFunction1,
@@ -14,64 +15,72 @@ import org.finos.morphir.runtime.RTValue.Primitive.BigDecimal as RTDecimal
 
 object DecimalSDK {
 
-  val abs = DynamicNativeFunction("abs") {
+  val abs = DynamicNativeFunction1("abs") {
     (_: NativeContext) => (dec: RTDecimal) =>
       val result = dec.value.abs
       RTDecimal(result)
   }
 
-  val add = DynamicNativeFunction("add") {
+  val add = DynamicNativeFunction2("add") {
     (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
       val result = dec1.value + dec2.value
       RTDecimal(result)
   }
 
-  val bps = DynamicNativeFunction("bps") {
+  val bps = DynamicNativeFunction1("bps") {
     (_: NativeContext) => () =>
       RTDecimal(result)
   }
 
   // todo
-  val compare = DynamicNativeFunction("compare") {
+  val compare = DynamicNativeFunction2("compare") {
     (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
       val result = dec1.value.compare(dec2.value)
       RTDecimal(result)
   }
 
-  val div = DynamicNativeFunction("div") {
+  val div = DynamicNativeFunction2("div") {
     (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
       val result = tryOption(dec1.value / dec2.value).map(RTDecimal(_))
       MaybeSDK.resultToMaybe(result)
   }
 
-  val divWithDefault = DynamicNativeFunction("divWithDefault") {
-    (_: NativeContext) => () =>
+  val divWithDefault = DynamicNativeFunction3("divWithDefault") {
+    (_: NativeContext) => (default: RTDecimal, dec1: RTDecimal, dec2: RTDecimal) =>
+      tryOption(dec1.value / dec2.value) match {
+        case Some(value) => RTDecimal(value)
+        case None        => default
+      }
+  }
+
+  val eq = DynamicNativeFunction2("eq") {
+    (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
+      val result = dec1.value.eq(dec2.value)
+      RT.Primitive.Boolean(result)
+  }
+
+  val fromInt = DynamicNativeFunction1("fromInt") {
+    (_: NativeContext) => (int: RT.Primitive.Int) =>
+      val result = int.value.toBigDecimal
       RTDecimal(result)
   }
 
-  val eq = DynamicNativeFunction("eq") {
-    (_: NativeContext) => () =>
-      RTDecimal(result)
-  }
-
-  val fromInt = DynamicNativeFunction("fromInt") {
-    (_: NativeContext) => () =>
-      RTDecimal(result)
-  }
-
-  val fromString = DynamicNativeFunction("fromString") {
-    (_: NativeContext) => () =>
+  val fromString = DynamicNativeFunction1("fromString") {
+    (_: NativeContext) => (str: RT.Primitive.String) =>
+      val result = BigDecimal(str.value)
       RTDecimal(result)
   }
 
   val gt = DynamicNativeFunction("gt") {
-    (_: NativeContext) => () =>
-      RTDecimal(result)
+    (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
+      val result = dec1.value > dec2.value
+      RT.Primitive.Boolean(result)
   }
 
   val gte = DynamicNativeFunction("gte") {
-    (_: NativeContext) => () =>
-      RTDecimal(result)
+    (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
+      val result = dec1.value >= dec2.value
+      RT.Primitive.Boolean(result)
   }
 
   val lt = DynamicNativeFunction("lt") {
