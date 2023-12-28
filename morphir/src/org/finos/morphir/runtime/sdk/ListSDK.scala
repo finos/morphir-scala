@@ -145,4 +145,9 @@ object ListSDK {
         RT.List(out)
       }
   }
+
+  val drop = DynamicNativeFunction2("drop") {
+    (_: NativeContext) => (n: RT.Primitive.Int, list: RT.List) =>
+      list.copy(elements = list.elements.drop(n.value.toInt))
+  }
 }

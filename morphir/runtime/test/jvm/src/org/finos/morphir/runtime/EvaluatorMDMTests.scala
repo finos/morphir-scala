@@ -530,6 +530,35 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("produces flat output for a single result list")("listTests", "listConcatMapTest", List(3))(
             Data.List(Data.Int(3), Data.Int(3))
           )
+        ),
+        suite("drop")(
+          testEvalMultiple("drops element from front of list")("listTests", "listDropTest", List(2, List(1, 2, 3)))(
+            Data.List(Data.Int(3))
+          ),
+          testEvalMultiple("drops the entire list when the number dropped is gt the list length")(
+            "listTests",
+            "listDropTest",
+            List(4, List(1, 2, 3))
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("returns an empty list when dropping from an empty list")(
+            "listTests",
+            "listDropTest",
+            List(2, Data.List.empty(Concept.Int32))
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("does nothing when dropping 0 elements")("listTests", "listDropTest", List(0, List(1)))(
+            Data.List(Data.Int(1))
+          ),
+          testEvalMultiple("does nothing when dropping a negative number of elements")(
+            "listTests",
+            "listDropTest",
+            List(-5, List(1))
+          )(
+            Data.List(Data.Int(1))
+          )
         )
       ),
       suite("Literals")(

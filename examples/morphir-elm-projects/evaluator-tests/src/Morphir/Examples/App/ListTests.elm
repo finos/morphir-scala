@@ -235,3 +235,15 @@ expected([]) = []
 listConcatMapTest : List Int -> List Int
 listConcatMapTest list =
     List.concatMap (\x -> [ x, x ]) list
+
+
+{-| Test: List/drop
+expected(2, [1, 2, 3]) = [3]
+expected(4, [1, 2, 3]) = []
+expected(2, []) = []
+expected(0, [1]) = [1]
+expected(-1, [1]) = [1]
+-}
+listDropTest : Int -> List Int -> List Int
+listDropTest n list =
+    List.drop n list
