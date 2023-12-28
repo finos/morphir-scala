@@ -583,6 +583,8 @@ object RTValue {
     }
   }
 
+  //GT, LT, Etc
+
   sealed trait NativeFunctionResult extends Function {
     def arguments: Int
     def curried: scala.List[RTValue]
