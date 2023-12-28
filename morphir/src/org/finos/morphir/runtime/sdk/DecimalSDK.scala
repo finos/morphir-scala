@@ -71,55 +71,60 @@ object DecimalSDK {
       RTDecimal(result)
   }
 
-  val gt = DynamicNativeFunction("gt") {
+  val gt = DynamicNativeFunction2("gt") {
     (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
       val result = dec1.value > dec2.value
       RT.Primitive.Boolean(result)
   }
 
-  val gte = DynamicNativeFunction("gte") {
+  val gte = DynamicNativeFunction2("gte") {
     (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
       val result = dec1.value >= dec2.value
       RT.Primitive.Boolean(result)
   }
 
-  val lt = DynamicNativeFunction("lt") {
-    (_: NativeContext) => () =>
-      RTDecimal(result)
+  val lt = DynamicNativeFunction2("lt") {
+    (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
+      val result = dec1.value < dec2.value
+      RT.Primitive.Boolean(result)
   }
 
-  val lte = DynamicNativeFunction("lte") {
-    (_: NativeContext) => () =>
-      RTDecimal(result)
+  val lte = DynamicNativeFunction2("lte") {
+    (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
+      val result = dec1.value <= dec2.value
+      RT.Primitive.Boolean(result)
   }
 
   val minusOne = DynamicNativeFunction("minusOne") {
     (_: NativeContext) => () =>
-      RTDecimal(result)
+      RTDecimal(-1)
   }
 
   val mul = DynamicNativeFunction("mul") {
-    (_: NativeContext) => () =>
+    (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
+      val result = dec1.value * dec2.value
       RTDecimal(result)
   }
 
   val negate = DynamicNativeFunction("negate") {
-    (_: NativeContext) => () =>
-      RTDecimal(result)
+    (_: NativeContext) => (value: RTDecimal) =>
+      RTDecimal(value.value.unary_-)
   }
 
-  val neq = DynamicNativeFunction("neq") {
-    (_: NativeContext) => () =>
-      RTDecimal(result)
+  val neq = DynamicNativeFunction2("neq") {
+    (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
+      val result = dec1.value != dec2.value
+      RT.Primitive.Boolean(result)
   }
 
   val one = DynamicNativeFunction("one") {
     (_: NativeContext) => () =>
-      RTDecimal(result)
+      RTDecimal(1)
   }
 
-  val round = DynamicNativeFunction("round") {
-    (_: NativeContext) => () =>
+  val round = DynamicNativeFunction1("round") {
+    (_: NativeContext) => (value: RTDecimal) =>
+      val result = value.value.rounded
       RTDecimal(result)
   }
 
