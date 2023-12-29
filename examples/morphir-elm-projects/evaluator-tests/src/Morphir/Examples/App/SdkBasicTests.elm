@@ -1852,7 +1852,6 @@ sdkComposeRightTest ctx =
         g 1
 
 
-
 {-| Test: SdkBasics/basicsCeilingTest
 -}
 basicsCeilingTest : Float -> Int
