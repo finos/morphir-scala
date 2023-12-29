@@ -567,6 +567,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("filters empty lists")("listTests", "listFilterMapTest", Data.List.empty(Concept.Int32))(
             Data.List.empty(Concept.Float)
           )
+        ),
+        suite("foldr")(
+          testEval("folds")("listTests", "listFoldrTest", List(1, 2, 3))(
+            Data.List(Data.Int32(1), Data.Int32(2), Data.Int32(3))
+          ),
+          testEval("folds empty lists")("listTests", "listFoldrTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
         )
       ),
       suite("Literals")(

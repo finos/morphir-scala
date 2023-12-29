@@ -265,3 +265,12 @@ listFilterMapTest list =
                 Just (1 / toFloat x)
     in
     List.filterMap safeInverse list
+
+
+{-| Test: List/foldr
+expected([1, 2, 3]) = [1, 2, 3]
+expected([]) = []
+-}
+listFoldrTest : List Int -> List Int
+listFoldrTest list =
+    List.foldr (\x acc -> x :: acc) [] list

@@ -106,6 +106,13 @@ object ListSDK {
         }
   }
 
+  val foldr = DynamicNativeFunction3("foldr") {
+    (context: NativeContext) => (f: RTValue.Function, zero: RTValue, list: RTValue.List) =>
+      list.value.foldRight(zero) { (a, acc) =>
+        context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, acc)
+      }
+  }
+
   val append = DynamicNativeFunction2("append") {
     (context: NativeContext) => (a: RTValue.List, b: RTValue.List) =>
       RTValue.List(a.elements.appendedAll(b.elements))
@@ -148,7 +155,7 @@ object ListSDK {
     (context: NativeContext) => (f: RTValue.Function, list: RTValue.List) =>
       val out = list.elements.map { elem =>
         val maybeOutputRaw = context.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
-        val maybeOutputCr = RTValue.coerceConstructorResult(maybeOutputRaw)
+        val maybeOutputCr  = RTValue.coerceConstructorResult(maybeOutputRaw)
         MaybeSDK.eitherToOption(maybeOutputCr)
       }.flatten
       RTValue.List(out)
