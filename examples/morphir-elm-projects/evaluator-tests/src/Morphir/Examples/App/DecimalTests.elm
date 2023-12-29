@@ -64,3 +64,58 @@ decimalCompare a b =
 decimalDiv : Decimal -> Decimal -> Maybe Decimal
 decimalDiv a b =
     div a b
+
+
+{-|
+Test: Decimal/divWithDefault
+-}
+decimalDivWithDefault: Decimal -> Decimal -> Decimal
+decimalDivWithDefault a b = divWithDefault a b
+
+
+{-|
+Test: Decimal/eq
+-}
+decimalEq: Decimal -> Decimal -> Boolean
+decimalEq a b = eq a b
+
+
+{-|
+Test: Decimal/fromInt
+-}
+decimalFromInt: Int -> Decimal
+decimalFromInt int = fromInt int
+
+
+{-|
+Test: Decimal/fromString
+-}
+decimalFromString: String -> Decimal
+decimalFromString str = fromString str
+
+
+{-|
+Test: Decimal/gt
+-}
+decimalGt: Decimal -> Decimal -> Boolean
+decimalGt a b = gt a b
+
+{-|
+Test: Decimal/gte
+-}
+decimalGte: Decimal -> Decimal -> Boolean
+decimalGte a b = gte a b
+
+
+{-|
+Test: Decimal/lt
+-}
+decimalLt: Decimal -> Decimal -> Boolean
+decimalLt a b = lt a b
+
+
+{-|
+Test: Decimal/lte
+-}
+decimalLte: Decimal -> Decimal -> Boolean
+decimalLte a b = lte a b
