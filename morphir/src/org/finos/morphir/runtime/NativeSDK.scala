@@ -74,7 +74,16 @@ object NativeSDK {
           NativeFunctionAdapter.Fun3(DecimalSDK.divWithDefault),
           NativeFunctionAdapter.Fun2(DecimalSDK.eq),
           NativeFunctionAdapter.Fun1(DecimalSDK.fromInt),
-          NativeFunctionAdapter.Fun1(DecimalSDK.fromString)
+          NativeFunctionAdapter.Fun1(DecimalSDK.fromString),
+          NativeFunctionAdapter.Fun2(DecimalSDK.gt),
+          NativeFunctionAdapter.Fun2(DecimalSDK.gte),
+          NativeFunctionAdapter.Fun2(DecimalSDK.lt),
+          NativeFunctionAdapter.Fun2(DecimalSDK.lte),
+          NativeFunctionAdapter.Fun1(DecimalSDK.negate),
+          NativeFunctionAdapter.Fun2(DecimalSDK.neq),
+          NativeFunctionAdapter.Fun1(DecimalSDK.round),
+          NativeFunctionAdapter.Fun2(DecimalSDK.sub),
+          NativeFunctionAdapter.Fun1(DecimalSDK.truncate)
         )
       }
 
