@@ -160,4 +160,8 @@ object ListSDK {
       }.flatten
       RTValue.List(out)
   }
+
+  val head = DynamicNativeFunction1("head") {
+    (_: NativeContext) => (list: RTValue.List) => MaybeSDK.resultToMaybe(list.value.headOption)
+  }
 }

@@ -274,3 +274,12 @@ expected([]) = []
 listFoldrTest : List Int -> List Int
 listFoldrTest list =
     List.foldr (\x acc -> x :: acc) [] list
+
+
+{-| Test: List/head
+expected([1, 2, 3]) = Maybe 1
+expected([]) = Nothing
+-}
+listHeadTest : List Int -> Maybe Int
+listHeadTest list =
+    List.head list

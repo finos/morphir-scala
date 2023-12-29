@@ -575,6 +575,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("folds empty lists")("listTests", "listFoldrTest", Data.List.empty(Concept.Int32))(
             Data.List.empty(Concept.Int32)
           )
+        ),
+        suite("head")(
+          testEval("head of a non-empty list is Just")("listTests", "listHeadTest", List(1, 2, 3))(
+            Data.Optional.Some(Data.Int32(1))
+          ),
+          testEval("head of an empty list is Nothing")("listTests", "listHeadTest", Data.List.empty(Concept.Int32))(
+            Data.Optional.None(Concept.Int32)
+          )
         )
       ),
       suite("Literals")(
