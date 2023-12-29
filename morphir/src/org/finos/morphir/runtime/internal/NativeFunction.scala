@@ -12,6 +12,16 @@ sealed trait DynamicNativeFunction {
 }
 
 // format: off
+class DynamicNativeFunction0[T1 <: RTValue, R <: RTValue](val name: String)(
+    val f: (NativeContext) => () => R
+) extends DynamicNativeFunction
+
+object DynamicNativeFunction0 {
+  def apply[T1 <: RTValue, R <: RTValue](name: String)(
+    f: (NativeContext) => () => R
+  ) = new DynamicNativeFunction0[T1, R](name)(f)
+}
+
 class DynamicNativeFunction1[T1 <: RTValue, R <: RTValue](val name: String)(
     val f: (NativeContext) => (T1) => R
 ) extends DynamicNativeFunction

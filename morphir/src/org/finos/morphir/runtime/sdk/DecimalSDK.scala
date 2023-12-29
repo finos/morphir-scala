@@ -9,9 +9,10 @@ import org.finos.morphir.runtime.internal.{
   DynamicNativeFunction3,
   NativeContext
 }
-import org.finos.morphir.runtime.RTValue
-import org.finos.morphir.runtime.RTValue as RT
+import org.finos.morphir.runtime.{RTValue, SDKValue, RTValue as RT}
 import org.finos.morphir.runtime.RTValue.Primitive.BigDecimal as RTDecimal
+
+import java.math.{MathContext, RoundingMode}
 
 object DecimalSDK {
 
@@ -27,12 +28,13 @@ object DecimalSDK {
       RTDecimal(result)
   }
 
+  // Converts an int to a Decimal that represents n basis points (i.e. 1/10 of % or a ten-thousandth)
   val bps = DynamicNativeFunction1("bps") {
-    (_: NativeContext) => () =>
+    (_: NativeContext) => (int: RT.Primitive.Int) =>
+      val result = int.value.toBigDecimal * 0.0001
       RTDecimal(result)
   }
 
-  // todo
   val compare = DynamicNativeFunction2("compare") {
     (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
       val result = dec1.value.compare(dec2.value)
@@ -95,18 +97,15 @@ object DecimalSDK {
       RT.Primitive.Boolean(result)
   }
 
-  val minusOne = DynamicNativeFunction("minusOne") {
-    (_: NativeContext) => () =>
-      RTDecimal(-1)
-  }
+  val minusOne: SDKValue = SDKValue.SDKNativeValue(RTDecimal(-1))
 
-  val mul = DynamicNativeFunction("mul") {
+  val mul = DynamicNativeFunction2("mul") {
     (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
       val result = dec1.value * dec2.value
       RTDecimal(result)
   }
 
-  val negate = DynamicNativeFunction("negate") {
+  val negate = DynamicNativeFunction1("negate") {
     (_: NativeContext) => (value: RTDecimal) =>
       RTDecimal(value.value.unary_-)
   }
@@ -117,10 +116,7 @@ object DecimalSDK {
       RT.Primitive.Boolean(result)
   }
 
-  val one = DynamicNativeFunction("one") {
-    (_: NativeContext) => () =>
-      RTDecimal(1)
-  }
+  val one: SDKValue = SDKValue.SDKNativeValue(RTDecimal(1))
 
   val round = DynamicNativeFunction1("round") {
     (_: NativeContext) => (value: RTDecimal) =>
@@ -128,19 +124,19 @@ object DecimalSDK {
       RTDecimal(result)
   }
 
-  val sub = DynamicNativeFunction("sub") {
-    (_: NativeContext) => () =>
+  val sub = DynamicNativeFunction2("sub") {
+    (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
+      val result = dec1.value - dec2.value
       RTDecimal(result)
   }
 
-  val truncate = DynamicNativeFunction("truncate") {
-    (_: NativeContext) => () =>
+  val truncate = DynamicNativeFunction1("truncate") {
+    (_: NativeContext) => (value: RTDecimal) =>
+      val d      = value.value
+      val result = d.round(new MathContext(d.mc.getPrecision, RoundingMode.DOWN))
       RTDecimal(result)
   }
 
-  val zero = DynamicNativeFunction("zero") {
-    (_: NativeContext) => () =>
-      RTDecimal(result)
-  }
+  val zero: SDKValue = SDKValue.SDKNativeValue(RTDecimal(0))
 
 }
