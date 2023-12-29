@@ -119,3 +119,52 @@ Test: Decimal/lte
 -}
 decimalLte: Decimal -> Decimal -> Boolean
 decimalLte a b = lte a b
+
+
+{-|
+Test: Decimal/minusOne
+-}
+decimalMinusOne: Decimal
+decimalMinusOne = -1
+
+
+{-|
+Test: Decimal/mul
+-}
+decimalMul: Decimal -> Decimal -> Decimal
+decimalMul a b = mul a b
+
+
+{-|
+Test: Decimal/negate
+-}
+decimalNegate: Decimal -> Decimal
+decimalNegate dec = negate dec
+
+
+{-|
+Test: Decimal/neq
+-}
+decimalNeq: Decimal -> Decimal -> Boolean
+decimalNeq a b = neq a b
+
+
+{-|
+Test: Decimal/one
+-}
+decimalOne: Decimal
+decimalOne = 1
+
+
+{-|
+Test: Decimal/round
+-}
+decimalRound: Decimal -> Decimal
+decimalRound dec = round dec
+
+
+{-|
+Test: Decimal/sub
+-}
+decimalSub: Decimal -> Decimal -> Decimal
+decimalSub a b = sub a b
