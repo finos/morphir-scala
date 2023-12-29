@@ -3,7 +3,6 @@ package org.finos.morphir.runtime.sdk
 import org.finos.morphir.datamodel.Schema.Primitive
 import org.finos.morphir.runtime.ErrorUtils.tryOption
 import org.finos.morphir.runtime.internal.{
-  DynamicNativeFunction,
   DynamicNativeFunction1,
   DynamicNativeFunction2,
   DynamicNativeFunction3,
