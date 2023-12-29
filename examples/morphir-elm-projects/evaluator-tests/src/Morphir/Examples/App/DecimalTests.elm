@@ -168,3 +168,17 @@ Test: Decimal/sub
 -}
 decimalSub: Decimal -> Decimal -> Decimal
 decimalSub a b = sub a b
+
+
+{-|
+Test: Decimal/truncate
+-}
+decimalTruncate: Decimal -> Decimal
+decimalTruncate dec = truncate dec
+
+
+{-|
+Test: Decimal/zero
+-}
+decimalZero: Decimal
+decimalZero = 0
