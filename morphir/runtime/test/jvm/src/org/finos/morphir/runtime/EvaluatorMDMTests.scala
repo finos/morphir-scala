@@ -559,6 +559,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )(
             Data.List(Data.Int(1))
           )
+        ),
+        suite("filterMap")(
+          testEval("filters after mapping")("listTests", "listFilterMapTest", List(0, 1, 2))(
+            Data.List(Data.Float(1.0), Data.Float(0.5))
+          ),
+          testEval("filters empty lists")("listTests", "listFilterMapTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Float)
+          )
         )
       ),
       suite("Literals")(

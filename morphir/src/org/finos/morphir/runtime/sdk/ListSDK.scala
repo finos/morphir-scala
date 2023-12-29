@@ -1,58 +1,51 @@
 package org.finos.morphir.runtime.sdk
 
 import org.finos.morphir.ir.Type
-import org.finos.morphir.runtime.*
-import org.finos.morphir.runtime.internal.{
-  DynamicNativeFunction,
-  DynamicNativeFunction1,
-  DynamicNativeFunction2,
-  DynamicNativeFunction3,
-  NativeContext
-}
+import org.finos.morphir.runtime._
+import org.finos.morphir.runtime.internal._
 import org.finos.morphir.runtime.RTValue
-import org.finos.morphir.runtime.{RTValue => RT}
 
 object ListSDK {
 
   val concat = DynamicNativeFunction1("concat") {
-    (context: NativeContext) => (list: RT.List) =>
-      val flattened = list.elements.flatMap(inner => RT.coerceList(inner).elements)
-      RT.List(flattened)
+    (context: NativeContext) => (list: RTValue.List) =>
+      val flattened = list.elements.flatMap(inner => RTValue.coerceList(inner).elements)
+      RTValue.List(flattened)
   }
 
   val singleton = DynamicNativeFunction1("singleton") {
     (context: NativeContext) => (l: RTValue) =>
-      RT.List(List(l))
+      RTValue.List(List(l))
   }
 
   val isEmpty = DynamicNativeFunction1("isEmpty") {
-    (context: NativeContext) => (list: RT.List) =>
-      RT.Primitive.Boolean(list.elements.length == 0)
+    (context: NativeContext) => (list: RTValue.List) =>
+      RTValue.Primitive.Boolean(list.elements.length == 0)
   }
 
   val length = DynamicNativeFunction1("length") {
-    (context: NativeContext) => (list: RT.List) =>
-      RT.Primitive.Int(list.elements.length)
+    (context: NativeContext) => (list: RTValue.List) =>
+      RTValue.Primitive.Int(list.elements.length)
   }
 
   val filter = DynamicNativeFunction2("filter") {
-    (context: NativeContext) => (f: RT.Function, list: RT.List) =>
+    (context: NativeContext) => (f: RTValue.Function, list: RTValue.List) =>
       val out =
         list.elements.filter { elem =>
           val filterOutput = context.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
-          RT.coerceBoolean(filterOutput).value
+          RTValue.coerceBoolean(filterOutput).value
         }
-      RT.List(out)
+      RTValue.List(out)
   }
 
   val map = DynamicNativeFunction2("map") {
-    (ctx: NativeContext) => (f: RT.Function, listRaw: RT.List) =>
+    (ctx: NativeContext) => (f: RTValue.Function, listRaw: RTValue.List) =>
       {
         val out =
           listRaw.value.map(elem =>
             ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
           )
-        RT.List(out)
+        RTValue.List(out)
       }
   }
 
@@ -65,14 +58,14 @@ object ListSDK {
       //   case list of
       //     [] -> False
       //     x :: xs -> if isOkay x then True else any isOkay xs
-      (isOkay: RT.Function, listRaw: RT.List) =>
+      (isOkay: RTValue.Function, listRaw: RTValue.List) =>
         {
           val out =
             listRaw.value.exists { elem =>
               val result = context.evaluator.handleApplyResult(Type.UType.Unit(()), isOkay, elem)
-              RT.coerceBoolean(result).value
+              RTValue.coerceBoolean(result).value
             }
-          RT.Primitive.Boolean(out)
+          RTValue.Primitive.Boolean(out)
         }
   }
 
@@ -82,16 +75,16 @@ object ListSDK {
       // -- The signature of the ELM function is this. This is equivalent of Scala's List.partition
       // partition : (a -> Bool) -> List a -> (List a, List a)
       // partition pred list = ...
-      (pred: RT.Function, listRaw: RT.List) =>
+      (pred: RTValue.Function, listRaw: RTValue.List) =>
         {
           val (left, right) =
             listRaw.value.partition { elem =>
               val result = context.evaluator.handleApplyResult(Type.UType.Unit(()), pred, elem)
-              RT.coerceBoolean(result).value
+              RTValue.coerceBoolean(result).value
             }
-          RT.Tuple(
-            RT.List(left),
-            RT.List(right)
+          RTValue.Tuple(
+            RTValue.List(left),
+            RTValue.List(right)
           )
         }
   }
@@ -102,7 +95,7 @@ object ListSDK {
       // -- NOTE: This is equivalent of Scala's List.foldLeft function
       // foldl : (a -> b -> b) -> b -> List a -> b
       // foldl func first list
-      (func: RT.Function, first: RTValue, listRaw: RT.List) =>
+      (func: RTValue.Function, first: RTValue, listRaw: RTValue.List) =>
         {
           val out =
             listRaw.value.foldLeft(first) {
@@ -114,40 +107,50 @@ object ListSDK {
   }
 
   val append = DynamicNativeFunction2("append") {
-    (context: NativeContext) => (a: RT.List, b: RT.List) =>
-      RT.List(a.elements.appendedAll(b.elements))
+    (context: NativeContext) => (a: RTValue.List, b: RTValue.List) =>
+      RTValue.List(a.elements.appendedAll(b.elements))
   }
 
   val cons = DynamicNativeFunction2("cons") {
-    (context: NativeContext) => (a: RTValue, listB: RT.List) =>
-      RT.List(a :: listB.elements)
+    (context: NativeContext) => (a: RTValue, listB: RTValue.List) =>
+      RTValue.List(a :: listB.elements)
   }
 
   val all = DynamicNativeFunction2("all") {
-    (context: NativeContext) => (predicate: RTValue.Function, list: RT.List) =>
+    (context: NativeContext) => (predicate: RTValue.Function, list: RTValue.List) =>
       {
         val result = list.elements.forall { elem =>
           context.evaluator.handleApplyResult(Type.UType.Unit(()), predicate, elem)
             .coerceBoolean
             .value
         }
-        RT.Primitive.Boolean(result)
+        RTValue.Primitive.Boolean(result)
       }
   }
 
   val concatMap = DynamicNativeFunction2("concatMap") {
-    (ctx: NativeContext) => (f: RT.Function, listRaw: RT.List) =>
+    (ctx: NativeContext) => (f: RTValue.Function, listRaw: RTValue.List) =>
       {
         val out = listRaw.value.flatMap { elem =>
           val resultListRaw = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
-          RT.coerceList(resultListRaw).elements
+          RTValue.coerceList(resultListRaw).elements
         }
-        RT.List(out)
+        RTValue.List(out)
       }
   }
 
   val drop = DynamicNativeFunction2("drop") {
-    (_: NativeContext) => (n: RT.Primitive.Int, list: RT.List) =>
+    (_: NativeContext) => (n: RTValue.Primitive.Int, list: RTValue.List) =>
       list.copy(elements = list.elements.drop(n.value.toInt))
+  }
+
+  val filterMap = DynamicNativeFunction2("filterMap") {
+    (context: NativeContext) => (f: RTValue.Function, list: RTValue.List) =>
+      val out = list.elements.map { elem =>
+        val maybeOutputRaw = context.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
+        val maybeOutputCr = RTValue.coerceConstructorResult(maybeOutputRaw)
+        MaybeSDK.eitherToOption(maybeOutputCr)
+      }.flatten
+      RTValue.List(out)
   }
 }

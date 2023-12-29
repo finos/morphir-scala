@@ -11,7 +11,7 @@
     "src/Morphir/Examples/App/LambdaTests.elm": "b1d6d0fa8342551d4a253ed6e056ff0f",
     "src/Morphir/Examples/App/LetDefinitionTests.elm": "98e01b3cd0361d3e8f6bb7eaa298c496",
     "src/Morphir/Examples/App/LetRecursionTests.elm": "34aca5346310d8874524854dd9c58e7b",
-    "src/Morphir/Examples/App/ListTests.elm": "eac1f6b835536b555f488dfa0eae0df1",
+    "src/Morphir/Examples/App/ListTests.elm": "efb2d0077b80ae34e348469bec525f1b",
     "src/Morphir/Examples/App/LiteralTests.elm": "e7e578d1005014e3800a9e5058405152",
     "src/Morphir/Examples/App/LocalDateTests.elm": "483e00c25f78b4becdea7d9bf1cc3810",
     "src/Morphir/Examples/App/LocalTimeTests.elm": "9e2e1cd8b89e5ddf4bdf655a2c5812fd",

@@ -247,3 +247,21 @@ expected(-1, [1]) = [1]
 listDropTest : Int -> List Int -> List Int
 listDropTest n list =
     List.drop n list
+
+
+{-| Test: List/filterMap
+expected([0, 1, 2]) = [1.0, 0.5]
+expected([]) = []
+-}
+listFilterMapTest : List Int -> List Float
+listFilterMapTest list =
+    let
+        safeInverse : Int -> Maybe Float
+        safeInverse x =
+            if x == 0 then
+                Nothing
+
+            else
+                Just (1 / toFloat x)
+    in
+    List.filterMap safeInverse list

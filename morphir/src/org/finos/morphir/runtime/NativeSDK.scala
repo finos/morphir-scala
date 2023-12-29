@@ -79,7 +79,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.cons),
           NativeFunctionAdapter.Fun2(ListSDK.all),
           NativeFunctionAdapter.Fun2(ListSDK.concatMap),
-          NativeFunctionAdapter.Fun2(ListSDK.drop)
+          NativeFunctionAdapter.Fun2(ListSDK.drop),
+          NativeFunctionAdapter.Fun2(ListSDK.filterMap)
         )
       }
 
