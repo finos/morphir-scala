@@ -64,6 +64,20 @@ object NativeSDK {
         )
       }
 
+      case object Decimal extends SdkModuleDescriptor("Decimal") {
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun1(DecimalSDK.abs),
+          NativeFunctionAdapter.Fun2(DecimalSDK.add),
+          NativeFunctionAdapter.Fun1(DecimalSDK.bps),
+          NativeFunctionAdapter.Fun2(DecimalSDK.compare),
+          NativeFunctionAdapter.Fun2(DecimalSDK.div),
+          NativeFunctionAdapter.Fun3(DecimalSDK.divWithDefault),
+          NativeFunctionAdapter.Fun2(DecimalSDK.eq),
+          NativeFunctionAdapter.Fun1(DecimalSDK.fromInt),
+          NativeFunctionAdapter.Fun1(DecimalSDK.fromString)
+        )
+      }
+
       case object List extends SdkModuleDescriptor("List") {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun1(ListSDK.concat),
@@ -140,6 +154,7 @@ object NativeSDK {
     import Morphir.SDK._
     Seq(
       Basics,
+      Decimal,
       List,
       LocalDate,
       LocalTime,
