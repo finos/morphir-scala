@@ -650,6 +650,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEvalMultiple("creates an empty list for negative repeats")("listTests", "listRepeatTest", List(-1, 1))(
             Data.List.empty(Concept.Int32)
           )
+        ),
+        suite("reverse")(
+          testEval("reverses a list")("listTests", "listReverseTest", List(1, 2, 3))(
+            Data.List(Data.Int(3), Data.Int(2), Data.Int(1))
+          ),
+          testEval("reverses an empty list")("listTests", "listReverseTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
         )
       ),
       suite("Literals")(

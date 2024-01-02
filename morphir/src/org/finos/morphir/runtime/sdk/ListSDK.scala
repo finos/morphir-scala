@@ -190,4 +190,8 @@ object ListSDK {
     (context: NativeContext) => (countArg: RTValue.Primitive.Int, elem: RTValue) =>
       RTValue.List(List.fill(countArg.value.toInt)(elem))
   }
+
+  val reverse = DynamicNativeFunction1("reverse") {
+    (context: NativeContext) => (list: RTValue.List) => RTValue.List(list.elements.reverse)
+  }
 }

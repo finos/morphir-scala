@@ -324,3 +324,12 @@ expected(-1, 1) = []
 listRepeatTest : Int -> a -> List a
 listRepeatTest count elem =
     List.repeat count elem
+
+
+{-| Test: List/reverse
+expected([1, 2, 3]) = [3, 2, 1]
+expected([]) = []
+-}
+listReverseTest : List a -> List a
+listReverseTest list =
+    List.reverse list
