@@ -595,6 +595,25 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("maps empty lists")("listTests", "listIndexedMapTest", Data.List.empty(Concept.String))(
             Data.List.empty(Concept.Tuple(List(Concept.Int32, Concept.String)))
           )
+        ),
+        suite("member")(
+          testEvalMultiple("finds a member of a list")("listTests", "listMemberTest", List(1, List(1, 2, 3)))(
+            Data.Boolean(true)
+          ),
+          testEvalMultiple("doesn't find a member missing from a list")(
+            "listTests",
+            "listMemberTest",
+            List(1, List(2, 3))
+          )(
+            Data.Boolean(false)
+          ),
+          testEvalMultiple("doesn't find a member of an empty list")(
+            "listTests",
+            "listMemberTest",
+            List(1, Data.List.empty(Concept.Int32))
+          )(
+            Data.Boolean(false)
+          )
         )
       ),
       suite("Literals")(

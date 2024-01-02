@@ -172,4 +172,9 @@ object ListSDK {
       }
       RTValue.List(out)
   }
+
+  val member = DynamicNativeFunction2("member") {
+    (context: NativeContext) => (value: RTValue, list: RTValue.List) =>
+      RTValue.Primitive.Boolean(list.elements.contains(value))
+  }
 }

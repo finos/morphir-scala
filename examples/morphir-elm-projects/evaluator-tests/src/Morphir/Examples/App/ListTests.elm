@@ -292,3 +292,13 @@ expected([]) = []
 listIndexedMapTest : List a -> List ( Int, a )
 listIndexedMapTest list =
     List.indexedMap (\i x -> ( i, x )) list
+
+
+{-| Test: List/member
+expected(1, [1, 2, 3]) = True
+expected(1, [2, 3]) = False
+expected(1, []) = False
+-}
+listMemberTest : a -> List a -> Bool
+listMemberTest value list =
+    List.member value list
