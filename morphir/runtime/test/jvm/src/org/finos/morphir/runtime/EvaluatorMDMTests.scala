@@ -583,6 +583,18 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("head of an empty list is Nothing")("listTests", "listHeadTest", Data.List.empty(Concept.Int32))(
             Data.Optional.None(Concept.Int32)
           )
+        ),
+        suite("indexedMap")(
+          testEval("passes indices to the mapped function")("listTests", "listIndexedMapTest", List("a", "b", "c"))(
+            Data.List(
+              Data.Tuple(Data.Int(0), Data.String("a")),
+              Data.Tuple(Data.Int(1), Data.String("b")),
+              Data.Tuple(Data.Int(2), Data.String("c"))
+            )
+          ),
+          testEval("maps empty lists")("listTests", "listIndexedMapTest", Data.List.empty(Concept.String))(
+            Data.List.empty(Concept.Tuple(List(Concept.Int32, Concept.String)))
+          )
         )
       ),
       suite("Literals")(

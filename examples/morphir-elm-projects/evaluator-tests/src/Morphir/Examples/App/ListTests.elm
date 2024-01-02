@@ -283,3 +283,12 @@ expected([]) = Nothing
 listHeadTest : List Int -> Maybe Int
 listHeadTest list =
     List.head list
+
+
+{-| Test: List/indexedMap
+expected(["a", "b", "c"]) = [(1, "a"), (2, "b"), (3, "c")]
+expected([]) = []
+-}
+listIndexedMapTest : List a -> List ( Int, a )
+listIndexedMapTest list =
+    List.indexedMap (\i x -> ( i, x )) list

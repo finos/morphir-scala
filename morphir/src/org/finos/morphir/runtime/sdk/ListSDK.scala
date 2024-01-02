@@ -164,4 +164,12 @@ object ListSDK {
   val head = DynamicNativeFunction1("head") {
     (_: NativeContext) => (list: RTValue.List) => MaybeSDK.resultToMaybe(list.value.headOption)
   }
+
+  val indexedMap = DynamicNativeFunction2("indexedMap") {
+    (context: NativeContext) => (f: RTValue.Function, list: RTValue.List) =>
+      val out = list.elements.zipWithIndex.map { case (elem, i) =>
+        context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, RTValue.Primitive.Int(i), elem)
+      }
+      RTValue.List(out)
+  }
 }
