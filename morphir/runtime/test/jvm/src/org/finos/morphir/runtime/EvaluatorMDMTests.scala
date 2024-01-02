@@ -639,6 +639,17 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )(
             Data.List.empty(Concept.Int32)
           )
+        ),
+        suite("repeat")(
+          testEvalMultiple("creates a repeated list")("listTests", "listRepeatTest", List(3, 1))(
+            Data.List(Data.Int(1), Data.Int(1), Data.Int(1))
+          ),
+          testEvalMultiple("creates an empty list for 0 repeats")("listTests", "listRepeatTest", List(0, 1))(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("creates an empty list for negative repeats")("listTests", "listRepeatTest", List(-1, 1))(
+            Data.List.empty(Concept.Int32)
+          )
         )
       ),
       suite("Literals")(

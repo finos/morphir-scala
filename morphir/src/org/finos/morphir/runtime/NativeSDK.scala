@@ -85,7 +85,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(ListSDK.head),
           NativeFunctionAdapter.Fun2(ListSDK.indexedMap),
           NativeFunctionAdapter.Fun2(ListSDK.member),
-          NativeFunctionAdapter.Fun2(ListSDK.range)
+          NativeFunctionAdapter.Fun2(ListSDK.range),
+          NativeFunctionAdapter.Fun2(ListSDK.repeat)
         )
       }
 

@@ -314,3 +314,13 @@ expected(-1, -2) = []
 listRangeTest : Int -> Int -> List Int
 listRangeTest fromInclusive toInclusive =
     List.range fromInclusive toInclusive
+
+
+{-| Test: List/repeat
+expected(3, 1) = [1, 1, 1]
+expected(0, 1) = []
+expected(-1, 1) = []
+-}
+listRepeatTest : Int -> a -> List a
+listRepeatTest count elem =
+    List.repeat count elem

@@ -185,4 +185,9 @@ object ListSDK {
       val scalaRange         = fromInclusive to toInclusive
       RTValue.List(scalaRange.map(RTValue.Primitive.Int.apply).toList)
   }
+
+  val repeat = DynamicNativeFunction2("repeat") {
+    (context: NativeContext) => (countArg: RTValue.Primitive.Int, elem: RTValue) =>
+      RTValue.List(List.fill(countArg.value.toInt)(elem))
+  }
 }
