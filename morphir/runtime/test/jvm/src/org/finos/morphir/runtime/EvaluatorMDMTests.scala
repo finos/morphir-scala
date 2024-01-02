@@ -614,6 +614,31 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )(
             Data.Boolean(false)
           )
+        ),
+        suite("range")(
+          testEvalMultiple("creates a range")("listTests", "listRangeTest", List(1, 3))(
+            Data.List(Data.Int(1), Data.Int(2), Data.Int(3))
+          ),
+          testEvalMultiple("creates a range including negative numbers")("listTests", "listRangeTest", List(-1, 2))(
+            Data.List(Data.Int(-1), Data.Int(0), Data.Int(1), Data.Int(2))
+          ),
+          testEvalMultiple("creates a range with a single value")("listTests", "listRangeTest", List(1, 1))(
+            Data.List(Data.Int(1))
+          ),
+          testEvalMultiple("creates an empty range for out of order arguments")(
+            "listTests",
+            "listRangeTest",
+            List(2, 1)
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("creates an empty range for out of order negative arguments")(
+            "listTests",
+            "listRangeTest",
+            List(-1, -2)
+          )(
+            Data.List.empty(Concept.Int32)
+          )
         )
       ),
       suite("Literals")(

@@ -302,3 +302,15 @@ expected(1, []) = False
 listMemberTest : a -> List a -> Bool
 listMemberTest value list =
     List.member value list
+
+
+{-| Test: List/range
+expected(1, 3) = [1, 2, 3]
+expected(-1, 2) = [-1, 0, 1, 2]
+expected(1, 1) = [1]
+expected(2, 1) = []
+expected(-1, -2) = []
+-}
+listRangeTest : Int -> Int -> List Int
+listRangeTest fromInclusive toInclusive =
+    List.range fromInclusive toInclusive

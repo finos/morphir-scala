@@ -84,7 +84,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun3(ListSDK.foldr),
           NativeFunctionAdapter.Fun1(ListSDK.head),
           NativeFunctionAdapter.Fun2(ListSDK.indexedMap),
-          NativeFunctionAdapter.Fun2(ListSDK.member)
+          NativeFunctionAdapter.Fun2(ListSDK.member),
+          NativeFunctionAdapter.Fun2(ListSDK.range)
         )
       }
 

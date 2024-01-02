@@ -177,4 +177,12 @@ object ListSDK {
     (context: NativeContext) => (value: RTValue, list: RTValue.List) =>
       RTValue.Primitive.Boolean(list.elements.contains(value))
   }
+
+  val range = DynamicNativeFunction2("range") {
+    (context: NativeContext) => (fromInclusiveArg: RTValue.Primitive.Int, toInclusiveArg: RTValue.Primitive.Int) =>
+      val fromInclusive: Int = fromInclusiveArg.value.toInt
+      val toInclusive: Int   = toInclusiveArg.value.toInt
+      val scalaRange         = fromInclusive to toInclusive
+      RTValue.List(scalaRange.map(RTValue.Primitive.Int.apply).toList)
+  }
 }
