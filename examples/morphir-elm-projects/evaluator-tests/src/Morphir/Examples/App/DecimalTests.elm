@@ -35,7 +35,7 @@ decimalToStringTest ctx =
 -}
 decimalAbs : Decimal -> Decimal
 decimalAbs dec =
-    abs dec
+    Decimal.abs dec
 
 
 {-| Test: Decimal/add
@@ -52,11 +52,11 @@ decimalBps int =
     bps int
 
 
-{-| Test: Decimal/compare
--}
-decimalCompare : Decimal -> Decimal -> Decimal
-decimalCompare a b =
-    compare a b
+--{-| Test: Decimal/compare
+---}
+--decimalCompare : Decimal -> Decimal -> Decimal
+--decimalCompare a b =
+--    Decimal.compare a b
 
 
 {-| Test: Decimal/div
@@ -69,14 +69,14 @@ decimalDiv a b =
 {-|
 Test: Decimal/divWithDefault
 -}
-decimalDivWithDefault: Decimal -> Decimal -> Decimal
-decimalDivWithDefault a b = divWithDefault a b
+decimalDivWithDefault: Decimal -> Decimal -> Decimal -> Decimal
+decimalDivWithDefault default a b = Decimal.divWithDefault default a b
 
 
 {-|
 Test: Decimal/eq
 -}
-decimalEq: Decimal -> Decimal -> Boolean
+decimalEq: Decimal -> Decimal -> Bool
 decimalEq a b = eq a b
 
 
@@ -90,34 +90,34 @@ decimalFromInt int = fromInt int
 {-|
 Test: Decimal/fromString
 -}
-decimalFromString: String -> Decimal
+decimalFromString: String -> Maybe Decimal
 decimalFromString str = fromString str
 
 
 {-|
 Test: Decimal/gt
 -}
-decimalGt: Decimal -> Decimal -> Boolean
+decimalGt: Decimal -> Decimal -> Bool
 decimalGt a b = gt a b
 
 {-|
 Test: Decimal/gte
 -}
-decimalGte: Decimal -> Decimal -> Boolean
+decimalGte: Decimal -> Decimal -> Bool
 decimalGte a b = gte a b
 
 
 {-|
 Test: Decimal/lt
 -}
-decimalLt: Decimal -> Decimal -> Boolean
+decimalLt: Decimal -> Decimal -> Bool
 decimalLt a b = lt a b
 
 
 {-|
 Test: Decimal/lte
 -}
-decimalLte: Decimal -> Decimal -> Boolean
+decimalLte: Decimal -> Decimal -> Bool
 decimalLte a b = lte a b
 
 
@@ -125,7 +125,7 @@ decimalLte a b = lte a b
 Test: Decimal/minusOne
 -}
 decimalMinusOne: Decimal
-decimalMinusOne = -1
+decimalMinusOne = fromInt -1
 
 
 {-|
@@ -139,13 +139,13 @@ decimalMul a b = mul a b
 Test: Decimal/negate
 -}
 decimalNegate: Decimal -> Decimal
-decimalNegate dec = negate dec
+decimalNegate dec = Decimal.negate dec
 
 
 {-|
 Test: Decimal/neq
 -}
-decimalNeq: Decimal -> Decimal -> Boolean
+decimalNeq: Decimal -> Decimal -> Bool
 decimalNeq a b = neq a b
 
 
@@ -153,14 +153,14 @@ decimalNeq a b = neq a b
 Test: Decimal/one
 -}
 decimalOne: Decimal
-decimalOne = 1
+decimalOne = fromInt 1
 
 
 {-|
 Test: Decimal/round
 -}
 decimalRound: Decimal -> Decimal
-decimalRound dec = round dec
+decimalRound dec = Decimal.round dec
 
 
 {-|
@@ -174,11 +174,11 @@ decimalSub a b = sub a b
 Test: Decimal/truncate
 -}
 decimalTruncate: Decimal -> Decimal
-decimalTruncate dec = truncate dec
+decimalTruncate dec = Decimal.truncate dec
 
 
 {-|
 Test: Decimal/zero
 -}
 decimalZero: Decimal
-decimalZero = 0
+decimalZero = fromInt 0

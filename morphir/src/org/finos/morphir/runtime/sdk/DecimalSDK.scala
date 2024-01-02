@@ -1,6 +1,5 @@
 package org.finos.morphir.runtime.sdk
 
-import org.finos.morphir.datamodel.Schema.Primitive
 import org.finos.morphir.runtime.ErrorUtils.tryOption
 import org.finos.morphir.runtime.internal.{
   DynamicNativeFunction1,
@@ -8,7 +7,7 @@ import org.finos.morphir.runtime.internal.{
   DynamicNativeFunction3,
   NativeContext
 }
-import org.finos.morphir.runtime.{RTValue, SDKValue, RTValue as RT}
+import org.finos.morphir.runtime.{SDKValue, RTValue as RT}
 import org.finos.morphir.runtime.RTValue.Primitive.BigDecimal as RTDecimal
 
 import java.math.{MathContext, RoundingMode}
@@ -68,8 +67,8 @@ object DecimalSDK {
 
   val fromString = DynamicNativeFunction1("fromString") {
     (_: NativeContext) => (str: RT.Primitive.String) =>
-      val result = BigDecimal(str.value)
-      RTDecimal(result)
+      val result = tryOption(BigDecimal(str.value)).map(RTDecimal(_))
+      MaybeSDK.resultToMaybe(result)
   }
 
   val gt = DynamicNativeFunction2("gt") {
