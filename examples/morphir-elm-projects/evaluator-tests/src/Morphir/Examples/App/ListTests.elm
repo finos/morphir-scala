@@ -209,10 +209,77 @@ listAppend l r =
     List.append l r
 
 
-{-| Test: List/lenght
+{-| Test: List/length
 expected = 6
 -}
 listLengthTest : TestContext -> Int
 listLengthTest ctx =
     test ctx <|
         length [ 1, 2, 3, 4, 5, 6 ]
+
+
+{-| Test: List/all
+expected([1, 2, 3]) = True
+expected([2, 3, 4]) = False
+-}
+listAllTest : List Int -> Bool
+listAllTest list =
+    List.all (\x -> x < 4) list
+
+
+{-| Test: List/concatMap
+expected([1, 2, 3]) = [1, 1, 2, 2, 3, 3]
+expected([3]) = [3, 3]
+expected([]) = []
+-}
+listConcatMapTest : List Int -> List Int
+listConcatMapTest list =
+    List.concatMap (\x -> [ x, x ]) list
+
+
+{-| Test: List/drop
+expected(2, [1, 2, 3]) = [3]
+expected(4, [1, 2, 3]) = []
+expected(2, []) = []
+expected(0, [1]) = [1]
+expected(-1, [1]) = [1]
+-}
+listDropTest : Int -> List Int -> List Int
+listDropTest n list =
+    List.drop n list
+
+
+{-| Test: List/filterMap
+expected([0, 1, 2]) = [1.0, 0.5]
+expected([]) = []
+-}
+listFilterMapTest : List Int -> List Float
+listFilterMapTest list =
+    let
+        safeInverse : Int -> Maybe Float
+        safeInverse x =
+            if x == 0 then
+                Nothing
+
+            else
+                Just (1 / toFloat x)
+    in
+    List.filterMap safeInverse list
+
+
+{-| Test: List/foldr
+expected([1, 2, 3]) = [1, 2, 3]
+expected([]) = []
+-}
+listFoldrTest : List Int -> List Int
+listFoldrTest list =
+    List.foldr (\x acc -> x :: acc) [] list
+
+
+{-| Test: List/head
+expected([1, 2, 3]) = Maybe 1
+expected([]) = Nothing
+-}
+listHeadTest : List Int -> Maybe Int
+listHeadTest list =
+    List.head list

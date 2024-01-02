@@ -76,7 +76,13 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.partition),
           NativeFunctionAdapter.Fun3(ListSDK.foldl),
           NativeFunctionAdapter.Fun2(ListSDK.append),
-          NativeFunctionAdapter.Fun2(ListSDK.cons)
+          NativeFunctionAdapter.Fun2(ListSDK.cons),
+          NativeFunctionAdapter.Fun2(ListSDK.all),
+          NativeFunctionAdapter.Fun2(ListSDK.concatMap),
+          NativeFunctionAdapter.Fun2(ListSDK.drop),
+          NativeFunctionAdapter.Fun2(ListSDK.filterMap),
+          NativeFunctionAdapter.Fun3(ListSDK.foldr),
+          NativeFunctionAdapter.Fun1(ListSDK.head)
         )
       }
 

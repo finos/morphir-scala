@@ -500,6 +500,89 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ),
         testEvaluation("length")("listTests", "listLengthTest")(
           (Data.Int32(6))
+        ),
+        suite("all")(
+          testEval("predicate is true for all")("listTests", "listAllTest", List(1, 2, 3))(
+            Data.Boolean(true)
+          ),
+          testEval("predicate is not true for all")("listTests", "listAllTest", List(2, 3, 4))(
+            Data.Boolean(false)
+          )
+        ),
+        suite("concatMap")(
+          testEval("concatenates mapped result")("listTests", "listConcatMapTest", List(1, 2, 3))(
+            Data.List(
+              Data.Int(1),
+              Data.Int(1),
+              Data.Int(2),
+              Data.Int(2),
+              Data.Int(3),
+              Data.Int(3)
+            )
+          ),
+          testEval("produces empty list on empty list input")(
+            "listTests",
+            "listConcatMapTest",
+            Data.List.empty(Concept.Int32)
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEval("produces flat output for a single result list")("listTests", "listConcatMapTest", List(3))(
+            Data.List(Data.Int(3), Data.Int(3))
+          )
+        ),
+        suite("drop")(
+          testEvalMultiple("drops element from front of list")("listTests", "listDropTest", List(2, List(1, 2, 3)))(
+            Data.List(Data.Int(3))
+          ),
+          testEvalMultiple("drops the entire list when the number dropped is gt the list length")(
+            "listTests",
+            "listDropTest",
+            List(4, List(1, 2, 3))
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("returns an empty list when dropping from an empty list")(
+            "listTests",
+            "listDropTest",
+            List(2, Data.List.empty(Concept.Int32))
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("does nothing when dropping 0 elements")("listTests", "listDropTest", List(0, List(1)))(
+            Data.List(Data.Int(1))
+          ),
+          testEvalMultiple("does nothing when dropping a negative number of elements")(
+            "listTests",
+            "listDropTest",
+            List(-5, List(1))
+          )(
+            Data.List(Data.Int(1))
+          )
+        ),
+        suite("filterMap")(
+          testEval("filters after mapping")("listTests", "listFilterMapTest", List(0, 1, 2))(
+            Data.List(Data.Float(1.0), Data.Float(0.5))
+          ),
+          testEval("filters empty lists")("listTests", "listFilterMapTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Float)
+          )
+        ),
+        suite("foldr")(
+          testEval("folds")("listTests", "listFoldrTest", List(1, 2, 3))(
+            Data.List(Data.Int32(1), Data.Int32(2), Data.Int32(3))
+          ),
+          testEval("folds empty lists")("listTests", "listFoldrTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("head")(
+          testEval("head of a non-empty list is Just")("listTests", "listHeadTest", List(1, 2, 3))(
+            Data.Optional.Some(Data.Int32(1))
+          ),
+          testEval("head of an empty list is Nothing")("listTests", "listHeadTest", Data.List.empty(Concept.Int32))(
+            Data.Optional.None(Concept.Int32)
+          )
         )
       ),
       suite("Literals")(

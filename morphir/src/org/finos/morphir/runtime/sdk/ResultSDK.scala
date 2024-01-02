@@ -1,7 +1,7 @@
 package org.finos.morphir.runtime.sdk
 
 import org.finos.morphir.ir.Type
-import org.finos.morphir.naming.*
+import org.finos.morphir.naming._
 import org.finos.morphir.runtime.MorphirRuntimeError.UnexpectedType
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.runtime.internal.{DynamicNativeFunction1, DynamicNativeFunction2, NativeContext}
