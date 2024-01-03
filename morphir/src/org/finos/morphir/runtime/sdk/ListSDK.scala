@@ -164,4 +164,34 @@ object ListSDK {
   val head = DynamicNativeFunction1("head") {
     (_: NativeContext) => (list: RTValue.List) => MaybeSDK.resultToMaybe(list.value.headOption)
   }
+
+  val indexedMap = DynamicNativeFunction2("indexedMap") {
+    (context: NativeContext) => (f: RTValue.Function, list: RTValue.List) =>
+      val out = list.elements.zipWithIndex.map { case (elem, i) =>
+        context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, RTValue.Primitive.Int(i), elem)
+      }
+      RTValue.List(out)
+  }
+
+  val member = DynamicNativeFunction2("member") {
+    (context: NativeContext) => (value: RTValue, list: RTValue.List) =>
+      RTValue.Primitive.Boolean(list.elements.contains(value))
+  }
+
+  val range = DynamicNativeFunction2("range") {
+    (context: NativeContext) => (fromInclusiveArg: RTValue.Primitive.Int, toInclusiveArg: RTValue.Primitive.Int) =>
+      val fromInclusive: Int = fromInclusiveArg.value.toInt
+      val toInclusive: Int   = toInclusiveArg.value.toInt
+      val scalaRange         = fromInclusive to toInclusive
+      RTValue.List(scalaRange.map(RTValue.Primitive.Int.apply).toList)
+  }
+
+  val repeat = DynamicNativeFunction2("repeat") {
+    (context: NativeContext) => (countArg: RTValue.Primitive.Int, elem: RTValue) =>
+      RTValue.List(List.fill(countArg.value.toInt)(elem))
+  }
+
+  val reverse = DynamicNativeFunction1("reverse") {
+    (context: NativeContext) => (list: RTValue.List) => RTValue.List(list.elements.reverse)
+  }
 }

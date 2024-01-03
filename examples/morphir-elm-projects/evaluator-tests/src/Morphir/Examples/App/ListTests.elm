@@ -283,3 +283,53 @@ expected([]) = Nothing
 listHeadTest : List Int -> Maybe Int
 listHeadTest list =
     List.head list
+
+
+{-| Test: List/indexedMap
+expected(["a", "b", "c"]) = [(1, "a"), (2, "b"), (3, "c")]
+expected([]) = []
+-}
+listIndexedMapTest : List a -> List ( Int, a )
+listIndexedMapTest list =
+    List.indexedMap (\i x -> ( i, x )) list
+
+
+{-| Test: List/member
+expected(1, [1, 2, 3]) = True
+expected(1, [2, 3]) = False
+expected(1, []) = False
+-}
+listMemberTest : a -> List a -> Bool
+listMemberTest value list =
+    List.member value list
+
+
+{-| Test: List/range
+expected(1, 3) = [1, 2, 3]
+expected(-1, 2) = [-1, 0, 1, 2]
+expected(1, 1) = [1]
+expected(2, 1) = []
+expected(-1, -2) = []
+-}
+listRangeTest : Int -> Int -> List Int
+listRangeTest fromInclusive toInclusive =
+    List.range fromInclusive toInclusive
+
+
+{-| Test: List/repeat
+expected(3, 1) = [1, 1, 1]
+expected(0, 1) = []
+expected(-1, 1) = []
+-}
+listRepeatTest : Int -> a -> List a
+listRepeatTest count elem =
+    List.repeat count elem
+
+
+{-| Test: List/reverse
+expected([1, 2, 3]) = [3, 2, 1]
+expected([]) = []
+-}
+listReverseTest : List a -> List a
+listReverseTest list =
+    List.reverse list

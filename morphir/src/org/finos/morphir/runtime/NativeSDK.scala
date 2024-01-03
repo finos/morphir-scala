@@ -82,7 +82,12 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.drop),
           NativeFunctionAdapter.Fun2(ListSDK.filterMap),
           NativeFunctionAdapter.Fun3(ListSDK.foldr),
-          NativeFunctionAdapter.Fun1(ListSDK.head)
+          NativeFunctionAdapter.Fun1(ListSDK.head),
+          NativeFunctionAdapter.Fun2(ListSDK.indexedMap),
+          NativeFunctionAdapter.Fun2(ListSDK.member),
+          NativeFunctionAdapter.Fun2(ListSDK.range),
+          NativeFunctionAdapter.Fun2(ListSDK.repeat),
+          NativeFunctionAdapter.Fun1(ListSDK.reverse)
         )
       }
 
