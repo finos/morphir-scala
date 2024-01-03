@@ -10,8 +10,6 @@ import org.finos.morphir.runtime.internal.{
 import org.finos.morphir.runtime.{SDKValue, RTValue as RT}
 import org.finos.morphir.runtime.RTValue.Primitive.BigDecimal as RTDecimal
 
-import java.math.{MathContext, RoundingMode}
-
 object DecimalSDK {
 
   val abs = DynamicNativeFunction1("abs") {
@@ -55,7 +53,7 @@ object DecimalSDK {
 
   val eq = DynamicNativeFunction2("eq") {
     (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
-      val result = dec1.value.eq(dec2.value)
+      val result = dec1.value.equals(dec2.value)
       RT.Primitive.Boolean(result)
   }
 
@@ -118,7 +116,8 @@ object DecimalSDK {
 
   val round = DynamicNativeFunction1("round") {
     (_: NativeContext) => (value: RTDecimal) =>
-      val result = value.value.rounded
+      val dec    = value.value
+      val result = dec.setScale(0, BigDecimal.RoundingMode.HALF_UP)
       RTDecimal(result)
   }
 
@@ -131,7 +130,7 @@ object DecimalSDK {
   val truncate = DynamicNativeFunction1("truncate") {
     (_: NativeContext) => (value: RTDecimal) =>
       val d      = value.value
-      val result = d.round(new MathContext(d.mc.getPrecision, RoundingMode.DOWN))
+      val result = d.setScale(0, BigDecimal.RoundingMode.DOWN)
       RTDecimal(result)
   }
 

@@ -32,24 +32,45 @@ decimalToStringTest ctx =
 
 
 {-| Test: Decimal/abs
+expected = 3.0
 -}
-decimalAbs : Decimal -> Decimal
-decimalAbs dec =
-    Decimal.abs dec
+decimalPositiveAbs : TestContext -> Decimal
+decimalPositiveAbs ctx =
+    test ctx
+        Decimal.abs
+        (fromFloat 3.0)
+
+
+{-| Test: Decimal/abs
+expected = 100.243
+-}
+decimalNegativeAbs : TestContext -> Decimal
+decimalNegativeAbs ctx =
+    test ctx
+        Decimal.abs
+        (fromFloat -100.243)
 
 
 {-| Test: Decimal/add
+expected = 673.45
 -}
-decimalAdd : Decimal -> Decimal -> Decimal
-decimalAdd dec1 dec2 =
-    add dec1 dec2
+decimalAdd : TestContext -> Decimal
+decimalAdd ctx =
+    test ctx
+        add
+        (fromFloat -100)
+        (fromFloat 773.45)
 
 
 {-| Test: Decimal/bps
+expected = 0.0463
 -}
-decimalBps : Int -> Decimal
-decimalBps int =
-    bps int
+decimalBps : TestContext -> Decimal
+decimalBps ctx =
+    test ctx
+        bps
+        463
+
 
 
 --{-| Test: Decimal/compare
@@ -60,125 +81,281 @@ decimalBps int =
 
 
 {-| Test: Decimal/div
+expected Just 1.8
 -}
-decimalDiv : Decimal -> Decimal -> Maybe Decimal
-decimalDiv a b =
-    div a b
+decimalGoodDiv : TestContext -> Maybe Decimal
+decimalGoodDiv ctx =
+    test ctx
+        div
+        (fromFloat 4.5)
+        (fromFloat 2.5)
 
 
-{-|
-Test: Decimal/divWithDefault
+{-| Test: Decimal/div
+expected None
 -}
-decimalDivWithDefault: Decimal -> Decimal -> Decimal -> Decimal
-decimalDivWithDefault default a b = Decimal.divWithDefault default a b
+decimalBadDiv : TestContext -> Maybe Decimal
+decimalBadDiv ctx =
+    test ctx
+        div
+        (fromFloat 4.5)
+        (fromFloat 0)
 
 
-{-|
-Test: Decimal/eq
+
+--{-|
+--Test: Decimal/divWithDefault
+---}
+--decimalDivWithDefault: Decimal -> Decimal -> Decimal -> Decimal
+--decimalDivWithDefault default a b = Decimal.divWithDefault default a b
+
+
+{-| Test: Decimal/eq
+expected True
 -}
-decimalEq: Decimal -> Decimal -> Bool
-decimalEq a b = eq a b
+decimalTrueEq : TestContext -> Bool
+decimalTrueEq ctx =
+    test ctx
+        eq
+        (fromFloat 3.463)
+        (fromFloat 3.463)
 
 
-{-|
-Test: Decimal/fromInt
+{-| Test: Decimal/eq
+expected False
 -}
-decimalFromInt: Int -> Decimal
-decimalFromInt int = fromInt int
+decimalFalseEq : TestContext -> Bool
+decimalFalseEq ctx =
+    test ctx
+        eq
+        (fromFloat 634.3)
+        (fromFloat -634.3)
 
 
-{-|
-Test: Decimal/fromString
+{-| Test: Decimal/fromInt
 -}
-decimalFromString: String -> Maybe Decimal
-decimalFromString str = fromString str
+decimalFromInt : Int -> Decimal
+decimalFromInt int =
+    fromInt int
 
 
-{-|
-Test: Decimal/gt
+{-| Test: Decimal/fromString
 -}
-decimalGt: Decimal -> Decimal -> Bool
-decimalGt a b = gt a b
+decimalFromString : String -> Maybe Decimal
+decimalFromString str =
+    fromString str
 
-{-|
-Test: Decimal/gte
+
+{-| Test: Decimal/gt
+expected = true
 -}
-decimalGte: Decimal -> Decimal -> Bool
-decimalGte a b = gte a b
+decimalTrueGt : TestContext -> Bool
+decimalTrueGt ctx =
+    test ctx
+        gt
+        (fromFloat 14.6)
+        (fromFloat 7.23)
 
 
-{-|
-Test: Decimal/lt
+{-| Test: Decimal/gt
+expected = false
 -}
-decimalLt: Decimal -> Decimal -> Bool
-decimalLt a b = lt a b
+decimalFalseGt : TestContext -> Bool
+decimalFalseGt ctx =
+    test ctx
+        gt
+        (fromFloat 7.23)
+        (fromFloat 14.6)
 
 
-{-|
-Test: Decimal/lte
+{-| Test: Decimal/gte
+expected = true
 -}
-decimalLte: Decimal -> Decimal -> Bool
-decimalLte a b = lte a b
+decimalTrueGte : TestContext -> Bool
+decimalTrueGte ctx =
+    test ctx
+        gte
+        (fromFloat 84.5)
+        (fromFloat 14.6)
 
 
-{-|
-Test: Decimal/minusOne
+{-| Test: Decimal/gte
+expected = true
 -}
-decimalMinusOne: Decimal
-decimalMinusOne = fromInt -1
+decimalTrueEqualGte : TestContext -> Bool
+decimalTrueEqualGte ctx =
+    test ctx
+        gte
+        (fromFloat 14.6)
+        (fromFloat 14.6)
 
 
-{-|
-Test: Decimal/mul
+{-| Test: Decimal/gte
+expected = false
 -}
-decimalMul: Decimal -> Decimal -> Decimal
-decimalMul a b = mul a b
+decimalFalseGte : TestContext -> Bool
+decimalFalseGte ctx =
+    test ctx
+        gte
+        (fromFloat 14.6)
+        (fromFloat 100.3)
 
 
-{-|
-Test: Decimal/negate
+{-| Test: Decimal/lt
+expected = true
 -}
-decimalNegate: Decimal -> Decimal
-decimalNegate dec = Decimal.negate dec
+decimalTrueLt : TestContext -> Bool
+decimalTrueLt ctx =
+    test ctx
+        lt
+        (fromFloat -2.6)
+        (fromFloat 7.23)
 
 
-{-|
-Test: Decimal/neq
+{-| Test: Decimal/lt
+expected = false
 -}
-decimalNeq: Decimal -> Decimal -> Bool
-decimalNeq a b = neq a b
+decimalFalseLt : TestContext -> Bool
+decimalFalseLt ctx =
+    test ctx
+        lt
+        (fromFloat 7.23)
+        (fromFloat -14.6)
 
 
-{-|
-Test: Decimal/one
+{-| Test: Decimal/lte
+expected = true
 -}
-decimalOne: Decimal
-decimalOne = fromInt 1
+decimalTrueLte : TestContext -> Bool
+decimalTrueLte ctx =
+    test ctx
+        lte
+        (fromFloat -11184.5)
+        (fromFloat 14.6)
 
 
-{-|
-Test: Decimal/round
+{-| Test: Decimal/lte
+expected = true
 -}
-decimalRound: Decimal -> Decimal
-decimalRound dec = Decimal.round dec
+decimalTrueEqualLte : TestContext -> Bool
+decimalTrueEqualLte ctx =
+    test ctx
+        lte
+        (fromFloat -14.6)
+        (fromFloat -14.6)
 
 
-{-|
-Test: Decimal/sub
+{-| Test: Decimal/lte
+expected = false
 -}
-decimalSub: Decimal -> Decimal -> Decimal
-decimalSub a b = sub a b
+decimalFalseLte : TestContext -> Bool
+decimalFalseLte ctx =
+    test ctx
+        lte
+        (fromFloat 100.3)
+        (fromFloat 14.6)
 
 
-{-|
-Test: Decimal/truncate
+{-| Test: Decimal/minusOne
 -}
-decimalTruncate: Decimal -> Decimal
-decimalTruncate dec = Decimal.truncate dec
+decimalMinusOne : Decimal
+decimalMinusOne =
+    fromInt -1
 
 
-{-|
-Test: Decimal/zero
+{-| Test: Decimal/mul
+expected = 0.06927
 -}
-decimalZero: Decimal
-decimalZero = fromInt 0
+decimalMul : TestContext -> Decimal
+decimalMul ctx =
+    test ctx
+        Decimal.mul
+        (fromFloat 23.09)
+        (fromFloat 0.003)
+
+
+{-| Test: Decimal/negate
+expected = 34.222
+-}
+decimalNegate : TestContext -> Decimal
+decimalNegate ctx =
+    test ctx
+        Decimal.negate
+        (fromFloat -34.222)
+
+
+{-| Test: Decimal/neq
+expected = true
+-}
+decimalTrueNeq : TestContext -> Bool
+decimalTrueNeq ctx =
+    test ctx
+        neq
+        (fromFloat 3.33)
+        (fromFloat -3.33)
+
+
+{-| Test: Decimal/neq
+expected = false
+-}
+decimalFalseNeq : TestContext -> Bool
+decimalFalseNeq ctx =
+    test ctx
+        neq
+        (fromFloat 3.33)
+        (fromFloat 3.33)
+
+
+{-| Test: Decimal/one
+-}
+decimalOne : Decimal
+decimalOne =
+    fromInt 1
+
+
+{-| Test: Decimal/round
+expected = 322.0
+-}
+decimalWholeRound : TestContext -> Decimal
+decimalWholeRound ctx =
+    test ctx
+        Decimal.round
+        (fromFloat 322.14)
+
+
+{-| Test: Decimal/round
+expected = -92.0
+-}
+decimalNegativeRound : TestContext -> Decimal
+decimalNegativeRound ctx =
+    test ctx
+        Decimal.round
+        (fromFloat -91.51)
+
+
+{-| Test: Decimal/sub
+expected = 1.1
+-}
+decimalSub : TestContext -> Decimal
+decimalSub ctx =
+    test ctx
+        sub
+        (fromFloat 4.2)
+        (fromFloat 3.1)
+
+
+{-| Test: Decimal/truncate
+expected = 1.0
+-}
+decimalTruncate : TestContext -> Decimal
+decimalTruncate ctx =
+    test ctx
+        Decimal.truncate
+        (fromFloat 1.33333333333333)
+
+
+{-| Test: Decimal/zero
+-}
+decimalZero : Decimal
+decimalZero =
+    fromInt 0

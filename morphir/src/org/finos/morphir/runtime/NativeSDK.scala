@@ -79,6 +79,7 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(DecimalSDK.gte),
           NativeFunctionAdapter.Fun2(DecimalSDK.lt),
           NativeFunctionAdapter.Fun2(DecimalSDK.lte),
+          NativeFunctionAdapter.Fun2(DecimalSDK.mul),
           NativeFunctionAdapter.Fun1(DecimalSDK.negate),
           NativeFunctionAdapter.Fun2(DecimalSDK.neq),
           NativeFunctionAdapter.Fun1(DecimalSDK.round),

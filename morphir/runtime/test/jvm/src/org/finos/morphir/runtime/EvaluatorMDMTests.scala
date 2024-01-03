@@ -335,13 +335,51 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("Decimal Tests")(
-        testEvaluation("fromFloat")("decimalTests", "decimalFromFloatTest")(Data.Decimal(1.2)),
-        testEvaluation("toFloat")("decimalTests", "decimalToFloatTest")(Data.Float(1.5)),
-        testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("1.2")),
+        suite("conversion")(
+          testEvaluation("fromFloat")("decimalTests", "decimalFromFloatTest")(Data.Decimal(1.2)),
+          testEval("fromInt")("decimalTests", "decimalFromInt", 634)(Data.Decimal(634)),
+          testEval("fromString good")("decimalTests", "decimalFromString", "523")(
+            Data.Optional.Some(Data.Decimal(523))
+          ),
+          testEval("fromString bad")("decimalTests", "decimalFromString", "abcd")(
+            Data.Optional.None(Concept.Decimal)
+          ),
+          testEvaluation("toFloat")("decimalTests", "decimalToFloatTest")(Data.Float(1.5)),
+          testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("1.2"))
+        ),
         suite("abs")(
-          testEval("positive value")("decimalTests", "decimalAbs", List(3))(Data.Decimal(3)),
-          testEval("negative value")("decimalTests", "decimalAbs", List(-100.243))(Data.Decimal(100.243))
-        )
+          testEvaluation("positive value")("decimalTests", "decimalPositiveAbs")(Data.Decimal(3)),
+          testEvaluation("negative value")("decimalTests", "decimalNegativeAbs")(Data.Decimal(100.243))
+        ),
+        testEvaluation("add")("decimalTests", "decimalAdd")(Data.Decimal(673.45)),
+        testEvaluation("bps")("decimalTests", "decimalBps")(Data.Decimal(0.0463)),
+//        testEvaluation("compare")("decimalTests", "decimalAdd")(Data.Decimal(673.45)),
+        suite("div")(
+          testEvaluation("div some")("decimalTests", "decimalGoodDiv")(Data.Optional.Some(Data.Decimal(1.8))),
+          testEvaluation("div none")("decimalTests", "decimalBadDiv")(Data.Optional.None(Concept.Decimal))
+        ),
+        suite("comparison")(
+          testEvaluation("eq true")("decimalTests", "decimalTrueEq")(Data.Boolean(true)),
+          testEvaluation("eq false")("decimalTests", "decimalFalseEq")(Data.Boolean(false)),
+          testEvaluation("gt true")("decimalTests", "decimalTrueGt")(Data.Boolean(true)),
+          testEvaluation("gt false")("decimalTests", "decimalFalseGt")(Data.Boolean(false)),
+          testEvaluation("gte greater true")("decimalTests", "decimalTrueGte")(Data.Boolean(true)),
+          testEvaluation("gte equals true")("decimalTests", "decimalTrueEqualGte")(Data.Boolean(true)),
+          testEvaluation("gte false")("decimalTests", "decimalFalseGte")(Data.Boolean(false)),
+          testEvaluation("lt true")("decimalTests", "decimalTrueLt")(Data.Boolean(true)),
+          testEvaluation("lt false")("decimalTests", "decimalFalseLt")(Data.Boolean(false)),
+          testEvaluation("lte less true")("decimalTests", "decimalTrueLte")(Data.Boolean(true)),
+          testEvaluation("lte equal true")("decimalTests", "decimalTrueEqualLte")(Data.Boolean(true)),
+          testEvaluation("lte false")("decimalTests", "decimalFalseLte")(Data.Boolean(false)),
+          testEvaluation("neq true")("decimalTests", "decimalTrueNeq")(Data.Boolean(true)),
+          testEvaluation("neq false")("decimalTests", "decimalFalseNeq")(Data.Boolean(false))
+        ),
+        testEvaluation("mul")("decimalTests", "decimalMul")(Data.Decimal(0.06927)),
+        testEvaluation("neg")("decimalTests", "decimalNegate")(Data.Decimal(34.222)),
+        testEvaluation("round down")("decimalTests", "decimalWholeRound")(Data.Decimal(322.0)),
+        testEvaluation("round up")("decimalTests", "decimalNegativeRound")(Data.Decimal(-92.0)),
+        testEvaluation("sub")("decimalTests", "decimalSub")(Data.Decimal(1.1)),
+        testEvaluation("truncate")("decimalTests", "decimalTruncate")(Data.Decimal(1.0))
       ),
       suite("Lambda Tests")(
         testEvaluation("As")("lambdaTests", "lambdaAsTest")(Data.Tuple(Data.Int(5), Data.Int(5))),
