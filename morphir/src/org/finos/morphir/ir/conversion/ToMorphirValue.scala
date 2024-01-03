@@ -118,6 +118,13 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
       }
     case Data.Optional.None(shape) =>
       V.constructor("Morphir.SDK:Maybe:Nothing", shape.morphirType)
+    case Data.Order(i) =>
+      if i > 0 then
+        V.constructor("Morphir.SDK:Basics:GT", sdk.Basics.orderType)
+      else if i < 0 then
+        V.constructor("Morphir.SDK:Basics:LT", sdk.Basics.orderType)
+      else
+        V.constructor("Morphir.SDK:Basics:EQ", sdk.Basics.orderType)
     case Data.Optional.Some(data, shape) =>
       V.applyInferType(
         shape.morphirType,

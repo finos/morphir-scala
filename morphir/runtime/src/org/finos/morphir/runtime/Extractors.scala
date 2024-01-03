@@ -25,7 +25,6 @@ object Extractors {
           case _ => None
         }
     }
-
     object SetRef {
       def unapply(tpe: UType): Option[UType] =
         tpe match {
@@ -68,6 +67,9 @@ object Extractors {
           case Type.Reference(_, fqName, Nil) if fqName == ref.typeName => true
           case _                                                        => false
         }
+    }
+    object OrderRef extends CommonReference{
+      final val tpe = Basics.orderType
     }
 
     object IntRef extends CommonReference {

@@ -90,7 +90,7 @@ object MorphirRuntimeError {
   }
   object LookupError {
     case class MissingPackage(pkgName: PackageName, context: String = "") extends LookupError {
-      def message                         = s"Package ${pkgName.toString} not found"
+      def message                         = s"Package ${pkgName.toString} not found. $context"
       def withContext(newContext: String) = this.copy(context = context + "\n" + newContext)
     }
     case class MissingModule(pkgName: PackageName, modName: ModuleName, context: String = "")

@@ -69,6 +69,7 @@ object EvaluatorQuick {
       case DecimalRef()   => Concept.Decimal
       case LocalDateRef() => Concept.LocalDate
       case LocalTimeRef() => Concept.LocalTime
+      case OrderRef() => Concept.Order
       case MonthRef()     => Concept.Month
       case DayOfWeekRef() => Concept.DayOfWeek
 
@@ -155,7 +156,12 @@ object EvaluatorQuick {
         Data.Int32(value.toInt)
       case (Concept.Int64, RTValue.Primitive.Int(value)) =>
         Data.Int64(value.toLong)
-
+      case (Concept.Order, RTValue.ConstructorResult(FQString("Morphir.SDK:Basics:gT"), List())) =>
+        Data.Order(1)
+      case (Concept.Order, RTValue.ConstructorResult(FQString("Morphir.SDK:Basics:lT"), List())) =>
+        Data.Order(-1)
+      case (Concept.Order, RTValue.ConstructorResult(FQString("Morphir.SDK:Basics:eQ"), List())) =>
+        Data.Order(0)
       case (Concept.String, RTValue.Primitive.String(value)) =>
         Data.String(value)
       case (Concept.Boolean, RTValue.Primitive.Boolean(value)) =>

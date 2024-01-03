@@ -256,6 +256,12 @@ object RTValue {
     )
   }
 
+  object Order{
+    val GT = ConstructorResult(FQName.fromString("Morphir.SDK:Basics:GT"), scala.List.empty)
+    val LT = ConstructorResult(FQName.fromString("Morphir.SDK:Basics:LT"), scala.List.empty)
+    val EQ = ConstructorResult(FQName.fromString("Morphir.SDK:Basics:EQ"), scala.List.empty)
+  }
+
   case class Unit() extends RTValue {
     override def succinct(depth: Int) = "Unit"
   }

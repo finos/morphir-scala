@@ -67,6 +67,7 @@ object Data {
     val shape: Concept = Concept.LocalTime
   }
   case class Char(value: scala.Char) extends Basic[scala.Char] { val shape: Concept = Concept.Char }
+  case class Order(value : Int) extends Basic[Int] {val shape : Concept = Concept.Order}
   case object Unit                   extends Basic[scala.Unit] { val shape: Concept = Concept.Unit }
 
   // Needed for Scala 3 extension methods to work
@@ -82,6 +83,7 @@ object Data {
   object DayOfWeek {}
   object LocalTime {}
   object Char      {}
+  object Order     {}
 
   /**
    * See notes on Concept.Enum for information on how this type is modelled

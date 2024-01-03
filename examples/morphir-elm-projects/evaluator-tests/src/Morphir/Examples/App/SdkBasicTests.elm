@@ -1504,6 +1504,15 @@ sdkMinTestList ctx =
 
 -----
 
+{-| Test: SdkBasics/compare
+Expected: False
+-}
+sdkCompareTest : comparable -> comparable -> Order
+sdkCompareTest a b =
+    compare a b
+    
+-----
+
 
 {-| Test: SdkBasics/not
 Expected: False

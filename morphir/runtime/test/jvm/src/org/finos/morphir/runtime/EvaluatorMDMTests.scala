@@ -2023,6 +2023,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest5")(Data.Boolean(true)),
         testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest6")(Data.Boolean(true)),
         testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest7")(Data.Boolean(true)),
+        testEvalMultiple("Compare")("sdkBasicsTests", "sdkCompareTest", List(1, 2))(Data.Int(-1)),
         testEvaluation("Or")("sdkBasicsTests", "sdkOrTest")(Data.Boolean(true)),
         testEvaluation("Not")("sdkBasicsTests", "sdkNotTest")(Data.Boolean(false)),
         testEvaluation("LogBase")("sdkBasicsTests", "sdkLogBaseTest")(Data.Float(2.0)),
