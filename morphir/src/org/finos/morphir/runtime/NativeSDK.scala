@@ -100,7 +100,18 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.partition),
           NativeFunctionAdapter.Fun3(ListSDK.foldl),
           NativeFunctionAdapter.Fun2(ListSDK.append),
-          NativeFunctionAdapter.Fun2(ListSDK.cons)
+          NativeFunctionAdapter.Fun2(ListSDK.cons),
+          NativeFunctionAdapter.Fun2(ListSDK.all),
+          NativeFunctionAdapter.Fun2(ListSDK.concatMap),
+          NativeFunctionAdapter.Fun2(ListSDK.drop),
+          NativeFunctionAdapter.Fun2(ListSDK.filterMap),
+          NativeFunctionAdapter.Fun3(ListSDK.foldr),
+          NativeFunctionAdapter.Fun1(ListSDK.head),
+          NativeFunctionAdapter.Fun2(ListSDK.indexedMap),
+          NativeFunctionAdapter.Fun2(ListSDK.member),
+          NativeFunctionAdapter.Fun2(ListSDK.range),
+          NativeFunctionAdapter.Fun2(ListSDK.repeat),
+          NativeFunctionAdapter.Fun1(ListSDK.reverse)
         )
       }
 
@@ -118,7 +129,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ResultSDK.mapError),
           NativeFunctionAdapter.Fun2(ResultSDK.withDefault),
           NativeFunctionAdapter.Fun1(ResultSDK.toMaybe),
-          NativeFunctionAdapter.Fun2(ResultSDK.fromMaybe)
+          NativeFunctionAdapter.Fun2(ResultSDK.fromMaybe),
+          NativeFunctionAdapter.Fun2(ResultSDK.andThen)
         )
       }
 
@@ -157,6 +169,13 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(LocalTimeSDK.fromISO)
         )
       }
+
+      case object Dict extends SdkModuleDescriptor(moduleName = "Dict") {
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun2(DictSDK.partition),
+          NativeFunctionAdapter.Fun2(DictSDK.remove)
+        )
+      }
     }
   }
 
@@ -165,6 +184,7 @@ object NativeSDK {
     Seq(
       Basics,
       Decimal,
+      Dict,
       List,
       LocalDate,
       LocalTime,

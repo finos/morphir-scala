@@ -542,6 +542,164 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ),
         testEvaluation("length")("listTests", "listLengthTest")(
           (Data.Int32(6))
+        ),
+        suite("all")(
+          testEval("predicate is true for all")("listTests", "listAllTest", List(1, 2, 3))(
+            Data.Boolean(true)
+          ),
+          testEval("predicate is not true for all")("listTests", "listAllTest", List(2, 3, 4))(
+            Data.Boolean(false)
+          )
+        ),
+        suite("concatMap")(
+          testEval("concatenates mapped result")("listTests", "listConcatMapTest", List(1, 2, 3))(
+            Data.List(
+              Data.Int(1),
+              Data.Int(1),
+              Data.Int(2),
+              Data.Int(2),
+              Data.Int(3),
+              Data.Int(3)
+            )
+          ),
+          testEval("produces empty list on empty list input")(
+            "listTests",
+            "listConcatMapTest",
+            Data.List.empty(Concept.Int32)
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEval("produces flat output for a single result list")("listTests", "listConcatMapTest", List(3))(
+            Data.List(Data.Int(3), Data.Int(3))
+          )
+        ),
+        suite("drop")(
+          testEvalMultiple("drops element from front of list")("listTests", "listDropTest", List(2, List(1, 2, 3)))(
+            Data.List(Data.Int(3))
+          ),
+          testEvalMultiple("drops the entire list when the number dropped is gt the list length")(
+            "listTests",
+            "listDropTest",
+            List(4, List(1, 2, 3))
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("returns an empty list when dropping from an empty list")(
+            "listTests",
+            "listDropTest",
+            List(2, Data.List.empty(Concept.Int32))
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("does nothing when dropping 0 elements")("listTests", "listDropTest", List(0, List(1)))(
+            Data.List(Data.Int(1))
+          ),
+          testEvalMultiple("does nothing when dropping a negative number of elements")(
+            "listTests",
+            "listDropTest",
+            List(-5, List(1))
+          )(
+            Data.List(Data.Int(1))
+          )
+        ),
+        suite("filterMap")(
+          testEval("filters after mapping")("listTests", "listFilterMapTest", List(0, 1, 2))(
+            Data.List(Data.Float(1.0), Data.Float(0.5))
+          ),
+          testEval("filters empty lists")("listTests", "listFilterMapTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Float)
+          )
+        ),
+        suite("foldr")(
+          testEval("folds")("listTests", "listFoldrTest", List(1, 2, 3))(
+            Data.List(Data.Int32(1), Data.Int32(2), Data.Int32(3))
+          ),
+          testEval("folds empty lists")("listTests", "listFoldrTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("head")(
+          testEval("head of a non-empty list is Just")("listTests", "listHeadTest", List(1, 2, 3))(
+            Data.Optional.Some(Data.Int32(1))
+          ),
+          testEval("head of an empty list is Nothing")("listTests", "listHeadTest", Data.List.empty(Concept.Int32))(
+            Data.Optional.None(Concept.Int32)
+          )
+        ),
+        suite("indexedMap")(
+          testEval("passes indices to the mapped function")("listTests", "listIndexedMapTest", List("a", "b", "c"))(
+            Data.List(
+              Data.Tuple(Data.Int(0), Data.String("a")),
+              Data.Tuple(Data.Int(1), Data.String("b")),
+              Data.Tuple(Data.Int(2), Data.String("c"))
+            )
+          ),
+          testEval("maps empty lists")("listTests", "listIndexedMapTest", Data.List.empty(Concept.String))(
+            Data.List.empty(Concept.Tuple(List(Concept.Int32, Concept.String)))
+          )
+        ),
+        suite("member")(
+          testEvalMultiple("finds a member of a list")("listTests", "listMemberTest", List(1, List(1, 2, 3)))(
+            Data.Boolean(true)
+          ),
+          testEvalMultiple("doesn't find a member missing from a list")(
+            "listTests",
+            "listMemberTest",
+            List(1, List(2, 3))
+          )(
+            Data.Boolean(false)
+          ),
+          testEvalMultiple("doesn't find a member of an empty list")(
+            "listTests",
+            "listMemberTest",
+            List(1, Data.List.empty(Concept.Int32))
+          )(
+            Data.Boolean(false)
+          )
+        ),
+        suite("range")(
+          testEvalMultiple("creates a range")("listTests", "listRangeTest", List(1, 3))(
+            Data.List(Data.Int(1), Data.Int(2), Data.Int(3))
+          ),
+          testEvalMultiple("creates a range including negative numbers")("listTests", "listRangeTest", List(-1, 2))(
+            Data.List(Data.Int(-1), Data.Int(0), Data.Int(1), Data.Int(2))
+          ),
+          testEvalMultiple("creates a range with a single value")("listTests", "listRangeTest", List(1, 1))(
+            Data.List(Data.Int(1))
+          ),
+          testEvalMultiple("creates an empty range for out of order arguments")(
+            "listTests",
+            "listRangeTest",
+            List(2, 1)
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("creates an empty range for out of order negative arguments")(
+            "listTests",
+            "listRangeTest",
+            List(-1, -2)
+          )(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("repeat")(
+          testEvalMultiple("creates a repeated list")("listTests", "listRepeatTest", List(3, 1))(
+            Data.List(Data.Int(1), Data.Int(1), Data.Int(1))
+          ),
+          testEvalMultiple("creates an empty list for 0 repeats")("listTests", "listRepeatTest", List(0, 1))(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("creates an empty list for negative repeats")("listTests", "listRepeatTest", List(-1, 1))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("reverse")(
+          testEval("reverses a list")("listTests", "listReverseTest", List(1, 2, 3))(
+            Data.List(Data.Int(3), Data.Int(2), Data.Int(1))
+          ),
+          testEval("reverses an empty list")("listTests", "listReverseTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
         )
       ),
       suite("Literals")(
@@ -1366,7 +1524,90 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )),
         testEvaluation("Update - delete key")("dictionaryTests", "dictUpdateTest2")(Data.Map(
           (Data.String("Alice"), Data.Int(1))
-        ))
+        )),
+        suite("Partition")(
+          testEvaluation("partitions")("dictionaryTests", "dictPartitionTest")(
+            Data.Tuple(
+              Data.Map(
+                Data.String("Bob") -> Data.Int(1)
+              ),
+              Data.Map(
+                Data.String("Waldo") -> Data.Int(0)
+              )
+            )
+          ),
+          testEvaluation("partitions an empty dict")("dictionaryTests", "dictPartitionEmptyTest")(
+            Data.Tuple(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          ),
+          testEvaluation("with partitioning result reversed")("dictionaryTests", "dictPartitionInversePredTest")(
+            Data.Tuple(
+              Data.Map(
+                Data.String("Waldo") -> Data.Int(0)
+              ),
+              Data.Map(
+                Data.String("Bob") -> Data.Int(1)
+              )
+            )
+          ),
+          testEvaluation("partitions when all entries match pred")("dictionaryTests", "dictPartitionAllMatchTest")(
+            Data.Tuple(
+              Data.Map(
+                Data.String("Waldo") -> Data.Int(0),
+                Data.String("Bob")   -> Data.Int(1)
+              ),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          ),
+          testEvaluation("partitions when no entries match pred")("dictionaryTests", "dictPartitionNoneMatchTest")(
+            Data.Tuple(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map(
+                Data.String("Bob")   -> Data.Int(1),
+                Data.String("Waldo") -> Data.Int(0)
+              )
+            )
+          ),
+          testEvaluation("partitions with predicate based on key and value")(
+            "dictionaryTests",
+            "dictPartitionPredicateOperatesOnKeyAndValueTest"
+          )(
+            Data.Tuple(
+              Data.Map(
+                Data.String("Bob") -> Data.Int(1),
+                Data.String("Lob") -> Data.Int(1)
+              ),
+              Data.Map(
+                Data.String("Waldo") -> Data.Int(0),
+                Data.String("Rob")   -> Data.Int(0)
+              )
+            )
+          )
+        ),
+        suite("remove")(
+          testEvalMultiple("removes entries")("dictionaryTests", "dictRemoveTest", List("a", Map("a" -> 1, "b" -> 2)))(
+            Data.Map(Data.String("b") -> Data.Int(2))
+          ),
+          testEvalMultiple("no changes for missing entries")(
+            "dictionaryTests",
+            "dictRemoveTest",
+            List("q", Map("a" -> 1, "b" -> 2))
+          )(
+            Data.Map(
+              Data.String("a") -> Data.Int(1),
+              Data.String("b") -> Data.Int(2)
+            )
+          ),
+          testEvalMultiple("removes entries from empty dicts")(
+            "dictionaryTests",
+            "dictRemoveTest",
+            List("a", Data.Map.empty(Concept.String, Concept.Int32))
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )
+        )
       ),
       suite("Maybe Tests")(
         testEvaluation("Returns a Just 1")("maybeTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),
@@ -1389,9 +1630,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("withDefault Nothing input")("maybeTests", "maybeWithDefault", Data.Optional.None(Concept.Boolean))(
           Data.Boolean(false)
         ),
-        testEval("andThen 0 input")("maybeTests", "maybeAndThen", 0)(Data.Optional.None(Concept.Float)),
-        testEval("andThen 1 input")("maybeTests", "maybeAndThen", 1)(Data.Optional.Some(Data.Float(1.0))),
-        testEval("andThen 2 input")("maybeTests", "maybeAndThen", 2)(Data.Optional.None(Concept.Float))
+        suite("andThen")(
+          testEval("first output is Just, second is Nothing")("maybeTests", "maybeAndThen", 0)(
+            Data.Optional.None(Concept.Float)
+          ),
+          testEval("both outputs are Just")("maybeTests", "maybeAndThen", 1)(Data.Optional.Some(Data.Float(1.0))),
+          testEval("first output is Nothing")("maybeTests", "maybeAndThen", 2)(Data.Optional.None(Concept.Float))
+        )
       ),
       suite("SDK Result Tests")(
         testEval("Returns success result")("resultTests", "returnResultType", 0)(Data.Result.Ok(
@@ -1474,7 +1719,18 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "resultTests",
           "resultFromMaybe",
           Data.Optional.None(Concept.Int32)
-        )(Data.Result.Err.withOkConcept(Data.String("Undefined"), Concept.Int32))
+        )(Data.Result.Err.withOkConcept(Data.String("Undefined"), Concept.Int32)),
+        suite("andThen")(
+          testEval("both results are Ok")("resultTests", "resultAndThen", 1)(
+            Data.Result.Ok(Data.Float(1.0), Concept.Result(Concept.String, Concept.Float))
+          ),
+          testEval("first result is Err")("resultTests", "resultAndThen", 2)(
+            Data.Result.Err(Data.String("invalid"), Concept.Result(Concept.String, Concept.Float))
+          ),
+          testEval("first result is Ok, second is Err")("resultTests", "resultAndThen", 0)(
+            Data.Result.Err(Data.String("undefined"), Concept.Result(Concept.String, Concept.Float))
+          )
+        )
       ),
       suite("SDK Basics Tests")(
         testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
