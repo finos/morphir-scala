@@ -87,7 +87,9 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.member),
           NativeFunctionAdapter.Fun2(ListSDK.range),
           NativeFunctionAdapter.Fun2(ListSDK.repeat),
-          NativeFunctionAdapter.Fun1(ListSDK.reverse)
+          NativeFunctionAdapter.Fun1(ListSDK.reverse),
+          NativeFunctionAdapter.Fun1(ListSDK.tail),
+          NativeFunctionAdapter.Fun2(ListSDK.take)
         )
       }
 

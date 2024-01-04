@@ -333,3 +333,26 @@ expected([]) = []
 listReverseTest : List a -> List a
 listReverseTest list =
     List.reverse list
+
+
+{-| Test: List/tail
+Note: Elm's tail returns a Maybe List a, this is a departure from all
+other cons-cell-derived List implementations.
+expected([1, 2, 3]) = Just [2, 3]
+expected([3]) = Just []
+expected([]) = Nothing
+-}
+listTailTest : List a -> Maybe (List a)
+listTailTest list =
+    List.tail list
+
+
+{-| Test: List/take
+expected(2, [1, 2, 3]) = [1, 2]
+expected(0, [1, 2, 3]) = []
+expected(-1, [1, 2, 3]) = []
+expected(2, []) = []
+-}
+listTakeTest : Int -> List a -> List a
+listTakeTest n list =
+    List.take n list
