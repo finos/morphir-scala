@@ -345,3 +345,14 @@ expected([]) = Nothing
 listTailTest : List a -> Maybe (List a)
 listTailTest list =
     List.tail list
+
+
+{-| Test: List/take
+expected(2, [1, 2, 3]) = [1, 2]
+expected(0, [1, 2, 3]) = []
+expected(-1, [1, 2, 3]) = []
+expected(2, []) = []
+-}
+listTakeTest : Int -> List a -> List a
+listTakeTest n list =
+    List.take n list

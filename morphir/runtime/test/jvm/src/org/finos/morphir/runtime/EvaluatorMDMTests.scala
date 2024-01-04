@@ -674,6 +674,32 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("the tail of an empty list is Nothing")("listTests", "listTailTest", Data.List.empty(Concept.Int32))(
             Data.Optional.None(Concept.List(Concept.Int32))
           )
+        ),
+        suite("take")(
+          testEvalMultiple("takes from a list")("listTests", "listTakeTest", List(2, List(1, 2, 3)))(
+            Data.List(Data.Int(1), Data.Int(2))
+          ),
+          testEvalMultiple("taking 0 elements returns an empty list")(
+            "listTests",
+            "listTakeTest",
+            List(0, List(1, 2, 3))
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("taking negative elements returns an empty list")(
+            "listTests",
+            "listTakeTest",
+            List(-1, List(1, 2, 3))
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("taking from an empty list returns an empty list")(
+            "listTests",
+            "listTakeTest",
+            List(2, Data.List.empty(Concept.Int32))
+          )(
+            Data.List.empty(Concept.Int32)
+          )
         )
       ),
       suite("Literals")(

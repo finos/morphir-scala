@@ -202,4 +202,11 @@ object ListSDK {
       val result = if (list.elements.isEmpty) None else Some(RTValue.List(list.elements.tail))
       MaybeSDK.resultToMaybe(result)
   }
+
+  val take = DynamicNativeFunction2("take") {
+    (context: NativeContext) => (countArg: RTValue.Primitive.Int, listArg: RTValue.List) =>
+      val count  = countArg.value.toInt
+      val result = listArg.elements.take(count)
+      RTValue.List(result)
+  }
 }
