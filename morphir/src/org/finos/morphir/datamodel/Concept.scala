@@ -73,6 +73,8 @@ object Concept {
     val LocalDate = Concept.LocalDate
     type Month = Concept.Month.type
     val Month = Concept.Month
+    type DayOfWeek = Concept.DayOfWeek.type
+    val DayOfWeek = Concept.DayOfWeek
     type LocalTime = Concept.LocalTime.type
     val LocalTime = Concept.LocalTime
     type Char = Concept.Char.type
@@ -95,6 +97,7 @@ object Concept {
   case object String    extends Basic[java.lang.String]
   case object LocalDate extends Basic[java.time.LocalDate]
   case object Month     extends Basic[java.time.Month]
+  case object DayOfWeek extends Basic[java.time.DayOfWeek]
   case object LocalTime extends Basic[java.time.LocalTime]
   case object Char      extends Basic[scala.Char]
   case object Unit      extends Basic[scala.Unit]

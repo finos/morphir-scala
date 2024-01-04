@@ -103,6 +103,12 @@ object Extractors {
     object LocalTimeRef extends CommonReference {
       final val tpe = sdk.LocalTime.localTimeType
     }
+    object MonthRef extends CommonReference {
+      final val tpe = sdk.LocalDate.monthType
+    }
+    object DayOfWeekRef extends CommonReference {
+      final val tpe = sdk.LocalDate.dayOfWeekType
+    }
     // Matches anything w/o nested subtypes
     object LeafType {
       def unapply(tpe: UType): Boolean =

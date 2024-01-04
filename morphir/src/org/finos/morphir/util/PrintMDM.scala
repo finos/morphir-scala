@@ -140,6 +140,7 @@ class PrintIR(
           v match {
             case v: Data.LocalDate => Tree.Literal(v.toString)
             case v: Data.Month     => Tree.Literal(v.toString)
+            case v: Data.DayOfWeek => Tree.Literal(v.toString)
             case v: Data.LocalTime => Tree.Literal(v.toString)
             case _                 => treeifySuper(v)
           }

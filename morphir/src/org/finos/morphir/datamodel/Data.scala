@@ -60,6 +60,9 @@ object Data {
     val shape: Concept = Concept.LocalDate
   }
   case class Month(value: java.time.Month) extends Basic[java.time.Month] { val shape: Concept = Concept.Month }
+  case class DayOfWeek(value: java.time.DayOfWeek) extends Basic[java.time.DayOfWeek] {
+    val shape: Concept = Concept.DayOfWeek
+  }
   case class LocalTime(value: java.time.LocalTime) extends Basic[java.time.LocalTime] {
     val shape: Concept = Concept.LocalTime
   }
@@ -76,6 +79,7 @@ object Data {
   object String    {}
   object LocalDate {}
   object Month     {}
+  object DayOfWeek {}
   object LocalTime {}
   object Char      {}
 

@@ -9,7 +9,7 @@ import org.finos.morphir.ir.Value.{TypedValue, Value}
 import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Type.UType
 
-import java.time.Month
+import java.time.{DayOfWeek, Month}
 import java.time.temporal.ChronoField
 
 trait ToMorphirValue[A, +TypeAttribs, +ValueAttribs] {
@@ -83,10 +83,9 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     case Data.LocalDate(value) =>
       V.applyInferType(
         value.morphirType,
-        V.reference(FQName.fromString("Morphir.SDK:LocalDate:fromParts")),
+        V.reference(FQName.fromString("Morphir.SDK:LocalDate:fromOrdinalDate")),
         V.intTyped(value.getYear),
-        V.intTyped(value.getMonthValue),
-        V.intTyped(value.getDayOfMonth)
+        V.intTyped(value.getDayOfYear)
       )
     case Data.LocalTime(value) =>
       V.applyInferType(
@@ -95,18 +94,27 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         V.intTyped(value.get(ChronoField.MILLI_OF_DAY))
       )
     case Data.Month(value) => value match {
-        case Month.JANUARY   => V.constructor("Morphir.SDK:Month:January", value.morphirType)
-        case Month.FEBRUARY  => V.constructor("Morphir.SDK:Month:February", value.morphirType)
-        case Month.MARCH     => V.constructor("Morphir.SDK:Month:March", value.morphirType)
-        case Month.APRIL     => V.constructor("Morphir.SDK:Month:April", value.morphirType)
-        case Month.MAY       => V.constructor("Morphir.SDK:Month:May", value.morphirType)
-        case Month.JUNE      => V.constructor("Morphir.SDK:Month:June", value.morphirType)
-        case Month.JULY      => V.constructor("Morphir.SDK:Month:July", value.morphirType)
-        case Month.AUGUST    => V.constructor("Morphir.SDK:Month:August", value.morphirType)
-        case Month.SEPTEMBER => V.constructor("Morphir.SDK:Month:September", value.morphirType)
-        case Month.OCTOBER   => V.constructor("Morphir.SDK:Month:October", value.morphirType)
-        case Month.NOVEMBER  => V.constructor("Morphir.SDK:Month:November", value.morphirType)
-        case Month.DECEMBER  => V.constructor("Morphir.SDK:Month:December", value.morphirType)
+        case Month.JANUARY   => V.constructor("Morphir.SDK:LocalDate:January", value.morphirType)
+        case Month.FEBRUARY  => V.constructor("Morphir.SDK:LocalDate:February", value.morphirType)
+        case Month.MARCH     => V.constructor("Morphir.SDK:LocalDate:March", value.morphirType)
+        case Month.APRIL     => V.constructor("Morphir.SDK:LocalDate:April", value.morphirType)
+        case Month.MAY       => V.constructor("Morphir.SDK:LocalDate:May", value.morphirType)
+        case Month.JUNE      => V.constructor("Morphir.SDK:LocalDate:June", value.morphirType)
+        case Month.JULY      => V.constructor("Morphir.SDK:LocalDate:July", value.morphirType)
+        case Month.AUGUST    => V.constructor("Morphir.SDK:LocalDate:August", value.morphirType)
+        case Month.SEPTEMBER => V.constructor("Morphir.SDK:LocalDate:September", value.morphirType)
+        case Month.OCTOBER   => V.constructor("Morphir.SDK:LocalDate:October", value.morphirType)
+        case Month.NOVEMBER  => V.constructor("Morphir.SDK:LocalDate:November", value.morphirType)
+        case Month.DECEMBER  => V.constructor("Morphir.SDK:LocalDate:December", value.morphirType)
+      }
+    case Data.DayOfWeek(value) => value match {
+        case DayOfWeek.MONDAY    => V.constructor("Morphir.SDK:LocalDate:Monday", value.morphirType)
+        case DayOfWeek.TUESDAY   => V.constructor("Morphir.SDK:LocalDate:Tuesday", value.morphirType)
+        case DayOfWeek.WEDNESDAY => V.constructor("Morphir.SDK:LocalDate:Wednesday", value.morphirType)
+        case DayOfWeek.THURSDAY  => V.constructor("Morphir.SDK:LocalDate:Thursday", value.morphirType)
+        case DayOfWeek.FRIDAY    => V.constructor("Morphir.SDK:LocalDate:Friday", value.morphirType)
+        case DayOfWeek.SATURDAY  => V.constructor("Morphir.SDK:LocalDate:Saturday", value.morphirType)
+        case DayOfWeek.SUNDAY    => V.constructor("Morphir.SDK:LocalDate:Sunday", value.morphirType)
       }
     case Data.Optional.None(shape) =>
       V.constructor("Morphir.SDK:Maybe:Nothing", shape.morphirType)

@@ -69,6 +69,8 @@ object EvaluatorQuick {
       case DecimalRef()   => Concept.Decimal
       case LocalDateRef() => Concept.LocalDate
       case LocalTimeRef() => Concept.LocalTime
+      case MonthRef()     => Concept.Month
+      case DayOfWeekRef() => Concept.DayOfWeek
 
       case ResultRef(errType, okType) =>
         Concept.Result(typeToConcept(errType, dists, boundTypes), typeToConcept(okType, dists, boundTypes))
@@ -80,6 +82,7 @@ object EvaluatorQuick {
         Concept.Map(typeToConcept(keyType, dists, boundTypes), typeToConcept(valType, dists, boundTypes))
       case SetRef(elementType) =>
         Concept.Set(typeToConcept(elementType, dists, boundTypes))
+
       case TT.Reference(_, typeName, typeArgs) =>
         val lookedUp    = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dists, boundTypes))
@@ -163,6 +166,10 @@ object EvaluatorQuick {
         Data.LocalDate(value)
       case (Concept.LocalTime, RTValue.LocalTime(value: java.time.LocalTime)) =>
         Data.LocalTime(value)
+      case (Concept.Month, RTValue.Month(value: java.time.Month)) =>
+        Data.Month(value)
+      case (Concept.DayOfWeek, RTValue.DayOfWeek(value: java.time.DayOfWeek)) =>
+        Data.DayOfWeek(value)
 
       case (Concept.Float, RTValue.Primitive.Float(value)) =>
         Data.Float(value.toDouble)
