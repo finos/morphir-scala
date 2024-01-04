@@ -658,6 +658,22 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("reverses an empty list")("listTests", "listReverseTest", Data.List.empty(Concept.Int32))(
             Data.List.empty(Concept.Int32)
           )
+        ),
+        suite("tail")(
+          testEval("returns the tail of a list")("listTests", "listTailTest", List(1, 2, 3))(
+            Data.Optional.Some(
+              Data.List(
+                Data.Int(2),
+                Data.Int(3)
+              )
+            )
+          ),
+          testEval("returns the tail of a singleton list")("listTests", "listTailTest", List(1))(
+            Data.Optional.Some(Data.List.empty(Concept.Int32))
+          ),
+          testEval("the tail of an empty list is Nothing")("listTests", "listTailTest", Data.List.empty(Concept.Int32))(
+            Data.Optional.None(Concept.List(Concept.Int32))
+          )
         )
       ),
       suite("Literals")(

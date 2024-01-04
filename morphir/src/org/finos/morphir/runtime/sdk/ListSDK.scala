@@ -194,4 +194,12 @@ object ListSDK {
   val reverse = DynamicNativeFunction1("reverse") {
     (context: NativeContext) => (list: RTValue.List) => RTValue.List(list.elements.reverse)
   }
+
+  // The Elm implementation of tail is non-standard: it returns a `Maybe (List a)` with
+  // the tail of an empty list returning Nothing.
+  val tail = DynamicNativeFunction1("tail") {
+    (context: NativeContext) => (list: RTValue.List) =>
+      val result = if (list.elements.isEmpty) None else Some(RTValue.List(list.elements.tail))
+      MaybeSDK.resultToMaybe(result)
+  }
 }
