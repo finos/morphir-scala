@@ -47,6 +47,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case map: Map[_, _] =>
         val pairs = map.toList.map { case (key, value) => (deriveData(key), deriveData(value)) }
         Data.Map(pairs.head, pairs.tail: _*)
+      case set: Set[_] =>
+        val derivedElements = set.toList.map(deriveData(_))
+        Data.Set(derivedElements.head, derivedElements.tail: _*)
       case Some(a: Any)           => Data.Optional.Some(deriveData(a))
       case (first, second)        => Data.Tuple(deriveData(first), deriveData(second))
       case (first, second, third) => Data.Tuple(deriveData(first), deriveData(second), deriveData(third))
@@ -1131,7 +1134,173 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )),
         testEvaluation("member")("setTests", "setMemberTest1")(Data.Boolean(true)),
         testEvaluation("member")("setTests", "setMemberTest2")(Data.Boolean(false)),
-        testEvaluation("size")("setTests", "setSizeTest")(Data.Int(3))
+        testEvaluation("size")("setTests", "setSizeTest")(Data.Int(3)),
+        suite("foldr")(
+          testEval("folds left")("setTests", "setFoldrTest", Set(1, 2, 3))(
+            Data.List(
+              Data.Int(1),
+              Data.Int(2),
+              Data.Int(3)
+            )
+          ),
+          testEval("iterates in desc sort order, not insertion order")("setTests", "setFoldrTest", Set(2, 1, 3))(
+            Data.List(
+              Data.Int(1),
+              Data.Int(2),
+              Data.Int(3)
+            )
+          ) @@ ignore @@ tag("foldr does not match morphir-elm iteration order"),
+          testEval("folds empty lists")("setTests", "setFoldrTest", Data.Set.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("insert")(
+          testEvalMultiple("inserts into a set")("setTests", "setInsertTest", List(2, Set(1)))(
+            Data.Set(Data.Int(1), Data.Int(2))
+          ),
+          testEvalMultiple("inserts into an empty set")(
+            "setTests",
+            "setInsertTest",
+            List(1, Data.Set.empty(Concept.Int32))
+          )(
+            Data.Set(Data.Int(1))
+          ),
+          testEvalMultiple("leaves a set already containing the element unchanged")(
+            "setTests",
+            "setInsertTest",
+            List(1, Set(1))
+          )(
+            Data.Set(Data.Int(1))
+          )
+        ),
+        testEval("creates singleton sets")("setTests", "setSingletonTest", 1)(Data.Set(Data.Int(1))),
+        suite("union")(
+          testEvalMultiple("unions two sets")("setTests", "setUnionTest", List(Set(1), Set(2)))(
+            Data.Set(Data.Int(1), Data.Int(2))
+          ),
+          testEvalMultiple("unions two sets with redundant elements")(
+            "setTests",
+            "setUnionTest",
+            List(Set(1, 2), Set(2, 3))
+          )(
+            Data.Set(Data.Int(1), Data.Int(2), Data.Int(3))
+          ),
+          testEvalMultiple("unions when the first set is empty")(
+            "setTests",
+            "setUnionTest",
+            List(Data.Set.empty(Concept.Int32), Set(1, 2))
+          )(
+            Data.Set(Data.Int(1), Data.Int(2))
+          ),
+          testEvalMultiple("unions when the second set is empty")(
+            "setTests",
+            "setUnionTest",
+            List(Set(1, 2), Data.Set.empty(Concept.Int32))
+          )(
+            Data.Set(Data.Int(1), Data.Int(2))
+          ),
+          testEvalMultiple("unions when both sets are empty")(
+            "setTests",
+            "setUnionTest",
+            List(Data.Set.empty(Concept.Int32), Data.Set.empty(Concept.Int32))
+          )(
+            Data.Set.empty(Concept.Int32)
+          )
+        ),
+        suite("intersect")(
+          testEvalMultiple("intersects two sets")("setTests", "setIntersectTest", List(Set(1, 2, 3), Set(2, 3, 4)))(
+            Data.Set(Data.Int(2), Data.Int(3))
+          ),
+          testEvalMultiple("intersects two sets having no common elements")(
+            "setTests",
+            "setIntersectTest",
+            List(Set(1, 2), Set(3, 4))
+          )(
+            Data.Set.empty(Concept.Int32)
+          ),
+          testEvalMultiple("intersects when the first set is empty")(
+            "setTests",
+            "setIntersectTest",
+            List(Data.Set.empty(Concept.Int32), Set(1, 2))
+          )(
+            Data.Set.empty(Concept.Int32)
+          ),
+          testEvalMultiple("intersects when the second set is empty")(
+            "setTests",
+            "setIntersectTest",
+            List(Set(1, 2), Data.Set.empty(Concept.Int32))
+          )(
+            Data.Set.empty(Concept.Int32)
+          ),
+          testEvalMultiple("intersects when both sets are empty")(
+            "setTests",
+            "setIntersectTest",
+            List(Data.Set.empty(Concept.Int32), Data.Set.empty(Concept.Int32))
+          )(
+            Data.Set.empty(Concept.Int32)
+          )
+        ),
+        suite("isEmpty")(
+          testEval("false for non-empty sets")("setTests", "setIsEmptyTest", Set(1))(
+            Data.Boolean(false)
+          ),
+          testEval("true for empty sets")("setTests", "setIsEmptyTest", Data.Set.empty(Concept.Int32))(
+            Data.Boolean(true)
+          )
+        ),
+        suite("map")(
+          testEval("maps a function over a set")("setTests", "setMapTest", Set(1, 2, 3))(
+            Data.Set(Data.Int(2), Data.Int(4), Data.Int(6))
+          ),
+          testEval("maps over empty sets")("setTests", "setMapTest", Data.Set.empty(Concept.Int32))(
+            Data.Set.empty(Concept.Int32)
+          )
+        ),
+        suite("partition")(
+          testEval("partitions a set")("setTests", "setPartitionTest", Set(1, 2, 3))(
+            Data.Tuple(
+              Data.Set(Data.Int(1)),
+              Data.Set(Data.Int(2), Data.Int(3))
+            )
+          ),
+          testEval("partitions a set when all entries match")("setTests", "setPartitionTest", Set(0, 1))(
+            Data.Tuple(
+              Data.Set(Data.Int(0), Data.Int(1)),
+              Data.Set.empty(Concept.Int32)
+            )
+          ),
+          testEval("partitions a set when no entries match")("setTests", "setPartitionTest", Set(2, 3))(
+            Data.Tuple(
+              Data.Set.empty(Concept.Int32),
+              Data.Set(Data.Int(2), Data.Int(3))
+            )
+          ),
+          testEval("partitions an empty set")("setTests", "setPartitionTest", Data.Set.empty(Concept.Int32))(
+            Data.Tuple(
+              Data.Set.empty(Concept.Int32),
+              Data.Set.empty(Concept.Int32)
+            )
+          )
+        ),
+        suite("remove")(
+          testEvalMultiple("removes from a set")("setTests", "setRemoveTest", List(2, Set(1, 2, 3)))(
+            Data.Set(Data.Int(1), Data.Int(3))
+          ),
+          testEvalMultiple("dosen't remove elements that are not in a set")(
+            "setTests",
+            "setRemoveTest",
+            List(2, Set(1))
+          )(
+            Data.Set(Data.Int(1))
+          ),
+          testEvalMultiple("removes nothing from an empty set")(
+            "setTests",
+            "setRemoveTest",
+            List(2, Data.Set.empty(Concept.Int32))
+          )(
+            Data.Set.empty(Concept.Int32)
+          )
+        )
       ),
       suite("Simple")(
         testEvaluation("Unit")("simpleTests", "simpleUnitTest")(Data.Unit)

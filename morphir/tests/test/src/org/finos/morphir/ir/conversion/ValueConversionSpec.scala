@@ -270,7 +270,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
           shape,
           V.reference(FQName.fromString("Morphir.SDK:Set:fromList")),
           V.list(
-            sdk.Set.setType(sdk.String.stringType),
+            sdk.List.listType(sdk.String.stringType),
             zio.Chunk()
           )
         )
@@ -285,7 +285,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
           shape,
           V.reference(FQName.fromString("Morphir.SDK:Set:fromList")),
           V.list(
-            shape,
+            sdk.List.listType(sdk.Basics.intType),
             zio.Chunk(V.intTyped(3), V.intTyped(71))
           )
         )
