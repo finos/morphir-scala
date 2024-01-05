@@ -103,11 +103,25 @@ decimalBadDiv ctx =
 
 
 
---{-|
---Test: Decimal/divWithDefault
----}
---decimalDivWithDefault: Decimal -> Decimal -> Decimal -> Decimal
---decimalDivWithDefault default a b = Decimal.divWithDefault default a b
+{-|
+Test: Decimal/divWithDefault
+expected = -7
+-}
+decimalDivWithDefault: TestContext -> Decimal
+decimalDivWithDefault ctx =
+    test ctx
+        Decimal.divWithDefault (fromFloat 0) (fromFloat 777.7) (fromFloat -111.1)
+
+
+
+{-|
+Test: Decimal/divWithDefault
+expected = 0
+-}
+decimalZeroDivWithDefault: TestContext -> Decimal
+decimalZeroDivWithDefault ctx =
+    test ctx
+        Decimal.divWithDefault (fromFloat 0) (fromFloat 777.7) (fromFloat 0)
 
 
 {-| Test: Decimal/eq

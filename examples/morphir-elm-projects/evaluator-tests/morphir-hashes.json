@@ -1,7 +1,7 @@
 {
     "src/Morphir/Examples/App/ConstructorTests.elm": "0855b8930e83e1b1c4670fd43ab75a45",
     "src/Morphir/Examples/App/CurrentTest.elm": "cb91097f6ef5126d75fa93063072a328",
-    "src/Morphir/Examples/App/DecimalTests.elm": "7a030f47af242200698a25781b590a9f",
+    "src/Morphir/Examples/App/DecimalTests.elm": "956f41a8ae399b697ca1e154cb6f805e",
     "src/Morphir/Examples/App/DestructureTests.elm": "b1a39ef55b0e29abc7de2b7f3d17bdc0",
     "src/Morphir/Examples/App/DictionaryTests.elm": "468dbf8272c6a7306bebff35a8fe4ab4",
     "src/Morphir/Examples/App/EllieStuff.elm": "f0bb8ad7a8005246c2aadc849302b26c",
@@ -11,7 +11,7 @@
     "src/Morphir/Examples/App/LambdaTests.elm": "b1d6d0fa8342551d4a253ed6e056ff0f",
     "src/Morphir/Examples/App/LetDefinitionTests.elm": "98e01b3cd0361d3e8f6bb7eaa298c496",
     "src/Morphir/Examples/App/LetRecursionTests.elm": "34aca5346310d8874524854dd9c58e7b",
-    "src/Morphir/Examples/App/ListTests.elm": "f0c4e2ee0bf74b38aa5fdff1cc1c6a9e",
+    "src/Morphir/Examples/App/ListTests.elm": "dcb8fa4ce0f3db622977560f908e9cef",
     "src/Morphir/Examples/App/LiteralTests.elm": "e7e578d1005014e3800a9e5058405152",
     "src/Morphir/Examples/App/LocalDateTests.elm": "483e00c25f78b4becdea7d9bf1cc3810",
     "src/Morphir/Examples/App/LocalTimeTests.elm": "9e2e1cd8b89e5ddf4bdf655a2c5812fd",

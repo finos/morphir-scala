@@ -356,7 +356,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 //        testEvaluation("compare")("decimalTests", "decimalAdd")(Data.Decimal(673.45)),
         suite("div")(
           testEvaluation("div some")("decimalTests", "decimalGoodDiv")(Data.Optional.Some(Data.Decimal(1.8))),
-          testEvaluation("div none")("decimalTests", "decimalBadDiv")(Data.Optional.None(Concept.Decimal))
+          testEvaluation("div none")("decimalTests", "decimalBadDiv")(Data.Optional.None(Concept.Decimal)),
+          testEvaluation("div with default")("decimalTests", "decimalDivWithDefault")(Data.Decimal(-7)),
+          testEvaluation("div with default using default")("decimalTests", "decimalZeroDivWithDefault")(
+            Data.Decimal(0)
+          )
         ),
         suite("comparison")(
           testEvaluation("eq true")("decimalTests", "decimalTrueEq")(Data.Boolean(true)),
