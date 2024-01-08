@@ -68,7 +68,7 @@ object Extractors {
           case _                                                        => false
         }
     }
-    object OrderRef extends CommonReference{
+    object OrderRef extends CommonReference {
       final val tpe = Basics.orderType
     }
 

@@ -172,6 +172,12 @@ object RTValue {
       case _               => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a primitive")
     }
 
+  def coerceComparable(arg: RTValue): Comparable =
+    arg match {
+      case c: Comparable => c
+      case _             => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a Comparable")
+    }
+
   def coerceNumeric(arg: RTValue): Primitive.Numeric[_] =
     arg match {
       // Need a typecast because can't match on `p: Primitive.Numeric[_]` since there's
@@ -256,10 +262,78 @@ object RTValue {
     )
   }
 
-  object Order{
+  object Order {
     val GT = ConstructorResult(FQName.fromString("Morphir.SDK:Basics:GT"), scala.List.empty)
     val LT = ConstructorResult(FQName.fromString("Morphir.SDK:Basics:LT"), scala.List.empty)
     val EQ = ConstructorResult(FQName.fromString("Morphir.SDK:Basics:EQ"), scala.List.empty)
+  }
+
+  /**
+   * Trait for types that *may* be comparable in Morphir; Note that not everythign that extends this may actually be
+   * compared. For instance, lists are comparable if and only if their elements are comparable.
+   */
+  sealed trait Comparable extends RTValue {
+    final def compare(that: Comparable): Int =
+      Comparable.compareOrThrow(this, that)
+  }
+  object Comparable {
+    def compare(first: Comparable, second: Comparable): Either[IllegalValue, Int] = {
+      def lexicalHelper(first: scala.List[RTValue], second: scala.List[RTValue]) = {
+        val zipped = first.zip(second)
+        val mapped = zipped.map {
+          case (a: Comparable, b: Comparable) => recursiveHelper(a, b)
+          case (a, b: Comparable) =>
+            Left(IllegalValue(s"Cannot compare values $a and $b because the first is not comparable"))
+          case (a: Comparable, b) =>
+            Left(IllegalValue(s"Cannot compare values $a and $b because the second is not comparable"))
+          case (a, b) => Left(IllegalValue(s"Cannot compare values $a and $b because neither is comparable"))
+        }
+        mapped.find(_.isLeft) match {
+          case Some(error) => error
+          case None =>
+            val rights       = mapped.map(_.getOrElse(throw new Exception("unreachable branch reached")))
+            val firstNonZero = rights.find(_ != 0)
+            firstNonZero match {
+              case Some(value) => Right(value)
+              case None        => Right(first.length.compare(second.length))
+            }
+        }
+      }
+      // This helper function exists just to neatly wrap leaf errors with context from the top-level comparison that was attempted
+      def recursiveHelper(first: Comparable, second: Comparable): Either[IllegalValue, Int] =
+        (first, second) match {
+          case (Primitive.Int(a), Primitive.Int(b))       => Right(a.compare(b))
+          case (Primitive.Float(a), Primitive.Float(b))   => Right(a.compare(b))
+          case (Primitive.Char(a), Primitive.Char(b))     => Right(a.compare(b))
+          case (Primitive.String(a), Primitive.String(b)) => Right(a.compare(b))
+          case (Tuple(a_elements), Tuple(b_elements)) =>
+            if (a_elements.length == b_elements.length) lexicalHelper(a_elements, b_elements)
+            else Left(IllegalValue(s"Cannot compare tuples $first and $second because they have different lengths"))
+          case (List(a_elements), List(b_elements)) => lexicalHelper(a_elements, b_elements)
+          case (firstOther, secondOther) => Left(IllegalValue(s"Cannot compare values $firstOther and $secondOther"))
+        }
+      recursiveHelper(first, second) match {
+        case Left(error) => Left(error.withContext(s"While comparing $first and $second"))
+        case right       => right
+      }
+    }
+    def compareOrThrow(first: Comparable, second: Comparable): Int =
+      compare(first, second) match {
+        case Left(error)  => throw error
+        case Right(value) => value
+      }
+    def intToOrder(i: Int): RTValue =
+      i match {
+        case 0 => RTValue.Order.EQ
+        case x => if x > 0 then RTValue.Order.GT else RTValue.Order.LT
+      }
+    def orderToInt(order: RTValue): Int =
+      order match {
+        case RTValue.Order.EQ => 0
+        case RTValue.Order.GT => 1
+        case RTValue.Order.LT => -1
+        case _                => throw IllegalValue(s"Tried to convert $order to an integer as if it were an Order")
+      }
   }
 
   case class Unit() extends RTValue {
@@ -310,7 +384,7 @@ object RTValue {
       }
     }
 
-    case class Int(value: MInt) extends Numeric[MInt] {
+    case class Int(value: MInt) extends Numeric[MInt] with Comparable {
       val numericType      = Numeric.Type.Int
       def numericHelper    = org.finos.morphir.mIntIsNumeric
       def fractionalHelper = None
@@ -329,7 +403,7 @@ object RTValue {
     }
 
     // A Morphir/ELM Float is the same as a Java Double
-    case class Float(value: scala.Double) extends Numeric[scala.Double] {
+    case class Float(value: scala.Double) extends Numeric[scala.Double] with Comparable {
       val numericType           = Numeric.Type.Float
       lazy val numericHelper    = implicitly[scala.Numeric[scala.Double]]
       lazy val fractionalHelper = Some(implicitly[scala.Fractional[scala.Double]])
@@ -352,8 +426,8 @@ object RTValue {
     }
 
     case class Boolean(value: scala.Boolean)   extends Primitive[scala.Boolean]
-    case class String(value: java.lang.String) extends Primitive[java.lang.String]
-    case class Char(value: scala.Char)         extends Primitive[scala.Char]
+    case class String(value: java.lang.String) extends Primitive[java.lang.String] with Comparable
+    case class Char(value: scala.Char)         extends Primitive[scala.Char] with Comparable
 
     def unapply(prim: Primitive[_]): Option[Any] =
       Some(prim.value)
@@ -517,7 +591,7 @@ object RTValue {
       }
   }
 
-  case class Tuple(elements: scala.List[RTValue]) extends ValueResult[scala.List[RTValue]] {
+  case class Tuple(elements: scala.List[RTValue]) extends ValueResult[scala.List[RTValue]] with Comparable {
     def value = elements
     override def succinct(depth: Int) = if (depth == 0) "Tuple(...)"
     else {
@@ -544,7 +618,7 @@ object RTValue {
     }
   }
 
-  case class List(elements: scala.List[RTValue]) extends ValueResult[scala.List[RTValue]] {
+  case class List(elements: scala.List[RTValue]) extends ValueResult[scala.List[RTValue]] with Comparable {
     def value = elements
     override def succinct(depth: Int) = if (depth == 0) "List(..)"
     else {
@@ -589,7 +663,7 @@ object RTValue {
     }
   }
 
-  //GT, LT, Etc
+  // GT, LT, Etc
 
   sealed trait NativeFunctionResult extends Function {
     def arguments: Int

@@ -69,7 +69,7 @@ object EvaluatorQuick {
       case DecimalRef()   => Concept.Decimal
       case LocalDateRef() => Concept.LocalDate
       case LocalTimeRef() => Concept.LocalTime
-      case OrderRef() => Concept.Order
+      case OrderRef()     => Concept.Order
       case MonthRef()     => Concept.Month
       case DayOfWeekRef() => Concept.DayOfWeek
 

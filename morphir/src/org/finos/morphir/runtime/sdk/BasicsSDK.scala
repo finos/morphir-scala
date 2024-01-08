@@ -6,39 +6,11 @@ import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.runtime.internal._
 import org.finos.morphir.runtime.RTValue
+import org.finos.morphir.runtime.RTValue.Comparable
 import org.finos.morphir.runtime.MorphirRuntimeError.IllegalValue
-
 
 object BasicsSDK {
   type AnyNum = Any
-
-  def comparableHelper(a : RTValue, b : RTValue) : Int = {
-    (a, b) match {
-      case (Primitive.Int(a), Primitive.Int(b)) => a.value.compareTo(b.value)
-      case (Primitive.Float(a), Primitive.Float(b)) => a.compareTo(b)
-      case (Primitive.String(a), Primitive.String(b)) => a.compareTo(b)
-      case (Primitive.Char(a), Primitive.Char(b)) => a.compareTo(b)
-      case (RTValue.List(l1), RTValue.List(l2)) => l1.zip(l2).map{case (elem_1, elem_2) => comparableHelper (elem_1, elem_2)}.find(_ != 0).getOrElse(l1.length.compareTo(l2.length))
-      case (RTValue.Tuple(a), RTValue.Tuple(b)) => 
-        if (a.length == b.length) a.zip(b).map{case (elem_1, elem_2) => comparableHelper(elem_1, elem_2)}.find(_ != 0).getOrElse(0)
-        else throw IllegalValue(s"Cannot compare tuples of different lengths: $a and $b")
-      case _ => throw IllegalValue(s"Cannot compare values of different types: $a and $b")
-    }
-  }
-  def intToToOrder(i : Int) : RTValue = {
-    i match {
-      case 0 => RTValue.Order.EQ
-      case 1 => RTValue.Order.GT
-      case -1 => RTValue.Order.LT
-      case _ => throw IllegalValue(s"Cannot convert $i to Order")
-    }
-  }
-  
-  val compare = DynamicNativeFunction2("compare") {
-    (_: NativeContext) => (a: RTValue, b: RTValue) =>
-      intToToOrder(comparableHelper(a, b))
-  }
-
 
   val ceiling = DynamicNativeFunction1("ceiling") {
     (_: NativeContext) => (a: Primitive.Float) =>
@@ -149,25 +121,38 @@ object BasicsSDK {
       }
   }.asNative2
 
-  val greaterThan = NumericFunction2("greaterThan") {
-    (h: NumericHelpers[Any], _) => (a: AnyNum, b: AnyNum) =>
-      Primitive.Boolean(h.numericHelper.gt(a, b))
-  }.asNative2
+  val lessThan = DynamicNativeFunction2("lessThan") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      Primitive.Boolean(RTValue.Comparable.compareOrThrow(a, b) < 0)
+  }
 
-  val greaterThanOrEqual = NumericFunction2("greaterThanOrEqual") {
-    (h: NumericHelpers[Any], _) => (a: AnyNum, b: AnyNum) =>
-      Primitive.Boolean(h.numericHelper.gteq(a, b))
-  }.asNative2
+  val greaterThan = DynamicNativeFunction2("greaterThan") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      Primitive.Boolean(RTValue.Comparable.compareOrThrow(a, b) > 0)
+  }
+  val lessThanOrEqual = DynamicNativeFunction2("lessThanOrEqual") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      Primitive.Boolean(RTValue.Comparable.compareOrThrow(a, b) <= 0)
+  }
+  val greaterThanOrEqual = DynamicNativeFunction2("greaterThanOrEqual") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      Primitive.Boolean(RTValue.Comparable.compareOrThrow(a, b) >= 0)
+  }
+  val max = DynamicNativeFunction2("max") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      if (RTValue.Comparable.compareOrThrow(a, b) >= 0) a else b
+  }
+  val min = DynamicNativeFunction2("min") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      if (RTValue.Comparable.compareOrThrow(a, b) <= 0) a else b
+  }
 
-  val lessThan = NumericFunction2("lessThan") {
-    (h: NumericHelpers[Any], _) => (a: AnyNum, b: AnyNum) =>
-      Primitive.Boolean(h.numericHelper.lt(a, b))
-  }.asNative2
+  val compare = DynamicNativeFunction2("compare") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      val asInt = RTValue.Comparable.compareOrThrow(a, b)
+      RTValue.Comparable.intToOrder(asInt)
 
-  val lessThanOrEqual = NumericFunction2("lessThanOrEqual") {
-    (h: NumericHelpers[Any], _) => (a: AnyNum, b: AnyNum) =>
-      Primitive.Boolean(h.numericHelper.lteq(a, b))
-  }.asNative2
+  }
 
   val composeRight = DynamicNativeFunction3("composeRight") {
     (ctx: NativeContext) => (f1: RTValue.Function, f2: RTValue.Function, arg: RTValue) =>

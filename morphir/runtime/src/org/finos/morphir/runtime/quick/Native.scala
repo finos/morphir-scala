@@ -434,19 +434,18 @@ object Native {
   val nothing: SDKConstructor = SDKConstructor(List())
   val ok: SDKConstructor      = SDKConstructor(List(Type.variable("contents")))
   val err: SDKConstructor     = SDKConstructor(List(Type.variable("contents")))
-  val gt: SDKConstructor = SDKConstructor(List())
-  val lt: SDKConstructor = SDKConstructor(List())
-  val eq: SDKConstructor = SDKConstructor(List())
-
+  val gt: SDKConstructor      = SDKConstructor(List())
+  val lt: SDKConstructor      = SDKConstructor(List())
+  val eq: SDKConstructor      = SDKConstructor(List())
 
   val nativeCtors: Map[FQName, SDKConstructor] = Map(
     FQName.fromString("Morphir.SDK:Maybe:just")    -> just,
     FQName.fromString("Morphir.SDK:Maybe:nothing") -> nothing,
     FQName.fromString("Morphir.SDK:Result:ok")     -> ok,
     FQName.fromString("Morphir.SDK:Result:err")    -> err,
-    FQName.fromString("Morphir.SDK:Basics:GT")    -> gt,
-    FQName.fromString("Morphir.SDK:Basics:LT")    -> lt,
-    FQName.fromString("Morphir.SDK:Basics:EQ")    -> eq
+    FQName.fromString("Morphir.SDK:Basics:GT")     -> gt,
+    FQName.fromString("Morphir.SDK:Basics:LT")     -> lt,
+    FQName.fromString("Morphir.SDK:Basics:EQ")     -> eq
   )
 
   val native: Map[FQName, SDKValue] = Map(

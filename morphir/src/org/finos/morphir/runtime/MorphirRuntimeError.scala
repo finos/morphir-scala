@@ -37,7 +37,10 @@ object MorphirRuntimeError {
   }
   final case class FailedCoercion(message: String) extends EvaluationError
 
-  final case class IllegalValue(message: String) extends EvaluationError
+  final case class IllegalValue(cause: String, context: String = "") extends EvaluationError {
+    def message                         = s"$cause . $context"
+    def withContext(newContext: String) = this.copy(context = context + "\n" + newContext)
+  }
 
   final case class WrongNumberOfArguments(function: RTValue.NativeFunctionResult, applied: Int)
       extends EvaluationError {
