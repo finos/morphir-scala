@@ -1978,6 +1978,19 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "sdkCompareTest",
           List(List(1, 1), List(1, 0, 0))
         )(Data.Order(1)),
+        testEvalMultiple("Compare List of Tuples")(
+          "sdkBasicsTests",
+          "sdkCompareTest",
+          List(
+            List((1, "Blue"), (1, "Green")),
+            List((1, "Blue"), (1, "An utter lack of any color, even black or white"))
+          )
+        )(Data.Order(1)),
+        testEvalMultiple("Compare Tuple of Lists")(
+          "sdkBasicsTests",
+          "sdkCompareTest",
+          List((List(1, 2), List("Red, Blue")), (List(1, 2), List("Red, Green")))
+        )(Data.Order(-1)),
         testEvalMultiple("Compare Tuple")("sdkBasicsTests", "sdkCompareTest", List((0, 1, 2), (0, 2, 1)))(
           Data.Order(-1)
         ),

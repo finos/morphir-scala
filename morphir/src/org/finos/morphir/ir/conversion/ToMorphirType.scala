@@ -36,7 +36,6 @@ object ToMorphirType {
   implicit val localDateUType: ToMorphirUType[java.time.LocalDate] = toUTypeConverter(sdk.LocalDate.localDateType)
   implicit val localTimeUType: ToMorphirUType[java.time.LocalTime] = toUTypeConverter(sdk.LocalTime.localTimeType)
   implicit val monthUType: ToMorphirUType[java.time.Month]         = toUTypeConverter(sdk.LocalDate.monthType)
-  // implicit val orderUType: ToMorphirUType[Int]         = toUTypeConverter(sdk.Basics.orderType)
   implicit val dayOfWeekUType: ToMorphirUType[java.time.DayOfWeek] = toUTypeConverter(sdk.LocalDate.dayOfWeekType)
   implicit val charUType: ToMorphirUType[scala.Char]               = toUTypeConverter(sdk.Char.charType)
   implicit val bigIntUType: ToMorphirUType[scala.BigInt]           = toUTypeConverter(sdk.Basics.intType)
@@ -68,17 +67,17 @@ object ToMorphirType {
 
   implicit def conceptToTypeIR(concept: Concept): ToMorphirUType[Concept] =
     concept match {
-      case Concept.Boolean   => boolUType.as
-      case Concept.Byte      => byteUType.as
-      case Concept.Float     => decimalUType.as
-      case Concept.Decimal   => decimalUType.as
-      case Concept.Integer   => bigIntUType.as
-      case Concept.Int16     => shortUType.as
-      case Concept.Int32     => intUType.as
-      case Concept.Int64     => intUType.as
-      case Concept.String    => stringUType.as
-      case Concept.LocalDate => localDateUType.as
-      case Concept.Month     => monthUType.as
+      case Concept.Boolean                 => boolUType.as
+      case Concept.Byte                    => byteUType.as
+      case Concept.Float                   => decimalUType.as
+      case Concept.Decimal                 => decimalUType.as
+      case Concept.Integer                 => bigIntUType.as
+      case Concept.Int16                   => shortUType.as
+      case Concept.Int32                   => intUType.as
+      case Concept.Int64                   => intUType.as
+      case Concept.String                  => stringUType.as
+      case Concept.LocalDate               => localDateUType.as
+      case Concept.Month                   => monthUType.as
       case Concept.DayOfWeek               => dayOfWeekUType.as
       case Concept.LocalTime               => localTimeUType.as
       case Concept.Char                    => charUType.as

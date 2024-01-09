@@ -442,10 +442,7 @@ object Native {
     FQName.fromString("Morphir.SDK:Maybe:just")    -> just,
     FQName.fromString("Morphir.SDK:Maybe:nothing") -> nothing,
     FQName.fromString("Morphir.SDK:Result:ok")     -> ok,
-    FQName.fromString("Morphir.SDK:Result:err")    -> err,
-    FQName.fromString("Morphir.SDK:Basics:GT")     -> gt,
-    FQName.fromString("Morphir.SDK:Basics:LT")     -> lt,
-    FQName.fromString("Morphir.SDK:Basics:EQ")     -> eq
+    FQName.fromString("Morphir.SDK:Result:err")    -> err
   )
 
   val native: Map[FQName, SDKValue] = Map(

@@ -94,13 +94,11 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
         V.intTyped(value.get(ChronoField.MILLI_OF_DAY))
       )
 
-    case Data.Order(intVal) => intVal match {
-        case 0 => V.constructor("Morphir.SDK:Basics:EQ", sdk.Basics.orderType)
-        case x => if (x > 0)
-            V.constructor("Morphir.SDK:Basics:GT", sdk.Basics.orderType)
-          else V.constructor("Morphir.SDK:Basics:LT", sdk.Basics.orderType)
+    case Data.Order(intVal) =>
+      if (intVal == 0) V.constructor("Morphir.SDK:Basics:EQ", sdk.Basics.orderType)
+      else if (intVal > 0) V.constructor("Morphir.SDK:Basics:GT", sdk.Basics.orderType)
+      else V.constructor("Morphir.SDK:Basics:LT", sdk.Basics.orderType)
 
-      }
     case Data.Month(value) => value match {
         case Month.JANUARY   => V.constructor("Morphir.SDK:LocalDate:January", value.morphirType)
         case Month.FEBRUARY  => V.constructor("Morphir.SDK:LocalDate:February", value.morphirType)

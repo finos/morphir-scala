@@ -64,6 +64,11 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(BasicsSDK.sqrt),
           NativeFunctionAdapter.Fun3(BasicsSDK.composeRight)
         )
+
+        private val enumSDKConstructor = SDKConstructor(scala.List())
+
+        override val ctors: Map[FQName, SDKConstructor] =
+          RTValue.Order.allFqns.map(fqn => fqn -> enumSDKConstructor).toMap
       }
 
       case object Decimal extends SdkModuleDescriptor("Decimal") {

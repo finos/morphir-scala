@@ -263,9 +263,16 @@ object RTValue {
   }
 
   object Order {
-    val GT = ConstructorResult(FQName.fromString("Morphir.SDK:Basics:GT"), scala.List.empty)
-    val LT = ConstructorResult(FQName.fromString("Morphir.SDK:Basics:LT"), scala.List.empty)
-    val EQ = ConstructorResult(FQName.fromString("Morphir.SDK:Basics:EQ"), scala.List.empty)
+    private def constructorResult(fqn: FQName): ConstructorResult = ConstructorResult(fqn, ScalaList())
+    val GTFQN                                                     = FQName.fromString("Morphir.SDK:Basics:GT")
+    val LTFQN                                                     = FQName.fromString("Morphir.SDK:Basics:LT")
+    val EQFQN                                                     = FQName.fromString("Morphir.SDK:Basics:EQ")
+
+    val allFqns: ScalaSet[FQName] = ScalaList(GTFQN, LTFQN, EQFQN).toSet
+
+    val GT = constructorResult(GTFQN)
+    val LT = constructorResult(LTFQN)
+    val EQ = constructorResult(EQFQN)
   }
 
   /**
@@ -323,10 +330,10 @@ object RTValue {
         case Right(value) => value
       }
     def intToOrder(i: Int): RTValue =
-      i match {
-        case 0 => RTValue.Order.EQ
-        case x => if x > 0 then RTValue.Order.GT else RTValue.Order.LT
-      }
+      if (i == 0) RTValue.Order.EQ
+      else if (i > 0) then RTValue.Order.GT
+      else RTValue.Order.LT
+
     def orderToInt(order: RTValue): Int =
       order match {
         case RTValue.Order.EQ => 0
