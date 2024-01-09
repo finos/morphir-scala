@@ -154,7 +154,7 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
       V.applyInferType(
         shape.morphirType,
         V.reference(FQName.fromString("Morphir.SDK:Set:fromList")),
-        V.list(shape.morphirType, zio.Chunk.fromIterable(valuesList))
+        V.list(Concept.List(shape.elementType).morphirType, zio.Chunk.fromIterable(valuesList))
       )
 
     case record: Data.Record =>

@@ -47,3 +47,94 @@ setSizeTest : TestContext -> Int
 setSizeTest ctx =
     test ctx
         (size (Set.fromList [ 0, 1, 2 ]))
+
+
+{-| Test: Set/foldr
+expected(Set(1, 2, 3)) = [1, 2, 3]
+expected(Set(2, 3, 1)) = [1, 2, 3] // Set.foldr iterates in order from highest to lowest
+expected(Set()) = []
+-}
+setFoldrTest : Set Int -> List Int
+setFoldrTest set =
+    Set.foldr (\x acc -> x :: acc) [] set
+
+
+{-| Test: Set/insert
+expected(1, Set()) = Set(1)
+expected(1, Set(2)) = Set(1, 2)
+expected(1, Set(1)) = Set(1)
+-}
+setInsertTest : Int -> Set Int -> Set Int
+setInsertTest x set =
+    Set.insert x set
+
+
+{-| Test: Set/singleton
+expected(1) = Set(1)
+-}
+setSingletonTest : Int -> Set Int
+setSingletonTest x =
+    Set.singleton x
+
+
+{-| Test: Set/union
+expected(Set(1), Set(2)) = Set(1, 2)
+expected(Set(1, 2), Set(2, 3)) = Set(1, 2, 3)
+expected(Set(), Set(1, 2)) = Set(1, 2)
+expected(Set(1, 2), Set()) = Set(1, 2)
+expected(Set(), Set()) = Set()
+-}
+setUnionTest : Set Int -> Set Int -> Set Int
+setUnionTest set1 set2 =
+    Set.union set1 set2
+
+
+{-| Test: Set/intersect
+expected(Set(1, 2, 3), Set(2, 3, 4)) = Set(2, 3)
+expected(Set(1, 2), Set(3, 4)) = Set()
+expected(Set(), Set(1, 2)) = Set()
+expected(Set(1, 2), Set()) = Set()
+expected(Set(), Set()) = Set()
+-}
+setIntersectTest : Set Int -> Set Int -> Set Int
+setIntersectTest set1 set2 =
+    Set.intersect set1 set2
+
+
+{-| Test: Set/isEmpty
+expected(Set(1)) = false
+expected(Set()) = true
+-}
+setIsEmptyTest : Set Int -> Bool
+setIsEmptyTest set =
+    Set.isEmpty set
+
+
+{-| Test: Set/map
+expected(Set(1, 2, 3)) = Set(2, 4, 6)
+expected(Set()) = Set()
+-}
+setMapTest : Set Int -> Set Int
+setMapTest set =
+    Set.map (\x -> x * 2) set
+
+
+{-| Test: Set/partition
+expected(Set(1, 2, 3)) = (Set(1), Set(2, 3))
+expected(Set(0, 1)) = (Set(0, 1), Set())
+expected(Set(2, 3)) = (Set(), Set(2, 3))
+expected(Set()) = (Set(), Set())
+-}
+setPartitionTest : Set Int -> ( Set Int, Set Int )
+setPartitionTest set =
+    Set.partition (\x -> x < 2) set
+
+
+{-| Test: Set/remove
+expected(2, Set(1, 2, 3)) = Set(1, 3)
+expected(2, Set(1)) = Set(1)
+expected(2, Set()) = Set()
+-}
+setRemoveTest : Int -> Set Int -> Set Int
+setRemoveTest elem set =
+    Set.remove elem set
