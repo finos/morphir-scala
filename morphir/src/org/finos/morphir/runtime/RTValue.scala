@@ -331,7 +331,7 @@ object RTValue {
       }
     def intToOrder(i: Int): RTValue =
       if (i == 0) RTValue.Order.EQ
-      else if (i > 0) then RTValue.Order.GT
+      else if (i > 0) RTValue.Order.GT
       else RTValue.Order.LT
 
     def orderToInt(order: RTValue): Int =
