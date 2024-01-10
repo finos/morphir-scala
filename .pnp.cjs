@@ -264,6 +264,51 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "linkType": "HARD"\
         }]\
       ]],\
+      ["@avh4/elm-format-darwin-arm64", [\
+        ["npm:0.8.7-2", {\
+          "packageLocation": "./.yarn/unplugged/@avh4-elm-format-darwin-arm64-npm-0.8.7-2-2a57f05a2a/node_modules/@avh4/elm-format-darwin-arm64/",\
+          "packageDependencies": [\
+            ["@avh4/elm-format-darwin-arm64", "npm:0.8.7-2"]\
+          ],\
+          "linkType": "HARD"\
+        }]\
+      ]],\
+      ["@avh4/elm-format-darwin-x64", [\
+        ["npm:0.8.7-2", {\
+          "packageLocation": "./.yarn/unplugged/@avh4-elm-format-darwin-x64-npm-0.8.7-2-d6ff727ff6/node_modules/@avh4/elm-format-darwin-x64/",\
+          "packageDependencies": [\
+            ["@avh4/elm-format-darwin-x64", "npm:0.8.7-2"]\
+          ],\
+          "linkType": "HARD"\
+        }]\
+      ]],\
+      ["@avh4/elm-format-linux-arm64", [\
+        ["npm:0.8.7-2", {\
+          "packageLocation": "./.yarn/unplugged/@avh4-elm-format-linux-arm64-npm-0.8.7-2-95fdc29fc9/node_modules/@avh4/elm-format-linux-arm64/",\
+          "packageDependencies": [\
+            ["@avh4/elm-format-linux-arm64", "npm:0.8.7-2"]\
+          ],\
+          "linkType": "HARD"\
+        }]\
+      ]],\
+      ["@avh4/elm-format-linux-x64", [\
+        ["npm:0.8.7-2", {\
+          "packageLocation": "./.yarn/unplugged/@avh4-elm-format-linux-x64-npm-0.8.7-2-8d47312d18/node_modules/@avh4/elm-format-linux-x64/",\
+          "packageDependencies": [\
+            ["@avh4/elm-format-linux-x64", "npm:0.8.7-2"]\
+          ],\
+          "linkType": "HARD"\
+        }]\
+      ]],\
+      ["@avh4/elm-format-win32-x64", [\
+        ["npm:0.8.7-2", {\
+          "packageLocation": "./.yarn/unplugged/@avh4-elm-format-win32-x64-npm-0.8.7-2-213bf77a1b/node_modules/@avh4/elm-format-win32-x64/",\
+          "packageDependencies": [\
+            ["@avh4/elm-format-win32-x64", "npm:0.8.7-2"]\
+          ],\
+          "linkType": "HARD"\
+        }]\
+      ]],\
       ["@babel/code-frame", [\
         ["npm:7.18.6", {\
           "packageLocation": "./.yarn/cache/@babel-code-frame-npm-7.18.6-25229a7e34-195e2be317.zip/node_modules/@babel/code-frame/",\
@@ -5735,7 +5780,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageLocation": "./.yarn/cache/axios-npm-0.25.0-a1c287d287-2a8a3787c0.zip/node_modules/axios/",\
           "packageDependencies": [\
             ["axios", "npm:0.25.0"],\
-            ["follow-redirects", "virtual:a1c287d287cceec925a9c0ff143359f3710be8008f8559da00a15e4d93f76849e9493b8b7760d073ae605ea56d1482d54174c007b28cbf6b38332d152576190f#npm:1.15.2"]\
+            ["follow-redirects", "virtual:a1c287d287cceec925a9c0ff143359f3710be8008f8559da00a15e4d93f76849e9493b8b7760d073ae605ea56d1482d54174c007b28cbf6b38332d152576190f#npm:1.15.4"]\
           ],\
           "linkType": "HARD"\
         }]\
@@ -7574,6 +7619,20 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "linkType": "HARD"\
         }]\
       ]],\
+      ["elm-format", [\
+        ["npm:0.8.7", {\
+          "packageLocation": "./.yarn/unplugged/elm-format-npm-0.8.7-24cd5a1e81/node_modules/elm-format/",\
+          "packageDependencies": [\
+            ["elm-format", "npm:0.8.7"],\
+            ["@avh4/elm-format-darwin-arm64", "npm:0.8.7-2"],\
+            ["@avh4/elm-format-darwin-x64", "npm:0.8.7-2"],\
+            ["@avh4/elm-format-linux-arm64", "npm:0.8.7-2"],\
+            ["@avh4/elm-format-linux-x64", "npm:0.8.7-2"],\
+            ["@avh4/elm-format-win32-x64", "npm:0.8.7-2"]\
+          ],\
+          "linkType": "HARD"\
+        }]\
+      ]],\
       ["emoji-regex", [\
         ["npm:8.0.0", {\
           "packageLocation": "./.yarn/cache/emoji-regex-npm-8.0.0-213764015c-d4c5c39d5a.zip/node_modules/emoji-regex/",\
@@ -8154,17 +8213,17 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]\
       ]],\
       ["follow-redirects", [\
-        ["npm:1.15.2", {\
-          "packageLocation": "./.yarn/cache/follow-redirects-npm-1.15.2-1ec1dd82be-faa66059b6.zip/node_modules/follow-redirects/",\
+        ["npm:1.15.4", {\
+          "packageLocation": "./.yarn/cache/follow-redirects-npm-1.15.4-3384d6a415-e178d1deff.zip/node_modules/follow-redirects/",\
           "packageDependencies": [\
-            ["follow-redirects", "npm:1.15.2"]\
+            ["follow-redirects", "npm:1.15.4"]\
           ],\
           "linkType": "SOFT"\
         }],\
-        ["virtual:a1c287d287cceec925a9c0ff143359f3710be8008f8559da00a15e4d93f76849e9493b8b7760d073ae605ea56d1482d54174c007b28cbf6b38332d152576190f#npm:1.15.2", {\
-          "packageLocation": "./.yarn/__virtual__/follow-redirects-virtual-e76257e7f5/0/cache/follow-redirects-npm-1.15.2-1ec1dd82be-faa66059b6.zip/node_modules/follow-redirects/",\
+        ["virtual:a1c287d287cceec925a9c0ff143359f3710be8008f8559da00a15e4d93f76849e9493b8b7760d073ae605ea56d1482d54174c007b28cbf6b38332d152576190f#npm:1.15.4", {\
+          "packageLocation": "./.yarn/__virtual__/follow-redirects-virtual-fec538d06a/0/cache/follow-redirects-npm-1.15.4-3384d6a415-e178d1deff.zip/node_modules/follow-redirects/",\
           "packageDependencies": [\
-            ["follow-redirects", "virtual:a1c287d287cceec925a9c0ff143359f3710be8008f8559da00a15e4d93f76849e9493b8b7760d073ae605ea56d1482d54174c007b28cbf6b38332d152576190f#npm:1.15.2"],\
+            ["follow-redirects", "virtual:a1c287d287cceec925a9c0ff143359f3710be8008f8559da00a15e4d93f76849e9493b8b7760d073ae605ea56d1482d54174c007b28cbf6b38332d152576190f#npm:1.15.4"],\
             ["@types/debug", null],\
             ["debug", null]\
           ],\
@@ -8975,7 +9034,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageDependencies": [\
             ["http-proxy", "npm:1.18.1"],\
             ["eventemitter3", "npm:4.0.7"],\
-            ["follow-redirects", "virtual:a1c287d287cceec925a9c0ff143359f3710be8008f8559da00a15e4d93f76849e9493b8b7760d073ae605ea56d1482d54174c007b28cbf6b38332d152576190f#npm:1.15.2"],\
+            ["follow-redirects", "virtual:a1c287d287cceec925a9c0ff143359f3710be8008f8559da00a15e4d93f76849e9493b8b7760d073ae605ea56d1482d54174c007b28cbf6b38332d152576190f#npm:1.15.4"],\
             ["requires-port", "npm:1.0.0"]\
           ],\
           "linkType": "HARD"\
@@ -10432,6 +10491,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageLocation": "./examples/morphir-elm-projects/evaluator-tests/",\
           "packageDependencies": [\
             ["morphir-scala-evaluator-tests", "workspace:examples/morphir-elm-projects/evaluator-tests"],\
+            ["elm-format", "npm:0.8.7"],\
             ["morphir-elm", "npm:2.81.1"]\
           ],\
           "linkType": "SOFT"\
