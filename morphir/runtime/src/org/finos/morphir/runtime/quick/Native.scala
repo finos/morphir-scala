@@ -8,8 +8,8 @@ import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.internal.{InvokeableEvaluator, NativeFunctionSignatureAdv}
 import org.finos.morphir.runtime.*
+import org.finos.morphir.runtime.sdk.DecimalSDK.{minusOne, one, zero}
 
-import scala.collection.mutable
 import scala.collection.mutable
 
 object DictSDK {
@@ -456,6 +456,9 @@ object Native {
     FQName.fromString("Morphir.SDK:Basics:negate")              -> negate,
     FQName.fromString("Morphir.SDK:Basics:toFloat")             -> toFloat,
     FQName.fromString("Morphir.SDK:Basics:logBase")             -> log,
+    FQName.fromString("Morphir.SDK:Decimal:minusOne")           -> minusOne,
+    FQName.fromString("Morphir.SDK:Decimal:one")                -> one,
+    FQName.fromString("Morphir.SDK:Decimal:zero")               -> zero,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
   ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ SetSDK.sdk ++ DecimalSDK.sdk ++ TupleSDK.sdk ++ BasicsSDK.sdk

@@ -1,7 +1,7 @@
 {
     "src/Morphir/Examples/App/ConstructorTests.elm": "0855b8930e83e1b1c4670fd43ab75a45",
     "src/Morphir/Examples/App/CurrentTest.elm": "cb91097f6ef5126d75fa93063072a328",
-    "src/Morphir/Examples/App/DecimalTests.elm": "7a030f47af242200698a25781b590a9f",
+    "src/Morphir/Examples/App/DecimalTests.elm": "bc01ead0ff532be1b1122459f9f61cfd",
     "src/Morphir/Examples/App/DestructureTests.elm": "b1a39ef55b0e29abc7de2b7f3d17bdc0",
     "src/Morphir/Examples/App/DictionaryTests.elm": "468dbf8272c6a7306bebff35a8fe4ab4",
     "src/Morphir/Examples/App/EllieStuff.elm": "f0bb8ad7a8005246c2aadc849302b26c",
@@ -22,7 +22,7 @@
     "src/Morphir/Examples/App/RecordTests.elm": "818e85f5a21e5808bb487010d75d57cd",
     "src/Morphir/Examples/App/ResultTests.elm": "fcc4d906b84e0f249847a016c8bcf70b",
     "src/Morphir/Examples/App/SdkBasicTests.elm": "d93505a0ced9d9a2cc1d37d2f1e07040",
-    "src/Morphir/Examples/App/SetTests.elm": "34ab2f66cfdf9587f11b3c051ed9e419",
+    "src/Morphir/Examples/App/SetTests.elm": "477fc1e73a0eab237ee69ca52275ee1e",
     "src/Morphir/Examples/App/SimpleTests.elm": "443d3bfdd8a53223afbcbe215b815099",
     "src/Morphir/Examples/App/StringTests.elm": "0cfee84db5c29c83b0fce262b351e09d",
     "src/Morphir/Examples/App/TestUtils.elm": "3072a79fadc6116b1dde77c7f424ca20",
