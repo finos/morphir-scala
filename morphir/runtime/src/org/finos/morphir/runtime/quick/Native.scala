@@ -130,9 +130,9 @@ object DictSDK {
         val newValue  = evaluator.handleApplyResult(Type.UType.Unit(()), alterRaw, currValue)
 
         newValue match {
-          case RTValue.ConstructorResult(FQString("Morphir.SDK:Maybe:just"), List(value)) =>
+          case RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Maybe:Just"), List(value)) =>
             dict += ((targetKeyRaw, value))
-          case RTValue.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), _) =>
+          case RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Maybe:Nothing"), _) =>
             dict.remove(targetKeyRaw)
           case _ =>
             throw new UnexpectedType(

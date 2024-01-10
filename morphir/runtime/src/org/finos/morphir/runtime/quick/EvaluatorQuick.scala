@@ -156,11 +156,11 @@ object EvaluatorQuick {
         Data.Int32(value.toInt)
       case (Concept.Int64, RTValue.Primitive.Int(value)) =>
         Data.Int64(value.toLong)
-      case (Concept.Order, RTValue.ConstructorResult(FQString("Morphir.SDK:Basics:gT"), List())) =>
+      case (Concept.Order, RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Basics:GT"), List())) =>
         Data.Order(1)
-      case (Concept.Order, RTValue.ConstructorResult(FQString("Morphir.SDK:Basics:lT"), List())) =>
+      case (Concept.Order, RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Basics:LT"), List())) =>
         Data.Order(-1)
-      case (Concept.Order, RTValue.ConstructorResult(FQString("Morphir.SDK:Basics:eQ"), List())) =>
+      case (Concept.Order, RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Basics:EQ"), List())) =>
         Data.Order(0)
       case (Concept.String, RTValue.Primitive.String(value)) =>
         Data.String(value)
@@ -193,22 +193,25 @@ object EvaluatorQuick {
       case (Concept.Set(elementConcept), RTValue.Set(elements)) =>
         val inners = elements.map(element => resultAndConceptToData(element, elementConcept))
         Data.Set(inners, elementConcept)
-      case (Concept.Optional(elementShape), RTValue.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), List())) =>
+      case (
+            Concept.Optional(elementShape),
+            RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Maybe:Nothing"), List())
+          ) =>
         Data.Optional.None(elementShape)
       case (
             shape @ Concept.Result(_, okType),
-            RTValue.ConstructorResult(FQString("Morphir.SDK:Result:ok"), List(value))
+            RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Ok"), List(value))
           ) =>
         Data.Result.Ok(resultAndConceptToData(value, okType), shape)
       case (
             shape @ Concept.Result(errType, _),
-            RTValue.ConstructorResult(FQString("Morphir.SDK:Result:err"), List(value))
+            RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Err"), List(value))
           ) =>
         Data.Result.Err(resultAndConceptToData(value, errType), shape)
       case (
             Concept.Optional(elementShape),
             RTValue.ConstructorResult(
-              FQString("Morphir.SDK:Maybe:just"),
+              FQStringTitleCase("Morphir.SDK:Maybe:Just"),
               List(value)
             )
           ) => Data.Optional.Some(resultAndConceptToData(value, elementShape))
