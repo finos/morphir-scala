@@ -46,6 +46,10 @@ object Coercer {
       def coerce(result: RTValue): RTValue.Primitive.Numeric[T] =
         RTValue.coerceNumeric(result).asInstanceOf[RTValue.Primitive.Numeric[T]]
     }
+  implicit val comparableCoercer: Coercer[RTValue.Comparable] =
+    new Coercer[RTValue.Comparable] {
+      def coerce(result: RTValue): RTValue.Comparable = RTValue.coerceComparable(result)
+    }
 
   implicit val fallbackNumericCoercer: Coercer[RTValue.Primitive.Numeric[_]] =
     new Coercer[RTValue.Primitive.Numeric[_]] {

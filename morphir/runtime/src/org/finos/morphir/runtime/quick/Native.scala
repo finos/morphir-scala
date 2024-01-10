@@ -130,9 +130,9 @@ object DictSDK {
         val newValue  = evaluator.handleApplyResult(Type.UType.Unit(()), alterRaw, currValue)
 
         newValue match {
-          case RTValue.ConstructorResult(FQString("Morphir.SDK:Maybe:just"), List(value)) =>
+          case RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Maybe:Just"), List(value)) =>
             dict += ((targetKeyRaw, value))
-          case RTValue.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), _) =>
+          case RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Maybe:Nothing"), _) =>
             dict.remove(targetKeyRaw)
           case _ =>
             throw new UnexpectedType(
@@ -434,6 +434,9 @@ object Native {
   val nothing: SDKConstructor = SDKConstructor(List())
   val ok: SDKConstructor      = SDKConstructor(List(Type.variable("contents")))
   val err: SDKConstructor     = SDKConstructor(List(Type.variable("contents")))
+  val gt: SDKConstructor      = SDKConstructor(List())
+  val lt: SDKConstructor      = SDKConstructor(List())
+  val eq: SDKConstructor      = SDKConstructor(List())
 
   val nativeCtors: Map[FQName, SDKConstructor] = Map(
     FQName.fromString("Morphir.SDK:Maybe:just")    -> just,

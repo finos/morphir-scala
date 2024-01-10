@@ -79,6 +79,8 @@ object Concept {
     val LocalTime = Concept.LocalTime
     type Char = Concept.Char.type
     val Char = Concept.Char
+    type Order = Concept.Order.type
+    val Order = Concept.Order
     type Unit = Concept.Unit.type
     val Unit = Concept.Unit
   }
@@ -100,6 +102,7 @@ object Concept {
   case object DayOfWeek extends Basic[java.time.DayOfWeek]
   case object LocalTime extends Basic[java.time.LocalTime]
   case object Char      extends Basic[scala.Char]
+  case object Order     extends Basic[Int]
   case object Unit      extends Basic[scala.Unit]
   case object Nothing   extends Basic[scala.Nothing]
 

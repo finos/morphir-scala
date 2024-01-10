@@ -47,6 +47,13 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(BasicsSDK.truncate),
           NativeFunctionAdapter.Fun2(BasicsSDK.integerDivide),
           NativeFunctionAdapter.Fun2(BasicsSDK.always),
+          NativeFunctionAdapter.Fun2(BasicsSDK.lessThan),
+          NativeFunctionAdapter.Fun2(BasicsSDK.greaterThan),
+          NativeFunctionAdapter.Fun2(BasicsSDK.greaterThanOrEqual),
+          NativeFunctionAdapter.Fun2(BasicsSDK.lessThanOrEqual),
+          NativeFunctionAdapter.Fun2(BasicsSDK.min),
+          NativeFunctionAdapter.Fun2(BasicsSDK.max),
+          NativeFunctionAdapter.Fun2(BasicsSDK.compare),
           NativeFunctionAdapter.Fun2(BasicsSDK.xor),
           NativeFunctionAdapter.Fun1(BasicsSDK.identity),
           NativeFunctionAdapter.Fun3(BasicsSDK.clamp),
@@ -55,12 +62,13 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(BasicsSDK.modBy),
           NativeFunctionAdapter.Fun2(BasicsSDK.remainderBy),
           NativeFunctionAdapter.Fun1(BasicsSDK.sqrt),
-          NativeFunctionAdapter.Fun2(BasicsSDK.greaterThan),
-          NativeFunctionAdapter.Fun2(BasicsSDK.greaterThanOrEqual),
-          NativeFunctionAdapter.Fun2(BasicsSDK.lessThan),
-          NativeFunctionAdapter.Fun2(BasicsSDK.lessThanOrEqual),
           NativeFunctionAdapter.Fun3(BasicsSDK.composeRight)
         )
+
+        private val enumSDKConstructor = SDKConstructor(scala.List())
+
+        override val ctors: Map[FQName, SDKConstructor] =
+          RTValue.Order.allFqns.map(fqn => fqn -> enumSDKConstructor).toMap
       }
 
       case object Decimal extends SdkModuleDescriptor("Decimal") {

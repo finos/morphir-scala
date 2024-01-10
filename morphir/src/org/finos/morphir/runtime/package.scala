@@ -10,18 +10,19 @@ package object runtime {
   // RTValue.Boolean. Only the `.unwrap` function which will unwrap
   // the aforementioned value into a boolean.
   implicit class ResultOp[T <: RTValue](self: T)(implicit has: T =:= RTValue) {
-    def coerceString    = RTValue.coerceString(self)
-    def coerceInt       = RTValue.coerceInt(self)
-    def coerceBoolean   = RTValue.coerceBoolean(self)
-    def coerceDouble    = RTValue.coerceDouble(self)
-    def coerceFloat     = RTValue.coerceFloat(self)
-    def coerceDecimal   = RTValue.coerceDecimal(self)
-    def coercePrimitive = RTValue.coercePrimitive(self)
-    def coerceNumeric   = RTValue.coerceNumeric(self)
-    def coerceList      = RTValue.coerceList(self)
-    def coerceSet       = RTValue.coerceSet(self)
-    def coerceTuple     = RTValue.coerceTuple(self)
-    def coerceMap       = RTValue.coerceMap(self)
+    def coerceString     = RTValue.coerceString(self)
+    def coerceInt        = RTValue.coerceInt(self)
+    def coerceBoolean    = RTValue.coerceBoolean(self)
+    def coerceDouble     = RTValue.coerceDouble(self)
+    def coerceFloat      = RTValue.coerceFloat(self)
+    def coerceDecimal    = RTValue.coerceDecimal(self)
+    def coercePrimitive  = RTValue.coercePrimitive(self)
+    def coerceNumeric    = RTValue.coerceNumeric(self)
+    def coerceComparable = RTValue.coerceComparable(self)
+    def coerceList       = RTValue.coerceList(self)
+    def coerceSet        = RTValue.coerceSet(self)
+    def coerceTuple      = RTValue.coerceTuple(self)
+    def coerceMap        = RTValue.coerceMap(self)
   }
 
   type ??? = Nothing
