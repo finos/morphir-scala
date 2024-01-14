@@ -225,7 +225,7 @@ object Versions {
   val paiges                     = "0.4.3"
   val `scala-java-time`          = "2.5.0"
   val `scala-native-crypto`      = "0.0.4"
-  val `scalac-compat-annotation` = "0.1.3"
+  val `scalac-compat-annotation` = "0.1.4"
   val scribe                     = "3.11.9"
   val silencer                   = "1.4.2"
   val spire                      = "0.18.0"
