@@ -80,7 +80,7 @@ object Deps {
       }
 
       case object magnolia_2 {
-        val magnolia = ivy"com.softwaremill.magnolia1_2::magnolia::1.1.6"
+        val magnolia = ivy"com.softwaremill.magnolia1_2::magnolia::1.1.8"
       }
 
       case object magnolia_3 {
