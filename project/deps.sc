@@ -221,7 +221,7 @@ object Versions {
   val munit                      = "1.0.0-M10"
   val `munit-zio`                = "0.1.1"
   val mainargs                   = "0.5.0"
-  val `os-lib`                   = "0.9.2"
+  val `os-lib`                   = "0.9.3"
   val paiges                     = "0.4.3"
   val `scala-java-time`          = "2.5.0"
   val `scala-native-crypto`      = "0.0.4"
