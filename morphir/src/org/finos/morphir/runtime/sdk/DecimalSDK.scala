@@ -34,7 +34,7 @@ object DecimalSDK {
   val compare = DynamicNativeFunction2("compare") {
     (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
       val result = dec1.value.compare(dec2.value)
-      RTDecimal(result)
+      RT.Comparable.intToOrder(result)
   }
 
   val div = DynamicNativeFunction2("div") {

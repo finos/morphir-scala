@@ -23,22 +23,22 @@ decimalToFloatTest ctx =
 
 
 {-| Test: Decimal/toString
-expected = "1.2"
+expected = "-1.0"
 -}
 decimalToStringTest : TestContext -> String
 decimalToStringTest ctx =
     test ctx
-        (toString (fromFloat 1.2))
+        (toString decimalMinusOne)
 
 
 {-| Test: Decimal/abs
-expected = 3.0
+expected = 1.0
 -}
 decimalPositiveAbs : TestContext -> Decimal
 decimalPositiveAbs ctx =
     test ctx
         Decimal.abs
-        (fromFloat 3.0)
+        decimalOne
 
 
 {-| Test: Decimal/abs
@@ -99,7 +99,7 @@ decimalBadDiv ctx =
     test ctx
         div
         (fromFloat 4.5)
-        (fromFloat 0)
+        decimalZero
 
 
 {-| Test: Decimal/divWithDefault
