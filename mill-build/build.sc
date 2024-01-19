@@ -8,6 +8,6 @@ object millbuild extends MillBuildRootModule {
     ivy"dev.zio::zio-config-magnolia:4.0.0-RC16",
     ivy"dev.zio::zio-config-typesafe:4.0.0-RC16",
     ivy"dev.zio::zio-config-yaml:4.0.0-RC16",
-    ivy"dev.zio::zio-config-refined:4.0.0-RC16"
+    ivy"dev.zio::zio-config-refined:4.0.1"
   )
 }

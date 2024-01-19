@@ -1,7 +1,7 @@
 {
     "src/Morphir/Examples/App/ConstructorTests.elm": "0855b8930e83e1b1c4670fd43ab75a45",
     "src/Morphir/Examples/App/CurrentTest.elm": "cb91097f6ef5126d75fa93063072a328",
-    "src/Morphir/Examples/App/DecimalTests.elm": "bc01ead0ff532be1b1122459f9f61cfd",
+    "src/Morphir/Examples/App/DecimalTests.elm": "1d683692eb14926bbc6cf46cc16d3304",
     "src/Morphir/Examples/App/DestructureTests.elm": "b1a39ef55b0e29abc7de2b7f3d17bdc0",
     "src/Morphir/Examples/App/DictionaryTests.elm": "468dbf8272c6a7306bebff35a8fe4ab4",
     "src/Morphir/Examples/App/EllieStuff.elm": "f0bb8ad7a8005246c2aadc849302b26c",
