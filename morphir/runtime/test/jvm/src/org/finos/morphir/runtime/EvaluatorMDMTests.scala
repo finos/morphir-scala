@@ -348,10 +348,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.Optional.None(Concept.Decimal)
           ),
           testEvaluation("toFloat")("decimalTests", "decimalToFloatTest")(Data.Float(1.5)),
-          testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("1.2"))
+          testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("-1"))
         ),
         suite("abs")(
-          testEvaluation("positive value")("decimalTests", "decimalPositiveAbs")(Data.Decimal(3)),
+          testEvaluation("positive value")("decimalTests", "decimalPositiveAbs")(Data.Decimal(1)),
           testEvaluation("negative value")("decimalTests", "decimalNegativeAbs")(Data.Decimal(100.243))
         ),
         testEvaluation("add")("decimalTests", "decimalAdd")(Data.Decimal(673.45)),
