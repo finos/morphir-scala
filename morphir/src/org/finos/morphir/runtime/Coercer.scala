@@ -29,6 +29,10 @@ object Coercer {
     def coerce(result: RTValue): RTValue.Primitive.String = RTValue.coerceString(result)
   }
 
+  implicit val charCoercer: Coercer[RTValue.Primitive.Char] = new Coercer[RTValue.Primitive.Char] {
+    def coerce(result: RTValue): RTValue.Primitive.Char = RTValue.coerceChar(result)
+  }
+
   implicit val primitiveCoercer: Coercer[RTValue.Primitive[_]] = new Coercer[RTValue.Primitive[_]] {
     def coerce(result: RTValue): RTValue.Primitive[_] = RTValue.coercePrimitive(result)
   }
@@ -41,6 +45,10 @@ object Coercer {
     new Coercer[RTValue.Primitive.Numeric[T]] {
       def coerce(result: RTValue): RTValue.Primitive.Numeric[T] =
         RTValue.coerceNumeric(result).asInstanceOf[RTValue.Primitive.Numeric[T]]
+    }
+  implicit val comparableCoercer: Coercer[RTValue.Comparable] =
+    new Coercer[RTValue.Comparable] {
+      def coerce(result: RTValue): RTValue.Comparable = RTValue.coerceComparable(result)
     }
 
   implicit val fallbackNumericCoercer: Coercer[RTValue.Primitive.Numeric[_]] =

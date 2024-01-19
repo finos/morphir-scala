@@ -8,8 +8,8 @@ import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.internal.{InvokeableEvaluator, NativeFunctionSignatureAdv}
 import org.finos.morphir.runtime.*
+import org.finos.morphir.runtime.sdk.DecimalSDK.{minusOne, one, zero}
 
-import scala.collection.mutable
 import scala.collection.mutable
 
 object DictSDK {
@@ -130,9 +130,9 @@ object DictSDK {
         val newValue  = evaluator.handleApplyResult(Type.UType.Unit(()), alterRaw, currValue)
 
         newValue match {
-          case RTValue.ConstructorResult(FQString("Morphir.SDK:Maybe:just"), List(value)) =>
+          case RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Maybe:Just"), List(value)) =>
             dict += ((targetKeyRaw, value))
-          case RTValue.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), _) =>
+          case RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Maybe:Nothing"), _) =>
             dict.remove(targetKeyRaw)
           case _ =>
             throw new UnexpectedType(
@@ -413,15 +413,6 @@ object Native {
       RTValue.Primitive.Boolean(a == b)
   }
 
-  val fromParts: SDKValue = SDKValue.SDKNativeFunction.fun3 {
-    (a: RTValue, b: RTValue, c: RTValue) =>
-      RTValue.LocalDate(java.time.LocalDate.of(
-        a.coerceInt.value.toInt,
-        b.coerceInt.value.toInt,
-        c.coerceInt.value.toInt
-      ))
-  }
-
   val utc = java.time.ZoneId.of("UTC")
 
   def fromMillisecondsEpoch(millis: Long): java.time.LocalTime =
@@ -443,6 +434,9 @@ object Native {
   val nothing: SDKConstructor = SDKConstructor(List())
   val ok: SDKConstructor      = SDKConstructor(List(Type.variable("contents")))
   val err: SDKConstructor     = SDKConstructor(List(Type.variable("contents")))
+  val gt: SDKConstructor      = SDKConstructor(List())
+  val lt: SDKConstructor      = SDKConstructor(List())
+  val eq: SDKConstructor      = SDKConstructor(List())
 
   val nativeCtors: Map[FQName, SDKConstructor] = Map(
     FQName.fromString("Morphir.SDK:Maybe:just")    -> just,
@@ -465,7 +459,9 @@ object Native {
     FQName.fromString("Morphir.SDK:Basics:negate")              -> negate,
     FQName.fromString("Morphir.SDK:Basics:toFloat")             -> toFloat,
     FQName.fromString("Morphir.SDK:Basics:logBase")             -> log,
-    FQName.fromString("Morphir.SDK:LocalDate:fromParts")        -> fromParts,
+    FQName.fromString("Morphir.SDK:Decimal:minusOne")           -> minusOne,
+    FQName.fromString("Morphir.SDK:Decimal:one")                -> one,
+    FQName.fromString("Morphir.SDK:Decimal:zero")               -> zero,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
   ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ SetSDK.sdk ++ DecimalSDK.sdk ++ TupleSDK.sdk ++ BasicsSDK.sdk

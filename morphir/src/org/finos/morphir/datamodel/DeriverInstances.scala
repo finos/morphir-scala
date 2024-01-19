@@ -2,7 +2,7 @@ package org.finos.morphir.datamodel
 
 import scala.BigInt
 import scala.BigDecimal
-import java.time.{LocalDate, LocalTime, Month}
+import java.time.{LocalDate, LocalTime, Month, DayOfWeek}
 import org.finos.morphir.datamodel.Data
 import org.finos.morphir.datamodel.Concept
 
@@ -70,6 +70,11 @@ trait DeriverInstances {
   implicit val monthDeriver: CustomDeriver[Month] = new CustomDeriver[Month] {
     def derive(value: Month): Data = Data.Month(value)
     def concept: Concept           = Concept.Month
+  }
+
+  implicit val dayOfWeekDeriver: CustomDeriver[DayOfWeek] = new CustomDeriver[DayOfWeek] {
+    def derive(value: DayOfWeek): Data = Data.DayOfWeek(value)
+    def concept: Concept               = Concept.DayOfWeek
   }
 
   implicit val localTimeDeriver: CustomDeriver[LocalTime] = new CustomDeriver[LocalTime] {

@@ -30,20 +30,26 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   def deriveData(input: Any): Data =
     input match {
       // If the data is already derived, just use it!
-      case alreadyData: Data       => alreadyData
-      case u: Unit                 => Deriver.toData(u)
-      case b: Boolean              => Deriver.toData(b)
-      case i: Int                  => Deriver.toData(i)
-      case d: Double               => Deriver.toData(d)
-      case s: String               => Deriver.toData(s)
-      case ld: java.time.LocalDate => Deriver.toData(ld)
-      case lt: java.time.LocalTime => Deriver.toData(lt)
+      case alreadyData: Data        => alreadyData
+      case u: Unit                  => Deriver.toData(u)
+      case b: Boolean               => Deriver.toData(b)
+      case i: Int                   => Deriver.toData(i)
+      case c: Char                  => Deriver.toData(c)
+      case d: Double                => Deriver.toData(d)
+      case s: String                => Deriver.toData(s)
+      case ld: java.time.LocalDate  => Deriver.toData(ld)
+      case m: java.time.Month       => Deriver.toData(m)
+      case dow: java.time.DayOfWeek => Deriver.toData(dow)
+      case lt: java.time.LocalTime  => Deriver.toData(lt)
       case list: List[_] =>
         val mapped = list.map(deriveData(_))
         Data.List(mapped.head, mapped.tail: _*)
       case map: Map[_, _] =>
         val pairs = map.toList.map { case (key, value) => (deriveData(key), deriveData(value)) }
         Data.Map(pairs.head, pairs.tail: _*)
+      case set: Set[_] =>
+        val derivedElements = set.toList.map(deriveData(_))
+        Data.Set(derivedElements.head, derivedElements.tail: _*)
       case Some(a: Any)           => Data.Optional.Some(deriveData(a))
       case (first, second)        => Data.Tuple(deriveData(first), deriveData(second))
       case (first, second, third) => Data.Tuple(deriveData(first), deriveData(second), deriveData(third))
@@ -332,9 +338,55 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("Decimal Tests")(
-        testEvaluation("fromFloat")("decimalTests", "decimalFromFloatTest")(Data.Decimal(1.2)),
-        testEvaluation("toFloat")("decimalTests", "decimalToFloatTest")(Data.Float(1.5)),
-        testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("1.2"))
+        suite("conversion")(
+          testEvaluation("fromFloat")("decimalTests", "decimalFromFloatTest")(Data.Decimal(1.2)),
+          testEval("fromInt")("decimalTests", "decimalFromInt", 634)(Data.Decimal(634)),
+          testEval("fromString good")("decimalTests", "decimalFromString", "523")(
+            Data.Optional.Some(Data.Decimal(523))
+          ),
+          testEval("fromString bad")("decimalTests", "decimalFromString", "abcd")(
+            Data.Optional.None(Concept.Decimal)
+          ),
+          testEvaluation("toFloat")("decimalTests", "decimalToFloatTest")(Data.Float(1.5)),
+          testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("-1"))
+        ),
+        suite("abs")(
+          testEvaluation("positive value")("decimalTests", "decimalPositiveAbs")(Data.Decimal(1)),
+          testEvaluation("negative value")("decimalTests", "decimalNegativeAbs")(Data.Decimal(100.243))
+        ),
+        testEvaluation("add")("decimalTests", "decimalAdd")(Data.Decimal(673.45)),
+        testEvaluation("bps")("decimalTests", "decimalBps")(Data.Decimal(0.0463)),
+//        testEvaluation("compare")("decimalTests", "decimalAdd")(Data.Decimal(673.45)),
+        suite("div")(
+          testEvaluation("div some")("decimalTests", "decimalGoodDiv")(Data.Optional.Some(Data.Decimal(1.8))),
+          testEvaluation("div none")("decimalTests", "decimalBadDiv")(Data.Optional.None(Concept.Decimal)),
+          testEvaluation("div with default")("decimalTests", "decimalDivWithDefault")(Data.Decimal(-7)),
+          testEvaluation("div with default using default")("decimalTests", "decimalZeroDivWithDefault")(
+            Data.Decimal(0)
+          )
+        ),
+        suite("comparison")(
+          testEvaluation("eq true")("decimalTests", "decimalTrueEq")(Data.Boolean(true)),
+          testEvaluation("eq false")("decimalTests", "decimalFalseEq")(Data.Boolean(false)),
+          testEvaluation("gt true")("decimalTests", "decimalTrueGt")(Data.Boolean(true)),
+          testEvaluation("gt false")("decimalTests", "decimalFalseGt")(Data.Boolean(false)),
+          testEvaluation("gte greater true")("decimalTests", "decimalTrueGte")(Data.Boolean(true)),
+          testEvaluation("gte equals true")("decimalTests", "decimalTrueEqualGte")(Data.Boolean(true)),
+          testEvaluation("gte false")("decimalTests", "decimalFalseGte")(Data.Boolean(false)),
+          testEvaluation("lt true")("decimalTests", "decimalTrueLt")(Data.Boolean(true)),
+          testEvaluation("lt false")("decimalTests", "decimalFalseLt")(Data.Boolean(false)),
+          testEvaluation("lte less true")("decimalTests", "decimalTrueLte")(Data.Boolean(true)),
+          testEvaluation("lte equal true")("decimalTests", "decimalTrueEqualLte")(Data.Boolean(true)),
+          testEvaluation("lte false")("decimalTests", "decimalFalseLte")(Data.Boolean(false)),
+          testEvaluation("neq true")("decimalTests", "decimalTrueNeq")(Data.Boolean(true)),
+          testEvaluation("neq false")("decimalTests", "decimalFalseNeq")(Data.Boolean(false))
+        ),
+        testEvaluation("mul")("decimalTests", "decimalMul")(Data.Decimal(0.06927)),
+        testEvaluation("neg")("decimalTests", "decimalNegate")(Data.Decimal(34.222)),
+        testEvaluation("round down")("decimalTests", "decimalWholeRound")(Data.Decimal(322.0)),
+        testEvaluation("round up")("decimalTests", "decimalNegativeRound")(Data.Decimal(-92.0)),
+        testEvaluation("sub")("decimalTests", "decimalSub")(Data.Decimal(1.1)),
+        testEvaluation("truncate")("decimalTests", "decimalTruncate")(Data.Decimal(1.0))
       ),
       suite("Lambda Tests")(
         testEvaluation("As")("lambdaTests", "lambdaAsTest")(Data.Tuple(Data.Int(5), Data.Int(5))),
@@ -473,7 +525,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("List.any with True Output")("listTests", "listAnyFalseTest")(
           Data.Boolean(false)
         ),
-        testEvaluation("List Parittion")("listTests", "listPartitionTest")(
+        testEvaluation("List Partition")("listTests", "listPartitionTest")(
           Data.Tuple(
             Data.List(Data.Int(1), Data.Int(3), Data.Int(5)),
             Data.List(Data.Int(2), Data.Int(4))
@@ -497,6 +549,206 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ),
         testEvaluation("length")("listTests", "listLengthTest")(
           (Data.Int32(6))
+        ),
+        suite("all")(
+          testEval("predicate is true for all")("listTests", "listAllTest", List(1, 2, 3))(
+            Data.Boolean(true)
+          ),
+          testEval("predicate is not true for all")("listTests", "listAllTest", List(2, 3, 4))(
+            Data.Boolean(false)
+          )
+        ),
+        suite("concatMap")(
+          testEval("concatenates mapped result")("listTests", "listConcatMapTest", List(1, 2, 3))(
+            Data.List(
+              Data.Int(1),
+              Data.Int(1),
+              Data.Int(2),
+              Data.Int(2),
+              Data.Int(3),
+              Data.Int(3)
+            )
+          ),
+          testEval("produces empty list on empty list input")(
+            "listTests",
+            "listConcatMapTest",
+            Data.List.empty(Concept.Int32)
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEval("produces flat output for a single result list")("listTests", "listConcatMapTest", List(3))(
+            Data.List(Data.Int(3), Data.Int(3))
+          )
+        ),
+        suite("drop")(
+          testEvalMultiple("drops element from front of list")("listTests", "listDropTest", List(2, List(1, 2, 3)))(
+            Data.List(Data.Int(3))
+          ),
+          testEvalMultiple("drops the entire list when the number dropped is gt the list length")(
+            "listTests",
+            "listDropTest",
+            List(4, List(1, 2, 3))
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("returns an empty list when dropping from an empty list")(
+            "listTests",
+            "listDropTest",
+            List(2, Data.List.empty(Concept.Int32))
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("does nothing when dropping 0 elements")("listTests", "listDropTest", List(0, List(1)))(
+            Data.List(Data.Int(1))
+          ),
+          testEvalMultiple("does nothing when dropping a negative number of elements")(
+            "listTests",
+            "listDropTest",
+            List(-5, List(1))
+          )(
+            Data.List(Data.Int(1))
+          )
+        ),
+        suite("filterMap")(
+          testEval("filters after mapping")("listTests", "listFilterMapTest", List(0, 1, 2))(
+            Data.List(Data.Float(1.0), Data.Float(0.5))
+          ),
+          testEval("filters empty lists")("listTests", "listFilterMapTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Float)
+          )
+        ),
+        suite("foldr")(
+          testEval("folds")("listTests", "listFoldrTest", List(1, 2, 3))(
+            Data.List(Data.Int32(1), Data.Int32(2), Data.Int32(3))
+          ),
+          testEval("folds empty lists")("listTests", "listFoldrTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("head")(
+          testEval("head of a non-empty list is Just")("listTests", "listHeadTest", List(1, 2, 3))(
+            Data.Optional.Some(Data.Int32(1))
+          ),
+          testEval("head of an empty list is Nothing")("listTests", "listHeadTest", Data.List.empty(Concept.Int32))(
+            Data.Optional.None(Concept.Int32)
+          )
+        ),
+        suite("indexedMap")(
+          testEval("passes indices to the mapped function")("listTests", "listIndexedMapTest", List("a", "b", "c"))(
+            Data.List(
+              Data.Tuple(Data.Int(0), Data.String("a")),
+              Data.Tuple(Data.Int(1), Data.String("b")),
+              Data.Tuple(Data.Int(2), Data.String("c"))
+            )
+          ),
+          testEval("maps empty lists")("listTests", "listIndexedMapTest", Data.List.empty(Concept.String))(
+            Data.List.empty(Concept.Tuple(List(Concept.Int32, Concept.String)))
+          )
+        ),
+        suite("member")(
+          testEvalMultiple("finds a member of a list")("listTests", "listMemberTest", List(1, List(1, 2, 3)))(
+            Data.Boolean(true)
+          ),
+          testEvalMultiple("doesn't find a member missing from a list")(
+            "listTests",
+            "listMemberTest",
+            List(1, List(2, 3))
+          )(
+            Data.Boolean(false)
+          ),
+          testEvalMultiple("doesn't find a member of an empty list")(
+            "listTests",
+            "listMemberTest",
+            List(1, Data.List.empty(Concept.Int32))
+          )(
+            Data.Boolean(false)
+          )
+        ),
+        suite("range")(
+          testEvalMultiple("creates a range")("listTests", "listRangeTest", List(1, 3))(
+            Data.List(Data.Int(1), Data.Int(2), Data.Int(3))
+          ),
+          testEvalMultiple("creates a range including negative numbers")("listTests", "listRangeTest", List(-1, 2))(
+            Data.List(Data.Int(-1), Data.Int(0), Data.Int(1), Data.Int(2))
+          ),
+          testEvalMultiple("creates a range with a single value")("listTests", "listRangeTest", List(1, 1))(
+            Data.List(Data.Int(1))
+          ),
+          testEvalMultiple("creates an empty range for out of order arguments")(
+            "listTests",
+            "listRangeTest",
+            List(2, 1)
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("creates an empty range for out of order negative arguments")(
+            "listTests",
+            "listRangeTest",
+            List(-1, -2)
+          )(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("repeat")(
+          testEvalMultiple("creates a repeated list")("listTests", "listRepeatTest", List(3, 1))(
+            Data.List(Data.Int(1), Data.Int(1), Data.Int(1))
+          ),
+          testEvalMultiple("creates an empty list for 0 repeats")("listTests", "listRepeatTest", List(0, 1))(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("creates an empty list for negative repeats")("listTests", "listRepeatTest", List(-1, 1))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("reverse")(
+          testEval("reverses a list")("listTests", "listReverseTest", List(1, 2, 3))(
+            Data.List(Data.Int(3), Data.Int(2), Data.Int(1))
+          ),
+          testEval("reverses an empty list")("listTests", "listReverseTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("tail")(
+          testEval("returns the tail of a list")("listTests", "listTailTest", List(1, 2, 3))(
+            Data.Optional.Some(
+              Data.List(
+                Data.Int(2),
+                Data.Int(3)
+              )
+            )
+          ),
+          testEval("returns the tail of a singleton list")("listTests", "listTailTest", List(1))(
+            Data.Optional.Some(Data.List.empty(Concept.Int32))
+          ),
+          testEval("the tail of an empty list is Nothing")("listTests", "listTailTest", Data.List.empty(Concept.Int32))(
+            Data.Optional.None(Concept.List(Concept.Int32))
+          )
+        ),
+        suite("take")(
+          testEvalMultiple("takes from a list")("listTests", "listTakeTest", List(2, List(1, 2, 3)))(
+            Data.List(Data.Int(1), Data.Int(2))
+          ),
+          testEvalMultiple("taking 0 elements returns an empty list")(
+            "listTests",
+            "listTakeTest",
+            List(0, List(1, 2, 3))
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("taking negative elements returns an empty list")(
+            "listTests",
+            "listTakeTest",
+            List(-1, List(1, 2, 3))
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEvalMultiple("taking from an empty list returns an empty list")(
+            "listTests",
+            "listTakeTest",
+            List(2, Data.List.empty(Concept.Int32))
+          )(
+            Data.List.empty(Concept.Int32)
+          )
         )
       ),
       suite("Literals")(
@@ -507,10 +759,263 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("Whole Number")("literalTests", "litWholeNumberLiteralTest")(Data.Int(5))
       ),
       suite("LocalDate")(
-        // TODO: Need to fix implementation of Optional LocalDate
         testEvaluation("fromParts")("localDateTests", "fromPartsTest")(
           Data.Optional.Some(Data.LocalDate(localDate))
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        ),
+        testEvaluation("fromParts invalid")("localDateTests", "fromPartsInvalidTest")(
+          Data.Optional.None(Concept.LocalDate)
+        ),
+        suite("fromOrdinalDate")(
+          testEvalMultiple("fromOrdinalDate valid")("localDateTests", "fromOrdinalDateTest", List(1900, 20))(
+            Data.LocalDate(localDate)
+          ),
+          testEvalMultiple("fromOrdinalDate clamped day pos, not leap year")(
+            "localDateTests",
+            "fromOrdinalDateTest",
+            List(1900, 366)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1900, 12, 31))
+          ),
+          testEvalMultiple("fromOrdinalDate clamped day pos, leap year")(
+            "localDateTests",
+            "fromOrdinalDateTest",
+            List(1904, 367)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1904, 12, 31))
+          ),
+          testEvalMultiple("fromOrdinalDate clamped day neg")(
+            "localDateTests",
+            "fromOrdinalDateTest",
+            List(1900, -9999)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1900, 1, 1))
+          ),
+          testEvalMultiple("fromOrdinalDate clamped year pos")(
+            "localDateTests",
+            "fromOrdinalDateTest",
+            List(java.time.Year.MAX_VALUE + 1, 20)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(java.time.Year.MAX_VALUE, 1, 20))
+          ),
+          testEvalMultiple("fromOrdinalDate clamped year neg")(
+            "localDateTests",
+            "fromOrdinalDateTest",
+            List(java.time.Year.MIN_VALUE - 1, 20)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(java.time.Year.MIN_VALUE, 1, 20))
+          )
+        ),
+        suite("fromCalendarDate")(
+          testEvalMultiple("fromCalendarDate valid")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(1900, java.time.Month.JANUARY, 20)
+          )(
+            Data.LocalDate(localDate)
+          ),
+          testEvalMultiple("fromCalendarDate clamped day, positive")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(1900, java.time.Month.JANUARY, 9999)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1900, 1, 31))
+          ),
+          testEvalMultiple("fromCalendarDate clamped day, negative")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(1900, java.time.Month.JANUARY, -9999)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1900, 1, 1))
+          ),
+          testEvalMultiple("fromCalendarDate clamped year, positive")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(java.time.Year.MAX_VALUE + 1, java.time.Month.JANUARY, 20)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(java.time.Year.MAX_VALUE, 1, 20))
+          ),
+          testEvalMultiple("fromCalendarDate clamped year, negative")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(java.time.Year.MIN_VALUE - 1, java.time.Month.JANUARY, 20)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(java.time.Year.MIN_VALUE, 1, 20))
+          ),
+          testEvalMultiple("fromCalendarDate clamped leap year day")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(1900, java.time.Month.FEBRUARY, 29)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1900, 2, 28))
+          ),
+          testEvalMultiple("fromCalendarDate valid leap year day")(
+            "localDateTests",
+            "fromCalendarDateTest",
+            List(1904, java.time.Month.FEBRUARY, 29)
+          )(
+            Data.LocalDate(java.time.LocalDate.of(1904, 2, 29))
+          )
+        ),
+        suite("Month enum support")(
+          suite("as input")(
+            testEvalMultiple("January")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.JANUARY, 20)
+            )(
+              Data.LocalDate(localDate)
+            ),
+            testEvalMultiple("February")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.FEBRUARY, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 2, 20))
+            ),
+            testEvalMultiple("March")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.MARCH, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 3, 20))
+            ),
+            testEvalMultiple("April")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.APRIL, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 4, 20))
+            ),
+            testEvalMultiple("May")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.MAY, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 5, 20))
+            ),
+            testEvalMultiple("June")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.JUNE, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 6, 20))
+            ),
+            testEvalMultiple("July")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.JULY, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 7, 20))
+            ),
+            testEvalMultiple("August")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.AUGUST, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 8, 20))
+            ),
+            testEvalMultiple("September")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.SEPTEMBER, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 9, 20))
+            ),
+            testEvalMultiple("October")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.OCTOBER, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 10, 20))
+            ),
+            testEvalMultiple("November")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.NOVEMBER, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 11, 20))
+            ),
+            testEvalMultiple("December")(
+              "localDateTests",
+              "fromCalendarDateTest",
+              List(1900, java.time.Month.DECEMBER, 20)
+            )(
+              Data.LocalDate(java.time.LocalDate.of(1900, 12, 20))
+            )
+          ),
+          suite("as output")(
+            testEval("January")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 1, 20))(
+              Data.Month(java.time.Month.JANUARY)
+            ),
+            testEval("February")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 2, 20))(
+              Data.Month(java.time.Month.FEBRUARY)
+            ),
+            testEval("March")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 3, 20))(
+              Data.Month(java.time.Month.MARCH)
+            ),
+            testEval("April")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 4, 20))(
+              Data.Month(java.time.Month.APRIL)
+            ),
+            testEval("May")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 5, 20))(
+              Data.Month(java.time.Month.MAY)
+            ),
+            testEval("June")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 6, 20))(
+              Data.Month(java.time.Month.JUNE)
+            ),
+            testEval("July")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 7, 20))(
+              Data.Month(java.time.Month.JULY)
+            ),
+            testEval("August")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 8, 20))(
+              Data.Month(java.time.Month.AUGUST)
+            ),
+            testEval("September")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 9, 20))(
+              Data.Month(java.time.Month.SEPTEMBER)
+            ),
+            testEval("October")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 10, 20))(
+              Data.Month(java.time.Month.OCTOBER)
+            ),
+            testEval("November")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 11, 20))(
+              Data.Month(java.time.Month.NOVEMBER)
+            ),
+            testEval("December")("localDateTests", "monthTest", java.time.LocalDate.of(1900, 12, 20))(
+              Data.Month(java.time.Month.DECEMBER)
+            )
+          )
+        ),
+        suite("DayOfWeek enum support")(
+          suite("as input")(
+            testEval("Monday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.MONDAY)(Data.Int(1)),
+            testEval("Tuesday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.TUESDAY)(Data.Int(2)),
+            testEval("Wednesday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.WEDNESDAY)(Data.Int(3)),
+            testEval("Thursday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.THURSDAY)(Data.Int(4)),
+            testEval("Friday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.FRIDAY)(Data.Int(5)),
+            testEval("Saturday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.SATURDAY)(Data.Int(6)),
+            testEval("Sunday")("localDateTests", "dayOfWeekAsInputTest", java.time.DayOfWeek.SUNDAY)(Data.Int(7))
+          ),
+          suite("as output")(
+            testEval("Monday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 15))(
+              Data.DayOfWeek(java.time.DayOfWeek.MONDAY)
+            ),
+            testEval("Tuesday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 16))(
+              Data.DayOfWeek(java.time.DayOfWeek.TUESDAY)
+            ),
+            testEval("Wednesday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 17))(
+              Data.DayOfWeek(java.time.DayOfWeek.WEDNESDAY)
+            ),
+            testEval("Thursday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 18))(
+              Data.DayOfWeek(java.time.DayOfWeek.THURSDAY)
+            ),
+            testEval("Friday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 19))(
+              Data.DayOfWeek(java.time.DayOfWeek.FRIDAY)
+            ),
+            testEval("Saturday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 20))(
+              Data.DayOfWeek(java.time.DayOfWeek.SATURDAY)
+            ),
+            testEval("Sunday")("localDateTests", "dayOfWeekTest", java.time.LocalDate.of(1900, 1, 21))(
+              Data.DayOfWeek(java.time.DayOfWeek.SUNDAY)
+            )
+          )
+        ),
         testEvalMultiple("addWeeks")("localDateTests", "addWeeksTest", List(2, localDate))(
           Data.LocalDate(localDate.plusWeeks(2))
         ),
@@ -534,6 +1039,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ),
         testEval("fromISO invalid iso ordinal")("localDateTests", "fromISOTest", "1900-366")(
           Data.Optional.None(Concept.LocalDate)
+        ),
+        testEval("year")("localDateTests", "yearTest", localDate)(Data.Int(1900)),
+        testEval("month")("localDateTests", "monthTest", localDate)(Data.Month(java.time.Month.JANUARY)),
+        testEval("monthNumber")("localDateTests", "monthNumberTest", localDate)(Data.Int(1)),
+        testEval("day")("localDateTests", "dayTest", localDate)(Data.Int(20)),
+        testEval("dayOfWeek")("localDateTests", "dayOfWeekTest", localDate)(
+          Data.DayOfWeek(java.time.DayOfWeek.SATURDAY)
         )
       ),
       suite("LocalTime")(
@@ -668,7 +1180,173 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )),
         testEvaluation("member")("setTests", "setMemberTest1")(Data.Boolean(true)),
         testEvaluation("member")("setTests", "setMemberTest2")(Data.Boolean(false)),
-        testEvaluation("size")("setTests", "setSizeTest")(Data.Int(3))
+        testEvaluation("size")("setTests", "setSizeTest")(Data.Int(3)),
+        suite("foldr")(
+          testEval("folds left")("setTests", "setFoldrTest", Set(1, 2, 3))(
+            Data.List(
+              Data.Int(1),
+              Data.Int(2),
+              Data.Int(3)
+            )
+          ),
+          testEval("iterates in desc sort order, not insertion order")("setTests", "setFoldrTest", Set(2, 1, 3))(
+            Data.List(
+              Data.Int(1),
+              Data.Int(2),
+              Data.Int(3)
+            )
+          ) @@ ignore @@ tag("foldr does not match morphir-elm iteration order"),
+          testEval("folds empty lists")("setTests", "setFoldrTest", Data.Set.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("insert")(
+          testEvalMultiple("inserts into a set")("setTests", "setInsertTest", List(2, Set(1)))(
+            Data.Set(Data.Int(1), Data.Int(2))
+          ),
+          testEvalMultiple("inserts into an empty set")(
+            "setTests",
+            "setInsertTest",
+            List(1, Data.Set.empty(Concept.Int32))
+          )(
+            Data.Set(Data.Int(1))
+          ),
+          testEvalMultiple("leaves a set already containing the element unchanged")(
+            "setTests",
+            "setInsertTest",
+            List(1, Set(1))
+          )(
+            Data.Set(Data.Int(1))
+          )
+        ),
+        testEval("creates singleton sets")("setTests", "setSingletonTest", 1)(Data.Set(Data.Int(1))),
+        suite("union")(
+          testEvalMultiple("unions two sets")("setTests", "setUnionTest", List(Set(1), Set(2)))(
+            Data.Set(Data.Int(1), Data.Int(2))
+          ),
+          testEvalMultiple("unions two sets with redundant elements")(
+            "setTests",
+            "setUnionTest",
+            List(Set(1, 2), Set(2, 3))
+          )(
+            Data.Set(Data.Int(1), Data.Int(2), Data.Int(3))
+          ),
+          testEvalMultiple("unions when the first set is empty")(
+            "setTests",
+            "setUnionTest",
+            List(Data.Set.empty(Concept.Int32), Set(1, 2))
+          )(
+            Data.Set(Data.Int(1), Data.Int(2))
+          ),
+          testEvalMultiple("unions when the second set is empty")(
+            "setTests",
+            "setUnionTest",
+            List(Set(1, 2), Data.Set.empty(Concept.Int32))
+          )(
+            Data.Set(Data.Int(1), Data.Int(2))
+          ),
+          testEvalMultiple("unions when both sets are empty")(
+            "setTests",
+            "setUnionTest",
+            List(Data.Set.empty(Concept.Int32), Data.Set.empty(Concept.Int32))
+          )(
+            Data.Set.empty(Concept.Int32)
+          )
+        ),
+        suite("intersect")(
+          testEvalMultiple("intersects two sets")("setTests", "setIntersectTest", List(Set(1, 2, 3), Set(2, 3, 4)))(
+            Data.Set(Data.Int(2), Data.Int(3))
+          ),
+          testEvalMultiple("intersects two sets having no common elements")(
+            "setTests",
+            "setIntersectTest",
+            List(Set(1, 2), Set(3, 4))
+          )(
+            Data.Set.empty(Concept.Int32)
+          ),
+          testEvalMultiple("intersects when the first set is empty")(
+            "setTests",
+            "setIntersectTest",
+            List(Data.Set.empty(Concept.Int32), Set(1, 2))
+          )(
+            Data.Set.empty(Concept.Int32)
+          ),
+          testEvalMultiple("intersects when the second set is empty")(
+            "setTests",
+            "setIntersectTest",
+            List(Set(1, 2), Data.Set.empty(Concept.Int32))
+          )(
+            Data.Set.empty(Concept.Int32)
+          ),
+          testEvalMultiple("intersects when both sets are empty")(
+            "setTests",
+            "setIntersectTest",
+            List(Data.Set.empty(Concept.Int32), Data.Set.empty(Concept.Int32))
+          )(
+            Data.Set.empty(Concept.Int32)
+          )
+        ),
+        suite("isEmpty")(
+          testEval("false for non-empty sets")("setTests", "setIsEmptyTest", Set(1))(
+            Data.Boolean(false)
+          ),
+          testEval("true for empty sets")("setTests", "setIsEmptyTest", Data.Set.empty(Concept.Int32))(
+            Data.Boolean(true)
+          )
+        ),
+        suite("map")(
+          testEval("maps a function over a set")("setTests", "setMapTest", Set(1, 2, 3))(
+            Data.Set(Data.Int(2), Data.Int(4), Data.Int(6))
+          ),
+          testEval("maps over empty sets")("setTests", "setMapTest", Data.Set.empty(Concept.Int32))(
+            Data.Set.empty(Concept.Int32)
+          )
+        ),
+        suite("partition")(
+          testEval("partitions a set")("setTests", "setPartitionTest", Set(1, 2, 3))(
+            Data.Tuple(
+              Data.Set(Data.Int(1)),
+              Data.Set(Data.Int(2), Data.Int(3))
+            )
+          ),
+          testEval("partitions a set when all entries match")("setTests", "setPartitionTest", Set(0, 1))(
+            Data.Tuple(
+              Data.Set(Data.Int(0), Data.Int(1)),
+              Data.Set.empty(Concept.Int32)
+            )
+          ),
+          testEval("partitions a set when no entries match")("setTests", "setPartitionTest", Set(2, 3))(
+            Data.Tuple(
+              Data.Set.empty(Concept.Int32),
+              Data.Set(Data.Int(2), Data.Int(3))
+            )
+          ),
+          testEval("partitions an empty set")("setTests", "setPartitionTest", Data.Set.empty(Concept.Int32))(
+            Data.Tuple(
+              Data.Set.empty(Concept.Int32),
+              Data.Set.empty(Concept.Int32)
+            )
+          )
+        ),
+        suite("remove")(
+          testEvalMultiple("removes from a set")("setTests", "setRemoveTest", List(2, Set(1, 2, 3)))(
+            Data.Set(Data.Int(1), Data.Int(3))
+          ),
+          testEvalMultiple("dosen't remove elements that are not in a set")(
+            "setTests",
+            "setRemoveTest",
+            List(2, Set(1))
+          )(
+            Data.Set(Data.Int(1))
+          ),
+          testEvalMultiple("removes nothing from an empty set")(
+            "setTests",
+            "setRemoveTest",
+            List(2, Data.Set.empty(Concept.Int32))
+          )(
+            Data.Set.empty(Concept.Int32)
+          )
+        )
       ),
       suite("Simple")(
         testEvaluation("Unit")("simpleTests", "simpleUnitTest")(Data.Unit)
@@ -695,9 +1373,236 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("String")(
-        testEvalMultiple("String Append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
+        testEvalMultiple("append")("stringTests", "stringAppend", List(Data.String("Do"), Data.String("Bop")))(
           Data.String("DoBop")
-        )
+        ),
+        testEval("concat")(
+          "stringTests",
+          "stringConcat",
+          List(
+            "abc",
+            "def",
+            " ",
+            "ghi"
+          )
+        )(
+          Data.String("abcdef ghi")
+        ),
+        testEvalMultiple("contains true")(
+          "stringTests",
+          "stringContains",
+          List("cat", "cataracts")
+        )(
+          Data.True
+        ),
+        testEvalMultiple("contains false")(
+          "stringTests",
+          "stringContains",
+          List("dog", "cataracts")
+        )(
+          Data.False
+        ),
+        testEvalMultiple("dropLeft")(
+          "stringTests",
+          "stringDropLeft",
+          List(3, "String")
+        )(
+          Data.String("ing")
+        ),
+        testEvalMultiple("dropRight")(
+          "stringTests",
+          "stringDropRight",
+          List(3, "String")
+        )(
+          Data.String("Str")
+        ),
+        testEvalMultiple("endsWith true")(
+          "stringTests",
+          "stringEndsWith",
+          List("ing", "Singing")
+        )(
+          Data.True
+        ),
+        testEvalMultiple("endsWith false")(
+          "stringTests",
+          "stringEndsWith",
+          List("sing", "Singing")
+        )(
+          Data.False
+        ),
+        testEvalMultiple("join")(
+          "stringTests",
+          "stringJoin",
+          List(", ", List("Apple", "Orange", "Yellow"))
+        )(
+          Data.String("Apple, Orange, Yellow")
+        ),
+        testEval("length")("StringTests", "stringLength", "Length Of String")(Data.Int(16)),
+        testEvalMultiple("padLeft")(
+          "stringTests",
+          "stringPadLeft",
+          List(3, 'm', " yum")
+        )(
+          Data.String("mmm yum")
+        ),
+        testEvalMultiple("padRight")(
+          "stringTests",
+          "stringPadRight",
+          List(3, 'm', "yum")
+        )(
+          Data.String("yummmm")
+        ),
+        testEvalMultiple("slice")(
+          "stringTests",
+          "stringSlice",
+          List(4, 11, "This is a complete sentence.")
+        )(
+          Data.String(" is a c")
+        ),
+        testEvalMultiple("split sentence")(
+          "stringTests",
+          "stringSplit",
+          List(" ", "This is a complete sentence.")
+        )(
+          Data.List(
+            Data.String("This"),
+            Data.String("is"),
+            Data.String("a"),
+            Data.String("complete"),
+            Data.String("sentence.")
+          )
+        ),
+        testEvalMultiple("split phrase")(
+          "stringTests",
+          "stringSplit",
+          List("complete", "This is a complete sentence.")
+        )(
+          Data.List(
+            Data.String("This is a "),
+            Data.String(" sentence.")
+          )
+        ),
+        testEvalMultiple("split letter")(
+          "stringTests",
+          "stringSplit",
+          List("o", "foo")
+        )(
+          Data.List(
+            Data.String("f")
+          )
+        ),
+        testEvalMultiple("split no separator")(
+          "stringTests",
+          "stringSplit",
+          List("", "foo")
+        )(
+          Data.List(
+            Data.String("f"),
+            Data.String("o"),
+            Data.String("o")
+          )
+        ),
+        testEvalMultiple("split no strings")(
+          "stringTests",
+          "stringSplit",
+          List("", "")
+        )(
+          Data.List(
+            Data.String("")
+          )
+        ),
+        testEvalMultiple("split .")(
+          "stringTests",
+          "stringSplit",
+          List(".", "1.2.3.4")
+        )(
+          Data.List(
+            Data.String("1"),
+            Data.String("2"),
+            Data.String("3"),
+            Data.String("4")
+          )
+        ),
+        testEvalMultiple("split {")(
+          "stringTests",
+          "stringSplit",
+          List("{", "{1}")
+        )(
+          Data.List(
+            Data.String(""),
+            Data.String("1}")
+          )
+        ),
+        testEvalMultiple("split .{")(
+          "stringTests",
+          "stringSplit",
+          List(".{", "ab.{c.{d")
+        )(
+          Data.List(
+            Data.String("ab"),
+            Data.String("c"),
+            Data.String("d")
+          )
+        ),
+        testEvalMultiple("startsWith true")(
+          "stringTests",
+          "stringStartsWith",
+          List("Doctor", "Doctor Smith")
+        )(
+          Data.True
+        ),
+        testEvalMultiple("startsWith false")(
+          "stringTests",
+          "stringStartsWith",
+          List("Mister", "Doctor Smith")
+        )(
+          Data.False
+        ),
+        testEval("toLower")(
+          "stringTests",
+          "stringToLower",
+          "CAPITALIZED"
+        )(
+          Data.String("capitalized")
+        ),
+        testEval("toUpper")(
+          "stringTests",
+          "stringToUpper",
+          "lowercased"
+        )(
+          Data.String("LOWERCASED")
+        ),
+        testEval("trim")(
+          "stringTests",
+          "stringTrim",
+          "                   hello world        "
+        )(
+          Data.String("hello world")
+        ),
+        testEval("trimLeft")(
+          "stringTests",
+          "stringTrimLeft",
+          "                   hello world        "
+        )(
+          Data.String("hello world        ")
+        ),
+        testEval("trimRight")(
+          "stringTests",
+          "stringTrimRight",
+          "                   hello world        "
+        )(
+          Data.String("                   hello world")
+        ),
+        testEvaluation("left")("StringTests", "stringLeftTest")(Data.String("Mu")),
+        testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
+        testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
+        testEvaluation("fromFloat")("StringTests", "stringFromFloatTest")(Data.String("1.5")),
+        testEvaluation("toFloat")("StringTests", "stringGoodToFloatTest")(Data.Optional.Some(Data.Float(1.5))),
+        testEvaluation("toFloat")("StringTests", "stringBadToFloatTest")(Data.Optional.None(Concept.Float)),
+        testEvaluation("toInt")("StringTests", "stringToIntTest1")(Data.Optional.Some(Data.Int(25))),
+        testEvaluation("toInt")("StringTests", "stringToIntTest2")(Data.Optional.None(Concept.Int32)),
+        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),
+        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false))
       ),
       suite("References To user Defined Members")(
         testEvaluation("Reference to value")("userDefinedReferenceTests", "userDefinedReferenceValueTest")(Data.Int(5)),
@@ -834,7 +1739,90 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )),
         testEvaluation("Update - delete key")("dictionaryTests", "dictUpdateTest2")(Data.Map(
           (Data.String("Alice"), Data.Int(1))
-        ))
+        )),
+        suite("Partition")(
+          testEvaluation("partitions")("dictionaryTests", "dictPartitionTest")(
+            Data.Tuple(
+              Data.Map(
+                Data.String("Bob") -> Data.Int(1)
+              ),
+              Data.Map(
+                Data.String("Waldo") -> Data.Int(0)
+              )
+            )
+          ),
+          testEvaluation("partitions an empty dict")("dictionaryTests", "dictPartitionEmptyTest")(
+            Data.Tuple(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          ),
+          testEvaluation("with partitioning result reversed")("dictionaryTests", "dictPartitionInversePredTest")(
+            Data.Tuple(
+              Data.Map(
+                Data.String("Waldo") -> Data.Int(0)
+              ),
+              Data.Map(
+                Data.String("Bob") -> Data.Int(1)
+              )
+            )
+          ),
+          testEvaluation("partitions when all entries match pred")("dictionaryTests", "dictPartitionAllMatchTest")(
+            Data.Tuple(
+              Data.Map(
+                Data.String("Waldo") -> Data.Int(0),
+                Data.String("Bob")   -> Data.Int(1)
+              ),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          ),
+          testEvaluation("partitions when no entries match pred")("dictionaryTests", "dictPartitionNoneMatchTest")(
+            Data.Tuple(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map(
+                Data.String("Bob")   -> Data.Int(1),
+                Data.String("Waldo") -> Data.Int(0)
+              )
+            )
+          ),
+          testEvaluation("partitions with predicate based on key and value")(
+            "dictionaryTests",
+            "dictPartitionPredicateOperatesOnKeyAndValueTest"
+          )(
+            Data.Tuple(
+              Data.Map(
+                Data.String("Bob") -> Data.Int(1),
+                Data.String("Lob") -> Data.Int(1)
+              ),
+              Data.Map(
+                Data.String("Waldo") -> Data.Int(0),
+                Data.String("Rob")   -> Data.Int(0)
+              )
+            )
+          )
+        ),
+        suite("remove")(
+          testEvalMultiple("removes entries")("dictionaryTests", "dictRemoveTest", List("a", Map("a" -> 1, "b" -> 2)))(
+            Data.Map(Data.String("b") -> Data.Int(2))
+          ),
+          testEvalMultiple("no changes for missing entries")(
+            "dictionaryTests",
+            "dictRemoveTest",
+            List("q", Map("a" -> 1, "b" -> 2))
+          )(
+            Data.Map(
+              Data.String("a") -> Data.Int(1),
+              Data.String("b") -> Data.Int(2)
+            )
+          ),
+          testEvalMultiple("removes entries from empty dicts")(
+            "dictionaryTests",
+            "dictRemoveTest",
+            List("a", Data.Map.empty(Concept.String, Concept.Int32))
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )
+        )
       ),
       suite("Maybe Tests")(
         testEvaluation("Returns a Just 1")("maybeTests", "returnJustIntTest")(Data.Optional.Some(Data.Int(1))),
@@ -856,6 +1844,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("withDefault Just(True) input")("maybeTests", "maybeWithDefault", Some(true))(Data.Boolean(true)),
         testEval("withDefault Nothing input")("maybeTests", "maybeWithDefault", Data.Optional.None(Concept.Boolean))(
           Data.Boolean(false)
+        ),
+        suite("andThen")(
+          testEval("first output is Just, second is Nothing")("maybeTests", "maybeAndThen", 0)(
+            Data.Optional.None(Concept.Float)
+          ),
+          testEval("both outputs are Just")("maybeTests", "maybeAndThen", 1)(Data.Optional.Some(Data.Float(1.0))),
+          testEval("first output is Nothing")("maybeTests", "maybeAndThen", 2)(Data.Optional.None(Concept.Float))
         )
       ),
       suite("SDK Result Tests")(
@@ -939,7 +1934,75 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "resultTests",
           "resultFromMaybe",
           Data.Optional.None(Concept.Int32)
-        )(Data.Result.Err.withOkConcept(Data.String("Undefined"), Concept.Int32))
+        )(Data.Result.Err.withOkConcept(Data.String("Undefined"), Concept.Int32)),
+        suite("andThen")(
+          testEval("both results are Ok")("resultTests", "resultAndThen", 1)(
+            Data.Result.Ok(Data.Float(1.0), Concept.Result(Concept.String, Concept.Float))
+          ),
+          testEval("first result is Err")("resultTests", "resultAndThen", 2)(
+            Data.Result.Err(Data.String("invalid"), Concept.Result(Concept.String, Concept.Float))
+          ),
+          testEval("first result is Ok, second is Err")("resultTests", "resultAndThen", 0)(
+            Data.Result.Err(Data.String("undefined"), Concept.Result(Concept.String, Concept.Float))
+          )
+        )
+      ),
+      suite("SDK Comparable Tests")(
+        testEvalMultiple("LessThan")("sdkBasicsTests", "sdkLessThanTest", List((1, 2), (1, 3)))(Data.Boolean(true)),
+        testEvalMultiple("GreaterThan")("sdkBasicsTests", "sdkGreaterThanTest", List(1, 1))(Data.Boolean(false)),
+        testEvalMultiple("LessThanOrEqual")("sdkBasicsTests", "sdkLessThanOrEqualTest", List("Blue", "Blue"))(
+          Data.Boolean(true)
+        ),
+        testEvalMultiple("GreaterThanOrEqual")(
+          "sdkBasicsTests",
+          "sdkGreaterThanOrEqualTest",
+          List(List(1, 2), List(1, 2, 3))
+        )(Data.Boolean(false)),
+        testEvalMultiple("Max")("sdkBasicsTests", "sdkMaxTest", List(1, 2))(Data.Int(2)),
+        testEvalMultiple("Min")("sdkBasicsTests", "sdkMinTest", List("Blue", "Red"))(Data.String("Blue")),
+        testEvalMultiple("Min if Equal")("sdkBasicsTests", "sdkMinTest", List("Blue", "Blue"))(Data.String("Blue")),
+        testEvalMultiple("Compare Int")("sdkBasicsTests", "sdkCompareTest", List(1, 2))(Data.Order(-1)),
+        testEvalMultiple("Compare Float")("sdkBasicsTests", "sdkCompareTest", List(2.0, 1.0))(Data.Order(1)),
+        testEvalMultiple("Compare String")("sdkBasicsTests", "sdkCompareTest", List("Red", "Red"))(Data.Order(0)),
+        testEvalMultiple("Compare Char")("sdkBasicsTests", "sdkCompareTest", List('r', 'b'))(Data.Order(1)),
+        testEvalMultiple("Compare List")("sdkBasicsTests", "sdkCompareTest", List(List(1, 0), List(1, 2)))(
+          Data.Order(-1)
+        ),
+        testEvalMultiple("Compare List Different Length")(
+          "sdkBasicsTests",
+          "sdkCompareTest",
+          List(List(1, 0), List(1, 0, 0))
+        )(Data.Order(-1)),
+        testEvalMultiple("Compare List Different Length and Values")(
+          "sdkBasicsTests",
+          "sdkCompareTest",
+          List(List(1, 1), List(1, 0, 0))
+        )(Data.Order(1)),
+        testEvalMultiple("Compare List of Tuples")(
+          "sdkBasicsTests",
+          "sdkCompareTest",
+          List(
+            List((1, "Blue"), (1, "Green")),
+            List((1, "Blue"), (1, "An utter lack of any color, even black or white"))
+          )
+        )(Data.Order(1)),
+        testEvalMultiple("Compare Tuple of Lists")(
+          "sdkBasicsTests",
+          "sdkCompareTest",
+          List((List(1, 2), List("Red, Blue")), (List(1, 2), List("Red, Green")))
+        )(Data.Order(-1)),
+        testEvalMultiple("Compare Tuple")("sdkBasicsTests", "sdkCompareTest", List((0, 1, 2), (0, 2, 1)))(
+          Data.Order(-1)
+        ),
+        testEval("Input LT")("sdkBasicsTests", "sdkOrderToStringTest", Data.Order(-1))(
+          Data.String("LT")
+        ),
+        testEval("Input GT")("sdkBasicsTests", "sdkOrderToStringTest", Data.Order(1))(
+          Data.String("GT")
+        ),
+        testEval("Input EQ")("sdkBasicsTests", "sdkOrderToStringTest", Data.Order(0))(
+          Data.String("EQ")
+        )
       ),
       suite("SDK Basics Tests")(
         testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
@@ -965,6 +2028,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvalMultiple("Power")("sdkBasicsTests", "basicsPowerTest", List(4, 5))(Data.Int(1024)),
         testEvalMultiple("RemainderBy")("sdkBasicsTests", "basicsRemainderByTest", List(4, 21))(Data.Int(1)),
         testEvalMultiple("RemainderBy 2")("sdkBasicsTests", "basicsRemainderByTest", List(4, -21))(Data.Int(-1)),
+        testEvalMultiple("RemainderBy 3")("sdkBasicsTests", "basicsRemainderByTest", List(0, 4))(
+          Data.Int(0)
+        ) @@ ignore @@ TestAspect.tag("remainderBy 0 throws"),
         testEval("Sqrt")("sdkBasicsTests", "basicsSqrtTest", Data.Float(9.0))(Data.Float(3.0)),
         testEval("Identity")("sdkBasicsTests", "basicsIdentityTest", Data.Float(-5.0))(Data.Float(-5.0)),
         testEvalMultiple("Xor")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(true), Data.Boolean(true)))(
@@ -1034,17 +2100,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
         testEvaluation("LessThanChar")("sdkBasicsTests", "sdkLessThanTestChar")(
           Data.Boolean(true)
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet")
-      ),
-      suite("String Tests")(
-        testEvaluation("left")("StringTests", "stringLeftTest")(Data.String("Mu")),
-        testEvaluation("right")("StringTests", "stringRightTest")(Data.String("ly")),
-        testEvaluation("fromInt")("StringTests", "stringFromIntTest")(Data.String("25")),
-        testEvaluation("fromFloat")("StringTests", "stringFromFloatTest")(Data.String("1.5")),
-        testEvaluation("toInt")("StringTests", "stringToIntTest1")(Data.Optional.Some(Data.Int(25))),
-        testEvaluation("toInt")("StringTests", "stringToIntTest2")(Data.Optional.None(Concept.Int32)),
-        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),
-        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false))
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEvaluation("ComposeRight (>>)")("sdkBasicsTests", "sdkComposeRightTest")(Data.Int(603))
       )
     ).provideLayerShared(morphirRuntimeLayer)
 

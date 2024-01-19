@@ -91,7 +91,11 @@ object TypeConversionSpec extends MorphirBaseSpec {
     },
     test("Should be possible to convert a Concept Month type to a Morphir Month type") {
       val morphirType = ToMorphirType.summon[Concept].withAttributesOf(Concept.Month).morphirType
-      assertTrue(morphirType == sdk.Month.dateType)
+      assertTrue(morphirType == sdk.LocalDate.monthType)
+    },
+    test("Should be possible to convert a Concept DayOfWeek type to a Morphir DayOfWeek type") {
+      val morphirType = ToMorphirType.summon[Concept].withAttributesOf(Concept.DayOfWeek).morphirType
+      assertTrue(morphirType == sdk.LocalDate.dayOfWeekType)
     },
     test("Should be possible to convert a Concept Char type to a Morphir Char type") {
       val morphirType = ToMorphirType.summon[Concept].withAttributesOf(Concept.Char).morphirType

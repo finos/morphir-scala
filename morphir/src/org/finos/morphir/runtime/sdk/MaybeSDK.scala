@@ -57,9 +57,21 @@ object MaybeSDK {
         resultToMaybe(out)
       }
   }
+
   val withDefault = DynamicNativeFunction2("withDefault") {
     (ctx: NativeContext) => (default: RT, maybeRaw: RT.ConstructorResult) =>
       eitherToOption(maybeRaw).getOrElse(default)
   }
 
+  val andThen = DynamicNativeFunction2("andThen") {
+    (ctx: NativeContext) => (callback: RT.Function, maybeRaw: RT.ConstructorResult) =>
+      {
+        val out = eitherToOption(maybeRaw).flatMap { elem =>
+          val fromCallbackRaw = ctx.evaluator.handleApplyResult(Type.variable("a"), callback, elem)
+          val fromCallbackCr  = RT.coerceConstructorResult(fromCallbackRaw)
+          eitherToOption(fromCallbackCr)
+        }
+        resultToMaybe(out)
+      }
+  }
 }

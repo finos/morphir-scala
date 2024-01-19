@@ -60,11 +60,15 @@ object Data {
     val shape: Concept = Concept.LocalDate
   }
   case class Month(value: java.time.Month) extends Basic[java.time.Month] { val shape: Concept = Concept.Month }
+  case class DayOfWeek(value: java.time.DayOfWeek) extends Basic[java.time.DayOfWeek] {
+    val shape: Concept = Concept.DayOfWeek
+  }
   case class LocalTime(value: java.time.LocalTime) extends Basic[java.time.LocalTime] {
     val shape: Concept = Concept.LocalTime
   }
-  case class Char(value: scala.Char) extends Basic[scala.Char] { val shape: Concept = Concept.Char }
-  case object Unit                   extends Basic[scala.Unit] { val shape: Concept = Concept.Unit }
+  case class Char(value: scala.Char) extends Basic[scala.Char] { val shape: Concept = Concept.Char  }
+  case class Order(value: Int)       extends Basic[Int]        { val shape: Concept = Concept.Order }
+  case object Unit                   extends Basic[scala.Unit] { val shape: Concept = Concept.Unit  }
 
   // Needed for Scala 3 extension methods to work
   object Boolean   {}
@@ -76,8 +80,10 @@ object Data {
   object String    {}
   object LocalDate {}
   object Month     {}
+  object DayOfWeek {}
   object LocalTime {}
   object Char      {}
+  object Order     {}
 
   /**
    * See notes on Concept.Enum for information on how this type is modelled

@@ -3,7 +3,7 @@ import org.finos.morphir.MorphirTag
 import org.finos.morphir.naming.*
 import org.finos.morphir.*
 import org.finos.morphir.runtime.internal.*
-import org.finos.morphir.runtime.SDKValue
+import org.finos.morphir.runtime.{SDKConstructor, SDKValue}
 
 abstract class SdkModuleDescriptor(moduleName: String)(implicit packageName: PackageName)
     extends ModuleDescriptor {
@@ -20,4 +20,6 @@ abstract class SdkModuleDescriptor(moduleName: String)(implicit packageName: Pac
 
   lazy val resolvedFunctions: Map[FQName, SDKValue] =
     functions.map(adapter => (fqn(adapter.dnf.name)) -> adapter.realize).toMap
+
+  def ctors: Map[FQName, SDKConstructor] = Map.empty
 }

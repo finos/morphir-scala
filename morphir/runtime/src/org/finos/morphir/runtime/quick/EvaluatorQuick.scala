@@ -69,6 +69,9 @@ object EvaluatorQuick {
       case DecimalRef()   => Concept.Decimal
       case LocalDateRef() => Concept.LocalDate
       case LocalTimeRef() => Concept.LocalTime
+      case OrderRef()     => Concept.Order
+      case MonthRef()     => Concept.Month
+      case DayOfWeekRef() => Concept.DayOfWeek
 
       case ResultRef(errType, okType) =>
         Concept.Result(typeToConcept(errType, dists, boundTypes), typeToConcept(okType, dists, boundTypes))
@@ -80,6 +83,7 @@ object EvaluatorQuick {
         Concept.Map(typeToConcept(keyType, dists, boundTypes), typeToConcept(valType, dists, boundTypes))
       case SetRef(elementType) =>
         Concept.Set(typeToConcept(elementType, dists, boundTypes))
+
       case TT.Reference(_, typeName, typeArgs) =>
         val lookedUp    = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dists, boundTypes))
@@ -152,7 +156,12 @@ object EvaluatorQuick {
         Data.Int32(value.toInt)
       case (Concept.Int64, RTValue.Primitive.Int(value)) =>
         Data.Int64(value.toLong)
-
+      case (Concept.Order, RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Basics:GT"), List())) =>
+        Data.Order(1)
+      case (Concept.Order, RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Basics:LT"), List())) =>
+        Data.Order(-1)
+      case (Concept.Order, RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Basics:EQ"), List())) =>
+        Data.Order(0)
       case (Concept.String, RTValue.Primitive.String(value)) =>
         Data.String(value)
       case (Concept.Boolean, RTValue.Primitive.Boolean(value)) =>
@@ -163,6 +172,10 @@ object EvaluatorQuick {
         Data.LocalDate(value)
       case (Concept.LocalTime, RTValue.LocalTime(value: java.time.LocalTime)) =>
         Data.LocalTime(value)
+      case (Concept.Month, RTValue.Month(value: java.time.Month)) =>
+        Data.Month(value)
+      case (Concept.DayOfWeek, RTValue.DayOfWeek(value: java.time.DayOfWeek)) =>
+        Data.DayOfWeek(value)
 
       case (Concept.Float, RTValue.Primitive.Float(value)) =>
         Data.Float(value.toDouble)
@@ -180,22 +193,25 @@ object EvaluatorQuick {
       case (Concept.Set(elementConcept), RTValue.Set(elements)) =>
         val inners = elements.map(element => resultAndConceptToData(element, elementConcept))
         Data.Set(inners, elementConcept)
-      case (Concept.Optional(elementShape), RTValue.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), List())) =>
+      case (
+            Concept.Optional(elementShape),
+            RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Maybe:Nothing"), List())
+          ) =>
         Data.Optional.None(elementShape)
       case (
             shape @ Concept.Result(_, okType),
-            RTValue.ConstructorResult(FQString("Morphir.SDK:Result:ok"), List(value))
+            RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Ok"), List(value))
           ) =>
         Data.Result.Ok(resultAndConceptToData(value, okType), shape)
       case (
             shape @ Concept.Result(errType, _),
-            RTValue.ConstructorResult(FQString("Morphir.SDK:Result:err"), List(value))
+            RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Err"), List(value))
           ) =>
         Data.Result.Err(resultAndConceptToData(value, errType), shape)
       case (
             Concept.Optional(elementShape),
             RTValue.ConstructorResult(
-              FQString("Morphir.SDK:Maybe:just"),
+              FQStringTitleCase("Morphir.SDK:Maybe:Just"),
               List(value)
             )
           ) => Data.Optional.Some(resultAndConceptToData(value, elementShape))

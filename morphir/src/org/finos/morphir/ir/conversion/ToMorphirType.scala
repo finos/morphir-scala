@@ -35,7 +35,8 @@ object ToMorphirType {
   implicit val decimalUType: ToMorphirUType[scala.BigDecimal]      = toUTypeConverter(sdk.Decimal.decimalType)
   implicit val localDateUType: ToMorphirUType[java.time.LocalDate] = toUTypeConverter(sdk.LocalDate.localDateType)
   implicit val localTimeUType: ToMorphirUType[java.time.LocalTime] = toUTypeConverter(sdk.LocalTime.localTimeType)
-  implicit val monthUType: ToMorphirUType[java.time.Month]         = toUTypeConverter(sdk.Month.dateType)
+  implicit val monthUType: ToMorphirUType[java.time.Month]         = toUTypeConverter(sdk.LocalDate.monthType)
+  implicit val dayOfWeekUType: ToMorphirUType[java.time.DayOfWeek] = toUTypeConverter(sdk.LocalDate.dayOfWeekType)
   implicit val charUType: ToMorphirUType[scala.Char]               = toUTypeConverter(sdk.Char.charType)
   implicit val bigIntUType: ToMorphirUType[scala.BigInt]           = toUTypeConverter(sdk.Basics.intType)
 
@@ -77,8 +78,10 @@ object ToMorphirType {
       case Concept.String                  => stringUType.as
       case Concept.LocalDate               => localDateUType.as
       case Concept.Month                   => monthUType.as
+      case Concept.DayOfWeek               => dayOfWeekUType.as
       case Concept.LocalTime               => localTimeUType.as
       case Concept.Char                    => charUType.as
+      case Concept.Order                   => toUTypeConverter(sdk.Basics.orderType)
       case Concept.Unit                    => unitUType.as
       case Concept.Alias(name, _)          => toUTypeConverter(T.reference(name))
       case Concept.Enum(name, _)           => toUTypeConverter(T.reference(name))

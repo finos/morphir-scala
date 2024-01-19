@@ -1,8 +1,9 @@
 module Morphir.Examples.App.SdkBasicsTests exposing (..)
 
 import Morphir.Examples.App.TestUtils exposing (..)
+import Morphir.SDK.Basics exposing (integerDivide, power)
 import Morphir.SDK.Int exposing (Int64)
-import Morphir.SDK.Basics exposing (power, integerDivide)
+
 
 {-| Test: SdkBasics/add
 Expected = 3
@@ -1502,6 +1503,62 @@ sdkMinTestList ctx =
 
 
 -----
+{-| Test: SdkBasics/orderToString
+-}
+sdkOrderToStringTest : Order -> String
+sdkOrderToStringTest a =
+    case a of
+        LT ->
+            "LT"
+
+        EQ ->
+            "EQ"
+
+        GT ->
+            "GT"
+
+
+sdkLessThanTest : comparable -> comparable -> Bool
+sdkLessThanTest a b =
+    a < b
+
+{-| Test: SdkBasics/greaterThan
+-}
+sdkGreaterThanTest : comparable -> comparable -> Bool
+sdkGreaterThanTest a b =
+    a > b
+
+{-| Test: SdkBasics/lessThanOrEqual
+-}
+sdkLessThanOrEqualTest : comparable -> comparable -> Bool
+sdkLessThanOrEqualTest a b =
+    a <= b
+
+{-| Test: SdkBasics/greaterThanOrEqual
+-}
+sdkGreaterThanOrEqualTest : comparable -> comparable -> Bool
+sdkGreaterThanOrEqualTest a b =
+    a >= b
+
+{-| Test: SdkBasics/max
+-}
+sdkMaxTest : comparable -> comparable -> comparable
+sdkMaxTest a b =
+    max a b
+
+{-| Test: SdkBasics/min
+-}
+sdkMinTest : comparable -> comparable -> comparable
+sdkMinTest a b =
+    min a b
+
+{-| Test: SdkBasics/compare
+-}
+sdkCompareTest : comparable -> comparable -> Order
+sdkCompareTest a b =
+    compare a b
+    
+-----
 
 
 {-| Test: SdkBasics/not
@@ -1827,19 +1884,29 @@ sdkComposeLeftTest ctx =
 
 
 {-| Test: SdkBasics/composeRight
-Expected: True
+Expected: 603
 -}
-sdkComposeRightTest : TestContext -> Bool
+sdkComposeRightTest : TestContext -> Int
 sdkComposeRightTest ctx =
     test ctx <|
         let
             f x y z =
                 x >> y >> z
 
+            add5 x =
+                x + 5
+
+            mul100 x =
+                x * 100
+
+            add3 x =
+                x + 3
+
             g =
-                f not not not
+                f add5 mul100 add3
         in
-        g False
+        g 1
+
 
 {-| Test: SdkBasics/basicsCeilingTest
 -}
@@ -1847,23 +1914,27 @@ basicsCeilingTest : Float -> Int
 basicsCeilingTest x =
     ceiling x
 
+
 {-| Test: SdkBasics/basicsFloorTest
 -}
 basicsFloorTest : Float -> Int
 basicsFloorTest x =
     floor x
 
+
 {-| Test: SdkBasics/basicsIntegerDivideTest
 -}
 basicsIntegerDivideTest : Int -> Int -> Int
 basicsIntegerDivideTest x y =
     integerDivide x y
-    
+
+
 {-| Test: SdkBasics/basicsAbsTest
 -}
 basicsAbsTest : Float -> Float
 basicsAbsTest x =
     abs x
+
 
 {-| Test: SdkBasics/basicsAlwaysTest
 -}
@@ -1875,11 +1946,13 @@ basicsAlwaysTest x =
     in
     f [ 4 ]
 
+
 {-| Test: SdkBasics/basicsClampTest
 -}
 basicsClampTest : a -> a -> a -> a
 basicsClampTest min max x =
     clamp min max x
+
 
 {-| Test: SdkBasics/basicsIdentityTest
 -}
@@ -1887,11 +1960,13 @@ basicsIdentityTest : a -> a
 basicsIdentityTest x =
     x
 
+
 {-| Test: SdkBasics/basicsPowerTest
 -}
 basicsPowerTest : a -> a -> a
 basicsPowerTest n x =
     power n x
+
 
 {-| Test: SdkBasics/basicsRemainderByTest
 -}
@@ -1899,17 +1974,20 @@ basicsRemainderByTest : Int -> Int -> Int
 basicsRemainderByTest x y =
     remainderBy x y
 
+
 {-| Test: SdkBasics/basicsSqrtTest
 -}
 basicsSqrtTest : Float -> Float
 basicsSqrtTest x =
     sqrt x
 
+
 {-| Test: SdkBasics/basicsTruncateTest
 -}
 basicsTruncateTest : Float -> Int
 basicsTruncateTest x =
     truncate x
+
 
 {-| Test: SdkBasics/basicsXorTest
 -}

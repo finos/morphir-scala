@@ -136,10 +136,9 @@ object ValueConversionSpec extends MorphirBaseSpec {
       val morphirLocalDate = toValue(inputValue)
       assertTrue(morphirLocalDate == V.applyInferType(
         sdk.LocalDate.localDateType,
-        V.reference(FQName.fromString("Morphir.SDK:LocalDate:fromParts")),
+        V.reference(FQName.fromString("Morphir.SDK:LocalDate:fromOrdinalDate")),
         V.intTyped(2013),
-        V.intTyped(9),
-        V.intTyped(3)
+        V.intTyped(246)
       ))
     },
     test("Should be possible to convert a Data LocalTime to a Morphir LocalTime") {
@@ -271,7 +270,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
           shape,
           V.reference(FQName.fromString("Morphir.SDK:Set:fromList")),
           V.list(
-            sdk.Set.setType(sdk.String.stringType),
+            sdk.List.listType(sdk.String.stringType),
             zio.Chunk()
           )
         )
@@ -286,7 +285,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
           shape,
           V.reference(FQName.fromString("Morphir.SDK:Set:fromList")),
           V.list(
-            shape,
+            sdk.List.listType(sdk.Basics.intType),
             zio.Chunk(V.intTyped(3), V.intTyped(71))
           )
         )

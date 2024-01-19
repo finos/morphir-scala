@@ -78,5 +78,5 @@ object GlobalDefs {
   def empty: GlobalDefs =
     GlobalDefs(Map(), Map())
   def native: GlobalDefs =
-    GlobalDefs(Native.native ++ NativeSDK.resolvedFunctions, Native.nativeCtors)
+    GlobalDefs(Native.native ++ NativeSDK.resolvedFunctions, Native.nativeCtors ++ NativeSDK.ctors)
 }
