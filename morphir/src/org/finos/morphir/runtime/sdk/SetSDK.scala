@@ -9,6 +9,8 @@ import scala.collection.mutable
 
 object SetSDK {
 
+  val empty: SDKValue = SDKValue.SDKNativeValue(RTValue.Set(mutable.LinkedHashSet.empty))
+
   val foldr = DynamicNativeFunction3("foldr") {
     (context: NativeContext) => (f: RTValue.Function, zero: RTValue, set: RTValue.Set) =>
       // TODO: change foldr to sort before folding.  Currently blocked on comparable support
@@ -37,6 +39,11 @@ object SetSDK {
   val intersect = DynamicNativeFunction2("intersect") {
     (context: NativeContext) => (setArg1: RTValue.Set, setArg2: RTValue.Set) =>
       RTValue.Set(setArg1.elements.intersect(setArg2.elements)) // intersect doesn't modify the contents of either set
+  }
+
+  val diff = DynamicNativeFunction2("diff") {
+    (context: NativeContext) => (setArg1: RTValue.Set, setArg2: RTValue.Set) =>
+      RTValue.Set(setArg1.elements.diff(setArg2.elements)) // diff doesn't modify the contents of either set
   }
 
   val isEmpty = DynamicNativeFunction1("isEmpty") {
