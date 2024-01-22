@@ -20,6 +20,15 @@ object SetSDK {
       }
   }
 
+  val filter = DynamicNativeFunction2("filter") {
+    (context: NativeContext) => (f: RTValue.Function, set: RTValue.Set) =>
+      val result = set.elements.filter { elem =>
+        val filterOutput = context.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
+        RTValue.coerceBoolean(filterOutput).value
+      }
+      RTValue.Set(result)
+  }
+
   val insert = DynamicNativeFunction2("insert") {
     (context: NativeContext) => (elem: RTValue, set: RTValue.Set) =>
       val newUnderlying = set.elements.clone() // copy the underlying mutable set to avoid modifying the original set
