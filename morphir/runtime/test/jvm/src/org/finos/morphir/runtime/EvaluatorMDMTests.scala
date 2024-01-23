@@ -1195,8 +1195,27 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
               Data.Int(2),
               Data.Int(3)
             )
-          ) @@ ignore @@ tag("foldr does not match morphir-elm iteration order"),
-          testEval("folds empty lists")("setTests", "setFoldrTest", Data.Set.empty(Concept.Int32))(
+          ),
+          testEval("folds empty sets")("setTests", "setFoldrTest", Data.Set.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("foldl")(
+          testEval("folds left")("setTests", "setFoldlTest", Set(1, 2, 3))(
+            Data.List(
+              Data.Int(3),
+              Data.Int(2),
+              Data.Int(1)
+            )
+          ),
+          testEval("iterates in asc sort order, not insertion order")("setTests", "setFoldlTest", Set(2, 1, 3))(
+            Data.List(
+              Data.Int(3),
+              Data.Int(2),
+              Data.Int(1)
+            )
+          ),
+          testEval("folds empty sets")("setTests", "setFoldlTest", Data.Set.empty(Concept.Int32))(
             Data.List.empty(Concept.Int32)
           )
         ),
