@@ -6,7 +6,6 @@ import org.finos.morphir.runtime.internal.*
 import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.RTValue.coerceComparable
 
-import scala.collection.immutable.SortedSet
 import scala.collection.mutable
 
 object SetSDK {
@@ -26,7 +25,7 @@ object SetSDK {
     (context: NativeContext) => (f: RTValue.Function, zero: RTValue, set: RTValue.Set) =>
       val sortedSet = sortSet(set)
       // Elm foldl iterates on sort order, Scala iterates on insertion order.  Sort before folding.
-      sortedSet.foldLeft(zero) { (a, acc) =>
+      sortedSet.foldLeft(zero) { (acc, a) =>
         context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, acc)
       }
   }

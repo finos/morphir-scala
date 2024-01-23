@@ -189,6 +189,8 @@ object NativeSDK {
       case object Set extends SdkModuleDescriptor(moduleName = "Set") {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun3(SetSDK.foldr),
+          NativeFunctionAdapter.Fun3(SetSDK.foldl),
+          NativeFunctionAdapter.Fun2(SetSDK.filter),
           NativeFunctionAdapter.Fun2(SetSDK.insert),
           NativeFunctionAdapter.Fun1(SetSDK.singleton),
           NativeFunctionAdapter.Fun2(SetSDK.union),
