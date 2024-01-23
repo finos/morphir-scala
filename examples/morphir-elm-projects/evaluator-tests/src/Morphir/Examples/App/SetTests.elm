@@ -59,6 +59,26 @@ setFoldrTest set =
     Set.foldr (\x acc -> x :: acc) [] set
 
 
+{-| Test: Set/foldl
+expected(Set(1, 2, 3)) = [3, 2, 1]
+expected(Set(2, 3, 1)) = [3, 2, 1] // Set.foldl iterates in order from lowest to highest
+expected(Set()) = []
+-}
+setFoldlTest : Set Int -> List Int
+setFoldlTest set =
+    Set.foldl (\x acc -> x :: acc) [] set
+
+
+{-| Test: Set/filter
+expected(Set(1, 2, 3)) = [1, 2, 3]
+expected(Set(2, 3, 1)) = [1, 2, 3]
+expected(Set()) = []
+-}
+setFilterTest : Set Int -> Set Int
+setFilterTest set =
+    Set.filter (\x -> x > 0) set
+
+
 {-| Test: Set/insert
 expected(1, Set()) = Set(1)
 expected(1, Set(2)) = Set(1, 2)
