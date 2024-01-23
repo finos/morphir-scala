@@ -1219,6 +1219,18 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.List.empty(Concept.Int32)
           )
         ),
+        suite("filter")(
+          testEval("filter")("setTests", "setFilterTest", Set(-1, 1, 3, -100, 2))(
+            Data.Set(
+              Data.Int(1),
+              Data.Int(2),
+              Data.Int(3)
+            )
+          ),
+          testEval("filters empty sets")("setTests", "setFilterTest", Data.Set.empty(Concept.Int32))(
+            Data.Set.empty(Concept.Int32)
+          )
+        ),
         suite("insert")(
           testEvalMultiple("inserts into a set")("setTests", "setInsertTest", List(2, Set(1)))(
             Data.Set(Data.Int(1), Data.Int(2))
