@@ -1503,6 +1503,8 @@ sdkMinTestList ctx =
 
 
 -----
+
+
 {-| Test: SdkBasics/orderToString
 -}
 sdkOrderToStringTest : Order -> String
@@ -1522,11 +1524,13 @@ sdkLessThanTest : comparable -> comparable -> Bool
 sdkLessThanTest a b =
     a < b
 
+
 {-| Test: SdkBasics/greaterThan
 -}
 sdkGreaterThanTest : comparable -> comparable -> Bool
 sdkGreaterThanTest a b =
     a > b
+
 
 {-| Test: SdkBasics/lessThanOrEqual
 -}
@@ -1534,11 +1538,13 @@ sdkLessThanOrEqualTest : comparable -> comparable -> Bool
 sdkLessThanOrEqualTest a b =
     a <= b
 
+
 {-| Test: SdkBasics/greaterThanOrEqual
 -}
 sdkGreaterThanOrEqualTest : comparable -> comparable -> Bool
 sdkGreaterThanOrEqualTest a b =
     a >= b
+
 
 {-| Test: SdkBasics/max
 -}
@@ -1546,18 +1552,22 @@ sdkMaxTest : comparable -> comparable -> comparable
 sdkMaxTest a b =
     max a b
 
+
 {-| Test: SdkBasics/min
 -}
 sdkMinTest : comparable -> comparable -> comparable
 sdkMinTest a b =
     min a b
 
+
 {-| Test: SdkBasics/compare
 -}
 sdkCompareTest : comparable -> comparable -> Order
 sdkCompareTest a b =
     compare a b
-    
+
+
+
 -----
 
 
