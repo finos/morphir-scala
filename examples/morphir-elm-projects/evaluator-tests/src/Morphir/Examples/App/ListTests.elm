@@ -89,6 +89,18 @@ listAnyFalseTest ctx =
     test ctx (any (\x -> modBy 2 x == 0) [ 1, 3, 5 ])
 
 
+
+{-| Test: List/Max - Some
+expected = Some(3)
+-}
+listMaximumSomeTest : TestContext -> Maybe Int
+listMaximumSomeTest ctx =
+    test ctx <|
+                     let
+                         list = [-1, 3, 0, -2, 2, 3]
+                     in maximum list
+
+
 {-| Test: List/Partition
 expected = [[1,3,5], [2,4]]
 -}
