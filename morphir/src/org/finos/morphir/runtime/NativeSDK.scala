@@ -104,6 +104,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.filter),
           NativeFunctionAdapter.Fun2(ListSDK.map),
           NativeFunctionAdapter.Fun2(ListSDK.any),
+          NativeFunctionAdapter.Fun1(ListSDK.maximum),
+          NativeFunctionAdapter.Fun1(ListSDK.minimum),
           NativeFunctionAdapter.Fun2(ListSDK.partition),
           NativeFunctionAdapter.Fun3(ListSDK.foldl),
           NativeFunctionAdapter.Fun2(ListSDK.append),

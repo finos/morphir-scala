@@ -1,9 +1,11 @@
 package org.finos.morphir.runtime.sdk
 
 import org.finos.morphir.ir.Type
-import org.finos.morphir.runtime._
-import org.finos.morphir.runtime.internal._
+import org.finos.morphir.runtime.*
+import org.finos.morphir.runtime.internal.*
 import org.finos.morphir.runtime.RTValue
+import org.finos.morphir.runtime.RTValue.Comparable.orderToInt
+import org.finos.morphir.runtime.RTValue.coerceComparable
 
 object ListSDK {
 
@@ -67,6 +69,28 @@ object ListSDK {
             }
           RTValue.Primitive.Boolean(out)
         }
+  }
+
+  val maximum = DynamicNativeFunction1("maximum") {
+    (ctx: NativeContext) => (list: RTValue.List) =>
+      {
+        val result = list.value.reduceOption((x, y) =>
+          if (RTValue.Comparable.compareOrThrow(coerceComparable(x), coerceComparable(y)) > 0) x
+          else y
+        )
+        MaybeSDK.resultToMaybe(result)
+      }
+  }
+
+  val minimum = DynamicNativeFunction1("minimum") {
+    (ctx: NativeContext) => (list: RTValue.List) =>
+      {
+        val result = list.value.reduceOption((x, y) =>
+          if (RTValue.Comparable.compareOrThrow(coerceComparable(x), coerceComparable(y)) < 0) x
+          else y
+        )
+        MaybeSDK.resultToMaybe(result)
+      }
   }
 
   val partition = DynamicNativeFunction2("partition") {
