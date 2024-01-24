@@ -101,6 +101,18 @@ listMaximumSomeTest ctx =
                      in maximum list
 
 
+
+{-| Test: List/Max - None
+expected = None
+-}
+listMaximumNoneTest : TestContext -> Maybe Int
+listMaximumNoneTest ctx =
+    test ctx <|
+                     let
+                         list = []
+                     in maximum list
+
+
 {-| Test: List/Partition
 expected = [[1,3,5], [2,4]]
 -}

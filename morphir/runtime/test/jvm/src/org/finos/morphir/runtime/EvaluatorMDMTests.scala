@@ -528,6 +528,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         suite("maximum")(
           testEvaluation("maximum returns value")("listTests", "listMaximumSomeTest")(
             Data.Optional.Some(Data.Int(3))
+          ),
+          testEvaluation("maximum returns none")("listTests", "listMaximumNoneTest")(
+            Data.Optional.None(Concept.Int32)
           )
         ),
         testEvaluation("List Partition")("listTests", "listPartitionTest")(
