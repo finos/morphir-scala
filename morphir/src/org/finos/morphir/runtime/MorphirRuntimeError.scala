@@ -37,7 +37,10 @@ object MorphirRuntimeError {
   }
   final case class FailedCoercion(message: String) extends EvaluationError
 
-  final case class IllegalValue(message: String) extends EvaluationError
+  final case class IllegalValue(cause: String, context: String = "") extends EvaluationError {
+    def message                         = s"$cause . $context"
+    def withContext(newContext: String) = this.copy(context = context + "\n" + newContext)
+  }
 
   final case class WrongNumberOfArguments(function: RTValue.NativeFunctionResult, applied: Int)
       extends EvaluationError {
@@ -90,7 +93,7 @@ object MorphirRuntimeError {
   }
   object LookupError {
     case class MissingPackage(pkgName: PackageName, context: String = "") extends LookupError {
-      def message                         = s"Package ${pkgName.toString} not found"
+      def message                         = s"Package ${pkgName.toString} not found. $context"
       def withContext(newContext: String) = this.copy(context = context + "\n" + newContext)
     }
     case class MissingModule(pkgName: PackageName, modName: ModuleName, context: String = "")

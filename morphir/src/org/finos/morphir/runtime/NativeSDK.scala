@@ -4,7 +4,6 @@ import org.finos.morphir.extensibility.SdkModuleDescriptor
 import org.finos.morphir.naming._
 import org.finos.morphir.runtime.internal.NativeFunctionAdapter
 import org.finos.morphir.runtime.sdk._
-import org.finos.morphir.runtime.sdk.ListSDK
 import org.finos.morphir.{Hints, ModuleDescriptor, MorphirTag, naming}
 
 object NativeSDK {
@@ -48,6 +47,13 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(BasicsSDK.truncate),
           NativeFunctionAdapter.Fun2(BasicsSDK.integerDivide),
           NativeFunctionAdapter.Fun2(BasicsSDK.always),
+          NativeFunctionAdapter.Fun2(BasicsSDK.lessThan),
+          NativeFunctionAdapter.Fun2(BasicsSDK.greaterThan),
+          NativeFunctionAdapter.Fun2(BasicsSDK.greaterThanOrEqual),
+          NativeFunctionAdapter.Fun2(BasicsSDK.lessThanOrEqual),
+          NativeFunctionAdapter.Fun2(BasicsSDK.min),
+          NativeFunctionAdapter.Fun2(BasicsSDK.max),
+          NativeFunctionAdapter.Fun2(BasicsSDK.compare),
           NativeFunctionAdapter.Fun2(BasicsSDK.xor),
           NativeFunctionAdapter.Fun1(BasicsSDK.identity),
           NativeFunctionAdapter.Fun3(BasicsSDK.clamp),
@@ -56,11 +62,36 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(BasicsSDK.modBy),
           NativeFunctionAdapter.Fun2(BasicsSDK.remainderBy),
           NativeFunctionAdapter.Fun1(BasicsSDK.sqrt),
-          NativeFunctionAdapter.Fun2(BasicsSDK.greaterThan),
-          NativeFunctionAdapter.Fun2(BasicsSDK.greaterThanOrEqual),
-          NativeFunctionAdapter.Fun2(BasicsSDK.lessThan),
-          NativeFunctionAdapter.Fun2(BasicsSDK.lessThanOrEqual),
           NativeFunctionAdapter.Fun3(BasicsSDK.composeRight)
+        )
+
+        private val enumSDKConstructor = SDKConstructor(scala.List())
+
+        override val ctors: Map[FQName, SDKConstructor] =
+          RTValue.Order.allFqns.map(fqn => fqn -> enumSDKConstructor).toMap
+      }
+
+      case object Decimal extends SdkModuleDescriptor("Decimal") {
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun1(DecimalSDK.abs),
+          NativeFunctionAdapter.Fun2(DecimalSDK.add),
+          NativeFunctionAdapter.Fun1(DecimalSDK.bps),
+          NativeFunctionAdapter.Fun2(DecimalSDK.compare),
+          NativeFunctionAdapter.Fun2(DecimalSDK.div),
+          NativeFunctionAdapter.Fun3(DecimalSDK.divWithDefault),
+          NativeFunctionAdapter.Fun2(DecimalSDK.eq),
+          NativeFunctionAdapter.Fun1(DecimalSDK.fromInt),
+          NativeFunctionAdapter.Fun1(DecimalSDK.fromString),
+          NativeFunctionAdapter.Fun2(DecimalSDK.gt),
+          NativeFunctionAdapter.Fun2(DecimalSDK.gte),
+          NativeFunctionAdapter.Fun2(DecimalSDK.lt),
+          NativeFunctionAdapter.Fun2(DecimalSDK.lte),
+          NativeFunctionAdapter.Fun2(DecimalSDK.mul),
+          NativeFunctionAdapter.Fun1(DecimalSDK.negate),
+          NativeFunctionAdapter.Fun2(DecimalSDK.neq),
+          NativeFunctionAdapter.Fun1(DecimalSDK.round),
+          NativeFunctionAdapter.Fun2(DecimalSDK.sub),
+          NativeFunctionAdapter.Fun1(DecimalSDK.truncate)
         )
       }
 
@@ -87,7 +118,9 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.member),
           NativeFunctionAdapter.Fun2(ListSDK.range),
           NativeFunctionAdapter.Fun2(ListSDK.repeat),
-          NativeFunctionAdapter.Fun1(ListSDK.reverse)
+          NativeFunctionAdapter.Fun1(ListSDK.reverse),
+          NativeFunctionAdapter.Fun1(ListSDK.tail),
+          NativeFunctionAdapter.Fun2(ListSDK.take)
         )
       }
 
@@ -152,6 +185,22 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(DictSDK.remove)
         )
       }
+
+      case object Set extends SdkModuleDescriptor(moduleName = "Set") {
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun3(SetSDK.foldr),
+          NativeFunctionAdapter.Fun3(SetSDK.foldl),
+          NativeFunctionAdapter.Fun2(SetSDK.filter),
+          NativeFunctionAdapter.Fun2(SetSDK.insert),
+          NativeFunctionAdapter.Fun1(SetSDK.singleton),
+          NativeFunctionAdapter.Fun2(SetSDK.union),
+          NativeFunctionAdapter.Fun2(SetSDK.intersect),
+          NativeFunctionAdapter.Fun1(SetSDK.isEmpty),
+          NativeFunctionAdapter.Fun2(SetSDK.map),
+          NativeFunctionAdapter.Fun2(SetSDK.partition),
+          NativeFunctionAdapter.Fun2(SetSDK.remove)
+        )
+      }
     }
   }
 
@@ -159,12 +208,14 @@ object NativeSDK {
     import Morphir.SDK._
     Seq(
       Basics,
+      Decimal,
       Dict,
       List,
       LocalDate,
       LocalTime,
       Maybe,
       Result,
+      Set,
       String
     )
   }

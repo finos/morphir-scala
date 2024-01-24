@@ -80,7 +80,7 @@ object Deps {
       }
 
       case object magnolia_2 {
-        val magnolia = ivy"com.softwaremill.magnolia1_2::magnolia::1.1.6"
+        val magnolia = ivy"com.softwaremill.magnolia1_2::magnolia::1.1.8"
       }
 
       case object magnolia_3 {
@@ -221,24 +221,24 @@ object Versions {
   val munit                      = "1.0.0-M10"
   val `munit-zio`                = "0.1.1"
   val mainargs                   = "0.5.0"
-  val `os-lib`                   = "0.9.2"
+  val `os-lib`                   = "0.9.3"
   val paiges                     = "0.4.3"
   val `scala-java-time`          = "2.5.0"
   val `scala-native-crypto`      = "0.0.4"
-  val `scalac-compat-annotation` = "0.1.3"
+  val `scalac-compat-annotation` = "0.1.4"
   val scribe                     = "3.11.9"
   val silencer                   = "1.4.2"
   val spire                      = "0.18.0"
   val `tasty-query`              = "0.5.6"
   val upickle                    = "3.0.0-M1"
-  val zio                        = "2.0.19"
+  val zio                        = "2.0.21"
   val `zio-cli`                  = "0.5.0"
-  val `zio-config`               = "4.0.0-RC16"
+  val `zio-config`               = "4.0.1"
   val `zio-interop-cats`         = "23.1.0.0"
   val `zio-json`                 = "0.6.2"
   val `zio-nio`                  = "2.0.2"
   val `zio-parser`               = "0.1.9"
-  val `zio-prelude`              = "1.0.0-RC21"
+  val `zio-prelude`              = "1.0.0-RC22"
   val `zio-process`              = "0.7.2"
   val `zio-schema`               = "0.4.12"
 }

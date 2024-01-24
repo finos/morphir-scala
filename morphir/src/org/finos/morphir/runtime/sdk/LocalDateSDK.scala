@@ -1,6 +1,7 @@
 package org.finos.morphir.runtime.sdk
 
 import org.finos.morphir.naming.FQName
+import org.finos.morphir.runtime.ErrorUtils.tryOption
 import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.internal.*
 
@@ -15,10 +16,6 @@ import java.time.format.DateTimeFormatter as JDateTimeFormatter
 import scala.util.control.NonFatal
 
 object LocalDateSDK {
-  private def tryOption[A](block: => A): Option[A] =
-    try Some(block)
-    catch { case NonFatal(_) => None }
-
   private def update(rtLd: RTValue.LocalDate)(f: JLocalDate => JLocalDate): RTValue.LocalDate =
     rtLd.copy(value = f(rtLd.value))
 

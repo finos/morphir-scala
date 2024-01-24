@@ -6,6 +6,7 @@ import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.runtime.internal._
 import org.finos.morphir.runtime.RTValue
+import org.finos.morphir.runtime.RTValue.Comparable
 import org.finos.morphir.runtime.MorphirRuntimeError.IllegalValue
 
 object BasicsSDK {
@@ -120,25 +121,38 @@ object BasicsSDK {
       }
   }.asNative2
 
-  val greaterThan = NumericFunction2("greaterThan") {
-    (h: NumericHelpers[Any], _) => (a: AnyNum, b: AnyNum) =>
-      Primitive.Boolean(h.numericHelper.gt(a, b))
-  }.asNative2
+  val lessThan = DynamicNativeFunction2("lessThan") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      Primitive.Boolean(RTValue.Comparable.compareOrThrow(a, b) < 0)
+  }
 
-  val greaterThanOrEqual = NumericFunction2("greaterThanOrEqual") {
-    (h: NumericHelpers[Any], _) => (a: AnyNum, b: AnyNum) =>
-      Primitive.Boolean(h.numericHelper.gteq(a, b))
-  }.asNative2
+  val greaterThan = DynamicNativeFunction2("greaterThan") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      Primitive.Boolean(RTValue.Comparable.compareOrThrow(a, b) > 0)
+  }
+  val lessThanOrEqual = DynamicNativeFunction2("lessThanOrEqual") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      Primitive.Boolean(RTValue.Comparable.compareOrThrow(a, b) <= 0)
+  }
+  val greaterThanOrEqual = DynamicNativeFunction2("greaterThanOrEqual") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      Primitive.Boolean(RTValue.Comparable.compareOrThrow(a, b) >= 0)
+  }
+  val max = DynamicNativeFunction2("max") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      if (RTValue.Comparable.compareOrThrow(a, b) >= 0) a else b
+  }
+  val min = DynamicNativeFunction2("min") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      if (RTValue.Comparable.compareOrThrow(a, b) <= 0) a else b
+  }
 
-  val lessThan = NumericFunction2("lessThan") {
-    (h: NumericHelpers[Any], _) => (a: AnyNum, b: AnyNum) =>
-      Primitive.Boolean(h.numericHelper.lt(a, b))
-  }.asNative2
+  val compare = DynamicNativeFunction2("compare") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      val asInt = RTValue.Comparable.compareOrThrow(a, b)
+      RTValue.Comparable.intToOrder(asInt)
 
-  val lessThanOrEqual = NumericFunction2("lessThanOrEqual") {
-    (h: NumericHelpers[Any], _) => (a: AnyNum, b: AnyNum) =>
-      Primitive.Boolean(h.numericHelper.lteq(a, b))
-  }.asNative2
+  }
 
   val composeRight = DynamicNativeFunction3("composeRight") {
     (ctx: NativeContext) => (f1: RTValue.Function, f2: RTValue.Function, arg: RTValue) =>

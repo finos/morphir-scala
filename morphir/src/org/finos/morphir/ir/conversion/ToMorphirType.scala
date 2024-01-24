@@ -81,6 +81,7 @@ object ToMorphirType {
       case Concept.DayOfWeek               => dayOfWeekUType.as
       case Concept.LocalTime               => localTimeUType.as
       case Concept.Char                    => charUType.as
+      case Concept.Order                   => toUTypeConverter(sdk.Basics.orderType)
       case Concept.Unit                    => unitUType.as
       case Concept.Alias(name, _)          => toUTypeConverter(T.reference(name))
       case Concept.Enum(name, _)           => toUTypeConverter(T.reference(name))

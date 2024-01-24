@@ -15,21 +15,23 @@ object Extractors {
   object FQString {
     def unapply(fqName: FQName): Option[String] = Some(fqName.toString())
   }
+  object FQStringTitleCase {
+    def unapply(fqName: FQName): Option[String] = Some(fqName.toStringTitleCase)
+  }
   object Types {
     object ListRef {
       def unapply(tpe: UType): Option[UType] =
         tpe match {
           // TODO: The SDK specification should make these names available, without requiring a type argument
-          case Type.Reference(_, FQString("Morphir.SDK:List:list"), List(elementType)) =>
+          case Type.Reference(_, FQStringTitleCase("Morphir.SDK:List:List"), List(elementType)) =>
             Some(elementType)
           case _ => None
         }
     }
-
     object SetRef {
       def unapply(tpe: UType): Option[UType] =
         tpe match {
-          case Type.Reference(_, FQString("Morphir.SDK:Set:set"), List(elementType)) =>
+          case Type.Reference(_, FQStringTitleCase("Morphir.SDK:Set:Set"), List(elementType)) =>
             Some(elementType)
           case _ => None
         }
@@ -37,7 +39,7 @@ object Extractors {
     object MaybeRef {
       def unapply(tpe: UType): Option[UType] =
         tpe match {
-          case Type.Reference(_, FQString("Morphir.SDK:Maybe:maybe"), List(elementType)) =>
+          case Type.Reference(_, FQStringTitleCase("Morphir.SDK:Maybe:Maybe"), List(elementType)) =>
             Some(elementType)
           case _ => None
         }
@@ -46,7 +48,7 @@ object Extractors {
     object ResultRef {
       def unapply(tpe: UType): Option[(UType, UType)] =
         tpe match {
-          case Type.Reference(_, FQString("Morphir.SDK:Result:result"), List(keyType, valType)) =>
+          case Type.Reference(_, FQStringTitleCase("Morphir.SDK:Result:Result"), List(keyType, valType)) =>
             Some((keyType, valType))
           case _ => None
         }
@@ -54,7 +56,7 @@ object Extractors {
     object DictRef {
       def unapply(tpe: UType): Option[(UType, UType)] =
         tpe match {
-          case Type.Reference(_, FQString("Morphir.SDK:Dict:dict"), List(keyType, valType)) =>
+          case Type.Reference(_, FQStringTitleCase("Morphir.SDK:Dict:Dict"), List(keyType, valType)) =>
             Some((keyType, valType))
           case _ => None
         }
@@ -68,6 +70,9 @@ object Extractors {
           case Type.Reference(_, fqName, Nil) if fqName == ref.typeName => true
           case _                                                        => false
         }
+    }
+    object OrderRef extends CommonReference {
+      final val tpe = Basics.orderType
     }
 
     object IntRef extends CommonReference {
@@ -182,7 +187,7 @@ object Extractors {
     object JustConstructor {
       def unapply(value: TypedValue): Option[TypedValue] =
         value match {
-          case Value.Apply(_, Value.Constructor(_, FQString("Morphir.SDK:Maybe:just")), something) =>
+          case Value.Apply(_, Value.Constructor(_, FQStringTitleCase("Morphir.SDK:Maybe:Just")), something) =>
             Some(something)
           case _ => None
         }
@@ -190,7 +195,7 @@ object Extractors {
     object NothingConstructor {
       def unapply(value: TypedValue): Boolean =
         value match {
-          case Value.Constructor(_, FQString("Morphir.SDK:Maybe:nothing")) =>
+          case Value.Constructor(_, FQStringTitleCase("Morphir.SDK:Maybe:Nothing")) =>
             true
           case _ => false
         }
