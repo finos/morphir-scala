@@ -90,7 +90,7 @@ listAnyFalseTest ctx =
 
 
 
-{-| Test: List/Max - Some
+{-| Test: List/Maximum - Some
 expected = Some(3)
 -}
 listMaximumSomeTest : TestContext -> Maybe Int
@@ -102,7 +102,7 @@ listMaximumSomeTest ctx =
 
 
 
-{-| Test: List/Max - None
+{-| Test: List/Maximum - None
 expected = None
 -}
 listMaximumNoneTest : TestContext -> Maybe Int
@@ -111,6 +111,30 @@ listMaximumNoneTest ctx =
                      let
                          list = []
                      in maximum list
+
+
+
+{-| Test: List/Minimum - Some
+expected = Some(3)
+-}
+listMinimumSomeTest : TestContext -> Maybe Int
+listMinimumSomeTest ctx =
+    test ctx <|
+                     let
+                         list = [-1, 3, 0, -2, 2, 3]
+                     in minimum list
+
+
+
+{-| Test: List/Minimum - None
+expected = None
+-}
+listMinimumNoneTest : TestContext -> Maybe Int
+listMinimumNoneTest ctx =
+    test ctx <|
+                     let
+                         list = []
+                     in minimum list
 
 
 {-| Test: List/Partition
