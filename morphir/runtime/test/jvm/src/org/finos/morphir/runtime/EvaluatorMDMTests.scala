@@ -641,6 +641,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.List.empty(Concept.Int32)
           )
         ),
+        suite("sort")(
+          testEval("sort")("listTests", "listSortTest", List(3, 2, -2, 1, 0))(
+            Data.List(Data.Int32(-2), Data.Int32(0), Data.Int32(1), Data.Int32(2), Data.Int32(3))
+          ),
+          testEval("sort empty list")("listTests", "listSortTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
         suite("head")(
           testEval("head of a non-empty list is Just")("listTests", "listHeadTest", List(1, 2, 3))(
             Data.Optional.Some(Data.Int32(1))
