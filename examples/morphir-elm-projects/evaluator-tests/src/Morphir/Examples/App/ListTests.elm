@@ -324,6 +324,17 @@ listFoldrTest list =
     List.foldr (\x acc -> x :: acc) [] list
 
 
+{-| Test: List/sort
+expected([3, 2, -2, 1, 0]) = [-2, 0, 1, 2, 3]
+expected([1, 1]) = [1, 1]
+expected([1]) = [1]
+expected([]) = []
+-}
+listSortTest : List Int -> List Int
+listSortTest list =
+    List.sort list
+
+
 {-| Test: List/head
 expected([1, 2, 3]) = Maybe 1
 expected([]) = Nothing
