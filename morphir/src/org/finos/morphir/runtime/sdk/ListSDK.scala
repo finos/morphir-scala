@@ -185,6 +185,14 @@ object ListSDK {
       RTValue.List(out)
   }
 
+  val sort = DynamicNativeFunction1("sort") {
+    (_: NativeContext) => (list: RTValue.List) =>
+      val result = list.value.sortWith { (x, y) =>
+        RTValue.Comparable.compareOrThrow(coerceComparable(x), coerceComparable(y)) < 0
+      }
+      RTValue.List(result)
+  }
+
   val head = DynamicNativeFunction1("head") {
     (_: NativeContext) => (list: RTValue.List) => MaybeSDK.resultToMaybe(list.value.headOption)
   }

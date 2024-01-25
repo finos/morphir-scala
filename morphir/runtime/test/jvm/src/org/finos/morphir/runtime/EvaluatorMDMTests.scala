@@ -533,6 +533,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.Optional.None(Concept.Int32)
           )
         ),
+        suite("minimum")(
+          testEvaluation("minimum returns value")("listTests", "listMinimumSomeTest")(
+            Data.Optional.Some(Data.Int(-2))
+          ),
+          testEvaluation("minimum returns none")("listTests", "listMinimumNoneTest")(
+            Data.Optional.None(Concept.Int32)
+          )
+        ),
         testEvaluation("List Partition")("listTests", "listPartitionTest")(
           Data.Tuple(
             Data.List(Data.Int(1), Data.Int(3), Data.Int(5)),
