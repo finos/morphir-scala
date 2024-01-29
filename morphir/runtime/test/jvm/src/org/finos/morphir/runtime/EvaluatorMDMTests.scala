@@ -642,8 +642,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )
         ),
         suite("sort")(
-          testEval("sort")("listTests", "listSortTest", List(3, 2, -2, 1, 0))(
+          testEval("sort list")("listTests", "listSortTest", List(3, 2, -2, 1, 0))(
             Data.List(Data.Int32(-2), Data.Int32(0), Data.Int32(1), Data.Int32(2), Data.Int32(3))
+          ),
+          testEval("sort same number")("listTests", "listSortTest", List(1, 1))(
+            Data.List(Data.Int32(1), Data.Int32(1))
+          ),
+          testEval("sort single number")("listTests", "listSortTest", List(1))(
+            Data.List(Data.Int32(1))
           ),
           testEval("sort empty list")("listTests", "listSortTest", Data.List.empty(Concept.Int32))(
             Data.List.empty(Concept.Int32)

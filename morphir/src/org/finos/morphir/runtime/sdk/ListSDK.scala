@@ -193,6 +193,16 @@ object ListSDK {
       RTValue.List(result)
   }
 
+  val sortBy = DynamicNativeFunction2("sortBy") {
+    (context: NativeContext) => (f: RTValue.Function, list: RTValue.List) =>
+      val result = list.value.sortWith { (x, y) =>
+        val comparableX = coerceComparable(context.evaluator.handleApplyResult(Type.UType.Unit(()), f, x))
+        val comparableY = coerceComparable(context.evaluator.handleApplyResult(Type.UType.Unit(()), f, y))
+        RTValue.Comparable.compareOrThrow(comparableX, comparableY) < 0
+      }
+      RTValue.List(result)
+  }
+
   val head = DynamicNativeFunction1("head") {
     (_: NativeContext) => (list: RTValue.List) => MaybeSDK.resultToMaybe(list.value.headOption)
   }
