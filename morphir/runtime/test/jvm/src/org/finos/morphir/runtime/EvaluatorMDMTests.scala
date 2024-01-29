@@ -655,6 +655,20 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.List.empty(Concept.Int32)
           )
         ),
+        suite("sortByBy")(
+          testEval("sortBy animal list")("listTests", "listSortByTest", List("mouse", "cat"))(
+            Data.List(Data.String("cat"), Data.String("mouse"))
+          ),
+          testEval("sortBy same length list")("listTests", "listSortByTest", List("alice", "chuck", "bobby"))(
+            Data.List(Data.String("alice"), Data.String("chuck"), Data.String("bobby"))
+          ),
+          testEval("sortBy single")("listTests", "listSortByTest", List("word"))(
+            Data.List(Data.String("word"))
+          ),
+          testEval("sortBy empty list")("listTests", "listSortByTest", Data.List.empty(Concept.String))(
+            Data.List.empty(Concept.String)
+          )
+        ),
         suite("head")(
           testEval("head of a non-empty list is Just")("listTests", "listHeadTest", List(1, 2, 3))(
             Data.Optional.Some(Data.Int32(1))
