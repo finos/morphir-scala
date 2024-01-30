@@ -89,6 +89,54 @@ listAnyFalseTest ctx =
     test ctx (any (\x -> modBy 2 x == 0) [ 1, 3, 5 ])
 
 
+
+{-| Test: List/Maximum - Some
+expected = Some(3)
+-}
+listMaximumSomeTest : TestContext -> Maybe Int
+listMaximumSomeTest ctx =
+    test ctx <|
+                     let
+                         list = [-1, 3, 0, -2, 2, 3]
+                     in maximum list
+
+
+
+{-| Test: List/Maximum - None
+expected = None
+-}
+listMaximumNoneTest : TestContext -> Maybe Int
+listMaximumNoneTest ctx =
+    test ctx <|
+                     let
+                         list = []
+                     in maximum list
+
+
+
+{-| Test: List/Minimum - Some
+expected = Some(3)
+-}
+listMinimumSomeTest : TestContext -> Maybe Int
+listMinimumSomeTest ctx =
+    test ctx <|
+                     let
+                         list = [-1, 3, 0, -2, 2, 3]
+                     in minimum list
+
+
+
+{-| Test: List/Minimum - None
+expected = None
+-}
+listMinimumNoneTest : TestContext -> Maybe Int
+listMinimumNoneTest ctx =
+    test ctx <|
+                     let
+                         list = []
+                     in minimum list
+
+
 {-| Test: List/Partition
 expected = [[1,3,5], [2,4]]
 -}
@@ -275,6 +323,44 @@ listFoldrTest : List Int -> List Int
 listFoldrTest list =
     List.foldr (\x acc -> x :: acc) [] list
 
+
+{-| Test: List/sort
+expected([3, 2, -2, 1, 0]) = [-2, 0, 1, 2, 3]
+expected([1, 1]) = [1, 1]
+expected([1]) = [1]
+expected([]) = []
+-}
+listSortTest : List Int -> List Int
+listSortTest list =
+    List.sort list
+
+
+{-| Test: List/sortBy
+expected(["mouse", "cat"]) = ["cat", "mouse"]
+expected(["alice", "chuck", "bobby"]) = ["alice", "chuck", "bobby"]
+expected(["word"]) = ["word"]
+expected([]) = []
+-}
+listSortByTest : List String -> List String
+listSortByTest list =
+    List.sortBy String.length list
+
+
+{-| Test: List/sortWith
+expected([1, 2, 3, 4, 5]) = [5, 4, 3, 2, 1]
+expected([-1]) = [-1]
+expected([]) = []
+-}
+listSortWithTest : List Int -> List Int
+listSortWithTest list =
+    List.sortWith flippedComparison list
+
+
+flippedComparison a b =
+    case compare a b of
+      LT -> GT
+      EQ -> EQ
+      GT -> LT
 
 {-| Test: List/head
 expected([1, 2, 3]) = Maybe 1
