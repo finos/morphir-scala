@@ -525,6 +525,22 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("List.any with True Output")("listTests", "listAnyFalseTest")(
           Data.Boolean(false)
         ),
+        suite("maximum")(
+          testEvaluation("maximum returns value")("listTests", "listMaximumSomeTest")(
+            Data.Optional.Some(Data.Int(3))
+          ),
+          testEvaluation("maximum returns none")("listTests", "listMaximumNoneTest")(
+            Data.Optional.None(Concept.Int32)
+          )
+        ),
+        suite("minimum")(
+          testEvaluation("minimum returns value")("listTests", "listMinimumSomeTest")(
+            Data.Optional.Some(Data.Int(-2))
+          ),
+          testEvaluation("minimum returns none")("listTests", "listMinimumNoneTest")(
+            Data.Optional.None(Concept.Int32)
+          )
+        ),
         testEvaluation("List Partition")("listTests", "listPartitionTest")(
           Data.Tuple(
             Data.List(Data.Int(1), Data.Int(3), Data.Int(5)),
@@ -622,6 +638,51 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.List(Data.Int32(1), Data.Int32(2), Data.Int32(3))
           ),
           testEval("folds empty lists")("listTests", "listFoldrTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("sort")(
+          testEval("sort list")("listTests", "listSortTest", List(3, 2, -2, 1, 0))(
+            Data.List(Data.Int32(-2), Data.Int32(0), Data.Int32(1), Data.Int32(2), Data.Int32(3))
+          ),
+          testEval("sort same number")("listTests", "listSortTest", List(1, 1))(
+            Data.List(Data.Int32(1), Data.Int32(1))
+          ),
+          testEval("sort single number")("listTests", "listSortTest", List(1))(
+            Data.List(Data.Int32(1))
+          ),
+          testEval("sort empty list")("listTests", "listSortTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("sortBy")(
+          testEval("sortBy animal list")("listTests", "listSortByTest", List("mouse", "cat"))(
+            Data.List(Data.String("cat"), Data.String("mouse"))
+          ),
+          testEval("sortBy same length list")("listTests", "listSortByTest", List("alice", "chuck", "bobby"))(
+            Data.List(Data.String("alice"), Data.String("chuck"), Data.String("bobby"))
+          ),
+          testEval("sortBy single")("listTests", "listSortByTest", List("word"))(
+            Data.List(Data.String("word"))
+          ),
+          testEval("sortBy empty list")("listTests", "listSortByTest", Data.List.empty(Concept.String))(
+            Data.List.empty(Concept.String)
+          )
+        ),
+        suite("sortWith")(
+          testEval("sortWith backwards list")("listTests", "listSortWithTest", List(1, 2, 3, 4, 5))(
+            Data.List(
+              Data.Int(5),
+              Data.Int(4),
+              Data.Int(3),
+              Data.Int(2),
+              Data.Int(1)
+            )
+          ),
+          testEval("sortWith single")("listTests", "listSortWithTest", List(-1))(
+            Data.List(Data.Int(-1))
+          ),
+          testEval("sortWith empty list")("listTests", "listSortWithTest", Data.List.empty(Concept.Int32))(
             Data.List.empty(Concept.Int32)
           )
         ),
