@@ -336,7 +336,10 @@ listSortTest list =
 
 
 {-| Test: List/sortBy
-expected([3, 2, -2, 1, 0]) = [-2, 0, 1, 2, 3]
+expected(["mouse", "cat"]) = ["cat", "mouse"]
+expected(["alice", "chuck", "bobby"]) = ["alice", "chuck", "bobby"]
+expected(["word"]) = ["word"]
+expected([]) = []
 -}
 listSortByTest : List String -> List String
 listSortByTest list =
@@ -344,7 +347,9 @@ listSortByTest list =
 
 
 {-| Test: List/sortWith
-expected([3, 2, -2, 1, 0]) = [-2, 0, 1, 2, 3]
+expected([1, 2, 3, 4, 5]) = [5, 4, 3, 2, 1]
+expected([-1]) = [-1]
+expected([]) = []
 -}
 listSortWithTest : List Int -> List Int
 listSortWithTest list =
