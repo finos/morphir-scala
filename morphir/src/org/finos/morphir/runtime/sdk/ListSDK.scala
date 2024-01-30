@@ -73,25 +73,23 @@ object ListSDK {
   }
 
   val maximum = DynamicNativeFunction1("maximum") {
-    (ctx: NativeContext) => (list: RTValue.List) =>
-      {
-        val result = list.value.reduceOption((x, y) =>
-          if (RTValue.Comparable.compareOrThrow(coerceComparable(x), coerceComparable(y)) > 0) x
-          else y
-        )
-        MaybeSDK.resultToMaybe(result)
+    (_: NativeContext) => (listArg: RTValue.List) =>
+      val result = listArg.elements match {
+        case Nil          => None
+        case head :: rest => Some(rest.foldLeft(head)(unsafeRTValueOrd.max))
       }
+
+      MaybeSDK.resultToMaybe(result)
   }
 
   val minimum = DynamicNativeFunction1("minimum") {
-    (ctx: NativeContext) => (list: RTValue.List) =>
-      {
-        val result = list.value.reduceOption((x, y) =>
-          if (RTValue.Comparable.compareOrThrow(coerceComparable(x), coerceComparable(y)) < 0) x
-          else y
-        )
-        MaybeSDK.resultToMaybe(result)
+    (_: NativeContext) => (listArg: RTValue.List) =>
+      val result = listArg.elements match {
+        case Nil          => None
+        case head :: rest => Some(rest.foldLeft(head)(unsafeRTValueOrd.min))
       }
+
+      MaybeSDK.resultToMaybe(result)
   }
 
   val partition = DynamicNativeFunction2("partition") {
@@ -186,37 +184,33 @@ object ListSDK {
       RTValue.List(out)
   }
 
+  private val unsafeRTValueOrd = new Ordering[RTValue] {
+    def compare(a: RTValue, b: RTValue) = a.coerceComparable.compare(b.coerceComparable)
+  }
+
   val sort = DynamicNativeFunction1("sort") {
-    (_: NativeContext) => (list: RTValue.List) =>
-      val result = list.value.sortWith { (x, y) =>
-        RTValue.Comparable.compareOrThrow(coerceComparable(x), coerceComparable(y)) < 0
-      }
-      RTValue.List(result)
+    (_: NativeContext) => (listArg: RTValue.List) => RTValue.List(listArg.elements.sorted(unsafeRTValueOrd))
   }
 
   val sortBy = DynamicNativeFunction2("sortBy") {
-    (context: NativeContext) => (f: RTValue.Function, list: RTValue.List) =>
-      val result = list.value.sortBy { x =>
-        coerceComparable(context.evaluator.handleApplyResult(Type.UType.Unit(()), f, x))
-      }(new Ordering[RTValue.Comparable] {
-        override def compare(x: RTValue.Comparable, y: RTValue.Comparable) = RTValue.Comparable.compareOrThrow(x, y)
+    (context: NativeContext) => (toComp: RTValue.Function, listArg: RTValue.List) =>
+      val sorted = listArg.elements.sortBy(elem =>
+        context.evaluator.handleApplyResult(Type.UType.Unit(()), toComp, elem)
+      )(unsafeRTValueOrd)
 
-      })
-      RTValue.List(result)
+      RTValue.List(sorted)
   }
 
   val sortWith = DynamicNativeFunction2("sortWith") {
-    (context: NativeContext) => (f: RTValue.Function, list: RTValue.List) =>
-      val result = list.value.sortWith { (x, y) =>
-        val order = context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, x, y)
-        order match {
-          case RTValue.Order.EQ => true
-          case RTValue.Order.LT => true
-          case RTValue.Order.GT => false
-          case _                => throw IllegalValue(s"Tried to convert $order to a boolean as if it were an Order")
+    (context: NativeContext) => (compareArg: RTValue.Function, listArg: RTValue.List) =>
+      val ord = new Ordering[RTValue] {
+        def compare(a: RTValue, b: RTValue) = {
+          val ordering = context.evaluator.handleApplyResult2(Type.UType.Unit(()), compareArg, a, b)
+          RTValue.Comparable.orderToInt(ordering)
         }
       }
-      RTValue.List(result)
+
+      RTValue.List(listArg.elements.sorted(ord))
   }
 
   val head = DynamicNativeFunction1("head") {
