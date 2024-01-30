@@ -343,6 +343,20 @@ listSortByTest list =
     List.sortBy String.length list
 
 
+{-| Test: List/sortWith
+expected([3, 2, -2, 1, 0]) = [-2, 0, 1, 2, 3]
+-}
+listSortWithTest : List Int -> List Int
+listSortWithTest list =
+    List.sortWith flippedComparison list
+
+
+flippedComparison a b =
+    case compare a b of
+      LT -> GT
+      EQ -> EQ
+      GT -> LT
+
 {-| Test: List/head
 expected([1, 2, 3]) = Maybe 1
 expected([]) = Nothing

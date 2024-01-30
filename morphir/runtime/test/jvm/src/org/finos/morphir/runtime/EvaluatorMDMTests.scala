@@ -655,7 +655,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.List.empty(Concept.Int32)
           )
         ),
-        suite("sortByBy")(
+        suite("sortBy")(
           testEval("sortBy animal list")("listTests", "listSortByTest", List("mouse", "cat"))(
             Data.List(Data.String("cat"), Data.String("mouse"))
           ),
@@ -667,6 +667,17 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           ),
           testEval("sortBy empty list")("listTests", "listSortByTest", Data.List.empty(Concept.String))(
             Data.List.empty(Concept.String)
+          )
+        ),
+        suite("sortWith")(
+          testEval("sortWith backwards list")("listTests", "listSortWithTest", List(1, 2, 3, 4, 5))(
+            Data.List(
+              Data.Int(5),
+              Data.Int(4),
+              Data.Int(3),
+              Data.Int(2),
+              Data.Int(1)
+            )
           )
         ),
         suite("head")(
