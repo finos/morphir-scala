@@ -2,6 +2,7 @@ package org.finos.morphir.runtime.sdk
 
 import org.finos.morphir.ir.Type
 import org.finos.morphir.runtime.*
+import org.finos.morphir.runtime.MorphirRuntimeError.IllegalValue
 import org.finos.morphir.runtime.internal.*
 import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.RTValue.Comparable.orderToInt
@@ -195,10 +196,25 @@ object ListSDK {
 
   val sortBy = DynamicNativeFunction2("sortBy") {
     (context: NativeContext) => (f: RTValue.Function, list: RTValue.List) =>
+      val result = list.value.sortBy { x =>
+        coerceComparable(context.evaluator.handleApplyResult(Type.UType.Unit(()), f, x))
+      }(new Ordering[RTValue.Comparable] {
+        override def compare(x: RTValue.Comparable, y: RTValue.Comparable) = RTValue.Comparable.compareOrThrow(x, y)
+
+      })
+      RTValue.List(result)
+  }
+
+  val sortWith = DynamicNativeFunction2("sortWith") {
+    (context: NativeContext) => (f: RTValue.Function, list: RTValue.List) =>
       val result = list.value.sortWith { (x, y) =>
-        val comparableX = coerceComparable(context.evaluator.handleApplyResult(Type.UType.Unit(()), f, x))
-        val comparableY = coerceComparable(context.evaluator.handleApplyResult(Type.UType.Unit(()), f, y))
-        RTValue.Comparable.compareOrThrow(comparableX, comparableY) < 0
+        val order = context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, x, y)
+        order match {
+          case RTValue.Order.EQ => true
+          case RTValue.Order.LT => true
+          case RTValue.Order.GT => false
+          case _                => throw IllegalValue(s"Tried to convert $order to a boolean as if it were an Order")
+        }
       }
       RTValue.List(result)
   }
