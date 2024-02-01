@@ -49,9 +49,6 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
       case Variable(va, name)                      => handleVariable(va, name, store)
     }
-    result match {
-      case _ => println(s"Loop sees: ${PrintRTValue(result).plainText}")
-    }
     result
   }
 
