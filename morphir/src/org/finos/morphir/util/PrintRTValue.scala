@@ -78,7 +78,7 @@ class PrintRTValue(
       v match {
         case v: RT.Primitive.Int =>
           val mInt = v.value
-          if mInt.isValidInt then {
+          if (mInt.isValidInt) {
             Tree.Literal(mInt.toInt.toString)
           } else {
             Tree.Literal(mInt.toString)
