@@ -178,8 +178,6 @@ class PrintRTValue(
   }
 
   implicit class TreeOpts(tree: Tree.type) {
-    // Don't display full paths even for data-elements that have them,
-    // display all of that information in the concept-area
     def ofRT(d: RT)(children: List[Tree]) =
       Tree.Apply(d.printName, children.iterator)
 
