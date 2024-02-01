@@ -22,6 +22,7 @@ import org.finos.morphir.runtime.MorphirRuntimeError.{
   VariableNotFound,
   WrongNumberOfArguments
 }
+import org.finos.morphir.util.PrintRTValue
 
 private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluator {
   def loop(ir: RuntimeValue, store: Store): RTValue = {
@@ -49,12 +50,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       case Variable(va, name)                      => handleVariable(va, name, store)
     }
     result match {
-      case v: RTValue.Primitive[_] =>
-        v.value match {
-          case _: Float => throw new RuntimeException(s"\n\n\nir: $ir")
-          case _        =>
-        }
-      case _ =>
+      case _ => println(s"Loop sees: ${PrintRTValue(result).plainText}")
     }
     result
   }

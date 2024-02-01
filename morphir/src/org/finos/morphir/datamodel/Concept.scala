@@ -2,7 +2,8 @@ package org.finos.morphir.datamodel
 
 import org.finos.morphir.naming.FQName
 import org.finos.morphir.datamodel.Concept.Basic
-import org.finos.morphir.util.{DetailLevel, PrintMDM}
+import org.finos.morphir.util.PrintMDM
+import org.finos.morphir.util.PrintMDM.DetailLevel
 
 import scala.annotation.tailrec
 import zio.Chunk
