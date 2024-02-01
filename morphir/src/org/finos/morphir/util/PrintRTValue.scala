@@ -7,8 +7,6 @@ import java.util.function.UnaryOperator
 import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.runtime.RTValue as RT
 
-
-
 object PrintRTValue {
   def apply(
       any: Any,
@@ -22,48 +20,17 @@ object PrintRTValue {
   }
   object DetailLevel {
     object Detailed extends DetailLevel {
-      def hideFQNames            = false
+      def hideFQNames = false
       // def compressNestedConcepts = false
-      // def compressData           = false
-      // def compressConcept        = false
-      // def hideInnerConcepts      = false
     }
     object Medium extends DetailLevel {
-      def hideFQNames            = true
-      // def compressNestedConcepts = false
-      // def compressData           = false
-      // def compressConcept        = true
-      // def hideInnerConcepts      = false
+      def hideFQNames = true
     }
     object BirdsEye extends DetailLevel {
-      def hideFQNames            = true
-      // def compressNestedConcepts = false
-      // def compressData           = true
-      // def compressConcept        = true
-      // def hideInnerConcepts      = true
-    }
-
-    object BirdsEye2 extends DetailLevel {
-      def hideFQNames            = false
-      // def compressNestedConcepts = false
-      // def compressData           = true
-      // def compressConcept        = true
-      // def showInnerConcepts      = false
-      // def hideInnerConcepts      = true
-    }
-
-    object BirdsEye3 extends DetailLevel {
-      def hideFQNames            = false
-      // def compressNestedConcepts = false
-      // def compressData           = true
-      // def compressConcept        = true
-      // def showInnerConcepts      = false
-      // def hideInnerConcepts      = false
+      def hideFQNames = true
     }
   }
 }
-
-
 
 class PrintRTValue(
     detailLevel: PrintRTValue.DetailLevel,
@@ -86,11 +53,9 @@ class PrintRTValue(
     fansi.Str.join(tokenized)
   }
 
-  def treeify(x: Any): Tree      = this.treeify(x, escapeUnicode, showFieldNames)
-  def treeifySuper(x: Any): Tree = 
-    {
-      super.treeify(x, escapeUnicode, showFieldNames)
-    }
+  def treeify(x: Any): Tree = this.treeify(x, escapeUnicode, showFieldNames)
+  def treeifySuper(x: Any): Tree =
+    super.treeify(x, escapeUnicode, showFieldNames)
 
   override def treeify(x: Any, escapeUnicode: Boolean, showFieldNames: Boolean): Tree = x match {
 
@@ -103,7 +68,7 @@ class PrintRTValue(
       else
         Tree.Literal(qn.toStringTitleCase)
 
-    case rt : RT => PrintRTInner.of(rt)
+    case rt: RT => PrintRTInner.of(rt)
 
     case other => super.treeify(other, escapeUnicode, showFieldNames)
   }
@@ -111,24 +76,21 @@ class PrintRTValue(
   object PrintRTInner {
     def of(v: RT): Tree =
       v match {
-        case v : RT.Primitive.Int => {
+        case v: RT.Primitive.Int =>
           val mInt = v.value
           if mInt.isValidInt then {
             Tree.Literal(mInt.toInt.toString)
           } else {
             Tree.Literal(mInt.toString)
           }
-        }
-        case v : RT.Primitive.String => {
+        case v: RT.Primitive.String =>
           Tree.Literal(s""""${v.value}"""")
-        }
-        case v : RT.Primitive.Char => {
+        case v: RT.Primitive.Char =>
           Tree.Literal(s"""'${v.value}'""")
-        }
         case v: RT.Primitive[_] => Tree.Literal(v.value.toString)
-        case v : RT.LocalDate   => Tree.Literal(v.value.toString)
-        case v : RT.LocalTime   => Tree.Literal(v.value.toString)
-        case v : RT.Unit   => Tree.ofRT(v)(List())
+        case v: RT.LocalDate    => Tree.Literal(v.value.toString)
+        case v: RT.LocalTime    => Tree.Literal(v.value.toString)
+        case v: RT.Unit         => Tree.ofRT(v)(List())
 
         case v: RT.Tuple =>
           Tree.ofRT(v)(v.elements.map(treeify(_)))
@@ -147,72 +109,73 @@ class PrintRTValue(
         case v: RT.Set =>
           Tree.ofRT(v)(v.elements.toList.map(r => treeify(r)))
 
-        case v : RT.Function=> {
+        case v: RT.Function =>
           val body = v match {
-            case RT.FieldFunction(name) => {
+            case RT.FieldFunction(name) =>
               List(Tree.Literal(s".${name.toCamelCase}"))
-            }
-            case RT.LambdaFunction(body, pattern, _) => 
+            case RT.LambdaFunction(body, pattern, _) =>
               List(Tree.Infix(Tree.Literal(s"\\${pattern.toString}"), "->", Tree.Literal(body.toString)))
-            case RT.DefinitionFunction(body, arguments, curried, _) => {
-              val paramsTree = Tree.KeyValue("parameters", Tree.Apply("", arguments.map(arg => Tree.Literal(s"${arg._1.toCamelCase} : ${arg._2.toString}")).iterator))
-              val curriedTree = Tree.KeyValue("curried", Tree.Apply("", curried.map(arg => Tree.KeyValue(arg._1.toCamelCase, treeify(arg._2))).iterator))
+            case RT.DefinitionFunction(body, arguments, curried, _) =>
+              val paramsTree = Tree.KeyValue(
+                "parameters",
+                Tree.Apply(
+                  "",
+                  arguments.map(arg => Tree.Literal(s"${arg._1.toCamelCase} : ${arg._2.toString}")).iterator
+                )
+              )
+              val curriedTree = Tree.KeyValue(
+                "curried",
+                Tree.Apply("", curried.map(arg => Tree.KeyValue(arg._1.toCamelCase, treeify(arg._2))).iterator)
+              )
               val bodyTree = Tree.KeyValue("body", Tree.Literal(body.toString))
               if (curried.length > 0) {
                 List(paramsTree, curriedTree, bodyTree)
               } else {
                 List(paramsTree, bodyTree)
               }
-            }
-            case RT.ConstructorFunction(name, arguments, curried) => {
-              val paramsTree = Tree.KeyValue("parameters", Tree.Apply("", arguments.map(arg => Tree.Literal(arg.toString)).iterator))
+            case RT.ConstructorFunction(name, arguments, curried) =>
+              val paramsTree =
+                Tree.KeyValue("parameters", Tree.Apply("", arguments.map(arg => Tree.Literal(arg.toString)).iterator))
               val curriedTree = Tree.KeyValue("curried", Tree.Apply("", curried.map(arg => treeify(arg)).iterator))
-              val nameTree = Tree.KeyValue("name", treeify(name))
+              val nameTree    = Tree.KeyValue("name", treeify(name))
               if (curried.length > 0) {
                 List(paramsTree, curriedTree, nameTree)
               } else {
                 List(paramsTree, nameTree)
               }
-            }
-            //The function name is not included in the RTValue, so what we can print here is limited
-            case RT.NativeFunction(argCount, curried, signature) => {
-              val argCountTree = Tree.KeyValue("remaining args", treeify(argCount))
+            // The function name is not included in the RTValue, so what we can print here is limited
+            case RT.NativeFunction(argCount, curried, signature) =>
+              val argCountTree  = Tree.KeyValue("remaining args", treeify(argCount))
               val totalArgsTree = Tree.KeyValue("expected args", treeify(signature.numArgs))
-              val curriedTree = Tree.KeyValue("curried", Tree.Apply("", curried.map(arg => treeify(arg)).iterator))
+              val curriedTree   = Tree.KeyValue("curried", Tree.Apply("", curried.map(arg => treeify(arg)).iterator))
               if (curried.length > 0) {
                 List(argCountTree, totalArgsTree, curriedTree)
               } else {
                 List(argCountTree, totalArgsTree)
               }
-            }
-            case RT.NativeInnerFunction(argCount, curried, signature) => {
-              val argCountTree = Tree.KeyValue("remaining args", treeify(argCount))
+            case RT.NativeInnerFunction(argCount, curried, signature) =>
+              val argCountTree  = Tree.KeyValue("remaining args", treeify(argCount))
               val totalArgsTree = Tree.KeyValue("expected args", treeify(signature.numArgs))
-              val curriedTree = Tree.KeyValue("curried", Tree.Apply("", curried.map(arg => treeify(arg)).iterator))
+              val curriedTree   = Tree.KeyValue("curried", Tree.Apply("", curried.map(arg => treeify(arg)).iterator))
               if (curried.length > 0) {
                 List(argCountTree, totalArgsTree, curriedTree)
               } else {
                 List(argCountTree, totalArgsTree)
               }
-            }
 
           }
           Tree.ofRT(v)(
             body
           )
-          
-        }
-        case v : RT.ConstructorResult => {
+
+        case v: RT.ConstructorResult =>
           val fqnString = if (detailLevel.hideFQNames)
             v.name.localName.toTitleCase
           else
             v.name.toStringTitleCase
           Tree.Apply(fqnString, v.values.map(treeify(_)).iterator)
-        }
       }
   }
-
-  
 
   implicit class TreeOpts(tree: Tree.type) {
     // Don't display full paths even for data-elements that have them,
@@ -220,13 +183,12 @@ class PrintRTValue(
     def ofRT(d: RT)(children: List[Tree]) =
       Tree.Apply(d.printName, children.iterator)
 
-    
   }
 
   implicit class RTPrintOpts(v: RT) {
     def printName: String =
       v.getClass.getSimpleName
-      
+
   }
 
   def tokenize(x: Any): Iterator[fansi.Str] = {

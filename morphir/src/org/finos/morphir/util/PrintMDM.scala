@@ -11,7 +11,6 @@ import org.finos.morphir.datamodel.Data.{Optional, Result}
 
 import java.util.function.UnaryOperator
 
-
 object PrintMDM {
   def apply(
       any: Any,
