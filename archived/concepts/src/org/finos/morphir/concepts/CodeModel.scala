@@ -93,13 +93,10 @@ object CodeModel:
   type ValueSpec[+TA]     = Any
 
 trait CodeModelModule:
-  type TypeAttribs
-  type ValueAttribs
-
-  type Type = CodeModel.Type[TypeAttribs]
+  type Type = CodeModel.Type[scala.Unit]
   object Type:
     export CodeModel.Type.*
 
-  type Value = CodeModel.Value[TypeAttribs, ValueAttribs]
+  type Value = CodeModel.Value[scala.Unit, UType]
   object Value:
     export CodeModel.Value.*

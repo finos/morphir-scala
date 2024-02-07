@@ -13,10 +13,9 @@ import org.finos.morphir.runtime.SDKValue
 
 import scala.collection.immutable.Set
 import zio.Chunk
-import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{TypeAttribs, ValueAttribs}
 
 object GatherReferences {
-  type TypedValue = Value[TypeAttribs, ValueAttribs]
+  type TypedValue = Value[scala.Unit, UType]
   // Gather references from distribution*
   // Also from GlobalDefs? (Yeah, redundancy is okay, and there are
   // Helper: Recursively explore value

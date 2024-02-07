@@ -6,12 +6,11 @@ import org.finos.morphir.naming.FQName.getLocalName
 import org.finos.morphir.naming.Name.toTitleCase
 import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, USpecification => UPackageSpecification}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
-import org.finos.morphir.ir.Value.{Pattern, Value}
+import org.finos.morphir.ir.Value.{Pattern, Value, TypedDefinition}
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution.*
 import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.runtime.{NativeSDK, RTValue, SDKConstructor, SDKValue}
-import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{RuntimeDefinition, TypeAttribs, ValueAttribs}
 import org.finos.morphir.runtime.internal.{CallStackFrame, StoredValue}
 import zio.Chunk
 

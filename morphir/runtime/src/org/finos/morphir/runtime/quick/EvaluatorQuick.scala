@@ -9,12 +9,12 @@ import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.Extractors.Types.*
-import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{TypeAttribs, ValueAttribs}
 import org.finos.morphir.runtime.{Distributions, RTValue}
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.runtime.services.sdk.*
+import org.finos.morphir.ir.Type.UType
 import zio.Chunk
 
 import scala.collection.mutable
@@ -23,7 +23,7 @@ object EvaluatorQuick {
   type FloatType = Double
 
   private[runtime] def evalAction(
-      value: Value[TypeAttribs, ValueAttribs],
+      value: Value[scala.Unit, UType],
       globals: GlobalDefs,
       dists: Distributions
   ): RTAction[MorphirEnv, EvaluationError, Data] =
@@ -33,7 +33,7 @@ object EvaluatorQuick {
     }
 
   private[runtime] def eval(
-      value: Value[TypeAttribs, ValueAttribs],
+      value: Value[scala.Unit, UType],
       globals: GlobalDefs,
       dists: Distributions
   ): Data = {

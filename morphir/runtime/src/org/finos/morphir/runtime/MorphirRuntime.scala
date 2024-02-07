@@ -11,32 +11,29 @@ import org.finos.morphir.runtime.quick.QuickMorphirRuntime
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 
 trait MorphirRuntime {
-  type TypeAttribs
-  type ValueAttribs
-
   def evaluate(
-      entryPoint: Value[TypeAttribs, ValueAttribs],
-      param: Value[TypeAttribs, ValueAttribs],
-      params: Value[TypeAttribs, ValueAttribs]*
+      entryPoint: Value[scala.Unit, UType],
+      param: Value[scala.Unit, UType],
+      params: Value[scala.Unit, UType]*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data]
   def evaluate(
-      entryPoint: Value[TypeAttribs, ValueAttribs],
+      entryPoint: Value[scala.Unit, UType],
       param: Data,
       params: Data*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data]
   def evaluate(entryPoint: FQName, param: Data, params: Data*): RTAction[MorphirEnv, MorphirRuntimeError, Data]
   def evaluate(
       entryPoint: FQName,
-      param: Value[TypeAttribs, ValueAttribs],
-      params: Value[TypeAttribs, ValueAttribs]*
+      param: Value[scala.Unit, UType],
+      params: Value[scala.Unit, UType]*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data]
 
   def applyParams(
-      entryPoint: Value[TypeAttribs, ValueAttribs],
-      params: Value[TypeAttribs, ValueAttribs]*
-  ): RTAction[MorphirEnv, TypeError, Value[TypeAttribs, ValueAttribs]]
+      entryPoint: Value[scala.Unit, UType],
+      params: Value[scala.Unit, UType]*
+  ): RTAction[MorphirEnv, TypeError, Value[scala.Unit, UType]]
   def evaluate(entryPoint: FQName): RTAction[MorphirEnv, MorphirRuntimeError, Data]
-  def evaluate(value: Value[TypeAttribs, ValueAttribs]): RTAction[MorphirEnv, MorphirRuntimeError, Data]
+  def evaluate(value: Value[scala.Unit, UType]): RTAction[MorphirEnv, MorphirRuntimeError, Data]
 
 }
 

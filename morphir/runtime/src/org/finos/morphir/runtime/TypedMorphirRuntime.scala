@@ -14,9 +14,6 @@ import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
 
 trait TypedMorphirRuntime extends MorphirRuntime {
-  type TypeAttribs  = TypedMorphirRuntimeDefs.TypeAttribs
-  type ValueAttribs = TypedMorphirRuntimeDefs.ValueAttribs
-
   final def evaluate(
       entryPoint: Value[scala.Unit, UType],
       param: Value[scala.Unit, UType],
