@@ -175,8 +175,6 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
   trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
     def ivyDeps = super.ivyDeps() ++ Agg(
-      Deps.io.bullet.`borer-core`(crossScalaVersion),
-      Deps.io.bullet.`borer-derivation`(crossScalaVersion),
       Deps.com.beachape.enumeratum,
       Deps.com.lihaoyi.fansi,
       Deps.com.lihaoyi.geny,
@@ -285,7 +283,6 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
   }
 
   object interop extends Module {
-
     object zio extends Module {
       object json extends CrossPlatform with CrossValue {
         trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
@@ -310,6 +307,29 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       }
     }
 
+    object borer extends CrossPlatform with CrossValue {
+      trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
+        def ivyDeps = Agg(
+          Deps.io.bullet.`borer-core`(crossScalaVersion),
+          Deps.io.bullet.`borer-derivation`(crossScalaVersion)
+        )
+
+        def platformSpecificModuleDeps = Seq(morphir)
+      }
+
+      object jvm extends Shared with MorphirJVMModule {
+        object test extends ScalaTests with TestModule.ZioTest {
+          def ivyDeps: T[Agg[Dep]] = Agg(
+            Deps.io.bullet.`borer-core`(crossScalaVersion),
+            Deps.io.bullet.`borer-derivation`(crossScalaVersion)
+          )
+
+          def moduleDeps = super.moduleDeps ++ Agg(morphir.testing.generators.jvm, testing.zio.jvm)
+        }
+      }
+
+      object js extends Shared with MorphirJSModule
+    }
   }
   object lib extends Module {
 
