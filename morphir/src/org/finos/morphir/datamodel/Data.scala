@@ -1,7 +1,8 @@
 package org.finos.morphir.datamodel
 
 import org.finos.morphir.naming.*
-import org.finos.morphir.util.{DetailLevel, PrintMDM}
+import org.finos.morphir.util.PrintMDM
+import org.finos.morphir.util.PrintMDM.DetailLevel
 
 import java.io.OutputStream
 import scala.collection.mutable

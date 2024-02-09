@@ -19,6 +19,10 @@ object PrintIR {
       detailLevel: DetailLevel = DetailLevel.BirdsEye,
       defaultWidth: Int = 150
   ) = new PrintIR(detailLevel, defaultWidth).apply(any)
+  def make(
+      detailLevel: DetailLevel = DetailLevel.BirdsEye,
+      defaultWidth: Int = 150
+  ) = new PrintIR(detailLevel, defaultWidth)
 }
 
 case class DetailLevel(
