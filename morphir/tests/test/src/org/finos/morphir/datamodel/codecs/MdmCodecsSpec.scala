@@ -34,24 +34,46 @@ object MdmCodecsSpec extends MorphirBaseSpec {
         val data = Data.Result.Ok.withErrConcept(Data.Int(5), Concept.Boolean)
         assertTrue(testCodec(data))
       },
+      test("Result 2") {
+        val data = Data.Result.Err(Data.Int(5), Concept.Result(Concept.Integer, Concept.Integer))
+        assertTrue(testCodec(data))
+      },
       test("Record") {
         val data = Data.Record(pn.morphirIR % "Test", List(Label("1") -> Data.String("Test"), Label("2") -> Data.False))
         assertTrue(testCodec(data))
       },
+      // So for collection types, options, and results it is good if tests include “zero-values”
+      // (i.e. None, Nil, etc) and variant of sum types
       test("Optional") {
         val data = Data.Optional.Some(Data.Int(123))
+        assertTrue(testCodec(data))
+      },
+      test("Optional 2") {
+        val data = Data.Optional.None(Concept.String)
         assertTrue(testCodec(data))
       },
       test("List") {
         val data = Data.List(Data.True, Data.False, Data.True)
         assertTrue(testCodec(data))
       },
+      test("List 2") {
+        val data = Data.List.empty(Concept.String)
+        assertTrue(testCodec(data))
+      },
       test("Set") {
         val data = Data.Set(Data.Int(1), Data.Int(2))
         assertTrue(testCodec(data))
       },
+      test("Set 2") {
+        val data = Data.Set.empty(Concept.String)
+        assertTrue(testCodec(data))
+      },
       test("Map") {
         val data = Data.Map(Data.String("1") -> Data.Int(1), Data.String("2") -> Data.Int(2))
+        assertTrue(testCodec(data))
+      },
+      test("Map 2") {
+        val data = Data.Map.empty(Concept.Integer, Concept.String)
         assertTrue(testCodec(data))
       },
       test("Aliased") {
