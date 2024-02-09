@@ -1162,7 +1162,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 //          val expected = Double.PositiveInfinity
 //          assertTrue(actual == expected)
 //        }, //No DDL equivalent
-        testEvaluation("Pi")("nativeReferenceTests", "nativeReferencePiTest")(Data.Float(3)),
+        testEvaluation("Pi")("nativeReferenceTests", "nativeReferencePiTest")(Data.Float(scala.math.Pi)),
         testEval("ModBy")("nativeReferenceTests", "nativeReferenceModByTest", 7)(
           Data.Int(1)
         )

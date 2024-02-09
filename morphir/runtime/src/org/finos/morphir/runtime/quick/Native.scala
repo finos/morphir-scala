@@ -428,7 +428,7 @@ object Native {
       RTValue.LocalTime(time)
   }
 
-  val pi: SDKValue = SDKValue.SDKNativeValue(RTValue.Primitive.Float(3.toDouble))
+  val pi: SDKValue = SDKValue.SDKNativeValue(RTValue.Primitive.Float(scala.math.Pi))
 
   val just: SDKConstructor    = SDKConstructor(List(Type.variable("contents")))
   val nothing: SDKConstructor = SDKConstructor(List())
