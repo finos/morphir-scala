@@ -1,12 +1,14 @@
 package org.finos.morphir
 package runtime
 
-import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.naming._
 trait Runtime { self =>
   import Runtime._
 
-  final type Environment = EvaluationEnvironment[scala.Unit, UType]
+  type TypeAttribs
+  type ValueAttribs
+
+  final type Environment = EvaluationEnvironment[TypeAttribs, ValueAttribs]
   final val Environment: EvaluationEnvironment.type = EvaluationEnvironment
   final def makeEnvironment(): Environment          = Environment()
 
@@ -16,8 +18,8 @@ trait Runtime { self =>
     def getState: State = state
     def setState(newState: State): Unit =
       state = newState
-    def visitUnit(attributes: UType): A
-    def visitVariable(attributes: UType, name: Name): A
+    def visitUnit(attributes: ValueAttribs): A
+    def visitVariable(attributes: ValueAttribs, name: Name): A
   }
 
 }
