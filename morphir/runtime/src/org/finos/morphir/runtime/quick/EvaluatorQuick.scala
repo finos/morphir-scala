@@ -23,7 +23,7 @@ object EvaluatorQuick {
   type FloatType = Double
 
   private[runtime] def evalAction(
-      value: Value[scala.Unit, UType],
+      value: TypedValue,
       globals: GlobalDefs,
       dists: Distributions
   ): RTAction[MorphirEnv, EvaluationError, Data] =
@@ -33,7 +33,7 @@ object EvaluatorQuick {
     }
 
   private[runtime] def eval(
-      value: Value[scala.Unit, UType],
+      value: TypedValue,
       globals: GlobalDefs,
       dists: Distributions
   ): Data = {
