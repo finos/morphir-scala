@@ -3,29 +3,31 @@ package morphir
 package ir
 
 trait TypeAttribution {
+  type TypeAttribs
 }
 
 trait ValueAttribution {
+  type ValueAttribs
 }
 
 trait TypeModelApi { self: TypeAttribution =>
-  type Type = ir.Type.Type[scala.Unit]
+  type Type = ir.Type.Type[TypeAttribs]
   object Type {
-    type Unit = ir.Type.Type.Unit[scala.Unit]
+    type Unit = ir.Type.Type.Unit[TypeAttribs]
     val Unit = ir.Type.Type.Unit
   }
 }
 
 trait ValueModelApi { self: TypeAttribution with ValueAttribution =>
-  type Value = ir.Value.Value[scala.Unit, UType]
+  type Value = ir.Value.Value[TypeAttribs, ValueAttribs]
   object Value {
-    type Apply = ir.Value.Apply[scala.Unit, UType]
+    type Apply = ir.Value.Apply[TypeAttribs, ValueAttribs]
     val Apply = ir.Value.Apply
 
-    type Unit = ir.Value.Unit[UType]
+    type Unit = ir.Value.Unit[ValueAttribs]
     val Unit = ir.Value.Unit
 
-    type Variable = ir.Value.Variable[UType]
+    type Variable = ir.Value.Variable[ValueAttribs]
     val Variable = ir.Value.Variable
   }
 }
@@ -43,11 +45,11 @@ trait NamingModule {}
 
 object generic extends GenericApi
 object raw extends Api {
-  final type scala.Unit  = scala.Unit
-  final type UType = scala.Unit
+  final type TypeAttribs  = scala.Unit
+  final type ValueAttribs = scala.Unit
 }
 
 object typed extends Api {
-  final type scala.Unit = scala.Unit
+  final type TypeAttribs = scala.Unit
   final type ValeAttribs = ir.Type.Type[scala.Unit]
 }
