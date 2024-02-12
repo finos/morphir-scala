@@ -17,7 +17,7 @@ import scala.collection.immutable.{List as ScalaList, Set as ScalaSet, Map as Sc
 import scala.collection.mutable
 
 // TODO Integrate errors into reporting format
-// Represents a Morphir-Evaluator result. Typed on TypedMorphirRuntimeDefs.scala.Unit, TypedMorphirRuntimeDefs.UType
+// Represents a Morphir-Evaluator result. Typed on TypedValue
 // instead of a a Generic VA/TA since the latter is not necessary.
 sealed trait RTValue {
   def succinct(depth: Int): String = s"${this.getClass} (Default implementation)"
@@ -654,7 +654,7 @@ object RTValue {
 
   case class DefinitionFunction(
       body: TypedValue,
-      arguments: scala.List[(Name, UType, Type[scala.Unit])],
+      arguments: scala.List[(Name, UType, UType)],
       curried: scala.List[(Name, RTValue)],
       closingContext: CallStackFrame
   ) extends Function
