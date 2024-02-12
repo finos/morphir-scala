@@ -271,7 +271,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
 
   def handleLetRecursion(
       va: UType,
-      definitions: Map[Name, Definition[scala.Unit, UType]],
+      definitions: Map[Name, TypedDefinition],
       inValue: TypedValue,
       store: Store
   ): RTValue = {
