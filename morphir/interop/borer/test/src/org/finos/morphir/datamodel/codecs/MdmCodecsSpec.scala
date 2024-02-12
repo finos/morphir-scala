@@ -42,8 +42,6 @@ object MdmCodecsSpec extends MorphirBaseSpec {
         val data = Data.Record(pn.morphirIR % "Test", List(Label("1") -> Data.String("Test"), Label("2") -> Data.False))
         assertTrue(testCodec(data))
       },
-      // So for collection types, options, and results it is good if tests include “zero-values”
-      // (i.e. None, Nil, etc) and variant of sum types
       test("Optional") {
         val data = Data.Optional.Some(Data.Int(123))
         assertTrue(testCodec(data))
@@ -79,6 +77,22 @@ object MdmCodecsSpec extends MorphirBaseSpec {
       test("Aliased") {
         val aliasName = pn.morphirIR % "someAlias"
         val data      = Data.Aliased(Data.Int(10), Concept.Alias(aliasName, Concept.Int32))
+        assertTrue(testCodec(data))
+      },
+      test("LocalDate") {
+        val data = Data.LocalDate(java.time.LocalDate.now())
+        assertTrue(testCodec(data))
+      },
+      test("Month") {
+        val data = Data.Month(java.time.Month.AUGUST)
+        assertTrue(testCodec(data))
+      },
+      test("DayOfWeek") {
+        val data = Data.DayOfWeek(java.time.DayOfWeek.FRIDAY)
+        assertTrue(testCodec(data))
+      },
+      test("LocalTime") {
+        val data = Data.LocalTime(java.time.LocalTime.now())
         assertTrue(testCodec(data))
       }
     )
