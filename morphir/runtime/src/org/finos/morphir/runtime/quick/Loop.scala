@@ -2,12 +2,11 @@ package org.finos.morphir.runtime.quick
 
 import org.finos.morphir.naming.*
 import org.finos.morphir.ir.Literal.Lit
-import org.finos.morphir.ir.Value.{Pattern, Value}
+import org.finos.morphir.ir.Value.{Pattern, Value, TypedValue, TypedDefinition}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
 import Helpers.{listToTuple, matchPatternCase, unpackLit}
 import org.finos.morphir.runtime.SDKValue.{SDKNativeFunction, SDKNativeInnerFunction, SDKNativeValue}
 import org.finos.morphir.ir.Type.UType
-import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{RuntimeDefinition, RuntimeValue, TypeAttribs, ValueAttribs}
 import org.finos.morphir.runtime.internal.{NativeFunctionSignature, StoredValue}
 import org.finos.morphir.runtime.internal.InvokeableEvaluator
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
@@ -25,7 +24,7 @@ import org.finos.morphir.runtime.MorphirRuntimeError.{
 import org.finos.morphir.util.PrintRTValue
 
 private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluator {
-  def loop(ir: RuntimeValue, store: Store): RTValue = {
+  def loop(ir: TypedValue, store: Store): RTValue = {
     val result = ir match {
       case Literal(va, lit)              => handleLiteral(va, lit)
       case Apply(va, function, argument) => handleApply(va, function, argument, store)
@@ -52,12 +51,12 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     result
   }
 
-  def handleLiteral(va: ValueAttribs, literal: Lit) = unpackLit(literal)
+  def handleLiteral(va: UType, literal: Lit) = unpackLit(literal)
 
   def handleApply(
-      va: ValueAttribs,
-      function: RuntimeValue,
-      argument: RuntimeValue,
+      va: UType,
+      function: TypedValue,
+      argument: TypedValue,
       store: Store
   ): RTValue = {
     val functionValue = loop(function, store)
@@ -66,7 +65,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
   }
 
   def handleApplyResult2(
-      va: ValueAttribs,
+      va: UType,
       functionValue: RTValue,
       arg1: RTValue,
       arg2: RTValue
@@ -79,7 +78,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
   }
 
   def handleApplyResult(
-      va: ValueAttribs,
+      va: UType,
       functionValue: RTValue,
       argValue: RTValue
   ): RTValue =
@@ -167,11 +166,11 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     }
 
   def handleDestructure(
-      va: ValueAttribs,
-      node: RuntimeValue,
-      pattern: Pattern[ValueAttribs],
-      valueToDestruct: RuntimeValue,
-      inValue: RuntimeValue,
+      va: UType,
+      node: TypedValue,
+      pattern: Pattern[UType],
+      valueToDestruct: TypedValue,
+      inValue: TypedValue,
       store: Store
   ): RTValue = {
     val value = loop(valueToDestruct, store)
@@ -182,7 +181,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     }
   }
 
-  def handleConstructor(va: ValueAttribs, name: FQName): RTValue =
+  def handleConstructor(va: UType, name: FQName): RTValue =
     globals.getCtor(name) match {
       case Some(SDKConstructor(List())) => RTValue.ConstructorResult(name, List())
       case Some(SDKConstructor(arguments)) =>
@@ -204,8 +203,8 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     }
 
   def handleField(
-      va: ValueAttribs,
-      recordValue: RuntimeValue,
+      va: UType,
+      recordValue: TypedValue,
       fieldName: Name,
       store: Store
   ): RTValue =
@@ -222,13 +221,13 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
         )
     }
 
-  def handleFieldFunction(va: ValueAttribs, name: Name): RTValue = RTValue.FieldFunction(name)
+  def handleFieldFunction(va: UType, name: Name): RTValue = RTValue.FieldFunction(name)
 
   def handleIfThenElse(
-      va: ValueAttribs,
-      condition: RuntimeValue,
-      thenValue: RuntimeValue,
-      elseValue: RuntimeValue,
+      va: UType,
+      condition: TypedValue,
+      thenValue: TypedValue,
+      elseValue: TypedValue,
       store: Store
   ) =
     loop(condition, store) match {
@@ -242,18 +241,18 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     }
 
   def handleLambda(
-      va: ValueAttribs,
-      pattern: Pattern[ValueAttribs],
-      body: RuntimeValue,
+      va: UType,
+      pattern: Pattern[UType],
+      body: TypedValue,
       store: Store
   ): RTValue =
     RTValue.LambdaFunction(body, pattern, store.callStack)
 
   def handleLetDefinition(
-      va: ValueAttribs,
+      va: UType,
       valueName: Name,
-      valueDefinition: RuntimeDefinition,
-      inValue: RuntimeValue,
+      valueDefinition: TypedDefinition,
+      inValue: TypedValue,
       store: Store
   ) = {
     val value =
@@ -264,9 +263,9 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
   }
 
   def handleLetRecursion(
-      va: ValueAttribs,
-      definitions: Map[Name, Definition[TypeAttribs, ValueAttribs]],
-      inValue: RuntimeValue,
+      va: UType,
+      definitions: Map[Name, TypedDefinition],
+      inValue: TypedValue,
       store: Store
   ): RTValue = {
     val siblings = definitions.map { case (name, definition) =>
@@ -275,21 +274,21 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     loop(inValue, store.push(siblings))
   }
 
-  def handleListValue(va: ValueAttribs, elements: List[RuntimeValue], store: Store): RTValue =
+  def handleListValue(va: UType, elements: List[TypedValue], store: Store): RTValue =
     RTValue.List(elements.map(loop(_, store)))
 
   def handlePatternMatch(
-      va: ValueAttribs,
-      node: RuntimeValue,
-      value: RuntimeValue,
-      cases: List[(Pattern[ValueAttribs], RuntimeValue)],
+      va: UType,
+      node: TypedValue,
+      value: TypedValue,
+      cases: List[(Pattern[UType], TypedValue)],
       store: Store
   ): RTValue = {
     val evaluated = loop(value, store)
 
     def firstPatternMatching(
-        remainingCases: List[(Pattern[ValueAttribs], RuntimeValue)]
-    ): (RuntimeValue, Map[Name, RTValue]) =
+        remainingCases: List[(Pattern[UType], TypedValue)]
+    ): (TypedValue, Map[Name, RTValue]) =
       remainingCases match {
         case (pattern, inValue) :: tail =>
           matchPatternCase(pattern, evaluated).map((inValue, _)).getOrElse(firstPatternMatching(tail))
@@ -300,10 +299,10 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     loop(inValue, store.push(bindings.map { case (name, value) => name -> StoredValue.Eager(value) }))
   }
 
-  def handleRecord(va: ValueAttribs, fields: List[(Name, RuntimeValue)], store: Store): RTValue =
+  def handleRecord(va: UType, fields: List[(Name, TypedValue)], store: Store): RTValue =
     RTValue.Record(fields.map { case (name, value) => name -> loop(value, store) }.toMap)
 
-  def handleReference(va: ValueAttribs, name: FQName, store: Store): RTValue =
+  def handleReference(va: UType, name: FQName, store: Store): RTValue =
     globals.getDefinition(name) match {
       case None =>
         val filtered = globals.definitions.keys.filter(_.getPackagePath == name.getPackagePath)
@@ -332,17 +331,17 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
         RTValue.NativeInnerFunction(function.numArgs, List(), function)
     }
 
-  def handleTuple(va: ValueAttribs, elements: List[RuntimeValue], store: Store): RTValue = {
+  def handleTuple(va: UType, elements: List[TypedValue], store: Store): RTValue = {
     val evaluatedElements = elements.map(loop(_, store))
     RTValue.Tuple(evaluatedElements)
   }
 
-  def handleUnit(va: ValueAttribs): RTValue = RTValue.Unit()
+  def handleUnit(va: UType): RTValue = RTValue.Unit()
 
   def handleUpdateRecord(
-      va: ValueAttribs,
-      valueToUpdate: RuntimeValue,
-      fields: Map[Name, RuntimeValue],
+      va: UType,
+      valueToUpdate: TypedValue,
+      fields: Map[Name, TypedValue],
       store: Store
   ): RTValue =
     loop(valueToUpdate, store) match {
@@ -353,7 +352,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
         throw UnexpectedType("Record", other, hint = "Expected because I found this in an update record node")
     }
 
-  def handleVariable(va: ValueAttribs, name: Name, store: Store) =
+  def handleVariable(va: UType, name: Name, store: Store) =
     store.getVariable(name) match {
       case None                         => throw VariableNotFound(name)
       case Some(StoredValue.Eager(res)) => res
