@@ -12,14 +12,15 @@ import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
-import org.finos.morphir.ir.Value.TypedValue
 
 trait TypedMorphirRuntime extends MorphirRuntime {
+  type TypeAttribs  = scala.Unit
+  type ValueAttribs = UType
 
   final def evaluate(
-      entryPoint: TypedValue,
-      param: TypedValue,
-      params: TypedValue*
+      entryPoint: Value[scala.Unit, UType],
+      param: Value[scala.Unit, UType],
+      params: Value[scala.Unit, UType]*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
       applied   <- applyParams(entryPoint, (param +: params): _*)
@@ -27,7 +28,7 @@ trait TypedMorphirRuntime extends MorphirRuntime {
     } yield evaluated
 
   def evaluate(
-      entryPoint: TypedValue,
+      entryPoint: Value[scala.Unit, UType],
       param: Data,
       params: Data*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data] = {
