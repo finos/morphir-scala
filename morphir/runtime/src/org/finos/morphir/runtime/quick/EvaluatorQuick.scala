@@ -14,7 +14,6 @@ import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.runtime.services.sdk.*
-import org.finos.morphir.ir.Type.UType
 import zio.Chunk
 
 import scala.collection.mutable
