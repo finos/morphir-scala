@@ -5,7 +5,7 @@ import org.finos.morphir.ir.Value.{Pattern, Value => V}
 import org.finos.morphir.ir.{Type => T}
 import org.finos.morphir.ir.Type.Type
 import org.finos.morphir.ir.Value.Pattern.*
-import org.finos.morphir.ir.Value.Value
+import org.finos.morphir.ir.Value.{Value, TypedValue}
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.distribution.Distribution.Lib
 import org.finos.morphir.ir.distribution.Distribution
@@ -15,7 +15,6 @@ import scala.collection.immutable.Set
 import zio.Chunk
 
 object GatherReferences {
-  type TypedValue = Value[scala.Unit, UType]
   // Gather references from distribution*
   // Also from GlobalDefs? (Yeah, redundancy is okay, and there are
   // Helper: Recursively explore value
