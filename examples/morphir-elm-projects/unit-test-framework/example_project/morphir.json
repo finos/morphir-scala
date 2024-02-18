@@ -1,7 +1,7 @@
 {
-    "name": "Morphir.UnitTest",
+    "name": "Example",
     "sourceDirectory": "src",
     "exposedModules": [
-        "Test"
+        "ExampleModule"
     ]
 }
