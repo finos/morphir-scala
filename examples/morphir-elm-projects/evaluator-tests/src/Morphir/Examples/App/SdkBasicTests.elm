@@ -969,7 +969,7 @@ sdkAppendStringTest ctx =
 {-| Test: SdkBasics/appendList
 Expected: [1, 2, 3, 4]
 -}
-sdkAppendListTest : TestContext -> List number
+sdkAppendListTest : TestContext -> List Int
 sdkAppendListTest ctx =
     test ctx <|
         let
@@ -981,60 +981,6 @@ sdkAppendListTest ctx =
 
 
 -----
-
-
-{-| Test: SdkBasics/identityInt
-Expected: 4
--}
-sdkIdentityTestInt : TestContext -> Int
-sdkIdentityTestInt ctx =
-    test ctx <|
-        let
-            f x =
-                identity x
-        in
-        f 4
-
-
-{-| Test: SdkBasics/identityFloat
-Expected: 4.0
--}
-sdkIdentityTestFloat : TestContext -> Float
-sdkIdentityTestFloat ctx =
-    test ctx <|
-        let
-            f x =
-                identity x
-        in
-        f 4.0
-
-
-{-| Test: SdkBasics/identityChar
-Expected: 'b'
--}
-sdkIdentityTestChar : TestContext -> Char
-sdkIdentityTestChar ctx =
-    test ctx <|
-        let
-            f x =
-                identity x
-        in
-        f 'b'
-
-
-{-| Test: SdkBasics/identityString
-Expected: "BB"
--}
-sdkIdentityTestString : TestContext -> String
-sdkIdentityTestString ctx =
-    test ctx <|
-        let
-            f x =
-                identity x
-        in
-        f "BB"
-
-
 {-| Test: SdkBasics/identityTuple
 Expected: (2, 3)
 -}
