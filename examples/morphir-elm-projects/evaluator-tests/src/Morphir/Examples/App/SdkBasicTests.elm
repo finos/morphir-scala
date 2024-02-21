@@ -1181,6 +1181,10 @@ basicsSqrtTest x =
 
 
 {-| Test: SdkBasics/basicsTruncateTest
+expected(1.2) = 1
+expected(-1.2) = -1
+expected(0.4) = 0
+expected(-0.4) = 0
 -}
 basicsTruncateTest : Float -> Int
 basicsTruncateTest x =
@@ -1188,6 +1192,10 @@ basicsTruncateTest x =
 
 
 {-| Test: SdkBasics/basicsXorTest
+expected(true, true) = false
+expected(true, false) = true
+expected(false, true) = true
+expected(false, false) = false
 -}
 basicsXorTest : Bool -> Bool -> Bool
 basicsXorTest x y =

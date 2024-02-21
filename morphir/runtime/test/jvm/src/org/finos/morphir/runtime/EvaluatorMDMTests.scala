@@ -2112,31 +2112,33 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             testEvaluation("InEqual 6")("sdkBasicsTests", "sdkNotEqualTest6")(Data.Boolean(true)),
             testEvaluation("InEqual 7")("sdkBasicsTests", "sdkNotEqualTest7")(Data.Boolean(true))
           ),
-          suite("LessThan and LessThanOrEqual")(
-            testEvalMultiple("LessThan Float")("sdkBasicsTests", "sdkLessThanTest", List(2.0, 4.0))(Data.Boolean(true)),
-            testEvalMultiple("LessThan Char")("sdkBasicsTests", "sdkLessThanTest", List('a', 'b'))(Data.Boolean(true)),
-            testEvalMultiple("LessThan String")("sdkBasicsTests", "sdkLessThanTest", List("AA", "BB"))(
+          suite("LessThan")(
+            testEvalMultiple("Float")("sdkBasicsTests", "sdkLessThanTest", List(2.0, 4.0))(Data.Boolean(true)),
+            testEvalMultiple("Char")("sdkBasicsTests", "sdkLessThanTest", List('a', 'b'))(Data.Boolean(true)),
+            testEvalMultiple("String")("sdkBasicsTests", "sdkLessThanTest", List("AA", "BB"))(
               Data.Boolean(true)
             ),
-            testEvalMultiple("LessThan Tuple")("sdkBasicsTests", "sdkLessThanTest", List((1, 2), (2, 3)))(
+            testEvalMultiple("Tuple")("sdkBasicsTests", "sdkLessThanTest", List((1, 2), (2, 3)))(
               Data.Boolean(true)
             ),
-            testEvalMultiple("LessThan List")("sdkBasicsTests", "sdkLessThanTest", List(List(1, 2), List(2, 3)))(
+            testEvalMultiple("List")("sdkBasicsTests", "sdkLessThanTest", List(List(1, 2), List(2, 3)))(
+              Data.Boolean(true)
+            )
+          ),
+          suite("LessThanOrEqual")(
+            testEvalMultiple("Float")("sdkBasicsTests", "sdkLessThanOrEqualTest", List(2.0, 4.0))(
               Data.Boolean(true)
             ),
-            testEvalMultiple("LessThanOrEqual Float")("sdkBasicsTests", "sdkLessThanOrEqualTest", List(2.0, 4.0))(
+            testEvalMultiple("Char")("sdkBasicsTests", "sdkLessThanOrEqualTest", List('a', 'b'))(
               Data.Boolean(true)
             ),
-            testEvalMultiple("LessThanOrEqual Char")("sdkBasicsTests", "sdkLessThanOrEqualTest", List('a', 'b'))(
+            testEvalMultiple("String")("sdkBasicsTests", "sdkLessThanOrEqualTest", List("AA", "BB"))(
               Data.Boolean(true)
             ),
-            testEvalMultiple("LessThanOrEqual String")("sdkBasicsTests", "sdkLessThanOrEqualTest", List("AA", "BB"))(
+            testEvalMultiple("Tuple")("sdkBasicsTests", "sdkLessThanOrEqualTest", List((1, 2), (2, 3)))(
               Data.Boolean(true)
             ),
-            testEvalMultiple("LessThanOrEqual Tuple")("sdkBasicsTests", "sdkLessThanOrEqualTest", List((1, 2), (2, 3)))(
-              Data.Boolean(true)
-            ),
-            testEvalMultiple("LessThanOrEqual List")(
+            testEvalMultiple("List")(
               "sdkBasicsTests",
               "sdkLessThanOrEqualTest",
               List(List(1, 2), List(2, 3))
