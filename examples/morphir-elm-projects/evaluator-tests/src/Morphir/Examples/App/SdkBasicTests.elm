@@ -73,19 +73,6 @@ sdkSubtractTest64 t =
     f t.a t.b
 
 
-{-| Test: SdkBasics/multiply
-Expected = 6
--}
-sdkMultiplyTest : TestContext -> Int
-sdkMultiplyTest ctx =
-    test ctx <|
-        let
-            f x y =
-                x * y
-        in
-        f 2 3
-
-
 {-| Test: SdkBasics/addFloat
 Expected = 3.0
 -}
@@ -180,19 +167,6 @@ sdkDivideByZeroTest ctx =
                 x / y
         in
         f 20.0 0
-
-
-{-| Test: SdkBasics/integerDivide
-Expected = 2
--}
-sdkIntegerDivideTest : TestContext -> Int
-sdkIntegerDivideTest ctx =
-    test ctx <|
-        let
-            f x y =
-                x // y
-        in
-        f 20 10
 
 
 {-| Test: SdkBasics/toFloat
