@@ -2242,7 +2242,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEvaluation("Eulers")("sdkBasicsTests", "sdkEulersNumberTest")(Data.Float(2.718281828459045)),
           testEvaluation("Pi")("sdkBasicsTests", "sdkPiTest")(Data.Float(3.141592653589793)),
           testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
-
+          testEval("Ceiling whole number")("sdkBasicsTests", "basicsCeilingTest", 3.0)(Data.Int(3)),
+          testEval("Floor")("sdkBasicsTests", "basicsFloorTest", 3.88)(Data.Int(3)),
+          testEval("Floor whole number")("sdkBasicsTests", "basicsFloorTest", 3.0)(Data.Int(3)),
+          testEval("Truncate")("sdkBasicsTests", "basicsTruncateTest", 1.2)(Data.Int(1)),
+          testEval("Truncate 2")("sdkBasicsTests", "basicsTruncateTest", -1.2)(Data.Int(-1)),
+          testEval("Truncate 3")("sdkBasicsTests", "basicsTruncateTest", .4)(Data.Int(0)),
+          testEval("Truncate 4")("sdkBasicsTests", "basicsTruncateTest", -.4)(Data.Int(0)),
+          testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0))
+        )
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
