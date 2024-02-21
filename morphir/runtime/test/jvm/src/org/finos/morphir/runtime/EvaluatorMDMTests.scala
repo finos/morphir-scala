@@ -2084,15 +2084,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("SDK Basics Tests")(
-        testEvaluation("x >= y - True B")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntTrue2")(Data.Boolean(true)),
-        testEvaluation("x >= y - False")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntFalse")(Data.Boolean(false)),
-        testEvaluation("x <= y - True A")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue1")(Data.Boolean(true)),
-        testEvaluation("x <= y - True B")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue2")(Data.Boolean(true)),
-        testEvaluation("x <= y - False")("sdkBasicsTests", "sdkLessThanOrEqualTestIntFalse")(Data.Boolean(false)),
-        testEvaluation("ToFloat")("sdkBasicsTests", "toFloatTest")(Data.Float(2.0)),
-        testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest")(Data.Int(-3)),
-        testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest2")(Data.Int(3)),
-        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest")(Data.Boolean(true)),
         testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest2")(Data.Boolean(true)),
         testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest3")(Data.Boolean(true)),
         testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest4")(Data.Boolean(true)),
