@@ -2097,6 +2097,16 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           suite("Equality")(
             testEvaluation("Equal 1")("sdkBasicsTests", "sdkEqualTest")(Data.Boolean(true)),
             testEvaluation("Equal 2")("sdkBasicsTests", "sdkEqualTest2")(Data.Boolean(true)),
+            testEvaluation("Equal 3")("sdkBasicsTests", "sdkEqualTest3")(Data.Boolean(true)),
+            testEvaluation("Equal 4")("sdkBasicsTests", "sdkEqualTest4")(Data.Boolean(true)),
+            testEvaluation("Equal 4")("sdkBasicsTests", "sdkEqualTest5")(Data.Boolean(true)),
+            testEvaluation("Equal 5")("sdkBasicsTests", "sdkEqualTest6")(Data.Boolean(true)),
+            testEvaluation("Equal 6")("sdkBasicsTests", "sdkEqualTest7")(Data.Boolean(true))
+          ),
+          suite("Inequality")(
+            testEvaluation("InEqual 1")("sdkBasicsTests", "sdkNotEqualTest")(Data.Boolean(true)),
+            testEvaluation("InEqual 2")("sdkBasicsTests", "sdkNotEqualTest2")(Data.Boolean(true)),
+            testEvaluation("InEqual 3")("sdkBasicsTests", "sdkNotEqualTest3")(Data.Boolean(true)),
 
       )
     ).provideLayerShared(morphirRuntimeLayer)
