@@ -2355,14 +2355,18 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEvaluation("LogBase2")("sdkBasicsTests", "sdkLogBaseTest2")(Data.Float(8.0))
         ),
         suite("break")(
-          testEval("Always Int")("sdkBasicsTests", "basicsAlwaysTest", 0)(Data.List(Data.Int(0))),
-          testEval("Always Float")("sdkBasicsTests", "basicsAlwaysTest", 4.0)(Data.List(Data.Float(4.0))),
-          testEval("Always Char")("sdkBasicsTests", "basicsAlwaysTest", Data.Char('z'))(Data.List(Data.Char('z'))),
-          testEval("Always String")("sdkBasicsTests", "basicsAlwaysTest", Data.String("A"))(
-            Data.List(Data.String("A"))
+          suite("Always")(
+            testEval("Int")("sdkBasicsTests", "basicsAlwaysTest", 0)(Data.List(Data.Int(0))),
+            testEval("Float")("sdkBasicsTests", "basicsAlwaysTest", 4.0)(Data.List(Data.Float(4.0))),
+            testEval("Char")("sdkBasicsTests", "basicsAlwaysTest", Data.Char('z'))(Data.List(Data.Char('z'))),
+            testEval("String")("sdkBasicsTests", "basicsAlwaysTest", Data.String("A"))(
+              Data.List(Data.String("A"))
+            )
           ),
-          testEvaluation("ComposeLeft (<<)")("sdkBasicsTests", "sdkComposeLeftTest")(Data.Boolean(false)),
-          testEvaluation("ComposeRight (>>)")("sdkBasicsTests", "sdkComposeRightTest")(Data.Int(603)),
+          suite("Compose")(
+            testEvaluation("ComposeLeft (<<)")("sdkBasicsTests", "sdkComposeLeftTest")(Data.Boolean(false)),
+            testEvaluation("ComposeRight (>>)")("sdkBasicsTests", "sdkComposeRightTest")(Data.Int(603))
+          ),
           testEval("Identity Int")("sdkBasicsTests", "basicsIdentityTest", Data.Int(4))(Data.Int(4)),
           testEval("Identity Float")("sdkBasicsTests", "basicsIdentityTest", Data.Float(-5.0))(Data.Float(-5.0)),
           testEval("Identity Char")("sdkBasicsTests", "basicsIdentityTest", Data.Char('b'))(Data.Char('b')),
