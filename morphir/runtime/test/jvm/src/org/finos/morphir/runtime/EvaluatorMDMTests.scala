@@ -2287,7 +2287,25 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
           testEvaluation("Sqrt")("sdkBasicsTests", "sdkSqrtTest")(Data.Float(4.0)),
           testEvaluation("ToFloat")("sdkBasicsTests", "toFloatTest")(Data.Float(2.0))
-        )
+        ),
+        suite("Math")(
+          suite("Clamp")(
+            testEvalMultiple("Clamp greater than")("sdkBasicsTests", "basicsClampTest", List(100, 200, 1000))(
+              Data.Int(200)
+            ),
+            testEvalMultiple("Clamp less than")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 50.0))(
+              Data.Float(100.0)
+            ),
+            testEvalMultiple("Clamp as min")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 100.0))(
+              Data.Float(100.0)
+            ),
+            testEvalMultiple("Clamp as max")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 200.0))(
+              Data.Float(200.0)
+            ),
+            testEvalMultiple("Clamp in range")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 150.0))(
+              Data.Float(150.0)
+            )
+          ),
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
