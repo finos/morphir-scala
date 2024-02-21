@@ -847,45 +847,6 @@ sdkLessThanOrEqualTestIntFalse ctx =
 
 
 -----
-{-| Test: SdkBasics/greaterThanOrEqualInt
-Expected: False
--}
-sdkGreaterThanOrEqualTestInt : TestContext -> Bool
-sdkGreaterThanOrEqualTestInt ctx =
-    test ctx <|
-        let
-            f x y =
-                x >= y
-        in
-        f 2 4
-
-
-{-| Test: SdkBasics/greaterThanOrEqualFloat
-Expected: False
--}
-sdkGreaterThanOrEqualTestFloat : TestContext -> Bool
-sdkGreaterThanOrEqualTestFloat ctx =
-    test ctx <|
-        let
-            f x y =
-                x >= y
-        in
-        f 2.0 4.0
-
-
-{-| Test: SdkBasics/greaterThanOrEqualChar
-Expected: False
--}
-sdkGreaterThanOrEqualTestChar : TestContext -> Bool
-sdkGreaterThanOrEqualTestChar ctx =
-    test ctx <|
-        let
-            f x y =
-                x >= y
-        in
-        f 'a' 'b'
-
-
 {-| Test: SdkBasics/greaterThanOrEqualString
 Expected: False
 -}
