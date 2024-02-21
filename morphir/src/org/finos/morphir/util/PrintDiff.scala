@@ -90,19 +90,17 @@ private class PrintDiff(val defaultWidth: Int = 150) extends pprint.Walker {
   def duplicateTree(tree: Tree): (Tree, Tree) =
     tree match {
       case Apply(prefix, body) =>
-        val (aBody, bBody) = body.toList.map(duplicateTree(_)).unzip
-        (Apply(prefix, aBody.iterator), Apply(prefix, bBody.iterator))
+        val (aBody, bBody) =
+          body.toList.map(duplicateTree(_)).unzip(Apply(prefix, aBody.iterator), Apply(prefix, bBody.iterator))
 
       case KeyValue(key, value) =>
-        val (value1, value2) = duplicateTree(value)
-        (KeyValue(key, value1), KeyValue(key, value2))
+        val (value1, value2) = duplicateTree(value)(KeyValue(key, value1), KeyValue(key, value2))
 
       case l @ Lazy(_) => (l, l)
 
       case Infix(lhs, op, rhs) =>
         val (lhs1, lhs2) = duplicateTree(lhs)
-        val (rhs1, rhs2) = duplicateTree(rhs)
-        (Infix(lhs1, op, rhs1), Infix(lhs2, op, rhs2))
+        val (rhs1, rhs2) = duplicateTree(rhs)(Infix(lhs1, op, rhs1), Infix(lhs2, op, rhs2))
 
       case l @ Tree.Literal(_) => (l, l)
     }
