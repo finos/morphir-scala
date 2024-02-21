@@ -28,15 +28,15 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
 
   def evaluate(
       entryPoint: FQName,
-      param: Value[TypeAttribs, ValueAttribs],
-      params: Value[TypeAttribs, ValueAttribs]*
+      param: TypedValue,
+      params: TypedValue*
   ): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
       tpe <- fetchType(entryPoint)
       res <- evaluate(Value.Reference.Typed(tpe, entryPoint), param, params: _*)
     } yield res
 
-  def evaluate(value: Value[TypeAttribs, ValueAttribs]): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
+  def evaluate(value: TypedValue): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
       _   <- typeCheck(value)
       res <- EvaluatorQuick.evalAction(value, globals, dists)
@@ -55,7 +55,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
     }
   }
 
-  def typeCheck(value: Value[TypeAttribs, ValueAttribs]): RTAction[MorphirEnv, TypeError, Unit] = for {
+  def typeCheck(value: TypedValue): RTAction[MorphirEnv, TypeError, Unit] = for {
     ctx <- ZPure.get[RTExecutionContext]
     result <- ctx.options.enableTyper match {
       case EnableTyper.Disabled => RTAction.succeed[RTExecutionContext, Unit](())
@@ -71,9 +71,9 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
   } yield result
 
   def applyParams(
-      entryPoint: Value[TypeAttribs, ValueAttribs],
-      params: Value[TypeAttribs, ValueAttribs]*
-  ): RTAction[Any, TypeError, Value[TypeAttribs, ValueAttribs]] =
+      entryPoint: TypedValue,
+      params: TypedValue*
+  ): RTAction[Any, TypeError, TypedValue] =
     for {
       ctx <- ZPure.get[RTExecutionContext]
       out <- {

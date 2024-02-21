@@ -2,22 +2,22 @@ package org.finos.morphir.runtime
 
 import org.finos.morphir.ir.Type.Type
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
-import org.finos.morphir.ir.Value.{Pattern, Value}
+import org.finos.morphir.ir.Value.{Pattern, Value, TypedValue}
 import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.naming.*
 import Name.toTitleCase
 import org.finos.morphir.MInt
 import org.finos.morphir.datamodel.Concept.Result
-import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{RuntimeValue, TypeAttribs, ValueAttribs}
 import org.finos.morphir.runtime.internal.{NativeFunctionSignature, NativeFunctionSignatureAdv}
 import org.finos.morphir.runtime.MorphirRuntimeError.{IllegalValue, FailedCoercion}
 import org.finos.morphir.runtime.internal.CallStackFrame
+import org.finos.morphir.ir.Type.UType
 
 import scala.collection.immutable.{List as ScalaList, Set as ScalaSet, Map as ScalaMap}
 import scala.collection.mutable
 
 // TODO Integrate errors into reporting format
-// Represents a Morphir-Evaluator result. Typed on TypedMorphirRuntimeDefs.TypeAttribs, TypedMorphirRuntimeDefs.ValueAttribs
+// Represents a Morphir-Evaluator result. Typed on TypedValue
 // instead of a a Generic VA/TA since the latter is not necessary.
 sealed trait RTValue {
   def succinct(depth: Int): String = s"${this.getClass} (Default implementation)"
@@ -642,24 +642,24 @@ object RTValue {
     }
   }
   case class Applied(
-      body: RuntimeValue,
+      body: TypedValue,
       curried: scala.List[(Name, RTValue)],
       closingContext: CallStackFrame
   )
 
   case class FieldFunction(fieldName: Name) extends Function
 
-  case class LambdaFunction(body: RuntimeValue, pattern: Pattern[ValueAttribs], closingContext: CallStackFrame)
+  case class LambdaFunction(body: TypedValue, pattern: Pattern[UType], closingContext: CallStackFrame)
       extends Function
 
   case class DefinitionFunction(
-      body: RuntimeValue,
-      arguments: scala.List[(Name, ValueAttribs, Type[TypeAttribs])],
+      body: TypedValue,
+      arguments: scala.List[(Name, UType, UType)],
       curried: scala.List[(Name, RTValue)],
       closingContext: CallStackFrame
   ) extends Function
 
-  case class ConstructorFunction(name: FQName, arguments: scala.List[ValueAttribs], curried: scala.List[RTValue])
+  case class ConstructorFunction(name: FQName, arguments: scala.List[UType], curried: scala.List[RTValue])
       extends Function
 
   // TODO: We are currently using this for Maybe and Result types; those should be promoted to their own RTValues
