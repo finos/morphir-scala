@@ -2277,7 +2277,17 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEvalMultiple("RemainderBy 3")("sdkBasicsTests", "basicsRemainderByTest", List(0, 4))(
             Data.Int(0)
           ) @@ ignore @@ TestAspect.tag("remainderBy 0 throws"),
-
+          testEvaluation("Negative int abs")("sdkBasicsTests", "sdkAbsTest")(Data.Int(3)),
+          testEvaluation("Positive int abs")("sdkBasicsTests", "sdkAbsTest2")(Data.Int(3)),
+          testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest")(Data.Int(-3)),
+          testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest2")(Data.Int(3)),
+          testEvaluation("Round")("sdkBasicsTests", "sdkRoundTest")(Data.Int(123)),
+          testEvaluation("Round")("sdkBasicsTests", "sdkRoundTest2")(Data.Int(123)),
+          testEvalMultiple("Power")("sdkBasicsTests", "basicsPowerTest", List(4, 5))(Data.Int(1024)),
+          testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
+          testEvaluation("Sqrt")("sdkBasicsTests", "sdkSqrtTest")(Data.Float(4.0)),
+          testEvaluation("ToFloat")("sdkBasicsTests", "toFloatTest")(Data.Float(2.0))
+        )
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
