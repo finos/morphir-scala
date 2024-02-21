@@ -2263,6 +2263,20 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.Int64(2)
           ) @@ ignore @@ TestAspect.tag("Not properly typed"),
           testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyIntTest")(Data.Int(20)),
+          testEvalMultiple("IntegerDivide")("sdkBasicsTests", "basicsIntegerDivideTest", List(12, 2))(
+            Data.Int(6)
+          ),
+          testEvalMultiple("IntegerDivide 2")("sdkBasicsTests", "basicsIntegerDivideTest", List(12, 0))(
+            Data.Int(0)
+          ),
+          testEvalMultiple("IntegerDivide 2")("sdkBasicsTests", "basicsIntegerDivideTest", List(-12, 7))(
+            Data.Int(-1)
+          ),
+          testEvalMultiple("RemainderBy")("sdkBasicsTests", "basicsRemainderByTest", List(4, 21))(Data.Int(1)),
+          testEvalMultiple("RemainderBy 2")("sdkBasicsTests", "basicsRemainderByTest", List(4, -21))(Data.Int(-1)),
+          testEvalMultiple("RemainderBy 3")("sdkBasicsTests", "basicsRemainderByTest", List(0, 4))(
+            Data.Int(0)
+          ) @@ ignore @@ TestAspect.tag("remainderBy 0 throws"),
 
       )
     ).provideLayerShared(morphirRuntimeLayer)
