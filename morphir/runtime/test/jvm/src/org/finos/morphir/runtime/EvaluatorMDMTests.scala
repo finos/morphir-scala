@@ -2306,6 +2306,20 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
               Data.Float(150.0)
             )
           ),
+          suite("Max")(
+            testEvalMultiple("Int")("sdkBasicsTests", "sdkMaxTest", List(2, 4))(Data.Int(4)),
+            testEvalMultiple("Float")("sdkBasicsTests", "sdkMaxTest", List(2.0, 4.0))(Data.Float(4.0)),
+            testEvalMultiple("Char")("sdkBasicsTests", "sdkMaxTest", List('a', 'b'))(Data.Char('b')),
+            testEvalMultiple("String")("sdkBasicsTests", "sdkMaxTest", List("AA", "BB"))(Data.String("BB")),
+            testEvalMultiple("Tuple")("sdkBasicsTests", "sdkMaxTest", List((1, 2), (2, 3)))(Data.Tuple(
+              Data.Int(2),
+              Data.Int(3)
+            )),
+            testEvalMultiple("List")("sdkBasicsTests", "sdkMaxTest", List(List(1, 2), List(2, 3)))(Data.List(
+              Data.Int(2),
+              Data.Int(3)
+            ))
+          ),
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
