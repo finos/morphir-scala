@@ -413,6 +413,11 @@ object Native {
       RTValue.Primitive.Boolean(a == b)
   }
 
+  val notEqual: SDKValue = SDKValue.SDKNativeFunction.fun2 {
+    (a: RTValue, b: RTValue) =>
+      RTValue.Primitive.Boolean(a != b)
+  }
+
   val utc = java.time.ZoneId.of("UTC")
 
   def fromMillisecondsEpoch(millis: Long): java.time.LocalTime =
@@ -429,6 +434,7 @@ object Native {
   }
 
   val pi: SDKValue = SDKValue.SDKNativeValue(RTValue.Primitive.Float(scala.math.Pi))
+  val e: SDKValue  = SDKValue.SDKNativeValue(RTValue.Primitive.Float(scala.math.E))
 
   val just: SDKConstructor    = SDKConstructor(List(Type.variable("contents")))
   val nothing: SDKConstructor = SDKConstructor(List())
@@ -447,10 +453,12 @@ object Native {
 
   val native: Map[FQName, SDKValue] = Map(
     FQName.fromString("Morphir.SDK:Basics:equal")               -> equal,
+    FQName.fromString("Morphir.SDK:Basics:notEqual")            -> notEqual,
     FQName.fromString("Morphir.SDK:Basics:and")                 -> and,
     FQName.fromString("Morphir.SDK:Basics:or")                  -> or,
     FQName.fromString("Morphir.SDK:Basics:not")                 -> not,
     FQName.fromString("Morphir.SDK:Basics:pi")                  -> pi,
+    FQName.fromString("Morphir.SDK:Basics:e")                   -> e,
     FQName.fromString("Morphir.SDK:Basics:add")                 -> plus,
     FQName.fromString("Morphir.SDK:Basics:subtract")            -> subtract,
     FQName.fromString("Morphir.SDK:Basics:divide")              -> divide,
