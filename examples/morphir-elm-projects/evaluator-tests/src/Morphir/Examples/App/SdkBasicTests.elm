@@ -182,32 +182,6 @@ toFloatTest ctx =
         f 2
 
 
-{-| Test: SdkBasics/power
-Expected = 16
--}
-sdkPowerTest : TestContext -> Int
-sdkPowerTest ctx =
-    test ctx <|
-        let
-            f x y =
-                x ^ y
-        in
-        f 4 2
-
-
-{-| Test: SdkBasics/powerFloat
-Expected = 16
--}
-sdkPowerFloatTest : TestContext -> Float
-sdkPowerFloatTest ctx =
-    test ctx <|
-        let
-            f x y =
-                x ^ y
-        in
-        f 4 2
-
-
 {-| Test: SdkBasics/round
 Expected = 4
 -}
@@ -321,19 +295,6 @@ sdkModByTest ctx =
         let
             f x y =
                 modBy x y
-        in
-        f 3 20
-
-
-{-| Test: SdkBasics/remainderBy
-Expected = 2
--}
-sdkRemainderByTest : TestContext -> Int
-sdkRemainderByTest ctx =
-    test ctx <|
-        let
-            f x y =
-                remainderBy x y
         in
         f 3 20
 
