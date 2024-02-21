@@ -2351,7 +2351,21 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("Identity Float")("sdkBasicsTests", "basicsIdentityTest", Data.Float(-5.0))(Data.Float(-5.0)),
           testEval("Identity Char")("sdkBasicsTests", "basicsIdentityTest", Data.Char('b'))(Data.Char('b')),
           testEval("Identity String")("sdkBasicsTests", "basicsIdentityTest", Data.String("BB"))(Data.String("BB")),
-
+          testEval("Identity Tuple")(
+            "sdkBasicsTests",
+            "basicsIdentityTest",
+            Data.Tuple(
+              Data.Int(2),
+              Data.Int(3)
+            )
+          )(Data.Tuple(
+            Data.Int(2),
+            Data.Int(3)
+          )),
+          testEval("Identity List")("sdkBasicsTests", "basicsIdentityTest", Data.List(Data.Int(2), Data.Int(3)))(
+            Data.List(Data.Int(2), Data.Int(3))
+          )
+        )
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
