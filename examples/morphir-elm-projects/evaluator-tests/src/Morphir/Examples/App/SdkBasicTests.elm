@@ -1129,6 +1129,11 @@ basicsAlwaysTest x =
 
 
 {-| Test: SdkBasics/basicsClampTest
+expected(100, 200, 1000) = 200
+expected(100.0, 200.0, 50.0) = 100.0
+expected(100.0, 200.0, 100.0) = 100.0
+expected(100.0, 200.0, 200.0) = 200.0
+expected(100.0, 200.0, 150.0) = 150.0
 -}
 basicsClampTest : a -> a -> a -> a
 basicsClampTest min max x =
@@ -1136,6 +1141,12 @@ basicsClampTest min max x =
 
 
 {-| Test: SdkBasics/basicsIdentityTest
+expected(4) = 4
+expected(-5.0) = -5.0
+expected('b') = 'b'
+expected("BB") = "BB"
+expected((2,3)) = (2,3)
+expected(List(2,3)) = List(2,3)
 -}
 basicsIdentityTest : a -> a
 basicsIdentityTest x =
@@ -1143,6 +1154,8 @@ basicsIdentityTest x =
 
 
 {-| Test: SdkBasics/basicsPowerTest
+expected(4.0, 5.0) = 1024
+expected(2, 5) = 1024
 -}
 basicsPowerTest : a -> a -> a
 basicsPowerTest n x =
@@ -1150,6 +1163,9 @@ basicsPowerTest n x =
 
 
 {-| Test: SdkBasics/basicsRemainderByTest
+expected(4, 21) = 1
+expected(4, -21) = -1
+expected(0, 4) = 0
 -}
 basicsRemainderByTest : Int -> Int -> Int
 basicsRemainderByTest x y =
@@ -1157,6 +1173,7 @@ basicsRemainderByTest x y =
 
 
 {-| Test: SdkBasics/basicsSqrtTest
+expected(9.0) = 3.0
 -}
 basicsSqrtTest : Float -> Float
 basicsSqrtTest x =
