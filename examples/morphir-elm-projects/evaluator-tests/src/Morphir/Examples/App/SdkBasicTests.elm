@@ -919,6 +919,12 @@ sdkGreaterThanOrEqualTest a b =
 
 
 {-| Test: SdkBasics/max
+expected(2, 4) = 4
+expected(2.0, 4.0) = 4.0
+expected('a', 'b') = 'b'
+expected("AA", "BB") = "BB"
+expected((1,2), (2,3)) = (2,3)
+expected(List(1,2), List(2,3)) = List(2,3)
 -}
 sdkMaxTest : comparable -> comparable -> comparable
 sdkMaxTest a b =
@@ -926,6 +932,12 @@ sdkMaxTest a b =
 
 
 {-| Test: SdkBasics/min
+expected(2, 4) = 2
+expected(2.0, 4.0) = 2.0
+expected('a', 'b') = 'a'
+expected("AA", "BB") = "AA"
+expected((1,2), (2,3)) = (1,2)
+expected(List(1,2), List(2,3)) = List(1,2)
 -}
 sdkMinTest : comparable -> comparable -> comparable
 sdkMinTest a b =
@@ -933,6 +945,14 @@ sdkMinTest a b =
 
 
 {-| Test: SdkBasics/compare
+expected(1, 2) = -1
+expected(2.0, 1.0) = 1
+expected('r', 'b') = 1
+expected("Red", "Red") = 0
+expected((1,0), (1,2)) = -1
+expected(List(1,0), List(1,0,0)) = -1
+expected(List(1,1), List(1,0,0)) = 1
+expected(List((1,"Blue"), (1, "Green"), List((1, "Blue"), (1, "An utter lack of any color, even black or white") = 1
 -}
 sdkCompareTest : comparable -> comparable -> Order
 sdkCompareTest a b =
