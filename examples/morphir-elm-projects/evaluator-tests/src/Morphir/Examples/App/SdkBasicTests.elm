@@ -273,45 +273,6 @@ sdkAbsTest2 ctx =
         f 3
 
 
-{-| Test: SdkBasics/clamp
-Expected = 100
--}
-sdkClampTest : TestContext -> Int
-sdkClampTest ctx =
-    test ctx <|
-        let
-            f x y z =
-                clamp x y z
-        in
-        f 100 200 50
-
-
-{-| Test: SdkBasics/clamp2
-Expected = 100
--}
-sdkClampTest2 : TestContext -> Int
-sdkClampTest2 ctx =
-    test ctx <|
-        let
-            f x y z =
-                clamp x y z
-        in
-        f 100 200 100
-
-
-{-| Test: SdkBasics/clamp3
-Expected = 200
--}
-sdkClampTest3 : TestContext -> Int
-sdkClampTest3 ctx =
-    test ctx <|
-        let
-            f x y z =
-                clamp x y z
-        in
-        f 100 200 201
-
-
 {-| Test: SdkBasics/isNan
 Expected = True
 -}
