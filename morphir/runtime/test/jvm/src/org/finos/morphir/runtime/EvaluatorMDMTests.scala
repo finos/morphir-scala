@@ -2367,23 +2367,25 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             testEvaluation("ComposeLeft (<<)")("sdkBasicsTests", "sdkComposeLeftTest")(Data.Boolean(false)),
             testEvaluation("ComposeRight (>>)")("sdkBasicsTests", "sdkComposeRightTest")(Data.Int(603))
           ),
-          testEval("Identity Int")("sdkBasicsTests", "basicsIdentityTest", Data.Int(4))(Data.Int(4)),
-          testEval("Identity Float")("sdkBasicsTests", "basicsIdentityTest", Data.Float(-5.0))(Data.Float(-5.0)),
-          testEval("Identity Char")("sdkBasicsTests", "basicsIdentityTest", Data.Char('b'))(Data.Char('b')),
-          testEval("Identity String")("sdkBasicsTests", "basicsIdentityTest", Data.String("BB"))(Data.String("BB")),
-          testEval("Identity Tuple")(
-            "sdkBasicsTests",
-            "basicsIdentityTest",
-            Data.Tuple(
+          suite("Identity")(
+            testEval("Int")("sdkBasicsTests", "basicsIdentityTest", Data.Int(4))(Data.Int(4)),
+            testEval("Float")("sdkBasicsTests", "basicsIdentityTest", Data.Float(-5.0))(Data.Float(-5.0)),
+            testEval("Char")("sdkBasicsTests", "basicsIdentityTest", Data.Char('b'))(Data.Char('b')),
+            testEval("String")("sdkBasicsTests", "basicsIdentityTest", Data.String("BB"))(Data.String("BB")),
+            testEval("Tuple")(
+              "sdkBasicsTests",
+              "basicsIdentityTest",
+              Data.Tuple(
+                Data.Int(2),
+                Data.Int(3)
+              )
+            )(Data.Tuple(
               Data.Int(2),
               Data.Int(3)
+            )),
+            testEval("List")("sdkBasicsTests", "basicsIdentityTest", Data.List(Data.Int(2), Data.Int(3)))(
+              Data.List(Data.Int(2), Data.Int(3))
             )
-          )(Data.Tuple(
-            Data.Int(2),
-            Data.Int(3)
-          )),
-          testEval("Identity List")("sdkBasicsTests", "basicsIdentityTest", Data.List(Data.Int(2), Data.Int(3)))(
-            Data.List(Data.Int(2), Data.Int(3))
           )
         )
       )
