@@ -1078,6 +1078,8 @@ sdkComposeRightTest ctx =
 
 
 {-| Test: SdkBasics/basicsCeilingTest
+expected(3.88) = 4
+expected(3.0) = 3
 -}
 basicsCeilingTest : Float -> Int
 basicsCeilingTest x =
@@ -1085,6 +1087,8 @@ basicsCeilingTest x =
 
 
 {-| Test: SdkBasics/basicsFloorTest
+expected(3.88) = 3
+expected(3.0) = 3
 -}
 basicsFloorTest : Float -> Int
 basicsFloorTest x =
@@ -1092,6 +1096,9 @@ basicsFloorTest x =
 
 
 {-| Test: SdkBasics/basicsIntegerDivideTest
+expected(12, 2) = 6
+expected(12, 0) = 0
+expected(-12, 7) = -1
 -}
 basicsIntegerDivideTest : Int -> Int -> Int
 basicsIntegerDivideTest x y =
@@ -1099,6 +1106,7 @@ basicsIntegerDivideTest x y =
 
 
 {-| Test: SdkBasics/basicsAbsTest
+expected(-5.0) = 5.0
 -}
 basicsAbsTest : Float -> Float
 basicsAbsTest x =
@@ -1106,6 +1114,10 @@ basicsAbsTest x =
 
 
 {-| Test: SdkBasics/basicsAlwaysTest
+expected(0) = List(0)
+expected(4.0) = List(4.0)
+expected('z') = List('z')
+expected("A") = List("A")
 -}
 basicsAlwaysTest : a -> List a
 basicsAlwaysTest x =
