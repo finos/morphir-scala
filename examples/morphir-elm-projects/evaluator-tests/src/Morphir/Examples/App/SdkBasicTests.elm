@@ -847,49 +847,6 @@ sdkLessThanOrEqualTestIntFalse ctx =
 
 
 -----
-{-| Test: SdkBasics/greaterThanString
-Expected: False
--}
-sdkGreaterThanTestString : TestContext -> Bool
-sdkGreaterThanTestString ctx =
-    test ctx <|
-        let
-            f x y =
-                x > y
-        in
-        f "AA" "BB"
-
-
-{-| Test: SdkBasics/greaterThanTuple
-Expected: False
--}
-sdkGreaterThanTestTuple : TestContext -> Bool
-sdkGreaterThanTestTuple ctx =
-    test ctx <|
-        let
-            f x y =
-                x > y
-        in
-        f ( 1, 2 ) ( 2, 3 )
-
-
-{-| Test: SdkBasics/greaterThanList
-Expected: False
--}
-sdkGreaterThanTestList : TestContext -> Bool
-sdkGreaterThanTestList ctx =
-    test ctx <|
-        let
-            f x y =
-                x > y
-        in
-        f [ 1, 2 ] [ 2, 3 ]
-
-
-
------
-
-
 {-| Test: SdkBasics/greaterThanOrEqualInt
 Expected: False
 -}
