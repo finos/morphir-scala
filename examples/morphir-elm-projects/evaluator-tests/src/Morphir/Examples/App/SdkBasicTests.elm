@@ -62,7 +62,7 @@ sdkSubtractTest ctx =
 
 
 {-| Test: SdkBasics/subtract
-Expected = 2
+expected(4, 2) = 2
 -}
 sdkSubtractTest64 : { a : Int64, b : Int64 } -> Int64
 sdkSubtractTest64 t =
@@ -853,6 +853,9 @@ sdkLessThanOrEqualTestIntFalse ctx =
 
 
 {-| Test: SdkBasics/orderToString
+expected(-1) = "LT"
+expected(1) = "GT"
+expected(0) = "EQ"
 -}
 sdkOrderToStringTest : Order -> String
 sdkOrderToStringTest a =
@@ -867,6 +870,13 @@ sdkOrderToStringTest a =
             "GT"
 
 
+{-| Test: SdkBasics/lessThan
+expected(2.0, 4.0) = true
+expected('a', 'b') = true
+expected("AA", "BB") = true
+expected((1,2), (2,3)) = true
+expected(List(1,2), List(2,3)) = true
+-}
 sdkLessThanTest : comparable -> comparable -> Bool
 sdkLessThanTest a b =
     a < b
