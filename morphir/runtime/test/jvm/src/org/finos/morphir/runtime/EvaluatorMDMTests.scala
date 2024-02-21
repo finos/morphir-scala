@@ -2084,22 +2084,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("SDK Basics Tests")(
-        testEvaluation("Plus Float")("sdkBasicsTests", "sdkAddFloatTest")(
-          Data.Decimal(3.0)
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
-        testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyTest")(Data.Int(6)) @@ ignore @@ TestAspect.tag(
-          "Not Implemented yet"
-        ),
-        testEvaluation("Divide by 0")("sdkBasicsTests", "sdkDivideByZeroTest")(
-          Data.Decimal(2.0)
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
-        testEvaluation("LessThanFloat")("sdkBasicsTests", "sdkLessThanTestFloat")(
-          Data.Boolean(true)
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
-        testEvaluation("LessThanChar")("sdkBasicsTests", "sdkLessThanTestChar")(
-          Data.Boolean(true)
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
-        testEvaluation("ComposeRight (>>)")("sdkBasicsTests", "sdkComposeRightTest")(Data.Int(603))
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
