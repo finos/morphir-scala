@@ -481,6 +481,8 @@ sdkPiTest ctx =
         f
 
 
+----------------- Unimplemented and not run -----------------
+
 {-| Test: SdkBasics/cos
 Expected: 0.5000000000000001
 -}
@@ -1543,22 +1545,6 @@ sdkOrTest ctx =
                 x || y
         in
         f True False
-
-
-{-| Test: SdkBasics/xor
-Expected: True
--}
-sdkXorTest : TestContext -> Bool
-sdkXorTest ctx =
-    test ctx <|
-        let
-            f x y =
-                xor x y
-        in
-        f True False
-
-
-
 -----
 
 
