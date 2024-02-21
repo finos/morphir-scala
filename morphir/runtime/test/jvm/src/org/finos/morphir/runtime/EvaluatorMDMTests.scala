@@ -2084,6 +2084,20 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("SDK Basics Tests")(
+        suite("Append")(
+          testEvaluation("String append")("sdkBasicsTests", "sdkAppendStringTest")(Data.String("aa-bb")),
+          testEvaluation("List append")("sdkBasicsTests", "sdkAppendListTest")(Data.List(
+            Data.Int(1),
+            Data.Int(2),
+            Data.Int(3),
+            Data.Int(4)
+          ))
+        ),
+        suite("Boolean")(
+          suite("Equality")(
+            testEvaluation("Equal 1")("sdkBasicsTests", "sdkEqualTest")(Data.Boolean(true)),
+            testEvaluation("Equal 2")("sdkBasicsTests", "sdkEqualTest2")(Data.Boolean(true)),
+
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
