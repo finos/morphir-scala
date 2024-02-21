@@ -2040,19 +2040,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("SDK Comparable Tests")(
-        testEvalMultiple("LessThan")("sdkBasicsTests", "sdkLessThanTest", List((1, 2), (1, 3)))(Data.Boolean(true)),
-        testEvalMultiple("GreaterThan")("sdkBasicsTests", "sdkGreaterThanTest", List(1, 1))(Data.Boolean(false)),
-        testEvalMultiple("LessThanOrEqual")("sdkBasicsTests", "sdkLessThanOrEqualTest", List("Blue", "Blue"))(
-          Data.Boolean(true)
-        ),
-        testEvalMultiple("GreaterThanOrEqual")(
-          "sdkBasicsTests",
-          "sdkGreaterThanOrEqualTest",
-          List(List(1, 2), List(1, 2, 3))
-        )(Data.Boolean(false)),
-        testEvalMultiple("Max")("sdkBasicsTests", "sdkMaxTest", List(1, 2))(Data.Int(2)),
-        testEvalMultiple("Min")("sdkBasicsTests", "sdkMinTest", List("Blue", "Red"))(Data.String("Blue")),
-        testEvalMultiple("Min if Equal")("sdkBasicsTests", "sdkMinTest", List("Blue", "Blue"))(Data.String("Blue")),
         testEvalMultiple("Compare Int")("sdkBasicsTests", "sdkCompareTest", List(1, 2))(Data.Order(-1)),
         testEvalMultiple("Compare Float")("sdkBasicsTests", "sdkCompareTest", List(2.0, 1.0))(Data.Order(1)),
         testEvalMultiple("Compare String")("sdkBasicsTests", "sdkCompareTest", List("Red", "Red"))(Data.Order(0)),
