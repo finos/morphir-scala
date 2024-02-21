@@ -883,6 +883,11 @@ sdkLessThanTest a b =
 
 
 {-| Test: SdkBasics/greaterThan
+expected(2.0, 4.0) = false
+expected('a', 'b') = false
+expected("AA", "BB") = false
+expected((1,2), (2,3)) = false
+expected(List(1,2), List(2,3)) = false
 -}
 sdkGreaterThanTest : comparable -> comparable -> Bool
 sdkGreaterThanTest a b =
@@ -890,6 +895,11 @@ sdkGreaterThanTest a b =
 
 
 {-| Test: SdkBasics/lessThanOrEqual
+expected(2.0, 4.0) = true
+expected('a', 'b') = true
+expected("AA", "BB") = true
+expected((1,2), (2,3)) = true
+expected(List(1,2), List(2,3)) = true
 -}
 sdkLessThanOrEqualTest : comparable -> comparable -> Bool
 sdkLessThanOrEqualTest a b =
@@ -897,6 +907,11 @@ sdkLessThanOrEqualTest a b =
 
 
 {-| Test: SdkBasics/greaterThanOrEqual
+expected(2.0, 4.0) = false
+expected('a', 'b') = false
+expected("AA", "BB") = false
+expected((1,2), (2,3)) = false
+expected(List(1,2), List(2,3)) = false
 -}
 sdkGreaterThanOrEqualTest : comparable -> comparable -> Bool
 sdkGreaterThanOrEqualTest a b =
