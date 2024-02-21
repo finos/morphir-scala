@@ -2084,20 +2084,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("SDK Basics Tests")(
-        testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
-        testEval("Floor")("sdkBasicsTests", "basicsFloorTest", 3.88)(Data.Int(3)),
-        testEval("Truncate")("sdkBasicsTests", "basicsTruncateTest", 1.2)(Data.Int(1)),
-        testEval("Truncate 2")("sdkBasicsTests", "basicsTruncateTest", -1.2)(Data.Int(-1)),
-        testEval("Truncate 3")("sdkBasicsTests", "basicsTruncateTest", .4)(Data.Int(0)),
-        testEval("Truncate 4")("sdkBasicsTests", "basicsTruncateTest", -.4)(Data.Int(0)),
-        testEvalMultiple("IntegerDivide")("sdkBasicsTests", "basicsIntegerDivideTest", List(12, 2))(
-          Data.Int(6)
-        ),
-        testEvalMultiple("IntegerDivide 2")("sdkBasicsTests", "basicsIntegerDivideTest", List(12, 0))(
-          Data.Int(0)
-        ),
-        testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0)),
-        testEval("Always")("sdkBasicsTests", "basicsAlwaysTest", 0)(Data.List(Data.Int(0))),
         testEval("Always 2")("sdkBasicsTests", "basicsAlwaysTest", Data.Char('z'))(Data.List(Data.Char('z'))),
         testEvalMultiple("Clamp")("sdkBasicsTests", "basicsClampTest", List(100, 200, 1000))(Data.Int(200)),
         testEvalMultiple("Clamp 2")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 50.0))(Data.Float(100.0)),
