@@ -2232,6 +2232,16 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEvaluation("Plus")("sdkBasicsTests", "sdkAddFloatTest")(Data.Float(3.0)),
           testEvaluation("Plus overflow")("sdkBasicsTests", "sdkFloatOverflowTest")(Data.Float(3.0))
             @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+          testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractFloatTest")(Data.Float(2.0)),
+          testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyFloatTest")(Data.Float(20.0)),
+          testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Float(2.0)),
+          testEvaluation("Divide by 0")("sdkBasicsTests", "sdkDivideByZeroTest")(Data.Float(Double.PositiveInfinity)),
+          testEvalMultiple("Power")("sdkBasicsTests", "basicsPowerTest", List(4.0, 5.0))(Data.Float(1024)),
+          testEvaluation("isNan")("sdkBasicsTests", "sdkIsNaNTest")(Data.Boolean(true)),
+          testEvaluation("isInfinite")("sdkBasicsTests", "sdkIsInfiniteTest")(Data.Boolean(true)),
+          testEvaluation("Eulers")("sdkBasicsTests", "sdkEulersNumberTest")(Data.Float(2.718281828459045)),
+          testEvaluation("Pi")("sdkBasicsTests", "sdkPiTest")(Data.Float(3.141592653589793)),
+          testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
 
       )
     ).provideLayerShared(morphirRuntimeLayer)
