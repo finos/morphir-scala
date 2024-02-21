@@ -2215,6 +2215,23 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             testEvalMultiple("Xor 2")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(true), Data.Boolean(false)))(
               Data.Boolean(true)
             ),
+            testEvalMultiple("Xor 3")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(false), Data.Boolean(true)))(
+              Data.Boolean(true)
+            ),
+            testEvalMultiple("Xor 4")(
+              "sdkBasicsTests",
+              "basicsXorTest",
+              List(Data.Boolean(false), Data.Boolean(false))
+            )(
+              Data.Boolean(false)
+            ),
+            testEvaluation("Not")("sdkBasicsTests", "sdkNotTest")(Data.Boolean(false))
+          )
+        ),
+        suite("Float")(
+          testEvaluation("Plus")("sdkBasicsTests", "sdkAddFloatTest")(Data.Float(3.0)),
+          testEvaluation("Plus overflow")("sdkBasicsTests", "sdkFloatOverflowTest")(Data.Float(3.0))
+            @@ ignore @@ TestAspect.tag("Not Implemented yet"),
 
       )
     ).provideLayerShared(morphirRuntimeLayer)
