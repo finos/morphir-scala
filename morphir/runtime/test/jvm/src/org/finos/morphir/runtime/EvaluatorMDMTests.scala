@@ -2136,6 +2136,17 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             testEvalMultiple("LessThanOrEqual Tuple")("sdkBasicsTests", "sdkLessThanOrEqualTest", List((1, 2), (2, 3)))(
               Data.Boolean(true)
             ),
+            testEvalMultiple("LessThanOrEqual List")(
+              "sdkBasicsTests",
+              "sdkLessThanOrEqualTest",
+              List(List(1, 2), List(2, 3))
+            )(Data.Boolean(true)),
+            testEvaluation("x < y - True")("sdkBasicsTests", "sdkLessThanTestIntTrue")(Data.Boolean(true)),
+            testEvaluation("x < y - False")("sdkBasicsTests", "sdkLessThanTestIntFalse")(Data.Boolean(false)),
+            testEvaluation("x <= y - True A")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue1")(Data.Boolean(true)),
+            testEvaluation("x <= y - True B")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue2")(Data.Boolean(true)),
+            testEvaluation("x <= y - False")("sdkBasicsTests", "sdkLessThanOrEqualTestIntFalse")(Data.Boolean(false))
+          ),
 
       )
     ).provideLayerShared(morphirRuntimeLayer)
