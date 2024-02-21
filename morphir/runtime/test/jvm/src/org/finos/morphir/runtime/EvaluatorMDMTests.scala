@@ -2334,6 +2334,17 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
               Data.Int(2)
             ))
           ),
+          testEval("Sqrt")("sdkBasicsTests", "basicsSqrtTest", Data.Float(9.0))(Data.Float(3.0)),
+          testEvaluation("LogBase")("sdkBasicsTests", "sdkLogBaseTest")(Data.Float(2.0)),
+          testEvaluation("LogBase2")("sdkBasicsTests", "sdkLogBaseTest2")(Data.Float(8.0))
+        ),
+        suite("break")(
+          testEval("Always Int")("sdkBasicsTests", "basicsAlwaysTest", 0)(Data.List(Data.Int(0))),
+          testEval("Always Float")("sdkBasicsTests", "basicsAlwaysTest", 4.0)(Data.List(Data.Float(4.0))),
+          testEval("Always Char")("sdkBasicsTests", "basicsAlwaysTest", Data.Char('z'))(Data.List(Data.Char('z'))),
+          testEval("Always String")("sdkBasicsTests", "basicsAlwaysTest", Data.String("A"))(
+            Data.List(Data.String("A"))
+          ),
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
