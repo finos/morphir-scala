@@ -46,6 +46,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(BasicsSDK.floor),
           NativeFunctionAdapter.Fun1(BasicsSDK.truncate),
           NativeFunctionAdapter.Fun2(BasicsSDK.integerDivide),
+          NativeFunctionAdapter.Fun1(BasicsSDK.isInfinite),
+          NativeFunctionAdapter.Fun1(BasicsSDK.isNaN),
           NativeFunctionAdapter.Fun2(BasicsSDK.always),
           NativeFunctionAdapter.Fun2(BasicsSDK.lessThan),
           NativeFunctionAdapter.Fun2(BasicsSDK.greaterThan),
@@ -62,7 +64,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(BasicsSDK.modBy),
           NativeFunctionAdapter.Fun2(BasicsSDK.remainderBy),
           NativeFunctionAdapter.Fun1(BasicsSDK.sqrt),
-          NativeFunctionAdapter.Fun3(BasicsSDK.composeRight)
+          NativeFunctionAdapter.Fun3(BasicsSDK.composeRight),
+          NativeFunctionAdapter.Fun3(BasicsSDK.composeLeft)
         )
 
         private val enumSDKConstructor = SDKConstructor(scala.List())
