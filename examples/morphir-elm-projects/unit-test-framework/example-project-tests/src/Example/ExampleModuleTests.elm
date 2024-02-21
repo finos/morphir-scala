@@ -8,3 +8,5 @@ simpleTest = test "Simple Test" <|
     \_ -> 
         Expect.equal 1 1
 
+runSimpleTest : () -> String
+runSimpleTest _ = runString simpleTest

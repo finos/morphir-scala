@@ -3,7 +3,7 @@
     "sourceDirectory": "src",
     "localDependencies": [
         "../morphir-unit-test/morphir-ir.json",
-        "../example_project/morphir-ir.json"
+        "../example-project/morphir-ir.json"
     ],
     "exposedModules": [
         "ExampleModuleTests"
