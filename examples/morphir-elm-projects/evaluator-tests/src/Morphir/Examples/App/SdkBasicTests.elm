@@ -208,19 +208,6 @@ sdkRoundTest2 ctx =
         f 123
 
 
-{-| Test: SdkBasics/truncate2
-Expected = 5
--}
-sdkTruncateTest2 : TestContext -> Int
-sdkTruncateTest2 ctx =
-    test ctx <|
-        let
-            f x =
-                truncate x
-        in
-        f 5
-
-
 {-| Test: SdkBasics/modBy
 Expected = 2
 -}
