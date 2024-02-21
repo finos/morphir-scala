@@ -2250,7 +2250,20 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("Truncate 3")("sdkBasicsTests", "basicsTruncateTest", .4)(Data.Int(0)),
           testEval("Truncate 4")("sdkBasicsTests", "basicsTruncateTest", -.4)(Data.Int(0)),
           testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0))
-        )
+        ),
+        suite("Int")(
+          testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
+          testEvaluation("Plus overflow")("sdkBasicsTests", "sdkIntOverflowTest")(Data.Int(3))
+            @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+          testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int(2)),
+          testEval("Plus(64)")("sdkBasicsTests", "sdkAddTest64", abStruct(1L, 2L))(
+            Data.Int64(3)
+          ) @@ ignore @@ TestAspect.tag("Not properly typed"),
+          testEval("Minus(64)")("sdkBasicsTests", "sdkSubtractTest64", abStruct(4L, 2L))(
+            Data.Int64(2)
+          ) @@ ignore @@ TestAspect.tag("Not properly typed"),
+          testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyIntTest")(Data.Int(20)),
+
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
