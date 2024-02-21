@@ -2123,7 +2123,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             ),
             testEvalMultiple("List")("sdkBasicsTests", "sdkLessThanTest", List(List(1, 2), List(2, 3)))(
               Data.Boolean(true)
-            )
+            ),
+            testEvaluation("x < y - True")("sdkBasicsTests", "sdkLessThanTestIntTrue")(Data.Boolean(true)),
+            testEvaluation("x < y - False")("sdkBasicsTests", "sdkLessThanTestIntFalse")(Data.Boolean(false))
           ),
           suite("LessThanOrEqual")(
             testEvalMultiple("Float")("sdkBasicsTests", "sdkLessThanOrEqualTest", List(2.0, 4.0))(
@@ -2143,63 +2145,63 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
               "sdkLessThanOrEqualTest",
               List(List(1, 2), List(2, 3))
             )(Data.Boolean(true)),
-            testEvaluation("x < y - True")("sdkBasicsTests", "sdkLessThanTestIntTrue")(Data.Boolean(true)),
-            testEvaluation("x < y - False")("sdkBasicsTests", "sdkLessThanTestIntFalse")(Data.Boolean(false)),
             testEvaluation("x <= y - True A")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue1")(Data.Boolean(true)),
             testEvaluation("x <= y - True B")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue2")(Data.Boolean(true)),
             testEvaluation("x <= y - False")("sdkBasicsTests", "sdkLessThanOrEqualTestIntFalse")(Data.Boolean(false))
           ),
-          suite("GreaterThan and GreaterThanOrEqual")(
-            testEvalMultiple("GreaterThan Int")("sdkBasicsTests", "sdkGreaterThanTest", List(2, 4))(
+          suite("GreaterThan")(
+            testEvalMultiple("Int")("sdkBasicsTests", "sdkGreaterThanTest", List(2, 4))(
               Data.Boolean(false)
             ),
-            testEvalMultiple("GreaterThan Float")("sdkBasicsTests", "sdkGreaterThanTest", List(2.0, 4.0))(
+            testEvalMultiple("Float")("sdkBasicsTests", "sdkGreaterThanTest", List(2.0, 4.0))(
               Data.Boolean(false)
             ),
-            testEvalMultiple("GreaterThan Char")("sdkBasicsTests", "sdkGreaterThanTest", List('a', 'b'))(
+            testEvalMultiple("Char")("sdkBasicsTests", "sdkGreaterThanTest", List('a', 'b'))(
               Data.Boolean(false)
             ),
-            testEvalMultiple("GreaterThan String")("sdkBasicsTests", "sdkGreaterThanTest", List("AA", "BB"))(
+            testEvalMultiple("String")("sdkBasicsTests", "sdkGreaterThanTest", List("AA", "BB"))(
               Data.Boolean(false)
             ),
-            testEvalMultiple("GreaterThan Tuple")("sdkBasicsTests", "sdkGreaterThanTest", List((1, 2), (2, 3)))(
+            testEvalMultiple("Tuple")("sdkBasicsTests", "sdkGreaterThanTest", List((1, 2), (2, 3)))(
               Data.Boolean(false)
             ),
-            testEvalMultiple("GreaterThan List")("sdkBasicsTests", "sdkGreaterThanTest", List(List(1, 2), List(2, 3)))(
+            testEvalMultiple("List")("sdkBasicsTests", "sdkGreaterThanTest", List(List(1, 2), List(2, 3)))(
               Data.Boolean(false)
             ),
-            testEvalMultiple("GreaterThanOrEqual Int")("sdkBasicsTests", "sdkGreaterThanOrEqualTest", List(2, 4))(
+            testEvaluation("x > y - True")("sdkBasicsTests", "sdkGreaterThanTestIntTrue")(Data.Boolean(true)),
+            testEvaluation("x > y - False")("sdkBasicsTests", "sdkGreaterThanTestIntFalse")(Data.Boolean(false))
+          ),
+          suite("GreaterThanOrEqual")(
+            testEvalMultiple("Int")("sdkBasicsTests", "sdkGreaterThanOrEqualTest", List(2, 4))(
               Data.Boolean(false)
             ),
-            testEvalMultiple("GreaterThanOrEqual Float")("sdkBasicsTests", "sdkGreaterThanOrEqualTest", List(2.0, 4.0))(
+            testEvalMultiple("Float")("sdkBasicsTests", "sdkGreaterThanOrEqualTest", List(2.0, 4.0))(
               Data.Boolean(false)
             ),
-            testEvalMultiple("GreaterThanOrEqual Char")("sdkBasicsTests", "sdkGreaterThanOrEqualTest", List('a', 'b'))(
+            testEvalMultiple("Char")("sdkBasicsTests", "sdkGreaterThanOrEqualTest", List('a', 'b'))(
               Data.Boolean(false)
             ),
-            testEvalMultiple("GreaterThanOrEqual String")(
+            testEvalMultiple("String")(
               "sdkBasicsTests",
               "sdkGreaterThanOrEqualTest",
               List("AA", "BB")
             )(
               Data.Boolean(false)
             ),
-            testEvalMultiple("GreaterThanOrEqual Tuple")(
+            testEvalMultiple("Tuple")(
               "sdkBasicsTests",
               "sdkGreaterThanOrEqualTest",
               List((1, 2), (2, 3))
             )(
               Data.Boolean(false)
             ),
-            testEvalMultiple("GreaterThanOrEqual List")(
+            testEvalMultiple("List")(
               "sdkBasicsTests",
               "sdkGreaterThanOrEqualTest",
               List(List(1, 2), List(2, 3))
             )(
               Data.Boolean(false)
             ),
-            testEvaluation("x > y - True")("sdkBasicsTests", "sdkGreaterThanTestIntTrue")(Data.Boolean(true)),
-            testEvaluation("x > y - False")("sdkBasicsTests", "sdkGreaterThanTestIntFalse")(Data.Boolean(false)),
             testEvaluation("x >= y - True A")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntTrue1")(
               Data.Boolean(true)
             ),
@@ -2211,16 +2213,28 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           suite("Operators")(
             testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),
             testEvaluation("Or")("sdkBasicsTests", "sdkOrTest")(Data.Boolean(true)),
-            testEvalMultiple("Xor")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(true), Data.Boolean(true)))(
+            testEvalMultiple("Xor- true true")(
+              "sdkBasicsTests",
+              "basicsXorTest",
+              List(Data.Boolean(true), Data.Boolean(true))
+            )(
               Data.Boolean(false)
             ),
-            testEvalMultiple("Xor 2")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(true), Data.Boolean(false)))(
+            testEvalMultiple("Xor- true false")(
+              "sdkBasicsTests",
+              "basicsXorTest",
+              List(Data.Boolean(true), Data.Boolean(false))
+            )(
               Data.Boolean(true)
             ),
-            testEvalMultiple("Xor 3")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(false), Data.Boolean(true)))(
+            testEvalMultiple("Xor- false true")(
+              "sdkBasicsTests",
+              "basicsXorTest",
+              List(Data.Boolean(false), Data.Boolean(true))
+            )(
               Data.Boolean(true)
             ),
-            testEvalMultiple("Xor 4")(
+            testEvalMultiple("Xor- false false")(
               "sdkBasicsTests",
               "basicsXorTest",
               List(Data.Boolean(false), Data.Boolean(false))
