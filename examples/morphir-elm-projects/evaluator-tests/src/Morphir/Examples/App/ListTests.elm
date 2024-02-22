@@ -89,17 +89,17 @@ listAnyFalseTest ctx =
     test ctx (any (\x -> modBy 2 x == 0) [ 1, 3, 5 ])
 
 
-
 {-| Test: List/Maximum - Some
 expected = Some(3)
 -}
 listMaximumSomeTest : TestContext -> Maybe Int
 listMaximumSomeTest ctx =
     test ctx <|
-                     let
-                         list = [-1, 3, 0, -2, 2, 3]
-                     in maximum list
-
+        let
+            list =
+                [ -1, 3, 0, -2, 2, 3 ]
+        in
+        maximum list
 
 
 {-| Test: List/Maximum - None
@@ -108,10 +108,11 @@ expected = None
 listMaximumNoneTest : TestContext -> Maybe Int
 listMaximumNoneTest ctx =
     test ctx <|
-                     let
-                         list = []
-                     in maximum list
-
+        let
+            list =
+                []
+        in
+        maximum list
 
 
 {-| Test: List/Minimum - Some
@@ -120,10 +121,11 @@ expected = Some(3)
 listMinimumSomeTest : TestContext -> Maybe Int
 listMinimumSomeTest ctx =
     test ctx <|
-                     let
-                         list = [-1, 3, 0, -2, 2, 3]
-                     in minimum list
-
+        let
+            list =
+                [ -1, 3, 0, -2, 2, 3 ]
+        in
+        minimum list
 
 
 {-| Test: List/Minimum - None
@@ -132,9 +134,11 @@ expected = None
 listMinimumNoneTest : TestContext -> Maybe Int
 listMinimumNoneTest ctx =
     test ctx <|
-                     let
-                         list = []
-                     in minimum list
+        let
+            list =
+                []
+        in
+        minimum list
 
 
 {-| Test: List/Partition
@@ -358,9 +362,15 @@ listSortWithTest list =
 
 flippedComparison a b =
     case compare a b of
-      LT -> GT
-      EQ -> EQ
-      GT -> LT
+        LT ->
+            GT
+
+        EQ ->
+            EQ
+
+        GT ->
+            LT
+
 
 {-| Test: List/head
 expected([1, 2, 3]) = Maybe 1

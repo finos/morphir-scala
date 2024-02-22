@@ -40,6 +40,18 @@ object BasicsSDK {
       else Primitive.Int(a.value / b.value)
   }
 
+  val isInfinite = DynamicNativeFunction1("isInfinite") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      if (a.value.isInfinity) Primitive.Boolean(true)
+      else Primitive.Boolean(false)
+  }
+
+  val isNaN = DynamicNativeFunction1("isNaN") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      if (a.value.isNaN) Primitive.Boolean(true)
+      else Primitive.Boolean(false)
+  }
+
   val xor = DynamicNativeFunction2("xor") {
     (_: NativeContext) => (a: Primitive.Boolean, b: Primitive.Boolean) =>
       Primitive.Boolean(a.value ^ b.value)
@@ -73,7 +85,7 @@ object BasicsSDK {
         val helper = numericHelpers.numericHelper
         val result =
           if (helper.lt(x, min)) min
-          else if (helper.gt(x, min) && helper.lt(x, max)) x
+          else if (helper.lt(x, max)) x
           else max
         numericHelpers.numericType.makeOrFail(result)
       }
@@ -159,6 +171,14 @@ object BasicsSDK {
       {
         val res1 = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f1, arg)
         ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f2, res1)
+      }
+  }
+
+  val composeLeft = DynamicNativeFunction3("composeLeft") {
+    (ctx: NativeContext) => (f1: RTValue.Function, f2: RTValue.Function, arg: RTValue) =>
+      {
+        val res1 = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f2, arg)
+        ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f1, res1)
       }
   }
 }
