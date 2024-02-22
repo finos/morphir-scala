@@ -45,4 +45,37 @@ object CharSDK {
       RT.Primitive.Boolean(result)
   }
 
+  val isHexDigit = DynamicNativeFunction1("isHexDigit") {
+    (_: NativeContext) => (ch: RTChar) =>
+      val result = if (Character.digit(ch.value, 16) == -1)
+        false
+      else
+        true
+      RT.Primitive.Boolean(result)
+  }
+
+  val toUpper = DynamicNativeFunction1("toUpper") {
+    (_: NativeContext) => (ch: RTChar) =>
+      val result = ch.value.toUpper
+      RTChar(result)
+  }
+
+  val toLower = DynamicNativeFunction1("toLower") {
+    (_: NativeContext) => (ch: RTChar) =>
+      val result = ch.value.toLower
+      RTChar(result)
+  }
+
+  val toLocaleUpper = DynamicNativeFunction1("toLocaleUpper") {
+    (_: NativeContext) => (ch: RTChar) =>
+      val result = ch.value.toString.toUpperCase
+      RTChar(result.charAt(0))
+  }
+
+  val toLocaleLower = DynamicNativeFunction1("toLocaleLower") {
+    (_: NativeContext) => (ch: RTChar) =>
+      val result = ch.value.toString.toLowerCase
+      RTChar(result.charAt(0))
+  }
+
 }
