@@ -1,4 +1,4 @@
-module Morphir.UnitTest.Expect exposing(Expectation, ExpectationResult, getResult, getResultBool, equal, notEqual, all, assert, lessThan, greaterThan, atMost, atLeast, okay, err, equalLists, equalDicts, equalSets, pass, fail, onFail)
+module Morphir.UnitTest.Expect exposing(..)
 import Morphir.SDK.Dict exposing(Dict, toList, get)
 import Morphir.SDK.List exposing(List)
 import Morphir.SDK.Set exposing(Set)

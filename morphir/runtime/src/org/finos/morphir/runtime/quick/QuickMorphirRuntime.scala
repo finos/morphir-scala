@@ -30,6 +30,12 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
     val res = UnitTesting.runTests(globals, dists)
     res
   }
+
+  def runUnitTests(distributions: Distribution*): RTAction[MorphirEnv, MorphirRuntimeError, TestSummary] = {
+    val res : List[FQName] = UnitTesting.collectTests(globals, dists)
+    throw new Exception(s"Test Results:\n ${res.mkString("\n")}")
+  }
+
   def evaluate(
       entryPoint: FQName,
       param: TypedValue,
