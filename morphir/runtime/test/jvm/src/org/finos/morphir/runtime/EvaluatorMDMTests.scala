@@ -246,6 +246,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
   def spec =
     suite("Evaluator MDM Specs")(
+      suite("Char")(
+        testEval("isUpper")("charTests", "charIsUpper", 'A')(Data.Boolean(true))
+      ),
       suite("Constructor Tests")(
         test("Zero Arg Input") {
           for {
