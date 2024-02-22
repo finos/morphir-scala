@@ -1,5 +1,6 @@
 package org.finos.morphir.runtime.quick
 
+import org.finos.morphir.datamodel.{Concept, Data, EnumLabel, Label}
 import org.finos.morphir.runtime.{Distributions, RTValue}
 import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.runtime.exports.*
@@ -9,6 +10,8 @@ import org.finos.morphir.runtime.TestSummary
 import org.finos.morphir.runtime.SDKValue.SDKValueDefinition
 import org.finos.morphir.ir.Value.*
 import org.finos.morphir.naming.*
+import org.finos.morphir.runtime.MorphirRuntimeError.*
+import org.finos.morphir.ir.sdk
 
 
 
@@ -19,20 +22,64 @@ object UnitTesting{
     //Need to return a summary even on success, so not that first one
     //Seems messy to return a summary either way
     //Also, I would say "Testing" didn't fail even if the tests did
+  def testType = T.reference("Morphir.UnitTest", "Test", "Test")
+  def testResultType = T.reference("Morphir.UnitTest", "Test", "TestResult")
   private[runtime] def runTests(
     globals: GlobalDefs,
     dists: Distributions
-  ): RTAction[MorphirEnv, Nothing, TestSummary] =
+  ): RTAction[MorphirEnv, Nothing, TestSummary] = {
     RTAction.environmentWithPure[MorphirSdk] { env =>
-      def emptySummary = TestSummary("No tests run", true)
-      RTAction.succeed(emptySummary)
+      val testNames = collectTests(globals, dists)
+      val testVals = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
+      if (testVals.isEmpty) {
+        val emptySummary = TestSummary("No tests run", true)
+        RTAction.succeed(emptySummary)
+      } else  {
+        val testSuiteIR = if (testVals.length == 1)
+          testVals.head
+        else{
+          val testList = V.list(sdk.List.listType(testType), testVals:_*)
+          V.applyInferType(
+            testType,
+            V.constructor(FQName.fromString("Morphir.UnitTest:Test:Concat")),
+            testList
+          )
+        }
+        val runTestsIR = V.applyInferType(
+          testResultType,
+          V.reference(FQName.fromString("Morphir.UnitTest:Test:run")),
+          testSuiteIR
+        )
+        val reportIR = V.applyInferType(
+          sdk.String.stringType,
+          V.reference(FQName.fromString("Morphir.UnitTest:Test:resultToString")),
+          runTestsIR
+        )
+        val testsPassedIR = V.applyInferType(
+          sdk.Basics.boolType,
+          V.reference(FQName.fromString("Morphir.UnitTest:Test:passed")),
+          runTestsIR
+        )
+        val passedResult = EvaluatorQuick.eval(testsPassedIR, globals, dists)
+        val passed = passedResult match {
+          case Data.Boolean(b) => b
+          case _ => throw new OtherError("Test result was not a boolean", passedResult)
+        }
+        //throw new OtherError("Infinite loop for some reason", runTest.attributes)
+        val mdmReport = EvaluatorQuick.eval(reportIR, globals, dists)
+        val report = mdmReport match {
+          case Data.String(s) => s
+          case _ => throw new OtherError("Test result: ", mdmReport)
+        }
+        RTAction.succeed(TestSummary(report, passed))
+      }
+    }
   }
 
   private[runtime] def collectTests(
         globals: GlobalDefs,
         dists: Distributions
     ): List[FQName] = {
-      val testType = T.reference("Morphir.UnitTest", "Test", "Test")
       val tests = globals.definitions.collect { // TODO: Improved test recognition (aliasing of return type, cleanup, ???)
         case (fqn -> SDKValueDefinition(definition: TypedDefinition))
             if (definition.inputTypes.isEmpty && definition.outputType == testType) =>
