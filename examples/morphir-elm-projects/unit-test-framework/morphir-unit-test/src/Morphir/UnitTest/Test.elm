@@ -149,9 +149,9 @@ resultToStringHelper depth result = case result of
                 -- Todo -> "TODO: " ++ desc
         ConcatResult results -> 
             let 
-                strings = List.map (resultToStringHelper (depth + 1)) results
+                strings = List.map (resultToStringHelper depth) results
             in
-                (String.repeat depth "\t") ++ (String.join "\n" strings)
+                (String.join "\n" strings)
         TodoResult desc -> (String.repeat depth "\t") ++ desc ++ ": TODO"
         SkipResult desc count -> (String.repeat depth "\t") ++ desc ++ ": SKIPPED - (" ++ (String.fromInt count) ++ " tests skipped)"
 
