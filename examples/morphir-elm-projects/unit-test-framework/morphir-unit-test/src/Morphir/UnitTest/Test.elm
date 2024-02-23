@@ -143,8 +143,8 @@ resultToStringHelper depth result = case result of
                 (String.repeat depth "\t") ++ desc ++ ":\n" ++ (String.join "\n" strings)
         SingleTestResult desc inner -> 
             case inner of
-                Pass -> (String.repeat depth "\t") ++ "PASSED: " ++ desc
-                Fail reason -> (String.repeat depth "\t") ++ "FAILED: " ++ desc ++ " - " ++ reason
+                Pass -> (String.repeat depth "\t") ++ desc ++ ": PASSED"
+                Fail reason -> (String.repeat depth "\t") ++ desc ++ ": FAILED - " ++ reason
                 -- Skip -> "SKIPPED: " ++ desc
                 -- Todo -> "TODO: " ++ desc
         ConcatResult results -> 
@@ -152,8 +152,8 @@ resultToStringHelper depth result = case result of
                 strings = List.map (resultToStringHelper (depth + 1)) results
             in
                 (String.repeat depth "\t") ++ (String.join "\n" strings)
-        TodoResult desc -> (String.repeat depth "\t") ++ "TODO: " ++ desc
-        SkipResult desc count -> (String.repeat depth "\t") ++ "SKIPPED: " ++ desc ++ " - (" ++ (String.fromInt count) ++ " tests skipped)"
+        TodoResult desc -> (String.repeat depth "\t") ++ desc ++ ": TODO"
+        SkipResult desc count -> (String.repeat depth "\t") ++ desc ++ ": SKIPPED - (" ++ (String.fromInt count) ++ " tests skipped)"
 
 resultToString : TestResult -> String
 resultToString result =
