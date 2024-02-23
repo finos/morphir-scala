@@ -36,6 +36,7 @@ object NativeSDK {
       case object String extends SdkModuleDescriptor("String") {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun2(StringSDK.append),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.repeat),
           NativeFunctionAdapter.Fun1(sdk.StringSDK.concat),
           NativeFunctionAdapter.Fun2(sdk.StringSDK.contains),
           NativeFunctionAdapter.Fun2(sdk.StringSDK.dropLeft),
