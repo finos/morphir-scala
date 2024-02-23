@@ -134,30 +134,30 @@ countsToString : Counts -> String
 countsToString counts = 
     "Passed: " ++ (String.fromInt counts.passed) ++ ", Failed: " ++ (String.fromInt counts.failed) ++ ", Skipped: " ++ (String.fromInt counts.skipped) ++ ", Todos: " ++ (String.fromInt counts.todos)
 
-resultToStringHelper : TestResult -> String
-resultToStringHelper result = case result of
+resultToStringHelper : Int -> TestResult -> String
+resultToStringHelper depth result = case result of
         DescribeResult desc results -> 
             let 
-                strings = List.map resultToStringHelper results
+                strings = List.map (resultToStringHelper (depth + 1)) results
             in
-                desc ++ ":\n\t" ++ (String.join "\n\t" strings)
+                (String.repeat depth "\t") ++ desc ++ ":\n" ++ (String.join "\n" strings)
         SingleTestResult desc inner -> 
             case inner of
-                Pass -> "PASSED: " ++ desc
-                Fail reason -> "FAILED: " ++ desc ++ " - " ++ reason
+                Pass -> (String.repeat depth "\t") ++ "PASSED: " ++ desc
+                Fail reason -> (String.repeat depth "\t") ++ "FAILED: " ++ desc ++ " - " ++ reason
                 -- Skip -> "SKIPPED: " ++ desc
                 -- Todo -> "TODO: " ++ desc
         ConcatResult results -> 
             let 
-                strings = List.map resultToStringHelper results
+                strings = List.map (resultToStringHelper (depth + 1)) results
             in
-                String.join "\n" strings
-        TodoResult desc -> "TODO: " ++ desc
-        SkipResult desc count -> "SKIPPED: " ++ desc ++ " - (" ++ (String.fromInt count) ++ " tests skipped)"
+                (String.repeat depth "\t") ++ (String.join "\n" strings)
+        TodoResult desc -> (String.repeat depth "\t") ++ "TODO: " ++ desc
+        SkipResult desc count -> (String.repeat depth "\t") ++ "SKIPPED: " ++ desc ++ " - (" ++ (String.fromInt count) ++ " tests skipped)"
 
 resultToString : TestResult -> String
 resultToString result =
-    let treeString = resultToStringHelper result
+    let treeString = resultToStringHelper 0 result
         counts = countResults result
         countsString = countsToString counts
     in
