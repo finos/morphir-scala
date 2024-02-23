@@ -41,7 +41,7 @@ object StringSDK {
       RTString(result)
   }
 
-  val dropLeft = DynamicNativeFunction2("repeat") {
+  val repeat = DynamicNativeFunction2("repeat") {
     (context: NativeContext) => (int: RT.Primitive.Int, str: RTString) =>
       val result = str.value.repeat(int.valueAsInt)
       RTString(result)
