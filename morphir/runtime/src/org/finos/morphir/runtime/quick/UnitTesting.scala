@@ -27,6 +27,12 @@ object UnitTestingSDK {
   def failed(msg: String) =
     RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(Primitive.String(msg)))
 
+  val equal: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (a: RTValue, b: RTValue) =>{
+      val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
+      expectation(result)
+    }
+    }
     
 }
 
