@@ -11,34 +11,41 @@ import org.finos.morphir.runtime.SDKValue.SDKValueDefinition
 import org.finos.morphir.ir.Value.*
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.MorphirRuntimeError.*
+import org.finos.morphir.runtime.internal.NativeFunctionAdapter
 import org.finos.morphir.ir.sdk
+import org.finos.morphir.runtime.SDKValue
+import org.finos.morphir.runtime.RTValue.Primitive
+import org.finos.morphir.util.PrintRTValue
+
+import org.finos.morphir.runtime.internal._
 
 
+object UnitTesting {
 
-object UnitTesting{
-    //What should this method's types be?
-    //Could return test failures on the error channel and have a unit return type
-    //Or could return a test report, with no error (barring evaluation failures?)
-    //Need to return a summary even on success, so not that first one
-    //Seems messy to return a summary either way
-    //Also, I would say "Testing" didn't fail even if the tests did
-  def testType = T.reference("Morphir.UnitTest", "Test", "Test")
+
+  // What should this method's types be?
+  // Could return test failures on the error channel and have a unit return type
+  // Or could return a test report, with no error (barring evaluation failures?)
+  // Need to return a summary even on success, so not that first one
+  // Seems messy to return a summary either way
+  // Also, I would say "Testing" didn't fail even if the tests did
+  def testType       = T.reference("Morphir.UnitTest", "Test", "Test")
   def testResultType = T.reference("Morphir.UnitTest", "Test", "TestResult")
   private[runtime] def runTests(
-    globals: GlobalDefs,
-    dists: Distributions
-  ): RTAction[MorphirEnv, Nothing, TestSummary] = {
+      globals: GlobalDefs,
+      dists: Distributions
+  ): RTAction[MorphirEnv, Nothing, TestSummary] =
     RTAction.environmentWithPure[MorphirSdk] { env =>
       val testNames = collectTests(globals, dists)
-      val testVals = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
+      val testVals  = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
       if (testVals.isEmpty) {
         val emptySummary = TestSummary("No tests run", true)
         RTAction.succeed(emptySummary)
-      } else  {
+      } else {
         val testSuiteIR = if (testVals.length == 1)
           testVals.head
-        else{
-          val testList = V.list(sdk.List.listType(testType), testVals:_*)
+        else {
+          val testList = V.list(sdk.List.listType(testType), testVals: _*)
           V.applyInferType(
             testType,
             V.constructor(FQName.fromString("Morphir.UnitTest:Test:Concat")),
@@ -60,37 +67,39 @@ object UnitTesting{
           V.reference(FQName.fromString("Morphir.UnitTest:Test:passed")),
           runTestsIR
         )
+
         val passedResult = EvaluatorQuick.eval(testsPassedIR, globals, dists)
+        // If failed, we want to evaluate this in a different context
         val passed = passedResult match {
           case Data.Boolean(b) => b
-          case _ => throw new OtherError("Test result was not a boolean", passedResult)
+          case _               => throw new OtherError("Test result was not a boolean", passedResult)
         }
-        //throw new OtherError("Infinite loop for some reason", runTest.attributes)
-        val mdmReport = EvaluatorQuick.eval(reportIR, globals, dists)
+        // throw new OtherError("Infinite loop for some reason", runTest.attributes)
+
+        val newGlobals =
+          globals.withDefinition(FQName.fromString("Morphir.UnitTest:Expect:equal"), UnitTestingSDK.equal)
+        val mdmReport = EvaluatorQuick.eval(reportIR, newGlobals, dists)
         val report = mdmReport match {
           case Data.String(s) => s
-          case _ => throw new OtherError("Test result: ", mdmReport)
+          case _              => throw new OtherError("Test result: ", mdmReport)
         }
         RTAction.succeed(TestSummary(report, passed))
       }
     }
-  }
 
   private[runtime] def collectTests(
-        globals: GlobalDefs,
-        dists: Distributions
-    ): List[FQName] = {
-      val tests = globals.definitions.collect { // TODO: Improved test recognition (aliasing of return type, cleanup, ???)
-        case (fqn -> SDKValueDefinition(definition: TypedDefinition))
-            if (definition.inputTypes.isEmpty && definition.outputType == testType) =>
-          fqn
-      }.toList
-      tests
-    }
-
+      globals: GlobalDefs,
+      dists: Distributions
+  ): List[FQName] = {
+    val tests = globals.definitions.collect { // TODO: Improved test recognition (aliasing of return type, cleanup, ???)
+      case (fqn -> SDKValueDefinition(definition: TypedDefinition))
+          if (definition.inputTypes.isEmpty && definition.outputType == testType) =>
+        fqn
+    }.toList
+    tests
+  }
 
 }
-
 
 //COPIED:
 
