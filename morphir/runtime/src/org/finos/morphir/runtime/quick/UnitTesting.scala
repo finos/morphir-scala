@@ -21,6 +21,12 @@ import org.finos.morphir.runtime.internal._
 
 
 object UnitTestingSDK {
+  def expectation(result: RTValue) =
+    RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
+  val passed = RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Pass"), List())
+  def failed(msg: String) =
+    RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(Primitive.String(msg)))
+
     
 }
 
