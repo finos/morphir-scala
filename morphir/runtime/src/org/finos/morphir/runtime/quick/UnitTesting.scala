@@ -19,7 +19,6 @@ import org.finos.morphir.util.PrintRTValue
 
 import org.finos.morphir.runtime.internal._
 
-
 object UnitTestingSDK {
   def expectation(result: RTValue) =
     RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
@@ -28,16 +27,13 @@ object UnitTestingSDK {
     RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(Primitive.String(msg)))
 
   val equal: SDKValue =
-    SDKValue.SDKNativeFunction.fun2 { (a: RTValue, b: RTValue) =>{
+    SDKValue.SDKNativeFunction.fun2 { (a: RTValue, b: RTValue) =>
       val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
       expectation(result)
     }
-    }
-    
 }
 
 object UnitTesting {
-
 
   // What should this method's types be?
   // Could return test failures on the error channel and have a unit return type

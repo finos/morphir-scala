@@ -408,13 +408,6 @@ object Native {
       RTValue.Primitive.Float(asDouble)
   }
 
-  
-
-  val notEqual: SDKValue = SDKValue.SDKNativeFunction.fun2 {
-    (a: RTValue, b: RTValue) =>
-      RTValue.Primitive.Boolean(a != b)
-  }
-
   val utc = java.time.ZoneId.of("UTC")
 
   def fromMillisecondsEpoch(millis: Long): java.time.LocalTime =

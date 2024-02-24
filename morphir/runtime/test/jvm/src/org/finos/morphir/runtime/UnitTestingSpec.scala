@@ -14,26 +14,25 @@ object UnitTestingSpec extends MorphirBaseSpec {
   val paths = List(
     os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "morphir-unit-test" / "morphir-ir.json",
     os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project-tests" / "morphir-ir.json",
-    os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project" / "morphir-ir.json",
+    os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project" / "morphir-ir.json"
   )
   val morphirRuntimeLayer: ZLayer[Any, Throwable, TypedMorphirRuntime] =
     ZLayer(for {
-      dists       <- ZIO.succeed(paths.map(path => EvaluationLibrary.loadDistribution(path.toString)))
-    } yield MorphirRuntime.quick(dists:_*))
+      dists <- ZIO.succeed(paths.map(path => EvaluationLibrary.loadDistribution(path.toString)))
+    } yield MorphirRuntime.quick(dists: _*))
 
-  
   def testEvaluation(label: String)(moduleName: String, functionName: String)(expected: => Data) =
     test(label) {
       val runResult = ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
-          val fullName = s"ExampleTests:$moduleName:$functionName"
-          runtime.evaluate(
-            FQName.fromString(fullName),
-            Data.Unit
-          )
-            .provideEnvironment(MorphirEnv.live)
-            .toZIOWith(RTExecutionContext.typeChecked)
+        val fullName = s"ExampleTests:$moduleName:$functionName"
+        runtime.evaluate(
+          FQName.fromString(fullName),
+          Data.Unit
+        )
+          .provideEnvironment(MorphirEnv.live)
+          .toZIOWith(RTExecutionContext.typeChecked)
       }
-      
+
       runResult.map { actual =>
         assertTrue(actual == expected)
       }
@@ -42,11 +41,11 @@ object UnitTestingSpec extends MorphirBaseSpec {
   def testUnitTestingPasses(label: String)(moduleName: String, functionName: String) =
     test(label) {
       val runResult = ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
-          runtime.runUnitTests()
-              .provideEnvironment(MorphirEnv.live)
-              .toZIOWith(RTExecutionContext.typeChecked)
+        runtime.runUnitTests()
+          .provideEnvironment(MorphirEnv.live)
+          .toZIOWith(RTExecutionContext.typeChecked)
       }
-      
+
       runResult.map { actual =>
         assertTrue(actual.success)
       }

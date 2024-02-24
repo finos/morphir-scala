@@ -21,8 +21,6 @@ import scala.collection.mutable
 object EvaluatorQuick {
   type FloatType = Double
 
-  
-
   private[runtime] def evalAction(
       value: TypedValue,
       globals: GlobalDefs,

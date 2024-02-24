@@ -30,8 +30,8 @@ class Distributions(dists: Map[PackageName, Distribution.Lib]) {
           case None         => Left(new MissingModule(pkgName, modName))
         }
       case None => Left(new MissingPackage(pkgName)
-      .withContext(s"Known packages:\n ${dists.keys.mkString("\n  ")}\n"))
-        
+          .withContext(s"Known packages:\n ${dists.keys.mkString("\n  ")}\n"))
+
     }
 
   def lookupModuleDefinition(pkgName: PackageName, modName: ModuleName): Either[LookupError, ModDef[Unit, UType]] =
@@ -42,7 +42,7 @@ class Distributions(dists: Map[PackageName, Distribution.Lib]) {
           case None         => Left(new MissingModule(pkgName, modName))
         }
       case None => Left(new MissingPackage(pkgName)
-        .withContext(s"Known packages:\n ${dists.keys.mkString("\n  ")}\n"))
+          .withContext(s"Known packages:\n ${dists.keys.mkString("\n  ")}\n"))
     }
 
   def lookupTypeSpecification(
@@ -63,12 +63,14 @@ class Distributions(dists: Map[PackageName, Distribution.Lib]) {
       modName: ModuleName,
       localName: Name
   ): Either[LookupError, UValueSpec] =
-    lookupModuleSpecification(pkgName, modName).flatMap(modSpec => modSpec.lookupValueSpecification(localName) match {
-      case Some(tpe) => Right(tpe)
-      case None      => Left(new MissingDefinition(pkgName, modName, localName)
-      .withContext(s"Known definitions:\n ${modSpec.values.keys.mkString("\n  ")}\n")
-      .withContext("You tried to look up: " + localName)
-    )})
+    lookupModuleSpecification(pkgName, modName).flatMap(modSpec =>
+      modSpec.lookupValueSpecification(localName) match {
+        case Some(tpe) => Right(tpe)
+        case None => Left(new MissingDefinition(pkgName, modName, localName)
+            .withContext(s"Known definitions:\n ${modSpec.values.keys.mkString("\n  ")}\n")
+            .withContext("You tried to look up: " + localName))
+      }
+    )
 
   def lookupValueSpecification(fqn: FQName): Either[LookupError, UValueSpec] =
     lookupValueSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)

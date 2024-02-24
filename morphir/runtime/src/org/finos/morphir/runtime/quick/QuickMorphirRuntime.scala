@@ -26,7 +26,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
     extends TypedMorphirRuntime {
   // private val store: Store[scala.Unit, UType] = Store.empty //
 
-  def test() : RTAction[MorphirEnv, Nothing, TestSummary] = {
+  def test(): RTAction[MorphirEnv, Nothing, TestSummary] = {
     val res = UnitTesting.runTests(globals, dists)
     res
   }

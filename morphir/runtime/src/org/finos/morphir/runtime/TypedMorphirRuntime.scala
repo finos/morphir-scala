@@ -16,7 +16,7 @@ import org.finos.morphir.runtime.exports.*
 trait TypedMorphirRuntime extends MorphirRuntime {
   type TypeAttribs  = scala.Unit
   type ValueAttribs = UType
-  
+
   def runUnitTests(distributions: Distribution*): RTAction[MorphirEnv, MorphirRuntimeError, TestSummary]
 
   final def evaluate(

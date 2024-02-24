@@ -26,7 +26,7 @@ object MorphirRuntimeError {
 
   final case class MorphirIRDecodingError(message: String) extends MorphirRuntimeError
 
-  final case class OtherError(cause: String, stuff : Any*) extends MorphirRuntimeError{
+  final case class OtherError(cause: String, stuff: Any*) extends MorphirRuntimeError {
     def message = err"$cause: $stuff"
   }
 
