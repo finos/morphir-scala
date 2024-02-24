@@ -338,8 +338,7 @@ sealed trait Value[+TA, +VA] { self =>
   def uncurryApply[TB >: TA, VB >: VA](lastArg: Value[TB, VB]): (Value[TB, VB], scala.List[Value[TB, VB]]) =
     self match {
       case Apply(_, nestedFun, nestedArg) =>
-        val (f, initArgs) = nestedFun.uncurryApply(nestedArg)
-        (f, initArgs :+ lastArg)
+        val (f, initArgs) = nestedFun.uncurryApply(nestedArg)(f, initArgs :+ lastArg)
       case _ => (self, scala.List(lastArg))
     }
 }
