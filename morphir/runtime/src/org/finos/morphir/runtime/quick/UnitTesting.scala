@@ -35,6 +35,9 @@ object UnitTestingSDK {
   
 }
 
+sealed trait MorphirUnitTest{
+}
+
 
 
 object UnitTesting {
