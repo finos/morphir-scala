@@ -31,7 +31,11 @@ object UnitTestingSDK {
       val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
       expectation(result)
     }
+
+  
 }
+
+
 
 object UnitTesting {
 
@@ -64,6 +68,8 @@ object UnitTesting {
             testList
           )
         }
+        val RTResult = Loop(globals).loop(testSuiteIR, Store.empty)
+
         val runTestsIR = V.applyInferType(
           testResultType,
           V.reference(FQName.fromString("Morphir.UnitTest:Test:run")),
@@ -98,6 +104,9 @@ object UnitTesting {
         RTAction.succeed(TestSummary(report, passed))
       }
     }
+  
+  private[runtime] def passingResult() : TestSummary = {}
+  private[runtime] def nonPassingResult() : TestSummar = {}
 
   private[runtime] def collectTests(
       globals: GlobalDefs,
