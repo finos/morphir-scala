@@ -116,7 +116,7 @@ object UnitTesting {
   private[runtime] def nonPassingResult(
       globals: GlobalDefs,
       dists: Distributions,
-      reportIR : TypedValue) : TestSummary = {
+      Tests: List[FQName]) : TestSummary = {
         //Let's just eat the whole horse
         val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
       }
