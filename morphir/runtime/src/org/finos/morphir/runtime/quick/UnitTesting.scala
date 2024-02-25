@@ -68,7 +68,6 @@ object UnitTesting {
             testList
           )
         }
-        val RTResult = Loop(globals).loop(testSuiteIR, Store.empty)
 
         val runTestsIR = V.applyInferType(
           testResultType,
@@ -114,7 +113,10 @@ object UnitTesting {
   private[runtime] def nonPassingResult(
       globals: GlobalDefs,
       dists: Distributions,
-      reportIR : TypedValue) : TestSummar = {}
+      reportIR : TypedValue) : TestSummary = {
+        //Let's just eat the whole horse
+        val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
+      }
 
   private[runtime] def collectTests(
       globals: GlobalDefs,
