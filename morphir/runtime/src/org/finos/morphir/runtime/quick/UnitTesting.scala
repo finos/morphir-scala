@@ -119,6 +119,8 @@ object UnitTesting {
       Tests: List[FQName]) : TestSummary = {
         //Let's just eat the whole horse
         val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
+        // Try to convert these to actual Test trees
+
       }
 
   private[runtime] def collectTests(
