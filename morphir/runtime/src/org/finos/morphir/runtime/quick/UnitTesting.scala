@@ -88,21 +88,16 @@ object UnitTesting {
 
         val passedResult = EvaluatorQuick.eval(testsPassedIR, globals, dists)
         // If failed, we want to evaluate this in a different context
-        val passed = passedResult match {
+        val report = passedResult match {
           case Data.Boolean(true) => passingResult(gobals, dists, reportIR)
           case Data.Boolean(false) => nonpassingResult()
           case _               => throw new OtherError("Test result was not a boolean", passedResult)
         }
         // throw new OtherError("Infinite loop for some reason", runTest.attributes)
 
-        val newGlobals =
-          globals.withDefinition(FQName.fromString("Morphir.UnitTest:Expect:equal"), UnitTestingSDK.equal)
-        
-        val report = mdmReport match {
-          case Data.String(s) => s
-          case _              => throw new OtherError("Test result: ", mdmReport)
-        }
-        RTAction.succeed(TestSummary(report, passed))
+        // val newGlobals =
+        //   globals.withDefinition(FQName.fromString("Morphir.UnitTest:Expect:equal"), UnitTestingSDK.equal)
+        RTAction.succed(report)
       }
     }
   
@@ -115,9 +110,11 @@ object UnitTesting {
           case Data.String(s) => s
           case _              => throw new OtherError("Test result: ", mdmReport)
         }
-    
   }
-  private[runtime] def nonPassingResult() : TestSummar = {}
+  private[runtime] def nonPassingResult(
+      globals: GlobalDefs,
+      dists: Distributions,
+      reportIR : TypedValue) : TestSummar = {}
 
   private[runtime] def collectTests(
       globals: GlobalDefs,
