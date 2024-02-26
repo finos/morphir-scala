@@ -193,6 +193,11 @@ def transform(partial : PartialFunction[TypedValue, TypedValue])(valueIn : Typed
       case ListValue(va, elements)                 => handleListValue(va, elements.toList, store)
       case node @ PatternMatch(va, value, cases)   => handlePatternMatch(va, node, value, cases.toList, store)
       case Record(va, fields)                      => handleRecord(va, fields.toList, store)
+      case Reference(va, name)                     => handleReference(va, name, store)
+      case Tuple(va, elements)                     => handleTuple(va, elements.toList, store)
+      case Unit(va)                                => handleUnit(va)
+      case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
+      case Variable(va, name)                      => handleVariable(va, name, store)
 
     }
   }
