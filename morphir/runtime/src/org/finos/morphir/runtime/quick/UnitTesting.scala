@@ -180,9 +180,9 @@ object UnitTesting {
       case Apply(va, function, argument) => Apply(va, recurse(function), recurse(argument))
       case Destructure(va, pattern, valueToDestruct, inValue) => Apply(va, pattern, recurse(valueToDestruct), recurse(inValue))
       case Field(va, recordValue, name) => Field(va, recurse(recordValue), name)
-      case IfThenElse(va, condition, thenValue, elseValue) =>
-      case Lambda(va, pattern, body) => handleLambda(va, pattern, body, store)
-      case LetDefinition(va, name, definition, inValue) =>
+      case IfThenElse(va, condition, thenValue, elseValue) => IfThenElse(va, recurse(condition), recurse(thenValue), recurse(elseValue))
+      case Lambda(va, pattern, body) => Lambda(va, pattern, recurse(body))
+      case LetDefinition(va, name, definition, inValue) => 
       case LetRecursion(va, definitions, inValue)  => handleLetRecursion(va, definitions, inValue, store)
       case ListValue(va, elements)                 => handleListValue(va, elements.toList, store)
       case node @ PatternMatch(va, value, cases)   => handlePatternMatch(va, node, value, cases.toList, store)
