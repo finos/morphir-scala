@@ -189,7 +189,8 @@ object UnitTesting {
         recurse(inValue))
       case ListValue(va, elements)                 => ListValue(va, elements.map(recurse))
       case PatternMatch(va, value, cases)   =>    PatternMatch(va,
-        value, cases.toList, store)
+        recurse(value),
+        cases.map(arm => ), store)
       case Record(va, fields)                      => handleRecord(va, fields.toList, store)
       case Tuple(va, elements)                     => handleTuple(va, elements.toList, store)
       case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
