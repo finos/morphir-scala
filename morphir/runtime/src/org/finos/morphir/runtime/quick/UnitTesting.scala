@@ -119,7 +119,11 @@ object UnitTesting {
       testNames: List[FQName]) : TestSummary = {
         //Let's just eat the whole horse
         //val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
-        val thunkifiedTests : List[(FQName, TypedValue)] = ??? //force every expect call into a thunk
+        val testIRs : List[(FQName, TypedValue)] = ??? //force every expect call into a thunk
+
+        val testVals  = testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
+
+        val thunkifiedTests = testVals.
 
         //Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
         //So that means that any call that looks like
@@ -139,7 +143,8 @@ object UnitTesting {
         //So I think OnFail we DO replace but we DO NOT convert, right? That sounds good.
 
 
-        val testRTValues :List[(FQName, Either[Error, RTValue])] =  ???//Evaluate, and wrap any errors caught
+        val testRTValues :List[(FQName, Either[Error, RTValue])] = 
+
         // Try to convert these to actual Test trees
         val tests : List[Either[UnitTest, Error]] = ??? //Convert the structures to unit tests
 
@@ -169,67 +174,10 @@ object UnitTesting {
     tests
   }
 
-}
-
-def transform(partial : PartialFunction[TypedValue, TypedValue])(valueIn : TypedValue) : TypedValue = {
-  def recurse = transform(partial)
-  partial(valueIn) match{
-    case Some(transformed) => transformed
-    case None => valueIn match{
-      case Apply(tpe, f, arg) => Apply(tpe, recurse(f), recurse(arg))
-      case Literal(va, lit)              => handleLiteral(va, lit)
-      case Apply(va, function, argument) => handleApply(va, function, argument, store)
-      case node @ Destructure(va, pattern, valueToDestruct, inValue) =>
-        handleDestructure(va, node, pattern, valueToDestruct, inValue, store)
-      case Constructor(va, name)        => handleConstructor(va, name)
-      case Field(va, recordValue, name) => handleField(va, recordValue, name, store)
-      case FieldFunction(va, name)      => handleFieldFunction(va, name)
-      case IfThenElse(va, condition, thenValue, elseValue) =>
-        handleIfThenElse(va, condition, thenValue, elseValue, store)
-      case Lambda(va, pattern, body) => handleLambda(va, pattern, body, store)
-      case LetDefinition(va, name, definition, inValue) =>
-        handleLetDefinition(va, name, definition, inValue, store)
-      case LetRecursion(va, definitions, inValue)  => handleLetRecursion(va, definitions, inValue, store)
-      case ListValue(va, elements)                 => handleListValue(va, elements.toList, store)
-      case node @ PatternMatch(va, value, cases)   => handlePatternMatch(va, node, value, cases.toList, store)
-      case Record(va, fields)                      => handleRecord(va, fields.toList, store)
-      case Reference(va, name)                     => handleReference(va, name, store)
-      case Tuple(va, elements)                     => handleTuple(va, elements.toList, store)
-      case Unit(va)                                => handleUnit(va)
-      case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
-      case Variable(va, name)                      => handleVariable(va, name, store)
-
-    }
-  }
-  //Do we recurse post transformation?
-  //No, not for this. 
-}
-
-trait ValueTransformer{
-  def of(valueIn : TypedValue) : TypedValue = {
-    valueIn match {
-      case v: Apply[_, _]         => of(v)
-      case v: Constructor[_]      => of(v)
-      case v: Destructure[_, _]   => of(v)
-      case v: Field[_, _]         => of(v)
-      case v: FieldFunction[_]    => of(v)
-      case v: IfThenElse[_, _]    => of(v)
-      case v: Lambda[_, _]        => of(v)
-      case v: LetDefinition[_, _] => of(v)
-      case v: LetRecursion[_, _]  => of(v)
-      case v: List[_, _]          => of(v)
-      case v: Literal[_]          => of(v)
-      case v: PatternMatch[_, _]  => of(v)
-      case v: Record[_, _]        => of(v)
-      case v: Reference[_]        => of(v)
-      case v: Tuple[_, _]         => of(v)
-      case v: Unit[_]             => of(v)
-      case v: UpdateRecord[_, _]  => of(v)
-      case v: Variable[_]         => of(v)
-    }
+  def transform(partial : PartialFunction[TypedValue, TypedValue])(value : TypedValue) : TypedValue = {
+    
   }
 
-  
 }
 
 //COPIED:
