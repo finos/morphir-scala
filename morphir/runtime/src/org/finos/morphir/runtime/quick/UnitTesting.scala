@@ -177,7 +177,11 @@ def transform(partial : PartialFunction[TypedValue, TypedValue])(valueIn : Typed
     case Some(transformed) => transformed
     case None => valueIn match{
       case Apply(tpe, f, arg) => Apply(tpe, recurse(f), recurse(arg))
-      
+      case Literal(va, lit)              => handleLiteral(va, lit)
+      case Apply(va, function, argument) => handleApply(va, function, argument, store)
+      case node @ Destructure(va, pattern, valueToDestruct, inValue) =>
+        handleDestructure(va, node, pattern, valueToDestruct, inValue, store)
+
     }
   }
   //Do we recurse post transformation?
