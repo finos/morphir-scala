@@ -181,6 +181,18 @@ def transform(partial : PartialFunction[TypedValue, TypedValue])(valueIn : Typed
       case Apply(va, function, argument) => handleApply(va, function, argument, store)
       case node @ Destructure(va, pattern, valueToDestruct, inValue) =>
         handleDestructure(va, node, pattern, valueToDestruct, inValue, store)
+      case Constructor(va, name)        => handleConstructor(va, name)
+      case Field(va, recordValue, name) => handleField(va, recordValue, name, store)
+      case FieldFunction(va, name)      => handleFieldFunction(va, name)
+      case IfThenElse(va, condition, thenValue, elseValue) =>
+        handleIfThenElse(va, condition, thenValue, elseValue, store)
+      case Lambda(va, pattern, body) => handleLambda(va, pattern, body, store)
+      case LetDefinition(va, name, definition, inValue) =>
+        handleLetDefinition(va, name, definition, inValue, store)
+      case LetRecursion(va, definitions, inValue)  => handleLetRecursion(va, definitions, inValue, store)
+      case ListValue(va, elements)                 => handleListValue(va, elements.toList, store)
+      case node @ PatternMatch(va, value, cases)   => handlePatternMatch(va, node, value, cases.toList, store)
+      case Record(va, fields)                      => handleRecord(va, fields.toList, store)
 
     }
   }
