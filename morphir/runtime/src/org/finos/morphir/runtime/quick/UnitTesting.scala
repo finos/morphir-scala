@@ -253,6 +253,7 @@ object UnitTesting {
           recurse(valueToUpdate),
           fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
         )
+      case noNestedIR => noNestedIR
     }
   }
 

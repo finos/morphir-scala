@@ -1,6 +1,7 @@
 package org.finos.morphir.runtime
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.runtime.Extractors.*
+import org.finos.morphir.runtime.MorphirRuntimeError.*
 
 //Possibly this tpe should be polymorphic on the contents
 sealed trait TestTree[T]
@@ -29,15 +30,23 @@ object TestTree {
 
   def fromRTValue(value: RT): MorphirUnitTest =
     value match {
-      case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Describe"), List(RT.Primitive.String(desc), RT.List(tests))) =>
+      case RT.ConstructorResult(
+            FQStringTitleCase("Morphir.UnitTest:Test:Describe"),
+            List(RT.Primitive.String(desc), RT.List(tests))
+          ) =>
         Describe(desc, tests.map(fromRTValue))
-      case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:SingleTest"), List(RT.Primitive.String(desc), expectThunk)) =>
+      case RT.ConstructorResult(
+            FQStringTitleCase("Morphir.UnitTest:Test:SingleTest"),
+            List(RT.Primitive.String(desc), expectThunk)
+          ) =>
         SingleTest(desc, expectThunk)
-      case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Concat"), List(RT.List(tests))) =>
+      case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Concat"), List(RT.List(tests))) =>
         Concat(tests.map(fromRTValue))
-      case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Todo"), List(RT.Primitive.String(desc))) => Todo(desc)
-      case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Skip"), List(test)) => Only(fromRTValue(test))
-      case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Only"), List(test)) => Only(fromRTValue(test))
+      case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Todo"), List(RT.Primitive.String(desc))) => Todo(desc)
+      case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Skip"), List(test)) => Only(fromRTValue(test))
+      case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Only"), List(test)) => Only(fromRTValue(test))
+      case RT.ConstructorResult(other, _) => throw new OtherError("Unexpected constructor found", other)
+      case other                          => throw new OtherError("Expected Test constructor bout found", other)
     }
 
 }
