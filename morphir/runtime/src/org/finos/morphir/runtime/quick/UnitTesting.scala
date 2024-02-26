@@ -183,6 +183,13 @@ object UnitTesting {
       case IfThenElse(va, condition, thenValue, elseValue) =>
       case Lambda(va, pattern, body) => handleLambda(va, pattern, body, store)
       case LetDefinition(va, name, definition, inValue) =>
+      case LetRecursion(va, definitions, inValue)  => handleLetRecursion(va, definitions, inValue, store)
+      case ListValue(va, elements)                 => handleListValue(va, elements.toList, store)
+      case node @ PatternMatch(va, value, cases)   => handlePatternMatch(va, node, value, cases.toList, store)
+      case Record(va, fields)                      => handleRecord(va, fields.toList, store)
+      case Tuple(va, elements)                     => handleTuple(va, elements.toList, store)
+      case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
+      case Variable(va, name)                      => handleVariable(va, name, store)
     }
   }
 
