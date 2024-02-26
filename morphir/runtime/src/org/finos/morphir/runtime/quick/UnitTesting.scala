@@ -184,7 +184,11 @@ object UnitTesting {
 
   private[runtime] def getExpects(test : MorphirUnitTest) : MorphirUnitTest  = {
     test match{
-      
+      case Describe(_, tests) => tests.any(containsOnly)
+      case concat(tests) => tests.any(containsOnly)
+      case Skip(inner) => containsOnly(inner)
+      case Only(_) => true
+      case _ => false
     }
   }
 
