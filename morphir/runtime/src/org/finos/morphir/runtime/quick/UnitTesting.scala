@@ -182,8 +182,11 @@ object UnitTesting {
       case Field(va, recordValue, name) => Field(va, recurse(recordValue), name)
       case IfThenElse(va, condition, thenValue, elseValue) => IfThenElse(va, recurse(condition), recurse(thenValue), recurse(elseValue))
       case Lambda(va, pattern, body) => Lambda(va, pattern, recurse(body))
-      case LetDefinition(va, name, definition, inValue) => 
-      case LetRecursion(va, definitions, inValue)  => handleLetRecursion(va, definitions, inValue, store)
+      case LetDefinition(va, name, definition, inValue) => LetDefinition(va, name, definition.copy(body = recurse(definition.body)), recurse(inValue))
+      case LetRecursion(va, definitions, inValue)  => Recursion(
+        va, 
+        definitions.map(dfn => dfn.copy(body = recurse(dfn.body))), 
+        recurse(inValue))
       case ListValue(va, elements)                 => handleListValue(va, elements.toList, store)
       case node @ PatternMatch(va, value, cases)   => handlePatternMatch(va, node, value, cases.toList, store)
       case Record(va, fields)                      => handleRecord(va, fields.toList, store)
