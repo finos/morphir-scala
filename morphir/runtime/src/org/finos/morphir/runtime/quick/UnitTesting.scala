@@ -116,11 +116,17 @@ object UnitTesting {
   private[runtime] def nonPassingResult(
       globals: GlobalDefs,
       dists: Distributions,
-      Tests: List[FQName]) : TestSummary = {
+      testNames: List[FQName]) : TestSummary = {
         //Let's just eat the whole horse
         val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
+        val thunkifiedTests : List[(FQName, TypedValue)] = ??? //force every expect call into a thunk
+        val testRTValues = List[(FQName, Either[Error, RTValue])] //Evaluate, and wrap any errors caught
+        
         // Try to convert these to actual Test trees
-
+        val tests : List[Either[UnitTest, Error]] = ??? //Run the FQName
+        //Replace all Apply(Apply(Expect.whatever)) w/ Lambda (() -> That Nonsense)
+        //Evaluate again; failures caught as errors, not thrown
+        //
       }
 
   private[runtime] def collectTests(
