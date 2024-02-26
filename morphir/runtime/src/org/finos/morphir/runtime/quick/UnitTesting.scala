@@ -79,19 +79,20 @@ object UnitTesting {
           runTestsIR
         )
 
-        //We evaluate twice (in failed cases) intentionally - once in a pure-elm manner to ensure we are using
-        //the in-flight evaluator, then again with special code enabled to better analyze and report the failures.
-        //The first assures us we have no "false nagative" (i.e., falsely passing) tests
-        //The second lets us give the user lots of information about why and how tests failed
-        val passedResult =  try {
-          Right(EvaluatorQuick.eval(testsPassedIR, globals, dists))
-        } catch {
-          case e => Left(e)
-        }
+        // We evaluate twice (in failed cases) intentionally - once in a pure-elm manner to ensure we are using
+        // the in-flight evaluator, then again with special code enabled to better analyze and report the failures.
+        // The first assures us we have no "false nagative" (i.e., falsely passing) tests
+        // The second lets us give the user lots of information about why and how tests failed
+        val passedResult =
+          try
+            Right(EvaluatorQuick.eval(testsPassedIR, globals, dists))
+          catch {
+            case e => Left(e)
+          }
 
         val report = passedResult match {
-          case Right(Data.Boolean(true))  => passingResult(globals, dists, runTestsIR)
-          //Anything else and we know we have a failure, it's just a matter of determining what
+          case Right(Data.Boolean(true)) => passingResult(globals, dists, runTestsIR)
+          // Anything else and we know we have a failure, it's just a matter of determining what
           case _ => nonpassingResult()
         }
 
@@ -106,11 +107,11 @@ object UnitTesting {
       dists: Distributions,
       runTestIR: TypedValue
   ): TestSummary = {
-      val reportIR = V.applyInferType(
-        sdk.String.stringType,
-        V.reference(FQName.fromString("Morphir.UnitTest:Test:resultToString")),
-        runTestsIR
-      )
+    val reportIR = V.applyInferType(
+      sdk.String.stringType,
+      V.reference(FQName.fromString("Morphir.UnitTest:Test:resultToString")),
+      runTestsIR
+    )
     val mdmReport = EvaluatorQuick.eval(reportIR, globals, dists)
     val report = mdmReport match {
       case Data.String(s) => s
@@ -118,6 +119,7 @@ object UnitTesting {
     }
     TestSummary(report, true)
   }
+
   private[runtime] def nonPassingResult(
       globals: GlobalDefs,
       dists: Distributions,
@@ -125,12 +127,12 @@ object UnitTesting {
   ): TestSummary = {
     // Let's just eat the whole horse
     // val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
-    val testIRs: List[(FQName, TypedValue)] = 
+    val testIRs: List[(FQName, TypedValue)] =
       testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
 
-    def thunkify(value : TypedValue) : Option[TypedValue] = None //Placeholder
-    def thunkifTransform = transform(thunkify)
-    val thunkifiedTests = testIRs.map{case (fqn, value) => (fqn -> thunkifyTransform(value))}
+    def thunkify(value: TypedValue): Option[TypedValue] = None // Placeholder
+    def thunkifTransform                                = transform(thunkify)
+    val thunkifiedTests = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
     // Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
     // So that means that any call that looks like
@@ -150,11 +152,13 @@ object UnitTesting {
     // So I think OnFail we DO replace but we DO NOT convert, right? That sounds good.
 
     val testRTValues: List[(FQName, Either[Error, RTValue])] = thunkifiedTests
-      .map{case (fqn, ir) => 
-        try{
+      .map { case (fqn, ir) =>
+        try
           Right(Loop(globals).loop(ir, Store.empty))
+        catch {
+          case e => Left(e)
         }
-        catch}
+      }
 
     // Try to convert these to actual Test trees
     val tests: List[Either[UnitTest, Error]] = ??? // Convert the structures to unit tests
@@ -214,9 +218,9 @@ object UnitTesting {
           elements.map(recurse)
         )
       case UpdateRecord(va, valueToUpdate, fields) => UpdateRecord(
-        va, 
-        recurse(valueToUpdate),
-        fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
+          va,
+          recurse(valueToUpdate),
+          fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
         )
     }
   }
