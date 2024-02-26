@@ -93,19 +93,19 @@ object UnitTesting {
         val report = passedResult match {
           case Right(Data.Boolean(true)) => passingResult(globals, dists, runTestsIR)
           // Anything else and we know we have a failure, it's just a matter of determining what
-          case _ => nonpassingResult()
+          case _ => nonPassingResult(globals, dists, testNames)
         }
 
         // val newGlobals =
         //   globals.withDefinition(FQName.fromString("Morphir.UnitTest:Expect:equal"), UnitTestingSDK.equal)
-        RTAction.succed(report)
+        RTAction.succeed(report)
       }
     }
 
   private[runtime] def passingResult(
       globals: GlobalDefs,
       dists: Distributions,
-      runTestIR: TypedValue
+      runTestsIR: TypedValue
   ): TestSummary = {
     val reportIR = V.applyInferType(
       sdk.String.stringType,
@@ -131,7 +131,7 @@ object UnitTesting {
       testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
 
     def thunkify(value: TypedValue): Option[TypedValue] = None // Placeholder
-    def thunkifTransform                                = transform(thunkify)
+    def thunkifyTransform                                = transform(thunkify(_))
     val thunkifiedTests = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
     // Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
@@ -154,44 +154,43 @@ object UnitTesting {
     val testRTValues: List[(FQName, Either[Error, RTValue])] = thunkifiedTests
       .map { case (fqn, ir) =>
         try
-          Right(Loop(globals).loop(ir, Store.empty))
+          (fqn, Right(Loop(globals).loop(ir, Store.empty)))
         catch {
-          case e => Left(e)
+          case e :  => (fqn, Left(e))
         }
       }
 
     // Try to convert these to actual Test trees
-    val tests: List[Either[MorphirUnitTest, Error]] = testRTValues.map{
+    val tests: List[Either[MorphirUnitTest, Error]] = testRTValues.map {
       case (fqn, Right(rt)) => (fqn, Right(TestTree.fromRTValue(rt)))
-      case err => err
+      case err              => err
     }
-    
-    //TODO: Handle "Only"
-    def getExpectsAll(test : MorphirUnitTest) : MorphirUnitTest  = {
-      test match{
+
+    // TODO: Handle "Only"
+    def getExpectsAll(test: MorphirUnitTest): MorphirUnitTest =
+      test match {
         case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
-        case Concat(tests) => Concat(tests.map(getExpect))
-        case Skip(inner) => Skip(inner) //No transformation here
-        case Only(inner) => Only(getExpects(inner))
-        case Todo(desc) => Todo(desc)
+        case Concat(tests)         => Concat(tests.map(getExpect))
+        case Skip(inner)           => Skip(inner) // No transformation here
+        case Only(inner)           => Only(getExpects(inner))
+        case Todo(desc)            => Todo(desc)
         case SingleTest(desc, thunk) => SingleTest(
-          desc, 
-          Loop(globals)
-            .handleApplyResult(
-              testType,
-              thunk,
-              RTValue.Unit ))
-        }
+            desc,
+            Loop(globals)
+              .handleApplyResult(
+                testType,
+                thunk,
+                RTValue.Unit
+              )
+          )
       }
 
-    val testsWithExpects: List[Either[MorphirUnitTest, Error]] = testRTValues.map{
+    val testsWithExpects: List[Either[MorphirUnitTest, Error]] = testRTValues.map {
       case (fqn, Right(rt)) => (fqn, Right(getExpectsAll(rt)))
-      case err => err
+      case err              => err
     }
 
-    throw new exe
-    
-    
+    throw new OtherError(testsWithExpects)
 
     // Each test leaf contains a thunk
     // We evaluate the thunks, we get back:
@@ -219,7 +218,7 @@ object UnitTesting {
     tests
   }
 
-  def transform(partial: PartialFunction[TypedValue, TypedValue])(value: TypedValue): TypedValue = {
+  def transform(partial: TypedValue => Option[TypedValue])(value: TypedValue): TypedValue = {
     def recurse = transform(partial)
     value match {
       case Apply(va, function, argument) => Apply(va, recurse(function), recurse(argument))
