@@ -177,9 +177,9 @@ object UnitTesting {
   def transform(partial : PartialFunction[TypedValue, TypedValue])(value : TypedValue) : TypedValue = {
     def recurse = transform(partial)
     value match{
-      case Apply(va, function, argument) => handleApply(va, function, argument, store)
-      case node @ Destructure(va, pattern, valueToDestruct, inValue) =>
-      case Field(va, recordValue, name) => handleField(va, recordValue, name, store)
+      case Apply(va, function, argument) => Apply(va, recurse(function), recurse(argument))
+      case Destructure(va, pattern, valueToDestruct, inValue) => Apply(va, pattern, recurse(valueToDestruct), recurse(inValue))
+      case Field(va, recordValue, name) => Field(va, recurse(recordValue), name)
       case IfThenElse(va, condition, thenValue, elseValue) =>
       case Lambda(va, pattern, body) => handleLambda(va, pattern, body, store)
       case LetDefinition(va, name, definition, inValue) =>
