@@ -14,6 +14,8 @@ import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.internal.NativeFunctionAdapter
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.runtime.SDKValue
+import org.finos.morphir.runtime.TestTree
+import org.finos.morphir.runtime.MorphirUnitTest
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.util.PrintRTValue
 
@@ -159,9 +161,14 @@ object UnitTesting {
       }
 
     // Try to convert these to actual Test trees
-    val tests: List[Either[UnitTest, Error]] = ??? // Convert the structures to unit tests
+    val tests: List[Either[UnitTest, Error]] = testRTValues.map{
+      case (fqn, Right(rt)) => (fqn, Right(TestTree.fromRTValue(rt)))
+      case err => err
+    }
 
-    // Each test leaf contains a think
+    
+
+    // Each test leaf contains a thunk
     // We evaluate the thunks, we get back:
     // Expects or
     // More Thunks (Re-evaluate once)
