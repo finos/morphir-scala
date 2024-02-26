@@ -171,6 +171,19 @@ object UnitTesting {
 
 }
 
+def transform(partial : PartialFunction[TypedValue, TypedValue])(valueIn : TypedValue) : TypedValue = {
+  def recurse = transform(partial)
+  partial(valueIn) match{
+    case Some(transformed) => transformed
+    case None => valueIn match{
+      case Apply(tpe, f, arg) => Apply(tpe, recurse(f), recurse(arg))
+      
+    }
+  }
+  //Do we recurse post transformation?
+  //No, not for this. 
+}
+
 trait ValueTransformer{
   def of(valueIn : TypedValue) : TypedValue = {
     valueIn match {
@@ -195,8 +208,7 @@ trait ValueTransformer{
     }
   }
 
-  // ====== Leaf Cases ======
-  def of(value : FieldFunction) : TypedValue = value 
+  
 }
 
 //COPIED:
