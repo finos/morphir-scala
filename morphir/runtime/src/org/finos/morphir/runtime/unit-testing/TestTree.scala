@@ -20,7 +20,7 @@ object TestTree {
   def containsOnly[T](tree : TestTree[T]) : Boolean = {
     tree match {
       case Describe(_, tests) => tests.any(containsOnly)
-      case concat(tests) => tests.any(containsOnly)
+      case Concat(tests) => tests.any(containsOnly)
       case Skip(inner) => containsOnly(inner)
       case Only(_) => true
       case _ => false

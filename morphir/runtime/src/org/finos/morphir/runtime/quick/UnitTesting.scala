@@ -161,10 +161,35 @@ object UnitTesting {
       }
 
     // Try to convert these to actual Test trees
-    val tests: List[Either[UnitTest, Error]] = testRTValues.map{
+    val tests: List[Either[MorphirUnitTest, Error]] = testRTValues.map{
       case (fqn, Right(rt)) => (fqn, Right(TestTree.fromRTValue(rt)))
       case err => err
     }
+    
+    //TODO: Handle "Only"
+    def getExpectsAll(test : MorphirUnitTest) : MorphirUnitTest  = {
+      test match{
+        case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
+        case Concat(tests) => Concat(tests.map(getExpect))
+        case Skip(inner) => Skip(inner) //No transformation here
+        case Only(inner) => Only(getExpects(inner))
+        case Todo(desc) => Todo(desc)
+        case SingleTest(desc, thunk) => SingleTest(
+          desc, 
+          Loop(globals)
+            .handleApplyResult(
+              testType,
+              thunk,
+              RTValue.Unit ))
+        }
+      }
+
+    val testsWithExpects: List[Either[MorphirUnitTest, Error]] = testRTValues.map{
+      case (fqn, Right(rt)) => (fqn, Right(getExpectsAll(rt)))
+      case err => err
+    }
+
+    throw new OtherError(testsWithExpects)
     
     
 
@@ -180,16 +205,6 @@ object UnitTesting {
     // Replace all Apply(Apply(Expect.whatever)) w/ Lambda (() -> That Nonsense)
     // Evaluate again; failures caught as errors, not thrown
     //
-  }
-
-  private[runtime] def getExpects(test : MorphirUnitTest) : MorphirUnitTest  = {
-    test match{
-      case Describe(_, tests) => tests.any(containsOnly)
-      case concat(tests) => tests.any(containsOnly)
-      case Skip(inner) => containsOnly(inner)
-      case Only(_) => true
-      case _ => false
-    }
   }
 
   private[runtime] def collectTests(
