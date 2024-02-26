@@ -32,13 +32,9 @@ object UnitTestingSDK {
       expectation(result)
     }
 
-  
 }
 
-sealed trait MorphirUnitTest{
-}
-
-
+sealed trait MorphirUnitTest {}
 
 object UnitTesting {
 
@@ -91,9 +87,9 @@ object UnitTesting {
         val passedResult = EvaluatorQuick.eval(testsPassedIR, globals, dists)
         // If failed, we want to evaluate this in a different context
         val report = passedResult match {
-          case Data.Boolean(true) => passingResult(gobals, dists, reportIR)
+          case Data.Boolean(true)  => passingResult(gobals, dists, reportIR)
           case Data.Boolean(false) => nonpassingResult()
-          case _               => throw new OtherError("Test result was not a boolean", passedResult)
+          case _                   => throw new OtherError("Test result was not a boolean", passedResult)
         }
         // throw new OtherError("Infinite loop for some reason", runTest.attributes)
 
@@ -102,65 +98,66 @@ object UnitTesting {
         RTAction.succed(report)
       }
     }
-  
+
   private[runtime] def passingResult(
       globals: GlobalDefs,
       dists: Distributions,
-      reportIR : TypedValue) : TestSummary = {
+      reportIR: TypedValue
+  ): TestSummary = {
     val mdmReport = EvaluatorQuick.eval(reportIR, globals, dists)
     val report = mdmReport match {
-          case Data.String(s) => s
-          case _              => throw new OtherError("Test result: ", mdmReport)
-        }
+      case Data.String(s) => s
+      case _              => throw new OtherError("Test result: ", mdmReport)
+    }
   }
   private[runtime] def nonPassingResult(
       globals: GlobalDefs,
       dists: Distributions,
-      testNames: List[FQName]) : TestSummary = {
-        //Let's just eat the whole horse
-        //val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
-        val testIRs : List[(FQName, TypedValue)] = ??? //force every expect call into a thunk
+      testNames: List[FQName]
+  ): TestSummary = {
+    // Let's just eat the whole horse
+    // val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
+    val testIRs: List[(FQName, TypedValue)] = ??? // force every expect call into a thunk
 
-        val testVals  = testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
+    val testVals = testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
 
-        val thunkifiedTests = testVals.
+    val thunkifiedTests = ???
 
-        //Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
-        //So that means that any call that looks like
-        //(Apply(F, Arg) : Expect) //No wait this includes the wrong stuffs
-        //Okay if the users are that determined to break test reporting they can, it won't change passes to fails
-        //So that's
-        //Match once and in this order:
-        //Apply(Apply(Ref(OneOfThem), Arg1), Arg2) -> Apply(Ref(OneOfThem), () -> (Arg1, Arg2)) //Okay?
-        //Apply(Reference(OneOfThem), Arg) -> Apply(Reference(OneOfThem), () -> Arg)
-        //Tho TBH, which even need this?
-        //Let's just say all of them. It's nice to be able to SEE the IR.
+    // Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
+    // So that means that any call that looks like
+    // (Apply(F, Arg) : Expect) //No wait this includes the wrong stuffs
+    // Okay if the users are that determined to break test reporting they can, it won't change passes to fails
+    // So that's
+    // Match once and in this order:
+    // Apply(Apply(Ref(OneOfThem), Arg1), Arg2) -> Apply(Ref(OneOfThem), () -> (Arg1, Arg2)) //Okay?
+    // Apply(Reference(OneOfThem), Arg) -> Apply(Reference(OneOfThem), () -> Arg)
+    // Tho TBH, which even need this?
+    // Let's just say all of them. It's nice to be able to SEE the IR.
 
-        //Transformation is hard tho - revisit that idea with greater patience.
+    // Transformation is hard tho - revisit that idea with greater patience.
 
-        //Then There is...
-        //Apply(Apply(Ref(OnFail)), Apply(...))
-        //So I think OnFail we DO replace but we DO NOT convert, right? That sounds good.
+    // Then There is...
+    // Apply(Apply(Ref(OnFail)), Apply(...))
+    // So I think OnFail we DO replace but we DO NOT convert, right? That sounds good.
 
+    val testRTValues: List[(FQName, Either[Error, RTValue])] = ???
 
-        val testRTValues :List[(FQName, Either[Error, RTValue])] = 
+    // Try to convert these to actual Test trees
+    val tests: List[Either[UnitTest, Error]] = ??? // Convert the structures to unit tests
 
-        // Try to convert these to actual Test trees
-        val tests : List[Either[UnitTest, Error]] = ??? //Convert the structures to unit tests
-
-        //Each test leaf contains a think
-          //We evaluate the thunks, we get back:
-            //Expects or
-            //More Thunks (Re-evaluate once)
-          // () -> Expect.Something(args)
-          // () -> (() -> Expect.somethig(args)) //WAIT WRONG THAT'S A MIX OF TYPE AND VALUE
-          // Deconvert first? Or what?
-          // Umm... wait did we think this thru?
-          // We have a number of 
-        //Replace all Apply(Apply(Expect.whatever)) w/ Lambda (() -> That Nonsense)
-        //Evaluate again; failures caught as errors, not thrown
-        //
-      }
+    // Each test leaf contains a think
+    // We evaluate the thunks, we get back:
+    // Expects or
+    // More Thunks (Re-evaluate once)
+    // () -> Expect.Something(args)
+    // () -> (() -> Expect.somethig(args)) //WAIT WRONG THAT'S A MIX OF TYPE AND VALUE
+    // Deconvert first? Or what?
+    // Umm... wait did we think this thru?
+    // We have a number of
+    // Replace all Apply(Apply(Expect.whatever)) w/ Lambda (() -> That Nonsense)
+    // Evaluate again; failures caught as errors, not thrown
+    //
+  }
 
   private[runtime] def collectTests(
       globals: GlobalDefs,
@@ -174,30 +171,34 @@ object UnitTesting {
     tests
   }
 
-  def transform(partial : PartialFunction[TypedValue, TypedValue])(value : TypedValue) : TypedValue = {
+  def transform(partial: PartialFunction[TypedValue, TypedValue])(value: TypedValue): TypedValue = {
     def recurse = transform(partial)
-    value match{
+    value match {
       case Apply(va, function, argument) => Apply(va, recurse(function), recurse(argument))
-      case Destructure(va, pattern, valueToDestruct, inValue) => Apply(va, pattern, recurse(valueToDestruct), recurse(inValue))
+      case Destructure(va, pattern, valueToDestruct, inValue) =>
+        Apply(va, pattern, recurse(valueToDestruct), recurse(inValue))
       case Field(va, recordValue, name) => Field(va, recurse(recordValue), name)
-      case IfThenElse(va, condition, thenValue, elseValue) => IfThenElse(va, recurse(condition), recurse(thenValue), recurse(elseValue))
+      case IfThenElse(va, condition, thenValue, elseValue) =>
+        IfThenElse(va, recurse(condition), recurse(thenValue), recurse(elseValue))
       case Lambda(va, pattern, body) => Lambda(va, pattern, recurse(body))
-      case LetDefinition(va, name, definition, inValue) => LetDefinition(va, name, definition.copy(body = recurse(definition.body)), recurse(inValue))
-      case LetRecursion(va, definitions, inValue)  => Recursion(
-        va, 
-        definitions.map(dfn => dfn.copy(body = recurse(dfn.body))), 
-        recurse(inValue))
-      case ListValue(va, elements)                 => ListValue(va, elements.map(recurse))
-      case PatternMatch(va, value, cases)   =>    PatternMatch(va,
-        recurse(value),
-        cases.map((csePattern, caseValue) => (casePattern, recurse(caseValue))))
-      case Record(va, fields)                      => Record(
-        va, 
-        fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
+      case LetDefinition(va, name, definition, inValue) =>
+        LetDefinition(va, name, definition.copy(body = recurse(definition.body)), recurse(inValue))
+      case LetRecursion(va, definitions, inValue) => Recursion(
+          va,
+          definitions.map(dfn => dfn.copy(body = recurse(dfn.body))),
+          recurse(inValue)
         )
-      case Tuple(va, elements)                     => Tuple(
-        va, 
-        elements.map(recurse))
+      case ListValue(va, elements) => ListValue(va, elements.map(recurse))
+      case PatternMatch(va, value, cases) =>
+        PatternMatch(va, recurse(value), cases.map((csePattern, caseValue) => (casePattern, recurse(caseValue))))
+      case Record(va, fields) => Record(
+          va,
+          fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
+        )
+      case Tuple(va, elements) => Tuple(
+          va,
+          elements.map(recurse)
+        )
       case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
       case Variable(va, name)                      => handleVariable(va, name, store)
     }
