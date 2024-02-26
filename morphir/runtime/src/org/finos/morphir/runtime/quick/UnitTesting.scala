@@ -165,7 +165,7 @@ object UnitTesting {
       case (fqn, Right(rt)) => (fqn, Right(TestTree.fromRTValue(rt)))
       case err => err
     }
-
+    
     
 
     // Each test leaf contains a thunk
@@ -180,6 +180,12 @@ object UnitTesting {
     // Replace all Apply(Apply(Expect.whatever)) w/ Lambda (() -> That Nonsense)
     // Evaluate again; failures caught as errors, not thrown
     //
+  }
+
+  private[runtime] def getExpects(test : MorphirUnitTest) : MorphirUnitTest  = {
+    test match{
+      
+    }
   }
 
   private[runtime] def collectTests(

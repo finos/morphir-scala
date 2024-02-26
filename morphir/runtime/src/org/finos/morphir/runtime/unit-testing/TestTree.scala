@@ -6,7 +6,8 @@ sealed trait TestTree[T]
 type MorphirUnitTest = TestTree[RT]
 
 sealed trait SingleResult
-case class Passed extends SingleResult
+case class Passed() extends SingleResult
+case class Failed(msg : String) extends SingleResult
 
 object TestTree {
   case class Describe[T](desc: String, tests: List[TestTree[T]]) extends TestTree[T]
@@ -38,4 +39,6 @@ object TestTree {
       case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Skip"), List(test)) => Only(fromRTValue(test))
       case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Only"), List(test)) => Only(fromRTValue(test))
     }
+
+
 }
