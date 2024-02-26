@@ -249,8 +249,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       suite("Char")(
         testEval("isUpper true")("charTests", "charIsUpper", 'A')(Data.Boolean(true)),
         testEval("isUpper false")("charTests", "charIsUpper", 'w')(Data.Boolean(false)),
+        testEval("isUpper false numeric")("charTests", "charIsUpper", '1')(Data.Boolean(false)),
+        testEval("isUpper false symbol")("charTests", "charIsUpper", 'Σ')(Data.Boolean(false)),
         testEval("isLower true")("charTests", "charIsLower", 'w')(Data.Boolean(true)),
-        testEval("isLower false")("charTests", "charIsLower", 'A')(Data.Boolean(false))
+        testEval("isLower false")("charTests", "charIsLower", 'A')(Data.Boolean(false)),
+        testEval("isLower false numeric")("charTests", "charIsLower", '0')(Data.Boolean(false)),
+        testEval("isLower false symbol")("charTests", "charIsLower", 'π')(Data.Boolean(false)),
+        testEval("isAlpha true lower")("charTests", "isAlpha", 'z')(Data.Boolean(true)),
+        testEval("isAlpha true upper")("charTests", "isAlpha", 'A')(Data.Boolean(true))
       ),
       suite("Constructor Tests")(
         test("Zero Arg Input") {
