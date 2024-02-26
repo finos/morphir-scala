@@ -12,6 +12,16 @@ object TestTree {
   case class Skip[T](test: TestTree[T])          extends TestTree[T]
   case class Only[T](test: TestTree[T])          extends TestTree[T]
 
+  def containsOnly[T](tree : TestTree[T]) : Boolean = {
+    tree match {
+      case Describe(_, tests) => tests.any(containsOnly)
+      case concat(tests) => tests.any(containsOnly)
+      case Skip(inner) => containsOnly(inner)
+      case Only(_) => true
+      case _ => false
+    }
+  }
+  
   def fromRTValue(value: RT): MorphirUnitTest =
     value match {
       case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Describe"), List(RT.String(desc), RT.List(tests))) =>
