@@ -172,8 +172,26 @@ object UnitTesting {
 }
 
 trait ValueTransformer{
-  
-}
+    valueIn match {
+      case v: Value.Apply[_, _]         => of(v)
+      case v: Value.Constructor[_]      => of(v)
+      case v: Value.Destructure[_, _]   => of(v)
+      case v: Value.Field[_, _]         => of(v)
+      case v: Value.FieldFunction[_]    => of(v)
+      case v: Value.IfThenElse[_, _]    => of(v)
+      case v: Value.Lambda[_, _]        => of(v)
+      case v: Value.LetDefinition[_, _] => of(v)
+      case v: Value.LetRecursion[_, _]  => of(v)
+      case v: Value.List[_, _]          => of(v)
+      case v: Value.Literal[_]          => of(v)
+      case v: Value.PatternMatch[_, _]  => of(v)
+      case v: Value.Record[_, _]        => of(v)
+      case v: Value.Reference[_]        => of(v)
+      case v: Value.Tuple[_, _]         => of(v)
+      case v: Value.Unit[_]             => of(v)
+      case v: Value.UpdateRecord[_, _]  => of(v)
+      case v: Value.Variable[_]         => of(v)
+    }
 
 //COPIED:
 
