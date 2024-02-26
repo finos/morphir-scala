@@ -220,25 +220,26 @@ object UnitTesting {
   }
 
   def transform(partial: TypedValue => Option[TypedValue])(value: TypedValue): TypedValue = {
+    import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
     def recurse = transform(partial)
     value match {
       case Apply(va, function, argument) => Apply(va, recurse(function), recurse(argument))
       case Destructure(va, pattern, valueToDestruct, inValue) =>
-        Apply(va, pattern, recurse(valueToDestruct), recurse(inValue))
+        Destructure(va, pattern, recurse(valueToDestruct), recurse(inValue))
       case Field(va, recordValue, name) => Field(va, recurse(recordValue), name)
       case IfThenElse(va, condition, thenValue, elseValue) =>
         IfThenElse(va, recurse(condition), recurse(thenValue), recurse(elseValue))
       case Lambda(va, pattern, body) => Lambda(va, pattern, recurse(body))
       case LetDefinition(va, name, definition, inValue) =>
         LetDefinition(va, name, definition.copy(body = recurse(definition.body)), recurse(inValue))
-      case LetRecursion(va, definitions, inValue) => Recursion(
+      case LetRecursion(va, definitions, inValue) => LetRecursion(
           va,
-          definitions.map(dfn => dfn.copy(body = recurse(dfn.body))),
+          definitions.map((name, dfn) => (name, dfn.copy(body = recurse(dfn.body)))),
           recurse(inValue)
         )
       case ListValue(va, elements) => ListValue(va, elements.map(recurse))
       case PatternMatch(va, value, cases) =>
-        PatternMatch(va, recurse(value), cases.map((csePattern, caseValue) => (casePattern, recurse(caseValue))))
+        PatternMatch(va, recurse(value), cases.map((casePattern, caseValue) => (casePattern, recurse(caseValue))))
       case Record(va, fields) => Record(
           va,
           fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
