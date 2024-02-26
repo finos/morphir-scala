@@ -118,12 +118,31 @@ object UnitTesting {
       dists: Distributions,
       testNames: List[FQName]) : TestSummary = {
         //Let's just eat the whole horse
-        val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
+        //val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
         val thunkifiedTests : List[(FQName, TypedValue)] = ??? //force every expect call into a thunk
+
+        //Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
+        //So that means that any call that looks like
+        //(Apply(F, Arg) : Expect) //No wait this includes the wrong stuffs
+        //Okay if the users are that determined to break test reporting they can, it won't change passes to fails
+        //So that's
+        //Match once and in this order:
+        //Apply(Apply(Ref(OneOfThem), Arg1), Arg2) -> Apply(Ref(OneOfThem), () -> (Arg1, Arg2)) //Okay?
+        //Apply(Reference(OneOfThem), Arg) -> Apply(Reference(OneOfThem), () -> Arg)
+        //Tho TBH, which even need this?
+        //Let's just say all of them. It's nice to be able to SEE the IR.
+
+        //Transformation is hard tho - revisit that idea with greater patience.
+
+        //Then There is...
+        //Apply(Apply(Ref(OnFail)), Apply(...))
+        //So I think OnFail we DO replace but we DO NOT convert, right? That sounds good.
+
+
         val testRTValues :List[(FQName, Either[Error, RTValue])] =  ???//Evaluate, and wrap any errors caught
         // Try to convert these to actual Test trees
         val tests : List[Either[UnitTest, Error]] = ??? //Convert the structures to unit tests
-        
+
         //Each test leaf contains a think
           //We evaluate the thunks, we get back:
             //Expects or
@@ -150,6 +169,10 @@ object UnitTesting {
     tests
   }
 
+}
+
+trait ValueTransformer{
+  
 }
 
 //COPIED:
