@@ -219,6 +219,17 @@ object UnitTesting {
     tests
   }
 
+  private[runtime] def formatExpects(tree : MorphirUnitTest) : TestTree[String] = {
+    tree match {
+        case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
+        case Concat(tests)         => Concat(tests.map(getExpects))
+        case Skip(inner)           => Skip(inner) // No transformation here
+        case Only(inner)           => Only(getExpects(inner))
+        case Todo(desc)            => Todo(desc)
+        case SingleTest(desc, thunk) => SingleTest(
+    }
+  }
+
   def transform(partial: TypedValue => Option[TypedValue])(value: TypedValue): TypedValue = {
     import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
     def recurse = transform(partial)
