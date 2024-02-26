@@ -190,9 +190,14 @@ object UnitTesting {
       case ListValue(va, elements)                 => ListValue(va, elements.map(recurse))
       case PatternMatch(va, value, cases)   =>    PatternMatch(va,
         recurse(value),
-        cases.map(arm => ), store)
-      case Record(va, fields)                      => handleRecord(va, fields.toList, store)
-      case Tuple(va, elements)                     => handleTuple(va, elements.toList, store)
+        cases.map((csePattern, caseValue) => (casePattern, recurse(caseValue))))
+      case Record(va, fields)                      => Record(
+        va, 
+        fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
+        )
+      case Tuple(va, elements)                     => Tuple(
+        va, 
+        elements.map(recurse))
       case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
       case Variable(va, name)                      => handleVariable(va, name, store)
     }
