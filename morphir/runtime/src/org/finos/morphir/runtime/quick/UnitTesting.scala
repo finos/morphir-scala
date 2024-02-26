@@ -120,10 +120,19 @@ object UnitTesting {
         //Let's just eat the whole horse
         val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
         val thunkifiedTests : List[(FQName, TypedValue)] = ??? //force every expect call into a thunk
-        val testRTValues = List[(FQName, Either[Error, RTValue])] //Evaluate, and wrap any errors caught
-        
+        val testRTValues :List[(FQName, Either[Error, RTValue])] =  ???//Evaluate, and wrap any errors caught
         // Try to convert these to actual Test trees
-        val tests : List[Either[UnitTest, Error]] = ??? //Run the FQName
+        val tests : List[Either[UnitTest, Error]] = ??? //Convert the structures to unit tests
+        
+        //Each test leaf contains a think
+          //We evaluate the thunks, we get back:
+            //Expects or
+            //More Thunks (Re-evaluate once)
+          // () -> Expect.Something(args)
+          // () -> (() -> Expect.somethig(args)) //WAIT WRONG THAT'S A MIX OF TYPE AND VALUE
+          // Deconvert first? Or what?
+          // Umm... wait did we think this thru?
+          // We have a number of 
         //Replace all Apply(Apply(Expect.whatever)) w/ Lambda (() -> That Nonsense)
         //Evaluate again; failures caught as errors, not thrown
         //
