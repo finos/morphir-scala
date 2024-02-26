@@ -172,26 +172,32 @@ object UnitTesting {
 }
 
 trait ValueTransformer{
+  def of(valueIn : TypedValue) : TypedValue = {
     valueIn match {
-      case v: Value.Apply[_, _]         => of(v)
-      case v: Value.Constructor[_]      => of(v)
-      case v: Value.Destructure[_, _]   => of(v)
-      case v: Value.Field[_, _]         => of(v)
-      case v: Value.FieldFunction[_]    => of(v)
-      case v: Value.IfThenElse[_, _]    => of(v)
-      case v: Value.Lambda[_, _]        => of(v)
-      case v: Value.LetDefinition[_, _] => of(v)
-      case v: Value.LetRecursion[_, _]  => of(v)
-      case v: Value.List[_, _]          => of(v)
-      case v: Value.Literal[_]          => of(v)
-      case v: Value.PatternMatch[_, _]  => of(v)
-      case v: Value.Record[_, _]        => of(v)
-      case v: Value.Reference[_]        => of(v)
-      case v: Value.Tuple[_, _]         => of(v)
-      case v: Value.Unit[_]             => of(v)
-      case v: Value.UpdateRecord[_, _]  => of(v)
-      case v: Value.Variable[_]         => of(v)
+      case v: Apply[_, _]         => of(v)
+      case v: Constructor[_]      => of(v)
+      case v: Destructure[_, _]   => of(v)
+      case v: Field[_, _]         => of(v)
+      case v: FieldFunction[_]    => of(v)
+      case v: IfThenElse[_, _]    => of(v)
+      case v: Lambda[_, _]        => of(v)
+      case v: LetDefinition[_, _] => of(v)
+      case v: LetRecursion[_, _]  => of(v)
+      case v: List[_, _]          => of(v)
+      case v: Literal[_]          => of(v)
+      case v: PatternMatch[_, _]  => of(v)
+      case v: Record[_, _]        => of(v)
+      case v: Reference[_]        => of(v)
+      case v: Tuple[_, _]         => of(v)
+      case v: Unit[_]             => of(v)
+      case v: UpdateRecord[_, _]  => of(v)
+      case v: Variable[_]         => of(v)
     }
+  }
+
+  // ====== Leaf Cases ======
+  def of(value : FieldFunction) : TypedValue = value 
+}
 
 //COPIED:
 
