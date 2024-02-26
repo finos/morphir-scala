@@ -34,8 +34,6 @@ object UnitTestingSDK {
 
 }
 
-sealed trait MorphirUnitTest {}
-
 object UnitTesting {
 
   // What should this method's types be?
