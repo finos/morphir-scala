@@ -116,7 +116,7 @@ object UnitTesting {
       case Data.String(s) => s
       case _              => throw new OtherError("Test result: ", mdmReport)
     }
-    TestSummary()
+    TestSummary(report, true)
   }
   private[runtime] def nonPassingResult(
       globals: GlobalDefs,
@@ -125,11 +125,12 @@ object UnitTesting {
   ): TestSummary = {
     // Let's just eat the whole horse
     // val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
-    val testIRs: List[(FQName, TypedValue)] = ??? // force every expect call into a thunk
+    val testIRs: List[(FQName, TypedValue)] = 
+      testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
 
-    val testVals = testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
-
-    val thunkifiedTests = ???
+    def thunkify(value : TypedValue) : Option[TypedValue] = None //Placeholder
+    def thunkifTransform = transform(thunkify)
+    val thunkifiedTests = testIRs.map{case (fqn, value) => (fqn -> thunkifyTransform(value))}
 
     // Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
     // So that means that any call that looks like
@@ -148,7 +149,12 @@ object UnitTesting {
     // Apply(Apply(Ref(OnFail)), Apply(...))
     // So I think OnFail we DO replace but we DO NOT convert, right? That sounds good.
 
-    val testRTValues: List[(FQName, Either[Error, RTValue])] = ???
+    val testRTValues: List[(FQName, Either[Error, RTValue])] = thunkifiedTests
+      .map{case (fqn, ir) => 
+        try{
+          Right(Loop(globals).loop(ir, Store.empty))
+        }
+        catch}
 
     // Try to convert these to actual Test trees
     val tests: List[Either[UnitTest, Error]] = ??? // Convert the structures to unit tests
