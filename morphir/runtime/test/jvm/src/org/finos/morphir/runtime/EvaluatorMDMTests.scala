@@ -256,7 +256,18 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("isLower false numeric")("charTests", "charIsLower", '0')(Data.Boolean(false)),
         testEval("isLower false symbol")("charTests", "charIsLower", 'π')(Data.Boolean(false)),
         testEval("isAlpha true lower")("charTests", "isAlpha", 'z')(Data.Boolean(true)),
-        testEval("isAlpha true upper")("charTests", "isAlpha", 'A')(Data.Boolean(true))
+        testEval("isAlpha true upper")("charTests", "isAlpha", 'A')(Data.Boolean(true)),
+        testEval("isAlpha false")("charTests", "isAlpha", '1')(Data.Boolean(false)),
+        testEval("isAlpha false symbol")("charTests", "isAlpha", 'π')(Data.Boolean(false)),
+        testEval("isAlpha false")("charTests", "isAlpha", '1')(Data.Boolean(false)),
+        testEval("isAlphaNum true lower")("charTests", "isAlphaNum", 'z')(Data.Boolean(true)),
+        testEval("isAlphaNum true upper")("charTests", "isAlphaNum", 'A')(Data.Boolean(true)),
+        testEval("isAlphaNum true numeric")("charTests", "isAlphaNum", '1')(Data.Boolean(true)),
+        testEval("isAlphaNum false symbol")("charTests", "isAlphaNum", 'π')(Data.Boolean(false)),
+        testEval("isAlphaNum false")("charTests", "isAlphaNum", '1')(Data.Boolean(false)),
+        testEval("isDigit true")("charTests", "isDigit", '1')(Data.Boolean(true)),
+        testEval("isDigit false")("charTests", "isDigit", 'A')(Data.Boolean(false)),
+        testEval("isDigit false symbol")("charTests", "isDigit", 'π')(Data.Boolean(false))
       ),
       suite("Constructor Tests")(
         test("Zero Arg Input") {
