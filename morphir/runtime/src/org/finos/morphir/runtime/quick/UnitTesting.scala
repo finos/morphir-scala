@@ -187,8 +187,9 @@ object UnitTesting {
         va, 
         definitions.map(dfn => dfn.copy(body = recurse(dfn.body))), 
         recurse(inValue))
-      case ListValue(va, elements)                 => handleListValue(va, elements.toList, store)
-      case node @ PatternMatch(va, value, cases)   => handlePatternMatch(va, node, value, cases.toList, store)
+      case ListValue(va, elements)                 => ListValue(va, elements.map(recurse))
+      case PatternMatch(va, value, cases)   =>    PatternMatch(va,
+        value, cases.toList, store)
       case Record(va, fields)                      => handleRecord(va, fields.toList, store)
       case Tuple(va, elements)                     => handleTuple(va, elements.toList, store)
       case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
