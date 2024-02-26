@@ -4,6 +4,10 @@ import org.finos.morphir.runtime.RTValue as RT
 //Possibly this tpe should be polymorphic on the contents
 sealed trait TestTree[T]
 type MorphirUnitTest = TestTree[RT]
+
+sealed trait SingleResult
+case class Passed extends SingleResult
+
 object TestTree {
   case class Describe[T](desc: String, tests: List[TestTree[T]]) extends TestTree[T]
   case class SingleTest[T](desc: String, expectThunk: T)
@@ -21,7 +25,7 @@ object TestTree {
       case _ => false
     }
   }
-  
+
   def fromRTValue(value: RT): MorphirUnitTest =
     value match {
       case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Describe"), List(RT.String(desc), RT.List(tests))) =>
