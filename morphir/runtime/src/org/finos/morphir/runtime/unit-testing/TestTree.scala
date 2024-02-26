@@ -1,5 +1,6 @@
 package org.finos.morphir.runtime
 import org.finos.morphir.runtime.RTValue as RT
+import org.finos.morphir.runtime.Extractors.*
 
 //Possibly this tpe should be polymorphic on the contents
 sealed trait TestTree[T]
@@ -28,13 +29,13 @@ object TestTree {
 
   def fromRTValue(value: RT): MorphirUnitTest =
     value match {
-      case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Describe"), List(RT.String(desc), RT.List(tests))) =>
+      case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Describe"), List(RT.Primitive.String(desc), RT.List(tests))) =>
         Describe(desc, tests.map(fromRTValue))
-      case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:SingleTest"), List(RT.String(desc), expectThunk)) =>
+      case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:SingleTest"), List(RT.Primitive.String(desc), expectThunk)) =>
         SingleTest(desc, expectThunk)
       case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Concat"), List(RT.List(tests))) =>
         Concat(tests.map(fromRTValue))
-      case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Todo"), List(RT.String(desc))) => Todo(desc)
+      case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Todo"), List(RT.Primitive.String(desc))) => Todo(desc)
       case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Skip"), List(test)) => Only(fromRTValue(test))
       case RT.ConstructorResult(FQString("Morphir.UnitTest:Expect:Only"), List(test)) => Only(fromRTValue(test))
     }
