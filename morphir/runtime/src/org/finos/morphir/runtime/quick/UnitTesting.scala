@@ -131,7 +131,7 @@ object UnitTesting {
       testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
 
     def thunkify(value: TypedValue): Option[TypedValue] = None // Placeholder
-    def thunkifyTransform                                = transform(thunkify(_))
+    def thunkifyTransform                               = transform(thunkify(_))
     val thunkifiedTests = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
     // Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
@@ -151,26 +151,27 @@ object UnitTesting {
     // Apply(Apply(Ref(OnFail)), Apply(...))
     // So I think OnFail we DO replace but we DO NOT convert, right? That sounds good.
 
-    val testRTValues: List[(FQName, Either[Error, RTValue])] = thunkifiedTests
+    val testRTValues: List[(FQName, Either[Throwable, RTValue])] = thunkifiedTests
       .map { case (fqn, ir) =>
         try
           (fqn, Right(Loop(globals).loop(ir, Store.empty)))
         catch {
-          case e :  => (fqn, Left(e))
+          case e => (fqn, Left(e))
         }
       }
 
     // Try to convert these to actual Test trees
-    val tests: List[Either[MorphirUnitTest, Error]] = testRTValues.map {
+    val tests: List[(FQName, Either[Throwable, MorphirUnitTest])] = testRTValues.map {
       case (fqn, Right(rt)) => (fqn, Right(TestTree.fromRTValue(rt)))
-      case err              => err
+      case (fqn, Left(err)) => (fqn, Left(err))
     }
 
     // TODO: Handle "Only"
-    def getExpectsAll(test: MorphirUnitTest): MorphirUnitTest =
+    def getExpects(test: MorphirUnitTest): MorphirUnitTest =
+      import TestTree.*
       test match {
         case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
-        case Concat(tests)         => Concat(tests.map(getExpect))
+        case Concat(tests)         => Concat(tests.map(getExpects))
         case Skip(inner)           => Skip(inner) // No transformation here
         case Only(inner)           => Only(getExpects(inner))
         case Todo(desc)            => Todo(desc)
@@ -180,17 +181,17 @@ object UnitTesting {
               .handleApplyResult(
                 testType,
                 thunk,
-                RTValue.Unit
+                RTValue.Unit()
               )
           )
       }
 
-    val testsWithExpects: List[Either[MorphirUnitTest, Error]] = testRTValues.map {
-      case (fqn, Right(rt)) => (fqn, Right(getExpectsAll(rt)))
+    val testsWithExpects: List[(FQName, Either[Throwable, MorphirUnitTest])] = tests.map {
+      case (fqn, Right(rt)) => (fqn, Right(getExpects(rt)))
       case err              => err
     }
 
-    throw new OtherError(testsWithExpects)
+    throw new OtherError("Ned got tired of coding", testsWithExpects)
 
     // Each test leaf contains a thunk
     // We evaluate the thunks, we get back:
