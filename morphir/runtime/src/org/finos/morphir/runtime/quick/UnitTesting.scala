@@ -189,7 +189,7 @@ object UnitTesting {
       case err => err
     }
 
-    throw new OtherError(testsWithExpects)
+    throw new exe
     
     
 
