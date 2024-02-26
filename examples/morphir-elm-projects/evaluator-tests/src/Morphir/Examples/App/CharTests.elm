@@ -9,8 +9,8 @@ import Morphir.SDK.Char as Char exposing (..)
     expected('A') = True
     expected('w') = False
 -}
-charIsUpper : Char -> Bool
-charIsUpper ch =
+charIsUpperTest : Char -> Bool
+charIsUpperTest ch =
     isUpper ch
 
 
@@ -19,81 +19,81 @@ charIsUpper ch =
     expected('A') = False
     expected('w') = True
 -}
-charIsLower: Char -> Bool
-charIsLower ch =
+charIsLowerTest: Char -> Bool
+charIsLowerTest ch =
     isLower ch
 
 
 {-|
     Test: Char/isAlpha
 -}
-isAlpha: Char -> Bool
-isAlpha ch = isAlpha ch
+charIsAlphaTest: Char -> Bool
+charIsAlphaTest ch = isAlpha ch
 
 
 {-|
     Test: Char/isAlphaNum
 -}
-isAlphaNum: Char -> Bool
-isAlphaNum ch = isAlphaNum ch
+charIsAlphaNumTest: Char -> Bool
+charIsAlphaNumTest ch = isAlphaNum ch
 
 
 {-|
     Test: Char/isDigit
 -}
-isDigit: Char -> Bool
-isDigit ch = isDigit ch
+charIsDigitTest: Char -> Bool
+charIsDigitTest ch = isDigit ch
 
 
 {-|
     Test: Char/isOctDigit
 -}
-isOctDigit: Char -> Bool
-isOctDigit ch = isOctDigit ch
+charIsOctDigitTest: Char -> Bool
+charIsOctDigitTest ch = isOctDigit ch
 
 {-|
     Test: Char/isHexDigit
 -}
-isHexDigit: Char -> Bool
-isHexDigit ch = isHexDigit ch
+charIsHexDigitTest: Char -> Bool
+charIsHexDigitTest ch = isHexDigit ch
 
 {-|
     Test: Char/toUpper
 -}
-toUpper: Char -> Char
-toUpper ch = toUpper ch
+charToUpperTest: Char -> Char
+charToUpperTest ch = toUpper ch
 
 
 {-|
     Test: Char/toLower
 -}
-toLower: Char -> Char
-toLower ch = toLower ch
+charToLowerTest: Char -> Char
+charToLowerTest ch = toLower ch
 
 
 {-|
     Test: Char/toLocaleUpper
 -}
-toLocaleUpper: Char -> Char
-toLocaleUpper ch = toLocaleUpper ch
+charToLocaleUpperTest: Char -> Char
+charToLocaleUpperTest ch = toLocaleUpper ch
 
 
 {-|
     Test: Char/toLocaleLower
 -}
-toLocaleLower: Char -> Char
-toLocaleLower ch = toLocaleLower ch
+charToLocaleLowerTest: Char -> Char
+charToLocaleLowerTest ch = toLocaleLower ch
 
 
 {-|
     Test: Char/toCode
 -}
-toCode: Char -> Int
-toCode ch = toCode ch
+charToCodeTest: Char -> Int
+charToCodeTest ch = toCode ch
 
 
 {-|
     Test: Char/fromCode
 -}
-fromCode: Int -> Char
-fromCode int = fromCode int
+charFromCodeTest: Int -> Char
+charFromCodeTest int = fromCode int
