@@ -73,25 +73,27 @@ object UnitTesting {
           V.reference(FQName.fromString("Morphir.UnitTest:Test:run")),
           testSuiteIR
         )
-        val reportIR = V.applyInferType(
-          sdk.String.stringType,
-          V.reference(FQName.fromString("Morphir.UnitTest:Test:resultToString")),
-          runTestsIR
-        )
         val testsPassedIR = V.applyInferType(
           sdk.Basics.boolType,
           V.reference(FQName.fromString("Morphir.UnitTest:Test:passed")),
           runTestsIR
         )
 
-        val passedResult = EvaluatorQuick.eval(testsPassedIR, globals, dists)
-        // If failed, we want to evaluate this in a different context
-        val report = passedResult match {
-          case Data.Boolean(true)  => passingResult(gobals, dists, reportIR)
-          case Data.Boolean(false) => nonpassingResult()
-          case _                   => throw new OtherError("Test result was not a boolean", passedResult)
+        //We evaluate twice (in failed cases) intentionally - once in a pure-elm manner to ensure we are using
+        //the in-flight evaluator, then again with special code enabled to better analyze and report the failures.
+        //The first assures us we have no "false nagative" (i.e., falsely passing) tests
+        //The second lets us give the user lots of information about why and how tests failed
+        val passedResult =  try {
+          Right(EvaluatorQuick.eval(testsPassedIR, globals, dists))
+        } catch {
+          case e => Left(e)
         }
-        // throw new OtherError("Infinite loop for some reason", runTest.attributes)
+
+        val report = passedResult match {
+          case Right(Data.Boolean(true))  => passingResult(globals, dists, runTestsIR)
+          //Anything else and we know we have a failure, it's just a matter of determining what
+          case _ => nonpassingResult()
+        }
 
         // val newGlobals =
         //   globals.withDefinition(FQName.fromString("Morphir.UnitTest:Expect:equal"), UnitTestingSDK.equal)
@@ -102,13 +104,19 @@ object UnitTesting {
   private[runtime] def passingResult(
       globals: GlobalDefs,
       dists: Distributions,
-      reportIR: TypedValue
+      runTestIR: TypedValue
   ): TestSummary = {
+      val reportIR = V.applyInferType(
+        sdk.String.stringType,
+        V.reference(FQName.fromString("Morphir.UnitTest:Test:resultToString")),
+        runTestsIR
+      )
     val mdmReport = EvaluatorQuick.eval(reportIR, globals, dists)
     val report = mdmReport match {
       case Data.String(s) => s
       case _              => throw new OtherError("Test result: ", mdmReport)
     }
+    TestSummary()
   }
   private[runtime] def nonPassingResult(
       globals: GlobalDefs,
@@ -199,8 +207,11 @@ object UnitTesting {
           va,
           elements.map(recurse)
         )
-      case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
-      case Variable(va, name)                      => handleVariable(va, name, store)
+      case UpdateRecord(va, valueToUpdate, fields) => UpdateRecord(
+        va, 
+        recurse(valueToUpdate),
+        fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
+        )
     }
   }
 
