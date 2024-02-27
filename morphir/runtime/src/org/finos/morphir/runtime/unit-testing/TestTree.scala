@@ -60,7 +60,7 @@ object TestTree {
   def count[T](tree: TestTree[T]): Int =
     tree match {
       case Describe(_, tests) => tests.map(count).sum
-      case _: SingleTest    => 1
+      case _: SingleTest[_]    => 1
       case Concat(tests)      => tests.map(count).sum
       case _: Todo            => 1
       case Skip(_, count)     => count

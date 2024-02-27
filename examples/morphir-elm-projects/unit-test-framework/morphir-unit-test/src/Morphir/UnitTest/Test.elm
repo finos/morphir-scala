@@ -219,6 +219,3 @@ skip : Test -> Test
 skip t = Skip t
 only : Test -> Test
 only t = Only t
-
-internal : a -> b
-internal a = internal a
