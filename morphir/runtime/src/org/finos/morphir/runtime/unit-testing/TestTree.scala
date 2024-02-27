@@ -8,7 +8,7 @@ sealed trait TestTree[+T] {
   def resolveOnly = TestTree.resolveOnly(this)
 }
 type MorphirUnitTest = TestTree[RT]
-type TestResult      = TestTree[SingleReslt]
+type TestResult      = TestTree[SingleResult]
 
 sealed trait SingleResult
 object SingleResult{
@@ -53,7 +53,7 @@ object TestTree {
         else Skip(desc, count(d))
       case SingleTest(desc, _) => Skip(desc, 1)
       case Concat(tests)       => Concat(tests.map(pruneToOnly))
-      case o: Only             => o
+      case o: Only[_]             => o
       case other               => other // Skip, Todo and Err should be maintained, I think
     }
 
@@ -65,7 +65,7 @@ object TestTree {
       case _: Todo            => 1
       case Skip(_, count)     => count
       case _: Error           => 1 // Might have been a suite or anything but we don't know
-      case Only(innder)       => count(inner)
+      case Only(inner)       => count(inner)
     }
   def fromRTValue(value: RT): MorphirUnitTest =
     value match {
