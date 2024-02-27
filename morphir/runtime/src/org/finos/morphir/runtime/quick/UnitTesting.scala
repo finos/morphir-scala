@@ -180,13 +180,12 @@ object UnitTesting {
       }
     ).resolveOnly
 
-    def getExpects(test: MorphirUnitTest): MorphirUnitTest =
-      import TestTree.*
+    val withExpects = 
       test match {
-        case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
-        case Concat(tests)         => Concat(tests.map(getExpects))
-        case Only(inner)           => Only(getExpects(inner))
-        case SingleTest(desc, thunk) => SingleTest(
+        case TestTree.Describe(desc, tests) => Describe(desc, tests.map(getExpects))
+        case TestTree.Concat(tests)         => Concat(tests.map(getExpects))
+        case TestTree.Only(inner)           => Only(getExpects(inner))
+        case TestTree.SingleTest(desc, thunk) => SingleTest(
             desc,
             Loop(globals)
               .handleApplyResult(
@@ -197,11 +196,6 @@ object UnitTesting {
           )
         case other => other //err, todo, skip lack anything to resolve
       }
-
-    val testsWithExpects: List[(FQName, Either[Throwable, MorphirUnitTest])] = tests.map {
-      case (fqn, Right(rt)) => (fqn, Right(getExpects(rt)))
-      case err              => err
-    }
 
     def formatExpects(tree: MorphirUnitTest): TestTree[SingleResult] = {
       import TestTree.*
