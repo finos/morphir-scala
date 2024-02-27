@@ -44,8 +44,20 @@ object UnitTestingSDK {
       result
     }
 
+  val equalIntrospectedV2 = DynamicNativeFunction1("equalIntrospected") {
+    (ctx: NativeContext) => (f: RTValue.Function) =>
+      {
+        val irString  = PrintRTValue.of(f)
+        val out       = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f, RTValue.Unit)
+        val resString = PrintRTValue.of(out)
+        expectation(failed(s"Genuinely stunned. ir = $irString, res = $resString"))
+      }
+  }
+
   val newDefs = GlobalDefs(
-    Map(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected") -> equalIntrospected),
+    Map(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected") -> NativeFunctionAdapter.Fun1(
+      equalIntrospectedV2
+    ).realize),
     Map()
   )
 
