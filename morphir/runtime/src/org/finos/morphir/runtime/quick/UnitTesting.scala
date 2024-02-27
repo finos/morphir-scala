@@ -50,11 +50,23 @@ object Expect {
       val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
       expectation(result)
     }
+  val equalIntrospected = DynamicNativeFunction1("equalIntrospected") {
+    (ctx: NativeContext) => (f: RTValue.Function) =>
+      {
+        val (ir1, ir2, rt1, rt2)   = extract(f, ctx)
+        val (rtString1, rtString2) = (PrintRTValue(rt1).plainText, PrintRTValue(rt2).plainText)
+        val res = if (rt1 != rt2)
+          failed(s"($ir1 => $rtString1) != ($ir2 => $rtString2")
+        else passed
+        expectation(res)
+      }
+  }
 
   val equal = IntrospectibleFunction(
     2,
     "equal",
-    equalBase
+    equalBase,
+    equalIntrospected
   )
 
   val allExpects = List(
