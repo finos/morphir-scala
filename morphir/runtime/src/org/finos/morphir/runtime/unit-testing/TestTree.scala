@@ -71,7 +71,9 @@ object TestTree {
         Todo(desc)
       case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Skip"), List(test)) => {
         fromRTValue(test) match {
-          case Describe(desc, tests) => Skil(desc, )
+          case d @ Describe(desc, tests) => Skip(desc, count(d))
+          case SingleTest(desc, _) => Skip(desc, 1)
+          case other => Skip("", count(other))
         }
       }
       case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Only"), List(test)) => Only(fromRTValue(test))
