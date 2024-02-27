@@ -74,7 +74,10 @@ object UnitTestingSDK {
 
 class Thunkify(toReplace : FQName, replaceWith : FQName){
   def unapply(ir : TypedValue) : Option[TypedValue] = {
-    
+    ir match {
+        case Apply(_, Apply(_, Reference(_, toReplace), arg1IR), arg2IR) =>
+    }
+
   }
 }
 
