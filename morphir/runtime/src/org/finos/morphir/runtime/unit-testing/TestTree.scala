@@ -42,9 +42,19 @@ object TestTree {
       case _                  => false
     }
   def resolveOnly[T](tree : TestTree[T]) : TestTree[T] = {
-    if (containsOnly(tree))
+    if (containsOnly(tree)) pruneToOnly(tree) else tree
   }
-  def pruneToOnly[T](tree : TestTree[T])
+  //Skips any tests that aren't nested under an Only
+  def pruneToOnly[T](tree : TestTree[T]) : TestTree[T] = {
+    tree match {
+      case d @ Describe(desc, tests) => 
+        if (containsOnly(d))
+          Describe(desc, tests.map(pruneToOnly))
+          else Skip(desc, count(d))
+      case SingleTest(desc, _) => Skip(desc, 1)
+      case c @ Concat(tests) =
+    }
+  }
   
   def count[T](tree : TestTree[T]) : Int = {
     tree match {
