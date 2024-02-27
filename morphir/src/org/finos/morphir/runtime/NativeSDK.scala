@@ -15,6 +15,24 @@ object NativeSDK {
 
       implicit val packageName: PackageName = PackageName.fromString("Morphir.SDK")
 
+      case object Char extends SdkModuleDescriptor("Char") {
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isUpper),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isLower),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isAlpha),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isAlphaNum),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isDigit),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isOctDigit),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isHexDigit),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.toUpper),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.toLower),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.toLocaleUpper),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.toLocaleLower),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.toCode),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.fromCode)
+        )
+      }
+
       case object String extends SdkModuleDescriptor("String") {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun2(StringSDK.append),
@@ -216,6 +234,7 @@ object NativeSDK {
     import Morphir.SDK._
     Seq(
       Basics,
+      Char,
       Decimal,
       Dict,
       List,
