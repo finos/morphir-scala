@@ -39,13 +39,13 @@ object UnitTestingSDK {
       val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
       expectation(result)
     }
-  
+
   val greaterThan = DynamicNativeFunction2("greaterThan") {
     (_: NativeContext) => (a: Comparable, b: Comparable) =>
       val res = if (RTValue.Comparable.compareOrThrow(a, b) > 0)
         passed
-        else failed(s"${PrintRTValue(a).plainText} was not greater than ${PrintRTValue(b).plainText}")
-      expectation(result)
+      else failed(s"${PrintRTValue(a).plainText} was not greater than ${PrintRTValue(b).plainText}")
+      expectation(res)
   }
 
   def extract(f: RTValue.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
@@ -86,6 +86,9 @@ object UnitTestingSDK {
 
   val newDefs = GlobalDefs(
     Map(
+      FQName.fromString("Morphir.UnitTest:Expect:greaterThan") -> NativeFunctionAdapter.Fun2(
+        greaterThan
+      ).realize,
       FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected") -> NativeFunctionAdapter.Fun1(
         equalIntrospected
       ).realize,
