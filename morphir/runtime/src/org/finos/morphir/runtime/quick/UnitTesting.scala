@@ -73,7 +73,9 @@ object UnitTestingSDK {
 }
 
 class Thunkify(toReplace : FQName, replaceWith : FQName){
-  
+  def unapply(ir : TypedValue) : Option[TypedValue] = {
+    
+  }
 }
 
 object UnitTesting {
