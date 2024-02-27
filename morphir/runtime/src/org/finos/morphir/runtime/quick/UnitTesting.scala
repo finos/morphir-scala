@@ -40,7 +40,8 @@ object UnitTestingSDK {
 
   val equalIntrospection: SDKValue =
     SDKValue.SDKNativeFunction.fun1 { (a: RTValue) =>
-      val result = throw OtherError("At least we got this far: " result)
+      val result = throw OtherError("At least we got this far: ", result)
+      result
     }
 
   val newDefs = GloblDefs(
