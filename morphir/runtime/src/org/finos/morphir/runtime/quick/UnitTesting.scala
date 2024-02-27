@@ -44,7 +44,7 @@ object UnitTestingSDK {
       result
     }
 
-  val newDefs = GloblDefs(
+  val newDefs = GlobalDefs(
     Map(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected") -> equalIntrospected),
     Map()
   )
