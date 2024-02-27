@@ -11,10 +11,12 @@ type MorphirUnitTest = TestTree[RT]
 type TestResult      = TestTree[SingleReslt]
 
 sealed trait SingleResult
-case class Passed()                         extends SingleResult
-case class Failed(msg: String)              extends SingleResult
-case class Skipped(msg: String, count: Int) extends SingleResult
-case class Todo(excuse: String)             extends SingleResult
+object SingleResult{
+  case class Passed()                         extends SingleResult
+  case class Failed(msg: String)              extends SingleResult
+  case class Skipped(msg: String, count: Int) extends SingleResult
+  case class Todo(excuse: String)             extends SingleResult
+}
 
 //This object goes thru a series of transformations:
 // 1: A List[FQName, IR] of all Test-typed constructs

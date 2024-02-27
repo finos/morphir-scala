@@ -16,6 +16,7 @@ import org.finos.morphir.ir.sdk
 import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.runtime.TestTree
 import org.finos.morphir.runtime.MorphirUnitTest
+import org.finos.morphir.runtime.SingleResult
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.util.PrintRTValue
@@ -171,9 +172,9 @@ object UnitTesting {
           case (fqn, Left(err)) => TestTree.Error(fqn.toString, err)
           case (fqn, Right(rt)) =>
             TestTree.fromRTValue(rt) match {
-              case d: TestTree.Describe => d
-              case s: TestTree.Single   => s
-              case other                => TestTree.Describe(fqn.toString, other)
+              case d: TestTree.Describe[_]   => d
+              case s: TestTree.SingleTest[_] => s
+              case other                     => TestTree.Describe(fqn.toString, List(other))
             }
         }
       ).resolveOnly
