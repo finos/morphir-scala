@@ -155,9 +155,9 @@ object UnitTesting {
               )
             )
           )
-          res
+          //res
+          throw OtherError("Match hppened, something else did not")
         }
-          //throw OtherError("Match hppened, something else did not")
         case _ => None
       }
     }
