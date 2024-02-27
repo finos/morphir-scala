@@ -72,6 +72,10 @@ object UnitTestingSDK {
 
 }
 
+class Thunkify(toReplace : FQName, replaceWith : FQName){
+  
+}
+
 object UnitTesting {
 
   // What should this method's types be?
