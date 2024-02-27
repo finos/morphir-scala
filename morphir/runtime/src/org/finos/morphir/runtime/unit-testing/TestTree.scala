@@ -14,6 +14,12 @@ case class Failed(msg: String)              extends SingleResult
 case class Skipped(msg: String, count: Int) extends SingleResult
 case class Todo(excuse: String)             extends SingleResult
 
+//This object goes thru a series of transformations:
+  // 1: A List[FQName, IR] of all Test-typed constructs
+  // 2: List[FQName, Result[MorphirUnitTest]] w/ leaves consisting of RTValues (the thunks passed to test)
+  // 3: Those same trees but with the thunks applied, so leaves may now contain errors as well
+  // 
+
 object TestTree {
   case class Describe[T](desc: String, tests: List[TestTree[T]]) extends TestTree[T]
   case class SingleTest[T](desc: String, expectThunk: T)         extends TestTree[T]
