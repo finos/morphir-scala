@@ -18,6 +18,7 @@ import org.finos.morphir.runtime.TestTree
 import org.finos.morphir.runtime.MorphirUnitTest
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.util.PrintRTValue
+import org.finos.morphir.runtime.Extractors.*
 
 import org.finos.morphir.runtime.internal._
 
@@ -191,6 +192,28 @@ object UnitTesting {
       case err              => err
     }
 
+    def formatExpects(tree: MorphirUnitTest): TestTree[String] = {
+      import TestTree.*
+      tree match {
+        case Describe(desc, tests) => Describe(desc, tests.map(formatExpects))
+        case Concat(tests)         => Concat(tests.map(formatExpects))
+        case Skip(inner)           => SingleTest("Things were Skipped", "Lots of Things")
+        case Only(inner)           => Only(formatExpects(inner))
+        case Todo(desc)            => Todo(desc)
+        case SingleTest(desc, RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Expectation"), List(rt))) =>
+          rt match {
+            case RT.ConstructoResult(FQStringTitleCase("Morphir.UnitTest:Expect:Pass"), List()) =>
+              SingleTest(desc, "PASSED")
+            case other => throw new OtherError("Unexpected Expectation", other)
+          }
+      }
+    }
+
+    val treeWithResults = testsWithExpects.map {
+      case (fqn, Right(rt)) => (fqn, Right(formatExpects(rt)))
+      case err              => err
+    }
+
     throw new OtherError("Ned got tired of coding", testsWithExpects)
 
     // Each test leaf contains a thunk
@@ -219,18 +242,7 @@ object UnitTesting {
     tests
   }
 
-  private[runtime] def formatExpects(tree : MorphirUnitTest) : TestTree[String] = {
-    tree match {
-        case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
-        case Concat(tests)         => Concat(tests.map(getExpects))
-        case Skip(inner)           => Skip(inner) // No transformation here
-        case Only(inner)           => Only(getExpects(inner))
-        case Todo(desc)            => Todo(desc)
-        case SingleTest(desc, thunk) => SingleTest(
-    }
-  }
-
-  def transform(partial: TypedValue => Option[TypedValue])(value: TypedValue): TypedValue = {
+  private[runtime] def transform(partial: TypedValue => Option[TypedValue])(value: TypedValue): TypedValue = {
     import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
     def recurse = transform(partial)
     value match {
