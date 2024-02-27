@@ -49,11 +49,16 @@ object UnitTestingSDK {
       {
         val irString = PrintRTValue(f).plainText
         val out      = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
+        val (ir1, ir2) = f match {
+          case RT.LambdaFunction(V.Tuple(ir1_, ir2_), _, _) => (ir1_, ir2_)
+          case other                                        => throw OtherError("This should not be!", other)
+        }
         val (rt1, rt2) = out match {
           case RT.Tuple(List(rt1_, rt2_)) => (rt1_, rt2_)
           case other                      => throw new Exception("This should not be!")
         }
-        val res = if (rt1 != rt2) failed(s"$irString worked out with ${PrintRTValue(rt1)} != ${PrintRTValue(rt2)}")
+        val res = if (rt1 != rt2)
+          failed(s"$irString worked out with ${PrintRTValue(rt1).plaintText} != ${PrintRTValue(rt2).plainText}")
         else passed
         expectation(res)
       }
