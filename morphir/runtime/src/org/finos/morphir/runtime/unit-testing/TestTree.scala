@@ -47,6 +47,10 @@ object TestTree {
       case Describe(_, tests) => tests.map(count).sum
       case _ : SingleResult => 1
       case Concat(tests) => tests.map(count).sum
+      case _ : Todo => 1
+      case Skip(_, count) => count
+      case _ : Error => 1 //Might have been a suite or anything but we don't know
+      case Only(innder) => count(inner)
     }
   }
   def fromRTValue(value: RT): MorphirUnitTest =
