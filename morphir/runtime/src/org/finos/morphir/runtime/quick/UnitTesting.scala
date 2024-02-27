@@ -48,8 +48,8 @@ object UnitTesting {
   // Need to return a summary even on success, so not that first one
   // Seems messy to return a summary either way
   // Also, I would say "Testing" didn't fail even if the tests did
-  def testType       = T.reference("Morphir.UnitTest", "Test", "Test")
-  def testResultType = T.reference("Morphir.UnitTest", "Test", "TestResult")
+  def testType        = T.reference("Morphir.UnitTest", "Test", "Test")
+  def testResultType  = T.reference("Morphir.UnitTest", "Test", "TestResult")
   def expectationType = T.reference("Morphir.UnitTest", "Expect", "Expectation")
   private[runtime] def runTests(
       globals: GlobalDefs,
@@ -142,17 +142,18 @@ object UnitTesting {
     // }
     def thunkify(value: TypedValue): Option[TypedValue] = {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
-      value match{
-        case Apply(_, Apply(_, Referene(_, FQString("Morphir.UnitTest:Expect:equal")), arg1IR), arg2IR) =>
+      value match {
+        case Apply(_, Apply(_, Reference(_, FQString("Morphir.UnitTest:Expect:equal")), arg1IR), arg2IR) =>
           V.applyInferType(
-          V.reference(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected")),
-          V.tuple(arg1IR, arg2IR)
-        )
+            expectationType,
+            V.reference(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected")),
+            V.tuple(arg1IR, arg2IR)
+          )
         case _ => None
       }
     }
-    def thunkifyTransform                               = transform(thunkify(_))
-    val thunkifiedTests = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
+    def thunkifyTransform = transform(thunkify(_))
+    val thunkifiedTests   = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
     // Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
     // So that means that any call that looks like
