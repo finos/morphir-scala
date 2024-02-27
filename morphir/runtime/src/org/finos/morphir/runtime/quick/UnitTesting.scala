@@ -150,7 +150,7 @@ object UnitTesting {
             V.lambda(
               T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
               Pattern.UnitPattern(T.unit),
-              V.tuple(T.tuple(arg1IR.attributes, arg2IR.attributes), arg1IR, arg2IR)
+              V.tuple(T.tuple(List(arg1IR.attributes, arg2IR.attributes)), arg1IR, arg2IR)
             )
           )
         case _ => None
