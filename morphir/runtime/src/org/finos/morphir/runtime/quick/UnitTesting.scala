@@ -133,7 +133,7 @@ object UnitTesting {
     // Let's just eat the whole horse
     // val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
     val testIRs: List[(FQName, TypedValue)] =
-      testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
+      testNames.map(fqn => (fqn, globals(fqn).body))
 
     // We need to evaluate to resolve user code, but we want the values of the actual calls to Expect functions
     // So we replace such calls with thunks; after evaluation, the IR will be intact for inspection
@@ -157,7 +157,7 @@ object UnitTesting {
           )
           res
         // throw OtherError("Match hppened, something else did not")
-        case Apply(_, Apply(_, fqn, _), _) => throw OtherError("Unexpected double pply", fqn)
+        case Apply(_, Apply(_, fqn, _), _) => throw OtherError("Unexpected double apply", fqn)
         case other                         => throw OtherError("Literally runnings,", other)
         // case _                             => None
       }
