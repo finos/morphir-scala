@@ -42,8 +42,12 @@ object TestTree {
       case _                  => false
     }
   
-  def count[T](tree TestTree[T]) : Int = {
-    
+  def count[T](tree : TestTree[T]) : Int = {
+    tree match {
+      case Describe(_, tests) => tests.map(count).sum
+      case _ : SingleResult => 1
+      case Concat(tests) => tests.map(count).sum
+    }
   }
   def fromRTValue(value: RT): MorphirUnitTest =
     value match {
