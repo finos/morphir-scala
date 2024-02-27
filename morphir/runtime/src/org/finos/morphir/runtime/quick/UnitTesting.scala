@@ -17,6 +17,7 @@ import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.runtime.TestTree
 import org.finos.morphir.runtime.MorphirUnitTest
 import org.finos.morphir.runtime.RTValue.Primitive
+import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.util.PrintRTValue
 import org.finos.morphir.runtime.Extractors.*
 
@@ -200,12 +201,21 @@ object UnitTesting {
         case Skip(inner)           => SingleTest("Things were Skipped", "Lots of Things")
         case Only(inner)           => Only(formatExpects(inner))
         case Todo(desc)            => Todo(desc)
-        case SingleTest(desc, RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Expectation"), List(rt))) =>
+        case SingleTest(
+              desc,
+              RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Expectation"), List(rt))
+            ) =>
           rt match {
-            case RT.ConstructoResult(FQStringTitleCase("Morphir.UnitTest:Expect:Pass"), List()) =>
+            case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Pass"), List()) =>
               SingleTest(desc, "PASSED")
+            case RT.ConstructorResult(
+                  FQStringTitleCase("Morphir.UnitTest:Expect:Fail"),
+                  List(Primitive.String(msg))
+                ) =>
+              SingleTest(desc, s"FAILED: $msg")
             case other => throw new OtherError("Unexpected Expectation", other)
           }
+        case other => throw new OtherError("Unexpected Item", other)
       }
     }
 
