@@ -47,18 +47,19 @@ object UnitTestingSDK {
   val equalIntrospectedV2 = DynamicNativeFunction1("equalIntrospected") {
     (ctx: NativeContext) => (f: RTValue.Function) =>
       {
-        val irString = PrintRTValue(f).plainText
         val out      = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
         val (ir1, ir2) = f match {
-          case RT.LambdaFunction(V.Tuple(ir1_, ir2_), _, _) => (ir1_, ir2_)
-          case other                                        => throw OtherError("This should not be!", other)
+          case RT.LambdaFunction(Value.Tuple(_, elements), _, _) => (elements(0), elements(1))
+          case other                                             => throw OtherError("This should not be!", other)
         }
         val (rt1, rt2) = out match {
           case RT.Tuple(List(rt1_, rt2_)) => (rt1_, rt2_)
           case other                      => throw new Exception("This should not be!")
         }
+        val (irString1, irString2) = (PrintIR(ir1).plainText, PrintIR(ir2.plainText))
+        val (rtString1, rtString2) = (PrintRTValue(rt1).plainText, PrintRTValue(rt2).plainText)
         val res = if (rt1 != rt2)
-          failed(s"$irString worked out with ${PrintRTValue(rt1).plaintText} != ${PrintRTValue(rt2).plainText}")
+          failed(s"($irString1 => $rtString1) != ($irString2 => $rtString2")
         else passed
         expectation(res)
       }
