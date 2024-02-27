@@ -192,7 +192,7 @@ object UnitTesting {
     // def delay(value : TypedValue) : TypedValue = {
     //   Lambda(Pattern.UnitPattern, value)
     // }
-    def thunkify2(toReplace: String)(replaceWith: String)(value: TypedValue): Option[TypedValue] = {
+    def thunkify2(toReplace: String, replaceWith: String)(value: TypedValue): Option[TypedValue] = {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match {
         case Apply(_, Apply(_, Reference(_, FQString(toReplace)), arg1IR), arg2IR) =>
@@ -211,7 +211,7 @@ object UnitTesting {
       }
     }
     def thunkifyTransform =
-      transform(thunkify2("Morphir.UnitTest:Expect:equal", "Morphir.UnitTest:Expect:equalIntrospected") (_))
+      transform(thunkify2("Morphir.UnitTest:Expect:equal", "Morphir.UnitTest:Expect:equalIntrospected")(_))
     // val thunkifiedTests   = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
     val newGlobalDefs = globals.definitions.map {
