@@ -38,14 +38,8 @@ object UnitTestingSDK {
       val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
       expectation(result)
     }
-
-  val equalIntrospected: SDKValue =
-    SDKValue.SDKNativeFunction.fun1 { (a: RTValue) =>
-      val result = throw OtherError("At least we got this far: ", a)
-      result
-    }
-
-  val equalIntrospectedV2 = DynamicNativeFunction1("equalIntrospected") {
+  def extract (f : RTValue.Function) : 
+  val equalIntrospected = DynamicNativeFunction1("equalIntrospected") {
     (ctx: NativeContext) => (f: RTValue.Function) =>
       {
         val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
@@ -69,7 +63,7 @@ object UnitTestingSDK {
 
   val newDefs = GlobalDefs(
     Map(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected") -> NativeFunctionAdapter.Fun1(
-      equalIntrospectedV2
+      equalIntrospected
     ).realize),
     Map()
   )
@@ -297,7 +291,6 @@ object UnitTesting {
 
     val treeWithResults = formatExpects(withExpects)
     TestSummary(TestTree.toReport(treeWithResults), false)
-    // throw new OtherError("Ned got tired of coding", TestTree.toReport(treeWithResults))
 
     // Each test leaf contains a thunk
     // We evaluate the thunks, we get back:
