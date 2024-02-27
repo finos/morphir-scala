@@ -148,9 +148,9 @@ object UnitTesting {
             expectationType,
             V.reference(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected")),
             V.lambda(
-              T.function(T.Unit, T.tuple(arg1IR.va, arg2IR.va)),
-              arg1IR,
-              arg2IR
+              T.function(T.unit, T.tuple(arg1IR.attributes, arg2IR.attributes)),
+              Pattern.UnitPattern,
+              V.tuple(T.tuple(arg1IR.attributes, arg2IR.attributes), arg1IR, arg2IR)
             )
           )
         case _ => None
