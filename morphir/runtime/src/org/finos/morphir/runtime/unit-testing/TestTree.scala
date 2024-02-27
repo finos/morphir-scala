@@ -18,7 +18,11 @@ case class Todo(excuse: String)             extends SingleResult
   // 1: A List[FQName, IR] of all Test-typed constructs
   // 2: List[FQName, Result[MorphirUnitTest]] w/ leaves consisting of RTValues (the thunks passed to test)
   // 3: Those same trees but with the thunks applied, so leaves may now contain errors as well
-  // 
+  // 4: Trees again, with Thunk RTValues matched (no errors), which can be either 
+  //    a: fully-evaluated (for less supported things)
+  //    b: Expect structures (which contain a context and IR)
+  // 5: Tree with individual results
+  // 6 : Final result - Formatted String, counts and result
 
 object TestTree {
   case class Describe[T](desc: String, tests: List[TestTree[T]]) extends TestTree[T]
