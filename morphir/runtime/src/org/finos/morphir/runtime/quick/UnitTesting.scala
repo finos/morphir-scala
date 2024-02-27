@@ -38,12 +38,16 @@ object UnitTestingSDK {
       val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
       expectation(result)
     }
-  def extract (f : RTValue.Function) : (TypedValue, TypedValue, RTValue, RTValue) = {
-      val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
-      val (ir1, ir2) = f match {
-        case RT.LambdaFunction(Value.Tuple(_, elements), _, _) => (elements(0), elements(1))
-        case other                                             => throw OtherError("This should not be!", other)
-      }
+  def extract(f: RTValue.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
+    val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
+    val (ir1, ir2) = f match {
+      case RT.LambdaFunction(Value.Tuple(_, elements), _, _) => (elements(0), elements(1))
+      case other                                             => throw OtherError("This should not be!", other)
+    }
+    val (rt1, rt2) = out match {
+      case RT.Tuple(List(rt1_, rt2_)) => (rt1_, rt2_)
+      case other                      => throw new Exception("This should not be!")
+    }
 
   }
   val equalIntrospected = DynamicNativeFunction1("equalIntrospected") {
