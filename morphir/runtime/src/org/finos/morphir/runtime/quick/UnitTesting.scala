@@ -48,7 +48,7 @@ object UnitTestingSDK {
     (ctx: NativeContext) => (f: RTValue.Function) =>
       {
         val irString  = PrintRTValue(f).plainText
-        val out       = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f, RTValue.Unit)
+        val out       = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit)
         val resString = PrintRTValue(out).plainText
         expectation(failed(s"Genuinely stunned. ir = $irString, res = $resString"))
       }
