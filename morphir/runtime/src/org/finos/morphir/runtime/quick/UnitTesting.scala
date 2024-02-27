@@ -57,7 +57,7 @@ object UnitTestingSDK {
           case RT.Tuple(List(rt1_, rt2_)) => (rt1_, rt2_)
           case other                      => throw new Exception("This should not be!")
         }
-        val (irString1, irString2) = (PrintIR(ir1).plainText, PrintIR(ir2).plainText)
+        val (irString1, irString2) = (ir1.toString, ir2.toString)
         val (rtString1, rtString2) = (PrintRTValue(rt1).plainText, PrintRTValue(rt2).plainText)
         val res = if (rt1 != rt2)
           failed(s"($irString1 => $rtString1) != ($irString2 => $rtString2")
