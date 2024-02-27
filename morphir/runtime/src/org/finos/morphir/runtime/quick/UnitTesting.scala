@@ -143,7 +143,7 @@ object UnitTesting {
     def thunkify(value: TypedValue): Option[TypedValue] = {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match{
-        case Apply(Apply(Referene(FQString("Morphir.UnitTest:Expect:equal")), arg1IR), arg2IR) =>
+        case Apply(_, Apply(_, Referene(_, FQString("Morphir.UnitTest:Expect:equal")), arg1IR), arg2IR) =>
           V.applyInferType(
           V.reference(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected")),
           V.tuple(arg1IR, arg2IR)
