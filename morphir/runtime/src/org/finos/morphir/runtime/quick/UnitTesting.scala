@@ -43,7 +43,10 @@ object UnitTestingSDK {
       val result = throw OtherError("At least we got this far: " result)
     }
 
-  val newBindings
+  val newDefs = GloblDefs(
+    Map(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected") -> equalIntrospected),
+    Map()
+  )
 
 }
 
@@ -177,7 +180,7 @@ object UnitTesting {
         (fqn, SDKValue.SDKValueDefinition(dfn.copy(body = thunkifyTransform(dfn.body))))
       case other => other
     }
-    val newGlobals = globals.copy(definitions = newGlobalDefs)
+    val newGlobals = globals.copy(definitions = newGlobalDefs).withBindingsFrom(UnitTestingSDK.newDefs)
     // Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
     // So that means that any call that looks like
     // (Apply(F, Arg) : Expect) //No wait this includes the wrong stuffs
