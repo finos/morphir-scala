@@ -144,13 +144,15 @@ object UnitTesting {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match {
         case Apply(_, Apply(_, Reference(_, FQString("Morphir.UnitTest:Expect:equal")), arg1IR), arg2IR) =>
-          V.applyInferType(
-            expectationType,
-            V.reference(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected")),
-            V.lambda(
-              T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
-              Pattern.UnitPattern(T.unit),
-              V.tuple(T.tuple(List(arg1IR.attributes, arg2IR.attributes)), arg1IR, arg2IR)
+          Some(
+            V.applyInferType(
+              expectationType,
+              V.reference(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected")),
+              V.lambda(
+                T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
+                Pattern.UnitPattern(T.unit),
+                V.tuple(T.tuple(List(arg1IR.attributes, arg2IR.attributes)), arg1IR, arg2IR)
+              )
             )
           )
         case _ => None
