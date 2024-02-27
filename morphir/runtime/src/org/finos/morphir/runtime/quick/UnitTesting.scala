@@ -72,13 +72,13 @@ object UnitTestingSDK {
 
 }
 
-class Thunkify(toReplace : FQName, replaceWith : FQName){
+class Thunkify2(toReplace : String, replaceWith : String){
   def unapply(ir : TypedValue) : Option[TypedValue] = {
     ir match {
-        case Apply(_, Apply(_, Reference(_, toReplace), arg1IR), arg2IR) =>Some(
+        case Apply(_, Apply(_, Reference(_, FQString(toReplace)), arg1IR), arg2IR) =>Some(
             V.applyInferType(
               expectationType,
-              V.reference(replaceWith),
+              V.reference(FQName.fromString(replaceWith)),
               V.lambda(
                 T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
                 Pattern.UnitPattern(T.unit),
@@ -87,7 +87,6 @@ class Thunkify(toReplace : FQName, replaceWith : FQName){
             )
         )
     }
-
   }
 }
 
