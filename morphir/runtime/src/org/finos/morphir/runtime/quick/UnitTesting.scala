@@ -31,11 +31,25 @@ object Expect{
   case class IntrospectibleFunction(
     arity : Int,
     baseName : String,
-    introspectedName : String,
     basicFunction : SDKValue,
     introspectedFunction : DynamicNativeFunction
   )
-  
+
+  val equalBase: SDKValue =
+    SDKValue.SDKNativeFunction.fun2 { (a: RTValue, b: RTValue) =>
+      val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
+      expectation(result)
+    }
+  val equal = IntrospectibleFunction(
+    2,
+    "equal",
+    equalBase,
+
+  )
+
+  val allExpects = List(
+
+  )
 }
 
 object UnitTestingSDK {
