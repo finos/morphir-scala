@@ -140,6 +140,7 @@ object UnitTesting {
     // def delay(value : TypedValue) : TypedValue = {
     //   Lambda(Pattern.UnitPattern, value)
     // }
+    def delay
     def thunkify(value: TypedValue): Option[TypedValue] = {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match {
@@ -147,7 +148,11 @@ object UnitTesting {
           V.applyInferType(
             expectationType,
             V.reference(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected")),
-            V.tuple(arg1IR, arg2IR)
+            V.lambda(
+              T.fun(T.Unit, T.tuple(arg1IR.va, arg2IR.va)),
+              arg1IR,
+              arg2IR
+            )
           )
         case _ => None
       }
