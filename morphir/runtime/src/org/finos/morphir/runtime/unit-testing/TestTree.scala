@@ -4,7 +4,7 @@ import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 
 //Possibly this tpe should be polymorphic on the contents
-sealed trait TestTree[T] {
+sealed trait TestTree[+T] {
   def resolveOnly = TestTree.resolveOnly(self)
 }
 type MorphirUnitTest = TestTree[RT]
@@ -31,10 +31,10 @@ object TestTree {
   case class Describe[T](desc: String, tests: List[TestTree[T]]) extends TestTree[T]
   case class SingleTest[T](desc: String, expectThunk: T)         extends TestTree[T]
   case class Concat[T](tests: List[TestTree[T]])                 extends TestTree[T]
-  case class Todo[T](desc: String)                               extends TestTree[T]
-  case class Skip[T](desc : String, count : Int)                          extends TestTree[T]
-  case class Error[T](desc : String, error : MorphirRuntimeError)
-  case class Only[T](test: TestTree[T])                          extends TestTree[T]
+  case class Todo(desc: String)                               extends TestTree[Nothing]
+  case class Skip(desc : String, count : Int)                          extends TestTree[Nothing]
+  case class Error(desc : String, error : MorphirRuntimeError)
+  case class Only[T](test: TestTree[T])                          extends TestTree[Nothing]
 
   def containsOnly[T](tree: TestTree[T]): Boolean =
     tree match {
