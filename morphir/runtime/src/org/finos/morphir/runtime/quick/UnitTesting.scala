@@ -21,6 +21,7 @@ import org.finos.morphir.runtime.SingleResult
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.util.PrintRTValue
+import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.runtime.Extractors.*
 
 import org.finos.morphir.runtime.internal._
@@ -47,7 +48,7 @@ object UnitTestingSDK {
   val equalIntrospectedV2 = DynamicNativeFunction1("equalIntrospected") {
     (ctx: NativeContext) => (f: RTValue.Function) =>
       {
-        val out      = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
+        val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
         val (ir1, ir2) = f match {
           case RT.LambdaFunction(Value.Tuple(_, elements), _, _) => (elements(0), elements(1))
           case other                                             => throw OtherError("This should not be!", other)
@@ -56,7 +57,7 @@ object UnitTestingSDK {
           case RT.Tuple(List(rt1_, rt2_)) => (rt1_, rt2_)
           case other                      => throw new Exception("This should not be!")
         }
-        val (irString1, irString2) = (PrintIR(ir1).plainText, PrintIR(ir2.plainText))
+        val (irString1, irString2) = (PrintIR(ir1).plainText, PrintIR(ir2).plainText)
         val (rtString1, rtString2) = (PrintRTValue(rt1).plainText, PrintRTValue(rt2).plainText)
         val res = if (rt1 != rt2)
           failed(s"($irString1 => $rtString1) != ($irString2 => $rtString2")
