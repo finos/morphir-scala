@@ -50,6 +50,7 @@ object UnitTesting {
   // Also, I would say "Testing" didn't fail even if the tests did
   def testType       = T.reference("Morphir.UnitTest", "Test", "Test")
   def testResultType = T.reference("Morphir.UnitTest", "Test", "TestResult")
+  def expectationType = T.reference("Morphir.UnitTest", "Expect", "Expectation")
   private[runtime] def runTests(
       globals: GlobalDefs,
       dists: Distributions
@@ -143,8 +144,10 @@ object UnitTesting {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match{
         case Apply(Apply(Referene(FQString("Morphir.UnitTest:Expect:equal")), arg1IR), arg2IR) =>
-          Apply(Reference(FQName.fromString("Morphir.UnitTest:Expect:introspectedEqual")),
-          Lambda(Pattern.UnitPattern(), Tuple(Chunk(arg1IR, arg2IR))))
+          V.applyInferType(
+          V.reference(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected")),
+          V.tuple(arg1IR, arg2IR)
+        )
         case _ => None
       }
     }
