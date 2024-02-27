@@ -36,8 +36,8 @@ failingTest2 = test "Failing Test 2" <|
     \_ -> 
         Expect.equal 1 (addOne 2)
 
-onlyTestSuite : Test
-onlyTestSuite = skip <| only <| concat <|
+failingTestSuite : Test
+failingTestSuite = describe "Failing Test Suite" <|
     [ test "Failing Test" <|
         \_ -> 
             Expect.equal 1 2

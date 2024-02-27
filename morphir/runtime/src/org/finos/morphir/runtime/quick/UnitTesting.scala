@@ -62,34 +62,30 @@ object UnitTestingSDK {
         expectation(res)
       }
   }
+  val notEqualIntrospected = DynamicNativeFunction1("notEqualIntrospected") {
+    (ctx: NativeContext) => (f: RTValue.Function) =>
+      {
+        val (ir1, ir2, rt1, rt2)   = extract(f, ctx)
+        val (rtString1, rtString2) = (PrintRTValue(rt1).plainText, PrintRTValue(rt2).plainText)
+        val res = if (rt1 == rt2)
+          failed(s"($ir1 => $rtString1) == ($ir2 => $rtString2")
+        else passed
+        expectation(res)
+      }
+  }
 
   val newDefs = GlobalDefs(
-    Map(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected") -> NativeFunctionAdapter.Fun1(
-      equalIntrospected
-    ).realize),
+    Map(
+      FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected") -> NativeFunctionAdapter.Fun1(
+        equalIntrospected
+      ).realize,
+      FQName.fromString("Morphir.UnitTest:Expect:notEqualIntrospected") -> NativeFunctionAdapter.Fun1(
+        notEqualIntrospected
+      ).realize
+    ),
     Map()
   )
 
-}
-
-class Thunkify2(toReplace: String, replaceWith: String) {
-  def unapply(ir: TypedValue): Option[TypedValue] = {
-    import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
-    ir match {
-      case Apply(_, Apply(_, Reference(_, FQString(toReplace)), arg1IR), arg2IR) => Some(
-          V.applyInferType(
-            UnitTesting.expectationType,
-            V.reference(FQName.fromString(replaceWith)),
-            V.lambda(
-              T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
-              Pattern.UnitPattern(T.unit),
-              V.tuple(T.tuple(List(arg1IR.attributes, arg2IR.attributes)), arg1IR, arg2IR)
-            )
-          )
-        )
-      case _ => None
-    }
-  }
 }
 
 object UnitTesting {
@@ -153,8 +149,6 @@ object UnitTesting {
           case _ => nonPassingResult(globals, dists, testNames)
         }
 
-        // val newGlobals =
-        //   globals.withDefinition(FQName.fromString("Morphir.UnitTest:Expect:equal"), UnitTestingSDK.equal)
         RTAction.succeed(report)
       }
     }
@@ -195,8 +189,9 @@ object UnitTesting {
     def thunkify2(toReplace: String, replaceWith: String)(value: TypedValue): Option[TypedValue] = {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match {
-        case Apply(_, Apply(_, Reference(_, FQString(toReplace)), arg1IR), arg2IR) =>
-          Some(
+        // case Apply(_, Apply(_, Reference(_, whatever), _), _) => throw new OtherError("Found ", whatever)
+        case Apply(_, Apply(_, Reference(_, FQString(found)), arg1IR), arg2IR) if found == toReplace =>
+          val res = Some(
             V.applyInferType(
               expectationType,
               V.reference(FQName.fromString(replaceWith)),
@@ -207,11 +202,18 @@ object UnitTesting {
               )
             )
           )
+          res
+        // None
         case _ => None
       }
     }
+    def introspect(value: TypedValue): Option[TypedValue] =
+      thunkify2("Morphir.UnitTest:Expect:equal", "Morphir.UnitTest:Expect:equalIntrospected")(value)
+        .orElse(
+          thunkify2("Morphir.UnitTest:Expect:notEqual", "Morphir.UnitTest:Expect:notEqualIntrospected")(value)
+        )
     def thunkifyTransform =
-      transform(thunkify2("Morphir.UnitTest:Expect:equal", "Morphir.UnitTest:Expect:equalIntrospected")(_))
+      transform(introspect)
     // val thunkifiedTests   = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
     val newGlobalDefs = globals.definitions.map {
