@@ -31,6 +31,16 @@ failingTest = test "Failing Test" <|
     \_ -> 
         Expect.equal 1 2
 
+greaterThanTests : Test
+greaterThanTests = concat [
+    test "Failing GT Test " <|
+        \_ -> Expect.greaterThan 2 (addOne 1),
+
+    test "Passing GT Test " <|
+        \_ -> Expect.greaterThan 3 (addOne 1)
+]
+
+
 failingTest2 : Test
 failingTest2 = test "Failing Test 2" <|
     \_ -> 
