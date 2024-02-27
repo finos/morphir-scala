@@ -167,7 +167,7 @@ object UnitTesting {
 
     val newGlobalDefs = globals.definitions.map {
       case (fqn, SDKValue.SDKValueDefinition(dfn)) =>
-        (fqn, SDKValue.SDKValueDefinition(dfn.copy(body = thunkifyTransform(body))))
+        (fqn, SDKValue.SDKValueDefinition(dfn.copy(body = thunkifyTransform(dfn.body))))
       case other => other
     }
     val newGlobals = globls.copy(definitions = newGlobalDefs)
