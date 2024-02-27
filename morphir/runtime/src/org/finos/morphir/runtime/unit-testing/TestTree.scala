@@ -11,9 +11,9 @@ type MorphirUnitTest = TestTree[RT]
 type TestResult      = TestTree[SingleResult]
 
 sealed trait SingleResult
-object SingleResult{
-  case class Passed()                         extends SingleResult
-  case class Failed(msg: String)              extends SingleResult
+object SingleResult {
+  case class Passed()            extends SingleResult
+  case class Failed(msg: String) extends SingleResult
 }
 
 //This object goes thru a series of transformations:
@@ -32,21 +32,23 @@ object TestTree {
   case class Concat[T](tests: List[TestTree[T]])                 extends TestTree[T]
   case class Todo(desc: String)                                  extends TestTree[Nothing]
   case class Skip(desc: String, count: Int)                      extends TestTree[Nothing]
-  case class Error(desc: String, error: Throwable)  extends TestTree[Nothing]// not worth distinguishing between MorphirRuntimeError here
+  case class Error(desc: String, error: Throwable)
+      extends TestTree[Nothing] // not worth distinguishing between MorphirRuntimeError here
   case class Only[T](test: TestTree[T]) extends TestTree[T]
 
-  def toReportHelper(tree : TestTree[SingleResult], depth : Int) = {
-    tree match{
-      case Describe(desc, tests) => "\t".repeat(depth) + desc + "\n" + tests.map(toReportHelper(_, depth + 1)).mkString("\n")
-      case SingleTest(desc, Passed()) => "\t".repeat(depth) + desc : ": PASSED"
-      case Concat(tests) => tests.map(toReportHelper(_, depth)).mkString("\n")   case Todo(excuse) => "\t".repeat(depth) + desc + ": TODO"
-      case Skip(desc, count) => "\t".repeat(depth) + desc + ": SKIPPED" +(if (count == 1) "" else s"($count tests skipped)")
-      case Error(desc, err) => "\t".repeat(depth) + desc + ": ERROR" : err.toString
-      case Only(inner) => toReportHelper(inner, depth)
-   
+  def toReportHelper(tree: TestTree[SingleResult], depth: Int): String =
+    tree match {
+      case Describe(desc, tests) =>
+        "\t".repeat(depth) + desc + "\n" + tests.map(toReportHelper(_, depth + 1)).mkString("\n")
+      case SingleTest(desc, Passed()) => "\t".repeat(depth) + desc: ": PASSED"
+      case Concat(tests)              => tests.map(toReportHelper(_, depth)).mkString("\n")
+      case Todo(excuse)               => "\t".repeat(depth) + desc + ": TODO"
+      case Skip(desc, count) =>
+        "\t".repeat(depth) + desc + ": SKIPPED" + (if (count == 1) "" else s"($count tests skipped)")
+      case Error(desc, err) => "\t".repeat(depth) + desc + ": ERROR": err.toString
+      case Only(inner)      => toReportHelper(inner, depth)
 
     }
-  }
 
   def containsOnly[T](tree: TestTree[T]): Boolean =
     tree match {
@@ -66,19 +68,19 @@ object TestTree {
         else Skip(desc, count(d))
       case SingleTest(desc, _) => Skip(desc, 1)
       case Concat(tests)       => Concat(tests.map(pruneToOnly))
-      case o: Only[_]             => o
+      case o: Only[_]          => o
       case other               => other // Skip, Todo and Err should be maintained, I think
     }
 
   def count[T](tree: TestTree[T]): Int =
     tree match {
       case Describe(_, tests) => tests.map(count).sum
-      case _: SingleTest[_]    => 1
+      case _: SingleTest[_]   => 1
       case Concat(tests)      => tests.map(count).sum
       case _: Todo            => 1
       case Skip(_, count)     => count
       case _: Error           => 1 // Might have been a suite or anything but we don't know
-      case Only(inner)       => count(inner)
+      case Only(inner)        => count(inner)
     }
   def fromRTValue(value: RT): MorphirUnitTest =
     value match {
