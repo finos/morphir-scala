@@ -132,6 +132,9 @@ object UnitTesting {
     val testIRs: List[(FQName, TypedValue)] =
       testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
 
+
+    //We need to evaluate to resolve user code, but we want the values of the actual calls to Expect functions
+    //So we replace such calls with thunks; after evaluation, the IR will be intact for inspection
     def thunkify(value: TypedValue): Option[TypedValue] = None // Placeholder
     def thunkifyTransform                               = transform(thunkify(_))
     val thunkifiedTests = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
