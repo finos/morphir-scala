@@ -220,16 +220,16 @@ object UnitTesting {
               SingleTest(desc, Failed(msg))
             case other => throw new OtherError("Unexpected Expectation", other)
           }
-        case SingleTest(desc,other) => throw new OtherError("Test $desc had unexpected result structure", other)
-        case other: Error => other
-        case other: Skip  => other
-        case other: Todo  => other
+        case SingleTest(desc, other) => throw new OtherError("Test $desc had unexpected result structure", other)
+        case other: Error            => other
+        case other: Skip             => other
+        case other: Todo             => other
       }
     }
 
     val treeWithResults = formatExpects(withExpects)
 
-    throw new OtherError("Ned got tired of coding", treeWithResults)
+    throw new OtherError("Ned got tired of coding", treeWithResults.toReport)
 
     // Each test leaf contains a thunk
     // We evaluate the thunks, we get back:

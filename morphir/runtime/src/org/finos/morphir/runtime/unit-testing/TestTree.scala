@@ -35,7 +35,7 @@ object TestTree {
   case class Error(desc: String, error: Throwable)
       extends TestTree[Nothing] // not worth distinguishing between MorphirRuntimeError here
   case class Only[T](test: TestTree[T]) extends TestTree[T]
-
+  def toReport(tree: TestTree[SingleResult]): String = toReportHelper(tree, 0)
   def toReportHelper(tree: TestTree[SingleResult], depth: Int): String =
     tree match {
       case Describe(desc, tests) =>
