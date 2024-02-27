@@ -170,6 +170,8 @@ object UnitTesting {
       case (fqn, Right(rt)) => (fqn, Right(TestTree.fromRTValue(rt)))
       case (fqn, Left(err)) => (fqn, Left(err))
     }
+    //And let's get rid of the List,FQName and Either - those should be in the test tree
+    val testTree 
 
     // TODO: Handle "Only"
     def getExpects(test: MorphirUnitTest): MorphirUnitTest =
