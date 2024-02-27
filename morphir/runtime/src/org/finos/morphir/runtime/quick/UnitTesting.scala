@@ -9,6 +9,7 @@ import org.finos.morphir.runtime.services.sdk.MorphirSdk
 import org.finos.morphir.runtime.TestSummary
 import org.finos.morphir.runtime.SDKValue.SDKValueDefinition
 import org.finos.morphir.ir.Value.*
+import org.finos.morphir.ir.Value.Pattern
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.internal.NativeFunctionAdapter
@@ -135,7 +136,15 @@ object UnitTesting {
 
     // We need to evaluate to resolve user code, but we want the values of the actual calls to Expect functions
     // So we replace such calls with thunks; after evaluation, the IR will be intact for inspection
-    def thunkify(value: TypedValue): Option[TypedValue] = None // Placeholder
+    def thunkify(value: TypedValue): Option[TypedValue] = {
+      import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
+      value match{
+        case Apply(Apply(Referene(FQString("Morphir.UnitTest:Expect:equal")), arg1IR), arg2IR) =>
+          Apply(Reference(FQName.fromString("Morphir.UnitTest:Expect:introspectedEqual")),
+          Lambda(Pattern.Unit))
+        case _ => None
+      }
+    }
     def thunkifyTransform                               = transform(thunkify(_))
     val thunkifiedTests = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
