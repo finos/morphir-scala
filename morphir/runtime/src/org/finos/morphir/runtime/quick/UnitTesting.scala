@@ -143,7 +143,7 @@ object UnitTesting {
     def thunkify(value: TypedValue): Option[TypedValue] = {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match {
-        case Apply(_, Apply(_, Reference(_, FQString("Morphir.UnitTest:Expect:equal")), arg1IR), arg2IR) =>
+        case Apply(_, Apply(_, Reference(_, FQString("Morphir.UnitTest:Expect:equal")), arg1IR), arg2IR) =>{
           val res = Some(
             V.applyInferType(
               expectationType,
@@ -155,8 +155,10 @@ object UnitTesting {
               )
             )
           )
-          throw OtherError("Match hppened, something else did not")
-        case other => throw OtherError("Match failed on", other)
+          res
+        }
+          //throw OtherError("Match hppened, something else did not")
+        case _ => None
       }
     }
     def thunkifyTransform = transform(thunkify(_))
