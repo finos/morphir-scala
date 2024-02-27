@@ -201,6 +201,7 @@ object UnitTesting {
 
     def formatExpects(tree: MorphirUnitTest): TestTree[SingleResult] = {
       import TestTree.*
+      import SingleResult.*
       tree match {
         case Describe(desc, tests) => Describe(desc, tests.map(formatExpects))
         case Concat(tests)         => Concat(tests.map(formatExpects))
@@ -211,12 +212,12 @@ object UnitTesting {
             ) =>
           rt match {
             case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Pass"), List()) =>
-              SingleTest(desc, "PASSED")
+              SingleTest(desc, Passed)
             case RT.ConstructorResult(
                   FQStringTitleCase("Morphir.UnitTest:Expect:Fail"),
                   List(Primitive.String(msg))
                 ) =>
-              SingleTest(desc, s"FAILED: $msg")
+              SingleTest(desc, Failed(msg))
             case other => throw new OtherError("Unexpected Expectation", other)
           }
         case other => other

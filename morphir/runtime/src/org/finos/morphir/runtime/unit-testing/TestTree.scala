@@ -14,8 +14,6 @@ sealed trait SingleResult
 object SingleResult{
   case class Passed()                         extends SingleResult
   case class Failed(msg: String)              extends SingleResult
-  case class Skipped(msg: String, count: Int) extends SingleResult
-  case class Todo(excuse: String)             extends SingleResult
 }
 
 //This object goes thru a series of transformations:
