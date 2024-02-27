@@ -49,6 +49,7 @@ object UnitTestingSDK {
     (ctx: NativeContext) => (f: RTValue.Function) =>
       {
         val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
+        // It should always match this format because this function is only created b
         val (ir1, ir2) = f match {
           case RT.LambdaFunction(Value.Tuple(_, elements), _, _) => (elements(0), elements(1))
           case other                                             => throw OtherError("This should not be!", other)
@@ -295,8 +296,8 @@ object UnitTesting {
     }
 
     val treeWithResults = formatExpects(withExpects)
-
-    throw new OtherError("Ned got tired of coding", TestTree.toReport(treeWithResults))
+    testSummary(false, TestTree.toReport(treeWithResults))
+    // throw new OtherError("Ned got tired of coding", TestTree.toReport(treeWithResults))
 
     // Each test leaf contains a thunk
     // We evaluate the thunks, we get back:
