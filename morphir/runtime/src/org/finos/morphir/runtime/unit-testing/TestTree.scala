@@ -4,7 +4,9 @@ import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 
 //Possibly this tpe should be polymorphic on the contents
-sealed trait TestTree[T]
+sealed trait TestTree[T] {
+  def resolveOnly = TestTree.resolveOnly(self)
+}
 type MorphirUnitTest = TestTree[RT]
 type TestResult      = TestTree[SingleReslt]
 

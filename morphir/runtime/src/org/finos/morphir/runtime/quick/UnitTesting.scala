@@ -178,17 +178,14 @@ object UnitTesting {
           }
         }
       }
-    )
+    ).resolveOnly
 
-    // TODO: Handle "Only"
     def getExpects(test: MorphirUnitTest): MorphirUnitTest =
       import TestTree.*
       test match {
         case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
         case Concat(tests)         => Concat(tests.map(getExpects))
-        case Skip(inner)           => Skip(inner) // No transformation here
         case Only(inner)           => Only(getExpects(inner))
-        case Todo(desc)            => Todo(desc)
         case SingleTest(desc, thunk) => SingleTest(
             desc,
             Loop(globals)
@@ -198,6 +195,7 @@ object UnitTesting {
                 RTValue.Unit()
               )
           )
+        case other => other //err, todo, skip lack anything to resolve
       }
 
     val testsWithExpects: List[(FQName, Either[Throwable, MorphirUnitTest])] = tests.map {
