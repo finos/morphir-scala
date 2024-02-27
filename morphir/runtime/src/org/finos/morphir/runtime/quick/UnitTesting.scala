@@ -158,12 +158,12 @@ object UnitTesting {
           res
         // throw OtherError("Match hppened, something else did not")
         case Apply(_, Apply(_, fqn, _), _) => throw OtherError("Unexpected double apply", fqn)
-        case other                         => throw OtherError("Literally runnings,", other)
-        // case _                             => None
+        // case other                         => throw OtherError("Literally runnings,", other)
+        case _ => None
       }
     }
     def thunkifyTransform = transform(thunkify(_))
-    val thunkifiedTests   = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
+    // val thunkifiedTests   = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
     val newGlobalDefs = globals.definitions.map {
       case (fqn, SDKValue.SDKValueDefinition(dfn)) =>
@@ -188,7 +188,7 @@ object UnitTesting {
     // Apply(Apply(Ref(OnFail)), Apply(...))
     // So I think OnFail we DO replace but we DO NOT convert, right? That sounds good.
 
-    val testRTValues: List[(FQName, Either[Throwable, RTValue])] = thunkifiedTests
+    val testRTValues: List[(FQName, Either[Throwable, RTValue])] = testIRs
       .map { case (fqn, ir) =>
         try
           (fqn, Right(Loop(newGlobals).loop(ir, Store.empty)))
