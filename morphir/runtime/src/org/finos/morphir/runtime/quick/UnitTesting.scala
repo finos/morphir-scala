@@ -136,12 +136,15 @@ object UnitTesting {
 
     // We need to evaluate to resolve user code, but we want the values of the actual calls to Expect functions
     // So we replace such calls with thunks; after evaluation, the IR will be intact for inspection
+    // def delay(value : TypedValue) : TypedValue = {
+    //   Lambda(Pattern.UnitPattern, value)
+    // }
     def thunkify(value: TypedValue): Option[TypedValue] = {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match{
         case Apply(Apply(Referene(FQString("Morphir.UnitTest:Expect:equal")), arg1IR), arg2IR) =>
           Apply(Reference(FQName.fromString("Morphir.UnitTest:Expect:introspectedEqual")),
-          Lambda(Pattern.Unit))
+          Lambda(Pattern.UnitPattern(), Tuple(Chunk(arg1IR, arg2IR))))
         case _ => None
       }
     }
