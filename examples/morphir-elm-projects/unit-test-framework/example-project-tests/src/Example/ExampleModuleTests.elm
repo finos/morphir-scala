@@ -9,6 +9,11 @@ simpleTest = test "Simple Test" <|
     \_ -> 
         Expect.equal 1 1
 
+otherSimpleTest : Test
+otherSimpleTest = test "Simple Test" <|
+    \_ -> 
+        Expect.equal 1 3
+
 lessSimpleTest : Test
 lessSimpleTest = describe "Pretend this is a suite of Tests" <|
     [ test "Nested Simple Test" <|

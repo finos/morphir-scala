@@ -27,6 +27,17 @@ import org.finos.morphir.runtime.Extractors.*
 
 import org.finos.morphir.runtime.internal._
 
+object Expect{
+  case class IntrospectibleFunction(
+    arity : Int,
+    baseName : String,
+    introspectedName : String,
+    basicFunction : SDKValue,
+    introspectedFunction : DynamicNativeFunction
+  )
+  
+}
+
 object UnitTestingSDK {
   def expectation(result: RTValue) =
     RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
@@ -202,7 +213,6 @@ object UnitTesting {
     def thunkify2(toReplace: String, replaceWith: String)(value: TypedValue): Option[TypedValue] = {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match {
-        // case Apply(_, Apply(_, Reference(_, whatever), _), _) => throw new OtherError("Found ", whatever)
         case Apply(_, Apply(_, Reference(_, FQString(found)), arg1IR), arg2IR) if found == toReplace =>
           val res = Some(
             V.applyInferType(
