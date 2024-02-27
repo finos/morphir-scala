@@ -38,6 +38,15 @@ object UnitTestingSDK {
       val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
       expectation(result)
     }
+  
+  val greaterThan = DynamicNativeFunction2("greaterThan") {
+    (_: NativeContext) => (a: Comparable, b: Comparable) =>
+      val res = if (RTValue.Comparable.compareOrThrow(a, b) > 0)
+        passed
+        else failed(s"${PrintRTValue(a).plainText} was not greater than ${PrintRTValue(b).plainText}")
+      expectation(result)
+  }
+  
   def extract(f: RTValue.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
     val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
     val (ir1, ir2) = f match {
