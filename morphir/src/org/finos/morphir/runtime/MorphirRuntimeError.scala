@@ -29,8 +29,10 @@ object MorphirRuntimeError {
   final case class OtherError(cause: String, stuff: Any*) extends MorphirRuntimeError {
     def message = stuff.toList match {
       case List() => err"$cause"
-      case first :: Nil => err"$cause:\n $first"
-      case first :: second :: Nil => err"$cause:\n $first \n $second"
+      case first :: Nil => err"$cause: $first"
+      case first :: second :: Nil => err"$cause: $first  $second"
+      case first :: second :: rest => err"$cause: $first  $second  $rest"
+    }
   }
 
   sealed trait EvaluationError extends MorphirRuntimeError
