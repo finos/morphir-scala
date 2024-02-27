@@ -38,7 +38,7 @@ object UnitTestingSDK {
       expectation(result)
     }
 
-  val equalIntrospection: SDKValue =
+  val equalIntrospected: SDKValue =
     SDKValue.SDKNativeFunction.fun1 { (a: RTValue) =>
       val result = throw OtherError("At least we got this far: ", result)
       result
