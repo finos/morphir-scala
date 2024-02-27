@@ -193,7 +193,7 @@ object UnitTesting {
       case err              => err
     }
 
-    def formatExpects(tree: MorphirUnitTest): TestTree[String] = {
+    def formatExpects(tree: MorphirUnitTest): TestTree[SingleResult] = {
       import TestTree.*
       tree match {
         case Describe(desc, tests) => Describe(desc, tests.map(formatExpects))

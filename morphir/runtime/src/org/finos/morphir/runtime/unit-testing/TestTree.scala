@@ -6,10 +6,13 @@ import org.finos.morphir.runtime.MorphirRuntimeError.*
 //Possibly this tpe should be polymorphic on the contents
 sealed trait TestTree[T]
 type MorphirUnitTest = TestTree[RT]
+type TestResult      = TestTree[SingleReslt]
 
 sealed trait SingleResult
-case class Passed()            extends SingleResult
-case class Failed(msg: String) extends SingleResult
+case class Passed()                         extends SingleResult
+case class Failed(msg: String)              extends SingleResult
+case class Skipped(msg: String, count: Int) extends SingleResult
+case class Todo(excuse: String)             extends SingleResult
 
 object TestTree {
   case class Describe[T](desc: String, tests: List[TestTree[T]]) extends TestTree[T]
@@ -42,7 +45,8 @@ object TestTree {
         SingleTest(desc, expectThunk)
       case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Concat"), List(RT.List(tests))) =>
         Concat(tests.map(fromRTValue))
-      case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Todo"), List(RT.Primitive.String(desc))) => Todo(desc)
+      case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Todo"), List(RT.Primitive.String(desc))) =>
+        Todo(desc)
       case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Skip"), List(test)) => Only(fromRTValue(test))
       case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Only"), List(test)) => Only(fromRTValue(test))
       case RT.ConstructorResult(other, _) => throw new OtherError("Unexpected constructor found", other)
