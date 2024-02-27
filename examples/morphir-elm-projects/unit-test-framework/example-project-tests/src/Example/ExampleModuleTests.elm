@@ -40,6 +40,10 @@ greaterThanTests = concat [
         \_ -> Expect.greaterThan 3 (addOne 1)
 ]
 
+failingLessThan : Test
+failingLessThan = test "Failing LessThan" <|
+    \_ -> 
+        Expect.lessThan (addOne 2) 1
 
 failingTest2 : Test
 failingTest2 = test "Failing Test 2" <|
