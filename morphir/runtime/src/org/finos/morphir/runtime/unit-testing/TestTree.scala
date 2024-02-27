@@ -29,7 +29,7 @@ object TestTree {
   case class SingleTest[T](desc: String, expectThunk: T)         extends TestTree[T]
   case class Concat[T](tests: List[TestTree[T]])                 extends TestTree[T]
   case class Todo[T](desc: String)                               extends TestTree[T]
-  case class Skip[T](test: TestTree[T])                          extends TestTree[T]
+  case class Skip[T](desc : String, count : Int)                          extends TestTree[T]
   case class Only[T](test: TestTree[T])                          extends TestTree[T]
 
   def containsOnly[T](tree: TestTree[T]): Boolean =
