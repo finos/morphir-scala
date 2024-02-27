@@ -166,12 +166,23 @@ object UnitTesting {
       }
 
     // Try to convert these to actual Test trees
-    val tests: List[(FQName, Either[Throwable, MorphirUnitTest])] = testRTValues.map {
-      case (fqn, Right(rt)) => (fqn, Right(TestTree.fromRTValue(rt)))
-      case (fqn, Left(err)) => (fqn, Left(err))
-    }
+    val testTree:  MorphirUnitTest = 
+      TestTree.Concat(
+        testRTValues.map {
+        case (fqn, Left(err)) => TestTree.Error(fqn.toString, err)
+        case (fqn, Right(rt)) => {
+          TestTree.fromRTValue(rt) match {
+            case d : TestTree.Describe => d
+            case s : TestTree.Single => s
+            case other => TestTree.Describe(fqn.toString, other)
+          }
+        }
+      }
+    )
     //And let's get rid of the List,FQName and Either - those should be in the test tree
-    val testTree 
+    val testTreeList = tests.map{
+      case ()
+    }
 
     // TODO: Handle "Only"
     def getExpects(test: MorphirUnitTest): MorphirUnitTest =
