@@ -27,12 +27,22 @@ import org.finos.morphir.runtime.Extractors.*
 
 import org.finos.morphir.runtime.internal._
 
-object Expect{
+object Expect {
+  def expectation(result: RTValue) =
+    RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
+  val passed =
+    val result = RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Pass"), List())
+    expectation(result)
+  def failed(msg: String) =
+    val result =
+      RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(Primitive.String(msg)))
+    expectation(result)
+
   case class IntrospectibleFunction(
-    arity : Int,
-    baseName : String,
-    basicFunction : SDKValue,
-    introspectedFunction : DynamicNativeFunction
+      arity: Int,
+      baseName: String,
+      basicFunction: SDKValue,
+      introspectedFunction: DynamicNativeFunction
   )
 
   val equalBase: SDKValue =
@@ -40,15 +50,14 @@ object Expect{
       val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
       expectation(result)
     }
+
   val equal = IntrospectibleFunction(
     2,
     "equal",
-    equalBase,
-
+    equalBase
   )
 
   val allExpects = List(
-
   )
 }
 
