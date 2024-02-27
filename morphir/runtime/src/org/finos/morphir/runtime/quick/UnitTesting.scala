@@ -156,8 +156,8 @@ object UnitTesting {
             )
           )
           res
-        // throw OtherError("Match hppened, something else did not")
-        case Apply(_, Apply(_, fqn, _), _) => throw OtherError("Unexpected double apply", fqn)
+          //throw OtherError("Match hppened, something else did not")
+        // case Apply(_, Apply(_, fqn, _), _) => throw OtherError("Unexpected double apply", fqn)
         // case other                         => throw OtherError("Literally runnings,", other)
         case _ => None
       }
