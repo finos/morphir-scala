@@ -156,9 +156,10 @@ object UnitTesting {
             )
           )
           res
-          // throw OtherError("Match hppened, something else did not")
+        // throw OtherError("Match hppened, something else did not")
         case Apply(_, Apply(_, fqn, _), _) => throw OtherError("Unexpected double pply", fqn)
-        case _                             => None
+        case other                         => throw OtherError("Literally runnings,", other)
+        // case _                             => None
       }
     }
     def thunkifyTransform = transform(thunkify(_))
