@@ -30,13 +30,13 @@ object TestTree {
   case class Concat[T](tests: List[TestTree[T]])                 extends TestTree[T]
   case class Todo[T](desc: String)                               extends TestTree[T]
   case class Skip[T](desc : String, count : Int)                          extends TestTree[T]
+  case class Error[T](desc : String, error : MorphirRuntimeError)
   case class Only[T](test: TestTree[T])                          extends TestTree[T]
 
   def containsOnly[T](tree: TestTree[T]): Boolean =
     tree match {
       case Describe(_, tests) => tests.exists(containsOnly)
       case Concat(tests)      => tests.exists(containsOnly)
-      case Skip(inner)        => containsOnly(inner)
       case Only(_)            => true
       case _                  => false
     }
