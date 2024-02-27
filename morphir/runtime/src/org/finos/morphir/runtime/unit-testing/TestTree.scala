@@ -46,7 +46,7 @@ object TestTree {
       case Todo(excuse)                               => "\t".repeat(depth) + s"$excuse: TODO"
       case Skip(desc, count) =>
         "\t".repeat(depth) + desc + ": SKIPPED" + (if (count == 1) "" else s"($count tests skipped)")
-      case Error(desc, err) => "\t".repeat(depth) + desc + ": ERROR": err.toString
+      case Error(desc, err) => "\t".repeat(depth) + s"$desc: ERROR: \n $err"
       case Only(inner)      => toReportHelper(inner, depth)
 
     }
