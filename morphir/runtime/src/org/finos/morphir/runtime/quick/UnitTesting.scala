@@ -48,21 +48,12 @@ object UnitTestingSDK {
       case RT.Tuple(List(rt1_, rt2_)) => (rt1_, rt2_)
       case other                      => throw new Exception("This should not be!")
     }
-
+    (ir1, ir2, rt1, rt2)
   }
   val equalIntrospected = DynamicNativeFunction1("equalIntrospected") {
     (ctx: NativeContext) => (f: RTValue.Function) =>
       {
-        val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
-        // It should always match this format because this function is only created b
-        val (ir1, ir2) = f match {
-          case RT.LambdaFunction(Value.Tuple(_, elements), _, _) => (elements(0), elements(1))
-          case other                                             => throw OtherError("This should not be!", other)
-        }
-        val (rt1, rt2) = out match {
-          case RT.Tuple(List(rt1_, rt2_)) => (rt1_, rt2_)
-          case other                      => throw new Exception("This should not be!")
-        }
+        val (ir1, ir2, rt1, rt2)   = extract(f, ctx)
         val (irString1, irString2) = (ir1.toString, ir2.toString)
         val (rtString1, rtString2) = (PrintRTValue(rt1).plainText, PrintRTValue(rt2).plainText)
         val res = if (rt1 != rt2)
