@@ -218,14 +218,11 @@ object UnitTesting {
               SingleTest(desc, s"FAILED: $msg")
             case other => throw new OtherError("Unexpected Expectation", other)
           }
-        case other => throw new OtherError("Unexpected Item", other)
+        case other => other
       }
     }
 
-    val treeWithResults = testsWithExpects.map {
-      case (fqn, Right(rt)) => (fqn, Right(formatExpects(rt)))
-      case err              => err
-    }
+    val treeWithResults = formatExpects(withExpects)
 
     throw new OtherError("Ned got tired of coding", testsWithExpects)
 
