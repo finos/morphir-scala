@@ -133,7 +133,7 @@ object UnitTesting {
     // Let's just eat the whole horse
     // val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
     val testIRs: List[(FQName, TypedValue)] =
-      testNames.map(fqn => (fqn, globals(fqn).body))
+      testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
 
     // We need to evaluate to resolve user code, but we want the values of the actual calls to Expect functions
     // So we replace such calls with thunks; after evaluation, the IR will be intact for inspection
@@ -165,6 +165,9 @@ object UnitTesting {
     def thunkifyTransform = transform(thunkify(_))
     val thunkifiedTests   = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
+    def newGlobals = globals.definitions.map{
+      case (fqn, SDKValue(dfn)) = (fqn, SDKValue, dfn.copy(body = thunkifyTransform(body)))
+    }
     // Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
     // So that means that any call that looks like
     // (Apply(F, Arg) : Expect) //No wait this includes the wrong stuffs
@@ -185,7 +188,7 @@ object UnitTesting {
     val testRTValues: List[(FQName, Either[Throwable, RTValue])] = thunkifiedTests
       .map { case (fqn, ir) =>
         try
-          (fqn, Right(Loop(globals).loop(ir, Store.empty)))
+          (fqn, Right(Loop(newGlobals).loop(ir, Store.empty)))
         catch {
           case e => (fqn, Left(e))
         }
@@ -213,7 +216,7 @@ object UnitTesting {
         case Only(inner)           => Only(getExpects(inner))
         case SingleTest(desc, thunk) => SingleTest(
             desc,
-            Loop(globals)
+            Loop(newGlobals)
               .handleApplyResult(
                 testType,
                 thunk,
