@@ -170,7 +170,7 @@ object UnitTesting {
         (fqn, SDKValue.SDKValueDefinition(dfn.copy(body = thunkifyTransform(dfn.body))))
       case other => other
     }
-    val newGlobals = globls.copy(definitions = newGlobalDefs)
+    val newGlobals = globals.copy(definitions = newGlobalDefs)
     // Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
     // So that means that any call that looks like
     // (Apply(F, Arg) : Expect) //No wait this includes the wrong stuffs
