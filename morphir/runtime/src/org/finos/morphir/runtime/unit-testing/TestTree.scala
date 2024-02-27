@@ -35,6 +35,16 @@ object TestTree {
   case class Error(desc: String, error: Throwable)  extends TestTree[Nothing]// not worth distinguishing between MorphirRuntimeError here
   case class Only[T](test: TestTree[T]) extends TestTree[T]
 
+  def toReportHelper(tree : TestTree[SingleResult], depth : Int) = {
+    tree match{
+      case Describe(desc, tests) => "\t".repeat(depth) + desc + "\n" + tests.map(toReportHelper(_, depth + 1)).mkString("\n")
+      case SingleTest(desc, Passed()) => "\t".repeat(depth) + desc : ": PASSED"
+      case Concat(tests) => tests.map(toReportHelper(_, depth)).mkString("\n")
+   
+
+    }
+  }
+
   def containsOnly[T](tree: TestTree[T]): Boolean =
     tree match {
       case Describe(_, tests) => tests.exists(containsOnly)
