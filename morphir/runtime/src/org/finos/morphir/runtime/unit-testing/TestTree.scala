@@ -39,7 +39,7 @@ object TestTree {
       case Describe(_, tests) => tests.exists(containsOnly)
       case Concat(tests)      => tests.exists(containsOnly)
       case Only(_)            => true
-      case _                  => false
+      case _                  => false //If we skip an Only it does not count
     }
   def resolveOnly[T](tree : TestTree[T]) : TestTree[T] = {
     if (containsOnly(tree)) pruneToOnly(tree) else tree
@@ -52,7 +52,9 @@ object TestTree {
           Describe(desc, tests.map(pruneToOnly))
           else Skip(desc, count(d))
       case SingleTest(desc, _) => Skip(desc, 1)
-      case c @ Concat(tests) =
+      case Concat(tests) => Concat(tests.map(pruneToOnly))
+      case o : Only => o
+      case other => other //Skip, Todo and Err should be maintained, I think
     }
   }
   
