@@ -20,6 +20,7 @@ import org.finos.morphir.runtime.MorphirUnitTest
 import org.finos.morphir.runtime.SingleResult
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.RTValue as RT
+import org.finos.morphir.runtime.RTValue.Comparable
 import org.finos.morphir.util.PrintRTValue
 import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.runtime.Extractors.*
@@ -46,7 +47,7 @@ object UnitTestingSDK {
         else failed(s"${PrintRTValue(a).plainText} was not greater than ${PrintRTValue(b).plainText}")
       expectation(result)
   }
-  
+
   def extract(f: RTValue.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
     val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
     val (ir1, ir2) = f match {
