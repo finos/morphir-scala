@@ -41,6 +41,10 @@ object TestTree {
       case Only(_)            => true
       case _                  => false
     }
+  def resolveOnly[T](tree : TestTree[T]) : TestTree[T] = {
+    if (containsOnly(tree))
+  }
+  def pruneToOnly[T](tree : TestTree[T])
   
   def count[T](tree : TestTree[T]) : Int = {
     tree match {

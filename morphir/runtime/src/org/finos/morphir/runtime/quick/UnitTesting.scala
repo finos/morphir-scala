@@ -179,10 +179,6 @@ object UnitTesting {
         }
       }
     )
-    //And let's get rid of the List,FQName and Either - those should be in the test tree
-    val testTreeList = tests.map{
-      case ()
-    }
 
     // TODO: Handle "Only"
     def getExpects(test: MorphirUnitTest): MorphirUnitTest =
