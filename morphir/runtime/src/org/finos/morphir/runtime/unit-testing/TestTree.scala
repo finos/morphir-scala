@@ -32,8 +32,8 @@ object TestTree {
   case class Concat[T](tests: List[TestTree[T]])                 extends TestTree[T]
   case class Todo(desc: String)                                  extends TestTree[Nothing]
   case class Skip(desc: String, count: Int)                      extends TestTree[Nothing]
-  case class Error(desc: String, error: Throwable) // not worth distinguishing between MorphirRuntimeError here
-  case class Only[T](test: TestTree[T]) extends TestTree[Nothing]
+  case class Error(desc: String, error: Throwable)  extends TestTree[Nothing]// not worth distinguishing between MorphirRuntimeError here
+  case class Only[T](test: TestTree[T]) extends TestTree[T]
 
   def containsOnly[T](tree: TestTree[T]): Boolean =
     tree match {
