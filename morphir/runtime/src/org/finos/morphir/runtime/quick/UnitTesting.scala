@@ -211,7 +211,7 @@ object UnitTesting {
       }
     }
     def thunkifyTransform =
-      transform(thunkify2("Morphir.UnitTest:Expect:equal", "Morphir.UnitTest:Expect:equalIntrospected" (_)))
+      transform(thunkify2("Morphir.UnitTest:Expect:equal", "Morphir.UnitTest:Expect:equalIntrospected") (_))
     // val thunkifiedTests   = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
     val newGlobalDefs = globals.definitions.map {
