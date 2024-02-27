@@ -212,7 +212,7 @@ object UnitTesting {
             ) =>
           rt match {
             case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Pass"), List()) =>
-              SingleTest(desc, Passed)
+              SingleTest(desc, Passed())
             case RT.ConstructorResult(
                   FQStringTitleCase("Morphir.UnitTest:Expect:Fail"),
                   List(Primitive.String(msg))
@@ -220,13 +220,15 @@ object UnitTesting {
               SingleTest(desc, Failed(msg))
             case other => throw new OtherError("Unexpected Expectation", other)
           }
-        case other => other
+        case other: Error => other
+        case other: Skip  => other
+        case other: Todo  => other
       }
     }
 
     val treeWithResults = formatExpects(withExpects)
 
-    throw new OtherError("Ned got tired of coding", testsWithExpects)
+    throw new OtherError("Ned got tired of coding", treeWithResults)
 
     // Each test leaf contains a thunk
     // We evaluate the thunks, we get back:
