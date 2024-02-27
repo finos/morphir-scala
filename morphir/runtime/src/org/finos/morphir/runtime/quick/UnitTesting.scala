@@ -47,9 +47,9 @@ object UnitTestingSDK {
   val equalIntrospectedV2 = DynamicNativeFunction1("equalIntrospected") {
     (ctx: NativeContext) => (f: RTValue.Function) =>
       {
-        val irString  = PrintRTValue.of(f)
+        val irString  = PrintRTValue(f).plainText
         val out       = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f, RTValue.Unit)
-        val resString = PrintRTValue.of(out)
+        val resString = PrintRTValue(out).plainText
         expectation(failed(s"Genuinely stunned. ir = $irString, res = $resString"))
       }
   }
