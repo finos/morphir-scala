@@ -72,20 +72,22 @@ object UnitTestingSDK {
 
 }
 
-class Thunkify2(toReplace : String, replaceWith : String){
-  def unapply(ir : TypedValue) : Option[TypedValue] = {
+class Thunkify2(toReplace: String, replaceWith: String) {
+  def unapply(ir: TypedValue): Option[TypedValue] = {
+    import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
     ir match {
-        case Apply(_, Apply(_, Reference(_, FQString(toReplace)), arg1IR), arg2IR) =>Some(
-            V.applyInferType(
-              expectationType,
-              V.reference(FQName.fromString(replaceWith)),
-              V.lambda(
-                T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
-                Pattern.UnitPattern(T.unit),
-                V.tuple(T.tuple(List(arg1IR.attributes, arg2IR.attributes)), arg1IR, arg2IR)
-              )
+      case Apply(_, Apply(_, Reference(_, FQString(toReplace)), arg1IR), arg2IR) => Some(
+          V.applyInferType(
+            UnitTesting.expectationType,
+            V.reference(FQName.fromString(replaceWith)),
+            V.lambda(
+              T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
+              Pattern.UnitPattern(T.unit),
+              V.tuple(T.tuple(List(arg1IR.attributes, arg2IR.attributes)), arg1IR, arg2IR)
             )
+          )
         )
+      case _ => None
     }
   }
 }
@@ -190,14 +192,14 @@ object UnitTesting {
     // def delay(value : TypedValue) : TypedValue = {
     //   Lambda(Pattern.UnitPattern, value)
     // }
-    def thunkify(value: TypedValue): Option[TypedValue] = {
+    def thunkify2(toReplace: String)(replaceWith: String)(value: TypedValue): Option[TypedValue] = {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match {
-        case Apply(_, Apply(_, Reference(_, FQString("Morphir.UnitTest:Expect:equal")), arg1IR), arg2IR) =>
-          val res = Some(
+        case Apply(_, Apply(_, Reference(_, FQString(toReplace)), arg1IR), arg2IR) =>
+          Some(
             V.applyInferType(
               expectationType,
-              V.reference(FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected")),
+              V.reference(FQName.fromString(replaceWith)),
               V.lambda(
                 T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
                 Pattern.UnitPattern(T.unit),
@@ -205,14 +207,11 @@ object UnitTesting {
               )
             )
           )
-          res
-        // throw OtherError("Match hppened, something else did not")
-        // case Apply(_, Apply(_, fqn, _), _) => throw OtherError("Unexpected double apply", fqn)
-        // case other                         => throw OtherError("Literally runnings,", other)
         case _ => None
       }
     }
-    def thunkifyTransform = transform(thunkify(_))
+    def thunkifyTransform =
+      transform(thunkify2("Morphir.UnitTest:Expect:equal", "Morphir.UnitTest:Expect:equalIntrospected" (_)))
     // val thunkifiedTests   = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
     val newGlobalDefs = globals.definitions.map {
