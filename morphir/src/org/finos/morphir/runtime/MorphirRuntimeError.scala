@@ -27,7 +27,10 @@ object MorphirRuntimeError {
   final case class MorphirIRDecodingError(message: String) extends MorphirRuntimeError
 
   final case class OtherError(cause: String, stuff: Any*) extends MorphirRuntimeError {
-    def message = err"$cause: $stuff"
+    def message = stuff.toList match {
+      case List() => err"$cause"
+      case first :: Nil => err"$cause:\n $first"
+      case first :: second :: Nil => err"$cause:\n $first \n $second"
   }
 
   sealed trait EvaluationError extends MorphirRuntimeError
