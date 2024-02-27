@@ -8,6 +8,7 @@ sealed trait TestTree[T]
 type MorphirUnitTest = TestTree[RT]
 type TestResult      = TestTree[SingleReslt]
 
+
 sealed trait SingleResult
 case class Passed()                         extends SingleResult
 case class Failed(msg: String)              extends SingleResult
@@ -40,7 +41,10 @@ object TestTree {
       case Only(_)            => true
       case _                  => false
     }
-
+  
+  def count[T](tree TestTree[T]) : Int = {
+    
+  }
   def fromRTValue(value: RT): MorphirUnitTest =
     value match {
       case RT.ConstructorResult(
@@ -57,7 +61,11 @@ object TestTree {
         Concat(tests.map(fromRTValue))
       case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Todo"), List(RT.Primitive.String(desc))) =>
         Todo(desc)
-      case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Skip"), List(test)) => Only(fromRTValue(test))
+      case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Skip"), List(test)) => {
+        fromRTValue(test) match {
+          case Describe(desc, tests) => Skil(desc, )
+        }
+      }
       case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Only"), List(test)) => Only(fromRTValue(test))
       case RT.ConstructorResult(other, _) => throw new OtherError("Unexpected constructor found", other)
       case other                          => throw new OtherError("Expected Test constructor bout found", other)
