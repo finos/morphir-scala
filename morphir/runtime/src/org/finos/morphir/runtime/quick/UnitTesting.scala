@@ -220,6 +220,7 @@ object UnitTesting {
               SingleTest(desc, Failed(msg))
             case other => throw new OtherError("Unexpected Expectation", other)
           }
+        case SingleTest(desc,other) => throw new OtherError("Test $desc had unexpected result structure", other)
         case other: Error => other
         case other: Skip  => other
         case other: Todo  => other
