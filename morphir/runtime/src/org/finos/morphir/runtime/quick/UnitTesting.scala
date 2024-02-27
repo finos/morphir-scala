@@ -75,7 +75,17 @@ object UnitTestingSDK {
 class Thunkify(toReplace : FQName, replaceWith : FQName){
   def unapply(ir : TypedValue) : Option[TypedValue] = {
     ir match {
-        case Apply(_, Apply(_, Reference(_, toReplace), arg1IR), arg2IR) =>
+        case Apply(_, Apply(_, Reference(_, toReplace), arg1IR), arg2IR) =>Some(
+            V.applyInferType(
+              expectationType,
+              V.reference(replaceWith),
+              V.lambda(
+                T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
+                Pattern.UnitPattern(T.unit),
+                V.tuple(T.tuple(List(arg1IR.attributes, arg2IR.attributes)), arg1IR, arg2IR)
+              )
+            )
+        )
     }
 
   }
