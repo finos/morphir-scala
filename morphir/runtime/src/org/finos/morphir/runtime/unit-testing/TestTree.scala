@@ -39,7 +39,10 @@ object TestTree {
     tree match{
       case Describe(desc, tests) => "\t".repeat(depth) + desc + "\n" + tests.map(toReportHelper(_, depth + 1)).mkString("\n")
       case SingleTest(desc, Passed()) => "\t".repeat(depth) + desc : ": PASSED"
-      case Concat(tests) => tests.map(toReportHelper(_, depth)).mkString("\n")
+      case Concat(tests) => tests.map(toReportHelper(_, depth)).mkString("\n")   case Todo(excuse) => "\t".repeat(depth) + desc + ": TODO"
+      case Skip(desc, count) => "\t".repeat(depth) + desc + ": SKIPPED" +(if (count == 1) "" else s"($count tests skipped)")
+      case Error(desc, err) => "\t".repeat(depth) + desc + ": ERROR" : err.toString
+      case Only(inner) => toReportHelper(inner, depth)
    
 
     }
