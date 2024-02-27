@@ -37,6 +37,12 @@ object Expect {
     val result =
       RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(Primitive.String(msg)))
     expectation(result)
+  def extract(f: RTValue.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
+    val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
+    val (ir1, ir2) = f match {
+      case RT.LambdaFunction(Value.Tuple(_, elements), _, _) => (elements(0), elements(1))
+      case other                                             => throw OtherError("This should not be!", other)
+    }
 
   case class IntrospectibleFunction(
       arity: Int,
@@ -44,6 +50,7 @@ object Expect {
       basicFunction: SDKValue,
       introspectedFunction: DynamicNativeFunction
   )
+
 
   val equalBase: SDKValue =
     SDKValue.SDKNativeFunction.fun2 { (a: RTValue, b: RTValue) =>
