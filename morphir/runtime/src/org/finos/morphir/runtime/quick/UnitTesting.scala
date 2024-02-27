@@ -229,7 +229,7 @@ object UnitTesting {
 
     val treeWithResults = formatExpects(withExpects)
 
-    throw new OtherError("Ned got tired of coding", TestTree.toReport(treeWithResultst)
+    throw new OtherError("Ned got tired of coding", TestTree.toReport(treeWithResultst))
 
     // Each test leaf contains a thunk
     // We evaluate the thunks, we get back:
