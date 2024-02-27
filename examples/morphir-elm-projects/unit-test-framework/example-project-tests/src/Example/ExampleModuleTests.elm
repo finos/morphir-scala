@@ -51,10 +51,7 @@ failingTestSuite = describe "Failing Test Suite" <|
         test "Concatted NEQ Test" <|
             \_ -> 
                 Expect.notEqual 1 2
-        , test "Concatted NEQ Test" <|
-            \_ -> 
-                Expect.notEqual (addOne 1) (3 - 1)
-        , test "ConcattedFailing Test 4" <|
+        ,test "ConcattedFailing Test 4" <|
             \_ -> 
                 Expect.equal 1 (addOne 2)
         ]
@@ -62,6 +59,9 @@ failingTestSuite = describe "Failing Test Suite" <|
         [ test "Nested Failing Test" <|
             \_ -> 
                 Expect.equal 1 2
+        ,  test "Failing NEQ Test" <|
+            \_ -> 
+                Expect.notEqual (addOne 1) (3 - 1)
         , test "Another Nested Failing Test" <|
             \_ -> 
                 Expect.equal 1 2
