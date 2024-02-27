@@ -166,8 +166,9 @@ object UnitTesting {
     val thunkifiedTests   = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
     val newGlobalDefs = globals.definitions.map {
-      case (fqn, SDKValue(dfn)) => (fqn, SDKValue, dfn.copy(body = thunkifyTransform(body)))
-      case other                => other
+      case (fqn, SDKValue.SDKValueDefinition(dfn)) =>
+        (fqn, SDKValue.SDKValueDefinition(dfn.copy(body = thunkifyTransform(body))))
+      case other => other
     }
     val newGlobals = globls.copy(definitions = newGlobalDefs)
     // Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
