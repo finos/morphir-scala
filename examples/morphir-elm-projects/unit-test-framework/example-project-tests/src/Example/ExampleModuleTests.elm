@@ -55,14 +55,17 @@ failingTest2 = test "Failing Test 2" <|
     \_ -> 
         Expect.equal 1 (addOne 2)
 
-slow : Int
+tupleStep : (Int, Int) -> Int -> (Int, Int)
+tupleStep (a, b) c = (b + a, a - c)
+
+slow : (Int, Int)
 slow = 
-    List.foldl (\elem acc -> acc + elem) 0 (List.range 0 10000)
+    List.foldl (\elem acc -> (tupleStep acc elem)) (0, 0) (List.range 0 10000)
 
 slowTest : Test
 slowTest = only <| test "This may run slow" <|
     \_ ->
-        Expect.greaterThan slow 1
+        Expect.equal slow (1, 1)
 
 
 failingTestSuite : Test
