@@ -63,9 +63,22 @@ slow =
     List.foldl (\elem acc -> (tupleStep acc elem)) (0, 0) (List.range 0 10000)
 
 slowTest : Test
-slowTest = only <| test "This may run slow" <|
+slowTest = test "This may run slow" <|
     \_ ->
-        Expect.equal slow (1, 1)
+        Expect.lessThan slow (1, 1)
+
+complexThunkSuite : Test
+complexThunkSuite = describe "tests with more complex thunk formats" <|
+    [ 
+        test "logic picks expectation" <| \_ ->
+        if (2 > 1)
+            then Expect.equal 100 (addOne 98)
+            else Expect.notEqual 100 100,
+        test "using pass variant" <|  \_ ->
+        if ((addOne 1) > 1)
+            then Expect.pass
+            else Expect.fail "ACTUAL test failure (like the framework)"
+     ]
 
 
 failingTestSuite : Test
