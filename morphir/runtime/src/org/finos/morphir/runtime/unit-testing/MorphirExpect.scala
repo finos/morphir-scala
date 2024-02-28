@@ -1,9 +1,18 @@
 package org.finos.morphir.runtime
 import org.finos.morphir.naming.*
+import org.finos.morphir.runtime.RTValue as RT
+import org.finos.morphir.util.PrintRTValue
+import org.finos.morphir.ir.printing.PrintIR
+import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
+import org.finos.morphir.runtime.Extractors.Values.ApplyChain
+import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
 
 sealed trait MorphirExpect {
-  def arity: Int;
-  def localName: Local
+  def arity: Int
+  def funcName: String
+  def thunkify: TypedValue => Option[TypedValue] = {
+      value match {
+        case app @ Apply(_, Apply(_, Reference(_, funcName), arg1IR), arg2IR)}
 }
 
 object MorphirExpect {
