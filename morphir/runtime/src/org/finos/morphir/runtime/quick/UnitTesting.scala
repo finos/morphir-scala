@@ -91,7 +91,7 @@ object Expect {
       thunk match {
         case lambda @ RT.LambdaFunction(
               ApplyChain(Reference(_, baseFQN), args),
-              Pattern.UnitPattern(T_),
+              Pattern.UnitPattern(T),
               context
             ) => None
         case _ => None
@@ -300,7 +300,7 @@ object UnitTesting {
     def thunkify2(toReplace: String, replaceWith: String)(value: TypedValue): Option[TypedValue] = {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match {
-        case Apply(_, Apply(_, Reference(_, FQString(found)), arg1IR), arg2IR) if found == toReplace =>
+        case ApplyChain(Reference(_, FQString(found)), List(arg1IR, arg2IR)) if found == toReplace =>
           val res = Some(
             V.applyInferType(
               expectationType,
