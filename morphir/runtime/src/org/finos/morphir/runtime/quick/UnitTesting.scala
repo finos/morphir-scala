@@ -50,10 +50,10 @@ object Expect {
     }
     (ir1, ir2, rt1, rt2)
   }
-  //TODO: Instead of using introspectedFunction, it should be possible to convert
-  //Expect.foo(x, y) => () => Expect.foo(x, y)
-  //(What we're doing is Expect.foo(x, y) => Expect.fooIntrospected(() => (x, y))
-  //That can then be found in the code, and run thru Loop.handleApply
+  // TODO: Instead of using introspectedFunction, it should be possible to convert
+  // Expect.foo(x, y) => () => Expect.foo(x, y)
+  // (What we're doing is Expect.foo(x, y) => Expect.fooIntrospected(() => (x, y))
+  // That can then be found in the code, and run thru Loop.handleApply
   case class IntrospectibleFunction(
       arity: Int,
       baseName: String,
@@ -68,7 +68,7 @@ object Expect {
         case Apply(_, Apply(_, Reference(_, funcName), arg1IR), arg2IR)
             if funcName == baseFQN =>
           V.applyInferType(
-            expectationType,
+            UnitTesting.expectationType,
             V.reference(introspectedFQN),
             V.lambda(
               T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
@@ -108,9 +108,8 @@ object Expect {
   val allExpects = List(
     equal
   )
-  def introspectAll(value : TypedValue) : Option[TypedValue] = {
-    all.foldLeft(None){case (acc, next) => acc.orElse(next.thunkify(value))}
-  }
+  def introspectAll(value: TypedValue): Option[TypedValue] =
+    all.foldLeft(None) { case (acc, next) => acc.orElse(next.thunkify(value)) }
 }
 
 object UnitTestingSDK {
