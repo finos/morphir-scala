@@ -86,19 +86,18 @@ object Expect {
           )
         case _ => None
       }
-    def grokThunk(thunk : RTValue) : Option[] = {//Option of what? = {
+    def grokThunk(thunk: RTValue): Option[SingleResult] = { // Option of what? = {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       thunk match {
         case lambda @ RT.LambdaFunction(
-          ApplyChain(Reference(_, baseFQN), args),
-          Pattern.UnitPattern(T_),
-          context,
-        )
+              ApplyChain(Reference(_, baseFQN), args),
+              Pattern.UnitPattern(T_),
+              context
+            ) => None
+        case _ => None
       }
     }
   }
-
-
 
   val equalBase = DynamicNativeFunction2("equal") {
     (_: NativeContext) => (a: RTValue, b: RTValue) =>
