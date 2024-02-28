@@ -23,7 +23,8 @@ import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.runtime.RTValue.Comparable
 import org.finos.morphir.util.PrintRTValue
 import org.finos.morphir.ir.printing.PrintIR
-import org.finos.morphir.runtime.Extractors.*
+import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
+import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 
 import org.finos.morphir.runtime.internal._
 
@@ -85,7 +86,19 @@ object Expect {
           )
         case _ => None
       }
+    def grokThunk(thunk : RTValue) : Option[] = {//Option of what? = {
+      import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
+      thunk match {
+        case lambda @ RT.LambdaFunction(
+          ApplyChain(Reference(_, baseFQN), args),
+          Pattern.UnitPattern(T_),
+          context,
+        )
+      }
+    }
   }
+
+
 
   val equalBase = DynamicNativeFunction2("equal") {
     (_: NativeContext) => (a: RTValue, b: RTValue) =>
