@@ -14,6 +14,11 @@ otherSimpleTest = test "Simple Test" <|
     \_ -> 
         Expect.equal 1 3
 
+demoTest : Test
+demoTest = test "Test for demonstration" <|
+    \_ -> 
+        Expect.equal 4 (5 - 6)
+
 lessSimpleTest : Test
 lessSimpleTest = describe "Pretend this is a suite of Tests" <|
     [ test "Nested Simple Test" <|
@@ -43,6 +48,14 @@ greaterThanTests = concat [
 
     test "Passing GT Test " <|
         \_ -> Expect.greaterThan 3 (addOne 1)
+]
+
+recordOrderTests : Test
+recordOrderTests = concat [
+    test "Record Order Correct" <|
+        \_ -> Expect.equal {a = 1, b = 2} {b = 2, a = 1},
+    test "Record Order Incorrect" <|
+        \_ -> Expect.equal {a = 2, b = 2} {b = 2, a = 1}
 ]
 
 failingLessThan : Test
