@@ -54,7 +54,7 @@ object Expect {
   case class IntrospectibleFunction(
       arity: Int,
       baseName: String,
-      basicFunction: SDKValue,
+      basicFunction: DynamicNativeFunction,
       introspectedFunction: DynamicNativeFunction
   ) {
     def thunkify(value: TypedValue): Option[TypedValue] =
@@ -63,11 +63,12 @@ object Expect {
       }
   }
 
-  val equalBase: SDKValue =
-    SDKValue.SDKNativeFunction.fun2 { (a: RTValue, b: RTValue) =>
+  val equalBase: DynamicNativeFunction2 = DynamicNativeFunction2("equal") {
+    (_: NativeContext) => (a: RTValue, b: RTValue) =>
       val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
       expectation(result)
-    }
+  }
+
   val equalIntrospected = DynamicNativeFunction1("equalIntrospected") {
     (ctx: NativeContext) => (f: RTValue.Function) =>
       {
@@ -88,6 +89,7 @@ object Expect {
   )
 
   val allExpects = List(
+    equal
   )
 }
 
