@@ -50,14 +50,18 @@ object Expect {
     }
     (ir1, ir2, rt1, rt2)
   }
-
+  //TODO: Instead of using introspectedFunction, it should be possible to convert
+  //Expect.foo(x, y) => () => Expect.foo(x, y)
+  //(What we're doing is Expect.foo(x, y) => Expect.fooIntrospected(() => (x, y))
+  //That can then be found in the code, and run thru Loop.handleApply
   case class IntrospectibleFunction(
       arity: Int,
       baseName: String,
       basicFunction: DynamicNativeFunction,
       introspectedFunction: DynamicNativeFunction
   ) {
-    def baseFQN = FQName.fromString(runtime.testPrefix + baseName)
+    def baseFQN         = FQName.fromString(UnitTesting.testPrefix + baseName)
+    def introspectedFQN = FQName.fromString(UnitTesting.testPrefix + baseName + "Introspected")
     def thunkify(value: TypedValue): Option[TypedValue] =
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match {
@@ -65,7 +69,7 @@ object Expect {
             if funcName == baseFQN =>
           V.applyInferType(
             expectationType,
-            V.reference(FQName.fromString(replaceWith)),
+            V.reference(introspectedFQN),
             V.lambda(
               T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
               Pattern.UnitPattern(T.unit),
@@ -104,6 +108,9 @@ object Expect {
   val allExpects = List(
     equal
   )
+  def introspectAll(value : TypedValue) : Option[TypedValue] = {
+    all.foldLeft(None){case (acc, next) => acc.orElse(next.thunkify(value))}
+  }
 }
 
 object UnitTestingSDK {
@@ -182,12 +189,6 @@ object UnitTestingSDK {
 
 object UnitTesting {
 
-  // What should this method's types be?
-  // Could return test failures on the error channel and have a unit return type
-  // Or could return a test report, with no error (barring evaluation failures?)
-  // Need to return a summary even on success, so not that first one
-  // Seems messy to return a summary either way
-  // Also, I would say "Testing" didn't fail even if the tests did
   def testType        = T.reference("Morphir.UnitTest", "Test", "Test")
   def testResultType  = T.reference("Morphir.UnitTest", "Test", "TestResult")
   def expectationType = T.reference("Morphir.UnitTest", "Expect", "Expectation")
