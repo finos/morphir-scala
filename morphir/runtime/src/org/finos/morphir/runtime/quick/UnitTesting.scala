@@ -57,8 +57,12 @@ object Expect {
       basicFunction: DynamicNativeFunction,
       introspectedFunction: DynamicNativeFunction
   ) {
+    def baseFQN = FQName.fromString(runtime.testPrefix + baseName)
     def thunkify(value: TypedValue): Option[TypedValue] =
+      import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match {
+        case Apply(_, Apply(_, Reference(_, funcName), arg1IR), arg2IR)
+            if funcName == baseFQN =>
         case _ => None
       }
   }
@@ -178,13 +182,15 @@ object UnitTesting {
   def testType        = T.reference("Morphir.UnitTest", "Test", "Test")
   def testResultType  = T.reference("Morphir.UnitTest", "Test", "TestResult")
   def expectationType = T.reference("Morphir.UnitTest", "Expect", "Expectation")
+  def testPrefix      = "Morphir.UnitTest:Test:"
+  def expectPrefix    = "Morphir.UnitTest:Expect:"
   private[runtime] def runTests(
       globals: GlobalDefs,
       dists: Distributions
   ): RTAction[MorphirEnv, Nothing, TestSummary] =
     RTAction.environmentWithPure[MorphirSdk] { env =>
       val testNames = collectTests(globals, dists)
-      val testIRs  = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
+      val testIRs   = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
       if (testIRs.isEmpty) {
         val emptySummary = TestSummary("No tests run", true)
         RTAction.succeed(emptySummary)
@@ -262,9 +268,7 @@ object UnitTesting {
 
     // We need to evaluate to resolve user code, but we want the values of the actual calls to Expect functions
     // So we replace such calls with thunks; after evaluation, the IR will be intact for inspection
-    // def delay(value : TypedValue) : TypedValue = {
-    //   Lambda(Pattern.UnitPattern, value)
-    // }
+
     def thunkify2(toReplace: String, replaceWith: String)(value: TypedValue): Option[TypedValue] = {
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match {
