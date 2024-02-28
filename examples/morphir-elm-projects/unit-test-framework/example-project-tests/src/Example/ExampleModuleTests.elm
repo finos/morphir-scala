@@ -57,7 +57,7 @@ failingTest2 = test "Failing Test 2" <|
 
 slow : Int
 slow = 
-    List.foldl (\elem acc -> acc + elem) 0 (List.range 0 1000)
+    List.foldl (\elem acc -> acc + elem) 0 (List.range 0 10000)
 
 slowTest : Test
 slowTest = only <| test "This may run slow" <|
