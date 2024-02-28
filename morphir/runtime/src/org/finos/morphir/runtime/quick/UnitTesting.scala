@@ -63,6 +63,15 @@ object Expect {
       value match {
         case Apply(_, Apply(_, Reference(_, funcName), arg1IR), arg2IR)
             if funcName == baseFQN =>
+          V.applyInferType(
+            expectationType,
+            V.reference(FQName.fromString(replaceWith)),
+            V.lambda(
+              T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
+              Pattern.UnitPattern(T.unit),
+              V.tuple(T.tuple(List(arg1IR.attributes, arg2IR.attributes)), arg1IR, arg2IR)
+            )
+          )
         case _ => None
       }
   }
