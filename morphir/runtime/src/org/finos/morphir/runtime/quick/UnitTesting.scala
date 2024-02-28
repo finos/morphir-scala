@@ -63,7 +63,7 @@ object Expect {
       }
   }
 
-  val equalBase: DynamicNativeFunction2 = DynamicNativeFunction2("equal") {
+  val equalBase = DynamicNativeFunction2("equal") {
     (_: NativeContext) => (a: RTValue, b: RTValue) =>
       val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
       expectation(result)
