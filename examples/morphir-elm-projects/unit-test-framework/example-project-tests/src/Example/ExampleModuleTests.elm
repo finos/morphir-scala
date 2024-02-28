@@ -55,6 +55,16 @@ failingTest2 = test "Failing Test 2" <|
     \_ -> 
         Expect.equal 1 (addOne 2)
 
+slow : Int
+slow = 
+    List.foldl (\elem acc -> acc + elem) 0 (List.range 0 1000)
+
+slowTest : Test
+slowTest = only <| test "This may run slow" <|
+    \_ ->
+        Expect.greaterThan slow 1
+
+
 failingTestSuite : Test
 failingTestSuite = describe "Failing Test Suite" <|
     [ test "Failing Test" <|
