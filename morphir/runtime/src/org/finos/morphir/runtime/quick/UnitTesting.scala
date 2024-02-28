@@ -29,15 +29,6 @@ import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 import org.finos.morphir.runtime.internal._
 
 object Expect {
-  def expectation(result: RTValue) =
-    RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
-  val passed =
-    val result = RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Pass"), List())
-    expectation(result)
-  def failed(msg: String) =
-    val result =
-      RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(Primitive.String(msg)))
-    expectation(result)
 
   def extract(f: RTValue.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
     val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
