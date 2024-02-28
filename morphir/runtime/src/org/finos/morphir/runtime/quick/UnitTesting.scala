@@ -184,15 +184,15 @@ object UnitTesting {
   ): RTAction[MorphirEnv, Nothing, TestSummary] =
     RTAction.environmentWithPure[MorphirSdk] { env =>
       val testNames = collectTests(globals, dists)
-      val testVals  = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
-      if (testVals.isEmpty) {
+      val testIRs  = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
+      if (testIRs.isEmpty) {
         val emptySummary = TestSummary("No tests run", true)
         RTAction.succeed(emptySummary)
       } else {
-        val testSuiteIR = if (testVals.length == 1)
-          testVals.head
+        val testSuiteIR = if (testIRs.length == 1)
+          testIRs.head
         else {
-          val testList = V.list(sdk.List.listType(testType), testVals: _*)
+          val testList = V.list(sdk.List.listType(testType), testIRs: _*)
           V.applyInferType(
             testType,
             V.constructor(FQName.fromString("Morphir.UnitTest:Test:Concat")),
