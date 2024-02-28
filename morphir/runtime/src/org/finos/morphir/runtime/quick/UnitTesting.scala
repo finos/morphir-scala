@@ -55,7 +55,7 @@ object Expect {
   // Expect.foo(x, y) => () => Expect.foo(x, y)
   // (What we're doing is Expect.foo(x, y) => Expect.fooIntrospected(() => (x, y))
   // That can then be found in the code, and run thru Loop.handleApply
-  case class IntrospectibleFunction(
+  abstract class IntrospectibleFunction(
       arity: Int,
       baseName: String,
       basicFunction: DynamicNativeFunction,
