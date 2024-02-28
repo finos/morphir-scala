@@ -65,17 +65,22 @@ object Expect {
     def thunkify(value: TypedValue): Option[TypedValue] =
       import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
       value match {
-        case Apply(_, Apply(_, Reference(_, funcName), arg1IR), arg2IR)
+        case app @ Apply(_, Apply(_, Reference(_, funcName), arg1IR), arg2IR)
             if funcName == baseFQN =>
           Some(
-            V.applyInferType(
-              UnitTesting.expectationType,
-              V.reference(introspectedFQN),
-              V.lambda(
-                T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
-                Pattern.UnitPattern(T.unit),
-                V.tuple(T.tuple(List(arg1IR.attributes, arg2IR.attributes)), arg1IR, arg2IR)
-              )
+            // V.applyInferType(
+            //   UnitTesting.expectationType,
+            //   V.reference(introspectedFQN),
+            //   V.lambda(
+            //     T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
+            //     Pattern.UnitPattern(T.unit),
+            //     V.tuple(T.tuple(List(arg1IR.attributes, arg2IR.attributes)), arg1IR, arg2IR)
+            //   )
+            // )
+            V.lambda(
+              T.function(T.unit, UnitTesting.expectationType),
+              Pattern.UnitPattern(T.unit),
+              app
             )
           )
         case _ => None
