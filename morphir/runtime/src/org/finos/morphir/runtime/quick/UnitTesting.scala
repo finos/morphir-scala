@@ -91,7 +91,7 @@ object Expect {
       thunk match {
         case lambda @ RT.LambdaFunction(
               ApplyChain(Reference(_, baseFQN), args),
-              Pattern.UnitPattern(T),
+              Pattern.UnitPattern(_),
               context
             ) => None
         case _ => None
