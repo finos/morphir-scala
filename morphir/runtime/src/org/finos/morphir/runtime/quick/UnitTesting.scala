@@ -111,7 +111,7 @@ object Expect {
     equal
   )
   def introspectAll(value: TypedValue): Option[TypedValue] =
-    allExpects.foldLeft(None) { case (acc, next) => acc.orElse(next.thunkify(value)) }
+    allExpects.foldLeft(None: Option[TypedValue]) { case (acc, next) => acc.orElse(next.thunkify(value)) }
 }
 
 object UnitTestingSDK {
