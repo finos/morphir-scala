@@ -187,42 +187,24 @@ object UnitTesting {
   ): TestSummary = {
 
     
+    //We rewrite the IR to replace expect calls (in common patterns) with thunky versions
     def thunkifyTransform =
       transform(MorphirExpect.convertToThunks)
-    // val thunkifiedTests   = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
-
-    //Change the IR to replace expect calls (in common patterns) with thunky versions
     val newGlobalDefs = globals.definitions.map {
       case (fqn, SDKValue.SDKValueDefinition(dfn)) =>
         (fqn, SDKValue.SDKValueDefinition(dfn.copy(body = thunkifyTransform(dfn.body))))
       case other => other
     }
+    //... and we replace the elm Expect functions with more privileged native ones
     val newGlobals = globals
       .copy(definitions = newGlobalDefs)
       .withBindingsFrom(MorphirExpect.newDefs)
-
 
     //Make IRs for our tests
     val testIRs: List[(FQName, TypedValue)] =
       testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
 
-    // Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
-    // So that means that any call that looks like
-    // (Apply(F, Arg) : Expect) //No wait this includes the wrong stuffs
-    // Okay if the users are that determined to break test reporting they can, it won't change passes to fails
-    // So that's
-    // Match once and in this order:
-    // Apply(Apply(Ref(OneOfThem), Arg1), Arg2) -> Apply(Ref(OneOfThem), () -> (Arg1, Arg2)) //Okay?
-    // Apply(Reference(OneOfThem), Arg) -> Apply(Reference(OneOfThem), () -> Arg)
-    // Tho TBH, which even need this?
-    // Let's just say all of them. It's nice to be able to SEE the IR.
-
-    // Transformation is hard tho - revisit that idea with greater patience.
-
-    // Then There is...
-    // Apply(Apply(Ref(OnFail)), Apply(...))
-    // So I think OnFail we DO replace but we DO NOT convert, right? That sounds good.
-
+    //Then we try to run them, and catch any errors that we encounter
     val testRTValues: List[(FQName, Either[Throwable, RTValue])] = testIRs
       .map { case (fqn, ir) =>
         try
@@ -232,7 +214,7 @@ object UnitTesting {
         }
       }
 
-    // Try to convert these to actual Test trees
+    //We make this into a test tree, using FQNs for things not already described
     val testTree: MorphirUnitTest =
       TestTree.Concat(
         testRTValues.map {
@@ -244,15 +226,19 @@ object UnitTesting {
               case other                     => TestTree.Describe(fqn.toString, List(other))
             }
         }
-      ).resolveOnly
+      ).resolveOnly //"Only" requires special handling, so do that here
 
+
+    //Recursive walk of tree 
     def getExpects(test: MorphirUnitTest): MorphirUnitTest =
       import TestTree.*
       test match {
         case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
         case Concat(tests)         => Concat(tests.map(getExpects))
         case Only(inner)           => Only(getExpects(inner))
-        case SingleTest(desc, thunk) => SingleTest(
+        case SingleTest(desc, thunk) => 
+          try{
+            SingleTest(
             desc,
             Loop(newGlobals)
               .handleApplyResult(
@@ -261,6 +247,10 @@ object UnitTesting {
                 RTValue.Unit()
               )
           )
+          }
+          catch{
+            case e = Error(e)
+          }
         case other => other // err, todo, skip lack anything to resolve
       }
 
