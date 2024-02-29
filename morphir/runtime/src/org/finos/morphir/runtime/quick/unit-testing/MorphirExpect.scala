@@ -47,34 +47,34 @@ sealed trait MorphirExpect {
   }
   def processThunk(args: List[TypedValue], context: CallStackFrame): SingleTestResult
 }
-sealed trait MorphirExpect1[T <: RT, R <: RT] extends MorphirExpect {
+sealed trait MorphirExpect1 extends MorphirExpect {
   final def arity = 1
-  def dynamicFunction: DynamicNativeFunction1[T, R]
+  def dynamicFunction: DynamicNativeFunction1[RT, RT]
   def sdkFunction = NativeFunctionAdapter.Fun1(
     dynamicFunction
   ).realize
 }
-sealed trait MorphirExpect2[T1 <: RT, T2 <: RT, R <: RT] extends MorphirExpect {
+sealed trait MorphirExpect2 extends MorphirExpect {
   final def arity = 2
-  def dynamicFunction: DynamicNativeFunction2[T1, T2, R]
+  def dynamicFunction: DynamicNativeFunction2[RT, RT, RT]
   def sdkFunction = NativeFunctionAdapter.Fun2(
     dynamicFunction
   ).realize
 }
 
 object MorphirExpect {
-  def expectation(result: RTValue) =
-    RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
+  def expectation(result: RT) =
+    RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
   val passed =
-    val result = RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Pass"), List())
+    val result = RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Pass"), List())
     expectation(result)
   def failed(msg: String) =
     val result =
-      RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(Primitive.String(msg)))
+      RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(Primitive.String(msg)))
     expectation(result)
 
-  def extract(f: RTValue.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
-    val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
+  def extract(f: RT.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
+    val out = ctx.evaluator.handleApplyResult(T.unit, f, RT.Unit())
     val (ir1, ir2) = f match {
       case RT.LambdaFunction(Value.Tuple(_, elements), _, _) => (elements(0), elements(1))
       case other                                             => throw OtherError("This should not be!", other)
@@ -89,7 +89,7 @@ object MorphirExpect {
   case object Equals extends MorphirExpect {
     def arity = 2
     def equalBase = DynamicNativeFunction2("equal") {
-      (_: NativeContext) => (a: RTValue, b: RTValue) =>
+      (_: NativeContext) => (a: RT, b: RT) =>
         val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
         expectation(result)
     }
