@@ -1,5 +1,5 @@
 package org.finos.morphir.runtime
-trait SingleTestResult {}
+sealed trait SingleTestResult {}
 object SingleTestResult {
   case object Passed             extends SingleTestResult
   case class Failed(msg: String) extends SingleTestResult
