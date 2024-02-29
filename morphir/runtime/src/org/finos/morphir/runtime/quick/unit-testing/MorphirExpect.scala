@@ -1,4 +1,4 @@
-package org.finos.morphir.runtime
+package org.finos.morphir.runtime.quick
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.util.PrintRTValue
