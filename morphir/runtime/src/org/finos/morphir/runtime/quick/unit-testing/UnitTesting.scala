@@ -263,7 +263,7 @@ object UnitTesting {
             ) =>
           rt match {
             case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Pass"), List()) =>
-              SingleTest(desc, Passed())
+              SingleTest(desc, Passed)
             case RT.ConstructorResult(
                   FQStringTitleCase("Morphir.UnitTest:Expect:Fail"),
                   List(Primitive.String(msg))

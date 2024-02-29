@@ -35,7 +35,7 @@ object TestTree {
     tree match {
       case Describe(desc, tests) =>
         "\t".repeat(depth) + desc + "\n" + tests.map(toReportHelper(_, depth + 1)).mkString("\n")
-      case SingleTest(desc, SingleTestResult.Passed())    => "\t".repeat(depth) + s"$desc: PASSED"
+      case SingleTest(desc, SingleTestResult.Passed)      => "\t".repeat(depth) + s"$desc: PASSED"
       case SingleTest(desc, SingleTestResult.Failed(msg)) => "\t".repeat(depth) + s"$desc: FAILED ($msg)"
       case Concat(tests)                                  => tests.map(toReportHelper(_, depth)).mkString("\n")
       case Todo(excuse)                                   => "\t".repeat(depth) + s"$excuse: TODO"
