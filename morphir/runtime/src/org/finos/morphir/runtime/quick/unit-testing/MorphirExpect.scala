@@ -3,10 +3,16 @@ import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.util.PrintRTValue
 import org.finos.morphir.ir.printing.PrintIR
+import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
-import org.finos.morphir.runtime.internal.{DynamicNativeFunction, DynamicNativeFunction1, DynamicNativeFunction2, NativeFunctionAdapter)
+import org.finos.morphir.runtime.internal.{
+  DynamicNativeFunction,
+  DynamicNativeFunction1,
+  DynamicNativeFunction2,
+  NativeFunctionAdapter
+}
 import org.finos.morphir.runtime.SDKValue.SDKValueDefinition
 import org.finos.morphir.runtime.internal.CallStackFrame
 
@@ -23,7 +29,8 @@ sealed trait MorphirExpect {
   def dynamicFunction: DynamicNativeFunction // Trait is a pain, dunno what to tell you on that one
   def sdkFunction: SDKValueDefinition
   def thunkify: PartialFunction[TypedValue, TypedValue] = {
-    case (app @ ApplyChain(Reference(fqn), _)) => V.lambda(
+    case (app @ ApplyChain(Reference(_, fqn), args)) if args.lenth == arity =>
+      V.lambda(
         T.function(T.unit, UnitTesting.expectationType),
         Pattern.UnitPattern(T.unit),
         app
@@ -36,7 +43,7 @@ sealed trait MorphirExpect {
           context
         ) => processThunk(args, context)
   }
-  def processThunk(args : List[TypedValue], context : CallStackFrame) : SingleTestResult
+  def processThunk(args: List[TypedValue], context: CallStackFrame): SingleTestResult
 }
 sealed trait MorphirExpect1 {
   def arity = 1
