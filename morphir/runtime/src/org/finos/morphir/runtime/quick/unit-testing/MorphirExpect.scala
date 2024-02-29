@@ -11,6 +11,7 @@ import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
 import org.finos.morphir.runtime.internal.{
+  CallStackFrame,
   NativeContext,
   DynamicNativeFunction,
   DynamicNativeFunction1,
@@ -18,7 +19,6 @@ import org.finos.morphir.runtime.internal.{
   NativeFunctionAdapter
 }
 import org.finos.morphir.runtime.SDKValue
-import org.finos.morphir.runtime.internal.CallStackFrame
 
 //Case objects for each?
 //For each of these we need:
@@ -40,14 +40,14 @@ sealed trait MorphirExpect {
         app
       )
   }
-  def readThunk: PartialFunction[RT, SingleTestResult] = {
+  def readThunk(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = {
     case RT.LambdaFunction(
           ApplyChain(Reference(_, fqn), args),
           Pattern.UnitPattern(_),
           context
-        ) => processThunk(args, context)
+        ) => processThunk(globals, args, context)
   }
-  def processThunk(args: List[TypedValue], context: CallStackFrame): SingleTestResult
+  def processThunk(globals: GlobalDefs, args: List[TypedValue], context: CallStackFrame): SingleTestResult
 }
 
 object MorphirExpect {
@@ -75,11 +75,16 @@ object MorphirExpect {
   }
 
   case object Equals extends MorphirExpect {
-    def arity = 2
-    def equalBase = DynamicNativeFunction2("equal") {
+    def arity    = 2
+    def funcName = "equal"
+    def dynamicFunction = DynamicNativeFunction2("equal") {
       (_: NativeContext) => (a: RT, b: RT) =>
         val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
         expectation(result)
+    }
+    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
+    def processThunk(globals: GlobalDefs, args: List[TypedValue], context: CallStackFrame): SingleTestResult = {
+      // We need globals here
     }
   }
 
