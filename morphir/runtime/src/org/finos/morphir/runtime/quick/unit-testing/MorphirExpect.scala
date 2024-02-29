@@ -54,8 +54,8 @@ sealed trait MorphirExpect1[T <: RT, R <: RT] extends MorphirExpect {
     dynamicFunction
   ).realize
 }
-sealed trait MorphirExpect2[T <: RT, T2 <: RT, R <: RT] extends MorphirExpect {
-  def arity = 2
+sealed trait MorphirExpect2[T1 <: RT, T2 <: RT, R <: RT] extends MorphirExpect {
+  final def arity = 2
   def dynamicFunction: DynamicNativeFunction2[T1, T2, R]
   def sdkFunction = NativeFunctionAdapter.Fun2(
     dynamicFunction
