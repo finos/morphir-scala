@@ -6,8 +6,9 @@ import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.Pattern
 import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
-import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
+import org.finos.morphir.runtime.SingleTestResult
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
+import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
 import org.finos.morphir.runtime.internal.{
   DynamicNativeFunction,
   DynamicNativeFunction1,
@@ -37,7 +38,7 @@ sealed trait MorphirExpect {
         app
       )
   }
-  def readThunk: PartialFunction[RTValue, SingleTestResult] = {
+  def readThunk: PartialFunction[RT, SingleTestResult] = {
     case RT.LambdaFunction(
           ApplyChain(Reference(_, fqn), args),
           Pattern.UnitPattern(_),
