@@ -47,7 +47,11 @@ sealed trait MorphirExpect {
           context
         ) => processThunk(
         args.map {
-          arg => MorphirExpect.TransparentArg(arg, Loop(globals).loop(arg, Store(context)))
+          try {
+            arg => MorphirExpect.TransparentArg(arg, Loop(globals).loop(arg, Store(context)))
+          } catch {
+            case e => Error(e)
+          }
         }
       )
   }
