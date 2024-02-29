@@ -16,10 +16,10 @@ import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
 sealed trait MorphirExpect {
   def arity: Int
   def funcName: String
-  def baseFQN         = FQName.fromString(UnitTesting.expectPrefix + funcName)
+  def fqn         = FQName.fromString(UnitTesting.expectPrefix + funcName)
   def sdkFunction : DynamicNativeFunction //Trait is a pain, dunno what to tell you on that one
   def thunkify : PartialFunction[TypedValue, TypedValue] = {
-      case (app @ ApplyChain(Reference(baseFQN), _)) => V.lambda(
+      case (app @ ApplyChain(Reference(fqn), _)) => V.lambda(
               T.function(T.unit, UnitTesting.expectationType),
               Pattern.UnitPattern(T.unit),
               app
@@ -27,7 +27,7 @@ sealed trait MorphirExpect {
   }
   def readThunk : PartialFunction[RTValue, SingleTestResult] = {
     case lambda @ RT.LambdaFunction(
-              ApplyChain(Reference(_, baseFQN), args),
+              ApplyChain(Reference(_, fqn), args),
               Pattern.UnitPattern(_),
               context
             ) => SingleTestResult....
@@ -68,8 +68,13 @@ sealed trait MorphirExpect {
 
     def allExpects : List[MorphirExpect] = List()
     def convertToThunks : PartialFunction[TypedValue, TypedValue] =
-      allExpects.foldLeft(PartialFunction.empty)
+      allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (f.thunkify))
     def readThunk : PartialFunction[RTValue, SingleTestResult] //It's on the caller to handle cases that don't belong to any of these
+    def newDefs : GlobalDefs = {
+      GlobalDefs(
+        allExpects.map(expect => (expect.fq))
+      )
+    }
   }
 
   //What do these represent?

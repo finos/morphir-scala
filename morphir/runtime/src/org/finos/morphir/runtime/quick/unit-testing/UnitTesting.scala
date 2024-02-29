@@ -188,20 +188,26 @@ object UnitTesting {
       testNames: List[FQName]
   ): TestSummary = {
 
-    val testIRs: List[(FQName, TypedValue)] =
-      testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
-
     
     def thunkifyTransform =
       transform(MorphirExpect.convertToThunks)
     // val thunkifiedTests   = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
+    //Change the IR to replace expect calls (in common patterns) with thunky versions
     val newGlobalDefs = globals.definitions.map {
       case (fqn, SDKValue.SDKValueDefinition(dfn)) =>
         (fqn, SDKValue.SDKValueDefinition(dfn.copy(body = thunkifyTransform(dfn.body))))
       case other => other
     }
-    val newGlobals = globals.copy(definitions = newGlobalDefs).withBindingsFrom(UnitTestingSDK.newDefs)
+    val newGlobals = globals
+      .copy(definitions = newGlobalDefs)
+      .withBindingsFrom(MorphirExpect.newDefs)
+
+
+    //Make IRs for our tests
+    val testIRs: List[(FQName, TypedValue)] =
+      testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
+
     // Wait we want to RUN the expect function, but w/ a superprivileged SDK function replacing the test function
     // So that means that any call that looks like
     // (Apply(F, Arg) : Expect) //No wait this includes the wrong stuffs
