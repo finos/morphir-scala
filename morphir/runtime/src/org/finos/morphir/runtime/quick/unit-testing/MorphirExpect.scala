@@ -47,15 +47,15 @@ sealed trait MorphirExpect {
           context
         ) => processThunk(globals, context, args)
   }
-  private def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult
+  def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult
 }
 
 object MorphirExpect {
   trait MorphirExpect2 extends MorphirExpect {
     final def arity = 2;
-    private def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult =
+    def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult =
       processThunk(globals, context, args(0), args(1))
-    private def processThunk(
+    def processThunk(
         globals: GlobalDefs,
         context: CallStackFrame,
         arg1IR: TypedValue,
@@ -64,9 +64,9 @@ object MorphirExpect {
   }
   trait MorphirExpect1 extends MorphirExpect {
     final def arity = 1;
-    private def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult =
+    def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult =
       processThunk(globals, context, args(0))
-    private def processThunk(globals: GlobalDefs, context: CallStackFrame, argIR: TypedValue): SingleTestResult
+    def processThunk(globals: GlobalDefs, context: CallStackFrame, argIR: TypedValue): SingleTestResult
   }
 
   def expectation(result: RT) =
