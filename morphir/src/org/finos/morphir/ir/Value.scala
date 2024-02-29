@@ -55,7 +55,7 @@ object Value extends internal.PatternModule {
   final val Specification: ValueSpecification.type = ValueSpecification
 
   final type RawValue        = Value.RawValue
-  final type TypedValue      = Value.TypedValue
+  final type TypedValue      = Value.TypedValuex
   final type USpecification  = ValueSpecification[scala.Unit]
   final type TypedDefinition = ValueDefinition[scala.Unit, Type.UType]
 
@@ -567,5 +567,47 @@ object Value extends internal.PatternModule {
 
     def withBody[VA](body: => Value[TA, VA]): Definition[TA, VA] =
       Definition(inputTypes = Chunk.empty, outputType = returnType, body = body)
+  }
+  object TypedValue {
+    def transform(partial: PartialFunction[TypedValue])(value: TypedValue): TypedValue = {
+      def recurse = transform(partial)
+      if (partial.isDefinedAt(value)) partial(value)
+      else
+        value match {
+          case Apply(va, function, argument) => Apply(va, recurse(function), recurse(argument))
+          case Destructure(va, pattern, valueToDestruct, inValue) =>
+            Destructure(va, pattern, recurse(valueToDestruct), recurse(inValue))
+          case Field(va, recordValue, name) => Field(va, recurse(recordValue), name)
+          case IfThenElse(va, condition, thenValue, elseValue) =>
+            IfThenElse(va, recurse(condition), recurse(thenValue), recurse(elseValue))
+          case Lambda(va, pattern, body) => Lambda(va, pattern, recurse(body))
+          case LetDefinition(va, name, definition, inValue) =>
+            LetDefinition(va, name, definition.copy(body = recurse(definition.body)), recurse(inValue))
+          case LetRecursion(va, definitions, inValue) => LetRecursion(
+              va,
+              definitions.map((name, dfn) => (name, dfn.copy(body = recurse(dfn.body)))),
+              recurse(inValue)
+            )
+          case List(va, elements) => List(va, elements.map(recurse))
+          case PatternMatch(va, value, cases) =>
+            PatternMatch(va, recurse(value), cases.map((casePattern, caseValue) => (casePattern, recurse(caseValue))))
+          case Record(va, fields) => Record(
+              va,
+              fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
+            )
+          case Tuple(va, elements) => Tuple(
+              va,
+              elements.map(recurse)
+            )
+          case UpdateRecord(va, valueToUpdate, fields) => UpdateRecord(
+              va,
+              recurse(valueToUpdate),
+              fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
+            )
+          case noNestedIR => noNestedIR
+
+        }
+    }
+
   }
 }
