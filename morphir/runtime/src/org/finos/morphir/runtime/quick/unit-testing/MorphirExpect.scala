@@ -45,15 +45,17 @@ sealed trait MorphirExpect {
           ApplyChain(Reference(_, fqn), args),
           Pattern.UnitPattern(_),
           context
-        ) => processThunk(
-        args.map {
-          try {
+        ) =>
+      try
+        processThunk(
+          args.map {
             arg => MorphirExpect.TransparentArg(arg, Loop(globals).loop(arg, Store(context)))
-          } catch {
-            case e => Error(e)
           }
-        }
-      )
+        )
+      catch {
+        case e => Error(e)
+      }
+
   }
   def processThunk(
       args: List[MorphirExpect.TransparentArg]
