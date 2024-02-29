@@ -12,7 +12,6 @@ import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
 import org.finos.morphir.runtime.internal.{
-  Store,
   CallStackFrame,
   NativeContext,
   DynamicNativeFunction,
@@ -116,8 +115,8 @@ object MorphirExpect {
       if (arg1.value == arg2.value) Passed
       else Failed(s"""
       ${arg1.ir} == ${arg2.ir} FAILED
-      ${arg1.ir} = ${rt1.valueString}
-      ${arg2.ir} = ${rt2.valueString}
+      ${arg1.ir} = ${arg1.valueString}
+      ${arg2.ir} = ${arg2.valueString}
       """)
   }
 
