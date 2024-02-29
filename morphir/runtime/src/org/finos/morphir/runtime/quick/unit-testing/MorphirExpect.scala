@@ -104,7 +104,7 @@ object MorphirExpect {
     (ir1, ir2, rt1, rt2)
   }
 
-  case object Equals extends MorphirExpect2 {
+  case object Equal extends MorphirExpect2 {
     def funcName = "equal"
     def dynamicFunction = DynamicNativeFunction2("equal") {
       (_: NativeContext) => (a: RT, b: RT) =>
@@ -124,7 +124,9 @@ object MorphirExpect {
       """)
   }
 
-  def allExpects: List[MorphirExpect] = List()
+  def allExpects: List[MorphirExpect] = List(
+    Equal
+  )
   def thunkifyAll: PartialFunction[TypedValue, TypedValue] =
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))
   def readThunkAll(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] =
