@@ -15,7 +15,7 @@ import org.finos.morphir.runtime.internal.{
   DynamicNativeFunction2,
   NativeFunctionAdapter
 }
-import org.finos.morphir.runtime.SDKValue.SDKValueDefinition
+import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.runtime.internal.CallStackFrame
 
 //Case objects for each?
@@ -29,7 +29,7 @@ sealed trait MorphirExpect {
   def funcName: String
   def fqn = FQName.fromString(UnitTesting.expectPrefix + funcName)
   def dynamicFunction: DynamicNativeFunction
-  def sdkFunction: SDKValue//would be nice to 
+  def sdkFunction: SDKValue // would be nice to
   def thunkify: PartialFunction[TypedValue, TypedValue] = {
     case (app @ ApplyChain(Reference(_, fqn), args)) if (args.length == arity) =>
       V.lambda(
