@@ -28,8 +28,8 @@ sealed trait MorphirExpect {
   def arity: Int
   def funcName: String
   def fqn = FQName.fromString(UnitTesting.expectPrefix + funcName)
-  def dynamicFunction: DynamicNativeFunction // Trait is a pain, dunno what to tell you on that one
-  def sdkFunction: SDKValueDefinition
+  def dynamicFunction: DynamicNativeFunction
+  def sdkFunction: SDKValue//would be nice to 
   def thunkify: PartialFunction[TypedValue, TypedValue] = {
     case (app @ ApplyChain(Reference(_, fqn), args)) if (args.length == arity) =>
       V.lambda(
@@ -46,20 +46,6 @@ sealed trait MorphirExpect {
         ) => processThunk(args, context)
   }
   def processThunk(args: List[TypedValue], context: CallStackFrame): SingleTestResult
-}
-sealed trait MorphirExpect1 extends MorphirExpect {
-  final def arity = 1
-  def dynamicFunction: DynamicNativeFunction1[RT, RT]
-  def sdkFunction = NativeFunctionAdapter.Fun1(
-    dynamicFunction
-  ).realize
-}
-sealed trait MorphirExpect2 extends MorphirExpect {
-  final def arity = 2
-  def dynamicFunction: DynamicNativeFunction2[RT, RT, RT]
-  def sdkFunction = NativeFunctionAdapter.Fun2(
-    dynamicFunction
-  ).realize
 }
 
 object MorphirExpect {
