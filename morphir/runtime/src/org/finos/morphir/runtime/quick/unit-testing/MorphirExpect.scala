@@ -45,12 +45,19 @@ sealed trait MorphirExpect {
           ApplyChain(Reference(_, fqn), args),
           Pattern.UnitPattern(_),
           context
-        ) => processThunk(globals, args, context)
+        ) => processThunk(globals, context, args)
   }
-  def processThunk(globals: GlobalDefs, args: List[TypedValue], context: CallStackFrame): SingleTestResult
+  private def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult
 }
 
 object MorphirExpect {
+  trait MorphirExpect2 extends MorphirExpect {
+    private def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult =
+      processThunk(globals, context, args(0), args(1))
+    private def processThunk(globals: GlobalDefs, context: CallStackFrame, arg1 : TypedValue, arg2 : TypedValue)
+  }
+  trait MorphirExpect1 extends MorphirExpect
+
   def expectation(result: RT) =
     RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
   val passed =
@@ -83,9 +90,7 @@ object MorphirExpect {
         expectation(result)
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
-    def processThunk(globals: GlobalDefs, args: List[TypedValue], context: CallStackFrame): SingleTestResult = {
-      // We need globals here
-    }
+    def processThunk(globals: GlobalDefs, args: List[TypedValue], context: CallStackFrame): SingleTestResult = {}
   }
 
   def allExpects: List[MorphirExpect] = List()
