@@ -7,7 +7,6 @@ import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.Pattern
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.runtime.SingleTestResult
-import org.finos.morphir.runtime.SingleTestResult.*
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
@@ -53,7 +52,7 @@ sealed trait MorphirExpect {
           }
         )
       catch {
-        case e => Error(e)
+        case e => SingleTestResult.Err(e)
       }
 
   }
@@ -117,8 +116,8 @@ object MorphirExpect {
         arg1: TransparentArg,
         arg2: TransparentArg
     ): SingleTestResult =
-      if (arg1.value == arg2.value) Passed
-      else Failed(s"""
+      if (arg1.value == arg2.value) SingleTestResult.Passed
+      else SingleTestResult.Failed(s"""
       ${arg1.ir} == ${arg2.ir} FAILED
       ${arg1.ir} = ${arg1.valueString}
       ${arg2.ir} = ${arg2.valueString}
