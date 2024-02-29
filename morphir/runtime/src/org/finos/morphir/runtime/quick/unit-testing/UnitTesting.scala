@@ -12,7 +12,6 @@ import org.finos.morphir.ir.Value.*
 import org.finos.morphir.ir.Value.Pattern
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.MorphirRuntimeError.*
-import org.finos.morphir.runtime.internal.NativeFunctionAdapter
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.runtime.TestTree
