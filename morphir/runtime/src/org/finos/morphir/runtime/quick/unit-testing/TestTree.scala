@@ -37,8 +37,8 @@ object TestTree {
         "\t".repeat(depth) + desc + "\n" + tests.map(toReportHelper(_, depth + 1)).mkString("\n")
       case SingleTest(desc, SingleTestResult.Passed())    => "\t".repeat(depth) + s"$desc: PASSED"
       case SingleTest(desc, SingleTestResult.Failed(msg)) => "\t".repeat(depth) + s"$desc: FAILED ($msg)"
-      case Concat(tests)                              => tests.map(toReportHelper(_, depth)).mkString("\n")
-      case Todo(excuse)                               => "\t".repeat(depth) + s"$excuse: TODO"
+      case Concat(tests)                                  => tests.map(toReportHelper(_, depth)).mkString("\n")
+      case Todo(excuse)                                   => "\t".repeat(depth) + s"$excuse: TODO"
       case Skip(desc, count) =>
         "\t".repeat(depth) + desc + ": SKIPPED" + (if (count == 1) "" else s"($count tests skipped)")
       case Error(desc, err) => "\t".repeat(depth) + s"$desc: ERROR: \n $err"
