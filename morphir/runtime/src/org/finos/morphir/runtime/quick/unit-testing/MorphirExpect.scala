@@ -52,11 +52,22 @@ sealed trait MorphirExpect {
 
 object MorphirExpect {
   trait MorphirExpect2 extends MorphirExpect {
+    final def arity = 2;
     private def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult =
       processThunk(globals, context, args(0), args(1))
-    private def processThunk(globals: GlobalDefs, context: CallStackFrame, arg1 : TypedValue, arg2 : TypedValue)
+    private def processThunk(
+        globals: GlobalDefs,
+        context: CallStackFrame,
+        arg1IR: TypedValue,
+        arg2IR: TypedValue
+    ): SingleTestResult
   }
-  trait MorphirExpect1 extends MorphirExpect
+  trait MorphirExpect1 extends MorphirExpect {
+    final def arity = 1;
+    private def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult =
+      processThunk(globals, context, args(0))
+    private def processThunk(globals: GlobalDefs, context: CallStackFrame, argIR: TypedValue): SingleTestResult
+  }
 
   def expectation(result: RT) =
     RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
@@ -81,7 +92,7 @@ object MorphirExpect {
     (ir1, ir2, rt1, rt2)
   }
 
-  case object Equals extends MorphirExpect {
+  case object Equals extends MorphirExpect2 {
     def arity    = 2
     def funcName = "equal"
     def dynamicFunction = DynamicNativeFunction2("equal") {
@@ -90,7 +101,21 @@ object MorphirExpect {
         expectation(result)
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
-    def processThunk(globals: GlobalDefs, args: List[TypedValue], context: CallStackFrame): SingleTestResult = {}
+    def processThunk(
+        globals: GlobalDefs,
+        context: CallStackFrame,
+        arg1IR: TypedValue,
+        arg2IR: TypedValue
+    ): SingleTestResult = {
+      rt1 = Loop(newGlobals).loop(arg1, Store.empty)
+      rt2 = Loop(newGlobals).loop(ir, Store.empty)
+      if (rt1 == rt2) Passed
+      else Failed(s"""
+      $arg1IR == $arg2IR FAILED
+      $arg1IR = ${PrintRTValue(rt1).plainText}
+      $ar21IR = ${PrintRTValue(rt2).plainText}
+      """)
+    }
   }
 
   def allExpects: List[MorphirExpect] = List()
