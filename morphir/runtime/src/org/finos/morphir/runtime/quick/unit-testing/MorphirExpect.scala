@@ -10,6 +10,7 @@ import org.finos.morphir.runtime.SingleTestResult
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
 import org.finos.morphir.runtime.internal.{
+  NativeContext,
   DynamicNativeFunction,
   DynamicNativeFunction1,
   DynamicNativeFunction2,
@@ -56,7 +57,7 @@ object MorphirExpect {
     expectation(result)
   def failed(msg: String) =
     val result =
-      RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(Primitive.String(msg)))
+      RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(RT.Primitive.String(msg)))
     expectation(result)
 
   def extract(f: RT.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
