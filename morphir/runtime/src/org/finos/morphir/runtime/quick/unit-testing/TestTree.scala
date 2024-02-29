@@ -1,6 +1,7 @@
 package org.finos.morphir.runtime.quick
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.runtime.Extractors.*
+import org.finos.morphir.runtime.SingleTestResult
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 
 //Possibly this tpe should be polymorphic on the contents
@@ -8,13 +9,7 @@ sealed trait TestTree[+T] {
   def resolveOnly = TestTree.resolveOnly(this)
 }
 type MorphirUnitTest = TestTree[RT]
-type TestResult      = TestTree[SingleResult]
-
-sealed trait SingleResult
-object SingleResult {
-  case class Passed()            extends SingleResult
-  case class Failed(msg: String) extends SingleResult
-}
+type TestResult      = TestTree[SingleTestResult]
 
 //This object goes thru a series of transformations:
 // 1: A List[FQName, IR] of all Test-typed constructs

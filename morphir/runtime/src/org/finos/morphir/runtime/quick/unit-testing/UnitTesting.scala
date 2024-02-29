@@ -185,7 +185,7 @@ object UnitTesting {
 
     // We rewrite the IR to replace expect calls (in common patterns) with thunky versions
     def thunkifyTransform =
-      TypedValue.transform(MorphirExpect.convertToThunks)
+      TypedValue.transform(MorphirExpect.thunkifyAll)
     val newGlobalDefs = globals.definitions.map {
       case (fqn, SDKValue.SDKValueDefinition(dfn)) =>
         (fqn, SDKValue.SDKValueDefinition(dfn.copy(body = thunkifyTransform(dfn.body))))
@@ -244,7 +244,7 @@ object UnitTesting {
                 )
             )
           catch {
-            case e => Error(e)
+            case e => Error(desc, e)
           }
         case other => other // err, todo, skip lack anything to resolve
       }
