@@ -7,6 +7,7 @@ import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
 import org.finos.morphir.runtime.internal.NativeFunctionAdapter
+import org.finos.morphir.runtime.SDKValue.SDKValueDefinition
 
 //Case objects for each?
 //For each of these we need:
@@ -19,6 +20,7 @@ sealed trait MorphirExpect {
   def funcName: String
   def fqn         = FQName.fromString(UnitTesting.expectPrefix + funcName)
   def dynamicFunction : DynamicNativeFunction //Trait is a pain, dunno what to tell you on that one
+  def sdkFunction : SDKValueDefinition
   def thunkify : PartialFunction[TypedValue, TypedValue] = {
       case (app @ ApplyChain(Reference(fqn), _)) => V.lambda(
               T.function(T.unit, UnitTesting.expectationType),
@@ -37,6 +39,13 @@ sealed trait MorphirExpect {
     def arity = 1
     def dynamicFunction : DynamicNativeFunction1
     def sdkFunction = NativeFunctionAdapter.Fun1(
+        dynamicFunction
+      ).realize
+  }
+  sealed trait MorphirExpect2{
+    def arity = 2
+    def dynamicFunction : DynamicNativeFunction2
+    def sdkFunction = NativeFunctionAdapter.Fun2(
         dynamicFunction
       ).realize
   }
@@ -80,7 +89,8 @@ sealed trait MorphirExpect {
     def readThunk : PartialFunction[RTValue, SingleTestResult] //It's on the caller to handle cases that don't belong to any of these
     def newDefs : GlobalDefs = {
       GlobalDefs(
-        allExpects.map(expect => (expect.fqn -> expect.sdk))
+        allExpects.map(expect => (expect.fqn -> expect.sdkFunction)),
+        Map()
       )
     }
   }
