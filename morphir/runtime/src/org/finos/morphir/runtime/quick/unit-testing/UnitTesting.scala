@@ -11,7 +11,7 @@ import org.finos.morphir.ir.Value.*
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.ir.sdk
-import org.finos.morphir.runtime.SDKValue
+import org.finos.morphir.runtime.SDKValue.SDKValueDefinition
 import org.finos.morphir.runtime.quick.TestTree
 import org.finos.morphir.runtime.SingleTestResult
 import org.finos.morphir.runtime.RTValue.Primitive
