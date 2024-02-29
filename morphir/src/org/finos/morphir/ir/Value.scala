@@ -569,7 +569,7 @@ object Value extends internal.PatternModule {
       Definition(inputTypes = Chunk.empty, outputType = returnType, body = body)
   }
   object TypedValue {
-    def transform(partial: PartialFunction[TypedValue])(value: TypedValue): TypedValue = {
+    def transform(partial: PartialFunction[TypedValue, TypedValue])(value: TypedValue): TypedValue = {
       def recurse = transform(partial)
       if (partial.isDefinedAt(value)) partial(value)
       else
