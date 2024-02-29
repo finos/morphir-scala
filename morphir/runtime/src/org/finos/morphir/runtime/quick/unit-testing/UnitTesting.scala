@@ -8,7 +8,6 @@ import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.services.sdk.MorphirSdk
 import org.finos.morphir.runtime.TestSummary
 import org.finos.morphir.ir.Value.*
-import org.finos.morphir.ir.Value.Pattern
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.ir.sdk

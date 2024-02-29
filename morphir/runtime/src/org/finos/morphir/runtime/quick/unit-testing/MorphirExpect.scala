@@ -4,9 +4,10 @@ import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.util.PrintRTValue
 import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.ir.{Type => T, Value => V}
+import org.finos.morphir.ir.Value.Pattern
+import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
 import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
-import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
 import org.finos.morphir.runtime.internal.{
   DynamicNativeFunction,
   DynamicNativeFunction1,
@@ -29,7 +30,7 @@ sealed trait MorphirExpect {
   def dynamicFunction: DynamicNativeFunction // Trait is a pain, dunno what to tell you on that one
   def sdkFunction: SDKValueDefinition
   def thunkify: PartialFunction[TypedValue, TypedValue] = {
-    case (app @ ApplyChain(Reference(_, fqn), args)) if args.lenth == arity =>
+    case (app @ ApplyChain(Reference(_, fqn), args)) if (args.length == arity) =>
       V.lambda(
         T.function(T.unit, UnitTesting.expectationType),
         Pattern.UnitPattern(T.unit),
