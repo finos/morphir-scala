@@ -47,14 +47,14 @@ sealed trait MorphirExpect {
   }
   def processThunk(args: List[TypedValue], context: CallStackFrame): SingleTestResult
 }
-sealed trait MorphirExpect1[T, R] extends MorphirExpect {
+sealed trait MorphirExpect1[T <: RTValue, R <: RTValue] extends MorphirExpect {
   def arity = 1
   def dynamicFunction: DynamicNativeFunction1[T, R]
   def sdkFunction = NativeFunctionAdapter.Fun1(
     dynamicFunction
   ).realize
 }
-sealed trait MorphirExpect2[T1, T2, R] extends MorphirExpect {
+sealed trait MorphirExpect2[T <: RTValue, T2 <: RTValue, R <: RTValue] extends MorphirExpect {
   def arity = 2
   def dynamicFunction: DynamicNativeFunction2[T1, T2, R]
   def sdkFunction = NativeFunctionAdapter.Fun2(
