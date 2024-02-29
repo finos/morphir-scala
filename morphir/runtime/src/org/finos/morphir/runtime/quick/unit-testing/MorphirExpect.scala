@@ -84,12 +84,10 @@ object MorphirExpect {
   }
 
   def allExpects: List[MorphirExpect] = List()
-  def convertToThunks: PartialFunction[TypedValue, TypedValue] =
-    allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (f.thunkify))
-  def readThunk: PartialFunction[
-    RTValue,
-    SingleTestResult
-  ] // It's on the caller to handle cases that don't belong to any of these
+  def thunkifyAll: PartialFunction[TypedValue, TypedValue] =
+    allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))
+  def readThunkAll: PartialFunction[RT, SingleTestResult] =
+    allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.readThunk))
   def newDefs: GlobalDefs =
     GlobalDefs(
       allExpects.map(expect => (expect.fqn -> expect.sdkFunction)),
