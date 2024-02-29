@@ -12,6 +12,7 @@ import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
 import org.finos.morphir.runtime.internal.{
+  Store,
   CallStackFrame,
   NativeContext,
   DynamicNativeFunction,
@@ -47,7 +48,7 @@ sealed trait MorphirExpect {
           context
         ) => processThunk(
         args.map {
-          arg => MorphirExpect.TransparentArg(arg, Loop(globals).loop(arg, context))
+          arg => MorphirExpect.TransparentArg(arg, Loop(globals).loop(arg, Store(context)))
         }
       )
   }
