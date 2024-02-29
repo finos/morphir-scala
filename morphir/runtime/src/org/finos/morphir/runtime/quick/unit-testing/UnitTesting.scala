@@ -26,79 +26,79 @@ import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 
 import org.finos.morphir.runtime.internal._
 
-object UnitTestingSDK {
-  def expectation(result: RTValue) =
-    RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
-  val passed = RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Pass"), List())
-  def failed(msg: String) =
-    RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(Primitive.String(msg)))
+// object UnitTestingSDK {
+//   def expectation(result: RTValue) =
+//     RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
+//   val passed = RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Pass"), List())
+//   def failed(msg: String) =
+//     RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(Primitive.String(msg)))
 
-  val equal: SDKValue =
-    SDKValue.SDKNativeFunction.fun2 { (a: RTValue, b: RTValue) =>
-      val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
-      expectation(result)
-    }
+//   val equal: SDKValue =
+//     SDKValue.SDKNativeFunction.fun2 { (a: RTValue, b: RTValue) =>
+//       val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
+//       expectation(result)
+//     }
 
-  val greaterThan = DynamicNativeFunction2("greaterThan") {
-    (_: NativeContext) => (a: Comparable, b: Comparable) =>
-      val res = if (RTValue.Comparable.compareOrThrow(a, b) > 0)
-        passed
-      else failed(s"${PrintRTValue(a).plainText} was not greater than ${PrintRTValue(b).plainText}")
-      expectation(res)
-  }
+//   val greaterThan = DynamicNativeFunction2("greaterThan") {
+//     (_: NativeContext) => (a: Comparable, b: Comparable) =>
+//       val res = if (RTValue.Comparable.compareOrThrow(a, b) > 0)
+//         passed
+//       else failed(s"${PrintRTValue(a).plainText} was not greater than ${PrintRTValue(b).plainText}")
+//       expectation(res)
+//   }
 
-  def extract(f: RTValue.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
-    val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
-    val (ir1, ir2) = f match {
-      case RT.LambdaFunction(Value.Tuple(_, elements), _, _) => (elements(0), elements(1))
-      case other                                             => throw OtherError("This should not be!", other)
-    }
-    val (rt1, rt2) = out match {
-      case RT.Tuple(List(rt1_, rt2_)) => (rt1_, rt2_)
-      case other                      => throw new Exception("This should not be!")
-    }
-    (ir1, ir2, rt1, rt2)
-  }
-  val equalIntrospected = DynamicNativeFunction1("equalIntrospected") {
-    (ctx: NativeContext) => (f: RTValue.Function) =>
-      {
-        val (ir1, ir2, rt1, rt2)   = extract(f, ctx)
-        val (irString1, irString2) = (ir1.toString, ir2.toString)
-        val (rtString1, rtString2) = (PrintRTValue(rt1).plainText, PrintRTValue(rt2).plainText)
-        val res = if (rt1 != rt2)
-          failed(s"($irString1 => $rtString1) != ($irString2 => $rtString2")
-        else passed
-        expectation(res)
-      }
-  }
-  val notEqualIntrospected = DynamicNativeFunction1("notEqualIntrospected") {
-    (ctx: NativeContext) => (f: RTValue.Function) =>
-      {
-        val (ir1, ir2, rt1, rt2)   = extract(f, ctx)
-        val (rtString1, rtString2) = (PrintRTValue(rt1).plainText, PrintRTValue(rt2).plainText)
-        val res = if (rt1 == rt2)
-          failed(s"($ir1 => $rtString1) == ($ir2 => $rtString2")
-        else passed
-        expectation(res)
-      }
-  }
+//   def extract(f: RTValue.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
+//     val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
+//     val (ir1, ir2) = f match {
+//       case RT.LambdaFunction(Value.Tuple(_, elements), _, _) => (elements(0), elements(1))
+//       case other                                             => throw OtherError("This should not be!", other)
+//     }
+//     val (rt1, rt2) = out match {
+//       case RT.Tuple(List(rt1_, rt2_)) => (rt1_, rt2_)
+//       case other                      => throw new Exception("This should not be!")
+//     }
+//     (ir1, ir2, rt1, rt2)
+//   }
+//   val equalIntrospected = DynamicNativeFunction1("equalIntrospected") {
+//     (ctx: NativeContext) => (f: RTValue.Function) =>
+//       {
+//         val (ir1, ir2, rt1, rt2)   = extract(f, ctx)
+//         val (irString1, irString2) = (ir1.toString, ir2.toString)
+//         val (rtString1, rtString2) = (PrintRTValue(rt1).plainText, PrintRTValue(rt2).plainText)
+//         val res = if (rt1 != rt2)
+//           failed(s"($irString1 => $rtString1) != ($irString2 => $rtString2")
+//         else passed
+//         expectation(res)
+//       }
+//   }
+//   val notEqualIntrospected = DynamicNativeFunction1("notEqualIntrospected") {
+//     (ctx: NativeContext) => (f: RTValue.Function) =>
+//       {
+//         val (ir1, ir2, rt1, rt2)   = extract(f, ctx)
+//         val (rtString1, rtString2) = (PrintRTValue(rt1).plainText, PrintRTValue(rt2).plainText)
+//         val res = if (rt1 == rt2)
+//           failed(s"($ir1 => $rtString1) == ($ir2 => $rtString2")
+//         else passed
+//         expectation(res)
+//       }
+//   }
 
-  val newDefs = GlobalDefs(
-    Map(
-      FQName.fromString("Morphir.UnitTest:Expect:greaterThan") -> NativeFunctionAdapter.Fun2(
-        greaterThan
-      ).realize,
-      FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected") -> NativeFunctionAdapter.Fun1(
-        equalIntrospected
-      ).realize,
-      FQName.fromString("Morphir.UnitTest:Expect:notEqualIntrospected") -> NativeFunctionAdapter.Fun1(
-        notEqualIntrospected
-      ).realize
-    ),
-    Map()
-  )
+//   val newDefs = GlobalDefs(
+//     Map(
+//       FQName.fromString("Morphir.UnitTest:Expect:greaterThan") -> NativeFunctionAdapter.Fun2(
+//         greaterThan
+//       ).realize,
+//       FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected") -> NativeFunctionAdapter.Fun1(
+//         equalIntrospected
+//       ).realize,
+//       FQName.fromString("Morphir.UnitTest:Expect:notEqualIntrospected") -> NativeFunctionAdapter.Fun1(
+//         notEqualIntrospected
+//       ).realize
+//     ),
+//     Map()
+//   )
 
-}
+// }
 
 object UnitTesting {
 
@@ -188,7 +188,7 @@ object UnitTesting {
 
     // We rewrite the IR to replace expect calls (in common patterns) with thunky versions
     def thunkifyTransform =
-      transform(MorphirExpect.convertToThunks)
+      TypedValue.transform(MorphirExpect.convertToThunks)
     val newGlobalDefs = globals.definitions.map {
       case (fqn, SDKValue.SDKValueDefinition(dfn)) =>
         (fqn, SDKValue.SDKValueDefinition(dfn.copy(body = thunkifyTransform(dfn.body))))
@@ -253,7 +253,6 @@ object UnitTesting {
       }
     val withExpects = getExpects(testTree)
 
-    
     def processExpects(tree: MorphirUnitTest): TestTree[SingleResult] = {
       import TestTree.*
       import SingleResult.*
@@ -284,72 +283,18 @@ object UnitTesting {
 
     val treeWithResults = processExpects(withExpects)
     TestSummary(TestTree.toReport(treeWithResults), false)
-
-    // Each test leaf contains a thunk
-    // We evaluate the thunks, we get back:
-    // Expects or
-    // More Thunks (Re-evaluate once)
-    // () -> Expect.Something(args)
-    // () -> (() -> Expect.somethig(args)) //WAIT WRONG THAT'S A MIX OF TYPE AND VALUE
-    // Deconvert first? Or what?
-    // Umm... wait did we think this thru?
-    // We have a number of
-    // Replace all Apply(Apply(Expect.whatever)) w/ Lambda (() -> That Nonsense)
-    // Evaluate again; failures caught as errors, not thrown
-    //
   }
 
   private[runtime] def collectTests(
       globals: GlobalDefs,
       dists: Distributions
   ): List[FQName] = {
-    val tests = globals.definitions.collect { // TODO: Improved test recognition (aliasing of return type, cleanup, ???)
+    val tests = globals.definitions.collect {
       case (fqn -> SDKValueDefinition(definition: TypedDefinition))
           if (definition.inputTypes.isEmpty && definition.outputType == testType) =>
         fqn
     }.toList
     tests
-  }
-
-  private[runtime] def transform(partial: TypedValue => Option[TypedValue])(value: TypedValue): TypedValue = {
-    import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
-    def recurse = transform(partial)
-    partial(value) match {
-      case Some(newValue) => newValue
-      case None => value match {
-          case Apply(va, function, argument) => Apply(va, recurse(function), recurse(argument))
-          case Destructure(va, pattern, valueToDestruct, inValue) =>
-            Destructure(va, pattern, recurse(valueToDestruct), recurse(inValue))
-          case Field(va, recordValue, name) => Field(va, recurse(recordValue), name)
-          case IfThenElse(va, condition, thenValue, elseValue) =>
-            IfThenElse(va, recurse(condition), recurse(thenValue), recurse(elseValue))
-          case Lambda(va, pattern, body) => Lambda(va, pattern, recurse(body))
-          case LetDefinition(va, name, definition, inValue) =>
-            LetDefinition(va, name, definition.copy(body = recurse(definition.body)), recurse(inValue))
-          case LetRecursion(va, definitions, inValue) => LetRecursion(
-              va,
-              definitions.map((name, dfn) => (name, dfn.copy(body = recurse(dfn.body)))),
-              recurse(inValue)
-            )
-          case ListValue(va, elements) => ListValue(va, elements.map(recurse))
-          case PatternMatch(va, value, cases) =>
-            PatternMatch(va, recurse(value), cases.map((casePattern, caseValue) => (casePattern, recurse(caseValue))))
-          case Record(va, fields) => Record(
-              va,
-              fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
-            )
-          case Tuple(va, elements) => Tuple(
-              va,
-              elements.map(recurse)
-            )
-          case UpdateRecord(va, valueToUpdate, fields) => UpdateRecord(
-              va,
-              recurse(valueToUpdate),
-              fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
-            )
-          case noNestedIR => noNestedIR
-        }
-    }
   }
 
 }
