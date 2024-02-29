@@ -186,8 +186,7 @@ object UnitTesting {
       testNames: List[FQName]
   ): TestSummary = {
 
-    
-    //We rewrite the IR to replace expect calls (in common patterns) with thunky versions
+    // We rewrite the IR to replace expect calls (in common patterns) with thunky versions
     def thunkifyTransform =
       transform(MorphirExpect.convertToThunks)
     val newGlobalDefs = globals.definitions.map {
@@ -195,16 +194,16 @@ object UnitTesting {
         (fqn, SDKValue.SDKValueDefinition(dfn.copy(body = thunkifyTransform(dfn.body))))
       case other => other
     }
-    //... and we replace the elm Expect functions with more privileged native ones
+    // ... and we replace the elm Expect functions with more privileged native ones
     val newGlobals = globals
       .copy(definitions = newGlobalDefs)
       .withBindingsFrom(MorphirExpect.newDefs)
 
-    //Make IRs for our tests
+    // Make IRs for our tests
     val testIRs: List[(FQName, TypedValue)] =
       testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
 
-    //Then we try to run them, and catch any errors that we encounter
+    // Then we try to run them, and catch any errors that we encounter
     val testRTValues: List[(FQName, Either[Throwable, RTValue])] = testIRs
       .map { case (fqn, ir) =>
         try
@@ -214,7 +213,7 @@ object UnitTesting {
         }
       }
 
-    //We make this into a test tree, using FQNs for things not already described
+    // We make this into a test tree, using FQNs for things not already described
     val testTree: MorphirUnitTest =
       TestTree.Concat(
         testRTValues.map {
@@ -226,43 +225,42 @@ object UnitTesting {
               case other                     => TestTree.Describe(fqn.toString, List(other))
             }
         }
-      ).resolveOnly //"Only" requires special handling, so do that here
+      ).resolveOnly // "Only" requires special handling, so do that here
 
-
-    //Recursive walk of tree 
+    // Recursive walk of tree, running the user-defined thunks in the "test" code
+    // TODO: Move this to TestTree
     def getExpects(test: MorphirUnitTest): MorphirUnitTest =
       import TestTree.*
       test match {
         case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
         case Concat(tests)         => Concat(tests.map(getExpects))
         case Only(inner)           => Only(getExpects(inner))
-        case SingleTest(desc, thunk) => 
-          try{
+        case SingleTest(desc, thunk) =>
+          try
             SingleTest(
-            desc,
-            Loop(newGlobals)
-              .handleApplyResult(
-                testType,
-                thunk,
-                RTValue.Unit()
-              )
-          )
-          }
-          catch{
-            case e = Error(e)
+              desc,
+              Loop(newGlobals)
+                .handleApplyResult(
+                  testType,
+                  thunk,
+                  RTValue.Unit()
+                )
+            )
+          catch {
+            case e => Error(e)
           }
         case other => other // err, todo, skip lack anything to resolve
       }
-
     val withExpects = getExpects(testTree)
 
-    def formatExpects(tree: MorphirUnitTest): TestTree[SingleResult] = {
+    
+    def processExpects(tree: MorphirUnitTest): TestTree[SingleResult] = {
       import TestTree.*
       import SingleResult.*
       tree match {
-        case Describe(desc, tests) => Describe(desc, tests.map(formatExpects))
-        case Concat(tests)         => Concat(tests.map(formatExpects))
-        case Only(inner)           => Only(formatExpects(inner))
+        case Describe(desc, tests) => Describe(desc, tests.map(processExpects))
+        case Concat(tests)         => Concat(tests.map(processExpects))
+        case Only(inner)           => Only(processExpects(inner))
         case SingleTest(
               desc,
               RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Expectation"), List(rt))
@@ -284,7 +282,7 @@ object UnitTesting {
       }
     }
 
-    val treeWithResults = formatExpects(withExpects)
+    val treeWithResults = processExpects(withExpects)
     TestSummary(TestTree.toReport(treeWithResults), false)
 
     // Each test leaf contains a thunk
