@@ -100,7 +100,6 @@ object MorphirExpect {
   }
 
   case object Equals extends MorphirExpect2 {
-    def arity    = 2
     def funcName = "equal"
     def dynamicFunction = DynamicNativeFunction2("equal") {
       (_: NativeContext) => (a: RT, b: RT) =>
