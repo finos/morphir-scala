@@ -13,7 +13,7 @@ import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.runtime.quick.TestTree
-import org.finos.morphir.runtime.SingleResult
+import org.finos.morphir.runtime.SingleTestResult
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.util.PrintRTValue
@@ -250,9 +250,9 @@ object UnitTesting {
       }
     val withExpects = getExpects(testTree)
 
-    def processExpects(tree: MorphirUnitTest): TestTree[SingleResult] = {
+    def processExpects(tree: MorphirUnitTest): TestTree[SingleTestResult] = {
       import TestTree.*
-      import SingleResult.*
+      import SingleTestResult.*
       tree match {
         case Describe(desc, tests) => Describe(desc, tests.map(processExpects))
         case Concat(tests)         => Concat(tests.map(processExpects))
