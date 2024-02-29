@@ -28,100 +28,6 @@ import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 
 import org.finos.morphir.runtime.internal._
 
-object Expect {
-
-  def extract(f: RTValue.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
-    val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
-    val (ir1, ir2) = f match {
-      case RT.LambdaFunction(Value.Tuple(_, elements), _, _) => (elements(0), elements(1))
-      case other                                             => throw OtherError("This should not be!", other)
-    }
-    val (rt1, rt2) = out match {
-      case RT.Tuple(List(rt1_, rt2_)) => (rt1_, rt2_)
-      case other                      => throw new Exception("This should not be!")
-    }
-    (ir1, ir2, rt1, rt2)
-  }
-  // TODO: Instead of using introspectedFunction, it should be possible to convert
-  // Expect.foo(x, y) => () => Expect.foo(x, y)
-  // (What we're doing is Expect.foo(x, y) => Expect.fooIntrospected(() => (x, y))
-  // That can then be found in the code, and run thru Loop.handleApply
-  abstract class IntrospectibleFunction(
-      arity: Int,
-      baseName: String,
-      basicFunction: DynamicNativeFunction,
-      introspectedFunction: DynamicNativeFunction
-  ) {
-    def baseFQN         = FQName.fromString(UnitTesting.testPrefix + baseName)
-    def introspectedFQN = FQName.fromString(UnitTesting.testPrefix + baseName + "Introspected")
-    def thunkify(value: TypedValue): Option[TypedValue] =
-      import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
-      value match {
-        case app @ Apply(_, Apply(_, Reference(_, funcName), arg1IR), arg2IR)
-            if funcName == baseFQN =>
-          Some(
-            // V.applyInferType(
-            //   UnitTesting.expectationType,
-            //   V.reference(introspectedFQN),
-            //   V.lambda(
-            //     T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
-            //     Pattern.UnitPattern(T.unit),
-            //     V.tuple(T.tuple(List(arg1IR.attributes, arg2IR.attributes)), arg1IR, arg2IR)
-            //   )
-            // )
-            V.lambda(
-              T.function(T.unit, UnitTesting.expectationType),
-              Pattern.UnitPattern(T.unit),
-              app
-            )
-          )
-        case _ => None
-      }
-    def grokThunk(thunk: RTValue): Option[SingleResult] = { // Option of what? = {
-      import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
-      thunk match {
-        case lambda @ RT.LambdaFunction(
-              ApplyChain(Reference(_, baseFQN), args),
-              Pattern.UnitPattern(_),
-              context
-            ) => None
-        case _ => None
-      }
-    }
-  }
-
-  val equalBase = DynamicNativeFunction2("equal") {
-    (_: NativeContext) => (a: RTValue, b: RTValue) =>
-      val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
-      expectation(result)
-  }
-
-  val equalIntrospected = DynamicNativeFunction1("equalIntrospected") {
-    (ctx: NativeContext) => (f: RTValue.Function) =>
-      {
-        val (ir1, ir2, rt1, rt2)   = extract(f, ctx)
-        val (rtString1, rtString2) = (PrintRTValue(rt1).plainText, PrintRTValue(rt2).plainText)
-        val res = if (rt1 != rt2)
-          failed(s"($ir1 => $rtString1) != ($ir2 => $rtString2")
-        else passed
-        expectation(res)
-      }
-  }
-
-  val equal = IntrospectibleFunction(
-    2,
-    "equal",
-    equalBase,
-    equalIntrospected
-  )
-
-  val allExpects = List(
-    equal
-  )
-  def introspectAll(value: TypedValue): Option[TypedValue] =
-    allExpects.foldLeft(None: Option[TypedValue]) { case (acc, next) => acc.orElse(next.thunkify(value)) }
-}
-
 object UnitTestingSDK {
   def expectation(result: RTValue) =
     RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
@@ -203,6 +109,7 @@ object UnitTesting {
   def expectationType = T.reference("Morphir.UnitTest", "Expect", "Expectation")
   def testPrefix      = "Morphir.UnitTest:Test:"
   def expectPrefix    = "Morphir.UnitTest:Expect:"
+
   private[runtime] def runTests(
       globals: GlobalDefs,
       dists: Distributions
@@ -280,41 +187,13 @@ object UnitTesting {
       dists: Distributions,
       testNames: List[FQName]
   ): TestSummary = {
-    // Let's just eat the whole horse
-    // val testSuiteRT = Loop(globals).loop(testSuiteIR, Store.empty)
+
     val testIRs: List[(FQName, TypedValue)] =
       testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
 
-    // We need to evaluate to resolve user code, but we want the values of the actual calls to Expect functions
-    // So we replace such calls with thunks; after evaluation, the IR will be intact for inspection
-
-    def thunkify2(toReplace: String, replaceWith: String)(value: TypedValue): Option[TypedValue] = {
-      import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
-      value match {
-        case ApplyChain(Reference(_, FQString(found)), List(arg1IR, arg2IR)) if found == toReplace =>
-          val res = Some(
-            V.applyInferType(
-              expectationType,
-              V.reference(FQName.fromString(replaceWith)),
-              V.lambda(
-                T.function(T.unit, T.tuple(List(arg1IR.attributes, arg2IR.attributes))),
-                Pattern.UnitPattern(T.unit),
-                V.tuple(T.tuple(List(arg1IR.attributes, arg2IR.attributes)), arg1IR, arg2IR)
-              )
-            )
-          )
-          res
-        // None
-        case _ => None
-      }
-    }
-    def introspect(value: TypedValue): Option[TypedValue] =
-      thunkify2("Morphir.UnitTest:Expect:equal", "Morphir.UnitTest:Expect:equalIntrospected")(value)
-        .orElse(
-          thunkify2("Morphir.UnitTest:Expect:notEqual", "Morphir.UnitTest:Expect:notEqualIntrospected")(value)
-        )
+    
     def thunkifyTransform =
-      transform(introspect)
+      transform(MorphirExpect.convertToThunks)
     // val thunkifiedTests   = testIRs.map { case (fqn, value) => (fqn -> thunkifyTransform(value)) }
 
     val newGlobalDefs = globals.definitions.map {

@@ -67,7 +67,8 @@ sealed trait MorphirExpect {
     }
 
     def allExpects : List[MorphirExpect] = List()
-    def convertToThunks : PartialFunction[TypedValue, TypedValue]
+    def convertToThunks : PartialFunction[TypedValue, TypedValue] =
+      allExpects.foldLeft(PartialFunction.empty)
     def readThunk : PartialFunction[RTValue, SingleTestResult] //It's on the caller to handle cases that don't belong to any of these
   }
 
