@@ -46,7 +46,7 @@ sealed trait MorphirExpect {
           context
         ) => processThunk(
         args.map {
-          arg => MorphirExpect.TransparentArg(arg, Loop.loop(globals, context))
+          arg => MorphirExpect.TransparentArg(arg, Loop(globals).loop(context))
         }
       )
   }
@@ -56,7 +56,7 @@ sealed trait MorphirExpect {
 }
 
 object MorphirExpect {
-  case class TransparentArg(ir: TypedValue, value: RTValue) {
+  case class TransparentArg(ir: TypedValue, value: RT) {
     def valueString: String = PrintRTValue(value).plainText
   }
   trait MorphirExpect2 extends MorphirExpect {
@@ -110,16 +110,13 @@ object MorphirExpect {
     def processThunk(
         arg1: TransparentArg,
         arg2: TransparentArg
-    ): SingleTestResult = {
-      rt1 = Loop(newGlobals).loop(arg1, Store.empty)
-      rt2 = Loop(newGlobals).loop(ir, Store.empty)
-      if (rt1 == rt2) Passed
+    ): SingleTestResult =
+      if (arg1.value == arg2.value) Passed
       else Failed(s"""
-      $arg1IR == $arg2IR FAILED
-      $arg1IR = ${PrintRTValue(rt1).plainText}
-      $ar21IR = ${PrintRTValue(rt2).plainText}
+      ${arg1.ir} == ${arg2.ir} FAILED
+      ${arg1.ir} = ${rt1.valueString}
+      ${arg2.ir} = ${rt2.valueString}
       """)
-    }
   }
 
   def allExpects: List[MorphirExpect] = List()
