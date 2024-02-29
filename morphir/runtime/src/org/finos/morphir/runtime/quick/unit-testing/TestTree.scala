@@ -30,13 +30,13 @@ object TestTree {
   case class Error(desc: String, error: Throwable)
       extends TestTree[Nothing] // not worth distinguishing between MorphirRuntimeError here
   case class Only[T](test: TestTree[T]) extends TestTree[T]
-  def toReport(tree: TestTree[SingleResult]): String = toReportHelper(tree, 0)
-  def toReportHelper(tree: TestTree[SingleResult], depth: Int): String =
+  def toReport(tree: TestTree[SingleTestResult]): String = toReportHelper(tree, 0)
+  def toReportHelper(tree: TestTree[SingleTestResult], depth: Int): String =
     tree match {
       case Describe(desc, tests) =>
         "\t".repeat(depth) + desc + "\n" + tests.map(toReportHelper(_, depth + 1)).mkString("\n")
-      case SingleTest(desc, SingleResult.Passed())    => "\t".repeat(depth) + s"$desc: PASSED"
-      case SingleTest(desc, SingleResult.Failed(msg)) => "\t".repeat(depth) + s"$desc: FAILED ($msg)"
+      case SingleTest(desc, SingleTestResult.Passed())    => "\t".repeat(depth) + s"$desc: PASSED"
+      case SingleTest(desc, SingleTestResult.Failed(msg)) => "\t".repeat(depth) + s"$desc: FAILED ($msg)"
       case Concat(tests)                              => tests.map(toReportHelper(_, depth)).mkString("\n")
       case Todo(excuse)                               => "\t".repeat(depth) + s"$excuse: TODO"
       case Skip(desc, count) =>
