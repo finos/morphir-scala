@@ -90,7 +90,7 @@ object MorphirExpect {
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.readThunk))
   def newDefs: GlobalDefs =
     GlobalDefs(
-      allExpects.map(expect => (expect.fqn -> expect.sdkFunction)),
+      allExpects.map(expect => (expect.fqn -> expect.sdkFunction)).toMap,
       Map()
     )
 }
