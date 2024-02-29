@@ -44,31 +44,35 @@ sealed trait MorphirExpect {
           ApplyChain(Reference(_, fqn), args),
           Pattern.UnitPattern(_),
           context
-        ) => processThunk(globals, context, args)
+        ) => processThunk(
+        args.map {
+          arg => MorphirExpect.TransparentArg(arg, Loop.loop(globals, context))
+        }
+      )
   }
-  def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult
+  def processThunk(
+      args: List[MorphirExpect.TransparentArg]
+  ): SingleTestResult
 }
 
 object MorphirExpect {
-  case class TransparentArg(ir : TypedValue, value : RTValue){
-    def valueString : String = PrintRTValue(value).plainText
+  case class TransparentArg(ir: TypedValue, value: RTValue) {
+    def valueString: String = PrintRTValue(value).plainText
   }
   trait MorphirExpect2 extends MorphirExpect {
     final def arity = 2;
-    def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult =
-      processThunk(globals, context, args(0), args(1))
+    def processThunk(args: List[TransparentArg]): SingleTestResult =
+      processThunk(args(0), args(1))
     def processThunk(
-        globals: GlobalDefs,
-        context: CallStackFrame,
-        arg1IR: TypedValue,
-        arg2IR: TypedValue
+        arg1: TransparentArg,
+        arg2: TransparentArg
     ): SingleTestResult
   }
   trait MorphirExpect1 extends MorphirExpect {
     final def arity = 1;
-    def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult =
-      processThunk(globals, context, args(0))
-    def processThunk(globals: GlobalDefs, context: CallStackFrame, argIR: TypedValue): SingleTestResult
+    def processThunk(args: List[TransparentArg]): SingleTestResult =
+      processThunk(args(0))
+    def processThunk(arg: TransparentArg): SingleTestResult
   }
 
   def expectation(result: RT) =
@@ -104,10 +108,8 @@ object MorphirExpect {
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def processThunk(
-        globals: GlobalDefs,
-        context: CallStackFrame,
-        arg1IR: TypedValue,
-        arg2IR: TypedValue
+        arg1: TransparentArg,
+        arg2: TransparentArg
     ): SingleTestResult = {
       rt1 = Loop(newGlobals).loop(arg1, Store.empty)
       rt2 = Loop(newGlobals).loop(ir, Store.empty)
