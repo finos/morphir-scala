@@ -6,7 +6,7 @@ import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
-import org.finos.morphir.runtime.internal.NativeFunctionAdapter
+import org.finos.morphir.runtime.internal.{DynamicNativeFunction, DynamicNativeFunction1, DynamicNativeFunction2, NativeFunctionAdapter)
 import org.finos.morphir.runtime.SDKValue.SDKValueDefinition
 import org.finos.morphir.runtime.internal.CallStackFrame
 
