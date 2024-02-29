@@ -50,6 +50,9 @@ sealed trait MorphirExpect {
 }
 
 object MorphirExpect {
+  case class TransparentArg(ir : TypedValue, value : RTValue){
+    def valueString : String = PrintRTValue(value).plainText
+  }
   trait MorphirExpect2 extends MorphirExpect {
     final def arity = 2;
     def processThunk(globals: GlobalDefs, context: CallStackFrame, args: List[TypedValue]): SingleTestResult =
