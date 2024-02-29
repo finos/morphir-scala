@@ -123,8 +123,8 @@ object MorphirExpect {
   def allExpects: List[MorphirExpect] = List()
   def thunkifyAll: PartialFunction[TypedValue, TypedValue] =
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))
-  def readThunkAll: PartialFunction[RT, SingleTestResult] =
-    allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.readThunk))
+  def readThunkAll(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] =
+    allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.readThunk(globals)))
   def newDefs: GlobalDefs =
     GlobalDefs(
       allExpects.map(expect => (expect.fqn -> expect.sdkFunction)).toMap,
