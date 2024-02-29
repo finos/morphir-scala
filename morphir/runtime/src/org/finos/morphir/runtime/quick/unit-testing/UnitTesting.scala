@@ -13,11 +13,9 @@ import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.runtime.quick.TestTree
-import org.finos.morphir.runtime.MorphirUnitTest
 import org.finos.morphir.runtime.SingleResult
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.RTValue as RT
-import org.finos.morphir.runtime.RTValue.Comparable
 import org.finos.morphir.util.PrintRTValue
 import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
