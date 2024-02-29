@@ -5,7 +5,7 @@ import org.finos.morphir.util.PrintRTValue
 import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.Pattern
-import org.finos.morphir.ir.Value.Value.{List as ListValue, *}
+import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.runtime.SingleTestResult
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
@@ -60,11 +60,11 @@ object MorphirExpect {
       RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(RT.Primitive.String(msg)))
     expectation(result)
 
-  def extract(f: RT.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
+  def extract(f: RT.Function, ctx: NativeContext): (TypedValue, TypedValue, RT, RT) = {
     val out = ctx.evaluator.handleApplyResult(T.unit, f, RT.Unit())
     val (ir1, ir2) = f match {
-      case RT.LambdaFunction(Value.Tuple(_, elements), _, _) => (elements(0), elements(1))
-      case other                                             => throw OtherError("This should not be!", other)
+      case RT.LambdaFunction(Tuple(_, elements), _, _) => (elements(0), elements(1))
+      case other                                       => throw OtherError("This should not be!", other)
     }
     val (rt1, rt2) = out match {
       case RT.Tuple(List(rt1_, rt2_)) => (rt1_, rt2_)
