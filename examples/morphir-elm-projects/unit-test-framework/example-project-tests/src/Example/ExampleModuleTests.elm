@@ -79,21 +79,30 @@ collectionEqualityTests = only <| describe "Tests showing collection diff report
             \_ -> Expect.equalDicts 
                 (Dict.fromList base)
                 (Dict.fromList short)
-        , test "equalDicts second longer" <|
+        , test "equalDicts second much longer" <|
             \_ -> Expect.equalDicts 
-                (Dict.fromList base)
+                (Dict.fromList short)
                 (Dict.fromList long)
         , test "equalDicts many differences" <|
             \_ -> Expect.equalDicts 
                 (Dict.fromList long)
                 (Dict.fromList different)
+        , test "equalDicts mixed differences" <|
+            \_ -> Expect.equalDicts 
+                (Dict.fromList base)
+                (Dict.fromList middle)
         ]
     , describe
         "Set tests"
         [test "equalSets first longer" <|
             \_ -> Expect.equalDicts 
                 (Dict.fromList base)
-                (Dict.fromList short)]
+                (Dict.fromList short)
+        , test "equalSets second much longer" <|
+            \_ -> Expect.equalDicts 
+                (Dict.fromList short)
+                (Dict.fromList long)
+        ]
     ]
 
 positive : Int -> Expect.Expectation
