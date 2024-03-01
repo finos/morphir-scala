@@ -223,17 +223,23 @@ object MorphirExpect {
 
   }
 
-  case object Assert extends Introspectable1{
-
+  case object Assert extends Introspectable1 {
+    def funcName: Any#String = "assert"
     def dynamicFunction = DynamicNativeFunction1("assert") {
+      (context: NativeContext) => (result: RT.Boolean) =>
+        if (result.value) passedRT else failedRT("Assert evaluated to false")
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun1(dynamicFunction).realize
     def processThunk(
         globals: GlobalDefs,
         context: CallStackFrame,
-        arg1: TransparentArg,
-    ): SingleTestResult =
+        arg1: TransparentArg
+    ): SingleTestResult = {
+      arg1.value match{
+        case RT.Primitive.Boolean(true) => passedRT
+        case RT.Primitive
       }
+    }
 
   }
 
