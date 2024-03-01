@@ -66,9 +66,9 @@ object TestTree {
   def pruneToOnly[T](tree: TestTree[T]): TestTree[T] =
     tree match {
       case m @ Module(name, tests) =>
-        if (containsOnly(d))
-          Describe(desc, tests.map(pruneToOnly))
-        else Skip(desc, count(d))
+        if (containsOnly(m))
+          Describe(name, tests.map(pruneToOnly))
+        else Skip("Module " + name, count(m))
       case d @ Describe(desc, tests) =>
         if (containsOnly(d))
           Describe(desc, tests.map(pruneToOnly))
@@ -81,6 +81,7 @@ object TestTree {
 
   def count[T](tree: TestTree[T]): Int =
     tree match {
+      case Module(_, tests)   => tests.map(count).sum
       case Describe(_, tests) => tests.map(count).sum
       case _: SingleTest[_]   => 1
       case Concat(tests)      => tests.map(count).sum
