@@ -201,11 +201,11 @@ object MorphirExpect {
           }
         }
         val failureStrings = withResults.collect {
-          case (f, SingleTestResult.Failed(msg)) => s"$f failed: $msg"
-          case (f, SingleTestResult.Err(err))    => s"$f threw error: $err"
+          case (f, SingleTestResult.Failed(msg)) => s"${PrintRTValue(f).plainText} failed: $msg"
+          case (f, SingleTestResult.Err(err))    => s"${PrintRTValue(f).plainText} threw error: $err"
         }
 
-        if (failures.length == 0) passedRT
+        if (failureStrings.length == 0) passedRT
         else
           failedRT(
             s"Expect.all <functions> ${PrintRTValue(subject).plainText} failed for:\n ${failureStrings.mkString("\n\t")}"
