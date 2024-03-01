@@ -234,12 +234,12 @@ object MorphirExpect {
         globals: GlobalDefs,
         context: CallStackFrame,
         arg1: TransparentArg
-    ): SingleTestResult = {
-      arg1.value match{
-        case RT.Primitive.Boolean(true) => passedRT
-        case RT.Primitive
+    ): SingleTestResult =
+      arg1.value match {
+        case RT.Primitive.Boolean(true)  => SingleTestResult.Passed
+        case RT.Primitive.Boolean(false) => SingleTestResult.Failed(s"assert ${arg1.ir} evaluated to false")
+        case other => SingleTestResult.Error(OtherError("Assert argument did not evaluat to bool:", other))
       }
-    }
 
   }
 
