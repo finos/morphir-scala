@@ -244,9 +244,19 @@ object MorphirExpect {
           throw new OtherError("Expected Result type", arg1.ir, arg1.value)
       }
   }
-  case object Err extends Introspectable1{
+  case object Err extends Introspectable1 {
     def funcName = "err"
-    
+    def dynamicFunction = DynamicNativeFunction1("err") {
+      (_: NativeContext) => (value: RT.ConstructorResult) =>
+        value match {
+          case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Ok"), List(okay)) =>
+            failedRT(s"Expect.err recieved Okay ${PrintRTValue(okay).plainText}")
+          case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Err"), List(_)) =>
+            passedRT
+          case RT.ConstructorResult(_, _) =>
+            throw new UnexpectedType(s"Ok(value) or Err(err)", value, hint = "Expected due to use in a Expect.err")
+        }
+    }
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
   case object All extends MorphirExpect {
