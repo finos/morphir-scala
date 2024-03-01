@@ -1,4 +1,5 @@
 module ExampleTests.ExampleModuleTests exposing (..)
+import Morphir.SDK.Dict as Dict
 import Morphir.UnitTest.Test exposing (..)
 import Morphir.UnitTest.Expect as Expect
 import Example.ExampleModule exposing (..)
@@ -6,49 +7,49 @@ import Example.ExampleModule exposing (..)
 
 
 introspectedTestSuite : Test
-introspectedTestSuite = only <| concat [
-    test "Failing Equality Test" <| 
+introspectedTestSuite = only <| concat
+    [ test "Failing Equality Test" <| 
         \_ -> let record = {name = "Bob", age = 45} in
             Expect.equal 
                 record
-                {record | name = "Joe"},
-    test "Failing Inequality Test" <| 
+                {record | name = "Joe"}
+    , test "Failing Inequality Test" <| 
         \_ -> let 
                 record1 = {name = "Bob", age = 45}
                 record2 = {name = "Joe", age = 45}
             in
             Expect.notEqual 
                 record2
-                {record1 | name = "Joe"},
-    test "Failing Assert Test" <| 
+                {record1 | name = "Joe"}
+    , test "Failing Assert Test" <| 
         \_ -> 
             Expect.assert <|
-                "Red Blue" == (String.concat ["Red", "Blue"]),
-    test "Failing lessThan Test" <| 
+                "Red Blue" == (String.concat ["Red", "Blue"])
+    , test "Failing lessThan Test" <| 
         \_ -> 
             Expect.lessThan
                 3
-                (addOne 2),
-    test "Failing atLeast Test" <| 
+                (addOne 2)
+    , test "Failing atLeast Test" <| 
         \_ -> 
             Expect.atLeast
                 (" " ++ "Blue")
-                "Blue",
-    test "Failing lessThan Test" <| 
+                "Blue"
+    , test "Failing lessThan Test" <| 
         \_ -> 
             Expect.atMost
                 [1, 2]
-                [1, 1],
-    test "Failing okay Test" <| 
+                [1, 1]
+    , test "Failing okay Test" <| 
         \_ -> 
             Expect.okay
-                (stringToColor "Canada"),
-    test "Failing err Test" <| 
+                (stringToColor "Canada")
+    , test "Failing err Test" <| 
         let myString = "Red" in
         \_ -> 
             Expect.err
-                (stringToColor myString),
-    test "Failing equalLists Test" <| 
+                (stringToColor myString)
+    , test "Failing equalLists Test" <| 
         let 
             l1 = [1, 2]
             l2 = [2, 3]
@@ -57,7 +58,13 @@ introspectedTestSuite = only <| concat [
             Expect.equalLists
                 (l1 ++ l2)
                 (l2 ++ l1)
-]
+    , test "Failing equalDicts Test" <|
+        let
+            d1 = Dict.fromList [("Grass", "Green"), ("Fire", "Red"), ("Snow", "White")]
+            d2 = Dict.fromList [("Grass", "Green"), ("Fire", "Orange"), ("Snow", "White")]
+        in
+        \_ -> Expect.equalDicts d1 d2
+    ]
 
 positive : Int -> Expect.Expectation
 positive x = Expect.greaterThan x 0
@@ -66,29 +73,29 @@ infinite : Int -> Int
 infinite x = infinite x
 
 allTestSuite : Test
-allTestSuite = only <| concat[
-    test "Simple all test" <|
+allTestSuite = only <| concat
+    [ test "Simple all test" <|
         \_ -> Expect.all 
             [
                 \x -> Expect.equal x 1,
                 \x -> positive x
             ]
-            -1,
-    test "Err all test" <|
+            -1
+    , test "Err all test" <|
         \_ -> Expect.all 
             [
                 \x -> Expect.equal x (infinite x),
                 \x -> positive x
             ]
-            -1,
-    test "Passing all test" <|
+            -1
+    , test "Passing all test" <|
         \_ -> Expect.all 
             [
                 \x -> Expect.equal x 1,
                 \x -> positive x
             ]
             1
-]
+    ]
 simpleTest : Test
 simpleTest = test "Simple Test" <|
     \_ -> 
@@ -127,22 +134,13 @@ failingTest = test "Failing Test" <|
         Expect.equal 1 2
 
 
-greaterThanTests : Test
-greaterThanTests = concat [
-    test "Failing GT Test " <|
-        \_ -> Expect.greaterThan 2 (addOne 1),
-
-    test "Passing GT Test " <|
-        \_ -> Expect.greaterThan 3 (addOne 1)
-]
-
 recordOrderTests : Test
-recordOrderTests = concat [
-    test "Record Order Correct" <|
-        \_ -> Expect.equal {a = 1, b = 2} {b = 2, a = 1},
-    test "Record Order Incorrect" <|
+recordOrderTests = concat 
+    [ test "Record Order Correct" <|
+        \_ -> Expect.equal {a = 1, b = 2} {b = 2, a = 1}
+    , test "Record Order Incorrect" <|
         \_ -> Expect.equal {a = 2, b = 2} {b = 2, a = 1}
-]
+    ]
 
 failingLessThan : Test
 failingLessThan = test "Failing LessThan" <|
