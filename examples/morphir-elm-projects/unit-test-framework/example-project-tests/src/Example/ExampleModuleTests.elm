@@ -120,6 +120,13 @@ collectionEqualityTests = only <| describe "Tests showing collection diff report
         ]
     ]
 
+onFailTestSuite : Test
+onFailTestSuite = only <| describe "Tests for onFail behavior (complex case due to nesting)"
+    [
+        test "Simple Pass" <|
+            \_ -> Expect.equal 1 1
+    ]
+
 
 allTestSuite : Test
 allTestSuite = only <| concat
