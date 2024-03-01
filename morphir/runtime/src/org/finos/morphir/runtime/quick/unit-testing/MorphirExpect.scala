@@ -327,6 +327,7 @@ object MorphirExpect {
       val differingString = if (differing.length == 0) ""
       else
         s"\n\t ${differing.length} keys differ including ${differing(0)._1.printed} (${differing(0)._2.printed} vs ${differing(0)._3.printed})"
+      "equalDicts failed:" + missing1String + missing2String + differingString
     }
   }
   case object EqualSets extends MorphirExpect {
