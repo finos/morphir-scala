@@ -77,9 +77,9 @@ object TestTree {
     }
 
   def processExpects(tree: MorphirUnitTest): TestTree[SingleTestResult] = {
-    import TestTree.*
     import SingleTestResult.*
     tree match {
+      case Module(name, tests)   => Module(name, tests.map(processExpects))
       case Describe(desc, tests) => Describe(desc, tests.map(processExpects))
       case Concat(tests)         => Concat(tests.map(processExpects))
       case Only(inner)           => Only(processExpects(inner))
