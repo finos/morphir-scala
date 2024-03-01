@@ -165,6 +165,13 @@ allTestSuite = only <| concat
                 \x -> positive x
             ]
             -1
+    , test "Failing all test when introspection fails" <|
+        \_ -> Expect.all 
+            [
+                \x -> breakIntrospection Expect.equal (addOne 1) 3,
+                \x -> positive x
+            ]
+            -1
     ]
 
 
