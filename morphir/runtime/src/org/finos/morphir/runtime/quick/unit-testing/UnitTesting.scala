@@ -239,22 +239,7 @@ object UnitTesting {
 
     val withExpects = TestTree.getExpects(newGlobals)(testTree)
 
-    def processExpects(tree: MorphirUnitTest): TestTree[SingleTestResult] = {
-      import TestTree.*
-      import SingleTestResult.*
-      tree match {
-        case Describe(desc, tests) => Describe(desc, tests.map(processExpects))
-        case Concat(tests)         => Concat(tests.map(processExpects))
-        case Only(inner)           => Only(processExpects(inner))
-        case SingleTest(
-              desc,
-              rt
-            ) => SingleTest(desc, MorphirExpect.evaluatedExpectToResult(newGlobals, rt))
-        case other: Error => other
-        case other: Skip  => other
-        case other: Todo  => other
-      }
-    }
+    
 
     val treeWithResults = processExpects(withExpects)
     TestSummary(TestTree.toReport(treeWithResults), false)
