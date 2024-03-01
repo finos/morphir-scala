@@ -139,6 +139,13 @@ allTestSuite = only <| concat
                 \x -> positive x
             ]
             1
+    , test "Passing all test with nested onFail" <|
+        \_ -> Expect.all 
+            [
+                \x -> Expect.onFail "Shouldn't Fail" <| Expect.equal x 1,
+                \x -> positive x
+            ]
+            1
     ]
 
 
@@ -226,7 +233,7 @@ complexThunkSuite = only <| describe "tests with more complex thunk formats" <|
             if ((addOne 1) == 1)
                 then Expect.pass
                 else Expect.fail "User-defined error message"
-     ]
+    ]
 
 
 failingTestSuite : Test
