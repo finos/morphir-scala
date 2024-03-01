@@ -314,7 +314,11 @@ object MorphirExpect {
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def explainFailure(l1: Map[RT, RT], l2: Map[RT, RT]): String = {
       val missingFrom1 = l1.keys.toSet.diff(l2.keys.toSet)
-      missingFrom1.toString
+      val missingFrom2 = l2.keys.toSet.diff(l1.keys.toSet)
+      val differing = l1.keys.toSet.intersect(l2.keys.toSet).collect {
+        case key if (l1(key) != l2(key)) => (key, l1, l2)
+      }
+      
     }
   }
   case object EqualSets extends MorphirExpect {
