@@ -223,9 +223,9 @@ object MorphirExpect {
           case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Ok"), List(_)) =>
             passedRT
           case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Err"), List(err)) =>
-            failedRT(s"Expect.okay recieved Err ${PrintRTValie(err).plainText}")
+            failedRT(s"Expect.okay recieved Err ${PrintRTValue(err).plainText}")
           case RT.ConstructorResult(_, _) =>
-            throw new UnexpectedType(s"Ok(value) or Err(err)", arg, hint = "Expected due to use in a Expect.okay")
+            throw new UnexpectedType(s"Ok(value) or Err(err)", value, hint = "Expected due to use in a Expect.okay")
         }
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun1(dynamicFunction).realize
@@ -239,7 +239,7 @@ object MorphirExpect {
           SingleTestResult.Passed
         case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Err"), List(err)) =>
           SingleTestResult.Failed(s"""Expect.okay ${arg1.ir} 
-            ${arg1.ir} evaluated to Err ${PrintRTValie(err).plainText}""")
+            ${arg1.ir} evaluated to Err ${PrintRTValue(err).plainText}""")
         case other =>
           throw new OtherError("Expected Result type", arg1.ir, arg1.value)
       }
