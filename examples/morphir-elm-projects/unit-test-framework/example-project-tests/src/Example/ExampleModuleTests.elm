@@ -1,5 +1,6 @@
 module ExampleTests.ExampleModuleTests exposing (..)
 import Morphir.SDK.Dict as Dict
+import Morphir.SDK.Set as Set
 import Morphir.UnitTest.Test exposing (..)
 import Morphir.UnitTest.Expect as Expect
 import Example.ExampleModule exposing (..)
@@ -95,17 +96,17 @@ collectionEqualityTests = only <| describe "Tests showing collection diff report
     , describe
         "Set tests"
         [test "equalSets first longer" <|
-            \_ -> Expect.equalDicts 
-                (Dict.fromList long)
-                (Dict.fromList base)
+            \_ -> Expect.equalSets 
+                (Set.fromList long)
+                (Set.fromList base)
         , test "equalSets second much longer" <|
-            \_ -> Expect.equalDicts 
-                (Dict.fromList short)
-                (Dict.fromList long)
+            \_ -> Expect.equalSets 
+                (Set.fromList short)
+                (Set.fromList long)
         , test "equalSets neither is subset" <|
-            \_ -> Expect.equalDicts 
-                (Dict.fromList base)
-                (Dict.fromList middle)
+            \_ -> Expect.equalSets 
+                (Set.fromList base)
+                (Set.fromList middle)
         ]
     ]
 
