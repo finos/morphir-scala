@@ -53,11 +53,28 @@ object TestTree {
     }
 
   def getExpects(test: MorphirUnitTest): MorphirUnitTest =
-      import TestTree.*
-      test match {
-        case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
-        case Concat(tests)         => Concat(tests.map(getExpects))
-        case Only(inner)           => Only(getExpects(inner))
+    test match {
+      case Module(name, tests)   => Module(name, tests.map(getExpects))
+      case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
+      case Concat(tests)         => Concat(tests.map(getExpects))
+      case Only(inner)           => Only(getExpects(inner))
+
+      case SingleTest(desc, thunk) =>
+        try
+          SingleTest(
+            desc,
+            Loop(newGlobals)
+              .handleApplyResult(
+                testType,
+                thunk,
+                RTValue.Unit()
+              )
+          )
+        catch {
+          case e => Error(desc, e)
+        }
+      case other => other // err, todo, skip lack anything to resolve
+    }
 
   def containsOnly[T](tree: TestTree[T]): Boolean =
     tree match {

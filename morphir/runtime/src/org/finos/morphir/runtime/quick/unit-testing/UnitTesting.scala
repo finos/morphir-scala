@@ -236,24 +236,8 @@ object UnitTesting {
 
     // Recursive walk of tree, running the user-defined thunks in the "test" code
     // TODO: Move this to TestTree
-    
-        case SingleTest(desc, thunk) =>
-          try
-            SingleTest(
-              desc,
-              Loop(newGlobals)
-                .handleApplyResult(
-                  testType,
-                  thunk,
-                  RTValue.Unit()
-                )
-            )
-          catch {
-            case e => Error(desc, e)
-          }
-        case other => other // err, todo, skip lack anything to resolve
-      }
-    val withExpects = getExpects(testTree)
+
+    val withExpects = TestTree.getExpects(testTree)
 
     def processExpects(tree: MorphirUnitTest): TestTree[SingleTestResult] = {
       import TestTree.*
