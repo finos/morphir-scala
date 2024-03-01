@@ -82,17 +82,21 @@ object MorphirExpect {
   }
   trait BinOpExpect extends MorphirExpect2 {
     def opString: String;
-    def fail(
+    def pass(rt1 : RTValue, rt2 : RTValue) : Boolean
+    def processThunk(
         arg1: TransparentArg,
         arg2: TransparentArg
     ): SingleTestResult =
-      val arg1String = s"${arg1.ir}"
-      val arg2String = s"${arg2.ir}"
-      val maxLength  = arg1String.length.max(arg2String.length)
-      SingleTestResult.Failed(s"""
-      Expect.$funcName (${arg1.ir}) (${arg2.ir})
-          ${arg1String.padTo(maxLength, ' ')} evaluated to ${arg1.valueString}
-          ${arg2String.padTo(maxLength, ' ')} evaluated to ${arg2.valueString} """)
+      if pass(arg1.value, arg2.value) SingleTestResult.Passed
+      else {
+        val arg1String = s"${arg1.ir}"
+        val arg2String = s"${arg2.ir}"
+        val maxLength  = arg1String.length.max(arg2String.length)
+        SingleTestResult.Failed(s"""
+        Expect.$funcName (${arg1.ir}) (${arg2.ir})
+            ${arg1String.padTo(maxLength, ' ')} evaluated to ${arg1.valueString}
+            ${arg2String.padTo(maxLength, ' ')} evaluated to ${arg2.valueString} """)
+      }
   }
 
   def expectation(result: RT) =
@@ -127,12 +131,10 @@ object MorphirExpect {
         expectation(result)
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
-    def processThunk(
-        arg1: TransparentArg,
-        arg2: TransparentArg
-    ): SingleTestResult =
-      if (arg1.value == arg2.value) SingleTestResult.Passed
-      else fail(arg1, arg2)
+    def pass(
+        arg1: RT,
+        arg2: RT
+    ): Boolean = arg1 == arg2
   }
 
   def allExpects: List[MorphirExpect] = List(
