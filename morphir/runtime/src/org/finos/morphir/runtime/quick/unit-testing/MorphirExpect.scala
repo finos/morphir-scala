@@ -274,8 +274,10 @@ object MorphirExpect {
           SingleTestResult.Err(OtherError("Expect.err Expected Result type", arg1.ir, arg1.value))
       }
   }
-  case object EqualLists extends Introspectable2 {
+  // Collection comparisons don't need to be introspectable - more important to have any decent specific diff reporting
+  case object EqualLists extends MorphirExpect {
     def funcName = "equalLists"
+    def arity    = 2;
     def dynamicFunction = DynamicNativeFunction2("equalLists") {
       (_: NativeContext) => (l1: RT.List, l2: RT.List) =>
         {
@@ -290,26 +292,23 @@ object MorphirExpect {
         }
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
-    def processThunk(
-        globals: GlobalDefs,
-        context: CallStackFrame,
-        arg1: TransparentArg,
-        arg2: TransparentArg
-    ): SingleTestResult =
-      (arg1.value, arg2.value) match {
-        case (RT.List(elems1), RT.List(elems2)) =>
-          if (elems1 == elems2) SingleTestResult.Passed
-          else SingleTestResult.Failed(explainFailure(elems1, elems2))
-        case (other1, other2) => SingleTestResult.Err(OtherError("Expected lists", other1, other2))
-      }
     def explainFailure(l1: List[RT], l2: List[RT]): String =
       if (l1.length != l2.length) s"Lengths differ (${l1.length} vs ${l2.length})"
       else {
         val mismatches        = l1.zip(l2).zipWithIndex.filter { case ((v1, v2), index) => v1 != v2 }
         val ((v1, v2), index) = mismatches(0)
         s"""Lists differ in ${mismatches.length} positions. 
-          Example: at $index, ${PrintRTValue(v1).plainText} vs ${PrintRTValue(v2).plainText}}"""
+          Example: at index $index, ${PrintRTValue(v1).plainText} vs ${PrintRTValue(v2).plainText}}"""
       }
+  }
+  case object EqualDicts extends MorphirExpect {
+    def funcName = "equalDicts"
+    def arity    = 2
+    def dynamicFunction = DynamicNativeFunction2("equalLists") {
+      (_: NativeContext) => (l1: RT.List, l2: RT.List) => passedRT
+    }
+    def sdkFunction: SDKValue                                     = NativeFunctionAdapter.Fun2(dynamicFunction).realize
+    def explainFailure(l1: Map[RT, RT], l2: List[RT, RT]): String = "Whatever"
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
   case object All extends MorphirExpect {
