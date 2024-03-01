@@ -315,11 +315,16 @@ object MorphirExpect {
     def explainFailure(l1: Map[RT, RT], l2: Map[RT, RT]): String = {
       val missingFrom1 = l1.keys.toSet.diff(l2.keys.toSet)
       val missingFrom2 = l2.keys.toSet.diff(l1.keys.toSet)
+      val missing1String = if (missingFrom1.length == 0) ""
+      else if (missingFrom1.length < 4) s"\n\t Keys missing from first: ${missingFrom1.map(_.printed).mkString(", ")}"
+      else s"\n\t ${missingFrom1.length} keys missing including ${missingFrom1.toList(0).printed}"
+      val missing2String = if (missingFrom2.length == 0) ""
+      else if (missingFrom2.length < 4) s"\n\t Keys missing from secomd: ${missingFrom2.map(_.printed).mkString(", ")}"
+      else s"\n\t ${missingFrom2.length} keys missing including ${missingFrom2.toList(0).printed}"
       val differing = l1.keys.toSet.intersect(l2.keys.toSet).collect {
         case key if (l1(key) != l2(key)) => (key, l1, l2)
-      }
-      s"""
-        keys missing from first: ${missingFrom1}"""
+      }.toList
+      val differingString = if (differing.length)
     }
   }
   case object EqualSets extends MorphirExpect {
