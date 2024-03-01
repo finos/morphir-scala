@@ -231,6 +231,11 @@ object MorphirExpect {
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))
   def readThunkAll(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] =
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.readThunk(globals)))
+  def evaluatedExpectToResult(globals: GlobalDefs, testResult : RT) : SingleTestResult = {
+    testResult match {
+      
+    }
+  }
   def newDefs: GlobalDefs =
     GlobalDefs(
       allExpects.map(expect => (expect.fqn -> expect.sdkFunction)).toMap,
