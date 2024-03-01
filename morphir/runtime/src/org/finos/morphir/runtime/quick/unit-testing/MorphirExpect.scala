@@ -86,7 +86,7 @@ object MorphirExpect {
 
     def dynamicFunction = DynamicNativeFunction2("equal") {
       (_: NativeContext) => (rt1: RT, rt2: RT) =>
-        val result = if (pass(rt1, rt2)) passedRT
+        val result = if (opPasses(rt1, rt2)) passedRT
         else
           failedRT(s"Expect.$funcName (${PrintRTValue(a).plainText}) (${PrintRTValue(b).plainText})")
         expectation(result)
@@ -96,7 +96,7 @@ object MorphirExpect {
         arg1: TransparentArg,
         arg2: TransparentArg
     ): SingleTestResult =
-      if (pass(arg1.value, arg2.value)) SingleTestResult.Passed
+      if (opPasses(arg1.value, arg2.value)) SingleTestResult.Passed
       else {
         val arg1String = s"${arg1.ir}"
         val arg2String = s"${arg2.ir}"
