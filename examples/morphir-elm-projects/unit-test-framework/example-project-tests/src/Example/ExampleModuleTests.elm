@@ -25,12 +25,22 @@ introspectedTestSuite = concat [
 positive : Int -> Expect.Expectation
 positive x = Expect.greaterThan x 0
 
+infinite : Int -> Int
+infinite x = infinite x
+
 allTestSuite : Test
 allTestSuite = only <| concat[
     test "Simple all test" <|
         \_ -> Expect.all 
             [
                 \x -> Expect.equal x 1,
+                \x -> positive x
+            ]
+            -1,
+    test "Err all test" <|
+        \_ -> Expect.all 
+            [
+                \x -> Expect.equal x (infinite x),
                 \x -> positive x
             ]
             -1,
