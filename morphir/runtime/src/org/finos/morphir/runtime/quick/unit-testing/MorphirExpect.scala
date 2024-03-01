@@ -273,6 +273,20 @@ object MorphirExpect {
           SingleTestResult.Err(OtherError("Expect.err Expected Result type", arg1.ir, arg1.value))
       }
   }
+  case object EqualLists extends Introspectable2{
+    def funcName = "equalLists"
+    def dynamicFunction = DynamicNativeFunction1("equalLists") {
+      (_: NativeContext) => (l1: RT.List, l2 : RT.List) =>
+    }
+    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun1(dynamicFunction).realize
+    def processThunk(
+        globals: GlobalDefs,
+        context: CallStackFrame,
+        arg1: TransparentArg,
+        arg2: TransparentArg
+    ): SingleTestResult = 
+    
+  }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
   case object All extends MorphirExpect {
     def funcName = "all"

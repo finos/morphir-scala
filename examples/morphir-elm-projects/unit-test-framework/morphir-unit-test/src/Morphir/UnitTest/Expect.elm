@@ -75,7 +75,6 @@ err a = case a of
     Ok _ -> Expectation (Fail "Expected Error")
     Err _ -> Expectation Pass
 
---TODO: Check if this is valid - no zip in SDK
 equalLists : List a -> List a -> Expectation
 equalLists l1 l2 = if (l1 == l2)
     then Expectation Pass
