@@ -80,6 +80,18 @@ object MorphirExpect {
         arg2: TransparentArg
     ): SingleTestResult
   }
+  trait BinOpExpect extends MorphirExpect2 {
+    def opString: String;
+    def fail(
+        arg1: TransparentArg,
+        arg2: TransparentArg
+    ): SingleTestResult =
+      Failed(s"""
+      Expect.$funcName ${arg1.ir} ${arg2.ir}
+          ${arg1.ir} evaluated to ${arg1.valueString}
+          ${arg2.ir} evaluated to ${arg2.valueString}
+        """)
+  }
 
   def expectation(result: RT) =
     RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
@@ -104,8 +116,9 @@ object MorphirExpect {
     (ir1, ir2, rt1, rt2)
   }
 
-  case object Equal extends MorphirExpect2 {
+  case object Equal extends BinOpExpect {
     def funcName = "equal"
+    def opString = "=="
     def dynamicFunction = DynamicNativeFunction2("equal") {
       (_: NativeContext) => (a: RT, b: RT) =>
         val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
@@ -117,11 +130,7 @@ object MorphirExpect {
         arg2: TransparentArg
     ): SingleTestResult =
       if (arg1.value == arg2.value) SingleTestResult.Passed
-      else SingleTestResult.Failed(s"""
-      ${arg1.ir} == ${arg2.ir} FAILED
-      ${arg1.ir} = ${arg1.valueString}
-      ${arg2.ir} = ${arg2.valueString}
-      """)
+      else fail(arg1, arg2)
   }
 
   def allExpects: List[MorphirExpect] = List(
