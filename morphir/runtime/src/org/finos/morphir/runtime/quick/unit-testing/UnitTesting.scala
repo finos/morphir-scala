@@ -260,22 +260,8 @@ object UnitTesting {
         case Only(inner)           => Only(processExpects(inner))
         case SingleTest(
               desc,
-              RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Expectation"), List(rt))
-            ) =>
-          rt match {
-            case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Pass"), List()) =>
-              SingleTest(desc, Passed)
-            case RT.ConstructorResult(
-                  FQStringTitleCase("Morphir.UnitTest:Expect:Fail"),
-                  List(Primitive.String(msg))
-                ) =>
-              SingleTest(desc, Failed(msg))
-            case other => SingleTest(desc, Err(new OtherError("Unrecognized Expectation Result:", other)))
-          }
-        case SingleTest(desc, other) => MorphirExpect.readThunkAll(newGlobals).lift(other) match {
-            case Some(result) => SingleTest(desc, result)
-            case other        => SingleTest(desc, Err(new OtherError("Unrecognized Expectation: ", other)))
-          }
+              rt
+            ) => MorphirExpect.evaluatedExpectToResult(newGlobals, rt)
         case other: Error => other
         case other: Skip  => other
         case other: Todo  => other
