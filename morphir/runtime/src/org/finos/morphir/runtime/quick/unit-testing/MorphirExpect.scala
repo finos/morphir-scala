@@ -151,7 +151,7 @@ object MorphirExpect {
     ): Boolean = RT.Comparable.compareOrThrow(
       Coercer.comparableCoercer.coerce(rt1),
       Coercer.comparableCoercer.coerce(rt2)
-    ) > 0
+    ) < 0
   }
 
   def allExpects: List[MorphirExpect] = List(
