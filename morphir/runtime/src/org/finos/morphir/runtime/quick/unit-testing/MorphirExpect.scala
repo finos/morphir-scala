@@ -8,6 +8,7 @@ import org.finos.morphir.ir.Value.Pattern
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.runtime.Coercer
 import org.finos.morphir.runtime.SingleTestResult
+import org.finos.morphir.runtime.ErrorUtils.indentBlock
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
 import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
@@ -215,7 +216,7 @@ object MorphirExpect {
         if (failureStrings.length == 0) passedRT
         else
           failedRT(
-            s"Expect.all <functions> $subjectString failed for:\n\t ${failureStrings.mkString("\n\t")}"
+            s"Expect.all <functions> $subjectString failed for:\n ${indentBlock(failureStrings.mkString("\n"))}"
           )
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
