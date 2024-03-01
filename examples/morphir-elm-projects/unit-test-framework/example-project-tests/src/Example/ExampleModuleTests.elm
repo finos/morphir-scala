@@ -28,7 +28,17 @@ introspectedTestSuite = only <| concat [
         \_ -> 
             Expect.lessThan
                 3
-                (addOne 2)
+                (addOne 2),
+    test "Failing atLeast Test" <| 
+        \_ -> 
+            Expect.atLeast
+                (" " ++ "Blue")
+                "Blue",
+    test "Failing lessThan Test" <| 
+        \_ -> 
+            Expect.atMost
+                [1, 2]
+                [1, 1]
 ]
 
 positive : Int -> Expect.Expectation
