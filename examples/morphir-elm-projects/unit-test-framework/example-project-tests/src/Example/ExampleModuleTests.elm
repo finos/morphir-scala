@@ -42,7 +42,12 @@ introspectedTestSuite = only <| concat [
     test "Failing okay Test" <| 
         \_ -> 
             Expect.okay
-                (stringToColor "Canada")
+                (stringToColor "Canada"),
+    test "Failing err Test" <| 
+        let myString = "Red" in
+        \_ -> 
+            Expect.err
+                (stringToColor myString)
 ]
 
 positive : Int -> Expect.Expectation
