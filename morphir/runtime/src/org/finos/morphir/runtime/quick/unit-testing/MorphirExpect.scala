@@ -399,7 +399,7 @@ object MorphirExpect {
   case object OnFail extends MorphirExpect {
     def funcName = "onFail"
     def arity    = 2
-    def dynamicFunction = DynamicNativeFunction2("all") {
+    def dynamicFunction = DynamicNativeFunction2("onFail") {
       (context: NativeContext) => (msg: RT.Primitive.String, inner: RT) =>
         {
           val globals = context.evaluator.asInstanceOf[Loop].globals
