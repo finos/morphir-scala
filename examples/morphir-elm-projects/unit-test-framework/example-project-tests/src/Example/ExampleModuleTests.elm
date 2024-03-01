@@ -12,7 +12,6 @@ introspectedTestSuite = only <| concat [
             Expect.equal 
                 record
                 {record | name = "Joe"},
-
     test "Failing Inequality Test" <| 
         \_ -> let 
                 record1 = {name = "Bob", age = 45}
@@ -25,11 +24,13 @@ introspectedTestSuite = only <| concat [
         \_ -> 
             Expect.assert <|
                 "Red Blue" == (String.concat ["Red", "Blue"]),
-    test "Failing Assert Test" <| 
+    test "Failing lessThan Test" <| 
         \_ -> 
-            Expect.assert <|
-                "Red Blue" == (String.concat ["Red", "Blue"])
+            Expect.lessThan
+                3
+                (addOne 2)
 ]
+
 positive : Int -> Expect.Expectation
 positive x = Expect.greaterThan x 0
 
