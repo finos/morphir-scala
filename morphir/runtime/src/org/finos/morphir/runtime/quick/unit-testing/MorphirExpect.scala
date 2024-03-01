@@ -86,11 +86,13 @@ object MorphirExpect {
         arg1: TransparentArg,
         arg2: TransparentArg
     ): SingleTestResult =
+      arg1String = s"${arg1.ir}"
+      arg2String = s"${arg1.ir}"
+      maxLength = max(arg1String.length, arg2String.length)
       SingleTestResult.Failed(s"""
-      Expect.$funcName ${arg1.ir} ${arg2.ir}
-          ${arg1.ir} evaluated to ${arg1.valueString}
-          ${arg2.ir} evaluated to ${arg2.valueString}
-        """)
+      Expect.$funcName (${arg1.ir}) (${arg2.ir})
+          ${arg1String.padTo(maxLength)} evaluated to ${arg1.valueString}
+          ${arg2String.padTo(maxLength)} evaluated to ${arg2.valueString} """)
   }
 
   def expectation(result: RT) =
