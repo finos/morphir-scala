@@ -229,6 +229,13 @@ object MorphirExpect {
         }
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun1(dynamicFunction).realize
+    def processThunk(
+        globals: GlobalDefs,
+        context: CallStackFrame,
+        arg1: TransparentArg
+    ): SingleTestResult = {
+      
+    }
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
   case object All extends MorphirExpect {
