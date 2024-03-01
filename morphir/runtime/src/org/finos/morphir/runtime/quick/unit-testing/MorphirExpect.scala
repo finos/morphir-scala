@@ -41,7 +41,7 @@ sealed trait MorphirExpect {
 
 object MorphirExpect {
   case class TransparentArg(ir: TypedValue, value: RT) {
-    def valueString: String = PrintRTValue(value).plainText
+    def valueString: String = value.printed
   }
   trait IntrospectableExpect extends MorphirExpect {
     override def thunkify: PartialFunction[TypedValue, TypedValue] = {
@@ -122,7 +122,7 @@ object MorphirExpect {
       (_: NativeContext) => (rt1: RT, rt2: RT) =>
         if (opPasses(rt1, rt2)) passedRT
         else
-          failedRT(s"Expect.$funcName (${PrintRTValue(rt1).plainText}) (${PrintRTValue(rt2).plainText})")
+          failedRT(s"Expect.$funcName (${rt1.printed}) (${rt2.printed})")
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def processThunk(
@@ -225,7 +225,7 @@ object MorphirExpect {
           case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Ok"), List(_)) =>
             passedRT
           case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Err"), List(err)) =>
-            failedRT(s"Expect.okay recieved Err ${PrintRTValue(err).plainText}")
+            failedRT(s"Expect.okay recieved Err ${err.printed}")
           case RT.ConstructorResult(_, _) =>
             throw new UnexpectedType(s"Ok(value) or Err(err)", value, hint = "Expected due to use in a Expect.okay")
         }
@@ -241,7 +241,7 @@ object MorphirExpect {
           SingleTestResult.Passed
         case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Err"), List(err)) =>
           SingleTestResult.Failed(s"""Expect.okay ${arg1.ir} 
-            ${arg1.ir} evaluated to Err ${PrintRTValue(err).plainText}""")
+            ${arg1.ir} evaluated to Err ${err.printed}""")
         case other =>
           SingleTestResult.Err(OtherError("Expect.okay Expected Result type", arg1.ir, arg1.value))
       }
@@ -252,7 +252,7 @@ object MorphirExpect {
       (_: NativeContext) => (value: RT.ConstructorResult) =>
         value match {
           case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Ok"), List(okay)) =>
-            failedRT(s"Expect.err recieved Ok ${PrintRTValue(okay).plainText}")
+            failedRT(s"Expect.err recieved Ok ${okay.printed}")
           case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Err"), List(_)) =>
             passedRT
           case RT.ConstructorResult(_, _) =>
@@ -270,7 +270,7 @@ object MorphirExpect {
           SingleTestResult.Passed
         case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Ok"), List(okay)) =>
           SingleTestResult.Failed(s"""Expect.err ${arg1.ir} 
-            ${arg1.ir} evaluated to Ok ${PrintRTValue(okay).plainText}""")
+            ${arg1.ir} evaluated to Ok ${okay.printed}""")
         case other =>
           SingleTestResult.Err(OtherError("Expect.err Expected Result type", arg1.ir, arg1.value))
       }
@@ -299,7 +299,7 @@ object MorphirExpect {
         val mismatches        = l1.zip(l2).zipWithIndex.filter { case ((v1, v2), index) => v1 != v2 }
         val ((v1, v2), index) = mismatches(0)
         s"""Lists differ in ${mismatches.length} positions. 
-          Example: at index $index, ${PrintRTValue(v1).plainText} vs ${PrintRTValue(v2).plainText}}"""
+          Example: at index $index, ${v1.printed} vs ${v2.printed}}"""
       }
   }
   case object EqualDicts extends MorphirExpect {
@@ -350,7 +350,7 @@ object MorphirExpect {
             }
           )
         }
-        val subjectString = PrintRTValue(subject).plainText
+        val subjectString = subject.printed
         // Get everything that failed:
         val failures = withResults.filter { case (_, result) =>
           result match {
@@ -359,8 +359,8 @@ object MorphirExpect {
           }
         }
         val failureStrings = withResults.collect {
-          case (f, SingleTestResult.Failed(msg)) => s"${PrintRTValue(f).plainText} $subjectString failed: $msg"
-          case (f, SingleTestResult.Err(err))    => s"${PrintRTValue(f).plainText} $subjectString threw error: $err"
+          case (f, SingleTestResult.Failed(msg)) => s"${f.printed} $subjectString failed: $msg"
+          case (f, SingleTestResult.Err(err))    => s"${f.printed} $subjectString threw error: $err"
         }
 
         if (failureStrings.length == 0) passedRT
@@ -404,8 +404,8 @@ object MorphirExpect {
           val maxLength  = arg1String.length.max(arg2String.length)
           s"""
           assert ($arg1String) == ($arg2String) evaluated to false
-              ${arg1String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt1).plainText}}
-              ${arg2String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt2).plainText} """
+              ${arg1String.padTo(maxLength, ' ')} evaluated to ${rt1.printed}}
+              ${arg2String.padTo(maxLength, ' ')} evaluated to ${rt2.printed} """
         case ApplyChain(Reference(_, FQString(funcName)), List(ir1, ir2)) =>
           val rt1        = Loop(globals).loop(ir1, Store(context))
           val rt2        = Loop(globals).loop(ir2, Store(context))
@@ -414,8 +414,8 @@ object MorphirExpect {
           val maxLength  = arg1String.length.max(arg2String.length)
           s"""
           assert $funcName <arg1> <arg2> evaluated to false:
-              arg1: ${arg1String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt1).plainText}}
-              arg2: ${arg2String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt2).plainText} """
+              arg1: ${arg1String.padTo(maxLength, ' ')} evaluated to ${rt1.printed}}
+              arg2: ${arg2String.padTo(maxLength, ' ')} evaluated to ${rt2.printed} """
         case _ => s"assert $ir evaluated to false"
       }
 
