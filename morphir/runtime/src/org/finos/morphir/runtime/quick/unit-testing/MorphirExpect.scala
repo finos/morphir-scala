@@ -200,11 +200,13 @@ object MorphirExpect {
           (
             function, {
               val result = context.evaluator.handleApplyResult(T.unit, function, subject)
-              evaluatedExpectToResult(result)
+              // This isn't great but I don't know a better way:
+              val globals = context.evaluator.asInstanceOf(Loop).globals
+              evaluatedExpectToResult(globals, result)
             }
           )
         }
-        //Get everything that failed:
+        // Get everything that failed:
         val failures = withResults.filter { case (_, result) =>
           result match {
             case SingleResult.Passed => false
