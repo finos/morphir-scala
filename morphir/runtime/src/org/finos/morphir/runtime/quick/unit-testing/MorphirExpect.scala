@@ -241,7 +241,7 @@ object MorphirExpect {
           SingleTestResult.Failed(s"""Expect.okay ${arg1.ir} 
             ${arg1.ir} evaluated to Err ${PrintRTValue(err).plainText}""")
         case other =>
-          throw new OtherError("Expect.okay Expected Result type", arg1.ir, arg1.value)
+          SingleTestResult.err(OtherError("Expect.okay Expected Result type", arg1.ir, arg1.value))
       }
   }
   case object Err extends Introspectable1 {
@@ -269,8 +269,10 @@ object MorphirExpect {
         case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Okay"), List(okay)) =>
           SingleTestResult.Failed(s"""Expect.err ${arg1.ir} 
             ${arg1.ir} evaluated to Okay ${PrintRTValue(okay).plainText}""")
+        case RT.ConstructorResult(FQStringTitleCase(otherConstructur), arguents) =>
+          throw OtherError("Got a weird constructor:", otherConstructur, arguments)
         case other =>
-          throw new OtherError("Expect.err Expected Result type", arg1.ir, arg1.value)
+          SingleTestResult.err(OtherError("Expect.err Expected Result type", arg1.ir, arg1.value))
       }
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
