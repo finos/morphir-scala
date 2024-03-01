@@ -1,7 +1,7 @@
 package org.finos.morphir.runtime.quick
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.RTValue as RT
-import org.finos.morphir.util.PrintRTValue
+import org.finos.morphir.util.{PrintRTValue, Compare, PrintDiff}
 import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.Pattern
@@ -21,6 +21,7 @@ import org.finos.morphir.runtime.internal.{
   NativeFunctionAdapter
 }
 import org.finos.morphir.runtime.SDKValue
+import org.finos.morphir.util.{Compare, PrintDiff}
 
 //Case objects for each?
 //For each of these we need:
@@ -275,10 +276,18 @@ object MorphirExpect {
   }
   case object EqualLists extends Introspectable2{
     def funcName = "equalLists"
-    def dynamicFunction = DynamicNativeFunction1("equalLists") {
-      (_: NativeContext) => (l1: RT.List, l2 : RT.List) =>
+    def dynamicFunction = DynamicNativeFunction2("equalLists") {
+      (_: NativeContext) => (l1: RT.List, l2 : RT.List) =>{
+        val (elems1, elems2) = (l1.elements, l2.elements)
+        if (elems1 == elems2) passedRT else {
+            val compare = Compare(elems1, elems2)
+            val printedDiff =
+              compare.map(PrintDiff(_).toString()).getOrElse("<No Diff: Contents Identical>")
+            failedRT(printedDiff)
+        }
+      }
     }
-    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun1(dynamicFunction).realize
+    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def processThunk(
         globals: GlobalDefs,
         context: CallStackFrame,
@@ -387,7 +396,8 @@ object MorphirExpect {
     AtMost,
     AtLeast,
     Okay,
-    Err
+    Err,
+    EqualLists
   )
   def thunkifyAll: PartialFunction[TypedValue, TypedValue] =
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))
