@@ -141,6 +141,14 @@ object MorphirExpect {
         rt2: RT
     ): Boolean = rt1 == rt2
   }
+  case object NotEqual extends BinOpExpect {
+    def funcName = "notEqual"
+    def opString = "!="
+    def opPasses(
+        rt1: RT,
+        rt2: RT
+    ): Boolean = rt1 != rt2
+  }
 
   case object GreaterThan extends BinOpExpect {
     def funcName = "greaterThan"
@@ -156,6 +164,7 @@ object MorphirExpect {
 
   def allExpects: List[MorphirExpect] = List(
     Equal,
+    NotEqual,
     GreaterThan
   )
   def thunkifyAll: PartialFunction[TypedValue, TypedValue] =

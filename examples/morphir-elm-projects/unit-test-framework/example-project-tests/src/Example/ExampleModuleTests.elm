@@ -11,7 +11,16 @@ introspectedTestSuite = concat [
         \_ -> let record = {name = "Bob", age = 45} in
             Expect.equal 
                 record
-                {record | name = "Joe"}
+                {record | name = "Joe"},
+
+    test "Failing Inequality Test" <| 
+        \_ -> let 
+                record1 = {name = "Bob", age = 45}
+                record2 = {name = "Joe", age = 45}
+            in
+            Expect.notEqual 
+                record2
+                {record1 | name = "Joe"}
 ]
 simpleTest : Test
 simpleTest = test "Simple Test" <|
