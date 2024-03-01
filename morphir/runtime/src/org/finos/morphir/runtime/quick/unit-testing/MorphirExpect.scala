@@ -441,7 +441,6 @@ object MorphirExpect {
               arg2: ${arg2String.padTo(maxLength, ' ')} evaluated to ${rt2.printed} """
         case _ => s"assert $ir evaluated to false"
       }
-
   }
 
   def allExpects: List[MorphirExpect] = List(

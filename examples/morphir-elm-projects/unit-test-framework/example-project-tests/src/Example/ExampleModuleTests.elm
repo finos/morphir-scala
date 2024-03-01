@@ -56,6 +56,7 @@ collectionEqualityTests = only <| describe "Tests showing collection diff report
     let
         short = [("Grass", "Green")]
         base = [("Grass", "Green"), ("Fire", "Red")]
+        middle = [("Grass", "Verdant"), ("Sky", "Cerulean")]
         long = [("Grass", "Green"), ("Fire", "Red"), ("Snow", "White"), ("Sky", "Blue"), ("Coal", "Black")]
         different = [("Grass", "Verdant"), ("Fire", "Crimson"), ("Snow", "Alabaster"), ("Sky", "Cerulean"), ("Coal", "Really, Really Dark Black")]
     in
@@ -74,11 +75,11 @@ collectionEqualityTests = only <| describe "Tests showing collection diff report
         ]
     , describe 
         "Dict tests"
-        [test "equalDicts first shorter" <|
+        [test "equalDicts first longer" <|
             \_ -> Expect.equalDicts 
                 (Dict.fromList base)
                 (Dict.fromList short)
-        , test "equalDicts second shorter" <|
+        , test "equalDicts second longer" <|
             \_ -> Expect.equalDicts 
                 (Dict.fromList base)
                 (Dict.fromList long)
@@ -89,7 +90,10 @@ collectionEqualityTests = only <| describe "Tests showing collection diff report
         ]
     , describe
         "Set tests"
-        []
+        [test "equalSets first longer" <|
+            \_ -> Expect.equalDicts 
+                (Dict.fromList base)
+                (Dict.fromList short)]
     ]
 
 positive : Int -> Expect.Expectation
