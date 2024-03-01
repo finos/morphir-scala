@@ -303,7 +303,11 @@ object MorphirExpect {
         case (other1, other2) => SingleTestResult.Err(OtherError("Expected lists", other1, other2))
       }
     def explainFailure(l1: List[RT], l2: List[RT]): String =
-      "I dunno"
+      if (l1.length != l2.length) s"Lengths differ (${l1.length} vs ${l2.length})"
+      else {
+        val mismatches = l1.zip(l2).zipWithIndex.filter{case ((v1, v2), index) => v1 != v2}
+        val example = mismatches(0)
+        s"Lists differ in ${mismatches.length} positions. At ${example._2}"
 
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
