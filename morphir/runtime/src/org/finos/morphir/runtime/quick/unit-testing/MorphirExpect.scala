@@ -32,43 +32,23 @@ sealed trait MorphirExpect {
   def funcName: String
   def fqn = FQName.fromString(UnitTesting.expectPrefix + funcName)
   def sdkFunction: SDKValue // would be nice to be able to generalize the wrapping but that's hard
-  def thunkify: PartialFunction[TypedValue, TypedValue] = {
-    case (app @ ApplyChain(Reference(_, foundFQN), args)) if (foundFQN == fqn && args.length == arity) =>
-      V.lambda(
-        T.function(T.unit, UnitTesting.expectationType),
-        Pattern.UnitPattern(T.unit),
-        app
-      )
-  }
-  def readThunk(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = {
-    case RT.LambdaFunction(
-          ApplyChain(Reference(_, foundFQN), args),
-          Pattern.UnitPattern(_),
-          context
-        ) if (foundFQN == fqn && args.length == arity) =>
-      try
-        processThunk(
-          globals,
-          context,
-          args.map {
-            arg => MorphirExpect.TransparentArg(arg, Loop(globals).loop(arg, Store(context)))
-          }
-        )
-      catch {
-        case e => SingleTestResult.Err(e)
-      }
-
-  }
-  def processThunk(
-      globals: GlobalDefs,
-      context: CallStackFrame,
-      args: List[MorphirExpect.TransparentArg]
-  ): SingleTestResult
+  def thunkify: PartialFunction[RT, SingleTestResult] = PartialFunction.empty
+  
 }
 
 object MorphirExpect {
   case class TransparentArg(ir: TypedValue, value: RT) {
     def valueString: String = PrintRTValue(value).plainText
+  }
+  trait IntrospectibleExpect extends MorphirExpect {
+    override def thunkify: PartialFunction[TypedValue, TypedValue] = {
+      case (app @ ApplyChain(Reference(_, foundFQN), args)) if (foundFQN == fqn && args.length == arity) =>
+        V.lambda(
+          T.function(T.unit, UnitTesting.expectationType),
+          Pattern.UnitPattern(T.unit),
+          app
+        )
+    }
   }
   trait MorphirExpect1 extends MorphirExpect {
     final def arity = 1;
@@ -220,14 +200,19 @@ object MorphirExpect {
         arg1: TransparentArg,
         arg2: TransparentArg
     ) =
-      //arg1 IR might be a list, but that's not guaranteed
+      // arg1 IR might be directly be a list, but that's not guaranteed
       val functionRTs = arg1.value match {
         case RT.List(elems) => elems
         case _              => throw new OtherError("This should have been an RT.List: ", elems)
       }
       val transparentFunctions = functionRTs.map(f =>
-        f.asInstanceOf[RT.Function]
-        )
+        f.asInstanceOf[RT.Function] match {
+          case lambda @ RT.Lambda(body, pattern, context) => TransparentArg(
+              body,
+              Loop(globals).handleApplyResult(T.unit, lambda, arg2.value)
+            )
+        }
+      )
       throw new OtherError("Why did we think this was a good ideas?", arg1.ir, arg1.value)
   }
 
