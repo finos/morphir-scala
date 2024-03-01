@@ -307,18 +307,18 @@ object MorphirExpect {
     def arity    = 2
     def dynamicFunction = DynamicNativeFunction2("equalDicts") {
       (_: NativeContext) => (l1: RT.Map, l2: RT.Map) =>
-        val (elems1, elems2) = (l1.elements, l2.elements)
+        val (elems1, elems2) = (l1.elements.toMap, l2.elements.toMap)
         if (elems1 == elems2) passedRT
         else explainFailure(elems1, elems2)
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
-    def explainFailure(l1: LinkedHashMap[RT, RT], l2: LinkedHashMap[RT, RT]): String = {
+    def explainFailure(l1: Map[RT, RT], l2: Map[RT, RT]): String = {
       val missingFrom1 = l1.keys.diff(l2.keys)
       missingFrom1.toString
     }
   }
   case object EqualSets extends MorphirExpect {
-    def funcName = "equalSetts"
+    def funcName = "equalSets"
     def arity    = 2
     def dynamicFunction = DynamicNativeFunction2("equalSets") {
       (_: NativeContext) => (l1: RT.Set, l2: RT.Set) => passedRT
