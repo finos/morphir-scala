@@ -88,7 +88,7 @@ object MorphirExpect {
       (_: NativeContext) => (rt1: RT, rt2: RT) =>
         val result = if (opPasses(rt1, rt2)) passedRT
         else
-          failedRT(s"Expect.$funcName (${PrintRTValue(a).plainText}) (${PrintRTValue(b).plainText})")
+          failedRT(s"Expect.$funcName (${PrintRTValue(rt1).plainText}) (${PrintRTValue(rt2).plainText})")
         expectation(result)
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
