@@ -138,7 +138,7 @@ object MorphirExpect {
     def opPasses(
         rt1: RT,
         rt2: RT
-    ): Boolean = arg1 == arg2
+    ): Boolean = rt1 == rt2
   }
 
   case object GreaterThan extends BinOpExpect {
@@ -147,7 +147,10 @@ object MorphirExpect {
     def opPasses(
         rt1: RT,
         rt2: RT
-    ): Boolean = RT.Comparable.compareOrThrow(rt1, rt2) > 0
+    ): Boolean = RT.Comparable.compareOrThrow(
+      Coercer.comparableCoercer.coerce(rt1),
+      Coercer.comparableCoercer.coerce(rt2)
+    ) > 0
   }
 
   def allExpects: List[MorphirExpect] = List(
