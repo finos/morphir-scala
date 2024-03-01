@@ -248,14 +248,14 @@ object MorphirExpect {
       ir match {
         case ApplyChain(Reference(_, FQString("Morphir.SDK:Decimal:fromFloat")), List(ir1, ir2)) =>
           val rt1        = Loop(globals).loop(ir1, Store(context))
-          val rt1        = Loop(globals).loop(ir2, Store(context))
+          val rt2        = Loop(globals).loop(ir2, Store(context))
           val arg1String = ir1.toString
           val arg2String = ir2.toString
           val maxLength  = arg1String.length.max(arg2String.length)
           SingleTestResult.Failed(s"""
-          assert (${arg1.ir}) == (${arg2.ir})
-              ${arg1String.padTo(maxLength, ' ')} evaluated to ${arg1.valueString}
-              ${arg2String.padTo(maxLength, ' ')} evaluated to ${arg2.valueString} """)
+          assert ($arg1String) == ($arg2String)
+              ${arg1String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt1).plainText}}
+              ${arg2String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt2).plainText} """)
         case _ => s"assert $ir evaluated to false"
       }
 
