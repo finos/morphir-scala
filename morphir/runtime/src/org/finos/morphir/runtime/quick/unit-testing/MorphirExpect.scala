@@ -32,7 +32,7 @@ sealed trait MorphirExpect {
   def fqn = FQName.fromString(UnitTesting.expectPrefix + funcName)
   def sdkFunction: SDKValue // would be nice to be able to generalize the wraping but that's hard
   def thunkify: PartialFunction[TypedValue, TypedValue] = {
-    case (app @ ApplyChain(Reference(_, fqn), args)) if (args.length == arity) =>
+    case (app @ ApplyChain(Reference(_, foundFQN), args)) if (foundFQN == fqn && args.length == arity) =>
       V.lambda(
         T.function(T.unit, UnitTesting.expectationType),
         Pattern.UnitPattern(T.unit),
