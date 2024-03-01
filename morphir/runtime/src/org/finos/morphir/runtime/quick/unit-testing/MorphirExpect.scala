@@ -201,7 +201,7 @@ object MorphirExpect {
         }
         val failures = withResults.filter { case (_, result) =>
           result match {
-            case _ => false // Fail everything, just to see for now
+            case _ => true // Fail everything, just to see for now
           }
         }
 
