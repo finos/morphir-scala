@@ -309,7 +309,7 @@ object MorphirExpect {
       (_: NativeContext) => (l1: RT.Map, l2: RT.Map) =>
         val (elems1, elems2) = (l1.elements.toMap, l2.elements.toMap)
         if (elems1 == elems2) passedRT
-        else explainFailure(elems1, elems2)
+        else failedRT(explainFailure(elems1, elems2))
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def explainFailure(l1: Map[RT, RT], l2: Map[RT, RT]): String = {
