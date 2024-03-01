@@ -327,7 +327,7 @@ object MorphirExpect {
       val differingString = if (differing.length == 0) ""
       else
         s"\n\t ${differing.length} keys differ including ${differing(0)._1.printed} (${differing(0)._2.printed} vs ${differing(0)._3.printed})"
-      "equalDicts failed:" + missing1String + missing2String + differingString
+      "Dicts were not equal:" + missing1String + missing2String + differingString
     }
   }
   case object EqualSets extends MorphirExpect {
@@ -337,13 +337,21 @@ object MorphirExpect {
       (_: NativeContext) => (l1: RT.Set, l2: RT.Set) =>
         {
           val (elems1, elems2) = (l1.elements.toSet, l2.elements.toSet)
-        if (elems1 == elems2) passedRT
-        else failedRT(explainFailure(elems1, elems2))
+          if (elems1 == elems2) passedRT
+          else failedRT(explainFailure(elems1, elems2))
         }
     }
-    def sdkFunction: SDKValue                            = NativeFunctionAdapter.Fun2(dynamicFunction).realize
+    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def explainFailure(l1: Set[RT], l2: Set[RT]): String = {
-      
+      val missingFrom1 = l1.diff(l2).toList
+      val missingFrom2 = l2.diff(l1).toList
+      val missing1String = if (missingFrom1.length == 0) ""
+      else if (missingFrom1.length < 4) s"\n\t Items missing from first: ${missingFrom1.map(_.printed).mkString(", ")}"
+      else s"\n\t ${missingFrom1.length} items missing including ${missingFrom1(0).printed}"
+      val missing2String = if (missingFrom2.length == 0) ""
+      else if (missingFrom2.length < 4) s"\n\t Items missing from secomd: ${missingFrom2.map(_.printed).mkString(", ")}"
+      else s"\n\t ${missingFrom2.length} items missing including ${missingFrom2(0).printed}"
+      "Sets were not equal:" + missing1String + missing2String
     }
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
