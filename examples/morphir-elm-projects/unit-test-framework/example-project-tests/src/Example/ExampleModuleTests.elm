@@ -127,6 +127,13 @@ onFailTestSuite = only <| describe "Tests for onFail behavior (complex case due 
             \_ -> Expect.equal 1 1
         , test "Simple Failure" <|
             \_ -> Expect.equal 1 (addOne 1)
+        , test "Nested all test" <|
+            \_ -> Expect.all
+                [
+                    \(x, y) -> Expect.equal x y
+                    , \(x, y) -> Expect.notEqual x y
+                ]
+                (1, 2)
     ]
 
 
