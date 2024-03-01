@@ -76,17 +76,17 @@ object TestTree {
       case other => other // err, todo, skip lack anything to resolve
     }
 
-  def processExpects(tree: MorphirUnitTest): TestTree[SingleTestResult] = {
+  def processExpects(globals: GlobalDefs)(tree: MorphirUnitTest): TestTree[SingleTestResult] = {
     import SingleTestResult.*
     tree match {
-      case Module(name, tests)   => Module(name, tests.map(processExpects))
-      case Describe(desc, tests) => Describe(desc, tests.map(processExpects))
-      case Concat(tests)         => Concat(tests.map(processExpects))
-      case Only(inner)           => Only(processExpects(inner))
+      case Module(name, tests)   => Module(name, tests.map(processExpects(globals)))
+      case Describe(desc, tests) => Describe(desc, tests.map(processExpects(globals)))
+      case Concat(tests)         => Concat(tests.map(processExpects(globals)))
+      case Only(inner)           => Only(processExpects(globals)(inner))
       case SingleTest(
             desc,
             rt
-          ) => SingleTest(desc, MorphirExpect.evaluatedExpectToResult(newGlobals, rt))
+          ) => SingleTest(desc, MorphirExpect.evaluatedExpectToResult(globals, rt))
       case other: Error => other
       case other: Skip  => other
       case other: Todo  => other
