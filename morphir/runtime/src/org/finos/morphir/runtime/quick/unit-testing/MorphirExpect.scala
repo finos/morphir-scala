@@ -48,6 +48,8 @@ sealed trait MorphirExpect {
         ) if (foundFQN == fqn && args.length == arity) =>
       try
         processThunk(
+          globals,
+          context,
           args.map {
             arg => MorphirExpect.TransparentArg(arg, Loop(globals).loop(arg, Store(context)))
           }
@@ -58,6 +60,8 @@ sealed trait MorphirExpect {
 
   }
   def processThunk(
+      globals: GlobalDefs,
+      context: CallStackFrame,
       args: List[MorphirExpect.TransparentArg]
   ): SingleTestResult
 }
@@ -68,15 +72,38 @@ object MorphirExpect {
   }
   trait MorphirExpect1 extends MorphirExpect {
     final def arity = 1;
-    def processThunk(args: List[TransparentArg]): SingleTestResult =
-      processThunk(args(0))
-    def processThunk(arg: TransparentArg): SingleTestResult
+    def processThunk(
+        globals: GlobalDefs,
+        context: CallStackFrame,
+        args: List[TransparentArg]
+    ): SingleTestResult =
+      processThunk(
+        globals,
+        context,
+        args(0)
+      )
+    def processThunk(
+        globals: GlobalDefs,
+        context: CallStackFrame,
+        arg: TransparentArg
+    ): SingleTestResult
   }
   trait MorphirExpect2 extends MorphirExpect {
     final def arity = 2;
-    def processThunk(args: List[TransparentArg]): SingleTestResult =
-      processThunk(args(0), args(1))
     def processThunk(
+        globals: GlobalDefs,
+        context: CallStackFrame,
+        args: List[TransparentArg]
+    ): SingleTestResult =
+      processThunk(
+        globals,
+        context,
+        args(0),
+        args(1)
+      )
+    def processThunk(
+        globals: GlobalDefs,
+        context: CallStackFrame,
         arg1: TransparentArg,
         arg2: TransparentArg
     ): SingleTestResult
@@ -87,13 +114,14 @@ object MorphirExpect {
 
     def dynamicFunction = DynamicNativeFunction2("binOp") {
       (_: NativeContext) => (rt1: RT, rt2: RT) =>
-        val result = if (opPasses(rt1, rt2)) passedRT
+        if (opPasses(rt1, rt2)) passedRT
         else
           failedRT(s"Expect.$funcName (${PrintRTValue(rt1).plainText}) (${PrintRTValue(rt2).plainText})")
-        expectation(result)
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def processThunk(
+        globals: GlobalDefs,
+        context: CallStackFrame,
         arg1: TransparentArg,
         arg2: TransparentArg
     ): SingleTestResult =
@@ -160,6 +188,17 @@ object MorphirExpect {
       Coercer.comparableCoercer.coerce(rt1),
       Coercer.comparableCoercer.coerce(rt2)
     ) > 0
+  }
+
+  case object All extends MorphirExpect2 {
+    def funcName = "all"
+    def dynamicFunction = DynamicNativeFunction2("all") {
+      (context: NativeContext) => (functions: RT.List, subject: RT) =>
+        val withResults = functions.map { f =>
+          val function = f.asInstanceOf[RT.Function]
+          (function, context.evaluator.handleApplyResult(Type.UType.Unit(()), function, subject))
+        }
+    }
   }
 
   def allExpects: List[MorphirExpect] = List(
