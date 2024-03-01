@@ -147,7 +147,6 @@ object MorphirExpect {
     val result =
       RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(RT.Primitive.String(msg)))
     expectation(result)
-  }
 
   case object Equal extends BinOpExpect {
     def funcName = "equal"
@@ -201,14 +200,16 @@ object MorphirExpect {
             case _                       => true
           }
         }
-        val failureStrings = withResults.collect{
+        val failureStrings = withResults.collect {
           case (f, SingleTestResult.Failed(msg)) => s"$f failed: $msg"
-          case (f, SingleTestResult.Err(err)) => s"$f threw error: $err"
+          case (f, SingleTestResult.Err(err))    => s"$f threw error: $err"
         }
 
         if (failures.length == 0) passedRT
         else
-          failedRT(s"Expect.all <functions> ${PrintRTValue(subject).plainText} failed for:\n ${failureStrings.mkString("\n\t")}")
+          failedRT(
+            s"Expect.all <functions> ${PrintRTValue(subject).plainText} failed for:\n ${failureStrings.mkString("\n\t")}"
+          )
     }
     def sdkFunction: SDKValue                   = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     override def thunkify                       = PartialFunction.empty
