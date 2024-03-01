@@ -52,18 +52,18 @@ object TestTree {
 
     }
 
-  def getExpects(globals: GlobalDefs, test: MorphirUnitTest): MorphirUnitTest =
+  def getExpects(globals: GlobalDefs)(test: MorphirUnitTest): MorphirUnitTest =
     test match {
-      case Module(name, tests)   => Module(name, tests.map(getExpects))
-      case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
-      case Concat(tests)         => Concat(tests.map(getExpects))
-      case Only(inner)           => Only(getExpects(inner))
+      case Module(name, tests)   => Module(name, tests.map(getExpects(globals)))
+      case Describe(desc, tests) => Describe(desc, tests.map(getExpects(globals)))
+      case Concat(tests)         => Concat(tests.map(getExpects(globals)))
+      case Only(inner)           => Only(getExpects(globals)(inner))
 
       case SingleTest(desc, thunk) =>
         try
           SingleTest(
             desc,
-            Loop(newGlobals)
+            Loop(globals)
               .handleApplyResult(
                 testType,
                 thunk,
