@@ -283,7 +283,7 @@ object MorphirExpect {
             val compare = Compare(elems1, elems2)
             val printedDiff =
               compare.map(PrintDiff(_).toString()).getOrElse("<No Diff: Contents Identical>")
-            failedRT(printedDiff)
+            failedRT(s"equalLists filed. Diff: $printedDiff")
         }
       }
     }
@@ -293,7 +293,21 @@ object MorphirExpect {
         context: CallStackFrame,
         arg1: TransparentArg,
         arg2: TransparentArg
-    ): SingleTestResult = 
+    ): SingleTestResult = {
+      (arg1.value, arg2.value) match {
+        case (RT.List(elems1), RT.List(elems2)) => {
+      if (arg1.value == arg2.value) SingleTestResult.Passed
+      else {
+            val compare = Compare()
+            val printedDiff =
+              compare.map(PrintDiff(_).toString()).getOrElse("<No Diff: Contents Identical>")
+            failedRT(s"equalLists filed. Diff: $printedDiff")
+        }
+
+        }
+      }
+      
+    }
     
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
