@@ -177,9 +177,10 @@ object MorphirExpect {
     ) > 0
   }
 
-  case object All extends MorphirExpect {
+  case object All extends MorphirExpect2 {
     def funcName = "all"
-    def arity    = 2
+    // This is a bit messy: The component lambdas may already have been rewritten to produce thunks
+    // Thus despite being itself a "normal" function, it may have to deal with arguments that are delayed
     def dynamicFunction = DynamicNativeFunction2("all") {
       (context: NativeContext) => (functions: RT.List, subject: RT) =>
         val withResults = functions.elements.map { f =>
@@ -211,14 +212,14 @@ object MorphirExpect {
             s"Expect.all <functions> ${PrintRTValue(subject).plainText} failed for:\n ${failureStrings.mkString("\n\t")}"
           )
     }
-    def sdkFunction: SDKValue                   = NativeFunctionAdapter.Fun2(dynamicFunction).realize
-    override def thunkify                       = PartialFunction.empty
-    override def readThunk(globals: GlobalDefs) = PartialFunction.empty
-    override def processThunk(
+    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
+    def processThunk(
         globals: GlobalDefs,
         context: CallStackFrame,
-        args: List[MorphirExpect.TransparentArg]
-    ) = throw OtherError("Expect.all not introspectible,how did you call processThunk?", args: _*)
+        arg1: TransparentArg,
+        arg2: TransparentArg
+    ) =
+      throw new OtherError("Why did we think this was a good ideas?", arg1.ir, arg1.value)
   }
 
   def allExpects: List[MorphirExpect] = List(
