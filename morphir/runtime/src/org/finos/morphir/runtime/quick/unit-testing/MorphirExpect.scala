@@ -304,11 +304,17 @@ object MorphirExpect {
   case object EqualDicts extends MorphirExpect {
     def funcName = "equalDicts"
     def arity    = 2
-    def dynamicFunction = DynamicNativeFunction2("equalLists") {
-      (_: NativeContext) => (l1: RT.List, l2: RT.List) => passedRT
+    def dynamicFunction = DynamicNativeFunction2("equalDicts") {
+      (_: NativeContext) => (l1: RT.Dict, l2: RT.Dict) =>
+        val (elems1, elems2) = (l1.elements, l2.elements)
+        if (elems1 == elems2) passedRT
+        else explainFailure(l1, l2)
     }
-    def sdkFunction: SDKValue                                    = NativeFunctionAdapter.Fun2(dynamicFunction).realize
-    def explainFailure(l1: Map[RT, RT], l2: Map[RT, RT]): String = "Whatever"
+    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
+    def explainFailure(l1: Map[RT, RT], l2: Map[RT, RT]): String = {
+      val missingFrom1 = l1.keys.diff(l2.keys)
+      missingFrom1.toString
+    }
   }
   case object EqualSets extends MorphirExpect {
     def funcName = "equalSetts"
@@ -420,7 +426,9 @@ object MorphirExpect {
     AtLeast,
     Okay,
     Err,
-    EqualLists
+    EqualLists,
+    EqualDicts,
+    EqualSets
   )
   def thunkifyAll: PartialFunction[TypedValue, TypedValue] =
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))
