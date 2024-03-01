@@ -199,7 +199,7 @@ object MorphirExpect {
             }
           )
         }
-        val subjectString = ${ PrintRTValue(subject).plainText }
+        val subjectString = PrintRTValue(subject).plainText
         // Get everything that failed:
         val failures = withResults.filter { case (_, result) =>
           result match {
