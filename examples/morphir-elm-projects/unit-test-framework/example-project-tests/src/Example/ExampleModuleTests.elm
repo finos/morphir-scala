@@ -38,6 +38,12 @@ introspectedTestSuite = only <| concat [
         \_ -> 
             Expect.atMost
                 [1, 2]
+                [1, 1],
+    test "Failing okay Test" <| 
+        let 
+        \_ -> 
+            Expect.atMost
+                [1, 2]
                 [1, 1]
 ]
 
