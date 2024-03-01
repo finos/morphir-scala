@@ -47,7 +47,16 @@ introspectedTestSuite = only <| concat [
         let myString = "Red" in
         \_ -> 
             Expect.err
-                (stringToColor myString)
+                (stringToColor myString),
+    test "Failing equalLists Test" <| 
+        let 
+            l1 = [1, 2]
+            l2 = [2, 3]
+        in
+        \_ -> 
+            Expect.equalLists
+                (l1 ++ l2)
+                (l2 ++ l1)
 ]
 
 positive : Int -> Expect.Expectation

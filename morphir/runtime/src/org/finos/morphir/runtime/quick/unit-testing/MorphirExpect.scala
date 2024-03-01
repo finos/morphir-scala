@@ -300,7 +300,7 @@ object MorphirExpect {
         case (RT.List(elems1), RT.List(elems2)) =>
           if (arg1.value == arg2.value) SingleTestResult.Passed
           else {
-            val compare = Compare()
+            val compare = Compare(elems1, elems2)
             val printedDiff =
               compare.map(PrintDiff(_).toString()).getOrElse("<No Diff: Contents Identical>")
             SingleTestResult.Failed(s"equalLists filed. Diff: $printedDiff")
