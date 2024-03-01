@@ -400,11 +400,16 @@ object MorphirExpect {
     def funcName = "onFail"
     def arity    = 2
     def dynamicFunction = DynamicNativeFunction2("all") {
-      (context: NativeContext) => (msg : inner: RT) => {
-        val globals = context.evaluator.asInstanceOf[Loop].globals
-        val result = evaluatedExpectToResult(globals, result)
-        result match
-      }
+      (context: NativeContext) => (msg: RT.Primitive.String, inner: RT) =>
+        {
+          val globals = context.evaluator.asInstanceOf[Loop].globals
+          val result  = evaluatedExpectToResult(globals, result)
+          result match {
+            case SingleTestResult.Failed(_) => failedRT(msg)
+            case SingleTestResult.Passed    => passedRT
+            case SingleTestResult.Err(err)  => throw err
+          }
+        }
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
   }
