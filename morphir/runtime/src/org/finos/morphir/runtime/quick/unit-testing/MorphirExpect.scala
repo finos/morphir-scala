@@ -246,8 +246,9 @@ object MorphirExpect {
   def allExpects: List[MorphirExpect] = List(
     Equal,
     NotEqual,
-    GreaterThan,
-    All
+    All,
+    Assert,
+    GreaterThan
   )
   def thunkifyAll: PartialFunction[TypedValue, TypedValue] =
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))
