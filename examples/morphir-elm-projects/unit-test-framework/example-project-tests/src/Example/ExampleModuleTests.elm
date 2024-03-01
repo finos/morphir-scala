@@ -6,6 +6,14 @@ import Morphir.UnitTest.Expect as Expect
 import Example.ExampleModule exposing (..)
 
 
+positive : Int -> Expect.Expectation
+positive x = Expect.greaterThan x 0
+
+infinite : Int -> Int
+infinite x = infinite x
+
+breakIntrospection : (a -> a -> Expect.Expectation) -> a -> a -> Expect.Expectation
+breakIntrospection f x y = f x y
 
 introspectedTestSuite : Test
 introspectedTestSuite = only <| concat
@@ -50,6 +58,8 @@ introspectedTestSuite = only <| concat
         \_ -> 
             Expect.err
                 (stringToColor myString)
+    , test "Introspection prevented from working (arity 2)" <|
+        \_ -> breakIntrospection Expect.equal (stringToColor "Red") (Ok Green)
     ]
 
 collectionEqualityTests : Test
@@ -110,14 +120,6 @@ collectionEqualityTests = only <| describe "Tests showing collection diff report
         ]
     ]
 
-positive : Int -> Expect.Expectation
-positive x = Expect.greaterThan x 0
-
-infinite : Int -> Int
-infinite x = infinite x
-
-breakIntrospection : (a -> a -> Expect.Expectation) -> a -> a -> Expect.Expectation
-breakIntrospection f x y = f x y
 
 allTestSuite : Test
 allTestSuite = only <| concat
