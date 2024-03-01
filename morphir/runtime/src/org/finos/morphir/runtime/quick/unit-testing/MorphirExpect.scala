@@ -210,6 +210,9 @@ object MorphirExpect {
             s"${PrintRTValue(f).plainText} => ${PrintRTValue(result).plainText}"}}")
         expectation(result)
     }
+    override def thunkify = Partial.empty
+    override def readThunk = throw OtherError("Expect.all not introspectible, what happened?")
+    override def processThunk = throw OtherError("Expect.all not introspectible, what happened?")
   }
 
   def allExpects: List[MorphirExpect] = List(
