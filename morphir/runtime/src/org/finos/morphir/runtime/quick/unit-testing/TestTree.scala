@@ -23,6 +23,7 @@ type TestResult      = TestTree[SingleTestResult]
 // 6 : Final result - Formatted String, counts and result
 
 object TestTree {
+  case class Module[T](name: String, tests: List[TestTree[T]])   extends TestTree[T]
   case class Describe[T](desc: String, tests: List[TestTree[T]]) extends TestTree[T]
   case class SingleTest[T](desc: String, expectThunk: T)         extends TestTree[T]
   case class Concat[T](tests: List[TestTree[T]])                 extends TestTree[T]
@@ -37,6 +38,8 @@ object TestTree {
     tree match {
       case Describe(desc, tests) =>
         desc + "\n" + indentBlock(tests.map(toReportHelper(_, depth + 1)).mkString("\n"))
+      case Module(name, tests) =>
+        "Module" name +"Tests:\n" + tests.map(toReportHelper(_, depth + 1)).mkString("\n") + "\n\n"
       case SingleTest(desc, SingleTestResult.Passed)      => s"$desc: PASSED"
       case SingleTest(desc, SingleTestResult.Failed(msg)) => s"$desc: FAILED ($msg)"
       case SingleTest(desc, SingleTestResult.Err(err))    => s"$desc: ERROR ($err)"
@@ -51,6 +54,7 @@ object TestTree {
 
   def containsOnly[T](tree: TestTree[T]): Boolean =
     tree match {
+      case Module(_, tests)   => tests.exists(containsOnly)
       case Describe(_, tests) => tests.exists(containsOnly)
       case Concat(tests)      => tests.exists(containsOnly)
       case Only(_)            => true
@@ -61,6 +65,10 @@ object TestTree {
   // Skips any tests that aren't nested under an Only
   def pruneToOnly[T](tree: TestTree[T]): TestTree[T] =
     tree match {
+      case m @ Module(name, tests) =>
+        if (containsOnly(d))
+          Describe(desc, tests.map(pruneToOnly))
+        else Skip(desc, count(d))
       case d @ Describe(desc, tests) =>
         if (containsOnly(d))
           Describe(desc, tests.map(pruneToOnly))
