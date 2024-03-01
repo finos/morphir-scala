@@ -42,10 +42,10 @@ sealed trait MorphirExpect {
   }
   def readThunk(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = {
     case RT.LambdaFunction(
-          ApplyChain(Reference(_, fqn), args),
+          ApplyChain(Reference(_, foundFQN), args),
           Pattern.UnitPattern(_),
           context
-        ) =>
+        ) if (foundFQN == fqn && args.length == arity) =>
       try
         processThunk(
           args.map {
@@ -85,7 +85,7 @@ object MorphirExpect {
     def opString: String;
     def opPasses(rt1: RT, rt2: RT): Boolean
 
-    def dynamicFunction = DynamicNativeFunction2("equal") {
+    def dynamicFunction = DynamicNativeFunction2("binOp") {
       (_: NativeContext) => (rt1: RT, rt2: RT) =>
         val result = if (opPasses(rt1, rt2)) passedRT
         else
@@ -151,7 +151,7 @@ object MorphirExpect {
     ): Boolean = RT.Comparable.compareOrThrow(
       Coercer.comparableCoercer.coerce(rt1),
       Coercer.comparableCoercer.coerce(rt2)
-    ) < 0
+    ) > 0
   }
 
   def allExpects: List[MorphirExpect] = List(
