@@ -224,7 +224,17 @@ object MorphirExpect {
   }
 
   case object Assert extends Introspectable1{
-    
+
+    def dynamicFunction = DynamicNativeFunction1("assert") {
+    }
+    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun1(dynamicFunction).realize
+    def processThunk(
+        globals: GlobalDefs,
+        context: CallStackFrame,
+        arg1: TransparentArg,
+    ): SingleTestResult =
+      }
+
   }
 
   def allExpects: List[MorphirExpect] = List(
