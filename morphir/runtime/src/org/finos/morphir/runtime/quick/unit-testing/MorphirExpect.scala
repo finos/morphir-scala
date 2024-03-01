@@ -313,18 +313,20 @@ object MorphirExpect {
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def explainFailure(l1: Map[RT, RT], l2: Map[RT, RT]): String = {
-      val missingFrom1 = l1.keys.toSet.diff(l2.keys.toSet)
-      val missingFrom2 = l2.keys.toSet.diff(l1.keys.toSet)
+      val missingFrom1 = l1.keys.toSet.diff(l2.keys.toSet).toList
+      val missingFrom2 = l2.keys.toSet.diff(l1.keys.toSet).toList
       val missing1String = if (missingFrom1.length == 0) ""
       else if (missingFrom1.length < 4) s"\n\t Keys missing from first: ${missingFrom1.map(_.printed).mkString(", ")}"
-      else s"\n\t ${missingFrom1.length} keys missing including ${missingFrom1.toList(0).printed}"
+      else s"\n\t ${missingFrom1.length} keys missing including ${missingFrom1(0).printed}"
       val missing2String = if (missingFrom2.length == 0) ""
       else if (missingFrom2.length < 4) s"\n\t Keys missing from secomd: ${missingFrom2.map(_.printed).mkString(", ")}"
-      else s"\n\t ${missingFrom2.length} keys missing including ${missingFrom2.toList(0).printed}"
+      else s"\n\t ${missingFrom2.length} keys missing including ${missingFrom2(0).printed}"
       val differing = l1.keys.toSet.intersect(l2.keys.toSet).collect {
         case key if (l1(key) != l2(key)) => (key, l1, l2)
       }.toList
-      val differingString = if (differing.length)
+      val differingString = if (differing.length == 0) ""
+      else
+        s"\n\t ${differing.length} keys differ including ${differing(0)._1.printed} (${differing(0)._2.printed} vs ${differing(0)._3.printed})"
     }
   }
   case object EqualSets extends MorphirExpect {
