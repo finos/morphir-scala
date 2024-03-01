@@ -305,10 +305,10 @@ object MorphirExpect {
     def funcName = "equalDicts"
     def arity    = 2
     def dynamicFunction = DynamicNativeFunction2("equalDicts") {
-      (_: NativeContext) => (l1: RT.Dict, l2: RT.Dict) =>
+      (_: NativeContext) => (l1: RT.Map, l2: RT.Map) =>
         val (elems1, elems2) = (l1.elements, l2.elements)
         if (elems1 == elems2) passedRT
-        else explainFailure(l1, l2)
+        else explainFailure(elems1, elems2)
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def explainFailure(l1: Map[RT, RT], l2: Map[RT, RT]): String = {
