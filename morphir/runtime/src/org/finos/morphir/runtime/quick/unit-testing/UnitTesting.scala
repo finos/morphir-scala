@@ -236,12 +236,7 @@ object UnitTesting {
 
     // Recursive walk of tree, running the user-defined thunks in the "test" code
     // TODO: Move this to TestTree
-    def getExpects(test: MorphirUnitTest): MorphirUnitTest =
-      import TestTree.*
-      test match {
-        case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
-        case Concat(tests)         => Concat(tests.map(getExpects))
-        case Only(inner)           => Only(getExpects(inner))
+    
         case SingleTest(desc, thunk) =>
           try
             SingleTest(

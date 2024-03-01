@@ -39,7 +39,7 @@ object TestTree {
       case Describe(desc, tests) =>
         desc + "\n" + indentBlock(tests.map(toReportHelper(_, depth + 1)).mkString("\n"))
       case Module(name, tests) =>
-        "Module" name +"Tests:\n" + tests.map(toReportHelper(_, depth + 1)).mkString("\n") + "\n\n"
+        "Module" + name + "Tests:\n" + tests.map(toReportHelper(_, depth + 1)).mkString("\n") + "\n\n"
       case SingleTest(desc, SingleTestResult.Passed)      => s"$desc: PASSED"
       case SingleTest(desc, SingleTestResult.Failed(msg)) => s"$desc: FAILED ($msg)"
       case SingleTest(desc, SingleTestResult.Err(err))    => s"$desc: ERROR ($err)"
@@ -51,6 +51,13 @@ object TestTree {
       case Only(inner)      => toReportHelper(inner, depth)
 
     }
+
+  def getExpects(test: MorphirUnitTest): MorphirUnitTest =
+      import TestTree.*
+      test match {
+        case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
+        case Concat(tests)         => Concat(tests.map(getExpects))
+        case Only(inner)           => Only(getExpects(inner))
 
   def containsOnly[T](tree: TestTree[T]): Boolean =
     tree match {
