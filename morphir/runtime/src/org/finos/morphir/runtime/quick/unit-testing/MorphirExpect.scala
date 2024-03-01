@@ -203,6 +203,17 @@ object MorphirExpect {
       Coercer.comparableCoercer.coerce(rt2)
     ) <= 0
   }
+  case object AtLeastt extends BinOpExpect {
+    def funcName = "atLeast"
+    def opString = ">="
+    def opPasses(
+        rt1: RT,
+        rt2: RT
+    ): Boolean = RT.Comparable.compareOrThrow(
+      Coercer.comparableCoercer.coerce(rt1),
+      Coercer.comparableCoercer.coerce(rt2)
+    ) >= 0
+  }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
   case object All extends MorphirExpect {
     def funcName = "all"
