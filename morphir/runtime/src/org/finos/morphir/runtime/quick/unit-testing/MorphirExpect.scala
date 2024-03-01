@@ -203,7 +203,7 @@ object MorphirExpect {
       Coercer.comparableCoercer.coerce(rt2)
     ) <= 0
   }
-  case object AtLeastt extends BinOpExpect {
+  case object AtLeast extends BinOpExpect {
     def funcName = "atLeast"
     def opString = ">="
     def opPasses(
@@ -213,6 +213,17 @@ object MorphirExpect {
       Coercer.comparableCoercer.coerce(rt1),
       Coercer.comparableCoercer.coerce(rt2)
     ) >= 0
+  }
+  case object Okay extends Introspectable1{
+    def funcName = "okay"
+
+    def dynamicFunction = DynamicNativeFunction1("okay") {
+      (_: NativeContext) => (rt1: RT.) =>
+        if (opPasses(rt1, rt2)) passedRT
+        else
+          failedRT(s"Expect.$funcName (${PrintRTValue(rt1).plainText}) (${PrintRTValue(rt2).plainText})")
+    }
+    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
   case object All extends MorphirExpect {
@@ -311,7 +322,8 @@ object MorphirExpect {
     Assert,
     GreaterThan,
     LessThan,
-    AtMost
+    AtMost,
+    AtLeast
   )
   def thunkifyAll: PartialFunction[TypedValue, TypedValue] =
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))
