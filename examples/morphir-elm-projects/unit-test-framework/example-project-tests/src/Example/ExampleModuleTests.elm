@@ -34,6 +34,13 @@ allTestSuite = only <| concat[
                 \x -> positive x
             ]
             -1,
+    test "Passing all test" <|
+        \_ -> Expect.all 
+            [
+                \x -> Expect.equal x 1,
+                \x -> positive x
+            ]
+            1
 ]
 simpleTest : Test
 simpleTest = test "Simple Test" <|
