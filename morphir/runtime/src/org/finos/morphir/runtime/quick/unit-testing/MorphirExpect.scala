@@ -231,22 +231,23 @@ object MorphirExpect {
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))
   def readThunkAll(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] =
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.readThunk(globals)))
-  def evaluatedExpectToResult(globals: GlobalDefs, testResult : RT) : SingleTestResult = {
+  def evaluatedExpectToResult(globals: GlobalDefs, testResult: RT): SingleTestResult =
     testResult match {
-      RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Expectation"), List(rt))
-            ) =>
-          rt match {
-            case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Pass"), List()) =>
-              SingleTest(desc, Passed)
-            case RT.ConstructorResult(
-                  FQStringTitleCase("Morphir.UnitTest:Expect:Fail"),
-                  List(Primitive.String(msg))
-                ) =>
-              SingleTest(desc, Failed(msg))
-            case other => SingleTest(desc, Err(new OtherError("Unrecognized Expectation Result:", other)))
+      case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Expectation"), List(rt)) =>
+        rt match {
+          case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Pass"), List()) =>
+            Passed
+          case RT.ConstructorResult(
+                FQStringTitleCase("Morphir.UnitTest:Expect:Fail"),
+                List(Primitive.String(msg))
+              ) => Failed(msg)
+
+          case other => readThunkAll(newGlobals).lift(other) match {
+            case Some(result) => SingleTest(desc, result)
+            case other        => SingleTest(desc, Err(new OtherError("Unrecognized Expectation: ", other)))
           }
+        }
     }
-  }
   def newDefs: GlobalDefs =
     GlobalDefs(
       allExpects.map(expect => (expect.fqn -> expect.sdkFunction)).toMap,
