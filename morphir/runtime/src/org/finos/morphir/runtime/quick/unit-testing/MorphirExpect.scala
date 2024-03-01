@@ -237,7 +237,7 @@ object MorphirExpect {
     ): SingleTestResult =
       arg1.value match {
         case RT.Primitive.Boolean(true)  => SingleTestResult.Passed
-        case RT.Primitive.Boolean(false) => SingleTestResult.Failed(explainFailure(arg1.ir))
+        case RT.Primitive.Boolean(false) => SingleTestResult.Failed(explainFailure(globals, context, arg1.ir))
         case other => SingleTestResult.Err(OtherError("Assert argument did not evaluate to bool:", other))
       }
     def explainFailure(
