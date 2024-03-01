@@ -194,11 +194,11 @@ object MorphirExpect {
     def funcName = "all"
     def dynamicFunction = DynamicNativeFunction2("all") {
       (context: NativeContext) => (functions: RT.List, subject: RT) =>
-        val withResults = functions.map { f =>
+        val withResults = functions.elements.map { f =>
           val function = f.asInstanceOf[RT.Function]
-          (function, context.evaluator.handleApplyResult(Type.UType.Unit(()), function, subject))
+          (function, context.evaluator.handleApplyResult(T.unit, function, subject))
         }
-        val failures = functions.filter { case (_, result) =>
+        val failures = withResults.filter { case (_, result) =>
           result match {
             case _ => false // Fail everything, just to see for now
           }
@@ -210,9 +210,13 @@ object MorphirExpect {
               s"${PrintRTValue(f).plainText} => ${PrintRTValue(result).plainText}"
             }}")
     }
-    override def thunkify     = Partial.empty
-    override def readThunk    = throw OtherError("Expect.all not introspectible, what happened?")
-    override def processThunk = throw OtherError("Expect.all not introspectible, what happened?")
+    override def thunkify                       = PartialFunction.empty
+    override def readThunk(globals: GlobalDefs) = throw OtherError("Expect.all not introspectible, what happened?")
+    override def processThunk(
+        globals: GlobalDefs,
+        context: CallStackFrame,
+        args: List[MorphirExpect.TransparentArg]
+    ) = throw OtherError("Expect.all not introspectible, what happened?")
   }
 
   def allExpects: List[MorphirExpect] = List(
