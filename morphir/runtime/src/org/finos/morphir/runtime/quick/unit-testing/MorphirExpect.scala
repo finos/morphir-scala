@@ -318,7 +318,8 @@ object MorphirExpect {
       val differing = l1.keys.toSet.intersect(l2.keys.toSet).collect {
         case key if (l1(key) != l2(key)) => (key, l1, l2)
       }
-      
+      s"""
+        keys missing from first: ${missingFrom1}"""
     }
   }
   case object EqualSets extends MorphirExpect {
