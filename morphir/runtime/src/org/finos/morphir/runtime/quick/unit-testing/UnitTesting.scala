@@ -229,7 +229,7 @@ object UnitTesting {
                     case s: TestTree.SingleTest[_] => s
                     case other                     => TestTree.Describe(fqn.toString, List(other))
                   }
-              }
+              }.toList
             )
           }
       ).resolveOnly // "Only" requires special handling, so do that here
