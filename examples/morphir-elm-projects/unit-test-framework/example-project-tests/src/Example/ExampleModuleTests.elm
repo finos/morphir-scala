@@ -6,7 +6,7 @@ import Example.ExampleModule exposing (..)
 
 
 introspectedTestSuite : Test
-introspectedTestSuite = concat [
+introspectedTestSuite = only <| concat [
     test "Failing Equality Test" <| 
         \_ -> let record = {name = "Bob", age = 45} in
             Expect.equal 
@@ -20,7 +20,11 @@ introspectedTestSuite = concat [
             in
             Expect.notEqual 
                 record2
-                {record1 | name = "Joe"}
+                {record1 | name = "Joe"},
+    test "Failing Assert Test" <| 
+        \_ -> 
+            Expect.assert <|
+                "Red Blue" == (String.concat ["Red", "Blue"])
 ]
 positive : Int -> Expect.Expectation
 positive x = Expect.greaterThan x 0
