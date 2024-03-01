@@ -238,7 +238,20 @@ object MorphirExpect {
       arg1.value match {
         case RT.Primitive.Boolean(true)  => SingleTestResult.Passed
         case RT.Primitive.Boolean(false) => SingleTestResult.Failed(s"assert ${arg1.ir} evaluated to false")
-        case other => SingleTestResult.Err(OtherError("Assert argument did not evaluat to bool:", other))
+        case other => SingleTestResult.Err(OtherError("Assert argument did not evaluate to bool:", other))
+      }
+    def explainFailure(
+        globals: GlobalDefs,
+        context: CallStackFrame,
+        ir: TypedValue
+    ): String =
+      ir match {
+        case ApplyChain(Reference(_, FQString("Morphir.SDK:Decimal:fromFloat")), List(ir1, ir2)) =>{
+          val rt1 = Loop(globals).loop(ir1, Store(context))
+          val rt1 = Loop(globals).loop(ir2, Store(context))
+          s"""assert $ir evaluated to false:"""
+        }
+        case _ => s"assert $ir evaluated to false"
       }
 
   }
