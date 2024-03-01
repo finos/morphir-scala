@@ -33,7 +33,7 @@ allTestSuite = only <| concat[
                 \x -> Expect.equal x 1,
                 \x -> positive x
             ]
-            -1
+            -1,
 ]
 simpleTest : Test
 simpleTest = test "Simple Test" <|

@@ -3,6 +3,7 @@ import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.SingleTestResult
 import org.finos.morphir.runtime.MorphirRuntimeError.*
+import org.finos.morphir.runtime.ErrorUtils.indentBlock
 
 //Possibly this tpe should be polymorphic on the contents
 sealed trait TestTree[+T] {
@@ -31,7 +32,6 @@ object TestTree {
       extends TestTree[Nothing] // not worth distinguishing between MorphirRuntimeError here
   case class Only[T](test: TestTree[T]) extends TestTree[T]
 
-  def indentBlock(s: String): String                     = s.split("\n").map("\t" + _).mkString("\n")
   def toReport(tree: TestTree[SingleTestResult]): String = toReportHelper(tree, 0)
   def toReportHelper(tree: TestTree[SingleTestResult], depth: Int): String =
     tree match {
