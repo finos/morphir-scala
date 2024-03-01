@@ -96,12 +96,16 @@ collectionEqualityTests = only <| describe "Tests showing collection diff report
         "Set tests"
         [test "equalSets first longer" <|
             \_ -> Expect.equalDicts 
+                (Dict.fromList long)
                 (Dict.fromList base)
-                (Dict.fromList short)
         , test "equalSets second much longer" <|
             \_ -> Expect.equalDicts 
                 (Dict.fromList short)
                 (Dict.fromList long)
+        , test "equalSets neither is subset" <|
+            \_ -> Expect.equalDicts 
+                (Dict.fromList base)
+                (Dict.fromList middle)
         ]
     ]
 
