@@ -334,10 +334,17 @@ object MorphirExpect {
     def funcName = "equalSets"
     def arity    = 2
     def dynamicFunction = DynamicNativeFunction2("equalSets") {
-      (_: NativeContext) => (l1: RT.Set, l2: RT.Set) => passedRT
+      (_: NativeContext) => (l1: RT.Set, l2: RT.Set) =>
+        {
+          val (elems1, elems2) = (l1.elements.toSet, l2.elements.toSet)
+        if (elems1 == elems2) passedRT
+        else failedRT(explainFailure(elems1, elems2))
+        }
     }
     def sdkFunction: SDKValue                            = NativeFunctionAdapter.Fun2(dynamicFunction).realize
-    def explainFailure(l1: Set[RT], l2: Set[RT]): String = "Whatever"
+    def explainFailure(l1: Set[RT], l2: Set[RT]): String = {
+      
+    }
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
   case object All extends MorphirExpect {
