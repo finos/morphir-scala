@@ -56,7 +56,8 @@ collectionEqualityTests = only <| describe "Tests showing collection diff report
     let
         short = [("Grass", "Green")]
         base = [("Grass", "Green"), ("Fire", "Red")]
-        long = [("Grass", "Green"), ("Fire", "Orange"), ("Snow", "White")]
+        long = [("Grass", "Green"), ("Fire", "Red"), ("Snow", "White"), ("Sky", "Blue"), ("Coal", "Black")]
+        different = [("Grass", "Verdant"), ("Fire", "Crimson"), ("Snow", "Alabaster"), ("Sky", "Cerulean"), ("Coal", "Really, Really Dark Black")]
     in
     [test "Failing equalLists Test" <| 
         let 
