@@ -239,11 +239,11 @@ object MorphirExpect {
             SingleTestResult.Passed
           case RT.ConstructorResult(
                 FQStringTitleCase("Morphir.UnitTest:Expect:Fail"),
-                List(Primitive.String(msg))
+                List(RT.Primitive.String(msg))
               ) => SingleTestResult.Failed(msg)
           case other => readThunkAll(newGlobals).lift(other).getOrElse(
-            SingleTestResult.Err(new OtherError("Unrecognized Expectation: ", other)))
-          }
+              SingleTestResult.Err(new OtherError("Unrecognized Expectation: ", other))
+            )
         }
     }
   def newDefs: GlobalDefs =
