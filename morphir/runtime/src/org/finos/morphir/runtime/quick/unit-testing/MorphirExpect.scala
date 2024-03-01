@@ -222,6 +222,8 @@ object MorphirExpect {
         value match {
           case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Ok"), List(_)) =>
             passedRT
+          case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Err"), List(err)) =>
+            failedRT(s"Expect.okay recieved Err ${PrintRTValie(err).plainText}")
         }
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
