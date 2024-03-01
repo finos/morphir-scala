@@ -82,7 +82,7 @@ object MorphirExpect {
   }
   trait BinOpExpect extends MorphirExpect2 {
     def opString: String;
-    def pass(rt1 : RTValue, rt2 : RTValue) : Boolean
+    def pass(rt1 : RT, rt2 : RT) : Boolean
     def processThunk(
         arg1: TransparentArg,
         arg2: TransparentArg
