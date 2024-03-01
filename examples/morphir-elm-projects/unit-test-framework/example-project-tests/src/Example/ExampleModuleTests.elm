@@ -59,23 +59,29 @@ collectionEqualityTests = only <| describe "Tests showing collection diff report
         long = [("Grass", "Green"), ("Fire", "Red"), ("Snow", "White"), ("Sky", "Blue"), ("Coal", "Black")]
         different = [("Grass", "Verdant"), ("Fire", "Crimson"), ("Snow", "Alabaster"), ("Sky", "Cerulean"), ("Coal", "Really, Really Dark Black")]
     in
-    [test "equalLists different Lengths" <| 
-        \_ -> 
-            Expect.equalLists
-                base
-                long
-    , test "equalDicts first shorter" <|
-        \_ -> Expect.equalDicts 
-            (Dict.fromList base)
-            (Dict.fromList short)
-    , test "equalDicts second shorter" <|
-        \_ -> Expect.equalDicts 
-            (Dict.fromList base)
-            (Dict.fromList long)
-    , test "equalDicts many differences" <|
-        \_ -> Expect.equalDicts 
-            (Dict.fromList long)
-            (Dict.fromList different)
+    [describe 
+        "List tests" 
+        [test "equalLists different Lengths" <| 
+            \_ -> 
+                Expect.equalLists
+                    base
+                    long
+        ]
+    , describe 
+        "Dict tests"
+        [test "equalDicts first shorter" <|
+            \_ -> Expect.equalDicts 
+                (Dict.fromList base)
+                (Dict.fromList short)
+        , test "equalDicts second shorter" <|
+            \_ -> Expect.equalDicts 
+                (Dict.fromList base)
+                (Dict.fromList long)
+        , test "equalDicts many differences" <|
+            \_ -> Expect.equalDicts 
+                (Dict.fromList long)
+                (Dict.fromList different)
+        ]
     ]
 
 positive : Int -> Expect.Expectation
