@@ -252,10 +252,10 @@ object MorphirExpect {
           val arg1String = ir1.toString
           val arg2String = ir2.toString
           val maxLength  = arg1String.length.max(arg2String.length)
-          SingleTestResult.Failed(s"""
+          s"""
           assert ($arg1String) == ($arg2String)
               ${arg1String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt1).plainText}}
-              ${arg2String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt2).plainText} """)
+              ${arg2String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt2).plainText} """
         case _ => s"assert $ir evaluated to false"
       }
 
