@@ -233,7 +233,18 @@ object MorphirExpect {
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.readThunk(globals)))
   def evaluatedExpectToResult(globals: GlobalDefs, testResult : RT) : SingleTestResult = {
     testResult match {
-      
+      RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Expectation"), List(rt))
+            ) =>
+          rt match {
+            case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Pass"), List()) =>
+              SingleTest(desc, Passed)
+            case RT.ConstructorResult(
+                  FQStringTitleCase("Morphir.UnitTest:Expect:Fail"),
+                  List(Primitive.String(msg))
+                ) =>
+              SingleTest(desc, Failed(msg))
+            case other => SingleTest(desc, Err(new OtherError("Unrecognized Expectation Result:", other)))
+          }
     }
   }
   def newDefs: GlobalDefs =
