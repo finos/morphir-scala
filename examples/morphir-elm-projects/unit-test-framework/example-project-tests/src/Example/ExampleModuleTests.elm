@@ -146,6 +146,13 @@ allTestSuite = only <| concat
                 \x -> positive x
             ]
             1
+    , test "Failing all test with nested onFail (Should see Rumplestilskin)" <|
+        \_ -> Expect.all 
+            [
+                \x -> Expect.onFail "RUMPLESTILSKIN! Success!" <| Expect.equal x 1,
+                \x -> positive x
+            ]
+            -1
     ]
 
 
