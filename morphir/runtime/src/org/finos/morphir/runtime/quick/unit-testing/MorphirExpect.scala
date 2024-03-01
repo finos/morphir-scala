@@ -192,6 +192,17 @@ object MorphirExpect {
       Coercer.comparableCoercer.coerce(rt2)
     ) < 0
   }
+  case object AtMost extends BinOpExpect {
+    def funcName = "atMost"
+    def opString = "<="
+    def opPasses(
+        rt1: RT,
+        rt2: RT
+    ): Boolean = RT.Comparable.compareOrThrow(
+      Coercer.comparableCoercer.coerce(rt1),
+      Coercer.comparableCoercer.coerce(rt2)
+    ) <= 0
+  }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
   case object All extends MorphirExpect {
     def funcName = "all"
@@ -287,7 +298,9 @@ object MorphirExpect {
     NotEqual,
     All,
     Assert,
-    GreaterThan
+    GreaterThan,
+    LessThan,
+    AtMost
   )
   def thunkifyAll: PartialFunction[TypedValue, TypedValue] =
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))
