@@ -274,18 +274,20 @@ object MorphirExpect {
           SingleTestResult.Err(OtherError("Expect.err Expected Result type", arg1.ir, arg1.value))
       }
   }
-  case object EqualLists extends Introspectable2{
+  case object EqualLists extends Introspectable2 {
     def funcName = "equalLists"
     def dynamicFunction = DynamicNativeFunction2("equalLists") {
-      (_: NativeContext) => (l1: RT.List, l2 : RT.List) =>{
-        val (elems1, elems2) = (l1.elements, l2.elements)
-        if (elems1 == elems2) passedRT else {
+      (_: NativeContext) => (l1: RT.List, l2: RT.List) =>
+        {
+          val (elems1, elems2) = (l1.elements, l2.elements)
+          if (elems1 == elems2) passedRT
+          else {
             val compare = Compare(elems1, elems2)
             val printedDiff =
               compare.map(PrintDiff(_).toString()).getOrElse("<No Diff: Contents Identical>")
             failedRT(s"equalLists filed. Diff: $printedDiff")
+          }
         }
-      }
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def processThunk(
@@ -293,22 +295,19 @@ object MorphirExpect {
         context: CallStackFrame,
         arg1: TransparentArg,
         arg2: TransparentArg
-    ): SingleTestResult = {
+    ): SingleTestResult =
       (arg1.value, arg2.value) match {
-        case (RT.List(elems1), RT.List(elems2)) => {
-      if (arg1.value == arg2.value) SingleTestResult.Passed
-      else {
+        case (RT.List(elems1), RT.List(elems2)) =>
+          if (arg1.value == arg2.value) SingleTestResult.Passed
+          else {
             val compare = Compare()
             val printedDiff =
               compare.map(PrintDiff(_).toString()).getOrElse("<No Diff: Contents Identical>")
-            failedRT(s"equalLists filed. Diff: $printedDiff")
-        }
-
-        }
+            SingleTestResult.Failed(s"equalLists filed. Diff: $printedDiff")
+          }
+        case (other1, other2) => SingleTestResult.Err(OtherError("Expected lists", other1, other2))
       }
-      
-    }
-    
+
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
   case object All extends MorphirExpect {
