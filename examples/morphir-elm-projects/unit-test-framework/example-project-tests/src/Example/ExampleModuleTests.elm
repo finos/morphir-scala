@@ -125,6 +125,8 @@ onFailTestSuite = only <| describe "Tests for onFail behavior (complex case due 
     [
         test "Simple Pass" <|
             \_ -> Expect.equal 1 1
+        , test "Simple Failure" <|
+            \_ -> Expect.equal 1 (addOne 1)
     ]
 
 
