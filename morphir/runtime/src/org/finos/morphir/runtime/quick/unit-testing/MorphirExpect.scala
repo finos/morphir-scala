@@ -374,7 +374,7 @@ object MorphirExpect {
               }
             )
           } catch {
-            case e => (function, SingleTestResult.Err(e))
+            case e => (f, SingleTestResult.Err(e))
           }
         }
         val subjectString = subject.printed
