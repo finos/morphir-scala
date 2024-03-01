@@ -396,6 +396,19 @@ object MorphirExpect {
 
   }
 
+  case object OnFail extends MorphirExpect {
+    def funcName = "onFail"
+    def arity    = 2
+    def dynamicFunction = DynamicNativeFunction2("all") {
+      (context: NativeContext) => (msg : inner: RT) => {
+        val globals = context.evaluator.asInstanceOf[Loop].globals
+        val result = evaluatedExpectToResult(globals, result)
+        result match
+      }
+    }
+    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
+  }
+
   case object Assert extends Introspectable1 {
     def funcName: String = "assert"
     def dynamicFunction = DynamicNativeFunction1("assert") {
@@ -456,7 +469,9 @@ object MorphirExpect {
     Err,
     EqualLists,
     EqualDicts,
-    EqualSets
+    EqualSets,
+    OnFail
+    // "Pass" and "Fail" require no special support
   )
   def thunkifyAll: PartialFunction[TypedValue, TypedValue] =
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))
