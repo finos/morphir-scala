@@ -65,6 +65,12 @@ object MorphirExpect {
   case class TransparentArg(ir: TypedValue, value: RT) {
     def valueString: String = PrintRTValue(value).plainText
   }
+  trait MorphirExpect1 extends MorphirExpect {
+    final def arity = 1;
+    def processThunk(args: List[TransparentArg]): SingleTestResult =
+      processThunk(args(0))
+    def processThunk(arg: TransparentArg): SingleTestResult
+  }
   trait MorphirExpect2 extends MorphirExpect {
     final def arity = 2;
     def processThunk(args: List[TransparentArg]): SingleTestResult =
@@ -73,12 +79,6 @@ object MorphirExpect {
         arg1: TransparentArg,
         arg2: TransparentArg
     ): SingleTestResult
-  }
-  trait MorphirExpect1 extends MorphirExpect {
-    final def arity = 1;
-    def processThunk(args: List[TransparentArg]): SingleTestResult =
-      processThunk(args(0))
-    def processThunk(arg: TransparentArg): SingleTestResult
   }
 
   def expectation(result: RT) =
