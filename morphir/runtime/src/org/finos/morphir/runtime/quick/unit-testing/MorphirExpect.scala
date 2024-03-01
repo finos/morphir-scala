@@ -91,8 +91,8 @@ object MorphirExpect {
       val maxLength  = arg1String.length.max(arg2String.length)
       SingleTestResult.Failed(s"""
       Expect.$funcName (${arg1.ir}) (${arg2.ir})
-          ${arg1String.padTo(maxLength)} evaluated to ${arg1.valueString}
-          ${arg2String.padTo(maxLength)} evaluated to ${arg2.valueString} """)
+          ${arg1String.padTo(maxLength, ' ')} evaluated to ${arg1.valueString}
+          ${arg2String.padTo(maxLength, ' ')} evaluated to ${arg2.valueString} """)
   }
 
   def expectation(result: RT) =
