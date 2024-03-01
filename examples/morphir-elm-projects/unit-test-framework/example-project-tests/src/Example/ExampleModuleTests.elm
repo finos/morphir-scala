@@ -4,6 +4,15 @@ import Morphir.UnitTest.Expect as Expect
 import Example.ExampleModule exposing (..)
 
 
+
+introspectedTestSuite : Test
+introspectedTestSuite = concat [
+    test "Failing Equality Test" <| 
+        \_ -> let record = {name = "Bob", age = 45} in
+            Expect.equal 
+                record
+                {record | name = "Joe"}
+]
 simpleTest : Test
 simpleTest = test "Simple Test" <|
     \_ -> 
@@ -40,6 +49,7 @@ failingTest : Test
 failingTest = test "Failing Test" <|
     \_ -> 
         Expect.equal 1 2
+
 
 greaterThanTests : Test
 greaterThanTests = concat [
