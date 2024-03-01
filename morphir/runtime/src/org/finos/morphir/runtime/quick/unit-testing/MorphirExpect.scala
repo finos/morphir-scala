@@ -192,6 +192,7 @@ object MorphirExpect {
 
   case object All extends MorphirExpect {
     def funcName = "all"
+    def arity    = 2
     def dynamicFunction = DynamicNativeFunction2("all") {
       (context: NativeContext) => (functions: RT.List, subject: RT) =>
         val withResults = functions.elements.map { f =>
