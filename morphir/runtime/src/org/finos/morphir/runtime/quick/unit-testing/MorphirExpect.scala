@@ -147,18 +147,6 @@ object MorphirExpect {
     val result =
       RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(RT.Primitive.String(msg)))
     expectation(result)
-
-  def extract(f: RT.Function, ctx: NativeContext): (TypedValue, TypedValue, RT, RT) = {
-    val out = ctx.evaluator.handleApplyResult(T.unit, f, RT.Unit())
-    val (ir1, ir2) = f match {
-      case RT.LambdaFunction(Tuple(_, elements), _, _) => (elements(0), elements(1))
-      case other                                       => throw OtherError("This should not be!", other)
-    }
-    val (rt1, rt2) = out match {
-      case RT.Tuple(List(rt1_, rt2_)) => (rt1_, rt2_)
-      case other                      => throw new Exception("This should not be!")
-    }
-    (ir1, ir2, rt1, rt2)
   }
 
   case object Equal extends BinOpExpect {
@@ -213,12 +201,14 @@ object MorphirExpect {
             case _                       => true
           }
         }
+        val failureStrings = withResults.collect{
+          case (f, SingleTestResult.Failed(msg)) => s"$f failed: $msg"
+          case (f, SingleTestResult.Err(err)) => s"$f threw error: $err"
+        }
 
         if (failures.length == 0) passedRT
         else
-          failedRT(s"Expect.all failed for:\n ${failures.map { case (f, result) =>
-              s"${PrintRTValue(f).plainText} => ${PrintRTValue(result).plainText}"
-            }}")
+          failedRT(s"Expect.all <functions> ${PrintRTValue(subject).plainText} failed for:\n ${failureStrings.mkString("\n\t")}")
     }
     def sdkFunction: SDKValue                   = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     override def thunkify                       = PartialFunction.empty
@@ -227,7 +217,7 @@ object MorphirExpect {
         globals: GlobalDefs,
         context: CallStackFrame,
         args: List[MorphirExpect.TransparentArg]
-    ) = throw OtherError("Expect.all not introspectible,how did you call procesThunk?", args: _*)
+    ) = throw OtherError("Expect.all not introspectible,how did you call processThunk?", args: _*)
   }
 
   def allExpects: List[MorphirExpect] = List(
