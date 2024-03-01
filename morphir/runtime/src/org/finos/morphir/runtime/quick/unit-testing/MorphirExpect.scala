@@ -224,9 +224,11 @@ object MorphirExpect {
             passedRT
           case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Err"), List(err)) =>
             failedRT(s"Expect.okay recieved Err ${PrintRTValie(err).plainText}")
+          case RT.ConstructorResult(_, _) =>
+            throw new UnexpectedType(s"Ok(value) or Err(err)", arg, hint = "Expected due to use in a Expect.okay")
         }
     }
-    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
+    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun1(dynamicFunction).realize
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
   case object All extends MorphirExpect {
