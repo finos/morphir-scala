@@ -68,6 +68,14 @@ collectionEqualityTests = only <| describe "Tests showing collection diff report
         \_ -> Expect.equalDicts 
             (Dict.fromList base)
             (Dict.fromList short)
+    , test "equalDicts second shorter" <|
+        \_ -> Expect.equalDicts 
+            (Dict.fromList base)
+            (Dict.fromList long)
+    , test "equalDicts many differences" <|
+        \_ -> Expect.equalDicts 
+            (Dict.fromList long)
+            (Dict.fromList different)
     ]
 
 positive : Int -> Expect.Expectation
