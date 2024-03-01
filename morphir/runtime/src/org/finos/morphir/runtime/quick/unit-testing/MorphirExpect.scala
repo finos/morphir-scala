@@ -306,8 +306,9 @@ object MorphirExpect {
       if (l1.length != l2.length) s"Lengths differ (${l1.length} vs ${l2.length})"
       else {
         val mismatches = l1.zip(l2).zipWithIndex.filter{case ((v1, v2), index) => v1 != v2}
-        val example = mismatches(0)
-        s"Lists differ in ${mismatches.length} positions. At ${example._2}"
+        val ((v1, v2), index) = mismatches(0)
+        s"""Lists differ in ${mismatches.length} positions. 
+          Example: at $index, ${PrintRTValue(v1).plainText} vs ${PrintRTValue(v2).plainText}}"""
 
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
