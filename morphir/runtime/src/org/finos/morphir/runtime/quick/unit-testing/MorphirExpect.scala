@@ -233,9 +233,16 @@ object MorphirExpect {
         globals: GlobalDefs,
         context: CallStackFrame,
         arg1: TransparentArg
-    ): SingleTestResult = {
-      
-    }
+    ): SingleTestResult =
+      arg1.value match {
+        case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Ok"), List(_)) =>
+          SingleTestResult.Passed
+        case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Err"), List(err)) =>
+          SingleTestResult.Failed(s"""Expect.okay ${arg1.ir} 
+            ${arg1.ir} evaluated to Err ${PrintRTValie(err).plainText}""")
+        case other =>
+          throw new OtherError("Expected Result type", arg1.ir, arg1.value)
+      }
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
   case object All extends MorphirExpect {
