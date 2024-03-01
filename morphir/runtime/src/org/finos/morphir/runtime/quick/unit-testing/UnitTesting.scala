@@ -237,7 +237,7 @@ object UnitTesting {
     // Recursive walk of tree, running the user-defined thunks in the "test" code
     // TODO: Move this to TestTree
 
-    val withExpects = TestTree.getExpects(testTree)
+    val withExpects = TestTree.getExpects(newGlobals, testTree)
 
     def processExpects(tree: MorphirUnitTest): TestTree[SingleTestResult] = {
       import TestTree.*

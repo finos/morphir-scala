@@ -52,7 +52,7 @@ object TestTree {
 
     }
 
-  def getExpects(test: MorphirUnitTest): MorphirUnitTest =
+  def getExpects(globals: GlobalDefs, test: MorphirUnitTest): MorphirUnitTest =
     test match {
       case Module(name, tests)   => Module(name, tests.map(getExpects))
       case Describe(desc, tests) => Describe(desc, tests.map(getExpects))
