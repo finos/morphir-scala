@@ -363,15 +363,19 @@ object MorphirExpect {
     def dynamicFunction = DynamicNativeFunction2("all") {
       (context: NativeContext) => (functions: RT.List, subject: RT) =>
         val withResults = functions.elements.map { f =>
-          val function = f.asInstanceOf[RT.Function]
-          (
-            function, {
-              val result = context.evaluator.handleApplyResult(T.unit, function, subject)
-              // This isn't great but I don't know a better way:
-              val globals = context.evaluator.asInstanceOf[Loop].globals
-              evaluatedExpectToResult(globals, result)
-            }
-          )
+          try {
+            val function = f.asInstanceOf[RT.Function]
+            (
+              function, {
+                val result = context.evaluator.handleApplyResult(T.unit, function, subject)
+                // This isn't great but I don't know a better way:
+                val globals = context.evaluator.asInstanceOf[Loop].globals
+                evaluatedExpectToResult(globals, result)
+              }
+            )
+          } catch {
+            case e => (function, SingleTestResult.Err(e))
+          }
         }
         val subjectString = subject.printed
         // Get everything that failed:
