@@ -65,9 +65,9 @@ object TestTree {
             desc,
             Loop(globals)
               .handleApplyResult(
-                testType,
+                UnitTesting.testType,
                 thunk,
-                RTValue.Unit()
+                RT.Unit()
               )
           )
         catch {
