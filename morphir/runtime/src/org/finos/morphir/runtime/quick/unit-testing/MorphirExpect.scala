@@ -86,7 +86,7 @@ object MorphirExpect {
         arg1: TransparentArg,
         arg2: TransparentArg
     ): SingleTestResult =
-      Failed(s"""
+      SingleTestResult.Failed(s"""
       Expect.$funcName ${arg1.ir} ${arg2.ir}
           ${arg1.ir} evaluated to ${arg1.valueString}
           ${arg2.ir} evaluated to ${arg2.valueString}
