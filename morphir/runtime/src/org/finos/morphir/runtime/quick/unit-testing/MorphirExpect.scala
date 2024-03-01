@@ -6,6 +6,7 @@ import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.Pattern
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
+import org.finos.morphir.runtime.Coercer
 import org.finos.morphir.runtime.SingleTestResult
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
