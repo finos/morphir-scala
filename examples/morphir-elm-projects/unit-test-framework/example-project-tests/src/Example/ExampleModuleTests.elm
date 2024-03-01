@@ -116,6 +116,9 @@ positive x = Expect.greaterThan x 0
 infinite : Int -> Int
 infinite x = infinite x
 
+breakIntrospection : (a -> a -> Expect.Expectation) -> a -> a -> Expect.Expectation
+breakIntrospection f x y = f x y
+
 allTestSuite : Test
 allTestSuite = only <| concat
     [ test "Simple all test" <|
