@@ -319,7 +319,7 @@ object MorphirExpect {
       else if (missingFrom1.length < 4) s"\n\t Keys missing from first: ${missingFrom1.map(_.printed).mkString(", ")}"
       else s"\n\t ${missingFrom1.length} keys missing including ${missingFrom1(0).printed}"
       val missing2String = if (missingFrom2.length == 0) ""
-      else if (missingFrom2.length < 4) s"\n\t Keys missing from secomd: ${missingFrom2.map(_.printed).mkString(", ")}"
+      else if (missingFrom2.length < 4) s"\n\t Keys missing from second: ${missingFrom2.map(_.printed).mkString(", ")}"
       else s"\n\t ${missingFrom2.length} keys missing including ${missingFrom2(0).printed}"
       val differing = l1.keys.toSet.intersect(l2.keys.toSet).collect {
         case key if (l1(key) != l2(key)) => (key, l1(key), l2(key))
@@ -349,7 +349,7 @@ object MorphirExpect {
       else if (missingFrom1.length < 4) s"\n\t Items missing from first: ${missingFrom1.map(_.printed).mkString(", ")}"
       else s"\n\t ${missingFrom1.length} items missing including ${missingFrom1(0).printed}"
       val missing2String = if (missingFrom2.length == 0) ""
-      else if (missingFrom2.length < 4) s"\n\t Items missing from secomd: ${missingFrom2.map(_.printed).mkString(", ")}"
+      else if (missingFrom2.length < 4) s"\n\t Items missing from second: ${missingFrom2.map(_.printed).mkString(", ")}"
       else s"\n\t ${missingFrom2.length} items missing including ${missingFrom2(0).printed}"
       "Sets were not equal:" + missing1String + missing2String
     }
