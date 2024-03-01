@@ -224,9 +224,9 @@ object MorphirExpect {
   }
 
   case object Assert extends Introspectable1 {
-    def funcName: Any#String = "assert"
+    def funcName: String = "assert"
     def dynamicFunction = DynamicNativeFunction1("assert") {
-      (context: NativeContext) => (result: RT.Boolean) =>
+      (context: NativeContext) => (result: RT.Primitive.Boolean) =>
         if (result.value) passedRT else failedRT("Assert evaluated to false")
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun1(dynamicFunction).realize
@@ -238,7 +238,7 @@ object MorphirExpect {
       arg1.value match {
         case RT.Primitive.Boolean(true)  => SingleTestResult.Passed
         case RT.Primitive.Boolean(false) => SingleTestResult.Failed(s"assert ${arg1.ir} evaluated to false")
-        case other => SingleTestResult.Error(OtherError("Assert argument did not evaluat to bool:", other))
+        case other => SingleTestResult.Err(OtherError("Assert argument did not evaluat to bool:", other))
       }
 
   }
