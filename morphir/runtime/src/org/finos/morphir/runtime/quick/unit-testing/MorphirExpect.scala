@@ -241,7 +241,7 @@ object MorphirExpect {
                 FQStringTitleCase("Morphir.UnitTest:Expect:Fail"),
                 List(RT.Primitive.String(msg))
               ) => SingleTestResult.Failed(msg)
-          case other => readThunkAll(newGlobals).lift(other).getOrElse(
+          case other => readThunkAll(globals).lift(other).getOrElse(
               SingleTestResult.Err(new OtherError("Unrecognized Expectation: ", other))
             )
         }

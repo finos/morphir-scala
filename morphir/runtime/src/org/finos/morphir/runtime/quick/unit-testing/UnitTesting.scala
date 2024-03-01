@@ -261,7 +261,7 @@ object UnitTesting {
         case SingleTest(
               desc,
               rt
-            ) => MorphirExpect.evaluatedExpectToResult(newGlobals, rt)
+            ) => SingleTest(desc, MorphirExpect.evaluatedExpectToResult(newGlobals, rt))
         case other: Error => other
         case other: Skip  => other
         case other: Todo  => other
