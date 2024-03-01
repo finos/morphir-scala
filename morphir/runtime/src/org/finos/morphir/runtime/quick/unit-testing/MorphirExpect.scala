@@ -256,6 +256,16 @@ object MorphirExpect {
           assert ($arg1String) == ($arg2String)
               ${arg1String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt1).plainText}}
               ${arg2String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt2).plainText} """
+        case ApplyChain(Reference(_, FQString(funcName)), List(ir1, ir2)) =>
+          val rt1        = Loop(globals).loop(ir1, Store(context))
+          val rt2        = Loop(globals).loop(ir2, Store(context))
+          val arg1String = ir1.toString
+          val arg2String = ir2.toString
+          val maxLength  = arg1String.length.max(arg2String.length)
+          s"""
+          assert $funcName <arg1> <arg2> evaluated to false:
+              arg1: ${arg1String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt1).plainText}}
+              arg2: ${arg2String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt2).plainText} """
         case _ => s"assert $ir evaluated to false"
       }
 
