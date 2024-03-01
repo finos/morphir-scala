@@ -32,15 +32,15 @@ sealed trait MorphirExpect {
   def funcName: String
   def fqn = FQName.fromString(UnitTesting.expectPrefix + funcName)
   def sdkFunction: SDKValue // would be nice to be able to generalize the wrapping but that's hard
-  def thunkify: PartialFunction[RT, SingleTestResult] = PartialFunction.empty
-
+  def thunkify: PartialFunction[RT, SingleTestResult]                       = PartialFunction.empty
+  def readThunk(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = PartialFunction.empty
 }
 
 object MorphirExpect {
   case class TransparentArg(ir: TypedValue, value: RT) {
     def valueString: String = PrintRTValue(value).plainText
   }
-  trait IntrospectibleExpect extends MorphirExpect {
+  trait IntrospectableExpect extends MorphirExpect {
     override def thunkify: PartialFunction[TypedValue, TypedValue] = {
       case (app @ ApplyChain(Reference(_, foundFQN), args)) if (foundFQN == fqn && args.length == arity) =>
         V.lambda(
@@ -49,7 +49,7 @@ object MorphirExpect {
           app
         )
     }
-    overide def readThunk(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = {
+    override def readThunk(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = {
       case RT.LambdaFunction(
             ApplyChain(Reference(_, foundFQN), args),
             Pattern.UnitPattern(_),
@@ -73,7 +73,7 @@ object MorphirExpect {
         args: List[MorphirExpect.TransparentArg]
     ): SingleTestResult
   }
-  trait MorphirExpect1 extends MorphirExpect {
+  trait Introspectable1 extends IntrospectableExpect {
     final def arity = 1;
     def processThunk(
         globals: GlobalDefs,
@@ -91,7 +91,7 @@ object MorphirExpect {
         arg: TransparentArg
     ): SingleTestResult
   }
-  trait MorphirExpect2 extends MorphirExpect {
+  trait Introspectable2 extends IntrospectableExpect {
     final def arity = 2;
     def processThunk(
         globals: GlobalDefs,
@@ -111,7 +111,7 @@ object MorphirExpect {
         arg2: TransparentArg
     ): SingleTestResult
   }
-  trait BinOpExpect extends MorphirExpect2 {
+  trait BinOpExpect extends Introspectable2 {
     def opString: String;
     def opPasses(rt1: RT, rt2: RT): Boolean
 
@@ -180,7 +180,7 @@ object MorphirExpect {
     ) > 0
   }
 
-  case object All extends MorphirExpect2 {
+  case object All extends Introspectable2 {
     def funcName = "all"
     // This is a bit messy: The component lambdas may already have been rewritten to produce thunks
     // Thus despite being itself a "normal" function, it may have to deal with arguments that are delayed
