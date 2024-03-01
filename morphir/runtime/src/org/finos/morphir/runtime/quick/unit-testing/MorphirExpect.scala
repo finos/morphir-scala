@@ -246,7 +246,7 @@ object MorphirExpect {
         ir: TypedValue
     ): String =
       ir match {
-        case ApplyChain(Reference(_, FQString("Morphir.SDK:Decimal:fromFloat")), List(ir1, ir2)) =>
+        case ApplyChain(Reference(_, FQString("Morphir.SDK:Basics::equal")), List(ir1, ir2)) =>
           val rt1        = Loop(globals).loop(ir1, Store(context))
           val rt2        = Loop(globals).loop(ir2, Store(context))
           val arg1String = ir1.toString
