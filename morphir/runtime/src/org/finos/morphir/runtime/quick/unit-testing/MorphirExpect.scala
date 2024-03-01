@@ -342,7 +342,8 @@ object MorphirExpect {
     GreaterThan,
     LessThan,
     AtMost,
-    AtLeast
+    AtLeast,
+    Okay
   )
   def thunkifyAll: PartialFunction[TypedValue, TypedValue] =
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))

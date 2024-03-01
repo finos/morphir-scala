@@ -40,11 +40,9 @@ introspectedTestSuite = only <| concat [
                 [1, 2]
                 [1, 1],
     test "Failing okay Test" <| 
-        let 
         \_ -> 
-            Expect.atMost
-                [1, 2]
-                [1, 1]
+            Expect.okay
+                (stringToColor "Canada")
 ]
 
 positive : Int -> Expect.Expectation
