@@ -214,14 +214,15 @@ object MorphirExpect {
       Coercer.comparableCoercer.coerce(rt2)
     ) >= 0
   }
-  case object Okay extends Introspectable1{
+  case object Okay extends Introspectable1 {
     def funcName = "okay"
 
     def dynamicFunction = DynamicNativeFunction1("okay") {
-      (_: NativeContext) => (rt1: RT.) =>
-        if (opPasses(rt1, rt2)) passedRT
-        else
-          failedRT(s"Expect.$funcName (${PrintRTValue(rt1).plainText}) (${PrintRTValue(rt2).plainText})")
+      (_: NativeContext) => (value: RT.ConstructorResult) =>
+        value match {
+          case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Ok"), List(_)) =>
+            passedRT
+        }
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
   }
