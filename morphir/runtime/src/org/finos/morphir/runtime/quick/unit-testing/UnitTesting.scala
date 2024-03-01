@@ -229,9 +229,9 @@ object UnitTesting {
                     case s: TestTree.SingleTest[_] => s
                     case other                     => TestTree.Describe(fqn.toString, List(other))
                   }
-              }.toList
+              }
             )
-          }
+          }.toList
       ).resolveOnly // "Only" requires special handling, so do that here
 
     // Recursive walk of tree, running the user-defined thunks in the "test" code
