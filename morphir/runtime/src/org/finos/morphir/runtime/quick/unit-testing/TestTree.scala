@@ -30,19 +30,21 @@ object TestTree {
   case class Error(desc: String, error: Throwable)
       extends TestTree[Nothing] // not worth distinguishing between MorphirRuntimeError here
   case class Only[T](test: TestTree[T]) extends TestTree[T]
+
+  def indentBlock(s: String): String                     = s.split("\n").map("\t" + _).mkString("\n")
   def toReport(tree: TestTree[SingleTestResult]): String = toReportHelper(tree, 0)
   def toReportHelper(tree: TestTree[SingleTestResult], depth: Int): String =
     tree match {
       case Describe(desc, tests) =>
-        "\t".repeat(depth) + desc + "\n" + tests.map(toReportHelper(_, depth + 1)).mkString("\n")
-      case SingleTest(desc, SingleTestResult.Passed)      => "\t".repeat(depth) + s"$desc: PASSED"
-      case SingleTest(desc, SingleTestResult.Failed(msg)) => "\t".repeat(depth) + s"$desc: FAILED ($msg)"
-      case SingleTest(desc, SingleTestResult.Err(err))    => "\t".repeat(depth) + s"$desc: ERROR ($err)"
+        desc + "\n" + indentBlock(tests.map(toReportHelper(_, depth + 1)).mkString("\n"))
+      case SingleTest(desc, SingleTestResult.Passed)      => s"$desc: PASSED"
+      case SingleTest(desc, SingleTestResult.Failed(msg)) => s"$desc: FAILED ($msg)"
+      case SingleTest(desc, SingleTestResult.Err(err))    => s"$desc: ERROR ($err)"
       case Concat(tests)                                  => tests.map(toReportHelper(_, depth)).mkString("\n")
-      case Todo(excuse)                                   => "\t".repeat(depth) + s"$excuse: TODO"
+      case Todo(excuse)                                   => s"$excuse: TODO"
       case Skip(desc, count) =>
-        "\t".repeat(depth) + desc + ": SKIPPED" + (if (count == 1) "" else s"($count tests skipped)")
-      case Error(desc, err) => "\t".repeat(depth) + s"$desc: ERROR: \n $err"
+        desc + ": SKIPPED" + (if (count == 1) "" else s"($count tests skipped)")
+      case Error(desc, err) => s"$desc: ERROR: \n $err"
       case Only(inner)      => toReportHelper(inner, depth)
 
     }
