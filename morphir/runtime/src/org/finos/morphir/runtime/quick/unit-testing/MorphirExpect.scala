@@ -82,12 +82,21 @@ object MorphirExpect {
   }
   trait BinOpExpect extends MorphirExpect2 {
     def opString: String;
-    def pass(rt1 : RT, rt2 : RT) : Boolean
+    def opPasses(rt1: RT, rt2: RT): Boolean
+
+    def dynamicFunction = DynamicNativeFunction2("equal") {
+      (_: NativeContext) => (rt1: RT, rt2: RT) =>
+        val result = if (pass(rt1, rt2)) passedRT
+        else
+          failedRT(s"Expect.$funcName (${PrintRTValue(a).plainText}) (${PrintRTValue(b).plainText})")
+        expectation(result)
+    }
+    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def processThunk(
         arg1: TransparentArg,
         arg2: TransparentArg
     ): SingleTestResult =
-      if pass(arg1.value, arg2.value) SingleTestResult.Passed
+      if (pass(arg1.value, arg2.value)) SingleTestResult.Passed
       else {
         val arg1String = s"${arg1.ir}"
         val arg2String = s"${arg2.ir}"
@@ -97,14 +106,15 @@ object MorphirExpect {
             ${arg1String.padTo(maxLength, ' ')} evaluated to ${arg1.valueString}
             ${arg2String.padTo(maxLength, ' ')} evaluated to ${arg2.valueString} """)
       }
+
   }
 
   def expectation(result: RT) =
     RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
-  val passed =
+  val passedRT =
     val result = RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Pass"), List())
     expectation(result)
-  def failed(msg: String) =
+  def failedRT(msg: String) =
     val result =
       RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(RT.Primitive.String(msg)))
     expectation(result)
@@ -125,13 +135,7 @@ object MorphirExpect {
   case object Equal extends BinOpExpect {
     def funcName = "equal"
     def opString = "=="
-    def dynamicFunction = DynamicNativeFunction2("equal") {
-      (_: NativeContext) => (a: RT, b: RT) =>
-        val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
-        expectation(result)
-    }
-    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
-    def pass(
+    def opPasses(
         arg1: RT,
         arg2: RT
     ): Boolean = arg1 == arg2
