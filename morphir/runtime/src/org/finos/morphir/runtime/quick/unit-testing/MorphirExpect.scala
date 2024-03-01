@@ -405,7 +405,7 @@ object MorphirExpect {
           val globals = context.evaluator.asInstanceOf[Loop].globals
           val result  = evaluatedExpectToResult(globals, inner)
           result match {
-            case SingleTestResult.Failed(_) => failedRT(msg)
+            case SingleTestResult.Failed(_) => failedRT(msg.value)
             case SingleTestResult.Passed    => passedRT
             case SingleTestResult.Err(err)  => throw err
           }
