@@ -198,20 +198,20 @@ object MorphirExpect {
           val function = f.asInstanceOf[RT.Function]
           (function, context.evaluator.handleApplyResult(Type.UType.Unit(()), function, subject))
         }
-          val failures = functions.filter{case (_, result) => 
-            result match {
-              case _ => false //Fail everything, just to see for now
-            }
+        val failures = functions.filter { case (_, result) =>
+          result match {
+            case _ => false // Fail everything, just to see for now
           }
         }
-        val result = if (failures.length == 0) passedRT
+
+        if (failures.length == 0) passedRT
         else
-          failedRT(s"Expect.all failed for:\n ${failures.map{case (f, result) => 
-            s"${PrintRTValue(f).plainText} => ${PrintRTValue(result).plainText}"}}")
-        expectation(result)
+          failedRT(s"Expect.all failed for:\n ${failures.map { case (f, result) =>
+              s"${PrintRTValue(f).plainText} => ${PrintRTValue(result).plainText}"
+            }}")
     }
-    override def thunkify = Partial.empty
-    override def readThunk = throw OtherError("Expect.all not introspectible, what happened?")
+    override def thunkify     = Partial.empty
+    override def readThunk    = throw OtherError("Expect.all not introspectible, what happened?")
     override def processThunk = throw OtherError("Expect.all not introspectible, what happened?")
   }
 
