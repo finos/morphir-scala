@@ -24,12 +24,6 @@ import org.finos.morphir.runtime.internal.{
 import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.util.{Compare, PrintDiff}
 
-//Case objects for each?
-//For each of these we need:
-//SDK Function which implements basic runtime behavior
-//Partial function which rewrites
-//Partial function which introspects + runs
-//I don't think we need to enumerate case classes
 sealed trait MorphirExpect {
   def arity: Int
   def funcName: String

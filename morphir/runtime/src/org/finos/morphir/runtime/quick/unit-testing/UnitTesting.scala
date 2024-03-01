@@ -212,17 +212,26 @@ object UnitTesting {
       }
 
     // We make this into a test tree, using FQNs for things not already described
+    // val byPackage = testRTValues.groupBy((_._1.getPackagePath))
+
     val testTree: MorphirUnitTest =
       TestTree.Concat(
-        testRTValues.map {
-          case (fqn, Left(err)) => TestTree.Error(fqn.toString, err)
-          case (fqn, Right(rt)) =>
-            TestTree.fromRTValue(rt) match {
-              case d: TestTree.Describe[_]   => d
-              case s: TestTree.SingleTest[_] => s
-              case other                     => TestTree.Describe(fqn.toString, List(other))
-            }
-        }
+        testRTValues
+          .groupBy { case (fqn, _) => (fqn.getPackagePath, fqn.getModulePath) }
+          .map { case ((packagePath, modulePath), tests) =>
+            TestTree.Describe(
+              s"$packagePath:$modulePath",
+              tests.map {
+                case (fqn, Left(err)) => TestTree.Error(fqn.toString, err)
+                case (fqn, Right(rt)) =>
+                  TestTree.fromRTValue(rt) match {
+                    case d: TestTree.Describe[_]   => d
+                    case s: TestTree.SingleTest[_] => s
+                    case other                     => TestTree.Describe(fqn.toString, List(other))
+                  }
+              }
+            )
+          }
       ).resolveOnly // "Only" requires special handling, so do that here
 
     // Recursive walk of tree, running the user-defined thunks in the "test" code
