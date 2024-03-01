@@ -53,6 +53,11 @@ introspectedTestSuite = only <| concat
 
 collectionEqualityTests : Test
 collectionEqualityTests = only <| describe "Tests showing collection diff reporting"
+    let
+        short = [("Grass", "Green")]
+        base = [("Grass", "Green"), ("Fire", "Red")]
+        long = [("Grass", "Green"), ("Fire", "Orange"), ("Snow", "White")]
+    in
     [test "Failing equalLists Test" <| 
         let 
             l1 = [1, 2]
