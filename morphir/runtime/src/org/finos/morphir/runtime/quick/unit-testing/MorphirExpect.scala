@@ -1,5 +1,6 @@
 package org.finos.morphir.runtime.quick
 import org.finos.morphir.naming.*
+import scala.collection.mutable.LinkedHashMap
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.util.{PrintRTValue, Compare, PrintDiff}
 import org.finos.morphir.ir.printing.PrintIR
@@ -311,7 +312,7 @@ object MorphirExpect {
         else explainFailure(elems1, elems2)
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
-    def explainFailure(l1: Map[RT, RT], l2: Map[RT, RT]): String = {
+    def explainFailure(l1: LinkedHashMap[RT, RT], l2: LinkedHashMap[RT, RT]): String = {
       val missingFrom1 = l1.keys.diff(l2.keys)
       missingFrom1.toString
     }
