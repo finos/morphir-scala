@@ -201,7 +201,7 @@ object MorphirExpect {
             function, {
               val result = context.evaluator.handleApplyResult(T.unit, function, subject)
               // This isn't great but I don't know a better way:
-              val globals = context.evaluator.asInstanceOf(Loop).globals
+              val globals = context.evaluator.asInstanceOf[Loop].globals
               evaluatedExpectToResult(globals, result)
             }
           )
