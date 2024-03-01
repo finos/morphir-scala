@@ -32,7 +32,7 @@ sealed trait MorphirExpect {
   def funcName: String
   def fqn = FQName.fromString(UnitTesting.expectPrefix + funcName)
   def sdkFunction: SDKValue // would be nice to be able to generalize the wrapping but that's hard
-  def thunkify: PartialFunction[RT, SingleTestResult]                       = PartialFunction.empty
+  def thunkify: PartialFunction[TypedValue, TypedValue]                     = PartialFunction.empty
   def readThunk(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = PartialFunction.empty
 }
 
