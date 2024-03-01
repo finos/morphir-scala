@@ -22,15 +22,18 @@ introspectedTestSuite = concat [
                 record2
                 {record1 | name = "Joe"}
 ]
+positive : Int -> Expect.Expectation
+positive x = Expect.greaterThan x 0
 
 allTestSuite : Test
 allTestSuite = only <| concat[
     test "Simple all test" <|
         \_ -> Expect.all 
             [
-                \x -> Expect.equal x 1
+                \x -> Expect.equal x 1,
+                \x -> positive x
             ]
-            2
+            -1
 ]
 simpleTest : Test
 simpleTest = test "Simple Test" <|
