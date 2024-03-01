@@ -181,6 +181,17 @@ object MorphirExpect {
     ) > 0
   }
 
+  case object LessThan extends BinOpExpect {
+    def funcName = "lessThan"
+    def opString = "<"
+    def opPasses(
+        rt1: RT,
+        rt2: RT
+    ): Boolean = RT.Comparable.compareOrThrow(
+      Coercer.comparableCoercer.coerce(rt1),
+      Coercer.comparableCoercer.coerce(rt2)
+    ) < 0
+  }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
   case object All extends MorphirExpect {
     def funcName = "all"
@@ -246,14 +257,14 @@ object MorphirExpect {
         ir: TypedValue
     ): String =
       ir match {
-        case ApplyChain(Reference(_, FQString("Morphir.SDK:Basics::equal")), List(ir1, ir2)) =>
+        case ApplyChain(Reference(_, FQString("Morphir.SDK:Basics:equal")), List(ir1, ir2)) =>
           val rt1        = Loop(globals).loop(ir1, Store(context))
           val rt2        = Loop(globals).loop(ir2, Store(context))
           val arg1String = ir1.toString
           val arg2String = ir2.toString
           val maxLength  = arg1String.length.max(arg2String.length)
           s"""
-          assert ($arg1String) == ($arg2String)
+          assert ($arg1String) == ($arg2String) evaluated to false
               ${arg1String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt1).plainText}}
               ${arg2String.padTo(maxLength, ' ')} evaluated to ${PrintRTValue(rt2).plainText} """
         case ApplyChain(Reference(_, FQString(funcName)), List(ir1, ir2)) =>

@@ -24,6 +24,10 @@ introspectedTestSuite = only <| concat [
     test "Failing Assert Test" <| 
         \_ -> 
             Expect.assert <|
+                "Red Blue" == (String.concat ["Red", "Blue"]),
+    test "Failing Assert Test" <| 
+        \_ -> 
+            Expect.assert <|
                 "Red Blue" == (String.concat ["Red", "Blue"])
 ]
 positive : Int -> Expect.Expectation
