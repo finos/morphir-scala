@@ -209,8 +209,8 @@ object MorphirExpect {
         // Get everything that failed:
         val failures = withResults.filter { case (_, result) =>
           result match {
-            case SingleResult.Passed => false
-            case _                   => true
+            case SingleTestResult.Passed => false
+            case _                       => true
           }
         }
 
@@ -222,12 +222,12 @@ object MorphirExpect {
     }
     def sdkFunction: SDKValue                   = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     override def thunkify                       = PartialFunction.empty
-    override def readThunk(globals: GlobalDefs) = throw OtherError("Expect.all not introspectible, what happened?")
+    override def readThunk(globals: GlobalDefs) = PartialFunction.empty
     override def processThunk(
         globals: GlobalDefs,
         context: CallStackFrame,
         args: List[MorphirExpect.TransparentArg]
-    ) = throw OtherError("Expect.all not introspectible, what happened?")
+    ) = throw OtherError("Expect.all not introspectible,how did you call procesThunk?", args: _*)
   }
 
   def allExpects: List[MorphirExpect] = List(
