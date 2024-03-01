@@ -180,8 +180,10 @@ object MorphirExpect {
     ) > 0
   }
 
-  case object All extends Introspectable2 {
+  // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
+  case object All extends MorphirExpect {
     def funcName = "all"
+    def arity    = 2
     // This is a bit messy: The component lambdas may already have been rewritten to produce thunks
     // Thus despite being itself a "normal" function, it may have to deal with arguments that are delayed
     def dynamicFunction = DynamicNativeFunction2("all") {
@@ -216,27 +218,7 @@ object MorphirExpect {
           )
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
-    // Ironically, if this is introspected then that thunkification takes priority over the arguments'
-    def processThunk(
-        globals: GlobalDefs,
-        context: CallStackFrame,
-        arg1: TransparentArg,
-        arg2: TransparentArg
-    ) =
-      // arg1 IR might be directly be a list, but that's not guaranteed
-      val functionRTs = arg1.value match {
-        case RT.List(elems) => elems
-        case _              => throw new OtherError("This should have been an RT.List: ", elems)
-      }
-      val transparentFunctions = functionRTs.map(f =>
-        f.asInstanceOf[RT.Function] match {
-          case lambda @ RT.Lambda(body, pattern, context) => TransparentArg(
-              body,
-              Loop(globals).handleApplyResult(T.unit, lambda, arg2.value)
-            )
-        }
-      )
-      throw new OtherError("Why did we think this was a good ideas?", arg1.ir, arg1.value)
+
   }
 
   def allExpects: List[MorphirExpect] = List(
