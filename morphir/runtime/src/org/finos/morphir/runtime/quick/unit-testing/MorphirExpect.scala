@@ -244,6 +244,10 @@ object MorphirExpect {
           throw new OtherError("Expected Result type", arg1.ir, arg1.value)
       }
   }
+  case object Err extends Introspectable1{
+    def funcName = "err"
+    
+  }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
   case object All extends MorphirExpect {
     def funcName = "all"
@@ -343,7 +347,8 @@ object MorphirExpect {
     LessThan,
     AtMost,
     AtLeast,
-    Okay
+    Okay,
+    Err
   )
   def thunkifyAll: PartialFunction[TypedValue, TypedValue] =
     allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))
