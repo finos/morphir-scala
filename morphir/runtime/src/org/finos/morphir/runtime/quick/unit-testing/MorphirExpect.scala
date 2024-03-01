@@ -236,14 +236,13 @@ object MorphirExpect {
       case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Expectation"), List(rt)) =>
         rt match {
           case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Pass"), List()) =>
-            Passed
+            SingleTestResult.Passed
           case RT.ConstructorResult(
                 FQStringTitleCase("Morphir.UnitTest:Expect:Fail"),
                 List(Primitive.String(msg))
-              ) => Failed(msg)
-          case other => readThunkAll(newGlobals).lift(other) match {
-            case Some(result) => SingleTest(desc, result)
-            case other        => SingleTest(desc, Err(new OtherError("Unrecognized Expectation: ", other)))
+              ) => SingleTestResult.Failed(msg)
+          case other => readThunkAll(newGlobals).lift(other).getOrElse(
+            SingleTestResult.Err(new OtherError("Unrecognized Expectation: ", other)))
           }
         }
     }
