@@ -213,12 +213,21 @@ object MorphirExpect {
           )
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
+    // Ironically, if this is introspected then that thunkification takes priority over the arguments'
     def processThunk(
         globals: GlobalDefs,
         context: CallStackFrame,
         arg1: TransparentArg,
         arg2: TransparentArg
     ) =
+      //arg1 IR might be a list, but that's not guaranteed
+      val functionRTs = arg1.value match {
+        case RT.List(elems) => elems
+        case _              => throw new OtherError("This should have been an RT.List: ", elems)
+      }
+      val transparentFunctions = functionRTs.map(f =>
+        f.asInstanceOf[RT.Function]
+        )
       throw new OtherError("Why did we think this was a good ideas?", arg1.ir, arg1.value)
   }
 
