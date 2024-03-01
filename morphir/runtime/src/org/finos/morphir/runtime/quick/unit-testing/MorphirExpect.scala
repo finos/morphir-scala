@@ -87,7 +87,7 @@ object MorphirExpect {
         arg2: TransparentArg
     ): SingleTestResult =
       val arg1String = s"${arg1.ir}"
-      val arg2String = s"${arg1.ir}"
+      val arg2String = s"${arg2.ir}"
       val maxLength  = arg1String.length.max(arg2String.length)
       SingleTestResult.Failed(s"""
       Expect.$funcName (${arg1.ir}) (${arg2.ir})
