@@ -153,6 +153,13 @@ allTestSuite = only <| concat
                 \x -> positive x
             ]
             -1
+    , test "Erroring out all test with nested onFail (Shouldn't see Medusa)" <|
+        \_ -> Expect.all 
+            [
+                \x -> Expect.onFail "MEDUSA! Something went wrong!" <| Expect.equal (infinite x) 1,
+                \x -> positive x
+            ]
+            -1
     ]
 
 
