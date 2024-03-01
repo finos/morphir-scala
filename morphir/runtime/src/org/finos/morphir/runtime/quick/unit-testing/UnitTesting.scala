@@ -270,7 +270,10 @@ object UnitTesting {
                   List(Primitive.String(msg))
                 ) =>
               SingleTest(desc, Failed(msg))
-            case other => throw new OtherError("Unexpected Expectation", other)
+            case other => MorphirExpect.readThunkAll(newGlobals).lift(other) match {
+                case Some(result) => SingleTest(desc, result)
+                case other        => SingleTest(desc, Err(new OtherError("Unrecognized Form: ", other)))
+              }
           }
         case SingleTest(desc, other) => throw new OtherError("Test $desc had unexpected result structure", other)
         case other: Error            => other
