@@ -223,6 +223,10 @@ object MorphirExpect {
 
   }
 
+  case object Assert extends Introspectable1{
+    
+  }
+
   def allExpects: List[MorphirExpect] = List(
     Equal,
     NotEqual,
