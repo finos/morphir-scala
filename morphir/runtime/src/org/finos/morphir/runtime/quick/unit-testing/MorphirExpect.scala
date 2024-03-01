@@ -197,11 +197,18 @@ object MorphirExpect {
       (context: NativeContext) => (functions: RT.List, subject: RT) =>
         val withResults = functions.elements.map { f =>
           val function = f.asInstanceOf[RT.Function]
-          (function, context.evaluator.handleApplyResult(T.unit, function, subject))
+          (
+            function, {
+              val result = context.evaluator.handleApplyResult(T.unit, function, subject)
+              evaluatedExpectToResult(result)
+            }
+          )
         }
+        //Get everything that failed:
         val failures = withResults.filter { case (_, result) =>
           result match {
-            case _ => true // Fail everything, just to see for now
+            case SingleResult.Passed => false
+            case _                   => true
           }
         }
 
