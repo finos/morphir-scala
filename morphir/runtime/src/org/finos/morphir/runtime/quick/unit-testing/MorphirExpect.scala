@@ -190,7 +190,7 @@ object MorphirExpect {
     ) > 0
   }
 
-  case object All extends MorphirExpect2 {
+  case object All extends MorphirExpect {
     def funcName = "all"
     def dynamicFunction = DynamicNativeFunction2("all") {
       (context: NativeContext) => (functions: RT.List, subject: RT) =>
@@ -210,6 +210,7 @@ object MorphirExpect {
               s"${PrintRTValue(f).plainText} => ${PrintRTValue(result).plainText}"
             }}")
     }
+    def sdkFunction: SDKValue                   = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     override def thunkify                       = PartialFunction.empty
     override def readThunk(globals: GlobalDefs) = throw OtherError("Expect.all not introspectible, what happened?")
     override def processThunk(
