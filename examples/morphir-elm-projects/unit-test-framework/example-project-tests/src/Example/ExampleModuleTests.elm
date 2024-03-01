@@ -49,7 +49,11 @@ introspectedTestSuite = only <| concat
         \_ -> 
             Expect.err
                 (stringToColor myString)
-    , test "Failing equalLists Test" <| 
+    ]
+
+collectionEqualityTests : Test
+collectionEqualityTests = only <| describe "Tests showing collection diff reporting"
+    [test "Failing equalLists Test" <| 
         let 
             l1 = [1, 2]
             l2 = [2, 3]
