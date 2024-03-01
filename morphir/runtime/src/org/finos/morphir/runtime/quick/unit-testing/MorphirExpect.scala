@@ -242,9 +242,12 @@ object MorphirExpect {
                 List(RT.Primitive.String(msg))
               ) => SingleTestResult.Failed(msg)
           case other => readThunkAll(globals).lift(other).getOrElse(
-              SingleTestResult.Err(new OtherError("Unrecognized Expectation: ", other))
+              SingleTestResult.Err(new OtherError("Unrecognized ExpectationResult: ", other))
             )
         }
+      case other => readThunkAll(globals).lift(other).getOrElse(
+          SingleTestResult.Err(new OtherError("Unrecognized Expectation: ", other))
+        )
     }
   def newDefs: GlobalDefs =
     GlobalDefs(
