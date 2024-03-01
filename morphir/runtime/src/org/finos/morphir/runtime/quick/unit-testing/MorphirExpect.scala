@@ -33,7 +33,7 @@ sealed trait MorphirExpect {
   def fqn = FQName.fromString(UnitTesting.expectPrefix + funcName)
   def sdkFunction: SDKValue // would be nice to be able to generalize the wrapping but that's hard
   def thunkify: PartialFunction[RT, SingleTestResult] = PartialFunction.empty
-  
+
 }
 
 object MorphirExpect {
@@ -49,6 +49,29 @@ object MorphirExpect {
           app
         )
     }
+    overide def readThunk(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = {
+      case RT.LambdaFunction(
+            ApplyChain(Reference(_, foundFQN), args),
+            Pattern.UnitPattern(_),
+            context
+          ) if (foundFQN == fqn && args.length == arity) =>
+        try
+          processThunk(
+            globals,
+            context,
+            args.map {
+              arg => MorphirExpect.TransparentArg(arg, Loop(globals).loop(arg, Store(context)))
+            }
+          )
+        catch {
+          case e => SingleTestResult.Err(e)
+        }
+    }
+    def processThunk(
+        globals: GlobalDefs,
+        context: CallStackFrame,
+        args: List[MorphirExpect.TransparentArg]
+    ): SingleTestResult
   }
   trait MorphirExpect1 extends MorphirExpect {
     final def arity = 1;
