@@ -153,7 +153,7 @@ allTestSuite = concat
                 \x -> positive x
             ]
             -1
-    , test "Err all test" <|
+    , test "Err all test (Note that this shows up in counts as a failure)" <|
         \_ -> Expect.all 
             [
                 \x -> Expect.equal x (infinite x),
@@ -181,14 +181,14 @@ allTestSuite = concat
                 \x -> positive x
             ]
             -1
-    , test "Erroring out all test with nested onFail (Shouldn't see Medusa)" <|
+    , test "Erroring out all test with nested onFail (Shouldn't see Medusa in results, but in lambda IR)" <|
         \_ -> Expect.all 
             [
                 \x -> Expect.onFail "MEDUSA! Something went wrong!" <| Expect.equal (infinite x) 1,
                 \x -> positive x
             ]
             -1
-    , test "Failing all test when introspection fails" <|
+    , test "Failing all test when failing test can't be introspected" <|
         \_ -> Expect.all 
             [
                 \x -> breakIntrospection2 Expect.equal (addOne 1) 3,
@@ -199,61 +199,16 @@ allTestSuite = concat
 
 
 
-simpleTest : Test
-simpleTest = test "Simple Test" <|
-    \_ -> 
-        Expect.equal 1 1
-
-otherSimpleTest : Test
-otherSimpleTest = test "Simple Test" <|
-    \_ -> 
-        Expect.equal 1 3
-
-demoTest : Test
-demoTest = test "Test for demonstration" <|
-    \_ -> 
-        Expect.equal 4 (5 - 6)
-
-lessSimpleTest : Test
-lessSimpleTest = describe "Pretend this is a suite of Tests" <|
-    [ test "Nested Simple Test" <|
-        \_ -> 
-            Expect.equal 1 1
-    , test "Another Simple Test" <|
-        \_ -> 
-            Expect.equal 1 1
-    ]
-
-runSimpleTest : () -> String
-runSimpleTest _ = 
-    let 
-        results = run simpleTest
-    in
-        resultToString results
-
-failingTest : Test
-failingTest = test "Failing Test" <|
-    \_ -> 
-        Expect.equal 1 2
-
 
 recordOrderTests : Test
 recordOrderTests = concat 
-    [ test "Record Order Correct" <|
+    [ test "Record Order Passing" <|
         \_ -> Expect.equal {a = 1, b = 2} {b = 2, a = 1}
-    , test "Record Order Incorrect" <|
+    , test "Record Order Failing" <|
         \_ -> Expect.equal {a = 2, b = 2} {b = 2, a = 1}
     ]
 
-failingLessThan : Test
-failingLessThan = test "Failing LessThan" <|
-    \_ -> 
-        Expect.lessThan (addOne 2) 1
 
-failingTest2 : Test
-failingTest2 = test "Failing Test 2" <|
-    \_ -> 
-        Expect.equal 1 (addOne 2)
 
 tupleStep : (Int, Int) -> Int -> (Int, Int)
 tupleStep (a, b) c = (b + a, a - c)
@@ -263,12 +218,12 @@ slow =
     List.foldl (\elem acc -> (tupleStep acc elem)) (0, 0) (List.range 0 10000)
 
 slowTest : Test
-slowTest = test "This may run slow" <|
+slowTest = test "Test with significant computation used" <|
     \_ ->
         Expect.lessThan slow (1, 1)
 
 complexThunkSuite : Test
-complexThunkSuite = only <| describe "tests with more complex thunk formats" <|
+complexThunkSuite = describe "tests with more complex thunk formats" <|
     [ 
         test "logic picks expectation" <| \_ ->
             if (2 > 1)
@@ -284,40 +239,3 @@ complexThunkSuite = only <| describe "tests with more complex thunk formats" <|
                 else Expect.fail "User-defined error message"
     ]
 
-
-failingTestSuite : Test
-failingTestSuite = describe "Failing Test Suite" <|
-    [ test "Failing Test" <|
-        \_ -> 
-            Expect.equal 1 2
-    , test "Failing Test 2" <|
-        \_ -> 
-            Expect.equal 1 (addOne 2)
-    , skip <| test "Skipped Test" <|
-        \_ -> 
-            Expect.equal 1 1
-    , concat [
-        test "Concatted NEQ Test" <|
-            \_ -> 
-                Expect.notEqual 1 2
-        ,test "ConcattedFailing Test 4" <|
-            \_ -> 
-                Expect.equal 1 (addOne 2)
-        ]
-    , describe "Nested Failing Suite" <|
-        [ test "Nested Failing Test" <|
-            \_ -> 
-                Expect.equal 1 2
-        ,  test "Failing NEQ Test" <|
-            \_ -> 
-                Expect.notEqual (addOne 1) (3 - 1)
-        , test "Another Nested Failing Test" <|
-            \_ -> 
-                Expect.equal 1 2
-        ]
-    ]
-
--- onlyTest : Test
--- onlyTest = only <| test "Only Test" <|
---     \_ -> 
---         Expect.equal 1 1
