@@ -50,7 +50,6 @@ object TestTree {
 
   def getExpects(globals: GlobalDefs)(test: TestTree[RT]): TestTree[RT] =
     test match {
-      case Module(name, tests)   => Module(name, tests.map(getExpects(globals)))
       case Describe(desc, tests) => Describe(desc, tests.map(getExpects(globals)))
       case Concat(tests)         => Concat(tests.map(getExpects(globals)))
       case Only(inner)           => Only(getExpects(globals)(inner))
@@ -161,5 +160,7 @@ case class Module[T](name: String, tests: List[TestTree[T]])
 case class TestSet[T](modules: List[Module[T]]) {}
 case class 
 object TestSet{
-      def getReport(module : Module[RT]) : String =
-        "Module " + module.name + " Tests:\n" + module.tests.map(TestTree.toReport(_)).mkString("\n") + "\n\n"}
+      def getCounts(module : Module[SingleTestResult]) : TestResultCounts = tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
+      def getReport(module : Module[SingleTestResult]) : String =
+        "Module " + module.name + " Tests:\n" + module.tests.map(TestTree.toReport(_)).mkString("\n") + s"\n${getCounts(this)} \n"}
+}

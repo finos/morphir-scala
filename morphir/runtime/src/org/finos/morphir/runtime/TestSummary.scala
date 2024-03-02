@@ -35,6 +35,7 @@ case class TestResultCounts(passed: Int, failed: Int, errors: Int, skipped: Int,
     if (failed > 0 || errors > 0) OverallStatus.Failed
     else if (skipped > 0 || todo > 0) OverallStatus.Incomplete
     else OverallStatus.Passed
+  def toString = s"passed : $passed, failed  $failed, errors : $errors, skipped : $skipped, todo : $todo"
 }
 object TestResultCounts {
   def empty = TestResultCounts(0, 0, 0, 0, 0)
