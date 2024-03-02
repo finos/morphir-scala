@@ -168,15 +168,22 @@ object TestTree {
   }
   object TestSet {
     def toReport(testSet: TestSet[SingleTestResult]) = testSet.modules.map(ModuleTests.toReport(_).mkString("\n"))
-    def toSummary = 
+    def toSummary(testSet: TestSet[SingleTestResult]) =
+      TestSummary(
+        toReport(testSet),
+        testSet.modules.map(module => (module.pkgName, module.modName) -> module.getCounts).toMap
+      )
   }
+
+  case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List[TestTree[T]])
   object ModuleTests {
     def getCounts(module: ModuleTests[SingleTestResult]): TestResultCounts =
       tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
     def toReport(module: ModuleTests[SingleTestResult]): String =
-      "ModuleTests " + module.name + " Tests:\n" + module.tests.map(TestTree.toReport(_)).mkString(
-        "\n"
-      ) + s"\n${getCounts(this)} \n"
+      s"""Module ${module.pkgName}:${module.modName} Tests:
+        ${module.tests.map(TestTree.toReport(_)).mkString("\n")}
+        ${getCounts(this)}
+        """
 
     def getExpects(module: ModuleTests[RT]) =
       ModuleTests(module.name, module.tests.map(TestTree.getExpects(globals)(_)))
