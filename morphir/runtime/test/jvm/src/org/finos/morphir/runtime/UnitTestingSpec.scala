@@ -34,7 +34,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
       }
     }
 
-    def getTestSummary(label: String)(moduleName: String, functionName: String) =
+    def getTestSummary =
       ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
         runtime.runUnitTests()
           .provideEnvironment(MorphirEnv.live)
@@ -45,8 +45,10 @@ object UnitTestingSpec extends MorphirBaseSpec {
     suite("Type Checker Tests")(
       suite("Happy Paths Tests")(
         // testEvaluation("Single test result")("ExampleModuleTests", "runSimpleTest")(Data.String("PASSED")),
-        testUnitTestingPasses("Suite Passed")("ExampleModuleTests", "runSimpleTest")
+        testUnitTestingPasses("Suite Passed")("ExampleModuleTests", "runSimpleTest"),
+        test("Overall Status Failed") {
+          getTestSummary.map(result => assertTrue(!result.passed))
+        }
       )
-        suite ("Overall Status Failed")
     ).provideLayerShared(morphirRuntimeLayer)
 }
