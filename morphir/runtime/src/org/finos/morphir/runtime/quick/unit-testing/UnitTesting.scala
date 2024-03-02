@@ -219,7 +219,7 @@ object UnitTesting {
         testRTValues
           .groupBy { case (fqn, _) => (fqn.getPackagePath, fqn.getModulePath) }
           .map { case ((packagePath, modulePath), tests) =>
-            TestTree.Describe(
+            TestTree.Module(
               s"$packagePath:$modulePath",
               tests.map {
                 case (fqn, Left(err)) => TestTree.Error(fqn.toString, err)
