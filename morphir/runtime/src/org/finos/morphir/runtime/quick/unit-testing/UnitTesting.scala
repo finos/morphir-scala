@@ -235,11 +235,10 @@ object UnitTesting {
       ).resolveOnly // "Only" requires special handling, so do that here
 
     // Recursive walk of tree, running the user-defined thunks in the "test" code
-    // TODO: Move this to TestTree
-
+    // Non-introspected tests are "Run" at this point
     val withExpects = TestTree.getExpects(newGlobals)(testTree)
-
-    val treeWithResults = processExpects(newGlobals)(withExpects)
+    // Another walk of the tree, running introspected tests this time
+    val treeWithResults = TestTree.processExpects(newGlobals)(withExpects)
     TestSummary(TestTree.toReport(treeWithResults), false)
   }
 
