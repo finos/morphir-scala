@@ -169,7 +169,7 @@ object TestSet {
   def toSummary(testSet: TestSet[SingleTestResult]) =
     TestSummary(
       toReport(testSet),
-      testSet.modules.map(module => (module.pkgName, module.modName) -> module.getCounts).toMap
+      testSet.modules.map(module => (module.pkgName, module.modName) -> ModuleTests.getCounts(module)).toMap
     )
   def getExpects(globals: GlobalDefs, testSet: TestSet[RT]) =
     TestSet(testSet.modules.map(ModuleTests.getExpects(globals)(_)))
@@ -184,7 +184,7 @@ case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List
       ModuleTests(pkgName, modName, tests.map(_.pruneToOnly))
     else {
       val count = tests.foldLeft(0)((acc, next) => acc + next.count)
-      ModuleTests(pkgName, modName, TestTree.Skip("ModuleTests Skipped", count))
+      ModuleTests(pkgName, modName, List(TestTree.Skip("ModuleTests Skipped", count)))
     }
 }
 object ModuleTests {
