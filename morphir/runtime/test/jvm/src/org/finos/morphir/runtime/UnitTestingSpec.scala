@@ -19,7 +19,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
     ZLayer(for {
       dists   <- ZIO.succeed(paths.map(path => EvaluationLibrary.loadDistribution(path.toString)))
       runtime <- ZIO.succeed(MorphirRuntime.quick(dists: _*))
-      summary <- runtime.runUnitTests
+      summary <- runtime.runUnitTests()
         .provideEnvironment(MorphirEnv.live)
         .toZIOWith(RTExecutionContext.typeChecked)
     } yield summary)
