@@ -158,7 +158,7 @@ object TestTree {
 }
 
 case class TestSet[T](modules: List[ModuleTests[T]]) {
-  def resolveOnly[T]: TestSet[T] =
+  def resolveOnly: TestSet[T] =
     if (modules.exists(_.containsOnly))
       TestSet(modules.map(_.pruneToOnly))
     else modules
