@@ -158,48 +158,47 @@ object TestTree {
       case other                          => throw new OtherError("Expected Test constructor bout found", other)
     }
 
-    }
+}
 
-  case class TestSet[T](modules: List[ModuleTests[T]]) {
-    def resolveOnly[T]: TestSet[T] =
-      if (modules.exists(_.containsOnly))
-        TestSet(modules.map(_.pruneToOnly))
-      else modules
-    // Skips any tests that aren't nested under an Only
-  }
-  object TestSet {
-    def toReport(testSet: TestSet[SingleTestResult]) = testSet.modules.map(ModuleTests.toReport(_).mkString("\n"))
-    def toSummary(testSet: TestSet[SingleTestResult]) =
-      TestSummary(
-        toReport(testSet),
-        testSet.modules.map(module => (module.pkgName, module.modName) -> module.getCounts).toMap
-      )
-    def getExpects(globals: GlobalDefs, testSet: TestSet[RT]) =
-      TestSet(testSet.modules.map(ModuleTests.getExpects(globals)(_)))
-    def processExpects(globals: GlobalDefs, testSet: TestSet[RT]) =
-      TestSet(testSet.modules.map(ModuleTests.processExpects(globals)(_)))
-  }
+case class TestSet[T](modules: List[ModuleTests[T]]) {
+  def resolveOnly[T]: TestSet[T] =
+    if (modules.exists(_.containsOnly))
+      TestSet(modules.map(_.pruneToOnly))
+    else modules
+  // Skips any tests that aren't nested under an Only
+}
+object TestSet {
+  def toReport(testSet: TestSet[SingleTestResult]) = testSet.modules.map(ModuleTests.toReport(_).mkString("\n"))
+  def toSummary(testSet: TestSet[SingleTestResult]) =
+    TestSummary(
+      toReport(testSet),
+      testSet.modules.map(module => (module.pkgName, module.modName) -> module.getCounts).toMap
+    )
+  def getExpects(globals: GlobalDefs, testSet: TestSet[RT]) =
+    TestSet(testSet.modules.map(ModuleTests.getExpects(globals)(_)))
+  def processExpects(globals: GlobalDefs, testSet: TestSet[RT]) =
+    TestSet(testSet.modules.map(ModuleTests.processExpects(globals)(_)))
+}
 
-  case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List[TestTree[T]])
-  object ModuleTests {
-    def getCounts(module: ModuleTests[SingleTestResult]): TestResultCounts =
-      tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
-    def toReport(module: ModuleTests[SingleTestResult]): String =
-      s"""Module ${module.pkgName}:${module.modName} Tests:
+case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List[TestTree[T]])
+object ModuleTests {
+  def getCounts(module: ModuleTests[SingleTestResult]): TestResultCounts =
+    tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
+  def toReport(module: ModuleTests[SingleTestResult]): String =
+    s"""Module ${module.pkgName}:${module.modName} Tests:
         ${module.tests.map(TestTree.toReport(_)).mkString("\n")}
         ${getCounts(this)}
         """
 
-    def getExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =
-      ModuleTests(module.name, module.tests.map(TestTree.getExpects(globals)(_)))
-    def processExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =
-      ModuleTests(module.name, module.tests.map(TestTree.processExpects(globals)(_)))
-    def pruneToOnly(module: ModuleTests[T]): ModuleTests[T] =
-      if (module.tests.exists(_.containsOnly))
-        ModuleTests(module.name, module.tests.map(_.pruneToOnly))
-      else {
-        count = module.tests.foldLeft(0)((acc, next) => acc + next.count)
-        ModuleTests(module.name, TestTree.Skip("ModuleTests Skipped", count))
-      }
-  }
+  def getExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =
+    ModuleTests(module.name, module.tests.map(TestTree.getExpects(globals)(_)))
+  def processExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =
+    ModuleTests(module.name, module.tests.map(TestTree.processExpects(globals)(_)))
+  def pruneToOnly(module: ModuleTests[T]): ModuleTests[T] =
+    if (module.tests.exists(_.containsOnly))
+      ModuleTests(module.name, module.tests.map(_.pruneToOnly))
+    else {
+      count = module.tests.foldLeft(0)((acc, next) => acc + next.count)
+      ModuleTests(module.name, TestTree.Skip("ModuleTests Skipped", count))
+    }
 }
