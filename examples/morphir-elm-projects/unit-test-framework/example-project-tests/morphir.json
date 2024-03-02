@@ -6,6 +6,9 @@
         "../example-project/morphir-ir.json"
     ],
     "exposedModules": [
-        "ExampleModuleTests"
+        "FailingModuleOne",
+        "FailingModuleTwo",
+        "IncompleteModule",
+        "PassingModule"
     ]
 }
