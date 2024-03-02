@@ -47,6 +47,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
       test("Show Results (for human readability check - ignore)") {
         getTestSummary.map { result =>
           println(result)
+          assertTrue(false)
         }
       },
       test("Overall Status Failed") {
