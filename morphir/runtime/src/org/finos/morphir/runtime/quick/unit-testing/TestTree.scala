@@ -157,10 +157,18 @@ object TestTree {
 
 
 case class Module[T](name: String, tests: List[TestTree[T]])
-case class TestSet[T](modules: List[Module[T]]) {}
+case class TestSet[T](modules: List[Module[T]]) {
+  def resolveOnly[T]: TestSet[T] =
+    if (modules.exists(_.containsOnly)) 
+      TestSet(modules.map(_.pruneToOnly)) else modules
+  // Skips any tests that aren't nested under an Only
+}
 case class 
 object TestSet{
       def getCounts(module : Module[SingleTestResult]) : TestResultCounts = tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
       def getReport(module : Module[SingleTestResult]) : String =
         "Module " + module.name + " Tests:\n" + module.tests.map(TestTree.toReport(_)).mkString("\n") + s"\n${getCounts(this)} \n"}
+      def getExpects(module : Module[RT]) = Module(module.name, module.tests.map(TestTree.getExpects(globals)(_)))
+      def processExpects(module : Module[RT]) = Module(module.name, module.tests.map(TestTree.processExpects(globals)(_)))
+      def pruneToOnly(module : Module[T]) : Module[T]
 }
