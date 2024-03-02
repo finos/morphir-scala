@@ -15,6 +15,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
     os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project-tests" / "morphir-ir.json",
     os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project" / "morphir-ir.json"
   )
+  // We don't want to even re-run the tests for every test
   val testSummaryLayer: ZLayer[Any, Throwable, TestSummary] =
     ZLayer(for {
       dists   <- ZIO.succeed(paths.map(path => EvaluationLibrary.loadDistribution(path.toString)))
@@ -23,19 +24,6 @@ object UnitTestingSpec extends MorphirBaseSpec {
         .provideEnvironment(MorphirEnv.live)
         .toZIOWith(RTExecutionContext.typeChecked)
     } yield summary)
-
-  // def testUnitTestingPasses(label: String) =
-  //   test(label) {
-  //     val runResult = ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
-  //       runtime.runUnitTests()
-  //         .provideEnvironment(MorphirEnv.live)
-  //         .toZIOWith(RTExecutionContext.typeChecked)
-  //     }
-
-  //     runResult.map { actual =>
-  //       assertTrue(!actual.passed)
-  //     }
-  //   }
 
   def getTestSummary =
     ZIO.serviceWithZIO[TestSummary] { summary => ZIO.succeed(summary) }
@@ -53,6 +41,16 @@ object UnitTestingSpec extends MorphirBaseSpec {
       test("Overall Status Failed") {
         getTestSummary.map { result =>
           assertTrue(!result.passed)
+        }
+      },
+      test("Overall Status Failed") {
+        getTestSummary.map { result =>
+          assertTrue(!result.passed)
+        }
+      },
+      test("Counts Correct") {
+        getTestSummary.map { result =>
+          assertTrue(result.counts == TestResultCounts.empty)
         }
       }
     )

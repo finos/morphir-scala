@@ -102,7 +102,6 @@ object UnitTesting {
       dists: Distributions,
       testNames: List[FQName]
   ): TestSummary = {
-    println("YOU SHOULD SEE THIS LINE ONLY ONCE")
     // We rewrite the IR to replace expect calls (in common patterns) with thunky versions
     def thunkifyTransform =
       TypedValue.transform(MorphirExpect.thunkifyAll)
