@@ -62,8 +62,8 @@ object UnitTestingSpec extends MorphirBaseSpec {
         }
       },
       test("Module One Counts") {
-        getTestSummary.map { result =>
-          assertTrue(result.overallCounts == TestResultCounts(4, 28, 0, 19, 0))
+        moduleCounts("FailingModuleOne").map { counts =>
+          assertTrue(counts == TestResultCounts(4, 28, 0, 19, 0))
         }
       }
     )
