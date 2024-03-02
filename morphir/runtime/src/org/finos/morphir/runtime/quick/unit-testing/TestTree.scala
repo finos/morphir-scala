@@ -20,7 +20,7 @@ object TestTree {
   case class SingleTest[T](desc: String, expectThunk: T)         extends TestTree[T]
   case class Concat[T](tests: List[TestTree[T]])                 extends TestTree[T]
   case class Todo(desc: String)                                  extends TestTree[Nothing]
-  case class Skip(desc: String, count: Int)                      extends TestTree[Nothing]
+  case class Skip(desc: String, numSkipped: Int)                      extends TestTree[Nothing]
   case class Error(desc: String, error: Throwable)
       extends TestTree[Nothing]
   // "Only" is a concept from elm-test; if any Only tests exist, then only those tests are run
@@ -35,8 +35,8 @@ object TestTree {
       case SingleTest(desc, SingleTestResult.Err(err))    => s"$desc: ERROR $err"
       case Concat(tests)                                  => tests.map(toReport).mkString("\n")
       case Todo(excuse)                                   => s"$excuse: TODO"
-      case Skip(desc, count) =>
-        desc + ": SKIPPED" + (if (count == 1) "" else s"($count tests skipped)")
+      case Skip(desc, numSkipped) =>
+        desc + ": SKIPPED" + (if (numSkipped == 1) "" else s"($cnumSkipped tests skipped)")
       case Error(desc, err) => s"$desc: ERROR: \n $err"
       case Only(inner)      => toReport(inner)
     }
@@ -49,7 +49,7 @@ object TestTree {
       case SingleTest(_, SingleTestResult.Err(err))    => empty.copy(errors = 1)
       case Concat(tests)  => tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
       case Todo(_)        => empty.copy(todo = 1)
-      case Skip(_, count) => empty.copy(skipped = count)
+      case Skip(_, cnumSkipped) => empty.copy(skipped = numSkipped)
       case Error(_, _)    => empty.copy(errors = 1)
       case Only(inner) =>
         getCounts(inner)
@@ -120,7 +120,7 @@ object TestTree {
       case _: SingleTest[_]   => 1
       case Concat(tests)      => tests.map(count).sum
       case _: Todo            => 1
-      case Skip(_, count)     => count
+      case Skip(_, numSkipped)     => numSkipped
       case _: Error           => 1 // Might have been a suite or anything but we don't know
       case Only(inner)        => count(inner)
     }
@@ -183,8 +183,8 @@ case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List
     if (containsOnly)
       ModuleTests(pkgName, modName, tests.map(_.pruneToOnly))
     else {
-      val count = tests.foldLeft(0)((acc, next) => acc + next.count)
-      ModuleTests(pkgName, modName, List(TestTree.Skip("ModuleTests Skipped", count)))
+      val counted = tests.foldLeft(0)((acc, next) => acc + next.count)
+      ModuleTests(pkgName, modName, List(TestTree.Skip("ModuleTests Skipped", counted)))
     }
 }
 object ModuleTests {
