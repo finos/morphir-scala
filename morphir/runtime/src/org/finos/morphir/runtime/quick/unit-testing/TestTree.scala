@@ -108,7 +108,7 @@ object TestTree {
     tree match {
       case m @ Module(name, tests) =>
         if (containsOnly(m))
-          Describe(name, tests.map(pruneToOnly))
+          Module(name, tests.map(pruneToOnly))
         else Skip("Module " + name, count(m))
       case d @ Describe(desc, tests) =>
         if (containsOnly(d))
