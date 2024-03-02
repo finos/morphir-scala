@@ -36,8 +36,9 @@ object TestTree {
       case Only(inner)      => toReport(inner)
     }
   def getCounts(tree: TestTree[SingleTestResult]) : TestResultCounts = 
+    val empty = TestResultCounts.empty
     tree match{
-      
+      case Describe(_, tests) => tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
     }
 
   def getExpects(globals: GlobalDefs)(test: TestTree[RT]): TestTree[RT] =
