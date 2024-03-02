@@ -1,15 +1,15 @@
 package org.finos.morphir.runtime.quick
+import org.finos.morphir.runtime.TestSummary
+import org.finos.morphir.runtime.TestResultCounts
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.runtime.Extractors.*
-import org.finos.morphir.runtime.SingleTestTree[SingleTestResult]
+import org.finos.morphir.runtime.SingleTestResult
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.ErrorUtils.indentBlock
 
 sealed trait TestTree[+T] {
   def resolveOnly = TestTree.resolveOnly(this)
 }
-type TestTree[SingleTestResult]      = TestTree[SingleTestTree[SingleTestResult]]
-
 
 object TestTree {
   case class Describe[T](desc: String, tests: List[TestTree[T]]) extends TestTree[T]
@@ -21,7 +21,7 @@ object TestTree {
       extends TestTree[Nothing] // not worth distinguishing between MorphirRuntimeError here
   case class Only[T](test: TestTree[T]) extends TestTree[T]
 
-  def toReport(tree: TestTree[SingleTestResult]]): String =
+  def toReport(tree: TestTree[SingleTestResult]): String =
     tree match {
       case Describe(desc, tests) =>
         desc + "\n" + indentBlock(tests.map(toReport).mkString("\n"))
@@ -35,7 +35,10 @@ object TestTree {
       case Error(desc, err) => s"$desc: ERROR: \n $err"
       case Only(inner)      => toReport(inner)
     }
-  def getCounts()
+  def getCounts(tree: TestTree[SingleTestResult]) : TestResultCounts = 
+    tree match{
+      
+    }
 
   def getExpects(globals: GlobalDefs)(test: TestTree[RT]): TestTree[RT] =
     test match {
