@@ -5,6 +5,7 @@ import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.SingleTestResult
 import org.finos.morphir.runtime.MorphirRuntimeError.*
+import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.ErrorUtils.indentBlock
 
 //This trait represents the tree of unit test suites at various stages of computation
@@ -48,8 +49,8 @@ object TestTree {
       case SingleTest(_, SingleTestResult.Err(err))    => empty.copy(errors = 1)
       case Concat(tests)  => tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
       case Todo(_)        => empty.copy(todo = 1)
-      case Skip(_, count) => empty.copy(count = 1)
-      case Error(_, _)    => empty.copy(error = 1)
+      case Skip(_, count) => empty.copy(skipped = count)
+      case Error(_, _)    => empty.copy(errors = 1)
       case Only(inner) =>
         getCounts(inner)
     }
@@ -103,10 +104,6 @@ object TestTree {
   // Skips any tests that aren't nested under an Only
   def pruneToOnly[T](tree: TestTree[T]): TestTree[T] =
     tree match {
-      case m @ ModuleTests(name, tests) =>
-        if (containsOnly(m))
-          ModuleTests(name, tests.map(pruneToOnly))
-        else Skip("ModuleTests " + name, count(m))
       case d @ Describe(desc, tests) =>
         if (containsOnly(d))
           Describe(desc, tests.map(pruneToOnly))
@@ -191,14 +188,14 @@ object ModuleTests {
         """
 
   def getExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =
-    ModuleTests(module.name, module.tests.map(TestTree.getExpects(globals)(_)))
+    ModuleTests(module.pkgName, module.modName, module.tests.map(TestTree.getExpects(globals)(_)))
   def processExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =
-    ModuleTests(module.name, module.tests.map(TestTree.processExpects(globals)(_)))
+    ModuleTests(module.pkgName, module.modName, module.tests.map(TestTree.processExpects(globals)(_)))
   def pruneToOnly(module: ModuleTests[T]): ModuleTests[T] =
     if (module.tests.exists(_.containsOnly))
-      ModuleTests(module.name, module.tests.map(_.pruneToOnly))
+      ModuleTests(module.pkgName, module.modName, module.tests.map(_.pruneToOnly))
     else {
       count = module.tests.foldLeft(0)((acc, next) => acc + next.count)
-      ModuleTests(module.name, TestTree.Skip("ModuleTests Skipped", count))
+      ModuleTests(module.pkgName, module.modName, TestTree.Skip("ModuleTests Skipped", count))
     }
 }
