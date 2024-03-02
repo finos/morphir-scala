@@ -7,8 +7,12 @@ case class TestSummary(
     countsByModule: Map[(pkgName: PackageName, modName: ModuleName), TestResultCounts]
 ) {
   def overallCounts = countsByModule.values.foldLeft(TestResultCounts.empty) { case (acc, next) => acc.plus(next) }
-  def result        = overallCounts.result
-  
+  def countsAtModule(pkgName: PackageName, modName: ModuleName): Option[TestResultCounts] =
+    countsByModule.get(pkgName, modName)
+  def result = overallCounts.result
+  def resultByModule(pkgName: PackageName, modName: ModuleName): Option[OverallStatus] =
+    countsAtModule(pkgName, modName).map(_.result)
+
 }
 
 sealed trait OverallStatus
