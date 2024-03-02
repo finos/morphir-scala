@@ -166,10 +166,11 @@ object TestTree {
       else modules
     // Skips any tests that aren't nested under an Only
   }
+  object TestSet {}
   object ModuleTests {
     def getCounts(module: ModuleTests[SingleTestResult]): TestResultCounts =
       tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
-    def getReport(module: ModuleTests[SingleTestResult]): String =
+    def toReport(module: ModuleTests[SingleTestResult]): String =
       "ModuleTests " + module.name + " Tests:\n" + module.tests.map(TestTree.toReport(_)).mkString(
         "\n"
       ) + s"\n${getCounts(this)} \n"
