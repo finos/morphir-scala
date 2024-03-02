@@ -113,7 +113,7 @@ object UnitTesting {
       user_dists: Distributions
   ): RTAction[MorphirEnv, Nothing, TestSummary] =
     val testDist = EvaluationLibrary.loadDistribution(testFrameworkPath)
-    val dists    = Distributions((testDist +: user_dists.dists.values): _*)
+    val dists    = Distributions((testDist +: user_dists.getDists.values): _*)
     val globals  = GlobalDefs.fromDistributions(dists: _*)
     RTAction.environmentWithPure[MorphirSdk] { env =>
       val testNames = collectTests(globals, dists)
