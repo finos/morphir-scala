@@ -45,7 +45,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
   //   }
 
   def spec = ZIO.serviceWithZIO[TestSummary] { summary =>
-    suite("Type Checker Tests")(
+    ZIO.succeed(suite("Type Checker Tests")(
       suite("Happy Paths Tests")(
         // testEvaluation("Single test result")("ExampleModuleTests", "runSimpleTest")(Data.String("PASSED")),
         // testUnitTestingPasses("Suite Passed"),
@@ -56,6 +56,6 @@ object UnitTestingSpec extends MorphirBaseSpec {
           assertTrue(true)
         }
       )
-    )
+    ))
   }.provideLayerShared(testSummaryLayer)
 }
