@@ -39,7 +39,10 @@ object TestTree {
     val empty = TestResultCounts.empty
     tree match{
       case Describe(_, tests) => tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
-    }
+      case SingleTest(_, SingleTestResult.Passed)      => empty.copy(passed = 1)
+      case SingleTest(_, SingleTestResult.Failed(msg)) => empty.copy(failed = 1)
+      case SingleTest(_, SingleTestResult.Err(err))    => empty.copy(errors = 1)
+      case Concat(tests)                                      => tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
 
   def getExpects(globals: GlobalDefs)(test: TestTree[RT]): TestTree[RT] =
     test match {
