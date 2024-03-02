@@ -15,10 +15,14 @@ object UnitTestingSpec extends MorphirBaseSpec {
     os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project-tests" / "morphir-ir.json",
     os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project" / "morphir-ir.json"
   )
-  val morphirRuntimeLayer: ZLayer[Any, Throwable, TypedMorphirRuntime] =
+  val testSummaryLayer: ZLayer[Any, Throwable, TypedMorphirRuntime] =
     ZLayer(for {
-      dists <- ZIO.succeed(paths.map(path => EvaluationLibrary.loadDistribution(path.toString)))
-    } yield MorphirRuntime.quick(dists: _*))
+      dists   <- ZIO.succeed(paths.map(path => EvaluationLibrary.loadDistribution(path.toString)))
+      runtime <- ZIO.succeed(MorphirRuntime, quick(dists: _*))
+      summary <- runtime.runUnitTests
+        .provideEnvironment(MorphirEnv.live)
+        .toZIOWith(RTExecutionContext.typeChecked)
+    } yield summary)
 
   def testUnitTestingPasses(label: String) =
     test(label) {
