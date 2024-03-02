@@ -82,39 +82,25 @@ object UnitTesting {
             case e => Left(e)
           }
 
-        val report = passedResult match {
-          case Right(Data.Boolean(true)) => reportResult(globals, dists, runTestsIR, true)
+        val simplePassed = passedResult match {
+          case Right(Data.Boolean(true)) => true
           // Anything else and we know we have a failure, it's just a matter of determining what
-          case _ => nreportResult(globals, dists, testNames, false)
+          case _ => false
         }
 
-        RTAction.succeed(report)
+        val detailedReport = reportResult(globals, dists, testNames)
+
+        if (detailedReport.passed == simplePassed)
+          RTAction.succeed(report)
+        // TODO: Better error, give usable report
+        else throw new Exception("Detailed test report found different result than simple")
       }
     }
-
-  private[runtime] def passingResult(
-      globals: GlobalDefs,
-      dists: Distributions,
-      runTestsIR: TypedValue
-  ): TestSummary = {
-    val reportIR = V.applyInferType(
-      sdk.String.stringType,
-      V.reference(FQName.fromString("Morphir.UnitTest:Test:resultToString")),
-      runTestsIR
-    )
-    val mdmReport = EvaluatorQuick.eval(reportIR, globals, dists)
-    val report = mdmReport match {
-      case Data.String(s) => s
-      case _              => throw new OtherError("Test result: ", mdmReport)
-    }
-    TestSummary(report, true)
-  }
 
   private[runtime] def reportResult(
       globals: GlobalDefs,
       dists: Distributions,
-      testNames: List[FQName],
-      simpleRunPassed: Boolean
+      testNames: List[FQName]
   ): TestSummary = {
 
     // We rewrite the IR to replace expect calls (in common patterns) with thunky versions
