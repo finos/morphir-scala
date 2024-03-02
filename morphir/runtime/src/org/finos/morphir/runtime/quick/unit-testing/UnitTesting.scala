@@ -158,7 +158,7 @@ object UnitTesting {
     val withExpects = TestSet.getExpects(newGlobals, testSet)
     // Another walk of the tree, running introspected tests this time
     val withResults = TestSet.processExpects(newGlobals, withExpects)
-    withResults.toSummary // TODO: Make sure it failed!
+    TestSet.toSummary(withResults)
   }
 
   private[runtime] def collectTests(
