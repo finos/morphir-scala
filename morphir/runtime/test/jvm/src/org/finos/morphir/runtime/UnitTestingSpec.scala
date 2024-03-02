@@ -29,23 +29,22 @@ object UnitTestingSpec extends MorphirBaseSpec {
       }
 
       runResult.map { actual =>
-        println(actual)
         assertTrue(!actual.passed)
       }
     }
 
-    def getTestSummary =
-      ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
-        runtime.runUnitTests()
-          .provideEnvironment(MorphirEnv.live)
-          .toZIOWith(RTExecutionContext.typeChecked)
-      }
+  def getTestSummary =
+    ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
+      runtime.runUnitTests()
+        .provideEnvironment(MorphirEnv.live)
+        .toZIOWith(RTExecutionContext.typeChecked)
+    }
 
   def spec =
     suite("Type Checker Tests")(
       suite("Happy Paths Tests")(
         // testEvaluation("Single test result")("ExampleModuleTests", "runSimpleTest")(Data.String("PASSED")),
-        testUnitTestingPasses("Suite Passed")("ExampleModuleTests", "runSimpleTest"),
+        testUnitTestingPasses("Suite Passed"),
         test("Overall Status Failed") {
           getTestSummary.map(result => assertTrue(!result.passed))
         }
