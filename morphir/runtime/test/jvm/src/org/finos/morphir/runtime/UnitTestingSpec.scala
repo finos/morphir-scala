@@ -50,7 +50,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
       },
       test("Counts Correct") {
         getTestSummary.map { result =>
-          assertTrue(result.counts == TestResultCounts.empty)
+          assertTrue(result.overallCounts == TestResultCounts.empty)
         }
       }
     )
