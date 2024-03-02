@@ -1,9 +1,9 @@
 package org.finos.morphir.runtime
 import org.finos.morphir.naming.*
+import javax.swing.text.PasswordView
 
 case class TestSummary(
     message: String,
-    success: Boolean, // How should Incomplete be handled?
     countsByModule: Map[(pkgName: PackageName, modName: ModuleName), TestResultCounts]
 ) {
   def overallCounts = countsByModule.values.foldLeft(TestResultCounts.empty) { case (acc, next) => acc.plus(next) }
@@ -12,7 +12,9 @@ case class TestSummary(
   def result = overallCounts.result
   def resultByModule(pkgName: PackageName, modName: ModuleName): Option[OverallStatus] =
     countsAtModule(pkgName, modName).map(_.result)
-
+  def success    = result == Passed
+  def incomplete = result == Incomplete
+  // not including failed in hopes no one assumed !failed == success
 }
 
 sealed trait OverallStatus
