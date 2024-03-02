@@ -28,7 +28,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
   def getTestSummary =
     ZIO.serviceWithZIO[TestSummary] { summary => ZIO.succeed(summary) }
 
-  def moduleCounts(moduleName: String): TestResultCounts = {
+  def moduleCounts(moduleName: String) = {
     val pkgName = PackageName.fromString("ExampleModuleTests")
     val modName = PackageName.fromString(moduleName)
     getTestSummary.map {
