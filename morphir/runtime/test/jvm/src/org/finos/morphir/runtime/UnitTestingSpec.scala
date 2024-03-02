@@ -20,7 +20,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
       dists <- ZIO.succeed(paths.map(path => EvaluationLibrary.loadDistribution(path.toString)))
     } yield MorphirRuntime.quick(dists: _*))
 
-  def testUnitTestingPasses(label: String)(moduleName: String, functionName: String) =
+  def testUnitTestingPasses(label: String) =
     test(label) {
       val runResult = ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
         runtime.runUnitTests()
@@ -34,11 +34,19 @@ object UnitTestingSpec extends MorphirBaseSpec {
       }
     }
 
+    def getTestSummary(label: String)(moduleName: String, functionName: String) =
+      ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
+        runtime.runUnitTests()
+          .provideEnvironment(MorphirEnv.live)
+          .toZIOWith(RTExecutionContext.typeChecked)
+      }
+
   def spec =
     suite("Type Checker Tests")(
       suite("Happy Paths Tests")(
         // testEvaluation("Single test result")("ExampleModuleTests", "runSimpleTest")(Data.String("PASSED")),
         testUnitTestingPasses("Suite Passed")("ExampleModuleTests", "runSimpleTest")
       )
+        suite ("Overall Status Failed")
     ).provideLayerShared(morphirRuntimeLayer)
 }
