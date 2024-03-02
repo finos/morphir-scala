@@ -91,7 +91,7 @@ object UnitTesting {
         val detailedReport = reportResult(globals, dists, testNames)
 
         if (detailedReport.passed == simplePassed)
-          RTAction.succeed(report)
+          RTAction.succeed(detailedReport)
         // TODO: Better error, give usable report
         else throw new Exception("Detailed test report found different result than simple")
       }
@@ -135,7 +135,7 @@ object UnitTesting {
     val testSet: TestSet[RT] =
       TestSet(
         testRTValues
-          .groupBy { case (fqn, _) => (fqn.getPackageName, fqn.getModuleName) }
+          .groupBy { case (fqn, _) => (fqn.pack, fqn.getModuleName) }
           .map { case ((pkgName, modName), tests) =>
             ModuleTests(
               pkgName,

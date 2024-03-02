@@ -12,7 +12,7 @@ case class TestSummary(
   def result = overallCounts.result
   def resultByModule(pkgName: PackageName, modName: ModuleName): Option[OverallStatus] =
     countsAtModule(pkgName, modName).map(_.result)
-  def success    = result == OverallStatus.Passed
+  def passed     = result == OverallStatus.Passed
   def incomplete = result == OverallStatus.Incomplete
   // not including failed in hopes no one assumed !failed == success
 }
