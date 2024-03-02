@@ -8,7 +8,9 @@ import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.ErrorUtils.indentBlock
 
 sealed trait TestTree[+T] {
-  def resolveOnly = TestTree.resolveOnly(this)
+  def containsOnly = TestTree.containsOnly(this)
+  def pruneToOnly = TestTree.pruneToOnly(this)
+  def count = TestTree.count(this)
 }
 
 object TestTree {
@@ -170,5 +172,12 @@ object TestSet{
         "Module " + module.name + " Tests:\n" + module.tests.map(TestTree.toReport(_)).mkString("\n") + s"\n${getCounts(this)} \n"}
       def getExpects(module : Module[RT]) = Module(module.name, module.tests.map(TestTree.getExpects(globals)(_)))
       def processExpects(module : Module[RT]) = Module(module.name, module.tests.map(TestTree.processExpects(globals)(_)))
-      def pruneToOnly(module : Module[T]) : Module[T]
+      def pruneToOnly(module : Module[T]) : Module[T] = {
+        if (module.tests.exists(_.containsOnly))
+          Module(module.name, module.tests.map(_.pruneToOnly))
+          else {
+            count = module.tests.foldLeft(0)((acc, next) => acc + next.count)
+            Module(module.name, TestTree.Skip("Module Skipped", count))
+          }
+      }
 }
