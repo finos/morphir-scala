@@ -194,7 +194,8 @@ object ModuleTests {
     val counts = getCounts(module)
     s"""Module ${module.pkgName}:${module.modName} Tests:
         ${module.tests.map(TestTree.toReport(_)).mkString("\n")}
-    ${module.pkgName}:${module.modName} ${counts.result} 
+        
+    ${module.pkgName}:${module.modName} Status - ${counts.result} 
     $counts
     """
 

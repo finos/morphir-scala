@@ -18,7 +18,7 @@ case class TestSummary(
   override def toString =
     s"""$report
     $overallCounts
-    $result"""
+    Overal Status - $result"""
 }
 
 sealed trait OverallStatus
