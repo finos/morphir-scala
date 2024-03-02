@@ -2,7 +2,7 @@
     "name": "ExampleTests",
     "sourceDirectory": "src",
     "localDependencies": [
-        "../morphir-unit-test/morphir-ir.json",
+        "../../../../elm-sdks/morphir-unit-test/morphir-ir.json",
         "../example-project/morphir-ir.json"
     ],
     "exposedModules": [

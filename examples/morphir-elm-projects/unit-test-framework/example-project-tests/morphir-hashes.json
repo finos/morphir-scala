@@ -1,3 +1,6 @@
 {
-    "src/Example/ExampleModuleTests.elm": "6ab3485a5336566c813b6c2701c7756e"
+    "src/Example/FailingModuleOne.elm": "738e5c9f0f0ca0459a1623c515ca0f73",
+    "src/Example/FailingModuleTwo.elm": "ed1d943b494d63a58515ae567acb546e",
+    "src/Example/IncompleteModule.elm": "0db62983f609346e9d8902f4fe16fbc8",
+    "src/Example/PassingModule.elm": "99eb514c1b426a2477dd43be5848ad40"
 }

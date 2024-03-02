@@ -22,87 +22,14 @@ import org.finos.morphir.util.PrintRTValue
 import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
+import org.finos.morphir.ir.distribution.Distribution
 
 import org.finos.morphir.runtime.internal._
-
-// object UnitTestingSDK {
-//   def expectation(result: RTValue) =
-//     RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
-//   val passed = RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Pass"), List())
-//   def failed(msg: String) =
-//     RTValue.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(Primitive.String(msg)))
-
-//   val equal: SDKValue =
-//     SDKValue.SDKNativeFunction.fun2 { (a: RTValue, b: RTValue) =>
-//       val result = if (a == b) passed else failed(s"${PrintRTValue(a).plainText} != ${PrintRTValue(b).plainText}")
-//       expectation(result)
-//     }
-
-//   val greaterThan = DynamicNativeFunction2("greaterThan") {
-//     (_: NativeContext) => (a: Comparable, b: Comparable) =>
-//       val res = if (RTValue.Comparable.compareOrThrow(a, b) > 0)
-//         passed
-//       else failed(s"${PrintRTValue(a).plainText} was not greater than ${PrintRTValue(b).plainText}")
-//       expectation(res)
-//   }
-
-//   def extract(f: RTValue.Function, ctx: NativeContext): (TypedValue, TypedValue, RTValue, RTValue) = {
-//     val out = ctx.evaluator.handleApplyResult(T.unit, f, RTValue.Unit())
-//     val (ir1, ir2) = f match {
-//       case RT.LambdaFunction(Value.Tuple(_, elements), _, _) => (elements(0), elements(1))
-//       case other                                             => throw OtherError("This should not be!", other)
-//     }
-//     val (rt1, rt2) = out match {
-//       case RT.Tuple(List(rt1_, rt2_)) => (rt1_, rt2_)
-//       case other                      => throw new Exception("This should not be!")
-//     }
-//     (ir1, ir2, rt1, rt2)
-//   }
-//   val equalIntrospected = DynamicNativeFunction1("equalIntrospected") {
-//     (ctx: NativeContext) => (f: RTValue.Function) =>
-//       {
-//         val (ir1, ir2, rt1, rt2)   = extract(f, ctx)
-//         val (irString1, irString2) = (ir1.toString, ir2.toString)
-//         val (rtString1, rtString2) = (PrintRTValue(rt1).plainText, PrintRTValue(rt2).plainText)
-//         val res = if (rt1 != rt2)
-//           failed(s"($irString1 => $rtString1) != ($irString2 => $rtString2")
-//         else passed
-//         expectation(res)
-//       }
-//   }
-//   val notEqualIntrospected = DynamicNativeFunction1("notEqualIntrospected") {
-//     (ctx: NativeContext) => (f: RTValue.Function) =>
-//       {
-//         val (ir1, ir2, rt1, rt2)   = extract(f, ctx)
-//         val (rtString1, rtString2) = (PrintRTValue(rt1).plainText, PrintRTValue(rt2).plainText)
-//         val res = if (rt1 == rt2)
-//           failed(s"($ir1 => $rtString1) == ($ir2 => $rtString2")
-//         else passed
-//         expectation(res)
-//       }
-//   }
-
-//   val newDefs = GlobalDefs(
-//     Map(
-//       FQName.fromString("Morphir.UnitTest:Expect:greaterThan") -> NativeFunctionAdapter.Fun2(
-//         greaterThan
-//       ).realize,
-//       FQName.fromString("Morphir.UnitTest:Expect:equalIntrospected") -> NativeFunctionAdapter.Fun1(
-//         equalIntrospected
-//       ).realize,
-//       FQName.fromString("Morphir.UnitTest:Expect:notEqualIntrospected") -> NativeFunctionAdapter.Fun1(
-//         notEqualIntrospected
-//       ).realize
-//     ),
-//     Map()
-//   )
-
-// }
 
 object UnitTesting {
 
   def testFrameworkPath =
-    "elm-sdks/unit-test-framework/morphir-unit-test/morphir-ir.json"
+    "elm-sdks/morphir-unit-test/morphir-ir.json"
   def testType        = T.reference("Morphir.UnitTest", "Test", "Test")
   def testResultType  = T.reference("Morphir.UnitTest", "Test", "TestResult")
   def expectationType = T.reference("Morphir.UnitTest", "Expect", "Expectation")
@@ -110,11 +37,12 @@ object UnitTesting {
   def expectPrefix    = "Morphir.UnitTest:Expect:"
 
   private[runtime] def runTests(
-      user_dists: Distributions
+      userDists: Distributions
   ): RTAction[MorphirEnv, Nothing, TestSummary] =
-    val testDist = EvaluationLibrary.loadDistribution(testFrameworkPath)
-    val dists    = Distributions((user_dists.getDists.values +: testDist): _*)
-    val globals  = GlobalDefs.fromDistributions(dists: _*)
+    val testLibs = Distribution.toLibsMap(EvaluationLibrary.loadDistribution(testFrameworkPath))
+    val userLibs = userDists.getDists
+    val dists    = Distributions(userLibs ++ testLibs)
+    val globals  = GlobalDefs.fromDistributions(dists)
     RTAction.environmentWithPure[MorphirSdk] { env =>
       val testNames = collectTests(globals, dists)
       val testIRs   = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
