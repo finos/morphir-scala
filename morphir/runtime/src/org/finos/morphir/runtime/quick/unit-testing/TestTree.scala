@@ -8,7 +8,6 @@ import org.finos.morphir.runtime.ErrorUtils.indentBlock
 sealed trait TestTree[+T] {
   def resolveOnly = TestTree.resolveOnly(this)
 }
-type MorphirUnitTestTree = TestTree[RT]
 type TestResultTree      = TestTree[SingleTestResultTree]
 
 
@@ -38,7 +37,7 @@ object TestTree {
 
     }
 
-  def getExpects(globals: GlobalDefs)(test: MorphirUnitTestTree): MorphirUnitTestTree =
+  def getExpects(globals: GlobalDefs)(test: TestTree[RT]): TestTree[RT] =
     test match {
       case Module(name, tests)   => Module(name, tests.map(getExpects(globals)))
       case Describe(desc, tests) => Describe(desc, tests.map(getExpects(globals)))
@@ -62,7 +61,7 @@ object TestTree {
       case other => other // err, todo, skip lack anything to resolve
     }
 
-  def processExpects(globals: GlobalDefs)(tree: MorphirUnitTestTree): TestTree[SingleTestResultTree] = {
+  def processExpects(globals: GlobalDefs)(tree: TestTree[RT]): TestTree[SingleTestResultTree] = {
     import SingleTestResultTree.*
     tree match {
       case Module(name, tests)   => Module(name, tests.map(processExpects(globals)))
@@ -117,7 +116,7 @@ object TestTree {
       case _: Error           => 1 // Might have been a suite or anything but we don't know
       case Only(inner)        => count(inner)
     }
-  def fromRTValue(value: RT): MorphirUnitTestTree =
+  def fromRTValue(value: RT): TestTree[RT] =
     value match {
       case RT.ConstructorResult(
             FQStringTitleCase("Morphir.UnitTest:Test:Describe"),
@@ -149,6 +148,7 @@ object TestTree {
 
 case class Module[T](name: String, tests: List[TestTree[T]])
 case class TestSet[T](modules: List[Module[T]]) {}
+case class 
 object TestSet{
       def getReport()
         "Module " + name + " Tests:\n" + tests.map(toReport).mkString("\n") + "\n\n"}
