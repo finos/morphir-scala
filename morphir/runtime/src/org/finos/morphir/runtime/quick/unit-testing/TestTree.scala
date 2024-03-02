@@ -189,11 +189,11 @@ case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List
 }
 object ModuleTests {
   def getCounts(module: ModuleTests[SingleTestResult]): TestResultCounts =
-    module.tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
+    module.tests.foldLeft(TestResultCounts.empty)((acc, next) => acc.plus(getCounts(next)))
   def toReport(module: ModuleTests[SingleTestResult]): String =
     s"""Module ${module.pkgName}:${module.modName} Tests:
         ${module.tests.map(TestTree.toReport(_)).mkString("\n")}
-        ${getCounts(this)}
+        ${getCounts(module)}
         """
 
   def getExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =
