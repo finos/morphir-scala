@@ -46,7 +46,7 @@ object UnitTesting {
       val testNames = collectTests(globals, dists)
       val testIRs   = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
       if (testIRs.isEmpty) {
-        val emptySummary = TestSummary("No tests run", true)
+        val emptySummary = TestSummary("No tests run", Map())
         RTAction.succeed(emptySummary)
       } else {
         val testSuiteIR = if (testIRs.length == 1)
@@ -83,9 +83,9 @@ object UnitTesting {
           }
 
         val report = passedResult match {
-          case Right(Data.Boolean(true)) => passingResult(globals, dists, runTestsIR)
+          case Right(Data.Boolean(true)) => reportResult(globals, dists, runTestsIR, true)
           // Anything else and we know we have a failure, it's just a matter of determining what
-          case _ => nonPassingResult(globals, dists, testNames)
+          case _ => nreportResult(globals, dists, testNames, false)
         }
 
         RTAction.succeed(report)
@@ -110,10 +110,11 @@ object UnitTesting {
     TestSummary(report, true)
   }
 
-  private[runtime] def nonPassingResult(
+  private[runtime] def reportResult(
       globals: GlobalDefs,
       dists: Distributions,
-      testNames: List[FQName]
+      testNames: List[FQName],
+      simpleRunPassed: Boolean
   ): TestSummary = {
 
     // We rewrite the IR to replace expect calls (in common patterns) with thunky versions
@@ -143,10 +144,9 @@ object UnitTesting {
         }
       }
 
-    // We make this into a test tree, using FQNs for things not already described
-    // val byPackage = testRTValues.groupBy((_._1.getPackagePath))
+    // We make this into a test set, using FQNs for things not already described
 
-    val testTree: TestSet[RT] =
+    val testSet: TestSet[RT] =
       TestSet(
         testRTValues
           .groupBy { case (fqn, _) => (fqn.getPackageName, fqn.getModuleName) }
@@ -169,10 +169,10 @@ object UnitTesting {
 
         // Recursive walk of tree, running the user-defined thunks in the "test" code
         // Non-introspected tests are "Run" at this point
-    val withExpects = TestTree.getExpects(newGlobals)(testTree)
+    val withExpects = TestSet.getExpects(newGlobals)(testSet)
     // Another walk of the tree, running introspected tests this time
-    val treeWithResults = TestTree.processExpects(newGlobals)(withExpects)
-    TestSummary(TestTree.toReport(treeWithResults), false)
+    val withResults = TestSet.processExpects(newGlobals)(withExpects)
+    withResults.toSummary // TODO: Make sure it failed!
   }
 
   private[runtime] def collectTests(
