@@ -5,25 +5,17 @@ import org.finos.morphir.runtime.SingleTestResult
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.ErrorUtils.indentBlock
 
-//Possibly this tpe should be polymorphic on the contents
 sealed trait TestTree[+T] {
-  def resolveOnly = TestTree.resolveOnly(this)
+  def resolveOnly                     = TestTree.resolveOnly(this)
+  def getExpects(globals: GlobalDefs) = TestTree.getExpects(globals, this)
 }
 type MorphirUnitTest = TestTree[RT]
 type TestResult      = TestTree[SingleTestResult]
 
-//This object goes thru a series of transformations:
-// 1: A List[FQName, IR] of all Test-typed constructs
-// 2: List[FQName, Result[MorphirUnitTest]] w/ leaves consisting of RTValues (the thunks passed to test)
-// 3: Those same trees but with the thunks applied, so leaves may now contain errors as well
-// 4: Trees again, with Thunk RTValues matched (no errors), which can be either
-//    a: fully-evaluated (for less supported things)
-//    b: Expect structures (which contain a context and IR)
-// 5: Tree with individual results
-// 6 : Final result - Formatted String, counts and result
+case class Module[T](name: String, tests: List[TestTree[T]])
+case class TestSet[T](modules: List[Module[T]])
 
 object TestTree {
-  case class Module[T](name: String, tests: List[TestTree[T]])   extends TestTree[T]
   case class Describe[T](desc: String, tests: List[TestTree[T]]) extends TestTree[T]
   case class SingleTest[T](desc: String, expectThunk: T)         extends TestTree[T]
   case class Concat[T](tests: List[TestTree[T]])                 extends TestTree[T]
