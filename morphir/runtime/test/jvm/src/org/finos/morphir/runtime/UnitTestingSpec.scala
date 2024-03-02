@@ -29,7 +29,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
       }
 
       runResult.map { actual =>
-        println(actual.message)
+        println(actual)
         assertTrue(!actual.passed)
       }
     }

@@ -3,7 +3,7 @@ import org.finos.morphir.naming.*
 import javax.swing.text.PasswordView
 
 case class TestSummary(
-    message: String,
+    report: String,
     countsByModule: Map[(PackageName, ModuleName), TestResultCounts]
 ) {
   def overallCounts = countsByModule.values.foldLeft(TestResultCounts.empty) { case (acc, next) => acc.plus(next) }
@@ -14,7 +14,8 @@ case class TestSummary(
     countsAtModule(pkgName, modName).map(_.result)
   def passed     = result == OverallStatus.Passed
   def incomplete = result == OverallStatus.Incomplete
-  // not including failed in hopes no one assumed !failed == success
+  // not including a "failed" function in hopes no one assumed !failed == success
+  override def toString = report + "\n" + overallCounts.toString
 }
 
 sealed trait OverallStatus

@@ -193,8 +193,8 @@ object ModuleTests {
   def toReport(module: ModuleTests[SingleTestResult]): String =
     s"""Module ${module.pkgName}:${module.modName} Tests:
         ${module.tests.map(TestTree.toReport(_)).mkString("\n")}
-        ${getCounts(module)}
-        """
+    ${module.pkgName}:${module.modName}: ${getCounts(module)}
+    """
 
   def getExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =
     ModuleTests(module.pkgName, module.modName, module.tests.map(TestTree.getExpects(globals)(_)))
