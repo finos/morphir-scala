@@ -6,7 +6,7 @@ import Morphir.UnitTest.Expect as Expect
 import Example.ExampleModule exposing (..)
 
 failing : Test
-failing = test "String Concat" <|
+failing = only <| test "String Concat" <|
     \_ -> Expect.equal
         (String.concat ["One", "Two", "Three"])
         "One, Two, Three"

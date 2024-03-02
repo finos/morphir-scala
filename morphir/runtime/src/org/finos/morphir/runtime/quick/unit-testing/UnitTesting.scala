@@ -155,12 +155,12 @@ object UnitTesting {
             TestTree.Module(
               s"$packagePath:$modulePath",
               tests.map {
-                case (fqn, Left(err)) => TestTree.Error(fqn.localName.toString, err)
+                case (fqn, Left(err)) => TestTree.Error(fqn.localName.toStringCamelCase, err)
                 case (fqn, Right(rt)) =>
                   TestTree.fromRTValue(rt) match {
                     case d: TestTree.Describe[_]   => d
                     case s: TestTree.SingleTest[_] => s
-                    case other                     => TestTree.Describe(fqn.localName.toString, List(other))
+                    case other                     => TestTree.Describe(fqn.localName.toStringCamelCase, List(other))
                   }
               }
             )
