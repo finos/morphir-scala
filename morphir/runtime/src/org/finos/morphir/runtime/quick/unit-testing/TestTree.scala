@@ -1,20 +1,16 @@
 package org.finos.morphir.runtime.quick
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.runtime.Extractors.*
-import org.finos.morphir.runtime.SingleTestResult
+import org.finos.morphir.runtime.SingleTestResultTree
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.ErrorUtils.indentBlock
 
 sealed trait TestTree[+T] {
-  def resolveOnly                         = TestTree.resolveOnly(this)
-  def getExpects(globals: GlobalDefs)     = TestTree.getExpects(globals, this)
-  def processExpects(globals: GlobalDefs) = TestTree.processExpects(globals, this)
+  def resolveOnly = TestTree.resolveOnly(this)
 }
 type MorphirUnitTestTree = TestTree[RT]
-type TestResult          = TestTree[SingleTestResult]
+type TestResultTree      = TestTree[SingleTestResultTree]
 
-case class Module[T](name: String, tests: List[TestTree[T]])
-case class TestSet[T](modules: List[Module[T]])
 
 object TestTree {
   case class Describe[T](desc: String, tests: List[TestTree[T]]) extends TestTree[T]
@@ -26,22 +22,19 @@ object TestTree {
       extends TestTree[Nothing] // not worth distinguishing between MorphirRuntimeError here
   case class Only[T](test: TestTree[T]) extends TestTree[T]
 
-  def toReport(tree: TestTree[SingleTestResult]): String = toReportHelper(tree, 0)
-  def toReportHelper(tree: TestTree[SingleTestResult], depth: Int): String =
+  def toReport(tree: TestTree[SingleTestResultTree]): String =
     tree match {
       case Describe(desc, tests) =>
-        desc + "\n" + indentBlock(tests.map(toReportHelper(_, depth + 1)).mkString("\n"))
-      case Module(name, tests) =>
-        "Module " + name + " Tests:\n" + tests.map(toReportHelper(_, depth + 1)).mkString("\n") + "\n\n"
-      case SingleTest(desc, SingleTestResult.Passed)      => s"$desc: PASSED"
-      case SingleTest(desc, SingleTestResult.Failed(msg)) => s"$desc: FAILED ($msg)"
-      case SingleTest(desc, SingleTestResult.Err(err))    => s"$desc: ERROR ($err)"
-      case Concat(tests)                                  => tests.map(toReportHelper(_, depth)).mkString("\n")
-      case Todo(excuse)                                   => s"$excuse: TODO"
+        desc + "\n" + indentBlock(tests.map(toReport).mkString("\n"))
+      case SingleTest(desc, SingleTestResultTree.Passed)      => s"$desc: PASSED"
+      case SingleTest(desc, SingleTestResultTree.Failed(msg)) => s"$desc: FAILED ($msg)"
+      case SingleTest(desc, SingleTestResultTree.Err(err))    => s"$desc: ERROR ($err)"
+      case Concat(tests)                                      => tests.map(toReport).mkString("\n")
+      case Todo(excuse)                                       => s"$excuse: TODO"
       case Skip(desc, count) =>
         desc + ": SKIPPED" + (if (count == 1) "" else s"($count tests skipped)")
       case Error(desc, err) => s"$desc: ERROR: \n $err"
-      case Only(inner)      => toReportHelper(inner, depth)
+      case Only(inner)      => toReport(inner)
 
     }
 
@@ -69,8 +62,8 @@ object TestTree {
       case other => other // err, todo, skip lack anything to resolve
     }
 
-  def processExpects(globals: GlobalDefs)(tree: MorphirUnitTestTree): TestTree[SingleTestResult] = {
-    import SingleTestResult.*
+  def processExpects(globals: GlobalDefs)(tree: MorphirUnitTestTree): TestTree[SingleTestResultTree] = {
+    import SingleTestResultTree.*
     tree match {
       case Module(name, tests)   => Module(name, tests.map(processExpects(globals)))
       case Describe(desc, tests) => Describe(desc, tests.map(processExpects(globals)))
@@ -152,3 +145,10 @@ object TestTree {
     }
 
 }
+
+
+case class Module[T](name: String, tests: List[TestTree[T]])
+case class TestSet[T](modules: List[Module[T]]) {}
+object TestSet{
+      def getReport()
+        "Module " + name + " Tests:\n" + tests.map(toReport).mkString("\n") + "\n\n"}
