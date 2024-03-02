@@ -37,25 +37,20 @@ object UnitTestingSpec extends MorphirBaseSpec {
   //     }
   //   }
 
-  // def getTestSummary =
-  //   ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
-  //     runtime.runUnitTests()
-  //       .provideEnvironment(MorphirEnv.live)
-  //       .toZIOWith(RTExecutionContext.typeChecked)
-  //   }
+  def getTestSummary =
+    ZIO.serviceWithZIO[TestSummary] { summary }
 
-  def spec = ZIO.serviceWithZIO[TestSummary] { summary =>
-    ZIO.succeed(suite("Type Checker Tests")(
-      suite("Happy Paths Tests")(
-        // testEvaluation("Single test result")("ExampleModuleTests", "runSimpleTest")(Data.String("PASSED")),
-        // testUnitTestingPasses("Suite Passed"),
-        // test("Overall Status Failed") {
-        //   getTestSummary.map(result => assertTrue(!result.passed))
-        // }
-        test("ZIOLess Test") {
-          assertTrue(true)
-        }
-      )
-    ))
-  }.provideLayerShared(testSummaryLayer)
+  def spec = suite("Type Checker Tests")(
+    suite("Happy Paths Tests")(
+      // testEvaluation("Single test result")("ExampleModuleTests", "runSimpleTest")(Data.String("PASSED")),
+      // testUnitTestingPasses("Suite Passed"),
+      // test("Overall Status Failed") {
+      //   getTestSummary.map(result => assertTrue(!result.passed))
+      // }
+      test("ZIOLess Test") {
+        assertTrue(true)
+      }
+    )
+  )
+    .provideLayerShared(testSummaryLayer)
 }
