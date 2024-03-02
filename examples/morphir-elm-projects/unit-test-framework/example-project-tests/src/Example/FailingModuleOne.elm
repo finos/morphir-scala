@@ -19,7 +19,7 @@ breakIntrospection1 : (a -> Expect.Expectation) -> a ->  Expect.Expectation
 breakIntrospection1 f x = f x
 
 introspectedTestSuite : Test
-introspectedTestSuite = only <| concat
+introspectedTestSuite = describe "Tests to show introspection at work"
     [ test "Equality Test" <| 
         \_ -> let record = {name = "Bob", age = 45} in
             Expect.equal 
@@ -68,7 +68,7 @@ introspectedTestSuite = only <| concat
     ]
 
 collectionEqualityTests : Test
-collectionEqualityTests = only <| describe "Tests showing collection diff reporting"
+collectionEqualityTests = describe "Tests showing collection diff reporting"
     let
         short = [("Grass", "Green")]
         base = [("Grass", "Green"), ("Fire", "Red")]
@@ -126,7 +126,7 @@ collectionEqualityTests = only <| describe "Tests showing collection diff report
     ]
 
 onFailTestSuite : Test
-onFailTestSuite = only <| describe "Tests for onFail behavior (complex case due to nesting)"
+onFailTestSuite = describe "Tests for onFail behavior (complex case due to nesting)"
     [
         test "Simple Pass" <|
             \_ -> Expect.onFail "Shouldn't see this" <| Expect.equal 1 1
