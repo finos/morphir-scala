@@ -12,17 +12,20 @@ positive x = Expect.greaterThan x 0
 infinite : Int -> Int
 infinite x = infinite x
 
-breakIntrospection : (a -> a -> Expect.Expectation) -> a -> a -> Expect.Expectation
-breakIntrospection f x y = f x y
+breakIntrospection2 : (a -> a -> Expect.Expectation) -> a -> a -> Expect.Expectation
+breakIntrospection2 f x y = f x y
+
+breakIntrospection1 : (a -> Expect.Expectation) -> a ->  Expect.Expectation
+breakIntrospection1 f x = f x
 
 introspectedTestSuite : Test
 introspectedTestSuite = only <| concat
-    [ test "Failing Equality Test" <| 
+    [ test "Equality Test" <| 
         \_ -> let record = {name = "Bob", age = 45} in
             Expect.equal 
                 record
                 {record | name = "Joe"}
-    , test "Failing Inequality Test" <| 
+    , test "Inequality Test" <| 
         \_ -> let 
                 record1 = {name = "Bob", age = 45}
                 record2 = {name = "Joe", age = 45}
@@ -30,36 +33,36 @@ introspectedTestSuite = only <| concat
             Expect.notEqual 
                 record2
                 {record1 | name = "Joe"}
-    , test "Failing Assert Test" <| 
+    , test "Assert Test" <| 
         \_ -> 
             Expect.assert <|
                 "Red Blue" == (String.concat ["Red", "Blue"])
-    , test "Failing lessThan Test" <| 
+    , test "lessThan Test" <| 
         \_ -> 
             Expect.lessThan
                 3
                 (addOne 2)
-    , test "Failing atLeast Test" <| 
+    , test "atLeast Test" <| 
         \_ -> 
             Expect.atLeast
                 (" " ++ "Blue")
                 "Blue"
-    , test "Failing lessThan Test" <| 
+    , test "atMost Test" <| 
         \_ -> 
             Expect.atMost
                 [1, 2]
                 [1, 1]
-    , test "Failing okay Test" <| 
+    , test "okay Test" <| 
         \_ -> 
             Expect.okay
                 (stringToColor "Canada")
-    , test "Failing err Test" <| 
+    , test "err Test" <| 
         let myString = "Red" in
         \_ -> 
             Expect.err
                 (stringToColor myString)
     , test "Introspection prevented from working (arity 2)" <|
-        \_ -> breakIntrospection Expect.equal (stringToColor "Red") (Ok Green)
+        \_ -> breakIntrospection2 Expect.equal (stringToColor "Red") (Ok Green)
     ]
 
 collectionEqualityTests : Test
@@ -184,7 +187,7 @@ allTestSuite = only <| concat
     , test "Failing all test when introspection fails" <|
         \_ -> Expect.all 
             [
-                \x -> breakIntrospection Expect.equal (addOne 1) 3,
+                \x -> breakIntrospection2 Expect.equal (addOne 1) 3,
                 \x -> positive x
             ]
             -1
