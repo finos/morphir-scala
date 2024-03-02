@@ -30,7 +30,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
 
   def moduleCounts(moduleName: String) = {
     val pkgName = PackageName.fromString("ExampleModuleTests")
-    val modName = PackageName.fromString(moduleName)
+    val modName = ModuleName.fromString(moduleName)
     getTestSummary.map {
       summary => summary.countsAtModule(pkgName, modName)
     }
