@@ -177,7 +177,16 @@ object TestSet {
     TestSet(testSet.modules.map(ModuleTests.processExpects(globals)(_)))
 }
 
-case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List[TestTree[T]])
+case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List[TestTree[T]]) {
+  def containsOnly: Boolean = (tests.exists(_.containsOnly))
+  def pruneToOnly: ModuleTests[T] =
+    if (containsOnly)
+      ModuleTests(pkgName, modName, tests.map(_.pruneToOnly))
+    else {
+      count = tests.foldLeft(0)((acc, next) => acc + next.count)
+      ModuleTests(pkgName, modName, TestTree.Skip("ModuleTests Skipped", count))
+    }
+}
 object ModuleTests {
   def getCounts(module: ModuleTests[SingleTestResult]): TestResultCounts =
     tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
@@ -191,11 +200,4 @@ object ModuleTests {
     ModuleTests(module.pkgName, module.modName, module.tests.map(TestTree.getExpects(globals)(_)))
   def processExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =
     ModuleTests(module.pkgName, module.modName, module.tests.map(TestTree.processExpects(globals)(_)))
-  def pruneToOnly(module: ModuleTests[T]): ModuleTests[T] =
-    if (module.tests.exists(_.containsOnly))
-      ModuleTests(module.pkgName, module.modName, module.tests.map(_.pruneToOnly))
-    else {
-      count = module.tests.foldLeft(0)((acc, next) => acc + next.count)
-      ModuleTests(module.pkgName, module.modName, TestTree.Skip("ModuleTests Skipped", count))
-    }
 }
