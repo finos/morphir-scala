@@ -20,7 +20,7 @@ object TestTree {
   case class Todo(desc: String)                                  extends TestTree[Nothing]
   case class Skip(desc: String, count: Int)                      extends TestTree[Nothing]
   case class Error(desc: String, error: Throwable)
-      extends TestTree[Nothing] // not worth distinguishing between MorphirRuntimeError here
+      extends TestTree[Nothing]
   case class Only[T](test: TestTree[T]) extends TestTree[T]
 
   def toReport(tree: TestTree[SingleTestResult]): String =
@@ -73,8 +73,8 @@ object TestTree {
       case other => other // err, todo, skip lack anything to resolve
     }
 
-  def processExpects(globals: GlobalDefs)(tree: TestTree[RT]): TestTree[SingleTestTree[SingleTestResult]] = {
-    import SingleTestTree[SingleTestResult].*
+  def processExpects(globals: GlobalDefs)(tree: TestTree[RT]): TestTree[SingleTestResult] = {
+    import SingleTestResult.*
     tree match {
       case Module(name, tests)   => Module(name, tests.map(processExpects(globals)))
       case Describe(desc, tests) => Describe(desc, tests.map(processExpects(globals)))
@@ -98,8 +98,6 @@ object TestTree {
       case Only(_)            => true
       case _                  => false // If we skip an Only it does not count
     }
-  def resolveOnly[T](tree: TestTree[T]): TestTree[T] =
-    if (containsOnly(tree)) pruneToOnly(tree) else tree
   // Skips any tests that aren't nested under an Only
   def pruneToOnly[T](tree: TestTree[T]): TestTree[T] =
     tree match {
