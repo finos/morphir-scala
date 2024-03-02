@@ -6,11 +6,12 @@ import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.ErrorUtils.indentBlock
 
 sealed trait TestTree[+T] {
-  def resolveOnly                     = TestTree.resolveOnly(this)
-  def getExpects(globals: GlobalDefs) = TestTree.getExpects(globals, this)
+  def resolveOnly                         = TestTree.resolveOnly(this)
+  def getExpects(globals: GlobalDefs)     = TestTree.getExpects(globals, this)
+  def processExpects(globals: GlobalDefs) = TestTree.processExpects(globals, this)
 }
-type MorphirUnitTest = TestTree[RT]
-type TestResult      = TestTree[SingleTestResult]
+type MorphirUnitTestTree = TestTree[RT]
+type TestResult          = TestTree[SingleTestResult]
 
 case class Module[T](name: String, tests: List[TestTree[T]])
 case class TestSet[T](modules: List[Module[T]])
@@ -44,7 +45,7 @@ object TestTree {
 
     }
 
-  def getExpects(globals: GlobalDefs)(test: MorphirUnitTest): MorphirUnitTest =
+  def getExpects(globals: GlobalDefs)(test: MorphirUnitTestTree): MorphirUnitTestTree =
     test match {
       case Module(name, tests)   => Module(name, tests.map(getExpects(globals)))
       case Describe(desc, tests) => Describe(desc, tests.map(getExpects(globals)))
@@ -68,7 +69,7 @@ object TestTree {
       case other => other // err, todo, skip lack anything to resolve
     }
 
-  def processExpects(globals: GlobalDefs)(tree: MorphirUnitTest): TestTree[SingleTestResult] = {
+  def processExpects(globals: GlobalDefs)(tree: MorphirUnitTestTree): TestTree[SingleTestResult] = {
     import SingleTestResult.*
     tree match {
       case Module(name, tests)   => Module(name, tests.map(processExpects(globals)))
@@ -123,7 +124,7 @@ object TestTree {
       case _: Error           => 1 // Might have been a suite or anything but we don't know
       case Only(inner)        => count(inner)
     }
-  def fromRTValue(value: RT): MorphirUnitTest =
+  def fromRTValue(value: RT): MorphirUnitTestTree =
     value match {
       case RT.ConstructorResult(
             FQStringTitleCase("Morphir.UnitTest:Test:Describe"),

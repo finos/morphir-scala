@@ -147,7 +147,7 @@ object UnitTesting {
     // We make this into a test tree, using FQNs for things not already described
     // val byPackage = testRTValues.groupBy((_._1.getPackagePath))
 
-    val testTree: MorphirUnitTest =
+    val testTree: MorphirUnitTestTree =
       TestTree.Concat(
         testRTValues
           .groupBy { case (fqn, _) => (fqn.getPackagePath, fqn.getModulePath) }
