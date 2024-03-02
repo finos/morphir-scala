@@ -239,9 +239,7 @@ object UnitTesting {
 
     val withExpects = TestTree.getExpects(newGlobals)(testTree)
 
-    
-
-    val treeWithResults = processExpects(withExpects)
+    val treeWithResults = processExpects(newGlobals)(withExpects)
     TestSummary(TestTree.toReport(treeWithResults), false)
   }
 
