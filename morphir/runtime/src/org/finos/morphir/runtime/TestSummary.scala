@@ -4,8 +4,12 @@ import org.finos.morphir.naming.*
 case class TestSummary(
     message: String,
     success: Boolean, // How should Incomplete be handled?
-    countsByModule: Map[(pkgName: PackageName, modName: ModuleName), TestResultCounts],
-)
+    countsByModule: Map[(pkgName: PackageName, modName: ModuleName), TestResultCounts]
+) {
+  def overallCounts = countsByModule.values.foldLeft(TestResultCounts.empty) { case (acc, next) => acc.plus(next) }
+  def result        = overallCounts.result
+  
+}
 
 sealed trait OverallStatus
 object OverallStatus {
@@ -21,4 +25,11 @@ case class TestResultCounts(passed: Int, failed: Int, errors: Int, skipped: Int,
     skipped + other.skipped,
     todo + other.todo
   )
+  def result: OverallStatus =
+    if (failed > 0 || errors > 0) OverallStatus.Failed
+    else if (skipped > 0 || todo > 0) OverallStatus.Incomplete
+    else OverallStatus.Passed
+}
+object TestResultCounts {
+  def empty = TestResultCounts(0, 0, 0, 0, 0)
 }
