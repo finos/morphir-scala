@@ -47,10 +47,10 @@ object TestTree {
       case SingleTest(_, SingleTestResult.Passed) => empty.copy(passed = 1)
       case SingleTest(_, SingleTestResult.Failed(msg)) => empty.copy(failed = 1)
       case SingleTest(_, SingleTestResult.Err(err))    => empty.copy(errors = 1)
-      case Concat(tests)        => tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
-      case Todo(_)              => empty.copy(todo = 1)
-      case Skip(_, cnumSkipped) => empty.copy(skipped = numSkipped)
-      case Error(_, _)          => empty.copy(errors = 1)
+      case Concat(tests)       => tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
+      case Todo(_)             => empty.copy(todo = 1)
+      case Skip(_, numSkipped) => empty.copy(skipped = numSkipped)
+      case Error(_, _)         => empty.copy(errors = 1)
       case Only(inner) =>
         getCounts(inner)
     }
