@@ -112,9 +112,9 @@ object UnitTesting {
   private[runtime] def runTests(
       user_dists: Distributions
   ): RTAction[MorphirEnv, Nothing, TestSummary] =
-    val testDist   = EvaluationLibrary.loadDistribution(testFrameworkPath)
-    val dists      = Distributions(testDist, user_dists.values: _*)
-    val globalDefs = GlobalDefs.fromDistributions(dists: _*)
+    val testDist = EvaluationLibrary.loadDistribution(testFrameworkPath)
+    val dists    = Distributions(testDist, user_dists.dists.values: _*)
+    val globals  = GlobalDefs.fromDistributions(dists: _*)
     RTAction.environmentWithPure[MorphirSdk] { env =>
       val testNames = collectTests(globals, dists)
       val testIRs   = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
