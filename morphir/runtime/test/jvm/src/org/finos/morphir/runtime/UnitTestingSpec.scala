@@ -28,6 +28,8 @@ object UnitTestingSpec extends MorphirBaseSpec {
   def getTestSummary =
     ZIO.serviceWithZIO[TestSummary] { summary => ZIO.succeed(summary) }
 
+  def 
+
   def spec = suite("Type Checker Tests")(
     suite("Happy Paths Tests")(
       // testEvaluation("Single test result")("ExampleModuleTests", "runSimpleTest")(Data.String("PASSED")),
@@ -50,7 +52,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
       },
       test("Counts Correct") {
         getTestSummary.map { result =>
-          assertTrue(result.overallCounts == TestResultCounts.empty)
+          assertTrue(result.overallCounts == TestResultCounts(4, 28, 0, 19, 0))
         }
       }
     )
