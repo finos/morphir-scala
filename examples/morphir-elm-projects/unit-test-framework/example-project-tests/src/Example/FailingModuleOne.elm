@@ -61,6 +61,8 @@ introspectedTestSuite = only <| concat
         \_ -> 
             Expect.err
                 (stringToColor myString)
+    , test "Introspection prevented from working (arity 1)" <|
+        \_ -> breakIntrospection1 Expect.err (stringToColor "Red")
     , test "Introspection prevented from working (arity 2)" <|
         \_ -> breakIntrospection2 Expect.equal (stringToColor "Red") (Ok Green)
     ]
