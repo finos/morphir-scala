@@ -46,24 +46,23 @@ object UnitTestingSpec extends MorphirBaseSpec {
           assertTrue(false)
         }
       },
-      test("Overall Status Failed") {
-        getTestSummary.map { result =>
-          assertTrue(!result.passed)
+      suite("Overall Checks")(
+        test("Overall Status Failed") {
+          getTestSummary.map { result =>
+            assertTrue(!result.passed)
+          }
+        },
+        test("Counts Correct") {
+          getTestSummary.map { result =>
+            assertTrue(result.overallCounts == TestResultCounts(passed = 4, failed = 28, errors = 0, 19, 0))
+          }
         }
-      },
-      test("Overall Status Failed") {
-        getTestSummary.map { result =>
-          assertTrue(!result.passed)
-        }
-      },
-      test("Counts Correct") {
-        getTestSummary.map { result =>
-          assertTrue(result.overallCounts == TestResultCounts(4, 28, 0, 19, 0))
-        }
-      },
-      test("Module One Counts") {
-        moduleCounts("FailingModuleOne").map { counts =>
-          assertTrue(counts == TestResultCounts(4, 28, 0, 19, 0))
+      ),
+      suite("Modules Correct") {
+        test("Module One Counts") {
+          moduleCounts("FailingModuleOne").map { counts =>
+            assertTrue(counts == TestResultCounts(4, 27, 0, 19, 0))
+          }
         }
       }
     )
