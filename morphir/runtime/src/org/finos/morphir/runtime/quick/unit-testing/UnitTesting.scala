@@ -155,9 +155,9 @@ object UnitTesting {
 
         // Recursive walk of tree, running the user-defined thunks in the "test" code
         // Non-introspected tests are "Run" at this point
-    val withExpects = TestSet.getExpects(newGlobals)(testSet)
+    val withExpects = TestSet.getExpects(newGlobals, testSet)
     // Another walk of the tree, running introspected tests this time
-    val withResults = TestSet.processExpects(newGlobals)(withExpects)
+    val withResults = TestSet.processExpects(newGlobals, withExpects)
     withResults.toSummary // TODO: Make sure it failed!
   }
 
