@@ -139,11 +139,13 @@ onFailTestSuite = describe "Tests for onFail behavior (complex case due to nesti
                     , \(x, y) -> Expect.notEqual x y
                 ]
                 (1, 2)
+        , test "When cannot introspect" <|
+            \_ -> Expect.onFail "Should see this, still" <| breakIntrospection2 Expect.equal 1 (addOne 1)
     ]
 
 
 allTestSuite : Test
-allTestSuite = only <| concat
+allTestSuite = concat
     [ test "Simple all test" <|
         \_ -> Expect.all 
             [
