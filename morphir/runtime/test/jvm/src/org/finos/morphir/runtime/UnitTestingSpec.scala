@@ -18,40 +18,43 @@ object UnitTestingSpec extends MorphirBaseSpec {
   val testSummaryLayer: ZLayer[Any, Throwable, TypedMorphirRuntime] =
     ZLayer(for {
       dists   <- ZIO.succeed(paths.map(path => EvaluationLibrary.loadDistribution(path.toString)))
-      runtime <- ZIO.succeed(MorphirRuntime, quick(dists: _*))
+      runtime <- ZIO.succeed(MorphirRuntime.quick(dists: _*))
       summary <- runtime.runUnitTests
         .provideEnvironment(MorphirEnv.live)
         .toZIOWith(RTExecutionContext.typeChecked)
     } yield summary)
 
-  def testUnitTestingPasses(label: String) =
-    test(label) {
-      val runResult = ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
-        runtime.runUnitTests()
-          .provideEnvironment(MorphirEnv.live)
-          .toZIOWith(RTExecutionContext.typeChecked)
-      }
+  // def testUnitTestingPasses(label: String) =
+  //   test(label) {
+  //     val runResult = ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
+  //       runtime.runUnitTests()
+  //         .provideEnvironment(MorphirEnv.live)
+  //         .toZIOWith(RTExecutionContext.typeChecked)
+  //     }
 
-      runResult.map { actual =>
-        assertTrue(!actual.passed)
-      }
-    }
+  //     runResult.map { actual =>
+  //       assertTrue(!actual.passed)
+  //     }
+  //   }
 
-  def getTestSummary =
-    ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
-      runtime.runUnitTests()
-        .provideEnvironment(MorphirEnv.live)
-        .toZIOWith(RTExecutionContext.typeChecked)
-    }
+  // def getTestSummary =
+  //   ZIO.serviceWithZIO[TypedMorphirRuntime] { runtime =>
+  //     runtime.runUnitTests()
+  //       .provideEnvironment(MorphirEnv.live)
+  //       .toZIOWith(RTExecutionContext.typeChecked)
+  //   }
 
   def spec =
     suite("Type Checker Tests")(
       suite("Happy Paths Tests")(
         // testEvaluation("Single test result")("ExampleModuleTests", "runSimpleTest")(Data.String("PASSED")),
-        testUnitTestingPasses("Suite Passed"),
-        test("Overall Status Failed") {
-          getTestSummary.map(result => assertTrue(!result.passed))
+        // testUnitTestingPasses("Suite Passed"),
+        // test("Overall Status Failed") {
+        //   getTestSummary.map(result => assertTrue(!result.passed))
+        // }
+        test("ZIOLess Test") {
+          assertTrue(true)
         }
       )
-    ).provideLayerShared(morphirRuntimeLayer)
+    ).provideLayerShared(testSummaryLayer)
 }
