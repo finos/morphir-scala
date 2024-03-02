@@ -161,11 +161,11 @@ case class TestSet[T](modules: List[ModuleTests[T]]) {
   def resolveOnly: TestSet[T] =
     if (modules.exists(_.containsOnly))
       TestSet(modules.map(_.pruneToOnly))
-    else modules
+    else this
   // Skips any tests that aren't nested under an Only
 }
 object TestSet {
-  def toReport(testSet: TestSet[SingleTestResult]) = testSet.modules.map(ModuleTests.toReport(_).mkString("\n"))
+  def toReport(testSet: TestSet[SingleTestResult]) = testSet.modules.map(ModuleTests.toReport(_)).mkString("\n")
   def toSummary(testSet: TestSet[SingleTestResult]) =
     TestSummary(
       toReport(testSet),
@@ -183,13 +183,13 @@ case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List
     if (containsOnly)
       ModuleTests(pkgName, modName, tests.map(_.pruneToOnly))
     else {
-      count = tests.foldLeft(0)((acc, next) => acc + next.count)
+      val count = tests.foldLeft(0)((acc, next) => acc + next.count)
       ModuleTests(pkgName, modName, TestTree.Skip("ModuleTests Skipped", count))
     }
 }
 object ModuleTests {
   def getCounts(module: ModuleTests[SingleTestResult]): TestResultCounts =
-    tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
+    module.tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
   def toReport(module: ModuleTests[SingleTestResult]): String =
     s"""Module ${module.pkgName}:${module.modName} Tests:
         ${module.tests.map(TestTree.toReport(_)).mkString("\n")}
