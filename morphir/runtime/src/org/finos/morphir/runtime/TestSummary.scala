@@ -4,7 +4,7 @@ import javax.swing.text.PasswordView
 
 case class TestSummary(
     message: String,
-    countsByModule: Map[(pkgName: PackageName, modName: ModuleName), TestResultCounts]
+    countsByModule: Map[(PackageName, ModuleName), TestResultCounts]
 ) {
   def overallCounts = countsByModule.values.foldLeft(TestResultCounts.empty) { case (acc, next) => acc.plus(next) }
   def countsAtModule(pkgName: PackageName, modName: ModuleName): Option[TestResultCounts] =
@@ -12,8 +12,8 @@ case class TestSummary(
   def result = overallCounts.result
   def resultByModule(pkgName: PackageName, modName: ModuleName): Option[OverallStatus] =
     countsAtModule(pkgName, modName).map(_.result)
-  def success    = result == Passed
-  def incomplete = result == Incomplete
+  def success    = result == OverallStatus.Passed
+  def incomplete = result == OverallStatus.Incomplete
   // not including failed in hopes no one assumed !failed == success
 }
 
