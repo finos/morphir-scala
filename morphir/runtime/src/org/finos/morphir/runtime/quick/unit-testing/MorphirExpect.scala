@@ -373,12 +373,7 @@ object MorphirExpect {
         }
         val subjectString = subject.printed
         // Get everything that failed:
-        val failures = withResults.filter { case (_, result) =>
-          result match {
-            case SingleTestResult.Passed => false
-            case _                       => true
-          }
-        }
+        // Note that by doing this we treat errors as failures; this may not be desireable
         val failureStrings = withResults.collect {
           case (f, SingleTestResult.Failed(msg)) => s"${f.printed} $subjectString failed: $msg"
           case (f, SingleTestResult.Err(err))    => s"${f.printed} $subjectString threw error: $err"
