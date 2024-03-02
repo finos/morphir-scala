@@ -12,7 +12,6 @@ import zio.{Console, ZIO, ZLayer}
 
 object UnitTestingSpec extends MorphirBaseSpec {
   val paths = List(
-    os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "morphir-unit-test" / "morphir-ir.json",
     os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project-tests" / "morphir-ir.json",
     os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project" / "morphir-ir.json"
   )

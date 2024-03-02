@@ -100,16 +100,21 @@ import org.finos.morphir.runtime.internal._
 
 object UnitTesting {
 
+  def testFrameworkPath = 
+    os.pwd / "elm-sdks" / "unit-test-framework" / "morphir-unit-test" / "morphir-ir.json",
   def testType        = T.reference("Morphir.UnitTest", "Test", "Test")
   def testResultType  = T.reference("Morphir.UnitTest", "Test", "TestResult")
   def expectationType = T.reference("Morphir.UnitTest", "Expect", "Expectation")
   def testPrefix      = "Morphir.UnitTest:Test:"
   def expectPrefix    = "Morphir.UnitTest:Expect:"
+  
 
   private[runtime] def runTests(
-      globals: GlobalDefs,
-      dists: Distributions
+      user_dists: Distributions
   ): RTAction[MorphirEnv, Nothing, TestSummary] =
+    val testDist = EvaluationLibrary.loadDistribution(testFrameworkPath.toString)
+    val dists = Distributions(testDist, user_dists.values:_*)
+    val globalDefs = GlobalDefs.fromDistributions(dists: _*)
     RTAction.environmentWithPure[MorphirSdk] { env =>
       val testNames = collectTests(globals, dists)
       val testIRs   = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
