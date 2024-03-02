@@ -173,6 +173,10 @@ object TestTree {
         toReport(testSet),
         testSet.modules.map(module => (module.pkgName, module.modName) -> module.getCounts).toMap
       )
+    def getExpects(globals: GlobalDefs, testSet: TestSet[RT]) =
+      TestSet(testSet.modules.map(ModuleTests.getExpects(globals)(_)))
+    def processExpects(globals: GlobalDefs, testSet: TestSet[RT]) =
+      TestSet(testSet.modules.map(ModuleTests.processExpects(globals)(_)))
   }
 
   case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List[TestTree[T]])
@@ -185,9 +189,9 @@ object TestTree {
         ${getCounts(this)}
         """
 
-    def getExpects(module: ModuleTests[RT]) =
+    def getExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =
       ModuleTests(module.name, module.tests.map(TestTree.getExpects(globals)(_)))
-    def processExpects(module: ModuleTests[RT]) =
+    def processExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =
       ModuleTests(module.name, module.tests.map(TestTree.processExpects(globals)(_)))
     def pruneToOnly(module: ModuleTests[T]): ModuleTests[T] =
       if (module.tests.exists(_.containsOnly))

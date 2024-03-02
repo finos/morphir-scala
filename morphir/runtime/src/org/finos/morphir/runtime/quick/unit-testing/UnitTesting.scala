@@ -14,8 +14,7 @@ import org.finos.morphir.ir.sdk
 import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.runtime.EvaluationLibrary
 import org.finos.morphir.runtime.SDKValue.SDKValueDefinition
-import org.finos.morphir.runtime.quick.TestTree
-import org.finos.morphir.runtime.SingleTestTree[SingleTestResult]
+import org.finos.morphir.runtime.SingleTestResult
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.util.PrintRTValue
@@ -150,10 +149,11 @@ object UnitTesting {
     val testTree: TestSet[RT] =
       TestSet(
         testRTValues
-          .groupBy { case (fqn, _) => (fqn.getPackagePath, fqn.getModulePath) }
-          .map { case ((packagePath, modulePath), tests) =>
+          .groupBy { case (fqn, _) => (fqn.getPackageName, fqn.getModuleName) }
+          .map { case ((pkgName, modName), tests) =>
             ModuleTests(
-              s"$packagePath:$modulePath",
+              pkgName,
+              modName,
               tests.map {
                 case (fqn, Left(err)) => TestTree.Error(fqn.localName.toCamelCase, err)
                 case (fqn, Right(rt)) =>
@@ -167,8 +167,8 @@ object UnitTesting {
           }.toList
       ).resolveOnly // "Only" requires special handling, so do that here
 
-    // Recursive walk of tree, running the user-defined thunks in the "test" code
-    // Non-introspected tests are "Run" at this point
+        // Recursive walk of tree, running the user-defined thunks in the "test" code
+        // Non-introspected tests are "Run" at this point
     val withExpects = TestTree.getExpects(newGlobals)(testTree)
     // Another walk of the tree, running introspected tests this time
     val treeWithResults = TestTree.processExpects(newGlobals)(withExpects)
