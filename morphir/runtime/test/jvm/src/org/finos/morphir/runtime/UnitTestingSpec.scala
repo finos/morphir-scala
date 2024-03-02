@@ -28,7 +28,13 @@ object UnitTestingSpec extends MorphirBaseSpec {
   def getTestSummary =
     ZIO.serviceWithZIO[TestSummary] { summary => ZIO.succeed(summary) }
 
-  def 
+  def moduleCounts(moduleName: String): TestResultCounts = {
+    val pkgName = PackageName.fromString("ExampleModuleTests")
+    val modName = PackageName.fromString(moduleName)
+    getTestSummary.map {
+      summary => summary.countsAtModule(pkgName, modName)
+    }
+  }
 
   def spec = suite("Type Checker Tests")(
     suite("Happy Paths Tests")(
@@ -51,6 +57,11 @@ object UnitTestingSpec extends MorphirBaseSpec {
         }
       },
       test("Counts Correct") {
+        getTestSummary.map { result =>
+          assertTrue(result.overallCounts == TestResultCounts(4, 28, 0, 19, 0))
+        }
+      },
+      test("Module One Counts") {
         getTestSummary.map { result =>
           assertTrue(result.overallCounts == TestResultCounts(4, 28, 0, 19, 0))
         }
