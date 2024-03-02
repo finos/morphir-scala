@@ -38,7 +38,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
   //   }
 
   def getTestSummary =
-    ZIO.serviceWithZIO[TestSummary] { summary => summary }
+    ZIO.serviceWithZIO[TestSummary] { summary => Zio.suceed(summary) }
 
   def spec = suite("Type Checker Tests")(
     suite("Happy Paths Tests")(
