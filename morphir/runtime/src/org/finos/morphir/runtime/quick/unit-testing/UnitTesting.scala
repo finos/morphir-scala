@@ -15,7 +15,7 @@ import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.runtime.EvaluationLibrary
 import org.finos.morphir.runtime.SDKValue.SDKValueDefinition
 import org.finos.morphir.runtime.quick.TestTree
-import org.finos.morphir.runtime.SingleTestResultTree
+import org.finos.morphir.runtime.SingleTestTree[SingleTestResult]
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.util.PrintRTValue
@@ -31,7 +31,7 @@ object UnitTesting {
   def testFrameworkPath =
     "elm-sdks/morphir-unit-test/morphir-ir.json"
   def testType        = T.reference("Morphir.UnitTest", "Test", "Test")
-  def testResultType  = T.reference("Morphir.UnitTest", "Test", "TestResultTree")
+  def testResultType  = T.reference("Morphir.UnitTest", "Test", "TestTree[SingleTestResult]")
   def expectationType = T.reference("Morphir.UnitTest", "Expect", "Expectation")
   def testPrefix      = "Morphir.UnitTest:Test:"
   def expectPrefix    = "Morphir.UnitTest:Expect:"
