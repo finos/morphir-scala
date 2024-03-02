@@ -15,7 +15,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
     os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project-tests" / "morphir-ir.json",
     os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project" / "morphir-ir.json"
   )
-  val testSummaryLayer: ZLayer[Any, Throwable, TypedMorphirRuntime] =
+  val testSummaryLayer: ZLayer[Any, Throwable, TestSummary] =
     ZLayer(for {
       dists   <- ZIO.succeed(paths.map(path => EvaluationLibrary.loadDistribution(path.toString)))
       runtime <- ZIO.succeed(MorphirRuntime.quick(dists: _*))
