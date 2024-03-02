@@ -191,9 +191,11 @@ object ModuleTests {
   def getCounts(module: ModuleTests[SingleTestResult]): TestResultCounts =
     module.tests.foldLeft(TestResultCounts.empty)((acc, next) => acc.plus(TestTree.getCounts(next)))
   def toReport(module: ModuleTests[SingleTestResult]): String =
+    val counts = getCounts(module)
     s"""Module ${module.pkgName}:${module.modName} Tests:
         ${module.tests.map(TestTree.toReport(_)).mkString("\n")}
-    ${module.pkgName}:${module.modName}: ${getCounts(module)}
+    ${module.pkgName}:${module.modName} ${counts.result} 
+    $counts
     """
 
   def getExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =
