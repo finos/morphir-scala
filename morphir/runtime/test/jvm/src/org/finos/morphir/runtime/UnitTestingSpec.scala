@@ -74,7 +74,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
         },
         test("Todo Count Correct") {
           getTestSummary.map { result =>
-            assertTrue(result.overallCounts.todo == 0)
+            assertTrue(result.overallCounts.todo == 1)
           }
         }
       ),
@@ -109,6 +109,17 @@ object UnitTestingSpec extends MorphirBaseSpec {
         test("Module Two Status") {
           moduleCounts("FailingModuleTwo").map { counts =>
             assertTrue(counts.map(_.result) == Some(OverallStatus.Failed))
+          }
+        },
+        test("Incomplete Counts") {
+          moduleCounts("FailingModuleTwo").map { counts =>
+            assertTrue(counts == Some(TestResultCounts(
+              passed = 1,
+              failed = 0,
+              errors = 0,
+              skipped = 5,
+              todo = 1
+            )))
           }
         }
       )

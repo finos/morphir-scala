@@ -23,4 +23,5 @@ individuallySkippedTests = describe "Several Tests"
         \_ -> Expect.equal 0 0
     , test "Passing test that won't get skipped this time"
         \_ -> Expect.equal 0 0
+    , todo "Something I'll finish later"
     ]
