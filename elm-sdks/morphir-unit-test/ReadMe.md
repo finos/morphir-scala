@@ -45,7 +45,9 @@ Additionally, there are several functions that will create non-running tests or 
 ## Expect functions for specific tests
 
 
-- `all : List (subject -> Expectation) -> subject -> Expectation`
+- `equal : a -> a -> Expectation`
+- `notEqual : a -> a -> Expectation`
+- `all : List (subject -> Expectation) -> subject -> Expectation` applies a series of functions to the same 
 - `assert : Bool -> Expectation`
 - `lessThan : comparable -> comparable -> Expectation`
 - `greaterThan : comparable -> comparable -> Expectation`
