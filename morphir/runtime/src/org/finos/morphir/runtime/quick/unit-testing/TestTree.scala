@@ -154,8 +154,12 @@ object TestTree {
         }
       case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Only"), List(test)) =>
         Only(fromRTValue(test))
-      case RT.ConstructorResult(other, _) => throw new UnexpectedType("Test", other)
-      case other                          => throw new UnexpectedType("Constructor (for Test)", other)
+      case otherConstructor @ RT.ConstructorResult(other, _) => throw new UnexpectedType(
+          "Test",
+          otherConstructor,
+          hint = s"Found Constructor with unexpected FQName ${other.toTitleCase}"
+        )
+      case other => throw new UnexpectedType("Constructor (for Test)", other)
     }
 
 }
