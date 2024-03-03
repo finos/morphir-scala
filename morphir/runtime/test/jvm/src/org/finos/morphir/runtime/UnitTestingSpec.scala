@@ -126,6 +126,17 @@ object UnitTestingSpec extends MorphirBaseSpec {
           moduleCounts("IncompleteModule").map { counts =>
             assertTrue(counts.map(_.result) == Some(OverallStatus.Incomplete))
           }
+        },
+        test("Passing Counts") {
+          moduleCounts("PassingModule").map { counts =>
+            assertTrue(counts == Some(TestResultCounts(
+              passed = 1,
+              failed = 0,
+              errors = 0,
+              skipped = 0,
+              todo = 0
+            )))
+          }
         }
       )
     )
