@@ -45,8 +45,6 @@ Additionally, there are several functions that will create non-running tests or 
 ## Expect functions for specific tests
 
 
-- `all : List (subject -> Expectation) -> subject -> Expectation` applies a series of functions to the same value, failing if any of the dependent functions fail
-- `assert : Bool -> Expectation` checks that an arbitrary boolean evaluates to `True`
 
 Basic comparison expectations:
 - `equal : a -> a -> Expectation`
@@ -62,9 +60,11 @@ Collection comparison expectations:
 - `equalSets : Set comparable -> Set comparable -> Expectation`
 
 Other expetations:
-- `okay : Result a b -> Expectation`
-- `err : Result a b -> Expectation`
-- `pass : Expectation`
+- `all : List (subject -> Expectation) -> subject -> Expectation` applies a series of functions to the same value, failing if any of the dependent functions fail
+- `assert : Bool -> Expectation` checks that an arbitrary boolean evaluates to `True`
+- `okay : Result a b -> Expectation` checks that a `Result`-typed value is `Okay`
+- `err : Result a b -> Expectation` checks that a `Result`-typed value is `Err`
+- `pass : Expectation` passes (useful for tests that require logic not inherent in other expectations)
 - `fail : String -> Expectation`
 - `onFail : String -> Expectation -> Expectation`
 
