@@ -28,6 +28,11 @@ passingCollectionTests = concat
         ]
 ```
 
+The `Test` module contains several functions useful for arranging or formatting tests:
+
+- `describe : String -> List Test -> Test` creates a suite from a description and a list of tests to be included
+- 
+
 ## Usage Tips
 
 Every top-level value of type `Test` will be run, even if it used beneath another test. As such, if a test will be used as part of a suite, it is better to avoid declaring it as a top level result. 

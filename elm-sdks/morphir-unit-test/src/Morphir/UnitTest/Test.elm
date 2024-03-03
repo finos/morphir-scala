@@ -93,14 +93,6 @@ skipTests test =
 
                 
 
--- --Run All: We've checked there's no only nested under here, go wild
--- --Run Only: There's one or more Onlys in play, so don't run unless we encounter those
--- --Run Only has not been checked at this level
-
-err : String -> a
-err a = err a
-
-
 countResults : TestResult -> Counts
 countResults result = 
     case result of
@@ -198,11 +190,7 @@ checkOnly test =
         Only a -> True
 
 
-
--- --So to make this actually work, each Test type should resolve to an actual Test
--- --Can they?
-
-
+--Actual Test Functions:
 
 describe : String -> List Test -> Test
 describe desc tests = Describe desc tests
