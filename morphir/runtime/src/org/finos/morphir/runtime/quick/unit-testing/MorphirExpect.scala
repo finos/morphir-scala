@@ -24,7 +24,7 @@ import org.finos.morphir.runtime.internal.{
 import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.util.{Compare, PrintDiff}
 
-sealed trait MorphirExpect {
+private[runtime] sealed trait MorphirExpect {
   def arity: Int
   def funcName: String
   def fqn = FQName.fromString(UnitTesting.expectPrefix + funcName)
@@ -33,7 +33,7 @@ sealed trait MorphirExpect {
   def readThunk(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = PartialFunction.empty
 }
 
-object MorphirExpect {
+private[runtime] object MorphirExpect {
   case class TransparentArg(ir: TypedValue, value: RT) {
     def valueString: String = value.printed
   }

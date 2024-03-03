@@ -9,13 +9,13 @@ import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.ErrorUtils.indentBlock
 
 //This trait represents the tree of unit test suites nested under some top-level definition
-sealed trait TestTree[+T] {
+private[runtime] sealed trait TestTree[+T] {
   def containsOnly = TestTree.containsOnly(this)
   def pruneToOnly  = TestTree.pruneToOnly(this)
   def count        = TestTree.count(this)
 }
 
-object TestTree {
+private[runtime] object TestTree {
   case class Describe[T](desc: String, tests: List[TestTree[T]]) extends TestTree[T]
   case class SingleTest[T](desc: String, expectThunk: T)         extends TestTree[T]
   case class Concat[T](tests: List[TestTree[T]])                 extends TestTree[T]
@@ -165,13 +165,13 @@ object TestTree {
 }
 
 //Represents the entire set of tests across a call to runUnitTests
-case class TestSet[T](modules: List[ModuleTests[T]]) {
+private[runtime] case class TestSet[T](modules: List[ModuleTests[T]]) {
   def resolveOnly: TestSet[T] =
     if (modules.exists(_.containsOnly))
       TestSet(modules.map(_.pruneToOnly))
     else this
 }
-object TestSet {
+private[runtime] object TestSet {
   def toReport(testSet: TestSet[SingleTestResult]) = testSet.modules.map(ModuleTests.toReport(_)).mkString("\n")
   def toSummary(testSet: TestSet[SingleTestResult]) =
     TestSummary(
@@ -185,7 +185,7 @@ object TestSet {
 }
 
 //Represents all of the tests contained within a module
-case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List[TestTree[T]]) {
+private[runtime] case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List[TestTree[T]]) {
   def containsOnly: Boolean = (tests.exists(_.containsOnly))
   def pruneToOnly: ModuleTests[T] =
     if (containsOnly)
@@ -195,7 +195,7 @@ case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List
       ModuleTests(pkgName, modName, List(TestTree.Skip("ModuleTests Skipped", counted)))
     }
 }
-object ModuleTests {
+private[runtime] object ModuleTests {
   def getCounts(module: ModuleTests[SingleTestResult]): TestResultCounts =
     module.tests.foldLeft(TestResultCounts.empty)((acc, next) => acc.plus(TestTree.getCounts(next)))
   def toReport(module: ModuleTests[SingleTestResult]): String =
