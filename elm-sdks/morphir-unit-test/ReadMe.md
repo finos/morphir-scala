@@ -55,11 +55,15 @@ Basic comparison expectations:
 - `greaterThan : comparable -> comparable -> Expectation`
 - `atMost : comparable -> comparable -> Expectation` (equivalent to "less than or equal")
 - `atLeast : comparable -> comparable -> Expectation` (equivalent to "greater than or equal")
-- `okay : Result a b -> Expectation`
-- `err : Result a b -> Expectation`
+
+Collection comparison expectations:
 - `equalLists : List a -> List a -> Expectation`
 - `equalDicts : Dict comparable a -> Dict comparable a -> Expectation`
 - `equalSets : Set comparable -> Set comparable -> Expectation`
+
+Other expetations:
+- `okay : Result a b -> Expectation`
+- `err : Result a b -> Expectation`
 - `pass : Expectation`
 - `fail : String -> Expectation`
 - `onFail : String -> Expectation -> Expectation`
