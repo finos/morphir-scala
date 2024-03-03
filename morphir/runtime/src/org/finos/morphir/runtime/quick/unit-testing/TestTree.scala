@@ -55,6 +55,9 @@ object TestTree {
         getCounts(inner)
     }
 
+  // Runs the thunks users provided in `Test.test` calls
+  // This mostly ignores introspection, except when an introspected function is nested beneath a normal one
+  // (i.e, `onFail` and `all`)
   def getExpects(globals: GlobalDefs)(test: TestTree[RT]): TestTree[RT] =
     test match {
       case Describe(desc, tests) => Describe(desc, tests.map(getExpects(globals)))
@@ -78,6 +81,8 @@ object TestTree {
       case other => other // err, todo, skip lack anything to resolve
     }
 
+  // Evaluates introspected functions, and wraps results into SingleTestResults
+  // Also wraps the constructors returned by non-introspected functions
   def processExpects(globals: GlobalDefs)(tree: TestTree[RT]): TestTree[SingleTestResult] =
     tree match {
       case Describe(desc, tests) => Describe(desc, tests.map(processExpects(globals)))
