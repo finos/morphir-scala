@@ -237,7 +237,7 @@ object MorphirExpect {
           SingleTestResult.Failed(s"""Expect.okay ${arg1.ir} 
             ${arg1.ir} evaluated to Err ${err.printed}""")
         case other =>
-          SingleTestResult.Err(OtherError("Expect.okay Expected Result type", arg1.ir, arg1.value))
+          SingleTestResult.Err(UnexpectedTypeWithIR("Expect.okay Expected Result type", arg1.value, arg1.ir))
       }
   }
   case object Err extends Introspectable1 {
@@ -266,7 +266,7 @@ object MorphirExpect {
           SingleTestResult.Failed(s"""Expect.err ${arg1.ir} 
             ${arg1.ir} evaluated to Ok ${okay.printed}""")
         case other =>
-          SingleTestResult.Err(OtherError("Expect.err Expected Result type", arg1.ir, arg1.value))
+          SingleTestResult.Err(UnexpectedTypeWithIR("Expect.err Expected Result type", arg1.value, arg1.ir))
       }
   }
   // Collection comparisons don't need to be introspectable - more important to have any decent specific diff reporting

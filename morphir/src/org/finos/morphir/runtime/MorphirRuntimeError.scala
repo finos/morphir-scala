@@ -45,6 +45,10 @@ object MorphirRuntimeError {
   final case class UnexpectedType(expected: String, found: RTValue, hint: String = "") extends EvaluationError {
     def message = err"Expected $expected but found $found. ${if (hint != "") "Hint: " + hint else ""}"
   }
+  final case class UnexpectedTypeWithIR(expected: String, found: RTValue, ir: TypedValue, hint: String = "")
+      extends EvaluationError {
+    def message = err"Expected $expected but found $found from IR $ir. ${if (hint != "") "Hint: " + hint else ""}"
+  }
   final case class FailedCoercion(message: String) extends EvaluationError
 
   final case class IllegalValue(cause: String, context: String = "") extends EvaluationError {
