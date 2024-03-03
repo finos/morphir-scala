@@ -16,6 +16,11 @@ simplePassingTests = describe "Suite of passing tests"
     , test "greaterThan"
         \_ -> Expect.greaterThan 2 1
     , test "atMost"
-        \_ -> Expect.lessThan 0 0
+        \_ -> Expect.atMost 0 0
     , test "atLeast"
-        \_ -> Expect.greaterThan 2 1]
+        \_ -> Expect.atLeast 2 1
+    , test "okay"
+        \_ -> Expect.okay <| stringToColor "Red"
+    , test "err"
+        \_ -> Expect.err <| stringToColor "Brazil"
+    ]
