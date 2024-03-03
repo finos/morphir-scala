@@ -24,3 +24,13 @@ simplePassingTests = describe "Suite of passing tests"
     , test "err"
         \_ -> Expect.err <| stringToColor "Brazil"
     ]
+
+passingCollectionTests = concat
+    let
+        l1 = [1, 2]
+        l2 = [1, 2]
+    in
+    [
+        test "equalLists"
+            \_ -> Expect.equalLists l1 l2
+    ]
