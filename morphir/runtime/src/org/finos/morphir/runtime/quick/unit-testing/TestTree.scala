@@ -77,7 +77,7 @@ private[runtime] object TestTree {
               )
           )
         catch {
-          case e => Error(desc, e)
+          case e : Throwable => Error(desc, e)
         }
       case other => other // err, todo, skip lack anything to resolve
     }

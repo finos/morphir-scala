@@ -434,7 +434,7 @@ private[runtime] object MorphirExpect {
       arg1.value match {
         case RT.Primitive.Boolean(true)  => SingleTestResult.Passed
         case RT.Primitive.Boolean(false) => SingleTestResult.Failed(explainFailure(globals, context, arg1.ir))
-        case other =>
+        case _ =>
           SingleTestResult.Err(UnexpectedTypeWithIR("Bool type", arg1.value, arg1.ir, hint = "(in Expext.assert)"))
       }
     def explainFailure(
