@@ -218,7 +218,7 @@ slow =
     List.foldl (\elem acc -> (tupleStep acc elem)) (0, 0) (List.range 0 10000)
 
 slowTest : Test
-slowTest = test "Test with significant computation used" <|
+slowTest = test "Test with significant computation used (Passes)" <|
     \_ ->
         Expect.lessThan slow (1, 1)
 
