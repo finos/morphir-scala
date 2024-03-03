@@ -43,14 +43,14 @@ private[runtime] object TestTree {
   def getCounts(tree: TestTree[SingleTestResult]): TestResultCounts = {
     val empty = TestResultCounts.empty
     tree match {
-      case Describe(_, tests)                     => tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
-      case SingleTest(_, SingleTestResult.Passed) => empty.copy(passed = 1)
-      case SingleTest(_, SingleTestResult.Failed(msg)) => empty.copy(failed = 1)
-      case SingleTest(_, SingleTestResult.Err(err))    => empty.copy(errors = 1)
-      case Concat(tests)       => tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
-      case Todo(_)             => empty.copy(todo = 1)
-      case Skip(_, numSkipped) => empty.copy(skipped = numSkipped)
-      case Error(_, _)         => empty.copy(errors = 1)
+      case Describe(_, tests)                        => tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
+      case SingleTest(_, SingleTestResult.Passed)    => empty.copy(passed = 1)
+      case SingleTest(_, SingleTestResult.Failed(_)) => empty.copy(failed = 1)
+      case SingleTest(_, SingleTestResult.Err(_))    => empty.copy(errors = 1)
+      case Concat(tests)                             => tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
+      case Todo(_)                                   => empty.copy(todo = 1)
+      case Skip(_, numSkipped)                       => empty.copy(skipped = numSkipped)
+      case Error(_, _)                               => empty.copy(errors = 1)
       case Only(inner) =>
         getCounts(inner)
     }
@@ -149,9 +149,9 @@ private[runtime] object TestTree {
         Todo(desc)
       case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Skip"), List(test)) =>
         fromRTValue(test) match {
-          case d @ Describe(desc, tests) => Skip(desc, count(d))
-          case SingleTest(desc, _)       => Skip(desc, 1)
-          case other                     => Skip("", count(other))
+          case d @ Describe(desc, _) => Skip(desc, count(d))
+          case SingleTest(desc, _)   => Skip(desc, 1)
+          case other                 => Skip("", count(other))
         }
       case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Test:Only"), List(test)) =>
         Only(fromRTValue(test))
@@ -201,13 +201,10 @@ private[runtime] object ModuleTests {
     module.tests.foldLeft(TestResultCounts.empty)((acc, next) => acc.plus(TestTree.getCounts(next)))
   def toReport(module: ModuleTests[SingleTestResult]): String = {
     val counts = getCounts(module)
-    s"""
-    Module ${module.pkgName}:${module.modName} Tests:
-    ${module.tests.map(TestTree.toReport(_)).mkString("\n")}
-
-    ${module.pkgName}:${module.modName} Status - ${counts.result} 
-    $counts
-    """
+    s"Module ${module.pkgName}:${module.modName} Tests:\n" +
+      s"${module.tests.map(TestTree.toReport(_)).mkString("\n")}\n\n" +
+      s"${module.pkgName}:${module.modName} Status - ${counts.result}\n" +
+      s"$counts\n"
   }
 
   def getExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =

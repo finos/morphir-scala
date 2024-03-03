@@ -79,7 +79,7 @@ object UnitTesting {
           try
             Right(EvaluatorQuick.eval(testsPassedIR, globals, dists))
           catch {
-            case e => Left(e)
+            case e: Throwable => Left(e)
           }
 
         val simplePassed = passedResult match {
@@ -130,7 +130,7 @@ object UnitTesting {
         try
           (fqn, Right(Loop(newGlobals).loop(ir, Store.empty)))
         catch {
-          case e => (fqn, Left(e))
+          case e: Throwable => (fqn, Left(e))
         }
       }
 
@@ -138,7 +138,7 @@ object UnitTesting {
     // Tests are grouped by the module they belong to
     // Top-level tests without a name are given a name from their FQN
     val testSet: TestSet[RT] =
-      TestSet(
+      TestSet[RT](
         testRTValues
           .groupBy { case (fqn, _) => (fqn.pack, fqn.getModuleName) }
           .map { case ((pkgName, modName), tests) =>

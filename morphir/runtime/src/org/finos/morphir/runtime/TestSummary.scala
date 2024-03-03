@@ -16,9 +16,9 @@ case class TestSummary(
   def incomplete = result == OverallStatus.Incomplete
   // not including a "failed" function in hopes no one assumed !failed == success
   override def toString =
-    s"""$report
-    $overallCounts
-    Overal Status - $result"""
+    s"$report\n" +
+      s"$overallCounts\n" +
+      s"Overal Status - $result"
 }
 
 sealed trait OverallStatus
