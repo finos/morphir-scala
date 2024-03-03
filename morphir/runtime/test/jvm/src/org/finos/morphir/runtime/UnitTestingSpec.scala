@@ -64,30 +64,30 @@ object UnitTestingSpec extends MorphirBaseSpec {
         },
         test("Error Count Correct") {
           getTestSummary.map { result =>
-            assertTrue(result.overallCounts.errors == 6)
+            assertTrue(result.overallCounts.errors == 1)
           }
         },
         test("Skipped Count Correct") {
           getTestSummary.map { result =>
-            assertTrue(result.overallCounts.passed == 6)
+            assertTrue(result.overallCounts.skipped == 0)
           }
         },
-        test("Error Count Correct") {
+        test("Todo Count Correct") {
           getTestSummary.map { result =>
-            assertTrue(result.overallCounts.passed == 6)
+            assertTrue(result.overallCounts.todo == 6)
           }
         }
       ),
       suite("Modules Correct") {
         test("Module One Counts") {
           moduleCounts("FailingModuleOne").map { counts =>
-            assertTrue(counts == TestResultCounts(
+            assertTrue(counts == Some(TestResultCounts(
               passed = 6,
               failed = 27,
               errors = 0,
               skipped = 19,
               todo = 0
-            ))
+            )))
           }
         }
       }
