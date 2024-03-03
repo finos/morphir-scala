@@ -22,4 +22,6 @@ errors = test "Standalone throws error"
 nestedErrors : Test
 nestedErrors = describe "Two of three tests throw errors"
     [test "First erroring test"
+        \_ -> Expect.equal 0 (err 0)
+    ,test "Second erroring test"
         \_ -> Expect.equal 0 (err 0)]

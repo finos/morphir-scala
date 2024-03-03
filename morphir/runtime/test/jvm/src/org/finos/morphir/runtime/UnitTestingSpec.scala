@@ -64,7 +64,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
         },
         test("Error Count Correct") {
           getTestSummary.map { result =>
-            assertTrue(result.overallCounts.errors == 2)
+            assertTrue(result.overallCounts.errors == 3)
           }
         },
         test("Skipped Count Correct") {
@@ -78,7 +78,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
           }
         }
       ),
-      suite("Modules Correct") {
+      suite("Modules Correct")(
         test("Module One Counts") {
           moduleCounts("FailingModuleOne").map { counts =>
             assertTrue(counts == Some(TestResultCounts(
@@ -90,18 +90,18 @@ object UnitTestingSpec extends MorphirBaseSpec {
             )))
           }
         },
-        test("Module One Counts") {
-          moduleCounts("FailingModuleOne").map { counts =>
+        test("Module Two Counts") {
+          moduleCounts("FailingModuleTwo").map { counts =>
             assertTrue(counts == Some(TestResultCounts(
-              passed = 6,
-              failed = 27,
-              errors = 0,
-              skipped = 19,
+              passed = 1,
+              failed = 0,
+              errors = 3,
+              skipped = 0,
               todo = 0
             )))
           }
         }
-      }
+      )
     )
   )
     .provideLayerShared(testSummaryLayer)
