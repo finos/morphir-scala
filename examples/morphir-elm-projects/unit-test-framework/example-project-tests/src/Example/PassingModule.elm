@@ -5,6 +5,7 @@ import Morphir.UnitTest.Test exposing (..)
 import Morphir.UnitTest.Expect as Expect
 import Example.ExampleModule exposing (..)
 
+--Prevents introspection from running, to ensure that the test framework doesn't break if introspection isn't available
 breakIntrospection1 : (a -> Expect.Expectation) -> a ->  Expect.Expectation
 breakIntrospection1 f x = f x
 breakIntrospection2 : (a -> a -> Expect.Expectation) -> a -> a -> Expect.Expectation
