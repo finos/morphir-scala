@@ -27,7 +27,7 @@ passingCollectionTests = concat
             \_ -> Expect.equalSets (Set.fromList l1) (Set.fromList l2)
         ]
 ```
-
+## Test functions for arranging tests
 The `Test` module contains several functions useful for arranging or formatting tests:
 
 - `describe : String -> List Test -> Test` creates a suite from a description and a list of tests to be included
@@ -35,6 +35,10 @@ The `Test` module contains several functions useful for arranging or formatting 
 - `test : String -> (() -> Expectation) -> Test` creates a single test, taking a name of the test and a thunk from unit to something of type `Expectation`. 
 
 Additionally, there are several functions that will create non-running tests or disable other tests from running. Using any of these will prevent the suite as a whole from resulting in "Passed" - instead it will be at best "Incomplete"
+
+- `todo : String -> Test` describes a test to be written later
+- `skip : Test -> Test` disables a test from running
+- `only : Test -> Test` disables ALL tests from running, except for the specific test passed in
 
 
 ## Usage Tips
