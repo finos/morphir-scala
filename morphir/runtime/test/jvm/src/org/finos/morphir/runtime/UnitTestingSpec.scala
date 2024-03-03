@@ -100,6 +100,11 @@ object UnitTestingSpec extends MorphirBaseSpec {
               todo = 0
             )))
           }
+        },
+        test("Module Two Status") {
+          moduleCounts("FailingModuleTwo").map { counts =>
+            assertTrue(counts.result == OverallStatus.Failed)
+          }
         }
       )
     )
