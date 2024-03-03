@@ -25,7 +25,7 @@
     "src/Morphir/Examples/App/SdkBasicsTests.elm": "68b4fa58886ca3e42054852d917b33b1",
     "src/Morphir/Examples/App/SetTests.elm": "7c4307aefe818e3ca4c3e576fed220c9",
     "src/Morphir/Examples/App/SimpleTests.elm": "443d3bfdd8a53223afbcbe215b815099",
-    "src/Morphir/Examples/App/StringTests.elm": "0cfee84db5c29c83b0fce262b351e09d",
+    "src/Morphir/Examples/App/StringTests.elm": "c0e2dc1679e67a25bfc6650077ea08a5",
     "src/Morphir/Examples/App/TestUtils.elm": "3072a79fadc6116b1dde77c7f424ca20",
     "src/Morphir/Examples/App/TupleTests.elm": "ab771b0e379f4972f01632feb035f980",
     "src/Morphir/Examples/App/TypeCheckerTests.elm": "0b0eb6eaa47b15a49baaf41476b464e7",

@@ -71,7 +71,7 @@ object UnitTesting {
           runTestsIR
         )
 
-        // We evaluate twice (in failed cases) intentionally - once in a pure-elm manner to ensure we are using
+        // We evaluate twice intentionally - once in a pure-morphir manner to ensure we are using
         // the in-flight evaluator, then again with special code enabled to better analyze and report the failures.
         // The first assures us we have no "false nagative" (i.e., falsely passing) tests
         // The second lets us give the user lots of information about why and how tests failed
@@ -92,10 +92,10 @@ object UnitTesting {
 
         if (detailedReport.passed == simplePassed)
           RTAction.succeed(detailedReport)
-        else if (detailedReport.passed && (!simplePassed)) {
+        else if (detailedReport.passed && (!simplePassed))
           throw new InvalidState(s"""Detailed Test Report passed, but simple morphir-based testing failed.
           Detailed:  $detailedReport""")
-        } else
+        else
           throw new InvalidState(s"""Detailed Test Report found failures, but simple morphir-based testing passed.
           Detailed:  $detailedReport""")
       }
