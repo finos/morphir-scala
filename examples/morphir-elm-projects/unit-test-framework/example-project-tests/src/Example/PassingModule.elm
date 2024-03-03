@@ -5,6 +5,8 @@ import Morphir.UnitTest.Test exposing (..)
 import Morphir.UnitTest.Expect as Expect
 import Example.ExampleModule exposing (..)
 
+breakIntrospection1 : (a -> Expect.Expectation) -> a ->  Expect.Expectation
+breakIntrospection1 f x = f x
 breakIntrospection2 : (a -> a -> Expect.Expectation) -> a -> a -> Expect.Expectation
 breakIntrospection2 f x y = f x y
 
@@ -32,6 +34,8 @@ simplePassingTests = describe "Suite of passing tests"
         \_ -> Expect.assert (1 >= 1)
     , test "pass"
         \_ -> Expect.pass
+    , test "When cannot introspect 1"
+        \_ -> breakIntrospection1 Expect.err (stringToColor "Brazil")
     , test "When cannot introspect 2"
         \_ -> breakIntrospection2 Expect.equal 0 0
     ]

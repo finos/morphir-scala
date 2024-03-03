@@ -38,8 +38,6 @@ object UnitTestingSpec extends MorphirBaseSpec {
 
   def spec = suite("Type Checker Tests")(
     suite("Happy Paths Tests")(
-      // testEvaluation("Single test result")("ExampleModuleTests", "runSimpleTest")(Data.String("PASSED")),
-      // testUnitTestingPasses("Suite Passed"),
       test("Show Results (for human readability check - ignore)") {
         getTestSummary.map { result =>
           println(result)

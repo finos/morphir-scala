@@ -12,11 +12,12 @@ positive x = Expect.greaterThan x 0
 infinite : Int -> Int
 infinite x = infinite x
 
+breakIntrospection1 : (a -> Expect.Expectation) -> a ->  Expect.Expectation
+breakIntrospection1 f x = f x
+
 breakIntrospection2 : (a -> a -> Expect.Expectation) -> a -> a -> Expect.Expectation
 breakIntrospection2 f x y = f x y
 
-breakIntrospection1 : (a -> Expect.Expectation) -> a ->  Expect.Expectation
-breakIntrospection1 f x = f x
 
 introspectedTestSuite : Test
 introspectedTestSuite = describe "Tests to show introspection at work"
