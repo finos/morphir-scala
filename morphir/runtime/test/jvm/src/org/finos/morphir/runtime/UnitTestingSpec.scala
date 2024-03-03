@@ -36,7 +36,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
     }
   }
 
-  def spec = suite("Type Checker Tests")(
+  def spec = suite("Unit Testing Framework Tests")(
     suite("Happy Paths Tests")(
       test("Show Results (for human readability check - ignore)") {
         getTestSummary.map { result =>

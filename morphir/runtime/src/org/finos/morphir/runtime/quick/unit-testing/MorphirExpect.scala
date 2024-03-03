@@ -61,7 +61,7 @@ private[runtime] object MorphirExpect {
             }
           )
         catch {
-          case e => SingleTestResult.Err(e)
+          case e: Throwable => SingleTestResult.Err(e)
         }
     }
     def processThunk(
@@ -238,7 +238,7 @@ private[runtime] object MorphirExpect {
         case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Err"), List(err)) =>
           SingleTestResult.Failed(s"""Expect.okay ${arg1.ir} 
             ${arg1.ir} evaluated to Err ${err.printed}""")
-        case other =>
+        case _ =>
           SingleTestResult.Err(UnexpectedTypeWithIR(
             "Ok(value) or Err(err)",
             arg1.value,
@@ -272,7 +272,7 @@ private[runtime] object MorphirExpect {
         case RT.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Ok"), List(okay)) =>
           SingleTestResult.Failed(s"""Expect.err ${arg1.ir} 
             ${arg1.ir} evaluated to Ok ${okay.printed}""")
-        case other =>
+        case _ =>
           SingleTestResult.Err(UnexpectedTypeWithIR(
             "Ok(value) or Err(err)",
             arg1.value,
@@ -302,7 +302,7 @@ private[runtime] object MorphirExpect {
     def explainFailure(l1: List[RT], l2: List[RT]): String =
       if (l1.length != l2.length) s"Lengths differ (${l1.length} vs ${l2.length})"
       else {
-        val mismatches        = l1.zip(l2).zipWithIndex.filter { case ((v1, v2), index) => v1 != v2 }
+        val mismatches        = l1.zip(l2).zipWithIndex.filter { case ((v1, v2), _) => v1 != v2 }
         val ((v1, v2), index) = mismatches(0)
         s"""Lists differ in ${mismatches.length} positions. 
           Example: at index $index, ${v1.printed} vs ${v2.printed}}"""
@@ -380,7 +380,7 @@ private[runtime] object MorphirExpect {
               }
             )
           } catch {
-            case e => (f, SingleTestResult.Err(e))
+            case e: Throwable => (f, SingleTestResult.Err(e))
           }
         }
         val subjectString = subject.printed
@@ -484,10 +484,18 @@ private[runtime] object MorphirExpect {
     OnFail
     // "Pass" and "Fail" require no special support
   )
-  def thunkifyAll: PartialFunction[TypedValue, TypedValue] =
-    allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.thunkify))
-  def readThunkAll(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] =
-    allExpects.foldLeft(PartialFunction.empty)((f, expect) => f orElse (expect.readThunk(globals)))
+  def thunkifyAll: PartialFunction[TypedValue, TypedValue] = {
+    val emptyFunction: PartialFunction[TypedValue, TypedValue] = PartialFunction.empty
+    allExpects.foldLeft(emptyFunction)((f: PartialFunction[TypedValue, TypedValue], expect: MorphirExpect) =>
+      f orElse (expect.thunkify)
+    )
+  }
+  def readThunkAll(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = {
+    val emptyFunction: PartialFunction[RT, SingleTestResult] = PartialFunction.empty
+    allExpects.foldLeft(emptyFunction)((f: PartialFunction[RT, SingleTestResult], expect: MorphirExpect) =>
+      f orElse (expect.readThunk(globals))
+    )
+  }
   def evaluatedExpectToResult(globals: GlobalDefs, testResult: RT): SingleTestResult =
     testResult match {
       case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Expectation"), List(rt)) =>

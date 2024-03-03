@@ -201,8 +201,9 @@ private[runtime] object ModuleTests {
     module.tests.foldLeft(TestResultCounts.empty)((acc, next) => acc.plus(TestTree.getCounts(next)))
   def toReport(module: ModuleTests[SingleTestResult]): String = {
     val counts = getCounts(module)
-    s"""Module ${module.pkgName}:${module.modName} Tests:
-        ${module.tests.map(TestTree.toReport(_)).mkString("\n")}
+    s"""
+    Module ${module.pkgName}:${module.modName} Tests:
+    ${module.tests.map(TestTree.toReport(_)).mkString("\n")}
 
     ${module.pkgName}:${module.modName} Status - ${counts.result} 
     $counts

@@ -8,7 +8,7 @@ case class TestSummary(
 ) {
   def overallCounts = countsByModule.values.foldLeft(TestResultCounts.empty) { case (acc, next) => acc.plus(next) }
   def countsAtModule(pkgName: PackageName, modName: ModuleName): Option[TestResultCounts] =
-    countsByModule.get(pkgName, modName)
+    countsByModule.get((pkgName, modName))
   def result = overallCounts.result
   def resultAtModule(pkgName: PackageName, modName: ModuleName): Option[OverallStatus] =
     countsAtModule(pkgName, modName).map(_.result)
