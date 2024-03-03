@@ -142,7 +142,7 @@ object UnitTesting {
         testRTValues
           .groupBy { case (fqn, _) => (fqn.pack, fqn.getModuleName) }
           .map { case ((pkgName, modName), tests) =>
-            ModuleTests(
+            ModuleTests[RT](
               pkgName,
               modName,
               tests.map {
