@@ -16,11 +16,11 @@ skippedTests = skip <| describe "Several Tests"
     ]
 
 individuallySkippedTests : Test
-skippedTests = skip <| describe "Several Tests"
-    [test "Test that will be skipped"
+individuallySkippedTests = describe "Several Tests"
+    [skip <| test "Test that will be skipped"
         \_ -> Expect.equal 0 0
-    , test "Test that will also be skipped"
+    , skip <| test "Test that will also be skipped"
         \_ -> Expect.equal 0 0
-    , test "Passing test that yes, still gets skipped"
+    , test "Passing test that won't get skipped this time"
         \_ -> Expect.equal 0 0
     ]
