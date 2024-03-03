@@ -67,8 +67,7 @@ class Distributions(dists: Map[PackageName, Distribution.Lib]) {
       modSpec.lookupValueSpecification(localName) match {
         case Some(tpe) => Right(tpe)
         case None => Left(new MissingDefinition(pkgName, modName, localName)
-            .withContext(s"Known definitions:\n ${modSpec.values.keys.mkString("\n  ")}\n")
-            .withContext("You tried to look up: " + localName))
+            .withContext(s"Known definitions from that module:\n ${modSpec.values.keys.mkString("\n  ")}\n"))
       }
     )
 
@@ -82,7 +81,8 @@ class Distributions(dists: Map[PackageName, Distribution.Lib]) {
   ): Either[LookupError, TypedValueDef] =
     lookupModuleDefinition(pkgName, modName).flatMap(_.lookupValueDefinition(localName) match {
       case Some(tpe) => Right(tpe)
-      case None      => Left(new MissingDefinition(pkgName, modName, localName))
+      case None => Left(new MissingDefinition(pkgName, modName, localName)
+          .withContext(s"Known definitions from that module:\n ${modSpec.values.keys.mkString("\n  ")}\n"))
     })
 
   def lookupValueDefinition(fqn: FQName): Either[LookupError, TypedValueDef] =
