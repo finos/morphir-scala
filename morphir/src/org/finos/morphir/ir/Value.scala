@@ -585,15 +585,19 @@ object Value extends internal.PatternModule {
             LetDefinition(va, name, definition.copy(body = recurse(definition.body)), recurse(inValue))
           case LetRecursion(va, definitions, inValue) => LetRecursion(
               va,
-              definitions.map((name, dfn) => (name, dfn.copy(body = recurse(dfn.body)))),
+              definitions.map { case (name, dfn) => (name, dfn.copy(body = recurse(dfn.body))) },
               recurse(inValue)
             )
           case List(va, elements) => List(va, elements.map(recurse))
           case PatternMatch(va, value, cases) =>
-            PatternMatch(va, recurse(value), cases.map((casePattern, caseValue) => (casePattern, recurse(caseValue))))
+            PatternMatch(
+              va,
+              recurse(value),
+              cases.map { case (casePattern, caseValue) => (casePattern, recurse(caseValue)) }
+            )
           case Record(va, fields) => Record(
               va,
-              fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
+              fields.map { case (fieldName, fieldValue) => (fieldName, recurse(fieldValue)) }
             )
           case Tuple(va, elements) => Tuple(
               va,
@@ -602,7 +606,7 @@ object Value extends internal.PatternModule {
           case UpdateRecord(va, valueToUpdate, fields) => UpdateRecord(
               va,
               recurse(valueToUpdate),
-              fields.map((fieldName, fieldValue) => (fieldName, recurse(fieldValue)))
+              fields.map { case (fieldName, fieldValue) => (fieldName, recurse(fieldValue)) }
             )
           case noNestedIR => noNestedIR
 
