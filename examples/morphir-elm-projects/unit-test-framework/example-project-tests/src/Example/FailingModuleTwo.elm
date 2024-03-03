@@ -28,3 +28,14 @@ nestedErrors = describe "Two of three tests throw errors"
     ,test "Passing test"
         \_ -> Expect.equal 0 0 
     ]
+
+testCreationError : Test
+testCreationError = 
+    if 
+        0 == err 0
+    then
+        test "Shouldn't run"
+            \_ -> Expect.equal 0 0
+    else
+        test "Shouldn't run either"
+            \_ -> Expect.equal 0 0

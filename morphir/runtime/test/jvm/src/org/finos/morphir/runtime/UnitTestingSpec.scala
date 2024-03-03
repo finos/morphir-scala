@@ -64,7 +64,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
         },
         test("Error Count Correct") {
           getTestSummary.map { result =>
-            assertTrue(result.overallCounts.errors == 3)
+            assertTrue(result.overallCounts.errors == 4)
           }
         },
         test("Skipped Count Correct") {
@@ -95,7 +95,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
             assertTrue(counts == Some(TestResultCounts(
               passed = 1,
               failed = 1,
-              errors = 3,
+              errors = 4,
               skipped = 0,
               todo = 0
             )))
