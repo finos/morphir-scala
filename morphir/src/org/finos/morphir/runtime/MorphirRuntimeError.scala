@@ -27,11 +27,12 @@ object MorphirRuntimeError {
   final case class MorphirIRDecodingError(message: String) extends MorphirRuntimeError
 
   final case class OtherError(cause: String, stuff: Any*) extends MorphirRuntimeError {
-    def message = stuff.toList match {
-      case List()                  => err"$cause"
-      case List(first, second)     => err"$cause: $first  $second"
-      case List(first)             => err"$cause: $first"
-      case first :: second :: rest => err"$cause: $first  $second  $rest"
+    def message = {
+      l = stuff.toList
+      if (l.length == 0) err"$cause"
+      else if (l.length == 1) err"$cause: ${l(0)}"
+      else if (l.length == 2) err"$cause: ${l(0)} ${l(1)}"
+      else err"$cause: ${l(0)} $l"
     }
   }
 
