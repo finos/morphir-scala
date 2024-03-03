@@ -44,6 +44,25 @@ Additionally, there are several functions that will create non-running tests or 
 
 ## Expect functions for specific tests
 
+
+all : List (subject -> Expectation) -> subject -> Expectation
+
+assert : Bool -> Expectation
+
+lessThan : comparable -> comparable -> Expectation
+greaterThan : comparable -> comparable -> Expectation
+atMost : comparable -> comparable -> Expectation
+atLeast : comparable -> comparable -> Expectation
+atLeast a b = if (a >= b)
+okay : Result a b -> Expectation
+err : Result a b -> Expectation
+equalLists : List a -> List a -> Expectation
+equalDicts : Dict comparable a -> Dict comparable a -> Expectation
+equalSets : Set comparable -> Set comparable -> Expectation
+pass : Expectation
+fail : String -> Expectation
+onFail : String -> Expectation -> Expectation
+
 ## Usage Tips
 
 Every top-level value of type `Test` will be run, even if it used beneath another test. As such, if a test will be used as part of a suite, it is better to avoid declaring it as a top level result. 
