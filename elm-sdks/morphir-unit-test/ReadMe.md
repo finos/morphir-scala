@@ -34,7 +34,7 @@ The `Test` module contains several functions useful for arranging or formatting 
 - `concat : List Test -> Test` combines a lists of tests into one
 - `test : String -> (() -> Expectation) -> Test` creates a single test, taking a name of the test and a thunk from unit to something of type `Expectation`. 
 
-Additionally, there are several functions that will create non-running tests:
+Additionally, there are several functions that will create non-running tests or disable other tests from running. Using any of these will prevent the suite as a whole from resulting in "Passed" - instead it will be at best "Incomplete"
 
 
 ## Usage Tips
