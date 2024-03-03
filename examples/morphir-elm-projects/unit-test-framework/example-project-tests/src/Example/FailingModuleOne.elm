@@ -141,6 +141,8 @@ onFailTestSuite = describe "Tests for onFail behavior (complex case due to nesti
                 (1, 2)
         , test "When cannot introspect" <|
             \_ -> Expect.onFail "Should see this, still" <| breakIntrospection2 Expect.equal 1 (addOne 1)
+        , test "Errors should not be turned to failures" <|
+            \_ -> Expect.onFail "Should NOT see this" <| Expect.equal 1 (infinite 1)
     ]
 
 
