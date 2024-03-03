@@ -10,4 +10,8 @@ simplePassingTests = describe "Suite of passing tests"
     [test "equal"
         \_ -> Expect.equal 0 0
     , test "notEqual"
-        \_ -> Expect.equal 0 1]
+        \_ -> Expect.notEqual 0 1
+    , test "lessThan"
+        \_ -> Expect.lessThan 0 1
+    , test "greaterThan"
+        \_ -> Expect.greaterThan 2 1]
