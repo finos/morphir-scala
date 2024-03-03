@@ -2,6 +2,8 @@
 
 This morphir project exists to provide a framework for running tests.
 
+The interface is intended to mimic elm-test. At present, this project does not have a `fuzz` function, but it does add `Expect.assert` which can take arbitrary boolean expressions and provide some introspection.
+
 The elm code in this project may be used to run specific tests using native elm functionality, with minimal reporting on what led tests to fail. Alternatively, the unit test functionality in morphir-scala will automatically run every top-level definition of type `Test`.
 
 ## Writing Basic Test with morphir-scala
@@ -40,6 +42,7 @@ Additionally, there are several functions that will create non-running tests or 
 - `skip : Test -> Test` disables a test from running
 - `only : Test -> Test` disables ALL tests from running, except for the specific test passed in
 
+## Expect functions for specific tests
 
 ## Usage Tips
 
