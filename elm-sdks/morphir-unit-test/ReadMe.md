@@ -45,15 +45,16 @@ Additionally, there are several functions that will create non-running tests or 
 ## Expect functions for specific tests
 
 
+- `all : List (subject -> Expectation) -> subject -> Expectation` applies a series of functions to the same value, failing if any of the dependent functions fail
+- `assert : Bool -> Expectation` checks that an arbitrary boolean evaluates to `True`
+
+Basic comparison expectations:
 - `equal : a -> a -> Expectation`
 - `notEqual : a -> a -> Expectation`
-- `all : List (subject -> Expectation) -> subject -> Expectation` applies a series of functions to the same 
-- `assert : Bool -> Expectation`
 - `lessThan : comparable -> comparable -> Expectation`
 - `greaterThan : comparable -> comparable -> Expectation`
-- `atMost : comparable -> comparable -> Expectation`
-- `atLeast : comparable -> comparable -> Expectation`
-- `atLeast a b = if (a >= b)`
+- `atMost : comparable -> comparable -> Expectation` (equivalent to "less than or equal")
+- `atLeast : comparable -> comparable -> Expectation` (equivalent to "greater than or equal")
 - `okay : Result a b -> Expectation`
 - `err : Result a b -> Expectation`
 - `equalLists : List a -> List a -> Expectation`
