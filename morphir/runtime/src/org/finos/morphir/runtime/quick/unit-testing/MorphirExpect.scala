@@ -497,11 +497,11 @@ object MorphirExpect {
                 List(RT.Primitive.String(msg))
               ) => SingleTestResult.Failed(msg)
           case other => readThunkAll(globals).lift(other).getOrElse(
-              SingleTestResult.Err(new OtherError("Unrecognized ExpectationResult: ", other))
+              SingleTestResult.Err(new UnexpectedType("ExpectationResult or introspectable function", other))
             )
         }
       case other => readThunkAll(globals).lift(other).getOrElse(
-          SingleTestResult.Err(new OtherError("Unrecognized Expectation: ", other))
+          SingleTestResult.Err(new UnexpectedType("Expectation or introspectable function", other))
         )
     }
   def newDefs: GlobalDefs =
