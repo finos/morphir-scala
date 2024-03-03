@@ -7,5 +7,7 @@ import Example.ExampleModule exposing (..)
 
 simplePassingTests : Test
 simplePassingTests = describe "Suite of passing tests"
-    [test "Equal"
-        \_ -> Expect.equal 0 0]
+    [test "equal"
+        \_ -> Expect.equal 0 0
+    , test "notEqual"
+        \_ -> Expect.equal 0 1]
