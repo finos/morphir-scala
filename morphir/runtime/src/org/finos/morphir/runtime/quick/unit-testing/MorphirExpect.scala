@@ -237,7 +237,12 @@ object MorphirExpect {
           SingleTestResult.Failed(s"""Expect.okay ${arg1.ir} 
             ${arg1.ir} evaluated to Err ${err.printed}""")
         case other =>
-          SingleTestResult.Err(UnexpectedTypeWithIR("Expect.okay Expected Result type", arg1.value, arg1.ir))
+          SingleTestResult.Err(UnexpectedTypeWithIR(
+            "Ok(value) or Err(err)",
+            arg1.value,
+            arg1.ir,
+            hint = "Expected due to use in a Expect.okay"
+          ))
       }
   }
   case object Err extends Introspectable1 {
@@ -266,7 +271,12 @@ object MorphirExpect {
           SingleTestResult.Failed(s"""Expect.err ${arg1.ir} 
             ${arg1.ir} evaluated to Ok ${okay.printed}""")
         case other =>
-          SingleTestResult.Err(UnexpectedTypeWithIR("Expect.err Expected Result type", arg1.value, arg1.ir))
+          SingleTestResult.Err(UnexpectedTypeWithIR(
+            "Ok(value) or Err(err)",
+            arg1.value,
+            arg1.ir,
+            hint = "Expected due to use in a Expect.err"
+          ))
       }
   }
   // Collection comparisons don't need to be introspectable - more important to have any decent specific diff reporting
@@ -422,7 +432,8 @@ object MorphirExpect {
       arg1.value match {
         case RT.Primitive.Boolean(true)  => SingleTestResult.Passed
         case RT.Primitive.Boolean(false) => SingleTestResult.Failed(explainFailure(globals, context, arg1.ir))
-        case other => SingleTestResult.Err(OtherError("Assert argument did not evaluate to bool:", other))
+        case other =>
+          SingleTestResult.Err(UnexpectedTypeWithIR("Bool type", arg1.value, arg1.ir, hint = "(in Expext.assert)"))
       }
     def explainFailure(
         globals: GlobalDefs,
