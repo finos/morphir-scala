@@ -16,5 +16,10 @@ failing = test "String Concat" <|
         "One, Two, Three"
 
 errors : Test
-errors = test "Throws error"
+errors = test "Standalone throws error"
     \_ -> Expect.lessThan (err 0) (err 1)
+
+nestedErrors : Test
+nestedErrors = describe "Two of three tests throw errors"
+    [test "First erroring test"
+        \_ -> Expect.equal 0 (err 0)]
