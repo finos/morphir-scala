@@ -10,6 +10,11 @@ This project should be included as a local dependency of wherever you write your
 
 It is not necessary to pass its IR into morphir-scala to run unit tests.
 
+To write a test, simply declare and define any top-level value of type `Test`:
+
+```
+
+
 ## Usage Tips
 
 Every top-level value of type `Test` will be run, even if it used beneath another test. As such, if a test will be used as part of a suite, it is better to avoid declaring it as a top level result. 
@@ -18,5 +23,4 @@ Only values declared explicitly as type `Test` are considered. Functions resulti
 
 Introspection attempts to provide feedback about whatever is given in the "Expect" thunk passed to `Test.test`. If you want detailed reporting, include the values specific to your test in the expect call. On the other hand, if you want less verbose output, keep only minimal values in this block.
 
-Introspection tries to 
-
+Do not use this module for performance testing; a number of very non-performant things are done to enable detailed reporting of failing tests, which do not reflect production considerations.
