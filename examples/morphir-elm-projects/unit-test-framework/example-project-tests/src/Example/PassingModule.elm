@@ -5,6 +5,9 @@ import Morphir.UnitTest.Test exposing (..)
 import Morphir.UnitTest.Expect as Expect
 import Example.ExampleModule exposing (..)
 
+breakIntrospection2 : (a -> a -> Expect.Expectation) -> a -> a -> Expect.Expectation
+breakIntrospection2 f x y = f x y
+
 simplePassingTests : Test
 simplePassingTests = describe "Suite of passing tests"
     [test "equal"
@@ -29,6 +32,8 @@ simplePassingTests = describe "Suite of passing tests"
         \_ -> Expect.assert (1 >= 1)
     , test "pass"
         \_ -> Expect.pass
+    , test "When cannot introspect 2"
+        \_ -> breakIntrospection2 Expect.equal 0 0
     ]
 
 passingCollectionTests : Test
@@ -53,3 +58,7 @@ passingAll = test "Passing All"
              , \x -> Expect.atLeast x 1
              , \x -> Expect.notEqual x 1]
              2
+
+passingOnFail : Test
+passingOnFail = test "onFail passes if inner test passes"
+    \_ -> Expect.onFail "This error not shown" Expect.pass
