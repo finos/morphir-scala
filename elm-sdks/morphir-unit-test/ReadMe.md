@@ -31,7 +31,11 @@ passingCollectionTests = concat
 The `Test` module contains several functions useful for arranging or formatting tests:
 
 - `describe : String -> List Test -> Test` creates a suite from a description and a list of tests to be included
-- 
+- `concat : List Test -> Test` combines a lists of tests into one
+- `test : String -> (() -> Expectation) -> Test` creates a single test, taking a name of the test and a thunk from unit to something of type `Expectation`. 
+
+Additionally, there are several functions that will create non-running tests:
+
 
 ## Usage Tips
 
