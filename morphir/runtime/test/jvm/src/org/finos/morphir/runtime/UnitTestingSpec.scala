@@ -77,14 +77,14 @@ object UnitTestingSpec extends MorphirBaseSpec {
             assertTrue(result.overallCounts.todo == 1)
           }
         },
-        test("Todo Count Correct") {
+        test("Failed isn't Passd") {
           getTestSummary.map { result =>
-            assertTrue(result.overallCounts.todo == 1)
+            assertTrue(!result.overallCounts.passed)
           }
         },
-        test("Todo Count Correct") {
+        test("Failed isn't Incomplete") {
           getTestSummary.map { result =>
-            assertTrue(result.overallCounts.todo == 1)
+            assertTrue(!result.overallCounts.incomplete)
           }
         }
       ),
