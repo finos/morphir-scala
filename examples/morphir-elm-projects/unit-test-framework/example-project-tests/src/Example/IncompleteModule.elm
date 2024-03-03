@@ -9,4 +9,6 @@ skippedTests : Test
 skippedTests = skip <| describe "Several Tests"
     [test "Test that will be skipped"
         \_ -> Expect.equal 0 0
+    , test "Test that will also be skipped"
+        \_ -> Expect.equal 0 0
     ]

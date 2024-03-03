@@ -69,7 +69,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
         },
         test("Skipped Count Correct") {
           getTestSummary.map { result =>
-            assertTrue(result.overallCounts.skipped == 0)
+            assertTrue(result.overallCounts.skipped == 2)
           }
         },
         test("Todo Count Correct") {
