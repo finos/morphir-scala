@@ -14,4 +14,8 @@ simplePassingTests = describe "Suite of passing tests"
     , test "lessThan"
         \_ -> Expect.lessThan 0 1
     , test "greaterThan"
+        \_ -> Expect.greaterThan 2 1
+    , test "lessThan"
+        \_ -> Expect.lessThan 0 1
+    , test "greaterThan"
         \_ -> Expect.greaterThan 2 1]

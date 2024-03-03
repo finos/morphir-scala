@@ -79,12 +79,12 @@ object UnitTestingSpec extends MorphirBaseSpec {
         },
         test("Failed isn't Passd") {
           getTestSummary.map { result =>
-            assertTrue(!result.overallCounts.passed)
+            assertTrue(!result.passed)
           }
         },
         test("Failed isn't Incomplete") {
           getTestSummary.map { result =>
-            assertTrue(!result.overallCounts.incomplete)
+            assertTrue(!result.incomplete)
           }
         }
       ),
