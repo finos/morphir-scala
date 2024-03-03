@@ -4,3 +4,9 @@ import Morphir.SDK.Set as Set
 import Morphir.UnitTest.Test exposing (..)
 import Morphir.UnitTest.Expect as Expect
 import Example.ExampleModule exposing (..)
+
+skippedTests : Test
+skippedTests = skip <| describe "Several Tests"
+    [test "Test that will be skipped"
+        \_ -> Expect.equal 0 0
+    ]
