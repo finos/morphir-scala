@@ -93,10 +93,11 @@ object UnitTesting {
         if (detailedReport.passed == simplePassed)
           RTAction.succeed(detailedReport)
         else if (detailedReport.passed && (!simplePassed)) {
-          throw new InvalidState(s"""Detailed Test Report passed, but Simple failed.
-          Detailed:  $detailedReport
-          Simple : $simpleReport""")
-        } else throw new Exception("Detailed test report found different result than simple")
+          throw new InvalidState(s"""Detailed Test Report passed, but simple morphir-based testing failed.
+          Detailed:  $detailedReport""")
+        } else
+          throw new InvalidState(s"""Detailed Test Report found failures, but simple morphir-based testing passed.
+          Detailed:  $detailedReport""")
       }
     }
 
