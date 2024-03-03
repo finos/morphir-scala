@@ -3,13 +3,6 @@ import Morphir.UnitTest.Expect as E
 import Morphir.UnitTest.Expect exposing (Expectation, ExpectationResult(..))
 
 
---We want to know if the test as a whole passed, failed or was incomplete
---Within it, how many passed, failed, skipped or were todos
---Then we want the structure of the results
-
-
-
-
 type alias Counts = 
     {passed : Int, failed : Int, skipped : Int, todos : Int}
 
@@ -19,18 +12,6 @@ addCounts a b =
 
 sumCounts : List Counts -> Counts
 sumCounts a = List.foldl addCounts {passed = 0, failed = 0, skipped = 0, todos = 0} a
-
--- type TestTree t = 
---     Describe String (List (TestTree t))
---     | Test String t
---     | Concat (List (TestTree t))
---     | Todo String
---     | Skip (TestTree t)
---     | Only (TestTree t)
-
--- type alias Test = TestTree (() -> Expectation)
-
-
 
 type Test = 
     Describe String (List Test)
@@ -46,7 +27,6 @@ type TestResult =
     | ConcatResult (List TestResult)
     | TodoResult String
     | SkipResult String Int
-
 
 run : Test -> TestResult
 run test = 
@@ -70,8 +50,7 @@ runAll test =
         Skip inner -> skipTests inner
         Only inner -> runAll inner --If there's a nested only, we run everything under the parent node - really, just don't do this
 
-
--- --There's an Only somewhere and it's not an ancestor of this node
+--Runs when there's an Only somewhere and it's not an ancestor of this node
 runOnly : Test -> TestResult
 runOnly test =
     if (not (checkOnly test) )
@@ -91,8 +70,6 @@ skipTests test =
         SingleTest desc inner -> SkipResult desc 1
         _ -> SkipResult "" (count test)
 
-                
-
 countResults : TestResult -> Counts
 countResults result = 
     case result of
@@ -105,8 +82,6 @@ countResults result =
             case inner of
                 Pass -> {passed = 1, failed = 0, skipped = 0, todos = 0}
                 Fail _ -> {passed = 0, failed = 1, skipped = 0, todos = 0}
-                -- Skip -> {passed = 0, failed = 0, skipped = 1, todos = 0}
-                -- Todo -> {passed = 0, failed = 0, skipped = 0, todos = 1}
         ConcatResult results -> 
             let 
                 counts = List.map countResults results
@@ -137,8 +112,6 @@ resultToStringHelper depth result = case result of
             case inner of
                 Pass -> (String.repeat depth "\t") ++ desc ++ ": PASSED"
                 Fail reason -> (String.repeat depth "\t") ++ desc ++ ": FAILED - " ++ reason
-                -- Skip -> "SKIPPED: " ++ desc
-                -- Todo -> "TODO: " ++ desc
         ConcatResult results -> 
             let 
                 strings = List.map (resultToStringHelper depth) results
@@ -155,10 +128,9 @@ resultToString result =
     in
         treeString ++ "\n" ++ countsString
 
-
+--Helper due to oddness around List.sum
 intSum : List Int -> Int
 intSum ints = List.foldl (+) 0 ints
-
 
 --Counts all leaf tests, blindly
 count : Test -> Int
@@ -191,12 +163,10 @@ checkOnly test =
 
 
 --Actual Test Functions:
-
 describe : String -> List Test -> Test
 describe desc tests = Describe desc tests
 concat : List Test -> Test
 concat tests = Concat tests
-
 test : String -> (() -> Expectation) -> Test
 test desc t = SingleTest desc t
 
