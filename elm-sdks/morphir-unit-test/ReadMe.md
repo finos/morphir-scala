@@ -29,6 +29,7 @@ passingCollectionTests = concat
             \_ -> Expect.equalSets (Set.fromList l1) (Set.fromList l2)
         ]
 ```
+
 ## Test functions for arranging tests
 The `Test` module contains several functions useful for arranging or formatting tests:
 
@@ -43,9 +44,6 @@ Additionally, there are several functions that will create non-running tests or 
 - `only : Test -> Test` disables ALL tests from running, except for the specific test passed in
 
 ## Expect functions for specific tests
-
-
-
 Basic comparison expectations:
 - `equal : a -> a -> Expectation`
 - `notEqual : a -> a -> Expectation`
@@ -65,8 +63,8 @@ Other expetations:
 - `okay : Result a b -> Expectation` checks that a `Result`-typed value is `Okay`
 - `err : Result a b -> Expectation` checks that a `Result`-typed value is `Err`
 - `pass : Expectation` passes (useful for tests that require logic not inherent in other expectations)
-- `fail : String -> Expectation`
-- `onFail : String -> Expectation -> Expectation`
+- `fail : String -> Expectation` fails with a custom string
+- `onFail : String -> Expectation -> Expectation` runs the given expectation, but replaces any error explanation with the given. (Note that if the tests produces an error - i.e., fails to run- this is NOT wrapped)
 
 ## Usage Tips
 
