@@ -79,11 +79,13 @@ class Distributions(dists: Map[PackageName, Distribution.Lib]) {
       modName: ModuleName,
       localName: Name
   ): Either[LookupError, TypedValueDef] =
-    lookupModuleDefinition(pkgName, modName).flatMap(_.lookupValueDefinition(localName) match {
-      case Some(tpe) => Right(tpe)
-      case None => Left(new MissingDefinition(pkgName, modName, localName)
-          .withContext(s"Known definitions from that module:\n ${modSpec.values.keys.mkString("\n  ")}\n"))
-    })
+    lookupModuleDefinition(pkgName, modName).flatMap(modDef =>
+      modDef.lookupValueDefinition(localName) match {
+        case Some(tpe) => Right(tpe)
+        case None => Left(new MissingDefinition(pkgName, modName, localName)
+            .withContext(s"Known definitions from that module:\n ${modDef.values.keys.mkString("\n  ")}\n"))
+      }
+    )
 
   def lookupValueDefinition(fqn: FQName): Either[LookupError, TypedValueDef] =
     lookupValueDefinition(fqn.packagePath, fqn.modulePath, fqn.localName)

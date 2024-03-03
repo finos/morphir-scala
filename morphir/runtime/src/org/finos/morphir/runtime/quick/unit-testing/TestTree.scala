@@ -8,7 +8,7 @@ import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.ErrorUtils.indentBlock
 
-//This trait represents the tree of unit test suites at various stages of computation
+//This trait represents the tree of unit test suites nested under some top-level definition
 sealed trait TestTree[+T] {
   def containsOnly = TestTree.containsOnly(this)
   def pruneToOnly  = TestTree.pruneToOnly(this)
@@ -78,8 +78,7 @@ object TestTree {
       case other => other // err, todo, skip lack anything to resolve
     }
 
-  def processExpects(globals: GlobalDefs)(tree: TestTree[RT]): TestTree[SingleTestResult] = {
-    import SingleTestResult.*
+  def processExpects(globals: GlobalDefs)(tree: TestTree[RT]): TestTree[SingleTestResult] =
     tree match {
       case Describe(desc, tests) => Describe(desc, tests.map(processExpects(globals)))
       case Concat(tests)         => Concat(tests.map(processExpects(globals)))
@@ -92,7 +91,6 @@ object TestTree {
       case other: Skip  => other
       case other: Todo  => other
     }
-  }
 
   def containsOnly[T](tree: TestTree[T]): Boolean =
     tree match {
@@ -157,12 +155,12 @@ object TestTree {
 
 }
 
+//Represents the entire set of tests across a call to runUnitTests
 case class TestSet[T](modules: List[ModuleTests[T]]) {
   def resolveOnly: TestSet[T] =
     if (modules.exists(_.containsOnly))
       TestSet(modules.map(_.pruneToOnly))
     else this
-  // Skips any tests that aren't nested under an Only
 }
 object TestSet {
   def toReport(testSet: TestSet[SingleTestResult]) = testSet.modules.map(ModuleTests.toReport(_)).mkString("\n")
@@ -177,6 +175,7 @@ object TestSet {
     TestSet(testSet.modules.map(ModuleTests.processExpects(globals)(_)))
 }
 
+//Represents all of the tests contained within a module
 case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List[TestTree[T]]) {
   def containsOnly: Boolean = (tests.exists(_.containsOnly))
   def pruneToOnly: ModuleTests[T] =
@@ -194,7 +193,7 @@ object ModuleTests {
     val counts = getCounts(module)
     s"""Module ${module.pkgName}:${module.modName} Tests:
         ${module.tests.map(TestTree.toReport(_)).mkString("\n")}
-        
+
     ${module.pkgName}:${module.modName} Status - ${counts.result} 
     $counts
     """

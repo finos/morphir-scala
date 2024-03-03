@@ -24,12 +24,9 @@ import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 
 private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: GlobalDefs)
     extends TypedMorphirRuntime {
-  // private val store: Store[scala.Unit, UType] = Store.empty //
 
-  def runUnitTests(distributions: Distribution*): RTAction[MorphirEnv, MorphirRuntimeError, TestSummary] = {
-    val res = UnitTesting.runTests(dists)
-    res
-  }
+  def runUnitTests(distributions: Distribution*): RTAction[MorphirEnv, MorphirRuntimeError, TestSummary] =
+    UnitTesting.runTests(dists)
 
   def evaluate(
       entryPoint: FQName,

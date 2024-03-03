@@ -92,8 +92,11 @@ object UnitTesting {
 
         if (detailedReport.passed == simplePassed)
           RTAction.succeed(detailedReport)
-        // TODO: Better error, give usable report
-        else throw new Exception("Detailed test report found different result than simple")
+        else if (detailedReport.passed && (!simplePassed)) {
+          throw new InvalidState(s"""Detailed Test Report passed, but Simple failed.
+          Detailed:  $detailedReport
+          Simple : $simpleReport""")
+        } else throw new Exception("Detailed test report found different result than simple")
       }
     }
 
@@ -129,8 +132,9 @@ object UnitTesting {
         }
       }
 
-    // We make this into a test set, using FQNs for things not already described
-
+    // We make this into a test set
+    // Tests are grouped by the module they belong to
+    // Top-level tests without a name are given a name from their FQN
     val testSet: TestSet[RT] =
       TestSet(
         testRTValues
@@ -151,8 +155,6 @@ object UnitTesting {
             )
           }.toList
       ).resolveOnly // "Only" requires special handling, so do that here
-
-        // Recursive walk of tree, running the user-defined thunks in the "test" code
         // Non-introspected tests are "Run" at this point
     val withExpects = TestSet.getExpects(newGlobals, testSet)
     // Another walk of the tree, running introspected tests this time
