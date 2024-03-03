@@ -40,7 +40,7 @@ private[runtime] object TestTree {
       case Error(desc, err) => s"$desc: ERROR: \n $err"
       case Only(inner)      => toReport(inner)
     }
-  def getCounts(tree: TestTree[SingleTestResult]): TestResultCounts =
+  def getCounts(tree: TestTree[SingleTestResult]): TestResultCounts = {
     val empty = TestResultCounts.empty
     tree match {
       case Describe(_, tests)                     => tests.foldLeft(empty)((acc, next) => acc.plus(getCounts(next)))
@@ -54,6 +54,7 @@ private[runtime] object TestTree {
       case Only(inner) =>
         getCounts(inner)
     }
+  }
 
   // Runs the thunks users provided in `Test.test` calls
   // This mostly ignores introspection, except when an introspected function is nested beneath a normal one
@@ -198,7 +199,7 @@ private[runtime] case class ModuleTests[T](pkgName: PackageName, modName: Module
 private[runtime] object ModuleTests {
   def getCounts(module: ModuleTests[SingleTestResult]): TestResultCounts =
     module.tests.foldLeft(TestResultCounts.empty)((acc, next) => acc.plus(TestTree.getCounts(next)))
-  def toReport(module: ModuleTests[SingleTestResult]): String =
+  def toReport(module: ModuleTests[SingleTestResult]): String = {
     val counts = getCounts(module)
     s"""Module ${module.pkgName}:${module.modName} Tests:
         ${module.tests.map(TestTree.toReport(_)).mkString("\n")}
@@ -206,6 +207,7 @@ private[runtime] object ModuleTests {
     ${module.pkgName}:${module.modName} Status - ${counts.result} 
     $counts
     """
+  }
 
   def getExpects(globals: GlobalDefs)(module: ModuleTests[RT]) =
     ModuleTests(module.pkgName, module.modName, module.tests.map(TestTree.getExpects(globals)(_)))

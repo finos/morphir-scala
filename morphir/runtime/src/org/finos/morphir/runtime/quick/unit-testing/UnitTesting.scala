@@ -37,7 +37,7 @@ object UnitTesting {
 
   private[runtime] def runTests(
       userDists: Distributions
-  ): RTAction[MorphirEnv, Nothing, TestSummary] =
+  ): RTAction[MorphirEnv, Nothing, TestSummary] = {
     val testLibs = Distribution.toLibsMap(EvaluationLibrary.loadDistribution(testFrameworkPath))
     val userLibs = userDists.getDists
     val dists    = Distributions(userLibs ++ testLibs)
@@ -100,6 +100,7 @@ object UnitTesting {
           Detailed:  $detailedReport""")
       }
     }
+  }
 
   private[runtime] def reportResult(
       globals: GlobalDefs,

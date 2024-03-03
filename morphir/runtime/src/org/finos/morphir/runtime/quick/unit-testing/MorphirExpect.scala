@@ -140,13 +140,15 @@ private[runtime] object MorphirExpect {
 
   def expectation(result: RT) =
     RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
-  val passedRT =
+  def passedRT = {
     val result = RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Pass"), List())
     expectation(result)
-  def failedRT(msg: String) =
+  }
+  def failedRT(msg: String) = {
     val result =
       RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(RT.Primitive.String(msg)))
     expectation(result)
+  }
 
   case object Equal extends BinOpExpect {
     def funcName = "equal"
