@@ -2,4 +2,4 @@
 
 This morphir project exists to provide a framework for running tests.
 
-Note that there is no actual code in this project for executing said tests; instead, the generated IR should be used by a backend which recognizes the types defined here.
+The elm code in this project may be used to run specific tests using native elm functionality, with minimal reporting on what led tests to fail. Alternatively, the unit test functionality in morphir-scala will automatically run every top-level definition of type "Test"

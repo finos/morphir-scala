@@ -2,7 +2,6 @@ module Morphir.UnitTest.Expect exposing(..)
 import Morphir.SDK.Dict exposing(Dict, toList, get)
 import Morphir.SDK.List exposing(List)
 import Morphir.SDK.Set exposing(Set)
---Is this type parameter reasonable or necessary?
 
 type Expectation = Expectation ExpectationResult
 type ExpectationResult = Pass | Fail String
