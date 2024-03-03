@@ -2,5 +2,5 @@
     "src/Example/FailingModuleOne.elm": "740c4c36e287f277c04680a3c937d4a3",
     "src/Example/FailingModuleTwo.elm": "f9dba36e1e91e6badac08158206d4b2d",
     "src/Example/IncompleteModule.elm": "302b4434177eec2c82b49b44f0b1bfab",
-    "src/Example/PassingModule.elm": "c4492b0a847e3dc7a89de86d9713e029"
+    "src/Example/PassingModule.elm": "0cfec80897aa7fa5ab6327359d0b3327"
 }

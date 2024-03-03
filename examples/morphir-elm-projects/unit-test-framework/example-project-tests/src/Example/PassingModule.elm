@@ -23,6 +23,12 @@ simplePassingTests = describe "Suite of passing tests"
         \_ -> Expect.okay <| stringToColor "Red"
     , test "err"
         \_ -> Expect.err <| stringToColor "Brazil"
+    , test "assert =="
+        \_ -> Expect.assert (1 == 1)
+    , test "assert >="
+        \_ -> Expect.assert (1 >= 1)
+    , test "pass"
+        \_ -> Expect.pass
     ]
 
 passingCollectionTests : Test
