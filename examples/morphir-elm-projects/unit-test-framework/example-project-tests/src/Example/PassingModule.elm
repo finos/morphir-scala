@@ -38,3 +38,12 @@ passingCollectionTests = concat
         , test "equalSets" <|
             \_ -> Expect.equalSets (Set.fromList l1) (Set.fromList l2)
         ]
+
+passingAll : Test
+passingAll = test "Passing All"
+    \_ ->
+        Expect.all
+            [\x -> Expect.greaterThan x 1
+             , \x -> Expect.atLeast x 1
+             , \x -> Expect.notEqual x 1]
+             2
