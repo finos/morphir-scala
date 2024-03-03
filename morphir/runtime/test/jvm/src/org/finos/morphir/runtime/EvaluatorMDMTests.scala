@@ -1536,6 +1536,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )(
           Data.True
         ),
+        testEvalMultiple("repeat")(
+          "stringTests",
+          "stringRepeat",
+          List(2, "Whomp")
+        )(
+          Data.String("WhompWhomp")
+        ),
         testEvalMultiple("contains false")(
           "stringTests",
           "stringContains",
