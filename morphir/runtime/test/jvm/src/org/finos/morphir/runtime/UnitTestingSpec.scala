@@ -52,7 +52,27 @@ object UnitTestingSpec extends MorphirBaseSpec {
             assertTrue(!result.passed)
           }
         },
-        test("Counts Correct") {
+        test("Passed Count Correct") {
+          getTestSummary.map { result =>
+            assertTrue(result.overallCounts.passed == 6)
+          }
+        },
+        test("Failed Count Correct") {
+          getTestSummary.map { result =>
+            assertTrue(result.overallCounts.failed == 30)
+          }
+        },
+        test("Error Count Correct") {
+          getTestSummary.map { result =>
+            assertTrue(result.overallCounts.errors == 6)
+          }
+        },
+        test("Skipped Count Correct") {
+          getTestSummary.map { result =>
+            assertTrue(result.overallCounts.passed == 6)
+          }
+        },
+        test("Error Count Correct") {
           getTestSummary.map { result =>
             assertTrue(result.overallCounts.passed == 6)
           }
