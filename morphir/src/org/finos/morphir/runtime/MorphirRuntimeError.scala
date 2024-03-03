@@ -28,11 +28,11 @@ object MorphirRuntimeError {
 
   final case class OtherError(cause: String, stuff: Any*) extends MorphirRuntimeError {
     def message = {
-      l = stuff.toList
+      val l = stuff.toList
       if (l.length == 0) err"$cause"
       else if (l.length == 1) err"$cause: ${l(0)}"
       else if (l.length == 2) err"$cause: ${l(0)} ${l(1)}"
-      else err"$cause: ${l(0)} $l"
+      else err"$cause: $l"
     }
   }
 
