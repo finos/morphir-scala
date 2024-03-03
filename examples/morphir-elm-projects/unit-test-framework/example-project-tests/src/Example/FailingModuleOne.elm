@@ -9,9 +9,12 @@ import Example.ExampleModule exposing (..)
 positive : Int -> Expect.Expectation
 positive x = Expect.greaterThan x 0
 
+--Generates infinite recursion, to test how error handling works
 infinite : Int -> Int
 infinite x = infinite x
 
+--Prevents an expectation from being called in the usual format, avoiding the introspection code
+--Used to make sure the test suite doesn't explode if that happens in the wild
 breakIntrospection1 : (a -> Expect.Expectation) -> a ->  Expect.Expectation
 breakIntrospection1 f x = f x
 

@@ -1,5 +1,3 @@
-## Test Usage
+## Examples
 
-This morphir project exists to provide a framework for running tests.
-
-Note that there is no actual code in this project for executing said tests; instead, the generated IR should be used by a backend which recognizes the types defined here.
+This project exists to let use test the unit testing functionality itself, and as a reference for how tests can be written.
