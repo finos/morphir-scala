@@ -90,6 +90,11 @@ object UnitTestingSpec extends MorphirBaseSpec {
             )))
           }
         },
+        test("Module One Status") {
+          moduleCounts("FailingModuleOne").map { counts =>
+            assertTrue(counts.map(_.result) == Some(OverallStatus.Failed))
+          }
+        },
         test("Module Two Counts") {
           moduleCounts("FailingModuleTwo").map { counts =>
             assertTrue(counts == Some(TestResultCounts(
@@ -103,7 +108,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
         },
         test("Module Two Status") {
           moduleCounts("FailingModuleTwo").map { counts =>
-            assertTrue(counts.result == OverallStatus.Failed)
+            assertTrue(counts.map(_.result) == Some(OverallStatus.Failed))
           }
         }
       )
