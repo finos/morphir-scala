@@ -1,3 +1,6 @@
 package org.finos.morphir.runtime
 
-trait EvaluationLibraryPlatformSpecific {}
+trait EvaluationLibraryPlatformSpecific {
+  def loadDistribution(fileName: String): Distribution =
+    ???
+}
