@@ -28,12 +28,14 @@ import org.finos.morphir.runtime.internal._
 object UnitTesting {
 
   def testFrameworkPath =
-    "elm-sdks/morphir-unit-test/morphir-ir.json"
+    "morphir-elm/sdks/morphir-unit-test/morphir-ir.json"
   def testType        = T.reference("Morphir.UnitTest", "Test", "Test")
   def testResultType  = T.reference("Morphir.UnitTest", "Test", "TestTree[SingleTestResult]")
   def expectationType = T.reference("Morphir.UnitTest", "Expect", "Expectation")
   def testPrefix      = "Morphir.UnitTest:Test:"
   def expectPrefix    = "Morphir.UnitTest:Expect:"
+
+
 
   private[runtime] def runTests(
       userDists: Distributions
