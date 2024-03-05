@@ -3,15 +3,21 @@ import Morphir.UnitTest.Expect as E
 import Morphir.UnitTest.Expect exposing (Expectation, ExpectationResult(..))
 
 
-type alias Counts = 
-    {passed : Int, failed : Int, skipped : Int, todos : Int}
+--Actual Test Functions:
+describe : String -> List Test -> Test
+describe desc tests = Describe desc tests
+concat : List Test -> Test
+concat tests = Concat tests
+test : String -> (() -> Expectation) -> Test
+test desc t = SingleTest desc t
 
-addCounts : Counts -> Counts -> Counts
-addCounts a b = 
-    {passed = a.passed + b.passed, failed = a.failed + b.failed, skipped = a.skipped + b.skipped, todos = a.todos + b.todos}
-
-sumCounts : List Counts -> Counts
-sumCounts a = List.foldl addCounts {passed = 0, failed = 0, skipped = 0, todos = 0} a
+--Any of the following will cause the test suite as a whole to be "incomplete"
+todo : String -> Test
+todo desc = Todo desc
+skip : Test -> Test
+skip t = Skip t
+only : Test -> Test
+only t = Only t
 
 type Test = 
     Describe String (List Test)
@@ -21,12 +27,23 @@ type Test =
     | Skip Test
     | Only Test
 
+
+--Use these only if you want to run the tests manually within morphir, without specific backend support
+
 type TestResult =
     DescribeResult String (List TestResult)
     | SingleTestResult String ExpectationResult
     | ConcatResult (List TestResult)
     | TodoResult String
     | SkipResult String Int
+
+resultToString : TestResult -> String
+resultToString result =
+    let treeString = resultToStringHelper 0 result
+        counts = countResults result
+        countsString = countsToString counts
+    in
+        treeString ++ "\n" ++ countsString
 
 run : Test -> TestResult
 run test = 
@@ -35,6 +52,52 @@ run test =
     else
         runAll test
 
+
+passed : TestResult -> Bool
+passed result =
+    let 
+        counts = countResults result
+    in
+        counts.failed == 0 && counts.skipped == 0 && counts.todos == 0
+
+
+countResults : TestResult -> Counts
+countResults result = 
+    case result of
+        DescribeResult desc results -> 
+            let 
+                counts = List.map countResults results
+            in
+                sumCounts counts
+        SingleTestResult desc inner -> 
+            case inner of
+                Pass -> {passed = 1, failed = 0, skipped = 0, todos = 0}
+                Fail _ -> {passed = 0, failed = 1, skipped = 0, todos = 0}
+        ConcatResult results -> 
+            let 
+                counts = List.map countResults results
+            in
+                sumCounts counts
+        TodoResult desc -> {passed = 0, failed = 0, skipped = 0, todos = 1}
+        SkipResult desc count -> {passed = 0, failed = 0, skipped = count, todos = 0}
+
+
+countsToString : Counts -> String
+countsToString counts = 
+    "Passed: " ++ (String.fromInt counts.passed) ++ ", Failed: " ++ (String.fromInt counts.failed) ++ ", Skipped: " ++ (String.fromInt counts.skipped) ++ ", Todos: " ++ (String.fromInt counts.todos)
+
+
+--Backend support code
+
+type alias Counts = 
+    {passed : Int, failed : Int, skipped : Int, todos : Int}
+
+addCounts : Counts -> Counts -> Counts
+addCounts a b = 
+    {passed = a.passed + b.passed, failed = a.failed + b.failed, skipped = a.skipped + b.skipped, todos = a.todos + b.todos}
+
+sumCounts : List Counts -> Counts
+sumCounts a = List.foldl addCounts {passed = 0, failed = 0, skipped = 0, todos = 0} a
 
 runAll : Test -> TestResult
 runAll test =
@@ -70,37 +133,6 @@ skipTests test =
         SingleTest desc inner -> SkipResult desc 1
         _ -> SkipResult "" (count test)
 
-countResults : TestResult -> Counts
-countResults result = 
-    case result of
-        DescribeResult desc results -> 
-            let 
-                counts = List.map countResults results
-            in
-                sumCounts counts
-        SingleTestResult desc inner -> 
-            case inner of
-                Pass -> {passed = 1, failed = 0, skipped = 0, todos = 0}
-                Fail _ -> {passed = 0, failed = 1, skipped = 0, todos = 0}
-        ConcatResult results -> 
-            let 
-                counts = List.map countResults results
-            in
-                sumCounts counts
-        TodoResult desc -> {passed = 0, failed = 0, skipped = 0, todos = 1}
-        SkipResult desc count -> {passed = 0, failed = 0, skipped = count, todos = 0}
-
-passed : TestResult -> Bool
-passed result =
-    let 
-        counts = countResults result
-    in
-        counts.failed == 0 && counts.skipped == 0 && counts.todos == 0
-
-countsToString : Counts -> String
-countsToString counts = 
-    "Passed: " ++ (String.fromInt counts.passed) ++ ", Failed: " ++ (String.fromInt counts.failed) ++ ", Skipped: " ++ (String.fromInt counts.skipped) ++ ", Todos: " ++ (String.fromInt counts.todos)
-
 resultToStringHelper : Int -> TestResult -> String
 resultToStringHelper depth result = case result of
         DescribeResult desc results -> 
@@ -120,13 +152,7 @@ resultToStringHelper depth result = case result of
         TodoResult desc -> (String.repeat depth "\t") ++ desc ++ ": TODO"
         SkipResult desc count -> (String.repeat depth "\t") ++ desc ++ ": SKIPPED - (" ++ (String.fromInt count) ++ " tests skipped)"
 
-resultToString : TestResult -> String
-resultToString result =
-    let treeString = resultToStringHelper 0 result
-        counts = countResults result
-        countsString = countsToString counts
-    in
-        treeString ++ "\n" ++ countsString
+
 
 --Helper due to oddness around List.sum
 intSum : List Int -> Int
@@ -162,18 +188,4 @@ checkOnly test =
         Only a -> True
 
 
---Actual Test Functions:
-describe : String -> List Test -> Test
-describe desc tests = Describe desc tests
-concat : List Test -> Test
-concat tests = Concat tests
-test : String -> (() -> Expectation) -> Test
-test desc t = SingleTest desc t
 
---Any of the following will cause the test suite as a whole to be "incomplete"
-todo : String -> Test
-todo desc = Todo desc
-skip : Test -> Test
-skip t = Skip t
-only : Test -> Test
-only t = Only t

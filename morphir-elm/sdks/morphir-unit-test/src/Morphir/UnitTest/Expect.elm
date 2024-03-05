@@ -14,12 +14,12 @@ getResultBool e = case e of
     Expectation Pass -> True
     Expectation (Fail _) -> False
 
-equal : a -> a -> Expectation
+equal : eq -> eq -> Expectation
 equal x y = if (x == y)
     then Expectation Pass
     else Expectation (Fail "Values not Equal")
 
-notEqual : a -> a -> Expectation
+notEqual : eq -> eq -> Expectation
 notEqual x y = if (x /= y)
     then Expectation Pass
     else Expectation (Fail "Values are Equal")
@@ -74,35 +74,29 @@ err a = case a of
     Ok _ -> Expectation (Fail "Expected Error")
     Err _ -> Expectation Pass
 
-equalLists : List a -> List a -> Expectation
+equalLists : List eq -> List eq -> Expectation
 equalLists l1 l2 = if (l1 == l2)
     then Expectation Pass
     else Expectation (Fail "Lists not Equal")
 
 
-equalDicts : Dict comparable a -> Dict comparable a -> Expectation
+equalDicts : Dict comparable eq -> Dict comparable eq -> Expectation
 equalDicts d1 d2 = 
-    let l1 = toList d1 in
-    let l2 = toList d2 in
     let 
-        l1_matches = List.all 
-            (\(k1, v1) -> 
-                case get k1 d2 of
-                    Just v2 -> v1 == v2
-                    Nothing -> False) 
-         l1 
+        l1 = toList d1
+        l2 = toList d2 
     in
-    let 
-        l2_matches = List.all 
-            (\(k2, v2) -> 
-                case get k2 d1 of
-                    Just v1 -> v2 == v1
-                    Nothing -> False)
-             l2 
-    in
-    if (l1_matches && l2_matches)
-    then Expectation Pass
-    else Expectation (Fail "Dicts not Equal")
+    if (List.length l1 /= List.length l2) 
+        then Expectation (Fail "Dicts not Equal (lengths differ)")
+    else if (List.all 
+        (\(k2, v2) -> 
+            case get k2 d1 of
+                Just v1 -> v2 == v1
+                Nothing -> False)
+        l2)
+        then Expectation Pass
+    else 
+        Expectation (Fail "Dicts not Equal")
 
 --TODO: Check if this is valid - maybe need to convert to lists and sort
 equalSets : Set comparable -> Set comparable -> Expectation
