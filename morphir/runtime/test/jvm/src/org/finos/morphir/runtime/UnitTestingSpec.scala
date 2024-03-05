@@ -11,12 +11,22 @@ import zio.test.TestAspect.{ignore, tag}
 import zio.{Console, ZIO, ZLayer}
 
 object UnitTestingSpec extends MorphirBaseSpec {
-  val paths = List(
-    os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project-tests" / "morphir-ir.json",
+  val basicPath = 
     os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project" / "morphir-ir.json"
+  val failingPaths = List(
+    os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project-tests" / "morphir-ir.json",
+    basicPath
   )
-  // We don't want to even re-run the tests for every test
-  val testSummaryLayer: ZLayer[Any, Throwable, TestSummary] =
+  val passingPaths = List(
+    os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project-tests-passing" / "morphir-ir.json",
+    basicPath
+  )
+  val incompletePaths = List(
+    os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project-tests-incomplete" / "morphir-ir.json",
+    basicPath
+  )
+
+  def makeTestSummaryLayer(paths : List[os.Path]) : ZLayer[Any, Throwable, TestSummary] = {
     ZLayer(for {
       dists   <- ZIO.succeed(paths.map(path => EvaluationLibrary.loadDistribution(path.toString)))
       runtime <- ZIO.succeed(MorphirRuntime.quick(dists: _*))
@@ -24,12 +34,16 @@ object UnitTestingSpec extends MorphirBaseSpec {
         .provideEnvironment(MorphirEnv.live)
         .toZIOWith(RTExecutionContext.typeChecked)
     } yield summary)
+  }
+  val incompleteTestSummaryLayer: ZLayer[Any, Throwable, TestSummary] = makeTestSummaryLayer(incompletePaths)
+  val passingTestSummaryLayer: ZLayer[Any, Throwable, TestSummary] = makeTestSummaryLayer(passingPaths)
+  val failingTestSummaryLayer: ZLayer[Any, Throwable, TestSummary] = makeTestSummaryLayer(failingPaths)
 
   def getTestSummary =
     ZIO.serviceWithZIO[TestSummary] { summary => ZIO.succeed(summary) }
 
-  def moduleCounts(moduleName: String) = {
-    val pkgName = PackageName.fromString("ExampleTests")
+  def moduleCounts(packageName : String, moduleName: String) = {
+    val pkgName = PackageName.fromString(packageName)
     val modName = ModuleName.fromString(moduleName)
     getTestSummary.map {
       summary => summary.countsAtModule(pkgName, modName)
@@ -37,7 +51,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
   }
 
   def spec = suite("Unit Testing Framework Tests")(
-    suite("Happy Paths Tests")(
+    suite("Failing Project")(
       test("Show Results (for human readability check - ignore)") {
         getTestSummary.map { result =>
           println(result)
@@ -88,7 +102,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
       ),
       suite("Modules Correct")(
         test("Module One Counts") {
-          moduleCounts("FailingModuleOne").map { counts =>
+          moduleCounts("ExampleTests", "FailingModuleOne").map { counts =>
             assertTrue(counts == Some(TestResultCounts(
               passed = 6,
               failed = 30,
@@ -99,12 +113,12 @@ object UnitTestingSpec extends MorphirBaseSpec {
           }
         },
         test("Module One Status") {
-          moduleCounts("FailingModuleOne").map { counts =>
+          moduleCounts("ExampleTests", "FailingModuleOne").map { counts =>
             assertTrue(counts.map(_.result) == Some(OverallStatus.Failed))
           }
         },
         test("Module Two Counts") {
-          moduleCounts("FailingModuleTwo").map { counts =>
+          moduleCounts("ExampleTests", "FailingModuleTwo").map { counts =>
             assertTrue(counts == Some(TestResultCounts(
               passed = 1,
               failed = 1,
@@ -115,12 +129,12 @@ object UnitTestingSpec extends MorphirBaseSpec {
           }
         },
         test("Failing isn't passing") {
-          moduleCounts("FailingModuleTwo").map { counts =>
+          moduleCounts("ExampleTests", "FailingModuleTwo").map { counts =>
             assertTrue(counts.map(_.result) == Some(OverallStatus.Failed))
           }
         },
         test("Incomplete Counts") {
-          moduleCounts("IncompleteModule").map { counts =>
+          moduleCounts("ExampleTests", "IncompleteModule").map { counts =>
             assertTrue(counts == Some(TestResultCounts(
               passed = 1,
               failed = 0,
@@ -131,12 +145,12 @@ object UnitTestingSpec extends MorphirBaseSpec {
           }
         },
         test("Incomplete Module Status") {
-          moduleCounts("IncompleteModule").map { counts =>
+          moduleCounts("ExampleTests", "IncompleteModule").map { counts =>
             assertTrue(counts.map(_.result) == Some(OverallStatus.Incomplete))
           }
         },
         test("Passing Counts") {
-          moduleCounts("PassingModule").map { counts =>
+          moduleCounts("ExampleTests", "PassingModule").map { counts =>
             assertTrue(counts == Some(TestResultCounts(
               passed = 18,
               failed = 0,
@@ -147,12 +161,35 @@ object UnitTestingSpec extends MorphirBaseSpec {
           }
         },
         test("Passing Module Status") {
-          moduleCounts("PassingModule").map { counts =>
+          moduleCounts("ExampleTests", "PassingModule").map { counts =>
             assertTrue(counts.map(_.result) == Some(OverallStatus.Passed))
           }
         }
       )
-    )
+    ).provideLayerShared(failingTestSummaryLayer) ,
+    suite ("Passing Project Spec")(
+        test("Project passed") {
+          getTestSummary.map { result =>
+            assertTrue(result.passed)
+          }
+        },
+        test("Project was not incomplete") {
+          getTestSummary.map { result =>
+            assertTrue(!result.incomplete)
+          }
+        },
+    ).provideLayerShared(passingTestSummaryLayer)  ,
+    suite ("Incomplete Project Spec")(
+        test("Project did not pass") {
+          getTestSummary.map { result =>
+            assertTrue(!result.passed)
+          }
+        },
+        test("Project was incomplete") {
+          getTestSummary.map { result =>
+            assertTrue(result.incomplete)
+          }
+        },
+    ).provideLayerShared(incompleteTestSummaryLayer) ,
   )
-    .provideLayerShared(testSummaryLayer)
 }
