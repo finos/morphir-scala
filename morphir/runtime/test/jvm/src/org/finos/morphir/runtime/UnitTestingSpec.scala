@@ -11,7 +11,7 @@ import zio.test.TestAspect.{ignore, tag}
 import zio.{Console, ZIO, ZLayer}
 
 object UnitTestingSpec extends MorphirBaseSpec {
-  val basicPath = 
+  val basicPath =
     os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project" / "morphir-ir.json"
   val failingPaths = List(
     os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project-tests" / "morphir-ir.json",
@@ -26,7 +26,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
     basicPath
   )
 
-  def makeTestSummaryLayer(paths : List[os.Path]) : ZLayer[Any, Throwable, TestSummary] = {
+  def makeTestSummaryLayer(paths: List[os.Path]): ZLayer[Any, Throwable, TestSummary] =
     ZLayer(for {
       dists   <- ZIO.succeed(paths.map(path => EvaluationLibrary.loadDistribution(path.toString)))
       runtime <- ZIO.succeed(MorphirRuntime.quick(dists: _*))
@@ -34,15 +34,14 @@ object UnitTestingSpec extends MorphirBaseSpec {
         .provideEnvironment(MorphirEnv.live)
         .toZIOWith(RTExecutionContext.typeChecked)
     } yield summary)
-  }
   val incompleteTestSummaryLayer: ZLayer[Any, Throwable, TestSummary] = makeTestSummaryLayer(incompletePaths)
-  val passingTestSummaryLayer: ZLayer[Any, Throwable, TestSummary] = makeTestSummaryLayer(passingPaths)
-  val failingTestSummaryLayer: ZLayer[Any, Throwable, TestSummary] = makeTestSummaryLayer(failingPaths)
+  val passingTestSummaryLayer: ZLayer[Any, Throwable, TestSummary]    = makeTestSummaryLayer(passingPaths)
+  val failingTestSummaryLayer: ZLayer[Any, Throwable, TestSummary]    = makeTestSummaryLayer(failingPaths)
 
   def getTestSummary =
     ZIO.serviceWithZIO[TestSummary] { summary => ZIO.succeed(summary) }
 
-  def moduleCounts(packageName : String, moduleName: String) = {
+  def moduleCounts(packageName: String, moduleName: String) = {
     val pkgName = PackageName.fromString(packageName)
     val modName = ModuleName.fromString(moduleName)
     getTestSummary.map {
@@ -166,30 +165,30 @@ object UnitTestingSpec extends MorphirBaseSpec {
           }
         }
       )
-    ).provideLayerShared(failingTestSummaryLayer) ,
-    suite ("Passing Project Spec")(
-        test("Project passed") {
-          getTestSummary.map { result =>
-            assertTrue(result.passed)
-          }
-        },
-        test("Project was not incomplete") {
-          getTestSummary.map { result =>
-            assertTrue(!result.incomplete)
-          }
-        },
-    ).provideLayerShared(passingTestSummaryLayer)  ,
-    suite ("Incomplete Project Spec")(
-        test("Project did not pass") {
-          getTestSummary.map { result =>
-            assertTrue(!result.passed)
-          }
-        },
-        test("Project was incomplete") {
-          getTestSummary.map { result =>
-            assertTrue(result.incomplete)
-          }
-        },
-    ).provideLayerShared(incompleteTestSummaryLayer) ,
+    ).provideLayerShared(failingTestSummaryLayer),
+    suite("Passing Project Spec")(
+      test("Project passed") {
+        getTestSummary.map { result =>
+          assertTrue(result.passed)
+        }
+      },
+      test("Project was not incomplete") {
+        getTestSummary.map { result =>
+          assertTrue(!result.incomplete)
+        }
+      }
+    ).provideLayerShared(passingTestSummaryLayer),
+    suite("Incomplete Project Spec")(
+      test("Project did not pass") {
+        getTestSummary.map { result =>
+          assertTrue(!result.passed)
+        }
+      },
+      test("Project was incomplete") {
+        getTestSummary.map { result =>
+          assertTrue(result.incomplete)
+        }
+      }
+    ).provideLayerShared(incompleteTestSummaryLayer)
   )
 }
