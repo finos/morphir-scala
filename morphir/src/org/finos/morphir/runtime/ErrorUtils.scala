@@ -62,7 +62,7 @@ object ErrorUtils {
 
     def process(title: String, astLike: Any): String =
       if (isMDM(astLike)) {
-        val mdmBody = barIndentBlock("MDM", PrintMDM(astLike).plainText)
+        val mdmBody = barIndentBlock(" in the MDM it looks like this ", PrintMDM(astLike).plainText)
         barBlock(barIndentBlock(title, mdmBody, barWidth = 10)) // Console likes to drop leading |?
       } else if (isIR(astLike)) {
         val elmBody = barIndentBlock("Elm", astLike.toString)
