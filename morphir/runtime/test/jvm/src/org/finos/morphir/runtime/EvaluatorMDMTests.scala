@@ -1120,8 +1120,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             )
           )
         ),
+        testEvalMultiple("addDays")("localDateTests", "addDaysTest", List(2, localDate))(
+          Data.LocalDate(localDate.plusDays(2))
+        ),
         testEvalMultiple("addWeeks")("localDateTests", "addWeeksTest", List(2, localDate))(
           Data.LocalDate(localDate.plusWeeks(2))
+        ),
+        testEvalMultiple("addYears")("localDateTests", "addYearsTest", List(2, localDate))(
+          Data.LocalDate(localDate.plusYears(2))
         ),
         testEvalMultiple("diffInDays")("localDateTests", "diffInDaysTest", List(localDate, localDate.plusDays(999)))(
           Data.Int(999)
