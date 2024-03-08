@@ -19,7 +19,7 @@ import org.finos.morphir.runtime.MorphirRuntimeError.*
 
 trait EvaluationLibraryPlatformSpecific {
 
-  def loadDistribution(fileName: String): Distribution =
+  def loadDistributionUnsafe(fileName: String): Distribution =
     Unsafe.unsafe {
       implicit unsafe =>
         Runtime.default.unsafe.run(loadDistributionFromFileZIO(fileName)).getOrThrowFiberFailure()

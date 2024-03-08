@@ -11,25 +11,29 @@ import zio.test.TestAspect.{ignore, tag}
 import zio.{Console, ZIO, ZLayer}
 
 object UnitTestingSpec extends MorphirBaseSpec {
-  val basicPath =
-    os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project" / "morphir-ir.json"
+  val testFrameworkPath =
+    "morphir-elm/sdks/morphir-unit-test/morphir-ir.json"
+  val basicPath = "examples/morphir-elm-projects/unit-test-framework/example-project/morphir-ir.json"
   val failingPaths = List(
-    os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project-tests" / "morphir-ir.json",
-    basicPath
+    "examples/morphir-elm-projects/unit-test-framework/example-project-tests/morphir-ir.json",
+    basicPath,
+    testFrameworkPath
   )
   val passingPaths = List(
-    os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project-tests-passing" / "morphir-ir.json",
-    basicPath
+    "examples/morphir-elm-projects/unit-test-framework/example-project-tests-passing/morphir-ir.json",
+    basicPath,
+    testFrameworkPath
   )
   val incompletePaths = List(
-    os.pwd / "examples" / "morphir-elm-projects" / "unit-test-framework" / "example-project-tests-incomplete" / "morphir-ir.json",
-    basicPath
+    "examples/morphir-elm-projects/unit-test-framework/example-project-tests-incomplete/morphir-ir.json",
+    basicPath,
+    testFrameworkPath
   )
 
-  def makeTestSummaryLayer(paths: List[os.Path]): ZLayer[Any, Throwable, TestSummary] =
+  def makeTestSummaryLayer(paths: List[String]): ZLayer[Any, Throwable, TestSummary] =
     ZLayer(for {
-      dists   <- ZIO.succeed(paths.map(path => EvaluationLibrary.loadDistribution(path.toString)))
-      runtime <- ZIO.succeed(MorphirRuntime.quick(dists: _*))
+      dists <- ZIO.collectAll(paths.map(path => EvaluationLibrary.loadDistributionFromFileZIO(path)))
+      runtime = MorphirRuntime.quick(dists: _*)
       summary <- runtime.runUnitTests()
         .provideEnvironment(MorphirEnv.live)
         .toZIOWith(RTExecutionContext.typeChecked)

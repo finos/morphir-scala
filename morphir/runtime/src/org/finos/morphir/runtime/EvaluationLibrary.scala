@@ -17,25 +17,4 @@ import org.finos.morphir.ir.json.MorphirJsonSupport.*
 import org.finos.morphir.runtime.quick.{EvaluatorQuick, Store}
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 
-object EvaluationLibrary extends EvaluationLibraryPlatformSpecific {
-
-//   override def loadDistribution(fileName: String): Distribution =
-//     Unsafe.unsafe {
-//       implicit unsafe =>
-//         Runtime.default.unsafe.run(loadDistributionFromFileZIO(fileName)).getOrThrowFiberFailure()
-//     }
-
-//   def loadDistributionFromFileZIO(fileName: String): Task[Distribution] =
-//     for {
-//       fileContents <- ZIO.readFile(fileName)
-//       morphirIRFile <- ZIO.fromEither(fileContents.fromJson[MorphirIRFile])
-//         .mapError(MorphirIRDecodingError(_))
-//     } yield morphirIRFile.distribution
-
-//   def loadValueFromFileZIO(fileName: String): Task[TypedValue] =
-//     for {
-//       fileContents <- ZIO.readFile(fileName)
-//       value <- ZIO.fromEither(fileContents.fromJson[TypedValue])
-//         .mapError(MorphirIRDecodingError(_))
-//     } yield value
-}
+object EvaluationLibrary extends EvaluationLibraryPlatformSpecific {}
