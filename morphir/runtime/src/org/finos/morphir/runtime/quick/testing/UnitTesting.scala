@@ -1,4 +1,4 @@
-package org.finos.morphir.runtime.quick
+package org.finos.morphir.runtime.quick.testing
 
 import org.finos.morphir.datamodel.{Concept, Data, EnumLabel, Label}
 import org.finos.morphir.runtime.{Distributions, RTValue}
@@ -6,15 +6,14 @@ import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.services.sdk.MorphirSdk
-import org.finos.morphir.runtime.TestSummary
 import org.finos.morphir.ir.Value.*
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.ir.sdk
-import org.finos.morphir.runtime.SDKValue
-import org.finos.morphir.runtime.EvaluationLibrary
+import org.finos.morphir.runtime.exports.*
+import org.finos.morphir.runtime.*
+import org.finos.morphir.runtime.quick.*
 import org.finos.morphir.runtime.SDKValue.SDKValueDefinition
-import org.finos.morphir.runtime.SingleTestResult
 import org.finos.morphir.runtime.RTValue.Primitive
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.util.PrintRTValue
@@ -36,11 +35,8 @@ object UnitTesting {
   def expectPrefix    = "Morphir.UnitTest:Expect:"
 
   private[runtime] def runTests(
-      userDists: Distributions
+      dists: Distributions
   ): RTAction[MorphirEnv, Nothing, TestSummary] = {
-    val testLibs = Distribution.toLibsMap(EvaluationLibrary.loadDistribution(testFrameworkPath))
-    val userLibs = userDists.getDists
-    val dists    = Distributions(userLibs ++ testLibs)
     val globals  = GlobalDefs.fromDistributions(dists)
     RTAction.environmentWithPure[MorphirSdk] { env =>
       val testNames = collectTests(globals, dists)
@@ -109,7 +105,7 @@ object UnitTesting {
   ): TestSummary = {
     // We rewrite the IR to replace expect calls (in common patterns) with thunky versions
     def thunkifyTransform =
-      TypedValue.transform(MorphirExpect.thunkifyAll)
+      TypedValue.transform(Expect.thunkifyAll)
     val newGlobalDefs = globals.definitions.map {
       case (fqn, SDKValue.SDKValueDefinition(dfn)) =>
         (fqn, SDKValue.SDKValueDefinition(dfn.copy(body = thunkifyTransform(dfn.body))))
@@ -118,7 +114,7 @@ object UnitTesting {
     // ... and we replace the elm Expect functions with more privileged native ones
     val newGlobals = globals
       .copy(definitions = newGlobalDefs)
-      .withBindingsFrom(MorphirExpect.newDefs)
+      .withBindingsFrom(Expect.newDefs)
 
     // Make IRs for our tests
     val testIRs: List[(FQName, TypedValue)] =

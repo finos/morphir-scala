@@ -1,14 +1,15 @@
-package org.finos.morphir.runtime.quick
+package org.finos.morphir.runtime.quick.testing
 import org.finos.morphir.naming.*
 import scala.collection.mutable.LinkedHashMap
-import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.util.{PrintRTValue, Compare, PrintDiff}
 import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.ir.{Type => T, Value => V}
 import org.finos.morphir.ir.Value.Pattern
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
-import org.finos.morphir.runtime.Coercer
-import org.finos.morphir.runtime.SingleTestResult
+import org.finos.morphir.runtime.exports.*
+import org.finos.morphir.runtime.*
+import org.finos.morphir.runtime.{RTValue => RT}
+import org.finos.morphir.runtime.quick.*
 import org.finos.morphir.runtime.ErrorUtils.indentBlock
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
@@ -24,7 +25,7 @@ import org.finos.morphir.runtime.internal.{
 import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.util.{Compare, PrintDiff}
 
-private[runtime] sealed trait MorphirExpect {
+private[runtime] sealed trait Expect {
   def arity: Int
   def funcName: String
   def fqn = FQName.fromString(UnitTesting.expectPrefix + funcName)
@@ -33,11 +34,11 @@ private[runtime] sealed trait MorphirExpect {
   def readThunk(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = PartialFunction.empty
 }
 
-private[runtime] object MorphirExpect {
+private[runtime] object Expect {
   case class TransparentArg(ir: TypedValue, value: RT) {
     def valueString: String = value.printed
   }
-  trait IntrospectableExpect extends MorphirExpect {
+  trait IntrospectableExpect extends Expect {
     override def thunkify: PartialFunction[TypedValue, TypedValue] = {
       case (app @ ApplyChain(Reference(_, foundFQN), args)) if (foundFQN == fqn && args.length == arity) =>
         V.lambda(
@@ -57,7 +58,7 @@ private[runtime] object MorphirExpect {
             globals,
             context,
             args.map {
-              arg => MorphirExpect.TransparentArg(arg, Loop(globals).loop(arg, Store(context)))
+              arg => Expect.TransparentArg(arg, Loop(globals).loop(arg, Store(context)))
             }
           )
         catch {
@@ -67,7 +68,7 @@ private[runtime] object MorphirExpect {
     def processThunk(
         globals: GlobalDefs,
         context: CallStackFrame,
-        args: List[MorphirExpect.TransparentArg]
+        args: List[Expect.TransparentArg]
     ): SingleTestResult
   }
   trait Introspectable1 extends IntrospectableExpect {
@@ -282,7 +283,7 @@ private[runtime] object MorphirExpect {
       }
   }
   // Collection comparisons don't need to be introspectable - more important to have any decent specific diff reporting
-  case object EqualLists extends MorphirExpect {
+  case object EqualLists extends Expect {
     def funcName = "equalLists"
     def arity    = 2;
     def dynamicFunction = DynamicNativeFunction2("equalLists") {
@@ -308,7 +309,7 @@ private[runtime] object MorphirExpect {
           Example: at index $index, ${v1.printed} vs ${v2.printed}}"""
       }
   }
-  case object EqualDicts extends MorphirExpect {
+  case object EqualDicts extends Expect {
     def funcName = "equalDicts"
     def arity    = 2
     def dynamicFunction = DynamicNativeFunction2("equalDicts") {
@@ -336,7 +337,7 @@ private[runtime] object MorphirExpect {
       "Dicts were not equal:" + missing1String + missing2String + differingString
     }
   }
-  case object EqualSets extends MorphirExpect {
+  case object EqualSets extends Expect {
     def funcName = "equalSets"
     def arity    = 2
     def dynamicFunction = DynamicNativeFunction2("equalSets") {
@@ -361,7 +362,7 @@ private[runtime] object MorphirExpect {
     }
   }
   // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
-  case object All extends MorphirExpect {
+  case object All extends Expect {
     def funcName = "all"
     def arity    = 2
     // This is a bit messy: The component lambdas may already have been rewritten to produce thunks
@@ -401,7 +402,7 @@ private[runtime] object MorphirExpect {
 
   }
 
-  case object OnFail extends MorphirExpect {
+  case object OnFail extends Expect {
     def funcName = "onFail"
     def arity    = 2
     def dynamicFunction = DynamicNativeFunction2("onFail") {
@@ -467,7 +468,7 @@ private[runtime] object MorphirExpect {
       }
   }
 
-  def allExpects: List[MorphirExpect] = List(
+  def allExpects: List[Expect] = List(
     Equal,
     NotEqual,
     All,
@@ -486,13 +487,13 @@ private[runtime] object MorphirExpect {
   )
   def thunkifyAll: PartialFunction[TypedValue, TypedValue] = {
     val emptyFunction: PartialFunction[TypedValue, TypedValue] = PartialFunction.empty
-    allExpects.foldLeft(emptyFunction)((f: PartialFunction[TypedValue, TypedValue], expect: MorphirExpect) =>
+    allExpects.foldLeft(emptyFunction)((f: PartialFunction[TypedValue, TypedValue], expect: Expect) =>
       f orElse (expect.thunkify)
     )
   }
   def readThunkAll(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = {
     val emptyFunction: PartialFunction[RT, SingleTestResult] = PartialFunction.empty
-    allExpects.foldLeft(emptyFunction)((f: PartialFunction[RT, SingleTestResult], expect: MorphirExpect) =>
+    allExpects.foldLeft(emptyFunction)((f: PartialFunction[RT, SingleTestResult], expect: Expect) =>
       f orElse (expect.readThunk(globals))
     )
   }

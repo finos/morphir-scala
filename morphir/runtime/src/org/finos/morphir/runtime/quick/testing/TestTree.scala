@@ -1,9 +1,10 @@
-package org.finos.morphir.runtime.quick
-import org.finos.morphir.runtime.TestSummary
-import org.finos.morphir.runtime.TestResultCounts
+package org.finos.morphir.runtime.quick.testing
+import org.finos.morphir.runtime.*
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.SingleTestResult
+import org.finos.morphir.runtime.exports.*
+import org.finos.morphir.runtime.quick.*
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.ErrorUtils.indentBlock
@@ -92,7 +93,7 @@ private[runtime] object TestTree {
       case SingleTest(
             desc,
             rt
-          ) => SingleTest(desc, MorphirExpect.evaluatedExpectToResult(globals, rt))
+          ) => SingleTest(desc, Expect.evaluatedExpectToResult(globals, rt))
       case other: Error => other
       case other: Skip  => other
       case other: Todo  => other
