@@ -71,9 +71,19 @@ object LocalDateSDK {
       }
   }
 
+  val addDays = DynamicNativeFunction2("addDays") {
+    (_: NativeContext) => (weeksArg: RTValue.Primitive.Int, localDateArg: RTValue.LocalDate) =>
+      update(localDateArg)(_.plusDays(weeksArg.value.toLong))
+  }
+
   val addWeeks = DynamicNativeFunction2("addWeeks") {
     (_: NativeContext) => (weeksArg: RTValue.Primitive.Int, localDateArg: RTValue.LocalDate) =>
       update(localDateArg)(_.plusWeeks(weeksArg.value.toLong))
+  }
+
+  val addYears = DynamicNativeFunction2("addYears") {
+    (_: NativeContext) => (weeksArg: RTValue.Primitive.Int, localDateArg: RTValue.LocalDate) =>
+      update(localDateArg)(_.plusYears(weeksArg.value.toLong))
   }
 
   val diffInDays = DynamicNativeFunction2("diffInDays") {

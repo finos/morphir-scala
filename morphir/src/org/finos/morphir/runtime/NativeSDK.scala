@@ -171,17 +171,19 @@ object NativeSDK {
 
       case object LocalDate extends SdkModuleDescriptor(moduleName = "LocalDate") {
         val functions: List[NativeFunctionAdapter] = scala.List(
-          NativeFunctionAdapter.Fun3(LocalDateSDK.fromCalendarDate),
-          NativeFunctionAdapter.Fun2(LocalDateSDK.fromOrdinalDate),
-          NativeFunctionAdapter.Fun3(LocalDateSDK.fromParts),
-          NativeFunctionAdapter.Fun2(LocalDateSDK.addWeeks),
-          NativeFunctionAdapter.Fun2(LocalDateSDK.diffInDays),
+          NativeFunctionAdapter.Fun1(LocalDateSDK.day),
+          NativeFunctionAdapter.Fun1(LocalDateSDK.dayOfWeek),
           NativeFunctionAdapter.Fun1(LocalDateSDK.fromISO),
-          NativeFunctionAdapter.Fun1(LocalDateSDK.year),
           NativeFunctionAdapter.Fun1(LocalDateSDK.month),
           NativeFunctionAdapter.Fun1(LocalDateSDK.monthNumber),
-          NativeFunctionAdapter.Fun1(LocalDateSDK.day),
-          NativeFunctionAdapter.Fun1(LocalDateSDK.dayOfWeek)
+          NativeFunctionAdapter.Fun1(LocalDateSDK.year),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.addDays),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.addWeeks),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.addYears),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.diffInDays),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.fromOrdinalDate),
+          NativeFunctionAdapter.Fun3(LocalDateSDK.fromCalendarDate),
+          NativeFunctionAdapter.Fun3(LocalDateSDK.fromParts)
         )
 
         private val enumSDKConstructor = SDKConstructor(scala.List())
