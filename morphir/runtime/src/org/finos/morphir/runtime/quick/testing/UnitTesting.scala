@@ -177,7 +177,7 @@ object UnitTesting {
             )
           }.toList
       ).resolveOnly // "Only" requires special handling, so do that here
-      // User-defined thunks, and non-introspected expect calls (the magic SDK functions) are run here
+        // User-defined thunks, and non-introspected expect calls (the magic SDK functions) are run here
     val withExpects = TestSet.getExpects(newGlobals, testSet)
     // And then the generated thunks are introspected, giving us our final SingleTestResults
     val withResults = TestSet.processExpects(newGlobals, withExpects)
