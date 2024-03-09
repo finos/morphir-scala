@@ -32,12 +32,19 @@ object UnitTesting {
   def testPrefix      = "Morphir.UnitTest:Test:"
   def expectPrefix    = "Morphir.UnitTest:Expect:"
 
+  /**
+   * Run all tests in the given distributions. By this point, the distributions need to include the actual test
+   * framework (as this is a ZPure, it should not touch file handling) This function works in two passes - first it uses
+   * a minimal pure-elm evaluation pass, ensuring we are testing like we fly (and not hiding user bugs behind test
+   * framework bugs) Then it uses a more complex and priviliged pass to give us a neatly formatted report of the
+   * results. If the complex pass disagree with the simple pass, we messed something up and an error is thrown.
+   */
   private[runtime] def runTests(
       dists: Distributions
   ): RTAction[MorphirEnv, Nothing, TestSummary] = {
     val globals = GlobalDefs.fromDistributions(dists)
     RTAction.environmentWithPure[MorphirSdk] { env =>
-      val testNames = collectTests(globals, dists)
+      val testNames = collectTests(globals)
       val testIRs   = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
       if (testIRs.isEmpty) {
         val emptySummary = TestSummary("No tests run", Map())
@@ -78,7 +85,7 @@ object UnitTesting {
 
         val simplePassed = passedResult match {
           case Right(Data.Boolean(true)) => true
-          // Anything else and we know we have a failure, it's just a matter of determining what
+          // Anything else and we know we have a failure, it's just a matter of determining what (error or failure are all the same to us at this point)
           case _ => false
         }
 
@@ -86,6 +93,7 @@ object UnitTesting {
 
         if (detailedReport.passed == simplePassed)
           RTAction.succeed(detailedReport)
+          // If the results were different, something went wrong in our test framework - it either hid an error, or created one that didn't exist in the simple pass
         else if (detailedReport.passed && (!simplePassed))
           throw new InvalidState(s"""Detailed Test Report passed, but simple morphir-based testing failed.
           Detailed:  $detailedReport""")
@@ -96,12 +104,28 @@ object UnitTesting {
     }
   }
 
+  /**
+   * Takes the discovered test names and does all the back-end magic to produce a report of the results
+   *
+   * @param globals
+   *   The global definitions to use (without the magic functions from Expect)
+   * @param dists
+   *   The distributions to use, including the test framework
+   * @param testNames
+   *   The set of FQNs to evaluate as tests
+   */
   private[runtime] def reportResult(
       globals: GlobalDefs,
       dists: Distributions,
       testNames: List[FQName]
   ): TestSummary = {
-    // We rewrite the IR to replace expect calls (in common patterns) with thunky versions
+    // We rewrite the IR to replace expect calls (in common patterns) with thunky versions.
+    // Specifics are up to the logic in Expect, but in general, `Expect.foo x y` becomes `\() -> Expect.foo x y`
+    // Since expects are already usually in thunks, this mostly means that
+    //  Test.test "testName" \_ -> Expect.foo x y
+    // becoems
+    //  Test.test "testName" \_ -> (\_ -> Expect.foo x y)
+    // This lets us run any user logic used in the thunk (which may be sustantial), but still recover the actual IR of the expect call for introspection
     def thunkifyTransform =
       TypedValue.transform(Expect.thunkifyAll)
     val newGlobalDefs = globals.definitions.map {
@@ -118,7 +142,8 @@ object UnitTesting {
     val testIRs: List[(FQName, TypedValue)] =
       testNames.map(fqn => (fqn, Value.Reference.Typed(testType, fqn)))
 
-    // Then we try to run them, and catch any errors that we encounter
+    // Then we try to evalute them, and catch any errors that we encounter
+    // Note that this just evaluated the test definitions - it doesn't run even the user-defined thunks, yet
     val testRTValues: List[(FQName, Either[Throwable, RTValue])] = testIRs
       .map { case (fqn, ir) =>
         try
@@ -131,6 +156,7 @@ object UnitTesting {
     // We make this into a test set
     // Tests are grouped by the module they belong to
     // Top-level tests without a name are given a name from their FQN
+    // TODO: Preserve the FQName either way, for better tooling integration (code coverage?)
     val testSet: TestSet[RT] =
       TestSet[RT](
         testRTValues
@@ -151,16 +177,25 @@ object UnitTesting {
             )
           }.toList
       ).resolveOnly // "Only" requires special handling, so do that here
-        // Non-introspected tests are "Run" at this point
+      // User-defined thunks, and non-introspected expect calls (the magic SDK functions) are run here
     val withExpects = TestSet.getExpects(newGlobals, testSet)
-    // Another walk of the tree, running introspected tests this time
+    // And then the generated thunks are introspected, giving us our final SingleTestResults
     val withResults = TestSet.processExpects(newGlobals, withExpects)
     TestSet.toSummary(withResults)
   }
 
+  /**
+   * Collects all tests from the given distributions. A "Test" is any top-level definition of type `Test`. This exludes:
+   *   - Functions that result in Tests
+   *   - Lists, maps or tuples of Tests
+   *   - Things declared as an alias to type Test (intentional omission, in case users really want to hide tests for
+   *     whatever reason)
+   *
+   * @param globals
+   *   The global definitions to collect tests from
+   */
   private[runtime] def collectTests(
-      globals: GlobalDefs,
-      dists: Distributions
+      globals: GlobalDefs
   ): List[FQName] = {
     val tests = globals.definitions.collect {
       case (fqn -> SDKValueDefinition(definition: TypedDefinition))

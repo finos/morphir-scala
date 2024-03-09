@@ -1,6 +1,5 @@
 package org.finos.morphir.runtime
 import org.finos.morphir.naming.*
-import javax.swing.text.PasswordView
 
 case class TestSummary(
     report: String,

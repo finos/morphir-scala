@@ -25,20 +25,64 @@ import org.finos.morphir.runtime.internal.{
 import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.util.{Compare, PrintDiff}
 
+/**
+ * Expect covers representations of the various Expect.<something> functions, such as `equals` or `assert`.
+ */
 private[runtime] sealed trait Expect {
   def arity: Int
+  // String representation of the local name of the function
   def funcName: String
   def fqn = FQName.fromString(UnitTesting.expectPrefix + funcName)
+
+  /**
+   * A "native" version of the function, which can be more powerful than the pure morphir version when it comes to
+   * reporting errors. This should shadow the morphir function of the same name in globalDefs when generating the test
+   * report.
+   */
   def sdkFunction: SDKValue // would be nice to be able to generalize the wrapping but that's hard
-  def thunkify: PartialFunction[TypedValue, TypedValue]                     = PartialFunction.empty
+  /**
+   * A transformation to turn Expect function calls into lazy versions. This allows all other code (which may include a
+   * lot of test organizing code) to be evaluated normally, But the actual Expect calls left un-evaluated so that they
+   * may be introspected.
+   */
+  def thunkify: PartialFunction[TypedValue, TypedValue] = PartialFunction.empty
+
+  /**
+   * Once things have been thunkified, we need to be able to recognize the thunks and produce SingleTestREsults from
+   * them.
+   *
+   * @param globals
+   *   GlobalDefs, needed to evalute IR within the thunks. (Should include the sdkFunction of this and other expects, as
+   *   defined above.)
+   */
   def readThunk(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = PartialFunction.empty
 }
 
 private[runtime] object Expect {
+
+  /**
+   * Simple helper to store both the IR of a value, and what it evaluated into. This is used for almost all of the
+   * `readThunk` implementations.
+   *
+   * @param ir
+   *   a TypedValue
+   * @param value
+   *   the RTValue that IR would evaluate to
+   */
   case class TransparentArg(ir: TypedValue, value: RT) {
-    def valueString: String = value.printed
+    def valueString: String =
+      value.printed // A nice string representation of the RTValue (TypedValue's default toString is good enough to not warrant a similar def)
   }
+
+  /**
+   * A subtrait which handles those Expect functiosn we want to introspect.
+   */
   trait IntrospectableExpect extends Expect {
+
+    /**
+     * This function converts calls like: `Expect.foo x y` to `\() -> Expect.foo(x, y)` This is used to make the Expect
+     * functions introspectable.
+     */
     override def thunkify: PartialFunction[TypedValue, TypedValue] = {
       case (app @ ApplyChain(Reference(_, foundFQN), args)) if (foundFQN == fqn && args.length == arity) =>
         V.lambda(
@@ -47,6 +91,14 @@ private[runtime] object Expect {
           app
         )
     }
+
+    /**
+     * This recognizes the `\() -> Expect.foo(x, y)` IR subtrees created by `thunkify`, evaluates their args, wraps them
+     * in transparent args, and then calls `processThunk` to do the actual work.
+     *
+     * @param globals
+     *   GlobadDefs needed to evaluate the individual arguments
+     */
     override def readThunk(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = {
       case RT.LambdaFunction(
             ApplyChain(Reference(_, foundFQN), args),
@@ -62,15 +114,36 @@ private[runtime] object Expect {
             }
           )
         catch {
+          // We want to generically catch all errors, because that lets us report any errors thrown as failures relating to that test.
+          // Given the remote, theoretical, almost laughable really possibility of us having made a coding mistake in the evaluator,
+          // we make no assumptions here about what errors might be possible; this makes this a useful tool for debugging both the user
+          // code and the evaluator itself.
           case e: Throwable => SingleTestResult.Err(e)
         }
     }
+
+    /**
+     * The actual work of the Expect function, specific to a particular function once the common IR matching and
+     * argument evaluation has been done.
+     *
+     * @param globals
+     *   GlobalDefs (still needed in case the expect itself contains further un-evaluated thunks, such as in
+     *   `Expect.all`)
+     * @param context
+     *   CallStackFrame, needed for the same reason
+     * @param args
+     *   The arguments (both their IR and evaluated RTValue)
+     */
     def processThunk(
         globals: GlobalDefs,
         context: CallStackFrame,
         args: List[Expect.TransparentArg]
     ): SingleTestResult
   }
+
+  /**
+   * Simple helper trait for arity-1 introspectable expects
+   */
   trait Introspectable1 extends IntrospectableExpect {
     final def arity = 1;
     def processThunk(
@@ -89,6 +162,10 @@ private[runtime] object Expect {
         arg: TransparentArg
     ): SingleTestResult
   }
+
+  /**
+   * Simple helper trait for arity-2 introspectable expects
+   */
   trait Introspectable2 extends IntrospectableExpect {
     final def arity = 2;
     def processThunk(
@@ -109,10 +186,25 @@ private[runtime] object Expect {
         arg2: TransparentArg
     ): SingleTestResult
   }
+
+  /**
+   * Many of the Expect functions are binary operations, and this trait provides a common implementation for them.
+   */
   trait BinOpExpect extends Introspectable2 {
+
+    /**
+     * The string (symbol) of the function, such as `==` or `>=`
+     */
     def opString: String;
+
+    /**
+     * A simple function to check if the operation passes or fails
+     */
     def opPasses(rt1: RT, rt2: RT): Boolean
 
+    /**
+     * A generic representation of a dynamic function, using the specific `opPasses` function to do the work.
+     */
     def dynamicFunction = DynamicNativeFunction2("binOp") {
       (_: NativeContext) => (rt1: RT, rt2: RT) =>
         if (opPasses(rt1, rt2)) passedRT
@@ -120,6 +212,11 @@ private[runtime] object Expect {
           failedRT(s"Expect.$funcName (${rt1.printed}) (${rt2.printed})")
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
+
+    /**
+     * This handles the formatting of all of the Binary Op expect functions in a generic way, making it easier to tweak
+     * the formatting
+     */
     def processThunk(
         globals: GlobalDefs,
         context: CallStackFrame,
@@ -139,12 +236,26 @@ private[runtime] object Expect {
 
   }
 
+  /**
+   * A simple helper to wrap ap an ExpectationResult RTValue in an Expectation
+   */
   def expectation(result: RT) =
     RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Expectation"), List(result))
+
+  /**
+   * RTValue for a passed test
+   */
   def passedRT = {
     val result = RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Pass"), List())
     expectation(result)
   }
+
+  /**
+   * RTValue for a failed test, given some failure message
+   *
+   * @param msg
+   *   human-readable message to be returned
+   */
   def failedRT(msg: String) = {
     val result =
       RT.ConstructorResult(FQName.fromString("Morphir.UnitTest:Expect:Fail"), List(RT.Primitive.String(msg)))
@@ -191,6 +302,10 @@ private[runtime] object Expect {
       Coercer.comparableCoercer.coerce(rt2)
     ) < 0
   }
+
+  /**
+   * This is "Less than or Equal To", but we use the name from elm-test for ease of translation
+   */
   case object AtMost extends BinOpExpect {
     def funcName = "atMost"
     def opString = "<="
@@ -202,6 +317,10 @@ private[runtime] object Expect {
       Coercer.comparableCoercer.coerce(rt2)
     ) <= 0
   }
+
+  /**
+   * This is "Greater than or Equal To", but we use the name from elm-test for ease of translation
+   */
   case object AtLeast extends BinOpExpect {
     def funcName = "atLeast"
     def opString = ">="
@@ -213,6 +332,10 @@ private[runtime] object Expect {
       Coercer.comparableCoercer.coerce(rt2)
     ) >= 0
   }
+
+  /**
+   * This checks that a given Result is Okay (i.e., not Error)
+   */
   case object Okay extends Introspectable1 {
     def funcName = "okay"
 
@@ -248,6 +371,10 @@ private[runtime] object Expect {
           ))
       }
   }
+
+  /**
+   * This checks that a given Result is an Error (for use in testing unhappy paths)
+   */
   case object Err extends Introspectable1 {
     def funcName = "err"
     def dynamicFunction = DynamicNativeFunction1("err") {
@@ -293,8 +420,6 @@ private[runtime] object Expect {
           if (elems1 == elems2) passedRT
           else {
             val compare = Compare(elems1, elems2)
-            val printedDiff =
-              compare.map(PrintDiff(_).toString()).getOrElse("<No Diff: Contents Identical>")
             failedRT(explainFailure(elems1, elems2))
           }
         }
@@ -361,12 +486,21 @@ private[runtime] object Expect {
       "Sets were not equal:" + missing1String + missing2String
     }
   }
-  // This is not introspectable because the useful information largely comes from the listed functions, which are themselves introspectable
+
+  /**
+   * Expect.all takes a list of functions that return Expectations, and a single subject, and runs all of the functiosn
+   * against that expectation We do not make this introspectable because the passed arguments are already thunks, so we
+   * don't need introspection to display the relevant code
+   */
   case object All extends Expect {
     def funcName = "all"
     def arity    = 2
-    // This is a bit messy: The component lambdas may already have been rewritten to produce thunks
-    // Thus despite being itself a "normal" function, it may have to deal with arguments that are delayed
+
+    /**
+     * This function gives us an SDK variant of the basic morphir-elm implementation It has a more complex structure,
+     * because the passed functions themselves may have been introspected and re-written Thus despite being a "Normal"
+     * runtime function, this has to do introspection, and call the introspection handling of the argument functions
+     */
     def dynamicFunction = DynamicNativeFunction2("all") {
       (context: NativeContext) => (functions: RT.List, subject: RT) =>
         val withResults = functions.elements.map { f =>
@@ -375,7 +509,8 @@ private[runtime] object Expect {
             (
               function, {
                 val result = context.evaluator.handleApplyResult(T.unit, function, subject)
-                // This isn't great but I don't know a better way:
+                // This isn't great but I don't know a better way - we need globals distinct from context to do our more specific evalution,
+                // But globals are not on the interface of generic evaluators
                 val globals = context.evaluator.asInstanceOf[Loop].globals
                 evaluatedExpectToResult(globals, result)
               }
@@ -402,9 +537,18 @@ private[runtime] object Expect {
 
   }
 
+  /**
+   * Expect.onFail takes another Expect and, if it evaluates to a failure, replaces its error message with a
+   * user-defined one Like `all` this is a special case, because it holds another Expect within it.
+   */
   case object OnFail extends Expect {
     def funcName = "onFail"
     def arity    = 2
+
+    /**
+     * This function gives us an SDK variant of the basic morphir-elm implementation Like `All` above, it has to deal
+     * with the possibility of its passed argument having been transformed to a thunk.
+     */
     def dynamicFunction = DynamicNativeFunction2("onFail") {
       (context: NativeContext) => (msg: RT.Primitive.String, inner: RT) =>
         {
@@ -420,13 +564,28 @@ private[runtime] object Expect {
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
   }
 
+  /**
+   * This is a special function not present in elm-test, inspired by ZIO's `assert`. It takes a single boolean argument,
+   * but attempts to introspect the IR that created it for better using reporting.
+   */
   case object Assert extends Introspectable1 {
     def funcName: String = "assert"
+
+    /**
+     * The simple SDK version of this is simple, because without being able to introspect the IR we can't do much better
+     * than just reporting the boolean value
+     */
     def dynamicFunction = DynamicNativeFunction1("assert") {
       (context: NativeContext) => (result: RT.Primitive.Boolean) =>
         if (result.value) passedRT else failedRT("Assert evaluated to false")
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun1(dynamicFunction).realize
+
+    /**
+     * This is the introspected version where all the magic happens. For now it only handles == specifically, with some
+     * support for generic arity-2 calls, But over time it can be expanded with better reporting without breaking
+     * contracts.
+     */
     def processThunk(
         globals: GlobalDefs,
         context: CallStackFrame,
@@ -438,6 +597,13 @@ private[runtime] object Expect {
         case _ =>
           SingleTestResult.Err(UnexpectedTypeWithIR("Bool type", arg1.value, arg1.ir, hint = "(in Expext.assert)"))
       }
+      /**
+       * This helper function inspects the IR and matches it against recognized patterns for more detailed reporting
+       *
+       * @param globals
+       * @param context
+       * @param ir
+       */
     def explainFailure(
         globals: GlobalDefs,
         context: CallStackFrame,
@@ -468,6 +634,9 @@ private[runtime] object Expect {
       }
   }
 
+  /**
+   * All of the Expect defined above (one per Expect.<something> function that needs special handling)
+   */
   def allExpects: List[Expect] = List(
     Equal,
     NotEqual,
@@ -485,18 +654,41 @@ private[runtime] object Expect {
     OnFail
     // "Pass" and "Fail" require no special support
   )
+
+  /**
+   * This folds over all of the Expects' thunkifies, giving us a complete transformer to introspect all introspectable
+   * IR
+   */
   def thunkifyAll: PartialFunction[TypedValue, TypedValue] = {
     val emptyFunction: PartialFunction[TypedValue, TypedValue] = PartialFunction.empty
     allExpects.foldLeft(emptyFunction)((f: PartialFunction[TypedValue, TypedValue], expect: Expect) =>
       f orElse (expect.thunkify)
     )
   }
+
+  /**
+   * This folds over all of the Expects' readThunks, processing any thunks which were returned as a result of the
+   * `thunkify` transformation
+   *
+   * @param globals
+   *   GlobalDefs, needed by all of the Expect cases to evaluate their stuff
+   */
   def readThunkAll(globals: GlobalDefs): PartialFunction[RT, SingleTestResult] = {
     val emptyFunction: PartialFunction[RT, SingleTestResult] = PartialFunction.empty
     allExpects.foldLeft(emptyFunction)((f: PartialFunction[RT, SingleTestResult], expect: Expect) =>
       f orElse (expect.readThunk(globals))
     )
   }
+
+  /**
+   * This uses the partial `readThunkAll`, but backs it by also recognizing RTValues describing the ExpectationResult
+   * type (which will have come from un-introspected Expect calls), or returns an error if nothing matches.
+   *
+   * @param globals
+   *   GlobalDefs, needed by all of the Expect cases to evaluate their stuff
+   * @param testResult
+   *   The actual RTValue to be applied
+   */
   def evaluatedExpectToResult(globals: GlobalDefs, testResult: RT): SingleTestResult =
     testResult match {
       case RT.ConstructorResult(FQStringTitleCase("Morphir.UnitTest:Expect:Expectation"), List(rt)) =>
@@ -508,13 +700,24 @@ private[runtime] object Expect {
                 List(RT.Primitive.String(msg))
               ) => SingleTestResult.Failed(msg)
           case other => readThunkAll(globals).lift(other).getOrElse(
-              SingleTestResult.Err(new UnexpectedType("ExpectationResult or introspectable function", other))
+              SingleTestResult.Err(new UnexpectedType(
+                "ExpectationResult or introspectable function. (This is probably a bug in the unit testing framework)",
+                other
+              ))
             )
         }
       case other => readThunkAll(globals).lift(other).getOrElse(
-          SingleTestResult.Err(new UnexpectedType("Expectation or introspectable function", other))
+          SingleTestResult.Err(new UnexpectedType(
+            "Expectation or introspectable function. (This is probably a bug in the unit testing framework)",
+            other
+          ))
         )
     }
+
+  /**
+   * A GlobalDefs with all of the Expect functions above. This can be merged with the starting GlobalDefs to overwrite
+   * the Expect functions with their more privileged versions.
+   */
   def newDefs: GlobalDefs =
     GlobalDefs(
       allExpects.map(expect => (expect.fqn -> expect.sdkFunction)).toMap,

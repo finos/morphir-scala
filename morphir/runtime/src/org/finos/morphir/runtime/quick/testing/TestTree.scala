@@ -9,24 +9,56 @@ import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.ErrorUtils.indentBlock
 
-//This trait represents the tree of unit test suites nested under some top-level definition
+/**
+ * This trait represents the tree of any defined Test type It is parameterized on the object stored, which changes over
+ * the unit testing process
+ */
 private[runtime] sealed trait TestTree[+T] {
+
+  /**
+   * Checks if the tree contains an "Only" variant (which means that only tests under an "Only" should be run)
+   */
   def containsOnly = TestTree.containsOnly(this)
-  def pruneToOnly  = TestTree.pruneToOnly(this)
-  def count        = TestTree.count(this)
+
+  /**
+   * Prunes the tree, removing any tests that are not nested under an "Only" variant This should be run if some
+   * supertree contained `Only`, but no ancestor of this node did.
+   */
+  def pruneToOnly = TestTree.pruneToOnly(this)
+
+  /**
+   * Counts the number of tests in the tree (including Skipped)
+   */
+  def count = TestTree.count(this)
 }
 
 private[runtime] object TestTree {
+
+  /**
+   * Test.describe is used to create a suite of tests with a shared description
+   */
   case class Describe[T](desc: String, tests: List[TestTree[T]]) extends TestTree[T]
   case class SingleTest[T](desc: String, expectThunk: T)         extends TestTree[T]
   case class Concat[T](tests: List[TestTree[T]])                 extends TestTree[T]
   case class Todo(desc: String)                                  extends TestTree[Nothing]
   case class Skip(desc: String, numSkipped: Int)                 extends TestTree[Nothing]
+
+  /**
+   * Because user code can generate the tests themselves, there is the possibility for that to throw an error itself. We
+   * still want to run the rest of the tests and report as much as we can about where specifically the error came from,
+   * so we include it in the tree
+   */
   case class Error(desc: String, error: Throwable)
       extends TestTree[Nothing]
-  // "Only" is a concept from elm-test; if any Only tests exist, then only those tests are run
+
+  /**
+   * "Only" is a concept from elm-test; if any Only tests exist, then only those tests are run
+   */
   case class Only[T](test: TestTree[T]) extends TestTree[T]
 
+  /**
+   * Once all the tests have been resolved and our leaves are `SingleTestResult`s, we can format these into a report
+   */
   def toReport(tree: TestTree[SingleTestResult]): String =
     tree match {
       case Describe(desc, tests) =>
@@ -41,6 +73,11 @@ private[runtime] object TestTree {
       case Error(desc, err) => s"$desc: ERROR: \n $err"
       case Only(inner)      => toReport(inner)
     }
+
+  /**
+   * Once all the tests have been resolved and our leaves are `SingleTestResult`s, we can get counts of how many passed,
+   * failed, were skipped, etc
+   */
   def getCounts(tree: TestTree[SingleTestResult]): TestResultCounts = {
     val empty = TestResultCounts.empty
     tree match {
@@ -57,9 +94,12 @@ private[runtime] object TestTree {
     }
   }
 
-  // Runs the thunks users provided in `Test.test` calls
-  // This mostly ignores introspection, except when an introspected function is nested beneath a normal one
-  // (i.e, `onFail` and `all`)
+  /**
+   * Runs the thunks users provided in `Test.test` calls
+   *
+   * This mostly ignores introspection, except when an introspected function is nested beneath a normal one (i.e,
+   * `onFail` and `all`)
+   */
   def getExpects(globals: GlobalDefs)(test: TestTree[RT]): TestTree[RT] =
     test match {
       case Describe(desc, tests) => Describe(desc, tests.map(getExpects(globals)))
@@ -83,8 +123,10 @@ private[runtime] object TestTree {
       case other => other // err, todo, skip lack anything to resolve
     }
 
-  // Evaluates introspected functions, and wraps results into SingleTestResults
-  // Also wraps the constructors returned by non-introspected functions
+  /**
+   * Evaluates introspected functions, and wraps results into SingleTestResults also wraps the constructors returned by
+   * non-introspected functions
+   */
   def processExpects(globals: GlobalDefs)(tree: TestTree[RT]): TestTree[SingleTestResult] =
     tree match {
       case Describe(desc, tests) => Describe(desc, tests.map(processExpects(globals)))
@@ -99,6 +141,9 @@ private[runtime] object TestTree {
       case other: Todo  => other
     }
 
+  /**
+   * Searches this tree and its subtrees for any Onlys, returning true if any are found
+   */
   def containsOnly[T](tree: TestTree[T]): Boolean =
     tree match {
       case Describe(_, tests) => tests.exists(containsOnly)
@@ -106,7 +151,11 @@ private[runtime] object TestTree {
       case Only(_)            => true
       case _                  => false // If we skip an Only it does not count
     }
-  // Skips any tests that aren't nested under an Only
+
+  /**
+   * Prunes the tree, removing any tests that are not nested under an "Only" variant This should be run if some
+   * supertree contained `Only`, but no ancestor of this node did.
+   */
   def pruneToOnly[T](tree: TestTree[T]): TestTree[T] =
     tree match {
       case d @ Describe(desc, tests) =>
@@ -119,6 +168,9 @@ private[runtime] object TestTree {
       case other               => other // Skip, Todo and Err should be maintained, I think
     }
 
+  /**
+   * Counts all tests in a tree, including any skipped
+   */
   def count[T](tree: TestTree[T]): Int =
     tree match {
       case Describe(_, tests)  => tests.map(count).sum
@@ -129,6 +181,13 @@ private[runtime] object TestTree {
       case _: Error            => 1 // Might have been a suite or anything but we don't know
       case Only(inner)         => count(inner)
     }
+
+  /**
+   * Creates a TestTree from an RTValue (the result of evalauting a user-defined definition of type Test)
+   *
+   * @param value
+   *   the RTValue resulting from the evaluation result
+   */
   def fromRTValue(value: RT): TestTree[RT] =
     value match {
       case RT.ConstructorResult(
@@ -166,7 +225,9 @@ private[runtime] object TestTree {
 
 }
 
-//Represents the entire set of tests across a call to runUnitTests
+/**
+ * This case class represents the entire set of tests from some call to run unit testing
+ */
 private[runtime] case class TestSet[T](modules: List[ModuleTests[T]]) {
   def resolveOnly: TestSet[T] =
     if (modules.exists(_.containsOnly))
@@ -174,12 +235,26 @@ private[runtime] case class TestSet[T](modules: List[ModuleTests[T]]) {
     else this
 }
 private[runtime] object TestSet {
+
+  /**
+   * Gives us the string representation of a test report
+   */
   def toReport(testSet: TestSet[SingleTestResult]) = testSet.modules.map(ModuleTests.toReport(_)).mkString("\n")
+
+  /**
+   * Gives us the `TestSummary` (which includes the string report)
+   *
+   * @param testSet
+   */
   def toSummary(testSet: TestSet[SingleTestResult]) =
     TestSummary(
       toReport(testSet),
       testSet.modules.map(module => (module.pkgName, module.modName) -> ModuleTests.getCounts(module)).toMap
     )
+
+  /**
+   * Runs all of the user-defined thunks Note that
+   */
   def getExpects(globals: GlobalDefs, testSet: TestSet[RT]) =
     TestSet(testSet.modules.map(ModuleTests.getExpects(globals)(_)))
   def processExpects(globals: GlobalDefs, testSet: TestSet[RT]) =
