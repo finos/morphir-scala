@@ -569,6 +569,12 @@ object Value extends internal.PatternModule {
       Definition(inputTypes = Chunk.empty, outputType = returnType, body = body)
   }
   object TypedValue {
+
+    /**
+     * Transforms the given `TypedValue` by replacing any subtrees for which the partial function is defined Note that
+     * matched subtrees are not recursively transformed further; if the caller wants that to happen, they should call
+     * transform from within the partial function itself.
+     */
     def transform(partial: PartialFunction[TypedValue, TypedValue])(value: TypedValue): TypedValue = {
       def recurse = transform(partial)
       if (partial.isDefinedAt(value)) partial(value)

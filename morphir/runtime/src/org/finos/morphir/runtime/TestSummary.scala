@@ -11,7 +11,15 @@ case class TestSummary(
   def result = overallCounts.result
   def resultAtModule(pkgName: PackageName, modName: ModuleName): Option[OverallStatus] =
     countsAtModule(pkgName, modName).map(_.result)
-  def passed     = result == OverallStatus.Passed
+
+  /**
+   * Evaluates to true if and only if all tests passed and none were skipped or todo
+   */
+  def passed = result == OverallStatus.Passed
+
+  /**
+   * Evaluates to true if no tests failed but some were skipped or todo
+   */
   def incomplete = result == OverallStatus.Incomplete
   // not including a "failed" function in hopes no one assumed !failed == success
   override def toString =
