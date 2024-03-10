@@ -70,7 +70,7 @@ object ErrorUtils {
         barBlock(barIndentBlock(title, elmBody + irBody, barWidth = 10)) // Console likes to drop leading |?
       } else {
         // TODO: RTValue probably needs its own Printer
-        val astBody = barIndentBlock("AST", PrintRTValue(astLike).plainText)
+        val astBody = barIndentBlock(" the AST looks like: ", PrintRTValue(astLike).plainText)
         barBlock(barIndentBlock(title, astBody, barWidth = 10)) // Console likes to drop leading |?
       }
     def isIR(any: Any): Boolean = any match {
