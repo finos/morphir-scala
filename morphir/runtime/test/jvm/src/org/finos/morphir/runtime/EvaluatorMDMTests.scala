@@ -1792,6 +1792,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "typeCheckerTests",
           "twoArgEntry",
           List(Data.Int(3), Data.String("Green"))
+        )(Data.Tuple(Data.Int(3), Data.String("Green"))),
+        testEvalMultiple("Returns opaque types")(
+          "typeCheckerTests",
+          "returnOpaque",
+          List(Data.Int(3))
         )(Data.Tuple(Data.Int(3), Data.String("Green")))
       ),
       suite("Dictionary Tests")(
