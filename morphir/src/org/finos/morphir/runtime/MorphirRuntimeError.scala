@@ -4,7 +4,7 @@ import org.finos.morphir.naming.*
 import org.finos.morphir.naming.*
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Value.{Pattern, TypedValue, Value, USpecification as UValueSpec}
-import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification as UTypeSpec}
+import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification as UTypeSpec, UDefinition as UTypeDef}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.exports.*
@@ -95,6 +95,10 @@ object MorphirRuntimeError {
     def message = err"Type Specification $spec not supported. $reason"
   }
 
+  final case class UnsupportedTypeDefinition(spec: UTypeDef, reason: String) extends EvaluationError {
+    def message = err"Type Definition $spec not supported. $reason"
+  }
+
   final case class InvalidState(context: String) extends EvaluationError {
     def message = s"$context (This should not be reachable, and indicates an evaluator bug.)"
   }
@@ -170,6 +174,10 @@ object MorphirRuntimeError {
     final case class ImproperTypeSpec(fqn: FQName, spec: UTypeSpec, explanation: String)
         extends TypeError {
       def message = err"Improper Type Specification found: $explanation. $fqn points to: $spec"
+    }
+    final case class ImproperTypeDef(fqn: FQName, defn: UTypeDef, explanation: String)
+        extends TypeError {
+      def message = err"Improper Type Definition found: $explanation. $fqn points to: $defn"
     }
     final case class CannotDealias(err: LookupError, xplanation: String = "Cannot dealias type")
         extends TypeError {

@@ -228,7 +228,27 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     "ZeroArg",
     unionEnumShape
   )
+  def alias(data: Data, alias: FQName) = {
+    val concept = Concept.Alias(alias, data.shape)
+    Data.Aliased(data, concept)
+  }
 
+  def opaqueIntShape: Concept.Enum = Concept.Enum(
+    qn"Morphir/Examples/App:ExampleModule:OpaqueInt",
+    List(
+      Concept.Enum.Case(
+        Label("Opaque"),
+        List(
+          (EnumLabel.Named("arg1"), Concept.Int32)
+        )
+      )
+    )
+  )
+  def opaqueInt(i: Int): Data = Data.Case(
+    List((EnumLabel.Named("arg1"), Data.Int(i))),
+    "Opaque",
+    opaqueIntShape
+  )
   def oneArg(i: Int): Data = Data.Case(
     List((EnumLabel.Named("arg1"), Data.Int(i))),
     "OneArg",
@@ -1792,7 +1812,22 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "typeCheckerTests",
           "twoArgEntry",
           List(Data.Int(3), Data.String("Green"))
-        )(Data.Tuple(Data.Int(3), Data.String("Green")))
+        )(Data.Tuple(Data.Int(3), Data.String("Green"))),
+        testEvalMultiple("Returns opaque types")(
+          "typeCheckerTests",
+          "returnOpaque",
+          List(Data.Int(3))
+        )(opaqueInt(3)),
+        testEvalMultiple("Returns opaque types")(
+          "typeCheckerTests",
+          "acceptOpaque",
+          List(opaqueInt(2))
+        )(Data.Int(2)),
+        testEvalMultiple("Aliased opaques also fine")(
+          "typeCheckerTests",
+          "aliasedOpaqueTest",
+          List(opaqueInt(2))
+        )(alias(opaqueInt(3), FQName.fromString("Morphir.Examples.App:TypeCheckerTests:AliasedOpaque")))
       ),
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "dictFromListTest")(Data.Map(

@@ -1,5 +1,5 @@
 module Morphir.Examples.App.TypeCheckerTests exposing (..)
-
+import Morphir.Examples.App.ExampleModule exposing (OpaqueInt, wrap, unwrap)
 
 intToInt : Int -> Int
 intToInt x =
@@ -34,3 +34,20 @@ withInt l =
 twoArgEntry : Int -> String -> ( Int, String )
 twoArgEntry i s =
     ( i, s )
+
+acceptOpaque : OpaqueInt -> Int
+acceptOpaque o = unwrap o
+
+returnOpaque : Int -> OpaqueInt
+returnOpaque i = wrap i
+
+type alias AliasedOpaque = OpaqueInt
+
+dealiasOpaque : AliasedOpaque -> OpaqueInt
+dealiasOpaque a = a
+
+aliasOpaque : OpaqueInt -> AliasedOpaque
+aliasOpaque a = a
+
+aliasedOpaqueTest : OpaqueInt -> AliasedOpaque
+aliasedOpaqueTest a = dealiasOpaque a |> unwrap |> \x -> x + 1 |> wrap
