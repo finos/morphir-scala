@@ -4,6 +4,12 @@ import Dict exposing (Dict)
 import Morphir.Examples.App.TestUtils exposing (..)
 
 type OpaqueInt = Opaque Int
+wrap : Int -> OpaqueInt
+wrap x = Opaque x
+unwrap : OpaqueInt -> Int
+unwrap o =
+    let Opaque x = o in
+    x
 
 type alias ModuleRecord =
     { name : String, truth : Bool }
