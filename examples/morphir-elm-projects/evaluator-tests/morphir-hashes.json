@@ -28,6 +28,6 @@
     "src/Morphir/Examples/App/StringTests.elm": "c0e2dc1679e67a25bfc6650077ea08a5",
     "src/Morphir/Examples/App/TestUtils.elm": "3072a79fadc6116b1dde77c7f424ca20",
     "src/Morphir/Examples/App/TupleTests.elm": "ab771b0e379f4972f01632feb035f980",
-    "src/Morphir/Examples/App/TypeCheckerTests.elm": "dbe88d0da9549ddb53e99cf11d966128",
+    "src/Morphir/Examples/App/TypeCheckerTests.elm": "3d3c59b81cfe90e371db9f0ebe21deed",
     "src/Morphir/Examples/App/UserDefinedReferenceTests.elm": "a99d0b2e4c311e6109a9c60751131f2d"
 }

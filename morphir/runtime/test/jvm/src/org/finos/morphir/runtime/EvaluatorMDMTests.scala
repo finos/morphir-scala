@@ -1817,7 +1817,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "typeCheckerTests",
           "acceptOpaque",
           List(opaqueInt(2))
-        )(Data.Int(2))
+        )(Data.Int(2)),
+        testEvalMultiple("Aliased opaques also fine")(
+          "typeCheckerTests",
+          "aliasedOpaqueTest",
+          List(opaqueInt(2))
+        )(opaqueInt(3))
       ),
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "dictFromListTest")(Data.Map(

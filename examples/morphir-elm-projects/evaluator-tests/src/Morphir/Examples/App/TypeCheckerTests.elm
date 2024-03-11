@@ -48,3 +48,6 @@ dealiasOpaque a = a
 
 aliasOpaque : OpaqueInt -> AliasedOpaque
 aliasOpaque a = a
+
+aliasedOpaqueTest : OpaqueInt -> AliasedOpaque
+aliasedOpaqueTest a = dealiasOpaque a |> unwrap |> \x -> x + 1 |> wrap
