@@ -105,7 +105,7 @@ object EvaluatorQuick {
               Concept.Enum.Case(Label(conceptName), concepts)
             }
             Concept.Enum(typeName, cases)
-          case Left(err) => throw err.withContext("Error finding type specification defined in entry point function")
+          case Left(err) => throw err.withContext("Error finding type alias defined in entry point function")
         }
       case TT.Tuple(_, elements) =>
         Concept.Tuple(elements.map(element => typeToConcept(element, dists, boundTypes)).toList)

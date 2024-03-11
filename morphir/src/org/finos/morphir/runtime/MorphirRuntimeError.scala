@@ -4,7 +4,7 @@ import org.finos.morphir.naming.*
 import org.finos.morphir.naming.*
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Value.{Pattern, TypedValue, Value, USpecification as UValueSpec}
-import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification as UTypeSpec}
+import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification as UTypeSpec, UDefinition as UTypeDef}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.exports.*
@@ -93,6 +93,10 @@ object MorphirRuntimeError {
 
   final case class UnsupportedTypeSpecification(spec: UTypeSpec, reason: String) extends EvaluationError {
     def message = err"Type Specification $spec not supported. $reason"
+  }
+
+  final case class UnsupportedTypeDefinition(spec: UTypeDef, reason: String) extends EvaluationError {
+    def message = err"Type Definition $spec not supported. $reason"
   }
 
   final case class InvalidState(context: String) extends EvaluationError {
