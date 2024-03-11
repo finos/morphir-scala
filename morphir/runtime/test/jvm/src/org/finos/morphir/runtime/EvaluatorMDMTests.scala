@@ -228,6 +228,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     "ZeroArg",
     unionEnumShape
   )
+  def alias(data: Data, alias: FQName) = {
+    val concept = Concept.Alias(alias, data.shape)
+    Data.Aliased(data, concept)
+  }
+
   def opaqueIntShape: Concept.Enum = Concept.Enum(
     qn"Morphir/Examples/App:ExampleModule:OpaqueInt",
     List(
@@ -1822,7 +1827,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "typeCheckerTests",
           "aliasedOpaqueTest",
           List(opaqueInt(2))
-        )(opaqueInt(3))
+        )(alias(opaqueInt(3), FQName.fromString("Morphir.Examples.App:TypeCheckerTests:AliasedOpaque")))
       ),
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "dictFromListTest")(Data.Map(
