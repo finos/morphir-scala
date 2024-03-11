@@ -37,3 +37,6 @@ twoArgEntry i s =
 
 acceptOpaque : OpaqueInt -> Int
 acceptOpaque o = unwrap o
+
+returnOpaque : Int -> OpaqueInt
+returnOpaque i = wrap i
