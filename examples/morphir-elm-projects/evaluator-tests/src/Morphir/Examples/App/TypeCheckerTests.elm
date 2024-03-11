@@ -40,3 +40,11 @@ acceptOpaque o = unwrap o
 
 returnOpaque : Int -> OpaqueInt
 returnOpaque i = wrap i
+
+type alias AliasedOpaque = OpaqueInt
+
+dealiasOpaque : AliasedOpaque -> OpaqueInt
+dealiasOpaque a = a
+
+aliasOpaque : OpaqueInt -> AliasedOpaque
+aliasOpaque a = a
