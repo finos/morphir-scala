@@ -9,8 +9,6 @@ import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.RTValue.Comparable
 import org.finos.morphir.runtime.MorphirRuntimeError.IllegalValue
 
-
-
 object BasicsSDK {
   type AnyNum = Any
 
