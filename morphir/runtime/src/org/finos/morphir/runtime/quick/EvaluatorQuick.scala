@@ -94,7 +94,7 @@ object EvaluatorQuick {
               case Concept.Struct(fields) => Concept.Record(typeName, fields)
               case other                  => Concept.Alias(typeName, other)
             }
-+          case Right(Type.Definition.CustomType(typeParams, AccessControlled(_, ctors))) =>
+          case Right(Type.Definition.CustomType(typeParams, AccessControlled(_, ctors))) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             val cases = ctors.toMap.toList.map { case (caseName, args) =>
               val argTuples = args.map { case (argName: Name, argType: Type.UType) =>

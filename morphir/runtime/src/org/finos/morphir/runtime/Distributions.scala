@@ -10,7 +10,7 @@ import org.finos.morphir.ir.Value.{
   USpecification => UValueSpec,
   TypedDefinition => TypedValueDef
 }
-+import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification => UTypeSpec, UDefinition => UTypeDef}
+import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification => UTypeSpec, UDefinition => UTypeDef}
 import org.finos.morphir.ir.Module.{Specification => ModSpec, Definition => ModDef}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
@@ -59,9 +59,9 @@ class Distributions(dists: Map[PackageName, Distribution.Lib]) {
     lookupTypeSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)
 
   def lookupTypeDefinition(
-    pkgName: PackageName,
-    modName: ModuleName,
-    localName: Name
+      pkgName: PackageName,
+      modName: ModuleName,
+      localName: Name
   ): Either[LookupError, UTypeDef] =
     lookupModuleDefinition(pkgName, modName).flatMap(_.lookupTypeDefinition(localName) match {
       case Some(tpe) => Right(tpe)

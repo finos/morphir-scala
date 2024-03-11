@@ -229,6 +229,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     unionEnumShape
   )
 
+  /
+
+  def opaqueInt(i: Int): Data = Data.Case(
+    List((EnumLabel.Named("arg1"), Data.Int(i))),
+    "Opaque",
+    opaqueIntShape
+  )
   def oneArg(i: Int): Data = Data.Case(
     List((EnumLabel.Named("arg1"), Data.Int(i))),
     "OneArg",
