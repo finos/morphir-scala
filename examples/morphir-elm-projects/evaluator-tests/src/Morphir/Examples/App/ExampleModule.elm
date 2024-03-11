@@ -3,6 +3,7 @@ module Morphir.Examples.App.ExampleModule exposing (ModuleRecord, ModuleSingleUn
 import Dict exposing (Dict)
 import Morphir.Examples.App.TestUtils exposing (..)
 
+type OpaqueInt = Opaque Int
 
 type alias ModuleRecord =
     { name : String, truth : Bool }
