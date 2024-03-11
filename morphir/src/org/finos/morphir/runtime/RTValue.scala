@@ -12,6 +12,7 @@ import org.finos.morphir.runtime.internal.{NativeFunctionSignature, NativeFuncti
 import org.finos.morphir.runtime.MorphirRuntimeError.{IllegalValue, FailedCoercion}
 import org.finos.morphir.runtime.internal.CallStackFrame
 import org.finos.morphir.ir.Type.UType
+import org.finos.morphir.util.PrintRTValue
 
 import scala.collection.immutable.{List as ScalaList, Set as ScalaSet, Map as ScalaMap}
 import scala.collection.mutable
@@ -22,6 +23,7 @@ import scala.collection.mutable
 sealed trait RTValue {
   def succinct(depth: Int): String = s"${this.getClass} (Default implementation)"
   def succinct: String             = succinct(2)
+  def printed                      = PrintRTValue(this).plainText
 }
 
 object RTValue {

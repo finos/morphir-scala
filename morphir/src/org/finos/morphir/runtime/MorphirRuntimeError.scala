@@ -26,6 +26,16 @@ object MorphirRuntimeError {
 
   final case class MorphirIRDecodingError(message: String) extends MorphirRuntimeError
 
+  final case class OtherError(cause: String, stuff: Any*) extends MorphirRuntimeError {
+    def message = {
+      val l = stuff.toList
+      if (l.length == 0) err"$cause"
+      else if (l.length == 1) err"$cause: ${l(0)}"
+      else if (l.length == 2) err"$cause: ${l(0)} ${l(1)}"
+      else err"$cause: $l"
+    }
+  }
+
   sealed trait EvaluationError extends MorphirRuntimeError
 
   final case class MissingField(value: RTValue.Record, field: Name) extends EvaluationError {
@@ -34,6 +44,10 @@ object MorphirRuntimeError {
 
   final case class UnexpectedType(expected: String, found: RTValue, hint: String = "") extends EvaluationError {
     def message = err"Expected $expected but found $found. ${if (hint != "") "Hint: " + hint else ""}"
+  }
+  final case class UnexpectedTypeWithIR(expected: String, found: RTValue, ir: TypedValue, hint: String = "")
+      extends EvaluationError {
+    def message = err"Expected $expected but found $found from IR $ir. ${if (hint != "") "Hint: " + hint else ""}"
   }
   final case class FailedCoercion(message: String) extends EvaluationError
 

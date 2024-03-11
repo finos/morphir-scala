@@ -1,0 +1,8 @@
+{
+    "name": "Morphir.UnitTest",
+    "sourceDirectory": "src",
+    "exposedModules": [
+        "Test",
+        "Expect"
+    ]
+}
