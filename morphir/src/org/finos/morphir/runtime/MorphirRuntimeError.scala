@@ -175,6 +175,10 @@ object MorphirRuntimeError {
         extends TypeError {
       def message = err"Improper Type Specification found: $explanation. $fqn points to: $spec"
     }
+    final case class ImproperTypeDef(fqn: FQName, defn: UTypeDef, explanation: String)
+        extends TypeError {
+      def message = err"Improper Type Definition found: $explanation. $fqn points to: $defn"
+    }
     final case class CannotDealias(err: LookupError, xplanation: String = "Cannot dealias type")
         extends TypeError {
       def message = err"$xplanation: ${err.message}"

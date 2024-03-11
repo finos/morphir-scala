@@ -11,6 +11,7 @@ import org.finos.morphir.ir.Value.{
   USpecification as UValueSpec
 }
 import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification as UTypeSpec}
+import org.finos.morphir.ir.AccessControlled
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.exports.*
@@ -294,8 +295,8 @@ final class TypeChecker(dists: Distributions) {
       // otherwise run the constructor and return the errors from that
       case Right((ret, args)) =>
         ret match {
-          case NonNativeRef(name, typeArgs) => dists.lookupTypeSpecification(name) match {
-              case Right(T.Specification.CustomTypeSpecification(typeParams, ctors)) =>
+          case NonNativeRef(name, typeArgs) => dists.lookupTypeDefinition(name) match {
+              case Right(T.Definition.CustomType(typeParams, AccessControlled(_, ctors))) =>
                 val newBindings = typeParams.toList.zip(typeArgs.toList).toMap
                 val missedName = helper(
                   fqn.packagePath != name.packagePath || fqn.modulePath != name.modulePath,
