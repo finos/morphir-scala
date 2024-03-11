@@ -1817,7 +1817,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "typeCheckerTests",
           "acceptOpaque",
           List(opaqueInt(2))
-        )(Data.Int(1))
+        )(Data.Int(2))
       ),
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "dictFromListTest")(Data.Map(

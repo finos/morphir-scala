@@ -318,7 +318,7 @@ final class TypeChecker(dists: Distributions) {
                 }
                 missedName ++ fromCtor
               case Right(other) =>
-                List(new ImproperTypeSpec(name, other, s"Type union expected"))
+                List(new ImproperTypeDef(name, other, s"Type union expected"))
               case Left(err) => List(err.withContext(s"Needed looking for constructor ${fqn.toStringTitleCase}"))
             }
           case NativeRef(_, _) => List() // TODO: check native constructor calls
