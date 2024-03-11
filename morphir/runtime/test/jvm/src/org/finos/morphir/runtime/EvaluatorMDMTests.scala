@@ -229,16 +229,16 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     unionEnumShape
   )
   def opaqueIntShape: Concept.Enum = Concept.Enum(
-      qn"Morphir/Examples/App:ExampleModule:OpaqueInt",
-      List(
-        Concept.Enum.Case(
-          Label("Opaque"),
-          List(
-            (EnumLabel.Named("arg1"), Concept.Int32)
-          )
+    qn"Morphir/Examples/App:ExampleModule:OpaqueInt",
+    List(
+      Concept.Enum.Case(
+        Label("Opaque"),
+        List(
+          (EnumLabel.Named("arg1"), Concept.Int32)
         )
       )
     )
+  )
   def opaqueInt(i: Int): Data = Data.Case(
     List((EnumLabel.Named("arg1"), Data.Int(i))),
     "Opaque",
@@ -1812,7 +1812,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "typeCheckerTests",
           "returnOpaque",
           List(Data.Int(3))
-        )(Data.Tuple(Data.Int(3), Data.String("Green")))
+        )(opaqueInt(3)),
+        testEvalMultiple("Returns opaque types")(
+          "typeCheckerTests",
+          "acceptOpaque",
+          List(opaqueInt(2))
+        )(Data.Int(1))
       ),
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "dictFromListTest")(Data.Map(
