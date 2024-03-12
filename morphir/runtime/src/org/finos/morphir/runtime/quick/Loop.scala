@@ -275,7 +275,7 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
           valueDefinition.inputTypes.toList,
           List(),
           store.callStack,
-          CodeLocation.anonymousFunction(codeLocation)
+          CodeLocation.AnonymousFunction(codeLocation)
         )
     loop(inValue, store.push(Map(valueName -> StoredValue.Eager(value))))
   }

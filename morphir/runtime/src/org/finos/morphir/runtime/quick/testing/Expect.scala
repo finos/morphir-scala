@@ -104,14 +104,15 @@ private[runtime] object Expect {
       case RT.LambdaFunction(
             ApplyChain(Reference(_, foundFQN), args),
             Pattern.UnitPattern(_),
-            context
+            context,
+            loc
           ) if (foundFQN == fqn && args.length == arity) =>
         try
           processThunk(
             globals,
             context,
             args.map {
-              arg => Expect.TransparentArg(arg, Loop(globals).loop(arg, Store(context), CodeLocation.EntryPoint))
+              arg => Expect.TransparentArg(arg, Loop(globals).loop(arg, Store(context), loc))
             }
           )
         catch {
