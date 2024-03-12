@@ -55,8 +55,10 @@ object MorphirRuntimeError {
       val stackString =
         if (stack.length <= 10) stackStrings.mkString("\n\t")
         else {
-          val (first, rest)  = stackStrings.splitAt(5)
-          val (middle, tail) = rest.splitAt((rest.length - 5))
+          val (first, rest)   = stackStrings.splitAt(5)
+          val (middle, tail)  = rest.splitAt((rest.length - 5))
+          val (common, count) = middle.groupBy(identity).mapValues(_.size).maxBy(_._2)
+          val middleString    = s"${middle.length} more of which $count are: \n\t\t $common"
           (first ++ (".." :: tail)).mkString("\n\t")
         }
       s"${inner.getClass.getSimpleName} : ${inner.message} \n\t" + sourceString + stackString + "\n"
