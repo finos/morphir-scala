@@ -64,16 +64,15 @@ outputRecordFunction s =
 
 err : a -> b
 err x = 
-    if x then 0 else 0
+    ([0, 1, (if x then 0 else 0), 3, 4], "Red")
 
 inputRecordFunction : ModuleRecord -> String
 inputRecordFunction r =
-    err r
-    -- if r.truth then
-    --     r.name
+    if r.truth then
+        r.name
 
-    -- else
-    --     "Rumplestilskin"
+    else
+        "Rumplestilskin"
 
 
 outputUnionFunction : String -> Int -> ModuleUnion
