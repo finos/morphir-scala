@@ -96,7 +96,7 @@ object MorphirRuntimeError {
     override def source(code: String): EvaluationError = {
       def countMatches(inner: String, outer: String) = outer.sliding(inner.length).count(_ == inner)
       if (!stack.isEmpty) this // Only include the detailed error at the top of the stack
-      else sourceTaggedUntagged match
+      else sourceTaggedUntagged match {
         case Some((tagged, untagged)) =>
           if (countMatches(untagged, code) == 1) { // If we can tell where in the broader source the error came from, we can keep that specificity
             val newTagged   = code.replace(untagged, tagged)
@@ -111,7 +111,7 @@ object MorphirRuntimeError {
           this.copy(sourceTaggedUntagged =
             Some((s">>>$code<<<", code))
           ) // This shouldn't be reachable, but here for completeness
-
+      }
     }
   }
 
