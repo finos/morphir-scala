@@ -113,7 +113,7 @@ class PrintRTValue(
           val body = v match {
             case RT.FieldFunction(name) =>
               List(Tree.Literal(s".${name.toCamelCase}"))
-            case RT.LambdaFunction(body, pattern, _, loc) =>
+            case RT.LambdaFunction(body, pattern, _, _) =>
               List(Tree.Infix(Tree.Literal(s"\\${pattern.toString}"), "->", Tree.Literal(body.toString)))
             case RT.DefinitionFunction(body, arguments, curried, _, loc) =>
               val paramsTree = Tree.KeyValue(

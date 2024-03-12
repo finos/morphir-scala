@@ -131,6 +131,9 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     }
 }
 
+/**
+ * Helper class for handling recursive evaluation over a single function call (i.e., within one CodeLocation)
+ */
 private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLocation) {
   def loop(ir: TypedValue, store: Store): RTValue =
     try
@@ -172,7 +175,7 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
   ): RTValue = {
     val functionValue = loop(function, store)
     val argValue      = loop(argument, store)
-    // New call stack frame:
+    // New call, so we go to back to "Loop":
     Loop(globals).handleApplyResult(va, functionValue, argValue)
   }
 

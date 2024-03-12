@@ -75,8 +75,8 @@ object MorphirRuntimeError {
   ) extends EvaluationError {
     def message = {
       val sourceString = sourceTaggedUntagged match {
-        case Some((tagged, untagged)) => s"Thrown from: $tagged\n\t"
-        case None                     => ""
+        case Some((tagged, _)) => s"Thrown from: $tagged\n\t"
+        case None              => ""
       }
       val stackStrings = stack.map(loc => s"at morphir: $loc")
       val stackString =
