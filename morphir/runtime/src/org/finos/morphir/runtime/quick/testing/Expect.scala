@@ -13,6 +13,7 @@ import org.finos.morphir.runtime.quick.*
 import org.finos.morphir.runtime.ErrorUtils.indentBlock
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.Extractors.Values.ApplyChain
+import org.finos.morphir.runtime.CodeLocation
 import org.finos.morphir.runtime.Extractors.{FQString, FQStringTitleCase}
 import org.finos.morphir.runtime.internal.{
   CallStackFrame,
@@ -110,7 +111,7 @@ private[runtime] object Expect {
             globals,
             context,
             args.map {
-              arg => Expect.TransparentArg(arg, Loop(globals).loop(arg, Store(context)))
+              arg => Expect.TransparentArg(arg, Loop(globals).loop(arg, Store(context), CodeLocation.EntryPoint))
             }
           )
         catch {
@@ -611,8 +612,8 @@ private[runtime] object Expect {
     ): String =
       ir match {
         case ApplyChain(Reference(_, FQString("Morphir.SDK:Basics:equal")), List(ir1, ir2)) =>
-          val rt1        = Loop(globals).loop(ir1, Store(context))
-          val rt2        = Loop(globals).loop(ir2, Store(context))
+          val rt1        = Loop(globals).loop(ir1, Store(context), CodeLocation.EntryPoint)
+          val rt2        = Loop(globals).loop(ir2, Store(context), CodeLocation.EntryPoint)
           val arg1String = ir1.toString
           val arg2String = ir2.toString
           val maxLength  = arg1String.length.max(arg2String.length)
@@ -621,8 +622,8 @@ private[runtime] object Expect {
               ${arg1String.padTo(maxLength, ' ')} evaluated to ${rt1.printed}}
               ${arg2String.padTo(maxLength, ' ')} evaluated to ${rt2.printed} """
         case ApplyChain(Reference(_, FQString(funcName)), List(ir1, ir2)) =>
-          val rt1        = Loop(globals).loop(ir1, Store(context))
-          val rt2        = Loop(globals).loop(ir2, Store(context))
+          val rt1        = Loop(globals).loop(ir1, Store(context), CodeLocation.EntryPoint)
+          val rt2        = Loop(globals).loop(ir2, Store(context), CodeLocation.EntryPoint)
           val arg1String = ir1.toString
           val arg2String = ir2.toString
           val maxLength  = arg1String.length.max(arg2String.length)

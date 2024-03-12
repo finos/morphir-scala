@@ -147,7 +147,7 @@ object UnitTesting {
     val testRTValues: List[(FQName, Either[Throwable, RTValue])] = testIRs
       .map { case (fqn, ir) =>
         try
-          (fqn, Right(Loop(newGlobals).loop(ir, Store.empty)))
+          (fqn, Right(Loop(newGlobals).loop(ir, Store.empty, CodeLocation.EntryPoint)))
         catch {
           case e: Throwable => (fqn, Left(e))
         }
