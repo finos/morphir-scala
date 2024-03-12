@@ -60,7 +60,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
           println(result)
           assertTrue(false)
         }
-      }, // @@ TestAspect.ignore,
+      } @@ TestAspect.ignore,
       suite("Overall Checks")(
         test("Overall Status Failed") {
           getTestSummary.map { result =>
