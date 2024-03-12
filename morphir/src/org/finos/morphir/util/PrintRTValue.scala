@@ -113,9 +113,9 @@ class PrintRTValue(
           val body = v match {
             case RT.FieldFunction(name) =>
               List(Tree.Literal(s".${name.toCamelCase}"))
-            case RT.LambdaFunction(body, pattern, _) =>
+            case RT.LambdaFunction(body, pattern, _, loc) =>
               List(Tree.Infix(Tree.Literal(s"\\${pattern.toString}"), "->", Tree.Literal(body.toString)))
-            case RT.DefinitionFunction(body, arguments, curried, _) =>
+            case RT.DefinitionFunction(body, arguments, curried, _, loc) =>
               val paramsTree = Tree.KeyValue(
                 "parameters",
                 Tree.Apply(
@@ -127,11 +127,12 @@ class PrintRTValue(
                 "curried",
                 Tree.Apply("", curried.map(arg => Tree.KeyValue(arg._1.toCamelCase, treeify(arg._2))).iterator)
               )
-              val bodyTree = Tree.KeyValue("body", Tree.Literal(body.toString))
+              val bodyTree  = Tree.KeyValue("body", Tree.Literal(body.toString))
+              val locString = Tree.Literal(loc.toString)
               if (curried.length > 0) {
-                List(paramsTree, curriedTree, bodyTree)
+                List(locString, paramsTree, curriedTree, bodyTree)
               } else {
-                List(paramsTree, bodyTree)
+                List(locString, paramsTree, bodyTree)
               }
             case RT.ConstructorFunction(name, arguments, curried) =>
               val paramsTree =
@@ -144,14 +145,15 @@ class PrintRTValue(
                 List(paramsTree, nameTree)
               }
             // The function name is not included in the RTValue, so what we can print here is limited
-            case RT.NativeFunction(argCount, curried, signature) =>
+            case RT.NativeFunction(argCount, curried, signature, loc) =>
+              val locString     = Tree.Literal(loc.toString)
               val argCountTree  = Tree.KeyValue("remaining args", treeify(argCount))
               val totalArgsTree = Tree.KeyValue("expected args", treeify(signature.numArgs))
               val curriedTree   = Tree.KeyValue("curried", Tree.Apply("", curried.map(arg => treeify(arg)).iterator))
               if (curried.length > 0) {
-                List(argCountTree, totalArgsTree, curriedTree)
+                List(locString, argCountTree, totalArgsTree, curriedTree)
               } else {
-                List(argCountTree, totalArgsTree)
+                List(locString, totalArgsTree)
               }
             case RT.NativeInnerFunction(argCount, curried, signature) =>
               val argCountTree  = Tree.KeyValue("remaining args", treeify(argCount))

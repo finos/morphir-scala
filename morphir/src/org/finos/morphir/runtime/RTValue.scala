@@ -651,14 +651,19 @@ object RTValue {
 
   case class FieldFunction(fieldName: Name) extends Function
 
-  case class LambdaFunction(body: TypedValue, pattern: Pattern[UType], closingContext: CallStackFrame)
-      extends Function
+  case class LambdaFunction(
+      body: TypedValue,
+      pattern: Pattern[UType],
+      closingContext: CallStackFrame,
+      loc: CodeLocation.AnonymousFunction
+  ) extends Function
 
   case class DefinitionFunction(
       body: TypedValue,
       arguments: scala.List[(Name, UType, UType)],
       curried: scala.List[(Name, RTValue)],
-      closingContext: CallStackFrame
+      closingContext: CallStackFrame,
+      loc: CodeLocation
   ) extends Function
 
   case class ConstructorFunction(name: FQName, arguments: scala.List[UType], curried: scala.List[RTValue])
@@ -677,17 +682,20 @@ object RTValue {
   sealed trait NativeFunctionResult extends Function {
     def arguments: Int
     def curried: scala.List[RTValue]
+    def loc: CodeLocation.NativeFunction
   }
 
   case class NativeFunction(
       arguments: Int,
       curried: scala.List[RTValue],
-      function: NativeFunctionSignature
+      function: NativeFunctionSignature,
+      loc: CodeLocation.NativeFunction
   ) extends NativeFunctionResult {}
 
   case class NativeInnerFunction(
       arguments: Int,
       curried: scala.List[RTValue],
-      function: NativeFunctionSignatureAdv
+      function: NativeFunctionSignatureAdv,
+      loc: CodeLocation.NativeFunction
   ) extends NativeFunctionResult {}
 }
