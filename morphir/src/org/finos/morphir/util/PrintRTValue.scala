@@ -155,14 +155,15 @@ class PrintRTValue(
               } else {
                 List(locString, totalArgsTree)
               }
-            case RT.NativeInnerFunction(argCount, curried, signature) =>
+            case RT.NativeInnerFunction(argCount, curried, signature, loc) =>
+              val locString     = Tree.Literal(loc.toString)
               val argCountTree  = Tree.KeyValue("remaining args", treeify(argCount))
               val totalArgsTree = Tree.KeyValue("expected args", treeify(signature.numArgs))
               val curriedTree   = Tree.KeyValue("curried", Tree.Apply("", curried.map(arg => treeify(arg)).iterator))
               if (curried.length > 0) {
-                List(argCountTree, totalArgsTree, curriedTree)
+                List(locString, argCountTree, totalArgsTree, curriedTree)
               } else {
-                List(argCountTree, totalArgsTree)
+                List(locString, argCountTree, totalArgsTree)
               }
 
           }

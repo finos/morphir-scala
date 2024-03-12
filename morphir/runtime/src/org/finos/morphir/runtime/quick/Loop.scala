@@ -20,7 +20,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     try (LoopFrame(globals, codeLocation).loop(ir, store))
     catch {
       case m: EvaluationError => throw m.stack(codeLocation)
-      case e: Throwable       => throw new MorphirRuntimeError.ExternalError(e).stack(codeLocation)
+      case e: Throwable       => throw new ExternalError(e).stack(codeLocation)
     }
   def handleApplyResult2(
       va: UType,
@@ -91,9 +91,9 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
         val (arguments, curried, function, loc) =
           nativeFunctionResult match {
             case RTValue.NativeFunction(arguments, curried, function, loc) =>
-              (arguments, curried, function)
+              (arguments, curried, function, loc)
             case RTValue.NativeInnerFunction(arguments, curried, function, loc) =>
-              (arguments, curried, function.injectEvaluator(this))
+              (arguments, curried, function.injectEvaluator(this), loc)
           }
 
         try {
@@ -120,11 +120,11 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
                   f(curried(0), curried(1), curried(2), curried(3), argValue)
               }
             // If there are more arguments left in the native-signature, that needs we have more arguments to apply
-            case x => RTValue.NativeFunction(x - 1, curried :+ argValue, function)
+            case x => RTValue.NativeFunction(x - 1, curried :+ argValue, function, loc)
           }
         } catch {
-          case e: MorphirRuntimeError => throw e.stack(loc)
-          case e: Throwable           => throw new MorphirRuntimeError.ExternalError(e).stack(loc)
+          case e: EvaluationError => throw e.stack(loc)
+          case e: Throwable       => throw new ExternalError(e).stack(loc)
         }
       case other =>
         throw new UnexpectedType("Function", other, hint = "Expected because this was found in an Apply position")
@@ -134,32 +134,33 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
 //Necessary to split into two classes?
 private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLocation) {
   def loop(ir: TypedValue, store: Store): RTValue =
-    try {
-      case Literal(va, lit)              => handleLiteral(va, lit)
-      case Apply(va, function, argument) => handleApply(va, function, argument, store)
-      case node @ Destructure(va, pattern, valueToDestruct, inValue) =>
-        handleDestructure(va, node, pattern, valueToDestruct, inValue, store)
-      case Constructor(va, name)        => handleConstructor(va, name)
-      case Field(va, recordValue, name) => handleField(va, recordValue, name, store)
-      case FieldFunction(va, name)      => handleFieldFunction(va, name)
-      case IfThenElse(va, condition, thenValue, elseValue) =>
-        handleIfThenElse(va, condition, thenValue, elseValue, store)
-      case Lambda(va, pattern, body) => handleLambda(va, pattern, body, store)
-      case LetDefinition(va, name, definition, inValue) =>
-        handleLetDefinition(va, name, definition, inValue, store)
-      case LetRecursion(va, definitions, inValue)  => handleLetRecursion(va, definitions, inValue, store)
-      case ListValue(va, elements)                 => handleListValue(va, elements.toList, store)
-      case node @ PatternMatch(va, value, cases)   => handlePatternMatch(va, node, value, cases.toList, store)
-      case Record(va, fields)                      => handleRecord(va, fields.toList, store)
-      case Reference(va, name)                     => handleReference(va, name, store)
-      case Tuple(va, elements)                     => handleTuple(va, elements.toList, store)
-      case Unit(va)                                => handleUnit(va)
-      case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
-      case Variable(va, name)                      => handleVariable(va, name, store)
-    }
+    try
+      ir match {
+        case Literal(va, lit)              => handleLiteral(va, lit)
+        case Apply(va, function, argument) => handleApply(va, function, argument, store)
+        case node @ Destructure(va, pattern, valueToDestruct, inValue) =>
+          handleDestructure(va, node, pattern, valueToDestruct, inValue, store)
+        case Constructor(va, name)        => handleConstructor(va, name)
+        case Field(va, recordValue, name) => handleField(va, recordValue, name, store)
+        case FieldFunction(va, name)      => handleFieldFunction(va, name)
+        case IfThenElse(va, condition, thenValue, elseValue) =>
+          handleIfThenElse(va, condition, thenValue, elseValue, store)
+        case Lambda(va, pattern, body) => handleLambda(va, pattern, body, store)
+        case LetDefinition(va, name, definition, inValue) =>
+          handleLetDefinition(va, name, definition, inValue, store)
+        case LetRecursion(va, definitions, inValue)  => handleLetRecursion(va, definitions, inValue, store)
+        case ListValue(va, elements)                 => handleListValue(va, elements.toList, store)
+        case node @ PatternMatch(va, value, cases)   => handlePatternMatch(va, node, value, cases.toList, store)
+        case Record(va, fields)                      => handleRecord(va, fields.toList, store)
+        case Reference(va, name)                     => handleReference(va, name, store)
+        case Tuple(va, elements)                     => handleTuple(va, elements.toList, store)
+        case Unit(va)                                => handleUnit(va)
+        case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
+        case Variable(va, name)                      => handleVariable(va, name, store)
+      }
     catch {
-      case e: MorphirRuntimeError => throw e.source(ir.toString)
-      case e: Throwable           => throw new MorphirRuntimeError.ExternalError(e).source(ir.toString)
+      case e: EvaluationError => throw e.source(ir.toString)
+      case e: Throwable       => throw new ExternalError(e).source(ir.toString)
     }
 
   def handleLiteral(va: UType, literal: Lit) = unpackLit(literal)
