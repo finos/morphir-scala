@@ -23,6 +23,7 @@ import org.finos.morphir.runtime.MorphirRuntimeError.{
 }
 import org.finos.morphir.util.PrintRTValue
 
+//Necessary to split into two classes?
 private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluator {
   def loop(ir: TypedValue, store: Store): RTValue = {
     val result = ir match {
