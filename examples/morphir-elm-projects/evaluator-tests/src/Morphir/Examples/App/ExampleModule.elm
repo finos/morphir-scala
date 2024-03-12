@@ -62,9 +62,6 @@ outputRecordFunction : String -> ModuleRecord
 outputRecordFunction s =
     { name = s, truth = False }
 
-err : a -> b
-err x = 
-    ([0, 1, (if x then 0 else 0), 3, 4], "Red")
 
 inputRecordFunction : ModuleRecord -> String
 inputRecordFunction r =
@@ -77,16 +74,15 @@ inputRecordFunction r =
 
 outputUnionFunction : String -> Int -> ModuleUnion
 outputUnionFunction dir dist =
-    err (dir, dist)
-    -- case dir of
-    --     "Up" ->
-    --         Up dist
+    case dir of
+        "Up" ->
+            Up dist
 
-    --     "Down" ->
-    --         Down dist
+        "Down" ->
+            Down dist
 
-    --     _ ->
-    --         Center
+        _ ->
+            Center
 
 
 inputUnionFunction : ModuleUnion -> Int
