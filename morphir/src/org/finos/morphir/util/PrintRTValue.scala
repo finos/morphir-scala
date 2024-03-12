@@ -144,7 +144,7 @@ class PrintRTValue(
               } else {
                 List(paramsTree, nameTree)
               }
-            // The function name is not included in the RTValue, so what we can print here is limited
+
             case RT.NativeFunction(argCount, curried, signature, loc) =>
               val locString     = Tree.Literal(loc.toString)
               val argCountTree  = Tree.KeyValue("remaining args", treeify(argCount))

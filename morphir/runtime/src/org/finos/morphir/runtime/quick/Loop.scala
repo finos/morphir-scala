@@ -131,7 +131,6 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     }
 }
 
-//Necessary to split into two classes?
 private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLocation) {
   def loop(ir: TypedValue, store: Store): RTValue =
     try
