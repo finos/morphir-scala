@@ -41,7 +41,19 @@ object MorphirRuntimeError {
     def source(code: String): EvaluationError       = CodeLocatedError(this, Nil, Some((s">>>$code<<<", code)))
   }
 
-  final case class CodeLocatedError(
+  /**
+   * This class lets us track the source location from which errors are thrown Private because its fields are tied to
+   * implementation; create this thru EvaluationError.source and .stack
+   *
+   * @param inner
+   *   The error being wrapped
+   * @param stack
+   *   A list of code locations corresponding to function calls
+   * @param sourceTaggedUntagged
+   *   an optional pair of (a reconstruction of) the source doe this came from, with and without tags on the specific
+   *   clause that generated the error
+   */
+  private final case class CodeLocatedError(
       inner: EvaluationError,
       stack: List[CodeLocation],
       sourceTaggedUntagged: Option[(String, String)]
