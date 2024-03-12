@@ -10,6 +10,7 @@ import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
+import org.finos.morphir.ir.distribution.Distribution
 import zio.Chunk
 import org.finos.morphir.runtime.ErrorUtils.ErrorInterpolator
 import org.finos.morphir.datamodel.{Concept, Data, EnumLabel, Label}
@@ -33,6 +34,20 @@ object MorphirRuntimeError {
       else if (l.length == 1) err"$cause: ${l(0)}"
       else if (l.length == 2) err"$cause: ${l(0)} ${l(1)}"
       else err"$cause: $l"
+    }
+  }
+
+  final case class TopLevelError(
+      entryPoint: FQName,
+      dists: Map[PackageName, Distribution.Lib],
+      inner: MorphirRuntimeError
+  ) extends MorphirRuntimeError {
+    def message = {
+      val basicClause =
+        s"${inner.getClass.getSimpleName} : ${inner.message}"
+      val entryNameClause = s"While evaluating entry point${entryPoint.toString}"
+      val distsClause     = s"With known distributions:\n\t ${dists.keys.mkString("\n\t")}"
+      s"$basicClause\n$entryNameClause\n$distsClause"
     }
   }
 
