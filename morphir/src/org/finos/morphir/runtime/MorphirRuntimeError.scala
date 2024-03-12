@@ -51,11 +51,19 @@ object MorphirRuntimeError {
         case Some((tagged, untagged)) => s"Thrown from: $tagged\n\t"
         case None                     => ""
       }
-      val stackString = stack.map(loc => s"at morphir: $loc").mkString("\n\t")
+      val stackStrings = stack.map(loc => s"at morphir: $loc")
+      val stackString =
+        if (stack.length <= 10) stackStrings.mkString("\n\t")
+        else {
+          val (first, rest)  = stackStrings.splitAt(5)
+          val (middle, tail) = rest.splitAt((rest.length - 5))
+          (first ++ (".." :: tail)).mkString("\n\t")
+        }
       s"${inner.getClass.getSimpleName} : ${inner.message} \n\t" + sourceString + stackString + "\n"
 
     }
-    override def stack(frame: CodeLocation): EvaluationError = this.copy(stack = stack :+ frame)
+    override def stack(frame: CodeLocation): EvaluationError =
+      this.copy(stack = stack :+ frame)
     override def source(code: String): EvaluationError = {
       def countMatches(inner: String, outer: String) = outer.sliding(inner.length).count(_ == inner)
       if (!stack.isEmpty) this // Only include the detailed error at the top of the stack

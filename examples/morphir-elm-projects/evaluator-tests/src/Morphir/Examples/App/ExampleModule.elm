@@ -62,27 +62,32 @@ outputRecordFunction : String -> ModuleRecord
 outputRecordFunction s =
     { name = s, truth = False }
 
+err : a -> b
+err x = 
+    if x then 0 else 0
 
 inputRecordFunction : ModuleRecord -> String
 inputRecordFunction r =
-    if r.truth then
-        r.name
+    err r
+    -- if r.truth then
+    --     r.name
 
-    else
-        "Rumplestilskin"
+    -- else
+    --     "Rumplestilskin"
 
 
 outputUnionFunction : String -> Int -> ModuleUnion
 outputUnionFunction dir dist =
-    case dir of
-        "Up" ->
-            Up dist
+    err (dir, dist)
+    -- case dir of
+    --     "Up" ->
+    --         Up dist
 
-        "Down" ->
-            Down dist
+    --     "Down" ->
+    --         Down dist
 
-        _ ->
-            Center
+    --     _ ->
+    --         Center
 
 
 inputUnionFunction : ModuleUnion -> Int

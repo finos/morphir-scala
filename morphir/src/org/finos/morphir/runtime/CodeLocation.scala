@@ -20,7 +20,7 @@ object CodeLocation {
    *   thereof)
    */
   case class AnonymousFunction(outer: CodeLocation) extends CodeLocation {
-    override def toString = s"anonymous function withing $outer"
+    override def toString = s"anonymous function within $outer"
   }
   object AnonymousFunction {
     def apply(outer: CodeLocation): AnonymousFunction = outer match {
