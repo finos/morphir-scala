@@ -37,6 +37,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
     for {
       tpe <- fetchType(entryPoint)
       res <- evaluate(Value.Reference.Typed(tpe, entryPoint), param, params: _*)
+        .mapError(err => TopLevelError(entryPoint, dists.getDists, err))
     } yield res
 
   def evaluate(value: TypedValue): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
@@ -69,6 +70,7 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
       case EnableTyper.Enabled =>
         val errors = new TypeChecker(dists).check(value)
         if (errors.length == 0) RTAction.succeed[RTExecutionContext, Unit](())
+        else if (errors.length == 1) RTAction.fail(errors(0))
         else RTAction.fail(TypeError.ManyTypeErrors(errors))
     }
   } yield result

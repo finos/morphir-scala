@@ -10,6 +10,7 @@ import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.ir.Literal.Lit
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
+import org.finos.morphir.ir.distribution.Distribution
 import zio.Chunk
 import org.finos.morphir.runtime.ErrorUtils.ErrorInterpolator
 import org.finos.morphir.datamodel.{Concept, Data, EnumLabel, Label}
@@ -36,7 +37,87 @@ object MorphirRuntimeError {
     }
   }
 
-  sealed trait EvaluationError extends MorphirRuntimeError
+  final case class TopLevelError(
+      entryPoint: FQName,
+      dists: Map[PackageName, Distribution.Lib],
+      inner: MorphirRuntimeError
+  ) extends MorphirRuntimeError {
+    def message = {
+      val basicClause =
+        s"${inner.getClass.getSimpleName} : ${inner.message}"
+      val entryNameClause = s"While evaluating entry point${entryPoint.toString}"
+      val distsClause     = s"With known distributions:\n\t ${dists.keys.mkString("\n\t")}"
+      s"$basicClause\n$entryNameClause\n$distsClause"
+    }
+  }
+
+  sealed trait EvaluationError extends MorphirRuntimeError {
+    def stack(frame: CodeLocation): EvaluationError = CodeLocatedError(this, frame :: Nil, None)
+    def source(code: String): EvaluationError       = CodeLocatedError(this, Nil, Some((s">>>$code<<<", code)))
+  }
+
+  /**
+   * This class lets us track the source location from which errors are thrown Private because its fields are tied to
+   * implementation; create this thru EvaluationError.source and .stack
+   *
+   * @param inner
+   *   The error being wrapped
+   * @param stack
+   *   A list of code locations corresponding to function calls
+   * @param sourceTaggedUntagged
+   *   an optional pair of (a reconstruction of) the source doe this came from, with and without tags on the specific
+   *   clause that generated the error
+   */
+  private final case class CodeLocatedError(
+      inner: EvaluationError,
+      stack: List[CodeLocation],
+      sourceTaggedUntagged: Option[(String, String)]
+  ) extends EvaluationError {
+    def message = {
+      val sourceString = sourceTaggedUntagged match {
+        case Some((tagged, _)) => s"Thrown from: $tagged\n\t"
+        case None              => ""
+      }
+      val stackStrings = stack.map(loc => s"at morphir: $loc")
+      val stackString =
+        if (stack.length <= 10) stackStrings.mkString("\n\t")
+        else {
+          val (first, rest)   = stackStrings.splitAt(5)
+          val (middle, tail)  = rest.splitAt((rest.length - 5))
+          val (common, count) = middle.groupBy(identity).map { case (loc, repeats) => (loc, repeats.size) }.maxBy(_._2)
+          val middleString    = s"${middle.length} more of which $count are: \n\t\t $common"
+          (first ++ (middleString :: tail)).mkString("\n\t")
+        }
+      s"${inner.getClass.getSimpleName} : ${inner.message} \n\t" + sourceString + stackString + "\n"
+
+    }
+    override def stack(frame: CodeLocation): EvaluationError =
+      this.copy(stack = stack :+ frame)
+    override def source(code: String): EvaluationError = {
+      def countMatches(inner: String, outer: String) = outer.sliding(inner.length).count(_ == inner)
+      if (!stack.isEmpty) this // Only include the detailed error at the top of the stack
+      else sourceTaggedUntagged match {
+        case Some((tagged, untagged)) =>
+          if (countMatches(untagged, code) == 1) { // If we can tell where in the broader source the error came from, we can keep that specificity
+            val newTagged   = code.replace(untagged, tagged)
+            val newUntagged = code
+            this.copy(sourceTaggedUntagged = Some((newTagged, newUntagged)))
+          } else {
+            this.copy(sourceTaggedUntagged =
+              Some((s">>>$code<<<", code))
+            ) // We don't know exactly where the error is, so we'll just tag the whole thing
+          }
+        case None =>
+          this.copy(sourceTaggedUntagged =
+            Some((s">>>$code<<<", code))
+          ) // This shouldn't be reachable, but here for completeness
+      }
+    }
+  }
+
+  final case class ExternalError(error: Throwable) extends EvaluationError {
+    def message = s"External error: ${error.getMessage}"
+  }
 
   final case class MissingField(value: RTValue.Record, field: Name) extends EvaluationError {
     def message = err"Record $value does not contain field ${field.toCamelCase}"
@@ -99,8 +180,14 @@ object MorphirRuntimeError {
     def message = err"Type Definition $spec not supported. $reason"
   }
 
-  final case class InvalidState(context: String) extends EvaluationError {
-    def message = s"$context (This should not be reachable, and indicates an evaluator bug.)"
+  final case class InvalidState(context: String, vals: RTValue*) extends EvaluationError {
+    def message =
+      if (vals.length == 0) err"$context (This should not be reachable, and indicates an evaluator bug.)"
+      else if (vals.length == 1)
+        err"$context ${vals(0)} (This should not be reachable, and indicates an evaluator bug.)"
+      else if (vals.length == 2)
+        err"$context ${vals(0)}, ${vals(1)} (This should not be reachable, and indicates an evaluator bug.)"
+      else err"$context $vals (This should not be reachable, and indicates an evaluator bug.)"
   }
   final case class NotImplemented(message: String) extends EvaluationError
 

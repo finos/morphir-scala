@@ -12,6 +12,7 @@ import org.finos.morphir.runtime.Extractors.Types.*
 import org.finos.morphir.runtime.{Distributions, RTValue}
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.runtime.CodeLocation
 import org.finos.morphir.ir.AccessControlled
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.runtime.services.sdk.*
@@ -40,7 +41,7 @@ object EvaluatorQuick {
     // Does type-checking when producing MDM concept so want to catch typechecking first
     val concept = typeToConcept(value.attributes, dists, Map())
     // Run the evaluation loop
-    val result = Loop(globals).loop(value, Store.empty)
+    val result = Loop(globals).loop(value, Store.empty, CodeLocation.EntryPoint)
     resultToMDM(result, concept)
   }
 
