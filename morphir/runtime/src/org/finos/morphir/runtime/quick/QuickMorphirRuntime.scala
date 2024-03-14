@@ -26,7 +26,7 @@ import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: GlobalDefs)
     extends TypedMorphirRuntime {
 
-  def runUnitTests(distributions: Distribution*): RTAction[MorphirEnv, MorphirRuntimeError, TestSummary] =
+  def runUnitTests(): RTAction[MorphirEnv, MorphirRuntimeError, TestSummary] =
     UnitTesting.runTests(dists)
 
   def evaluate(
