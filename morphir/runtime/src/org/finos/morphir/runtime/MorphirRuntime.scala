@@ -14,7 +14,7 @@ trait MorphirRuntime {
   type TypeAttribs
   type ValueAttribs
 
-  def runUnitTests(distributions: Distribution*): RTAction[MorphirEnv, MorphirRuntimeError, TestSummary]
+  def runUnitTests(): RTAction[MorphirEnv, MorphirRuntimeError, TestSummary]
 
   def evaluate(
       entryPoint: Value[TypeAttribs, ValueAttribs],
