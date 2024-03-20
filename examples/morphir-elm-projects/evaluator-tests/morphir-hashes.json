@@ -14,7 +14,7 @@
     "src/Morphir/Examples/App/LetRecursionTests.elm": "34aca5346310d8874524854dd9c58e7b",
     "src/Morphir/Examples/App/ListTests.elm": "d10ba935a4bea7fbed6431d5de9bd0b1",
     "src/Morphir/Examples/App/LiteralTests.elm": "e7e578d1005014e3800a9e5058405152",
-    "src/Morphir/Examples/App/LocalDateTests.elm": "6bd03cb297186ae30d3a60891e73688b",
+    "src/Morphir/Examples/App/LocalDateTests.elm": "49dd757c3c3f8c333a4ee97d03623979",
     "src/Morphir/Examples/App/LocalTimeTests.elm": "9e2e1cd8b89e5ddf4bdf655a2c5812fd",
     "src/Morphir/Examples/App/MaybeTests.elm": "d25eeea002a4e4e153ae81c9acc2130b",
     "src/Morphir/Examples/App/MyMap.elm": "81160d8bf93061cdf69d1eed29dc696f",
@@ -25,9 +25,9 @@
     "src/Morphir/Examples/App/SdkBasicsTests.elm": "68b4fa58886ca3e42054852d917b33b1",
     "src/Morphir/Examples/App/SetTests.elm": "7c4307aefe818e3ca4c3e576fed220c9",
     "src/Morphir/Examples/App/SimpleTests.elm": "443d3bfdd8a53223afbcbe215b815099",
-    "src/Morphir/Examples/App/StringTests.elm": "c0e2dc1679e67a25bfc6650077ea08a5",
+    "src/Morphir/Examples/App/StringTests.elm": "616ac7d6808954716125790bf2b90674",
     "src/Morphir/Examples/App/TestUtils.elm": "3072a79fadc6116b1dde77c7f424ca20",
     "src/Morphir/Examples/App/TupleTests.elm": "ab771b0e379f4972f01632feb035f980",
-    "src/Morphir/Examples/App/TypeCheckerTests.elm": "3d3c59b81cfe90e371db9f0ebe21deed",
+    "src/Morphir/Examples/App/TypeCheckerTests.elm": "96704e08e7a877e9792ba2c2a4b0cf44",
     "src/Morphir/Examples/App/UserDefinedReferenceTests.elm": "a99d0b2e4c311e6109a9c60751131f2d"
 }

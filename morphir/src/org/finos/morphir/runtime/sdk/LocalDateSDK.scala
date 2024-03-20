@@ -141,4 +141,9 @@ object LocalDateSDK {
     (_: NativeContext) => (localDate: RTValue.LocalDate) =>
       RTValue.DayOfWeek.fromJavaDayOfWeek(localDate.value.getDayOfWeek)
   }
+
+  val toISOString = DynamicNativeFunction1("toISOString") {
+    (_: NativeContext) => (localDate: RTValue.LocalDate) =>
+      RTValue.Primitive.String(localDate.value.format(JDateTimeFormatter.ISO_LOCAL_DATE))
+  }
 }

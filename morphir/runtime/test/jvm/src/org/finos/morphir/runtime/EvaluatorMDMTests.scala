@@ -1176,7 +1176,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("day")("localDateTests", "dayTest", localDate)(Data.Int(20)),
         testEval("dayOfWeek")("localDateTests", "dayOfWeekTest", localDate)(
           Data.DayOfWeek(java.time.DayOfWeek.SATURDAY)
-        )
+        ),
+        testEval("toISOString")("localDateTests", "toISOStringTest", localDate)(Data.String("1900-01-20"))
       ),
       suite("LocalTime")(
         testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime)),
