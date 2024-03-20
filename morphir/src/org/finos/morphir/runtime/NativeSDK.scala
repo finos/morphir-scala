@@ -186,7 +186,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(LocalDateSDK.diffInDays),
           NativeFunctionAdapter.Fun2(LocalDateSDK.fromOrdinalDate),
           NativeFunctionAdapter.Fun3(LocalDateSDK.fromCalendarDate),
-          NativeFunctionAdapter.Fun3(LocalDateSDK.fromParts)
+          NativeFunctionAdapter.Fun3(LocalDateSDK.fromParts),
+          NativeFunctionAdapter.Fun1(LocalDateSDK.toISOString)
         )
 
         private val enumSDKConstructor = SDKConstructor(scala.List())

@@ -23,13 +23,16 @@ stringConcat : List String -> String
 stringConcat l =
     concat l
 
+
 {-|
 
     Test: String/repeat
+
 -}
-stringRepeat : Int ->  String -> String
+stringRepeat : Int -> String -> String
 stringRepeat i s =
     repeat i s
+
 
 {-|
 
