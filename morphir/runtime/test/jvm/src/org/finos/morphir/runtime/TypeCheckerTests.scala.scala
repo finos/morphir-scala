@@ -22,6 +22,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
       irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
       _          <- Console.printLine(s"Loading distribution from $irFilePath")
       dist       <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
+
     } yield MorphirRuntime.quick(dist))
 
   val typeCheckerLayer: ZLayer[Any, Throwable, TypeChecker] =
@@ -29,7 +30,8 @@ object TypeCheckerTests extends MorphirBaseSpec {
       irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
       _          <- Console.printLine(s"Loading distribution from $irFilePath")
       dist       <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
-    } yield new TypeChecker(Distributions(dist)))
+      unitTestDist <- EvaluationLibrary.loadDistributionFromFileZIO("morphir-elm/sdks/morphir-unit-test/morphir-ir.json")
+    } yield new TypeChecker(Distributions(dist, unitTestDist)))
 
   def testTypeConforms(tpe1: UType, tpe2: UType)(expectedErrors: Int): ZIO[TypeChecker, Throwable, TestResult] =
     ZIO.serviceWithZIO[TypeChecker] { checker =>
