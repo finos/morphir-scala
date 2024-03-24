@@ -1,0 +1,12 @@
+{
+    "name": "ExampleTestsIncomplete",
+    "sourceDirectory": "src",
+    "localDependencies": [
+        "../../../../morphir-elm/sdks/morphir-unit-test/morphir-ir.json",
+        "../example-project/morphir-ir.json"
+    ],
+    "exposedModules": [
+        "IncompleteModule",
+        "PassingModule"
+    ]
+}

@@ -11,6 +11,7 @@ import org.finos.morphir.ir.Value.{
   USpecification as UValueSpec
 }
 import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification as UTypeSpec}
+import org.finos.morphir.ir.AccessControlled
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.exports.*
@@ -97,9 +98,9 @@ final class TypeChecker(dists: Distributions) {
       tpe match {
         case ref @ Extractors.Types.NativeRef(_, _) => Right(ref)
         case Type.Reference(_, typeName, typeArgs) =>
-          val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+          val lookedUp = dists.lookupTypeDefinition(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
-            case Right(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
+            case Right(T.Definition.TypeAlias(typeParams, expr)) =>
               val newBindings         = typeParams.zip(typeArgs).toMap
               val withBindingsApplied = Utils.applyBindings(expr, newBindings)
               loop(withBindingsApplied, original_fqn.orElse(Some(typeName)), context)
@@ -294,8 +295,8 @@ final class TypeChecker(dists: Distributions) {
       // otherwise run the constructor and return the errors from that
       case Right((ret, args)) =>
         ret match {
-          case NonNativeRef(name, typeArgs) => dists.lookupTypeSpecification(name) match {
-              case Right(T.Specification.CustomTypeSpecification(typeParams, ctors)) =>
+          case NonNativeRef(name, typeArgs) => dists.lookupTypeDefinition(name) match {
+              case Right(T.Definition.CustomType(typeParams, AccessControlled(_, ctors))) =>
                 val newBindings = typeParams.toList.zip(typeArgs.toList).toMap
                 val missedName = helper(
                   fqn.packagePath != name.packagePath || fqn.modulePath != name.modulePath,
@@ -317,7 +318,7 @@ final class TypeChecker(dists: Distributions) {
                 }
                 missedName ++ fromCtor
               case Right(other) =>
-                List(new ImproperTypeSpec(name, other, s"Type union expected"))
+                List(new ImproperTypeDef(name, other, s"Type union expected"))
               case Left(err) => List(err.withContext(s"Needed looking for constructor ${fqn.toStringTitleCase}"))
             }
           case NativeRef(_, _) => List() // TODO: check native constructor calls
