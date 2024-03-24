@@ -556,21 +556,6 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
   }
 }
 
-object site extends Docusaurus2Module with MDocModule {
-  val workspaceDir = millbuild.build.millSourcePath
-
-  override def scalaMdocVersion: T[String] = T("2.5.2")
-  override def scalaVersion                = T(docsScalaVersion)
-  // MD Sources that must be compiled with Scala MDoc
-  override def mdocSources = T.sources(workspaceDir / "docs")
-  // MD Sources that are just plain MD files
-  override def docusaurusSources = T.sources(workspaceDir / "website")
-
-  override def watchedMDocsDestination: T[Option[os.Path]] = T(Some(docusaurusBuild().path / "docs"))
-  override def compiledMdocs: Sources                      = T.sources(mdoc().path)
-  object test extends ScalaTests with TestModule.Munit {}
-}
-
 object MyAliases extends Aliases {
   def fmt           = alias("mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources")
   def checkfmt      = alias("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources")

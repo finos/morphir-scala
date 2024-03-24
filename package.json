@@ -7,7 +7,6 @@
     "examples/morphir-elm-projects/evaluator-tests"
   ],
   "dependencies": {
-    "@algolia/client-search": "^4.14.2"
   },
   "scripts": {
     "make-models": "yarn workspace morphir-scala-evaluator-tests run make"
