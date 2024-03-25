@@ -1,5 +1,5 @@
 {
-  "name": "@morphir-elm/unit-test-framework",
+  "name": "@morphir-examples/finance",
   "private": true,
   "devDependencies": {
     "elm-tooling": "^1.15.1",
