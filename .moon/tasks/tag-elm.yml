@@ -1,0 +1,10 @@
+fileGroups:
+  morphirElmSources:
+    - "src/**/*.elm"
+tasks:
+  lint-elm-sources:
+    command: |
+      elm-format @files(morphirElmSources) --validate
+  lint:
+    deps:
+      - "~:lint-elm-sources"
