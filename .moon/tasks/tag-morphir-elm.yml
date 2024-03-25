@@ -1,0 +1,34 @@
+fileGroups:
+  morphirProjectFiles:
+    - "morphir.json"
+  morphirElmSources:
+    - "src/**/*.elm"
+  morphirElmArtifacts:
+    - "morphir-hashes.json"
+    - "morphir-ir.json"
+
+tasks:
+  morphir-elm-build:
+    deps:
+      - "~:morphir-elm-make"
+
+  morphir-elm-rebuild:
+    deps:
+      - "~:morphir-elm-clean"
+      - "~:morphir-elm-build"
+
+  morphir-elm-clean:
+    command: |
+      rm -rf @files(morphirElmArtifacts)
+    inputs:
+      - "@files(morphirElmArtifacts)"
+
+  morphir-elm-make:
+    command: |
+      morphir-elm make
+    inputs:
+      - "@files(morphirProjectFiles)"
+      - "@globs(morphirElmSources)"
+      - "package.json"
+    outputs:
+      - "@files(morphirElmArtifacts)"
