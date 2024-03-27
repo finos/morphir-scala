@@ -95,7 +95,7 @@ jobs:
 
       - name: Run JVM tests
         run: |
-          ./mill -i -k -j 0 "morphir[${{matrix.scala}}].__.jvm.__.compile" + "morphir[${{matrix.scala}}].__.jvm.publishArtifacts" + "morphir[${{matrix.scala}}].__.jvm.__.test"
+          ./build.sh --scala-version ${{matrix.scala}} test-jvm
 
       - name: Cache JVM build output
         # when in master repo: all commits to main branch and all additional tags

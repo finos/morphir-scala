@@ -1,5 +1,6 @@
 #!/bin/bash
 # ARG_OPTIONAL_BOOLEAN([offline],[o],[Offline mode],[off])
+# ARG_OPTIONAL_REPEATED([scala-version],[s],[Scala versions used in the build],[])
 # ARG_VERBOSE([v])
 # ARG_HELP([The general script's help msg])
 # ARG_POSITIONAL_SINGLE([command],[],[])
@@ -22,7 +23,7 @@ die()
 
 begins_with_short_option()
 {
-	local first_option all_short_options='ovh'
+	local first_option all_short_options='osvh'
 	first_option="${1:0:1}"
 	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
 }
@@ -32,14 +33,16 @@ _positionals=()
 _arg_leftovers=()
 # THE DEFAULTS INITIALIZATION - OPTIONALS
 _arg_offline="off"
+_arg_scala_version=()
 _arg_verbose=0
 
 
 print_help()
 {
 	printf '%s\n' "The general script's help msg"
-	printf 'Usage: %s [-o|--(no-)offline] [-v|--verbose] [-h|--help] <command> ... \n' "$0"
+	printf 'Usage: %s [-o|--(no-)offline] [-s|--scala-version <arg>] [-v|--verbose] [-h|--help] <command> ... \n' "$0"
 	printf '\t%s\n' "-o, --offline, --no-offline: Offline mode (off by default)"
+	printf '\t%s\n' "-s, --scala-version: Scala versions used in the build (empty by default)"
 	printf '\t%s\n' "-v, --verbose: Set verbose output (can be specified multiple times to increase the effect)"
 	printf '\t%s\n' "-h, --help: Prints help"
 }
@@ -63,6 +66,17 @@ parse_commandline()
 				then
 					{ begins_with_short_option "$_next" && shift && set -- "-o" "-${_next}" "$@"; } || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
 				fi
+				;;
+			-s|--scala-version)
+				test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+				_arg_scala_version+=("$2")
+				shift
+				;;
+			--scala-version=*)
+				_arg_scala_version+=("${_key##--scala-version=}")
+				;;
+			-s*)
+				_arg_scala_version+=("${_key##-s}")
 				;;
 			-v|--verbose)
 				_arg_verbose=$((_arg_verbose + 1))
@@ -136,6 +150,11 @@ proto_bin_provided=0
 subcommand=$_arg_command
 leftovers=$_arg_leftovers
 
+# Scala versions
+default_scala_version="3.3.1"
+scalaVersion=$_arg_scala_version
+scalaVersions=(${_arg_scala_version[@]})
+
 # Helper Functions
 
 is_macos() {
@@ -145,6 +164,13 @@ is_macos() {
 check_cmd() {
 	command -v "$1" > /dev/null 2>&1
 	return $?
+}
+
+function join_by {
+  local d=${1-} f=${2-}
+  if shift 2; then
+    printf %s "$f" "${@/#/$d}"
+  fi
 }
 
 function log_err() {
@@ -189,6 +215,17 @@ require_moon() {
 	fi
 }
 
+ensure_scalaVersions() {
+	if [ ${#scalaVersions[@]} -eq 0 ]; then
+		log_info "Assigning default Scala version"
+		scalaVersions=($default_scala_version)
+		scalaVersion=$default_scala_version
+	else
+		echo "Scala versions is not empty: ${scalaVersions[@]}"
+	fi
+}
+
+
 # Rest of script
 
 # Check if PROTO_BIN_PATH is already set
@@ -227,8 +264,12 @@ if [ "$proto_bin_provided" -eq 0 ]; then
     curl -fsSL https://moonrepo.dev/install/proto.sh | bash
 fi
 
+
+# Setup before running commands
+
 require_moon
 require_bun
+
 
 case "$subcommand" in
 	"fmt")
@@ -239,6 +280,20 @@ case "$subcommand" in
 		;;
 	"run")
 		moon run "$leftovers"
+		;;
+	"test-jvm")
+		moon run :morphir-elm-build
+		ensure_scalaVersions
+		for scala in "${scalaVersions[@]}"; 
+		do
+        	./mill -i -k -j 0 "morphir[$scala].__.jvm.__.compile" + "morphir[$scala].__.jvm.publishArtifacts" + "morphir[$scala].__.jvm.__.test"
+		done
+		;;
+	"about")
+		ensure_scalaVersions
+		echo "Morphir Scala Build Script"
+		echo "scalaVersion: $scalaVersion"
+		echo "scalaVersions: ${scalaVersions[@]}"
 		;;
 	*)
 		log_err "Error: Unknown command: $subcommand"
