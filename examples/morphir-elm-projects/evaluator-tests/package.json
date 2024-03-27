@@ -1,12 +1,13 @@
 {
-    "name": "morphir-scala-evaluator-tests",
-    "private": true,
-    "devDependencies": {
-        "morphir-elm": "^2.81.0",
-        "elm-format": "^0.8.5"
-    },
-    "scripts": {
-        "format": "elm-format --yes .",
-        "make": "morphir-elm make"
-    }
+  "name": "morphir-scala-evaluator-tests",
+  "private": true,
+  "devDependencies": {
+    "elm-format": "^0.8.5",
+    "elm-tooling": "^1.15.1",
+    "morphir-elm": "^2.81.0"
+  },
+  "scripts": {
+    "format": "elm-format --yes .",
+    "make": "morphir-elm make"
+  }
 }

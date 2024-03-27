@@ -1,6 +1,9 @@
 # Stuff for Local Debugging
 MyBug.scala
 
+# Node 
+node_modules/
+
 # Elm build products
 elm-stuff/
 elm.json
@@ -456,3 +459,6 @@ build.user.yaml
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+# moon
+.moon/cache
+.moon/docker
