@@ -25,7 +25,7 @@ tasks:
 
   morphir-elm-make:
     command: |
-      morphir-elm make
+      morphir make
     inputs:
       - "@files(morphirProjectFiles)"
       - "@globs(morphirElmSources)"

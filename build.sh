@@ -282,7 +282,7 @@ case "$subcommand" in
 		moon run "$leftovers"
 		;;
 	"test-jvm")
-		moon run :morphir-elm-build
+		moon run evaluator-tests:morphir-elm-build
 		ensure_scalaVersions
 		for scala in "${scalaVersions[@]}"; 
 		do
