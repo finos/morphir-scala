@@ -232,7 +232,10 @@ require_bun
 
 case "$subcommand" in
 	"fmt")
-		moon run :fmt
+		./mill Alias/run fmt; moon run :fmt
+		;;
+	"lint")
+		./mill Alias/run checkfmt && moon run :lint
 		;;
 	"run")
 		moon run "$leftovers"
@@ -242,7 +245,5 @@ case "$subcommand" in
 		exit 1
 		;;
 esac
-
-moon run "$leftovers"
 
 # ] <-- needed because of Argbash
