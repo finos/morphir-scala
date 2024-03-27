@@ -231,8 +231,8 @@ require_moon
 require_bun
 
 case "$subcommand" in
-	"build")
-		moon run build "$leftovers"
+	"fmt")
+		moon run :fmt
 		;;
 	"run")
 		moon run "$leftovers"
