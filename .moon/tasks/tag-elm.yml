@@ -13,7 +13,7 @@ tasks:
 
   elm-format:
     command: |
-      elm-format @files(elmSources)
+      elm-format @files(elmSources) --yes
     inputs:
       - "@globs(elmSources)"
 
