@@ -270,17 +270,17 @@ fi
 
 
 case "$subcommand" in
+	"clean")
+		moon run :clean   
+		;;
 	"elm-build")
-		moon run ":elm-build"
+		moon run :build  --query "tag=[elm, morphir-elm]"    
 		;;
 	"fmt")
 		./mill Alias/run fmt; moon run :fmt
 		;;
 	"install")
-		require_moon
-		bash -c "moon setup"
-		require_bun
-		bash -c "bun install"
+		bun install
 		;;
 	"lint")
 		./mill Alias/run checkfmt && moon run :lint

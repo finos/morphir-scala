@@ -1,4 +1,13 @@
 platform: bun
+
+
+tasks:
+  morphir-elm-make:
+    deps:
+      - "@morphir-elm/unit-test-framework:morphir-elm-make"
+    options:
+      mergeDeps: 'prepend'
+      
 tags:
   - "morphir"
   - "morphir-elm"
