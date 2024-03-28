@@ -5,7 +5,7 @@ tasks:
   morphir-elm-make:
     deps:
       - "@morphir-elm/unit-test-framework:morphir-elm-make"
-      - "@morphir-examples/unit-test-framework-example"
+      - "@morphir-examples/unit-test-framework-example:morphir-elm-make"
     options:
       mergeDeps: 'prepend'
 
