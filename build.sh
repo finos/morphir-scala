@@ -267,8 +267,6 @@ fi
 
 # Setup before running commands
 
-require_moon
-require_bun
 
 
 case "$subcommand" in
@@ -278,11 +276,18 @@ case "$subcommand" in
 	"fmt")
 		./mill Alias/run fmt; moon run :fmt
 		;;
+	"install")
+		require_moon
+		moon setup
+		;;
 	"lint")
 		./mill Alias/run checkfmt && moon run :lint
 		;;
 	"run")
 		moon run "$leftovers"
+		;;
+	"setup")
+		moon setup
 		;;
 	"test-jvm")
 		moon run evaluator-tests:morphir-elm-build
