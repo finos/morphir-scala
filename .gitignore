@@ -6,7 +6,6 @@ node_modules/
 
 # Elm build products
 elm-stuff/
-elm.json
 
 # Docusaurus generated folders
 website/translated_docs/
