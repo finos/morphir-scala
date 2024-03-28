@@ -279,6 +279,8 @@ case "$subcommand" in
 	"install")
 		require_moon
 		moon setup
+		require_bun
+		bun install
 		;;
 	"lint")
 		./mill Alias/run checkfmt && moon run :lint
