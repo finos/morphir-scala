@@ -4,6 +4,11 @@ MyBug.scala
 # Node 
 node_modules/
 
+# Morphir related
+# NOTE: These generated files should no longer be checked in, they will be generated as part of the build
+morphir-ir.json 
+morphir-hashes.json
+
 # Elm build products
 elm-stuff/
 
