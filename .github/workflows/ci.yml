@@ -96,6 +96,9 @@ jobs:
       - name: Setup proto and moon toolchains
         uses: moonrepo/setup-toolchain@v0.3.1
             
+      - name: Install tooling
+        run: |
+          ./build.sh install
       - name: Make Morphir IR
         run: |
           ./build.sh run :morphir-elm-build
