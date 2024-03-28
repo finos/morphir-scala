@@ -28,7 +28,9 @@ tasks:
       morphir make
     inputs:
       - "@files(morphirProjectFiles)"
-      - "@globs(morphirElmSources)"
-      - "package.json"
-    outputs:
       - "@files(morphirElmArtifacts)"
+      - "package.json"
+      - "@globs(morphirElmSources)"
+    outputs:
+      - "morphir-hashes.json"
+      - "morphir-ir.json"

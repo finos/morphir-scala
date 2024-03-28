@@ -1,20 +1,13 @@
 {
   "name": "morphir-scala",
   "private": true,
-  "packageManager": "yarn@3.2.3",
   "workspaces": [
-    "website",
     "examples/morphir-elm-projects/evaluator-tests"
   ],
-  "dependencies": {
-  },
-  "scripts": {
-    "make-models": "yarn workspace morphir-scala-evaluator-tests run make"
-  },
-  "resolutions": {
-    "trim": "0.0.3"
-  },
+  "dependencies": {},
+  "scripts": {},
+  "resolutions": {},
   "devDependencies": {
-    "morphir-elm": "^2.81.0"
+    "morphir-elm": "^2.89.0"
   }
 }

@@ -272,6 +272,9 @@ require_bun
 
 
 case "$subcommand" in
+	"elm-build")
+		moon run ":elm-build"
+		;;
 	"fmt")
 		./mill Alias/run fmt; moon run :fmt
 		;;
