@@ -1,0 +1,5 @@
+platform: bun
+tags:
+  - "morphir"
+  - "morphir-elm"
+  - "elm"
