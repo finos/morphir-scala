@@ -203,7 +203,7 @@ trait CommonScalaModule extends ScalaModule {
         commonCompilerOptions ++ Seq(
           "-language:existentials",
           "-Yrangepos",
-          "-Xsource:3",
+          "-Xsource:3-cross",
           "-Wconf:cat=scala3-migration:s"
         )
       case Array("3", _, _) =>
