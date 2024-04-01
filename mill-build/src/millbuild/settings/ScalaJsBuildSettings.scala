@@ -13,7 +13,7 @@ final case class ScalaJsBuildSettings(enable: Boolean = true, version: String = 
 object ScalaJsBuildSettings {
   val config                             = deriveConfig[ScalaJsBuildSettings]
   lazy val default: ScalaJsBuildSettings = ScalaJsBuildSettings()
-  lazy val defaultVersion                = "1.14.0"
+  lazy val defaultVersion                = "1.16.0"
 
   implicit lazy val rw: upickle.default.ReadWriter[ScalaJsBuildSettings] = upickle.default.macroRW
 }
