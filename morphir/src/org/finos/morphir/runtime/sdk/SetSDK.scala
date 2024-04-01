@@ -1,21 +1,46 @@
 package org.finos.morphir.runtime.sdk
 
 import org.finos.morphir.ir.Type
-import org.finos.morphir.runtime._
-import org.finos.morphir.runtime.internal._
+import org.finos.morphir.runtime.*
+import org.finos.morphir.runtime.internal.*
 import org.finos.morphir.runtime.RTValue
+import org.finos.morphir.runtime.RTValue.coerceComparable
 
 import scala.collection.mutable
 
 object SetSDK {
 
+  val empty: SDKValue = SDKValue.SDKNativeValue(RTValue.Set(mutable.LinkedHashSet.empty))
+
   val foldr = DynamicNativeFunction3("foldr") {
     (context: NativeContext) => (f: RTValue.Function, zero: RTValue, set: RTValue.Set) =>
-      // TODO: change foldr to sort before folding.  Currently blocked on comparable support
+      val sortedSet = sortSet(set)
       // Elm foldr iterates on sort order, Scala iterates on insertion order.  Sort before folding.
-      set.value.foldRight(zero) { (a, acc) =>
+      sortedSet.foldRight(zero) { (a, acc) =>
         context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, acc)
       }
+  }
+
+  val foldl = DynamicNativeFunction3("foldl") {
+    (context: NativeContext) => (f: RTValue.Function, zero: RTValue, set: RTValue.Set) =>
+      val sortedSet = sortSet(set)
+      // Elm foldl iterates on sort order, Scala iterates on insertion order.  Sort before folding.
+      sortedSet.foldLeft(zero) { (acc, a) =>
+        context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, acc)
+      }
+  }
+
+  private def sortSet(set: RTValue.Set): Set[RTValue] = set.value.toList.sortWith { (x, y) =>
+    RTValue.Comparable.compareOrThrow(coerceComparable(x), coerceComparable(y)) < 0
+  }.toSet
+
+  val filter = DynamicNativeFunction2("filter") {
+    (context: NativeContext) => (f: RTValue.Function, set: RTValue.Set) =>
+      val result = set.elements.filter { elem =>
+        val filterOutput = context.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
+        RTValue.coerceBoolean(filterOutput).value
+      }
+      RTValue.Set(result)
   }
 
   val insert = DynamicNativeFunction2("insert") {
@@ -37,6 +62,11 @@ object SetSDK {
   val intersect = DynamicNativeFunction2("intersect") {
     (context: NativeContext) => (setArg1: RTValue.Set, setArg2: RTValue.Set) =>
       RTValue.Set(setArg1.elements.intersect(setArg2.elements)) // intersect doesn't modify the contents of either set
+  }
+
+  val diff = DynamicNativeFunction2("diff") {
+    (context: NativeContext) => (setArg1: RTValue.Set, setArg2: RTValue.Set) =>
+      RTValue.Set(setArg1.elements.diff(setArg2.elements)) // diff doesn't modify the contents of either set
   }
 
   val isEmpty = DynamicNativeFunction1("isEmpty") {

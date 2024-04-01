@@ -2,6 +2,7 @@
     "name": "Morphir.Examples.App",
     "sourceDirectory": "src",
     "exposedModules": [
+        "CharTests",
         "ConstructorTests",
         "DestructureTests",
         "DictionaryTests",

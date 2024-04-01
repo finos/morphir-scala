@@ -2,7 +2,7 @@ package org.finos.morphir.runtime
 
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
-import org.finos.morphir.ir.Value.{Pattern, Value}
+import org.finos.morphir.ir.Value.{Pattern, Value, TypedDefinition}
 import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.naming.*
 import org.finos.morphir.naming.FQName.getLocalName
@@ -10,14 +10,13 @@ import org.finos.morphir.naming.Name.toTitleCase
 import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.internal.{NativeFunctionSignature, NativeFunctionSignatureAdv}
 import org.finos.morphir.runtime.internal.NativeFunctionSignature.*
-import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.*
 import zio.Chunk
 
 sealed trait SDKValue
 
-case class SDKConstructor(arguments: List[ValueAttribs])
+case class SDKConstructor(arguments: List[UType])
 object SDKValue {
-  case class SDKValueDefinition(definition: RuntimeDefinition) extends SDKValue
+  case class SDKValueDefinition(definition: TypedDefinition) extends SDKValue
   case class SDKNativeFunction(function: NativeFunctionSignature) extends SDKValue {
     def arguments = function.numArgs
   }
