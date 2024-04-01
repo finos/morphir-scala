@@ -53,10 +53,6 @@ object Deps {
       case object lolgab {
         val `scala-native-crypto` = ivy"com.github.lolgab::scala-native-crypto::${Versions.`scala-native-crypto`}"
       }
-
-      case object poslegm {
-        val `munit-zio` = ivy"com.github.poslegm::munit-zio::${Versions.`munit-zio`}"
-      }
     }
     case object lihaoyi {
       val castor         = ivy"com.lihaoyi::castor::${Versions.castor}"
@@ -84,7 +80,7 @@ object Deps {
       }
 
       case object magnolia_3 {
-        val magnolia = ivy"com.softwaremill.magnolia1_3::magnolia::1.3.3"
+        val magnolia = ivy"com.softwaremill.magnolia1_3::magnolia::1.3.4"
       }
     }
   }
@@ -165,13 +161,8 @@ object Deps {
       def `scala3-tasty-inspector`(scalaVersion: String): Dep =
         ivy"org.scala-lang::scala3-tasty-inspector::$scalaVersion"
     }
-    case object scalameta {
-      val munit: mill.scalalib.Dep = ivy"org.scalameta::munit::${Versions.munit}"
 
-      val `munit-scalacheck` =
-        ivy"org.scalameta::munit-scalacheck::${Versions.munit}"
-
-    }
+    case object scalameta {}
 
     case object typelevel {
       val `cats-core`   = cats.core
@@ -214,12 +205,10 @@ object Versions {
   val coursier                   = "2.1.4"
   val expecty                    = "0.16.0"
   val fansi                      = "0.4.0"
-  val fs2                        = "3.9.2"
+  val fs2                        = "3.9.4"
   val geny                       = "1.0.0"
   val `izumi-reflect`            = "2.3.8"
   val metaconfig                 = "0.11.1"
-  val munit                      = "1.0.0-M10"
-  val `munit-zio`                = "0.1.1"
   val mainargs                   = "0.5.0"
   val `os-lib`                   = "0.9.3"
   val paiges                     = "0.4.3"
@@ -249,9 +238,9 @@ object ScalaVersions {
   def scala213 = "2.13.13"
   def scala3x  = "3.3.3"
 
-  def scalaJSVersion     = "1.14.0"
-  def scalaNativeVersion = "0.4.16"
-  def millScalaVersion   = "2.13.10"
+  def scalaJSVersion     = "1.16.0"
+  def scalaNativeVersion = "0.4.17"
+  def millScalaVersion   = "2.13.13"
 }
 
 object MillVersions {
