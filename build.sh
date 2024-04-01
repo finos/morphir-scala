@@ -283,7 +283,7 @@ case "$subcommand" in
 		bun install
 		;;
 	"lint")
-		./mill Alias/run checkfmt && moon run :lint
+		moon run :lint
 		;;
 	"run")
 		moon run "$leftovers"

@@ -1,0 +1,6 @@
+tasks:
+  scala-lint:
+    command: |
+      ./mill Alias/run checkfmt
+tags:
+  - "scala"

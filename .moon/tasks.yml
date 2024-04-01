@@ -6,3 +6,9 @@ tasks:
         optional: true
       - target: "~:elm-library-build"
         optional: true
+  lint:
+    deps:
+      - target: "~:elm-lint"
+        optional: true
+      - target: "~:scala-lint"
+        optional: true

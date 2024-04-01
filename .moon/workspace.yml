@@ -15,6 +15,7 @@ projects:
   globs:
     - "examples/morphir-elm-projects/unit-test-framework/*"
   sources:
+    morphir: "."
     evaluator-tests: "examples/morphir-elm-projects/evaluator-tests"
     examples/finance: "examples/morphir-elm-projects/finance"
     sdks/morphir-unit-test: "morphir-elm/sdks/morphir-unit-test"
