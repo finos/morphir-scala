@@ -71,9 +71,19 @@ object LocalDateSDK {
       }
   }
 
+  val addDays = DynamicNativeFunction2("addDays") {
+    (_: NativeContext) => (weeksArg: RTValue.Primitive.Int, localDateArg: RTValue.LocalDate) =>
+      update(localDateArg)(_.plusDays(weeksArg.value.toLong))
+  }
+
   val addWeeks = DynamicNativeFunction2("addWeeks") {
     (_: NativeContext) => (weeksArg: RTValue.Primitive.Int, localDateArg: RTValue.LocalDate) =>
       update(localDateArg)(_.plusWeeks(weeksArg.value.toLong))
+  }
+
+  val addYears = DynamicNativeFunction2("addYears") {
+    (_: NativeContext) => (weeksArg: RTValue.Primitive.Int, localDateArg: RTValue.LocalDate) =>
+      update(localDateArg)(_.plusYears(weeksArg.value.toLong))
   }
 
   val diffInDays = DynamicNativeFunction2("diffInDays") {
@@ -130,5 +140,10 @@ object LocalDateSDK {
   val dayOfWeek = DynamicNativeFunction1("dayOfWeek") {
     (_: NativeContext) => (localDate: RTValue.LocalDate) =>
       RTValue.DayOfWeek.fromJavaDayOfWeek(localDate.value.getDayOfWeek)
+  }
+
+  val toISOString = DynamicNativeFunction1("toISOString") {
+    (_: NativeContext) => (localDate: RTValue.LocalDate) =>
+      RTValue.Primitive.String(localDate.value.format(JDateTimeFormatter.ISO_LOCAL_DATE))
   }
 }

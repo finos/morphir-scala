@@ -1,0 +1,7 @@
+{
+    "name": "Example",
+    "sourceDirectory": "src",
+    "exposedModules": [
+        "ExampleModule"
+    ]
+}

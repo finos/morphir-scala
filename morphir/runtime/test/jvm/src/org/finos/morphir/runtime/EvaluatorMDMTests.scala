@@ -228,7 +228,27 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     "ZeroArg",
     unionEnumShape
   )
+  def alias(data: Data, alias: FQName) = {
+    val concept = Concept.Alias(alias, data.shape)
+    Data.Aliased(data, concept)
+  }
 
+  def opaqueIntShape: Concept.Enum = Concept.Enum(
+    qn"Morphir/Examples/App:ExampleModule:OpaqueInt",
+    List(
+      Concept.Enum.Case(
+        Label("Opaque"),
+        List(
+          (EnumLabel.Named("arg1"), Concept.Int32)
+        )
+      )
+    )
+  )
+  def opaqueInt(i: Int): Data = Data.Case(
+    List((EnumLabel.Named("arg1"), Data.Int(i))),
+    "Opaque",
+    opaqueIntShape
+  )
   def oneArg(i: Int): Data = Data.Case(
     List((EnumLabel.Named("arg1"), Data.Int(i))),
     "OneArg",
@@ -1120,8 +1140,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             )
           )
         ),
+        testEvalMultiple("addDays")("localDateTests", "addDaysTest", List(2, localDate))(
+          Data.LocalDate(localDate.plusDays(2))
+        ),
         testEvalMultiple("addWeeks")("localDateTests", "addWeeksTest", List(2, localDate))(
           Data.LocalDate(localDate.plusWeeks(2))
+        ),
+        testEvalMultiple("addYears")("localDateTests", "addYearsTest", List(2, localDate))(
+          Data.LocalDate(localDate.plusYears(2))
         ),
         testEvalMultiple("diffInDays")("localDateTests", "diffInDaysTest", List(localDate, localDate.plusDays(999)))(
           Data.Int(999)
@@ -1150,7 +1176,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("day")("localDateTests", "dayTest", localDate)(Data.Int(20)),
         testEval("dayOfWeek")("localDateTests", "dayOfWeekTest", localDate)(
           Data.DayOfWeek(java.time.DayOfWeek.SATURDAY)
-        )
+        ),
+        testEval("toISOString")("localDateTests", "toISOStringTest", localDate)(Data.String("1900-01-20"))
       ),
       suite("LocalTime")(
         testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime)),
@@ -1530,6 +1557,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )(
           Data.True
         ),
+        testEvalMultiple("repeat")(
+          "stringTests",
+          "stringRepeat",
+          List(2, "Whomp")
+        )(
+          Data.String("WhompWhomp")
+        ),
         testEvalMultiple("contains false")(
           "stringTests",
           "stringContains",
@@ -1779,7 +1813,22 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "typeCheckerTests",
           "twoArgEntry",
           List(Data.Int(3), Data.String("Green"))
-        )(Data.Tuple(Data.Int(3), Data.String("Green")))
+        )(Data.Tuple(Data.Int(3), Data.String("Green"))),
+        testEvalMultiple("Returns opaque types")(
+          "typeCheckerTests",
+          "returnOpaque",
+          List(Data.Int(3))
+        )(opaqueInt(3)),
+        testEvalMultiple("Returns opaque types")(
+          "typeCheckerTests",
+          "acceptOpaque",
+          List(opaqueInt(2))
+        )(Data.Int(2)),
+        testEvalMultiple("Aliased opaques also fine")(
+          "typeCheckerTests",
+          "aliasedOpaqueTest",
+          List(opaqueInt(2))
+        )(alias(opaqueInt(3), FQName.fromString("Morphir.Examples.App:TypeCheckerTests:AliasedOpaque")))
       ),
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "dictFromListTest")(Data.Map(

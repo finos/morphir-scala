@@ -12,6 +12,7 @@ import org.finos.morphir.ir.distribution.Distribution.*
 import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.runtime.{NativeSDK, RTValue, SDKConstructor, SDKValue}
 import org.finos.morphir.runtime.internal.{CallStackFrame, StoredValue}
+import org.finos.morphir.runtime.Distributions
 import zio.Chunk
 
 final case class Store(
@@ -42,6 +43,13 @@ final case class GlobalDefs(
 object GlobalDefs {
   def fromDistributions(dists: Distribution*): GlobalDefs = {
     val libs: Map[PackageName, Lib] = Distribution.toLibsMap(dists: _*)
+    libs.foldLeft(native) {
+      case (acc, (packageName, lib)) => createDefs(acc, packageName, lib.dependencies, lib.packageDef)
+    }
+  }
+
+  def fromDistributions(dists: Distributions): GlobalDefs = {
+    val libs: Map[PackageName, Lib] = dists.getDists
     libs.foldLeft(native) {
       case (acc, (packageName, lib)) => createDefs(acc, packageName, lib.dependencies, lib.packageDef)
     }

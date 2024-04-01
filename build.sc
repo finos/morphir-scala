@@ -390,74 +390,6 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       object native extends Shared with MorphirNativeModule
     }
 
-    object munit extends CrossPlatform {
-      trait Shared extends MorphirCommonCrossModule {
-        def ivyDeps = Agg(
-          Deps.io.github.cquiroz.`scala-java-time`,
-          Deps.com.eed3si9n.expecty.expecty,
-          Deps.org.scalameta.munit,
-          Deps.org.scalameta.`munit-scalacheck`
-        )
-
-        def platformSpecificModuleDeps = Seq(testing.munit.macros)
-        def scalacOptions = T {
-          super.scalacOptions().concatIf(isScala213())("-language:experimental.macros")
-        }
-      }
-
-      object jvm    extends Shared with MorphirJVMModule
-      object js     extends Shared with MorphirJSModule
-      object native extends Shared with MorphirNativeModule
-
-      object macros extends CrossPlatform with CrossValue {
-        trait Shared extends MorphirCommonCrossModule {
-          def compileIvyDeps = T {
-            super.compileIvyDeps() ++ Agg.when(scalaVersion().startsWith("2."))(
-              Deps.org.`scala-lang`.`scala-reflect`(scalaVersion()),
-              Deps.org.`scala-lang`.`scala-compiler`(scalaVersion())
-            )
-          }
-
-          def ivyDeps = super.ivyDeps() ++ Agg(
-            Deps.io.github.cquiroz.`scala-java-time`,
-            Deps.com.eed3si9n.expecty.expecty,
-            Deps.org.scalameta.munit,
-            Deps.org.scalameta.`munit-scalacheck`
-          )
-
-          def scalacOptions = T {
-            super.scalacOptions().concatIf(isScala213())("-language:experimental.macros")
-          }
-        }
-
-        object jvm    extends Shared with MorphirJVMModule
-        object js     extends Shared with MorphirJSModule
-        object native extends Shared with MorphirNativeModule
-      }
-
-      object zio extends CrossPlatform {
-        trait Shared extends MorphirCommonCrossModule {
-          def ivyDeps = super.ivyDeps() ++ Agg(
-            ivy"io.github.cquiroz::scala-java-time::2.5.0",
-            Deps.org.scalameta.munit,
-            Deps.org.scalameta.`munit-scalacheck`,
-            Deps.dev.zio.zio
-          )
-          def platformSpecificModuleDeps = Seq(munit)
-        }
-
-        object jvm extends Shared with MorphirJVMModule {
-          object test extends ScalaTests with TestModule.Munit
-        }
-        object js extends Shared with MorphirJSModule {
-          object test extends ScalaJSTests with TestModule.Munit
-        }
-        object native extends Shared with MorphirNativeModule {
-          object test extends ScalaNativeTests with TestModule.Munit
-        }
-      }
-    }
-
     object zio extends CrossPlatform {
       trait Shared extends MorphirCommonCrossModule {
         def ivyDeps = Agg(
@@ -554,21 +486,6 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       )
     }
   }
-}
-
-object site extends Docusaurus2Module with MDocModule {
-  val workspaceDir = millbuild.build.millSourcePath
-
-  override def scalaMdocVersion: T[String] = T("2.5.2")
-  override def scalaVersion                = T(docsScalaVersion)
-  // MD Sources that must be compiled with Scala MDoc
-  override def mdocSources = T.sources(workspaceDir / "docs")
-  // MD Sources that are just plain MD files
-  override def docusaurusSources = T.sources(workspaceDir / "website")
-
-  override def watchedMDocsDestination: T[Option[os.Path]] = T(Some(docusaurusBuild().path / "docs"))
-  override def compiledMdocs: Sources                      = T.sources(mdoc().path)
-  object test extends ScalaTests with TestModule.Munit {}
 }
 
 object MyAliases extends Aliases {

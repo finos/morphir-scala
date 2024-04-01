@@ -12,6 +12,8 @@ import org.finos.morphir.runtime.Extractors.Types.*
 import org.finos.morphir.runtime.{Distributions, RTValue}
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.runtime.CodeLocation
+import org.finos.morphir.ir.AccessControlled
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.runtime.services.sdk.*
 import zio.Chunk
@@ -39,7 +41,7 @@ object EvaluatorQuick {
     // Does type-checking when producing MDM concept so want to catch typechecking first
     val concept = typeToConcept(value.attributes, dists, Map())
     // Run the evaluation loop
-    val result = Loop(globals).loop(value, Store.empty)
+    val result = Loop(globals).loop(value, Store.empty, CodeLocation.EntryPoint)
     resultToMDM(result, concept)
   }
 
@@ -84,16 +86,16 @@ object EvaluatorQuick {
         Concept.Set(typeToConcept(elementType, dists, boundTypes))
 
       case TT.Reference(_, typeName, typeArgs) =>
-        val lookedUp    = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+        val lookedUp    = dists.lookupTypeDefinition(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dists, boundTypes))
         lookedUp match {
-          case Right(Type.Specification.TypeAliasSpecification(typeParams, expr)) =>
+          case Right(Type.Definition.TypeAlias(typeParams, expr)) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             typeToConcept(expr, dists, newBindings) match {
               case Concept.Struct(fields) => Concept.Record(typeName, fields)
               case other                  => Concept.Alias(typeName, other)
             }
-          case Right(Type.Specification.CustomTypeSpecification(typeParams, ctors)) =>
+          case Right(Type.Definition.CustomType(typeParams, AccessControlled(_, ctors))) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             val cases = ctors.toMap.toList.map { case (caseName, args) =>
               val argTuples = args.map { case (argName: Name, argType: Type.UType) =>
@@ -104,11 +106,7 @@ object EvaluatorQuick {
               Concept.Enum.Case(Label(conceptName), concepts)
             }
             Concept.Enum(typeName, cases)
-          case Right(other) => throw UnsupportedTypeSpecification(
-              other,
-              "This specification was found as part of the return type from the entry point. Cannot generate Concept for MDM return."
-            )
-          case Left(err) => throw err.withContext("Error finding type specification defined in entry point function")
+          case Left(err) => throw err.withContext("Error finding type alias defined in entry point function")
         }
       case TT.Tuple(_, elements) =>
         Concept.Tuple(elements.map(element => typeToConcept(element, dists, boundTypes)).toList)

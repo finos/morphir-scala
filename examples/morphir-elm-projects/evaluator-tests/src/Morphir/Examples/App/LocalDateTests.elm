@@ -22,6 +22,15 @@ fromPartsInvalidTest ctx =
         (fromParts 1900 1 9999)
 
 
+{-| Test: LocalDate:addDays
+input = 2, 1900-01-20
+expected = 1900-01-22
+-}
+addDaysTest : Int -> LocalDate -> LocalDate
+addDaysTest weeks date =
+    addDays weeks date
+
+
 {-| Test: LocalDate:addWeeks
 input = 2, 1900-01-20
 expected = 1900-02-03
@@ -29,6 +38,15 @@ expected = 1900-02-03
 addWeeksTest : Int -> LocalDate -> LocalDate
 addWeeksTest weeks date =
     addWeeks weeks date
+
+
+{-| Test: LocalDate:addYears
+input = 2, 1900-01-20
+expected = 1902-01-20
+-}
+addYearsTest : Int -> LocalDate -> LocalDate
+addYearsTest weeks date =
+    addYears weeks date
 
 
 {-| Test: LocalDate:diffInDays
@@ -121,3 +139,37 @@ dayOfWeekAsInputTest dayOfWeek =
 
         Sunday ->
             7
+
+
+{-| Test: test input support for DayOfWeek enum
+-}
+dayOfWeekAsInputTest : DayOfWeek -> Int
+dayOfWeekAsInputTest dayOfWeek =
+    case dayOfWeek of
+        Monday ->
+            1
+
+        Tuesday ->
+            2
+
+        Wednesday ->
+            3
+
+        Thursday ->
+            4
+
+        Friday ->
+            5
+
+        Saturday ->
+            6
+
+        Sunday ->
+            7
+
+
+{-| Test: LocalDate:toISOString
+-}
+toISOStringTest : LocalDate -> String
+toISOStringTest localDate =
+    toISOString localDate
