@@ -36,7 +36,7 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
       - name: Lint code
-        run: ./mill __.checkFormat
+        run: ./build.sh lint
 
   test-js:
     runs-on: ubuntu-latest
