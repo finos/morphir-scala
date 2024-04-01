@@ -1,0 +1,8 @@
+$schema: "https://moonrepo.dev/schemas/tasks.json"
+tasks:
+  build:
+    deps:
+      - target: "~:morphir-elm-build"
+        optional: true
+      - target: "~:elm-library-build"
+        optional: true

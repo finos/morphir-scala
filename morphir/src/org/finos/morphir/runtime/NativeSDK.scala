@@ -15,9 +15,28 @@ object NativeSDK {
 
       implicit val packageName: PackageName = PackageName.fromString("Morphir.SDK")
 
+      case object Char extends SdkModuleDescriptor("Char") {
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isUpper),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isLower),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isAlpha),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isAlphaNum),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isDigit),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isOctDigit),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.isHexDigit),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.toUpper),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.toLower),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.toLocaleUpper),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.toLocaleLower),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.toCode),
+          NativeFunctionAdapter.Fun1(sdk.CharSDK.fromCode)
+        )
+      }
+
       case object String extends SdkModuleDescriptor("String") {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun2(StringSDK.append),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.repeat),
           NativeFunctionAdapter.Fun1(sdk.StringSDK.concat),
           NativeFunctionAdapter.Fun2(sdk.StringSDK.contains),
           NativeFunctionAdapter.Fun2(sdk.StringSDK.dropLeft),
@@ -46,7 +65,11 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(BasicsSDK.floor),
           NativeFunctionAdapter.Fun1(BasicsSDK.truncate),
           NativeFunctionAdapter.Fun2(BasicsSDK.integerDivide),
+          NativeFunctionAdapter.Fun1(BasicsSDK.isInfinite),
+          NativeFunctionAdapter.Fun1(BasicsSDK.isNaN),
           NativeFunctionAdapter.Fun2(BasicsSDK.always),
+          NativeFunctionAdapter.Fun2(BasicsSDK.equal),
+          NativeFunctionAdapter.Fun2(BasicsSDK.notEqual),
           NativeFunctionAdapter.Fun2(BasicsSDK.lessThan),
           NativeFunctionAdapter.Fun2(BasicsSDK.greaterThan),
           NativeFunctionAdapter.Fun2(BasicsSDK.greaterThanOrEqual),
@@ -62,7 +85,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(BasicsSDK.modBy),
           NativeFunctionAdapter.Fun2(BasicsSDK.remainderBy),
           NativeFunctionAdapter.Fun1(BasicsSDK.sqrt),
-          NativeFunctionAdapter.Fun3(BasicsSDK.composeRight)
+          NativeFunctionAdapter.Fun3(BasicsSDK.composeRight),
+          NativeFunctionAdapter.Fun3(BasicsSDK.composeLeft)
         )
 
         private val enumSDKConstructor = SDKConstructor(scala.List())
@@ -104,6 +128,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.filter),
           NativeFunctionAdapter.Fun2(ListSDK.map),
           NativeFunctionAdapter.Fun2(ListSDK.any),
+          NativeFunctionAdapter.Fun1(ListSDK.maximum),
+          NativeFunctionAdapter.Fun1(ListSDK.minimum),
           NativeFunctionAdapter.Fun2(ListSDK.partition),
           NativeFunctionAdapter.Fun3(ListSDK.foldl),
           NativeFunctionAdapter.Fun2(ListSDK.append),
@@ -113,6 +139,9 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.drop),
           NativeFunctionAdapter.Fun2(ListSDK.filterMap),
           NativeFunctionAdapter.Fun3(ListSDK.foldr),
+          NativeFunctionAdapter.Fun1(ListSDK.sort),
+          NativeFunctionAdapter.Fun2(ListSDK.sortBy),
+          NativeFunctionAdapter.Fun2(ListSDK.sortWith),
           NativeFunctionAdapter.Fun1(ListSDK.head),
           NativeFunctionAdapter.Fun2(ListSDK.indexedMap),
           NativeFunctionAdapter.Fun2(ListSDK.member),
@@ -145,17 +174,20 @@ object NativeSDK {
 
       case object LocalDate extends SdkModuleDescriptor(moduleName = "LocalDate") {
         val functions: List[NativeFunctionAdapter] = scala.List(
-          NativeFunctionAdapter.Fun3(LocalDateSDK.fromCalendarDate),
-          NativeFunctionAdapter.Fun2(LocalDateSDK.fromOrdinalDate),
-          NativeFunctionAdapter.Fun3(LocalDateSDK.fromParts),
-          NativeFunctionAdapter.Fun2(LocalDateSDK.addWeeks),
-          NativeFunctionAdapter.Fun2(LocalDateSDK.diffInDays),
+          NativeFunctionAdapter.Fun1(LocalDateSDK.day),
+          NativeFunctionAdapter.Fun1(LocalDateSDK.dayOfWeek),
           NativeFunctionAdapter.Fun1(LocalDateSDK.fromISO),
-          NativeFunctionAdapter.Fun1(LocalDateSDK.year),
           NativeFunctionAdapter.Fun1(LocalDateSDK.month),
           NativeFunctionAdapter.Fun1(LocalDateSDK.monthNumber),
-          NativeFunctionAdapter.Fun1(LocalDateSDK.day),
-          NativeFunctionAdapter.Fun1(LocalDateSDK.dayOfWeek)
+          NativeFunctionAdapter.Fun1(LocalDateSDK.year),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.addDays),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.addWeeks),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.addYears),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.diffInDays),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.fromOrdinalDate),
+          NativeFunctionAdapter.Fun3(LocalDateSDK.fromCalendarDate),
+          NativeFunctionAdapter.Fun3(LocalDateSDK.fromParts),
+          NativeFunctionAdapter.Fun1(LocalDateSDK.toISOString)
         )
 
         private val enumSDKConstructor = SDKConstructor(scala.List())
@@ -189,6 +221,8 @@ object NativeSDK {
       case object Set extends SdkModuleDescriptor(moduleName = "Set") {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun3(SetSDK.foldr),
+          NativeFunctionAdapter.Fun3(SetSDK.foldl),
+          NativeFunctionAdapter.Fun2(SetSDK.filter),
           NativeFunctionAdapter.Fun2(SetSDK.insert),
           NativeFunctionAdapter.Fun1(SetSDK.singleton),
           NativeFunctionAdapter.Fun2(SetSDK.union),
@@ -206,6 +240,7 @@ object NativeSDK {
     import Morphir.SDK._
     Seq(
       Basics,
+      Char,
       Decimal,
       Dict,
       List,

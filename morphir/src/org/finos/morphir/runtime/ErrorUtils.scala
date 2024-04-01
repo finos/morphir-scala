@@ -8,11 +8,13 @@ import org.finos.morphir.ir.Value.{Pattern, TypedValue, Value, USpecification as
 import org.finos.morphir.ir.Type.{Type, UType, USpecification as UTypeSpec}
 import org.finos.morphir.ir.printing.PrintIR
 import org.finos.morphir.util.PrintMDM
+import org.finos.morphir.util.PrintRTValue
 
 import java.util
 import scala.util.control.NonFatal
 
 object ErrorUtils {
+  def indentBlock(s: String): String = s.split("\n").map("\t" + _).mkString("\n")
 
   implicit class ErrorInterpolator(sc: StringContext) {
     //format: off
@@ -69,7 +71,7 @@ object ErrorUtils {
         barBlock(barIndentBlock(title, elmBody + irBody, barWidth = 10)) // Console likes to drop leading |?
       } else {
         // TODO: RTValue probably needs its own Printer
-        val astBody = barIndentBlock("AST", PrintIR(astLike).plainText)
+        val astBody = barIndentBlock("AST", PrintRTValue(astLike).plainText)
         barBlock(barIndentBlock(title, astBody, barWidth = 10)) // Console likes to drop leading |?
       }
     def isIR(any: Any): Boolean = any match {
@@ -96,7 +98,6 @@ object ErrorUtils {
       case other                                      => isMDM(other) || isIR(other)
     }
 
-    def indentBlock(s: String): String = s.split("\n").map("\t" + _).mkString("\n")
     def indentBlockPreserveBar(s: String): String = s.split("\n").map { line =>
       if (line.startsWith("|")) "|\t" + line.drop(1)
       else "\t" + line

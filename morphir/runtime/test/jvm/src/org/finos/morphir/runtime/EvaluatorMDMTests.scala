@@ -228,7 +228,27 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     "ZeroArg",
     unionEnumShape
   )
+  def alias(data: Data, alias: FQName) = {
+    val concept = Concept.Alias(alias, data.shape)
+    Data.Aliased(data, concept)
+  }
 
+  def opaqueIntShape: Concept.Enum = Concept.Enum(
+    qn"Morphir/Examples/App:ExampleModule:OpaqueInt",
+    List(
+      Concept.Enum.Case(
+        Label("Opaque"),
+        List(
+          (EnumLabel.Named("arg1"), Concept.Int32)
+        )
+      )
+    )
+  )
+  def opaqueInt(i: Int): Data = Data.Case(
+    List((EnumLabel.Named("arg1"), Data.Int(i))),
+    "Opaque",
+    opaqueIntShape
+  )
   def oneArg(i: Int): Data = Data.Case(
     List((EnumLabel.Named("arg1"), Data.Int(i))),
     "OneArg",
@@ -246,6 +266,49 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
   def spec =
     suite("Evaluator MDM Specs")(
+      suite("Char")(
+        testEval("isUpper true")("charTests", "charIsUpperTest", 'A')(Data.Boolean(true)),
+        testEval("isUpper false")("charTests", "charIsUpperTest", 'w')(Data.Boolean(false)),
+        testEval("isUpper false numeric")("charTests", "charIsUpperTest", '1')(Data.Boolean(false)),
+        testEval("isUpper false symbol")("charTests", "charIsUpperTest", 'Σ')(
+          Data.Boolean(false)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEval("isLower true")("charTests", "charIsLowerTest", 'w')(Data.Boolean(true)),
+        testEval("isLower false")("charTests", "charIsLowerTest", 'A')(Data.Boolean(false)),
+        testEval("isLower false numeric")("charTests", "charIsLowerTest", '0')(Data.Boolean(false)),
+        testEval("isLower false symbol")("charTests", "charIsLowerTest", 'π')(
+          Data.Boolean(false)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEval("isAlpha true lower")("charTests", "charIsAlphaTest", 'z')(Data.Boolean(true)),
+        testEval("isAlpha true upper")("charTests", "charIsAlphaTest", 'A')(Data.Boolean(true)),
+        testEval("isAlpha false")("charTests", "charIsAlphaTest", '1')(Data.Boolean(false)),
+        testEval("isAlpha false symbol")("charTests", "charIsAlphaTest", 'π')(
+          Data.Boolean(false)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEval("isAlpha false")("charTests", "charIsAlphaTest", '1')(Data.Boolean(false)),
+        testEval("isAlphaNum true lower")("charTests", "charIsAlphaNumTest", 'z')(Data.Boolean(true)),
+        testEval("isAlphaNum true upper")("charTests", "charIsAlphaNumTest", 'A')(Data.Boolean(true)),
+        testEval("isAlphaNum true numeric")("charTests", "charIsAlphaNumTest", '1')(Data.Boolean(true)),
+        testEval("isAlphaNum false symbol")("charTests", "charIsAlphaNumTest", 'π')(
+          Data.Boolean(false)
+        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+        testEval("isDigit true")("charTests", "charIsDigitTest", '1')(Data.Boolean(true)),
+        testEval("isDigit false")("charTests", "charIsDigitTest", 'A')(Data.Boolean(false)),
+        testEval("isDigit false symbol")("charTests", "charIsDigitTest", 'π')(Data.Boolean(false)),
+        testEval("isOctDigit true")("charTests", "charIsOctDigitTest", '1')(Data.Boolean(true)),
+        testEval("isOctDigit false")("charTests", "charIsOctDigitTest", '8')(Data.Boolean(false)),
+        testEval("isOctDigit false letter")("charTests", "charIsOctDigitTest", 'A')(Data.Boolean(false)),
+        testEval("isOctDigit false symbol")("charTests", "charIsOctDigitTest", 'π')(Data.Boolean(false)),
+        testEval("isHexDigit true")("charTests", "charIsHexDigitTest", '1')(Data.Boolean(true)),
+        testEval("isHexDigit true upper case letter")("charTests", "charIsHexDigitTest", 'A')(Data.Boolean(true)),
+        testEval("isHexDigit true lower case letter")("charTests", "charIsHexDigitTest", 'f')(Data.Boolean(true)),
+        testEval("isHexDigit false")("charTests", "charIsHexDigitTest", 'g')(Data.Boolean(false)),
+        testEval("isHexDigit false symbol")("charTests", "charIsHexDigitTest", 'π')(Data.Boolean(false)),
+        testEval("toUpper")("charTests", "charToUpperTest", 'z')(Data.Char('Z')),
+        testEval("toLower")("charTests", "charToLowerTest", 'Z')(Data.Char('z')),
+        testEval("toLocaleUpper")("charTests", "charToLocaleUpperTest", 'z')(Data.Char('Z')),
+        testEval("toLocaleLower")("charTests", "charToLocaleLowerTest", 'Z')(Data.Char('z'))
+      ),
       suite("Constructor Tests")(
         test("Zero Arg Input") {
           for {
@@ -525,6 +588,22 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("List.any with True Output")("listTests", "listAnyFalseTest")(
           Data.Boolean(false)
         ),
+        suite("maximum")(
+          testEvaluation("maximum returns value")("listTests", "listMaximumSomeTest")(
+            Data.Optional.Some(Data.Int(3))
+          ),
+          testEvaluation("maximum returns none")("listTests", "listMaximumNoneTest")(
+            Data.Optional.None(Concept.Int32)
+          )
+        ),
+        suite("minimum")(
+          testEvaluation("minimum returns value")("listTests", "listMinimumSomeTest")(
+            Data.Optional.Some(Data.Int(-2))
+          ),
+          testEvaluation("minimum returns none")("listTests", "listMinimumNoneTest")(
+            Data.Optional.None(Concept.Int32)
+          )
+        ),
         testEvaluation("List Partition")("listTests", "listPartitionTest")(
           Data.Tuple(
             Data.List(Data.Int(1), Data.Int(3), Data.Int(5)),
@@ -622,6 +701,51 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.List(Data.Int32(1), Data.Int32(2), Data.Int32(3))
           ),
           testEval("folds empty lists")("listTests", "listFoldrTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("sort")(
+          testEval("sort list")("listTests", "listSortTest", List(3, 2, -2, 1, 0))(
+            Data.List(Data.Int32(-2), Data.Int32(0), Data.Int32(1), Data.Int32(2), Data.Int32(3))
+          ),
+          testEval("sort same number")("listTests", "listSortTest", List(1, 1))(
+            Data.List(Data.Int32(1), Data.Int32(1))
+          ),
+          testEval("sort single number")("listTests", "listSortTest", List(1))(
+            Data.List(Data.Int32(1))
+          ),
+          testEval("sort empty list")("listTests", "listSortTest", Data.List.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("sortBy")(
+          testEval("sortBy animal list")("listTests", "listSortByTest", List("mouse", "cat"))(
+            Data.List(Data.String("cat"), Data.String("mouse"))
+          ),
+          testEval("sortBy same length list")("listTests", "listSortByTest", List("alice", "chuck", "bobby"))(
+            Data.List(Data.String("alice"), Data.String("chuck"), Data.String("bobby"))
+          ),
+          testEval("sortBy single")("listTests", "listSortByTest", List("word"))(
+            Data.List(Data.String("word"))
+          ),
+          testEval("sortBy empty list")("listTests", "listSortByTest", Data.List.empty(Concept.String))(
+            Data.List.empty(Concept.String)
+          )
+        ),
+        suite("sortWith")(
+          testEval("sortWith backwards list")("listTests", "listSortWithTest", List(1, 2, 3, 4, 5))(
+            Data.List(
+              Data.Int(5),
+              Data.Int(4),
+              Data.Int(3),
+              Data.Int(2),
+              Data.Int(1)
+            )
+          ),
+          testEval("sortWith single")("listTests", "listSortWithTest", List(-1))(
+            Data.List(Data.Int(-1))
+          ),
+          testEval("sortWith empty list")("listTests", "listSortWithTest", Data.List.empty(Concept.Int32))(
             Data.List.empty(Concept.Int32)
           )
         ),
@@ -1016,8 +1140,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             )
           )
         ),
+        testEvalMultiple("addDays")("localDateTests", "addDaysTest", List(2, localDate))(
+          Data.LocalDate(localDate.plusDays(2))
+        ),
         testEvalMultiple("addWeeks")("localDateTests", "addWeeksTest", List(2, localDate))(
           Data.LocalDate(localDate.plusWeeks(2))
+        ),
+        testEvalMultiple("addYears")("localDateTests", "addYearsTest", List(2, localDate))(
+          Data.LocalDate(localDate.plusYears(2))
         ),
         testEvalMultiple("diffInDays")("localDateTests", "diffInDaysTest", List(localDate, localDate.plusDays(999)))(
           Data.Int(999)
@@ -1046,7 +1176,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("day")("localDateTests", "dayTest", localDate)(Data.Int(20)),
         testEval("dayOfWeek")("localDateTests", "dayOfWeekTest", localDate)(
           Data.DayOfWeek(java.time.DayOfWeek.SATURDAY)
-        )
+        ),
+        testEval("toISOString")("localDateTests", "toISOStringTest", localDate)(Data.String("1900-01-20"))
       ),
       suite("LocalTime")(
         testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime)),
@@ -1101,7 +1232,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 //          val expected = Double.PositiveInfinity
 //          assertTrue(actual == expected)
 //        }, //No DDL equivalent
-        testEvaluation("Pi")("nativeReferenceTests", "nativeReferencePiTest")(Data.Float(3)),
+        testEvaluation("Pi")("nativeReferenceTests", "nativeReferencePiTest")(Data.Float(scala.math.Pi)),
         testEval("ModBy")("nativeReferenceTests", "nativeReferenceModByTest", 7)(
           Data.Int(1)
         )
@@ -1195,9 +1326,40 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
               Data.Int(2),
               Data.Int(3)
             )
-          ) @@ ignore @@ tag("foldr does not match morphir-elm iteration order"),
-          testEval("folds empty lists")("setTests", "setFoldrTest", Data.Set.empty(Concept.Int32))(
+          ),
+          testEval("folds empty sets")("setTests", "setFoldrTest", Data.Set.empty(Concept.Int32))(
             Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("foldl")(
+          testEval("folds left")("setTests", "setFoldlTest", Set(1, 2, 3))(
+            Data.List(
+              Data.Int(3),
+              Data.Int(2),
+              Data.Int(1)
+            )
+          ),
+          testEval("iterates in asc sort order, not insertion order")("setTests", "setFoldlTest", Set(2, 1, 3))(
+            Data.List(
+              Data.Int(3),
+              Data.Int(2),
+              Data.Int(1)
+            )
+          ),
+          testEval("folds empty sets")("setTests", "setFoldlTest", Data.Set.empty(Concept.Int32))(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("filter")(
+          testEval("filter")("setTests", "setFilterTest", Set(-1, 1, 3, -100, 2))(
+            Data.Set(
+              Data.Int(1),
+              Data.Int(2),
+              Data.Int(3)
+            )
+          ),
+          testEval("filters empty sets")("setTests", "setFilterTest", Data.Set.empty(Concept.Int32))(
+            Data.Set.empty(Concept.Int32)
           )
         ),
         suite("insert")(
@@ -1394,6 +1556,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           List("cat", "cataracts")
         )(
           Data.True
+        ),
+        testEvalMultiple("repeat")(
+          "stringTests",
+          "stringRepeat",
+          List(2, "Whomp")
+        )(
+          Data.String("WhompWhomp")
         ),
         testEvalMultiple("contains false")(
           "stringTests",
@@ -1644,7 +1813,22 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "typeCheckerTests",
           "twoArgEntry",
           List(Data.Int(3), Data.String("Green"))
-        )(Data.Tuple(Data.Int(3), Data.String("Green")))
+        )(Data.Tuple(Data.Int(3), Data.String("Green"))),
+        testEvalMultiple("Returns opaque types")(
+          "typeCheckerTests",
+          "returnOpaque",
+          List(Data.Int(3))
+        )(opaqueInt(3)),
+        testEvalMultiple("Returns opaque types")(
+          "typeCheckerTests",
+          "acceptOpaque",
+          List(opaqueInt(2))
+        )(Data.Int(2)),
+        testEvalMultiple("Aliased opaques also fine")(
+          "typeCheckerTests",
+          "aliasedOpaqueTest",
+          List(opaqueInt(2))
+        )(alias(opaqueInt(3), FQName.fromString("Morphir.Examples.App:TypeCheckerTests:AliasedOpaque")))
       ),
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "dictFromListTest")(Data.Map(
@@ -1948,19 +2132,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("SDK Comparable Tests")(
-        testEvalMultiple("LessThan")("sdkBasicsTests", "sdkLessThanTest", List((1, 2), (1, 3)))(Data.Boolean(true)),
-        testEvalMultiple("GreaterThan")("sdkBasicsTests", "sdkGreaterThanTest", List(1, 1))(Data.Boolean(false)),
-        testEvalMultiple("LessThanOrEqual")("sdkBasicsTests", "sdkLessThanOrEqualTest", List("Blue", "Blue"))(
-          Data.Boolean(true)
-        ),
-        testEvalMultiple("GreaterThanOrEqual")(
-          "sdkBasicsTests",
-          "sdkGreaterThanOrEqualTest",
-          List(List(1, 2), List(1, 2, 3))
-        )(Data.Boolean(false)),
-        testEvalMultiple("Max")("sdkBasicsTests", "sdkMaxTest", List(1, 2))(Data.Int(2)),
-        testEvalMultiple("Min")("sdkBasicsTests", "sdkMinTest", List("Blue", "Red"))(Data.String("Blue")),
-        testEvalMultiple("Min if Equal")("sdkBasicsTests", "sdkMinTest", List("Blue", "Blue"))(Data.String("Blue")),
         testEvalMultiple("Compare Int")("sdkBasicsTests", "sdkCompareTest", List(1, 2))(Data.Order(-1)),
         testEvalMultiple("Compare Float")("sdkBasicsTests", "sdkCompareTest", List(2.0, 1.0))(Data.Order(1)),
         testEvalMultiple("Compare String")("sdkBasicsTests", "sdkCompareTest", List("Red", "Red"))(Data.Order(0)),
@@ -2005,103 +2176,310 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("SDK Basics Tests")(
-        testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
-        testEval("Floor")("sdkBasicsTests", "basicsFloorTest", 3.88)(Data.Int(3)),
-        testEval("Truncate")("sdkBasicsTests", "basicsTruncateTest", 1.2)(Data.Int(1)),
-        testEval("Truncate 2")("sdkBasicsTests", "basicsTruncateTest", -1.2)(Data.Int(-1)),
-        testEval("Truncate 3")("sdkBasicsTests", "basicsTruncateTest", .4)(Data.Int(0)),
-        testEval("Truncate 4")("sdkBasicsTests", "basicsTruncateTest", -.4)(Data.Int(0)),
-        testEvalMultiple("IntegerDivide")("sdkBasicsTests", "basicsIntegerDivideTest", List(12, 2))(
-          Data.Int(6)
+        suite("Append")(
+          testEvaluation("String append")("sdkBasicsTests", "sdkAppendStringTest")(Data.String("aa-bb")),
+          testEvaluation("List append")("sdkBasicsTests", "sdkAppendListTest")(Data.List(
+            Data.Int(1),
+            Data.Int(2),
+            Data.Int(3),
+            Data.Int(4)
+          ))
         ),
-        testEvalMultiple("IntegerDivide 2")("sdkBasicsTests", "basicsIntegerDivideTest", List(12, 0))(
-          Data.Int(0)
+        suite("Boolean")(
+          suite("Equality")(
+            testEvaluation("Equal 1")("sdkBasicsTests", "sdkEqualTest")(Data.Boolean(true)),
+            testEvaluation("Equal 2")("sdkBasicsTests", "sdkEqualTest2")(Data.Boolean(true)),
+            testEvaluation("Equal 3")("sdkBasicsTests", "sdkEqualTest3")(Data.Boolean(true)),
+            testEvaluation("Equal 4")("sdkBasicsTests", "sdkEqualTest4")(Data.Boolean(true)),
+            testEvaluation("Equal 4")("sdkBasicsTests", "sdkEqualTest5")(Data.Boolean(true)),
+            testEvaluation("Equal 5")("sdkBasicsTests", "sdkEqualTest6")(Data.Boolean(true)),
+            testEvaluation("Equal 6")("sdkBasicsTests", "sdkEqualTest7")(Data.Boolean(true))
+          ),
+          suite("Inequality")(
+            testEvaluation("InEqual 1")("sdkBasicsTests", "sdkNotEqualTest")(Data.Boolean(true)),
+            testEvaluation("InEqual 2")("sdkBasicsTests", "sdkNotEqualTest2")(Data.Boolean(true)),
+            testEvaluation("InEqual 3")("sdkBasicsTests", "sdkNotEqualTest3")(Data.Boolean(true)),
+            testEvaluation("InEqual 4")("sdkBasicsTests", "sdkNotEqualTest4")(Data.Boolean(true)),
+            testEvaluation("InEqual 5")("sdkBasicsTests", "sdkNotEqualTest5")(Data.Boolean(true)),
+            testEvaluation("InEqual 6")("sdkBasicsTests", "sdkNotEqualTest6")(Data.Boolean(true)),
+            testEvaluation("InEqual 7")("sdkBasicsTests", "sdkNotEqualTest7")(Data.Boolean(true))
+          ),
+          suite("LessThan")(
+            testEvalMultiple("Float")("sdkBasicsTests", "sdkLessThanTest", List(2.0, 4.0))(Data.Boolean(true)),
+            testEvalMultiple("Char")("sdkBasicsTests", "sdkLessThanTest", List('a', 'b'))(Data.Boolean(true)),
+            testEvalMultiple("String")("sdkBasicsTests", "sdkLessThanTest", List("AA", "BB"))(
+              Data.Boolean(true)
+            ),
+            testEvalMultiple("Tuple")("sdkBasicsTests", "sdkLessThanTest", List((1, 2), (2, 3)))(
+              Data.Boolean(true)
+            ),
+            testEvalMultiple("List")("sdkBasicsTests", "sdkLessThanTest", List(List(1, 2), List(2, 3)))(
+              Data.Boolean(true)
+            ),
+            testEvaluation("x < y - True")("sdkBasicsTests", "sdkLessThanTestIntTrue")(Data.Boolean(true)),
+            testEvaluation("x < y - False")("sdkBasicsTests", "sdkLessThanTestIntFalse")(Data.Boolean(false))
+          ),
+          suite("LessThanOrEqual")(
+            testEvalMultiple("Float")("sdkBasicsTests", "sdkLessThanOrEqualTest", List(2.0, 4.0))(
+              Data.Boolean(true)
+            ),
+            testEvalMultiple("Char")("sdkBasicsTests", "sdkLessThanOrEqualTest", List('a', 'b'))(
+              Data.Boolean(true)
+            ),
+            testEvalMultiple("String")("sdkBasicsTests", "sdkLessThanOrEqualTest", List("AA", "BB"))(
+              Data.Boolean(true)
+            ),
+            testEvalMultiple("Tuple")("sdkBasicsTests", "sdkLessThanOrEqualTest", List((1, 2), (2, 3)))(
+              Data.Boolean(true)
+            ),
+            testEvalMultiple("List")(
+              "sdkBasicsTests",
+              "sdkLessThanOrEqualTest",
+              List(List(1, 2), List(2, 3))
+            )(Data.Boolean(true)),
+            testEvaluation("x <= y - True A")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue1")(Data.Boolean(true)),
+            testEvaluation("x <= y - True B")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue2")(Data.Boolean(true)),
+            testEvaluation("x <= y - False")("sdkBasicsTests", "sdkLessThanOrEqualTestIntFalse")(Data.Boolean(false))
+          ),
+          suite("GreaterThan")(
+            testEvalMultiple("Int")("sdkBasicsTests", "sdkGreaterThanTest", List(2, 4))(
+              Data.Boolean(false)
+            ),
+            testEvalMultiple("Float")("sdkBasicsTests", "sdkGreaterThanTest", List(2.0, 4.0))(
+              Data.Boolean(false)
+            ),
+            testEvalMultiple("Char")("sdkBasicsTests", "sdkGreaterThanTest", List('a', 'b'))(
+              Data.Boolean(false)
+            ),
+            testEvalMultiple("String")("sdkBasicsTests", "sdkGreaterThanTest", List("AA", "BB"))(
+              Data.Boolean(false)
+            ),
+            testEvalMultiple("Tuple")("sdkBasicsTests", "sdkGreaterThanTest", List((1, 2), (2, 3)))(
+              Data.Boolean(false)
+            ),
+            testEvalMultiple("List")("sdkBasicsTests", "sdkGreaterThanTest", List(List(1, 2), List(2, 3)))(
+              Data.Boolean(false)
+            ),
+            testEvaluation("x > y - True")("sdkBasicsTests", "sdkGreaterThanTestIntTrue")(Data.Boolean(true)),
+            testEvaluation("x > y - False")("sdkBasicsTests", "sdkGreaterThanTestIntFalse")(Data.Boolean(false))
+          ),
+          suite("GreaterThanOrEqual")(
+            testEvalMultiple("Int")("sdkBasicsTests", "sdkGreaterThanOrEqualTest", List(2, 4))(
+              Data.Boolean(false)
+            ),
+            testEvalMultiple("Float")("sdkBasicsTests", "sdkGreaterThanOrEqualTest", List(2.0, 4.0))(
+              Data.Boolean(false)
+            ),
+            testEvalMultiple("Char")("sdkBasicsTests", "sdkGreaterThanOrEqualTest", List('a', 'b'))(
+              Data.Boolean(false)
+            ),
+            testEvalMultiple("String")(
+              "sdkBasicsTests",
+              "sdkGreaterThanOrEqualTest",
+              List("AA", "BB")
+            )(
+              Data.Boolean(false)
+            ),
+            testEvalMultiple("Tuple")(
+              "sdkBasicsTests",
+              "sdkGreaterThanOrEqualTest",
+              List((1, 2), (2, 3))
+            )(
+              Data.Boolean(false)
+            ),
+            testEvalMultiple("List")(
+              "sdkBasicsTests",
+              "sdkGreaterThanOrEqualTest",
+              List(List(1, 2), List(2, 3))
+            )(
+              Data.Boolean(false)
+            ),
+            testEvaluation("x >= y - True A")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntTrue1")(
+              Data.Boolean(true)
+            ),
+            testEvaluation("x >= y - True B")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntTrue2")(
+              Data.Boolean(true)
+            ),
+            testEvaluation("x >= y - False")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntFalse")(Data.Boolean(false))
+          ),
+          suite("Operators")(
+            testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),
+            testEvaluation("Or")("sdkBasicsTests", "sdkOrTest")(Data.Boolean(true)),
+            testEvalMultiple("Xor- true true")(
+              "sdkBasicsTests",
+              "basicsXorTest",
+              List(Data.Boolean(true), Data.Boolean(true))
+            )(
+              Data.Boolean(false)
+            ),
+            testEvalMultiple("Xor- true false")(
+              "sdkBasicsTests",
+              "basicsXorTest",
+              List(Data.Boolean(true), Data.Boolean(false))
+            )(
+              Data.Boolean(true)
+            ),
+            testEvalMultiple("Xor- false true")(
+              "sdkBasicsTests",
+              "basicsXorTest",
+              List(Data.Boolean(false), Data.Boolean(true))
+            )(
+              Data.Boolean(true)
+            ),
+            testEvalMultiple("Xor- false false")(
+              "sdkBasicsTests",
+              "basicsXorTest",
+              List(Data.Boolean(false), Data.Boolean(false))
+            )(
+              Data.Boolean(false)
+            ),
+            testEvaluation("Not")("sdkBasicsTests", "sdkNotTest")(Data.Boolean(false))
+          )
         ),
-        testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0)),
-        testEval("Always")("sdkBasicsTests", "basicsAlwaysTest", 0)(Data.List(Data.Int(0))),
-        testEval("Always 2")("sdkBasicsTests", "basicsAlwaysTest", Data.Char('z'))(Data.List(Data.Char('z'))),
-        testEvalMultiple("Clamp")("sdkBasicsTests", "basicsClampTest", List(100, 200, 1000))(Data.Int(200)),
-        testEvalMultiple("Clamp 2")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 50.0))(Data.Float(100.0)),
-        testEvalMultiple("Clamp 3")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 150.0))(Data.Float(150.0)),
-        testEvalMultiple("Clamp 4")("sdkBasicsTests", "basicsClampTest", List(100, 200, 150))(Data.Int(150)),
-        testEvalMultiple("Power")("sdkBasicsTests", "basicsPowerTest", List(4.0, 5.0))(Data.Float(1024)),
-        testEvalMultiple("Power")("sdkBasicsTests", "basicsPowerTest", List(4, 5))(Data.Int(1024)),
-        testEvalMultiple("RemainderBy")("sdkBasicsTests", "basicsRemainderByTest", List(4, 21))(Data.Int(1)),
-        testEvalMultiple("RemainderBy 2")("sdkBasicsTests", "basicsRemainderByTest", List(4, -21))(Data.Int(-1)),
-        testEvalMultiple("RemainderBy 3")("sdkBasicsTests", "basicsRemainderByTest", List(0, 4))(
-          Data.Int(0)
-        ) @@ ignore @@ TestAspect.tag("remainderBy 0 throws"),
-        testEval("Sqrt")("sdkBasicsTests", "basicsSqrtTest", Data.Float(9.0))(Data.Float(3.0)),
-        testEval("Identity")("sdkBasicsTests", "basicsIdentityTest", Data.Float(-5.0))(Data.Float(-5.0)),
-        testEvalMultiple("Xor")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(true), Data.Boolean(true)))(
-          Data.Boolean(false)
+        suite("Float")(
+          testEvaluation("Plus")("sdkBasicsTests", "sdkAddFloatTest")(Data.Float(3.0)),
+          testEvaluation("Plus overflow")("sdkBasicsTests", "sdkFloatOverflowTest")(Data.Float(3.0))
+            @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+          testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractFloatTest")(Data.Float(2.0)),
+          testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyFloatTest")(Data.Float(20.0)),
+          testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Float(2.0)),
+          testEvaluation("Divide by 0")("sdkBasicsTests", "sdkDivideByZeroTest")(Data.Float(Double.PositiveInfinity)),
+          testEvalMultiple("Power")("sdkBasicsTests", "basicsPowerTest", List(4.0, 5.0))(Data.Float(1024)),
+          testEvaluation("isNan")("sdkBasicsTests", "sdkIsNaNTest")(Data.Boolean(true)),
+          testEvaluation("isInfinite")("sdkBasicsTests", "sdkIsInfiniteTest")(Data.Boolean(true)),
+          testEvaluation("Eulers")("sdkBasicsTests", "sdkEulersNumberTest")(Data.Float(2.718281828459045)),
+          testEvaluation("Pi")("sdkBasicsTests", "sdkPiTest")(Data.Float(3.141592653589793)),
+          testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
+          testEval("Ceiling whole number")("sdkBasicsTests", "basicsCeilingTest", 3.0)(Data.Int(3)),
+          testEval("Floor")("sdkBasicsTests", "basicsFloorTest", 3.88)(Data.Int(3)),
+          testEval("Floor whole number")("sdkBasicsTests", "basicsFloorTest", 3.0)(Data.Int(3)),
+          testEval("Truncate")("sdkBasicsTests", "basicsTruncateTest", 1.2)(Data.Int(1)),
+          testEval("Truncate 2")("sdkBasicsTests", "basicsTruncateTest", -1.2)(Data.Int(-1)),
+          testEval("Truncate 3")("sdkBasicsTests", "basicsTruncateTest", .4)(Data.Int(0)),
+          testEval("Truncate 4")("sdkBasicsTests", "basicsTruncateTest", -.4)(Data.Int(0)),
+          testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0))
         ),
-        testEvalMultiple("Xor 2")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(true), Data.Boolean(false)))(
-          Data.Boolean(true)
+        suite("Int")(
+          testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
+          testEvaluation("Plus overflow")("sdkBasicsTests", "sdkIntOverflowTest")(Data.Int(3))
+            @@ ignore @@ TestAspect.tag("Not Implemented yet"),
+          testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int(2)),
+          testEval("Plus(64)")("sdkBasicsTests", "sdkAddTest64", abStruct(1L, 2L))(
+            Data.Int64(3)
+          ) @@ ignore @@ TestAspect.tag("Not properly typed"),
+          testEval("Minus(64)")("sdkBasicsTests", "sdkSubtractTest64", abStruct(4L, 2L))(
+            Data.Int64(2)
+          ) @@ ignore @@ TestAspect.tag("Not properly typed"),
+          testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyIntTest")(Data.Int(20)),
+          testEvalMultiple("IntegerDivide")("sdkBasicsTests", "basicsIntegerDivideTest", List(12, 2))(
+            Data.Int(6)
+          ),
+          testEvalMultiple("IntegerDivide 2")("sdkBasicsTests", "basicsIntegerDivideTest", List(12, 0))(
+            Data.Int(0)
+          ),
+          testEvalMultiple("IntegerDivide 2")("sdkBasicsTests", "basicsIntegerDivideTest", List(-12, 7))(
+            Data.Int(-1)
+          ),
+          testEvalMultiple("RemainderBy")("sdkBasicsTests", "basicsRemainderByTest", List(4, 21))(Data.Int(1)),
+          testEvalMultiple("RemainderBy 2")("sdkBasicsTests", "basicsRemainderByTest", List(4, -21))(Data.Int(-1)),
+          testEvalMultiple("RemainderBy 3")("sdkBasicsTests", "basicsRemainderByTest", List(0, 4))(
+            Data.Int(0)
+          ) @@ ignore @@ TestAspect.tag("remainderBy 0 throws"),
+          testEvaluation("Negative int abs")("sdkBasicsTests", "sdkAbsTest")(Data.Int(3)),
+          testEvaluation("Positive int abs")("sdkBasicsTests", "sdkAbsTest2")(Data.Int(3)),
+          testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest")(Data.Int(-3)),
+          testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest2")(Data.Int(3)),
+          testEvaluation("Round")("sdkBasicsTests", "sdkRoundTest")(Data.Int(123)),
+          testEvaluation("Round")("sdkBasicsTests", "sdkRoundTest2")(Data.Int(123)),
+          testEvalMultiple("Power")("sdkBasicsTests", "basicsPowerTest", List(4, 5))(Data.Int(1024)),
+          testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
+          testEvaluation("Sqrt")("sdkBasicsTests", "sdkSqrtTest")(Data.Float(4.0)),
+          testEvaluation("ToFloat")("sdkBasicsTests", "toFloatTest")(Data.Float(2.0))
         ),
-        testEvalMultiple("Xor 3")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(false), Data.Boolean(true)))(
-          Data.Boolean(true)
+        suite("Math")(
+          suite("Clamp")(
+            testEvalMultiple("Clamp greater than")("sdkBasicsTests", "basicsClampTest", List(100, 200, 1000))(
+              Data.Int(200)
+            ),
+            testEvalMultiple("Clamp less than")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 50.0))(
+              Data.Float(100.0)
+            ),
+            testEvalMultiple("Clamp as min")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 100.0))(
+              Data.Float(100.0)
+            ),
+            testEvalMultiple("Clamp as max")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 200.0))(
+              Data.Float(200.0)
+            ),
+            testEvalMultiple("Clamp in range")("sdkBasicsTests", "basicsClampTest", List(100.0, 200.0, 150.0))(
+              Data.Float(150.0)
+            )
+          ),
+          suite("Max")(
+            testEvalMultiple("Int")("sdkBasicsTests", "sdkMaxTest", List(2, 4))(Data.Int(4)),
+            testEvalMultiple("Float")("sdkBasicsTests", "sdkMaxTest", List(2.0, 4.0))(Data.Float(4.0)),
+            testEvalMultiple("Char")("sdkBasicsTests", "sdkMaxTest", List('a', 'b'))(Data.Char('b')),
+            testEvalMultiple("String")("sdkBasicsTests", "sdkMaxTest", List("AA", "BB"))(Data.String("BB")),
+            testEvalMultiple("Tuple")("sdkBasicsTests", "sdkMaxTest", List((1, 2), (2, 3)))(Data.Tuple(
+              Data.Int(2),
+              Data.Int(3)
+            )),
+            testEvalMultiple("List")("sdkBasicsTests", "sdkMaxTest", List(List(1, 2), List(2, 3)))(Data.List(
+              Data.Int(2),
+              Data.Int(3)
+            ))
+          ),
+          suite("Min")(
+            testEvalMultiple("Int")("sdkBasicsTests", "sdkMinTest", List(2, 4))(Data.Int(2)),
+            testEvalMultiple("Float")("sdkBasicsTests", "sdkMinTest", List(2.0, 4.0))(Data.Float(2.0)),
+            testEvalMultiple("Char")("sdkBasicsTests", "sdkMinTest", List('a', 'b'))(Data.Char('a')),
+            testEvalMultiple("String")("sdkBasicsTests", "sdkMinTest", List("AA", "BB"))(Data.String("AA")),
+            testEvalMultiple("Tuple")("sdkBasicsTests", "sdkMinTest", List((1, 2), (2, 3)))(Data.Tuple(
+              Data.Int(1),
+              Data.Int(2)
+            )),
+            testEvalMultiple("List")("sdkBasicsTests", "sdkMinTest", List(List(1, 2), List(2, 3)))(Data.List(
+              Data.Int(1),
+              Data.Int(2)
+            ))
+          ),
+          testEval("Sqrt")("sdkBasicsTests", "basicsSqrtTest", Data.Float(9.0))(Data.Float(3.0)),
+          testEvaluation("LogBase")("sdkBasicsTests", "sdkLogBaseTest")(Data.Float(2.0)),
+          testEvaluation("LogBase2")("sdkBasicsTests", "sdkLogBaseTest2")(Data.Float(8.0))
         ),
-        testEvalMultiple("Xor 4")("sdkBasicsTests", "basicsXorTest", List(Data.Boolean(false), Data.Boolean(false)))(
-          Data.Boolean(false)
-        ),
-        testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
-        testEvaluation("Minus")("sdkBasicsTests", "sdkSubtractTest")(Data.Int(2)),
-        testEval("Plus(64)")("sdkBasicsTests", "sdkAddTest64", abStruct(1L, 2L))(
-          Data.Int64(3)
-        ) @@ ignore @@ TestAspect.tag("Not properly typed"),
-        testEval("Minus(64)")("sdkBasicsTests", "sdkSubtractTest64", abStruct(4L, 2L))(
-          Data.Int64(2)
-        ) @@ ignore @@ TestAspect.tag("Not properly typed"),
-        testEvaluation("Divide")("sdkBasicsTests", "sdkDivideTest")(Data.Float(2.0)),
-        testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyIntTest")(Data.Int(20)),
-        testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyFloatTest")(Data.Float(20.0)),
-        testEvaluation("Round")("sdkBasicsTests", "sdkRoundTest")(Data.Int(123)),
-        testEvaluation("Round")("sdkBasicsTests", "sdkRoundTest2")(Data.Int(123)),
-        testEvaluation("ModBy")("sdkBasicsTests", "sdkModByTest")(Data.Int(2)),
-        testEvaluation("And")("sdkBasicsTests", "sdkAndTest")(Data.Boolean(false)),
-        testEvaluation("x < y - True")("sdkBasicsTests", "sdkLessThanTestIntTrue")(Data.Boolean(true)),
-        testEvaluation("x < y - False")("sdkBasicsTests", "sdkLessThanTestIntFalse")(Data.Boolean(false)),
-        testEvaluation("x > y - True")("sdkBasicsTests", "sdkGreaterThanTestIntTrue")(Data.Boolean(true)),
-        testEvaluation("x > y - False")("sdkBasicsTests", "sdkGreaterThanTestIntFalse")(Data.Boolean(false)),
-        testEvaluation("x >= y - True A")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntTrue1")(Data.Boolean(true)),
-        testEvaluation("x >= y - True B")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntTrue2")(Data.Boolean(true)),
-        testEvaluation("x >= y - False")("sdkBasicsTests", "sdkGreaterThanOrEqualTestIntFalse")(Data.Boolean(false)),
-        testEvaluation("x <= y - True A")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue1")(Data.Boolean(true)),
-        testEvaluation("x <= y - True B")("sdkBasicsTests", "sdkLessThanOrEqualTestIntTrue2")(Data.Boolean(true)),
-        testEvaluation("x <= y - False")("sdkBasicsTests", "sdkLessThanOrEqualTestIntFalse")(Data.Boolean(false)),
-        testEvaluation("ToFloat")("sdkBasicsTests", "toFloatTest")(Data.Float(2.0)),
-        testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest")(Data.Int(-3)),
-        testEvaluation("Negate")("sdkBasicsTests", "sdkNegateTest2")(Data.Int(3)),
-        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest")(Data.Boolean(true)),
-        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest2")(Data.Boolean(true)),
-        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest3")(Data.Boolean(true)),
-        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest4")(Data.Boolean(true)),
-        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest5")(Data.Boolean(true)),
-        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest6")(Data.Boolean(true)),
-        testEvaluation("Equal")("sdkBasicsTests", "sdkEqualTest7")(Data.Boolean(true)),
-        testEvaluation("Or")("sdkBasicsTests", "sdkOrTest")(Data.Boolean(true)),
-        testEvaluation("Not")("sdkBasicsTests", "sdkNotTest")(Data.Boolean(false)),
-        testEvaluation("LogBase")("sdkBasicsTests", "sdkLogBaseTest")(Data.Float(2.0)),
-        testEvaluation("Plus overflow")("sdkBasicsTests", "sdkIntOverflowTest")(
-          Data.Int(3)
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
-        testEvaluation("Plus Float")("sdkBasicsTests", "sdkAddFloatTest")(
-          Data.Decimal(3.0)
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
-        testEvaluation("Multiply")("sdkBasicsTests", "sdkMultiplyTest")(Data.Int(6)) @@ ignore @@ TestAspect.tag(
-          "Not Implemented yet"
-        ),
-        testEvaluation("Divide by 0")("sdkBasicsTests", "sdkDivideByZeroTest")(
-          Data.Decimal(2.0)
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
-        testEvaluation("LessThanFloat")("sdkBasicsTests", "sdkLessThanTestFloat")(
-          Data.Boolean(true)
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
-        testEvaluation("LessThanChar")("sdkBasicsTests", "sdkLessThanTestChar")(
-          Data.Boolean(true)
-        ) @@ ignore @@ TestAspect.tag("Not Implemented yet"),
-        testEvaluation("ComposeRight (>>)")("sdkBasicsTests", "sdkComposeRightTest")(Data.Int(603))
+        suite("break")(
+          suite("Always")(
+            testEval("Int")("sdkBasicsTests", "basicsAlwaysTest", 0)(Data.List(Data.Int(0))),
+            testEval("Float")("sdkBasicsTests", "basicsAlwaysTest", 4.0)(Data.List(Data.Float(4.0))),
+            testEval("Char")("sdkBasicsTests", "basicsAlwaysTest", Data.Char('z'))(Data.List(Data.Char('z'))),
+            testEval("String")("sdkBasicsTests", "basicsAlwaysTest", Data.String("A"))(
+              Data.List(Data.String("A"))
+            )
+          ),
+          suite("Compose")(
+            testEvaluation("ComposeLeft (<<)")("sdkBasicsTests", "sdkComposeLeftTest")(Data.Boolean(false)),
+            testEvaluation("ComposeRight (>>)")("sdkBasicsTests", "sdkComposeRightTest")(Data.Int(603))
+          ),
+          suite("Identity")(
+            testEval("Int")("sdkBasicsTests", "basicsIdentityTest", Data.Int(4))(Data.Int(4)),
+            testEval("Float")("sdkBasicsTests", "basicsIdentityTest", Data.Float(-5.0))(Data.Float(-5.0)),
+            testEval("Char")("sdkBasicsTests", "basicsIdentityTest", Data.Char('b'))(Data.Char('b')),
+            testEval("String")("sdkBasicsTests", "basicsIdentityTest", Data.String("BB"))(Data.String("BB")),
+            testEval("Tuple")(
+              "sdkBasicsTests",
+              "basicsIdentityTest",
+              Data.Tuple(
+                Data.Int(2),
+                Data.Int(3)
+              )
+            )(Data.Tuple(
+              Data.Int(2),
+              Data.Int(3)
+            )),
+            testEval("List")("sdkBasicsTests", "basicsIdentityTest", Data.List(Data.Int(2), Data.Int(3)))(
+              Data.List(Data.Int(2), Data.Int(3))
+            )
+          )
+        )
       )
     ).provideLayerShared(morphirRuntimeLayer)
 

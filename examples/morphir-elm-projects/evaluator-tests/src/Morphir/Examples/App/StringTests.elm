@@ -26,6 +26,16 @@ stringConcat l =
 
 {-|
 
+    Test: String/repeat
+
+-}
+stringRepeat : Int -> String -> String
+stringRepeat i s =
+    repeat i s
+
+
+{-|
+
     Test: String/contains
 
 -}

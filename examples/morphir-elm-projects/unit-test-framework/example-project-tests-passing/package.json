@@ -1,0 +1,13 @@
+{
+  "name": "@morphir-examples/unit-test-framework-example-tests-passing",
+  "private": true,
+  "devDependencies": {
+    "elm-format": "^0.8.5",
+    "elm-tooling": "^1.15.1",
+    "morphir-elm": "^2.81.0"
+  },
+  "scripts": {
+    "format": "elm-format --yes .",
+    "make": "morphir-elm make"
+  }
+}

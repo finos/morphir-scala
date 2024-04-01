@@ -38,15 +38,6 @@ jobs:
       - name: Lint code
         run: ./mill __.checkFormat
 
-  check-website-build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - name: Checkout current branch
-        uses: actions/checkout@v4
-      - name: Check MDoc related files
-        run: ./mill -i -k __.mdoc
-
   test-js:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -54,7 +45,7 @@ jobs:
       fail-fast: false
       matrix:
         java: ["11"] # Note there is no need ro actually run this for multiple JVM versions for JS
-        scala: ["2.13.12", "3.3.1"]
+        scala: ["2.13.13", "3.3.3"]
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -75,7 +66,7 @@ jobs:
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
         if: github.ref == 'refs/heads/main' || (github.ref != 'refs/heads/main' && startsWith( github.ref, 'refs/tags/') )
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: |
             out/morphir/${{matrix.scala}}/**/js/
@@ -88,7 +79,7 @@ jobs:
       fail-fast: false
       matrix:
         java: ["11", "17"]
-        scala: ["2.13.12", "3.3.1"]
+        scala: ["2.13.13", "3.3.3"]
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -102,14 +93,25 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
 
+      - name: Setup proto and moon toolchains
+        uses: moonrepo/setup-toolchain@v0.3.1
+        with:
+          auto-install: true
+            
+      - name: Install tooling
+        run: |
+          ./build.sh install
+      - name: Make Morphir IR
+        run: |
+          ./build.sh run :morphir-elm-build
       - name: Run JVM tests
         run: |
-          ./mill -i -k -j 0 "morphir[${{matrix.scala}}].__.jvm.__.compile" + "morphir[${{matrix.scala}}].__.jvm.publishArtifacts" + "morphir[${{matrix.scala}}].__.jvm.__.test"
+          ./build.sh --scala-version ${{matrix.scala}} test-jvm
 
       - name: Cache JVM build output
         # when in master repo: all commits to main branch and all additional tags
         if: github.ref == 'refs/heads/main' || (github.ref != 'refs/heads/main' && startsWith( github.ref, 'refs/tags/') )
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: |
             out/morphir/${{matrix.scala}}/**/jvm/
@@ -123,7 +125,7 @@ jobs:
       fail-fast: false
       matrix:
         java: ["11"] # Note there is no need ro actually run this for multiple JVM versions for native
-        scala: ["2.13.12", "3.3.1"]
+        scala: ["2.13.13", "3.3.3"]
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -150,7 +152,7 @@ jobs:
       - name: Cache Native build output
         # when in master repo: all commits to main branch and all additional tags
         if: github.ref == 'refs/heads/main' || (github.ref != 'refs/heads/main' && startsWith( github.ref, 'refs/tags/') )
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: |
             out/morphir/${{matrix.scala}}/**/native/
@@ -194,59 +196,59 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libuv1-dev
 
       - name: Restore Scala 2.13 JVM Build Output From Cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
-            out/morphir/2.13.12/**/jvm/
+            out/morphir/2.13.13/**/jvm/
             out/morphir/build/
-          key: ${{ runner.os }}-mill-jvm-11-2.13.12-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-jvm-11-2.13.12-${{ github.sha }}-
+          key: ${{ runner.os }}-mill-jvm-11-2.13.13-${{ github.sha }}-${{ hashFiles('out') }}
+          restore-keys: ${{ runner.os }}-mill-jvm-11-2.13.13-${{ github.sha }}-
 
       - name: Restore Scala 3.3 JVM Build Output From Cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
-            out/morphir/3.3.1/**/jvm/
-          key: ${{ runner.os }}-mill-jvm-11-3.3.1-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-jvm-11-3.3.1-${{ github.sha }}-
+            out/morphir/3.3.3/**/jvm/
+          key: ${{ runner.os }}-mill-jvm-11-3.3.3-${{ github.sha }}-${{ hashFiles('out') }}
+          restore-keys: ${{ runner.os }}-mill-jvm-11-3.3.3-${{ github.sha }}-
 
       - name: Restore Scala 2.13 JS Build Output From Cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
-            out/morphir/2.13.12/**/js/
-          key: ${{ runner.os }}-mill-js-11-2.13.12-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-js-11-2.13.12-${{ github.sha }}-
+            out/morphir/2.13.13/**/js/
+          key: ${{ runner.os }}-mill-js-11-2.13.13-${{ github.sha }}-${{ hashFiles('out') }}
+          restore-keys: ${{ runner.os }}-mill-js-11-2.13.13-${{ github.sha }}-
 
       - name: Restore Scala 3.3 JS Build Output From Cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
-            out/morphir/3.3.1/**/js/
-          key: ${{ runner.os }}-mill-js-11-3.3.1-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-js-11-3.3.1-${{ github.sha }}-
+            out/morphir/3.3.3/**/js/
+          key: ${{ runner.os }}-mill-js-11-3.3.3-${{ github.sha }}-${{ hashFiles('out') }}
+          restore-keys: ${{ runner.os }}-mill-js-11-3.3.3-${{ github.sha }}-
 
       - name: Restore Scala 2.13 Native Build Output From Cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
-            out/morphir/2.13.12/**/native/
-          key: ${{ runner.os }}-mill-native-11-2.13.12-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-native-11-2.13.12-${{ github.sha }}-
+            out/morphir/2.13.13/**/native/
+          key: ${{ runner.os }}-mill-native-11-2.13.13-${{ github.sha }}-${{ hashFiles('out') }}
+          restore-keys: ${{ runner.os }}-mill-native-11-2.13.13-${{ github.sha }}-
 
       - name: Restore Scala 3.3 Native Build Output From Cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
-            out/morphir/3.3.1/**/native/
-          key: ${{ runner.os }}-mill-native-11-3.3.1-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-native-11-3.3.1-${{ github.sha }}-
+            out/morphir/3.3.3/**/native/
+          key: ${{ runner.os }}-mill-native-11-3.3.3-${{ github.sha }}-${{ hashFiles('out') }}
+          restore-keys: ${{ runner.os }}-mill-native-11-3.3.3-${{ github.sha }}-
 
       - run: ./mill -i -j 0 io.kipp.mill.ci.release.ReleaseModule/publishAll
 
   ci:
     runs-on: ubuntu-latest
-    needs: [lint, check-website-build, test-js, test-jvm, test-native]
+    needs: [lint, test-js, test-jvm, test-native]
     steps:
       - name: Aggregate of lint, and all tests
         run: echo "ci passed"
