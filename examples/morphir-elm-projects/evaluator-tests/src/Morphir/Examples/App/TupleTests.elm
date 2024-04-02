@@ -1,7 +1,7 @@
 module Morphir.Examples.App.TupleTests exposing (..)
 
 import Morphir.Examples.App.TestUtils exposing (..)
-import Morphir.SDK.Tuple exposing (..)
+import Tuple exposing (..)
 
 
 {-| Test : Tuple/Two
