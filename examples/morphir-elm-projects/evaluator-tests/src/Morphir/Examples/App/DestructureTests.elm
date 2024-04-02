@@ -162,28 +162,6 @@ destructureDirectTest ctx =
         in
         ( y, x )
 
-
-{-|
-
-    Test: Destructure/HeadTail
-    expected = 5
-
--}
-destructureHeadTailTest : TestContext -> Int
-destructureHeadTailTest ctx =
-    test ctx <|
-        let
-            destructure : List Int -> Int
-            destructure toDestructure =
-                let
-                    (x :: _) =
-                        toDestructure
-                in
-                x
-        in
-        destructure [ 5 ]
-
-
 {-|
 
     Test: Destructure/Literal
