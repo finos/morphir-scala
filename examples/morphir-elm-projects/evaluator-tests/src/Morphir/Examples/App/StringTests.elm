@@ -11,7 +11,7 @@ import Morphir.SDK.String as String exposing (..)
 -}
 stringAppend : String -> String -> String
 stringAppend l r =
-    append l r
+    String.append l r
 
 
 {-|
@@ -21,7 +21,7 @@ stringAppend l r =
 -}
 stringConcat : List String -> String
 stringConcat l =
-    concat l
+    String.concat l
 
 
 {-|
@@ -31,7 +31,7 @@ stringConcat l =
 -}
 stringRepeat : Int -> String -> String
 stringRepeat i s =
-    repeat i s
+    String.repeat i s
 
 
 {-|
@@ -41,7 +41,7 @@ stringRepeat i s =
 -}
 stringContains : String -> String -> Bool
 stringContains substring str =
-    contains substring str
+    String.contains substring str
 
 
 {-|
@@ -51,7 +51,7 @@ stringContains substring str =
 -}
 stringDropLeft : Int -> String -> String
 stringDropLeft n str =
-    dropLeft n str
+    String.dropLeft n str
 
 
 {-|
@@ -61,7 +61,7 @@ stringDropLeft n str =
 -}
 stringDropRight : Int -> String -> String
 stringDropRight n str =
-    dropRight n str
+    String.dropRight n str
 
 
 {-|
@@ -71,7 +71,7 @@ stringDropRight n str =
 -}
 stringEndsWith : String -> String -> Bool
 stringEndsWith ref str =
-    endsWith ref str
+    String.endsWith ref str
 
 
 {-|
@@ -81,7 +81,7 @@ stringEndsWith ref str =
 -}
 stringJoin : String -> List String -> String
 stringJoin sep list =
-    join sep list
+    String.join sep list
 
 
 {-|
