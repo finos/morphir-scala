@@ -78,12 +78,12 @@ resultToString result =
 
 
 run : Test -> TestResult
-run test =
-    if checkOnly test then
-        runOnly test
+run tst =
+    if checkOnly tst then
+        runOnly tst
 
     else
-        runAll test
+        runAll tst
 
 
 passed : TestResult -> Bool
@@ -98,14 +98,14 @@ passed result =
 countResults : TestResult -> Counts
 countResults result =
     case result of
-        DescribeResult desc results ->
+        DescribeResult _ results ->
             let
                 counts =
                     List.map countResults results
             in
             sumCounts counts
 
-        SingleTestResult desc inner ->
+        SingleTestResult _ inner ->
             case inner of
                 Pass ->
                     { passed = 1, failed = 0, skipped = 0, todos = 0 }
@@ -120,11 +120,11 @@ countResults result =
             in
             sumCounts counts
 
-        TodoResult desc ->
+        TodoResult _ ->
             { passed = 0, failed = 0, skipped = 0, todos = 1 }
 
-        SkipResult desc count ->
-            { passed = 0, failed = 0, skipped = count, todos = 0 }
+        SkipResult _ cnt ->
+            { passed = 0, failed = 0, skipped = cnt, todos = 0 }
 
 
 countsToString : Counts -> String
@@ -151,8 +151,8 @@ sumCounts a =
 
 
 runAll : Test -> TestResult
-runAll test =
-    case test of
+runAll tst =
+    case tst of
         Describe desc tests ->
             let
                 results =
@@ -182,12 +182,12 @@ runAll test =
 
 
 runOnly : Test -> TestResult
-runOnly test =
-    if not (checkOnly test) then
-        skipTests test
+runOnly tst =
+    if not (checkOnly tst) then
+        skipTests tst
 
     else
-        case test of
+        case tst of
             Describe desc tests ->
                 DescribeResult desc (List.map runOnly tests)
 
@@ -211,16 +211,16 @@ runOnly test =
 
 
 skipTests : Test -> TestResult
-skipTests test =
-    case test of
-        Describe desc tests ->
-            SkipResult desc (count test)
+skipTests tst =
+    case tst of
+        Describe desc _ ->
+            SkipResult desc (count tst)
 
-        SingleTest desc inner ->
+        SingleTest desc _ ->
             SkipResult desc 1
 
         _ ->
-            SkipResult "" (count test)
+            SkipResult "" (count tst)
 
 
 resultToStringHelper : Int -> TestResult -> String
@@ -251,8 +251,8 @@ resultToStringHelper depth result =
         TodoResult desc ->
             String.repeat depth "\t" ++ desc ++ ": TODO"
 
-        SkipResult desc count ->
-            String.repeat depth "\t" ++ desc ++ ": SKIPPED - (" ++ String.fromInt count ++ " tests skipped)"
+        SkipResult desc cnt ->
+            String.repeat depth "\t" ++ desc ++ ": SKIPPED - (" ++ String.fromInt cnt ++ " tests skipped)"
 
 
 
@@ -269,16 +269,16 @@ intSum ints =
 
 
 count : Test -> Int
-count test =
-    case test of
-        Describe a b ->
+count tst =
+    case tst of
+        Describe _ b ->
             let
                 c =
                     List.map count b
             in
             intSum c
 
-        SingleTest a b ->
+        SingleTest _ _ ->
             1
 
         Concat a ->
@@ -288,7 +288,7 @@ count test =
             in
             intSum c
 
-        Todo a ->
+        Todo _ ->
             1
 
         Skip a ->
@@ -299,22 +299,22 @@ count test =
 
 
 checkOnly : Test -> Bool
-checkOnly test =
-    case test of
-        Describe a b ->
+checkOnly tst =
+    case tst of
+        Describe _ b ->
             List.any checkOnly b
 
-        SingleTest a b ->
+        SingleTest _ _ ->
             False
 
         Concat a ->
             List.any checkOnly a
 
-        Todo a ->
+        Todo _ ->
             False
 
         Skip a ->
             checkOnly a
 
-        Only a ->
+        Only _ ->
             True

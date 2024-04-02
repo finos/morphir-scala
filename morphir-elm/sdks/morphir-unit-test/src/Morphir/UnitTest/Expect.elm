@@ -1,8 +1,7 @@
 module Morphir.UnitTest.Expect exposing (..)
 
 import Morphir.SDK.Dict exposing (Dict, get, toList)
-import Morphir.SDK.List exposing (List)
-import Morphir.SDK.Set exposing (Set)
+import Set exposing (Set)
 
 
 type Expectation
@@ -15,7 +14,7 @@ type ExpectationResult
 
 
 getResult : Expectation -> ExpectationResult
-getResult Expectation result =
+getResult (Expectation result) =
     result
 
 
