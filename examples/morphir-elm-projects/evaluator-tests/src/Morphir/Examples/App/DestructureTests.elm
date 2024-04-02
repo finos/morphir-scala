@@ -121,7 +121,7 @@ destructureAsTwiceTest ctx =
                     (x as y) =
                         toDestructure
                 in
-                ( x, x )
+                ( x, y )
         in
         destructure 5
 
