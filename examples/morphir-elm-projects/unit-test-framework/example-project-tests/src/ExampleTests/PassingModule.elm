@@ -3,7 +3,7 @@ module ExampleTests.PassingModule exposing (..)
 import Example.ExampleModule exposing (..)
 import Morphir.SDK.Dict as Dict
 import Morphir.UnitTest.Expect as Expect
-import Morphir.UnitTest.Test exposing (..)
+import Morphir.UnitTest.Test as Test exposing (..)
 import Set
 
 
@@ -55,20 +55,22 @@ simplePassingTests =
 
 passingCollectionTests : Test
 passingCollectionTests =
-    let
-        l1 =
-            [ ( "Red", 1 ), ( "Blue", 2 ) ]
+    Test.concat
+        (let
+            l1 =
+                [ ( "Red", 1 ), ( "Blue", 2 ) ]
 
-        l2 =
-            [ ( "Red", 1 ), ( "Blue", 2 ) ]
-    in
-    [ test "equalLists" <|
-        \_ -> Expect.equalLists l1 l2
-    , test "equalDicts" <|
-        \_ -> Expect.equalDicts (Dict.fromList l1) (Dict.fromList l2)
-    , test "equalSets" <|
-        \_ -> Expect.equalSets (Set.fromList l1) (Set.fromList l2)
-    ]
+            l2 =
+                [ ( "Red", 1 ), ( "Blue", 2 ) ]
+         in
+         [ test "equalLists" <|
+            \_ -> Expect.equalLists l1 l2
+         , test "equalDicts" <|
+            \_ -> Expect.equalDicts (Dict.fromList l1) (Dict.fromList l2)
+         , test "equalSets" <|
+            \_ -> Expect.equalSets (Set.fromList l1) (Set.fromList l2)
+         ]
+        )
 
 
 passingAll : Test
