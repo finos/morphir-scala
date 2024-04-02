@@ -2,9 +2,9 @@ module ExampleTests.FailingModuleOne exposing (..)
 
 import Example.ExampleModule exposing (..)
 import Morphir.SDK.Dict as Dict
-import Morphir.SDK.Set as Set
 import Morphir.UnitTest.Expect as Expect
 import Morphir.UnitTest.Test exposing (..)
+import Set
 
 
 positive : Int -> Expect.Expectation
@@ -101,8 +101,8 @@ introspectedTestSuite =
 
 collectionEqualityTests : Test
 collectionEqualityTests =
-    describe "Tests showing collection diff reporting"
-        [ let
+    describe "Tests showing collection diff reporting" <|
+        let
             short =
                 [ ( "Grass", "Green" ) ]
 
@@ -117,62 +117,61 @@ collectionEqualityTests =
 
             different =
                 [ ( "Grass", "Verdant" ), ( "Fire", "Crimson" ), ( "Snow", "Alabaster" ), ( "Sky", "Cerulean" ), ( "Coal", "Really, Really Dark Black" ) ]
-          in
-          [ describe
-                "List tests"
-                [ test "equalLists different Lengths" <|
-                    \_ ->
-                        Expect.equalLists
-                            base
-                            long
-                , test "equalLists different contents" <|
-                    \_ ->
-                        Expect.equalLists
-                            long
-                            different
-                ]
-          , describe
-                "Dict tests"
-                [ test "equalDicts first longer" <|
-                    \_ ->
-                        Expect.equalDicts
-                            (Dict.fromList base)
-                            (Dict.fromList short)
-                , test "equalDicts second much longer" <|
-                    \_ ->
-                        Expect.equalDicts
-                            (Dict.fromList short)
-                            (Dict.fromList long)
-                , test "equalDicts many differences" <|
-                    \_ ->
-                        Expect.equalDicts
-                            (Dict.fromList long)
-                            (Dict.fromList different)
-                , test "equalDicts mixed differences" <|
-                    \_ ->
-                        Expect.equalDicts
-                            (Dict.fromList base)
-                            (Dict.fromList middle)
-                ]
-          , describe
-                "Set tests"
-                [ test "equalSets first longer" <|
-                    \_ ->
-                        Expect.equalSets
-                            (Set.fromList long)
-                            (Set.fromList base)
-                , test "equalSets second much longer" <|
-                    \_ ->
-                        Expect.equalSets
-                            (Set.fromList short)
-                            (Set.fromList long)
-                , test "equalSets neither is subset" <|
-                    \_ ->
-                        Expect.equalSets
-                            (Set.fromList base)
-                            (Set.fromList middle)
-                ]
-          ]
+        in
+        [ describe
+            "List tests"
+            [ test "equalLists different Lengths" <|
+                \_ ->
+                    Expect.equalLists
+                        base
+                        long
+            , test "equalLists different contents" <|
+                \_ ->
+                    Expect.equalLists
+                        long
+                        different
+            ]
+        , describe
+            "Dict tests"
+            [ test "equalDicts first longer" <|
+                \_ ->
+                    Expect.equalDicts
+                        (Dict.fromList base)
+                        (Dict.fromList short)
+            , test "equalDicts second much longer" <|
+                \_ ->
+                    Expect.equalDicts
+                        (Dict.fromList short)
+                        (Dict.fromList long)
+            , test "equalDicts many differences" <|
+                \_ ->
+                    Expect.equalDicts
+                        (Dict.fromList long)
+                        (Dict.fromList different)
+            , test "equalDicts mixed differences" <|
+                \_ ->
+                    Expect.equalDicts
+                        (Dict.fromList base)
+                        (Dict.fromList middle)
+            ]
+        , describe
+            "Set tests"
+            [ test "equalSets first longer" <|
+                \_ ->
+                    Expect.equalSets
+                        (Set.fromList long)
+                        (Set.fromList base)
+            , test "equalSets second much longer" <|
+                \_ ->
+                    Expect.equalSets
+                        (Set.fromList short)
+                        (Set.fromList long)
+            , test "equalSets neither is subset" <|
+                \_ ->
+                    Expect.equalSets
+                        (Set.fromList base)
+                        (Set.fromList middle)
+            ]
         ]
 
 

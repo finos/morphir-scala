@@ -55,22 +55,21 @@ simplePassingTests =
 
 passingCollectionTests : Test
 passingCollectionTests =
-    Test.concat
-        (let
+    Test.concat <|
+        let
             l1 =
                 [ ( "Red", 1 ), ( "Blue", 2 ) ]
 
             l2 =
                 [ ( "Red", 1 ), ( "Blue", 2 ) ]
-         in
-         [ test "equalLists" <|
+        in
+        [ test "equalLists" <|
             \_ -> Expect.equalLists l1 l2
-         , test "equalDicts" <|
+        , test "equalDicts" <|
             \_ -> Expect.equalDicts (Dict.fromList l1) (Dict.fromList l2)
-         , test "equalSets" <|
+        , test "equalSets" <|
             \_ -> Expect.equalSets (Set.fromList l1) (Set.fromList l2)
-         ]
-        )
+        ]
 
 
 passingAll : Test
