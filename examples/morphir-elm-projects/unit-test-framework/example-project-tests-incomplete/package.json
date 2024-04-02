@@ -2,7 +2,6 @@
   "name": "@morphir-examples/unit-test-framework-example-tests-incomplete",
   "private": true,
   "devDependencies": {
-    "elm-format": "^0.8.5",
     "elm-tooling": "^1.15.1",
     "morphir-elm": "^2.81.0"
   },
