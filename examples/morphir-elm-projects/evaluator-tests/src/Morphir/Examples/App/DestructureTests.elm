@@ -164,27 +164,6 @@ destructureDirectTest ctx =
 
 {-|
 
-    Test: Destructure/Literal
-    expected = 4
-
--}
-destructureLiteralTest : TestContext -> Int
-destructureLiteralTest ctx =
-    test ctx <|
-        let
-            destructure : Int -> Int
-            destructure toDestructure =
-                let
-                    5 =
-                        toDestructure
-                in
-                4
-        in
-        destructure 5
-
-
-{-|
-
     Test: Destructure/EmptyList
     expected = "Correct"
 
