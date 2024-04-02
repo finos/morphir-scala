@@ -80,7 +80,7 @@ resultMapWithContext input =
             x ++ color
     in
     let
-        x =
+        _ =
             "Bright"
     in
     Result.map f input

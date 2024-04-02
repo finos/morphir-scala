@@ -1,4 +1,4 @@
-module Morphir.Examples.App.ExampleModule exposing (ModuleRecord, ModuleSingleUnion(..), ModuleUnion(..), OpaqueInt, TypeArgRecord(..), TypeArgUnion(..), five, inputRecordFunction, inputUnionFunction, outputRecordFunction, outputUnionFunction, parametricFunction, publicFunction, tupleReverse, unwrap, wrap)
+module Morphir.Examples.App.ExampleModule exposing (ModuleRecord, ModuleSingleUnion(..), ModuleUnion(..), OpaqueInt, TypeArgRecord, TypeArgUnion(..), five, inputRecordFunction, inputUnionFunction, outputRecordFunction, outputUnionFunction, parametricFunction, publicFunction, tupleReverse, unwrap, wrap)
 
 import Dict exposing (Dict)
 import Morphir.Examples.App.TestUtils exposing (..)
