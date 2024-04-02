@@ -1,7 +1,6 @@
 module Morphir.Examples.App.SdkBasicsTests exposing (..)
 
 import Morphir.Examples.App.TestUtils exposing (..)
-import Morphir.SDK.Basics exposing (integerDivide, power)
 import Morphir.SDK.Int exposing (Int64)
 
 
@@ -1102,7 +1101,7 @@ expected(-12, 7) = -1
 -}
 basicsIntegerDivideTest : Int -> Int -> Int
 basicsIntegerDivideTest x y =
-    integerDivide x y
+    x // y
 
 
 {-| Test: SdkBasics/basicsAbsTest
@@ -1135,7 +1134,7 @@ expected(100.0, 200.0, 100.0) = 100.0
 expected(100.0, 200.0, 200.0) = 200.0
 expected(100.0, 200.0, 150.0) = 150.0
 -}
-basicsClampTest : a -> a -> a -> a
+basicsClampTest : number -> number -> number -> number
 basicsClampTest min max x =
     clamp min max x
 
@@ -1157,9 +1156,9 @@ basicsIdentityTest x =
 expected(4.0, 5.0) = 1024
 expected(2, 5) = 1024
 -}
-basicsPowerTest : a -> a -> a
+basicsPowerTest : number -> number -> number
 basicsPowerTest n x =
-    power n x
+    n ^ x
 
 
 {-| Test: SdkBasics/basicsRemainderByTest
