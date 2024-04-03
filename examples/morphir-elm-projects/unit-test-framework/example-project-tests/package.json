@@ -6,6 +6,7 @@
     "morphir-elm": "^2.81.0"
   },
   "scripts": {
+    "postinstall": "elm-tooling install",
     "format": "elm-format --yes .",
     "make": "morphir-elm make"
   }
