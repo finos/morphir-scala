@@ -1,7 +1,7 @@
 module Morphir.Examples.App.SdkBasicsTests exposing (..)
 
 import Morphir.Examples.App.TestUtils exposing (..)
-import Morphir.SDK.Int exposing (Int64(..))
+import Morphir.SDK.Int exposing (Int64)
 import Morphir.SDK.Int as Int
 
 
