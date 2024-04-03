@@ -2,5 +2,7 @@ tasks:
   scala-lint:
     command: |
       ./mill Alias/run checkfmt
+    options:
+      cache: false
 tags:
   - "scala"
