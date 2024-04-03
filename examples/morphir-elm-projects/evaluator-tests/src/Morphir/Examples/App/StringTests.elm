@@ -134,7 +134,7 @@ stringLeftTest ctx =
 stringRightTest : TestContext -> String
 stringRightTest ctx =
     test ctx
-        (right 2 "Scully")
+        (String.right 2 "Scully")
 
 
 {-|
@@ -176,7 +176,7 @@ stringStartsWith ref str =
 stringFromIntTest : TestContext -> String
 stringFromIntTest ctx =
     test ctx
-        (fromInt 25)
+        (String.fromInt 25)
 
 
 {-|
@@ -188,7 +188,7 @@ stringFromIntTest ctx =
 stringFromFloatTest : TestContext -> String
 stringFromFloatTest ctx =
     test ctx
-        (fromFloat 1.5)
+        (String.fromFloat 1.5)
 
 
 {-|
@@ -224,7 +224,7 @@ stringBadToFloatTest ctx =
 stringToIntTest1 : TestContext -> Maybe Int
 stringToIntTest1 ctx =
     test ctx
-        (toInt "25")
+        (String.toInt "25")
 
 
 {-|
@@ -236,7 +236,7 @@ stringToIntTest1 ctx =
 stringToIntTest2 : TestContext -> Maybe Int
 stringToIntTest2 ctx =
     test ctx
-        (toInt "notAnInt")
+        (String.toInt "notAnInt")
 
 
 {-|
@@ -248,7 +248,7 @@ stringToIntTest2 ctx =
 stringIsEmptyTest1 : TestContext -> Bool
 stringIsEmptyTest1 ctx =
     test ctx
-        (isEmpty "")
+        (String.isEmpty "")
 
 
 {-|
@@ -260,7 +260,7 @@ stringIsEmptyTest1 ctx =
 stringIsEmptyTest2 : TestContext -> Bool
 stringIsEmptyTest2 ctx =
     test ctx
-        (isEmpty "content")
+        (String.isEmpty "content")
 
 
 {-|
@@ -270,7 +270,7 @@ stringIsEmptyTest2 ctx =
 -}
 stringToLower : String -> String
 stringToLower str =
-    toLower str
+    String.toLower str
 
 
 {-|
