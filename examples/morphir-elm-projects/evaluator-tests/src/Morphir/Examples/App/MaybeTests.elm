@@ -80,7 +80,7 @@ maybeMapWithContext input =
             x ++ color
     in
     let
-        x =
+        _ =
             "Bright"
     in
     Maybe.map f input

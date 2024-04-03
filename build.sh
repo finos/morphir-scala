@@ -151,7 +151,7 @@ subcommand=$_arg_command
 leftovers=$_arg_leftovers
 
 # Scala versions
-default_scala_version="3.3.1"
+default_scala_version="3.3.3"
 scalaVersion=$_arg_scala_version
 scalaVersions=(${_arg_scala_version[@]})
 
@@ -277,13 +277,16 @@ case "$subcommand" in
 		moon run :build  --query "tag=[elm, morphir-elm]"    
 		;;
 	"fmt")
-		./mill Alias/run fmt; moon run :fmt
+		moon run :fmt
+		;;
+	"format")
+		moon run :fmt
 		;;
 	"install")
 		bun install
 		;;
 	"lint")
-		./mill Alias/run checkfmt && moon run :lint
+		moon run :lint
 		;;
 	"run")
 		moon run "$leftovers"

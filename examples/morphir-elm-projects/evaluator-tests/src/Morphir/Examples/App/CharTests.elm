@@ -1,7 +1,7 @@
 module Morphir.Examples.App.CharTests exposing (..)
 
+import Char exposing (..)
 import Morphir.Examples.App.TestUtils exposing (..)
-import Morphir.SDK.Char as Char exposing (..)
 
 
 {-|

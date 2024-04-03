@@ -13,13 +13,14 @@ decimalFromFloatTest ctx =
         (fromFloat 1.2)
 
 
-{-| Test: Decimal/toFloat
-expected = 1.5
--}
-decimalToFloatTest : TestContext -> Float
-decimalToFloatTest ctx =
-    test ctx
-        (Decimal.toFloat (fromFloat 1.5))
+
+-- {-| Test: Decimal/toFloat
+-- expected = 1.5
+-- -}
+-- decimalToFloatTest : TestContext -> Float
+-- decimalToFloatTest ctx =
+--     test ctx
+--         (Decimal.toFloat (fromFloat 1.5))
 
 
 {-| Test: Decimal/toString

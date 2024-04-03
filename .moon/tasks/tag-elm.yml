@@ -1,22 +1,15 @@
 fileGroups:
   elmSources:
-    - "src/**/*.elm"
+    - "src"
 tasks:
-  lint-elm-sources:
+  elm-lint:
     command: |
-      elm-format @files(elmSources) --validate
+      elm-format @dirs(elmSources) @files(elmSources) --validate --yes
     inputs:
-      - "@globs(elmSources)"
-  lint:
-    deps:
-      - "~:lint-elm-sources"
+      - "@files(elmSources)"
 
   elm-format:
     command: |
-      elm-format @files(elmSources) --yes
+      elm-format @dirs(elmSources) @files(elmSources) --yes
     inputs:
-      - "@globs(elmSources)"
-
-  fmt:
-    deps:
-      - "~:elm-format"
+      - "@files(elmSources)"
