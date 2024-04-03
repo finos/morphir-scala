@@ -410,7 +410,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("fromString bad")("decimalTests", "decimalFromString", "abcd")(
             Data.Optional.None(Concept.Decimal)
           ),
-          testEvaluation("toFloat")("decimalTests", "decimalToFloatTest")(Data.Float(1.5)) @@ignore @@ tag("toFLoat does not have an Elm implementation but is listed in the IR... this is a bug"),
+          testEvaluation("toFloat")("decimalTests", "decimalToFloatTest")(Data.Float(1.5)) @@ ignore @@ tag(
+            "toFLoat does not have an Elm implementation but is listed in the IR... this is a bug"
+          ),
           testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("-1"))
         ),
         suite("abs")(
