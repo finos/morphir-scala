@@ -140,28 +140,6 @@ typeArgUnionMaybeFunction tuple =
     else
         A True
 
-
-
-{-
-   Test: UserDefinedReference/TypeArgUnionMaybe
-   --input (0, "Red")
-   --expected = TypeArgUnion.MaybeA True
--}
-
-
-typeArgUnionMaybeFunction : ( Int, String ) -> TypeArgUnion Bool (Dict Int String)
-typeArgUnionMaybeFunction tuple =
-    let
-        ( i, s ) =
-            tuple
-    in
-    if i == 0 then
-        MaybeA (Just True)
-
-    else
-        A True
-
-
 type alias TypeArgRecord a b c =
     { a : a, bList : List b, tuple : ( a, b, c ), union : TypeArgUnion c a }
 
