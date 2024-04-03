@@ -280,7 +280,7 @@ stringToLower str =
 -}
 stringToUpper : String -> String
 stringToUpper str =
-    toUpper str
+    String.toUpper str
 
 
 {-|
@@ -290,7 +290,7 @@ stringToUpper str =
 -}
 stringTrim : String -> String
 stringTrim str =
-    trim str
+    String.trim str
 
 
 {-|
@@ -300,7 +300,7 @@ stringTrim str =
 -}
 stringTrimLeft : String -> String
 stringTrimLeft str =
-    trimLeft str
+    String.trimLeft str
 
 
 {-|
@@ -310,4 +310,4 @@ stringTrimLeft str =
 -}
 stringTrimRight : String -> String
 stringTrimRight str =
-    trimRight str
+    String.trimRight str
