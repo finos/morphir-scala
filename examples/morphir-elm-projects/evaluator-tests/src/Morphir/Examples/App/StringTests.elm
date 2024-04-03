@@ -1,7 +1,6 @@
 module Morphir.Examples.App.StringTests exposing (..)
 
 import Morphir.Examples.App.TestUtils exposing (..)
-import Morphir.SDK.String as String exposing (..)
 
 
 {-|
@@ -91,7 +90,7 @@ stringJoin sep list =
 -}
 stringLength : String -> Int
 stringLength str =
-    length str
+    String.length str
 
 
 {-|
@@ -101,7 +100,7 @@ stringLength str =
 -}
 stringPadLeft : Int -> Char -> String -> String
 stringPadLeft n ch str =
-    padLeft n ch str
+    String.padLeft n ch str
 
 
 {-|
@@ -111,7 +110,7 @@ stringPadLeft n ch str =
 -}
 stringPadRight : Int -> Char -> String -> String
 stringPadRight n ch str =
-    padRight n ch str
+    String.padRight n ch str
 
 
 {-|
@@ -123,7 +122,7 @@ stringPadRight n ch str =
 stringLeftTest : TestContext -> String
 stringLeftTest ctx =
     test ctx
-        (left 2 "Mulder")
+        (String.left 2 "Mulder")
 
 
 {-|
@@ -145,7 +144,7 @@ stringRightTest ctx =
 -}
 stringSlice : Int -> Int -> String -> String
 stringSlice start end str =
-    slice start end str
+    String.slice start end str
 
 
 {-|
@@ -155,7 +154,7 @@ stringSlice start end str =
 -}
 stringSplit : String -> String -> List String
 stringSplit sep str =
-    split sep str
+    String.split sep str
 
 
 {-|
@@ -165,7 +164,7 @@ stringSplit sep str =
 -}
 stringStartsWith : String -> String -> Bool
 stringStartsWith ref str =
-    startsWith ref str
+    String.startsWith ref str
 
 
 {-|
