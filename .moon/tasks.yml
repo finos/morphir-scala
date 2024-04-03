@@ -1,12 +1,14 @@
 $schema: "https://moonrepo.dev/schemas/tasks.json"
 tasks:
   build:
+    inputs: []
     deps:
       - target: "~:morphir-elm-build"
         optional: true
       - target: "~:elm-library-build"
         optional: true
   fmt:
+    inputs: []
     deps:
       - target: "~:elm-format"
         optional: true
@@ -14,6 +16,7 @@ tasks:
         optional: true
 
   lint:
+    inputs: []
     deps:
       - target: "~:elm-lint"
         optional: true
