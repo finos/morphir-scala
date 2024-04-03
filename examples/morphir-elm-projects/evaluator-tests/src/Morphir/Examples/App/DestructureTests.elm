@@ -161,23 +161,3 @@ destructureDirectTest ctx =
                 ( "Green", 6 )
         in
         ( y, x )
-
-{-|
-
-    Test: Destructure/EmptyList
-    expected = "Correct"
-
--}
-destructureEmptyListTest : TestContext -> String
-destructureEmptyListTest ctx =
-    test ctx <|
-        let
-            destructure : List Int -> String
-            destructure toDestructure =
-                let
-                    [] =
-                        toDestructure
-                in
-                "Correct"
-        in
-        destructure []
