@@ -6,6 +6,13 @@ tasks:
         optional: true
       - target: "~:elm-library-build"
         optional: true
+  fmt:
+    deps:
+      - target: "~:elm-format"
+        optional: true
+      - target: "~:scala-format"
+        optional: true
+
   lint:
     deps:
       - target: "~:elm-lint"

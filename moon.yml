@@ -1,8 +1,22 @@
+fileGroups:
+  scalaSources:
+    - "morphir/**/*.scala"
+  scalaBuildSources:
+    - "build.sc"
+    - "project/**/*.{scala,sc}"
+    - "mill-build/**/*.{scala,sc}"
 tasks:
+  scala-format:
+    command: |
+      ./mill Alias/run fmt
+    inputs:
+      - "@files(scalaSources)"
+      - "@files(scalaBuildSources)"
   scala-lint:
     command: |
       ./mill Alias/run checkfmt
-    options:
-      cache: false
+    inputs:
+      - "@files(scalaSources)"
+      - "@files(scalaBuildSources)"
 tags:
   - "scala"
