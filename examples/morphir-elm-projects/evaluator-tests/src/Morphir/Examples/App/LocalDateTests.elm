@@ -140,6 +140,7 @@ dayOfWeekAsInputTest dayOfWeek =
         Sunday ->
             7
 
+
 {-| Test: LocalDate:toISOString
 -}
 toISOStringTest : LocalDate -> String

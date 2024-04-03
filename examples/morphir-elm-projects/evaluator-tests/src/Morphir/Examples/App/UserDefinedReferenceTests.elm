@@ -140,6 +140,7 @@ typeArgUnionMaybeFunction tuple =
     else
         A True
 
+
 type alias TypeArgRecord a b c =
     { a : a, bList : List b, tuple : ( a, b, c ), union : TypeArgUnion c a }
 
