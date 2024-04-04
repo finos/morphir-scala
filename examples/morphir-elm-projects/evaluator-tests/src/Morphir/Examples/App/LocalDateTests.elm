@@ -87,7 +87,7 @@ monthToIntTest month =
 
 {-| Test: LocalDate:isWeekend
 input = 1900-01-20
-expected = False
+expected = True
 -}
 isWeekendTest : LocalDate -> Bool
 isWeekendTest date =
@@ -96,7 +96,7 @@ isWeekendTest date =
 
 {-| Test: LocalDate:isWeekday
 input = 1900-01-20
-expected = True
+expected = False
 -}
 isWeekdayTest : LocalDate -> Bool
 isWeekdayTest date =
