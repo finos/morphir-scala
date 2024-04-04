@@ -2093,16 +2093,28 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("both inputs are Just")("maybeTests", "maybeMap2Test", (Some(1), Some(2)))(
             Data.Optional.Some(Data.Int(3))
           ),
-          testEval("first input is Nothing")("maybeTests", "maybeMap2Test", (Data.Optional.None(Concept.Int32), Some(2)))(
+          testEval("first input is Nothing")(
+            "maybeTests",
+            "maybeMap2Test",
+            (Data.Optional.None(Concept.Int32), Some(2))
+          )(
             Data.Optional.None(Concept.Int32)
           ),
-          testEval("second input is Nothing")("maybeTests", "maybeMap2Test", (Some(1), Data.Optional.None(Concept.Int32)))(
+          testEval("second input is Nothing")(
+            "maybeTests",
+            "maybeMap2Test",
+            (Some(1), Data.Optional.None(Concept.Int32))
+          )(
             Data.Optional.None(Concept.Int32)
           ),
-          testEval("both inputs are Nothing")("maybeTests", "maybeMap2Test", (Data.Optional.None(Concept.Int32), Data.Optional.None(Concept.Int32)))(
+          testEval("both inputs are Nothing")(
+            "maybeTests",
+            "maybeMap2Test",
+            (Data.Optional.None(Concept.Int32), Data.Optional.None(Concept.Int32))
+          )(
             Data.Optional.None(Concept.Int32)
           )
-        ),
+        )
       ),
       suite("SDK Result Tests")(
         testEval("Returns success result")("resultTests", "returnResultType", 0)(Data.Result.Ok(
