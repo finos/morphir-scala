@@ -379,22 +379,24 @@ decimalZero =
 
 
 {-| Test: Decimal/shiftDecimalLeft
+shift = 2
+value = 123.45
 expected = 1.2345
 -}
-decimalShiftDecimalLeft : TestContext -> Decimal
-decimalShiftDecimalLeft ctx =
-    test ctx
-        Decimal.shiftDecimalLeft
-        2
-        (fromFloat 123.45)
+decimalShiftLeft : Int -> Decimal -> Decimal
+decimalShiftLeft shift dec =
+    Decimal.shiftDecimalLeft
+        shift
+        dec
 
 
 {-| Test: Decimal/shiftDecimalRight
+shift = 2
+value = 1.2345
 expected = 123.45
 -}
-decimalShiftDecimalRight : TestContext -> Decimal
-decimalShiftDecimalRight ctx =
-    test ctx
-        Decimal.shiftDecimalRight
-        2
-        (fromFloat 1.2345)
+decimalShiftRight : Int -> Decimal -> Decimal
+decimalShiftRight shift dec =
+    Decimal.shiftDecimalRight
+        shift
+        dec
