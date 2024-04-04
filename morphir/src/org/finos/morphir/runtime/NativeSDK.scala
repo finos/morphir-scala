@@ -115,7 +115,9 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(DecimalSDK.neq),
           NativeFunctionAdapter.Fun1(DecimalSDK.round),
           NativeFunctionAdapter.Fun2(DecimalSDK.sub),
-          NativeFunctionAdapter.Fun1(DecimalSDK.truncate)
+          NativeFunctionAdapter.Fun1(DecimalSDK.truncate),
+          NativeFunctionAdapter.Fun2(DecimalSDK.shiftDecimalLeft),
+          NativeFunctionAdapter.Fun2(DecimalSDK.shiftDecimalRight)
         )
       }
 
