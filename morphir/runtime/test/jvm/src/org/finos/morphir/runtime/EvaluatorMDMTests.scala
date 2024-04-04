@@ -1154,6 +1154,25 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvalMultiple("diffInDays")("localDateTests", "diffInDaysTest", List(localDate, localDate.plusDays(999)))(
           Data.Int(999)
         ),
+        testEvalMultiple("diffInWeeks")("localDateTests", "diffInWeeksTest", List(localDate, localDate.plusWeeks(2)))(
+          Data.Int(2)
+        ),
+        testEvalMultiple("diffInMonths")(
+          "localDateTests",
+          "diffInMonthsTest",
+          List(localDate, localDate.plusMonths(2))
+        )(
+          Data.Int(2)
+        ),
+        testEvalMultiple("diffInYears")("localDateTests", "diffInYearsTest", List(localDate, localDate.plusYears(2)))(
+          Data.Int(2)
+        ),
+        testEvalMultiple("addMonths")("localDateTests", "addMonthsTest", List(2, localDate))(
+          Data.LocalDate(localDate.plusMonths(2))
+        ),
+        testEval("monthToInt")("localDateTests", "monthToIntTest", Data.Month(java.time.Month.JANUARY))(Data.Int(1)),
+        testEval("isWeekend")("localDateTests", "isWeekendTest", localDate)(Data.Boolean(true)),
+        testEval("isWeekday")("localDateTests", "isWeekdayTest", localDate)(Data.Boolean(false)),
         testEval("fromISO valid iso date")("localDateTests", "fromISOTest", "1900-01-20")(
           Data.Optional.Some(Data.LocalDate(localDate))
         ),
