@@ -423,12 +423,36 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("bps")("decimalTests", "decimalBps")(Data.Decimal(0.0463)),
 //        testEvaluation("compare")("decimalTests", "decimalAdd")(Data.Decimal(673.45)),
         suite("shiftDecimal")(
-          testEvalMultiple("shift left 2 places")("decimalTests", "decimalShiftLeft", List(Data.Int(2), Data.Decimal(123.45)))(Data.Decimal(1.2345)),
-          testEvalMultiple("shift left 3 places")("decimalTests", "decimalShiftLeft", List(Data.Int(3), Data.Decimal(123.45)))(Data.Decimal(0.12345)),
-          testEvalMultiple("shift left 4 places")("decimalTests", "decimalShiftLeft", List(Data.Int(4), Data.Decimal(123.45)))(Data.Decimal(0.012345)),
-          testEvalMultiple("shift right 2 places")("decimalTests", "decimalShiftRight", List(Data.Int(2), Data.Decimal(12.345)))(Data.Decimal(1234.5)),
-          testEvalMultiple("shift right 3 places")("decimalTests", "decimalShiftRight", List(Data.Int(3), Data.Decimal(12.345)))(Data.Decimal(12345.0)),
-          testEvalMultiple("shift right 4 places")("decimalTests", "decimalShiftRight", List(Data.Int(4), Data.Decimal(12.345)))(Data.Decimal(123450.0))
+          testEvalMultiple("shift left 2 places")(
+            "decimalTests",
+            "decimalShiftLeft",
+            List(Data.Int(2), Data.Decimal(123.45))
+          )(Data.Decimal(1.2345)),
+          testEvalMultiple("shift left 3 places")(
+            "decimalTests",
+            "decimalShiftLeft",
+            List(Data.Int(3), Data.Decimal(123.45))
+          )(Data.Decimal(0.12345)),
+          testEvalMultiple("shift left 4 places")(
+            "decimalTests",
+            "decimalShiftLeft",
+            List(Data.Int(4), Data.Decimal(123.45))
+          )(Data.Decimal(0.012345)),
+          testEvalMultiple("shift right 2 places")(
+            "decimalTests",
+            "decimalShiftRight",
+            List(Data.Int(2), Data.Decimal(12.345))
+          )(Data.Decimal(1234.5)),
+          testEvalMultiple("shift right 3 places")(
+            "decimalTests",
+            "decimalShiftRight",
+            List(Data.Int(3), Data.Decimal(12.345))
+          )(Data.Decimal(12345.0)),
+          testEvalMultiple("shift right 4 places")(
+            "decimalTests",
+            "decimalShiftRight",
+            List(Data.Int(4), Data.Decimal(12.345))
+          )(Data.Decimal(123450.0))
         ),
         suite("div")(
           testEvaluation("div some")("decimalTests", "decimalGoodDiv")(Data.Optional.Some(Data.Decimal(1.8))),
