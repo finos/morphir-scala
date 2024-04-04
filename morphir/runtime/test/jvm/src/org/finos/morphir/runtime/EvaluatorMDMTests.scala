@@ -1231,6 +1231,30 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "diffInSecondsTest",
           List(localTime, localTime.minusSeconds(2))
         )(Data.Int(2)),
+        testEvalMultiple("diffInHours")("localTimeTests", "diffInHoursTest", List(localTime, localTime.plusHours(2)))(
+          Data.Int(-2)
+        ),
+        testEvalMultiple("diffInHours negative")(
+          "localTimeTests",
+          "diffInHoursTest",
+          List(localTime, localTime.minusHours(2))
+        )(
+          Data.Int(2)
+        ),
+        testEvalMultiple("diffInMinutes")(
+          "localTimeTests",
+          "diffInMinutesTest",
+          List(localTime, localTime.plusMinutes(2))
+        )(
+          Data.Int(-2)
+        ),
+        testEvalMultiple("diffInMinutes negative")(
+          "localTimeTests",
+          "diffInMinutesTest",
+          List(localTime, localTime.minusMinutes(2))
+        )(
+          Data.Int(2)
+        ),
         testEval("fromISO valid iso time")("localTimeTests", "fromISOTest", "10:43:26.111111111")(
           Data.Optional.Some(Data.LocalTime(java.time.LocalTime.of(10, 43, 26, 111111111)))
         ),
@@ -2056,7 +2080,29 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           ),
           testEval("both outputs are Just")("maybeTests", "maybeAndThen", 1)(Data.Optional.Some(Data.Float(1.0))),
           testEval("first output is Nothing")("maybeTests", "maybeAndThen", 2)(Data.Optional.None(Concept.Float))
-        )
+        ),
+        suite("hasValue Tests")(
+          testEval("true for Just")("maybeTests", "maybeHasValueTest", Data.Optional.Some(Data.Int(1)))(
+            Data.Boolean(true)
+          ),
+          testEval("false for Nothing")("maybeTests", "maybeHasValueTest", Data.Optional.None(Concept.Int32))(
+            Data.Boolean(false)
+          )
+        ),
+        suite("map2 Tests")(
+          testEval("both inputs are Just")("maybeTests", "maybeMap2Test", (Some(1), Some(2)))(
+            Data.Optional.Some(Data.Int(3))
+          ),
+          testEval("first input is Nothing")("maybeTests", "maybeMap2Test", (Data.Optional.None(Concept.Int32), Some(2)))(
+            Data.Optional.None(Concept.Int32)
+          ),
+          testEval("second input is Nothing")("maybeTests", "maybeMap2Test", (Some(1), Data.Optional.None(Concept.Int32)))(
+            Data.Optional.None(Concept.Int32)
+          ),
+          testEval("both inputs are Nothing")("maybeTests", "maybeMap2Test", (Data.Optional.None(Concept.Int32), Data.Optional.None(Concept.Int32)))(
+            Data.Optional.None(Concept.Int32)
+          )
+        ),
       ),
       suite("SDK Result Tests")(
         testEval("Returns success result")("resultTests", "returnResultType", 0)(Data.Result.Ok(

@@ -127,3 +127,23 @@ maybeAndThen input =
     in
     validateIsZeroOrOne input
         |> Maybe.andThen inverse
+
+
+{-| Test: Maybe/map2
+Description: Tests native function Maybe.map2 with Int
+expected(Just 2)(Just 4) = Just 6
+expected(Just 3)(Just 6) = Just 9
+expected(Nothing)(Just 1) = Nothing
+-}
+maybeMap2Test : Maybe Int -> Maybe Int -> Maybe Int
+maybeMap2Test input1 input2 =
+    Maybe.map2 (+) input1 input2
+
+
+-- Test: Maybe/HasValue
+-- Description: Tests native function Maybe.hasValue
+-- expected(Just "Red") = True
+-- expected(Nothing) = False
+maybeHasValueTest : Maybe String -> Bool
+maybeHasValueTest input =
+    Maybe.hasValue input

@@ -74,4 +74,20 @@ object MaybeSDK {
         resultToMaybe(out)
       }
   }
+
+  val map2 = DynamicNativeFunction3("map2") {
+    (ctx: NativeContext) => (f: RT.Function, maybeRaw1: RT.ConstructorResult, maybeRaw2: RT.ConstructorResult) =>
+      {
+        val out = for {
+          elem1 <- eitherToOption(maybeRaw1)
+          elem2 <- eitherToOption(maybeRaw2)
+        } yield ctx.evaluator.handleApplyResult2(Type.variable("a"), f, elem1, elem2)
+        resultToMaybe(out)
+      }
+  }
+
+  val hasValue = DynamicNativeFunction1("hasValue") {
+    (_: NativeContext) => (maybeRaw: RT.ConstructorResult) =>
+      RT.Primitive.Boolean(eitherToOption(maybeRaw).isDefined)
+  }
 }
