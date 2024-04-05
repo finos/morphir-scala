@@ -136,4 +136,15 @@ object DecimalSDK {
 
   val zero: SDKValue = SDKValue.SDKNativeValue(RTDecimal(0))
 
+  val shiftDecimalLeft = DynamicNativeFunction2("shiftDecimalLeft") {
+    (_: NativeContext) => (shift: RT.Primitive.Int, dec: RTDecimal) =>
+      val result = dec.value / BigDecimal(10).pow(shift.valueAsInt)
+      RTDecimal(result)
+  }
+
+  val shiftDecimalRight = DynamicNativeFunction2("shiftDecimalRight") {
+    (_: NativeContext) => (shift: RT.Primitive.Int, dec: RTDecimal) =>
+      val result = dec.value * BigDecimal(10).pow(shift.valueAsInt)
+      RTDecimal(result)
+  }
 }

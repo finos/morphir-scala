@@ -376,3 +376,27 @@ decimalTruncate ctx =
 decimalZero : Decimal
 decimalZero =
     fromInt 0
+
+
+{-| Test: Decimal/shiftDecimalLeft
+shift = 2
+value = 123.45
+expected = 1.2345
+-}
+decimalShiftLeft : Int -> Decimal -> Decimal
+decimalShiftLeft shift dec =
+    Decimal.shiftDecimalLeft
+        shift
+        dec
+
+
+{-| Test: Decimal/shiftDecimalRight
+shift = 2
+value = 1.2345
+expected = 123.45
+-}
+decimalShiftRight : Int -> Decimal -> Decimal
+decimalShiftRight shift dec =
+    Decimal.shiftDecimalRight
+        shift
+        dec
