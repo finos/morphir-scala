@@ -2089,31 +2089,95 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.Boolean(false)
           )
         ),
-        suite("map2 Tests")(
-          testEval("both inputs are Just")("maybeTests", "maybeMap2Test", (Some(1), Some(2)))(
+        suite("map2 Int Tests")(
+          testEvalMultiple("both inputs are Just")(
+            "maybeTests",
+            "maybeMap2TestInt",
+            List(Data.Optional.Some(Data.Int(1)), Data.Optional.Some(Data.Int(2)))
+          )(
             Data.Optional.Some(Data.Int(3))
-          ),
-          testEval("first input is Nothing")(
-            "maybeTests",
-            "maybeMap2Test",
-            (Data.Optional.None(Concept.Int32), Some(2))
-          )(
-            Data.Optional.None(Concept.Int32)
-          ),
-          testEval("second input is Nothing")(
-            "maybeTests",
-            "maybeMap2Test",
-            (Some(1), Data.Optional.None(Concept.Int32))
-          )(
-            Data.Optional.None(Concept.Int32)
-          ),
-          testEval("both inputs are Nothing")(
-            "maybeTests",
-            "maybeMap2Test",
-            (Data.Optional.None(Concept.Int32), Data.Optional.None(Concept.Int32))
-          )(
-            Data.Optional.None(Concept.Int32)
           )
+        ),
+        testEvalMultiple("Just and Nothing")(
+          "maybeTests",
+          "maybeMap2TestInt",
+          List(Data.Optional.Some(Data.Int(1)), Data.Optional.None(Concept.Int32))
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        testEvalMultiple("Nothing and Just")(
+          "maybeTests",
+          "maybeMap2TestInt",
+          List(Data.Optional.None(Concept.Int32), Data.Optional.Some(Data.Int(1)))
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        testEvalMultiple("Nothing and Nothing")(
+          "maybeTests",
+          "maybeMap2TestInt",
+          List(Data.Optional.None(Concept.Int32), Data.Optional.None(Concept.Int32))
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        suite("map2 String Tests")(
+          testEvalMultiple("both inputs are Just")(
+            "maybeTests",
+            "maybeMap2TestString",
+            List(Data.Optional.Some(Data.String("Hello")), Data.Optional.Some(Data.String("World")))
+          )(
+            Data.String("Hello World")
+          )
+        ),
+        testEvalMultiple("Just and Nothing")(
+          "maybeTests",
+          "maybeMap2TestString",
+          List(Data.Optional.Some(Data.String("Hello")), Data.Optional.None(Concept.String))
+        )(
+          Data.String("Error")
+        ),
+        testEvalMultiple("Nothing and Just")(
+          "maybeTests",
+          "maybeMap2TestString",
+          List(Data.Optional.None(Concept.String), Data.Optional.Some(Data.String("World")))
+        )(
+          Data.String("Error")
+        ),
+        testEvalMultiple("Nothing and Nothing")(
+          "maybeTests",
+          "maybeMap2TestString",
+          List(Data.Optional.None(Concept.String), Data.Optional.None(Concept.String))
+        )(
+          Data.String("Error")
+        ),
+        suite("map2 Tests")(
+          testEvalMultiple("both inputs are Just")(
+            "maybeTests",
+            "maybeMap2Test",
+            List(Data.Optional.Some(Data.String("2")), Data.Optional.Some(Data.String("123")))
+          )(
+            Data.Optional.Some(Data.Int(246))
+          )
+        ),
+        testEvalMultiple("Just and Nothing")(
+          "maybeTests",
+          "maybeMap2Test",
+          List(Data.Optional.Some(Data.String("2")), Data.Optional.None(Concept.String))
+        )(
+          Data.Optional.Some(Data.Int(2))
+        ),
+        testEvalMultiple("Nothing and Just")(
+          "maybeTests",
+          "maybeMap2Test",
+          List(Data.Optional.None(Concept.String), Data.Optional.Some(Data.String("junk")))
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        testEvalMultiple("Nothing and Nothing")(
+          "maybeTests",
+          "maybeMap2Test",
+          List(Data.Optional.None(Concept.String), Data.Optional.None(Concept.String))
+        )(
+          Data.Optional.Some(Data.Int(1))
         )
       ),
       suite("SDK Result Tests")(

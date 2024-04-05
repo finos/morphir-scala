@@ -129,21 +129,69 @@ maybeAndThen input =
         |> Maybe.andThen inverse
 
 
-{-| Test: Maybe/map2
-Description: Tests native function Maybe.map2 with Int
-expected(Just 2)(Just 4) = Just 6
-expected(Just 3)(Just 6) = Just 9
-expected(Nothing)(Just 1) = Nothing
+{-| Test: Maybe/Map2
+Description: Tests native function Maybe.map2
+expected(Just 1 Just 2) = Just 3
+expected(Just 1 Nothing) = Nothing
+expected(Nothing Nothing) = Nothing
 -}
-maybeMap2Test : Maybe Int -> Maybe Int -> Maybe Int
+maybeMap2TestInt : Maybe Int -> Maybe Int -> Maybe Int
+maybeMap2TestInt input1 input2 =
+    Maybe.map2 (\x y -> x + y) input1 input2
+
+
+{-| Test: Maybe/Map2
+Description: Tests native function Maybe.map2
+expected(Just "Hello" Just "World") = "HelloWorld"
+expected(Just "Hello" Nothing) = "Error"
+expected(Nothing Nothing) = "Error"
+-}
+maybeMap2TestString : Maybe String -> Maybe String -> String
+maybeMap2TestString input1 input2 =
+    case Maybe.map2 (\x y -> x ++ " " ++ y) input1 input2 of
+        Just x ->
+            x
+
+        Nothing ->
+            "Error"
+
+
+{-| Test: Maybe/Map2
+Description: Tests native function Maybe.map2
+expected(Just "2" Just "123") = Just 246
+expected(Just "2" Nothing) = Just 2
+expected(Just "2" Just "Invalid") = Just 2
+expected(Nothing Nothing) = Just 1
+-}
+maybeMap2Test : Maybe String -> Maybe String -> Maybe Int
 maybeMap2Test input1 input2 =
-    Maybe.map2 (+) input1 input2
+    let
+        intVal1 =
+            case input1 of
+                Just x ->
+                    String.toInt x
+
+                Nothing ->
+                    String.toInt "1"
+
+        intVal2 =
+            case input2 of
+                Just x ->
+                    String.toInt x
+
+                Nothing ->
+                    String.toInt "1"
+    in
+    Maybe.map2 (\x y -> x * y) intVal1 intVal2
+
 
 
 -- Test: Maybe/HasValue
 -- Description: Tests native function Maybe.hasValue
 -- expected(Just "Red") = True
 -- expected(Nothing) = False
-maybeHasValueTest : Maybe String -> Bool
+
+
+maybeHasValueTest : Maybe Int -> Bool
 maybeHasValueTest input =
     Maybe.hasValue input

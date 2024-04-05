@@ -45,18 +45,18 @@ diffInSecondsTest =
     diffInSeconds
 
 
-{-| Test: LocalTime diffInMinutes
--}
-diffInMinutesTest : LocalTime -> LocalTime -> Int
-diffInMinutesTest =
-    diffInMinutes
-
-
 {-| Test: LocalTime diffInHours
 -}
 diffInHoursTest : LocalTime -> LocalTime -> Int
 diffInHoursTest =
     diffInHours
+
+
+{-| Test: LocalTime diffInMinutes
+-}
+diffInMinutesTest : LocalTime -> LocalTime -> Int
+diffInMinutesTest =
+    diffInMinutes
 
 
 {-| Test: LocalTime fromISO
