@@ -142,7 +142,7 @@ maybeMap2TestInt input1 input2 =
 
 {-| Test: Maybe/Map2
 Description: Tests native function Maybe.map2
-expected(Just "Hello" Just "World") = "HelloWorld"
+expected(Just "Hello" Just "World") = "Hello World"
 expected(Just "Hello" Nothing) = "Error"
 expected(Nothing Nothing) = "Error"
 -}
