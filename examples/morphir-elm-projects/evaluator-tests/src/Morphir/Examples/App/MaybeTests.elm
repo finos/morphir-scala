@@ -190,8 +190,6 @@ maybeMap2Test input1 input2 =
 -- Description: Tests native function Maybe.hasValue
 -- expected(Just "Red") = True
 -- expected(Nothing) = False
-
-
 maybeHasValueTest : Maybe Int -> Bool
 maybeHasValueTest input =
     Maybe.hasValue input
