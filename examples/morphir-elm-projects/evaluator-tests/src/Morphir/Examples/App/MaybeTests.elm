@@ -185,13 +185,11 @@ maybeMap2Test input1 input2 =
     Maybe.map2 (\x y -> x * y) intVal1 intVal2
 
 
-
--- Test: Maybe/HasValue
--- Description: Tests native function Maybe.hasValue
--- expected(Just 1) = True
--- expected(Nothing) = False
-
-
+{-| Test: Maybe/HasValue
+Description: Tests native function Maybe.hasValue
+expected(Just 1) = True
+expected(Nothing) = False
+-}
 maybeHasValueTest : Maybe Int -> Bool
 maybeHasValueTest input =
     Maybe.hasValue input
