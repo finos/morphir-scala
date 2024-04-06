@@ -2049,7 +2049,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )(
             Data.Map.empty(Concept.String, Concept.Int32)
           ),
-          testEvalMultiple("returns nothing when the second dict is empty")(
+          testEvalMultiple("returns first dict when the second dict is empty")(
             "dictionaryTests",
             "dictDiffTest",
             List(
@@ -2071,12 +2071,12 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )
         ),
         suite("intersect")(
-          testEvalMultiple("returns entries in both dicts")(
+          testEvalMultiple("returns entry from first dict when key is found in second dict")(
             "dictionaryTests",
             "dictIntersectTest",
             List(
               Map("a" -> 1, "b" -> 2),
-              Map("b" -> 2, "c" -> 3)
+              Map("b" -> 3, "c" -> 3)
             )
           )(
             Data.Map(Data.String("b") -> Data.Int(2))
