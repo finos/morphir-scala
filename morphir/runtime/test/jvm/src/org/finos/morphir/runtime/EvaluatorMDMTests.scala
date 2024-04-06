@@ -2027,6 +2027,48 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )(
             Data.Map.empty(Concept.String, Concept.Int32)
           )
+        ),
+        suite("diff")(
+          testEvalMultiple("returns entries in the first dict but not the second")(
+            "dictionaryTests",
+            "dictDiffTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Map("b" -> 2, "c" -> 3)
+            )
+          )(
+            Data.Map(Data.String("a") -> Data.Int(1))
+          ),
+          testEvalMultiple("returns nothing when the first dict is empty")(
+            "dictionaryTests",
+            "dictDiffTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Map("b" -> 2, "c" -> 3)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("returns nothing when the second dict is empty")(
+            "dictionaryTests",
+            "dictDiffTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2))
+          ),
+          testEvalMultiple("returns nothing when both dicts are empty")(
+            "dictionaryTests",
+            "dictDiffTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )
         )
       ),
       suite("Maybe Tests")(

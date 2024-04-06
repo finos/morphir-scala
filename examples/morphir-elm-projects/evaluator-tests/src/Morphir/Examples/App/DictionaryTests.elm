@@ -287,3 +287,109 @@ dictPartitionPredicateOperatesOnKeyAndValueTest ctx =
 dictRemoveTest : String -> Dict String Int -> Dict String Int
 dictRemoveTest key dict =
     Dict.remove key dict
+
+
+{-| Test: Dict/diff
+-}
+dictDiffTest : TestContext -> Dict String Int
+dictDiffTest ctx =
+    test ctx <|
+        let
+            dict1 =
+                Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
+
+            dict2 =
+                Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ), ( "Spike", 3 ) ]
+        in
+        Dict.diff dict1 dict2
+
+
+-- {-| Test: Dict/intersect
+-- -}
+-- dictIntersectTest : TestContext -> Dict String Int
+-- dictIntersectTest ctx =
+--     test ctx <|
+--         let
+--             dict1 =
+--                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
+
+--             dict2 =
+--                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ), ( "Spike", 3 ) ]
+--         in
+--         Dict.intersect dict1 dict2
+
+
+-- {-| Test: Dict/union
+-- -}
+-- dictUnionTest : TestContext -> Dict String Int
+-- dictUnionTest ctx =
+--     test ctx <|
+--         let
+--             dict1 =
+--                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
+
+--             dict2 =
+--                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ), ( "Spike", 3 ) ]
+--         in
+--         Dict.union dict1 dict2
+
+
+-- {-| Test: Dict/foldl
+-- -}
+-- dictFoldlTest : TestContext -> Int
+-- dictFoldlTest ctx =
+--     test ctx <|
+--         let
+--             dict =
+--                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
+--         in
+--         Dict.foldl (\k v acc -> acc + v) 0 dict
+
+
+-- {-| Test: Dict/foldr
+-- -}
+-- dictFoldrTest : TestContext -> Int
+-- dictFoldrTest ctx =
+--     test ctx <|
+--         let
+--             dict =
+--                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
+--         in
+--         Dict.foldr (\k v acc -> acc + v) 0 dict
+
+
+
+-- --write a test for Dict map
+
+
+-- {-| Test: Dict/map
+-- -}
+-- dictMapTest : TestContext -> Dict String Int
+-- dictMapTest ctx =
+--     test ctx <|
+--         let
+--             dict =
+--                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
+--         in
+--         Dict.map (\v -> v * 2) dict
+
+
+-- {-| Test: Dict/merge
+-- -}
+-- dictMergeTest : TestContext -> Dict String Int
+-- dictMergeTest ctx =
+--     test ctx <|
+--         let
+--             dict1 =
+--                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
+
+--             dict2 =
+--                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ), ( "Spike", 3 ) ]
+--         in
+--         Dict.merge
+--             (\k v acc -> acc)
+--             (\k v1 v2 acc -> acc)
+--             (\k v acc -> acc)
+--             dict1
+--             dict2
+--             Dict.empty

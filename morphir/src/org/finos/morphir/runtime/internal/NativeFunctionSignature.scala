@@ -23,6 +23,15 @@ object NativeFunctionSignature {
       RTValue
   ) => RTValue)
       extends NativeFunctionSignature { val numArgs = 5 }
+  case class Fun6(f: (
+      RTValue,
+      RTValue,
+      RTValue,
+      RTValue,
+      RTValue,
+      RTValue
+  ) => RTValue)
+      extends NativeFunctionSignature { val numArgs = 6 }
 }
 
 // Advanced native function that takes a store
@@ -37,6 +46,7 @@ sealed trait NativeFunctionSignatureAdv {
       case NativeFunctionSignatureAdv.Fun3(f) => NativeFunctionSignature.Fun3(f(evaluator))
       case NativeFunctionSignatureAdv.Fun4(f) => NativeFunctionSignature.Fun4(f(evaluator))
       case NativeFunctionSignatureAdv.Fun5(f) => NativeFunctionSignature.Fun5(f(evaluator))
+      case NativeFunctionSignatureAdv.Fun6(f) => NativeFunctionSignature.Fun6(f(evaluator))
     }
 }
 object NativeFunctionSignatureAdv {
@@ -61,4 +71,13 @@ object NativeFunctionSignatureAdv {
       RTValue
   ) => RTValue)
       extends NativeFunctionSignatureAdv { val numArgs = 5 }
+  case class Fun6(f: InvokeableEvaluator => (
+      RTValue,
+      RTValue,
+      RTValue,
+      RTValue,
+      RTValue,
+      RTValue
+  ) => RTValue)
+      extends NativeFunctionSignatureAdv { val numArgs = 6 }
 }
