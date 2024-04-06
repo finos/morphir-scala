@@ -71,7 +71,7 @@ object DictSDK {
     // === ELM Function ===
     // foldl : (k -> v -> b -> b) -> b -> Dict k v -> b
     // Fold over the key-value pairs in a dictionary from lowest key to highest key.
-    (ctx: NativeContext) => (f: RTValue, b: RTValue, dictRaw: RTValue.Map) =>
+    (ctx: NativeContext) => (f: RTValue.Function, b: RTValue, dictRaw: RTValue.Map) =>
       {
         val dict = dictRaw.value.clone()
         val result = dict.foldLeft(b) {
@@ -86,7 +86,7 @@ object DictSDK {
     // === ELM Function ===
     // foldr : (k -> v -> b -> b) -> b -> Dict k v -> b
     // Fold over the key-value pairs in a dictionary from highest key to lowest key.
-    (ctx: NativeContext) => (f: RTValue, b: RTValue, dictRaw: RTValue.Map) =>
+    (ctx: NativeContext) => (f: RTValue.Function, b: RTValue, dictRaw: RTValue.Map) =>
       {
         val dict = dictRaw.value.clone()
         val result = dict.foldRight(b) {
@@ -101,7 +101,7 @@ object DictSDK {
     // === ELM Function ===
     // map : (k -> a -> b) -> Dict k a -> Dict k b
     // Apply a function to all values in a diction
-    (ctx: NativeContext) => (f: RTValue, dictRaw: RTValue.Map) =>
+    (ctx: NativeContext) => (f: RTValue.Function, dictRaw: RTValue.Map) =>
       {
         val dict = dictRaw.value.clone()
         val newDict = dict.map {
@@ -114,28 +114,34 @@ object DictSDK {
   }
 
   val merge = DynamicNativeFunction6("merge") {
-    (ctx: NativeContext) =>
-      (f: RTValue, g: RTValue, h: RTValue, dict1Raw: RTValue.Map, dict2Raw: RTValue.Map, result: RTValue) =>
-        {
-          val dict1 = dict1Raw.value.clone()
-          val dict2 = dict2Raw.value.clone()
-          val keys  = dict1.keySet ++ dict2.keySet
-          val resultValue = keys.foldLeft(result) {
-            case (acc, key) =>
-              val value1 = dict1.get(key)
-              val value2 = dict2.get(key)
-              (value1, value2) match {
-                case (Some(v1), Some(v2)) =>
-                  ctx.evaluator.handleApplyResult4(Type.UType.Unit(()), g, key, v1, v2, acc)
-                case (Some(v1), None) =>
-                  ctx.evaluator.handleApplyResult3(Type.UType.Unit(()), f, key, v1, acc)
-                case (None, Some(v2)) =>
-                  ctx.evaluator.handleApplyResult3(Type.UType.Unit(()), h, key, v2, acc)
-                case (None, None) =>
-                  acc
-              }
-          }
-          resultValue
+    (ctx: NativeContext) => (
+        f: RTValue.Function,
+        g: RTValue.Function,
+        h: RTValue.Function,
+        dict1Raw: RTValue.Map,
+        dict2Raw: RTValue.Map,
+        result: RTValue
+    ) =>
+      {
+        val dict1 = dict1Raw.value.clone()
+        val dict2 = dict2Raw.value.clone()
+        val keys  = dict1.keySet ++ dict2.keySet
+        val resultValue = keys.foldLeft(result) {
+          case (acc, key) =>
+            val value1 = dict1.get(key)
+            val value2 = dict2.get(key)
+            (value1, value2) match {
+              case (Some(v1), Some(v2)) =>
+                ctx.evaluator.handleApplyResult4(Type.UType.Unit(()), g, key, v1, v2, acc)
+              case (Some(v1), None) =>
+                ctx.evaluator.handleApplyResult3(Type.UType.Unit(()), f, key, v1, acc)
+              case (None, Some(v2)) =>
+                ctx.evaluator.handleApplyResult3(Type.UType.Unit(()), h, key, v2, acc)
+              case (None, None) =>
+                acc
+            }
         }
+        resultValue
+      }
   }
 }
