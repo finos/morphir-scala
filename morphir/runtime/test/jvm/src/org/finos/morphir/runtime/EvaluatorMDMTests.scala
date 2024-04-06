@@ -2069,6 +2069,262 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )(
             Data.Map.empty(Concept.String, Concept.Int32)
           )
+        ),
+        suite("intersect")(
+          testEvalMultiple("returns entries in both dicts")(
+            "dictionaryTests",
+            "dictIntersectTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Map("b" -> 2, "c" -> 3)
+            )
+          )(
+            Data.Map(Data.String("b") -> Data.Int(2))
+          ),
+          testEvalMultiple("returns nothing when the first dict is empty")(
+            "dictionaryTests",
+            "dictIntersectTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Map("b" -> 2, "c" -> 3)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("returns nothing when the second dict is empty")(
+            "dictionaryTests",
+            "dictIntersectTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("returns nothing when both dicts are empty")(
+            "dictionaryTests",
+            "dictIntersectTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )
+        ),
+        suite("union")(
+          testEvalMultiple("returns entries in either dict, for collision: preference is given to first dict")(
+            "dictionaryTests",
+            "dictUnionTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Map("b" -> 4, "c" -> 3)
+            )
+          )(
+            Data.Map(
+              Data.String("a") -> Data.Int(1),
+              Data.String("b") -> Data.Int(2),
+              Data.String("c") -> Data.Int(3)
+            )
+          ),
+          testEvalMultiple("returns entries in the first dict when the second is empty")(
+            "dictionaryTests",
+            "dictUnionTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map(
+              Data.String("a") -> Data.Int(1),
+              Data.String("b") -> Data.Int(2)
+            )
+          ),
+          testEvalMultiple("returns entries in the second dict when the first is empty")(
+            "dictionaryTests",
+            "dictUnionTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Map("b" -> 2, "c" -> 3)
+            )
+          )(
+            Data.Map(
+              Data.String("b") -> Data.Int(2),
+              Data.String("c") -> Data.Int(3)
+            )
+          ),
+          testEvalMultiple("returns nothing when both dicts are empty")(
+            "dictionaryTests",
+            "dictUnionTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )
+        ),
+        suite("foldl")(
+          testEval("folds left")("dictionaryTests", "dictFoldlTest", Map("a" -> 1, "b" -> 2))(
+            Data.Int32(3)
+          ),
+          testEval("folds left alternate")("dictionaryTests", "dictFoldlTest2", Map("a" -> 1, "b" -> 2))(
+            Data.List(Data.Int32(2), Data.Int32(1))
+          ),
+          testEval("folds left empty")(
+            "dictionaryTests",
+            "dictFoldlTest",
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )(
+            Data.Int32(0)
+          ),
+          testEval("folds left empty alternate")(
+            "dictionaryTests",
+            "dictFoldlTest2",
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("foldr")(
+          testEval("folds right")("dictionaryTests", "dictFoldrTest", Map("a" -> 1, "b" -> 2))(
+            Data.Int32(3)
+          ),
+          testEval("folds right alternate")("dictionaryTests", "dictFoldrTest2", Map("a" -> 1, "b" -> 2))(
+            Data.List(Data.Int32(1), Data.Int32(2))
+          ),
+          testEval("folds right empty")(
+            "dictionaryTests",
+            "dictFoldrTest",
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )(
+            Data.Int32(0)
+          ),
+          testEval("folds right empty alternate")(
+            "dictionaryTests",
+            "dictFoldrTest2",
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )(
+            Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("map")(
+          testEval("maps a function over a dictionary with positive values")(
+            "dictionaryTests",
+            "dictMapTest",
+            Map("a" -> 1, "b" -> 2)
+          )(
+            Data.Map(
+              Data.String("a") -> Data.Int(2),
+              Data.String("b") -> Data.Int(4)
+            )
+          ),
+          testEval("maps a function over a dictionary with negative values")(
+            "dictionaryTests",
+            "dictMapTest",
+            Map("a" -> -1, "b" -> -2)
+          )(
+            Data.Map(
+              Data.String("a") -> Data.Int(-2),
+              Data.String("b") -> Data.Int(-4)
+            )
+          ),
+          testEval("maps over empty dictionaries")(
+            "dictionaryTests",
+            "dictMapTest",
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )
+        ),
+        suite("merge")(
+          testEvalMultiple("merges two dictionaries")(
+            "dictionaryTests",
+            "dictMergeTest",
+            List(
+              Map("Alice" -> 1, "Bob"  -> 1),
+              Map("Bob"   -> 1, "Cedd" -> 1)
+            )
+          )(
+            Data.Map(
+              Data.String("Alice") -> Data.Int(2),
+              Data.String("Bob")   -> Data.Int(3),
+              Data.String("Cedd")  -> Data.Int(1)
+            )
+          ),
+          testEvalMultiple("merges when the first dict is empty")(
+            "dictionaryTests",
+            "dictMergeTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Map("Bob" -> 1, "Cedd" -> 1)
+            )
+          )(
+            Data.Map(
+              Data.String("Bob")  -> Data.Int(1),
+              Data.String("Cedd") -> Data.Int(1)
+            )
+          ),
+          testEvalMultiple("merges when the second dict is empty")(
+            "dictionaryTests",
+            "dictMergeTest",
+            List(
+              Map("Alice" -> 1, "Bob" -> 1),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map(
+              Data.String("Alice") -> Data.Int(2),
+              Data.String("Bob")   -> Data.Int(2)
+            )
+          ),
+          testEvalMultiple("merges when both dicts are empty")(
+            "dictionaryTests",
+            "dictMergeTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("merges two dictionaries alternate")(
+            "dictionaryTests",
+            "dictMergeTest2",
+            List(
+              Map("Alice" -> "value1", "Bob"  -> "value2"),
+              Map("Bob"   -> "value3", "Cedd" -> "value4")
+            )
+          )(
+            Data.Map(
+              Data.String("Alice") -> Data.String("value1"),
+              Data.String("Bob")   -> Data.String("value2 and value3"),
+              Data.String("Cedd")  -> Data.String("value4")
+            )
+          ),
+          testEvalMultiple("merges two empty dictionaries alternate")(
+            "dictionaryTests",
+            "dictMergeTest2",
+            List(
+              Data.Map.empty(Concept.String, Concept.String),
+              Data.Map.empty(Concept.String, Concept.String)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.String)
+          ),
+          testEvalMultiple("merges when the second dict is empty alternate")(
+            "dictionaryTests",
+            "dictMergeTest2",
+            List(
+              Map("Alice" -> "value1", "Bob" -> "value2"),
+              Data.Map.empty(Concept.String, Concept.String)
+            )
+          )(
+            Data.Map(
+              Data.String("Alice") -> Data.String("value1"),
+              Data.String("Bob")   -> Data.String("value2")
+            )
+          )
         )
       ),
       suite("Maybe Tests")(

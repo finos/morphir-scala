@@ -291,105 +291,88 @@ dictRemoveTest key dict =
 
 {-| Test: Dict/diff
 -}
-dictDiffTest : TestContext -> Dict String Int
-dictDiffTest ctx =
-    test ctx <|
-        let
-            dict1 =
-                Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
-
-            dict2 =
-                Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ), ( "Spike", 3 ) ]
-        in
-        Dict.diff dict1 dict2
+dictDiffTest : Dict String Int -> Dict String Int -> Dict String Int
+dictDiffTest dict1 dict2 =
+    Dict.diff dict1 dict2
 
 
--- {-| Test: Dict/intersect
--- -}
--- dictIntersectTest : TestContext -> Dict String Int
--- dictIntersectTest ctx =
---     test ctx <|
---         let
---             dict1 =
---                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
-
---             dict2 =
---                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ), ( "Spike", 3 ) ]
---         in
---         Dict.intersect dict1 dict2
+{-| Test: Dict/intersect
+-}
+dictIntersectTest : Dict String Int -> Dict String Int -> Dict String Int
+dictIntersectTest dict1 dict2 =
+    Dict.intersect dict1 dict2
 
 
--- {-| Test: Dict/union
--- -}
--- dictUnionTest : TestContext -> Dict String Int
--- dictUnionTest ctx =
---     test ctx <|
---         let
---             dict1 =
---                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
-
---             dict2 =
---                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ), ( "Spike", 3 ) ]
---         in
---         Dict.union dict1 dict2
+{-| Test: Dict/union
+-}
+dictUnionTest : Dict String Int -> Dict String Int -> Dict String Int
+dictUnionTest dict1 dict2 =
+    Dict.union dict1 dict2
 
 
--- {-| Test: Dict/foldl
--- -}
--- dictFoldlTest : TestContext -> Int
--- dictFoldlTest ctx =
---     test ctx <|
---         let
---             dict =
---                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
---         in
---         Dict.foldl (\k v acc -> acc + v) 0 dict
+{-| Test: Dict/foldl
+-}
+dictFoldlTest : Dict String Int -> Int
+dictFoldlTest dict =
+    Dict.foldl (\k v acc -> acc + v) 0 dict
 
 
--- {-| Test: Dict/foldr
--- -}
--- dictFoldrTest : TestContext -> Int
--- dictFoldrTest ctx =
---     test ctx <|
---         let
---             dict =
---                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
---         in
---         Dict.foldr (\k v acc -> acc + v) 0 dict
+{-| Test: Dict/foldl
+-}
+dictFoldlTest2 : Dict String Int -> List Int
+dictFoldlTest2 dict =
+    Dict.foldl (\_ value acc -> value :: acc) [] dict
 
 
-
--- --write a test for Dict map
-
-
--- {-| Test: Dict/map
--- -}
--- dictMapTest : TestContext -> Dict String Int
--- dictMapTest ctx =
---     test ctx <|
---         let
---             dict =
---                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
---         in
---         Dict.map (\v -> v * 2) dict
+{-| Test: Dict/foldr
+-}
+dictFoldrTest : Dict String Int -> Int
+dictFoldrTest dict =
+    Dict.foldr (\k v acc -> acc + v) 0 dict
 
 
--- {-| Test: Dict/merge
--- -}
--- dictMergeTest : TestContext -> Dict String Int
--- dictMergeTest ctx =
---     test ctx <|
---         let
---             dict1 =
---                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ) ]
+{-| Test: Dict/foldr
+-}
+dictFoldrTest2 : Dict String Int -> List Int
+dictFoldrTest2 dict =
+    Dict.foldr (\_ value acc -> value :: acc) [] dict
 
---             dict2 =
---                 Dict.fromList [ ( "Tom", 1 ), ( "Jerry", 2 ), ( "Spike", 3 ) ]
---         in
---         Dict.merge
---             (\k v acc -> acc)
---             (\k v1 v2 acc -> acc)
---             (\k v acc -> acc)
---             dict1
---             dict2
---             Dict.empty
+
+{-| Test: Dict/map
+-}
+dictMapTest : Dict String Int -> Dict String Int
+dictMapTest dict =
+    Dict.map (\k v -> v * 2) dict
+
+
+{-| Test: Dict/merge
+-}
+dictMergeTest : Dict String Int -> Dict String Int -> Dict String Int
+dictMergeTest dict1 dict2 =
+    Dict.merge
+        -- when only in dict1
+        (\name count mergedCounts -> Dict.insert name (2 * count) mergedCounts)
+        -- when in dict1 and dict2
+        (\name dict1Count dict2Count mergedCounts -> Dict.insert name (2 * dict1Count + dict2Count) mergedCounts)
+        -- when only in dict2
+        (\name count mergedCounts -> Dict.insert name count mergedCounts)
+        -- the two dicts to merge
+        dict1
+        dict2
+        Dict.empty
+
+
+{-| Test: Dict/merge
+-}
+dictMergeTest2 : Dict String String -> Dict String String -> Dict String String
+dictMergeTest2 dict1 dict2 =
+    Dict.merge
+        -- When the key is only in the first dict, ignore it
+        (\key value result -> Dict.insert key value result)
+         -- When the key is in both, concatenate their values
+        (\key value1 value2 result -> Dict.insert key (value1 ++ " and " ++ value2) result)
+        -- When the key is only in the second dict, ignore it
+        (\key value result -> Dict.insert key value result)
+        dict1
+        dict2
+        Dict.empty
