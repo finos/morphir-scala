@@ -369,7 +369,7 @@ dictMergeTest2 dict1 dict2 =
     Dict.merge
         -- When the key is only in the first dict, ignore it
         (\key value result -> Dict.insert key value result)
-         -- When the key is in both, concatenate their values
+        -- When the key is in both, concatenate their values
         (\key value1 value2 result -> Dict.insert key (value1 ++ " and " ++ value2) result)
         -- When the key is only in the second dict, ignore it
         (\key value result -> Dict.insert key value result)
