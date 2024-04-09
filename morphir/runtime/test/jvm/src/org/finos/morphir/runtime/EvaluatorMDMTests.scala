@@ -1199,6 +1199,20 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvalMultiple("diffInYears")("localDateTests", "diffInYearsTest", List(localDate, localDate.plusYears(2)))(
           Data.Int(2)
         ),
+        testEvalMultiple("diffInYearsAdjacent")(
+          "localDateTests",
+          "diffInYearsTest",
+          List(java.time.LocalDate.of(1900, 12, 31), java.time.LocalDate.of(1901, 1, 1))
+        )(
+          Data.Int(1)
+        ),
+        testEvalMultiple("diffInYearsFullYear")(
+          "localDateTests",
+          "diffInYearsTest",
+          List(java.time.LocalDate.of(1900, 12, 31), java.time.LocalDate.of(1900, 1, 1))
+        )(
+          Data.Int(0)
+        ),
         testEvalMultiple("addMonths")("localDateTests", "addMonthsTest", List(2, localDate))(
           Data.LocalDate(localDate.plusMonths(2))
         ),
