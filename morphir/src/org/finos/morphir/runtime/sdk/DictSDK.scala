@@ -32,11 +32,9 @@ object DictSDK {
     // === ELM Function ===
     // diff : Dict comparable a -> Dict comparable b -> Dict comparable a
     // Keep a key-value pair when its key does not appear in the second dictionary.
-    (ctx: NativeContext) => (dict1Raw: RTValue.Map, dict2Raw: RTValue.Map) =>
+    (ctx: NativeContext) => (dict1: RTValue.Map, dict2: RTValue.Map) =>
       {
-        val dict1 = dict1Raw.value.clone()
-        val dict2 = dict2Raw.value.clone()
-        val diff  = dict1.filter { case (k, _) => !dict2.contains(k) }
+        val diff = dict1.value.filter { case (k, _) => !dict2.value.contains(k) }
         RTValue.Map(diff)
       }
   }
@@ -45,11 +43,9 @@ object DictSDK {
     // === ELM Function ===
     // intersect : Dict comparable v -> Dict comparable v -> Dict comparable v
     // Keep a key-value pair when its key appears in the second dictionary. Preference is given to values in the first dictionary.
-    (ctx: NativeContext) => (dict1Raw: RTValue.Map, dict2Raw: RTValue.Map) =>
+    (ctx: NativeContext) => (dict1: RTValue.Map, dict2: RTValue.Map) =>
       {
-        val dict1 = dict1Raw.value.clone()
-        val dict2 = dict2Raw.value.clone()
-        val diff  = dict1.filter { case (k, _) => dict2.contains(k) }
+        val diff = dict1.value.filter { case (k, _) => dict2.value.contains(k) }
         RTValue.Map(diff)
       }
   }
@@ -58,11 +54,9 @@ object DictSDK {
     // === ELM Function ===
     // union : Dict comparable v -> Dict comparable v -> Dict comparable v
     // Combine two dictionaries. If there is a collision, preference is given to the first dictionary.
-    (ctx: NativeContext) => (dict1Raw: RTValue.Map, dict2Raw: RTValue.Map) =>
+    (ctx: NativeContext) => (dict1: RTValue.Map, dict2: RTValue.Map) =>
       {
-        val dict1 = dict1Raw.value.clone()
-        val dict2 = dict2Raw.value.clone()
-        val diff  = dict2 ++ dict1
+        val diff = dict2.value ++ dict1.value
         RTValue.Map(diff)
       }
   }
@@ -71,10 +65,9 @@ object DictSDK {
     // === ELM Function ===
     // foldl : (k -> v -> b -> b) -> b -> Dict k v -> b
     // Fold over the key-value pairs in a dictionary from lowest key to highest key.
-    (ctx: NativeContext) => (f: RTValue.Function, b: RTValue, dictRaw: RTValue.Map) =>
+    (ctx: NativeContext) => (f: RTValue.Function, b: RTValue, dict: RTValue.Map) =>
       {
-        val dict = dictRaw.value.clone()
-        val result = dict.foldLeft(b) {
+        val result = dict.value.foldLeft(b) {
           case (acc, (k, v)) =>
             ctx.evaluator.handleApplyResult3(Type.UType.Unit(()), f, k, v, acc)
         }
@@ -86,10 +79,9 @@ object DictSDK {
     // === ELM Function ===
     // foldr : (k -> v -> b -> b) -> b -> Dict k v -> b
     // Fold over the key-value pairs in a dictionary from highest key to lowest key.
-    (ctx: NativeContext) => (f: RTValue.Function, b: RTValue, dictRaw: RTValue.Map) =>
+    (ctx: NativeContext) => (f: RTValue.Function, b: RTValue, dict: RTValue.Map) =>
       {
-        val dict = dictRaw.value.clone()
-        val result = dict.foldRight(b) {
+        val result = dict.value.foldRight(b) {
           case ((k, v), acc) =>
             ctx.evaluator.handleApplyResult3(Type.UType.Unit(()), f, k, v, acc)
         }
@@ -101,10 +93,9 @@ object DictSDK {
     // === ELM Function ===
     // map : (k -> a -> b) -> Dict k a -> Dict k b
     // Apply a function to all values in a diction
-    (ctx: NativeContext) => (f: RTValue.Function, dictRaw: RTValue.Map) =>
+    (ctx: NativeContext) => (f: RTValue.Function, dict: RTValue.Map) =>
       {
-        val dict = dictRaw.value.clone()
-        val newDict = dict.map {
+        val newDict = dict.value.map {
           case (k, v) =>
             val newValue = ctx.evaluator.handleApplyResult2(Type.UType.Unit(()), f, k, v)
             (k, newValue)
@@ -123,8 +114,8 @@ object DictSDK {
         result: RTValue
     ) =>
       {
-        val dict1 = dict1Raw.value.clone()
-        val dict2 = dict2Raw.value.clone()
+        val dict1 = dict1Raw.value
+        val dict2 = dict2Raw.value
         val keys  = dict1.keySet ++ dict2.keySet
         val resultValue = keys.foldLeft(result) {
           case (acc, key) =>

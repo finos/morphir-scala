@@ -2068,6 +2068,19 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             )
           )(
             Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("diff mutation test")(
+            "dictionaryTests",
+            "dictDiffMutateTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Map("b" -> 2, "c" -> 3)
+            )
+          )(
+            Data.List(
+              Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2)),
+              Data.Map(Data.String("b") -> Data.Int(2), Data.String("c") -> Data.Int(3))
+            )
           )
         ),
         suite("intersect")(
@@ -2110,6 +2123,19 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             )
           )(
             Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("intersect mutation test")(
+            "dictionaryTests",
+            "dictIntersectMutateTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Map("b" -> 3, "c" -> 3)
+            )
+          )(
+            Data.List(
+              Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2)),
+              Data.Map(Data.String("b") -> Data.Int(3), Data.String("c") -> Data.Int(3))
+            )
           )
         ),
         suite("union")(
@@ -2162,6 +2188,19 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             )
           )(
             Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("union mutation test")(
+            "dictionaryTests",
+            "dictUnionMutateTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Map("b" -> 4, "c" -> 3)
+            )
+          )(
+            Data.List(
+              Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2)),
+              Data.Map(Data.String("b") -> Data.Int(4), Data.String("c") -> Data.Int(3))
+            )
           )
         ),
         suite("foldl")(
@@ -2184,6 +2223,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.Map.empty(Concept.String, Concept.Int32)
           )(
             Data.List.empty(Concept.Int32)
+          ),
+          testEval("foldl mutation test")("dictionaryTests", "dictFoldlMutateTest", Map("a" -> 1, "b" -> 2))(
+            Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2))
           )
         ),
         suite("foldr")(
@@ -2206,6 +2248,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.Map.empty(Concept.String, Concept.Int32)
           )(
             Data.List.empty(Concept.Int32)
+          ),
+          testEval("foldr mutation test")("dictionaryTests", "dictFoldlMutateTest", Map("a" -> 1, "b" -> 2))(
+            Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2))
           )
         ),
         suite("map")(
@@ -2235,6 +2280,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.Map.empty(Concept.String, Concept.Int32)
           )(
             Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("map mutation test")(
+            "dictionaryTests",
+            "dictMapMutateTest",
+            List(
+              Map("a" -> 1, "b" -> 2)
+            )
+          )(
+            Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2))
           )
         ),
         suite("merge")(
@@ -2323,6 +2377,19 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.Map(
               Data.String("Alice") -> Data.String("value1"),
               Data.String("Bob")   -> Data.String("value2")
+            )
+          ),
+          testEvalMultiple("merge mutation test")(
+            "dictionaryTests",
+            "dictMergeMutateTest",
+            List(
+              Map("Alice" -> 1, "Bob"  -> 1),
+              Map("Bob"   -> 1, "Cedd" -> 1)
+            )
+          )(
+            Data.List(
+              Data.Map(Data.String("Alice") -> Data.Int(1), Data.String("Bob")  -> Data.Int(1)),
+              Data.Map(Data.String("Bob")   -> Data.Int(1), Data.String("Cedd") -> Data.Int(1))
             )
           )
         )
