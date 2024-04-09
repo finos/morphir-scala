@@ -302,7 +302,7 @@ dictDiffMutateTest : Dict String Int -> Dict String Int -> List (Dict String Int
 dictDiffMutateTest dict1 dict2 =
     let
         result =
-            dictDiffTest dict1 dict2
+            Dict.diff dict1 dict2
     in
     [ dict1, dict2 ]
 
@@ -322,7 +322,7 @@ dictIntersectMutateTest : Dict String Int -> Dict String Int -> List (Dict Strin
 dictIntersectMutateTest dict1 dict2 =
     let
         result =
-            dictIntersectTest dict1 dict2
+            Dict.intersect dict1 dict2
     in
     [ dict1, dict2 ]
 
@@ -340,7 +340,7 @@ dictUnionMutateTest : Dict String Int -> Dict String Int -> List (Dict String In
 dictUnionMutateTest dict1 dict2 =
     let
         result =
-            dictUnionTest dict1 dict2
+            Dict.union dict1 dict2
     in
     [ dict1, dict2 ]
 
@@ -365,7 +365,7 @@ dictFoldlMutateTest : Dict String Int -> Dict String Int
 dictFoldlMutateTest dict =
     let
         result =
-            dictFoldlTest dict
+            Dict.foldl (\_ value acc -> value :: acc) [] dict
     in
     dict
 
@@ -390,7 +390,7 @@ dictFoldrMutateTest : Dict String Int -> Dict String Int
 dictFoldrMutateTest dict =
     let
         result =
-            dictFoldrTest dict
+            Dict.foldr (\_ value acc -> value :: acc) [] dict
     in
     dict
 
@@ -408,7 +408,7 @@ dictMapMutateTest : Dict String Int -> Dict String Int
 dictMapMutateTest dict =
     let
         result =
-            dictMapTest dict
+            Dict.map (\k v -> v * 2) dict
     in
     dict
 
@@ -451,7 +451,15 @@ dictMergeTest2 dict1 dict2 =
 dictMergeMutateTest : Dict String Int -> Dict String Int -> List (Dict String Int)
 dictMergeMutateTest dict1 dict2 =
     let
-        result =
-            dictMergeTest dict1 dict2
+        mergeResult =
+            Dict.merge
+                (\key value result -> Dict.insert key value result)
+                (\key lValue rValue result ->
+                    Dict.insert key (lValue + rValue) result
+                )
+                (\key value result -> Dict.insert key value result)
+                dict1
+                dict2
+                Dict.empty
     in
     [ dict1, dict2 ]
