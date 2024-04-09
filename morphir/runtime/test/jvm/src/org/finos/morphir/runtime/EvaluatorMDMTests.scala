@@ -2522,7 +2522,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             "maybeMap2TestString",
             List(Data.Optional.Some(Data.String("Hello")), Data.Optional.Some(Data.String("World")))
           )(
-            Data.String("Hello World")
+            Data.String("HelloWorld")
           )
         ),
         testEvalMultiple("Just and Nothing")(
@@ -2546,35 +2546,151 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )(
           Data.String("Error")
         ),
-        suite("map2 Tests")(
-          testEvalMultiple("both inputs are Just")(
+        suite("map3 String Tests")(
+          testEvalMultiple("all inputs are Just")(
             "maybeTests",
-            "maybeMap2Test",
-            List(Data.Optional.Some(Data.String("2")), Data.Optional.Some(Data.String("123")))
+            "maybeMap3TestString",
+            List(
+              Data.Optional.Some(Data.String("Hello")),
+              Data.Optional.Some(Data.String("World")),
+              Data.Optional.Some(Data.String("!!!"))
+            )
           )(
-            Data.Optional.Some(Data.Int(246))
+            Data.String("HelloWorld!!!")
           )
         ),
-        testEvalMultiple("Just and Nothing")(
+        testEvalMultiple("Just, Just, Nothing")(
           "maybeTests",
-          "maybeMap2Test",
-          List(Data.Optional.Some(Data.String("2")), Data.Optional.None(Concept.String))
+          "maybeMap3TestString",
+          List(
+            Data.Optional.Some(Data.String("Hello")),
+            Data.Optional.Some(Data.String("World")),
+            Data.Optional.None(Concept.String)
+          )
         )(
-          Data.Optional.Some(Data.Int(2))
+          Data.String("Error")
         ),
-        testEvalMultiple("Nothing and Just")(
+        testEvalMultiple("Nothing, Nothing, Nothing")(
           "maybeTests",
-          "maybeMap2Test",
-          List(Data.Optional.None(Concept.String), Data.Optional.Some(Data.String("junk")))
+          "maybeMap3TestString",
+          List(
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String)
+          )
+        )(
+          Data.String("Error")
+        ),
+        suite("map3 Int Tests")(
+          testEvalMultiple("all inputs are Just")(
+            "maybeTests",
+            "maybeMap3TestInt",
+            List(
+              Data.Optional.Some(Data.Int(1)),
+              Data.Optional.Some(Data.Int(2)),
+              Data.Optional.Some(Data.Int(3))
+            )
+          )(
+            Data.Optional.Some(Data.Int(6))
+          )
+        ),
+        testEvalMultiple("Just, Just, Nothing")(
+          "maybeTests",
+          "maybeMap3TestInt",
+          List(
+            Data.Optional.Some(Data.Int(1)),
+            Data.Optional.Some(Data.Int(2)),
+            Data.Optional.None(Concept.Int32)
+          )
         )(
           Data.Optional.None(Concept.Int32)
         ),
-        testEvalMultiple("Nothing and Nothing")(
+        testEvalMultiple("Nothing, Nothing, Nothing")(
           "maybeTests",
-          "maybeMap2Test",
-          List(Data.Optional.None(Concept.String), Data.Optional.None(Concept.String))
+          "maybeMap3TestInt",
+          List(
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32)
+          )
         )(
-          Data.Optional.Some(Data.Int(1))
+          Data.Optional.None(Concept.Int32)
+        ),
+        suite("map4 String Tests")(
+          testEvalMultiple("all inputs are Just")(
+            "maybeTests",
+            "maybeMap4TestString",
+            List(
+              Data.Optional.Some(Data.String("Hello")),
+              Data.Optional.Some(Data.String("World")),
+              Data.Optional.Some(Data.String("!!!")),
+              Data.Optional.Some(Data.String("!!!"))
+            )
+          )(
+            Data.String("HelloWorld!!!!!!")
+          )
+        ),
+        testEvalMultiple("Just, Just, Nothing, Just")(
+          "maybeTests",
+          "maybeMap4TestString",
+          List(
+            Data.Optional.Some(Data.String("Hello")),
+            Data.Optional.Some(Data.String("World")),
+            Data.Optional.None(Concept.String),
+            Data.Optional.Some(Data.String("!!!"))
+          )
+        )(
+          Data.String("Error")
+        ),
+        testEvalMultiple("Nothing, Nothing, Nothing, Nothing")(
+          "maybeTests",
+          "maybeMap4TestString",
+          List(
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String)
+          )
+        )(
+          Data.String("Error")
+        ),
+        suite("map4 Int Tests")(
+          testEvalMultiple("all inputs are Just")(
+            "maybeTests",
+            "maybeMap4TestInt",
+            List(
+              Data.Optional.Some(Data.Int(1)),
+              Data.Optional.Some(Data.Int(2)),
+              Data.Optional.Some(Data.Int(3)),
+              Data.Optional.Some(Data.Int(4))
+            )
+          )(
+            Data.Optional.Some(Data.Int(10))
+          )
+        ),
+        testEvalMultiple("Just, Just, Nothing, Just")(
+          "maybeTests",
+          "maybeMap4TestInt",
+          List(
+            Data.Optional.Some(Data.Int(1)),
+            Data.Optional.Some(Data.Int(2)),
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.Some(Data.Int(4))
+          )
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        testEvalMultiple("Nothing, Nothing, Nothing, Nothing")(
+          "maybeTests",
+          "maybeMap4TestInt",
+          List(
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32)
+          )
+        )(
+          Data.Optional.None(Concept.Int32)
         )
       ),
       suite("SDK Result Tests")(

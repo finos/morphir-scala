@@ -161,6 +161,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(MaybeSDK.withDefault),
           NativeFunctionAdapter.Fun2(MaybeSDK.andThen),
           NativeFunctionAdapter.Fun3(MaybeSDK.map2),
+          NativeFunctionAdapter.Fun4(MaybeSDK.map3),
+          NativeFunctionAdapter.Fun5(MaybeSDK.map4),
           NativeFunctionAdapter.Fun1(MaybeSDK.hasValue)
         )
       }
