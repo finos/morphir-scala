@@ -22,6 +22,42 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       case m: EvaluationError => throw m.stack(codeLocation)
       case e: Throwable       => throw new ExternalError(e).stack(codeLocation)
     }
+
+  def handleApplyResult4(
+      va: UType,
+      functionValue: RTValue,
+      arg1: RTValue,
+      arg2: RTValue,
+      arg3: RTValue,
+      arg4: RTValue
+  ): RTValue = {
+    val partiallyAppliedFunction =
+      handleApplyResult(va, functionValue, arg1)
+    val partiallyAppliedFunction2 =
+      handleApplyResult(va, partiallyAppliedFunction, arg2)
+    val partiallyAppliedFunction3 =
+      handleApplyResult(va, partiallyAppliedFunction2, arg3)
+    val result =
+      handleApplyResult(va, partiallyAppliedFunction3, arg4)
+    result
+  }
+
+  def handleApplyResult3(
+      va: UType,
+      functionValue: RTValue,
+      arg1: RTValue,
+      arg2: RTValue,
+      arg3: RTValue
+  ): RTValue = {
+    val partiallyAppliedFunction =
+      handleApplyResult(va, functionValue, arg1)
+    val partiallyAppliedFunction2 =
+      handleApplyResult(va, partiallyAppliedFunction, arg2)
+    val result =
+      handleApplyResult(va, partiallyAppliedFunction2, arg3)
+    result
+  }
+
   def handleApplyResult2(
       va: UType,
       functionValue: RTValue,
@@ -118,6 +154,9 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
                 case NativeFunctionSignature.Fun5(f) =>
                   assertCurriedNumArgs(4)
                   f(curried(0), curried(1), curried(2), curried(3), argValue)
+                case NativeFunctionSignature.Fun6(f) =>
+                  assertCurriedNumArgs(5)
+                  f(curried(0), curried(1), curried(2), curried(3), curried(4), argValue)
               }
             // If there are more arguments left in the native-signature, that needs we have more arguments to apply
             case x => RTValue.NativeFunction(x - 1, curried :+ argValue, function, loc)

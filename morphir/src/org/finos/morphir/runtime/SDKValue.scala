@@ -39,6 +39,15 @@ object SDKValue {
         RTValue
     ) => RTValue) =
       new SDKNativeFunction(Fun5(f))
+    def fun6(f: (
+        RTValue,
+        RTValue,
+        RTValue,
+        RTValue,
+        RTValue,
+        RTValue
+    ) => RTValue) =
+      new SDKNativeFunction(Fun6(f))
   }
 
   case class SDKNativeInnerFunction(function: NativeFunctionSignatureAdv)

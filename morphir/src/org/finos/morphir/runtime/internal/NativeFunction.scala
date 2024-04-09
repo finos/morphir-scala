@@ -61,6 +61,17 @@ object DynamicNativeFunction5 {
     f: (NativeContext) => (T1, T2, T3, T4, T5) => R
   ) = new DynamicNativeFunction5[T1, T2, T3, T4, T5, R](name)(f)
 }
+
+class DynamicNativeFunction6[T1 <: RTValue, T2 <: RTValue, T3 <: RTValue, T4 <: RTValue, T5 <: RTValue, T6 <: RTValue, R <: RTValue](val name: String)(
+  val f: (NativeContext) => (T1, T2, T3, T4, T5, T6) => R
+) extends DynamicNativeFunction
+
+object DynamicNativeFunction6 {
+  def apply[T1 <: RTValue, T2 <: RTValue, T3 <: RTValue, T4 <: RTValue, T5 <: RTValue, T6 <: RTValue, R <: RTValue](name: String)(
+    f: (NativeContext) => (T1, T2, T3, T4, T5, T6) => R
+  ) = new DynamicNativeFunction6[T1, T2, T3, T4, T5, T6, R](name)(f)
+}
+
 // format: on
 
 case class NumericHelpers[T](
