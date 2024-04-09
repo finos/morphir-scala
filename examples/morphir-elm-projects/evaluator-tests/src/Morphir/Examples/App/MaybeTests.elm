@@ -171,11 +171,11 @@ maybeMap3TestInt input1 input2 input3 =
 
 {-| Test: Maybe/Map3
 Description: Tests native function Maybe.map3
-expected(Just "2" Just "3" Just "4") = Just "234"
-expected(Just "2" Nothing Just "4") = Just "24"
-expected(Just "2" Just "3" Nothing) = Just "23"
-expected(Nothing Just "3" Just "4") = Just "34"
-expected(Nothing Nothing Nothing) = Just "1"
+expected(Just "2" Just "3" Just "4") = "234"
+expected(Just "2" Nothing Just "4") = "Error"
+expected(Just "2" Just "3" Nothing) = "Error"
+expected(Nothing Just "3" Just "4") = "Error"
+expected(Nothing Nothing Nothing) = "Error"
 -}
 maybeMap3TestString : Maybe String -> Maybe String -> Maybe String -> String
 maybeMap3TestString input1 input2 input3 =
@@ -203,12 +203,12 @@ maybeMap4TestInt input1 input2 input3 input4 =
 
 {-| Test: Maybe/Map4
 Description: Tests native function Maybe.map4
-expected(Just "2" Just "3" Just "4" Just "5") = Just 2345
-expected(Just "2" Just "3" Just "4" Nothing) = Just 234
-expected(Just "2" Just "3" Nothing Just "5") = Just 23
-expected(Just "2" Nothing Just "4" Just "5") = Just 2
-expected(Nothing Just "3" Just "4" Just "5") = Just 345
-expected(Nothing Nothing Nothing Nothing) = Just 1
+expected(Just "2" Just "3" Just "4" Just "5") = "2345"
+expected(Just "2" Just "3" Just "4" Nothing) = "Error"
+expected(Just "2" Just "3" Nothing Just "5") = "Error"
+expected(Just "2" Nothing Just "4" Just "5") = "Error"
+expected(Nothing Just "3" Just "4" Just "5") = "Error"
+expected(Nothing Nothing Nothing Nothing) = "Error"
 -}
 maybeMap4TestString : Maybe String -> Maybe String -> Maybe String -> Maybe String -> String
 maybeMap4TestString input1 input2 input3 input4 =
