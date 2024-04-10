@@ -46,6 +46,10 @@ diffInSecondsTest =
 
 
 {-| Test: LocalTime diffInHours
+input = java.time.LocalTime.of(10, 43, 26), java.time.LocalTime.of(12, 43, 26)
+expected = -2
+input = java.time.LocalTime.of(10, 43, 26), java.time.LocalTime.of(8, 43, 26)
+expected = 2
 -}
 diffInHoursTest : LocalTime -> LocalTime -> Int
 diffInHoursTest =
@@ -53,6 +57,10 @@ diffInHoursTest =
 
 
 {-| Test: LocalTime diffInMinutes
+input = java.time.LocalTime.of(10, 43, 26), java.time.LocalTime.of(10, 45, 26)
+expected = -2
+input = java.time.LocalTime.of(10, 43, 26), java.time.LocalTime.of(10, 41, 26)
+expected = 2
 -}
 diffInMinutesTest : LocalTime -> LocalTime -> Int
 diffInMinutesTest =

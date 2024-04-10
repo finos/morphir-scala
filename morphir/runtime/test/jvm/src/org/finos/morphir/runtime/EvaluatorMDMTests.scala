@@ -1206,7 +1206,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )(
           Data.Int(1)
         ),
-        testEvalMultiple("diffInYearsFullYear")(
+        testEvalMultiple("diffInYearsSameYear")(
           "localDateTests",
           "diffInYearsTest",
           List(java.time.LocalDate.of(1900, 12, 31), java.time.LocalDate.of(1900, 1, 1))
