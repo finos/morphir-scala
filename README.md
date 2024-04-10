@@ -1,7 +1,7 @@
 # Morphir 
 
-<a href="https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating">
-    <img src="https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg" />
+<a href="https://finosfoundation.atlassian.net/wiki/display/FINOS/Active">
+    <img src="https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-active.svg" />
 </a>
 <a href="https://github.com/finos/morphir-scala/actions">
     <img src="https://github.com/finos/morphir-scala/workflows/CI/badge.svg" />
