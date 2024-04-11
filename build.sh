@@ -294,6 +294,9 @@ case "$subcommand" in
 	"setup")
 		moon setup
 		;;
+	"setup-idea")
+		./mill mill.idea.GenIdea/idea
+		;;
 	"test-jvm")
 		moon run evaluator-tests:morphir-elm-build
 		ensure_scalaVersions
