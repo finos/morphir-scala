@@ -159,7 +159,11 @@ object NativeSDK {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun2(MaybeSDK.map),
           NativeFunctionAdapter.Fun2(MaybeSDK.withDefault),
-          NativeFunctionAdapter.Fun2(MaybeSDK.andThen)
+          NativeFunctionAdapter.Fun2(MaybeSDK.andThen),
+          NativeFunctionAdapter.Fun3(MaybeSDK.map2),
+          NativeFunctionAdapter.Fun4(MaybeSDK.map3),
+          NativeFunctionAdapter.Fun5(MaybeSDK.map4),
+          NativeFunctionAdapter.Fun1(MaybeSDK.hasValue)
         )
       }
 
@@ -216,6 +220,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(LocalTimeSDK.addMinutes),
           NativeFunctionAdapter.Fun2(LocalTimeSDK.addSeconds),
           NativeFunctionAdapter.Fun2(LocalTimeSDK.diffInSeconds),
+          NativeFunctionAdapter.Fun2(LocalTimeSDK.diffInHours),
+          NativeFunctionAdapter.Fun2(LocalTimeSDK.diffInMinutes),
           NativeFunctionAdapter.Fun1(LocalTimeSDK.fromISO)
         )
       }

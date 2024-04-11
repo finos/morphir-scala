@@ -7,6 +7,8 @@ import org.finos.morphir.runtime.internal.{
   DynamicNativeFunction1,
   DynamicNativeFunction2,
   DynamicNativeFunction3,
+  DynamicNativeFunction4,
+  DynamicNativeFunction5,
   NativeContext
 }
 import org.finos.morphir.runtime.MorphirRuntimeError.UnexpectedType
@@ -73,5 +75,57 @@ object MaybeSDK {
         }
         resultToMaybe(out)
       }
+  }
+
+  val map2 = DynamicNativeFunction3("map2") {
+    (ctx: NativeContext) => (f: RT.Function, maybeRaw1: RT.ConstructorResult, maybeRaw2: RT.ConstructorResult) =>
+      {
+        val out = for {
+          elem1 <- eitherToOption(maybeRaw1)
+          elem2 <- eitherToOption(maybeRaw2)
+        } yield ctx.evaluator.handleApplyResult2(Type.variable("a"), f, elem1, elem2)
+        resultToMaybe(out)
+      }
+  }
+
+  val map3 = DynamicNativeFunction4("map3") {
+    (ctx: NativeContext) => (
+        f: RT.Function,
+        maybeRaw1: RT.ConstructorResult,
+        maybeRaw2: RT.ConstructorResult,
+        maybeRaw3: RT.ConstructorResult
+    ) =>
+      {
+        val out = for {
+          elem1 <- eitherToOption(maybeRaw1)
+          elem2 <- eitherToOption(maybeRaw2)
+          elem3 <- eitherToOption(maybeRaw3)
+        } yield ctx.evaluator.handleApplyResult3(Type.variable("a"), f, elem1, elem2, elem3)
+        resultToMaybe(out)
+      }
+  }
+
+  val map4 = DynamicNativeFunction5("map4") {
+    (ctx: NativeContext) => (
+        f: RT.Function,
+        maybeRaw1: RT.ConstructorResult,
+        maybeRaw2: RT.ConstructorResult,
+        maybeRaw3: RT.ConstructorResult,
+        maybeRaw4: RT.ConstructorResult
+    ) =>
+      {
+        val out = for {
+          elem1 <- eitherToOption(maybeRaw1)
+          elem2 <- eitherToOption(maybeRaw2)
+          elem3 <- eitherToOption(maybeRaw3)
+          elem4 <- eitherToOption(maybeRaw4)
+        } yield ctx.evaluator.handleApplyResult4(Type.variable("a"), f, elem1, elem2, elem3, elem4)
+        resultToMaybe(out)
+      }
+  }
+
+  val hasValue = DynamicNativeFunction1("hasValue") {
+    (_: NativeContext) => (maybeRaw: RT.ConstructorResult) =>
+      RT.Primitive.Boolean(eitherToOption(maybeRaw).isDefined)
   }
 }

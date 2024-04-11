@@ -1199,6 +1199,20 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvalMultiple("diffInYears")("localDateTests", "diffInYearsTest", List(localDate, localDate.plusYears(2)))(
           Data.Int(2)
         ),
+        testEvalMultiple("diffInYearsAdjacent")(
+          "localDateTests",
+          "diffInYearsTest",
+          List(java.time.LocalDate.of(1900, 12, 31), java.time.LocalDate.of(1901, 1, 1))
+        )(
+          Data.Int(1)
+        ),
+        testEvalMultiple("diffInYearsSameYear")(
+          "localDateTests",
+          "diffInYearsTest",
+          List(java.time.LocalDate.of(1900, 12, 31), java.time.LocalDate.of(1900, 1, 1))
+        )(
+          Data.Int(0)
+        ),
         testEvalMultiple("addMonths")("localDateTests", "addMonthsTest", List(2, localDate))(
           Data.LocalDate(localDate.plusMonths(2))
         ),
@@ -1263,6 +1277,30 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "diffInSecondsTest",
           List(localTime, localTime.minusSeconds(2))
         )(Data.Int(2)),
+        testEvalMultiple("diffInHours")("localTimeTests", "diffInHoursTest", List(localTime, localTime.plusHours(2)))(
+          Data.Int(-2)
+        ),
+        testEvalMultiple("diffInHours negative")(
+          "localTimeTests",
+          "diffInHoursTest",
+          List(localTime, localTime.minusHours(2))
+        )(
+          Data.Int(2)
+        ),
+        testEvalMultiple("diffInMinutes")(
+          "localTimeTests",
+          "diffInMinutesTest",
+          List(localTime, localTime.plusMinutes(2))
+        )(
+          Data.Int(-2)
+        ),
+        testEvalMultiple("diffInMinutes negative")(
+          "localTimeTests",
+          "diffInMinutesTest",
+          List(localTime, localTime.minusMinutes(2))
+        )(
+          Data.Int(2)
+        ),
         testEval("fromISO valid iso time")("localTimeTests", "fromISOTest", "10:43:26.111111111")(
           Data.Optional.Some(Data.LocalTime(java.time.LocalTime.of(10, 43, 26, 111111111)))
         ),
@@ -2453,6 +2491,220 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           ),
           testEval("both outputs are Just")("maybeTests", "maybeAndThen", 1)(Data.Optional.Some(Data.Float(1.0))),
           testEval("first output is Nothing")("maybeTests", "maybeAndThen", 2)(Data.Optional.None(Concept.Float))
+        ),
+        suite("hasValue Tests")(
+          testEval("true for Just")("maybeTests", "maybeHasValueTest", Data.Optional.Some(Data.Int(1)))(
+            Data.Boolean(true)
+          ),
+          testEval("false for Nothing")("maybeTests", "maybeHasValueTest", Data.Optional.None(Concept.Int32))(
+            Data.Boolean(false)
+          )
+        ),
+        suite("map2 Int Tests")(
+          testEvalMultiple("both inputs are Just")(
+            "maybeTests",
+            "maybeMap2TestInt",
+            List(Data.Optional.Some(Data.Int(1)), Data.Optional.Some(Data.Int(2)))
+          )(
+            Data.Optional.Some(Data.Int(3))
+          )
+        ),
+        testEvalMultiple("Just and Nothing")(
+          "maybeTests",
+          "maybeMap2TestInt",
+          List(Data.Optional.Some(Data.Int(1)), Data.Optional.None(Concept.Int32))
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        testEvalMultiple("Nothing and Just")(
+          "maybeTests",
+          "maybeMap2TestInt",
+          List(Data.Optional.None(Concept.Int32), Data.Optional.Some(Data.Int(1)))
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        testEvalMultiple("Nothing and Nothing")(
+          "maybeTests",
+          "maybeMap2TestInt",
+          List(Data.Optional.None(Concept.Int32), Data.Optional.None(Concept.Int32))
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        suite("map2 String Tests")(
+          testEvalMultiple("both inputs are Just")(
+            "maybeTests",
+            "maybeMap2TestString",
+            List(Data.Optional.Some(Data.String("Hello")), Data.Optional.Some(Data.String("World")))
+          )(
+            Data.String("HelloWorld")
+          )
+        ),
+        testEvalMultiple("Just and Nothing")(
+          "maybeTests",
+          "maybeMap2TestString",
+          List(Data.Optional.Some(Data.String("Hello")), Data.Optional.None(Concept.String))
+        )(
+          Data.String("Error")
+        ),
+        testEvalMultiple("Nothing and Just")(
+          "maybeTests",
+          "maybeMap2TestString",
+          List(Data.Optional.None(Concept.String), Data.Optional.Some(Data.String("World")))
+        )(
+          Data.String("Error")
+        ),
+        testEvalMultiple("Nothing and Nothing")(
+          "maybeTests",
+          "maybeMap2TestString",
+          List(Data.Optional.None(Concept.String), Data.Optional.None(Concept.String))
+        )(
+          Data.String("Error")
+        ),
+        suite("map3 String Tests")(
+          testEvalMultiple("all inputs are Just")(
+            "maybeTests",
+            "maybeMap3TestString",
+            List(
+              Data.Optional.Some(Data.String("Hello")),
+              Data.Optional.Some(Data.String("World")),
+              Data.Optional.Some(Data.String("!!!"))
+            )
+          )(
+            Data.String("HelloWorld!!!")
+          )
+        ),
+        testEvalMultiple("Just, Just, Nothing")(
+          "maybeTests",
+          "maybeMap3TestString",
+          List(
+            Data.Optional.Some(Data.String("Hello")),
+            Data.Optional.Some(Data.String("World")),
+            Data.Optional.None(Concept.String)
+          )
+        )(
+          Data.String("Error")
+        ),
+        testEvalMultiple("Nothing, Nothing, Nothing")(
+          "maybeTests",
+          "maybeMap3TestString",
+          List(
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String)
+          )
+        )(
+          Data.String("Error")
+        ),
+        suite("map3 Int Tests")(
+          testEvalMultiple("all inputs are Just")(
+            "maybeTests",
+            "maybeMap3TestInt",
+            List(
+              Data.Optional.Some(Data.Int(1)),
+              Data.Optional.Some(Data.Int(2)),
+              Data.Optional.Some(Data.Int(3))
+            )
+          )(
+            Data.Optional.Some(Data.Int(6))
+          )
+        ),
+        testEvalMultiple("Just, Just, Nothing")(
+          "maybeTests",
+          "maybeMap3TestInt",
+          List(
+            Data.Optional.Some(Data.Int(1)),
+            Data.Optional.Some(Data.Int(2)),
+            Data.Optional.None(Concept.Int32)
+          )
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        testEvalMultiple("Nothing, Nothing, Nothing")(
+          "maybeTests",
+          "maybeMap3TestInt",
+          List(
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32)
+          )
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        suite("map4 String Tests")(
+          testEvalMultiple("all inputs are Just")(
+            "maybeTests",
+            "maybeMap4TestString",
+            List(
+              Data.Optional.Some(Data.String("Hello")),
+              Data.Optional.Some(Data.String("World")),
+              Data.Optional.Some(Data.String("!!!")),
+              Data.Optional.Some(Data.String("!!!"))
+            )
+          )(
+            Data.String("HelloWorld!!!!!!")
+          )
+        ),
+        testEvalMultiple("Just, Just, Nothing, Just")(
+          "maybeTests",
+          "maybeMap4TestString",
+          List(
+            Data.Optional.Some(Data.String("Hello")),
+            Data.Optional.Some(Data.String("World")),
+            Data.Optional.None(Concept.String),
+            Data.Optional.Some(Data.String("!!!"))
+          )
+        )(
+          Data.String("Error")
+        ),
+        testEvalMultiple("Nothing, Nothing, Nothing, Nothing")(
+          "maybeTests",
+          "maybeMap4TestString",
+          List(
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String)
+          )
+        )(
+          Data.String("Error")
+        ),
+        suite("map4 Int Tests")(
+          testEvalMultiple("all inputs are Just")(
+            "maybeTests",
+            "maybeMap4TestInt",
+            List(
+              Data.Optional.Some(Data.Int(1)),
+              Data.Optional.Some(Data.Int(2)),
+              Data.Optional.Some(Data.Int(3)),
+              Data.Optional.Some(Data.Int(4))
+            )
+          )(
+            Data.Optional.Some(Data.Int(10))
+          )
+        ),
+        testEvalMultiple("Just, Just, Nothing, Just")(
+          "maybeTests",
+          "maybeMap4TestInt",
+          List(
+            Data.Optional.Some(Data.Int(1)),
+            Data.Optional.Some(Data.Int(2)),
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.Some(Data.Int(4))
+          )
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        testEvalMultiple("Nothing, Nothing, Nothing, Nothing")(
+          "maybeTests",
+          "maybeMap4TestInt",
+          List(
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32)
+          )
+        )(
+          Data.Optional.None(Concept.Int32)
         )
       ),
       suite("SDK Result Tests")(

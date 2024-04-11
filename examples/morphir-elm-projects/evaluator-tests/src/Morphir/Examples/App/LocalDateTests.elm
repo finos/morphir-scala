@@ -61,6 +61,10 @@ diffInMonthsTest localDate1 localDate2 =
 {-| Test: LocalDate:diffInYears
 input = 1900-01-20, 2022-01-20
 expected = 122
+input = 1900-12-31, 1901-01-01
+expected = 1
+input = 1900-12-31, 1900-01-01
+expected = 0
 -}
 diffInYearsTest : LocalDate -> LocalDate -> Int
 diffInYearsTest localDate1 localDate2 =
