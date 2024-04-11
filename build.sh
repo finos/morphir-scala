@@ -305,6 +305,14 @@ case "$subcommand" in
         	./mill -i -k -j 0 "morphir[$scala].__.jvm.__.compile" + "morphir[$scala].__.jvm.publishArtifacts" + "morphir[$scala].__.jvm.__.test"
 		done
 		;;
+	"test-runtime-jvm")
+		moon run :build  --query "tag=[elm, morphir-elm]"   
+		ensure_scalaVersions
+		for scala in "${scalaVersions[@]}"; 
+		do
+        	./mill -i -k -j 0 "morphir[$scala].__.runtime.jvm.__.compile" + "morphir[$scala].__.runtime.jvm.publishArtifacts" + "morphir[$scala].__.runtime.jvm.__.test"
+		done
+		;;
 	"about")
 		ensure_scalaVersions
 		echo "Morphir Scala Build Script"
