@@ -155,4 +155,16 @@ object StringSDK {
       val result = str.value.stripTrailing()
       RTString(result)
   }
+
+  val cons = DynamicNativeFunction2("cons") {
+    (context: NativeContext) => (char: RT.Primitive.Char, str: RTString) =>
+      val result = char.value.toString + str.value
+      RTString(result)
+  }
+
+  val uncons = DynamicNativeFunction1("uncons") {
+    (context: NativeContext) => (str: RTString) =>
+      val result = str.value.headOption.map(c => (RT.Primitive.Char(c), RTString(str.value.tail)))
+      MaybeSDK.optionToMaybe(result)
+  }
 }
