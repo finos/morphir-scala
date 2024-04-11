@@ -48,7 +48,7 @@ object LocalDateSDK {
           val maybeLocalDate   = tryOption(java.time.LocalDate.of(year, month, day))
           val maybeLocalDateRt = maybeLocalDate.map(RTValue.LocalDate.apply)
 
-          MaybeSDK.resultToMaybe(maybeLocalDateRt)
+          MaybeSDK.optionToMaybe(maybeLocalDateRt)
         }
   }
 
@@ -117,7 +117,7 @@ object LocalDateSDK {
         val isoStr           = isoArg.value
         val maybeLocalDate   = elmCompatIsoParse(isoStr)
         val maybeLocalDateRT = maybeLocalDate.map(RTValue.LocalDate.apply)
-        MaybeSDK.resultToMaybe(maybeLocalDateRT)
+        MaybeSDK.optionToMaybe(maybeLocalDateRT)
       }
   }
 
