@@ -34,7 +34,16 @@ import org.finos.morphir.naming._
  *   - Change toOption(arg) calls to arg.value and toMaybe(result) calls to RT.Maybe(result)
  */
 object MaybeSDK {
-  private[sdk] def eitherToOption(arg: RT.ConstructorResult): Option[RT] =
+
+  /**
+   * Converts a "Maybe" - i.e., a ConstructorResult representing a morphir-elm Maybe value - to a Scala Option
+   *
+   * @param arg
+   *   A ConstructorResult representing a morphir-elm Maybe value (Just or Nothing)
+   * @return
+   *   An Option representing the argument in Scala terms - `Some(x)` if arg was `Just x`, `None` if arg was `Nothing`
+   */
+  private[sdk] def maybeToOption(arg: RT.ConstructorResult): Option[RT] =
     arg match {
       case RTValue.ConstructorResult(fqn, List(value)) if fqn == FQName.fromString("Morphir.SDK:Maybe:Just") =>
         Some(value)
@@ -46,7 +55,17 @@ object MaybeSDK {
           "Expected due to use in a native function"
         )
     }
-  private[sdk] def resultToMaybe(arg: Option[RT]): RT.ConstructorResult =
+
+  /**
+   * Converts a Scala Option to a "Maybe" - i.e., a ConstructorResult representing a morphir-elm Maybe value
+   *
+   * @param arg
+   *   A Scala Option
+   * @return
+   *   A ConstructorResult representing the argument in Morphir terms - `Just x` if arg was `Some(x)`, `Nothing` if arg
+   *   was `None`
+   */
+  private[sdk] def optionToMaybe(arg: Option[RT]): RT.ConstructorResult =
     arg match {
       case Some(value) => RTValue.ConstructorResult(FQName.fromString("Morphir.SDK:Maybe:Just"), List(value))
       case None        => RTValue.ConstructorResult(FQName.fromString("Morphir.SDK:Maybe:Nothing"), List())
@@ -55,25 +74,25 @@ object MaybeSDK {
   val map = DynamicNativeFunction2("map") {
     (ctx: NativeContext) => (f: RT.Function, maybeRaw: RT.ConstructorResult) =>
       {
-        val out = eitherToOption(maybeRaw).map(elem => ctx.evaluator.handleApplyResult(Type.variable("a"), f, elem))
-        resultToMaybe(out)
+        val out = maybeToOption(maybeRaw).map(elem => ctx.evaluator.handleApplyResult(Type.variable("a"), f, elem))
+        optionToMaybe(out)
       }
   }
 
   val withDefault = DynamicNativeFunction2("withDefault") {
     (ctx: NativeContext) => (default: RT, maybeRaw: RT.ConstructorResult) =>
-      eitherToOption(maybeRaw).getOrElse(default)
+      maybeToOption(maybeRaw).getOrElse(default)
   }
 
   val andThen = DynamicNativeFunction2("andThen") {
     (ctx: NativeContext) => (callback: RT.Function, maybeRaw: RT.ConstructorResult) =>
       {
-        val out = eitherToOption(maybeRaw).flatMap { elem =>
+        val out = maybeToOption(maybeRaw).flatMap { elem =>
           val fromCallbackRaw = ctx.evaluator.handleApplyResult(Type.variable("a"), callback, elem)
           val fromCallbackCr  = RT.coerceConstructorResult(fromCallbackRaw)
-          eitherToOption(fromCallbackCr)
+          maybeToOption(fromCallbackCr)
         }
-        resultToMaybe(out)
+        optionToMaybe(out)
       }
   }
 
@@ -81,10 +100,10 @@ object MaybeSDK {
     (ctx: NativeContext) => (f: RT.Function, maybeRaw1: RT.ConstructorResult, maybeRaw2: RT.ConstructorResult) =>
       {
         val out = for {
-          elem1 <- eitherToOption(maybeRaw1)
-          elem2 <- eitherToOption(maybeRaw2)
+          elem1 <- maybeToOption(maybeRaw1)
+          elem2 <- maybeToOption(maybeRaw2)
         } yield ctx.evaluator.handleApplyResult2(Type.variable("a"), f, elem1, elem2)
-        resultToMaybe(out)
+        optionToMaybe(out)
       }
   }
 
@@ -97,11 +116,11 @@ object MaybeSDK {
     ) =>
       {
         val out = for {
-          elem1 <- eitherToOption(maybeRaw1)
-          elem2 <- eitherToOption(maybeRaw2)
-          elem3 <- eitherToOption(maybeRaw3)
+          elem1 <- maybeToOption(maybeRaw1)
+          elem2 <- maybeToOption(maybeRaw2)
+          elem3 <- maybeToOption(maybeRaw3)
         } yield ctx.evaluator.handleApplyResult3(Type.variable("a"), f, elem1, elem2, elem3)
-        resultToMaybe(out)
+        optionToMaybe(out)
       }
   }
 
@@ -115,17 +134,17 @@ object MaybeSDK {
     ) =>
       {
         val out = for {
-          elem1 <- eitherToOption(maybeRaw1)
-          elem2 <- eitherToOption(maybeRaw2)
-          elem3 <- eitherToOption(maybeRaw3)
-          elem4 <- eitherToOption(maybeRaw4)
+          elem1 <- maybeToOption(maybeRaw1)
+          elem2 <- maybeToOption(maybeRaw2)
+          elem3 <- maybeToOption(maybeRaw3)
+          elem4 <- maybeToOption(maybeRaw4)
         } yield ctx.evaluator.handleApplyResult4(Type.variable("a"), f, elem1, elem2, elem3, elem4)
-        resultToMaybe(out)
+        optionToMaybe(out)
       }
   }
 
   val hasValue = DynamicNativeFunction1("hasValue") {
     (_: NativeContext) => (maybeRaw: RT.ConstructorResult) =>
-      RT.Primitive.Boolean(eitherToOption(maybeRaw).isDefined)
+      RT.Primitive.Boolean(maybeToOption(maybeRaw).isDefined)
   }
 }
