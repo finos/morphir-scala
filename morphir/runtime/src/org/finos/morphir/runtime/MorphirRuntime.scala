@@ -43,6 +43,8 @@ trait MorphirRuntime {
 }
 
 object MorphirRuntime extends MorphirRuntimePlatformSpecific {
+  def quickWithExterns(externs: Map[FQName, SDKValue], distributions: Distribution*) : TypedMorphirRuntime =
+    QuickMorphirRuntime.fromDistributionsAndExterns(externs, distributions:_*)
   def quick(distributions: Distribution*): TypedMorphirRuntime =
     QuickMorphirRuntime.fromDistributions(distributions: _*)
 }
