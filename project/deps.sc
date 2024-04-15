@@ -220,7 +220,7 @@ object Versions {
   val spire                      = "0.18.0"
   val `tasty-query`              = "0.5.6"
   val upickle                    = "3.0.0-M1"
-  val zio                        = "2.0.21"
+  val zio                        = "2.0.22"
   val `zio-cli`                  = "0.5.0"
   val `zio-config`               = "4.0.1"
   val `zio-interop-cats`         = "23.1.0.1"
