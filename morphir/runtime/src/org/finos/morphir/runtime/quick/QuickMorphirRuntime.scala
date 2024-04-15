@@ -105,7 +105,7 @@ object QuickMorphirRuntime {
 
   def fromDistributionsAndExterns(externs: Map[FQName, SDKValue], distributions: Distribution*): QuickMorphirRuntime = {
     val globalDefs = GlobalDefs.fromDistributions(distributions: _*)
-    val externDefs =  GlobalDefs(externs, Map())
+    val externDefs = GlobalDefs(externs, Map())
     QuickMorphirRuntime(Distributions(distributions: _*), globalDefs.withBindingsFrom(externDefs))
   }
 
