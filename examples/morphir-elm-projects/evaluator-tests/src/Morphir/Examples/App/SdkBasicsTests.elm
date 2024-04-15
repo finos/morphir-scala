@@ -1,8 +1,7 @@
 module Morphir.Examples.App.SdkBasicsTests exposing (..)
 
 import Morphir.Examples.App.TestUtils exposing (..)
-import Morphir.SDK.Basics exposing (integerDivide, power)
-import Morphir.SDK.Int exposing (Int64)
+import Morphir.SDK.Int as Int exposing (Int64)
 
 
 {-| Test: SdkBasics/add
@@ -21,11 +20,18 @@ sdkAddTest ctx =
 {-| Test: SdkBasics/add
 Expected = 3
 -}
-sdkAddTest64 : { a : Int64, b : Int64 } -> Int64
+sdkAddTest64 : { a : Int64, b : Int64 } -> Maybe Int64
 sdkAddTest64 t =
     let
         f x y =
-            x + y
+            let
+                intX =
+                    Int.fromInt64 x
+
+                intY =
+                    Int.fromInt64 y
+            in
+            intX + intY |> Int.toInt64
     in
     f t.a t.b
 
@@ -64,11 +70,18 @@ sdkSubtractTest ctx =
 {-| Test: SdkBasics/subtract
 expected(4, 2) = 2
 -}
-sdkSubtractTest64 : { a : Int64, b : Int64 } -> Int64
+sdkSubtractTest64 : { a : Int64, b : Int64 } -> Maybe Int64
 sdkSubtractTest64 t =
     let
         f x y =
-            x - y
+            let
+                xInt =
+                    Int.fromInt64 x
+
+                yInt =
+                    Int.fromInt64 y
+            in
+            xInt - yInt |> Int.toInt64
     in
     f t.a t.b
 
@@ -1102,7 +1115,7 @@ expected(-12, 7) = -1
 -}
 basicsIntegerDivideTest : Int -> Int -> Int
 basicsIntegerDivideTest x y =
-    integerDivide x y
+    x // y
 
 
 {-| Test: SdkBasics/basicsAbsTest
@@ -1135,7 +1148,7 @@ expected(100.0, 200.0, 100.0) = 100.0
 expected(100.0, 200.0, 200.0) = 200.0
 expected(100.0, 200.0, 150.0) = 150.0
 -}
-basicsClampTest : a -> a -> a -> a
+basicsClampTest : number -> number -> number -> number
 basicsClampTest min max x =
     clamp min max x
 
@@ -1157,9 +1170,9 @@ basicsIdentityTest x =
 expected(4.0, 5.0) = 1024
 expected(2, 5) = 1024
 -}
-basicsPowerTest : a -> a -> a
+basicsPowerTest : number -> number -> number
 basicsPowerTest n x =
-    power n x
+    n ^ x
 
 
 {-| Test: SdkBasics/basicsRemainderByTest

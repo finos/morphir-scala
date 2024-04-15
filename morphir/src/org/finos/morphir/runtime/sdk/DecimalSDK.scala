@@ -40,7 +40,7 @@ object DecimalSDK {
   val div = DynamicNativeFunction2("div") {
     (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
       val result = tryOption(dec1.value / dec2.value).map(RTDecimal(_))
-      MaybeSDK.resultToMaybe(result)
+      MaybeSDK.optionToMaybe(result)
   }
 
   val divWithDefault = DynamicNativeFunction3("divWithDefault") {
@@ -66,7 +66,7 @@ object DecimalSDK {
   val fromString = DynamicNativeFunction1("fromString") {
     (_: NativeContext) => (str: RT.Primitive.String) =>
       val result = tryOption(BigDecimal(str.value)).map(RTDecimal(_))
-      MaybeSDK.resultToMaybe(result)
+      MaybeSDK.optionToMaybe(result)
   }
 
   val gt = DynamicNativeFunction2("gt") {
@@ -136,4 +136,15 @@ object DecimalSDK {
 
   val zero: SDKValue = SDKValue.SDKNativeValue(RTDecimal(0))
 
+  val shiftDecimalLeft = DynamicNativeFunction2("shiftDecimalLeft") {
+    (_: NativeContext) => (shift: RT.Primitive.Int, dec: RTDecimal) =>
+      val result = dec.value / BigDecimal(10).pow(shift.valueAsInt)
+      RTDecimal(result)
+  }
+
+  val shiftDecimalRight = DynamicNativeFunction2("shiftDecimalRight") {
+    (_: NativeContext) => (shift: RT.Primitive.Int, dec: RTDecimal) =>
+      val result = dec.value * BigDecimal(10).pow(shift.valueAsInt)
+      RTDecimal(result)
+  }
 }

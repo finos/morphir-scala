@@ -40,6 +40,73 @@ addWeeksTest weeks date =
     addWeeks weeks date
 
 
+{-| Test: LocalDate:diffInWeeks
+input = 1900-01-20, 1900-02-10
+expected = 3
+-}
+diffInWeeksTest : LocalDate -> LocalDate -> Int
+diffInWeeksTest localDate1 localDate2 =
+    diffInWeeks localDate1 localDate2
+
+
+{-| Test: LocalDate:diffInMonths
+input = 1900-01-20, 1900-03-20
+expected = 2
+-}
+diffInMonthsTest : LocalDate -> LocalDate -> Int
+diffInMonthsTest localDate1 localDate2 =
+    diffInMonths localDate1 localDate2
+
+
+{-| Test: LocalDate:diffInYears
+input = 1900-01-20, 2022-01-20
+expected = 122
+input = 1900-12-31, 1901-01-01
+expected = 1
+input = 1900-12-31, 1900-01-01
+expected = 0
+-}
+diffInYearsTest : LocalDate -> LocalDate -> Int
+diffInYearsTest localDate1 localDate2 =
+    diffInYears localDate1 localDate2
+
+
+{-| Test: LocalDate:addMonths
+input = 2, 1900-01-20
+expected = 1900-03-20
+-}
+addMonthsTest : Int -> LocalDate -> LocalDate
+addMonthsTest months date =
+    addMonths months date
+
+
+{-| Test: monthToInt
+input = Jan
+expected = 1
+-}
+monthToIntTest : Month -> Int
+monthToIntTest month =
+    monthToInt month
+
+
+{-| Test: LocalDate:isWeekend
+input = 1900-01-20
+expected = True
+-}
+isWeekendTest : LocalDate -> Bool
+isWeekendTest date =
+    isWeekend date
+
+
+{-| Test: LocalDate:isWeekday
+input = 1900-01-20
+expected = False
+-}
+isWeekdayTest : LocalDate -> Bool
+isWeekdayTest date =
+    isWeekday date
+
+
 {-| Test: LocalDate:addYears
 input = 2, 1900-01-20
 expected = 1902-01-20
@@ -112,33 +179,6 @@ dayOfWeekTest localDate =
 fromCalendarDateTest : Int -> Month -> Int -> LocalDate
 fromCalendarDateTest year month day =
     fromCalendarDate year month day
-
-
-{-| Test: test input support for DayOfWeek enum
--}
-dayOfWeekAsInputTest : DayOfWeek -> Int
-dayOfWeekAsInputTest dayOfWeek =
-    case dayOfWeek of
-        Monday ->
-            1
-
-        Tuesday ->
-            2
-
-        Wednesday ->
-            3
-
-        Thursday ->
-            4
-
-        Friday ->
-            5
-
-        Saturday ->
-            6
-
-        Sunday ->
-            7
 
 
 {-| Test: test input support for DayOfWeek enum

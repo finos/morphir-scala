@@ -80,7 +80,7 @@ maybeMapWithContext input =
             x ++ color
     in
     let
-        x =
+        _ =
             "Bright"
     in
     Maybe.map f input
@@ -127,3 +127,104 @@ maybeAndThen input =
     in
     validateIsZeroOrOne input
         |> Maybe.andThen inverse
+
+
+{-| Test: Maybe/Map2
+Description: Tests native function Maybe.map2
+expected(Just 1 Just 2) = Just 3
+expected(Just 1 Nothing) = Nothing
+expected(Nothing Nothing) = Nothing
+-}
+maybeMap2TestInt : Maybe Int -> Maybe Int -> Maybe Int
+maybeMap2TestInt input1 input2 =
+    Maybe.map2 (\x y -> x + y) input1 input2
+
+
+{-| Test: Maybe/Map2
+Description: Tests native function Maybe.map2
+expected(Just "Hello" Just "World") = "Hello World"
+expected(Just "Hello" Nothing) = "Error"
+expected(Nothing Nothing) = "Error"
+-}
+maybeMap2TestString : Maybe String -> Maybe String -> String
+maybeMap2TestString input1 input2 =
+    case Maybe.map2 (\x y -> x ++ y) input1 input2 of
+        Just x ->
+            x
+
+        Nothing ->
+            "Error"
+
+
+{-| Test: Maybe/Map3
+Description: Tests native function Maybe.map3
+expected(Just 1 Just 2 Just 3) = Just 6
+expected(Just 1 Just 2 Nothing) = Nothing
+expected(Just 1 Nothing Just 3) = Nothing
+expected(Nothing Just 2 Just 3) = Nothing
+expected(Nothing Nothing Nothing) = Nothing
+-}
+maybeMap3TestInt : Maybe Int -> Maybe Int -> Maybe Int -> Maybe Int
+maybeMap3TestInt input1 input2 input3 =
+    Maybe.map3 (\x y z -> x + y + z) input1 input2 input3
+
+
+{-| Test: Maybe/Map3
+Description: Tests native function Maybe.map3
+expected(Just "2" Just "3" Just "4") = "234"
+expected(Just "2" Nothing Just "4") = "Error"
+expected(Just "2" Just "3" Nothing) = "Error"
+expected(Nothing Just "3" Just "4") = "Error"
+expected(Nothing Nothing Nothing) = "Error"
+-}
+maybeMap3TestString : Maybe String -> Maybe String -> Maybe String -> String
+maybeMap3TestString input1 input2 input3 =
+    case Maybe.map3 (\x y z -> x ++ y ++ z) input1 input2 input3 of
+        Just x ->
+            x
+
+        Nothing ->
+            "Error"
+
+
+{-| Test: Maybe/Map4
+Description: Tests native function Maybe.map4
+expected(Just 1 Just 2 Just 3 Just 4) = Just 10
+expected(Just 1 Just 2 Just 3 Nothing) = Nothing
+expected(Just 1 Just 2 Nothing Just 4) = Nothing
+expected(Just 1 Nothing Just 3 Just 4) = Nothing
+expected(Nothing Just 2 Just 3 Just 4) = Nothing
+expected(Nothing Nothing Nothing Nothing) = Nothing
+-}
+maybeMap4TestInt : Maybe Int -> Maybe Int -> Maybe Int -> Maybe Int -> Maybe Int
+maybeMap4TestInt input1 input2 input3 input4 =
+    Maybe.map4 (\x y z w -> x + y + z + w) input1 input2 input3 input4
+
+
+{-| Test: Maybe/Map4
+Description: Tests native function Maybe.map4
+expected(Just "2" Just "3" Just "4" Just "5") = "2345"
+expected(Just "2" Just "3" Just "4" Nothing) = "Error"
+expected(Just "2" Just "3" Nothing Just "5") = "Error"
+expected(Just "2" Nothing Just "4" Just "5") = "Error"
+expected(Nothing Just "3" Just "4" Just "5") = "Error"
+expected(Nothing Nothing Nothing Nothing) = "Error"
+-}
+maybeMap4TestString : Maybe String -> Maybe String -> Maybe String -> Maybe String -> String
+maybeMap4TestString input1 input2 input3 input4 =
+    case Maybe.map4 (\x y z w -> x ++ y ++ z ++ w) input1 input2 input3 input4 of
+        Just x ->
+            x
+
+        Nothing ->
+            "Error"
+
+
+{-| Test: Maybe/HasValue
+Description: Tests native function Maybe.hasValue
+expected(Just 1) = True
+expected(Nothing) = False
+-}
+maybeHasValueTest : Maybe Int -> Bool
+maybeHasValueTest input =
+    Maybe.hasValue input

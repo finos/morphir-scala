@@ -79,7 +79,7 @@ object ListSDK {
         case head :: rest => Some(rest.foldLeft(head)(unsafeRTValueOrd.max))
       }
 
-      MaybeSDK.resultToMaybe(result)
+      MaybeSDK.optionToMaybe(result)
   }
 
   val minimum = DynamicNativeFunction1("minimum") {
@@ -89,7 +89,7 @@ object ListSDK {
         case head :: rest => Some(rest.foldLeft(head)(unsafeRTValueOrd.min))
       }
 
-      MaybeSDK.resultToMaybe(result)
+      MaybeSDK.optionToMaybe(result)
   }
 
   val partition = DynamicNativeFunction2("partition") {
@@ -179,7 +179,7 @@ object ListSDK {
       val out = list.elements.map { elem =>
         val maybeOutputRaw = context.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
         val maybeOutputCr  = RTValue.coerceConstructorResult(maybeOutputRaw)
-        MaybeSDK.eitherToOption(maybeOutputCr)
+        MaybeSDK.maybeToOption(maybeOutputCr)
       }.flatten
       RTValue.List(out)
   }
@@ -214,7 +214,7 @@ object ListSDK {
   }
 
   val head = DynamicNativeFunction1("head") {
-    (_: NativeContext) => (list: RTValue.List) => MaybeSDK.resultToMaybe(list.value.headOption)
+    (_: NativeContext) => (list: RTValue.List) => MaybeSDK.optionToMaybe(list.value.headOption)
   }
 
   val indexedMap = DynamicNativeFunction2("indexedMap") {
@@ -252,7 +252,7 @@ object ListSDK {
   val tail = DynamicNativeFunction1("tail") {
     (context: NativeContext) => (list: RTValue.List) =>
       val result = if (list.elements.isEmpty) None else Some(RTValue.List(list.elements.tail))
-      MaybeSDK.resultToMaybe(result)
+      MaybeSDK.optionToMaybe(result)
   }
 
   val take = DynamicNativeFunction2("take") {

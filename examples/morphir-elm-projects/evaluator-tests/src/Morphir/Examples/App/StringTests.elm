@@ -1,7 +1,6 @@
 module Morphir.Examples.App.StringTests exposing (..)
 
 import Morphir.Examples.App.TestUtils exposing (..)
-import Morphir.SDK.String as String exposing (..)
 
 
 {-|
@@ -11,7 +10,7 @@ import Morphir.SDK.String as String exposing (..)
 -}
 stringAppend : String -> String -> String
 stringAppend l r =
-    append l r
+    String.append l r
 
 
 {-|
@@ -21,7 +20,7 @@ stringAppend l r =
 -}
 stringConcat : List String -> String
 stringConcat l =
-    concat l
+    String.concat l
 
 
 {-|
@@ -31,7 +30,7 @@ stringConcat l =
 -}
 stringRepeat : Int -> String -> String
 stringRepeat i s =
-    repeat i s
+    String.repeat i s
 
 
 {-|
@@ -41,7 +40,7 @@ stringRepeat i s =
 -}
 stringContains : String -> String -> Bool
 stringContains substring str =
-    contains substring str
+    String.contains substring str
 
 
 {-|
@@ -51,7 +50,7 @@ stringContains substring str =
 -}
 stringDropLeft : Int -> String -> String
 stringDropLeft n str =
-    dropLeft n str
+    String.dropLeft n str
 
 
 {-|
@@ -61,7 +60,7 @@ stringDropLeft n str =
 -}
 stringDropRight : Int -> String -> String
 stringDropRight n str =
-    dropRight n str
+    String.dropRight n str
 
 
 {-|
@@ -71,7 +70,7 @@ stringDropRight n str =
 -}
 stringEndsWith : String -> String -> Bool
 stringEndsWith ref str =
-    endsWith ref str
+    String.endsWith ref str
 
 
 {-|
@@ -81,7 +80,7 @@ stringEndsWith ref str =
 -}
 stringJoin : String -> List String -> String
 stringJoin sep list =
-    join sep list
+    String.join sep list
 
 
 {-|
@@ -91,7 +90,7 @@ stringJoin sep list =
 -}
 stringLength : String -> Int
 stringLength str =
-    length str
+    String.length str
 
 
 {-|
@@ -101,7 +100,7 @@ stringLength str =
 -}
 stringPadLeft : Int -> Char -> String -> String
 stringPadLeft n ch str =
-    padLeft n ch str
+    String.padLeft n ch str
 
 
 {-|
@@ -111,7 +110,7 @@ stringPadLeft n ch str =
 -}
 stringPadRight : Int -> Char -> String -> String
 stringPadRight n ch str =
-    padRight n ch str
+    String.padRight n ch str
 
 
 {-|
@@ -123,7 +122,7 @@ stringPadRight n ch str =
 stringLeftTest : TestContext -> String
 stringLeftTest ctx =
     test ctx
-        (left 2 "Mulder")
+        (String.left 2 "Mulder")
 
 
 {-|
@@ -135,7 +134,7 @@ stringLeftTest ctx =
 stringRightTest : TestContext -> String
 stringRightTest ctx =
     test ctx
-        (right 2 "Scully")
+        (String.right 2 "Scully")
 
 
 {-|
@@ -145,7 +144,7 @@ stringRightTest ctx =
 -}
 stringSlice : Int -> Int -> String -> String
 stringSlice start end str =
-    slice start end str
+    String.slice start end str
 
 
 {-|
@@ -155,7 +154,7 @@ stringSlice start end str =
 -}
 stringSplit : String -> String -> List String
 stringSplit sep str =
-    split sep str
+    String.split sep str
 
 
 {-|
@@ -165,7 +164,7 @@ stringSplit sep str =
 -}
 stringStartsWith : String -> String -> Bool
 stringStartsWith ref str =
-    startsWith ref str
+    String.startsWith ref str
 
 
 {-|
@@ -177,7 +176,7 @@ stringStartsWith ref str =
 stringFromIntTest : TestContext -> String
 stringFromIntTest ctx =
     test ctx
-        (fromInt 25)
+        (String.fromInt 25)
 
 
 {-|
@@ -189,7 +188,7 @@ stringFromIntTest ctx =
 stringFromFloatTest : TestContext -> String
 stringFromFloatTest ctx =
     test ctx
-        (fromFloat 1.5)
+        (String.fromFloat 1.5)
 
 
 {-|
@@ -225,7 +224,7 @@ stringBadToFloatTest ctx =
 stringToIntTest1 : TestContext -> Maybe Int
 stringToIntTest1 ctx =
     test ctx
-        (toInt "25")
+        (String.toInt "25")
 
 
 {-|
@@ -237,7 +236,7 @@ stringToIntTest1 ctx =
 stringToIntTest2 : TestContext -> Maybe Int
 stringToIntTest2 ctx =
     test ctx
-        (toInt "notAnInt")
+        (String.toInt "notAnInt")
 
 
 {-|
@@ -249,7 +248,7 @@ stringToIntTest2 ctx =
 stringIsEmptyTest1 : TestContext -> Bool
 stringIsEmptyTest1 ctx =
     test ctx
-        (isEmpty "")
+        (String.isEmpty "")
 
 
 {-|
@@ -261,7 +260,7 @@ stringIsEmptyTest1 ctx =
 stringIsEmptyTest2 : TestContext -> Bool
 stringIsEmptyTest2 ctx =
     test ctx
-        (isEmpty "content")
+        (String.isEmpty "content")
 
 
 {-|
@@ -271,7 +270,7 @@ stringIsEmptyTest2 ctx =
 -}
 stringToLower : String -> String
 stringToLower str =
-    toLower str
+    String.toLower str
 
 
 {-|
@@ -281,7 +280,7 @@ stringToLower str =
 -}
 stringToUpper : String -> String
 stringToUpper str =
-    toUpper str
+    String.toUpper str
 
 
 {-|
@@ -291,7 +290,7 @@ stringToUpper str =
 -}
 stringTrim : String -> String
 stringTrim str =
-    trim str
+    String.trim str
 
 
 {-|
@@ -301,7 +300,7 @@ stringTrim str =
 -}
 stringTrimLeft : String -> String
 stringTrimLeft str =
-    trimLeft str
+    String.trimLeft str
 
 
 {-|
@@ -311,4 +310,4 @@ stringTrimLeft str =
 -}
 stringTrimRight : String -> String
 stringTrimRight str =
-    trimRight str
+    String.trimRight str
