@@ -123,7 +123,7 @@ object StringSDK {
   val toFloat = DynamicNativeFunction1("toFloat") {
     (context: NativeContext) => (str: RTString) =>
       val result = str.value.toFloatOption.flatMap(RT.Primitive.make(_))
-      MaybeSDK.resultToMaybe(result)
+      MaybeSDK.optionToMaybe(result)
   }
 
   val toLower = DynamicNativeFunction1("toLower") {

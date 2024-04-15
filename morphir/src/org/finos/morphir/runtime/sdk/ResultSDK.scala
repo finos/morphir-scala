@@ -24,6 +24,15 @@ import org.finos.morphir.runtime.internal.{DynamicNativeFunction1, DynamicNative
  *   - Change toEither(arg) calls to arg.value and toResult(result) calls to RT.Result(result)
  */
 object ResultSDK {
+
+  /**
+   * Converts a "Result" - i.e., a ConstructorResult representing a morphir-elm Result value - to a Scala Either
+   *
+   * @param arg
+   *   A ConstructorResult representing a morphir-elm Result value (Ok or Err)
+   * @return
+   *   An Either representing the argument in Scala terms - `Right(x)` if arg was `Ok x`, `Left(x)` if arg was `Err x`
+   */
   private[sdk] def resultToEither(arg: RT.ConstructorResult): Either[RT, RT] =
     arg match {
       case RT.ConstructorResult(fqn, List(ok)) if fqn == FQName.fromString("Morphir.SDK:Result:Ok") =>
@@ -33,6 +42,15 @@ object ResultSDK {
         throw new UnexpectedType(s"Ok(value) or Err(err)", arg, hint = "Expected due to use in a native function")
     }
 
+  /**
+   * Converts a Scala Either to a "Result" - i.e., a ConstructorResult representing a morphir-elm Result value
+   *
+   * @param arg
+   *   A Scala Either
+   * @return
+   *   A ConstructorResult representing the argument in Morphir terms - `Ok x` if arg was `Right(x)`, `Err x` if arg was
+   *   `Left(x)`
+   */
   private[sdk] def eitherToResult(arg: Either[RT, RT]): RT.ConstructorResult =
     arg match {
       case Right(ok) => RT.ConstructorResult(FQName.fromString("Morphir.SDK:Result:Ok"), List(ok))
@@ -64,12 +82,12 @@ object ResultSDK {
   val toMaybe = DynamicNativeFunction1("toMaybe") {
     (ctx: NativeContext) => (resultRaw: RT.ConstructorResult) =>
       val out = resultToEither(resultRaw).toOption
-      MaybeSDK.resultToMaybe(out)
+      MaybeSDK.optionToMaybe(out)
   }
 
   val fromMaybe = DynamicNativeFunction2("fromMaybe") {
     (ctx: NativeContext) => (err: RT, maybeRaw: RT.ConstructorResult) =>
-      val out = MaybeSDK.eitherToOption(maybeRaw) match {
+      val out = MaybeSDK.maybeToOption(maybeRaw) match {
         case Some(value) => Right(value)
         case None        => Left(err)
       }

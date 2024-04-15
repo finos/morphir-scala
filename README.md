@@ -85,7 +85,7 @@ If you are using IntelliJ IDEA to edit morphir-jvm's Scala code, you can create 
 IntelliJ project files via:
 
 ````bash
-./mill mill.scalalib.GenIdea/idea
+./mill mill.idea.GenIdea/idea
 ````
 
 #### BSP Setup
@@ -115,6 +115,16 @@ or in watch mode:
 ```bash
 ./mill -w __.test
 ```
+
+> NOTE: When running tests you will want to ensure you have generated the MorphirIR for elm sources if you are running tests for the runtime. A simple way to do this is to use the `build.sh` helper script an invoke the `elm-build` option. `./build.sh elm-build`
+
+For your convience, you can run the morphir-runtime tests using the following command:
+
+
+```bash
+./build.sh test-runtime-jvm
+```
+
 
 #### Formatting Code
 

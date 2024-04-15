@@ -44,7 +44,7 @@ object LocalTimeSDK {
           try Some(JLocalTime.parse(isoArg.value, JDateTimeFormatter.ISO_LOCAL_TIME))
           catch { case NonFatal(_) => None }
         val maybeLocalTimeRT = maybeLocalTime.map(RTValue.LocalTime.apply)
-        MaybeSDK.resultToMaybe(maybeLocalTimeRT)
+        MaybeSDK.optionToMaybe(maybeLocalTimeRT)
       }
   }
 
