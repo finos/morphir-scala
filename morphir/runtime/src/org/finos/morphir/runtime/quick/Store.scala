@@ -40,6 +40,11 @@ final case class GlobalDefs(
   def getCtor(name: FQName): Option[SDKConstructor] = ctors.get(name)
 }
 
+final case class Externs(private val definitions: Map[FQName, SDKValue])
+object Externs{
+  def empty = Externs(Map())
+}
+
 object GlobalDefs {
   def fromDistributions(dists: Distribution*): GlobalDefs = {
     val libs: Map[PackageName, Lib] = Distribution.toLibsMap(dists: _*)
