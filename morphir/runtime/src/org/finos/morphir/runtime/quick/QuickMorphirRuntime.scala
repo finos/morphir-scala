@@ -103,10 +103,10 @@ object QuickMorphirRuntime {
     QuickMorphirRuntime(Distributions(distributions: _*), globalDefs)
   }
 
-  def fromDistributionsAndExterns(externs: Map[FQName, SDKValue], distributions: Distribution*): QuickMorphirRuntime = {
+  def fromDistributionsAndExterns(externs: Externs, distributions: Distribution*): QuickMorphirRuntime = {
     val globalDefs = GlobalDefs.fromDistributions(distributions: _*)
-    val externDefs = GlobalDefs(externs, Map())
-    QuickMorphirRuntime(Distributions(distributions: _*), globalDefs.withBindingsFrom(externDefs))
+    val withExterns = globalDefs.withExterns(externs)
+    QuickMorphirRuntime(Distributions(distributions: _*), withExterns)
   }
 
   def fromDistributionRTAction(distributions: Distribution*)
