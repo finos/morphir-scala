@@ -40,9 +40,14 @@ final case class GlobalDefs(
   def getCtor(name: FQName): Option[SDKConstructor] = ctors.get(name)
 }
 
-final case class Externs(private val definitions: Map[FQName, SDKValue])
+final case class Externs(private val definitions: Map[FQName, SDKValue]){
+}
 object Externs{
-  def empty = Externs(Map())
+  def empty : Externs = Externs(Map())
+  def fromMap(map : Map[FQName, SDKValue]) :  Externs = {
+    Externs(map)
+  }
+  def fromList(list : List[(FQName, SDKValue)]) : Externs = Externs(list.toMap)
 }
 
 object GlobalDefs {
