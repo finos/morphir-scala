@@ -104,7 +104,7 @@ object QuickMorphirRuntime {
   }
 
   def fromDistributionsAndExterns(externs: Externs, distributions: Distribution*): QuickMorphirRuntime = {
-    val globalDefs = GlobalDefs.fromDistributions(distributions: _*)
+    val globalDefs  = GlobalDefs.fromDistributions(distributions: _*)
     val withExterns = globalDefs.withExterns(externs)
     QuickMorphirRuntime(Distributions(distributions: _*), withExterns)
   }

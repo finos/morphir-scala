@@ -38,23 +38,21 @@ final case class GlobalDefs(
   def withConstructor(fqn: FQName, constructor: SDKConstructor): GlobalDefs =
     GlobalDefs(definitions, ctors + (fqn -> constructor))
   def getCtor(name: FQName): Option[SDKConstructor] = ctors.get(name)
-  def withExterns(externs : Externs) : GlobalDefs = {
+  def withExterns(externs: Externs): GlobalDefs =
     GlobalDefs(definitions ++ externs.definitions, ctors)
-  }
 }
 
-final case class Externs(private[quick] val definitions: Map[FQName, SDKValue]){
-  def withBinding(fqn : FQName, value : SDKValue) : Externs = {
+final case class Externs(private[quick] val definitions: Map[FQName, SDKValue]) {
+  def withBinding(fqn: FQName, value: SDKValue): Externs = {
     val newMap = this.definitions + (fqn -> value)
     Externs(newMap)
   }
 }
-object Externs{
-  def empty : Externs = Externs(Map())
-  def fromMap(map : Map[FQName, SDKValue]) :  Externs = {
+object Externs {
+  def empty: Externs = Externs(Map())
+  def fromMap(map: Map[FQName, SDKValue]): Externs =
     Externs(map)
-  }
-  def fromList(list : List[(FQName, SDKValue)]) : Externs = Externs(list.toMap)
+  def fromList(list: List[(FQName, SDKValue)]): Externs = Externs(list.toMap)
 }
 
 object GlobalDefs {
