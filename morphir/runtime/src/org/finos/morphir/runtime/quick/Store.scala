@@ -41,6 +41,10 @@ final case class GlobalDefs(
 }
 
 final case class Externs(private val definitions: Map[FQName, SDKValue]){
+  def withBinding(fqn : FQName, value : SDKValue) : Externs = {
+    val newMap = this.definitions + (fqn -> value)
+    Externs(newMap)
+  }
 }
 object Externs{
   def empty : Externs = Externs(Map())
