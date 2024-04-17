@@ -55,7 +55,19 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(sdk.StringSDK.toUpper),
           NativeFunctionAdapter.Fun1(sdk.StringSDK.trim),
           NativeFunctionAdapter.Fun1(sdk.StringSDK.trimLeft),
-          NativeFunctionAdapter.Fun1(StringSDK.trimRight)
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.trimRight),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.fromChar),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.cons),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.uncons),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.toList),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.fromList),
+          NativeFunctionAdapter.Fun3(sdk.StringSDK.pad),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.map),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.filter),
+          NativeFunctionAdapter.Fun3(sdk.StringSDK.foldl),
+          NativeFunctionAdapter.Fun3(sdk.StringSDK.foldr),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.any),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.all)
         )
       }
 
