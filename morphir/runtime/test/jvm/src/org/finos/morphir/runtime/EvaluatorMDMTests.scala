@@ -1865,9 +1865,16 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false)),
         testEvaluation("fromChar")("StringTests", "stringFromCharTest")(Data.String("a")),
         testEvaluation("cons")("StringTests", "stringConsTest")(Data.String("abc")),
-        testEvaluation("uncons")("StringTests", "stringUnconsTest")(Data.Optional.Some(Data.Tuple(
+        testEval("uncons")("StringTests", "stringUnconsTest", "abc")(Data.Optional.Some(Data.Tuple(
           Data.Char('a'),
           Data.String("bc")
+        ))),
+        testEval("unconsSingleChar")("StringTests", "stringUnconsTest", "a")(Data.Optional.Some(Data.Tuple(
+          Data.Char('a'),
+          Data.String("")
+        ))),
+        testEval("unconsEmpty")("StringTests", "stringUnconsTest", "")(Data.Optional.None(Concept.Tuple(
+          List(Concept.Char, Concept.String)
         ))),
         testEvaluation("toList")("StringTests", "stringToListTest")(Data.List(
           Data.Char('a'),
@@ -1875,6 +1882,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Char('c')
         )),
         testEvaluation("fromList")("StringTests", "stringFromListTest")(Data.String("abc")),
+        testEvaluation("fromListEmpty")("StringTests", "stringFromListEmptyTest")(Data.String("")),
         testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "1"))(Data.String("  1  ")),
         testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "11"))(Data.String("  11 ")),
         testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "121"))(Data.String(" 121 ")),
@@ -1889,8 +1897,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("foldl")("StringTests", "stringFoldlTest", "UPPERCASE")(Data.Boolean(true)),
         testEval("foldl")("StringTests", "stringFoldlTest", "lowercase")(Data.Boolean(false)),
         testEval("foldl")("StringTests", "stringFoldlTest", "camelCase")(Data.Boolean(false)),
+        testEval("foldl")("StringTests", "stringFoldlTest2", "time")(Data.String("emit")),
         testEval("foldr")("StringTests", "stringFoldrTest", "Hello, World")(Data.Int(2)),
         testEval("foldr")("StringTests", "stringFoldrTest", "HELLO, WORLD")(Data.Int(10)),
+        testEval("foldr")("StringTests", "stringFoldrTest2", "time")(Data.String("time")),
         testEval("any")("StringTests", "stringAnyTest", "scala")(Data.Boolean(true)),
         testEval("any")("StringTests", "stringAnyTest", "elm")(Data.Boolean(false)),
         testEval("all")("StringTests", "stringAllTest", "aaa")(Data.Boolean(true)),

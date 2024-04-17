@@ -340,13 +340,14 @@ stringConsTest ctx =
 {-|
 
     Test: String/uncons
-    expected = Just ('a', "bc")
+    input = "abc", expected = Just ('a', "bc")
+    input = "a", expected = Just ('a', "")
+    input = "", expected = Nothing
 
 -}
-stringUnconsTest : TestContext -> Maybe ( Char, String )
-stringUnconsTest ctx =
-    test ctx
-        (String.uncons "abc")
+stringUnconsTest : String -> Maybe ( Char, String )
+stringUnconsTest input =
+    String.uncons input
 
 
 {-|
@@ -371,6 +372,18 @@ stringFromListTest : TestContext -> String
 stringFromListTest ctx =
     test ctx
         (String.fromList [ 'a', 'b', 'c' ])
+
+
+{-|
+
+    Test: String/fromList
+    expected = ""
+
+-}
+stringFromListEmptyTest : TestContext -> String
+stringFromListEmptyTest ctx =
+    test ctx
+        (String.fromList [])
 
 
 {-|
@@ -439,6 +452,17 @@ stringFoldlTest input =
 
 {-|
 
+    Test: String/foldl
+    input = "time", expected = "emit"
+
+-}
+stringFoldlTest2 : String -> String
+stringFoldlTest2 input =
+    String.foldl String.cons "" input
+
+
+{-|
+
     Test: String/foldr
     input = "Hello, World", expected = 2
     input = "HELLO, WORLD", expected = 10
@@ -456,6 +480,17 @@ stringFoldrTest input =
         )
         0
         input
+
+
+{-|
+
+    Test: String/foldr
+    input = "time", expected = "time"
+
+-}
+stringFoldrTest2 : String -> String
+stringFoldrTest2 input =
+    String.foldr String.cons "" input
 
 
 {-|
