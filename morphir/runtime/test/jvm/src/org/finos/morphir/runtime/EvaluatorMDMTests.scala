@@ -1862,7 +1862,49 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("toInt")("StringTests", "stringToIntTest1")(Data.Optional.Some(Data.Int(25))),
         testEvaluation("toInt")("StringTests", "stringToIntTest2")(Data.Optional.None(Concept.Int32)),
         testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),
-        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false))
+        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false)),
+        testEvaluation("fromChar")("StringTests", "stringFromCharTest")(Data.String("a")),
+        testEvaluation("cons")("StringTests", "stringConsTest")(Data.String("abc")),
+        testEval("uncons")("StringTests", "stringUnconsTest", "abc")(Data.Optional.Some(Data.Tuple(
+          Data.Char('a'),
+          Data.String("bc")
+        ))),
+        testEval("unconsSingleChar")("StringTests", "stringUnconsTest", "a")(Data.Optional.Some(Data.Tuple(
+          Data.Char('a'),
+          Data.String("")
+        ))),
+        testEval("unconsEmpty")("StringTests", "stringUnconsTest", "")(Data.Optional.None(Concept.Tuple(
+          List(Concept.Char, Concept.String)
+        ))),
+        testEvaluation("toList")("StringTests", "stringToListTest")(Data.List(
+          Data.Char('a'),
+          Data.Char('b'),
+          Data.Char('c')
+        )),
+        testEvaluation("fromList")("StringTests", "stringFromListTest")(Data.String("abc")),
+        testEvaluation("fromListEmpty")("StringTests", "stringFromListEmptyTest")(Data.String("")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "1"))(Data.String("  1  ")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "11"))(Data.String("  11 ")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "121"))(Data.String(" 121 ")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "1234"))(Data.String(" 1234")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "12345"))(Data.String("12345")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "123456"))(Data.String("123456")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(0, "123"))(Data.String("123")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(-5, "123"))(Data.String("123")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, ""))(Data.String("     ")),
+        testEvaluation("map")("StringTests", "stringMapTest")(Data.String("a.b.c")),
+        testEvaluation("filter")("StringTests", "stringFilterTest")(Data.String("bc")),
+        testEval("foldl")("StringTests", "stringFoldlTest", "UPPERCASE")(Data.Boolean(true)),
+        testEval("foldl")("StringTests", "stringFoldlTest", "lowercase")(Data.Boolean(false)),
+        testEval("foldl")("StringTests", "stringFoldlTest", "camelCase")(Data.Boolean(false)),
+        testEval("foldl")("StringTests", "stringFoldlTest2", "time")(Data.String("emit")),
+        testEval("foldr")("StringTests", "stringFoldrTest", "Hello, World")(Data.Int(2)),
+        testEval("foldr")("StringTests", "stringFoldrTest", "HELLO, WORLD")(Data.Int(10)),
+        testEval("foldr")("StringTests", "stringFoldrTest2", "time")(Data.String("time")),
+        testEval("any")("StringTests", "stringAnyTest", "scala")(Data.Boolean(true)),
+        testEval("any")("StringTests", "stringAnyTest", "elm")(Data.Boolean(false)),
+        testEval("all")("StringTests", "stringAllTest", "aaa")(Data.Boolean(true)),
+        testEval("all")("StringTests", "stringAllTest", "abc")(Data.Boolean(false))
       ),
       suite("References To user Defined Members")(
         testEvaluation("Reference to value")("userDefinedReferenceTests", "userDefinedReferenceValueTest")(Data.Int(5)),
