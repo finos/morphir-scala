@@ -231,7 +231,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
             Deps.dev.zio.`zio-test`,
             Deps.dev.zio.`zio-test-sbt`
           )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.jvm, testing.zio.jvm)
+          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.jvm)
         }
       }
 
@@ -243,7 +243,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
             Deps.dev.zio.`zio-test`,
             Deps.dev.zio.`zio-test-sbt`
           )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.js, testing.zio.js)
+          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.js)
         }
       }
 
