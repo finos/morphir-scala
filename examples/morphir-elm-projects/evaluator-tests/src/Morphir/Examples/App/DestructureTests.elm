@@ -121,7 +121,7 @@ destructureAsTwiceTest ctx =
                     (x as y) =
                         toDestructure
                 in
-                ( x, x )
+                ( x, y )
         in
         destructure 5
 
@@ -161,66 +161,3 @@ destructureDirectTest ctx =
                 ( "Green", 6 )
         in
         ( y, x )
-
-
-{-|
-
-    Test: Destructure/HeadTail
-    expected = 5
-
--}
-destructureHeadTailTest : TestContext -> Int
-destructureHeadTailTest ctx =
-    test ctx <|
-        let
-            destructure : List Int -> Int
-            destructure toDestructure =
-                let
-                    (x :: _) =
-                        toDestructure
-                in
-                x
-        in
-        destructure [ 5 ]
-
-
-{-|
-
-    Test: Destructure/Literal
-    expected = 4
-
--}
-destructureLiteralTest : TestContext -> Int
-destructureLiteralTest ctx =
-    test ctx <|
-        let
-            destructure : Int -> Int
-            destructure toDestructure =
-                let
-                    5 =
-                        toDestructure
-                in
-                4
-        in
-        destructure 5
-
-
-{-|
-
-    Test: Destructure/EmptyList
-    expected = "Correct"
-
--}
-destructureEmptyListTest : TestContext -> String
-destructureEmptyListTest ctx =
-    test ctx <|
-        let
-            destructure : List Int -> String
-            destructure toDestructure =
-                let
-                    [] =
-                        toDestructure
-                in
-                "Correct"
-        in
-        destructure []

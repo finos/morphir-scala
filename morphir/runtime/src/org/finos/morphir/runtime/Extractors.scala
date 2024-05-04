@@ -149,9 +149,9 @@ object Extractors {
         tpe match {
           case NativeRef(_, _) => None
           case Type.Reference(_, typeName, typeArgs) =>
-            val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+            val lookedUp = dists.lookupTypeDefinition(typeName.packagePath, typeName.modulePath, typeName.localName)
             lookedUp match {
-              case Right(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
+              case Right(T.Definition.TypeAlias(typeParams, expr)) =>
                 val newBindings = typeParams.zip(typeArgs).toMap
                 Some(Utils.applyBindings(expr, newBindings))
               case _ => None // Missing name, but failing extractors cause problems

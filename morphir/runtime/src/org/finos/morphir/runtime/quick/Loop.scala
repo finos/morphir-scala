@@ -11,57 +11,51 @@ import org.finos.morphir.runtime.internal.{NativeFunctionSignature, StoredValue}
 import org.finos.morphir.runtime.internal.InvokeableEvaluator
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import org.finos.morphir.runtime.{RTValue, SDKConstructor, SDKValue, Utils}
-import org.finos.morphir.runtime.MorphirRuntimeError.{
-  ConstructorNotFound,
-  DefinitionNotFound,
-  InvalidState,
-  MissingField,
-  UnexpectedType,
-  UnmatchedPattern,
-  VariableNotFound,
-  WrongNumberOfArguments
-}
+import org.finos.morphir.runtime.MorphirRuntimeError.*
+import org.finos.morphir.runtime.CodeLocation
 import org.finos.morphir.util.PrintRTValue
 
 private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluator {
-  def loop(ir: TypedValue, store: Store): RTValue = {
-    val result = ir match {
-      case Literal(va, lit)              => handleLiteral(va, lit)
-      case Apply(va, function, argument) => handleApply(va, function, argument, store)
-      case node @ Destructure(va, pattern, valueToDestruct, inValue) =>
-        handleDestructure(va, node, pattern, valueToDestruct, inValue, store)
-      case Constructor(va, name)        => handleConstructor(va, name)
-      case Field(va, recordValue, name) => handleField(va, recordValue, name, store)
-      case FieldFunction(va, name)      => handleFieldFunction(va, name)
-      case IfThenElse(va, condition, thenValue, elseValue) =>
-        handleIfThenElse(va, condition, thenValue, elseValue, store)
-      case Lambda(va, pattern, body) => handleLambda(va, pattern, body, store)
-      case LetDefinition(va, name, definition, inValue) =>
-        handleLetDefinition(va, name, definition, inValue, store)
-      case LetRecursion(va, definitions, inValue)  => handleLetRecursion(va, definitions, inValue, store)
-      case ListValue(va, elements)                 => handleListValue(va, elements.toList, store)
-      case node @ PatternMatch(va, value, cases)   => handlePatternMatch(va, node, value, cases.toList, store)
-      case Record(va, fields)                      => handleRecord(va, fields.toList, store)
-      case Reference(va, name)                     => handleReference(va, name, store)
-      case Tuple(va, elements)                     => handleTuple(va, elements.toList, store)
-      case Unit(va)                                => handleUnit(va)
-      case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
-      case Variable(va, name)                      => handleVariable(va, name, store)
+  def loop(ir: TypedValue, store: Store, codeLocation: CodeLocation): RTValue =
+    try (LoopFrame(globals, codeLocation).loop(ir, store))
+    catch {
+      case m: EvaluationError => throw m.stack(codeLocation)
+      case e: Throwable       => throw new ExternalError(e).stack(codeLocation)
     }
+
+  def handleApplyResult4(
+      va: UType,
+      functionValue: RTValue,
+      arg1: RTValue,
+      arg2: RTValue,
+      arg3: RTValue,
+      arg4: RTValue
+  ): RTValue = {
+    val partiallyAppliedFunction =
+      handleApplyResult(va, functionValue, arg1)
+    val partiallyAppliedFunction2 =
+      handleApplyResult(va, partiallyAppliedFunction, arg2)
+    val partiallyAppliedFunction3 =
+      handleApplyResult(va, partiallyAppliedFunction2, arg3)
+    val result =
+      handleApplyResult(va, partiallyAppliedFunction3, arg4)
     result
   }
 
-  def handleLiteral(va: UType, literal: Lit) = unpackLit(literal)
-
-  def handleApply(
+  def handleApplyResult3(
       va: UType,
-      function: TypedValue,
-      argument: TypedValue,
-      store: Store
+      functionValue: RTValue,
+      arg1: RTValue,
+      arg2: RTValue,
+      arg3: RTValue
   ): RTValue = {
-    val functionValue = loop(function, store)
-    val argValue      = loop(argument, store)
-    handleApplyResult(va, functionValue, argValue)
+    val partiallyAppliedFunction =
+      handleApplyResult(va, functionValue, arg1)
+    val partiallyAppliedFunction2 =
+      handleApplyResult(va, partiallyAppliedFunction, arg2)
+    val result =
+      handleApplyResult(va, partiallyAppliedFunction2, arg3)
+    result
   }
 
   def handleApplyResult2(
@@ -93,7 +87,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
               hint = "Expected because this value was passed as an argument to a field function "
             )
         }
-      case RTValue.LambdaFunction(body, pattern, context) =>
+      case RTValue.LambdaFunction(body, pattern, context, loc) =>
         val newBindings = matchPatternCase(pattern, argValue)
           .getOrElse(throw UnmatchedPattern(
             argValue,
@@ -101,19 +95,20 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
             pattern
           ))
           .map { case (name, value) => name -> StoredValue.Eager(value) }
-        loop(body, Store(context.push(newBindings)))
-      case function @ RTValue.DefinitionFunction(body, arguments, curried, closingContext) =>
+        loop(body, Store(context.push(newBindings)), loc)
+      case function @ RTValue.DefinitionFunction(body, arguments, curried, closingContext, loc) =>
         arguments match {
           case (name, _, _) :: Nil =>
             val newBindings = (curried :+ (name -> argValue)).map { case (name, value) =>
               name -> StoredValue.Eager(value)
             }.toMap
-            loop(body, Store(closingContext.push(newBindings)))
+            loop(body, Store(closingContext.push(newBindings)), loc)
           case (name, _, _) :: tail =>
-            RTValue.DefinitionFunction(body, tail, curried :+ (name -> argValue), closingContext)
+            RTValue.DefinitionFunction(body, tail, curried :+ (name -> argValue), closingContext, loc)
           case Nil =>
             throw InvalidState(
-              s"Tried to apply definition function ${PrintIR(function)} with no un-applied arguments (should not exist)"
+              "Tried to apply definition function with no un-applied arguments (should not exist)",
+              function
             )
 
         }
@@ -123,47 +118,105 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
           case _ :: tail => RTValue.ConstructorFunction(name, tail, curried :+ argValue)
           case Nil =>
             throw InvalidState(
-              s"Tried to apply to constructor function ${PrintIR(function)} with no arguments (should not exist)"
+              "Tried to apply to constructor function with no arguments (should not exist)",
+              function
             )
 
         }
       case nativeFunctionResult: RTValue.NativeFunctionResult =>
-        val (arguments, curried, function) =
+        val (arguments, curried, function, loc) =
           nativeFunctionResult match {
-            case RTValue.NativeFunction(arguments, curried, function) =>
-              (arguments, curried, function)
-            case RTValue.NativeInnerFunction(arguments, curried, function) =>
-              (arguments, curried, function.injectEvaluator(this))
+            case RTValue.NativeFunction(arguments, curried, function, loc) =>
+              (arguments, curried, function, loc)
+            case RTValue.NativeInnerFunction(arguments, curried, function, loc) =>
+              (arguments, curried, function.injectEvaluator(this), loc)
           }
 
-        def assertCurriedNumArgs(num: Int) =
-          if (curried.size != num) throw new WrongNumberOfArguments(nativeFunctionResult, num)
-        // Once the uncurrying is done, we can call the function since we have all of the arguments available
-        arguments match {
-          case 1 =>
-            function match {
-              case NativeFunctionSignature.Fun1(f) =>
-                assertCurriedNumArgs(0)
-                f(argValue)
-              case NativeFunctionSignature.Fun2(f) =>
-                assertCurriedNumArgs(1)
-                f(curried(0), argValue)
-              case NativeFunctionSignature.Fun3(f) =>
-                assertCurriedNumArgs(2)
-                f(curried(0), curried(1), argValue)
-              case NativeFunctionSignature.Fun4(f) =>
-                assertCurriedNumArgs(3)
-                f(curried(0), curried(1), curried(2), argValue)
-              case NativeFunctionSignature.Fun5(f) =>
-                assertCurriedNumArgs(4)
-                f(curried(0), curried(1), curried(2), curried(3), argValue)
-            }
-          // If there are more arguments left in the native-signature, that needs we have more arguments to apply
-          case x => RTValue.NativeFunction(x - 1, curried :+ argValue, function)
+        try {
+          def assertCurriedNumArgs(num: Int) =
+            if (curried.size != num) throw new WrongNumberOfArguments(nativeFunctionResult, num)
+          // Once the uncurrying is done, we can call the function since we have all of the arguments available
+          arguments match {
+            case 1 =>
+              function match {
+                case NativeFunctionSignature.Fun1(f) =>
+                  assertCurriedNumArgs(0)
+                  f(argValue)
+                case NativeFunctionSignature.Fun2(f) =>
+                  assertCurriedNumArgs(1)
+                  f(curried(0), argValue)
+                case NativeFunctionSignature.Fun3(f) =>
+                  assertCurriedNumArgs(2)
+                  f(curried(0), curried(1), argValue)
+                case NativeFunctionSignature.Fun4(f) =>
+                  assertCurriedNumArgs(3)
+                  f(curried(0), curried(1), curried(2), argValue)
+                case NativeFunctionSignature.Fun5(f) =>
+                  assertCurriedNumArgs(4)
+                  f(curried(0), curried(1), curried(2), curried(3), argValue)
+                case NativeFunctionSignature.Fun6(f) =>
+                  assertCurriedNumArgs(5)
+                  f(curried(0), curried(1), curried(2), curried(3), curried(4), argValue)
+              }
+            // If there are more arguments left in the native-signature, that needs we have more arguments to apply
+            case x => RTValue.NativeFunction(x - 1, curried :+ argValue, function, loc)
+          }
+        } catch {
+          case e: EvaluationError => throw e.stack(loc)
+          case e: Throwable       => throw new ExternalError(e).stack(loc)
         }
       case other =>
         throw new UnexpectedType("Function", other, hint = "Expected because this was found in an Apply position")
     }
+}
+
+/**
+ * Helper class for handling recursive evaluation over a single function call (i.e., within one CodeLocation)
+ */
+private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLocation) {
+  def loop(ir: TypedValue, store: Store): RTValue =
+    try
+      ir match {
+        case Literal(va, lit)              => handleLiteral(va, lit)
+        case Apply(va, function, argument) => handleApply(va, function, argument, store)
+        case node @ Destructure(va, pattern, valueToDestruct, inValue) =>
+          handleDestructure(va, node, pattern, valueToDestruct, inValue, store)
+        case Constructor(va, name)        => handleConstructor(va, name)
+        case Field(va, recordValue, name) => handleField(va, recordValue, name, store)
+        case FieldFunction(va, name)      => handleFieldFunction(va, name)
+        case IfThenElse(va, condition, thenValue, elseValue) =>
+          handleIfThenElse(va, condition, thenValue, elseValue, store)
+        case Lambda(va, pattern, body) => handleLambda(va, pattern, body, store)
+        case LetDefinition(va, name, definition, inValue) =>
+          handleLetDefinition(va, name, definition, inValue, store)
+        case LetRecursion(va, definitions, inValue)  => handleLetRecursion(va, definitions, inValue, store)
+        case ListValue(va, elements)                 => handleListValue(va, elements.toList, store)
+        case node @ PatternMatch(va, value, cases)   => handlePatternMatch(va, node, value, cases.toList, store)
+        case Record(va, fields)                      => handleRecord(va, fields.toList, store)
+        case Reference(va, name)                     => handleReference(va, name, store)
+        case Tuple(va, elements)                     => handleTuple(va, elements.toList, store)
+        case Unit(va)                                => handleUnit(va)
+        case UpdateRecord(va, valueToUpdate, fields) => handleUpdateRecord(va, valueToUpdate, fields, store)
+        case Variable(va, name)                      => handleVariable(va, name, store)
+      }
+    catch {
+      case e: EvaluationError => throw e.source(ir.toString)
+      case e: Throwable       => throw new ExternalError(e).source(ir.toString)
+    }
+
+  def handleLiteral(va: UType, literal: Lit) = unpackLit(literal)
+
+  def handleApply(
+      va: UType,
+      function: TypedValue,
+      argument: TypedValue,
+      store: Store
+  ): RTValue = {
+    val functionValue = loop(function, store)
+    val argValue      = loop(argument, store)
+    // New call, so we go to back to "Loop":
+    Loop(globals).handleApplyResult(va, functionValue, argValue)
+  }
 
   def handleDestructure(
       va: UType,
@@ -246,7 +299,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       body: TypedValue,
       store: Store
   ): RTValue =
-    RTValue.LambdaFunction(body, pattern, store.callStack)
+    RTValue.LambdaFunction(body, pattern, store.callStack, CodeLocation.AnonymousFunction(codeLocation))
 
   def handleLetDefinition(
       va: UType,
@@ -258,7 +311,13 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     val value =
       if (valueDefinition.inputTypes.isEmpty) loop(valueDefinition.body, store)
       else
-        RTValue.DefinitionFunction(valueDefinition.body, valueDefinition.inputTypes.toList, List(), store.callStack)
+        RTValue.DefinitionFunction(
+          valueDefinition.body,
+          valueDefinition.inputTypes.toList,
+          List(),
+          store.callStack,
+          CodeLocation.AnonymousFunction(codeLocation)
+        )
     loop(inValue, store.push(Map(valueName -> StoredValue.Eager(value))))
   }
 
@@ -322,13 +381,14 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
             valueDefinition.body,
             valueDefinition.inputTypes.toList,
             List(),
-            store.callStack
+            store.callStack,
+            CodeLocation.TopLevelFunction(name)
           )
       case Some(SDKNativeValue(value)) => value
       case Some(SDKNativeFunction(function)) =>
-        RTValue.NativeFunction(function.numArgs, List(), function)
+        RTValue.NativeFunction(function.numArgs, List(), function, CodeLocation.NativeFunction(name))
       case Some(SDKNativeInnerFunction(function)) =>
-        RTValue.NativeInnerFunction(function.numArgs, List(), function)
+        RTValue.NativeInnerFunction(function.numArgs, List(), function, CodeLocation.NativeFunction(name))
     }
 
   def handleTuple(va: UType, elements: List[TypedValue], store: Store): RTValue = {
@@ -367,7 +427,8 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
             definition.body,
             definition.inputTypes.toList,
             List(),
-            store.push(newBindings).callStack
+            store.push(newBindings).callStack,
+            CodeLocation.AnonymousFunction(codeLocation)
           )
     }
 }

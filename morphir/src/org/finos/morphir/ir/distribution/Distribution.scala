@@ -2,7 +2,7 @@ package org.finos.morphir.ir.distribution
 import org.finos.morphir.naming.*
 import org.finos.morphir.ir.Module.{Specification => ModSpec}
 import org.finos.morphir.ir.PackageModule.{Definition => PackageDefinition, USpecification => UPackageSpecification}
-import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
+import org.finos.morphir.ir.Type.{USpecification => UTypeSpec, UDefinition => UTypeDef}
 import org.finos.morphir.ir.Type.Specification.TypeAliasSpecification
 import org.finos.morphir.ir.Type.Type.Reference
 import org.finos.morphir.ir.Type.UType
@@ -17,6 +17,9 @@ object Distribution {
 
     def lookupValueDefinition(qName: QName): Option[ValueDefinition[scala.Unit, UType]] =
       packageDef.lookupModuleDefinition(qName.modulePath).flatMap(_.lookupValueDefinition(qName.localName))
+
+    def lookupTypeDefinition(qName: QName): Option[UTypeDef] =
+      packageDef.lookupModuleDefinition(qName.modulePath).flatMap(_.lookupTypeDefinition(qName.localName))
   }
 
   final case class Bundle(

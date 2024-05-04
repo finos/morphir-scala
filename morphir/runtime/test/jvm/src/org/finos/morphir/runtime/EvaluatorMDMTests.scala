@@ -228,7 +228,27 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     "ZeroArg",
     unionEnumShape
   )
+  def alias(data: Data, alias: FQName) = {
+    val concept = Concept.Alias(alias, data.shape)
+    Data.Aliased(data, concept)
+  }
 
+  def opaqueIntShape: Concept.Enum = Concept.Enum(
+    qn"Morphir/Examples/App:ExampleModule:OpaqueInt",
+    List(
+      Concept.Enum.Case(
+        Label("Opaque"),
+        List(
+          (EnumLabel.Named("arg1"), Concept.Int32)
+        )
+      )
+    )
+  )
+  def opaqueInt(i: Int): Data = Data.Case(
+    List((EnumLabel.Named("arg1"), Data.Int(i))),
+    "Opaque",
+    opaqueIntShape
+  )
   def oneArg(i: Int): Data = Data.Case(
     List((EnumLabel.Named("arg1"), Data.Int(i))),
     "OneArg",
@@ -390,7 +410,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("fromString bad")("decimalTests", "decimalFromString", "abcd")(
             Data.Optional.None(Concept.Decimal)
           ),
-          testEvaluation("toFloat")("decimalTests", "decimalToFloatTest")(Data.Float(1.5)),
+          testEvaluation("toFloat")("decimalTests", "decimalToFloatTest")(Data.Float(1.5)) @@ ignore @@ tag(
+            "toFLoat does not have an Elm implementation but is listed in the IR... this is a bug"
+          ),
           testEvaluation("toString")("decimalTests", "decimalToStringTest")(Data.String("-1"))
         ),
         suite("abs")(
@@ -400,6 +422,38 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("add")("decimalTests", "decimalAdd")(Data.Decimal(673.45)),
         testEvaluation("bps")("decimalTests", "decimalBps")(Data.Decimal(0.0463)),
 //        testEvaluation("compare")("decimalTests", "decimalAdd")(Data.Decimal(673.45)),
+        suite("shiftDecimal")(
+          testEvalMultiple("shift left 2 places")(
+            "decimalTests",
+            "decimalShiftLeft",
+            List(Data.Int(2), Data.Decimal(123.45))
+          )(Data.Decimal(1.2345)),
+          testEvalMultiple("shift left 3 places")(
+            "decimalTests",
+            "decimalShiftLeft",
+            List(Data.Int(3), Data.Decimal(123.45))
+          )(Data.Decimal(0.12345)),
+          testEvalMultiple("shift left 4 places")(
+            "decimalTests",
+            "decimalShiftLeft",
+            List(Data.Int(4), Data.Decimal(123.45))
+          )(Data.Decimal(0.012345)),
+          testEvalMultiple("shift right 2 places")(
+            "decimalTests",
+            "decimalShiftRight",
+            List(Data.Int(2), Data.Decimal(12.345))
+          )(Data.Decimal(1234.5)),
+          testEvalMultiple("shift right 3 places")(
+            "decimalTests",
+            "decimalShiftRight",
+            List(Data.Int(3), Data.Decimal(12.345))
+          )(Data.Decimal(12345.0)),
+          testEvalMultiple("shift right 4 places")(
+            "decimalTests",
+            "decimalShiftRight",
+            List(Data.Int(4), Data.Decimal(12.345))
+          )(Data.Decimal(123450.0))
+        ),
         suite("div")(
           testEvaluation("div some")("decimalTests", "decimalGoodDiv")(Data.Optional.Some(Data.Decimal(1.8))),
           testEvaluation("div none")("decimalTests", "decimalBadDiv")(Data.Optional.None(Concept.Decimal)),
@@ -1132,6 +1186,39 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvalMultiple("diffInDays")("localDateTests", "diffInDaysTest", List(localDate, localDate.plusDays(999)))(
           Data.Int(999)
         ),
+        testEvalMultiple("diffInWeeks")("localDateTests", "diffInWeeksTest", List(localDate, localDate.plusWeeks(2)))(
+          Data.Int(2)
+        ),
+        testEvalMultiple("diffInMonths")(
+          "localDateTests",
+          "diffInMonthsTest",
+          List(localDate, localDate.plusMonths(2))
+        )(
+          Data.Int(2)
+        ),
+        testEvalMultiple("diffInYears")("localDateTests", "diffInYearsTest", List(localDate, localDate.plusYears(2)))(
+          Data.Int(2)
+        ),
+        testEvalMultiple("diffInYearsAdjacent")(
+          "localDateTests",
+          "diffInYearsTest",
+          List(java.time.LocalDate.of(1900, 12, 31), java.time.LocalDate.of(1901, 1, 1))
+        )(
+          Data.Int(1)
+        ),
+        testEvalMultiple("diffInYearsSameYear")(
+          "localDateTests",
+          "diffInYearsTest",
+          List(java.time.LocalDate.of(1900, 12, 31), java.time.LocalDate.of(1900, 1, 1))
+        )(
+          Data.Int(0)
+        ),
+        testEvalMultiple("addMonths")("localDateTests", "addMonthsTest", List(2, localDate))(
+          Data.LocalDate(localDate.plusMonths(2))
+        ),
+        testEval("monthToInt")("localDateTests", "monthToIntTest", Data.Month(java.time.Month.JANUARY))(Data.Int(1)),
+        testEval("isWeekend")("localDateTests", "isWeekendTest", localDate)(Data.Boolean(true)),
+        testEval("isWeekday")("localDateTests", "isWeekdayTest", localDate)(Data.Boolean(false)),
         testEval("fromISO valid iso date")("localDateTests", "fromISOTest", "1900-01-20")(
           Data.Optional.Some(Data.LocalDate(localDate))
         ),
@@ -1156,7 +1243,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("day")("localDateTests", "dayTest", localDate)(Data.Int(20)),
         testEval("dayOfWeek")("localDateTests", "dayOfWeekTest", localDate)(
           Data.DayOfWeek(java.time.DayOfWeek.SATURDAY)
-        )
+        ),
+        testEval("toISOString")("localDateTests", "toISOStringTest", localDate)(Data.String("1900-01-20"))
       ),
       suite("LocalTime")(
         testEvaluation("fromMilliseconds")("localTimeTests", "fromMillisecondsTest")(Data.LocalTime(localTime)),
@@ -1189,6 +1277,30 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "diffInSecondsTest",
           List(localTime, localTime.minusSeconds(2))
         )(Data.Int(2)),
+        testEvalMultiple("diffInHours")("localTimeTests", "diffInHoursTest", List(localTime, localTime.plusHours(2)))(
+          Data.Int(-2)
+        ),
+        testEvalMultiple("diffInHours negative")(
+          "localTimeTests",
+          "diffInHoursTest",
+          List(localTime, localTime.minusHours(2))
+        )(
+          Data.Int(2)
+        ),
+        testEvalMultiple("diffInMinutes")(
+          "localTimeTests",
+          "diffInMinutesTest",
+          List(localTime, localTime.plusMinutes(2))
+        )(
+          Data.Int(-2)
+        ),
+        testEvalMultiple("diffInMinutes negative")(
+          "localTimeTests",
+          "diffInMinutesTest",
+          List(localTime, localTime.minusMinutes(2))
+        )(
+          Data.Int(2)
+        ),
         testEval("fromISO valid iso time")("localTimeTests", "fromISOTest", "10:43:26.111111111")(
           Data.Optional.Some(Data.LocalTime(java.time.LocalTime.of(10, 43, 26, 111111111)))
         ),
@@ -1536,6 +1648,13 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )(
           Data.True
         ),
+        testEvalMultiple("repeat")(
+          "stringTests",
+          "stringRepeat",
+          List(2, "Whomp")
+        )(
+          Data.String("WhompWhomp")
+        ),
         testEvalMultiple("contains false")(
           "stringTests",
           "stringContains",
@@ -1743,7 +1862,49 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("toInt")("StringTests", "stringToIntTest1")(Data.Optional.Some(Data.Int(25))),
         testEvaluation("toInt")("StringTests", "stringToIntTest2")(Data.Optional.None(Concept.Int32)),
         testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest1")(Data.Boolean(true)),
-        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false))
+        testEvaluation("isEmpty")("StringTests", "stringIsEmptyTest2")(Data.Boolean(false)),
+        testEvaluation("fromChar")("StringTests", "stringFromCharTest")(Data.String("a")),
+        testEvaluation("cons")("StringTests", "stringConsTest")(Data.String("abc")),
+        testEval("uncons")("StringTests", "stringUnconsTest", "abc")(Data.Optional.Some(Data.Tuple(
+          Data.Char('a'),
+          Data.String("bc")
+        ))),
+        testEval("unconsSingleChar")("StringTests", "stringUnconsTest", "a")(Data.Optional.Some(Data.Tuple(
+          Data.Char('a'),
+          Data.String("")
+        ))),
+        testEval("unconsEmpty")("StringTests", "stringUnconsTest", "")(Data.Optional.None(Concept.Tuple(
+          List(Concept.Char, Concept.String)
+        ))),
+        testEvaluation("toList")("StringTests", "stringToListTest")(Data.List(
+          Data.Char('a'),
+          Data.Char('b'),
+          Data.Char('c')
+        )),
+        testEvaluation("fromList")("StringTests", "stringFromListTest")(Data.String("abc")),
+        testEvaluation("fromListEmpty")("StringTests", "stringFromListEmptyTest")(Data.String("")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "1"))(Data.String("  1  ")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "11"))(Data.String("  11 ")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "121"))(Data.String(" 121 ")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "1234"))(Data.String(" 1234")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "12345"))(Data.String("12345")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, "123456"))(Data.String("123456")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(0, "123"))(Data.String("123")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(-5, "123"))(Data.String("123")),
+        testEvalMultiple("pad")("StringTests", "stringPadTest", List(5, ""))(Data.String("     ")),
+        testEvaluation("map")("StringTests", "stringMapTest")(Data.String("a.b.c")),
+        testEvaluation("filter")("StringTests", "stringFilterTest")(Data.String("bc")),
+        testEval("foldl")("StringTests", "stringFoldlTest", "UPPERCASE")(Data.Boolean(true)),
+        testEval("foldl")("StringTests", "stringFoldlTest", "lowercase")(Data.Boolean(false)),
+        testEval("foldl")("StringTests", "stringFoldlTest", "camelCase")(Data.Boolean(false)),
+        testEval("foldl")("StringTests", "stringFoldlTest2", "time")(Data.String("emit")),
+        testEval("foldr")("StringTests", "stringFoldrTest", "Hello, World")(Data.Int(2)),
+        testEval("foldr")("StringTests", "stringFoldrTest", "HELLO, WORLD")(Data.Int(10)),
+        testEval("foldr")("StringTests", "stringFoldrTest2", "time")(Data.String("time")),
+        testEval("any")("StringTests", "stringAnyTest", "scala")(Data.Boolean(true)),
+        testEval("any")("StringTests", "stringAnyTest", "elm")(Data.Boolean(false)),
+        testEval("all")("StringTests", "stringAllTest", "aaa")(Data.Boolean(true)),
+        testEval("all")("StringTests", "stringAllTest", "abc")(Data.Boolean(false))
       ),
       suite("References To user Defined Members")(
         testEvaluation("Reference to value")("userDefinedReferenceTests", "userDefinedReferenceValueTest")(Data.Int(5)),
@@ -1785,7 +1946,22 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "typeCheckerTests",
           "twoArgEntry",
           List(Data.Int(3), Data.String("Green"))
-        )(Data.Tuple(Data.Int(3), Data.String("Green")))
+        )(Data.Tuple(Data.Int(3), Data.String("Green"))),
+        testEvalMultiple("Returns opaque types")(
+          "typeCheckerTests",
+          "returnOpaque",
+          List(Data.Int(3))
+        )(opaqueInt(3)),
+        testEvalMultiple("Returns opaque types")(
+          "typeCheckerTests",
+          "acceptOpaque",
+          List(opaqueInt(2))
+        )(Data.Int(2)),
+        testEvalMultiple("Aliased opaques also fine")(
+          "typeCheckerTests",
+          "aliasedOpaqueTest",
+          List(opaqueInt(2))
+        )(alias(opaqueInt(3), FQName.fromString("Morphir.Examples.App:TypeCheckerTests:AliasedOpaque")))
       ),
       suite("Dictionary Tests")(
         testEvaluation("Returns a dictionary")("dictionaryTests", "dictFromListTest")(Data.Map(
@@ -1963,6 +2139,371 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )(
             Data.Map.empty(Concept.String, Concept.Int32)
           )
+        ),
+        suite("diff")(
+          testEvalMultiple("returns entries in the first dict but not the second")(
+            "dictionaryTests",
+            "dictDiffTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Map("b" -> 2, "c" -> 3)
+            )
+          )(
+            Data.Map(Data.String("a") -> Data.Int(1))
+          ),
+          testEvalMultiple("returns nothing when the first dict is empty")(
+            "dictionaryTests",
+            "dictDiffTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Map("b" -> 2, "c" -> 3)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("returns first dict when the second dict is empty")(
+            "dictionaryTests",
+            "dictDiffTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2))
+          ),
+          testEvalMultiple("returns nothing when both dicts are empty")(
+            "dictionaryTests",
+            "dictDiffTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("diff mutation test")(
+            "dictionaryTests",
+            "dictDiffMutateTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Map("b" -> 2, "c" -> 3)
+            )
+          )(
+            Data.List(
+              Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2)),
+              Data.Map(Data.String("b") -> Data.Int(2), Data.String("c") -> Data.Int(3))
+            )
+          )
+        ),
+        suite("intersect")(
+          testEvalMultiple("returns entry from first dict when key is found in second dict")(
+            "dictionaryTests",
+            "dictIntersectTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Map("b" -> 3, "c" -> 3)
+            )
+          )(
+            Data.Map(Data.String("b") -> Data.Int(2))
+          ),
+          testEvalMultiple("returns nothing when the first dict is empty")(
+            "dictionaryTests",
+            "dictIntersectTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Map("b" -> 2, "c" -> 3)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("returns nothing when the second dict is empty")(
+            "dictionaryTests",
+            "dictIntersectTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("returns nothing when both dicts are empty")(
+            "dictionaryTests",
+            "dictIntersectTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("intersect mutation test")(
+            "dictionaryTests",
+            "dictIntersectMutateTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Map("b" -> 3, "c" -> 3)
+            )
+          )(
+            Data.List(
+              Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2)),
+              Data.Map(Data.String("b") -> Data.Int(3), Data.String("c") -> Data.Int(3))
+            )
+          )
+        ),
+        suite("union")(
+          testEvalMultiple("returns entries in either dict, for collision: preference is given to first dict")(
+            "dictionaryTests",
+            "dictUnionTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Map("b" -> 4, "c" -> 3)
+            )
+          )(
+            Data.Map(
+              Data.String("a") -> Data.Int(1),
+              Data.String("b") -> Data.Int(2),
+              Data.String("c") -> Data.Int(3)
+            )
+          ),
+          testEvalMultiple("returns entries in the first dict when the second is empty")(
+            "dictionaryTests",
+            "dictUnionTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map(
+              Data.String("a") -> Data.Int(1),
+              Data.String("b") -> Data.Int(2)
+            )
+          ),
+          testEvalMultiple("returns entries in the second dict when the first is empty")(
+            "dictionaryTests",
+            "dictUnionTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Map("b" -> 2, "c" -> 3)
+            )
+          )(
+            Data.Map(
+              Data.String("b") -> Data.Int(2),
+              Data.String("c") -> Data.Int(3)
+            )
+          ),
+          testEvalMultiple("returns nothing when both dicts are empty")(
+            "dictionaryTests",
+            "dictUnionTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("union mutation test")(
+            "dictionaryTests",
+            "dictUnionMutateTest",
+            List(
+              Map("a" -> 1, "b" -> 2),
+              Map("b" -> 4, "c" -> 3)
+            )
+          )(
+            Data.List(
+              Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2)),
+              Data.Map(Data.String("b") -> Data.Int(4), Data.String("c") -> Data.Int(3))
+            )
+          )
+        ),
+        suite("foldl")(
+          testEval("folds left")("dictionaryTests", "dictFoldlTest", Map("a" -> 1, "b" -> 2))(
+            Data.Int32(3)
+          ),
+          testEval("folds left alternate")("dictionaryTests", "dictFoldlTest2", Map("a" -> 1, "b" -> 2))(
+            Data.List(Data.Int32(2), Data.Int32(1))
+          ),
+          testEval("folds left empty")(
+            "dictionaryTests",
+            "dictFoldlTest",
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )(
+            Data.Int32(0)
+          ),
+          testEval("folds left empty alternate")(
+            "dictionaryTests",
+            "dictFoldlTest2",
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEval("foldl mutation test")("dictionaryTests", "dictFoldlMutateTest", Map("a" -> 1, "b" -> 2))(
+            Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2))
+          )
+        ),
+        suite("foldr")(
+          testEval("folds right")("dictionaryTests", "dictFoldrTest", Map("a" -> 1, "b" -> 2))(
+            Data.Int32(3)
+          ),
+          testEval("folds right alternate")("dictionaryTests", "dictFoldrTest2", Map("a" -> 1, "b" -> 2))(
+            Data.List(Data.Int32(1), Data.Int32(2))
+          ),
+          testEval("folds right empty")(
+            "dictionaryTests",
+            "dictFoldrTest",
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )(
+            Data.Int32(0)
+          ),
+          testEval("folds right empty alternate")(
+            "dictionaryTests",
+            "dictFoldrTest2",
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )(
+            Data.List.empty(Concept.Int32)
+          ),
+          testEval("foldr mutation test")("dictionaryTests", "dictFoldlMutateTest", Map("a" -> 1, "b" -> 2))(
+            Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2))
+          )
+        ),
+        suite("map")(
+          testEval("maps a function over a dictionary with positive values")(
+            "dictionaryTests",
+            "dictMapTest",
+            Map("a" -> 1, "b" -> 2)
+          )(
+            Data.Map(
+              Data.String("a") -> Data.Int(2),
+              Data.String("b") -> Data.Int(4)
+            )
+          ),
+          testEval("maps a function over a dictionary with negative values")(
+            "dictionaryTests",
+            "dictMapTest",
+            Map("a" -> -1, "b" -> -2)
+          )(
+            Data.Map(
+              Data.String("a") -> Data.Int(-2),
+              Data.String("b") -> Data.Int(-4)
+            )
+          ),
+          testEval("maps over empty dictionaries")(
+            "dictionaryTests",
+            "dictMapTest",
+            Data.Map.empty(Concept.String, Concept.Int32)
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("map mutation test")(
+            "dictionaryTests",
+            "dictMapMutateTest",
+            List(
+              Map("a" -> 1, "b" -> 2)
+            )
+          )(
+            Data.Map(Data.String("a") -> Data.Int(1), Data.String("b") -> Data.Int(2))
+          )
+        ),
+        suite("merge")(
+          testEvalMultiple("merges two dictionaries")(
+            "dictionaryTests",
+            "dictMergeTest",
+            List(
+              Map("Alice" -> 1, "Bob"  -> 1),
+              Map("Bob"   -> 1, "Cedd" -> 1)
+            )
+          )(
+            Data.Map(
+              Data.String("Alice") -> Data.Int(2),
+              Data.String("Bob")   -> Data.Int(3),
+              Data.String("Cedd")  -> Data.Int(1)
+            )
+          ),
+          testEvalMultiple("merges when the first dict is empty")(
+            "dictionaryTests",
+            "dictMergeTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Map("Bob" -> 1, "Cedd" -> 1)
+            )
+          )(
+            Data.Map(
+              Data.String("Bob")  -> Data.Int(1),
+              Data.String("Cedd") -> Data.Int(1)
+            )
+          ),
+          testEvalMultiple("merges when the second dict is empty")(
+            "dictionaryTests",
+            "dictMergeTest",
+            List(
+              Map("Alice" -> 1, "Bob" -> 1),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map(
+              Data.String("Alice") -> Data.Int(2),
+              Data.String("Bob")   -> Data.Int(2)
+            )
+          ),
+          testEvalMultiple("merges when both dicts are empty")(
+            "dictionaryTests",
+            "dictMergeTest",
+            List(
+              Data.Map.empty(Concept.String, Concept.Int32),
+              Data.Map.empty(Concept.String, Concept.Int32)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.Int32)
+          ),
+          testEvalMultiple("merges two dictionaries alternate")(
+            "dictionaryTests",
+            "dictMergeTest2",
+            List(
+              Map("Alice" -> "value1", "Bob"  -> "value2"),
+              Map("Bob"   -> "value3", "Cedd" -> "value4")
+            )
+          )(
+            Data.Map(
+              Data.String("Alice") -> Data.String("value1"),
+              Data.String("Bob")   -> Data.String("value2 and value3"),
+              Data.String("Cedd")  -> Data.String("value4")
+            )
+          ),
+          testEvalMultiple("merges two empty dictionaries alternate")(
+            "dictionaryTests",
+            "dictMergeTest2",
+            List(
+              Data.Map.empty(Concept.String, Concept.String),
+              Data.Map.empty(Concept.String, Concept.String)
+            )
+          )(
+            Data.Map.empty(Concept.String, Concept.String)
+          ),
+          testEvalMultiple("merges when the second dict is empty alternate")(
+            "dictionaryTests",
+            "dictMergeTest2",
+            List(
+              Map("Alice" -> "value1", "Bob" -> "value2"),
+              Data.Map.empty(Concept.String, Concept.String)
+            )
+          )(
+            Data.Map(
+              Data.String("Alice") -> Data.String("value1"),
+              Data.String("Bob")   -> Data.String("value2")
+            )
+          ),
+          testEvalMultiple("merge mutation test")(
+            "dictionaryTests",
+            "dictMergeMutateTest",
+            List(
+              Map("Alice" -> 1, "Bob"  -> 1),
+              Map("Bob"   -> 1, "Cedd" -> 1)
+            )
+          )(
+            Data.List(
+              Data.Map(Data.String("Alice") -> Data.Int(1), Data.String("Bob")  -> Data.Int(1)),
+              Data.Map(Data.String("Bob")   -> Data.Int(1), Data.String("Cedd") -> Data.Int(1))
+            )
+          )
         )
       ),
       suite("Maybe Tests")(
@@ -1992,6 +2533,220 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           ),
           testEval("both outputs are Just")("maybeTests", "maybeAndThen", 1)(Data.Optional.Some(Data.Float(1.0))),
           testEval("first output is Nothing")("maybeTests", "maybeAndThen", 2)(Data.Optional.None(Concept.Float))
+        ),
+        suite("hasValue Tests")(
+          testEval("true for Just")("maybeTests", "maybeHasValueTest", Data.Optional.Some(Data.Int(1)))(
+            Data.Boolean(true)
+          ),
+          testEval("false for Nothing")("maybeTests", "maybeHasValueTest", Data.Optional.None(Concept.Int32))(
+            Data.Boolean(false)
+          )
+        ),
+        suite("map2 Int Tests")(
+          testEvalMultiple("both inputs are Just")(
+            "maybeTests",
+            "maybeMap2TestInt",
+            List(Data.Optional.Some(Data.Int(1)), Data.Optional.Some(Data.Int(2)))
+          )(
+            Data.Optional.Some(Data.Int(3))
+          )
+        ),
+        testEvalMultiple("Just and Nothing")(
+          "maybeTests",
+          "maybeMap2TestInt",
+          List(Data.Optional.Some(Data.Int(1)), Data.Optional.None(Concept.Int32))
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        testEvalMultiple("Nothing and Just")(
+          "maybeTests",
+          "maybeMap2TestInt",
+          List(Data.Optional.None(Concept.Int32), Data.Optional.Some(Data.Int(1)))
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        testEvalMultiple("Nothing and Nothing")(
+          "maybeTests",
+          "maybeMap2TestInt",
+          List(Data.Optional.None(Concept.Int32), Data.Optional.None(Concept.Int32))
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        suite("map2 String Tests")(
+          testEvalMultiple("both inputs are Just")(
+            "maybeTests",
+            "maybeMap2TestString",
+            List(Data.Optional.Some(Data.String("Hello")), Data.Optional.Some(Data.String("World")))
+          )(
+            Data.String("HelloWorld")
+          )
+        ),
+        testEvalMultiple("Just and Nothing")(
+          "maybeTests",
+          "maybeMap2TestString",
+          List(Data.Optional.Some(Data.String("Hello")), Data.Optional.None(Concept.String))
+        )(
+          Data.String("Error")
+        ),
+        testEvalMultiple("Nothing and Just")(
+          "maybeTests",
+          "maybeMap2TestString",
+          List(Data.Optional.None(Concept.String), Data.Optional.Some(Data.String("World")))
+        )(
+          Data.String("Error")
+        ),
+        testEvalMultiple("Nothing and Nothing")(
+          "maybeTests",
+          "maybeMap2TestString",
+          List(Data.Optional.None(Concept.String), Data.Optional.None(Concept.String))
+        )(
+          Data.String("Error")
+        ),
+        suite("map3 String Tests")(
+          testEvalMultiple("all inputs are Just")(
+            "maybeTests",
+            "maybeMap3TestString",
+            List(
+              Data.Optional.Some(Data.String("Hello")),
+              Data.Optional.Some(Data.String("World")),
+              Data.Optional.Some(Data.String("!!!"))
+            )
+          )(
+            Data.String("HelloWorld!!!")
+          )
+        ),
+        testEvalMultiple("Just, Just, Nothing")(
+          "maybeTests",
+          "maybeMap3TestString",
+          List(
+            Data.Optional.Some(Data.String("Hello")),
+            Data.Optional.Some(Data.String("World")),
+            Data.Optional.None(Concept.String)
+          )
+        )(
+          Data.String("Error")
+        ),
+        testEvalMultiple("Nothing, Nothing, Nothing")(
+          "maybeTests",
+          "maybeMap3TestString",
+          List(
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String)
+          )
+        )(
+          Data.String("Error")
+        ),
+        suite("map3 Int Tests")(
+          testEvalMultiple("all inputs are Just")(
+            "maybeTests",
+            "maybeMap3TestInt",
+            List(
+              Data.Optional.Some(Data.Int(1)),
+              Data.Optional.Some(Data.Int(2)),
+              Data.Optional.Some(Data.Int(3))
+            )
+          )(
+            Data.Optional.Some(Data.Int(6))
+          )
+        ),
+        testEvalMultiple("Just, Just, Nothing")(
+          "maybeTests",
+          "maybeMap3TestInt",
+          List(
+            Data.Optional.Some(Data.Int(1)),
+            Data.Optional.Some(Data.Int(2)),
+            Data.Optional.None(Concept.Int32)
+          )
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        testEvalMultiple("Nothing, Nothing, Nothing")(
+          "maybeTests",
+          "maybeMap3TestInt",
+          List(
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32)
+          )
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        suite("map4 String Tests")(
+          testEvalMultiple("all inputs are Just")(
+            "maybeTests",
+            "maybeMap4TestString",
+            List(
+              Data.Optional.Some(Data.String("Hello")),
+              Data.Optional.Some(Data.String("World")),
+              Data.Optional.Some(Data.String("!!!")),
+              Data.Optional.Some(Data.String("!!!"))
+            )
+          )(
+            Data.String("HelloWorld!!!!!!")
+          )
+        ),
+        testEvalMultiple("Just, Just, Nothing, Just")(
+          "maybeTests",
+          "maybeMap4TestString",
+          List(
+            Data.Optional.Some(Data.String("Hello")),
+            Data.Optional.Some(Data.String("World")),
+            Data.Optional.None(Concept.String),
+            Data.Optional.Some(Data.String("!!!"))
+          )
+        )(
+          Data.String("Error")
+        ),
+        testEvalMultiple("Nothing, Nothing, Nothing, Nothing")(
+          "maybeTests",
+          "maybeMap4TestString",
+          List(
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String),
+            Data.Optional.None(Concept.String)
+          )
+        )(
+          Data.String("Error")
+        ),
+        suite("map4 Int Tests")(
+          testEvalMultiple("all inputs are Just")(
+            "maybeTests",
+            "maybeMap4TestInt",
+            List(
+              Data.Optional.Some(Data.Int(1)),
+              Data.Optional.Some(Data.Int(2)),
+              Data.Optional.Some(Data.Int(3)),
+              Data.Optional.Some(Data.Int(4))
+            )
+          )(
+            Data.Optional.Some(Data.Int(10))
+          )
+        ),
+        testEvalMultiple("Just, Just, Nothing, Just")(
+          "maybeTests",
+          "maybeMap4TestInt",
+          List(
+            Data.Optional.Some(Data.Int(1)),
+            Data.Optional.Some(Data.Int(2)),
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.Some(Data.Int(4))
+          )
+        )(
+          Data.Optional.None(Concept.Int32)
+        ),
+        testEvalMultiple("Nothing, Nothing, Nothing, Nothing")(
+          "maybeTests",
+          "maybeMap4TestInt",
+          List(
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32),
+            Data.Optional.None(Concept.Int32)
+          )
+        )(
+          Data.Optional.None(Concept.Int32)
         )
       ),
       suite("SDK Result Tests")(

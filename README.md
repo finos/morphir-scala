@@ -1,7 +1,7 @@
 # Morphir 
 
-<a href="https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating">
-    <img src="https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg" />
+<a href="https://finosfoundation.atlassian.net/wiki/display/FINOS/Active">
+    <img src="https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-active.svg" />
 </a>
 <a href="https://github.com/finos/morphir-scala/actions">
     <img src="https://github.com/finos/morphir-scala/workflows/CI/badge.svg" />
@@ -85,7 +85,7 @@ If you are using IntelliJ IDEA to edit morphir-jvm's Scala code, you can create 
 IntelliJ project files via:
 
 ````bash
-./mill mill.scalalib.GenIdea/idea
+./mill mill.idea.GenIdea/idea
 ````
 
 #### BSP Setup
@@ -115,6 +115,16 @@ or in watch mode:
 ```bash
 ./mill -w __.test
 ```
+
+> NOTE: When running tests you will want to ensure you have generated the MorphirIR for elm sources if you are running tests for the runtime. A simple way to do this is to use the `build.sh` helper script an invoke the `elm-build` option. `./build.sh elm-build`
+
+For your convience, you can run the morphir-runtime tests using the following command:
+
+
+```bash
+./build.sh test-runtime-jvm
+```
+
 
 #### Formatting Code
 
@@ -189,28 +199,15 @@ or in watch mode to reformat changed files:
 .\mill -i -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
 ```
 
-#### Building website
-
-```
-./mill -i __.docusaurusBuild
-```
-
-#### Running website locally
-```
-./mill -i __.docusaurusServe 
-```
-
-
 ### Roadmap
 
 Watch for updates.
-
 
 ### Contributing
 
 1. Fork it (<https://github.com/finos/morphir-scala/fork>)
 2. Create your feature branch (`git checkout -b feature/fooBar`)
-3. Read our [contribution guidelines](.github/CONTRIBUTING.md) and [Community Code of Conduct](https://www.finos.org/code-of-conduct)
+3. Read our [contribution guidelines](CONTRIBUTING.md) and [Community Code of Conduct](https://www.finos.org/code-of-conduct)
 4. Commit your changes (`git commit -am 'Add some fooBar'`)
 5. Push to the branch (`git push origin feature/fooBar`)
 6. Create a new Pull Request
@@ -218,7 +215,6 @@ Watch for updates.
 _NOTE:_ Commits and pull requests to FINOS repositories will only be accepted from those contributors with an active, executed Individual Contributor License Agreement (ICLA) with FINOS OR who are covered under an existing and active Corporate Contribution License Agreement (CCLA) executed with FINOS. Commits from individuals not covered under an ICLA or CCLA will be flagged and blocked by the FINOS Clabot tool (or [EasyCLA](https://github.com/finos/community/blob/master/governance/Software-Projects/EasyCLA.md)). Please note that some CCLAs require individuals/employees to be explicitly named on the CCLA.
 
 *Need an ICLA? Unsure if you are covered under an existing CCLA? Email [help@finos.org](mailto:help@finos.org)*
-
 
 ### License
 

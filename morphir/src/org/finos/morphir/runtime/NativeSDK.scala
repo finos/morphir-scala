@@ -36,6 +36,7 @@ object NativeSDK {
       case object String extends SdkModuleDescriptor("String") {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun2(StringSDK.append),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.repeat),
           NativeFunctionAdapter.Fun1(sdk.StringSDK.concat),
           NativeFunctionAdapter.Fun2(sdk.StringSDK.contains),
           NativeFunctionAdapter.Fun2(sdk.StringSDK.dropLeft),
@@ -54,7 +55,19 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(sdk.StringSDK.toUpper),
           NativeFunctionAdapter.Fun1(sdk.StringSDK.trim),
           NativeFunctionAdapter.Fun1(sdk.StringSDK.trimLeft),
-          NativeFunctionAdapter.Fun1(StringSDK.trimRight)
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.trimRight),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.fromChar),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.cons),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.uncons),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.toList),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.fromList),
+          NativeFunctionAdapter.Fun3(sdk.StringSDK.pad),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.map),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.filter),
+          NativeFunctionAdapter.Fun3(sdk.StringSDK.foldl),
+          NativeFunctionAdapter.Fun3(sdk.StringSDK.foldr),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.any),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.all)
         )
       }
 
@@ -67,6 +80,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(BasicsSDK.isInfinite),
           NativeFunctionAdapter.Fun1(BasicsSDK.isNaN),
           NativeFunctionAdapter.Fun2(BasicsSDK.always),
+          NativeFunctionAdapter.Fun2(BasicsSDK.equal),
+          NativeFunctionAdapter.Fun2(BasicsSDK.notEqual),
           NativeFunctionAdapter.Fun2(BasicsSDK.lessThan),
           NativeFunctionAdapter.Fun2(BasicsSDK.greaterThan),
           NativeFunctionAdapter.Fun2(BasicsSDK.greaterThanOrEqual),
@@ -112,7 +127,9 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(DecimalSDK.neq),
           NativeFunctionAdapter.Fun1(DecimalSDK.round),
           NativeFunctionAdapter.Fun2(DecimalSDK.sub),
-          NativeFunctionAdapter.Fun1(DecimalSDK.truncate)
+          NativeFunctionAdapter.Fun1(DecimalSDK.truncate),
+          NativeFunctionAdapter.Fun2(DecimalSDK.shiftDecimalLeft),
+          NativeFunctionAdapter.Fun2(DecimalSDK.shiftDecimalRight)
         )
       }
 
@@ -154,7 +171,11 @@ object NativeSDK {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun2(MaybeSDK.map),
           NativeFunctionAdapter.Fun2(MaybeSDK.withDefault),
-          NativeFunctionAdapter.Fun2(MaybeSDK.andThen)
+          NativeFunctionAdapter.Fun2(MaybeSDK.andThen),
+          NativeFunctionAdapter.Fun3(MaybeSDK.map2),
+          NativeFunctionAdapter.Fun4(MaybeSDK.map3),
+          NativeFunctionAdapter.Fun5(MaybeSDK.map4),
+          NativeFunctionAdapter.Fun1(MaybeSDK.hasValue)
         )
       }
 
@@ -181,9 +202,17 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(LocalDateSDK.addWeeks),
           NativeFunctionAdapter.Fun2(LocalDateSDK.addYears),
           NativeFunctionAdapter.Fun2(LocalDateSDK.diffInDays),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.diffInWeeks),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.diffInMonths),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.diffInYears),
+          NativeFunctionAdapter.Fun1(LocalDateSDK.monthToInt),
+          NativeFunctionAdapter.Fun1(LocalDateSDK.isWeekend),
+          NativeFunctionAdapter.Fun1(LocalDateSDK.isWeekday),
+          NativeFunctionAdapter.Fun2(LocalDateSDK.addMonths),
           NativeFunctionAdapter.Fun2(LocalDateSDK.fromOrdinalDate),
           NativeFunctionAdapter.Fun3(LocalDateSDK.fromCalendarDate),
-          NativeFunctionAdapter.Fun3(LocalDateSDK.fromParts)
+          NativeFunctionAdapter.Fun3(LocalDateSDK.fromParts),
+          NativeFunctionAdapter.Fun1(LocalDateSDK.toISOString)
         )
 
         private val enumSDKConstructor = SDKConstructor(scala.List())
@@ -203,6 +232,8 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(LocalTimeSDK.addMinutes),
           NativeFunctionAdapter.Fun2(LocalTimeSDK.addSeconds),
           NativeFunctionAdapter.Fun2(LocalTimeSDK.diffInSeconds),
+          NativeFunctionAdapter.Fun2(LocalTimeSDK.diffInHours),
+          NativeFunctionAdapter.Fun2(LocalTimeSDK.diffInMinutes),
           NativeFunctionAdapter.Fun1(LocalTimeSDK.fromISO)
         )
       }
@@ -210,7 +241,14 @@ object NativeSDK {
       case object Dict extends SdkModuleDescriptor(moduleName = "Dict") {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun2(DictSDK.partition),
-          NativeFunctionAdapter.Fun2(DictSDK.remove)
+          NativeFunctionAdapter.Fun2(DictSDK.remove),
+          NativeFunctionAdapter.Fun2(DictSDK.diff),
+          NativeFunctionAdapter.Fun2(DictSDK.intersect),
+          NativeFunctionAdapter.Fun2(DictSDK.union),
+          NativeFunctionAdapter.Fun3(DictSDK.foldl),
+          NativeFunctionAdapter.Fun3(DictSDK.foldr),
+          NativeFunctionAdapter.Fun2(DictSDK.map),
+          NativeFunctionAdapter.Fun6(DictSDK.merge)
         )
       }
 

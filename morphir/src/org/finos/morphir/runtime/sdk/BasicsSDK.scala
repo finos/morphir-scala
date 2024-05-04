@@ -133,6 +133,16 @@ object BasicsSDK {
       }
   }.asNative2
 
+  val equal = DynamicNativeFunction2("equal") {
+    (_: NativeContext) => (a: RTValue, b: RTValue) =>
+      Primitive.Boolean(a == b)
+  }
+
+  val notEqual = DynamicNativeFunction2("notEqual") {
+    (_: NativeContext) => (a: RTValue, b: RTValue) =>
+      Primitive.Boolean(a != b)
+  }
+
   val lessThan = DynamicNativeFunction2("lessThan") {
     (_: NativeContext) => (a: Comparable, b: Comparable) =>
       Primitive.Boolean(RTValue.Comparable.compareOrThrow(a, b) < 0)

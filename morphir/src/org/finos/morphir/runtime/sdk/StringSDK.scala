@@ -12,7 +12,7 @@ import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.runtime.RTValue.Primitive.String as RTString
 import org.finos.morphir.runtime.RTValue.{coerceList, coerceString}
-
+import org.finos.morphir.ir.Type
 import scala.collection.StringOps
 
 object StringSDK {
@@ -38,6 +38,12 @@ object StringSDK {
   val dropLeft = DynamicNativeFunction2("dropLeft") {
     (context: NativeContext) => (int: RT.Primitive.Int, str: RTString) =>
       val result = str.value.drop(int.valueAsInt)
+      RTString(result)
+  }
+
+  val repeat = DynamicNativeFunction2("repeat") {
+    (context: NativeContext) => (int: RT.Primitive.Int, str: RTString) =>
+      val result = str.value.repeat(int.valueAsInt)
       RTString(result)
   }
 
@@ -117,7 +123,7 @@ object StringSDK {
   val toFloat = DynamicNativeFunction1("toFloat") {
     (context: NativeContext) => (str: RTString) =>
       val result = str.value.toFloatOption.flatMap(RT.Primitive.make(_))
-      MaybeSDK.resultToMaybe(result)
+      MaybeSDK.optionToMaybe(result)
   }
 
   val toLower = DynamicNativeFunction1("toLower") {
@@ -148,5 +154,100 @@ object StringSDK {
     (context: NativeContext) => (str: RTString) =>
       val result = str.value.stripTrailing()
       RTString(result)
+  }
+
+  val fromChar = DynamicNativeFunction1("fromChar") {
+    (context: NativeContext) => (char: RT.Primitive.Char) =>
+      RTString(char.value.toString)
+  }
+
+  val cons = DynamicNativeFunction2("cons") {
+    (context: NativeContext) => (char: RT.Primitive.Char, str: RTString) =>
+      RTString(char.value.toString + str.value)
+  }
+
+  val uncons = DynamicNativeFunction1("uncons") {
+    (context: NativeContext) => (str: RTString) =>
+      str.value match {
+        case "" => MaybeSDK.optionToMaybe(None)
+        case _ =>
+          MaybeSDK.optionToMaybe(Some(RT.Tuple(RT.Primitive.Char(str.value.head), RTString(str.value.tail))))
+      }
+  }
+
+  val toList = DynamicNativeFunction1("toList") {
+    (context: NativeContext) => (str: RTString) =>
+      val result = str.value.toList.map(c => RT.Primitive.Char(c))
+      RT.List(result)
+  }
+
+  val fromList = DynamicNativeFunction1("fromList") {
+    (context: NativeContext) => (list: RT.List) =>
+      val result = list.elements.map(c => RTValue.coerceChar(c).value).mkString
+      RTString(result)
+  }
+
+  val pad = DynamicNativeFunction3("pad") {
+    (context: NativeContext) => (n: RT.Primitive.Int, ch: RT.Primitive.Char, str: RTString) =>
+      val totalExtra = n.valueAsInt - str.value.length
+      val half       = totalExtra / 2.0
+      val (leftPadding, rightPadding) = (
+        ch.value.toString * Math.ceil(half).toInt,
+        ch.value.toString * Math.floor(half).toInt
+      )
+      val result = leftPadding ++ str.value ++ rightPadding
+      RTString(result)
+  }
+
+  val map = DynamicNativeFunction2("map") {
+    (context: NativeContext) => (f: RTValue.Function, str: RTString) =>
+      val result = str.value.map { c =>
+        val res = context.evaluator.handleApplyResult(Type.UType.Unit(()), f, RT.Primitive.Char(c))
+        RTValue.coerceChar(res).value
+      }
+      RTString(result)
+  }
+
+  val filter = DynamicNativeFunction2("filter") {
+    (context: NativeContext) => (f: RTValue.Function, str: RTString) =>
+      val result = str.value.filter { c =>
+        val res = context.evaluator.handleApplyResult(Type.UType.Unit(()), f, RT.Primitive.Char(c))
+        RTValue.coerceBoolean(res).value
+      }
+      RTString(result)
+  }
+
+  val foldl = DynamicNativeFunction3("foldl") {
+    (context: NativeContext) => (f: RTValue.Function, acc: RTValue, str: RTString) =>
+      val result = str.value.foldLeft(acc) { (acc, c) =>
+        context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, RT.Primitive.Char(c), acc)
+      }
+      result
+  }
+
+  val foldr = DynamicNativeFunction3("foldr") {
+    (context: NativeContext) => (f: RTValue.Function, acc: RTValue, str: RTString) =>
+      val result = str.value.foldRight(acc) { (c, acc) =>
+        context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, RT.Primitive.Char(c), acc)
+      }
+      result
+  }
+
+  val any = DynamicNativeFunction2("any") {
+    (context: NativeContext) => (f: RTValue.Function, str: RTString) =>
+      val result = str.value.exists { c =>
+        val res = context.evaluator.handleApplyResult(Type.UType.Unit(()), f, RT.Primitive.Char(c))
+        RTValue.coerceBoolean(res).value
+      }
+      RT.Primitive.Boolean(result)
+  }
+
+  val all = DynamicNativeFunction2("all") {
+    (context: NativeContext) => (f: RTValue.Function, str: RTString) =>
+      val result = str.value.forall { c =>
+        val res = context.evaluator.handleApplyResult(Type.UType.Unit(()), f, RT.Primitive.Char(c))
+        RTValue.coerceBoolean(res).value
+      }
+      RT.Primitive.Boolean(result)
   }
 }

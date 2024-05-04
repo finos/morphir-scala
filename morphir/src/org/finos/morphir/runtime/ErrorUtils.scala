@@ -14,6 +14,7 @@ import java.util
 import scala.util.control.NonFatal
 
 object ErrorUtils {
+  def indentBlock(s: String): String = s.split("\n").map("\t" + _).mkString("\n")
 
   implicit class ErrorInterpolator(sc: StringContext) {
     //format: off
@@ -97,7 +98,6 @@ object ErrorUtils {
       case other                                      => isMDM(other) || isIR(other)
     }
 
-    def indentBlock(s: String): String = s.split("\n").map("\t" + _).mkString("\n")
     def indentBlockPreserveBar(s: String): String = s.split("\n").map { line =>
       if (line.startsWith("|")) "|\t" + line.drop(1)
       else "\t" + line

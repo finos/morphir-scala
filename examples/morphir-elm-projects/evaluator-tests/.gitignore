@@ -1,0 +1,3 @@
+# Morphir files should no longer be checked in since they are generated as part of the build
+morphir-hashes.json
+morphir-ir.json

@@ -41,5 +41,9 @@ object NativeFunctionAdapter {
     def realize: SDKValue.SDKNativeInnerFunction =
       SDKValue.SDKNativeInnerFunction { new NativeFunctionSignatureAdv.Fun5(loop => (r1, r2, r3, r4, r5) => dnf.f(internal.NativeContext(loop))(u1.coerce(r1), u2.coerce(r2), u3.coerce(r3), u4.coerce(r4), u5.coerce(r5))) }
   }
+  case class Fun6[T1 <: RTValue, T2 <: RTValue, T3 <: RTValue, T4 <: RTValue, T5 <: RTValue, T6 <: RTValue, R <: RTValue](val dnf: DynamicNativeFunction6[T1, T2, T3, T4, T5, T6, R])(implicit u1: Coercer[T1], u2: Coercer[T2], u3: Coercer[T3], u4: Coercer[T4], u5: Coercer[T5], u6: Coercer[T6]) extends NativeFunctionAdapter {
+    def realize: SDKValue.SDKNativeInnerFunction =
+      SDKValue.SDKNativeInnerFunction { new NativeFunctionSignatureAdv.Fun6(loop => (r1, r2, r3, r4, r5, r6) => dnf.f(internal.NativeContext(loop))(u1.coerce(r1), u2.coerce(r2), u3.coerce(r3), u4.coerce(r4), u5.coerce(r5), u6.coerce(r6))) }
+  }
 }
 // format: on
