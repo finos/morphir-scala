@@ -252,6 +252,16 @@ object NativeSDK {
         )
       }
 
+      case object Float extends SdkModuleDescriptor(moduleName = "Float") {
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun1(FloatSDK.fromInt),
+          NativeFunctionAdapter.Fun1(FloatSDK.round),
+          NativeFunctionAdapter.Fun1(FloatSDK.floor),
+          NativeFunctionAdapter.Fun1(FloatSDK.ceiling),
+          NativeFunctionAdapter.Fun1(FloatSDK.truncate)
+        )
+      }
+
       case object Set extends SdkModuleDescriptor(moduleName = "Set") {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun3(SetSDK.foldr),
@@ -277,6 +287,7 @@ object NativeSDK {
       Char,
       Decimal,
       Dict,
+      Float,
       List,
       LocalDate,
       LocalTime,

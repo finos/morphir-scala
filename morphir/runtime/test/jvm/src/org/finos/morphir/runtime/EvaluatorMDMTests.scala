@@ -485,6 +485,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("sub")("decimalTests", "decimalSub")(Data.Decimal(1.1)),
         testEvaluation("truncate")("decimalTests", "decimalTruncate")(Data.Decimal(1.0))
       ),
+      suite("Float Tests")(
+        testEvaluation("fromInt")("floatTests", "floatFromInt")(Data.Float(500))
+      ),
       suite("Lambda Tests")(
         testEvaluation("As")("lambdaTests", "lambdaAsTest")(Data.Tuple(Data.Int(5), Data.Int(5))),
         testEvaluation("Tuple")("lambdaTests", "lambdaTupleTest")(Data.Tuple(Data.Int(0), Data.Int(1))),
