@@ -231,4 +231,9 @@ object BasicsSDK {
       Primitive.Float(scala.math.atan2(a.value, b.value))
   }
 
+  val degrees = DynamicNativeFunction1("degrees") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.toDegrees(a.value))
+  }
+
 }

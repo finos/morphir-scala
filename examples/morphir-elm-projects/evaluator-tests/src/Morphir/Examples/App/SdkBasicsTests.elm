@@ -469,9 +469,6 @@ sdkATan2Test ctx =
 
 
 
------------------ Unimplemented and not run -----------------
-
-
 {-| Test: SdkBasics/degrees
 Expected: 3.141592653589793
 -}
@@ -483,6 +480,9 @@ sdkDegreesTest ctx =
                 degrees x
         in
         f 180
+
+
+----------------- Unimplemented and not run -----------------
 
 
 {-| Test: SdkBasics/radians

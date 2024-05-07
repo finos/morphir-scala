@@ -3068,6 +3068,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEvaluation("asin")("sdkBasicsTests", "sdkASinTest")(Data.Float(0.5235987755982989)),
           testEvaluation("atan")("sdkBasicsTests", "sdkATanTest")(Data.Float(0.7853981633974483)),
           testEvaluation("atan2")("sdkBasicsTests", "sdkATan2Test")(Data.Float(0.7853981633974483)),
+          testEvaluation("degrees")("sdkBasicsTests", "sdkDegreesTest")(Data.Float(3.141592653589793)),
           testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
           testEval("Ceiling whole number")("sdkBasicsTests", "basicsCeilingTest", 3.0)(Data.Int(3)),
           testEval("Floor")("sdkBasicsTests", "basicsFloorTest", 3.88)(Data.Int(3)),
