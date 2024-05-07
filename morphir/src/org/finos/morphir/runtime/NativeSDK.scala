@@ -104,7 +104,6 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(BasicsSDK.tan),
           NativeFunctionAdapter.Fun1(BasicsSDK.acos),
           NativeFunctionAdapter.Fun1(BasicsSDK.asin),
-          NativeFunctionAdapter.Fun1(BasicsSDK.asin),
           NativeFunctionAdapter.Fun1(BasicsSDK.atan),
           NativeFunctionAdapter.Fun2(BasicsSDK.atan2),
           NativeFunctionAdapter.Fun1(BasicsSDK.degrees),
