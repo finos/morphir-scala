@@ -98,7 +98,15 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(BasicsSDK.remainderBy),
           NativeFunctionAdapter.Fun1(BasicsSDK.sqrt),
           NativeFunctionAdapter.Fun3(BasicsSDK.composeRight),
-          NativeFunctionAdapter.Fun3(BasicsSDK.composeLeft)
+          NativeFunctionAdapter.Fun3(BasicsSDK.composeLeft),
+          NativeFunctionAdapter.Fun1(BasicsSDK.cos),
+          NativeFunctionAdapter.Fun1(BasicsSDK.sin),
+          NativeFunctionAdapter.Fun1(BasicsSDK.tan),
+          NativeFunctionAdapter.Fun1(BasicsSDK.acos),
+          NativeFunctionAdapter.Fun1(BasicsSDK.asin),
+          NativeFunctionAdapter.Fun1(BasicsSDK.asin),
+          NativeFunctionAdapter.Fun1(BasicsSDK.atan),
+          NativeFunctionAdapter.Fun2(BasicsSDK.atan2)
         )
 
         private val enumSDKConstructor = SDKConstructor(scala.List())
