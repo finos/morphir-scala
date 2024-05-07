@@ -117,6 +117,7 @@ object NativeSDK {
           NativeFunctionAdapter.Fun3(DecimalSDK.divWithDefault),
           NativeFunctionAdapter.Fun2(DecimalSDK.eq),
           NativeFunctionAdapter.Fun1(DecimalSDK.fromInt),
+          NativeFunctionAdapter.Fun1(DecimalSDK.fromFloat),
           NativeFunctionAdapter.Fun1(DecimalSDK.fromString),
           NativeFunctionAdapter.Fun2(DecimalSDK.gt),
           NativeFunctionAdapter.Fun2(DecimalSDK.gte),
