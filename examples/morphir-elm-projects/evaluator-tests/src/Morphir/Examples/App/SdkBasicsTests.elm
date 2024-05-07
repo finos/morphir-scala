@@ -467,7 +467,6 @@ sdkATan2Test ctx =
         in
         f 1 1
 
-
 {-| Test: SdkBasics/degrees
 Expected: 3.141592653589793
 -}
@@ -492,10 +491,6 @@ sdkRadiansTest ctx =
         in
         f pi
 
-
------------------ Unimplemented and not run -----------------
-
-
 {-| Test: SdkBasics/turns
 Expected: 3.141592653589793
 -}
@@ -507,6 +502,9 @@ sdkTurnsTest ctx =
                 turns x
         in
         f (1 / 2)
+
+
+----------------- Unimplemented and not run -----------------
 
 
 {-| Test: SdkBasics/toPolar

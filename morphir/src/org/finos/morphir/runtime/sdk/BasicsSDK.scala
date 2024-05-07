@@ -240,4 +240,9 @@ object BasicsSDK {
     (_: NativeContext) => (a: Primitive.Float) =>
       Primitive.Float(scala.math.toRadians(scala.math.toDegrees(a.value)))
   }
+
+  val turns = DynamicNativeFunction1("turns") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(a.value * 2 * scala.math.Pi)
+  }
 }
