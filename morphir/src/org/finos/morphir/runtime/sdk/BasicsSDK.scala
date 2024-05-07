@@ -191,4 +191,44 @@ object BasicsSDK {
         ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f1, res1)
       }
   }
+
+  val e: SDKValue = SDKValue.SDKNativeValue(Primitive.Float(scala.math.E))
+
+  val pi: SDKValue = SDKValue.SDKNativeValue(Primitive.Float(scala.math.Pi))
+
+  val cos = DynamicNativeFunction1("cos") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.cos(a.value))
+  }
+
+  val sin = DynamicNativeFunction1("sin") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.sin(a.value))
+  }
+
+  val tan = DynamicNativeFunction1("tan") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.tan(a.value))
+  }
+
+  val acos = DynamicNativeFunction1("acos") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.acos(a.value))
+  }
+
+  val asin = DynamicNativeFunction1("asin") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.asin(a.value))
+  }
+
+  val atan = DynamicNativeFunction1("atan") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.atan(a.value))
+  }
+
+  val atan2 = DynamicNativeFunction2("atan2") {
+    (_: NativeContext) => (a: Primitive.Float, b: Primitive.Float) =>
+      Primitive.Float(scala.math.atan2(a.value, b.value))
+  }
+
 }

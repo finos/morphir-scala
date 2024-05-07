@@ -377,10 +377,6 @@ sdkPiTest ctx =
         f
 
 
-
------------------ Unimplemented and not run -----------------
-
-
 {-| Test: SdkBasics/cos
 Expected: 0.5000000000000001
 -}
@@ -470,6 +466,10 @@ sdkATan2Test ctx =
                 atan2 x y
         in
         f 1 1
+
+
+
+----------------- Unimplemented and not run -----------------
 
 
 {-| Test: SdkBasics/degrees
