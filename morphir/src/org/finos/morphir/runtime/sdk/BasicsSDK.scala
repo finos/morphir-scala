@@ -192,10 +192,6 @@ object BasicsSDK {
       }
   }
 
-  val e: SDKValue = SDKValue.SDKNativeValue(Primitive.Float(scala.math.E))
-
-  val pi: SDKValue = SDKValue.SDKNativeValue(Primitive.Float(scala.math.Pi))
-
   val cos = DynamicNativeFunction1("cos") {
     (_: NativeContext) => (a: Primitive.Float) =>
       Primitive.Float(scala.math.cos(a.value))
