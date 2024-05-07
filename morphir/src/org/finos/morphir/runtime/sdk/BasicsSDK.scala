@@ -233,7 +233,11 @@ object BasicsSDK {
 
   val degrees = DynamicNativeFunction1("degrees") {
     (_: NativeContext) => (a: Primitive.Float) =>
-      Primitive.Float(scala.math.toDegrees(a.value))
+      Primitive.Float(scala.math.toRadians(a.value))
   }
 
+  val radians = DynamicNativeFunction1("radians") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.toRadians(scala.math.toDegrees(a.value)))
+  }
 }
