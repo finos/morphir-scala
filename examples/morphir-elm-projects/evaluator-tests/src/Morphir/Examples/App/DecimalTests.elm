@@ -13,7 +13,7 @@ decimalFromFloatTest ctx =
         (fromFloat 1.2)
 
 
-        
+
 -- {-| Test: Decimal/toFloat
 -- expected = 1.5
 -- -}
