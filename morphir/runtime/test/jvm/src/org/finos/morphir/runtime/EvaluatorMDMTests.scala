@@ -403,7 +403,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       suite("Decimal Tests")(
         suite("conversion")(
           testEvaluation("fromFloat")("decimalTests", "decimalFromFloatTest")(Data.Decimal(1.2)),
-          testEval("fromFloat")("decimalTests", "decimalFromFloatTest1", 1.2)(Data.Decimal(1.2)), 
           testEval("fromInt")("decimalTests", "decimalFromInt", 634)(Data.Decimal(634)),
           testEval("fromString good")("decimalTests", "decimalFromString", "523")(
             Data.Optional.Some(Data.Decimal(523))
