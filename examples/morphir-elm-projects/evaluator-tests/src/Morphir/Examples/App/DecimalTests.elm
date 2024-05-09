@@ -11,8 +11,6 @@ decimalFromFloatTest : TestContext -> Decimal
 decimalFromFloatTest ctx =
     test ctx
         (fromFloat 1.2)
-        
-
 -- {-| Test: Decimal/toFloat
 -- expected = 1.5
 -- -}
