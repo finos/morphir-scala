@@ -191,4 +191,54 @@ object BasicsSDK {
         ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f1, res1)
       }
   }
+
+  val cos = DynamicNativeFunction1("cos") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.cos(a.value))
+  }
+
+  val sin = DynamicNativeFunction1("sin") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.sin(a.value))
+  }
+
+  val tan = DynamicNativeFunction1("tan") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.tan(a.value))
+  }
+
+  val acos = DynamicNativeFunction1("acos") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.acos(a.value))
+  }
+
+  val asin = DynamicNativeFunction1("asin") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.asin(a.value))
+  }
+
+  val atan = DynamicNativeFunction1("atan") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.atan(a.value))
+  }
+
+  val atan2 = DynamicNativeFunction2("atan2") {
+    (_: NativeContext) => (a: Primitive.Float, b: Primitive.Float) =>
+      Primitive.Float(scala.math.atan2(a.value, b.value))
+  }
+
+  val degrees = DynamicNativeFunction1("degrees") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.toRadians(a.value))
+  }
+
+  val radians = DynamicNativeFunction1("radians") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.toRadians(scala.math.toDegrees(a.value)))
+  }
+
+  val turns = DynamicNativeFunction1("turns") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(a.value * 2 * scala.math.Pi)
+  }
 }
