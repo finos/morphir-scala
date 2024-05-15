@@ -427,7 +427,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEval("millionth")("decimalTests", "millionthFromDecimal",10000)(Data.Decimal(1)),
         testEval("hundred")("decimalTests", "hundredFromDecimal",1)(Data.Decimal(100)),
         testEval("thousand")("decimalTests", "thousandFromDecimal",1)(Data.Decimal(1000)),
-        testEval("million")("decimalTests", "millionFromDecimal",1)(Data.Decimal(10000)),
+        testEval("million")("decimalTests", "millionFromDecimal",1)(Data.Decimal(1000000)),
 //        testEvaluation("compare")("decimalTests", "decimalAdd")(Data.Decimal(673.45)),
         suite("shiftDecimal")(
           testEvalMultiple("shift left 2 places")(
