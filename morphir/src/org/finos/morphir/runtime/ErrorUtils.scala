@@ -63,15 +63,15 @@ object ErrorUtils {
 
     def process(title: String, astLike: Any): String =
       if (isMDM(astLike)) {
-        val mdmBody = barIndentBlock("MDM", PrintMDM(astLike).plainText)
+        val mdmBody = barIndentBlock(" the MDM looks like this: ", PrintMDM(astLike).plainText)
         barBlock(barIndentBlock(title, mdmBody, barWidth = 10)) // Console likes to drop leading |?
       } else if (isIR(astLike)) {
-        val elmBody = barIndentBlock("Elm", astLike.toString)
-        val irBody  = barIndentBlock("IR", PrintIR(astLike).plainText)
+        val elmBody = barIndentBlock(" the Elm looks like this: ", astLike.toString)
+        val irBody  = barIndentBlock(" the IR looks like this: ", PrintIR(astLike).plainText)
         barBlock(barIndentBlock(title, elmBody + irBody, barWidth = 10)) // Console likes to drop leading |?
       } else {
         // TODO: RTValue probably needs its own Printer
-        val astBody = barIndentBlock("AST", PrintRTValue(astLike).plainText)
+        val astBody = barIndentBlock(" the AST looks like: ", PrintRTValue(astLike).plainText)
         barBlock(barIndentBlock(title, astBody, barWidth = 10)) // Console likes to drop leading |?
       }
     def isIR(any: Any): Boolean = any match {
