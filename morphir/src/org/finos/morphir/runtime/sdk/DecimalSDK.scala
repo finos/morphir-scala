@@ -188,7 +188,7 @@ object DecimalSDK {
   val million = DynamicNativeFunction1("million") {
     (_: NativeContext) =>
       (int: RT.Primitive.Int) =>
-        val result = int.value.toBigDecimal * 10000
+        val result = int.value.toBigDecimal * 1000000
         RTDecimal(result)
   }
 }
