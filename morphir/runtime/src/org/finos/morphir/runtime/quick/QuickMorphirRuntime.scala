@@ -103,6 +103,12 @@ object QuickMorphirRuntime {
     QuickMorphirRuntime(Distributions(distributions: _*), globalDefs)
   }
 
+  def fromDistributionsAndExterns(externs: Externs, distributions: Distribution*): QuickMorphirRuntime = {
+    val globalDefs  = GlobalDefs.fromDistributions(distributions: _*)
+    val withExterns = globalDefs.withExterns(externs)
+    QuickMorphirRuntime(Distributions(distributions: _*), withExterns)
+  }
+
   def fromDistributionRTAction(distributions: Distribution*)
       : RTAction[MorphirEnv, MorphirRuntimeError, QuickMorphirRuntime] =
     RTAction.succeed(fromDistributions(distributions: _*))
