@@ -311,3 +311,207 @@ stringTrimLeft str =
 stringTrimRight : String -> String
 stringTrimRight str =
     String.trimRight str
+
+
+{-|
+
+    Test: String/fromChar
+    expected = "a"
+
+-}
+stringFromCharTest : TestContext -> String
+stringFromCharTest ctx =
+    test ctx
+        (String.fromChar 'a')
+
+
+{-|
+
+    Test: String/cons
+    expected = "abc"
+
+-}
+stringConsTest : TestContext -> String
+stringConsTest ctx =
+    test ctx
+        (String.cons 'a' "bc")
+
+
+{-|
+
+    Test: String/uncons
+    input = "abc", expected = Just ('a', "bc")
+    input = "a", expected = Just ('a', "")
+    input = "", expected = Nothing
+
+-}
+stringUnconsTest : String -> Maybe ( Char, String )
+stringUnconsTest input =
+    String.uncons input
+
+
+{-|
+
+    Test: String/toList
+    expected = ['a', 'b', 'c']
+
+-}
+stringToListTest : TestContext -> List Char
+stringToListTest ctx =
+    test ctx
+        (String.toList "abc")
+
+
+{-|
+
+    Test: String/fromList
+    expected = "abc"
+
+-}
+stringFromListTest : TestContext -> String
+stringFromListTest ctx =
+    test ctx
+        (String.fromList [ 'a', 'b', 'c' ])
+
+
+{-|
+
+    Test: String/fromList
+    expected = ""
+
+-}
+stringFromListEmptyTest : TestContext -> String
+stringFromListEmptyTest ctx =
+    test ctx
+        (String.fromList [])
+
+
+{-|
+
+    Test: String/pad
+    pad 5 ' ' "1" == " 1 "
+    pad 5 ' ' "11" == " 11 "
+    pad 5 ' ' "121" == " 121 "
+    pad 5 ' ' "1234" == " 1234"
+    pad 5 ' ' "12345" == "12345"
+    pad 5 ' ' "123456" == "123456"
+    pad 0 ' ' "123" == "123"
+    pad -5 ' ' "123" == "123"
+    pad 5 ' ' "" == "     "
+
+-}
+stringPadTest : Int -> String -> String
+stringPadTest size input =
+    String.pad size ' ' input
+
+
+{-|
+
+    Test: String/map
+    expected = "a.b.c"
+
+-}
+stringMapTest : TestContext -> String
+stringMapTest ctx =
+    test ctx
+        String.map
+        (\c ->
+            if c == '/' then
+                '.'
+
+            else
+                c
+        )
+        "a/b/c"
+
+
+{-|
+
+    Test: String/filter
+    expected = "bc"
+
+-}
+stringFilterTest : TestContext -> String
+stringFilterTest ctx =
+    test ctx
+        (String.filter (\c -> c /= 'a') "abc")
+
+
+{-|
+
+    Test: String/foldl
+    input = UPPERCASE, expected = True
+    input = lowercase, expected = False
+    input = camelCase, expected = False
+
+-}
+stringFoldlTest : String -> Bool
+stringFoldlTest input =
+    String.foldl (\char acc -> acc && (char >= 'A' && char <= 'Z')) True input
+
+
+{-|
+
+    Test: String/foldl
+    input = "time", expected = "emit"
+
+-}
+stringFoldlTest2 : String -> String
+stringFoldlTest2 input =
+    String.foldl String.cons "" input
+
+
+{-|
+
+    Test: String/foldr
+    input = "Hello, World", expected = 2
+    input = "HELLO, WORLD", expected = 10
+
+-}
+stringFoldrTest : String -> Int
+stringFoldrTest input =
+    String.foldr
+        (\char count ->
+            if char >= 'A' && char <= 'Z' then
+                count + 1
+
+            else
+                count
+        )
+        0
+        input
+
+
+{-|
+
+    Test: String/foldr
+    input = "time", expected = "time"
+
+-}
+stringFoldrTest2 : String -> String
+stringFoldrTest2 input =
+    String.foldr String.cons "" input
+
+
+{-|
+
+    Test: String/any
+    input = "scala", expected = True
+    input = "elm", expected = False
+
+-}
+stringAnyTest : String -> Bool
+stringAnyTest input =
+    String.any (\c -> c == 'a') input
+
+
+{-|
+
+    Test: String/all
+    input = "aaa", expected = True
+    input = "abc", expected = False
+
+-}
+stringAllTest : String -> Bool
+stringAllTest input =
+    String.all (\c -> c == 'a') input

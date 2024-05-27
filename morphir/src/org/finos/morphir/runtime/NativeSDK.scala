@@ -55,7 +55,19 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(sdk.StringSDK.toUpper),
           NativeFunctionAdapter.Fun1(sdk.StringSDK.trim),
           NativeFunctionAdapter.Fun1(sdk.StringSDK.trimLeft),
-          NativeFunctionAdapter.Fun1(StringSDK.trimRight)
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.trimRight),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.fromChar),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.cons),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.uncons),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.toList),
+          NativeFunctionAdapter.Fun1(sdk.StringSDK.fromList),
+          NativeFunctionAdapter.Fun3(sdk.StringSDK.pad),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.map),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.filter),
+          NativeFunctionAdapter.Fun3(sdk.StringSDK.foldl),
+          NativeFunctionAdapter.Fun3(sdk.StringSDK.foldr),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.any),
+          NativeFunctionAdapter.Fun2(sdk.StringSDK.all)
         )
       }
 
@@ -86,7 +98,17 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(BasicsSDK.remainderBy),
           NativeFunctionAdapter.Fun1(BasicsSDK.sqrt),
           NativeFunctionAdapter.Fun3(BasicsSDK.composeRight),
-          NativeFunctionAdapter.Fun3(BasicsSDK.composeLeft)
+          NativeFunctionAdapter.Fun3(BasicsSDK.composeLeft),
+          NativeFunctionAdapter.Fun1(BasicsSDK.cos),
+          NativeFunctionAdapter.Fun1(BasicsSDK.sin),
+          NativeFunctionAdapter.Fun1(BasicsSDK.tan),
+          NativeFunctionAdapter.Fun1(BasicsSDK.acos),
+          NativeFunctionAdapter.Fun1(BasicsSDK.asin),
+          NativeFunctionAdapter.Fun1(BasicsSDK.atan),
+          NativeFunctionAdapter.Fun2(BasicsSDK.atan2),
+          NativeFunctionAdapter.Fun1(BasicsSDK.degrees),
+          NativeFunctionAdapter.Fun1(BasicsSDK.radians),
+          NativeFunctionAdapter.Fun1(BasicsSDK.turns)
         )
 
         private val enumSDKConstructor = SDKConstructor(scala.List())

@@ -377,10 +377,6 @@ sdkPiTest ctx =
         f
 
 
-
------------------ Unimplemented and not run -----------------
-
-
 {-| Test: SdkBasics/cos
 Expected: 0.5000000000000001
 -}
@@ -509,6 +505,10 @@ sdkTurnsTest ctx =
                 turns x
         in
         f (1 / 2)
+
+
+
+----------------- Unimplemented and not run -----------------
 
 
 {-| Test: SdkBasics/toPolar
