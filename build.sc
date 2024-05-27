@@ -1,7 +1,7 @@
 import mill.scalalib.publish.PublishInfo
 import $meta._
 import $ivy.`de.tototec::de.tobiasroeser.mill.integrationtest::0.7.1`
-import $ivy.`io.chris-kipp::mill-ci-release::0.1.9`
+import $ivy.`io.chris-kipp::mill-ci-release::0.1.10`
 import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
 import $ivy.`com.carlosedp::mill-aliases::0.4.1`
 import $file.project.deps, deps.{Deps, MillVersions, Versions => Vers}
