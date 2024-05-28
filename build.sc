@@ -94,48 +94,6 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
       trait ItestCross extends MillIntegrationTestModule with Cross.Module[String]
     }
   }
-
-  object main extends CommonScalaModule with MorphirPublishModule with BuildInfo {
-
-    def buildInfoPackageName = "org.finos.morphir.cli"
-
-    def buildInfoMembers = Seq(
-      BuildInfo.Value("version", publishVersion()),
-      BuildInfo.Value("scalaVersion", scalaVersion())
-    )
-
-    override def extraPublish: T[Seq[PublishInfo]] = T {
-      Seq(PublishInfo(file = assembly(), classifier = Some("assembly"), ivyConfig = "compile"))
-    }
-
-    val mainScalaVersion = morphirScalaVersion
-
-    def packageDescription =
-      "The morphir-main package. This is the main entry point for the morphir tooling, including the morphir-cli."
-
-    def scalaVersion = T { mainScalaVersion }
-    def ivyDeps = Agg(
-      Deps.co.fs2.`fs2-io`,
-      Deps.com.lihaoyi.fansi,
-      Deps.com.lihaoyi.pprint,
-      Deps.com.lihaoyi.sourcecode,
-      Deps.dev.zio.zio,
-      Deps.dev.zio.`zio-interop-cats`,
-      Deps.dev.zio.`zio-cli`,
-      Deps.dev.zio.`zio-config`,
-      Deps.dev.zio.config.magnolia,
-      Deps.dev.zio.config.refined,
-      Deps.dev.zio.config.typesafe
-    )
-
-    def moduleDeps =
-      Seq(
-        morphir(mainScalaVersion).jvm,
-        morphir(mainScalaVersion).runtime.jvm,
-        morphir(mainScalaVersion).tools.jvm
-      )
-  }
-
 }
 trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
   import DevMode._
