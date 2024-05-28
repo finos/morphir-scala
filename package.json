@@ -8,7 +8,9 @@
     "morphir-elm/sdks/morphir-unit-test"
   ],
   "dependencies": {},
-  "scripts": {},
+  "scripts": {
+    
+  },
   "resolutions": {},
   "devDependencies": {
     "morphir-elm": "^2.89.0"

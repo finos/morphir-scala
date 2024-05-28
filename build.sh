@@ -151,7 +151,7 @@ subcommand=$_arg_command
 leftovers=$_arg_leftovers
 
 # Scala versions
-default_scala_version="3.3.3"
+default_scala_version="2.13.14"
 scalaVersion=$_arg_scala_version
 scalaVersions=(${_arg_scala_version[@]})
 
