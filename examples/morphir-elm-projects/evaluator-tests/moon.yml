@@ -1,4 +1,4 @@
-platform: bun
+platform: node
 tags:
   - "morphir"
   - "morphir-elm"

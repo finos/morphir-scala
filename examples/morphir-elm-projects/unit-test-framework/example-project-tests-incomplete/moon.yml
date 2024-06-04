@@ -1,4 +1,4 @@
-platform: bun
+platform: node
 tasks:
   morphir-elm-make:
     deps:
