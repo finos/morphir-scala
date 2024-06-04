@@ -18,5 +18,18 @@ tasks:
     inputs:
       - "@files(scalaSources)"
       - "@files(scalaBuildSources)"
+  test-scala:
+    command: './mill'
+    args: ['__.test']
+    inputs: 
+      - "@files(scalaSources)"
+      - "@files(scalaBuildSources)"
+    deps:
+      - target: "#morphir-elm:morphir-elm-build"
+  test:
+    deps:
+      - target: "~:test-scala"
+
+    
 tags:
   - "scala"
