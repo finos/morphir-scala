@@ -12,7 +12,8 @@
     "build": "moon :build",
     "morphir-build": "moon :morphir-elm-build",
     "clean": "moon :morpir-elm-clean",
-    "format": "moon :fmt; ./mill Alias/run fmt"
+    "format": "moon :fmt; ./mill Alias/run fmt",
+    "test": "moon :test"
   },
   "resolutions": {},
   "devDependencies": {

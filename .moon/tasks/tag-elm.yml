@@ -13,3 +13,10 @@ tasks:
       elm-format @dirs(elmSources) @files(elmSources) --yes
     inputs:
       - "@files(elmSources)"
+  test:
+    inputs: []
+    deps:
+      - target: "~:scala-jvm"
+        optional: true
+      - target: "~:elm-test"
+        optional: true
