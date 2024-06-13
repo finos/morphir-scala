@@ -87,6 +87,12 @@ object DecimalSDK {
       RT.Primitive.Boolean(result)
   }
 
+  val hundred = DynamicNativeFunction1("hundred") {
+    (_: NativeContext) => (int: RT.Primitive.Int) =>
+      val result = int.value.toBigDecimal * 100
+      RTDecimal(result)
+  }
+
   val lt = DynamicNativeFunction2("lt") {
     (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
       val result = dec1.value < dec2.value
