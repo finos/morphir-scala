@@ -57,15 +57,15 @@ object DecimalSDK {
       RT.Primitive.Boolean(result)
   }
 
-  val fromInt = DynamicNativeFunction1("fromInt") {
-    (_: NativeContext) => (int: RT.Primitive.Int) =>
-      val result = int.value.toBigDecimal
-      RTDecimal(result)
-  }
-
   val fromFloat = DynamicNativeFunction1("fromFloat") {
     (_: NativeContext) => (float: RT.Primitive.Float) =>
       val result = BigDecimal(float.value)
+      RTDecimal(result)
+  }
+
+  val fromInt = DynamicNativeFunction1("fromInt") {
+    (_: NativeContext) => (int: RT.Primitive.Int) =>
+      val result = int.value.toBigDecimal
       RTDecimal(result)
   }
 
