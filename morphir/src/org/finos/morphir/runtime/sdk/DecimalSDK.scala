@@ -145,6 +145,12 @@ object DecimalSDK {
       RTDecimal(result)
   }
 
+  val thousand = DynamicNativeFunction1("thousand") {
+    (_: NativeContext) => (int: RT.Primitive.Int) =>
+      val result = int.value.toBigDecimal * 1000
+      RTDecimal(result)
+  }
+
   val truncate = DynamicNativeFunction1("truncate") {
     (_: NativeContext) => (value: RTDecimal) =>
       val d      = value.value
