@@ -99,6 +99,12 @@ object DecimalSDK {
       RTDecimal(result)
   }
 
+  val hundredth = DynamicNativeFunction1("hundredth") {
+    (_: NativeContext) => (int: RT.Primitive.Int) =>
+      val result = int.value.toBigDecimal * 0.01
+      RTDecimal(result)
+  }
+
   val lt = DynamicNativeFunction2("lt") {
     (_: NativeContext) => (dec1: RTDecimal, dec2: RTDecimal) =>
       val result = dec1.value < dec2.value
@@ -119,7 +125,7 @@ object DecimalSDK {
 
   val millionth = DynamicNativeFunction1("millionth") {
     (_: NativeContext) => (int: RT.Primitive.Int) =>
-      val result = int.value.toBigDecimal * 0.0000001
+      val result = int.value.toBigDecimal * 0.000001
       RTDecimal(result)
   }
 
@@ -166,6 +172,12 @@ object DecimalSDK {
   val thousand = DynamicNativeFunction1("thousand") {
     (_: NativeContext) => (int: RT.Primitive.Int) =>
       val result = int.value.toBigDecimal * 1000
+      RTDecimal(result)
+  }
+
+  val thousandth = DynamicNativeFunction1("thousandth") {
+    (_: NativeContext) => (int: RT.Primitive.Int) =>
+      val result = int.value.toBigDecimal * 0.001
       RTDecimal(result)
   }
 
