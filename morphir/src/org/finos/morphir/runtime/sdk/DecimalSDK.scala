@@ -24,6 +24,12 @@ object DecimalSDK {
       RTDecimal(result)
   }
 
+  val asString = DynamicNativeFunction1("toString") {
+    (_: NativeContext) => (value: RTDecimal) =>
+      val result = value.value.toString()
+      RT.Primitive.String(result)
+  }
+
   // Converts an int to a Decimal that represents n basis points (i.e. 1/10 of % or a ten-thousandth)
   val bps = DynamicNativeFunction1("bps") {
     (_: NativeContext) => (int: RT.Primitive.Int) =>
@@ -163,10 +169,10 @@ object DecimalSDK {
       RTDecimal(result)
   }
 
-  val _toString = DynamicNativeFunction1("toString") {
+  val toFloat = DynamicNativeFunction1("toFloat") {
     (_: NativeContext) => (value: RTDecimal) =>
-      val result = value.value.toString()
-      RT.Primitive.String(result)
+      val result = value.value.toFloat()
+      RT.Primitive.Float(result)
   }
 
   val truncate = DynamicNativeFunction1("truncate") {
