@@ -163,10 +163,10 @@ object DecimalSDK {
       RTDecimal(result)
   }
 
-  val toString = DynamicNativeFunction1("toString") {
+  val _toString = DynamicNativeFunction1("toString") {
     (_: NativeContext) => (value: RTDecimal) =>
-      val result    = value.value.toString()
-      RTDecimal(result)
+      val result = value.value.toString()
+      RT.Primitive.String(result)
   }
 
   val truncate = DynamicNativeFunction1("truncate") {
