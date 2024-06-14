@@ -171,7 +171,7 @@ object DecimalSDK {
 
   val toFloat = DynamicNativeFunction1("toFloat") {
     (_: NativeContext) => (value: RTDecimal) =>
-      val result = value.value.toDouble()
+      val result = value.value.toDouble
       RT.Primitive.Float(result)
   }
 
