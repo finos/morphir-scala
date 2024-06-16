@@ -142,7 +142,8 @@ object DeriverMacros {
     import quotes.reflect._
     def failNotProductOrSum() =
       report.errorAndAbort(
-        s"Cannot summon generic Deriver for the type (was not a Product or Sum): ${TypeRepr.of[T].widen.show} from `summonDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
+        s"Cannot summon generic Deriver for the type (was not a Product or Sum): ${TypeRepr.of[T].widen
+            .show} from `summonDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
       )
 
     val specificDriver = Expr.summon[CustomDeriver[T]]
@@ -157,7 +158,8 @@ object DeriverMacros {
             case Some(value) => value
             case _ =>
               report.errorAndAbort(
-                s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen.show} from `summonDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
+                s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen
+                    .show} from `summonDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
               )
           }
         } else if (Expr.summon[Mirror.SumOf[T]].nonEmpty) {
@@ -179,7 +181,8 @@ object DeriverMacros {
     import quotes.reflect._
     def failNotProduct() =
       report.errorAndAbort(
-        s"Cannot summon generic Deriver for the type (was not a Product): ${TypeRepr.of[T].widen.show} from `summonProductDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
+        s"Cannot summon generic Deriver for the type (was not a Product): ${TypeRepr.of[T].widen
+            .show} from `summonProductDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
       )
     val tpe   = TypeRepr.of[T]
     val flags = tpe.typeSymbol.flags
@@ -196,7 +199,8 @@ object DeriverMacros {
             case Some(value) => value
             case _ =>
               report.errorAndAbort(
-                s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen.show} from `summonProductDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
+                s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen
+                    .show} from `summonProductDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
               )
           }
         } else

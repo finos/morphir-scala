@@ -304,7 +304,8 @@ object MorphirRuntimeError {
 
     final case class InferenceConflict(older: UType, newer: UType, name: Name) extends TypeError {
       def message =
-        err"While trying to bind the type variables of the entry point function, the input matched type variable ${name.toCamelCase} with $older and then also $newer, which are not the same."
+        err"While trying to bind the type variables of the entry point function, the input matched type variable ${name
+            .toCamelCase} with $older and then also $newer, which are not the same."
     }
 
     final case class UnknownTypeMismatch(tpe1: UType, tpe2: UType, hint: String = "") extends TypeError {
