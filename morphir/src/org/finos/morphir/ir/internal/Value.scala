@@ -370,12 +370,12 @@ object Value {
     def apply[TA, VA](attributes: VA, function: Value[TA, VA], arguments: scala.List[Value[TA, VA]])(implicit
         @unused ev: NeedsAttributes[VA]
     ): Value[TA, VA] =
-      arguments match {
-        case Nil => function
-        case head :: tail =>
-          tail.foldLeft(Apply(attributes, function, head)) { case (acc, arg) => Apply(acc.attributes, acc, arg) }
-      }
-      // arguments.foldLeft(Apply(attributes, function, arguments.head)) { case (acc, arg) => Apply(acc.attributes, acc, arg) }
+    arguments match {
+      case Nil => function
+      case head :: tail =>
+        tail.foldLeft(Apply(attributes, function, head)) { case (acc, arg) => Apply(acc.attributes, acc, arg) }
+    }
+    // arguments.foldLeft(Apply(attributes, function, arguments.head)) { case (acc, arg) => Apply(acc.attributes, acc, arg) }
 
     type Raw = Apply[scala.Unit, scala.Unit]
     object Raw {
