@@ -1,6 +1,6 @@
 package org.finos.morphir.util
 
-import _root_.org.finos.morphir.naming.*
+import _root_.org.finos.morphir.naming._
 import _root_.org.finos.morphir.datamodel.Label
 import _root_.org.finos.morphir.datamodel.EnumLabel
 import _root_.org.finos.morphir.datamodel.Data

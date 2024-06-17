@@ -1,22 +1,13 @@
 package org.finos.morphir.util
 
-import org.finos.morphir.testing.MorphirBaseSpec
-import org.finos.morphir.datamodel.Util.*
-import org.finos.morphir.datamodel.*
-import org.finos.morphir.ir.Type
-import org.finos.morphir.naming.*
-import org.finos.morphir.runtime.environment.MorphirEnv
 import zio.test._
 import zio.test.Assertion._
 import PrintMDMJson._
-import _root_.org.finos.morphir.naming.*
-import _root_.org.finos.morphir.datamodel.Label
-import _root_.org.finos.morphir.datamodel.EnumLabel
-import _root_.org.finos.morphir.datamodel.Data
-import _root_.org.finos.morphir.datamodel.Concept
-import org.finos.morphir.datamodel.Data.{Optional, Result}
-import zio.json.ast._
-import zio.json.EncoderOps
+import org.finos.morphir.testing.MorphirBaseSpec
+import org.finos.morphir.datamodel.Util._
+import org.finos.morphir.datamodel._
+import org.finos.morphir.ir.Type
+import org.finos.morphir.naming._
 
 object PrintMDMJsonSpec extends MorphirBaseSpec {
 
@@ -224,7 +215,4 @@ object PrintMDMJsonSpec extends MorphirBaseSpec {
       assert(prettyPrinted)(equalTo(expected))
     }
   )
-
-  // TODO: write more tests
-
 }
