@@ -400,3 +400,12 @@ decimalShiftRight shift dec =
     Decimal.shiftDecimalRight
         shift
         dec
+
+{-| Test: Decimal/hundred
+value = 123
+expected = 12300
+-}
+decimalHundred : Int -> Decimal
+decimalHundred value =
+    Decimal.hundred
+        value
