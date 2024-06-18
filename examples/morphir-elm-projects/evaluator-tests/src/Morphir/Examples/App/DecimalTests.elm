@@ -412,6 +412,16 @@ decimalHundred value =
         value
 
 
+{-| Test: Decimal/hundredth
+value = 123
+expected = 1.23
+-}
+decimalHundredth : Int -> Decimal
+decimalHundredth value =
+    Decimal.hundredth
+        value
+
+
 {-| Test: Decimal/thousand
 value = 123
 expected = 123000
