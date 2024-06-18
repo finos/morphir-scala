@@ -412,9 +412,19 @@ decimalHundred value =
         value
 
 
+{-| Test: Decimal/hundredth
+value = 123
+expected = 1.23
+-}
+decimalHundredth : Int -> Decimal
+decimalHundredth value =
+    Decimal.hundredth
+        value
+
+
 {-| Test: Decimal/million
 value = 123
-expected = 12300000
+expected = 123000000
 -}
 decimalMillion : Int -> Decimal
 decimalMillion value =
@@ -429,16 +439,6 @@ expected = 0.000123
 decimalMillionth : Int -> Decimal
 decimalMillionth value =
     Decimal.millionth
-        value
-
-
-{-| Test: Decimal/hundredth
-value = 123
-expected = 1.23
--}
-decimalHundredth : Int -> Decimal
-decimalHundredth value =
-    Decimal.hundredth
         value
 
 
@@ -467,6 +467,6 @@ value = 123
 expected = 0.123
 -}
 decimalThousandth : Int -> Decimal
-decimalHundred value =
+decimalThousandth value =
     Decimal.thousandth
         value
