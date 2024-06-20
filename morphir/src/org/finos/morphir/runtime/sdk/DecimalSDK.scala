@@ -12,6 +12,15 @@ import org.finos.morphir.runtime.RTValue.Primitive.BigDecimal as RTDecimal
 
 object DecimalSDK {
 
+  private val bpsMultiplicand = BigDecimal("0.0001")
+  private val hundredMultiplicand = BigDecimal(100)
+  private val hundredthMultiplicand = BigDecimal("0.01")
+  private val millionMultiplicand = BigDecimal(1000000)
+  private val millionthMultiplicand = BigDecimal("0.000001")
+  private val tenthMultiplicand = BigDecimal("0.1")
+  private val thousandMultiplicand = BigDecimal(1000)
+  private val thousandthMultiplicand = BigDecimal("0.001")
+
   val abs = DynamicNativeFunction1("abs") {
     (_: NativeContext) => (dec: RTDecimal) =>
       val result = dec.value.abs
@@ -33,7 +42,7 @@ object DecimalSDK {
   // Converts an int to a Decimal that represents n basis points (i.e. 1/10 of % or a ten-thousandth)
   val bps = DynamicNativeFunction1("bps") {
     (_: NativeContext) => (int: RT.Primitive.Int) =>
-      val result = int.value.toBigDecimal * 0.0001
+      val result = int.value.toBigDecimal * bpsMultiplicand
       RTDecimal(result)
   }
 
@@ -95,13 +104,13 @@ object DecimalSDK {
 
   val hundred = DynamicNativeFunction1("hundred") {
     (_: NativeContext) => (int: RT.Primitive.Int) =>
-      val result = int.value.toBigDecimal * 100
+      val result = int.value.toBigDecimal * hundredMultiplicand
       RTDecimal(result)
   }
 
   val hundredth = DynamicNativeFunction1("hundredth") {
     (_: NativeContext) => (int: RT.Primitive.Int) =>
-      val result = int.value.toBigDecimal * 0.01
+      val result = int.value.toBigDecimal * hundredthMultiplicand
       RTDecimal(result)
   }
 
@@ -119,13 +128,13 @@ object DecimalSDK {
 
   val million = DynamicNativeFunction1("million") {
     (_: NativeContext) => (int: RT.Primitive.Int) =>
-      val result = int.value.toBigDecimal * 1000000
+      val result = int.value.toBigDecimal * millionMultiplicand
       RTDecimal(result)
   }
 
   val millionth = DynamicNativeFunction1("millionth") {
     (_: NativeContext) => (int: RT.Primitive.Int) =>
-      val result = int.value.toBigDecimal * 0.000001
+      val result = int.value.toBigDecimal * millionthMultiplicand
       RTDecimal(result)
   }
 
@@ -165,19 +174,19 @@ object DecimalSDK {
 
   val tenth = DynamicNativeFunction1("tenth") {
     (_: NativeContext) => (int: RT.Primitive.Int) =>
-      val result = int.value.toBigDecimal * 0.1
+      val result = int.value.toBigDecimal * tenthMultiplicand
       RTDecimal(result)
   }
 
   val thousand = DynamicNativeFunction1("thousand") {
     (_: NativeContext) => (int: RT.Primitive.Int) =>
-      val result = int.value.toBigDecimal * 1000
+      val result = int.value.toBigDecimal * thousandMultiplicand
       RTDecimal(result)
   }
 
   val thousandth = DynamicNativeFunction1("thousandth") {
     (_: NativeContext) => (int: RT.Primitive.Int) =>
-      val result = int.value.toBigDecimal * 0.001
+      val result = int.value.toBigDecimal * thousandthMultiplicand
       RTDecimal(result)
   }
 
