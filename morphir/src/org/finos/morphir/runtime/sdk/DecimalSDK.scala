@@ -12,13 +12,13 @@ import org.finos.morphir.runtime.RTValue.Primitive.BigDecimal as RTDecimal
 
 object DecimalSDK {
 
-  private val bpsMultiplicand = BigDecimal("0.0001")
-  private val hundredMultiplicand = BigDecimal(100)
-  private val hundredthMultiplicand = BigDecimal("0.01")
-  private val millionMultiplicand = BigDecimal(1000000)
-  private val millionthMultiplicand = BigDecimal("0.000001")
-  private val tenthMultiplicand = BigDecimal("0.1")
-  private val thousandMultiplicand = BigDecimal(1000)
+  private val bpsMultiplicand        = BigDecimal("0.0001")
+  private val hundredMultiplicand    = BigDecimal(100)
+  private val hundredthMultiplicand  = BigDecimal("0.01")
+  private val millionMultiplicand    = BigDecimal(1000000)
+  private val millionthMultiplicand  = BigDecimal("0.000001")
+  private val tenthMultiplicand      = BigDecimal("0.1")
+  private val thousandMultiplicand   = BigDecimal(1000)
   private val thousandthMultiplicand = BigDecimal("0.001")
 
   val abs = DynamicNativeFunction1("abs") {

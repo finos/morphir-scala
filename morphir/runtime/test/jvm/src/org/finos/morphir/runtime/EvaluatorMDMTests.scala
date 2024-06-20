@@ -455,15 +455,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )(Data.Decimal(123450.0))
         ),
         suite("creation")(
-          testEval("hundred")("decimalTests","decimalHundred", 123)(Data.Decimal(12300)),
-          testEval("hundredth")("decimalTests","decimalHundredth", 123)(Data.Decimal(1.23)),
-          testEval("million")("decimalTests","decimalMillion", 123)(Data.Decimal(123000000)),
-          testEval("millionth")("decimalTests","decimalMillionth", 123)(Data.Decimal(0.000123)),
-          testEval("tenth")("decimalTests","decimalTenth", 123)(Data.Decimal(12.3)),
-          testEval("thousand")("decimalTests","decimalThousand", 123)(Data.Decimal(123000)),
-          testEval("thousandth")("decimalTests","decimalThousandth", 123)(Data.Decimal(0.123))
+          testEval("hundred")("decimalTests", "decimalHundred", 123)(Data.Decimal(12300)),
+          testEval("hundredth")("decimalTests", "decimalHundredth", 123)(Data.Decimal(BigDecimal("1.23"))),
+          testEval("million")("decimalTests", "decimalMillion", 123)(Data.Decimal(123000000)),
+          testEval("millionth")("decimalTests", "decimalMillionth", 123)(Data.Decimal(BigDecimal("0.000123"))),
+          testEval("tenth")("decimalTests", "decimalTenth", 123)(Data.Decimal(BigDecimal("12.3"))),
+          testEval("thousand")("decimalTests", "decimalThousand", 123)(Data.Decimal(123000)),
+          testEval("thousandth")("decimalTests", "decimalThousandth", 123)(Data.Decimal(BigDecimal("0.123")))
         ),
-          suite("div")(
+        suite("div")(
           testEvaluation("div some")("decimalTests", "decimalGoodDiv")(Data.Optional.Some(Data.Decimal(1.8))),
           testEvaluation("div none")("decimalTests", "decimalBadDiv")(Data.Optional.None(Concept.Decimal)),
           testEvaluation("div with default")("decimalTests", "decimalDivWithDefault")(Data.Decimal(-7)),
