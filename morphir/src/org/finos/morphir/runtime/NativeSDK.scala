@@ -139,7 +139,14 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(DecimalSDK.sub),
           NativeFunctionAdapter.Fun1(DecimalSDK.truncate),
           NativeFunctionAdapter.Fun2(DecimalSDK.shiftDecimalLeft),
-          NativeFunctionAdapter.Fun2(DecimalSDK.shiftDecimalRight)
+          NativeFunctionAdapter.Fun2(DecimalSDK.shiftDecimalRight),
+          NativeFunctionAdapter.Fun1(DecimalSDK.tenth),
+          NativeFunctionAdapter.Fun1(DecimalSDK.hundredth),
+          NativeFunctionAdapter.Fun1(DecimalSDK.thousandth),
+          NativeFunctionAdapter.Fun1(DecimalSDK.millionth),
+          NativeFunctionAdapter.Fun1(DecimalSDK.hundred),
+          NativeFunctionAdapter.Fun1(DecimalSDK.thousand),
+          NativeFunctionAdapter.Fun1(DecimalSDK.million)
         )
       }
 

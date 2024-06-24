@@ -400,3 +400,47 @@ decimalShiftRight shift dec =
     Decimal.shiftDecimalRight
         shift
         dec
+
+{-| Test: Decimal/tenth
+-}
+tenthFromDecimal : Int -> Decimal
+tenthFromDecimal int =
+    tenth int
+
+{-| Test: Decimal/hundredth
+-}
+hundredthFromDecimal : Int -> Decimal
+hundredthFromDecimal int =
+    hundredth int
+
+
+{-| Test: Decimal/thousandth
+-}
+thousandthFromDecimal : Int -> Decimal
+thousandthFromDecimal int =
+    thousandth int
+
+
+{-| Test: Decimal/millionth
+-}
+millionthFromDecimal : Int -> Decimal
+millionthFromDecimal int =
+    millionth int
+
+{-| Test: Decimal/hundred
+ -}
+hundredFromDecimal : Int -> Decimal
+hundredFromDecimal int =
+     hundred int
+
+{-| Test: Decimal/thousand
+-}
+thousandFromDecimal : Int -> Decimal
+thousandFromDecimal int =
+    thousand int
+
+{-| Test: Decimal/million
+-}
+millionFromDecimal : Int -> Decimal
+millionFromDecimal int =
+    million int
