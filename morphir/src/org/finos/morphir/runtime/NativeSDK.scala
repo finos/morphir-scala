@@ -146,7 +146,7 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(DecimalSDK.thousand),
           NativeFunctionAdapter.Fun1(DecimalSDK.thousandth),
           NativeFunctionAdapter.Fun1(DecimalSDK.toFloat),
-          NativeFunctionAdapter.Fun1(DecimalSDK.asString),
+          NativeFunctionAdapter.Fun1(DecimalSDK._toString),
           NativeFunctionAdapter.Fun1(DecimalSDK.truncate),
           NativeFunctionAdapter.Fun2(DecimalSDK.shiftDecimalLeft),
           NativeFunctionAdapter.Fun2(DecimalSDK.shiftDecimalRight)

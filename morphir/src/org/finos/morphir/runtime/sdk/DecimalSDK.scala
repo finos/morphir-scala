@@ -33,7 +33,7 @@ object DecimalSDK {
       RTDecimal(result)
   }
 
-  val asString = DynamicNativeFunction1("toString") {
+  val _toString = DynamicNativeFunction1("toString") {
     (_: NativeContext) => (value: RTDecimal) =>
       val result = value.value.toString()
       RT.Primitive.String(result)
