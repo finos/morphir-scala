@@ -274,23 +274,6 @@ object StringSDK {
   )
 }
 
-object DecimalSDK {
-  val fromFloat: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: RTValue) =>
-    RTValue.Primitive.BigDecimal(BigDecimal.valueOf(arg.coerceFloat.value))
-  }
-  val toFloat: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: RTValue) =>
-    RTValue.Primitive.Float(arg.coerceDecimal.value.toDouble)
-  }
-  val asString: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: RTValue) =>
-    RTValue.Primitive.String(arg.coerceDecimal.value.toString)
-  }
-  val sdk: Map[FQName, SDKValue] = Map(
-    FQName.fromString("Morphir.SDK:Decimal:fromFloat") -> fromFloat,
-    FQName.fromString("Morphir.SDK:Decimal:toFloat")   -> toFloat,
-    FQName.fromString("Morphir.SDK:Decimal:toString")  -> asString
-  )
-}
-
 object TupleSDK {
   val first: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: RTValue) =>
     arg.coerceTuple.value.head
@@ -460,5 +443,5 @@ object Native {
     FQName.fromString("Morphir.SDK:Decimal:zero")               -> zero,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
-  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ SetSDK.sdk ++ DecimalSDK.sdk ++ TupleSDK.sdk ++ BasicsSDK.sdk
+  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ SetSDK.sdk ++ TupleSDK.sdk ++ BasicsSDK.sdk
 }
