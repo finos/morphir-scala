@@ -8,6 +8,7 @@ import org.finos.morphir.runtime.internal._
 import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.RTValue.Comparable
 import org.finos.morphir.runtime.MorphirRuntimeError.IllegalValue
+import org.finos.morphir.runtime.ErrorUtils.tryOption
 
 object BasicsSDK {
   type AnyNum = Any
@@ -240,5 +241,10 @@ object BasicsSDK {
   val turns = DynamicNativeFunction1("turns") {
     (_: NativeContext) => (a: Primitive.Float) =>
       Primitive.Float(a.value * 2 * scala.math.Pi)
+  }
+
+  val round = DynamicNativeFunction1("round") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Int(scala.math.round(a.value))
   }
 }

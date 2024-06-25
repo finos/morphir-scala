@@ -1213,3 +1213,11 @@ expected(false, false) = false
 basicsXorTest : Bool -> Bool -> Bool
 basicsXorTest x y =
     xor x y
+
+{-| Test: SdkBasics/basicsRoundTest
+expected(1.6) = 2
+expected(1.4) = 1
+-}
+basicsRoundTest : Float -> Int
+basicsRoundTest v =
+    round v
