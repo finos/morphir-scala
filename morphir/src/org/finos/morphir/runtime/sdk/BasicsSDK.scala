@@ -4,7 +4,7 @@ import org.finos.morphir.ir.Type
 import org.finos.morphir.Hints
 import org.finos.morphir.runtime.RTValue.{Comparable, Primitive, coerceFloat}
 import org.finos.morphir.runtime.SDKValue
-import org.finos.morphir.runtime.internal.*
+import org.finos.morphir.runtime.internal._
 import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.MorphirRuntimeError.{FailedCoercion, IllegalValue, TypeError}
 import org.finos.morphir.runtime.ErrorUtils.tryOption
