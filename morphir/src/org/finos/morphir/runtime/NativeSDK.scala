@@ -110,6 +110,7 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(BasicsSDK.radians),
           NativeFunctionAdapter.Fun1(BasicsSDK.turns),
           NativeFunctionAdapter.Fun1(BasicsSDK.round),
+          NativeFunctionAdapter.Fun1(BasicsSDK.fromPolar),
           NativeFunctionAdapter.Fun1(BasicsSDK.toPolar)
         )
 

@@ -3084,6 +3084,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.Float(5),
             Data.Float(0.9272952180016122)
           )),
+          testEvaluation("fromPolar")("sdkBasicsTests", "sdkFromPolarTest")(Data.Tuple(
+            Data.Float(1.2247448713915892),
+            Data.Float(0.7071067811865475)
+          )),
           testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
           testEval("Ceiling whole number")("sdkBasicsTests", "basicsCeilingTest", 3.0)(Data.Int(3)),
           testEval("Floor")("sdkBasicsTests", "basicsFloorTest", 3.88)(Data.Int(3)),

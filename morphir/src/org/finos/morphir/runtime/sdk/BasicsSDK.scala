@@ -248,6 +248,17 @@ object BasicsSDK {
       Primitive.Int(scala.math.round(a.value))
   }
 
+  val fromPolar = DynamicNativeFunction1("fromPolar") {
+    (_: NativeContext) => (a: RTValue.Tuple) =>
+      val (distance, radians) = a.value.size match {
+        case 2 => (coerceFloat(a.value.head).value, coerceFloat(a.value(1)).value)
+        case s => throw new TypeError.SizeMismatch(s, 2, "Tuple did not contain exactly 2 items")
+      }
+      val x = distance * scala.math.cos(radians)
+      val y = distance * scala.math.sin(radians)
+      RTValue.Tuple(Primitive.Float(x), Primitive.Float(y))
+  }
+
   val toPolar = DynamicNativeFunction1("toPolar") {
     (_: NativeContext) => (a: RTValue.Tuple) =>
       val (x, y) = a.value.size match {
