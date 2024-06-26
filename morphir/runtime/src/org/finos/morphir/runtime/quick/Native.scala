@@ -409,13 +409,13 @@ object Native {
   val pi: SDKValue = SDKValue.SDKNativeValue(RTValue.Primitive.Float(scala.math.Pi))
   val e: SDKValue  = SDKValue.SDKNativeValue(RTValue.Primitive.Float(scala.math.E))
 
-  val just: SDKConstructor    = SDKConstructor(List(Type.variable("contents")))
-  val nothing: SDKConstructor = SDKConstructor(List())
-  val ok: SDKConstructor      = SDKConstructor(List(Type.variable("contents")))
-  val err: SDKConstructor     = SDKConstructor(List(Type.variable("contents")))
-  val gt: SDKConstructor      = SDKConstructor(List())
-  val lt: SDKConstructor      = SDKConstructor(List())
-  val eq: SDKConstructor      = SDKConstructor(List())
+  val just: SDKConstructor    = SDKConstructor.Explicit(List(Type.variable("contents")))
+  val nothing: SDKConstructor = SDKConstructor.Explicit(List())
+  val ok: SDKConstructor      = SDKConstructor.Explicit(List(Type.variable("contents")))
+  val err: SDKConstructor     = SDKConstructor.Explicit(List(Type.variable("contents")))
+  val gt: SDKConstructor      = SDKConstructor.Explicit(List())
+  val lt: SDKConstructor      = SDKConstructor.Explicit(List())
+  val eq: SDKConstructor      = SDKConstructor.Explicit(List())
 
   val nativeCtors: Map[FQName, SDKConstructor] = Map(
     FQName.fromString("Morphir.SDK:Maybe:just")    -> just,

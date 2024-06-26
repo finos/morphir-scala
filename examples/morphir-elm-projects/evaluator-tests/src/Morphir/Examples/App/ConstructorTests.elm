@@ -2,7 +2,10 @@ module Morphir.Examples.App.ConstructorTests exposing (..)
 
 import Morphir.Examples.App.TestUtils exposing (..)
 
+type alias SomeRecord = {name : String, number : Int}
 
+implicitConstructorTest : String -> SomeRecord
+implicitConstructorTest name = SomeRecord name 5
 
 {-
    Partially-applied constructors are debateably still "Data"
