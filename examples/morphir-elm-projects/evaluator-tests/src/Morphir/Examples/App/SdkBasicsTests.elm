@@ -507,10 +507,6 @@ sdkTurnsTest ctx =
         f (1 / 2)
 
 
-
------------------ Unimplemented and not run -----------------
-
-
 {-| Test: SdkBasics/toPolar
 Expected: (5,0.9272952180016122)
 -}
@@ -525,7 +521,7 @@ sdkToPolarTest ctx =
 
 
 {-| Test: SdkBasics/fromPolar
-Expected: ~(1, 1)
+Expected: (1.2247448713915892, 0.7071067811865475)
 -}
 sdkFromPolarTest : TestContext -> ( Float, Float )
 sdkFromPolarTest ctx =
@@ -534,11 +530,7 @@ sdkFromPolarTest ctx =
             f x =
                 fromPolar x
         in
-        f ( sqrt 2, degrees 45 )
-
-
-
------
+        f ( sqrt 2, degrees 30 )
 
 
 {-| Test: SdkBasics/equal
