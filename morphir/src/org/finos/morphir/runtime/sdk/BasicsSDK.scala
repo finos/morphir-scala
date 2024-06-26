@@ -8,7 +8,6 @@ import org.finos.morphir.runtime.internal._
 import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.MorphirRuntimeError.{FailedCoercion, IllegalValue, TypeError}
 import org.finos.morphir.runtime.ErrorUtils.tryOption
-import org.finos.morphir.runtime.sdk.BasicsSDK.radians
 
 object BasicsSDK {
   type AnyNum = Any
