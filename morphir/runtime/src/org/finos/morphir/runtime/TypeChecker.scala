@@ -321,6 +321,12 @@ final class TypeChecker(dists: Distributions) {
                 List(new ImproperTypeDef(name, other, s"Type union expected"))
               case Left(err) => List(err.withContext(s"Needed looking for constructor ${fqn.toStringTitleCase}"))
             }
+          // The following is for implicit record constructors
+          case Type.Record(_, fields) => checkList(
+              args.toList,
+              fields.map(_.data),
+              context.withPrefix(s"Comparing $fqn implicit constructor value to looked up type ${PrintIR(tpe)}")
+            )
           case NativeRef(_, _) => List() // TODO: check native constructor calls
           case other           => List(new ImproperType(other, s"Reference to type union expected"))
         }
