@@ -108,7 +108,10 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(BasicsSDK.atan2),
           NativeFunctionAdapter.Fun1(BasicsSDK.degrees),
           NativeFunctionAdapter.Fun1(BasicsSDK.radians),
-          NativeFunctionAdapter.Fun1(BasicsSDK.turns)
+          NativeFunctionAdapter.Fun1(BasicsSDK.turns),
+          NativeFunctionAdapter.Fun1(BasicsSDK.round),
+          NativeFunctionAdapter.Fun1(BasicsSDK.fromPolar),
+          NativeFunctionAdapter.Fun1(BasicsSDK.toPolar)
         )
 
         private val enumSDKConstructor = SDKConstructor(scala.List())
