@@ -342,7 +342,8 @@ final class TypeChecker(dists: Distributions) {
             argErrors ++ nameMismatch
 
           case NativeRef(_, _) => List() // TODO: check native constructor calls
-          case other           => List(new ImproperType(other, s"Reference to type union expected"))
+          case other =>
+            List(new ImproperType(other, s"Reference to type union or implicit record constructor expected"))
         }
     }
   }
