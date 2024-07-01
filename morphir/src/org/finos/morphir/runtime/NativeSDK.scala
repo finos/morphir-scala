@@ -114,7 +114,7 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(BasicsSDK.toPolar)
         )
 
-        private val enumSDKConstructor = SDKConstructor(scala.List())
+        private val enumSDKConstructor = SDKConstructor.Explicit(scala.List())
 
         override val ctors: Map[FQName, SDKConstructor] =
           RTValue.Order.allFqns.map(fqn => fqn -> enumSDKConstructor).toMap
@@ -238,7 +238,7 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(LocalDateSDK.toISOString)
         )
 
-        private val enumSDKConstructor = SDKConstructor(scala.List())
+        private val enumSDKConstructor = SDKConstructor.Explicit(scala.List())
 
         // Morphir.SDK:LocalDate:Month
         private val monthCtors = RTValue.Month.allFqns.map(fqn => fqn -> enumSDKConstructor).toMap

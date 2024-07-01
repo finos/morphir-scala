@@ -357,7 +357,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             actual <- runTest("constructorTests", "lazyFunctionTest")
             expected = Data.Tuple(Data.Int(5), Data.Int(5))
           } yield assertTrue(actual == expected)
-        }
+        },
+        testEval("Implicit Constructor")("constructorTests", "implicitConstructorTest", "abcd")(
+          Data.Record(
+            FQName.fromString("Morphir.Examples.App:ConstructorTests:SomeRecord"),
+            (Label("name"), Data.String("abcd")),
+            (Label("number"), Data.Int(5))
+          )
+        )
       ),
       suite("Destructure Tests")(
         test("As") {
