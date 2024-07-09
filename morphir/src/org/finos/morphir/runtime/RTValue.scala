@@ -242,7 +242,8 @@ object RTValue {
     val b = coerceNumeric(arg2)
     if (a.numericType != b.numericType) {
       throw new FailedCoercion(
-        s"Error unwrapping the Primitive Numerics ${arg1} and ${arg2} into a common type, they have different numeric types: ${a.numericType} versus ${b.numericType}"
+        s"Error unwrapping the Primitive Numerics ${arg1} and ${arg2} into a common type, they have different numeric types: ${a
+            .numericType} versus ${b.numericType}"
       )
     }
     NumericsWithHelper[N](
