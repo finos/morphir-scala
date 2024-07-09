@@ -92,8 +92,8 @@ object UnitTesting {
         val detailedReport = reportResult(globals, dists, testNames)
 
         if (detailedReport.passed == simplePassed)
-          RTAction.succeed(detailedReport)
-          // If the results were different, something went wrong in our test framework - it either hid an error, or created one that didn't exist in the simple pass
+        RTAction.succeed(detailedReport)
+        // If the results were different, something went wrong in our test framework - it either hid an error, or created one that didn't exist in the simple pass
         else if (detailedReport.passed && (!simplePassed))
           throw new InvalidState(s"""Detailed Test Report passed, but simple morphir-based testing failed.
           Detailed:  $detailedReport""")
@@ -158,26 +158,26 @@ object UnitTesting {
     // Top-level tests without a name are given a name from their FQN
     // TODO: Preserve the FQName either way, for better tooling integration (code coverage?)
     val testSet: TestSet[RT] =
-      TestSet[RT](
-        testRTValues
-          .groupBy { case (fqn, _) => (fqn.pack, fqn.getModuleName) }
-          .map { case ((pkgName, modName), tests) =>
-            ModuleTests[RT](
-              pkgName,
-              modName,
-              tests.map {
-                case (fqn, Left(err)) => TestTree.Error(fqn.localName.toCamelCase, err)
-                case (fqn, Right(rt)) =>
-                  TestTree.fromRTValue(rt) match {
-                    case d: TestTree.Describe[_]   => d
-                    case s: TestTree.SingleTest[_] => s
-                    case other                     => TestTree.Describe(fqn.localName.toCamelCase, List(other))
-                  }
-              }
-            )
-          }.toList
-      ).resolveOnly // "Only" requires special handling, so do that here
-        // User-defined thunks, and non-introspected expect calls (the magic SDK functions) are run here
+    TestSet[RT](
+      testRTValues
+        .groupBy { case (fqn, _) => (fqn.pack, fqn.getModuleName) }
+        .map { case ((pkgName, modName), tests) =>
+          ModuleTests[RT](
+            pkgName,
+            modName,
+            tests.map {
+              case (fqn, Left(err)) => TestTree.Error(fqn.localName.toCamelCase, err)
+              case (fqn, Right(rt)) =>
+                TestTree.fromRTValue(rt) match {
+                  case d: TestTree.Describe[_]   => d
+                  case s: TestTree.SingleTest[_] => s
+                  case other                     => TestTree.Describe(fqn.localName.toCamelCase, List(other))
+                }
+            }
+          )
+        }.toList
+    ).resolveOnly // "Only" requires special handling, so do that here
+    // User-defined thunks, and non-introspected expect calls (the magic SDK functions) are run here
     val withExpects = TestSet.getExpects(newGlobals, testSet)
     // And then the generated thunks are introspected, giving us our final SingleTestResults
     val withResults = TestSet.processExpects(newGlobals, withExpects)

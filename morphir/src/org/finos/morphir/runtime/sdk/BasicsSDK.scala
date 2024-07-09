@@ -2,12 +2,12 @@ package org.finos.morphir.runtime.sdk
 
 import org.finos.morphir.ir.Type
 import org.finos.morphir.Hints
-import org.finos.morphir.runtime.RTValue.Primitive
+import org.finos.morphir.runtime.RTValue.{Comparable, Primitive, coerceFloat}
 import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.runtime.internal._
 import org.finos.morphir.runtime.RTValue
-import org.finos.morphir.runtime.RTValue.Comparable
-import org.finos.morphir.runtime.MorphirRuntimeError.IllegalValue
+import org.finos.morphir.runtime.MorphirRuntimeError.{FailedCoercion, IllegalValue, TypeError}
+import org.finos.morphir.runtime.ErrorUtils.tryOption
 
 object BasicsSDK {
   type AnyNum = Any
@@ -240,5 +240,32 @@ object BasicsSDK {
   val turns = DynamicNativeFunction1("turns") {
     (_: NativeContext) => (a: Primitive.Float) =>
       Primitive.Float(a.value * 2 * scala.math.Pi)
+  }
+
+  val round = DynamicNativeFunction1("round") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Int(scala.math.round(a.value))
+  }
+
+  val fromPolar = DynamicNativeFunction1("fromPolar") {
+    (_: NativeContext) => (a: RTValue.Tuple) =>
+      val (distance, radians) = a.value.size match {
+        case 2 => (coerceFloat(a.value.head).value, coerceFloat(a.value(1)).value)
+        case s => throw new TypeError.SizeMismatch(s, 2, "Tuple did not contain exactly 2 items")
+      }
+      val x = distance * scala.math.cos(radians)
+      val y = distance * scala.math.sin(radians)
+      RTValue.Tuple(Primitive.Float(x), Primitive.Float(y))
+  }
+
+  val toPolar = DynamicNativeFunction1("toPolar") {
+    (_: NativeContext) => (a: RTValue.Tuple) =>
+      val (x, y) = a.value.size match {
+        case 2 => (coerceFloat(a.value.head).value, coerceFloat(a.value(1)).value)
+        case s => throw new TypeError.SizeMismatch(s, 2, "Tuple did not contain exactly 2 items")
+      }
+      val distance = scala.math.hypot(x, y)
+      val radians  = scala.math.atan2(y, x)
+      RTValue.Tuple(Primitive.Float(distance), Primitive.Float(radians))
   }
 }

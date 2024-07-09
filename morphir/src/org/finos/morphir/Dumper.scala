@@ -161,11 +161,11 @@ object Dumper extends DumperVersionSpecific with DumperSyntax {
    * Constructs a `Dumper[A]` from a function that converts a value of type `A` to a `Repr`.
    */
   def make[A](f: A => Dumper.Repr): Dumper[A] =
-    f(_)
+  f(_)
 
-    /**
-     * Derives a `Dumper[Array[A]]` given a `Dumper[A]`.
-     */
+  /**
+   * Derives a `Dumper[Array[A]]` given a `Dumper[A]`.
+   */
   implicit def ArrayDumper[A: Dumper]: Dumper[Array[A]] =
     array => Repr.VConstructor(List("scala"), "Array", array.map(_.dumpRepr).toList)
 

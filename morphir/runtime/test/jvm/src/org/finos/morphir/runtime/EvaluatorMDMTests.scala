@@ -357,7 +357,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             actual <- runTest("constructorTests", "lazyFunctionTest")
             expected = Data.Tuple(Data.Int(5), Data.Int(5))
           } yield assertTrue(actual == expected)
-        }
+        },
+        testEval("Implicit Constructor")("constructorTests", "implicitConstructorTest", "abcd")(
+          Data.Record(
+            FQName.fromString("Morphir.Examples.App:ConstructorTests:SomeRecord"),
+            (Label("name"), Data.String("abcd")),
+            (Label("number"), Data.Int(5))
+          )
+        )
       ),
       suite("Destructure Tests")(
         test("As") {
@@ -453,6 +460,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             "decimalShiftRight",
             List(Data.Int(4), Data.Decimal(12.345))
           )(Data.Decimal(123450.0))
+        ),
+        suite("creation")(
+          testEval("hundred")("decimalTests", "decimalHundred", 123)(Data.Decimal(12300)),
+          testEval("hundredth")("decimalTests", "decimalHundredth", 123)(Data.Decimal(BigDecimal("1.23"))),
+          testEval("million")("decimalTests", "decimalMillion", 123)(Data.Decimal(123000000)),
+          testEval("millionth")("decimalTests", "decimalMillionth", 123)(Data.Decimal(BigDecimal("0.000123"))),
+          testEval("tenth")("decimalTests", "decimalTenth", 123)(Data.Decimal(BigDecimal("12.3"))),
+          testEval("thousand")("decimalTests", "decimalThousand", 123)(Data.Decimal(123000)),
+          testEval("thousandth")("decimalTests", "decimalThousandth", 123)(Data.Decimal(BigDecimal("0.123")))
         ),
         suite("div")(
           testEvaluation("div some")("decimalTests", "decimalGoodDiv")(Data.Optional.Some(Data.Decimal(1.8))),
@@ -3071,6 +3087,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEvaluation("degrees")("sdkBasicsTests", "sdkDegreesTest")(Data.Float(3.141592653589793)),
           testEvaluation("radians")("sdkBasicsTests", "sdkRadiansTest")(Data.Float(3.141592653589793)),
           testEvaluation("turns")("sdkBasicsTests", "sdkTurnsTest")(Data.Float(3.141592653589793)),
+          testEvaluation("toPolar")("sdkBasicsTests", "sdkToPolarTest")(Data.Tuple(
+            Data.Float(5),
+            Data.Float(0.9272952180016122)
+          )),
+          testEvaluation("fromPolar")("sdkBasicsTests", "sdkFromPolarTest")(Data.Tuple(
+            Data.Float(1.2247448713915892),
+            Data.Float(0.7071067811865475)
+          )),
           testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
           testEval("Ceiling whole number")("sdkBasicsTests", "basicsCeilingTest", 3.0)(Data.Int(3)),
           testEval("Floor")("sdkBasicsTests", "basicsFloorTest", 3.88)(Data.Int(3)),
@@ -3079,7 +3103,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("Truncate 2")("sdkBasicsTests", "basicsTruncateTest", -1.2)(Data.Int(-1)),
           testEval("Truncate 3")("sdkBasicsTests", "basicsTruncateTest", .4)(Data.Int(0)),
           testEval("Truncate 4")("sdkBasicsTests", "basicsTruncateTest", -.4)(Data.Int(0)),
-          testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0))
+          testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0)),
+          testEval("Round up")("sdkBasicsTests", "basicsRoundTest", Data.Float(1.6))(Data.Int(2)),
+          testEval("Round down")("sdkBasicsTests", "basicsRoundTest", Data.Float(1.4))(Data.Int(1))
         ),
         suite("Int")(
           testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
