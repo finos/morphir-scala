@@ -83,4 +83,8 @@ object Coercer {
   implicit val localTimeCoercer: Coercer[RTValue.LocalTime] = new Coercer[RTValue.LocalTime] {
     def coerce(result: RTValue): RTValue.LocalTime = RTValue.coerceLocalTime(result)
   }
+
+  implicit val tupleCoercer: Coercer[RTValue.Tuple] = new Coercer[RTValue.Tuple] {
+    def coerce(result: RTValue): RTValue.Tuple = RTValue.coerceTuple(result)
+  }
 }
