@@ -594,12 +594,12 @@ private[runtime] object Expect {
         context: CallStackFrame,
         arg1: TransparentArg
     ): SingleTestResult =
-    arg1.value match {
-      case RT.Primitive.Boolean(true)  => SingleTestResult.Passed
-      case RT.Primitive.Boolean(false) => SingleTestResult.Failed(explainFailure(globals, context, arg1.ir))
-      case _ =>
-        SingleTestResult.Err(UnexpectedTypeWithIR("Bool type", arg1.value, arg1.ir, hint = "(in Expext.assert)"))
-    }
+      arg1.value match {
+        case RT.Primitive.Boolean(true)  => SingleTestResult.Passed
+        case RT.Primitive.Boolean(false) => SingleTestResult.Failed(explainFailure(globals, context, arg1.ir))
+        case _ =>
+          SingleTestResult.Err(UnexpectedTypeWithIR("Bool type", arg1.value, arg1.ir, hint = "(in Expext.assert)"))
+      }
 
     /**
      * This helper function inspects the IR and matches it against recognized patterns for more detailed reporting

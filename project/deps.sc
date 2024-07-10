@@ -224,7 +224,7 @@ object Versions {
   val `zio-cli`                  = "0.5.0"
   val `zio-config`               = "4.0.2"
   val `zio-interop-cats`         = "23.1.0.2"
-  val `zio-json`                 = "0.6.2"
+  val `zio-json`                 = "0.7.1"
   val `zio-nio`                  = "2.0.2"
   val `zio-parser`               = "0.1.9"
   val `zio-prelude`              = "1.0.0-RC27"
@@ -239,7 +239,7 @@ object ScalaVersions {
   def scala3x  = "3.3.3"
 
   def scalaJSVersion     = "1.16.0"
-  def scalaNativeVersion = "0.5.4"
+  def scalaNativeVersion = "0.4.17"
   def millScalaVersion   = "2.13.14"
 }
 
