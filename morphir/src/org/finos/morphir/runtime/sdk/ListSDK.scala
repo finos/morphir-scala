@@ -1,9 +1,12 @@
 package org.finos.morphir.runtime.sdk
 
 import org.finos.morphir.ir.Type
-import org.finos.morphir.runtime._
-import org.finos.morphir.runtime.internal._
+import org.finos.morphir.runtime.*
+import org.finos.morphir.runtime.MorphirRuntimeError.IllegalValue
+import org.finos.morphir.runtime.internal.*
 import org.finos.morphir.runtime.RTValue
+import org.finos.morphir.runtime.RTValue.Comparable.orderToInt
+import org.finos.morphir.runtime.RTValue.coerceComparable
 
 object ListSDK {
 
@@ -67,6 +70,26 @@ object ListSDK {
             }
           RTValue.Primitive.Boolean(out)
         }
+  }
+
+  val maximum = DynamicNativeFunction1("maximum") {
+    (_: NativeContext) => (listArg: RTValue.List) =>
+      val result = listArg.elements match {
+        case Nil          => None
+        case head :: rest => Some(rest.foldLeft(head)(unsafeRTValueOrd.max))
+      }
+
+      MaybeSDK.optionToMaybe(result)
+  }
+
+  val minimum = DynamicNativeFunction1("minimum") {
+    (_: NativeContext) => (listArg: RTValue.List) =>
+      val result = listArg.elements match {
+        case Nil          => None
+        case head :: rest => Some(rest.foldLeft(head)(unsafeRTValueOrd.min))
+      }
+
+      MaybeSDK.optionToMaybe(result)
   }
 
   val partition = DynamicNativeFunction2("partition") {
@@ -156,13 +179,42 @@ object ListSDK {
       val out = list.elements.map { elem =>
         val maybeOutputRaw = context.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
         val maybeOutputCr  = RTValue.coerceConstructorResult(maybeOutputRaw)
-        MaybeSDK.eitherToOption(maybeOutputCr)
+        MaybeSDK.maybeToOption(maybeOutputCr)
       }.flatten
       RTValue.List(out)
   }
 
+  private val unsafeRTValueOrd = new Ordering[RTValue] {
+    def compare(a: RTValue, b: RTValue) = a.coerceComparable.compare(b.coerceComparable)
+  }
+
+  val sort = DynamicNativeFunction1("sort") {
+    (_: NativeContext) => (listArg: RTValue.List) => RTValue.List(listArg.elements.sorted(unsafeRTValueOrd))
+  }
+
+  val sortBy = DynamicNativeFunction2("sortBy") {
+    (context: NativeContext) => (toComp: RTValue.Function, listArg: RTValue.List) =>
+      val sorted = listArg.elements.sortBy(elem =>
+        context.evaluator.handleApplyResult(Type.UType.Unit(()), toComp, elem)
+      )(unsafeRTValueOrd)
+
+      RTValue.List(sorted)
+  }
+
+  val sortWith = DynamicNativeFunction2("sortWith") {
+    (context: NativeContext) => (compareArg: RTValue.Function, listArg: RTValue.List) =>
+      val ord = new Ordering[RTValue] {
+        def compare(a: RTValue, b: RTValue) = {
+          val ordering = context.evaluator.handleApplyResult2(Type.UType.Unit(()), compareArg, a, b)
+          RTValue.Comparable.orderToInt(ordering)
+        }
+      }
+
+      RTValue.List(listArg.elements.sorted(ord))
+  }
+
   val head = DynamicNativeFunction1("head") {
-    (_: NativeContext) => (list: RTValue.List) => MaybeSDK.resultToMaybe(list.value.headOption)
+    (_: NativeContext) => (list: RTValue.List) => MaybeSDK.optionToMaybe(list.value.headOption)
   }
 
   val indexedMap = DynamicNativeFunction2("indexedMap") {
@@ -200,7 +252,7 @@ object ListSDK {
   val tail = DynamicNativeFunction1("tail") {
     (context: NativeContext) => (list: RTValue.List) =>
       val result = if (list.elements.isEmpty) None else Some(RTValue.List(list.elements.tail))
-      MaybeSDK.resultToMaybe(result)
+      MaybeSDK.optionToMaybe(result)
   }
 
   val take = DynamicNativeFunction2("take") {

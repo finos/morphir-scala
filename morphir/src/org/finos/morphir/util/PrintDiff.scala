@@ -107,7 +107,7 @@ private class PrintDiff(val defaultWidth: Int = 150) extends pprint.Walker {
       case l @ Tree.Literal(_) => (l, l)
     }
 
-    // IMPORTANT - This function is actually destructive since it will make the Tree.Apply.body's iterator go to the end,
+  // IMPORTANT - This function is actually destructive since it will make the Tree.Apply.body's iterator go to the end,
   // make sure to copy the tree before doing it
   def countMaxDepth(tree: Tree, currDepth: Int = 0): Int =
     tree match {

@@ -2,12 +2,12 @@ package org.finos.morphir.runtime.sdk
 
 import org.finos.morphir.ir.Type
 import org.finos.morphir.Hints
-import org.finos.morphir.runtime.RTValue.Primitive
+import org.finos.morphir.runtime.RTValue.{Comparable, Primitive, coerceFloat}
 import org.finos.morphir.runtime.SDKValue
 import org.finos.morphir.runtime.internal._
 import org.finos.morphir.runtime.RTValue
-import org.finos.morphir.runtime.RTValue.Comparable
-import org.finos.morphir.runtime.MorphirRuntimeError.IllegalValue
+import org.finos.morphir.runtime.MorphirRuntimeError.{FailedCoercion, IllegalValue, TypeError}
+import org.finos.morphir.runtime.ErrorUtils.tryOption
 
 object BasicsSDK {
   type AnyNum = Any
@@ -38,6 +38,18 @@ object BasicsSDK {
     (_: NativeContext) => (a: Primitive.Int, b: Primitive.Int) =>
       if (b.valueAsInt == 0) Primitive.Int(0)
       else Primitive.Int(a.value / b.value)
+  }
+
+  val isInfinite = DynamicNativeFunction1("isInfinite") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      if (a.value.isInfinity) Primitive.Boolean(true)
+      else Primitive.Boolean(false)
+  }
+
+  val isNaN = DynamicNativeFunction1("isNaN") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      if (a.value.isNaN) Primitive.Boolean(true)
+      else Primitive.Boolean(false)
   }
 
   val xor = DynamicNativeFunction2("xor") {
@@ -73,7 +85,7 @@ object BasicsSDK {
         val helper = numericHelpers.numericHelper
         val result =
           if (helper.lt(x, min)) min
-          else if (helper.gt(x, min) && helper.lt(x, max)) x
+          else if (helper.lt(x, max)) x
           else max
         numericHelpers.numericType.makeOrFail(result)
       }
@@ -121,6 +133,16 @@ object BasicsSDK {
       }
   }.asNative2
 
+  val equal = DynamicNativeFunction2("equal") {
+    (_: NativeContext) => (a: RTValue, b: RTValue) =>
+      Primitive.Boolean(a == b)
+  }
+
+  val notEqual = DynamicNativeFunction2("notEqual") {
+    (_: NativeContext) => (a: RTValue, b: RTValue) =>
+      Primitive.Boolean(a != b)
+  }
+
   val lessThan = DynamicNativeFunction2("lessThan") {
     (_: NativeContext) => (a: Comparable, b: Comparable) =>
       Primitive.Boolean(RTValue.Comparable.compareOrThrow(a, b) < 0)
@@ -160,5 +182,90 @@ object BasicsSDK {
         val res1 = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f1, arg)
         ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f2, res1)
       }
+  }
+
+  val composeLeft = DynamicNativeFunction3("composeLeft") {
+    (ctx: NativeContext) => (f1: RTValue.Function, f2: RTValue.Function, arg: RTValue) =>
+      {
+        val res1 = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f2, arg)
+        ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f1, res1)
+      }
+  }
+
+  val cos = DynamicNativeFunction1("cos") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.cos(a.value))
+  }
+
+  val sin = DynamicNativeFunction1("sin") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.sin(a.value))
+  }
+
+  val tan = DynamicNativeFunction1("tan") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.tan(a.value))
+  }
+
+  val acos = DynamicNativeFunction1("acos") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.acos(a.value))
+  }
+
+  val asin = DynamicNativeFunction1("asin") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.asin(a.value))
+  }
+
+  val atan = DynamicNativeFunction1("atan") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.atan(a.value))
+  }
+
+  val atan2 = DynamicNativeFunction2("atan2") {
+    (_: NativeContext) => (a: Primitive.Float, b: Primitive.Float) =>
+      Primitive.Float(scala.math.atan2(a.value, b.value))
+  }
+
+  val degrees = DynamicNativeFunction1("degrees") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.toRadians(a.value))
+  }
+
+  val radians = DynamicNativeFunction1("radians") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(scala.math.toRadians(scala.math.toDegrees(a.value)))
+  }
+
+  val turns = DynamicNativeFunction1("turns") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Float(a.value * 2 * scala.math.Pi)
+  }
+
+  val round = DynamicNativeFunction1("round") {
+    (_: NativeContext) => (a: Primitive.Float) =>
+      Primitive.Int(scala.math.round(a.value))
+  }
+
+  val fromPolar = DynamicNativeFunction1("fromPolar") {
+    (_: NativeContext) => (a: RTValue.Tuple) =>
+      val (distance, radians) = a.value.size match {
+        case 2 => (coerceFloat(a.value.head).value, coerceFloat(a.value(1)).value)
+        case s => throw new TypeError.SizeMismatch(s, 2, "Tuple did not contain exactly 2 items")
+      }
+      val x = distance * scala.math.cos(radians)
+      val y = distance * scala.math.sin(radians)
+      RTValue.Tuple(Primitive.Float(x), Primitive.Float(y))
+  }
+
+  val toPolar = DynamicNativeFunction1("toPolar") {
+    (_: NativeContext) => (a: RTValue.Tuple) =>
+      val (x, y) = a.value.size match {
+        case 2 => (coerceFloat(a.value.head).value, coerceFloat(a.value(1)).value)
+        case s => throw new TypeError.SizeMismatch(s, 2, "Tuple did not contain exactly 2 items")
+      }
+      val distance = scala.math.hypot(x, y)
+      val radians  = scala.math.atan2(y, x)
+      RTValue.Tuple(Primitive.Float(distance), Primitive.Float(radians))
   }
 }

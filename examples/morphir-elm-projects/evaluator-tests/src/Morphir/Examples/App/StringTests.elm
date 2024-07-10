@@ -1,7 +1,6 @@
 module Morphir.Examples.App.StringTests exposing (..)
 
 import Morphir.Examples.App.TestUtils exposing (..)
-import Morphir.SDK.String as String exposing (..)
 
 
 {-|
@@ -11,7 +10,7 @@ import Morphir.SDK.String as String exposing (..)
 -}
 stringAppend : String -> String -> String
 stringAppend l r =
-    append l r
+    String.append l r
 
 
 {-|
@@ -21,7 +20,17 @@ stringAppend l r =
 -}
 stringConcat : List String -> String
 stringConcat l =
-    concat l
+    String.concat l
+
+
+{-|
+
+    Test: String/repeat
+
+-}
+stringRepeat : Int -> String -> String
+stringRepeat i s =
+    String.repeat i s
 
 
 {-|
@@ -31,7 +40,7 @@ stringConcat l =
 -}
 stringContains : String -> String -> Bool
 stringContains substring str =
-    contains substring str
+    String.contains substring str
 
 
 {-|
@@ -41,7 +50,7 @@ stringContains substring str =
 -}
 stringDropLeft : Int -> String -> String
 stringDropLeft n str =
-    dropLeft n str
+    String.dropLeft n str
 
 
 {-|
@@ -51,7 +60,7 @@ stringDropLeft n str =
 -}
 stringDropRight : Int -> String -> String
 stringDropRight n str =
-    dropRight n str
+    String.dropRight n str
 
 
 {-|
@@ -61,7 +70,7 @@ stringDropRight n str =
 -}
 stringEndsWith : String -> String -> Bool
 stringEndsWith ref str =
-    endsWith ref str
+    String.endsWith ref str
 
 
 {-|
@@ -71,7 +80,7 @@ stringEndsWith ref str =
 -}
 stringJoin : String -> List String -> String
 stringJoin sep list =
-    join sep list
+    String.join sep list
 
 
 {-|
@@ -81,7 +90,7 @@ stringJoin sep list =
 -}
 stringLength : String -> Int
 stringLength str =
-    length str
+    String.length str
 
 
 {-|
@@ -91,7 +100,7 @@ stringLength str =
 -}
 stringPadLeft : Int -> Char -> String -> String
 stringPadLeft n ch str =
-    padLeft n ch str
+    String.padLeft n ch str
 
 
 {-|
@@ -101,7 +110,7 @@ stringPadLeft n ch str =
 -}
 stringPadRight : Int -> Char -> String -> String
 stringPadRight n ch str =
-    padRight n ch str
+    String.padRight n ch str
 
 
 {-|
@@ -113,7 +122,7 @@ stringPadRight n ch str =
 stringLeftTest : TestContext -> String
 stringLeftTest ctx =
     test ctx
-        (left 2 "Mulder")
+        (String.left 2 "Mulder")
 
 
 {-|
@@ -125,7 +134,7 @@ stringLeftTest ctx =
 stringRightTest : TestContext -> String
 stringRightTest ctx =
     test ctx
-        (right 2 "Scully")
+        (String.right 2 "Scully")
 
 
 {-|
@@ -135,7 +144,7 @@ stringRightTest ctx =
 -}
 stringSlice : Int -> Int -> String -> String
 stringSlice start end str =
-    slice start end str
+    String.slice start end str
 
 
 {-|
@@ -145,7 +154,7 @@ stringSlice start end str =
 -}
 stringSplit : String -> String -> List String
 stringSplit sep str =
-    split sep str
+    String.split sep str
 
 
 {-|
@@ -155,7 +164,7 @@ stringSplit sep str =
 -}
 stringStartsWith : String -> String -> Bool
 stringStartsWith ref str =
-    startsWith ref str
+    String.startsWith ref str
 
 
 {-|
@@ -167,7 +176,7 @@ stringStartsWith ref str =
 stringFromIntTest : TestContext -> String
 stringFromIntTest ctx =
     test ctx
-        (fromInt 25)
+        (String.fromInt 25)
 
 
 {-|
@@ -179,7 +188,7 @@ stringFromIntTest ctx =
 stringFromFloatTest : TestContext -> String
 stringFromFloatTest ctx =
     test ctx
-        (fromFloat 1.5)
+        (String.fromFloat 1.5)
 
 
 {-|
@@ -215,7 +224,7 @@ stringBadToFloatTest ctx =
 stringToIntTest1 : TestContext -> Maybe Int
 stringToIntTest1 ctx =
     test ctx
-        (toInt "25")
+        (String.toInt "25")
 
 
 {-|
@@ -227,7 +236,7 @@ stringToIntTest1 ctx =
 stringToIntTest2 : TestContext -> Maybe Int
 stringToIntTest2 ctx =
     test ctx
-        (toInt "notAnInt")
+        (String.toInt "notAnInt")
 
 
 {-|
@@ -239,7 +248,7 @@ stringToIntTest2 ctx =
 stringIsEmptyTest1 : TestContext -> Bool
 stringIsEmptyTest1 ctx =
     test ctx
-        (isEmpty "")
+        (String.isEmpty "")
 
 
 {-|
@@ -251,7 +260,7 @@ stringIsEmptyTest1 ctx =
 stringIsEmptyTest2 : TestContext -> Bool
 stringIsEmptyTest2 ctx =
     test ctx
-        (isEmpty "content")
+        (String.isEmpty "content")
 
 
 {-|
@@ -261,7 +270,7 @@ stringIsEmptyTest2 ctx =
 -}
 stringToLower : String -> String
 stringToLower str =
-    toLower str
+    String.toLower str
 
 
 {-|
@@ -271,7 +280,7 @@ stringToLower str =
 -}
 stringToUpper : String -> String
 stringToUpper str =
-    toUpper str
+    String.toUpper str
 
 
 {-|
@@ -281,7 +290,7 @@ stringToUpper str =
 -}
 stringTrim : String -> String
 stringTrim str =
-    trim str
+    String.trim str
 
 
 {-|
@@ -291,7 +300,7 @@ stringTrim str =
 -}
 stringTrimLeft : String -> String
 stringTrimLeft str =
-    trimLeft str
+    String.trimLeft str
 
 
 {-|
@@ -301,4 +310,208 @@ stringTrimLeft str =
 -}
 stringTrimRight : String -> String
 stringTrimRight str =
-    trimRight str
+    String.trimRight str
+
+
+{-|
+
+    Test: String/fromChar
+    expected = "a"
+
+-}
+stringFromCharTest : TestContext -> String
+stringFromCharTest ctx =
+    test ctx
+        (String.fromChar 'a')
+
+
+{-|
+
+    Test: String/cons
+    expected = "abc"
+
+-}
+stringConsTest : TestContext -> String
+stringConsTest ctx =
+    test ctx
+        (String.cons 'a' "bc")
+
+
+{-|
+
+    Test: String/uncons
+    input = "abc", expected = Just ('a', "bc")
+    input = "a", expected = Just ('a', "")
+    input = "", expected = Nothing
+
+-}
+stringUnconsTest : String -> Maybe ( Char, String )
+stringUnconsTest input =
+    String.uncons input
+
+
+{-|
+
+    Test: String/toList
+    expected = ['a', 'b', 'c']
+
+-}
+stringToListTest : TestContext -> List Char
+stringToListTest ctx =
+    test ctx
+        (String.toList "abc")
+
+
+{-|
+
+    Test: String/fromList
+    expected = "abc"
+
+-}
+stringFromListTest : TestContext -> String
+stringFromListTest ctx =
+    test ctx
+        (String.fromList [ 'a', 'b', 'c' ])
+
+
+{-|
+
+    Test: String/fromList
+    expected = ""
+
+-}
+stringFromListEmptyTest : TestContext -> String
+stringFromListEmptyTest ctx =
+    test ctx
+        (String.fromList [])
+
+
+{-|
+
+    Test: String/pad
+    pad 5 ' ' "1" == " 1 "
+    pad 5 ' ' "11" == " 11 "
+    pad 5 ' ' "121" == " 121 "
+    pad 5 ' ' "1234" == " 1234"
+    pad 5 ' ' "12345" == "12345"
+    pad 5 ' ' "123456" == "123456"
+    pad 0 ' ' "123" == "123"
+    pad -5 ' ' "123" == "123"
+    pad 5 ' ' "" == "     "
+
+-}
+stringPadTest : Int -> String -> String
+stringPadTest size input =
+    String.pad size ' ' input
+
+
+{-|
+
+    Test: String/map
+    expected = "a.b.c"
+
+-}
+stringMapTest : TestContext -> String
+stringMapTest ctx =
+    test ctx
+        String.map
+        (\c ->
+            if c == '/' then
+                '.'
+
+            else
+                c
+        )
+        "a/b/c"
+
+
+{-|
+
+    Test: String/filter
+    expected = "bc"
+
+-}
+stringFilterTest : TestContext -> String
+stringFilterTest ctx =
+    test ctx
+        (String.filter (\c -> c /= 'a') "abc")
+
+
+{-|
+
+    Test: String/foldl
+    input = UPPERCASE, expected = True
+    input = lowercase, expected = False
+    input = camelCase, expected = False
+
+-}
+stringFoldlTest : String -> Bool
+stringFoldlTest input =
+    String.foldl (\char acc -> acc && (char >= 'A' && char <= 'Z')) True input
+
+
+{-|
+
+    Test: String/foldl
+    input = "time", expected = "emit"
+
+-}
+stringFoldlTest2 : String -> String
+stringFoldlTest2 input =
+    String.foldl String.cons "" input
+
+
+{-|
+
+    Test: String/foldr
+    input = "Hello, World", expected = 2
+    input = "HELLO, WORLD", expected = 10
+
+-}
+stringFoldrTest : String -> Int
+stringFoldrTest input =
+    String.foldr
+        (\char count ->
+            if char >= 'A' && char <= 'Z' then
+                count + 1
+
+            else
+                count
+        )
+        0
+        input
+
+
+{-|
+
+    Test: String/foldr
+    input = "time", expected = "time"
+
+-}
+stringFoldrTest2 : String -> String
+stringFoldrTest2 input =
+    String.foldr String.cons "" input
+
+
+{-|
+
+    Test: String/any
+    input = "scala", expected = True
+    input = "elm", expected = False
+
+-}
+stringAnyTest : String -> Bool
+stringAnyTest input =
+    String.any (\c -> c == 'a') input
+
+
+{-|
+
+    Test: String/all
+    input = "aaa", expected = True
+    input = "abc", expected = False
+
+-}
+stringAllTest : String -> Bool
+stringAllTest input =
+    String.all (\c -> c == 'a') input

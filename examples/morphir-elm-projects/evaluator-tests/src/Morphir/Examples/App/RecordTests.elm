@@ -50,10 +50,6 @@ recordFieldFromBoundTest ctx =
         myRecord.name
 
 
-type alias RecordType =
-    { name : String, number : Int }
-
-
 {-|
 
     Test: FieldFunction/Apply

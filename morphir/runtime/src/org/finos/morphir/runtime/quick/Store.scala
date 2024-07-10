@@ -11,8 +11,8 @@ import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.distribution.Distribution.*
 import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.runtime.{NativeSDK, RTValue, SDKConstructor, SDKValue}
-import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{RuntimeDefinition, TypeAttribs, ValueAttribs}
 import org.finos.morphir.runtime.internal.{CallStackFrame, StoredValue}
+import org.finos.morphir.runtime.Distributions
 import zio.Chunk
 
 final case class Store(
@@ -48,6 +48,13 @@ object GlobalDefs {
     }
   }
 
+  def fromDistributions(dists: Distributions): GlobalDefs = {
+    val libs: Map[PackageName, Lib] = dists.getDists
+    libs.foldLeft(native) {
+      case (acc, (packageName, lib)) => createDefs(acc, packageName, lib.dependencies, lib.packageDef)
+    }
+  }
+
   def createDefs(
       acc: GlobalDefs,
       packageName: PackageName,
@@ -61,15 +68,18 @@ object GlobalDefs {
         val sdkDef     = SDKValue.SDKValueDefinition(definition)
         acc.withDefinition(name, sdkDef)
       }
-      module.value.types.foldLeft(withDefinitions) { case (acc, (_, tpe)) =>
+      module.value.types.foldLeft(withDefinitions) { case (acc, (localName, tpe)) =>
         val typeDef = tpe.value.value
         typeDef match {
           case Type.Definition.CustomType(_, accessControlledCtors) =>
             val ctors = accessControlledCtors.value.toMap
             ctors.foldLeft(acc) { case (acc, (ctorName, ctorArgs)) =>
-              val name = FQName(packageName, moduleName, ctorName)
-              acc.withConstructor(name, SDKConstructor(ctorArgs.map(_._2).toList))
+              val fqn = FQName(packageName, moduleName, ctorName)
+              acc.withConstructor(fqn, SDKConstructor.Explicit(ctorArgs.map(_._2).toList))
             }
+          case Type.Definition.TypeAlias(_, Type.Type.Record(_, fields)) =>
+            val fqn = FQName(packageName, moduleName, localName)
+            acc.withConstructor(fqn, SDKConstructor.Implicit(fields))
           case Type.Definition.TypeAlias(_, _) => acc
         }
       }

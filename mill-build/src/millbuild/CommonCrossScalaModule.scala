@@ -9,7 +9,7 @@ trait CommonScalaModule extends ScalaModule {
   def compilerPlugins(scalaVersion: String) =
     if (isScala2(scalaVersion))
       Agg(
-        ivy"org.typelevel:::kind-projector:0.13.2",
+        ivy"org.typelevel:::kind-projector:0.13.3",
         ivy"com.olegpy::better-monadic-for:0.3.1"
       )
     else
@@ -203,7 +203,7 @@ trait CommonScalaModule extends ScalaModule {
         commonCompilerOptions ++ Seq(
           "-language:existentials",
           "-Yrangepos",
-          "-Xsource:3",
+          "-Xsource:3-cross",
           "-Wconf:cat=scala3-migration:s"
         )
       case Array("3", _, _) =>

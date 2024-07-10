@@ -1,27 +1,29 @@
 package org.finos.morphir.runtime
 
-import org.finos.morphir.ir.Type.Type
+import org.finos.morphir.ir.Type.{Type, FieldT}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
-import org.finos.morphir.ir.Value.{Pattern, Value}
+import org.finos.morphir.ir.Value.{Pattern, Value, TypedValue}
 import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.naming.*
 import Name.toTitleCase
 import org.finos.morphir.MInt
 import org.finos.morphir.datamodel.Concept.Result
-import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{RuntimeValue, TypeAttribs, ValueAttribs}
 import org.finos.morphir.runtime.internal.{NativeFunctionSignature, NativeFunctionSignatureAdv}
 import org.finos.morphir.runtime.MorphirRuntimeError.{IllegalValue, FailedCoercion}
 import org.finos.morphir.runtime.internal.CallStackFrame
+import org.finos.morphir.ir.Type.UType
+import org.finos.morphir.util.PrintRTValue
 
 import scala.collection.immutable.{List as ScalaList, Set as ScalaSet, Map as ScalaMap}
 import scala.collection.mutable
 
 // TODO Integrate errors into reporting format
-// Represents a Morphir-Evaluator result. Typed on TypedMorphirRuntimeDefs.TypeAttribs, TypedMorphirRuntimeDefs.ValueAttribs
+// Represents a Morphir-Evaluator result. Typed on TypedValue
 // instead of a a Generic VA/TA since the latter is not necessary.
 sealed trait RTValue {
   def succinct(depth: Int): String = s"${this.getClass} (Default implementation)"
   def succinct: String             = succinct(2)
+  def printed                      = PrintRTValue(this).plainText
 }
 
 object RTValue {
@@ -240,7 +242,8 @@ object RTValue {
     val b = coerceNumeric(arg2)
     if (a.numericType != b.numericType) {
       throw new FailedCoercion(
-        s"Error unwrapping the Primitive Numerics ${arg1} and ${arg2} into a common type, they have different numeric types: ${a.numericType} versus ${b.numericType}"
+        s"Error unwrapping the Primitive Numerics ${arg1} and ${arg2} into a common type, they have different numeric types: ${a
+            .numericType} versus ${b.numericType}"
       )
     }
     NumericsWithHelper[N](
@@ -642,25 +645,36 @@ object RTValue {
     }
   }
   case class Applied(
-      body: RuntimeValue,
+      body: TypedValue,
       curried: scala.List[(Name, RTValue)],
       closingContext: CallStackFrame
   )
 
   case class FieldFunction(fieldName: Name) extends Function
 
-  case class LambdaFunction(body: RuntimeValue, pattern: Pattern[ValueAttribs], closingContext: CallStackFrame)
-      extends Function
-
-  case class DefinitionFunction(
-      body: RuntimeValue,
-      arguments: scala.List[(Name, ValueAttribs, Type[TypeAttribs])],
-      curried: scala.List[(Name, RTValue)],
-      closingContext: CallStackFrame
+  case class LambdaFunction(
+      body: TypedValue,
+      pattern: Pattern[UType],
+      closingContext: CallStackFrame,
+      loc: CodeLocation.AnonymousFunction
   ) extends Function
 
-  case class ConstructorFunction(name: FQName, arguments: scala.List[ValueAttribs], curried: scala.List[RTValue])
+  case class DefinitionFunction(
+      body: TypedValue,
+      arguments: scala.List[(Name, UType, UType)],
+      curried: scala.List[(Name, RTValue)],
+      closingContext: CallStackFrame,
+      loc: CodeLocation
+  ) extends Function
+
+  case class ConstructorFunction(name: FQName, arguments: scala.List[UType], curried: scala.List[RTValue])
       extends Function
+
+  case class ImplicitConstructorFunction(
+      name: FQName,
+      arguments: scala.List[FieldT[scala.Unit]],
+      curried: collection.Map[Name, RTValue]
+  ) extends Function
 
   // TODO: We are currently using this for Maybe and Result types; those should be promoted to their own RTValues
   case class ConstructorResult(name: FQName, values: scala.List[RTValue]) extends RTValue {
@@ -675,17 +689,20 @@ object RTValue {
   sealed trait NativeFunctionResult extends Function {
     def arguments: Int
     def curried: scala.List[RTValue]
+    def loc: CodeLocation.NativeFunction
   }
 
   case class NativeFunction(
       arguments: Int,
       curried: scala.List[RTValue],
-      function: NativeFunctionSignature
+      function: NativeFunctionSignature,
+      loc: CodeLocation.NativeFunction
   ) extends NativeFunctionResult {}
 
   case class NativeInnerFunction(
       arguments: Int,
       curried: scala.List[RTValue],
-      function: NativeFunctionSignatureAdv
+      function: NativeFunctionSignatureAdv,
+      loc: CodeLocation.NativeFunction
   ) extends NativeFunctionResult {}
 }

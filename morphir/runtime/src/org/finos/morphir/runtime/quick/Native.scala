@@ -274,23 +274,6 @@ object StringSDK {
   )
 }
 
-object DecimalSDK {
-  val fromFloat: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: RTValue) =>
-    RTValue.Primitive.BigDecimal(BigDecimal.valueOf(arg.coerceFloat.value))
-  }
-  val toFloat: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: RTValue) =>
-    RTValue.Primitive.Float(arg.coerceDecimal.value.toDouble)
-  }
-  val asString: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: RTValue) =>
-    RTValue.Primitive.String(arg.coerceDecimal.value.toString)
-  }
-  val sdk: Map[FQName, SDKValue] = Map(
-    FQName.fromString("Morphir.SDK:Decimal:fromFloat") -> fromFloat,
-    FQName.fromString("Morphir.SDK:Decimal:toFloat")   -> toFloat,
-    FQName.fromString("Morphir.SDK:Decimal:toString")  -> asString
-  )
-}
-
 object TupleSDK {
   val first: SDKValue = SDKValue.SDKNativeFunction.fun1 { (arg: RTValue) =>
     arg.coerceTuple.value.head
@@ -408,11 +391,6 @@ object Native {
       RTValue.Primitive.Float(asDouble)
   }
 
-  val equal: SDKValue = SDKValue.SDKNativeFunction.fun2 {
-    (a: RTValue, b: RTValue) =>
-      RTValue.Primitive.Boolean(a == b)
-  }
-
   val utc = java.time.ZoneId.of("UTC")
 
   def fromMillisecondsEpoch(millis: Long): java.time.LocalTime =
@@ -428,15 +406,16 @@ object Native {
       RTValue.LocalTime(time)
   }
 
-  val pi: SDKValue = SDKValue.SDKNativeValue(RTValue.Primitive.Float(3.toDouble))
+  val pi: SDKValue = SDKValue.SDKNativeValue(RTValue.Primitive.Float(scala.math.Pi))
+  val e: SDKValue  = SDKValue.SDKNativeValue(RTValue.Primitive.Float(scala.math.E))
 
-  val just: SDKConstructor    = SDKConstructor(List(Type.variable("contents")))
-  val nothing: SDKConstructor = SDKConstructor(List())
-  val ok: SDKConstructor      = SDKConstructor(List(Type.variable("contents")))
-  val err: SDKConstructor     = SDKConstructor(List(Type.variable("contents")))
-  val gt: SDKConstructor      = SDKConstructor(List())
-  val lt: SDKConstructor      = SDKConstructor(List())
-  val eq: SDKConstructor      = SDKConstructor(List())
+  val just: SDKConstructor    = SDKConstructor.Explicit(List(Type.variable("contents")))
+  val nothing: SDKConstructor = SDKConstructor.Explicit(List())
+  val ok: SDKConstructor      = SDKConstructor.Explicit(List(Type.variable("contents")))
+  val err: SDKConstructor     = SDKConstructor.Explicit(List(Type.variable("contents")))
+  val gt: SDKConstructor      = SDKConstructor.Explicit(List())
+  val lt: SDKConstructor      = SDKConstructor.Explicit(List())
+  val eq: SDKConstructor      = SDKConstructor.Explicit(List())
 
   val nativeCtors: Map[FQName, SDKConstructor] = Map(
     FQName.fromString("Morphir.SDK:Maybe:just")    -> just,
@@ -446,11 +425,11 @@ object Native {
   )
 
   val native: Map[FQName, SDKValue] = Map(
-    FQName.fromString("Morphir.SDK:Basics:equal")               -> equal,
     FQName.fromString("Morphir.SDK:Basics:and")                 -> and,
     FQName.fromString("Morphir.SDK:Basics:or")                  -> or,
     FQName.fromString("Morphir.SDK:Basics:not")                 -> not,
     FQName.fromString("Morphir.SDK:Basics:pi")                  -> pi,
+    FQName.fromString("Morphir.SDK:Basics:e")                   -> e,
     FQName.fromString("Morphir.SDK:Basics:add")                 -> plus,
     FQName.fromString("Morphir.SDK:Basics:subtract")            -> subtract,
     FQName.fromString("Morphir.SDK:Basics:divide")              -> divide,
@@ -464,5 +443,5 @@ object Native {
     FQName.fromString("Morphir.SDK:Decimal:zero")               -> zero,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
-  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ SetSDK.sdk ++ DecimalSDK.sdk ++ TupleSDK.sdk ++ BasicsSDK.sdk
+  ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ SetSDK.sdk ++ TupleSDK.sdk ++ BasicsSDK.sdk
 }

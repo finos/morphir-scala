@@ -60,7 +60,8 @@ object LocalDate extends MorphirIRSdkModule("LocalDate") {
       vSpec("addDays", "offset" -> intType, "startDate" -> localDateType)(localDateType),
       vSpec("addWeeks", "offset" -> intType, "startDate" -> localDateType)(localDateType),
       vSpec("addMonths", "offset" -> intType, "startDate" -> localDateType)(localDateType),
-      vSpec("addYears", "offset" -> intType, "startDate" -> localDateType)(localDateType)
+      vSpec("addYears", "offset" -> intType, "startDate" -> localDateType)(localDateType),
+      vSpec("toISOString", "date" -> localDateType)(stringType)
     )
   )
 
