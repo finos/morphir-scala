@@ -26,6 +26,7 @@ docs/contributing.md
 
 # We use YARN
 website/package-lock.json
+package-lock.json
 
 # Dropbox settings and caches
 .dropbox

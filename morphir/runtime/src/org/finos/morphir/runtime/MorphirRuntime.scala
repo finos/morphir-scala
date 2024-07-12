@@ -7,7 +7,7 @@ import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.exports.RTAction
-import org.finos.morphir.runtime.quick.QuickMorphirRuntime
+import org.finos.morphir.runtime.quick.{Externs, QuickMorphirRuntime}
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 
 trait MorphirRuntime {
@@ -43,6 +43,8 @@ trait MorphirRuntime {
 }
 
 object MorphirRuntime extends MorphirRuntimePlatformSpecific {
+  def quickWithExterns(externs: Externs, distributions: Distribution*): TypedMorphirRuntime =
+    QuickMorphirRuntime.fromDistributionsAndExterns(externs, distributions: _*)
   def quick(distributions: Distribution*): TypedMorphirRuntime =
     QuickMorphirRuntime.fromDistributions(distributions: _*)
 }
