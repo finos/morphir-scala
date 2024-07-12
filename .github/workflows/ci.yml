@@ -213,7 +213,7 @@ jobs:
       if: always()
       run: |
         mkdir reports/
-        iqCredentials=${{ secrets.SONATYPE_USER }}:${{ secrets.SONATYPE_PASSWORD }}
+        iqCredentials="${{ secrets.SONATYPE_USER }}:${{ secrets.SONATYPE_PASSWORD }}"
         echo 'Get internal app ID for public ID: '$SonatypeAppId
         res=$(curl -u $iqCredentials --location $SonatypeUrl'api/v2/applications?publicId='$SonatypeAppId)
         IFS='"' read -a array <<< "$res"
@@ -222,6 +222,7 @@ jobs:
         curl -u $iqCredentials --location $SonatypeUrl'api/v2/spdx/'$internalID'/stages/'$SonatypeStage -H 'Accept: application/xml' > reports/$SonatypeAppId.spdx.json
         echo 'Sonatype SBOM (SPDX): '
         cat reports/$SonatypeAppId.spdx.json
+        
     - name: Upload Sonatype SBOM (SPDX)
       if: always()
       uses: actions/upload-artifact@v4
