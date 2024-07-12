@@ -161,7 +161,7 @@ object Dumper extends DumperVersionSpecific with DumperSyntax {
    * Constructs a `Dumper[A]` from a function that converts a value of type `A` to a `Repr`.
    */
   def make[A](f: A => Dumper.Repr): Dumper[A] =
-  f(_)
+    f(_)
 
   /**
    * Derives a `Dumper[Array[A]]` given a `Dumper[A]`.
