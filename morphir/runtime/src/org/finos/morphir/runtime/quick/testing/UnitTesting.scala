@@ -31,6 +31,10 @@ object UnitTesting {
   def expectationType = T.reference("Morphir.UnitTest", "Expect", "Expectation")
   def testPrefix      = "Morphir.UnitTest:Test:"
   def expectPrefix    = "Morphir.UnitTest:Expect:"
+  def testPackagePath = fqn"Morphir.UnitTest:Test:foo".packagePath
+  def containsTestCode(globals: GlobalDefs, fqn: FQName, definition: TypedDefinition): Boolean =
+    fqn.packagePath == testPackagePath ||
+      definition.outputType == testType
 
   /**
    * Run all tests in the given distributions. By this point, the distributions need to include the actual test
@@ -47,7 +51,7 @@ object UnitTesting {
       val testNames = collectTests(globals)
       val testIRs   = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
       if (testIRs.isEmpty) {
-        val emptySummary = TestSummary("No tests run", Map())
+        val emptySummary = TestSummary(CoverageInfo(List.empty[FQName], List.empty[FQName]), "No tests run", Map())
         RTAction.succeed(emptySummary)
       } else {
         val testSuiteIR = if (testIRs.length == 1)
@@ -181,7 +185,13 @@ object UnitTesting {
     val withExpects = TestSet.getExpects(newGlobals, testSet)
     // And then the generated thunks are introspected, giving us our final SingleTestResults
     val withResults = TestSet.processExpects(newGlobals, withExpects)
-    TestSet.toSummary(withResults)
+
+    // begin collecting coverage related information
+    val userDefinedFunctions = collectNonTests(globals)
+    val referencedFunctions  = testNames.flatMap(name => GlobalDefs.getStaticallyReachable(name, globals))
+    val coverageInfo         = CoverageInfo(referencedFunctions.toList, userDefinedFunctions)
+
+    TestSet.toSummary(coverageInfo, withResults)
   }
 
   /**
@@ -205,4 +215,66 @@ object UnitTesting {
     tests
   }
 
+  /**
+   * The inverse of collect Tests - returns non test definitions
+   *
+   * @param globals
+   *   The global definitions to collect non tests from
+   */
+  private[runtime] def collectNonTests(
+      globals: GlobalDefs
+  ): List[FQName] = {
+    val nonTests = globals.definitions.collect {
+      case (fqn -> SDKValue.SDKValueDefinition(definition: TypedDefinition))
+          if !containsTestCode(globals, fqn, definition) => fqn
+    }.toList
+    nonTests
+  }
+
+  /**
+   * Given a list of tests and global definitions find references each test has returns the union set representing all
+   * unique functions referenced
+   *
+   * @param globals
+   *   The global definitions to collect tests from
+   * @param testFQNames
+   *   The list of tests
+   */
+  // private[runtime] def countReferencedFunctions(
+  //     testFQNames: List[FQName],
+  //     globals: GlobalDefs
+  // ): Set[FQName] = {
+  //   val visited: Set[FQName] = Set.empty[FQName]
+  //   // testReferences.foldLeft(visited) { (acc, ref) => exploreBelow(acc, ref) }
+
+  //   testFQNames.foldLeft(visited) { (acc, testToGatherReferencesOn) =>
+  //     globals.definitions.get(testToGatherReferencesOn) match {
+  //       case Some(SDKValue.SDKValueDefinition(x)) =>
+  //         acc.union(getReferencesForTests(x.body.collectReferences, globals))
+  //       case _ => acc
+  //     }
+  //   }
+  // }
+
+  // given any FQName find all the functions it statically
+  /**
+   * given a set of tests and global definitions return a set of functions it references directly
+   *
+   * @param globals
+   *   The global definitions to collect tests from
+   */
+  // private[runtime] def getReferencesForTests(testReferences: Set[FQName], globalDefs: GlobalDefs): Set[FQName] = {
+  //   val visited: Set[FQName] = Set.empty[FQName]
+
+  //   def exploreBelow(currentlyKnown: Set[FQName], toExplore: FQName): Set[FQName] =
+  //     if (currentlyKnown.contains(toExplore)) currentlyKnown
+  //     else
+  //       globalDefs.definitions.get(toExplore) match {
+  //         case Some(SDKValue.SDKValueDefinition(x)) =>
+  //           x.body.collectReferences.foldLeft(currentlyKnown + toExplore)((acc, next) => exploreBelow(acc, next))
+  //         case _ => currentlyKnown + toExplore
+  //       }
+
+  //   testReferences.foldLeft(visited) { (acc, ref) => exploreBelow(acc, ref) }
+  // }
 }

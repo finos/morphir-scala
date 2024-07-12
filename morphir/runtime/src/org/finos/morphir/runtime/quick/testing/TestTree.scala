@@ -244,10 +244,12 @@ private[runtime] object TestSet {
   /**
    * Gives us the `TestSummary` (which includes the string report)
    *
+   * @param coverageInfo
    * @param testSet
    */
-  def toSummary(testSet: TestSet[SingleTestResult]) =
+  def toSummary(coverageInfo: CoverageInfo, testSet: TestSet[SingleTestResult]) =
     TestSummary(
+      coverageInfo,
       toReport(testSet),
       testSet.modules.map(module => (module.pkgName, module.modName) -> ModuleTests.getCounts(module)).toMap
     )

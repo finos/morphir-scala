@@ -86,4 +86,18 @@ object GlobalDefs {
     GlobalDefs(Map(), Map())
   def native: GlobalDefs =
     GlobalDefs(Native.native ++ NativeSDK.resolvedFunctions, Native.nativeCtors ++ NativeSDK.ctors)
+  
+  def getStaticallyReachable(ref: FQName, globalDefs: GlobalDefs): Set[FQName] = {
+
+    def exploreBelow(currentlyKnown: Set[FQName], toExplore: FQName): Set[FQName] =
+      if (currentlyKnown.contains(toExplore)) currentlyKnown
+      else
+        globalDefs.definitions.get(toExplore) match {
+          case Some(SDKValue.SDKValueDefinition(x)) =>
+            x.body.collectReferences.foldLeft(currentlyKnown + toExplore)((acc, next) => exploreBelow(acc, next))
+          case _ => currentlyKnown
+        }
+
+    exploreBelow(Set(), ref)
+  }
 }

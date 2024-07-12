@@ -1,7 +1,9 @@
 package org.finos.morphir.runtime
 import org.finos.morphir.naming.*
 
+private[runtime] case class CoverageInfo(staticallyReachedFunctions: List[FQName], userDefinedFunctions: List[FQName])
 case class TestSummary(
+    private val coverage: CoverageInfo,
     report: String,
     countsByModule: Map[(PackageName, ModuleName), TestResultCounts]
 ) {
@@ -11,6 +13,24 @@ case class TestSummary(
   def result = overallCounts.result
   def resultAtModule(pkgName: PackageName, modName: ModuleName): Option[OverallStatus] =
     countsAtModule(pkgName, modName).map(_.result)
+
+  /**
+   * Package coverage calculation result
+   */
+  def overallCoverage: Map[Path, Float] = {
+    val called    = coverage.userDefinedFunctions.filter(coverage.staticallyReachedFunctions.contains(_))
+    val udfByPath = coverage.userDefinedFunctions.groupBy(fqn => fqn.getPackagePath ++ fqn.getModulePath)
+    val calledByPath = coverage.userDefinedFunctions.filter(coverage.staticallyReachedFunctions.contains(_)).groupBy(
+      fqn => fqn.getPackagePath ++ fqn.getModulePath
+    )
+
+    calledByPath.foldLeft(Map.empty[Path, Float]) { case (acc, (pkg, calledByPkg)) =>
+      udfByPath.get(pkg) match {
+        case Some(udf: List[FQName]) => acc + (pkg -> (calledByPkg.size.toFloat / udf.size.toFloat) * 100)
+        case _                       => acc
+      }
+    }
+  }
 
   /**
    * Evaluates to true if and only if all tests passed and none were skipped or todo
@@ -25,7 +45,8 @@ case class TestSummary(
   override def toString =
     s"$report\n" +
       s"$overallCounts\n" +
-      s"Overal Status - $result"
+      s"Overall Status - $result\n" +
+      s"Coverage by package - $overallCoverage"
 }
 
 sealed trait OverallStatus

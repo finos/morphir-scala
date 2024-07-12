@@ -101,6 +101,11 @@ object UnitTestingSpec extends MorphirBaseSpec {
           getTestSummary.map { result =>
             assertTrue(!result.incomplete)
           }
+        },
+        test("Coverage is calculated") {
+          getTestSummary.map { result =>
+            assertTrue(result.overallCoverage.size > 0)
+          }
         }
       ),
       suite("Modules Correct")(
@@ -167,6 +172,11 @@ object UnitTestingSpec extends MorphirBaseSpec {
           moduleCounts("ExampleTests", "PassingModule").map { counts =>
             assertTrue(counts.map(_.result) == Some(OverallStatus.Passed))
           }
+        },
+        test("Coverage is calculated") {
+          getTestSummary.map { result =>
+            assertTrue(result.overallCoverage.size > 0)
+          }
         }
       )
     ).provideLayerShared(failingTestSummaryLayer),
@@ -180,6 +190,11 @@ object UnitTestingSpec extends MorphirBaseSpec {
         getTestSummary.map { result =>
           assertTrue(!result.incomplete)
         }
+      },
+      test("Summary provides coverage") {
+        getTestSummary.map { result =>
+          assertTrue(result.overallCoverage.size > 0)
+        }
       }
     ).provideLayerShared(passingTestSummaryLayer),
     suite("Incomplete Project Spec")(
@@ -191,6 +206,11 @@ object UnitTestingSpec extends MorphirBaseSpec {
       test("Project was incomplete") {
         getTestSummary.map { result =>
           assertTrue(result.incomplete)
+        }
+      },
+      test("Project coverage is calculated") {
+        getTestSummary.map { result =>
+          assertTrue(result.overallCoverage.size > 0)
         }
       }
     ).provideLayerShared(incompleteTestSummaryLayer)
