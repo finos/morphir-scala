@@ -351,8 +351,8 @@ object ListSDK {
   }
 
   val innerJoin = DynamicNativeFunction3("innerJoin") {
-    (context: NativeContext) => (aList: RTValue.List, func: DynamicNativeFunction2[RTValue, RTValue, RTValue.Primitive.Boolean], bList: RTValue.List) =>
-      val result = aList.value.zip(bList.value) flatMap { (a,b) =>
+    (context: NativeContext) => (aList: RTValue.List, f: RTValue.Function, bList: RTValue.List) =>
+      val result = aList.value.zip(bList.value) flatMap { case (a,b) =>
         val funcResult = context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, b)
         if(RTValue.coerceBoolean(funcResult).value) {
           Some(RTValue.Tuple(a, b))
@@ -366,7 +366,7 @@ object ListSDK {
   val leftJoin = DynamicNativeFunction3("leftJoin") {
     (context: NativeContext) =>
       (aList: RTValue.List, f: RTValue.Function, bList: RTValue.List) =>
-        val result = aList.value.zip(bList.value) map { (a, b) =>
+        val result = aList.value.zip(bList.value) map { case (a, b) =>
           val funcResult = context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, b)
           val rightOpt = if (RTValue.coerceBoolean(funcResult).value) {
             Some(b)
@@ -378,17 +378,17 @@ object ListSDK {
         RTValue.List(result)
   }
 
-  val map2 = DynamicNativeFunction2("map2") {
+  val map2 = DynamicNativeFunction3("map2") {
     (ctx: NativeContext) => (f: RTValue.Function, aList: RTValue.List, bList: RTValue.List) =>
     {
-      val result = aList.value.zip(bList.value) map { (a, b) =>
+      val result = aList.value.zip(bList.value) map { case (a, b) =>
         ctx.evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, b)
       }
       RTValue.List(result)
     }
   }
 
-  val map3 = DynamicNativeFunction2("map3") {
+  val map3 = DynamicNativeFunction4("map3") {
     (ctx: NativeContext) => (f: RTValue.Function, aList: RTValue.List, bList: RTValue.List, cList: RTValue.List) =>
     {
       val result = aList.value.zip(bList.value.zip(cList.value)) map { case (a, (b, c)) =>
@@ -398,7 +398,7 @@ object ListSDK {
     }
   }
 
-  val map4 = DynamicNativeFunction2("map4") {
+  val map4 = DynamicNativeFunction5("map4") {
     (ctx: NativeContext) => (f: RTValue.Function, aList: RTValue.List, bList: RTValue.List, cList: RTValue.List, dList: RTValue.List) =>
     {
       val result = aList.value.zip(bList.value.zip(cList.value.zip(dList.value))) map { case (a, (b, (c, d))) =>
@@ -408,7 +408,7 @@ object ListSDK {
     }
   }
 
-  val map5 = DynamicNativeFunction2("map5") {
+  val map5 = DynamicNativeFunction6("map5") {
     (ctx: NativeContext) => (f: RTValue.Function, aList: RTValue.List, bList: RTValue.List, cList: RTValue.List, dList: RTValue.List, eList: RTValue.List) =>
     {
       val result = aList.value.zip(bList.value.zip(cList.value.zip(dList.value.zip(eList.value)))) map { case (a, (b, (c, (d, e)))) =>
