@@ -217,7 +217,7 @@ object RTValue {
       case dayOfWeek: ConstructorResult if DayOfWeek.isDayOfWeek(dayOfWeek) => dayOfWeek
       case _ => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a DayOfWeek")
     }
-  
+
   case class NumericsWithHelper[T](
       a: T,
       b: T,
@@ -605,7 +605,7 @@ object RTValue {
     def value = elements
     def asTuple: Option[(RTValue, RTValue)] = elements match {
       case scala.List(_1, _2) => Some((_1, _2))
-      case _ => None
+      case _                  => None
     }
     override def succinct(depth: Int) = if (depth == 0) "Tuple(...)"
     else {

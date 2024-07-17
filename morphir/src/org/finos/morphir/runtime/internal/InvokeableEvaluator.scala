@@ -6,13 +6,13 @@ import org.finos.morphir.ir.Type.UType
 trait InvokeableEvaluator {
 
   def handleApplyResult5(
-    va: UType,
-    functionValue: RTValue,
-    arg1: RTValue,
-    arg2: RTValue,
-    arg3: RTValue,
-    arg4: RTValue,
-    arg5: RTValue
+      va: UType,
+      functionValue: RTValue,
+      arg1: RTValue,
+      arg2: RTValue,
+      arg3: RTValue,
+      arg4: RTValue,
+      arg5: RTValue
   ): RTValue
 
   def handleApplyResult4(

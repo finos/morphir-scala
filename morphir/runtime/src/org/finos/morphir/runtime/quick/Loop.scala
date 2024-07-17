@@ -24,13 +24,13 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
     }
 
   def handleApplyResult5(
-    va: UType,
-    functionValue: RTValue,
-    arg1: RTValue,
-    arg2: RTValue,
-    arg3: RTValue,
-    arg4: RTValue,
-    arg5: RTValue
+      va: UType,
+      functionValue: RTValue,
+      arg1: RTValue,
+      arg2: RTValue,
+      arg3: RTValue,
+      arg4: RTValue,
+      arg5: RTValue
   ): RTValue = {
     val partiallyAppliedFunction =
       handleApplyResult(va, functionValue, arg1)
