@@ -966,6 +966,42 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )(
             Data.List.empty(Concept.Int32)
           )
+        ),
+        suite("sum")(
+          testEval("sum a list of ints returns sum of ints")("listTests", "listSumTest", List(1, 2))(
+            Data.Int(3)
+          ),
+          testEval("sum a list of floats returns sum of floats")("listTests", "listSumTest", List(1.0, 2.0))(
+            Data.Float(3.0)
+          ),
+          testEval("sum a list of decimals returns sum of decimals")("listTests", "listSumTest", Data.List(Data.Decimal(BigDecimal("0.2040608")), Data.Decimal(BigDecimal("1.03050709"))))(
+            Data.Decimal(BigDecimal("1.23456789"))
+          ),
+          testEval("sum an empty list returns 0")(
+            "listTests",
+            "listSumTest",
+            Data.List.empty(Concept.Int32)
+          )(
+            Data.Int(0)
+          )
+        ),
+        suite("product")(
+          testEval("multiply a list of ints returns product of ints")("listTests", "listProductTest", List(1, 2))(
+            Data.Int(2)
+          ),
+          testEval("multiply a list of floats returns product of floats")("listTests", "listProductTest", List(1.0, 2.0))(
+            Data.Float(2.0)
+          ),
+          testEval("multiply a list of decimals returns product of decimals")("listTests", "listProductTest", Data.List(Data.Decimal(BigDecimal("20")), Data.Decimal(BigDecimal("0.5"))))(
+            Data.Decimal(BigDecimal("10"))
+          ),
+          testEval("multiply an empty list returns 0")(
+            "listTests",
+            "listProductTest",
+            Data.List.empty(Concept.Int32)
+          )(
+            Data.Int(0)
+          )
         )
       ),
       suite("Literals")(
