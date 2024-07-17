@@ -276,57 +276,47 @@ object ListSDK {
 
   val sum = DynamicNativeFunction1("sum") {
     (context: NativeContext) => (list: RTValue.List) =>
-      try
-        list.value.headOption.map(coerceNumeric(_).numericType) match {
-          case None =>
-            Primitive.Int(0)
-          case Some(Primitive.Numeric.Type.Int) =>
-            val total = list.value.foldLeft(MInt.fromInt(0)) { (t, v) =>
-              t + coerceInt(v).value
-            }
-            Primitive.Int(total)
-          case Some(Primitive.Numeric.Type.Float) =>
-            val total = list.value.foldLeft(0d) { (t, v) =>
-              t + coerceFloat(v).value
-            }
-            Primitive.Float(total)
-          case Some(Primitive.Numeric.Type.BigDecimal) =>
-            val total = list.value.foldLeft(BigDecimal(0)) { (t, v) =>
-              t + coerceDecimal(v).value
-            }
-            Primitive.BigDecimal(total)
-        }
-      catch {
-        case _: FailedCoercion =>
+      list.value.headOption.map(coerceNumeric(_).numericType) match {
+        case None =>
           Primitive.Int(0)
+        case Some(Primitive.Numeric.Type.Int) =>
+          val total = list.value.foldLeft(MInt.fromInt(0)) { (t, v) =>
+            t + coerceInt(v).value
+          }
+          Primitive.Int(total)
+        case Some(Primitive.Numeric.Type.Float) =>
+          val total = list.value.foldLeft(0d) { (t, v) =>
+            t + coerceFloat(v).value
+          }
+          Primitive.Float(total)
+        case Some(Primitive.Numeric.Type.BigDecimal) =>
+          val total = list.value.foldLeft(BigDecimal(0)) { (t, v) =>
+            t + coerceDecimal(v).value
+          }
+          Primitive.BigDecimal(total)
       }
   }
 
   val product = DynamicNativeFunction1("product") {
     (context: NativeContext) => (list: RTValue.List) =>
-      try
-        list.value.headOption.map(coerceNumeric(_).numericType) match {
-          case None =>
-            Primitive.Int(0)
-          case Some(Primitive.Numeric.Type.Int) =>
-            val total = list.value.foldLeft(MInt.fromInt(1)) { (t, v) =>
-              t * coerceInt(v).value
-            }
-            Primitive.Int(total)
-          case Some(Primitive.Numeric.Type.Float) =>
-            val total = list.value.foldLeft(1d) { (t, v) =>
-              t * coerceFloat(v).value
-            }
-            Primitive.Float(total)
-          case Some(Primitive.Numeric.Type.BigDecimal) =>
-            val total = list.value.foldLeft(BigDecimal(1)) { (t, v) =>
-              t * coerceDecimal(v).value
-            }
-            Primitive.BigDecimal(total)
-        }
-      catch {
-        case _: FailedCoercion =>
+      list.value.headOption.map(coerceNumeric(_).numericType) match {
+        case None =>
           Primitive.Int(0)
+        case Some(Primitive.Numeric.Type.Int) =>
+          val total = list.value.foldLeft(MInt.fromInt(1)) { (t, v) =>
+            t * coerceInt(v).value
+          }
+          Primitive.Int(total)
+        case Some(Primitive.Numeric.Type.Float) =>
+          val total = list.value.foldLeft(1d) { (t, v) =>
+            t * coerceFloat(v).value
+          }
+          Primitive.Float(total)
+        case Some(Primitive.Numeric.Type.BigDecimal) =>
+          val total = list.value.foldLeft(BigDecimal(1)) { (t, v) =>
+            t * coerceDecimal(v).value
+          }
+          Primitive.BigDecimal(total)
       }
   }
 
@@ -341,22 +331,17 @@ object ListSDK {
 
   val unzip = DynamicNativeFunction1("unzip") {
     (context: NativeContext) => (list: RTValue.List) =>
-      try {
-        val first  = List.newBuilder[RTValue]
-        val second = List.newBuilder[RTValue]
-        list.value foreach { value =>
-          coerceTuple(value).asTuple match {
-            case Some((a, b)) =>
-              first += a
-              second += b
-            case None => throw IllegalValue(s"The value $value is not a Tuple")
-          }
+      val first  = List.newBuilder[RTValue]
+      val second = List.newBuilder[RTValue]
+      list.value foreach { value =>
+        coerceTuple(value).asTuple match {
+          case Some((a, b)) =>
+            first += a
+            second += b
+          case None => throw IllegalValue(s"The value $value is not a Tuple")
         }
-        RTValue.Tuple(RTValue.List(first.result()), RTValue.List(second.result()))
-      } catch {
-        case _: FailedCoercion => list
-        case _: IllegalValue   => list
       }
+      RTValue.Tuple(RTValue.List(first.result()), RTValue.List(second.result()))
   }
 
   val innerJoin = DynamicNativeFunction3("innerJoin") {
