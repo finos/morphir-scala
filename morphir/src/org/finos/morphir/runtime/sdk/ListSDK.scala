@@ -334,7 +334,7 @@ object ListSDK {
     (context: NativeContext) => (value: RTValue, list: RTValue.List) =>
       val result = list.value match {
         case Nil              => Nil
-        case l: List[RTValue] => l.foldLeft(List(l.head))((a, b) => a ++ List(value, b))
+        case l: List[RTValue] => l.tail.foldLeft(List(l.head))((a, b) => a ++ List(value, b))
       }
       RTValue.List(result)
   }
@@ -360,7 +360,7 @@ object ListSDK {
   }
 
   val innerJoin = DynamicNativeFunction3("innerJoin") {
-    (context: NativeContext) => (aList: RTValue.List, f: RTValue.Function, bList: RTValue.List) =>
+    (context: NativeContext) => (bList: RTValue.List, f: RTValue.Function, aList: RTValue.List) =>
       val result = aList.value.zip(bList.value) flatMap { case (a, b) =>
         val funcResult = context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, b)
         if (RTValue.coerceBoolean(funcResult).value) {
@@ -373,7 +373,7 @@ object ListSDK {
   }
 
   val leftJoin = DynamicNativeFunction3("leftJoin") {
-    (context: NativeContext) => (aList: RTValue.List, f: RTValue.Function, bList: RTValue.List) =>
+    (context: NativeContext) => (bList: RTValue.List, f: RTValue.Function, aList: RTValue.List) =>
       val result = aList.value.zip(bList.value) map { case (a, b) =>
         val funcResult = context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, b)
         val rightOpt = if (RTValue.coerceBoolean(funcResult).value) {
