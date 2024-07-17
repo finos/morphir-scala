@@ -510,12 +510,30 @@ listSumTest list =
     List.sum list
 
 
+{-| Test: List/sum
+expected = 3.0
+-}
+listSumFloatTest : TestContext -> Float
+listSumFloatTest ctx =
+    test ctx <|
+        sum [ 1.0, 2.0 ]
+
+
 {-| Test: List/product
 expected(2, 3, 4) = 24
 -}
 listProductTest : List number -> number
 listProductTest list =
     List.product list
+
+
+{-| Test: List/product
+expected = 2.0
+-}
+listProductFloatTest : TestContext -> Float
+listProductFloatTest ctx =
+    test ctx <|
+        product [ 1.0, 2.0 ]
 
 
 {-| Test: List/intersperse
