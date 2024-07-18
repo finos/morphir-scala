@@ -205,7 +205,8 @@ expected = [6,8,10]
 listMap2Test : TestContext -> List Int
 listMap2Test ctx =
     let
-        numbers = [ 3, 4, 5 ]
+        numbers =
+            [ 3, 4, 5 ]
     in
     test ctx <|
         map2 (\a b -> a + b) numbers numbers
@@ -217,7 +218,8 @@ expected = [9,12,15]
 listMap3Test : TestContext -> List Int
 listMap3Test ctx =
     let
-        numbers = [ 3, 4, 5 ]
+        numbers =
+            [ 3, 4, 5 ]
     in
     test ctx <|
         map3 (\a b c -> a + b + c) numbers numbers numbers
@@ -229,7 +231,8 @@ expected = [12,16,20]
 listMap4Test : TestContext -> List Int
 listMap4Test ctx =
     let
-        numbers = [ 3, 4, 5 ]
+        numbers =
+            [ 3, 4, 5 ]
     in
     test ctx <|
         map4 (\a b c d -> a + b + c + d) numbers numbers numbers numbers
@@ -241,7 +244,8 @@ expected = [15,20,25]
 listMap5Test : TestContext -> List Int
 listMap5Test ctx =
     let
-        numbers = [ 3, 4, 5 ]
+        numbers =
+            [ 3, 4, 5 ]
     in
     test ctx <|
         map5 (\a b c d e -> a + b + c + d + e) numbers numbers numbers numbers numbers
@@ -542,7 +546,7 @@ expected = [2, 1, 3, 1, 4]
 listIntersperseTest : TestContext -> List Int
 listIntersperseTest ctx =
     test ctx <|
-        intersperse 1 [2, 3, 4]
+        intersperse 1 [ 2, 3, 4 ]
 
 
 {-| Test: List/unzip
@@ -551,11 +555,11 @@ expected = ( [ 1, 2], ["a", "b"] )
 listUnzipTest : TestContext -> ( List Int, List String )
 listUnzipTest ctx =
     test ctx <|
-        unzip [ (1, "a"), (2, "b") ]
+        unzip [ ( 1, "a" ), ( 2, "b" ) ]
 
 
 {-| Test: List/innerJoin
-expected = [ ( ( 2, "b" ), ( 2, "B" ) ) ]  
+expected = [ ( ( 2, "b" ), ( 2, "B" ) ) ]
 -}
 listInnerJoinTest : TestContext -> List ( ( Int, String ), ( Int, String ) )
 listInnerJoinTest ctx =
@@ -571,13 +575,13 @@ listInnerJoinTest ctx =
             |> innerJoin dataSetB
                 (\a b ->
                     Tuple.first a == Tuple.first b
-                )        
+                )
 
-                
+
 {-| Test: List/leftJoin
-expected =  [ ( ( 1, "a" ), Nothing ), ( ( 2, "b" ), Just ( 2, "B" ) ) ] 
+expected = [ ( ( 1, "a" ), Nothing ), ( ( 2, "b" ), Just ( 2, "B" ) ) ]
 -}
-listLeftJoinTest : TestContext -> List ( (Int, String), Maybe (Int, String) )
+listLeftJoinTest : TestContext -> List ( ( Int, String ), Maybe ( Int, String ) )
 listLeftJoinTest ctx =
     let
         dataSetA =
@@ -591,4 +595,4 @@ listLeftJoinTest ctx =
             |> leftJoin dataSetB
                 (\a b ->
                     Tuple.first a == Tuple.first b
-                )  
+                )
