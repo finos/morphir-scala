@@ -507,7 +507,7 @@ listTakeTest n list =
 
 
 {-| Test: List/sum
-expected(2, 3, 4) = 9
+expected(1, 2) = 3
 -}
 listSumTest : List number -> number
 listSumTest list =
@@ -524,7 +524,7 @@ listSumFloatTest ctx =
 
 
 {-| Test: List/product
-expected(2, 3, 4) = 24
+expected(1, 2) = 2
 -}
 listProductTest : List number -> number
 listProductTest list =

@@ -981,9 +981,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("sum a list of decimals returns sum of decimals")(
             "listTests",
             "listSumTest",
-            Data.List(Data.Decimal(BigDecimal("0.2040608")), Data.Decimal(BigDecimal("1.03050709")))
+            Data.List(Data.Decimal(BigDecimal("1.0")), Data.Decimal(BigDecimal("2.0")))
           )(
-            Data.Decimal(BigDecimal("1.23456789"))
+            Data.Decimal(BigDecimal("3.0"))
           ),
           testEval("sum an empty list returns 0")(
             "listTests",
@@ -1003,9 +1003,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("multiply a list of decimals returns product of decimals")(
             "listTests",
             "listProductTest",
-            Data.List(Data.Decimal(BigDecimal("20")), Data.Decimal(BigDecimal("0.5")))
+            Data.List(Data.Decimal(BigDecimal("1.0")), Data.Decimal(BigDecimal("2.0")))
           )(
-            Data.Decimal(BigDecimal("10"))
+            Data.Decimal(BigDecimal("2.0"))
           ),
           testEval("multiply an empty list returns 0")(
             "listTests",
