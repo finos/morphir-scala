@@ -197,7 +197,6 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(ListSDK.unzip),
           NativeFunctionAdapter.Fun3(ListSDK.innerJoin),
           NativeFunctionAdapter.Fun3(ListSDK.leftJoin)
-          
         )
       }
 

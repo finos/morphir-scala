@@ -700,7 +700,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           (Data.Int32(6))
         ),
         testEvaluation("intersperse")("listTests", "listIntersperseTest")(Data.List(
-          Data.Int(2), Data.Int(1), Data.Int(3), Data.Int(1), Data.Int(4)
+          Data.Int(2),
+          Data.Int(1),
+          Data.Int(3),
+          Data.Int(1),
+          Data.Int(4)
         )),
         testEvaluation("unzip")("listTests", "listUnzipTest")(Data.Tuple(
           Data.List(Data.Int(1), Data.Int(2)),
@@ -719,7 +723,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           ),
           Data.Tuple(
             Data.Tuple(Data.Int(2), Data.String("b")),
-            Data.Optional.Some( Data.Tuple(Data.Int(2), Data.String("B")))
+            Data.Optional.Some(Data.Tuple(Data.Int(2), Data.String("B")))
           )
         )),
         suite("all")(
@@ -974,7 +978,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEvaluation("sum a list of floats returns sum of floats")("listTests", "listSumFloatTest")(
             Data.Float(3.0)
           ),
-          testEval("sum a list of decimals returns sum of decimals")("listTests", "listSumTest", Data.List(Data.Decimal(BigDecimal("0.2040608")), Data.Decimal(BigDecimal("1.03050709"))))(
+          testEval("sum a list of decimals returns sum of decimals")(
+            "listTests",
+            "listSumTest",
+            Data.List(Data.Decimal(BigDecimal("0.2040608")), Data.Decimal(BigDecimal("1.03050709")))
+          )(
             Data.Decimal(BigDecimal("1.23456789"))
           ),
           testEval("sum an empty list returns 0")(
@@ -992,7 +1000,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEvaluation("sum a list of floats returns sum of floats")("listTests", "listProductFloatTest")(
             Data.Float(2.0)
           ),
-          testEval("multiply a list of decimals returns product of decimals")("listTests", "listProductTest", Data.List(Data.Decimal(BigDecimal("20")), Data.Decimal(BigDecimal("0.5"))))(
+          testEval("multiply a list of decimals returns product of decimals")(
+            "listTests",
+            "listProductTest",
+            Data.List(Data.Decimal(BigDecimal("20")), Data.Decimal(BigDecimal("0.5")))
+          )(
             Data.Decimal(BigDecimal("10"))
           ),
           testEval("multiply an empty list returns 0")(
