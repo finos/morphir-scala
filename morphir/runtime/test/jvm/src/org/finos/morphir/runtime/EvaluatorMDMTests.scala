@@ -602,6 +602,26 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int(5),
           Data.Int(6)
         )),
+        testEvaluation("Map2")("listTests", "listMap2Test")(Data.List(
+          Data.Int(6),
+          Data.Int(8),
+          Data.Int(10)
+        )),
+        testEvaluation("Map3")("listTests", "listMap3Test")(Data.List(
+          Data.Int(9),
+          Data.Int(12),
+          Data.Int(15)
+        )),
+        testEvaluation("Map4")("listTests", "listMap4Test")(Data.List(
+          Data.Int(12),
+          Data.Int(16),
+          Data.Int(20)
+        )),
+        testEvaluation("Map5")("listTests", "listMap5Test")(Data.List(
+          Data.Int(15),
+          Data.Int(20),
+          Data.Int(25)
+        )),
         testEval("MapDefinition")("listTests", "listMapDefinitionTest", List(1, 2, 3))(Data.List(
           Data.Int(2),
           Data.Int(3),
@@ -617,7 +637,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Float(5.0),
           Data.Float(6.0)
         )),
-        testEvaluation("Map2")("listTests", "listMapTest2")(Data.List(
+        testEvaluation("MapTest2")("listTests", "listMapTest2")(Data.List(
           Data.Boolean(false),
           Data.Boolean(true),
           Data.Boolean(false)
@@ -679,6 +699,33 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("length")("listTests", "listLengthTest")(
           (Data.Int32(6))
         ),
+        testEvaluation("intersperse")("listTests", "listIntersperseTest")(Data.List(
+          Data.Int(2),
+          Data.Int(1),
+          Data.Int(3),
+          Data.Int(1),
+          Data.Int(4)
+        )),
+        testEvaluation("unzip")("listTests", "listUnzipTest")(Data.Tuple(
+          Data.List(Data.Int(1), Data.Int(2)),
+          Data.List(Data.String("a"), Data.String("b"))
+        )),
+        testEvaluation("innerJoin")("listTests", "listInnerJoinTest")(Data.List(
+          Data.Tuple(
+            Data.Tuple(Data.Int(2), Data.String("b")),
+            Data.Tuple(Data.Int(2), Data.String("B"))
+          )
+        )),
+        testEvaluation("leftJoin")("listTests", "listLeftJoinTest")(Data.List(
+          Data.Tuple(
+            Data.Tuple(Data.Int(1), Data.String("a")),
+            Data.Optional.None(Concept.Tuple(List(Concept.Int32, Concept.String)))
+          ),
+          Data.Tuple(
+            Data.Tuple(Data.Int(2), Data.String("b")),
+            Data.Optional.Some(Data.Tuple(Data.Int(2), Data.String("B")))
+          )
+        )),
         suite("all")(
           testEval("predicate is true for all")("listTests", "listAllTest", List(1, 2, 3))(
             Data.Boolean(true)
@@ -922,6 +969,50 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             List(2, Data.List.empty(Concept.Int32))
           )(
             Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("sum")(
+          testEval("sum a list of ints returns sum of ints")("listTests", "listSumTest", List(1, 2))(
+            Data.Int(3)
+          ),
+          testEvaluation("sum a list of floats returns sum of floats")("listTests", "listSumFloatTest")(
+            Data.Float(3.0)
+          ),
+          testEval("sum a list of decimals returns sum of decimals")(
+            "listTests",
+            "listSumTest",
+            Data.List(Data.Decimal(BigDecimal("1.0")), Data.Decimal(BigDecimal("2.0")))
+          )(
+            Data.Decimal(BigDecimal("3.0"))
+          ),
+          testEval("sum an empty list returns 0")(
+            "listTests",
+            "listSumTest",
+            Data.List.empty(Concept.Int32)
+          )(
+            Data.Int(0)
+          )
+        ),
+        suite("product")(
+          testEval("multiply a list of ints returns product of ints")("listTests", "listProductTest", List(1, 2))(
+            Data.Int(2)
+          ),
+          testEvaluation("sum a list of floats returns sum of floats")("listTests", "listProductFloatTest")(
+            Data.Float(2.0)
+          ),
+          testEval("multiply a list of decimals returns product of decimals")(
+            "listTests",
+            "listProductTest",
+            Data.List(Data.Decimal(BigDecimal("1.0")), Data.Decimal(BigDecimal("2.0")))
+          )(
+            Data.Decimal(BigDecimal("2.0"))
+          ),
+          testEval("multiply an empty list returns 0")(
+            "listTests",
+            "listProductTest",
+            Data.List.empty(Concept.Int32)
+          )(
+            Data.Int(0)
           )
         )
       ),

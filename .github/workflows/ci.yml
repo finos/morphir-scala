@@ -200,7 +200,7 @@ jobs:
     #     path: depCache/
     
     - name: Sonatype Lifecycle SCA Scan
-      uses: sonatype-nexus-community/iq-github-action@master
+      uses: sonatype-nexus-community/iq-github-action@main
       with:
         username: ${{ secrets.SONATYPE_USER }}
         password: ${{ secrets.SONATYPE_PASSWORD }}

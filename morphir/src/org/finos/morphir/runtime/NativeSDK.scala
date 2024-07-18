@@ -164,6 +164,10 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(ListSDK.length),
           NativeFunctionAdapter.Fun2(ListSDK.filter),
           NativeFunctionAdapter.Fun2(ListSDK.map),
+          NativeFunctionAdapter.Fun3(ListSDK.map2),
+          NativeFunctionAdapter.Fun4(ListSDK.map3),
+          NativeFunctionAdapter.Fun5(ListSDK.map4),
+          NativeFunctionAdapter.Fun6(ListSDK.map5),
           NativeFunctionAdapter.Fun2(ListSDK.any),
           NativeFunctionAdapter.Fun1(ListSDK.maximum),
           NativeFunctionAdapter.Fun1(ListSDK.minimum),
@@ -186,7 +190,13 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.repeat),
           NativeFunctionAdapter.Fun1(ListSDK.reverse),
           NativeFunctionAdapter.Fun1(ListSDK.tail),
-          NativeFunctionAdapter.Fun2(ListSDK.take)
+          NativeFunctionAdapter.Fun2(ListSDK.take),
+          NativeFunctionAdapter.Fun1(ListSDK.sum),
+          NativeFunctionAdapter.Fun1(ListSDK.product),
+          NativeFunctionAdapter.Fun2(ListSDK.intersperse),
+          NativeFunctionAdapter.Fun1(ListSDK.unzip),
+          NativeFunctionAdapter.Fun3(ListSDK.innerJoin),
+          NativeFunctionAdapter.Fun3(ListSDK.leftJoin)
         )
       }
 
