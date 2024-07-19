@@ -653,6 +653,77 @@ object RTValue {
       curried: scala.List[(Name, RTValue)],
       closingContext: CallStackFrame
   )
+  
+  sealed trait Key extends ValueResult[scala.List[Function]]
+  
+  object Key0 extends ValueResult[MInt] {
+    def value = 0
+    override def succinct(depth: Int) = s"Key0($value)"
+  }
+  
+  case class Key2(b1: Function, b2: Function) extends Key {
+    def value = scala.List(b1, b2)
+  }
+
+  case class Key3(b1: Function, b2: Function, b3: Function) extends Key {
+    def value = scala.List(b1, b2, b3)
+  }
+
+  case class Key4(b1: Function, b2: Function, b3: Function, b4: Function) extends Key {
+    def value = scala.List(b1, b2, b3, b4)
+  }
+
+  case class Key5(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function) extends Key {
+    def value = scala.List(b1, b2, b3, b4, b5)
+  }
+
+  case class Key6(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function) extends Key {
+    def value = scala.List(b1, b2, b3, b4, b5, b6)
+  }
+
+  case class Key7(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function) extends Key {
+    def value = scala.List(b1, b2, b3, b4, b5, b6, b7)
+  }
+
+  case class Key8(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function) extends Key {
+    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8)
+  }
+
+  case class Key9(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function) extends Key {
+    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9)
+  }
+
+  case class Key10(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function) extends Key {
+    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10)
+  }
+
+  case class Key11(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function, b11: Function) extends Key {
+    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11)
+  }
+
+  case class Key12(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function, b11: Function, b12: Function) extends Key {
+    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12)
+  }
+
+  case class Key13(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function, b11: Function, b12: Function, b13: Function) extends Key {
+    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13)
+  }
+
+  case class Key14(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function, b11: Function, b12: Function, b13: Function, b14: Function) extends Key {
+    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14)
+  }
+
+  case class Key15(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function, b11: Function, b12: Function, b13: Function, b14: Function, b15: Function) extends Key {
+    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15)
+  }
+
+  case class Key16(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function, b11: Function, b12: Function, b13: Function, b14: Function, b15: Function, b16: Function) extends Key {
+    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16)
+  }
+
+  case class Aggregation[T <: RTValue](value: T, key: Function) extends ValueResult[T] {
+    override def succinct(depth: Int) = s"Aggregation($value, $key)"
+  }
 
   case class FieldFunction(fieldName: Name) extends Function
 
