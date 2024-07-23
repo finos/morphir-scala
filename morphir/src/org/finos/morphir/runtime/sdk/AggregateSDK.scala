@@ -5,9 +5,9 @@ import org.finos.morphir.ir.Type
 import org.finos.morphir.runtime.*
 import org.finos.morphir.runtime.MorphirRuntimeError.{FailedCoercion, IllegalValue}
 import org.finos.morphir.runtime.internal.*
-import org.finos.morphir.runtime.{RTValue => RT}
+import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.runtime.RTValue.Comparable.orderToInt
-import org.finos.morphir.runtime.RTValue.{Primitive, coerceComparable, coerceDecimal, coerceFloat, coerceInt, coerceNumeric, coerceTuple, unwrapNumericWithHelper}
+import org.finos.morphir.runtime.RTValue.{Primitive, coerceBoolean, coerceComparable, coerceDecimal, coerceFloat, coerceInt, coerceNumeric, coerceTuple, unwrapNumericWithHelper}
 
 import scala.collection.mutable
 
@@ -110,8 +110,9 @@ object AggregateSDK {
 
   val withFilter = DynamicNativeFunction2("withFilter") {
     (context: NativeContext) => (filterFunc: RT.Function, aggregation: RT.Aggregation) =>
-      aggregation.copy(filter = a: RTValue => {
-        context.evaluator.handleApplyResult(Type.UType.Unit(()), filterFunc, a)
+      aggregation.copy(filter = a => {
+        val result = context.evaluator.handleApplyResult(Type.UType.Unit(()), filterFunc, a)
+        coerceBoolean(result)
       })
   }
 
