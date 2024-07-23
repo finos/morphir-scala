@@ -203,6 +203,7 @@ or in watch mode to reformat changed files:
 
 Watch for updates.
 
+
 ### Contributing
 
 1. Fork it (<https://github.com/finos/morphir-scala/fork>)
