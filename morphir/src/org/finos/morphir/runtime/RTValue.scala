@@ -655,10 +655,11 @@ object RTValue {
   )
   
   sealed trait Key extends ValueResult[scala.List[Function]]
-  
-  object Key0 extends ValueResult[MInt] {
-    def value = 0
-    override def succinct(depth: Int) = s"Key0($value)"
+
+  // format: off
+  object Key0 extends Key {
+    def value = scala.List.empty[Function]
+    override def succinct(depth: Int) = s"Key0(0)"
   }
   
   case class Key2(b1: Function, b2: Function) extends Key {
@@ -721,8 +722,18 @@ object RTValue {
     def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16)
   }
 
-  case class Aggregation[T <: RTValue](value: T, key: Function) extends ValueResult[T] {
-    override def succinct(depth: Int) = s"Aggregation($value, $key)"
+  // format: on
+  
+  object Aggregation {
+    private val noFilter: RTValue => Primitive.Boolean = _ => Primitive.Boolean(true)
+    
+    def apply(operation: List => Primitive.Float, key: Key = Key0): Aggregation = {
+      Aggregation(operation, key, noFilter)
+    }
+  }
+
+  case class Aggregation(operation: List => Primitive.Float, key: Key, filter: RTValue => Primitive.Boolean) extends ValueResult[RTValue] {
+    override def succinct(depth: Int) = s"Aggregation($key, $filter, $operation)"
   }
 
   case class FieldFunction(fieldName: Name) extends Function
