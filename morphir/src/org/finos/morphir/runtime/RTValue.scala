@@ -723,16 +723,16 @@ object RTValue {
   }
 
   // format: on
-  
+
   object Aggregation {
     private val noFilter: RTValue => Primitive.Boolean = _ => Primitive.Boolean(true)
-    
+
     def apply(operation: List => Primitive.Float, key: Key = Key0): Aggregation = {
       Aggregation(operation, key, noFilter)
     }
   }
 
-  case class Aggregation(operation: List => Primitive.Float, key: Key, filter: RTValue => Primitive.Boolean) extends ValueResult[RTValue] {
+  case class Aggregation(operation: List => Primitive.Float, key: Key, filter: RTValue => Primitive.Boolean) extends RTValue {
     override def succinct(depth: Int) = s"Aggregation($key, $filter, $operation)"
   }
 
