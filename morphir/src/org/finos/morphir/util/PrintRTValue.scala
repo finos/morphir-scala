@@ -108,7 +108,15 @@ class PrintRTValue(
 
         case v: RT.Set =>
           Tree.ofRT(v)(v.elements.toList.map(r => treeify(r)))
-
+          
+        case v: RT.Aggregation =>
+          Tree.Literal(v.value.toString)
+          
+        case key: RT.Key => key match {
+          case RT.Key0 => Tree.Literal("0")
+          case v: RT.Key => Tree.ofRT(v)(v.value.map(treeify(_)))
+        }
+          
         case v: RT.Function =>
           val body = v match {
             case RT.FieldFunction(name) =>

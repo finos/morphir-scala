@@ -267,28 +267,27 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   def spec =
     suite("Evaluator MDM Specs")(
       suite("Aggregate")(
-        testEvaluation("GroupBy")("aggregateTests", "aggregateGroupByTest")(
-          Data.Map(
-            (
-              Data.String("k2_1"),
-              Data.List(
-                Data.Tuple(Data.String("k2_1"), Data.Int32(1)),
-                Data.Tuple(Data.String("k2_1"), Data.Int32(2)),
-                Data.Tuple(Data.String("k2_1"), Data.Int32(5)),
-                Data.Tuple(Data.String("k2_1"), Data.Int32(6))
-              )
-            ),
-            (
-              Data.String("k2_2"),
-              Data.List(
-                Data.Tuple(Data.String("k2_2"), Data.Int32(3)),
-                Data.Tuple(Data.String("k2_2"), Data.Int32(4)),
-                Data.Tuple(Data.String("k2_2"), Data.Int32(7)),
-                Data.Tuple(Data.String("k2_2"), Data.Int32(8))
-              )
-            )
-          )
-        )
+        testEvaluation("GroupBy")("aggregateTests", "aggregateGroupByTest")(Data.Map()),
+        testEvaluation("Map2")("listTests", "listMap2Test")(Data.List(
+          Data.Int(6),
+          Data.Int(8),
+          Data.Int(10)
+        )),
+        testEvaluation("Map3")("listTests", "listMap3Test")(Data.List(
+          Data.Int(9),
+          Data.Int(12),
+          Data.Int(15)
+        )),
+        testEvaluation("Map4")("listTests", "listMap4Test")(Data.List(
+          Data.Int(12),
+          Data.Int(16),
+          Data.Int(20)
+        )),
+        testEvaluation("Map5")("listTests", "listMap5Test")(Data.List(
+          Data.Int(15),
+          Data.Int(20),
+          Data.Int(25)
+        )),
       ),
       suite("Char")(
         testEval("isUpper true")("charTests", "charIsUpperTest", 'A')(Data.Boolean(true)),

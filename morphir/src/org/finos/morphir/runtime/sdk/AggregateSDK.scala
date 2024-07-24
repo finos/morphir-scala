@@ -43,7 +43,7 @@ object AggregateSDK {
       RT.List(result)
   }
 
-  val aggregate2Map = DynamicNativeFunction4("aggregate2Map") {
+  val aggregateMap2 = DynamicNativeFunction4("aggregateMap2") {
     (context: NativeContext) => (agg1: RT.Aggregation, agg2: RT.Aggregation, f: RT.Function, list: RT.List) =>
       val result = list.value map { a =>
         val agg1Result = context.evaluator.handleApplyResult(Type.UType.Variable("a"), agg1.key, a)
@@ -56,7 +56,7 @@ object AggregateSDK {
       RT.List(result)
   }
 
-  val aggregate3Map = DynamicNativeFunction5("aggregate3Map") {
+  val aggregateMap3 = DynamicNativeFunction5("aggregateMap3") {
     (context: NativeContext) => (agg1: RT.Aggregation, agg2: RT.Aggregation, agg3: RT.Aggregation, f: RT.Function, list: RT.List) =>
       val result = list.value map { a =>
         val agg1Result = context.evaluator.handleApplyResult(Type.UType.Variable("a"), agg1.key, a)
@@ -71,7 +71,7 @@ object AggregateSDK {
       RT.List(result)
   }
 
-  val aggregate4Map = DynamicNativeFunction6("aggregate4Map") {
+  val aggregateMap4 = DynamicNativeFunction6("aggregateMap4") {
     (context: NativeContext) => (agg1: RT.Aggregation, agg2: RT.Aggregation, agg3: RT.Aggregation, agg4: RT.Aggregation, f: RT.Function, list: RT.List) =>
       val result = list.value map { a =>
         val agg1Result = context.evaluator.handleApplyResult(Type.UType.Variable("a"), agg1.key, a)
