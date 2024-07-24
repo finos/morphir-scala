@@ -24,6 +24,8 @@ import scala.collection.mutable
 
 object AggregateSDK {
 
+  // Aggregations
+
   val groupBy = DynamicNativeFunction2("groupBy") {
     (context: NativeContext) => (f: RT.Function, list: RT.List) =>
       val result = list.value groupBy { a =>
