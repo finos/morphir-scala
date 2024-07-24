@@ -288,7 +288,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
               )
             )
           )
-        ),
+        )
       ),
       suite("Char")(
         testEval("isUpper true")("charTests", "charIsUpperTest", 'A')(Data.Boolean(true)),

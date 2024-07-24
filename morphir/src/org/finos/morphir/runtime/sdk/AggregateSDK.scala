@@ -7,12 +7,23 @@ import org.finos.morphir.runtime.MorphirRuntimeError.{FailedCoercion, IllegalVal
 import org.finos.morphir.runtime.internal.*
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.runtime.RTValue.Comparable.orderToInt
-import org.finos.morphir.runtime.RTValue.{Primitive, coerceBoolean, coerceComparable, coerceDecimal, coerceFloat, coerceInt, coerceList, coerceNumeric, coerceTuple, unwrapNumericWithHelper}
+import org.finos.morphir.runtime.RTValue.{
+  Primitive,
+  coerceBoolean,
+  coerceComparable,
+  coerceDecimal,
+  coerceFloat,
+  coerceInt,
+  coerceList,
+  coerceNumeric,
+  coerceTuple,
+  unwrapNumericWithHelper
+}
 
 import scala.collection.mutable
 
 object AggregateSDK {
-  
+
   val groupBy = DynamicNativeFunction2("groupBy") {
     (context: NativeContext) => (f: RT.Function, list: RT.List) =>
       val result = list.value groupBy { a =>
