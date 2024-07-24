@@ -31,6 +31,12 @@ object RTValue {
     def value: T
   }
   sealed trait Function extends RTValue
+  
+  def coerceAggregation(arg: RTValue): Aggregation =
+    arg match {
+      case f: Aggregation => f
+      case _ => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a Aggregation")
+    }
 
   def coerceList(arg: RTValue) =
     arg match {
@@ -110,6 +116,12 @@ object RTValue {
       case _ =>
         throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a primitive Int. It is not a primitive!")
     }
+
+  def coerceKey(arg: RTValue): Key =
+    arg match {
+      case k: Key => k
+      case _ => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a Key")
+    }  
 
   def coerceFloat(arg: RTValue) =
     arg match {
@@ -733,6 +745,7 @@ object RTValue {
   }
 
   case class Aggregation(operation: List => Primitive.Float, key: Key, filter: RTValue => Primitive.Boolean) extends RTValue {
+    def value = "Aggregation"  // TODO Handle for printable value for logging
     override def succinct(depth: Int) = s"Aggregation($key, $filter, $operation)"
   }
 
