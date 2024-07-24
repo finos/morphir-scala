@@ -324,6 +324,7 @@ object NativeSDK {
   val modules: Seq[SdkModuleDescriptor] = {
     import Morphir.SDK._
     Seq(
+      Aggregate,
       Basics,
       Char,
       Decimal,
