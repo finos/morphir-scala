@@ -9,7 +9,6 @@ import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.internal.{InvokeableEvaluator, NativeFunctionSignatureAdv}
 import org.finos.morphir.runtime.*
 import org.finos.morphir.runtime.sdk.DecimalSDK.{minusOne, one, zero}
-import org.finos.morphir.runtime.sdk.AggregateSDK.count
 
 import scala.collection.mutable
 
@@ -442,7 +441,6 @@ object Native {
     FQName.fromString("Morphir.SDK:Decimal:minusOne")           -> minusOne,
     FQName.fromString("Morphir.SDK:Decimal:one")                -> one,
     FQName.fromString("Morphir.SDK:Decimal:zero")               -> zero,
-    FQName.fromString("Morphir.SDK:Aggregate:count")            -> count,
     FQName.fromString("Morphir.SDK:LocalTime:fromMilliseconds") -> fromMilliseconds
 //    FQName.fromString("Morphir.Examples.App:Example:myMap") -> map
   ) ++ DictSDK.sdk ++ SetSDK.sdk ++ StringSDK.sdk ++ SetSDK.sdk ++ TupleSDK.sdk ++ BasicsSDK.sdk

@@ -289,11 +289,6 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             )
           )
         ),
-        testEvaluation("Map")("aggregateTests", "aggregateAggregateMapTest")(Data.List(
-          Data.Int(6),
-          Data.Int(8),
-          Data.Int(10)
-        )),
       ),
       suite("Char")(
         testEval("isUpper true")("charTests", "charIsUpperTest", 'A')(Data.Boolean(true)),
