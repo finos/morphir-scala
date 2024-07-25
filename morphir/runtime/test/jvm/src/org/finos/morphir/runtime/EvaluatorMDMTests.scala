@@ -266,6 +266,30 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
   def spec =
     suite("Evaluator MDM Specs")(
+      suite("Aggregate")(
+        testEvaluation("GroupBy")("aggregateTests", "aggregateGroupByTest")(
+          Data.Map(
+            (
+              Data.String("k2_1"),
+              Data.List(
+                Data.Tuple(Data.String("k2_1"), Data.Int32(1)),
+                Data.Tuple(Data.String("k2_1"), Data.Int32(2)),
+                Data.Tuple(Data.String("k2_1"), Data.Int32(5)),
+                Data.Tuple(Data.String("k2_1"), Data.Int32(6))
+              )
+            ),
+            (
+              Data.String("k2_2"),
+              Data.List(
+                Data.Tuple(Data.String("k2_2"), Data.Int32(3)),
+                Data.Tuple(Data.String("k2_2"), Data.Int32(4)),
+                Data.Tuple(Data.String("k2_2"), Data.Int32(7)),
+                Data.Tuple(Data.String("k2_2"), Data.Int32(8))
+              )
+            )
+          )
+        )
+      ),
       suite("Char")(
         testEval("isUpper true")("charTests", "charIsUpperTest", 'A')(Data.Boolean(true)),
         testEval("isUpper false")("charTests", "charIsUpperTest", 'w')(Data.Boolean(false)),

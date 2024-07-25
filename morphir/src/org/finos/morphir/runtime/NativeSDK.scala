@@ -15,6 +15,12 @@ object NativeSDK {
 
       implicit val packageName: PackageName = PackageName.fromString("Morphir.SDK")
 
+      case object Aggregate extends SdkModuleDescriptor(moduleName = "Aggregate") {
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun2(AggregateSDK.groupBy)
+        )
+      }
+
       case object Char extends SdkModuleDescriptor("Char") {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun1(sdk.CharSDK.isUpper),
@@ -306,6 +312,7 @@ object NativeSDK {
   val modules: Seq[SdkModuleDescriptor] = {
     import Morphir.SDK._
     Seq(
+      Aggregate,
       Basics,
       Char,
       Decimal,
