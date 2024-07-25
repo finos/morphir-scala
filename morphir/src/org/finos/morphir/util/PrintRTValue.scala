@@ -144,6 +144,16 @@ class PrintRTValue(
               } else {
                 List(paramsTree, nameTree)
               }
+            case RT.ImplicitConstructorFunction(name, arguments, curried) =>
+              val paramsTree =
+                Tree.KeyValue("parameters", Tree.Apply("", arguments.map(arg => Tree.Literal(arg.toString)).iterator))
+              val curriedTree = Tree.KeyValue("curried", Tree.Apply("", curried.map(arg => treeify(arg)).iterator))
+              val nameTree    = Tree.KeyValue("name", treeify(name))
+              if (curried.size > 0) {
+                List(paramsTree, curriedTree, nameTree)
+              } else {
+                List(paramsTree, nameTree)
+              }
 
             case RT.NativeFunction(argCount, curried, signature, loc) =>
               val locString     = Tree.Literal(loc.toString)

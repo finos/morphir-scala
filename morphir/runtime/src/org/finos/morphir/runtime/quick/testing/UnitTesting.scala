@@ -97,7 +97,7 @@ object UnitTesting {
 
         if (detailedReport.passed == simplePassed)
           RTAction.succeed(detailedReport)
-          // If the results were different, something went wrong in our test framework - it either hid an error, or created one that didn't exist in the simple pass
+        // If the results were different, something went wrong in our test framework - it either hid an error, or created one that didn't exist in the simple pass
         else if (detailedReport.passed && (!simplePassed))
           throw new InvalidState(s"""Detailed Test Report passed, but simple morphir-based testing failed.
           Detailed:  $detailedReport""")
@@ -181,7 +181,7 @@ object UnitTesting {
             )
           }.toList
       ).resolveOnly // "Only" requires special handling, so do that here
-        // User-defined thunks, and non-introspected expect calls (the magic SDK functions) are run here
+    // User-defined thunks, and non-introspected expect calls (the magic SDK functions) are run here
     val withExpects = TestSet.getExpects(newGlobals, testSet)
     // And then the generated thunks are introspected, giving us our final SingleTestResults
     val withResults = TestSet.processExpects(newGlobals, withExpects)

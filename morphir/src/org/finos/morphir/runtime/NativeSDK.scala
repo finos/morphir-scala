@@ -108,10 +108,13 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(BasicsSDK.atan2),
           NativeFunctionAdapter.Fun1(BasicsSDK.degrees),
           NativeFunctionAdapter.Fun1(BasicsSDK.radians),
-          NativeFunctionAdapter.Fun1(BasicsSDK.turns)
+          NativeFunctionAdapter.Fun1(BasicsSDK.turns),
+          NativeFunctionAdapter.Fun1(BasicsSDK.round),
+          NativeFunctionAdapter.Fun1(BasicsSDK.fromPolar),
+          NativeFunctionAdapter.Fun1(BasicsSDK.toPolar)
         )
 
-        private val enumSDKConstructor = SDKConstructor(scala.List())
+        private val enumSDKConstructor = SDKConstructor.Explicit(scala.List())
 
         override val ctors: Map[FQName, SDKConstructor] =
           RTValue.Order.allFqns.map(fqn => fqn -> enumSDKConstructor).toMap
@@ -126,17 +129,27 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(DecimalSDK.div),
           NativeFunctionAdapter.Fun3(DecimalSDK.divWithDefault),
           NativeFunctionAdapter.Fun2(DecimalSDK.eq),
+          NativeFunctionAdapter.Fun1(DecimalSDK.fromFloat),
           NativeFunctionAdapter.Fun1(DecimalSDK.fromInt),
           NativeFunctionAdapter.Fun1(DecimalSDK.fromString),
           NativeFunctionAdapter.Fun2(DecimalSDK.gt),
           NativeFunctionAdapter.Fun2(DecimalSDK.gte),
+          NativeFunctionAdapter.Fun1(DecimalSDK.hundred),
+          NativeFunctionAdapter.Fun1(DecimalSDK.hundredth),
           NativeFunctionAdapter.Fun2(DecimalSDK.lt),
           NativeFunctionAdapter.Fun2(DecimalSDK.lte),
+          NativeFunctionAdapter.Fun1(DecimalSDK.million),
+          NativeFunctionAdapter.Fun1(DecimalSDK.millionth),
           NativeFunctionAdapter.Fun2(DecimalSDK.mul),
           NativeFunctionAdapter.Fun1(DecimalSDK.negate),
           NativeFunctionAdapter.Fun2(DecimalSDK.neq),
           NativeFunctionAdapter.Fun1(DecimalSDK.round),
           NativeFunctionAdapter.Fun2(DecimalSDK.sub),
+          NativeFunctionAdapter.Fun1(DecimalSDK.tenth),
+          NativeFunctionAdapter.Fun1(DecimalSDK.thousand),
+          NativeFunctionAdapter.Fun1(DecimalSDK.thousandth),
+          NativeFunctionAdapter.Fun1(DecimalSDK.toFloat),
+          NativeFunctionAdapter.Fun1(DecimalSDK._toString),
           NativeFunctionAdapter.Fun1(DecimalSDK.truncate),
           NativeFunctionAdapter.Fun2(DecimalSDK.shiftDecimalLeft),
           NativeFunctionAdapter.Fun2(DecimalSDK.shiftDecimalRight)
@@ -151,6 +164,10 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(ListSDK.length),
           NativeFunctionAdapter.Fun2(ListSDK.filter),
           NativeFunctionAdapter.Fun2(ListSDK.map),
+          NativeFunctionAdapter.Fun3(ListSDK.map2),
+          NativeFunctionAdapter.Fun4(ListSDK.map3),
+          NativeFunctionAdapter.Fun5(ListSDK.map4),
+          NativeFunctionAdapter.Fun6(ListSDK.map5),
           NativeFunctionAdapter.Fun2(ListSDK.any),
           NativeFunctionAdapter.Fun1(ListSDK.maximum),
           NativeFunctionAdapter.Fun1(ListSDK.minimum),
@@ -173,7 +190,13 @@ object NativeSDK {
           NativeFunctionAdapter.Fun2(ListSDK.repeat),
           NativeFunctionAdapter.Fun1(ListSDK.reverse),
           NativeFunctionAdapter.Fun1(ListSDK.tail),
-          NativeFunctionAdapter.Fun2(ListSDK.take)
+          NativeFunctionAdapter.Fun2(ListSDK.take),
+          NativeFunctionAdapter.Fun1(ListSDK.sum),
+          NativeFunctionAdapter.Fun1(ListSDK.product),
+          NativeFunctionAdapter.Fun2(ListSDK.intersperse),
+          NativeFunctionAdapter.Fun1(ListSDK.unzip),
+          NativeFunctionAdapter.Fun3(ListSDK.innerJoin),
+          NativeFunctionAdapter.Fun3(ListSDK.leftJoin)
         )
       }
 
@@ -225,7 +248,7 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(LocalDateSDK.toISOString)
         )
 
-        private val enumSDKConstructor = SDKConstructor(scala.List())
+        private val enumSDKConstructor = SDKConstructor.Explicit(scala.List())
 
         // Morphir.SDK:LocalDate:Month
         private val monthCtors = RTValue.Month.allFqns.map(fqn => fqn -> enumSDKConstructor).toMap

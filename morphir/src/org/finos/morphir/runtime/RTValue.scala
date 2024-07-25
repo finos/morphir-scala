@@ -1,6 +1,6 @@
 package org.finos.morphir.runtime
 
-import org.finos.morphir.ir.Type.Type
+import org.finos.morphir.ir.Type.{Type, FieldT}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Value.{Pattern, Value, TypedValue}
 import org.finos.morphir.ir.{Module, Type}
@@ -242,7 +242,8 @@ object RTValue {
     val b = coerceNumeric(arg2)
     if (a.numericType != b.numericType) {
       throw new FailedCoercion(
-        s"Error unwrapping the Primitive Numerics ${arg1} and ${arg2} into a common type, they have different numeric types: ${a.numericType} versus ${b.numericType}"
+        s"Error unwrapping the Primitive Numerics ${arg1} and ${arg2} into a common type, they have different numeric types: ${a
+            .numericType} versus ${b.numericType}"
       )
     }
     NumericsWithHelper[N](
@@ -602,6 +603,10 @@ object RTValue {
 
   case class Tuple(elements: scala.List[RTValue]) extends ValueResult[scala.List[RTValue]] with Comparable {
     def value = elements
+    def asTuple: Option[(RTValue, RTValue)] = elements match {
+      case scala.List(_1, _2) => Some((_1, _2))
+      case _                  => None
+    }
     override def succinct(depth: Int) = if (depth == 0) "Tuple(...)"
     else {
       s"Tuple(${elements.map(_.succinct(depth - 1)).mkString(", ")})"
@@ -668,6 +673,12 @@ object RTValue {
 
   case class ConstructorFunction(name: FQName, arguments: scala.List[UType], curried: scala.List[RTValue])
       extends Function
+
+  case class ImplicitConstructorFunction(
+      name: FQName,
+      arguments: scala.List[FieldT[scala.Unit]],
+      curried: collection.Map[Name, RTValue]
+  ) extends Function
 
   // TODO: We are currently using this for Maybe and Result types; those should be promoted to their own RTValues
   case class ConstructorResult(name: FQName, values: scala.List[RTValue]) extends RTValue {

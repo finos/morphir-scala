@@ -357,7 +357,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             actual <- runTest("constructorTests", "lazyFunctionTest")
             expected = Data.Tuple(Data.Int(5), Data.Int(5))
           } yield assertTrue(actual == expected)
-        }
+        },
+        testEval("Implicit Constructor")("constructorTests", "implicitConstructorTest", "abcd")(
+          Data.Record(
+            FQName.fromString("Morphir.Examples.App:ConstructorTests:SomeRecord"),
+            (Label("name"), Data.String("abcd")),
+            (Label("number"), Data.Int(5))
+          )
+        )
       ),
       suite("Destructure Tests")(
         test("As") {
@@ -453,6 +460,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             "decimalShiftRight",
             List(Data.Int(4), Data.Decimal(12.345))
           )(Data.Decimal(123450.0))
+        ),
+        suite("creation")(
+          testEval("hundred")("decimalTests", "decimalHundred", 123)(Data.Decimal(12300)),
+          testEval("hundredth")("decimalTests", "decimalHundredth", 123)(Data.Decimal(BigDecimal("1.23"))),
+          testEval("million")("decimalTests", "decimalMillion", 123)(Data.Decimal(123000000)),
+          testEval("millionth")("decimalTests", "decimalMillionth", 123)(Data.Decimal(BigDecimal("0.000123"))),
+          testEval("tenth")("decimalTests", "decimalTenth", 123)(Data.Decimal(BigDecimal("12.3"))),
+          testEval("thousand")("decimalTests", "decimalThousand", 123)(Data.Decimal(123000)),
+          testEval("thousandth")("decimalTests", "decimalThousandth", 123)(Data.Decimal(BigDecimal("0.123")))
         ),
         suite("div")(
           testEvaluation("div some")("decimalTests", "decimalGoodDiv")(Data.Optional.Some(Data.Decimal(1.8))),
@@ -586,6 +602,26 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int(5),
           Data.Int(6)
         )),
+        testEvaluation("Map2")("listTests", "listMap2Test")(Data.List(
+          Data.Int(6),
+          Data.Int(8),
+          Data.Int(10)
+        )),
+        testEvaluation("Map3")("listTests", "listMap3Test")(Data.List(
+          Data.Int(9),
+          Data.Int(12),
+          Data.Int(15)
+        )),
+        testEvaluation("Map4")("listTests", "listMap4Test")(Data.List(
+          Data.Int(12),
+          Data.Int(16),
+          Data.Int(20)
+        )),
+        testEvaluation("Map5")("listTests", "listMap5Test")(Data.List(
+          Data.Int(15),
+          Data.Int(20),
+          Data.Int(25)
+        )),
         testEval("MapDefinition")("listTests", "listMapDefinitionTest", List(1, 2, 3))(Data.List(
           Data.Int(2),
           Data.Int(3),
@@ -601,7 +637,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Float(5.0),
           Data.Float(6.0)
         )),
-        testEvaluation("Map2")("listTests", "listMapTest2")(Data.List(
+        testEvaluation("MapTest2")("listTests", "listMapTest2")(Data.List(
           Data.Boolean(false),
           Data.Boolean(true),
           Data.Boolean(false)
@@ -663,6 +699,33 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("length")("listTests", "listLengthTest")(
           (Data.Int32(6))
         ),
+        testEvaluation("intersperse")("listTests", "listIntersperseTest")(Data.List(
+          Data.Int(2),
+          Data.Int(1),
+          Data.Int(3),
+          Data.Int(1),
+          Data.Int(4)
+        )),
+        testEvaluation("unzip")("listTests", "listUnzipTest")(Data.Tuple(
+          Data.List(Data.Int(1), Data.Int(2)),
+          Data.List(Data.String("a"), Data.String("b"))
+        )),
+        testEvaluation("innerJoin")("listTests", "listInnerJoinTest")(Data.List(
+          Data.Tuple(
+            Data.Tuple(Data.Int(2), Data.String("b")),
+            Data.Tuple(Data.Int(2), Data.String("B"))
+          )
+        )),
+        testEvaluation("leftJoin")("listTests", "listLeftJoinTest")(Data.List(
+          Data.Tuple(
+            Data.Tuple(Data.Int(1), Data.String("a")),
+            Data.Optional.None(Concept.Tuple(List(Concept.Int32, Concept.String)))
+          ),
+          Data.Tuple(
+            Data.Tuple(Data.Int(2), Data.String("b")),
+            Data.Optional.Some(Data.Tuple(Data.Int(2), Data.String("B")))
+          )
+        )),
         suite("all")(
           testEval("predicate is true for all")("listTests", "listAllTest", List(1, 2, 3))(
             Data.Boolean(true)
@@ -906,6 +969,50 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             List(2, Data.List.empty(Concept.Int32))
           )(
             Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("sum")(
+          testEval("sum a list of ints returns sum of ints")("listTests", "listSumTest", List(1, 2))(
+            Data.Int(3)
+          ),
+          testEvaluation("sum a list of floats returns sum of floats")("listTests", "listSumFloatTest")(
+            Data.Float(3.0)
+          ),
+          testEval("sum a list of decimals returns sum of decimals")(
+            "listTests",
+            "listSumTest",
+            Data.List(Data.Decimal(BigDecimal("1.0")), Data.Decimal(BigDecimal("2.0")))
+          )(
+            Data.Decimal(BigDecimal("3.0"))
+          ),
+          testEval("sum an empty list returns 0")(
+            "listTests",
+            "listSumTest",
+            Data.List.empty(Concept.Int32)
+          )(
+            Data.Int(0)
+          )
+        ),
+        suite("product")(
+          testEval("multiply a list of ints returns product of ints")("listTests", "listProductTest", List(1, 2))(
+            Data.Int(2)
+          ),
+          testEvaluation("sum a list of floats returns sum of floats")("listTests", "listProductFloatTest")(
+            Data.Float(2.0)
+          ),
+          testEval("multiply a list of decimals returns product of decimals")(
+            "listTests",
+            "listProductTest",
+            Data.List(Data.Decimal(BigDecimal("1.0")), Data.Decimal(BigDecimal("2.0")))
+          )(
+            Data.Decimal(BigDecimal("2.0"))
+          ),
+          testEval("multiply an empty list returns 0")(
+            "listTests",
+            "listProductTest",
+            Data.List.empty(Concept.Int32)
+          )(
+            Data.Int(0)
           )
         )
       ),
@@ -3071,6 +3178,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEvaluation("degrees")("sdkBasicsTests", "sdkDegreesTest")(Data.Float(3.141592653589793)),
           testEvaluation("radians")("sdkBasicsTests", "sdkRadiansTest")(Data.Float(3.141592653589793)),
           testEvaluation("turns")("sdkBasicsTests", "sdkTurnsTest")(Data.Float(3.141592653589793)),
+          testEvaluation("toPolar")("sdkBasicsTests", "sdkToPolarTest")(Data.Tuple(
+            Data.Float(5),
+            Data.Float(0.9272952180016122)
+          )),
+          testEvaluation("fromPolar")("sdkBasicsTests", "sdkFromPolarTest")(Data.Tuple(
+            Data.Float(1.2247448713915892),
+            Data.Float(0.7071067811865475)
+          )),
           testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
           testEval("Ceiling whole number")("sdkBasicsTests", "basicsCeilingTest", 3.0)(Data.Int(3)),
           testEval("Floor")("sdkBasicsTests", "basicsFloorTest", 3.88)(Data.Int(3)),
@@ -3079,7 +3194,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("Truncate 2")("sdkBasicsTests", "basicsTruncateTest", -1.2)(Data.Int(-1)),
           testEval("Truncate 3")("sdkBasicsTests", "basicsTruncateTest", .4)(Data.Int(0)),
           testEval("Truncate 4")("sdkBasicsTests", "basicsTruncateTest", -.4)(Data.Int(0)),
-          testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0))
+          testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0)),
+          testEval("Round up")("sdkBasicsTests", "basicsRoundTest", Data.Float(1.6))(Data.Int(2)),
+          testEval("Round down")("sdkBasicsTests", "basicsRoundTest", Data.Float(1.4))(Data.Int(1))
         ),
         suite("Int")(
           testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),

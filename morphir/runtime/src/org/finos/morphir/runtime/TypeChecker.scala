@@ -319,10 +319,31 @@ final class TypeChecker(dists: Distributions) {
                 missedName ++ fromCtor
               case Right(other) =>
                 List(new ImproperTypeDef(name, other, s"Type union expected"))
-              case Left(err) => List(err.withContext(s"Needed looking for constructor ${fqn.toStringTitleCase}"))
+              case Left(err) =>
+                List(err.withContext(s"Needed looking for implicit constructor ${fqn.toStringTitleCase}"))
             }
+          // The following is for implicit record constructors
+          case Type.Record(_, fields) =>
+            val argErrors = checkList(
+              args.toList,
+              fields.map(_.data),
+              context.withPrefix(s"Comparing $fqn implicit constructor value to looked up type ${PrintIR(tpe)}")
+            )
+            val nameMismatch = dists.lookupTypeDefinition(fqn) match {
+              case Right(T.Definition.TypeAlias(_, aliasedRecordType)) => conformsTo(aliasedRecordType, ret, context)
+              case Right(other) => List(ImproperTypeDef(
+                  fqn,
+                  other,
+                  s"I think this is an implicit record constructor because the return type is a record, but the function points to something else"
+                ))
+              case Left(err) =>
+                List(err.withContext(s"Needed looking for implicit constructor ${fqn.toStringTitleCase}"))
+            }
+            argErrors ++ nameMismatch
+
           case NativeRef(_, _) => List() // TODO: check native constructor calls
-          case other           => List(new ImproperType(other, s"Reference to type union expected"))
+          case other =>
+            List(new ImproperType(other, s"Reference to type union or implicit record constructor expected"))
         }
     }
   }
