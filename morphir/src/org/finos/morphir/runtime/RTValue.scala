@@ -1,20 +1,21 @@
 package org.finos.morphir.runtime
 
-import org.finos.morphir.ir.Type.{Type, FieldT}
+import org.finos.morphir.ir.Type.{FieldT, Type}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
-import org.finos.morphir.ir.Value.{Pattern, Value, TypedValue}
+import org.finos.morphir.ir.Value.{Pattern, TypedValue, Value}
 import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.naming.*
 import Name.toTitleCase
 import org.finos.morphir.MInt
 import org.finos.morphir.datamodel.Concept.Result
-import org.finos.morphir.runtime.internal.{NativeFunctionSignature, NativeFunctionSignatureAdv}
-import org.finos.morphir.runtime.MorphirRuntimeError.{IllegalValue, FailedCoercion}
-import org.finos.morphir.runtime.internal.CallStackFrame
+import org.finos.morphir.runtime.internal.{CallStackFrame, DynamicNativeFunction1, NativeFunctionSignature, NativeFunctionSignatureAdv}
+import org.finos.morphir.runtime.MorphirRuntimeError.{FailedCoercion, IllegalValue}
 import org.finos.morphir.ir.Type.UType
+import org.finos.morphir.runtime.sdk.KeySDK
 import org.finos.morphir.util.PrintRTValue
 
-import scala.collection.immutable.{List as ScalaList, Set as ScalaSet, Map as ScalaMap}
+import scala.annotation.tailrec
+import scala.collection.immutable.{List as ScalaList, Map as ScalaMap, Set as ScalaSet}
 import scala.collection.mutable
 
 // TODO Integrate errors into reporting format
@@ -120,7 +121,7 @@ object RTValue {
   def coerceKey(arg: RTValue): Key =
     arg match {
       case k: Key => k
-      case _ => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a Key")
+      case rt: RTValue => Key1(rt)
     }  
 
   def coerceFloat(arg: RTValue) =
@@ -666,72 +667,96 @@ object RTValue {
       closingContext: CallStackFrame
   )
   
-  sealed trait Key extends ValueResult[scala.List[Function]]
+  object Key {
+    @tailrec
+    private def flattenTuples(list: scala.List[RTValue], tuple: scala.List[RTValue]): scala.List[RTValue] = {
+      tuple match {
+        case scala.List(k1: RTValue, k2: RTValue, t1: List) => flattenTuples(scala.List(k1, k2), t1.value)
+        case _ => list ++ tuple
+      }
+    }
+
+    private[RTValue] def flatten(keys: Tuple): scala.List[RTValue] = flattenTuples(scala.List[RTValue](), keys.value)
+    
+    def apply(tuple: Tuple): Option[Key] = {
+      val l = flatten(tuple) 
+      //TODO
+      None
+    }
+  }
+  
+  sealed trait Key extends ValueResult[scala.List[RTValue]] {
+  }
 
   // format: off
   object Key0 extends Key {
-    def value = scala.List.empty[Function]
+    def value = scala.List.empty[RTValue]
+    override def succinct(depth: Int) = s"Key0(0)"
+  }
+
+  case class Key1(key: RTValue) extends Key {
+    def value = scala.List(key)
     override def succinct(depth: Int) = s"Key0(0)"
   }
   
-  case class Key2(b1: Function, b2: Function) extends Key {
-    def value = scala.List(b1, b2)
+  case class Key2(keys: Tuple) extends Key {
+    def value = keys.value
   }
 
-  case class Key3(b1: Function, b2: Function, b3: Function) extends Key {
-    def value = scala.List(b1, b2, b3)
+  case class Key3(keys: Tuple) extends Key {
+    def value = keys.value
   }
 
-  case class Key4(b1: Function, b2: Function, b3: Function, b4: Function) extends Key {
-    def value = scala.List(b1, b2, b3, b4)
+  case class Key4(keys: Tuple) extends Key {
+    def value = Key.flatten(keys)
   }
 
-  case class Key5(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function) extends Key {
-    def value = scala.List(b1, b2, b3, b4, b5)
+  case class Key5(keys: Tuple) extends Key {
+    def value = Key.flatten(keys)
   }
 
-  case class Key6(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function) extends Key {
-    def value = scala.List(b1, b2, b3, b4, b5, b6)
+  case class Key6(keys: Tuple) extends Key {
+    def value = Key.flatten(keys)
   }
 
-  case class Key7(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function) extends Key {
-    def value = scala.List(b1, b2, b3, b4, b5, b6, b7)
+  case class Key7(keys: Tuple) extends Key {
+    def value = Key.flatten(keys)
   }
 
-  case class Key8(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function) extends Key {
-    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8)
+  case class Key8(keys: Tuple) extends Key {
+    def value = Key.flatten(keys)
   }
 
-  case class Key9(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function) extends Key {
-    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9)
+  case class Key9(keys: Tuple) extends Key {
+    def value = Key.flatten(keys)
   }
 
-  case class Key10(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function) extends Key {
-    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10)
+  case class Key10(keys: Tuple) extends Key {
+    def value = Key.flatten(keys)
   }
 
-  case class Key11(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function, b11: Function) extends Key {
-    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11)
+  case class Key11(keys: Tuple) extends Key {
+    def value = Key.flatten(keys)
   }
 
-  case class Key12(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function, b11: Function, b12: Function) extends Key {
-    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12)
+  case class Key12(keys: Tuple) extends Key {
+    def value = Key.flatten(keys)
   }
 
-  case class Key13(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function, b11: Function, b12: Function, b13: Function) extends Key {
-    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13)
+  case class Key13(keys: Tuple) extends Key {
+    def value = Key.flatten(keys)
   }
 
-  case class Key14(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function, b11: Function, b12: Function, b13: Function, b14: Function) extends Key {
-    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14)
+  case class Key14(keys: Tuple) extends Key {
+    def value = Key.flatten(keys)
   }
 
-  case class Key15(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function, b11: Function, b12: Function, b13: Function, b14: Function, b15: Function) extends Key {
-    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15)
+  case class Key15(keys: Tuple) extends Key {
+    def value = Key.flatten(keys)
   }
 
-  case class Key16(b1: Function, b2: Function, b3: Function, b4: Function, b5: Function, b6: Function, b7: Function, b8: Function, b9: Function, b10: Function, b11: Function, b12: Function, b13: Function, b14: Function, b15: Function, b16: Function) extends Key {
-    def value = scala.List(b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16)
+  case class Key16(keys: Tuple) extends Key {
+    def value = Key.flatten(keys)
   }
 
   // format: on
@@ -739,14 +764,16 @@ object RTValue {
   object Aggregation {
     private val noFilter: RTValue => Primitive.Boolean = _ => Primitive.Boolean(true)
 
-    def apply(operation: List => Primitive.Float, key: Key = Key0): Aggregation = {
+    private val key0 = NativeFunction(1, Nil, NativeFunctionSignature.Fun1(_ => Key0), CodeLocation.NativeFunction(FQName.fqn("Morphir.SDK", "Key", "key0")))
+    
+    def apply(operation: List => Primitive.Float, key: Function = key0): Aggregation = {
       Aggregation(operation, key, noFilter)
     }
   }
 
-  case class Aggregation(operation: List => Primitive.Float, key: Key, filter: RTValue => Primitive.Boolean) extends RTValue {
+  case class Aggregation(operation: List => Primitive.Float, key: Function, filter: RTValue => Primitive.Boolean) extends RTValue {
     def value = "Aggregation"  // TODO Handle for printable value for logging
-    override def succinct(depth: Int) = s"Aggregation($key, $filter, $operation)"
+    override def succinct(depth: Int) = s"Aggregation($operation, $key, $filter)"
   }
 
   case class FieldFunction(fieldName: Name) extends Function

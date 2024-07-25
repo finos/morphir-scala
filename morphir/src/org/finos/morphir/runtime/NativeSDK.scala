@@ -18,7 +18,6 @@ object NativeSDK {
       case object Aggregate extends SdkModuleDescriptor(moduleName = "Aggregate") {
         val functions: List[NativeFunctionAdapter] = scala.List(
           NativeFunctionAdapter.Fun2(AggregateSDK.groupBy),
-          NativeFunctionAdapter.Fun2(AggregateSDK.aggregate),
           NativeFunctionAdapter.Fun3(AggregateSDK.aggregateMap),
           NativeFunctionAdapter.Fun4(AggregateSDK.aggregateMap2),
           NativeFunctionAdapter.Fun5(AggregateSDK.aggregateMap3),
@@ -171,6 +170,12 @@ object NativeSDK {
           NativeFunctionAdapter.Fun1(DecimalSDK.truncate),
           NativeFunctionAdapter.Fun2(DecimalSDK.shiftDecimalLeft),
           NativeFunctionAdapter.Fun2(DecimalSDK.shiftDecimalRight)
+        )
+      }
+
+      case object Key extends SdkModuleDescriptor(moduleName = "Key") {
+        val functions: List[NativeFunctionAdapter] = scala.List(
+          NativeFunctionAdapter.Fun1(KeySDK.key0)
         )
       }
 
@@ -329,6 +334,7 @@ object NativeSDK {
       Char,
       Decimal,
       Dict,
+      Key,
       List,
       LocalDate,
       LocalTime,

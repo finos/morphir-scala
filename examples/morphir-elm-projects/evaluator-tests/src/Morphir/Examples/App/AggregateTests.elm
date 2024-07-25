@@ -228,3 +228,123 @@ aggregateAggregateMapTest ctx =
 --            (\totalValue maxValue minValue average input ->
 --                ( input, totalValue * maxValue / input.value + minValue + average )
 --            )
+
+
+{-| Test: Aggregate/count
+expected = [4.0, 5.0, 6.0]
+-}
+aggregateCountTest : TestContext -> List Float
+aggregateCountTest ctx =
+    let
+        testDataSet = [1.0, 2.0, 3.0]
+    in
+    test ctx <|
+        testDataSet |>
+            aggregateMap 
+                count
+                (\total input -> input + total)
+
+
+{-| Test: Aggregate/sumOf
+expected = [7.0, 8.0, 9.0]
+-}
+aggregateSumOfTest : TestContext -> List Float
+aggregateSumOfTest ctx =
+    let
+        testDataSet = [1.0, 2.0, 3.0]
+    in
+    test ctx <|
+        testDataSet |>
+            aggregateMap 
+                (sumOf (\a -> a))
+                (\total input -> input + total)
+
+
+{-| Test: Aggregate/minimumOf
+expected = [2.0, 3.0, 4.0]
+-}
+aggregateMinimumOfTest : TestContext -> List Float
+aggregateMinimumOfTest ctx =
+    let
+        testDataSet = [1.0, 2.0, 3.0]
+    in
+    test ctx <|
+        testDataSet |>
+            aggregateMap 
+                (minimumOf (\a -> a))
+                (\total input -> input + total)
+
+
+{-| Test: Aggregate/maximumOf
+expected = [6.0, 7.0, 8.0]
+-}
+aggregateMaximumOfTest : TestContext -> List Float
+aggregateMaximumOfTest ctx =
+    let
+        testDataSet = [2.0, 3.0, 4.0]
+    in
+    test ctx <|
+        testDataSet |>
+            aggregateMap 
+                (maximumOf (\a -> a))
+                (\total input -> input + total)
+
+
+{-| Test: Aggregate/averageOf
+expected = [3.0, 4.0, 5.0]
+-}
+aggregateAverageOfTest : TestContext -> List Float
+aggregateAverageOfTest ctx =
+    let
+        testDataSet = [1.0, 2.0, 3.0]
+    in
+    test ctx <|
+        testDataSet |>
+            aggregateMap 
+                (averageOf (\a -> a))
+                (\total input -> input + total)
+
+
+{-| Test: Aggregate/weightedAverageOf
+expected = [3.0, 4.0, 5.0]
+-}
+aggregateWeightedAverageOfTest : TestContext -> List Float
+aggregateWeightedAverageOfTest ctx =
+    let
+        testDataSet = [1.0, 2.0, 3.0]
+    in
+    test ctx <|
+        testDataSet |>
+            aggregateMap 
+                (weightedAverageOf (\a -> a) (\_ -> 1.0))
+                (\total input -> input + total)
+
+
+{-| Test: Aggregate/byKey
+expected = [3.0, 3.0, 3.0, 2.0, 2.0, 1.0]
+-}
+aggregateByKeyTest : TestContext -> List Float
+aggregateByKeyTest ctx =
+    let
+        testDataSet = [1.0, 1.0, 1.0, 2.0, 2.0, 3.0]
+    in
+    test ctx <|
+        testDataSet |>
+            aggregateMap
+                (count |> byKey (\a -> a))
+                (\total _ -> total)
+
+
+{-| Test: Aggregate/withFilter
+expected = [3.0, 2.0, 1.0]
+-}
+aggregateWithFilterTest : TestContext -> List Float
+aggregateWithFilterTest ctx =
+    let
+        testDataSet = [1.0, 1.0, 1.0, 2.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    in
+    test ctx <|
+        testDataSet |>
+            aggregateMap
+                (count |> withFilter (\a -> a < 4.0))
+                (\total _ -> total)

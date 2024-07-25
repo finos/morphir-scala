@@ -289,11 +289,77 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             )
           )
         ),
-        testEvaluation("Map")("aggregateTests", "aggregateAggregateMapTest")(Data.List(
-          Data.Int(6),
-          Data.Int(8),
-          Data.Int(10)
-        )),
+//        testEvaluation("Map")("aggregateTests", "aggregateAggregateMapTest")(
+//          Data.List(
+//            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(1)), Data.Float(8.0 / 1)),
+//            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(2)), Data.Float(8.0 / 2)),
+//            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(3)), Data.Float(8.0 / 3)),
+//            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(4)), Data.Float(8.0 / 4)),
+//            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(5)), Data.Float(8.0 / 5)),
+//            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(6)), Data.Float(8.0 / 6)),
+//            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(7)), Data.Float(8.0 / 7)),
+//            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(8)), Data.Float(8.0 / 8))
+//          )
+//        ),
+        testEvaluation("Count")("aggregateTests", "aggregateCountTest")(
+          Data.List(
+            Data.Float(4.0),
+            Data.Float(5.0),
+            Data.Float(6.0),
+          )
+        ),
+        testEvaluation("SumOf")("aggregateTests", "aggregateSumOfTest")(
+          Data.List(
+            Data.Float(7.0),
+            Data.Float(8.0),
+            Data.Float(9.0),
+          )
+        ),
+        testEvaluation("MinimumOf")("aggregateTests", "aggregateMinimumOfTest")(
+          Data.List(
+            Data.Float(2.0),
+            Data.Float(3.0),
+            Data.Float(4.0),
+          )
+        ),
+        testEvaluation("MaximumOf")("aggregateTests", "aggregateMaximumOfTest")(
+          Data.List(
+            Data.Float(6.0),
+            Data.Float(7.0),
+            Data.Float(8.0),
+          )
+        ),
+        testEvaluation("AverageOf")("aggregateTests", "aggregateAverageOfTest")(
+          Data.List(
+            Data.Float(3.0),
+            Data.Float(4.0),
+            Data.Float(5.0),
+          )
+        ),
+        testEvaluation("WeightedAverageOf")("aggregateTests", "aggregateWeightedAverageOfTest")(
+          Data.List(
+            Data.Float(3.0),
+            Data.Float(4.0),
+            Data.Float(5.0),
+          )
+        ),
+        testEvaluation("ByKey")("aggregateTests", "aggregateByKeyTest")(
+          Data.List(
+            Data.Float(3.0),
+            Data.Float(3.0),
+            Data.Float(3.0),
+            Data.Float(2.0),
+            Data.Float(2.0),
+            Data.Float(1.0),
+          )
+        ),
+        testEvaluation("WithFilter")("aggregateTests", "aggregateWithFilterTest")(
+          Data.List(
+            Data.Float(3.0),
+            Data.Float(2.0),
+            Data.Float(1.0),
+          )
+        ),
       ),
       suite("Char")(
         testEval("isUpper true")("charTests", "charIsUpperTest", 'A')(Data.Boolean(true)),
