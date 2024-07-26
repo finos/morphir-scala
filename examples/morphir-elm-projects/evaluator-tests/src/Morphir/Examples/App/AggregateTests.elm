@@ -14,17 +14,17 @@ type alias TestInput1 =
 {-| Test: Aggregate/groupBy
 expected =
     Dict.fromList
-    [ ( "k1_1"
-        , [ TestInput1 "k1_1" "k2_1" 1
-        , TestInput1 "k1_1" "k2_1" 2
-        , TestInput1 "k1_1" "k2_2" 3
-        , TestInput1 "k1_1" "k2_2" 4
+    [ ( "k1_1",
+        [ ("k1_1", 1)
+        , ("k1_1", 2)
+        , ("k1_1", 3)
+        , ("k1_1", 4)
         ]
     , ( "k1_2",
-        , [ TestInput1 "k1_2" "k2_1" 5
-        , TestInput1 "k1_2" "k2_1" 6
-        , TestInput1 "k1_2" "k2_2" 7
-        , TestInput1 "k1_2" "k2_2" 8
+        [ ("k1_2", 5)
+        , ("k1_2", 6)
+        , ("k1_2", 7)
+        , ("k1_2", 8)
         ]
     ]
 -}
@@ -90,144 +90,141 @@ aggregateGroupByTest ctx =
 
 {-| Test: Aggregate/aggregateMap
 expected =
-    [ ( ("k1_1", 1), 10 / 1 )
-    , ( ("k1_1", 2), 10 / 2 )
-    , ( ("k1_1", 3), 10 / 3 )
-    , ( ("k1_1", 4), 10 / 4 )
-    , ( ("k1_2", 5), 26 / 5 )
-    , ( ("k1_2", 6), 26 / 6 )
-    , ( ("k1_2", 7), 26 / 7 )
-    , ( ("k1_2", 8), 26 / 8 )
+    [ ( ("k1_1", 1.0), 10.0 / 1.0 )
+    , ( ("k1_1", 2.0), 10.0 / 2.0 )
+    , ( ("k1_1", 3.0), 10.0 / 3.0 )
+    , ( ("k1_1", 4.0), 10.0 / 4.0 )
+    , ( ("k1_2", 5.0), 26.0 / 5.0 )
+    , ( ("k1_2", 6.0), 26.0 / 6.0 )
+    , ( ("k1_2", 7.0), 26.0 / 7.0 )
+    , ( ("k1_2", 8.0), 26.0 / 8.0 )
     ]
 -}
 aggregateAggregateMapTest : TestContext -> List ((String, Float), Float)
 aggregateAggregateMapTest ctx =
     let
         testDataSet =
-            [ ("k1_1", 1)
-            , ("k1_1", 2)
-            , ("k1_1", 3)
-            , ("k1_1", 4)
-            , ("k1_2", 5)
-            , ("k1_2", 6)
-            , ("k1_2", 7)
-            , ("k1_2", 8)
+            [ ("k1_1", 1.0)
+            , ("k1_1", 2.0)
+            , ("k1_1", 3.0)
+            , ("k1_1", 4.0)
+            , ("k1_2", 5.0)
+            , ("k1_2", 6.0)
+            , ("k1_2", 7.0)
+            , ("k1_2", 8.0)
             ]
     in
-    testDataSet
-        |> aggregateMap 
-            (count |> byKey <| second)
-            (\totalValue input ->
-                ( input, totalValue / (second input) )
-            )
+    test ctx <|
+        testDataSet
+            |> aggregateMap
+                ((sumOf <| second) |> (byKey <| first))
+                (\sumValue input ->
+                    ( input, sumValue / (second input) )
+                )
 
 
---{-| Test: Aggregate/aggregateMap2
---expected =
---    [ ( TestInput1 "k1_1" "k2_1" 1, 10 * 6 / 1 )
---    , ( TestInput1 "k1_1" "k2_1" 2, 10 * 6 / 2 )
---    , ( TestInput1 "k1_1" "k2_2" 3, 10 * 8 / 3 )
---    , ( TestInput1 "k1_1" "k2_2" 4, 10 * 8 / 4 )
---    , ( TestInput1 "k1_2" "k2_1" 5, 26 * 6 / 5 )
---    , ( TestInput1 "k1_2" "k2_1" 6, 26 * 6 / 6 )
---    , ( TestInput1 "k1_2" "k2_2" 7, 26 * 8 / 7 )
---    , ( TestInput1 "k1_2" "k2_2" 8, 26 * 8 / 8 )
---    ]
----}
---aggregateAggregateMap2Test : TestContext -> List b
---aggregateAggregateMap2Test ctx =
---    let
---        testDataSet =
---            [ TestInput1 "k1_1" "k2_1" 1
---            , TestInput1 "k1_1" "k2_1" 2
---            , TestInput1 "k1_1" "k2_2" 3
---            , TestInput1 "k1_1" "k2_2" 4
---            , TestInput1 "k1_2" "k2_1" 5
---            , TestInput1 "k1_2" "k2_1" 6
---            , TestInput1 "k1_2" "k2_2" 7
---            , TestInput1 "k1_2" "k2_2" 8
---            ]
---    in
---    testDataSet
---        |> aggregateMap2
---            (sumOf .value |> byKey .key1)
---            (maximumOf .value |> byKey .key2)
---            (\totalValue maxValue input ->
---                ( input, totalValue * maxValue / input.value )
---            )
+{-| Test: Aggregate/aggregateMap2
+expected =
+   [ (("k1_1", 1.0), 10.0 * 4.0 / 1.0 )
+   , (("k1_1", 2.0), 10.0 * 4.0 / 2.0 )
+   , (("k1_1", 3.0), 10.0 * 8.0 / 3.0 )
+   , (("k1_1", 4.0), 10.0 * 8.0 / 4.0 )
+   , (("k1_2", 5.0), 26.0 * 4.0 / 5.0 )
+   , (("k1_2", 6.0), 26.0 * 4.0 / 6.0 )
+   , (("k1_2", 7.0), 26.0 * 8.0 / 7.0 )
+   , (("k1_2", 8.0), 26.0 * 8.0 / 8.0 )
+   ]
+-}
+aggregateAggregateMap2Test : TestContext -> List ((String, Float), Float)
+aggregateAggregateMap2Test ctx =
+   let
+       testDataSet =
+           [ ("k1_1", 1.0)
+           , ("k1_1", 2.0)
+           , ("k1_1", 3.0)
+           , ("k1_1", 4.0)
+           , ("k1_2", 5.0)
+           , ("k1_2", 6.0)
+           , ("k1_2", 7.0)
+           , ("k1_2", 8.0)
+           ]
+   in
+   testDataSet
+       |> aggregateMap2
+           ((sumOf <| second) |> (byKey <| first))
+           ((maximumOf <| second) |> (byKey <| first))
+           (\sumValue maxValue input ->
+               ( input, sumValue * maxValue / (second input))
+           )
 
 
---{-| Test: Aggregate/aggregateMap3
---expected =
---    [ ( TestInput1 "k1_1" "k2_1" 1, 10 * 6 / 1 + 1 )
---    , ( TestInput1 "k1_1" "k2_1" 2, 10 * 6 / 2 + 1 )
---    , ( TestInput1 "k1_1" "k2_2" 3, 10 * 8 / 3 + 3 )
---    , ( TestInput1 "k1_1" "k2_2" 4, 10 * 8 / 4 + 3 )
---    , ( TestInput1 "k1_2" "k2_1" 5, 26 * 6 / 5 + 5 )
---    , ( TestInput1 "k1_2" "k2_1" 6, 26 * 6 / 6 + 5 )
---    , ( TestInput1 "k1_2" "k2_2" 7, 26 * 8 / 7 + 7 )
---    , ( TestInput1 "k1_2" "k2_2" 8, 26 * 8 / 8 + 7 )
---    ]
----}
---aggregateAggregateMap3Test : TestContext -> List b
---aggregateAggregateMap3Test ctx =
---    let
---        testDataSet =
---            [ TestInput1 "k1_1" "k2_1" 1
---            , TestInput1 "k1_1" "k2_1" 2
---            , TestInput1 "k1_1" "k2_2" 3
---            , TestInput1 "k1_1" "k2_2" 4
---            , TestInput1 "k1_2" "k2_1" 5
---            , TestInput1 "k1_2" "k2_1" 6
---            , TestInput1 "k1_2" "k2_2" 7
---            , TestInput1 "k1_2" "k2_2" 8
---            ]
---    in
---    testDataSet
---        |> aggregateMap3
---            (sumOf .value |> byKey .key1)
---            (maximumOf .value |> byKey .key2)
---            (minimumOf .value |> byKey (key2 .key1 .key2))
---            (\totalValue maxValue minValue input ->
---                ( input, totalValue * maxValue / input.value + minValue )
---            )
+{-| Test: Aggregate/aggregateMap3
+expected =
+   [ ( TestInput1 "k1_1" "k2_1" 1, 10 * 6 / 1 + 1 )
+   , ( TestInput1 "k1_1" "k2_1" 2, 10 * 6 / 2 + 1 )
+   , ( TestInput1 "k1_1" "k2_2" 3, 10 * 8 / 3 + 1 )
+   , ( TestInput1 "k1_1" "k2_2" 4, 10 * 8 / 4 + 1 )
+   , ( TestInput1 "k1_2" "k2_1" 5, 26 * 6 / 5 + 5 )
+   , ( TestInput1 "k1_2" "k2_1" 6, 26 * 6 / 6 + 5 )
+   , ( TestInput1 "k1_2" "k2_2" 7, 26 * 8 / 7 + 5 )
+   , ( TestInput1 "k1_2" "k2_2" 8, 26 * 8 / 8 + 5 )
+   ]
+-}
+aggregateAggregateMap3Test : TestContext -> List ((String, Float), Float)
+aggregateAggregateMap3Test ctx =
+   let
+       testDataSet =
+           [ ("k1_1", 1.0)
+           , ("k1_1", 2.0)
+           , ("k1_1", 3.0)
+           , ("k1_1", 4.0)
+           , ("k1_2", 5.0)
+           , ("k1_2", 6.0)
+           , ("k1_2", 7.0)
+           , ("k1_2", 8.0)
+           ]
+   in
+   testDataSet
+       |> aggregateMap3
+           ((sumOf <| second) |> (byKey <| first))
+           ((maximumOf <| second) |> (byKey <| first))
+           ((minimumOf <| second) |> (byKey <| first))
+           (\totalValue maxValue minValue input ->
+               ( input, totalValue * maxValue / (second input) + minValue )
+           )
 
 
---{-| Test: Aggregate/aggregateMap4
---expected =
---    [ ( TestInput1 "k1_1" "k2_1" 1, 10 * 6 / 1 + 1 + 1.5 )
---    , ( TestInput1 "k1_1" "k2_1" 2, 10 * 6 / 2 + 1 + 1.5 )
---    , ( TestInput1 "k1_1" "k2_2" 3, 10 * 8 / 3 + 3 + 3.5 )
---    , ( TestInput1 "k1_1" "k2_2" 4, 10 * 8 / 4 + 3 + 3.5 )
---    , ( TestInput1 "k1_2" "k2_1" 5, 26 * 6 / 5 + 5 + 5.5 )
---    , ( TestInput1 "k1_2" "k2_1" 6, 26 * 6 / 6 + 5 + 5.5 )
---    , ( TestInput1 "k1_2" "k2_2" 7, 26 * 8 / 7 + 7 + 7.5 )
---    , ( TestInput1 "k1_2" "k2_2" 8, 26 * 8 / 8 + 7 + 7.5 )
---    ]
----}
---aggregateAggregateMap4Test : TestContext -> List b
---aggregateAggregateMap4Test ctx =
---    let
---        testDataSet =
---            [ TestInput1 "k1_1" "k2_1" 1
---            , TestInput1 "k1_1" "k2_1" 2
---            , TestInput1 "k1_1" "k2_2" 3
---            , TestInput1 "k1_1" "k2_2" 4
---            , TestInput1 "k1_2" "k2_1" 5
---            , TestInput1 "k1_2" "k2_1" 6
---            , TestInput1 "k1_2" "k2_2" 7
---            , TestInput1 "k1_2" "k2_2" 8
---            ]
---    in
---    testDataSet
---        |> aggregateMap4
---            (sumOf .value |> byKey .key1)
---            (maximumOf .value |> byKey .key2)
---            (minimumOf .value |> byKey (key2 .key1 .key2))
---            (averageOf .value |> byKey (key2 .key1 .key2))
---            (\totalValue maxValue minValue average input ->
---                ( input, totalValue * maxValue / input.value + minValue + average )
---            )
+{-| Test: Aggregate/aggregateMap4
+expected =
+   [ ( TestInput1 "k1_1" "k2_1" 1, 10 * 6 / 1 + 1 + 2.5 )
+   , ( TestInput1 "k1_1" "k2_1" 2, 10 * 6 / 2 + 1 + 2.5 )
+   , ( TestInput1 "k1_1" "k2_2" 3, 10 * 8 / 3 + 3 + 2.5 )
+   , ( TestInput1 "k1_1" "k2_2" 4, 10 * 8 / 4 + 3 + 2.5 )
+   ]
+-}
+aggregateAggregateMap4Test : TestContext -> List ((String, Float), Float)
+aggregateAggregateMap4Test ctx =
+   let
+       testDataSet =
+           [ ("k1_1", 1.0)
+           , ("k1_1", 2.0)
+           , ("k1_1", 3.0)
+           , ("k1_1", 4.0)
+           , ("k1_2", 5.0)
+           , ("k1_2", 6.0)
+           , ("k1_2", 7.0)
+           , ("k1_2", 8.0)
+           ]
+   in
+   testDataSet
+       |> aggregateMap4
+           ((sumOf <| second) |> (byKey <| first))
+           ((maximumOf <| second) |> (byKey <| first))
+           ((minimumOf <| second) |> (byKey <| first))
+           ((averageOf <| second) |> (withFilter (\a -> (first a) == "k1_1")))
+           (\totalValue maxValue minValue average input ->
+               ( input, totalValue * maxValue / (second input) + minValue + average )
+           )
 
 
 {-| Test: Aggregate/count
@@ -321,12 +318,12 @@ aggregateWeightedAverageOfTest ctx =
 
 
 {-| Test: Aggregate/byKey
-expected = [3.0, 3.0, 3.0, 2.0, 2.0, 1.0]
+expected = [3.0, 3.0, 3.0, 2.0, 2.0]
 -}
 aggregateByKeyTest : TestContext -> List Float
 aggregateByKeyTest ctx =
     let
-        testDataSet = [1.0, 1.0, 1.0, 2.0, 2.0, 3.0]
+        testDataSet = [1.0, 1.0, 1.0, 2.0, 2.0]
     in
     test ctx <|
         testDataSet |>
@@ -336,7 +333,7 @@ aggregateByKeyTest ctx =
 
 
 {-| Test: Aggregate/withFilter
-expected = [3.0, 2.0, 1.0]
+expected = [6.0, 6.0, 6.0, 6.0, 6.0, 6.0]
 -}
 aggregateWithFilterTest : TestContext -> List Float
 aggregateWithFilterTest ctx =
