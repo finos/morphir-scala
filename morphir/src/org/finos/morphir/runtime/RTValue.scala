@@ -681,12 +681,6 @@ object RTValue {
       }
 
     private[RTValue] def flatten(keys: Tuple): scala.List[RTValue] = flattenTuples(scala.List[RTValue](), keys.value)
-
-    def apply(tuple: Tuple): Option[Key] = {
-      val l = flatten(tuple)
-      // TODO
-      None
-    }
   }
 
   sealed trait Key extends ValueResult[scala.List[RTValue]] {}
