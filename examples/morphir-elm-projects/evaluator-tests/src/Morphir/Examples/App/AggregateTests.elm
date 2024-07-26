@@ -49,46 +49,6 @@ aggregateGroupByTest ctx =
                 first
 
 
---{-| Test: Aggregate/aggregate
---expected =
---    [ { key = "k1_1", count = 4, sum = 10, max = 4, min = 1 }
---    , { key = "k1_2", count = 2, sum = 26, max = 8, min = 5 }
---    ]
----}
---aggregateAggregateTest : TestContext -> List b
---aggregateAggregateTest ctx =
---    let
---        grouped =
---            Dict.fromList
---                [ ( "k1_1",
---                    [ TestInput1 "k1_1" "k2_1" 1
---                    , TestInput1 "k1_1" "k2_1" 2
---                    , TestInput1 "k1_1" "k2_2" 3
---                    , TestInput1 "k1_1" "k2_2" 4
---                    ]
---                    )
---                , ( "k1_2",
---                    [ TestInput1 "k1_2" "k2_1" 5
---                    , TestInput1 "k1_2" "k2_1" 6
---                    , TestInput1 "k1_2" "k2_2" 7
---                    , TestInput1 "k1_2" "k2_2" 8
---                    ]
---                    )
---                ]
---    in
---    test ctx <|
---        grouped
---            |> aggregate
---                (\key inputs ->
---                    { key = key
---                    , count = inputs (count |> withFilter (\a -> a.value < 7))
---                    , sum = inputs (sumOf .value)
---                    , max = inputs (maximumOf .value)
---                    , min = inputs (minimumOf .value)
---                    }
---                )
-
-
 {-| Test: Aggregate/aggregateMap
 expected =
     [ ( ("k1_1", 1.0), 10.0 / 1.0 )

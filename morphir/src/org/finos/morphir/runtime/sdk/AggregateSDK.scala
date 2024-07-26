@@ -22,23 +22,13 @@ object AggregateSDK {
       RT.Map(mutable.LinkedHashMap.from(r))
   }
 
-//  val aggregate = DynamicNativeFunction2("aggregate") {
-//    (context: NativeContext) => (f: RT.Function, dict: RT.Map) =>
-//      val result = dict.value flatMap { case (mapKey, values) =>
-//        coerceList(values).value map { a =>
-//          context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, mapKey, a)
-//        }
-//      }
-//      RT.List(result.toList)
-//  }
-
-  object AggregateMapHelper {
+  private object AggregateMapHelper {
     def apply(list: RT.List): List[AggregateMapHelper] = {
       list.value.map(AggregateMapHelper(_, Nil))
     }
   }
 
-  case class AggregateMapHelper(originalValue: RTValue, opResults: List[RT.Primitive.Float])
+  private case class AggregateMapHelper(originalValue: RTValue, opResults: List[RT.Primitive.Float])
 
   private def mapAndFilter(agg: RT.Aggregation, list: List[AggregateMapHelper])(ctx: NativeContext): List[AggregateMapHelper] = {
     val filtered: List[AggregateMapHelper] = list filter { case AggregateMapHelper(a, _) =>
