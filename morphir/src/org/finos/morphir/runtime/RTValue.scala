@@ -126,7 +126,7 @@ object RTValue {
   def coerceKey(arg: RTValue): Key =
     arg match {
       case k: Key      => k
-      case rt: RTValue => Key1(rt) //keys are arbitrary, so if not a key, just make it a Key1
+      case rt: RTValue => Key1(rt) // keys are arbitrary, so if not a key, just make it a Key1
     }
 
   def coerceFloat(arg: RTValue) =
