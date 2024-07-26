@@ -301,6 +301,38 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(8.0)), Data.Float(26.0 / 8.0))
           )
         ),
+        testEvaluation("Map2")("aggregateTests", "aggregateAggregateMap2Test")(
+          Data.List(
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(1.0)), Data.Float(10.0 * 4.0 / 1.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(2.0)), Data.Float(10.0 * 4.0 / 2.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(3.0)), Data.Float(10.0 * 4.0 / 3.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(4.0)), Data.Float(10.0 * 4.0 / 4.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(5.0)), Data.Float(26.0 * 8.0 / 5.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(6.0)), Data.Float(26.0 * 8.0 / 6.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(7.0)), Data.Float(26.0 * 8.0 / 7.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(8.0)), Data.Float(26.0 * 8.0 / 8.0))
+          )
+        ),
+        testEvaluation("Map3")("aggregateTests", "aggregateAggregateMap3Test")(
+          Data.List(
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(1.0)), Data.Float(10.0 * 4.0 / 1.0 + 1)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(2.0)), Data.Float(10.0 * 4.0 / 2.0 + 1)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(3.0)), Data.Float(10.0 * 4.0 / 3.0 + 1)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(4.0)), Data.Float(10.0 * 4.0 / 4.0 + 1)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(5.0)), Data.Float(26.0 * 8.0 / 5.0 + 5)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(6.0)), Data.Float(26.0 * 8.0 / 6.0 + 5)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(7.0)), Data.Float(26.0 * 8.0 / 7.0 + 5)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(8.0)), Data.Float(26.0 * 8.0 / 8.0 + 5))
+          )
+        ),
+        testEvaluation("Map4")("aggregateTests", "aggregateAggregateMap4Test")(
+          Data.List(
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(1.0)), Data.Float(10.0 * 4.0 / 1.0 + 1 + 2.5)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(2.0)), Data.Float(10.0 * 4.0 / 2.0 + 1 + 2.5)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(3.0)), Data.Float(10.0 * 4.0 / 3.0 + 1 + 2.5)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(4.0)), Data.Float(10.0 * 4.0 / 4.0 + 1 + 2.5))
+          )
+        ),
         testEvaluation("Count")("aggregateTests", "aggregateCountTest")(
           Data.List(
             Data.Float(4.0),

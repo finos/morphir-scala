@@ -4,6 +4,7 @@ import Dict exposing (Dict)
 import Morphir.SDK.Aggregate exposing (..)
 import Morphir.Examples.App.TestUtils exposing (..)
 import Tuple exposing (..)
+import List exposing (sortBy)
 
 type alias TestInput1 =
     { key1 : String
@@ -115,24 +116,26 @@ aggregateAggregateMapTest ctx =
             ]
     in
     test ctx <|
-        testDataSet
+        (testDataSet
             |> aggregateMap
                 ((sumOf <| second) |> (byKey <| first))
                 (\sumValue input ->
                     ( input, sumValue / (second input) )
                 )
+                |> sortBy (\a -> (second (first a)))
+        )
 
 
 {-| Test: Aggregate/aggregateMap2
 expected =
-   [ (("k1_1", 1.0), 10.0 * 4.0 / 1.0 )
-   , (("k1_1", 2.0), 10.0 * 4.0 / 2.0 )
-   , (("k1_1", 3.0), 10.0 * 8.0 / 3.0 )
-   , (("k1_1", 4.0), 10.0 * 8.0 / 4.0 )
-   , (("k1_2", 5.0), 26.0 * 4.0 / 5.0 )
-   , (("k1_2", 6.0), 26.0 * 4.0 / 6.0 )
-   , (("k1_2", 7.0), 26.0 * 8.0 / 7.0 )
-   , (("k1_2", 8.0), 26.0 * 8.0 / 8.0 )
+   [ ( ("k1_1", 1.0), 10.0 * 4.0 / 1.0 )
+   , ( ("k1_1", 2.0), 10.0 * 4.0 / 2.0 )
+   , ( ("k1_1", 3.0), 10.0 * 8.0 / 3.0 )
+   , ( ("k1_1", 4.0), 10.0 * 8.0 / 4.0 )
+   , ( ("k1_2", 5.0), 26.0 * 4.0 / 5.0 )
+   , ( ("k1_2", 6.0), 26.0 * 4.0 / 6.0 )
+   , ( ("k1_2", 7.0), 26.0 * 8.0 / 7.0 )
+   , ( ("k1_2", 8.0), 26.0 * 8.0 / 8.0 )
    ]
 -}
 aggregateAggregateMap2Test : TestContext -> List ((String, Float), Float)
@@ -149,25 +152,28 @@ aggregateAggregateMap2Test ctx =
            , ("k1_2", 8.0)
            ]
    in
-   testDataSet
-       |> aggregateMap2
-           ((sumOf <| second) |> (byKey <| first))
-           ((maximumOf <| second) |> (byKey <| first))
-           (\sumValue maxValue input ->
-               ( input, sumValue * maxValue / (second input))
-           )
+    test ctx <|
+        (testDataSet
+            |> aggregateMap2
+                ((sumOf <| second) |> (byKey <| first))
+                ((maximumOf <| second) |> (byKey <| first))
+                (\sumValue maxValue input ->
+                    ( input, sumValue * maxValue / (second input))
+                )
+                |> sortBy (\a -> (second (first a)))
+        )
 
 
 {-| Test: Aggregate/aggregateMap3
 expected =
-   [ ( TestInput1 "k1_1" "k2_1" 1, 10 * 6 / 1 + 1 )
-   , ( TestInput1 "k1_1" "k2_1" 2, 10 * 6 / 2 + 1 )
-   , ( TestInput1 "k1_1" "k2_2" 3, 10 * 8 / 3 + 1 )
-   , ( TestInput1 "k1_1" "k2_2" 4, 10 * 8 / 4 + 1 )
-   , ( TestInput1 "k1_2" "k2_1" 5, 26 * 6 / 5 + 5 )
-   , ( TestInput1 "k1_2" "k2_1" 6, 26 * 6 / 6 + 5 )
-   , ( TestInput1 "k1_2" "k2_2" 7, 26 * 8 / 7 + 5 )
-   , ( TestInput1 "k1_2" "k2_2" 8, 26 * 8 / 8 + 5 )
+   [ ( ("k1_1", 1), 10 * 6 / 1 + 1 )
+   , ( ("k1_1", 2), 10 * 6 / 2 + 1 )
+   , ( ("k1_1", 3), 10 * 8 / 3 + 1 )
+   , ( ("k1_1", 4), 10 * 8 / 4 + 1 )
+   , ( ("k1_2", 5), 26 * 6 / 5 + 5 )
+   , ( ("k1_2", 6), 26 * 6 / 6 + 5 )
+   , ( ("k1_2", 7), 26 * 8 / 7 + 5 )
+   , ( ("k1_2", 8), 26 * 8 / 8 + 5 )
    ]
 -}
 aggregateAggregateMap3Test : TestContext -> List ((String, Float), Float)
@@ -184,47 +190,53 @@ aggregateAggregateMap3Test ctx =
            , ("k1_2", 8.0)
            ]
    in
-   testDataSet
-       |> aggregateMap3
-           ((sumOf <| second) |> (byKey <| first))
-           ((maximumOf <| second) |> (byKey <| first))
-           ((minimumOf <| second) |> (byKey <| first))
-           (\totalValue maxValue minValue input ->
-               ( input, totalValue * maxValue / (second input) + minValue )
-           )
+    test ctx <|
+        (testDataSet
+            |> aggregateMap3
+                    ((sumOf <| second) |> (byKey <| first))
+                    ((maximumOf <| second) |> (byKey <| first))
+                    ((minimumOf <| second) |> (byKey <| first))
+                    (\totalValue maxValue minValue input ->
+                        ( input, totalValue * maxValue / (second input) + minValue )
+                    )
+                    |> sortBy (\a -> (second (first a)))
+        )
 
 
 {-| Test: Aggregate/aggregateMap4
 expected =
-   [ ( TestInput1 "k1_1" "k2_1" 1, 10 * 6 / 1 + 1 + 2.5 )
-   , ( TestInput1 "k1_1" "k2_1" 2, 10 * 6 / 2 + 1 + 2.5 )
-   , ( TestInput1 "k1_1" "k2_2" 3, 10 * 8 / 3 + 3 + 2.5 )
-   , ( TestInput1 "k1_1" "k2_2" 4, 10 * 8 / 4 + 3 + 2.5 )
+   [ ( ("k1_1", 1), 10 * 6 / 1 + 1 + 2.5 )
+   , ( ("k1_1", 2), 10 * 6 / 2 + 1 + 2.5 )
+   , ( ("k1_1", 3), 10 * 8 / 3 + 3 + 2.5 )
+   , ( ("k1_1", 4), 10 * 8 / 4 + 3 + 2.5 )
    ]
 -}
 aggregateAggregateMap4Test : TestContext -> List ((String, Float), Float)
 aggregateAggregateMap4Test ctx =
-   let
-       testDataSet =
-           [ ("k1_1", 1.0)
-           , ("k1_1", 2.0)
-           , ("k1_1", 3.0)
-           , ("k1_1", 4.0)
-           , ("k1_2", 5.0)
-           , ("k1_2", 6.0)
-           , ("k1_2", 7.0)
-           , ("k1_2", 8.0)
-           ]
-   in
-   testDataSet
-       |> aggregateMap4
-           ((sumOf <| second) |> (byKey <| first))
-           ((maximumOf <| second) |> (byKey <| first))
-           ((minimumOf <| second) |> (byKey <| first))
-           ((averageOf <| second) |> (withFilter (\a -> (first a) == "k1_1")))
-           (\totalValue maxValue minValue average input ->
-               ( input, totalValue * maxValue / (second input) + minValue + average )
-           )
+    let
+        testDataSet =
+            [ ("k1_1", 1.0)
+            , ("k1_1", 2.0)
+            , ("k1_1", 3.0)
+            , ("k1_1", 4.0)
+            , ("k1_2", 5.0)
+            , ("k1_2", 6.0)
+            , ("k1_2", 7.0)
+            , ("k1_2", 8.0)
+            ]
+    in
+    test ctx <|
+        (testDataSet
+            |> aggregateMap4
+                ((sumOf <| second) |> (byKey <| first))
+                ((maximumOf <| second) |> (byKey <| first))
+                ((minimumOf <| second) |> (byKey <| first))
+                ((averageOf <| second) |> (withFilter (\a -> (first a) == "k1_1")))
+                (\totalValue maxValue minValue average input ->
+                    ( input, totalValue * maxValue / (second input) + minValue + average )
+                )
+                |> sortBy (\a -> (second (first a)))
+        )
 
 
 {-| Test: Aggregate/count
