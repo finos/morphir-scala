@@ -8,7 +8,12 @@ import org.finos.morphir.naming.*
 import Name.toTitleCase
 import org.finos.morphir.MInt
 import org.finos.morphir.datamodel.Concept.Result
-import org.finos.morphir.runtime.internal.{CallStackFrame, DynamicNativeFunction1, NativeFunctionSignature, NativeFunctionSignatureAdv}
+import org.finos.morphir.runtime.internal.{
+  CallStackFrame,
+  DynamicNativeFunction1,
+  NativeFunctionSignature,
+  NativeFunctionSignatureAdv
+}
 import org.finos.morphir.runtime.MorphirRuntimeError.{FailedCoercion, IllegalValue}
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.runtime.sdk.KeySDK
@@ -32,11 +37,11 @@ object RTValue {
     def value: T
   }
   sealed trait Function extends RTValue
-  
+
   def coerceAggregation(arg: RTValue): Aggregation =
     arg match {
       case f: Aggregation => f
-      case _ => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a Aggregation")
+      case _              => throw new FailedCoercion(s"Cannot unwrap the value `${arg}` into a Aggregation")
     }
 
   def coerceList(arg: RTValue) =
@@ -120,9 +125,9 @@ object RTValue {
 
   def coerceKey(arg: RTValue): Key =
     arg match {
-      case k: Key => k
-      case rt: RTValue => Key1(rt)
-    }  
+      case k: Key      => k
+      case rt: RTValue => Key1(rt) //keys are arbitrary, so if not a key, just make it a Key1
+    }
 
   def coerceFloat(arg: RTValue) =
     arg match {
@@ -666,27 +671,25 @@ object RTValue {
       curried: scala.List[(Name, RTValue)],
       closingContext: CallStackFrame
   )
-  
+
   object Key {
     @tailrec
-    private def flattenTuples(list: scala.List[RTValue], tuple: scala.List[RTValue]): scala.List[RTValue] = {
+    private def flattenTuples(list: scala.List[RTValue], tuple: scala.List[RTValue]): scala.List[RTValue] =
       tuple match {
         case scala.List(k1: RTValue, k2: RTValue, t1: List) => flattenTuples(scala.List(k1, k2), t1.value)
-        case _ => list ++ tuple
+        case _                                              => list ++ tuple
       }
-    }
 
     private[RTValue] def flatten(keys: Tuple): scala.List[RTValue] = flattenTuples(scala.List[RTValue](), keys.value)
-    
+
     def apply(tuple: Tuple): Option[Key] = {
-      val l = flatten(tuple) 
-      //TODO
+      val l = flatten(tuple)
+      // TODO
       None
     }
   }
-  
-  sealed trait Key extends ValueResult[scala.List[RTValue]] {
-  }
+
+  sealed trait Key extends ValueResult[scala.List[RTValue]] {}
 
   // format: off
   object Key0 extends Key {
@@ -764,15 +767,20 @@ object RTValue {
   object Aggregation {
     private val noFilter: RTValue => Primitive.Boolean = _ => Primitive.Boolean(true)
 
-    private val key0 = NativeFunction(1, Nil, NativeFunctionSignature.Fun1(_ => Key0), CodeLocation.NativeFunction(FQName.fqn("Morphir.SDK", "Key", "key0")))
-    
-    def apply(operation: List => Primitive.Float, key: Function = key0): Aggregation = {
+    private val key0 = NativeFunction(
+      1,
+      Nil,
+      NativeFunctionSignature.Fun1(_ => Key0),
+      CodeLocation.NativeFunction(FQName.fqn("Morphir.SDK", "Key", "key0"))
+    )
+
+    def apply(operation: List => Primitive.Float, key: Function = key0): Aggregation =
       Aggregation(operation, key, noFilter)
-    }
   }
 
-  case class Aggregation(operation: List => Primitive.Float, key: Function, filter: RTValue => Primitive.Boolean) extends RTValue {
-    def value = "Aggregation"  // TODO Handle for printable value for logging
+  case class Aggregation(operation: List => Primitive.Float, key: Function, filter: RTValue => Primitive.Boolean)
+      extends RTValue {
+    def value                         = "Aggregation" // TODO Handle for printable value for logging
     override def succinct(depth: Int) = s"Aggregation($operation, $key, $filter)"
   }
 

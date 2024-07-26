@@ -7,12 +7,24 @@ import org.finos.morphir.runtime.MorphirRuntimeError.{ExternalError, FailedCoerc
 import org.finos.morphir.runtime.internal.*
 import org.finos.morphir.runtime.RTValue as RT
 import org.finos.morphir.runtime.RTValue.Comparable.orderToInt
-import org.finos.morphir.runtime.RTValue.{Primitive, coerceBoolean, coerceComparable, coerceDecimal, coerceFloat, coerceInt, coerceKey, coerceList, coerceNumeric, coerceTuple, unwrapNumericWithHelper}
+import org.finos.morphir.runtime.RTValue.{
+  Primitive,
+  coerceBoolean,
+  coerceComparable,
+  coerceDecimal,
+  coerceFloat,
+  coerceInt,
+  coerceKey,
+  coerceList,
+  coerceNumeric,
+  coerceTuple,
+  unwrapNumericWithHelper
+}
 
 import scala.collection.mutable
 
 object AggregateSDK {
-  
+
   val groupBy = DynamicNativeFunction2("groupBy") {
     (context: NativeContext) => (f: RT.Function, list: RT.List) =>
       val result = list.value groupBy { a =>
@@ -23,14 +35,16 @@ object AggregateSDK {
   }
 
   private object AggregateMapHelper {
-    def apply(list: RT.List): List[AggregateMapHelper] = {
+    def apply(list: RT.List): List[AggregateMapHelper] =
       list.value.map(AggregateMapHelper(_, Nil))
-    }
   }
 
   private case class AggregateMapHelper(originalValue: RTValue, opResults: List[RT.Primitive.Float])
 
-  private def mapAndFilter(agg: RT.Aggregation, list: List[AggregateMapHelper])(ctx: NativeContext): List[AggregateMapHelper] = {
+  private def mapAndFilter(
+      agg: RT.Aggregation,
+      list: List[AggregateMapHelper]
+  )(ctx: NativeContext): List[AggregateMapHelper] = {
     val filtered: List[AggregateMapHelper] = list filter { case AggregateMapHelper(a, _) =>
       agg.filter(a).value
     }
@@ -73,102 +87,113 @@ object AggregateSDK {
   }
 
   val aggregateMap3 = DynamicNativeFunction5("aggregateMap3") {
-    (context: NativeContext) => (agg1: RT.Aggregation, agg2: RT.Aggregation, agg3: RT.Aggregation, f: RT.Function, list: RT.List) =>
-      val agg1result = mapAndFilter(agg1, AggregateMapHelper(list))(context)
-      val agg2result = mapAndFilter(agg2, agg1result)(context)
-      val agg3result = mapAndFilter(agg3, agg2result)(context)
-      val result = agg3result map {
-        case AggregateMapHelper(a, List(agg1Value, agg2Value, agg3Value)) =>
-          context.evaluator.handleApplyResult4(Type.UType.Variable("a"), f, agg1Value, agg2Value, agg3Value, a)
-        case helper =>
-          throw MorphirRuntimeError.OtherError("aggregateMap3 had an unexpected number of aggregated values", helper)
-      }
-      RT.List(result)
+    (context: NativeContext) =>
+      (agg1: RT.Aggregation, agg2: RT.Aggregation, agg3: RT.Aggregation, f: RT.Function, list: RT.List) =>
+        val agg1result = mapAndFilter(agg1, AggregateMapHelper(list))(context)
+        val agg2result = mapAndFilter(agg2, agg1result)(context)
+        val agg3result = mapAndFilter(agg3, agg2result)(context)
+        val result = agg3result map {
+          case AggregateMapHelper(a, List(agg1Value, agg2Value, agg3Value)) =>
+            context.evaluator.handleApplyResult4(Type.UType.Variable("a"), f, agg1Value, agg2Value, agg3Value, a)
+          case helper =>
+            throw MorphirRuntimeError.OtherError("aggregateMap3 had an unexpected number of aggregated values", helper)
+        }
+        RT.List(result)
   }
 
   val aggregateMap4 = DynamicNativeFunction6("aggregateMap4") {
-    (context: NativeContext) => (agg1: RT.Aggregation, agg2: RT.Aggregation, agg3: RT.Aggregation, agg4: RT.Aggregation, f: RT.Function, list: RT.List) =>
+    (context: NativeContext) => (
+        agg1: RT.Aggregation,
+        agg2: RT.Aggregation,
+        agg3: RT.Aggregation,
+        agg4: RT.Aggregation,
+        f: RT.Function,
+        list: RT.List
+    ) =>
       val agg1result = mapAndFilter(agg1, AggregateMapHelper(list))(context)
       val agg2result = mapAndFilter(agg2, agg1result)(context)
       val agg3result = mapAndFilter(agg3, agg2result)(context)
       val agg4result = mapAndFilter(agg4, agg3result)(context)
       val result = agg4result map {
         case AggregateMapHelper(a, List(agg1Value, agg2Value, agg3Value, agg4Value)) =>
-          context.evaluator.handleApplyResult5(Type.UType.Variable("a"), f, agg1Value, agg2Value, agg3Value, agg4Value, a)
+          context.evaluator.handleApplyResult5(
+            Type.UType.Variable("a"),
+            f,
+            agg1Value,
+            agg2Value,
+            agg3Value,
+            agg4Value,
+            a
+          )
         case helper =>
           throw MorphirRuntimeError.OtherError("aggregateMap4 had an unexpected number of aggregated values", helper)
       }
       RT.List(result)
   }
-  
-  //Operations
+
+  // Operations
 
   val count: SDKValue = SDKValue.SDKNativeValue(RT.Aggregation(l => RT.Primitive.Float(l.value.size.toDouble)))
 
   val sumOf = DynamicNativeFunction1("sumOf") {
     (context: NativeContext) => (aToFloat: RT.Function) =>
-      RT.Aggregation(
-        list => {
+      RT.Aggregation {
+        list =>
           val results: List[Double] = list.value map { a =>
             val aggResult = context.evaluator.handleApplyResult(Type.UType.Unit(()), aToFloat, a)
             coerceFloat(aggResult).value
           }
           RT.Primitive.Float(results.sum)
-        }
-      )
+      }
   }
 
   val minimumOf = DynamicNativeFunction1("minimumOf") {
     (context: NativeContext) => (aToFloat: RT.Function) =>
-      RT.Aggregation(
-        list => {
+      RT.Aggregation {
+        list =>
           val results: List[Double] = list.value map { a =>
             val aggResult = context.evaluator.handleApplyResult(Type.UType.Unit(()), aToFloat, a)
             coerceFloat(aggResult).value
           }
           RT.Primitive.Float(results.min)
-        }
-      )
+      }
   }
 
   val maximumOf = DynamicNativeFunction1("maximumOf") {
     (context: NativeContext) => (aToFloat: RT.Function) =>
-      RT.Aggregation(
-        list => {
+      RT.Aggregation {
+        list =>
           val results: List[Double] = list.value map { a =>
             val aggResult = context.evaluator.handleApplyResult(Type.UType.Unit(()), aToFloat, a)
             coerceFloat(aggResult).value
           }
           RT.Primitive.Float(results.max)
-        }
-      )
+      }
   }
 
   val averageOf = DynamicNativeFunction1("averageOf") {
     (context: NativeContext) => (aToFloat: RT.Function) =>
-      RT.Aggregation(
-        list => {
+      RT.Aggregation {
+        list =>
           val results: List[Double] = list.value map { a =>
             val aggResult = context.evaluator.handleApplyResult(Type.UType.Unit(()), aToFloat, a)
             coerceFloat(aggResult).value
           }
           RT.Primitive.Float(results.sum / results.size)
-        }
-      )
+      }
   }
 
   val weightedAverageOf = DynamicNativeFunction2("weightedAverageOf") {
     (context: NativeContext) => (aToFloat: RT.Function, aToWeight: RT.Function) =>
-      RT.Aggregation(
-        list => {
+      RT.Aggregation {
+        list =>
           val results: List[Double] = list.value map { a =>
-            val aggResult = context.evaluator.handleApplyResult(Type.UType.Unit(()), aToFloat, a)
+            val aggResult      = context.evaluator.handleApplyResult(Type.UType.Unit(()), aToFloat, a)
             val weightedResult = context.evaluator.handleApplyResult(Type.UType.Unit(()), aToWeight, a)
             coerceFloat(aggResult).value * coerceFloat(weightedResult).value
           }
           RT.Primitive.Float(results.sum / results.size)
-        }
-      )
+      }
   }
 
   val byKey = DynamicNativeFunction2[RT.Function, RT.Aggregation, RT.Aggregation]("byKey") {

@@ -337,42 +337,42 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.List(
             Data.Float(4.0),
             Data.Float(5.0),
-            Data.Float(6.0),
+            Data.Float(6.0)
           )
         ),
         testEvaluation("SumOf")("aggregateTests", "aggregateSumOfTest")(
           Data.List(
             Data.Float(7.0),
             Data.Float(8.0),
-            Data.Float(9.0),
+            Data.Float(9.0)
           )
         ),
         testEvaluation("MinimumOf")("aggregateTests", "aggregateMinimumOfTest")(
           Data.List(
             Data.Float(2.0),
             Data.Float(3.0),
-            Data.Float(4.0),
+            Data.Float(4.0)
           )
         ),
         testEvaluation("MaximumOf")("aggregateTests", "aggregateMaximumOfTest")(
           Data.List(
             Data.Float(6.0),
             Data.Float(7.0),
-            Data.Float(8.0),
+            Data.Float(8.0)
           )
         ),
         testEvaluation("AverageOf")("aggregateTests", "aggregateAverageOfTest")(
           Data.List(
             Data.Float(3.0),
             Data.Float(4.0),
-            Data.Float(5.0),
+            Data.Float(5.0)
           )
         ),
         testEvaluation("WeightedAverageOf")("aggregateTests", "aggregateWeightedAverageOfTest")(
           Data.List(
             Data.Float(3.0),
             Data.Float(4.0),
-            Data.Float(5.0),
+            Data.Float(5.0)
           )
         ),
         testEvaluation("ByKey")("aggregateTests", "aggregateByKeyTest")(
@@ -393,7 +393,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             Data.Float(6.0),
             Data.Float(6.0)
           )
-        ),
+        )
       ),
       suite("Char")(
         testEval("isUpper true")("charTests", "charIsUpperTest", 'A')(Data.Boolean(true)),
