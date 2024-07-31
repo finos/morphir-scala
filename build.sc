@@ -175,6 +175,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
   trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
     def ivyDeps = super.ivyDeps() ++ Agg(
+      Deps.org.`scala-lang`.modules.`scala-collection-contrib`,
       Deps.com.beachape.enumeratum,
       Deps.com.lihaoyi.fansi,
       Deps.com.lihaoyi.geny,

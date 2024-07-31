@@ -152,6 +152,11 @@ object Deps {
   }
   case object org {
     case object `scala-lang` {
+      
+      case object modules {
+        val `scala-collection-contrib` = ivy"org.scala-lang.modules::scala-collection-contrib:0.3.0"
+      }
+
       def `scala-compiler`(scalaVersion: String): Dep =
         if (scalaVersion.startsWith("3")) ivy"org.scala-lang::scala3-compiler:$scalaVersion"
         else ivy"org.scala-lang:scala-compiler:$scalaVersion"

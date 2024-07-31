@@ -7,8 +7,24 @@ import org.finos.morphir.ir.Type.Specification.TypeAliasSpecification
 import org.finos.morphir.ir.Type.Type.Reference
 import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
+import scala.collection.immutable.MultiDict 
+import scala.annotation.tailrec
 
-sealed trait Distribution
+sealed trait Distribution { self =>  
+  import Distribution._ 
+
+  /// Get all distributions contained in this distribution.
+  /// Note: This will expand bundles but not dependencies.
+  def allDistributions:List[Distribution] = {
+    @tailrec
+    def loop(pending:List[Distribution], acc:List[Distribution]):List[Distribution] = pending match {
+      case Nil => acc 
+      case (lib @ Library(_,_,_)) :: rest => loop(rest, lib :: acc)
+      case (bundle @ Bundle(_)) :: rest => loop(bundle.toLibraries ++ rest, acc)
+    }
+    loop(self::Nil, List.empty)
+  }  
+}
 object Distribution {
   final case class Lib(
       dependencies: Map[PackageName, UPackageSpecification],
@@ -20,6 +36,9 @@ object Distribution {
 
     def lookupTypeDefinition(qName: QName): Option[UTypeDef] =
       packageDef.lookupModuleDefinition(qName.modulePath).flatMap(_.lookupTypeDefinition(qName.localName))
+
+    private[Distribution] def toLibrary(packageName:PackageName):Library = 
+      Library(packageName, self.dependencies, self.packageDef)
   }
 
   final case class Bundle(
@@ -30,6 +49,10 @@ object Distribution {
       case bundle: Bundle   => Bundle(libraries ++ bundle.libraries)
       case library: Library => Bundle(libraries + (library.packageName -> library.toLib))
     }
+
+    private[Distribution] def toLibraries:List[Library] = self.libraries.map{
+      case (packageName, lib) => lib.toLibrary(packageName)
+    }.toList
   }
 
   final case class Library(
@@ -95,13 +118,117 @@ object Distribution {
   ): Library = Library(packageName, dependencies, packageDef)
 
   def toLibrary(packageName: PackageName, lib: Lib): Library = Library(packageName, lib.dependencies, lib.packageDef)
-  def toLibraries(dists: Distribution*): List[Library] = toLibsMap(dists: _*)
-    .map { case (packageName, lib) => toLibrary(packageName, lib) }
-    .toList
+  def toLibraries(distributions: Distribution*): List[Library] = {
+    @tailrec
+    def loop(pending:List[Distribution], acc:List[Library]):List[Library] = pending match {
+      case Nil => acc
+      case (lib @ Library(_,_,_)) :: rest => loop(rest, lib :: acc)
+      case Bundle(libraries) :: rest => 
+        val newLibs = libraries.map{ case (packageName, lib) => lib.toLibrary(packageName) }.toList 
+        loop(rest, newLibs ++ acc)
+    }
+    loop(distributions.toList, List.empty)
+  }
+  
+    
 
-  def toLibsMap(dists: Distribution*): Map[PackageName, Lib] =
+  /// Creates a map of package names to libraries from a list of distributions.
+  def libsByPackageName(dists: Distribution*): Map[PackageName, Lib] = {
     dists.flatMap {
       case (library: Library) => List(library.packageName -> library.toLib)
       case (bundle: Bundle)   => bundle.libraries.toList
-    }.toMap
+    }.toMap   
+  }
+
+  def toLookup(distributions:Distribution*):LibLookup = LibLookup.fromDistributions(distributions)
+
+  final case class LibLookup(toMultiDict:MultiDict[PackageName, Lib]) extends AnyVal{ self =>
+    def packageNames:scala.collection.Set[PackageName] = toMultiDict.keySet
+  }
+
+  object LibLookup {
+    def apply(distributions:Distribution*):LibLookup = fromDistributions(distributions)
+
+    def fromDistributions(distributions:Seq[Distribution]) : LibLookup = {
+      def loop(pending:List[Distribution], acc:MultiDict[PackageName, Lib]):LibLookup = pending match {
+        case Nil => LibLookup(acc)
+        case Library(packageName, dependencies, packageDef) :: rest => loop(rest, acc.add(packageName, Lib(dependencies, packageDef)))
+        case (bundle @ Bundle(_)) :: rest => loop(bundle.toLibraries ++ rest, acc)
+      }
+      loop(distributions.toList, MultiDict.empty)
+    }
+  }
+
+  sealed trait LibsByPackageNameResult { self => 
+    import LibsByPackageNameResult._
+
+    def packageNames:Set[PackageName] = ???
+    
+    def addLibrary(library:Library):LibsByPackageNameResult = self match {
+      case Success(map) => 
+        if (map.contains(library.packageName)) {
+          fail(Error.DuplicatePackageName(library.packageName))
+        } else {
+          succeed(map + (library.packageName -> library.toLib))
+        }
+      case _:Failure => ???
+    }
+    
+    // def addDistribution(distribution: Distribution): LibsByPackageNameResult = this match {
+    //   case LibsByPackageNameResult.Success(map) => 
+    //     distribution match {
+    //       case library: Library => 
+    //         if (map.contains(library.packageName)) {
+    //           ToLibrariesMapUnsafeResult.fail(Error.DuplicatePackageName(library.packageName))
+    //         } else {
+    //           LibsByPackageNameResult.succeed(map + (library.packageName -> library.toLib))
+    //         }
+    //       case bundle: Bundle => 
+    //         val newMap = bundle.libraries.foldLeft(map) { case (acc, (packageName, lib)) =>
+    //           if (acc.contains(packageName)) {
+    //             return LibsByPackageNameResult.Failure(ByPackageNameResult.Error.DuplicatePackageName(packageName))
+    //           } else {
+    //             acc + (packageName -> lib)
+    //           }
+    //         }
+    //         LibsByPackageNameResult.Success(newMap)
+    //     }
+
+    //   case LibsByPackageNameResult.Failure(error) => LibsByPackageNameResult.Failure(error)
+    // }
+  }
+  
+  object LibsByPackageNameResult {
+
+    def fail(error:Error):LibsByPackageNameResult = Failure.Single(error)
+    def succeed(map:Map[PackageName, Lib]):LibsByPackageNameResult = Success(map)
+    
+    case class Success(map: Map[PackageName, Lib]) extends LibsByPackageNameResult {
+      def packageNames:Set[PackageName] = map.keySet
+    }
+
+    sealed trait Failure extends LibsByPackageNameResult { self =>
+      def +(error: Error): Failure = self match {
+        case Failure.Single(e) => Failure.Many(::(e, ::(error, Nil)))
+        case Failure.Many(errors) => Failure.Many(::(error,errors))
+      }  
+
+      def allErrors:List[Error] = self match {
+        case Failure.Single(e) => List(e)
+        case Failure.Many(errors) => errors.toList
+      }
+    }
+
+    object Failure {
+      final case class Single(error: Error) extends Failure
+      final case class Many(errors: ::[Error]) extends Failure {
+        def toList:List[Error] = errors.toList
+      }
+    }
+
+    sealed trait Error
+    object Error {
+      final case class DuplicatePackageName(packageName: PackageName) extends Error
+    }
+  }
 }
