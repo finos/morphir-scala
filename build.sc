@@ -11,6 +11,8 @@ import de.tobiasroeser.mill.integrationtest._
 import io.kipp.mill.ci.release.CiReleaseModule
 import millbuild._
 import millbuild.crossplatform._
+import millbuild.jsruntime._
+import millbuild.millmorphir._
 import millbuild.settings._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind
@@ -65,7 +67,13 @@ trait MorphirPublishModule extends CiReleaseModule with JavaModule {
   )
 }
 
-object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersions) {
+object examples extends Module {
+  object `morphir-elm-projects` extends Module {
+    object finance extends MorphirModule 
+  }
+}
+
+object morphir extends Cross[MorphirCrossModule](buildSettings.scala.crossScalaVersions) {
   object build extends Module {
     object integration extends Module {
       object `mill-morphir-elm` extends Cross[MillMorphirElmPlugin](MillVersions.all)
@@ -137,7 +145,7 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
   }
 
 }
-trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
+trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morphir =>
   import DevMode._
   val workspaceDir = millbuild.build.millSourcePath
 
