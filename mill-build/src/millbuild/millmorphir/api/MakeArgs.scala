@@ -3,7 +3,7 @@ package millbuild.millmorphir.api
 import mill.api.JsonFormatters._
 import millbuild.util.Collections._ 
 
-case class MakeArgs(
+final case class MakeArgs(
     projectDir:  os.Path,
     output:      os.Path,
     indentJson:  Boolean,

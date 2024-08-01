@@ -8,6 +8,7 @@ case class MakeResult(
     irFilePath:  PathRef,
     commandArgs: Seq[String],
     workingDir:  os.Path,
+    morphirHashesPath: Option[PathRef] = None
   )
 object MakeResult {
     implicit val jsonFormatter: upickle.default.ReadWriter[MakeResult] = upickle.default.macroRW

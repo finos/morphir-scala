@@ -13,6 +13,7 @@ import millbuild._
 import millbuild.crossplatform._
 import millbuild.jsruntime._
 import millbuild.millmorphir._
+import millbuild.millmorphir.elm._
 import millbuild.settings._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind
@@ -69,7 +70,12 @@ trait MorphirPublishModule extends CiReleaseModule with JavaModule {
 
 object examples extends Module {
   object `morphir-elm-projects` extends Module {
-    object finance extends MorphirModule 
+    object finance extends MorphirElmModule 
+
+    object `evaluator-tests` extends MorphirElmModule
+    object `unit-test-framework` extends Module {
+      object `example-project` extends MorphirModule 
+    }
   }
 }
 
