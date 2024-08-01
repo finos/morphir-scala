@@ -9,6 +9,8 @@ import org.finos.morphir.ir.Type.UType
 import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
 import scala.collection.immutable.MultiDict 
 import scala.annotation.tailrec
+import org.finos.morphir.ir.distribution.Distribution.RepeatedPackages.Allowed
+import org.finos.morphir.ir.distribution.Distribution.RepeatedPackages.NotAllowed
 
 sealed trait Distribution { self =>  
   import Distribution._ 
@@ -109,7 +111,22 @@ object Distribution {
   ): Bundle = Bundle(Map(packageName -> Lib(dependencies, packageDef)))
 
   def toBundle(packageName: PackageName, lib: Lib): Bundle = Bundle(Map(packageName -> lib))
-  def toBundle(dists: Distribution*): Bundle               = Bundle(toLibsMap(dists: _*))
+
+  def toBundleUnsafe(settings:BundleSettings, distributions: Distribution*): Bundle               = settings.RepeatedPackages match {
+    case RepeatedPackages.Allowed =>
+      val map = distributions.flatMap {
+        case (library: Library) => List(library.packageName -> library.toLib)
+        case (bundle: Bundle)   => bundle.libraries.toList
+      }.toMap  
+      Bundle(map) 
+    case RepeatedPackages.NotAllowed =>
+      val lookup = toLookup(distributions:_*)
+      val repeatedPackages = lookup.repeatedPackages
+      if(repeatedPackages.nonEmpty) {
+        throw new BundlingError.MuliplePackagesWithSameNameDetected(repeatedPackages)
+      }
+      Bundle(lookup.toMultiDict.toMap)
+  }
 
   def toLibrary(
       packageName: PackageName,
@@ -118,6 +135,7 @@ object Distribution {
   ): Library = Library(packageName, dependencies, packageDef)
 
   def toLibrary(packageName: PackageName, lib: Lib): Library = Library(packageName, lib.dependencies, lib.packageDef)
+
   def toLibraries(distributions: Distribution*): List[Library] = {
     @tailrec
     def loop(pending:List[Distribution], acc:List[Library]):List[Library] = pending match {
@@ -129,21 +147,29 @@ object Distribution {
     }
     loop(distributions.toList, List.empty)
   }
-  
-    
-
-  /// Creates a map of package names to libraries from a list of distributions.
-  def libsByPackageName(dists: Distribution*): Map[PackageName, Lib] = {
-    dists.flatMap {
-      case (library: Library) => List(library.packageName -> library.toLib)
-      case (bundle: Bundle)   => bundle.libraries.toList
-    }.toMap   
-  }
 
   def toLookup(distributions:Distribution*):LibLookup = LibLookup.fromDistributions(distributions)
 
+  def toLibsMapUnsafe(distributions:Distribution*):Map[PackageName, Lib] = toLibsMapUnsafe(RepeatedPackages.NotAllowed, distributions:_*)
+
+  def toLibsMapUnsafe(repeatedPackages:RepeatedPackages, distributions:Distribution*):Map[PackageName, Lib] = {
+    val lookup = toLookup(distributions:_*)
+    repeatedPackages match {
+      case Allowed => lookup.toMultiDict.toMap
+      case NotAllowed => 
+        val lookup = toLookup(distributions:_*)
+        val repeatedPackages = lookup.repeatedPackages
+        if(repeatedPackages.nonEmpty) {
+          throw new BundlingError.MuliplePackagesWithSameNameDetected(repeatedPackages)
+        }
+        lookup.toMultiDict.toMap
+    }
+  }
+
   final case class LibLookup(toMultiDict:MultiDict[PackageName, Lib]) extends AnyVal{ self =>
     def packageNames:scala.collection.Set[PackageName] = toMultiDict.keySet
+    def repeatedPackages:Set[PackageName] = 
+      toMultiDict.sets.collect { case (packageName, libs) if libs.size > 1 => packageName }.toSet
   }
 
   object LibLookup {
@@ -159,76 +185,36 @@ object Distribution {
     }
   }
 
-  sealed trait LibsByPackageNameResult { self => 
-    import LibsByPackageNameResult._
+  trait DistributionError
 
-    def packageNames:Set[PackageName] = ???
-    
-    def addLibrary(library:Library):LibsByPackageNameResult = self match {
-      case Success(map) => 
-        if (map.contains(library.packageName)) {
-          fail(Error.DuplicatePackageName(library.packageName))
-        } else {
-          succeed(map + (library.packageName -> library.toLib))
-        }
-      case _:Failure => ???
+  sealed abstract class BundlingError(message:String) extends Exception(message) with DistributionError with Product with Serializable
+  object BundlingError {
+
+    def failWithMultiplePackagesWithSameNameDetected(packageName:PackageName, others:PackageName*):MuliplePackagesWithSameNameDetected = others match {
+      case Nil => MuliplePackagesWithSameNameDetected(Set(packageName))
+      case _ => MuliplePackagesWithSameNameDetected(Set(packageName) ++ Set.from(others))
+    }      
+
+    final case class MuliplePackagesWithSameNameDetected private[Distribution](packages:Set[PackageName]) extends BundlingError(s"Multiple packages with the same name detected. Repeated packages are: ${packages.mkString(", ")}") { self =>
+      def + (other:PackageName):MuliplePackagesWithSameNameDetected = MuliplePackagesWithSameNameDetected(self.packages + other)
+      def +: (other:PackageName):MuliplePackagesWithSameNameDetected = MuliplePackagesWithSameNameDetected(self.packages + other)
+      
+      
     }
-    
-    // def addDistribution(distribution: Distribution): LibsByPackageNameResult = this match {
-    //   case LibsByPackageNameResult.Success(map) => 
-    //     distribution match {
-    //       case library: Library => 
-    //         if (map.contains(library.packageName)) {
-    //           ToLibrariesMapUnsafeResult.fail(Error.DuplicatePackageName(library.packageName))
-    //         } else {
-    //           LibsByPackageNameResult.succeed(map + (library.packageName -> library.toLib))
-    //         }
-    //       case bundle: Bundle => 
-    //         val newMap = bundle.libraries.foldLeft(map) { case (acc, (packageName, lib)) =>
-    //           if (acc.contains(packageName)) {
-    //             return LibsByPackageNameResult.Failure(ByPackageNameResult.Error.DuplicatePackageName(packageName))
-    //           } else {
-    //             acc + (packageName -> lib)
-    //           }
-    //         }
-    //         LibsByPackageNameResult.Success(newMap)
-    //     }
 
-    //   case LibsByPackageNameResult.Failure(error) => LibsByPackageNameResult.Failure(error)
-    // }
+    val err = failWithMultiplePackagesWithSameNameDetected(PackageName.fromString("Morphir.SDK"))
+    val err2 = PackageName.fromString("Other") +: err
+  }
+
+  final case class BundleSettings(RepeatedPackages: RepeatedPackages)
+  object BundleSettings {
+    val default:BundleSettings = BundleSettings(RepeatedPackages.NotAllowed)  
+  }
+
+  sealed abstract class RepeatedPackages extends Product with Serializable
+  object RepeatedPackages {
+    case object Allowed extends RepeatedPackages
+    case object NotAllowed extends RepeatedPackages
   }
   
-  object LibsByPackageNameResult {
-
-    def fail(error:Error):LibsByPackageNameResult = Failure.Single(error)
-    def succeed(map:Map[PackageName, Lib]):LibsByPackageNameResult = Success(map)
-    
-    case class Success(map: Map[PackageName, Lib]) extends LibsByPackageNameResult {
-      def packageNames:Set[PackageName] = map.keySet
-    }
-
-    sealed trait Failure extends LibsByPackageNameResult { self =>
-      def +(error: Error): Failure = self match {
-        case Failure.Single(e) => Failure.Many(::(e, ::(error, Nil)))
-        case Failure.Many(errors) => Failure.Many(::(error,errors))
-      }  
-
-      def allErrors:List[Error] = self match {
-        case Failure.Single(e) => List(e)
-        case Failure.Many(errors) => errors.toList
-      }
-    }
-
-    object Failure {
-      final case class Single(error: Error) extends Failure
-      final case class Many(errors: ::[Error]) extends Failure {
-        def toList:List[Error] = errors.toList
-      }
-    }
-
-    sealed trait Error
-    object Error {
-      final case class DuplicatePackageName(packageName: PackageName) extends Error
-    }
-  }
 }

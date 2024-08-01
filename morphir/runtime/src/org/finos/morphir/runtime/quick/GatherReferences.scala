@@ -29,7 +29,7 @@ object GatherReferences {
       globals.ctors.keys.foldLeft(ReferenceSet.empty)((acc, next) => acc.withConstructor(next))
 
   def fromEntrySet(entrySet: ReferenceSet, dists: Distribution*): ReferenceSet = {
-    val mapped = Distribution.toLibsMap(dists: _*)
+    val mapped = Distribution.toLibsMapUnsafe(dists: _*)
 
     def f(known: Set[FQName], ref: FQName): Set[FQName] = {
       // if (depth > 100) throw new Exception(s"Still recursing on $next with known values ${known.toList.mkString("\n")}")
@@ -50,7 +50,7 @@ object GatherReferences {
   }
 
   def fromDistributions(dists: Distribution*): ReferenceSet =
-    fromDistributionLibs(Distribution.toLibsMap(dists: _*))
+    fromDistributionLibs(Distribution.toLibsMapUnsafe(dists: _*))
 
   def fromDistributionLibs(libs: Map[PackageName, Lib]): ReferenceSet =
     libs.foldLeft(ReferenceSet.empty) { case (acc: ReferenceSet, (packageName: PackageName, lib: Lib)) =>

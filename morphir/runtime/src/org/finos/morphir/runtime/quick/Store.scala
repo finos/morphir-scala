@@ -42,7 +42,7 @@ final case class GlobalDefs(
 
 object GlobalDefs {
   def fromDistributions(dists: Distribution*): GlobalDefs = {
-    val libs: Map[PackageName, Lib] = Distribution.toLibsMap(dists: _*)
+    val libs: Map[PackageName, Lib] = Distribution.toLibsMapUnsafe(dists: _*)
     libs.foldLeft(native) {
       case (acc, (packageName, lib)) => createDefs(acc, packageName, lib.dependencies, lib.packageDef)
     }
