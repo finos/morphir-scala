@@ -124,7 +124,7 @@ object Distribution {
       val lookup           = toLookup(distributions: _*)
       val repeatedPackages = lookup.repeatedPackages
       if (repeatedPackages.nonEmpty) {
-        throw new BundlingError.MuliplePackagesWithSameNameDetected(repeatedPackages)
+        throw new BundlingError.MultiplePackagesWithSameNameDetected(repeatedPackages)
       }
       Bundle(lookup.toMultiDict.toMap)
   }
@@ -162,7 +162,7 @@ object Distribution {
         val lookup           = toLookup(distributions: _*)
         val repeatedPackages = lookup.repeatedPackages
         if (repeatedPackages.nonEmpty) {
-          throw new BundlingError.MuliplePackagesWithSameNameDetected(repeatedPackages)
+          throw new BundlingError.MultiplePackagesWithSameNameDetected(repeatedPackages)
         }
         lookup.toMultiDict.toMap
     }
@@ -197,19 +197,19 @@ object Distribution {
     def failWithMultiplePackagesWithSameNameDetected(
         packageName: PackageName,
         others: PackageName*
-    ): MuliplePackagesWithSameNameDetected = others match {
-      case Nil => MuliplePackagesWithSameNameDetected(Set(packageName))
-      case _   => MuliplePackagesWithSameNameDetected(Set(packageName) ++ Set.from(others))
+    ): MultiplePackagesWithSameNameDetected = others match {
+      case Nil => MultiplePackagesWithSameNameDetected(Set(packageName))
+      case _   => MultiplePackagesWithSameNameDetected(Set(packageName) ++ Set.from(others))
     }
 
-    final case class MuliplePackagesWithSameNameDetected private[Distribution] (packages: Set[PackageName])
+    final case class MultiplePackagesWithSameNameDetected private[Distribution] (packages: Set[PackageName])
         extends BundlingError(
           s"Multiple packages with the same name detected. Repeated packages are: ${packages.mkString(", ")}"
         ) { self =>
-      def +(other: PackageName): MuliplePackagesWithSameNameDetected =
-        MuliplePackagesWithSameNameDetected(self.packages + other)
-      def +:(other: PackageName): MuliplePackagesWithSameNameDetected =
-        MuliplePackagesWithSameNameDetected(self.packages + other)
+      def +(other: PackageName): MultiplePackagesWithSameNameDetected =
+        MultiplePackagesWithSameNameDetected(self.packages + other)
+      def +:(other: PackageName): MultiplePackagesWithSameNameDetected =
+        MultiplePackagesWithSameNameDetected(self.packages + other)
 
     }
   }
