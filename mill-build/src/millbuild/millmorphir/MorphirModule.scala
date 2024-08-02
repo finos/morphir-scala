@@ -3,7 +3,7 @@ package millbuild.millmorphir
 import millbuild.util.Collections._ 
 import millbuild.util.ProcessHelper
 import millbuild.jsruntime.JsRuntime 
-import millbuild.millmorphir.api.{MakeArgs, MakeResult, MorphirProjectConfig}
+import millbuild.millmorphir.api._
 import mill._
 import mill.api.JsonFormatters._
 import mill.scalalib._
@@ -21,15 +21,15 @@ trait MorphirModule extends Module { self =>
     }
     
     def dist = T {
-        val makeOutput = make()
+        val artifacts = make()
 
         val distPath = distFolder().path
         if (!os.exists(distPath)) {
             os.makeDir.all(distPath)
         }
-
-        val paths = makeOutput.values.flatMap(a => a.map(_.path))
-        paths.foreach { path =>
+        
+        artifacts.map { artifact =>
+            val path = artifact.path
             val targetDir = distPath
             if (!os.exists(targetDir)) {
                 os.makeDir.all(targetDir)
@@ -37,17 +37,18 @@ trait MorphirModule extends Module { self =>
 
             val targetPath = targetDir / path.last
 
-            T.ctx().log.info(s"Copying ${path} to $targetPath")
+            T.ctx().log.debug(s"Copying ${path} to $targetPath")
             try {
                 os.copy.over(path, targetPath)
+                Option(artifact.withPath(targetPath))
             } catch {
                 case e: Exception =>
                     T.ctx().log.error(s"Failed to copy $path to $targetPath")
                     T.ctx().log.error(e.toString)
+                    None
             }
-        
-        }
-        paths.map(PathRef(_))
+                        
+        }.collect { case Some(artifact) => artifact }.distinctBy(_.path)        
     }
 
     def distFolder:Target[PathRef] = T {
@@ -99,11 +100,11 @@ trait MorphirModule extends Module { self =>
 
     def morphirIrFilename = T("morphir-ir.json")
 
-    def make:Target[Map[String, List[PathRef]]] = T {
+    def make:Target[Seq[ArtifactRef]] = T {
         val makeResult = morphirMake()
-        Map("ir" -> List(makeResult.irFilePath)) ++ makeResult.morphirHashesPath.map { path =>
-            Map("compiler.out" -> List(path))
-        }.getOrElse(Map.empty)
+        Seq(ArtifactRef(makeResult.irFilePath, "morphir-ir").addTags("morphir", "ir")) ++ makeResult.morphirHashesPath.map { path =>
+            Seq(ArtifactRef(path, "morphir-hashes").addTags("morphir", "hashes","incremental"))
+        }.getOrElse(Seq.empty)
     }
 
 
