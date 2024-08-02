@@ -1,4 +1,4 @@
-package millbuild.morphirlib.api 
+package org.finos.millmorphir.api 
 
 import mill.PathRef
 import mill.api.JsonFormatters._

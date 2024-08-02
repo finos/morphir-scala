@@ -1,9 +1,9 @@
-package millbuild.morphirlib
+package org.finos.millmorphir
 
 import millbuild.util.Collections._ 
 import millbuild.util.ProcessHelper
 import millbuild.jsruntime.JsRuntime 
-import millbuild.morphirlib.api._
+import org.finos.millmorphir.api._
 import mill._
 import mill.define.Segment
 import mill.api.JsonFormatters._

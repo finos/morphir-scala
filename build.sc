@@ -12,8 +12,8 @@ import io.kipp.mill.ci.release.CiReleaseModule
 import millbuild._
 import millbuild.crossplatform._
 import millbuild.jsruntime._
-import millbuild.morphirlib._
-import millbuild.morphirlib.elm._
+import org.finos.millmorphir._
+import org.finos.millmorphir.elm._
 import millbuild.settings._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind

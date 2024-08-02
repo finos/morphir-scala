@@ -1,4 +1,4 @@
-package millbuild.morphirlib.api 
+package org.finos.millmorphir.api 
 
 final case class MorphirProjectConfig(
     name:              String,

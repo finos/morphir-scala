@@ -1,7 +1,7 @@
-package millbuild.morphirlib.elm
+package org.finos.millmorphir.elm
 import mill._
 import mill.scalalib._
-import millbuild.morphirlib.MorphirModule
+import org.finos.millmorphir.MorphirModule
 
 trait MorphirElmModule extends MorphirModule {
     def allSourceFiles: T[Seq[PathRef]] = T {
