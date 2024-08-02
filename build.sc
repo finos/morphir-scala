@@ -70,11 +70,11 @@ trait MorphirPublishModule extends CiReleaseModule with JavaModule {
 
 object examples extends Module {
   object `morphir-elm-projects` extends Module {
-    object finance extends MorphirElmModule 
+    object finance extends MorphirElmModule
 
     object `evaluator-tests` extends MorphirElmModule
     object `unit-test-framework` extends Module {
-      object `example-project` extends MorphirModule 
+      object `example-project` extends MorphirModule
     }
   }
 }

@@ -29,7 +29,7 @@ object BuildSettings {
     ConfigProvider.envProvider.nested("morphir_build")
 
   lazy val propertiesFileConfigProvider: ConfigProvider =
-  ConfigProvider.propsProvider.nested("morphir.build")
+    ConfigProvider.propsProvider.nested("morphir.build")
 
   // .fromPropertiesFile((os.pwd / "build.user.properties").toIO)
 
