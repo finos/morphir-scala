@@ -1,4 +1,4 @@
-package millbuild.millmorphir.api 
+package millbuild.morphirlib.api 
 
 import mill.api.JsonFormatters._
 import millbuild.util.Collections._ 

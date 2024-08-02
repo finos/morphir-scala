@@ -1,12 +1,14 @@
-package millbuild.millmorphir
+package millbuild.morphirlib
 
 import millbuild.util.Collections._ 
 import millbuild.util.ProcessHelper
 import millbuild.jsruntime.JsRuntime 
-import millbuild.millmorphir.api._
+import millbuild.morphirlib.api._
 import mill._
+import mill.define.Segment
 import mill.api.JsonFormatters._
 import mill.scalalib._
+import mill.scalalib.internal.ModuleUtils
 import upickle.default._
 
 trait MorphirModule extends Module { self =>
@@ -19,7 +21,7 @@ trait MorphirModule extends Module { self =>
             }
         }
     }
-    
+
     def dist = T {
         val artifacts = make()
 
@@ -102,12 +104,10 @@ trait MorphirModule extends Module { self =>
 
     def make:Target[Seq[ArtifactRef]] = T {
         val makeResult = morphirMake()
-        Seq(ArtifactRef(makeResult.irFilePath, "morphir-ir").addTags("morphir", "ir")) ++ makeResult.morphirHashesPath.map { path =>
-            Seq(ArtifactRef(path, "morphir-hashes").addTags("morphir", "hashes","incremental"))
+        Seq(ArtifactRef.morphirIR(makeResult.irFilePath, "morphir", "ir")) ++ makeResult.morphirHashesPath.map { path =>
+            Seq(ArtifactRef.morphirHashes(path, "morphir", "hashes","incremental"))
         }.getOrElse(Seq.empty)
     }
-
-
 
     def makeArgs: Task[MakeArgs] = T.task {
         MakeArgs(
@@ -118,6 +118,42 @@ trait MorphirModule extends Module { self =>
             fallbackCli = None,
         )
     }
+
+    /**
+      * The direct dependencies of this module.
+      * This is meant to be overridden to add dependencies.
+      * To read the value, you should use [[morphirModuleDepsChecked]] instead,
+      * which uses a cached result which is also checked to be free of cycles.
+      * @see [[morphirModuleDepsChecked]]
+      */
+    def morphirModuleDeps: Seq[MorphirModule] = Seq.empty
+
+    /**
+      * Same as [[morphirModuleDeps]], but checked to not contain cycles.
+      * Prefer this over using [[moduleDeps]] directly.
+      */
+    final def morphirModuleDepsChecked: Seq[MorphirModule] = {
+        recMorphirModuleDeps
+        morphirModuleDeps
+    }
+
+    /** Should only be called from [[moduleDepsChecked]] */
+    private lazy val recMorphirModuleDeps: Seq[MorphirModule] =
+        ModuleUtils.recursive[MorphirModule](
+            (millModuleSegments ++ Seq(Segment.Label("morphirModuleDeps"))).render,
+            this,
+            _.morphirModuleDeps
+        )
+
+    /** The direct and indirect dependencies of this module */
+    def recursiveMorphirModuleDeps: Seq[MorphirModule] = {
+        recMorphirModuleDeps 
+    }
+
+    /**
+      * Like `recursiveMorphirModuleDeps`, but includes this module itself as well.
+      */
+    def transitiveMorphirModuleDeps:Seq[MorphirModule] = Seq(this) ++ recursiveMorphirModuleDeps
 
     def morphirMake: Target[MakeResult] = T {
         val makeArgs: MakeArgs = self.makeArgs()

@@ -12,8 +12,8 @@ import io.kipp.mill.ci.release.CiReleaseModule
 import millbuild._
 import millbuild.crossplatform._
 import millbuild.jsruntime._
-import millbuild.millmorphir._
-import millbuild.millmorphir.elm._
+import millbuild.morphirlib._
+import millbuild.morphirlib.elm._
 import millbuild.settings._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind
@@ -82,8 +82,8 @@ object examples extends Module {
 object morphir extends Cross[MorphirCrossModule](buildSettings.scala.crossScalaVersions) {
   object build extends Module {
     object integration extends Module {
-      object `mill-morphir-elm` extends Cross[MillMorphirElmPlugin](MillVersions.all)
-      trait MillMorphirElmPlugin
+      object `mill-morphir-elm` extends Cross[morphirlibElmPlugin](MillVersions.all)
+      trait morphirlibElmPlugin
           extends Cross.Module[String]
           with ScalaModule
           with ScalafmtModule
