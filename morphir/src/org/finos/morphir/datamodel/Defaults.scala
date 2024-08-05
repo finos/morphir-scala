@@ -158,35 +158,6 @@ case class MDMDefaults(defaultOptions: DefaultOptions, fillOptions: FillOptions)
           }
         }
         dataFields.map(Data.Record(_, recordConcept))
-      case (concept: Concept.List)   => defaultList(concept)
-      case concept: Concept.Map      => defaultMap(concept)
-      case concept: Concept.Alias    => defaultAlias(concept)
-      case concept: Concept.Union    => defaultUnion(concept)
-      case concept: Concept.Record   => defaultRecord(concept)
-      case concept: Concept.Struct   => defaultStruct(concept)
-      case concept: Concept.Enum     => defaultEnum(concept)
-      case Concept.Int64             => defaultInt64
-      case Concept.Integer           => defaultInteger
-      case Concept.Decimal           => defaultDecimal
-      case Concept.Int16             => defaultInt16
-      case Concept.Nothing           => defaultNothing
-      case Concept.Month             => defaultMonth
-      case Concept.LocalDate         => defaultLocalDate
-      case Concept.Float             => defaultFloat
-      case Concept.LocalTime         => defaultLocalTime
-      case Concept.Int32             => defaultInt32
-      case Concept.Byte              => defaultByte
-      case Concept.Unit              => defaultUnit
-      case Concept.String            => defaultString
-      case Concept.Order             => defaultOrder
-      case Concept.DayOfWeek         => defaultDayOfWeek
-      case Concept.Char              => defaultChar
-      case Concept.Boolean           => defaultBoolean
-      case Concept.Any               => defaultAny
-      case concept: Concept.Optional => defaultOptional(concept)
-      case concept: Concept.Result   => defaultResult(concept)
-      case concept: Concept.Set      => defaultSet(concept)
-      case concept: Concept.Tuple    => defaultTuple(concept)
 
       case (otherData, otherConcept) => Left(Unfillable(otherData, otherConcept))
     }
