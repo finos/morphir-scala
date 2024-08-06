@@ -15,6 +15,8 @@ import millbuild.settings._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind
 import mill.contrib.buildinfo.BuildInfo
+import $ivy.`com.github.lolgab::mill-mima::0.1.1`
+import com.github.lolgab.mill.mima._
 
 implicit val buildSettings: BuildSettings = interp.watchValue(MyBuild.cachedBuildSettings)
 
@@ -73,7 +75,8 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
           extends Cross.Module[String]
           with ScalaModule
           with ScalafmtModule
-          with MorphirPublishModule {
+          with MorphirPublishModule
+          with Mima {
 
         def millVersion = crossValue
 
