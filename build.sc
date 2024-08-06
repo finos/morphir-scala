@@ -74,8 +74,14 @@ object examples extends Module {
 
     object `evaluator-tests` extends MorphirElmModule
     object `unit-test-framework` extends Module {
-      object `example-project` extends MorphirModule
+      object `example-project` extends MorphirModule 
     }
+  }
+}
+
+object `morphir-elm` extends Module {
+  object sdks extends Module {
+    object `morphir-unit-test` extends MorphirElmModule
   }
 }
 
