@@ -249,9 +249,9 @@ private[runtime] object TestSet {
    */
   def toSummary(coverageInfo: CoverageInfo, testSet: TestSet[SingleTestResult]) =
     TestSummary(
-      coverageInfo,
       toReport(testSet),
-      testSet.modules.map(module => (module.pkgName, module.modName) -> ModuleTests.getCounts(module)).toMap
+      testSet.modules.map(module => (module.pkgName, module.modName) -> ModuleTests.getCounts(module)).toMap,
+      coverageInfo
     )
 
   /**

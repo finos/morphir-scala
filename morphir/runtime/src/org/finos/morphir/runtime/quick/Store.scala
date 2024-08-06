@@ -89,7 +89,7 @@ object GlobalDefs {
     GlobalDefs(Map(), Map())
   def native: GlobalDefs =
     GlobalDefs(Native.native ++ NativeSDK.resolvedFunctions, Native.nativeCtors ++ NativeSDK.ctors)
-  
+
   def getStaticallyReachable(ref: FQName, globalDefs: GlobalDefs): Set[FQName] = {
 
     def exploreBelow(currentlyKnown: Set[FQName], toExplore: FQName): Set[FQName] =

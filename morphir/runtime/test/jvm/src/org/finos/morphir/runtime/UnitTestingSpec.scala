@@ -92,7 +92,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
             assertTrue(result.overallCounts.todo == 1)
           }
         },
-        test("Failed isn't Passd") {
+        test("Failed isn't Passed") {
           getTestSummary.map { result =>
             assertTrue(!result.passed)
           }

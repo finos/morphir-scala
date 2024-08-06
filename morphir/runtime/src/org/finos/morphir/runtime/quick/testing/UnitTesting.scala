@@ -56,11 +56,15 @@ object UnitTesting {
   ): RTAction[MorphirEnv, Nothing, TestSummary] = {
     val globals = GlobalDefs.fromDistributions(dists)
     RTAction.environmentWithPure[MorphirSdk] { env =>
-      val testNames = collectTests(globals)
+      val testNames            = collectTests(globals)
       val userDefinedFunctions = collectNonTests(globals, testNames)
-      val testIRs   = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
+      val testIRs              = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
       if (testIRs.isEmpty) {
-        val emptySummary = TestSummary(CoverageInfo(List.empty[FQName], userDefinedFunctions, CoverageCounts.empty), "No tests run", Map())
+        val emptySummary = TestSummary(
+          "No tests run",
+          Map(),
+          CoverageInfo(List.empty[FQName], userDefinedFunctions, CoverageCounts.empty)
+        )
         RTAction.succeed(emptySummary)
       } else {
         val testSuiteIR = if (testIRs.length == 1)
@@ -198,7 +202,11 @@ object UnitTesting {
     // begin collecting coverage related information
     val userDefinedFunctions = collectNonTests(globals, testNames)
     val referencedFunctions  = testNames.flatMap(name => GlobalDefs.getStaticallyReachable(name, globals))
-    val coverageInfo         = CoverageInfo(referencedFunctions.toList, userDefinedFunctions, CoverageCounts.getCounts(userDefinedFunctions,referencedFunctions.toList))
+    val coverageInfo = CoverageInfo(
+      referencedFunctions.toList,
+      userDefinedFunctions,
+      CoverageCounts.getCounts(userDefinedFunctions, referencedFunctions.toList)
+    )
 
     TestSet.toSummary(coverageInfo, withResults)
   }

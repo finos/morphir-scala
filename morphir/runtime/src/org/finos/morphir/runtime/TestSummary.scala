@@ -1,11 +1,15 @@
 package org.finos.morphir.runtime
 import org.finos.morphir.naming.*
 
-private[runtime] case class CoverageInfo(staticallyReachedFunctions: List[FQName], userDefinedFunctions: List[FQName], counts: CoverageCounts)
+private[runtime] case class CoverageInfo(
+    staticallyReachedFunctions: List[FQName],
+    userDefinedFunctions: List[FQName],
+    counts: CoverageCounts
+)
 case class TestSummary(
-    private val coverage: CoverageInfo,
     report: String,
-    countsByModule: Map[(PackageName, ModuleName), TestResultCounts]
+    countsByModule: Map[(PackageName, ModuleName), TestResultCounts],
+    private val coverage: CoverageInfo
 ) {
   def overallCounts = countsByModule.values.foldLeft(TestResultCounts.empty) { case (acc, next) => acc.plus(next) }
   def countsAtModule(pkgName: PackageName, modName: ModuleName): Option[TestResultCounts] =
@@ -13,7 +17,7 @@ case class TestSummary(
   def result = overallCounts.result
   def resultAtModule(pkgName: PackageName, modName: ModuleName): Option[OverallStatus] =
     countsAtModule(pkgName, modName).map(_.result)
-  
+
   def coverageCounts: CoverageCounts = coverage.counts
 
   /**
@@ -27,10 +31,10 @@ case class TestSummary(
   def incomplete = result == OverallStatus.Incomplete
   // not including a "failed" function in hopes no one assumed !failed == success
   override def toString =
-    s"$report\n" +
-      s"$overallCounts\n" +
-      s"Overall Status - $result\n" +
-      s"Coverage - ${coverage.counts}" 
+    s"$report ${System.lineSeparator()}" +
+      s"$overallCounts ${System.lineSeparator()}" +
+      s"Overall Status - $result ${System.lineSeparator()}" +
+      s"Coverage - ${coverage.counts}"
 }
 
 sealed trait OverallStatus
