@@ -104,7 +104,10 @@ object UnitTestingSpec extends MorphirBaseSpec {
         },
         test("Coverage is calculated") {
           getTestSummary.map { result =>
-            assertTrue(result.overallCoverage.size > 0)
+            assertTrue(result.coverageCounts == CoverageCounts(
+              covered = 2,
+              uncovered = 0
+            ))
           }
         }
       ),
@@ -175,7 +178,10 @@ object UnitTestingSpec extends MorphirBaseSpec {
         },
         test("Coverage is calculated") {
           getTestSummary.map { result =>
-            assertTrue(result.overallCoverage.size > 0)
+            assertTrue(result.coverageCounts == CoverageCounts(
+              covered = 2,
+              uncovered = 0
+            ))
           }
         }
       )
@@ -191,9 +197,12 @@ object UnitTestingSpec extends MorphirBaseSpec {
           assertTrue(!result.incomplete)
         }
       },
-      test("Summary provides coverage") {
+      test("Project coverage is calculated") {
         getTestSummary.map { result =>
-          assertTrue(result.overallCoverage.size > 0)
+          assertTrue(result.coverageCounts == CoverageCounts(
+            covered = 1,
+            uncovered = 1
+          ))
         }
       }
     ).provideLayerShared(passingTestSummaryLayer),
@@ -210,7 +219,10 @@ object UnitTestingSpec extends MorphirBaseSpec {
       },
       test("Project coverage is calculated") {
         getTestSummary.map { result =>
-          assertTrue(result.overallCoverage.size > 0)
+          assertTrue(result.coverageCounts == CoverageCounts(
+            covered = 1,
+            uncovered = 1
+          ))
         }
       }
     ).provideLayerShared(incompleteTestSummaryLayer)

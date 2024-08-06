@@ -1,7 +1,7 @@
 package org.finos.morphir.runtime
 import org.finos.morphir.naming.*
 
-private[runtime] case class CoverageInfo(staticallyReachedFunctions: List[FQName], userDefinedFunctions: List[FQName])
+private[runtime] case class CoverageInfo(staticallyReachedFunctions: List[FQName], userDefinedFunctions: List[FQName], counts: CoverageCounts)
 case class TestSummary(
     private val coverage: CoverageInfo,
     report: String,
@@ -13,24 +13,8 @@ case class TestSummary(
   def result = overallCounts.result
   def resultAtModule(pkgName: PackageName, modName: ModuleName): Option[OverallStatus] =
     countsAtModule(pkgName, modName).map(_.result)
-
-  /**
-   * Package coverage calculation result
-   */
-  def overallCoverage: Map[Path, Float] = {
-    val called    = coverage.userDefinedFunctions.filter(coverage.staticallyReachedFunctions.contains(_))
-    val udfByPath = coverage.userDefinedFunctions.groupBy(fqn => fqn.getPackagePath ++ fqn.getModulePath)
-    val calledByPath = coverage.userDefinedFunctions.filter(coverage.staticallyReachedFunctions.contains(_)).groupBy(
-      fqn => fqn.getPackagePath ++ fqn.getModulePath
-    )
-
-    calledByPath.foldLeft(Map.empty[Path, Float]) { case (acc, (pkg, calledByPkg)) =>
-      udfByPath.get(pkg) match {
-        case Some(udf: List[FQName]) => acc + (pkg -> (calledByPkg.size.toFloat / udf.size.toFloat) * 100)
-        case _                       => acc
-      }
-    }
-  }
+  
+  def coverageCounts: CoverageCounts = coverage.counts
 
   /**
    * Evaluates to true if and only if all tests passed and none were skipped or todo
@@ -46,7 +30,7 @@ case class TestSummary(
     s"$report\n" +
       s"$overallCounts\n" +
       s"Overall Status - $result\n" +
-      s"Coverage by package - $overallCoverage"
+      s"Coverage - ${coverage.counts}" 
 }
 
 sealed trait OverallStatus
@@ -71,4 +55,20 @@ case class TestResultCounts(passed: Int, failed: Int, errors: Int, skipped: Int,
 }
 object TestResultCounts {
   def empty = TestResultCounts(0, 0, 0, 0, 0)
+}
+
+case class CoverageCounts(covered: Int, uncovered: Int) {
+  def overallCoverage = if (uncovered == 0) 100 else (covered.toFloat / (covered + uncovered).toFloat) * 100
+  override def toString =
+    s"Covered Functions: $covered, Uncovered Functions: $uncovered Overall Coverage: $overallCoverage %"
+}
+
+object CoverageCounts {
+  def empty = CoverageCounts(0, 0)
+
+  def getCounts(definedFunctions: List[FQName], reachedFunctions: List[FQName]): CoverageCounts = {
+    val covered   = definedFunctions.filter(reachedFunctions.contains(_)).size
+    val uncovered = definedFunctions.size - covered
+    CoverageCounts(covered, uncovered)
+  }
 }
