@@ -1,7 +1,7 @@
 #!/usr/bin/env -S scala-cli shebang -S 3
 //> using toolkit latest
 //> using dep com.lihaoyi::pprint::0.8.1
-//> using dep com.lihaoyi::mainargs:0.7.0
+//> using dep com.lihaoyi::mainargs:0.7.1
 //> using options -deprecation -unchecked
 
 import mainargs.{main, arg, ParserForMethods, Flag}
