@@ -229,6 +229,8 @@ object UnitTesting {
    *
    * @param globals
    *   The global definitions to collect non tests from
+   * @param testNames
+   *   The list of tests names so we can identify test helper functions to exclude
    */
   private[runtime] def collectNonTests(
       globals: GlobalDefs,
