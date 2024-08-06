@@ -63,7 +63,7 @@ object TestResultCounts {
 
 case class CoverageCounts(covered: Int, uncovered: Int) {
   def overallCoverage = if (uncovered == 0) 100 else (covered.toFloat / (covered + uncovered).toFloat) * 100
-  
+
   override def toString =
     s"Covered Functions: $covered, Uncovered Functions: $uncovered Overall Coverage: $overallCoverage %"
 }
