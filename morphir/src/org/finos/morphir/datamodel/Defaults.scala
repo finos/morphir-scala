@@ -1,27 +1,15 @@
 package org.finos.morphir.datamodel
-import org.finos.morphir.datamodel.Concept.Alias
-import org.finos.morphir.datamodel.Concept.Union
-import org.finos.morphir.datamodel.Concept.Struct
-import org.finos.morphir.datamodel.Concept.Int64
-import org.finos.morphir.datamodel.Concept.Decimal
-import org.finos.morphir.datamodel.Concept.Int16
-import org.finos.morphir.datamodel.Concept.Month
-import org.finos.morphir.datamodel.Concept.LocalDate
-import org.finos.morphir.datamodel.Concept.LocalTime
-import org.finos.morphir.datamodel.Concept.Int32
-import org.finos.morphir.datamodel.Concept.Order
-import org.finos.morphir.datamodel.Concept.DayOfWeek
-import org.finos.morphir.datamodel.Concept.Optional
-import org.finos.morphir.datamodel.Concept.Result
-import org.finos.morphir.datamodel.Concept.Tuple
+import zio.*
 
-sealed trait MDMDefaultError
+type DefaultTask = Task[Data]
+
+sealed trait MDMDefaultError                        extends Throwable
 case class Unimplemented(msg: String)               extends MDMDefaultError
 case class NoDefaultNothing()                       extends MDMDefaultError
 case class Unfillable(data: Data, concept: Concept) extends MDMDefaultError
 
 trait Defaults {
-  def default(concept: Concept): Either[MDMDefaultError, Data] = concept match {
+  def default(concept: Concept): DefaultTask = concept match {
     case concept: Concept.List     => defaultList(concept)
     case concept: Concept.Map      => defaultMap(concept)
     case concept: Concept.Alias    => defaultAlias(concept)
@@ -52,114 +40,84 @@ trait Defaults {
     case concept: Concept.Set      => defaultSet(concept)
     case concept: Concept.Tuple    => defaultTuple(concept)
   }
-  def fillWithDefaults(data: Data, concept: Concept): Either[MDMDefaultError, Data]
-  def defaultList(concept: Concept.List): Either[MDMDefaultError, Data] = Right(Data.List.empty(concept.elementType))
-  def defaultMap(concept: Concept.Map): Either[MDMDefaultError, Data] =
-    Right(Data.Map.empty(concept.keyType, concept.valueType))
-  def defaultAlias(concept: Concept.Alias): Either[MDMDefaultError, Data] =
+  def fillWithDefaults(data: Data, concept: Concept): DefaultTask
+  def defaultList(concept: Concept.List): DefaultTask = ZIO.succeed(Data.List.empty(concept.elementType))
+  def defaultMap(concept: Concept.Map): DefaultTask =
+    ZIO.succeed(Data.Map.empty(concept.keyType, concept.valueType))
+  def defaultAlias(concept: Concept.Alias): DefaultTask =
     default(concept.value).map(Data.Aliased(_, concept))
   def defaultUnion(concept: Concept.Union) = default(concept.cases.head).map(Data.Union(_, concept))
-  def defaultRecord(concept: Concept.Record): Either[MDMDefaultError, Data] = {
-    val empty: Either[MDMDefaultError, List[(Label, Data)]] = Right(List())
-    val dataFields = concept.fields.foldLeft(empty) { case (acc, (label, concept)) =>
-      acc match {
-        case Left(err) => Left(err)
-        case Right(l) =>
-          default(concept).map(l :+ (label, _))
-      }
-    }
-    dataFields.map(Data.Record(_, concept))
+  def defaultRecord(concept: Concept.Record): DefaultTask = for {
+    dataFields <- ZIO.collectAll(concept.fields.map { (label, concept) => default(concept).map((label, _)) })
+    res = Data.Record(dataFields, concept)
+  } yield res
+  def defaultStruct(concept: Concept.Struct): DefaultTask = for {
+    dataFields <- ZIO.collectAll(concept.fields.map { (label, concept) => default(concept).map((label, _)) })
+    res = Data.Struct(dataFields)
+  } yield res
+
+  def defaultEnum(concept: Concept.Enum): DefaultTask = {
+    val firstCase = concept.cases.head
+    for {
+      args <- ZIO.collectAll(firstCase.fields.map { (label, concept) => default(concept).map((label, _)) })
+      res = Data.Case(args, firstCase.label.toString(), concept)
+    } yield res
   }
-  def defaultStruct(concept: Concept.Struct): Either[MDMDefaultError, Data] = {
-    val empty: Either[MDMDefaultError, List[(Label, Data)]] = Right(List())
-    val dataFields = concept.fields.foldLeft(empty) { case (acc, (label, concept)) =>
-      acc match {
-        case Left(err) => Left(err)
-        case Right(l) =>
-          default(concept).map(l :+ (label, _))
-      }
-    }
-    dataFields.map(Data.Struct(_))
-  }
-  def defaultEnum(concept: Concept.Enum): Either[MDMDefaultError, Data] = {
-    val firstCase                                               = concept.cases.head
-    val empty: Either[MDMDefaultError, List[(EnumLabel, Data)]] = Right(List())
-    val args = firstCase.fields.foldLeft(empty) { case (acc, (label, concept)) =>
-      acc match {
-        case Left(err) => Left(err)
-        case Right(l) =>
-          default(concept).map(l :+ (label, _))
-      }
-    }
-    args.map(Data.Case(_, firstCase.label.toString(), concept))
-  }
-  def defaultInt64: Either[MDMDefaultError, Data]   = Right(Data.Int64(0))
-  def defaultInteger: Either[MDMDefaultError, Data] = Right(Data.Integer(BigInt(0)))
-  def defaultDecimal: Either[MDMDefaultError, Data] = Right(Data.Decimal(BigDecimal(0)))
-  def defaultInt16: Either[MDMDefaultError, Data]   = Right(Data.Int16(0))
-  def defaultNothing: Either[MDMDefaultError, Data] = Left(NoDefaultNothing())
-  def defaultMonth: Either[MDMDefaultError, Data]   = Right(Data.Month(java.time.Month.JANUARY))
-  def defaultLocalDate: Either[MDMDefaultError, Data] =
-    Right(Data.LocalDate(java.time.LocalDate.EPOCH))
-  def defaultFloat: Either[MDMDefaultError, Data] = Right(Data.Float(0))
-  def defaultLocalTime: Either[MDMDefaultError, Data] =
-    Right(Data.LocalTime(java.time.LocalTime.MIDNIGHT))
-  def defaultInt32: Either[MDMDefaultError, Data]  = Right(Data.Int32(0))
-  def defaultByte: Either[MDMDefaultError, Data]   = Right(Data.Byte(0))
-  def defaultUnit: Either[MDMDefaultError, Data]   = Right(Data.Unit)
-  def defaultString: Either[MDMDefaultError, Data] = Right(Data.String(""))
-  def defaultOrder: Either[MDMDefaultError, Data]  = Right(Data.Order.apply(0))
-  def defaultDayOfWeek: Either[MDMDefaultError, Data] =
-    Right(Data.DayOfWeek(java.time.DayOfWeek.of(0)))
-  def defaultChar: Either[MDMDefaultError, Data]    = Right(Data.Char('0'))
-  def defaultBoolean: Either[MDMDefaultError, Data] = Right(Data.True)
-  def defaultOptional(concept: Concept.Optional): Either[MDMDefaultError, Data] =
-    Right(Data.Optional.None(concept.elementType))
-  def defaultAny: Either[MDMDefaultError, Data] = Right(Data.Unit)
-  def defaultResult(concept: Concept.Result): Either[MDMDefaultError, Data] =
+  def defaultInt64: DefaultTask   = ZIO.succeed(Data.Int64(0))
+  def defaultInteger: DefaultTask = ZIO.succeed(Data.Integer(BigInt(0)))
+  def defaultDecimal: DefaultTask = ZIO.succeed(Data.Decimal(BigDecimal(0)))
+  def defaultInt16: DefaultTask   = ZIO.succeed(Data.Int16(0))
+  def defaultNothing: DefaultTask = ZIO.fail(NoDefaultNothing())
+  def defaultMonth: DefaultTask   = ZIO.succeed(Data.Month(java.time.Month.JANUARY))
+  def defaultLocalDate: DefaultTask =
+    ZIO.succeed(Data.LocalDate(java.time.LocalDate.EPOCH))
+  def defaultFloat: DefaultTask = ZIO.succeed(Data.Float(0))
+  def defaultLocalTime: DefaultTask =
+    ZIO.succeed(Data.LocalTime(java.time.LocalTime.MIDNIGHT))
+  def defaultInt32: DefaultTask  = ZIO.succeed(Data.Int32(0))
+  def defaultByte: DefaultTask   = ZIO.succeed(Data.Byte(0))
+  def defaultUnit: DefaultTask   = ZIO.succeed(Data.Unit)
+  def defaultString: DefaultTask = ZIO.succeed(Data.String(""))
+  def defaultOrder: DefaultTask  = ZIO.succeed(Data.Order.apply(0))
+  def defaultDayOfWeek: DefaultTask =
+    ZIO.succeed(Data.DayOfWeek(java.time.DayOfWeek.of(0)))
+  def defaultChar: DefaultTask    = ZIO.succeed(Data.Char('0'))
+  def defaultBoolean: DefaultTask = ZIO.succeed(Data.True)
+  def defaultOptional(concept: Concept.Optional): DefaultTask =
+    ZIO.succeed(Data.Optional.None(concept.elementType))
+  def defaultAny: DefaultTask = ZIO.succeed(Data.Unit)
+  def defaultResult(concept: Concept.Result): DefaultTask =
     default(concept.okType).map(Data.Result.Ok(_, concept))
-  def defaultSet(concept: Concept.Set): Either[MDMDefaultError, Data] = Right(Data.Set.empty(concept.elementType))
-  def defaultTuple(concept: Concept.Tuple): Either[MDMDefaultError, Data] = {
-    val empty: Either[MDMDefaultError, List[Data]] = Right(List())
-    val elems = concept.values.foldLeft(empty) { case (acc, concept) =>
-      acc match {
-        case Left(err) => Left(err)
-        case Right(l) =>
-          default(concept).map(l :+ _)
-      }
-    }
-    elems.map(Data.Tuple(_))
-  }
+  def defaultSet(concept: Concept.Set): DefaultTask = ZIO.succeed(Data.Set.empty(concept.elementType))
+  def defaultTuple(concept: Concept.Tuple): DefaultTask = for {
+    elems <- ZIO.collectAll(concept.values.map(default))
+    res = Data.Tuple(elems)
+  } yield res
 }
 
 trait DefaultFiller extends Defaults {
-  def fillWithDefaults(data: Data, concept: Concept): Either[MDMDefaultError, Data]
+  def fillWithDefaults(data: Data, concept: Concept): DefaultTask
 }
 
 case class DefaultOptions()
 case class FillOptions()
 case class MDMDefaults(defaultOptions: DefaultOptions, fillOptions: FillOptions) extends DefaultFiller {
 
-  def fillWithDefaults(data: Data, concept: Concept): Either[MDMDefaultError, Data] =
+  def fillWithDefaults(data: Data, concept: Concept): DefaultTask =
     (data, concept) match {
       case (otherData, otherConcept) if otherData.shape == otherConcept =>
-        Right(otherData) // Hopefully == is good enough
-      case (recordData: Data.Record, recordConcept: Concept.Record) =>
-        val empty: Either[MDMDefaultError, List[(Label, Data)]] = Right(List())
-        val dataFields = recordConcept.fields.foldLeft(empty) { case (acc, (label, fieldConcept)) =>
-          acc match {
-            case Left(err) => Left(err)
-            case Right(l) =>
-              val newField = recordData.values.find(_._1 == label) match {
-                case None                 => default(fieldConcept).map((label, _))
-                case Some((_, fieldData)) => fillWithDefaults(fieldData, fieldConcept).map((label, _))
-              }
-              newField.map(l :+ _)
-          }
-        }
-        dataFields.map(Data.Record(_, recordConcept))
-
-      case (otherData, otherConcept) => Left(Unfillable(otherData, otherConcept))
+        ZIO.succeed(otherData) // Hopefully == is good enough
+      case (recordData: Data.Record, recordConcept: Concept.Record) => for {
+          dataFields <- ZIO.collectAll(recordConcept.fields.map { case (label, fieldConcept) =>
+            recordData.values.find(_._1 == label) match {
+              case None                 => default(fieldConcept).map((label, _))
+              case Some((_, fieldData)) => fillWithDefaults(fieldData, fieldConcept).map((label, _))
+            }
+          })
+          res = Data.Record(dataFields, recordConcept)
+        } yield res
+      // TODO: Other cases
+      case (otherData, otherConcept) => ZIO.fail(Unfillable(otherData, otherConcept))
     }
 
 }
