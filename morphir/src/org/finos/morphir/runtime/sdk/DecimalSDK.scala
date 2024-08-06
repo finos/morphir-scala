@@ -83,6 +83,13 @@ object DecimalSDK {
       val result = int.value.toBigDecimal
       RTDecimal(result)
   }
+  
+    val fromFloat = DynamicNativeFunction1("fromFloat") {
+    (_: NativeContext) =>
+      (float: RT.Primitive.Float) =>
+        val result = BigDecimal(float.value)
+        RTDecimal(result)
+  }
 
   val fromString = DynamicNativeFunction1("fromString") {
     (_: NativeContext) => (str: RT.Primitive.String) =>
