@@ -51,7 +51,7 @@ def showBuildSettings() = T.command {
   MyBuild.showBuildSettings()
 }
 
-trait MorphirPublishModule extends CiReleaseModule with JavaModule {
+trait MorphirPublishModule extends CiReleaseModule with JavaModule with Mima {
   import mill.scalalib.publish._
   def packageDescription: String = s"The $artifactName package"
 
@@ -75,8 +75,7 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
           extends Cross.Module[String]
           with ScalaModule
           with ScalafmtModule
-          with MorphirPublishModule
-          with Mima {
+          with MorphirPublishModule {
 
         def millVersion = crossValue
 
