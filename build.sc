@@ -68,22 +68,6 @@ trait MorphirPublishModule extends CiReleaseModule with JavaModule {
   )
 }
 
-object examples extends Module {
-  object `morphir-elm-projects` extends Module {
-    object finance extends MorphirElmModule
-
-    object `evaluator-tests` extends MorphirElmModule
-    object `unit-test-framework` extends Module {
-      object `example-project` extends MorphirModule 
-    }
-  }
-}
-
-object `morphir-elm` extends Module {
-  object sdks extends Module {
-    object `morphir-unit-test` extends MorphirElmModule
-  }
-}
 
 object morphir extends Cross[MorphirCrossModule](buildSettings.scala.crossScalaVersions) {
   object build extends Module {
@@ -508,6 +492,48 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
     }
   }
 }
+
+// The following modules are morphir-elm modules that have been setup to be built using mill
+// Morphir Elm Projects/Modules:
+object examples extends Module {
+  object `morphir-elm-projects` extends Module {
+    object finance extends MorphirElmModule
+
+    object `evaluator-tests` extends MorphirElmModule
+    object `unit-test-framework` extends Module {
+      object `example-project` extends MorphirElmModule {
+        def morphirModuleDeps = Seq(`morphir-elm`.sdks.`morphir-unit-test`)
+      } 
+
+      object `example-project-tests` extends MorphirElmModule {
+        def morphirModuleDeps = Seq(
+          `morphir-elm`.sdks.`morphir-unit-test`,
+          `example-project`
+        )
+      }
+      object `example-project-tests-incomplete` extends MorphirElmModule {
+        def morphirModuleDeps = Seq(
+          `morphir-elm`.sdks.`morphir-unit-test`,
+          `example-project`
+        )
+      }
+      object `example-project-tests-passing` extends MorphirElmModule {
+        def morphirModuleDeps = Seq(
+          `morphir-elm`.sdks.`morphir-unit-test`,
+          `example-project`
+        )
+      }
+    }
+  }
+}
+
+object `morphir-elm` extends Module {
+  object sdks extends Module {
+    object `morphir-unit-test` extends MorphirElmModule
+  }
+}
+
+// The following section contains aliases used to simplify build tasks
 
 object MyAliases extends Aliases {
   def fmt           = alias("mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources")
