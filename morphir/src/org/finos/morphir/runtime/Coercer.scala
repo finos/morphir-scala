@@ -87,4 +87,12 @@ object Coercer {
   implicit val tupleCoercer: Coercer[RTValue.Tuple] = new Coercer[RTValue.Tuple] {
     def coerce(result: RTValue): RTValue.Tuple = RTValue.coerceTuple(result)
   }
+
+  implicit val aggregationCoercer: Coercer[RTValue.Aggregation] = new Coercer[RTValue.Aggregation] {
+    def coerce(result: RTValue): RTValue.Aggregation = RTValue.coerceAggregation(result)
+  }
+
+  implicit val keyCoercer: Coercer[RTValue.Key] = new Coercer[RTValue.Key] {
+    def coerce(result: RTValue): RTValue.Key = RTValue.coerceKey(result)
+  }
 }
