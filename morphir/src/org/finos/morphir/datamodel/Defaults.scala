@@ -99,7 +99,7 @@ trait DefaultFiller extends Defaults {
   def fillWithDefaults(data: Data, concept: Concept): DefaultTask
 }
 
-case class MDMDefaults() extends DefaultFiller {
+object MDMDefaults extends DefaultFiller {
 
   def fillWithDefaults(data: Data, concept: Concept): DefaultTask =
     (data, concept) match {
