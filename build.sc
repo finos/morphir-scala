@@ -18,6 +18,8 @@ import millbuild.settings._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind
 import mill.contrib.buildinfo.BuildInfo
+import $ivy.`com.github.lolgab::mill-mima::0.1.1`
+import com.github.lolgab.mill.mima._
 
 implicit val buildSettings: BuildSettings = interp.watchValue(MyBuild.cachedBuildSettings)
 
@@ -52,7 +54,7 @@ def showBuildSettings() = T.command {
   MyBuild.showBuildSettings()
 }
 
-trait MorphirPublishModule extends CiReleaseModule with JavaModule {
+trait MorphirPublishModule extends CiReleaseModule with JavaModule with Mima {
   import mill.scalalib.publish._
   def packageDescription: String = s"The $artifactName package"
 
