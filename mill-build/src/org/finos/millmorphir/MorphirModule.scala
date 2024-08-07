@@ -153,10 +153,15 @@ trait MorphirModule extends Module { self =>
    */
   def transitiveMorphirModuleDeps: Seq[MorphirModule] = Seq(this) ++ recursiveMorphirModuleDeps
 
+  def upstreamMakeOutput = T {
+    T.traverse(recursiveMorphirModuleDeps.distinct)(_.make)
+  }
+
   def morphirMake: Target[MakeResult] = T {
     val makeArgs: MakeArgs = self.makeArgs()
     val cli                = makeCommandRunner()
 
+    val _           = upstreamMakeOutput()
     val _           = allSourceFiles()
     val commandArgs = makeArgs.toCommandArgs(cli)
     val workingDir  = makeArgs.projectDir
