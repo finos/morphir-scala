@@ -5,7 +5,7 @@ import millbuild.util.ProcessHelper
 import millbuild.jsruntime.JsRuntime
 import org.finos.millmorphir.api._
 import mill._
-import mill.define.Segment
+import mill.define.{Segment, Segments}
 import mill.api.JsonFormatters._
 import mill.scalalib._
 import mill.scalalib.internal.ModuleUtils
@@ -23,14 +23,14 @@ trait MorphirModule extends Module { self =>
   }
 
   def dist = T {
-    val artifacts = make()
+    val outputs = make()
 
     val distPath = distFolder().path
     if (!os.exists(distPath)) {
       os.makeDir.all(distPath)
     }
 
-    artifacts.map { artifact =>
+    outputs.artifacts.map { artifact =>
       val path      = artifact.path
       val targetDir = distPath
       if (!os.exists(targetDir)) {
@@ -41,7 +41,9 @@ trait MorphirModule extends Module { self =>
 
       T.ctx().log.debug(s"Copying ${path} to $targetPath")
       try {
-        os.copy.over(path, targetPath)
+        if(path != targetPath) {
+          os.copy.over(path, targetPath)
+        }
         Option(artifact.withPath(targetPath))
       } catch {
         case e: Exception =>
@@ -54,7 +56,8 @@ trait MorphirModule extends Module { self =>
   }
 
   def distFolder: Target[PathRef] = T {
-    PathRef(morphirProjectDirResolved().path / "dist")
+    //PathRef(morphirProjectDirResolved().path / "dist")
+    morphirProjectDirResolved()
   }
 
   /// Use indentation in the generated JSON file.
@@ -102,11 +105,17 @@ trait MorphirModule extends Module { self =>
 
   def morphirIrFilename = T("morphir-ir.json")
 
-  def make: Target[Seq[ArtifactRef]] = T {
+  def moduleId = T {
+   millModuleSegments.render 
+  }  
+
+  def make: Target[MakeOutputs] = T {
     val makeResult = morphirMake()
-    Seq(ArtifactRef.morphirIR(makeResult.irFilePath, "morphir", "ir")) ++ makeResult.morphirHashesPath.map { path =>
+    val artifacts = Seq(ArtifactRef.morphirIR(makeResult.irFilePath, "morphir", "ir")) ++ makeResult.morphirHashesPath.map { path =>
       Seq(ArtifactRef.morphirHashes(path, "morphir", "hashes", "incremental"))
     }.getOrElse(Seq.empty)
+
+    MakeOutputs(moduleId(), artifacts)
   }
 
   def makeArgs: Task[MakeArgs] = T.task {
@@ -154,7 +163,7 @@ trait MorphirModule extends Module { self =>
   def transitiveMorphirModuleDeps: Seq[MorphirModule] = Seq(this) ++ recursiveMorphirModuleDeps
 
   def upstreamMakeOutput = T {
-    T.traverse(recursiveMorphirModuleDeps.distinct)(_.make)
+    T.traverse(recursiveMorphirModuleDeps.distinct)(_.dist)
   }
 
   def morphirMake: Target[MakeResult] = T {
