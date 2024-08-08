@@ -198,7 +198,10 @@ object Concept {
     def apply(name: FQName, cases: Enum.Case*) =
       new Enum(name, cases.toList)
 
-    case class Case(label: Label, fields: scala.List[(EnumLabel, Concept)])
+    case class Case(
+        label: Label,
+        fields: scala.List[(EnumLabel, Concept)]
+    ) // TODO: Why is this label a Label when the associated Data has a String?
 
     object Case {
       def apply(label: Label, fields: (EnumLabel, Concept)*) =
