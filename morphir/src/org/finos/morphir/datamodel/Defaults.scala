@@ -82,7 +82,7 @@ trait Defaults {
   def defaultDayOfWeek: DefaultTask =
     ZIO.succeed(Data.DayOfWeek(java.time.DayOfWeek.of(0)))
   def defaultChar: DefaultTask    = ZIO.succeed(Data.Char('0'))
-  def defaultBoolean: DefaultTask = ZIO.succeed(Data.True)
+  def defaultBoolean: DefaultTask = ZIO.succeed(Data.False)
   def defaultOptional(concept: Concept.Optional): DefaultTask =
     ZIO.succeed(Data.Optional.None(concept.elementType))
   def defaultAny: DefaultTask = ZIO.succeed(Data.Unit)
