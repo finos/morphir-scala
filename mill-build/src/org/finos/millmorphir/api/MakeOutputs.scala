@@ -1,7 +1,7 @@
 package org.finos.millmorphir.api
 
-final case class MakeOutputs(moduleId:String, artifacts:Seq[ArtifactRef]) {
-  def addArtifact(artifact: ArtifactRef): MakeOutputs = MakeOutputs(moduleId, artifacts :+ artifact)
+final case class MakeOutputs(moduleId:String, artifacts:Set[ArtifactRef]) {
+  def addArtifact(artifact: ArtifactRef): MakeOutputs = MakeOutputs(moduleId, artifacts + artifact)
   def addArtifacts(artifacts: ArtifactRef*): MakeOutputs = MakeOutputs(moduleId, this.artifacts ++ artifacts)
 }
 
