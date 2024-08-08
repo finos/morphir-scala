@@ -5,6 +5,7 @@ import org.finos.morphir.datamodel.*
 import org.finos.morphir.ir.Type
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
@@ -76,6 +77,16 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       assertTrue(actual == expected)
     }
 
+  def evaluateException(
+                       moduleName: String,
+                       functionName: String,
+                       values: List[Any]
+                     )(expected: Throwable => TestResult): ZIO[TypedMorphirRuntime, Throwable, TestResult] =
+    runTest(moduleName, functionName, values).fold(
+      throwable => expected(throwable),
+      data => assertNever(s"Expected exception but test returned $data")
+  )
+
   def testEvaluation(label: String)(moduleName: String, functionName: String)(expected: => Data) =
     test(label) {
       checkEvaluation(moduleName, functionName)(expected)
@@ -89,6 +100,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   def testEvalMultiple(label: String)(moduleName: String, functionName: String, values: List[Any])(expected: => Data) =
     test(label) {
       checkEvaluation(moduleName, functionName, values)(expected)
+    }
+
+  def testExceptionMultiple(label: String)(moduleName: String, functionName: String, values: List[Any])(expected: Throwable => TestResult) =
+    test(label) {
+      evaluateException(moduleName, functionName, values)(expected)
     }
 
   def runTest(moduleName: String, functionName: String): ZIO[TypedMorphirRuntime, Throwable, Data] =
@@ -3448,6 +3464,20 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             )
           )
         )
+      ),
+      suite("Morphir Runtime Exception Tests")(
+        testExceptionMultiple("FailedCoercion Test")("exceptionTests", "sdkAddTest", List(Data.String("a"), Data.String("b"))) {
+          case TopLevelError(_, _, _) => assertTrue(true)
+          case e => assertNever(s"Expected FailedCoercion but $e was thrown")
+        },
+        testExceptionMultiple("Test")("exceptionTests", "decimalHundred", List(Data.String("a"))) {
+          case TopLevelError(_, _, _: TypeError.UnknownTypeMismatch) => assertTrue(true)
+          case e => assertNever(s"Expected FailedCoercion but $e was thrown")
+        },
+        testExceptionMultiple("Test")("exceptionTests", "decimalHundred", List(Data.String("a"))) {
+          case TopLevelError(_, _, _: TypeError.UnknownTypeMismatch) => assertTrue(true)
+          case e => assertNever(s"Expected FailedCoercion but $e was thrown")
+        }
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
