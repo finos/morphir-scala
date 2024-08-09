@@ -1,3 +1,4 @@
+import mill.testrunner.TestResult
 import mill.scalalib.publish.PublishInfo
 import $meta._
 import $ivy.`de.tototec::de.tobiasroeser.mill.integrationtest::0.7.1`
@@ -361,7 +362,16 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
           examples.`morphir-elm-projects`.`evaluator-tests`.distOutputDirs()
       }
 
-      def morphirTestSourceFiles = 
+      def morphirTestSourceFiles = T {
+        Lib.findSourceFiles(morphirTestSources(), Seq("json")).collect {
+          case path if path.last.startsWith("morphir-") => PathRef(path)
+        }
+      } 
+
+      override protected def testTask(args: Task[Seq[String]], globSelectors: Task[Seq[String]]): Task[(String, Seq[TestResult])] = T.task {
+        val _ = morphirTestSourceFiles()
+        super.testTask(args, globSelectors)()
+      }
     }
 
     object jvm extends Shared with MorphirJVMModule {
