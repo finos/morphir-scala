@@ -21,7 +21,7 @@ trait MorphirBundlePlatformSpecific {
         _             <- Console.printLine(s"\toutputPath: $outputPath")
         _             <- Console.printLine(s"\tirFiles: $irFiles")
         distributions <- ZIO.collectAll { irFiles.map { irFile => loadDistributionFromFileZIO(irFile.toString) } }
-        bundle        <- ZIO.attempt { Distribution.toBundle(distributions: _*) }
+        bundle        <- ZIO.attempt { Distribution.toBundleUnsafe(distributions: _*) }
         writtenPath   <- writeDistributionToFileZIO(bundle, outputPath)
         _             <- Console.printLine(s"\tBundle Morphir IR file created: $writtenPath")
         _             <- Console.printLine("Bundle command executed")
