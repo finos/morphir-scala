@@ -66,7 +66,9 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js 
-        uses: dcodeIO/setup-node-nvm@master
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
 
       - name: Install morphir-elm
         run: |
@@ -108,7 +110,9 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js 
-        uses: dcodeIO/setup-node-nvm@master
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
 
       - name: Install morphir-elm
         run: |
@@ -162,7 +166,9 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js 
-        uses: dcodeIO/setup-node-nvm@master
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
 
       - name: Install morphir-elm
         run: |
@@ -282,7 +288,9 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js 
-        uses: dcodeIO/setup-node-nvm@master
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
 
       - name: Install morphir-elm
         run: |
