@@ -31,6 +31,18 @@ object UnitTesting {
   def expectationType = T.reference("Morphir.UnitTest", "Expect", "Expectation")
   def testPrefix      = "Morphir.UnitTest:Test:"
   def expectPrefix    = "Morphir.UnitTest:Expect:"
+  def testPackagePath = fqn"Morphir.UnitTest:Test:foo".packagePath
+
+  def containsTestCode(
+      globals: GlobalDefs,
+      fqn: FQName,
+      definition: TypedDefinition,
+      testNames: List[FQName]
+  ): Boolean = {
+    def knownTestsPackages: List[PackageName] = testNames.map(_.packagePath).distinct
+    fqn.packagePath == testPackagePath ||
+    definition.outputType == testType || knownTestsPackages.contains(fqn.packagePath)
+  }
 
   /**
    * Run all tests in the given distributions. By this point, the distributions need to include the actual test
@@ -44,10 +56,15 @@ object UnitTesting {
   ): RTAction[MorphirEnv, Nothing, TestSummary] = {
     val globals = GlobalDefs.fromDistributions(dists)
     RTAction.environmentWithPure[MorphirSdk] { env =>
-      val testNames = collectTests(globals)
-      val testIRs   = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
+      val testNames            = collectTests(globals)
+      val userDefinedFunctions = collectNonTests(globals, testNames)
+      val testIRs              = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
       if (testIRs.isEmpty) {
-        val emptySummary = TestSummary("No tests run", Map())
+        val emptySummary = TestSummary(
+          "No tests run",
+          Map(),
+          CoverageInfo(List.empty[FQName], userDefinedFunctions, CoverageCounts.empty)
+        )
         RTAction.succeed(emptySummary)
       } else {
         val testSuiteIR = if (testIRs.length == 1)
@@ -181,7 +198,17 @@ object UnitTesting {
     val withExpects = TestSet.getExpects(newGlobals, testSet)
     // And then the generated thunks are introspected, giving us our final SingleTestResults
     val withResults = TestSet.processExpects(newGlobals, withExpects)
-    TestSet.toSummary(withResults)
+
+    // begin collecting coverage related information
+    val userDefinedFunctions = collectNonTests(globals, testNames)
+    val referencedFunctions  = testNames.flatMap(name => GlobalDefs.getStaticallyReachable(name, globals))
+    val coverageInfo = CoverageInfo(
+      referencedFunctions.toList,
+      userDefinedFunctions,
+      CoverageCounts.getCounts(userDefinedFunctions, referencedFunctions.toList)
+    )
+
+    TestSet.toSummary(coverageInfo, withResults)
   }
 
   /**
@@ -205,4 +232,20 @@ object UnitTesting {
     tests
   }
 
+  /**
+   * The inverse of collect Tests - returns non test definitions
+   *
+   * @param globals
+   *   The global definitions to collect non tests from
+   * @param testNames
+   *   The list of tests names so we can identify test helper functions to exclude
+   */
+  private[runtime] def collectNonTests(
+      globals: GlobalDefs,
+      testNames: List[FQName]
+  ): List[FQName] =
+    globals.definitions.collect {
+      case (fqn -> SDKValue.SDKValueDefinition(definition: TypedDefinition))
+          if !containsTestCode(globals, fqn, definition, testNames) => fqn
+    }.toList
 }

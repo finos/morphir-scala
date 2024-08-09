@@ -107,7 +107,7 @@ class Distributions(dists: Map[PackageName, Distribution.Lib]) {
 
 object Distributions {
   def apply(dists: Distribution*): Distributions =
-    new Distributions(Distribution.toLibsMap(dists: _*))
+    new Distributions(Distribution.toLibsMapUnsafe(dists: _*))
   def apply(dists: Map[PackageName, Distribution.Lib]): Distributions =
     new Distributions(dists)
 }

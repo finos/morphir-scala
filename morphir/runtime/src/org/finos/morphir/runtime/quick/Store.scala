@@ -42,7 +42,7 @@ final case class GlobalDefs(
 
 object GlobalDefs {
   def fromDistributions(dists: Distribution*): GlobalDefs = {
-    val libs: Map[PackageName, Lib] = Distribution.toLibsMap(dists: _*)
+    val libs: Map[PackageName, Lib] = Distribution.toLibsMapUnsafe(dists: _*)
     libs.foldLeft(native) {
       case (acc, (packageName, lib)) => createDefs(acc, packageName, lib.dependencies, lib.packageDef)
     }
@@ -89,4 +89,18 @@ object GlobalDefs {
     GlobalDefs(Map(), Map())
   def native: GlobalDefs =
     GlobalDefs(Native.native ++ NativeSDK.resolvedFunctions, Native.nativeCtors ++ NativeSDK.ctors)
+
+  def getStaticallyReachable(ref: FQName, globalDefs: GlobalDefs): Set[FQName] = {
+
+    def exploreBelow(currentlyKnown: Set[FQName], toExplore: FQName): Set[FQName] =
+      if (currentlyKnown.contains(toExplore)) currentlyKnown
+      else
+        globalDefs.definitions.get(toExplore) match {
+          case Some(SDKValue.SDKValueDefinition(x)) =>
+            x.body.collectReferences.foldLeft(currentlyKnown + toExplore)((acc, next) => exploreBelow(acc, next))
+          case _ => currentlyKnown
+        }
+
+    exploreBelow(Set(), ref)
+  }
 }
