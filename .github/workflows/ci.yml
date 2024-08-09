@@ -64,6 +64,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup Node.js 
+        uses: dcodeIO/setup-node-nvm@master
+
+      - name: Install morphir-elm
+        run: |
+          npm install -g morphir-elm
+
       - name: Setup Scala and Java
         uses: actions/setup-java@v4
         with:
@@ -98,6 +106,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup Node.js 
+        uses: dcodeIO/setup-node-nvm@master
+
+      - name: Install morphir-elm
+        run: |
+          npm install -g morphir-elm
+
       - name: Setup Scala and Java
         uses: actions/setup-java@v4
         with:
@@ -144,6 +160,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup Node.js 
+        uses: dcodeIO/setup-node-nvm@master
+
+      - name: Install morphir-elm
+        run: |
+          npm install -g morphir-elm
+
       - name: Install libuv
         run: sudo apt-get update && sudo apt-get install -y libuv1-dev
 
@@ -256,6 +280,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup Node.js 
+        uses: dcodeIO/setup-node-nvm@master
+
+      - name: Install morphir-elm
+        run: |
+          npm install -g morphir-elm
 
       - uses: actions/setup-java@v4
         with:
