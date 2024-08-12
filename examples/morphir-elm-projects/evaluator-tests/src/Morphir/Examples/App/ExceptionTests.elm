@@ -19,3 +19,10 @@ decimalHundred : Int -> Decimal
 decimalHundred value =
     Decimal.hundred
         value
+
+
+{-| Test: ExceptionTests/ignoreArgReturnString
+-}
+ignoreArgReturnString : a -> String
+ignoreArgReturnString _ =
+    "test"
