@@ -3481,7 +3481,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         },
         testExceptionMultiple("UnknownTypeMismatch Test")("exceptionTests", "decimalHundred", List(Data.String("a"))) {
           case TopLevelError(_, _, _: TypeError.UnknownTypeMismatch) => assertTrue(true)
-          case e => assertNever(s"Expected UnknownTypeMismatch but $e was thrown")
+          case TopLevelError(_, _, inner) => assertNever(s"Expected UnsupportedType but $inner was thrown")
+          case e                          => assertNever(s"Expected UnknownTypeMismatch but $e was thrown")
         },
         /* There are 2 different UnsupportedType errors possible.
            MorphirRuntimeError.UnsupportedType and MorphirErrorRuntime.TypeError.UnsupportedType
