@@ -2,6 +2,7 @@ module Morphir.Examples.App.ExceptionTests exposing (..)
 
 import Morphir.SDK.Decimal as Decimal exposing (..)
 
+
 {-| Test: ExceptionTests/add
 -}
 sdkAddTest : number -> number -> number
