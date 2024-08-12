@@ -79,14 +79,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
     }
 
   def evaluateException(
-                       moduleName: String,
-                       functionName: String,
-                       values: List[Any]
-                     )(expected: Throwable => TestResult): ZIO[TypedMorphirRuntime, Throwable, TestResult] =
+      moduleName: String,
+      functionName: String,
+      values: List[Any]
+  )(expected: Throwable => TestResult): ZIO[TypedMorphirRuntime, Throwable, TestResult] =
     runTest(moduleName, functionName, values).fold(
       throwable => expected(throwable),
       data => assertNever(s"Expected exception but test returned $data")
-  )
+    )
 
   def testEvaluation(label: String)(moduleName: String, functionName: String)(expected: => Data) =
     test(label) {
@@ -103,7 +103,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       checkEvaluation(moduleName, functionName, values)(expected)
     }
 
-  def testExceptionMultiple(label: String)(moduleName: String, functionName: String, values: List[Any])(expected: Throwable => TestResult) =
+  def testExceptionMultiple(label: String)(
+      moduleName: String,
+      functionName: String,
+      values: List[Any]
+  )(expected: Throwable => TestResult) =
     test(label) {
       evaluateException(moduleName, functionName, values)(expected)
     }
@@ -3467,41 +3471,53 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         )
       ),
       suite("Morphir Runtime Exception Tests")(
-        testExceptionMultiple("FailedCoercion Test")("exceptionTests", "sdkAddTest", List(Data.String("a"), Data.String("b"))) {
+        testExceptionMultiple("FailedCoercion Test")(
+          "exceptionTests",
+          "sdkAddTest",
+          List(Data.String("a"), Data.String("b"))
+        ) {
           case TopLevelError(_, _, _) => assertTrue(true)
-          case e => assertNever(s"Expected FailedCoercion but $e was thrown")
+          case e                      => assertNever(s"Expected FailedCoercion but $e was thrown")
         },
         testExceptionMultiple("UnknownTypeMismatch Test")("exceptionTests", "decimalHundred", List(Data.String("a"))) {
           case TopLevelError(_, _, _: TypeError.UnknownTypeMismatch) => assertTrue(true)
           case e => assertNever(s"Expected UnknownTypeMismatch but $e was thrown")
         },
         /* There are 2 different UnsupportedType errors possible.
-           MorphirRuntimeError.UnsupportedType and MorphirErrorRuntime.TypeError.UnsupportedType 
+           MorphirRuntimeError.UnsupportedType and MorphirErrorRuntime.TypeError.UnsupportedType
          */
-        testExceptionMultiple("MorphirRuntimeError UnsupportedType Test")("exceptionTests", "sdkAddTest", List(Data.String("a"))) {
+        testExceptionMultiple("MorphirRuntimeError UnsupportedType Test")(
+          "exceptionTests",
+          "sdkAddTest",
+          List(Data.String("a"))
+        ) {
           case TopLevelError(_, _, _: UnsupportedType) => assertTrue(true)
-          case TopLevelError(_, _, inner) => assertNever(s"Expected UnsupportedType but $inner was thrown")
-          case e => assertNever(s"Expected UnsupportedType but $e was thrown")
+          case TopLevelError(_, _, inner)              => assertNever(s"Expected UnsupportedType but $inner was thrown")
+          case e                                       => assertNever(s"Expected UnsupportedType but $e was thrown")
         },
         testExceptionMultiple("Type Test")("exceptionTests", "sdkAddTest", List(Data.Float(1), Data.Decimal(2))) {
           case TopLevelError(_, _, _: TypeError.InferenceConflict) => assertTrue(true)
           case e => assertNever(s"Expected FailedCoercion but $e was thrown")
         },
         testExceptionMultiple("MissingDefinition Test")("exceptionTests", "notARealFunction", List(Data.Unit)) {
-          case LookupError.MissingDefinition(_,_,_,_) => assertTrue(true)
-          case e => assertNever(s"Expected MissingDefinition but $e was thrown")
+          case LookupError.MissingDefinition(_, _, _, _) => assertTrue(true)
+          case e                                         => assertNever(s"Expected MissingDefinition but $e was thrown")
         },
         testExceptionMultiple("MissingModule Test")("notARealModule", "notARealFunction", List(Data.Unit)) {
-          case LookupError.MissingModule(_,_,_) => assertTrue(true)
-          case e => assertNever(s"Expected MissingModule but $e was thrown")
+          case LookupError.MissingModule(_, _, _) => assertTrue(true)
+          case e                                  => assertNever(s"Expected MissingModule but $e was thrown")
         },
         testExceptionMultiple("MissingPackage Test")("", "", List(Data.Unit)) {
-          case LookupError.MissingPackage(_,_) => assertTrue(true)
-          case e => assertNever(s"Expected MissingPackage but $e was thrown")
+          case LookupError.MissingPackage(_, _) => assertTrue(true)
+          case e                                => assertNever(s"Expected MissingPackage but $e was thrown")
         },
-        testExceptionMultiple("ImproperType Test")("exceptionTests", "ignoreArgReturnString", List(Data.Int(1),Data.Int(1),Data.Int(1))) {
+        testExceptionMultiple("ImproperType Test")(
+          "exceptionTests",
+          "ignoreArgReturnString",
+          List(Data.Int(1), Data.Int(1), Data.Int(1))
+        ) {
           case TopLevelError(_, _, _: TypeError.ImproperType) => assertTrue(true)
-          case e => assertNever(s"Expected ImproperType but $e was thrown")
+          case e                                              => assertNever(s"Expected ImproperType but $e was thrown")
         }
       )
     ).provideLayerShared(morphirRuntimeLayer)
