@@ -4,7 +4,9 @@ import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
 import org.finos.morphir.ir.Type
 import org.finos.morphir.naming.*
+import org.finos.morphir.runtime.EvaluatorMDMTests.testExceptionMultiple
 import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
@@ -76,6 +78,16 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       assertTrue(actual == expected)
     }
 
+  def evaluateException(
+      moduleName: String,
+      functionName: String,
+      values: List[Any]
+  )(expected: Throwable => TestResult): ZIO[TypedMorphirRuntime, Throwable, TestResult] =
+    runTest(moduleName, functionName, values).fold(
+      throwable => expected(throwable),
+      data => assertNever(s"Expected exception but test returned $data")
+    )
+
   def testEvaluation(label: String)(moduleName: String, functionName: String)(expected: => Data) =
     test(label) {
       checkEvaluation(moduleName, functionName)(expected)
@@ -89,6 +101,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   def testEvalMultiple(label: String)(moduleName: String, functionName: String, values: List[Any])(expected: => Data) =
     test(label) {
       checkEvaluation(moduleName, functionName, values)(expected)
+    }
+
+  def testExceptionMultiple(label: String)(
+      moduleName: String,
+      functionName: String,
+      values: List[Any]
+  )(expected: Throwable => TestResult) =
+    test(label) {
+      evaluateException(moduleName, functionName, values)(expected)
     }
 
   def runTest(moduleName: String, functionName: String): ZIO[TypedMorphirRuntime, Throwable, Data] =
@@ -3448,6 +3469,55 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             )
           )
         )
+      ),
+      suite("Morphir Runtime Exception Tests")(
+        testExceptionMultiple("FailedCoercion Test")(
+          "exceptionTests",
+          "sdkAddTest",
+          List(Data.String("a"), Data.String("b"))
+        ) {
+          case TopLevelError(_, _, _) => assertTrue(true)
+          case _                      => assertNever(s"Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("UnknownTypeMismatch Test")("exceptionTests", "decimalHundred", List(Data.String("a"))) {
+          case TopLevelError(_, _, _: TypeError.UnknownTypeMismatch) => assertTrue(true)
+          case _ => assertNever(s"Unexpected exception type was thrown")
+        },
+        /* There are 2 different UnsupportedType errors possible.
+           MorphirRuntimeError.UnsupportedType and MorphirErrorRuntime.TypeError.UnsupportedType
+         */
+        testExceptionMultiple("MorphirRuntimeError UnsupportedType Test")(
+          "exceptionTests",
+          "sdkAddTest",
+          List(Data.String("a"))
+        ) {
+          case TopLevelError(_, _, _: UnsupportedType) => assertTrue(true)
+          case _                                       => assertNever(s"Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("Type Test")("exceptionTests", "sdkAddTest", List(Data.Float(1), Data.Decimal(2))) {
+          case TopLevelError(_, _, _: TypeError.InferenceConflict) => assertTrue(true)
+          case _ => assertNever(s"Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("MissingDefinition Test")("exceptionTests", "notARealFunction", List(Data.Unit)) {
+          case LookupError.MissingDefinition(_, _, _, _) => assertTrue(true)
+          case _                                         => assertNever(s"Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("MissingModule Test")("notARealModule", "notARealFunction", List(Data.Unit)) {
+          case LookupError.MissingModule(_, _, _) => assertTrue(true)
+          case _                                  => assertNever(s"Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("MissingPackage Test")("", "", List(Data.Unit)) {
+          case LookupError.MissingPackage(_, _) => assertTrue(true)
+          case _                                => assertNever(s"Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("ImproperType Test")(
+          "exceptionTests",
+          "ignoreArgReturnString",
+          List(Data.Int(1), Data.Int(1), Data.Int(1))
+        ) {
+          case TopLevelError(_, _, _: TypeError.ImproperType) => assertTrue(true)
+          case _                                              => assertNever(s"Unexpected exception type was thrown")
+        }
       )
     ).provideLayerShared(morphirRuntimeLayer)
 
