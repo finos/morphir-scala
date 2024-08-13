@@ -63,7 +63,7 @@ object UnitTesting {
         val emptySummary = TestSummary(
           "No tests run",
           Map(),
-          CoverageInfo(List.empty[FQName], userDefinedFunctions, CoverageCounts.empty)
+          CoverageInfo(Set.empty[FQName], userDefinedFunctions, CoverageCounts.empty)
         )
         RTAction.succeed(emptySummary)
       } else {
@@ -201,11 +201,11 @@ object UnitTesting {
 
     // begin collecting coverage related information
     val userDefinedFunctions = collectNonTests(globals, testNames)
-    val referencedFunctions  = testNames.flatMap(name => GlobalDefs.getStaticallyReachable(name, globals))
+    val referencedFunctions  = testNames.flatMap(name => GlobalDefs.getStaticallyReachable(name, globals)).toSet
     val coverageInfo = CoverageInfo(
-      referencedFunctions.toList,
+      referencedFunctions,
       userDefinedFunctions,
-      CoverageCounts.getCounts(userDefinedFunctions, referencedFunctions.toList)
+      CoverageCounts.getCounts(userDefinedFunctions, referencedFunctions)
     )
 
     TestSet.toSummary(coverageInfo, withResults)
@@ -243,9 +243,9 @@ object UnitTesting {
   private[runtime] def collectNonTests(
       globals: GlobalDefs,
       testNames: List[FQName]
-  ): List[FQName] =
+  ): Set[FQName] =
     globals.definitions.collect {
       case (fqn -> SDKValue.SDKValueDefinition(definition: TypedDefinition))
           if !containsTestCode(globals, fqn, definition, testNames) => fqn
-    }.toList
+    }.toSet
 }
