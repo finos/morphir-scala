@@ -11,55 +11,6 @@ import org.finos.morphir.datamodel.Data.{Optional, Result}
 
 import java.util.function.UnaryOperator
 
-sealed trait DetailLevel {
-  def hideFQNames: Boolean
-  def compressNestedConcepts: Boolean
-  def compressData: Boolean
-  def compressConcept: Boolean
-  def hideInnerConcepts: Boolean
-}
-object DetailLevel {
-  object Detailed extends DetailLevel {
-    def hideFQNames            = false
-    def compressNestedConcepts = false
-    def compressData           = false
-    def compressConcept        = false
-    def hideInnerConcepts      = false
-  }
-  object Medium extends DetailLevel {
-    def hideFQNames            = true
-    def compressNestedConcepts = false
-    def compressData           = false
-    def compressConcept        = true
-    def hideInnerConcepts      = false
-  }
-  object BirdsEye extends DetailLevel {
-    def hideFQNames            = true
-    def compressNestedConcepts = false
-    def compressData           = true
-    def compressConcept        = true
-    def hideInnerConcepts      = true
-  }
-
-  object BirdsEye2 extends DetailLevel {
-    def hideFQNames            = false
-    def compressNestedConcepts = false
-    def compressData           = true
-    def compressConcept        = true
-    def showInnerConcepts      = false
-    def hideInnerConcepts      = true
-  }
-
-  object BirdsEye3 extends DetailLevel {
-    def hideFQNames            = false
-    def compressNestedConcepts = false
-    def compressData           = true
-    def compressConcept        = true
-    def showInnerConcepts      = false
-    def hideInnerConcepts      = false
-  }
-}
-
 object PrintMDM {
   def apply(
       any: Any,
@@ -67,6 +18,55 @@ object PrintMDM {
       fieldNames: FieldNames = FieldNames.Hide,
       defaultWidth: Int = 150
   ) = new PrintIR(detailLevel, fieldNames, defaultWidth).apply(any)
+
+  sealed trait DetailLevel {
+    def hideFQNames: Boolean
+    def compressNestedConcepts: Boolean
+    def compressData: Boolean
+    def compressConcept: Boolean
+    def hideInnerConcepts: Boolean
+  }
+  object DetailLevel {
+    object Detailed extends DetailLevel {
+      def hideFQNames            = false
+      def compressNestedConcepts = false
+      def compressData           = false
+      def compressConcept        = false
+      def hideInnerConcepts      = false
+    }
+    object Medium extends DetailLevel {
+      def hideFQNames            = true
+      def compressNestedConcepts = false
+      def compressData           = false
+      def compressConcept        = true
+      def hideInnerConcepts      = false
+    }
+    object BirdsEye extends DetailLevel {
+      def hideFQNames            = true
+      def compressNestedConcepts = false
+      def compressData           = true
+      def compressConcept        = true
+      def hideInnerConcepts      = true
+    }
+
+    object BirdsEye2 extends DetailLevel {
+      def hideFQNames            = false
+      def compressNestedConcepts = false
+      def compressData           = true
+      def compressConcept        = true
+      def showInnerConcepts      = false
+      def hideInnerConcepts      = true
+    }
+
+    object BirdsEye3 extends DetailLevel {
+      def hideFQNames            = false
+      def compressNestedConcepts = false
+      def compressData           = true
+      def compressConcept        = true
+      def showInnerConcepts      = false
+      def hideInnerConcepts      = false
+    }
+  }
 }
 
 sealed trait FieldNames
@@ -76,7 +76,7 @@ object FieldNames {
 }
 
 class PrintIR(
-    detailLevel: DetailLevel,
+    detailLevel: PrintMDM.DetailLevel,
     fieldNames: FieldNames,
     val defaultWidth: Int
 ) extends pprint.Walker {
@@ -140,6 +140,7 @@ class PrintIR(
           v match {
             case v: Data.LocalDate => Tree.Literal(v.toString)
             case v: Data.Month     => Tree.Literal(v.toString)
+            case v: Data.DayOfWeek => Tree.Literal(v.toString)
             case v: Data.LocalTime => Tree.Literal(v.toString)
             case _                 => treeifySuper(v)
           }

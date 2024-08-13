@@ -9,7 +9,7 @@ trait CommonScalaModule extends ScalaModule {
   def compilerPlugins(scalaVersion: String) =
     if (isScala2(scalaVersion))
       Agg(
-        ivy"org.typelevel:::kind-projector:0.13.2",
+        ivy"org.typelevel:::kind-projector:0.13.3",
         ivy"com.olegpy::better-monadic-for:0.3.1"
       )
     else
@@ -66,7 +66,7 @@ trait CommonScalaModule extends ScalaModule {
   }
 
   def scalaDocOptions = T {
-    val extraOptions =  
+    val extraOptions =
       if (isScala213()) {
         Seq("-Wconf:cat=scala3-migration:s")
       } else {
@@ -200,7 +200,12 @@ trait CommonScalaModule extends ScalaModule {
           "-Xsource:3"
         )
       case Array("2", _, _) =>
-        commonCompilerOptions ++ Seq("-language:existentials", "-Yrangepos", "-Xsource:3", "-Wconf:cat=scala3-migration:s")
+        commonCompilerOptions ++ Seq(
+          "-language:existentials",
+          "-Yrangepos",
+          "-Xsource:3-cross",
+          "-Wconf:cat=scala3-migration:s"
+        )
       case Array("3", _, _) =>
         filterScala3Options(commonCompilerOptions) ++ Seq(
           // TODO: Enable later

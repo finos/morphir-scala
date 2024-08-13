@@ -375,7 +375,7 @@ object Value {
         case head :: tail =>
           tail.foldLeft(Apply(attributes, function, head)) { case (acc, arg) => Apply(acc.attributes, acc, arg) }
       }
-      // arguments.foldLeft(Apply(attributes, function, arguments.head)) { case (acc, arg) => Apply(acc.attributes, acc, arg) }
+    // arguments.foldLeft(Apply(attributes, function, arguments.head)) { case (acc, arg) => Apply(acc.attributes, acc, arg) }
 
     type Raw = Apply[scala.Unit, scala.Unit]
     object Raw {

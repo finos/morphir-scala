@@ -11,6 +11,7 @@ import org.finos.morphir.ir.Value.{
   USpecification as UValueSpec
 }
 import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification as UTypeSpec}
+import org.finos.morphir.ir.AccessControlled
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.exports.*
@@ -97,9 +98,9 @@ final class TypeChecker(dists: Distributions) {
       tpe match {
         case ref @ Extractors.Types.NativeRef(_, _) => Right(ref)
         case Type.Reference(_, typeName, typeArgs) =>
-          val lookedUp = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+          val lookedUp = dists.lookupTypeDefinition(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
-            case Right(T.Specification.TypeAliasSpecification(typeParams, expr)) =>
+            case Right(T.Definition.TypeAlias(typeParams, expr)) =>
               val newBindings         = typeParams.zip(typeArgs).toMap
               val withBindingsApplied = Utils.applyBindings(expr, newBindings)
               loop(withBindingsApplied, original_fqn.orElse(Some(typeName)), context)
@@ -117,10 +118,12 @@ final class TypeChecker(dists: Distributions) {
       }
     loop(tpe, None, context)
   }
+
   def checkAllDefinitions(): List[TypeError] =
-    GatherReferences.fromDistributions(dists.getDists.values.toList: _*).definitions.toList.filter(
+    GatherReferences.fromDistributionLibs(dists.getDists).definitions.toList.filter(
       !Utils.isNative(_)
     ).flatMap(checkDefinitionBody(_))
+
   def checkDefinitionBody(fqn: FQName): List[TypeError] = {
     val maybeDefinition = dists.lookupValueDefinition(fqn)
     maybeDefinition match {
@@ -131,6 +134,7 @@ final class TypeChecker(dists: Distributions) {
 
   def conformsTo(valueType: UType, declaredType: UType): List[TypeError] =
     conformsTo(valueType, declaredType, Context.empty)
+
   def conformsTo(valueType: UType, declaredType: UType, context: Context): List[TypeError] = {
     import Extractors.Types.*
     (valueType, declaredType) match {
@@ -291,8 +295,8 @@ final class TypeChecker(dists: Distributions) {
       // otherwise run the constructor and return the errors from that
       case Right((ret, args)) =>
         ret match {
-          case NonNativeRef(name, typeArgs) => dists.lookupTypeSpecification(name) match {
-              case Right(T.Specification.CustomTypeSpecification(typeParams, ctors)) =>
+          case NonNativeRef(name, typeArgs) => dists.lookupTypeDefinition(name) match {
+              case Right(T.Definition.CustomType(typeParams, AccessControlled(_, ctors))) =>
                 val newBindings = typeParams.toList.zip(typeArgs.toList).toMap
                 val missedName = helper(
                   fqn.packagePath != name.packagePath || fqn.modulePath != name.modulePath,
@@ -314,11 +318,32 @@ final class TypeChecker(dists: Distributions) {
                 }
                 missedName ++ fromCtor
               case Right(other) =>
-                List(new ImproperTypeSpec(name, other, s"Type union expected"))
-              case Left(err) => List(err.withContext(s"Needed looking for constructor ${fqn.toStringTitleCase}"))
+                List(new ImproperTypeDef(name, other, s"Type union expected"))
+              case Left(err) =>
+                List(err.withContext(s"Needed looking for implicit constructor ${fqn.toStringTitleCase}"))
             }
+          // The following is for implicit record constructors
+          case Type.Record(_, fields) =>
+            val argErrors = checkList(
+              args.toList,
+              fields.map(_.data),
+              context.withPrefix(s"Comparing $fqn implicit constructor value to looked up type ${PrintIR(tpe)}")
+            )
+            val nameMismatch = dists.lookupTypeDefinition(fqn) match {
+              case Right(T.Definition.TypeAlias(_, aliasedRecordType)) => conformsTo(aliasedRecordType, ret, context)
+              case Right(other) => List(ImproperTypeDef(
+                  fqn,
+                  other,
+                  s"I think this is an implicit record constructor because the return type is a record, but the function points to something else"
+                ))
+              case Left(err) =>
+                List(err.withContext(s"Needed looking for implicit constructor ${fqn.toStringTitleCase}"))
+            }
+            argErrors ++ nameMismatch
+
           case NativeRef(_, _) => List() // TODO: check native constructor calls
-          case other           => List(new ImproperType(other, s"Reference to type union expected"))
+          case other =>
+            List(new ImproperType(other, s"Reference to type union or implicit record constructor expected"))
         }
     }
   }

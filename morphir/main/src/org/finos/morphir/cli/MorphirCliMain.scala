@@ -14,14 +14,19 @@ object MorphirCliMain extends ZIOCliDefault {
     summary = text("Morphir CLI"),
     command = commands.Morphir.root
   )(executeCommand(_).provide(
+    MorphirBundle.live,
     MorphirSetup.live,
     MorphirElmDriver.live,
     MorphirRuntimeDriver.live
   ))
 
   private def executeCommand(command: MorphirCommand) = command match {
+    case MorphirCommand.Bundle(outputBundleIRFilePath, irFiles) =>
+      MorphirBundle.bundle(VPath(outputBundleIRFilePath), irFiles.map(VPath(_)))
     case MorphirCommand.Develop(port, host, projectDir, openInBrowser) =>
       MorphirElmDriver.develop(port, host, VPath(projectDir), openInBrowser)
+    case MorphirCommand.Library(outputDir, irFiles) =>
+      MorphirBundle.library(VPath(outputDir), irFiles.map(VPath(_)))
     case MorphirCommand.Setup(morphirHomeDir) => MorphirSetup.setup(VPath(morphirHomeDir))
     case MorphirCommand.Test(irFiles)         => MorphirRuntimeDriver.test()
     case MorphirCommand.ElmDevelop(port, host, projectDir, openInBrowser) =>
@@ -116,6 +121,19 @@ object MorphirCliMain extends ZIOCliDefault {
 
     object Morphir {
 
+      val bundle = {
+        val irFiles = Args.file("ir-files").atLeast(1) ?? "Morphir IR files to bundle"
+        val outputPath = Options.file("output").alias("o").withDefault(
+          Paths.get("morphir-ir.json")
+        ) ?? "Target file location where the Bundle Morphir IR file will be saved."
+
+        Command("bundle", outputPath, irFiles).withHelp(
+          "Bundle Morphir IR models using the Morphir Runtime."
+        ).map { (output, files) =>
+          MorphirCommand.Bundle(output, files)
+        }
+      }
+
       val develop = {
         val port = Options.integer("port").alias("p").withDefault(BigInt(3000)).map(
           _.intValue
@@ -133,12 +151,26 @@ object MorphirCliMain extends ZIOCliDefault {
         }
       }
 
+      val library = {
+        val irFiles =
+          Args.file("ir-files").atLeast(1) ?? "Bundle Morphir IR file(s) to be split into Library Morphir IR File(s)"
+        val outputDir = Options.directory("output").alias("o").withDefault(
+          Paths.get(".")
+        ) ?? "Target directory where Library Morphir IR file(s) will be created."
+
+        Command("library", outputDir, irFiles).withHelp(
+          "Split Bundle Morphir IR model(s) into Library Morphir IR model(s) using the Morphir Runtime."
+        ).map { (output, files) =>
+          MorphirCommand.Library(output, files)
+        }
+      }
+
       val setup = Command("setup").withHelp("Setup morphir-cli for use.").map { _ =>
         val morphirHomeDir = Paths.get("~")
         MorphirCommand.Setup(morphirHomeDir)
       }
 
-      def root = Command("morphir-cli").subcommands(develop, Elm.root, setup, test)
+      def root = Command("morphir-cli").subcommands(bundle, develop, Elm.root, library, setup, test)
 
       val test = {
         val irFiles = Args.file("ir-files").repeat

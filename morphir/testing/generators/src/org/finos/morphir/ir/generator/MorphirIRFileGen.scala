@@ -20,7 +20,7 @@ trait MorphirIRFileGen {
   } yield MorphirIRFile(version, distribution)
 
   final val morphirIRFile: Gen[Any, MorphirIRFile] =
-    morphirIRFile(morphirIRVersion, DistributionGen.libraryDistribution)
+    morphirIRFile(morphirIRVersion, DistributionGen.distribution)
 }
 
 object MorphirIRFileGen extends MorphirIRFileGen

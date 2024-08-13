@@ -1,10 +1,8 @@
 package org.finos.morphir.runtime
 
-import org.finos.morphir.ir.Type.UType
+import org.finos.morphir.ir.Type.{FieldT, UType}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
-import org.finos.morphir.ir.Value.{Pattern, Value}
-import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.ir.distribution.Distribution.Library
+import org.finos.morphir.ir.Value.{Pattern, Value, TypedDefinition}
 import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.naming.*
 import org.finos.morphir.naming.FQName.getLocalName
@@ -12,14 +10,16 @@ import org.finos.morphir.naming.Name.toTitleCase
 import org.finos.morphir.runtime.RTValue
 import org.finos.morphir.runtime.internal.{NativeFunctionSignature, NativeFunctionSignatureAdv}
 import org.finos.morphir.runtime.internal.NativeFunctionSignature.*
-import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.*
 import zio.Chunk
 
 sealed trait SDKValue
-
-case class SDKConstructor(arguments: List[ValueAttribs])
+sealed trait SDKConstructor
+object SDKConstructor {
+  case class Implicit(fields: List[FieldT[Unit]]) extends SDKConstructor
+  case class Explicit(arguments: List[UType])     extends SDKConstructor
+}
 object SDKValue {
-  case class SDKValueDefinition(definition: RuntimeDefinition) extends SDKValue
+  case class SDKValueDefinition(definition: TypedDefinition) extends SDKValue
   case class SDKNativeFunction(function: NativeFunctionSignature) extends SDKValue {
     def arguments = function.numArgs
   }
@@ -42,6 +42,15 @@ object SDKValue {
         RTValue
     ) => RTValue) =
       new SDKNativeFunction(Fun5(f))
+    def fun6(f: (
+        RTValue,
+        RTValue,
+        RTValue,
+        RTValue,
+        RTValue,
+        RTValue
+    ) => RTValue) =
+      new SDKNativeFunction(Fun6(f))
   }
 
   case class SDKNativeInnerFunction(function: NativeFunctionSignatureAdv)

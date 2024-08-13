@@ -9,10 +9,11 @@ import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.Extractors.*
 import org.finos.morphir.runtime.Extractors.Types.*
-import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.{TypeAttribs, ValueAttribs}
 import org.finos.morphir.runtime.{Distributions, RTValue}
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.runtime.CodeLocation
+import org.finos.morphir.ir.AccessControlled
 import org.finos.morphir.runtime.exports.*
 import org.finos.morphir.runtime.services.sdk.*
 import zio.Chunk
@@ -23,24 +24,24 @@ object EvaluatorQuick {
   type FloatType = Double
 
   private[runtime] def evalAction(
-      value: Value[TypeAttribs, ValueAttribs],
+      value: TypedValue,
       globals: GlobalDefs,
       dists: Distributions
   ): RTAction[MorphirEnv, EvaluationError, Data] =
     RTAction.environmentWithPure[MorphirSdk] { env =>
       def newStore = GlobalDefs(globals.definitions, globals.ctors)
-      RTAction.succeed(EvaluatorQuick.eval(value, newStore, dists))
+      RTAction.attempt(EvaluatorQuick.eval(value, newStore, dists)).refineToOrDie[EvaluationError]
     }
 
   private[runtime] def eval(
-      value: Value[TypeAttribs, ValueAttribs],
+      value: TypedValue,
       globals: GlobalDefs,
       dists: Distributions
   ): Data = {
     // Does type-checking when producing MDM concept so want to catch typechecking first
     val concept = typeToConcept(value.attributes, dists, Map())
     // Run the evaluation loop
-    val result = Loop(globals).loop(value, Store.empty)
+    val result = Loop(globals).loop(value, Store.empty, CodeLocation.EntryPoint)
     resultToMDM(result, concept)
   }
 
@@ -69,6 +70,9 @@ object EvaluatorQuick {
       case DecimalRef()   => Concept.Decimal
       case LocalDateRef() => Concept.LocalDate
       case LocalTimeRef() => Concept.LocalTime
+      case OrderRef()     => Concept.Order
+      case MonthRef()     => Concept.Month
+      case DayOfWeekRef() => Concept.DayOfWeek
 
       case ResultRef(errType, okType) =>
         Concept.Result(typeToConcept(errType, dists, boundTypes), typeToConcept(okType, dists, boundTypes))
@@ -80,17 +84,18 @@ object EvaluatorQuick {
         Concept.Map(typeToConcept(keyType, dists, boundTypes), typeToConcept(valType, dists, boundTypes))
       case SetRef(elementType) =>
         Concept.Set(typeToConcept(elementType, dists, boundTypes))
+
       case TT.Reference(_, typeName, typeArgs) =>
-        val lookedUp    = dists.lookupTypeSpecification(typeName.packagePath, typeName.modulePath, typeName.localName)
+        val lookedUp    = dists.lookupTypeDefinition(typeName.packagePath, typeName.modulePath, typeName.localName)
         val conceptArgs = typeArgs.map(typeToConcept(_, dists, boundTypes))
         lookedUp match {
-          case Right(Type.Specification.TypeAliasSpecification(typeParams, expr)) =>
+          case Right(Type.Definition.TypeAlias(typeParams, expr)) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             typeToConcept(expr, dists, newBindings) match {
               case Concept.Struct(fields) => Concept.Record(typeName, fields)
               case other                  => Concept.Alias(typeName, other)
             }
-          case Right(Type.Specification.CustomTypeSpecification(typeParams, ctors)) =>
+          case Right(Type.Definition.CustomType(typeParams, AccessControlled(_, ctors))) =>
             val newBindings = typeParams.zip(conceptArgs).toMap
             val cases = ctors.toMap.toList.map { case (caseName, args) =>
               val argTuples = args.map { case (argName: Name, argType: Type.UType) =>
@@ -101,11 +106,7 @@ object EvaluatorQuick {
               Concept.Enum.Case(Label(conceptName), concepts)
             }
             Concept.Enum(typeName, cases)
-          case Right(other) => throw UnsupportedTypeSpecification(
-              other,
-              "This specification was found as part of the return type from the entry point. Cannot generate Concept for MDM return."
-            )
-          case Left(err) => throw err.withContext("Error finding type specification defined in entry point function")
+          case Left(err) => throw err.withContext("Error finding type alias defined in entry point function")
         }
       case TT.Tuple(_, elements) =>
         Concept.Tuple(elements.map(element => typeToConcept(element, dists, boundTypes)).toList)
@@ -152,7 +153,12 @@ object EvaluatorQuick {
         Data.Int32(value.toInt)
       case (Concept.Int64, RTValue.Primitive.Int(value)) =>
         Data.Int64(value.toLong)
-
+      case (Concept.Order, RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Basics:GT"), List())) =>
+        Data.Order(1)
+      case (Concept.Order, RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Basics:LT"), List())) =>
+        Data.Order(-1)
+      case (Concept.Order, RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Basics:EQ"), List())) =>
+        Data.Order(0)
       case (Concept.String, RTValue.Primitive.String(value)) =>
         Data.String(value)
       case (Concept.Boolean, RTValue.Primitive.Boolean(value)) =>
@@ -163,6 +169,10 @@ object EvaluatorQuick {
         Data.LocalDate(value)
       case (Concept.LocalTime, RTValue.LocalTime(value: java.time.LocalTime)) =>
         Data.LocalTime(value)
+      case (Concept.Month, RTValue.Month(value: java.time.Month)) =>
+        Data.Month(value)
+      case (Concept.DayOfWeek, RTValue.DayOfWeek(value: java.time.DayOfWeek)) =>
+        Data.DayOfWeek(value)
 
       case (Concept.Float, RTValue.Primitive.Float(value)) =>
         Data.Float(value.toDouble)
@@ -180,22 +190,25 @@ object EvaluatorQuick {
       case (Concept.Set(elementConcept), RTValue.Set(elements)) =>
         val inners = elements.map(element => resultAndConceptToData(element, elementConcept))
         Data.Set(inners, elementConcept)
-      case (Concept.Optional(elementShape), RTValue.ConstructorResult(FQString("Morphir.SDK:Maybe:nothing"), List())) =>
+      case (
+            Concept.Optional(elementShape),
+            RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Maybe:Nothing"), List())
+          ) =>
         Data.Optional.None(elementShape)
       case (
             shape @ Concept.Result(_, okType),
-            RTValue.ConstructorResult(FQString("Morphir.SDK:Result:ok"), List(value))
+            RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Ok"), List(value))
           ) =>
         Data.Result.Ok(resultAndConceptToData(value, okType), shape)
       case (
             shape @ Concept.Result(errType, _),
-            RTValue.ConstructorResult(FQString("Morphir.SDK:Result:err"), List(value))
+            RTValue.ConstructorResult(FQStringTitleCase("Morphir.SDK:Result:Err"), List(value))
           ) =>
         Data.Result.Err(resultAndConceptToData(value, errType), shape)
       case (
             Concept.Optional(elementShape),
             RTValue.ConstructorResult(
-              FQString("Morphir.SDK:Maybe:just"),
+              FQStringTitleCase("Morphir.SDK:Maybe:Just"),
               List(value)
             )
           ) => Data.Optional.Some(resultAndConceptToData(value, elementShape))

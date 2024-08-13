@@ -14,7 +14,7 @@ import org.finos.morphir.ir.Literal.Literal.{
 import org.finos.morphir.ir.{Value => V}
 import org.finos.morphir.ir.Value.Pattern.*
 import org.finos.morphir.runtime.RTValue
-import org.finos.morphir.runtime.TypedMorphirRuntimeDefs.ValueAttribs
+import org.finos.morphir.ir.Type.UType
 
 object Helpers {
 
@@ -28,17 +28,17 @@ object Helpers {
   }
 
   def matchPatternCase(
-      pattern: V.Pattern[ValueAttribs],
+      pattern: V.Pattern[UType],
       value: RTValue
   ): Option[Map[Name, RTValue]] =
     (pattern, value) match {
-      case (_: WildcardPattern[ValueAttribs], _) => Some(Map.empty)
+      case (_: WildcardPattern[UType], _) => Some(Map.empty)
       case (AsPattern(_, innerPattern, name), innerValue) =>
         matchPatternCase(innerPattern, value).map(innerBindings => innerBindings + (name -> innerValue))
-      case (_: UnitPattern[ValueAttribs], RTValue.Unit()) => Some(Map.empty)
+      case (_: UnitPattern[UType], RTValue.Unit()) => Some(Map.empty)
       case (LiteralPattern(_, literal), innerValue: RTValue.Primitive[_]) if unpackLit(literal) == innerValue =>
         Some(Map.empty)
-      case (_: EmptyListPattern[ValueAttribs], RTValue.List(List())) => Some(Map.empty)
+      case (_: EmptyListPattern[UType], RTValue.List(List())) => Some(Map.empty)
       case (HeadTailPattern(_, headPattern, tailPattern), RTValue.List(head :: tail)) =>
         for {
           headBindings <- matchPatternCase(headPattern, head)
@@ -54,7 +54,7 @@ object Helpers {
     }
 
   private def matchListOfPatterns(
-      patterns: List[V.Pattern[ValueAttribs]],
+      patterns: List[V.Pattern[UType]],
       values: List[RTValue]
   ): Option[Map[Name, RTValue]] =
     for {

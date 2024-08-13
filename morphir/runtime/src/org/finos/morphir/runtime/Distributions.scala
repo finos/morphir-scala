@@ -10,7 +10,7 @@ import org.finos.morphir.ir.Value.{
   USpecification => UValueSpec,
   TypedDefinition => TypedValueDef
 }
-import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification => UTypeSpec}
+import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification => UTypeSpec, UDefinition => UTypeDef}
 import org.finos.morphir.ir.Module.{Specification => ModSpec, Definition => ModDef}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
@@ -18,28 +18,31 @@ import org.finos.morphir.runtime.exports._
 import org.finos.morphir.runtime.MorphirRuntimeError.LookupError
 import org.finos.morphir.runtime.MorphirRuntimeError.LookupError.*
 import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.ir.distribution.Distribution.Library
+import org.finos.morphir.ir.distribution.Distribution.*
 import zio.Chunk
 
-class Distributions(dists: Map[PackageName, Distribution]) {
+class Distributions(dists: Map[PackageName, Distribution.Lib]) {
   def lookupModuleSpecification(pkgName: PackageName, modName: ModuleName): Either[LookupError, ModSpec.Raw] =
     dists.get(pkgName) match {
-      case Some(Library(_, _, packageDef)) =>
+      case Some(Lib(_, packageDef)) =>
         packageDef.toSpecification.modules.get(modName) match {
           case Some(module) => Right(module)
           case None         => Left(new MissingModule(pkgName, modName))
         }
-      case None => Left(new MissingPackage(pkgName))
+      case None => Left(new MissingPackage(pkgName)
+          .withContext(s"Known packages:\n ${dists.keys.mkString("\n  ")}\n"))
+
     }
 
   def lookupModuleDefinition(pkgName: PackageName, modName: ModuleName): Either[LookupError, ModDef[Unit, UType]] =
     dists.get(pkgName) match {
-      case Some(Library(_, _, packageDef)) =>
+      case Some(Lib(_, packageDef)) =>
         packageDef.modules.get(modName) match {
           case Some(module) => Right(module.value)
           case None         => Left(new MissingModule(pkgName, modName))
         }
-      case None => Left(new MissingPackage(pkgName))
+      case None => Left(new MissingPackage(pkgName)
+          .withContext(s"Known packages:\n ${dists.keys.mkString("\n  ")}\n"))
     }
 
   def lookupTypeSpecification(
@@ -55,15 +58,30 @@ class Distributions(dists: Map[PackageName, Distribution]) {
   def lookupTypeSpecification(fqn: FQName): Either[LookupError, UTypeSpec] =
     lookupTypeSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)
 
+  def lookupTypeDefinition(
+      pkgName: PackageName,
+      modName: ModuleName,
+      localName: Name
+  ): Either[LookupError, UTypeDef] =
+    lookupModuleDefinition(pkgName, modName).flatMap(_.lookupTypeDefinition(localName) match {
+      case Some(tpe) => Right(tpe)
+      case None      => Left(new MissingType(pkgName, modName, localName))
+    })
+
+  def lookupTypeDefinition(fqn: FQName): Either[LookupError, UTypeDef] =
+    lookupTypeDefinition(fqn.packagePath, fqn.modulePath, fqn.localName)
   def lookupValueSpecification(
       pkgName: PackageName,
       modName: ModuleName,
       localName: Name
   ): Either[LookupError, UValueSpec] =
-    lookupModuleSpecification(pkgName, modName).flatMap(_.lookupValueSpecification(localName) match {
-      case Some(tpe) => Right(tpe)
-      case None      => Left(new MissingDefinition(pkgName, modName, localName))
-    })
+    lookupModuleSpecification(pkgName, modName).flatMap(modSpec =>
+      modSpec.lookupValueSpecification(localName) match {
+        case Some(tpe) => Right(tpe)
+        case None => Left(new MissingDefinition(pkgName, modName, localName)
+            .withContext(s"Known definitions from that module:\n ${modSpec.values.keys.mkString("\n  ")}\n"))
+      }
+    )
 
   def lookupValueSpecification(fqn: FQName): Either[LookupError, UValueSpec] =
     lookupValueSpecification(fqn.packagePath, fqn.modulePath, fqn.localName)
@@ -73,17 +91,23 @@ class Distributions(dists: Map[PackageName, Distribution]) {
       modName: ModuleName,
       localName: Name
   ): Either[LookupError, TypedValueDef] =
-    lookupModuleDefinition(pkgName, modName).flatMap(_.lookupValueDefinition(localName) match {
-      case Some(tpe) => Right(tpe)
-      case None      => Left(new MissingDefinition(pkgName, modName, localName))
-    })
+    lookupModuleDefinition(pkgName, modName).flatMap(modDef =>
+      modDef.lookupValueDefinition(localName) match {
+        case Some(tpe) => Right(tpe)
+        case None => Left(new MissingDefinition(pkgName, modName, localName)
+            .withContext(s"Known definitions from that module:\n ${modDef.values.keys.mkString("\n  ")}\n"))
+      }
+    )
 
   def lookupValueDefinition(fqn: FQName): Either[LookupError, TypedValueDef] =
     lookupValueDefinition(fqn.packagePath, fqn.modulePath, fqn.localName)
-  def getDists: Map[PackageName, Distribution] = dists
+
+  def getDists: Map[PackageName, Distribution.Lib] = dists
 }
 
 object Distributions {
   def apply(dists: Distribution*): Distributions =
-    new Distributions(dists.map { case (lib: Library) => lib.packageName -> lib }.toMap)
+    new Distributions(Distribution.toLibsMapUnsafe(dists: _*))
+  def apply(dists: Map[PackageName, Distribution.Lib]): Distributions =
+    new Distributions(dists)
 }

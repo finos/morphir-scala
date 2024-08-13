@@ -2,7 +2,8 @@ package org.finos.morphir.datamodel
 
 import org.finos.morphir.naming.FQName
 import org.finos.morphir.datamodel.Concept.Basic
-import org.finos.morphir.util.{DetailLevel, PrintMDM}
+import org.finos.morphir.util.PrintMDM
+import org.finos.morphir.util.PrintMDM.DetailLevel
 
 import scala.annotation.tailrec
 import zio.Chunk
@@ -73,10 +74,14 @@ object Concept {
     val LocalDate = Concept.LocalDate
     type Month = Concept.Month.type
     val Month = Concept.Month
+    type DayOfWeek = Concept.DayOfWeek.type
+    val DayOfWeek = Concept.DayOfWeek
     type LocalTime = Concept.LocalTime.type
     val LocalTime = Concept.LocalTime
     type Char = Concept.Char.type
     val Char = Concept.Char
+    type Order = Concept.Order.type
+    val Order = Concept.Order
     type Unit = Concept.Unit.type
     val Unit = Concept.Unit
   }
@@ -95,8 +100,10 @@ object Concept {
   case object String    extends Basic[java.lang.String]
   case object LocalDate extends Basic[java.time.LocalDate]
   case object Month     extends Basic[java.time.Month]
+  case object DayOfWeek extends Basic[java.time.DayOfWeek]
   case object LocalTime extends Basic[java.time.LocalTime]
   case object Char      extends Basic[scala.Char]
+  case object Order     extends Basic[Int]
   case object Unit      extends Basic[scala.Unit]
   case object Nothing   extends Basic[scala.Nothing]
 

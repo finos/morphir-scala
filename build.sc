@@ -1,6 +1,8 @@
+import mill.testrunner.TestResult
+import mill.scalalib.publish.PublishInfo
 import $meta._
 import $ivy.`de.tototec::de.tobiasroeser.mill.integrationtest::0.7.1`
-import $ivy.`io.chris-kipp::mill-ci-release::0.1.9`
+import $ivy.`io.chris-kipp::mill-ci-release::0.1.10`
 import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
 import $ivy.`com.carlosedp::mill-aliases::0.4.1`
 import $file.project.deps, deps.{Deps, MillVersions, Versions => Vers}
@@ -10,10 +12,15 @@ import de.tobiasroeser.mill.integrationtest._
 import io.kipp.mill.ci.release.CiReleaseModule
 import millbuild._
 import millbuild.crossplatform._
+import millbuild.jsruntime._
+import org.finos.millmorphir._
+import org.finos.millmorphir.elm._
 import millbuild.settings._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind
 import mill.contrib.buildinfo.BuildInfo
+import $ivy.`com.github.lolgab::mill-mima::0.1.1`
+import com.github.lolgab.mill.mima._
 
 implicit val buildSettings: BuildSettings = interp.watchValue(MyBuild.cachedBuildSettings)
 
@@ -48,7 +55,7 @@ def showBuildSettings() = T.command {
   MyBuild.showBuildSettings()
 }
 
-trait MorphirPublishModule extends CiReleaseModule with JavaModule {
+trait MorphirPublishModule extends CiReleaseModule with JavaModule with Mima {
   import mill.scalalib.publish._
   def packageDescription: String = s"The $artifactName package"
 
@@ -64,11 +71,12 @@ trait MorphirPublishModule extends CiReleaseModule with JavaModule {
   )
 }
 
-object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersions) {
+
+object morphir extends Cross[MorphirCrossModule](buildSettings.scala.crossScalaVersions) {
   object build extends Module {
     object integration extends Module {
-      object `mill-morphir-elm` extends Cross[MillMorphirElmPlugin](MillVersions.all)
-      trait MillMorphirElmPlugin
+      object `mill-morphir-elm` extends Cross[morphirlibElmPlugin](MillVersions.all)
+      trait morphirlibElmPlugin
           extends Cross.Module[String]
           with ScalaModule
           with ScalafmtModule
@@ -103,6 +111,10 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
       BuildInfo.Value("scalaVersion", scalaVersion())
     )
 
+    override def extraPublish: T[Seq[PublishInfo]] = T {
+      Seq(PublishInfo(file = assembly(), classifier = Some("assembly"), ivyConfig = "compile"))
+    }
+
     val mainScalaVersion = morphirScalaVersion
 
     def packageDescription =
@@ -132,7 +144,7 @@ object morphir extends Cross[MorphirModule](buildSettings.scala.crossScalaVersio
   }
 
 }
-trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
+trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morphir =>
   import DevMode._
   val workspaceDir = millbuild.build.millSourcePath
 
@@ -170,6 +182,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
   trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
     def ivyDeps = super.ivyDeps() ++ Agg(
+      Deps.org.`scala-lang`.modules.`scala-collection-contrib`,
       Deps.com.beachape.enumeratum,
       Deps.com.lihaoyi.fansi,
       Deps.com.lihaoyi.geny,
@@ -226,7 +239,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
             Deps.dev.zio.`zio-test`,
             Deps.dev.zio.`zio-test-sbt`
           )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.jvm, testing.zio.jvm)
+          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.jvm)
         }
       }
 
@@ -238,7 +251,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
             Deps.dev.zio.`zio-test`,
             Deps.dev.zio.`zio-test-sbt`
           )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.js, testing.zio.js)
+          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.js)
         }
       }
 
@@ -278,7 +291,6 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
   }
 
   object interop extends Module {
-
     object zio extends Module {
       object json extends CrossPlatform with CrossValue {
         trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
@@ -303,6 +315,29 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       }
     }
 
+    object borer extends CrossPlatform with CrossValue {
+      trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
+        def ivyDeps = Agg(
+          Deps.io.bullet.`borer-core`(crossScalaVersion),
+          Deps.io.bullet.`borer-derivation`(crossScalaVersion)
+        )
+
+        def platformSpecificModuleDeps = Seq(morphir)
+      }
+
+      object jvm extends Shared with MorphirJVMModule {
+        object test extends ScalaTests with TestModule.ZioTest {
+          def ivyDeps: T[Agg[Dep]] = Agg(
+            Deps.io.bullet.`borer-core`(crossScalaVersion),
+            Deps.io.bullet.`borer-derivation`(crossScalaVersion)
+          )
+
+          def moduleDeps = super.moduleDeps ++ Agg(morphir.testing.generators.jvm, testing.zio.jvm)
+        }
+      }
+
+      object js extends Shared with MorphirJSModule
+    }
   }
   object lib extends Module {
 
@@ -322,8 +357,25 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       def platformSpecificModuleDeps = Seq(morphir, morphir.interop.zio.json)
     }
 
+    trait RuntimeTests extends TestModule.ZioTest {      
+      def morphirTestSources = T.sources {        
+          examples.`morphir-elm-projects`.`evaluator-tests`.distOutputDirs()
+      }
+
+      def morphirTestSourceFiles = T {
+        Lib.findSourceFiles(morphirTestSources(), Seq("json")).collect {
+          case path if path.last.startsWith("morphir-") => PathRef(path)
+        }
+      } 
+
+      override protected def testTask(args: Task[Seq[String]], globSelectors: Task[Seq[String]]): Task[(String, Seq[TestResult])] = T.task {
+        val _ = morphirTestSourceFiles()
+        super.testTask(args, globSelectors)()
+      }
+    }
+
     object jvm extends Shared with MorphirJVMModule {
-      object test extends ScalaTests with TestModule.ZioTest {
+      object test extends ScalaTests with RuntimeTests {
         def ivyDeps = Agg(
           Deps.com.lihaoyi.`os-lib`,
           Deps.com.lihaoyi.sourcecode,
@@ -335,7 +387,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     }
 
     object js extends Shared with MorphirJSModule {
-      object test extends ScalaJSTests with TestModule.ZioTest {
+      object test extends ScalaJSTests with RuntimeTests {
         def ivyDeps    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
         def moduleDeps = super.moduleDeps ++ Agg(testing.zio.js)
         def moduleKind = ModuleKind.CommonJSModule
@@ -343,7 +395,7 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     }
 
     object native extends Shared with MorphirNativeModule {
-      object test extends ScalaNativeTests with TestModule.ZioTest {
+      object test extends ScalaNativeTests with RuntimeTests {
         def ivyDeps    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
         def moduleDeps = super.moduleDeps ++ Agg(testing.zio.native)
       }
@@ -361,74 +413,6 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
       object jvm    extends Shared with MorphirJVMModule
       object js     extends Shared with MorphirJSModule
       object native extends Shared with MorphirNativeModule
-    }
-
-    object munit extends CrossPlatform {
-      trait Shared extends MorphirCommonCrossModule {
-        def ivyDeps = Agg(
-          ivy"io.github.cquiroz::scala-java-time::2.5.0",
-          Deps.com.eed3si9n.expecty.expecty,
-          Deps.org.scalameta.munit,
-          Deps.org.scalameta.`munit-scalacheck`
-        )
-
-        def platformSpecificModuleDeps = Seq(testing.munit.macros)
-        def scalacOptions = T {
-          super.scalacOptions().concatIf(isScala213())("-language:experimental.macros")
-        }
-      }
-
-      object jvm    extends Shared with MorphirJVMModule
-      object js     extends Shared with MorphirJSModule
-      object native extends Shared with MorphirNativeModule
-
-      object macros extends CrossPlatform with CrossValue {
-        trait Shared extends MorphirCommonCrossModule {
-          def compileIvyDeps = T {
-            super.compileIvyDeps() ++ Agg.when(scalaVersion().startsWith("2."))(
-              Deps.org.`scala-lang`.`scala-reflect`(scalaVersion()),
-              Deps.org.`scala-lang`.`scala-compiler`(scalaVersion())
-            )
-          }
-
-          def ivyDeps = super.ivyDeps() ++ Agg(
-            ivy"io.github.cquiroz::scala-java-time::2.5.0",
-            Deps.com.eed3si9n.expecty.expecty,
-            Deps.org.scalameta.munit,
-            Deps.org.scalameta.`munit-scalacheck`
-          )
-
-          def scalacOptions = T {
-            super.scalacOptions().concatIf(isScala213())("-language:experimental.macros")
-          }
-        }
-
-        object jvm    extends Shared with MorphirJVMModule
-        object js     extends Shared with MorphirJSModule
-        object native extends Shared with MorphirNativeModule
-      }
-
-      object zio extends CrossPlatform {
-        trait Shared extends MorphirCommonCrossModule {
-          def ivyDeps = super.ivyDeps() ++ Agg(
-            ivy"io.github.cquiroz::scala-java-time::2.5.0",
-            Deps.org.scalameta.munit,
-            Deps.org.scalameta.`munit-scalacheck`,
-            Deps.dev.zio.zio
-          )
-          def platformSpecificModuleDeps = Seq(munit)
-        }
-
-        object jvm extends Shared with MorphirJVMModule {
-          object test extends ScalaTests with TestModule.Munit
-        }
-        object js extends Shared with MorphirJSModule {
-          object test extends ScalaJSTests with TestModule.Munit
-        }
-        object native extends Shared with MorphirNativeModule {
-          object test extends ScalaNativeTests with TestModule.Munit
-        }
-      }
     }
 
     object zio extends CrossPlatform {
@@ -451,7 +435,9 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
 
     trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
       def ivyDeps = super.ivyDeps() ++ Agg(
-        Deps.com.lihaoyi.sourcecode
+        Deps.com.lihaoyi.sourcecode,
+        Deps.io.github.cquiroz.`scala-java-time`,
+        Deps.io.github.cquiroz.`scala-java-time-tzdb`
       )
       def platformSpecificModuleDeps = Seq(extensibility, morphir, runtime, tools)
     }
@@ -478,6 +464,10 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
     }
 
     object native extends Shared with MorphirNativeModule {
+      def ivyDeps = super.ivyDeps() ++ Agg(
+        Deps.com.github.lolgab.`scala-native-crypto`
+      )
+
       object test extends ScalaNativeTests with TestModule.ZioTest {
         def ivyDeps    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
         def moduleDeps = super.moduleDeps ++ Agg(testing.generators.native, testing.zio.native)
@@ -523,20 +513,47 @@ trait MorphirModule extends Cross.Module[String] with CrossPlatform { morphir =>
   }
 }
 
-object site extends Docusaurus2Module with MDocModule {
-  val workspaceDir = millbuild.build.millSourcePath
+// The following modules are morphir-elm modules that have been setup to be built using mill
+// Morphir Elm Projects/Modules:
+object examples extends Module {
+  object `morphir-elm-projects` extends Module {
+    object finance extends MorphirElmModule
 
-  override def scalaMdocVersion: T[String] = T("2.3.7")
-  override def scalaVersion                = T(docsScalaVersion)
-  // MD Sources that must be compiled with Scala MDoc
-  override def mdocSources = T.sources(workspaceDir / "docs")
-  // MD Sources that are just plain MD files
-  override def docusaurusSources = T.sources(workspaceDir / "website")
+    object `evaluator-tests` extends MorphirElmModule
+    object `unit-test-framework` extends Module {
+      object `example-project` extends MorphirElmModule {
+        def morphirModuleDeps = Seq(`morphir-elm`.sdks.`morphir-unit-test`)
+      } 
 
-  override def watchedMDocsDestination: T[Option[os.Path]] = T(Some(docusaurusBuild().path / "docs"))
-  override def compiledMdocs: Sources                      = T.sources(mdoc().path)
-  object test extends ScalaTests with TestModule.Munit {}
+      object `example-project-tests` extends MorphirElmModule {
+        def morphirModuleDeps = Seq(
+          `morphir-elm`.sdks.`morphir-unit-test`,
+          `example-project`
+        )
+      }
+      object `example-project-tests-incomplete` extends MorphirElmModule {
+        def morphirModuleDeps = Seq(
+          `morphir-elm`.sdks.`morphir-unit-test`,
+          `example-project`
+        )
+      }
+      object `example-project-tests-passing` extends MorphirElmModule {
+        def morphirModuleDeps = Seq(
+          `morphir-elm`.sdks.`morphir-unit-test`,
+          `example-project`
+        )
+      }
+    }
+  }
 }
+
+object `morphir-elm` extends Module {
+  object sdks extends Module {
+    object `morphir-unit-test` extends MorphirElmModule
+  }
+}
+
+// The following section contains aliases used to simplify build tasks
 
 object MyAliases extends Aliases {
   def fmt           = alias("mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources")

@@ -1,61 +1,121 @@
-module Morphir.Examples.App.ExampleModule exposing (five, tupleReverse, parametricFunction, publicFunction, outputRecordFunction, inputRecordFunction, outputUnionFunction, inputUnionFunction, ModuleRecord, ModuleSingleUnion(..), ModuleUnion(..), TypeArgUnion(..), TypeArgRecord(..))
+module Morphir.Examples.App.ExampleModule exposing (ModuleRecord, ModuleSingleUnion(..), ModuleUnion(..), OpaqueInt, TypeArgRecord, TypeArgUnion(..), five, inputRecordFunction, inputUnionFunction, outputRecordFunction, outputUnionFunction, parametricFunction, publicFunction, tupleReverse, unwrap, wrap)
+
 import Dict exposing (Dict)
 import Morphir.Examples.App.TestUtils exposing (..)
 
-type alias ModuleRecord = {name : String, truth : Bool}
-type ModuleUnion = Center | Up Int | Down Int
-type ModuleSingleUnion = Only String Int
+
+type OpaqueInt
+    = Opaque Int
+
+
+wrap : Int -> OpaqueInt
+wrap x =
+    Opaque x
+
+
+unwrap : OpaqueInt -> Int
+unwrap o =
+    let
+        (Opaque x) =
+            o
+    in
+    x
+
+
+type alias ModuleRecord =
+    { name : String, truth : Bool }
+
+
+type ModuleUnion
+    = Center
+    | Up Int
+    | Down Int
+
+
+type ModuleSingleUnion
+    = Only String Int
+
 
 five : Int
-five = 5
+five =
+    5
 
-tupleReverse : (Int, Int) -> (Int, Int)
-tupleReverse t = 
+
+tupleReverse : ( Int, Int ) -> ( Int, Int )
+tupleReverse t =
     let
-        (a, b) = t
+        ( a, b ) =
+            t
     in
-        (b, a)
+    ( b, a )
 
-parametricFunction : a -> (a, String)
-parametricFunction arg = (arg, "Hat")
+
+parametricFunction : a -> ( a, String )
+parametricFunction arg =
+    ( arg, "Hat" )
+
 
 publicFunction : Int -> Int
-publicFunction arg = privateFunction (arg, arg)
+publicFunction arg =
+    privateFunction ( arg, arg )
 
-privateFunction : (Int, Int) -> Int
-privateFunction t = 
+
+privateFunction : ( Int, Int ) -> Int
+privateFunction t =
     let
-        (x, y) = t
+        ( x, y ) =
+            t
     in
-        x + y
+    x + y
+
 
 outputRecordFunction : String -> ModuleRecord
-outputRecordFunction s = {name = s, truth = False}
+outputRecordFunction s =
+    { name = s, truth = False }
+
 
 inputRecordFunction : ModuleRecord -> String
-inputRecordFunction r = if r.truth then r.name else "Rumplestilskin"
+inputRecordFunction r =
+    if r.truth then
+        r.name
+
+    else
+        "Rumplestilskin"
+
 
 outputUnionFunction : String -> Int -> ModuleUnion
-outputUnionFunction dir dist = 
+outputUnionFunction dir dist =
     case dir of
-        "Up" -> 
+        "Up" ->
             Up dist
+
         "Down" ->
             Down dist
+
         _ ->
             Center
+
 
 inputUnionFunction : ModuleUnion -> Int
 inputUnionFunction u =
     case u of
         Up dist ->
             dist
+
         Down dist ->
             -dist
+
         Center ->
             0
 
-        
-type TypeArgUnion a b = A a | B b | AB a b | MaybeA (Maybe a) | DictBA (Dict b a)
-type alias TypeArgRecord a b c = {a : a, bList : List b, tuple : (a, b, c), union : TypeArgUnion c a}
 
+type TypeArgUnion a b
+    = A a
+    | B b
+    | AB a b
+    | MaybeA (Maybe a)
+    | DictBA (Dict b a)
+
+
+type alias TypeArgRecord a b c =
+    { a : a, bList : List b, tuple : ( a, b, c ), union : TypeArgUnion c a }
