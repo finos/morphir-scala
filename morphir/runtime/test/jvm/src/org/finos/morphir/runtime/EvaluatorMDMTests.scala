@@ -3477,12 +3477,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           List(Data.String("a"), Data.String("b"))
         ) {
           case TopLevelError(_, _, _) => assertTrue(true)
-          case e                      => assertNever(s"Expected FailedCoercion but $e was thrown")
+          case _                      => assertNever(s"Unexpected exception type was thrown")
         },
         testExceptionMultiple("UnknownTypeMismatch Test")("exceptionTests", "decimalHundred", List(Data.String("a"))) {
           case TopLevelError(_, _, _: TypeError.UnknownTypeMismatch) => assertTrue(true)
-          case TopLevelError(_, _, inner) => assertNever(s"Expected UnsupportedType but $inner was thrown")
-          case e                          => assertNever(s"Expected UnknownTypeMismatch but $e was thrown")
+          case _ => assertNever(s"Unexpected exception type was thrown")
         },
         /* There are 2 different UnsupportedType errors possible.
            MorphirRuntimeError.UnsupportedType and MorphirErrorRuntime.TypeError.UnsupportedType
@@ -3493,24 +3492,23 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           List(Data.String("a"))
         ) {
           case TopLevelError(_, _, _: UnsupportedType) => assertTrue(true)
-          case TopLevelError(_, _, inner)              => assertNever(s"Expected UnsupportedType but $inner was thrown")
-          case e                                       => assertNever(s"Expected UnsupportedType but $e was thrown")
+          case _                                       => assertNever(s"Unexpected exception type was thrown")
         },
         testExceptionMultiple("Type Test")("exceptionTests", "sdkAddTest", List(Data.Float(1), Data.Decimal(2))) {
           case TopLevelError(_, _, _: TypeError.InferenceConflict) => assertTrue(true)
-          case e => assertNever(s"Expected FailedCoercion but $e was thrown")
+          case _ => assertNever(s"Unexpected exception type was thrown")
         },
         testExceptionMultiple("MissingDefinition Test")("exceptionTests", "notARealFunction", List(Data.Unit)) {
           case LookupError.MissingDefinition(_, _, _, _) => assertTrue(true)
-          case e                                         => assertNever(s"Expected MissingDefinition but $e was thrown")
+          case _                                         => assertNever(s"Unexpected exception type was thrown")
         },
         testExceptionMultiple("MissingModule Test")("notARealModule", "notARealFunction", List(Data.Unit)) {
           case LookupError.MissingModule(_, _, _) => assertTrue(true)
-          case e                                  => assertNever(s"Expected MissingModule but $e was thrown")
+          case _                                  => assertNever(s"Unexpected exception type was thrown")
         },
         testExceptionMultiple("MissingPackage Test")("", "", List(Data.Unit)) {
           case LookupError.MissingPackage(_, _) => assertTrue(true)
-          case e                                => assertNever(s"Expected MissingPackage but $e was thrown")
+          case _                                => assertNever(s"Unexpected exception type was thrown")
         },
         testExceptionMultiple("ImproperType Test")(
           "exceptionTests",
@@ -3518,7 +3516,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           List(Data.Int(1), Data.Int(1), Data.Int(1))
         ) {
           case TopLevelError(_, _, _: TypeError.ImproperType) => assertTrue(true)
-          case e                                              => assertNever(s"Expected ImproperType but $e was thrown")
+          case _                                              => assertNever(s"Unexpected exception type was thrown")
         }
       )
     ).provideLayerShared(morphirRuntimeLayer)
