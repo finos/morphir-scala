@@ -4,7 +4,9 @@ import org.finos.morphir.datamodel.Util.*
 import org.finos.morphir.datamodel.*
 import org.finos.morphir.ir.Type
 import org.finos.morphir.naming.*
+import org.finos.morphir.runtime.EvaluatorMDMTests.testExceptionMultiple
 import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
@@ -76,6 +78,16 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       assertTrue(actual == expected)
     }
 
+  def evaluateException(
+      moduleName: String,
+      functionName: String,
+      values: List[Any]
+  )(expected: Throwable => TestResult): ZIO[TypedMorphirRuntime, Throwable, TestResult] =
+    runTest(moduleName, functionName, values).fold(
+      throwable => expected(throwable),
+      data => assertNever(s"Expected exception but test returned $data")
+    )
+
   def testEvaluation(label: String)(moduleName: String, functionName: String)(expected: => Data) =
     test(label) {
       checkEvaluation(moduleName, functionName)(expected)
@@ -89,6 +101,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
   def testEvalMultiple(label: String)(moduleName: String, functionName: String, values: List[Any])(expected: => Data) =
     test(label) {
       checkEvaluation(moduleName, functionName, values)(expected)
+    }
+
+  def testExceptionMultiple(label: String)(
+      moduleName: String,
+      functionName: String,
+      values: List[Any]
+  )(expected: Throwable => TestResult) =
+    test(label) {
+      evaluateException(moduleName, functionName, values)(expected)
     }
 
   def runTest(moduleName: String, functionName: String): ZIO[TypedMorphirRuntime, Throwable, Data] =
@@ -266,6 +287,135 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
 
   def spec =
     suite("Evaluator MDM Specs")(
+      suite("Aggregate")(
+        testEvaluation("GroupBy")("aggregateTests", "aggregateGroupByTest")(
+          Data.Map(
+            (
+              Data.String("k2_1"),
+              Data.List(
+                Data.Tuple(Data.String("k2_1"), Data.Int32(1)),
+                Data.Tuple(Data.String("k2_1"), Data.Int32(2)),
+                Data.Tuple(Data.String("k2_1"), Data.Int32(5)),
+                Data.Tuple(Data.String("k2_1"), Data.Int32(6))
+              )
+            ),
+            (
+              Data.String("k2_2"),
+              Data.List(
+                Data.Tuple(Data.String("k2_2"), Data.Int32(3)),
+                Data.Tuple(Data.String("k2_2"), Data.Int32(4)),
+                Data.Tuple(Data.String("k2_2"), Data.Int32(7)),
+                Data.Tuple(Data.String("k2_2"), Data.Int32(8))
+              )
+            )
+          )
+        ),
+        testEvaluation("Map")("aggregateTests", "aggregateAggregateMapTest")(
+          Data.List(
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(1.0)), Data.Float(10.0 / 1.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(2.0)), Data.Float(10.0 / 2.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(3.0)), Data.Float(10.0 / 3.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(4.0)), Data.Float(10.0 / 4.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(5.0)), Data.Float(26.0 / 5.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(6.0)), Data.Float(26.0 / 6.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(7.0)), Data.Float(26.0 / 7.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(8.0)), Data.Float(26.0 / 8.0))
+          )
+        ),
+        testEvaluation("Map2")("aggregateTests", "aggregateAggregateMap2Test")(
+          Data.List(
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(1.0)), Data.Float(10.0 * 4.0 / 1.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(2.0)), Data.Float(10.0 * 4.0 / 2.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(3.0)), Data.Float(10.0 * 4.0 / 3.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(4.0)), Data.Float(10.0 * 4.0 / 4.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(5.0)), Data.Float(26.0 * 8.0 / 5.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(6.0)), Data.Float(26.0 * 8.0 / 6.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(7.0)), Data.Float(26.0 * 8.0 / 7.0)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(8.0)), Data.Float(26.0 * 8.0 / 8.0))
+          )
+        ),
+        testEvaluation("Map3")("aggregateTests", "aggregateAggregateMap3Test")(
+          Data.List(
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(1.0)), Data.Float(10.0 * 4.0 / 1.0 + 1)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(2.0)), Data.Float(10.0 * 4.0 / 2.0 + 1)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(3.0)), Data.Float(10.0 * 4.0 / 3.0 + 1)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(4.0)), Data.Float(10.0 * 4.0 / 4.0 + 1)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(5.0)), Data.Float(26.0 * 8.0 / 5.0 + 5)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(6.0)), Data.Float(26.0 * 8.0 / 6.0 + 5)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(7.0)), Data.Float(26.0 * 8.0 / 7.0 + 5)),
+            Data.Tuple(Data.Tuple(Data.String("k1_2"), Data.Float(8.0)), Data.Float(26.0 * 8.0 / 8.0 + 5))
+          )
+        ),
+        testEvaluation("Map4")("aggregateTests", "aggregateAggregateMap4Test")(
+          Data.List(
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(1.0)), Data.Float(10.0 * 4.0 / 1.0 + 1 + 2.5)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(2.0)), Data.Float(10.0 * 4.0 / 2.0 + 1 + 2.5)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(3.0)), Data.Float(10.0 * 4.0 / 3.0 + 1 + 2.5)),
+            Data.Tuple(Data.Tuple(Data.String("k1_1"), Data.Float(4.0)), Data.Float(10.0 * 4.0 / 4.0 + 1 + 2.5))
+          )
+        ),
+        testEvaluation("Count")("aggregateTests", "aggregateCountTest")(
+          Data.List(
+            Data.Float(4.0),
+            Data.Float(5.0),
+            Data.Float(6.0)
+          )
+        ),
+        testEvaluation("SumOf")("aggregateTests", "aggregateSumOfTest")(
+          Data.List(
+            Data.Float(7.0),
+            Data.Float(8.0),
+            Data.Float(9.0)
+          )
+        ),
+        testEvaluation("MinimumOf")("aggregateTests", "aggregateMinimumOfTest")(
+          Data.List(
+            Data.Float(2.0),
+            Data.Float(3.0),
+            Data.Float(4.0)
+          )
+        ),
+        testEvaluation("MaximumOf")("aggregateTests", "aggregateMaximumOfTest")(
+          Data.List(
+            Data.Float(6.0),
+            Data.Float(7.0),
+            Data.Float(8.0)
+          )
+        ),
+        testEvaluation("AverageOf")("aggregateTests", "aggregateAverageOfTest")(
+          Data.List(
+            Data.Float(3.0),
+            Data.Float(4.0),
+            Data.Float(5.0)
+          )
+        ),
+        testEvaluation("WeightedAverageOf")("aggregateTests", "aggregateWeightedAverageOfTest")(
+          Data.List(
+            Data.Float(3.0),
+            Data.Float(4.0),
+            Data.Float(5.0)
+          )
+        ),
+        testEvaluation("ByKey")("aggregateTests", "aggregateByKeyTest")(
+          Data.List(
+            Data.Float(3.0),
+            Data.Float(3.0),
+            Data.Float(3.0),
+            Data.Float(2.0),
+            Data.Float(2.0)
+          )
+        ),
+        testEvaluation("WithFilter")("aggregateTests", "aggregateWithFilterTest")(
+          Data.List(
+            Data.Float(6.0),
+            Data.Float(6.0),
+            Data.Float(6.0),
+            Data.Float(6.0),
+            Data.Float(6.0),
+            Data.Float(6.0)
+          )
+        )
+      ),
       suite("Char")(
         testEval("isUpper true")("charTests", "charIsUpperTest", 'A')(Data.Boolean(true)),
         testEval("isUpper false")("charTests", "charIsUpperTest", 'w')(Data.Boolean(false)),
@@ -357,7 +507,14 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             actual <- runTest("constructorTests", "lazyFunctionTest")
             expected = Data.Tuple(Data.Int(5), Data.Int(5))
           } yield assertTrue(actual == expected)
-        }
+        },
+        testEval("Implicit Constructor")("constructorTests", "implicitConstructorTest", "abcd")(
+          Data.Record(
+            FQName.fromString("Morphir.Examples.App:ConstructorTests:SomeRecord"),
+            (Label("name"), Data.String("abcd")),
+            (Label("number"), Data.Int(5))
+          )
+        )
       ),
       suite("Destructure Tests")(
         test("As") {
@@ -453,6 +610,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             "decimalShiftRight",
             List(Data.Int(4), Data.Decimal(12.345))
           )(Data.Decimal(123450.0))
+        ),
+        suite("creation")(
+          testEval("hundred")("decimalTests", "decimalHundred", 123)(Data.Decimal(12300)),
+          testEval("hundredth")("decimalTests", "decimalHundredth", 123)(Data.Decimal(BigDecimal("1.23"))),
+          testEval("million")("decimalTests", "decimalMillion", 123)(Data.Decimal(123000000)),
+          testEval("millionth")("decimalTests", "decimalMillionth", 123)(Data.Decimal(BigDecimal("0.000123"))),
+          testEval("tenth")("decimalTests", "decimalTenth", 123)(Data.Decimal(BigDecimal("12.3"))),
+          testEval("thousand")("decimalTests", "decimalThousand", 123)(Data.Decimal(123000)),
+          testEval("thousandth")("decimalTests", "decimalThousandth", 123)(Data.Decimal(BigDecimal("0.123")))
         ),
         suite("div")(
           testEvaluation("div some")("decimalTests", "decimalGoodDiv")(Data.Optional.Some(Data.Decimal(1.8))),
@@ -586,6 +752,26 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Int(5),
           Data.Int(6)
         )),
+        testEvaluation("Map2")("listTests", "listMap2Test")(Data.List(
+          Data.Int(6),
+          Data.Int(8),
+          Data.Int(10)
+        )),
+        testEvaluation("Map3")("listTests", "listMap3Test")(Data.List(
+          Data.Int(9),
+          Data.Int(12),
+          Data.Int(15)
+        )),
+        testEvaluation("Map4")("listTests", "listMap4Test")(Data.List(
+          Data.Int(12),
+          Data.Int(16),
+          Data.Int(20)
+        )),
+        testEvaluation("Map5")("listTests", "listMap5Test")(Data.List(
+          Data.Int(15),
+          Data.Int(20),
+          Data.Int(25)
+        )),
         testEval("MapDefinition")("listTests", "listMapDefinitionTest", List(1, 2, 3))(Data.List(
           Data.Int(2),
           Data.Int(3),
@@ -601,7 +787,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           Data.Float(5.0),
           Data.Float(6.0)
         )),
-        testEvaluation("Map2")("listTests", "listMapTest2")(Data.List(
+        testEvaluation("MapTest2")("listTests", "listMapTest2")(Data.List(
           Data.Boolean(false),
           Data.Boolean(true),
           Data.Boolean(false)
@@ -663,6 +849,33 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         testEvaluation("length")("listTests", "listLengthTest")(
           (Data.Int32(6))
         ),
+        testEvaluation("intersperse")("listTests", "listIntersperseTest")(Data.List(
+          Data.Int(2),
+          Data.Int(1),
+          Data.Int(3),
+          Data.Int(1),
+          Data.Int(4)
+        )),
+        testEvaluation("unzip")("listTests", "listUnzipTest")(Data.Tuple(
+          Data.List(Data.Int(1), Data.Int(2)),
+          Data.List(Data.String("a"), Data.String("b"))
+        )),
+        testEvaluation("innerJoin")("listTests", "listInnerJoinTest")(Data.List(
+          Data.Tuple(
+            Data.Tuple(Data.Int(2), Data.String("b")),
+            Data.Tuple(Data.Int(2), Data.String("B"))
+          )
+        )),
+        testEvaluation("leftJoin")("listTests", "listLeftJoinTest")(Data.List(
+          Data.Tuple(
+            Data.Tuple(Data.Int(1), Data.String("a")),
+            Data.Optional.None(Concept.Tuple(List(Concept.Int32, Concept.String)))
+          ),
+          Data.Tuple(
+            Data.Tuple(Data.Int(2), Data.String("b")),
+            Data.Optional.Some(Data.Tuple(Data.Int(2), Data.String("B")))
+          )
+        )),
         suite("all")(
           testEval("predicate is true for all")("listTests", "listAllTest", List(1, 2, 3))(
             Data.Boolean(true)
@@ -906,6 +1119,50 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             List(2, Data.List.empty(Concept.Int32))
           )(
             Data.List.empty(Concept.Int32)
+          )
+        ),
+        suite("sum")(
+          testEval("sum a list of ints returns sum of ints")("listTests", "listSumTest", List(1, 2))(
+            Data.Int(3)
+          ),
+          testEvaluation("sum a list of floats returns sum of floats")("listTests", "listSumFloatTest")(
+            Data.Float(3.0)
+          ),
+          testEval("sum a list of decimals returns sum of decimals")(
+            "listTests",
+            "listSumTest",
+            Data.List(Data.Decimal(BigDecimal("1.0")), Data.Decimal(BigDecimal("2.0")))
+          )(
+            Data.Decimal(BigDecimal("3.0"))
+          ),
+          testEval("sum an empty list returns 0")(
+            "listTests",
+            "listSumTest",
+            Data.List.empty(Concept.Int32)
+          )(
+            Data.Int(0)
+          )
+        ),
+        suite("product")(
+          testEval("multiply a list of ints returns product of ints")("listTests", "listProductTest", List(1, 2))(
+            Data.Int(2)
+          ),
+          testEvaluation("sum a list of floats returns sum of floats")("listTests", "listProductFloatTest")(
+            Data.Float(2.0)
+          ),
+          testEval("multiply a list of decimals returns product of decimals")(
+            "listTests",
+            "listProductTest",
+            Data.List(Data.Decimal(BigDecimal("1.0")), Data.Decimal(BigDecimal("2.0")))
+          )(
+            Data.Decimal(BigDecimal("2.0"))
+          ),
+          testEval("multiply an empty list returns 0")(
+            "listTests",
+            "listProductTest",
+            Data.List.empty(Concept.Int32)
+          )(
+            Data.Int(0)
           )
         )
       ),
@@ -3061,6 +3318,24 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEvaluation("isInfinite")("sdkBasicsTests", "sdkIsInfiniteTest")(Data.Boolean(true)),
           testEvaluation("Eulers")("sdkBasicsTests", "sdkEulersNumberTest")(Data.Float(2.718281828459045)),
           testEvaluation("Pi")("sdkBasicsTests", "sdkPiTest")(Data.Float(3.141592653589793)),
+          testEvaluation("cos")("sdkBasicsTests", "sdkCosTest")(Data.Float(0.5000000000000001)),
+          testEvaluation("sin")("sdkBasicsTests", "sdkSinTest")(Data.Float(0.8660254037844386)),
+          testEvaluation("tan")("sdkBasicsTests", "sdkTanTest")(Data.Float(0.9999999999999999)),
+          testEvaluation("acos")("sdkBasicsTests", "sdkACosTest")(Data.Float(1.0471975511965979)),
+          testEvaluation("asin")("sdkBasicsTests", "sdkASinTest")(Data.Float(0.5235987755982989)),
+          testEvaluation("atan")("sdkBasicsTests", "sdkATanTest")(Data.Float(0.7853981633974483)),
+          testEvaluation("atan2")("sdkBasicsTests", "sdkATan2Test")(Data.Float(0.7853981633974483)),
+          testEvaluation("degrees")("sdkBasicsTests", "sdkDegreesTest")(Data.Float(3.141592653589793)),
+          testEvaluation("radians")("sdkBasicsTests", "sdkRadiansTest")(Data.Float(3.141592653589793)),
+          testEvaluation("turns")("sdkBasicsTests", "sdkTurnsTest")(Data.Float(3.141592653589793)),
+          testEvaluation("toPolar")("sdkBasicsTests", "sdkToPolarTest")(Data.Tuple(
+            Data.Float(5),
+            Data.Float(0.9272952180016122)
+          )),
+          testEvaluation("fromPolar")("sdkBasicsTests", "sdkFromPolarTest")(Data.Tuple(
+            Data.Float(1.2247448713915892),
+            Data.Float(0.7071067811865475)
+          )),
           testEval("Ceiling")("sdkBasicsTests", "basicsCeilingTest", 3.88)(Data.Int(4)),
           testEval("Ceiling whole number")("sdkBasicsTests", "basicsCeilingTest", 3.0)(Data.Int(3)),
           testEval("Floor")("sdkBasicsTests", "basicsFloorTest", 3.88)(Data.Int(3)),
@@ -3069,7 +3344,9 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           testEval("Truncate 2")("sdkBasicsTests", "basicsTruncateTest", -1.2)(Data.Int(-1)),
           testEval("Truncate 3")("sdkBasicsTests", "basicsTruncateTest", .4)(Data.Int(0)),
           testEval("Truncate 4")("sdkBasicsTests", "basicsTruncateTest", -.4)(Data.Int(0)),
-          testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0))
+          testEval("Abs")("sdkBasicsTests", "basicsAbsTest", Data.Float(-5.0))(Data.Float(5.0)),
+          testEval("Round up")("sdkBasicsTests", "basicsRoundTest", Data.Float(1.6))(Data.Int(2)),
+          testEval("Round down")("sdkBasicsTests", "basicsRoundTest", Data.Float(1.4))(Data.Int(1))
         ),
         suite("Int")(
           testEvaluation("Plus")("sdkBasicsTests", "sdkAddTest")(Data.Int(3)),
@@ -3192,6 +3469,55 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
             )
           )
         )
+      ),
+      suite("Morphir Runtime Exception Tests")(
+        testExceptionMultiple("FailedCoercion Test")(
+          "exceptionTests",
+          "sdkAddTest",
+          List(Data.String("a"), Data.String("b"))
+        ) {
+          case TopLevelError(_, _, _) => assertTrue(true)
+          case _                      => assertNever(s"Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("UnknownTypeMismatch Test")("exceptionTests", "decimalHundred", List(Data.String("a"))) {
+          case TopLevelError(_, _, _: TypeError.UnknownTypeMismatch) => assertTrue(true)
+          case _ => assertNever(s"Unexpected exception type was thrown")
+        },
+        /* There are 2 different UnsupportedType errors possible.
+           MorphirRuntimeError.UnsupportedType and MorphirErrorRuntime.TypeError.UnsupportedType
+         */
+        testExceptionMultiple("MorphirRuntimeError UnsupportedType Test")(
+          "exceptionTests",
+          "sdkAddTest",
+          List(Data.String("a"))
+        ) {
+          case TopLevelError(_, _, _: UnsupportedType) => assertTrue(true)
+          case _                                       => assertNever(s"Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("Type Test")("exceptionTests", "sdkAddTest", List(Data.Float(1), Data.Decimal(2))) {
+          case TopLevelError(_, _, _: TypeError.InferenceConflict) => assertTrue(true)
+          case _ => assertNever(s"Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("MissingDefinition Test")("exceptionTests", "notARealFunction", List(Data.Unit)) {
+          case LookupError.MissingDefinition(_, _, _, _) => assertTrue(true)
+          case _                                         => assertNever(s"Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("MissingModule Test")("notARealModule", "notARealFunction", List(Data.Unit)) {
+          case LookupError.MissingModule(_, _, _) => assertTrue(true)
+          case _                                  => assertNever(s"Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("MissingPackage Test")("", "", List(Data.Unit)) {
+          case LookupError.MissingPackage(_, _) => assertTrue(true)
+          case _                                => assertNever(s"Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("ImproperType Test")(
+          "exceptionTests",
+          "ignoreArgReturnString",
+          List(Data.Int(1), Data.Int(1), Data.Int(1))
+        ) {
+          case TopLevelError(_, _, _: TypeError.ImproperType) => assertTrue(true)
+          case _                                              => assertNever(s"Unexpected exception type was thrown")
+        }
       )
     ).provideLayerShared(morphirRuntimeLayer)
 

@@ -1,6 +1,6 @@
 package org.finos.morphir.runtime
 
-import org.finos.morphir.ir.Type.UType
+import org.finos.morphir.ir.Type.{FieldT, UType}
 import org.finos.morphir.ir.Value.Value.{List as ListValue, Unit as UnitValue, *}
 import org.finos.morphir.ir.Value.{Pattern, Value, TypedDefinition}
 import org.finos.morphir.ir.{Module, Type}
@@ -13,8 +13,11 @@ import org.finos.morphir.runtime.internal.NativeFunctionSignature.*
 import zio.Chunk
 
 sealed trait SDKValue
-
-case class SDKConstructor(arguments: List[UType])
+sealed trait SDKConstructor
+object SDKConstructor {
+  case class Implicit(fields: List[FieldT[Unit]]) extends SDKConstructor
+  case class Explicit(arguments: List[UType])     extends SDKConstructor
+}
 object SDKValue {
   case class SDKValueDefinition(definition: TypedDefinition) extends SDKValue
   case class SDKNativeFunction(function: NativeFunctionSignature) extends SDKValue {

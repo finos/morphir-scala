@@ -23,6 +23,28 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
       case e: Throwable       => throw new ExternalError(e).stack(codeLocation)
     }
 
+  def handleApplyResult5(
+      va: UType,
+      functionValue: RTValue,
+      arg1: RTValue,
+      arg2: RTValue,
+      arg3: RTValue,
+      arg4: RTValue,
+      arg5: RTValue
+  ): RTValue = {
+    val partiallyAppliedFunction =
+      handleApplyResult(va, functionValue, arg1)
+    val partiallyAppliedFunction2 =
+      handleApplyResult(va, partiallyAppliedFunction, arg2)
+    val partiallyAppliedFunction3 =
+      handleApplyResult(va, partiallyAppliedFunction2, arg3)
+    val partiallyAppliedFunction4 =
+      handleApplyResult(va, partiallyAppliedFunction3, arg4)
+    val result =
+      handleApplyResult(va, partiallyAppliedFunction4, arg5)
+    result
+  }
+
   def handleApplyResult4(
       va: UType,
       functionValue: RTValue,
@@ -119,6 +141,17 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
           case Nil =>
             throw InvalidState(
               "Tried to apply to constructor function with no arguments (should not exist)",
+              function
+            )
+
+        }
+      case function @ RTValue.ImplicitConstructorFunction(name, fields, curried) =>
+        fields match {
+          case head :: Nil  => RTValue.Record(curried ++ Map(head.name -> argValue))
+          case head :: tail => RTValue.ImplicitConstructorFunction(name, tail, curried ++ Map(head.name -> argValue))
+          case Nil =>
+            throw InvalidState(
+              "Tried to apply to implicit constructor function with no arguments (should not exist)",
               function
             )
 
@@ -236,9 +269,11 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
 
   def handleConstructor(va: UType, name: FQName): RTValue =
     globals.getCtor(name) match {
-      case Some(SDKConstructor(List())) => RTValue.ConstructorResult(name, List())
-      case Some(SDKConstructor(arguments)) =>
+      case Some(SDKConstructor.Explicit(List())) => RTValue.ConstructorResult(name, List())
+      case Some(SDKConstructor.Explicit(arguments)) =>
         RTValue.ConstructorFunction(name, arguments, List())
+      case Some(SDKConstructor.Implicit(List())) => RTValue.Record(Map())
+      case Some(SDKConstructor.Implicit(fields)) => RTValue.ImplicitConstructorFunction(name, fields, Map())
       case None =>
         val (pkg, mod, loc) = (name.getPackagePath, name.getModulePath, name.localName)
         throw new ConstructorNotFound(

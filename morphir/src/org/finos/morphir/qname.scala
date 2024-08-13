@@ -35,7 +35,7 @@ trait QNameModule { self: ModuleNameModule with NameModule with PathModule =>
     def fromName(modulePath: String, localName: String): QName =
       QName(Path.fromString(modulePath), Name.fromString(localName))
 
-      /// Get the local name part of a qualified name.
+    /// Get the local name part of a qualified name.
     def getLocalName(qname: QName): Name = qname.localName
 
     /// Get the module path part of a qualified name.

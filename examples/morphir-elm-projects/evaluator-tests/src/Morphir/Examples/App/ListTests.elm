@@ -199,6 +199,58 @@ listMapTest ctx =
         map (\n -> n + 1) [ 3, 4, 5 ]
 
 
+{-| Test: List/Map2
+expected = [6,8,10]
+-}
+listMap2Test : TestContext -> List Int
+listMap2Test ctx =
+    let
+        numbers =
+            [ 3, 4, 5 ]
+    in
+    test ctx <|
+        map2 (\a b -> a + b) numbers numbers
+
+
+{-| Test: List/Map3
+expected = [9,12,15]
+-}
+listMap3Test : TestContext -> List Int
+listMap3Test ctx =
+    let
+        numbers =
+            [ 3, 4, 5 ]
+    in
+    test ctx <|
+        map3 (\a b c -> a + b + c) numbers numbers numbers
+
+
+{-| Test: List/Map4
+expected = [12,16,20]
+-}
+listMap4Test : TestContext -> List Int
+listMap4Test ctx =
+    let
+        numbers =
+            [ 3, 4, 5 ]
+    in
+    test ctx <|
+        map4 (\a b c d -> a + b + c + d) numbers numbers numbers numbers
+
+
+{-| Test: List/Map5
+expected = [15,20,25]
+-}
+listMap5Test : TestContext -> List Int
+listMap5Test ctx =
+    let
+        numbers =
+            [ 3, 4, 5 ]
+    in
+    test ctx <|
+        map5 (\a b c d e -> a + b + c + d + e) numbers numbers numbers numbers numbers
+
+
 {-| Test: List/Map Native
 expected = [3.0,4.0,5.0]
 -}
@@ -452,3 +504,95 @@ expected(2, []) = []
 listTakeTest : Int -> List a -> List a
 listTakeTest n list =
     List.take n list
+
+
+{-| Test: List/sum
+expected(1, 2) = 3
+-}
+listSumTest : List number -> number
+listSumTest list =
+    List.sum list
+
+
+{-| Test: List/sum
+expected = 3.0
+-}
+listSumFloatTest : TestContext -> Float
+listSumFloatTest ctx =
+    test ctx <|
+        sum [ 1.0, 2.0 ]
+
+
+{-| Test: List/product
+expected(1, 2) = 2
+-}
+listProductTest : List number -> number
+listProductTest list =
+    List.product list
+
+
+{-| Test: List/product
+expected = 2.0
+-}
+listProductFloatTest : TestContext -> Float
+listProductFloatTest ctx =
+    test ctx <|
+        product [ 1.0, 2.0 ]
+
+
+{-| Test: List/intersperse
+expected = [2, 1, 3, 1, 4]
+-}
+listIntersperseTest : TestContext -> List Int
+listIntersperseTest ctx =
+    test ctx <|
+        intersperse 1 [ 2, 3, 4 ]
+
+
+{-| Test: List/unzip
+expected = ( [ 1, 2], ["a", "b"] )
+-}
+listUnzipTest : TestContext -> ( List Int, List String )
+listUnzipTest ctx =
+    test ctx <|
+        unzip [ ( 1, "a" ), ( 2, "b" ) ]
+
+
+{-| Test: List/innerJoin
+expected = [ ( ( 2, "b" ), ( 2, "B" ) ) ]
+-}
+listInnerJoinTest : TestContext -> List ( ( Int, String ), ( Int, String ) )
+listInnerJoinTest ctx =
+    let
+        dataSetA =
+            [ ( 1, "a" ), ( 2, "b" ) ]
+
+        dataSetB =
+            [ ( 3, "C" ), ( 2, "B" ) ]
+    in
+    test ctx <|
+        dataSetA
+            |> innerJoin dataSetB
+                (\a b ->
+                    Tuple.first a == Tuple.first b
+                )
+
+
+{-| Test: List/leftJoin
+expected = [ ( ( 1, "a" ), Nothing ), ( ( 2, "b" ), Just ( 2, "B" ) ) ]
+-}
+listLeftJoinTest : TestContext -> List ( ( Int, String ), Maybe ( Int, String ) )
+listLeftJoinTest ctx =
+    let
+        dataSetA =
+            [ ( 1, "a" ), ( 2, "b" ) ]
+
+        dataSetB =
+            [ ( 3, "C" ), ( 2, "B" ) ]
+    in
+    test ctx <|
+        dataSetA
+            |> leftJoin dataSetB
+                (\a b ->
+                    Tuple.first a == Tuple.first b
+                )
