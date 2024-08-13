@@ -2,8 +2,8 @@ package org.finos.morphir.runtime
 import org.finos.morphir.naming.*
 
 private[runtime] case class CoverageInfo(
-    staticallyReachedFunctions: List[FQName],
-    userDefinedFunctions: List[FQName],
+    staticallyReachedFunctions: Set[FQName],
+    userDefinedFunctions: Set[FQName],
     counts: CoverageCounts
 )
 case class TestSummary(
@@ -19,6 +19,10 @@ case class TestSummary(
     countsAtModule(pkgName, modName).map(_.result)
 
   def coverageCounts: CoverageCounts = coverage.counts
+
+  def userDefinedFunctions = coverage.userDefinedFunctions
+
+  def staticallyReachedFunctions = coverage.staticallyReachedFunctions
 
   /**
    * Evaluates to true if and only if all tests passed and none were skipped or todo
@@ -71,7 +75,7 @@ case class CoverageCounts(covered: Int, uncovered: Int) {
 object CoverageCounts {
   def empty = CoverageCounts(0, 0)
 
-  def getCounts(definedFunctions: List[FQName], reachedFunctions: List[FQName]): CoverageCounts = {
+  def getCounts(definedFunctions: Set[FQName], reachedFunctions: Set[FQName]): CoverageCounts = {
     val covered   = definedFunctions.filter(reachedFunctions.contains(_)).size
     val uncovered = definedFunctions.size - covered
     CoverageCounts(covered, uncovered)
