@@ -1,6 +1,7 @@
 module Morphir.Examples.App.ExceptionTests exposing (..)
 
 import Morphir.SDK.Decimal as Decimal exposing (..)
+import Tuple exposing (..)
 
 
 {-| Test: ExceptionTests/add
@@ -27,3 +28,21 @@ decimalHundred value =
 ignoreArgReturnString : a -> String
 ignoreArgReturnString _ =
     "test"
+
+
+{-| Test: ExceptionTests/acceptTuple3
+-}
+acceptTuple3 : ( Int, Int, Int ) -> String
+acceptTuple3 _ =
+    "accept tuple test"
+
+
+type alias XYRecord =
+    { x : Int, y : Int }
+
+
+{-| Test: ExceptionTests/accept XYRecord
+-}
+acceptRecord : XYRecord -> String
+acceptRecord _ =
+    "accept record test"

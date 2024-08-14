@@ -3477,11 +3477,47 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           List(Data.String("a"), Data.String("b"))
         ) {
           case TopLevelError(_, _, _) => assertTrue(true)
-          case _                      => assertNever(s"Unexpected exception type was thrown")
+          case _                      => assertNever("Unexpected exception type was thrown")
         },
         testExceptionMultiple("UnknownTypeMismatch Test")("exceptionTests", "decimalHundred", List(Data.String("a"))) {
           case TopLevelError(_, _, _: TypeError.UnknownTypeMismatch) => assertTrue(true)
-          case _ => assertNever(s"Unexpected exception type was thrown")
+          case _ => assertNever("Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("SizeMismatch Test")(
+          "exceptionTests",
+          "acceptTuple3",
+          List(Data.Tuple(Data.Int(1), Data.Int(1)))
+        ) {
+          case TopLevelError(_, _, _: TypeError.SizeMismatch) => assertTrue(true)
+          case _                                              => assertNever("Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("ValueLacksField Test")(
+          "exceptionTests",
+          "acceptRecord",
+          List(
+            Data.Record(
+              FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
+              (Label("x"), Data.Int(1))
+            )
+          )
+        ) {
+          case TopLevelError(_, _, _: TypeError.ValueLacksField) => assertTrue(true)
+          case _                                                 => assertNever("Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("ValueHasExtraField Test")(
+          "exceptionTests",
+          "acceptRecord",
+          List(
+            Data.Record(
+              FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
+              (Label("x"), Data.Int(1)),
+              (Label("y"), Data.Int(1)),
+              (Label("z"), Data.Int(1))
+            )
+          )
+        ) {
+          case TopLevelError(_, _, _: TypeError.ValueHasExtraField) => assertTrue(true)
+          case _ => assertNever("Unexpected exception type was thrown")
         },
         /* There are 2 different UnsupportedType errors possible.
            MorphirRuntimeError.UnsupportedType and MorphirErrorRuntime.TypeError.UnsupportedType
@@ -3500,15 +3536,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         },
         testExceptionMultiple("MissingDefinition Test")("exceptionTests", "notARealFunction", List(Data.Unit)) {
           case LookupError.MissingDefinition(_, _, _, _) => assertTrue(true)
-          case _                                         => assertNever(s"Unexpected exception type was thrown")
+          case _                                         => assertNever("Unexpected exception type was thrown")
         },
         testExceptionMultiple("MissingModule Test")("notARealModule", "notARealFunction", List(Data.Unit)) {
           case LookupError.MissingModule(_, _, _) => assertTrue(true)
-          case _                                  => assertNever(s"Unexpected exception type was thrown")
+          case _                                  => assertNever("Unexpected exception type was thrown")
         },
         testExceptionMultiple("MissingPackage Test")("", "", List(Data.Unit)) {
           case LookupError.MissingPackage(_, _) => assertTrue(true)
-          case _                                => assertNever(s"Unexpected exception type was thrown")
+          case _                                => assertNever("Unexpected exception type was thrown")
         },
         testExceptionMultiple("ImproperType Test")(
           "exceptionTests",
@@ -3516,7 +3552,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           List(Data.Int(1), Data.Int(1), Data.Int(1))
         ) {
           case TopLevelError(_, _, _: TypeError.ImproperType) => assertTrue(true)
-          case _                                              => assertNever(s"Unexpected exception type was thrown")
+          case _                                              => assertNever("Unexpected exception type was thrown")
         }
       )
     ).provideLayerShared(morphirRuntimeLayer)
