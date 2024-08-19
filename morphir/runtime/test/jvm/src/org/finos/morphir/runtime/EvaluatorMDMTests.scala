@@ -3519,10 +3519,80 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           case TopLevelError(_, _, _: TypeError.ValueHasExtraField) => assertTrue(true)
           case _ => assertNever("Unexpected exception type was thrown")
         },
+        testExceptionMultiple("ManyTypeErrors Test")(
+          "exceptionTests",
+          "acceptRecord",
+          List(
+            Data.Record(
+              FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
+              (Label("a"), Data.Int(1)),
+              (Label("b"), Data.Int(1))
+            )
+          )
+        ) {
+          case TopLevelError(_, _, _: TypeError.ManyTypeErrors) => assertTrue(true)
+          case _ => assertNever("Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("LiteralTypeMismatch Test")(
+          "exceptionTests",
+          "acceptAliasAlias",
+          List(
+            Data.Record(
+              FQName.fromString("Morphir.Examples.App:ExceptionTests:AliasAlias"),
+              (
+                Label("xyRecord"),
+                Data.Aliased.apply(Data.String("test"), Concept.Alias(FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"), Concept.String))
+              )
+            )
+          )
+        ) {
+          case TopLevelError(_, _, _: TypeError.LiteralTypeMismatch) => assertTrue(true)
+          case _ => assertNever("Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("test Test")(
+          "exceptionTests",
+          "ignoreArgReturnString",
+          List(
+            Data.Record(
+              FQName.fromString("Morphir.Examples.App:ExceptionTests:AliasAlias"),
+              (
+                Label("xyRecord"),
+                Data.Aliased.apply(
+                  Data.Record(
+                    FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
+                    (Label("x"), Data.Decimal(1.0)),
+                    (Label("y"), Data.Decimal(1.0))
+                  ),
+                  Concept.Alias(
+                    FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
+                    Concept.Record(
+                      FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
+                      List(
+                        (Label("x"), Concept.Int32),
+                        (Label("y"), Concept.Int32)
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        ) {
+          case TopLevelError(_, _, _: TypeError.TypesMismatch) => assertTrue(true)
+          case e                                                    => assertNever(s"$e")
+        },
+        testExceptionMultiple("UnmatchedPattern Test")(
+          "exceptionTests",
+          "nonExhaustiveCase",
+          List(Data.Int(3))
+        ) {
+          case TopLevelError(_, _, _) => assertTrue(true)
+          case e => assertNever(s"Unexpected exception type was thrown $e")
+        },
         /* There are 2 different UnsupportedType errors possible.
            MorphirRuntimeError.UnsupportedType and MorphirErrorRuntime.TypeError.UnsupportedType
          */
-        testExceptionMultiple("MorphirRuntimeError UnsupportedType Test")(
+        testExceptionMultiple("UnsupportedType Test")(
           "exceptionTests",
           "sdkAddTest",
           List(Data.String("a"))
@@ -3530,7 +3600,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           case TopLevelError(_, _, _: UnsupportedType) => assertTrue(true)
           case _                                       => assertNever(s"Unexpected exception type was thrown")
         },
-        testExceptionMultiple("Type Test")("exceptionTests", "sdkAddTest", List(Data.Float(1), Data.Decimal(2))) {
+        testExceptionMultiple("InferenceConflict Test")("exceptionTests", "sdkAddTest", List(Data.Float(1), Data.Decimal(2))) {
           case TopLevelError(_, _, _: TypeError.InferenceConflict) => assertTrue(true)
           case _ => assertNever(s"Unexpected exception type was thrown")
         },
