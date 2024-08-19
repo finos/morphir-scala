@@ -3531,7 +3531,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )
         ) {
           case TopLevelError(_, _, _: TypeError.ManyTypeErrors) => assertTrue(true)
-          case _ => assertNever("Unexpected exception type was thrown")
+          case _                                                => assertNever("Unexpected exception type was thrown")
         },
         testExceptionMultiple("LiteralTypeMismatch Test")(
           "exceptionTests",
@@ -3541,7 +3541,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
               FQName.fromString("Morphir.Examples.App:ExceptionTests:AliasAlias"),
               (
                 Label("xyRecord"),
-                Data.Aliased.apply(Data.String("test"), Concept.Alias(FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"), Concept.String))
+                Data.Aliased.apply(
+                  Data.String("test"),
+                  Concept.Alias(FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"), Concept.String)
+                )
               )
             )
           )
@@ -3579,7 +3582,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )
         ) {
           case TopLevelError(_, _, _: TypeError.TypesMismatch) => assertTrue(true)
-          case e                                                    => assertNever(s"$e")
+          case e                                               => assertNever(s"$e")
         },
         testExceptionMultiple("UnmatchedPattern Test")(
           "exceptionTests",
@@ -3587,7 +3590,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           List(Data.Int(3))
         ) {
           case TopLevelError(_, _, _) => assertTrue(true)
-          case e => assertNever(s"Unexpected exception type was thrown $e")
+          case e                      => assertNever(s"Unexpected exception type was thrown $e")
         },
         /* There are 2 different UnsupportedType errors possible.
            MorphirRuntimeError.UnsupportedType and MorphirErrorRuntime.TypeError.UnsupportedType
@@ -3600,7 +3603,11 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           case TopLevelError(_, _, _: UnsupportedType) => assertTrue(true)
           case _                                       => assertNever(s"Unexpected exception type was thrown")
         },
-        testExceptionMultiple("InferenceConflict Test")("exceptionTests", "sdkAddTest", List(Data.Float(1), Data.Decimal(2))) {
+        testExceptionMultiple("InferenceConflict Test")(
+          "exceptionTests",
+          "sdkAddTest",
+          List(Data.Float(1), Data.Decimal(2))
+        ) {
           case TopLevelError(_, _, _: TypeError.InferenceConflict) => assertTrue(true)
           case _ => assertNever(s"Unexpected exception type was thrown")
         },

@@ -40,6 +40,7 @@ acceptTuple3 _ =
 type alias XYRecord =
     { x : Int, y : Int }
 
+
 {-| Test: ExceptionTests/accept XYRecord
 -}
 acceptRecord : XYRecord -> String
@@ -49,6 +50,7 @@ acceptRecord _ =
 
 type alias AliasAlias =
     { xyRecord : XYRecord }
+
 
 {-| Test: ExceptionTests/acceptAliasTuple
 -}
@@ -64,6 +66,6 @@ nonExhaustiveCase a =
     case a of
         1 ->
             "1"
+
         2 ->
             "2"
-    
