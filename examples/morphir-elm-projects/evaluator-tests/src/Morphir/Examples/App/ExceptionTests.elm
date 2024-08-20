@@ -69,3 +69,14 @@ nonExhaustiveCase a =
 
         2 ->
             "2"
+
+
+type alias StringAlias =
+    String
+
+
+{-| Test: ExceptionTests/nonExhustiveCase
+-}
+stringAliasToString : StringAlias -> String
+stringAliasToString a =
+    a

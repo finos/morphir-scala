@@ -7,6 +7,7 @@ import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.EvaluatorMDMTests.testExceptionMultiple
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.MorphirRuntimeError.*
+import org.finos.morphir.runtime.MorphirRuntimeError.RTValueToMDMError.ResultTypeMismatch
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
@@ -3582,7 +3583,20 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )
         ) {
           case TopLevelError(_, _, _: TypeError.TypesMismatch) => assertTrue(true)
-          case e                                               => assertNever(s"$e")
+          case _                                               => assertNever(s"Unexpected exception type was thrown")
+        },
+        testExceptionMultiple("ResultTypeMismatch Test")(
+          "exceptionTests",
+          "stringAliasToString",
+          List(
+            Data.Aliased(
+              Data.Unit,
+              Concept.Alias(FQName.fromString("Morphir.Examples.App:ExceptionTests:StringAlias"), Concept.Unit)
+            )
+          )
+        ) {
+          case TopLevelError(_, _, _: ResultTypeMismatch) => assertTrue(true)
+          case _                                          => assertNever(s"Unexpected exception type was thrown")
         },
         testExceptionMultiple("UnmatchedPattern Test")(
           "exceptionTests",
@@ -3590,7 +3604,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           List(Data.Int(3))
         ) {
           case TopLevelError(_, _, _) => assertTrue(true)
-          case e                      => assertNever(s"Unexpected exception type was thrown $e")
+          case _                      => assertNever(s"Unexpected exception type was thrown")
         },
         /* There are 2 different UnsupportedType errors possible.
            MorphirRuntimeError.UnsupportedType and MorphirErrorRuntime.TypeError.UnsupportedType
