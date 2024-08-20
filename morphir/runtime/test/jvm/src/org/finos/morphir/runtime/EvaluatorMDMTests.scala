@@ -3553,7 +3553,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           case TopLevelError(_, _, _: TypeError.LiteralTypeMismatch) => assertTrue(true)
           case _ => assertNever("Unexpected exception type was thrown")
         },
-        testExceptionMultiple("test Test")(
+        testExceptionMultiple("TypesMismatch Test")(
           "exceptionTests",
           "ignoreArgReturnString",
           List(
@@ -3583,7 +3583,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )
         ) {
           case TopLevelError(_, _, _: TypeError.TypesMismatch) => assertTrue(true)
-          case _                                               => assertNever(s"Unexpected exception type was thrown")
+          case _                                               => assertNever("Unexpected exception type was thrown")
         },
         testExceptionMultiple("ResultTypeMismatch Test")(
           "exceptionTests",
@@ -3596,7 +3596,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           )
         ) {
           case TopLevelError(_, _, _: ResultTypeMismatch) => assertTrue(true)
-          case _                                          => assertNever(s"Unexpected exception type was thrown")
+          case _                                          => assertNever("Unexpected exception type was thrown")
         },
         testExceptionMultiple("UnmatchedPattern Test")(
           "exceptionTests",
