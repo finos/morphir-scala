@@ -75,7 +75,7 @@ type alias StringAlias =
     String
 
 
-{-| Test: ExceptionTests/nonExhustiveCase
+{-| Test: ExceptionTests/stringAliasToString
 -}
 stringAliasToString : StringAlias -> String
 stringAliasToString a =
