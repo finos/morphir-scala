@@ -232,4 +232,5 @@ object Concept {
         ZPure.succeed(concept)
       }
   }
+
 }
