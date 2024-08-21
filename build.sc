@@ -305,7 +305,7 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
           object test extends ScalaTests with TestModule.ZioTest {
             def ivyDeps: T[Agg[Dep]] = Agg(
               Deps.dev.zio.`zio-json-golden`,
-              ivy"io.github.deblockt:json-diff:0.0.6",
+              ivy"io.github.deblockt:json-diff:1.1.0",
               Deps.dev.zio.`zio-process`
             )
 
