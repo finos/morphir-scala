@@ -37,26 +37,26 @@ acceptTuple3 _ =
     "accept tuple test"
 
 
-type alias XYRecord =
+type alias XY =
     { x : Int, y : Int }
 
 
-{-| Test: ExceptionTests/accept XYRecord
+{-| Test: ExceptionTests/acceptXY
 -}
-acceptRecord : XYRecord -> String
-acceptRecord _ =
-    "accept record test"
+acceptXY : XY -> String
+acceptXY _ =
+    "accept xy test"
 
 
-type alias AliasAlias =
-    { xyRecord : XYRecord }
+type alias XYRecord =
+    { xy : XY }
 
 
-{-| Test: ExceptionTests/acceptAliasTuple
+{-| Test: ExceptionTests/acceptXYRecord
 -}
-acceptAliasAlias : AliasAlias -> String
-acceptAliasAlias _ =
-    "accept AliasAlias test"
+acceptXYRecord : XYRecord -> String
+acceptXYRecord _ =
+    "accept XYRecord test"
 
 
 {-| Test: ExceptionTests/nonExhustiveCase

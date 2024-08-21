@@ -3494,10 +3494,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         },
         testExceptionMultiple("ValueLacksField Test")(
           "exceptionTests",
-          "acceptRecord",
+          "acceptXY",
           List(
             Data.Record(
-              FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
+              FQName.fromString("Morphir.Examples.App:ExceptionTests:XY"),
               (Label("x"), Data.Int(1))
             )
           )
@@ -3507,10 +3507,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         },
         testExceptionMultiple("ValueHasExtraField Test")(
           "exceptionTests",
-          "acceptRecord",
+          "acceptXY",
           List(
             Data.Record(
-              FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
+              FQName.fromString("Morphir.Examples.App:ExceptionTests:XY"),
               (Label("x"), Data.Int(1)),
               (Label("y"), Data.Int(1)),
               (Label("z"), Data.Int(1))
@@ -3522,10 +3522,10 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         },
         testExceptionMultiple("ManyTypeErrors Test")(
           "exceptionTests",
-          "acceptRecord",
+          "acceptXY",
           List(
             Data.Record(
-              FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
+              FQName.fromString("Morphir.Examples.App:ExceptionTests:XY"),
               (Label("a"), Data.Int(1)),
               (Label("b"), Data.Int(1))
             )
@@ -3536,15 +3536,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         },
         testExceptionMultiple("LiteralTypeMismatch Test")(
           "exceptionTests",
-          "acceptAliasAlias",
+          "acceptXYRecord",
           List(
             Data.Record(
-              FQName.fromString("Morphir.Examples.App:ExceptionTests:AliasAlias"),
+              FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
               (
-                Label("xyRecord"),
+                Label("xy"),
                 Data.Aliased.apply(
                   Data.String("test"),
-                  Concept.Alias(FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"), Concept.String)
+                  Concept.Alias(FQName.fromString("Morphir.Examples.App:ExceptionTests:XY"), Concept.String)
                 )
               )
             )
@@ -3558,19 +3558,19 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "ignoreArgReturnString",
           List(
             Data.Record(
-              FQName.fromString("Morphir.Examples.App:ExceptionTests:AliasAlias"),
+              FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
               (
-                Label("xyRecord"),
+                Label("xy"),
                 Data.Aliased.apply(
                   Data.Record(
-                    FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
+                    FQName.fromString("Morphir.Examples.App:ExceptionTests:XY"),
                     (Label("x"), Data.Decimal(1.0)),
                     (Label("y"), Data.Decimal(1.0))
                   ),
                   Concept.Alias(
-                    FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
+                    FQName.fromString("Morphir.Examples.App:ExceptionTests:XY"),
                     Concept.Record(
-                      FQName.fromString("Morphir.Examples.App:ExceptionTests:XYRecord"),
+                      FQName.fromString("Morphir.Examples.App:ExceptionTests:XY"),
                       List(
                         (Label("x"), Concept.Int32),
                         (Label("y"), Concept.Int32)
