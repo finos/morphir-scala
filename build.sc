@@ -573,7 +573,7 @@ object ci extends Module {
 
     val credentials = sys.env("SONATYPE_USERNAME") + ":" + sys.env("SONATYPE_PASSWORD")
     val pgpPassword = sys.env("PGP_PASSPHRASE")
-    val timeout     = 10.minutes
+    val timeout     = 20.minutes // SONATYPE CAN BE SUPER SLOW
 
     val artifacts = data.map {
       case PublishModule.PublishData(a, s) =>
