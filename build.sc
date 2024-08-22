@@ -60,8 +60,8 @@ def showBuildSettings() = T.command {
 trait MorphirPublishModule extends PublishModule with JavaModule with Mima {
   import mill.scalalib.publish._
 
-  def publishVersion = VcsVersion.vcsState().format()
-  def packageDescription: String = s"The $artifactName package"  
+  def publishVersion             = VcsVersion.vcsState().format()
+  def packageDescription: String = s"The $artifactName package"
   def pomSettings = PomSettings(
     description = packageDescription,
     organization = "org.finos.morphir",
@@ -73,7 +73,6 @@ trait MorphirPublishModule extends PublishModule with JavaModule with Mima {
     )
   )
 }
-
 
 object morphir extends Cross[MorphirCrossModule](buildSettings.scala.crossScalaVersions) {
   object build extends Module {
@@ -178,7 +177,7 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
     def scalaJSVersion = T { resolvedBuildSettings().js.version }
   }
 
-  trait MorphirNativeModule extends MorphirCommonCrossModule with ScalaNativeModule {
+  trait MorphirNativeModule extends MorphirCommonCrossModule {
     def platform           = Platform.Native
     def scalaNativeVersion = T { resolvedBuildSettings().native.version }
   }
@@ -360,18 +359,21 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
       def platformSpecificModuleDeps = Seq(morphir, morphir.interop.zio.json)
     }
 
-    trait RuntimeTests extends TestModule.ZioTest {      
-      def morphirTestSources = T.sources {        
-          examples.`morphir-elm-projects`.`evaluator-tests`.distOutputDirs()
+    trait RuntimeTests extends TestModule.ZioTest {
+      def morphirTestSources = T.sources {
+        examples.`morphir-elm-projects`.`evaluator-tests`.distOutputDirs()
       }
 
       def morphirTestSourceFiles = T {
         Lib.findSourceFiles(morphirTestSources(), Seq("json")).collect {
           case path if path.last.startsWith("morphir-") => PathRef(path)
         }
-      } 
+      }
 
-      override protected def testTask(args: Task[Seq[String]], globSelectors: Task[Seq[String]]): Task[(String, Seq[TestResult])] = T.task {
+      override protected def testTask(
+          args: Task[Seq[String]],
+          globSelectors: Task[Seq[String]]
+      ): Task[(String, Seq[TestResult])] = T.task {
         val _ = morphirTestSourceFiles()
         super.testTask(args, globSelectors)()
       }
@@ -398,9 +400,9 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
     }
 
     object native extends Shared with MorphirNativeModule {
-      object test extends ScalaNativeTests with RuntimeTests {
+      object test extends RuntimeTests {
         def ivyDeps    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
-        def moduleDeps = super.moduleDeps ++ Agg(testing.zio.native)
+        def moduleDeps = Agg(testing.zio.native)
       }
     }
 
@@ -471,9 +473,9 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
         Deps.com.github.lolgab.`scala-native-crypto`
       )
 
-      object test extends ScalaNativeTests with TestModule.ZioTest {
+      object test extends TestModule.ZioTest {
         def ivyDeps    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
-        def moduleDeps = super.moduleDeps ++ Agg(testing.generators.native, testing.zio.native)
+        def moduleDeps = Agg(testing.generators.native, testing.zio.native)
       }
     }
   }
@@ -526,7 +528,7 @@ object examples extends Module {
     object `unit-test-framework` extends Module {
       object `example-project` extends MorphirElmModule {
         def morphirModuleDeps = Seq(`morphir-elm`.sdks.`morphir-unit-test`)
-      } 
+      }
 
       object `example-project-tests` extends MorphirElmModule {
         def morphirModuleDeps = Seq(
@@ -559,7 +561,7 @@ object `morphir-elm` extends Module {
 object ci extends Module {
 
   def publishSonatype(tasks: mill.main.Tasks[PublishModule.PublishData]) = T.command {
-    //ReleaseSetupModule.setupGpg()()
+    // ReleaseSetupModule.setupGpg()()
     publishSonatype0(
       data = define.Target.sequence(tasks.value)(),
       log = T.ctx().log
@@ -567,8 +569,8 @@ object ci extends Module {
   }
 
   def publishSonatype0(
-    data: Seq[PublishModule.PublishData],
-    log: mill.api.Logger
+      data: Seq[PublishModule.PublishData],
+      log: mill.api.Logger
   ): Unit = {
 
     val credentials = sys.env("SONATYPE_USERNAME") + ":" + sys.env("SONATYPE_PASSWORD")
@@ -616,7 +618,6 @@ object ci extends Module {
   }
 
 }
-
 
 // The following section contains aliases used to simplify build tasks
 
