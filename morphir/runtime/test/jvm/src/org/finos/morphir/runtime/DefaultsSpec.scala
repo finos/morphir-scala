@@ -30,7 +30,7 @@ object DefaultsTestingSpec extends MorphirBaseSpec {
             res <- rt.evaluate(qn"Defaults:ExampleModule:expectedDefault")
               .provideEnvironment(MorphirEnv.live)
               .toZIOWith(RTExecutionContext.typeChecked)
-            default <- MDMDefaults.default(res.shape)
+            default <- ZIO.fromEither(MDMDefaults.default(res.shape))
           } yield assertTrue(res == default)
         }
       },
@@ -40,7 +40,7 @@ object DefaultsTestingSpec extends MorphirBaseSpec {
             res <- rt.evaluate(qn"Defaults:ExampleModule:nonDefault")
               .provideEnvironment(MorphirEnv.live)
               .toZIOWith(RTExecutionContext.typeChecked)
-            default <- MDMDefaults.default(res.shape)
+            default <- ZIO.fromEither(MDMDefaults.default(res.shape))
           } yield assertTrue(res != default)
         }
       },
@@ -54,8 +54,8 @@ object DefaultsTestingSpec extends MorphirBaseSpec {
               .provideEnvironment(MorphirEnv.live)
               .toZIOWith(RTExecutionContext.typeChecked)
             largerConcept = larger.shape
-            filled  <- MDMDefaults.fillWithDefaults(small, largerConcept)
-            default <- MDMDefaults.default(largerConcept)
+            filled  <- ZIO.fromEither(MDMDefaults.fillWithDefaults(small, largerConcept))
+            default <- ZIO.fromEither(MDMDefaults.default(largerConcept))
           } yield assertTrue(filled == larger)
         }
       }

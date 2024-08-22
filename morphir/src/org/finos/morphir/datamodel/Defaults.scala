@@ -61,7 +61,7 @@ trait Defaults {
   def defaultEnum(concept: Concept.Enum): DefaultTask = {
     val firstCase = concept.cases.head
     for {
-      args <- collectAll(firstCase.fields, (label: Label, concept: Concept) => default(concept).map((label, _)))
+      args <- collectAll(firstCase.fields, (label: EnumLabel, concept: Concept) => default(concept).map((label, _)))
       res = Data.Case(args, firstCase.label.toString(), concept)
     } yield res
   }
@@ -98,13 +98,18 @@ trait Defaults {
 }
 
 object Defaults {
-  def collectAll[Input, Output, Error](inputs: List[Input], f: Input): Either[Error, List[Output]] =
-    inputs.flatMap(List[Output]()) { case (acc, input) =>
+  def collectAll[Input, Output, Error](
+      inputs: List[Input],
+      f: Input => Either[Error, Output]
+  ): Either[Error, List[Output]] = {
+    val empty: Either[Error, List[Output]] = Right(List())
+    inputs.foldLeft(empty) { case (acc, input) =>
       for {
         prefix <- acc
         next   <- f(input)
       } yield prefix :+ next
     }
+  }
 }
 
 trait DefaultFiller extends Defaults {
@@ -118,7 +123,7 @@ object MDMDefaults extends DefaultFiller {
       case (otherData, otherConcept) if otherData.shape == otherConcept =>
         Right(otherData) // Hopefully == is good enough
       case (recordData: Data.Record, recordConcept: Concept.Record) => for {
-          dataFields <- collectAll(
+          dataFields <- Defaults.collectAll(
             recordConcept.fields,
             { case (label, fieldConcept) =>
               recordData.values.find(_._1 == label) match {

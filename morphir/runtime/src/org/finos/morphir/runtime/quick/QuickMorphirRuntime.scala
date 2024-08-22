@@ -96,7 +96,6 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
         }
       }
     } yield out
-
 }
 
 object QuickMorphirRuntime {
