@@ -58,7 +58,7 @@ jobs:
       fail-fast: false
       matrix:
         java: ["11"] # Note there is no need ro actually run this for multiple JVM versions for JS
-        scala: ["2.13.14", "3.3.3"]
+        scala: ["3.3.3"]
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -102,7 +102,7 @@ jobs:
       fail-fast: false
       matrix:
         java: ["11", "17"]
-        scala: ["2.13.14", "3.3.3"]
+        scala: ["3.3.3"]
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -158,7 +158,7 @@ jobs:
       fail-fast: false
       matrix:
         java: ["11"] # Note there is no need ro actually run this for multiple JVM versions for native
-        scala: ["2.13.14", "3.3.3"]
+        scala: ["3.3.3"]
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -307,15 +307,6 @@ jobs:
       - name: Install libuv
         run: sudo apt-get update && sudo apt-get install -y libuv1-dev
 
-      - name: Restore Scala 2.13 JVM Build Output From Cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            out/morphir/2.13.13/**/jvm/
-            out/morphir/build/
-          key: ${{ runner.os }}-mill-jvm-11-2.13.13-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-jvm-11-2.13.13-${{ github.sha }}-
-
       - name: Restore Scala 3.3 JVM Build Output From Cache
         uses: actions/cache/restore@v4
         with:
@@ -324,14 +315,6 @@ jobs:
           key: ${{ runner.os }}-mill-jvm-11-3.3.3-${{ github.sha }}-${{ hashFiles('out') }}
           restore-keys: ${{ runner.os }}-mill-jvm-11-3.3.3-${{ github.sha }}-
 
-      - name: Restore Scala 2.13 JS Build Output From Cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            out/morphir/2.13.13/**/js/
-          key: ${{ runner.os }}-mill-js-11-2.13.13-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-js-11-2.13.13-${{ github.sha }}-
-
       - name: Restore Scala 3.3 JS Build Output From Cache
         uses: actions/cache/restore@v4
         with:
@@ -339,14 +322,6 @@ jobs:
             out/morphir/3.3.3/**/js/
           key: ${{ runner.os }}-mill-js-11-3.3.3-${{ github.sha }}-${{ hashFiles('out') }}
           restore-keys: ${{ runner.os }}-mill-js-11-3.3.3-${{ github.sha }}-
-
-      - name: Restore Scala 2.13 Native Build Output From Cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            out/morphir/2.13.13/**/native/
-          key: ${{ runner.os }}-mill-native-11-2.13.13-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-native-11-2.13.13-${{ github.sha }}-
 
       - name: Restore Scala 3.3 Native Build Output From Cache
         uses: actions/cache/restore@v4
