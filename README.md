@@ -126,7 +126,7 @@ For your convience, you can run the morphir-runtime tests using the following co
 ```
 
 
-#### Formatting Code
+#### Formatting Scala Code
 
 Code needs to be formatted according to `scalafmt` rules. To run `scalafmt` on all the source code using:
 
@@ -147,6 +147,22 @@ or in watch mode to reformat changed files:
 ```bash
 ./mill -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
 ```
+
+#### Formatting Elm Code
+
+The evaluator tests utilize elm code. To reformat the elm code for those tests:
+
+```bash
+elm-format --elm-version=0.19 examples/morphir-elm-projects/evaluator-tests/src/Morphir/Examples/App/*.elm
+```
+
+If you don't have elm-format installed, you can either install it through npm or a different package manager like brew:
+
+```bash
+npm install -g elm-format
+```
+
+Alternatively, this can be done directly via `npm run format`, which is documented [here](https://github.com/finos/morphir-scala/blob/main/examples/morphir-elm-projects/evaluator-tests/ReadMe.md)
 
 #### IntelliJ Setup for Windows
 
@@ -198,6 +214,10 @@ or in watch mode to reformat changed files:
 ```
 .\mill -i -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
 ```
+
+#### Elm Tests
+
+Documentation for the elm tests are located at [examples/morphir-elm-projects/evaluator-tests/ReadMe.md](https://github.com/finos/morphir-scala/blob/main/examples/morphir-elm-projects/evaluator-tests/ReadMe.md)
 
 ### Roadmap
 
