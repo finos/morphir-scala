@@ -152,6 +152,11 @@ object Deps {
   }
   case object org {
     case object `scala-lang` {
+
+      case object modules {
+        val `scala-collection-contrib` = ivy"org.scala-lang.modules::scala-collection-contrib:0.3.0"
+      }
+
       def `scala-compiler`(scalaVersion: String): Dep =
         if (scalaVersion.startsWith("3")) ivy"org.scala-lang::scala3-compiler:$scalaVersion"
         else ivy"org.scala-lang:scala-compiler:$scalaVersion"
@@ -182,7 +187,7 @@ object Versions {
   val castor = "0.2.1"
   val cats   = "2.10.0"
 
-  val enumeratum = "1.7.3"
+  val enumeratum = "1.7.4"
 
   def borer(scalaVersion: String): String =
     borer(scalaVersion.split('.').toIndexedSeq)
@@ -210,7 +215,7 @@ object Versions {
   val `izumi-reflect`            = "2.3.8"
   val metaconfig                 = "0.11.1"
   val mainargs                   = "0.5.0"
-  val `os-lib`                   = "0.9.3"
+  val `os-lib`                   = "0.10.3"
   val paiges                     = "0.4.3"
   val `scala-java-time`          = "2.5.0"
   val `scala-native-crypto`      = "0.0.4"
@@ -220,14 +225,14 @@ object Versions {
   val spire                      = "0.18.0"
   val `tasty-query`              = "0.5.6"
   val upickle                    = "3.0.0-M1"
-  val zio                        = "2.0.21"
+  val zio                        = "2.1.6"
   val `zio-cli`                  = "0.5.0"
-  val `zio-config`               = "4.0.1"
-  val `zio-interop-cats`         = "23.1.0.1"
+  val `zio-config`               = "4.0.2"
+  val `zio-interop-cats`         = "23.1.0.3"
   val `zio-json`                 = "0.6.2"
   val `zio-nio`                  = "2.0.2"
   val `zio-parser`               = "0.1.9"
-  val `zio-prelude`              = "1.0.0-RC23"
+  val `zio-prelude`              = "1.0.0-RC27"
   val `zio-process`              = "0.7.2"
   val `zio-schema`               = "0.4.12"
 }
@@ -235,12 +240,12 @@ object Versions {
 object ScalaVersions {
   import DevMode._
   val all      = if (devMode) Seq(scala3x) else Seq(scala213, scala3x)
-  def scala213 = "2.13.13"
+  def scala213 = "2.13.14"
   def scala3x  = "3.3.3"
 
   def scalaJSVersion     = "1.16.0"
   def scalaNativeVersion = "0.4.17"
-  def millScalaVersion   = "2.13.13"
+  def millScalaVersion   = "2.13.14"
 }
 
 object MillVersions {

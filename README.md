@@ -126,7 +126,7 @@ For your convience, you can run the morphir-runtime tests using the following co
 ```
 
 
-#### Formatting Code
+#### Formatting Scala Code
 
 Code needs to be formatted according to `scalafmt` rules. To run `scalafmt` on all the source code using:
 
@@ -147,6 +147,22 @@ or in watch mode to reformat changed files:
 ```bash
 ./mill -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
 ```
+
+#### Formatting Elm Code
+
+The evaluator tests utilize elm code. To reformat the elm code for those tests:
+
+```bash
+elm-format --elm-version=0.19 examples/morphir-elm-projects/evaluator-tests/src/Morphir/Examples/App/*.elm
+```
+
+If you don't have elm-format installed, you can either install it through npm or a different package manager like brew:
+
+```bash
+npm install -g elm-format
+```
+
+Alternatively, this can be done directly via `npm run format`, which is documented [here](https://github.com/finos/morphir-scala/blob/main/examples/morphir-elm-projects/evaluator-tests/ReadMe.md)
 
 #### IntelliJ Setup for Windows
 
@@ -185,6 +201,10 @@ or in watch mode:
 .\mill -i -w __.test
 ```
 
+#### Elm Tests
+
+Documentation for the elm tests are located at [examples/morphir-elm-projects/evaluator-tests/ReadMe.md](https://github.com/finos/morphir-scala/blob/main/examples/morphir-elm-projects/evaluator-tests/ReadMe.md)
+
 #### Formatting Code
 
 Code needs to be formatted according to `scalafmt` rules. To run `scalafmt` on all the source code using:
@@ -207,7 +227,7 @@ Watch for updates.
 
 1. Fork it (<https://github.com/finos/morphir-scala/fork>)
 2. Create your feature branch (`git checkout -b feature/fooBar`)
-3. Read our [contribution guidelines](.github/CONTRIBUTING.md) and [Community Code of Conduct](https://www.finos.org/code-of-conduct)
+3. Read our [contribution guidelines](CONTRIBUTING.md) and [Community Code of Conduct](https://www.finos.org/code-of-conduct)
 4. Commit your changes (`git commit -am 'Add some fooBar'`)
 5. Push to the branch (`git push origin feature/fooBar`)
 6. Create a new Pull Request

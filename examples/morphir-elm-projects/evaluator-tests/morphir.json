@@ -2,6 +2,7 @@
     "name": "Morphir.Examples.App",
     "sourceDirectory": "src",
     "exposedModules": [
+        "AggregateTests",
         "CharTests",
         "ConstructorTests",
         "DestructureTests",
@@ -29,6 +30,7 @@
         "TestUtils",
         "TypeCheckerTests",
         "UserDefinedReferenceTests",
-        "SdkBasicsTests"
+        "SdkBasicsTests",
+        "ExceptionTests"
     ]
 }

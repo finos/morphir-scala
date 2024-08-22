@@ -460,7 +460,8 @@ private[runtime] object Expect {
       }.toList
       val differingString = if (differing.length == 0) ""
       else
-        s"\n\t ${differing.length} keys differ including ${differing(0)._1.printed} (${differing(0)._2.printed} vs ${differing(0)._3.printed})"
+        s"\n\t ${differing.length} keys differ including ${differing(0)._1.printed} (${differing(0)._2
+            .printed} vs ${differing(0)._3.printed})"
       "Dicts were not equal:" + missing1String + missing2String + differingString
     }
   }
@@ -599,13 +600,14 @@ private[runtime] object Expect {
         case _ =>
           SingleTestResult.Err(UnexpectedTypeWithIR("Bool type", arg1.value, arg1.ir, hint = "(in Expext.assert)"))
       }
-      /**
-       * This helper function inspects the IR and matches it against recognized patterns for more detailed reporting
-       *
-       * @param globals
-       * @param context
-       * @param ir
-       */
+
+    /**
+     * This helper function inspects the IR and matches it against recognized patterns for more detailed reporting
+     *
+     * @param globals
+     * @param context
+     * @param ir
+     */
     def explainFailure(
         globals: GlobalDefs,
         context: CallStackFrame,

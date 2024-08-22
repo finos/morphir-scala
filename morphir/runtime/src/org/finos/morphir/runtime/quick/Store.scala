@@ -42,7 +42,7 @@ final case class GlobalDefs(
 
 object GlobalDefs {
   def fromDistributions(dists: Distribution*): GlobalDefs = {
-    val libs: Map[PackageName, Lib] = Distribution.toLibsMap(dists: _*)
+    val libs: Map[PackageName, Lib] = Distribution.toLibsMapUnsafe(dists: _*)
     libs.foldLeft(native) {
       case (acc, (packageName, lib)) => createDefs(acc, packageName, lib.dependencies, lib.packageDef)
     }
@@ -68,15 +68,18 @@ object GlobalDefs {
         val sdkDef     = SDKValue.SDKValueDefinition(definition)
         acc.withDefinition(name, sdkDef)
       }
-      module.value.types.foldLeft(withDefinitions) { case (acc, (_, tpe)) =>
+      module.value.types.foldLeft(withDefinitions) { case (acc, (localName, tpe)) =>
         val typeDef = tpe.value.value
         typeDef match {
           case Type.Definition.CustomType(_, accessControlledCtors) =>
             val ctors = accessControlledCtors.value.toMap
             ctors.foldLeft(acc) { case (acc, (ctorName, ctorArgs)) =>
-              val name = FQName(packageName, moduleName, ctorName)
-              acc.withConstructor(name, SDKConstructor(ctorArgs.map(_._2).toList))
+              val fqn = FQName(packageName, moduleName, ctorName)
+              acc.withConstructor(fqn, SDKConstructor.Explicit(ctorArgs.map(_._2).toList))
             }
+          case Type.Definition.TypeAlias(_, Type.Type.Record(_, fields)) =>
+            val fqn = FQName(packageName, moduleName, localName)
+            acc.withConstructor(fqn, SDKConstructor.Implicit(fields))
           case Type.Definition.TypeAlias(_, _) => acc
         }
       }
@@ -86,4 +89,18 @@ object GlobalDefs {
     GlobalDefs(Map(), Map())
   def native: GlobalDefs =
     GlobalDefs(Native.native ++ NativeSDK.resolvedFunctions, Native.nativeCtors ++ NativeSDK.ctors)
+
+  def getStaticallyReachable(ref: FQName, globalDefs: GlobalDefs): Set[FQName] = {
+
+    def exploreBelow(currentlyKnown: Set[FQName], toExplore: FQName): Set[FQName] =
+      if (currentlyKnown.contains(toExplore)) currentlyKnown
+      else
+        globalDefs.definitions.get(toExplore) match {
+          case Some(SDKValue.SDKValueDefinition(x)) =>
+            x.body.collectReferences.foldLeft(currentlyKnown + toExplore)((acc, next) => exploreBelow(acc, next))
+          case _ => currentlyKnown
+        }
+
+    exploreBelow(Set(), ref)
+  }
 }

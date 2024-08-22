@@ -400,3 +400,73 @@ decimalShiftRight shift dec =
     Decimal.shiftDecimalRight
         shift
         dec
+
+
+{-| Test: Decimal/hundred
+value = 123
+expected = 12300
+-}
+decimalHundred : Int -> Decimal
+decimalHundred value =
+    Decimal.hundred
+        value
+
+
+{-| Test: Decimal/hundredth
+value = 123
+expected = 1.23
+-}
+decimalHundredth : Int -> Decimal
+decimalHundredth value =
+    Decimal.hundredth
+        value
+
+
+{-| Test: Decimal/million
+value = 123
+expected = 123000000
+-}
+decimalMillion : Int -> Decimal
+decimalMillion value =
+    Decimal.million
+        value
+
+
+{-| Test: Decimal/millionth
+value = 123
+expected = 0.000123
+-}
+decimalMillionth : Int -> Decimal
+decimalMillionth value =
+    Decimal.millionth
+        value
+
+
+{-| Test: Decimal/tenth
+value = 123
+expected = 12.3
+-}
+decimalTenth : Int -> Decimal
+decimalTenth value =
+    Decimal.tenth
+        value
+
+
+{-| Test: Decimal/thousand
+value = 123
+expected = 123000
+-}
+decimalThousand : Int -> Decimal
+decimalThousand value =
+    Decimal.thousand
+        value
+
+
+{-| Test: Decimal/thousandth
+value = 123
+expected = 0.123
+-}
+decimalThousandth : Int -> Decimal
+decimalThousandth value =
+    Decimal.thousandth
+        value

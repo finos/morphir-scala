@@ -92,7 +92,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
             assertTrue(result.overallCounts.todo == 1)
           }
         },
-        test("Failed isn't Passd") {
+        test("Failed isn't Passed") {
           getTestSummary.map { result =>
             assertTrue(!result.passed)
           }
@@ -100,6 +100,14 @@ object UnitTestingSpec extends MorphirBaseSpec {
         test("Failed isn't Incomplete") {
           getTestSummary.map { result =>
             assertTrue(!result.incomplete)
+          }
+        },
+        test("Coverage is calculated") {
+          getTestSummary.map { result =>
+            assertTrue(result.coverageCounts == CoverageCounts(
+              covered = 2,
+              uncovered = 0
+            ))
           }
         }
       ),
@@ -167,6 +175,14 @@ object UnitTestingSpec extends MorphirBaseSpec {
           moduleCounts("ExampleTests", "PassingModule").map { counts =>
             assertTrue(counts.map(_.result) == Some(OverallStatus.Passed))
           }
+        },
+        test("Coverage is calculated") {
+          getTestSummary.map { result =>
+            assertTrue(result.coverageCounts == CoverageCounts(
+              covered = 2,
+              uncovered = 0
+            ))
+          }
         }
       )
     ).provideLayerShared(failingTestSummaryLayer),
@@ -180,6 +196,14 @@ object UnitTestingSpec extends MorphirBaseSpec {
         getTestSummary.map { result =>
           assertTrue(!result.incomplete)
         }
+      },
+      test("Project coverage is calculated") {
+        getTestSummary.map { result =>
+          assertTrue(result.coverageCounts == CoverageCounts(
+            covered = 1,
+            uncovered = 1
+          ))
+        }
       }
     ).provideLayerShared(passingTestSummaryLayer),
     suite("Incomplete Project Spec")(
@@ -191,6 +215,14 @@ object UnitTestingSpec extends MorphirBaseSpec {
       test("Project was incomplete") {
         getTestSummary.map { result =>
           assertTrue(result.incomplete)
+        }
+      },
+      test("Project coverage is calculated") {
+        getTestSummary.map { result =>
+          assertTrue(result.coverageCounts == CoverageCounts(
+            covered = 1,
+            uncovered = 1
+          ))
         }
       }
     ).provideLayerShared(incompleteTestSummaryLayer)

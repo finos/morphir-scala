@@ -109,6 +109,14 @@ class PrintRTValue(
         case v: RT.Set =>
           Tree.ofRT(v)(v.elements.toList.map(r => treeify(r)))
 
+        case v: RT.Aggregation =>
+          Tree.Literal(v.value.toString)
+
+        case key: RT.Key => key match {
+            case RT.Key0   => Tree.Literal("0")
+            case v: RT.Key => Tree.ofRT(v)(v.value.map(treeify(_)))
+          }
+
         case v: RT.Function =>
           val body = v match {
             case RT.FieldFunction(name) =>
@@ -140,6 +148,16 @@ class PrintRTValue(
               val curriedTree = Tree.KeyValue("curried", Tree.Apply("", curried.map(arg => treeify(arg)).iterator))
               val nameTree    = Tree.KeyValue("name", treeify(name))
               if (curried.length > 0) {
+                List(paramsTree, curriedTree, nameTree)
+              } else {
+                List(paramsTree, nameTree)
+              }
+            case RT.ImplicitConstructorFunction(name, arguments, curried) =>
+              val paramsTree =
+                Tree.KeyValue("parameters", Tree.Apply("", arguments.map(arg => Tree.Literal(arg.toString)).iterator))
+              val curriedTree = Tree.KeyValue("curried", Tree.Apply("", curried.map(arg => treeify(arg)).iterator))
+              val nameTree    = Tree.KeyValue("name", treeify(name))
+              if (curried.size > 0) {
                 List(paramsTree, curriedTree, nameTree)
               } else {
                 List(paramsTree, nameTree)

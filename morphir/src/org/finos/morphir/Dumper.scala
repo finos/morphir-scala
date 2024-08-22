@@ -163,9 +163,9 @@ object Dumper extends DumperVersionSpecific with DumperSyntax {
   def make[A](f: A => Dumper.Repr): Dumper[A] =
     f(_)
 
-    /**
-     * Derives a `Dumper[Array[A]]` given a `Dumper[A]`.
-     */
+  /**
+   * Derives a `Dumper[Array[A]]` given a `Dumper[A]`.
+   */
   implicit def ArrayDumper[A: Dumper]: Dumper[Array[A]] =
     array => Repr.VConstructor(List("scala"), "Array", array.map(_.dumpRepr).toList)
 
