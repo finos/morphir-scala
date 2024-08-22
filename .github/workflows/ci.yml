@@ -273,13 +273,6 @@ jobs:
           key: ${{ runner.os }}-mill-js-11-3.3.3-${{ github.sha }}-${{ hashFiles('out') }}
           restore-keys: ${{ runner.os }}-mill-js-11-3.3.3-${{ github.sha }}-
 
-      - name: Restore Scala 3.3 Native Build Output From Cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            out/morphir/3.3.3/**/native/
-          key: ${{ runner.os }}-mill-native-11-3.3.3-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-native-11-3.3.3-${{ github.sha }}-
       - name: Setup GPG
         run: .github/scripts/gpg-setup.sh
       - name: Wrap GPG binary
