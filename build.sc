@@ -384,7 +384,7 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
   object testing extends Module {
     object generators extends CrossPlatform with CrossValue {
       trait Shared extends MorphirCommonCrossModule {
-        def ivyDeps = Agg(Deps.dev.zio.`zio-test`) ++ Agg.when(!platform.isNative)(Deps.dev.zio.`zio-test-magnolia`)
+        def ivyDeps                    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-magnolia`)
         def platformSpecificModuleDeps = Seq(morphir)
 
       }
@@ -451,8 +451,9 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
         Deps.com.lihaoyi.pprint,
         Deps.org.typelevel.cats.core,
         Deps.org.typelevel.spire,
-        Deps.org.typelevel.`paiges-core`
-      ) ++ Agg.when(!platform.isNative)(Deps.dev.zio.`zio-interop-cats`)
+        Deps.org.typelevel.`paiges-core`,
+        Deps.dev.zio.`zio-interop-cats`
+      )
 
       def platformSpecificModuleDeps = Seq(morphir, morphir.interop.zio.json)
     }
