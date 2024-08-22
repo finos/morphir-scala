@@ -201,6 +201,10 @@ or in watch mode:
 .\mill -i -w __.test
 ```
 
+#### Elm Tests
+
+Documentation for the elm tests are located at [examples/morphir-elm-projects/evaluator-tests/ReadMe.md](https://github.com/finos/morphir-scala/blob/main/examples/morphir-elm-projects/evaluator-tests/ReadMe.md)
+
 #### Formatting Code
 
 Code needs to be formatted according to `scalafmt` rules. To run `scalafmt` on all the source code using:
@@ -214,10 +218,6 @@ or in watch mode to reformat changed files:
 ```
 .\mill -i -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
 ```
-
-#### Elm Tests
-
-Documentation for the elm tests are located at [examples/morphir-elm-projects/evaluator-tests/ReadMe.md](https://github.com/finos/morphir-scala/blob/main/examples/morphir-elm-projects/evaluator-tests/ReadMe.md)
 
 ### Roadmap
 
