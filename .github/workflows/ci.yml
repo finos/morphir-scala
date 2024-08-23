@@ -173,42 +173,30 @@ jobs:
       # - name: Save resolvedIvyDeps.json
       #   run: ./mill show __.resolvedIvyDeps > depCache/resolvedIvyDeps.json
 
-      # - name: Upload Dependency Cache (optional)
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: Dependency Cache
-      #     path: depCache/
 
       - name: Sonatype Lifecycle SCA Scan
-        uses: sonatype-nexus-community/iq-github-action@main
+        id: evaluate
+        uses: sonatype/actions/evaluate@v1
         with:
+          iq-server-url: ${{ env.SonatypeUrl }}
           username: ${{ secrets.SONATYPE_USER }}
           password: ${{ secrets.SONATYPE_PASSWORD }}
-          serverUrl: ${{ env.SonatypeUrl }}
-          applicationId: ${{ env.SonatypeAppId }}
+          application-id: ${{ env.SonatypeAppId }}
           stage: ${{ env.SonatypeStage }}
-          target: ${{ env.SonatypeScanTarget }} ${{ env.ExcludeDirectory }}
+          scan-targets: ${{ env.SonatypeScanTarget }} ${{ env.ExcludeDirectory }}
 
       - name: Retrieve Sonatype SBOM (SPDX)
-        if: always()
-        run: |
-          mkdir reports/
-          iqCredentials="${{ secrets.SONATYPE_USER }}:${{ secrets.SONATYPE_PASSWORD }}"
-          echo 'Get internal app ID for public ID: '$SonatypeAppId
-          res=$(curl -u $iqCredentials --location $SonatypeUrl'api/v2/applications?publicId='$SonatypeAppId)
-          IFS='"' read -a array <<< "$res"
-          echo 'Internal app ID: '${array[5]}
-          internalID=${array[5]}
-          curl -u $iqCredentials --location $SonatypeUrl'api/v2/spdx/'$internalID'/stages/'$SonatypeStage -H 'Accept: application/xml' > reports/$SonatypeAppId.spdx.json
-          echo 'Sonatype SBOM (SPDX): '
-          cat reports/$SonatypeAppId.spdx.json
-
-      - name: Upload Sonatype SBOM (SPDX)
-        if: always()
-        uses: actions/upload-artifact@v4
+        uses: sonatype/actions/fetch-sbom@v1
+        if: ( success() || failure() ) && steps.evaluate.outputs.scan-id
         with:
-          name: ${{ env.SonatypeAppId }} Sonatype SBOM (SPDX)
-          path: reports/
+          iq-server-url: ${{ env.SonatypeUrl }}
+          username: ${{ secrets.SONATYPE_USER }}
+          password: ${{ secrets.SONATYPE_PASSWORD }}
+          application-id: ${{ env.SonatypeAppId }}
+          scan-id: ${{ steps.evaluate.outputs.scan-id }}
+          sbom-standard: spdx
+          sbom-version: 2.3
+          artifact-name: ${{ env.SonatypeAppId }}-sbom (${{ env.SonatypeStage }})
   #############################################
 
   publish:
@@ -225,8 +213,8 @@ jobs:
     env:
       PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
       PGP_SECRET: ${{ secrets.PGP_SECRET_BASE64 }}
-      SONATYPE_PASSWORD: ${{ secrets.MAVEN_DEPLOY_PASSWORD }}
-      SONATYPE_USERNAME: ${{ secrets.MAVEN_DEPLOY_USERNAME }}
+      SONATYPE_PASSWORD: ${{ secrets.MAVEN_DEPLOY_PASSWORD }} # Change to MAVEN_...??
+      SONATYPE_USERNAME: ${{ secrets.MAVEN_DEPLOY_USERNAME }} # Change to MAVEN_...??
       PUBLISH_AS_SNAPSHOT: true
       LANG: "en_US.UTF-8"
       LC_MESSAGES: "en_US.UTF-8"
@@ -273,6 +261,32 @@ jobs:
           key: ${{ runner.os }}-mill-js-11-3.3.3-${{ github.sha }}-${{ hashFiles('out') }}
           restore-keys: ${{ runner.os }}-mill-js-11-3.3.3-${{ github.sha }}-
 
+      ############### SONATYPE SCAN ###############
+      - name: Sonatype Lifecycle SCA Scan
+        id: evaluate
+        uses: sonatype/actions/evaluate@v1
+        with:
+          iq-server-url: ${{ env.SonatypeUrl }}
+          username: ${{ secrets.SONATYPE_USER }}
+          password: ${{ secrets.SONATYPE_PASSWORD }}
+          application-id: ${{ env.SonatypeAppId }}
+          stage: release
+          scan-targets: ${{ env.SonatypeScanTarget }} ${{ env.ExcludeDirectory }}
+
+      - name: Retrieve Sonatype SBOM (SPDX)
+        uses: sonatype/actions/fetch-sbom@v1
+        if: ( success() || failure() ) && steps.evaluate.outputs.scan-id
+        with:
+          iq-server-url: ${{ env.SonatypeUrl }}
+          username: ${{ secrets.SONATYPE_USER }}
+          password: ${{ secrets.SONATYPE_PASSWORD }}
+          application-id: ${{ env.SonatypeAppId }}
+          scan-id: ${{ steps.evaluate.outputs.scan-id }}
+          sbom-standard: spdx
+          sbom-version: 2.3
+          artifact-name: ${{ env.SonatypeAppId }}-sbom (release)
+      #####################################
+      
       - name: Setup GPG
         run: .github/scripts/gpg-setup.sh
       - name: Wrap GPG binary
