@@ -395,7 +395,7 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
     object zio extends CrossPlatform {
       trait Shared extends MorphirCommonCrossModule {
         def ivyDeps = Agg(
-          ivy"io.github.cquiroz::scala-java-time::2.5.0",
+          ivy"io.github.cquiroz::scala-java-time::2.6.0",
           Deps.dev.zio.`zio-json`,
           Deps.dev.zio.`zio-prelude`,
           Deps.dev.zio.`zio-test`,
