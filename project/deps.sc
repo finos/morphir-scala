@@ -212,7 +212,7 @@ object Versions {
   val fansi                      = "0.5.0"
   val fs2                        = "3.10.2"
   val geny                       = "1.0.0"
-  val `izumi-reflect`            = "2.3.8"
+  val `izumi-reflect`            = "2.3.10"
   val metaconfig                 = "0.11.1"
   val mainargs                   = "0.5.0"
   val `os-lib`                   = "0.10.4"
