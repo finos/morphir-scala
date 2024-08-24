@@ -9,7 +9,7 @@ import com.typesafe.config.ConfigFactory
 import zio.Config
 
 final case class ScalaNativeBuildSettings(
-    enable: Boolean = true,
+    enable: Boolean = false,
     version: String = ScalaNativeBuildSettings.defaultVersion
 )
 

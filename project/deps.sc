@@ -61,7 +61,7 @@ object Deps {
       val mainargs       = ivy"com.lihaoyi::mainargs::${Versions.`mainargs`}"
       val `os-lib`       = ivy"com.lihaoyi::os-lib::${Versions.`os-lib`}"
       val sourcecode     = ivy"com.lihaoyi::sourcecode::0.3.1"
-      val pprint         = ivy"com.lihaoyi::pprint::0.8.1"
+      val pprint         = ivy"com.lihaoyi::pprint::0.9.0"
       val ujson          = ivy"com.lihaoyi::ujson::${Versions.upickle}"
       val upickle        = ivy"com.lihaoyi::upickle::${Versions.upickle}"
       val `upickle-core` = ivy"com.lihaoyi::upickle-core::${Versions.upickle}"
@@ -80,7 +80,7 @@ object Deps {
       }
 
       case object magnolia_3 {
-        val magnolia = ivy"com.softwaremill.magnolia1_3::magnolia::1.3.4"
+        val magnolia = ivy"com.softwaremill.magnolia1_3::magnolia::1.3.7"
       }
     }
   }
@@ -209,15 +209,15 @@ object Versions {
 
   val coursier                   = "2.1.4"
   val expecty                    = "0.16.0"
-  val fansi                      = "0.4.0"
+  val fansi                      = "0.5.0"
   val fs2                        = "3.10.2"
   val geny                       = "1.0.0"
-  val `izumi-reflect`            = "2.3.8"
+  val `izumi-reflect`            = "2.3.10"
   val metaconfig                 = "0.11.1"
   val mainargs                   = "0.5.0"
-  val `os-lib`                   = "0.10.3"
+  val `os-lib`                   = "0.10.4"
   val paiges                     = "0.4.3"
-  val `scala-java-time`          = "2.5.0"
+  val `scala-java-time`          = "2.6.0"
   val `scala-native-crypto`      = "0.0.4"
   val `scalac-compat-annotation` = "0.1.4"
   val scribe                     = "3.11.9"
@@ -229,7 +229,7 @@ object Versions {
   val `zio-cli`                  = "0.5.0"
   val `zio-config`               = "4.0.2"
   val `zio-interop-cats`         = "23.1.0.3"
-  val `zio-json`                 = "0.6.2"
+  val `zio-json`                 = "0.7.2"
   val `zio-nio`                  = "2.0.2"
   val `zio-parser`               = "0.1.9"
   val `zio-prelude`              = "1.0.0-RC27"
