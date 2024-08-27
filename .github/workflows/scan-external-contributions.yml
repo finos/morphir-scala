@@ -10,8 +10,10 @@ env:
   ExcludeDirectory: " -D fileExcludes='*.class, **/website/, **/docs/, **/.*' "
 
 on:
-  pull_request_target:
-    branches: ["main", "release/**", "0.4.x"]
+  workflow_dispatch:
+  # pull_request_target:
+  #   branches: ["main", "release/**", "0.4.x"]
+
     
 # cancel older runs of a pull request;
 # this will not cancel anything for normal git pushes
@@ -54,9 +56,9 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: |
-            out/morphir/${{matrix.scala}}/**/jvm/
+            out/morphir/**/jvm/
             out/morphir/build/
-          key: ${{ runner.os }}-mill-jvm-${{matrix.java}}-${{ matrix.scala }}-${{ github.sha }}-${{ hashFiles('out') }}
+          key: ${{ runner.os }}-mill-jvm-${{ github.sha }}-${{ hashFiles('out') }}
 
   ############### SONATYPE SCAN ###############
   sonatype-scan:
