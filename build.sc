@@ -2,6 +2,7 @@ import $meta._
 import $ivy.`de.tototec::de.tobiasroeser.mill.integrationtest::0.7.1`
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
 import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
+import $ivy.`com.lihaoyi::mill-contrib-scoverage:$MILL_VERSION`
 import $ivy.`com.carlosedp::mill-aliases::0.4.1`
 import $ivy.`com.github.lolgab::mill-mima::0.1.1`
 import $file.project.deps, deps.{Deps, MillVersions, Versions => Vers}
@@ -20,6 +21,7 @@ import millbuild.settings._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind
 import mill.contrib.buildinfo.BuildInfo
+import mill.contrib.scoverage.ScoverageModule
 import com.github.lolgab.mill.mima._
 import de.tobiasroeser.mill.vcs.version.VcsVersion
 import scala.concurrent.duration.DurationInt
@@ -381,6 +383,11 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
     }
   }
 
+  object scoverage extends ScoverageReport {
+    def scalaVersion = "3.3.3"
+    def scoverageVersion = Vers.scoverage
+  }
+
   object testing extends Module {
     object generators extends CrossPlatform with CrossValue {
       trait Shared extends MorphirCommonCrossModule {
@@ -419,7 +426,7 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
     }
 
     object jvm extends Shared with MorphirJVMModule {
-      object test extends ScalaTests with TestModule.ZioTest {
+      object test extends ScoverageTests with ScalaTests with TestModule.ZioTest {
 
         def ivyDeps = Agg(
           Deps.com.lihaoyi.`os-lib`,

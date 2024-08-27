@@ -220,6 +220,7 @@ object Versions {
   val `scala-java-time`          = "2.6.0"
   val `scala-native-crypto`      = "0.0.4"
   val `scalac-compat-annotation` = "0.1.4"
+  val scoverage                  = "2.1.1"
   val scribe                     = "3.11.9"
   val silencer                   = "1.4.2"
   val spire                      = "0.18.0"
