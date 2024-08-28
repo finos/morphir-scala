@@ -125,6 +125,33 @@ For your convience, you can run the morphir-runtime tests using the following co
 ./build.sh test-runtime-jvm
 ```
 
+#### Test Coverage
+
+Before checking test coverage, ensure that all tests have been run using the following command:
+
+```bash
+./mill __.test
+```
+
+##### HTML Coverage Report
+
+To generate a human-readable coverage report, run the following command:
+
+```bash
+./mill scoverage.htmlReportAll
+```
+
+To view the resulting coverage report, open `out/scoverage/htmlReportAll.dest/index.html`
+
+##### XML Coverage Report
+
+To generate an XML coverage report, run the following command:
+
+```bash
+./mill scoverage.xmlReportAll
+```
+
+The report will be generated at this location `out/scoverage/xmlReportAll.dest/scoverage.xml`
 
 #### Formatting Scala Code
 
