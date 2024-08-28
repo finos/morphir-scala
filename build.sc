@@ -21,7 +21,7 @@ import millbuild.settings._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind
 import mill.contrib.buildinfo.BuildInfo
-import mill.contrib.scoverage.ScoverageModule
+import mill.contrib.scoverage.{ScoverageModule, ScoverageReport}
 import com.github.lolgab.mill.mima._
 import de.tobiasroeser.mill.vcs.version.VcsVersion
 import scala.concurrent.duration.DurationInt
@@ -57,6 +57,11 @@ def reformatAll(evaluator: Evaluator, sources: mill.main.Tasks[Seq[PathRef]]) = 
 
 def showBuildSettings() = T.command {
   MyBuild.showBuildSettings()
+}
+
+object scoverage extends ScoverageReport {
+  def scalaVersion = "3.3.3"
+  def scoverageVersion = Vers.scoverage
 }
 
 trait MorphirPublishModule extends PublishModule with JavaModule with Mima {
@@ -234,8 +239,10 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
         def platformSpecificModuleDeps = Seq(morphir)
       }
 
-      object jvm extends Shared with MorphirJVMModule {
-        object test extends ScalaTests with TestModule.ZioTest {
+      object jvm extends Shared with MorphirJVMModule with ScoverageModule {
+        def scoverageVersion = Vers.scoverage
+
+        object test extends ScoverageTests with TestModule.ZioTest {
           def ivyDeps = Agg(
             Deps.dev.zio.zio,
             Deps.dev.zio.`zio-streams`,
@@ -285,8 +292,10 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
           def platformSpecificModuleDeps = Seq(morphir)
         }
 
-        object jvm extends Shared with MorphirJVMModule {
-          object test extends ScalaTests with TestModule.ZioTest {
+        object jvm extends Shared with MorphirJVMModule with ScoverageModule {
+          def scoverageVersion = Vers.scoverage
+
+          object test extends ScoverageTests with TestModule.ZioTest {
             def ivyDeps: T[Agg[Dep]] = Agg(
               Deps.dev.zio.`zio-json-golden`,
               ivy"io.github.deblockt:json-diff:1.1.0",
@@ -311,8 +320,10 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
         def platformSpecificModuleDeps = Seq(morphir)
       }
 
-      object jvm extends Shared with MorphirJVMModule {
-        object test extends ScalaTests with TestModule.ZioTest {
+      object jvm extends Shared with MorphirJVMModule with ScoverageModule {
+        def scoverageVersion = Vers.scoverage
+
+        object test extends ScoverageTests with TestModule.ZioTest {
           def ivyDeps: T[Agg[Dep]] = Agg(
             Deps.io.bullet.`borer-core`(crossScalaVersion),
             Deps.io.bullet.`borer-derivation`(crossScalaVersion)
@@ -362,8 +373,10 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
       }
     }
 
-    object jvm extends Shared with MorphirJVMModule {
-      object test extends ScalaTests with RuntimeTests {
+    object jvm extends Shared with MorphirJVMModule with ScoverageModule {
+      def scoverageVersion = Vers.scoverage
+
+      object test extends ScoverageTests with RuntimeTests {
         def ivyDeps = Agg(
           Deps.com.lihaoyi.`os-lib`,
           Deps.com.lihaoyi.sourcecode,
@@ -381,11 +394,6 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
         def moduleKind = ModuleKind.CommonJSModule
       }
     }
-  }
-
-  object scoverage extends ScoverageReport {
-    def scalaVersion = "3.3.3"
-    def scoverageVersion = Vers.scoverage
   }
 
   object testing extends Module {
@@ -425,8 +433,10 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
       def platformSpecificModuleDeps = Seq(extensibility, morphir, runtime, tools)
     }
 
-    object jvm extends Shared with MorphirJVMModule {
-      object test extends ScoverageTests with ScalaTests with TestModule.ZioTest {
+    object jvm extends Shared with MorphirJVMModule with ScoverageModule {
+      def scoverageVersion = Vers.scoverage
+
+      object test extends ScoverageTests with TestModule.ZioTest {
 
         def ivyDeps = Agg(
           Deps.com.lihaoyi.`os-lib`,
