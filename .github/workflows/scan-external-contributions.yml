@@ -58,8 +58,7 @@ jobs:
           path: |
             out/morphir/**/jvm/
             out/morphir/build/
-          key: ${{ runner.os }}-mill-jvm-${{ github.sha }}-${{ hashFiles('out') }}
-
+          key: ${{ runner.os }}-mill-jvm-${{ github.sha }}
   ############### SONATYPE SCAN ###############
   sonatype-scan:
     needs: ["lint-and-prepare-artifacts"]
