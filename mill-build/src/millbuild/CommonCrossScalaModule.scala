@@ -2,10 +2,10 @@ package millbuild
 
 import mill._, scalalib._, scalafmt._
 import java.util.Properties
-trait CommonCrossScalaModule extends CrossScalaModule with CommonCoursierModule with CommonScalaModule
+trait CommonCrossScalaModule extends CrossScalaModule with CommonScalaModule
     with ScalafmtModule { self => }
 
-trait CommonScalaModule extends ScalaModule {
+trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
   def compilerPlugins(scalaVersion: String) =
     if (isScala2(scalaVersion))
       Agg(
