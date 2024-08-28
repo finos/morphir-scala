@@ -5,7 +5,7 @@ import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
 import $ivy.`com.lihaoyi::mill-contrib-scoverage:$MILL_VERSION`
 import $ivy.`com.carlosedp::mill-aliases::0.4.1`
 import $ivy.`com.github.lolgab::mill-mima::0.1.1`
-import $file.project.deps, deps.{Deps, MillVersions, Versions => Vers}
+import $file.project.deps, deps.{Deps, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
 import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
 import mill.testrunner.TestResult
 import mill.scalalib.publish.PublishInfo
@@ -60,7 +60,9 @@ def showBuildSettings() = T.command {
 }
 
 object scoverage extends ScoverageReport {
-  def scalaVersion = "3.3.3"
+  // While the plugin doesn't seem to support multiple scala versions, that doesn't seem to impact the coverage
+  // For overall coverage report, just specifying Scala 3
+  def scalaVersion = ScalaVers.scala3x
   def scoverageVersion = Vers.scoverage
 }
 
