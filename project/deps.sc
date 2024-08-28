@@ -185,7 +185,7 @@ object Deps {
 
 object Versions {
   val castor = "0.2.1"
-  val cats   = "2.10.0"
+  val cats   = "2.12.0"
 
   val enumeratum = "1.7.4"
 
@@ -211,7 +211,7 @@ object Versions {
   val expecty                    = "0.16.0"
   val fansi                      = "0.5.0"
   val fs2                        = "3.11.0"
-  val geny                       = "1.0.0"
+  val geny                       = "1.1.1"
   val `izumi-reflect`            = "2.3.10"
   val metaconfig                 = "0.11.1"
   val mainargs                   = "0.5.0"
@@ -232,7 +232,7 @@ object Versions {
   val `zio-json`                 = "0.7.2"
   val `zio-nio`                  = "2.0.2"
   val `zio-parser`               = "0.1.9"
-  val `zio-prelude`              = "1.0.0-RC27"
+  val `zio-prelude`              = "1.0.0-RC29"
   val `zio-process`              = "0.7.2"
   val `zio-schema`               = "0.4.12"
 }
