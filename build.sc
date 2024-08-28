@@ -1,15 +1,16 @@
-import mill.testrunner.TestResult
-import mill.scalalib.publish.PublishInfo
 import $meta._
 import $ivy.`de.tototec::de.tobiasroeser.mill.integrationtest::0.7.1`
-import $ivy.`io.chris-kipp::mill-ci-release::0.1.10`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
 import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
 import $ivy.`com.carlosedp::mill-aliases::0.4.1`
+import $ivy.`com.github.lolgab::mill-mima::0.1.1`
 import $file.project.deps, deps.{Deps, MillVersions, Versions => Vers}
 import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}
+import mill.testrunner.TestResult
+import mill.scalalib.publish.PublishInfo
+import mill.local.plugins.ci.release.ReleaseSetupModule
 import com.carlosedp.aliases._
 import de.tobiasroeser.mill.integrationtest._
-import io.kipp.mill.ci.release.CiReleaseModule
 import millbuild._
 import millbuild.crossplatform._
 import millbuild.jsruntime._
@@ -19,8 +20,9 @@ import millbuild.settings._
 import mill._, mill.scalalib._, mill.scalajslib._, mill.scalanativelib._, scalafmt._
 import mill.scalajslib.api.ModuleKind
 import mill.contrib.buildinfo.BuildInfo
-import $ivy.`com.github.lolgab::mill-mima::0.1.1`
 import com.github.lolgab.mill.mima._
+import de.tobiasroeser.mill.vcs.version.VcsVersion
+import scala.concurrent.duration.DurationInt
 
 implicit val buildSettings: BuildSettings = interp.watchValue(MyBuild.cachedBuildSettings)
 
@@ -55,10 +57,11 @@ def showBuildSettings() = T.command {
   MyBuild.showBuildSettings()
 }
 
-trait MorphirPublishModule extends CiReleaseModule with JavaModule with Mima {
+trait MorphirPublishModule extends PublishModule with JavaModule with Mima {
   import mill.scalalib.publish._
-  def packageDescription: String = s"The $artifactName package"
 
+  def publishVersion             = VcsVersion.vcsState().format()
+  def packageDescription: String = s"The $artifactName package"
   def pomSettings = PomSettings(
     description = packageDescription,
     organization = "org.finos.morphir",
@@ -70,7 +73,6 @@ trait MorphirPublishModule extends CiReleaseModule with JavaModule with Mima {
     )
   )
 }
-
 
 object morphir extends Cross[MorphirCrossModule](buildSettings.scala.crossScalaVersions) {
   object build extends Module {
@@ -175,7 +177,7 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
     def scalaJSVersion = T { resolvedBuildSettings().js.version }
   }
 
-  trait MorphirNativeModule extends MorphirCommonCrossModule with ScalaNativeModule {
+  trait MorphirNativeModule extends MorphirCommonCrossModule {
     def platform           = Platform.Native
     def scalaNativeVersion = T { resolvedBuildSettings().native.version }
   }
@@ -216,9 +218,8 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
     def platformSpecificModuleDeps = Seq(extensibility)
   }
 
-  object jvm    extends Shared with MorphirJVMModule
-  object js     extends Shared with MorphirJSModule
-  object native extends Shared with MorphirNativeModule
+  object jvm extends Shared with MorphirJVMModule
+  object js  extends Shared with MorphirJSModule
 
   object contrib extends Module {
     object knowledge extends CrossPlatform with CrossValue {
@@ -254,21 +255,6 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
           def moduleDeps = super.moduleDeps ++ Seq(testing.zio.js)
         }
       }
-
-      object native extends Shared with MorphirNativeModule {
-        // NOTE: Issues arise when trying to run tests on native.  Need to figure out how to get this working
-
-        // object test extends ScalaNativeTests with TestModule.ZioTest {
-        //   def ivyDeps = Agg(
-        //     Deps.dev.zio.zio,
-        //     Deps.dev.zio.`zio-streams`,
-        //     Deps.com.eed3si9n.expecty.expecty,
-        //     Deps.org.scalameta.munit,
-        //     Deps.org.scalameta.`munit-scalacheck`
-        //   )
-        //   def moduleDeps = super.moduleDeps ++ Seq(testing.munit.native, testing.munit.zio.native)
-        // }
-      }
     }
   }
 
@@ -285,9 +271,8 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
       )
     }
 
-    object jvm    extends Shared with MorphirJVMModule
-    object js     extends Shared with MorphirJSModule
-    object native extends Shared with MorphirNativeModule
+    object jvm extends Shared with MorphirJVMModule
+    object js  extends Shared with MorphirJSModule
   }
 
   object interop extends Module {
@@ -302,7 +287,7 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
           object test extends ScalaTests with TestModule.ZioTest {
             def ivyDeps: T[Agg[Dep]] = Agg(
               Deps.dev.zio.`zio-json-golden`,
-              ivy"io.github.deblockt:json-diff:0.0.6",
+              ivy"io.github.deblockt:json-diff:1.1.0",
               Deps.dev.zio.`zio-process`
             )
 
@@ -310,8 +295,7 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
           }
         }
 
-        object js     extends Shared with MorphirJSModule
-        object native extends Shared with MorphirNativeModule
+        object js extends Shared with MorphirJSModule
       }
     }
 
@@ -342,10 +326,9 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
   object lib extends Module {
 
     object interop extends CrossPlatform {
-      trait Shared  extends MorphirCommonCrossModule with MorphirPublishModule {}
-      object jvm    extends Shared with MorphirJVMModule
-      object js     extends Shared with MorphirJSModule
-      object native extends Shared with MorphirNativeModule
+      trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {}
+      object jvm   extends Shared with MorphirJVMModule
+      object js    extends Shared with MorphirJSModule
     }
   }
 
@@ -357,18 +340,21 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
       def platformSpecificModuleDeps = Seq(morphir, morphir.interop.zio.json)
     }
 
-    trait RuntimeTests extends TestModule.ZioTest {      
-      def morphirTestSources = T.sources {        
-          examples.`morphir-elm-projects`.`evaluator-tests`.distOutputDirs()
+    trait RuntimeTests extends TestModule.ZioTest {
+      def morphirTestSources = T.sources {
+        examples.`morphir-elm-projects`.`evaluator-tests`.distOutputDirs()
       }
 
       def morphirTestSourceFiles = T {
         Lib.findSourceFiles(morphirTestSources(), Seq("json")).collect {
           case path if path.last.startsWith("morphir-") => PathRef(path)
         }
-      } 
+      }
 
-      override protected def testTask(args: Task[Seq[String]], globSelectors: Task[Seq[String]]): Task[(String, Seq[TestResult])] = T.task {
+      override protected def testTask(
+          args: Task[Seq[String]],
+          globSelectors: Task[Seq[String]]
+      ): Task[(String, Seq[TestResult])] = T.task {
         val _ = morphirTestSourceFiles()
         super.testTask(args, globSelectors)()
       }
@@ -393,14 +379,6 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
         def moduleKind = ModuleKind.CommonJSModule
       }
     }
-
-    object native extends Shared with MorphirNativeModule {
-      object test extends ScalaNativeTests with RuntimeTests {
-        def ivyDeps    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
-        def moduleDeps = super.moduleDeps ++ Agg(testing.zio.native)
-      }
-    }
-
   }
 
   object testing extends Module {
@@ -410,24 +388,22 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
         def platformSpecificModuleDeps = Seq(morphir)
 
       }
-      object jvm    extends Shared with MorphirJVMModule
-      object js     extends Shared with MorphirJSModule
-      object native extends Shared with MorphirNativeModule
+      object jvm extends Shared with MorphirJVMModule
+      object js  extends Shared with MorphirJSModule
     }
 
     object zio extends CrossPlatform {
       trait Shared extends MorphirCommonCrossModule {
         def ivyDeps = Agg(
-          ivy"io.github.cquiroz::scala-java-time::2.5.0",
+          ivy"io.github.cquiroz::scala-java-time::2.6.0",
           Deps.dev.zio.`zio-json`,
           Deps.dev.zio.`zio-prelude`,
           Deps.dev.zio.`zio-test`,
           Deps.dev.zio.`zio-test-sbt`
         )
       }
-      object jvm    extends Shared with MorphirJVMModule
-      object js     extends Shared with MorphirJSModule
-      object native extends Shared with MorphirNativeModule
+      object jvm extends Shared with MorphirJVMModule
+      object js  extends Shared with MorphirJSModule
     }
   }
 
@@ -462,17 +438,6 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
         def moduleDeps = super.moduleDeps ++ Agg(testing.generators.js, testing.zio.js)
       }
     }
-
-    object native extends Shared with MorphirNativeModule {
-      def ivyDeps = super.ivyDeps() ++ Agg(
-        Deps.com.github.lolgab.`scala-native-crypto`
-      )
-
-      object test extends ScalaNativeTests with TestModule.ZioTest {
-        def ivyDeps    = Agg(Deps.dev.zio.`zio-test`, Deps.dev.zio.`zio-test-sbt`)
-        def moduleDeps = super.moduleDeps ++ Agg(testing.generators.native, testing.zio.native)
-      }
-    }
   }
 
   object tools extends CrossPlatform {
@@ -505,11 +470,6 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
         // .filterNot(_.path.last.contains("ProcessIOPlat"))
       }
     }
-    object native extends Shared with MorphirNativeModule {
-      def ivyDeps = super.ivyDeps() ++ Agg(
-        Deps.dev.zio.`zio-nio`
-      )
-    }
   }
 }
 
@@ -523,7 +483,7 @@ object examples extends Module {
     object `unit-test-framework` extends Module {
       object `example-project` extends MorphirElmModule {
         def morphirModuleDeps = Seq(`morphir-elm`.sdks.`morphir-unit-test`)
-      } 
+      }
 
       object `example-project-tests` extends MorphirElmModule {
         def morphirModuleDeps = Seq(
@@ -551,6 +511,67 @@ object `morphir-elm` extends Module {
   object sdks extends Module {
     object `morphir-unit-test` extends MorphirElmModule
   }
+}
+
+object ci extends Module {
+
+  def publishSonatype(tasks: mill.main.Tasks[PublishModule.PublishData]) = T.command {
+    // ReleaseSetupModule.setupGpg()()
+    publishSonatype0(
+      data = define.Target.sequence(tasks.value)(),
+      log = T.ctx().log
+    )
+  }
+
+  def publishSonatype0(
+      data: Seq[PublishModule.PublishData],
+      log: mill.api.Logger
+  ): Unit = {
+
+    val credentials = sys.env("SONATYPE_USERNAME") + ":" + sys.env("SONATYPE_PASSWORD")
+    val pgpPassword = sys.env("PGP_PASSPHRASE")
+    val timeout     = 20.minutes // SONATYPE CAN BE SUPER SLOW
+
+    val artifacts = data.map {
+      case PublishModule.PublishData(a, s) =>
+        (s.map { case (p, f) => (p.path, f) }, a)
+    }
+
+    val isRelease = {
+      val versions = artifacts.map(_._2.version).toSet
+      val set      = versions.map(!_.endsWith("-SNAPSHOT"))
+      assert(
+        set.size == 1,
+        s"Found both snapshot and non-snapshot versions: ${versions.toVector.sorted.mkString(", ")}"
+      )
+      set.head
+    }
+    val publisher = new scalalib.publish.SonatypePublisher(
+      uri = "https://oss.sonatype.org/service/local",
+      snapshotUri = "https://oss.sonatype.org/content/repositories/snapshots",
+      credentials = credentials,
+      signed = true,
+      // format: off
+      gpgArgs = Seq(
+        "--detach-sign",
+        "--batch=true",
+        "--yes",
+        "--pinentry-mode", "loopback",
+        "--passphrase", pgpPassword,
+        "--armor",
+        "--use-agent"
+      ),
+      // format: on
+      readTimeout = timeout.toMillis.toInt,
+      connectTimeout = timeout.toMillis.toInt,
+      log = log,
+      awaitTimeout = timeout.toMillis.toInt,
+      stagingRelease = isRelease
+    )
+
+    publisher.publishAll(isRelease, artifacts: _*)
+  }
+
 }
 
 // The following section contains aliases used to simplify build tasks
