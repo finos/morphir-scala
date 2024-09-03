@@ -35,9 +35,9 @@ object UnitTesting {
 
   def containsTestCode(
       fqn: FQName,
-      definition: TypedDefinition,
+      definition: TypedDefinition
   ): Boolean = {
-    val fnName:String = fqn.localName.toUpperCase
+    val fnName: String = fqn.localName.toUpperCase
     fqn.packagePath == testPackagePath ||
     definition.outputType == testType || fnName.contains("TEST")
   }
@@ -237,10 +237,10 @@ object UnitTesting {
    *   The global definitions to collect non tests from
    */
   private[runtime] def collectNonTests(
-      globals: GlobalDefs,
+      globals: GlobalDefs
   ): Set[FQName] =
     globals.definitions.collect {
       case (fqn -> SDKValue.SDKValueDefinition(definition: TypedDefinition))
-          if !containsTestCode( fqn, definition) => fqn
+          if !containsTestCode(fqn, definition) => fqn
     }.toSet
 }
