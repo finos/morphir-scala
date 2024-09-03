@@ -50,6 +50,8 @@ sealed trait Concept { self =>
 
   def toMorphirElm: String                           = PrintSpec.of(this)
   def writeMorphirElmFiles(path: java.nio.file.Path) = PrintSpec.writeToFiles(this, path)
+  def defaultData(defaults: Concept.Defaults = Concept.StandardDefaults): Concept.Defaults.DefaultEither =
+    defaults.default(this)
 }
 
 object Concept {
@@ -232,5 +234,115 @@ object Concept {
         ZPure.succeed(concept)
       }
   }
+
+  trait Defaults {
+    import Defaults.*
+    def default(concept: Concept): DefaultEither = concept match {
+      case concept: Concept.List     => defaultList(concept)
+      case concept: Concept.Map      => defaultMap(concept)
+      case concept: Concept.Alias    => defaultAlias(concept)
+      case concept: Concept.Union    => defaultUnion(concept)
+      case concept: Concept.Record   => defaultRecord(concept)
+      case concept: Concept.Struct   => defaultStruct(concept)
+      case concept: Concept.Enum     => defaultEnum(concept)
+      case Concept.Int64             => defaultInt64
+      case Concept.Integer           => defaultInteger
+      case Concept.Decimal           => defaultDecimal
+      case Concept.Int16             => defaultInt16
+      case Concept.Nothing           => defaultNothing
+      case Concept.Month             => defaultMonth
+      case Concept.LocalDate         => defaultLocalDate
+      case Concept.Float             => defaultFloat
+      case Concept.LocalTime         => defaultLocalTime
+      case Concept.Int32             => defaultInt32
+      case Concept.Byte              => defaultByte
+      case Concept.Unit              => defaultUnit
+      case Concept.String            => defaultString
+      case Concept.Order             => defaultOrder
+      case Concept.DayOfWeek         => defaultDayOfWeek
+      case Concept.Char              => defaultChar
+      case Concept.Boolean           => defaultBoolean
+      case Concept.Any               => defaultAny
+      case concept: Concept.Optional => defaultOptional(concept)
+      case concept: Concept.Result   => defaultResult(concept)
+      case concept: Concept.Set      => defaultSet(concept)
+      case concept: Concept.Tuple    => defaultTuple(concept)
+    }
+    // def fillWithDefaults(data: Data, concept: Concept): DefaultEither
+    def defaultList(concept: Concept.List): DefaultEither = Right(Data.List.empty(concept.elementType))
+    def defaultMap(concept: Concept.Map): DefaultEither =
+      Right(Data.Map.empty(concept.keyType, concept.valueType))
+    def defaultAlias(concept: Concept.Alias): DefaultEither =
+      default(concept.value).map(Data.Aliased(_, concept))
+    def defaultUnion(concept: Concept.Union) = default(concept.cases.head).map(Data.Union(_, concept))
+    def defaultRecord(concept: Concept.Record): DefaultEither = for {
+      dataFields <-
+        Defaults.collectAll(concept.fields, (label: Label, concept: Concept) => default(concept).map((label, _)))
+      res = Data.Record(dataFields, concept)
+    } yield res
+    def defaultStruct(concept: Concept.Struct): DefaultEither = for {
+      dataFields <- collectAll(concept.fields, (label: Label, concept: Concept) => default(concept).map((label, _)))
+      res = Data.Struct(dataFields)
+    } yield res
+
+    def defaultEnum(concept: Concept.Enum): DefaultEither = {
+      val firstCase = concept.cases.head
+      for {
+        args <- collectAll(firstCase.fields, (label: EnumLabel, concept: Concept) => default(concept).map((label, _)))
+        res = Data.Case(args, firstCase.label.toString(), concept)
+      } yield res
+    }
+    def defaultInt64: DefaultEither   = Right(Data.Int64(0))
+    def defaultInteger: DefaultEither = Right(Data.Integer(BigInt(0)))
+    def defaultDecimal: DefaultEither = Right(Data.Decimal(BigDecimal(0)))
+    def defaultInt16: DefaultEither   = Right(Data.Int16(0))
+    def defaultNothing: DefaultEither = Left(NoDefaultNothing())
+    def defaultMonth: DefaultEither   = Right(Data.Month(java.time.Month.JANUARY))
+    def defaultLocalDate: DefaultEither =
+      Right(Data.LocalDate(java.time.LocalDate.EPOCH))
+    def defaultFloat: DefaultEither = Right(Data.Float(0))
+    def defaultLocalTime: DefaultEither =
+      Right(Data.LocalTime(java.time.LocalTime.MIDNIGHT))
+    def defaultInt32: DefaultEither  = Right(Data.Int32(0))
+    def defaultByte: DefaultEither   = Right(Data.Byte(0))
+    def defaultUnit: DefaultEither   = Right(Data.Unit)
+    def defaultString: DefaultEither = Right(Data.String(""))
+    def defaultOrder: DefaultEither  = Right(Data.Order.apply(0))
+    def defaultDayOfWeek: DefaultEither =
+      Right(Data.DayOfWeek(java.time.DayOfWeek.of(0)))
+    def defaultChar: DefaultEither    = Right(Data.Char('0'))
+    def defaultBoolean: DefaultEither = Right(Data.False)
+    def defaultOptional(concept: Concept.Optional): DefaultEither =
+      Right(Data.Optional.None(concept.elementType))
+    def defaultAny: DefaultEither = Right(Data.Unit)
+    def defaultResult(concept: Concept.Result): DefaultEither =
+      default(concept.okType).map(Data.Result.Ok(_, concept))
+    def defaultSet(concept: Concept.Set): DefaultEither = Right(Data.Set.empty(concept.elementType))
+    def defaultTuple(concept: Concept.Tuple): DefaultEither = for {
+      elems <- collectAll(concept.values, default)
+      res = Data.Tuple(elems)
+    } yield res
+  }
+
+  object Defaults {
+    type DefaultEither = Either[MDMDefaultError, Data]
+    sealed trait MDMDefaultError  extends Throwable
+    case class NoDefaultNothing() extends MDMDefaultError
+
+    def collectAll[I, O, E](
+        inputs: scala.List[I],
+        f: I => Either[E, O]
+    ): Either[E, scala.List[O]] = {
+      val empty: Either[E, scala.List[O]] = Right(scala.List())
+      inputs.foldLeft(empty) { case (acc, input) =>
+        for {
+          prefix <- acc
+          next   <- f(input)
+        } yield prefix :+ next
+      }
+    }
+  }
+
+  object StandardDefaults extends Defaults
 
 }
