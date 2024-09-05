@@ -36,11 +36,8 @@ object UnitTesting {
   def containsTestCode(
       fqn: FQName,
       definition: TypedDefinition
-  ): Boolean = {
-    val fnName: String = fqn.localName.toUpperCase
-    fqn.packagePath == testPackagePath ||
-    definition.outputType == testType || fnName.contains("TEST")
-  }
+  ): Boolean =
+    fqn.packagePath == testPackagePath || definition.outputType == testType
 
   /**
    * Run all tests in the given distributions. By this point, the distributions need to include the actual test
