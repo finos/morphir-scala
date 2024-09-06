@@ -105,7 +105,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
         test("Coverage is calculated") {
           getTestSummary.map { result =>
             assertTrue(result.coverageCounts == CoverageCounts(
-              covered = 2,
+              covered = 11,
               uncovered = 0
             ))
           }
@@ -179,7 +179,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
         test("Coverage is calculated") {
           getTestSummary.map { result =>
             assertTrue(result.coverageCounts == CoverageCounts(
-              covered = 2,
+              covered = 11,
               uncovered = 0
             ))
           }
@@ -200,7 +200,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
       test("Project coverage is calculated") {
         getTestSummary.map { result =>
           assertTrue(result.coverageCounts == CoverageCounts(
-            covered = 1,
+            covered = 3,
             uncovered = 1
           ))
         }
@@ -220,7 +220,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
       test("Project coverage is calculated") {
         getTestSummary.map { result =>
           assertTrue(result.coverageCounts == CoverageCounts(
-            covered = 1,
+            covered = 3,
             uncovered = 1
           ))
         }

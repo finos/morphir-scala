@@ -34,15 +34,10 @@ object UnitTesting {
   def testPackagePath = fqn"Morphir.UnitTest:Test:foo".packagePath
 
   def containsTestCode(
-      globals: GlobalDefs,
       fqn: FQName,
-      definition: TypedDefinition,
-      testNames: List[FQName]
-  ): Boolean = {
-    def knownTestsPackages: List[PackageName] = testNames.map(_.packagePath).distinct
-    fqn.packagePath == testPackagePath ||
-    definition.outputType == testType || knownTestsPackages.contains(fqn.packagePath)
-  }
+      definition: TypedDefinition
+  ): Boolean =
+    fqn.packagePath == testPackagePath || definition.outputType == testType
 
   /**
    * Run all tests in the given distributions. By this point, the distributions need to include the actual test
@@ -57,7 +52,7 @@ object UnitTesting {
     val globals = GlobalDefs.fromDistributions(dists)
     RTAction.environmentWithPure[MorphirSdk] { env =>
       val testNames            = collectTests(globals)
-      val userDefinedFunctions = collectNonTests(globals, testNames)
+      val userDefinedFunctions = collectNonTests(globals)
       val testIRs              = testNames.map(fqn => Value.Reference.Typed(testType, fqn))
       if (testIRs.isEmpty) {
         val emptySummary = TestSummary(
@@ -200,7 +195,7 @@ object UnitTesting {
     val withResults = TestSet.processExpects(newGlobals, withExpects)
 
     // begin collecting coverage related information
-    val userDefinedFunctions = collectNonTests(globals, testNames)
+    val userDefinedFunctions = collectNonTests(globals)
     val referencedFunctions  = testNames.flatMap(name => GlobalDefs.getStaticallyReachable(name, globals)).toSet
     val coverageInfo = CoverageInfo(
       referencedFunctions,
@@ -237,15 +232,12 @@ object UnitTesting {
    *
    * @param globals
    *   The global definitions to collect non tests from
-   * @param testNames
-   *   The list of tests names so we can identify test helper functions to exclude
    */
   private[runtime] def collectNonTests(
-      globals: GlobalDefs,
-      testNames: List[FQName]
+      globals: GlobalDefs
   ): Set[FQName] =
     globals.definitions.collect {
       case (fqn -> SDKValue.SDKValueDefinition(definition: TypedDefinition))
-          if !containsTestCode(globals, fqn, definition, testNames) => fqn
+          if !containsTestCode(fqn, definition) => fqn
     }.toSet
 }
