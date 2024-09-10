@@ -212,7 +212,7 @@ object BasicsSDK {
         RTValue.List(aElements.appendedAll(bElements))
       case (RTValue.Primitive.String(a), RTValue.Primitive.String(b)) => RTValue.Primitive.String(a + b)
       case (other1, other2) =>
-        throw new WrongArgumentTypes(s"Append must be called on two Lists or two Strings", other1, other2)
+        throw WrongArgumentTypes(s"Append must be called on two Lists or two Strings", other1, other2)
     }
   )
   val sdk: Map[FQName, SDKValue] = Map(

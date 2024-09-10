@@ -114,6 +114,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
           .getOrElse(throw UnmatchedPattern(
             argValue,
             functionValue,
+            location = Some(loc),
             pattern
           ))
           .map { case (name, value) => name -> StoredValue.Eager(value) }
@@ -129,7 +130,8 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
             RTValue.DefinitionFunction(body, tail, curried :+ (name -> argValue), closingContext, loc)
           case Nil =>
             throw InvalidState(
-              "Tried to apply definition function with no un-applied arguments (should not exist)",
+              "Tried to apply definition function with no un-applied arguments (should not exist)", 
+              location = Some(loc),
               function
             )
 
@@ -141,6 +143,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
           case Nil =>
             throw InvalidState(
               "Tried to apply to constructor function with no arguments (should not exist)",
+              location = None,
               function
             )
 
@@ -151,7 +154,8 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
           case head :: tail => RTValue.ImplicitConstructorFunction(name, tail, curried ++ Map(head.name -> argValue))
           case Nil =>
             throw InvalidState(
-              "Tried to apply to implicit constructor function with no arguments (should not exist)",
+              "Tried to apply to implicit constructor function with no arguments (should not exist)", 
+              location = None,
               function
             )
 
@@ -167,7 +171,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
 
         try {
           def assertCurriedNumArgs(num: Int) =
-            if (curried.size != num) throw new WrongNumberOfArguments(nativeFunctionResult, num)
+            if (curried.size != num) throw WrongNumberOfArguments(nativeFunctionResult, num, location = Some(loc))
           // Once the uncurrying is done, we can call the function since we have all of the arguments available
           arguments match {
             case 1 =>
@@ -196,10 +200,10 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
           }
         } catch {
           case e: EvaluationError => throw e.stack(loc)
-          case e: Throwable       => throw new ExternalError(e).stack(loc)
+          case e: Throwable       => throw ExternalError(e, location = Some(loc)).stack(loc)
         }
       case other =>
-        throw new UnexpectedType("Function", other, hint = "Expected because this was found in an Apply position")
+        throw UnexpectedType("Function", other, hint = "Expected because this was found in an Apply position")
     }
 }
 
@@ -234,7 +238,7 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
       }
     catch {
       case e: EvaluationError => throw e.source(ir.toString)
-      case e: Throwable       => throw new ExternalError(e).source(ir.toString)
+      case e: Throwable       => throw ExternalError(e, location = Some(codeLocation)).source(ir.toString)
     }
 
   def handleLiteral(va: UType, literal: Lit) = unpackLit(literal)
@@ -261,7 +265,7 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
   ): RTValue = {
     val value = loop(valueToDestruct, store)
     matchPatternCase(pattern, value) match {
-      case None => throw UnmatchedPattern(value, node, pattern)
+      case None => throw UnmatchedPattern(value, node, location = Some(codeLocation), pattern)
       case Some(bindings) =>
         loop(inValue, store.push(bindings.map { case (name, value) => name -> StoredValue.Eager(value) }))
     }
@@ -276,7 +280,7 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
       case Some(SDKConstructor.Implicit(fields)) => RTValue.ImplicitConstructorFunction(name, fields, Map())
       case None =>
         val (pkg, mod, loc) = (name.getPackagePath, name.getModulePath, name.localName)
-        throw new ConstructorNotFound(
+        throw ConstructorNotFound(
           s"""Constructor mising from store:
              |pkg : $pkg
              |mod : $mod
@@ -286,7 +290,8 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
              |
              |Other Store Contents:
              |  ${globals.ctors.keys.map(_.toString).mkString("\n\t")}
-             |""".stripMargin
+             |""".stripMargin,
+          location = Some(codeLocation)
         )
     }
 
@@ -300,12 +305,13 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
       case record @ RTValue.Record(fields) =>
         fields.getOrElse(
           fieldName,
-          throw MissingField(record, fieldName)
+          throw MissingField(record, fieldName,  location = Some(codeLocation))
         )
-      case other => throw new UnexpectedType(
+      case other => throw UnexpectedType(
           "Record",
           other,
-          hint = s"Expected because I tried to access .${fieldName.toCamelCase}"
+          hint = s"Expected because I tried to access .${fieldName.toCamelCase}",
+        location = Some(codeLocation)
         )
     }
 
@@ -321,11 +327,12 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
     loop(condition, store) match {
       case RTValue.Primitive(true)  => loop(thenValue, store)
       case RTValue.Primitive(false) => loop(elseValue, store)
-      case other => throw new UnexpectedType(
+      case other => throw UnexpectedType(
           "Boolean",
           other,
-          hint = "Expected because I found this in the condition of an if statement"
-        )
+          hint = "Expected because I found this in the condition of an if statement",
+        location = Some(codeLocation)
+    )
     }
 
   def handleLambda(
@@ -387,7 +394,7 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
         case (pattern, inValue) :: tail =>
           matchPatternCase(pattern, evaluated).map((inValue, _)).getOrElse(firstPatternMatching(tail))
         case Nil =>
-          throw UnmatchedPattern(evaluated, node, cases.map(_._1): _*)
+          throw UnmatchedPattern(evaluated, node, location = Some(codeLocation), cases.map(_._1): _*)
       }
     val (inValue, bindings) = firstPatternMatching(cases)
     loop(inValue, store.push(bindings.map { case (name, value) => name -> StoredValue.Eager(value) }))
@@ -406,7 +413,8 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
           s"""name $name not found in store.
              | Hint: $hint
              | For that package, store contains:
-             | \t${filtered.map(_.toString).mkString("\n\t")}""".stripMargin
+             | \t${filtered.map(_.toString).mkString("\n\t")}""".stripMargin,
+          location = Some(codeLocation)
         )
       case Some(SDKValue.SDKValueDefinition(valueDefinition)) =>
         if (valueDefinition.inputTypes.isEmpty) {
@@ -444,7 +452,7 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
         val newFields = fields.map { case (name, value) => name -> loop(value, store) }
         RTValue.Record(oldFields ++ newFields)
       case other =>
-        throw UnexpectedType("Record", other, hint = "Expected because I found this in an update record node")
+        throw UnexpectedType("Record", other, hint = "Expected because I found this in an update record node", location = Some(codeLocation))
     }
 
   def handleVariable(va: UType, name: Name, store: Store) =
