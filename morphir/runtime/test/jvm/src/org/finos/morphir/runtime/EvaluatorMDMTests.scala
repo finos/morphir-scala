@@ -3627,15 +3627,15 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
         },
         testExceptionMultiple("MissingDefinition Test")("exceptionTests", "notARealFunction", List(Data.Unit)) {
           case LookupError.MissingDefinition(_, _, _, _, _) => assertTrue(true)
-          case _                                         => assertNever("Unexpected exception type was thrown")
+          case _                                            => assertNever("Unexpected exception type was thrown")
         },
         testExceptionMultiple("MissingModule Test")("notARealModule", "notARealFunction", List(Data.Unit)) {
           case LookupError.MissingModule(_, _, _, _) => assertTrue(true)
-          case _                                  => assertNever("Unexpected exception type was thrown")
+          case _                                     => assertNever("Unexpected exception type was thrown")
         },
         testExceptionMultiple("MissingPackage Test")("", "", List(Data.Unit)) {
           case LookupError.MissingPackage(_, _, _) => assertTrue(true)
-          case _                                => assertNever("Unexpected exception type was thrown")
+          case _                                   => assertNever("Unexpected exception type was thrown")
         },
         testExceptionMultiple("ImproperType Test")(
           "exceptionTests",
