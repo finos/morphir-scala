@@ -107,11 +107,17 @@ object UnitTesting {
           RTAction.succeed(detailedReport)
         // If the results were different, something went wrong in our test framework - it either hid an error, or created one that didn't exist in the simple pass
         else if (detailedReport.passed && (!simplePassed))
-          throw InvalidState(s"""Detailed Test Report passed, but simple morphir-based testing failed.
-          Detailed:  $detailedReport""", location = None)
+          throw InvalidState(
+            s"""Detailed Test Report passed, but simple morphir-based testing failed.
+          Detailed:  $detailedReport""",
+            location = None
+          )
         else
-          throw InvalidState(s"""Detailed Test Report found failures, but simple morphir-based testing passed.
-          Detailed:  $detailedReport""", location = None)
+          throw InvalidState(
+            s"""Detailed Test Report found failures, but simple morphir-based testing passed.
+          Detailed:  $detailedReport""",
+            location = None
+          )
       }
     }
   }

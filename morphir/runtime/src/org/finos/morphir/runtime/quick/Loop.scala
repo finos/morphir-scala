@@ -130,7 +130,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
             RTValue.DefinitionFunction(body, tail, curried :+ (name -> argValue), closingContext, loc)
           case Nil =>
             throw InvalidState(
-              "Tried to apply definition function with no un-applied arguments (should not exist)", 
+              "Tried to apply definition function with no un-applied arguments (should not exist)",
               location = Some(loc),
               function
             )
@@ -154,7 +154,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
           case head :: tail => RTValue.ImplicitConstructorFunction(name, tail, curried ++ Map(head.name -> argValue))
           case Nil =>
             throw InvalidState(
-              "Tried to apply to implicit constructor function with no arguments (should not exist)", 
+              "Tried to apply to implicit constructor function with no arguments (should not exist)",
               location = None,
               function
             )
@@ -305,13 +305,13 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
       case record @ RTValue.Record(fields) =>
         fields.getOrElse(
           fieldName,
-          throw MissingField(record, fieldName,  location = Some(codeLocation))
+          throw MissingField(record, fieldName, location = Some(codeLocation))
         )
       case other => throw UnexpectedType(
           "Record",
           other,
           hint = s"Expected because I tried to access .${fieldName.toCamelCase}",
-        location = Some(codeLocation)
+          location = Some(codeLocation)
         )
     }
 
@@ -331,8 +331,8 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
           "Boolean",
           other,
           hint = "Expected because I found this in the condition of an if statement",
-        location = Some(codeLocation)
-    )
+          location = Some(codeLocation)
+        )
     }
 
   def handleLambda(
@@ -452,7 +452,12 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
         val newFields = fields.map { case (name, value) => name -> loop(value, store) }
         RTValue.Record(oldFields ++ newFields)
       case other =>
-        throw UnexpectedType("Record", other, hint = "Expected because I found this in an update record node", location = Some(codeLocation))
+        throw UnexpectedType(
+          "Record",
+          other,
+          hint = "Expected because I found this in an update record node",
+          location = Some(codeLocation)
+        )
     }
 
   def handleVariable(va: UType, name: Name, store: Store) =

@@ -150,14 +150,13 @@ object Utils {
     val example = FQName.fromString("Morphir.SDK:Basics:equal")
     fqn.getPackagePath == example.getPackagePath
   }
-  
-  def fqnToCodeLocation(fqn: FQName): CodeLocation = {
+
+  def fqnToCodeLocation(fqn: FQName): CodeLocation =
     if (isNative(fqn)) {
       CodeLocation.NativeFunction(fqn)
     } else {
       CodeLocation.TopLevelFunction(fqn)
     }
-  }
 
   def curryTypeFunction(inner: UType, params: Chunk[(Name, UType)]): UType =
     params match {

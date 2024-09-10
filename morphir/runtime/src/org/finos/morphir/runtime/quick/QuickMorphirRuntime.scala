@@ -40,7 +40,10 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
         .mapError(err => TopLevelError(entryPoint, dists.getDists, err))
     } yield res
 
-  def evaluate(value: TypedValue, location: Option[CodeLocation] = None): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
+  def evaluate(
+      value: TypedValue,
+      location: Option[CodeLocation] = None
+  ): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
       _   <- typeCheck(value, location)
       res <- EvaluatorQuick.evalAction(value, globals, dists)

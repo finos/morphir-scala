@@ -69,7 +69,12 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
       context: Context
   ) = // Maybe that should be in context?
     if (argList.size != paramList.size)
-      List(ArgNumberMismatch(argList.size, paramList.size, s"${context.prefix} : Different arities: ", location = location))
+      List(ArgNumberMismatch(
+        argList.size,
+        paramList.size,
+        s"${context.prefix} : Different arities: ",
+        location = location
+      ))
     else
       argList.zip(paramList).flatMap { case (arg, param) => conformsTo(arg, param, context) }
 
@@ -198,7 +203,8 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
         List(
           UnknownTypeMismatch(valueOther, declaredOther, location = location)
         )
-      case (valueOther, declaredOther) => List(TypesMismatch(valueOther, declaredOther, "Different types of type", location = location))
+      case (valueOther, declaredOther) =>
+        List(TypesMismatch(valueOther, declaredOther, "Different types of type", location = location))
     }
   }
 
@@ -345,7 +351,11 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
 
           case NativeRef(_, _) => List() // TODO: check native constructor calls
           case other =>
-            List(ImproperType(other, s"Reference to type union or implicit record constructor expected", location = location))
+            List(ImproperType(
+              other,
+              s"Reference to type union or implicit record constructor expected",
+              location = location
+            ))
         }
     }
   }
@@ -366,7 +376,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
     val fromChildren = List()
     val fromTpe = tpe match {
       case Type.Function(_, _, _) => List()
-      case other                  => List(ImproperType(other, "Field function should be function:", location = location))
+      case other => List(ImproperType(other, "Field function should be function:", location = location))
     }
     // TODO: tpe should be... function from extensible record type to ???
     fromChildren ++ fromTpe
@@ -525,7 +535,12 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
         val fieldMap = tpeFields.map(field => field.name -> field.data).toMap
         conformsTo(valueToUpdate.attributes, tpe) ++ fields.flatMap { field =>
           fieldMap.get(field._1) match {
-            case None        => List(TypeLacksField(tpe, field._1, "Tried to update record field which is not present", location = location))
+            case None => List(TypeLacksField(
+                tpe,
+                field._1,
+                "Tried to update record field which is not present",
+                location = location
+              ))
             case Some(found) => conformsTo(field._2.attributes, found, context)
           }
         }
