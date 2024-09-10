@@ -1,7 +1,6 @@
 package org.finos.morphir.runtime
 
 import org.finos.morphir.naming.*
-import org.finos.morphir.naming.*
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Value.{Pattern, TypedValue, Value, USpecification as UValueSpec}
 import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification as UTypeSpec, UDefinition as UTypeDef}
@@ -78,7 +77,7 @@ object MorphirRuntimeError {
       inner: EvaluationError,
       stack: List[CodeLocation],
       sourceTaggedUntagged: Option[(String, String)]
-  ) extends EvaluationError {
+  ) extends EvaluationError with AttachedLocation {
     def message = {
       val sourceString = sourceTaggedUntagged match {
         case Some((tagged, _)) => s"Thrown from: $tagged\n\t"
@@ -113,6 +112,8 @@ object MorphirRuntimeError {
           ) // We don't know exactly where the error is, so we'll just tag the whole thing
       }
     }
+    
+    val location: Option[CodeLocation] = stack.headOption
   }
 
   final case class ExternalError(error: Throwable, location: Option[CodeLocation] = None) extends EvaluationError with AttachedLocation {

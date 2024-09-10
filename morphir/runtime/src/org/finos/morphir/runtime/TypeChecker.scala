@@ -198,7 +198,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
         List(
           UnknownTypeMismatch(valueOther, declaredOther, location = location)
         )
-      case (valueOther, declaredOther) => List(new TypesMismatch(valueOther, declaredOther, "Different types of type"))
+      case (valueOther, declaredOther) => List(TypesMismatch(valueOther, declaredOther, "Different types of type", location = location))
     }
   }
 
@@ -529,7 +529,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
             case Some(found) => conformsTo(field._2.attributes, found, context)
           }
         }
-      case other => List(new ImproperType(other, "Record type expected"))
+      case other => List(ImproperType(other, "Record type expected", location = location))
     }
     fromChildren ++ fromTpe
   }
