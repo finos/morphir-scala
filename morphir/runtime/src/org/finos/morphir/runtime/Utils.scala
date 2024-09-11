@@ -1,22 +1,22 @@
 package org.finos.morphir.runtime
 
-import org.finos.morphir.naming._
-import org.finos.morphir.ir.{Type => T, Value => V}
-import org.finos.morphir.ir.Value.{Value, Pattern, TypedValue, USpecification => UValueSpec}
-import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification => UTypeSpec}
+import org.finos.morphir.naming.*
+import org.finos.morphir.ir.{Type as T, Value as V}
+import org.finos.morphir.ir.Value.{Pattern, TypedValue, Value, USpecification as UValueSpec}
+import org.finos.morphir.ir.Type.{Field, Type, UType, USpecification as UTypeSpec}
 import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.exports.*
-import org.finos.morphir.ir.Module.{Specification => ModSpec}
+import org.finos.morphir.ir.Module.Specification as ModSpec
 import zio.Chunk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.sdk
-import org.finos.morphir.ir.Value.{USpecification => UValueSpec, Definition => ValueDefinition}
-import org.finos.morphir.ir.Type.{USpecification => UTypeSpec}
-
+import org.finos.morphir.ir.Value.{Definition as ValueDefinition, USpecification as UValueSpec}
+import org.finos.morphir.ir.Type.USpecification as UTypeSpec
 import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import TypeError.*
+import org.finos.morphir.runtime.CodeLocation.TopLevelFunction
 
 object Utils {
   import Extractors.Types.*
@@ -150,6 +150,13 @@ object Utils {
     val example = FQName.fromString("Morphir.SDK:Basics:equal")
     fqn.getPackagePath == example.getPackagePath
   }
+
+  def fqnToCodeLocation(fqn: FQName): CodeLocation =
+    if (isNative(fqn)) {
+      CodeLocation.NativeFunction(fqn)
+    } else {
+      CodeLocation.TopLevelFunction(fqn)
+    }
 
   def curryTypeFunction(inner: UType, params: Chunk[(Name, UType)]): UType =
     params match {

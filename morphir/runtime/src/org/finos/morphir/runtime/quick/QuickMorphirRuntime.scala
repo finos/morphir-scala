@@ -40,15 +40,18 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
         .mapError(err => TopLevelError(entryPoint, dists.getDists, err))
     } yield res
 
-  def evaluate(value: TypedValue): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
+  def evaluate(
+      value: TypedValue,
+      location: Option[CodeLocation] = None
+  ): RTAction[MorphirEnv, MorphirRuntimeError, Data] =
     for {
-      _   <- typeCheck(value)
+      _   <- typeCheck(value, location)
       res <- EvaluatorQuick.evalAction(value, globals, dists)
     } yield res
 
   def evaluate(entryPoint: FQName): RTAction[MorphirEnv, MorphirRuntimeError, Data] = for {
     tpe <- fetchType(entryPoint)
-    res <- evaluate(Value.Reference.Typed(tpe, entryPoint))
+    res <- evaluate(Value.Reference.Typed(tpe, entryPoint), location = Some(fqnToCodeLocation(entryPoint)))
   } yield res
 
   def fetchType(fqn: FQName): RTAction[MorphirEnv, MorphirRuntimeError, UType] = {
@@ -59,16 +62,16 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
     }
   }
 
-  def typeCheck(value: TypedValue): RTAction[MorphirEnv, TypeError, Unit] = for {
+  def typeCheck(value: TypedValue, location: Option[CodeLocation]): RTAction[MorphirEnv, TypeError, Unit] = for {
     ctx <- ZPure.get[RTExecutionContext]
     result <- ctx.options.enableTyper match {
       case EnableTyper.Disabled => RTAction.succeed[RTExecutionContext, Unit](())
       case EnableTyper.Warn =>
-        val errors = new TypeChecker(dists).check(value)
+        val errors = new TypeChecker(dists, location).check(value)
         errors.foreach(error => println(s"TYPE WARNING: $error"))
         RTAction.succeed[RTExecutionContext, Unit](())
       case EnableTyper.Enabled =>
-        val errors = new TypeChecker(dists).check(value)
+        val errors = new TypeChecker(dists, location).check(value)
         if (errors.length == 0) RTAction.succeed[RTExecutionContext, Unit](())
         else if (errors.length == 1) RTAction.fail(errors(0))
         else RTAction.fail(TypeError.ManyTypeErrors(errors))

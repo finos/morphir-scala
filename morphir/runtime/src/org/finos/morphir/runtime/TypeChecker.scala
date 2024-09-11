@@ -42,7 +42,7 @@ object TypeChecker {
 }
 
 //TODO: This is final because references to ValueDefinition are private, and thus letDefinition and letRecursion handlers cannot be overridden. There may be a better way to handle this.
-final class TypeChecker(dists: Distributions) {
+final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = None) {
   import TypeChecker.*
   private val dealiased = new Extractors.Types.Dealiased(dists)
   // TODO: Use or remove
@@ -69,7 +69,12 @@ final class TypeChecker(dists: Distributions) {
       context: Context
   ) = // Maybe that should be in context?
     if (argList.size != paramList.size)
-      List(new ArgNumberMismatch(argList.size, paramList.size, s"${context.prefix} : Different arities: "))
+      List(ArgNumberMismatch(
+        argList.size,
+        paramList.size,
+        s"${context.prefix} : Different arities: ",
+        location = location
+      ))
     else
       argList.zip(paramList).flatMap { case (arg, param) => conformsTo(arg, param, context) }
 
@@ -109,9 +114,9 @@ final class TypeChecker(dists: Distributions) {
             case Left(lookupErr) =>
               original_fqn match {
                 case Some(original) =>
-                  Left(new CannotDealias(lookupErr, s"Unable to dealias (nested beneath $original"))
+                  Left(CannotDealias(lookupErr, s"Unable to dealias (nested beneath $original", location = location))
                 case None =>
-                  Left(new CannotDealias(lookupErr))
+                  Left(CannotDealias(lookupErr, location = location))
               }
           }
         case other => Right(other)
@@ -196,9 +201,10 @@ final class TypeChecker(dists: Distributions) {
         if (left == right) List() else List(TypesMismatch(left, right, "Value type does not match declared type"))
       case (valueOther, declaredOther) if valueOther.getClass == declaredOther.getClass =>
         List(
-          new UnknownTypeMismatch(valueOther, declaredOther)
+          UnknownTypeMismatch(valueOther, declaredOther, location = location)
         )
-      case (valueOther, declaredOther) => List(new TypesMismatch(valueOther, declaredOther, "Different types of type"))
+      case (valueOther, declaredOther) =>
+        List(TypesMismatch(valueOther, declaredOther, "Different types of type", location = location))
     }
   }
 
@@ -246,7 +252,7 @@ final class TypeChecker(dists: Distributions) {
       case (WholeNumberLiteral(_), IntRef()) => List() // TODO: "WholeNumberRef" extractor
       case (DecimalLiteral(_), DecimalRef()) => List()
       case (_, Type.Variable(_, _))          => List() // TODO: Type variable handling
-      case (otherLit, otherTpe)              => List(new LiteralTypeMismatch(otherLit, otherTpe))
+      case (otherLit, otherTpe)              => List(LiteralTypeMismatch(otherLit, otherTpe, location = location))
     }
     fromChildren ++ matchErrors
   }
@@ -267,7 +273,7 @@ final class TypeChecker(dists: Distributions) {
             tpe,
             context
           ) // TODO: Useful context lost here
-        case Right(_)  => List(new ApplyToNonFunction(node, function, argument))
+        case Right(_)  => List(ApplyToNonFunction(node, function, argument, location = location))
         case Left(err) => List(err)
       }
     fromChildren ++ fromTpe
@@ -300,7 +306,7 @@ final class TypeChecker(dists: Distributions) {
                 val newBindings = typeParams.toList.zip(typeArgs.toList).toMap
                 val missedName = helper(
                   fqn.packagePath != name.packagePath || fqn.modulePath != name.modulePath,
-                  new OtherTypeError(s"Constructor $fqn does not match type name $name")
+                  OtherTypeError(s"Constructor $fqn does not match type name $name", location = location)
                 )
                 val fromCtor = ctors.toMap.get(fqn.localName) match {
                   case Some(ctorArgs) =>
@@ -311,14 +317,15 @@ final class TypeChecker(dists: Distributions) {
                     )
                   case None =>
                     List(
-                      new OtherTypeError(
-                        s"Constructor type $name exists, but does not have arm for ${fqn.localName.toCamelCase}"
+                      OtherTypeError(
+                        s"Constructor type $name exists, but does not have arm for ${fqn.localName.toCamelCase}",
+                        location = location
                       )
                     )
                 }
                 missedName ++ fromCtor
               case Right(other) =>
-                List(new ImproperTypeDef(name, other, s"Type union expected"))
+                List(ImproperTypeDef(name, other, s"Type union expected", location = location))
               case Left(err) =>
                 List(err.withContext(s"Needed looking for implicit constructor ${fqn.toStringTitleCase}"))
             }
@@ -334,7 +341,8 @@ final class TypeChecker(dists: Distributions) {
               case Right(other) => List(ImproperTypeDef(
                   fqn,
                   other,
-                  s"I think this is an implicit record constructor because the return type is a record, but the function points to something else"
+                  s"I think this is an implicit record constructor because the return type is a record, but the function points to something else",
+                  location = location
                 ))
               case Left(err) =>
                 List(err.withContext(s"Needed looking for implicit constructor ${fqn.toStringTitleCase}"))
@@ -343,7 +351,11 @@ final class TypeChecker(dists: Distributions) {
 
           case NativeRef(_, _) => List() // TODO: check native constructor calls
           case other =>
-            List(new ImproperType(other, s"Reference to type union or implicit record constructor expected"))
+            List(ImproperType(
+              other,
+              s"Reference to type union or implicit record constructor expected",
+              location = location
+            ))
         }
     }
   }
@@ -352,10 +364,10 @@ final class TypeChecker(dists: Distributions) {
     val fromTpe = dealias(recordValue.attributes, context) match {
       case Right(rTpe @ Type.Record(_, fields)) =>
         fields.map(field => field.name -> field.data).toMap.get(name) match {
-          case None           => List(new TypeLacksField(rTpe, name, "Referenced by field node"))
+          case None           => List(TypeLacksField(rTpe, name, "Referenced by field node", location = location))
           case Some(fieldTpe) => conformsTo(fieldTpe, tpe, context)
         }
-      case Right(other) => List(new ImproperType(other, s"Record type expected"))
+      case Right(other) => List(ImproperType(other, s"Record type expected", location = location))
       case Left(err)    => List(err)
     }
     fromChildren ++ fromTpe
@@ -364,7 +376,7 @@ final class TypeChecker(dists: Distributions) {
     val fromChildren = List()
     val fromTpe = tpe match {
       case Type.Function(_, _, _) => List()
-      case other                  => List(new ImproperType(other, "Field function should be function:"))
+      case other => List(ImproperType(other, "Field function should be function:", location = location))
     }
     // TODO: tpe should be... function from extensible record type to ???
     fromChildren ++ fromTpe
@@ -389,7 +401,7 @@ final class TypeChecker(dists: Distributions) {
     val fromTpe = tpe match {
       case Type.Function(_, arg, ret) =>
         conformsTo(ret, body.attributes, context) ++ conformsTo(pattern.attributes, arg, context)
-      case other => List(new ImproperType(other, "Field function should be function:"))
+      case other => List(ImproperType(other, "Field function should be function:", location = location))
     }
     // TODO: Check tpe's argument matches (strictly) with pattern
     // TODO: Figure out variable bindings
@@ -435,7 +447,7 @@ final class TypeChecker(dists: Distributions) {
             ) // Check each element vs. the declared element type (only keep first errors)
           }
         }
-      case other => List(ImproperType(other, s"Expected list"))
+      case other => List(ImproperType(other, s"Expected list", location = location))
     }
     fromChildren ++ fromTpe
   }
@@ -480,7 +492,7 @@ final class TypeChecker(dists: Distributions) {
           conformsTo(valFieldMap(name).attributes, tpeFieldMap(name), context)
         )
         missingFromTpe ++ missingFromValue ++ conflicts
-      case other => List(ImproperType(other, "Value is of type Record"))
+      case other => List(ImproperType(other, "Value is of type Record", location = location))
     }
     fromChildren ++ fromTpe
   }
@@ -504,7 +516,7 @@ final class TypeChecker(dists: Distributions) {
     val fromTpe = tpe match {
       case Type.Tuple(_, elementTypes) =>
         checkList(elements.map(_.attributes), elementTypes.toList, context)
-      case other => List(new ImproperType(other, "Tuple expected"))
+      case other => List(ImproperType(other, "Tuple expected", location = location))
     }
     val fromChildren = elements.flatMap(check(_, context))
     fromChildren ++ fromTpe
@@ -523,11 +535,16 @@ final class TypeChecker(dists: Distributions) {
         val fieldMap = tpeFields.map(field => field.name -> field.data).toMap
         conformsTo(valueToUpdate.attributes, tpe) ++ fields.flatMap { field =>
           fieldMap.get(field._1) match {
-            case None        => List(TypeLacksField(tpe, field._1, "Tried to update record field which is not present"))
+            case None => List(TypeLacksField(
+                tpe,
+                field._1,
+                "Tried to update record field which is not present",
+                location = location
+              ))
             case Some(found) => conformsTo(field._2.attributes, found, context)
           }
         }
-      case other => List(new ImproperType(other, "Record type expected"))
+      case other => List(ImproperType(other, "Record type expected", location = location))
     }
     fromChildren ++ fromTpe
   }

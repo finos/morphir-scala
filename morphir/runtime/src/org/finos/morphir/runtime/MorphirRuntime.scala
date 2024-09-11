@@ -38,7 +38,10 @@ trait MorphirRuntime {
       params: Value[TypeAttribs, ValueAttribs]*
   ): RTAction[MorphirEnv, TypeError, Value[TypeAttribs, ValueAttribs]]
   def evaluate(entryPoint: FQName): RTAction[MorphirEnv, MorphirRuntimeError, Data]
-  def evaluate(value: Value[TypeAttribs, ValueAttribs]): RTAction[MorphirEnv, MorphirRuntimeError, Data]
+  def evaluate(
+      value: Value[TypeAttribs, ValueAttribs],
+      location: Option[CodeLocation] = None
+  ): RTAction[MorphirEnv, MorphirRuntimeError, Data]
 
 }
 
