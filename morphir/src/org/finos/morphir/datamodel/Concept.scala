@@ -309,7 +309,7 @@ object Concept {
     def defaultString: DefaultEither = Right(Data.String(""))
     def defaultOrder: DefaultEither  = Right(Data.Order.apply(0))
     def defaultDayOfWeek: DefaultEither =
-      Right(Data.DayOfWeek(java.time.DayOfWeek.of(0)))
+      Right(Data.DayOfWeek(java.time.DayOfWeek.MONDAY))
     def defaultChar: DefaultEither    = Right(Data.Char('0'))
     def defaultBoolean: DefaultEither = Right(Data.False)
     def defaultOptional(concept: Concept.Optional): DefaultEither =

@@ -1,4 +1,4 @@
-module Defaults.ExampleModule exposing (..)
+module Defaults.Defaults exposing (..)
 
 import Dict exposing (..)
 
