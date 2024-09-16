@@ -193,23 +193,23 @@ object DefaultsTestingSpec extends MorphirBaseSpec {
       test("Record matches Default") {
         ZIO.serviceWithZIO[(Distribution, TypedMorphirRuntime)] { (dist, rt) =>
           for {
-            res <- rt.evaluate(qn"Defaults:Defaults:expectedDefault")
+            expected <- rt.evaluate(qn"Defaults:Defaults:expectedDefault")
               .provideEnvironment(MorphirEnv.live)
               .toZIOWith(RTExecutionContext.typeChecked)
             concept <- getConcept(qn"Defaults:Defaults:DefaultRecord")
-            default <- ZIO.fromEither(concept.defaultData())
-          } yield assertTrue(res == default)
+            actual  <- ZIO.fromEither(concept.defaultData())
+          } yield assertTrue(actual == expected)
         }
       },
-      test("Record doesn't match non-default") {
+      test("Enum matches") {
         ZIO.serviceWithZIO[(Distribution, TypedMorphirRuntime)] { (dist, rt) =>
           for {
-            res <- rt.evaluate(qn"Defaults:Defaults:nonDefault")
+            expected <- rt.evaluate(qn"Defaults:Defaults:defaultUnion")
               .provideEnvironment(MorphirEnv.live)
               .toZIOWith(RTExecutionContext.typeChecked)
-            concept <- getConcept(qn"Defaults:Defaults:DefaultRecord")
-            default <- ZIO.fromEither(concept.defaultData())
-          } yield assertTrue(res != default)
+            concept <- getConcept(qn"Defaults:Defaults:NestedUnion")
+            actual  <- ZIO.fromEither(concept.defaultData())
+          } yield assertTrue(actual == expected)
         }
       }
       // test("Record can be filled with defaults") {

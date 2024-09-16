@@ -61,3 +61,14 @@ largerExample =
     , age = 1006
     , honesty = False
     }
+
+
+type NestedUnion
+    = First (Maybe Int) String (List Int)
+    | Second String
+    | Third
+
+
+defaultUnion : NestedUnion
+defaultUnion =
+    First Nothing "" []

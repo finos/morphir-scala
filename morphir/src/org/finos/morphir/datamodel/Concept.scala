@@ -289,7 +289,7 @@ object Concept {
       val firstCase = concept.cases.head
       for {
         args <- collectAll(firstCase.fields, (label: EnumLabel, concept: Concept) => default(concept).map((label, _)))
-        res = Data.Case(args, firstCase.label.toString(), concept)
+        res = Data.Case(args, firstCase.label.value, concept)
       } yield res
     }
     def defaultInt64: DefaultEither   = Right(Data.Int64(0))
