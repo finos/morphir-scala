@@ -223,21 +223,6 @@ object DefaultsTestingSpec extends MorphirBaseSpec {
           } yield assertTrue(actual == expected)
         }
       }
-      // test("Record can be filled with defaults") {
-      //   ZIO.serviceWithZIO[TypedMorphirRuntime] { rt =>
-      //     for {
-      //       small <- rt.evaluate(qn"Defaults:ExampleModule:smallExample")
-      //         .provideEnvironment(MorphirEnv.live)
-      //         .toZIOWith(RTExecutionContext.typeChecked)
-      //       larger <- rt.evaluate(qn"Defaults:ExampleModule:largerExample")
-      //         .provideEnvironment(MorphirEnv.live)
-      //         .toZIOWith(RTExecutionContext.typeChecked)
-      //       largerConcept = larger.shape
-      //       filled  <- ZIO.fromEither(Concept.Defaults.fillWithDefaults(small, largerConcept))
-      //       default <- ZIO.fromEither(largerConcept.defaultData)
-      //     } yield assertTrue(filled == larger)
-      //   }
-      // }
     )
   ).provideLayerShared(testLayer)
 }
