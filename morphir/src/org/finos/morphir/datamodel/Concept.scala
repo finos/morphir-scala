@@ -268,7 +268,7 @@ object Concept {
       case concept: Concept.Set      => defaultSet(concept)
       case concept: Concept.Tuple    => defaultTuple(concept)
     }
-    // def fillWithDefaults(data: Data, concept: Concept): DefaultEither
+
     def defaultList(concept: Concept.List): DefaultEither = Right(Data.List.empty(concept.elementType))
     def defaultMap(concept: Concept.Map): DefaultEither =
       Right(Data.Map.empty(concept.keyType, concept.valueType))

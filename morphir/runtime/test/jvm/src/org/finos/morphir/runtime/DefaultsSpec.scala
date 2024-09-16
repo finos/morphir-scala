@@ -201,6 +201,17 @@ object DefaultsTestingSpec extends MorphirBaseSpec {
           } yield assertTrue(actual == expected)
         }
       },
+      test("Record with nested complex field matches Default") {
+        ZIO.serviceWithZIO[(Distribution, TypedMorphirRuntime)] { (dist, rt) =>
+          for {
+            expected <- rt.evaluate(qn"Defaults:Defaults:largerExample")
+              .provideEnvironment(MorphirEnv.live)
+              .toZIOWith(RTExecutionContext.typeChecked)
+            concept <- getConcept(qn"Defaults:Defaults:LargerRecord")
+            actual  <- ZIO.fromEither(concept.defaultData())
+          } yield assertTrue(actual == expected)
+        }
+      },
       test("Enum matches") {
         ZIO.serviceWithZIO[(Distribution, TypedMorphirRuntime)] { (dist, rt) =>
           for {
