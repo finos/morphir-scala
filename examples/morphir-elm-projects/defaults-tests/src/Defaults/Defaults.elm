@@ -13,6 +13,12 @@ type alias DefaultRecord =
     }
 
 
+type alias DefaultNestedRecord =
+    { name : String
+    , inner : DefaultRecord
+    }
+
+
 expectedDefault : DefaultRecord
 expectedDefault =
     { string = ""
@@ -21,6 +27,13 @@ expectedDefault =
     , tuple = ( 0, False )
     , list = []
     , map = Dict.fromList []
+    }
+
+
+expectedNestedDefault : DefaultNestedRecord
+expectedNestedDefault =
+    { name = ""
+    , inner = expectedDefault
     }
 
 

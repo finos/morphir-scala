@@ -212,6 +212,17 @@ object DefaultsTestingSpec extends MorphirBaseSpec {
           } yield assertTrue(actual == expected)
         }
       },
+      test("Record with nested inner record matches Default") {
+        ZIO.serviceWithZIO[(Distribution, TypedMorphirRuntime)] { (dist, rt) =>
+          for {
+            expected <- rt.evaluate(qn"Defaults:Defaults:expectedNestedDefault")
+              .provideEnvironment(MorphirEnv.live)
+              .toZIOWith(RTExecutionContext.typeChecked)
+            concept <- getConcept(qn"Defaults:Defaults:DefaultNestedRecord")
+            actual  <- ZIO.fromEither(concept.defaultData())
+          } yield assertTrue(actual == expected)
+        }
+      },
       test("Enum matches") {
         ZIO.serviceWithZIO[(Distribution, TypedMorphirRuntime)] { (dist, rt) =>
           for {
