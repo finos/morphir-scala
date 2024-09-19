@@ -50,7 +50,7 @@ sealed trait Concept { self =>
 
   def toMorphirElm: String                           = PrintSpec.of(this)
   def writeMorphirElmFiles(path: java.nio.file.Path) = PrintSpec.writeToFiles(this, path)
-  def defaultData(defaults: Concept.Defaults = Concept.StandardDefaults): Concept.Defaults.DefaultEither =
+  def defaultData(defaults: Concept.Defaults = Concept.StandardDefaults): Concept.Defaults.Result =
     defaults.default(this)
 }
 
@@ -236,8 +236,8 @@ object Concept {
   }
 
   trait Defaults {
-    import Defaults.*
-    def default(concept: Concept): DefaultEither = concept match {
+    import Defaults.{Result => _, *}
+    def default(concept: Concept): Defaults.Result = concept match {
       case concept: Concept.List     => defaultList(concept)
       case concept: Concept.Map      => defaultMap(concept)
       case concept: Concept.Alias    => defaultAlias(concept)
@@ -269,65 +269,65 @@ object Concept {
       case concept: Concept.Tuple    => defaultTuple(concept)
     }
 
-    def defaultList(concept: Concept.List): DefaultEither = Right(Data.List.empty(concept.elementType))
-    def defaultMap(concept: Concept.Map): DefaultEither =
+    def defaultList(concept: Concept.List): Defaults.Result = Right(Data.List.empty(concept.elementType))
+    def defaultMap(concept: Concept.Map): Defaults.Result =
       Right(Data.Map.empty(concept.keyType, concept.valueType))
-    def defaultAlias(concept: Concept.Alias): DefaultEither =
+    def defaultAlias(concept: Concept.Alias): Defaults.Result =
       default(concept.value).map(Data.Aliased(_, concept))
     def defaultUnion(concept: Concept.Union) = default(concept.cases.head).map(Data.Union(_, concept))
-    def defaultRecord(concept: Concept.Record): DefaultEither = for {
+    def defaultRecord(concept: Concept.Record): Defaults.Result = for {
       dataFields <-
         Defaults.collectAll(concept.fields, (label: Label, concept: Concept) => default(concept).map((label, _)))
       res = Data.Record(dataFields, concept)
     } yield res
-    def defaultStruct(concept: Concept.Struct): DefaultEither = for {
+    def defaultStruct(concept: Concept.Struct): Defaults.Result = for {
       dataFields <- collectAll(concept.fields, (label: Label, concept: Concept) => default(concept).map((label, _)))
       res = Data.Struct(dataFields)
     } yield res
 
-    def defaultEnum(concept: Concept.Enum): DefaultEither = {
+    def defaultEnum(concept: Concept.Enum): Defaults.Result = {
       val firstCase = concept.cases.head
       for {
         args <- collectAll(firstCase.fields, (label: EnumLabel, concept: Concept) => default(concept).map((label, _)))
         res = Data.Case(args, firstCase.label.value, concept)
       } yield res
     }
-    def defaultInt64: DefaultEither   = Right(Data.Int64(0))
-    def defaultInteger: DefaultEither = Right(Data.Integer(BigInt(0)))
-    def defaultDecimal: DefaultEither = Right(Data.Decimal(BigDecimal(0)))
-    def defaultInt16: DefaultEither   = Right(Data.Int16(0))
-    def defaultNothing: DefaultEither = Left(NoDefaultNothing())
-    def defaultMonth: DefaultEither   = Right(Data.Month(java.time.Month.JANUARY))
-    def defaultLocalDate: DefaultEither =
+    def defaultInt64: Defaults.Result   = Right(Data.Int64(0))
+    def defaultInteger: Defaults.Result = Right(Data.Integer(BigInt(0)))
+    def defaultDecimal: Defaults.Result = Right(Data.Decimal(BigDecimal(0)))
+    def defaultInt16: Defaults.Result   = Right(Data.Int16(0))
+    def defaultNothing: Defaults.Result = Left(NoDefaultNothing())
+    def defaultMonth: Defaults.Result   = Right(Data.Month(java.time.Month.JANUARY))
+    def defaultLocalDate: Defaults.Result =
       Right(Data.LocalDate(java.time.LocalDate.EPOCH))
-    def defaultFloat: DefaultEither = Right(Data.Float(0))
-    def defaultLocalTime: DefaultEither =
+    def defaultFloat: Defaults.Result = Right(Data.Float(0))
+    def defaultLocalTime: Defaults.Result =
       Right(Data.LocalTime(java.time.LocalTime.MIDNIGHT))
-    def defaultInt32: DefaultEither  = Right(Data.Int32(0))
-    def defaultByte: DefaultEither   = Right(Data.Byte(0))
-    def defaultUnit: DefaultEither   = Right(Data.Unit)
-    def defaultString: DefaultEither = Right(Data.String(""))
-    def defaultOrder: DefaultEither  = Right(Data.Order.apply(0))
-    def defaultDayOfWeek: DefaultEither =
+    def defaultInt32: Defaults.Result  = Right(Data.Int32(0))
+    def defaultByte: Defaults.Result   = Right(Data.Byte(0))
+    def defaultUnit: Defaults.Result   = Right(Data.Unit)
+    def defaultString: Defaults.Result = Right(Data.String(""))
+    def defaultOrder: Defaults.Result  = Right(Data.Order.apply(0))
+    def defaultDayOfWeek: Defaults.Result =
       Right(Data.DayOfWeek(java.time.DayOfWeek.MONDAY))
-    def defaultChar: DefaultEither    = Right(Data.Char('0'))
-    def defaultBoolean: DefaultEither = Right(Data.False)
-    def defaultOptional(concept: Concept.Optional): DefaultEither =
+    def defaultChar: Defaults.Result    = Right(Data.Char('0'))
+    def defaultBoolean: Defaults.Result = Right(Data.False)
+    def defaultOptional(concept: Concept.Optional): Defaults.Result =
       Right(Data.Optional.None(concept.elementType))
-    def defaultAny: DefaultEither = Right(Data.Unit)
-    def defaultResult(concept: Concept.Result): DefaultEither =
+    def defaultAny: Defaults.Result = Right(Data.Unit)
+    def defaultResult(concept: Concept.Result): Defaults.Result =
       default(concept.okType).map(Data.Result.Ok(_, concept))
-    def defaultSet(concept: Concept.Set): DefaultEither = Right(Data.Set.empty(concept.elementType))
-    def defaultTuple(concept: Concept.Tuple): DefaultEither = for {
+    def defaultSet(concept: Concept.Set): Defaults.Result = Right(Data.Set.empty(concept.elementType))
+    def defaultTuple(concept: Concept.Tuple): Defaults.Result = for {
       elems <- collectAll(concept.values, default)
       res = Data.Tuple(elems)
     } yield res
   }
 
   object Defaults {
-    type DefaultEither = Either[MDMDefaultError, Data]
-    sealed trait MDMDefaultError  extends Throwable
-    case class NoDefaultNothing() extends MDMDefaultError
+    type Result = Either[Error, Data]
+    sealed trait Error            extends Throwable
+    case class NoDefaultNothing() extends Error
 
     def collectAll[I, O, E](
         inputs: scala.List[I],
