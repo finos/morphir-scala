@@ -91,7 +91,7 @@ object Data {
    */
   case class Case(
       values: scala.List[(EnumLabel, Data)],
-      enumLabel: java.lang.String,
+      enumLabel: java.lang.String, // TODO: Why is this a string when the associated Concept is a label?
       shape: Concept.Enum
   ) extends Data
 

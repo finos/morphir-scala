@@ -1,0 +1,7 @@
+{
+    "name": "Defaults",
+    "sourceDirectory": "src",
+    "exposedModules": [
+        "Defaults"
+    ]
+}

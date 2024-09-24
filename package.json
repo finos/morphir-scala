@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": [
     "examples/morphir-elm-projects/evaluator-tests",
+    "examples/morphir-elm-projects/defaults-tests",
     "examples/morphir-elm-projects/finance",
     "examples/morphir-elm-projects/unit-test-framework/*",
     "morphir-elm/sdks/morphir-unit-test"
