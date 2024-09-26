@@ -241,12 +241,12 @@ object Versions {
 object ScalaVersions {
   import DevMode._
   val all      = if (devMode) Seq(scala3x) else Seq(scala213, scala3x)
-  def scala213 = "2.13.14"
+  def scala213 = "2.13.15"
   def scala3x  = "3.3.3"
 
   def scalaJSVersion     = "1.16.0"
   def scalaNativeVersion = "0.4.17"
-  def millScalaVersion   = "2.13.14"
+  def millScalaVersion   = "2.13.15"
 }
 
 object MillVersions {
