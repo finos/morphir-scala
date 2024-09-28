@@ -19,6 +19,7 @@ projects:
     evaluator-tests: "examples/morphir-elm-projects/evaluator-tests"
     examples/finance: "examples/morphir-elm-projects/finance"
     sdks/morphir-unit-test: "morphir-elm/sdks/morphir-unit-test"
+    defaults-tests: "examples/morphir-elm-projects/defaults-tests"
 
 # Configures the version control system to utilize within the workspace. A VCS
 # is required for determining touched (added, modified, etc) files, calculating file hashes,
