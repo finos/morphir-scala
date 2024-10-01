@@ -53,11 +53,28 @@ object UnitTestingSpec extends MorphirBaseSpec {
     }
   }
 
+  // def individualTestResults(packageName:String, moduleName: String) = {
+  //   val pkgName = PackageName.fromString(packageName)
+  //   val modName = ModuleName.fromString(moduleName)
+  //   getTestSummary.map {
+  //     summary => summary.getIndividualTestResults(pkgName, modName)
+  //   }
+  // }
+  def individualTestResults(packageName: String, moduleName: String) = {
+    val pkgName = PackageName.fromString(packageName)
+    val modName = ModuleName.fromString(moduleName)
+    getTestSummary.map { summary =>
+      summary.getIndividualTestResults(pkgName, modName).map {
+        case (testName, testResult) => (testName.toString, testResult.toString)
+      }
+    }
+  }
+
   def spec = suite("Unit Testing Framework Tests")(
     suite("Failing Project")(
       test("Show Results (for human readability check - ignore)") {
         getTestSummary.map { result =>
-          println(result)
+          // println(result)
           assertTrue(false)
         }
       } @@ TestAspect.ignore,
@@ -128,6 +145,12 @@ object UnitTestingSpec extends MorphirBaseSpec {
             assertTrue(counts.map(_.result) == Some(OverallStatus.Failed))
           }
         },
+        test("Module Two individualTestResults") {
+          val expectedCountModuleTwo = 6
+          for {
+            results <- individualTestResults("ExampleTests", "FailingModuleTwo")
+          } yield assertTrue(results.size == expectedCountModuleTwo)
+        },
         test("Module Two Counts") {
           moduleCounts("ExampleTests", "FailingModuleTwo").map { counts =>
             assertTrue(counts == Some(TestResultCounts(
@@ -170,6 +193,12 @@ object UnitTestingSpec extends MorphirBaseSpec {
               todo = 0
             )))
           }
+        },
+        test("Passing Module  individualTestResults") {
+          val expectedCountPassingModule = 18
+          for {
+            results <- individualTestResults("ExampleTests", "PassingModule")
+          } yield assertTrue(results.size == expectedCountPassingModule)
         },
         test("Passing Module Status") {
           moduleCounts("ExampleTests", "PassingModule").map { counts =>
