@@ -215,7 +215,7 @@ object Versions {
   val `izumi-reflect`            = "2.3.10"
   val metaconfig                 = "0.11.1"
   val mainargs                   = "0.5.0"
-  val `os-lib`                   = "0.10.7"
+  val `os-lib`                   = "0.11.1"
   val paiges                     = "0.4.4"
   val `scala-java-time`          = "2.6.0"
   val `scala-native-crypto`      = "0.0.4"
