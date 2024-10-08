@@ -58,7 +58,8 @@ object UnitTesting {
         val emptySummary = TestSummary(
           "No tests run",
           Map(),
-          CoverageInfo(Set.empty[FQName], userDefinedFunctions, CoverageCounts.empty)
+          CoverageInfo(Set.empty[FQName], userDefinedFunctions, CoverageCounts.empty),
+          Map()
         )
         RTAction.succeed(emptySummary)
       } else {

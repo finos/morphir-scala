@@ -9,7 +9,8 @@ private[runtime] case class CoverageInfo(
 case class TestSummary(
     report: String,
     countsByModule: Map[(PackageName, ModuleName), TestResultCounts],
-    private val coverage: CoverageInfo
+    private val coverage: CoverageInfo,
+    private val individualTestResults: Map[(PackageName, ModuleName), Map[String, String]]
 ) {
   def overallCounts = countsByModule.values.foldLeft(TestResultCounts.empty) { case (acc, next) => acc.plus(next) }
   def countsAtModule(pkgName: PackageName, modName: ModuleName): Option[TestResultCounts] =
@@ -23,6 +24,11 @@ case class TestSummary(
   def userDefinedFunctions = coverage.userDefinedFunctions
 
   def staticallyReachedFunctions = coverage.staticallyReachedFunctions
+
+  def getIndividualTestResults(pkgName: PackageName, modName: ModuleName): Map[String, String] =
+    individualTestResults.getOrElse((pkgName, modName), Map.empty)
+
+  def getAllTestResults = individualTestResults
 
   /**
    * Evaluates to true if and only if all tests passed and none were skipped or todo
