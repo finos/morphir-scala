@@ -58,7 +58,7 @@ object UnitTestingSpec extends MorphirBaseSpec {
     val modName = ModuleName.fromString(moduleName)
     getTestSummary.map { summary =>
       val allResults = summary.getAllTestResults
-      allResults.getOrElse((pkgName,modName),Map.empty)
+      allResults.getOrElse((pkgName, modName), Map.empty)
     }
   }
 
