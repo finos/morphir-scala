@@ -53,20 +53,12 @@ object UnitTestingSpec extends MorphirBaseSpec {
     }
   }
 
-  // def individualTestResults(packageName:String, moduleName: String) = {
-  //   val pkgName = PackageName.fromString(packageName)
-  //   val modName = ModuleName.fromString(moduleName)
-  //   getTestSummary.map {
-  //     summary => summary.getIndividualTestResults(pkgName, modName)
-  //   }
-  // }
   def individualTestResults(packageName: String, moduleName: String) = {
     val pkgName = PackageName.fromString(packageName)
     val modName = ModuleName.fromString(moduleName)
     getTestSummary.map { summary =>
-      summary.getIndividualTestResults(pkgName, modName).map {
-        case (testName, testResult) => (testName.toString, testResult.toString)
-      }
+      val allResults = summary.getAllTestResults
+      allResults.getOrElse((pkgName,modName),Map.empty)
     }
   }
 

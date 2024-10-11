@@ -25,9 +25,6 @@ case class TestSummary(
 
   def staticallyReachedFunctions = coverage.staticallyReachedFunctions
 
-  def getIndividualTestResults(pkgName: PackageName, modName: ModuleName): Map[String, String] =
-    individualTestResults.getOrElse((pkgName, modName), Map.empty)
-
   def getAllTestResults = individualTestResults
 
   /**
