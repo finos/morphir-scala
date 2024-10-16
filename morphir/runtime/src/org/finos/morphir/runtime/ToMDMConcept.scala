@@ -12,6 +12,7 @@ import scala.collection.immutable.{Map, Set}
 import org.finos.morphir.runtime.Distributions
 import org.finos.morphir.datamodel.Concept.Defaults
 import org.finos.morphir.runtime.Extractors.Types.*
+import org.finos.morphir.runtime.MorphirRuntimeError.LookupError
 
 trait ToMDMConcept[A] { self =>
   import ToMDMConcept.*
@@ -28,44 +29,49 @@ trait ToMDMConcept[A] { self =>
 
 object ToMDMConcept {
 
-  sealed trait NoEquivalentMDM         extends Throwable
-  case class Unsupported(msg: String)  extends NoEquivalentMDM
-  case class MissingAlias(msg: String) extends NoEquivalentMDM
-  type ToMDMConceptEither = Either[NoEquivalentMDM, Concept]
+  sealed trait Error                                  extends Throwable
+  case class NoEquivalentMDM(msg: String, tpe: UType) extends Error
+  case class MissingAlias(cause: LookupError)         extends Error
+  case class UnboundTypeVariable(varName: Name)       extends Error
+
+  type ToMDMConceptEither = Either[Error, Concept]
 
   def apply[A](implicit toMDMConcept: ToMDMConcept[A]): ToMDMConcept[A] = toMDMConcept
-  // def summon[A]: SummonPartiallyApplied[A]                              = new SummonPartiallyApplied[A]
 
   def toConceptConverter[A](f: => Concept): ToMDMConcept[A] = new ToMDMConcept[A] {
     def apply(distributions: Distributions, bindings: Map[Name, Concept] = Map.empty): ToMDMConceptEither = Right(f)
   }
-  def toFailedConverter[A](f: => NoEquivalentMDM): ToMDMConcept[A] = new ToMDMConcept[A] {
+  def toFailedConverter[A](f: => Error): ToMDMConcept[A] = new ToMDMConcept[A] {
     def apply(distributions: Distributions, bindings: Map[Name, Concept] = Map.empty): ToMDMConceptEither = Left(f)
   }
 
   implicit def uTypeToConcept(tpe: UType): ToMDMConcept[UType] =
     tpe match {
-      case _: Type.ExtensibleRecord[_] => toFailedConverter(Unsupported("Extensible record type has no MDM equivalent"))
-      case _: Type.Function[_]         => toFailedConverter(Unsupported("Functions do not exist within MDM"))
-      case _: Type.Unit[_]             => toConceptConverter(Concept.Unit)
-      case IntRef()                    => toConceptConverter(Concept.Int32)
-      case Int16Ref()                  => toConceptConverter(Concept.Int16)
-      case Int32Ref()                  => toConceptConverter(Concept.Int32)
-      case Int64Ref()                  => toConceptConverter(Concept.Int64)
-      case StringRef()                 => toConceptConverter(Concept.String)
-      case BoolRef()                   => toConceptConverter(Concept.Boolean)
-      case CharRef()                   => toConceptConverter(Concept.Char)
-      case FloatRef()                  => toConceptConverter(Concept.Float)
-      case DecimalRef()                => toConceptConverter(Concept.Decimal)
-      case LocalDateRef()              => toConceptConverter(Concept.LocalDate)
-      case LocalTimeRef()              => toConceptConverter(Concept.LocalTime)
-      case OrderRef()                  => toConceptConverter(Concept.Order)
-      case MonthRef()                  => toConceptConverter(Concept.Month)
-      case DayOfWeekRef()              => toConceptConverter(Concept.DayOfWeek)
+      case _: Type.ExtensibleRecord[_] =>
+        toFailedConverter(NoEquivalentMDM("Extensible record type has no MDM equivalent", tpe))
+      case _: Type.Function[_] => toFailedConverter(NoEquivalentMDM("Functions do not exist within MDM", tpe))
+      case _: Type.Unit[_]     => toConceptConverter(Concept.Unit)
+      case IntRef()            => toConceptConverter(Concept.Int32)
+      case Int16Ref()          => toConceptConverter(Concept.Int16)
+      case Int32Ref()          => toConceptConverter(Concept.Int32)
+      case Int64Ref()          => toConceptConverter(Concept.Int64)
+      case StringRef()         => toConceptConverter(Concept.String)
+      case BoolRef()           => toConceptConverter(Concept.Boolean)
+      case CharRef()           => toConceptConverter(Concept.Char)
+      case FloatRef()          => toConceptConverter(Concept.Float)
+      case DecimalRef()        => toConceptConverter(Concept.Decimal)
+      case LocalDateRef()      => toConceptConverter(Concept.LocalDate)
+      case LocalTimeRef()      => toConceptConverter(Concept.LocalTime)
+      case OrderRef()          => toConceptConverter(Concept.Order)
+      case MonthRef()          => toConceptConverter(Concept.Month)
+      case DayOfWeekRef()      => toConceptConverter(Concept.DayOfWeek)
       case Type.Variable(_, name) =>
         new ToMDMConcept[UType] {
           def apply(distributions: Distributions, bindings: Map[Name, Concept] = Map.empty): ToMDMConceptEither =
-            Right(bindings(name)) // TODO: Error this up nice
+            bindings.get(name) match {
+              case None        => Left(UnboundTypeVariable(name))
+              case Some(value) => Right(value)
+            }
         }
       case ResultRef(errType, okType) =>
         new ToMDMConcept[UType] {
@@ -117,17 +123,11 @@ object ToMDMConcept {
             elementConcepts <- Defaults.collectAll(elements, elem => elem.concept(distributions, bindings))
           } yield Concept.Tuple(elementConcepts)
         }
-      // case other => toFailedConverter(Unsupported(s"No converter for $other"))
       case Type.Reference(_, typeName, typeArgs) =>
         new ToMDMConcept[UType] {
           def apply(dists: Distributions, bindings: Map[Name, Concept] = Map.empty): ToMDMConceptEither = for {
             lookedUp <- dists.lookupTypeDefinition(typeName.packagePath, typeName.modulePath, typeName.localName)
-              .left.map { _ =>
-                val string = typeName.toString()
-                throw new Exception(s"IDK why this only shows up this way, but $string is missing")
-                MissingAlias(s"Not actually unsupported, $string just missing")
-              }
-
+              .left.map { err => MissingAlias(err) }
             conceptArgs <- Defaults.collectAll(typeArgs, typeArg => typeArg.concept(dists, bindings))
             res <- lookedUp match {
               case T.Definition.TypeAlias(typeParams, expr) =>
@@ -157,9 +157,4 @@ object ToMDMConcept {
           } yield res
         }
     }
-
-  // final class SummonPartiallyApplied[A](private val dummy: Boolean = true) extends AnyVal {
-  //   def withAttributesOf[Attribs](implicit toMDMConcept: ToMDMConcept[A, Attribs]): ToMDMConcept[A, Attribs] =
-  //     toMDMConcept
-  // }
 }

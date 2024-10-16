@@ -29,7 +29,6 @@ object DefaultsTestingSpec extends MorphirBaseSpec {
 
   def getConcept(fqn: FQName) =
     ZIO.serviceWithZIO[(Distribution, TypedMorphirRuntime)] { (dist, _) =>
-      // ZIO.succeed(EvaluatorQuick.typeToConcept(Type.reference(fqn, List()), Distributions(dist), Map.empty))
       ZIO.fromEither(Type.reference(fqn, List()).concept(Distributions(dist), Map.empty))
 
     }
