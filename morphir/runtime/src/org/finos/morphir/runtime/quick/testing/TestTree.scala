@@ -251,8 +251,41 @@ private[runtime] object TestSet {
     TestSummary(
       toReport(testSet),
       testSet.modules.map(module => (module.pkgName, module.modName) -> ModuleTests.getCounts(module)).toMap,
-      coverageInfo
+      coverageInfo,
+      extractTestResults(testSet.modules)
     )
+
+  def extractTestResults(testSet: List[ModuleTests[SingleTestResult]])
+      : Map[(PackageName, ModuleName), Map[String, String]] =
+    testSet.map { module =>
+      def genValues(tests: List[TestTree[SingleTestResult]]): Map[String, String] =
+        tests.collect {
+          case TestTree.Describe(blockDesc: String, tests: List[TestTree[SingleTestResult]]) => tests.collect {
+              case TestTree.SingleTest(desc, SingleTestResult.Passed)      => s"$blockDesc - $desc" -> "PASSED"
+              case TestTree.SingleTest(desc, SingleTestResult.Failed(msg)) => s"$blockDesc - $desc" -> s"FAILED $msg"
+              case TestTree.SingleTest(desc, SingleTestResult.Err(err))    => s"$blockDesc - $desc" -> s"ERROR $err"
+            }
+          case TestTree.SingleTest(desc, SingleTestResult.Passed)      => Map(s"$desc" -> "PASSED")
+          case TestTree.SingleTest(desc, SingleTestResult.Failed(msg)) => Map(s"$desc" -> s"FAILED $msg")
+          case TestTree.SingleTest(desc, SingleTestResult.Err(err))    => Map(s"$desc" -> s"ERROR $err")
+          case TestTree.Skip(desc, numSkipped) => Map(s"$desc" -> s"SKIPPED ($numSkipped tests skipped)")
+          case TestTree.Todo(excuse)           => Map(s"$excuse" -> "TODO")
+          case TestTree.Error(desc, err)       => Map(s"$desc" -> s"TEST_ERROR $err")
+        }.flatten.toMap
+
+      def handleNestedConcat(tests: List[TestTree[SingleTestResult]]): Map[String, String] =
+        module.tests.collect {
+          case TestTree.Describe(blockDesc: String, tests: List[TestTree[SingleTestResult]]) => tests.collect {
+              case TestTree.Concat(tests: List[TestTree[SingleTestResult]]) => tests.collect {
+                  case TestTree.SingleTest(desc, SingleTestResult.Passed) => s"$blockDesc - $desc" -> "PASSED"
+                  case TestTree.SingleTest(desc, SingleTestResult.Failed(msg)) =>
+                    s"$blockDesc - $desc" -> s"FAILED $msg"
+                  case TestTree.SingleTest(desc, SingleTestResult.Err(err)) => s"$blockDesc - $desc" -> s"ERROR $err"
+                }
+            }
+        }.flatten.flatten.toMap
+      (module.pkgName, module.modName) -> (genValues(module.tests) ++ handleNestedConcat(module.tests))
+    }.toMap
 
   /**
    * Runs all of the user-defined thunks Note that
