@@ -154,7 +154,7 @@ object Deps {
     case object `scala-lang` {
 
       case object modules {
-        val `scala-collection-contrib` = ivy"org.scala-lang.modules::scala-collection-contrib:0.3.0"
+        val `scala-collection-contrib` = ivy"org.scala-lang.modules::scala-collection-contrib:0.4.0"
       }
 
       def `scala-compiler`(scalaVersion: String): Dep =
