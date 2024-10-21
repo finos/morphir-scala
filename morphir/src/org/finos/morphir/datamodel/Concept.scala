@@ -329,7 +329,7 @@ object Concept {
     sealed trait Error            extends Throwable
     case class NoDefaultNothing() extends Error
 
-    private[datamodel] def collectAll[I, O, E](
+    private[morphir] def collectAll[I, O, E](
         inputs: scala.List[I],
         f: I => Either[E, O]
     ): Either[E, scala.List[O]] = {

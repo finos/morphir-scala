@@ -154,7 +154,7 @@ object Deps {
     case object `scala-lang` {
 
       case object modules {
-        val `scala-collection-contrib` = ivy"org.scala-lang.modules::scala-collection-contrib:0.3.0"
+        val `scala-collection-contrib` = ivy"org.scala-lang.modules::scala-collection-contrib:0.4.0"
       }
 
       def `scala-compiler`(scalaVersion: String): Dep =
@@ -187,7 +187,7 @@ object Versions {
   val castor = "0.2.1"
   val cats   = "2.12.0"
 
-  val enumeratum = "1.7.4"
+  val enumeratum = "1.7.5"
 
   def borer(scalaVersion: String): String =
     borer(scalaVersion.split('.').toIndexedSeq)
@@ -215,7 +215,7 @@ object Versions {
   val `izumi-reflect`            = "2.3.10"
   val metaconfig                 = "0.11.1"
   val mainargs                   = "0.5.0"
-  val `os-lib`                   = "0.10.7"
+  val `os-lib`                   = "0.11.2"
   val paiges                     = "0.4.4"
   val `scala-java-time`          = "2.6.0"
   val `scala-native-crypto`      = "0.0.4"
@@ -226,7 +226,7 @@ object Versions {
   val spire                      = "0.18.0"
   val `tasty-query`              = "0.5.6"
   val upickle                    = "3.0.0-M1"
-  val zio                        = "2.1.9"
+  val zio                        = "2.1.11"
   val `zio-cli`                  = "0.5.0"
   val `zio-config`               = "4.0.2"
   val `zio-interop-cats`         = "23.1.0.3"

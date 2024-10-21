@@ -11,6 +11,7 @@ import zio.test.TestAspect.{ignore, tag}
 import zio.{Console, ZIO, ZLayer}
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.runtime.quick.EvaluatorQuick
+import org.finos.morphir.runtime.ToMDMConcept.*
 
 object DefaultsTestingSpec extends MorphirBaseSpec {
   val path =
@@ -28,7 +29,8 @@ object DefaultsTestingSpec extends MorphirBaseSpec {
 
   def getConcept(fqn: FQName) =
     ZIO.serviceWithZIO[(Distribution, TypedMorphirRuntime)] { (dist, _) =>
-      ZIO.succeed(EvaluatorQuick.typeToConcept(Type.reference(fqn, List()), Distributions(dist), Map.empty))
+      ZIO.fromEither(Type.reference(fqn, List()).concept(Distributions(dist), Map.empty))
+
     }
 
   def spec = suite("MDM Defaults Tests")(

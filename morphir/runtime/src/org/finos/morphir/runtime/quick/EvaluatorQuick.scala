@@ -15,6 +15,7 @@ import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.CodeLocation
 import org.finos.morphir.ir.AccessControlled
 import org.finos.morphir.runtime.exports.*
+import org.finos.morphir.runtime.ToMDMConcept.*;
 import org.finos.morphir.runtime.services.sdk.*
 import zio.Chunk
 
@@ -39,80 +40,15 @@ object EvaluatorQuick {
       dists: Distributions
   ): Data = {
     // Does type-checking when producing MDM concept so want to catch typechecking first
-    val concept = typeToConcept(value.attributes, dists, Map())
+    val concept = value.attributes.concept(dists, Map()) match {
+      case Left(err)    => throw new BadReturnType(value.attributes, err.getMessage())
+      case Right(value) => value
+    }
     // Run the evaluation loop
     val result = Loop(globals).loop(value, Store.empty, CodeLocation.EntryPoint)
     resultToMDM(result, concept)
   }
 
-  def typeToConcept(tpe: Type.Type[Unit], dists: Distributions, boundTypes: Map[Name, Concept]): Concept =
-    tpe match {
-      case TT.ExtensibleRecord(_, _, _) =>
-        throw NotImplemented("Extensible records not supported for Morphir data model.")
-      case TT.Function(_, _, _) =>
-        throw UnsupportedType(
-          tpe,
-          """Function type found in return from entry point.
-            |Was there a function nested beneath the type your entry point returns?
-            |""".stripMargin
-        )
-      case TT.Record(_, fields) => Concept.Struct(fields.map(field =>
-          (Label(field.name.toCamelCase), typeToConcept(field.data, dists, boundTypes))
-        ).toList)
-      case IntRef()       => Concept.Int32
-      case Int16Ref()     => Concept.Int16
-      case Int32Ref()     => Concept.Int32
-      case Int64Ref()     => Concept.Int64
-      case StringRef()    => Concept.String
-      case BoolRef()      => Concept.Boolean
-      case CharRef()      => Concept.Char
-      case FloatRef()     => Concept.Float
-      case DecimalRef()   => Concept.Decimal
-      case LocalDateRef() => Concept.LocalDate
-      case LocalTimeRef() => Concept.LocalTime
-      case OrderRef()     => Concept.Order
-      case MonthRef()     => Concept.Month
-      case DayOfWeekRef() => Concept.DayOfWeek
-
-      case ResultRef(errType, okType) =>
-        Concept.Result(typeToConcept(errType, dists, boundTypes), typeToConcept(okType, dists, boundTypes))
-      case ListRef(elementType) =>
-        Concept.List(typeToConcept(elementType, dists, boundTypes))
-      case MaybeRef(elementType) =>
-        Concept.Optional(typeToConcept(elementType, dists, boundTypes))
-      case DictRef(keyType, valType) =>
-        Concept.Map(typeToConcept(keyType, dists, boundTypes), typeToConcept(valType, dists, boundTypes))
-      case SetRef(elementType) =>
-        Concept.Set(typeToConcept(elementType, dists, boundTypes))
-
-      case TT.Reference(_, typeName, typeArgs) =>
-        val lookedUp    = dists.lookupTypeDefinition(typeName.packagePath, typeName.modulePath, typeName.localName)
-        val conceptArgs = typeArgs.map(typeToConcept(_, dists, boundTypes))
-        lookedUp match {
-          case Right(Type.Definition.TypeAlias(typeParams, expr)) =>
-            val newBindings = typeParams.zip(conceptArgs).toMap
-            typeToConcept(expr, dists, newBindings) match {
-              case Concept.Struct(fields) => Concept.Record(typeName, fields)
-              case other                  => Concept.Alias(typeName, other)
-            }
-          case Right(Type.Definition.CustomType(typeParams, AccessControlled(_, ctors))) =>
-            val newBindings = typeParams.zip(conceptArgs).toMap
-            val cases = ctors.toMap.toList.map { case (caseName, args) =>
-              val argTuples = args.map { case (argName: Name, argType: Type.UType) =>
-                (EnumLabel.Named(argName.toCamelCase), typeToConcept(argType, dists, newBindings))
-              }
-              val conceptName: String                  = caseName.toTitleCase
-              val concepts: List[(EnumLabel, Concept)] = argTuples.toList
-              Concept.Enum.Case(Label(conceptName), concepts)
-            }
-            Concept.Enum(typeName, cases)
-          case Left(err) => throw err.withContext("Error finding type alias defined in entry point function")
-        }
-      case TT.Tuple(_, elements) =>
-        Concept.Tuple(elements.map(element => typeToConcept(element, dists, boundTypes)).toList)
-      case TT.Unit(_)           => Concept.Unit
-      case TT.Variable(_, name) => boundTypes(name)
-    }
   def resultAndConceptToData(result: RTValue, concept: Concept): Data = {
     import RTValueToMDMError.*
     (concept, result) match {

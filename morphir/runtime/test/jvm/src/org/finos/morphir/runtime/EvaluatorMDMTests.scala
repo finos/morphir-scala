@@ -3614,8 +3614,8 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
           "sdkAddTest",
           List(Data.String("a"))
         ) {
-          case TopLevelError(_, _, _: UnsupportedType) => assertTrue(true)
-          case _                                       => assertNever(s"Unexpected exception type was thrown")
+          case TopLevelError(_, _, _: BadReturnType) => assertTrue(true)
+          case _                                     => assertNever(s"Unexpected exception type was thrown")
         },
         testExceptionMultiple("InferenceConflict Test")(
           "exceptionTests",
