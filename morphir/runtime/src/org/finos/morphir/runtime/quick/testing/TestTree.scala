@@ -286,62 +286,6 @@ private[runtime] object TestSet {
       genValues(module.pkgName, module.modName, module.tests)
     }.toMap
 
-  // def extractTestResultsOld(testSet: List[ModuleTests[SingleTestResult]]): Map[FQName, String] =
-  //   testSet.map { module =>
-  //     def genValues(
-  //         packageName: PackageName,
-  //         moduleName: ModuleName,
-  //         tests: List[TestTree[SingleTestResult]]
-  //     ): Map[FQName, String] =
-  //       tests.collect {
-  //         case TestTree.Describe(blockDesc: String, tests: List[TestTree[SingleTestResult]]) => tests.collect {
-  //             case TestTree.SingleTest(desc, SingleTestResult.Passed) =>
-  //               FQName(packageName, moduleName, Name.fromString(desc)) -> "PASSED"
-  //             case TestTree.SingleTest(desc, SingleTestResult.Failed(msg)) =>
-  //               FQName(packageName, moduleName, Name.fromString(desc) ) -> s"FAILED $msg"
-  //             case TestTree.SingleTest(desc, SingleTestResult.Err(err)) =>
-  //               FQName(packageName, moduleName, Name.fromString(desc) ) ->  s"ERROR $err"
-  //           }
-  //         case TestTree.SingleTest(desc, SingleTestResult.Passed) =>
-  //           Map(FQName(packageName, moduleName, Name.fromString(desc) ) -> "PASSED")
-  //         case TestTree.SingleTest(desc, SingleTestResult.Failed(msg)) =>
-  //           Map(FQName(packageName, moduleName, Name.fromString(desc) ) ->  s"FAILED $msg")
-  //         case TestTree.SingleTest(desc, SingleTestResult.Err(err)) =>
-  //           Map(FQName(packageName, moduleName, Name.fromString(desc) ) ->  s"ERROR $err")
-  //         case TestTree.Skip(desc, numSkipped) => Map(
-  //             FQName(packageName, moduleName, Name.fromString(desc) ) -> s"SKIPPED ($numSkipped tests skipped)"
-  //           )
-  //         case TestTree.Todo(desc) => Map(FQName(packageName, moduleName, Name.fromString(desc) ) -> s"TODO")
-  //         case TestTree.Error(desc, err) =>
-  //           Map(FQName(packageName, moduleName, Name.fromString(desc) ) -> s"TEST_ERROR $err")
-  //       }
-
-  // def handleNestedConcat(
-  //     packageName: PackageName,
-  //     moduleName: ModuleName,
-  //     tests: List[TestTree[SingleTestResult]]
-  // ): Map[FQName, String] =
-  //   module.tests.collect {
-  //     case TestTree.Describe(blockDesc: String, tests: List[TestTree[SingleTestResult]]) => tests.collect {
-  //         case TestTree.Concat(tests: List[TestTree[SingleTestResult]]) => tests.collect {
-  //             case TestTree.SingleTest(desc, SingleTestResult.Passed) =>
-  //               FQName(packageName, moduleName, Name.fromString(desc) ) -> "PASSED"
-  //             case TestTree.SingleTest(desc, SingleTestResult.Failed(msg)) =>
-  //               FQName(packageName, moduleName, Name.fromString(desc) ) -> s"FAILED $msg"
-  //             case TestTree.SingleTest(desc, SingleTestResult.Err(err)) =>
-  //               FQName(packageName, moduleName, Name.fromString(desc) ) -> s"ERROR $err"
-  //           }
-  //       }
-  //   }.flatten.flatten.toMap
-
-  // genValues(module.pkgName, module.modName, module.tests)
-  //  ++ handleNestedConcat(
-  //   module.pkgName,
-  //   module.modName,
-  //   module.tests
-  // )
-  // genValues(module.pkgName, module.modName, module.tests)
-  // }
 
   /**
    * Runs all of the user-defined thunks Note that
