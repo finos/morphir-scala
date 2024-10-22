@@ -252,11 +252,11 @@ private[runtime] object TestSet {
       toReport(testSet),
       testSet.modules.map(module => (module.pkgName, module.modName) -> ModuleTests.getCounts(module)).toMap,
       coverageInfo,
-      extractTestResults(testSet.modules)
+      extractTestResults(testSet)
     )
 
-  def extractTestResults(testSet: List[ModuleTests[SingleTestResult]]): Map[FQName, String] =
-    testSet.flatMap { module =>
+  def extractTestResults(testSet: TestSet[SingleTestResult]): Map[FQName, String] =
+    testSet.modules.flatMap { module =>
       def genValues(
           packageName: PackageName,
           moduleName: ModuleName,
@@ -285,7 +285,6 @@ private[runtime] object TestSet {
 
       genValues(module.pkgName, module.modName, module.tests)
     }.toMap
-
 
   /**
    * Runs all of the user-defined thunks Note that
