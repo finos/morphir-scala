@@ -10,7 +10,7 @@ case class TestSummary(
     report: String,
     countsByModule: Map[(PackageName, ModuleName), TestResultCounts],
     private val coverage: CoverageInfo,
-    private val individualTestResults: Map[(PackageName, ModuleName), Map[String, String]]
+    private val individualTestResults: Map[FQName, String]
 ) {
   def overallCounts = countsByModule.values.foldLeft(TestResultCounts.empty) { case (acc, next) => acc.plus(next) }
   def countsAtModule(pkgName: PackageName, modName: ModuleName): Option[TestResultCounts] =

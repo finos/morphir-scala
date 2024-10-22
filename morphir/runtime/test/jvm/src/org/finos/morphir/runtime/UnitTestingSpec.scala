@@ -53,15 +53,6 @@ object UnitTestingSpec extends MorphirBaseSpec {
     }
   }
 
-  def individualTestResults(packageName: String, moduleName: String) = {
-    val pkgName = PackageName.fromString(packageName)
-    val modName = ModuleName.fromString(moduleName)
-    getTestSummary.map { summary =>
-      val allResults = summary.getAllTestResults
-      allResults.getOrElse((pkgName, modName), Map.empty)
-    }
-  }
-
   def spec = suite("Unit Testing Framework Tests")(
     suite("Failing Project")(
       test("Show Results (for human readability check - ignore)") {
@@ -118,6 +109,11 @@ object UnitTestingSpec extends MorphirBaseSpec {
               uncovered = 0
             ))
           }
+        },
+        test("Test results are captured") {
+          getTestSummary.map { result =>
+            assertTrue(result.getAllTestResults.size == 65)
+          }
         }
       ),
       suite("Modules Correct")(
@@ -136,12 +132,6 @@ object UnitTestingSpec extends MorphirBaseSpec {
           moduleCounts("ExampleTests", "FailingModuleOne").map { counts =>
             assertTrue(counts.map(_.result) == Some(OverallStatus.Failed))
           }
-        },
-        test("Module Two individualTestResults") {
-          val expectedCountModuleTwo = 6
-          for {
-            results <- individualTestResults("ExampleTests", "FailingModuleTwo")
-          } yield assertTrue(results.size == expectedCountModuleTwo)
         },
         test("Module Two Counts") {
           moduleCounts("ExampleTests", "FailingModuleTwo").map { counts =>
@@ -185,12 +175,6 @@ object UnitTestingSpec extends MorphirBaseSpec {
               todo = 0
             )))
           }
-        },
-        test("Passing Module  individualTestResults") {
-          val expectedCountPassingModule = 18
-          for {
-            results <- individualTestResults("ExampleTests", "PassingModule")
-          } yield assertTrue(results.size == expectedCountPassingModule)
         },
         test("Passing Module Status") {
           moduleCounts("ExampleTests", "PassingModule").map { counts =>
