@@ -8,6 +8,7 @@ import org.finos.morphir.runtime.quick.*
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.ErrorUtils.indentBlock
+import org.finos.morphir.runtime.quick.testing.TestTree.SingleTest
 
 /**
  * This trait represents the tree of any defined Test type It is parameterized on the object stored, which changes over
@@ -255,31 +256,34 @@ private[runtime] object TestSet {
       extractTestResults(testSet)
     )
 
-  def extractTestResults(testSet: TestSet[SingleTestResult]): Map[FQName, String] =
+  def extractTestResults(testSet: TestSet[SingleTestResult]): Map[FQName, SingleTestResult] =
     testSet.modules.flatMap { module =>
       def genValues(
           packageName: PackageName,
           moduleName: ModuleName,
           tests: List[TestTree[SingleTestResult]]
-      ): List[(FQName, String)] =
+      ): List[(FQName, SingleTestResult)] =
         tests.flatMap {
           case TestTree.SingleTest(desc, SingleTestResult.Passed) =>
-            List(FQName(packageName, moduleName, Name.fromString(desc)) -> "PASSED")
+            List(FQName(packageName, moduleName, Name.fromString(desc)) -> SingleTestResult.Passed)
           case TestTree.SingleTest(desc, SingleTestResult.Failed(msg)) =>
-            List(FQName(packageName, moduleName, Name.fromString(desc)) -> s"FAILED $msg")
+            List(FQName(packageName, moduleName, Name.fromString(desc)) -> SingleTestResult.Failed(msg))
           case TestTree.SingleTest(desc, SingleTestResult.Err(err)) =>
-            List(FQName(packageName, moduleName, Name.fromString(desc)) -> s"ERROR $err")
+            List(FQName(packageName, moduleName, Name.fromString(desc)) -> SingleTestResult.Err(err))
           case TestTree.Skip(desc, numSkipped) =>
-            List(FQName(packageName, moduleName, Name.fromString(desc)) -> s"SKIPPED ($numSkipped tests skipped)")
+            List(FQName(packageName, moduleName, Name.fromString(desc)) -> SingleTestResult.Failed(
+              s"$numSkipped tests skipped"
+            ))
           case TestTree.Todo(desc) =>
-            List(FQName(packageName, moduleName, Name.fromString(desc)) -> "TODO")
+            List(FQName(packageName, moduleName, Name.fromString(desc)) -> SingleTestResult.Failed(s"TODO $desc"))
           case TestTree.Error(desc, err) =>
-            List(FQName(packageName, moduleName, Name.fromString(desc)) -> s"TEST_ERROR $err")
+            List(FQName(packageName, moduleName, Name.fromString(desc)) -> SingleTestResult.Err(err))
           case TestTree.Describe(blockDesc, nestedTests) =>
             genValues(packageName, moduleName, nestedTests)
           case TestTree.Concat(nestedTests) =>
             genValues(packageName, moduleName, nestedTests)
-          case TestTree.Only(nestedTest) => List(FQName(packageName, moduleName, Name.fromString("Only")) -> "ONLY")
+          case TestTree.Only(nestedTest) =>
+            genValues(packageName, moduleName, List(nestedTest))
 
         }
 
