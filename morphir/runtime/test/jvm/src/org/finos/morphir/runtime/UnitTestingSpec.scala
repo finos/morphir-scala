@@ -57,7 +57,6 @@ object UnitTestingSpec extends MorphirBaseSpec {
     suite("Failing Project")(
       test("Show Results (for human readability check - ignore)") {
         getTestSummary.map { result =>
-          println(result)
           assertTrue(false)
         }
       } @@ TestAspect.ignore,
@@ -108,6 +107,11 @@ object UnitTestingSpec extends MorphirBaseSpec {
               covered = 11,
               uncovered = 0
             ))
+          }
+        },
+        test("Test results are captured") {
+          getTestSummary.map { result =>
+            assertTrue(result.getAllTestResults.size == 65)
           }
         }
       ),
