@@ -227,7 +227,7 @@ object Versions {
   val `tasty-query`              = "0.5.6"
   val upickle                    = "3.0.0-M1"
   val zio                        = "2.1.11"
-  val `zio-cli`                  = "0.5.0"
+  val `zio-cli`                  = "0.7.0"
   val `zio-config`               = "4.0.2"
   val `zio-interop-cats`         = "23.1.0.3"
   val `zio-json`                 = "0.7.3"
