@@ -55,13 +55,11 @@ object ListSDK {
 
   val map = DynamicNativeFunction2("map") {
     (ctx: NativeContext) => (f: RTValue.Function, listRaw: RTValue.List) =>
-      {
-        val out =
-          listRaw.value.map(elem =>
-            ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
-          )
-        RTValue.List(out)
-      }
+      val out =
+        listRaw.value.map(elem =>
+          ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
+        )
+      RTValue.List(out)
   }
 
   val any = DynamicNativeFunction2("any") {
@@ -74,14 +72,12 @@ object ListSDK {
       //     [] -> False
       //     x :: xs -> if isOkay x then True else any isOkay xs
       (isOkay: RTValue.Function, listRaw: RTValue.List) =>
-        {
-          val out =
-            listRaw.value.exists { elem =>
-              val result = context.evaluator.handleApplyResult(Type.UType.Unit(()), isOkay, elem)
-              RTValue.coerceBoolean(result).value
-            }
-          RTValue.Primitive.Boolean(out)
-        }
+        val out =
+          listRaw.value.exists { elem =>
+            val result = context.evaluator.handleApplyResult(Type.UType.Unit(()), isOkay, elem)
+            RTValue.coerceBoolean(result).value
+          }
+        RTValue.Primitive.Boolean(out)
   }
 
   val maximum = DynamicNativeFunction1("maximum") {
@@ -111,17 +107,15 @@ object ListSDK {
       // partition : (a -> Bool) -> List a -> (List a, List a)
       // partition pred list = ...
       (pred: RTValue.Function, listRaw: RTValue.List) =>
-        {
-          val (left, right) =
-            listRaw.value.partition { elem =>
-              val result = context.evaluator.handleApplyResult(Type.UType.Unit(()), pred, elem)
-              RTValue.coerceBoolean(result).value
-            }
-          RTValue.Tuple(
-            RTValue.List(left),
-            RTValue.List(right)
-          )
-        }
+        val (left, right) =
+          listRaw.value.partition { elem =>
+            val result = context.evaluator.handleApplyResult(Type.UType.Unit(()), pred, elem)
+            RTValue.coerceBoolean(result).value
+          }
+        RTValue.Tuple(
+          RTValue.List(left),
+          RTValue.List(right)
+        )
   }
 
   val foldl = DynamicNativeFunction3("foldl") {
@@ -131,14 +125,12 @@ object ListSDK {
       // foldl : (a -> b -> b) -> b -> List a -> b
       // foldl func first list
       (func: RTValue.Function, first: RTValue, listRaw: RTValue.List) =>
-        {
-          val out =
-            listRaw.value.foldLeft(first) {
-              (b, a) => // Note that elm does (a, b) => b, scala does it in the opposite way
-                context.evaluator.handleApplyResult2(Type.UType.Unit(()), func, a, b)
-            }
-          out
-        }
+        val out =
+          listRaw.value.foldLeft(first) {
+            (b, a) => // Note that elm does (a, b) => b, scala does it in the opposite way
+              context.evaluator.handleApplyResult2(Type.UType.Unit(()), func, a, b)
+          }
+        out
   }
 
   val foldr = DynamicNativeFunction3("foldr") {
@@ -160,25 +152,21 @@ object ListSDK {
 
   val all = DynamicNativeFunction2("all") {
     (context: NativeContext) => (predicate: RTValue.Function, list: RTValue.List) =>
-      {
-        val result = list.elements.forall { elem =>
-          context.evaluator.handleApplyResult(Type.UType.Unit(()), predicate, elem)
-            .coerceBoolean
-            .value
-        }
-        RTValue.Primitive.Boolean(result)
+      val result = list.elements.forall { elem =>
+        context.evaluator.handleApplyResult(Type.UType.Unit(()), predicate, elem)
+          .coerceBoolean
+          .value
       }
+      RTValue.Primitive.Boolean(result)
   }
 
   val concatMap = DynamicNativeFunction2("concatMap") {
     (ctx: NativeContext) => (f: RTValue.Function, listRaw: RTValue.List) =>
-      {
-        val out = listRaw.value.flatMap { elem =>
-          val resultListRaw = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
-          RTValue.coerceList(resultListRaw).elements
-        }
-        RTValue.List(out)
+      val out = listRaw.value.flatMap { elem =>
+        val resultListRaw = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f, elem)
+        RTValue.coerceList(resultListRaw).elements
       }
+      RTValue.List(out)
   }
 
   val drop = DynamicNativeFunction2("drop") {
@@ -373,33 +361,27 @@ object ListSDK {
 
   val map2 = DynamicNativeFunction3("map2") {
     (ctx: NativeContext) => (f: RTValue.Function, aList: RTValue.List, bList: RTValue.List) =>
-      {
-        val result = aList.value.zip(bList.value) map { case (a, b) =>
-          ctx.evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, b)
-        }
-        RTValue.List(result)
+      val result = aList.value.zip(bList.value) map { case (a, b) =>
+        ctx.evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, b)
       }
+      RTValue.List(result)
   }
 
   val map3 = DynamicNativeFunction4("map3") {
     (ctx: NativeContext) => (f: RTValue.Function, aList: RTValue.List, bList: RTValue.List, cList: RTValue.List) =>
-      {
-        val result = aList.value.zip(bList.value.zip(cList.value)) map { case (a, (b, c)) =>
-          ctx.evaluator.handleApplyResult3(Type.UType.Unit(()), f, a, b, c)
-        }
-        RTValue.List(result)
+      val result = aList.value.zip(bList.value.zip(cList.value)) map { case (a, (b, c)) =>
+        ctx.evaluator.handleApplyResult3(Type.UType.Unit(()), f, a, b, c)
       }
+      RTValue.List(result)
   }
 
   val map4 = DynamicNativeFunction5("map4") {
     (ctx: NativeContext) =>
       (f: RTValue.Function, aList: RTValue.List, bList: RTValue.List, cList: RTValue.List, dList: RTValue.List) =>
-        {
-          val result = aList.value.zip(bList.value.zip(cList.value.zip(dList.value))) map { case (a, (b, (c, d))) =>
-            ctx.evaluator.handleApplyResult4(Type.UType.Unit(()), f, a, b, c, d)
-          }
-          RTValue.List(result)
+        val result = aList.value.zip(bList.value.zip(cList.value.zip(dList.value))) map { case (a, (b, (c, d))) =>
+          ctx.evaluator.handleApplyResult4(Type.UType.Unit(()), f, a, b, c, d)
         }
+        RTValue.List(result)
   }
 
   val map5 = DynamicNativeFunction6("map5") {
@@ -411,12 +393,10 @@ object ListSDK {
         dList: RTValue.List,
         eList: RTValue.List
     ) =>
-      {
-        val result = aList.value.zip(bList.value.zip(cList.value.zip(dList.value.zip(eList.value)))) map {
-          case (a, (b, (c, (d, e)))) =>
-            ctx.evaluator.handleApplyResult5(Type.UType.Unit(()), f, a, b, c, d, e)
-        }
-        RTValue.List(result)
+      val result = aList.value.zip(bList.value.zip(cList.value.zip(dList.value.zip(eList.value)))) map {
+        case (a, (b, (c, (d, e)))) =>
+          ctx.evaluator.handleApplyResult5(Type.UType.Unit(()), f, a, b, c, d, e)
       }
+      RTValue.List(result)
   }
 }

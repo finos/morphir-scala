@@ -1045,7 +1045,7 @@ object Dumper extends DumperVersionSpecific with DumperSyntax {
       )
 
   /**
-   * The `Dumper`instance for `Nothing`. Note that since there are no values of type `Nothing` this `Dumper` instance
+   * The `Dumper` instance for `Nothing`. Note that since there are no values of type `Nothing` this `Dumper` instance
    * can never be called.
    */
   @nowarn

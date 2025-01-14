@@ -21,15 +21,13 @@ object DictSDK {
   val filter: SDKValue = SDKValue.SDKNativeInnerFunction {
     NativeFunctionSignatureAdv.Fun2 {
       (evaluator: InvokeableEvaluator) => (isGood: RTValue, dictRaw: RTValue) =>
-        {
-          val dictMap = dictRaw.coerceMap.value
-          val newDict =
-            dictMap.filter { case (k, v) =>
-              val result = evaluator.handleApplyResult2(Type.UType.Unit(()), isGood, k, v)
-              result.coerceBoolean.value
-            }
-          RTValue.Map(newDict)
-        }
+        val dictMap = dictRaw.coerceMap.value
+        val newDict =
+          dictMap.filter { case (k, v) =>
+            val result = evaluator.handleApplyResult2(Type.UType.Unit(()), isGood, k, v)
+            result.coerceBoolean.value
+          }
+        RTValue.Map(newDict)
     }
   }
 

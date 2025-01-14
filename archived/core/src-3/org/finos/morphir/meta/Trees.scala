@@ -6,7 +6,9 @@ import scala.quoted._
 
 object Trees:
   object TransformTree:
-    def apply(using Quotes)(rawTree: quotes.reflect.Tree, owner: quotes.reflect.Symbol)(
+    def apply(using
+        Quotes
+    )(rawTree: quotes.reflect.Tree, owner: quotes.reflect.Symbol)(
         pf: PartialFunction[quotes.reflect.Tree, quotes.reflect.Tree]
     ) =
       import quotes.reflect._
@@ -35,7 +37,9 @@ object Trees:
       ).transformTree(rawTree)(owner).asInstanceOf[Tree]
 
   object Transform:
-    def apply(using Quotes)(term: quotes.reflect.Term, owner: quotes.reflect.Symbol)(
+    def apply(using
+        Quotes
+    )(term: quotes.reflect.Term, owner: quotes.reflect.Symbol)(
         pf: PartialFunction[quotes.reflect.Term, quotes.reflect.Term]
     ) =
       import quotes.reflect._
@@ -48,7 +52,9 @@ object Trees:
           pf.lift(tree).getOrElse(super.transformTerm(tree)(owner))
       ).transformTerm(term)(owner)
 
-  def traverse(using Quotes)(tree: quotes.reflect.Tree, owner: quotes.reflect.Symbol)(
+  def traverse(using
+      Quotes
+  )(tree: quotes.reflect.Tree, owner: quotes.reflect.Symbol)(
       pf: PartialFunction[quotes.reflect.Tree, Unit]
   ) =
     import quotes.reflect._
@@ -72,7 +78,9 @@ object Trees:
     r
   }
 
-  def replaceIdent(using Quotes)(
+  def replaceIdent(using
+      Quotes
+  )(
       tree: quotes.reflect.Term
   )(oldIdentSymbol: quotes.reflect.Symbol, newTerm: quotes.reflect.Term): quotes.reflect.Term = {
     import quotes.reflect._

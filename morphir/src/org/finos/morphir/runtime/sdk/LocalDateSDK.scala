@@ -23,52 +23,46 @@ object LocalDateSDK {
 
   val fromOrdinalDate = DynamicNativeFunction2("fromOrdinalDate") {
     (_: NativeContext) => (yearArg: RTValue.Primitive.Int, dayOfYearArg: RTValue.Primitive.Int) =>
-      {
-        val year      = yearArg.value.toInt
-        val dayOfYear = dayOfYearArg.value.toInt
+      val year      = yearArg.value.toInt
+      val dayOfYear = dayOfYearArg.value.toInt
 
-        val clampedYear = clamp(JYear.MIN_VALUE, JYear.MAX_VALUE)(year)
+      val clampedYear = clamp(JYear.MIN_VALUE, JYear.MAX_VALUE)(year)
 
-        val minDay           = 1
-        val maxDay           = if (JYear.of(clampedYear).isLeap) 366 else 365
-        val clampedDayOfYear = clamp(minDay, maxDay)(dayOfYear)
+      val minDay           = 1
+      val maxDay           = if (JYear.of(clampedYear).isLeap) 366 else 365
+      val clampedDayOfYear = clamp(minDay, maxDay)(dayOfYear)
 
-        RTValue.LocalDate(JLocalDate.ofYearDay(clampedYear, clampedDayOfYear))
-      }
+      RTValue.LocalDate(JLocalDate.ofYearDay(clampedYear, clampedDayOfYear))
   }
 
   val fromParts = DynamicNativeFunction3("fromParts") {
     (_: NativeContext) =>
       (yearArg: RTValue.Primitive.Int, monthArg: RTValue.Primitive.Int, dayArg: RTValue.Primitive.Int) =>
-        {
-          val year  = yearArg.value.toInt
-          val month = monthArg.value.toInt
-          val day   = dayArg.value.toInt
+        val year  = yearArg.value.toInt
+        val month = monthArg.value.toInt
+        val day   = dayArg.value.toInt
 
-          val maybeLocalDate   = tryOption(java.time.LocalDate.of(year, month, day))
-          val maybeLocalDateRt = maybeLocalDate.map(RTValue.LocalDate.apply)
+        val maybeLocalDate   = tryOption(java.time.LocalDate.of(year, month, day))
+        val maybeLocalDateRt = maybeLocalDate.map(RTValue.LocalDate.apply)
 
-          MaybeSDK.optionToMaybe(maybeLocalDateRt)
-        }
+        MaybeSDK.optionToMaybe(maybeLocalDateRt)
   }
 
   val fromCalendarDate = DynamicNativeFunction3("fromCalendarDate") {
     (_: NativeContext) => (yearArg: RTValue.Primitive.Int, monthArg: RTValue, dayArg: RTValue.Primitive.Int) =>
-      {
-        val year: Int  = yearArg.value.toInt
-        val month: Int = RTValue.Month.coerceJavaMonth(monthArg).getValue
-        val day: Int   = dayArg.value.toInt
+      val year: Int  = yearArg.value.toInt
+      val month: Int = RTValue.Month.coerceJavaMonth(monthArg).getValue
+      val day: Int   = dayArg.value.toInt
 
-        val clampedYear  = clamp(JYear.MIN_VALUE, JYear.MAX_VALUE)(year)
-        val clampedMonth = clamp(1, 12)(month)
+      val clampedYear  = clamp(JYear.MIN_VALUE, JYear.MAX_VALUE)(year)
+      val clampedMonth = clamp(1, 12)(month)
 
-        val clampedYearMonth = JYearMonth.of(clampedYear, month)
-        val minDay           = 1
-        val maxDay           = clampedYearMonth.atEndOfMonth.getDayOfMonth
-        val clampedDay       = clamp(minDay, maxDay)(day)
+      val clampedYearMonth = JYearMonth.of(clampedYear, month)
+      val minDay           = 1
+      val maxDay           = clampedYearMonth.atEndOfMonth.getDayOfMonth
+      val clampedDay       = clamp(minDay, maxDay)(day)
 
-        RTValue.LocalDate(JLocalDate.of(clampedYear, month, clampedDay))
-      }
+      RTValue.LocalDate(JLocalDate.of(clampedYear, month, clampedDay))
   }
 
   val addDays = DynamicNativeFunction2("addDays") {
@@ -88,12 +82,10 @@ object LocalDateSDK {
 
   val diffInDays = DynamicNativeFunction2("diffInDays") {
     (_: NativeContext) => (localDateArg1: RTValue.LocalDate, localDateArg2: RTValue.LocalDate) =>
-      {
-        val ld1        = localDateArg1.value
-        val ld2        = localDateArg2.value
-        val diffInDays = (ld2.toEpochDay - ld1.toEpochDay).toInt
-        RTValue.Primitive.Int(diffInDays)
-      }
+      val ld1        = localDateArg1.value
+      val ld2        = localDateArg2.value
+      val diffInDays = (ld2.toEpochDay - ld1.toEpochDay).toInt
+      RTValue.Primitive.Int(diffInDays)
   }
 
   val fromISO = DynamicNativeFunction1("fromISO") {
@@ -113,12 +105,11 @@ object LocalDateSDK {
         .orElse(maybeParse(JDateTimeFormatter.ISO_ORDINAL_DATE, isoStr))
 
     (_: NativeContext) =>
-      (isoArg: RTValue.Primitive.String) => {
+      (isoArg: RTValue.Primitive.String) =>
         val isoStr           = isoArg.value
         val maybeLocalDate   = elmCompatIsoParse(isoStr)
         val maybeLocalDateRT = maybeLocalDate.map(RTValue.LocalDate.apply)
         MaybeSDK.optionToMaybe(maybeLocalDateRT)
-      }
   }
 
   val year = DynamicNativeFunction1("year") {
@@ -149,67 +140,53 @@ object LocalDateSDK {
 
   val diffInWeeks = DynamicNativeFunction2("diffInWeeks") {
     (_: NativeContext) => (localDateArg1: RTValue.LocalDate, localDateArg2: RTValue.LocalDate) =>
-      {
-        val ld1         = localDateArg1.value
-        val ld2         = localDateArg2.value
-        val diffInWeeks = (ld2.toEpochDay - ld1.toEpochDay) / 7
-        RTValue.Primitive.Int(diffInWeeks.toInt)
-      }
+      val ld1         = localDateArg1.value
+      val ld2         = localDateArg2.value
+      val diffInWeeks = (ld2.toEpochDay - ld1.toEpochDay) / 7
+      RTValue.Primitive.Int(diffInWeeks.toInt)
   }
 
   val diffInMonths = DynamicNativeFunction2("diffInMonths") {
     (_: NativeContext) => (localDateArg1: RTValue.LocalDate, localDateArg2: RTValue.LocalDate) =>
-      {
-        val ld1          = localDateArg1.value
-        val ld2          = localDateArg2.value
-        val diffInMonths = (ld2.getYear - ld1.getYear) * 12 + ld2.getMonthValue - ld1.getMonthValue
-        RTValue.Primitive.Int(diffInMonths)
-      }
+      val ld1          = localDateArg1.value
+      val ld2          = localDateArg2.value
+      val diffInMonths = (ld2.getYear - ld1.getYear) * 12 + ld2.getMonthValue - ld1.getMonthValue
+      RTValue.Primitive.Int(diffInMonths)
   }
 
   val diffInYears = DynamicNativeFunction2("diffInYears") {
     (_: NativeContext) => (localDateArg1: RTValue.LocalDate, localDateArg2: RTValue.LocalDate) =>
-      {
-        val ld1         = localDateArg1.value
-        val ld2         = localDateArg2.value
-        val diffInYears = ld2.getYear - ld1.getYear
-        RTValue.Primitive.Int(diffInYears)
-      }
+      val ld1         = localDateArg1.value
+      val ld2         = localDateArg2.value
+      val diffInYears = ld2.getYear - ld1.getYear
+      RTValue.Primitive.Int(diffInYears)
   }
 
   val addMonths = DynamicNativeFunction2("addMonths") {
     (_: NativeContext) => (monthsArg: RTValue.Primitive.Int, localDateArg: RTValue.LocalDate) =>
-      {
-        val months       = monthsArg.value
-        val localDate    = localDateArg.value
-        val newLocalDate = localDate.plusMonths(months.toLong)
-        RTValue.LocalDate(newLocalDate)
-      }
+      val months       = monthsArg.value
+      val localDate    = localDateArg.value
+      val newLocalDate = localDate.plusMonths(months.toLong)
+      RTValue.LocalDate(newLocalDate)
   }
 
   val monthToInt = DynamicNativeFunction1("monthToInt") {
     (_: NativeContext) => (monthArg: RTValue) =>
-      {
-        val month = RTValue.Month.coerceJavaMonth(monthArg)
-        RTValue.Primitive.Int(month.getValue)
-      }
+      val month = RTValue.Month.coerceJavaMonth(monthArg)
+      RTValue.Primitive.Int(month.getValue)
   }
 
   val isWeekend = DynamicNativeFunction1("isWeekend") {
     (_: NativeContext) => (localDateArg: RTValue.LocalDate) =>
-      {
-        val dayOfWeek = localDateArg.value.getDayOfWeek
-        val isWeekend = dayOfWeek == JDayOfWeek.SATURDAY || dayOfWeek == JDayOfWeek.SUNDAY
-        RTValue.Primitive.Boolean(isWeekend)
-      }
+      val dayOfWeek = localDateArg.value.getDayOfWeek
+      val isWeekend = dayOfWeek == JDayOfWeek.SATURDAY || dayOfWeek == JDayOfWeek.SUNDAY
+      RTValue.Primitive.Boolean(isWeekend)
   }
 
   val isWeekday = DynamicNativeFunction1("isWeekday") {
     (_: NativeContext) => (localDateArg: RTValue.LocalDate) =>
-      {
-        val dayOfWeek = localDateArg.value.getDayOfWeek
-        val isWeekday = dayOfWeek != JDayOfWeek.SATURDAY && dayOfWeek != JDayOfWeek.SUNDAY
-        RTValue.Primitive.Boolean(isWeekday)
-      }
+      val dayOfWeek = localDateArg.value.getDayOfWeek
+      val isWeekday = dayOfWeek != JDayOfWeek.SATURDAY && dayOfWeek != JDayOfWeek.SUNDAY
+      RTValue.Primitive.Boolean(isWeekday)
   }
 }

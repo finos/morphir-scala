@@ -58,7 +58,7 @@ private[runtime] object TestTree {
   case class Only[T](test: TestTree[T]) extends TestTree[T]
 
   /**
-   * Once all the tests have been resolved and our leaves are `SingleTestResult`s, we can format these into a report
+   * Once all the tests have been resolved and our leaves are `SingleTestResult` s, we can format these into a report
    */
   def toReport(tree: TestTree[SingleTestResult]): String =
     tree match {
@@ -76,8 +76,8 @@ private[runtime] object TestTree {
     }
 
   /**
-   * Once all the tests have been resolved and our leaves are `SingleTestResult`s, we can get counts of how many passed,
-   * failed, were skipped, etc
+   * Once all the tests have been resolved and our leaves are `SingleTestResult` s, we can get counts of how many
+   * passed, failed, were skipped, etc
    */
   def getCounts(tree: TestTree[SingleTestResult]): TestResultCounts = {
     val empty = TestResultCounts.empty

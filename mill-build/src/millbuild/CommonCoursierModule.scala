@@ -15,7 +15,7 @@ trait CommonCoursierModule extends CoursierModule {
         }
         .getOrElse(dep)
       T.log.debug("****************************[END: Forced Versions]*****************************")
-      result 
+      result
     }
   }
 
