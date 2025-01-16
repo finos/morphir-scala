@@ -22,9 +22,9 @@ trait MorphirModule extends Module { self =>
     }
   }
 
-  def dist:T[Set[ArtifactRef]] = T {
-    val incrementalBuildFiles = incrementalMakeSourceFiles() 
-    val outputs = make()
+  def dist: T[Set[ArtifactRef]] = T {
+    val incrementalBuildFiles = incrementalMakeSourceFiles()
+    val outputs               = make()
 
     val distPath = distFolder().path
     if (!os.exists(distPath)) {
@@ -42,7 +42,7 @@ trait MorphirModule extends Module { self =>
 
       T.ctx().log.debug(s"Copying ${path} to $targetPath")
       try {
-        if(os.exists(path) && path != targetPath) {
+        if (os.exists(path) && path != targetPath) {
           os.copy.over(path, targetPath)
         }
         Option(artifact.withPath(targetPath))
@@ -56,15 +56,15 @@ trait MorphirModule extends Module { self =>
     }.collect { case Some(artifact) => artifact }
   }
 
-  final def distOutputDirs = T.sources (
-    dist().map{ case artifactRef:ArtifactRef => 
-      val path = artifactRef.path / os.up 
+  final def distOutputDirs = T.sources(
+    dist().map { case artifactRef: ArtifactRef =>
+      val path = artifactRef.path / os.up
       PathRef(path)
     }.toSeq
   )
 
   def distFolder: Target[PathRef] = T {
-    //PathRef(morphirProjectDirResolved().path / "dist")
+    // PathRef(morphirProjectDirResolved().path / "dist")
     morphirProjectDirResolved()
   }
 
@@ -72,14 +72,14 @@ trait MorphirModule extends Module { self =>
     millSourcePath
   }
 
-  def incrementalMakeSourceFiles = T{  
+  def incrementalMakeSourceFiles = T {
     val sourceFileNames = Set("morphir-hashes.json", "morphir-ir.json")
     for {
-      source <- incrementalMakeSources()      
+      source         <- incrementalMakeSources()
       sourceFileName <- sourceFileNames
       sourceFile = source.path / sourceFileName
       if os.exists(sourceFile)
-    } yield PathRef(sourceFile)    
+    } yield PathRef(sourceFile)
   }
 
   /// Use indentation in the generated JSON file.
@@ -112,7 +112,7 @@ trait MorphirModule extends Module { self =>
 
   def morphirProjectSourceFiles = T.sources {
     for {
-      source <- morphirProjectSources()
+      source         <- morphirProjectSources()
       sourceFileName <- morphirProjectSourceFileNames()
       sourceFile = source.path / sourceFileName
       if os.exists(sourceFile)
@@ -145,14 +145,15 @@ trait MorphirModule extends Module { self =>
   def morphirIrFilename = T("morphir-ir.json")
 
   def moduleId = T {
-   millModuleSegments.render 
-  }  
+    millModuleSegments.render
+  }
 
   def make: T[MakeOutputs] = T {
     val makeResult = morphirMake()
-    val artifacts:Set[ArtifactRef] = Set(ArtifactRef.morphirIR(makeResult.irFilePath, "morphir", "ir")) ++ makeResult.morphirHashesPath.map { path =>
-      Seq(ArtifactRef.morphirHashes(path, "morphir", "hashes", "incremental"))
-    }.getOrElse(Seq.empty).toSet
+    val artifacts: Set[ArtifactRef] =
+      Set(ArtifactRef.morphirIR(makeResult.irFilePath, "morphir", "ir")) ++ makeResult.morphirHashesPath.map { path =>
+        Seq(ArtifactRef.morphirHashes(path, "morphir", "hashes", "incremental"))
+      }.getOrElse(Seq.empty).toSet
 
     MakeOutputs(moduleId(), artifacts)
   }
@@ -166,8 +167,6 @@ trait MorphirModule extends Module { self =>
       fallbackCli = None
     )
   }
-
-
 
   /**
    * The direct dependencies of this module. This is meant to be overridden to add dependencies. To read the value, you

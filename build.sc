@@ -1,9 +1,9 @@
 import $meta._
 import $ivy.`de.tototec::de.tobiasroeser.mill.integrationtest::0.7.1`
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.1`
 import $ivy.`com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION`
 import $ivy.`com.lihaoyi::mill-contrib-scoverage:$MILL_VERSION`
-import $ivy.`com.carlosedp::mill-aliases::0.5.0`
+import $ivy.`com.carlosedp::mill-aliases::0.6.0`
 import $ivy.`com.github.lolgab::mill-mima::0.1.1`
 import $file.project.deps, deps.{Deps, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
 import $file.project.modules.docs, docs.{Docusaurus2Module, MDocModule}

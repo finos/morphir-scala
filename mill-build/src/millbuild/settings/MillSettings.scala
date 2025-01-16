@@ -13,6 +13,6 @@ case class MillSettings(
 object MillSettings {
   val config: Config[MillSettings]                          = deriveConfig[MillSettings]
   lazy val default: MillSettings                            = MillSettings()
-  lazy val defaultScalaVersion                              = "2.13.15"
+  lazy val defaultScalaVersion                              = "2.13.16"
   implicit val rw: upickle.default.ReadWriter[MillSettings] = upickle.default.macroRW
 }
