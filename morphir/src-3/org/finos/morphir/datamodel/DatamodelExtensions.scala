@@ -3,16 +3,18 @@ package org.finos.morphir.datamodel
 import scala.deriving.*
 import org.finos.morphir.datamodel.CustomDeriver
 
+class AliasedCustomDeriver[A](da: CustomDeriver[A], alias: String) extends CustomDeriver[A] {
+  override def derive(value: A): Data =
+    Data.Aliased(da.derive(value), this.concept)
+
+  override def concept: Concept.Alias = {
+    val (pname, _, _) = DeriverMacros.summonNamespaceOrFail
+    Concept.Alias(pname % alias, da.concept)
+  }
+}
+
 extension [A](da: CustomDeriver[A])
-  inline def aliasedAs(alias: String) =
-    new CustomDeriver[A] {
-      override def derive(value: A): Data =
-        Data.Aliased(da.derive(value), this.concept)
-      override def concept: Concept.Alias = {
-        val (pname, _, _) = DeriverMacros.summonNamespaceOrFail
-        Concept.Alias(pname % alias, da.concept)
-      }
-    }
+  inline def aliasedAs(alias: String) = new AliasedCustomDeriver[A](da, alias)
 
 extension (r: Data.Record.type) {
   inline def withImplicitFQN(name: String, fieldsRaw: (String, Data)*): Data.Record = {
