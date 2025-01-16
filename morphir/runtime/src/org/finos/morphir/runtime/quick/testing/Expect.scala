@@ -417,13 +417,11 @@ private[runtime] object Expect {
     def arity    = 2;
     def dynamicFunction = DynamicNativeFunction2("equalLists") {
       (_: NativeContext) => (l1: RT.List, l2: RT.List) =>
-        {
-          val (elems1, elems2) = (l1.elements, l2.elements)
-          if (elems1 == elems2) passedRT
-          else {
-            val compare = Compare(elems1, elems2)
-            failedRT(explainFailure(elems1, elems2))
-          }
+        val (elems1, elems2) = (l1.elements, l2.elements)
+        if (elems1 == elems2) passedRT
+        else {
+          val compare = Compare(elems1, elems2)
+          failedRT(explainFailure(elems1, elems2))
         }
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
@@ -470,11 +468,9 @@ private[runtime] object Expect {
     def arity    = 2
     def dynamicFunction = DynamicNativeFunction2("equalSets") {
       (_: NativeContext) => (l1: RT.Set, l2: RT.Set) =>
-        {
-          val (elems1, elems2) = (l1.elements.toSet, l2.elements.toSet)
-          if (elems1 == elems2) passedRT
-          else failedRT(explainFailure(elems1, elems2))
-        }
+        val (elems1, elems2) = (l1.elements.toSet, l2.elements.toSet)
+        if (elems1 == elems2) passedRT
+        else failedRT(explainFailure(elems1, elems2))
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def explainFailure(l1: Set[RT], l2: Set[RT]): String = {
@@ -554,14 +550,12 @@ private[runtime] object Expect {
      */
     def dynamicFunction = DynamicNativeFunction2("onFail") {
       (context: NativeContext) => (msg: RT.Primitive.String, inner: RT) =>
-        {
-          val globals = context.evaluator.asInstanceOf[Loop].globals
-          val result  = evaluatedExpectToResult(globals, inner)
-          result match {
-            case SingleTestResult.Failed(_) => failedRT(msg.value)
-            case SingleTestResult.Passed    => passedRT
-            case SingleTestResult.Err(err)  => throw err
-          }
+        val globals = context.evaluator.asInstanceOf[Loop].globals
+        val result  = evaluatedExpectToResult(globals, inner)
+        result match {
+          case SingleTestResult.Failed(_) => failedRT(msg.value)
+          case SingleTestResult.Passed    => passedRT
+          case SingleTestResult.Err(err)  => throw err
         }
     }
     def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize

@@ -80,7 +80,7 @@ object Deps {
       }
 
       case object magnolia_3 {
-        val magnolia = ivy"com.softwaremill.magnolia1_3::magnolia::1.3.7"
+        val magnolia = ivy"com.softwaremill.magnolia1_3::magnolia::1.3.9"
       }
     }
   }
@@ -227,8 +227,9 @@ object Versions {
   val `tasty-query`              = "0.5.6"
   val upickle                    = "3.0.0-M1"
   val zio                        = "2.1.11"
-  val `zio-cli`                  = "0.5.0"
+
   val `zio-config`               = "4.0.3"
+  val `zio-cli`                  = "0.7.0"
   val `zio-interop-cats`         = "23.1.0.3"
   val `zio-json`                 = "0.7.3"
   val `zio-nio`                  = "2.0.2"
@@ -241,12 +242,12 @@ object Versions {
 object ScalaVersions {
   import DevMode._
   val all      = if (devMode) Seq(scala3x) else Seq(scala213, scala3x)
-  def scala213 = "2.13.15"
+  def scala213 = "2.13.16"
   def scala3x  = "3.3.3"
 
   def scalaJSVersion     = "1.16.0"
   def scalaNativeVersion = "0.4.17"
-  def millScalaVersion   = "2.13.15"
+  def millScalaVersion   = "2.13.16"
 }
 
 object MillVersions {

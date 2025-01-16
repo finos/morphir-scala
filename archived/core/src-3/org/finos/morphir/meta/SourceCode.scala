@@ -62,19 +62,25 @@ object SyntaxHighlight {
  */
 object SourceCode {
 
-  def showTree(using Quotes)(
+  def showTree(using
+      Quotes
+  )(
       tree: quotes.reflect.Tree
   )(showDetails: ShowDetails, syntaxHighlight: SyntaxHighlight, fullNames: Boolean): util.Try[String] =
     util.Try(new SourceCodePrinter[quotes.type](showDetails, syntaxHighlight, fullNames).printTree(tree).result())
 
-  def showType(using Quotes)(
+  def showType(using
+      Quotes
+  )(
       tpe: quotes.reflect.TypeRepr
   )(showDetails: ShowDetails, syntaxHighlight: SyntaxHighlight, fullNames: Boolean): util.Try[String] =
     util.Try(
       new SourceCodePrinter[quotes.type](showDetails, syntaxHighlight, fullNames).printType(tpe)(using None).result()
     )
 
-  def showConstant(using Quotes)(
+  def showConstant(using
+      Quotes
+  )(
       const: quotes.reflect.Constant
   )(showDetails: ShowDetails, syntaxHighlight: SyntaxHighlight, fullNames: Boolean): util.Try[String] =
     util.Try(new SourceCodePrinter[quotes.type](showDetails, syntaxHighlight, fullNames).printConstant(const).result())

@@ -73,22 +73,18 @@ object BasicsSDK {
 
   val abs = NumericFunction1("abs") {
     (numericHelpers: NumericHelpers[AnyNum], _) => (arg1: AnyNum) =>
-      {
-        val result = numericHelpers.numericHelper.abs(arg1)
-        numericHelpers.numericType.makeOrFail(result)
-      }
+      val result = numericHelpers.numericHelper.abs(arg1)
+      numericHelpers.numericType.makeOrFail(result)
   }.asNative1
 
   val clamp = NumericFunction3("clamp") {
     (numericHelpers: NumericHelpers[AnyNum], _) => (min: AnyNum, max: AnyNum, x: AnyNum) =>
-      {
-        val helper = numericHelpers.numericHelper
-        val result =
-          if (helper.lt(x, min)) min
-          else if (helper.lt(x, max)) x
-          else max
-        numericHelpers.numericType.makeOrFail(result)
-      }
+      val helper = numericHelpers.numericHelper
+      val result =
+        if (helper.lt(x, min)) min
+        else if (helper.lt(x, max)) x
+        else max
+      numericHelpers.numericType.makeOrFail(result)
   }.asNative3
 
   val power = DynamicNativeFunction2("power") {
@@ -106,10 +102,8 @@ object BasicsSDK {
     (numricHelpers: NumericHelpers[AnyNum], _) =>
       // Elm modBy is reversed: 1st arg is the divisor
       (arg1: AnyNum, arg2: AnyNum) =>
-        {
-          val output = numricHelpers.integralHelperOrThrow.rem(arg2, arg1)
-          numricHelpers.numericType.makeOrFail(output)
-        }
+        val output = numricHelpers.integralHelperOrThrow.rem(arg2, arg1)
+        numricHelpers.numericType.makeOrFail(output)
   }.asNative2
 
   /**
@@ -119,18 +113,16 @@ object BasicsSDK {
    */
   val remainderBy = NumericFunction2("remainderBy") {
     (numricHelpers: NumericHelpers[AnyNum], _) => (divisor: AnyNum, numerator: AnyNum) =>
-      {
-        val helper                = numricHelpers.integralHelperOrThrow
-        def isNegative(a: AnyNum) = helper.lt(a, helper.zero)
-        val result                = helper.rem(numerator, divisor)
-        val output =
-          if (isNegative(numerator)) {
-            if (!isNegative(result)) helper.negate(result) else result
-          } else {
-            if (isNegative(result)) helper.negate(result) else result
-          }
-        numricHelpers.numericType.makeOrFail(output)
-      }
+      val helper                = numricHelpers.integralHelperOrThrow
+      def isNegative(a: AnyNum) = helper.lt(a, helper.zero)
+      val result                = helper.rem(numerator, divisor)
+      val output =
+        if (isNegative(numerator)) {
+          if (!isNegative(result)) helper.negate(result) else result
+        } else {
+          if (isNegative(result)) helper.negate(result) else result
+        }
+      numricHelpers.numericType.makeOrFail(output)
   }.asNative2
 
   val equal = DynamicNativeFunction2("equal") {
@@ -178,18 +170,14 @@ object BasicsSDK {
 
   val composeRight = DynamicNativeFunction3("composeRight") {
     (ctx: NativeContext) => (f1: RTValue.Function, f2: RTValue.Function, arg: RTValue) =>
-      {
-        val res1 = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f1, arg)
-        ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f2, res1)
-      }
+      val res1 = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f1, arg)
+      ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f2, res1)
   }
 
   val composeLeft = DynamicNativeFunction3("composeLeft") {
     (ctx: NativeContext) => (f1: RTValue.Function, f2: RTValue.Function, arg: RTValue) =>
-      {
-        val res1 = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f2, arg)
-        ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f1, res1)
-      }
+      val res1 = ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f2, arg)
+      ctx.evaluator.handleApplyResult(Type.UType.Unit(()), f1, res1)
   }
 
   val cos = DynamicNativeFunction1("cos") {
