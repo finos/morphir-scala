@@ -41,7 +41,7 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
       - name: Setup proto and moon toolchains
-        uses: moonrepo/setup-toolchain@v0.3.1
+        uses: moonrepo/setup-toolchain@v0.3.2
         with:
           auto-install: true
 
@@ -127,7 +127,7 @@ jobs:
         uses: coursier/cache-action@v6
 
       - name: Setup proto and moon toolchains
-        uses: moonrepo/setup-toolchain@v0.3.1
+        uses: moonrepo/setup-toolchain@v0.3.2
         with:
           auto-install: true
 

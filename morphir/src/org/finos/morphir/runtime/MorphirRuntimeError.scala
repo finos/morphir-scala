@@ -198,6 +198,11 @@ object MorphirRuntimeError {
     def message = err"Type $tpe not supported. $reason"
   }
 
+  final case class BadReturnType(tpe: UType, cause: String, location: Option[CodeLocation] = None)
+      extends EvaluationError with AttachedLocation {
+    def message = err"Type $tpe would be returned, but cannot be converted to MDM. Cause:\n\t$cause"
+  }
+
   final case class UnsupportedTypeSpecification(spec: UTypeSpec, reason: String, location: Option[CodeLocation] = None)
       extends EvaluationError with AttachedLocation {
     def message = err"Type Specification $spec not supported. $reason"
