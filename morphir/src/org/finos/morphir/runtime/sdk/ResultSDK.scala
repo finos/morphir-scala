@@ -59,19 +59,15 @@ object ResultSDK {
 
   val map = DynamicNativeFunction2("map") {
     (ctx: NativeContext) => (f: RT.Function, resultRaw: RT.ConstructorResult) =>
-      {
-        val out = resultToEither(resultRaw).map(elem => ctx.evaluator.handleApplyResult(Type.variable("a"), f, elem))
-        eitherToResult(out)
-      }
+      val out = resultToEither(resultRaw).map(elem => ctx.evaluator.handleApplyResult(Type.variable("a"), f, elem))
+      eitherToResult(out)
   }
 
   val mapError = DynamicNativeFunction2("mapError") {
     (ctx: NativeContext) => (f: RT.Function, resultRaw: RT.ConstructorResult) =>
-      {
-        val out =
-          resultToEither(resultRaw).left.map(elem => ctx.evaluator.handleApplyResult(Type.variable("a"), f, elem))
-        eitherToResult(out)
-      }
+      val out =
+        resultToEither(resultRaw).left.map(elem => ctx.evaluator.handleApplyResult(Type.variable("a"), f, elem))
+      eitherToResult(out)
   }
 
   val withDefault = DynamicNativeFunction2("withDefault") {
@@ -96,13 +92,11 @@ object ResultSDK {
 
   val andThen = DynamicNativeFunction2("andThen") {
     (ctx: NativeContext) => (callback: RT.Function, resultRaw: RT.ConstructorResult) =>
-      {
-        val out = resultToEither(resultRaw).flatMap { elem =>
-          val fromCallbackRaw = ctx.evaluator.handleApplyResult(Type.variable("a"), callback, elem)
-          val fromCallbackCr  = RT.coerceConstructorResult(fromCallbackRaw)
-          resultToEither(fromCallbackCr)
-        }
-        eitherToResult(out)
+      val out = resultToEither(resultRaw).flatMap { elem =>
+        val fromCallbackRaw = ctx.evaluator.handleApplyResult(Type.variable("a"), callback, elem)
+        val fromCallbackCr  = RT.coerceConstructorResult(fromCallbackRaw)
+        resultToEither(fromCallbackCr)
       }
+      eitherToResult(out)
   }
 }

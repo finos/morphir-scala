@@ -98,11 +98,9 @@ class NumericFunction1[
 ](val name: String)(val f: (NumericHelpers[N], NativeContext) => T => R) {
   def asNative1 =
     DynamicNativeFunction1[T, R](name) { (ctx: NativeContext) => (arg1: T) =>
-      {
-        val helper =
-          NumericHelpers[N](arg1.numericType, arg1.numericHelper, arg1.integralHelper, arg1.fractionalHelper)
-        f(helper, ctx)(arg1)
-      }
+      val helper =
+        NumericHelpers[N](arg1.numericType, arg1.numericHelper, arg1.integralHelper, arg1.fractionalHelper)
+      f(helper, ctx)(arg1)
     }
 }
 
@@ -122,16 +120,14 @@ class NumericFunction2[
 ](val name: String)(val f: (NumericHelpers[N], NativeContext) => (T, T) => R) {
   def asNative2 =
     DynamicNativeFunction2[T, T, R](name) { (ctx: NativeContext) => (arg1: T, arg2: T) =>
-      {
-        if (arg1.numericType != arg2.numericType) {
-          throw IllegalValue(
-            s"The values $arg1 and $arg2 are not of the same numeric type (${arg1.numericType} versus ${arg2.numericType})."
-          )
-        }
-        val helper =
-          NumericHelpers[N](arg1.numericType, arg1.numericHelper, arg1.integralHelper, arg1.fractionalHelper)
-        f(helper, ctx)(arg1, arg2)
+      if (arg1.numericType != arg2.numericType) {
+        throw IllegalValue(
+          s"The values $arg1 and $arg2 are not of the same numeric type (${arg1.numericType} versus ${arg2.numericType})."
+        )
       }
+      val helper =
+        NumericHelpers[N](arg1.numericType, arg1.numericHelper, arg1.integralHelper, arg1.fractionalHelper)
+      f(helper, ctx)(arg1, arg2)
     }
 }
 
@@ -150,21 +146,19 @@ class NumericFunction3[
 ](val name: String)(val f: (NumericHelpers[N], NativeContext) => (T, T, T) => R) {
   def asNative3 =
     DynamicNativeFunction3[T, T, T, R](name) { (ctx: NativeContext) => (arg1: T, arg2: T, arg3: T) =>
-      {
-        if (arg1.numericType != arg2.numericType) {
-          throw IllegalValue(
-            s"The values $arg1 and $arg2 are not of the same numeric type (${arg1.numericType} versus ${arg2.numericType})."
-          )
-        }
-        if (arg2.numericType != arg3.numericType) {
-          throw IllegalValue(
-            s"The values $arg2 and $arg3 are not of the same numeric type (${arg2.numericType} versus ${arg3.numericType})."
-          )
-        }
-        val helper =
-          NumericHelpers[N](arg1.numericType, arg1.numericHelper, arg1.integralHelper, arg1.fractionalHelper)
-        f(helper, ctx)(arg1, arg2, arg3)
+      if (arg1.numericType != arg2.numericType) {
+        throw IllegalValue(
+          s"The values $arg1 and $arg2 are not of the same numeric type (${arg1.numericType} versus ${arg2.numericType})."
+        )
       }
+      if (arg2.numericType != arg3.numericType) {
+        throw IllegalValue(
+          s"The values $arg2 and $arg3 are not of the same numeric type (${arg2.numericType} versus ${arg3.numericType})."
+        )
+      }
+      val helper =
+        NumericHelpers[N](arg1.numericType, arg1.numericHelper, arg1.integralHelper, arg1.fractionalHelper)
+      f(helper, ctx)(arg1, arg2, arg3)
     }
 }
 

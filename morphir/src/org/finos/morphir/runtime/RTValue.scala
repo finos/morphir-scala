@@ -663,7 +663,9 @@ object RTValue {
     def value = elements
     override def succinct(depth: Int) = if (depth == 0) "Dict(..)"
     else {
-      s"Dict(${elements.map { case (key, value) => s"${key.succinct(depth - 1)} -> ${value.succinct(depth - 1)}" }.mkString(", ")})"
+      s"Dict(${elements.map { case (key, value) =>
+          s"${key.succinct(depth - 1)} -> ${value.succinct(depth - 1)}"
+        }.mkString(", ")})"
     }
   }
   case class Applied(
