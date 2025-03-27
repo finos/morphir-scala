@@ -28,6 +28,8 @@ sealed trait AttachedLocation {
 
 object MorphirRuntimeError {
 
+  final case class ConfigurationError(message: String, underlying: Option[Exception])
+      extends MorphirRuntimeError(message)
   final case class MorphirIRDecodingError(message: String) extends MorphirRuntimeError
 
   final case class OtherError(cause: String, stuff: Any*) extends MorphirRuntimeError {
