@@ -185,7 +185,7 @@ object Deps {
 
 object Versions {
   val castor = "0.2.1"
-  val cats   = "2.12.0"
+  val cats   = "2.13.0"
 
   val enumeratum = "1.7.5"
 
