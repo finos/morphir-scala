@@ -61,7 +61,7 @@ object Deps {
       val mainargs       = ivy"com.lihaoyi::mainargs::${Versions.`mainargs`}"
       val `os-lib`       = ivy"com.lihaoyi::os-lib::${Versions.`os-lib`}"
       val sourcecode     = ivy"com.lihaoyi::sourcecode::0.4.2"
-      val pprint         = ivy"com.lihaoyi::pprint::0.9.0"
+      val pprint         = ivy"com.lihaoyi::pprint::0.9.1"
       val ujson          = ivy"com.lihaoyi::ujson::${Versions.upickle}"
       val upickle        = ivy"com.lihaoyi::upickle::${Versions.upickle}"
       val `upickle-core` = ivy"com.lihaoyi::upickle-core::${Versions.upickle}"
