@@ -113,7 +113,7 @@ jobs:
 
       - name: Upload Sonatype SBOM (SPDX)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ env.SonatypeAppId }} Sonatype SBOM (SPDX)
           path: reports/
