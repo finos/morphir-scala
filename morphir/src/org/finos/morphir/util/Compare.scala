@@ -55,6 +55,7 @@ object Compare {
       case (a: Char, b: Char)               => Diff.Leaf.of(a, b)
       case (a: Product, b: Product)         => product(a, b)
       case (a: AnyRef, b: AnyRef)           => Diff.Leaf.ofClass(a.getClass, b.getClass)(a, b)
+      case _                                => Diff.Leaf.of(aValue, bValue)
     }
 
   private def set(ai: Set[_], bi: Set[_]): Option[Diff] = {

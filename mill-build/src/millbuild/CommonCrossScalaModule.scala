@@ -215,8 +215,15 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
           "-Xignore-scala2-macros",
           "-Yretain-trees",
           "-Wvalue-discard",
-          // Suppress warnings for generated code (e.g., BuildInfo with private[this])
-          "-Wconf:msg=Ignoring.*this.*qualifier:s"
+          // Suppress warnings for generated code and migration issues
+          "-Wconf:msg=Ignoring.*this.*qualifier:s",                                     // BuildInfo private[this]
+          "-Wconf:msg=.*is deprecated for wildcard arguments.*:s",                      // _ -> ? migration
+          "-Wconf:msg=.*will be duplicated at each inline site.*:s",                    // inline anonymous classes
+          "-Wconf:msg=.*has been deprecated.*uninitialized.*:s",                        // = _ -> = uninitialized
+          "-Wconf:msg=Implicit parameters should be provided with a `using` clause:s", // implicit -> using migration
+          "-Wconf:msg=with as a type operator has been deprecated.*:s",                 // with -> & migration
+          "-Wconf:msg=The syntax.*_\\*.*is no longer supported.*:s",                    // x: _* -> x* migration
+          "-Wconf:msg=.*is not declared infix.*:s"                                      // infix type notation
         )
       case _ =>
         Seq()
