@@ -214,7 +214,9 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
           "-explain-types",
           "-Xignore-scala2-macros",
           "-Yretain-trees",
-          "-Wvalue-discard"
+          "-Wvalue-discard",
+          // Suppress warnings for generated code (e.g., BuildInfo with private[this])
+          "-Wconf:msg=Ignoring.*this.*qualifier:s"
         )
       case _ =>
         Seq()
@@ -229,7 +231,7 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
   }
 
   def filterScala3Options(opts: Seq[String]) =
-    ("-Ykind-projector" +: opts)
+    ("-Xkind-projector" +: opts)
       .filterNot(_.startsWith("-Xlint"))
       .filterNot(_.startsWith("-Ywarn-"))
       .filterNot(_ == "-explaintypes")
