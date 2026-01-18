@@ -1,0 +1,13 @@
+#!/usr/bin/env -S scala-cli shebang -S 3
+//MISE description="Format Scala code"
+//MISE alias="format"
+//> using dep com.lihaoyi::os-lib:0.11.4
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println("Formatting code...")
+    println("  Formatting Scala files...")
+    os.proc("./mill", "Alias/run", "fmt").call(cwd = os.pwd)
+    println("Format completed successfully")
+  }
+}

@@ -1,0 +1,13 @@
+#!/usr/bin/env -S scala-cli shebang -S 3
+//MISE description="Install project dependencies"
+//MISE alias="install"
+//> using dep com.lihaoyi::os-lib:0.11.4
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println("Setting up project...")
+    println("  Installing npm dependencies...")
+    os.proc("bun", "install").call(cwd = os.pwd)
+    println("Setup completed successfully")
+  }
+}

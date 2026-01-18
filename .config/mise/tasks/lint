@@ -1,0 +1,12 @@
+#!/usr/bin/env -S scala-cli shebang -S 3
+//MISE description="Lint Scala code"
+//> using dep com.lihaoyi::os-lib:0.11.4
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println("Linting code...")
+    println("  Linting Scala files...")
+    os.proc("./mill", "Alias/run", "checkfmt").call(cwd = os.pwd)
+    println("Lint completed successfully")
+  }
+}

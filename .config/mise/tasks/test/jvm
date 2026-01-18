@@ -1,0 +1,28 @@
+#!/usr/bin/env -S scala-cli shebang -S 3
+//MISE description="Run JVM tests for all Scala versions"
+//> using dep com.lihaoyi::os-lib:0.11.4
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    val scalaVersionsEnv = sys.env.getOrElse("SCALA_VERSIONS", "3.7.4")
+    val scalaVersions = scalaVersionsEnv.split(",").map(_.trim).toSeq
+
+    println("Running JVM tests...")
+    println(s"  Scala versions: ${scalaVersions.mkString(", ")}")
+
+    // Note: build:morphir-elm should be run separately before this task in CI
+    for (scalaVersion <- scalaVersions) {
+      println(s"  Running JVM tests for Scala $scalaVersion...")
+      os.proc(
+        "./mill", "-i", "-k", "-j", "0",
+        s"morphir[$scalaVersion].__.jvm.__.compile",
+        "+",
+        s"morphir[$scalaVersion].__.jvm.publishArtifacts",
+        "+",
+        s"morphir[$scalaVersion].__.jvm.__.test"
+      ).call(cwd = os.pwd)
+    }
+
+    println("JVM tests completed successfully")
+  }
+}

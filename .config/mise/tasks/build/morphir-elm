@@ -1,0 +1,15 @@
+#!/usr/bin/env -S scala-cli shebang -S 3
+//MISE description="Build Morphir Elm evaluator tests"
+//> using dep com.lihaoyi::os-lib:0.11.4
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println("Building Morphir Elm evaluator tests...")
+
+    val dir = os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests"
+    println(s"  Building $dir...")
+    os.proc("morphir-elm", "make").call(cwd = dir)
+
+    println("Morphir Elm build completed successfully")
+  }
+}
