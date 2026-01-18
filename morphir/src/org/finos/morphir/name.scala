@@ -42,7 +42,7 @@ trait NameModule {
             else
               abbrev match {
                 case Nil => loop(prefix ++ List(first), List.empty, rest)
-                case _ =>
+                case _   =>
                   loop(prefix ++ List(join(abbrev), first), List.empty, rest)
               }
         }
@@ -72,7 +72,7 @@ trait NameModule {
 
     def toCamelCase: String =
       toList match {
-        case Nil => ""
+        case Nil          => ""
         case head :: tail =>
           (head :: tail.map(_.capitalize)).mkString("")
       }

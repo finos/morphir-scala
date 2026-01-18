@@ -17,7 +17,7 @@ final case class StackFrame(symbols: SymbolTable) { self =>
 }
 
 object StackFrame {
-  val empty: StackFrame = StackFrame(SymbolTable.empty)
+  val empty: StackFrame                            = StackFrame(SymbolTable.empty)
   def create(bindings: SymbolBinding*): StackFrame =
     StackFrame(symbols = SymbolTable.create(bindings: _*))
 }

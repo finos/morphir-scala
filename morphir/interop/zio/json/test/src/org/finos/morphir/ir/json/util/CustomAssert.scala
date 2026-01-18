@@ -77,7 +77,7 @@ object CustomAssert {
         .make[T, Boolean] { a =>
           val result = a == that
           TestTrace.boolean(result) {
-            val compare = Compare(a, that)
+            val compare     = Compare(a, that)
             val printedDiff =
               compare.map(PrintDiff(_).toString()).getOrElse("<No Diff: Contents Identical>")
 

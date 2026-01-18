@@ -97,9 +97,9 @@ object DictSDK {
         dict2Raw: RTValue.Map,
         result: RTValue
     ) =>
-      val dict1 = dict1Raw.value
-      val dict2 = dict2Raw.value
-      val keys  = dict1.keySet ++ dict2.keySet
+      val dict1       = dict1Raw.value
+      val dict2       = dict2Raw.value
+      val keys        = dict1.keySet ++ dict2.keySet
       val resultValue = keys.foldLeft(result) {
         case (acc, key) =>
           val value1 = dict1.get(key)

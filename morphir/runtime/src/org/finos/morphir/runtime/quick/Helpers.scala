@@ -32,13 +32,13 @@ object Helpers {
       value: RTValue
   ): Option[Map[Name, RTValue]] =
     (pattern, value) match {
-      case (_: WildcardPattern[UType], _) => Some(Map.empty)
+      case (_: WildcardPattern[UType], _)                 => Some(Map.empty)
       case (AsPattern(_, innerPattern, name), innerValue) =>
         matchPatternCase(innerPattern, value).map(innerBindings => innerBindings + (name -> innerValue))
       case (_: UnitPattern[UType], RTValue.Unit()) => Some(Map.empty)
       case (LiteralPattern(_, literal), innerValue: RTValue.Primitive[_]) if unpackLit(literal) == innerValue =>
         Some(Map.empty)
-      case (_: EmptyListPattern[UType], RTValue.List(List())) => Some(Map.empty)
+      case (_: EmptyListPattern[UType], RTValue.List(List()))                         => Some(Map.empty)
       case (HeadTailPattern(_, headPattern, tailPattern), RTValue.List(head :: tail)) =>
         for {
           headBindings <- matchPatternCase(headPattern, head)
@@ -59,7 +59,7 @@ object Helpers {
   ): Option[Map[Name, RTValue]] =
     for {
       zipped <- if (patterns.length == values.length) Some(patterns.zip(values)) else None
-      res <- zipped.foldLeft(Some(Map.empty): Option[Map[Name, RTValue]]) { case (bindings, (p, v)) =>
+      res    <- zipped.foldLeft(Some(Map.empty): Option[Map[Name, RTValue]]) { case (bindings, (p, v)) =>
         for {
           priorBindings <- bindings
           newBindings   <- matchPatternCase(p, v)
@@ -71,19 +71,19 @@ object Helpers {
       items: List[Any]
   ): Any =
     items match {
-      case List(a, b)                                     => (a, b)
-      case List(a, b, c)                                  => (a, b, c)
-      case List(a, b, c, d)                               => (a, b, c, d)
-      case List(a, b, c, d, e)                            => (a, b, c, d, e)
-      case List(a, b, c, d, e, f)                         => (a, b, c, d, e, f)
-      case List(a, b, c, d, e, f, g)                      => (a, b, c, d, e, f, g)
-      case List(a, b, c, d, e, f, g, h)                   => (a, b, c, d, e, f, g, h)
-      case List(a, b, c, d, e, f, g, h, i)                => (a, b, c, d, e, f, g, h, i)
-      case List(a, b, c, d, e, f, g, h, i, j)             => (a, b, c, d, e, f, g, h, i, j)
-      case List(a, b, c, d, e, f, g, h, i, j, k)          => (a, b, c, d, e, f, g, h, i, j, k)
-      case List(a, b, c, d, e, f, g, h, i, j, k, l)       => (a, b, c, d, e, f, g, h, i, j, k, l)
-      case List(a, b, c, d, e, f, g, h, i, j, k, l, m)    => (a, b, c, d, e, f, g, h, i, j, k, l, m)
-      case List(a, b, c, d, e, f, g, h, i, j, k, l, m, n) => (a, b, c, d, e, f, g, h, i, j, k, l, m, n)
+      case List(a, b)                                        => (a, b)
+      case List(a, b, c)                                     => (a, b, c)
+      case List(a, b, c, d)                                  => (a, b, c, d)
+      case List(a, b, c, d, e)                               => (a, b, c, d, e)
+      case List(a, b, c, d, e, f)                            => (a, b, c, d, e, f)
+      case List(a, b, c, d, e, f, g)                         => (a, b, c, d, e, f, g)
+      case List(a, b, c, d, e, f, g, h)                      => (a, b, c, d, e, f, g, h)
+      case List(a, b, c, d, e, f, g, h, i)                   => (a, b, c, d, e, f, g, h, i)
+      case List(a, b, c, d, e, f, g, h, i, j)                => (a, b, c, d, e, f, g, h, i, j)
+      case List(a, b, c, d, e, f, g, h, i, j, k)             => (a, b, c, d, e, f, g, h, i, j, k)
+      case List(a, b, c, d, e, f, g, h, i, j, k, l)          => (a, b, c, d, e, f, g, h, i, j, k, l)
+      case List(a, b, c, d, e, f, g, h, i, j, k, l, m)       => (a, b, c, d, e, f, g, h, i, j, k, l, m)
+      case List(a, b, c, d, e, f, g, h, i, j, k, l, m, n)    => (a, b, c, d, e, f, g, h, i, j, k, l, m, n)
       case List(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) =>
         (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)
       case List(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) =>

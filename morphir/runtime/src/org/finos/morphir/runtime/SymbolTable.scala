@@ -29,7 +29,7 @@ final case class SymbolTable private (bindings: Map[Symbol, SymbolValue]) { self
 }
 
 object SymbolTable {
-  val empty: SymbolTable = SymbolTable(Map.empty)
+  val empty: SymbolTable                            = SymbolTable(Map.empty)
   def create(bindings: SymbolBinding*): SymbolTable = {
     val data = bindings.map(binding => binding.symbol -> binding.value).toMap
     SymbolTable(data)

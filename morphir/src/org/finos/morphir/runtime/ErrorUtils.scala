@@ -43,7 +43,7 @@ object ErrorUtils {
       //format: on
     def err(args: Any*): String = {
       val indexed = args.zipWithIndex
-      val irArgs = indexed
+      val irArgs  = indexed
         .filter { case (arg, _) => isASTLike(arg) }
         .zipWithIndex
         .map { case ((arg, mainIndex), argIndex) => (mainIndex, (argIndex, arg)) }
@@ -55,7 +55,7 @@ object ErrorUtils {
         }
       }
       val explanation = sc.s(processed: _*)
-      val terms = irArgs.values.map { case (argIndex, arg) =>
+      val terms       = irArgs.values.map { case (argIndex, arg) =>
         process(s" $argIndex: ", arg)
       }.mkString
       explanation + "\n" + terms
@@ -114,7 +114,7 @@ object ErrorUtils {
       barIndentBlock(header, body) +
         ("=" * (8 + header.length)) + "\n"
 
-    def barBlock(s: String): String = s.split("\n").map("|" + _).mkString("\n") + "\n"
+    def barBlock(s: String): String      = s.split("\n").map("|" + _).mkString("\n") + "\n"
     def barBlockNoDup(s: String): String = s.split("\n").map { line =>
       if (line.startsWith("|")) line
       else "|" + line

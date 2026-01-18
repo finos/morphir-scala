@@ -54,7 +54,7 @@ trait MorphirBundlePlatformSpecific {
     // TODO: Possibly refactor when FileIO operations are completed
     def loadDistributionFromFileZIO(fileName: String): Task[Distribution] =
       for {
-        fileContents <- ZIO.readFile(fileName)
+        fileContents  <- ZIO.readFile(fileName)
         morphirIRFile <- ZIO.fromEither(fileContents.fromJson[MorphirIRFile])
           .mapError(error => throw new Exception(s"Parsing Error: $error"))
       } yield morphirIRFile.distribution

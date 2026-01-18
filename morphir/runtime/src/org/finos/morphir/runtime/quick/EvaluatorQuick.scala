@@ -155,7 +155,7 @@ object EvaluatorQuick {
         Data.Map.copyFrom(inners, mapConcept)
       case (enumConcept @ Concept.Enum(_, cases), RTValue.ConstructorResult(fqName, args)) =>
         val fieldMap = cases.map { case Concept.Enum.Case(Label(string), fields) => string -> fields }.toMap
-        val fields = fieldMap.getOrElse(
+        val fields   = fieldMap.getOrElse(
           fqName.localName.toTitleCase,
           throw new ResultTypeMismatch(
             result,
@@ -170,7 +170,7 @@ object EvaluatorQuick {
             s"Concept enum expects ${fields.length} argument, but result has ${args.length}"
           )
         else {
-          val zipped = args.zip(fields)
+          val zipped  = args.zip(fields)
           val argData = zipped.map { case (innerResult, (argName, argConcept)) =>
             (argName, resultAndConceptToData(innerResult, argConcept))
           }
@@ -191,7 +191,7 @@ object EvaluatorQuick {
           Data.Tuple(inners)
         }
       case (Concept.Unit, RTValue.Unit()) => Data.Unit
-      case _ =>
+      case _                              =>
         throw new ResultTypeMismatch(result, concept, s"(No matching arm for this combination of concept and result.)")
     }
   }

@@ -12,10 +12,11 @@ object ResultList extends MorphirIRSdkModule("ResultList") {
 
   val moduleSpec: Module.USpecification = Module.USpecification(
     types = Map(
-      name("ResultList") -> TypeAliasSpecification(
-        Chunk(name("e"), name("a")),
-        listType(resultType(tVar("e"), tVar("a")))
-      )
+      name("ResultList") ->
+        TypeAliasSpecification(
+          Chunk(name("e"), name("a")),
+          listType(resultType(tVar("e"), tVar("a")))
+        )
         ?? "Type that represents a list of results."
     ),
     values = Map(

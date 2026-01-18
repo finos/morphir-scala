@@ -102,7 +102,7 @@ case class PrintIR(
 
   def treeify(x: Any): Tree = this.treeify(x, escapeUnicode, this.detailLevel.showFieldNames)
 
-  def fqnv(fqn: FQName): String = detailLevel.fqnView(fqn)
+  def fqnv(fqn: FQName): String          = detailLevel.fqnView(fqn)
   def simplifyName(full: String): String =
     full
       .replace("$", ".")
@@ -152,7 +152,7 @@ case class PrintIR(
         x match {
           // Leafs can display even at depth 0
           // Assume compression for these cases
-          case name: Name => Tree.Literal(name.toCamelCase)
+          case name: Name               => Tree.Literal(name.toCamelCase)
           case T.Reference(_, fqn, Nil) =>
             Tree.Literal(s"Ref(${fqnv(fqn)})")
           case T.Reference(_, fqn, _) =>
@@ -179,7 +179,7 @@ case class PrintIR(
     treeifyHelper(x)
 
   def treeifyHelper(x: Any): Tree = x match {
-    case name: Name if (detailLevel.compressNames) => Tree.Literal(name.toCamelCase)
+    case name: Name if (detailLevel.compressNames)    => Tree.Literal(name.toCamelCase)
     case fqn: FQName if (detailLevel.compressFQNames) =>
       Tree.Literal(fqnv(fqn))
 

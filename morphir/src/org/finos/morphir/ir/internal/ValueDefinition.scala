@@ -15,7 +15,7 @@ private[morphir] final case class ValueDefinition[+TA, +VA](
     body: Value[TA, VA]
 ) { self =>
   def mapAttributes[TB, VB](f: TA => TB, g: VA => VB): ValueDefinition[TB, VB] = ???
-  def toSpecification: ValueSpecification[TA] =
+  def toSpecification: ValueSpecification[TA]                                  =
     ValueSpecification(self.inputTypes.map { case (name, _, tpe) => name -> tpe }, self.outputType)
 
 }

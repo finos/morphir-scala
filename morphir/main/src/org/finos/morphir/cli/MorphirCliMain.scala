@@ -27,8 +27,8 @@ object MorphirCliMain extends ZIOCliDefault {
       MorphirElmDriver.develop(port, host, VPath(projectDir), openInBrowser)
     case MorphirCommand.Library(outputDir, irFiles) =>
       MorphirBundle.library(VPath(outputDir), irFiles.map(VPath(_)))
-    case MorphirCommand.Setup(morphirHomeDir) => MorphirSetup.setup(VPath(morphirHomeDir))
-    case MorphirCommand.Test(irFiles)         => MorphirRuntimeDriver.test()
+    case MorphirCommand.Setup(morphirHomeDir)                             => MorphirSetup.setup(VPath(morphirHomeDir))
+    case MorphirCommand.Test(irFiles)                                     => MorphirRuntimeDriver.test()
     case MorphirCommand.ElmDevelop(port, host, projectDir, openInBrowser) =>
       MorphirElmDriver.develop(port, host, VPath(projectDir), openInBrowser)
     case MorphirCommand.ElmInit(morphirHomeDir, projectDir) =>
@@ -48,7 +48,7 @@ object MorphirCliMain extends ZIOCliDefault {
         val port = Options.integer("port").alias("p").withDefault(BigInt(3000)).map(
           _.intValue
         ) ?? "Port to bind the web server to."
-        val host = Options.text("host").alias("h").withDefault("localhost") ?? "Host to bind the web server to."
+        val host       = Options.text("host").alias("h").withDefault("localhost") ?? "Host to bind the web server to."
         val projectDir = Options.directory("project-dir").alias("i").withDefault(
           Paths.get(".")
         ) ?? "Root directory of the project where morphir.json is located."
@@ -122,7 +122,7 @@ object MorphirCliMain extends ZIOCliDefault {
     object Morphir {
 
       val bundle = {
-        val irFiles = Args.file("ir-files").atLeast(1) ?? "Morphir IR files to bundle"
+        val irFiles    = Args.file("ir-files").atLeast(1) ?? "Morphir IR files to bundle"
         val outputPath = Options.file("output").alias("o").withDefault(
           Paths.get("morphir-ir.json")
         ) ?? "Target file location where the Bundle Morphir IR file will be saved."
@@ -138,7 +138,7 @@ object MorphirCliMain extends ZIOCliDefault {
         val port = Options.integer("port").alias("p").withDefault(BigInt(3000)).map(
           _.intValue
         ) ?? "Port to bind the web server to."
-        val host = Options.text("host").alias("h").withDefault("localhost") ?? "Host to bind the web server to."
+        val host       = Options.text("host").alias("h").withDefault("localhost") ?? "Host to bind the web server to."
         val projectDir = Options.directory("project-dir").alias("i").withDefault(
           Paths.get(".")
         ) ?? "Root directory of the project where morphir.json is located."

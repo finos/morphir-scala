@@ -16,7 +16,7 @@ object AttributesSpec extends MorphirBaseSpec {
       val ageAttribute       = Attribute("age", 0)
       val counterMetric      = Attribute.makeMetric[Int]("counter", 0, (l, r) => l + r)
       val sut                = Attributes.empty
-      val actual = sut ++= Seq(
+      val actual             = sut ++= Seq(
         firstNameAttribute := "John",
         lastNameAttribute  := "Smith",
         ageAttribute       := 42,
@@ -32,7 +32,7 @@ object AttributesSpec extends MorphirBaseSpec {
       )
     },
     test("Can set an existing value") {
-      val email = Attribute("email", "")
+      val email    = Attribute("email", "")
       val original = Attributes(
         email := "nobody@nowhere.com"
       )

@@ -41,7 +41,7 @@ trait NamespaceModule { self: NameModule with PathModule with ModuleNameModule =
     val SnakeCase: NamespaceRenderer = NamespaceRenderer(".", NameRenderer.SnakeCase)
     val TitleCase: NamespaceRenderer = NamespaceRenderer(".", NameRenderer.TitleCase)
 
-    implicit val default: NamespaceRenderer = TitleCase
+    implicit val default: NamespaceRenderer                                = TitleCase
     implicit def toPathRenderer(renderer: NamespaceRenderer): PathRenderer =
       PathRenderer(renderer.separator, renderer.nameRenderer)
   }

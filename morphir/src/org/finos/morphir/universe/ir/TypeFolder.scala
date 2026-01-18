@@ -53,17 +53,17 @@ object TypeFolder {
           loop(typeParams ++ types, Left(t) :: out)
         case (t @ Tuple(_, elements)) :: types =>
           loop(elements ++ types, Left(t) :: out)
-        case (t @ UnitType(attributes)) :: types => loop(types, Right(unitCase(context, t, attributes)) :: out)
+        case (t @ UnitType(attributes)) :: types       => loop(types, Right(unitCase(context, t, attributes)) :: out)
         case (t @ Variable(attributes, name)) :: types =>
           loop(types, Right(variableCase(context, t, attributes, name)) :: out)
         case Nil =>
           out.foldLeft[List[Z]](List.empty) {
-            case (acc, Right(results)) => results :: acc
+            case (acc, Right(results))                                  => results :: acc
             case (acc, Left(t @ ExtensibleRecord(attributes, name, _))) =>
               val size       = t.fields.size
               val fieldTypes = acc.take(size)
               val rest       = acc.drop(size)
-              val fields = t.fields.zip(fieldTypes).map { case (field, fieldType) =>
+              val fields     = t.fields.zip(fieldTypes).map { case (field, fieldType) =>
                 Field(field.name, fieldType)
               }
               extensibleRecordCase(context, t, attributes, name, fields) :: rest
@@ -126,8 +126,7 @@ object TypeFolder {
         attributes: Any,
         typeName: FQName,
         typeParams: List[String]
-    ): String =
-      (typeName.toReferenceName +: typeParams).mkString(" ")
+    ): String = (typeName.toReferenceName +: typeParams).mkString(" ")
     def tupleCase(context: Any, tpe: Type[Any], attributes: Any, elements: List[String]): String =
       elements.mkString("(", ", ", ")")
     def unitCase(context: Any, tpe: Type[Any], attributes: Any): String                 = "()"

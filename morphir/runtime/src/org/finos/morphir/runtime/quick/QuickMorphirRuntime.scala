@@ -63,10 +63,10 @@ private[runtime] case class QuickMorphirRuntime(dists: Distributions, globals: G
   }
 
   def typeCheck(value: TypedValue, location: Option[CodeLocation]): RTAction[MorphirEnv, TypeError, Unit] = for {
-    ctx <- ZPure.get[RTExecutionContext]
+    ctx    <- ZPure.get[RTExecutionContext]
     result <- ctx.options.enableTyper match {
       case EnableTyper.Disabled => RTAction.succeed[RTExecutionContext, Unit](())
-      case EnableTyper.Warn =>
+      case EnableTyper.Warn     =>
         val errors = new TypeChecker(dists, location).check(value)
         errors.foreach(error => println(s"TYPE WARNING: $error"))
         RTAction.succeed[RTExecutionContext, Unit](())

@@ -65,7 +65,7 @@ object LocalDate extends MorphirIRSdkModule("LocalDate") {
     )
   )
 
-  lazy val localDateType: UType = reference(fqn("LocalDate"))
+  lazy val localDateType: UType                = reference(fqn("LocalDate"))
   def localDateType[A](attributes: A): Type[A] =
     reference(attributes, fqn("LocalDate"))
 

@@ -100,11 +100,11 @@ object Basics extends MorphirIRSdkModule("Basics") {
   lazy val orderType: UType                = orderType(())
   def orderType[A](attributes: A): Type[A] = tRef(attributes, (fqn("Order")))
 
-  def add: RawValue = reference(toFQName("add"))
+  def add: RawValue                                                             = reference(toFQName("add"))
   def add[A](attributes: A)(implicit ev: NeedsAttributes[A]): Value[Nothing, A] =
     reference(attributes, fqn("add"))
 
-  def subtract: RawValue = reference(toFQName("subtract"))
+  def subtract: RawValue                                                             = reference(toFQName("subtract"))
   def subtract[A](attributes: A)(implicit ev: NeedsAttributes[A]): Value[Nothing, A] =
     reference(attributes, fqn("subtract"))
 }

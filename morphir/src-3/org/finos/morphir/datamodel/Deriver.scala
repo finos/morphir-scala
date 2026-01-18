@@ -31,7 +31,7 @@ object Deriver extends DeriverInstances {
   inline def summonSpecificDeriver[T] =
     summonFrom {
       case deriver: CustomDeriver[T] => deriver
-      case _ =>
+      case _                         =>
         error(s"Cannot find specific deriver for type: ${showType[T]}")
     }
 
@@ -148,7 +148,7 @@ object Deriver extends DeriverInstances {
               (v: Any) =>
                 v match {
                   case t: T => m.ordinal(t)
-                  case _ =>
+                  case _    =>
                     throw new IllegalArgumentException(
                       s"The value `$v` is not an instance of the needed enum class ${enumName}"
                     )

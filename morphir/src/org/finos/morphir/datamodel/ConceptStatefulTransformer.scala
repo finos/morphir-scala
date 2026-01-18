@@ -6,7 +6,7 @@ trait ConceptStatefulTransformer[T] {
 
   type Stateful[A] = ZPure[Nothing, T, T, Any, Nothing, A]
   object Stateful {
-    def const[A](a: A): Stateful[A] = ZPure.succeed(a)
+    def const[A](a: A): Stateful[A]                                    = ZPure.succeed(a)
     def succeedWithState[A, B](a: A)(stateChange: T => T): Stateful[A] =
       ZPure.update(stateChange) *> ZPure.succeed(a)
   }
@@ -91,7 +91,7 @@ trait ConceptStatefulTransformer[T] {
 
   def of(c: Concept.Enum): Stateful[Concept.Enum] =
     for {
-      c <- transform(c)
+      c      <- transform(c)
       fields <- {
         val mappedCases =
           c.cases.map(enumCase =>

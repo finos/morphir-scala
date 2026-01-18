@@ -37,8 +37,8 @@ trait TransformType[T, A] extends Transform[T] {
   // ====== Recursive Elements ======
   def of(value: Type.ExtensibleRecord[A]): Stateful[T, Type.ExtensibleRecord[A]] =
     for {
-      v    <- transform(value)
-      attr <- transformAttribute(v.attributes)
+      v      <- transform(value)
+      attr   <- transformAttribute(v.attributes)
       fields <- ofList(v.fields) { field =>
         of(field.data).map(data => field.copy(data = data))
       }
@@ -54,8 +54,8 @@ trait TransformType[T, A] extends Transform[T] {
 
   def of(value: Type.Record[A]): Stateful[T, Type.Record[A]] =
     for {
-      v    <- transform(value)
-      attr <- transformAttribute(v.attributes)
+      v      <- transform(value)
+      attr   <- transformAttribute(v.attributes)
       fields <- ofList(v.fields) { field =>
         of(field.data).map(data => field.copy(data = data))
       }

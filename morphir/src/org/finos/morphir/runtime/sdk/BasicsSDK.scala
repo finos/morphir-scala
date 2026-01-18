@@ -116,7 +116,7 @@ object BasicsSDK {
       val helper                = numricHelpers.integralHelperOrThrow
       def isNegative(a: AnyNum) = helper.lt(a, helper.zero)
       val result                = helper.rem(numerator, divisor)
-      val output =
+      val output                =
         if (isNegative(numerator)) {
           if (!isNegative(result)) helper.negate(result) else result
         } else {

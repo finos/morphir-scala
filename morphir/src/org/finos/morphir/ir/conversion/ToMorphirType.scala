@@ -90,7 +90,7 @@ object ToMorphirType {
       case Concept.Result(errType, okType) => resultUType(conceptToTypeIR(errType), conceptToTypeIR(okType)).as
       case Concept.Map(keyType, valueType) => mapUType(conceptToTypeIR(keyType), conceptToTypeIR(valueType)).as
       case Concept.Set(elementType)        => setUType(conceptToTypeIR(elementType)).as
-      case Concept.Struct(fields) =>
+      case Concept.Struct(fields)          =>
         val types: scala.List[(String, UType)] = fields.map {
           case (k: Label, v: Concept) => (k.value, conceptToTypeIR(v).morphirType)
         }

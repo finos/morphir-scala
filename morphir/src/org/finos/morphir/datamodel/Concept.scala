@@ -41,7 +41,7 @@ sealed trait Concept { self =>
       case _: Concept.Union    => None
     }
 
-  def toStringPretty: String = toStringPretty(true)
+  def toStringPretty: String                                                                  = toStringPretty(true)
   def toStringPretty(color: Boolean, detailLevel: DetailLevel = DetailLevel.BirdsEye): String =
     if (color)
       PrintMDM(this, detailLevel).toString
@@ -270,7 +270,7 @@ object Concept {
     }
 
     def defaultList(concept: Concept.List): Defaults.Result = Right(Data.List.empty(concept.elementType))
-    def defaultMap(concept: Concept.Map): Defaults.Result =
+    def defaultMap(concept: Concept.Map): Defaults.Result   =
       Right(Data.Map.empty(concept.keyType, concept.valueType))
     def defaultAlias(concept: Concept.Alias): Defaults.Result =
       default(concept.value).map(Data.Aliased(_, concept))
@@ -292,32 +292,32 @@ object Concept {
         res = Data.Case(args, firstCase.label.value, concept)
       } yield res
     }
-    def defaultInt64: Defaults.Result   = Right(Data.Int64(0))
-    def defaultInteger: Defaults.Result = Right(Data.Integer(BigInt(0)))
-    def defaultDecimal: Defaults.Result = Right(Data.Decimal(BigDecimal(0)))
-    def defaultInt16: Defaults.Result   = Right(Data.Int16(0))
-    def defaultNothing: Defaults.Result = Left(NoDefaultNothing())
-    def defaultMonth: Defaults.Result   = Right(Data.Month(java.time.Month.JANUARY))
+    def defaultInt64: Defaults.Result     = Right(Data.Int64(0))
+    def defaultInteger: Defaults.Result   = Right(Data.Integer(BigInt(0)))
+    def defaultDecimal: Defaults.Result   = Right(Data.Decimal(BigDecimal(0)))
+    def defaultInt16: Defaults.Result     = Right(Data.Int16(0))
+    def defaultNothing: Defaults.Result   = Left(NoDefaultNothing())
+    def defaultMonth: Defaults.Result     = Right(Data.Month(java.time.Month.JANUARY))
     def defaultLocalDate: Defaults.Result =
       Right(Data.LocalDate(java.time.LocalDate.EPOCH))
-    def defaultFloat: Defaults.Result = Right(Data.Float(0))
+    def defaultFloat: Defaults.Result     = Right(Data.Float(0))
     def defaultLocalTime: Defaults.Result =
       Right(Data.LocalTime(java.time.LocalTime.MIDNIGHT))
-    def defaultInt32: Defaults.Result  = Right(Data.Int32(0))
-    def defaultByte: Defaults.Result   = Right(Data.Byte(0))
-    def defaultUnit: Defaults.Result   = Right(Data.Unit)
-    def defaultString: Defaults.Result = Right(Data.String(""))
-    def defaultOrder: Defaults.Result  = Right(Data.Order.apply(0))
+    def defaultInt32: Defaults.Result     = Right(Data.Int32(0))
+    def defaultByte: Defaults.Result      = Right(Data.Byte(0))
+    def defaultUnit: Defaults.Result      = Right(Data.Unit)
+    def defaultString: Defaults.Result    = Right(Data.String(""))
+    def defaultOrder: Defaults.Result     = Right(Data.Order.apply(0))
     def defaultDayOfWeek: Defaults.Result =
       Right(Data.DayOfWeek(java.time.DayOfWeek.MONDAY))
-    def defaultChar: Defaults.Result    = Right(Data.Char('0'))
-    def defaultBoolean: Defaults.Result = Right(Data.False)
+    def defaultChar: Defaults.Result                                = Right(Data.Char('0'))
+    def defaultBoolean: Defaults.Result                             = Right(Data.False)
     def defaultOptional(concept: Concept.Optional): Defaults.Result =
       Right(Data.Optional.None(concept.elementType))
-    def defaultAny: Defaults.Result = Right(Data.Unit)
+    def defaultAny: Defaults.Result                             = Right(Data.Unit)
     def defaultResult(concept: Concept.Result): Defaults.Result =
       default(concept.okType).map(Data.Result.Ok(_, concept))
-    def defaultSet(concept: Concept.Set): Defaults.Result = Right(Data.Set.empty(concept.elementType))
+    def defaultSet(concept: Concept.Set): Defaults.Result     = Right(Data.Set.empty(concept.elementType))
     def defaultTuple(concept: Concept.Tuple): Defaults.Result = for {
       elems <- collectAll(concept.values, default)
       res = Data.Tuple(elems)

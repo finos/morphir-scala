@@ -39,7 +39,7 @@ object Compare {
     }
   }
 
-  def apply(a: Any, b: Any): Option[Diff] = generic(a, b)
+  def apply(a: Any, b: Any): Option[Diff]                     = generic(a, b)
   private def generic(aValue: Any, bValue: Any): Option[Diff] =
     (aValue, bValue) match {
       case _ if (aValue == bValue) => None

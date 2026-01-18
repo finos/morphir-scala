@@ -35,7 +35,7 @@ trait PackageNameModule { self: Names =>
 
     def fromPath(path: Path): PackageName = PackageName(path)
 
-    def fromString(str: String): PackageName = PackageName(Path.fromString(str))
+    def fromString(str: String): PackageName                = PackageName(Path.fromString(str))
     def fromIterable(segments: Iterable[Name]): PackageName =
       PackageName(Path.fromIterable(segments))
     def fromList(segments: List[Name]): PackageName =

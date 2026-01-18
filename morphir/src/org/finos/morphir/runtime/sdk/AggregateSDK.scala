@@ -64,7 +64,7 @@ object AggregateSDK {
   val aggregateMap = DynamicNativeFunction3("aggregateMap") {
     (context: NativeContext) => (agg: RT.Aggregation, f: RT.Function, list: RT.List) =>
       val aggResult = mapAndFilter(agg, AggregateMapHelper(list))(context)
-      val result = aggResult map {
+      val result    = aggResult map {
         case AggregateMapHelper(a, List(aggValue)) =>
           context.evaluator.handleApplyResult2(Type.UType.Variable("a"), f, aggValue, a)
         case helper =>
@@ -77,7 +77,7 @@ object AggregateSDK {
     (context: NativeContext) => (agg1: RT.Aggregation, agg2: RT.Aggregation, f: RT.Function, list: RT.List) =>
       val agg1result = mapAndFilter(agg1, AggregateMapHelper(list))(context)
       val agg2result = mapAndFilter(agg2, agg1result)(context)
-      val result = agg2result map {
+      val result     = agg2result map {
         case AggregateMapHelper(a, List(agg1Value, agg2Value)) =>
           context.evaluator.handleApplyResult3(Type.UType.Variable("a"), f, agg1Value, agg2Value, a)
         case helper =>
@@ -92,7 +92,7 @@ object AggregateSDK {
         val agg1result = mapAndFilter(agg1, AggregateMapHelper(list))(context)
         val agg2result = mapAndFilter(agg2, agg1result)(context)
         val agg3result = mapAndFilter(agg3, agg2result)(context)
-        val result = agg3result map {
+        val result     = agg3result map {
           case AggregateMapHelper(a, List(agg1Value, agg2Value, agg3Value)) =>
             context.evaluator.handleApplyResult4(Type.UType.Variable("a"), f, agg1Value, agg2Value, agg3Value, a)
           case helper =>
@@ -114,7 +114,7 @@ object AggregateSDK {
       val agg2result = mapAndFilter(agg2, agg1result)(context)
       val agg3result = mapAndFilter(agg3, agg2result)(context)
       val agg4result = mapAndFilter(agg4, agg3result)(context)
-      val result = agg4result map {
+      val result     = agg4result map {
         case AggregateMapHelper(a, List(agg1Value, agg2Value, agg3Value, agg4Value)) =>
           context.evaluator.handleApplyResult5(
             Type.UType.Variable("a"),

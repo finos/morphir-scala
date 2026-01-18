@@ -31,15 +31,15 @@ trait CrossPlatformScalaModule extends PlatformScalaModule with CrossScalaModule
 
   def platformFolderMode: Platform.FolderMode = Platform.FolderMode.UseNesting
 
-  def crossPlatformSourcePaths: Seq[os.Path] =
+  def crossPlatformSourcePaths: Seq[PathRef] =
     platformFolderMode match {
       case Platform.FolderMode.UseSuffix =>
-        crossPlatformSourceSuffixes("src").map(suffix => moduleDir / suffix)
+        crossPlatformSourceSuffixes("src").map(suffix => PathRef(moduleDir / suffix))
       case Platform.FolderMode.UseNesting =>
-        crossPlatformRelativeSourcePaths("src").map(subPath => moduleDir / subPath)
+        crossPlatformRelativeSourcePaths("src").map(subPath => PathRef(moduleDir / subPath))
       case Platform.FolderMode.UseBoth =>
-        (crossPlatformSourceSuffixes("src").map(suffix => moduleDir / suffix) ++
-          crossPlatformRelativeSourcePaths("src").map(subPath => moduleDir / subPath)).distinct
+        (crossPlatformSourceSuffixes("src").map(suffix => PathRef(moduleDir / suffix)) ++
+          crossPlatformRelativeSourcePaths("src").map(subPath => PathRef(moduleDir / subPath))).distinct
     }
 
   def platformSpecificModuleDeps: Seq[CrossPlatform]         = Seq.empty
@@ -53,5 +53,5 @@ trait CrossPlatformScalaModule extends PlatformScalaModule with CrossScalaModule
   def platform: Platform
   def knownPlatforms: T[Seq[Platform]] = Task { Platform.all.toSeq }
 
-  override def sources: T[Seq[PathRef]] = Task.Sources(crossPlatformSourcePaths*)
+  override def sources: T[Seq[PathRef]] = Task.Sources(crossPlatformSourcePaths.map(_.path)*)
 }

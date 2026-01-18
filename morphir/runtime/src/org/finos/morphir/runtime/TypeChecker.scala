@@ -87,7 +87,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
       // so we need to delias in the middle of it.
       // Therefore before each uncurry step we need to dealias first.
       dealiased <- dealias(functionTpe, context)
-      output <- dealiased match {
+      output    <- dealiased match {
         case Type.Function(_, arg, innerFunction) =>
           uncurryFunctionType(innerFunction, context).map { case (ret, args) =>
             (ret, arg +: args)
@@ -102,7 +102,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
     def loop(tpe: UType, original_fqn: Option[FQName], context: Context): Either[TypeError, UType] =
       tpe match {
         case ref @ Extractors.Types.NativeRef(_, _) => Right(ref)
-        case Type.Reference(_, typeName, typeArgs) =>
+        case Type.Reference(_, typeName, typeArgs)  =>
           val lookedUp = dists.lookupTypeDefinition(typeName.packagePath, typeName.modulePath, typeName.localName)
           lookedUp match {
             case Right(T.Definition.TypeAlias(typeParams, expr)) =>
@@ -179,14 +179,14 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
         val sharedFields                       = valueFieldSet.intersect(declaredFieldSet)
         val valueFieldMap: Map[Name, UType]    = valueFields.map(field => field.name -> field.data).toMap
         val declaredFieldMap: Map[Name, UType] = declaredFields.map(field => field.name -> field.data).toMap
-        val conflicts =
+        val conflicts                          =
           sharedFields.flatMap(field => conformsTo(valueFieldMap(field), declaredFieldMap(field), context))
         missingFromValue ++ missingFromDeclared ++ conflicts
       case (DictRef(valueKey, valueValue), DictRef(declaredKey, declaredValue)) =>
         conformsTo(valueKey, declaredKey, context) ++ conformsTo(valueValue, declaredValue, context)
       case (ResultRef(valueErr, valueOk), ResultRef(declaredErr, declaredOk)) =>
         conformsTo(valueErr, declaredErr, context) ++ conformsTo(valueOk, declaredOk, context)
-      case (ListRef(valueElement), ListRef(declaredElement)) => conformsTo(valueElement, declaredElement, context)
+      case (ListRef(valueElement), ListRef(declaredElement))   => conformsTo(valueElement, declaredElement, context)
       case (MaybeRef(valueElement), MaybeRef(declaredElement)) =>
         conformsTo(valueElement, declaredElement, context)
       case (Type.Reference(_, valueName, valueArgs), Type.Reference(_, declaredName, declaredArgs))
@@ -219,12 +219,12 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
           case Apply(_, function, argument) => handleApply(suspect, tpe, function, argument, context)
           case Destructure(_, pattern, valueToDestruct, inValue) =>
             handleDestructure(tpe, pattern, valueToDestruct, inValue, context)
-          case Constructor(_, name)             => handleConstructor(tpe, name, context)
-          case FieldValue(_, recordValue, name) => handleFieldValue(tpe, recordValue, name, context)
-          case FieldFunction(_, name)           => handleFieldFunction(tpe, name, context)
+          case Constructor(_, name)                           => handleConstructor(tpe, name, context)
+          case FieldValue(_, recordValue, name)               => handleFieldValue(tpe, recordValue, name, context)
+          case FieldFunction(_, name)                         => handleFieldFunction(tpe, name, context)
           case IfThenElse(_, condition, thenValue, elseValue) =>
             handleIfThenElse(tpe, condition, thenValue, elseValue, context)
-          case Lambda(_, pattern, body) => handleLambda(tpe, pattern, body, context)
+          case Lambda(_, pattern, body)                    => handleLambda(tpe, pattern, body, context)
           case LetDefinition(_, name, definition, inValue) =>
             handleLetDefinition(tpe, name, definition, inValue, context)
           case LetRecursion(_, definitions, inValue)  => handleLetRecursion(tpe, definitions, inValue, context)
@@ -244,7 +244,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
     import Extractors.Types.*
     import Lit.*
     val fromChildren = List()
-    val matchErrors = (literal, tpe) match {
+    val matchErrors  = (literal, tpe) match {
       case (StringLiteral(_), StringRef())   => List()
       case (FloatLiteral(_), FloatRef())     => List()
       case (CharLiteral(_), CharRef())       => List()
@@ -265,7 +265,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
       context: Context
   ): TypeCheckerResult = {
     val fromChildren = check(function, context) ++ check(argument, context)
-    val fromTpe =
+    val fromTpe      =
       dealias(function.attributes, context) match {
         case Right(Type.Function(_, paramType, returnType)) =>
           conformsTo(argument.attributes, paramType, context) ++ conformsTo(
@@ -304,7 +304,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
           case NonNativeRef(name, typeArgs) => dists.lookupTypeDefinition(name) match {
               case Right(T.Definition.CustomType(typeParams, AccessControlled(_, ctors))) =>
                 val newBindings = typeParams.toList.zip(typeArgs.toList).toMap
-                val missedName = helper(
+                val missedName  = helper(
                   fqn.packagePath != name.packagePath || fqn.modulePath != name.modulePath,
                   OtherTypeError(s"Constructor $fqn does not match type name $name", location = location)
                 )
@@ -338,7 +338,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
             )
             val nameMismatch = dists.lookupTypeDefinition(fqn) match {
               case Right(T.Definition.TypeAlias(_, aliasedRecordType)) => conformsTo(aliasedRecordType, ret, context)
-              case Right(other) => List(ImproperTypeDef(
+              case Right(other)                                        => List(ImproperTypeDef(
                   fqn,
                   other,
                   s"I think this is an implicit record constructor because the return type is a record, but the function points to something else",
@@ -350,7 +350,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
             argErrors ++ nameMismatch
 
           case NativeRef(_, _) => List() // TODO: check native constructor calls
-          case other =>
+          case other           =>
             List(ImproperType(
               other,
               s"Reference to type union or implicit record constructor expected",
@@ -361,7 +361,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
   }
   def handleFieldValue(tpe: UType, recordValue: TypedValue, name: Name, context: Context): TypeCheckerResult = {
     val fromChildren = check(recordValue, context)
-    val fromTpe = dealias(recordValue.attributes, context) match {
+    val fromTpe      = dealias(recordValue.attributes, context) match {
       case Right(rTpe @ Type.Record(_, fields)) =>
         fields.map(field => field.name -> field.data).toMap.get(name) match {
           case None           => List(TypeLacksField(rTpe, name, "Referenced by field node", location = location))
@@ -374,7 +374,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
   }
   def handleFieldFunction(tpe: UType, name: Name, context: Context): TypeCheckerResult = {
     val fromChildren = List()
-    val fromTpe = tpe match {
+    val fromTpe      = tpe match {
       case Type.Function(_, _, _) => List()
       case other => List(ImproperType(other, "Field function should be function:", location = location))
     }
@@ -389,7 +389,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
       context: Context
   ): TypeCheckerResult = {
     val fromChildren = check(condition, context) ++ check(thenValue, context) ++ check(elseValue, context)
-    val internal = conformsTo(thenValue.attributes, tpe, context) ++ conformsTo(
+    val internal     = conformsTo(thenValue.attributes, tpe, context) ++ conformsTo(
       elseValue.attributes,
       tpe,
       context
@@ -398,7 +398,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
   }
   def handleLambda(tpe: UType, pattern: Pattern[UType], body: TypedValue, context: Context): TypeCheckerResult = {
     val fromChildren = check(body, context)
-    val fromTpe = tpe match {
+    val fromTpe      = tpe match {
       case Type.Function(_, arg, ret) =>
         conformsTo(ret, body.attributes, context) ++ conformsTo(pattern.attributes, arg, context)
       case other => List(ImproperType(other, "Field function should be function:", location = location))
@@ -434,7 +434,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
   def handleListValue(tpe: UType, elements: List[TypedValue], context: Context): TypeCheckerResult = {
     // We expect declared element types to be the same, but values may differ; so we only grab the first set of errors at the type level, but fully explore all elements.
     val fromChildren = elements.flatMap(check(_, context))
-    val fromTpe = tpe match {
+    val fromTpe      = tpe match {
       case Extractors.Types.ListRef(elementType) =>
         elements.foldLeft(List(): List[TypeError]) { (acc, next) =>
           acc ++ conformsTo(elementType, next.attributes, context)
@@ -458,7 +458,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
       context: Context
   ): TypeCheckerResult = {
     val fromChildren = check(value, context)
-    val casesMatch = cases.flatMap { case (pattern, caseValue) =>
+    val casesMatch   = cases.flatMap { case (pattern, caseValue) =>
       conformsTo(value.attributes, pattern.attributes, context.withPrefix("Checking Pattern:")) ++
         conformsTo(caseValue.attributes, tpe, context)
     }
@@ -480,7 +480,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
       case recordTpe @ Type.Record(_, tpeFields) =>
         val tpeFieldSet: Set[Name] = tpeFields.map(_.name).toSet
         val valFieldSet: Set[Name] = valFields.map(_._1).toSet
-        val missingFromTpe = tpeFieldSet
+        val missingFromTpe         = tpeFieldSet
           .diff(valFieldSet)
           .toList.map(missing => ValueLacksField(value, recordTpe, missing))
         val missingFromValue = valFieldSet
@@ -488,7 +488,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
           .toList.map(bonus => ValueHasExtraField(value, recordTpe, bonus))
         val valFieldMap: Map[Name, TypedValue] = valFields.toMap
         val tpeFieldMap: Map[Name, UType]      = tpeFields.map(field => field.name -> field.data).toMap
-        val conflicts = tpeFieldSet.intersect(valFieldSet).flatMap(name =>
+        val conflicts                          = tpeFieldSet.intersect(valFieldSet).flatMap(name =>
           conformsTo(valFieldMap(name).attributes, tpeFieldMap(name), context)
         )
         missingFromTpe ++ missingFromValue ++ conflicts
@@ -497,7 +497,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
     fromChildren ++ fromTpe
   }
   def handleReference(tpe: UType, fqn: FQName, context: Context): TypeCheckerResult = {
-    val fromChildren = List()
+    val fromChildren              = List()
     val fromType: List[TypeError] = if (!Utils.isNative(fqn)) {
       dists.lookupValueDefinition(fqn) match {
         case Left(err) => List(err.withContext(
@@ -530,7 +530,7 @@ final class TypeChecker(dists: Distributions, location: Option[CodeLocation] = N
       context: Context
   ): TypeCheckerResult = {
     val fromChildren = check(valueToUpdate, context) ++ fields.flatMap { case (_, value) => check(value, context) }
-    val fromTpe = tpe match {
+    val fromTpe      = tpe match {
       case Type.Record(_, tpeFields) =>
         val fieldMap = tpeFields.map(field => field.name -> field.data).toMap
         conformsTo(valueToUpdate.attributes, tpe) ++ fields.flatMap { field =>

@@ -19,7 +19,7 @@ object SDKConstructor {
   case class Explicit(arguments: List[UType])     extends SDKConstructor
 }
 object SDKValue {
-  case class SDKValueDefinition(definition: TypedDefinition) extends SDKValue
+  case class SDKValueDefinition(definition: TypedDefinition)      extends SDKValue
   case class SDKNativeFunction(function: NativeFunctionSignature) extends SDKValue {
     def arguments = function.numArgs
   }

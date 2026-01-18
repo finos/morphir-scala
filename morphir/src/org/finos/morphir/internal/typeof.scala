@@ -40,7 +40,7 @@ trait TypeOfModule extends TypeOfModuleVersionSpecific {
     implicit val string: TypeOf[String] = () => TypeInfo.ofOpaque(Morphir.SDK.String.fqn("String"))
 
     implicit def option[A](implicit typeOf: TypeOf[A]): TypeOf[Option[A]] = {
-      val fqn = Morphir.SDK.Basics.fqn("Maybe")
+      val fqn   = Morphir.SDK.Basics.fqn("Maybe")
       val ctors = typeCtors(
         n"Just"    -> tCtorArgs(tCtorArg(n"value", Type.Variable(Attributes.empty, n"a"))),
         n"Nothing" -> tCtorArgs()

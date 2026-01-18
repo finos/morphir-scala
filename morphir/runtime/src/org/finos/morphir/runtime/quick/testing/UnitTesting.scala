@@ -204,7 +204,7 @@ object UnitTesting {
     // begin collecting coverage related information
     val userDefinedFunctions = collectNonTests(globals)
     val referencedFunctions  = testNames.flatMap(name => GlobalDefs.getStaticallyReachable(name, globals)).toSet
-    val coverageInfo = CoverageInfo(
+    val coverageInfo         = CoverageInfo(
       referencedFunctions,
       userDefinedFunctions,
       CoverageCounts.getCounts(userDefinedFunctions, referencedFunctions)

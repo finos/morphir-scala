@@ -28,10 +28,10 @@ trait MorphirElmDriverPlatformSpecific {
       } yield ()
 
       for {
-        _ <- ZIO.logDebug(s"\tport: $port")
-        _ <- ZIO.logDebug(s"\thost: $host")
-        _ <- ZIO.logDebug(s"\tprojectDir: $projectDir")
-        _ <- ZIO.logDebug(s"\topenInBrowser: $openInBrowser")
+        _           <- ZIO.logDebug(s"\tport: $port")
+        _           <- ZIO.logDebug(s"\thost: $host")
+        _           <- ZIO.logDebug(s"\tprojectDir: $projectDir")
+        _           <- ZIO.logDebug(s"\topenInBrowser: $openInBrowser")
         serverFiber <- processIO.exec(
           "morphir-elm",
           "develop",
@@ -62,10 +62,10 @@ trait MorphirElmDriverPlatformSpecific {
         fallbackCli: Boolean = false,
         indentJson: Boolean = false
     ): Task[Seq[VFile]] = for {
-      _ <- ZIO.logDebug(s"\toutput: $output")
-      _ <- ZIO.logDebug(s"\ttypesOnly: $typesOnly")
-      _ <- ZIO.logDebug(s"\tfallbackCli: $fallbackCli")
-      _ <- ZIO.logDebug(s"\tindentJson: $indentJson")
+      _        <- ZIO.logDebug(s"\toutput: $output")
+      _        <- ZIO.logDebug(s"\ttypesOnly: $typesOnly")
+      _        <- ZIO.logDebug(s"\tfallbackCli: $fallbackCli")
+      _        <- ZIO.logDebug(s"\tindentJson: $indentJson")
       exitCode <- processIO.exec(
         "morphir-elm",
         "make",
@@ -107,8 +107,8 @@ trait MorphirElmDriverPlatformSpecific {
       val notify = Console.printLine(s"Attempting to open $url in browser")
       for {
         os <- System.property("os.name")
-        _ <- os match {
-          case Some("Linux") => notify *> processIO.exec("xdg-open", url)
+        _  <- os match {
+          case Some("Linux")    => notify *> processIO.exec("xdg-open", url)
           case Some("Mac OS X") =>
             notify *> processIO.exec("open", url)
           case _ => ZIO.unit

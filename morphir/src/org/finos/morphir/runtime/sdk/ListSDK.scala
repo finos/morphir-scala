@@ -349,7 +349,7 @@ object ListSDK {
     (context: NativeContext) => (bList: RTValue.List, f: RTValue.Function, aList: RTValue.List) =>
       val result = aList.value.zip(bList.value) map { case (a, b) =>
         val funcResult = context.evaluator.handleApplyResult2(Type.UType.Unit(()), f, a, b)
-        val rightOpt = if (RTValue.coerceBoolean(funcResult).value) {
+        val rightOpt   = if (RTValue.coerceBoolean(funcResult).value) {
           Some(b)
         } else {
           None

@@ -31,7 +31,7 @@ final case class GlobalDefs(
     ctors: Map[FQName, SDKConstructor]
 ) {
   def getDefinition(name: FQName): Option[SDKValue] = definitions.get(name)
-  def withBindingsFrom(other: GlobalDefs) =
+  def withBindingsFrom(other: GlobalDefs)           =
     GlobalDefs(definitions ++ other.definitions, ctors ++ other.ctors)
   def withDefinition(fqn: FQName, definition: SDKValue): GlobalDefs =
     GlobalDefs(definitions + (fqn -> definition), ctors)

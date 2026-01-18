@@ -53,7 +53,7 @@ class PrintRTValue(
     fansi.Str.join(tokenized)
   }
 
-  def treeify(x: Any): Tree = this.treeify(x, escapeUnicode, showFieldNames)
+  def treeify(x: Any): Tree      = this.treeify(x, escapeUnicode, showFieldNames)
   def treeifySuper(x: Any): Tree =
     super.treeify(x, escapeUnicode, showFieldNames)
 

@@ -125,7 +125,7 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
         val inputParam = variable("input")
         val outputType = variable("output")
         val sut        = function(inputParam, outputType)
-        val result = sut.foldLeft(0) { case (acc, _) =>
+        val result     = sut.foldLeft(0) { case (acc, _) =>
           acc + 1
         }
         assertTrue(result == 3)
@@ -259,7 +259,8 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
           actual.attributes == (),
           actual == Record((), field(nameField), field(ageField), field(salaryField)),
           actual.fieldCount == 3,
-          actual.toString() == "{ name : Morphir.SDK.Morphir.SDK.Basics.String, age : Morphir.SDK.Morphir.SDK.Basics.Int, salary : Morphir.SDK.Morphir.SDK.Basics.Double }"
+          actual.toString() ==
+            "{ name : Morphir.SDK.Morphir.SDK.Basics.String, age : Morphir.SDK.Morphir.SDK.Basics.Int, salary : Morphir.SDK.Morphir.SDK.Basics.Double }"
         )
       }
     )
@@ -269,10 +270,10 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
   def referenceSuite = suite("Reference")(
     suite("Misc")(
       test("When calling foldLeft it should work as expected") {
-        val varA = variable("a")
-        val varB = variable("b")
-        val varC = variable("c")
-        val sut  = reference("Morphir.Sdk.Bool", varA, varB, varC)
+        val varA   = variable("a")
+        val varB   = variable("b")
+        val varC   = variable("c")
+        val sut    = reference("Morphir.Sdk.Bool", varA, varB, varC)
         val result = sut.foldLeft(0) { case (acc, _) =>
           acc + 1
         }
@@ -295,7 +296,8 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
             Tuple((), Variable((), "v3"), Variable((), "v4"))
           ),
           actual.exists { case Reference(attributes, fqName, typeParams) =>
-            attributes == () && fqName == fqn1 && typeParams.contains(v1) && typeParams.contains(v2) && typeParams
+            attributes == () && fqName == fqn1 && typeParams.contains(v1) && typeParams.contains(v2) &&
+            typeParams
               .contains(v3)
           },
           actual.attributes == (),
@@ -453,24 +455,24 @@ object TypeSpec extends MorphirBaseSpec with NamingSyntax {
       )
     },
     test("When calling foldLeft it should work as expected") {
-      val varA = variable("a")
-      val varB = variable("b")
-      val varC = variable("c")
-      val sut  = tupleVar(varA, varB, varC)
+      val varA   = variable("a")
+      val varB   = variable("b")
+      val varC   = variable("c")
+      val sut    = tupleVar(varA, varB, varC)
       val result = sut.foldLeft(0) { case (acc, _) =>
         acc + 1
       }
       assertTrue(result == 4)
     },
     test("When calling foldLeft with an empty tuple it should work as expected") {
-      val sut = emptyTuple
+      val sut    = emptyTuple
       val result = sut.foldLeft(0) { case (acc, _) =>
         acc + 1
       }
       assertTrue(result == 1)
     },
     test("When calling foldLeft with a nested empty tuple it should work as expected") {
-      val sut = tupleVar(emptyTuple)
+      val sut    = tupleVar(emptyTuple)
       val result = sut.foldLeft(0) { case (acc, _) =>
         acc + 1
       }

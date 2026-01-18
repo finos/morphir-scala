@@ -61,7 +61,7 @@ final case class Definition[+TA, +VA](
     case _ => Nil
   }.toSet
 
-  def collectReferences: Set[FQName] = collectTypeReferences ++ collectValueReferences
+  def collectReferences: Set[FQName]             = collectTypeReferences ++ collectValueReferences
   def dependsOnModules: Set[QualifiedModuleName] = self.collectReferences.map { case FQName(pp, mp, _) =>
     QualifiedModuleName(pp.toPath, mp.toPath)
   }

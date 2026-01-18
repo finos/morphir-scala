@@ -10,7 +10,7 @@ sealed trait MValue[+A] extends Product with Serializable {
   def value: A
 }
 
-sealed trait MData[+A] extends MValue[A]
+sealed trait MData[+A]      extends MValue[A]
 sealed trait MPrimitive[+A] extends MData[A] {
   def flags: PrimitiveFlags
 }
@@ -42,7 +42,7 @@ final case class MInt64(value: Long, flags: PrimitiveFlags)         extends MPri
 final case class MBool(value: Boolean, flags: PrimitiveFlags)       extends MPrimitive[Boolean]
 final case class MFloat(value: MorphirFloat, flags: PrimitiveFlags) extends MPrimitive[MorphirFloat]
 final case class MString(value: String, flags: PrimitiveFlags)      extends MPrimitive[String]
-case object MUnit extends MData[scala.Unit] {
+case object MUnit                                                   extends MData[scala.Unit] {
   val value = ()
 }
 
@@ -51,8 +51,8 @@ object MValue {
   type MorphirFloat   = Double
   type MorphirDecimal = BigDecimal
 
-  val unit: MValue[scala.Unit]                   = MUnit
-  def int(value: MorphirInt): MValue[MorphirInt] = MInt(value, PrimitiveFlags(isLiteral = false))
+  val unit: MValue[scala.Unit]                                       = MUnit
+  def int(value: MorphirInt): MValue[MorphirInt]                     = MInt(value, PrimitiveFlags(isLiteral = false))
   def int(value: MorphirInt, isLiteral: Boolean): MValue[MorphirInt] =
     MInt(value, PrimitiveFlags(isLiteral = isLiteral))
   def bool(value: Boolean): MValue[Boolean]                     = MBool(value, PrimitiveFlags(isLiteral = false))

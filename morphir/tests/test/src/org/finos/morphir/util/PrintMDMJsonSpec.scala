@@ -92,29 +92,29 @@ object PrintMDMJsonSpec extends MorphirBaseSpec {
         personRecordData("Spot", 44)
       )
       val prettyPrinted = PrintMDMJson.prettyPrint(persons)
-      val expected = """[
-                       |  {
-                       |    "name" : "String(Fido)",
-                       |    "age" : "Int32(42)"
-                       |  },
-                       |  {
-                       |    "name" : "String(Rex)",
-                       |    "age" : "Int32(43)"
-                       |  },
-                       |  {
-                       |    "name" : "String(Spot)",
-                       |    "age" : "Int32(44)"
-                       |  }
-                       |]""".stripMargin
+      val expected      = """[
+                            |  {
+                            |    "name" : "String(Fido)",
+                            |    "age" : "Int32(42)"
+                            |  },
+                            |  {
+                            |    "name" : "String(Rex)",
+                            |    "age" : "Int32(43)"
+                            |  },
+                            |  {
+                            |    "name" : "String(Spot)",
+                            |    "age" : "Int32(44)"
+                            |  }
+                            |]""".stripMargin
       assert(prettyPrinted)(equalTo(expected))
     },
     test("prettyPrintRecord") {
       val personRecord  = personRecordData("Fido", 42)
       val prettyPrinted = PrintMDMJson.prettyPrint(personRecord)
-      val expected = """{
-                       |  "name" : "String(Fido)",
-                       |  "age" : "Int32(42)"
-                       |}""".stripMargin
+      val expected      = """{
+                            |  "name" : "String(Fido)",
+                            |  "age" : "Int32(42)"
+                            |}""".stripMargin
 
       assert(prettyPrinted)(equalTo(expected))
     },
@@ -126,14 +126,14 @@ object PrintMDMJsonSpec extends MorphirBaseSpec {
     test("prettyPrintOneArg") {
       val oneArgData    = oneArg(42)
       val prettyPrinted = PrintMDMJson.prettyPrint(oneArgData)
-      val expected = """{
-                       |  "enumLabel" : "OneArg",
-                       |  "values" : [
-                       |    {
-                       |      "Named(arg1)" : "Int32(42)"
-                       |    }
-                       |  ]
-                       |}""".stripMargin
+      val expected      = """{
+                            |  "enumLabel" : "OneArg",
+                            |  "values" : [
+                            |    {
+                            |      "Named(arg1)" : "Int32(42)"
+                            |    }
+                            |  ]
+                            |}""".stripMargin
 
       assert(prettyPrinted)(equalTo(expected))
     },
@@ -145,17 +145,17 @@ object PrintMDMJsonSpec extends MorphirBaseSpec {
     test("prettyPrintTwoArg") {
       val twoArgData    = twoArg(42, "Hello")
       val prettyPrinted = PrintMDMJson.prettyPrint(twoArgData)
-      val expected = """{
-                       |  "enumLabel" : "TwoArg",
-                       |  "values" : [
-                       |    {
-                       |      "Named(arg1)" : "Int32(42)"
-                       |    },
-                       |    {
-                       |      "Named(arg2)" : "String(Hello)"
-                       |    }
-                       |  ]
-                       |}""".stripMargin
+      val expected      = """{
+                            |  "enumLabel" : "TwoArg",
+                            |  "values" : [
+                            |    {
+                            |      "Named(arg1)" : "Int32(42)"
+                            |    },
+                            |    {
+                            |      "Named(arg2)" : "String(Hello)"
+                            |    }
+                            |  ]
+                            |}""".stripMargin
 
       assert(prettyPrinted)(equalTo(expected))
     },
@@ -169,14 +169,14 @@ object PrintMDMJsonSpec extends MorphirBaseSpec {
     test("prettyPrintOpaqueInt") {
       val opaqueIntData = opaqueInt(42)
       val prettyPrinted = PrintMDMJson.prettyPrint(opaqueIntData)
-      val expected = """{
-                       |  "enumLabel" : "Opaque",
-                       |  "values" : [
-                       |    {
-                       |      "Named(arg1)" : "Int32(42)"
-                       |    }
-                       |  ]
-                       |}""".stripMargin
+      val expected      = """{
+                            |  "enumLabel" : "Opaque",
+                            |  "values" : [
+                            |    {
+                            |      "Named(arg1)" : "Int32(42)"
+                            |    }
+                            |  ]
+                            |}""".stripMargin
 
       assert(prettyPrinted)(equalTo(expected))
     },
@@ -198,19 +198,19 @@ object PrintMDMJsonSpec extends MorphirBaseSpec {
         )
       )
       val prettyPrinted = PrintMDMJson.prettyPrint(persons)
-      val expected = """{
-                       |  "name" : "String(Persons)",
-                       |  "records" : [
-                       |    {
-                       |      "name" : "String(Ponyo)",
-                       |      "age" : "Int32(3)"
-                       |    },
-                       |    {
-                       |      "name" : "String(Soso)",
-                       |      "age" : "Int32(3)"
-                       |    }
-                       |  ]
-                       |}""".stripMargin
+      val expected      = """{
+                            |  "name" : "String(Persons)",
+                            |  "records" : [
+                            |    {
+                            |      "name" : "String(Ponyo)",
+                            |      "age" : "Int32(3)"
+                            |    },
+                            |    {
+                            |      "name" : "String(Soso)",
+                            |      "age" : "Int32(3)"
+                            |    }
+                            |  ]
+                            |}""".stripMargin
 
       assert(prettyPrinted)(equalTo(expected))
     }

@@ -69,7 +69,7 @@ private[runtime] object TestTree {
       case SingleTest(desc, SingleTestResult.Err(err))    => s"$desc: ERROR $err"
       case Concat(tests)                                  => tests.map(toReport).mkString("\n")
       case Todo(excuse)                                   => s"$excuse: TODO"
-      case Skip(desc, numSkipped) =>
+      case Skip(desc, numSkipped)                         =>
         desc + ": SKIPPED" + (if (numSkipped == 1) "" else s"($numSkipped tests skipped)")
       case Error(desc, err) => s"$desc: ERROR: \n $err"
       case Only(inner)      => toReport(inner)
@@ -90,7 +90,7 @@ private[runtime] object TestTree {
       case Todo(_)                                   => empty.copy(todo = 1)
       case Skip(_, numSkipped)                       => empty.copy(skipped = numSkipped)
       case Error(_, _)                               => empty.copy(errors = 1)
-      case Only(inner) =>
+      case Only(inner)                               =>
         getCounts(inner)
     }
   }
@@ -301,7 +301,7 @@ private[runtime] object TestSet {
 
 //Represents all of the tests contained within a module
 private[runtime] case class ModuleTests[T](pkgName: PackageName, modName: ModuleName, tests: List[TestTree[T]]) {
-  def containsOnly: Boolean = (tests.exists(_.containsOnly))
+  def containsOnly: Boolean       = (tests.exists(_.containsOnly))
   def pruneToOnly: ModuleTests[T] =
     if (containsOnly)
       ModuleTests(pkgName, modName, tests.map(_.pruneToOnly))

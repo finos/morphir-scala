@@ -170,7 +170,7 @@ object StringSDK {
     (context: NativeContext) => (str: RTString) =>
       str.value match {
         case "" => MaybeSDK.optionToMaybe(None)
-        case _ =>
+        case _  =>
           MaybeSDK.optionToMaybe(Some(RT.Tuple(RT.Primitive.Char(str.value.head), RTString(str.value.tail))))
       }
   }
@@ -189,8 +189,8 @@ object StringSDK {
 
   val pad = DynamicNativeFunction3("pad") {
     (context: NativeContext) => (n: RT.Primitive.Int, ch: RT.Primitive.Char, str: RTString) =>
-      val totalExtra = n.valueAsInt - str.value.length
-      val half       = totalExtra / 2.0
+      val totalExtra                  = n.valueAsInt - str.value.length
+      val half                        = totalExtra / 2.0
       val (leftPadding, rightPadding) = (
         ch.value.toString * Math.ceil(half).toInt,
         ch.value.toString * Math.floor(half).toInt

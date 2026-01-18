@@ -27,9 +27,9 @@ object counter {
     // Create a Free dsl over the counter grammar
     type Counter[+E, +A] = Free[CounterExpr, E, A]
 
-    def increment(n: Int): Counter[Nothing, Unit] = Free.eval(CounterExpr.Increment(n))
-    def decrement(n: Int): Counter[Nothing, Unit] = Free.eval(CounterExpr.Decrement(n))
-    def get(): Counter[Nothing, Int]              = Free.eval(CounterExpr.Get())
+    def increment(n: Int): Counter[Nothing, Unit]                      = Free.eval(CounterExpr.Increment(n))
+    def decrement(n: Int): Counter[Nothing, Unit]                      = Free.eval(CounterExpr.Decrement(n))
+    def get(): Counter[Nothing, Int]                                   = Free.eval(CounterExpr.Get())
     def overflow(target: Int): Counter[CounterError.Overflow, Nothing] =
       Free.eval(CounterExpr.Overflow(target))
   }

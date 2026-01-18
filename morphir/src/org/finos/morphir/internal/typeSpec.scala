@@ -18,9 +18,9 @@ trait TypeSpecModule { self =>
 
     final def map[B](f: A => B): TypeSpecification[B] =
       self match {
-        case spec @ TypeAliasSpecification(_, _)  => TypeAliasSpecification(spec.typeParams, spec.expr.map(f))
-        case spec @ OpaqueTypeSpecification(_)    => spec
-        case spec @ CustomTypeSpecification(_, _) => spec.copy(ctors = spec.ctors.map(f))
+        case spec @ TypeAliasSpecification(_, _)   => TypeAliasSpecification(spec.typeParams, spec.expr.map(f))
+        case spec @ OpaqueTypeSpecification(_)     => spec
+        case spec @ CustomTypeSpecification(_, _)  => spec.copy(ctors = spec.ctors.map(f))
         case spec @ DerivedTypeSpecification(_, _) =>
           val baseType = spec.derivationProps.baseType.map(f)
           val props    = spec.derivationProps.copy(baseType = baseType)

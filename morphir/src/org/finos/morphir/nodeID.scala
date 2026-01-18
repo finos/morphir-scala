@@ -101,7 +101,7 @@ trait NodeIDModule {
 
     sealed abstract class Error(errorMessage: String) extends Exception(errorMessage)
     object Error {
-      sealed case class InvalidPath(input: String, errorMessage: String) extends Error(errorMessage)
+      sealed case class InvalidPath(input: String, errorMessage: String)   extends Error(errorMessage)
       sealed case class InvalidNodeId(input: String, errorMessage: String) extends Error(errorMessage) {
         def this(input: String) = this(input, s"Invalid NodeId: $input")
       }

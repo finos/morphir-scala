@@ -124,16 +124,16 @@ object GatherReferences {
     }
 
     ir match {
-      case Value.Literal(_, _)                => empty
-      case Value.Apply(_, function, argument) => loop(function) ++ loop(argument)
+      case Value.Literal(_, _)                                     => empty
+      case Value.Apply(_, function, argument)                      => loop(function) ++ loop(argument)
       case Value.Destructure(_, pattern, valueToDestruct, inValue) =>
         loop(valueToDestruct) ++ loop(inValue) ++ patternLoop(pattern)
-      case Value.Constructor(_, fqn)      => empty.withConstructor(fqn)
-      case Value.Field(_, recordValue, _) => loop(recordValue)
-      case Value.FieldFunction(_, _)      => empty
+      case Value.Constructor(_, fqn)                            => empty.withConstructor(fqn)
+      case Value.Field(_, recordValue, _)                       => loop(recordValue)
+      case Value.FieldFunction(_, _)                            => empty
       case Value.IfThenElse(_, condition, thenValue, elseValue) =>
         loop(condition) ++ loop(thenValue) ++ loop(elseValue)
-      case Value.Lambda(_, pattern, body) => patternLoop(pattern) ++ loop(body)
+      case Value.Lambda(_, pattern, body)                 => patternLoop(pattern) ++ loop(body)
       case Value.LetDefinition(_, _, definition, inValue) =>
         loop(definition.body) ++ loop(inValue)
       case Value.LetRecursion(_, definitions, inValue) => fold(definitions.map(_._2.body)) ++ loop(inValue)
@@ -150,7 +150,7 @@ object GatherReferences {
     }
   }
   def patternLoop(pattern: Pattern[UType]): ReferenceSet = {
-    val empty = ReferenceSet.empty;
+    val empty                                            = ReferenceSet.empty;
     def fold(stuff: Chunk[Pattern[UType]]): ReferenceSet = stuff.foldLeft(empty) { case (acc, next) =>
       acc ++ patternLoop(next)
     }

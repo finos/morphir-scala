@@ -55,8 +55,8 @@ object MdmCodecs {
     }
 
   implicit val linkedHashMapDecoder: Decoder[mutable.LinkedHashMap[Data, Data]] = Decoder { reader =>
-    val count = reader.readInt()
-    val map   = new mutable.LinkedHashMap[Data, Data]()
+    val count  = reader.readInt()
+    val map    = new mutable.LinkedHashMap[Data, Data]()
     val tuples = (0 until count).map { _ =>
       val key   = Cbor.decode(reader.readByteArray()).to[Data].value
       val value = Cbor.decode(reader.readByteArray()).to[Data].value

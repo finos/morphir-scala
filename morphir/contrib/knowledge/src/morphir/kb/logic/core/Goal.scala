@@ -14,7 +14,7 @@ object Goal {
     override def apply(state: State): SStream = SStream.empty
   }
 
-  def and(g1: Goal, g2: Goal): Goal = Conj(g1, g2)
+  def and(g1: Goal, g2: Goal): Goal                                                    = Conj(g1, g2)
   def constraint(constrainedFields: List[Field[_]], constraint: FieldConstraint): Goal =
     FromConstraint(constrainedFields, constraint)
   def equal[A, B](a: A, b: B): Goal = Equal(a, b)

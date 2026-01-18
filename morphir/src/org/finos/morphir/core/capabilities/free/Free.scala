@@ -27,9 +27,9 @@ sealed trait Free[F[+_, +_], +E, +A] { self =>
   def interpret[G[+_, +_]](
       interpreter: Free.Interpreter[F, G]
   )(implicit g: Free.Executable[G]): G[E, A] = self match {
-    case Free.Succeed(a) => g.succeed(a)
-    case Free.Fail(e)    => g.fail(e)
-    case Free.Eval(fa)   => interpreter.interpret(fa)
+    case Free.Succeed(a)                                => g.succeed(a)
+    case Free.Fail(e)                                   => g.fail(e)
+    case Free.Eval(fa)                                  => interpreter.interpret(fa)
     case free @ Free.Sequence(fa, onSuccess, onFailure) =>
       g.sequence(
         fa.interpret(interpreter),

@@ -17,7 +17,7 @@ object Literal { module =>
   /**
    * Represents a character value. Some possible values: `'a'`, `'b'`, `'3'`.
    */
-  def charLiteral(value: Char): Literal = Literal.CharLiteral(value)
+  def charLiteral(value: Char): Literal          = Literal.CharLiteral(value)
   def decimalLiteral(value: BigDecimal): Literal =
     Literal.DecimalLiteral(value)
   def decimalLiteral(value: BigDec): Literal =
@@ -54,19 +54,19 @@ object Literal { module =>
     final def toValueDef: ValueDefinition[Unit, UType] = ValueDefinition.fromLiteral(self)
   }
   object Literal {
-    final lazy val False: TypedValue     = BoolLiteral(false).toTypedValue
-    final lazy val True: TypedValue      = BoolLiteral(true).toTypedValue
-    def boolean(value: Boolean): Literal = BoolLiteral(value)
-    def char(value: Char): Literal       = CharLiteral(value)
+    final lazy val False: TypedValue        = BoolLiteral(false).toTypedValue
+    final lazy val True: TypedValue         = BoolLiteral(true).toTypedValue
+    def boolean(value: Boolean): Literal    = BoolLiteral(value)
+    def char(value: Char): Literal          = CharLiteral(value)
     def decimal(value: BigDecimal): Literal =
       DecimalLiteral(value)
-    def decimal(value: BigDec): Literal = DecimalLiteral(BigDecimal(value))
-    def double(value: Double): Literal  = FloatLiteral(value)
-    def float(value: Double): Literal   = FloatLiteral(value)
-    def float(value: Float): Literal    = FloatLiteral(value.toDouble)
-    def int(value: Int): Literal        = WholeNumberLiteral(value.toLong)
-    def long(value: Long): Literal      = WholeNumberLiteral(value)
-    def string(value: String): Literal  = StringLiteral(value)
+    def decimal(value: BigDec): Literal   = DecimalLiteral(BigDecimal(value))
+    def double(value: Double): Literal    = FloatLiteral(value)
+    def float(value: Double): Literal     = FloatLiteral(value)
+    def float(value: Float): Literal      = FloatLiteral(value.toDouble)
+    def int(value: Int): Literal          = WholeNumberLiteral(value.toLong)
+    def long(value: Long): Literal        = WholeNumberLiteral(value)
+    def string(value: String): Literal    = StringLiteral(value)
     def wholeNumber(value: Long): Literal =
       WholeNumberLiteral(value)
 

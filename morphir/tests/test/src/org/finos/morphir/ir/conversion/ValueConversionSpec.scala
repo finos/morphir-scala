@@ -162,7 +162,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val toValue               = ToMorphirValue.summon[Data].typed
         val inputValue            = Data.Optional.Some(Data.String("Optional string"))
         val morphirOptionalString = toValue(inputValue)
-        val result = V.applyInferType(
+        val result                = V.applyInferType(
           sdk.Maybe.maybeType(sdk.String.stringType),
           V.constructor(
             FQName.fromString("Morphir.SDK:Maybe:just")
@@ -175,7 +175,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val toValue               = ToMorphirValue.summon[Data].typed
         val inputValue            = Data.Optional.None(Concept.String)
         val morphirOptionalString = toValue(inputValue)
-        val result =
+        val result                =
           V.constructor(FQName.fromString("Morphir.SDK:Maybe:Nothing"), sdk.Maybe.maybeType(sdk.String.stringType))
         assertTrue(morphirOptionalString == result)
       }
@@ -191,7 +191,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
         assertTrue(morphirInt == result)
       },
       test("Should be possible to convert a Data.List Aliased to it's Morphir value") {
-        val toValue = ToMorphirValue.summon[Data].typed
+        val toValue    = ToMorphirValue.summon[Data].typed
         val inputValue =
           Data.Aliased(
             Data.List(Data.True, Data.False, Data.True),
@@ -207,7 +207,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val toValue      = ToMorphirValue.summon[Data].typed
         val inputValue   = Data.Tuple(List(Data.True, Data.Unit, Data.Byte(java.lang.Byte.MAX_VALUE)))
         val morphirTuple = toValue(inputValue)
-        val result = V.tuple(
+        val result       = V.tuple(
           T.tuple(sdk.Basics.boolType :: Type.unit :: sdk.Int.int8Type :: Nil),
           Chunk(
             Lit.True,
@@ -266,7 +266,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val inputValue = Data.Set.empty(Concept.String)
         val actual     = toValue(inputValue)
         val shape      = sdk.Set.setType(sdk.String.stringType)
-        val result = V.applyInferType(
+        val result     = V.applyInferType(
           shape,
           V.reference(FQName.fromString("Morphir.SDK:Set:fromList")),
           V.list(
@@ -281,7 +281,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val inputValue = Data.Set(Data.Int(3), Data.Int(71))
         val actual     = toValue(inputValue)
         val shape      = sdk.Set.setType(sdk.Basics.intType)
-        val result = V.applyInferType(
+        val result     = V.applyInferType(
           shape,
           V.reference(FQName.fromString("Morphir.SDK:Set:fromList")),
           V.list(
@@ -313,7 +313,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val inputValue = Data.Map(Data.String("Index 1") -> Data.Int(3), Data.String("Index 2") -> Data.Int(71))
         val actual     = toValue(inputValue)
         val shape      = sdk.Dict.dictType(sdk.String.stringType, sdk.Basics.intType)
-        val result = V.applyInferType(
+        val result     = V.applyInferType(
           shape,
           V.reference(FQName.fromString("Morphir.SDK:Dict:fromList")),
           V.list(
@@ -333,7 +333,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
         assertTrue(actual == result)
       },
       test("Should be possible to convert a complex Data Map to a Morphir Dict") {
-        val toValue = ToMorphirValue.summon[Data].typed
+        val toValue    = ToMorphirValue.summon[Data].typed
         val inputValue = Data.Map(
           Data.String("Index 1") -> Data.List(Data.Int(9), Data.Int(3)),
           Data.String("Index 2") -> Data.List(Data.Int(2), Data.Int(71))
@@ -376,7 +376,7 @@ object ValueConversionSpec extends MorphirBaseSpec {
         val inputValue = Data.Map.empty(Concept.String, Concept.Int32)
         val actual     = toValue(inputValue)
         val shape      = sdk.Dict.dictType(sdk.String.stringType, sdk.Basics.intType)
-        val result = V.applyInferType(
+        val result     = V.applyInferType(
           shape,
           V.reference(FQName.fromString("Morphir.SDK:Dict:fromList")),
           V.list(

@@ -49,22 +49,22 @@ object ToMDMConcept {
     tpe match {
       case _: Type.ExtensibleRecord[_] =>
         toFailedConverter(NoEquivalentMDM("Extensible record type has no MDM equivalent", tpe))
-      case _: Type.Function[_] => toFailedConverter(NoEquivalentMDM("Functions do not exist within MDM", tpe))
-      case _: Type.Unit[_]     => toConceptConverter(Concept.Unit)
-      case IntRef()            => toConceptConverter(Concept.Int32)
-      case Int16Ref()          => toConceptConverter(Concept.Int16)
-      case Int32Ref()          => toConceptConverter(Concept.Int32)
-      case Int64Ref()          => toConceptConverter(Concept.Int64)
-      case StringRef()         => toConceptConverter(Concept.String)
-      case BoolRef()           => toConceptConverter(Concept.Boolean)
-      case CharRef()           => toConceptConverter(Concept.Char)
-      case FloatRef()          => toConceptConverter(Concept.Float)
-      case DecimalRef()        => toConceptConverter(Concept.Decimal)
-      case LocalDateRef()      => toConceptConverter(Concept.LocalDate)
-      case LocalTimeRef()      => toConceptConverter(Concept.LocalTime)
-      case OrderRef()          => toConceptConverter(Concept.Order)
-      case MonthRef()          => toConceptConverter(Concept.Month)
-      case DayOfWeekRef()      => toConceptConverter(Concept.DayOfWeek)
+      case _: Type.Function[_]    => toFailedConverter(NoEquivalentMDM("Functions do not exist within MDM", tpe))
+      case _: Type.Unit[_]        => toConceptConverter(Concept.Unit)
+      case IntRef()               => toConceptConverter(Concept.Int32)
+      case Int16Ref()             => toConceptConverter(Concept.Int16)
+      case Int32Ref()             => toConceptConverter(Concept.Int32)
+      case Int64Ref()             => toConceptConverter(Concept.Int64)
+      case StringRef()            => toConceptConverter(Concept.String)
+      case BoolRef()              => toConceptConverter(Concept.Boolean)
+      case CharRef()              => toConceptConverter(Concept.Char)
+      case FloatRef()             => toConceptConverter(Concept.Float)
+      case DecimalRef()           => toConceptConverter(Concept.Decimal)
+      case LocalDateRef()         => toConceptConverter(Concept.LocalDate)
+      case LocalTimeRef()         => toConceptConverter(Concept.LocalTime)
+      case OrderRef()             => toConceptConverter(Concept.Order)
+      case MonthRef()             => toConceptConverter(Concept.Month)
+      case DayOfWeekRef()         => toConceptConverter(Concept.DayOfWeek)
       case Type.Variable(_, name) =>
         new ToMDMConcept[UType] {
           def apply(distributions: Distributions, bindings: Map[Name, Concept] = Map.empty): ToMDMConceptEither =
@@ -129,7 +129,7 @@ object ToMDMConcept {
             lookedUp <- dists.lookupTypeDefinition(typeName.packagePath, typeName.modulePath, typeName.localName)
               .left.map { err => MissingAlias(err) }
             conceptArgs <- Defaults.collectAll(typeArgs, typeArg => typeArg.concept(dists, bindings))
-            res <- lookedUp match {
+            res         <- lookedUp match {
               case T.Definition.TypeAlias(typeParams, expr) =>
                 val newBindings = typeParams.zip(conceptArgs).toMap
                 expr.concept(dists, newBindings) match {

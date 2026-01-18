@@ -11,7 +11,7 @@ trait LiteralGen extends WordGen {
 
   final def boolLiteral: Gen[Any, Literal.BoolLiteral] = Gen.boolean.map(Literal.BoolLiteral(_))
 
-  final def charLiteral: Gen[Any, Literal.CharLiteral] = Gen.char.map(Literal.CharLiteral(_))
+  final def charLiteral: Gen[Any, Literal.CharLiteral]                       = Gen.char.map(Literal.CharLiteral(_))
   final def charLiteral(min: Char, max: Char): Gen[Any, Literal.CharLiteral] =
     Gen.char(min, max).map(Literal.CharLiteral(_))
 
