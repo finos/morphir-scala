@@ -42,8 +42,6 @@ trait CrossPlatformScalaModule extends PlatformScalaModule with CrossScalaModule
           crossPlatformRelativeSourcePaths("src").map(subPath => moduleDir / subPath)).distinct
     }
 
-  def crossPlatformSources: T[Seq[PathRef]] = Task.Sources(crossPlatformSourcePaths*)
-
   def platformSpecificModuleDeps: Seq[CrossPlatform]         = Seq.empty
   def platformSpecificCompiledModuleDeps: Seq[CrossPlatform] = Seq.empty
 
@@ -55,5 +53,5 @@ trait CrossPlatformScalaModule extends PlatformScalaModule with CrossScalaModule
   def platform: Platform
   def knownPlatforms: T[Seq[Platform]] = Task { Platform.all.toSeq }
 
-  override def sources: T[Seq[PathRef]] = crossPlatformSources
+  override def sources: T[Seq[PathRef]] = Task.Sources(crossPlatformSourcePaths*)
 }
