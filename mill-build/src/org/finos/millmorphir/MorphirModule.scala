@@ -118,7 +118,7 @@ trait MorphirModule extends Module { self =>
     } yield PathRef(sourceFile)
   }
 
-  def sources: T[Seq[PathRef]] = Task(Seq(PathRef(moduleDir / "src")))
+  def sources: T[Seq[PathRef]] = Task.Sources(moduleDir / "src")
 
   def allSourceFiles: T[Seq[PathRef]] = Task {
     sources().map(_.path).flatMap(os.walk(_).filter(_.toIO.isFile)).map(PathRef(_))
