@@ -4,7 +4,6 @@
 [tools]
 # Use latest stable versions
 bun = "latest"
-moon = "1.27.10"
 node = "lts"
 
 [env]

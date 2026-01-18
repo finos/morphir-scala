@@ -200,18 +200,6 @@ require_bun() {
 	fi
 }
 
-require_moon() {
-	if ! check_cmd moon; then
-		if [ "$offline" = "on" ]; then
-			log_err "Error: moon is not installed and offline mode is enabled, you will need to install moon manually"
-			exit 1
-		else
-			log_info "moon is not installed, attempting to install it..."
-			mise install moon
-		fi
-	fi
-}
-
 ensure_scalaVersions() {
 	if [ ${#scalaVersions[@]} -eq 0 ]; then
 		log_info "Assigning default Scala version"
@@ -268,34 +256,34 @@ fi
 
 case "$subcommand" in
 	"clean")
-		moon run :clean   
+		bun run clean   
 		;;
 	"elm-build")
-		moon run :build  --query "tag=[elm, morphir-elm]"    
+		bun run build:elm    
 		;;
 	"fmt")
-		moon run :fmt
+		bun run fmt
 		;;
 	"format")
-		moon run :fmt
+		bun run format
 		;;
 	"install")
 		bun install
 		;;
 	"lint")
-		moon run :lint
+		bun run lint
 		;;
 	"run")
-		moon run "$leftovers"
+		bun run "$leftovers"
 		;;
 	"setup")
-		moon setup
+		bun install
 		;;
 	"setup-idea")
 		./mill mill.idea.GenIdea/idea
 		;;
 	"test-jvm")
-		moon run evaluator-tests:morphir-elm-build
+		bun run build:morphir-elm
 		ensure_scalaVersions
 		for scala in "${scalaVersions[@]}"; 
 		do
@@ -303,7 +291,7 @@ case "$subcommand" in
 		done
 		;;
 	"test-runtime-jvm")
-		moon run :build  --query "tag=[elm, morphir-elm]"   
+		bun run build:elm   
 		ensure_scalaVersions
 		for scala in "${scalaVersions[@]}"; 
 		do

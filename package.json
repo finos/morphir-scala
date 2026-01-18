@@ -9,9 +9,17 @@
     "morphir-elm/sdks/morphir-unit-test"
   ],
   "dependencies": {},
-  "scripts": {},
+  "scripts": {
+    "clean": "bun run scripts/tasks/clean.ts",
+    "fmt": "bun run scripts/tasks/fmt.ts",
+    "format": "bun run scripts/tasks/fmt.ts",
+    "lint": "bun run scripts/tasks/lint.ts",
+    "build:elm": "bun run scripts/tasks/build-elm.ts",
+    "build:morphir-elm": "bun run scripts/tasks/morphir-elm-build.ts"
+  },
   "resolutions": {},
   "devDependencies": {
-    "morphir-elm": "^2.89.0"
+    "morphir-elm": "^2.89.0",
+    "@types/bun": "latest"
   }
 }
