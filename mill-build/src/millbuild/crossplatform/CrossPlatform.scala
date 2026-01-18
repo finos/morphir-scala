@@ -6,7 +6,7 @@ import mill.scalajslib.*
 import mill.scalalib.*
 import mill.scalanativelib.*
 import millbuild.settings._
-import scala.language.reflectiveCalls
+import scala.reflect.Selectable.reflectiveSelectable
 import millbuild.MyBuild
 
 trait CrossPlatform extends Module with DynamicModule { self =>

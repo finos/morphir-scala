@@ -9,6 +9,7 @@ trait CommonCoursierModule extends CoursierModule {
       val result = forcedVersions
         .find(t => t._1 == dep.module.organization.value && t._2 == dep.module.name.value)
         .map { forced =>
+          @annotation.nowarn("msg=deprecated")
           val newDep = dep.withVersion(forced._3)
           Task.log.debug(s"Mapping ${dep} to ${newDep}")
           newDep
