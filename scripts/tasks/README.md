@@ -24,6 +24,7 @@ Tasks are defined in `.config/mise/config.toml` and implemented as TypeScript sc
 ## Environment Variables
 
 - **`SCALA_VERSIONS`** - Comma-separated list of Scala versions for test tasks (default: `3.7.4`)
+- **`SCALA_VERSION_JS`** - Scala version for JS tests (default: `3.7.4`)
 
 Example:
 ```bash

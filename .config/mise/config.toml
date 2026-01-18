@@ -43,10 +43,16 @@ alias = "setup-idea"
 description = "Generate IntelliJ IDEA project files"
 run = "bun run scripts/tasks/setup-idea.ts"
 
+[tasks."test:js"]
+alias = "test-js"
+description = "Run JS compile/publish/test workflow"
+run = "./mill -i -k -j 0 \"morphir[${SCALA_VERSION_JS:-3.7.4}].__.js.__.compile\" + \"morphir[${SCALA_VERSION_JS:-3.7.4}].__.js.publishArtifacts\" + \"morphir[${SCALA_VERSION_JS:-3.7.4}].__.js.__.test\""
+
 [tasks."ci:local"]
 alias = "ci-local"
 description = "Run the core CI workflow locally (setup, lint, build, tests)"
-run = "bun run scripts/tasks/ci-local.ts"
+depends = ["setup", "lint", "build:morphir-elm", "test:jvm", "test:js"]
+run = "echo \"✅ ci:local complete\""
 
 [tasks."test:jvm"]
 alias = "test-jvm"

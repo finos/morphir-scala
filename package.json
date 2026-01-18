@@ -18,7 +18,6 @@
     "build:morphir-elm": "bun run scripts/tasks/morphir-elm-build.ts",
     "setup": "bun run scripts/tasks/setup.ts",
     "setup:idea": "bun run scripts/tasks/setup-idea.ts",
-    "ci:local": "bun run scripts/tasks/ci-local.ts",
     "test:jvm": "bun run scripts/tasks/test-jvm.ts",
     "test:runtime-jvm": "bun run scripts/tasks/test-runtime-jvm.ts"
   },
