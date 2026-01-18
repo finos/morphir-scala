@@ -368,8 +368,6 @@ trait MorphirCrossModule extends Cross.Module[String] with CrossPlatform { morph
 
     object jvm extends Shared with MorphirJVMModule with ScoverageModule {
       def scoverageVersion = Vers.scoverage
-      // scalac-compat-annotation is JVM-only (no Scala.js artifact available)
-      override def mvnDeps = super.mvnDeps() ++ Seq(Deps.org.typelevel.`scalac-compat-annotation`)
 
       object test extends ScoverageTests with RuntimeTests {
         def mvnDeps = Seq(
