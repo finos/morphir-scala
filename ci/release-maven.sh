@@ -12,6 +12,8 @@ rm gpg_key
 ./mill -i __.publishArtifacts
 
 # Publish all artifacts
+# Updated to use Sonatype Central Portal compatibility API
+# See: https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/
 ./mill -i \
     mill.scalalib.PublishModule/publishAll \
     --sonatypeCreds "$SONATYPE_DEPLOY_USER":"$SONATYPE_DEPLOY_PASSWORD" \
@@ -21,5 +23,5 @@ rm gpg_key
     --awaitTimeout 3600000 \
     --release true \
     --signed  true \
-    --sonatypeUri https://s01.oss.sonatype.org/service/local \
-    --sonatypeSnapshotUri https://s01.oss.sonatype.org/content/repositories/snapshots
+    --sonatypeUri https://ossrh-staging-api.central.sonatype.com/service/local \
+    --sonatypeSnapshotUri https://central.sonatype.com/repository/maven-snapshots

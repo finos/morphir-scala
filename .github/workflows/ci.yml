@@ -210,9 +210,11 @@ jobs:
 
       - name: Release
         run: |
+          # Updated to use Sonatype Central Portal compatibility API
+          # See: https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/
           ./mill -i mill.scalalib.PublishModule/publishAll \
-            --sonatypeUri https://s01.oss.sonatype.org/service/local \
-            --sonatypeSnapshotUri https://s01.oss.sonatype.org/content/repositories/snapshots \
+            --sonatypeUri https://ossrh-staging-api.central.sonatype.com/service/local \
+            --sonatypeSnapshotUri https://central.sonatype.com/repository/maven-snapshots \
             --publishArtifacts __.publishArtifacts \
             --readTimeout 1200000 \
             --awaitTimeout 1200000
