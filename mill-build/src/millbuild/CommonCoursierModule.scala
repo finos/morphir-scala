@@ -1,20 +1,20 @@
 package millbuild
 
-import mill._, scalalib._, scalafmt._
+import mill.*, scalalib.*, scalafmt.*
 
 trait CommonCoursierModule extends CoursierModule {
-  override def mapDependencies: Task[coursier.Dependency => coursier.Dependency] = T.task {
+  override def mapDependencies: Task[coursier.Dependency => coursier.Dependency] = Task.Anon {
     super.mapDependencies().andThen { dep =>
-      T.log.debug("****************************[START: Forced Versions]*****************************")
+      Task.log.debug("****************************[START: Forced Versions]*****************************")
       val result = forcedVersions
         .find(t => t._1 == dep.module.organization.value && t._2 == dep.module.name.value)
         .map { forced =>
           val newDep = dep.withVersion(forced._3)
-          T.log.debug(s"Mapping ${dep} to ${newDep}")
+          Task.log.debug(s"Mapping ${dep} to ${newDep}")
           newDep
         }
         .getOrElse(dep)
-      T.log.debug("****************************[END: Forced Versions]*****************************")
+      Task.log.debug("****************************[END: Forced Versions]*****************************")
       result
     }
   }

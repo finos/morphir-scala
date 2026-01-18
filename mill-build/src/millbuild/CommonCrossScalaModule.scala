@@ -1,41 +1,41 @@
 package millbuild
 
-import mill._, scalalib._, scalafmt._
+import mill.*, scalalib.*, scalafmt.*
 import java.util.Properties
 trait CommonCrossScalaModule extends CrossScalaModule with CommonScalaModule
     with ScalafmtModule { self => }
 
 trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
-  def compilerPlugins(scalaVersion: String) =
+  def compilerPlugins(scalaVersion: String): Seq[Dep] =
     if (isScala2(scalaVersion))
-      Agg(
+      Seq(
         ivy"org.typelevel:::kind-projector:0.13.3",
         ivy"com.olegpy::better-monadic-for:0.3.1"
       )
     else
-      Agg()
+      Seq()
 
-  def disableFatalWarnings = T.input {
-    T.env.get("DISABLE_WARNINGS_AS_ERRORS").map(_.toBoolean).getOrElse(false)
+  def disableFatalWarnings = Task.Input {
+    Task.env.get("DISABLE_WARNINGS_AS_ERRORS").map(_.toBoolean).getOrElse(false)
   }
 
-  def isCIBuild = T.input {
-    T.env.get("CI").map(_.toBoolean).getOrElse(false)
+  def isCIBuild = Task.Input {
+    Task.env.get("CI").map(_.toBoolean).getOrElse(false)
   }
 
   def isScala3(scalaVersion: String): Boolean = scalaVersion.startsWith("3.")
 
   def isScala2(scalaVersion: String): Boolean = scalaVersion.startsWith("2.")
 
-  def isScala3: T[Boolean] = T {
+  def isScala3: T[Boolean] = Task {
     scalaVersion().startsWith("3.")
   }
 
-  def isScala2: T[Boolean] = T {
+  def isScala2: T[Boolean] = Task {
     scalaVersion().startsWith("2.")
   }
 
-  def isScala213: T[Boolean] = T {
+  def isScala213: T[Boolean] = Task {
     scalaVersion().startsWith("2.13.")
   }
 
@@ -49,13 +49,13 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
     } yield (majorInt, minorInt)
   }
 
-  def partialVersion: T[Option[(Int, Int)]] = T {
+  def partialVersion: T[Option[(Int, Int)]] = Task {
     partialVersion(scalaVersion())
   }
 
-  def optimize: T[Boolean] = T(false)
+  def optimize: T[Boolean] = Task(false)
 
-  def scalacOptions: Target[Seq[String]] = T {
+  def scalacOptions: T[Seq[String]] = Task {
     val options = scalacOptions(
       scalaVersion(),
       optimize = optimize(),
@@ -65,7 +65,7 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
     super.scalacOptions() ++ options ++ additionalScalacOptions()
   }
 
-  def scalaDocOptions = T {
+  def scalaDocOptions = Task {
     val extraOptions =
       if (isScala213()) {
         Seq("-Wconf:cat=scala3-migration:s")
@@ -75,15 +75,15 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
     filterScala3DocOptions(super.scalaDocOptions()) ++ extraOptions
   }
 
-  override def scalacPluginIvyDeps: Target[Agg[Dep]] = T {
-    super.scalacPluginIvyDeps() ++ compilerPlugins(scalaVersion())
+  override def scalacPluginMvnDeps: T[Seq[Dep]] = Task {
+    super.scalacPluginMvnDeps() ++ compilerPlugins(scalaVersion())
   }
 
   /// The location of user specific build properties. This is curremtly only setup to provide custom scalac options.
   /// This becomes useful when you want to temporarily enable a scalac option which is harder given mill runs a build serve/daemon.
-  def userBuildProperties = T.source(T.workspace / "build.user.properties")
+  def userBuildProperties = Task.Source(mill.api.BuildCtx.workspaceRoot / "build.user.properties")
 
-  def additionalScalacOptions = T {
+  def additionalScalacOptions = Task {
     val propsPath = userBuildProperties().path
     if (os.exists(propsPath)) {
       try {

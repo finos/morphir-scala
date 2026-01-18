@@ -1,12 +1,13 @@
 package org.finos.millmorphir.api
-import mill._
-import upickle.default.{ReadWriter => RW, readwriter, macroRW}
+
+import mill.*
+import upickle.default.{ReadWriter => RW, readwriter}
 
 final case class ArtifactRef(
     pathRef: PathRef,
     artifactType: ArtifactType,
     tags: Set[String] = Set.empty
-) { self =>
+) derives RW { self =>
   def addTag(tag: String): ArtifactRef     = self.copy(tags = tags + tag)
   def addTags(tags: String*): ArtifactRef  = self.copy(tags = self.tags ++ tags)
   def path: os.Path                        = pathRef.path
@@ -14,13 +15,12 @@ final case class ArtifactRef(
 }
 
 object ArtifactRef {
-  implicit val jsonFormatter: RW[ArtifactRef] = macroRW
   def morphirIR(pathRef: PathRef, tags: String*): ArtifactRef =
-    ArtifactRef(pathRef, ArtifactType.MorphirIR, Set(tags: _*))
+    ArtifactRef(pathRef, ArtifactType.MorphirIR, Set(tags*))
   def morphirHashes(pathRef: PathRef, tags: String*): ArtifactRef =
-    ArtifactRef(pathRef, ArtifactType.MorphirHashes, Set(tags: _*))
+    ArtifactRef(pathRef, ArtifactType.MorphirHashes, Set(tags*))
   def custom(name: String, pathRef: PathRef, tags: String*): ArtifactRef =
-    ArtifactRef(pathRef, ArtifactType.Custom(name), Set(tags: _*))
+    ArtifactRef(pathRef, ArtifactType.Custom(name), Set(tags*))
 }
 
 sealed abstract class ArtifactType(val tag: String) extends Product with Serializable {
@@ -28,7 +28,7 @@ sealed abstract class ArtifactType(val tag: String) extends Product with Seriali
 }
 
 object ArtifactType {
-  implicit val jsonFormatter: RW[ArtifactType] = readwriter[String].bimap(_.tag, fromTag)
+  given RW[ArtifactType] = readwriter[String].bimap(_.tag, fromTag)
 
   def fromTag(tag: String): ArtifactType = tag match {
     case MorphirIR.tag                  => MorphirIR
@@ -38,13 +38,13 @@ object ArtifactType {
   }
 
   case object MorphirIR extends ArtifactType("morphir-ir") { self =>
-    implicit val jsonFormatter: RW[MorphirIR.type] = readwriter[String].bimap(_.tag, _ => self)
+    given RW[MorphirIR.type] = readwriter[String].bimap(_.tag, _ => self)
   }
   case object MorphirHashes extends ArtifactType("morphir-hashes") { self =>
-    implicit val jsonFormatter: RW[MorphirHashes.type] = readwriter[String].bimap(_.tag, _ => self)
+    given RW[MorphirHashes.type] = readwriter[String].bimap(_.tag, _ => self)
   }
   case class Custom(name: String) extends ArtifactType(s"custom:$name")
   object Custom {
-    implicit val jsonFormatter: RW[Custom] = readwriter[String].bimap(_.tag, Custom(_))
+    given RW[Custom] = readwriter[String].bimap(_.tag, Custom(_))
   }
 }

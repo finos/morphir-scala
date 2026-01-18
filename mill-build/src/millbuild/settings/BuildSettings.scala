@@ -1,11 +1,13 @@
 package millbuild.settings
+
 import zio.{ConfigProvider, Unsafe, Runtime}
-import zio.config._
+import zio.config.{read as zioRead, *}
 import zio.config.magnolia.deriveConfig
-import zio.config.typesafe._
-import zio.config.yaml._
+import zio.config.typesafe.*
+import zio.config.yaml.*
 import com.typesafe.config.ConfigFactory
 import zio.Config
+import upickle.default.{ReadWriter, Reader, Writer}
 
 final case class BuildSettings(
     jvm: JvmBuildSettings = JvmBuildSettings(),
@@ -13,14 +15,12 @@ final case class BuildSettings(
     native: ScalaNativeBuildSettings = ScalaNativeBuildSettings(),
     mill: MillSettings = MillSettings(),
     scala: ScalaSettings = ScalaSettings()
-)
+) derives ReadWriter
 
 object BuildSettings {
 
   val config: Config[BuildSettings] = deriveConfig[BuildSettings]
   lazy val default: BuildSettings   = BuildSettings()
-
-  implicit lazy val rw: upickle.default.ReadWriter[BuildSettings] = upickle.default.macroRW
 
   lazy val buildUserHoconFileConfigProvider: ConfigProvider =
     ConfigProvider.fromHoconFile((os.pwd / "build.user.conf").toIO)
@@ -43,7 +43,7 @@ object BuildSettings {
   }
 
   def loadSettings() =
-    read(
+    zioRead(
       BuildSettings.config from (
         buildEnvConfigProvider orElse
           propertiesFileConfigProvider orElse

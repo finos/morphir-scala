@@ -1,7 +1,6 @@
 package millbuild.jsruntime
 import scala.util.Properties.isWin
-import mill.api._
-import mill.util.Jvm
+import mill.api.*
 
 import os.SubProcess
 
@@ -15,39 +14,13 @@ trait JsRuntime {
   def executable: String =
     findTool(toolName)
 
-  def runSubprocess(entryPoint: String, args: Seq[String], envArgs: Map[String, String], workingDir: os.Path)(implicit
-      ctx: Ctx
-  ): Unit = {
+  def runSubprocess(entryPoint: String, args: Seq[String], envArgs: Map[String, String], workingDir: os.Path): Unit = {
     val commandArgs = Vector(executable) ++ args
     println(s"CommandArgs: $commandArgs")
-    val process: SubProcess = Jvm.spawnSubprocessWithBackgroundOutputs(
-      commandArgs,
-      envArgs,
-      workingDir,
-      backgroundOutputs = None
-    )
-    println(s"Createds process: ${process}")
-
-    val shutdownHook = new Thread("subprocess-shutdown") {
-      override def run(): Unit = {
-        System.err.println(s"Host executable for $toolName shutdown. Forcefully destroying subprocess ...")
-        process.destroy()
-      }
+    val result = os.proc(commandArgs).call(cwd = workingDir, env = envArgs)
+    if (result.exitCode != 0) {
+      throw new Exception("Interactive Subprocess Failed (exit code " + result.exitCode + ")")
     }
-    Runtime.getRuntime().addShutdownHook(shutdownHook)
-    try
-      process.waitFor()
-    catch {
-      case e: InterruptedException =>
-        System.err.println("Interrupted. Forcefully destroying subprocess ...")
-        process.destroy()
-        // rethrow
-        throw e
-    } finally
-      Runtime.getRuntime().removeShutdownHook(shutdownHook)
-    if (process.exitCode() == 0) ()
-    else throw new Exception("Interactive Subprocess Failed (exit code " + process.exitCode() + ")")
-
   }
 }
 

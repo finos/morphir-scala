@@ -1,37 +1,38 @@
-import mill._, scalalib._
-import mill.scalalib.api.ZincWorkerUtil.scalaNativeBinaryVersion
+package millbuild
+
+import mill.*, scalalib.*
 import millbuild.crossplatform.DevMode
 
 object Deps {
 
-  case object ch {
-    case object epfl {
-      case object scala {
+  object ch {
+    object epfl {
+      object scala {
         val `tasty-query` = ivy"ch.epfl.scala::tasty-query::${Versions.`tasty-query`}"
       }
     }
   }
 
-  case object co {
-    case object fs2 {
+  object co {
+    object fs2 {
       val `fs2-core` = ivy"co.fs2::fs2-core::${Versions.fs2}"
       val `fs2-io`   = ivy"co.fs2::fs2-io::${Versions.fs2}"
     }
   }
 
-  case object com {
-    case object beachape {
+  object com {
+    object beachape {
       val enumeratum = ivy"com.beachape::enumeratum::${Versions.enumeratum}"
     }
 
-    case object eed3si9n {
-      case object expecty {
+    object eed3si9n {
+      object expecty {
         val expecty = ivy"com.eed3si9n.expecty::expecty::${Versions.expecty}"
       }
     }
 
-    case object geirsson {
-      case object metaconfig {
+    object geirsson {
+      object metaconfig {
         val core    = ivy"com.geirsson::metaconfig-core::${Versions.metaconfig}"
         val docs    = ivy"com.geirsson::metaconfig-docs::${Versions.metaconfig}"
         val json    = ivy"com.geirsson::metaconfig-json::${Versions.metaconfig}"
@@ -40,21 +41,21 @@ object Deps {
       }
     }
 
-    case object github {
-      case object arturopala {
+    object github {
+      object arturopala {
         val `buffer-and-slice` = ivy"com.github.arturopala::buffer-and-slice:${Versions.`buffer-and-slice`}"
       }
 
-      case object ghik {
+      object ghik {
         val `silencer-lib`    = ivy"com.github.ghik:::silencer-lib:${Versions.silencer}"
         val `silencer-plugin` = ivy"com.github.ghik:::silencer-plugin:${Versions.silencer}"
       }
 
-      case object lolgab {
+      object lolgab {
         val `scala-native-crypto` = ivy"com.github.lolgab::scala-native-crypto::${Versions.`scala-native-crypto`}"
       }
     }
-    case object lihaoyi {
+    object lihaoyi {
       val castor         = ivy"com.lihaoyi::castor::${Versions.castor}"
       val fansi          = ivy"com.lihaoyi::fansi::${Versions.fansi}"
       val geny           = ivy"com.lihaoyi::geny::${Versions.geny}"
@@ -67,25 +68,25 @@ object Deps {
       val `upickle-core` = ivy"com.lihaoyi::upickle-core::${Versions.upickle}"
     }
 
-    case object outr {
+    object outr {
       val scribe = ivy"com.outr::scribe::${Versions.scribe}"
     }
-    case object softwaremill {
-      case object common {
+    object softwaremill {
+      object common {
         val tagging = ivy"com.softwaremill.common::tagging::2.3.4"
       }
 
-      case object magnolia_2 {
+      object magnolia_2 {
         val magnolia = ivy"com.softwaremill.magnolia1_2::magnolia::1.1.8"
       }
 
-      case object magnolia_3 {
+      object magnolia_3 {
         val magnolia = ivy"com.softwaremill.magnolia1_3::magnolia::1.3.9"
       }
     }
   }
-  case object dev {
-    case object zio {
+  object dev {
+    object zio {
       val `izumi-reflect`      = ivy"dev.zio::izumi-reflect::${Versions.`izumi-reflect`}"
       val zio: Dep             = ivy"dev.zio::zio::${Versions.zio}"
       val `zio-cli`            = ivy"dev.zio::zio-cli::${Versions.`zio-cli`}"
@@ -110,12 +111,12 @@ object Deps {
         val typesafe     = ivy"dev.zio::zio-config-typesafe::${Versions.`zio-config`}"
       }
 
-      case object prelude {
+      object prelude {
         def apply(): Dep = ivy"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
         val macros       = ivy"dev.zio::zio-prelude-macros::${Versions.`zio-prelude`}"
       }
 
-      case object schema {
+      object schema {
         val `avro`       = ivy"dev.zio::zio-schema-avro::${Versions.`zio-schema`}"
         val `bson`       = ivy"dev.zio::zio-schema-bson::${Versions.`zio-schema`}"
         val `core`       = ivy"dev.zio::zio-schema-core::${Versions.`zio-schema`}"
@@ -125,8 +126,8 @@ object Deps {
       }
     }
   }
-  case object io {
-    case object bullet {
+  object io {
+    object bullet {
       def `borer-core`(scalaVersion: String): Dep = ivy"io.bullet::borer-core::${Versions.borer(scalaVersion)}"
       def `borer-core`(scalaVersionParts: Seq[String]): Dep =
         ivy"io.bullet::borer-core::${Versions.borer(scalaVersionParts)}"
@@ -137,23 +138,23 @@ object Deps {
       def `borer-derivation`(scalaVersionParts: Seq[String]): Dep =
         ivy"io.bullet::borer-derivation::${Versions.borer(scalaVersionParts)}"
     }
-    case object `get-coursier` {
+    object `get-coursier` {
       val coursier = ivy"io.get-coursier::coursier::${Versions.coursier}"
     }
-    case object github {
-      case object cquiroz {
+    object github {
+      object cquiroz {
         val `scala-java-time`      = ivy"io.github.cquiroz::scala-java-time::${Versions.`scala-java-time`}"
         val `scala-java-time-tzdb` = ivy"io.github.cquiroz::scala-java-time-tzdb::${Versions.`scala-java-time`}"
       }
     }
-    case object lemonlabs {
+    object lemonlabs {
       val `scala-uri` = ivy"io.lemonlabs::scala-uri::4.0.3"
     }
   }
-  case object org {
-    case object `scala-lang` {
+  object org {
+    object `scala-lang` {
 
-      case object modules {
+      object modules {
         val `scala-collection-contrib` = ivy"org.scala-lang.modules::scala-collection-contrib:0.4.0"
       }
 
@@ -167,16 +168,16 @@ object Deps {
         ivy"org.scala-lang::scala3-tasty-inspector::$scalaVersion"
     }
 
-    case object scalameta {}
+    object scalameta {}
 
-    case object typelevel {
+    object typelevel {
       val `cats-core`   = cats.core
       val `paiges-core` = ivy"org.typelevel::paiges-core::${Versions.paiges}"
       val `scalac-compat-annotation` =
         ivy"org.typelevel::scalac-compat-annotation:${Versions.`scalac-compat-annotation`}"
       val spire = ivy"org.typelevel::spire::${Versions.spire}"
 
-      case object cats {
+      object cats {
         val core = ivy"org.typelevel::cats-core::${Versions.cats}"
       }
     }
@@ -252,7 +253,9 @@ object ScalaVersions {
 
 object MillVersions {
   val all = Seq("0.11.0", "1.0.5")
-  def millBinaryVersion(millVersion: String) = scalaNativeBinaryVersion(
-    millVersion
-  )
+  // Compute Mill binary version similar to Scala Native binary version
+  def millBinaryVersion(millVersion: String): String = {
+    val parts = millVersion.split('.').take(2)
+    parts.mkString(".")
+  }
 }

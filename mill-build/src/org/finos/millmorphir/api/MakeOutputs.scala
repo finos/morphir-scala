@@ -1,10 +1,8 @@
 package org.finos.millmorphir.api
 
-final case class MakeOutputs(moduleId: String, artifacts: Set[ArtifactRef]) {
+import upickle.default.*
+
+final case class MakeOutputs(moduleId: String, artifacts: Set[ArtifactRef]) derives ReadWriter {
   def addArtifact(artifact: ArtifactRef): MakeOutputs    = MakeOutputs(moduleId, artifacts + artifact)
   def addArtifacts(artifacts: ArtifactRef*): MakeOutputs = MakeOutputs(moduleId, this.artifacts ++ artifacts)
-}
-
-object MakeOutputs {
-  implicit val jsonFormatter: upickle.default.ReadWriter[MakeOutputs] = upickle.default.macroRW
 }
