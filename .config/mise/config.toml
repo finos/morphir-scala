@@ -1,0 +1,12 @@
+# Mise configuration for morphir-scala project
+# https://mise.jdx.dev/configuration.html
+
+[tools]
+# Use latest stable versions
+bun = "latest"
+moon = "1.27.10"
+node = "lts"
+
+[env]
+# Environment variables
+_.path = ["./node_modules/.bin"]

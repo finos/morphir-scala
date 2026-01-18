@@ -146,7 +146,7 @@ assign_positional_args 1 "${_positionals[@]}"
 # Initialize variables
 offline=$_arg_offline
 verbose=$_arg_verbose
-proto_bin_provided=0
+mise_bin_provided=0
 subcommand=$_arg_command
 leftovers=$_arg_leftovers
 
@@ -189,15 +189,14 @@ function log_info() {
 
 
 require_bun() {
-	if ! check_cmd moon; then
+	if ! check_cmd bun; then
 		if [ "$offline" = "on" ]; then
 			log_err "Error: bun is not installed and offline mode is enabled, you will need to install bun manually"
 			exit 1
 		else
 			log_info "bun is not installed, attempting to install it..."
-			proto install bun
+			mise install bun
 		fi
-		exit 1
 	fi
 }
 
@@ -208,10 +207,8 @@ require_moon() {
 			exit 1
 		else
 			log_info "moon is not installed, attempting to install it..."
-			proto install moon
-			#curl -fsSL https://moonrepo.dev/install/moon.sh | bash
+			mise install moon
 		fi
-		exit 1
 	fi
 }
 
@@ -228,40 +225,40 @@ ensure_scalaVersions() {
 
 # Rest of script
 
-# Check if PROTO_BIN_PATH is already set
-if [ -z "$PROTO_BIN_PATH" ]; then
-    log_info "PROTO_BIN_PATH is not set, attempting to derive it..."
-    if command -v proto > /dev/null; then
-        PROTO_BIN_PATH=$(command -v proto)
-        log_info "PROTO_BIN_PATH set to: $PROTO_BIN_PATH"
+# Check if MISE_BIN_PATH is already set
+if [ -z "$MISE_BIN_PATH" ]; then
+    log_info "MISE_BIN_PATH is not set, attempting to derive it..."
+    if command -v mise > /dev/null; then
+        MISE_BIN_PATH=$(command -v mise)
+        log_info "MISE_BIN_PATH set to: $MISE_BIN_PATH"
     fi
 else
-    log_info "PROTO_BIN_PATH is already set to: $PROTO_BIN_PATH"
+    log_info "MISE_BIN_PATH is already set to: $MISE_BIN_PATH"
 fi
 
-# Check if PROTO_BIN_PATH is already set and exists
-if [ -n "$PROTO_BIN_PATH" ] && [ -e "$PROTO_BIN_PATH" ]; then
-    if [ -x "$PROTO_BIN_PATH" ]; then
-        log_info "proto is provided by PROTO_BIN_PATH which is set to: $PROTO_BIN_PATH"
-        proto_bin_provided=1
+# Check if MISE_BIN_PATH is already set and exists
+if [ -n "$MISE_BIN_PATH" ] && [ -e "$MISE_BIN_PATH" ]; then
+    if [ -x "$MISE_BIN_PATH" ]; then
+        log_info "mise is provided by MISE_BIN_PATH which is set to: $MISE_BIN_PATH"
+        mise_bin_provided=1
     else
-        log_err "$PROTO_BIN_PATH is not executable"
+        log_err "$MISE_BIN_PATH is not executable"
         exit 1
     fi
 else
-    log_info "PROTO_BIN_PATH is not set, falling back to using PROTO_HOME"
+    log_info "MISE_BIN_PATH is not set, falling back to using MISE_HOME"
 fi
 
-# If PROTO is not provided attempt to download and install it
-if [ "$proto_bin_provided" -eq 0 ]; then
-    log_info "PROTO_BIN_PATH is not provided, attempting to download and install PROTO..."
+# If MISE is not provided attempt to download and install it
+if [ "$mise_bin_provided" -eq 0 ]; then
+    log_info "MISE_BIN_PATH is not provided, attempting to download and install MISE..."
     if [ "$offline" = "on" ]; then
-        log_err "Error: PROTO_BIN_PATH is not provided and offline mode is enabled"
+        log_err "Error: MISE_BIN_PATH is not provided and offline mode is enabled"
         exit 1
     fi
-    # Download and install PROTO
-    log_info "Downloading and installing PROTO..."
-    curl -fsSL https://moonrepo.dev/install/proto.sh | bash
+    # Download and install MISE
+    log_info "Downloading and installing MISE..."
+    curl -fsSL https://mise.run | bash
 fi
 
 
