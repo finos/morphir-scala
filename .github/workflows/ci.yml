@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout current branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Setup Scala and Java
@@ -56,7 +56,7 @@ jobs:
         scala: ["3.7.4"]
     steps:
       - name: Checkout current branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -100,7 +100,7 @@ jobs:
         scala: ["3.7.4"]
     steps:
       - name: Checkout current branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -168,7 +168,7 @@ jobs:
       LC_ALL: "en_US.UTF-8"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
