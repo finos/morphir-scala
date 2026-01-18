@@ -22,6 +22,7 @@ object Deps {
   case object com {
     case object beachape {
       val enumeratum = ivy"com.beachape::enumeratum::${Versions.enumeratum}"
+        .exclude("org.scala-lang" -> "scala3-library_3")
     }
 
     case object eed3si9n {
@@ -154,7 +155,7 @@ object Deps {
     case object `scala-lang` {
 
       case object modules {
-        val `scala-collection-contrib` = ivy"org.scala-lang.modules::scala-collection-contrib:0.4.0"
+        val `scala-collection-contrib` = ivy"org.scala-lang.modules::scala-collection-contrib::0.4.0"
       }
 
       def `scala-compiler`(scalaVersion: String): Dep =
