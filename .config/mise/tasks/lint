@@ -5,6 +5,6 @@ set -e
 
 echo "Linting code..."
 echo "  Linting Scala files..."
-# Call Mill directly instead of through Alias to avoid parallel task resolution issues
-./mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources
+# Use specific glob patterns to avoid hanging on broad __.sources resolution
+./mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll 'morphir.__.sources'
 echo "Lint completed successfully"

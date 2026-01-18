@@ -6,6 +6,6 @@ set -e
 
 echo "Formatting code..."
 echo "  Formatting Scala files..."
-# Call Mill directly instead of through Alias to avoid parallel task resolution issues
-./mill mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+# Use specific glob patterns to avoid hanging on broad __.sources resolution
+./mill mill.scalalib.scalafmt.ScalafmtModule/reformatAll 'morphir.__.sources'
 echo "Format completed successfully"
