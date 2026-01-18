@@ -1,13 +1,11 @@
-#!/usr/bin/env -S scala-cli shebang -S 3
-//MISE description="Format Scala code"
-//MISE alias="format"
-//> using dep com.lihaoyi::os-lib:0.11.4
+#!/usr/bin/env bash
+# MISE description="Format Scala code"
+# MISE alias="format"
 
-object Main {
-  def main(args: Array[String]): Unit = {
-    println("Formatting code...")
-    println("  Formatting Scala files...")
-    os.proc("./mill", "Alias/run", "fmt").call(cwd = os.pwd)
-    println("Format completed successfully")
-  }
-}
+set -e
+
+echo "Formatting code..."
+echo "  Formatting Scala files..."
+# Call Mill directly instead of through Alias to avoid parallel task resolution issues
+./mill mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+echo "Format completed successfully"

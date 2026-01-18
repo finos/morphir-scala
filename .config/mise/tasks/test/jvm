@@ -1,28 +1,24 @@
-#!/usr/bin/env -S scala-cli shebang -S 3
-//MISE description="Run JVM tests for all Scala versions"
-//> using dep com.lihaoyi::os-lib:0.11.4
+#!/usr/bin/env bash
+# MISE description="Run JVM tests for all Scala versions"
 
-object Main {
-  def main(args: Array[String]): Unit = {
-    val scalaVersionsEnv = sys.env.getOrElse("SCALA_VERSIONS", "3.7.4")
-    val scalaVersions = scalaVersionsEnv.split(",").map(_.trim).toSeq
+set -e
 
-    println("Running JVM tests...")
-    println(s"  Scala versions: ${scalaVersions.mkString(", ")}")
+SCALA_VERSIONS="${SCALA_VERSIONS:-3.7.4}"
+IFS=',' read -ra VERSIONS <<< "$SCALA_VERSIONS"
 
-    // Note: build:morphir-elm should be run separately before this task in CI
-    for (scalaVersion <- scalaVersions) {
-      println(s"  Running JVM tests for Scala $scalaVersion...")
-      os.proc(
-        "./mill", "-i", "-k", "-j", "0",
-        s"morphir[$scalaVersion].__.jvm.__.compile",
-        "+",
-        s"morphir[$scalaVersion].__.jvm.publishArtifacts",
-        "+",
-        s"morphir[$scalaVersion].__.jvm.__.test"
-      ).call(cwd = os.pwd)
-    }
+echo "Running JVM tests..."
+echo "  Scala versions: ${SCALA_VERSIONS}"
 
-    println("JVM tests completed successfully")
-  }
-}
+# Note: build:morphir-elm should be run separately before this task in CI
+for version in "${VERSIONS[@]}"; do
+    version=$(echo "$version" | tr -d ' ')
+    echo "  Running JVM tests for Scala $version..."
+    ./mill -i -k -j 0 \
+        "morphir[$version].__.jvm.__.compile" \
+        + \
+        "morphir[$version].__.jvm.publishArtifacts" \
+        + \
+        "morphir[$version].__.jvm.__.test"
+done
+
+echo "JVM tests completed successfully"

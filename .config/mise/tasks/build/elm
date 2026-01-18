@@ -1,29 +1,24 @@
-#!/usr/bin/env -S scala-cli shebang -S 3
-//MISE description="Build all Elm projects"
-//> using dep com.lihaoyi::os-lib:0.11.4
+#!/usr/bin/env bash
+# MISE description="Build all Elm projects"
 
-object Main {
-  def main(args: Array[String]): Unit = {
-    println("Building Elm projects...")
+set -e
 
-    val elmProjectDirs = Seq(
-      "examples/morphir-elm-projects/evaluator-tests",
-      "examples/morphir-elm-projects/defaults-tests",
-      "examples/morphir-elm-projects/finance",
-      "morphir-elm/sdks/morphir-unit-test"
-    )
+echo "Building Elm projects..."
 
-    for (dir <- elmProjectDirs) {
-      val projectDir = os.pwd / os.RelPath(dir)
-      val morphirJson = projectDir / "morphir.json"
-      if (os.exists(morphirJson)) {
-        println(s"  Building $dir...")
-        os.proc("morphir-elm", "make").call(cwd = projectDir)
-      } else {
-        println(s"  Skipping $dir (no morphir.json)")
-      }
-    }
+ELM_PROJECT_DIRS=(
+    "examples/morphir-elm-projects/evaluator-tests"
+    "examples/morphir-elm-projects/defaults-tests"
+    "examples/morphir-elm-projects/finance"
+    "morphir-elm/sdks/morphir-unit-test"
+)
 
-    println("Elm build completed successfully")
-  }
-}
+for dir in "${ELM_PROJECT_DIRS[@]}"; do
+    if [ -f "$dir/morphir.json" ]; then
+        echo "  Building $dir..."
+        (cd "$dir" && morphir-elm make)
+    else
+        echo "  Skipping $dir (no morphir.json)"
+    fi
+done
+
+echo "Elm build completed successfully"

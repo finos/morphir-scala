@@ -1,23 +1,18 @@
-#!/usr/bin/env -S scala-cli shebang -S 3
-//MISE description="Run JS compile/publish/test workflow"
-//> using dep com.lihaoyi::os-lib:0.11.4
+#!/usr/bin/env bash
+# MISE description="Run JS compile/publish/test workflow"
 
-object Main {
-  def main(args: Array[String]): Unit = {
-    val scalaVersion = sys.env.getOrElse("SCALA_VERSION_JS", "3.7.4")
+set -e
 
-    println("Running JS tests...")
-    println(s"  Scala version: $scalaVersion")
+SCALA_VERSION="${SCALA_VERSION_JS:-3.7.4}"
 
-    os.proc(
-      "./mill", "-i", "-k", "-j", "0",
-      s"morphir[$scalaVersion].__.js.__.compile",
-      "+",
-      s"morphir[$scalaVersion].__.js.publishArtifacts",
-      "+",
-      s"morphir[$scalaVersion].__.js.__.test"
-    ).call(cwd = os.pwd)
+echo "Running JS tests..."
+echo "  Scala version: $SCALA_VERSION"
 
-    println("JS tests completed successfully")
-  }
-}
+./mill -i -k -j 0 \
+    "morphir[$SCALA_VERSION].__.js.__.compile" \
+    + \
+    "morphir[$SCALA_VERSION].__.js.publishArtifacts" \
+    + \
+    "morphir[$SCALA_VERSION].__.js.__.test"
+
+echo "JS tests completed successfully"

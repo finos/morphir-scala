@@ -1,10 +1,5 @@
-#!/usr/bin/env -S scala-cli shebang -S 3
-//MISE description="Run the core CI workflow locally"
-//MISE depends=["setup", "lint", "build:morphir-elm", "test:jvm", "test:js"]
-//> using dep com.lihaoyi::os-lib:0.11.4
+#!/usr/bin/env bash
+# MISE description="Run the core CI workflow locally"
+# MISE depends=["setup", "lint", "build:morphir-elm", "test:jvm", "test:js"]
 
-object Main {
-  def main(args: Array[String]): Unit = {
-    println("ci:local complete")
-  }
-}
+echo "ci:local complete"

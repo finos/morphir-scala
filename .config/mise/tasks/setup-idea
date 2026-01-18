@@ -1,13 +1,8 @@
-#!/usr/bin/env -S scala-cli shebang -S 3
-//MISE description="Generate IntelliJ IDEA project files"
-//> using dep com.lihaoyi::os-lib:0.11.4
+#!/usr/bin/env bash
+# MISE description="Generate IntelliJ IDEA project files"
 
-// This delegates to the more comprehensive scripts/setup-idea.scala
-// which supports CLI arguments for customizing the build platforms
-object Main {
-  def main(args: Array[String]): Unit = {
-    println("Setting up IntelliJ IDEA project...")
-    os.proc("./scripts/setup-idea.scala").call(cwd = os.pwd, stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
-    println("IDEA setup completed successfully")
-  }
-}
+set -e
+
+echo "Setting up IntelliJ IDEA project..."
+./scripts/setup-idea.scala "$@"
+echo "IDEA setup completed successfully"

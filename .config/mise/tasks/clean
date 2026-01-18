@@ -1,17 +1,13 @@
-#!/usr/bin/env -S scala-cli shebang -S 3
-//MISE description="Remove build artifacts"
-//> using dep com.lihaoyi::os-lib:0.11.4
+#!/usr/bin/env bash
+# MISE description="Remove build artifacts"
 
-object Main {
-  def main(args: Array[String]): Unit = {
-    println("Cleaning build artifacts...")
-    val outDir = os.pwd / "out"
-    if (os.exists(outDir)) {
-      os.remove.all(outDir)
-      println("  Removed out/ directory")
-    } else {
-      println("  out/ directory does not exist")
-    }
-    println("Clean completed successfully")
-  }
-}
+set -e
+
+echo "Cleaning build artifacts..."
+if [ -d "out" ]; then
+    rm -rf out
+    echo "  Removed out/ directory"
+else
+    echo "  out/ directory does not exist"
+fi
+echo "Clean completed successfully"
