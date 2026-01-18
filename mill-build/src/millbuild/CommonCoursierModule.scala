@@ -27,6 +27,8 @@ trait CommonCoursierModule extends CoursierModule {
     ("com.google.guava", "guava", "31.1-jre"),
     ("com.fasterxml.jackson.core", "jackson-core", "2.17.2"),
     ("com.fasterxml.jackson.core", "jackson-databind", "2.17.2"),
-    ("org.jsoup", "jsoup", "1.15.3")
+    ("org.jsoup", "jsoup", "1.15.3"),
+    ("org.scala-lang", "scala3-library_3", "3.7.4"),
+    ("org.scala-lang", "scala-library", "2.13.16")
   )
 }

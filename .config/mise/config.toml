@@ -43,6 +43,11 @@ alias = "setup-idea"
 description = "Generate IntelliJ IDEA project files"
 run = "bun run scripts/tasks/setup-idea.ts"
 
+[tasks."ci:local"]
+alias = "ci-local"
+description = "Run the core CI workflow locally (setup, lint, build, tests)"
+run = "bun run scripts/tasks/ci-local.ts"
+
 [tasks."test:jvm"]
 alias = "test-jvm"
 description = "Run JVM tests for all Scala versions"

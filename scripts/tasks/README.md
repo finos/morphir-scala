@@ -13,6 +13,7 @@ Run tasks using `mise run <task-name>` or the legacy `./build.sh <command>`:
 - **`build:elm`** - Build all Elm projects
 - **`build:morphir-elm`** - Build Morphir Elm evaluator tests
 - **`setup:idea`** - Generate IntelliJ IDEA project files
+- **`ci:local`** - Run the core CI workflow locally (setup, lint, build, tests)
 - **`test:jvm`** - Run JVM tests for all Scala versions
 - **`test:runtime-jvm`** - Run Runtime JVM tests
 
