@@ -1,11 +1,10 @@
 package millbuild.crossplatform
 
-import mill._
-import mill.define.DynamicModule
-import mill.main.BuildInfo
-import mill.scalajslib._
-import mill.scalalib._
-import mill.scalanativelib._
+import mill.*
+import mill.api.DynamicModule
+import mill.scalajslib.*
+import mill.scalalib.*
+import mill.scalanativelib.*
 import millbuild.settings._
 import scala.language.reflectiveCalls
 import millbuild.MyBuild
@@ -32,10 +31,10 @@ trait CrossPlatform extends Module with DynamicModule { self =>
     case _ => true
   }
 
-  final def originalMillModuleDirectChildren: Seq[Module] = super.millModuleDirectChildren
+  final def originalModuleDirectChildren: Seq[Module] = super.moduleDirectChildren
 
-  override def millModuleDirectChildren: Seq[Module] =
-    originalMillModuleDirectChildren.filter(enableModuleCondition)
+  override def moduleDirectChildren: Seq[Module] =
+    originalModuleDirectChildren.filter(enableModuleCondition)
 
   private type PlatformModule = JavaModule {
     def platform: Platform
@@ -53,9 +52,9 @@ trait CrossPlatform extends Module with DynamicModule { self =>
   }
 
   def childPlatformModules: Seq[PlatformModule] =
-    millModuleDirectChildren.collect { case (m: PlatformModule @unchecked) => m }
+    moduleDirectChildren.collect { case (m: PlatformModule @unchecked) => m }
 
-  def targetPlatforms: T[Seq[Platform]] = T { childPlatformModules.map(_.platform) }
+  def targetPlatforms: T[Seq[Platform]] = Task { childPlatformModules.map(_.platform) }
 
   /// Try and resolve to an actual platform specific module if it exists (not expecting multiple but in theory it is possible)
   def childPlatformModules(platform: Platform): Seq[PlatformModule] =

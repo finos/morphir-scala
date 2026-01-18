@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# MISE description="Format Scala code"
+# MISE alias="format"
+
+set -e
+
+echo "Formatting code..."
+echo "  Formatting Scala files..."
+# Use specific glob patterns to avoid hanging on broad __.sources resolution
+./mill mill.scalalib.scalafmt.ScalafmtModule/reformatAll 'morphir.__.sources'
+echo "Format completed successfully"

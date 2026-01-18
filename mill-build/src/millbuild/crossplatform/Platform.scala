@@ -1,6 +1,6 @@
 package millbuild.crossplatform
 
-import upickle.default.{ReadWriter => RW, macroRW}
+import upickle.default.{ReadWriter => RW, readwriter}
 
 sealed trait Platform extends Ordered[Platform] { self =>
   val isJS: Boolean        = self == Platform.JS
@@ -24,29 +24,39 @@ sealed trait Platform extends Ordered[Platform] { self =>
 object Platform {
   lazy val all: Set[Platform] = Set(JVM, JS, Native)
 
-  implicit val rw: RW[Platform] = RW.merge(
-    macroRW[Platform.JVM],
-    macroRW[Platform.JS],
-    macroRW[Platform.Native]
-  )
+  private def fromName(name: String): Platform = name match {
+    case "jvm"    => JVM
+    case "js"     => JS
+    case "native" => Native
+    case other    => throw new IllegalArgumentException(s"Unknown platform: $other")
+  }
+
+  implicit val rw: RW[Platform] = readwriter[String].bimap(_.name, fromName)
+
   type JVM = Platform.JVM.type
   case object JVM extends Platform {
-    implicit val rw: RW[JVM.type] = macroRW
+    implicit val rw: RW[JVM.type] = readwriter[String].bimap(_.name, _ => JVM)
     def name                      = "jvm"
   }
   type JS = Platform.JS.type
   case object JS extends Platform {
-    implicit val rw: RW[JS.type] = macroRW
+    implicit val rw: RW[JS.type] = readwriter[String].bimap(_.name, _ => JS)
     def name                     = "js"
   }
   type Native = Platform.Native.type
   case object Native extends Platform {
-    implicit val rw: RW[Native.type] = macroRW
+    implicit val rw: RW[Native.type] = readwriter[String].bimap(_.name, _ => Native)
     def name                         = "native"
   }
 
   sealed trait FolderMode { self =>
     import FolderMode._
+
+    def modeName: String = self match {
+      case UseNesting => "nesting"
+      case UseSuffix  => "suffix"
+      case UseBoth    => "both"
+    }
 
     final def useNesting: Boolean =
       self match {
@@ -64,24 +74,28 @@ object Platform {
 
   }
   object FolderMode {
-    implicit val rw: RW[FolderMode] = RW.merge(
-      macroRW[UseNesting],
-      macroRW[UseSuffix],
-      macroRW[UseBoth]
-    )
+    private def fromModeName(name: String): FolderMode = name match {
+      case "nesting" => UseNesting
+      case "suffix"  => UseSuffix
+      case "both"    => UseBoth
+      case other     => throw new IllegalArgumentException(s"Unknown folder mode: $other")
+    }
+
+    implicit val rw: RW[FolderMode] = readwriter[String].bimap(_.modeName, fromModeName)
+
     type UseNesting = UseNesting.type
     case object UseNesting extends FolderMode {
-      implicit val rn: RW[UseNesting] = macroRW
+      implicit val rw: RW[UseNesting.type] = readwriter[String].bimap(_.modeName, _ => UseNesting)
     }
 
     type UseSuffix = UseSuffix.type
     case object UseSuffix extends FolderMode {
-      implicit val rw: RW[UseSuffix] = macroRW
+      implicit val rw: RW[UseSuffix.type] = readwriter[String].bimap(_.modeName, _ => UseSuffix)
     }
 
     type UseBoth = UseBoth.type
     case object UseBoth extends FolderMode {
-      implicit val rw: RW[UseBoth] = macroRW
+      implicit val rw: RW[UseBoth.type] = readwriter[String].bimap(_.modeName, _ => UseBoth)
     }
   }
 

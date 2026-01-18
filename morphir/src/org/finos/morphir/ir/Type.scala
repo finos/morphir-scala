@@ -355,7 +355,7 @@ trait TypeModule { module =>
     }
 
     def fromDefinition[A](definition: Definition[A]): Specification[A] = definition match {
-      case Definition.TypeAlias(typeParams, typeExp) => TypeAliasSpecification(typeParams, typeExp)
+      case Definition.TypeAlias(typeParams, typeExp)     => TypeAliasSpecification(typeParams, typeExp)
       case Definition.CustomType(typeParams, acessCtors) =>
         acessCtors.withPublicAccess match {
           case Some(ctors) => CustomTypeSpecification(typeParams, ctors)

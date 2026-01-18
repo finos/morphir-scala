@@ -1,18 +1,18 @@
 package millbuild.settings
 
 import zio.{ConfigProvider, Unsafe, Runtime}
-import zio.config._
+import zio.config.*
 import zio.config.magnolia.deriveConfig
-import zio.config.typesafe._
+import zio.config.typesafe.*
 import zio.Config
+import upickle.default.*
 
 case class MillSettings(
     scalaVersion: String = MillSettings.defaultScalaVersion
-)
+) derives ReadWriter
 
 object MillSettings {
-  val config: Config[MillSettings]                          = deriveConfig[MillSettings]
-  lazy val default: MillSettings                            = MillSettings()
-  lazy val defaultScalaVersion                              = "2.13.16"
-  implicit val rw: upickle.default.ReadWriter[MillSettings] = upickle.default.macroRW
+  val config: Config[MillSettings]   = deriveConfig[MillSettings]
+  lazy val default: MillSettings     = MillSettings()
+  lazy val defaultScalaVersion       = "2.13.16"
 }

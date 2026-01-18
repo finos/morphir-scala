@@ -26,12 +26,12 @@ object Utils {
     tpe match {
       case l @ LeafType()                                    => l
       case Type.Variable(_, name) if bindings.contains(name) => bindings(name)
-      case Type.Variable(_, name)  => T.variable(name) // Not an error - may be unbound in this context
-      case Type.Tuple(_, elements) => T.tupleVar(elements.map(applyBindings(_, bindings)): _*)
+      case Type.Variable(_, name)      => T.variable(name) // Not an error - may be unbound in this context
+      case Type.Tuple(_, elements)     => T.tupleVar(elements.map(applyBindings(_, bindings)): _*)
       case DictRef(keyType, valueType) =>
         sdk.Dict.dictType(applyBindings(keyType, bindings), applyBindings(valueType, bindings))
-      case ListRef(elemType)  => sdk.List.listType(applyBindings(elemType, bindings))
-      case MaybeRef(elemType) => sdk.Maybe.maybeType(applyBindings(elemType, bindings))
+      case ListRef(elemType)         => sdk.List.listType(applyBindings(elemType, bindings))
+      case MaybeRef(elemType)        => sdk.Maybe.maybeType(applyBindings(elemType, bindings))
       case Type.Record(_, argFields) =>
         T.record(argFields.map(field => Field(field.name, applyBindings(field.data, bindings))))
       case Type.ExtensibleRecord(_, name, argFields) =>
@@ -66,7 +66,7 @@ object Utils {
         } else {
           Right(found + (name -> argType))
         }
-      case (l @ LeafType(), r @ LeafType()) if l == r => Right(found)
+      case (l @ LeafType(), r @ LeafType()) if l == r                 => Right(found)
       case (Type.Tuple(_, argElements), Type.Tuple(_, paramElements)) =>
         if (argElements.length != paramElements.length) {
           failIfChecked(new SizeMismatch(
@@ -90,8 +90,8 @@ object Utils {
           errBindings <- typeCheckArg(argErr, paramErr, found)
           okBindings  <- typeCheckArg(argOk, paramOk, errBindings)
         } yield okBindings
-      case (ListRef(argElement), ListRef(paramElement))   => typeCheckArg(argElement, paramElement, found)
-      case (MaybeRef(argElement), MaybeRef(paramElement)) => typeCheckArg(argElement, paramElement, found)
+      case (ListRef(argElement), ListRef(paramElement))             => typeCheckArg(argElement, paramElement, found)
+      case (MaybeRef(argElement), MaybeRef(paramElement))           => typeCheckArg(argElement, paramElement, found)
       case (Type.Record(_, argFields), Type.Record(_, paramFields)) =>
         if (argFields.length != paramFields.length) {
           failIfChecked(new SizeMismatch(
@@ -139,7 +139,7 @@ object Utils {
           bindings    <- RTAction.fromEither(typeCheckArg(head.attributes, parameterType, knownBindings))
           appliedType <- findTypeBindings(returnType, tail, dists, bindings)
         } yield appliedType
-      case (tpe, Nil) => RTAction.succeed(applyBindings(tpe, knownBindings))
+      case (tpe, Nil)               => RTAction.succeed(applyBindings(tpe, knownBindings))
       case (dealiaser(inner), args) =>
         findTypeBindings(inner, args, dists, knownBindings)
       case (nonFunction, head :: _) =>
@@ -161,7 +161,7 @@ object Utils {
   def curryTypeFunction(inner: UType, params: Chunk[(Name, UType)]): UType =
     params match {
       case Chunk() => inner
-      case chunk =>
+      case chunk   =>
         T.function(chunk.head._2, curryTypeFunction(inner, chunk.tail))
     }
 }

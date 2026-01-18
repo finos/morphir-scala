@@ -64,7 +64,7 @@ object Extractors {
     trait CommonReference {
       val tpe: UType
       // TODO: Consider exposing more at the SDK level, so that these type names may be looked up w/o the "asInstanceOf"
-      def ref = tpe.asInstanceOf[Type.Reference[Unit]]
+      def ref                             = tpe.asInstanceOf[Type.Reference[Unit]]
       def unapply(argTpe: UType): Boolean =
         argTpe match {
           case Type.Reference(_, fqName, Nil) if fqName == ref.typeName => true
@@ -147,7 +147,7 @@ object Extractors {
     class Dealiased(dists: Distributions) {
       def unapply(tpe: UType): Option[UType] = // If it's aliased we may need to grab bindings
         tpe match {
-          case NativeRef(_, _) => None
+          case NativeRef(_, _)                       => None
           case Type.Reference(_, typeName, typeArgs) =>
             val lookedUp = dists.lookupTypeDefinition(typeName.packagePath, typeName.modulePath, typeName.localName)
             lookedUp match {
@@ -162,7 +162,7 @@ object Extractors {
 
     // Extractor object that uncurries a function type, dealiasing along the way to reeturn a result value and flat list of arguments
     class CurriedOnion(dists: Distributions) {
-      val dealiaser = new Dealiased(dists)
+      val dealiaser                                         = new Dealiased(dists)
       def unapply(tpe: UType): Option[(UType, List[UType])] = {
         val myself = this
         tpe match {

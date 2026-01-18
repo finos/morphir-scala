@@ -33,7 +33,7 @@ trait MorphirJsonEncodingSupportV1 extends JsonEncodingHelpers {
   implicit val pathEncoder: JsonEncoder[Path] = JsonEncoder.list[Name].contramap(path => path.segments.toList)
   implicit val moduleNameEncoder: JsonEncoder[ModuleName]   = pathEncoder.contramap(_.toPath)
   implicit val packageNameEncoder: JsonEncoder[PackageName] = pathEncoder.contramap(_.toPath)
-  implicit val qNameEncoder: JsonEncoder[QName] =
+  implicit val qNameEncoder: JsonEncoder[QName]             =
     Json.encoder.contramap[QName](qName =>
       Json.Arr(toJsonAstOrThrow(qName.modulePath), toJsonAstOrThrow(qName.localName))
     )
@@ -83,11 +83,11 @@ trait MorphirJsonEncodingSupportV1 extends JsonEncodingHelpers {
   implicit def literalEncoder: JsonEncoder[Literal] =
     new JsonEncoder[Literal] {
       def unsafeEncode(a: Literal, indent: Option[Int], out: Write): Unit = a match {
-        case literalBool: BoolLiteral       => literalBoolEncoder.unsafeEncode(literalBool, indent, out)
-        case literalChar: CharLiteral       => literalCharEncoder.unsafeEncode(literalChar, indent, out)
-        case literalDecimal: DecimalLiteral => literalDecimalEncoder.unsafeEncode(literalDecimal, indent, out)
-        case literalFloat: FloatLiteral     => literalFloatEncoder.unsafeEncode(literalFloat, indent, out)
-        case literalString: StringLiteral   => literalStringEncoder.unsafeEncode(literalString, indent, out)
+        case literalBool: BoolLiteral               => literalBoolEncoder.unsafeEncode(literalBool, indent, out)
+        case literalChar: CharLiteral               => literalCharEncoder.unsafeEncode(literalChar, indent, out)
+        case literalDecimal: DecimalLiteral         => literalDecimalEncoder.unsafeEncode(literalDecimal, indent, out)
+        case literalFloat: FloatLiteral             => literalFloatEncoder.unsafeEncode(literalFloat, indent, out)
+        case literalString: StringLiteral           => literalStringEncoder.unsafeEncode(literalString, indent, out)
         case literalWholeNumber: WholeNumberLiteral =>
           literalWholeNumberEncoder.unsafeEncode(literalWholeNumber, indent, out)
       }

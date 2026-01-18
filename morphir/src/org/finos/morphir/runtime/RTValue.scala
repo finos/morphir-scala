@@ -47,7 +47,7 @@ object RTValue {
   def coerceList(arg: RTValue) =
     arg match {
       case v: RTValue.List => v
-      case _ =>
+      case _               =>
         throw new FailedCoercion(
           s"Cannot unwrap the value `${arg}` into a ListResult value. It is not a List-based result!"
         )
@@ -56,7 +56,7 @@ object RTValue {
   def coerceConstructorResult(arg: RTValue) =
     arg match {
       case v: RTValue.ConstructorResult => v
-      case _ =>
+      case _                            =>
         throw new FailedCoercion(
           s"Cannot unwrap the value `${arg}` into a ConstructorResult value. It is not a Constructor result!"
         )
@@ -65,7 +65,7 @@ object RTValue {
   def coerceSet(arg: RTValue) =
     arg match {
       case v: RTValue.Set => v
-      case _ =>
+      case _              =>
         throw new FailedCoercion(
           s"Cannot unwrap the value `${arg}` into a SetResult value. It is not a Set-based result!"
         )
@@ -74,7 +74,7 @@ object RTValue {
   def coerceMap(arg: RTValue) =
     arg match {
       case v: RTValue.Map => v
-      case _ =>
+      case _              =>
         throw new FailedCoercion(
           s"Cannot unwrap the value `${arg}` into a MapResult value. It is not a Map-based result!"
         )
@@ -83,7 +83,7 @@ object RTValue {
   def coerceTuple(arg: RTValue) =
     arg match {
       case v: RTValue.Tuple => v
-      case _ =>
+      case _                =>
         throw new FailedCoercion(
           s"Cannot unwrap the value `${arg}` into a MapResult value. It is not a list result!"
         )
@@ -92,7 +92,7 @@ object RTValue {
   def coerceBoolean(arg: RTValue) =
     arg match {
       case v: Primitive.Boolean => v
-      case _: Primitive[_] =>
+      case _: Primitive[_]      =>
         throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a Boolean value because it was not a Primitive.Boolean"
         )
@@ -104,7 +104,7 @@ object RTValue {
   def coerceDouble(arg: RTValue) =
     arg match {
       case v: Primitive.Float => v
-      case _: Primitive[_] =>
+      case _: Primitive[_]    =>
         throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a Double value because it was not a Primitive.Double"
         )
@@ -115,7 +115,7 @@ object RTValue {
   def coerceInt(arg: RTValue) =
     arg match {
       case v: Primitive.Int => v
-      case _: Primitive[_] =>
+      case _: Primitive[_]  =>
         throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a Int value because it was not a Primitive.Int"
         )
@@ -132,7 +132,7 @@ object RTValue {
   def coerceFloat(arg: RTValue) =
     arg match {
       case v: Primitive.Float => v
-      case _: Primitive[_] =>
+      case _: Primitive[_]    =>
         throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a Float value because it was not a Primitive.Float"
         )
@@ -143,7 +143,7 @@ object RTValue {
   def coerceDecimal(arg: RTValue) =
     arg match {
       case v: Primitive.BigDecimal => v
-      case _: Primitive[_] =>
+      case _: Primitive[_]         =>
         throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a BigDecimal value because it was not a Primitive.BigDecimal"
         )
@@ -156,7 +156,7 @@ object RTValue {
   def coerceLong(arg: RTValue) =
     arg match {
       case v: Primitive.Int => v
-      case _: Primitive[_] =>
+      case _: Primitive[_]  =>
         throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a Long value because it was not a Primitive.Long"
         )
@@ -167,7 +167,7 @@ object RTValue {
   def coerceString(arg: RTValue) =
     arg match {
       case v: Primitive.String => v
-      case _: Primitive[_] =>
+      case _: Primitive[_]     =>
         throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a String value because it was not a Primitive.String"
         )
@@ -178,7 +178,7 @@ object RTValue {
   def coerceChar(arg: RTValue) =
     arg match {
       case v: Primitive.Char => v
-      case _: Primitive[_] =>
+      case _: Primitive[_]   =>
         throw new FailedCoercion(
           s"Could not unwrap the primitive `${arg}` into a Char value because it was not a Primitive.Char"
         )
@@ -310,7 +310,7 @@ object RTValue {
         val zipped = first.zip(second)
         val mapped = zipped.map {
           case (a: Comparable, b: Comparable) => recursiveHelper(a, b)
-          case (a, b: Comparable) =>
+          case (a, b: Comparable)             =>
             Left(IllegalValue(s"Cannot compare values $a and $b because the first is not comparable"))
           case (a: Comparable, b) =>
             Left(IllegalValue(s"Cannot compare values $a and $b because the second is not comparable"))
@@ -318,7 +318,7 @@ object RTValue {
         }
         mapped.find(_.isLeft) match {
           case Some(error) => error
-          case None =>
+          case None        =>
             val rights       = mapped.map(_.getOrElse(throw new Exception("unreachable branch reached")))
             val firstNonZero = rights.find(_ != 0)
             firstNonZero match {
@@ -334,7 +334,7 @@ object RTValue {
           case (Primitive.Float(a), Primitive.Float(b))   => Right(a.compare(b))
           case (Primitive.Char(a), Primitive.Char(b))     => Right(a.compare(b))
           case (Primitive.String(a), Primitive.String(b)) => Right(a.compare(b))
-          case (Tuple(a_elements), Tuple(b_elements)) =>
+          case (Tuple(a_elements), Tuple(b_elements))     =>
             if (a_elements.length == b_elements.length) lexicalHelper(a_elements, b_elements)
             else Left(IllegalValue(s"Cannot compare tuples $first and $second because they have different lengths"))
           case (List(a_elements), List(b_elements)) => lexicalHelper(a_elements, b_elements)
@@ -417,7 +417,7 @@ object RTValue {
       def numericHelper    = org.finos.morphir.mIntIsNumeric
       def fractionalHelper = None
       def integralHelper   = Some(org.finos.morphir.mIntIsIntegral)
-      def valueAsInt =
+      def valueAsInt       =
         if (value.isValidInt)
           value.toInt
         else
@@ -463,7 +463,7 @@ object RTValue {
     def makeOrFail[T](value: T): Primitive[T] =
       make[T](value) match {
         case Some(value) => value
-        case None => throw new FailedCoercion(
+        case None        => throw new FailedCoercion(
             s"Cannot unwrap value `$value` into a primitive. It is a ${value.getClass}. Valid Primitive values are: Int, Long, String, Boolean, Char, Double, BigDecimal, Float"
           )
       }
@@ -620,7 +620,7 @@ object RTValue {
   }
 
   case class Tuple(elements: scala.List[RTValue]) extends ValueResult[scala.List[RTValue]] with Comparable {
-    def value = elements
+    def value                               = elements
     def asTuple: Option[(RTValue, RTValue)] = elements match {
       case scala.List(_1, _2) => Some((_1, _2))
       case _                  => None
@@ -635,7 +635,7 @@ object RTValue {
   }
 
   case class Set(elements: mutable.LinkedHashSet[RTValue]) extends ValueResult[mutable.LinkedHashSet[RTValue]] {
-    def value = elements
+    def value                         = elements
     override def succinct(depth: Int) = if (depth == 0) "Set(..)"
     else {
       s"Set(${elements.map(value => value.succinct(depth - 1)).mkString(", ")})"
@@ -643,7 +643,7 @@ object RTValue {
   }
 
   case class Record(elements: collection.Map[Name, RTValue]) extends ValueResult[collection.Map[Name, RTValue]] {
-    def value = elements
+    def value                         = elements
     override def succinct(depth: Int) = if (depth == 0) "Record(..)"
     else {
       s"Record(${elements.map { case (key, value) => s"$key -> ${value.succinct(depth - 1)}" }.mkString(", ")})"
@@ -651,7 +651,7 @@ object RTValue {
   }
 
   case class List(elements: scala.List[RTValue]) extends ValueResult[scala.List[RTValue]] with Comparable {
-    def value = elements
+    def value                         = elements
     override def succinct(depth: Int) = if (depth == 0) "List(..)"
     else {
       s"List(${elements.map(value => value.succinct(depth - 1)).mkString(", ")})"
@@ -660,7 +660,7 @@ object RTValue {
 
   case class Map(elements: mutable.LinkedHashMap[RTValue, RTValue])
       extends ValueResult[mutable.LinkedHashMap[RTValue, RTValue]] {
-    def value = elements
+    def value                         = elements
     override def succinct(depth: Int) = if (depth == 0) "Dict(..)"
     else {
       s"Dict(${elements.map { case (key, value) =>

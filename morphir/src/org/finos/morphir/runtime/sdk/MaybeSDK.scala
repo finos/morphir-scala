@@ -48,7 +48,7 @@ object MaybeSDK {
       case RTValue.ConstructorResult(fqn, List(value)) if fqn == FQName.fromString("Morphir.SDK:Maybe:Just") =>
         Some(value)
       case RTValue.ConstructorResult(fqn, List()) if fqn == FQName.fromString("Morphir.SDK:Maybe:Nothing") => None
-      case RTValue.ConstructorResult(_, _) =>
+      case RTValue.ConstructorResult(_, _)                                                                 =>
         throw new UnexpectedType(
           s"Morphir.SDK:Maybe:just value or Morphir.SDK:Maybe:nothing",
           arg,

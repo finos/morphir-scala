@@ -8,7 +8,7 @@ before submitting a PR.
 
 Auto-formatting has been made available through this command.
 ```
-npm run format
+mise run fmt
 ```
 
 ### Documentation formatting:

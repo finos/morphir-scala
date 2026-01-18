@@ -142,7 +142,7 @@ object Distribution {
     def loop(pending: List[Distribution], acc: List[Library]): List[Library] = pending match {
       case Nil                              => acc
       case (lib @ Library(_, _, _)) :: rest => loop(rest, lib :: acc)
-      case Bundle(libraries) :: rest =>
+      case Bundle(libraries) :: rest        =>
         val newLibs = libraries.map { case (packageName, lib) => lib.toLibrary(packageName) }.toList
         loop(rest, newLibs ++ acc)
     }
@@ -157,7 +157,7 @@ object Distribution {
   def toLibsMapUnsafe(repeatedPackages: RepeatedPackages, distributions: Distribution*): Map[PackageName, Lib] = {
     val lookup = toLookup(distributions: _*)
     repeatedPackages match {
-      case Allowed => lookup.toMultiDict.toMap
+      case Allowed    => lookup.toMultiDict.toMap
       case NotAllowed =>
         val lookup           = toLookup(distributions: _*)
         val repeatedPackages = lookup.repeatedPackages
@@ -170,7 +170,7 @@ object Distribution {
 
   final case class LibLookup(toMultiDict: MultiDict[PackageName, Lib]) extends AnyVal { self =>
     def packageNames: scala.collection.Set[PackageName] = toMultiDict.keySet
-    def repeatedPackages: Set[PackageName] =
+    def repeatedPackages: Set[PackageName]              =
       toMultiDict.sets.collect { case (packageName, libs) if libs.size > 1 => packageName }.toSet
   }
 
@@ -179,7 +179,7 @@ object Distribution {
 
     def fromDistributions(distributions: Seq[Distribution]): LibLookup = {
       def loop(pending: List[Distribution], acc: MultiDict[PackageName, Lib]): LibLookup = pending match {
-        case Nil => LibLookup(acc)
+        case Nil                                                    => LibLookup(acc)
         case Library(packageName, dependencies, packageDef) :: rest =>
           loop(rest, acc.add(packageName, Lib(dependencies, packageDef)))
         case (bundle @ Bundle(_)) :: rest => loop(bundle.toLibraries ++ rest, acc)

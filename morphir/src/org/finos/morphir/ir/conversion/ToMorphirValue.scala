@@ -59,7 +59,7 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
   implicit lazy val dataToIR: ToMorphirTypedValue[Data] = {
     case Data.Unit           => V.unit(().morphirType)
     case Data.Boolean(value) => if (value) Literal.Lit.True else Literal.Lit.False
-    case Data.Byte(value) =>
+    case Data.Byte(value)    =>
       V.applyInferType(
         value.morphirType,
         V.reference(FQName.fromString("Morphir.SDK:Int:toInt8")),
@@ -79,7 +79,7 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     case Data.Int32(value) => V.int(value.morphirType, value)
     case Data.Int64(value) => V.long(sdk.Basics.intType, value)
 
-    case Data.String(value) => V.string(value.morphirType, value)
+    case Data.String(value)    => V.string(value.morphirType, value)
     case Data.LocalDate(value) =>
       V.applyInferType(
         value.morphirType,
@@ -147,7 +147,7 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
       V.list(shape.morphirType, zio.Chunk.fromIterable(valuesList))
     case Data.Map(values, shape) =>
       val tupleShape = Concept.Tuple(List(shape.keyType, shape.valueType))
-      val tuples = values.map { case (key, value) =>
+      val tuples     = values.map { case (key, value) =>
         V.tuple(tupleShape.morphirType, dataToIR(key), dataToIR(value))
       }
       V.applyInferType(
@@ -177,26 +177,26 @@ trait ToMorphirTypedValueInstancesLowPriority { self: ToMorphirValueFunctions =>
     case Data.Aliased(data, shape) =>
       val alias = shape.morphirType
       dataToIR(data) match {
-        case Value.Apply(_, function, argument) => Value.Apply(alias, function, argument)
-        case Value.Constructor(_, name)         => Value.Constructor(alias, name)
+        case Value.Apply(_, function, argument)                      => Value.Apply(alias, function, argument)
+        case Value.Constructor(_, name)                              => Value.Constructor(alias, name)
         case Value.Destructure(_, pattern, valueToDestruct, inValue) =>
           Value.Destructure(alias, pattern, valueToDestruct, inValue)
-        case Value.Field(_, subjectValue, fieldName) => Value.Field(alias, subjectValue, fieldName)
-        case Value.FieldFunction(_, name)            => Value.FieldFunction(alias, name)
+        case Value.Field(_, subjectValue, fieldName)                => Value.Field(alias, subjectValue, fieldName)
+        case Value.FieldFunction(_, name)                           => Value.FieldFunction(alias, name)
         case Value.IfThenElse(_, condition, thenBranch, elseBranch) =>
           Value.IfThenElse(alias, condition, thenBranch, elseBranch)
-        case Value.Lambda(_, argumentPattern, body) => Value.Lambda(alias, argumentPattern, body)
+        case Value.Lambda(_, argumentPattern, body)                      => Value.Lambda(alias, argumentPattern, body)
         case Value.LetDefinition(_, valueName, valueDefinition, inValue) =>
           Value.LetDefinition(alias, valueName, valueDefinition, inValue)
         case Value.LetRecursion(_, valueDefinitions, inValue) =>
           Value.LetRecursion(alias, valueDefinitions, inValue)
-        case Value.List(_, elements)                   => Value.List(alias, elements)
-        case Value.Literal(_, literal)                 => Value.Literal(alias, literal)
-        case Value.PatternMatch(_, branchOutOn, cases) => Value.PatternMatch(alias, branchOutOn, cases)
-        case Value.Record(_, fields)                   => Value.Record(alias, fields)
-        case Value.Reference(_, fullyQualifiedName)    => Value.Reference(alias, fullyQualifiedName)
-        case Value.Tuple(_, elements)                  => Value.Tuple(alias, elements)
-        case Value.Unit(_)                             => Value.Unit(alias)
+        case Value.List(_, elements)                              => Value.List(alias, elements)
+        case Value.Literal(_, literal)                            => Value.Literal(alias, literal)
+        case Value.PatternMatch(_, branchOutOn, cases)            => Value.PatternMatch(alias, branchOutOn, cases)
+        case Value.Record(_, fields)                              => Value.Record(alias, fields)
+        case Value.Reference(_, fullyQualifiedName)               => Value.Reference(alias, fullyQualifiedName)
+        case Value.Tuple(_, elements)                             => Value.Tuple(alias, elements)
+        case Value.Unit(_)                                        => Value.Unit(alias)
         case Value.UpdateRecord(_, valueToUpdate, fieldsToUpdate) =>
           Value.UpdateRecord(alias, valueToUpdate, fieldsToUpdate)
         case Value.Variable(_, name) => Value.Variable(alias, name)

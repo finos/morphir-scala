@@ -28,7 +28,7 @@ sealed trait Data extends geny.Writable {
       case v: Data.Aliased  => Some(v.shape.name)
     }
 
-  def toStringPretty: String = toStringPretty(true)
+  def toStringPretty: String                                                                  = toStringPretty(true)
   def toStringPretty(color: Boolean, detailLevel: DetailLevel = DetailLevel.BirdsEye): String =
     if (color)
       PrintMDM(this, detailLevel).toString

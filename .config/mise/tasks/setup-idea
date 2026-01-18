@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# MISE description="Generate IntelliJ IDEA project files"
+
+set -e
+
+echo "Setting up IntelliJ IDEA project..."
+./scripts/setup-idea.scala "$@"
+echo "IDEA setup completed successfully"

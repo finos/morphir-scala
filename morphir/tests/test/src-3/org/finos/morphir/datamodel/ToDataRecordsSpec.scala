@@ -71,7 +71,7 @@ object ToDataRecordsSpec extends MorphirBaseSpec {
       assertTrue(
         Deriver.toData(Person(List(Name("Joe", "Bloggs"), Name("Jim", "Roogs")), 123)) ==
           Data.Record(
-            gns % "Person",
+            gns      % "Person",
             l"name" ->
               Data.List(
                 Data.Record(gns % "Name", l"first" -> Data.String("Joe"), l"last" -> Data.String("Bloggs")),

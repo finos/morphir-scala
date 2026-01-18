@@ -112,8 +112,8 @@ trait TransformValue[T, TA, VA] extends Transform[T] {
 
   def of(value: Value.LetRecursion[TA, VA]): Stateful[T, Value.LetRecursion[TA, VA]] =
     for {
-      v    <- transform(value)
-      attr <- transformAttribute(v.attributes)
+      v                <- transform(value)
+      attr             <- transformAttribute(v.attributes)
       valueDefinitions <- ofMapValues(v.valueDefinitions) { vdef =>
         of(vdef.body).map(body => vdef.copy(body = body))
       }
@@ -132,15 +132,15 @@ trait TransformValue[T, TA, VA] extends Transform[T] {
       v           <- transform(value)
       attr        <- transformAttribute(v.attributes)
       branchOutOn <- of(v.branchOutOn) // the 'subject' of the pattern-match i.e. the `x` in `match x ...`
-      cases <- ofChunk(v.cases) { case (casePattern, caseValue) =>
+      cases       <- ofChunk(v.cases) { case (casePattern, caseValue) =>
         of(caseValue).map(caseValue => (casePattern, caseValue))
       }
     } yield Value.PatternMatch(attr, branchOutOn, cases)
 
   def of(value: Value.Record[TA, VA]): Stateful[T, Value.Record[TA, VA]] =
     for {
-      v    <- transform(value)
-      attr <- transformAttribute(v.attributes)
+      v      <- transform(value)
+      attr   <- transformAttribute(v.attributes)
       fields <- ofChunk(v.fields) { case (fieldName, fieldValue) =>
         of(fieldValue).map(fieldValue => (fieldName, fieldValue))
       }

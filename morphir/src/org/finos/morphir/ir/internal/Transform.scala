@@ -27,7 +27,7 @@ trait Transform[T] {
   protected def ofMapValues[K, V](map: Map[K, V])(mapping: V => Stateful[T, V]) =
     map.foldLeft(const(Map[K, V]())) { (pureMap, elem) =>
       for {
-        map <- pureMap
+        map   <- pureMap
         elem1 <- {
           val (k, v) = elem
           mapping(v).map(v1 => (k, v1))

@@ -110,7 +110,7 @@ sealed trait Value[+TA, +VA] { self =>
           loop(values, Right(variableCase(context, v, attributes, name)) :: out)
         case Nil =>
           out.foldLeft[List[Z]](List.empty) {
-            case (acc, Right(results)) => results :: acc
+            case (acc, Right(results))                    => results :: acc
             case (acc, Left(v @ Apply(attributes, _, _))) =>
               val function :: argument :: rest = (acc: @unchecked)
               applyCase(context, v, attributes, function, argument) :: rest
@@ -371,7 +371,7 @@ object Value {
         @unused ev: NeedsAttributes[VA]
     ): Value[TA, VA] =
       arguments match {
-        case Nil => function
+        case Nil          => function
         case head :: tail =>
           tail.foldLeft(Apply(attributes, function, head)) { case (acc, arg) => Apply(acc.attributes, acc, arg) }
       }
@@ -425,8 +425,8 @@ object Value {
 
     type Raw = Constructor[scala.Unit]
     object Raw {
-      @inline def apply(name: String): Raw = Constructor((), name)
-      @inline def apply(name: FQName): Raw = Constructor((), name)
+      @inline def apply(name: String): Raw                    = Constructor((), name)
+      @inline def apply(name: FQName): Raw                    = Constructor((), name)
       def unapply(value: Value[Nothing, Any]): Option[FQName] = value match {
         case Constructor(_, name) => Some(name)
         case _                    => None
@@ -435,10 +435,10 @@ object Value {
 
     type Typed = Constructor[UType]
     object Typed {
-      def apply(name: FQName, ascribedType: UType): Typed = Constructor(ascribedType, name)
+      def apply(name: FQName, ascribedType: UType): Typed   = Constructor(ascribedType, name)
       def apply(fqName: String, ascribedType: UType): Typed =
         Constructor(ascribedType, FQName.fromString(fqName))
-      def apply(ascribedType: UType, name: FQName): Typed = Constructor(ascribedType, name)
+      def apply(ascribedType: UType, name: FQName): Typed   = Constructor(ascribedType, name)
       def apply(ascribedType: UType, fqName: String): Typed =
         Constructor(ascribedType, FQName.fromString(fqName))
 
@@ -890,7 +890,7 @@ object Value {
     }
     type Raw = Record[scala.Unit, scala.Unit]
     object Raw {
-      def apply(fields: Chunk[(Name, RawValue)]): Raw = Record((), fields)
+      def apply(fields: Chunk[(Name, RawValue)]): Raw                              = Record((), fields)
       def apply(firstField: (Name, RawValue), otherFields: (Name, RawValue)*): Raw =
         Record((), firstField = firstField, otherFields = otherFields: _*)
 
@@ -978,7 +978,7 @@ object Value {
   object Unit {
     type Raw = Unit[scala.Unit]
     object Raw {
-      def apply(): Raw = Unit(())
+      def apply(): Raw                                 = Unit(())
       def unapply(value: RawValue): Option[scala.Unit] = value match {
         case Unit(()) => Some(())
         case _        => None
@@ -1671,7 +1671,7 @@ object Value {
   }
 
   implicit final class StringExtensions(private val self: String) extends AnyVal {
-    def as(tpe: UType): TypedValue = Variable.Typed(self, tpe)
+    def as(tpe: UType): TypedValue                               = Variable.Typed(self, tpe)
     def :=(value: TypedValue): LetDefinition.Unbound[Any, UType] =
       LetDefinition.Unbound(Name.fromString(self), Definition.fromTypedValue(value))
 

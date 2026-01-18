@@ -29,7 +29,7 @@ object Char extends MorphirIRSdkModule("Char") {
     )
   )
 
-  lazy val charType: UType = reference(fqn("Char"))
+  lazy val charType: UType                = reference(fqn("Char"))
   def charType[A](attributes: A): Type[A] =
     reference(attributes, fqn("Char"))
 }

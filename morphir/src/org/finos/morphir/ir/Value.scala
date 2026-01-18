@@ -70,14 +70,14 @@ object Value extends internal.PatternModule {
   )(implicit @unused ev: IsNotAValue[VA]): Value[TA, VA] =
     Apply(attributes, function, argument, arguments: _*)
 
-  final def apply(function: RawValue, argument: RawValue): Apply.Raw = Apply.Raw(function, argument)
+  final def apply(function: RawValue, argument: RawValue): Apply.Raw            = Apply.Raw(function, argument)
   final def apply(function: RawValue, argument: RawValue, arguments: RawValue*) =
     Apply.Raw(function, ::(argument, arguments.toList))
 
   final def applyInferType(finalType: UType, core: RawValue, args: TypedValue*): TypedValue = {
     def loop(outerType: UType, core: RawValue, reversedArgs: TypedValue*): TypedValue =
       reversedArgs match {
-        case Nil => core :> outerType
+        case Nil          => core :> outerType
         case head :: tail =>
           val f = loop(T.Type.Function((), head.attributes, outerType), core, tail: _*)
           Apply(outerType, f, head)
@@ -170,7 +170,7 @@ object Value extends internal.PatternModule {
 
   final def int[A](attributes: A, value: Int): Value[Nothing, A] = LiteralValue(attributes, Lit.int(value))
   final def int(value: Int): RawValue                            = LiteralValue.Raw(Lit.int(value))
-  final def intTyped(value: Int): TypedValue =
+  final def intTyped(value: Int): TypedValue                     =
     LiteralValue.Typed(sdk.Basics.intType, Lit.int(value))
 
   final def long[A](attributes: A, value: Long): Value[Nothing, A] = LiteralValue(attributes, Lit.long(value))
@@ -323,7 +323,7 @@ object Value extends internal.PatternModule {
 
   final def literal[VA](attributes: VA, literal: Lit): Value[Nothing, VA] = LiteralValue(attributes, literal)
   final def literal(literal: Lit): RawValue                               = LiteralValue.Raw(literal)
-  final def literal(value: String): TypedValue = {
+  final def literal(value: String): TypedValue                            = {
     val literal = Lit.string(value)
     LiteralValue(literal.inferredType, literal)
   }
@@ -410,7 +410,7 @@ object Value extends internal.PatternModule {
   }
 
   // final def record(fields: Chunk[(Name, RawValue)]): RawValue = Record.Raw(fields)
-  final def recordRaw(fields: (String, RawValue)*): RawValue = Record.Raw(fields: _*)
+  final def recordRaw(fields: (String, RawValue)*): RawValue                      = Record.Raw(fields: _*)
   final def recordRaw(f: Record.Builder[scala.Unit, scala.Unit] => Any): RawValue = {
     val builder = Record.Builder[scala.Unit, scala.Unit]()
     f(builder)
@@ -446,7 +446,7 @@ object Value extends internal.PatternModule {
     LiteralValue(attributes, stringLiteral(value))
   final def string(value: String): RawValue = LiteralValue.Raw(stringLiteral(value))
 
-  final def toRawValue(literal: Lit): RawValue = LiteralValue.Raw(literal)
+  final def toRawValue(literal: Lit): RawValue     = LiteralValue.Raw(literal)
   final def toTypedValue(literal: Lit): TypedValue = {
     val tpe = literal.inferredType
     LiteralValue.Typed(tpe, literal)
@@ -457,8 +457,8 @@ object Value extends internal.PatternModule {
       implicit @unused ev: IsNotAValue[VA]
   ): Value[TA, VA] = Tuple(attributes, first +: second +: Chunk.fromIterable(otherElements))
 
-  final def tuple(elements: RawValue*): RawValue       = Tuple.Raw(elements: _*)
-  final def tuple(elements: Chunk[RawValue]): RawValue = Tuple.Raw(elements)
+  final def tuple(elements: RawValue*): RawValue                                        = Tuple.Raw(elements: _*)
+  final def tuple(elements: Chunk[RawValue]): RawValue                                  = Tuple.Raw(elements)
   final def tuple(element: (RawValue, UType), elements: (RawValue, UType)*): TypedValue =
     Tuple.Typed(Chunk.fromIterable((element +: elements).map { case (v, t) => v :> t }))
 
@@ -524,8 +524,8 @@ object Value extends internal.PatternModule {
   }
 
   class RecordPartiallyApplied[VA](val attributes: VA) extends AnyVal {
-    def apply[TA](fields: (String, Value[TA, VA])*): Value[TA, VA] = Value.Record(attributes, fields: _*)
-    def apply[TA](fields: Map[Name, Value[TA, VA]]): Value[TA, VA] = Value.Record.fromMap(attributes, fields)
+    def apply[TA](fields: (String, Value[TA, VA])*): Value[TA, VA]        = Value.Record(attributes, fields: _*)
+    def apply[TA](fields: Map[Name, Value[TA, VA]]): Value[TA, VA]        = Value.Record.fromMap(attributes, fields)
     def withFields[TA](fields: Seq[(Name, Value[TA, VA])]): Value[TA, VA] =
       Value.Record(attributes, Chunk.fromIterable(fields))
   }
@@ -580,13 +580,13 @@ object Value extends internal.PatternModule {
       if (partial.isDefinedAt(value)) partial(value)
       else
         value match {
-          case Apply(va, function, argument) => Apply(va, recurse(function), recurse(argument))
+          case Apply(va, function, argument)                      => Apply(va, recurse(function), recurse(argument))
           case Destructure(va, pattern, valueToDestruct, inValue) =>
             Destructure(va, pattern, recurse(valueToDestruct), recurse(inValue))
-          case Field(va, recordValue, name) => Field(va, recurse(recordValue), name)
+          case Field(va, recordValue, name)                    => Field(va, recurse(recordValue), name)
           case IfThenElse(va, condition, thenValue, elseValue) =>
             IfThenElse(va, recurse(condition), recurse(thenValue), recurse(elseValue))
-          case Lambda(va, pattern, body) => Lambda(va, pattern, recurse(body))
+          case Lambda(va, pattern, body)                    => Lambda(va, pattern, recurse(body))
           case LetDefinition(va, name, definition, inValue) =>
             LetDefinition(va, name, definition.copy(body = recurse(definition.body)), recurse(inValue))
           case LetRecursion(va, definitions, inValue) => LetRecursion(
@@ -594,7 +594,7 @@ object Value extends internal.PatternModule {
               definitions.map { case (name, dfn) => (name, dfn.copy(body = recurse(dfn.body))) },
               recurse(inValue)
             )
-          case List(va, elements) => List(va, elements.map(recurse))
+          case List(va, elements)             => List(va, elements.map(recurse))
           case PatternMatch(va, value, cases) =>
             PatternMatch(
               va,

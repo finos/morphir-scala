@@ -4,7 +4,7 @@ package runtime
 import org.finos.morphir.naming._
 import scala.annotation.unused
 import zio.Tag
-import org.typelevel.scalaccompat.annotation.{targetName3 => targetName}
+import scala.annotation.targetName
 final case class SymbolTable private (bindings: Map[Symbol, SymbolValue]) { self =>
   @targetName("append")
   def ++(symbols: SymbolTable): SymbolTable = copy(bindings = bindings ++ symbols.bindings)
@@ -29,7 +29,7 @@ final case class SymbolTable private (bindings: Map[Symbol, SymbolValue]) { self
 }
 
 object SymbolTable {
-  val empty: SymbolTable = SymbolTable(Map.empty)
+  val empty: SymbolTable                            = SymbolTable(Map.empty)
   def create(bindings: SymbolBinding*): SymbolTable = {
     val data = bindings.map(binding => binding.symbol -> binding.value).toMap
     SymbolTable(data)

@@ -15,7 +15,7 @@ trait QNameModule { self: ModuleNameModule with NameModule with PathModule =>
   }
 
   object QName {
-    val empty: QName = QName(ModuleName.empty, Name.empty)
+    val empty: QName                                    = QName(ModuleName.empty, Name.empty)
     def apply(modulePath: Path, localName: Name): QName =
       QName(ModuleName(modulePath), localName)
 

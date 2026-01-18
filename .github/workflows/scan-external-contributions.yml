@@ -7,7 +7,7 @@ env:
   SonatypeAppId: morphir-scala
   SonatypeStage: "build"
   SonatypeScanTarget: "." # depCache/coursier/v1/https/repo1.maven.org/maven2/
-  ExcludeDirectory: " -D fileExcludes='*.class, **/website/, **/docs/, **/.*' "
+  ExcludeDirectory: " -D fileExcludes='*.class,**/docs/,**/.*' "
 
 on:
   workflow_dispatch:

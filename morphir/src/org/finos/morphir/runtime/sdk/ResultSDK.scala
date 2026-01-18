@@ -38,7 +38,7 @@ object ResultSDK {
       case RT.ConstructorResult(fqn, List(ok)) if fqn == FQName.fromString("Morphir.SDK:Result:Ok") =>
         Right(ok)
       case RT.ConstructorResult(fqn, List(err)) if fqn == FQName.fromString("Morphir.SDK:Result:Err") => Left(err)
-      case RT.ConstructorResult(_, _) =>
+      case RT.ConstructorResult(_, _)                                                                 =>
         throw new UnexpectedType(s"Ok(value) or Err(err)", arg, hint = "Expected due to use in a native function")
     }
 

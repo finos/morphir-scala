@@ -78,7 +78,7 @@ class Distributions(dists: Map[PackageName, Distribution.Lib]) {
     lookupModuleSpecification(pkgName, modName).flatMap(modSpec =>
       modSpec.lookupValueSpecification(localName) match {
         case Some(tpe) => Right(tpe)
-        case None => Left(new MissingDefinition(pkgName, modName, localName)
+        case None      => Left(new MissingDefinition(pkgName, modName, localName)
             .withContext(s"Known definitions from that module:\n ${modSpec.values.keys.mkString("\n  ")}\n"))
       }
     )
@@ -94,7 +94,7 @@ class Distributions(dists: Map[PackageName, Distribution.Lib]) {
     lookupModuleDefinition(pkgName, modName).flatMap(modDef =>
       modDef.lookupValueDefinition(localName) match {
         case Some(tpe) => Right(tpe)
-        case None => Left(new MissingDefinition(pkgName, modName, localName)
+        case None      => Left(new MissingDefinition(pkgName, modName, localName)
             .withContext(s"Known definitions from that module:\n ${modDef.values.keys.mkString("\n  ")}\n"))
       }
     )

@@ -21,7 +21,7 @@ trait TypeDatamodelContext[T] {
 object DeriverMacros {
   import DeriverTypes._
 
-  inline def typeName[T]: String = ${ typeNameImpl[T] }
+  inline def typeName[T]: String                        = ${ typeNameImpl[T] }
   def typeNameImpl[T: Type](using Quotes): Expr[String] = {
     import quotes.reflect._
     Expr(TypeRepr.of[T].typeSymbol.name)
@@ -68,7 +68,7 @@ object DeriverMacros {
     partialName
   }
 
-  inline def showFlags[T]: String = ${ showFlagsImpl[T] }
+  inline def showFlags[T]: String                        = ${ showFlagsImpl[T] }
   def showFlagsImpl[T: Type](using Quotes): Expr[String] = {
     import quotes.reflect._
     Expr(TypeRepr.of[T].typeSymbol.flags.show)
@@ -79,7 +79,7 @@ object DeriverMacros {
     TypeRepr.of[T].typeSymbol.flags
   }
 
-  inline def inferUnionType[T]: UnionType = ${ inferUnionTypeImpl[T] }
+  inline def inferUnionType[T]: UnionType                        = ${ inferUnionTypeImpl[T] }
   def inferUnionTypeImpl[T: Type](using Quotes): Expr[UnionType] = {
     import quotes.reflect._
     val flags = flagsOf[T]
@@ -90,13 +90,13 @@ object DeriverMacros {
     )
   }
 
-  inline def isEnum[T]: Boolean = ${ isEnumImpl[T] }
+  inline def isEnum[T]: Boolean                        = ${ isEnumImpl[T] }
   def isEnumImpl[T: Type](using Quotes): Expr[Boolean] = {
     import quotes.reflect._
     Expr(flagsOf[T].is(Flags.Enum) && !(TypeRepr.of[T] <:< TypeRepr.of[List[Any]]))
   }
 
-  inline def isEnumOrSealedTrait[T]: Boolean = ${ isEnumOrSealedTraitImpl[T] }
+  inline def isEnumOrSealedTrait[T]: Boolean                        = ${ isEnumOrSealedTraitImpl[T] }
   def isEnumOrSealedTraitImpl[T: Type](using Quotes): Expr[Boolean] = {
     import quotes.reflect._
     val isEnum        = flagsOf[T].is(Flags.Enum)
@@ -105,13 +105,13 @@ object DeriverMacros {
     Expr(result)
   }
 
-  inline def isSealedTrait[T]: Boolean = ${ isSealedTraitImpl[T] }
+  inline def isSealedTrait[T]: Boolean                        = ${ isSealedTraitImpl[T] }
   def isSealedTraitImpl[T: Type](using Quotes): Expr[Boolean] = {
     import quotes.reflect._
     Expr(flagsOf[T].is(Flags.Sealed & Flags.Trait) && !(TypeRepr.of[T] <:< TypeRepr.of[List[Any]]))
   }
 
-  inline def errorOnType[T](msg: String): Nothing = ${ errorOnType[T]('msg) }
+  inline def errorOnType[T](msg: String): Nothing                          = ${ errorOnType[T]('msg) }
   def errorOnType[T: Type](msg: Expr[String])(using Quotes): Expr[Nothing] = {
     import quotes.reflect._
     val msgConst =
@@ -122,7 +122,7 @@ object DeriverMacros {
     report.errorAndAbort(s"$msgConst: ${TypeRepr.of[T].widen.show}")
   }
 
-  inline def isCaseClass[T]: Boolean = ${ isCaseClassImpl[T] }
+  inline def isCaseClass[T]: Boolean                        = ${ isCaseClassImpl[T] }
   def isCaseClassImpl[T: Type](using Quotes): Expr[Boolean] = {
     import quotes.reflect._
     val flags = flagsOf[T]
@@ -131,13 +131,13 @@ object DeriverMacros {
     Expr(flags.is(Flags.Case) && !flags.is(Flags.Module) && !(TypeRepr.of[T] <:< TypeRepr.of[List[Any]]))
   }
 
-  inline def showType[T]: String = ${ showTypeImpl[T] }
+  inline def showType[T]: String                        = ${ showTypeImpl[T] }
   def showTypeImpl[T: Type](using Quotes): Expr[String] = {
     import quotes.reflect._
     Expr(TypeRepr.of[T].simplified.typeSymbol.name)
   }
 
-  inline def summonDeriver[T]: Deriver[T] = ${ summonDeriverImpl[T] }
+  inline def summonDeriver[T]: Deriver[T]                        = ${ summonDeriverImpl[T] }
   def summonDeriverImpl[T: Type](using Quotes): Expr[Deriver[T]] =
     import quotes.reflect._
     def failNotProductOrSum() =
@@ -149,14 +149,14 @@ object DeriverMacros {
     val specificDriver = Expr.summon[CustomDeriver[T]]
     specificDriver match {
       case Some(value) => value
-      case None =>
+      case None        =>
         val tpe   = TypeRepr.of[T]
         val flags = tpe.typeSymbol.flags
         if (Expr.summon[Mirror.ProductOf[T]].nonEmpty) {
           val genericDeriver = Expr.summon[Deriver[T]]
           genericDeriver match {
             case Some(value) => value
-            case _ =>
+            case _           =>
               report.errorAndAbort(
                 s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen
                     .show} from `summonDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
@@ -166,7 +166,7 @@ object DeriverMacros {
           val genericDeriver = Expr.summon[Deriver[T]]
           genericDeriver match {
             case Some(value) => value
-            case _ =>
+            case _           =>
               report.errorAndAbort(
                 s"Cannot summon specific or generic Sum Deriver for the sum type: ${tpe.widen.show} from `summonDeriver` (flags: ${flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"
               )
@@ -176,7 +176,7 @@ object DeriverMacros {
         }
     }
 
-  inline def summonProductDeriver[T]: Deriver[T] = ${ summonProductDeriverImpl[T] }
+  inline def summonProductDeriver[T]: Deriver[T]                        = ${ summonProductDeriverImpl[T] }
   def summonProductDeriverImpl[T: Type](using Quotes): Expr[Deriver[T]] =
     import quotes.reflect._
     def failNotProduct() =
@@ -192,12 +192,12 @@ object DeriverMacros {
     val specificDriver = Expr.summon[CustomDeriver[T]]
     specificDriver match {
       case Some(value) => value
-      case None =>
+      case None        =>
         if (Expr.summon[Mirror.ProductOf[T]].nonEmpty) {
           val genericDeriver = Expr.summon[Deriver[T]]
           genericDeriver match {
             case Some(value) => value
-            case _ =>
+            case _           =>
               report.errorAndAbort(
                 s"Cannot summon specific or generic Product Deriver for the product type: ${tpe.widen
                     .show} from `summonProductDeriver` (flags: ${TypeRepr.of[T].typeSymbol.flags.show}). Have you imported org.finos.morphir.datamodel.{given, _}"

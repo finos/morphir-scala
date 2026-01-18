@@ -4,15 +4,15 @@ import org.finos.morphir.naming._
 import scala.annotation.tailrec
 
 final case class CallStack(resolver: Resolver, frames: List[StackFrame]) { self =>
-  def depth: Int                         = frames.size
-  def isEmpty: Boolean                   = frames.isEmpty
-  def push(frame: StackFrame): CallStack = copy(frames = frame :: frames)
+  def depth: Int                                = frames.size
+  def isEmpty: Boolean                          = frames.isEmpty
+  def push(frame: StackFrame): CallStack        = copy(frames = frame :: frames)
   def push(bindings: SymbolBinding*): CallStack = {
     val newFrame = StackFrame.create(bindings: _*)
     copy(frames = newFrame :: self.frames)
   }
-  def peek: StackFrame               = frames.head
-  def peekOption: Option[StackFrame] = frames.headOption
+  def peek: StackFrame                     = frames.head
+  def peekOption: Option[StackFrame]       = frames.headOption
   def pop: (CallStack, Option[StackFrame]) = self.frames match {
     case Nil           => self                -> None
     case frame :: tail => copy(frames = tail) -> Some(frame)
@@ -26,7 +26,7 @@ final case class CallStack(resolver: Resolver, frames: List[StackFrame]) { self 
   def get(symbol: Symbol): Option[SymbolValue] = {
     @tailrec
     def loop(maybeStack: Option[CallStack]): Option[SymbolValue] = maybeStack match {
-      case None => None
+      case None        => None
       case Some(stack) =>
         stack.peekOption match {
           case None =>

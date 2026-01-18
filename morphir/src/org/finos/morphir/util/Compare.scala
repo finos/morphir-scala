@@ -39,7 +39,7 @@ object Compare {
     }
   }
 
-  def apply(a: Any, b: Any): Option[Diff] = generic(a, b)
+  def apply(a: Any, b: Any): Option[Diff]                     = generic(a, b)
   private def generic(aValue: Any, bValue: Any): Option[Diff] =
     (aValue, bValue) match {
       case _ if (aValue == bValue) => None
@@ -55,6 +55,7 @@ object Compare {
       case (a: Char, b: Char)               => Diff.Leaf.of(a, b)
       case (a: Product, b: Product)         => product(a, b)
       case (a: AnyRef, b: AnyRef)           => Diff.Leaf.ofClass(a.getClass, b.getClass)(a, b)
+      case _                                => Diff.Leaf.of(aValue, bValue)
     }
 
   private def set(ai: Set[_], bi: Set[_]): Option[Diff] = {

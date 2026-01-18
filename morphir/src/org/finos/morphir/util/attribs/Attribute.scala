@@ -8,13 +8,12 @@ sealed class Attribute[A](
     private val tag: Tag[A]
 ) extends Serializable { self =>
   import Attribute._
-  def :=(value: A): Binding[A] = Binding(self, value)
+  def :=(value: A): Binding[A]            = Binding(self, value)
   override def equals(that: Any): Boolean = (that: @unchecked) match {
     case that: Attribute[_] => (name, tag) == ((that.name, that.tag))
   }
 
-  override lazy val hashCode: Int =
-    (name + tag).hashCode
+  override lazy val hashCode: Int = (name + tag).hashCode
 }
 object Attribute {
 

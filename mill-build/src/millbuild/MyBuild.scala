@@ -1,23 +1,23 @@
 package millbuild
-import mill._
-import mill.define.ExternalModule
-import millbuild.settings._
+import mill.*
+import mill.api.ExternalModule
+import millbuild.settings.*
 
 object MyBuild extends ExternalModule {
 
   lazy val cachedBuildSettings = BuildSettings.load()
 
-  def buildSettings = T.input {
+  def buildSettings = Task.Input {
     BuildSettings.load()
   }
 
-  def devMode = T.input { T.env.getOrElse("MORPHIR_SCALA_DEV_MODE", false) == "true" }
+  def devMode = Task.Input { Task.env.getOrElse("MORPHIR_SCALA_DEV_MODE", false) == "true" }
 
-  def showBuildSettings() = T.command {
+  def showBuildSettings() = Task.Command {
     val settings = buildSettings()
     pprint.pprintln(settings)
     settings
   }
 
-  lazy val millDiscover = mill.define.Discover[this.type]
+  lazy val millDiscover = mill.api.Discover[this.type]
 }

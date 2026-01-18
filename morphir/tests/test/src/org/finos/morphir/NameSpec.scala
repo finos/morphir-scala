@@ -115,7 +115,7 @@ object NameSpec extends MorphirBaseSpec {
         assertTrue(variableName == Some("inspectorGadget"))
       },
       test("When using as an extractor") {
-        val sut = Name.fromString("IronMan")
+        val sut    = Name.fromString("IronMan")
         val actual = sut match {
           case Name.VariableName(variableName) => variableName
           case _                               => "not a variable name"

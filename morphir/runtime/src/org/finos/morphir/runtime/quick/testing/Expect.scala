@@ -378,7 +378,7 @@ private[runtime] object Expect {
    * This checks that a given Result is an Error (for use in testing unhappy paths)
    */
   case object Err extends Introspectable1 {
-    def funcName = "err"
+    def funcName        = "err"
     def dynamicFunction = DynamicNativeFunction1("err") {
       (_: NativeContext) => (value: RT.ConstructorResult) =>
         value match {
@@ -413,8 +413,8 @@ private[runtime] object Expect {
   }
   // Collection comparisons don't need to be introspectable - more important to have any decent specific diff reporting
   case object EqualLists extends Expect {
-    def funcName = "equalLists"
-    def arity    = 2;
+    def funcName        = "equalLists"
+    def arity           = 2;
     def dynamicFunction = DynamicNativeFunction2("equalLists") {
       (_: NativeContext) => (l1: RT.List, l2: RT.List) =>
         val (elems1, elems2) = (l1.elements, l2.elements)
@@ -424,7 +424,7 @@ private[runtime] object Expect {
           failedRT(explainFailure(elems1, elems2))
         }
     }
-    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
+    def sdkFunction: SDKValue                              = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def explainFailure(l1: List[RT], l2: List[RT]): String =
       if (l1.length != l2.length) s"Lengths differ (${l1.length} vs ${l2.length})"
       else {
@@ -435,18 +435,18 @@ private[runtime] object Expect {
       }
   }
   case object EqualDicts extends Expect {
-    def funcName = "equalDicts"
-    def arity    = 2
+    def funcName        = "equalDicts"
+    def arity           = 2
     def dynamicFunction = DynamicNativeFunction2("equalDicts") {
       (_: NativeContext) => (l1: RT.Map, l2: RT.Map) =>
         val (elems1, elems2) = (l1.elements.toMap, l2.elements.toMap)
         if (elems1 == elems2) passedRT
         else failedRT(explainFailure(elems1, elems2))
     }
-    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
+    def sdkFunction: SDKValue                                    = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def explainFailure(l1: Map[RT, RT], l2: Map[RT, RT]): String = {
-      val missingFrom1 = l1.keys.toSet.diff(l2.keys.toSet).toList
-      val missingFrom2 = l2.keys.toSet.diff(l1.keys.toSet).toList
+      val missingFrom1   = l1.keys.toSet.diff(l2.keys.toSet).toList
+      val missingFrom2   = l2.keys.toSet.diff(l1.keys.toSet).toList
       val missing1String = if (missingFrom1.length == 0) ""
       else if (missingFrom1.length < 4) s"\n\t Keys missing from first: ${missingFrom1.map(_.printed).mkString(", ")}"
       else s"\n\t ${missingFrom1.length} keys missing including ${missingFrom1(0).printed}"
@@ -464,18 +464,18 @@ private[runtime] object Expect {
     }
   }
   case object EqualSets extends Expect {
-    def funcName = "equalSets"
-    def arity    = 2
+    def funcName        = "equalSets"
+    def arity           = 2
     def dynamicFunction = DynamicNativeFunction2("equalSets") {
       (_: NativeContext) => (l1: RT.Set, l2: RT.Set) =>
         val (elems1, elems2) = (l1.elements.toSet, l2.elements.toSet)
         if (elems1 == elems2) passedRT
         else failedRT(explainFailure(elems1, elems2))
     }
-    def sdkFunction: SDKValue = NativeFunctionAdapter.Fun2(dynamicFunction).realize
+    def sdkFunction: SDKValue                            = NativeFunctionAdapter.Fun2(dynamicFunction).realize
     def explainFailure(l1: Set[RT], l2: Set[RT]): String = {
-      val missingFrom1 = l1.diff(l2).toList
-      val missingFrom2 = l2.diff(l1).toList
+      val missingFrom1   = l1.diff(l2).toList
+      val missingFrom2   = l2.diff(l1).toList
       val missing1String = if (missingFrom1.length == 0) ""
       else if (missingFrom1.length < 4) s"\n\t Items missing from first: ${missingFrom1.map(_.printed).mkString(", ")}"
       else s"\n\t ${missingFrom1.length} items missing including ${missingFrom1(0).printed}"
@@ -591,7 +591,7 @@ private[runtime] object Expect {
       arg1.value match {
         case RT.Primitive.Boolean(true)  => SingleTestResult.Passed
         case RT.Primitive.Boolean(false) => SingleTestResult.Failed(explainFailure(globals, context, arg1.ir))
-        case _ =>
+        case _                           =>
           SingleTestResult.Err(UnexpectedTypeWithIR("Bool type", arg1.value, arg1.ir, hint = "(in Expext.assert)"))
       }
 

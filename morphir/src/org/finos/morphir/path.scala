@@ -32,7 +32,7 @@ trait PathModule { self: NameModule =>
 
     def parts(implicit renderer: PathRenderer): IndexedSeq[String] = segments.map(_.render(renderer.nameRenderer))
 
-    def render(implicit renderer: PathRenderer): String = renderer(self)
+    def render(implicit renderer: PathRenderer): String                        = renderer(self)
     def render(separator: String)(implicit nameRenderer: NameRenderer): String =
       render(PathRenderer(separator, nameRenderer))
 
@@ -90,8 +90,8 @@ trait PathModule { self: NameModule =>
     /** Checks if the first provided path is a prefix of the second path */
     @tailrec
     def isPrefixOf(prefix: Path, path: Path): Boolean = (prefix.toList, path.toList) match {
-      case (Nil, _) => true
-      case (_, Nil) => false
+      case (Nil, _)                                         => true
+      case (_, Nil)                                         => false
       case (prefixHead :: prefixTail, pathHead :: pathTail) =>
         if (prefixHead == pathHead)
           isPrefixOf(

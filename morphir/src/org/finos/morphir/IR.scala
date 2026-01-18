@@ -41,10 +41,10 @@ object IR {
   @inline final def fromPackageSpecifications(specs: Map[FQName, PackageModule.Specification[Any]]): IR = ???
 
   @inline final def lookupTypeSpecification(fqName: FQName): IR.LookupTypeSpecification =
-    IR.lookupTypeSpecification(fqName)
+    new IR.LookupTypeSpecification(() => fqName)
 
   @inline final def lookupTypeConstructor(fqName: FQName): IR.LookupTypeConstructor =
-    IR.lookupTypeConstructor(fqName)
+    new IR.LookupTypeConstructor(() => fqName)
 
   val empty: IR = IR(
     valueSpecifications = Map.empty,

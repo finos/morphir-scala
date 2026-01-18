@@ -38,15 +38,15 @@ object PrintMDMJson {
   private def dataToJson(data: Data): Json =
     data match {
       case v: Data.Basic[?] => Json.Str(v.toString)
-      case v: Data.Case => Json.Obj(
+      case v: Data.Case     => Json.Obj(
           "enumLabel" -> Json.Str(v.enumLabel),
-          "values" -> Json.Arr(v.values.map {
+          "values"    -> Json.Arr(v.values.map {
             case (enumLabel, data) => Json.Obj(enumLabel.toString -> dataToJson(data))
           }*)
         )
-      case v: Data.Tuple  => Json.Arr(v.values.map(dataToJson)*)
-      case v: Data.Struct => Json.Obj(v.values.map { case (k, v) => k.value -> dataToJson(v) }*)
-      case v: Data.Record => Json.Obj(v.values.map { case (k, v) => k.value -> dataToJson(v) }*)
+      case v: Data.Tuple    => Json.Arr(v.values.map(dataToJson)*)
+      case v: Data.Struct   => Json.Obj(v.values.map { case (k, v) => k.value -> dataToJson(v) }*)
+      case v: Data.Record   => Json.Obj(v.values.map { case (k, v) => k.value -> dataToJson(v) }*)
       case v: Data.Optional => v match {
           case Optional.Some(data, _) => dataToJson(data)
           case Optional.None(_)       => Json.Null
@@ -56,7 +56,7 @@ object PrintMDMJson {
           case Result.Err(data, _) => dataToJson(data)
         }
       case v: Data.List => Json.Arr(v.values.map(dataToJson)*)
-      case v: Data.Map => Json.Obj(v.values.map {
+      case v: Data.Map  => Json.Obj(v.values.map {
           case (k, v) => k.toString -> dataToJson(v)
         }.toList*)
       case v: Data.Set     => Json.Arr(v.values.toList.map(dataToJson)*)
@@ -69,32 +69,33 @@ object PrintMDMJson {
     concept match {
       case v: Concept.Basic[_] => Json.Str(printName(v))
       case v: Concept.Any.type => Json.Str(printName(v))
-      case v: Concept.Record => Json.Obj(v.fields.map {
-          case (label, value) => label.value -> (if (detailLevel.hideInnerConcepts) Json.Str(label.value)
-                                                 else conceptToJson(value, detailLevel))
+      case v: Concept.Record   => Json.Obj(v.fields.map {
+          case (label, value) => label.value ->
+              (if (detailLevel.hideInnerConcepts) Json.Str(label.value)
+               else conceptToJson(value, detailLevel))
         }*)
       case v: Concept.Struct => Json.Arr(v.fields.map(_._1.value).map(Json.Str.apply)*)
-      case v: Concept.Alias => Json.Obj(
+      case v: Concept.Alias  => Json.Obj(
           "name"  -> Json.Str(printName(v)),
           "value" -> conceptToJson(v.value, detailLevel)
         )
       case v: Concept.List => conceptToJson(v.elementType, detailLevel)
-      case v: Concept.Map => Json.Obj(
+      case v: Concept.Map  => Json.Obj(
           "keyType"   -> conceptToJson(v.keyType, detailLevel),
           "valueType" -> conceptToJson(v.valueType, detailLevel)
         )
       case v: Concept.Set      => conceptToJson(v.elementType, detailLevel)
       case v: Concept.Tuple    => Json.Arr(v.values.map(conceptToJson(_, detailLevel))*)
       case v: Concept.Optional => conceptToJson(v.elementType, detailLevel)
-      case v: Concept.Result => Json.Obj(
+      case v: Concept.Result   => Json.Obj(
           "errType" -> conceptToJson(v.errType, detailLevel),
           "okType"  -> conceptToJson(v.okType, detailLevel)
         )
       case v: Concept.Union => Json.Arr(v.cases.map(conceptToJson(_, detailLevel))*)
-      case v: Concept.Enum => Json.Arr(
+      case v: Concept.Enum  => Json.Arr(
           v.cases.map { enumCase =>
             Json.Obj(
-              "label" -> Json.Str(enumCase.label.value),
+              "label"  -> Json.Str(enumCase.label.value),
               "fields" -> Json.Obj(enumCase.fields.map {
                 case (label, value) => label.toString -> conceptToJson(value, detailLevel)
               }*)

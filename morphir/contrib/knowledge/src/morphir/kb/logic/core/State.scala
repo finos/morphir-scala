@@ -45,7 +45,7 @@ final case class State(
 
   private[knowledge] def hasConstraint[A](field: Field[A]): Boolean = fieldConstraints.contains(field)
 
-  def hasValue[A](field: Field[A]): Boolean = fields.hasValue(field)(field.fieldType)
+  def hasValue[A](field: Field[A]): Boolean = fields.hasValue(field)(using field.fieldType)
 
   private[knowledge] def unify(first: Value, second: Value): Option[State] = {
 

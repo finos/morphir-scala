@@ -27,7 +27,7 @@ trait EvaluationLibraryPlatformSpecific {
 
   def loadDistributionFromFileZIO(fileName: String): Task[Distribution] =
     for {
-      fileContents <- ZIO.readFile(fileName)
+      fileContents  <- ZIO.readFile(fileName)
       morphirIRFile <- ZIO.fromEither(fileContents.fromJson[MorphirIRFile])
         .mapError(MorphirIRDecodingError(_))
     } yield morphirIRFile.distribution
@@ -35,7 +35,7 @@ trait EvaluationLibraryPlatformSpecific {
   def loadValueFromFileZIO(fileName: String): Task[TypedValue] =
     for {
       fileContents <- ZIO.readFile(fileName)
-      value <- ZIO.fromEither(fileContents.fromJson[TypedValue])
+      value        <- ZIO.fromEither(fileContents.fromJson[TypedValue])
         .mapError(MorphirIRDecodingError(_))
     } yield value
 }

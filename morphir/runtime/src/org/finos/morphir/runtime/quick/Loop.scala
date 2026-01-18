@@ -140,7 +140,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
         arguments match {
           case _ :: Nil  => RTValue.ConstructorResult(name, curried :+ argValue)
           case _ :: tail => RTValue.ConstructorFunction(name, tail, curried :+ argValue)
-          case Nil =>
+          case Nil       =>
             throw InvalidState(
               "Tried to apply to constructor function with no arguments (should not exist)",
               location = None,
@@ -152,7 +152,7 @@ private[morphir] case class Loop(globals: GlobalDefs) extends InvokeableEvaluato
         fields match {
           case head :: Nil  => RTValue.Record(curried ++ Map(head.name -> argValue))
           case head :: tail => RTValue.ImplicitConstructorFunction(name, tail, curried ++ Map(head.name -> argValue))
-          case Nil =>
+          case Nil          =>
             throw InvalidState(
               "Tried to apply to implicit constructor function with no arguments (should not exist)",
               location = None,
@@ -214,16 +214,16 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
   def loop(ir: TypedValue, store: Store): RTValue =
     try
       ir match {
-        case Literal(va, lit)              => handleLiteral(va, lit)
-        case Apply(va, function, argument) => handleApply(va, function, argument, store)
+        case Literal(va, lit)                                          => handleLiteral(va, lit)
+        case Apply(va, function, argument)                             => handleApply(va, function, argument, store)
         case node @ Destructure(va, pattern, valueToDestruct, inValue) =>
           handleDestructure(va, node, pattern, valueToDestruct, inValue, store)
-        case Constructor(va, name)        => handleConstructor(va, name)
-        case Field(va, recordValue, name) => handleField(va, recordValue, name, store)
-        case FieldFunction(va, name)      => handleFieldFunction(va, name)
+        case Constructor(va, name)                           => handleConstructor(va, name)
+        case Field(va, recordValue, name)                    => handleField(va, recordValue, name, store)
+        case FieldFunction(va, name)                         => handleFieldFunction(va, name)
         case IfThenElse(va, condition, thenValue, elseValue) =>
           handleIfThenElse(va, condition, thenValue, elseValue, store)
-        case Lambda(va, pattern, body) => handleLambda(va, pattern, body, store)
+        case Lambda(va, pattern, body)                    => handleLambda(va, pattern, body, store)
         case LetDefinition(va, name, definition, inValue) =>
           handleLetDefinition(va, name, definition, inValue, store)
         case LetRecursion(va, definitions, inValue)  => handleLetRecursion(va, definitions, inValue, store)
@@ -265,7 +265,7 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
   ): RTValue = {
     val value = loop(valueToDestruct, store)
     matchPatternCase(pattern, value) match {
-      case None => throw UnmatchedPattern(value, node, location = Some(codeLocation), pattern)
+      case None           => throw UnmatchedPattern(value, node, location = Some(codeLocation), pattern)
       case Some(bindings) =>
         loop(inValue, store.push(bindings.map { case (name, value) => name -> StoredValue.Eager(value) }))
     }
@@ -273,12 +273,12 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
 
   def handleConstructor(va: UType, name: FQName): RTValue =
     globals.getCtor(name) match {
-      case Some(SDKConstructor.Explicit(List())) => RTValue.ConstructorResult(name, List())
+      case Some(SDKConstructor.Explicit(List()))    => RTValue.ConstructorResult(name, List())
       case Some(SDKConstructor.Explicit(arguments)) =>
         RTValue.ConstructorFunction(name, arguments, List())
       case Some(SDKConstructor.Implicit(List())) => RTValue.Record(Map())
       case Some(SDKConstructor.Implicit(fields)) => RTValue.ImplicitConstructorFunction(name, fields, Map())
-      case None =>
+      case None                                  =>
         val (pkg, mod, loc) = (name.getPackagePath, name.getModulePath, name.localName)
         throw ConstructorNotFound(
           s"""Constructor mising from store:
@@ -327,7 +327,7 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
     loop(condition, store) match {
       case RTValue.Primitive(true)  => loop(thenValue, store)
       case RTValue.Primitive(false) => loop(elseValue, store)
-      case other => throw UnexpectedType(
+      case other                    => throw UnexpectedType(
           "Boolean",
           other,
           hint = "Expected because I found this in the condition of an if statement",
@@ -407,7 +407,7 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
     globals.getDefinition(name) match {
       case None =>
         val filtered = globals.definitions.keys.filter(_.getPackagePath == name.getPackagePath)
-        val hint = if (Utils.isNative(name)) "You might be calling an unimplemented native function"
+        val hint     = if (Utils.isNative(name)) "You might be calling an unimplemented native function"
         else "You might be calling a function not defined in the given distributions"
         throw DefinitionNotFound(
           s"""name $name not found in store.
@@ -427,7 +427,7 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
             store.callStack,
             CodeLocation.TopLevelFunction(name)
           )
-      case Some(SDKNativeValue(value)) => value
+      case Some(SDKNativeValue(value))       => value
       case Some(SDKNativeFunction(function)) =>
         RTValue.NativeFunction(function.numArgs, List(), function, CodeLocation.NativeFunction(name))
       case Some(SDKNativeInnerFunction(function)) =>
@@ -462,8 +462,8 @@ private[morphir] case class LoopFrame(globals: GlobalDefs, codeLocation: CodeLoc
 
   def handleVariable(va: UType, name: Name, store: Store) =
     store.getVariable(name) match {
-      case None                         => throw VariableNotFound(name)
-      case Some(StoredValue.Eager(res)) => res
+      case None                                                        => throw VariableNotFound(name)
+      case Some(StoredValue.Eager(res))                                => res
       case Some(StoredValue.Lazy(definition, parentContext, siblings)) =>
         val newBindings: Map[Name, StoredValue] = siblings.map { case (name, sibling) =>
           name -> StoredValue.Lazy(sibling, parentContext, siblings)

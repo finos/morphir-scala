@@ -34,7 +34,7 @@ trait MorphirJsonDecodingSupport {
   implicit val modulePathDecoder: JsonDecoder[ModuleName]   = pathDecoder.map(ModuleName(_))
   implicit val packageNameDecoder: JsonDecoder[PackageName] = pathDecoder.map(PackageName(_))
   implicit val qNameDecoder: JsonDecoder[QName]             = JsonDecoder.tuple2[Path, Name].map(QName.fromTuple)
-  implicit val fqNameDecoder: JsonDecoder[FQName] = JsonDecoder.tuple3[PackageName, ModuleName, Name].map {
+  implicit val fqNameDecoder: JsonDecoder[FQName]           = JsonDecoder.tuple3[PackageName, ModuleName, Name].map {
     case (packagePath, modulePath, localName) => FQName(packagePath, modulePath, localName)
   }
 
@@ -270,7 +270,7 @@ trait MorphirJsonDecodingSupport {
   implicit def patternAsPatternDecoder[A: JsonDecoder]: JsonDecoder[Pattern.AsPattern[A]] =
     JsonDecoder.tuple4[String, A, Pattern[A], Name].mapOrFail {
       case ("AsPattern", attributes, pattern, name) => Right(Pattern.AsPattern(attributes, pattern, name))
-      case (other, attributes, pattern, name) =>
+      case (other, attributes, pattern, name)       =>
         Left(
           s"Expected AsPattern, got $other with attributes: $attributes, pattern: $pattern and name: $name"
         )

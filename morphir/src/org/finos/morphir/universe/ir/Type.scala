@@ -40,7 +40,7 @@ sealed trait Type[+A] extends TypeExpr { self =>
     def loop(typ: Type[A], stack: List[Type[A]]): Option[Z] =
       f.lift(typ) match {
         case Some(z) => Some(z)
-        case None =>
+        case None    =>
           typ match {
             case ExtensibleRecord(_, _, head :: tail) =>
               val next = head.data
@@ -82,7 +82,7 @@ sealed trait Type[+A] extends TypeExpr { self =>
 
     @tailrec
     def loop(remaining: List[Type[A]], acc: Z): Z = remaining match {
-      case Nil => acc
+      case Nil          => acc
       case head :: tail => head match {
           case e: ExtensibleRecord[A] =>
             loop(e.fields.map(_.data).view.toList ++ tail, f(acc, e))
@@ -114,7 +114,7 @@ sealed trait Type[+A] extends TypeExpr { self =>
 
     @tailrec
     def loop(remaining: List[Type[A]], acc: Z): Z = remaining match {
-      case Nil => acc
+      case Nil          => acc
       case head :: tail =>
         val newAcc = if (f.isDefinedAt((acc, head))) f((acc, head)) else acc
         head match {
@@ -273,7 +273,7 @@ sealed trait Type[+A] extends TypeExpr { self =>
 
     @scala.annotation.tailrec
     def loop(stack: List[ProcessTask], accumulator: List[Type[B]]): Type[B] = stack match {
-      case Nil => accumulator.head
+      case Nil                             => accumulator.head
       case Process(node, children) :: tail => node match {
           case e @ ExtensibleRecord(_, _, _) if children.length < e.fields.length =>
             loop(Process(e.fields(children.length).data, Nil) :: stack, accumulator)

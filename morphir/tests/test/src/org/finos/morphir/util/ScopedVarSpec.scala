@@ -6,8 +6,8 @@ import zio.test.Assertion._
 object ScopedVarSpec extends MorphirBaseSpec {
   def spec = suite("ScopedVarSpec")(
     test("ScopedVars can be assigned to and retrieved within a scope") {
-      val flag  = new ScopedVar[Boolean]
-      val total = new ScopedVar[Long]
+      val flag                    = new ScopedVar[Boolean]
+      val total                   = new ScopedVar[Long]
       val (flagValue, totalValue) = ScopedVar.scoped(
         flag  := true,
         total := 999

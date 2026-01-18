@@ -33,13 +33,13 @@ object DictSDK {
 
   val fromList: SDKValue = SDKValue.SDKNativeFunction.fun1 {
     (l: RTValue) =>
-      val list = l.coerceList.value
+      val list       = l.coerceList.value
       val mappedList = list
         .map { input =>
           // unwrap the element that is in the list provided to the Dict.fromList function. It has to be a Tuple2
           input.coerceTuple.value match {
             case List(a, b) => (a, b)
-            case _ =>
+            case _          =>
               throw new UnexpectedType(
                 s"Tuple2-based element",
                 input,
@@ -209,7 +209,7 @@ object BasicsSDK {
       case (RTValue.List(aElements), RTValue.List(bElements)) =>
         RTValue.List(aElements.appendedAll(bElements))
       case (RTValue.Primitive.String(a), RTValue.Primitive.String(b)) => RTValue.Primitive.String(a + b)
-      case (other1, other2) =>
+      case (other1, other2)                                           =>
         throw WrongArgumentTypes(s"Append must be called on two Lists or two Strings", other1, other2)
     }
   )
@@ -382,7 +382,7 @@ object Native {
   val log: SDKValue = SDKValue.SDKNativeFunction.fun2 {
     (a: RTValue, b: RTValue) =>
       val denominator = Math.log(a.coerceDouble.value)
-      val asDouble =
+      val asDouble    =
         if (denominator == 0)
           Double.PositiveInfinity
         else

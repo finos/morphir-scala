@@ -189,7 +189,7 @@ If you don't have elm-format installed, you can either install it through npm or
 npm install -g elm-format
 ```
 
-Alternatively, this can be done directly via `npm run format`, which is documented [here](https://github.com/finos/morphir-scala/blob/main/examples/morphir-elm-projects/evaluator-tests/ReadMe.md)
+Alternatively, this can be done via `mise run fmt`, which is documented [here](https://github.com/finos/morphir-scala/blob/main/examples/morphir-elm-projects/evaluator-tests/ReadMe.md)
 
 #### IntelliJ Setup for Windows
 

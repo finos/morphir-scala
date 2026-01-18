@@ -15,7 +15,7 @@ object Literal {
   def charLiteral(value: Char): Literal    = Literal.CharLiteral(value)
 
   def decimalLiteral(value: BigDecimal): Literal = Literal.DecimalLiteral(value)
-  def stringLiteral(value: String): Literal =
+  def stringLiteral(value: String): Literal      =
     Literal.StringLiteral(value)
 
   def intLiteral(value: Int): Literal =

@@ -1,5 +1,7 @@
 package mill.local.plugins.ci.release
 
+import upickle.default.*
+
 /**
  * The env variables that are necessary to sign and publish
  *
@@ -20,15 +22,10 @@ private[release] final case class Env(
     isTag: Boolean,
     sonatypeUser: String,
     sonatypePassword: String
-) {
+) derives ReadWriter {
 
   /**
    * Sonatype creds in the format that Mill uses
    */
   val sonatypeCreds: String = s"${sonatypeUser}:${sonatypePassword}"
-}
-
-object Env {
-  implicit def rw: upickle.default.ReadWriter[Env] =
-    upickle.default.macroRW
 }

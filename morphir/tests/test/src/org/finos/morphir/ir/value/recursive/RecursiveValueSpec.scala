@@ -281,7 +281,7 @@ object RecursiveValueSpec extends MorphirBaseSpec {
         test("It should be possible to construct given attributes, an argument pattern, and a body") {
           val attributes = Type.tupleVar(intType, intType)
           val pat        = tuplePattern(attributes, asAlias(intType, "l"), asAlias(stringType, "r"))
-          val body = apply(
+          val body       = apply(
             intType,
             apply(intType, reference(intType, "Morphir.SDK:Basics:add"), variable(intType, "l")),
             variable(intType, "r")
@@ -555,8 +555,9 @@ object RecursiveValueSpec extends MorphirBaseSpec {
           val lastNameField  = "lastName"  -> string(stringType, "Doe")
           val ageField       = "age"       -> int(intType, 21)
           val fields = Chunk(firstNameField, lastNameField, ageField).map { case (n, v) => Name.fromString(n) -> v }
-          val recordFields =
-            ("firstName" -> stringType :: "lastName" -> stringType :: "age" -> intType :: Nil).map(Type.field(_))
+          val recordFields = ("firstName" -> stringType :: "lastName" -> stringType :: "age" -> intType :: Nil).map(
+            Type.field(_)
+          )
           val recordType = Type.record(recordFields)
           val actual     = Record(recordType, firstNameField, lastNameField, ageField)
           assertTrue(

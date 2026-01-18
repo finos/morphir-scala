@@ -2,12 +2,13 @@ package org.finos.morphir.util
 
 //Taken from Scala Native
 import language.implicitConversions
+import scala.compiletime.uninitialized
 
 class ScopedVar[A] {
   import ScopedVar.Assignment
 
   private var init     = false
-  private var value: A = _
+  private var value: A = uninitialized
 
   def get: A                         = if (!init) throw ScopedVar.Unitialized() else value
   def :=(newValue: A): Assignment[A] = new Assignment(this, newValue)

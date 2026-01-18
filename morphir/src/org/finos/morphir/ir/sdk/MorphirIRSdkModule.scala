@@ -5,8 +5,8 @@ import org.finos.morphir.ir.{Documented, Value}
 import org.finos.morphir.ir.Type._
 import zio.Chunk
 abstract class MorphirIRSdkModule(modulePathString: String) {
-  implicit val packageName: PackageName = PackageName.fromString("Morphir.SDK")
-  val moduleName: ModuleName            = ModuleName.fromString(modulePathString)
+  implicit val packageName: PackageName                   = PackageName.fromString("Morphir.SDK")
+  val moduleName: ModuleName                              = ModuleName.fromString(modulePathString)
   final lazy val qualifiedModuleName: QualifiedModuleName =
     QualifiedModuleName(packageName, moduleName)
 

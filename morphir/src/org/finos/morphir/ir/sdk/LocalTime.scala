@@ -23,7 +23,7 @@ object LocalTime extends MorphirIRSdkModule("LocalTime") {
     )
   )
 
-  lazy val localTimeType: UType = reference(fqn("LocalTime"))
+  lazy val localTimeType: UType                = reference(fqn("LocalTime"))
   def localTimeType[A](attributes: A): Type[A] =
     reference(attributes, fqn("LocalTime"))
 }

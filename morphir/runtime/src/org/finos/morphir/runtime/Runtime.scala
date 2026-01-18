@@ -15,7 +15,7 @@ trait Runtime { self =>
   abstract class StatefulTreeWalker[State, +A](initialState: State) {
     private var state: State = initialState
 
-    def getState: State = state
+    def getState: State                 = state
     def setState(newState: State): Unit =
       state = newState
     def visitUnit(attributes: ValueAttribs): A

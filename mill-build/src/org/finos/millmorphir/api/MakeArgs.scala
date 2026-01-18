@@ -1,7 +1,8 @@
 package org.finos.millmorphir.api
 
-import mill.api.JsonFormatters._
-import millbuild.util.Collections._
+import mill.api.JsonFormatters.*
+import millbuild.util.Collections.*
+import upickle.default.*
 
 final case class MakeArgs(
     projectDir: os.Path,
@@ -9,7 +10,7 @@ final case class MakeArgs(
     indentJson: Boolean,
     typesOnly: Boolean,
     fallbackCli: Option[Boolean]
-) { self =>
+) derives ReadWriter { self =>
   def useFallbackCli: Boolean = self.fallbackCli.getOrElse(false)
 
   def toCommandArgs: Seq[String] =
@@ -21,8 +22,4 @@ final case class MakeArgs(
       .appendIf(useFallbackCli)("--fallback-cli")
 
   def toCommandArgs(cli: String): Seq[String] = Seq(cli) ++ toCommandArgs
-}
-
-object MakeArgs {
-  implicit val jsonFormatter: upickle.default.ReadWriter[MakeArgs] = upickle.default.macroRW
 }

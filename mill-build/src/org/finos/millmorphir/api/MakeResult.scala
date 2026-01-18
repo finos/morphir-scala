@@ -1,7 +1,8 @@
 package org.finos.millmorphir.api
 
 import mill.PathRef
-import mill.api.JsonFormatters._
+import mill.api.JsonFormatters.*
+import upickle.default.*
 
 case class MakeResult(
     makeArgs: MakeArgs,
@@ -9,7 +10,4 @@ case class MakeResult(
     commandArgs: Seq[String],
     workingDir: os.Path,
     morphirHashesPath: Option[PathRef] = None
-)
-object MakeResult {
-  implicit val jsonFormatter: upickle.default.ReadWriter[MakeResult] = upickle.default.macroRW
-}
+) derives ReadWriter

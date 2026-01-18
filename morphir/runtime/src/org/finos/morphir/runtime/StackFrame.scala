@@ -2,7 +2,7 @@ package org.finos.morphir
 package runtime
 
 import org.finos.morphir.naming._
-import org.typelevel.scalaccompat.annotation.{targetName3 => targetName}
+import scala.annotation.targetName
 
 final case class StackFrame(symbols: SymbolTable) { self =>
   def ++(frame: StackFrame): StackFrame = copy(symbols = self.symbols ++ frame.symbols)
@@ -17,7 +17,7 @@ final case class StackFrame(symbols: SymbolTable) { self =>
 }
 
 object StackFrame {
-  val empty: StackFrame = StackFrame(SymbolTable.empty)
+  val empty: StackFrame                            = StackFrame(SymbolTable.empty)
   def create(bindings: SymbolBinding*): StackFrame =
     StackFrame(symbols = SymbolTable.create(bindings: _*))
 }

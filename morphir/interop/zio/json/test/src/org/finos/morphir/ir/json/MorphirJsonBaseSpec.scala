@@ -102,7 +102,7 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
     // create a patch file text
     // var patch = PatchDiffViewer.from(jsondiff);
     // use the viewer to collect diff data
-    val patchFile = PatchDiffViewer.from(jsondiff);
+    val patchFile     = PatchDiffViewer.from(jsondiff);
     val patchFileText =
       try
         patchFile.toString
@@ -139,7 +139,7 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
     for {
       currentSample <- readSampleFromFile(filePath)
       sample        <- generateSample(gen, sampleSize)
-      assertion <-
+      assertion     <-
         if (sample == currentSample) {
           ZIO.succeed(assertTrue(sample == currentSample))
         } else {
@@ -220,7 +220,7 @@ abstract class MorphirJsonBaseSpec extends MorphirBaseSpec {
 
     for {
       sample <- generateSample(gen, sampleSize)
-      _ <-
+      _      <-
         ZIO
           .ifZIO(ZIO.attemptBlocking(Files.exists(filePath)))(ZIO.unit, ZIO.attemptBlocking(Files.createFile(filePath)))
       _ <- writeSampleToFile(filePath, sample)

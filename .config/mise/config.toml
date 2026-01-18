@@ -1,0 +1,13 @@
+# Mise configuration for morphir-scala project
+# https://mise.jdx.dev/configuration.html
+#
+# Tasks are defined as bash scripts in .config/mise/tasks/
+# Run `mise tasks` to see available tasks
+
+[tools]
+bun = "1.3.6"
+node = "24.13.0"
+"scala-cli" = "1.11.0"
+
+[env]
+_.path = ["./node_modules/.bin"]

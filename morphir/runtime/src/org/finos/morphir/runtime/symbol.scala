@@ -2,7 +2,7 @@ package org.finos.morphir
 package runtime
 
 import org.finos.morphir.naming._
-import org.typelevel.scalaccompat.annotation.{targetName3 => targetName}
+import scala.annotation.targetName
 import scala.annotation.unused
 import zio.Tag
 

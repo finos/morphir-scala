@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# MISE description="Run JS compile/publish/test workflow"
+
+set -e
+
+SCALA_VERSION="${SCALA_VERSION_JS:-3.7.4}"
+
+echo "Running JS tests..."
+echo "  Scala version: $SCALA_VERSION"
+
+./mill -i -k -j 0 \
+    "morphir[$SCALA_VERSION].__.js.__.compile" \
+    + \
+    "morphir[$SCALA_VERSION].__.js.publishArtifacts" \
+    + \
+    "morphir[$SCALA_VERSION].__.js.__.test"
+
+echo "JS tests completed successfully"

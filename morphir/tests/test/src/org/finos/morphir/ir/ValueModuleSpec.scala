@@ -418,7 +418,8 @@ object ValueModuleSpec extends MorphirBaseSpec {
       )
 
       assertTrue(
-        lr.toString == "let unused = 42; z = 10; x = if False then y else 3; y = if False then 2 else z in Finos.Morphir.SDK.Basics.add x y"
+        lr.toString ==
+          "let unused = 42; z = 10; x = if False then y else 3; y = if False then 2 else z in Finos.Morphir.SDK.Basics.add x y"
       )
     },
     test("Collect Variables should return as expected") {
@@ -452,7 +453,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     },
     test("Collect References should return as expected") {
       val fqName = FQName.fromString("Finos:Morphir.Basics:constInt")
-      val lr = LetRecursion.Typed(
+      val lr     = LetRecursion.Typed(
         "x" -> valueDef(intType)(
           IfThenElse
             .Typed(
@@ -590,8 +591,8 @@ object ValueModuleSpec extends MorphirBaseSpec {
       assertTrue(pm.collectVariables == Set(Name("name"), Name("integer"), Name("other")))
     },
     test("Should support collecting nested references") {
-      val fq  = FQName.fromString("hello:world:star", ":")
-      val fq2 = FQName.fromString("hello:world:mission", ":")
+      val fq    = FQName.fromString("hello:world:star", ":")
+      val fq2   = FQName.fromString("hello:world:mission", ":")
       val cases = Chunk(
         (asPattern(wildcardPattern, Name.fromString("x")), variable(Name("name"))),
         (asPattern(wildcardPattern, Name.fromString("y")), reference(fq2))
@@ -714,7 +715,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
           literal("world")
         )
       )
-      val fq = FQName.fromString("hello:world:star", ":")
+      val fq     = FQName.fromString("hello:world:star", ":")
       val tuple2 = tuple(
         Chunk(
           reference(fq),
@@ -774,7 +775,7 @@ object ValueModuleSpec extends MorphirBaseSpec {
     test("Should support collecting nested references") {
       val fqn1 = FQName.fromString("hello:world:string", ":")
       val fqn2 = FQName.fromString("hello:world:constRecord", ":")
-      val ur = update(
+      val ur   = update(
         reference(fqn2),
         Chunk(
           Name("fieldB") -> wholeNumber(423),

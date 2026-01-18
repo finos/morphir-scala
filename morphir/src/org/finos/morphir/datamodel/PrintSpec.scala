@@ -38,7 +38,7 @@ object PrintSpec {
 
     for {
       dumpDir <- ZIO.succeed(path.toFile)
-      _ <- ZIO.attempt {
+      _       <- ZIO.attempt {
         if (dumpDir.exists()) {
           deleteWalk(path)
         }
@@ -76,7 +76,7 @@ object PrintSpec {
   }
 
   private[morphir] def print(concept: Concept, printHeadings: HeadingPrint = HeadingPrint.AllHeadings) = {
-    val typesList = concept.collectAll
+    val typesList                                = concept.collectAll
     val (printFileHeadings, printImportHeadings) =
       printHeadings match {
         case HeadingPrint.AllHeadings        => (true, true)
@@ -117,8 +117,8 @@ object PrintSpec {
     }
 
     def printRecordDef(r: Concept.Record) = {
-      val alias       = s"type alias ${r.namespace.localName.render} ="
-      val fieldPrints = printFields(r.fields)
+      val alias          = s"type alias ${r.namespace.localName.render} ="
+      val fieldPrints    = printFields(r.fields)
       val allFieldPrints =
         alias + "  " + fieldPrints
       allFieldPrints + "\n"
@@ -129,7 +129,7 @@ object PrintSpec {
         e.cases.map { case Concept.Enum.Case(label, values) =>
           val valuePrint =
             values.map { case (fieldLabel, concept) =>
-              val valueConceptPrint = printDef(concept, true)
+              val valueConceptPrint      = printDef(concept, true)
               val valueConceptLabelPrint =
                 fieldLabel match {
                   case EnumLabel.Empty        => ""
@@ -212,10 +212,10 @@ object PrintSpec {
             case _               => basic.toString
           }
 
-        case Concept.Any            => "Any"
-        case r: Concept.Record      => r.namespace.localName.render
-        case Concept.Struct(fields) => printFields(fields)
-        case Concept.Alias(name, _) => name.localName.render
+        case Concept.Any               => "Any"
+        case r: Concept.Record         => r.namespace.localName.render
+        case Concept.Struct(fields)    => printFields(fields)
+        case Concept.Alias(name, _)    => name.localName.render
         case Concept.List(elementType) =>
           s"List ${printDef(elementType)}"
             .inParensIf(isInside)
@@ -248,7 +248,7 @@ object PrintSpec {
     val defs = typesList.map(tpe => handleDef(tpe, true)).collect { case Some(conceptDef) => conceptDef }
 
     val groupedByModule = defs.groupBy(_.name.getQualifiedModuleName)
-    val allModules =
+    val allModules      =
       groupedByModule.toList.map { case (qualifiedModuleName, defs) =>
         val defConceptsToUse =
           defs.groupBy(_.name)
@@ -256,9 +256,10 @@ object PrintSpec {
               val uniqueConcepts = defConcepts.distinct
               if (uniqueConcepts.length > 1) {
                 println(
-                  s"[WARNING] the definition ${defName} was found multiple times (using 1st def):\n" + uniqueConcepts.mkString(
-                    "\n\n"
-                  )
+                  s"[WARNING] the definition ${defName} was found multiple times (using 1st def):\n" +
+                    uniqueConcepts.mkString(
+                      "\n\n"
+                    )
                 )
               }
               defConcepts.head
@@ -283,7 +284,8 @@ object PrintSpec {
           val heading =
             s"{- ******************************************************* Module ${modNamePrint} ******************************************************* -}\n"
 
-          heading + s"module  ${qualifiedModuleName.packageName.render}.${qualifiedModuleName.modulePath.path.render} exposing (..)" +
+          heading +
+            s"module  ${qualifiedModuleName.packageName.render}.${qualifiedModuleName.modulePath.path.render} exposing (..)" +
             "\n\n" +
             allImportsPrint + "\n\n" + allDefsPrint
         }

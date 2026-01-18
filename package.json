@@ -12,6 +12,7 @@
   "scripts": {},
   "resolutions": {},
   "devDependencies": {
-    "morphir-elm": "^2.89.0"
+    "morphir-elm": "^2.89.0",
+    "@types/bun": "latest"
   }
 }

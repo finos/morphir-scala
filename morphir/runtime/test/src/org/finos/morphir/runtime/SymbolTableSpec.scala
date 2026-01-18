@@ -18,7 +18,7 @@ object SymbolTableSpec extends MorphirBaseSpec {
       val nVar    = morphir.runtime.Symbol.variable("n")
       val flagVar = morphir.runtime.Symbol.variable("flag")
       val strVar  = morphir.runtime.Symbol.variable("str")
-      val actual = sut ++= Seq(
+      val actual  = sut ++= Seq(
         nVar    := 42,
         flagVar := false,
         strVar  := "Hello"
@@ -59,7 +59,7 @@ object SymbolTableSpec extends MorphirBaseSpec {
     test("Should support getting a symbol in a safe manner") {
       val boundVar   = morphir.runtime.Symbol.variable("bound")
       val unboundVar = morphir.runtime.Symbol.variable("unbound")
-      val sut = SymbolTable.create(
+      val sut        = SymbolTable.create(
         boundVar := "This is bound!"
       )
       assertTrue(

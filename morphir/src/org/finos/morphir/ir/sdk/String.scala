@@ -61,7 +61,7 @@ object String extends MorphirIRSdkModule("String") {
     )
   )
 
-  lazy val stringType: UType = reference(fqn("String"))
+  lazy val stringType: UType                                                 = reference(fqn("String"))
   def stringType[A](attributes: A)(implicit ev: NeedsAttributes[A]): Type[A] =
     reference(attributes, fqn("String"))
 

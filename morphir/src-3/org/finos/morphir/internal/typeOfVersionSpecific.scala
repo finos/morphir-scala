@@ -51,7 +51,7 @@ trait TypeOfModuleVersionSpecific {
         fqName match {
           case Some(fqName) =>
             val typeParams = Vector.empty[Name] // TODO: Need to fill out type params if any
-            val typeRef = Type.Reference(
+            val typeRef    = Type.Reference(
               Attributes.empty,
               fqName,
               typeParams.map(Type.Variable(Attributes.empty, _)).toList

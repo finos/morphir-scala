@@ -33,9 +33,9 @@ object Flux {
   def empty[A]: Flux[A] =
     Flux(ZStream.empty)
   def mergeAll[A](streams: Flux[A]*): Flux[A] = streams.foldLeft(Flux.empty[A])((acc, flux) => acc <> flux)
-  def repeat[A](a: A): Flux[A] =
+  def repeat[A](a: A): Flux[A]                =
     Flux(ZStream(Some(a), None).forever)
-  def succeed[A](a: A): Flux[A] = Flux(ZStream(Some(a)))
+  def succeed[A](a: A): Flux[A]             = Flux(ZStream(Some(a)))
   def suspend[A](flux: => Flux[A]): Flux[A] =
     Flux(ZStream(None) ++ flux.stream)
 

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# MISE description="Run the core CI workflow locally"
+# MISE depends=["setup", "lint", "build:morphir-elm", "test:jvm", "test:js"]
+
+echo "ci:local complete"

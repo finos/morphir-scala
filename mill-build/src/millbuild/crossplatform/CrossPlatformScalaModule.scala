@@ -1,10 +1,9 @@
 package millbuild.crossplatform
-import mill._
-import _root_.mill.define.DynamicModule
-import mill.main.BuildInfo
-import mill.scalajslib._
-import mill.scalalib._
-import mill.scalanativelib._
+import mill.*
+import mill.api.DynamicModule
+import mill.scalajslib.*
+import mill.scalalib.*
+import mill.scalanativelib.*
 import _root_.millbuild.CommonCrossScalaModule
 
 trait CrossPlatformScalaModule extends PlatformScalaModule with CrossScalaModule with CommonCrossScalaModule {
@@ -30,17 +29,18 @@ trait CrossPlatformScalaModule extends PlatformScalaModule with CrossScalaModule
       case (vs, ps)     => os.rel / ps / s"${srcFolderName}-${vs}"
     }
 
-  def crossPlatformSources: T[Seq[PathRef]] = T.sources {
-    platformFolderMode() match {
+  def platformFolderMode: Platform.FolderMode = Platform.FolderMode.UseNesting
+
+  def crossPlatformSourcePaths: Seq[PathRef] =
+    platformFolderMode match {
       case Platform.FolderMode.UseSuffix =>
-        crossPlatformSourceSuffixes("src").map(suffix => PathRef(millSourcePath / suffix))
+        crossPlatformSourceSuffixes("src").map(suffix => PathRef(moduleDir / suffix))
       case Platform.FolderMode.UseNesting =>
-        crossPlatformRelativeSourcePaths("src").map(subPath => PathRef(millSourcePath / subPath))
+        crossPlatformRelativeSourcePaths("src").map(subPath => PathRef(moduleDir / subPath))
       case Platform.FolderMode.UseBoth =>
-        (crossPlatformSourceSuffixes("src").map(suffix => PathRef(millSourcePath / suffix)) ++
-          crossPlatformRelativeSourcePaths("src").map(subPath => PathRef(millSourcePath / subPath))).distinct
+        (crossPlatformSourceSuffixes("src").map(suffix => PathRef(moduleDir / suffix)) ++
+          crossPlatformRelativeSourcePaths("src").map(subPath => PathRef(moduleDir / subPath))).distinct
     }
-  }
 
   def platformSpecificModuleDeps: Seq[CrossPlatform]         = Seq.empty
   def platformSpecificCompiledModuleDeps: Seq[CrossPlatform] = Seq.empty
@@ -50,18 +50,8 @@ trait CrossPlatformScalaModule extends PlatformScalaModule with CrossScalaModule
   }
   override def compileModuleDeps =
     super.compileModuleDeps ++ platformSpecificCompiledModuleDeps.flatMap(_.childPlatformModules(platform))
-
-  //     container.moduleDeps.map(innerModule).asInstanceOf[Seq[this.type]]
-  // override def compileModuleDeps = super.compileModuleDeps ++
-  //     container.compileModuleDeps.map(innerModule).asInstanceOf[Seq[this.type]]
-
-  // def innerModule(module:CrossPlatformModule) = module match {}
-
-  def platformFolderMode: T[Platform.FolderMode] = T { Platform.FolderMode.UseNesting }
   def platform: Platform
-  def knownPlatforms: T[Seq[Platform]] = T { Platform.all.toSeq }
+  def knownPlatforms: T[Seq[Platform]] = Task { Platform.all.toSeq }
 
-  def sources = T.sources {
-    crossPlatformSources()
-  }
+  override def sources: T[Seq[PathRef]] = Task.Sources(crossPlatformSourcePaths.map(_.path)*)
 }

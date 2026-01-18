@@ -18,7 +18,7 @@ trait GenericProductDeriver[T <: Product] extends Deriver[T] {
 object GenericProductDeriver {
   def make[T <: Product](productBuilder: ProductBuilder.MirrorProduct): GenericProductDeriver[T] =
     new GenericProductDeriver[T] {
-      val builder = productBuilder
+      val builder                 = productBuilder
       val concept: Concept.Record = {
         // Deriver stage contains list of fields and child derivers
         val fields: List[(Label, Concept)] =

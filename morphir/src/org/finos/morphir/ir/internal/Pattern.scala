@@ -11,14 +11,14 @@ sealed trait Pattern[+A] { self =>
   def attributes: A
 
   def map[B](f: A => B): Pattern[B] = self match {
-    case AsPattern(attributes, pattern, name) => AsPattern(f(attributes), pattern.map(f), name)
-    case EmptyListPattern(attributes)         => EmptyListPattern(f(attributes))
+    case AsPattern(attributes, pattern, name)                  => AsPattern(f(attributes), pattern.map(f), name)
+    case EmptyListPattern(attributes)                          => EmptyListPattern(f(attributes))
     case HeadTailPattern(attributes, headPattern, tailPattern) =>
       HeadTailPattern(f(attributes), headPattern.map(f), tailPattern.map(f))
-    case TuplePattern(attributes, elementPatterns) => TuplePattern(f(attributes), elementPatterns.map(_.map(f)))
-    case UnitPattern(attributes)                   => UnitPattern(f(attributes))
-    case WildcardPattern(attributes)               => WildcardPattern(f(attributes))
-    case LiteralPattern(attributes, literal)       => LiteralPattern(f(attributes), literal)
+    case TuplePattern(attributes, elementPatterns)      => TuplePattern(f(attributes), elementPatterns.map(_.map(f)))
+    case UnitPattern(attributes)                        => UnitPattern(f(attributes))
+    case WildcardPattern(attributes)                    => WildcardPattern(f(attributes))
+    case LiteralPattern(attributes, literal)            => LiteralPattern(f(attributes), literal)
     case ConstructorPattern(attributes, name, patterns) =>
       ConstructorPattern(f(attributes), name, patterns.map(_.map(f)))
   }
@@ -29,8 +29,8 @@ sealed trait Pattern[+A] { self =>
     self.map(_ => attributes)
 
   override def toString(): String = self match {
-    case AsPattern(_, WildcardPattern(_), alias) => alias.toCamelCase
-    case AsPattern(_, pattern, name)             => s"$pattern as ${name.toCamelCase}"
+    case AsPattern(_, WildcardPattern(_), alias)                  => alias.toCamelCase
+    case AsPattern(_, pattern, name)                              => s"$pattern as ${name.toCamelCase}"
     case ConstructorPattern(_, constructorName, argumentPatterns) =>
       val ctor = constructorName.toReferenceName
       val args = argumentPatterns.map(_.toString).mkString(" ")

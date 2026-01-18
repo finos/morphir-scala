@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# MISE description="Run JVM tests for all Scala versions"
+
+set -e
+
+SCALA_VERSIONS="${SCALA_VERSIONS:-3.7.4}"
+IFS=',' read -ra VERSIONS <<< "$SCALA_VERSIONS"
+
+echo "Running JVM tests..."
+echo "  Scala versions: ${SCALA_VERSIONS}"
+
+# Note: build:morphir-elm should be run separately before this task in CI
+for version in "${VERSIONS[@]}"; do
+    version=$(echo "$version" | tr -d ' ')
+    echo "  Running JVM tests for Scala $version..."
+    ./mill -i -k -j 0 \
+        "morphir[$version].__.jvm.__.compile" \
+        + \
+        "morphir[$version].__.jvm.publishArtifacts" \
+        + \
+        "morphir[$version].__.jvm.__.test"
+done
+
+echo "JVM tests completed successfully"

@@ -82,7 +82,7 @@ object MorphirRuntimeError {
         case None              => ""
       }
       val stackStrings = stack.map(loc => s"at morphir: $loc")
-      val stackString =
+      val stackString  =
         if (stack.length <= 10) stackStrings.mkString("\n\t")
         else {
           val (first, rest)   = stackStrings.splitAt(5)
@@ -416,12 +416,13 @@ object MorphirRuntimeError {
     final case class ManyTypeErrors(errors: List[TypeError])
         extends TypeError {
       val location = None
-      def message = ("\n" + errors.map(err =>
-        s"""
+      def message  =
+        ("\n" + errors.map(err =>
+          s"""
              |${err.getClass.getName.split(".").lastOption.getOrElse(err.getClass.getName)}:
              |${err.message}
            """
-      ).mkString("\n"))
+        ).mkString("\n"))
     }
   }
 }

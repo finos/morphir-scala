@@ -1,11 +1,8 @@
 package mill.local.plugins.ci.release
 
-import mill._
+import mill.*
 import mill.api.Result
-import mill.define.Command
-import mill.define.ExternalModule
-import mill.define.Task
-import mill.eval.Evaluator
+import mill.api.ExternalModule
 import scala.annotation.nowarn
 import java.util.Base64
 import java.nio.charset.StandardCharsets
@@ -15,18 +12,17 @@ import scala.util.control.NonFatal
 @nowarn("msg=Unused import")
 object ReleaseSetupModule extends ExternalModule {
 
-  def setup(ev: Evaluator): Command[Unit] = T.command {
+  def setup(): Task.Command[Unit] = Task.Command {
     setupGpg()()
   }
-
-  private val envTask: Task[Env] = setupEnv()
 
   /**
    * Ensures that your key is imported prio to signing and publishing.
    */
-  def setupGpg(): Task[Unit] = T.task {
-    T.log.info("Attempting to setup gpg")
-    val pgpSecret = envTask().pgpSecret.replaceAll("\\s", "")
+  def setupGpg(): Task[Unit] = Task.Anon {
+    Task.log.info("Attempting to setup gpg")
+    val envData = setupEnv()
+    val pgpSecret = envData.pgpSecret.replaceAll("\\s", "")
     try {
       val decoded = new String(
         Base64.getDecoder.decode(pgpSecret.getBytes(StandardCharsets.UTF_8))
@@ -54,10 +50,10 @@ object ReleaseSetupModule extends ExternalModule {
    * Ensures that the user has all the ENV variable set up that are necessary to both take care of pgp related stuff and
    * also publish to sonatype.
    * @return
-   *   a Env Task
+   *   an Env case class
    */
-  private def setupEnv(): Task[Env] = T.input {
-    val env              = T.ctx().env
+  private def setupEnv(): Env = {
+    val env              = sys.env
     val pgpSecret        = env.get("PGP_SECRET")
     val pgpPassword      = env.get("PGP_PASSPHRASE")
     val isTag            = env.get("GITHUB_REF").exists(_.startsWith("refs/tags"))
@@ -65,13 +61,13 @@ object ReleaseSetupModule extends ExternalModule {
     val sonatypePassword = env.get("SONATYPE_PASSWORD")
 
     if (pgpSecret.isEmpty) {
-      Result.Failure("Missing PGP_SECRET. Make sure you have it set.")
+      throw new Exception("Missing PGP_SECRET. Make sure you have it set.")
     } else if (pgpPassword.isEmpty) {
-      Result.Failure("Missing PGP_PASSPHRASE. Make sure you have it set.")
+      throw new Exception("Missing PGP_PASSPHRASE. Make sure you have it set.")
     } else if (sonatypeUser.isEmpty) {
-      Result.Failure("Missing SONATYPE_USERNAME. Make sure you have it set.")
+      throw new Exception("Missing SONATYPE_USERNAME. Make sure you have it set.")
     } else if (sonatypePassword.isEmpty) {
-      Result.Failure("Missing SONATYPE_PASSWORD. Make sure you have it set.")
+      throw new Exception("Missing SONATYPE_PASSWORD. Make sure you have it set.")
     } else {
       Env(
         pgpSecret.get,
@@ -83,7 +79,5 @@ object ReleaseSetupModule extends ExternalModule {
     }
   }
 
-  import Discover._
-  lazy val millDiscover: mill.define.Discover[this.type] =
-    mill.define.Discover[this.type]
+  lazy val millDiscover = mill.api.Discover[this.type]
 }

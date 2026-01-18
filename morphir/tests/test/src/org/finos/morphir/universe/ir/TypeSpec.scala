@@ -111,7 +111,7 @@ object TypeSpec extends MorphirBaseSpec {
     ),
     suite("Folding")(
       test("Folding with foldUp should produce the expected results") {
-        val sut = Type.Unit(100)
+        val sut    = Type.Unit(100)
         val actual = sut.foldUp(List.empty[Int]) {
           case (tpe, acc) => tpe.attributes :: acc
         }
@@ -144,7 +144,7 @@ object TypeSpec extends MorphirBaseSpec {
     ),
     suite("Folding")(
       test("Folding with foldUp should produce the expected results") {
-        val sut = Type.Variable(42, n"x")
+        val sut    = Type.Variable(42, n"x")
         val actual = sut.foldUp(List.empty[Int]) {
           case (tpe, acc) => tpe.attributes :: acc
         }

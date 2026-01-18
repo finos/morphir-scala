@@ -38,8 +38,8 @@ object Dumper extends DumperVersionSpecific with DumperSyntax {
      * A renderer that renders the `Repr` as a string containing the full information in the `Repr`.
      */
     val Full: Formatter[String] = {
-      case Repr.KeyValue(k, v) => s"key: ${k.dump(Full)} -> value: ${v.dump(Full)}"
-      case Repr.Object(ns, n)  => (ns :+ n).mkString(".")
+      case Repr.KeyValue(k, v)            => s"key: ${k.dump(Full)} -> value: ${v.dump(Full)}"
+      case Repr.Object(ns, n)             => (ns :+ n).mkString(".")
       case Repr.Constructor(ns, n, reprs) =>
         (ns :+ s"$n(${reprs.map(kv => s"${kv._1} = ${kv._2.dump(Full)}").mkString(", ")})").mkString(".")
       case Repr.VConstructor(ns, n, reprs) =>
@@ -51,12 +51,12 @@ object Dumper extends DumperVersionSpecific with DumperSyntax {
      * A `Formatter` that renders the `Repr` as valid Scala code that could be copy and pasted into an IDE or REPL.
      */
     val Scala: Formatter[String] = {
-      case Repr.Float(v)       => v.toString
-      case Repr.Long(v)        => v.toString
-      case Repr.Char(v)        => v.toString
-      case Repr.String(v)      => v
-      case Repr.KeyValue(k, v) => s"${k.dump(Scala)} -> ${v.dump(Scala)}"
-      case Repr.Object(_, n)   => n
+      case Repr.Float(v)                 => v.toString
+      case Repr.Long(v)                  => v.toString
+      case Repr.Char(v)                  => v.toString
+      case Repr.String(v)                => v
+      case Repr.KeyValue(k, v)           => s"${k.dump(Scala)} -> ${v.dump(Scala)}"
+      case Repr.Object(_, n)             => n
       case Repr.Constructor(_, n, reprs) =>
         s"$n(${reprs.map(kv => kv._2.dump(Scala)).mkString(",")})"
       case Repr.VConstructor(_, n, reprs) if List("List", "Vector", "Map").contains(n) =>
@@ -71,17 +71,17 @@ object Dumper extends DumperVersionSpecific with DumperSyntax {
      * A formatter that renders the `Repr` as a simple string.
      */
     val Simple: Formatter[String] = {
-      case Repr.Int(v)         => v.toString
-      case Repr.Double(v)      => v.toString
-      case Repr.Float(v)       => s"${v}f"
-      case Repr.Long(v)        => s"${v}L"
-      case Repr.Byte(v)        => v.toString
-      case Repr.Char(v)        => s"'$v'"
-      case Repr.Boolean(v)     => v.toString
-      case Repr.Short(v)       => v.toString
-      case Repr.String(v)      => s""""$v""""
-      case Repr.KeyValue(k, v) => s"${k.dump(Simple)} -> ${v.dump(Simple)}"
-      case Repr.Object(_, n)   => n
+      case Repr.Int(v)                   => v.toString
+      case Repr.Double(v)                => v.toString
+      case Repr.Float(v)                 => s"${v}f"
+      case Repr.Long(v)                  => s"${v}L"
+      case Repr.Byte(v)                  => v.toString
+      case Repr.Char(v)                  => s"'$v'"
+      case Repr.Boolean(v)               => v.toString
+      case Repr.Short(v)                 => v.toString
+      case Repr.String(v)                => s""""$v""""
+      case Repr.KeyValue(k, v)           => s"${k.dump(Simple)} -> ${v.dump(Simple)}"
+      case Repr.Object(_, n)             => n
       case Repr.Constructor(_, n, reprs) =>
         s"$n(${reprs.map(kv => s"${kv._1} = ${kv._2.dump(Simple)}").mkString(", ")})"
       case Repr.VConstructor(List("scala"), n, reprs) if n.matches("^Tuple\\d+$") =>
@@ -223,7 +223,7 @@ object Dumper extends DumperVersionSpecific with DumperSyntax {
       case ScalaDuration.Inf       => Repr.Object(namespaceConstructor, "Inf")
       case ScalaDuration.MinusInf  => Repr.Object(namespaceConstructor, "MinusInf")
       case ScalaDuration.Undefined => Repr.Object(namespaceConstructor, "Undefined")
-      case d =>
+      case d                       =>
         val (length, unit) = nanosToPrettyUnit(d.toNanos)
         Repr.Constructor(
           namespace,

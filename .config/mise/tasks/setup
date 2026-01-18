@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# MISE description="Install project dependencies"
+# MISE alias="install"
+
+set -e
+
+echo "Setting up project..."
+echo "  Installing npm dependencies..."
+bun install
+echo "Setup completed successfully"

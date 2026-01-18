@@ -37,7 +37,7 @@ object StateSpec extends ZIOSpecDefault {
       val pumba   = Field.define[String]
       val rating1 = Field.define[BigDecimal]
       val rating2 = Field.define[BigDecimal]
-      val sut = State(
+      val sut     = State(
         Fields(
           timon   -> "The Lion King",
           pumba   -> "The Lion King",
