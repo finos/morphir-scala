@@ -36,7 +36,7 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
       - name: Setup mise
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@v3
         with:
           experimental: true
 
@@ -122,7 +122,7 @@ jobs:
         uses: coursier/cache-action@v6
 
       - name: Setup mise
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@v3
         with:
           experimental: true
 
