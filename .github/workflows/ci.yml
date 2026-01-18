@@ -47,9 +47,9 @@ jobs:
 
       - name: Install tooling
         run: |
-          ./build.sh install
+          mise run setup
       - name: Lint code
-        run: ./build.sh lint
+        run: mise run lint
 
   test-js:
     runs-on: ubuntu-latest
@@ -133,13 +133,13 @@ jobs:
 
       - name: Install tooling
         run: |
-          ./build.sh install
+          mise run setup
       - name: Make Morphir IR
         run: |
-          ./build.sh run :morphir-elm-build
+          mise run build:morphir-elm
       - name: Run JVM tests
         run: |
-          ./build.sh --scala-version ${{matrix.scala}} test-jvm
+          SCALA_VERSIONS=${{matrix.scala}} mise run test:jvm
 
       - name: Cache JVM build output
         # when in master repo: all commits to main branch and all additional tags

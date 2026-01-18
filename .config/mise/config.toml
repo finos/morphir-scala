@@ -9,3 +9,46 @@ node = "lts"
 [env]
 # Environment variables
 _.path = ["./node_modules/.bin"]
+
+# Define all build tasks using Bun to execute TypeScript scripts
+[tasks.clean]
+description = "Remove build artifacts"
+run = "bun run scripts/tasks/clean.ts"
+
+[tasks.fmt]
+alias = "format"
+description = "Format Scala code"
+run = "bun run scripts/tasks/fmt.ts"
+
+[tasks.lint]
+description = "Lint Scala code"
+run = "bun run scripts/tasks/lint.ts"
+
+[tasks."build:elm"]
+alias = "elm-build"
+description = "Build all Elm projects"
+run = "bun run scripts/tasks/build-elm.ts"
+
+[tasks."build:morphir-elm"]
+description = "Build Morphir Elm evaluator tests"
+run = "bun run scripts/tasks/morphir-elm-build.ts"
+
+[tasks.setup]
+alias = "install"
+description = "Install project dependencies"
+run = "bun run scripts/tasks/setup.ts"
+
+[tasks."setup:idea"]
+alias = "setup-idea"
+description = "Generate IntelliJ IDEA project files"
+run = "bun run scripts/tasks/setup-idea.ts"
+
+[tasks."test:jvm"]
+alias = "test-jvm"
+description = "Run JVM tests for all Scala versions"
+run = "bun run scripts/tasks/test-jvm.ts"
+
+[tasks."test:runtime-jvm"]
+alias = "test-runtime-jvm"
+description = "Run Runtime JVM tests for all Scala versions"
+run = "bun run scripts/tasks/test-runtime-jvm.ts"
