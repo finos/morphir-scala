@@ -6,7 +6,8 @@ object Main {
   def main(args: Array[String]): Unit = {
     println("Linting code...")
     println("  Linting Scala files...")
-    os.proc("./mill", "Alias/run", "checkfmt").call(cwd = os.pwd)
+    // Call Mill directly instead of through Alias to avoid parallel task resolution issues
+    os.proc("./mill", "mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll", "__.sources").call(cwd = os.pwd)
     println("Lint completed successfully")
   }
 }
