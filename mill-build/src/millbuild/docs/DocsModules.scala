@@ -8,7 +8,7 @@ trait MDocModule extends ScalaModule {
 
   def scalaMdocVersion: T[String] = Task { "2.5.2" }
 
-  def scalaMdocDep: T[Dep] = Task { ivy"org.scalameta::mdoc:${scalaMdocVersion()}" }
+  def scalaMdocDep: T[Dep] = Task { mvn"org.scalameta::mdoc:${scalaMdocVersion()}" }
 
   def watchedMDocsDestination: T[Option[Path]] = Task { None }
 

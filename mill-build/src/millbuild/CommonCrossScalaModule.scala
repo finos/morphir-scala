@@ -9,8 +9,8 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
   def compilerPlugins(scalaVersion: String): Seq[Dep] =
     if (isScala2(scalaVersion))
       Seq(
-        ivy"org.typelevel:::kind-projector:0.13.3",
-        ivy"com.olegpy::better-monadic-for:0.3.1"
+        mvn"org.typelevel:::kind-projector:0.13.3",
+        mvn"com.olegpy::better-monadic-for:0.3.1"
       )
     else
       Seq()
