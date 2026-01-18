@@ -39,4 +39,3 @@ To add a new task:
 1. Create a new `.ts` file in this directory
 2. Make it executable: `chmod +x scripts/tasks/your-task.ts`
 3. Add the task definition to `.config/mise/config.toml`
-4. Add an npm script to `package.json` (optional)
