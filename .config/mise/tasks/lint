@@ -5,6 +5,15 @@ set -e
 
 echo "Linting code..."
 echo "  Linting Scala files..."
-# Use specific glob patterns to avoid hanging on broad __.sources resolution
-./mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll 'morphir.__.sources'
+
+# Use Mill's simplified scalafmt command (Mill 1.x)
+# The /checkFormatAll suffix is inferred automatically
+# Add --no-server and -j 1 in CI to avoid parallel task resolution issues
+if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
+  echo "  Running in CI mode (single-threaded, no server)"
+  ./mill --no-server -j 1 mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll 'morphir.__.sources'
+else
+  ./mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll 'morphir.__.sources'
+fi
+
 echo "Lint completed successfully"
