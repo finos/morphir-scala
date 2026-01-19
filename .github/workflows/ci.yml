@@ -210,8 +210,18 @@ jobs:
         run: |
           # Publishing using Mill's SonatypeCentralPublishModule
           # Uses Sonatype Central Portal API for publishing to Maven Central
-          # Exclude mill-morphir-elm plugin modules (they have different dependency requirements)
-          ./mill -i morphir.{main,jvm,js,runtime,tools,extensibility,lib,interop,contrib,tests}.__.publishSonatypeCentral
+          # Exclude morphir.build.integration.mill-morphir-elm (depends on mill-scalalib not on Maven Central)
+          ./mill -i \
+            morphir.main.publishSonatypeCentral \
+            + morphir.jvm.publishSonatypeCentral \
+            + morphir.js.publishSonatypeCentral \
+            + morphir.runtime.__.publishSonatypeCentral \
+            + morphir.tools.__.publishSonatypeCentral \
+            + morphir.extensibility.__.publishSonatypeCentral \
+            + morphir.lib.__.publishSonatypeCentral \
+            + morphir.interop.__.publishSonatypeCentral \
+            + morphir.contrib.__.publishSonatypeCentral \
+            + morphir.tests.__.publishSonatypeCentral
 
   ci:
     runs-on: ubuntu-latest
