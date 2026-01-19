@@ -24,6 +24,7 @@ import org.finos.millmorphir.*
 import org.finos.millmorphir.elm.*
 import millbuild.settings.*
 import mill.*, mill.scalalib.*, mill.scalajslib.*, mill.scalanativelib.*, scalafmt.*
+import mill.javalib.SonatypeCentralPublishModule
 import mill.scalajslib.api.ModuleKind
 import mill.contrib.buildinfo.BuildInfo
 import mill.contrib.scoverage.{ScoverageModule, ScoverageReport}
@@ -60,7 +61,7 @@ object scoverage extends ScoverageReport {
   def scoverageVersion = Vers.scoverage
 }
 
-trait MorphirPublishModule extends PublishModule with JavaModule with Mima {
+trait MorphirPublishModule extends PublishModule with JavaModule with Mima with SonatypeCentralPublishModule {
   import mill.scalalib.publish.*
 
   def publishVersion             = VcsVersion.vcsState().format()
