@@ -69,7 +69,7 @@ object VfsLoader {
     } yield Distribution.Library(LibraryDistribution(pkgInfo, pkgDef, Map.empty))
   }
 
-  private def loadPackage(pkgRoot: java.nio.file.Path): Task[PackageDefinition] = {
+  private def loadPackage(pkgRoot: java.nio.file.Path): Task[PackageDefinition] =
     // Traverse recursively to find modules.
     // We walk the tree safely ensuring the stream is closed.
     ZIO.scoped {
@@ -108,8 +108,8 @@ object VfsLoader {
             val name    = Name.fromString(nameStr)
             for {
               content <- ZIO.attempt(Files.readString(file))
-               // Try to decode as fully wrapped AccessControlled[Documented[ValueDefinition]]
-               // If fails, fallback to simple ValueDefinition
+              // Try to decode as fully wrapped AccessControlled[Documented[ValueDefinition]]
+              // If fails, fallback to simple ValueDefinition
               decoded <- ZIO.fromEither(
                 content.fromJson[AccessControlled[Documented[ValueDefinition]]]
                   .orElse(
@@ -122,5 +122,4 @@ object VfsLoader {
         } yield (moduleName -> AccessControlled(Access.Public, ModuleDefinition(types.toMap, values.toMap)))
       }
     }.map(modList => PackageDefinition(modList.toMap))
-  }
 }
