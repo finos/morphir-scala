@@ -2,7 +2,7 @@ package millbuild
 
 import mill.*, scalalib.*, scalafmt.*
 import java.util.Properties
-trait CommonCrossScalaModule extends CrossScalaModule with CommonScalaModule
+trait CommonCrossScalaModule extends ScalaModule with CommonScalaModule
     with ScalafmtModule { self => }
 
 trait CommonScalaModule extends ScalaModule with CommonCoursierModule {

@@ -1,7 +1,6 @@
 package millbuild
 
 import mill.*, scalalib.*
-import millbuild.crossplatform.DevMode
 
 object Deps {
 
@@ -242,14 +241,15 @@ object Versions {
 }
 
 object ScalaVersions {
-  import DevMode._
-  val all      = if (devMode) Seq(scala3x) else Seq(scala213, scala3x)
-  def scala213 = "2.13.16"
-  def scala3x  = "3.7.4"
+  val scala3 = "3.7.4"
+  val scala213 = "2.13.16"  // Keep for docs/reference only
 
-  def scalaJSVersion     = "1.18.2"
+  def scalaJSVersion     = "1.19.0"
   def scalaNativeVersion = "0.5.7"
   def millScalaVersion   = "2.13.16"
+
+  // Backwards compatibility aliases
+  def scala3x = scala3
 }
 
 object MillVersions {

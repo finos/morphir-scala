@@ -1,6 +1,5 @@
 import mill._, scalalib._
 import mill.scalalib.api.ZincWorkerUtil.scalaNativeBinaryVersion
-import millbuild.crossplatform.DevMode
 
 object Deps {
 
@@ -241,14 +240,15 @@ object Versions {
 }
 
 object ScalaVersions {
-  import DevMode._
-  val all      = if (devMode) Seq(scala3x) else Seq(scala213, scala3x)
+  val scala3 = "3.7.4"
   def scala213 = "2.13.16"
-  def scala3x  = "3.7.4"
 
-  def scalaJSVersion     = "1.18.2"
+  def scalaJSVersion     = "1.19.0"
   def scalaNativeVersion = "0.5.7"
   def millScalaVersion   = "2.13.16"
+
+  // Backwards compatibility alias
+  def scala3x = scala3
 }
 
 object MillVersions {

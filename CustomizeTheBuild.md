@@ -38,14 +38,3 @@ effect (however the build.user.conf approach above will still work).
 ## Modifying JVM Properties
 
 Use `.mill-jvm-opts` to set Java properties for the build.
-
-## Dev Mode
-
-In order to easily disable Native/JS builds and set the Scala
-version to 3.3.1 you can also use a global environment variable.
-Add the following to your `.zprofile` (on OSX) or `.bashrc` (on Linux)
-etc...
-
-```
-export MORPHIR_SCALA_DEV_MODE='true'
-```

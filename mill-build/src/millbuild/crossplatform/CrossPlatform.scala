@@ -5,20 +5,17 @@ import mill.api.DynamicModule
 import mill.scalajslib.*
 import mill.scalalib.*
 import mill.scalanativelib.*
-import millbuild.settings._
+import millbuild.config.PlatformConfig
 import scala.reflect.Selectable.reflectiveSelectable
-import millbuild.MyBuild
 
 trait CrossPlatform extends Module with DynamicModule { self =>
-  import DevMode._
 
-  def buildSettings: BuildSettings           = MyBuild.cachedBuildSettings
   def moduleDeps: Seq[CrossPlatform]         = Seq.empty
   def compiledModuleDeps: Seq[CrossPlatform] = Seq.empty
 
-  def enableJVM(module: Module): Boolean    = buildSettings.jvm.enable
-  def enableJS(module: Module): Boolean     = !devMode && buildSettings.js.enable
-  def enableNative(module: Module): Boolean = !devMode && buildSettings.native.enable
+  def enableJVM(module: Module): Boolean    = PlatformConfig.enableJVM
+  def enableJS(module: Module): Boolean     = PlatformConfig.enableJS
+  def enableNative(module: Module): Boolean = PlatformConfig.enableNative
 
   private def enableModuleCondition(module: Module): Boolean = module match {
     case _: ScalaNativeModule => enableNative(module)
@@ -43,23 +40,23 @@ trait CrossPlatform extends Module with DynamicModule { self =>
   object AsPlatformModule {
     def unapply(m: Module): Option[PlatformModule] = m match {
       case jm: JavaModule =>
-        jm match {
-          case (m: PlatformModule @unchecked) => Some(m)
-          case _                              => None
+        try {
+          // Check if platform method exists by calling it via reflection
+          val platformMethod = jm.getClass.getMethod("platform")
+          Some(jm.asInstanceOf[PlatformModule])
+        } catch {
+          case _: NoSuchMethodException => None
         }
       case _ => None
     }
   }
 
   def childPlatformModules: Seq[PlatformModule] =
-    moduleDirectChildren.collect { case (m: PlatformModule @unchecked) => m }
+    moduleDirectChildren.collect { case AsPlatformModule(m) => m }
 
   def targetPlatforms: T[Seq[Platform]] = Task { childPlatformModules.map(_.platform) }
 
   /// Try and resolve to an actual platform specific module if it exists (not expecting multiple but in theory it is possible)
   def childPlatformModules(platform: Platform): Seq[PlatformModule] =
-    childPlatformModules.filter {
-      case m: CrossPlatformScalaModule => m.platform == platform
-      case AsPlatformModule(m)         => m.platform == platform
-    }
+    childPlatformModules.filter(_.platform == platform)
 }

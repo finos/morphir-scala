@@ -4,29 +4,31 @@ import mill.api.DynamicModule
 import mill.scalajslib.*
 import mill.scalalib.*
 import mill.scalanativelib.*
-import _root_.millbuild.CommonCrossScalaModule
+import _root_.millbuild.CommonScalaModule
 
-trait CrossPlatformScalaModule extends PlatformScalaModule with CrossScalaModule with CommonCrossScalaModule {
+trait CrossPlatformScalaModule extends PlatformScalaModule with CommonScalaModule {
+  // Since we only target Scala 3, include src-3 directories
+  // Platform suffixes are handled separately (jvm/js/native folders)
   def crossPlatformSourceSuffixes(srcFolderName: String) =
     for {
-      versionSuffix  <- Seq("") ++ scalaVersionDirectoryNames
+      versionSuffix  <- Seq("", "3")  // Include both src and src-3
       platformSuffix <- Seq("") ++ platform.suffixes
     } yield (versionSuffix, platformSuffix) match {
       case ("", "")     => srcFolderName
       case ("", suffix) => s"${srcFolderName}-$suffix"
-      case (suffix, "") => s"${srcFolderName}-$suffix"
-      case (vs, ps)     => s"${srcFolderName}-${vs}-${ps}"
+      case (ver, "")    => s"${srcFolderName}-$ver"
+      case (ver, pf)    => s"${srcFolderName}-${ver}-${pf}"
     }
 
   def crossPlatformRelativeSourcePaths(srcFolderName: String): Seq[os.RelPath] =
     for {
-      versionSuffix  <- Seq("") ++ scalaVersionDirectoryNames
+      versionSuffix  <- Seq("", "3")  // Include both src and src-3
       platformSuffix <- Seq("") ++ platform.suffixes
     } yield (versionSuffix, platformSuffix) match {
       case ("", "")     => os.rel / srcFolderName
       case ("", suffix) => os.rel / suffix / srcFolderName
-      case (suffix, "") => os.rel / s"${srcFolderName}-$suffix"
-      case (vs, ps)     => os.rel / ps / s"${srcFolderName}-${vs}"
+      case (ver, "")    => os.rel / s"${srcFolderName}-$ver"
+      case (ver, pf)    => os.rel / pf / s"${srcFolderName}-${ver}"
     }
 
   def platformFolderMode: Platform.FolderMode = Platform.FolderMode.UseNesting
