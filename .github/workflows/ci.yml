@@ -83,7 +83,7 @@ jobs:
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x') || ((github.ref != 'refs/heads/main' && github.ref != 'refs/heads/0.4.x') && startsWith( github.ref, 'refs/tags/') )
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: |
             out/morphir/**/js/
@@ -137,7 +137,7 @@ jobs:
       - name: Cache JVM build output
         # when in master repo: all commits to main branch and all additional tags
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x') || ((github.ref != 'refs/heads/main' && github.ref != 'refs/heads/0.4.x') && startsWith( github.ref, 'refs/tags/') )
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: |
             out/morphir/**/jvm/
@@ -191,7 +191,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libuv1-dev
 
       - name: Restore JVM Build Output From Cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             out/morphir/**/jvm/
@@ -199,7 +199,7 @@ jobs:
           restore-keys: ${{ runner.os }}-mill-jvm-21-${{ github.sha }}-
 
       - name: Restore JS Build Output From Cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             out/morphir/**/js/
