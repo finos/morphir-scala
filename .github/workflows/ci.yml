@@ -207,7 +207,13 @@ jobs:
           restore-keys: ${{ runner.os }}-mill-js-21-${{ github.sha }}-
 
       - name: Release
+        env:
+          # Strip whitespace from base64-encoded PGP key (may contain newlines from GitHub secrets)
+          MILL_PGP_SECRET_BASE64: ${{ secrets.PGP_SECRET_BASE64 }}
         run: |
+          # Clean the PGP secret - remove any whitespace that may have been introduced
+          export MILL_PGP_SECRET_BASE64=$(echo "$MILL_PGP_SECRET_BASE64" | tr -d '\n\r ')
+
           # Publishing using Mill's SonatypeCentralPublishModule
           # Uses Sonatype Central Portal API for publishing to Maven Central
           # Exclude morphir.build.integration.mill-morphir-elm (depends on mill-scalalib not on Maven Central)
