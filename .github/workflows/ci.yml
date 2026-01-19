@@ -156,11 +156,6 @@ jobs:
     concurrency: publish-sonatype-${{ github.sha }}
 
     env:
-      MILL_PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
-      MILL_PGP_SECRET_BASE64: ${{ secrets.PGP_SECRET_BASE64 }}
-      MILL_SONATYPE_PASSWORD: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_PASSWORD }}
-      MILL_SONATYPE_USERNAME: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_USERNAME }}
-      PUBLISH_AS_SNAPSHOT: true
       LANG: "en_US.UTF-8"
       LC_MESSAGES: "en_US.UTF-8"
       LC_ALL: "en_US.UTF-8"
@@ -187,6 +182,11 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v7
 
+      - name: Setup mise
+        uses: jdx/mise-action@v3
+        with:
+          experimental: true
+
       - name: Install libuv
         run: sudo apt-get update && sudo apt-get install -y libuv1-dev
 
@@ -208,26 +208,14 @@ jobs:
 
       - name: Release
         env:
-          # Strip whitespace from base64-encoded PGP key (may contain newlines from GitHub secrets)
-          MILL_PGP_SECRET_BASE64: ${{ secrets.PGP_SECRET_BASE64 }}
+          # Sonatype credentials
+          SONATYPE_USERNAME: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_PASSWORD }}
+          # GPG signing credentials (using ORG_MORPHIR_CI keys)
+          GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
         run: |
-          # Clean the PGP secret - remove any whitespace that may have been introduced
-          export MILL_PGP_SECRET_BASE64=$(echo "$MILL_PGP_SECRET_BASE64" | tr -d '\n\r ')
-
-          # Publishing using Mill's SonatypeCentralPublishModule
-          # Uses Sonatype Central Portal API for publishing to Maven Central
-          # Exclude morphir.build.integration.mill-morphir-elm (depends on mill-scalalib not on Maven Central)
-          ./mill -i \
-            morphir.main.publishSonatypeCentral \
-            + morphir.jvm.publishSonatypeCentral \
-            + morphir.js.publishSonatypeCentral \
-            + morphir.runtime.__.publishSonatypeCentral \
-            + morphir.tools.__.publishSonatypeCentral \
-            + morphir.extensibility.__.publishSonatypeCentral \
-            + morphir.lib.__.publishSonatypeCentral \
-            + morphir.interop.__.publishSonatypeCentral \
-            + morphir.contrib.__.publishSonatypeCentral \
-            + morphir.tests.__.publishSonatypeCentral
+          mise run publish:sonatype
 
   ci:
     runs-on: ubuntu-latest

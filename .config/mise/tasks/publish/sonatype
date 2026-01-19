@@ -1,0 +1,262 @@
+#!/usr/bin/env bash
+# MISE description="Publish artifacts to Sonatype Central"
+# MISE alias="publish"
+#
+# This script handles publishing to Sonatype Central with robust GPG key handling.
+# It automatically detects whether the GPG key is base64-encoded or plaintext.
+#
+# Required environment variables:
+#   SONATYPE_USERNAME - Sonatype Central username
+#   SONATYPE_PASSWORD - Sonatype Central password
+#   GPG_PRIVATE_KEY   - GPG private key (base64-encoded or plaintext armored)
+#   GPG_PASSPHRASE    - GPG key passphrase
+#
+# Optional environment variables:
+#   DRY_RUN           - Set to "true" to skip actual publishing (just validate)
+#   VERBOSE           - Set to "true" for verbose output
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1" >&2
+}
+
+# Check if a string is base64 encoded
+is_base64() {
+    local input="$1"
+    # Remove whitespace and check if it decodes successfully
+    local cleaned=$(echo "$input" | tr -d '\n\r\t ')
+
+    # Base64 strings should only contain valid base64 characters
+    if ! echo "$cleaned" | grep -qE '^[A-Za-z0-9+/]*={0,2}$'; then
+        return 1
+    fi
+
+    # Try to decode it - if it produces binary or PGP header, it's base64
+    local decoded
+    if decoded=$(echo "$cleaned" | base64 -d 2>/dev/null); then
+        # Check if decoded content looks like a PGP key
+        if echo "$decoded" | head -c 100 | grep -q "PGP\|BEGIN\|PRIVATE"; then
+            return 0
+        fi
+        # Also check for binary PGP format (starts with specific bytes)
+        if echo "$decoded" | head -c 2 | od -An -tx1 | grep -qE '95|94'; then
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+# Check if a string is a plaintext PGP key
+is_plaintext_pgp() {
+    local input="$1"
+    if echo "$input" | grep -q "BEGIN PGP PRIVATE KEY"; then
+        return 0
+    fi
+    return 1
+}
+
+# Validate required environment variables
+validate_env() {
+    local missing=()
+
+    if [[ -z "${SONATYPE_USERNAME:-}" ]]; then
+        missing+=("SONATYPE_USERNAME")
+    fi
+
+    if [[ -z "${SONATYPE_PASSWORD:-}" ]]; then
+        missing+=("SONATYPE_PASSWORD")
+    fi
+
+    if [[ -z "${GPG_PRIVATE_KEY:-}" ]]; then
+        missing+=("GPG_PRIVATE_KEY")
+    fi
+
+    if [[ -z "${GPG_PASSPHRASE:-}" ]]; then
+        missing+=("GPG_PASSPHRASE")
+    fi
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        log_error "Missing required environment variables: ${missing[*]}"
+        log_info "Required variables:"
+        log_info "  SONATYPE_USERNAME - Sonatype Central username"
+        log_info "  SONATYPE_PASSWORD - Sonatype Central password"
+        log_info "  GPG_PRIVATE_KEY   - GPG private key (base64 or plaintext)"
+        log_info "  GPG_PASSPHRASE    - GPG key passphrase"
+        exit 1
+    fi
+}
+
+# Process GPG key and determine format
+process_gpg_key() {
+    local raw_key="$GPG_PRIVATE_KEY"
+
+    # First, clean up any whitespace that might have been introduced
+    local cleaned_key=$(echo "$raw_key" | tr -d '\r')
+
+    log_info "Detecting GPG key format..."
+
+    if is_plaintext_pgp "$cleaned_key"; then
+        log_info "Detected: Plaintext armored PGP key"
+        # Mill expects base64, so we need to encode it
+        export MILL_PGP_SECRET_BASE64=$(echo "$cleaned_key" | base64 -w 0)
+        log_success "Converted plaintext key to base64 for Mill"
+
+    elif is_base64 "$cleaned_key"; then
+        log_info "Detected: Base64-encoded PGP key"
+        # Clean up any whitespace and use directly
+        export MILL_PGP_SECRET_BASE64=$(echo "$cleaned_key" | tr -d '\n\r\t ')
+        log_success "Using base64 key directly (whitespace cleaned)"
+
+        # Verify the key decodes to something that looks like a PGP key
+        local decoded
+        if decoded=$(echo "$MILL_PGP_SECRET_BASE64" | base64 -d 2>/dev/null); then
+            if echo "$decoded" | grep -q "PGP\|PRIVATE"; then
+                log_info "Verified: Decoded key contains PGP markers"
+            else
+                log_warn "Decoded key doesn't contain obvious PGP markers - proceeding anyway"
+            fi
+        fi
+    else
+        log_warn "Could not definitively determine key format"
+        log_info "Attempting to use key as-is (assuming base64)..."
+        # Try using it as base64 with whitespace cleaned
+        export MILL_PGP_SECRET_BASE64=$(echo "$cleaned_key" | tr -d '\n\r\t ')
+    fi
+
+    # Set passphrase
+    export MILL_PGP_PASSPHRASE="$GPG_PASSPHRASE"
+
+    # Set Sonatype credentials
+    export MILL_SONATYPE_USERNAME="$SONATYPE_USERNAME"
+    export MILL_SONATYPE_PASSWORD="$SONATYPE_PASSWORD"
+}
+
+# Test GPG key by importing it
+test_gpg_key() {
+    log_info "Testing GPG key import..."
+
+    # Create a temporary GPG home to test import
+    local temp_gpg_home=$(mktemp -d)
+    chmod 700 "$temp_gpg_home"
+
+    # Decode and try to import
+    local decoded_key
+    if ! decoded_key=$(echo "$MILL_PGP_SECRET_BASE64" | base64 -d 2>/dev/null); then
+        log_error "Failed to base64 decode the GPG key"
+        rm -rf "$temp_gpg_home"
+        return 1
+    fi
+
+    # Try importing the key
+    if echo "$decoded_key" | GNUPGHOME="$temp_gpg_home" gpg --batch --import 2>/dev/null; then
+        # List the imported key
+        local key_info
+        key_info=$(GNUPGHOME="$temp_gpg_home" gpg --list-secret-keys --keyid-format LONG 2>/dev/null | head -20)
+        log_success "GPG key imported successfully for testing"
+
+        if [[ "${VERBOSE:-}" == "true" ]]; then
+            log_info "Key info:"
+            echo "$key_info" | while read -r line; do
+                log_info "  $line"
+            done
+        fi
+
+        # Check if key is expired
+        if GNUPGHOME="$temp_gpg_home" gpg --list-secret-keys 2>/dev/null | grep -q "expired"; then
+            log_error "GPG key appears to be EXPIRED"
+            rm -rf "$temp_gpg_home"
+            return 1
+        fi
+
+        rm -rf "$temp_gpg_home"
+        return 0
+    else
+        log_error "Failed to import GPG key - key may be invalid or corrupted"
+        rm -rf "$temp_gpg_home"
+        return 1
+    fi
+}
+
+# Run the publish
+run_publish() {
+    log_info "Starting Sonatype Central publish..."
+
+    if [[ "${DRY_RUN:-}" == "true" ]]; then
+        log_warn "DRY_RUN mode - skipping actual publish"
+        log_info "Would run: ./mill -i morphir.{modules}.publishSonatypeCentral"
+        return 0
+    fi
+
+    # Run Mill publish for all morphir modules except the mill-morphir-elm plugin
+    # The plugin depends on mill-scalalib which isn't on Maven Central
+    ./mill -i \
+        morphir.main.publishSonatypeCentral \
+        + morphir.jvm.publishSonatypeCentral \
+        + morphir.js.publishSonatypeCentral \
+        + morphir.runtime.__.publishSonatypeCentral \
+        + morphir.tools.__.publishSonatypeCentral \
+        + morphir.extensibility.__.publishSonatypeCentral \
+        + morphir.lib.__.publishSonatypeCentral \
+        + morphir.interop.__.publishSonatypeCentral \
+        + morphir.contrib.__.publishSonatypeCentral \
+        + morphir.tests.__.publishSonatypeCentral
+}
+
+# Main
+main() {
+    log_info "=========================================="
+    log_info "Morphir Sonatype Central Publish Script"
+    log_info "=========================================="
+
+    # Validate environment
+    validate_env
+    log_success "Environment variables validated"
+
+    # Process GPG key
+    process_gpg_key
+
+    # Test GPG key
+    if ! test_gpg_key; then
+        log_error "GPG key validation failed"
+        log_info ""
+        log_info "Troubleshooting tips:"
+        log_info "  1. Ensure GPG_PRIVATE_KEY contains a valid PGP private key"
+        log_info "  2. The key can be either base64-encoded or plaintext armored"
+        log_info "  3. Check if the key has expired"
+        log_info "  4. Verify the passphrase matches the key"
+        exit 1
+    fi
+    log_success "GPG key validated successfully"
+
+    # Run publish
+    log_info ""
+    run_publish
+
+    log_info ""
+    log_success "=========================================="
+    log_success "Publishing completed!"
+    log_success "=========================================="
+}
+
+main "$@"
