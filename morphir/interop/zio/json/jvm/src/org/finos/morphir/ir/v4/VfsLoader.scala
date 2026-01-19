@@ -70,30 +70,13 @@ object VfsLoader {
   }
 
   private def loadPackage(pkgRoot: java.nio.file.Path): Task[PackageDefinition] = {
-    // Traverse recursively to find modules. A module is likely a directory containing definition files.
-    // The path from pkgRoot corresponds to ModuleName.
-    // However, we need to distinguish between directories that are just part of the path and directories that ARE modules (or contain module definitions).
-    // In VFS, typically every directory path could map to a ModuleName if it contains defs?
-    // Let's assume walk and for each directory check for .json files.
-
-    // Simplification: We walk the tree.
-    // If we find distinct files, we group them by parent directory.
-    // The relative path from pkgRoot to parent dir is the ModuleName.
-
-    val modules = scala.collection.mutable.Map[ModuleName, AccessControlled[ModuleDefinition]]()
-
-    ZIO.attempt {
-      Files.walk(pkgRoot).filter(Files.isRegularFile(_)).forEach { file =>
-        val relParams = pkgRoot.relativize(file.getParent)
-        // Convert path to module name
-        val moduleName =
-          if (relParams.toString == "") ModuleName(Path.empty) else ModuleName(Path.fromString(relParams.toString))
-
-        // We accumulate definitions for this module
-        // This is synchronous side-effecting inside ZIO.attempt, we should be careful or use ZIO streams/lists.
-        // For now, let's collect all files first then process.
+    // Traverse recursively to find modules.
+    // We walk the tree safely ensuring the stream is closed.
+    ZIO.scoped {
+      ZIO.fromAutoCloseable(ZIO.attempt(Files.walk(pkgRoot))).map { stream =>
+        stream.iterator().asScala.filter(Files.isRegularFile(_)).toList
       }
-    } *> ZIO.attempt(Files.walk(pkgRoot).iterator().asScala.filter(Files.isRegularFile(_)).toList).flatMap { files =>
+    }.flatMap { files =>
       // Group files by parent directory (Module)
       val filesByModule = files.groupBy(_.getParent)
 
@@ -109,20 +92,15 @@ object VfsLoader {
             val name    = Name.fromString(nameStr)
             for {
               content <- ZIO.attempt(Files.readString(file))
-              defBody <- ZIO.fromEither(content.fromJson[TypeDefinition]).mapError(e =>
-                new RuntimeException(s"Error decoding $file: $e")
-              )
-              // Wrap in AccessControlled/Documented for now as we decoded specific def
-              // If the file contains Access/Doc info, we should have decoded that.
-              // Let's assume the file IS the ValueDefinition structure for now, or check if we need to wrap.
-              // Our decoders decode TypeDefinition directly.
-              // We need AccessControlled[Documented[TypeDefinition]].
-              // We'll set default Access Public and empty Doc for now if not present, OR
-              // if the JSON *is* AccessControlled[Documented[...]], we should use that decoder.
-              // The spec usually implies the file content IS the definition.
-              // Metadata like access can be in a separate file or wrapper.
-              // Let's use Public/EmptyDoc defaults to proceed, effectively wrapping.
-            } yield (name, AccessControlled(Access.Public, Documented(None, defBody)))
+              // Try to decode as fully wrapped AccessControlled[Documented[TypeDefinition]]
+              // If fails, fallback to simple TypeDefinition (legacy/simple mode)
+              decoded <- ZIO.fromEither(
+                content.fromJson[AccessControlled[Documented[TypeDefinition]]]
+                  .orElse(
+                    content.fromJson[TypeDefinition].map(d => AccessControlled(Access.Public, Documented(None, d)))
+                  )
+              ).mapError(e => new RuntimeException(s"Error decoding $file: $e"))
+            } yield (name, decoded)
           }
 
           values <- ZIO.foreach(moduleFiles.filter(_.toString.endsWith(".value.json"))) { file =>
@@ -130,18 +108,15 @@ object VfsLoader {
             val name    = Name.fromString(nameStr)
             for {
               content <- ZIO.attempt(Files.readString(file))
-              defBody <- ZIO.fromEither(content.fromJson[ValueDefinition]).mapError(e =>
-                new RuntimeException(s"Error decoding $file: $e")
-              )
-              // ValueDefinition wrapper in V4 IR already has AccessControlled body?
-              // case class ValueDefinition(body: AccessControlled[ValueDefinitionBody])
-              // But ModuleDefinition requires AccessControlled[Documented[ValueDefinition]]
-              // This seems double wrapping or I misread.
-              // ModuleDefinition: values: Map[Name, AccessControlled[Documented[ValueDefinition]]]
-              // ValueDefinition: case run(body: AccessControlled[ValueDefinitionBody])
-              // So it's AccessControlled[Documented[ValueDefinition]].
-              // We wrap again.
-            } yield (name, AccessControlled(Access.Public, Documented(None, defBody)))
+               // Try to decode as fully wrapped AccessControlled[Documented[ValueDefinition]]
+               // If fails, fallback to simple ValueDefinition
+              decoded <- ZIO.fromEither(
+                content.fromJson[AccessControlled[Documented[ValueDefinition]]]
+                  .orElse(
+                    content.fromJson[ValueDefinition].map(d => AccessControlled(Access.Public, Documented(None, d)))
+                  )
+              ).mapError(e => new RuntimeException(s"Error decoding $file: $e"))
+            } yield (name, decoded)
           }
 
         } yield (moduleName -> AccessControlled(Access.Public, ModuleDefinition(types.toMap, values.toMap)))
