@@ -52,8 +52,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: ["21"] # Note there is no need ro actually run this for multiple JVM versions for JS
-        scala: ["3.7.4"]
+        java: ["21"] # Note there is no need to actually run this for multiple JVM versions for JS
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -79,7 +78,7 @@ jobs:
 
       - name: Run JS tests
         run: |
-          ./mill -i -k -j 0 "morphir[${{matrix.scala}}].__.js.__.compile" + "morphir[${{matrix.scala}}].__.js.publishArtifacts" + "morphir[${{matrix.scala}}].__.js.__.test"
+          ./mill -i -k -j 0 "morphir.__.js.__.compile" + "morphir.__.js.publishArtifacts" + "morphir.__.js.__.test"
 
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
@@ -87,8 +86,8 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: |
-            out/morphir/${{matrix.scala}}/**/js/
-          key: ${{ runner.os }}-mill-js-${{matrix.java}}-${{ matrix.scala }}-${{ github.sha}}-${{ hashFiles('out') }}
+            out/morphir/**/js/
+          key: ${{ runner.os }}-mill-js-${{matrix.java}}-${{ github.sha}}-${{ hashFiles('out') }}
 
   test-jvm:
     runs-on: ubuntu-latest
@@ -97,7 +96,6 @@ jobs:
       fail-fast: false
       matrix:
         java: ["21", "25"]
-        scala: ["3.7.4"]
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -134,7 +132,7 @@ jobs:
           mise run build:morphir-elm
       - name: Run JVM tests
         run: |
-          SCALA_VERSIONS=${{matrix.scala}} mise run test:jvm
+          mise run test:jvm
 
       - name: Cache JVM build output
         # when in master repo: all commits to main branch and all additional tags
@@ -142,9 +140,9 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: |
-            out/morphir/${{matrix.scala}}/**/jvm/
+            out/morphir/**/jvm/
             out/morphir/build/
-          key: ${{ runner.os }}-mill-jvm-${{matrix.java}}-${{ matrix.scala }}-${{ github.sha }}-${{ hashFiles('out') }}
+          key: ${{ runner.os }}-mill-jvm-${{matrix.java}}-${{ github.sha }}-${{ hashFiles('out') }}
 
   publish:
     # when in master repo: all commits to main branch and all additional tags
@@ -192,21 +190,21 @@ jobs:
       - name: Install libuv
         run: sudo apt-get update && sudo apt-get install -y libuv1-dev
 
-      - name: Restore Scala 3.7 JVM Build Output From Cache
+      - name: Restore JVM Build Output From Cache
         uses: actions/cache/restore@v4
         with:
           path: |
-            out/morphir/3.7.4/**/jvm/
-          key: ${{ runner.os }}-mill-jvm-21-3.7.4-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-jvm-21-3.7.4-${{ github.sha }}-
+            out/morphir/**/jvm/
+          key: ${{ runner.os }}-mill-jvm-21-${{ github.sha }}-${{ hashFiles('out') }}
+          restore-keys: ${{ runner.os }}-mill-jvm-21-${{ github.sha }}-
 
-      - name: Restore Scala 3.7 JS Build Output From Cache
+      - name: Restore JS Build Output From Cache
         uses: actions/cache/restore@v4
         with:
           path: |
-            out/morphir/3.7.4/**/js/
-          key: ${{ runner.os }}-mill-js-21-3.7.4-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-js-21-3.7.4-${{ github.sha }}-
+            out/morphir/**/js/
+          key: ${{ runner.os }}-mill-js-21-${{ github.sha }}-${{ hashFiles('out') }}
+          restore-keys: ${{ runner.os }}-mill-js-21-${{ github.sha }}-
 
       - name: Release
         run: |

@@ -1,24 +1,15 @@
 #!/usr/bin/env bash
-# MISE description="Run Runtime JVM tests for all Scala versions"
+# MISE description="Run Runtime JVM tests"
 
 set -e
 
-SCALA_VERSIONS="${SCALA_VERSIONS:-3.7.4}"
-IFS=',' read -ra VERSIONS <<< "$SCALA_VERSIONS"
-
 echo "Running Runtime JVM tests..."
-echo "  Scala versions: ${SCALA_VERSIONS}"
 
-# Note: build:elm should be run separately before this task if needed
-for version in "${VERSIONS[@]}"; do
-    version=$(echo "$version" | tr -d ' ')
-    echo "  Running Runtime JVM tests for Scala $version..."
-    ./mill -i -k -j 0 \
-        "morphir[$version].__.runtime.jvm.__.compile" \
-        + \
-        "morphir[$version].__.runtime.jvm.publishArtifacts" \
-        + \
-        "morphir[$version].__.runtime.jvm.__.test"
-done
+./mill -i -k -j 0 \
+    "morphir.runtime.jvm.__.compile" \
+    + \
+    "morphir.runtime.jvm.publishArtifacts" \
+    + \
+    "morphir.runtime.jvm.__.test"
 
 echo "Runtime JVM tests completed successfully"
