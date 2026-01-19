@@ -210,7 +210,8 @@ jobs:
         run: |
           # Publishing using Mill's SonatypeCentralPublishModule
           # Uses Sonatype Central Portal API for publishing to Maven Central
-          ./mill -i __.publishSonatypeCentral
+          # Exclude mill-morphir-elm plugin modules (they have different dependency requirements)
+          ./mill -i morphir.{main,jvm,js,runtime,tools,extensibility,lib,interop,contrib,tests}.__.publishSonatypeCentral
 
   ci:
     runs-on: ubuntu-latest
