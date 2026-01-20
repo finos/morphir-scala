@@ -57,5 +57,5 @@ object DistributionLoaderSpec extends ZIOSpecDefault {
       } yield assert(dist)(anything)
     }
     // Note: Classic loader test will be added when Classic loading is implemented/mocked
-  )
+  ).provide(DistributionLoader.live, VfsLoader.live)
 }

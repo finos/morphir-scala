@@ -2,42 +2,35 @@ package org.finos.morphir.ir.v4
 
 import zio._
 import zio.json._
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Paths, Path}
 import scala.jdk.CollectionConverters._
 import org.finos.morphir.naming._
 import org.finos.morphir.ir.json.MorphirJsonDecodingSupportV4._
 
-/**
- * Loader for Morphir VFS distributions.
- *
- * This object provides methods to load a Morphir distribution from a file system path that adheres to the Morphir VFS
- * structure (V4).
- *
- * Example Usage:
- * {{{
- *   import org.finos.morphir.ir.v4.VfsLoader
- *   import zio._
- *
- *   val PROGRAM: Task[Unit] = for {
- *     dist <- VfsLoader.loadRequest("/path/to/my-morphir-project")
- *     _    <- Console.printLine(s"Loaded distribution: $dist")
- *   } yield ()
- * }}}
- */
 object VfsLoader {
+  val live: ULayer[VfsLoader] = ZLayer.succeed(VfsLoaderLive())
 
+  def loadRequest(path: String): ZIO[VfsLoader, Throwable, Distribution] =
+    ZIO.serviceWithZIO[VfsLoader](_.loadRequest(path))
+}
+
+trait VfsLoader {
+  def loadRequest(path: String): Task[Distribution]
+}
+
+final case class VfsLoaderLive() extends VfsLoader {
   // -- VfsManifest Codecs --
   implicit val distributionModeDecoder: JsonDecoder[DistributionMode] = JsonDecoder.string.map {
     case "classic" => DistributionMode.ClassicMode
     case "vfs"     => DistributionMode.VfsMode
-    case _         => DistributionMode.VfsMode // Default or fail? Spec says defaults.
+    case _         => DistributionMode.VfsMode
   }
 
   implicit val packageNameDecoder: JsonDecoder[PackageName] =
-    JsonDecoder.list[String].map(strs => PackageName(Path.fromList(strs.map(Name.fromString))))
+    JsonDecoder.list[String].map(strs => PackageName(org.finos.morphir.naming.Path.fromList(strs.map(Name.fromString))))
   implicit val vfsManifestDecoder: JsonDecoder[VfsManifest] = DeriveJsonDecoder.gen[VfsManifest]
 
-  def loadRequest(path: String): Task[Distribution] =
+  override def loadRequest(path: String): Task[Distribution] =
     for {
       p <- ZIO.attempt(Paths.get(path))
       _ <- ZIO.fail(new java.io.FileNotFoundException(s"Path not found: $path")).unless(Files.exists(p))
@@ -54,7 +47,6 @@ object VfsLoader {
 
       dist <- manifest.layout match {
         case DistributionMode.ClassicMode =>
-          // Classic mode loading (single file) - Not fully implemented yet
           ZIO.fail(new NotImplementedError("Classic mode VFS loading not implemented"))
         case DistributionMode.VfsMode =>
           loadVfsDistribution(p, manifest)
@@ -70,20 +62,17 @@ object VfsLoader {
   }
 
   private def loadPackage(pkgRoot: java.nio.file.Path): Task[PackageDefinition] =
-    // Traverse recursively to find modules.
-    // We walk the tree safely ensuring the stream is closed.
     ZIO.scoped {
       ZIO.fromAutoCloseable(ZIO.attempt(Files.walk(pkgRoot))).map { stream =>
         stream.iterator().asScala.filter(Files.isRegularFile(_)).toList
       }
     }.flatMap { files =>
-      // Group files by parent directory (Module)
       val filesByModule = files.groupBy(_.getParent)
 
       ZIO.foreach(filesByModule) { case (dir, moduleFiles) =>
-        val relPath = pkgRoot.relativize(dir)
-        // Handle empty path case correctly
-        val modulePath = if (relPath.toString == "") Path.empty else Path.fromString(relPath.toString)
+        val relPath    = pkgRoot.relativize(dir)
+        val modulePath = if (relPath.toString == "") org.finos.morphir.naming.Path.empty
+        else org.finos.morphir.naming.Path.fromString(relPath.toString)
         val moduleName = ModuleName(modulePath)
 
         for {
@@ -92,8 +81,6 @@ object VfsLoader {
             val name    = Name.fromString(nameStr)
             for {
               content <- ZIO.attempt(Files.readString(file))
-              // Try to decode as fully wrapped AccessControlled[Documented[TypeDefinition]]
-              // If fails, fallback to simple TypeDefinition (legacy/simple mode)
               decoded <- ZIO.fromEither(
                 content.fromJson[AccessControlled[Documented[TypeDefinition]]]
                   .orElse(
@@ -108,8 +95,6 @@ object VfsLoader {
             val name    = Name.fromString(nameStr)
             for {
               content <- ZIO.attempt(Files.readString(file))
-              // Try to decode as fully wrapped AccessControlled[Documented[ValueDefinition]]
-              // If fails, fallback to simple ValueDefinition
               decoded <- ZIO.fromEither(
                 content.fromJson[AccessControlled[Documented[ValueDefinition]]]
                   .orElse(

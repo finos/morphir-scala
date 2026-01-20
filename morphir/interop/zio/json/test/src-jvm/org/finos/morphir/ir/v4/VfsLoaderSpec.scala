@@ -61,5 +61,5 @@ object VfsLoaderSpec extends ZIOSpecDefault {
         // assertions
         assert(dist)(anything)
     }
-  )
+  ).provide(VfsLoader.live)
 }
