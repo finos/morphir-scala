@@ -136,6 +136,24 @@ The project uses GitHub Actions for CI:
 
 CI runs on: pull requests, pushes to main/0.4.x, releases, and manual triggers.
 
+
+## Pull Request & CI Protocol
+
+Successful implementation requires a **fully green build** on the PR and resolution of **all** review comments.
+
+1.  **Green Build Requirement**:
+    -   Work is NOT complete until all CI checks pass on the Pull Request.
+    -   Use `gh pr checks <pr-number> --watch --interval 30` to monitor build status.
+    -   If a check fails, investigate immediately. Do not mark task as done.
+
+2.  **Addressing Feedback**:
+    -   Check for comments using `gh pr view <pr-number> --json comments,reviews`.
+    -   Resolve all comments (code fixes, documentation).
+    -   Verify fixes locally before pushing.
+
+3.  **Completion**:
+    -   Only when CI is green and comments are zero/resolved is the feature complete.
+
 ## Resources
 
 - [Morphir Documentation](https://morphir.finos.org/)

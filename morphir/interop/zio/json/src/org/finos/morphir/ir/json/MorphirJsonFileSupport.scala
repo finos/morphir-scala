@@ -12,6 +12,7 @@ trait MorphirJsonFileSupport extends JsonEncodingHelpers {
     case 1 => MorphirIRVersion.V1_0
     case 2 => MorphirIRVersion.V2_0
     case 3 => MorphirIRVersion.V3_0
+    case 4 => MorphirIRVersion.V4_0
   }
 
   private def DecodeDistributionWithVersion(version: MorphirIRVersion, distribution: Json) = version match {
@@ -24,6 +25,8 @@ trait MorphirJsonFileSupport extends JsonEncodingHelpers {
     case MorphirIRVersion.V3_0 =>
       import org.finos.morphir.ir.json.MorphirJsonDecodingSupport._
       JsonDecoder[Distribution].fromJsonAST(distribution)
+    case MorphirIRVersion.V4_0 =>
+      Left("V4 Distribution not supported in generic JSON loader. Use VFS.")
   }
 
   implicit def morphirIRFileDecoder: JsonDecoder[MorphirIRFile] =
@@ -63,6 +66,8 @@ trait MorphirJsonFileSupport extends JsonEncodingHelpers {
     case MorphirIRVersion.V3_0 =>
       import org.finos.morphir.ir.json.MorphirJsonEncodingSupport._
       super.toJsonAstOrThrow(distribution)
+    case MorphirIRVersion.V4_0 =>
+      throw new NotImplementedError("V4 Distribution encoding not supported in legacy loader.")
   }
 }
 
