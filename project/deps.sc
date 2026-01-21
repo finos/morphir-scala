@@ -209,7 +209,7 @@ object Versions {
 
   val coursier                   = "2.1.4"
   val expecty                    = "0.16.0"
-  val fansi                      = "0.5.0"
+  val fansi                      = "0.5.1"
   val fs2                        = "3.11.0"
   val geny                       = "1.1.1"
   val `izumi-reflect`            = "2.3.10"
