@@ -235,7 +235,7 @@ object Versions {
   val `zio-nio`          = "2.0.2"
   val `zio-parser`       = "0.1.9"
   val `zio-prelude`      = "1.0.0-RC31"
-  val `zio-process`      = "0.7.2"
+  val `zio-process`      = "0.8.0"
   val `zio-schema`       = "0.4.12"
 }
 
