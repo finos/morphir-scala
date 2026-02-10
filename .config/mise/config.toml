@@ -6,7 +6,7 @@
 
 [tools]
 bun = "1.3.9"
-node = "24.13.0"
+node = "24.13.1"
 "scala-cli" = "1.11.0"
 
 [env]
