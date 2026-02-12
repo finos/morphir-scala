@@ -34,7 +34,7 @@ jobs:
           distribution: "temurin"
           java-version: "21"
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v7
+        uses: coursier/cache-action@v8
       - name: Setup mise
         uses: jdx/mise-action@v3
         with:
@@ -74,7 +74,7 @@ jobs:
           distribution: "temurin"
           java-version: ${{ matrix.java }}
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v7
+        uses: coursier/cache-action@v8
 
       - name: Run JS tests
         run: |
@@ -117,7 +117,7 @@ jobs:
           distribution: "temurin"
           java-version: ${{ matrix.java }}
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v7
+        uses: coursier/cache-action@v8
 
       - name: Setup mise
         uses: jdx/mise-action@v3
@@ -180,7 +180,7 @@ jobs:
           distribution: temurin
 
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v7
+        uses: coursier/cache-action@v8
 
       - name: Setup mise
         uses: jdx/mise-action@v3
