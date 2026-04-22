@@ -22,8 +22,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # We want to see the transmitted graph in the logs
-      - run:  ./mill --import ivy:io.chris-kipp::mill-github-dependency-graph::0.2.5 showNamed io.kipp.mill.github.dependency.graph.Graph/generate
-
-      # Actually upload the graph
-      - uses: ckipp01/mill-dependency-submission@v1
+      # Generate and submit the dependency graph to GitHub's Dependency Submission API.
+      # Uses the Eleven19 fork of mill-github-dependency-graph (the original
+      # ckipp01/mill-github-dependency-graph is archived and does not support Mill 1.x).
+      - name: Submit dependency graph
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./mill io.eleven19.mill.github.dependency.graph.Graph/submit
