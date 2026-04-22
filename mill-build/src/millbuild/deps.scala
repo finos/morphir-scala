@@ -73,7 +73,7 @@ object Deps {
     }
     object softwaremill {
       object common {
-        val tagging = mvn"com.softwaremill.common::tagging::2.3.4"
+        val tagging = mvn"com.softwaremill.common::tagging::2.3.5"
       }
 
       object magnolia_2 {
@@ -81,7 +81,7 @@ object Deps {
       }
 
       object magnolia_3 {
-        val magnolia = mvn"com.softwaremill.magnolia1_3::magnolia::1.3.9"
+        val magnolia = mvn"com.softwaremill.magnolia1_3::magnolia::1.3.18"
       }
     }
   }
@@ -185,22 +185,22 @@ object Deps {
 }
 
 object Versions {
-  val castor = "0.2.1"
-  val cats   = "2.12.0"
+  val castor = "0.3.2"
+  val cats   = "2.13.0"
 
-  val enumeratum = "1.7.5"
+  val enumeratum = "1.9.7"
 
   def borer(scalaVersion: String): String =
     borer(scalaVersion.split('.').toIndexedSeq)
 
   def borer(scalaVersionParts: Seq[String]): String =
     scalaVersionParts match {
-      case Seq("3", _, _)    => "1.14.0"
+      case Seq("3", _, _)    => "1.16.2"
       case Seq("2", "13", _) => "1.8.0"
       case _                 => "1.6.3"
     }
 
-  val `buffer-and-slice` = "1.57.0"
+  val `buffer-and-slice` = "1.64.0"
 
   def semanticDb(partialVersion: Option[(Int, Int)]): String =
     partialVersion match {
@@ -208,52 +208,52 @@ object Versions {
       case _            => "4.8.11"
     }
 
-  val coursier                   = "2.1.4"
-  val expecty                    = "0.16.0"
+  val coursier                   = "2.1.24"
+  val expecty                    = "0.17.1"
   val fansi                      = "0.5.0"
-  val fs2                        = "3.11.0"
+  val fs2                        = "3.13.0"
   val geny                       = "1.1.1"
   val `izumi-reflect`            = "2.3.10"
-  val metaconfig                 = "0.11.1"
-  val mainargs                   = "0.5.0"
+  val metaconfig                 = "0.12.0"
+  val mainargs                   = "0.7.8"
   val `os-lib`                   = "0.11.4"
   val paiges                     = "0.4.4"
   val `scala-java-time`          = "2.6.0"
   val `scala-native-crypto`      = "0.0.4"
   val `scalac-compat-annotation` = "0.1.4"
-  val scoverage                  = "2.1.1"
-  val scribe                     = "3.11.9"
+  val scoverage                  = "2.5.2"
+  val scribe                     = "3.19.0"
   val silencer                   = "1.4.2"
   val spire                      = "0.18.0"
   val `tasty-query`              = "0.5.6"
-  val upickle                    = "3.0.0-M1"
-  val zio                        = "2.1.11"
+  val upickle                    = "4.4.3"
+  val zio                        = "2.1.25"
 
-  val `zio-config`       = "4.0.3"
-  val `zio-cli`          = "0.7.0"
-  val `zio-interop-cats` = "23.1.0.3"
-  val `zio-json`         = "0.7.3"
+  val `zio-config`       = "4.0.7"
+  val `zio-cli`          = "0.8.0"
+  val `zio-interop-cats` = "23.1.0.13"
+  val `zio-json`         = "0.9.1"
   val `zio-nio`          = "2.0.2"
-  val `zio-parser`       = "0.1.9"
-  val `zio-prelude`      = "1.0.0-RC31"
-  val `zio-process`      = "0.7.2"
+  val `zio-parser`       = "0.1.11"
+  val `zio-prelude`      = "1.0.0-RC47"
+  val `zio-process`      = "0.8.0"
   val `zio-schema`       = "0.4.12"
 }
 
 object ScalaVersions {
-  val scala3 = "3.7.4"
+  val scala3 = "3.8.3"
   val scala213 = "2.13.16"  // Keep for docs/reference only
 
-  def scalaJSVersion     = "1.19.0"
+  def scalaJSVersion     = "1.21.0"
   def scalaNativeVersion = "0.5.7"
-  def millScalaVersion   = "2.13.16"
+  def millScalaVersion   = scala3
 
   // Backwards compatibility aliases
   def scala3x = scala3
 }
 
 object MillVersions {
-  val all = Seq("0.11.0", "1.0.5")
+  val all = Seq("1.1.5")
   // Compute Mill binary version similar to Scala Native binary version
   def millBinaryVersion(millVersion: String): String = {
     val parts = millVersion.split('.').take(2)
