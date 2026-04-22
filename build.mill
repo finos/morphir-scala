@@ -3,6 +3,7 @@
 //| - com.lihaoyi::mill-contrib-scoverage:$MILL_VERSION
 //| - com.carlosedp::mill-aliases::1.1.0
 //| - com.github.lolgab::mill-mima::0.2.0
+//| - io.eleven19.mill-github-dependency-graph::mill-github-dependency-graph:0.0.2
 
 package build
 
