@@ -232,7 +232,7 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
     // Warnings as errors are always enabled for the CI build
     // and can be disabled by setting the DISABLE_WARNINGS_AS_ERRORS environment variable to true
     if (isCIBuild || !disableFatalWarnings)
-      options ++ Seq("-Xfatal-warnings")
+      options ++ Seq("-Werror")
     else
       options
   }

@@ -90,14 +90,9 @@ object morphir extends CrossPlatform { morphir =>
         def scalaVersion          = Task { ScalaVers.millScalaVersion }
         override def artifactName = s"${pluginName}_mill${MillVersions.millBinaryVersion(millVersion)}"
         override def compileMvnDeps = super.compileMvnDeps() ++ Seq(
-          mvn"com.lihaoyi::mill-scalalib:${millVersion}"
+          mvn"com.lihaoyi::mill-libs-scalalib:${millVersion}"
         )
-        override def scalacOptions = Seq("-Ywarn-unused", "-deprecation")
-        override def sources = Task {
-          super.sources() ++ Seq(
-            PathRef(moduleDir / s"src-mill${millVersion.split('.').take(2).mkString(".")}")
-          )
-        }
+        override def scalacOptions = Seq("-Wunused:all", "-deprecation")
       }
     }
   }
@@ -409,7 +404,7 @@ object morphir extends CrossPlatform { morphir =>
         def crossPlatformTestSourcePaths: Seq[os.Path] = {
           val basePath = moduleDir
           val platformSuffixes = Seq("jvm", "jvm-native", "js-jvm")
-          val versionSuffixes = Seq("", "-3.7.4", "-3.7", "-3")
+          val versionSuffixes = Seq("", "-3.8.3", "-3.8", "-3")
 
           // Base sources
           val baseSources = versionSuffixes.map(v => basePath / s"src$v")
@@ -440,7 +435,7 @@ object morphir extends CrossPlatform { morphir =>
           val basePath = moduleDir
           // JS platform: include js-specific and js-jvm shared sources (NOT jvm-native)
           val platformSuffixes = Seq("js", "js-jvm")
-          val versionSuffixes = Seq("", "-3.7.4", "-3.7", "-3")
+          val versionSuffixes = Seq("", "-3.8.3", "-3.8", "-3")
 
           // Base sources
           val baseSources = versionSuffixes.map(v => basePath / s"src$v")
