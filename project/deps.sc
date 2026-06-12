@@ -160,9 +160,9 @@ object Deps {
       def `scala-compiler`(scalaVersion: String): Dep =
         if (scalaVersion.startsWith("3")) mvn"org.scala-lang::scala3-compiler:$scalaVersion"
         else mvn"org.scala-lang:scala-compiler:$scalaVersion"
-      def `scala-library`(scalaVersion: String): Dep   = mvn"org.scala-lang:scala-library:$scalaVersion"
-      def `scala-reflect`(scalaVersion: String): Dep   = mvn"org.scala-lang:scala-reflect:$scalaVersion"
-      def `scala3-compiler`(scalaVersion: String): Dep = mvn"org.scala-lang::scala3-compiler:$scalaVersion"
+      def `scala-library`(scalaVersion: String): Dep          = mvn"org.scala-lang:scala-library:$scalaVersion"
+      def `scala-reflect`(scalaVersion: String): Dep          = mvn"org.scala-lang:scala-reflect:$scalaVersion"
+      def `scala3-compiler`(scalaVersion: String): Dep        = mvn"org.scala-lang::scala3-compiler:$scalaVersion"
       def `scala3-tasty-inspector`(scalaVersion: String): Dep =
         mvn"org.scala-lang::scala3-tasty-inspector::$scalaVersion"
     }
@@ -170,8 +170,8 @@ object Deps {
     case object scalameta {}
 
     case object typelevel {
-      val `cats-core`   = cats.core
-      val `paiges-core` = mvn"org.typelevel::paiges-core::${Versions.paiges}"
+      val `cats-core`                = cats.core
+      val `paiges-core`              = mvn"org.typelevel::paiges-core::${Versions.paiges}"
       val `scalac-compat-annotation` =
         mvn"org.typelevel::scalac-compat-annotation:${Versions.`scalac-compat-annotation`}"
       val spire = mvn"org.typelevel::spire::${Versions.spire}"
@@ -229,7 +229,7 @@ object Versions {
   val zio                        = "2.1.25"
 
   val `zio-config`       = "4.0.7"
-  val `zio-cli`          = "0.8.0"
+  val `zio-cli`          = "0.8.1"
   val `zio-interop-cats` = "23.1.0.13"
   val `zio-json`         = "0.9.1"
   val `zio-nio`          = "2.0.2"
@@ -240,7 +240,7 @@ object Versions {
 }
 
 object ScalaVersions {
-  val scala3 = "3.8.3"
+  val scala3   = "3.8.3"
   def scala213 = "2.13.16"
 
   def scalaJSVersion     = "1.21.0"
@@ -252,7 +252,7 @@ object ScalaVersions {
 }
 
 object MillVersions {
-  val all = Seq("1.1.5")
+  val all                                    = Seq("1.1.5")
   def millBinaryVersion(millVersion: String) = scalaNativeBinaryVersion(
     millVersion
   )
