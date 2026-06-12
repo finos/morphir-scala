@@ -61,7 +61,7 @@ trait MorphirPublishModule extends PublishModule with JavaModule with Mima with 
 
   def publishVersion             = VcsVersion.vcsState().format()
   def packageDescription: String = s"The $artifactName package"
-  def pomSettings = PomSettings(
+  def pomSettings                = PomSettings(
     description = packageDescription,
     organization = "org.finos.morphir",
     url = "https://github.com/finos/morphir-scala",
@@ -87,8 +87,8 @@ object morphir extends CrossPlatform { morphir =>
 
         val pluginName = "mill-morphir-elm"
 
-        def scalaVersion          = Task { ScalaVers.millScalaVersion }
-        override def artifactName = s"${pluginName}_mill${MillVersions.millBinaryVersion(millVersion)}"
+        def scalaVersion            = Task { ScalaVers.millScalaVersion }
+        override def artifactName   = s"${pluginName}_mill${MillVersions.millBinaryVersion(millVersion)}"
         override def compileMvnDeps = super.compileMvnDeps() ++ Seq(
           mvn"com.lihaoyi::mill-libs-scalalib:${millVersion}"
         )
@@ -116,7 +116,7 @@ object morphir extends CrossPlatform { morphir =>
       "The morphir-main package. This is the main entry point for the morphir tooling, including the morphir-cli."
 
     def scalaVersion = Task { mainScalaVersion }
-    def mvnDeps = Seq(
+    def mvnDeps      = Seq(
       Deps.co.fs2.`fs2-io`,
       Deps.com.lihaoyi.fansi,
       Deps.com.lihaoyi.pprint,
@@ -152,8 +152,8 @@ object morphir extends CrossPlatform { morphir =>
   }
 
   trait MorphirCommonCrossModule extends CrossPlatformScalaModule with ScalafmtModule with DeduplicatedSources {
-    def scalaVersion = Task { morphirScalaVersion }
-    def semanticDbVersion: T[String] = Task { Vers.semanticDb(Some((3, 7))) }
+    def scalaVersion                                             = Task { morphirScalaVersion }
+    def semanticDbVersion: T[String]                             = Task { Vers.semanticDb(Some((3, 7))) }
     def compilerPluginDependencies(selectedScalaVersion: String) =
       Seq(Deps.org.`scala-lang`.`scala3-compiler`(selectedScalaVersion))
   }
@@ -197,7 +197,7 @@ object morphir extends CrossPlatform { morphir =>
 
   object contrib extends Module {
     object knowledge extends CrossPlatform {
-      def enableNative(module: Module): Boolean = false  // Native disabled for Scala 3
+      def enableNative(module: Module): Boolean = false // Native disabled for Scala 3
       trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
         def mvnDeps = Seq(
           Deps.com.lihaoyi.sourcecode,
@@ -267,7 +267,7 @@ object morphir extends CrossPlatform { morphir =>
               Seq(
                 Deps.dev.zio.`zio-json-golden`,
                 mvn"io.github.deblockt:json-diff:1.1.0",
-                mvn"com.fasterxml.jackson.core:jackson-databind:2.18.3",
+                mvn"com.fasterxml.jackson.core:jackson-databind:2.18.8",
                 Deps.dev.zio.`zio-process`
               )
             }
@@ -319,7 +319,7 @@ object morphir extends CrossPlatform { morphir =>
 
   object runtime extends CrossPlatform {
 
-    def enableNative(module: Module): Boolean = false  // Native disabled for Scala 3
+    def enableNative(module: Module): Boolean = false // Native disabled for Scala 3
     trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
       def platformSpecificModuleDeps = Seq(morphir, morphir.interop.zio.json)
     }
@@ -362,7 +362,8 @@ object morphir extends CrossPlatform { morphir =>
   object testing extends Module {
     object generators extends CrossPlatform {
       trait Shared extends MorphirCommonCrossModule {
-        def mvnDeps = Seq(Deps.dev.zio.`zio-test`) ++ (if (!platform.isNative) Seq(Deps.dev.zio.`zio-test-magnolia`) else Seq.empty[Dep])
+        def mvnDeps = Seq(Deps.dev.zio.`zio-test`) ++
+          (if (!platform.isNative) Seq(Deps.dev.zio.`zio-test-magnolia`) else Seq.empty[Dep])
         def platformSpecificModuleDeps = Seq(morphir)
 
       }
@@ -402,9 +403,9 @@ object morphir extends CrossPlatform { morphir =>
       object test extends ScoverageTests with TestModule.ZioTest {
         // Use cross-platform sources for test modules too
         def crossPlatformTestSourcePaths: Seq[os.Path] = {
-          val basePath = moduleDir
+          val basePath         = moduleDir
           val platformSuffixes = Seq("jvm", "jvm-native", "js-jvm")
-          val versionSuffixes = Seq("", "-3.8.3", "-3.8", "-3")
+          val versionSuffixes  = Seq("", "-3.8.3", "-3.8", "-3")
 
           // Base sources
           val baseSources = versionSuffixes.map(v => basePath / s"src$v")
@@ -435,7 +436,7 @@ object morphir extends CrossPlatform { morphir =>
           val basePath = moduleDir
           // JS platform: include js-specific and js-jvm shared sources (NOT jvm-native)
           val platformSuffixes = Seq("js", "js-jvm")
-          val versionSuffixes = Seq("", "-3.8.3", "-3.8", "-3")
+          val versionSuffixes  = Seq("", "-3.8.3", "-3.8", "-3")
 
           // Base sources
           val baseSources = versionSuffixes.map(v => basePath / s"src$v")
@@ -493,7 +494,7 @@ object examples extends Module {
   object `morphir-elm-projects` extends Module {
     object finance extends MorphirElmModule
 
-    object `evaluator-tests` extends MorphirElmModule
+    object `evaluator-tests`     extends MorphirElmModule
     object `unit-test-framework` extends Module {
       object `example-project` extends MorphirElmModule {
         def morphirModuleDeps = Seq(`morphir-elm`.sdks.`morphir-unit-test`)
