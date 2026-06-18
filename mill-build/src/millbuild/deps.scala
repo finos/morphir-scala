@@ -161,9 +161,9 @@ object Deps {
       def `scala-compiler`(scalaVersion: String): Dep =
         if (scalaVersion.startsWith("3")) mvn"org.scala-lang::scala3-compiler:$scalaVersion"
         else mvn"org.scala-lang:scala-compiler:$scalaVersion"
-      def `scala-library`(scalaVersion: String): Dep   = mvn"org.scala-lang:scala-library:$scalaVersion"
-      def `scala-reflect`(scalaVersion: String): Dep   = mvn"org.scala-lang:scala-reflect:$scalaVersion"
-      def `scala3-compiler`(scalaVersion: String): Dep = mvn"org.scala-lang::scala3-compiler:$scalaVersion"
+      def `scala-library`(scalaVersion: String): Dep          = mvn"org.scala-lang:scala-library:$scalaVersion"
+      def `scala-reflect`(scalaVersion: String): Dep          = mvn"org.scala-lang:scala-reflect:$scalaVersion"
+      def `scala3-compiler`(scalaVersion: String): Dep        = mvn"org.scala-lang::scala3-compiler:$scalaVersion"
       def `scala3-tasty-inspector`(scalaVersion: String): Dep =
         mvn"org.scala-lang::scala3-tasty-inspector::$scalaVersion"
     }
@@ -171,8 +171,8 @@ object Deps {
     object scalameta {}
 
     object typelevel {
-      val `cats-core`   = cats.core
-      val `paiges-core` = mvn"org.typelevel::paiges-core::${Versions.paiges}"
+      val `cats-core`                = cats.core
+      val `paiges-core`              = mvn"org.typelevel::paiges-core::${Versions.paiges}"
       val `scalac-compat-annotation` =
         mvn"org.typelevel::scalac-compat-annotation:${Versions.`scalac-compat-annotation`}"
       val spire = mvn"org.typelevel::spire::${Versions.spire}"
@@ -210,7 +210,7 @@ object Versions {
 
   val coursier                   = "2.1.24"
   val expecty                    = "0.17.1"
-  val fansi                      = "0.5.0"
+  val fansi                      = "0.5.1"
   val fs2                        = "3.13.0"
   val geny                       = "1.1.1"
   val `izumi-reflect`            = "2.3.10"
@@ -241,8 +241,8 @@ object Versions {
 }
 
 object ScalaVersions {
-  val scala3 = "3.8.3"
-  val scala213 = "2.13.16"  // Keep for docs/reference only
+  val scala3   = "3.8.3"
+  val scala213 = "2.13.16" // Keep for docs/reference only
 
   def scalaJSVersion     = "1.21.0"
   def scalaNativeVersion = "0.5.7"
