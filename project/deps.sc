@@ -229,7 +229,7 @@ object Versions {
   val zio                        = "2.1.25"
 
   val `zio-config`       = "4.0.7"
-  val `zio-cli`          = "0.8.0"
+  val `zio-cli`          = "0.8.1"
   val `zio-interop-cats` = "23.1.0.13"
   val `zio-json`         = "0.9.1"
   val `zio-nio`          = "2.0.2"
