@@ -217,7 +217,7 @@ object Versions {
   val mainargs                   = "0.7.8"
   val `os-lib`                   = "0.11.4"
   val paiges                     = "0.4.4"
-  val `scala-java-time`          = "2.6.0"
+  val `scala-java-time`          = "2.7.0"
   val `scala-native-crypto`      = "0.0.4"
   val `scalac-compat-annotation` = "0.1.4"
   val scoverage                  = "2.5.2"
