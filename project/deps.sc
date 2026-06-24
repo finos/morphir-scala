@@ -240,7 +240,7 @@ object Versions {
 }
 
 object ScalaVersions {
-  val scala3   = "3.8.3"
+  val scala3   = "3.8.4"
   def scala213 = "2.13.16"
 
   def scalaJSVersion     = "1.22.0"
