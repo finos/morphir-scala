@@ -61,7 +61,7 @@ object Deps {
       val geny           = mvn"com.lihaoyi::geny::${Versions.geny}"
       val mainargs       = mvn"com.lihaoyi::mainargs::${Versions.`mainargs`}"
       val `os-lib`       = mvn"com.lihaoyi::os-lib::${Versions.`os-lib`}"
-      val sourcecode     = mvn"com.lihaoyi::sourcecode::0.4.2"
+      val sourcecode     = mvn"com.lihaoyi::sourcecode::0.4.4"
       val pprint         = mvn"com.lihaoyi::pprint::0.9.6"
       val ujson          = mvn"com.lihaoyi::ujson::${Versions.upickle}"
       val upickle        = mvn"com.lihaoyi::upickle::${Versions.upickle}"
