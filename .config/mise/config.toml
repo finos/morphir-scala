@@ -7,7 +7,7 @@
 [tools]
 bun = "1.3.14"
 node = "24.18.0"
-"scala-cli" = "1.14.0"
+"scala-cli" = "1.15.0"
 
 [env]
 _.path = ["./node_modules/.bin"]
