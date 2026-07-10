@@ -80,7 +80,7 @@ object Deps {
       }
 
       case object magnolia_3 {
-        val magnolia = mvn"com.softwaremill.magnolia1_3::magnolia::1.3.21"
+        val magnolia = mvn"com.softwaremill.magnolia1_3::magnolia::1.3.22"
       }
     }
   }
