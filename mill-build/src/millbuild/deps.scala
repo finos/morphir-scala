@@ -229,7 +229,7 @@ object Versions {
   val upickle                    = "4.4.3"
   val zio                        = "2.1.26"
 
-  val `zio-config`       = "4.0.7"
+  val `zio-config`       = "4.0.8"
   val `zio-cli`          = "0.8.1"
   val `zio-interop-cats` = "23.1.0.13"
   val `zio-json`         = "0.9.2"
