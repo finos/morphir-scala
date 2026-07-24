@@ -6,7 +6,7 @@ A Claude Code project skill for the morphir-scala repository that diagnoses and 
 
 Squire is invoked as a slash command within Claude Code. It provides targeted guidance when Claude hits build, network, or sandbox failures — rather than blindly retrying or guessing at fixes.
 
-```
+```text
 /squire doctor   — Run a full environment diagnostic
 ```
 
@@ -20,7 +20,7 @@ Claude Code automatically discovers skills in `.claude/skills/`. When a session 
 
 The skill is structured in layers to keep each file focused:
 
-```
+```text
 .claude/skills/squire/
 ├── SKILL.md              # Entry point — command list and when to invoke
 ├── references/
@@ -74,3 +74,11 @@ Claude reports each result as ✅ or ⚠️ and applies fixes from `references/d
 2. If the issue is detectable programmatically, add a script to `scripts/` and call it from the Diagnostic Workflow section of `doctor.md` using `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/<script>.py`
 3. Update the Known Issues table in this README
 4. Bump the `version` in `SKILL.md` frontmatter
+
+## Local Output & Scratch Work
+
+Per the project's [AGENTS.md](../../../../AGENTS.md) conventions:
+
+- Any diagnostic output files, logs, or scratch artifacts produced while running squire should go under `.dev/out/squire/` (gitignored)
+- Planning or design work related to squire improvements belongs in `.dev/.sdlc/squire/`
+- The `.dev/` folder is safe for temporary files — nothing there is committed
