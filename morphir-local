@@ -1,7 +1,39 @@
 #!/usr/bin/env sh
 
-# construct a fat jar locally
-./mill morphir.main.assembly
+# Detect sandbox environment (Claude Code / CI) and use --no-server if needed.
+# Also forwards SSL/proxy settings required in Capital One network environments.
 
-exec java -jar ./out/morphir/main/assembly.dest/out.jar "$@"
+MILL_FLAGS=""
 
+# Sandbox detection: test if we can connect to localhost TCP (mill daemon uses TCP).
+# If the test socket is blocked, fall back to --no-server (in-process mill).
+if ! python3 -c "import socket; s=socket.socket(); s.settimeout(1); s.connect(('127.0.0.1', 1)); s.close()" 2>/dev/null; then
+  MILL_FLAGS="--no-server"
+fi
+
+# Forward SSL CA bundle if set (Capital One / enterprise environments)
+JAVA_SSL_OPTS=""
+if [ -n "${CURL_CA_BUNDLE}" ]; then
+  JAVA_SSL_OPTS="${JAVA_SSL_OPTS} -Djavax.net.ssl.trustStore=${CURL_CA_BUNDLE}"
+fi
+if [ -n "${SSL_CERT_FILE}" ]; then
+  JAVA_SSL_OPTS="${JAVA_SSL_OPTS} -Djavax.net.ssl.trustStore=${SSL_CERT_FILE}"
+fi
+
+# Forward HTTP proxy settings if set
+JAVA_PROXY_OPTS=""
+if [ -n "${HTTPS_PROXY}" ]; then
+  proxy_host=$(echo "${HTTPS_PROXY}" | sed 's|.*://||' | sed 's|:.*||')
+  proxy_port=$(echo "${HTTPS_PROXY}" | sed 's|.*:||' | sed 's|/.*||')
+  JAVA_PROXY_OPTS="${JAVA_PROXY_OPTS} -Dhttps.proxyHost=${proxy_host} -Dhttps.proxyPort=${proxy_port}"
+fi
+if [ -n "${HTTP_PROXY}" ]; then
+  proxy_host=$(echo "${HTTP_PROXY}" | sed 's|.*://||' | sed 's|:.*||')
+  proxy_port=$(echo "${HTTP_PROXY}" | sed 's|.*:||' | sed 's|/.*||')
+  JAVA_PROXY_OPTS="${JAVA_PROXY_OPTS} -Dhttp.proxyHost=${proxy_host} -Dhttp.proxyPort=${proxy_port}"
+fi
+
+# Build the assembly (respecting sandbox detection for mill)
+./mill ${MILL_FLAGS} morphir.main.assembly
+
+exec java ${JAVA_SSL_OPTS} ${JAVA_PROXY_OPTS} -jar ./out/morphir/main/assembly.dest/out.jar "$@"
