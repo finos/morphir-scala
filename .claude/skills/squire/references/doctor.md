@@ -49,7 +49,7 @@ java.net.SocketException: Operation not permitted
 Mill launcher failed.
 ```
 
-**Cause:** The Claude Code sandbox blocks JVM TCP socket connections (`java.net.Socket.connect`). The mill client uses TCP to talk to the daemon — even when `localhost`/`127.0.0.1` are in the allowed hosts list, raw JVM NIO sockets are blocked at the syscall level.
+**Cause:** The Claude Code sandbox *may* block JVM TCP socket connections (`java.net.Socket.connect`) depending on the active sandbox configuration in `~/.claude/settings.json` or managed settings. Even when `localhost`/`127.0.0.1` are in the allowed hosts list, raw JVM NIO sockets can be blocked at the syscall level by the sandbox policy. This is not a universal restriction — it depends on how Claude Code is configured for your environment.
 
 **Fix:** Use `--no-server` with mill, or use the project wrapper which detects this automatically:
 ```bash
@@ -86,7 +86,7 @@ If the warning reappears, verify the `Task { }` wrapper is still present.
 /var/folders/hc/.../cellar-*.tasty: Operation not permitted
 ```
 
-**Cause:** Cellar writes temp `.tasty` files to macOS's real temp dir (`/var/folders/...`), which is outside the default sandbox write allowlist.
+**Cause:** Cellar writes temp `.tasty` files to macOS's real temp dir (`/var/folders/...`). Depending on your Claude Code sandbox configuration, this path may be outside the write allowlist.
 
 **Fix:** Add `/var/folders` to `~/.claude/settings.json`:
 ```json
