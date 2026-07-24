@@ -3,16 +3,16 @@ name: squire
 description: "Development environment diagnostics and unblocking for the morphir-scala project. Use when hitting build tool failures, sandbox restrictions, mill daemon errors, or SSL/network issues. Provides targeted guidance and automated fixes for known blockers."
 allowed-tools: Bash(cat *), Bash(ls *), Bash(find *), Bash(python3 *), Read, Edit, Write
 metadata:
-  version: 1.0.0
+  version: 0.1.0
 ---
 
 # Squire — morphir-scala Dev Environment Assistant
 
-Squire diagnoses and unblocks common development environment issues in the morphir-scala project. Run `/squire devenv` to get a situational report and actionable fixes.
+Squire diagnoses and unblocks common development environment issues in the morphir-scala project. Run `/squire doctor` to get a situational report and actionable fixes.
 
 ## Skills
 
-### `squire devenv` — Environment Diagnostic & Guidance
+### `squire doctor` — Environment Diagnostic & Guidance
 
 Diagnoses the current dev environment and provides targeted unblocking instructions for known issues.
 
@@ -120,7 +120,7 @@ Note the `--no-server` flag (see issue #1 above).
 
 ## Diagnostic Workflow
 
-When invoked as `/squire devenv`, perform these checks in order and report findings:
+When invoked as `/squire doctor`, perform these checks in order and report findings:
 
 1. **Check sandbox TCP restriction** — read the mill daemon port from `out/mill-daemon/socketPort` if it exists, then attempt `python3 -c "import socket,errno; s=socket.socket(); s.settimeout(1); s.connect(('127.0.0.1', <port>))"`. If the error is `errno.EPERM` (Operation not permitted) the JVM socket sandbox is active. If `ConnectionRefused` the daemon isn't running but sockets work. If it succeeds, the daemon is reachable.
 
