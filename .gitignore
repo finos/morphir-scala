@@ -465,3 +465,8 @@ build.user.yaml
 !.yarn/versions
 
 .omc/
+.dev/
+.worktrees/
+
+# Claude 
+.claude/settings.local.json 

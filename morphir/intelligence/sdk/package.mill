@@ -1,0 +1,17 @@
+package build.morphir.intelligence.sdk
+
+import mill.*, mill.scalalib.*, mill.scalajslib.*
+import millbuild.crossplatform.*
+import build.{MorphirCommonCrossModule, MorphirJVMModule, MorphirJSModule, MorphirIntelligencePublishModule}
+import millbuild.Deps
+
+object `package` extends CrossPlatform {
+
+  trait Shared extends MorphirCommonCrossModule with MorphirIntelligencePublishModule {
+    override def artifactName = "morphir-intelligence-sdk"
+    def mvnDeps               = Seq(Deps.io.getkyo.`kyo-schema`)
+  }
+
+  object jvm extends Shared with MorphirJVMModule
+  object js  extends Shared with MorphirJSModule
+}
