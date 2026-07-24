@@ -67,7 +67,7 @@ object `package` extends CrossPlatform { morphir =>
     def packageDescription =
       "The morphir-main package. This is the main entry point for the morphir tooling, including the morphir-cli."
 
-    def mainClass    = Some("org.finos.morphir.cli.MorphirCliMain")
+    override def mainClass: T[Option[String]] = Task { Some("org.finos.morphir.cli.MorphirCliMain") }
     def scalaVersion = Task { mainScalaVersion }
     def mvnDeps      = Seq(
       Deps.co.fs2.`fs2-io`,
