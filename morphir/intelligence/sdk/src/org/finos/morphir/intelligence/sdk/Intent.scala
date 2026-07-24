@@ -1,4 +1,3 @@
-
 package org.finos.morphir.intelligence.sdk
 
 import kyo.Schema

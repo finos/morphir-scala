@@ -40,9 +40,17 @@ jobs:
         with:
           experimental: true
 
+      - name: Cache elm-tooling downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.elm/elm-tooling
+          key: ${{ runner.os }}-elm-tooling-${{ hashFiles('**/elm-tooling.json') }}
+          restore-keys: |
+            ${{ runner.os }}-elm-tooling-
+
       - name: Install tooling
         run: |
-          mise run setup
+          ELM_TOOLING_INSTALL=1 mise run setup
       - name: Lint code
         run: mise run lint
 
@@ -124,9 +132,17 @@ jobs:
         with:
           experimental: true
 
+      - name: Cache elm-tooling downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.elm/elm-tooling
+          key: ${{ runner.os }}-elm-tooling-${{ hashFiles('**/elm-tooling.json') }}
+          restore-keys: |
+            ${{ runner.os }}-elm-tooling-
+
       - name: Install tooling
         run: |
-          mise run setup
+          ELM_TOOLING_INSTALL=1 mise run setup
       - name: Make Morphir IR
         run: |
           mise run build:morphir-elm

@@ -23,7 +23,7 @@ final case class VersionInfo(
 private def renderTable(rows: Seq[(String, String)]): String =
   val labelWidth = rows.map(_._1.length).max
   val valueWidth = rows.map(_._2.length).max
-  val inner      = labelWidth + valueWidth + 3 // " │ "
+  val inner  = labelWidth + valueWidth + 3 // " │ "
   val top    = s"╔${"═" * (inner + 2)}╗"
   val bottom = s"╚${"═" * (inner + 2)}╝"
   val sep    = s"╠${"═" * (inner + 2)}╣"
