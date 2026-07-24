@@ -267,7 +267,7 @@ object morphir extends CrossPlatform { morphir =>
               Seq(
                 Deps.dev.zio.`zio-json-golden`,
                 mvn"io.github.deblockt:json-diff:1.1.0",
-                mvn"com.fasterxml.jackson.core:jackson-databind:2.18.9",
+                mvn"com.fasterxml.jackson.core:jackson-databind:2.22.1",
                 Deps.dev.zio.`zio-process`
               )
             }
