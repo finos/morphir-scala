@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 # Detect sandbox environment (Claude Code / CI) and use --no-server if needed.
-# Also forwards SSL/proxy settings required in Capital One network environments.
+# Also forwards SSL/proxy settings required in enterprise network environments.
 
 MILL_FLAGS=""
 
@@ -14,7 +14,7 @@ if [ -z "${CLAUDE_CODE_ENTRYPOINT}" ] && [ -z "${CI}" ] && [ "${MILL_USE_SERVER}
   MILL_FLAGS=""
 fi
 
-# Forward SSL CA bundle if set (Capital One / enterprise environments)
+# Forward SSL CA bundle if set (enterprise environments)
 JAVA_SSL_OPTS=""
 if [ -n "${CURL_CA_BUNDLE}" ]; then
   JAVA_SSL_OPTS="${JAVA_SSL_OPTS} -Djavax.net.ssl.trustStore=${CURL_CA_BUNDLE}"
