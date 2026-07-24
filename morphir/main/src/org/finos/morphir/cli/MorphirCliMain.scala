@@ -41,6 +41,7 @@ private def executeCommand(command: MorphirCommand): ZIO[Any, Throwable, Unit] =
 // morphir-cli top-level commands
 // ---------------------------------------------------------------------------
 
+@AppName("Bundle Morphir IR models using the Morphir Runtime.")
 final case class BundleOptions(
   @Name("o")
   @HelpMessage("Target file location where the Bundle Morphir IR file will be saved.")
@@ -49,12 +50,12 @@ final case class BundleOptions(
 
 object BundleCommand extends KyoCommand[BundleOptions]:
   override def name = "bundle"
-  override def help = super.help.withFullDescription("Bundle Morphir IR models using the Morphir Runtime.")
   run { (opts: BundleOptions, remaining: RemainingArgs) =>
     val irFiles = remaining.remaining.map(Paths.get(_)).toList
     ZIOs.get(executeCommand(MorphirCommand.Bundle(opts.output, irFiles)))
   }
 
+@AppName("Start up a web server and expose developer tools through a web UI.")
 final case class DevelopOptions(
   @Name("p")
   @HelpMessage("Port to bind the web server to.")
@@ -71,13 +72,11 @@ final case class DevelopOptions(
 
 object DevelopCommand extends KyoCommand[DevelopOptions]:
   override def name = "develop"
-  override def help = super.help.withFullDescription(
-    "Start up a web server and expose developer tools through a web UI."
-  )
   run { (opts: DevelopOptions) =>
     ZIOs.get(executeCommand(MorphirCommand.Develop(opts.port, opts.host, opts.projectDir, opts.openInBrowser)))
   }
 
+@AppName("Split Bundle Morphir IR model(s) into Library Morphir IR model(s).")
 final case class LibraryOptions(
   @Name("o")
   @HelpMessage("Target directory where Library Morphir IR file(s) will be created.")
@@ -86,38 +85,35 @@ final case class LibraryOptions(
 
 object LibraryCommand extends KyoCommand[LibraryOptions]:
   override def name = "library"
-  override def help = super.help.withFullDescription(
-    "Split Bundle Morphir IR model(s) into Library Morphir IR model(s) using the Morphir Runtime."
-  )
   run { (opts: LibraryOptions, remaining: RemainingArgs) =>
     val irFiles = remaining.remaining.map(Paths.get(_)).toList
     ZIOs.get(executeCommand(MorphirCommand.Library(opts.output, irFiles)))
   }
 
+@AppName("Setup morphir-cli for use.")
 final case class SetupOptions()
 
 object SetupCommand extends KyoCommand[SetupOptions]:
   override def name = "setup"
-  override def help = super.help.withFullDescription("Setup morphir-cli for use.")
   run { (_: SetupOptions) =>
     ZIOs.get(executeCommand(MorphirCommand.Setup(Paths.get("~"))))
   }
 
+@AppName("Test Morphir models using the Morphir Runtime.")
 final case class TestOptions()
 
 object TestCommand extends KyoCommand[TestOptions]:
   override def name = "test"
-  override def help = super.help.withFullDescription("Test Morphir models using the Morphir Runtime.")
   run { (_: TestOptions, remaining: RemainingArgs) =>
     val irFiles = remaining.remaining.map(Paths.get(_)).toList
     ZIOs.get(executeCommand(MorphirCommand.Test(irFiles)))
   }
 
+@AppName("Print the morphir-cli version.")
 final case class VersionOptions()
 
 object VersionCommand extends KyoCommand[VersionOptions]:
   override def name = "version"
-  override def help = super.help.withFullDescription("Print the morphir-cli version.")
   run { (_: VersionOptions) =>
     Console.printLine(BuildInfo.version)
   }
@@ -126,6 +122,7 @@ object VersionCommand extends KyoCommand[VersionOptions]:
 // elm sub-commands  (names = List(List("elm", "<sub>")) for nested dispatch)
 // ---------------------------------------------------------------------------
 
+@AppName("Start up a web server and expose developer tools through a web UI.")
 final case class ElmDevelopOptions(
   @Name("p")
   @HelpMessage("Port to bind the web server to.")
@@ -142,15 +139,13 @@ final case class ElmDevelopOptions(
 
 object ElmDevelopCommand extends KyoCommand[ElmDevelopOptions]:
   override def names = List(List("elm", "develop"))
-  override def help  = super.help.withFullDescription(
-    "Start up a web server and expose developer tools through a web UI."
-  )
   run { (opts: ElmDevelopOptions) =>
     ZIOs.get(
       executeCommand(MorphirCommand.ElmDevelop(opts.port, opts.host, opts.projectDir, opts.openInBrowser))
     )
   }
 
+@AppName("Initialize for use with Morphir's Elm tooling.")
 final case class ElmInitOptions(
   @Name("p")
   @HelpMessage("Root directory of the project where morphir.json is located.")
@@ -159,11 +154,11 @@ final case class ElmInitOptions(
 
 object ElmInitCommand extends KyoCommand[ElmInitOptions]:
   override def names = List(List("elm", "init"))
-  override def help  = super.help.withFullDescription("Initialize for use with Morphir's Elm tooling.")
   run { (opts: ElmInitOptions) =>
     ZIOs.get(executeCommand(MorphirCommand.ElmInit(Paths.get("~"), opts.projectDir)))
   }
 
+@AppName("Translate Elm sources to Morphir IR.")
 final case class ElmMakeOptions(
   @Name("p")
   @HelpMessage("Root directory of the project where morphir.json is located.")
@@ -184,7 +179,6 @@ final case class ElmMakeOptions(
 
 object ElmMakeCommand extends KyoCommand[ElmMakeOptions]:
   override def names = List(List("elm", "make"))
-  override def help  = super.help.withFullDescription("Translate Elm sources to Morphir IR.")
   run { (opts: ElmMakeOptions) =>
     ZIOs.get(
       executeCommand(
@@ -193,6 +187,7 @@ object ElmMakeCommand extends KyoCommand[ElmMakeOptions]:
     )
   }
 
+@AppName("Restore a Morphir project that uses Elm as its front-end modelling language.")
 final case class ElmRestoreOptions(
   @Name("e")
   @HelpMessage("Path to the Elm home directory.")
@@ -204,13 +199,11 @@ final case class ElmRestoreOptions(
 
 object ElmRestoreCommand extends KyoCommand[ElmRestoreOptions]:
   override def names = List(List("elm", "restore"))
-  override def help  = super.help.withFullDescription(
-    "Restore a Morphir project that uses Elm as its front-end modelling language."
-  )
   run { (opts: ElmRestoreOptions) =>
     ZIOs.get(executeCommand(MorphirCommand.ElmRestore(opts.elmHome, opts.projectDir)))
   }
 
+@AppName("Test Morphir models using morphir-elm.")
 final case class ElmTestOptions(
   @Name("p")
   @HelpMessage("Root directory of the project where morphir.json is located.")
@@ -219,7 +212,6 @@ final case class ElmTestOptions(
 
 object ElmTestCommand extends KyoCommand[ElmTestOptions]:
   override def names = List(List("elm", "test"))
-  override def help  = super.help.withFullDescription("Test Morphir models using morphir-elm.")
   run { (opts: ElmTestOptions) =>
     ZIOs.get(executeCommand(MorphirCommand.ElmTest(opts.projectDir)))
   }
