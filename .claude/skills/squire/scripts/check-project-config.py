@@ -28,20 +28,20 @@ if package_mill.exists():
 else:
     issues.append("NOT FOUND - morphir/package.mill does not exist")
 
-# 3. /var/folders in ~/.claude/settings.json
-settings_path = pathlib.Path.home() / ".claude/settings.json"
-if settings_path.exists():
-    try:
-        s = json.loads(settings_path.read_text())
-        allow_write = s.get("sandbox", {}).get("filesystem", {}).get("allowWrite", [])
-        if "/var/folders" in allow_write:
-            print("OK - /var/folders in sandbox.filesystem.allowWrite")
-        else:
-            issues.append("MISSING /var/folders in sandbox.filesystem.allowWrite in ~/.claude/settings.json")
-    except json.JSONDecodeError:
-        issues.append("INVALID JSON in ~/.claude/settings.json")
-else:
-    issues.append("NOT FOUND - ~/.claude/settings.json does not exist")
+# 3. /var/folders write access — probe by actual write attempt (ground truth)
+probe = "/var/folders/.squire-probe"
+try:
+    import os
+    open(probe, "w").close()
+    os.unlink(probe)
+    print("OK - /var/folders is writable (cellar can write temp .tasty files)")
+except PermissionError:
+    issues.append(
+        "BLOCKED - /var/folders is not writable; cellar will fail\n"
+        "  Fix: add /var/folders to sandbox.filesystem.allowWrite in ~/.claude/settings.json\n"
+        "  Note: restart Claude Code after changing sandbox settings\n"
+        "  (settings.json may already contain this entry but a restart is required)"
+    )
 
 if issues:
     for issue in issues:
