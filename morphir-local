@@ -5,10 +5,13 @@
 
 MILL_FLAGS=""
 
-# Sandbox detection: test if we can connect to localhost TCP (mill daemon uses TCP).
-# If the test socket is blocked, fall back to --no-server (in-process mill).
-if ! python3 -c "import socket; s=socket.socket(); s.settimeout(1); s.connect(('127.0.0.1', 1)); s.close()" 2>/dev/null; then
-  MILL_FLAGS="--no-server"
+# Sandbox detection: Java NIO sockets may be blocked even when python sockets work.
+# Default to --no-server for safety; only use the daemon when MILL_USE_SERVER=1 is set
+# or when we can confirm we're not in a restricted environment.
+# Claude Code sandbox sets CLAUDE_CODE_ENTRYPOINT; CI environments set CI=true.
+MILL_FLAGS="--no-server"
+if [ -z "${CLAUDE_CODE_ENTRYPOINT}" ] && [ -z "${CI}" ] && [ "${MILL_USE_SERVER}" = "1" ]; then
+  MILL_FLAGS=""
 fi
 
 # Forward SSL CA bundle if set (Capital One / enterprise environments)
