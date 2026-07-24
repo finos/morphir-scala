@@ -8,58 +8,33 @@ Full catalogue of known environment blockers and the step-by-step diagnostic pro
 
 Run these checks in order and report each as ✅ (no action needed) or ⚠️ (blocker present) with the specific fix to apply.
 
-1. **Check sandbox TCP restriction** — read the mill daemon port from `out/mill-daemon/socketPort` if it exists, then run:
-   ```bash
-   python3 -c "
-   import socket, errno
-   port = int(open('out/mill-daemon/socketPort').read().strip())
-   s = socket.socket()
-   s.settimeout(1)
-   try:
-       s.connect(('127.0.0.1', port))
-       print('REACHABLE - daemon accessible')
-   except OSError as e:
-       if e.errno == errno.EPERM:
-           print('SANDBOX - JVM TCP blocked, use --no-server')
-       else:
-           print(f'REFUSED - daemon not running ({e})')
-   "
-   ```
+### 1. Mill daemon TCP connectivity
 
-2. **Check mill daemon state** — read `out/mill-daemon/processId` and `out/mill-daemon/daemonState.json` if they exist.
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-mill-daemon.py
+```
 
-3. **Check `/var/folders` write access** — run:
-   ```bash
-   python3 -c "
-   import os
-   try:
-       open('/var/folders/.squire-probe','w').close()
-       os.unlink('/var/folders/.squire-probe')
-       print('OK - cellar can write temp files')
-   except PermissionError:
-       print('BLOCKED - add /var/folders to sandbox.filesystem.allowWrite in ~/.claude/settings.json, then restart Claude Code')
-   "
-   ```
+Output `REACHABLE` → daemon accessible, no action needed.
+Output `SANDBOX` → JVM TCP blocked; see [Mill daemon blocked](#1-mill-daemon-tcp-socket-blocked-sandbox).
+Output `REFUSED` or `NO_DAEMON` → daemon not running; plain `./mill` will start one, or use `./morphir-local`.
 
-4. **Check `elm-tooling` skip guard** — verify `.config/mise/tasks/setup` contains `ELM_TOOLING_INSTALL`:
-   ```bash
-   grep -c "ELM_TOOLING_INSTALL" .config/mise/tasks/setup && echo "OK" || echo "MISSING"
-   ```
+### 2. `/var/folders` write access (cellar)
 
-5. **Check `mainClass` Task wrapper** — verify `morphir/package.mill` uses `Task { }`:
-   ```bash
-   grep "Task { Some" morphir/package.mill && echo "OK" || echo "MISSING - assembly will warn"
-   ```
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-var-folders.py
+```
 
-6. **Check `~/.claude/settings.json`** — verify `/var/folders` allowWrite entry:
-   ```bash
-   python3 -c "
-   import json, pathlib
-   s = json.loads(pathlib.Path.home().joinpath('.claude/settings.json').read_text())
-   paths = s.get('sandbox',{}).get('filesystem',{}).get('allowWrite',[])
-   print('OK' if '/var/folders' in paths else 'MISSING - add /var/folders to sandbox.filesystem.allowWrite')
-   "
-   ```
+Output `OK` → cellar can write temp files.
+Output `BLOCKED` → see [cellar temp file error](#3-cellar-temp-file-permission-error).
+
+### 3. Project configuration checks
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-project-config.py
+```
+
+Checks elm-tooling guard, `mainClass` Task wrapper, and `/var/folders` in sandbox settings in one pass.
+Output `ISSUE` lines identify which fixes are needed.
 
 ---
 
