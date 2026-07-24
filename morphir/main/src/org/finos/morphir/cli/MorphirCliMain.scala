@@ -1,183 +1,245 @@
 package org.finos.morphir.cli
 
-import java.nio.file.{Path => JPath, Paths}
-import org.finos.morphir.service._
-import org.finos.morphir.runtime.service._
-import org.finos.morphir.util.vfile._
-import zio.{BuildInfo => _, _}
-import zio.cli._
-import zio.cli.HelpDoc.Span.text
-object MorphirCliMain extends ZIOCliDefault {
-  val cliApp = CliApp.make(
-    name = "morphir-cli",
-    version = BuildInfo.version,
-    summary = text("Morphir CLI"),
-    command = commands.Morphir.root
-  )(executeCommand(_).provide(
-    MorphirBundle.live,
-    MorphirSetup.live,
-    MorphirElmDriver.live,
-    MorphirRuntimeDriver.live
-  ))
+import caseapp.*
+import caseapp.core.RemainingArgs
+import caseapp.core.app.{Command, CommandsEntryPoint}
+import java.nio.file.{Path, Paths}
+import kyo.*
+import kyo.ZIOs
+import org.finos.morphir.runtime.service.*
+import org.finos.morphir.service.*
+import org.finos.morphir.util.vfile.*
+import zio.{BuildInfo => _, ZIO}
 
-  private def executeCommand(command: MorphirCommand) = command match {
-    case MorphirCommand.Bundle(outputBundleIRFilePath, irFiles) =>
-      MorphirBundle.bundle(VPath(outputBundleIRFilePath), irFiles.map(VPath(_)))
-    case MorphirCommand.Develop(port, host, projectDir, openInBrowser) =>
-      MorphirElmDriver.develop(port, host, VPath(projectDir), openInBrowser)
-    case MorphirCommand.Library(outputDir, irFiles) =>
-      MorphirBundle.library(VPath(outputDir), irFiles.map(VPath(_)))
-    case MorphirCommand.Setup(morphirHomeDir)                             => MorphirSetup.setup(VPath(morphirHomeDir))
-    case MorphirCommand.Test(irFiles)                                     => MorphirRuntimeDriver.test()
-    case MorphirCommand.ElmDevelop(port, host, projectDir, openInBrowser) =>
-      MorphirElmDriver.develop(port, host, VPath(projectDir), openInBrowser)
-    case MorphirCommand.ElmInit(morphirHomeDir, projectDir) =>
-      MorphirElmDriver.init(VPath(morphirHomeDir), VPath(projectDir))
-    case MorphirCommand.ElmMake(projectDir, output, typesOnly, fallbackCli, indentJson) =>
-      MorphirElmDriver.make(VPath(projectDir), VPath(output), fallbackCli)
-    case MorphirCommand.ElmRestore(elmHome, projectDir) =>
-      MorphirElmDriver.restore(VPath(elmHome), VPath(projectDir))
-    case MorphirCommand.ElmTest(projectDir) => MorphirElmDriver.test(VPath(projectDir))
+// ---------------------------------------------------------------------------
+// Central ZIO dispatcher — services stay on ZIO; we bridge to Kyo at the edge
+// ---------------------------------------------------------------------------
+
+private def executeCommand(command: MorphirCommand): ZIO[Any, Throwable, Unit] = command match
+  case MorphirCommand.Bundle(outputPath, irFiles) =>
+    MorphirBundle.bundle(VPath(outputPath), irFiles.map(VPath(_))).provide(MorphirBundle.live)
+  case MorphirCommand.Develop(port, host, projectDir, openInBrowser) =>
+    MorphirElmDriver.develop(port, host, VPath(projectDir), openInBrowser).provide(MorphirElmDriver.live)
+  case MorphirCommand.Library(outputDir, irFiles) =>
+    MorphirBundle.library(VPath(outputDir), irFiles.map(VPath(_))).provide(MorphirBundle.live)
+  case MorphirCommand.Setup(morphirHomeDir) =>
+    MorphirSetup.setup(VPath(morphirHomeDir)).provide(MorphirSetup.live)
+  case MorphirCommand.Test(_) =>
+    MorphirRuntimeDriver.test().provide(MorphirRuntimeDriver.live)
+  case MorphirCommand.ElmDevelop(port, host, projectDir, openInBrowser) =>
+    MorphirElmDriver.develop(port, host, VPath(projectDir), openInBrowser).provide(MorphirElmDriver.live)
+  case MorphirCommand.ElmInit(morphirHomeDir, projectDir) =>
+    MorphirElmDriver.init(VPath(morphirHomeDir), VPath(projectDir)).provide(MorphirElmDriver.live)
+  case MorphirCommand.ElmMake(projectDir, output, _, fallbackCli, _) =>
+    MorphirElmDriver.make(VPath(projectDir), VPath(output), fallbackCli).provide(MorphirElmDriver.live).unit
+  case MorphirCommand.ElmRestore(elmHome, projectDir) =>
+    MorphirElmDriver.restore(VPath(elmHome), VPath(projectDir)).provide(MorphirElmDriver.live)
+  case MorphirCommand.ElmTest(projectDir) =>
+    MorphirElmDriver.test(VPath(projectDir)).provide(MorphirElmDriver.live)
+
+// ---------------------------------------------------------------------------
+// morphir-cli top-level commands
+// ---------------------------------------------------------------------------
+
+final case class BundleOptions(
+  @Name("o")
+  @HelpMessage("Target file location where the Bundle Morphir IR file will be saved.")
+  output: Path = Paths.get("morphir-ir.json")
+)
+
+object BundleCommand extends KyoCommand[BundleOptions]:
+  override def name = "bundle"
+  override def help = super.help.withFullDescription("Bundle Morphir IR models using the Morphir Runtime.")
+  run { (opts: BundleOptions, remaining: RemainingArgs) =>
+    val irFiles = remaining.remaining.map(Paths.get(_)).toList
+    ZIOs.get(executeCommand(MorphirCommand.Bundle(opts.output, irFiles)))
   }
 
-  object commands {
+final case class DevelopOptions(
+  @Name("p")
+  @HelpMessage("Port to bind the web server to.")
+  port: Int = 3000,
+  @HelpMessage("Host to bind the web server to.")
+  host: String = "localhost",
+  @Name("i")
+  @HelpMessage("Root directory of the project where morphir.json is located.")
+  projectDir: Path = Paths.get("."),
+  @Name("o")
+  @HelpMessage("Open in browser.")
+  openInBrowser: Boolean = false
+)
 
-    object Elm {
-
-      val develop = {
-        val port = Options.integer("port").alias("p").withDefault(BigInt(3000)).map(
-          _.intValue
-        ) ?? "Port to bind the web server to."
-        val host       = Options.text("host").alias("h").withDefault("localhost") ?? "Host to bind the web server to."
-        val projectDir = Options.directory("project-dir").alias("i").withDefault(
-          Paths.get(".")
-        ) ?? "Root directory of the project where morphir.json is located."
-        val openInBrowser = Options.boolean("open-in-browser").alias("o") ?? "Open in browser."
-
-        Command("develop", port ++ host ++ projectDir ++ openInBrowser).withHelp(
-          "Start up a web server and expose developer tools through a web UI."
-        ).map { case (port, host, projectDir, openInBrowser) =>
-          MorphirCommand.ElmDevelop(port, host, projectDir, openInBrowser)
-        }
-      }
-
-      val init = {
-        val projectDir = Options.directory("project-dir").alias("p").withDefault(Paths.get("."))
-
-        Command("init", projectDir).withHelp("Initialize for use with Morphir's Elm tooling.").map { projectDir =>
-          MorphirCommand.ElmInit(Paths.get("~"), projectDir)
-        }
-      }
-
-      val make = {
-        val projectDir = Options.directory("project-dir").alias("p").withDefault(
-          Paths.get(".")
-        ) ?? "Root directory of the project where morphir.json is located."
-        val output = Options.file("output").alias("o").withDefault(
-          Paths.get("morphir-ir.json")
-        ) ?? "Target file location where the Morphir IR will be saved."
-        val typesOnly =
-          Options.boolean("types-only").alias("t") ?? "Only include type information in the IR, no values."
-        val fallbackCli =
-          Options.boolean("fallback-cli").alias("f") ?? "Use the old (non-incremental) CLI make function."
-        val indentJson = Options.boolean("indent-json").alias("i") ?? "Use indentation in the generated JSON file."
-
-        Command("make", projectDir ++ output ++ typesOnly ++ fallbackCli ++ indentJson).withHelp(
-          "Translate Elm sources to Morphir IR."
-        ).map { case (projectDir, output, typesOnly, fallbackCli, indentJson) =>
-          MorphirCommand.ElmMake(projectDir, output, typesOnly, fallbackCli, indentJson)
-        }
-      }
-
-      val restore = {
-        val elmHome    = Options.directory("elm-home").alias("e").withDefault(Paths.get("~/.elm"))
-        val projectDir = Options.directory("project-dir").alias("p").withDefault(Paths.get("."))
-        Command("restore", elmHome ++ projectDir).withHelp(
-          "Restore a Morphir project that uses Elm as its front-end modelling language.."
-        ).map { case (elmHome, projectDir) =>
-          MorphirCommand.ElmRestore(elmHome, projectDir)
-        }
-      }
-
-      lazy val root =
-        Command("elm").withHelp("Elm specific commands for morphir-cli.").subcommands(
-          develop,
-          init,
-          make,
-          restore,
-          test
-        )
-
-      val test = {
-        val projectDir = Options.directory("project-dir").alias("p").withDefault(
-          Paths.get(".")
-        ) ?? "Root directory of the project where morphir.json is located."
-
-        Command("test", projectDir).withHelp("Test Morphir models using morphir-elm.").map { projectDir =>
-          MorphirCommand.ElmTest(projectDir)
-        }
-      }
-    }
-
-    object Morphir {
-
-      val bundle = {
-        val irFiles    = Args.file("ir-files").atLeast(1) ?? "Morphir IR files to bundle"
-        val outputPath = Options.file("output").alias("o").withDefault(
-          Paths.get("morphir-ir.json")
-        ) ?? "Target file location where the Bundle Morphir IR file will be saved."
-
-        Command("bundle", outputPath, irFiles).withHelp(
-          "Bundle Morphir IR models using the Morphir Runtime."
-        ).map { (output, files) =>
-          MorphirCommand.Bundle(output, files)
-        }
-      }
-
-      val develop = {
-        val port = Options.integer("port").alias("p").withDefault(BigInt(3000)).map(
-          _.intValue
-        ) ?? "Port to bind the web server to."
-        val host       = Options.text("host").alias("h").withDefault("localhost") ?? "Host to bind the web server to."
-        val projectDir = Options.directory("project-dir").alias("i").withDefault(
-          Paths.get(".")
-        ) ?? "Root directory of the project where morphir.json is located."
-        val openInBrowser = Options.boolean("open-in-browser").alias("o") ?? "Open in browser."
-
-        Command("develop", port ++ host ++ projectDir ++ openInBrowser).withHelp(
-          "Start up a web server and expose developer tools through a web UI."
-        ).map { case (port, host, projectDir, openInBrowser) =>
-          MorphirCommand.Develop(port, host, projectDir, openInBrowser)
-        }
-      }
-
-      val library = {
-        val irFiles =
-          Args.file("ir-files").atLeast(1) ?? "Bundle Morphir IR file(s) to be split into Library Morphir IR File(s)"
-        val outputDir = Options.directory("output").alias("o").withDefault(
-          Paths.get(".")
-        ) ?? "Target directory where Library Morphir IR file(s) will be created."
-
-        Command("library", outputDir, irFiles).withHelp(
-          "Split Bundle Morphir IR model(s) into Library Morphir IR model(s) using the Morphir Runtime."
-        ).map { (output, files) =>
-          MorphirCommand.Library(output, files)
-        }
-      }
-
-      val setup = Command("setup").withHelp("Setup morphir-cli for use.").map { _ =>
-        val morphirHomeDir = Paths.get("~")
-        MorphirCommand.Setup(morphirHomeDir)
-      }
-
-      def root = Command("morphir-cli").subcommands(bundle, develop, Elm.root, library, setup, test)
-
-      val test = {
-        val irFiles = Args.file("ir-files").repeat
-        Command("test", irFiles).withHelp("Test Morphir models using the Morphir Runtime.").map { irFiles =>
-          MorphirCommand.Test(irFiles)
-        }
-      }
-    }
+object DevelopCommand extends KyoCommand[DevelopOptions]:
+  override def name = "develop"
+  override def help = super.help.withFullDescription(
+    "Start up a web server and expose developer tools through a web UI."
+  )
+  run { (opts: DevelopOptions) =>
+    ZIOs.get(executeCommand(MorphirCommand.Develop(opts.port, opts.host, opts.projectDir, opts.openInBrowser)))
   }
-}
+
+final case class LibraryOptions(
+  @Name("o")
+  @HelpMessage("Target directory where Library Morphir IR file(s) will be created.")
+  output: Path = Paths.get(".")
+)
+
+object LibraryCommand extends KyoCommand[LibraryOptions]:
+  override def name = "library"
+  override def help = super.help.withFullDescription(
+    "Split Bundle Morphir IR model(s) into Library Morphir IR model(s) using the Morphir Runtime."
+  )
+  run { (opts: LibraryOptions, remaining: RemainingArgs) =>
+    val irFiles = remaining.remaining.map(Paths.get(_)).toList
+    ZIOs.get(executeCommand(MorphirCommand.Library(opts.output, irFiles)))
+  }
+
+final case class SetupOptions()
+
+object SetupCommand extends KyoCommand[SetupOptions]:
+  override def name = "setup"
+  override def help = super.help.withFullDescription("Setup morphir-cli for use.")
+  run { (_: SetupOptions) =>
+    ZIOs.get(executeCommand(MorphirCommand.Setup(Paths.get("~"))))
+  }
+
+final case class TestOptions()
+
+object TestCommand extends KyoCommand[TestOptions]:
+  override def name = "test"
+  override def help = super.help.withFullDescription("Test Morphir models using the Morphir Runtime.")
+  run { (_: TestOptions, remaining: RemainingArgs) =>
+    val irFiles = remaining.remaining.map(Paths.get(_)).toList
+    ZIOs.get(executeCommand(MorphirCommand.Test(irFiles)))
+  }
+
+final case class VersionOptions()
+
+object VersionCommand extends KyoCommand[VersionOptions]:
+  override def name = "version"
+  override def help = super.help.withFullDescription("Print the morphir-cli version.")
+  run { (_: VersionOptions) =>
+    Console.printLine(BuildInfo.version)
+  }
+
+// ---------------------------------------------------------------------------
+// elm sub-commands  (names = List(List("elm", "<sub>")) for nested dispatch)
+// ---------------------------------------------------------------------------
+
+final case class ElmDevelopOptions(
+  @Name("p")
+  @HelpMessage("Port to bind the web server to.")
+  port: Int = 3000,
+  @HelpMessage("Host to bind the web server to.")
+  host: String = "localhost",
+  @Name("i")
+  @HelpMessage("Root directory of the project where morphir.json is located.")
+  projectDir: Path = Paths.get("."),
+  @Name("o")
+  @HelpMessage("Open in browser.")
+  openInBrowser: Boolean = false
+)
+
+object ElmDevelopCommand extends KyoCommand[ElmDevelopOptions]:
+  override def names = List(List("elm", "develop"))
+  override def help  = super.help.withFullDescription(
+    "Start up a web server and expose developer tools through a web UI."
+  )
+  run { (opts: ElmDevelopOptions) =>
+    ZIOs.get(
+      executeCommand(MorphirCommand.ElmDevelop(opts.port, opts.host, opts.projectDir, opts.openInBrowser))
+    )
+  }
+
+final case class ElmInitOptions(
+  @Name("p")
+  @HelpMessage("Root directory of the project where morphir.json is located.")
+  projectDir: Path = Paths.get(".")
+)
+
+object ElmInitCommand extends KyoCommand[ElmInitOptions]:
+  override def names = List(List("elm", "init"))
+  override def help  = super.help.withFullDescription("Initialize for use with Morphir's Elm tooling.")
+  run { (opts: ElmInitOptions) =>
+    ZIOs.get(executeCommand(MorphirCommand.ElmInit(Paths.get("~"), opts.projectDir)))
+  }
+
+final case class ElmMakeOptions(
+  @Name("p")
+  @HelpMessage("Root directory of the project where morphir.json is located.")
+  projectDir: Path = Paths.get("."),
+  @Name("o")
+  @HelpMessage("Target file location where the Morphir IR will be saved.")
+  output: Path = Paths.get("morphir-ir.json"),
+  @Name("t")
+  @HelpMessage("Only include type information in the IR, no values.")
+  typesOnly: Boolean = false,
+  @Name("f")
+  @HelpMessage("Use the old (non-incremental) CLI make function.")
+  fallbackCli: Boolean = false,
+  @Name("i")
+  @HelpMessage("Use indentation in the generated JSON file.")
+  indentJson: Boolean = false
+)
+
+object ElmMakeCommand extends KyoCommand[ElmMakeOptions]:
+  override def names = List(List("elm", "make"))
+  override def help  = super.help.withFullDescription("Translate Elm sources to Morphir IR.")
+  run { (opts: ElmMakeOptions) =>
+    ZIOs.get(
+      executeCommand(
+        MorphirCommand.ElmMake(opts.projectDir, opts.output, opts.typesOnly, opts.fallbackCli, opts.indentJson)
+      )
+    )
+  }
+
+final case class ElmRestoreOptions(
+  @Name("e")
+  @HelpMessage("Path to the Elm home directory.")
+  elmHome: Path = Paths.get("~/.elm"),
+  @Name("p")
+  @HelpMessage("Root directory of the project.")
+  projectDir: Path = Paths.get(".")
+)
+
+object ElmRestoreCommand extends KyoCommand[ElmRestoreOptions]:
+  override def names = List(List("elm", "restore"))
+  override def help  = super.help.withFullDescription(
+    "Restore a Morphir project that uses Elm as its front-end modelling language."
+  )
+  run { (opts: ElmRestoreOptions) =>
+    ZIOs.get(executeCommand(MorphirCommand.ElmRestore(opts.elmHome, opts.projectDir)))
+  }
+
+final case class ElmTestOptions(
+  @Name("p")
+  @HelpMessage("Root directory of the project where morphir.json is located.")
+  projectDir: Path = Paths.get(".")
+)
+
+object ElmTestCommand extends KyoCommand[ElmTestOptions]:
+  override def names = List(List("elm", "test"))
+  override def help  = super.help.withFullDescription("Test Morphir models using morphir-elm.")
+  run { (opts: ElmTestOptions) =>
+    ZIOs.get(executeCommand(MorphirCommand.ElmTest(opts.projectDir)))
+  }
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+object MorphirCliMain extends CommandsEntryPoint:
+  def progName = "morphir-cli"
+  def commands: Seq[Command[?]] = Seq(
+    BundleCommand,
+    DevelopCommand,
+    LibraryCommand,
+    SetupCommand,
+    TestCommand,
+    VersionCommand,
+    ElmDevelopCommand,
+    ElmInitCommand,
+    ElmMakeCommand,
+    ElmRestoreCommand,
+    ElmTestCommand
+  )

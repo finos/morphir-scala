@@ -67,6 +67,7 @@ object `package` extends CrossPlatform { morphir =>
     def packageDescription =
       "The morphir-main package. This is the main entry point for the morphir tooling, including the morphir-cli."
 
+    def mainClass    = Some("org.finos.morphir.cli.MorphirCliMain")
     def scalaVersion = Task { mainScalaVersion }
     def mvnDeps      = Seq(
       Deps.co.fs2.`fs2-io`,
@@ -75,7 +76,8 @@ object `package` extends CrossPlatform { morphir =>
       Deps.com.lihaoyi.sourcecode,
       Deps.dev.zio.zio,
       Deps.dev.zio.`zio-interop-cats`,
-      Deps.dev.zio.`zio-cli`,
+      Deps.io.getkyo.`kyo-case-app`,
+      Deps.io.getkyo.`kyo-zio`,
       Deps.dev.zio.`zio-config`,
       Deps.dev.zio.config.magnolia,
       Deps.dev.zio.config.refined,

@@ -130,6 +130,7 @@ object Deps {
     object getkyo {
       val `kyo-case-app` = mvn"io.getkyo::kyo-case-app::${Versions.`kyo-case-app`}"
       val `kyo-schema`   = mvn"io.getkyo::kyo-schema::${Versions.`kyo-case-app`}"
+      val `kyo-zio`      = mvn"io.getkyo::kyo-zio::${Versions.`kyo-case-app`}"
     }
     object bullet {
       def `borer-core`(scalaVersion: String): Dep = mvn"io.bullet::borer-core::${Versions.borer(scalaVersion)}"
