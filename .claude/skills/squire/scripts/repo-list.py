@@ -37,7 +37,7 @@ def current_commit(path):
 
 
 def disk_status(entry):
-    path = REFS_DIR / entry["name"]
+    path = REFS_DIR / entry.get("path", entry["name"])
     if path.is_symlink():
         target = path.resolve()
         if not target.exists():
@@ -70,12 +70,13 @@ def main():
         print(json.dumps(manifest, indent=2))
         return
 
-    print(f"{'NAME':<20} {'STRATEGY':<10} {'REF':<20} {'STATUS'}")
-    print("-" * 75)
+    print(f"{'NAME':<20} {'PATH':<28} {'STRATEGY':<10} {'REF':<20} {'STATUS'}")
+    print("-" * 100)
     for r in repos:
         status = disk_status(r)
         ref = (r.get("ref") or "")[:20]
-        print(f"{r['name']:<20} {r.get('strategy','?'):<10} {ref:<20} {status}")
+        path = r.get("path", r["name"])
+        print(f"{r['name']:<20} {path:<28} {r.get('strategy','?'):<10} {ref:<20} {status}")
 
 
 if __name__ == "__main__":

@@ -4,11 +4,28 @@ squire repo add — Add a reference repository to .refs/
 
 Usage:
   python3 repo-add.py <url-or-path> [--name NAME] [--ref REF] [--strategy clone|symlink|worktree]
+                       [--depth N | --full]
 
 Strategies:
-  clone     (default) Git clone into .refs/<name>
-  symlink   Symlink an existing local path into .refs/<name>
-  worktree  Add a git worktree from an existing local repo at the given ref
+  clone     (default) Git clone into .refs/<org>/<name>
+  symlink   Symlink an existing local path into .refs/<org>/<name>
+  worktree  Add a git worktree into .refs/<org>/.worktrees/<repo-name>/<name>
+
+Path hierarchy:
+  Repos are placed under .refs/<org>/<name> where <org> is the GitHub owner
+  (for remote URLs) or the parent directory name (for local paths), avoiding
+  clashes between same-named repos from different owners. Falls back to a
+  flat .refs/<name> if no org can be determined. Manifest lookups are still
+  keyed by <name> alone — use --name to disambiguate a same-name collision.
+
+  Worktrees are nested one level deeper, under .worktrees/<repo-name>/,
+  since --name there names the worktree snapshot (e.g. "mill-0.12"), not
+  the repo itself — <repo-name> is taken from the source repo's directory.
+
+Clone depth:
+  Clones default to --depth 1 (shallow, just the ref being downloaded).
+  Pass --depth N for a deeper shallow clone, or --full for complete history.
+  Ignored for symlink/worktree strategies.
 
 The manifest at .refs/manifest.json is updated after every operation.
 """
@@ -43,6 +60,31 @@ def repo_name_from_url(url):
     if name.endswith(".git"):
         name = name[:-4]
     return name
+
+
+def org_from_url(url_or_path):
+    """Best-effort extraction of the owning org/user, for .refs/<org>/<name> layout.
+
+    For remote URLs this is the GitHub-style owner segment (host/OWNER/repo).
+    For local paths it's the immediate parent directory name, which matches
+    this project's convention of cloning under ~/code/github/<owner>/<repo>.
+    Returns None if no org segment can be determined (flat .refs/<name> then).
+    """
+    s = url_or_path.rstrip("/")
+    if s.endswith(".git"):
+        s = s[:-4]
+    if s.startswith("git@"):
+        _, _, rest = s.partition(":")
+        parts = [p for p in rest.split("/") if p]
+        return parts[-2] if len(parts) >= 2 else None
+    if "://" in s:
+        rest = s.split("://", 1)[1]
+        parts = [p for p in rest.split("/") if p]
+        parts = parts[1:]  # drop host
+        return parts[-2] if len(parts) >= 2 else None
+    # Local filesystem path
+    path = pathlib.Path(url_or_path).resolve()
+    return path.parent.name or None
 
 
 def resolve_git_ref(path):
@@ -87,24 +129,32 @@ def is_github_url(url):
     return "github.com" in url
 
 
-def add_clone(url, name, ref, dest):
-    """Clone a remote URL into dest, preferring gh CLI for GitHub URLs."""
+def add_clone(url, name, ref, dest, depth):
+    """Clone a remote URL into dest, preferring gh CLI for GitHub URLs.
+
+    depth=None means a full clone (all history); any int means a shallow
+    clone truncated to that many commits on the resolved ref.
+    """
+    depth_args = [] if depth is None else ["--depth", str(depth)]
     if is_github_url(url) and gh_available():
         # gh repo clone handles auth, SSH fallback, and is generally faster
         cmd = ["gh", "repo", "clone", url, str(dest)]
+        extra = depth_args[:]
         if ref:
-            cmd += ["--", "--branch", ref, "--single-branch"]
-        print(f"Cloning {url} → {dest} (via gh) ...")
+            extra += ["--branch", ref, "--single-branch"]
+        if extra:
+            cmd += ["--"] + extra
+        print(f"Cloning {url} → {dest} (via gh, depth={depth or 'full'}) ...")
     else:
-        cmd = ["git", "clone"]
+        cmd = ["git", "clone"] + depth_args
         if ref:
             cmd += ["--branch", ref, "--single-branch"]
         cmd += [url, str(dest)]
-        print(f"Cloning {url} → {dest} (via git) ...")
+        print(f"Cloning {url} → {dest} (via git, depth={depth or 'full'}) ...")
     subprocess.run(cmd, check=True)
     actual_ref = resolve_ref_name(dest)
     commit = resolve_git_ref(dest)
-    return {"strategy": "clone", "url": url, "ref": actual_ref, "commit": commit}
+    return {"strategy": "clone", "url": url, "ref": actual_ref, "commit": commit, "depth": depth}
 
 
 def add_symlink(source, name, dest):
@@ -148,18 +198,39 @@ def main():
     parser.add_argument("--ref", help="Branch, tag, or commit to checkout")
     parser.add_argument("--strategy", choices=["clone", "symlink", "worktree"],
                         default="clone", help="How to add the repo (default: clone)")
+    parser.add_argument("--depth", type=int,
+                        help="Shallow-clone depth (default: 1). Ignored with --full.")
+    parser.add_argument("--full", action="store_true",
+                        help="Full clone with complete history (no depth limit)")
     args = parser.parse_args()
 
+    if args.full and args.depth is not None:
+        print("ERROR: --full and --depth are mutually exclusive", file=sys.stderr)
+        sys.exit(1)
+    depth = None if args.full else (args.depth or 1)
+
     name = args.name or repo_name_from_url(args.url_or_path)
-    dest = REFS_DIR / name
+    org = org_from_url(args.url_or_path)
+    if args.strategy == "worktree":
+        # Worktrees nest under the source repo's own name, since --name here
+        # names the *worktree* (e.g. "mill-0.12"), not the repo itself.
+        repo_name = pathlib.Path(args.url_or_path).resolve().name
+        worktrees_root = f"{org}/.worktrees/{repo_name}" if org else f".worktrees/{repo_name}"
+        rel_path = f"{worktrees_root}/{name}"
+    else:
+        rel_path = f"{org}/{name}" if org else name
+    dest = REFS_DIR / rel_path
 
     manifest = load_manifest()
     if any(r["name"] == name for r in manifest["repos"]):
-        print(f"ERROR: repo '{name}' already in manifest. Use repo-remove.py first.", file=sys.stderr)
+        print(f"ERROR: repo '{name}' already in manifest. Use --name to disambiguate, "
+              f"or repo-remove.py first.", file=sys.stderr)
         sys.exit(1)
 
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
     if args.strategy == "clone":
-        meta = add_clone(args.url_or_path, name, args.ref, dest)
+        meta = add_clone(args.url_or_path, name, args.ref, dest, depth)
     elif args.strategy == "symlink":
         meta = add_symlink(args.url_or_path, name, dest)
     elif args.strategy == "worktree":
@@ -167,6 +238,8 @@ def main():
 
     entry = {
         "name": name,
+        "org": org,
+        "path": rel_path,
         "added": datetime.now(timezone.utc).isoformat(),
         **meta
     }

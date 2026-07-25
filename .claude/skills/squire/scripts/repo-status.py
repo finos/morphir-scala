@@ -33,8 +33,9 @@ def git(path, *args):
 
 def status_entry(entry):
     name = entry["name"]
-    path = REFS_DIR / name
+    path = REFS_DIR / entry.get("path", name)
     lines = [f"  name:     {name}"]
+    lines.append(f"  path:     {path}")
     lines.append(f"  strategy: {entry.get('strategy','?')}")
 
     if entry.get("url"):
