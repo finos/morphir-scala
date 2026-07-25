@@ -9,6 +9,10 @@ cellar:
   # Extra Maven repository URLs passed to cellar for dependency resolution.
   # Add any internal/private Artifactory or Nexus mirrors your org uses.
   # These supplement (not replace) Maven Central.
+  #
+  # Note: the built-in aliases for kyo-case-app, kyo-schema, and kyo-zio
+  # resolve to io.getkyo artifacts that are NOT on Maven Central. You must
+  # add your organisation's Maven mirror here for those aliases to work.
   repositories:
     # - https://your-org.example.com/artifactory/sbt-repo
     # - https://your-org.example.com/artifactory/maven-repo

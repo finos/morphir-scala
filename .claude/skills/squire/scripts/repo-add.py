@@ -72,10 +72,13 @@ def resolve_ref_name(path):
 
 
 def gh_available():
-    """Return True if the gh CLI is installed and authenticated."""
+    """Return True if the gh CLI is installed and at least one account is authenticated."""
     try:
-        r = subprocess.run(["gh", "auth", "status"], capture_output=True)
-        return r.returncode == 0
+        r = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True)
+        # gh auth status exits non-zero if ANY account has a bad token, even when
+        # another account is active. Check for a logged-in account in the output instead.
+        combined = r.stdout + r.stderr
+        return "Logged in" in combined or "✓" in combined
     except FileNotFoundError:
         return False
 

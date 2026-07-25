@@ -72,7 +72,7 @@ def load_local_settings():
 
 
 def repo_flags(settings):
-    repos = settings.get("cellar", {}).get("repositories", [])
+    repos = settings.get("cellar", {}).get("repositories") or []
     return [flag for repo in repos for flag in ["--repository", repo]]
 
 

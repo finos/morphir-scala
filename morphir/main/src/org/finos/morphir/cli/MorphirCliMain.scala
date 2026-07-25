@@ -3,6 +3,7 @@ package org.finos.morphir.cli
 import caseapp.*
 import caseapp.core.RemainingArgs
 import caseapp.core.app.{Command, CommandsEntryPoint}
+import caseapp.core.help.{Help, RuntimeCommandHelp, RuntimeCommandsHelp}
 import java.nio.file.{Path, Paths}
 import kyo.*
 import kyo.ZIOs
@@ -118,6 +119,42 @@ object VersionCommand extends KyoCommand[VersionOptions]:
     Console.printLine(BuildInfo.version)
   }
 
+@AppName("Morphir Elm tooling.")
+final case class ElmOptions()
+
+object ElmCommand extends KyoCommand[ElmOptions]:
+  override def names = List(List("elm"))
+
+  override def helpAsked(progName: String, maybeOptions: Either[caseapp.core.Error, ElmOptions]): Nothing =
+    val elmCommands = MorphirCliMain.commands
+      .filter(_.names.exists(_.headOption.contains("elm")))
+      .filterNot(_.names.exists(_ == List("elm")))
+      .map(cmd => RuntimeCommandHelp(cmd.names, cmd.finalHelp, cmd.group, cmd.hidden))
+    val dynamicHelp = RuntimeCommandsHelp(
+      progName,
+      Some("Access Morphir's Elm tooling."),
+      Help[Unit](),
+      elmCommands,
+      None
+    )
+    println(dynamicHelp.help(helpFormat))
+    exit(0)
+
+  run { (_: ElmOptions) =>
+    val elmCommands = MorphirCliMain.commands
+      .filter(_.names.exists(_.headOption.contains("elm")))
+      .filterNot(_.names.exists(_ == List("elm")))
+      .map(cmd => RuntimeCommandHelp(cmd.names, cmd.finalHelp, cmd.group, cmd.hidden))
+    val dynamicHelp = RuntimeCommandsHelp(
+      "morphir-cli elm",
+      Some("Access Morphir's Elm tooling."),
+      Help[Unit](),
+      elmCommands,
+      None
+    )
+    Console.printLine(dynamicHelp.help(helpFormat))
+  }
+
 // ---------------------------------------------------------------------------
 // elm sub-commands  (names = List(List("elm", "<sub>")) for nested dispatch)
 // ---------------------------------------------------------------------------
@@ -229,6 +266,7 @@ object MorphirCliMain extends CommandsEntryPoint:
     SetupCommand,
     TestCommand,
     VersionCommand,
+    ElmCommand,
     ElmDevelopCommand,
     ElmInitCommand,
     ElmMakeCommand,
