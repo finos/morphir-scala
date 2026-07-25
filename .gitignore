@@ -468,6 +468,7 @@ build.user.yaml
 .dev/
 .refs/
 .worktrees/
+.superpowers/
 
 # NOTE: Python-related ignores are scoped to their own .gitignore files:
 #   scripts/.gitignore and .claude/.gitignore

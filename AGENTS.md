@@ -140,7 +140,7 @@ The project uses a custom cross-platform source layout. For a module at `morphir
 
 The project uses GitHub Actions for CI:
 - `lint` - Scalafmt check
-- `test-jvm` - JVM tests (Java 21, 25)
+- `test-jvm` - JVM tests (Java 25)
 - `test-js` - ScalaJS tests
 - `publish` - Publish to Sonatype (main/tags only)
 
@@ -163,6 +163,10 @@ Successful implementation requires a **fully green build** on the PR and resolut
 
 3.  **Completion**:
     -   Only when CI is green and comments are zero/resolved is the feature complete.
+
+## Contributing
+
+Before making changes, consult [CONTRIBUTING.md](./CONTRIBUTING.md) at the repo root, as well as any `CONTRIBUTING.md` at the level of the module you're working in (e.g. [morphir/CONTRIBUTING.md](./morphir/CONTRIBUTING.md)), for process notes, governance, and module-specific dev notes/known issues.
 
 ## Resources
 

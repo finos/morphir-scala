@@ -1,6 +1,6 @@
 package build.morphir
 
-import millbuild.{Deps, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
+import millbuild.{Deps, KyoTest, KyoTestJS, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
 import millbuild.*
 import millbuild.crossplatform.*
 import millbuild.jsruntime.*
@@ -68,8 +68,8 @@ object `package` extends CrossPlatform { morphir =>
       "The morphir-main package. This is the main entry point for the morphir tooling, including the morphir-cli."
 
     override def mainClass: T[Option[String]] = Task { Some("org.finos.morphir.cli.MorphirCliMain") }
-    def scalaVersion = Task { mainScalaVersion }
-    def mvnDeps      = Seq(
+    def scalaVersion                          = Task { mainScalaVersion }
+    def mvnDeps                               = Seq(
       Deps.co.fs2.`fs2-io`,
       Deps.com.lihaoyi.fansi,
       Deps.com.lihaoyi.pprint,
@@ -111,8 +111,17 @@ object `package` extends CrossPlatform { morphir =>
     def platformSpecificModuleDeps = Seq(extensibility)
   }
 
-  object jvm extends Shared with MorphirJVMModule
-  object js  extends Shared with MorphirJSModule
+  object jvm extends Shared with MorphirJVMModule {
+    // Scaladoc generation for this module reliably crashes with a NullPointerException in
+    // dotty.tools.scaladoc.translators.SignatureBuilder on JDK 25 - a known upstream dotty bug
+    // (https://github.com/scala/scala3/issues/24183), fixed only in Scala 3.9.0+ (we're on 3.8.4).
+    // See morphir/CONTRIBUTING.md for details. Skip doc generation and publish an empty docJar
+    // until we're on a Scala version with the fix.
+    override def docJar: T[PathRef] = Task {
+      PathRef(mill.util.Jvm.createJar(Task.dest / "out.jar", Seq.empty))
+    }
+  }
+  object js extends Shared with MorphirJSModule
 
   object contrib extends Module {
     object knowledge extends CrossPlatform {
@@ -120,34 +129,33 @@ object `package` extends CrossPlatform { morphir =>
       trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
         def mvnDeps = Seq(
           Deps.com.lihaoyi.sourcecode,
-          Deps.dev.zio.`zio-streams`
+          Deps.io.getkyo.`kyo-core`,
+          Deps.io.getkyo.`kyo-prelude`
         )
         def platformSpecificModuleDeps = Seq(morphir)
       }
 
+      // kyo-test-api/kyo-test-runner don't declare kyo-core/kyo-prelude as regular
+      // transitive dependencies upstream - add them explicitly. See the identical
+      // note in morphir/intelligence/package.mill.
+      def kyoTestMvnDeps = Seq(
+        Deps.io.getkyo.`kyo-core`,
+        Deps.io.getkyo.`kyo-prelude`,
+        Deps.io.getkyo.`kyo-test-api`,
+        Deps.io.getkyo.`kyo-test-runner`
+      )
+
       object jvm extends Shared with MorphirJVMModule with ScoverageModule {
         def scoverageVersion = Vers.scoverage
 
-        object test extends ScoverageTests with TestModule.ZioTest {
-          def mvnDeps = Seq(
-            Deps.dev.zio.zio,
-            Deps.dev.zio.`zio-streams`,
-            Deps.dev.zio.`zio-test`,
-            Deps.dev.zio.`zio-test-sbt`
-          )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.jvm)
+        object test extends ScoverageTests with KyoTest {
+          def mvnDeps = kyoTestMvnDeps
         }
       }
 
       object js extends Shared with MorphirJSModule {
-        object test extends ScalaJSTests with TestModule.ZioTest {
-          def mvnDeps = Seq(
-            Deps.dev.zio.zio,
-            Deps.dev.zio.`zio-streams`,
-            Deps.dev.zio.`zio-test`,
-            Deps.dev.zio.`zio-test-sbt`
-          )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.js)
+        object test extends ScalaJSTests with KyoTestJS {
+          def mvnDeps = kyoTestMvnDeps
         }
       }
     }
@@ -231,8 +239,8 @@ object `package` extends CrossPlatform { morphir =>
   object lib extends Module {
     object interop extends CrossPlatform {
       trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {}
-      object jvm extends Shared with MorphirJVMModule
-      object js  extends Shared with MorphirJSModule
+      object jvm   extends Shared with MorphirJVMModule
+      object js    extends Shared with MorphirJSModule
     }
   }
 
