@@ -466,6 +466,7 @@ build.user.yaml
 
 .omc/
 .dev/
+.refs/
 .worktrees/
 
 # Claude 

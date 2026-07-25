@@ -1,14 +1,14 @@
 ---
 name: squire
-description: "Development environment diagnostics and unblocking for the morphir-scala project. Use when hitting build tool failures, sandbox restrictions, mill daemon errors, or SSL/network issues. Provides targeted guidance and automated fixes for known blockers."
-allowed-tools: Bash(cat *), Bash(ls *), Bash(find *), Bash(python3 *), Read, Edit, Write
+description: "Development environment diagnostics and unblocking for the morphir-scala project. Use when hitting build tool failures, sandbox restrictions, mill daemon errors, or SSL/network issues. Also manages reference repositories under .refs/ — invoke when asked to add, list, check, or remove a reference repo, clone a repo for reference, or work with a local copy of an upstream project."
+allowed-tools: Bash(cat *), Bash(ls *), Bash(find *), Bash(python3 *), Bash(git *), Bash(gh *), Read, Edit, Write
 metadata:
-  version: 0.1.0
+  version: 0.2.0
 ---
 
 # Squire — morphir-scala Dev Environment Assistant
 
-Squire diagnoses and unblocks common development environment issues in the morphir-scala project.
+Squire diagnoses and unblocks development environment issues, and manages reference repositories for the morphir-scala project.
 
 ## Commands
 
@@ -20,3 +20,14 @@ Read the full diagnostic procedure and issue catalogue before running:
 → [references/doctor.md](references/doctor.md)
 
 **When to invoke:** Any time a Bash tool call fails with a build, network, or sandbox error — especially before retrying the failed command.
+
+### `/squire reference repo`
+
+Manages reference repositories under `.refs/`. Clone external repos, symlink existing local repos, or create git worktrees for ref-based snapshots. A manifest at `.refs/manifest.json` tracks all entries.
+
+Read the full reference before running:
+→ [references/repo.md](references/repo.md)
+
+**When to invoke:** When asked to add a reference repo, clone an upstream project, list or check existing references, or when context about an external codebase is needed locally.
+
+Sub-commands: `squire reference repo add`, `squire reference repo list`, `squire reference repo status`, `squire reference repo remove`
