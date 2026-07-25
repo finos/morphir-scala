@@ -7,7 +7,8 @@ A Claude Code project skill for the morphir-scala repository that diagnoses and 
 Squire is invoked as a slash command within Claude Code. It provides targeted guidance when Claude hits build, network, or sandbox failures — rather than blindly retrying or guessing at fixes.
 
 ```text
-/squire doctor   — Run a full environment diagnostic
+/squire ai env info   — Report sandbox/network status as structured JSON
+/squire doctor        — Run a full environment diagnostic
 ```
 
 ## How It Works
@@ -24,12 +25,17 @@ The skill is structured in layers to keep each file focused:
 .claude/skills/squire/
 ├── SKILL.md              # Entry point — command list and when to invoke
 ├── references/
-│   └── doctor.md         # Full diagnostic procedure and issue catalogue
+│   ├── doctor.md         # Full diagnostic procedure and issue catalogue
+│   └── env.md            # ai env info — sandbox/network detection reference
 └── scripts/
+    ├── ai-env-info.py            # Structured sandbox/network detection (JSON)
     ├── check-mill-daemon.py      # Probes mill daemon TCP connectivity
     ├── check-var-folders.py      # Probes /var/folders write access
     └── check-project-config.py  # Checks project config correctness
 ```
+
+`scripts/lib/mill-flags.sh` (repo root, not under `.claude/`) is a shell consumer
+of `ai-env-info.py` — see [references/env.md](references/env.md).
 
 `SKILL.md` is concise — Claude reads it on every invocation. `references/doctor.md` is only loaded when running `/squire doctor`, keeping context usage low. Scripts are called via `${CLAUDE_PLUGIN_ROOT}` which resolves to the skill's root directory at runtime.
 

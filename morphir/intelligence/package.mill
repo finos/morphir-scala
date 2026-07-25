@@ -2,16 +2,19 @@ package build.morphir.intelligence
 
 import mill.*, mill.scalalib.*
 import mill.contrib.buildinfo.BuildInfo
-import millbuild.Deps
+import mill.contrib.scoverage.ScoverageModule
+import millbuild.{Deps, KyoTest, Versions => Vers}
 import build.{MorphirCommonModule, morphirScalaVersion, MorphirIntelligencePublishModule}
 
-object `package` extends MorphirCommonModule with MorphirIntelligencePublishModule with BuildInfo {
-  override def artifactName      = "morphir-intelligence"
-  def scalaVersion               = Task { morphirScalaVersion }
-  def mainClass                  = Some("org.finos.morphir.intelligence.Main")
-  def buildInfoPackageName       = "org.finos.morphir.intelligence.buildinfo"
-  def buildInfoObjectName        = "BuildInfo"
-  def buildInfoMembers           = Seq(
+object `package` extends MorphirCommonModule with MorphirIntelligencePublishModule with BuildInfo
+    with ScoverageModule {
+  override def artifactName = "morphir-intelligence"
+  def scalaVersion          = Task { morphirScalaVersion }
+  def scoverageVersion      = Vers.scoverage
+  def mainClass             = Some("org.finos.morphir.intelligence.Main")
+  def buildInfoPackageName  = "org.finos.morphir.intelligence.buildinfo"
+  def buildInfoObjectName   = "BuildInfo"
+  def buildInfoMembers      = Seq(
     BuildInfo.Value("version", publishVersion()),
     BuildInfo.Value("scalaVersion", scalaVersion()),
     BuildInfo.Value("buildJvmVersion", System.getProperty("java.version")),
@@ -22,4 +25,16 @@ object `package` extends MorphirCommonModule with MorphirIntelligencePublishModu
     Deps.io.getkyo.`kyo-case-app`,
     Deps.io.getkyo.`kyo-schema`
   )
+
+  object test extends ScoverageTests with KyoTest {
+    // kyo-test-api/kyo-test-runner don't declare kyo-core/kyo-prelude as regular
+    // transitive dependencies upstream — add them explicitly. See the identical
+    // note in morphir/intelligence/sdk/package.mill.
+    def mvnDeps = Seq(
+      Deps.io.getkyo.`kyo-core`,
+      Deps.io.getkyo.`kyo-prelude`,
+      Deps.io.getkyo.`kyo-test-api`,
+      Deps.io.getkyo.`kyo-test-runner`
+    )
+  }
 }

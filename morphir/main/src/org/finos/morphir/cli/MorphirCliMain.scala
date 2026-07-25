@@ -44,9 +44,9 @@ private def executeCommand(command: MorphirCommand): ZIO[Any, Throwable, Unit] =
 
 @AppName("Bundle Morphir IR models using the Morphir Runtime.")
 final case class BundleOptions(
-  @Name("o")
-  @HelpMessage("Target file location where the Bundle Morphir IR file will be saved.")
-  output: Path = Paths.get("morphir-ir.json")
+    @Name("o")
+    @HelpMessage("Target file location where the Bundle Morphir IR file will be saved.")
+    output: Path = Paths.get("morphir-ir.json")
 )
 
 object BundleCommand extends KyoCommand[BundleOptions]:
@@ -58,17 +58,17 @@ object BundleCommand extends KyoCommand[BundleOptions]:
 
 @AppName("Start up a web server and expose developer tools through a web UI.")
 final case class DevelopOptions(
-  @Name("p")
-  @HelpMessage("Port to bind the web server to.")
-  port: Int = 3000,
-  @HelpMessage("Host to bind the web server to.")
-  host: String = "localhost",
-  @Name("i")
-  @HelpMessage("Root directory of the project where morphir.json is located.")
-  projectDir: Path = Paths.get("."),
-  @Name("o")
-  @HelpMessage("Open in browser.")
-  openInBrowser: Boolean = false
+    @Name("p")
+    @HelpMessage("Port to bind the web server to.")
+    port: Int = 3000,
+    @HelpMessage("Host to bind the web server to.")
+    host: String = "localhost",
+    @Name("i")
+    @HelpMessage("Root directory of the project where morphir.json is located.")
+    projectDir: Path = Paths.get("."),
+    @Name("o")
+    @HelpMessage("Open in browser.")
+    openInBrowser: Boolean = false
 )
 
 object DevelopCommand extends KyoCommand[DevelopOptions]:
@@ -79,9 +79,9 @@ object DevelopCommand extends KyoCommand[DevelopOptions]:
 
 @AppName("Split Bundle Morphir IR model(s) into Library Morphir IR model(s).")
 final case class LibraryOptions(
-  @Name("o")
-  @HelpMessage("Target directory where Library Morphir IR file(s) will be created.")
-  output: Path = Paths.get(".")
+    @Name("o")
+    @HelpMessage("Target directory where Library Morphir IR file(s) will be created.")
+    output: Path = Paths.get(".")
 )
 
 object LibraryCommand extends KyoCommand[LibraryOptions]:
@@ -161,17 +161,17 @@ object ElmCommand extends KyoCommand[ElmOptions]:
 
 @AppName("Start up a web server and expose developer tools through a web UI.")
 final case class ElmDevelopOptions(
-  @Name("p")
-  @HelpMessage("Port to bind the web server to.")
-  port: Int = 3000,
-  @HelpMessage("Host to bind the web server to.")
-  host: String = "localhost",
-  @Name("i")
-  @HelpMessage("Root directory of the project where morphir.json is located.")
-  projectDir: Path = Paths.get("."),
-  @Name("o")
-  @HelpMessage("Open in browser.")
-  openInBrowser: Boolean = false
+    @Name("p")
+    @HelpMessage("Port to bind the web server to.")
+    port: Int = 3000,
+    @HelpMessage("Host to bind the web server to.")
+    host: String = "localhost",
+    @Name("i")
+    @HelpMessage("Root directory of the project where morphir.json is located.")
+    projectDir: Path = Paths.get("."),
+    @Name("o")
+    @HelpMessage("Open in browser.")
+    openInBrowser: Boolean = false
 )
 
 object ElmDevelopCommand extends KyoCommand[ElmDevelopOptions]:
@@ -184,9 +184,9 @@ object ElmDevelopCommand extends KyoCommand[ElmDevelopOptions]:
 
 @AppName("Initialize for use with Morphir's Elm tooling.")
 final case class ElmInitOptions(
-  @Name("p")
-  @HelpMessage("Root directory of the project where morphir.json is located.")
-  projectDir: Path = Paths.get(".")
+    @Name("p")
+    @HelpMessage("Root directory of the project where morphir.json is located.")
+    projectDir: Path = Paths.get(".")
 )
 
 object ElmInitCommand extends KyoCommand[ElmInitOptions]:
@@ -197,21 +197,21 @@ object ElmInitCommand extends KyoCommand[ElmInitOptions]:
 
 @AppName("Translate Elm sources to Morphir IR.")
 final case class ElmMakeOptions(
-  @Name("p")
-  @HelpMessage("Root directory of the project where morphir.json is located.")
-  projectDir: Path = Paths.get("."),
-  @Name("o")
-  @HelpMessage("Target file location where the Morphir IR will be saved.")
-  output: Path = Paths.get("morphir-ir.json"),
-  @Name("t")
-  @HelpMessage("Only include type information in the IR, no values.")
-  typesOnly: Boolean = false,
-  @Name("f")
-  @HelpMessage("Use the old (non-incremental) CLI make function.")
-  fallbackCli: Boolean = false,
-  @Name("i")
-  @HelpMessage("Use indentation in the generated JSON file.")
-  indentJson: Boolean = false
+    @Name("p")
+    @HelpMessage("Root directory of the project where morphir.json is located.")
+    projectDir: Path = Paths.get("."),
+    @Name("o")
+    @HelpMessage("Target file location where the Morphir IR will be saved.")
+    output: Path = Paths.get("morphir-ir.json"),
+    @Name("t")
+    @HelpMessage("Only include type information in the IR, no values.")
+    typesOnly: Boolean = false,
+    @Name("f")
+    @HelpMessage("Use the old (non-incremental) CLI make function.")
+    fallbackCli: Boolean = false,
+    @Name("i")
+    @HelpMessage("Use indentation in the generated JSON file.")
+    indentJson: Boolean = false
 )
 
 object ElmMakeCommand extends KyoCommand[ElmMakeOptions]:
@@ -226,12 +226,12 @@ object ElmMakeCommand extends KyoCommand[ElmMakeOptions]:
 
 @AppName("Restore a Morphir project that uses Elm as its front-end modelling language.")
 final case class ElmRestoreOptions(
-  @Name("e")
-  @HelpMessage("Path to the Elm home directory.")
-  elmHome: Path = Paths.get("~/.elm"),
-  @Name("p")
-  @HelpMessage("Root directory of the project.")
-  projectDir: Path = Paths.get(".")
+    @Name("e")
+    @HelpMessage("Path to the Elm home directory.")
+    elmHome: Path = Paths.get("~/.elm"),
+    @Name("p")
+    @HelpMessage("Root directory of the project.")
+    projectDir: Path = Paths.get(".")
 )
 
 object ElmRestoreCommand extends KyoCommand[ElmRestoreOptions]:
@@ -242,9 +242,9 @@ object ElmRestoreCommand extends KyoCommand[ElmRestoreOptions]:
 
 @AppName("Test Morphir models using morphir-elm.")
 final case class ElmTestOptions(
-  @Name("p")
-  @HelpMessage("Root directory of the project where morphir.json is located.")
-  projectDir: Path = Paths.get(".")
+    @Name("p")
+    @HelpMessage("Root directory of the project where morphir.json is located.")
+    projectDir: Path = Paths.get(".")
 )
 
 object ElmTestCommand extends KyoCommand[ElmTestOptions]:
@@ -258,7 +258,7 @@ object ElmTestCommand extends KyoCommand[ElmTestOptions]:
 // ---------------------------------------------------------------------------
 
 object MorphirCliMain extends CommandsEntryPoint:
-  def progName = "morphir-cli"
+  def progName                  = "morphir-cli"
   def commands: Seq[Command[?]] = Seq(
     BundleCommand,
     DevelopCommand,

@@ -1,18 +1,11 @@
 #!/usr/bin/env sh
 
-# Detect sandbox environment (Claude Code / CI) and use --no-server if needed.
+# Detect sandbox environment via squire's live probe and use --no-server if needed.
 # Also forwards SSL/proxy settings from standard environment variables if set.
 
-MILL_FLAGS=""
-
-# Sandbox detection: Java NIO sockets may be blocked even when python sockets work.
-# Default to --no-server for safety; only use the daemon when MILL_USE_SERVER=1 is set
-# or when we can confirm we're not in a restricted environment.
-# Claude Code sandbox sets CLAUDE_CODE_ENTRYPOINT; CI environments set CI=true.
-MILL_FLAGS="--no-server"
-if [ -z "${CLAUDE_CODE_ENTRYPOINT}" ] && [ -z "${CI}" ] && [ "${MILL_USE_SERVER}" = "1" ]; then
-  MILL_FLAGS=""
-fi
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+. "${SCRIPT_DIR}/scripts/lib/mill-flags.sh"
+MILL_FLAGS="$(mill_flags)"
 
 # Forward SSL CA bundle if set; prefer CURL_CA_BUNDLE, fall back to SSL_CERT_FILE
 JAVA_SSL_OPTS=""

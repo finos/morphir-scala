@@ -6,6 +6,10 @@ set -e
 
 echo "Formatting code..."
 echo "  Formatting Scala files..."
-# Use specific glob patterns to avoid hanging on broad __.sources resolution
-./mill mill.scalalib.scalafmt.ScalafmtModule/reformatAll 'morphir.__.sources'
+# reformatAll against a broad 'morphir.__.sources' glob reproducibly hangs the
+# mill daemon (confirmed even with a freshly-started daemon — not a stale-state
+# fluke, and not the sandbox/network issue scripts/lib/mill-flags.sh detects).
+# --no-server sidesteps it reliably, so it's forced here unconditionally rather
+# than left to the sandbox probe.
+./mill --no-server mill.scalalib.scalafmt.ScalafmtModule/reformatAll 'morphir.__.sources'
 echo "Format completed successfully"

@@ -128,9 +128,15 @@ object Deps {
   }
   object io {
     object getkyo {
-      val `kyo-case-app` = mvn"io.getkyo::kyo-case-app::${Versions.`kyo-case-app`}"
-      val `kyo-schema`   = mvn"io.getkyo::kyo-schema::${Versions.`kyo-case-app`}"
-      val `kyo-zio`      = mvn"io.getkyo::kyo-zio::${Versions.`kyo-case-app`}"
+      val `kyo-case-app`      = mvn"io.getkyo::kyo-case-app::${Versions.`kyo-case-app`}"
+      val `kyo-core`          = mvn"io.getkyo::kyo-core::${Versions.`kyo-case-app`}"
+      val `kyo-prelude`       = mvn"io.getkyo::kyo-prelude::${Versions.`kyo-case-app`}"
+      val `kyo-schema`        = mvn"io.getkyo::kyo-schema::${Versions.`kyo-case-app`}"
+      val `kyo-zio`           = mvn"io.getkyo::kyo-zio::${Versions.`kyo-case-app`}"
+      val `kyo-test-api`      = mvn"io.getkyo::kyo-test-api::${Versions.`kyo-case-app`}"
+      val `kyo-test-prop`     = mvn"io.getkyo::kyo-test-prop::${Versions.`kyo-case-app`}"
+      val `kyo-test-runner`   = mvn"io.getkyo::kyo-test-runner::${Versions.`kyo-case-app`}"
+      val `kyo-test-snapshot` = mvn"io.getkyo::kyo-test-snapshot::${Versions.`kyo-case-app`}"
     }
     object bullet {
       def `borer-core`(scalaVersion: String): Dep = mvn"io.bullet::borer-core::${Versions.borer(scalaVersion)}"
