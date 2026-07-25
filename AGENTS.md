@@ -20,11 +20,21 @@ morphir-scala provides Scala language bindings and JVM-based tooling for Morphir
 
 ### Key Technologies
 
-- **Scala 3.7.4** - Primary language
-- **Mill 1.1.x** - Build tool
+- **Scala 3.8.4** - Primary language
+- **Mill 1.2.0-RC1** - Build tool
 - **ZIO** - Effect system and testing
+- **Kyo** - Alternative effect system (kyo-case-app, kyo-schema, kyo-zio)
 - **ScalaJS** - JavaScript compilation target
 - **Scala Native** - Native compilation target (experimental)
+
+### Helpers & Tools
+
+- The `.dev/` folder is a staging area where development related artifacts can be safely placed in the repo.
+- The `.dev/` folder is gitignored and thus is a safe place to place temporary files, scripts, and other development artifacts.
+- When planning or designing features in the codebase place them in appropriate sub-folders of the `.dev/.sdlc/` sub-folder. As well as task tracking files.
+- Use slugs for folder names so that content/work/spikes are organized and searchable.
+- Place outputs created by agentic tools or their helper scripts in an `out/` sub-folder at an appropriate location in the `.dev/` hierarchy.
+
 
 ### Project Structure
 
@@ -62,8 +72,8 @@ mise run ci:local       # Run full local CI
 
 Or use Mill directly:
 ```bash
-./mill morphir[3.7.4].jvm.compile
-./mill morphir[3.7.4].jvm.test
+./mill morphir[3.8.4].jvm.compile
+./mill morphir[3.8.4].jvm.test
 ./mill mill.scalalib.scalafmt.ScalafmtModule/reformatAll 'morphir.__.sources'
 ```
 
@@ -74,7 +84,7 @@ The project uses a custom cross-platform source layout. For a module at `morphir
 - `jvm/src/` - JVM-specific sources
 - `js/src/` - ScalaJS-specific sources
 - `src-3/` - Scala 3.x specific sources
-- `jvm/src-3.7/` - JVM + Scala 3.7.x specific sources
+- `jvm/src-3.8/` - JVM + Scala 3.8.x specific sources
 
 ## Code Style
 
@@ -95,14 +105,14 @@ The project uses a custom cross-platform source layout. For a module at `morphir
 ### Dependencies
 
 - Use `mvn""` interpolator (not `ivy""` which is deprecated in Mill 1.x)
-- Prefer ZIO ecosystem libraries where possible
+- Prefer ZIO or Kyo ecosystem libraries where possible
 
 ## Testing
 
 - Uses ZIO Test framework
 - Test files go in `test/src/` directories
 - Use `ZIOSpecDefault` as base trait
-- Run tests with `mise run test:jvm` or `./mill morphir[3.7.4].__.jvm.test`
+- Run tests with `mise run test:jvm` or `./mill morphir[3.8.4].__.jvm.test`
 
 ## Common Tasks for AI Agents
 
@@ -115,7 +125,7 @@ The project uses a custom cross-platform source layout. For a module at `morphir
 
 ### Fixing Compilation Errors
 
-1. Check Scala version compatibility (3.7.4)
+1. Check Scala version compatibility (3.8.4)
 2. Verify cross-platform source placement
 3. Check for deprecated syntax (Mill 1.x changes)
 4. Run `mise run lint` to check formatting

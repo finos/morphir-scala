@@ -1,7 +1,41 @@
 #!/usr/bin/env sh
 
-# construct a fat jar locally
-./mill morphir.main.assembly
+# Detect sandbox environment via squire's live probe and use --no-server if needed.
+# Also forwards SSL/proxy settings from standard environment variables if set.
 
-exec java -jar ./out/morphir/main/assembly.dest/out.jar "$@"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+. "${SCRIPT_DIR}/scripts/lib/mill-flags.sh"
+MILL_FLAGS="$(mill_flags)"
 
+# Forward SSL CA bundle if set; prefer CURL_CA_BUNDLE, fall back to SSL_CERT_FILE
+JAVA_SSL_OPTS=""
+if [ -n "${CURL_CA_BUNDLE}" ]; then
+  JAVA_SSL_OPTS="-Djavax.net.ssl.trustStore=${CURL_CA_BUNDLE}"
+elif [ -n "${SSL_CERT_FILE}" ]; then
+  JAVA_SSL_OPTS="-Djavax.net.ssl.trustStore=${SSL_CERT_FILE}"
+fi
+
+# Extract host:port from a proxy URL that may contain credentials (scheme://user:pass@host:port)
+_proxy_host() { echo "$1" | sed 's|.*@||' | sed 's|:.*||'; }
+_proxy_port() { echo "$1" | sed 's|.*@||' | sed 's|.*:||' | sed 's|/.*||'; }
+
+# Forward HTTP proxy settings if set
+JAVA_PROXY_OPTS=""
+if [ -n "${HTTPS_PROXY}" ]; then
+  JAVA_PROXY_OPTS="${JAVA_PROXY_OPTS} -Dhttps.proxyHost=$(_proxy_host "${HTTPS_PROXY}") -Dhttps.proxyPort=$(_proxy_port "${HTTPS_PROXY}")"
+fi
+if [ -n "${HTTP_PROXY}" ]; then
+  JAVA_PROXY_OPTS="${JAVA_PROXY_OPTS} -Dhttp.proxyHost=$(_proxy_host "${HTTP_PROXY}") -Dhttp.proxyPort=$(_proxy_port "${HTTP_PROXY}")"
+fi
+
+# Suppress sun.misc.Unsafe deprecation warnings emitted by scala.runtime.LazyVals$ on Java 23+.
+# The flag is unrecognized on older JVMs, so probe for it first.
+JAVA_UNSAFE_OPTS=""
+if java --sun-misc-unsafe-memory-access=allow -version >/dev/null 2>&1; then
+  JAVA_UNSAFE_OPTS="--sun-misc-unsafe-memory-access=allow"
+fi
+
+# Build the assembly (respecting sandbox detection for mill)
+./mill ${MILL_FLAGS} morphir.main.assembly
+
+exec java ${JAVA_SSL_OPTS} ${JAVA_PROXY_OPTS} ${JAVA_UNSAFE_OPTS} -jar ./out/morphir/main/assembly.dest/out.jar "$@"

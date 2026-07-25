@@ -4,15 +4,15 @@ This file lists the maintainers of this repository.
 
 ## Current maintainers
 
-| GitHub Username | Name | Organization | Email |
-|----------------|------|--------------|-------|
-| @AttilaMihaly | Attila Mihaly | Morgan Stanley | *please add email* |
-| @DamianReeves | Damian Reeves | @CapitalOne | *please add email* |
-| @deusaquilus | Alexander Ioffe | *please add organization* | *please add email* |
-| @michelchan | Michelle | *please add organization* | *please add email* |
-| @nwokafor-choongsaeng | Nwokafor Choongsaeng | *please add organization* | *please add email* |
-| @psmulovics | Peter Smulovics | Morgan Stanley | *please add email* |
-| @stephengoldbaum | Stephen Goldbaum | *please add organization* | *please add email* |
+| GitHub Username | Name | Organization |
+|----------------|------|--------------|
+| @AttilaMihaly | Attila Mihaly | Morgan Stanley |
+| @DamianReeves | Damian Reeves | @CapitalOne |
+| @deusaquilus | Alexander Ioffe | *please add organization* |
+| @michelchan | Michelle | Disney |
+| @nwokafor-choongsaeng | Nwokafor Choongsaeng | Morgan Stanley |
+| @psmulovics | Peter Smulovics | Morgan Stanley |
+| @stephengoldbaum | Stephen Goldbaum | *please add organization* |
 
 For information about maintainer responsibilities and resources, see the [FINOS Maintainers Cheatsheet](https://community.finos.org/docs/finos-maintainers-cheatsheet).
 
