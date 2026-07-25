@@ -33,7 +33,7 @@ import scala.concurrent.duration.DurationInt
  */
 val morphirScalaVersion: String = ScalaVers.scala3
 
-val docsScalaVersion: String = ScalaVers.scala213
+val docsScalaVersion: String = ScalaVers.scala3
 
 // Get workspace dir from the build context
 val workspaceDir = mill.api.BuildCtx.workspaceRoot
@@ -79,7 +79,7 @@ trait MorphirIntelligencePublishModule extends MorphirPublishModule {
 }
 
 trait MorphirCommonModule extends ScalaModule with CommonScalaModule {
-  def semanticDbVersion: T[String] = Task { Vers.semanticDb(Some((3, 7))) }
+  def semanticDbVersion: T[String] = Task { Vers.semanticDb }
 
   def compilerPluginDependencies(selectedScalaVersion: String) =
     Seq(Deps.org.`scala-lang`.`scala3-compiler`(selectedScalaVersion))
@@ -93,7 +93,7 @@ trait DeduplicatedSources extends ScalaModule {
 
 trait MorphirCommonCrossModule extends CrossPlatformScalaModule with ScalafmtModule with DeduplicatedSources {
   def scalaVersion                                             = Task { morphirScalaVersion }
-  def semanticDbVersion: T[String]                             = Task { Vers.semanticDb(Some((3, 7))) }
+  def semanticDbVersion: T[String]                             = Task { Vers.semanticDb }
   def compilerPluginDependencies(selectedScalaVersion: String) =
     Seq(Deps.org.`scala-lang`.`scala3-compiler`(selectedScalaVersion))
 }

@@ -46,11 +46,6 @@ object Deps {
         val `buffer-and-slice` = mvn"com.github.arturopala::buffer-and-slice:${Versions.`buffer-and-slice`}"
       }
 
-      object ghik {
-        val `silencer-lib`    = mvn"com.github.ghik:::silencer-lib:${Versions.silencer}"
-        val `silencer-plugin` = mvn"com.github.ghik:::silencer-plugin:${Versions.silencer}"
-      }
-
       object lolgab {
         val `scala-native-crypto` = mvn"com.github.lolgab::scala-native-crypto::${Versions.`scala-native-crypto`}"
       }
@@ -74,10 +69,6 @@ object Deps {
     object softwaremill {
       object common {
         val tagging = mvn"com.softwaremill.common::tagging::2.3.5"
-      }
-
-      object magnolia_2 {
-        val magnolia = mvn"com.softwaremill.magnolia1_2::magnolia::1.1.8"
       }
 
       object magnolia_3 {
@@ -201,23 +192,12 @@ object Versions {
 
   val enumeratum = "1.9.7"
 
-  def borer(scalaVersion: String): String =
-    borer(scalaVersion.split('.').toIndexedSeq)
-
-  def borer(scalaVersionParts: Seq[String]): String =
-    scalaVersionParts match {
-      case Seq("3", _, _)    => "1.16.2"
-      case Seq("2", "13", _) => "1.8.0"
-      case _                 => "1.6.3"
-    }
+  def borer(scalaVersion: String): String           = "1.16.2"
+  def borer(scalaVersionParts: Seq[String]): String = "1.16.2"
 
   val `buffer-and-slice` = "1.64.0"
 
-  def semanticDb(partialVersion: Option[(Int, Int)]): String =
-    partialVersion match {
-      case Some((2, _)) => "4.8.11"
-      case _            => "4.8.11"
-    }
+  val semanticDb = "4.8.11"
 
   val coursier                   = "2.1.24"
   val expecty                    = "0.17.1"
@@ -253,8 +233,7 @@ object Versions {
 }
 
 object ScalaVersions {
-  val scala3   = "3.8.4"
-  val scala213 = "2.13.16" // Keep for docs/reference only
+  val scala3 = "3.8.4"
 
   def scalaJSVersion     = "1.22.0"
   def scalaNativeVersion = "0.5.7"
