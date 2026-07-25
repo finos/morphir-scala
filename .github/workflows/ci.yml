@@ -41,7 +41,7 @@ jobs:
           experimental: true
 
       - name: Cache elm-tooling downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.elm/elm-tooling
           key: ${{ runner.os }}-elm-tooling-${{ hashFiles('**/elm-tooling.json') }}
@@ -133,7 +133,7 @@ jobs:
           experimental: true
 
       - name: Cache elm-tooling downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.elm/elm-tooling
           key: ${{ runner.os }}-elm-tooling-${{ hashFiles('**/elm-tooling.json') }}
