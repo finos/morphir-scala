@@ -164,6 +164,10 @@ Successful implementation requires a **fully green build** on the PR and resolut
 3.  **Completion**:
     -   Only when CI is green and comments are zero/resolved is the feature complete.
 
+## Contributing
+
+Before making changes, consult [CONTRIBUTING.md](./CONTRIBUTING.md) at the repo root, as well as any `CONTRIBUTING.md` at the level of the module you're working in (e.g. [morphir/CONTRIBUTING.md](./morphir/CONTRIBUTING.md)), for process notes, governance, and module-specific dev notes/known issues.
+
 ## Resources
 
 - [Morphir Documentation](https://morphir.finos.org/)

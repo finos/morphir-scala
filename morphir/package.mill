@@ -111,8 +111,17 @@ object `package` extends CrossPlatform { morphir =>
     def platformSpecificModuleDeps = Seq(extensibility)
   }
 
-  object jvm extends Shared with MorphirJVMModule
-  object js  extends Shared with MorphirJSModule
+  object jvm extends Shared with MorphirJVMModule {
+    // Scaladoc generation for this module reliably crashes with a NullPointerException in
+    // dotty.tools.scaladoc.translators.SignatureBuilder on JDK 25 - a known upstream dotty bug
+    // (https://github.com/scala/scala3/issues/24183), fixed only in Scala 3.9.0+ (we're on 3.8.4).
+    // See morphir/CONTRIBUTING.md for details. Skip doc generation and publish an empty docJar
+    // until we're on a Scala version with the fix.
+    override def docJar: T[PathRef] = Task {
+      PathRef(mill.util.Jvm.createJar(Task.dest / "out.jar", Seq.empty))
+    }
+  }
+  object js extends Shared with MorphirJSModule
 
   object contrib extends Module {
     object knowledge extends CrossPlatform {
