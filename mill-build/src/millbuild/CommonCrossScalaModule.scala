@@ -185,8 +185,8 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
 
   def targetScalacOptions(scalaVersion: String) =
     if (scalaVersion.startsWith("2.12")) Seq("-target:jvm-1.8", "-release", "8")
-    else if (scalaVersion.startsWith("2.13")) Seq("-target:11")
-    else if (scalaVersion.startsWith("3.")) Seq("-target:11")
+    else if (scalaVersion.startsWith("2.13")) Seq("-release", "25")
+    else if (scalaVersion.startsWith("3.")) Seq("-release", "25")
     else Seq.empty // when we get Scala 4...
 
   def scalacOptions(scalaVersion: String, optimize: Boolean, isCIBuild: Boolean, disableFatalWarnings: Boolean) = {
@@ -229,12 +229,14 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
         Seq()
     }
 
+    val optionsWithTarget = options ++ targetScalacOptions(scalaVersion)
+
     // Warnings as errors are always enabled for the CI build
     // and can be disabled by setting the DISABLE_WARNINGS_AS_ERRORS environment variable to true
     if (isCIBuild || !disableFatalWarnings)
-      options ++ Seq("-Werror")
+      optionsWithTarget ++ Seq("-Werror")
     else
-      options
+      optionsWithTarget
   }
 
   def filterScala3Options(opts: Seq[String]) =

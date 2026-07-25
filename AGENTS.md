@@ -140,7 +140,7 @@ The project uses a custom cross-platform source layout. For a module at `morphir
 
 The project uses GitHub Actions for CI:
 - `lint` - Scalafmt check
-- `test-jvm` - JVM tests (Java 21, 25)
+- `test-jvm` - JVM tests (Java 25)
 - `test-js` - ScalaJS tests
 - `publish` - Publish to Sonatype (main/tags only)
 

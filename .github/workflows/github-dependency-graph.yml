@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '25'
 
       # Generate and submit the dependency graph to GitHub's Dependency Submission API.
       # Uses the Eleven19 fork of mill-github-dependency-graph (the original
