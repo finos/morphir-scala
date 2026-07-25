@@ -1,6 +1,6 @@
 package build.morphir
 
-import millbuild.{Deps, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
+import millbuild.{Deps, KyoTest, KyoTestJS, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
 import millbuild.*
 import millbuild.crossplatform.*
 import millbuild.jsruntime.*
@@ -129,34 +129,33 @@ object `package` extends CrossPlatform { morphir =>
       trait Shared extends MorphirCommonCrossModule with MorphirPublishModule {
         def mvnDeps = Seq(
           Deps.com.lihaoyi.sourcecode,
-          Deps.dev.zio.`zio-streams`
+          Deps.io.getkyo.`kyo-core`,
+          Deps.io.getkyo.`kyo-prelude`
         )
         def platformSpecificModuleDeps = Seq(morphir)
       }
 
+      // kyo-test-api/kyo-test-runner don't declare kyo-core/kyo-prelude as regular
+      // transitive dependencies upstream - add them explicitly. See the identical
+      // note in morphir/intelligence/package.mill.
+      def kyoTestMvnDeps = Seq(
+        Deps.io.getkyo.`kyo-core`,
+        Deps.io.getkyo.`kyo-prelude`,
+        Deps.io.getkyo.`kyo-test-api`,
+        Deps.io.getkyo.`kyo-test-runner`
+      )
+
       object jvm extends Shared with MorphirJVMModule with ScoverageModule {
         def scoverageVersion = Vers.scoverage
 
-        object test extends ScoverageTests with TestModule.ZioTest {
-          def mvnDeps = Seq(
-            Deps.dev.zio.zio,
-            Deps.dev.zio.`zio-streams`,
-            Deps.dev.zio.`zio-test`,
-            Deps.dev.zio.`zio-test-sbt`
-          )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.jvm)
+        object test extends ScoverageTests with KyoTest {
+          def mvnDeps = kyoTestMvnDeps
         }
       }
 
       object js extends Shared with MorphirJSModule {
-        object test extends ScalaJSTests with TestModule.ZioTest {
-          def mvnDeps = Seq(
-            Deps.dev.zio.zio,
-            Deps.dev.zio.`zio-streams`,
-            Deps.dev.zio.`zio-test`,
-            Deps.dev.zio.`zio-test-sbt`
-          )
-          def moduleDeps = super.moduleDeps ++ Seq(testing.zio.js)
+        object test extends ScalaJSTests with KyoTestJS {
+          def mvnDeps = kyoTestMvnDeps
         }
       }
     }
