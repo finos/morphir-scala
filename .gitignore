@@ -469,8 +469,12 @@ build.user.yaml
 .refs/
 .worktrees/
 
+# NOTE: Python-related ignores are scoped to their own .gitignore files:
+#   scripts/.gitignore and .claude/.gitignore
+
 # Claude
 .claude/settings.local.json
+.claude/worktrees/
 
 # Squire local settings (personal/org-specific config — not committed)
 .config/squire/settings.local.yaml
