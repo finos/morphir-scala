@@ -1,0 +1,17 @@
+# Squire local settings template
+#
+# Copy this file to settings.local.yaml and fill in your values.
+# settings.local.yaml is gitignored — safe for org-specific URLs and credentials.
+#
+# cp .config/squire/settings.local.yaml.template .config/squire/settings.local.yaml
+
+cellar:
+  # Extra Maven repository URLs passed to cellar for dependency resolution.
+  # Add any internal/private Artifactory or Nexus mirrors your org uses.
+  # These supplement (not replace) Maven Central.
+  repositories:
+    # - https://your-org.example.com/artifactory/sbt-repo
+    # - https://your-org.example.com/artifactory/maven-repo
+
+  # Optional: override the cellar binary path if not on PATH
+  # binary: /path/to/cellar

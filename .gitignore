@@ -469,5 +469,8 @@ build.user.yaml
 .refs/
 .worktrees/
 
-# Claude 
-.claude/settings.local.json 
+# Claude
+.claude/settings.local.json
+
+# Squire local settings (personal/org-specific config — not committed)
+.config/squire/settings.local.yaml
