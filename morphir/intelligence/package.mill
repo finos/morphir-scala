@@ -1,0 +1,25 @@
+package build.morphir.intelligence
+
+import mill.*, mill.scalalib.*
+import mill.contrib.buildinfo.BuildInfo
+import millbuild.Deps
+import build.{MorphirCommonModule, morphirScalaVersion, MorphirIntelligencePublishModule}
+
+object `package` extends MorphirCommonModule with MorphirIntelligencePublishModule with BuildInfo {
+  override def artifactName      = "morphir-intelligence"
+  def scalaVersion               = Task { morphirScalaVersion }
+  def mainClass                  = Some("org.finos.morphir.intelligence.Main")
+  def buildInfoPackageName       = "org.finos.morphir.intelligence.buildinfo"
+  def buildInfoObjectName        = "BuildInfo"
+  def buildInfoMembers           = Seq(
+    BuildInfo.Value("version", publishVersion()),
+    BuildInfo.Value("scalaVersion", scalaVersion()),
+    BuildInfo.Value("buildJvmVersion", System.getProperty("java.version")),
+    BuildInfo.Value("buildJvmVendor", System.getProperty("java.vendor"))
+  )
+  def moduleDeps = Seq(build.morphir.intelligence.sdk.jvm)
+  def mvnDeps    = Seq(
+    Deps.io.getkyo.`kyo-case-app`,
+    Deps.io.getkyo.`kyo-schema`
+  )
+}

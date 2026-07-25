@@ -6,5 +6,12 @@ set -e
 
 echo "Setting up project..."
 echo "  Installing npm dependencies..."
-bun install
+# Skip postinstall scripts (elm-tooling downloads) unless ELM_TOOLING_INSTALL is set.
+# elm-tooling tries to download elm binaries from GitHub releases which can fail in
+# network-restricted environments. Set ELM_TOOLING_INSTALL=1 to enable.
+if [ -n "${ELM_TOOLING_INSTALL}" ]; then
+  bun install
+else
+  bun install --ignore-scripts
+fi
 echo "Setup completed successfully"
