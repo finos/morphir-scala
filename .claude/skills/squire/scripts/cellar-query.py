@@ -25,7 +25,7 @@ import shutil
 import subprocess
 import sys
 
-# Coordinate shorthand: alias -> full Maven coordinate
+# Coordinate shorthand: alias -> full dependency coordinate
 ALIASES = {
     "case-app:2.1.0":   "com.github.alexarchambault:case-app_3:2.1.0",
     "kyo-case-app":     "io.getkyo:kyo-case-app_3:1.0.0-RC5",
