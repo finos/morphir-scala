@@ -150,6 +150,20 @@ trait MorphirCliBuildInfo extends MorphirVersionBuildInfo {
   def buildInfoPackageName = "org.finos.morphir.cli"
 }
 
+/** BuildInfo wiring for `morphir.intelligence` — its own member set (adds JVM build info, no `platform` member
+  * since this module isn't cross-platform) and package name, both hardcoded per [[MorphirExtensibilityBuildInfo]].
+  */
+trait MorphirIntelligenceBuildInfo extends BuildInfo with PublishModule with ScalaModule {
+  def buildInfoPackageName = "org.finos.morphir.intelligence.buildinfo"
+  override def buildInfoObjectName = "BuildInfo"
+  def buildInfoMembers = Seq(
+    BuildInfo.Value("version", publishVersion()),
+    BuildInfo.Value("scalaVersion", scalaVersion()),
+    BuildInfo.Value("buildJvmVersion", System.getProperty("java.version")),
+    BuildInfo.Value("buildJvmVendor", System.getProperty("java.vendor"))
+  )
+}
+
 /** Publishes an extra `-assembly` classifier alongside the regular jar. Used by `morphir.main` (the CLI). */
 trait AssemblyPublishInfo extends JavaModule with PublishModule {
   override def extraPublish: T[Seq[PublishInfo]] = Task {

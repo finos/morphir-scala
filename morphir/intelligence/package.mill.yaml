@@ -1,0 +1,15 @@
+extends: [build.MorphirCommonModule, build.MorphirIntelligencePublishModule, build.MorphirIntelligenceBuildInfo, mill.contrib.scoverage.ScoverageModule]
+scoverageVersion: 2.5.2
+mainClass: org.finos.morphir.intelligence.Main
+moduleDeps: [build.morphir.intelligence.sdk.jvm]
+mvnDeps:
+- io.getkyo::kyo-case-app:1.0.0-RC5
+- io.getkyo::kyo-schema:1.0.0-RC5
+
+object test:
+  extends: [ScoverageTests, millbuild.KyoTest]
+  mvnDeps:
+  - io.getkyo::kyo-core:1.0.0-RC5
+  - io.getkyo::kyo-prelude:1.0.0-RC5
+  - io.getkyo::kyo-test-api:1.0.0-RC5
+  - io.getkyo::kyo-test-runner:1.0.0-RC5
