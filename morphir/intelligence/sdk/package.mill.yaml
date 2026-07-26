@@ -1,0 +1,26 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirIntelligencePublishModule, mill.contrib.scoverage.ScoverageModule]
+  scoverageVersion: 2.5.2
+  mvnDeps:
+  - io.getkyo::kyo-schema:1.0.0-RC5
+  object test:
+    extends: [ScoverageTests, millbuild.KyoTest]
+    mvnDeps:
+    - io.getkyo::kyo-core:1.0.0-RC5
+    - io.getkyo::kyo-prelude:1.0.0-RC5
+    - io.getkyo::kyo-test-api:1.0.0-RC5
+    - io.getkyo::kyo-test-runner:1.0.0-RC5
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirIntelligencePublishModule]
+  mvnDeps:
+  - io.getkyo::kyo-schema::1.0.0-RC5
+  object test:
+    extends: [ScalaJSTests, millbuild.KyoTestJS]
+    mvnDeps:
+    - io.getkyo::kyo-core::1.0.0-RC5
+    - io.getkyo::kyo-prelude::1.0.0-RC5
+    - io.getkyo::kyo-test-api::1.0.0-RC5
+    - io.getkyo::kyo-test-runner::1.0.0-RC5
