@@ -1,9 +1,11 @@
-extends: [build.MorphirCommonModule, TestModule.Junit5]
+extends: [build.MorphirCommonModule, build.MorphirLangkitItestWasmArtifacts, TestModule.Junit5]
 moduleDeps:
 - build.morphir.langkit.elm.core.jvm
 - build.morphir.langkit.elm.compiler.api.jvm
 mvnDeps:
 - org.scalameta::munit:1.0.4
+- com.dylibso.chicory:runtime:1.7.5
+- com.dylibso.chicory:wabt:1.7.5
 - io.cucumber::cucumber-scala:8.39.1
 - io.cucumber:cucumber-picocontainer:7.20.1
 - io.cucumber:cucumber-junit-platform-engine:7.20.1

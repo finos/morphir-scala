@@ -371,6 +371,22 @@ trait MorphirTestsJSTestSources extends JavaModule {
   )
 }
 
+/**
+ * Injects the linked `langkit.elm.compiler.api.wasm` output directory into `langkit.itest`'s forked JVMs.
+ *
+ * `ChicoryCompilerWasmCompatibilityTest` reads `main.wasm` straight off disk to assert what the Scala.js Wasm linker
+ * emits, so the suite needs the artifact path — and taking a task dependency here is also what makes Mill link the
+ * Wasm module before the tests run. Lives in the metabuild because a per-directory `package.mill.yaml` can't express
+ * a Task, and a `package.mill` in `morphir/langkit/itest/` can't statically reach another directory module's nested
+ * `wasm` object under Mill 1.2.0-RC1.
+ */
+trait MorphirLangkitItestWasmArtifacts extends JavaModule {
+  override def forkArgs: T[Seq[String]] = Task {
+    val wasmDir = build.morphir.langkit.elm.compiler.api.wasm.fullLinkJS().dest.path
+    super.forkArgs() ++ Seq(s"-Dmorphir.langkit.elm.compiler.api.wasm.dir=$wasmDir")
+  }
+}
+
 // The following modules are morphir-elm modules that have been setup to be built using mill
 // Morphir Elm Projects/Modules:
 object examples extends Module {
