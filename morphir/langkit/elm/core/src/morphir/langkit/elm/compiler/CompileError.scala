@@ -1,5 +1,7 @@
 package morphir.langkit.elm.compiler
 
+import morphir.langkit.core.Span
+
 /**
  * Structured compilation diagnostics emitted by the Elm langkit's compiler and tooling APIs.
  *
@@ -15,7 +17,7 @@ object CompileError:
   final case class ParseError(phase: String, diagnostic: ParseDiagnostic) extends CompileError:
     def message: String = diagnostic.message
 
-    def span: Option[Span] = Some(diagnostic.toCompilerSpan)
+    def span: Option[Span] = Some(diagnostic.toSpan)
 
     def code: DiagnosticCode = diagnostic.code
 
@@ -28,6 +30,3 @@ object CompileError:
 
   /** Unexpected internal failure (bug in the compiler surface). */
   final case class InternalError(message: String) extends CompileError
-
-/** Source span `[start, end)` in 0-based character offsets. */
-final case class Span(start: Int, end: Int) derives CanEqual

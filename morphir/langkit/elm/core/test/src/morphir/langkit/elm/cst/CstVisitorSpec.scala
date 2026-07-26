@@ -2,7 +2,7 @@ package morphir.langkit.elm.cst
 
 import kyo.test.*
 
-import morphir.langkit.elm.Span
+import morphir.langkit.core.Span
 import morphir.langkit.elm.cst.CstVisitor.*
 
 class CstVisitorSpec extends Test[Any]:

@@ -1,6 +1,6 @@
 package morphir.langkit.elm.cst
 
-import morphir.langkit.elm.Span
+import morphir.langkit.core.Span
 
 // ── Base ─────────────────────────────────────────────────────────────────────
 

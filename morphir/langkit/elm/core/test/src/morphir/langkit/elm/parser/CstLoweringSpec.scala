@@ -2,7 +2,7 @@ package morphir.langkit.elm.parser
 
 import kyo.test.*
 
-import morphir.langkit.elm.Span
+import morphir.langkit.core.Span
 import morphir.langkit.elm.cst.*
 import morphir.langkit.elm.ast
 

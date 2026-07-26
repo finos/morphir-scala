@@ -4,13 +4,13 @@ import morphir.langkit.elm.compiler.CompileError
 import morphir.langkit.elm.compiler.CompilerComponent
 import morphir.langkit.core.DiagnosticContextLine
 import morphir.langkit.elm.compiler.DiagnosticCode
-import morphir.langkit.elm.compiler.Span
+import morphir.langkit.core.Span
 
 final case class InvokeSpan(start: Int, end: Int) derives CanEqual
 
 object InvokeSpan:
 
-  def fromCompilerSpan(span: Span): InvokeSpan =
+  def fromSpan(span: Span): InvokeSpan =
     InvokeSpan(start = span.start, end = span.end)
 
 final case class InvokeContextLine(
@@ -48,7 +48,7 @@ object InvokeError:
         InvokeError(
           phase = phase,
           message = diagnostic.message,
-          span = Some(InvokeSpan.fromCompilerSpan(diagnostic.toCompilerSpan)),
+          span = Some(InvokeSpan.fromSpan(diagnostic.toSpan)),
           code = Some(DiagnosticCode.unwrap(diagnostic.code)),
           expected = diagnostic.expected,
           suggestion = diagnostic.suggestion,
@@ -60,7 +60,7 @@ object InvokeError:
         InvokeError(
           phase = "query",
           message = message,
-          span = span.map(InvokeSpan.fromCompilerSpan)
+          span = span.map(InvokeSpan.fromSpan)
         )
       case CompileError.InternalError(message) =>
         InvokeError(

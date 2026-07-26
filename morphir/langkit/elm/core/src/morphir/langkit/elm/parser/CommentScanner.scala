@@ -2,7 +2,7 @@ package morphir.langkit.elm.parser
 
 import scala.collection.mutable.ListBuffer
 
-import morphir.langkit.elm.Span
+import morphir.langkit.core.Span
 import morphir.langkit.elm.cst.{CommentKind, CstComment}
 
 object CommentScanner:

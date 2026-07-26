@@ -1,8 +1,8 @@
-package morphir.langkit.elm
+package morphir.langkit.core
 
 import kyo.test.*
 
-class SpanTest extends Test[Any]:
+class SpanSpec extends Test[Any]:
 
   "Span" - {
     "represents the empty span at offset zero" in

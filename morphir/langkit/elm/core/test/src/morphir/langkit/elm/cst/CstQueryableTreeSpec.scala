@@ -4,7 +4,7 @@ import parsley.{Failure, Success}
 import kyo.test.*
 
 import morphir.langkit.elm.Elm
-import morphir.langkit.elm.Span
+import morphir.langkit.core.Span
 import morphir.langkit.elm.cst.CstQueryableTree.given
 import morphir.langkit.trees.CaptureName
 import morphir.langkit.trees.FieldName

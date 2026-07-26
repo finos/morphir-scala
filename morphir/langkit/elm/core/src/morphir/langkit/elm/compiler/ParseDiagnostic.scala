@@ -1,6 +1,6 @@
 package morphir.langkit.elm.compiler
 
-import morphir.langkit.core.{DiagnosticContextLine, SourceOffsets, SourceSpan}
+import morphir.langkit.core.{DiagnosticContextLine, SourceOffsets, SourceSpan, Span}
 
 final case class ParseDiagnostic(
     code: DiagnosticCode,
@@ -11,7 +11,7 @@ final case class ParseDiagnostic(
     contextLines: List[DiagnosticContextLine] = Nil
 ) derives CanEqual:
 
-  def toCompilerSpan: Span = Span(start = span.start, end = span.end)
+  def toSpan: Span = Span.fromStartEnd(span.start, span.end)
 
 object ParseDiagnostic:
 
