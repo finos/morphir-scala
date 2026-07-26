@@ -36,6 +36,27 @@ object js:
     - io.getkyo::kyo-test-api::1.0.0-RC5
     - io.getkyo::kyo-test-runner::1.0.0-RC5
 
+# WebAssembly linker variant. Compiles the same sources as `js` and depends on the `js` modules of core/trees — only
+# the Scala.js link output differs, so a `main.wasm` binary and an ES-module JS loader are emitted. Deliberately not a
+# publish module: its Maven coordinate would collide with `js` (both carry the `_sjs1_3` suffix).
+object wasm:
+  extends: [build.MorphirWasmModule]
+  moduleDeps:
+  - build.morphir.langkit.elm.core.js
+  - build.morphir.langkit.trees.js
+  mvnDeps:
+  - com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core::2.38.9
+  - com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.38.9
+  - io.getkyo::kyo-prelude::1.0.0-RC5
+  - io.getkyo::kyo-core::1.0.0-RC5
+  object test:
+    extends: [ScalaJSTests, build.MorphirWasmTests, millbuild.KyoTestWasm]
+    mvnDeps:
+    - io.getkyo::kyo-core::1.0.0-RC5
+    - io.getkyo::kyo-prelude::1.0.0-RC5
+    - io.getkyo::kyo-test-api::1.0.0-RC5
+    - io.getkyo::kyo-test-runner::1.0.0-RC5
+
 object native:
   extends: [build.MorphirNativeModule, build.MorphirPublishModule]
   moduleDeps:

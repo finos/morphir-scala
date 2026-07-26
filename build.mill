@@ -1,6 +1,9 @@
 //| mvnDeps:
 //| - com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION
 //| - com.lihaoyi::mill-contrib-scoverage:$MILL_VERSION
+//| - com.lihaoyi::mill-libs-scalajslib-config-1:$MILL_VERSION
+//| - org.scala-js:scalajs-linker_2.13:1.22.0
+//| - org.scala-js:scalajs-js-envs_2.13:1.4.0
 //| - com.carlosedp::mill-aliases::1.1.0
 //| - com.github.lolgab::mill-mima::0.2.0
 //| - io.eleven19.mill-github-dependency-graph::mill-github-dependency-graph:0.0.2
@@ -109,6 +112,64 @@ trait MorphirNativeModule extends MorphirCommonCrossModule with ScalaNativeModul
   def platform           = Platform.Native
   def scalaNativeVersion = Task { ScalaVers.scalaNativeVersion }
 }
+
+/**
+ * Linker configuration that switches a Scala.js module onto the experimental WebAssembly backend, so it emits a Wasm
+ * GC binary plus an ES-module JS loader instead of plain JS.
+ *
+ * The backend requires `ModuleKind.ESModule` and ES2022; both are set here so callers only mix the trait in. Output
+ * loads in browsers with Wasm GC (Chrome 119+, Firefox 120+, Safari 18.2+) and on Node 22+.
+ *
+ * Mix this into a module's *test* object as well as the module itself: Mill's `ScalaJSTests` forwards `moduleKind`
+ * and `esFeatures` from the enclosing module but not `scalaJSExperimentalUseWebAssembly`, so without it the tests
+ * would silently link as plain JS and duplicate the `js` module's test run.
+ *
+ * @note
+ *   The WebAssembly backend treats `@JSExport*` annotations differently from the JS linker: `@JSExport` on
+ *   object/class members is silently dropped, and `@JSExportTopLevel` on an `object` yields an ES-module export with
+ *   no members. `@JSExportTopLevel` on a top-level `val` IS honored, so FFI surfaces that need a populated namespace
+ *   should be exposed as `@JSExportTopLevel("Name") val foo: js.Object = js.Dynamic.literal(...)`.
+ */
+trait MorphirWasmLinker extends ScalaJSModule with mill.scalajslib.config.ScalaJSConfigModule {
+  import mill.scalajslib.api.*
+  override def scalaJSExperimentalUseWebAssembly: T[Boolean] = Task(true)
+  override def moduleKind: T[ModuleKind]                     = Task { ModuleKind.ESModule }
+
+  // ES2022 has to be set through Scala.js' own linker API: Mill's `ESVersion` enum stops at ES2021, which is why the
+  // whole `ScalaJSConfigModule` detour (and its three metabuild deps at the top of this file) exists at all.
+  // Note that mixing it in makes `scalaJSVersion` final at the linker dep's version — keep the `org.scala-js:
+  // scalajs-linker_2.13` metabuild coordinate in step with `ScalaVers.scalaJSVersion`.
+  override def scalaJSConfig: Task[org.scalajs.linker.interface.StandardConfig] = Task.Anon {
+    super.scalaJSConfig().withESFeatures(
+      _.withESVersion(org.scalajs.linker.interface.ESVersion.ES2022).withUseWebAssembly(true)
+    )
+  }
+
+  // Scala.js compiles exception handling to the Wasm `exnref` type, which Node still hides behind a flag
+  // ("invalid value type 'exn', enable with --experimental-wasm-exnref"). Browsers with Wasm GC need no equivalent.
+  override def jsEnvConfig: T[JsEnvConfig] = Task {
+    JsEnvConfig.NodeJs(args = List("--experimental-wasm-exnref"))
+  }
+}
+
+/**
+ * Scala.js module variant linked through the WebAssembly backend — see [[MorphirWasmLinker]] for the linker config.
+ *
+ * It is a link-output variant of [[MorphirJSModule]], not a fourth platform: `platform` stays [[Platform.JS]], so a
+ * Wasm module compiles the very same `src` / `js/src` trees as its `js` sibling. Consequently a Wasm module's
+ * `moduleDeps` should point at the `js` modules of its dependencies.
+ */
+trait MorphirWasmModule extends MorphirJSModule with MorphirWasmLinker
+
+/**
+ * Test-side counterpart of [[MorphirWasmModule]], to be mixed into a Wasm module's test object alongside
+ * `ScalaJSTests`.
+ *
+ * Mill's `ScalaJSTests` forwards `moduleKind` and `esFeatures` from the enclosing module but links tests through its
+ * own `testLinkTask`, which ignores `scalaJSConfig`. Without this trait a Wasm module's tests link as plain JS —
+ * silently duplicating the `js` module's run rather than exercising the Wasm output.
+ */
+trait MorphirWasmTests extends mill.scalajslib.config.TestScalaJSConfigModule with MorphirWasmLinker
 
 /** Shared BuildInfo wiring: version + scalaVersion members. Requires [[PublishModule]] + [[ScalaModule]].
   *
