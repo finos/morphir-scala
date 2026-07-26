@@ -1,4 +1,4 @@
-package morphir.langkit.elm.log
+package morphir.kyox.log
 
 import kyo.*
 import kyo.test.*

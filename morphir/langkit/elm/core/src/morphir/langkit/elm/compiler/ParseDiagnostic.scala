@@ -1,6 +1,6 @@
 package morphir.langkit.elm.compiler
 
-final case class SourceSpan(start: Int, end: Int, line: Int, column: Int) derives CanEqual
+import morphir.langkit.core.{DiagnosticContextLine, SourceOffsets, SourceSpan}
 
 final case class ParseDiagnostic(
     code: DiagnosticCode,

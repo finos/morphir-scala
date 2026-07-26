@@ -1,4 +1,4 @@
-package morphir.langkit.elm.compiler
+package morphir.langkit.core
 
 final case class DiagnosticContextLine(
     line: Int,

@@ -1,4 +1,4 @@
-package morphir.langkit.elm.compiler
+package morphir.langkit.core
 
 object SourceOffsets:
 

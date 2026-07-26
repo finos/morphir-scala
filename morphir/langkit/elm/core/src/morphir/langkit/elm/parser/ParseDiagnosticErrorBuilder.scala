@@ -1,5 +1,7 @@
 package morphir.langkit.elm.parser
 
+import morphir.langkit.core.{SourceOffsets, SourceSpan}
+
 import parsley.errors.ErrorBuilder
 import parsley.errors.tokenextractors.SingleChar
 

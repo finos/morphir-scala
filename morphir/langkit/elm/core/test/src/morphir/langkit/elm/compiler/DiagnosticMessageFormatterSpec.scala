@@ -1,5 +1,7 @@
 package morphir.langkit.elm.compiler
 
+import morphir.langkit.core.DiagnosticContextLine
+
 import kyo.test.*
 
 class DiagnosticMessageFormatterSpec extends Test[Any]:

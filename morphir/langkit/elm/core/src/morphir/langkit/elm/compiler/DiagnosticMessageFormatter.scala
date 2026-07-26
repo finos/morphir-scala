@@ -1,5 +1,7 @@
 package morphir.langkit.elm.compiler
 
+import morphir.langkit.core.{DiagnosticContextLine, SourceSnippetBuilder}
+
 /** Formats structured parse diagnostics into human-friendly, Elm-inspired messages. */
 object DiagnosticMessageFormatter:
 

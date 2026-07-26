@@ -2,12 +2,6 @@ extends: Module
 
 object jvm:
   extends: [build.MorphirJVMModule, build.MorphirPublishModule]
-  moduleDeps: [build.morphir.langkit.core.jvm, build.morphir.langkit.trees.jvm]
-  mvnDeps:
-  - com.github.j-mie6::parsley:4.6.2
-  - io.github.kitlangton::neotype:0.4.10
-  - io.getkyo::kyo-prelude:1.0.0-RC5
-  - io.getkyo::kyo-core:1.0.0-RC5
   object test:
     extends: [ScalaTests, millbuild.KyoTest]
     mvnDeps:
@@ -18,12 +12,6 @@ object jvm:
 
 object js:
   extends: [build.MorphirJSModule, build.MorphirPublishModule]
-  moduleDeps: [build.morphir.langkit.core.js, build.morphir.langkit.trees.js]
-  mvnDeps:
-  - com.github.j-mie6::parsley::4.6.2
-  - io.github.kitlangton::neotype::0.4.10
-  - io.getkyo::kyo-prelude::1.0.0-RC5
-  - io.getkyo::kyo-core::1.0.0-RC5
   object test:
     extends: [ScalaJSTests, millbuild.KyoTestJS]
     mvnDeps:
@@ -34,12 +22,6 @@ object js:
 
 object native:
   extends: [build.MorphirNativeModule, build.MorphirPublishModule]
-  moduleDeps: [build.morphir.langkit.core.native, build.morphir.langkit.trees.native]
-  mvnDeps:
-  - com.github.j-mie6::parsley::4.6.2
-  - io.github.kitlangton::neotype::0.4.10
-  - io.getkyo::kyo-prelude::1.0.0-RC5
-  - io.getkyo::kyo-core::1.0.0-RC5
   object test:
     extends: [ScalaNativeTests, millbuild.KyoTestNative]
     mvnDeps:

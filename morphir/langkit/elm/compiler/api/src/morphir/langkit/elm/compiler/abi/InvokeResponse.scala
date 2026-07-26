@@ -2,7 +2,7 @@ package morphir.langkit.elm.compiler.abi
 
 import morphir.langkit.elm.compiler.CompileError
 import morphir.langkit.elm.compiler.CompilerComponent
-import morphir.langkit.elm.compiler.DiagnosticContextLine
+import morphir.langkit.core.DiagnosticContextLine
 import morphir.langkit.elm.compiler.DiagnosticCode
 import morphir.langkit.elm.compiler.Span
 
