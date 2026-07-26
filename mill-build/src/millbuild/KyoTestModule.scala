@@ -17,3 +17,8 @@ trait KyoTest extends TestModule {
 trait KyoTestJS extends TestModule {
   override def testFramework: T[String] = "kyo.test.runner.JsFramework"
 }
+
+/** [[KyoTest]] variant for `ScalaNativeTests` — kyo-test's native runner uses a different framework class. */
+trait KyoTestNative extends TestModule {
+  override def testFramework: T[String] = "kyo.test.runner.NativeFramework"
+}

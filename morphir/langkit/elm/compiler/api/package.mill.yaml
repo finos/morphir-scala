@@ -1,0 +1,56 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule]
+  moduleDeps:
+  - build.morphir.langkit.elm.core.jvm
+  - build.morphir.langkit.trees.jvm
+  mvnDeps:
+  - com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core:2.38.9
+  - com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros:2.38.9
+  - io.getkyo::kyo-prelude:1.0.0-RC5
+  - io.getkyo::kyo-core:1.0.0-RC5
+  object test:
+    extends: [ScalaTests, millbuild.KyoTest]
+    mvnDeps:
+    - io.getkyo::kyo-core:1.0.0-RC5
+    - io.getkyo::kyo-prelude:1.0.0-RC5
+    - io.getkyo::kyo-test-api:1.0.0-RC5
+    - io.getkyo::kyo-test-runner:1.0.0-RC5
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirPublishModule]
+  moduleDeps:
+  - build.morphir.langkit.elm.core.js
+  - build.morphir.langkit.trees.js
+  mvnDeps:
+  - com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core::2.38.9
+  - com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.38.9
+  - io.getkyo::kyo-prelude::1.0.0-RC5
+  - io.getkyo::kyo-core::1.0.0-RC5
+  object test:
+    extends: [ScalaJSTests, millbuild.KyoTestJS]
+    mvnDeps:
+    - io.getkyo::kyo-core::1.0.0-RC5
+    - io.getkyo::kyo-prelude::1.0.0-RC5
+    - io.getkyo::kyo-test-api::1.0.0-RC5
+    - io.getkyo::kyo-test-runner::1.0.0-RC5
+
+object native:
+  extends: [build.MorphirNativeModule, build.MorphirPublishModule]
+  moduleDeps:
+  - build.morphir.langkit.elm.core.native
+  - build.morphir.langkit.trees.native
+  mvnDeps:
+  - com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core::2.38.9
+  - com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.38.9
+  - io.getkyo::kyo-prelude::1.0.0-RC5
+  - io.getkyo::kyo-core::1.0.0-RC5
+  object test:
+    extends: [ScalaNativeTests, millbuild.KyoTestNative]
+    mvnDeps:
+    - io.getkyo::kyo-core::1.0.0-RC5
+    - io.getkyo::kyo-prelude::1.0.0-RC5
+    - io.getkyo::kyo-test-api::1.0.0-RC5
+    - io.getkyo::kyo-test-runner::1.0.0-RC5
+    - org.scala-native::test-interface::0.5.12

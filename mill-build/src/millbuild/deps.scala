@@ -236,7 +236,7 @@ object ScalaVersions {
   val scala3 = "3.8.4"
 
   def scalaJSVersion     = "1.22.0"
-  def scalaNativeVersion = "0.5.7"
+  def scalaNativeVersion = "0.5.12"
   def millScalaVersion   = scala3
 
   // Backwards compatibility aliases

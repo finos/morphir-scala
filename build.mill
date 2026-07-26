@@ -79,6 +79,7 @@ trait MorphirIntelligencePublishModule extends MorphirPublishModule {
 }
 
 trait MorphirCommonModule extends ScalaModule with CommonScalaModule {
+  def scalaVersion: T[String]      = Task { morphirScalaVersion }
   def semanticDbVersion: T[String] = Task { Vers.semanticDb }
 
   def compilerPluginDependencies(selectedScalaVersion: String) =
@@ -108,7 +109,7 @@ trait MorphirJSModule extends MorphirCommonCrossModule with ScalaJSModule {
   def scalaJSVersion = Task { ScalaVers.scalaJSVersion }
 }
 
-trait MorphirNativeModule extends MorphirCommonCrossModule {
+trait MorphirNativeModule extends MorphirCommonCrossModule with ScalaNativeModule {
   def platform           = Platform.Native
   def scalaNativeVersion = Task { ScalaVers.scalaNativeVersion }
 }
