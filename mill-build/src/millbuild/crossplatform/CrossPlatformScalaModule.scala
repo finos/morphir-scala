@@ -1,6 +1,5 @@
 package millbuild.crossplatform
 import mill.*
-import mill.api.DynamicModule
 import mill.scalajslib.*
 import mill.scalalib.*
 import mill.scalanativelib.*
@@ -44,16 +43,7 @@ trait CrossPlatformScalaModule extends PlatformScalaModule with CommonScalaModul
           crossPlatformRelativeSourcePaths("src").map(subPath => PathRef(moduleDir / subPath))).distinct
     }
 
-  def platformSpecificModuleDeps: Seq[CrossPlatform]         = Seq.empty
-  def platformSpecificCompiledModuleDeps: Seq[CrossPlatform] = Seq.empty
-
-  override def moduleDeps = super.moduleDeps ++ platformSpecificModuleDeps.flatMap {
-    case p => p.childPlatformModules(platform)
-  }
-  override def compileModuleDeps =
-    super.compileModuleDeps ++ platformSpecificCompiledModuleDeps.flatMap(_.childPlatformModules(platform))
   def platform: Platform
-  def knownPlatforms: T[Seq[Platform]] = Task { Platform.all.toSeq }
 
   override def sources: T[Seq[PathRef]] = Task.Sources(crossPlatformSourcePaths.map(_.path)*)
 }

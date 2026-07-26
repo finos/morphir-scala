@@ -8,7 +8,6 @@
 package build
 
 import millbuild.{Deps, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
-import millbuild.config.PlatformConfig
 import millbuild.docs.{Docusaurus2Module, MDocModule}
 import mill.scalalib.publish.PublishInfo
 import mill.local.plugins.ci.release.ReleaseSetupModule
@@ -43,9 +42,6 @@ def showBuildSettings() = Task.Command {
   println(s"docsScalaVersion: ${docsScalaVersion}")
   println(s"scalaJSVersion: ${ScalaVers.scalaJSVersion}")
   println(s"scalaNativeVersion: ${ScalaVers.scalaNativeVersion}")
-  println(s"Platform JVM enabled: ${PlatformConfig.enableJVM}")
-  println(s"Platform JS enabled: ${PlatformConfig.enableJS}")
-  println(s"Platform Native enabled: ${PlatformConfig.enableNative}")
   ()
 }
 
