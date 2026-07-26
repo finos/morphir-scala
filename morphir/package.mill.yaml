@@ -1,0 +1,17 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirRootMvnDeps, build.EmptyDocJar]
+  moduleDeps: [build.morphir.extensibility.jvm]
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirRootMvnDeps]
+  moduleDeps: [build.morphir.extensibility.js]
+
+object main:
+  extends: [build.MorphirCommonModule, build.MorphirPublishModule, build.AssemblyPublishInfo, build.MorphirCliBuildInfo, build.MorphirMainMvnDeps]
+  mainClass: org.finos.morphir.cli.MorphirCliMain
+  moduleDeps:
+  - build.morphir.jvm
+  - build.morphir.runtime.jvm
+  - build.morphir.tools.jvm

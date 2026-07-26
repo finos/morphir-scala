@@ -1,0 +1,28 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirTestsMvnDeps, mill.contrib.scoverage.ScoverageModule]
+  scoverageVersion: 2.5.2
+  moduleDeps:
+  - build.morphir.extensibility.jvm
+  - build.morphir.jvm
+  - build.morphir.runtime.jvm
+  - build.morphir.tools.jvm
+  object test:
+    extends: [ScoverageTests, TestModule.ZioTest, build.MorphirTestsTestMvnDepsJVM, build.MorphirTestsJVMTestSources]
+    moduleDeps: !append
+    - build.morphir.testing.generators.jvm
+    - build.morphir.testing.zio.jvm
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirTestsMvnDeps]
+  moduleDeps:
+  - build.morphir.extensibility.js
+  - build.morphir.js
+  - build.morphir.runtime.js
+  - build.morphir.tools.js
+  object test:
+    extends: [ScalaJSTests, TestModule.ZioTest, build.MorphirTestsTestMvnDepsJS, build.MorphirTestsJSTestSources]
+    moduleDeps: !append
+    - build.morphir.testing.generators.js
+    - build.morphir.testing.zio.js
