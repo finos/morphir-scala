@@ -3,7 +3,7 @@ package morphir.langkit.elm.ast
 import parsley.{Failure, Success}
 import kyo.test.*
 
-import morphir.langkit.elm.Krueger
+import morphir.langkit.elm.Elm
 import morphir.langkit.elm.Span
 import morphir.langkit.elm.ast.AstQueryableTree.given
 import morphir.langkit.trees.CaptureName
@@ -14,7 +14,7 @@ import morphir.langkit.trees.query.*
 
 class AstQueryableTreeSpec extends Test[Any]:
 
-  private def parse(src: String): Module = Krueger.parseAst(src) match
+  private def parse(src: String): Module = Elm.parseAst(src) match
     case Success(m)   => m
     case Failure(msg) => throw new AssertionError(s"parse failed: $msg")
 

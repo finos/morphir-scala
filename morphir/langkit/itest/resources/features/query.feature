@@ -1,5 +1,5 @@
 Feature: Tree queries
-  Krueger ships a tree-sitter-inspired query DSL that selects
+  The langkit trees module ships a tree-sitter-inspired query DSL that selects
   CST or AST nodes by pattern, with captures and predicates.
 
   # EARS requirement map:

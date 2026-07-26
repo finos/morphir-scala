@@ -3,7 +3,7 @@ package morphir.langkit.elm.compiler.abi
 import scala.util.control.NonFatal
 
 import morphir.langkit.elm.compiler.CompilerComponent
-import morphir.langkit.elm.compiler.Krueger
+import morphir.langkit.elm.compiler.ElmCompiler
 
 object InvokeCompiler:
 
@@ -11,7 +11,7 @@ object InvokeCompiler:
   import InvokeJson.encode
   import InvokeJson.given
 
-  private val compiler = Krueger.defaultCompiler
+  private val compiler = ElmCompiler.defaultCompiler
 
   def invoke(op: String, inputJson: String): String =
     encode(dispatch(op, inputJson))

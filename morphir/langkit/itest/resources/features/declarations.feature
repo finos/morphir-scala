@@ -1,5 +1,5 @@
 Feature: Declarations
-  Krueger parses top-level value, type alias, and custom type declarations.
+  The Elm langkit parses top-level value, type alias, and custom type declarations.
 
   Scenario: Value declaration without annotation
     Given the Elm source:

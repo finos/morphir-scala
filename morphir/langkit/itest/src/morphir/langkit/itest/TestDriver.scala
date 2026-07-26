@@ -4,7 +4,7 @@ import parsley.{Failure, Result, Success}
 
 import scala.io.Source
 
-import morphir.langkit.elm.Krueger
+import morphir.langkit.elm.Elm
 import morphir.langkit.elm.ast.AstNode
 import morphir.langkit.elm.ast.AstQueryableTree.given
 import morphir.langkit.elm.ast.Module
@@ -64,8 +64,8 @@ final class TestDriver:
     try setSource(Source.fromInputStream(stream, "UTF-8").mkString)
     finally stream.close()
 
-  def parseCst(): Unit = cstResult = Some(Krueger.parseCst(source))
-  def parseAst(): Unit = astResult = Some(Krueger.parseAst(source))
+  def parseCst(): Unit = cstResult = Some(Elm.parseCst(source))
+  def parseAst(): Unit = astResult = Some(Elm.parseAst(source))
 
   def cst: CstModule = cstResult match
     case Some(Success(m))                           => m

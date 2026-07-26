@@ -1,5 +1,5 @@
 Feature: Module parsing
-  Krueger parses Elm module headers, qualified module names, and imports.
+  The Elm langkit parses Elm module headers, qualified module names, and imports.
 
   Scenario: Parses a minimal plain module
     Given the Elm source:

@@ -3,7 +3,7 @@ package morphir.langkit.elm.parser
 import parsley.{Failure, Success}
 import kyo.test.*
 
-import morphir.langkit.elm.Krueger
+import morphir.langkit.elm.Elm
 import morphir.langkit.elm.compiler.DiagnosticCode
 import morphir.langkit.elm.compiler.ParseDiagnostic
 
@@ -14,12 +14,12 @@ class ParseDiagnosticParserSpec extends Test[Any]:
   "ParseDiagnosticParser" - {
     "happy path: valid source produces zero diagnostics" in {
       val source = "module M exposing (..)\n\nx = 1\n"
-      Krueger.parseCst(source) match
+      Elm.parseCst(source) match
         case Success(_) => assert(true)
         case Failure(_) => assert(false)
     }
     "malformed source produces ELM-P001 with span and expected tokens" in {
-      Krueger.parseCst(malformedSource) match
+      Elm.parseCst(malformedSource) match
         case Failure(diagnostic: ParseDiagnostic) =>
           assert(diagnostic.code == DiagnosticCode.UnexpectedEndOfInput)
           assert(diagnostic.span.line == 3)
@@ -37,7 +37,7 @@ class ParseDiagnosticParserSpec extends Test[Any]:
         case Success(_) => assert(false)
     }
     "empty source produces ELM-P001 at start of file" in {
-      Krueger.parseCst("") match
+      Elm.parseCst("") match
         case Failure(diagnostic: ParseDiagnostic) =>
           assert(diagnostic.code == DiagnosticCode.UnexpectedEndOfInput)
           assert(diagnostic.span.line == 1)

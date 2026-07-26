@@ -3,7 +3,7 @@ package morphir.langkit.elm.ast
 import parsley.{Failure, Success}
 import kyo.test.*
 
-import morphir.langkit.elm.Krueger
+import morphir.langkit.elm.Elm
 import morphir.langkit.elm.ast.AstQueryableTree.given
 import morphir.langkit.elm.ast.AstUnistProjection.given
 import morphir.langkit.trees.unist.UnistProjection
@@ -16,7 +16,7 @@ class AstUnistProjectionSpec extends Test[Any]:
       |main = 42
       |""".stripMargin
 
-  private def parse(src: String): Module = Krueger.parseAst(src) match
+  private def parse(src: String): Module = Elm.parseAst(src) match
     case Success(value) => value
     case Failure(msg)   => throw AssertionError(s"parse failed: $msg")
 

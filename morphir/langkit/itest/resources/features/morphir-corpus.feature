@@ -1,5 +1,5 @@
 Feature: Morphir corpus parser fixtures
-  Krueger parses representative Elm modules sourced from finos/morphir-examples and finos/morphir-elm.
+  The Elm langkit parses representative Elm modules sourced from finos/morphir-examples and finos/morphir-elm.
 
   Scenario Outline: Parse a Morphir corpus fixture
     Given the Elm fixture "<fixture>"

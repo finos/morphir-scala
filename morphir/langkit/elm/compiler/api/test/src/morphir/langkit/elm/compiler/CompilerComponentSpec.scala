@@ -2,7 +2,7 @@ package morphir.langkit.elm.compiler
 
 import kyo.test.*
 
-import morphir.langkit.elm.Krueger as CoreKrueger
+import morphir.langkit.elm.Elm
 import morphir.langkit.elm.cst.CstNode
 import morphir.langkit.elm.cst.CstQueryableTree.given
 
@@ -30,12 +30,12 @@ class CompilerComponentSpec extends Test[Any]:
       case Left(_)      => throw new AssertionError(clue)
 
   private def expectedParseError(phase: String, source: String): CompileError.ParseError =
-    CoreKrueger.parseCst(source) match
+    Elm.parseCst(source) match
       case parsley.Failure(diagnostic: ParseDiagnostic) =>
         CompileError.ParseError(phase = phase, diagnostic = diagnostic)
       case parsley.Success(_) => throw new AssertionError(s"expected parse failure for: $source")
 
-  private val compiler: CompilerComponent[Unit] = Krueger.compiler[Unit]
+  private val compiler: CompilerComponent[Unit] = ElmCompiler.compiler[Unit]
 
   private val simpleSource =
     """module M exposing (..)

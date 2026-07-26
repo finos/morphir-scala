@@ -2,7 +2,7 @@ package morphir.langkit.elm.compiler.abi
 
 import kyo.test.*
 
-import morphir.langkit.elm.Krueger as CoreKrueger
+import morphir.langkit.elm.Elm
 import morphir.langkit.elm.compiler.CompileError
 import morphir.langkit.elm.compiler.ParseDiagnostic
 
@@ -20,7 +20,7 @@ class InvokeCompilerSpec extends Test[Any]:
   private val malformedSource = "module Demo exposing (..)\n\nmain ="
 
   private def expectedParseInvokeError(source: String): InvokeError =
-    CoreKrueger.parseCst(source) match
+    Elm.parseCst(source) match
       case parsley.Failure(diagnostic: ParseDiagnostic) =>
         InvokeError.fromCompileError(CompileError.ParseError(phase = "cst", diagnostic = diagnostic))
       case parsley.Success(_) =>

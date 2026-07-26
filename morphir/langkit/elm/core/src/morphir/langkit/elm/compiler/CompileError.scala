@@ -1,7 +1,7 @@
 package morphir.langkit.elm.compiler
 
 /**
- * Structured compilation diagnostics emitted by Krueger compiler and tooling APIs.
+ * Structured compilation diagnostics emitted by the Elm langkit's compiler and tooling APIs.
  *
  * Cases carry enough context (phase, diagnostic payload) so downstream UIs can render actionable errors without
  * re-parsing messages.

@@ -3,7 +3,7 @@ package morphir.langkit.elm.parser
 import parsley.{Failure, Success}
 import kyo.test.*
 
-import morphir.langkit.elm.Krueger
+import morphir.langkit.elm.Elm
 import morphir.langkit.elm.compiler.{DiagnosticCode, ParseDiagnostic}
 import morphir.langkit.elm.lexer.{ElmTokenizer, ElmTokenizerConfig}
 
@@ -12,7 +12,7 @@ class ParseDiagnosticMessageSnapshotSpec extends Test[Any]:
   "ParseDiagnosticMessageSnapshot" - {
     "malformed module value documents the friendly end-of-input message shape" in {
       val source = "module M exposing (..)\n\nx ="
-      Krueger.parseCst(source) match
+      Elm.parseCst(source) match
         case Failure(diagnostic: ParseDiagnostic) =>
           assert(diagnostic.code == DiagnosticCode.UnexpectedEndOfInput)
           assert(diagnostic.message.startsWith("-- PARSE ERROR (ELM-P001)"))

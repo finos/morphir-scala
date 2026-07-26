@@ -5,7 +5,7 @@ import kyo.test.*
 
 import morphir.langkit.elm.cst.CommentKind
 
-class KruegerSpec extends Test[Any]:
+class ElmSpec extends Test[Any]:
 
   private val minimal = "module Main exposing (..)\n"
 
@@ -18,16 +18,16 @@ class KruegerSpec extends Test[Any]:
       |""".stripMargin
 
   private def parseCstOrFail(src: String): morphir.langkit.elm.cst.CstModule =
-    Krueger.parseCst(src) match
+    Elm.parseCst(src) match
       case Success(m)   => m
       case Failure(msg) => throw new AssertionError(s"parse failed: $msg\nSource:\n$src")
 
   private def parseAstOrFail(src: String): morphir.langkit.elm.ast.Module =
-    Krueger.parseAst(src) match
+    Elm.parseAst(src) match
       case Success(m)   => m
       case Failure(msg) => throw new AssertionError(s"parse failed: $msg\nSource:\n$src")
 
-  "Krueger" - {
+  "Elm" - {
     "parseCst succeeds on minimal module" in {
       val m = parseCstOrFail(minimal)
       assert(m.moduleDecl.name.parts.map(_.value) == List("Main"))
@@ -70,7 +70,7 @@ class KruegerSpec extends Test[Any]:
       assert(m.declarations.size == 1)
     }
     "parseCst fails on malformed input" in {
-      Krueger.parseCst("module !!!") match
+      Elm.parseCst("module !!!") match
         case Failure(_) => succeed
         case Success(_) => throw new AssertionError("expected failure, got success")
     }

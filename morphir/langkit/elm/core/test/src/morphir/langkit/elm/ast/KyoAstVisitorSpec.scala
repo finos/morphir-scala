@@ -1,6 +1,6 @@
 package morphir.langkit.elm.ast
 
-import morphir.langkit.elm.Krueger
+import morphir.langkit.elm.Elm
 import morphir.langkit.elm.ast.AstQueryableTree.given
 import morphir.langkit.trees.QueryableTree
 import kyo.*
@@ -16,7 +16,7 @@ class KyoAstVisitorSpec extends Test[Any]:
       |""".stripMargin
 
   private def parsedAst: AstNode =
-    Krueger.parseAst(sampleSource) match
+    Elm.parseAst(sampleSource) match
       case Success(m)   => m
       case Failure(msg) => sys.error(s"baseline parse failure: $msg")
 

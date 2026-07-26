@@ -6,8 +6,7 @@ package morphir.langkit.trees
  * An instance describes how to navigate values of `T`: what kind of node it is, its children in traversal order,
  * optional named sub-trees ("fields"), and optional leaf text.
  *
- * v1 is intentionally string-based. Compile-time type narrowing and derivation are tracked in the krueger-trees v2
- * epic.
+ * v1 is intentionally string-based; compile-time type narrowing and typeclass derivation are left to a later revision.
  */
 trait QueryableTree[T]:
   /** Human- and query-readable name of the node's kind. */

@@ -1,6 +1,6 @@
 package morphir.langkit.elm.compiler
 
-import morphir.langkit.elm.Krueger as CoreKrueger
+import morphir.langkit.elm.Elm
 import morphir.langkit.elm.ast.Module as AstModule
 import morphir.langkit.elm.cst.CstModule
 import morphir.langkit.trees.QueryableTree
@@ -11,11 +11,11 @@ import morphir.langkit.trees.query.QueryParser
 import morphir.langkit.trees.query.QueryPretty
 
 /**
- * Default implementation of [[CompilerComponent]] that wraps the existing pure Krueger APIs inside Kyo-backed
- * [[QueryLogic.QueryEffect]] values. Every parse/query failure becomes a structured [[CompileError]] surfaced through
- * the result envelope via [[QueryLogic.failFast]], never an exception.
+ * Default implementation of [[CompilerComponent]] that wraps the pure [[morphir.langkit.elm.Elm]] parser APIs inside
+ * Kyo-backed [[QueryLogic.QueryEffect]] values. Every parse/query failure becomes a structured [[CompileError]]
+ * surfaced through the result envelope via [[QueryLogic.failFast]], never an exception.
  */
-object Krueger:
+object ElmCompiler:
 
   lazy val defaultCompiler: CompilerComponent[Unit] = compiler[Unit]
 
@@ -27,7 +27,7 @@ object Krueger:
     import CompilerComponent.CompileEff
 
     def parseCst(source: String): CompileEff[Ctx, CstModule] =
-      CoreKrueger.parseCst(source) match
+      Elm.parseCst(source) match
         case parsley.Success(m)                           => m
         case parsley.Failure(diagnostic: ParseDiagnostic) =>
           QueryLogic.failFast[Ctx, String, CompileError](
@@ -35,7 +35,7 @@ object Krueger:
           )
 
     def parseAst(source: String): CompileEff[Ctx, AstModule] =
-      CoreKrueger.parseAst(source) match
+      Elm.parseAst(source) match
         case parsley.Success(m)                           => m
         case parsley.Failure(diagnostic: ParseDiagnostic) =>
           QueryLogic.failFast[Ctx, String, CompileError](

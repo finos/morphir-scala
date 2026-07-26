@@ -1,5 +1,5 @@
 Feature: Patterns
-  Krueger parses patterns used in function parameter lists.
+  The Elm langkit parses patterns used in function parameter lists.
 
   Scenario: Variable pattern
     Given the Elm source:

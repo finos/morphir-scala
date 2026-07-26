@@ -11,8 +11,8 @@ import morphir.langkit.elm.parser.{
   TriviaAssociator
 }
 
-/** Public API entry point for the Krueger Elm dialect parser. */
-object Krueger:
+/** Public API entry point for the Elm dialect parser. */
+object Elm:
 
   /** Parse Elm source code into a CST. */
   def parseCst(source: String): parsley.Result[ParseDiagnostic, CstModule] =

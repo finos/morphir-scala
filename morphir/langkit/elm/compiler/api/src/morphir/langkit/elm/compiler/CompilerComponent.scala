@@ -7,7 +7,7 @@ import morphir.langkit.trees.query.Query
 import morphir.langkit.trees.query.QueryLogic
 
 /**
- * A framework- and platform-agnostic compiler surface for Krueger, generic on the caller's context type `Ctx`.
+ * A framework- and platform-agnostic compiler surface for the Elm langkit, generic on the caller's context type `Ctx`.
  *
  * All effectful operations return a Kyo-backed [[QueryLogic.QueryEffect]] so consumers can compose the compiler
  * alongside their own stateful effects and run everything at the edge of a UI or FFI boundary, receiving a plain

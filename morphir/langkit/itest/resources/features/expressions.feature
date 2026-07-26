@@ -1,5 +1,5 @@
 Feature: Expressions
-  Krueger parses Elm expressions appearing as declaration bodies.
+  The Elm langkit parses Elm expressions appearing as declaration bodies.
   Assertions use the generic query DSL instead of hand-rolled step verbs.
 
   Scenario: Integer literal body

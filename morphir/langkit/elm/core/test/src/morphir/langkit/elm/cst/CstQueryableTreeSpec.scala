@@ -3,7 +3,7 @@ package morphir.langkit.elm.cst
 import parsley.{Failure, Success}
 import kyo.test.*
 
-import morphir.langkit.elm.Krueger
+import morphir.langkit.elm.Elm
 import morphir.langkit.elm.Span
 import morphir.langkit.elm.cst.CstQueryableTree.given
 import morphir.langkit.trees.CaptureName
@@ -14,7 +14,7 @@ import morphir.langkit.trees.query.*
 
 class CstQueryableTreeSpec extends Test[Any]:
 
-  private def parse(src: String): CstModule = Krueger.parseCst(src) match
+  private def parse(src: String): CstModule = Elm.parseCst(src) match
     case Success(m)   => m
     case Failure(msg) => throw new AssertionError(s"parse failed: $msg")
 
