@@ -10,7 +10,7 @@ final class ScribeLogHandler(logger: Logger):
 
 object ScribeLogHandler:
 
-  private val DefaultName = "morphir.langkit.scribe-log-handler"
+  private val DefaultName = "morphir.kyox.scribe-log-handler"
 
   private def unsafe(logger: Logger, loggerName: String): Log.Unsafe =
     new Log.Unsafe:

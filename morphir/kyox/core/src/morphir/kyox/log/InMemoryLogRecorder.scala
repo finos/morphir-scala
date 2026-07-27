@@ -22,7 +22,7 @@ final class InMemoryLogRecorder private (private val buffer: mutable.ArrayBuffer
 
 object InMemoryLogRecorder:
 
-  private val DefaultName = "morphir.langkit.in-memory-log-recorder"
+  private val DefaultName = "morphir.kyox.in-memory-log-recorder"
 
   def unsafeMake(): InMemoryLogRecorder =
     new InMemoryLogRecorder(mutable.ArrayBuffer.empty)
