@@ -83,8 +83,9 @@
 
 <h2>Open gaps</h2>
 <p>
-  G5 is now the largest single source of real-world parse failures: 27 of 458 modules across <code>elm/core</code>,
-  <code>elm/browser</code> and <code>morphir-elm</code> fail on it and nothing else.
+  One divergence remains, and it is one the parser cannot close by itself. A single real-world module also fails for a
+  reason not yet diagnosed — it is listed in <code>RealWorldCorpusTest.knownFailures</code> rather than here, since a
+  gap needs a cause before it can have a row.
 </p>
 <div class="scroll">
 <table>
@@ -92,15 +93,6 @@
     <tr><th>#</th><th>Divergence</th><th>Elm</th><th>Us</th><th>Pinned by</th><th>Next step</th></tr>
   </thead>
   <tbody>
-    <tr>
-      <td class="mono">G5</td>
-      <td>Expression continuation indentation</td>
-      <td>an indentation context that productions push and pop (<code>Parse.Space</code>)</td>
-      <td><code>sameLineOrIndentedPast</code>, measured from the expression's first token</td>
-      <td><code>RealWorldCorpusTest.knownG5Failures</code> — 27 modules of <code>elm/core</code>,
-          <code>elm/browser</code> and <code>morphir-elm</code></td>
-      <td>measure against the enclosing declaration or block instead of the expression's own start</td>
-    </tr>
     <tr>
       <td class="mono">G6</td>
       <td>Operators declared in an unbundled package</td>
@@ -128,7 +120,8 @@
     <tr><td class="mono">G2</td><td>Astral code points in character literals</td><td>W7, by widening the CST node to a code point</td><td><code>LexicalSpec</code></td></tr>
     <tr><td class="mono">G3</td><td><code>effect module … where { … }</code></td><td>W7</td><td><code>StructuralSpec</code></td></tr>
     <tr><td class="mono">G4</td><td>Tuple arity beyond three</td><td>W7</td><td><code>StructuralSpec</code></td></tr>
-    <tr><td class="mono">G7</td><td>No real-world package corpus</td><td>W8, by fetching four packages at build time</td><td><code>RealWorldCorpusTest</code> — 458 modules</td></tr>
+    <tr><td class="mono">G5</td><td>Expression continuation measured from the expression rather than its enclosing declaration</td><td>W5, by giving the parser Elm's indentation context</td><td><code>LayoutSpec</code>, and 26 real modules that now parse</td></tr>
+    <tr><td class="mono">G7</td><td>No real-world package corpus</td><td>W8, by fetching four packages at build time</td><td><code>RealWorldCorpusTest</code> — 453 modules</td></tr>
   </tbody>
 </table>
 </div>
@@ -143,7 +136,7 @@
     <tr><td class="mono">W2</td><td>Operator fixity and chain resolution</td><td><span class="tag done">done</span></td><td>bundled package tables; <code>ELM-P004</code>, <code>ELM-P005</code></td></tr>
     <tr><td class="mono">W3</td><td>Operator tokens</td><td><span class="tag done">done</span></td><td>Elm's character set, and the five reserved sequences</td></tr>
     <tr><td class="mono">W4</td><td>Negation versus subtraction</td><td><span class="tag done">done</span></td><td>landed with the adjacency half of W5, which made the question answerable</td></tr>
-    <tr><td class="mono">W5</td><td>Layout, indentation and token adjacency</td><td><span class="tag open">tail open</span></td><td>adjacency, the column rule and block alignment done; G5 remains</td></tr>
+    <tr><td class="mono">W5</td><td>Layout, indentation and token adjacency</td><td><span class="tag done">done</span></td><td>adjacency, the column rule, block alignment, and Elm's indentation context</td></tr>
     <tr><td class="mono">W6</td><td>Lexical conformance</td><td><span class="tag done">done</span></td><td>escapes, <code>\u{XXXX}</code>, triple-quoted strings, numeric bases</td></tr>
     <tr><td class="mono">W7</td><td>Structural conformance</td><td><span class="tag done">done</span></td><td>closed G1–G4</td></tr>
     <tr><td class="mono">W8</td><td>Conformance corpus</td><td><span class="tag done">done</span></td><td>grammar corpus with node-type coverage, plus 458 real modules fetched at build time</td></tr>

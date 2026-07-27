@@ -14,8 +14,11 @@ import morphir.langkit.elm.lexer.ElmLexer.*
  */
 object DeclarationParser:
 
-  private def sameLineOrIndentedPast[A](start: (Int, Int))(p: Parsley[A]): Parsley[A] =
-    lookAhead(pos.filter { case (line, col) => line == start._1 || col > start._2 }) *> p
+  /**
+   * Guard a parser so it only fires when the next token continues the current construct — that is, when it is indented
+   * past the enclosing declaration or block, which is how Elm decides.
+   */
+  private def continuing[A](p: Parsley[A]): Parsley[A] = indented *> p
 
   // -----------------------------------------------------------------------
   // Type expressions
@@ -81,7 +84,7 @@ object DeclarationParser:
 
   /** A type with optional type application. */
   val appType: Parsley[CstTypeExpression] = ((offset <~> pos) <~> atomType).flatMap { case ((so, sp), con) =>
-    (many(sameLineOrIndentedPast(sp)(atomType)) <~> offset).map { case (args, eo) =>
+    (many(continuing(atomType)) <~> offset).map { case (args, eo) =>
       if args.isEmpty then con
       else CstTypeApplication(con, args)(Span.fromStartEnd(so, eo))
     }
@@ -90,7 +93,7 @@ object DeclarationParser:
   /** A full type expression including function types (`a -> b`). */
   lazy val typeExpression: Parsley[CstTypeExpression] = ((offset <~> pos) <~> appType).flatMap {
     case ((so, sp), first) =>
-      (many(sameLineOrIndentedPast(sp)(symbol("->") *> appType)) <~> offset).map { case (rest, eo) =>
+      (many(continuing(symbol("->") *> appType)) <~> offset).map { case (rest, eo) =>
         // `->` is right-associative in Elm: `a -> b -> c` parses as `a -> (b -> c)`. Folding the whole chain from
         // the right keeps both the nesting and the operand order — an earlier `rest.foldRight(first)` produced
         // `FunctionType(FunctionType(a, c), b)` for that input.
@@ -139,7 +142,7 @@ object DeclarationParser:
    */
   private val constructor: Parsley[CstConstructor] = ((offset <~> pos) <~> ModuleParser.upperName).flatMap {
     case ((s, sp), name) =>
-      (many(sameLineOrIndentedPast(sp)(atomType)) <~> offset).map { case (params, e) =>
+      (many(continuing(atomType)) <~> offset).map { case (params, e) =>
         CstConstructor(name, params.toIndexedSeq)(Span.fromStartEnd(s, e))
       }
   }

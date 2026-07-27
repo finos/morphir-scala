@@ -118,9 +118,20 @@ assertions are about how many declarations and branches came out rather than abo
 A layout violation halts rather than reports: the pipeline cannot carry on when it does not know where the block
 ended. That is the difference from an operator chain it can describe and keep going past.
 
-Expression continuation is still the approximation `sameLineOrIndentedPast`, measured from the expression's first
-token, where Elm threads a real indentation context. It agrees with Elm on everything currently covered; replacing it
-is G5 in the [conformance tracker](./conformance.html).
+Continuation follows Elm's indentation context rather than a positional guess. `indentColumn` holds the column an
+expression must be indented past to keep going, `withIndent` pushes a new one — `aligned` does this for every `let`
+binding and `case` branch — and `indented` is the guard the continuation productions use. Under a top-level
+declaration the context is column 1, which is why
+
+```elm
+sandbox :
+    { init : model }
+    -> Program () model msg
+```
+
+is ordinary Elm: the `->` lines up with the record rather than sitting past it, and only the declaration's column
+matters. Measuring from the expression's own first token instead — which is what this did before — rejected 26
+modules of `elm/core`, `elm/browser` and `morphir-elm`.
 
 ## Tokens know whether they touch
 

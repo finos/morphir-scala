@@ -24,7 +24,7 @@ import morphir.langkit.elm.Elm
  * A module that fails here is a conformance defect until proven otherwise: these packages compile with `elm make`. The
  * first run of this test failed 73 of 458 modules, on three causes: six words reserved that Elm treats as ordinary
  * identifiers (`String.left` was unparseable), the empty record `{}`, and G5 — the indentation context. The first two
- * are fixed; the third is what [[knownG5Failures]] lists.
+ * are fixed; the third is what [[knownFailures]] lists.
  */
 class RealWorldCorpusTest {
 
@@ -39,34 +39,12 @@ class RealWorldCorpusTest {
    * The list is a ratchet, not an excuse: nothing outside it may fail, and nothing in it may start passing without
    * being removed. Closing G5 empties it.
    */
-  private val knownG5Failures: Set[String] = Set(
-    "elm-browser/src/Browser.elm",
-    "elm-browser/src/Debugger/History.elm",
-    "elm-browser/src/Debugger/Main.elm",
-    "elm-core/src/Dict.elm",
-    "elm-core/src/Platform.elm",
-    "elm-core/src/Task.elm",
-    "finos-morphir-elm/cli/src/Morphir/Web/DevelopApp.elm",
-    "finos-morphir-elm/src/Morphir/IR/Documented/Codec.elm",
-    "finos-morphir-elm/src/Morphir/IR/Documented/CodecV1.elm",
-    "finos-morphir-elm/src/Morphir/IR/Module/Codec.elm",
-    "finos-morphir-elm/src/Morphir/IR/SDK/UUID.elm",
-    "finos-morphir-elm/src/Morphir/IR/Source.elm",
-    "finos-morphir-elm/src/Morphir/SDK/Dict.elm",
-    "finos-morphir-elm/src/Morphir/SDK/UUID.elm",
-    "finos-morphir-elm/src/Morphir/Snowpark/Backend.elm",
-    "finos-morphir-elm/src/Morphir/Snowpark/LetMapping.elm",
-    "finos-morphir-elm/src/Morphir/Snowpark/PatternMatchMapping.elm",
-    "finos-morphir-elm/src/Morphir/Snowpark/RecordWrapperGenerator.elm",
-    "finos-morphir-elm/src/Morphir/Snowpark/UserDefinedFunctionMapping.elm",
-    "finos-morphir-elm/src/Morphir/Visual/Components/ModalComponent.elm",
-    "finos-morphir-elm/src/Morphir/Visual/ViewApply.elm",
-    "finos-morphir-elm/tests-integration/snowpark/model/src/CompanyAssets/Rules/DepreciationRules.elm",
-    "finos-morphir-elm/tests-integration/spark/elm-tests/src/GenerateAntiqueAgeData.elm",
-    "finos-morphir-elm/tests-integration/spark/elm-tests/src/GenerateAntiqueNameData.elm",
-    "finos-morphir-elm/tests-integration/spark/elm-tests/src/GenerateAntiqueProductData.elm",
-    "finos-morphir-elm/tests-integration/spark/elm-tests/src/GenerateAntiqueSSData.elm",
-    "finos-morphir-elm/tests-integration/spark/elm-tests/src/GenerateAntiquesData.elm"
+  private val knownFailures: Set[String] = Set(
+    // Not yet diagnosed. The module is valid Elm — `morphir-elm` compiles it — and the parser stops at the `[` of a
+    // list argument whose function sits on the previous line, inside the second field of a multi-line record whose
+    // first field nests several levels deep. Reducing it by hand has not reproduced it: the shapes in isolation all
+    // parse, so something about the combination is doing it. Left listed rather than guessed at.
+    "finos-morphir-elm/src/Morphir/IR/SDK/UUID.elm"
   )
 
   private def packageRoot: Option[Path] =
@@ -74,10 +52,18 @@ class RealWorldCorpusTest {
       .map(Paths.get(_))
       .filter(Files.isDirectory(_))
 
+  /**
+   * Every `.elm` file with something in it.
+   *
+   * `morphir-elm` carries a handful of zero-length `.elm` files under its integration tests. Elm rejects an empty
+   * module too — a module needs a header — so refusing them is correct rather than a gap, and they are no evidence
+   * either way.
+   */
   private def modules(root: Path): Seq[Path] =
     Using.resource(Files.walk(root)) { paths =>
       paths.iterator.asScala
         .filter(path => Files.isRegularFile(path) && path.getFileName.toString.endsWith(".elm"))
+        .filter(Files.size(_) > 0)
         .toVector
         .sorted
     }
@@ -103,9 +89,9 @@ class RealWorldCorpusTest {
     }
 
     val unexpectedFailures = outcomes.collect {
-      case (name, Some(message)) if !knownG5Failures.contains(name) => s"  $name\n    $message"
+      case (name, Some(message)) if !knownFailures.contains(name) => s"  $name\n    $message"
     }
-    val nowPassing = outcomes.collect { case (name, None) if knownG5Failures.contains(name) => name }
+    val nowPassing = outcomes.collect { case (name, None) if knownFailures.contains(name) => name }
 
     assert(
       unexpectedFailures.isEmpty,
@@ -114,17 +100,16 @@ class RealWorldCorpusTest {
          |${if (unexpectedFailures.size > 20) s"  … and ${unexpectedFailures.size - 20} more" else ""}
          |
          |These packages compile with `elm make`, so each is a conformance defect. Fix it, or record it in
-         |morphir/langkit/elm/conformance.html and add the module to knownG5Failures with the gap it belongs to.
+         |morphir/langkit/elm/conformance.html and add the module to knownFailures with the gap it belongs to.
          |""".stripMargin
     )
 
     assert(
       nowPassing.isEmpty,
-      s"""${nowPassing.size} module(s) listed as known G5 failures now parse:
+      s"""${nowPassing.size} module(s) listed as known failures now parse:
          |${nowPassing.map("  " + _).mkString("\n")}
          |
-         |Remove them from knownG5Failures. If the list is now empty, G5 is closed: delete it, and take the row out of
-         |morphir/langkit/elm/conformance.html.
+         |Remove them from knownFailures, and take the matching row out of morphir/langkit/elm/conformance.html.
          |""".stripMargin
     )
   }

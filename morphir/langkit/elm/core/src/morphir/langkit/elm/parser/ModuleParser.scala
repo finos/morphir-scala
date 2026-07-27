@@ -187,9 +187,9 @@ object ModuleParser:
 
   /** Parse a complete Elm module. */
   val module: Parsley[CstModule] =
-    fully(
+    withTopLevelIndent(fully(
       (offset <~> moduleDeclaration <~> many(importDecl) <~>
         many(topLevelDeclaration) <~> offset).map { case ((((s, modDecl), imports), decls), e) =>
         CstModule(modDecl, imports.toIndexedSeq, decls.toIndexedSeq)(Span.fromStartEnd(s, e))
       } <* declarationsEnd
-    )
+    ))

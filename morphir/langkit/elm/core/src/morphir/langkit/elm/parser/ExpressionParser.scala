@@ -18,11 +18,10 @@ import morphir.langkit.elm.lexer.ElmLexer.*
 object ExpressionParser:
 
   /**
-   * Guard a parser so it only fires when the next token is on the same line as `start` or indented past `start`'s
-   * column. Used to prevent expression continuation from swallowing the first token of a later top-level declaration.
+   * Guard a parser so it only fires when the next token continues the current construct — that is, when it is indented
+   * past the enclosing declaration or block, which is how Elm decides.
    */
-  private def sameLineOrIndentedPast[A](start: (Int, Int))(p: Parsley[A]): Parsley[A] =
-    lookAhead(pos.filter { case (line, col) => line == start._1 || col > start._2 }) *> p
+  private def continuing[A](p: Parsley[A]): Parsley[A] = indented *> p
 
   // -----------------------------------------------------------------------
   // Atoms
@@ -237,7 +236,7 @@ object ExpressionParser:
    * atoms above stop at their last character.
    */
   private def argument(start: (Int, Int)): Parsley[CstExpression] =
-    atomic(requiredSpace *> sameLineOrIndentedPast(start)(negativeTerm | rawPostfixAtom))
+    atomic(requiredSpace *> continuing(negativeTerm | rawPostfixAtom))
 
   /** A non-operator expression: atom with optional function application and field access. */
   private val appExpr: Parsley[CstExpression] =
@@ -270,7 +269,7 @@ object ExpressionParser:
    * `OperatorReassociator`, run by `Elm.parseCst`, rebuilds it — including the spans of its nodes.
    */
   lazy val expression: Parsley[CstExpression] = ((offset <~> pos) <~> appExpr).flatMap { case ((so, sp), first) =>
-    (many(sameLineOrIndentedPast(sp)(binOp <~> appExpr)) <~> offset).map { case (ops, eo) =>
+    (many(continuing(binOp <~> appExpr)) <~> offset).map { case (ops, eo) =>
       ops.foldLeft(first) { case (left, (op, right)) =>
         CstBinaryOp(left, op, right)(Span.fromStartEnd(so, eo))
       }

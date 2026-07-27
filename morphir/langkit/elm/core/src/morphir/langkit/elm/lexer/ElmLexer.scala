@@ -6,6 +6,7 @@ import parsley.character.{char, digit, letter, noneOf, satisfy, string, stringOf
 import parsley.combinator.option
 import parsley.errors.combinator.ErrorMethods
 import parsley.position.pos
+import parsley.state.{Ref, StateCombinators}
 import parsley.token.Lexer
 import parsley.token.descriptions.{LexicalDesc, NameDesc, SpaceDesc, SymbolDesc}
 import parsley.token.descriptions.numeric.{BreakCharDesc, NumericDesc, PlusSignPresence}
@@ -344,6 +345,40 @@ object ElmLexer:
    * knows where its block ends — the first item that breaks the alignment belongs to whatever encloses it.
    */
 
+  /**
+   * The column an expression has to be indented past in order to continue — Elm's `_indent`, from `Parse.Space`.
+   *
+   * Elm measures a continuation line against the construct that encloses it, not against the expression it continues.
+   * Under a top-level declaration the context is column 1, so any indented line carries on and a line in column 1 ends
+   * it. That is what makes
+   *
+   * {{{
+   * sandbox :
+   *     { init : model }
+   *     -> Program () model msg
+   * }}}
+   *
+   * ordinary Elm: the `->` lines up with the record rather than sitting past it, and only the declaration's column
+   * matters. [[withIndent]] pushes a new context; it is restored on the way out.
+   */
+  private val indentColumn: Ref[Int] = Ref.make[Int]
+
+  /** Establish the top-level context, column 1. Wraps the whole-module parser; nothing else needs to. */
+  def withTopLevelIndent[A](p: Parsley[A]): Parsley[A] = indentColumn.set(1) *> p
+
+  /** Run `p` with the indentation context set to `column`, restoring the enclosing one afterwards. */
+  def withIndent[A](column: Int)(p: Parsley[A]): Parsley[A] = indentColumn.setDuring(column)(p)
+
+  /**
+   * Succeed without consuming input when the next token is indented past the current context.
+   *
+   * This is what lets an expression run onto further lines, and what stops it when the next line belongs to whatever
+   * encloses it — the following declaration, the next `let` binding, the next `case` branch.
+   */
+  val indented: Parsley[Unit] = (lookAhead(pos) <~> indentColumn.get).filter { case ((_, column), indent) =>
+    column > indent
+  }.void
+
   /** Succeed without consuming input when the next token begins in `column`. */
   def atColumn(column: Int): Parsley[Unit] =
     lookAhead(pos.filter { case (_, col) => col == column }).void
@@ -357,8 +392,10 @@ object ElmLexer:
    * This is the shape of a `let` block and of the branches of a `case`: Elm reads them as a block for exactly as long
    * as they line up, and the first token that does not is something else's.
    */
-  def aligned[A](p: Parsley[A]): Parsley[List[A]] = (pos <~> p).flatMap { case ((_, column), first) =>
-    many(atomic(atColumn(column) *> p)).map(first :: _)
+  def aligned[A](p: Parsley[A]): Parsley[List[A]] = lookAhead(pos).flatMap { case (_, column) =>
+    // The block's column is also its items' indentation context: an item's body may run onto further lines as long as
+    // they are indented past it, and the next item — which is not — ends it.
+    withIndent(column)((p <~> many(atomic(atColumn(column) *> p))).map { case (first, rest) => first :: rest })
   }
 
   /** Matches a single space or tab (horizontal whitespace). */
