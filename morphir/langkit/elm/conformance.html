@@ -83,9 +83,8 @@
 
 <h2>Open gaps</h2>
 <p>
-  One divergence remains, and only for sources the caller does not have. A single real-world module also fails for a
-  reason not yet diagnosed — it is listed in <code>RealWorldCorpusTest.knownFailures</code> rather than here, since a
-  gap needs a cause before it can have a row.
+  One divergence remains, and only for sources the caller does not have. Every module of every fetched package parses:
+  <code>RealWorldCorpusTest.knownFailures</code> is empty.
 </p>
 <div class="scroll">
 <table>
@@ -193,6 +192,20 @@
     merely a non-associative operator used twice.
   </p>
 </div>
+
+<h2>Application and whitespace</h2>
+<p>
+  Elm asks for whitespace in exactly one place: before a negative term. With a space before the <code>-</code> and
+  none after it, <code>f -1</code> applies <code>f</code> to <code>-1</code>; written any other way the
+  <code>-</code> is subtraction. Every other argument may follow its function immediately, which is why
+  <code>stringType()</code> and <code>f(1)</code> are ordinary Elm — ugly, and legal.
+</p>
+<p>
+  Requiring a space for every argument was the last real-world parse failure, and it hid behind a diagnostic pointing
+  several lines away. The leading-zero rule that a blanket space requirement had been masking now lives where it
+  belongs, in the number lexer: <code>007</code> is rejected as Elm rejects it, while <code>0o17</code> is
+  <code>0</code> applied to the name <code>o17</code>, which is what Elm makes of it too.
+</p>
 
 <h2>Diagnostic codes this work introduced</h2>
 <div class="scroll">

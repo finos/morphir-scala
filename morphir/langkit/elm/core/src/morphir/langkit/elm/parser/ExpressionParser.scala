@@ -223,26 +223,29 @@ object ExpressionParser:
       CstNegate(expr)(Span.fromStartEnd(s, e))
     }
 
-  /** Whitespace that must actually be there: the tokens of an application have to be separated. */
+  /** Whitespace that must actually be there, for the one argument form that depends on it. */
   private val requiredSpace: Parsley[Unit] = (offset <~> (whiteSpace *> offset)).filter { case (before, after) =>
     after > before
   }.void
 
   /**
-   * An argument in a function application, which is preceded by whitespace.
+   * An argument in a function application.
    *
-   * That whitespace is what distinguishes `f -1` from `f - 1`: with a space before the `-` and none after it, Elm reads
-   * a negative term being applied, and only otherwise a subtraction. Being able to ask the question at all is why the
-   * atoms above stop at their last character.
+   * Elm asks for whitespace in exactly one case: a negative term. With a space before the `-` and none after it, `f -1`
+   * applies `f` to `-1`; written any other way the `-` is subtraction. Every other argument may follow its function
+   * immediately, which is why `stringType()` and `f(1)` are ordinary Elm — ugly, and legal.
+   *
+   * The order matters. Trying the negative term first means `a-b`, which offers no space, falls through to the plain
+   * atom, fails there too since `-` starts no atom, and reaches the binary operator position where it belongs.
    */
-  private def argument(start: (Int, Int)): Parsley[CstExpression] =
-    atomic(requiredSpace *> continuing(negativeTerm | rawPostfixAtom))
+  private val argument: Parsley[CstExpression] =
+    atomic(requiredSpace *> continuing(negativeTerm)) | atomic(whiteSpace *> continuing(rawPostfixAtom))
 
   /** A non-operator expression: atom with optional function application and field access. */
   private val appExpr: Parsley[CstExpression] =
     val compound    = ifThenElse | letIn | caseOf | lambda
     val application = ((offset <~> pos) <~> (negativeTerm | rawPostfixAtom)).flatMap { case ((so, sp), fn) =>
-      ((many(argument(sp)) <~> offset) <* whiteSpace).map { case (args, eo) =>
+      ((many(argument) <~> offset) <* whiteSpace).map { case (args, eo) =>
         if args.isEmpty then fn
         else CstFunctionApplication(fn, args)(Span.fromStartEnd(so, eo))
       }

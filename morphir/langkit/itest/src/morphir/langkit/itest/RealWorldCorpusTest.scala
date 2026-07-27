@@ -39,13 +39,13 @@ class RealWorldCorpusTest {
    * The list is a ratchet, not an excuse: nothing outside it may fail, and nothing in it may start passing without
    * being removed. Closing G5 empties it.
    */
-  private val knownFailures: Set[String] = Set(
-    // Not yet diagnosed. The module is valid Elm — `morphir-elm` compiles it — and the parser stops at the `[` of a
-    // list argument whose function sits on the previous line, inside the second field of a multi-line record whose
-    // first field nests several levels deep. Reducing it by hand has not reproduced it: the shapes in isolation all
-    // parse, so something about the combination is doing it. Left listed rather than guessed at.
-    "finos-morphir-elm/src/Morphir/IR/SDK/UUID.elm"
-  )
+  /**
+   * Modules that do not parse yet, each with the reason.
+   *
+   * A ratchet rather than an excuse: nothing outside this set may fail, and nothing in it may start passing without
+   * being removed. It began at 27 entries and is now empty — every module of every fetched package parses.
+   */
+  private val knownFailures: Set[String] = Set.empty
 
   private def packageRoot: Option[Path] =
     Option(System.getProperty("morphir.langkit.elm.corpus.packages"))

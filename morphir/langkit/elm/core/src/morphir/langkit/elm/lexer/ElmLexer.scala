@@ -279,7 +279,14 @@ object ElmLexer:
 
     val identifier: Parsley[String] = lexer.nonlexeme.names.identifier
 
-    val intLiteral: Parsley[Long]      = lexer.nonlexeme.integer.number64
+    /**
+     * An integer, decimal or hexadecimal.
+     *
+     * The trailing guard is Elm's `NumberNoLeadingZero`: a digit directly after the number means the source wrote
+     * something like `007`, which Elm rejects rather than reading as `0` followed by `07`. A *letter* after it is
+     * another matter — `0o17` is `0` applied to `o17` in Elm too, since Elm has no octal.
+     */
+    val intLiteral: Parsley[Long]      = atomic(lexer.nonlexeme.integer.number64 <* notFollowedBy(digit))
     val floatLiteral: Parsley[Double]  = lexer.nonlexeme.floating.decimalDouble
     val stringLiteral: Parsley[String] = text.literal
     val charLiteral: Parsley[Int]      = text.character

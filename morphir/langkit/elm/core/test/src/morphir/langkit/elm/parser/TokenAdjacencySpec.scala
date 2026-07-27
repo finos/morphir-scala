@@ -120,10 +120,20 @@ class TokenAdjacencySpec extends Test[Any]:
   }
 
   "application" - {
-    "requires its arguments to be separated by whitespace" in {
+    "takes its arguments with or without whitespace" in {
       body("main = f x y") match
         case CstFunctionApplication(_, args) => assert(args.size == 2)
         case other                           => throw new AssertionError(s"expected an application, got: $other")
+
+      // Elm asks for whitespace only before a negative term. `f(1)` is ugly and legal, and `stringType()` appears in
+      // real Elm, so requiring a space here rejected code that compiles.
+      body("main = f(1)") match
+        case CstFunctionApplication(_, List(_: CstParenthesized)) => assert(true)
+        case other => throw new AssertionError(s"expected an application, got: $other")
+
+      body("main = f[1]") match
+        case CstFunctionApplication(_, List(_: CstListLiteral)) => assert(true)
+        case other => throw new AssertionError(s"expected an application, got: $other")
     }
 
     "still accepts an argument on a following indented line" in {

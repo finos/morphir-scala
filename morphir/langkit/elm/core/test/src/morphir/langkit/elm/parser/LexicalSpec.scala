@@ -125,9 +125,15 @@ class LexicalSpec extends Test[Any]:
       assert(intValue("x = 0xff") == 255L)
     }
 
-    "reject the bases Elm does not have" in {
-      assert(!parses("x = 0o17"))
-      assert(!parses("x = 0b1010"))
+    "have no octal or binary, so a base prefix is just a name applied to zero" in {
+      // Elm has neither base, and `0o17` lexes as `0` followed by the name `o17` — an application, and a type error
+      // later, but not a parse error. Asserting that it *fails* would be asserting something Elm does not do.
+      body("x = 0o17") match
+        case CstFunctionApplication(_: CstIntLiteral, List(_: CstVariableRef)) => assert(true)
+        case other => throw new AssertionError(s"expected `0` applied to `o17`, got: $other")
+      body("x = 0b1010") match
+        case CstFunctionApplication(_: CstIntLiteral, List(_: CstVariableRef)) => assert(true)
+        case other => throw new AssertionError(s"expected `0` applied to `b1010`, got: $other")
     }
 
     "reject a leading zero, as Elm does" in {
