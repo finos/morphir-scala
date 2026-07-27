@@ -109,14 +109,6 @@
       <td><code>OperatorPrecedenceSpec</code></td>
       <td>needs import resolution, which sits above the parser</td>
     </tr>
-    <tr>
-      <td class="mono">G7</td>
-      <td>Real-world package corpus</td>
-      <td>—</td>
-      <td>closed — <code>RealWorldCorpusTest</code> parses 458 modules of four packages, fetched at build time</td>
-      <td><code>RealWorldCorpusTest</code></td>
-      <td>done; widen the package list when a construct wants it</td>
-    </tr>
   </tbody>
 </table>
 </div>
@@ -136,6 +128,7 @@
     <tr><td class="mono">G2</td><td>Astral code points in character literals</td><td>W7, by widening the CST node to a code point</td><td><code>LexicalSpec</code></td></tr>
     <tr><td class="mono">G3</td><td><code>effect module … where { … }</code></td><td>W7</td><td><code>StructuralSpec</code></td></tr>
     <tr><td class="mono">G4</td><td>Tuple arity beyond three</td><td>W7</td><td><code>StructuralSpec</code></td></tr>
+    <tr><td class="mono">G7</td><td>No real-world package corpus</td><td>W8, by fetching four packages at build time</td><td><code>RealWorldCorpusTest</code> — 458 modules</td></tr>
   </tbody>
 </table>
 </div>
