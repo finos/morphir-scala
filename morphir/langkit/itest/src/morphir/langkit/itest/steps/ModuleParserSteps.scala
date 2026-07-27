@@ -2,6 +2,7 @@ package morphir.langkit.itest.steps
 
 import io.cucumber.scala.{EN, ScalaDsl}
 
+import morphir.langkit.elm.compiler.DiagnosticCode
 import morphir.langkit.elm.cst.*
 import morphir.langkit.itest.TestDriver
 
@@ -15,8 +16,22 @@ class ModuleParserSteps(driver: TestDriver) extends ScalaDsl with EN:
     driver.setSourceFromResource(resourcePath)
   }
 
+  Given("the {string} parse options") { (name: String) =>
+    driver.setOptions(name)
+  }
+
   When("the source is parsed") { () =>
     driver.parseCst()
+  }
+
+  Then("the parse fails with code {string}") { (code: String) =>
+    val actual = DiagnosticCode.unwrap(driver.diagnostic.code)
+    assert(actual == code, s"expected diagnostic code [$code], got [$actual]")
+  }
+
+  Then("the parse failure message contains {string}") { (needle: String) =>
+    val message = driver.diagnostic.message
+    assert(message.contains(needle), s"expected failure message to contain [$needle], got:\n$message")
   }
 
   When("the source is parsed to an AST") { () =>

@@ -181,10 +181,17 @@ object ExpressionParser:
       }
     }
 
-  /** Parse a binary operator name. */
-  private val binOp: Parsley[CstName] = (offset <~> operator <~> offset).map { case ((s, op), e) =>
-    CstName(op)(Span.fromStartEnd(s, e))
-  }
+  /**
+   * Parse a binary operator name.
+   *
+   * Elm reserves `.`, `|`, `->`, `=` and `:`: they are structural tokens, never binary operators. Accepting them here
+   * would let a malformed expression swallow the `=` of the next declaration or the `->` of the next case branch, and
+   * report the failure somewhere far from its cause.
+   */
+  private val binOp: Parsley[CstName] =
+    atomic((offset <~> operator.filterNot(reservedOperators.contains) <~> offset)).map { case ((s, op), e) =>
+      CstName(op)(Span.fromStartEnd(s, e))
+    }
 
   /**
    * A full expression including binary operators.

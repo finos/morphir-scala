@@ -3,8 +3,9 @@ package morphir.langkit.elm.parser
 import kyo.test.*
 import parsley.{Failure, Success}
 
-import morphir.langkit.elm.Elm
+import morphir.langkit.elm.{Elm, ElmParseOptions}
 import morphir.langkit.elm.ast
+import morphir.langkit.elm.compiler.{DiagnosticCode, ParseDiagnostic}
 import morphir.langkit.elm.cst.*
 
 /**
@@ -15,17 +16,29 @@ import morphir.langkit.elm.cst.*
  */
 class OperatorPrecedenceSpec extends Test[Any]:
 
-  private def parseModule(source: String): CstModule =
-    Elm.parseCst(source) match
+  private def parseModule(source: String, options: ElmParseOptions = ElmParseOptions.elm): CstModule =
+    Elm.parseCst(source, options) match
       case Success(m)          => m
       case Failure(diagnostic) => throw new AssertionError(s"parse failed: $diagnostic")
 
-  private def parseBody(body: String, extraDeclarations: String = ""): CstExpression =
+  private def parseBody(
+      body: String,
+      extraDeclarations: String = "",
+      options: ElmParseOptions = ElmParseOptions.elm
+  ): CstExpression =
     val source = s"module M exposing (..)\n$extraDeclarations\nmain = $body\n"
-    parseModule(source).declarations.collectFirst {
+    parseModule(source, options).declarations.collectFirst {
       case d: CstValueDeclaration if d.name.value == "main" =>
         d.body
     }.getOrElse(throw new AssertionError(s"no `main` declaration parsed from:\n$source"))
+
+  /** Parse a module body expected to fail, returning the diagnostic. */
+  private def parseFailure(declaration: String, options: ElmParseOptions = ElmParseOptions.elm): ParseDiagnostic =
+    val source = s"module M exposing (..)\n\n$declaration\n"
+    Elm.parseCst(source, options).fold(
+      identity,
+      m => throw new AssertionError(s"expected a diagnostic, parsed: ${m.declarations}")
+    )
 
   /** Render a tree as fully parenthesised prefix-free text, so an assertion reads like the Elm it came from. */
   private def show(expr: CstExpression): String = expr match
@@ -114,8 +127,85 @@ class OperatorPrecedenceSpec extends Test[Any]:
       assert(show(parseBody("a + b + c", declaration)) == "(a + (b + c))")
     }
 
-    "an undeclared operator falls back to the tightest left-associative fixity" in
-      assert(show(parseBody("a <%> b <%> c")) == "((a <%> b) <%> c)")
+    "an operator nothing declares is rejected" in {
+      val diagnostic = parseFailure("main = a <%> b")
+      assert(DiagnosticCode.unwrap(diagnostic.code) == "ELM-P005")
+      assert(diagnostic.message.contains("I do not know the precedence or associativity of (<%>)."))
+    }
+
+    "an operator nothing declares falls back to the tightest left-associative fixity when accepted" in {
+      val expr = parseBody("a <%> b <%> c", options = ElmParseOptions.lenient)
+      assert(show(expr) == "((a <%> b) <%> c)")
+    }
+
+    "a caller-supplied table stands in for a dependency's declarations" in {
+      val options = ElmParseOptions.elm.withOperators(
+        OperatorTable.wellKnown.withInfixDeclarations(Nil).copy(
+          fixities = OperatorTable.wellKnown.fixities + ("<%>" -> Fixity(5, Associativity.Right))
+        )
+      )
+      assert(show(parseBody("a <%> b <%> c", options = options)) == "(a <%> (b <%> c))")
+    }
+  }
+
+  "bundled package fixities" - {
+    "`elm/parser`'s (|=) and (|.) are known" in
+      // infix left 5 (|=), infix left 6 (|.) — so `|.` binds tighter.
+      assert(show(parseBody("p |= a |. b")) == "(p |= (a |. b))")
+
+    "`elm/url`'s (</>) and (<?>) are known" in
+      // infix right 7 (</>), infix left 8 (<?>) — so `<?>` binds tighter.
+      assert(show(parseBody("a </> b <?> c")) == "(a </> (b <?> c))")
+
+    "a module's own declaration still wins over a bundled one" in {
+      val declaration = "\ninfix right 5 (|.) = ignorer\n"
+      assert(show(parseBody("a |. b |. c", declaration)) == "(a |. (b |. c))")
+    }
+  }
+
+  "chains Elm refuses to group" - {
+    "a non-associative operator cannot be chained" in {
+      val diagnostic = parseFailure("main = a == b == c")
+      assert(DiagnosticCode.unwrap(diagnostic.code) == "ELM-P004")
+      assert(diagnostic.message.contains("You cannot mix (==) and (==) without parentheses."))
+    }
+
+    "non-associative operators of equal precedence cannot be mixed" in {
+      val diagnostic = parseFailure("main = a < b == c")
+      assert(DiagnosticCode.unwrap(diagnostic.code) == "ELM-P004")
+      assert(diagnostic.message.contains("You cannot mix (<) and (==) without parentheses."))
+    }
+
+    "a left- and a right-associative operator of equal precedence cannot be mixed" in {
+      val diagnostic = parseFailure("main = a |> f <| g")
+      assert(DiagnosticCode.unwrap(diagnostic.code) == "ELM-P004")
+      assert(diagnostic.message.contains("You cannot mix (|>) and (<|) without parentheses."))
+
+      val reversed = parseFailure("main = a <| f |> g")
+      assert(reversed.message.contains("You cannot mix (<|) and (|>) without parentheses."))
+    }
+
+    "parentheses resolve the conflict" in {
+      assert(show(parseBody("(a == b) == c")) == "((a == b) == c)")
+      assert(show(parseBody("a == (b == c)")) == "(a == (b == c))")
+    }
+
+    "a non-associative operator used once is fine" in {
+      assert(show(parseBody("a == b")) == "(a == b)")
+      assert(show(parseBody("a + b == c * d")) == "((a + b) == (c * d))")
+    }
+
+    "operators of equal precedence that agree on direction still group" in
+      // `++` and `::` are both right-associative at 5.
+      assert(show(parseBody("a ++ b :: c")) == "(a ++ (b :: c))")
+
+    "a lower-precedence operator separates two non-associative groups" in
+      assert(show(parseBody("a == b || c == d")) == "((a == b) || (c == d))")
+
+    "the conflict is accepted and grouped left when asked" in {
+      val expr = parseBody("a == b == c", options = ElmParseOptions.lenient)
+      assert(show(expr) == "((a == b) == c)")
+    }
   }
 
   "nested positions" - {

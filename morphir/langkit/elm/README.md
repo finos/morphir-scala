@@ -26,10 +26,22 @@ Elm.parseCst("module M exposing (..)\n\nmain = 42\n") match
   This is the tree for formatters, editors, and anything that has to reproduce the original text.
 - **`parseAst`** lowers that CST into an abstract syntax tree, dropping trivia. This is the tree for analysis.
 
-Binary operator chains come out shaped by Elm's precedence and associativity rules, so `1 + 2 * 3` parses as
-`1 + (2 * 3)` and `a :: b :: rest` as `a :: (b :: rest)`. See
-[Operator fixity is a second pass](./CONTRIBUTING.md#operator-fixity-is-a-second-pass) for how that happens and what
-it cannot see.
+Both take an `ElmParseOptions`, defaulting to `ElmParseOptions.elm` — canonical Elm semantics. Binary operator chains
+come out shaped by Elm's precedence and associativity rules, so `1 + 2 * 3` parses as `1 + (2 * 3)` and
+`a :: b :: rest` as `a :: (b :: rest)`, and a chain Elm refuses to group (`a == b == c`) is a diagnostic rather than a
+guess:
+
+```scala
+import morphir.langkit.elm.{Elm, ElmParseOptions}
+
+Elm.parseCst(source)                             // canonical Elm
+Elm.parseCst(source, ElmParseOptions.lenient)    // best-effort tree for tooling
+```
+
+See [Operator fixity is a second pass](./CONTRIBUTING.md#operator-fixity-is-a-second-pass) for what the parser knows
+about operators declared elsewhere, and
+[the conformance plan](../../../.dev/.sdlc/elm-parser-conformance/PLAN.md) for the divergences still being worked
+through.
 
 Both trees have `QueryableTree` instances, so the [query DSL](../trees) works against either:
 

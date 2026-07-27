@@ -83,6 +83,21 @@ object ElmLexer:
     "<<"
   )
 
+  /**
+   * Characters an Elm operator may be built from, matching `binopCharSet` in `elm/compiler`'s `Parse.Symbol`.
+   *
+   * Note what is absent: `~` is not an Elm operator character at all, and `\` belongs to lambda syntax rather than to
+   * operators, so neither may appear inside one.
+   */
+  val operatorCharacters: Set[Char] = "+-/*=.<>:&|^?%!".toSet
+
+  /**
+   * Symbol sequences Elm reserves, so they can never be used as binary operators — `BadDot`, `BadPipe`, `BadArrow`,
+   * `BadEquals` and `BadHasType` in `Parse.Symbol`. They remain valid *structural* tokens: `=` separates a declaration
+   * from its body, `->` a case branch from its result, and so on.
+   */
+  val reservedOperators: Set[String] = Set(".", "|", "->", "=", ":")
+
   private lazy val hardOperator: Parsley[String] =
     operators.toList.sortBy(op => -op.length).map(op => symbol(op).as(op)).reduce(_ | _)
 
@@ -90,8 +105,8 @@ object ElmLexer:
     nameDesc = NameDesc.plain.copy(
       identifierStart = predicate.Basic(c => c.isLetter || c == '_'),
       identifierLetter = predicate.Basic(c => c.isLetterOrDigit || c == '_'),
-      operatorStart = predicate.Basic(c => "+-*/<>=&|^!~%?:.\\".contains(c)),
-      operatorLetter = predicate.Basic(c => "+-*/<>=&|^!~%?:.\\".contains(c))
+      operatorStart = predicate.Basic(operatorCharacters.contains),
+      operatorLetter = predicate.Basic(operatorCharacters.contains)
     ),
     symbolDesc = SymbolDesc.plain.copy(
       hardKeywords = keywords,

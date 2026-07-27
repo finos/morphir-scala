@@ -38,22 +38,42 @@ them. That association is positional and uses `span.offset` of the preceding ele
 how spans are assigned during parsing can silently re-attach doc comments to the wrong declaration. The lowering path
 drops trivia entirely, so an AST-only test will not catch it.
 
+## Conformance is the standard, and departures are configured
+
+The target is `elm/compiler`: what it accepts, we accept; what it rejects, we reject. Where a caller could reasonably
+want something else, it is a field on `ElmParseOptions` that defaults to Elm's behaviour — never a quiet allowance in
+the parser. `ElmParseOptions.elm` is the default everywhere; `ElmParseOptions.lenient` is for tooling that wants a
+tree out of text that does not compile.
+
+When you find a divergence, the choices are to fix it or to record it as a known one in
+[`.dev/.sdlc/elm-parser-conformance/PLAN.md`](../../../.dev/.sdlc/elm-parser-conformance/PLAN.md) with a test that
+pins the current behaviour and says what Elm does instead. Do not leave it undocumented, and do not "fix" it by
+loosening something else.
+
+Upstream behaviour is checked against `elm/compiler`'s parser rather than intuition — `Parse/Symbol.hs` for the
+operator character set and reserved sequences, `Parse/Expression.hs` for negation and flat operator chains,
+`Canonicalize/Expression.hs` and `Reporting/Error/Canonicalize.hs` for how chains resolve and how conflicts read.
+
 ## Operator fixity is a second pass
 
-`ExpressionParser.expression` deliberately builds a flat, left-leaning chain: an operator's precedence and
-associativity come from an `infix` declaration that may sit anywhere in the module, so the shape is not decidable
-while parsing. `OperatorReassociator`, run by `Elm.parseCst` before `TriviaAssociator`, flattens each chain and
-rebuilds it — spans included — from the fixities in `OperatorTable`.
+`ExpressionParser.expression` builds a flat, left-leaning chain, and `OperatorReassociator` — run by `Elm.parseCst`
+before `TriviaAssociator` — rebuilds it, spans included, from the fixities in `OperatorTable`. This is not a
+workaround: `elm/compiler` also parses chains flat (`Src.Binops`) and resolves precedence during canonicalisation,
+because an operator's fixity comes from an `infix` declaration that may appear anywhere in the module or in a
+dependency.
 
-Two consequences worth knowing before trusting a tree:
+The pass refuses what Elm refuses:
 
-- `OperatorTable.builtin` carries the `infix` declarations of `elm/core` (`Basics` plus `List`'s `(::)`), overlaid
-  with the parsed module's own. An operator declared in *another* module and imported — `(|=)` from `elm/parser`,
-  `(</>)` from `elm/url` — is invisible here, because resolving it needs that dependency's source. It falls back to
-  `OperatorTable.unknownFixity`: precedence 9, left-associative. Anything that resolves imports should re-run the pass
-  with a fuller table rather than assume the parser got it right.
-- Chaining a non-associative operator (`a == b == c`) is a compile error in Elm, but this pass accepts it and groups
-  it to the left. Rejecting it belongs to a semantic pass with real name resolution, not to the parser.
+- An operator whose fixity nothing in scope declares is an error (`ELM-P005`), not an assumed precedence.
+  `OperatorTable.wellKnown` bundles the official packages that declare operators — `elm/core`, `elm/parser`,
+  `elm/url` — and the parsed module's own `infix` declarations are overlaid on top. Fixities are matched by operator
+  name, not by resolving imports: the parser has no dependency source to resolve against, so a caller that does
+  resolve them should supply a fuller table through `ElmParseOptions.operators`.
+- Adjacent operators of equal precedence that cannot be grouped — a non-associative operator chained (`a == b == c`),
+  or a left- and a right-associative operator mixed (`a |> f <| g`) — are an error (`ELM-P004`), worded as Elm words
+  it.
+
+Both are `Leniency.Accept`-able through `ElmParseOptions` for callers that would rather have a guessed tree.
 
 Changing a fixity changes tree *shape* rather than parse success, so the coverage for it — `OperatorPrecedenceSpec`
 and the precedence scenarios in [`itest`](../itest)'s `expressions.feature` — asserts on shape. A "does it parse"
