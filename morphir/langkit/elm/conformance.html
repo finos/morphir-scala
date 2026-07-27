@@ -83,7 +83,8 @@
 
 <h2>Open gaps</h2>
 <p>
-  One divergence remains, and only for sources the caller does not have. Every module of every fetched package parses:
+  One divergence remains, and only for sources the caller does not have — filed as
+  <a href="https://github.com/finos/morphir-scala/issues/930">#930</a>. Every module of every fetched package parses:
   <code>RealWorldCorpusTest.knownFailures</code> is empty.
 </p>
 <div class="scroll">
@@ -99,7 +100,8 @@
       <td>resolved across a project by <code>ElmProject.parse</code>; <code>ELM-P005</code> for a package whose
           source the caller does not have, unless supplied through <code>ElmParseOptions.operators</code></td>
       <td><code>ElmProjectSpec</code>, <code>OperatorPrecedenceSpec</code></td>
-      <td>narrowed, not closed: an operator from an unbundled <em>package</em> still needs that package's source</td>
+      <td>tracked as <a href="https://github.com/finos/morphir-scala/issues/930">#930</a> — needs dependency
+          resolution above the parser, which <code>ElmProject</code> is the seam for</td>
     </tr>
   </tbody>
 </table>
