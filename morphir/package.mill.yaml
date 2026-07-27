@@ -5,7 +5,7 @@ object jvm:
   moduleDeps: [build.morphir.extensibility.jvm]
 
 object js:
-  extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirRootMvnDeps]
+  extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirRootMvnDeps, build.EmptyDocJar]
   moduleDeps: [build.morphir.extensibility.js]
 
 object main:

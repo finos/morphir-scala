@@ -234,6 +234,12 @@ trait AssemblyPublishInfo extends JavaModule with PublishModule {
   * dotty.tools.scaladoc.translators.SignatureBuilder on JDK 25 - a known upstream dotty bug
   * (https://github.com/scala/scala3/issues/24183), fixed only in Scala 3.9.0+ (we're on 3.8.4).
   * See morphir/CONTRIBUTING.md for details.
+  *
+  * The crash follows the sources, not the platform, so every module compiling the affected sources needs this - the
+  * root `morphir` module's `js` variant hit exactly the same NPE as its `jvm` sibling. It surfaced only on a cold
+  * cache, and confusingly: after the scaladoc worker dies, the retry reports the missing output directory
+  * ("...scalaDocGenerated.dest/javadoc does not exist or is not a directory or .jar file") rather than the NPE, which
+  * appears only under `--debug`.
   */
 trait EmptyDocJar extends JavaModule {
   override def docJar: T[PathRef] = Task {
