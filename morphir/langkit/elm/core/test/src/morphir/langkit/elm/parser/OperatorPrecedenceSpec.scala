@@ -94,7 +94,9 @@ class OperatorPrecedenceSpec extends Test[Any]:
       assert(show(parseBody("f <| g <| a")) == "(f <| (g <| a))")
     }
 
-    "`<<` associates left and `>>` associates right" in {
+    "`<<` associates left and `>>` associates right, as elm/core declares them" in {
+      // Counter-intuitive but verbatim from Basics.elm: `infix left 9 (<<)`, `infix right 9 (>>)`. The direction a
+      // composition operator *composes* is not the direction it associates.
       assert(show(parseBody("f << g << h")) == "((f << g) << h)")
       assert(show(parseBody("f >> g >> h")) == "(f >> (g >> h))")
     }

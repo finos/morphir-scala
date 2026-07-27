@@ -43,7 +43,26 @@ object OperatorTable:
    */
   val unknownFixity: Fixity = Fixity(9, Associativity.Left)
 
-  /** The `infix` declarations of `elm/core`: `Basics` plus `List`'s `(::)`. */
+  /**
+   * The `infix` declarations of `elm/core`: `Basics` plus `List`'s `(::)`.
+   *
+   * Transcribed from `Basics.elm`, which is worth quoting because the composition pair reads backwards to most people —
+   * `<<` composes right-to-left and is *left*-associative, `>>` composes left-to-right and is *right*- associative:
+   *
+   * {{{
+   * infix right 0 (<|) = apL      infix left  6 (+)  = add
+   * infix left  0 (|>) = apR      infix left  6 (-)  = sub
+   * infix right 2 (||) = or       infix left  7 (*)  = mul
+   * infix right 3 (&&) = and      infix left  7 (/)  = fdiv
+   * infix non   4 (==) = eq       infix left  7 (//) = idiv
+   * infix non   4 (/=) = neq      infix right 8 (^)  = pow
+   * infix non   4 (<)  = lt       infix left  9 (<<) = composeL
+   * infix non   4 (>)  = gt       infix right 9 (>>) = composeR
+   * infix non   4 (<=) = le
+   * infix non   4 (>=) = ge       -- List.elm
+   * infix right 5 (++) = append   infix right 5 (::) = cons
+   * }}}
+   */
   val builtin: OperatorTable = OperatorTable(
     Map(
       "<|" -> Fixity(0, Associativity.Right),
