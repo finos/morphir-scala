@@ -83,7 +83,7 @@
 
 <h2>Open gaps</h2>
 <p>
-  One divergence remains, and it is one the parser cannot close by itself. A single real-world module also fails for a
+  One divergence remains, and only for sources the caller does not have. A single real-world module also fails for a
   reason not yet diagnosed — it is listed in <code>RealWorldCorpusTest.knownFailures</code> rather than here, since a
   gap needs a cause before it can have a row.
 </p>
@@ -97,9 +97,10 @@
       <td class="mono">G6</td>
       <td>Operators declared in an unbundled package</td>
       <td>resolved from the dependency's source</td>
-      <td><code>ELM-P005</code> unless supplied through <code>ElmParseOptions.operators</code></td>
-      <td><code>OperatorPrecedenceSpec</code></td>
-      <td>needs import resolution, which sits above the parser</td>
+      <td>resolved across a project by <code>ElmProject.parse</code>; <code>ELM-P005</code> for a package whose
+          source the caller does not have, unless supplied through <code>ElmParseOptions.operators</code></td>
+      <td><code>ElmProjectSpec</code>, <code>OperatorPrecedenceSpec</code></td>
+      <td>narrowed, not closed: an operator from an unbundled <em>package</em> still needs that package's source</td>
     </tr>
   </tbody>
 </table>
@@ -143,6 +144,23 @@
   </tbody>
 </table>
 </div>
+
+<h2>Parsing more than one module</h2>
+<p>
+  A module cannot always be shaped correctly on its own: <code>(|=)</code>'s fixity is declared somewhere else, and
+  <code>ElmParse</code> reports <code>ELM-P005</code> rather than guessing. <code>ElmProject.parse</code> takes a set
+  of sources and reads them twice — once to collect every <code>infix</code> declaration, then again with each module
+  resolved against the modules it imports.
+</p>
+<pre class="mono" style="overflow-x:auto"><code>ElmProject.parse(Map("Combine.elm" -&gt; …, "Use.elm" -&gt; …))
+  .trees            // by module name
+  .modules          // per-module diagnostics
+  .unparsed         // sources that failed the first pass, keyed as the caller keyed them</code></pre>
+<p>
+  That is as far as a parser can go. An operator from a package whose source is not in hand stays unknown —
+  <code>OperatorTable.wellKnown</code> covers the official packages, and <code>ElmParseOptions.operators</code> takes
+  anything else.
+</p>
 
 <h2>Where upstream behaviour is checked</h2>
 <p>Against <code>elm/compiler</code>'s parser rather than intuition:</p>

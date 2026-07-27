@@ -59,6 +59,18 @@ val pipeline = ElmParse.cst(source)              // CstModule < ElmParse
 ElmParse.run(ElmParseOptions.elm)(pipeline)      // ElmParse.Outcome[CstModule]
 ```
 
+A module whose operators are declared in a sibling module needs the sibling to be shaped correctly, so parse them
+together:
+
+```scala
+import morphir.langkit.elm.ElmProject
+
+val outcome = ElmProject.parse(Map("Combine.elm" -> combineSource, "Use.elm" -> useSource))
+outcome.trees      // by module name
+outcome.modules    // per-module diagnostics
+outcome.unparsed   // sources that did not parse at all
+```
+
 See [Operator fixity is a second pass](./CONTRIBUTING.md#operator-fixity-is-a-second-pass) for what the parser knows
 about operators declared elsewhere, and
 [the conformance tracker](./conformance.html) for how far the parser has converged on `elm/compiler` and what is
