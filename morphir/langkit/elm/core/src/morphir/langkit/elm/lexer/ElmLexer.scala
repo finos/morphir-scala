@@ -140,6 +140,34 @@ object ElmLexer:
   /** A user-defined operator. */
   val operator: Parsley[String] = hardOperator | lexer.lexeme.names.userDefinedOperator
 
+  /**
+   * Tokens that do not consume the whitespace after them.
+   *
+   * Elm's grammar asks whether two tokens are *adjacent* in several places — `a.b` is field access while `a . b` is an
+   * error, `List.map` is a qualified name while `List . map` is not — and a token that swallows its own trailing
+   * whitespace has destroyed that information by the time the next production runs. Productions that care compose these
+   * and consume [[whiteSpace]] themselves, once, at the point where whitespace is actually permitted.
+   */
+  object raw:
+    val lowerIdentifier: Parsley[String] =
+      atomic(lexer.nonlexeme.names.identifier.filter(s => s.head.isLower || s.head == '_'))
+
+    val upperIdentifier: Parsley[String] =
+      atomic(lexer.nonlexeme.names.identifier.filter(_.head.isUpper))
+
+    val identifier: Parsley[String] = lexer.nonlexeme.names.identifier
+
+    val intLiteral: Parsley[Long]      = lexer.nonlexeme.integer.decimal64
+    val floatLiteral: Parsley[Double]  = lexer.nonlexeme.floating.decimalDouble
+    val stringLiteral: Parsley[String] = lexer.nonlexeme.string.ascii
+    val charLiteral: Parsley[Char]     = lexer.nonlexeme.character.ascii
+
+    /** A literal character, for the brackets and punctuation whose adjacency matters. */
+    def sym(c: Char): Parsley[Unit] = char(c).void
+
+  /** Skip whitespace and comments. Productions built from [[raw]] tokens call this where whitespace is permitted. */
+  val whiteSpace: Parsley[Unit] = lexer.space.whiteSpace
+
   // -----------------------------------------------------------------------
   // Keywords and symbols
   // -----------------------------------------------------------------------

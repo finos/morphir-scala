@@ -28,76 +28,84 @@ object ExpressionParser:
   // Atoms
   // -----------------------------------------------------------------------
 
-  private val intLit: Parsley[CstExpression] = (offset <~> intLiteral <~> offset).map { case ((s, v), e) =>
+  // Atoms are built in a `raw` form that stops at the token's last character, so `postfixAtom` can tell whether a
+  // following `.` was adjacent. `atom` below adds the single whitespace boundary the rest of the grammar expects.
+
+  private val intLit: Parsley[CstExpression] = (offset <~> raw.intLiteral <~> offset).map { case ((s, v), e) =>
     CstIntLiteral(v)(Span.fromStartEnd(s, e))
   }
 
-  private val floatLit: Parsley[CstExpression] = (offset <~> floatLiteral <~> offset).map { case ((s, v), e) =>
+  private val floatLit: Parsley[CstExpression] = (offset <~> raw.floatLiteral <~> offset).map { case ((s, v), e) =>
     CstFloatLiteral(v)(Span.fromStartEnd(s, e))
   }
 
-  private val stringLit: Parsley[CstExpression] = (offset <~> stringLiteral <~> offset).map { case ((s, v), e) =>
+  private val stringLit: Parsley[CstExpression] = (offset <~> raw.stringLiteral <~> offset).map { case ((s, v), e) =>
     CstStringLiteral(v)(Span.fromStartEnd(s, e))
   }
 
-  private val charLit: Parsley[CstExpression] = (offset <~> charLiteral <~> offset).map { case ((s, v), e) =>
+  private val charLit: Parsley[CstExpression] = (offset <~> raw.charLiteral <~> offset).map { case ((s, v), e) =>
     CstCharLiteral(v)(Span.fromStartEnd(s, e))
   }
 
-  private val variableRef: Parsley[CstExpression] = (offset <~> ModuleParser.qualifiedValueName <~> offset).map {
+  private val variableRef: Parsley[CstExpression] = (offset <~> ModuleParser.rawQualifiedValueName <~> offset).map {
     case ((s, qn), e) =>
       CstVariableRef(qn)(Span.fromStartEnd(s, e))
   }
 
-  private val constructorRef: Parsley[CstExpression] = (offset <~> ModuleParser.qualifiedName <~> offset).map {
+  private val constructorRef: Parsley[CstExpression] = (offset <~> ModuleParser.rawQualifiedName <~> offset).map {
     case ((s, qn), e) =>
       CstConstructorRef(qn)(Span.fromStartEnd(s, e))
   }
 
+  /** `p` between brackets, where the closing bracket consumes no trailing whitespace. */
+  private def rawEnclosed[A](open: String, close: Char)(p: Parsley[A]): Parsley[A] =
+    symbol(open) *> p <* raw.sym(close)
+
   private val unitLit: Parsley[CstExpression] =
-    atomic((offset <~> parens(Parsley.pure(())) <~> offset).map { case ((s, _), e) =>
+    atomic((offset <~> rawEnclosed("(", ')')(Parsley.pure(())) <~> offset).map { case ((s, _), e) =>
       CstUnitLiteral()(Span.fromStartEnd(s, e))
     })
 
-  private val parenthesized: Parsley[CstExpression] = (offset <~> parens(expression) <~> offset).map {
+  private val parenthesized: Parsley[CstExpression] = (offset <~> rawEnclosed("(", ')')(expression) <~> offset).map {
     case ((s, expr), e) =>
       CstParenthesized(expr)(Span.fromStartEnd(s, e))
   }
 
   private val tupleLit: Parsley[CstExpression] =
-    (offset <~> parens(expression <~> some(symbol(",") *> expression)) <~> offset).map {
+    (offset <~> rawEnclosed("(", ')')(expression <~> some(symbol(",") *> expression)) <~> offset).map {
       case ((s, (first, rest)), e) =>
         CstTupleLiteral(first :: rest)(Span.fromStartEnd(s, e))
     }
 
-  private val listLit: Parsley[CstExpression] = (offset <~> brackets(commaSep(expression)) <~> offset).map {
-    case ((s, elems), e) =>
+  private val listLit: Parsley[CstExpression] = (offset <~> rawEnclosed("[", ']')(commaSep(expression)) <~> offset)
+    .map { case ((s, elems), e) =>
       CstListLiteral(elems)(Span.fromStartEnd(s, e))
-  }
+    }
 
   private val recordField: Parsley[CstRecordField] =
     (offset <~> ModuleParser.lowerName <~> (symbol("=") *> expression) <~> offset).map { case (((s, n), v), e) =>
       CstRecordField(n, v)(Span.fromStartEnd(s, e))
     }
 
-  private val recordLit: Parsley[CstExpression] = (offset <~> braces(commaSep1(recordField)) <~> offset).map {
-    case ((s, fields), e) =>
+  private val recordLit: Parsley[CstExpression] =
+    (offset <~> rawEnclosed("{", '}')(commaSep1(recordField)) <~> offset).map { case ((s, fields), e) =>
       CstRecordLiteral(fields)(Span.fromStartEnd(s, e))
-  }
+    }
 
   private val recordUpdate: Parsley[CstExpression] =
-    (offset <~> braces(ModuleParser.lowerName <~> (symbol("|") *> commaSep1(recordField))) <~> offset).map {
-      case ((s, (rec, fields)), e) =>
-        CstRecordUpdate(rec, fields)(Span.fromStartEnd(s, e))
+    (offset <~> rawEnclosed("{", '}')(
+      ModuleParser.lowerName <~> (symbol("|") *> commaSep1(recordField))
+    ) <~> offset).map { case ((s, (rec, fields)), e) =>
+      CstRecordUpdate(rec, fields)(Span.fromStartEnd(s, e))
     }
 
   private val fieldAccessFn: Parsley[CstExpression] =
-    (offset <~> (symbol(".") *> ModuleParser.lowerName) <~> offset).map { case ((s, n), e) =>
+    (offset <~> (raw.sym('.') *> ModuleParser.rawLowerName) <~> offset).map { case ((s, n), e) =>
       CstFieldAccessFunction(n)(Span.fromStartEnd(s, e))
     }
 
-  /** An atomic expression (no application or binary ops). */
-  val atom: Parsley[CstExpression] =
+  /** An atomic expression that stops at its last character, consuming no trailing whitespace. */
+  private val rawAtom: Parsley[CstExpression] =
     atomic(floatLit)
       | intLit
       | stringLit
@@ -111,6 +119,9 @@ object ExpressionParser:
       | fieldAccessFn
       | variableRef
       | constructorRef
+
+  /** An atomic expression (no application or binary ops). */
+  val atom: Parsley[CstExpression] = rawAtom <* whiteSpace
 
   // -----------------------------------------------------------------------
   // Compound expressions
@@ -156,30 +167,59 @@ object ExpressionParser:
       CstLambda(params, body)(Span.fromStartEnd(s, e))
     }
 
-  private val negate: Parsley[CstExpression] = (offset <~> (symbol("-") *> atom) <~> offset).map {
-    case ((s, expr), e) =>
-      CstNegate(expr)(Span.fromStartEnd(s, e))
-  }
-
+  /**
+   * A `.field` suffix, which must be adjacent to the expression it accesses: `rec.field`, never `rec . field`.
+   *
+   * Elm reserves a lone `.` (`BadDot`), so the spaced form is an error rather than a field access.
+   */
   private val fieldSuffix: Parsley[CstName] =
-    symbol(".") *> ModuleParser.lowerName
+    atomic(raw.sym('.') *> ModuleParser.rawLowerName)
 
-  private val postfixAtom: Parsley[CstExpression] = (offset <~> atom <~> many(fieldSuffix) <~> offset).map {
-    case (((s, base), fields), e) =>
-      fields.foldLeft(base) { (record, field) =>
-        CstFieldAccess(record, field)(Span.between(record.span, field.span))
-      }
+  /** An atom with its field accesses, stopping at the last character rather than at the next token. */
+  private val rawPostfixAtom: Parsley[CstExpression] = (rawAtom <~> many(fieldSuffix)).map { case (base, fields) =>
+    fields.foldLeft(base) { (record, field) =>
+      CstFieldAccess(record, field)(Span.between(record.span, field.span))
+    }
   }
+
+  private val postfixAtom: Parsley[CstExpression] = rawPostfixAtom <* whiteSpace
+
+  /**
+   * Negation: a `-` with the term it negates directly attached.
+   *
+   * Elm permits no space here — `-x` negates, `- x` is an error — because the spaced form is how subtraction is
+   * written.
+   */
+  private val negativeTerm: Parsley[CstExpression] =
+    atomic((offset <~> (raw.sym('-') *> rawPostfixAtom) <~> offset)).map { case ((s, expr), e) =>
+      CstNegate(expr)(Span.fromStartEnd(s, e))
+    }
+
+  /** Whitespace that must actually be there: the tokens of an application have to be separated. */
+  private val requiredSpace: Parsley[Unit] = (offset <~> (whiteSpace *> offset)).filter { case (before, after) =>
+    after > before
+  }.void
+
+  /**
+   * An argument in a function application, which is preceded by whitespace.
+   *
+   * That whitespace is what distinguishes `f -1` from `f - 1`: with a space before the `-` and none after it, Elm reads
+   * a negative term being applied, and only otherwise a subtraction. Being able to ask the question at all is why the
+   * atoms above stop at their last character.
+   */
+  private def argument(start: (Int, Int)): Parsley[CstExpression] =
+    atomic(requiredSpace *> sameLineOrIndentedPast(start)(negativeTerm | rawPostfixAtom))
 
   /** A non-operator expression: atom with optional function application and field access. */
   private val appExpr: Parsley[CstExpression] =
-    val base = ifThenElse | letIn | caseOf | lambda | negate | postfixAtom
-    ((offset <~> pos) <~> base).flatMap { case ((so, sp), fn) =>
-      (many(sameLineOrIndentedPast(sp)(postfixAtom)) <~> offset).map { case (args, eo) =>
+    val compound    = ifThenElse | letIn | caseOf | lambda
+    val application = ((offset <~> pos) <~> (negativeTerm | rawPostfixAtom)).flatMap { case ((so, sp), fn) =>
+      ((many(argument(sp)) <~> offset) <* whiteSpace).map { case (args, eo) =>
         if args.isEmpty then fn
         else CstFunctionApplication(fn, args)(Span.fromStartEnd(so, eo))
       }
     }
+    compound | application
 
   /**
    * Parse a binary operator name.

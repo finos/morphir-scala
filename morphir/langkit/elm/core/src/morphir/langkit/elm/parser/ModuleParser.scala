@@ -26,29 +26,46 @@ object ModuleParser:
   // Names
   // -----------------------------------------------------------------------
 
-  val name: Parsley[CstName] = (offset <~> identifier <~> offset).map { case ((s, n), e) =>
+  /**
+   * Names in their `raw` form consume no trailing whitespace, so productions can tell whether the next token was
+   * adjacent. Each has a whitespace-consuming counterpart below, which is what the rest of the grammar uses.
+   */
+  val rawName: Parsley[CstName] = (offset <~> raw.identifier <~> offset).map { case ((s, n), e) =>
     CstName(n)(Span.fromStartEnd(s, e))
   }
 
-  val lowerName: Parsley[CstName] = (offset <~> lowerIdentifier <~> offset).map { case ((s, n), e) =>
+  val rawLowerName: Parsley[CstName] = (offset <~> raw.lowerIdentifier <~> offset).map { case ((s, n), e) =>
     CstName(n)(Span.fromStartEnd(s, e))
   }
 
-  val upperName: Parsley[CstName] = (offset <~> upperIdentifier <~> offset).map { case ((s, n), e) =>
+  val rawUpperName: Parsley[CstName] = (offset <~> raw.upperIdentifier <~> offset).map { case ((s, n), e) =>
     CstName(n)(Span.fromStartEnd(s, e))
   }
 
-  val qualifiedName: Parsley[CstQualifiedName] =
-    (offset <~> upperName <~> many(atomic(symbol(".") *> upperName)) <~> offset).map {
+  val name: Parsley[CstName]      = rawName <* whiteSpace
+  val lowerName: Parsley[CstName] = rawLowerName <* whiteSpace
+  val upperName: Parsley[CstName] = rawUpperName <* whiteSpace
+
+  /**
+   * A qualified name, whose dots must be adjacent to the names either side: `List.map`, never `List . map`.
+   *
+   * `elm/compiler` reserves `.` (`BadDot` in `Parse.Symbol`), so a spaced dot is not a qualification, a field access,
+   * or an operator — it is an error.
+   */
+  val rawQualifiedName: Parsley[CstQualifiedName] =
+    (offset <~> rawUpperName <~> many(atomic(raw.sym('.') *> rawUpperName)) <~> offset).map {
       case (((s, first), rest), e) =>
         CstQualifiedName(first :: rest)(Span.fromStartEnd(s, e))
     }
 
-  val qualifiedValueName: Parsley[CstQualifiedName] =
-    atomic((offset <~> many(atomic(upperName <* symbol("."))) <~> lowerName <~> offset).map {
+  val rawQualifiedValueName: Parsley[CstQualifiedName] =
+    atomic((offset <~> many(atomic(rawUpperName <* raw.sym('.'))) <~> rawLowerName <~> offset).map {
       case (((s, prefix), last), e) =>
         CstQualifiedName(prefix :+ last)(Span.fromStartEnd(s, e))
     })
+
+  val qualifiedName: Parsley[CstQualifiedName]      = rawQualifiedName <* whiteSpace
+  val qualifiedValueName: Parsley[CstQualifiedName] = rawQualifiedValueName <* whiteSpace
 
   // -----------------------------------------------------------------------
   // Exposing lists

@@ -37,13 +37,9 @@ class OperatorTokenSpec extends Test[Any]:
     "are the five elm/compiler reserves" in
       assert(ElmLexer.reservedOperators == Set(".", "|", "->", "=", ":"))
 
-    "`.` never reaches the binary-operator position, though spaced field access is still accepted" in {
-      // Elm rejects `a . b` outright (BadDot). We keep `.` out of the operator position, but the field-access
-      // production cannot yet tell that whitespace separates `a` from `.` — every token consumes its own trailing
-      // whitespace — so `a . b` parses as `a.b`. Known divergence, tracked as W5 in
-      // .dev/.sdlc/elm-parser-conformance/PLAN.md.
+    "`.` is not a binary operator, and a spaced dot is not field access either" in {
       assert(ElmLexer.reservedOperators.contains("."))
-      assert(parses("main = a . b"))
+      assert(!parses("main = a . b"))
     }
 
     "`|` is not a binary operator" in

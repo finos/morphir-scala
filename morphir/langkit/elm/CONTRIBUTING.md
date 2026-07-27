@@ -54,6 +54,21 @@ Upstream behaviour is checked against `elm/compiler`'s parser rather than intuit
 operator character set and reserved sequences, `Parse/Expression.hs` for negation and flat operator chains,
 `Canonicalize/Expression.hs` and `Reporting/Error/Canonicalize.hs` for how chains resolve and how conflicts read.
 
+## Tokens know whether they touch
+
+Elm's grammar keeps asking whether two tokens are adjacent: `a.b` is field access while `a . b` is an error,
+`List.map` is a qualified name while `List . map` is not, and `f -1` applies `f` to `-1` while `f - 1` subtracts. A
+token that consumes its own trailing whitespace has thrown that information away.
+
+So `ElmLexer.raw` exposes non-lexeme tokens — they stop at their last character — and the expression atoms are built
+from those, with one explicit `whiteSpace` at the end of `postfixAtom` or of a whole application. `ModuleParser`
+follows the same split: `rawLowerName` / `lowerName`, `rawQualifiedName` / `qualifiedName`. Productions above the atom
+level keep using the lexeme parsers.
+
+The rule when adding a production: if Elm cares whether your token touches its neighbour, build it from `raw` and
+consume `whiteSpace` yourself at the one place whitespace is allowed. Otherwise use the lexeme parsers and do not
+think about it.
+
 ## Operator fixity is a second pass
 
 `ExpressionParser.expression` builds a flat, left-leaning chain, and `OperatorReassociator` — run by `Elm.parseCst`
