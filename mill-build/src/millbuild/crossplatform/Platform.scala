@@ -3,10 +3,19 @@ package millbuild.crossplatform
 import upickle.default.{ReadWriter => RW, readwriter}
 
 sealed trait Platform extends Ordered[Platform] { self =>
-  val isJS: Boolean        = self == Platform.JS
-  val isJVM: Boolean       = self == Platform.JVM
-  val isNative: Boolean    = self == Platform.Native
-  val isNotNative: Boolean = !isNative
+  // Compared by `name` rather than against `Platform.JS` / `Platform.JVM` / `Platform.Native`, and defined as `def`
+  // rather than `val`, so that initializing one Platform never forces its siblings.
+  //
+  // As strict vals referencing the sibling objects, these ran during every Platform's class initialization: two
+  // threads cold-initializing, say, Platform.Native and Platform.JS would each hold their own class-init monitor
+  // while waiting for the other's, and the JVM does not break class-init deadlocks. It stranded any evaluation that
+  // touched several platforms' `sources` in parallel from a cold JVM — `mise run lint` (which passes `--no-server`,
+  // so every run is cold) hung indefinitely, and warm-daemon runs only escaped because a prior evaluation had
+  // already initialized the objects.
+  def isJS: Boolean        = name == "js"
+  def isJVM: Boolean       = name == "jvm"
+  def isNative: Boolean    = name == "native"
+  def isNotNative: Boolean = !isNative
   def name: String
   def compare(that: Platform): Int = self.name.compare(that.name)
 

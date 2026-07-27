@@ -1,5 +1,4 @@
-extends: [build.MorphirCommonModule, build.MorphirIntelligencePublishModule, build.MorphirIntelligenceBuildInfo, mill.contrib.scoverage.ScoverageModule]
-scoverageVersion: 2.5.2
+extends: [build.MorphirCommonModule, build.MorphirIntelligencePublishModule, build.MorphirIntelligenceBuildInfo, build.MorphirScoverage]
 mainClass: org.finos.morphir.intelligence.Main
 moduleDeps: [build.morphir.intelligence.sdk.jvm]
 mvnDeps:

@@ -1,8 +1,7 @@
 extends: Module
 
 object jvm:
-  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirTestsMvnDeps, mill.contrib.scoverage.ScoverageModule]
-  scoverageVersion: 2.5.2
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirTestsMvnDeps, build.MorphirScoverage]
   moduleDeps:
   - build.morphir.extensibility.jvm
   - build.morphir.jvm
