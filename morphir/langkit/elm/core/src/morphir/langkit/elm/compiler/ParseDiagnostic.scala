@@ -11,7 +11,7 @@ final case class ParseDiagnostic(
     contextLines: List[DiagnosticContextLine] = Nil
 ) derives CanEqual:
 
-  def toSpan: Span = Span.fromStartEnd(span.start, span.end)
+  def toSpan: Span = span.range
 
 object ParseDiagnostic:
 
@@ -30,7 +30,7 @@ object ParseDiagnostic:
     )
     ParseDiagnostic(
       code = DiagnosticCode.UnexpectedEndOfInput,
-      span = SourceSpan(start = start, end = start, line = line, column = column),
+      span = SourceSpan.fromStartEnd(start = start, end = start, line = line, column = column),
       message = formatted.message,
       expected = expected,
       contextLines = formatted.contextLines
@@ -59,7 +59,7 @@ object ParseDiagnostic:
     )
     ParseDiagnostic(
       code = DiagnosticCode.UnexpectedToken,
-      span = SourceSpan(start = start, end = end, line = line, column = column),
+      span = SourceSpan.fromStartEnd(start = start, end = end, line = line, column = column),
       message = formatted.message,
       expected = expected,
       contextLines = formatted.contextLines
@@ -80,7 +80,7 @@ object ParseDiagnostic:
     )
     ParseDiagnostic(
       code = DiagnosticCode.TokenizerUnexpectedCharacter,
-      span = SourceSpan(start = offset, end = offset + lexeme.length, line = line, column = column),
+      span = SourceSpan.fromStartEnd(start = offset, end = offset + lexeme.length, line = line, column = column),
       message = formatted.message,
       expected = Nil,
       contextLines = formatted.contextLines

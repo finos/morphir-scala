@@ -100,7 +100,7 @@ final class ParseDiagnosticErrorBuilder(parseSource: String) extends ErrorBuilde
           formatted.message -> formatted.contextLines
     ParseDiagnostic(
       code = code,
-      span = SourceSpan(start = start, end = end, line = line, column = column),
+      span = SourceSpan.fromStartEnd(start = start, end = end, line = line, column = column),
       message = message._1,
       expected = expected,
       suggestion = suggestion,
