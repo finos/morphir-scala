@@ -4,6 +4,7 @@ import kyo.*
 import kyo.kernel.ArrowEffect
 import kyo.test.*
 
+import morphir.langkit.core.{Reported, Severity}
 import morphir.langkit.elm.compiler.{DiagnosticCode, ParseDiagnostic}
 import morphir.langkit.elm.cst.{CstModule, CstValueDeclaration}
 
@@ -18,7 +19,7 @@ class ParseEffectSpec extends Test[Any]:
   private def source(declarations: String): String =
     s"module M exposing (..)\n\n$declarations\n"
 
-  private def codes(outcome: Parse.Outcome[?]): List[String] =
+  private def codes(outcome: ElmParse.Outcome[?]): List[String] =
     outcome.diagnostics.toList.map(r => DiagnosticCode.unwrap(r.diagnostic.code))
 
   "reporting" - {
@@ -59,14 +60,14 @@ class ParseEffectSpec extends Test[Any]:
 
   "stages" - {
     "read their options from the effect rather than from a parameter" in {
-      val strict  = Parse.run(ElmParseOptions.elm)(Parse.options)
-      val lenient = Parse.run(ElmParseOptions.lenient)(Parse.options)
+      val strict  = ElmParse.run(ElmParseOptions.elm)(ElmParse.options)
+      val lenient = ElmParse.run(ElmParseOptions.lenient)(ElmParse.options)
       assert(strict.value.contains(ElmParseOptions.elm))
       assert(lenient.value.contains(ElmParseOptions.lenient))
     }
 
     "compose with each other in the effect" in {
-      val pipeline: Int < Parse =
+      val pipeline: Int < ElmParse =
         for
           module <- ElmParse.cst(source("main = 1 + 2 * 3"))
           count = module.declarations.count {
@@ -75,7 +76,7 @@ class ParseEffectSpec extends Test[Any]:
           }
         yield count
 
-      assert(Parse.run(ElmParseOptions.elm)(pipeline).value.contains(1))
+      assert(ElmParse.run(ElmParseOptions.elm)(pipeline).value.contains(1))
     }
   }
 
@@ -86,22 +87,24 @@ class ParseEffectSpec extends Test[Any]:
      * severe they were. This is what a linter or an editor wants, and it is written here rather than in the pipeline
      * because the pipeline has no opinion about it.
      */
-    def keepTheTree[A](options: ElmParseOptions)(pipeline: A < Parse)(using Frame): (Chunk[Reported], Option[A]) =
-      ArrowEffect.handleLoop(Tag[Parse], Chunk.empty[Reported], pipeline)(
+    def keepTheTree[A](options: ElmParseOptions)(pipeline: A < ElmParse)(using
+        Frame
+    ): (Chunk[Reported[ParseDiagnostic]], Option[A]) =
+      ArrowEffect.handleLoop(Tag[ElmParse], Chunk.empty[Reported[ParseDiagnostic]], pipeline)(
         handle = [C] =>
           (input, state, cont) =>
             input match
-              case ParseOp.Options          => Loop.continue(state, cont(options.asInstanceOf[C]))
-              case ParseOp.Report(reported) => Loop.continue(state.append(reported), cont(().asInstanceOf[C]))
-              case ParseOp.Halt(diagnostic) =>
-                Loop.done((Chunk(Reported(diagnostic, Severity.Error)), None: Option[A])),
+              case ElmParseOp.Options          => Loop.continue(state, cont(options.asInstanceOf[C]))
+              case ElmParseOp.Report(reported) => Loop.continue(state.append(reported), cont(().asInstanceOf[C]))
+              case ElmParseOp.Halt(diagnostic) =>
+                Loop.done((Chunk(Reported.error(diagnostic)), None: Option[A])),
         done = (state, value) => (state, Some(value))
       ).eval
 
     "keeps a tree the shipped interpreter withholds, from identical stages and options" in {
       val text = source("main = a == b == c")
 
-      val shipped = Parse.run(ElmParseOptions.elm)(ElmParse.cst(text))
+      val shipped = ElmParse.run(ElmParseOptions.elm)(ElmParse.cst(text))
       assert(shipped.value.isEmpty)
 
       val (reported, tree) = keepTheTree(ElmParseOptions.elm)(ElmParse.cst(text))
@@ -117,7 +120,7 @@ class ParseEffectSpec extends Test[Any]:
     }
 
     "sees the same reports whichever façade ran it" in {
-      val viaEffect = Parse.run(ElmParseOptions.elm)(ElmParse.cst(source("main = a == b == c")))
+      val viaEffect = ElmParse.run(ElmParseOptions.elm)(ElmParse.cst(source("main = a == b == c")))
       val viaFacade = Elm.diagnoseCst(source("main = a == b == c"))
       assert(codes(viaEffect) == codes(viaFacade))
     }

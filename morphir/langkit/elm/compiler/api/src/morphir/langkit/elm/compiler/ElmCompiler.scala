@@ -2,7 +2,7 @@ package morphir.langkit.elm.compiler
 
 import kyo.{Frame, Kyo, Tag, <}
 
-import morphir.langkit.elm.{Elm, ElmParseOptions, Parse}
+import morphir.langkit.elm.{Elm, ElmParse, ElmParseOptions}
 import morphir.langkit.elm.ast.Module as AstModule
 import morphir.langkit.elm.cst.CstModule
 import morphir.langkit.trees.QueryableTree
@@ -48,7 +48,7 @@ object ElmCompiler:
        * lenient options, say — surfaces both. A parse that produced nothing records all but its last diagnostic and
        * then fails with that one, which is where `QueryLogic.run` appends it, so the envelope reads in source order.
        */
-      private def surface[A](phase: String, outcome: Parse.Outcome[A]): CompileEff[Ctx, A] =
+      private def surface[A](phase: String, outcome: ElmParse.Outcome[A]): CompileEff[Ctx, A] =
         val errors =
           outcome.diagnostics.toList.map(r => CompileError.ParseError(phase = phase, diagnostic = r.diagnostic))
         outcome.value match

@@ -42,17 +42,17 @@ object Elm:
   def diagnoseCst(
       source: String,
       options: ElmParseOptions = ElmParseOptions.elm
-  ): Parse.Outcome[CstModule] =
-    Parse.run(options)(ElmParse.cst(source))
+  ): ElmParse.Outcome[CstModule] =
+    ElmParse.run(options)(ElmParse.cst(source))
 
   /** Parse Elm source code into an AST, reporting every diagnostic rather than the first. */
   def diagnoseAst(
       source: String,
       options: ElmParseOptions = ElmParseOptions.elm
-  ): Parse.Outcome[Module] =
-    Parse.run(options)(ElmParse.ast(source))
+  ): ElmParse.Outcome[Module] =
+    ElmParse.run(options)(ElmParse.ast(source))
 
-  private def firstDiagnostic[A](outcome: Parse.Outcome[A]): parsley.Result[ParseDiagnostic, A] =
+  private def firstDiagnostic[A](outcome: ElmParse.Outcome[A]): parsley.Result[ParseDiagnostic, A] =
     outcome.value match
       case Some(value) => parsley.Success(value)
       case None        =>

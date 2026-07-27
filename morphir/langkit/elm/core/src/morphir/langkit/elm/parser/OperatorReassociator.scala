@@ -1,7 +1,7 @@
 package morphir.langkit.elm.parser
 
-import morphir.langkit.core.Span
-import morphir.langkit.elm.{ElmParseOptions, Leniency, Reported, Severity}
+import morphir.langkit.core.{Reported, Severity, Span}
+import morphir.langkit.elm.{ElmParseOptions, Leniency}
 import morphir.langkit.elm.compiler.ParseDiagnostic
 import morphir.langkit.elm.cst.*
 
@@ -27,7 +27,7 @@ object OperatorReassociator:
       module: CstModule,
       source: String,
       options: ElmParseOptions = ElmParseOptions.elm
-  ): (CstModule, List[Reported]) =
+  ): (CstModule, List[Reported[ParseDiagnostic]]) =
     val context      = Context(OperatorTable.forModule(module, options.operators), source, options)
     val declarations = module.declarations.map(rewriteDeclaration(_, context))
     val rewritten    = CstModule(module.moduleDecl, module.imports, declarations, module.trivia)(module.span)
@@ -39,7 +39,7 @@ object OperatorReassociator:
       table: OperatorTable,
       source: String,
       options: ElmParseOptions = ElmParseOptions.elm
-  ): (CstExpression, List[Reported]) =
+  ): (CstExpression, List[Reported[ParseDiagnostic]]) =
     val context = Context(table, source, options)
     (rewrite(expression, context), context.reported)
 
@@ -50,13 +50,13 @@ object OperatorReassociator:
    * which keeps the tree-rebuilding code below free of accumulator plumbing.
    */
   private final class Context(val table: OperatorTable, val source: String, val options: ElmParseOptions):
-    private val found = scala.collection.mutable.ListBuffer.empty[Reported]
+    private val found = scala.collection.mutable.ListBuffer.empty[Reported[ParseDiagnostic]]
 
     def report(diagnostic: ParseDiagnostic, leniency: Leniency): Unit =
       val severity = if leniency == Leniency.Reject then Severity.Error else Severity.Advisory
       found += Reported(diagnostic, severity)
 
-    def reported: List[Reported] = found.toList
+    def reported: List[Reported[ParseDiagnostic]] = found.toList
 
   private def rewriteDeclaration(declaration: CstDeclaration, context: Context): CstDeclaration =
     declaration match

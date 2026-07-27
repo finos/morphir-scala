@@ -3,8 +3,8 @@
 Source positions and diagnostic rendering, shared by every langkit.
 
 This module is the bottom of the langkit stack. It has no dependencies beyond the standard library, knows nothing
-about any particular language, and holds the two things every parser needs regardless of what it parses: a way to
-name a region of source text, and a way to show that region back to a human.
+about any particular language, and holds what every parser needs regardless of what it parses: a way to name a region
+of source text, a way to show that region back to a human, and a way to say how much a finding matters.
 
 ## Positions
 
@@ -62,11 +62,29 @@ It returns both the rendered string and the structured `contextLines` behind it,
 own way — a language server, a JSON envelope — does not have to parse the text back apart. Two lines of context
 before and one after by default, both overridable.
 
+## Severity
+
+How much a finding matters is a property of the options a pipeline runs under, not of the finding itself: the same
+unresolvable operator chain is an error to a compiler and a remark to an editor. `Reported` pairs the two, generic in
+whatever diagnostic type the langkit uses:
+
+```scala
+import morphir.langkit.core.{Reported, Severity}
+
+Reported.error(diagnostic)     // the result cannot stand
+Reported.advisory(diagnostic)  // worth saying; the caller wanted a result anyway
+```
+
+The Elm langkit's parse pipeline reports in these terms, and its interpreter decides what a collection of them means.
+
 ## What is not here
 
 Diagnostic *codes* and *messages* are language-specific and live in their langkit. The Elm langkit's `DiagnosticCode`
 validates `ELM-P###`/`ELM-T###`, and its `DiagnosticMessageFormatter` writes Elm-flavoured prose; both build on the
 snippets and positions defined here.
+
+The parse pipeline itself is also not here yet. `ElmParse` is Elm's, deliberately, until there is a general Morphir
+parse and compile pipeline for this module to hold.
 
 ## Artifact
 

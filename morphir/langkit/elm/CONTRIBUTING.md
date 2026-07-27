@@ -58,24 +58,32 @@ operator character set and reserved sequences, `Parse/Expression.hs` for negatio
 
 Parsing is several passes — syntax, operator re-association, comment association, with layout and lexical checks to
 come — and they share three needs: the options in force, somewhere to put what they found, and a way to give up.
-`Parse` is a Kyo `ArrowEffect` carrying exactly those, as `ParseOp.Options`, `ParseOp.Report` and `ParseOp.Halt`.
+`ElmParse` is a Kyo `ArrowEffect` carrying exactly those, as `ElmParseOp.Options`, `ElmParseOp.Report` and
+`ElmParseOp.Halt`.
 
-A stage's signature is `CstModule < Parse`. It has no options parameter, no accumulator, and no early-return
+A stage's signature is `CstModule < ElmParse`. It has no options parameter, no accumulator, and no early-return
 plumbing: it asks for what it needs and says what it found. Whether a report is fatal, whether reporting one stops
 the pipeline, and where the options come from are the *interpreter's* business.
 
-`Parse.run` is the interpreter this module ships: it collects every report and withholds the value if any was an
+`ElmParse.run` is the interpreter this module ships: it collects every report and withholds the value if any was an
 error. That is why a module with four unresolvable operator chains now describes all four rather than the first — a
 `Report` resumes the stage, while a `Halt` drops the continuation, because a stage that halted has nothing to hand
 on. A different interpreter is a legitimate thing to write instead; `ParseEffectSpec` has one that keeps the tree the
 shipped interpreter would withhold, over identical stages and options.
 
-Two working rules:
+The name is Elm's on purpose. A general Morphir parse and compile pipeline is coming, and this is meant to become its
+Elm instance rather than its definition, so `Parse` and `Compile` stay unclaimed. The parts that are already
+language-neutral have moved down to [`langkit/core`](../core): `Severity`, and `Reported[D]` generic in each
+langkit's own diagnostic type.
 
-- A new pass belongs in `ElmParse` as a stage in `Parse`, not as a function taking options and returning `Either`.
+Three working rules:
+
+- A new pass belongs in `ElmParse` as a stage, not as a function taking options and returning `Either`.
 - Purity inside a stage is fine and often better. `OperatorReassociator` is an ordinary recursive function over the
   tree that hands back what it found; suspending inside a tree walk that makes no requests would only add noise. The
   effect boundary is the stage, not every function it calls.
+- Anything a second langkit would need unchanged — severity, reporting, positions — belongs in `core`, per the first
+  section of this file. The effect itself does not, until the general pipeline exists to hold it.
 
 `Elm` remains the plain façade for callers who want a tree or a diagnostic: `parseCst` / `parseAst` report the first
 problem, `diagnoseCst` / `diagnoseAst` report everything.

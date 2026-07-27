@@ -48,9 +48,16 @@ outcome.errors     // the ones that stopped it
 outcome.value      // the tree, if one survived
 ```
 
-Both are the same pipeline: `ElmParse` stages composed in the `Parse` effect, with `Parse.run` interpreting it.
-Compose those stages directly to run parsing alongside your own Kyo effects, or interpret them your own way — see
+Both are the same pipeline: stages composed in the `ElmParse` effect, with `ElmParse.run` interpreting them. Compose
+the stages directly to run parsing alongside your own Kyo effects, or interpret them your own way — see
 [The pipeline is an effect](./CONTRIBUTING.md#the-pipeline-is-an-effect-and-policy-lives-in-the-interpreter).
+
+```scala
+import morphir.langkit.elm.{ElmParse, ElmParseOptions}
+
+val pipeline = ElmParse.cst(source)              // CstModule < ElmParse
+ElmParse.run(ElmParseOptions.elm)(pipeline)      // ElmParse.Outcome[CstModule]
+```
 
 See [Operator fixity is a second pass](./CONTRIBUTING.md#operator-fixity-is-a-second-pass) for what the parser knows
 about operators declared elsewhere, and
