@@ -31,10 +31,16 @@ object DeclarationParser:
       CstTypeReference(qn)(Span.fromStartEnd(s, e))
   }
 
-  private val unitType: Parsley[CstTypeExpression] = (offset <~> parens(Parsley.pure(())) <~> offset).map {
-    case ((s, _), e) =>
+  /**
+   * The unit type, `()`.
+   *
+   * Atomic because it commits to `(` before it can know whether it is looking at unit or at a parenthesised type: on
+   * `(List Int)` it must give the whole alternation a chance at the same input rather than failing it.
+   */
+  private val unitType: Parsley[CstTypeExpression] =
+    atomic((offset <~> parens(Parsley.pure(())) <~> offset).map { case ((s, _), e) =>
       CstUnitType()(Span.fromStartEnd(s, e))
-  }
+    })
 
   private val tupleType: Parsley[CstTypeExpression] =
     (offset <~> parens(typeExpression <~> some(symbol(",") *> typeExpression)) <~> offset).map {
@@ -118,10 +124,19 @@ object DeclarationParser:
       CstTypeAliasDeclaration(name, vars.toIndexedSeq, body)(Span.fromStartEnd(s, e))
     }
 
-  private val constructor: Parsley[CstConstructor] =
-    (offset <~> ModuleParser.upperName <~> many(atomType) <~> offset).map { case (((s, name), params), e) =>
-      CstConstructor(name, params.toIndexedSeq)(Span.fromStartEnd(s, e))
-    }
+  /**
+   * A constructor of a custom type, with its argument types.
+   *
+   * The arguments carry the same layout guard as a type application: a lowercase name is a perfectly good type
+   * variable, so without it `Compound (List Shape)` followed by `describe : …` in column 1 reads `describe` as one more
+   * argument and then trips over the `:`.
+   */
+  private val constructor: Parsley[CstConstructor] = ((offset <~> pos) <~> ModuleParser.upperName).flatMap {
+    case ((s, sp), name) =>
+      (many(sameLineOrIndentedPast(sp)(atomType)) <~> offset).map { case (params, e) =>
+        CstConstructor(name, params.toIndexedSeq)(Span.fromStartEnd(s, e))
+      }
+  }
 
   private val customTypeDeclaration: Parsley[CstDeclaration] =
     (offset <~> (keyword("type") *> ModuleParser.upperName) <~>

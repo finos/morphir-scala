@@ -104,6 +104,20 @@ object ExpressionParser:
       CstFieldAccessFunction(n)(Span.fromStartEnd(s, e))
     }
 
+  /**
+   * An operator used as a value: `(+)` in `List.foldr (+) 0`.
+   *
+   * Elm lets any binary operator be named this way, which is the only reason `(::)` and friends can be passed to a
+   * higher-order function.
+   */
+  private val operatorRef: Parsley[CstExpression] =
+    val name = (offset <~> operator <~> offset).map { case ((s, op), e) =>
+      CstName(op)(Span.fromStartEnd(s, e))
+    }
+    atomic((offset <~> (symbol("(") *> name <* raw.sym(')')) <~> offset).map { case ((s, op), e) =>
+      CstOperatorRef(op)(Span.fromStartEnd(s, e))
+    })
+
   /** An atomic expression that stops at its last character, consuming no trailing whitespace. */
   private val rawAtom: Parsley[CstExpression] =
     atomic(floatLit)
@@ -111,6 +125,7 @@ object ExpressionParser:
       | stringLit
       | charLit
       | unitLit
+      | operatorRef
       | atomic(tupleLit)
       | parenthesized
       | listLit

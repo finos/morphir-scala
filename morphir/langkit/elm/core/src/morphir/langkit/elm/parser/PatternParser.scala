@@ -28,6 +28,14 @@ object PatternParser:
     CstFloatPattern(v)(Span.fromStartEnd(s, e))
   }
 
+  private val stringPat: Parsley[CstPattern] = (offset <~> stringLiteral <~> offset).map { case ((s, v), e) =>
+    CstStringPattern(v)(Span.fromStartEnd(s, e))
+  }
+
+  private val charPat: Parsley[CstPattern] = (offset <~> charLiteral <~> offset).map { case ((s, v), e) =>
+    CstCharPattern(v)(Span.fromStartEnd(s, e))
+  }
+
   private val variablePat: Parsley[CstPattern] = (offset <~> ModuleParser.lowerName <~> offset).map {
     case ((s, n), e) =>
       CstVariablePattern(n)(Span.fromStartEnd(s, e))
@@ -67,6 +75,8 @@ object PatternParser:
     anythingPat
       | atomic(floatPat)
       | intPat
+      | stringPat
+      | charPat
       | unitPat
       | atomic(tuplePat)
       | listPat
