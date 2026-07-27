@@ -1,8 +1,9 @@
 package morphir.langkit.elm.parser
 
 import parsley.Parsley
-import parsley.Parsley.{atomic, many, some}
+import parsley.Parsley.{atomic, eof, lookAhead, many, some}
 import parsley.combinator.option
+import parsley.errors.combinator.fail
 import parsley.position.{offset, pos}
 
 import morphir.langkit.core.Span
@@ -136,11 +137,35 @@ object ModuleParser:
   // Top-level module
   // -----------------------------------------------------------------------
 
+  /**
+   * A declaration, which Elm requires to begin in column 1.
+   *
+   * The column is not a formatting preference: it is how the parser knows that the previous declaration's expression
+   * has ended. Without it, `main = f\n    x` and a following declaration are indistinguishable from one long
+   * application.
+   */
+  private val topLevelDeclaration: Parsley[CstDeclaration] =
+    atomic(atTopLevel) *> DeclarationParser.declaration
+
+  /**
+   * What is left when the declarations run out.
+   *
+   * Nothing left is the happy case. Something left that would have been a perfectly good declaration had it started in
+   * column 1 is the column rule being broken, and saying so beats an unexplained "unexpected token" against the first
+   * character of a declaration that looks reasonable. Anything else — a stray operator, a truncated expression — is
+   * described better by the ordinary end-of-input error than by a guess about indentation.
+   */
+  private val declarationsEnd: Parsley[Unit] =
+    lookAhead(eof)
+      | atomic(lookAhead(DeclarationParser.declaration).void)
+      *> fail("a top-level declaration has to start in column 1")
+      | Parsley.empty
+
   /** Parse a complete Elm module. */
   val module: Parsley[CstModule] =
     fully(
       (offset <~> moduleDeclaration <~> many(importDecl) <~>
-        many(DeclarationParser.declaration) <~> offset).map { case ((((s, modDecl), imports), decls), e) =>
+        many(topLevelDeclaration) <~> offset).map { case ((((s, modDecl), imports), decls), e) =>
         CstModule(modDecl, imports.toIndexedSeq, decls.toIndexedSeq)(Span.fromStartEnd(s, e))
-      }
+      } <* declarationsEnd
     )

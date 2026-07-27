@@ -66,3 +66,70 @@ Feature: Module parsing
       """
     When the source is parsed
     Then import 1 exposes values "text,div"
+
+  Scenario: A top-level declaration must start in column 1
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+        main = 1
+      """
+    When the source is parsed
+    Then the parse fails with code "ELM-P003"
+    And the parse failure message contains "a top-level declaration has to start in column 1"
+
+  Scenario: A case block ends where its branches stop lining up
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      main =
+          case xs of
+              A -> 1
+              B -> 2
+
+      other = 3
+      """
+    When the CST is queried with:
+      """
+      (CstValueDeclaration name: (CstName) @n)
+      """
+    Then the query matches exactly 2 times
+    And capture "n" texts in match order are:
+      """
+      main
+      other
+      """
+
+  Scenario: A let block takes every binding that lines up
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      main =
+          let
+              x = 1
+              y = 2
+          in
+          x
+      """
+    When the CST is queried with:
+      """
+      (CstLetBinding pattern: (CstVariablePattern (CstName) @b))
+      """
+    Then the query matches exactly 2 times
+
+  Scenario: A misaligned let binding is rejected
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      main =
+          let
+              x = 1
+                y = 2
+          in
+          x
+      """
+    When the source is parsed
+    Then the parse fails with code "ELM-P002"

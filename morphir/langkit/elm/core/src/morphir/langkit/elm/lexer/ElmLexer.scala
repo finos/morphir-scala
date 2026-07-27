@@ -1,10 +1,11 @@
 package morphir.langkit.elm.lexer
 
 import parsley.Parsley
-import parsley.Parsley.{atomic, eof, many, some}
+import parsley.Parsley.{atomic, eof, lookAhead, many, some}
 import parsley.character.{char, digit, letter, noneOf, satisfy, string, stringOfSome}
 import parsley.combinator.option
 import parsley.errors.combinator.ErrorMethods
+import parsley.position.pos
 import parsley.token.Lexer
 import parsley.token.descriptions.{LexicalDesc, NameDesc, SpaceDesc, SymbolDesc}
 import parsley.token.descriptions.text.{EscapeDesc, TextDesc}
@@ -200,6 +201,33 @@ object ElmLexer:
 
   /** Fully wraps a parser: skips leading whitespace and asserts end-of-input. */
   def fully[A](p: Parsley[A]): Parsley[A] = lexer.fully(p)
+
+  // -----------------------------------------------------------------------
+  // Layout
+  // -----------------------------------------------------------------------
+
+  /**
+   * Elm is indentation-sensitive: a top-level declaration begins in column 1, and the items of a `let` or `case` block
+   * line up with each other. These combinators are how a production states the column it requires, which is also how it
+   * knows where its block ends — the first item that breaks the alignment belongs to whatever encloses it.
+   */
+
+  /** Succeed without consuming input when the next token begins in `column`. */
+  def atColumn(column: Int): Parsley[Unit] =
+    lookAhead(pos.filter { case (_, col) => col == column }).void
+
+  /** Succeed without consuming input when the next token begins in column 1, where a declaration must. */
+  val atTopLevel: Parsley[Unit] = atColumn(1)
+
+  /**
+   * One or more `p`, every one after the first beginning in the same column as the first.
+   *
+   * This is the shape of a `let` block and of the branches of a `case`: Elm reads them as a block for exactly as long
+   * as they line up, and the first token that does not is something else's.
+   */
+  def aligned[A](p: Parsley[A]): Parsley[List[A]] = (pos <~> p).flatMap { case ((_, column), first) =>
+    many(atomic(atColumn(column) *> p)).map(first :: _)
+  }
 
   /** Matches a single space or tab (horizontal whitespace). */
   val hspace: Parsley[Char] = satisfy(c => c == ' ' || c == '\t')

@@ -143,8 +143,14 @@ object ExpressionParser:
       CstLetBinding(ann, pat, params, body)(Span.fromStartEnd(s, e))
     }
 
+  /**
+   * A `let` block, whose bindings all begin in the same column.
+   *
+   * The alignment is what ends the block: the first token that does not line up belongs to whatever encloses the `let`,
+   * which is usually the `in` that follows it.
+   */
   private val letIn: Parsley[CstExpression] =
-    (offset <~> (keyword("let") *> some(letBinding)) <~>
+    (offset <~> (keyword("let") *> aligned(letBinding)) <~>
       (keyword("in") *> expression) <~> offset).map { case (((s, bindings), body), e) =>
       CstLetIn(bindings, body)(Span.fromStartEnd(s, e))
     }
@@ -155,9 +161,10 @@ object ExpressionParser:
         CstCaseBranch(pat, body)(Span.fromStartEnd(s, e))
     }
 
+  /** A `case` expression, whose branches all begin in the same column, and end where that alignment does. */
   private val caseOf: Parsley[CstExpression] =
     (offset <~> (keyword("case") *> expression) <~>
-      (keyword("of") *> some(caseBranch)) <~> offset).map { case (((s, expr), branches), e) =>
+      (keyword("of") *> aligned(caseBranch)) <~> offset).map { case (((s, expr), branches), e) =>
       CstCaseOf(expr, branches)(Span.fromStartEnd(s, e))
     }
 

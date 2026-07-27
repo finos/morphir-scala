@@ -88,6 +88,23 @@ Three working rules:
 `Elm` remains the plain façade for callers who want a tree or a diagnostic: `parseCst` / `parseAst` report the first
 problem, `diagnoseCst` / `diagnoseAst` report everything.
 
+## Layout is grammar, not formatting
+
+Elm is indentation-sensitive, and the indentation is what tells the parser where things end. A top-level declaration
+begins in column 1; the bindings of a `let` line up with each other; the branches of a `case` line up with each
+other. `ElmLexer` states these as `atTopLevel`, `atColumn` and `aligned`, and the productions that need them say so.
+
+Get one wrong and you do not get a formatting complaint — you get one declaration's tail silently attached to the
+next, or a `case` that swallows the declaration below it. `LayoutSpec` exists to catch exactly that, which is why its
+assertions are about how many declarations and branches came out rather than about parse success.
+
+A layout violation halts rather than reports: the pipeline cannot carry on when it does not know where the block
+ended. That is the difference from an operator chain it can describe and keep going past.
+
+Expression continuation is still the approximation `sameLineOrIndentedPast`, measured from the expression's first
+token, where Elm threads a real indentation context. It agrees with Elm on everything currently covered; replacing it
+is the open half of W5 in the [conformance plan](../../../.dev/.sdlc/elm-parser-conformance/PLAN.md).
+
 ## Tokens know whether they touch
 
 Elm's grammar keeps asking whether two tokens are adjacent: `a.b` is field access while `a . b` is an error,
