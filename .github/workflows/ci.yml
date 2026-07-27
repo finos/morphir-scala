@@ -85,8 +85,10 @@ jobs:
         uses: coursier/cache-action@v8
 
       - name: Run JS tests
+        # Kept in step with .config/mise/tasks/test/js — the `wasm` link variants
+        # sit beside their `js` sibling, so `morphir.__.js.__` never matches them.
         run: |
-          ./mill -i -k -j 0 "morphir.__.js.__.compile" + "morphir.__.js.publishArtifacts" + "morphir.__.js.__.test"
+          ./mill -i -k -j 0 "morphir.__.js.__.compile" + "morphir.__.js.publishArtifacts" + "morphir.__.js.__.test" + "morphir.__.wasm.__.test" + "morphir.__.wasm.fullLinkJS"
 
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
@@ -96,6 +98,40 @@ jobs:
           path: |
             out/morphir/**/js/
           key: ${{ runner.os }}-mill-js-${{matrix.java}}-${{ github.sha}}-${{ hashFiles('out') }}
+
+  # Scala Native is currently scoped to the langkit/kyox modules ported from
+  # krueger. It gets its own job rather than riding along with test-jvm because
+  # it needs libuv and links a binary per test module, which is slower than the
+  # JVM run and unrelated to it — a native linker failure should be legible on
+  # its own.
+  test-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ["25"]
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Scala and Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: ${{ matrix.java }}
+
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Install libuv
+        run: sudo apt-get update && sudo apt-get install -y libuv1-dev
+
+      - name: Run Native tests
+        run: |
+          ./mill -i -k -j 0 "morphir.__.native.__.compile" + "morphir.__.native.__.test"
 
   test-jvm:
     runs-on: ubuntu-latest
@@ -235,7 +271,7 @@ jobs:
 
   ci:
     runs-on: ubuntu-latest
-    needs: [lint, test-js, test-jvm]
+    needs: [lint, test-js, test-jvm, test-native]
     steps:
       - name: Aggregate of lint, and all tests
         run: echo "ci passed"

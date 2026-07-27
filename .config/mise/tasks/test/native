@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# MISE description="Run Scala Native tests"
+
+set -e
+
+echo "Running Native tests..."
+
+# Native support is currently scoped to the langkit/kyox modules ported from
+# krueger, so this globs those rather than all of `morphir.__` — every other
+# module is jvm/js only and would resolve to nothing.
+./mill -i -k -j 0 \
+    "morphir.__.native.__.compile" \
+    + \
+    "morphir.__.native.__.test"
+
+echo "Native tests completed successfully"

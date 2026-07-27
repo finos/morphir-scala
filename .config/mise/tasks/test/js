@@ -5,11 +5,19 @@ set -e
 
 echo "Running JS tests..."
 
+# The `wasm` link variants are named separately: they sit beside their `js`
+# sibling rather than under it, so the `morphir.__.js.__` glob never matches
+# them. `fullLinkJS` is included so a linker regression fails here rather than
+# at release time — the tests alone only exercise `fastLinkJSTest`.
 ./mill -i -k -j 0 \
     "morphir.__.js.__.compile" \
     + \
     "morphir.__.js.publishArtifacts" \
     + \
-    "morphir.__.js.__.test"
+    "morphir.__.js.__.test" \
+    + \
+    "morphir.__.wasm.__.test" \
+    + \
+    "morphir.__.wasm.fullLinkJS"
 
 echo "JS tests completed successfully"

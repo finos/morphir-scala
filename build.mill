@@ -362,6 +362,19 @@ trait MorphirTestsJVMTestSources extends JavaModule {
   )
 }
 
+/**
+ * Scoverage wiring for `contrib.knowledge.jvm`.
+ *
+ * `scoverageVersion` lives here rather than as a `package.mill.yaml` key: a YAML override only binds against tasks
+ * Mill can see on the declared bases, and a plain `scoverageVersion: <v>` entry fails resolution with `key
+ * "scoverageVersion" does not override any task on Module`. That error only surfaces on broad selectors such as
+ * `morphir.__.jvm.__` or `morphir.__.sources` — which is what CI and `mise run lint` use — while narrower ones
+ * resolve fine, so it is easy to miss locally.
+ */
+trait MorphirScoverage extends mill.contrib.scoverage.ScoverageModule {
+  def scoverageVersion: T[String] = Task { Vers.scoverage }
+}
+
 /** `tests.js.test`'s source override: shared `test/src` (+ `test/src-3`) plus `test/js/src` — js-only test code. */
 trait MorphirTestsJSTestSources extends JavaModule {
   override def sources: T[Seq[PathRef]] = Task.Sources(
