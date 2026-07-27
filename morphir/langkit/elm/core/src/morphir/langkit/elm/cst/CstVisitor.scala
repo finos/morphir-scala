@@ -19,6 +19,7 @@ trait CstVisitor[A]:
   // --- Module structure ---
   def visitModule(node: CstModule): A                       = visitNode(node)
   def visitModuleDeclaration(node: CstModuleDeclaration): A = visitNode(node)
+  def visitEffectManager(node: CstEffectManager): A         = visitNode(node)
   def visitQualifiedName(node: CstQualifiedName): A         = visitNode(node)
   def visitName(node: CstName): A                           = visitNode(node)
   def visitTriviaItem(node: CstTriviaItem): A               = visitNode(node)
@@ -116,6 +117,7 @@ object CstVisitor:
   def visit[A](node: CstNode, visitor: CstVisitor[A]): A = node match
     case n: CstModule                  => visitor.visitModule(n)
     case n: CstModuleDeclaration       => visitor.visitModuleDeclaration(n)
+    case n: CstEffectManager           => visitor.visitEffectManager(n)
     case n: CstQualifiedName           => visitor.visitQualifiedName(n)
     case n: CstName                    => visitor.visitName(n)
     case n: CstComment                 => visitor.visitComment(n)
@@ -186,7 +188,8 @@ object CstVisitor:
   /** Return the direct children of a node. */
   def children(node: CstNode): List[CstNode] = node match
     case n: CstModule            => n.moduleDecl :: n.imports.toList ::: n.declarations.toList ::: n.trivia.items.toList
-    case n: CstModuleDeclaration => List(n.name, n.exposing)
+    case n: CstModuleDeclaration => List(n.name, n.exposing) ::: n.manager.toList
+    case n: CstEffectManager     => n.command.toList ::: n.subscription.toList
     case n: CstQualifiedName     => n.parts
     case n: CstName              => Nil
     case n: CstComment           => Nil

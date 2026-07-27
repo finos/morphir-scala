@@ -136,7 +136,8 @@ sealed trait Expression extends AstNode
 case class IntLiteral(value: Long)(val span: Span)      extends Expression derives CanEqual
 case class FloatLiteral(value: Double)(val span: Span)  extends Expression derives CanEqual
 case class StringLiteral(value: String)(val span: Span) extends Expression derives CanEqual
-case class CharLiteral(value: Char)(val span: Span)     extends Expression derives CanEqual
+case class CharLiteral(codePoint: Int)(val span: Span)  extends Expression derives CanEqual:
+  def text: String = new java.lang.StringBuilder().appendCodePoint(codePoint).toString
 
 case class VariableRef(name: QualifiedName)(val span: Span) extends Expression derives CanEqual
 
@@ -226,11 +227,12 @@ case class Glsl(code: String)(val span: Span) extends Expression derives CanEqua
 
 sealed trait Pattern extends AstNode
 
-case class AnythingPattern()(val span: Span)             extends Pattern derives CanEqual
-case class IntPattern(value: Long)(val span: Span)       extends Pattern derives CanEqual
-case class FloatPattern(value: Double)(val span: Span)   extends Pattern derives CanEqual
-case class StringPattern(value: String)(val span: Span)  extends Pattern derives CanEqual
-case class CharPattern(value: Char)(val span: Span)      extends Pattern derives CanEqual
+case class AnythingPattern()(val span: Span)            extends Pattern derives CanEqual
+case class IntPattern(value: Long)(val span: Span)      extends Pattern derives CanEqual
+case class FloatPattern(value: Double)(val span: Span)  extends Pattern derives CanEqual
+case class StringPattern(value: String)(val span: Span) extends Pattern derives CanEqual
+case class CharPattern(codePoint: Int)(val span: Span)  extends Pattern derives CanEqual:
+  def text: String = new java.lang.StringBuilder().appendCodePoint(codePoint).toString
 case class VariablePattern(name: String)(val span: Span) extends Pattern derives CanEqual
 case class UnitPattern()(val span: Span)                 extends Pattern derives CanEqual
 

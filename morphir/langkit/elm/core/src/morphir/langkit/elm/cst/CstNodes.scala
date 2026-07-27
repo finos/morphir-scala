@@ -40,7 +40,20 @@ case class CstModule(
 case class CstModuleDeclaration(
     moduleType: ModuleType,
     name: CstQualifiedName,
-    exposing: CstExposingList
+    exposing: CstExposingList,
+    manager: Option[CstEffectManager] = None
+)(val span: Span)
+    extends CstNode derives CanEqual
+
+/**
+ * The `where { command = …, subscription = … }` clause of an `effect module`.
+ *
+ * Elm requires at least one of the two, permits either order, and names an uppercase type for each. The clause exists
+ * only on an effect module, which is why it hangs off the module declaration rather than standing alone.
+ */
+case class CstEffectManager(
+    command: Option[CstName],
+    subscription: Option[CstName]
 )(val span: Span)
     extends CstNode derives CanEqual
 
@@ -211,7 +224,15 @@ sealed trait CstExpression extends CstNode
 case class CstIntLiteral(value: Long)(val span: Span)      extends CstExpression derives CanEqual
 case class CstFloatLiteral(value: Double)(val span: Span)  extends CstExpression derives CanEqual
 case class CstStringLiteral(value: String)(val span: Span) extends CstExpression derives CanEqual
-case class CstCharLiteral(value: Char)(val span: Span)     extends CstExpression derives CanEqual
+
+/**
+ * A character literal, carried as a code point.
+ *
+ * Elm's `Char` is a code point rather than a UTF-16 unit, so `'😀'` is one character there and cannot be held in a JVM
+ * `Char`. [[text]] renders it back.
+ */
+case class CstCharLiteral(codePoint: Int)(val span: Span) extends CstExpression derives CanEqual:
+  def text: String = new java.lang.StringBuilder().appendCodePoint(codePoint).toString
 
 case class CstVariableRef(name: CstQualifiedName)(val span: Span) extends CstExpression derives CanEqual
 
@@ -324,11 +345,12 @@ case class CstGlsl(code: String)(val span: Span) extends CstExpression derives C
 
 sealed trait CstPattern extends CstNode
 
-case class CstAnythingPattern()(val span: Span)              extends CstPattern derives CanEqual
-case class CstIntPattern(value: Long)(val span: Span)        extends CstPattern derives CanEqual
-case class CstFloatPattern(value: Double)(val span: Span)    extends CstPattern derives CanEqual
-case class CstStringPattern(value: String)(val span: Span)   extends CstPattern derives CanEqual
-case class CstCharPattern(value: Char)(val span: Span)       extends CstPattern derives CanEqual
+case class CstAnythingPattern()(val span: Span)            extends CstPattern derives CanEqual
+case class CstIntPattern(value: Long)(val span: Span)      extends CstPattern derives CanEqual
+case class CstFloatPattern(value: Double)(val span: Span)  extends CstPattern derives CanEqual
+case class CstStringPattern(value: String)(val span: Span) extends CstPattern derives CanEqual
+case class CstCharPattern(codePoint: Int)(val span: Span)  extends CstPattern derives CanEqual:
+  def text: String = new java.lang.StringBuilder().appendCodePoint(codePoint).toString
 case class CstVariablePattern(name: CstName)(val span: Span) extends CstPattern derives CanEqual
 case class CstUnitPattern()(val span: Span)                  extends CstPattern derives CanEqual
 

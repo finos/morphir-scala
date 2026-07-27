@@ -113,7 +113,7 @@ object AstQueryableTree:
       case n: IntLiteral            => Some(n.value.toString)
       case n: FloatLiteral          => Some(n.value.toString)
       case n: StringLiteral         => Some(n.value)
-      case n: CharLiteral           => Some(n.value.toString)
+      case n: CharLiteral           => Some(n.text)
       case n: QualifiedName         => Some(n.fullName)
       case n: ValueDeclaration      => Some(n.name)
       case n: TypeAliasDeclaration  => Some(n.name)

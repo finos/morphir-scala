@@ -27,7 +27,8 @@ object CorpusCoverage:
     "fixtures/conformance/Layout.elm",
     "fixtures/conformance/Operators.elm",
     "fixtures/conformance/ModuleForms.elm",
-    "fixtures/conformance/Comments.elm"
+    "fixtures/conformance/Comments.elm",
+    "fixtures/conformance/Shaders.elm"
   )
 
   /**
@@ -36,13 +37,14 @@ object CorpusCoverage:
    * Deliberately a written list rather than something derived: adding a node type should be a decision to cover it, and
    * the failure message names exactly what is missing.
    *
-   * `CstGlsl` is absent on purpose — the parser has no production for it, and a corpus entry cannot be written until it
-   * does. That is recorded in the conformance plan rather than papered over here.
+   * The list is meant to be complete: every node type the CST models should appear in it, and every one of those should
+   * have an instance somewhere in the corpus.
    */
   val requiredNodeTypes: Set[String] = Set(
     // module structure
     "CstModule",
     "CstModuleDeclaration",
+    "CstEffectManager",
     "CstQualifiedName",
     "CstName",
     "CstImport",
@@ -95,6 +97,7 @@ object CorpusCoverage:
     "CstFieldAccess",
     "CstFieldAccessFunction",
     "CstParenthesized",
+    "CstGlsl",
     // patterns
     "CstAnythingPattern",
     "CstIntPattern",

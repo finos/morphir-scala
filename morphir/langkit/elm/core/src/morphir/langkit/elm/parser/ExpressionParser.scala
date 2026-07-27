@@ -47,6 +47,11 @@ object ExpressionParser:
     CstCharLiteral(v)(Span.fromStartEnd(s, e))
   }
 
+  /** A GLSL block, whose contents Elm hands to a shader compiler rather than reading. */
+  private val glsl: Parsley[CstExpression] = (offset <~> raw.glslLiteral <~> offset).map { case ((s, code), e) =>
+    CstGlsl(code)(Span.fromStartEnd(s, e))
+  }
+
   private val variableRef: Parsley[CstExpression] = (offset <~> ModuleParser.rawQualifiedValueName <~> offset).map {
     case ((s, qn), e) =>
       CstVariableRef(qn)(Span.fromStartEnd(s, e))
@@ -125,6 +130,7 @@ object ExpressionParser:
       | stringLit
       | charLit
       | unitLit
+      | glsl
       | operatorRef
       | atomic(tupleLit)
       | parenthesized

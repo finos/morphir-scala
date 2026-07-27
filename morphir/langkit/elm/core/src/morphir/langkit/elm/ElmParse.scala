@@ -13,7 +13,8 @@ import morphir.langkit.elm.parser.{
   ModuleParser,
   OperatorReassociator,
   ParseDiagnosticErrorBuilder,
-  TriviaAssociator
+  TriviaAssociator,
+  TupleArityChecker
 }
 
 /**
@@ -105,6 +106,7 @@ object ElmParse:
         CstTrivia(CommentScanner.scan(source).toIndexedSeq)
       )(parsed.span)
       shaped <- reassociate(withComments, source)
+      _      <- checkTupleArity(shaped, source)
     yield TriviaAssociator.associate(shaped)
 
   /** Parse `source` into an AST, by lowering the CST. */
@@ -132,6 +134,16 @@ object ElmParse:
       val (shaped, reported) = OperatorReassociator.reassociate(module, source, opts)
       reportAll(reported).andThen(shaped)
     }
+
+  /**
+   * The tuple stage: Elm accepts tuples of two or three entries and no more.
+   *
+   * Nothing about the grammar rules a longer one out, so — as in `elm/compiler`, which catches this during
+   * canonicalisation — it is checked over the finished tree. Reporting rather than halting means a module says which of
+   * its tuples are too long, not just the first.
+   */
+  def checkTupleArity(module: CstModule, source: String)(using Frame): Unit < ElmParse =
+    options.map(opts => reportAll(TupleArityChecker.check(module, source, opts.tupleArity)))
 
   // -----------------------------------------------------------------------
   // Interpretation

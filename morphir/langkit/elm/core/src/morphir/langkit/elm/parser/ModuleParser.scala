@@ -3,7 +3,7 @@ package morphir.langkit.elm.parser
 import parsley.Parsley
 import parsley.Parsley.{atomic, eof, lookAhead, many, some}
 import parsley.combinator.option
-import parsley.errors.combinator.fail
+import parsley.errors.combinator.{fail, ErrorMethods}
 import parsley.position.{offset, pos}
 
 import morphir.langkit.core.Span
@@ -116,10 +116,34 @@ object ModuleParser:
     | (keyword("effect") *> Parsley.pure(ModuleType.Effect))
     | Parsley.pure(ModuleType.Plain)
 
+  /**
+   * The `where { command = …, subscription = … }` clause of an `effect module`.
+   *
+   * Elm takes the two keys in either order and requires at least one of them, so this reads a list and sorts it out
+   * afterwards rather than spelling out the permutations.
+   */
+  private val effectManager: Parsley[CstEffectManager] =
+    val entry: Parsley[(String, CstName)] = ((ModuleParser.lowerName <* symbol("=")) <~> upperName).map {
+      case (key, value) => key.value -> value
+    }
+
+    (offset <~> (keyword("where") *> braces(commaSep1(entry))) <~> offset).collectMsg(_ =>
+      Seq("an effect module's `where` clause needs `command`, `subscription`, or both")
+    ) {
+      case ((s, entries), e)
+          if entries.map(_._1).toSet.subsetOf(Set("command", "subscription")) &&
+            entries.map(_._1).distinct.size == entries.size &&
+            entries.nonEmpty =>
+        CstEffectManager(
+          command = entries.collectFirst { case ("command", value) => value },
+          subscription = entries.collectFirst { case ("subscription", value) => value }
+        )(Span.fromStartEnd(s, e))
+    }
+
   val moduleDeclaration: Parsley[CstModuleDeclaration] =
-    (offset <~> moduleType <* keyword("module") <~> qualifiedName <~> exposingList <~> offset).map {
-      case ((((s, mt), qn), exp), e) =>
-        CstModuleDeclaration(mt, qn, exp)(Span.fromStartEnd(s, e))
+    (offset <~> moduleType <* keyword("module") <~> qualifiedName <~> option(effectManager) <~>
+      exposingList <~> offset).map { case (((((s, mt), qn), manager), exp), e) =>
+      CstModuleDeclaration(mt, qn, exp, manager)(Span.fromStartEnd(s, e))
     }
 
   // -----------------------------------------------------------------------

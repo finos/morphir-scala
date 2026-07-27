@@ -2,7 +2,7 @@ package morphir.langkit.elm.lexer
 
 import parsley.Parsley
 import parsley.Parsley.{atomic, eof, lookAhead, many, notFollowedBy, some}
-import parsley.character.{char, digit, letter, noneOf, satisfy, string, stringOfSome}
+import parsley.character.{char, digit, letter, noneOf, satisfy, string, stringOfMany, stringOfSome}
 import parsley.combinator.option
 import parsley.errors.combinator.ErrorMethods
 import parsley.position.pos
@@ -209,21 +209,33 @@ object ElmLexer:
 
     val literal: Parsley[String] = (multiString | singleString).label("string literal")
 
+    /** One code point of source text, taking a surrogate pair as the single character it encodes. */
+    private val codePointCharacter: Parsley[Int] =
+      atomic((satisfy(Character.isHighSurrogate) <~> satisfy(Character.isLowSurrogate)).map { case (hi, lo) =>
+        Character.toCodePoint(hi, lo)
+      }) | satisfy(c => c != '\'' && c != '\\').map(_.toInt)
+
     /**
-     * A character literal.
+     * A character literal, carried as a code point.
      *
-     * Elm allows any code point here, including one outside the basic multilingual plane. The CST models a character as
-     * a JVM `Char`, so an astral code point cannot be represented — that gap is recorded in the conformance plan rather
-     * than silently truncated, and rejected here.
+     * Elm's `Char` is a code point rather than a UTF-16 unit, so `'😀'` and `'\u{1F600}'` are ordinary characters
+     * there. The CST holds the code point for the same reason: nothing has to be truncated to a lone surrogate.
      */
-    val character: Parsley[Char] =
-      (char('\'') *> (escape | satisfy(c => c != '\'' && c != '\\').map(_.toInt)) <* char('\'')).collectMsg(point =>
-        Seq(
-          s"the character U+${point.toHexString.toUpperCase} is outside the range this parser can represent " +
-            "(see the astral-code-point gap in the conformance plan)"
-        )
-      ) { case point if point <= Char.MaxValue.toInt => point.toChar }
-        .label("character literal")
+    val character: Parsley[Int] = (char('\'') *> (escape | codePointCharacter) <* char('\'')).label("character literal")
+
+  // -----------------------------------------------------------------------
+  // Shaders
+  // -----------------------------------------------------------------------
+
+  /**
+   * A GLSL block: `[glsl| … |]`, verbatim to the closing delimiter.
+   *
+   * Elm hands the contents to a shader compiler rather than reading them, and so does this: the block is one token
+   * whose text is whatever sits between the delimiters.
+   */
+  private val glslBlock: Parsley[String] =
+    atomic(string("[glsl|")) *> stringOfMany(atomic(noneOf('|') | atomic(char('|') <* notFollowedBy(char(']')))))
+      <* string("|]")
 
   // -----------------------------------------------------------------------
   // Identifiers
@@ -263,7 +275,8 @@ object ElmLexer:
     val intLiteral: Parsley[Long]      = lexer.nonlexeme.integer.number64
     val floatLiteral: Parsley[Double]  = lexer.nonlexeme.floating.decimalDouble
     val stringLiteral: Parsley[String] = text.literal
-    val charLiteral: Parsley[Char]     = text.character
+    val charLiteral: Parsley[Int]      = text.character
+    val glslLiteral: Parsley[String]   = glslBlock
 
     /** A literal character, for the brackets and punctuation whose adjacency matters. */
     def sym(c: Char): Parsley[Unit] = char(c).void
@@ -294,8 +307,11 @@ object ElmLexer:
   /** A string literal, single- or triple-quoted. */
   val stringLiteral: Parsley[String] = text.literal <* whiteSpace
 
-  /** A character literal. */
-  val charLiteral: Parsley[Char] = text.character <* whiteSpace
+  /** A character literal, as a code point: Elm's `Char` is a code point rather than a UTF-16 unit. */
+  val charLiteral: Parsley[Int] = text.character <* whiteSpace
+
+  /** A GLSL block, `[glsl| … |]`, with its contents verbatim. */
+  val glslLiteral: Parsley[String] = glslBlock <* whiteSpace
 
   // -----------------------------------------------------------------------
   // Whitespace and structure

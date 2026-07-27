@@ -104,7 +104,7 @@ object CstLowering:
     case n: CstIntLiteral          => ast.IntLiteral(n.value)(n.span)
     case n: CstFloatLiteral        => ast.FloatLiteral(n.value)(n.span)
     case n: CstStringLiteral       => ast.StringLiteral(n.value)(n.span)
-    case n: CstCharLiteral         => ast.CharLiteral(n.value)(n.span)
+    case n: CstCharLiteral         => ast.CharLiteral(n.codePoint)(n.span)
     case n: CstVariableRef         => ast.VariableRef(lowerQualifiedName(n.name))(n.span)
     case n: CstConstructorRef      => ast.ConstructorRef(lowerQualifiedName(n.name))(n.span)
     case n: CstOperatorRef         => ast.OperatorRef(n.name.value)(n.span)
@@ -161,7 +161,7 @@ object CstLowering:
     case n: CstIntPattern         => ast.IntPattern(n.value)(n.span)
     case n: CstFloatPattern       => ast.FloatPattern(n.value)(n.span)
     case n: CstStringPattern      => ast.StringPattern(n.value)(n.span)
-    case n: CstCharPattern        => ast.CharPattern(n.value)(n.span)
+    case n: CstCharPattern        => ast.CharPattern(n.codePoint)(n.span)
     case n: CstVariablePattern    => ast.VariablePattern(n.name.value)(n.span)
     case n: CstUnitPattern        => ast.UnitPattern()(n.span)
     case n: CstConstructorPattern =>

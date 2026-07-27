@@ -91,14 +91,16 @@ problem, `diagnoseCst` / `diagnoseAst` report everything.
 ## Every divergence is written down
 
 Where the parser differs from `elm/compiler`, there is a row in the gap ledger of
-[`.dev/.sdlc/elm-parser-conformance/PLAN.md`](../../../.dev/.sdlc/elm-parser-conformance/PLAN.md) and, wherever it can
-be expressed, an assertion in `KnownGapsSpec` that pins the current behaviour.
+[`.dev/.sdlc/elm-parser-conformance/PLAN.md`](../../../.dev/.sdlc/elm-parser-conformance/PLAN.md) and, wherever the
+divergence can be written as "this valid Elm does not parse", an assertion pinning that in a `KnownGapsSpec`.
 
-Closing a gap therefore fails the suite: the pinning assertion says the construct is rejected, and it no longer is.
-That is deliberate. It means a gap cannot be closed without deleting its row and its assertion in the same commit,
-and a gap cannot be forgotten while the row is still there.
+Closing a gap therefore fails the suite: the pin says the construct is rejected, and it no longer is. That is
+deliberate. A gap cannot be closed without deleting its row and its pin in the same commit, and cannot be forgotten
+while the row is still there. `KnownGapsSpec` does not exist at the moment because W6 and W7 emptied it — recreate it
+for the next divergence rather than leaving one in a comment.
 
-Adding one works the same way: a divergence you decide not to fix now needs a row and a pin, not a comment.
+The ledger's numbering does not reuse: a closed gap keeps its number retired, so a reference to G3 in a commit or an
+issue keeps meaning what it meant.
 
 ## Layout is grammar, not formatting
 

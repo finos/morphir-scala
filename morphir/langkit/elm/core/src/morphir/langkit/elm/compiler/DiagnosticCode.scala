@@ -20,6 +20,7 @@ object DiagnosticCode extends Newtype[String]:
   val SpecialisedParseFailure: DiagnosticCode      = unsafeMake("ELM-P003")
   val ConflictingOperators: DiagnosticCode         = unsafeMake("ELM-P004")
   val UnknownOperator: DiagnosticCode              = unsafeMake("ELM-P005")
+  val TupleTooLarge: DiagnosticCode                = unsafeMake("ELM-P006")
   val TokenizerUnexpectedCharacter: DiagnosticCode = unsafeMake("ELM-T001")
 
   def isTokenizer(code: DiagnosticCode): Boolean =

@@ -29,9 +29,9 @@ class LexicalSpec extends Test[Any]:
       case n: CstStringLiteral => n.value
       case other               => throw new AssertionError(s"expected a string literal, got: $other")
 
-  private def charValue(declaration: String): Char =
+  private def charText(declaration: String): String =
     body(declaration) match
-      case n: CstCharLiteral => n.value
+      case n: CstCharLiteral => n.text
       case other             => throw new AssertionError(s"expected a character literal, got: $other")
 
   private def intValue(declaration: String): Long =
@@ -101,16 +101,16 @@ class LexicalSpec extends Test[Any]:
 
   "character literals" - {
     "hold a plain character" in
-      assert(charValue("c = 'a'") == 'a')
+      assert(charText("c = 'a'") == "a")
 
     "hold an escape" in {
-      assert(charValue("""c = '\n'""") == '\n')
-      assert(charValue("""c = '\''""") == '\'')
-      assert(charValue("""c = '\\'""") == '\\')
+      assert(charText("""c = '\n'""") == "\n")
+      assert(charText("""c = '\''""") == "'")
+      assert(charText("""c = '\\'""") == "\\")
     }
 
     "hold a unicode escape" in
-      assert(charValue("""c = '\u{0041}'""") == 'A')
+      assert(charText("""c = '\u{0041}'""") == "A")
 
     "reject an empty one" in
       assert(!parses("c = ''"))

@@ -121,6 +121,32 @@ object ParseDiagnostic:
       contextLines = formatted.contextLines
     )
 
+  /**
+   * A tuple with more than three entries. Elm reports this during canonicalisation; the wording follows it.
+   */
+  def tupleTooLarge(source: String, span: Span, entries: Int): ParseDiagnostic =
+    val (line, column) = SourceOffsets.lineColumnAt(source, span.offset)
+    val suggestion     = "Use a record instead, so each field has a name."
+    val formatted      = DiagnosticMessageFormatter.formatWithSummary(
+      source = source,
+      code = DiagnosticCode.TupleTooLarge,
+      line = line,
+      column = column,
+      summary = "I only accept tuples with two or three items. This has too many:",
+      expected = Nil,
+      reasons = List(s"This one has $entries."),
+      suggestion = Some(suggestion),
+      errorWidth = span.length
+    )
+    ParseDiagnostic(
+      code = DiagnosticCode.TupleTooLarge,
+      span = SourceSpan.fromStartEnd(start = span.start, end = span.end, line = line, column = column),
+      message = formatted.message,
+      expected = Nil,
+      suggestion = Some(suggestion),
+      contextLines = formatted.contextLines
+    )
+
   def tokenizerUnexpectedCharacter(source: String, offset: Int, lexeme: String): ParseDiagnostic =
     val (line, column) = SourceOffsets.lineColumnAt(source, offset)
     val formatted      = DiagnosticMessageFormatter.format(

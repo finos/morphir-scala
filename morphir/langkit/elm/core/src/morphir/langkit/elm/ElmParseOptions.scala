@@ -28,16 +28,21 @@ enum Leniency derives CanEqual:
  * @param operatorChainConflict
  *   what to do when adjacent operators of equal precedence cannot be grouped — a non-associative operator chained, or a
  *   left- and a right-associative operator mixed. [[Leniency.Accept]] groups them to the left.
+ * @param tupleArity
+ *   what to do with a tuple of more than three entries, which Elm rejects. [[Leniency.Accept]] keeps the tuple as
+ *   parsed and reports it as advisory.
  */
 final case class ElmParseOptions(
     operators: OperatorTable = OperatorTable.wellKnown,
     unknownOperator: Leniency = Leniency.Reject,
-    operatorChainConflict: Leniency = Leniency.Reject
+    operatorChainConflict: Leniency = Leniency.Reject,
+    tupleArity: Leniency = Leniency.Reject
 ) derives CanEqual:
 
   def withOperators(table: OperatorTable): ElmParseOptions           = copy(operators = table)
   def withUnknownOperator(leniency: Leniency): ElmParseOptions       = copy(unknownOperator = leniency)
   def withOperatorChainConflict(leniency: Leniency): ElmParseOptions = copy(operatorChainConflict = leniency)
+  def withTupleArity(leniency: Leniency): ElmParseOptions            = copy(tupleArity = leniency)
 
 object ElmParseOptions:
 
@@ -52,5 +57,6 @@ object ElmParseOptions:
    */
   val lenient: ElmParseOptions = ElmParseOptions(
     unknownOperator = Leniency.Accept,
-    operatorChainConflict = Leniency.Accept
+    operatorChainConflict = Leniency.Accept,
+    tupleArity = Leniency.Accept
   )
