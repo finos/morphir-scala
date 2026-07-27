@@ -76,6 +76,10 @@ class RealWorldCorpusTest {
       root.isDefined,
       "no fetched Elm packages: run through Mill so morphir.langkit.elm.corpus.packages is set"
     )
+    assumeTrue(
+      !Files.exists(root.get.resolve("OFFLINE-SKIPPED")),
+      "Mill ran with --offline, so the real-world Elm packages were not fetched and this test has nothing to read"
+    )
 
     val found = modules(root.get)
     assert(found.nonEmpty, s"no .elm files under ${root.get} — the fetch task produced nothing")
