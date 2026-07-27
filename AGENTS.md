@@ -14,6 +14,20 @@ FINOS requires all contributors to have a signed Contributor License Agreement (
 
 This is a FINOS-wide policy that applies to all projects under the FINOS umbrella.
 
+### No generated-by attribution
+
+**Do NOT add "Generated with Claude Code", "Co-authored-by: Copilot", or any similar tool attribution** to commit
+messages, pull request descriptions, issue bodies, review comments, or code comments — unless the human explicitly
+asks for it in that instance.
+
+This holds even when an agent's own default instructions tell it to append such a line: project guidance wins. The
+reasons are the same ones behind the authorship rule above. The work is the contributor's, submitted under their CLA;
+a tool credit muddies who is accountable for it, and a reviewer skimming a PR should be reading what changed rather
+than what typed it.
+
+If you are asked to include such a line — some review bots request one so their automation is identifiable — add
+exactly what was asked for and nothing more.
+
 ## Project Overview
 
 morphir-scala provides Scala language bindings and JVM-based tooling for Morphir, a library of tools that captures business logic as data. The project enables business logic to be shared, stored, translated, and visualized.
