@@ -82,6 +82,10 @@
 </div>
 
 <h2>Open gaps</h2>
+<p>
+  G5 is now the largest single source of real-world parse failures: 27 of 458 modules across <code>elm/core</code>,
+  <code>elm/browser</code> and <code>morphir-elm</code> fail on it and nothing else.
+</p>
 <div class="scroll">
 <table>
   <thead>
@@ -93,8 +97,9 @@
       <td>Expression continuation indentation</td>
       <td>an indentation context that productions push and pop (<code>Parse.Space</code>)</td>
       <td><code>sameLineOrIndentedPast</code>, measured from the expression's first token</td>
-      <td>no failing pin — the two agree on every case covered</td>
-      <td>replace the guard with a real context, via <code>whitespaceIsContextDependent</code></td>
+      <td><code>RealWorldCorpusTest.knownG5Failures</code> — 27 modules of <code>elm/core</code>,
+          <code>elm/browser</code> and <code>morphir-elm</code></td>
+      <td>measure against the enclosing declaration or block instead of the expression's own start</td>
     </tr>
     <tr>
       <td class="mono">G6</td>
@@ -108,9 +113,9 @@
       <td class="mono">G7</td>
       <td>Real-world package corpus</td>
       <td>—</td>
-      <td>the corpus is written for the purpose; no vendored <code>elm/core</code> or <code>elm/html</code></td>
-      <td>—</td>
-      <td>vendor whole packages and parse them</td>
+      <td>closed — <code>RealWorldCorpusTest</code> parses 458 modules of four packages, fetched at build time</td>
+      <td><code>RealWorldCorpusTest</code></td>
+      <td>done; widen the package list when a construct wants it</td>
     </tr>
   </tbody>
 </table>
@@ -148,7 +153,7 @@
     <tr><td class="mono">W5</td><td>Layout, indentation and token adjacency</td><td><span class="tag open">tail open</span></td><td>adjacency, the column rule and block alignment done; G5 remains</td></tr>
     <tr><td class="mono">W6</td><td>Lexical conformance</td><td><span class="tag done">done</span></td><td>escapes, <code>\u{XXXX}</code>, triple-quoted strings, numeric bases</td></tr>
     <tr><td class="mono">W7</td><td>Structural conformance</td><td><span class="tag done">done</span></td><td>closed G1–G4</td></tr>
-    <tr><td class="mono">W8</td><td>Conformance corpus</td><td><span class="tag open">tail open</span></td><td>grammar corpus and node-type coverage done; G7 remains</td></tr>
+    <tr><td class="mono">W8</td><td>Conformance corpus</td><td><span class="tag done">done</span></td><td>grammar corpus with node-type coverage, plus 458 real modules fetched at build time</td></tr>
   </tbody>
 </table>
 </div>

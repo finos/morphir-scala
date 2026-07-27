@@ -25,31 +25,37 @@ object ElmLexer:
   // -----------------------------------------------------------------------
 
   /**
-   * Elm reserved keywords. Exposed so tooling (editor tokenizers, doc generators) can stay in sync with the parser's
-   * notion of "keyword" without duplicating the list.
+   * Elm's reserved words, exactly the fourteen in `elm/compiler`'s `Parse.Variable`. Exposed so tooling (editor
+   * tokenizers, doc generators) can stay in sync with the parser without duplicating the list.
+   *
+   * Reserved means unusable as an identifier, which is why the list is this short. `alias`, `effect`, `infix`, `left`,
+   * `right` and `non` are *not* here: they carry meaning only in a particular position — `type alias`, `effect module`,
+   * `infix left 5` — and are ordinary names everywhere else. `String.left` is a real function.
    */
   val keywords: Set[String] = Set(
-    "module",
-    "exposing",
-    "import",
-    "as",
-    "port",
-    "effect",
-    "type",
-    "alias",
-    "let",
-    "in",
     "if",
     "then",
     "else",
     "case",
     "of",
-    "infix",
-    "left",
-    "right",
-    "non",
-    "where"
+    "let",
+    "in",
+    "type",
+    "module",
+    "where",
+    "import",
+    "exposing",
+    "as",
+    "port"
   )
+
+  /**
+   * Words that mean something in one position and are ordinary identifiers everywhere else.
+   *
+   * Listed for the same tooling reason as [[keywords]], and parsed with [[contextualKeyword]], which requires the
+   * identifier boundary a bare symbol match would not.
+   */
+  val contextualKeywords: Set[String] = Set("alias", "effect", "infix", "left", "right", "non")
 
   /**
    * Elm hard operators. Exposed so tooling (editor tokenizers, doc generators) can stay in sync with the parser's
@@ -288,8 +294,16 @@ object ElmLexer:
   // Keywords and symbols
   // -----------------------------------------------------------------------
 
-  /** Parse a specific keyword. */
+  /** Parse a specific reserved keyword. */
   def keyword(kw: String): Parsley[Unit] = lexer.lexeme.symbol(kw)
+
+  /**
+   * Parse a word that is a keyword only here — `alias` in `type alias`, `left` in `infix left 5`.
+   *
+   * A soft keyword rather than a symbol, so it has to end where an identifier would: `aliased` is a name, not `alias`
+   * followed by `ed`.
+   */
+  def contextualKeyword(word: String): Parsley[Unit] = lexer.lexeme.symbol.softKeyword(word)
 
   /** Parse a specific symbol/operator. */
   def symbol(sym: String): Parsley[Unit] = lexer.lexeme.symbol(sym)

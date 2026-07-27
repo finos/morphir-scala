@@ -406,6 +406,28 @@ trait MorphirLangkitItestWasmArtifacts extends JavaModule {
   }
 }
 
+/**
+ * Real Elm packages, fetched at build time for the langkit's conformance corpus.
+ *
+ * The sources are third-party, so they stay out of the repository and arrive as build inputs: `ElmPackages` clones
+ * each package at a pinned tag into this task's directory, and the path reaches the suite as a system property. The
+ * task is cached on the pinned revisions, so the download happens once per revision bump rather than once per test
+ * run.
+ *
+ * A run without network fails this task rather than quietly parsing nothing. `RealWorldCorpusTest` says so when the
+ * property is missing, and skips rather than passing vacuously.
+ */
+trait MorphirLangkitItestElmPackages extends JavaModule {
+  def elmCorpusPackages: T[PathRef] = Task {
+    millbuild.ElmPackages.fetchAll(Task.dest)
+    PathRef(Task.dest)
+  }
+
+  override def forkArgs: T[Seq[String]] = Task {
+    super.forkArgs() ++ Seq(s"-Dmorphir.langkit.elm.corpus.packages=${elmCorpusPackages().path}")
+  }
+}
+
 // The following modules are morphir-elm modules that have been setup to be built using mill
 // Morphir Elm Projects/Modules:
 object examples extends Module {

@@ -92,8 +92,9 @@ object ExpressionParser:
       CstRecordField(n, v)(Span.fromStartEnd(s, e))
     }
 
+  /** A record literal, including the empty one: `{}` is as valid a value as `{}` is a type. */
   private val recordLit: Parsley[CstExpression] =
-    (offset <~> rawEnclosed("{", '}')(commaSep1(recordField)) <~> offset).map { case ((s, fields), e) =>
+    (offset <~> rawEnclosed("{", '}')(commaSep(recordField)) <~> offset).map { case ((s, fields), e) =>
       CstRecordLiteral(fields)(Span.fromStartEnd(s, e))
     }
 

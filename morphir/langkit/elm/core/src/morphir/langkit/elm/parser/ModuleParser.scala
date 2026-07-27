@@ -113,7 +113,7 @@ object ModuleParser:
   // -----------------------------------------------------------------------
 
   private val moduleType: Parsley[ModuleType] = (keyword("port") *> Parsley.pure(ModuleType.Port))
-    | (keyword("effect") *> Parsley.pure(ModuleType.Effect))
+    | (contextualKeyword("effect") *> Parsley.pure(ModuleType.Effect))
     | Parsley.pure(ModuleType.Plain)
 
   /**

@@ -54,9 +54,15 @@ object DeclarationParser:
         CstRecordFieldType(n, t)(Span.fromStartEnd(s, e))
     }
 
+  /**
+   * A record type, including the empty one.
+   *
+   * `{}` is a legitimate Elm type — `type alias Flags = {}` is how a program with no flags says so — and reading the
+   * fields with `commaSep1` used to reject it.
+   */
   private val recordType: Parsley[CstTypeExpression] =
     (offset <~> braces(
-      option(atomic(ModuleParser.lowerName <* symbol("|"))) <~> commaSep1(recordFieldType)
+      option(atomic(ModuleParser.lowerName <* symbol("|"))) <~> commaSep(recordFieldType)
     ) <~> offset).map { case ((s, (ext, fields)), e) =>
       CstRecordType(fields, ext)(Span.fromStartEnd(s, e))
     }
@@ -118,7 +124,7 @@ object DeclarationParser:
     }
 
   private val typeAliasDeclaration: Parsley[CstDeclaration] =
-    (offset <~> (keyword("type") *> keyword("alias") *> ModuleParser.upperName) <~>
+    (offset <~> (keyword("type") *> contextualKeyword("alias") *> ModuleParser.upperName) <~>
       many(ModuleParser.lowerName) <~>
       (symbol("=") *> typeExpression) <~> offset).map { case ((((s, name), vars), body), e) =>
       CstTypeAliasDeclaration(name, vars.toIndexedSeq, body)(Span.fromStartEnd(s, e))
@@ -152,12 +158,12 @@ object DeclarationParser:
       CstPortDeclaration(name, t)(Span.fromStartEnd(s, e))
     }
 
-  private val associativity: Parsley[Associativity] = (keyword("left") *> Parsley.pure(Associativity.Left))
-    | (keyword("right") *> Parsley.pure(Associativity.Right))
-    | (keyword("non") *> Parsley.pure(Associativity.Non))
+  private val associativity: Parsley[Associativity] = (contextualKeyword("left") *> Parsley.pure(Associativity.Left))
+    | (contextualKeyword("right") *> Parsley.pure(Associativity.Right))
+    | (contextualKeyword("non") *> Parsley.pure(Associativity.Non))
 
   private val infixDeclaration: Parsley[CstDeclaration] =
-    (offset <~> (keyword("infix") *> associativity) <~>
+    (offset <~> (contextualKeyword("infix") *> associativity) <~>
       intLiteral <~>
       parens(
         (offset <~> operator <~> offset).map { case ((s, op), e) =>
