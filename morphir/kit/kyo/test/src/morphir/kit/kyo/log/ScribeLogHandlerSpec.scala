@@ -1,4 +1,4 @@
-package morphir.kyox.log
+package morphir.kit.kyo.log
 
 import kyo.*
 import kyo.test.*
@@ -47,8 +47,8 @@ class ScribeLogHandlerSpec extends Test[Any]:
 
     "InMemoryLogRecorder preserves derived names and shares its buffer" in {
       val recorder     = InMemoryLogRecorder.unsafeMake()
-      val successName  = "morphir.kyox.tests.in-memory.primary"
-      val distinctName = "morphir.kyox.tests.in-memory.secondary"
+      val successName  = "morphir.kit.kyo.tests.in-memory.primary"
+      val distinctName = "morphir.kit.kyo.tests.in-memory.secondary"
       val cause        = new IllegalStateException("in-memory-derived-cause")
       val program      =
         Log.let(InMemoryLogRecorder.layer(recorder)) {
@@ -91,9 +91,9 @@ class ScribeLogHandlerSpec extends Test[Any]:
     }
 
     "ScribeLogHandler preserves requested names on derived loggers" in {
-      val successName  = "morphir.kyox.tests.scribe.names.primary"
-      val distinctName = "morphir.kyox.tests.scribe.names.secondary"
-      val edgeName     = "morphir.kyox.tests.scribe.names.$"
+      val successName  = "morphir.kit.kyo.tests.scribe.names.primary"
+      val distinctName = "morphir.kit.kyo.tests.scribe.names.secondary"
+      val edgeName     = "morphir.kit.kyo.tests.scribe.names.$"
       val requested    = List(successName, distinctName, edgeName)
       val program      =
         Log.let(ScribeLogLayer.forLogger(Logger.empty.orphan())) {
@@ -115,8 +115,8 @@ class ScribeLogHandlerSpec extends Test[Any]:
     "ScribeLogHandler routes derived loggers through named Scribe loggers" in {
       val routed       = mutable.ArrayBuffer.empty[(String, ScribeLevel, String)]
       val baseRouted   = mutable.ArrayBuffer.empty[String]
-      val successName  = "morphir.kyox.tests.scribe.primary"
-      val distinctName = "morphir.kyox.tests.scribe.secondary"
+      val successName  = "morphir.kit.kyo.tests.scribe.primary"
+      val distinctName = "morphir.kit.kyo.tests.scribe.secondary"
       val cause        = new IllegalStateException("scribe-derived-cause")
 
       def namedLogger(name: String): Logger =

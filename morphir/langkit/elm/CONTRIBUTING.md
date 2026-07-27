@@ -8,7 +8,7 @@ the Elm langkit.
 
 This module is where language-agnostic code accumulates by accident, because the original port renamed a whole
 upstream namespace into it at once. Two clusters have already had to move out — the Kyo `Log` ↔ scribe bridge to
-[`morphir/kyox`](../../kyox), and positions and snippet rendering to [`langkit/core`](../core).
+[`morphir/kit`](../../kit), and positions and snippet rendering to [`langkit/core`](../core).
 
 Before adding a type here, ask whether a second langkit would want it unchanged. If yes, it belongs in `core` or
 `trees`.

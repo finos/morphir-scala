@@ -25,7 +25,7 @@ morphir-scala provides Scala language bindings and JVM-based tooling for Morphir
 - **ZIO** - Effect system and testing
 - **Kyo** - Effect system used by the newer modules (kyo-core, kyo-prelude, kyo-test, kyo-case-app, kyo-schema, kyo-zio)
 - **ScalaJS** - JavaScript compilation target, plus a WebAssembly link variant
-- **Scala Native** - Native compilation target, currently scoped to the `langkit` and `kyox` modules
+- **Scala Native** - Native compilation target, currently scoped to the `langkit` and `kit` modules
 
 ### Versions
 
@@ -63,7 +63,7 @@ morphir-scala/
 │   ├── js/src/              # ScalaJS-specific sources
 │   ├── contrib/             # Contributed modules
 │   ├── interop/             # Interoperability modules (borer, zio-json)
-│   ├── kyox/                # General Kyo extensions (e.g. the Kyo Log <-> scribe bridge)
+│   ├── kit/                 # Kits: extensions and bridges per upstream library (e.g. kit/kyo)
 │   ├── langkit/             # Language toolkits: shared core, tree query DSL, the Elm langkit, itest
 │   ├── runtime/             # Morphir runtime
 │   ├── testing/             # Testing utilities
@@ -133,7 +133,7 @@ See `millbuild.crossplatform.CrossPlatformScalaModule` for how the paths are der
 ## Testing
 
 - Two frameworks are in use. Match whichever the module you are working in already uses:
-  - **kyo-test** for the `langkit` and `kyox` modules — extend `kyo.test.Test[Any]`, and mix the per-platform trait
+  - **kyo-test** for the `langkit` and `kit` modules — extend `kyo.test.Test[Any]`, and mix the per-platform trait
     into the test module (`millbuild.KyoTest` on the JVM, `KyoTestJS`, `KyoTestNative`, `KyoTestWasm`). These traits
     only set the framework class, so each test block must also declare the kyo-test dependencies itself.
   - **ZIO Test** elsewhere — use `ZIOSpecDefault` with `TestModule.ZioTest`.

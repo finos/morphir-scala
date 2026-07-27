@@ -1,4 +1,4 @@
-# morphir-kyox-core
+# morphir-kit-kyo
 
 A Kyo `Log` implementation backed by [scribe](https://github.com/outr/scribe), plus an in-memory recorder for
 asserting on log output in tests.
@@ -12,7 +12,7 @@ collects records in memory.
 
 ```scala
 import kyo.*
-import morphir.kyox.log.ScribeLogLayer
+import morphir.kit.kyo.log.ScribeLogLayer
 
 val program: Unit < (Sync & Abort[Nothing]) =
   Log.let(ScribeLogLayer.default) {
@@ -33,7 +33,7 @@ than parsing formatted output:
 
 ```scala
 import kyo.*
-import morphir.kyox.log.{InMemoryLogRecorder, LogRecord}
+import morphir.kit.kyo.log.{InMemoryLogRecorder, LogRecord}
 
 val recorder = InMemoryLogRecorder.unsafeMake()
 
@@ -50,4 +50,4 @@ concurrent effects.
 
 ## Artifact
 
-`org.finos.morphir::morphir-kyox-core` — JVM, Scala.js, and Scala Native.
+`org.finos.morphir::morphir-kit-kyo` — JVM, Scala.js, and Scala Native.

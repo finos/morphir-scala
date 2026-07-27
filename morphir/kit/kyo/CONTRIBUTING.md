@@ -1,8 +1,8 @@
-# Contributing to `morphir-kyox-core`
+# Contributing to `morphir-kit-kyo`
 
-The namespace guide [`morphir/kyox/CONTRIBUTING.md`](../CONTRIBUTING.md) governs here, along with the root
+The namespace guide [`morphir/kit/CONTRIBUTING.md`](../CONTRIBUTING.md) governs here, along with the root
 [CONTRIBUTING.md](../../../CONTRIBUTING.md) and [AGENTS.md](../../../AGENTS.md). This file carries only what is true of
-`kyox-core`.
+`kit-kyo`.
 
 ## Nothing here may know about Morphir
 
@@ -27,10 +27,11 @@ here — that would filter twice, in two places configured differently.
 
 ## Default logger names
 
-The default names are `morphir.kyox.scribe-log-handler` and `morphir.kyox.in-memory-log-recorder`. They have already
-been renamed twice — once off the upstream `krueger.` prefix, once off `morphir.langkit.` when this package moved out
-of the Elm langkit — so if this module moves again, these strings are the thing to remember. They are private
-constants, but they surface in log output.
+The default names are `morphir.kit.kyo.scribe-log-handler` and `morphir.kit.kyo.in-memory-log-recorder`. They have
+already been renamed three times — off the upstream `krueger.` prefix, off `morphir.langkit.` when this package moved
+out of the Elm langkit, and off `morphir.kyox.` when the namespace became `kit` — so if this module moves again,
+these strings are the thing that gets forgotten. They are private constants, but they surface in log output, and the
+test logger names in `ScribeLogHandlerSpec` track them.
 
 ## Tests
 

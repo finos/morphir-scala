@@ -1,4 +1,4 @@
-package morphir.kyox.log
+package morphir.kit.kyo.log
 
 import kyo.*
 import scribe.Logger

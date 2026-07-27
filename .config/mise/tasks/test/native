@@ -5,7 +5,7 @@ set -e
 
 echo "Running Native tests..."
 
-# Native support is currently scoped to the langkit/kyox modules ported from
+# Native support is currently scoped to the langkit and kit modules ported from
 # krueger, so this globs those rather than all of `morphir.__` — every other
 # module is jvm/js only and would resolve to nothing.
 ./mill -i -k -j 0 \

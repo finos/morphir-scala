@@ -1,4 +1,4 @@
-package morphir.kyox.log
+package morphir.kit.kyo.log
 
 import kyo.*
 import scribe.Logger
@@ -10,7 +10,7 @@ final class ScribeLogHandler(logger: Logger):
 
 object ScribeLogHandler:
 
-  private val DefaultName = "morphir.kyox.scribe-log-handler"
+  private val DefaultName = "morphir.kit.kyo.scribe-log-handler"
 
   private def unsafe(logger: Logger, loggerName: String): Log.Unsafe =
     new Log.Unsafe:

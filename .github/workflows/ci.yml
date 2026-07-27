@@ -99,7 +99,7 @@ jobs:
             out/morphir/**/js/
           key: ${{ runner.os }}-mill-js-${{matrix.java}}-${{ github.sha}}-${{ hashFiles('out') }}
 
-  # Scala Native is currently scoped to the langkit/kyox modules ported from
+  # Scala Native is currently scoped to the langkit and kit modules ported from
   # krueger. It gets its own job rather than riding along with test-jvm because
   # it needs libuv and links a binary per test module, which is slower than the
   # JVM run and unrelated to it — a native linker failure should be legible on

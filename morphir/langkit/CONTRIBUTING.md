@@ -15,7 +15,7 @@ The namespace is layered, and the layer boundaries are the point:
 - **`elm`** — everything Elm-specific.
 
 Before adding to `elm`, check whether the thing is actually Elm-specific. Two clusters have already had to move back
-out: the Kyo `Log` ↔ scribe bridge (now [`morphir/kyox`](../kyox)) and the position/snippet machinery (now `core`).
+out: the Kyo `Log` ↔ scribe bridge (now [`morphir/kit`](../kit)) and the position/snippet machinery (now `core`).
 Both landed under `elm` only because the original port renamed a whole upstream namespace at once.
 
 The test that settled those cases: does it mention Elm, or would a second langkit want it unchanged? `DiagnosticCode`
