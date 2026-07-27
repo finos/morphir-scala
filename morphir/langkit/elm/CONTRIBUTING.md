@@ -54,6 +54,32 @@ Upstream behaviour is checked against `elm/compiler`'s parser rather than intuit
 operator character set and reserved sequences, `Parse/Expression.hs` for negation and flat operator chains,
 `Canonicalize/Expression.hs` and `Reporting/Error/Canonicalize.hs` for how chains resolve and how conflicts read.
 
+## The pipeline is an effect, and policy lives in the interpreter
+
+Parsing is several passes — syntax, operator re-association, comment association, with layout and lexical checks to
+come — and they share three needs: the options in force, somewhere to put what they found, and a way to give up.
+`Parse` is a Kyo `ArrowEffect` carrying exactly those, as `ParseOp.Options`, `ParseOp.Report` and `ParseOp.Halt`.
+
+A stage's signature is `CstModule < Parse`. It has no options parameter, no accumulator, and no early-return
+plumbing: it asks for what it needs and says what it found. Whether a report is fatal, whether reporting one stops
+the pipeline, and where the options come from are the *interpreter's* business.
+
+`Parse.run` is the interpreter this module ships: it collects every report and withholds the value if any was an
+error. That is why a module with four unresolvable operator chains now describes all four rather than the first — a
+`Report` resumes the stage, while a `Halt` drops the continuation, because a stage that halted has nothing to hand
+on. A different interpreter is a legitimate thing to write instead; `ParseEffectSpec` has one that keeps the tree the
+shipped interpreter would withhold, over identical stages and options.
+
+Two working rules:
+
+- A new pass belongs in `ElmParse` as a stage in `Parse`, not as a function taking options and returning `Either`.
+- Purity inside a stage is fine and often better. `OperatorReassociator` is an ordinary recursive function over the
+  tree that hands back what it found; suspending inside a tree walk that makes no requests would only add noise. The
+  effect boundary is the stage, not every function it calls.
+
+`Elm` remains the plain façade for callers who want a tree or a diagnostic: `parseCst` / `parseAst` report the first
+problem, `diagnoseCst` / `diagnoseAst` report everything.
+
 ## Tokens know whether they touch
 
 Elm's grammar keeps asking whether two tokens are adjacent: `a.b` is field access while `a . b` is an error,

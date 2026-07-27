@@ -38,6 +38,20 @@ Elm.parseCst(source)                             // canonical Elm
 Elm.parseCst(source, ElmParseOptions.lenient)    // best-effort tree for tooling
 ```
 
+To see everything a parse found rather than the first problem, ask for the diagnoses instead — a module with four
+unresolvable operator chains describes all four:
+
+```scala
+val outcome = Elm.diagnoseCst(source)
+outcome.messages   // every diagnostic, in source order
+outcome.errors     // the ones that stopped it
+outcome.value      // the tree, if one survived
+```
+
+Both are the same pipeline: `ElmParse` stages composed in the `Parse` effect, with `Parse.run` interpreting it.
+Compose those stages directly to run parsing alongside your own Kyo effects, or interpret them your own way — see
+[The pipeline is an effect](./CONTRIBUTING.md#the-pipeline-is-an-effect-and-policy-lives-in-the-interpreter).
+
 See [Operator fixity is a second pass](./CONTRIBUTING.md#operator-fixity-is-a-second-pass) for what the parser knows
 about operators declared elsewhere, and
 [the conformance plan](../../../.dev/.sdlc/elm-parser-conformance/PLAN.md) for the divergences still being worked

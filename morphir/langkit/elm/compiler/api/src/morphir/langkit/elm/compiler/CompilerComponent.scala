@@ -34,6 +34,9 @@ object CompilerComponent:
   /** Structured error type shared by every phase. */
   type CompileErr = CompileError
 
+  /** The effects every compile operation may use, for implementations that need to name them. */
+  type CompileEffects[Ctx] = QueryLogic.QueryEffects[Ctx, CompileLog, CompileErr]
+
   /** Convenience alias so UI code reads as `CompileEff[Ctx, Query]` rather than a long generic application. */
   type CompileEff[Ctx, A] = QueryLogic.QueryEffect[Ctx, CompileLog, CompileErr, A]
 

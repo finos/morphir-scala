@@ -1,7 +1,7 @@
 package morphir.langkit.elm.parser
 
 import morphir.langkit.core.Span
-import morphir.langkit.elm.{ElmParseOptions, Leniency}
+import morphir.langkit.elm.{ElmParseOptions, Leniency, Reported, Severity}
 import morphir.langkit.elm.compiler.ParseDiagnostic
 import morphir.langkit.elm.cst.*
 
@@ -22,16 +22,16 @@ import morphir.langkit.elm.cst.*
  */
 object OperatorReassociator:
 
-  /** Re-associate every operator chain in `module`, or report the first chain that cannot be grouped. */
+  /** Re-associate every operator chain in `module`, reporting every chain that cannot be grouped. */
   def reassociate(
       module: CstModule,
       source: String,
       options: ElmParseOptions = ElmParseOptions.elm
-  ): Either[ParseDiagnostic, CstModule] =
-    val context = Context(OperatorTable.forModule(module, options.operators), source, options)
-    traverse(module.declarations.toList)(rewriteDeclaration(_, context)).map { declarations =>
-      CstModule(module.moduleDecl, module.imports, declarations.toIndexedSeq, module.trivia)(module.span)
-    }
+  ): (CstModule, List[Reported]) =
+    val context      = Context(OperatorTable.forModule(module, options.operators), source, options)
+    val declarations = module.declarations.map(rewriteDeclaration(_, context))
+    val rewritten    = CstModule(module.moduleDecl, module.imports, declarations, module.trivia)(module.span)
+    (rewritten, context.reported)
 
   /** Re-associate every operator chain in `expression` against a table the caller has already assembled. */
   def reassociateExpression(
@@ -39,91 +39,75 @@ object OperatorReassociator:
       table: OperatorTable,
       source: String,
       options: ElmParseOptions = ElmParseOptions.elm
-  ): Either[ParseDiagnostic, CstExpression] =
-    rewrite(expression, Context(table, source, options))
+  ): (CstExpression, List[Reported]) =
+    val context = Context(table, source, options)
+    (rewrite(expression, context), context.reported)
 
-  /** The fixities in scope, plus what the caller wants done about the chains Elm rejects. */
-  private final case class Context(table: OperatorTable, source: String, options: ElmParseOptions)
+  /**
+   * The fixities in scope, what the caller wants done about the chains Elm rejects, and what has been found so far.
+   *
+   * The buffer is local to one `reassociate` call and never escapes it — `reported` hands back an immutable list —
+   * which keeps the tree-rebuilding code below free of accumulator plumbing.
+   */
+  private final class Context(val table: OperatorTable, val source: String, val options: ElmParseOptions):
+    private val found = scala.collection.mutable.ListBuffer.empty[Reported]
 
-  private def traverse[A, B](items: List[A])(f: A => Either[ParseDiagnostic, B]): Either[ParseDiagnostic, List[B]] =
-    items.foldLeft[Either[ParseDiagnostic, List[B]]](Right(Nil)) { (acc, item) =>
-      for
-        done <- acc
-        next <- f(item)
-      yield done :+ next
-    }
+    def report(diagnostic: ParseDiagnostic, leniency: Leniency): Unit =
+      val severity = if leniency == Leniency.Reject then Severity.Error else Severity.Advisory
+      found += Reported(diagnostic, severity)
 
-  private def rewriteDeclaration(
-      declaration: CstDeclaration,
-      context: Context
-  ): Either[ParseDiagnostic, CstDeclaration] =
+    def reported: List[Reported] = found.toList
+
+  private def rewriteDeclaration(declaration: CstDeclaration, context: Context): CstDeclaration =
     declaration match
       case d: CstValueDeclaration =>
-        rewrite(d.body, context).map { body =>
-          CstValueDeclaration(d.annotation, d.name, d.patterns, body, d.trivia)(d.span)
-        }
+        CstValueDeclaration(d.annotation, d.name, d.patterns, rewrite(d.body, context), d.trivia)(d.span)
       case d @ (_: CstTypeAliasDeclaration | _: CstCustomTypeDeclaration | _: CstPortDeclaration |
           _: CstInfixDeclaration) =>
-        Right(d)
+        d
 
-  private def rewrite(expression: CstExpression, context: Context): Either[ParseDiagnostic, CstExpression] =
+  private def rewrite(expression: CstExpression, context: Context): CstExpression =
     expression match
       case n: CstBinaryOp =>
         val (first, rest) = flatten(n)
-        for
-          leading   <- rewrite(first, context)
-          following <- traverse(rest) { (operator, operand) =>
-            rewrite(operand, context).map(operator -> _)
-          }
-          built <- climb(leading, following, Int.MinValue, None, context)
-        yield built._1
+        val leading       = rewrite(first, context)
+        val following     = rest.map((operator, operand) => (operator, rewrite(operand, context)))
+        climb(leading, following, Int.MinValue, None, context)._1
 
       case n: CstFunctionApplication =>
-        for
-          function  <- rewrite(n.function, context)
-          arguments <- traverse(n.arguments)(rewrite(_, context))
-        yield CstFunctionApplication(function, arguments)(n.span)
-      case n: CstNegate     => rewrite(n.expr, context).map(CstNegate(_)(n.span))
+        CstFunctionApplication(rewrite(n.function, context), n.arguments.map(rewrite(_, context)))(n.span)
+      case n: CstNegate     => CstNegate(rewrite(n.expr, context))(n.span)
       case n: CstIfThenElse =>
-        for
-          condition  <- rewrite(n.condition, context)
-          thenBranch <- rewrite(n.thenBranch, context)
-          elseBranch <- rewrite(n.elseBranch, context)
-        yield CstIfThenElse(condition, thenBranch, elseBranch)(n.span)
+        CstIfThenElse(
+          rewrite(n.condition, context),
+          rewrite(n.thenBranch, context),
+          rewrite(n.elseBranch, context)
+        )(n.span)
       case n: CstLetIn =>
-        for
-          bindings <- traverse(n.bindings)(rewriteLetBinding(_, context))
-          body     <- rewrite(n.body, context)
-        yield CstLetIn(bindings, body)(n.span)
+        CstLetIn(n.bindings.map(rewriteLetBinding(_, context)), rewrite(n.body, context))(n.span)
       case n: CstCaseOf =>
-        for
-          scrutinee <- rewrite(n.expr, context)
-          branches  <- traverse(n.branches)(rewriteCaseBranch(_, context))
-        yield CstCaseOf(scrutinee, branches)(n.span)
-      case n: CstLambda        => rewrite(n.body, context).map(CstLambda(n.parameters, _)(n.span))
-      case n: CstTupleLiteral  => traverse(n.elements)(rewrite(_, context)).map(CstTupleLiteral(_)(n.span))
-      case n: CstListLiteral   => traverse(n.elements)(rewrite(_, context)).map(CstListLiteral(_)(n.span))
-      case n: CstRecordLiteral =>
-        traverse(n.fields)(rewriteRecordField(_, context)).map(CstRecordLiteral(_)(n.span))
-      case n: CstRecordUpdate =>
-        traverse(n.fields)(rewriteRecordField(_, context)).map(CstRecordUpdate(n.record, _)(n.span))
-      case n: CstFieldAccess   => rewrite(n.record, context).map(CstFieldAccess(_, n.field)(n.span))
-      case n: CstParenthesized => rewrite(n.expr, context).map(CstParenthesized(_)(n.span))
+        CstCaseOf(rewrite(n.expr, context), n.branches.map(rewriteCaseBranch(_, context)))(n.span)
+      case n: CstLambda        => CstLambda(n.parameters, rewrite(n.body, context))(n.span)
+      case n: CstTupleLiteral  => CstTupleLiteral(n.elements.map(rewrite(_, context)))(n.span)
+      case n: CstListLiteral   => CstListLiteral(n.elements.map(rewrite(_, context)))(n.span)
+      case n: CstRecordLiteral => CstRecordLiteral(n.fields.map(rewriteRecordField(_, context)))(n.span)
+      case n: CstRecordUpdate  =>
+        CstRecordUpdate(n.record, n.fields.map(rewriteRecordField(_, context)))(n.span)
+      case n: CstFieldAccess   => CstFieldAccess(rewrite(n.record, context), n.field)(n.span)
+      case n: CstParenthesized => CstParenthesized(rewrite(n.expr, context))(n.span)
 
       case n @ (_: CstIntLiteral | _: CstFloatLiteral | _: CstStringLiteral | _: CstCharLiteral | _: CstVariableRef |
           _: CstConstructorRef | _: CstOperatorRef | _: CstUnitLiteral | _: CstFieldAccessFunction | _: CstGlsl) =>
-        Right(n)
+        n
 
-  private def rewriteLetBinding(binding: CstLetBinding, context: Context): Either[ParseDiagnostic, CstLetBinding] =
-    rewrite(binding.body, context).map { body =>
-      CstLetBinding(binding.annotation, binding.pattern, binding.parameters, body)(binding.span)
-    }
+  private def rewriteLetBinding(binding: CstLetBinding, context: Context): CstLetBinding =
+    CstLetBinding(binding.annotation, binding.pattern, binding.parameters, rewrite(binding.body, context))(binding.span)
 
-  private def rewriteCaseBranch(branch: CstCaseBranch, context: Context): Either[ParseDiagnostic, CstCaseBranch] =
-    rewrite(branch.body, context).map(CstCaseBranch(branch.pattern, _)(branch.span))
+  private def rewriteCaseBranch(branch: CstCaseBranch, context: Context): CstCaseBranch =
+    CstCaseBranch(branch.pattern, rewrite(branch.body, context))(branch.span)
 
-  private def rewriteRecordField(field: CstRecordField, context: Context): Either[ParseDiagnostic, CstRecordField] =
-    rewrite(field.value, context).map(CstRecordField(field.name, _)(field.span))
+  private def rewriteRecordField(field: CstRecordField, context: Context): CstRecordField =
+    CstRecordField(field.name, rewrite(field.value, context))(field.span)
 
   /**
    * Split the parser's left-leaning chain back into its leading operand and the `(operator, operand)` pairs that
@@ -151,58 +135,64 @@ object OperatorReassociator:
       minPrecedence: Int,
       previous: Option[(CstName, Fixity)],
       context: Context
-  ): Either[ParseDiagnostic, (CstExpression, List[(CstName, CstExpression)])] =
+  ): (CstExpression, List[(CstName, CstExpression)]) =
     rest match
       case (operator, right) :: tail =>
-        fixityOf(operator, context).flatMap { fixity =>
-          if fixity.precedence < minPrecedence then Right((left, rest))
-          else
-            checkGrouping(previous, operator, fixity, context).flatMap { _ =>
-              // A right-associative operator lets an equal-precedence operator group into its right-hand side, and so
-              // stays the neighbour that operator is compared against; a left- or non-associative one closes the
-              // group here and continues on its own left.
-              val groupsRight = fixity.associativity == Associativity.Right
-              val rightBound  = if groupsRight then fixity.precedence else fixity.precedence + 1
-              val neighbour   = if groupsRight then Some(operator -> fixity) else None
-              climb(right, tail, rightBound, neighbour, context).flatMap { (rightOperand, remaining) =>
-                val combined =
-                  CstBinaryOp(left, operator, rightOperand)(Span.between(left.span, rightOperand.span))
-                climb(combined, remaining, minPrecedence, Some(operator -> fixity), context)
-              }
-            }
-        }
-      case Nil => Right((left, Nil))
+        val fixity = fixityOf(operator, context)
+        if fixity.precedence < minPrecedence then (left, rest)
+        else
+          checkGrouping(previous, operator, fixity, context)
+          // A right-associative operator lets an equal-precedence operator group into its right-hand side, and so
+          // stays the neighbour that operator is compared against; a left- or non-associative one closes the group
+          // here and continues on its own left.
+          val groupsRight               = fixity.associativity == Associativity.Right
+          val rightBound                = if groupsRight then fixity.precedence else fixity.precedence + 1
+          val neighbour                 = if groupsRight then Some(operator -> fixity) else None
+          val (rightOperand, remaining) = climb(right, tail, rightBound, neighbour, context)
+          val combined                  =
+            CstBinaryOp(left, operator, rightOperand)(Span.between(left.span, rightOperand.span))
+          climb(combined, remaining, minPrecedence, Some(operator -> fixity), context)
+      case Nil => (left, Nil)
 
-  private def fixityOf(operator: CstName, context: Context): Either[ParseDiagnostic, Fixity] =
+  /**
+   * The fixity of `operator`, reporting one that nothing in scope declares.
+   *
+   * A reported operator still gets [[OperatorTable.unknownFixity]] so the rest of the module can be checked; the report
+   * is what decides whether the parse ultimately fails.
+   */
+  private def fixityOf(operator: CstName, context: Context): Fixity =
     context.table.lookup(operator.value) match
-      case Some(fixity)                                               => Right(fixity)
-      case None if context.options.unknownOperator == Leniency.Accept => Right(OperatorTable.unknownFixity)
-      case None                                                       =>
-        Left(ParseDiagnostic.unknownOperator(context.source, operator.span, operator.value))
+      case Some(fixity) => fixity
+      case None         =>
+        context.report(
+          ParseDiagnostic.unknownOperator(context.source, operator.span, operator.value),
+          context.options.unknownOperator
+        )
+        OperatorTable.unknownFixity
 
   /**
    * Elm groups two operators of equal precedence only when they agree on which way to lean, and never when either is
-   * non-associative.
+   * non-associative. A chain that fails this is reported and then grouped to the left, so the pass can carry on and
+   * find the next one.
    */
   private def checkGrouping(
       previous: Option[(CstName, Fixity)],
       operator: CstName,
       fixity: Fixity,
       context: Context
-  ): Either[ParseDiagnostic, Unit] =
+  ): Unit =
     previous match
       case Some((previousOperator, previousFixity))
           if previousFixity.precedence == fixity.precedence &&
             (previousFixity.associativity != fixity.associativity ||
               fixity.associativity == Associativity.Non) =>
-        if context.options.operatorChainConflict == Leniency.Accept then Right(())
-        else
-          Left(
-            ParseDiagnostic.conflictingOperators(
-              context.source,
-              Span.between(previousOperator.span, operator.span),
-              previousOperator.value,
-              operator.value
-            )
-          )
-      case _ => Right(())
+        context.report(
+          ParseDiagnostic.conflictingOperators(
+            context.source,
+            Span.between(previousOperator.span, operator.span),
+            previousOperator.value,
+            operator.value
+          ),
+          context.options.operatorChainConflict
+        )
+      case _ => ()
