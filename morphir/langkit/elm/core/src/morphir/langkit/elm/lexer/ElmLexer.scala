@@ -1,13 +1,14 @@
 package morphir.langkit.elm.lexer
 
 import parsley.Parsley
-import parsley.Parsley.{atomic, eof, lookAhead, many, some}
+import parsley.Parsley.{atomic, eof, lookAhead, many, notFollowedBy, some}
 import parsley.character.{char, digit, letter, noneOf, satisfy, string, stringOfSome}
 import parsley.combinator.option
 import parsley.errors.combinator.ErrorMethods
 import parsley.position.pos
 import parsley.token.Lexer
 import parsley.token.descriptions.{LexicalDesc, NameDesc, SpaceDesc, SymbolDesc}
+import parsley.token.descriptions.numeric.{BreakCharDesc, NumericDesc, PlusSignPresence}
 import parsley.token.descriptions.text.{EscapeDesc, TextDesc}
 import parsley.token.predicate
 
@@ -113,6 +114,22 @@ object ElmLexer:
       hardKeywords = keywords,
       hardOperators = operators
     ),
+    numericDesc = NumericDesc.plain.copy(
+      literalBreakChar = BreakCharDesc.NoBreakChar,
+      leadingDotAllowed = false,
+      trailingDotAllowed = false,
+      leadingZerosAllowed = false,
+      positiveSign = PlusSignPresence.Illegal,
+      integerNumbersCanBeHexadecimal = true,
+      integerNumbersCanBeOctal = false,
+      integerNumbersCanBeBinary = false,
+      realNumbersCanBeHexadecimal = false,
+      realNumbersCanBeOctal = false,
+      realNumbersCanBeBinary = false,
+      hexadecimalLeads = Set('x'),
+      octalLeads = Set.empty,
+      binaryLeads = Set.empty
+    ),
     spaceDesc = SpaceDesc.plain.copy(
       commentLine = "--",
       commentStart = "{-",
@@ -122,6 +139,91 @@ object ElmLexer:
   )
 
   private val lexer: Lexer = new Lexer(desc)
+
+  // -----------------------------------------------------------------------
+  // Text literals
+  // -----------------------------------------------------------------------
+
+  /**
+   * Elm's string and character literals, written out rather than configured.
+   *
+   * `parsley.token`'s escape machinery can describe a numeric escape with a single-character prefix — `\uXXXX` — but
+   * not one wrapped in braces, and Elm's is `\u{XXXX}`. Rather than accept a near-miss, the literals below follow
+   * `elm/compiler`'s `Parse.String` directly: six single-character escapes, the braced unicode escape, and
+   * triple-quoted strings that take newlines and lone quotes as they come.
+   */
+  private object text:
+
+    /** The six single-character escapes Elm knows, and nothing else. */
+    private val simpleEscape: Parsley[Int] =
+      char('n').as(0x0a)
+        | char('r').as(0x0d)
+        | char('t').as(0x09)
+        | char('"').as(0x22)
+        | char('\'').as(0x27)
+        | char('\\').as(0x5c)
+
+    private val hexDigit: Parsley[Char] =
+      satisfy(c => c.isDigit || ('a' to 'f').contains(c) || ('A' to 'F').contains(c))
+
+    /**
+     * `\u{XXXX}` — between four and six hexadecimal digits, naming a code point.
+     *
+     * Elm rejects both a shorter run and a longer one, and anything above the last valid code point.
+     */
+    private val unicodeEscape: Parsley[Int] = (string("u{") *> stringOfSome(hexDigit) <* char('}')).collectMsg(digits =>
+      Seq(s"\\u{$digits} is not a valid unicode escape: it needs 4 to 6 hexadecimal digits naming a code point")
+    ) {
+      case digits
+          if digits.length >= 4 && digits.length <= 6 &&
+            Character.isValidCodePoint(Integer.parseInt(digits, 16)) =>
+        Integer.parseInt(digits, 16)
+    }
+
+    private val escape: Parsley[Int] = char('\\') *> (simpleEscape | unicodeEscape)
+
+    /** A character of a single-quoted string: anything but the delimiter, a backslash, or a line break. */
+    private val stringCharacter: Parsley[Int] =
+      escape | satisfy(c => c != '"' && c != '\\' && c != '\n' && c != '\r').map(_.toInt)
+
+    /**
+     * A character of a triple-quoted string, where a lone quote and a line break are ordinary content.
+     *
+     * The quote case has to come with its own guard and exclusion: a `"` is content only when it is not the start of
+     * the closing delimiter, and the catch-all below must not take one either, or `many` would swallow the delimiter
+     * and run to the end of the file.
+     */
+    private val multiStringCharacter: Parsley[Int] =
+      escape
+        | atomic(char('"') <* notFollowedBy(string("\"\""))).map(_.toInt)
+        | satisfy(c => c != '\\' && c != '"').map(_.toInt)
+
+    private def codePoints(chars: List[Int]): String =
+      chars.foldLeft(new java.lang.StringBuilder)(_.appendCodePoint(_)).toString
+
+    private val multiString: Parsley[String] =
+      atomic(string("\"\"\"")) *> many(multiStringCharacter).map(codePoints) <* string("\"\"\"")
+
+    private val singleString: Parsley[String] =
+      char('"') *> many(stringCharacter).map(codePoints) <* char('"')
+
+    val literal: Parsley[String] = (multiString | singleString).label("string literal")
+
+    /**
+     * A character literal.
+     *
+     * Elm allows any code point here, including one outside the basic multilingual plane. The CST models a character as
+     * a JVM `Char`, so an astral code point cannot be represented — that gap is recorded in the conformance plan rather
+     * than silently truncated, and rejected here.
+     */
+    val character: Parsley[Char] =
+      (char('\'') *> (escape | satisfy(c => c != '\'' && c != '\\').map(_.toInt)) <* char('\'')).collectMsg(point =>
+        Seq(
+          s"the character U+${point.toHexString.toUpperCase} is outside the range this parser can represent " +
+            "(see the astral-code-point gap in the conformance plan)"
+        )
+      ) { case point if point <= Char.MaxValue.toInt => point.toChar }
+        .label("character literal")
 
   // -----------------------------------------------------------------------
   // Identifiers
@@ -158,10 +260,10 @@ object ElmLexer:
 
     val identifier: Parsley[String] = lexer.nonlexeme.names.identifier
 
-    val intLiteral: Parsley[Long]      = lexer.nonlexeme.integer.decimal64
+    val intLiteral: Parsley[Long]      = lexer.nonlexeme.integer.number64
     val floatLiteral: Parsley[Double]  = lexer.nonlexeme.floating.decimalDouble
-    val stringLiteral: Parsley[String] = lexer.nonlexeme.string.ascii
-    val charLiteral: Parsley[Char]     = lexer.nonlexeme.character.ascii
+    val stringLiteral: Parsley[String] = text.literal
+    val charLiteral: Parsley[Char]     = text.character
 
     /** A literal character, for the brackets and punctuation whose adjacency matters. */
     def sym(c: Char): Parsley[Unit] = char(c).void
@@ -183,17 +285,17 @@ object ElmLexer:
   // Literals
   // -----------------------------------------------------------------------
 
-  /** An integer literal. */
-  val intLiteral: Parsley[Long] = lexer.lexeme.integer.decimal64
+  /** An integer literal, decimal or hexadecimal (`0x1f`). */
+  val intLiteral: Parsley[Long] = lexer.lexeme.integer.number64
 
-  /** A floating-point literal. */
+  /** A floating-point literal, with an optional exponent. */
   val floatLiteral: Parsley[Double] = lexer.lexeme.floating.decimalDouble
 
-  /** A string literal. */
-  val stringLiteral: Parsley[String] = lexer.lexeme.string.ascii
+  /** A string literal, single- or triple-quoted. */
+  val stringLiteral: Parsley[String] = text.literal <* whiteSpace
 
   /** A character literal. */
-  val charLiteral: Parsley[Char] = lexer.lexeme.character.ascii
+  val charLiteral: Parsley[Char] = text.character <* whiteSpace
 
   // -----------------------------------------------------------------------
   // Whitespace and structure

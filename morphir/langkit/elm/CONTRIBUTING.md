@@ -88,6 +88,18 @@ Three working rules:
 `Elm` remains the plain façade for callers who want a tree or a diagnostic: `parseCst` / `parseAst` report the first
 problem, `diagnoseCst` / `diagnoseAst` report everything.
 
+## Every divergence is written down
+
+Where the parser differs from `elm/compiler`, there is a row in the gap ledger of
+[`.dev/.sdlc/elm-parser-conformance/PLAN.md`](../../../.dev/.sdlc/elm-parser-conformance/PLAN.md) and, wherever it can
+be expressed, an assertion in `KnownGapsSpec` that pins the current behaviour.
+
+Closing a gap therefore fails the suite: the pinning assertion says the construct is rejected, and it no longer is.
+That is deliberate. It means a gap cannot be closed without deleting its row and its assertion in the same commit,
+and a gap cannot be forgotten while the row is still there.
+
+Adding one works the same way: a divergence you decide not to fix now needs a row and a pin, not a comment.
+
 ## Layout is grammar, not formatting
 
 Elm is indentation-sensitive, and the indentation is what tells the parser where things end. A top-level declaration

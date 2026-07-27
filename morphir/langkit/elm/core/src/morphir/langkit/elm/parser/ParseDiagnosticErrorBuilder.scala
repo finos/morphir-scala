@@ -157,13 +157,21 @@ final class ParseDiagnosticErrorBuilder(parseSource: String) extends ErrorBuilde
       case Some(_)            => DiagnosticCode.UnexpectedToken
       case None               => DiagnosticCode.UnexpectedToken
 
+  /**
+   * A hint, when the expected set says clearly enough what was missing.
+   *
+   * The `in` check compares whole items rather than searching inside them: an earlier version asked whether any
+   * expected item *contained* "in", which quietly started firing on every parse that could have accepted a "string
+   * literal" — and told the reader they had forgotten an `in` after a `let` binding that was not there.
+   */
   private def suggestionFor(
       unexpected: Option[Item],
       expected: Set[Item],
       reasons: Seq[String]
   ): Option[String] =
     reasons.headOption.orElse {
-      if unexpected.contains(endOfInput) && expected.exists(_.contains("in")) then
+      def namesIn(item: Item): Boolean = item.filterNot(c => c == '"' || c == '`' || c.isWhitespace) == "in"
+      if unexpected.contains(endOfInput) && expected.exists(namesIn) then
         Some("Did you forget `in` after a `let` binding?")
       else None
     }

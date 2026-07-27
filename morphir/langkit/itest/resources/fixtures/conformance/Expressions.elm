@@ -10,12 +10,32 @@ import Dict exposing (Dict)
 
 literals : List String
 literals =
-    [ "text", "and more text" ]
+    [ "text"
+    , "with \"escapes\", a\ttab and a\nline break"
+    , "a code point: \u{1F600}"
+    , """triple quoted, where a " and a
+line break are content"""
+    ]
 
 
 numbers : ( Int, Float, Char )
 numbers =
     ( 42, 3.14, 'c' )
+
+
+hexadecimal : Int
+hexadecimal =
+    0x1F
+
+
+exponent : Float
+exponent =
+    1.5e3
+
+
+escapedChar : Char
+escapedChar =
+    '\n' 
 
 
 unit : ()
