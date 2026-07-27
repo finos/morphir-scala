@@ -125,7 +125,7 @@ object ExpressionParser:
 
   private val letBinding: Parsley[CstLetBinding] =
     (offset <~>
-      option(DeclarationParser.typeAnnotation) <~>
+      option(atomic(DeclarationParser.typeAnnotation)) <~>
       PatternParser.pattern <~>
       many(PatternParser.pattern) <~>
       (symbol("=") *> expression) <~> offset).map { case (((((s, ann), pat), params), body), e) =>
@@ -186,7 +186,13 @@ object ExpressionParser:
     CstName(op)(Span.fromStartEnd(s, e))
   }
 
-  /** A full expression including binary operators (flat, to be re-associated later). */
+  /**
+   * A full expression including binary operators.
+   *
+   * The chain is built flat and left-leaning on purpose: an operator's precedence and associativity may come from an
+   * `infix` declaration further down the module, so the shape is only decidable once the whole module is parsed.
+   * `OperatorReassociator`, run by `Elm.parseCst`, rebuilds it — including the spans of its nodes.
+   */
   lazy val expression: Parsley[CstExpression] = ((offset <~> pos) <~> appExpr).flatMap { case ((so, sp), first) =>
     (many(sameLineOrIndentedPast(sp)(binOp <~> appExpr)) <~> offset).map { case (ops, eo) =>
       ops.foldLeft(first) { case (left, (op, right)) =>

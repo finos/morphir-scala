@@ -7,6 +7,7 @@ import morphir.langkit.elm.parser.{
   CommentScanner,
   CstLowering,
   ModuleParser,
+  OperatorReassociator,
   ParseDiagnosticErrorBuilder,
   TriviaAssociator
 }
@@ -24,7 +25,7 @@ object Elm:
         module.declarations,
         CstTrivia(CommentScanner.scan(source).toIndexedSeq)
       )(module.span)
-      TriviaAssociator.associate(withComments)
+      TriviaAssociator.associate(OperatorReassociator.reassociate(withComments))
     }
 
   /** Parse Elm source code into an AST (CST lowered). */

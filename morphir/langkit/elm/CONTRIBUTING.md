@@ -38,6 +38,27 @@ them. That association is positional and uses `span.offset` of the preceding ele
 how spans are assigned during parsing can silently re-attach doc comments to the wrong declaration. The lowering path
 drops trivia entirely, so an AST-only test will not catch it.
 
+## Operator fixity is a second pass
+
+`ExpressionParser.expression` deliberately builds a flat, left-leaning chain: an operator's precedence and
+associativity come from an `infix` declaration that may sit anywhere in the module, so the shape is not decidable
+while parsing. `OperatorReassociator`, run by `Elm.parseCst` before `TriviaAssociator`, flattens each chain and
+rebuilds it — spans included — from the fixities in `OperatorTable`.
+
+Two consequences worth knowing before trusting a tree:
+
+- `OperatorTable.builtin` carries the `infix` declarations of `elm/core` (`Basics` plus `List`'s `(::)`), overlaid
+  with the parsed module's own. An operator declared in *another* module and imported — `(|=)` from `elm/parser`,
+  `(</>)` from `elm/url` — is invisible here, because resolving it needs that dependency's source. It falls back to
+  `OperatorTable.unknownFixity`: precedence 9, left-associative. Anything that resolves imports should re-run the pass
+  with a fuller table rather than assume the parser got it right.
+- Chaining a non-associative operator (`a == b == c`) is a compile error in Elm, but this pass accepts it and groups
+  it to the left. Rejecting it belongs to a semantic pass with real name resolution, not to the parser.
+
+Changing a fixity changes tree *shape* rather than parse success, so the coverage for it — `OperatorPrecedenceSpec`
+and the precedence scenarios in [`itest`](../itest)'s `expressions.feature` — asserts on shape. A "does it parse"
+assertion cannot catch a regression here.
+
 ## Diagnostics are snapshot-tested
 
 `ParseDiagnosticMessageSnapshotSpec` asserts on rendered diagnostic text, gutter alignment and caret position

@@ -26,6 +26,11 @@ Elm.parseCst("module M exposing (..)\n\nmain = 42\n") match
   This is the tree for formatters, editors, and anything that has to reproduce the original text.
 - **`parseAst`** lowers that CST into an abstract syntax tree, dropping trivia. This is the tree for analysis.
 
+Binary operator chains come out shaped by Elm's precedence and associativity rules, so `1 + 2 * 3` parses as
+`1 + (2 * 3)` and `a :: b :: rest` as `a :: (b :: rest)`. See
+[Operator fixity is a second pass](./CONTRIBUTING.md#operator-fixity-is-a-second-pass) for how that happens and what
+it cannot see.
+
 Both trees have `QueryableTree` instances, so the [query DSL](../trees) works against either:
 
 ```scala
