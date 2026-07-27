@@ -17,3 +17,15 @@ trait KyoTest extends TestModule {
 trait KyoTestJS extends TestModule {
   override def testFramework: T[String] = "kyo.test.runner.JsFramework"
 }
+
+/** [[KyoTest]] variant for `ScalaNativeTests` — kyo-test's native runner uses a different framework class. */
+trait KyoTestNative extends TestModule {
+  override def testFramework: T[String] = "kyo.test.runner.NativeFramework"
+}
+
+/**
+ * [[KyoTest]] variant for the Scala.js WebAssembly linker. Wasm output is still driven by the Scala.js test runner,
+ * so the framework class is the JS one; the alias exists so a Wasm module's test object reads as such at the call
+ * site and gains a place to hang Wasm-only wiring later.
+ */
+trait KyoTestWasm extends KyoTestJS

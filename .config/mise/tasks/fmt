@@ -6,10 +6,8 @@ set -e
 
 echo "Formatting code..."
 echo "  Formatting Scala files..."
-# reformatAll against a broad 'morphir.__.sources' glob reproducibly hangs the
-# mill daemon (confirmed even with a freshly-started daemon — not a stale-state
-# fluke, and not the sandbox/network issue scripts/lib/mill-flags.sh detects).
-# --no-server sidesteps it reliably, so it's forced here unconditionally rather
-# than left to the sandbox probe.
-./mill --no-server mill.scalalib.scalafmt.ScalafmtModule/reformatAll 'morphir.__.sources'
+# This used to hang against the broad 'morphir.__.sources' glob; see the note in
+# the `lint` task for why, and why the old --no-server workaround made it worse
+# rather than better.
+./mill mill.scalalib.scalafmt.ScalafmtModule/reformatAll 'morphir.__.sources'
 echo "Format completed successfully"

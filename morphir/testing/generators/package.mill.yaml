@@ -1,0 +1,15 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule]
+  moduleDeps: [build.morphir.jvm]
+  mvnDeps:
+  - dev.zio::zio-test:2.1.26
+  - dev.zio::zio-test-magnolia:2.1.26
+
+object js:
+  extends: [build.MorphirJSModule]
+  moduleDeps: [build.morphir.js]
+  mvnDeps:
+  - dev.zio::zio-test::2.1.26
+  - dev.zio::zio-test-magnolia::2.1.26

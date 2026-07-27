@@ -1,0 +1,19 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule]
+  mvnDeps:
+  - io.github.cquiroz::scala-java-time:2.7.0
+  - dev.zio::zio-json:0.9.2
+  - dev.zio::zio-prelude:1.0.0-RC47
+  - dev.zio::zio-test:2.1.26
+  - dev.zio::zio-test-sbt:2.1.26
+
+object js:
+  extends: [build.MorphirJSModule]
+  mvnDeps:
+  - io.github.cquiroz::scala-java-time::2.7.0
+  - dev.zio::zio-json::0.9.2
+  - dev.zio::zio-prelude::1.0.0-RC47
+  - dev.zio::zio-test::2.1.26
+  - dev.zio::zio-test-sbt::2.1.26

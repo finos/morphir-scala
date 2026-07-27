@@ -1,0 +1,26 @@
+package build.morphir.build
+
+import mill.*, mill.scalalib.*, mill.scalalib.scalafmt.ScalafmtModule
+import millbuild.{MillVersions, ScalaVersions => ScalaVers}
+import build.MorphirPublishModule
+
+object integration extends Module {
+  object `mill-morphir-elm` extends Cross[morphirlibElmPlugin](MillVersions.all)
+  trait morphirlibElmPlugin
+      extends Cross.Module[String]
+      with ScalaModule
+      with ScalafmtModule
+      with MorphirPublishModule {
+
+    def millVersion = crossValue
+
+    val pluginName = "mill-morphir-elm"
+
+    def scalaVersion            = Task { ScalaVers.millScalaVersion }
+    override def artifactName   = s"${pluginName}_mill${MillVersions.millBinaryVersion(millVersion)}"
+    override def compileMvnDeps = super.compileMvnDeps() ++ Seq(
+      mvn"com.lihaoyi::mill-libs-scalalib:${millVersion}"
+    )
+    override def scalacOptions = Seq("-Wunused:all", "-deprecation")
+  }
+}

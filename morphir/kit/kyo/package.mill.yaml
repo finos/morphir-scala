@@ -1,0 +1,44 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule]
+  mvnDeps:
+  - com.outr::scribe:3.16.1
+  - io.getkyo::kyo-prelude:1.0.0-RC5
+  - io.getkyo::kyo-core:1.0.0-RC5
+  object test:
+    extends: [ScalaTests, millbuild.KyoTest]
+    mvnDeps:
+    - io.getkyo::kyo-core:1.0.0-RC5
+    - io.getkyo::kyo-prelude:1.0.0-RC5
+    - io.getkyo::kyo-test-api:1.0.0-RC5
+    - io.getkyo::kyo-test-runner:1.0.0-RC5
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirPublishModule]
+  mvnDeps:
+  - com.outr::scribe::3.16.1
+  - io.getkyo::kyo-prelude::1.0.0-RC5
+  - io.getkyo::kyo-core::1.0.0-RC5
+  object test:
+    extends: [ScalaJSTests, millbuild.KyoTestJS]
+    mvnDeps:
+    - io.getkyo::kyo-core::1.0.0-RC5
+    - io.getkyo::kyo-prelude::1.0.0-RC5
+    - io.getkyo::kyo-test-api::1.0.0-RC5
+    - io.getkyo::kyo-test-runner::1.0.0-RC5
+
+object native:
+  extends: [build.MorphirNativeModule, build.MorphirPublishModule]
+  mvnDeps:
+  - com.outr::scribe::3.16.1
+  - io.getkyo::kyo-prelude::1.0.0-RC5
+  - io.getkyo::kyo-core::1.0.0-RC5
+  object test:
+    extends: [ScalaNativeTests, millbuild.KyoTestNative]
+    mvnDeps:
+    - io.getkyo::kyo-core::1.0.0-RC5
+    - io.getkyo::kyo-prelude::1.0.0-RC5
+    - io.getkyo::kyo-test-api::1.0.0-RC5
+    - io.getkyo::kyo-test-runner::1.0.0-RC5
+    - org.scala-native::test-interface::0.5.12

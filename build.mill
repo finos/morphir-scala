@@ -1,6 +1,9 @@
 //| mvnDeps:
 //| - com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION
 //| - com.lihaoyi::mill-contrib-scoverage:$MILL_VERSION
+//| - com.lihaoyi::mill-libs-scalajslib-config-1:$MILL_VERSION
+//| - org.scala-js:scalajs-linker_2.13:1.22.0
+//| - org.scala-js:scalajs-js-envs_2.13:1.4.0
 //| - com.carlosedp::mill-aliases::1.1.0
 //| - com.github.lolgab::mill-mima::0.2.0
 //| - io.eleven19.mill-github-dependency-graph::mill-github-dependency-graph:0.0.2
@@ -8,7 +11,6 @@
 package build
 
 import millbuild.{Deps, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
-import millbuild.config.PlatformConfig
 import millbuild.docs.{Docusaurus2Module, MDocModule}
 import mill.scalalib.publish.PublishInfo
 import mill.local.plugins.ci.release.ReleaseSetupModule
@@ -43,9 +45,6 @@ def showBuildSettings() = Task.Command {
   println(s"docsScalaVersion: ${docsScalaVersion}")
   println(s"scalaJSVersion: ${ScalaVers.scalaJSVersion}")
   println(s"scalaNativeVersion: ${ScalaVers.scalaNativeVersion}")
-  println(s"Platform JVM enabled: ${PlatformConfig.enableJVM}")
-  println(s"Platform JS enabled: ${PlatformConfig.enableJS}")
-  println(s"Platform Native enabled: ${PlatformConfig.enableNative}")
   ()
 }
 
@@ -79,6 +78,7 @@ trait MorphirIntelligencePublishModule extends MorphirPublishModule {
 }
 
 trait MorphirCommonModule extends ScalaModule with CommonScalaModule {
+  def scalaVersion: T[String]      = Task { morphirScalaVersion }
   def semanticDbVersion: T[String] = Task { Vers.semanticDb }
 
   def compilerPluginDependencies(selectedScalaVersion: String) =
@@ -108,9 +108,302 @@ trait MorphirJSModule extends MorphirCommonCrossModule with ScalaJSModule {
   def scalaJSVersion = Task { ScalaVers.scalaJSVersion }
 }
 
-trait MorphirNativeModule extends MorphirCommonCrossModule {
+trait MorphirNativeModule extends MorphirCommonCrossModule with ScalaNativeModule {
   def platform           = Platform.Native
   def scalaNativeVersion = Task { ScalaVers.scalaNativeVersion }
+}
+
+/**
+ * Linker configuration that switches a Scala.js module onto the experimental WebAssembly backend, so it emits a Wasm
+ * GC binary plus an ES-module JS loader instead of plain JS.
+ *
+ * The backend requires `ModuleKind.ESModule` and ES2022; both are set here so callers only mix the trait in. Output
+ * loads in browsers with Wasm GC (Chrome 119+, Firefox 120+, Safari 18.2+) and on Node 22+.
+ *
+ * Mix this into a module's *test* object as well as the module itself: Mill's `ScalaJSTests` forwards `moduleKind`
+ * and `esFeatures` from the enclosing module but not `scalaJSExperimentalUseWebAssembly`, so without it the tests
+ * would silently link as plain JS and duplicate the `js` module's test run.
+ *
+ * @note
+ *   The WebAssembly backend treats `@JSExport*` annotations differently from the JS linker: `@JSExport` on
+ *   object/class members is silently dropped, and `@JSExportTopLevel` on an `object` yields an ES-module export with
+ *   no members. `@JSExportTopLevel` on a top-level `val` IS honored, so FFI surfaces that need a populated namespace
+ *   should be exposed as `@JSExportTopLevel("Name") val foo: js.Object = js.Dynamic.literal(...)`.
+ */
+trait MorphirWasmLinker extends ScalaJSModule with mill.scalajslib.config.ScalaJSConfigModule {
+  import mill.scalajslib.api.*
+  override def scalaJSExperimentalUseWebAssembly: T[Boolean] = Task(true)
+  override def moduleKind: T[ModuleKind]                     = Task { ModuleKind.ESModule }
+
+  // ES2022 has to be set through Scala.js' own linker API: Mill's `ESVersion` enum stops at ES2021, which is why the
+  // whole `ScalaJSConfigModule` detour (and its three metabuild deps at the top of this file) exists at all.
+  // Note that mixing it in makes `scalaJSVersion` final at the linker dep's version — keep the `org.scala-js:
+  // scalajs-linker_2.13` metabuild coordinate in step with `ScalaVers.scalaJSVersion`.
+  override def scalaJSConfig: Task[org.scalajs.linker.interface.StandardConfig] = Task.Anon {
+    super.scalaJSConfig().withESFeatures(
+      _.withESVersion(org.scalajs.linker.interface.ESVersion.ES2022).withUseWebAssembly(true)
+    )
+  }
+
+  // Scala.js compiles exception handling to the Wasm `exnref` type, which Node still hides behind a flag
+  // ("invalid value type 'exn', enable with --experimental-wasm-exnref"). Browsers with Wasm GC need no equivalent.
+  override def jsEnvConfig: T[JsEnvConfig] = Task {
+    JsEnvConfig.NodeJs(args = List("--experimental-wasm-exnref"))
+  }
+}
+
+/**
+ * Scala.js module variant linked through the WebAssembly backend — see [[MorphirWasmLinker]] for the linker config.
+ *
+ * It is a link-output variant of [[MorphirJSModule]], not a fourth platform: `platform` stays [[Platform.JS]], so a
+ * Wasm module compiles the very same `src` / `js/src` trees as its `js` sibling. Consequently a Wasm module's
+ * `moduleDeps` should point at the `js` modules of its dependencies.
+ */
+trait MorphirWasmModule extends MorphirJSModule with MorphirWasmLinker
+
+/**
+ * Test-side counterpart of [[MorphirWasmModule]], to be mixed into a Wasm module's test object alongside
+ * `ScalaJSTests`.
+ *
+ * Mill's `ScalaJSTests` forwards `moduleKind` and `esFeatures` from the enclosing module but links tests through its
+ * own `testLinkTask`, which ignores `scalaJSConfig`. Without this trait a Wasm module's tests link as plain JS —
+ * silently duplicating the `js` module's run rather than exercising the Wasm output.
+ */
+trait MorphirWasmTests extends mill.scalajslib.config.TestScalaJSConfigModule with MorphirWasmLinker
+
+/** Shared BuildInfo wiring: version + scalaVersion members. Requires [[PublishModule]] + [[ScalaModule]].
+  *
+  * Extracted to the metabuild because it's mixed in from per-directory `package.mill`/`package.mill.yaml` files —
+  * their own `moduleDir`-relative source computations can't statically see other directories' modules, but a named
+  * trait like this one resolves fine via `extends:` regardless of which file references it.
+  */
+trait MorphirVersionBuildInfo extends BuildInfo with PublishModule with ScalaModule {
+  def buildInfoMembers = Seq(
+    BuildInfo.Value("version", publishVersion()),
+    BuildInfo.Value("scalaVersion", scalaVersion())
+  )
+}
+
+/** [[MorphirVersionBuildInfo]] variant that also reports the cross-platform target (jvm/js/native). */
+trait MorphirPlatformBuildInfo extends MorphirVersionBuildInfo {
+  def platform: Platform
+  override def buildInfoMembers = Task { super.buildInfoMembers() ++ Seq(
+    BuildInfo.Value("platform", platform.toString)
+  ) }
+}
+
+/** [[MorphirPlatformBuildInfo]] for `extensibility` — `buildInfoPackageName` hardcoded here rather than left for
+  * per-leaf YAML override, since overriding plain (non-Task) BuildInfo members via YAML `extends:` chains didn't
+  * take effect in practice (Mill 1.2.0-RC1) — worth re-checking against a later Mill release.
+  */
+trait MorphirExtensibilityBuildInfo extends MorphirPlatformBuildInfo {
+  def buildInfoPackageName = "org.finos.morphir.extensibility"
+}
+
+/** [[MorphirVersionBuildInfo]] for `morphir.main` (the CLI) — see [[MorphirExtensibilityBuildInfo]] for why this is
+  * hardcoded rather than YAML-overridden.
+  */
+trait MorphirCliBuildInfo extends MorphirVersionBuildInfo {
+  def buildInfoPackageName = "org.finos.morphir.cli"
+}
+
+/** BuildInfo wiring for `morphir.intelligence` — its own member set (adds JVM build info, no `platform` member
+  * since this module isn't cross-platform) and package name, both hardcoded per [[MorphirExtensibilityBuildInfo]].
+  */
+trait MorphirIntelligenceBuildInfo extends BuildInfo with PublishModule with ScalaModule {
+  def buildInfoPackageName = "org.finos.morphir.intelligence.buildinfo"
+  override def buildInfoObjectName = "BuildInfo"
+  def buildInfoMembers = Seq(
+    BuildInfo.Value("version", publishVersion()),
+    BuildInfo.Value("scalaVersion", scalaVersion()),
+    BuildInfo.Value("buildJvmVersion", System.getProperty("java.version")),
+    BuildInfo.Value("buildJvmVendor", System.getProperty("java.vendor"))
+  )
+}
+
+/** Publishes an extra `-assembly` classifier alongside the regular jar. Used by `morphir.main` (the CLI). */
+trait AssemblyPublishInfo extends JavaModule with PublishModule {
+  override def extraPublish: T[Seq[PublishInfo]] = Task {
+    Seq(PublishInfo(file = assembly(), classifier = Some("assembly"), ivyConfig = "compile"))
+  }
+}
+
+/** Skips scaladoc generation, publishing an empty docJar instead.
+  *
+  * Scaladoc generation reliably crashes with a NullPointerException in
+  * dotty.tools.scaladoc.translators.SignatureBuilder on JDK 25 - a known upstream dotty bug
+  * (https://github.com/scala/scala3/issues/24183), fixed only in Scala 3.9.0+ (we're on 3.8.4).
+  * See morphir/CONTRIBUTING.md for details.
+  *
+  * The crash follows the sources, not the platform, so every module compiling the affected sources needs this - the
+  * root `morphir` module's `js` variant hit exactly the same NPE as its `jvm` sibling. It surfaced only on a cold
+  * cache, and confusingly: after the scaladoc worker dies, the retry reports the missing output directory
+  * ("...scalaDocGenerated.dest/javadoc does not exist or is not a directory or .jar file") rather than the NPE, which
+  * appears only under `--debug`.
+  */
+trait EmptyDocJar extends JavaModule {
+  override def docJar: T[PathRef] = Task {
+    PathRef(mill.util.Jvm.createJar(Task.dest / "out.jar", Seq.empty))
+  }
+}
+
+/** `runtime`'s test module: sources its JSON test fixtures from the compiled `evaluator-tests` Elm project. */
+trait RuntimeTests extends TestModule.ZioTest {
+  def morphirTestSources = Task {
+    examples.`morphir-elm-projects`.`evaluator-tests`.distOutputDirs()
+  }
+
+  def morphirTestSourceFiles = Task {
+    Lib.findSourceFiles(morphirTestSources(), Seq("json")).collect {
+      case path if path.last.startsWith("morphir-") => PathRef(path)
+    }
+  }
+}
+
+/** `tools.js`'s doc-source filtering: scaladoc's JS output ships `.tasty` files needing this narrowing. */
+trait ToolsJSDocSources extends ScalaJSModule {
+  override def docSources = Task {
+    Lib.findSourceFiles(super.docSources(), Seq("tasty"))
+      .map(PathRef(_))
+  }
+}
+
+/** `morphir.jvm`/`morphir.js`'s own mvnDeps — bundled here (rather than copied as YAML literals) so the version
+  * pins stay sourced from the single [[millbuild.Deps]] object.
+  */
+trait MorphirRootMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.org.`scala-lang`.modules.`scala-collection-contrib`,
+    Deps.com.beachape.enumeratum,
+    Deps.com.lihaoyi.fansi,
+    Deps.com.lihaoyi.geny,
+    Deps.com.lihaoyi.sourcecode,
+    Deps.com.lihaoyi.pprint,
+    Deps.dev.zio.`izumi-reflect`,
+    Deps.dev.zio.zio,
+    Deps.dev.zio.`zio-json`,
+    Deps.dev.zio.`zio-prelude`,
+    Deps.org.typelevel.spire,
+    Deps.com.softwaremill.magnolia_3.magnolia
+  )
+}
+
+/** `morphir.main`'s (the CLI's) own mvnDeps. */
+trait MorphirMainMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.co.fs2.`fs2-io`,
+    Deps.com.lihaoyi.fansi,
+    Deps.com.lihaoyi.pprint,
+    Deps.com.lihaoyi.sourcecode,
+    Deps.dev.zio.zio,
+    Deps.dev.zio.`zio-interop-cats`,
+    Deps.io.getkyo.`kyo-case-app`,
+    Deps.io.getkyo.`kyo-zio`
+  )
+}
+
+/** `tests`'s own mvnDeps. */
+trait MorphirTestsMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.com.lihaoyi.sourcecode,
+    Deps.io.github.cquiroz.`scala-java-time`,
+    Deps.io.github.cquiroz.`scala-java-time-tzdb`
+  )
+}
+
+/** `tests.jvm.test`/`runtime.jvm.test`'s mvnDeps — `os-lib`/`sourcecode` are JVM-only (not published for Scala.js),
+  * so this is deliberately jvm-specific; see [[MorphirTestsTestMvnDepsJS]] for the js-side list.
+  */
+trait MorphirTestsTestMvnDepsJVM extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.com.lihaoyi.`os-lib`,
+    Deps.com.lihaoyi.sourcecode,
+    Deps.dev.zio.`zio-test`,
+    Deps.dev.zio.`zio-test-sbt`
+  )
+}
+
+/** `tests.js.test`/`runtime.js.test`'s mvnDeps. */
+trait MorphirTestsTestMvnDepsJS extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.dev.zio.`zio-test`,
+    Deps.dev.zio.`zio-test-sbt`
+  )
+}
+
+/** `tools`'s own mvnDeps. */
+trait MorphirToolsMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.co.fs2.`fs2-io`,
+    Deps.com.lihaoyi.sourcecode,
+    Deps.dev.zio.zio,
+    Deps.dev.zio.`zio-prelude`,
+    Deps.dev.zio.`zio-streams`,
+    Deps.com.lihaoyi.pprint,
+    Deps.org.typelevel.cats.core,
+    Deps.org.typelevel.spire,
+    Deps.org.typelevel.`paiges-core`,
+    Deps.dev.zio.`zio-interop-cats`
+  )
+}
+
+/** `tools.jvm`'s extra mvnDeps on top of [[MorphirToolsMvnDeps]]. */
+trait MorphirToolsJVMMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.dev.zio.`zio-nio`,
+    Deps.dev.zio.`zio-process`
+  )
+}
+
+/** `tests.jvm.test`'s source override: in addition to the shared `test/src` (+ `test/src-3`) that Mill's own
+  * TestModule default already finds, also pick up `test/jvm-native/src` — files shared only between the jvm and
+  * native targets (native itself is disabled repo-wide, so in practice this is jvm-only test code kept apart from
+  * the plain shared `test/src`).
+  */
+trait MorphirTestsJVMTestSources extends JavaModule {
+  override def sources: T[Seq[PathRef]] = Task.Sources(
+    moduleDir / "src",
+    moduleDir / "src-3",
+    moduleDir / "jvm-native" / "src"
+  )
+}
+
+/**
+ * Scoverage wiring for `contrib.knowledge.jvm`.
+ *
+ * `scoverageVersion` lives here rather than as a `package.mill.yaml` key: a YAML override only binds against tasks
+ * Mill can see on the declared bases, and a plain `scoverageVersion: <v>` entry fails resolution with `key
+ * "scoverageVersion" does not override any task on Module`. That error only surfaces on broad selectors such as
+ * `morphir.__.jvm.__` or `morphir.__.sources` — which is what CI and `mise run lint` use — while narrower ones
+ * resolve fine, so it is easy to miss locally.
+ */
+trait MorphirScoverage extends mill.contrib.scoverage.ScoverageModule {
+  def scoverageVersion: T[String] = Task { Vers.scoverage }
+}
+
+/** `tests.js.test`'s source override: shared `test/src` (+ `test/src-3`) plus `test/js/src` — js-only test code. */
+trait MorphirTestsJSTestSources extends JavaModule {
+  override def sources: T[Seq[PathRef]] = Task.Sources(
+    moduleDir / "src",
+    moduleDir / "src-3",
+    moduleDir / "js" / "src"
+  )
+}
+
+/**
+ * Injects the linked `langkit.elm.compiler.api.wasm` output directory into `langkit.itest`'s forked JVMs.
+ *
+ * `ChicoryCompilerWasmCompatibilityTest` reads `main.wasm` straight off disk to assert what the Scala.js Wasm linker
+ * emits, so the suite needs the artifact path — and taking a task dependency here is also what makes Mill link the
+ * Wasm module before the tests run. Lives in the metabuild because a per-directory `package.mill.yaml` can't express
+ * a Task, and a `package.mill` in `morphir/langkit/itest/` can't statically reach another directory module's nested
+ * `wasm` object under Mill 1.2.0-RC1.
+ */
+trait MorphirLangkitItestWasmArtifacts extends JavaModule {
+  override def forkArgs: T[Seq[String]] = Task {
+    val wasmDir = build.morphir.langkit.elm.compiler.api.wasm.fullLinkJS().dest.path
+    super.forkArgs() ++ Seq(s"-Dmorphir.langkit.elm.compiler.api.wasm.dir=$wasmDir")
+  }
 }
 
 // The following modules are morphir-elm modules that have been setup to be built using mill

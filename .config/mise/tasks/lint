@@ -8,16 +8,14 @@ echo "  Linting Scala files..."
 
 # Use Mill's simplified scalafmt command (Mill 1.x)
 # The /checkFormatAll suffix is inferred automatically
-# checkFormatAll against a broad 'morphir.__.sources' glob reproducibly hangs
-# the mill daemon (confirmed even with a freshly-started daemon — not a
-# stale-state fluke, and not the sandbox/network issue scripts/lib/mill-flags.sh
-# detects). --no-server sidesteps it reliably, so it's forced unconditionally.
-# -j 1 in CI additionally avoids parallel task resolution issues there.
-if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
-  echo "  Running in CI mode (single-threaded, no server)"
-  ./mill --no-server -j 1 mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll 'morphir.__.sources'
-else
-  ./mill --no-server mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll 'morphir.__.sources'
-fi
+#
+# This used to hang against the broad 'morphir.__.sources' glob, and carried a
+# --no-server workaround with a note that the flag "sidesteps it reliably". That
+# had it backwards: the hang was a class-initialization deadlock between the
+# Platform case objects (see mill-build/src/millbuild/crossplatform/Platform.scala),
+# which needs a cold JVM to trigger — so --no-server, which starts a fresh runner
+# every time, was the one form guaranteed to deadlock, while a warm daemon
+# usually escaped. With that fixed the glob completes in seconds either way.
+./mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll 'morphir.__.sources'
 
 echo "Lint completed successfully"

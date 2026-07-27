@@ -5,11 +5,17 @@ set -e
 
 echo "Running JVM tests..."
 
+# `morphir.langkit.itest` is named separately: it is a plain JVM module rather
+# than a `<module>.jvm` one, so the `morphir.__.jvm.__` glob never matches it.
+# It also exposes `testCached` rather than `test`.
+
 ./mill -i -k -j 0 \
     "morphir.__.jvm.__.compile" \
     + \
     "morphir.__.jvm.publishArtifacts" \
     + \
-    "morphir.__.jvm.__.test"
+    "morphir.__.jvm.__.test" \
+    + \
+    "morphir.langkit.itest.testCached"
 
 echo "JVM tests completed successfully"

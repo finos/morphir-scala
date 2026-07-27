@@ -1,0 +1,31 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirScoverage]
+  moduleDeps: [build.morphir.jvm]
+  mvnDeps:
+  - com.lihaoyi::sourcecode:0.4.2
+  - io.getkyo::kyo-core:1.0.0-RC5
+  - io.getkyo::kyo-prelude:1.0.0-RC5
+  object test:
+    extends: [ScoverageTests, millbuild.KyoTest]
+    mvnDeps:
+    - io.getkyo::kyo-core:1.0.0-RC5
+    - io.getkyo::kyo-prelude:1.0.0-RC5
+    - io.getkyo::kyo-test-api:1.0.0-RC5
+    - io.getkyo::kyo-test-runner:1.0.0-RC5
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirPublishModule]
+  moduleDeps: [build.morphir.js]
+  mvnDeps:
+  - com.lihaoyi::sourcecode::0.4.2
+  - io.getkyo::kyo-core::1.0.0-RC5
+  - io.getkyo::kyo-prelude::1.0.0-RC5
+  object test:
+    extends: [ScalaJSTests, millbuild.KyoTestJS]
+    mvnDeps:
+    - io.getkyo::kyo-core::1.0.0-RC5
+    - io.getkyo::kyo-prelude::1.0.0-RC5
+    - io.getkyo::kyo-test-api::1.0.0-RC5
+    - io.getkyo::kyo-test-runner::1.0.0-RC5
