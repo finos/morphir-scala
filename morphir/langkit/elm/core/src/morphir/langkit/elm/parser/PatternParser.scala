@@ -75,9 +75,25 @@ object PatternParser:
       | variablePat
       | parenthesizedPat
 
+  /**
+   * A cons chain (`x :: rest`), or a bare atomic pattern when no `::` follows.
+   *
+   * `::` is right-associative in Elm, so `a :: b :: rest` is `a :: (b :: rest)`. This layer sits between
+   * [[atomPattern]] and [[pattern]] because `as` binds looser than `::`: `x :: rest as whole` aliases the whole cons
+   * chain.
+   */
+  private lazy val consPattern: Parsley[CstPattern] =
+    (offset <~> atomPattern <~> many(symbol("::") *> atomPattern) <~> offset).map {
+      case (((_, first), Nil), _)  => first
+      case (((s, first), rest), e) =>
+        (first :: rest).reduceRight { (head, tail) =>
+          CstConsPattern(head, tail)(Span.fromStartEnd(s, e))
+        }
+    }
+
   /** A pattern with optional `as` alias. */
   lazy val pattern: Parsley[CstPattern] =
-    (offset <~> atomPattern <~> option(keyword("as") *> ModuleParser.lowerName) <~> offset).map {
+    (offset <~> consPattern <~> option(keyword("as") *> ModuleParser.lowerName) <~> offset).map {
       case (((s, pat), Some(alias)), e) => CstAsPattern(pat, alias)(Span.fromStartEnd(s, e))
       case (((_, pat), None), _)        => pat
     }

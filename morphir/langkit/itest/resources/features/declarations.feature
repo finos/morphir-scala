@@ -46,3 +46,15 @@ Feature: Declarations
     Then the module has 1 declaration
     And declaration 1 is a custom type named "Maybe"
     And custom type "Maybe" has 2 constructors
+
+  Scenario: Multi-argument type annotations nest to the right
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      f : a -> b -> c
+      f = 1
+      """
+    When the CST is queried with "(CstFunctionType to: (CstFunctionType) @inner)"
+    Then the query matches exactly 1 time
+    And capture "inner" of match 1 is a "CstFunctionType"

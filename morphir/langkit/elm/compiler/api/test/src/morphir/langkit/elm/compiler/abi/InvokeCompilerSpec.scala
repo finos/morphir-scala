@@ -65,6 +65,36 @@ class InvokeCompilerSpec extends Test[Any]:
         )
       )
     }
+    "every declared operation is dispatched" in {
+      // Guards the gap this suite previously missed: InvokeOp declared five operations while dispatch matched only
+      // parseCst, so the other four answered "unknown operation" despite being advertised on the wire.
+      val requests = Map(
+        InvokeOp.ParseCst    -> s"""{"source":${stringLiteral(validSource)}}""",
+        InvokeOp.ParseAst    -> s"""{"source":${stringLiteral(validSource)}}""",
+        InvokeOp.ParseQuery  -> """{"query":"(CstValueDeclaration) @d"}""",
+        InvokeOp.PrettyQuery -> """{"query":"(CstValueDeclaration) @d"}""",
+        InvokeOp.RunQuery    ->
+          s"""{"query":"(CstValueDeclaration) @d","source":${stringLiteral(validSource)},"treeKind":"cst"}"""
+      )
+
+      InvokeOp.values.foreach { op =>
+        val response = invoke(op.wireName, requests(op))
+        assert(response.ok, s"${op.wireName} did not succeed: ${response.errors}")
+        assert(
+          !response.errors.exists(_.message.startsWith("unknown operation")),
+          s"${op.wireName} was not dispatched"
+        )
+      }
+    }
+    "runQuery reports an unusable treeKind rather than failing opaquely" in {
+      val response = invoke(
+        "runQuery",
+        s"""{"query":"(CstValueDeclaration) @d","source":${stringLiteral(validSource)},"treeKind":"nope"}"""
+      )
+
+      assert(!response.ok)
+      assert(response.errors.exists(_.message.contains("unknown treeKind")))
+    }
     "determinism path: the same parseCst input returns byte-identical JSON twice" in {
       val input  = s"""{"source":${stringLiteral(validSource)}}"""
       val first  = InvokeCompiler.invoke("parseCst", input)

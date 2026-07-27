@@ -79,8 +79,11 @@ object DeclarationParser:
   lazy val typeExpression: Parsley[CstTypeExpression] = ((offset <~> pos) <~> appType).flatMap {
     case ((so, sp), first) =>
       (many(sameLineOrIndentedPast(sp)(symbol("->") *> appType)) <~> offset).map { case (rest, eo) =>
-        rest.foldRight(first) { (next, acc) =>
-          CstFunctionType(acc, next)(Span.fromStartEnd(so, eo))
+        // `->` is right-associative in Elm: `a -> b -> c` parses as `a -> (b -> c)`. Folding the whole chain from
+        // the right keeps both the nesting and the operand order — an earlier `rest.foldRight(first)` produced
+        // `FunctionType(FunctionType(a, c), b)` for that input.
+        (first :: rest).reduceRight { (argument, result) =>
+          CstFunctionType(argument, result)(Span.fromStartEnd(so, eo))
         }
       }
   }

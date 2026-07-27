@@ -7,12 +7,12 @@ import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 
 object InvokeJson:
 
-  given JsonValueCodec[SourceRequest]      = JsonCodecMaker.make
-  given JsonValueCodec[PrettyQueryRequest] = JsonCodecMaker.make
-  given JsonValueCodec[RunQueryRequest]    = JsonCodecMaker.make
-  given JsonValueCodec[InvokeSpan]         = JsonCodecMaker.make
-  given JsonValueCodec[InvokeError]        = JsonCodecMaker.make
-  given JsonValueCodec[InvokeResponse]     = JsonCodecMaker.make
+  given JsonValueCodec[SourceRequest]   = JsonCodecMaker.make
+  given JsonValueCodec[QueryRequest]    = JsonCodecMaker.make
+  given JsonValueCodec[RunQueryRequest] = JsonCodecMaker.make
+  given JsonValueCodec[InvokeSpan]      = JsonCodecMaker.make
+  given JsonValueCodec[InvokeError]     = JsonCodecMaker.make
+  given JsonValueCodec[InvokeResponse]  = JsonCodecMaker.make
 
   def decode[A: JsonValueCodec](json: String): A =
     readFromString[A](json)

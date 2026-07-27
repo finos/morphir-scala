@@ -79,6 +79,15 @@ The `abi` package puts a JSON envelope around that surface for callers that are 
 takes an operation name and a JSON request string and returns a JSON response, and `AbiEntryPoint.invokeUtf8` does the
 same over raw UTF-8 bytes. Responses are deterministic: the same request yields byte-identical JSON.
 
+| Operation | Request |
+| --- | --- |
+| `parseCst`, `parseAst` | `{"source": "..."}` |
+| `parseQuery`, `prettyQuery` | `{"query": "..."}` |
+| `runQuery` | `{"query": "...", "source": "...", "treeKind": "cst" \| "ast"}` |
+
+`runQuery` names its tree by source rather than accepting a pre-serialized one: nothing in the langkit deserializes a
+CST or AST from JSON.
+
 ## Platforms
 
 `core` and `compiler/api` both build for the JVM, Scala.js, and Scala Native. `compiler/api` additionally has a `wasm`

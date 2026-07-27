@@ -43,3 +43,29 @@ Feature: Patterns
       """
     When the source is parsed
     Then value "add" has 2 parameters
+
+  Scenario: Cons pattern in a case branch
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      main = case xs of
+          x :: rest -> x
+          [] -> 0
+      """
+    When the CST is queried with "(CstConsPattern head: (CstVariablePattern) @h)"
+    Then the query matches exactly 1 time
+    And capture "h" of match 1 is a "CstVariablePattern"
+
+  Scenario: Cons patterns nest to the right
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      main = case xs of
+          a :: b :: rest -> a
+          [] -> 0
+      """
+    When the CST is queried with "(CstConsPattern tail: (CstConsPattern) @inner)"
+    Then the query matches exactly 1 time
+    And capture "inner" of match 1 is a "CstConsPattern"
