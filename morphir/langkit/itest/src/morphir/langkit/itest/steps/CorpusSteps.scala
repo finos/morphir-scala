@@ -16,7 +16,7 @@ class CorpusSteps extends ScalaDsl with EN:
       missing.isEmpty,
       s"""the corpus exercises no instance of ${missing.size} required node type(s):
          |  ${missing.toList.sorted.mkString("\n  ")}
-         |Add coverage to a module in resources/fixtures/conformance, or record the gap in the conformance plan.
+         |Add coverage to a module in resources/fixtures/conformance, or record the gap in morphir/langkit/elm/conformance.html.
          |""".stripMargin
     )
   }

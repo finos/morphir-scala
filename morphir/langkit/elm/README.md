@@ -61,8 +61,8 @@ ElmParse.run(ElmParseOptions.elm)(pipeline)      // ElmParse.Outcome[CstModule]
 
 See [Operator fixity is a second pass](./CONTRIBUTING.md#operator-fixity-is-a-second-pass) for what the parser knows
 about operators declared elsewhere, and
-[the conformance plan](../../../.dev/.sdlc/elm-parser-conformance/PLAN.md) for the divergences still being worked
-through.
+[the conformance tracker](./conformance.html) for how far the parser has converged on `elm/compiler` and what is
+still open.
 
 Both trees have `QueryableTree` instances, so the [query DSL](../trees) works against either:
 

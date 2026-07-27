@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elm langkit — conformance with elm/compiler</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fbfbfa;
+    --fg: #1a1a18;
+    --muted: #6b6b66;
+    --rule: #e0e0da;
+    --panel: #ffffff;
+    --done: #2f6f4f;
+    --open: #9a6114;
+    --accent: #3b4a6b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16161a;
+      --fg: #e8e8e4;
+      --muted: #9a9a94;
+      --rule: #2e2e34;
+      --panel: #1d1d22;
+      --done: #7fc39b;
+      --open: #e0a955;
+      --accent: #9fb0d8;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2.5rem 1.25rem 5rem;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.6 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 62rem; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin: 0 0 .35rem; letter-spacing: -.01em; }
+  h2 { font-size: 1.15rem; margin: 2.5rem 0 .75rem; letter-spacing: -.005em; }
+  h3 { font-size: .95rem; margin: 1.5rem 0 .4rem; }
+  p { margin: .6rem 0; }
+  .lede { color: var(--muted); margin: 0 0 1.5rem; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; font-size: .875em; }
+  a { color: var(--accent); }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 40rem; margin: .5rem 0 1rem; }
+  th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+  td { font-size: .9rem; }
+  tbody tr:last-child td { border-bottom: none; }
+  .tag { font-size: .72rem; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+  .tag.done { color: var(--done); }
+  .tag.open { color: var(--open); }
+  .panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 1rem 1.15rem; }
+  .rule-box { border-left: 3px solid var(--accent); padding-left: 1rem; margin: 1rem 0; }
+  ul { margin: .5rem 0; padding-left: 1.2rem; }
+  li { margin: .25rem 0; }
+  .retired { color: var(--muted); }
+  footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Elm langkit — conformance with <code>elm/compiler</code></h1>
+<p class="lede">
+  The standard is <code>elm/compiler</code>: what it accepts, we accept; what it rejects, we reject. Where a caller
+  could reasonably want something else, it is a field on <code>ElmParseOptions</code> that defaults to Elm's
+  behaviour — never a quiet allowance in the parser.
+</p>
+
+<div class="panel">
+  <strong>How this document is kept honest.</strong>
+  <p style="margin-bottom:0">
+    Every divergence below has a row in the gap ledger and, wherever it can be written as <em>“this valid Elm does not
+    parse”</em>, an assertion pinning that behaviour in a <code>KnownGapsSpec</code>. Closing a gap therefore
+    <em>fails the suite</em>: the pin says the construct is rejected and it no longer is. A gap cannot be closed
+    without deleting its row and its pin in the same commit, and cannot be forgotten while the row is still here.
+  </p>
+</div>
+
+<h2>Open gaps</h2>
+<div class="scroll">
+<table>
+  <thead>
+    <tr><th>#</th><th>Divergence</th><th>Elm</th><th>Us</th><th>Pinned by</th><th>Next step</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="mono">G5</td>
+      <td>Expression continuation indentation</td>
+      <td>an indentation context that productions push and pop (<code>Parse.Space</code>)</td>
+      <td><code>sameLineOrIndentedPast</code>, measured from the expression's first token</td>
+      <td>no failing pin — the two agree on every case covered</td>
+      <td>replace the guard with a real context, via <code>whitespaceIsContextDependent</code></td>
+    </tr>
+    <tr>
+      <td class="mono">G6</td>
+      <td>Operators declared in an unbundled package</td>
+      <td>resolved from the dependency's source</td>
+      <td><code>ELM-P005</code> unless supplied through <code>ElmParseOptions.operators</code></td>
+      <td><code>OperatorPrecedenceSpec</code></td>
+      <td>needs import resolution, which sits above the parser</td>
+    </tr>
+    <tr>
+      <td class="mono">G7</td>
+      <td>Real-world package corpus</td>
+      <td>—</td>
+      <td>the corpus is written for the purpose; no vendored <code>elm/core</code> or <code>elm/html</code></td>
+      <td>—</td>
+      <td>vendor whole packages and parse them</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p class="retired">
+  Numbering never reuses. A closed gap keeps its number retired, so a reference to <code>G3</code> in a commit or an
+  issue keeps meaning what it meant. <code>KnownGapsSpec</code> does not exist at present — W6 and W7 emptied it.
+  Recreate it for the next divergence rather than leaving one in a comment.
+</p>
+
+<h2>Closed gaps</h2>
+<div class="scroll">
+<table>
+  <thead><tr><th>#</th><th>Divergence</th><th>Closed by</th><th>Now covered by</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">G1</td><td>GLSL blocks — <code>CstGlsl</code> modelled but never produced</td><td>W7</td><td><code>StructuralSpec</code></td></tr>
+    <tr><td class="mono">G2</td><td>Astral code points in character literals</td><td>W7, by widening the CST node to a code point</td><td><code>LexicalSpec</code></td></tr>
+    <tr><td class="mono">G3</td><td><code>effect module … where { … }</code></td><td>W7</td><td><code>StructuralSpec</code></td></tr>
+    <tr><td class="mono">G4</td><td>Tuple arity beyond three</td><td>W7</td><td><code>StructuralSpec</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Workstreams</h2>
+<div class="scroll">
+<table>
+  <thead><tr><th>#</th><th>Workstream</th><th>Status</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">W0</td><td>The pipeline as an effect</td><td><span class="tag done">done</span></td><td><code>ElmParse</code>, a Kyo <code>ArrowEffect</code>: read options, report, halt</td></tr>
+    <tr><td class="mono">W1</td><td>Parse options framework</td><td><span class="tag done">done</span></td><td><code>ElmParseOptions.elm</code> by default, <code>.lenient</code> for tooling</td></tr>
+    <tr><td class="mono">W2</td><td>Operator fixity and chain resolution</td><td><span class="tag done">done</span></td><td>bundled package tables; <code>ELM-P004</code>, <code>ELM-P005</code></td></tr>
+    <tr><td class="mono">W3</td><td>Operator tokens</td><td><span class="tag done">done</span></td><td>Elm's character set, and the five reserved sequences</td></tr>
+    <tr><td class="mono">W4</td><td>Negation versus subtraction</td><td><span class="tag done">done</span></td><td>landed with the adjacency half of W5, which made the question answerable</td></tr>
+    <tr><td class="mono">W5</td><td>Layout, indentation and token adjacency</td><td><span class="tag open">tail open</span></td><td>adjacency, the column rule and block alignment done; G5 remains</td></tr>
+    <tr><td class="mono">W6</td><td>Lexical conformance</td><td><span class="tag done">done</span></td><td>escapes, <code>\u{XXXX}</code>, triple-quoted strings, numeric bases</td></tr>
+    <tr><td class="mono">W7</td><td>Structural conformance</td><td><span class="tag done">done</span></td><td>closed G1–G4</td></tr>
+    <tr><td class="mono">W8</td><td>Conformance corpus</td><td><span class="tag open">tail open</span></td><td>grammar corpus and node-type coverage done; G7 remains</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Where upstream behaviour is checked</h2>
+<p>Against <code>elm/compiler</code>'s parser rather than intuition:</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Concern</th><th>Source</th></tr></thead>
+  <tbody>
+    <tr><td>Operator characters, reserved sequences</td><td class="mono">compiler/src/Parse/Symbol.hs</td></tr>
+    <tr><td>Negation vs subtraction, flat operator chains</td><td class="mono">compiler/src/Parse/Expression.hs</td></tr>
+    <tr><td>Layout and indentation</td><td class="mono">compiler/src/Parse/Space.hs, Parse/Primitives.hs</td></tr>
+    <tr><td>String and character literals</td><td class="mono">compiler/src/Parse/String.hs</td></tr>
+    <tr><td>Numeric literals</td><td class="mono">compiler/src/Parse/Number.hs</td></tr>
+    <tr><td>Shader blocks</td><td class="mono">compiler/src/Parse/Shader.hs</td></tr>
+    <tr><td>Effect module headers</td><td class="mono">compiler/src/Parse/Module.hs</td></tr>
+    <tr><td>Precedence resolution, tuple arity, conflict wording</td><td class="mono">compiler/src/Canonicalize/Expression.hs, Reporting/Error/Canonicalize.hs</td></tr>
+    <tr><td>Built-in fixities</td><td class="mono">elm/core Basics.elm, List.elm; elm/parser Parser.elm; elm/url Url/Parser.elm</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Two findings that shaped the design</h3>
+<div class="rule-box">
+  <p>
+    Elm parses operator chains <strong>flat</strong> (<code>Src.Binops</code>) and resolves precedence during
+    canonicalisation. The parse-then-reassociate split here matches upstream rather than working around it.
+  </p>
+  <p style="margin-bottom:0">
+    Elm's message for an unresolvable chain is <em>“You cannot mix (op1) and (op2) without parentheses.”</em> The
+    conflict is <strong>equal precedence with either non-associativity or differing associativity</strong> — not
+    merely a non-associative operator used twice.
+  </p>
+</div>
+
+<h2>Diagnostic codes this work introduced</h2>
+<div class="scroll">
+<table>
+  <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">ELM-P004</td><td>Operators of equal precedence that cannot be grouped</td></tr>
+    <tr><td class="mono">ELM-P005</td><td>An operator whose fixity nothing in scope declares</td></tr>
+    <tr><td class="mono">ELM-P006</td><td>A tuple with more than three entries</td></tr>
+  </tbody>
+</table>
+</div>
+
+<footer>
+  Kept beside the module it describes, in
+  <code>morphir/langkit/elm/conformance.html</code>. Editing rules live in
+  <a href="./CONTRIBUTING.md">CONTRIBUTING.md</a>; the tests named above are in
+  <code>core/test/src/morphir/langkit/elm/parser</code> and <code>langkit/itest</code>.
+</footer>
+
+</main>
+</body>
+</html>

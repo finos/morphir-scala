@@ -46,9 +46,8 @@ the parser. `ElmParseOptions.elm` is the default everywhere; `ElmParseOptions.le
 tree out of text that does not compile.
 
 When you find a divergence, the choices are to fix it or to record it as a known one in
-[`.dev/.sdlc/elm-parser-conformance/PLAN.md`](../../../.dev/.sdlc/elm-parser-conformance/PLAN.md) with a test that
-pins the current behaviour and says what Elm does instead. Do not leave it undocumented, and do not "fix" it by
-loosening something else.
+[`conformance.html`](./conformance.html) with a test that pins the current behaviour and says what Elm does instead.
+Do not leave it undocumented, and do not "fix" it by loosening something else.
 
 Upstream behaviour is checked against `elm/compiler`'s parser rather than intuition — `Parse/Symbol.hs` for the
 operator character set and reserved sequences, `Parse/Expression.hs` for negation and flat operator chains,
@@ -91,8 +90,12 @@ problem, `diagnoseCst` / `diagnoseAst` report everything.
 ## Every divergence is written down
 
 Where the parser differs from `elm/compiler`, there is a row in the gap ledger of
-[`.dev/.sdlc/elm-parser-conformance/PLAN.md`](../../../.dev/.sdlc/elm-parser-conformance/PLAN.md) and, wherever the
-divergence can be written as "this valid Elm does not parse", an assertion pinning that in a `KnownGapsSpec`.
+[`conformance.html`](./conformance.html) — the convergence tracker for this module — and, wherever the divergence can
+be written as "this valid Elm does not parse", an assertion pinning that in a `KnownGapsSpec`.
+
+The tracker lives beside the module rather than under `.dev/`, which is gitignored: a ledger nobody else can open is
+not a ledger. It also carries the workstream status, the `elm/compiler` sources each rule was checked against, and
+the diagnostic codes this work introduced.
 
 Closing a gap therefore fails the suite: the pin says the construct is rejected, and it no longer is. That is
 deliberate. A gap cannot be closed without deleting its row and its pin in the same commit, and cannot be forgotten
@@ -117,7 +120,7 @@ ended. That is the difference from an operator chain it can describe and keep go
 
 Expression continuation is still the approximation `sameLineOrIndentedPast`, measured from the expression's first
 token, where Elm threads a real indentation context. It agrees with Elm on everything currently covered; replacing it
-is the open half of W5 in the [conformance plan](../../../.dev/.sdlc/elm-parser-conformance/PLAN.md).
+is G5 in the [conformance tracker](./conformance.html).
 
 ## Tokens know whether they touch
 

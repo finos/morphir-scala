@@ -10,9 +10,9 @@ import morphir.langkit.elm.cst.*
  * Constructs that are structure rather than expression: shader blocks, effect module headers, and the limits Elm puts
  * on a tuple.
  *
- * Each of these was a row in the conformance plan's gap ledger, pinned by an assertion that the construct did *not*
- * parse. Closing them turned those assertions red, which is what the pins are for; the assertions below are what
- * replaced them.
+ * Each of these was a row in the gap ledger of `morphir/langkit/elm/conformance.html`, pinned by an assertion that the
+ * construct did *not* parse. Closing them turned those assertions red, which is what the pins are for; the assertions
+ * below are what replaced them.
  */
 class StructuralSpec extends Test[Any]:
 
