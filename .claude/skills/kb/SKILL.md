@@ -1,9 +1,9 @@
 ---
 name: kb
-description: "Manages the Morphir knowledge base under kb/ — OKF bundles and concept documents. Use when adding content to a bundle, creating a new bundle, checking the knowledge base for conformance or provenance drift, or navigating, searching and listing its bundles and concepts."
+description: "Manages the Morphir knowledge base under kb/ — OKF bundles and concept documents. Use when adding content to a bundle, creating a new bundle, checking the knowledge base for conformance or provenance drift, building or querying its SQLite index, or navigating, searching and listing its bundles, concepts and links."
 allowed-tools: Bash(.claude/skills/kb/kb *), Bash(cat *), Bash(ls *), Bash(find *), Bash(git *), Read, Edit, Write
 metadata:
-  version: 0.1.0
+  version: 0.2.0
 ---
 
 # kb — Morphir Knowledge Base Assistant
@@ -36,6 +36,8 @@ Full flag reference: → [references/commands.md](references/commands.md)
 | `show --path /x.md` | One document: frontmatter, outbound links, heading outline |
 | `search --query X` | Search titles, descriptions, tags and paths; `--body` to include prose |
 | `check` | Conformance and provenance findings; non-zero exit on errors |
+| `index` | Builds the SQLite index; `--status` reports its freshness |
+| `query --sql` | Read-only SQL over that index |
 | `new-bundle` | Scaffolds a bundle with `index.md` and `log.md` |
 | `add-concept` | Scaffolds a concept and wires it into the index and log |
 
@@ -55,6 +57,23 @@ unindexed concepts, frontmatter that does not parse) and provenance drift (commi
 checkout has moved on). Nothing here touches the network.
 
 → [references/checks.md](references/checks.md) for the catalogue and how to fix each finding.
+
+**Searching and locating.** `search` scans the markdown and is always current. For anything heavier — full-text
+search over bodies, "what links here", orphaned concepts, tag or provenance distributions — build the SQLite index
+once and query it.
+
+```bash
+.claude/skills/kb/kb index
+```
+
+```bash
+.claude/skills/kb/kb search --query "entry point" --index
+```
+
+The index is derived state under `.dev/kb/index.db`, gitignored, and rebuilt from the markdown. It has no automatic
+invalidation — `kb index --status` lists files changed since the last build.
+
+→ [references/index-db.md](references/index-db.md) for the schema, the views, and worked queries.
 
 **Finding divergence in the *content*.** `check` finds mechanical inconsistency. Contradictions between what two
 concepts assert — the thing that actually matters in a knowledge base — cannot be detected by a script.
@@ -81,10 +100,12 @@ header; `kb.scala` is the entry point and names the others in `moduleDeps`.
 | `KbStore.scala` | Loading and parsing: frontmatter via SnakeYAML, bodies via commonmark-java |
 | `KbCheck.scala` | The check catalogue |
 | `KbScaffold.scala` | Bundle and concept creation, index and log editing |
+| `KbIndex.scala` | SQLite schema, index build, and query surface |
 | `KbRender.scala` | Text and JSON rendering |
 
 kyo is the standard library here: `kyo.Path` for paths and file access, `kyo.Command` for subprocesses, kyo-case-app
-for the CLI. Build state lands in `out/`, which is gitignored.
+for the CLI. JDBC sits inside `Sync.defer` at the edge, as everything else effectful does. Build state lands in
+`out/`, which is gitignored.
 
 Compile without running:
 

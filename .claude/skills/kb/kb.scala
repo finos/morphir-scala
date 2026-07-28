@@ -1,6 +1,6 @@
 //| scalaVersion: 3.8.4
 //| mainClass: KbApp
-//| moduleDeps: [KbCheck.scala, KbScaffold.scala, KbRender.scala]
+//| moduleDeps: [KbCheck.scala, KbScaffold.scala, KbRender.scala, KbIndex.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-case-app:1.0.0-RC5
 
@@ -50,7 +50,10 @@ case class SearchOpts(
     @HelpMessage("Filter by frontmatter type") `type`: Option[String] = None,
     @HelpMessage("Filter by tag (repeatable)") tag: List[String] = Nil,
     @HelpMessage("Filter by status") status: Option[String] = None,
-    @HelpMessage("Restrict to one bundle") bundle: Option[String] = None
+    @HelpMessage("Restrict to one bundle") bundle: Option[String] = None,
+    @HelpMessage("Use the SQLite index for full-text search — faster, and ranks by relevance") index: Boolean = false,
+    @HelpMessage("Row limit when using --index") limit: Int = 20,
+    @HelpMessage("Index database path (default: <repo>/.dev/kb/index.db)") db: Option[String] = None
 )
 
 case class CheckOpts(
@@ -60,6 +63,18 @@ case class CheckOpts(
     @HelpMessage("Include info-level findings") verbose: Boolean = false,
     @HelpMessage("Exit non-zero when warnings are present, not just errors") strict: Boolean = false,
     @HelpMessage("Write the report here instead of stdout (convention: under .dev/)") out: Option[String] = None
+)
+
+case class IndexOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("Database path (default: <repo>/.dev/kb/index.db)") db: Option[String] = None,
+    @HelpMessage("Report the index's freshness instead of rebuilding it") status: Boolean = false
+)
+
+case class QueryOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("SQL to run. Read-only: SELECT, WITH, PRAGMA or EXPLAIN") sql: String,
+    @HelpMessage("Database path (default: <repo>/.dev/kb/index.db)") db: Option[String] = None
 )
 
 case class NewBundleOpts(
@@ -116,6 +131,13 @@ object KbCli:
             }
         climb(workspace.parts.toSeq)
 
+  /** The index is derived state, so it lives under `.dev/` with the rest of the tooling output. */
+  def defaultDb(kbRoot: Path): Path =
+    Path((kbRoot.parts.dropRight(1) ++ Seq(".dev", "kb", "index.db"))*)
+
+  def dbPath(explicit: Option[String], kbRoot: Path): Path =
+    explicit.map(at).getOrElse(defaultDb(kbRoot))
+
   def today(explicit: Option[String]): LocalDate =
     explicit.map(LocalDate.parse).getOrElse(LocalDate.now())
 
@@ -149,7 +171,7 @@ object KbCli:
 
 object KbApp extends CommandsEntryPoint:
   override def progName: String = "kb"
-  def commands = Seq(ListCmd, ShowCmd, SearchCmd, CheckCmd, NewBundleCmd, AddConceptCmd)
+  def commands = Seq(ListCmd, ShowCmd, SearchCmd, CheckCmd, IndexCmd, QueryCmd, NewBundleCmd, AddConceptCmd)
 
   object ListCmd extends KyoCommand[ListOpts]:
     override def name = "list"
@@ -179,8 +201,66 @@ object KbApp extends CommandsEntryPoint:
     run { (o: SearchOpts) =>
       for
         root <- KbCli.resolveKb(o.common.kb)
+        _ <-
+          if o.index then
+            o.query match
+              case None => KbCli.fail("--index needs --query")
+              case Some(q) =>
+                KbIndex.search(KbCli.dbPath(o.db, root), q, o.limit).map {
+                  case Left(err) => KbCli.fail(err)
+                  case Right(rows) => Console.print(KbIndex.renderRows(rows, o.common.json))
+                }
+          else
+            KbStore.load(root).map { kb =>
+              Console.print(KbRender.search(kb, o.query, o.body, o.`type`, o.tag, o.status, o.bundle, o.common.json))
+            }
+      yield ()
+    }
+
+  object IndexCmd extends KyoCommand[IndexOpts]:
+    override def name = "index"
+    run { (o: IndexOpts) =>
+      for
+        root <- KbCli.resolveKb(o.common.kb)
         kb <- KbStore.load(root)
-        _ <- Console.print(KbRender.search(kb, o.query, o.body, o.`type`, o.tag, o.status, o.bundle, o.common.json))
+        db = KbCli.dbPath(o.db, root)
+        _ <-
+          if o.status then
+            KbIndex.status(db, kb).map {
+              case Left(err) => KbCli.fail(err)
+              case Right((builtAt, docs, stale)) =>
+                if o.common.json then
+                  Console.print(ujson.write(
+                    ujson.Obj(
+                      "db" -> KbPath.render(db),
+                      "builtAt" -> builtAt,
+                      "docs" -> docs,
+                      "staleCount" -> stale.size,
+                      "stale" -> ujson.Arr.from(stale.map(ujson.Str(_)))
+                    ),
+                    indent = 2
+                  ) + "\n")
+                else
+                  val head = s"index ${KbPath.render(db)}\n  built $builtAt over $docs doc(s)\n"
+                  val tail =
+                    if stale.isEmpty then "  up to date\n"
+                    else s"  ${stale.size} file(s) changed since — rerun `kb index`\n" + stale.map("    " + _ + "\n").mkString
+                  Console.print(head + tail)
+            }
+          else
+            KbIndex.build(kb, db).map(s => Console.print(KbIndex.renderStats(s, db, o.common.json)))
+      yield ()
+    }
+
+  object QueryCmd extends KyoCommand[QueryOpts]:
+    override def name = "query"
+    run { (o: QueryOpts) =>
+      for
+        root <- KbCli.resolveKb(o.common.kb)
+        res <- KbIndex.query(KbCli.dbPath(o.db, root), o.sql)
+        _ <- res match
+          case Left(err) => KbCli.fail(err)
+          case Right(rows) => Console.print(KbIndex.renderRows(rows, o.common.json))
       yield ()
     }
 

@@ -53,6 +53,9 @@ One document: frontmatter, outbound links, heading outline.
 | `--tag <t>` | Filter by tag; repeatable, all must match |
 | `--status <s>` | Filter by `status` |
 | `--bundle <b>` | Restrict to one bundle |
+| `--index` | Search through the SQLite index (FTS5) instead of scanning — bodies included, ranked by relevance |
+| `--limit <n>` | Row cap when using `--index` (default 20) |
+| `--db <path>` | Index location (default `<repo>/.dev/kb/index.db`) |
 
 Filters combine, and any of them works without `--query` — `--status draft` alone lists every draft concept.
 
@@ -87,6 +90,42 @@ Runs every check and exits non-zero when there are errors.
 ```
 
 → [checks.md](checks.md) for what each finding means.
+
+---
+
+## `index`
+
+Builds the SQLite index over the knowledge base.
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--status` | Report when the index was built and which files changed since, instead of rebuilding |
+| `--db <path>` | Database location (default `<repo>/.dev/kb/index.db`) |
+
+```bash
+.claude/skills/kb/kb index
+```
+
+```bash
+.claude/skills/kb/kb index --status
+```
+
+→ [index-db.md](index-db.md) for the schema and worked queries.
+
+---
+
+## `query`
+
+Read-only SQL over the index.
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--sql <sql>` | Required. `SELECT`, `WITH`, `PRAGMA` or `EXPLAIN`; anything else is refused |
+| `--db <path>` | Database location |
+
+```bash
+.claude/skills/kb/kb query --sql "SELECT type, count(*) FROM v_concept GROUP BY type ORDER BY 2 DESC"
+```
 
 ---
 
