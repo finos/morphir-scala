@@ -3,7 +3,7 @@ name: kb
 description: "Manages the Morphir knowledge base under kb/ — OKF bundles and concept documents. Use when adding content to a bundle, creating a new bundle, checking the knowledge base for conformance or provenance drift, building or querying its SQLite index, managing intent through its lifecycle, or navigating, searching and listing its bundles, concepts and links."
 allowed-tools: Bash(.claude/skills/kb/kb *), Bash(cat *), Bash(ls *), Bash(find *), Bash(git *), Read, Edit, Write
 metadata:
-  version: 0.5.0
+  version: 0.6.0
 ---
 
 # kb — Morphir Knowledge Base Assistant
@@ -122,6 +122,7 @@ header; `kb.scala` is the entry point and names the others in `moduleDeps`.
 | `KbRefresh.scala` | Reconciling derived state — index bullets and the database |
 | `KbIntent.scala` | Intent model, lifecycle states, kinds and checks |
 | `KbIntentEdit.scala` | Creating intent, transitions, generated intent index |
+| `KbTests.scala` | The test suite — run it with `mise run kb:test` |
 | `KbRender.scala` | Text and JSON rendering |
 
 kyo is the standard library here: `kyo.Path` for paths and file access, `kyo.Command` for subprocesses, kyo-case-app
@@ -133,6 +134,16 @@ Compile without running:
 ```bash
 .claude/skills/kb/mill compile kb.scala
 ```
+
+Run the tests:
+
+```bash
+mise run kb:test
+```
+
+`KbTests.scala` is a plain executable with a small harness, not munit or kyo-test — Mill's script mode exposes no
+test module, so `mill test <script>` does not resolve. It exits non-zero on failure and runs in CI. Cases named
+*regression* pin behaviour that was once wrong; add one whenever a bug is found rather than only fixing it.
 
 One caveat worth knowing if you extend the scripts: inside Mill's script sandbox, `os.Path` values built from an
 environment variable and those returned by `os.list` can render identically yet compare unequal. `kyo.Path` is a

@@ -72,6 +72,8 @@ jobs:
       # The kb skill is a self-contained Mill script; it needs a JVM and nothing else.
       # Provenance checks are skipped: they compare against reference checkouts under
       # .refs/, which is gitignored and therefore absent on a runner.
+      - name: Test the kb skill
+        run: .claude/skills/kb/mill --ticker false KbTests.scala
       - name: Check knowledge base and intent
         run: |
           .claude/skills/kb/kb check --no-provenance

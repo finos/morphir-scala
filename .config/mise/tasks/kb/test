@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# MISE description="Run the kb and intent skill test suite"
+
+set -e
+
+echo "Running kb skill tests..."
+
+# Mill's single-file script mode exposes no test module, so the suite is an executable
+# that exits non-zero on failure. See .claude/skills/kb/KbTests.scala.
+cd .claude/skills/kb
+exec ./mill --ticker false KbTests.scala
