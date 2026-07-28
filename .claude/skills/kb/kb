@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# kb — knowledge base management for the Morphir knowledge base under kb/.
+#
+# Thin wrapper over Mill's single-file scripting. Mill resolves dependencies and compiles kb.scala on first run;
+# subsequent runs are incremental. Progress output goes to stderr, so `--json` on stdout stays clean and pipeable.
+set -euo pipefail
+DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$DIR"
+exec "$DIR/mill" --ticker false kb.scala "$@"

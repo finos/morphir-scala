@@ -1,0 +1,12 @@
+# kyo-test discovers suites through this ServiceLoader registry and nowhere else — its CLI runner takes no suite
+# arguments. A suite missing from this list does not fail; it silently never runs.
+#
+# KbMetaSpec asserts that this file and the classes in KbTests.scala agree, so the omission is caught rather than
+# quietly tolerated. Add the suite here when you add it there.
+KbParsingSpec
+KbPathsSpec
+KbScaffoldSpec
+KbIntentSpec
+KbCheckSpec
+KbIndexSpec
+KbMetaSpec

@@ -10,6 +10,12 @@ categories:
     label: 'type: feature'
   - title: 'Bug Fixes'
     label: 'type: bug'
+  - title: 'Performance'
+    label: 'type: performance'
+  - title: 'Security'
+    label: 'type: security'
+  - title: 'Deprecations'
+    label: 'type: deprecation'
   - title: 'Maintenance'
     label: 'type: maintenance'
   - title: 'Documentation'
@@ -24,13 +30,15 @@ version-resolver:
   minor:
     labels:
       - 'type: feature'
+      - 'type: deprecation'
   patch:
     labels:
       - 'type: bug'
       - 'type: maintenance'
+      - 'type: performance'
+      - 'type: security'
       - 'type: docs'
       - 'type: dependencies'
-      - 'type: security'
 
 exclude-labels:
   - 'skip-changelog'

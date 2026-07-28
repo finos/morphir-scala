@@ -82,8 +82,13 @@ morphir-scala/
 │   ├── runtime/             # Morphir runtime
 │   ├── testing/             # Testing utilities
 │   └── tools/               # CLI and tooling
+├── kb/                      # Knowledge base root
+│   └── bundles/             # Open Knowledge Format (OKF) knowledge bundles
 └── .config/mise/            # Mise task definitions
 ```
+
+Knowledge bundles under `kb/bundles/` follow the [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md);
+see [kb/AGENTS.md](./kb/AGENTS.md) before authoring or editing one.
 
 Modules are configured per-directory in `package.mill.yaml` files. YAML is the default; a `.mill` file is the escape
 hatch for what YAML cannot express (currently only `Cross[...]` declarations, in `morphir/build/package.mill`).
