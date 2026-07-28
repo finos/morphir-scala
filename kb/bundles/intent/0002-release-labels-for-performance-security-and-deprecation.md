@@ -28,3 +28,14 @@ event; the other two resolve to patch.
 
 Kind stays the intent-side vocabulary and the label stays the PR-side one; they are kept in step deliberately rather
 than one deriving the other.
+
+## What this turned up
+
+The three new labels were the smaller half. Of the nine `type:` labels `release-drafter.yml` referenced, only
+`type: dependencies` actually existed in the repository — `feature`, `bug`, `breaking`, `maintenance` and `docs` had
+never been created. Release-note categorisation and semver resolution had therefore been largely inert, with every
+pull request except dependency updates falling through uncategorised.
+
+All eight missing labels were created. The repository's default labels (`bug`, `enhancement`, `documentation`)
+overlap in meaning but are not what the configuration reads; reconciling or retiring them is a separate call for
+maintainers.

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# MISE description="Check the knowledge base and its intent records"
+
+set -e
+
+echo "Checking the knowledge base..."
+
+# Conformance and provenance. Warnings are advisory by design — only errors fail.
+.claude/skills/kb/kb check
+
+echo ""
+echo "Checking intent..."
+
+# State obligations are errors; staleness is a warning. See docs/adr/0001.
+# Absent an intent bundle this exits non-zero, which is correct for this repo and
+# would be wrong for a repo that has none — hence the explicit guard.
+if grep -rlq '^intent: true' kb/bundles/*/index.md kb/bundles/*/*/index.md 2>/dev/null; then
+  .claude/skills/kb/kb intent check
+else
+  echo "  no intent bundle — skipping"
+fi
