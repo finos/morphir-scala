@@ -99,9 +99,16 @@ object KbScaffold:
       generatedBy: Option[String],
       today: LocalDate
   ): Either[String, ScaffoldResult] < (Sync & Abort[Throwable]) =
-    val relSegs = (if relPath.endsWith(".md") then relPath else relPath + ".md").split('/').filter(_.nonEmpty).toSeq
-    val leaf = relSegs.last
-    if leaf == "index.md" || leaf == "log.md" then
+    val raw = if relPath.endsWith(".md") then relPath else relPath + ".md"
+    val relSegs = raw.split('/').filter(_.nonEmpty).toSeq
+    val leaf = relSegs.lastOption.getOrElse("")
+    // A concept path names a location *inside* the bundle. Without this, `--path ../escaped.md` writes outside it
+    // while still adding a bundle-relative index entry pointing at nothing.
+    if raw.startsWith("/") || relSegs.exists(seg => seg == ".." || seg == ".") then
+      (Left(s"`$relPath` must stay inside the bundle — no leading /, `.` or `..` segments"): Either[String, ScaffoldResult] < (Sync & Abort[Throwable]))
+    else if relSegs.isEmpty then
+      (Left("give a path within the bundle"): Either[String, ScaffoldResult] < (Sync & Abort[Throwable]))
+    else if leaf == "index.md" || leaf == "log.md" then
       (Left(s"$leaf is a reserved OKF filename"): Either[String, ScaffoldResult] < (Sync & Abort[Throwable]))
     else
       val target = relSegs.foldLeft(bundle.root)(_ / _)

@@ -37,9 +37,14 @@ object KbCheck:
   private val GitHubUrl = raw"https://github\.com/([^/]+)/([^/]+)/(?:blob|tree)/([0-9a-f]{7,40})/(.*)".r
 
   /** Runs every check. `today` is injected so results are reproducible. */
-  def run(kb: Kb, refsRoot: Option[Path], today: LocalDate): Seq[Finding] < (Async & Abort[Throwable]) =
+  def run(
+      kb: Kb,
+      refsRoot: Option[Path],
+      today: LocalDate,
+      allowDangling: Boolean = false
+  ): Seq[Finding] < (Async & Abort[Throwable]) =
     for
-      structural <- Kyo.foreach(kb.bundles)(bundleFindings(kb, _, today))
+      structural <- Kyo.foreach(kb.bundles)(bundleFindings(kb, _, today, allowDangling))
       provenance <- refsRoot match
         case None => (Chunk.empty[Chunk[Finding]]: Chunk[Chunk[Finding]] < (Async & Abort[Throwable]))
         case Some(r) => Kyo.foreach(kb.concepts)((_, d) => sourceFindings(kb, d, r))
@@ -57,14 +62,14 @@ object KbCheck:
       (structural.flatten.toSeq ++ strays ++ provenance.flatten.toSeq)
         .sortBy(f => (f.severity.ordinal, f.path, f.line.getOrElse(0)))
 
-  private def bundleFindings(kb: Kb, b: Bundle, today: LocalDate): Chunk[Finding] < (Sync & Abort[Throwable]) =
-    Kyo.foreach(b.allDocs)(docFindings(kb, b, _, today)).map { perDoc =>
+  private def bundleFindings(kb: Kb, b: Bundle, today: LocalDate, allowDangling: Boolean): Chunk[Finding] < (Sync & Abort[Throwable]) =
+    Kyo.foreach(b.allDocs)(docFindings(kb, b, _, today, allowDangling)).map { perDoc =>
       Chunk.from(perDoc.flatten) ++
         Chunk.from(indexCoverage(kb, b) ++ indexDescriptions(kb, b) ++ duplicateTitles(kb, b) ++ readmeInBundle(kb, b))
     }
 
-  private def docFindings(kb: Kb, b: Bundle, d: Doc, today: LocalDate): Chunk[Finding] < (Sync & Abort[Throwable]) =
-    linkFindings(kb, d).map(links => Chunk.from(pureDocFindings(kb, d, today)) ++ links)
+  private def docFindings(kb: Kb, b: Bundle, d: Doc, today: LocalDate, allowDangling: Boolean): Chunk[Finding] < (Sync & Abort[Throwable]) =
+    linkFindings(kb, d, allowDangling).map(links => Chunk.from(pureDocFindings(kb, d, today)) ++ links)
 
   /** Everything about a document that can be decided without touching the filesystem. */
   def pureDocFindings(kb: Kb, d: Doc, today: LocalDate): Seq[Finding] =
@@ -125,14 +130,18 @@ object KbCheck:
   private def parseDate(s: String): Option[LocalDate] =
     try Some(LocalDate.parse(s.trim)) catch case _: Exception => None
 
-  private def linkFindings(kb: Kb, d: Doc): Chunk[Finding] < (Sync & Abort[Throwable]) =
+  /** OKF says *consumers* must tolerate dangling links as not-yet-written knowledge. This is a producer-side
+    * linter, where a dangling link is nearly always a typo — so it is an error by default. `allowDangling` restores
+    * OKF's lenient stance for a knowledge base that genuinely links forward to unwritten work.
+    */
+  private def linkFindings(kb: Kb, d: Doc, allowDangling: Boolean): Chunk[Finding] < (Sync & Abort[Throwable]) =
     val resolvable = d.links.flatMap(l => KbStore.resolveLink(d, l).map(l -> _))
     Kyo.foreach(Chunk.from(resolvable)) { (link, target) =>
       target.exists.map {
         case true => Chunk.empty[Finding]
         case false =>
           Chunk(Finding(
-            Severity.Error,
+            if allowDangling then Severity.Warn else Severity.Error,
             "link-broken",
             kb.rel(d.file),
             Some(link.line),

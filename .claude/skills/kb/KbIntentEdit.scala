@@ -32,8 +32,10 @@ object KbIntentEdit:
             val idx = out.indexWhere(l => l.startsWith(s"$key:"))
             (idx, value) match
               case (-1, Some(v)) =>
-                // Append after the last top-level scalar so new keys do not land inside a nested block.
-                val at = out.lastIndexWhere(l => l.nonEmpty && !l.startsWith(" ") && !l.startsWith("-")) + 1
+                // Append at the very end. Anchoring on "the last top-level line" looked tidier but was wrong: when
+                // frontmatter ends in a block such as `sources:`, that line *is* the block header, and the new key
+                // landed between it and its indented children — corrupting the YAML and the provenance with it.
+                val at = out.lastIndexWhere(_.trim.nonEmpty) + 1
                 out = out.take(at) ++ Vector(s"$key: $v") ++ out.drop(at)
               case (-1, None) => ()
               case (i, Some(v)) => out = out.updated(i, s"$key: $v")

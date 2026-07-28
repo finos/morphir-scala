@@ -107,8 +107,12 @@ Actor strings follow a fixed convention: `<producer>/<version>` for agents, `hum
   moves better than relative paths, which are also permitted. Absolute URLs are fine for external material.
 - The meaning of a link — dependency, inheritance, join, "see also" — comes from the surrounding prose, not from the
   link itself. Say what the relationship is.
-- Broken links are legitimate: they mark not-yet-written knowledge. Do not delete a link merely because its target
-  does not exist yet, and do not treat one as a failure when consuming a bundle.
+- Broken links are legitimate *to a consumer*: they mark not-yet-written knowledge, and nothing reading a bundle
+  should fail because of one. Do not delete a link merely because its target does not exist yet.
+- `kb check` is a producer-side linter, not a consumer, and it reports a dangling link as an **error** — inside one
+  repository it is nearly always a typo, and the cost of the occasional false positive is lower than the cost of
+  silent rot. Pass `--allow-dangling` to restore OKF's lenient stance where a knowledge base genuinely links forward
+  to unwritten work.
 
 ## Index files
 

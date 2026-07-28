@@ -23,10 +23,13 @@ Exit code is non-zero when there is at least one error, or with `--strict`, at l
 | `readme-in-bundle` | A `README.md` sits inside a bundle, where it parses as a concept | Move its content into `index.md`. `README.md` belongs to grouping directories |
 | `stray-markdown` | A `.md` file under `bundles/` belongs to no bundle | Either its directory is missing `okf_version` in `index.md`, or the file is misplaced |
 
-A broken link is an error rather than a warning here even though OKF treats dangling links as "not-yet-written
-knowledge". Within one repository a dangling link is nearly always a typo, and the cost of the occasional false
-positive is lower than the cost of silent rot. If you genuinely mean to point at something unwritten, say so in prose
-instead of linking.
+A broken link is an error here even though OKF treats dangling links as "not-yet-written knowledge" — because OKF is
+describing *consumers*, and this is a producer-side linter. Nothing reading a bundle should fail on a dangling link;
+a linter may still complain about one. Within a single repository a dangling link is nearly always a typo, and the
+cost of the occasional false positive is lower than the cost of silent rot.
+
+Where a knowledge base genuinely links forward to unwritten work, `kb check --allow-dangling` downgrades it to a
+warning. Otherwise, if you mean to point at something unwritten, say so in prose rather than linking.
 
 ---
 

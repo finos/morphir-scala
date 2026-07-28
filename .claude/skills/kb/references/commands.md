@@ -77,6 +77,7 @@ Runs every check and exits non-zero when there are errors.
 | ---- | ------- |
 | `--verbose` | Include info-level findings |
 | `--strict` | Exit non-zero on warnings too |
+| `--allow-dangling` | Dangling links become warnings — OKF's stance that they mark not-yet-written knowledge |
 | `--refs <path>` | Reference checkout root (default `<repo>/.refs`) |
 | `--no-provenance` | Skip the `.refs/` comparison entirely |
 | `--out <path>` | Write the report to a file instead of stdout. Put these under `.dev/` |

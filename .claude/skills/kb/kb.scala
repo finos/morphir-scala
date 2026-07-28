@@ -62,6 +62,7 @@ case class CheckOpts(
     @HelpMessage("Skip provenance checks against .refs/") noProvenance: Boolean = false,
     @HelpMessage("Include info-level findings") verbose: Boolean = false,
     @HelpMessage("Exit non-zero when warnings are present, not just errors") strict: Boolean = false,
+    @HelpMessage("Report dangling links as warnings — OKF's stance that they mark not-yet-written knowledge") allowDangling: Boolean = false,
     @HelpMessage("Write the report here instead of stdout (convention: under .dev/)") out: Option[String] = None
 )
 
@@ -481,7 +482,7 @@ object KbApp extends CommandsEntryPoint:
         kb <- KbStore.load(root)
         refsCandidate = o.refs.map(KbCli.at).getOrElse(Path((root.parts.dropRight(1) :+ ".refs")*))
         refsPresent <- if o.noProvenance then (false: Boolean < (Sync & Abort[Throwable])) else refsCandidate.exists
-        findings <- KbCheck.run(kb, Option.when(refsPresent)(refsCandidate), LocalDate.now())
+        findings <- KbCheck.run(kb, Option.when(refsPresent)(refsCandidate), LocalDate.now(), o.allowDangling)
         text = if o.common.json then KbCheck.renderJson(findings) else KbCheck.renderText(findings, o.verbose)
         _ <- KbCli.emit(text, o.out)
         errs = findings.count(_.severity == Severity.Error)

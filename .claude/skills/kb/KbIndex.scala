@@ -436,10 +436,26 @@ object KbIndex:
             catch case _: Exception => None
             finally conn.close()
           }
+          indexed <- Sync.defer {
+            val conn = connect(db)
+            try
+              val rs = conn.createStatement().executeQuery("SELECT count(*) FROM doc")
+              if rs.next() then Some(rs.getInt(1)) else None
+            catch case _: Exception => None
+            finally conn.close()
+          }
           stale <- staleFiles(kb, built.map(Instant.parse))
-        yield built match
-          case None => Left("index has no built_at — rebuild it")
-          case Some(b) => Right((b, kb.bundles.map(_.allDocs.size).sum, stale))
+        yield
+          val current = kb.bundles.map(_.allDocs.size).sum
+          // Modification times only speak for files that still exist. A deleted document leaves no mtime to compare,
+          // so without a count check the index would keep serving it as though it were still there.
+          val counts = indexed.filterNot(_ == current).toSeq.map { n =>
+            val verb = if n > current then s"${n - current} document(s) removed since" else s"${current - n} document(s) added since"
+            s"($verb the build)"
+          }
+          built match
+            case None => Left("index has no built_at — rebuild it")
+            case Some(b) => Right((b, current, stale ++ counts))
     }
 
   private def staleFiles(kb: Kb, builtAt: Option[Instant]): Seq[String] < (Sync & Abort[Throwable]) =
