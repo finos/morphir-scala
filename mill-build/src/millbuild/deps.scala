@@ -192,8 +192,8 @@ object Versions {
 
   val enumeratum = "1.9.7"
 
-  def borer(scalaVersion: String): String           = "1.16.2"
-  def borer(scalaVersionParts: Seq[String]): String = "1.16.2"
+  def borer(scalaVersion: String): String           = "1.17.0"
+  def borer(scalaVersionParts: Seq[String]): String = "1.17.0"
 
   val `buffer-and-slice` = "1.64.0"
 
