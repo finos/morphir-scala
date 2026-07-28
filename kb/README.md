@@ -39,10 +39,13 @@ under `bundles/` or be grouped one level deeper by subject.
 | [`morphir/morphir-ir-v3`](./bundles/morphir/morphir-ir-v3/) | The Morphir Intermediate Representation at format version 3 — the current, active IR format. |
 | [`morphir/morphir-ir-v4-draft`](./bundles/morphir/morphir-ir-v4-draft/) | The draft specification for Morphir IR format version 4 — not yet active and subject to change. |
 | [`morphir/morphir-configuration`](./bundles/morphir/morphir-configuration/) | The `morphir.toml` workspace and project configuration format, and how layered configuration sources merge. |
+| [`intent`](./bundles/intent/) | Work this project means to do, is doing, or has done — with the reasoning behind it. |
+| [`morphir/morphir-scala`](./bundles/morphir/morphir-scala/) | What morphir-scala does today — the Scala bindings, JVM tooling and build for Morphir. |
 | [`morphir/morphir-elm`](./bundles/morphir/morphir-elm/) | The Elm implementation of Morphir — the reference producer and consumer of IR format version 3. |
 
-See [bundles/morphir/README.md](./bundles/morphir/README.md) for how those three relate and which upstream sources
-each may draw on.
+The `morphir/` bundles are grouped — see [bundles/morphir/README.md](./bundles/morphir/README.md) for how they
+relate and which upstream sources each may draw on. `intent` sits at the top level because it is about this
+repository's work rather than about Morphir.
 
 ## Working in this directory
 

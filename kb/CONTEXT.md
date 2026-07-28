@@ -32,8 +32,8 @@ An Intent being specified — the design is under discussion and not yet settled
 An Intent whose design is settled and which is actively being built.
 
 **Released**:
-A terminal Intent State: the work shipped. Requires a link to the Capability it produced, so the knowledge base
-always learns what changed.
+A terminal Intent State: the work shipped. User-visible Kinds require a link to the Capability produced, so the
+knowledge base always learns what changed; internal Kinds may release without one.
 
 **Cancelled**:
 A terminal Intent State: the project decided not to do the work. Requires a reason.

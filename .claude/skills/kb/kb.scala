@@ -1,6 +1,6 @@
 //| scalaVersion: 3.8.4
 //| mainClass: KbApp
-//| moduleDeps: [KbCheck.scala, KbScaffold.scala, KbRender.scala, KbIndex.scala, KbRefresh.scala]
+//| moduleDeps: [KbCheck.scala, KbScaffold.scala, KbRender.scala, KbIndex.scala, KbRefresh.scala, KbIntentEdit.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-case-app:1.0.0-RC5
 
@@ -132,6 +132,78 @@ case class AddConceptOpts(
     @HelpMessage("Override today's date (YYYY-MM-DD)") date: Option[String] = None
 )
 
+// ---------------------------------------------------------------- intent opts
+
+case class IntentInitOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("Bundle name under bundles/") name: String = "intent",
+    @HelpMessage("Package URL identifying the system, e.g. pkg:maven/org.finos.morphir/morphir-core") system: Option[String] = None,
+    @HelpMessage("Bundle label holding capabilities, e.g. morphir/morphir-scala") capabilityBundle: Option[String] = None,
+    @HelpMessage("Days before an active intent is reported stale") staleAfterDays: Int = 60,
+    @HelpMessage("Override today's date (YYYY-MM-DD)") date: Option[String] = None
+)
+
+case class IntentNewOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("What the work is") title: String,
+    @HelpMessage("One sentence — also the index entry") description: String,
+    @HelpMessage("feature, bug, performance, security, deprecation, removal, refactor, docs, test, build, spike") kind: String,
+    @HelpMessage("Marks a compatibility break — orthogonal to kind") breaking: Boolean = false,
+    @HelpMessage("GitHub issue number this came from") issue: Option[String] = None,
+    @HelpMessage("Tag (repeatable)") tag: List[String] = Nil,
+    @HelpMessage("Override today's date (YYYY-MM-DD)") date: Option[String] = None
+)
+
+case class IntentListOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("Filter by state") state: Option[String] = None,
+    @HelpMessage("Filter by kind") kind: Option[String] = None,
+    @HelpMessage("Only breaking intent") breaking: Boolean = false,
+    @HelpMessage("Only open intent — excludes Released, Cancelled, Superseded") open: Boolean = false,
+    @HelpMessage("Only user-visible kinds, as release notes would show") userVisible: Boolean = false
+)
+
+case class IntentShowOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("Intent id or slug, e.g. 0007") id: Option[String] = None
+)
+
+case class IntentCheckOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("Exit non-zero on warnings too") strict: Boolean = false,
+    @HelpMessage("Override today's date (YYYY-MM-DD)") date: Option[String] = None
+)
+
+/** Obligation-free transitions: refine, start, and the generic escape hatch. */
+case class IntentMoveOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("Intent id or slug") id: Option[String] = None,
+    @HelpMessage("Target state (move only)") state: Option[String] = None,
+    @HelpMessage("Override today's date (YYYY-MM-DD)") date: Option[String] = None
+)
+
+case class IntentReleaseOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("Intent id or slug") id: Option[String] = None,
+    @HelpMessage("Capability this produced, as bundle-label:/path.md") capability: Option[String] = None,
+    @HelpMessage("Package URL of a shipped artifact (repeatable)") artifact: List[String] = Nil,
+    @HelpMessage("Override today's date (YYYY-MM-DD)") date: Option[String] = None
+)
+
+case class IntentCancelOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("Intent id or slug") id: Option[String] = None,
+    @HelpMessage("Why the work is not being done") reason: Option[String] = None,
+    @HelpMessage("Override today's date (YYYY-MM-DD)") date: Option[String] = None
+)
+
+case class IntentSupersedeOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("Intent id or slug") id: Option[String] = None,
+    @HelpMessage("Intent id that replaces it") by: Option[String] = None,
+    @HelpMessage("Override today's date (YYYY-MM-DD)") date: Option[String] = None
+)
+
 // -------------------------------------------------------------------- shared
 
 object KbCli:
@@ -218,6 +290,49 @@ object KbCli:
       _ <- Console.print(KbRefresh.render(md ++ dbActions, dryRun, json))
     yield ()
 
+  /** Loads the kb and locates the intent bundle, failing with guidance when there is none. */
+  def withIntent[A](kbOpt: Option[String])(f: (Kb, Bundle) => A < (Sync & Abort[Throwable])): A < (Sync & Abort[Throwable]) =
+    for
+      root <- resolveKb(kbOpt)
+      kb <- KbStore.load(root)
+      out <- KbIntent.findBundle(kb) match
+        case Some(b) => f(kb, b)
+        case None =>
+          Abort.fail(RuntimeException(
+            "no intent bundle — no bundle index declares `intent: true`. Run `kb intent init` to scaffold one."
+          ))
+    yield out
+
+  /** Intent ids read better as positionals (`kb intent start 0007`) than as `--id`. */
+  def intentId(flag: Option[String], rest: caseapp.RemainingArgs): Option[String] =
+    flag.orElse(rest.remaining.headOption).map(_.trim).filter(_.nonEmpty)
+
+  def runTransition(
+      kbOpt: Option[String],
+      json: Boolean,
+      id: String,
+      dateOpt: Option[String]
+  )(build: Intent => KbIntentEdit.Transition): Unit < (Sync & Abort[Throwable]) =
+    withIntent(kbOpt) { (kb, b) =>
+      KbIntent.find(b, id) match
+        case None => fail(s"no intent `$id` in ${b.label}")
+        case Some(i) =>
+          val t = build(i)
+          KbIntentEdit.transition(kb, b, i, t, today(dateOpt)).map {
+            case Left(err) => fail(err)
+            case Right(file) =>
+              if json then
+                Console.print(ujson.write(
+                  ujson.Obj("id" -> i.id, "state" -> t.to.toString, "file" -> KbPath.render(file)),
+                  indent = 2
+                ) + "\n")
+              else
+                Console.printLine(s"intent ${i.id} → ${t.to}")
+                  .andThen(Console.printLine(s"  ${kb.rel(file)}"))
+                  .andThen(Console.printLine("  run `kb refresh` to regenerate the intent index"))
+          }
+    }
+
   /** Reports the error and exits non-zero, rather than dumping a kyo stack trace at the user. */
   def fail(msg: String): Unit < Sync =
     Sync.defer {
@@ -230,7 +345,10 @@ object KbCli:
 object KbApp extends CommandsEntryPoint:
   override def progName: String = "kb"
   def commands =
-    Seq(ListCmd, ShowCmd, SearchCmd, CheckCmd, IndexCmd, RefreshCmd, RefreshMarkdownCmd, RefreshDbCmd, QueryCmd, NewBundleCmd, AddConceptCmd)
+    Seq(ListCmd, ShowCmd, SearchCmd, CheckCmd, IndexCmd, RefreshCmd, RefreshMarkdownCmd, RefreshDbCmd, QueryCmd,
+      NewBundleCmd, AddConceptCmd,
+      IntentInitCmd, IntentNewCmd, IntentListCmd, IntentShowCmd, IntentCheckCmd,
+      IntentRefineCmd, IntentStartCmd, IntentMoveCmd, IntentReleaseCmd, IntentCancelCmd, IntentSupersedeCmd)
 
   object ListCmd extends KyoCommand[ListOpts]:
     override def name = "list"
@@ -410,4 +528,154 @@ object KbApp extends CommandsEntryPoint:
           case Left(err) => KbCli.fail(err)
           case Right(r) => Console.print(KbRender.scaffold(r, o.common.json))
       yield ()
+    }
+
+  // ------------------------------------------------------------------ intent
+
+  object IntentInitCmd extends KyoCommand[IntentInitOpts]:
+    override def name = "intent init"
+    override def names = List(List("intent", "init"))
+    run { (o: IntentInitOpts) =>
+      for
+        root <- KbCli.resolveKb(o.common.kb)
+        res <- KbIntentEdit.initBundle(root, o.name, o.system, o.capabilityBundle, o.staleAfterDays, KbCli.today(o.date))
+        _ <- res match
+          case Left(err) => KbCli.fail(err)
+          case Right(files) =>
+            Console.print(KbRender.scaffold(ScaffoldResult(files, Nil, Seq(
+              s"add the bundle to the Bundles table in ${KbPath.render(root / "README.md")}"
+            )), o.common.json))
+      yield ()
+    }
+
+  object IntentNewCmd extends KyoCommand[IntentNewOpts]:
+    override def name = "intent new"
+    override def names = List(List("intent", "new"))
+    run { (o: IntentNewOpts) =>
+      KbCli.withIntent(o.common.kb) { (kb, b) =>
+        IntentKind.parse(o.kind) match
+          case None => KbCli.fail(s"unknown kind `${o.kind}` — one of ${IntentKind.names}")
+          case Some(k) =>
+            KbIntentEdit.create(b, o.title, o.description, k, o.breaking, o.issue, o.tag, KbCli.today(o.date)).map {
+              case Left(err) => KbCli.fail(err)
+              case Right(file) =>
+                if o.common.json then
+                  Console.print(ujson.write(ujson.Obj("file" -> KbPath.render(file)), indent = 2) + "\n")
+                else
+                  Console.printLine(s"created ${kb.rel(file)}")
+                    .andThen(Console.printLine("  write the Problem section, then `kb refresh`"))
+            }
+      }
+    }
+
+  object IntentListCmd extends KyoCommand[IntentListOpts]:
+    override def name = "intent list"
+    override def names = List(List("intent", "list"), List("intent", "ls"))
+    run { (o: IntentListOpts) =>
+      KbCli.withIntent(o.common.kb) { (kb, b) =>
+        val wanted = o.state.flatMap(IntentState.parse)
+        val wantedKind = o.kind.flatMap(IntentKind.parse)
+        val items = KbIntent.intents(b).filter { i =>
+          wanted.forall(s => i.state.contains(s)) &&
+          wantedKind.forall(k => i.kind.contains(k)) &&
+          (!o.breaking || i.breaking) &&
+          (!o.open || i.state.forall(!_.isTerminal)) &&
+          (!o.userVisible || i.kind.exists(_.userVisible))
+        }
+        Console.print(KbIntent.renderList(kb, b, items, o.common.json))
+      }
+    }
+
+  object IntentShowCmd extends KyoCommand[IntentShowOpts]:
+    override def name = "intent show"
+    override def names = List(List("intent", "show"))
+    run { (o: IntentShowOpts, rest: caseapp.RemainingArgs) =>
+      KbCli.intentId(o.id, rest) match
+        case None => KbCli.fail("give an intent id, e.g. `kb intent show 0007`")
+        case Some(id) =>
+          KbCli.withIntent(o.common.kb) { (kb, b) =>
+            KbIntent.find(b, id) match
+              case None => KbCli.fail(s"no intent `$id` in ${b.label}")
+              case Some(i) => Console.print(KbIntent.renderShow(kb, i, o.common.json))
+          }
+    }
+
+  object IntentCheckCmd extends KyoCommand[IntentCheckOpts]:
+    override def name = "intent check"
+    override def names = List(List("intent", "check"))
+    run { (o: IntentCheckOpts) =>
+      KbCli.withIntent(o.common.kb) { (kb, b) =>
+        val findings = KbIntent.check(kb, b, KbCli.today(o.date))
+        val text = if o.common.json then KbCheck.renderJson(findings) else KbCheck.renderText(findings, verbose = true)
+        val errs = findings.count(_.severity == Severity.Error)
+        val warns = findings.count(_.severity == Severity.Warn)
+        Console.print(text).andThen(
+          if errs > 0 || (o.strict && warns > 0) then Sync.defer(java.lang.System.exit(1))
+          else ((): Unit < (Sync & Abort[Throwable]))
+        )
+      }
+    }
+
+  object IntentRefineCmd extends KyoCommand[IntentMoveOpts]:
+    override def name = "intent refine"
+    override def names = List(List("intent", "refine"))
+    run { (o: IntentMoveOpts, rest: caseapp.RemainingArgs) =>
+      KbCli.intentId(o.id, rest) match
+        case None => KbCli.fail("give an intent id")
+        case Some(id) =>
+          KbCli.runTransition(o.common.kb, o.common.json, id, o.date)(_ => KbIntentEdit.Transition(IntentState.Refinement))
+    }
+
+  object IntentStartCmd extends KyoCommand[IntentMoveOpts]:
+    override def name = "intent start"
+    override def names = List(List("intent", "start"))
+    run { (o: IntentMoveOpts, rest: caseapp.RemainingArgs) =>
+      KbCli.intentId(o.id, rest) match
+        case None => KbCli.fail("give an intent id")
+        case Some(id) =>
+          KbCli.runTransition(o.common.kb, o.common.json, id, o.date)(_ => KbIntentEdit.Transition(IntentState.InProgress))
+    }
+
+  object IntentMoveCmd extends KyoCommand[IntentMoveOpts]:
+    override def name = "intent move"
+    override def names = List(List("intent", "move"))
+    run { (o: IntentMoveOpts, rest: caseapp.RemainingArgs) =>
+      (KbCli.intentId(o.id, rest), o.state.flatMap(IntentState.parse)) match
+        case (None, _) => KbCli.fail("give an intent id")
+        case (_, None) => KbCli.fail(s"--state must be one of ${IntentState.all.mkString(", ")}")
+        case (Some(id), Some(target)) =>
+          KbCli.runTransition(o.common.kb, o.common.json, id, o.date)(_ => KbIntentEdit.Transition(target))
+    }
+
+  object IntentReleaseCmd extends KyoCommand[IntentReleaseOpts]:
+    override def name = "intent release"
+    override def names = List(List("intent", "release"))
+    run { (o: IntentReleaseOpts, rest: caseapp.RemainingArgs) =>
+      KbCli.intentId(o.id, rest) match
+        case None => KbCli.fail("give an intent id")
+        case Some(id) =>
+          KbCli.runTransition(o.common.kb, o.common.json, id, o.date)(_ =>
+            KbIntentEdit.Transition(IntentState.Released, capability = o.capability, artifacts = o.artifact))
+    }
+
+  object IntentCancelCmd extends KyoCommand[IntentCancelOpts]:
+    override def name = "intent cancel"
+    override def names = List(List("intent", "cancel"))
+    run { (o: IntentCancelOpts, rest: caseapp.RemainingArgs) =>
+      KbCli.intentId(o.id, rest) match
+        case None => KbCli.fail("give an intent id")
+        case Some(id) =>
+          KbCli.runTransition(o.common.kb, o.common.json, id, o.date)(_ =>
+            KbIntentEdit.Transition(IntentState.Cancelled, reason = o.reason))
+    }
+
+  object IntentSupersedeCmd extends KyoCommand[IntentSupersedeOpts]:
+    override def name = "intent supersede"
+    override def names = List(List("intent", "supersede"))
+    run { (o: IntentSupersedeOpts, rest: caseapp.RemainingArgs) =>
+      KbCli.intentId(o.id, rest) match
+        case None => KbCli.fail("give an intent id")
+        case Some(id) =>
+          KbCli.runTransition(o.common.kb, o.common.json, id, o.date)(_ =>
+            KbIntentEdit.Transition(IntentState.Superseded, supersededBy = o.by))
     }

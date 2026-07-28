@@ -1,9 +1,9 @@
 ---
 name: kb
-description: "Manages the Morphir knowledge base under kb/ — OKF bundles and concept documents. Use when adding content to a bundle, creating a new bundle, checking the knowledge base for conformance or provenance drift, building or querying its SQLite index, or navigating, searching and listing its bundles, concepts and links."
+description: "Manages the Morphir knowledge base under kb/ — OKF bundles and concept documents. Use when adding content to a bundle, creating a new bundle, checking the knowledge base for conformance or provenance drift, building or querying its SQLite index, managing intent through its lifecycle, or navigating, searching and listing its bundles, concepts and links."
 allowed-tools: Bash(.claude/skills/kb/kb *), Bash(cat *), Bash(ls *), Bash(find *), Bash(git *), Read, Edit, Write
 metadata:
-  version: 0.4.0
+  version: 0.5.0
 ---
 
 # kb — Morphir Knowledge Base Assistant
@@ -39,6 +39,7 @@ Full flag reference: → [references/commands.md](references/commands.md)
 | `index` | Builds the SQLite index; `--status` reports its freshness |
 | `refresh` | Both kinds of derived state; narrow with `refresh markdown` / `refresh db` |
 | `query --sql` | Read-only SQL over that index |
+| `intent …` | Intent lifecycle — `new`, `list`, `show`, the transition verbs, `check` |
 | `new-bundle` | Scaffolds a bundle with `index.md` and `log.md` |
 | `add-concept` | Scaffolds a concept and wires it into the index and log |
 
@@ -87,6 +88,11 @@ Narrow it when you only want one half — `kb refresh markdown` or `kb refresh d
 
 → [references/index-db.md](references/index-db.md) for the schema, the views, and worked queries.
 
+**Managing intent.** Features, enhancements and bugs are recorded as prose in the intent bundle, with a lifecycle
+whose obligations are enforced — most importantly, releasing requires linking the Capability it produced.
+
+→ the [`intent` skill](../intent/SKILL.md) for the process; [references/commands.md](references/commands.md) for flags.
+
 **Finding divergence in the *content*.** `check` finds mechanical inconsistency. Contradictions between what two
 concepts assert — the thing that actually matters in a knowledge base — cannot be detected by a script.
 
@@ -114,6 +120,8 @@ header; `kb.scala` is the entry point and names the others in `moduleDeps`.
 | `KbScaffold.scala` | Bundle and concept creation, index and log editing |
 | `KbIndex.scala` | SQLite schema, index build, and query surface |
 | `KbRefresh.scala` | Reconciling derived state — index bullets and the database |
+| `KbIntent.scala` | Intent model, lifecycle states, kinds and checks |
+| `KbIntentEdit.scala` | Creating intent, transitions, generated intent index |
 | `KbRender.scala` | Text and JSON rendering |
 
 kyo is the standard library here: `kyo.Path` for paths and file access, `kyo.Command` for subprocesses, kyo-case-app

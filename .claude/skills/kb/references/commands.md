@@ -235,3 +235,37 @@ A concept whose path is in a subdirectory is filed in that subdirectory's `index
 the bundle root index.
 
 The body is a stub with a `TODO` comment. Write it yourself — → [authoring.md](authoring.md).
+
+---
+
+## `intent …`
+
+Intent management. The *process* — states, kinds, obligations, when to reach for what — is documented in the
+[`intent` skill](../../intent/SKILL.md); this is the flag reference.
+
+| Command | Flags |
+| ------- | ----- |
+| `intent init` | `--name` (default `intent`), `--system <purl>`, `--capability-bundle <label>`, `--stale-after-days` |
+| `intent new` | `--title`, `--description`, `--kind` (all required), `--breaking`, `--issue`, `--tag` |
+| `intent list` | `--state`, `--kind`, `--breaking`, `--open`, `--user-visible` |
+| `intent show <id>` | — |
+| `intent check` | `--strict`, `--date` |
+| `intent refine <id>` | — |
+| `intent start <id>` | — |
+| `intent move <id>` | `--state <State>` |
+| `intent release <id>` | `--capability bundle:/path.md`, `--artifact <purl>` (repeatable) |
+| `intent cancel <id>` | `--reason` |
+| `intent supersede <id>` | `--by <id>` |
+
+Ids are positional — `kb intent start 0007`, not `--id 0007`. All commands take `--json` and `--date`.
+
+```bash
+.claude/skills/kb/kb intent new --title "WASM linking" --description "Link Scala.js output as a WASM module." --kind feature
+```
+
+```bash
+.claude/skills/kb/kb intent release 0007 --capability morphir/morphir-scala:/wasm-linking.md
+```
+
+The transition verbs refuse up front when the target state's obligation is unmet, rather than letting `check` catch
+it later. Run `kb refresh` afterwards to regenerate the intent index.

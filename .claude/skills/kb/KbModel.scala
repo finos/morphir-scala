@@ -61,7 +61,13 @@ case class Frontmatter(values: Map[String, Any]):
   def str(key: String): Option[String] = values.get(key).collect {
     case s: String => s
     case i: Integer => i.toString
+    case l: java.lang.Long => l.toString
     case d: java.lang.Double => d.toString
+    case b: java.lang.Boolean => b.toString
+    // SnakeYAML resolves an unquoted `2026-07-28` to a java.util.Date. Without this, every date-valued field —
+    // OKF's `stale_after`, intent's `created` and `state_since` — silently reads as absent.
+    case d: java.util.Date =>
+      java.time.Instant.ofEpochMilli(d.getTime).atZone(java.time.ZoneOffset.UTC).toLocalDate.toString
   }
 
   def strList(key: String): List[String] = values.get(key) match

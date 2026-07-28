@@ -24,7 +24,7 @@ case class IndexStats(bundles: Int, docs: Int, concepts: Int, links: Int, headin
 object KbIndex:
 
   /** Bumped whenever the schema changes; a mismatch forces a rebuild rather than querying stale shapes. */
-  val SchemaVersion = 1
+  val SchemaVersion = 2
 
   /** Must run outside a transaction — SQLite refuses a journal-mode change from within one. */
   private val Pragmas: Seq[String] = Seq("PRAGMA journal_mode=WAL", "PRAGMA synchronous=NORMAL")
@@ -63,6 +63,14 @@ object KbIndex:
          body_chars        INTEGER NOT NULL,
          UNIQUE (bundle_id, rel_path)
        )""",
+    // Generic key/value over every top-level frontmatter field. Lets other tooling (intent, and whatever comes
+    // next) query its own facets without this schema having to learn about them.
+    """CREATE TABLE frontmatter (
+         doc_id INTEGER NOT NULL REFERENCES doc(id),
+         key    TEXT NOT NULL,
+         value  TEXT,
+         PRIMARY KEY (doc_id, key)
+       )""",
     """CREATE TABLE tag (
          doc_id INTEGER NOT NULL REFERENCES doc(id),
          tag    TEXT NOT NULL,
@@ -100,6 +108,7 @@ object KbIndex:
     "CREATE INDEX idx_doc_status ON doc(status)",
     "CREATE INDEX idx_doc_kind ON doc(kind)",
     "CREATE INDEX idx_tag_tag ON tag(tag)",
+    "CREATE INDEX idx_frontmatter_key ON frontmatter(key, value)",
     "CREATE INDEX idx_link_target ON link(target_doc_id)",
     "CREATE INDEX idx_link_kind ON link(kind)",
     "CREATE INDEX idx_source_repo ON source(org, repo)",
@@ -119,6 +128,28 @@ object KbIndex:
          JOIN doc src ON src.id = l.doc_id
          JOIN bundle b ON b.id = src.bundle_id
          WHERE l.target_doc_id IS NOT NULL""",
+    // Intent facets pivoted into columns. Depends only on the generic frontmatter table, so kb knows nothing about
+    // intent beyond the fact that `type: Intent` documents exist.
+    """CREATE VIEW v_intent AS
+         SELECT d.id,
+                b.label       AS bundle,
+                d.bundle_path,
+                d.title,
+                d.description,
+                MAX(CASE WHEN f.key = 'state'         THEN f.value END) AS state,
+                MAX(CASE WHEN f.key = 'kind'          THEN f.value END) AS kind,
+                MAX(CASE WHEN f.key = 'breaking'      THEN f.value END) AS breaking,
+                MAX(CASE WHEN f.key = 'created'       THEN f.value END) AS created,
+                MAX(CASE WHEN f.key = 'state_since'   THEN f.value END) AS state_since,
+                MAX(CASE WHEN f.key = 'issue'         THEN f.value END) AS issue,
+                MAX(CASE WHEN f.key = 'capability'    THEN f.value END) AS capability,
+                MAX(CASE WHEN f.key = 'superseded_by' THEN f.value END) AS superseded_by,
+                MAX(CASE WHEN f.key = 'artifacts'     THEN f.value END) AS artifacts
+         FROM doc d
+         JOIN bundle b ON b.id = d.bundle_id
+         LEFT JOIN frontmatter f ON f.doc_id = d.id
+         WHERE d.type = 'Intent'
+         GROUP BY d.id""",
     """CREATE VIEW v_orphan AS
          SELECT d.id, b.label AS bundle, d.bundle_path, d.title
          FROM doc d
@@ -203,6 +234,7 @@ object KbIndex:
       )
       val ftsSt = conn.prepareStatement("INSERT INTO doc_fts(rowid, bundle_path, title, description, body) VALUES (?,?,?,?,?)")
       val tagSt = conn.prepareStatement("INSERT OR IGNORE INTO tag(doc_id, tag) VALUES (?,?)")
+      val fmSt = conn.prepareStatement("INSERT OR IGNORE INTO frontmatter(doc_id, key, value) VALUES (?,?,?)")
       val srcSt = conn.prepareStatement(
         "INSERT INTO source(doc_id, source_id, resource, title, org, repo, commit_sha, src_path) VALUES (?,?,?,?,?,?,?,?)"
       )
@@ -263,6 +295,12 @@ object KbIndex:
             tagSt.setInt(1, id); tagSt.setString(2, t); tagSt.addBatch(); tags += 1
           }
 
+          d.fm.values.foreach { (k, v) =>
+            flatten(v).foreach { text =>
+              fmSt.setInt(1, id); fmSt.setString(2, k); fmSt.setString(3, text); fmSt.addBatch()
+            }
+          }
+
           d.fm.sources.foreach { s =>
             srcSt.setInt(1, id)
             setOpt(srcSt, 2, s.id)
@@ -291,7 +329,7 @@ object KbIndex:
         }
       }
 
-      Seq(bundleSt, docSt, ftsSt, tagSt, srcSt, headSt, linkSt).foreach { s => s.executeBatch(); s.close() }
+      Seq(bundleSt, docSt, ftsSt, tagSt, fmSt, srcSt, headSt, linkSt).foreach { s => s.executeBatch(); s.close() }
 
       // Second pass: resolve bundle-relative links to their target doc. Only same-bundle destinations resolve,
       // which is exactly what a bundle-relative path means.
@@ -313,6 +351,19 @@ object KbIndex:
       conn.createStatement().execute("ANALYZE")
       IndexStats(kb.bundles.size, docId, kb.concepts.size, links, heads, sources, tags)
     finally conn.close()
+
+  /** Renders a frontmatter value as text. Nested mappings are skipped — they have no single sensible scalar form,
+    * and the structures that matter (`sources`) already have dedicated tables.
+    */
+  private def flatten(v: Any): Option[String] =
+    import scala.jdk.CollectionConverters.*
+    v match
+      case null => None
+      case _: java.util.Map[?, ?] => None
+      case l: java.util.List[?] =>
+        val parts = l.asScala.toSeq.collect { case s: String => s; case n: Number => n.toString }
+        Option.when(parts.nonEmpty)(parts.mkString(", "))
+      case other => Some(other.toString)
 
   private def setOpt(st: java.sql.PreparedStatement, i: Int, v: Option[String]): Unit =
     v match

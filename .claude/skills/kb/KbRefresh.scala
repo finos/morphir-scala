@@ -1,5 +1,5 @@
 //| scalaVersion: 3.8.4
-//| moduleDeps: [KbScaffold.scala, KbIndex.scala]
+//| moduleDeps: [KbScaffold.scala, KbIndex.scala, KbIntentEdit.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-core:1.0.0-RC5
 
@@ -18,7 +18,7 @@
 import kyo.*
 
 enum RefreshKind:
-  case DescriptionFixed, EntryAdded, EntryMissing, IndexRebuilt, IndexFresh
+  case DescriptionFixed, EntryAdded, EntryMissing, IntentIndexRebuilt, IndexRebuilt, IndexFresh
 
 case class RefreshAction(kind: RefreshKind, file: String, detail: String)
 
@@ -38,7 +38,27 @@ object KbRefresh:
       section: String,
       dryRun: Boolean
   ): Seq[RefreshAction] < (Sync & Abort[Throwable]) =
-    Kyo.foreach(Chunk.from(kb.bundles))(refreshBundle(kb, _, addMissing, section, dryRun)).map(_.flatten.toSeq)
+    for
+      perBundle <- Kyo.foreach(Chunk.from(kb.bundles))(refreshBundle(kb, _, addMissing, section, dryRun))
+      intentIdx <- refreshIntentIndex(kb, dryRun)
+    yield perBundle.flatten.toSeq ++ intentIdx
+
+  /** The intent bundle's index is generated, not hand-written — that is what stops it drifting from the records. */
+  private def refreshIntentIndex(kb: Kb, dryRun: Boolean): Seq[RefreshAction] < (Sync & Abort[Throwable]) =
+    KbIntent.findBundle(kb) match
+      case None => (Seq.empty[RefreshAction]: Seq[RefreshAction] < (Sync & Abort[Throwable]))
+      case Some(b) =>
+        val action = RefreshAction(
+          RefreshKind.IntentIndexRebuilt,
+          kb.rel(b.index.file),
+          s"${KbIntent.intents(b).size} intent grouped by state"
+        )
+        if dryRun then Seq(action)
+        else
+          KbIntentEdit.generateIndex(b, java.time.LocalDate.now()).map {
+            case true => Seq(action)
+            case false => Seq.empty[RefreshAction]
+          }
 
   private def refreshBundle(
       kb: Kb,
@@ -47,10 +67,15 @@ object KbRefresh:
       section: String,
       dryRun: Boolean
   ): Chunk[RefreshAction] < (Sync & Abort[Throwable]) =
-    for
-      fixes <- Kyo.foreach(Chunk.from(b.allIndexes))(fixIndex(kb, b, _, dryRun)).map(_.flattenChunk)
-      missing <- addMissingEntries(kb, b, addMissing, section, dryRun)
-    yield fixes ++ missing
+    // The intent bundle's index is regenerated wholesale below, so per-entry repair and coverage reporting would be
+    // both redundant and wrong here — they run against the pre-regeneration state.
+    if KbIntent.findBundle(kb).exists(_.label == b.label) then
+      (Chunk.empty[RefreshAction]: Chunk[RefreshAction] < (Sync & Abort[Throwable]))
+    else
+      for
+        fixes <- Kyo.foreach(Chunk.from(b.allIndexes))(fixIndex(kb, b, _, dryRun)).map(_.flattenChunk)
+        missing <- addMissingEntries(kb, b, addMissing, section, dryRun)
+      yield fixes ++ missing
 
   private def fixIndex(kb: Kb, b: Bundle, idx: Doc, dryRun: Boolean): Chunk[RefreshAction] < (Sync & Abort[Throwable]) =
     idx.file.read.map { text =>
@@ -152,6 +177,7 @@ object KbRefresh:
           case RefreshKind.DescriptionFixed => if dryRun then "would fix    " else "fixed        "
           case RefreshKind.EntryAdded => if dryRun then "would add    " else "added        "
           case RefreshKind.EntryMissing => "missing      "
+          case RefreshKind.IntentIndexRebuilt => if dryRun then "would regen  " else "regenerated  "
           case RefreshKind.IndexRebuilt => if dryRun then "would rebuild" else "rebuilt      "
           case RefreshKind.IndexFresh => "fresh        "
         sb ++= s"$verb ${a.file}\n              ${a.detail}\n"

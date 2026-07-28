@@ -3,7 +3,9 @@
 Intent records in `kb/bundles/intent/` are never deleted or moved when the work ships. They stay in place with
 `state: Released`, and marking an intent Released *requires* a link to a Capability concept — a present-tense
 document in `kb/bundles/morphir/morphir-scala/` describing what the system now does. `intent check` treats a Released
-record with no capability link as an error.
+record with no capability link as an error — for user-visible kinds. Internal kinds (`refactor`, `docs`, `test`,
+`build`, `spike`) get a warning instead: internal work often changes nothing a reader of the knowledge base needs to
+know, and inventing a document for "added three release labels" would be exactly the noise this design avoids.
 
 ## Why
 

@@ -9,6 +9,7 @@ self-contained OKF bundle.
 | [`morphir-ir-v3`](./morphir-ir-v3/) | [finos/morphir](https://github.com/finos/morphir) `docs/` | The Morphir IR specification at format version 3 — the current, active version. |
 | [`morphir-ir-v4-draft`](./morphir-ir-v4-draft/) | [finos/morphir](https://github.com/finos/morphir) `docs/spec/draft/` and `docs/design/draft/ir/` | The draft specification for Morphir IR format version 4, with the design rationale behind it. Not yet active; subject to change. |
 | [`morphir-configuration`](./morphir-configuration/) | [finos/morphir](https://github.com/finos/morphir) `docs/spec/morphir-toml/` | The `morphir.toml` workspace and project configuration format, and how layered configuration sources merge. |
+| [`morphir-scala`](./morphir-scala/) | this repository | What morphir-scala does today, in the present tense. Released intent links here. |
 | [`morphir-elm`](./morphir-elm/) | [finos/morphir-elm](https://github.com/finos/morphir-elm) | The Elm implementation of Morphir, which produces and consumes IR format version 3. |
 
 ## Source discipline
