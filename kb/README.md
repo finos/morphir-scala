@@ -20,27 +20,28 @@ kb/
 ├── README.md      # This file — what the knowledge base is, and what's in it
 ├── AGENTS.md      # Primary guidance for agents authoring or consuming bundles
 ├── CLAUDE.md      # Claude-specific pointer to AGENTS.md
-└── bundles/       # One subdirectory per knowledge bundle
-    └── <bundle-slug>/
-        ├── index.md     # Bundle root index; carries `okf_version`
-        ├── log.md       # Optional update history
-        └── <concept>.md # Concept documents
+└── bundles/       # Knowledge bundles, optionally grouped by subject
+    └── <group>/           # Grouping directory — README.md only, never index.md
+        └── <bundle-slug>/
+            ├── index.md     # Bundle root index; carries `okf_version`
+            ├── log.md       # Optional update history
+            └── <concept>.md # Concept documents
 ```
 
-Each bundle is a self-contained OKF bundle rooted at `kb/bundles/<bundle-slug>/`. Bundle directory names are
-lower-case kebab-case slugs, consistent with the folder-naming convention used elsewhere in this repo.
+Each bundle is a self-contained OKF bundle rooted at its own directory. Bundle directory names are lower-case
+kebab-case slugs, consistent with the folder-naming convention used elsewhere in this repo. Bundles may sit directly
+under `bundles/` or be grouped one level deeper by subject.
 
 ## Bundles
 
-_No bundles have been added yet._
-
-<!--
-When adding a bundle, add a row here:
-
 | Bundle | Description |
 | ------ | ----------- |
-| [`<bundle-slug>`](./bundles/<bundle-slug>/) | One-sentence description, matching the bundle's `index.md`. |
--->
+| [`morphir/morphir-ir-v3`](./bundles/morphir/morphir-ir-v3/) | The Morphir Intermediate Representation at format version 3 — the current, active IR format. |
+| [`morphir/morphir-ir-v4-draft`](./bundles/morphir/morphir-ir-v4-draft/) | The draft specification for Morphir IR format version 4 — not yet active and subject to change. |
+| [`morphir/morphir-elm`](./bundles/morphir/morphir-elm/) | The Elm implementation of Morphir — the reference producer and consumer of IR format version 3. |
+
+See [bundles/morphir/README.md](./bundles/morphir/README.md) for how those three relate and which upstream sources
+each may draw on.
 
 ## Working in this directory
 

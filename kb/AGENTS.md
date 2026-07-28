@@ -36,6 +36,20 @@ kb/bundles/<bundle-slug>/
 - `references/` is a naming convention, not a requirement. Use it when mirroring external material so that `sources`,
   executors, and attesters have a stable place to point at.
 
+## Grouping directories
+
+Related bundles may be grouped one level deeper — `kb/bundles/<group>/<bundle-slug>/`. Two rules keep a grouping
+directory from being mistaken for a bundle:
+
+- **A grouping directory gets a `README.md`, never an `index.md`.** An `index.md` is the marker of a bundle root; use
+  it there and a consumer will try to walk the group as a bundle.
+- **Never put a `README.md` *inside* a bundle.** Within a bundle, only `index.md` and `log.md` are reserved — every
+  other `.md` file is a concept document, so a `README.md` there would be parsed as a concept missing its required
+  `type` field. Bundle-level orientation belongs in `index.md`.
+
+A group's `README.md` should list its bundles and record any constraints shared across them (which upstream sources
+are authoritative, which are off-limits).
+
 ## Concept documents
 
 Every concept document starts with a YAML frontmatter block.
@@ -129,11 +143,12 @@ anything in it.
 
 ## Adding a new bundle
 
-1. Create `kb/bundles/<bundle-slug>/` with a kebab-case slug.
+1. Create `kb/bundles/<bundle-slug>/` — or `kb/bundles/<group>/<bundle-slug>/` — with a kebab-case slug.
 2. Write `index.md` with `okf_version: "0.2"` frontmatter and a body listing the bundle's concepts.
 3. Add concept documents. Give every one a `type`; give nearly every one a `title` and `description`.
 4. Add `log.md` if the bundle's history is worth tracking.
-5. Add the bundle to the **Bundles** table in [README.md](./README.md), using the same description as its `index.md`.
+5. Add the bundle to the **Bundles** table in [README.md](./README.md), using the same description as its `index.md`,
+   and to the group's `README.md` if it is in a group.
 6. Re-read the [spec](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) if you are doing
    anything the sections above do not cover — this file is a working summary, not a replacement.
 
