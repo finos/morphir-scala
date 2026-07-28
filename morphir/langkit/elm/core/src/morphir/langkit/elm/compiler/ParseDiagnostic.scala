@@ -65,6 +65,88 @@ object ParseDiagnostic:
       contextLines = formatted.contextLines
     )
 
+  /**
+   * Two operators sit side by side in a chain that cannot be grouped: they share a precedence, and at least one of them
+   * refuses to give way. Elm reports this during canonicalisation; the wording follows it.
+   */
+  def conflictingOperators(source: String, span: Span, left: String, right: String): ParseDiagnostic =
+    val (line, column) = SourceOffsets.lineColumnAt(source, span.offset)
+    val formatted      = DiagnosticMessageFormatter.formatWithSummary(
+      source = source,
+      code = DiagnosticCode.ConflictingOperators,
+      line = line,
+      column = column,
+      summary = s"You cannot mix ($left) and ($right) without parentheses.",
+      expected = Nil,
+      reasons = List("I do not know how to group these expressions."),
+      suggestion = Some("Add parentheses to say which operator applies first."),
+      errorWidth = span.length
+    )
+    ParseDiagnostic(
+      code = DiagnosticCode.ConflictingOperators,
+      span = SourceSpan.fromStartEnd(start = span.start, end = span.end, line = line, column = column),
+      message = formatted.message,
+      expected = Nil,
+      suggestion = Some("Add parentheses to say which operator applies first."),
+      contextLines = formatted.contextLines
+    )
+
+  /**
+   * An operator whose fixity nothing in scope declares. The parser sees one module, so an operator declared in a
+   * dependency is unknowable without that dependency's source.
+   */
+  def unknownOperator(source: String, span: Span, operator: String): ParseDiagnostic =
+    val (line, column) = SourceOffsets.lineColumnAt(source, span.offset)
+    val suggestion     =
+      s"Declare it with an `infix` declaration in this module, or supply its fixity through ElmParseOptions."
+    val formatted = DiagnosticMessageFormatter.formatWithSummary(
+      source = source,
+      code = DiagnosticCode.UnknownOperator,
+      line = line,
+      column = column,
+      summary = s"I do not know the precedence or associativity of ($operator).",
+      expected = Nil,
+      reasons = List(
+        "Without them I cannot tell how to group the expression around it."
+      ),
+      suggestion = Some(suggestion),
+      errorWidth = span.length
+    )
+    ParseDiagnostic(
+      code = DiagnosticCode.UnknownOperator,
+      span = SourceSpan.fromStartEnd(start = span.start, end = span.end, line = line, column = column),
+      message = formatted.message,
+      expected = Nil,
+      suggestion = Some(suggestion),
+      contextLines = formatted.contextLines
+    )
+
+  /**
+   * A tuple with more than three entries. Elm reports this during canonicalisation; the wording follows it.
+   */
+  def tupleTooLarge(source: String, span: Span, entries: Int): ParseDiagnostic =
+    val (line, column) = SourceOffsets.lineColumnAt(source, span.offset)
+    val suggestion     = "Use a record instead, so each field has a name."
+    val formatted      = DiagnosticMessageFormatter.formatWithSummary(
+      source = source,
+      code = DiagnosticCode.TupleTooLarge,
+      line = line,
+      column = column,
+      summary = "I only accept tuples with two or three items. This has too many:",
+      expected = Nil,
+      reasons = List(s"This one has $entries."),
+      suggestion = Some(suggestion),
+      errorWidth = span.length
+    )
+    ParseDiagnostic(
+      code = DiagnosticCode.TupleTooLarge,
+      span = SourceSpan.fromStartEnd(start = span.start, end = span.end, line = line, column = column),
+      message = formatted.message,
+      expected = Nil,
+      suggestion = Some(suggestion),
+      contextLines = formatted.contextLines
+    )
+
   def tokenizerUnexpectedCharacter(source: String, offset: Int, lexeme: String): ParseDiagnostic =
     val (line, column) = SourceOffsets.lineColumnAt(source, offset)
     val formatted      = DiagnosticMessageFormatter.format(

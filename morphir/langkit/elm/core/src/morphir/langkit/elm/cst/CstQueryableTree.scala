@@ -34,7 +34,9 @@ object CstQueryableTree:
           "declarations" -> n.declarations.toSeq
         )
       case n: CstModuleDeclaration =>
-        Map("name" -> Seq(n.name), "exposing" -> Seq(n.exposing))
+        Map("name" -> Seq(n.name), "exposing" -> Seq(n.exposing), "manager" -> n.manager.toSeq)
+      case n: CstEffectManager =>
+        Map("command" -> n.command.toSeq, "subscription" -> n.subscription.toSeq)
       case n: CstQualifiedName =>
         Map("parts" -> n.parts)
       case _: CstName | _: CstComment =>
@@ -174,6 +176,6 @@ object CstQueryableTree:
       case n: CstIntLiteral    => Some(n.value.toString)
       case n: CstFloatLiteral  => Some(n.value.toString)
       case n: CstStringLiteral => Some(n.value)
-      case n: CstCharLiteral   => Some(n.value.toString)
+      case n: CstCharLiteral   => Some(n.text)
       case n: CstComment       => Some(n.text)
       case _                   => None

@@ -406,6 +406,41 @@ trait MorphirLangkitItestWasmArtifacts extends JavaModule {
   }
 }
 
+/**
+ * Real Elm packages, fetched at build time for the langkit's conformance corpus.
+ *
+ * The sources are third-party, so they stay out of the repository and arrive as build inputs: `ElmPackages` clones
+ * each package at a pinned tag into this task's directory, and the path reaches the suite as a system property. The
+ * task is cached on the pinned revisions, so the download happens once per revision bump rather than once per test
+ * run.
+ *
+ * Fetching needs the network, so `mill --offline` skips it: the task writes a marker instead of cloning, says so in
+ * the log, and `RealWorldCorpusTest` reports itself skipped rather than passing on an empty corpus. That is the only
+ * way to run without the packages — a missing network without `--offline` fails the task, because a corpus that
+ * quietly parses nothing is worse than a build that stops.
+ */
+trait MorphirLangkitItestElmPackages extends JavaModule {
+
+  /** Written instead of the packages when Mill is run with `--offline`. */
+  def elmCorpusOfflineMarker: String = "OFFLINE-SKIPPED"
+
+  def elmCorpusPackages: T[PathRef] = Task {
+    if (Task.offline) {
+      Task.log.info(
+        s"--offline: skipping the real-world Elm corpus. " +
+          s"${millbuild.ElmPackages.corpus.size} package(s) not fetched, and RealWorldCorpusTest will report itself " +
+          s"skipped. Drop --offline to fetch and run it."
+      )
+      os.write(Task.dest / elmCorpusOfflineMarker, millbuild.ElmPackages.corpus.map(_.repository).mkString("\n"))
+    } else millbuild.ElmPackages.fetchAll(Task.dest)
+    PathRef(Task.dest)
+  }
+
+  override def forkArgs: T[Seq[String]] = Task {
+    super.forkArgs() ++ Seq(s"-Dmorphir.langkit.elm.corpus.packages=${elmCorpusPackages().path}")
+  }
+}
+
 // The following modules are morphir-elm modules that have been setup to be built using mill
 // Morphir Elm Projects/Modules:
 object examples extends Module {

@@ -74,3 +74,117 @@ Feature: Expressions
       """
     Then the query matches exactly 1 time
     And capture "b" of match 1 has 2 direct children
+
+  Scenario: Multiplication binds tighter than addition
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      main = 1 + 2 * 3
+      """
+    When the CST is queried with:
+      """
+      (CstValueDeclaration body: (CstBinaryOp operator: (CstName) @op right: (CstBinaryOp operator: (CstName) @inner)))
+      (#eq? @op "+")
+      (#eq? @inner "*")
+      """
+    Then the query matches exactly 1 time
+
+  Scenario: Left-associative operators at equal precedence group to the left
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      main = 1 - 2 - 3
+      """
+    When the CST is queried with:
+      """
+      (CstValueDeclaration body: (CstBinaryOp left: (CstBinaryOp operator: (CstName) @inner) operator: (CstName) @op))
+      (#eq? @op "-")
+      (#eq? @inner "-")
+      """
+    Then the query matches exactly 1 time
+
+  Scenario: Cons associates to the right
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      main = a :: b :: rest
+      """
+    When the CST is queried with:
+      """
+      (CstValueDeclaration body: (CstBinaryOp operator: (CstName) @op right: (CstBinaryOp operator: (CstName) @inner)))
+      (#eq? @op "::")
+      (#eq? @inner "::")
+      """
+    Then the query matches exactly 1 time
+
+  Scenario: A module's own infix declaration decides its operator's associativity
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      infix right 5 (<%>) = combine
+
+      main = a <%> b <%> c
+      """
+    When the CST is queried with:
+      """
+      (CstValueDeclaration body: (CstBinaryOp operator: (CstName) @op right: (CstBinaryOp operator: (CstName) @inner)))
+      (#eq? @op "<%>")
+      (#eq? @inner "<%>")
+      """
+    Then the query matches exactly 1 time
+
+  Scenario: The lowered AST keeps the precedence-shaped tree
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      main = 1 + 2 * 3
+      """
+    When the AST is queried with:
+      """
+      (ValueDeclaration body: (BinaryOp right: (BinaryOp) @inner) @outer)
+      (#eq? @outer "+")
+      (#eq? @inner "*")
+      """
+    Then the query matches exactly 1 time
+
+  Scenario: Let binding without a type annotation
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      main =
+          let
+              y = 1
+          in
+          y
+      """
+    When the CST is queried with:
+      """
+      (CstValueDeclaration body: (CstLetIn (CstLetBinding pattern: (CstVariablePattern (CstName) @b))))
+      (#eq? @b "y")
+      """
+    Then the query matches exactly 1 time
+
+  Scenario: Let binding with a type annotation
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      main =
+          let
+              y : Int
+              y = 1
+          in
+          y
+      """
+    When the CST is queried with:
+      """
+      (CstValueDeclaration body: (CstLetIn (CstLetBinding annotation: (CstTypeAnnotation name: (CstName) @a))))
+      (#eq? @a "y")
+      """
+    Then the query matches exactly 1 time

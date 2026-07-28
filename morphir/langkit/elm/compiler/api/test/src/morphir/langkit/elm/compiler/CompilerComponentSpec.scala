@@ -35,7 +35,7 @@ class CompilerComponentSpec extends Test[Any]:
         CompileError.ParseError(phase = phase, diagnostic = diagnostic)
       case parsley.Success(_) => throw new AssertionError(s"expected parse failure for: $source")
 
-  private val compiler: CompilerComponent[Unit] = ElmCompiler.compiler[Unit]
+  private val compiler: CompilerComponent[Unit] = ElmCompiler.compiler[Unit]()
 
   private val simpleSource =
     """module M exposing (..)

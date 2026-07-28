@@ -25,6 +25,23 @@ class ParseDiagnosticMessageSnapshotSpec extends Test[Any]:
           assert(diagnostic.contextLines.count(_.isErrorLine) == 1)
         case Success(_) => assert(false)
     }
+    "an expectation that merely spells `in` does not suggest a missing `let` binding" in {
+      // "string literal" contains the letters of `in`, which an earlier substring check took for the keyword and
+      // hinted about a `let` that was nowhere in the source.
+      val source = "module M exposing (..)\n\nx ="
+      Elm.parseCst(source) match
+        case Failure(diagnostic: ParseDiagnostic) =>
+          assert(diagnostic.message.contains("string literal"))
+          assert(!diagnostic.message.contains("Did you forget `in` after a `let` binding?"))
+        case Success(_) => assert(false)
+    }
+    "a genuinely missing `in` is still suggested" in {
+      val source = "module M exposing (..)\n\nx =\n    let\n        y = 1"
+      Elm.parseCst(source) match
+        case Failure(diagnostic: ParseDiagnostic) =>
+          assert(diagnostic.message.contains("Did you forget `in` after a `let` binding?"))
+        case Success(_) => assert(false)
+    }
     "tokenizer failure documents the friendly unexpected-character message shape" in {
       val result = ElmTokenizer.run("main @", ElmTokenizerConfig(includeTrivia = false, recoverUnknown = false))
       assert(result.errors.exists {

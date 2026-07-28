@@ -21,10 +21,39 @@ object DiagnosticMessageFormatter:
       suggestion: Option[String],
       errorWidth: Int
   ): FormattedDiagnostic =
+    formatWithSummary(
+      source = source,
+      code = code,
+      line = line,
+      column = column,
+      summary = unexpectedExplanation(code, unexpected),
+      expected = expected,
+      reasons = reasons,
+      suggestion = suggestion,
+      errorWidth = errorWidth
+    )
+
+  /**
+   * Format a diagnostic whose opening line is stated outright rather than derived from an unexpected token.
+   *
+   * Failures found after the grammar has accepted the text — an operator chain that cannot be grouped, an operator of
+   * unknown fixity — have nothing "unexpected" to point at, so they say what is wrong in their own words.
+   */
+  def formatWithSummary(
+      source: String,
+      code: DiagnosticCode,
+      line: Int,
+      column: Int,
+      summary: String,
+      expected: List[String],
+      reasons: Seq[String],
+      suggestion: Option[String],
+      errorWidth: Int
+  ): FormattedDiagnostic =
     val header = formatHeader(code, line, column)
     val body   =
       List(
-        unexpectedExplanation(code, unexpected),
+        summary,
         expectedExplanation(expected),
         reasonsExplanation(reasons)
       ).filter(_.nonEmpty).mkString("\n\n")

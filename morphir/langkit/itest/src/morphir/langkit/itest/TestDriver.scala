@@ -4,7 +4,7 @@ import parsley.{Failure, Result, Success}
 
 import scala.io.Source
 
-import morphir.langkit.elm.Elm
+import morphir.langkit.elm.{Elm, ElmParseOptions}
 import morphir.langkit.elm.ast.AstNode
 import morphir.langkit.elm.ast.AstQueryableTree.given
 import morphir.langkit.elm.ast.Module
@@ -47,6 +47,7 @@ final class TestDriver:
   private var lastMatchesBuf: Vector[MatchView]                     = Vector.empty
   private var querySource: Option[String]                           = None
   private var canonicalQueryText: Option[String]                    = None
+  private var options: ElmParseOptions                              = ElmParseOptions.elm
 
   def setSource(raw: String): Unit =
     source = raw
@@ -64,8 +65,24 @@ final class TestDriver:
     try setSource(Source.fromInputStream(stream, "UTF-8").mkString)
     finally stream.close()
 
-  def parseCst(): Unit = cstResult = Some(Elm.parseCst(source))
-  def parseAst(): Unit = astResult = Some(Elm.parseAst(source))
+  /** Select the parse options subsequent parses use. `elm` (the default) is canonical Elm; `lenient` is best-effort. */
+  def setOptions(name: String): Unit =
+    options = name.trim.toLowerCase match
+      case "elm"     => ElmParseOptions.elm
+      case "lenient" => ElmParseOptions.lenient
+      case other     => throw new AssertionError(s"unknown parse options [$other]; expected elm or lenient")
+    cstResult = None
+    astResult = None
+
+  def parseCst(): Unit = cstResult = Some(Elm.parseCst(source, options))
+  def parseAst(): Unit = astResult = Some(Elm.parseAst(source, options))
+
+  /** The diagnostic from the most recent parse, which is expected to have failed. */
+  def diagnostic: ParseDiagnostic = (cstResult orElse astResult) match
+    case Some(Failure(d: ParseDiagnostic)) => d
+    case Some(Success(_))                  =>
+      throw new AssertionError(s"expected the parse to fail, but it succeeded.\nSource:\n$source")
+    case None => throw new AssertionError("nothing parsed — missing When step?")
 
   def cst: CstModule = cstResult match
     case Some(Success(m))                           => m

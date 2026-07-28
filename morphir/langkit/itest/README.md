@@ -44,12 +44,32 @@ Scenario: CST query surfaces a single value declaration
 | `query.feature` | The tree query DSL, including canonical rendering |
 | `compiler-api.feature` | The compiler ABI, per backend |
 | `morphir-corpus.feature` | Real Elm modules from `finos/morphir-elm` and `finos/morphir-examples` |
+| `operator-conformance.feature` | Operator precedence, associativity, and the chains Elm refuses |
+| `corpus-coverage.feature` | The conformance corpus, and the node types it must exercise |
 
 Step definitions are in [`src/morphir/langkit/itest/steps`](./src/morphir/langkit/itest/steps), sharing scenario state
 through `TestDriver` via the cucumber-scala DI container.
 
-Fixtures under [`resources/fixtures`](./resources/fixtures) are real Elm sources vendored from the Morphir projects,
-so `morphir-corpus.feature` exercises the parser against code nobody wrote for it.
+## Fixtures
+
+Two kinds, and they catch different things.
+
+[`fixtures/morphir`](./resources/fixtures/morphir) is real Elm vendored from the Morphir projects, so
+`morphir-corpus.feature` exercises the parser against code nobody wrote for it. Useful, but only as evidence for what
+it happens to contain — those eight modules held one `let`, no `case` and no operators, and stayed green through a bug
+that made every un-annotated `let` binding unparseable.
+
+[`fixtures/conformance`](./resources/fixtures/conformance) answers that: modules written to exercise the grammar
+deliberately, held to a list of CST node types by `CorpusCoverage`. A required node type with no instance anywhere in
+the corpus fails `corpus-coverage.feature` and names itself, so a construct that stops being produced — or was never
+produced, as `CstOperatorRef` was — is a red test rather than a silence.
+
+```bash
+./mill morphir.langkit.itest.runMain morphir.langkit.itest.CorpusCoverage
+```
+
+prints what the corpus covers. Adding a CST node type means adding both a corpus instance and a line to
+`CorpusCoverage.requiredNodeTypes`.
 
 ## Compiler backends
 

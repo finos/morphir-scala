@@ -26,6 +26,56 @@ Elm.parseCst("module M exposing (..)\n\nmain = 42\n") match
   This is the tree for formatters, editors, and anything that has to reproduce the original text.
 - **`parseAst`** lowers that CST into an abstract syntax tree, dropping trivia. This is the tree for analysis.
 
+Both take an `ElmParseOptions`, defaulting to `ElmParseOptions.elm` — canonical Elm semantics. Binary operator chains
+come out shaped by Elm's precedence and associativity rules, so `1 + 2 * 3` parses as `1 + (2 * 3)` and
+`a :: b :: rest` as `a :: (b :: rest)`, and a chain Elm refuses to group (`a == b == c`) is a diagnostic rather than a
+guess:
+
+```scala
+import morphir.langkit.elm.{Elm, ElmParseOptions}
+
+Elm.parseCst(source)                             // canonical Elm
+Elm.parseCst(source, ElmParseOptions.lenient)    // best-effort tree for tooling
+```
+
+To see everything a parse found rather than the first problem, ask for the diagnoses instead — a module with four
+unresolvable operator chains describes all four:
+
+```scala
+val outcome = Elm.diagnoseCst(source)
+outcome.messages   // every diagnostic, in source order
+outcome.errors     // the ones that stopped it
+outcome.value      // the tree, if one survived
+```
+
+Both are the same pipeline: stages composed in the `ElmParse` effect, with `ElmParse.run` interpreting them. Compose
+the stages directly to run parsing alongside your own Kyo effects, or interpret them your own way — see
+[The pipeline is an effect](./CONTRIBUTING.md#the-pipeline-is-an-effect-and-policy-lives-in-the-interpreter).
+
+```scala
+import morphir.langkit.elm.{ElmParse, ElmParseOptions}
+
+val pipeline = ElmParse.cst(source)              // CstModule < ElmParse
+ElmParse.run(ElmParseOptions.elm)(pipeline)      // ElmParse.Outcome[CstModule]
+```
+
+A module whose operators are declared in a sibling module needs the sibling to be shaped correctly, so parse them
+together:
+
+```scala
+import morphir.langkit.elm.ElmProject
+
+val outcome = ElmProject.parse(Map("Combine.elm" -> combineSource, "Use.elm" -> useSource))
+outcome.trees      // by module name
+outcome.modules    // per-module diagnostics
+outcome.unparsed   // sources that did not parse at all
+```
+
+See [Operator fixity is a second pass](./CONTRIBUTING.md#operator-fixity-is-a-second-pass) for what the parser knows
+about operators declared elsewhere, and
+[the conformance tracker](./conformance.html) for how far the parser has converged on `elm/compiler` and what is
+still open.
+
 Both trees have `QueryableTree` instances, so the [query DSL](../trees) works against either:
 
 ```scala

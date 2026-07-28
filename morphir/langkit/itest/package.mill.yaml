@@ -1,4 +1,5 @@
-extends: [build.MorphirCommonModule, build.MorphirLangkitItestWasmArtifacts, TestModule.Junit5]
+extends: [build.MorphirCommonModule, build.MorphirLangkitItestWasmArtifacts, build.MorphirLangkitItestElmPackages,
+  TestModule.Junit5]
 moduleDeps:
 - build.morphir.langkit.elm.core.jvm
 - build.morphir.langkit.elm.compiler.api.jvm
