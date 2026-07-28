@@ -1,0 +1,143 @@
+# `kb` Command Reference
+
+All commands take `--kb <path>` (auto-detected by walking up from the skill directory) and `--json`.
+
+`--json` writes structured output on stdout; Mill's progress goes to stderr. Pipe freely:
+
+```bash
+.claude/skills/kb/kb check --json | jq '.findings[] | select(.severity=="error")'
+```
+
+---
+
+## `list`
+
+Bundles, their OKF version, concept count and title.
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--bundle <name>` | List that bundle's concepts instead. Accepts `morphir-ir-v3` or `morphir/morphir-ir-v3` |
+
+```bash
+.claude/skills/kb/kb list --bundle morphir-ir-v3
+```
+
+JSON gives `{root, bundles[{label, name, group, okfVersion, title, description, concepts, subIndexes, hasLog}]}`, or
+with `--bundle`, `{bundle, concepts[...]}`.
+
+---
+
+## `show`
+
+One document: frontmatter, outbound links, heading outline.
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--path <p>` | Required. Bundle-relative (`/naming.md`) or any path suffix (`morphir-ir-v3/naming.md`) |
+| `--bundle <name>` | Disambiguates a bundle-relative path when several bundles share it |
+| `--body` | Include the document body |
+
+```bash
+.claude/skills/kb/kb show --path /naming.md --bundle morphir-ir-v3
+```
+
+---
+
+## `search`
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--query <text>` | Matches titles, descriptions, types, tags and paths, case-insensitively |
+| `--body` | Also search prose, reporting matching line numbers |
+| `--type <t>` | Filter by frontmatter `type` |
+| `--tag <t>` | Filter by tag; repeatable, all must match |
+| `--status <s>` | Filter by `status` |
+| `--bundle <b>` | Restrict to one bundle |
+
+Filters combine, and any of them works without `--query` — `--status draft` alone lists every draft concept.
+
+```bash
+.claude/skills/kb/kb search --tag v4 --status draft
+```
+
+```bash
+.claude/skills/kb/kb search --query "format version" --body
+```
+
+---
+
+## `check`
+
+Runs every check and exits non-zero when there are errors.
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--verbose` | Include info-level findings |
+| `--strict` | Exit non-zero on warnings too |
+| `--refs <path>` | Reference checkout root (default `<repo>/.refs`) |
+| `--no-provenance` | Skip the `.refs/` comparison entirely |
+| `--out <path>` | Write the report to a file instead of stdout. Put these under `.dev/` |
+
+```bash
+.claude/skills/kb/kb check --verbose
+```
+
+```bash
+.claude/skills/kb/kb check --json --out .dev/kb/out/check.json
+```
+
+→ [checks.md](checks.md) for what each finding means.
+
+---
+
+## `new-bundle`
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--name <slug>` | Required. Slugified if it is not already kebab-case |
+| `--title <t>` | Required |
+| `--description <d>` | Required. One sentence — it becomes the bundle's `description` |
+| `--group <g>` | Grouping directory under `bundles/`, e.g. `morphir` |
+| `--okf-version <v>` | Defaults to `0.2` |
+| `--date <YYYY-MM-DD>` | Override today's date in the log entry |
+
+```bash
+.claude/skills/kb/kb new-bundle --group morphir --name morphir-ir-v5 \
+  --title "Morphir IR v5" --description "The v5 IR specification."
+```
+
+Creates `index.md` and `log.md`. It does **not** update `kb/README.md` or the group's `README.md` — it prints a
+reminder instead, because that wording is a judgement call.
+
+---
+
+## `add-concept`
+
+Creates the concept, inserts an index bullet, and appends a log entry.
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--bundle <b>` | Required |
+| `--path <p>` | Required. Within the bundle: `naming.md`, or `design/naming.md` for a subdirectory |
+| `--type <t>` | Required. The one universally required OKF field |
+| `--title <t>` | Required |
+| `--description <d>` | Required. Also becomes the index bullet text |
+| `--tag <t>` | Repeatable |
+| `--status <s>` | `draft`, `stable` or `deprecated` |
+| `--source <s>` | Repeatable. `URL`, `id=URL`, or `id=URL=Title` |
+| `--section <s>` | Index heading to file under. Defaults to `Orientation`; the section is created if absent |
+| `--generated-by <a>` | Actor for `generated.by`, e.g. `process:kb-seed` |
+| `--date <YYYY-MM-DD>` | Override today's date |
+
+```bash
+.claude/skills/kb/kb add-concept --bundle morphir/morphir-ir-v3 --path naming.md \
+  --type "Specification Section" --title Naming \
+  --description "Name, Path, QName and FQName." \
+  --tag morphir --tag ir --status stable --section "Identity and structure" \
+  --source "ir-spec=https://github.com/finos/morphir/blob/<sha>/docs/spec/ir/morphir-ir-specification.md=Morphir IR Specification"
+```
+
+A concept whose path is in a subdirectory is filed in that subdirectory's `index.md` when one exists, otherwise in
+the bundle root index.
+
+The body is a stub with a `TODO` comment. Write it yourself — → [authoring.md](authoring.md).
