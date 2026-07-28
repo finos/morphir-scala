@@ -204,7 +204,7 @@ object Versions {
   val fansi                      = "0.5.1"
   val fs2                        = "3.13.0"
   val geny                       = "1.1.1"
-  val `izumi-reflect`            = "2.3.10"
+  val `izumi-reflect`            = "3.0.9"
   val `kyo-case-app`             = "1.0.0-RC5"
   val metaconfig                 = "0.12.0"
   val mainargs                   = "0.7.8"
