@@ -34,7 +34,6 @@ case class Finding(
 
 object KbCheck:
 
-  private val IndexEntry = raw"^\s*[*-]\s+\[([^\]]*)\]\(([^)]+)\)\s*(?:-\s*(.*))?$$".r
   private val GitHubUrl = raw"https://github\.com/([^/]+)/([^/]+)/(?:blob|tree)/([0-9a-f]{7,40})/(.*)".r
 
   /** Runs every check. `today` is injected so results are reproducible. */
@@ -161,9 +160,9 @@ object KbCheck:
   private def indexDescriptions(kb: Kb, b: Bundle): Seq[Finding] =
     b.allIndexes.flatMap { idx =>
       idx.body.linesIterator.zipWithIndex.flatMap { (line, i) =>
-        IndexEntry.findFirstMatchIn(line).toSeq.flatMap { m =>
-          val dest = m.group(2)
-          val text = Option(m.group(3)).map(_.trim).filter(_.nonEmpty)
+        KbMarkdown.IndexEntry.findFirstMatchIn(line).toSeq.flatMap { m =>
+          val dest = m.group(3)
+          val text = Option(m.group(4)).map(_.trim).filter(_.nonEmpty)
           if !dest.startsWith("/") then Nil
           else
             b.conceptAt(dest.takeWhile(_ != '#')).toSeq.flatMap { target =>

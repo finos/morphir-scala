@@ -114,6 +114,41 @@ Builds the SQLite index over the knowledge base.
 
 ---
 
+## `refresh`
+
+Brings derived state back in line with the markdown: rewrites index bullets that have drifted from their concept's
+`description`, and rebuilds the SQLite index when it is stale.
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--dry-run` | Report what would change; write nothing |
+| `--force` | Rebuild the SQLite index even when it is up to date |
+| `--add-missing` | Append index entries for concepts no index links to |
+| `--section <s>` | Section to append missing entries under (default `Orientation`) |
+| `--no-markdown` | Skip the markdown indexes |
+| `--no-db` | Skip the SQLite index |
+| `--db <path>` | Database location |
+
+```bash
+.claude/skills/kb/kb refresh --dry-run
+```
+
+```bash
+.claude/skills/kb/kb refresh
+```
+
+Description drift is fixed automatically because the repair is purely mechanical — the bullet is *supposed* to mirror
+the description, so there is only one right answer. Only the trailing text is rewritten; the link is preserved
+verbatim, so a hand-written link title survives.
+
+Appending a **missing** entry means choosing which section it belongs under, which is a judgement call, so it is
+opt-in via `--add-missing`. Without that flag, unindexed concepts are reported and left alone.
+
+When the markdown changes, the knowledge base is reloaded before the database is rebuilt, so the index always
+reflects what ended up on disk.
+
+---
+
 ## `query`
 
 Read-only SQL over the index.

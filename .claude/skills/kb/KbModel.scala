@@ -27,6 +27,14 @@ object KbPath:
 
   def render(p: Path): String = p.parts.filter(_.nonEmpty).mkString("/", "/", "")
 
+/** Markdown shapes the tooling recognizes.
+  *
+  * An index entry is `* [Title](/path.md) - description`. Groups: (1) everything through the closing paren, so a
+  * rewrite can keep the link untouched, (2) title, (3) destination, (4) trailing description, which may be absent.
+  */
+object KbMarkdown:
+  val IndexEntry = raw"^(\s*[*-]\s+\[([^\]]*)\]\(([^)]+)\))\s*(?:-\s*(.*))?$$".r
+
 /** What role a markdown file plays inside a bundle. Only `index.md` and `log.md` are reserved by OKF; every other
   * `.md` file is a concept document.
   */

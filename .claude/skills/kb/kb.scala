@@ -1,6 +1,6 @@
 //| scalaVersion: 3.8.4
 //| mainClass: KbApp
-//| moduleDeps: [KbCheck.scala, KbScaffold.scala, KbRender.scala, KbIndex.scala]
+//| moduleDeps: [KbCheck.scala, KbScaffold.scala, KbRender.scala, KbIndex.scala, KbRefresh.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-case-app:1.0.0-RC5
 
@@ -69,6 +69,17 @@ case class IndexOpts(
     @Recurse common: CommonOpts = CommonOpts(),
     @HelpMessage("Database path (default: <repo>/.dev/kb/index.db)") db: Option[String] = None,
     @HelpMessage("Report the index's freshness instead of rebuilding it") status: Boolean = false
+)
+
+case class RefreshOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("Report what would change without writing anything") dryRun: Boolean = false,
+    @HelpMessage("Rebuild the SQLite index even when it is already up to date") force: Boolean = false,
+    @HelpMessage("Append index entries for concepts no index links to") addMissing: Boolean = false,
+    @HelpMessage("Index section to append missing entries under") section: String = "Orientation",
+    @HelpMessage("Skip the markdown indexes") noMarkdown: Boolean = false,
+    @HelpMessage("Skip the SQLite index") noDb: Boolean = false,
+    @HelpMessage("Database path (default: <repo>/.dev/kb/index.db)") db: Option[String] = None
 )
 
 case class QueryOpts(
@@ -171,7 +182,7 @@ object KbCli:
 
 object KbApp extends CommandsEntryPoint:
   override def progName: String = "kb"
-  def commands = Seq(ListCmd, ShowCmd, SearchCmd, CheckCmd, IndexCmd, QueryCmd, NewBundleCmd, AddConceptCmd)
+  def commands = Seq(ListCmd, ShowCmd, SearchCmd, CheckCmd, IndexCmd, RefreshCmd, QueryCmd, NewBundleCmd, AddConceptCmd)
 
   object ListCmd extends KyoCommand[ListOpts]:
     override def name = "list"
@@ -249,6 +260,24 @@ object KbApp extends CommandsEntryPoint:
             }
           else
             KbIndex.build(kb, db).map(s => Console.print(KbIndex.renderStats(s, db, o.common.json)))
+      yield ()
+    }
+
+  object RefreshCmd extends KyoCommand[RefreshOpts]:
+    override def name = "refresh"
+    run { (o: RefreshOpts) =>
+      for
+        root <- KbCli.resolveKb(o.common.kb)
+        kb <- KbStore.load(root)
+        md <-
+          if o.noMarkdown then (Seq.empty[RefreshAction]: Seq[RefreshAction] < (Sync & Abort[Throwable]))
+          else KbRefresh.refreshMarkdown(kb, o.addMissing, o.section, o.dryRun)
+        // Reload after rewriting the markdown so the index is built from what is now on disk.
+        reloaded <- if md.isEmpty || o.dryRun then (kb: Kb < (Sync & Abort[Throwable])) else KbStore.load(root)
+        dbActions <-
+          if o.noDb then (Seq.empty[RefreshAction]: Seq[RefreshAction] < (Sync & Abort[Throwable]))
+          else KbRefresh.refreshDb(reloaded, KbCli.dbPath(o.db, root), o.force, o.dryRun)
+        _ <- Console.print(KbRefresh.render(md ++ dbActions, o.dryRun, o.common.json))
       yield ()
     }
 
