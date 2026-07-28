@@ -97,7 +97,12 @@ jobs:
         with:
           path: |
             out/morphir/**/js/
-          key: ${{ runner.os }}-mill-js-${{matrix.java}}-${{ github.sha}}-${{ hashFiles('out') }}
+          # The commit already identifies the output; the key does not hash `out`.
+          # `hashFiles('out')` follows the symlinks Mill leaves there — `out/mill-home`
+          # points at $HOME and `out/mill-daemon/mill-workspace` back at the repo root —
+          # so it walks the whole runner home and a cyclical path, taking minutes when it
+          # works and failing the job outright when it hits an unreadable file or the cycle.
+          key: ${{ runner.os }}-mill-js-${{matrix.java}}-${{ github.sha }}
 
   # Scala Native is currently scoped to the langkit and kit modules ported from
   # krueger. It gets its own job rather than riding along with test-jvm because
@@ -194,7 +199,8 @@ jobs:
           path: |
             out/morphir/**/jvm/
             out/morphir/build/
-          key: ${{ runner.os }}-mill-jvm-${{matrix.java}}-${{ github.sha }}-${{ hashFiles('out') }}
+          # See the JS job: the key deliberately does not hash `out`.
+          key: ${{ runner.os }}-mill-jvm-${{matrix.java}}-${{ github.sha }}
 
   publish:
     # when in master repo: all commits to main branch and all additional tags
@@ -247,16 +253,14 @@ jobs:
         with:
           path: |
             out/morphir/**/jvm/
-          key: ${{ runner.os }}-mill-jvm-25-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-jvm-25-${{ github.sha }}-
+          key: ${{ runner.os }}-mill-jvm-25-${{ github.sha }}
 
       - name: Restore JS Build Output From Cache
         uses: actions/cache/restore@v6
         with:
           path: |
             out/morphir/**/js/
-          key: ${{ runner.os }}-mill-js-25-${{ github.sha }}-${{ hashFiles('out') }}
-          restore-keys: ${{ runner.os }}-mill-js-25-${{ github.sha }}-
+          key: ${{ runner.os }}-mill-js-25-${{ github.sha }}
 
       - name: Release
         env:
