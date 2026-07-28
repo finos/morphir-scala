@@ -76,5 +76,10 @@ Each file kind has its own root schema — `tree/format.yaml`, `tree/module.yaml
 
 The upstream distribution spec shows definition files under `types/` and `values/` subdirectories, while the modules
 spec states that in manifest style definition files "reside directly in the module directory" and shows them
-unnested. The two examples disagree; the drafts have not been reconciled. Verify against `tree/module.yaml` before
-relying on either arrangement.
+unnested. The two examples disagree, and the drafts have not been reconciled.
+
+The [design documents](/design/index.md) consistently use the `types/` and `values/` subdirectory arrangement, and
+they also add `session.jsonl` (a transaction journal) and `deco/` (layered decorations) at the distribution root. But
+the design and the spec draft disagree about `module.json` and `formatVersion` too — see
+[Specification and Design Divergences](/design/divergences.md). Verify against `tree/module.yaml` before relying on
+any of it.

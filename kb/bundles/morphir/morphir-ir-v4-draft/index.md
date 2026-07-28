@@ -50,3 +50,21 @@ Knowledge bundle for the **draft** specification of Morphir IR format version 4.
 ## Serialization
 
 * [Schema Architecture](/schema-architecture.md) - Separate root schemas over shared $ref definitions.
+
+## Design rationale
+
+The [`design/`](/design/index.md) subdirectory covers `docs/design/draft/ir/` — the reasoning behind the format, plus
+five features the spec draft has not absorbed.
+
+* [v4 Architecture](/design/architecture.md) - The hub-and-spoke daemon model the format serves, and per-document status.
+* [Specification and Design Divergences](/design/divergences.md) - Where the design and the spec draft disagree. **Read this before implementing either.**
+* [Naming Decisions](/design/naming-decisions.md) - Opaque newtypes, canonical-string storage, parenthesized acronyms.
+* [Type Encoding Decisions](/design/type-encoding-decisions.md) - Permissive input, canonical output, and decoding v1 through v3.
+* [Value Encoding Decisions](/design/value-encoding-decisions.md) - The IntegerLiteral rename and value shorthand limits.
+* [Module and Package Decisions](/design/module-and-package-decisions.md) - Dictionary storage, wrapper flattening, specification derivation.
+* [Distribution Design](/design/distribution-design.md) - Full distribution records, entry point kinds, semantic versioning.
+* [Annotations](/design/annotations.md) - Semantic labels on specifications.
+* [Layered Decorations](/design/decorations.md) - The deco/ tree and deep-merged metadata layers.
+* [Document Type](/design/document-type.md) - Schema-less JSON-like values.
+* [File Metadata ($meta)](/design/file-metadata.md) - Provenance and tooling metadata per file.
+* [Node References ($ref)](/design/node-references.md) - File-local structural deduplication.

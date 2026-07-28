@@ -31,8 +31,14 @@ For the specification this implements, see the sibling `morphir-ir-v3` bundle.
 ## Compilation pipeline
 
 * [Elm Frontend](/elm-frontend.md) - Turning Elm source into IR, including the incremental path.
+* [Type Inference](/type-inference.md) - The constraint-based engine that annotates IR values with inferred types.
 * [Morphir SDK](/morphir-sdk.md) - The base types and functions every backend must support.
 * [Backends](/backends.md) - The code generation targets shipped in this repository.
+
+## Executing and checking models
+
+* [Value Interpreter](/value-interpreter.md) - Evaluating IR value expressions directly, and the native function table.
+* [Testing and Coverage](/testing-and-coverage.md) - Test cases as data, and branch coverage over the IR.
 
 ## Tooling
 
