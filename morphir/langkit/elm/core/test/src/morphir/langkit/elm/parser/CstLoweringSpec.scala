@@ -62,6 +62,63 @@ class CstLoweringSpec extends Test[Any]:
       )(sp)
       assert(CstLowering.lowerModule(cst).name.fullName == "Http.Body")
     }
+    "lowerModule keeps plain, port, and effect modules distinguishable" in {
+      def lowered(moduleType: ModuleType, manager: Option[CstEffectManager]) =
+        CstLowering.lowerModule(
+          CstModule(
+            CstModuleDeclaration(moduleType, qn("M"), CstExposingAll()(sp), manager)(sp),
+            IndexedSeq.empty,
+            IndexedSeq.empty
+          )(sp)
+        )
+      val plain  = lowered(ModuleType.Plain, None)
+      val port   = lowered(ModuleType.Port, None)
+      val effect = lowered(ModuleType.Effect, Some(CstEffectManager(Some(n("MyCmd")), Some(n("MySub")))(sp)))
+      assert(plain.moduleType == ast.ModuleType.Plain)
+      assert(port.moduleType == ast.ModuleType.Port)
+      assert(effect.moduleType == ast.ModuleType.Effect)
+      assert(plain != port)
+      assert(port != effect)
+      assert(plain != effect)
+    }
+    "lowerModule carries the effect manager's command and subscription types" in {
+      val cst = CstModule(
+        CstModuleDeclaration(
+          ModuleType.Effect,
+          qn("Eff"),
+          CstExposingAll()(sp),
+          Some(CstEffectManager(Some(n("MyCmd")), Some(n("MySub")))(sp))
+        )(sp),
+        IndexedSeq.empty,
+        IndexedSeq.empty
+      )(sp)
+      val m = CstLowering.lowerModule(cst)
+      assert(m.manager == Some(ast.EffectManager(Some("MyCmd"), Some("MySub"))(sp)))
+    }
+    "lowerModule keeps a half-populated effect manager" in {
+      def lowered(manager: CstEffectManager) =
+        CstLowering
+          .lowerModule(
+            CstModule(
+              CstModuleDeclaration(ModuleType.Effect, qn("Eff"), CstExposingAll()(sp), Some(manager))(sp),
+              IndexedSeq.empty,
+              IndexedSeq.empty
+            )(sp)
+          )
+          .manager
+      assert(lowered(CstEffectManager(Some(n("MyCmd")), None)(sp)).flatMap(_.command) == Some("MyCmd"))
+      assert(lowered(CstEffectManager(Some(n("MyCmd")), None)(sp)).flatMap(_.subscription) == None)
+      assert(lowered(CstEffectManager(None, Some(n("MySub")))(sp)).flatMap(_.subscription) == Some("MySub"))
+      assert(lowered(CstEffectManager(None, Some(n("MySub")))(sp)).flatMap(_.command) == None)
+    }
+    "lowerModule leaves a plain module without a manager" in {
+      val cst = CstModule(
+        CstModuleDeclaration(ModuleType.Plain, qn("M"), CstExposingAll()(sp))(sp),
+        IndexedSeq.empty,
+        IndexedSeq.empty
+      )(sp)
+      assert(CstLowering.lowerModule(cst).manager.isEmpty)
+    }
     "lowerPattern strips CstParenthesizedPattern" in {
       val inner   = CstVariablePattern(n("x"))(sp)
       val wrapped = CstParenthesizedPattern(inner)(sp)

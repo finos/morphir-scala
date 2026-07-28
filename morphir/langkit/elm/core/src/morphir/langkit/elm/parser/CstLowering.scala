@@ -16,8 +16,18 @@ object CstLowering:
       exposing = lowerExposingList(cst.moduleDecl.exposing),
       imports = cst.imports.map(lowerImport),
       declarations = cst.declarations.map(lowerDeclaration),
-      docComment = cst.trivia.docComment.map(_.text)
+      docComment = cst.trivia.docComment.map(_.text),
+      moduleType = lowerModuleType(cst.moduleDecl.moduleType),
+      manager = cst.moduleDecl.manager.map(lowerEffectManager)
     )(cst.span)
+
+  private def lowerModuleType(t: ModuleType): ast.ModuleType = t match
+    case ModuleType.Plain  => ast.ModuleType.Plain
+    case ModuleType.Port   => ast.ModuleType.Port
+    case ModuleType.Effect => ast.ModuleType.Effect
+
+  private def lowerEffectManager(cst: CstEffectManager): ast.EffectManager =
+    ast.EffectManager(cst.command.map(_.value), cst.subscription.map(_.value))(cst.span)
 
   private def lowerQualifiedName(cst: CstQualifiedName): ast.QualifiedName =
     ast.QualifiedName(cst.parts.map(_.value))(cst.span)

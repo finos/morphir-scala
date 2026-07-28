@@ -26,6 +26,12 @@ class AstQueryableTreeSpec extends Test[Any]:
       |main = 42
       |""".stripMargin
 
+  private val effectSource =
+    """effect module Eff where { command = MyCmd, subscription = MySub } exposing (..)
+      |
+      |x = 1
+      |""".stripMargin
+
   private val moduleTree: Module         = parse(source)
   private val root: AstNode              = moduleTree
   private val qt: QueryableTree[AstNode] = summon[QueryableTree[AstNode]]
@@ -61,12 +67,22 @@ class AstQueryableTreeSpec extends Test[Any]:
         assert(fs(field("parameters")) == valueDecl.parameters.toSeq)
         assert(fs(field("typeAnnotation")) == valueDecl.typeAnnotation.toSeq)
       }
-      "Module exposes exposing, imports, declarations as fields" in {
+      "Module exposes exposing, manager, imports, declarations as fields" in {
         val fs = qt.fields(moduleTree)
-        assert(fs.keySet == Set(field("exposing"), field("imports"), field("declarations")))
+        assert(fs.keySet == Set(field("exposing"), field("manager"), field("imports"), field("declarations")))
         assert(fs(field("exposing")) == Seq(moduleTree.exposing))
+        assert(fs(field("manager")) == Seq.empty)
         assert(fs(field("imports")) == moduleTree.imports.toSeq)
         assert(fs(field("declarations")) == moduleTree.declarations.toSeq)
+      }
+      "an effect module's manager is both a field and a child" in {
+        val effect  = parse(effectSource)
+        val manager = effect.manager.getOrElse(throw new AssertionError("no effect manager"))
+        assert(typeNameOf(manager) == "EffectManager")
+        assert(qt.fields(effect)(field("manager")) == Seq(manager))
+        assert(qt.children(effect).contains(manager))
+        assert(qt.fields(manager).isEmpty)
+        assert(qt.children(manager).isEmpty)
       }
     }
     "text" - {

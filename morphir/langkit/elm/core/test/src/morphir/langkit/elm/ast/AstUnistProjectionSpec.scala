@@ -26,8 +26,18 @@ class AstUnistProjectionSpec extends Test[Any]:
     "projects parsed AST root with type, fields, and child count" in {
       val node = UnistProjection.project(moduleTree, Some(source))
       assert(node.`type` == "Module")
-      assert(node.data.fields.keySet == Set("exposing", "imports", "declarations"))
+      assert(node.data.fields.keySet == Set("exposing", "manager", "imports", "declarations"))
       assert(node.data.childCount == node.children.size)
+    }
+    "projects an effect module's manager as a child node" in {
+      val effectSource =
+        """effect module Eff where { command = MyCmd, subscription = MySub } exposing (..)
+          |
+          |x = 1
+          |""".stripMargin
+      val effectTree: AstNode = parse(effectSource)
+      val node                = UnistProjection.project(effectTree, Some(effectSource))
+      assert(node.children.map(_.`type`).contains("EffectManager"))
     }
     "projects AST declaration and literal text values" in {
       val node   = UnistProjection.project(moduleTree, Some(source))

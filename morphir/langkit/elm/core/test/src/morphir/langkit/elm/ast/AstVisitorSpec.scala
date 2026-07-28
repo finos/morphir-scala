@@ -22,12 +22,29 @@ class AstVisitorSpec extends Test[Any]:
 
   private val sampleAst: Module = CstLowering.lowerModule(sampleCst)
 
+  private val effectAst: Module =
+    CstLowering.lowerModule(
+      CstModule(
+        CstModuleDeclaration(
+          ModuleType.Effect,
+          cqn("Eff"),
+          CstExposingAll()(sp),
+          Some(CstEffectManager(Some(cn("MyCmd")), Some(cn("MySub")))(sp))
+        )(sp),
+        IndexedSeq.empty,
+        IndexedSeq.empty
+      )(sp)
+    )
+
   private class TagVisitor extends AstVisitor[String]:
     def visitNode(node: AstNode): String                         = "Node"
     override def visitQualifiedName(node: QualifiedName): String = s"QN(${node.fullName})"
     override def visitIntLiteral(node: IntLiteral): String       = s"Int(${node.value})"
     override def visitImport(node: Import): String               = s"Imp(${node.moduleName.fullName})"
     override def visitModule(node: Module): String               = s"Mod(${node.name.fullName})"
+
+    override def visitEffectManager(node: EffectManager): String =
+      s"Eff(${node.command.getOrElse("-")},${node.subscription.getOrElse("-")})"
 
   "AstVisitor" - {
     "dispatch" - {
@@ -46,6 +63,14 @@ class AstVisitorSpec extends Test[Any]:
       "children returns direct children of a module" in
         // Module's children are: exposing :: imports ::: declarations
         assert(AstVisitor.children(sampleAst).size == 2)
+      "children include an effect module's manager" in {
+        val managers = AstVisitor.children(effectAst).collect { case m: EffectManager => m }
+        assert(managers == List(EffectManager(Some("MyCmd"), Some("MySub"))(sp)))
+      }
+      "visit routes an effect manager to its visitor method" in {
+        val v = new TagVisitor
+        assert(AstVisitor.visit(effectAst.manager.get, v) == "Eff(MyCmd,MySub)")
+      }
       "count counts all lowered nodes" in
         // Module + ExposingAll + Import = 3
         assert(AstVisitor.count(sampleAst) == 3)

@@ -2,6 +2,7 @@ package morphir.langkit.itest.steps
 
 import io.cucumber.scala.{EN, ScalaDsl}
 
+import morphir.langkit.elm.ast
 import morphir.langkit.elm.compiler.DiagnosticCode
 import morphir.langkit.elm.cst.*
 import morphir.langkit.itest.TestDriver
@@ -61,6 +62,36 @@ class ModuleParserSteps(driver: TestDriver) extends ScalaDsl with EN:
   Then("the module is effect") { () =>
     val mt = driver.cst.moduleDecl.moduleType
     assert(mt == ModuleType.Effect, s"expected effect module, got [$mt]")
+  }
+
+  Then("the AST module is plain") { () =>
+    val mt = driver.ast.moduleType
+    assert(mt == ast.ModuleType.Plain, s"expected plain AST module, got [$mt]")
+  }
+
+  Then("the AST module is port") { () =>
+    val mt = driver.ast.moduleType
+    assert(mt == ast.ModuleType.Port, s"expected port AST module, got [$mt]")
+  }
+
+  Then("the AST module is effect") { () =>
+    val mt = driver.ast.moduleType
+    assert(mt == ast.ModuleType.Effect, s"expected effect AST module, got [$mt]")
+  }
+
+  Then("the AST module has no effect manager") { () =>
+    val manager = driver.ast.manager
+    assert(manager.isEmpty, s"expected no AST effect manager, got [$manager]")
+  }
+
+  Then("the AST effect manager command is {string}") { (name: String) =>
+    val actual = driver.ast.manager.flatMap(_.command)
+    assert(actual.contains(name), s"expected AST manager command [$name], got [$actual]")
+  }
+
+  Then("the AST effect manager subscription is {string}") { (name: String) =>
+    val actual = driver.ast.manager.flatMap(_.subscription)
+    assert(actual.contains(name), s"expected AST manager subscription [$name], got [$actual]")
   }
 
   Then("the module has {int} import(s)") { (count: Int) =>
