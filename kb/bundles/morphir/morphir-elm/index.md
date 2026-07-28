@@ -17,30 +17,30 @@ For the specification this implements, see the sibling `morphir-ir-v3` bundle.
 
 ## Orientation
 
-* [morphir-elm Overview](/overview.md) - What the project ships, and how its pieces relate.
-* [Verifying v3 Claims](/verifying-v3-claims.md) - Playbook for using this repository to check specification claims against working code.
+* [morphir-elm Overview](/overview.md) - What the morphir-elm project ships and how its pieces relate to the Morphir IR specification.
+* [Verifying v3 Claims](/verifying-v3-claims.md) - How to use the morphir-elm repository to check specification claims against working code.
 
 ## The IR API
 
-* [IR Module Map](/ir-api.md) - How `src/Morphir/IR/` maps onto the specification's concepts.
-* [Format Version](/format-version.md) - The manually managed format version constant, pinned at 3.
-* [Distribution and Component](/distribution-and-component.md) - The single Library constructor, and the separate Component record.
-* [JSON Codecs](/codecs.md) - Per-concept encoders and decoders, and the V1 codec pair that preserves format version 1.
-* [Decorations](/decorations.md) - Sidecar metadata attached to IR nodes.
+* [IR Module Map](/ir-api.md) - How the Elm modules under src/Morphir/IR map onto the concepts in the IR specification.
+* [Format Version](/format-version.md) - The manually managed IR format version constant in morphir-elm, pinned at 3.
+* [Distribution and Component](/distribution-and-component.md) - The single Library constructor that matches the spec, and the Component record that has no spec counterpart.
+* [JSON Codecs](/codecs.md) - Per-concept encoders and decoders, and the parallel V1 codec set that still reads format version 1.
+* [Decorations](/decorations.md) - Sidecar metadata attached to IR nodes without modifying the IR itself.
 
 ## Compilation pipeline
 
-* [Elm Frontend](/elm-frontend.md) - Turning Elm source into IR, including the incremental path.
-* [Type Inference](/type-inference.md) - The constraint-based engine that annotates IR values with inferred types.
-* [Morphir SDK](/morphir-sdk.md) - The base types and functions every backend must support.
-* [Backends](/backends.md) - The code generation targets shipped in this repository.
+* [Elm Frontend](/elm-frontend.md) - The components that turn Elm source into Morphir IR, including the incremental compilation path.
+* [Type Inference](/type-inference.md) - The constraint-based type inference engine that annotates IR values with their inferred types.
+* [Morphir SDK](/morphir-sdk.md) - The base set of types and functions every Morphir backend is expected to support.
+* [Backends](/backends.md) - The code generation targets shipped in morphir-elm, and the shared shape they follow.
 
 ## Executing and checking models
 
-* [Value Interpreter](/value-interpreter.md) - Evaluating IR value expressions directly, and the native function table.
-* [Testing and Coverage](/testing-and-coverage.md) - Test cases as data, and branch coverage over the IR.
+* [Value Interpreter](/value-interpreter.md) - How morphir-elm evaluates IR value expressions, and the native function escape hatch.
+* [Testing and Coverage](/testing-and-coverage.md) - How test cases are expressed against a Morphir model and how branch coverage is measured.
 
 ## Tooling
 
-* [Command-Line Interface](/cli.md) - The morphir-elm and morphir commands, and the MCP server.
-* [Project Configuration](/project-configuration.md) - How this implementation consumes morphir.json.
+* [Command-Line Interface](/cli.md) - The morphir-elm and morphir commands, their generation subcommands, and the MCP server.
+* [Project Configuration](/project-configuration.md) - How morphir-elm consumes morphir.json, and the reference forms its dependency resolution accepts.

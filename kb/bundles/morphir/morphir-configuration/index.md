@@ -19,13 +19,13 @@ tasks, workflows, and toolchains. Seeded from `docs/spec/morphir-toml/` in
 
 ## Orientation
 
-* [Configuration Overview](/overview.md) - Discovery, the TOML-to-JSON data model, and the top-level key map.
-* [Merge Rules](/merge-rules.md) - The six configuration sources, their precedence, and the deep-merge algorithm.
-* [Relationship to morphir.json](/relationship-to-morphir-json.md) - How the two project configuration formats compare.
+* [Configuration Overview](/overview.md) - How morphir.toml is discovered, how TOML maps to the internal object model, and what the top-level keys are.
+* [Merge Rules](/merge-rules.md) - The six configuration sources, their precedence order, and the deterministic deep-merge algorithm.
+* [Relationship to morphir.json](/relationship-to-morphir-json.md) - How morphir.toml and the older morphir.json project file compare, and which tools read which.
 
 ## Sections
 
-* [Workspace and Project](/workspace-and-project.md) - Workspace discovery, member globs, project metadata, and decorations.
-* [IR, Codegen, and Runtime](/ir-codegen-and-runtime.md) - The morphir, ir, codegen, cache, logging, and ui sections.
-* [Tasks and Workflows](/tasks-and-workflows.md) - Intrinsic and command tasks, dependencies, hooks, and staged workflows.
-* [Toolchains](/toolchains.md) - External tool adapters, acquisition, and the task catalogs they provide.
+* [Workspace and Project](/workspace-and-project.md) - Workspace discovery and member globs, project metadata, and decoration declarations.
+* [IR, Codegen, and Runtime](/ir-codegen-and-runtime.md) - The morphir, ir, codegen, cache, logging, and ui configuration sections.
+* [Tasks and Workflows](/tasks-and-workflows.md) - Intrinsic and command tasks with their dependencies and hooks, and staged workflow orchestration.
+* [Toolchains](/toolchains.md) - External tool adapters — how a tool is acquired, run, and what tasks it contributes.

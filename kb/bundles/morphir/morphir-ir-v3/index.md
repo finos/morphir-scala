@@ -21,28 +21,28 @@ version, see the sibling `morphir-elm` bundle.
 
 ## Identity and structure
 
-* [Naming](/naming.md) - Name, Path, QName, and FQName — the convention-independent identifier system.
-* [Attributes and Wrappers](/attributes-and-wrappers.md) - Type and value attributes, AccessControlled, and Documented.
-* [Distribution](/distribution.md) - The self-contained output of compilation: a Library and its dependency specifications.
-* [Packages](/packages.md) - Package specifications, package definitions, and package names.
-* [Modules](/modules.md) - Module specifications, module definitions, and module naming.
+* [Naming](/naming.md) - Name, Path, QName, and FQName — the convention-independent identifier system used throughout the IR.
+* [Attributes and Wrappers](/attributes-and-wrappers.md) - Type and value attributes, the AccessControlled wrapper, and the Documented wrapper.
+* [Distribution](/distribution.md) - The self-contained output of Morphir compilation — a Library plus the specifications of its dependencies.
+* [Packages](/packages.md) - Package specifications, package definitions, and package names — the unit of versioning and distribution.
+* [Modules](/modules.md) - Module specifications, module definitions, and the two forms of module naming.
 
 ## Type system
 
-* [Type Expressions](/type-expressions.md) - The seven type expression nodes: Variable, Reference, Tuple, Record, ExtensibleRecord, Function, Unit.
-* [Type Specifications and Definitions](/type-specifications-and-definitions.md) - Alias, opaque, custom, and derived types, and how definitions collapse to specifications.
+* [Type Expressions](/type-expressions.md) - The seven type expression nodes — Variable, Reference, Tuple, Record, ExtensibleRecord, Function, and Unit.
+* [Type Specifications and Definitions](/type-specifications-and-definitions.md) - Alias, opaque, custom, and derived types, and how a type definition collapses into a specification.
 
 ## Value system
 
-* [Value Expressions](/value-expressions.md) - The expression nodes that encode all computation, from Literal through UpdateRecord.
+* [Value Expressions](/value-expressions.md) - The expression nodes that encode all computation in the IR, from Literal through UpdateRecord.
 * [Patterns](/patterns.md) - The eight pattern forms used in lambdas, destructuring, and pattern matching.
-* [Value Specifications and Definitions](/value-specifications-and-definitions.md) - Function signatures and their implementations.
+* [Value Specifications and Definitions](/value-specifications-and-definitions.md) - Function signatures and their implementations — the value-level half of the specification/definition split.
 
 ## Serialization and configuration
 
-* [JSON Encoding and Format Versions](/json-encoding.md) - The versioned JSON schemas, the v1 → v2 → v3 tag changes, and how to validate an IR file.
-* [morphir.json Project Configuration](/project-configuration.md) - The project configuration file consumed by morphir-elm tooling.
+* [JSON Encoding and Format Versions](/json-encoding.md) - The versioned JSON schemas, the v1 to v2 to v3 tag changes, and how to validate a Morphir IR file.
+* [morphir.json Project Configuration](/project-configuration.md) - The project configuration file consumed by morphir-elm tooling, and the dependency reference forms it accepts.
 
 ## Practice
 
-* [Implementing Morphir Tools](/implementing-tools.md) - Playbook for generating, consuming, and transforming IR.
+* [Implementing Morphir Tools](/implementing-tools.md) - Guidance for tools that generate, consume, or transform Morphir IR at format version 3.
