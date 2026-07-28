@@ -120,14 +120,14 @@ object KbRefresh:
     KbIndex.status(db, kb).map {
       case Left(_) =>
         // No index yet, or one without usable metadata: build it.
-        if dryRun then Seq(RefreshAction(RefreshKind.IndexRebuilt, KbPath.render(db), "would build (absent)"))
+        if dryRun then Seq(RefreshAction(RefreshKind.IndexRebuilt, KbPath.render(db), "absent"))
         else KbIndex.build(kb, db).map(s => Seq(RefreshAction(RefreshKind.IndexRebuilt, KbPath.render(db), s"built ${s.docs} docs")))
       case Right((builtAt, _, stale)) =>
         if stale.isEmpty && !force then
           (Seq(RefreshAction(RefreshKind.IndexFresh, KbPath.render(db), s"up to date (built $builtAt)")): Seq[RefreshAction] < (Sync & Abort[Throwable]))
         else
           val why = if force then "forced" else s"${stale.size} file(s) changed"
-          if dryRun then Seq(RefreshAction(RefreshKind.IndexRebuilt, KbPath.render(db), s"would rebuild ($why)"))
+          if dryRun then Seq(RefreshAction(RefreshKind.IndexRebuilt, KbPath.render(db), why))
           else KbIndex.build(kb, db).map(s => Seq(RefreshAction(RefreshKind.IndexRebuilt, KbPath.render(db), s"rebuilt ${s.docs} docs ($why)")))
     }
 
@@ -149,12 +149,12 @@ object KbRefresh:
       val sb = StringBuilder()
       actions.foreach { a =>
         val verb = a.kind match
-          case RefreshKind.DescriptionFixed => if dryRun then "would fix " else "fixed    "
-          case RefreshKind.EntryAdded => if dryRun then "would add " else "added    "
-          case RefreshKind.EntryMissing => "missing  "
-          case RefreshKind.IndexRebuilt => if dryRun then "would build" else "rebuilt  "
-          case RefreshKind.IndexFresh => "fresh    "
-        sb ++= s"$verb ${a.file}\n           ${a.detail}\n"
+          case RefreshKind.DescriptionFixed => if dryRun then "would fix    " else "fixed        "
+          case RefreshKind.EntryAdded => if dryRun then "would add    " else "added        "
+          case RefreshKind.EntryMissing => "missing      "
+          case RefreshKind.IndexRebuilt => if dryRun then "would rebuild" else "rebuilt      "
+          case RefreshKind.IndexFresh => "fresh        "
+        sb ++= s"$verb ${a.file}\n              ${a.detail}\n"
       }
       val fixed = actions.count(_.kind == RefreshKind.DescriptionFixed)
       val added = actions.count(_.kind == RefreshKind.EntryAdded)

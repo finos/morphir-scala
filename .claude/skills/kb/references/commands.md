@@ -116,25 +116,45 @@ Builds the SQLite index over the knowledge base.
 
 ## `refresh`
 
-Brings derived state back in line with the markdown: rewrites index bullets that have drifted from their concept's
-`description`, and rebuilds the SQLite index when it is stale.
+Brings derived state back in line with the markdown. There are two kinds of it, and `kb refresh` on its own does
+both: rewrites index bullets that have drifted from their concept's `description`, then rebuilds the SQLite index if
+anything changed.
 
-| Flag | Meaning |
-| ---- | ------- |
-| `--dry-run` | Report what would change; write nothing |
-| `--force` | Rebuild the SQLite index even when it is up to date |
-| `--add-missing` | Append index entries for concepts no index links to |
-| `--section <s>` | Section to append missing entries under (default `Orientation`) |
-| `--no-markdown` | Skip the markdown indexes |
-| `--no-db` | Skip the SQLite index |
-| `--db <path>` | Database location |
+```bash
+.claude/skills/kb/kb refresh
+```
 
 ```bash
 .claude/skills/kb/kb refresh --dry-run
 ```
 
+### Narrowing it
+
+Either a subcommand or a flag. They are the same operation; the subcommands just read better.
+
+| Form | Does |
+| ---- | ---- |
+| `kb refresh` | Both halves |
+| `kb refresh markdown` (alias `md`) | Index bullets only — same as `kb refresh --no-db` |
+| `kb refresh db` (alias `index`) | SQLite index only — same as `kb refresh --no-markdown` |
+
+### Flags
+
+| Flag | `refresh` | `refresh markdown` | `refresh db` |
+| ---- | :-------: | :----------------: | :----------: |
+| `--dry-run` — report, write nothing | ✓ | ✓ | ✓ |
+| `--force` — rebuild even when up to date | ✓ | | ✓ |
+| `--add-missing` — append entries for unindexed concepts | ✓ | ✓ | |
+| `--section <s>` — section for appended entries (default `Orientation`) | ✓ | ✓ | |
+| `--db <path>` — database location | ✓ | | ✓ |
+| `--no-markdown` / `--no-db` — narrow the scope | ✓ | | |
+
 ```bash
-.claude/skills/kb/kb refresh
+.claude/skills/kb/kb refresh markdown --add-missing --section "Design rationale"
+```
+
+```bash
+.claude/skills/kb/kb refresh db --force
 ```
 
 Description drift is fixed automatically because the repair is purely mechanical — the bullet is *supposed* to mirror

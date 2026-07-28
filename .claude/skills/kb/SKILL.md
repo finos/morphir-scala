@@ -3,7 +3,7 @@ name: kb
 description: "Manages the Morphir knowledge base under kb/ — OKF bundles and concept documents. Use when adding content to a bundle, creating a new bundle, checking the knowledge base for conformance or provenance drift, building or querying its SQLite index, or navigating, searching and listing its bundles, concepts and links."
 allowed-tools: Bash(.claude/skills/kb/kb *), Bash(cat *), Bash(ls *), Bash(find *), Bash(git *), Read, Edit, Write
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # kb — Morphir Knowledge Base Assistant
@@ -37,7 +37,7 @@ Full flag reference: → [references/commands.md](references/commands.md)
 | `search --query X` | Search titles, descriptions, tags and paths; `--body` to include prose |
 | `check` | Conformance and provenance findings; non-zero exit on errors |
 | `index` | Builds the SQLite index; `--status` reports its freshness |
-| `refresh` | Repairs drifted index bullets and rebuilds the SQLite index when stale |
+| `refresh` | Both kinds of derived state; narrow with `refresh markdown` / `refresh db` |
 | `query --sql` | Read-only SQL over that index |
 | `new-bundle` | Scaffolds a bundle with `index.md` and `log.md` |
 | `add-concept` | Scaffolds a concept and wires it into the index and log |
@@ -81,8 +81,9 @@ drifted from their concept's `description`, then rebuilds the SQLite index if an
 .claude/skills/kb/kb refresh --dry-run
 ```
 
-Reach for it after editing descriptions or adding concepts, and before relying on a query. `--add-missing` also
-appends entries for unindexed concepts, which is opt-in because it has to pick a section.
+Narrow it when you only want one half — `kb refresh markdown` or `kb refresh db`, equivalently `--no-db` and
+`--no-markdown`. Reach for it after editing descriptions or adding concepts, and before relying on a query.
+`--add-missing` also appends entries for unindexed concepts, which is opt-in because it has to pick a section.
 
 → [references/index-db.md](references/index-db.md) for the schema, the views, and worked queries.
 
