@@ -478,3 +478,32 @@ class KbIndexSpec extends Test[Any]:
         assert(after.toOption.get._3.exists(_.contains("removed since")), s"got ${after.toOption.get._3}")
     }
   }
+
+// ------------------------------------------------------------------------- meta
+
+/** Guards the one way this suite can lie: a spec that exists but is never run.
+  *
+  * kyo-test discovers suites through `META-INF/services/kyo.test.Test` and nowhere else — its runner accepts no suite
+  * arguments. Forgetting an entry does not fail, it silently skips, and CI stays green over untested code. That is
+  * the same shape of silent rot the knowledge base checks exist to prevent, so it gets a check rather than a note.
+  */
+class KbMetaSpec extends Test[Any]:
+
+  "suite registry" - {
+    "lists every spec defined in KbTests.scala" in {
+      for
+        root <- Sync.defer(Path(sys.env.getOrElse("MILL_WORKSPACE_ROOT", sys.props.getOrElse("user.dir", "."))))
+        source <- (root / "KbTests.scala").read
+        registry <- (root / "test-resources" / "META-INF" / "services" / "kyo.test.Test").read
+      yield
+        val defined = raw"class\s+(\w+)\s+extends\s+Test\[".r.findAllMatchIn(source).map(_.group(1)).toSet
+        val registered =
+          registry.linesIterator.map(_.trim).filter(l => l.nonEmpty && !l.startsWith("#")).toSet
+        assert(defined.nonEmpty, "found no suites in KbTests.scala — has the file moved?")
+        assert(
+          defined == registered,
+          s"registry and source disagree.\n  defined but never run: ${(defined -- registered).toSeq.sorted}" +
+            s"\n  registered but absent: ${(registered -- defined).toSeq.sorted}"
+        )
+    }
+  }

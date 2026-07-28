@@ -147,7 +147,12 @@ as the script's `mainClass`, with `//| resources: [test-resources]` putting the 
 classpath.
 
 **A new suite must be listed in `test-resources/META-INF/services/kyo.test.Test` or it will never run.** Discovery is
-ServiceLoader-only; the runner takes no suite arguments.
+ServiceLoader-only and the runner takes no suite arguments, so an omission does not fail — it silently skips, leaving
+CI green over untested code.
+
+That is too quiet to leave to documentation, so `KbMetaSpec` asserts that the registry and the suites defined in
+`KbTests.scala` agree, and names the offender when they do not. The note above is a courtesy; the check is the
+guarantee.
 
 Cases named *regression* pin behaviour that was once wrong. Add one whenever a bug is found, rather than only fixing
 it.

@@ -38,4 +38,8 @@ Forty-nine cases across six suites. Four are named *regression* and pin behaviou
 the review, one from dogfooding. The suite was verified to fail: reintroducing the `setKeys` bug fails that case and
 exits 1.
 
+Discovery is ServiceLoader-only, so a suite missing from the registry silently never runs rather than failing —
+which would leave CI green over untested code. `KbMetaSpec` asserts the registry and the defined suites agree, on the
+same principle as the rest of this design: enforce it, do not merely document it.
+
 Runs in CI in the `knowledge-base` job, and locally as `mise run kb:test`.
