@@ -72,8 +72,10 @@ jobs:
       # The kb skill is a self-contained Mill script; it needs a JVM and nothing else.
       # Provenance checks are skipped: they compare against reference checkouts under
       # .refs/, which is gitignored and therefore absent on a runner.
+      # Mill resolves its workspace from the working directory, so this must run from the skill directory —
+      # invoking the launcher from the repo root picks up the root build instead and resolves nothing.
       - name: Test the kb skill
-        run: .claude/skills/kb/mill --ticker false KbTests.scala
+        run: cd .claude/skills/kb && ./mill --ticker false KbTests.scala
       - name: Check knowledge base and intent
         run: |
           .claude/skills/kb/kb check --no-provenance

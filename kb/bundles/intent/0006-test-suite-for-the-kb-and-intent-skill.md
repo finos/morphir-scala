@@ -29,11 +29,13 @@ Manual verification also cannot be re-run cheaply, so nothing stops a fixed bug 
 `KbTests.scala` — an executable suite covering parsing, path arithmetic, scaffolding, the intent lifecycle and its
 obligations, the checks, refresh, and the SQLite index.
 
-Mill's single-file script mode exposes no test module, so `mill test <script>` does not resolve; the suite is a plain
-executable with a small harness that exits non-zero on failure. Less idiomatic than munit or kyo-test, but it runs
-exactly the way every other script here does and needed no build wiring.
+Written with kyo-test, the framework `langkit` and `kit` already use. Mill's script mode exposes no test module, so
+`mill test <script>` does not resolve — but kyo-test ships a CLI runner with a `main`, so the suite runs through it as
+the script's `mainClass`, with `//| resources:` putting the ServiceLoader registry on the classpath. A hand-rolled
+harness was written first and thrown away once that worked; using the project's own framework was plainly better.
 
-Four cases are named *regression* and pin behaviour that was once wrong — three from the review, one from dogfooding.
-The suite was verified to fail: reintroducing the `setKeys` bug fails that case and exits 1.
+Forty-nine cases across six suites. Four are named *regression* and pin behaviour that was once wrong — three from
+the review, one from dogfooding. The suite was verified to fail: reintroducing the `setKeys` bug fails that case and
+exits 1.
 
 Runs in CI in the `knowledge-base` job, and locally as `mise run kb:test`.

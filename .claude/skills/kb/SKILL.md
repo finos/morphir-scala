@@ -122,7 +122,7 @@ header; `kb.scala` is the entry point and names the others in `moduleDeps`.
 | `KbRefresh.scala` | Reconciling derived state — index bullets and the database |
 | `KbIntent.scala` | Intent model, lifecycle states, kinds and checks |
 | `KbIntentEdit.scala` | Creating intent, transitions, generated intent index |
-| `KbTests.scala` | The test suite — run it with `mise run kb:test` |
+| `KbTests.scala` | The kyo-test suites — run them with `mise run kb:test` |
 | `KbRender.scala` | Text and JSON rendering |
 
 kyo is the standard library here: `kyo.Path` for paths and file access, `kyo.Command` for subprocesses, kyo-case-app
@@ -141,9 +141,16 @@ Run the tests:
 mise run kb:test
 ```
 
-`KbTests.scala` is a plain executable with a small harness, not munit or kyo-test — Mill's script mode exposes no
-test module, so `mill test <script>` does not resolve. It exits non-zero on failure and runs in CI. Cases named
-*regression* pin behaviour that was once wrong; add one whenever a bug is found rather than only fixing it.
+49 cases across six suites, using **kyo-test** — the same framework `langkit` and `kit` use. Mill's script mode
+exposes no test module (`mill test <script>` does not resolve), so the suite runs through kyo-test's own CLI runner
+as the script's `mainClass`, with `//| resources: [test-resources]` putting the ServiceLoader registry on the
+classpath.
+
+**A new suite must be listed in `test-resources/META-INF/services/kyo.test.Test` or it will never run.** Discovery is
+ServiceLoader-only; the runner takes no suite arguments.
+
+Cases named *regression* pin behaviour that was once wrong. Add one whenever a bug is found, rather than only fixing
+it.
 
 One caveat worth knowing if you extend the scripts: inside Mill's script sandbox, `os.Path` values built from an
 environment variable and those returned by `os.list` can render identically yet compare unequal. `kyo.Path` is a
