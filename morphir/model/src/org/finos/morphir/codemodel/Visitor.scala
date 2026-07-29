@@ -1,6 +1,4 @@
-package org.finos.morphir
-package ir
-package v4
+package org.finos.morphir.codemodel
 
 trait Visitor[Context, +Result] {
   def visitType(cursor: TypeCursor, context: Context): Result

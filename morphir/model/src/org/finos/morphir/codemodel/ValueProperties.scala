@@ -1,4 +1,4 @@
-package org.finos.morphir.ir.v4
+package org.finos.morphir.codemodel
 
 enum Purity {
   case Pure

@@ -3,7 +3,7 @@ package org.finos.morphir.ir.json
 import zio.test._
 import zio.test.Assertion._
 import zio.json._
-import org.finos.morphir.ir.v4._
+import org.finos.morphir.codemodel._
 import org.finos.morphir.naming._
 
 object MorphirJsonSupportV4Spec extends ZIOSpecDefault with MorphirJsonEncodingSupportV4
@@ -23,17 +23,17 @@ object MorphirJsonSupportV4Spec extends ZIOSpecDefault with MorphirJsonEncodingS
         assertTrue(decoded == Right(sut))
       }
     ),
-    suite("Value Encoding/Decoding")(
-      test("Unit Value round-trip") {
-        val sut     = Value.Unit(ValueAttributes.empty)
+    suite("Expr Encoding/Decoding")(
+      test("Unit Expr round-trip") {
+        val sut     = Expr.Unit(ValueAttributes.empty)
         val json    = sut.toJson
-        val decoded = json.fromJson[Value]
+        val decoded = json.fromJson[Expr]
         assertTrue(decoded == Right(sut))
       },
-      test("Literal Value round-trip") {
-        val sut     = Value.Literal(ValueAttributes.empty, Literal.BoolLiteral(true))
+      test("Literal Expr round-trip") {
+        val sut     = Expr.Literal(ValueAttributes.empty, Literal.BoolLiteral(true))
         val json    = sut.toJson
-        val decoded = json.fromJson[Value]
+        val decoded = json.fromJson[Expr]
         assertTrue(decoded == Right(sut))
       }
     )

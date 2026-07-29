@@ -5,6 +5,7 @@ object jvm:
   moduleDeps:
   - build.morphir.extensibility.jvm
   - build.morphir.jvm
+  - build.morphir.model.jvm
   - build.morphir.runtime.classic.jvm
   - build.morphir.tools.jvm
   object test:
@@ -18,6 +19,7 @@ object js:
   moduleDeps:
   - build.morphir.extensibility.js
   - build.morphir.js
+  - build.morphir.model.js
   - build.morphir.runtime.classic.js
   - build.morphir.tools.js
   object test:

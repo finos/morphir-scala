@@ -1,6 +1,4 @@
-package org.finos.morphir
-package ir
-package v4
+package org.finos.morphir.codemodel
 
 import org.finos.morphir.naming._
 import zio.Chunk
@@ -138,51 +136,51 @@ final case class TypeCursor(current: Type, ancestors: List[TypeContext]) {
 }
 
 enum ValueContext {
-  case TupleElements(attributes: ValueAttributes, before: List[Value], after: List[Value])
-  case ListItems(attributes: ValueAttributes, before: List[Value], after: List[Value])
-  case ApplyFunction(attributes: ValueAttributes, argument: Value)
-  case ApplyArgument(attributes: ValueAttributes, function: Value)
+  case TupleElements(attributes: ValueAttributes, before: List[Expr], after: List[Expr])
+  case ListItems(attributes: ValueAttributes, before: List[Expr], after: List[Expr])
+  case ApplyFunction(attributes: ValueAttributes, argument: Expr)
+  case ApplyArgument(attributes: ValueAttributes, function: Expr)
   case LambdaBody(attributes: ValueAttributes, argumentPattern: Pattern)
-  case IfThenElseCondition(attributes: ValueAttributes, thenBranch: Value, elseBranch: Value)
-  case IfThenElseThenBranch(attributes: ValueAttributes, condition: Value, elseBranch: Value)
-  case IfThenElseElseBranch(attributes: ValueAttributes, condition: Value, thenBranch: Value)
+  case IfThenElseCondition(attributes: ValueAttributes, thenBranch: Expr, elseBranch: Expr)
+  case IfThenElseThenBranch(attributes: ValueAttributes, condition: Expr, elseBranch: Expr)
+  case IfThenElseElseBranch(attributes: ValueAttributes, condition: Expr, thenBranch: Expr)
 }
 
-final case class ValueCursor(current: Value, ancestors: List[ValueContext]) {
+final case class ValueCursor(current: Expr, ancestors: List[ValueContext]) {
   def up: Option[ValueCursor] = ancestors match {
     case Nil          => None
     case head :: tail =>
       val parent = head match {
         case ValueContext.TupleElements(attributes, before, after) =>
-          Value.Tuple(attributes, Chunk.fromIterable(before.reverse ::: (current :: after)))
+          Expr.Tuple(attributes, Chunk.fromIterable(before.reverse ::: (current :: after)))
         case ValueContext.ListItems(attributes, before, after) =>
-          Value.List(attributes, Chunk.fromIterable(before.reverse ::: (current :: after)))
+          Expr.List(attributes, Chunk.fromIterable(before.reverse ::: (current :: after)))
         case ValueContext.ApplyFunction(attributes, argument) =>
-          Value.Apply(attributes, current, argument)
+          Expr.Apply(attributes, current, argument)
         case ValueContext.ApplyArgument(attributes, function) =>
-          Value.Apply(attributes, function, current)
+          Expr.Apply(attributes, function, current)
         case ValueContext.LambdaBody(attributes, argumentPattern) =>
-          Value.Lambda(attributes, argumentPattern, current)
+          Expr.Lambda(attributes, argumentPattern, current)
         case ValueContext.IfThenElseCondition(attributes, thenBranch, elseBranch) =>
-          Value.IfThenElse(attributes, current, thenBranch, elseBranch)
+          Expr.IfThenElse(attributes, current, thenBranch, elseBranch)
         case ValueContext.IfThenElseThenBranch(attributes, condition, elseBranch) =>
-          Value.IfThenElse(attributes, condition, current, elseBranch)
+          Expr.IfThenElse(attributes, condition, current, elseBranch)
         case ValueContext.IfThenElseElseBranch(attributes, condition, thenBranch) =>
-          Value.IfThenElse(attributes, condition, thenBranch, current)
+          Expr.IfThenElse(attributes, condition, thenBranch, current)
       }
       Some(ValueCursor(parent, tail))
   }
 
   def down: Option[ValueCursor] = current match {
-    case Value.Tuple(attributes, elements) if elements.nonEmpty =>
+    case Expr.Tuple(attributes, elements) if elements.nonEmpty =>
       Some(ValueCursor(elements.head, ValueContext.TupleElements(attributes, Nil, elements.tail.toList) :: ancestors))
-    case Value.List(attributes, items) if items.nonEmpty =>
+    case Expr.List(attributes, items) if items.nonEmpty =>
       Some(ValueCursor(items.head, ValueContext.ListItems(attributes, Nil, items.tail.toList) :: ancestors))
-    case Value.Apply(attributes, function, argument) =>
+    case Expr.Apply(attributes, function, argument) =>
       Some(ValueCursor(function, ValueContext.ApplyFunction(attributes, argument) :: ancestors))
-    case Value.Lambda(attributes, pattern, body) =>
+    case Expr.Lambda(attributes, pattern, body) =>
       Some(ValueCursor(body, ValueContext.LambdaBody(attributes, pattern) :: ancestors))
-    case Value.IfThenElse(attributes, condition, thenBranch, elseBranch) =>
+    case Expr.IfThenElse(attributes, condition, thenBranch, elseBranch) =>
       Some(ValueCursor(condition, ValueContext.IfThenElseCondition(attributes, thenBranch, elseBranch) :: ancestors))
     case _ => None
   }

@@ -1,6 +1,4 @@
-package org.finos.morphir
-package ir
-package v4
+package org.finos.morphir.codemodel
 
 import org.finos.morphir.naming._
 import zio.Chunk

@@ -1,4 +1,4 @@
-package org.finos.morphir.ir.v4
+package org.finos.morphir.codemodel
 
 import zio.test._
 import zio.test.Assertion._
@@ -24,8 +24,8 @@ object VisitorSpec extends ZIOSpecDefault {
     }
 
     override def visitValue(cursor: ValueCursor, context: Unit): Int = cursor.current match {
-      case Value.Literal(_, _) => 1
-      case _                   => 1
+      case Expr.Literal(_, _) => 1
+      case _                  => 1
     }
   }
 
@@ -38,7 +38,7 @@ object VisitorSpec extends ZIOSpecDefault {
       assert(result)(equalTo(1))
     },
     test("foldValue should invoke visitValue") {
-      val v       = Value.Literal(ValueAttributes.empty, Literal.BoolLiteral(true))
+      val v       = Expr.Literal(ValueAttributes.empty, Literal.BoolLiteral(true))
       val cursor  = ValueCursor(v, Nil)
       val visitor = new TestVisitor
       val result  = Visitor.foldValue(cursor, ())(visitor)

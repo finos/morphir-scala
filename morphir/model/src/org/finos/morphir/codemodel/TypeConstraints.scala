@@ -1,4 +1,4 @@
-package org.finos.morphir.ir.v4
+package org.finos.morphir.codemodel
 
 import org.finos.morphir.naming._
 import zio.Chunk
@@ -37,7 +37,7 @@ final case class CollectionConstraint(
     uniqueItems: Boolean
 )
 
-final case class CustomConstraint(predicate: FQName, arguments: Chunk[Value])
+final case class CustomConstraint(predicate: FQName, arguments: Chunk[Expr])
 
 final case class TypeConstraints(
     numeric: Option[NumericConstraint],

@@ -6,10 +6,10 @@ import zio.json.ast.Json
 import zio.json.internal.Write
 
 import org.finos.morphir.naming._
-import org.finos.morphir.ir.v4._
-import org.finos.morphir.ir.v4.Type
-import org.finos.morphir.ir.v4.Value
-import org.finos.morphir.ir.v4.Pattern
+import org.finos.morphir.codemodel._
+import org.finos.morphir.codemodel.Type
+import org.finos.morphir.codemodel.Expr
+import org.finos.morphir.codemodel.Pattern
 
 trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
 
@@ -213,10 +213,10 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
     }
   }
 
-  // --- Value Encoder ---
-  implicit lazy val valueEncoder: JsonEncoder[Value] = new JsonEncoder[Value] {
-    def unsafeEncode(v: Value, indent: Option[Int], out: Write): Unit = v match {
-      case Value.Literal(attr, lit) =>
+  // --- Expr Encoder ---
+  implicit lazy val valueEncoder: JsonEncoder[Expr] = new JsonEncoder[Expr] {
+    def unsafeEncode(v: Expr, indent: Option[Int], out: Write): Unit = v match {
+      case Expr.Literal(attr, lit) =>
         encodeObj(
           Json.Obj("Literal" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -225,7 +225,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.Constructor(attr, fqName) =>
+      case Expr.Constructor(attr, fqName) =>
         encodeObj(
           Json.Obj("Constructor" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -234,7 +234,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.Tuple(attr, elements) =>
+      case Expr.Tuple(attr, elements) =>
         encodeObj(
           Json.Obj("Tuple" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -243,7 +243,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.List(attr, items) =>
+      case Expr.List(attr, items) =>
         encodeObj(
           Json.Obj("List" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -252,7 +252,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.Record(attr, fields) =>
+      case Expr.Record(attr, fields) =>
         encodeObj(
           Json.Obj("Record" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -261,9 +261,9 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.Unit(attr) =>
+      case Expr.Unit(attr) =>
         encodeObj(Json.Obj("Unit" -> Json.Obj("attributes" -> attr.toJsonAST.getOrElse(Json.Null))), indent, out)
-      case Value.Variable(attr, name) =>
+      case Expr.Variable(attr, name) =>
         encodeObj(
           Json.Obj("Variable" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -272,7 +272,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.Reference(attr, fqName) =>
+      case Expr.Reference(attr, fqName) =>
         encodeObj(
           Json.Obj("Reference" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -281,7 +281,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.Field(attr, record, fieldName) =>
+      case Expr.Field(attr, record, fieldName) =>
         encodeObj(
           Json.Obj("Field" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -291,7 +291,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.FieldFunction(attr, fieldName) =>
+      case Expr.FieldFunction(attr, fieldName) =>
         encodeObj(
           Json.Obj("FieldFunction" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -300,7 +300,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.Apply(attr, function, argument) =>
+      case Expr.Apply(attr, function, argument) =>
         encodeObj(
           Json.Obj("Apply" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -310,7 +310,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.Lambda(attr, argumentPattern, body) =>
+      case Expr.Lambda(attr, argumentPattern, body) =>
         encodeObj(
           Json.Obj("Lambda" -> Json.Obj(
             "attributes"      -> attr.toJsonAST.getOrElse(Json.Null),
@@ -320,7 +320,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.LetDefinition(attr, name, definition, inValue) =>
+      case Expr.LetDefinition(attr, name, definition, inValue) =>
         encodeObj(
           Json.Obj("LetDefinition" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -331,7 +331,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.LetRecursion(attr, bindings, inValue) =>
+      case Expr.LetRecursion(attr, bindings, inValue) =>
         encodeObj(
           Json.Obj("LetRecursion" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -341,7 +341,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.Destructure(attr, pattern, valueToDestructure, inValue) =>
+      case Expr.Destructure(attr, pattern, valueToDestructure, inValue) =>
         encodeObj(
           Json.Obj("Destructure" -> Json.Obj(
             "attributes"         -> attr.toJsonAST.getOrElse(Json.Null),
@@ -352,7 +352,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.IfThenElse(attr, condition, thenBranch, elseBranch) =>
+      case Expr.IfThenElse(attr, condition, thenBranch, elseBranch) =>
         encodeObj(
           Json.Obj("IfThenElse" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -363,7 +363,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.PatternMatch(attr, subject, cases) =>
+      case Expr.PatternMatch(attr, subject, cases) =>
         encodeObj(
           Json.Obj("PatternMatch" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -373,7 +373,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.UpdateRecord(attr, record, updates) =>
+      case Expr.UpdateRecord(attr, record, updates) =>
         encodeObj(
           Json.Obj("UpdateRecord" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -383,7 +383,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.Hole(attr, reason, expectedType) =>
+      case Expr.Hole(attr, reason, expectedType) =>
         encodeObj(
           Json.Obj("Hole" -> Json.Obj(
             "attributes"   -> attr.toJsonAST.getOrElse(Json.Null),
@@ -393,7 +393,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.Native(attr, fqName, nativeInfo) =>
+      case Expr.Native(attr, fqName, nativeInfo) =>
         encodeObj(
           Json.Obj("Native" -> Json.Obj(
             "attributes" -> attr.toJsonAST.getOrElse(Json.Null),
@@ -403,7 +403,7 @@ trait MorphirJsonEncodingSupportV4 extends JsonEncodingHelpers {
           indent,
           out
         )
-      case Value.External(attr, externalName, targetPlatform) =>
+      case Expr.External(attr, externalName, targetPlatform) =>
         encodeObj(
           Json.Obj("External" -> Json.Obj(
             "attributes"     -> attr.toJsonAST.getOrElse(Json.Null),

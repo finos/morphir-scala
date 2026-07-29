@@ -1,4 +1,4 @@
-package org.finos.morphir.ir.v4
+package org.finos.morphir.codemodel
 
 import zio.test._
 import zio.test.Assertion._
@@ -43,9 +43,9 @@ object CursorSpec extends ZIOSpecDefault {
     ),
     suite("ValueCursor Navigation")(
       test("Should navigate down/up in Tuple") {
-        val v1    = Value.Literal(ValueAttributes.empty, Literal.BoolLiteral(true))
-        val v2    = Value.Literal(ValueAttributes.empty, Literal.BoolLiteral(false))
-        val tuple = Value.Tuple(ValueAttributes.empty, Chunk(v1, v2))
+        val v1    = Expr.Literal(ValueAttributes.empty, Literal.BoolLiteral(true))
+        val v2    = Expr.Literal(ValueAttributes.empty, Literal.BoolLiteral(false))
+        val tuple = Expr.Tuple(ValueAttributes.empty, Chunk(v1, v2))
 
         val cursor = ValueCursor(tuple, Nil)
 
@@ -58,10 +58,10 @@ object CursorSpec extends ZIOSpecDefault {
         assert(down1.flatMap(_.right).flatMap(_.up))(isSome(hasField("current", _.current, equalTo(tuple))))
       },
       test("Should navigate in IfThenElse") {
-        val cond   = Value.Literal(ValueAttributes.empty, Literal.BoolLiteral(true))
-        val thenB  = Value.Variable(ValueAttributes.empty, Name.fromString("a"))
-        val elseB  = Value.Variable(ValueAttributes.empty, Name.fromString("b"))
-        val ifExpr = Value.IfThenElse(ValueAttributes.empty, cond, thenB, elseB)
+        val cond   = Expr.Literal(ValueAttributes.empty, Literal.BoolLiteral(true))
+        val thenB  = Expr.Variable(ValueAttributes.empty, Name.fromString("a"))
+        val elseB  = Expr.Variable(ValueAttributes.empty, Name.fromString("b"))
+        val ifExpr = Expr.IfThenElse(ValueAttributes.empty, cond, thenB, elseB)
 
         val cursor = ValueCursor(ifExpr, Nil)
 

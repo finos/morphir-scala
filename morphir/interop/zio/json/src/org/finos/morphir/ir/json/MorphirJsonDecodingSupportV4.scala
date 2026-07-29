@@ -4,10 +4,10 @@ import zio._
 import zio.json._
 import zio.json.ast.Json
 import org.finos.morphir.naming._
-import org.finos.morphir.ir.v4._
-import org.finos.morphir.ir.v4.Type
-import org.finos.morphir.ir.v4.Value
-import org.finos.morphir.ir.v4.Pattern
+import org.finos.morphir.codemodel._
+import org.finos.morphir.codemodel.Type
+import org.finos.morphir.codemodel.Expr
+import org.finos.morphir.codemodel.Pattern
 
 trait MorphirJsonDecodingSupportV4 {
 
@@ -69,7 +69,7 @@ trait MorphirJsonDecodingSupportV4 {
     for {
       source      <- getOptionalField[SourceLocation](obj, "source")
       constraints <- getOptionalField[TypeConstraints](obj, "constraints")
-      extensions  <- getOptionalField[Map[FQName, Value]](obj, "extensions").map(_.getOrElse(Map.empty))
+      extensions  <- getOptionalField[Map[FQName, Expr]](obj, "extensions").map(_.getOrElse(Map.empty))
     } yield TypeAttributes(source, constraints, extensions)
   }
 
@@ -78,7 +78,7 @@ trait MorphirJsonDecodingSupportV4 {
       source       <- getOptionalField[SourceLocation](obj, "source")
       inferredType <- getOptionalField[Type](obj, "inferredType")
       properties   <- getOptionalField[ValueProperties](obj, "properties")
-      extensions   <- getOptionalField[Map[FQName, Value]](obj, "extensions").map(_.getOrElse(Map.empty))
+      extensions   <- getOptionalField[Map[FQName, Expr]](obj, "extensions").map(_.getOrElse(Map.empty))
     } yield ValueAttributes(source, inferredType, properties, extensions)
   }
 
@@ -209,9 +209,9 @@ trait MorphirJsonDecodingSupportV4 {
   implicit val incompletenessDecoder: JsonDecoder[Incompleteness]           = DeriveJsonDecoder.gen
   implicit val valueDefinitionBodyDecoder: JsonDecoder[ValueDefinitionBody] = DeriveJsonDecoder.gen
 
-  // --- Value Decoder ---
-  implicit lazy val valueDecoder: JsonDecoder[Value] = decodeObj { obj =>
-    if (obj.fields.isEmpty) Left("Empty object for Value")
+  // --- Expr Decoder ---
+  implicit lazy val valueDecoder: JsonDecoder[Expr] = decodeObj { obj =>
+    if (obj.fields.isEmpty) Left("Empty object for Expr")
     else {
       val (kind, data) = obj.fields.head
       data.as[Json.Obj].flatMap { inner =>
@@ -223,94 +223,94 @@ trait MorphirJsonDecodingSupportV4 {
         attrRes.flatMap { attr =>
           kind match {
             case "Literal" =>
-              inner.get("literal").toRight("missing 'literal'").flatMap(_.as[Literal]).map(Value.Literal(attr, _))
+              inner.get("literal").toRight("missing 'literal'").flatMap(_.as[Literal]).map(Expr.Literal(attr, _))
             case "Variable" =>
-              inner.get("name").toRight("missing 'name'").flatMap(_.as[Name]).map(Value.Variable(attr, _))
+              inner.get("name").toRight("missing 'name'").flatMap(_.as[Name]).map(Expr.Variable(attr, _))
             case "Reference" =>
-              inner.get("fqName").toRight("missing 'fqName'").flatMap(_.as[FQName]).map(Value.Reference(attr, _))
+              inner.get("fqName").toRight("missing 'fqName'").flatMap(_.as[FQName]).map(Expr.Reference(attr, _))
             case "Tuple" =>
-              inner.get("elements").toRight("missing 'elements'").flatMap(_.as[Chunk[Value]]).map(Value.Tuple(attr, _))
+              inner.get("elements").toRight("missing 'elements'").flatMap(_.as[Chunk[Expr]]).map(Expr.Tuple(attr, _))
             case "List" =>
-              inner.get("items").toRight("missing 'items'").flatMap(_.as[Chunk[Value]]).map(Value.List(attr, _))
+              inner.get("items").toRight("missing 'items'").flatMap(_.as[Chunk[Expr]]).map(Expr.List(attr, _))
             case "Record" =>
-              inner.get("fields").toRight("missing 'fields'").flatMap(_.as[Chunk[(Name, Value)]]).map(Value.Record(
+              inner.get("fields").toRight("missing 'fields'").flatMap(_.as[Chunk[(Name, Expr)]]).map(Expr.Record(
                 attr,
                 _
               ))
             case "Constructor" =>
-              inner.get("fqName").toRight("missing 'fqName'").flatMap(_.as[FQName]).map(Value.Constructor(attr, _))
-            case "Unit"  => Right(Value.Unit(attr))
+              inner.get("fqName").toRight("missing 'fqName'").flatMap(_.as[FQName]).map(Expr.Constructor(attr, _))
+            case "Unit"  => Right(Expr.Unit(attr))
             case "Field" =>
               for {
-                rec   <- inner.get("record").toRight("missing 'record'").flatMap(_.as[Value])
+                rec   <- inner.get("record").toRight("missing 'record'").flatMap(_.as[Expr])
                 fname <- inner.get("fieldName").toRight("missing 'fieldName'").flatMap(_.as[Name])
-              } yield Value.Field(attr, rec, fname)
+              } yield Expr.Field(attr, rec, fname)
             case "FieldFunction" =>
-              inner.get("fieldName").toRight("missing 'fieldName'").flatMap(_.as[Name]).map(Value.FieldFunction(
+              inner.get("fieldName").toRight("missing 'fieldName'").flatMap(_.as[Name]).map(Expr.FieldFunction(
                 attr,
                 _
               ))
             case "Apply" =>
               for {
-                fn  <- inner.get("function").toRight("missing 'function'").flatMap(_.as[Value])
-                arg <- inner.get("argument").toRight("missing 'argument'").flatMap(_.as[Value])
-              } yield Value.Apply(attr, fn, arg)
+                fn  <- inner.get("function").toRight("missing 'function'").flatMap(_.as[Expr])
+                arg <- inner.get("argument").toRight("missing 'argument'").flatMap(_.as[Expr])
+              } yield Expr.Apply(attr, fn, arg)
             case "Lambda" =>
               for {
                 arg  <- inner.get("argumentPattern").toRight("missing 'argumentPattern'").flatMap(_.as[Pattern])
-                body <- inner.get("body").toRight("missing 'body'").flatMap(_.as[Value])
-              } yield Value.Lambda(attr, arg, body)
+                body <- inner.get("body").toRight("missing 'body'").flatMap(_.as[Expr])
+              } yield Expr.Lambda(attr, arg, body)
             case "LetDefinition" =>
               for {
                 name <- inner.get("name").toRight("missing 'name'").flatMap(_.as[Name])
                 defn <- inner.get("definition").toRight("missing 'definition'").flatMap(_.as[ValueDefinitionBody])
-                inv  <- inner.get("inValue").toRight("missing 'inValue'").flatMap(_.as[Value])
-              } yield Value.LetDefinition(attr, name, defn, inv)
+                inv  <- inner.get("inValue").toRight("missing 'inValue'").flatMap(_.as[Expr])
+              } yield Expr.LetDefinition(attr, name, defn, inv)
             case "LetRecursion" =>
               for {
                 binds <-
                   inner.get("bindings").toRight("missing 'bindings'").flatMap(_.as[Chunk[(Name, ValueDefinitionBody)]])
-                inv <- inner.get("inValue").toRight("missing 'inValue'").flatMap(_.as[Value])
-              } yield Value.LetRecursion(attr, binds, inv)
+                inv <- inner.get("inValue").toRight("missing 'inValue'").flatMap(_.as[Expr])
+              } yield Expr.LetRecursion(attr, binds, inv)
             case "Destructure" =>
               for {
                 pat       <- inner.get("pattern").toRight("missing 'pattern'").flatMap(_.as[Pattern])
                 valToDest <-
-                  inner.get("valueToDestructure").toRight("missing 'valueToDestructure'").flatMap(_.as[Value])
-                inv <- inner.get("inValue").toRight("missing 'inValue'").flatMap(_.as[Value])
-              } yield Value.Destructure(attr, pat, valToDest, inv)
+                  inner.get("valueToDestructure").toRight("missing 'valueToDestructure'").flatMap(_.as[Expr])
+                inv <- inner.get("inValue").toRight("missing 'inValue'").flatMap(_.as[Expr])
+              } yield Expr.Destructure(attr, pat, valToDest, inv)
             case "IfThenElse" =>
               for {
-                cond <- inner.get("condition").toRight("missing 'condition'").flatMap(_.as[Value])
-                thn  <- inner.get("thenBranch").toRight("missing 'thenBranch'").flatMap(_.as[Value])
-                els  <- inner.get("elseBranch").toRight("missing 'elseBranch'").flatMap(_.as[Value])
-              } yield Value.IfThenElse(attr, cond, thn, els)
+                cond <- inner.get("condition").toRight("missing 'condition'").flatMap(_.as[Expr])
+                thn  <- inner.get("thenBranch").toRight("missing 'thenBranch'").flatMap(_.as[Expr])
+                els  <- inner.get("elseBranch").toRight("missing 'elseBranch'").flatMap(_.as[Expr])
+              } yield Expr.IfThenElse(attr, cond, thn, els)
             case "PatternMatch" =>
               for {
-                subj  <- inner.get("subject").toRight("missing 'subject'").flatMap(_.as[Value])
-                cases <- inner.get("cases").toRight("missing 'cases'").flatMap(_.as[Chunk[(Pattern, Value)]])
-              } yield Value.PatternMatch(attr, subj, cases)
+                subj  <- inner.get("subject").toRight("missing 'subject'").flatMap(_.as[Expr])
+                cases <- inner.get("cases").toRight("missing 'cases'").flatMap(_.as[Chunk[(Pattern, Expr)]])
+              } yield Expr.PatternMatch(attr, subj, cases)
             case "UpdateRecord" =>
               for {
-                rec <- inner.get("record").toRight("missing 'record'").flatMap(_.as[Value])
-                upd <- inner.get("updates").toRight("missing 'updates'").flatMap(_.as[Chunk[(Name, Value)]])
-              } yield Value.UpdateRecord(attr, rec, upd)
+                rec <- inner.get("record").toRight("missing 'record'").flatMap(_.as[Expr])
+                upd <- inner.get("updates").toRight("missing 'updates'").flatMap(_.as[Chunk[(Name, Expr)]])
+              } yield Expr.UpdateRecord(attr, rec, upd)
             case "Hole" =>
               for {
                 reason   <- inner.get("reason").toRight("missing 'reason'").flatMap(_.as[HoleReason])
                 expected <- inner.get("expectedType").toRight("missing 'expectedType'").flatMap(_.as[Option[Type]])
-              } yield Value.Hole(attr, reason, expected)
+              } yield Expr.Hole(attr, reason, expected)
             case "Native" =>
               for {
                 fqn  <- inner.get("fqName").toRight("missing 'fqName'").flatMap(_.as[FQName])
                 info <- inner.get("nativeInfo").toRight("missing 'nativeInfo'").flatMap(_.as[NativeInfo])
-              } yield Value.Native(attr, fqn, info)
+              } yield Expr.Native(attr, fqn, info)
             case "External" =>
               for {
                 name <- inner.get("externalName").toRight("missing 'externalName'").flatMap(_.as[String])
                 plat <- inner.get("targetPlatform").toRight("missing 'targetPlatform'").flatMap(_.as[String])
-              } yield Value.External(attr, name, plat)
-            case _ => Left(s"Unknown Value kind: $kind")
+              } yield Expr.External(attr, name, plat)
+            case _ => Left(s"Unknown Expr kind: $kind")
           }
         }
       }

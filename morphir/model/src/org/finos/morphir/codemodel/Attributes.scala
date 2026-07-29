@@ -1,4 +1,4 @@
-package org.finos.morphir.ir.v4
+package org.finos.morphir.codemodel
 
 import org.finos.morphir.naming._
 
@@ -16,7 +16,7 @@ final case class SourceLocation(file: Option[String], line: Int, column: Int)
 final case class TypeAttributes(
     source: Option[SourceLocation],
     constraints: Option[TypeConstraints],
-    extensions: Map[FQName, Value]
+    extensions: Map[FQName, Expr]
 )
 
 object TypeAttributes {
@@ -27,7 +27,7 @@ final case class ValueAttributes(
     source: Option[SourceLocation],
     inferredType: Option[Type],
     properties: Option[ValueProperties],
-    extensions: Map[FQName, Value]
+    extensions: Map[FQName, Expr]
 )
 
 object ValueAttributes {

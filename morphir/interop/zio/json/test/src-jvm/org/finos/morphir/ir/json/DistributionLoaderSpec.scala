@@ -1,4 +1,5 @@
-package org.finos.morphir.ir.v4
+package org.finos.morphir.ir.json
+import org.finos.morphir.codemodel._
 
 import zio.test._
 import zio.test.Assertion._

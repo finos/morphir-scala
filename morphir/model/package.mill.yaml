@@ -1,0 +1,13 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule]
+  moduleDeps: [build.morphir.naming.jvm]
+  mvnDeps:
+  - dev.zio::zio:2.1.26
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirPublishModule]
+  moduleDeps: [build.morphir.naming.js]
+  mvnDeps:
+  - dev.zio::zio::2.1.26
