@@ -119,15 +119,16 @@ object Deps {
   }
   object io {
     object getkyo {
-      val `kyo-case-app`      = mvn"io.getkyo::kyo-case-app::${Versions.`kyo-case-app`}"
-      val `kyo-core`          = mvn"io.getkyo::kyo-core::${Versions.`kyo-case-app`}"
-      val `kyo-prelude`       = mvn"io.getkyo::kyo-prelude::${Versions.`kyo-case-app`}"
-      val `kyo-schema`        = mvn"io.getkyo::kyo-schema::${Versions.`kyo-case-app`}"
-      val `kyo-zio`           = mvn"io.getkyo::kyo-zio::${Versions.`kyo-case-app`}"
-      val `kyo-test-api`      = mvn"io.getkyo::kyo-test-api::${Versions.`kyo-case-app`}"
-      val `kyo-test-prop`     = mvn"io.getkyo::kyo-test-prop::${Versions.`kyo-case-app`}"
-      val `kyo-test-runner`   = mvn"io.getkyo::kyo-test-runner::${Versions.`kyo-case-app`}"
-      val `kyo-test-snapshot` = mvn"io.getkyo::kyo-test-snapshot::${Versions.`kyo-case-app`}"
+      val `kyo-case-app`      = mvn"io.getkyo::kyo-case-app::${Versions.kyo}"
+      val `kyo-core`          = mvn"io.getkyo::kyo-core::${Versions.kyo}"
+      val `kyo-data`          = mvn"io.getkyo::kyo-data::${Versions.kyo}"
+      val `kyo-prelude`       = mvn"io.getkyo::kyo-prelude::${Versions.kyo}"
+      val `kyo-schema`        = mvn"io.getkyo::kyo-schema::${Versions.kyo}"
+      val `kyo-zio`           = mvn"io.getkyo::kyo-zio::${Versions.kyo}"
+      val `kyo-test-api`      = mvn"io.getkyo::kyo-test-api::${Versions.kyo}"
+      val `kyo-test-prop`     = mvn"io.getkyo::kyo-test-prop::${Versions.kyo}"
+      val `kyo-test-runner`   = mvn"io.getkyo::kyo-test-runner::${Versions.kyo}"
+      val `kyo-test-snapshot` = mvn"io.getkyo::kyo-test-snapshot::${Versions.kyo}"
     }
     object bullet {
       def `borer-core`(scalaVersion: String): Dep = mvn"io.bullet::borer-core::${Versions.borer(scalaVersion)}"
@@ -205,7 +206,7 @@ object Versions {
   val fs2                        = "3.13.0"
   val geny                       = "1.1.1"
   val `izumi-reflect`            = "3.0.9"
-  val `kyo-case-app`             = "1.0.0-RC5"
+  val kyo                        = "1.0.0-RC5+30-c491bfca-SNAPSHOT"
   val metaconfig                 = "0.12.0"
   val mainargs                   = "0.7.8"
   val `os-lib`                   = "0.11.8"

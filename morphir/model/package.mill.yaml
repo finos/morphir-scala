@@ -1,9 +1,9 @@
 extends: Module
 
 object jvm:
-  extends: [build.MorphirJVMModule, build.MorphirPublishModule]
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirSnapshotRepos, build.MorphirKyoMvnDeps]
   moduleDeps: [build.morphir.naming.jvm]
-  mvnDeps:
+  mvnDeps: !append
   - dev.zio::zio:2.1.26
 
 object js:

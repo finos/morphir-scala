@@ -268,6 +268,32 @@ trait ToolsJSDocSources extends ScalaJSModule {
   }
 }
 
+/** Adds the Sonatype snapshot repository. Needed while kyo is pinned to a snapshot build. */
+trait MorphirSnapshotRepos extends CoursierModule {
+  override def repositories = Task {
+    super.repositories() :+ "https://central.sonatype.com/repository/maven-snapshots"
+  }
+}
+
+/** kyo deps for `morphir.model`. */
+trait MorphirKyoMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.io.getkyo.`kyo-data`,
+    Deps.io.getkyo.`kyo-schema`
+  )
+}
+
+/** kyo-test deps. kyo-test's Mill traits set only the framework class, so each test block
+  * must declare these itself. */
+trait MorphirKyoTestMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.io.getkyo.`kyo-core`,
+    Deps.io.getkyo.`kyo-prelude`,
+    Deps.io.getkyo.`kyo-test-api`,
+    Deps.io.getkyo.`kyo-test-runner`
+  )
+}
+
 /** `morphir.jvm`/`morphir.js`'s own mvnDeps — bundled here (rather than copied as YAML literals) so the version
   * pins stay sourced from the single [[millbuild.Deps]] object.
   */
