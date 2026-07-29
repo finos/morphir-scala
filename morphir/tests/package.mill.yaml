@@ -5,7 +5,7 @@ object jvm:
   moduleDeps:
   - build.morphir.extensibility.jvm
   - build.morphir.jvm
-  - build.morphir.runtime.jvm
+  - build.morphir.runtime.classic.jvm
   - build.morphir.tools.jvm
   object test:
     extends: [ScoverageTests, TestModule.ZioTest, build.MorphirTestsTestMvnDepsJVM, build.MorphirTestsJVMTestSources]
@@ -18,7 +18,7 @@ object js:
   moduleDeps:
   - build.morphir.extensibility.js
   - build.morphir.js
-  - build.morphir.runtime.js
+  - build.morphir.runtime.classic.js
   - build.morphir.tools.js
   object test:
     extends: [ScalaJSTests, TestModule.ZioTest, build.MorphirTestsTestMvnDepsJS, build.MorphirTestsJSTestSources]

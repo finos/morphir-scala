@@ -12,7 +12,7 @@ import org.finos.morphir.ir.printing.{DetailLevel, PrintIR}
 import org.finos.morphir.ir.distribution.Distribution
 import zio.Chunk
 import org.finos.morphir.runtime.ErrorUtils.ErrorInterpolator
-import org.finos.morphir.datamodel.{Concept, Data, EnumLabel, Label}
+import org.finos.morphir.datamodel.classic.{Concept, Data, EnumLabel, Label}
 
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
 

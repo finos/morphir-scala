@@ -7,7 +7,7 @@ import org.finos.morphir.ir.{Module, Type}
 import org.finos.morphir.naming.*
 import Name.toTitleCase
 import org.finos.morphir.MInt
-import org.finos.morphir.datamodel.Concept.Result
+import org.finos.morphir.datamodel.classic.Concept.Result
 import org.finos.morphir.runtime.internal.{
   CallStackFrame,
   DynamicNativeFunction1,

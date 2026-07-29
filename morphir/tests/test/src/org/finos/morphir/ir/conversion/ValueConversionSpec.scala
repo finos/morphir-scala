@@ -2,7 +2,7 @@ package org.finos.morphir
 package ir
 package conversion
 
-import org.finos.morphir.datamodel.{Concept, Data, Label}
+import org.finos.morphir.datamodel.classic.{Concept, Data, Label}
 import org.finos.morphir.naming._
 import org.finos.morphir.naming.FQName.fqn
 import org.finos.morphir.ir.Literal.Lit

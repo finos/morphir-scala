@@ -1,11 +1,11 @@
 package org.finos.morphir.util
 
 import _root_.org.finos.morphir.naming._
-import _root_.org.finos.morphir.datamodel.Label
-import _root_.org.finos.morphir.datamodel.EnumLabel
-import _root_.org.finos.morphir.datamodel.Data
-import _root_.org.finos.morphir.datamodel.Concept
-import org.finos.morphir.datamodel.Data.{Optional, Result}
+import _root_.org.finos.morphir.datamodel.classic.Label
+import _root_.org.finos.morphir.datamodel.classic.EnumLabel
+import _root_.org.finos.morphir.datamodel.classic.Data
+import _root_.org.finos.morphir.datamodel.classic.Concept
+import org.finos.morphir.datamodel.classic.Data.{Optional, Result}
 import zio.json.ast._
 import zio.json.EncoderOps
 

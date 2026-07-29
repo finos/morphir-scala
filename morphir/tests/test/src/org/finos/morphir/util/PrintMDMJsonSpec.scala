@@ -4,8 +4,8 @@ import zio.test._
 import zio.test.Assertion._
 import PrintMDMJson._
 import org.finos.morphir.testing.MorphirBaseSpec
-import org.finos.morphir.datamodel.Util._
-import org.finos.morphir.datamodel._
+import org.finos.morphir.datamodel.classic.Util._
+import org.finos.morphir.datamodel.classic._
 import org.finos.morphir.ir.Type
 import org.finos.morphir.naming._
 

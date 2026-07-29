@@ -6,10 +6,10 @@ set -e
 echo "Running Runtime JVM tests..."
 
 ./mill -i -k -j 0 \
-    "morphir.runtime.jvm.__.compile" \
+    "morphir.runtime.classic.jvm.__.compile" \
     + \
-    "morphir.runtime.jvm.publishArtifacts" \
+    "morphir.runtime.classic.jvm.publishArtifacts" \
     + \
-    "morphir.runtime.jvm.__.test"
+    "morphir.runtime.classic.jvm.__.test"
 
 echo "Runtime JVM tests completed successfully"

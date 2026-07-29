@@ -13,5 +13,5 @@ object main:
   mainClass: org.finos.morphir.cli.MorphirCliMain
   moduleDeps:
   - build.morphir.jvm
-  - build.morphir.runtime.jvm
+  - build.morphir.runtime.classic.jvm
   - build.morphir.tools.jvm

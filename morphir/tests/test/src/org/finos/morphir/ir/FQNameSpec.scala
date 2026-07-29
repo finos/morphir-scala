@@ -1,6 +1,6 @@
 //package org.finos.morphir.ir
 //import org.finos.morphir.naming.*
-//import org.finos.morphir.datamodel.namespacing.{PackageName => Pack, *}
+//import org.finos.morphir.datamodel.classic.namespacing.{PackageName => Pack, *}
 //import org.finos.morphir.testing.MorphirBaseSpec
 //import zio.test.Assertion.*
 //import zio.test.*
@@ -170,7 +170,7 @@
 //}
 //package org.finos.morphir.ir
 //import org.finos.morphir.naming.*
-//import org.finos.morphir.datamodel.namespacing.{PackageName => Pack, *}
+//import org.finos.morphir.datamodel.classic.namespacing.{PackageName => Pack, *}
 //import org.finos.morphir.testing.MorphirBaseSpec
 //import zio.test.Assertion.*
 //import zio.test.*
