@@ -207,7 +207,7 @@ object Versions {
   val fs2                        = "3.13.0"
   val geny                       = "1.1.1"
   val `izumi-reflect`            = "3.0.9"
-  val kyo                        = "1.0.0-RC5+30-c491bfca-SNAPSHOT"
+  val kyo                        = "1.0.0-RC5+50-7da9d49b-SNAPSHOT"
   val metaconfig                 = "0.12.0"
   val mainargs                   = "0.7.8"
   val `os-lib`                   = "0.11.8"

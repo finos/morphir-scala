@@ -302,19 +302,6 @@ trait MorphirKyoSchemaJsonMvnDeps extends ScalaModule {
   )
 }
 
-/**
- * Opens `java.base/java.lang` for reflective access in forked test JVMs.
- *
- * kyo's class files target Java 25; without this flag, kyo throws `IllegalAccessException: module java.base does
- * not open java.lang` the moment kyo code runs (e.g. a `Schema` derived instance encoding/decoding), and the
- * failure reads as unrelated to whatever the test itself is checking.
- */
-trait MorphirKyoRuntimeForkArgs extends JavaModule {
-  override def forkArgs: T[Seq[String]] = Task {
-    super.forkArgs() ++ Seq("--add-opens=java.base/java.lang=ALL-UNNAMED")
-  }
-}
-
 /** `morphir.jvm`/`morphir.js`'s own mvnDeps — bundled here (rather than copied as YAML literals) so the version
   * pins stay sourced from the single [[millbuild.Deps]] object.
   */
