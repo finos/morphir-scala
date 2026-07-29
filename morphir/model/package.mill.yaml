@@ -1,13 +1,13 @@
 extends: Module
 
 object jvm:
-  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirSnapshotRepos, build.MorphirKyoMvnDeps]
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirSnapshotRepos, build.MorphirKyoMvnDeps, build.MorphirKyoSchemaJsonMvnDeps]
   moduleDeps: [build.morphir.naming.jvm]
   object test:
     extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps, build.MorphirKyoSchemaJsonMvnDeps, build.MorphirSnapshotRepos]
 
 object js:
-  extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirSnapshotRepos, build.MorphirKyoMvnDeps]
+  extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirSnapshotRepos, build.MorphirKyoMvnDeps, build.MorphirKyoSchemaJsonMvnDeps]
   moduleDeps: [build.morphir.naming.js]
   object test:
     extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps, build.MorphirKyoSchemaJsonMvnDeps, build.MorphirSnapshotRepos]
