@@ -1,7 +1,7 @@
 package org.finos.morphir.codemodel
 
 import org.finos.morphir.naming._
-import zio.Chunk
+import kyo.Chunk
 
 enum NumericConstraint {
   case Arbitrary

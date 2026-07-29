@@ -1,7 +1,7 @@
 package org.finos.morphir.codemodel
 
 import org.finos.morphir.naming._
-import zio.Chunk
+import kyo.Chunk
 
 enum TypeContext {
   case ReferenceArgs(attributes: TypeAttributes, fqName: FQName, before: List[Type], after: List[Type])
@@ -25,16 +25,16 @@ final case class TypeCursor(current: Type, ancestors: List[TypeContext]) {
     case head :: tail =>
       val parent = head match {
         case TypeContext.ReferenceArgs(attributes, name, before, after) =>
-          Type.Reference(attributes, name, Chunk.fromIterable(before.reverse ::: (current :: after)))
+          Type.Reference(attributes, name, Chunk.from(before.reverse ::: (current :: after)))
         case TypeContext.TupleElements(attributes, before, after) =>
-          Type.Tuple(attributes, Chunk.fromIterable(before.reverse ::: (current :: after)))
+          Type.Tuple(attributes, Chunk.from(before.reverse ::: (current :: after)))
         case TypeContext.RecordFieldType(attributes, name, before, after) =>
-          Type.Record(attributes, Chunk.fromIterable(before.reverse ::: (Field(name, current) :: after)))
+          Type.Record(attributes, Chunk.from(before.reverse ::: (Field(name, current) :: after)))
         case TypeContext.ExtensibleRecordFieldType(attributes, variable, name, before, after) =>
           Type.ExtensibleRecord(
             attributes,
             variable,
-            Chunk.fromIterable(before.reverse ::: (Field(name, current) :: after))
+            Chunk.from(before.reverse ::: (Field(name, current) :: after))
           )
         case TypeContext.FunctionArgument(attributes, returnType) =>
           Type.Function(attributes, current, returnType)
@@ -152,9 +152,9 @@ final case class ValueCursor(current: Expr, ancestors: List[ValueContext]) {
     case head :: tail =>
       val parent = head match {
         case ValueContext.TupleElements(attributes, before, after) =>
-          Expr.Tuple(attributes, Chunk.fromIterable(before.reverse ::: (current :: after)))
+          Expr.Tuple(attributes, Chunk.from(before.reverse ::: (current :: after)))
         case ValueContext.ListItems(attributes, before, after) =>
-          Expr.List(attributes, Chunk.fromIterable(before.reverse ::: (current :: after)))
+          Expr.List(attributes, Chunk.from(before.reverse ::: (current :: after)))
         case ValueContext.ApplyFunction(attributes, argument) =>
           Expr.Apply(attributes, current, argument)
         case ValueContext.ApplyArgument(attributes, function) =>

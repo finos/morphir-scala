@@ -2,7 +2,7 @@ package org.finos.morphir.codemodel
 
 import zio.test._
 import zio.test.Assertion._
-import zio.Chunk
+import kyo.Chunk
 import org.finos.morphir.naming._
 
 object VisitorSpec extends ZIOSpecDefault {

@@ -1,7 +1,7 @@
 package org.finos.morphir.codemodel
 
 import org.finos.morphir.naming._
-import zio.Chunk
+import kyo.Chunk
 
 enum Type {
   case Variable(attributes: TypeAttributes, name: Name)
