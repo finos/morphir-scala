@@ -120,7 +120,7 @@
   <tbody>
     <tr><td class="mono">G1</td><td>GLSL blocks — <code>CstGlsl</code> modelled but never produced</td><td>W7</td><td><code>StructuralSpec</code></td></tr>
     <tr><td class="mono">G2</td><td>Astral code points in character literals</td><td>W7, by widening the CST node to a code point</td><td><code>LexicalSpec</code></td></tr>
-    <tr><td class="mono">G3</td><td><code>effect module … where { … }</code></td><td>W7</td><td><code>StructuralSpec</code></td></tr>
+    <tr><td class="mono">G3</td><td><code>effect module … where { … }</code></td><td>W7 at the CST, and lowering in <a href="https://github.com/finos/morphir-scala/issues/931">#931</a></td><td><code>StructuralSpec</code> for the CST; <code>CstLoweringSpec</code>, <code>AstVisitorSpec</code> and <code>lowering.feature</code> for <code>ast.Module.moduleType</code> and <code>ast.EffectManager</code></td></tr>
     <tr><td class="mono">G4</td><td>Tuple arity beyond three</td><td>W7</td><td><code>StructuralSpec</code></td></tr>
     <tr><td class="mono">G5</td><td>Expression continuation measured from the expression rather than its enclosing declaration</td><td>W5, by giving the parser Elm's indentation context</td><td><code>LayoutSpec</code>, and 26 real modules that now parse</td></tr>
     <tr><td class="mono">G7</td><td>No real-world package corpus</td><td>W8, by fetching four packages at build time</td><td><code>RealWorldCorpusTest</code> — 453 modules</td></tr>

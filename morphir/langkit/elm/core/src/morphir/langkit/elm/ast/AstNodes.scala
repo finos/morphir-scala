@@ -17,9 +17,27 @@ case class Module(
     exposing: ExposingList,
     imports: IndexedSeq[Import],
     declarations: IndexedSeq[Declaration],
-    docComment: Option[String] = None
+    docComment: Option[String] = None,
+    moduleType: ModuleType = ModuleType.Plain,
+    manager: Option[EffectManager] = None
 )(val span: Span)
     extends AstNode derives CanEqual
+
+/**
+ * The `where { command = …, subscription = … }` clause of an `effect module`, lowered.
+ *
+ * Mirror of [[morphir.langkit.elm.cst.CstEffectManager]], with the type names flattened to Strings as the AST does
+ * elsewhere. Elm requires at least one of the two, which is why both are optional.
+ */
+case class EffectManager(
+    command: Option[String],
+    subscription: Option[String]
+)(val span: Span)
+    extends AstNode derives CanEqual
+
+/** Whether the module is plain, a `port module`, or an `effect module`. */
+enum ModuleType derives CanEqual:
+  case Plain, Port, Effect
 
 case class QualifiedName(parts: List[String])(val span: Span) extends AstNode derives CanEqual:
   def fullName: String = parts.mkString(".")

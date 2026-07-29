@@ -41,3 +41,37 @@ Feature: CST to AST lowering
     When the source is parsed to an AST
     Then AST declaration 1 is a value named "foo"
     And AST value "foo" has a type annotation
+
+  Scenario: Lowering keeps a plain module plain
+    Given the Elm source:
+      """
+      module M exposing (..)
+
+      x = 1
+      """
+    When the source is parsed to an AST
+    Then the AST module is plain
+    And the AST module has no effect manager
+
+  Scenario: Lowering carries the port module header
+    Given the Elm source:
+      """
+      port module Ports exposing (..)
+
+      x = 1
+      """
+    When the source is parsed to an AST
+    Then the AST module is port
+    And the AST module has no effect manager
+
+  Scenario: Lowering carries the effect module manager
+    Given the Elm source:
+      """
+      effect module Eff where { command = MyCmd, subscription = MySub } exposing (..)
+
+      x = 1
+      """
+    When the source is parsed to an AST
+    Then the AST module is effect
+    And the AST effect manager command is "MyCmd"
+    And the AST effect manager subscription is "MySub"
