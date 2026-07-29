@@ -124,6 +124,7 @@ object Deps {
       val `kyo-data`          = mvn"io.getkyo::kyo-data::${Versions.kyo}"
       val `kyo-prelude`       = mvn"io.getkyo::kyo-prelude::${Versions.kyo}"
       val `kyo-schema`        = mvn"io.getkyo::kyo-schema::${Versions.kyo}"
+      val `kyo-schema-json`   = mvn"io.getkyo::kyo-schema-json::${Versions.kyo}"
       val `kyo-zio`           = mvn"io.getkyo::kyo-zio::${Versions.kyo}"
       val `kyo-test-api`      = mvn"io.getkyo::kyo-test-api::${Versions.kyo}"
       val `kyo-test-prop`     = mvn"io.getkyo::kyo-test-prop::${Versions.kyo}"

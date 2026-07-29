@@ -2,6 +2,7 @@ package org.finos.morphir.codemodel
 
 import org.finos.morphir.naming._
 import kyo.Chunk
+import kyo.Schema
 
 /* SPEC SYNC DEBT — `Expr` was named `Value` here and still is upstream.
  *
@@ -24,7 +25,7 @@ import kyo.Chunk
  * `ValueAttributes` genuinely concern value bindings and keep their spec names. Only the
  * expression tree was renamed.
  */
-enum Literal {
+enum Literal derives Schema {
   case BoolLiteral(value: Boolean)
   case CharLiteral(value: String) // Stored as String to support potential unicode chars or gleam approach? Spec says checked "String" for CharLiteral.
   case StringLiteral(value: String)
@@ -35,7 +36,7 @@ enum Literal {
   case DecimalLiteral(value: BigDecimal)
 }
 
-enum Pattern {
+enum Pattern derives Schema {
   case WildcardPattern(attributes: ValueAttributes)
   case AsPattern(attributes: ValueAttributes, pattern: Pattern, name: Name)
   case TuplePattern(attributes: ValueAttributes, elements: Chunk[Pattern])
@@ -46,7 +47,7 @@ enum Pattern {
   case UnitPattern(attributes: ValueAttributes)
 }
 
-enum Expr {
+enum Expr derives Schema {
   case Literal(attributes: ValueAttributes, literal: org.finos.morphir.codemodel.Literal)
   case Constructor(attributes: ValueAttributes, fqName: FQName)
   case Tuple(attributes: ValueAttributes, elements: Chunk[Expr])
@@ -70,7 +71,7 @@ enum Expr {
   case External(attributes: ValueAttributes, externalName: String, targetPlatform: String)
 }
 
-enum NativeHint {
+enum NativeHint derives Schema {
   case Arithmetic
   case Comparison
   case StringOp
@@ -78,9 +79,9 @@ enum NativeHint {
   case PlatformSpecific(platform: String)
 }
 
-final case class NativeInfo(hint: NativeHint, description: Option[String])
+final case class NativeInfo(hint: NativeHint, description: Option[String]) derives Schema
 
-enum ValueDefinitionBody {
+enum ValueDefinitionBody derives Schema {
   case ExpressionBody(inputTypes: Chunk[(Name, Type)], outputType: Type, body: Expr)
   case NativeBody(inputTypes: Chunk[(Name, Type)], outputType: Type, nativeInfo: NativeInfo)
   case ExternalBody(inputTypes: Chunk[(Name, Type)], outputType: Type, externalName: String, targetPlatform: String)
@@ -92,6 +93,6 @@ enum ValueDefinitionBody {
   )
 }
 
-final case class ValueDefinition(body: AccessControlled[ValueDefinitionBody])
+final case class ValueDefinition(body: AccessControlled[ValueDefinitionBody]) derives Schema
 
-final case class ValueSpecification(inputs: Chunk[(Name, Type)], output: Type)
+final case class ValueSpecification(inputs: Chunk[(Name, Type)], output: Type) derives Schema

@@ -1,6 +1,8 @@
 package org.finos.morphir.codemodel
 
-enum Purity {
+import kyo.Schema
+
+enum Purity derives Schema {
   case Pure
   case Effectful
   case Unknown
@@ -9,7 +11,7 @@ enum Purity {
 final case class ValueProperties(
     isConstant: Boolean,
     purity: Purity
-)
+) derives Schema
 
 object ValueProperties {
   val default: ValueProperties = ValueProperties(isConstant = false, purity = Purity.Unknown)
