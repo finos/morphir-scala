@@ -88,9 +88,9 @@ trait NodeIDModule {
       }
     }
 
-    sealed case class TypeID(name: FQName, memberPath: NodePath)                 extends NodeID
-    sealed case class ValueID(name: FQName, memberPath: NodePath)                extends NodeID
-    sealed case class ModuleID(packageName: PackageName, moduleName: ModuleName) extends NodeID
+    final case class TypeID(name: FQName, memberPath: NodePath)                 extends NodeID
+    final case class ValueID(name: FQName, memberPath: NodePath)                extends NodeID
+    final case class ModuleID(packageName: PackageName, moduleName: ModuleName) extends NodeID
     object ModuleID {
       def apply(packagePath: Path, modulePath: Path): ModuleID =
         ModuleID(PackageName(packagePath), ModuleName(modulePath))
@@ -101,8 +101,8 @@ trait NodeIDModule {
 
     sealed abstract class Error(errorMessage: String) extends Exception(errorMessage)
     object Error {
-      sealed case class InvalidPath(input: String, errorMessage: String)   extends Error(errorMessage)
-      sealed case class InvalidNodeId(input: String, errorMessage: String) extends Error(errorMessage) {
+      final case class InvalidPath(input: String, errorMessage: String)   extends Error(errorMessage)
+      final case class InvalidNodeId(input: String, errorMessage: String) extends Error(errorMessage) {
         def this(input: String) = this(input, s"Invalid NodeId: $input")
       }
 
@@ -112,7 +112,7 @@ trait NodeIDModule {
     }
   }
 
-  sealed case class NodePath(steps: Vector[NodePathStep]) { self =>
+  final case class NodePath(steps: Vector[NodePathStep]) { self =>
     import NodePathStep.*
 
     def /(step: NodePathStep): NodePath = NodePath(steps :+ step)
@@ -153,8 +153,8 @@ trait NodeIDModule {
     def childByName(input: String): NodePathStep = ChildByName(Name.fromString(input))
     def childByIndex(index: Int): NodePathStep   = ChildByIndex(index)
 
-    sealed case class ChildByName(name: Name)  extends NodePathStep
-    sealed case class ChildByIndex(index: Int) extends NodePathStep
+    final case class ChildByName(name: Name)  extends NodePathStep
+    final case class ChildByIndex(index: Int) extends NodePathStep
   }
 
   trait HasId {

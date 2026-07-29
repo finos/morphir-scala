@@ -3,7 +3,7 @@ package org.finos.morphir
 trait QNameModule { self: ModuleNameModule with NameModule with PathModule =>
 
   /// A qualified name (`QName`) is a combination of a module path and a local name.
-  sealed case class QName(moduleName: ModuleName, localName: Name) {
+  final case class QName(moduleName: ModuleName, localName: Name) {
     def modulePath: Path = moduleName.path
 
     /// Turn a qualified name into a tuple of a module path and a local name.

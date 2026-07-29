@@ -5,7 +5,7 @@ trait QualifiedModuleNameModule {
     with NamingOptionsModule =>
 
   /// A qualified module name is a globally unique identifier for a module. It is represented by the combination of a package name and the module name.
-  sealed case class QualifiedModuleName(packageName: PackageName, modulePath: ModuleName) { self =>
+  final case class QualifiedModuleName(packageName: PackageName, modulePath: ModuleName) { self =>
     def /(moduleName: ModuleName): QualifiedModuleName =
       QualifiedModuleName(self.packageName, self.modulePath ++ moduleName)
     def /(namespaceAddition: String): QualifiedModuleName =
@@ -55,6 +55,6 @@ trait QualifiedModuleNameModule {
     }
   }
 
-  sealed case class QualifiedModuleNameParsingError(invalidName: String)
+  final case class QualifiedModuleNameParsingError(invalidName: String)
       extends Exception(s"Unable to parse: [$invalidName] into a valid QualifiedModuleName")
 }

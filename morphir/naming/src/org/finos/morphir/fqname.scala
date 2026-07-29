@@ -6,7 +6,7 @@ trait FQNameModule {
     with QNameModule
     with NamingOptionsModule =>
 
-  sealed case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) { self =>
+  final case class FQName(packagePath: PackageName, modulePath: ModuleName, localName: Name) { self =>
     def getPackagePath: Path = packagePath.toPath
 
     def getModulePath: Path       = modulePath.toPath
@@ -101,6 +101,6 @@ trait FQNameModule {
     }
   }
 
-  sealed case class FQNameParsingError(invalidName: String)
+  final case class FQNameParsingError(invalidName: String)
       extends Exception(s"Unable to parse: [$invalidName] into a valid FQName")
 }

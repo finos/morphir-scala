@@ -3,7 +3,7 @@ import scala.annotation.tailrec
 
 trait PathModule { self: NameModule =>
 
-  sealed case class Path(segments: Vector[Name]) {
+  final case class Path(segments: Vector[Name]) {
     self =>
 
     def ++(that: Path): Path = Path(segments ++ that.segments)
@@ -104,7 +104,7 @@ trait PathModule { self: NameModule =>
     private[morphir] def unsafeMake(parts: Name*): Path = Path(parts.toVector)
   }
 
-  sealed case class PathRenderer(separator: String, nameRenderer: NameRenderer) extends (Path => String) {
+  final case class PathRenderer(separator: String, nameRenderer: NameRenderer) extends (Path => String) {
     def apply(path: Path): String        = path.toString(nameRenderer, separator)
     final def render(path: Path): String = apply(path)
   }

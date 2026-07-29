@@ -144,6 +144,39 @@ See `millbuild.crossplatform.CrossPlatformScalaModule` for how the paths are der
 - Use `extension` methods instead of implicit classes
 - Import with `*` instead of `_` (Scala 3 syntax)
 
+#### `sealed case class` — legacy idiom, prefer `final case class`
+
+The codebase contains a large number of `sealed case class` declarations. **This is a legacy
+idiom and new code must not add more.** Write `final case class` instead.
+
+`sealed` on a *case class* is close to meaningless: it forbids subclassing outside the
+declaring file, while `final` forbids it outright. `final` is therefore strictly stronger,
+and it is the idiomatic Scala 3 spelling. Nothing in this repo subclasses a `sealed case
+class` — the modifier buys nothing anywhere it currently appears.
+
+It also actively breaks things. kyo-schema's `Schema.derived` rejects a `sealed case class`
+outright, misreporting it as a sealed trait with no variants, because the type carries both
+the `Sealed` and `Case` flags. Any module we want kyo-schema derivation for must be free of
+the idiom first.
+
+**Do not confuse it with `sealed abstract case class`, which is a deliberate and correct
+pattern** — the smart-constructor idiom. There, `abstract` suppresses synthesis of `apply`
+and `copy`, forcing construction through a validating companion method:
+
+```scala
+sealed abstract case class AttributeValue[V] private (value: V, tag: Tag[V])
+```
+
+Leave those alone. `final` is not a substitute: it would defeat the anonymous-subclass
+construction the idiom depends on.
+
+**For reviewers.** Flag any *new* `sealed case class` as a change request. For pre-existing
+ones, flag them as an observation and convert them to `final case class` **only when the
+module is already being touched for another reason** — do not open standalone sweeps, and do
+not expand an unrelated PR to chase them. The conversion is safe and non-breaking for
+published artifacts: `sealed` already made out-of-file subclassing impossible, so removing
+that capability is invisible to downstream consumers.
+
 ### Dependencies
 
 - Use `mvn""` interpolator (not `ivy""` which is deprecated in Mill 1.x)

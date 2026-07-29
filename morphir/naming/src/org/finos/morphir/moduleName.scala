@@ -6,7 +6,7 @@ trait ModuleNameModule { self: NameModule with PathModule =>
    * A module name is a unique identifier for a module within a package. It is represented by a `Path`, which is a
    * "list" of names.
    */
-  sealed case class ModuleName(path: Path) { self =>
+  final case class ModuleName(path: Path) { self =>
 
     /// Construct a new module name by concatting the given module name to this one.
     def ++(other: ModuleName): ModuleName = ModuleName(path ++ other.path)

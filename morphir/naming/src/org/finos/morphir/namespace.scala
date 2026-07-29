@@ -1,7 +1,7 @@
 package org.finos.morphir
 
 trait NamespaceModule { self: NameModule with PathModule with ModuleNameModule =>
-  sealed case class Namespace(path: Path) { self =>
+  final case class Namespace(path: Path) { self =>
     def ++(name: Namespace): Namespace        = Namespace(path ++ path)
     def /(segment: String): Namespace         = Namespace(path ++ Path.fromString(segment))
     def /(names: String*): Namespace          = Namespace(path ++ Path.fromIterable(names.map(Name.fromString(_))))
@@ -30,7 +30,7 @@ trait NamespaceModule { self: NameModule with PathModule with ModuleNameModule =
 
   }
 
-  sealed case class NamespaceRenderer(separator: String, nameRenderer: NameRenderer) extends (Path => String) {
+  final case class NamespaceRenderer(separator: String, nameRenderer: NameRenderer) extends (Path => String) {
     def apply(path: Path): String        = path.toString(nameRenderer, separator)
     final def render(path: Path): String = apply(path)
   }
