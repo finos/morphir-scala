@@ -9,7 +9,7 @@ object js:
   moduleDeps: [build.morphir.extensibility.js, build.morphir.naming.js]
 
 object main:
-  extends: [build.MorphirCommonModule, build.MorphirPublishModule, build.AssemblyPublishInfo, build.MorphirCliBuildInfo, build.MorphirMainMvnDeps]
+  extends: [build.MorphirCommonModule, build.MorphirPublishModule, build.AssemblyPublishInfo, build.MorphirCliBuildInfo, build.MorphirMainMvnDeps, build.MorphirSnapshotRepos]
   mainClass: org.finos.morphir.cli.MorphirCliMain
   moduleDeps:
   - build.morphir.jvm
