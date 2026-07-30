@@ -1,14 +1,14 @@
 ---
 name: squire
-description: "Development environment diagnostics and unblocking for the morphir-scala project. Use when hitting build tool failures, sandbox restrictions, mill daemon errors, or SSL/network issues. Also manages reference repositories under .refs/ — invoke when asked to add, list, check, or remove a reference repo, clone a repo for reference, or work with a local copy of an upstream project."
+description: "Development environment diagnostics and unblocking for the morphir-scala project. Use when hitting build tool failures, sandbox restrictions, mill daemon errors, or SSL/network issues. Also manages reference repositories under .refs/ — invoke when asked to add, list, check, or remove a reference repo, clone a repo for reference, or work with a local copy of an upstream project. Also owns task-tracking configuration — invoke before tracking work to resolve whether beads (bd) is in use for this checkout, and when asked to opt out of beads, change tracking settings, or repair beads guidance that a bd command re-added to AGENTS.md/CLAUDE.md."
 allowed-tools: Bash(cat *), Bash(ls *), Bash(find *), Bash(python3 *), Bash(git *), Bash(gh *), Read, Edit, Write
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # Squire — morphir-scala Dev Environment Assistant
 
-Squire diagnoses and unblocks development environment issues, and manages reference repositories for the morphir-scala project.
+Squire diagnoses and unblocks development environment issues, manages reference repositories, and owns task-tracking configuration for the morphir-scala project.
 
 ## Commands
 
@@ -40,3 +40,18 @@ Read the full reference before running:
 **When to invoke:** When asked to add a reference repo, clone an upstream project, list or check existing references, or when context about an external codebase is needed locally.
 
 Sub-commands: `squire reference repo add`, `squire reference repo list`, `squire reference repo status`, `squire reference repo remove`
+
+### `/squire tracking`
+
+Owns task-tracking configuration: resolves whether [beads](https://github.com/steveyegge/beads) (`bd`) applies to this checkout, supports opting out per contributor, and keeps `AGENTS.md`/`CLAUDE.md` pointing at one canonical guidance document rather than accumulating tool-generated blocks.
+
+Beads is **optional** here — nothing in the build, the test suites, or CI reads `.beads/`. Never assume it is in use; resolve the mode first.
+
+Read the full reference before running:
+→ [references/tracking.md](references/tracking.md)
+
+**When to invoke:** Before creating or updating a task/issue, at the start of any session where work will be tracked, when asked to opt out of (or back into) beads, and when a `bd init`/`bd setup` run has re-added its own guidance block to the agent instruction files.
+
+Sub-commands: `squire tracking status`, `squire tracking sync`, `squire tracking doctor`
+
+Contributor-facing guidance, conventions and opt-out steps live in [docs/task-tracking.md](../../../docs/task-tracking.md).
