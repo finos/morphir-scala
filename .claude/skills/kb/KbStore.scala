@@ -217,8 +217,12 @@ object KbStore:
       else if dest.startsWith("/") then Some(doc.bundleRoot / dest.stripPrefix("/"))
       else
         // Relative to the containing directory, resolving any `..` segments.
-        val start = doc.file.parts.dropRight(1) ++ dest.split('/')
-        val resolved = start.foldLeft(Vector.empty[String]) { (acc, seg) =>
+        //
+        // Fold over the destination's segments only, seeded with the containing directory — never over the
+        // directory's own segments. Folding over those too would apply the `"" => drop` case to the leading empty
+        // segment that marks an absolute path, quietly turning the result relative so that `exists` tested it
+        // against the process's working directory instead of the filesystem root.
+        val resolved = dest.split('/').foldLeft(doc.file.parts.dropRight(1).toVector) { (acc, seg) =>
           seg match
             case "." | "" => acc
             case ".." => acc.dropRight(1)

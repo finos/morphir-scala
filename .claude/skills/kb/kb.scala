@@ -205,6 +205,19 @@ case class IntentSupersedeOpts(
     @HelpMessage("Override today's date (YYYY-MM-DD)") date: Option[String] = None
 )
 
+case class DecisionListOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("Filter by state") state: Option[String] = None,
+    @HelpMessage("Only decisions that still govern — excludes Superseded and Withdrawn") inForce: Boolean = false,
+    @HelpMessage("Restrict to one bundle") bundle: Option[String] = None
+)
+
+case class DecisionShowOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("Decision id or slug, e.g. 0004") id: Option[String] = None,
+    @HelpMessage("Also include the document body") body: Boolean = false
+)
+
 // -------------------------------------------------------------------- shared
 
 object KbCli:
@@ -304,8 +317,8 @@ object KbCli:
           ))
     yield out
 
-  /** Intent ids read better as positionals (`kb intent start 0007`) than as `--id`. */
-  def intentId(flag: Option[String], rest: caseapp.RemainingArgs): Option[String] =
+  /** Record ids read better as positionals (`kb intent start 0007`, `kb decision show 0004`) than as `--id`. */
+  def recordId(flag: Option[String], rest: caseapp.RemainingArgs): Option[String] =
     flag.orElse(rest.remaining.headOption).map(_.trim).filter(_.nonEmpty)
 
   def runTransition(
@@ -349,7 +362,41 @@ object KbApp extends CommandsEntryPoint:
     Seq(ListCmd, ShowCmd, SearchCmd, CheckCmd, IndexCmd, RefreshCmd, RefreshMarkdownCmd, RefreshDbCmd, QueryCmd,
       NewBundleCmd, AddConceptCmd,
       IntentInitCmd, IntentNewCmd, IntentListCmd, IntentShowCmd, IntentCheckCmd,
-      IntentRefineCmd, IntentStartCmd, IntentMoveCmd, IntentReleaseCmd, IntentCancelCmd, IntentSupersedeCmd)
+      IntentRefineCmd, IntentStartCmd, IntentMoveCmd, IntentReleaseCmd, IntentCancelCmd, IntentSupersedeCmd,
+      DecisionListCmd, DecisionShowCmd)
+
+  object DecisionListCmd extends KyoCommand[DecisionListOpts]:
+    override def name = "decision list"
+    override def names = List(List("decision", "list"), List("decision", "ls"))
+    run { (o: DecisionListOpts) =>
+      for
+        root <- KbCli.resolveKb(o.common.kb)
+        kb <- KbStore.load(root)
+        wanted = o.state.flatMap(DecisionState.parse)
+        items = KbDecision.decisions(kb).filter { d =>
+          wanted.forall(s => d.state.contains(s)) &&
+          o.bundle.forall(b => d.bundle == b || d.bundle.endsWith(s"/$b")) &&
+          (!o.inForce || d.state.forall(!_.isRetired))
+        }
+        _ <- Console.print(KbDecision.renderList(items, o.common.json))
+      yield ()
+    }
+
+  object DecisionShowCmd extends KyoCommand[DecisionShowOpts]:
+    override def name = "decision show"
+    override def names = List(List("decision", "show"))
+    run { (o: DecisionShowOpts, rest: caseapp.RemainingArgs) =>
+      KbCli.recordId(o.id, rest) match
+        case None => KbCli.fail("give a decision id, e.g. `kb decision show 0004`")
+        case Some(id) =>
+          for
+            root <- KbCli.resolveKb(o.common.kb)
+            kb <- KbStore.load(root)
+            _ <- KbDecision.find(kb, id) match
+              case None => KbCli.fail(s"no decision record `$id`")
+              case Some(d) => Console.print(KbDecision.renderShow(d, o.body, o.common.json))
+          yield ()
+    }
 
   object ListCmd extends KyoCommand[ListOpts]:
     override def name = "list"
@@ -591,7 +638,7 @@ object KbApp extends CommandsEntryPoint:
     override def name = "intent show"
     override def names = List(List("intent", "show"))
     run { (o: IntentShowOpts, rest: caseapp.RemainingArgs) =>
-      KbCli.intentId(o.id, rest) match
+      KbCli.recordId(o.id, rest) match
         case None => KbCli.fail("give an intent id, e.g. `kb intent show 0007`")
         case Some(id) =>
           KbCli.withIntent(o.common.kb) { (kb, b) =>
@@ -621,7 +668,7 @@ object KbApp extends CommandsEntryPoint:
     override def name = "intent refine"
     override def names = List(List("intent", "refine"))
     run { (o: IntentMoveOpts, rest: caseapp.RemainingArgs) =>
-      KbCli.intentId(o.id, rest) match
+      KbCli.recordId(o.id, rest) match
         case None => KbCli.fail("give an intent id")
         case Some(id) =>
           KbCli.runTransition(o.common.kb, o.common.json, id, o.date)(_ => KbIntentEdit.Transition(IntentState.Refinement))
@@ -631,7 +678,7 @@ object KbApp extends CommandsEntryPoint:
     override def name = "intent start"
     override def names = List(List("intent", "start"))
     run { (o: IntentMoveOpts, rest: caseapp.RemainingArgs) =>
-      KbCli.intentId(o.id, rest) match
+      KbCli.recordId(o.id, rest) match
         case None => KbCli.fail("give an intent id")
         case Some(id) =>
           KbCli.runTransition(o.common.kb, o.common.json, id, o.date)(_ => KbIntentEdit.Transition(IntentState.InProgress))
@@ -641,7 +688,7 @@ object KbApp extends CommandsEntryPoint:
     override def name = "intent move"
     override def names = List(List("intent", "move"))
     run { (o: IntentMoveOpts, rest: caseapp.RemainingArgs) =>
-      (KbCli.intentId(o.id, rest), o.state.flatMap(IntentState.parse)) match
+      (KbCli.recordId(o.id, rest), o.state.flatMap(IntentState.parse)) match
         case (None, _) => KbCli.fail("give an intent id")
         case (_, None) => KbCli.fail(s"--state must be one of ${IntentState.all.mkString(", ")}")
         case (Some(id), Some(target)) =>
@@ -652,7 +699,7 @@ object KbApp extends CommandsEntryPoint:
     override def name = "intent release"
     override def names = List(List("intent", "release"))
     run { (o: IntentReleaseOpts, rest: caseapp.RemainingArgs) =>
-      KbCli.intentId(o.id, rest) match
+      KbCli.recordId(o.id, rest) match
         case None => KbCli.fail("give an intent id")
         case Some(id) =>
           KbCli.runTransition(o.common.kb, o.common.json, id, o.date)(_ =>
@@ -663,7 +710,7 @@ object KbApp extends CommandsEntryPoint:
     override def name = "intent cancel"
     override def names = List(List("intent", "cancel"))
     run { (o: IntentCancelOpts, rest: caseapp.RemainingArgs) =>
-      KbCli.intentId(o.id, rest) match
+      KbCli.recordId(o.id, rest) match
         case None => KbCli.fail("give an intent id")
         case Some(id) =>
           KbCli.runTransition(o.common.kb, o.common.json, id, o.date)(_ =>
@@ -674,7 +721,7 @@ object KbApp extends CommandsEntryPoint:
     override def name = "intent supersede"
     override def names = List(List("intent", "supersede"))
     run { (o: IntentSupersedeOpts, rest: caseapp.RemainingArgs) =>
-      KbCli.intentId(o.id, rest) match
+      KbCli.recordId(o.id, rest) match
         case None => KbCli.fail("give an intent id")
         case Some(id) =>
           KbCli.runTransition(o.common.kb, o.common.json, id, o.date)(_ =>

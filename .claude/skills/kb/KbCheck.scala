@@ -1,5 +1,5 @@
 //| scalaVersion: 3.8.4
-//| moduleDeps: [KbStore.scala]
+//| moduleDeps: [KbStore.scala, KbDecision.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-core:1.0.0-RC5
 
@@ -15,22 +15,8 @@
 import kyo.*
 import java.time.LocalDate
 
-enum Severity:
-  case Error, Warn, Info
-  def label: String = this match
-    case Error => "error"
-    case Warn => "warn"
-    case Info => "info"
-
-case class Finding(
-    severity: Severity,
-    check: String,
-    path: String,
-    line: Option[Int],
-    message: String,
-    hint: Option[String] = None
-):
-  def location: String = line.map(l => s"$path:$l").getOrElse(path)
+// `Severity` and `Finding` live in KbModel.scala — they are pure data, and putting them here would force every
+// module that merely produces findings (KbIntent, KbDecision) to depend on the check runner.
 
 object KbCheck:
 
@@ -59,7 +45,7 @@ object KbCheck:
           Some("a bundle root is a directory whose index.md carries okf_version; grouping directories use README.md")
         )
       }
-      (structural.flatten.toSeq ++ strays ++ provenance.flatten.toSeq)
+      (structural.flatten.toSeq ++ strays ++ KbDecision.findings(kb) ++ provenance.flatten.toSeq)
         .sortBy(f => (f.severity.ordinal, f.path, f.line.getOrElse(0)))
 
   private def bundleFindings(kb: Kb, b: Bundle, today: LocalDate, allowDangling: Boolean): Chunk[Finding] < (Sync & Abort[Throwable]) =
@@ -120,11 +106,37 @@ object KbCheck:
           )
         ).flatten ++ unknownKeys(where, d)
 
-    fmErrors ++ kindErrors ++ conceptErrors
+    fmErrors ++ kindErrors ++ conceptErrors ++ escapingLinks(where, d)
+
+  /** A bundle-relative link starts at the bundle root, so a `..` segment in one can only take it outside the bundle.
+    *
+    * This needs its own check because such a link usually still *resolves*: `resolveLink` joins the destination onto
+    * the bundle root verbatim, and the filesystem then collapses the `..` when the path is tested for existence. So
+    * `link-broken` stays silent while the link means something other than it says, and will break as soon as either
+    * bundle moves. Cross-bundle references should use an ordinary relative path.
+    */
+  private def escapingLinks(where: String, d: Doc): Seq[Finding] =
+    d.links.filter(_.isBundleRelative).filter { l =>
+      val segments = l.dest.takeWhile(_ != '#').stripPrefix("/").split('/')
+      segments.foldLeft((0, false)) {
+        case ((depth, escaped), "" | ".") => (depth, escaped)
+        case ((depth, escaped), "..") => if depth == 0 then (0, true) else (depth - 1, escaped)
+        case ((depth, escaped), _) => (depth + 1, escaped)
+      }._2
+    }.map { l =>
+      Finding(
+        Severity.Error,
+        "link-escapes-bundle",
+        where,
+        Some(l.line),
+        s"bundle-relative link climbs above the bundle root: ${l.dest}",
+        Some("bundle-relative paths start at the bundle root; use a normal relative path to reach another bundle")
+      )
+    }
 
   private def unknownKeys(where: String, d: Doc): Seq[Finding] =
-    d.fm.values.keys.filterNot(Frontmatter.Known.contains).toSeq.sorted.map { k =>
-      Finding(Severity.Info, "frontmatter-unknown-key", where, Some(1), s"frontmatter key `$k` is not defined by OKF v0.2")
+    d.fm.values.keys.filterNot(Frontmatter.isRecognized).toSeq.sorted.map { k =>
+      Finding(Severity.Info, "frontmatter-unknown-key", where, Some(1), s"frontmatter key `$k` is recognized by neither OKF v0.2 nor this tooling")
     }
 
   private def parseDate(s: String): Option[LocalDate] =

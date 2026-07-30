@@ -27,6 +27,27 @@ object KbPath:
 
   def render(p: Path): String = p.parts.filter(_.nonEmpty).mkString("/", "/", "")
 
+/** Severity of a check finding. */
+enum Severity:
+  case Error, Warn, Info
+  def label: String = this match
+    case Error => "error"
+    case Warn => "warn"
+    case Info => "info"
+
+/** One problem found by a check. Pure data, so that any module producing findings — structural checks, provenance,
+  * the intent and decision registers — can do so without depending on the check runner.
+  */
+case class Finding(
+    severity: Severity,
+    check: String,
+    path: String,
+    line: Option[Int],
+    message: String,
+    hint: Option[String] = None
+):
+  def location: String = line.map(l => s"$path:$l").getOrElse(path)
+
 /** Markdown shapes the tooling recognizes.
   *
   * An index entry is `* [Title](/path.md) - description`. Groups: (1) everything through the closing paren, so a
@@ -111,6 +132,25 @@ object Frontmatter:
     "runtime", "parameters", "computation", "executor", "attester",
     "okf_version"
   )
+
+  /** Keys this tooling defines on top of OKF, and therefore understands.
+    *
+    * OKF does not define them, but reporting them as unrecognized is noise rather than signal — they are the schema
+    * of the intent and decision registers, validated by their own checks. Keeping them separate from [[Known]] keeps
+    * that distinction honest: `Known` is what the spec says, `ProducerKnown` is what we added.
+    */
+  val ProducerKnown: Set[String] = Set(
+    // intent register (KbIntent.scala)
+    "state", "kind", "breaking", "created", "state_since", "issue", "capability",
+    "superseded_by", "reason", "artifacts", "implementation_baselines",
+    // intent bundle configuration, on the bundle-root index only
+    "intent", "system", "capability_bundle", "stale_after_days",
+    // decision register (KbDecision.scala) — `state`, `superseded_by` and `reason` are shared with intent above
+    "decided", "supersedes"
+  )
+
+  /** Keys that neither OKF nor this tooling defines are the only ones worth reporting. */
+  def isRecognized(key: String): Boolean = Known.contains(key) || ProducerKnown.contains(key)
 
   val Statuses: Set[String] = Set("draft", "stable", "deprecated")
 

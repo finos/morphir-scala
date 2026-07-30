@@ -9,4 +9,6 @@ KbScaffoldSpec
 KbIntentSpec
 KbCheckSpec
 KbIndexSpec
+KbDecisionSpec
+KbLinkSpec
 KbMetaSpec
