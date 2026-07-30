@@ -16,6 +16,14 @@ enum Type derives Schema {
 
 final case class Field(name: Name, fieldType: Type) derives Schema
 
+/**
+ * A named, typed slot: a function/value parameter or a constructor argument. Shared by `ValueDefinitionBody`,
+ * `ValueSpecification` (in `Expr.scala`) and `Constructor.args` below, so it lives here alongside `Field` rather than
+ * duplicated per use site. Replaces the raw `(Name, Type)` tuple those fields used to carry, which kyo-schema would
+ * otherwise encode as meaningless `{"_1": ..., "_2": ...}`.
+ */
+final case class Parameter(name: Name, tpe: Type) derives Schema
+
 enum TypeSpecification derives Schema {
   case TypeAliasSpecification(params: Chunk[Name], body: Type)
   case OpaqueTypeSpecification(params: Chunk[Name])
@@ -23,7 +31,7 @@ enum TypeSpecification derives Schema {
   case DerivedTypeSpecification(params: Chunk[Name], details: DerivedTypeSpecificationDetails)
 }
 
-final case class Constructor(name: Name, args: Chunk[(Name, Type)]) derives Schema
+final case class Constructor(name: Name, args: Chunk[Parameter]) derives Schema
 
 final case class DerivedTypeSpecificationDetails(
     baseType: Type,

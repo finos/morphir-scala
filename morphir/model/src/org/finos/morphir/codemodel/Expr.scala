@@ -52,7 +52,7 @@ enum Expr derives Schema {
   case Constructor(attributes: ValueAttributes, fqName: FQName)
   case Tuple(attributes: ValueAttributes, elements: Chunk[Expr])
   case List(attributes: ValueAttributes, items: Chunk[Expr])
-  case Record(attributes: ValueAttributes, fields: Chunk[(Name, Expr)])
+  case Record(attributes: ValueAttributes, fields: Chunk[RecordField])
   case Unit(attributes: ValueAttributes)
   case Variable(attributes: ValueAttributes, name: Name)
   case Reference(attributes: ValueAttributes, fqName: FQName)
@@ -61,15 +61,35 @@ enum Expr derives Schema {
   case Apply(attributes: ValueAttributes, function: Expr, argument: Expr)
   case Lambda(attributes: ValueAttributes, argumentPattern: Pattern, body: Expr)
   case LetDefinition(attributes: ValueAttributes, name: Name, definition: ValueDefinitionBody, inValue: Expr)
-  case LetRecursion(attributes: ValueAttributes, bindings: Chunk[(Name, ValueDefinitionBody)], inValue: Expr)
+  case LetRecursion(attributes: ValueAttributes, bindings: Chunk[Binding], inValue: Expr)
   case Destructure(attributes: ValueAttributes, pattern: Pattern, valueToDestructure: Expr, inValue: Expr)
   case IfThenElse(attributes: ValueAttributes, condition: Expr, thenBranch: Expr, elseBranch: Expr)
-  case PatternMatch(attributes: ValueAttributes, subject: Expr, cases: Chunk[(Pattern, Expr)])
-  case UpdateRecord(attributes: ValueAttributes, record: Expr, updates: Chunk[(Name, Expr)])
+  case PatternMatch(attributes: ValueAttributes, subject: Expr, cases: Chunk[MatchCase])
+  case UpdateRecord(attributes: ValueAttributes, record: Expr, updates: Chunk[RecordField])
   case Hole(attributes: ValueAttributes, reason: HoleReason, expectedType: Option[Type])
   case Native(attributes: ValueAttributes, fqName: FQName, nativeInfo: NativeInfo)
   case External(attributes: ValueAttributes, externalName: String, targetPlatform: String)
 }
+
+/**
+ * A single `name: value` entry of a record literal or record update. Replaces the raw `(Name, Expr)` tuple
+ * `Expr.Record.fields` and `Expr.UpdateRecord.updates` used to carry. Named `RecordField` rather than `Field` because
+ * `Field` (in `Type.scala`) already names the type-level analogue — a record *type*'s `name: Type` slot — and the two
+ * are not interchangeable (this one holds a value expression, not a type).
+ */
+final case class RecordField(name: Name, value: Expr) derives Schema
+
+/**
+ * One arm of a `PatternMatch`: the pattern to test against and the expression to evaluate if it matches. Replaces the
+ * raw `(Pattern, Expr)` tuple `Expr.PatternMatch.cases` used to carry.
+ */
+final case class MatchCase(pattern: Pattern, body: Expr) derives Schema
+
+/**
+ * One binding of a mutually recursive `let`: the bound name and its definition. Replaces the raw
+ * `(Name, ValueDefinitionBody)` tuple `Expr.LetRecursion.bindings` used to carry.
+ */
+final case class Binding(name: Name, definition: ValueDefinitionBody) derives Schema
 
 enum NativeHint derives Schema {
   case Arithmetic
@@ -82,11 +102,11 @@ enum NativeHint derives Schema {
 final case class NativeInfo(hint: NativeHint, description: Option[String]) derives Schema
 
 enum ValueDefinitionBody derives Schema {
-  case ExpressionBody(inputTypes: Chunk[(Name, Type)], outputType: Type, body: Expr)
-  case NativeBody(inputTypes: Chunk[(Name, Type)], outputType: Type, nativeInfo: NativeInfo)
-  case ExternalBody(inputTypes: Chunk[(Name, Type)], outputType: Type, externalName: String, targetPlatform: String)
+  case ExpressionBody(inputTypes: Chunk[Parameter], outputType: Type, body: Expr)
+  case NativeBody(inputTypes: Chunk[Parameter], outputType: Type, nativeInfo: NativeInfo)
+  case ExternalBody(inputTypes: Chunk[Parameter], outputType: Type, externalName: String, targetPlatform: String)
   case IncompleteBody(
-      inputTypes: Chunk[(Name, Type)],
+      inputTypes: Chunk[Parameter],
       outputType: Option[Type],
       incompleteness: Incompleteness,
       partialBody: Option[Expr]
@@ -95,4 +115,4 @@ enum ValueDefinitionBody derives Schema {
 
 final case class ValueDefinition(body: AccessControlled[ValueDefinitionBody]) derives Schema
 
-final case class ValueSpecification(inputs: Chunk[(Name, Type)], output: Type) derives Schema
+final case class ValueSpecification(inputs: Chunk[Parameter], output: Type) derives Schema

@@ -30,7 +30,7 @@ class CodeModelCodecsSpec extends Test[Any]:
         Name.fromString("add") -> Documented(
           None,
           ValueSpecification(
-            inputs = Chunk(Name.fromString("x") -> Type.Variable(TypeAttributes.empty, Name.fromString("a"))),
+            inputs = Chunk(Parameter(Name.fromString("x"), Type.Variable(TypeAttributes.empty, Name.fromString("a")))),
             output = Type.Variable(TypeAttributes.empty, Name.fromString("a"))
           )
         )
@@ -71,7 +71,10 @@ class CodeModelCodecsSpec extends Test[Any]:
                 Chunk(
                   Constructor(
                     Name.fromString("Just"),
-                    Chunk(Name.fromString("value") -> Type.Variable(TypeAttributes.empty, Name.fromString("a")))
+                    Chunk(Parameter(
+                      Name.fromString("value"),
+                      Type.Variable(TypeAttributes.empty, Name.fromString("a"))
+                    ))
                   ),
                   Constructor(Name.fromString("Nothing"), Chunk.empty)
                 )
@@ -89,7 +92,8 @@ class CodeModelCodecsSpec extends Test[Any]:
               AccessControlled(
                 Access.Public,
                 ValueDefinitionBody.ExpressionBody(
-                  inputTypes = Chunk(Name.fromString("x") -> Type.Variable(TypeAttributes.empty, Name.fromString("a"))),
+                  inputTypes =
+                    Chunk(Parameter(Name.fromString("x"), Type.Variable(TypeAttributes.empty, Name.fromString("a")))),
                   outputType = Type.Variable(TypeAttributes.empty, Name.fromString("a")),
                   body = Expr.Variable(ValueAttributes.empty, Name.fromString("x"))
                 )
