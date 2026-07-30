@@ -30,9 +30,11 @@ object AstQueryableTree:
       case n: Module =>
         Map(
           "exposing"     -> Seq(n.exposing),
+          "manager"      -> n.manager.toSeq,
           "imports"      -> n.imports.toSeq,
           "declarations" -> n.declarations.toSeq
         )
+      case _: EffectManager => Map.empty
       case _: QualifiedName => Map.empty
       case n: Import        =>
         Map("exposing" -> n.exposing.toSeq)

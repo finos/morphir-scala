@@ -18,6 +18,7 @@ trait AstVisitor[A]:
 
   // --- Module structure ---
   def visitModule(node: Module): A               = visitNode(node)
+  def visitEffectManager(node: EffectManager): A = visitNode(node)
   def visitQualifiedName(node: QualifiedName): A = visitNode(node)
   def visitImport(node: Import): A               = visitNode(node)
 
@@ -109,6 +110,7 @@ object AstVisitor:
   /** Dispatch a node to the appropriate visitor method. */
   def visit[A](node: AstNode, visitor: AstVisitor[A]): A = node match
     case n: Module                => visitor.visitModule(n)
+    case n: EffectManager         => visitor.visitEffectManager(n)
     case n: QualifiedName         => visitor.visitQualifiedName(n)
     case n: Import                => visitor.visitImport(n)
     case n: ExposingAll           => visitor.visitExposingAll(n)
@@ -172,7 +174,8 @@ object AstVisitor:
 
   /** Return the direct children of a node. */
   def children(node: AstNode): List[AstNode] = node match
-    case n: Module                => n.exposing :: n.imports.toList ::: n.declarations.toList
+    case n: Module                => n.exposing :: n.manager.toList ::: n.imports.toList ::: n.declarations.toList
+    case n: EffectManager         => Nil
     case n: QualifiedName         => Nil
     case n: Import                => n.exposing.toList
     case n: ExposingAll           => Nil
