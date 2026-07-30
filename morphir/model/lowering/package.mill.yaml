@@ -1,14 +1,14 @@
 extends: Module
 
 object jvm:
-  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirSnapshotRepos, build.MorphirKyoMvnDeps]
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirKyoMvnDeps]
   moduleDeps: [build.morphir.model.jvm, build.morphir.jvm]
   object test:
     extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps, build.LoweringRealIrFixture]
     moduleDeps: !append [build.morphir.interop.zio.json.jvm]
 
 object js:
-  extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirSnapshotRepos, build.MorphirKyoMvnDeps]
+  extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirKyoMvnDeps]
   moduleDeps: [build.morphir.model.js, build.morphir.js]
   object test:
     extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
