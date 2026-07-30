@@ -14,6 +14,15 @@ sources:
   - id: morphir-elm
     resource: https://github.com/finos/morphir-elm/tree/1956c36d3715851a2f215775a45395690746d801
     title: finos/morphir-elm
+  - id: morphir-v3-spec
+    resource: https://github.com/finos/morphir/blob/4d5e5c06a7cf269c5f86b050a16a6f82bb5c29bc/docs/spec/ir/morphir-ir-specification.md
+    title: Morphir IR Specification
+  - id: morphir-v4-attributes
+    resource: https://github.com/finos/morphir/blob/4d5e5c06a7cf269c5f86b050a16a6f82bb5c29bc/docs/spec/draft/attributes.md
+    title: Attributes (Morphir IR v4 draft)
+  - id: morphir-v4-layered-decorations
+    resource: https://github.com/finos/morphir/blob/4d5e5c06a7cf269c5f86b050a16a6f82bb5c29bc/docs/design/draft/ir/decorations.md
+    title: Decorations (layered design)
   - id: pipeline-intent
     resource: https://github.com/finos/morphir-scala/issues/932
     title: Transformation Pipeline GitHub issue
@@ -39,7 +48,10 @@ The supporting foundations are:
 1. [Syntax trees and intermediate representations](/syntax-trees-and-intermediate-representations.md)
 2. [Tree traversal, visitors, cursors, and rewriting](/tree-traversal-visitors-cursors-and-rewriting.md)
 3. [Structural tree interoperability](/structural-tree-interoperability.md)
-4. [Transformation pipelines](/transformation-pipelines.md)
+4. [Node identity and addressability](/node-identity-and-addressability.md)
+5. [Attribution of typed trees](/attribution-of-typed-trees.md)
+6. [RDF, linked data, and provenance](/rdf-linked-data-and-provenance.md)
+7. [Transformation pipelines](/transformation-pipelines.md)
 
 ## Preserve representation boundaries
 
@@ -53,6 +65,24 @@ would either discard source fidelity early or mix source-language constructs int
 **Guidance.** Keep frontend-native CST and AST types in their language modules. Define an explicit frontend boundary
 whose successful semantic output is Morphir IR. Preserve source provenance across lowering without requiring every
 generated IR node to claim one exact source range.
+
+## Keep semantic type safety separate from attribution representation
+
+**Observed fact.** The pinned Morphir artifacts surveyed in
+[Morphir attribution evolution](/morphir-attribution-evolution.md) include recursively typed v3 node payloads,
+Morphir-Elm external decorators, and v4-era explicit attributes plus a separate layered-decoration design. Those
+artifacts establish several explored representations, not one settled morphir-scala
+design.[^morphir-v3-spec][^morphir-elm][^morphir-v4-attributes][^morphir-v4-layered-decorations]
+
+**Engineering inference.** Morphir semantic invariants and variable attribution have different stability and
+ownership requirements. Keeping the semantic IR closed and typed does not require every analysis result, source
+correspondence, user decoration, or provenance relation to be a recursive IR type parameter.
+
+**Guidance.** Treat semantic type safety as non-negotiable: required Morphir meaning remains in closed, strongly
+typed IR nodes. Allow the representation of variable attribution to evolve behind typed access boundaries. Use the
+criteria and prototype gates in
+[typed attribution guidance for morphir-scala](/typed-attribution-guidance-for-morphir-scala.md) rather than
+duplicating its ranked alternatives here.
 
 ## Offer several traversal mechanisms
 
@@ -199,3 +229,6 @@ observable diagnostic/status outcome; labels retain the meaning when color is un
 [^morphir-scala-elm]: morphir-scala Elm langkit.
 [^morphir-scala-trees]: morphir-scala tree tooling.
 [^morphir-elm]: finos/morphir-elm at commit `1956c36d`.
+[^morphir-v3-spec]: Morphir IR Specification.
+[^morphir-v4-attributes]: Morphir IR v4 draft attributes.
+[^morphir-v4-layered-decorations]: Morphir IR v4 draft layered-decoration design.

@@ -109,6 +109,67 @@ final case class ValueDecl(
 )
 ```
 
+The expression shape `price + (tax * 2)` can be projected into an intentionally lossy S-expression that omits the
+Scala model's spans and integer spelling:
+
+```lisp
+(Apply "+"
+  (Ref "price")
+  (Apply "*"
+    (Ref "tax")
+    (IntLiteral 2)))
+```
+
+The same intentionally lossy structural projection can be encoded as complete JSON:
+
+```json
+{
+  "kind": "Apply",
+  "operator": "+",
+  "left": {
+    "kind": "Ref",
+    "name": "price"
+  },
+  "right": {
+    "kind": "Apply",
+    "operator": "*",
+    "left": {
+      "kind": "Ref",
+      "name": "tax"
+    },
+    "right": {
+      "kind": "IntLiteral",
+      "value": 2
+    }
+  }
+}
+```
+
+The structurally equivalent YAML encoding of that projection is:
+
+```yaml
+kind: Apply
+operator: "+"
+left:
+  kind: Ref
+  name: price
+right:
+  kind: Apply
+  operator: "*"
+  left:
+    kind: Ref
+    name: tax
+  right:
+    kind: IntLiteral
+    value: 2
+```
+
+The S-expression foregrounds nesting, but it does not define source positions, trivia, or name resolution. None of
+these projections is equivalent to a complete value of the Scala model: all omit `Span`, and the integer projection
+also omits `spelling`. The JSON and YAML blocks are structurally equivalent serializations of one chosen lossy
+projection; they are illustrative rather than official Morphir encodings. Their equivalent data does not prove
+semantic invariants, and the choice between JSON and YAML does not create distinct tree semantics.
+
 The token sequence can retain every lexeme, including whitespace and the comment. The `Expr` tree records the
 operator grouping—`price + (tax * 2)`—but the model above does not retain whitespace or the comment. A later semantic
 representation could replace `Ref("tax", ...)` with a resolved symbol identifier and attach a checked type.
@@ -140,7 +201,9 @@ column defined in bytes.[^tree-sitter-basic]
 
 Not every later node has a unique source range. Desugaring may create nodes that correspond to an entire construct,
 several ranges, or no direct source fragment. A representation should make absence or multiplicity explicit rather
-than inventing a misleading location.
+than inventing a misleading location. Positions help locate nodes, but do not alone identify them across edits,
+projections, or generated structure; see [node identity and addressability](/node-identity-and-addressability.md) for
+the relationship between ranges, structural paths, and stable identity.
 
 > **Scala 3 implementation note:** enums and sealed hierarchies express closed node families; case classes express
 > immutable product nodes; opaque types can distinguish coordinate units without changing their runtime

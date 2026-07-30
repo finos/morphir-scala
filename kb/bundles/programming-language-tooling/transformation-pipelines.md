@@ -148,6 +148,21 @@ Graph semantics that must be explicit include:
 | Ordering | Which observable order diagnostics, progress, and outputs use |
 | Cancellation | Which running work may be interrupted and how that is reported |
 
+## Attribution policy and execution provenance
+
+When a stage consumes an attributed tree, its contract should declare whether each relevant attribution is
+preserved, recomputed, remapped to output nodes, or invalidated. This makes attribution behavior reviewable across
+rewrites instead of leaving callers to infer it from unchanged node shapes. The available policies and the
+identity evidence needed for remapping are described in
+[attribution of typed trees](/attribution-of-typed-trees.md) and
+[node identity and addressability](/node-identity-and-addressability.md).
+
+A pipeline execution may also describe its activities, inputs, outputs, and responsible producer as provenance.
+That run-level record is distinct from node attribution, even when it explains how an attribution was produced.
+RDF datasets and PROV provide one possible interchange model; they do not require every local execution to persist
+an RDF graph or any provenance artifact. See
+[RDF, linked data, and provenance](/rdf-linked-data-and-provenance.md).
+
 ## Diagnostics are data
 
 A pipeline needs to distinguish a domain diagnostic from an executor defect. A parser may report several source

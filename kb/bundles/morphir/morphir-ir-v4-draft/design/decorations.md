@@ -124,3 +124,13 @@ are orphaned by a deleted target, and that schema versions are compatible.
 
 The v3 format stored all decorations in one file keyed by a `My.Package:Foo:bar` string. A migration command moves
 such a file into `deco/layers/{layer}/{type}.json`.
+
+## Comparison context
+
+This remains a design note that is **not present in the v4 spec draft**. The
+[Morphir attribution evolution case study](https://github.com/finos/morphir-scala/blob/main/kb/bundles/programming-language-tooling/morphir-attribution-evolution.md)
+compares it with v3 generic payloads, Morphir-Elm sidecars, and v4 explicit attributes without treating this design
+as adopted. The general [attribution of typed trees reference](https://github.com/finos/morphir-scala/blob/main/kb/bundles/programming-language-tooling/attribution-of-typed-trees.md)
+explains the obligations of external overlays, while
+[RDF, linked data, and provenance](https://github.com/finos/morphir-scala/blob/main/kb/bundles/programming-language-tooling/rdf-linked-data-and-provenance.md)
+provides relation-graph comparison context rather than an endorsed replacement.

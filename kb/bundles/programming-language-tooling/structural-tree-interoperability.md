@@ -76,6 +76,65 @@ final case class InteropNode(
 
 This illustrative Scala value is an interchange shape, not a recommended internal AST.
 
+Here is a compact illustrative JSON projection of `price + 2`. In this example, offsets are zero-based Unicode code
+points and each `position` is a half-open range `[start, end)`:
+
+```json
+{
+  "kind": "Add",
+  "children": [
+    {
+      "kind": "Ref",
+      "children": [],
+      "value": "price",
+      "position": {
+        "start": 0,
+        "end": 5
+      }
+    },
+    {
+      "kind": "IntLiteral",
+      "children": [],
+      "value": "2",
+      "position": {
+        "start": 8,
+        "end": 9
+      }
+    }
+  ],
+  "position": {
+    "start": 0,
+    "end": 9
+  }
+}
+```
+
+The same illustrative projection can be serialized as YAML:
+
+```yaml
+kind: Add
+children:
+  - kind: Ref
+    children: []
+    value: price
+    position:
+      start: 0
+      end: 5
+  - kind: IntLiteral
+    children: []
+    value: "2"
+    position:
+      start: 8
+      end: 9
+position:
+  start: 0
+  end: 9
+```
+
+These blocks are neither a universal internal AST nor an official unist serialization: in particular, they use
+`kind` and simple offsets rather than unist's `type` and point shape. JSON and YAML can serialize the same projection,
+but neither encoding determines the tree's semantics or restores guarantees omitted by the projection.
+
 ## Projection, not replacement
 
 ```mermaid
@@ -114,8 +173,9 @@ source text and a span are present.[^unist-projection]
 | Typed source property | Minimal structural projection |
 | --- | --- |
 | Closed node alternatives | Usually a string node kind |
-| Field-specific Scala types | Named child relationships |
-| Domain invariants | Not automatically represented |
+| Field-specific Scala types | Flattened to structural relationships unless carried explicitly |
+| Coordinate-unit guarantees | Lost unless the unit is carried explicitly by the protocol or its surrounding contract |
+| Semantic invariants | Not automatically represented |
 | Object identity or stable IDs | Lost unless explicitly projected |
 | Multiple source ranges | Requires an extension |
 | Typed annotations | Requires domain-specific data or a parallel capability |
@@ -128,6 +188,9 @@ replace the source model.
 
 Traversal algorithms observe child order. Changing it can alter match ordering, diagnostics, and deterministic
 output even if the parent contains the same set of children. A structural capability should document that order.
+Stable child order can support structural paths, but positions and paths are addresses rather than automatically
+stable identities; [node identity and addressability](/node-identity-and-addressability.md) explains the guarantees
+an adapter must choose among.
 
 Named fields should refer to children rather than create a second hidden traversal graph unless the protocol says
 otherwise. Morphir-scala's contract requires field values to be a subset of `children`, which lets queries address
