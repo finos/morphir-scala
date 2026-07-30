@@ -61,6 +61,9 @@ Every concept document starts with a YAML frontmatter block.
   centrally registered, so pick self-explanatory names and reuse the ones already present in the bundle rather than
   inventing near-synonyms.
 
+  Two type values carry extra validation from this repository's tooling rather than from OKF: `Intent` and
+  `Decision Record`. See [Registers](#registers) below.
+
 ### Recommended
 
 - `title` — human-readable display name. Consumers may derive one from the filename if omitted; supply it anyway.
@@ -100,6 +103,32 @@ Prose body starts here.
 
 Actor strings follow a fixed convention: `<producer>/<version>` for agents, `human:<id>` for people, and
 `process:<id>` for automated processes. Use it in `generated.by` and `verified.by`.
+
+## Registers
+
+Three concept types carry a schema and validation beyond OKF's, because they answer three different questions about
+the same work. Picking the wrong one is the most common modelling mistake here.
+
+| Register | `type` | Tense | Lifecycle | Answers |
+| -------- | ------ | ----- | --------- | ------- |
+| Intent | `Intent` | future | yes | should we do this |
+| Capability | `Capability` | present | no | what does the system do |
+| Decision Record | `Decision Record` | past | terminal only | why is it shaped this way |
+
+- **Intent** lives in the bundle whose index carries `intent: true`, is numbered `NNNN-slug.md`, and its lifecycle
+  obligations are enforced by `kb intent check` — most importantly, releasing requires linking the Capability it
+  produced.
+- **Capability** is plain prose with no extra schema. It is either true or stale.
+- **Decision Record** is numbered `NNNN-slug.md` in a `decisions/` directory, carries `state`, `decided` and
+  `supersedes`/`superseded_by`, and is validated by `kb check`. **It is immutable**: superseded by a later record
+  rather than edited, because its value is the reasoning available at the time.
+
+The distinction that most often needs care is **Decision Record vs Design Note**. A Design Note is updated as
+understanding improves — that is what makes it useful. A Decision Record must not be. If the document should change
+when you learn more, it is a Design Note.
+
+Full guidance: [`.claude/skills/kb/references/decisions.md`](../.claude/skills/kb/references/decisions.md), and the
+reasoning in [decision 0004](./bundles/morphir/morphir-scala/decisions/0004-decision-records-are-a-third-register.md).
 
 ## Cross-linking
 

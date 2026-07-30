@@ -7,7 +7,7 @@
   *
   * The distinction this rests on: an **Intent** is future-tense and has a lifecycle; a **Capability** is present-tense
   * and is simply either true or stale. Releasing is where they meet, which is why marking an Intent Released demands
-  * a link to the Capability it produced. See kb/CONTEXT.md for the glossary and docs/adr/0001 for why.
+  * a link to the Capability it produced. See kb/CONTEXT.md for the glossary and decision 0001 (kb/bundles/morphir/morphir-scala/decisions/) for why.
   *
   * Obligations are checked wherever a record currently sits, never against the path it took to get there — work
   * genuinely jumps stages, and a tool that fights that gets worked around.
@@ -59,7 +59,7 @@ object IntentKind:
 /** A reference to a document elsewhere in the knowledge base: `bundle-label:/path.md`.
   *
   * Deliberately not a Package URL — purl identifies registry-backed artifacts, and a Capability is a markdown
-  * document no registry knows about. See docs/adr/0003.
+  * document no registry knows about. See decision 0003 in kb/bundles/morphir/morphir-scala/decisions/.
   */
 case class DocRef(bundle: String, path: String):
   def render: String = s"$bundle:$path"

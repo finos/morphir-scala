@@ -9,7 +9,7 @@ metadata:
 # intent — Managing What the Project Means to Do
 
 This skill is the process; the mechanics live in the `kb` skill. Every command below is `.claude/skills/kb/kb intent
-…`. There is no separate implementation — see [ADR-0002](../../../docs/adr/0002-intent-tooling-lives-in-the-kb-skill.md)
+…`. There is no separate implementation — see [decision 0002](../../../kb/bundles/morphir/morphir-scala/decisions/0002-intent-tooling-lives-in-the-kb-skill.md)
 for why, and do not try to split them without reading it first.
 
 ```bash
@@ -151,7 +151,7 @@ stale_after_days: 60
 `system` and released `artifacts` are [Package URLs](https://github.com/package-url/purl-spec) — a global vocabulary,
 so the same skill works in a Python or npm repository unchanged. Capability links use `bundle-label:/path.md`
 instead, because a Capability is a document in this knowledge base, not a registry-backed package.
-[ADR-0003](../../../docs/adr/0003-two-identifier-schemes-for-intent.md) records why both exist.
+[decision 0003](../../../kb/bundles/morphir/morphir-scala/decisions/0003-two-identifier-schemes-for-intent.md) records why both exist.
 
 In a repository with no intent bundle yet:
 
