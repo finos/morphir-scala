@@ -45,7 +45,8 @@ git-tracked side on a separate branch, and it doesn't need one.
 | Path | What |
 |---|---|
 | `.beads/config.yaml`, `.beads/metadata.json` | prefix (`morphir`), sync remote, defaults |
-| `.beads/README.md`, `.beads/hooks/` | upstream docs and git hooks |
+| `.beads/README.md` | upstream docs |
+| `.beads/hooks/` | git hook scripts — inert until `bd hooks install --beads` (see [Opting in](#opting-in)) |
 | `.beads/interactions.jsonl` | append-only audit log — see below |
 | `.agents/skills/beads/` | agent-facing description of the bd workflow |
 | `AGENTS.md`, `CLAUDE.md` | a short pointer to this file |
@@ -79,6 +80,76 @@ disable it for yourself:
 ```bash
 bd config set metrics.disabled true
 ```
+
+## Opting in
+
+Nothing here happens automatically, by design — a fresh clone has no `bd` and no active
+beads integration, and builds and tests fine that way.
+
+**1. Install `bd`.** It is deliberately not in `mise run setup`: adding it there would install a
+task tracker for every contributor, including those who don't want one. See
+[the beads install instructions](https://github.com/steveyegge/beads#installation), or on macOS:
+
+```bash
+brew install beads
+```
+
+**2. Install the git hooks (optional).** `.beads/hooks/` is committed, but git only runs hooks from
+`$GIT_DIR/hooks` unless `core.hooksPath` redirects it — and `core.hooksPath` lives in `.git/config`,
+which is per-clone and never committed. So on a fresh clone those hook scripts are inert until you
+opt in:
+
+```bash
+bd hooks install --beads
+```
+
+The hooks chain bd operations onto `pre-commit`, `pre-push`, `post-merge` and `post-checkout`. Each
+is already guarded by `command -v bd`, so they no-op rather than fail if `bd` later goes missing.
+Note that `bd hooks install` writes an **absolute** path into `core.hooksPath`; re-run it if you
+move or re-clone the repository.
+
+**3. Wire up your agent tooling (optional).** The repo does not commit per-tool hook configuration —
+an earlier version did, and it invoked `bd` on every prompt, which fails for anyone who hasn't
+installed it. Install it into your own environment instead:
+
+```bash
+bd setup codex      # or: claude, cursor, copilot, gemini, aider, junie, …
+```
+
+Be aware that `bd setup <editor>` also appends its own long guidance block to `AGENTS.md` and
+`CLAUDE.md`. Run `/squire tracking sync` afterwards to restore this repo's pointer — see
+[the squire tracking reference](../.claude/skills/squire/references/tracking.md).
+
+**4. Fetch the issue graph.**
+
+```bash
+bd dolt pull
+bd ready
+```
+
+The configured remote is HTTPS (`git+https://github.com/finos/morphir-scala.git`) so that a
+contributor who cloned the public repo over HTTPS, with no GitHub SSH key, can read the issue graph.
+Verified: `git ls-remote https://github.com/finos/morphir-scala.git 'refs/dolt/*'` resolves
+`refs/dolt/data` with no credentials at all.
+
+If you prefer SSH for pushing, you can switch it in your own clone:
+
+```bash
+bd dolt remote remove origin
+bd dolt remote add origin git+ssh://git@github.com/finos/morphir-scala.git
+```
+
+**Be aware that these two commands make git commits.** `bd` writes the change into the tracked
+`.beads/config.yaml` and commits it to your current branch by itself, as `bd: clear sync.remote`
+and `bd: update sync.remote` — no prompt, no staging step. That is a local-preference change that
+should not reach a pull request, so drop the commits before pushing:
+
+```bash
+git reset --hard HEAD~2   # or: git rebase -i, dropping the two bd: sync.remote commits
+```
+
+This is worth knowing generally: several `bd` commands commit to the branch you are on as a side
+effect. Check `git log` after running one if you were not expecting it.
 
 ## Everyday use
 

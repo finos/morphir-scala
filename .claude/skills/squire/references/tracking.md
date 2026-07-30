@@ -117,6 +117,9 @@ Known issues and their fixes:
 | `guidance_drift` non-empty | `bd init`/`bd setup` re-added its own block | `python3 …/tracking-guidance.py` |
 | `bd setup claude --check` says "no beads section found" while a block is present | bd's check looks for a different marker than `bd init` writes | Harmless. Do not "fix" it by running `bd setup claude` — that appends a second block. Run `tracking sync` instead |
 | Issue changes invisible to teammates | `bd dolt push` not run | Run it; `git push` does not carry issue data |
+| `bd ready`/`bd list` empty on a fresh clone | Issue data lives on the Dolt remote, not in the checkout | `bd dolt pull` |
+| beads git hooks never fire | `.beads/hooks/` is committed, but `core.hooksPath` lives in per-clone `.git/config` | `bd hooks install --beads`. Re-run after moving or re-cloning — it writes an absolute path |
+| `bd dolt pull` fails on authentication | The clone has no GitHub SSH key and the remote is SSH | The committed remote is HTTPS for this reason. If a local override set SSH, revert it |
 
 ## Opting out
 
@@ -147,4 +150,15 @@ This is intentionally not enforceable. It is a declaration of intent that agents
   bd's telemetry on a contributor's behalf; `docs/task-tracking.md` documents the opt-out.
 - **Issue data.** Squire never reads or writes issues. That's `bd` and the Dolt remote
   (`refs/dolt/data`).
-- **Installing beads.** Deliberately not automated — installing a tool is the contributor's call.
+- **`bd`'s habit of committing to your branch.** Several `bd` commands write tracked files under
+  `.beads/` and commit them by themselves — `bd dolt remote add/remove` produces `bd: clear
+  sync.remote` and `bd: update sync.remote` with no prompt. Squire does not intercept this. Check
+  `git log` after running a `bd` config command, and drop the commits if they were a local
+  preference rather than a repo change.
+- **Installing beads.** Deliberately not automated, and deliberately not in `mise run setup` —
+  installing a task tracker for every contributor is exactly what the opt-out exists to avoid.
+  `effective_mode: unavailable` is a supported state, not a broken one.
+- **Git hooks and per-tool agent hooks.** Both are opt-in (`bd hooks install --beads`,
+  `bd setup <editor>`), and both are the contributor's environment rather than the repo's. The repo
+  previously committed `.codex/hooks.json`, which ran `bd` unguarded on every prompt and so failed
+  for anyone without it installed; that is why per-tool hook configuration is no longer tracked here.
