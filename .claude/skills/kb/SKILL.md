@@ -1,9 +1,9 @@
 ---
 name: kb
-description: "Manages the Morphir knowledge base under kb/ — OKF bundles and concept documents. Use when adding content to a bundle, creating a new bundle, checking the knowledge base for conformance or provenance drift, building or querying its SQLite index, managing intent through its lifecycle, or navigating, searching and listing its bundles, concepts and links."
+description: "Manages the Morphir knowledge base under kb/ — OKF bundles and concept documents. Use when adding content to a bundle, creating a new bundle, checking the knowledge base for conformance or provenance drift, building or querying its SQLite index, managing intent through its lifecycle, recording or reading architectural decisions as Decision Records, or navigating, searching and listing its bundles, concepts and links."
 allowed-tools: Bash(.claude/skills/kb/kb *), Bash(cat *), Bash(ls *), Bash(find *), Bash(git *), Read, Edit, Write
 metadata:
-  version: 0.6.0
+  version: 0.7.0
 ---
 
 # kb — Morphir Knowledge Base Assistant
@@ -92,6 +92,12 @@ Narrow it when you only want one half — `kb refresh markdown` or `kb refresh d
 whose obligations are enforced — most importantly, releasing requires linking the Capability it produced.
 
 → the [`intent` skill](../intent/SKILL.md) for the process; [references/commands.md](references/commands.md) for flags.
+
+**Recording a decision.** Architectural decisions are the knowledge base's third register, alongside Intent and
+Capability: past-tense, immutable, and **superseded rather than edited**. `kb decision list` and `kb decision show`
+read them; `kb check` validates their supersession links.
+
+→ [references/decisions.md](references/decisions.md) for the frontmatter, the checks and how to supersede one.
 
 **Finding divergence in the *content*.** `check` finds mechanical inconsistency. Contradictions between what two
 concepts assert — the thing that actually matters in a knowledge base — cannot be detected by a script.
