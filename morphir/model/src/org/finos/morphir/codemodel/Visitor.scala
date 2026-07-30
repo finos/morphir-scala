@@ -1,0 +1,16 @@
+package org.finos.morphir.codemodel
+
+trait Visitor[Context, +Result] {
+  def visitType(cursor: TypeCursor, context: Context): Result
+  def visitValue(cursor: ExprCursor, context: Context): Result
+}
+
+object Visitor {
+  // Example simplistic fold that uses the cursor to traverse
+  // This is just a sketch; real traversal strategies would be more complex
+  def foldType[Context, Result](cursor: TypeCursor, context: Context)(visitor: Visitor[Context, Result]): Result =
+    visitor.visitType(cursor, context)
+
+  def foldValue[Context, Result](cursor: ExprCursor, context: Context)(visitor: Visitor[Context, Result]): Result =
+    visitor.visitValue(cursor, context)
+}

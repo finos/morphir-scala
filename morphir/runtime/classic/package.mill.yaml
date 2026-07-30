@@ -1,0 +1,20 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirScoverage]
+  moduleDeps:
+  - build.morphir.jvm
+  - build.morphir.interop.zio.json.jvm
+  object test:
+    extends: [ScoverageTests, build.RuntimeTests, build.MorphirTestsTestMvnDepsJVM]
+    moduleDeps: !append [build.morphir.testing.zio.jvm]
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirPublishModule]
+  moduleDeps:
+  - build.morphir.js
+  - build.morphir.interop.zio.json.js
+  object test:
+    extends: [ScalaJSTests, build.RuntimeTests, build.MorphirTestsTestMvnDepsJS]
+    moduleKind: CommonJSModule
+    moduleDeps: !append [build.morphir.testing.zio.js]

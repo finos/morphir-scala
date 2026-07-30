@@ -3,7 +3,7 @@ package ir
 package conversion
 
 import org.finos.morphir.naming._
-import org.finos.morphir.datamodel.{Concept, Label}
+import org.finos.morphir.datamodel.classic.{Concept, Label}
 import org.finos.morphir.ir.{Type => T}
 import org.finos.morphir.ir.Type.{Type, UType}
 

@@ -1,7 +1,7 @@
 package org.finos.morphir.runtime
 
 import fansi.Str
-import org.finos.morphir.datamodel.{Concept, Data}
+import org.finos.morphir.datamodel.classic.{Concept, Data}
 import org.finos.morphir.naming.*
 import org.finos.morphir.ir.{Type as T, Value as V}
 import org.finos.morphir.ir.Value.{Pattern, TypedValue, Value, USpecification as UValueSpec}

@@ -260,12 +260,74 @@ trait RuntimeTests extends TestModule.ZioTest {
   }
 }
 
+/** `model.lowering`'s differential test (`RealIrCodecRoundTripSpec`) reads its real-IR fixture from the tracked
+  * `evaluator-tests` example output (`examples/morphir-elm-projects/evaluator-tests/morphir-ir2.json`) rather than
+  * keeping a byte-identical duplicate under `test/resources` - two copies would silently drift the next time the
+  * example is regenerated. The fixture is copied (not symlinked, for portability across OSes and IDEs) into a
+  * synthesized resource directory on every build, so the tracked file stays the single source of truth and the rest
+  * of the `evaluator-tests` Elm project isn't exposed as a resource root.
+  */
+trait LoweringRealIrFixture extends JavaModule {
+  def realIrFixtureSource: T[PathRef] = Task.Source(
+    examples.`morphir-elm-projects`.`evaluator-tests`.moduleDir / "morphir-ir2.json"
+  )
+
+  override def resources: T[Seq[PathRef]] = Task {
+    val fixtureDir = Task.dest / "resources"
+    os.makeDir.all(fixtureDir)
+    os.copy.over(realIrFixtureSource().path, fixtureDir / "morphir-ir2.json")
+    super.resources() :+ PathRef(fixtureDir)
+  }
+}
+
 /** `tools.js`'s doc-source filtering: scaladoc's JS output ships `.tasty` files needing this narrowing. */
 trait ToolsJSDocSources extends ScalaJSModule {
   override def docSources = Task {
     Lib.findSourceFiles(super.docSources(), Seq("tasty"))
       .map(PathRef(_))
   }
+}
+
+/** Adds the Sonatype snapshot repository. Needed while kyo is pinned to a snapshot build.
+  *
+  * `repositories` is NOT inherited by a nested test module from its enclosing module, so a test block declaring
+  * snapshot-pinned deps needs this in scope in its own right. Rather than rely on every such block remembering to
+  * name it, each of the kyo `*MvnDeps` traits below mixes this in: the repository then travels with the deps that
+  * require it. Mix it in directly only where a module needs the repository without the deps — `morphir.main`, which
+  * inherits snapshot artifacts transitively through its `moduleDeps`.
+  */
+trait MorphirSnapshotRepos extends CoursierModule {
+  override def repositories = Task {
+    super.repositories() :+ "https://central.sonatype.com/repository/maven-snapshots"
+  }
+}
+
+/** kyo deps for `morphir.model`. */
+trait MorphirKyoMvnDeps extends ScalaModule with MorphirSnapshotRepos {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.io.getkyo.`kyo-data`,
+    Deps.io.getkyo.`kyo-schema`
+  )
+}
+
+/** kyo-test deps. kyo-test's Mill traits set only the framework class, so each test block
+  * must declare these itself. */
+trait MorphirKyoTestMvnDeps extends ScalaModule with MorphirSnapshotRepos {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.io.getkyo.`kyo-core`,
+    Deps.io.getkyo.`kyo-prelude`,
+    Deps.io.getkyo.`kyo-test-api`,
+    Deps.io.getkyo.`kyo-test-runner`
+  )
+}
+
+/** The `kyo-schema` JSON codec (`kyo.Json`), published as a separate artifact from `kyo-schema` itself. Needed
+  * wherever a derived `Schema` is round-tripped through `encodeString`/`decodeString`, whether that's production
+  * code (e.g. `morphir.model`'s `CodeModelCodecs`) or a test. */
+trait MorphirKyoSchemaJsonMvnDeps extends ScalaModule with MorphirSnapshotRepos {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.io.getkyo.`kyo-schema-json`
+  )
 }
 
 /** `morphir.jvm`/`morphir.js`'s own mvnDeps — bundled here (rather than copied as YAML literals) so the version
