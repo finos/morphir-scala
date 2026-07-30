@@ -65,13 +65,16 @@ object V3Lowering:
         cm.TypeSpecification.CustomTypeSpecification(Chunk.from(params), lowerConstructors(ctors))
 
   /**
-   * v3 stores a type's constructors as a `Map[Name, Chunk[(Name, Type)]]` (`Constructors.toMap`), which does not
-   * preserve declaration order for maps beyond a handful of entries. The code model wants a `Chunk[Constructor]`; we
-   * iterate the map in whatever order it hands back, same as v3 itself does everywhere it folds over `Constructors`.
-   * This is a pre-existing v3 property, not something introduced by lowering.
+   * v3 stores a type's constructors as a `Map[Name, Chunk[(Name, Type)]]` (`Constructors.toMap`), so declaration order
+   * is already lost by the time it reaches us. `Map` iteration order is also not part of Scala's public contract - it
+   * happens to be a deterministic function of content today, but isn't guaranteed stable across Scala or library
+   * versions, and a human writing differential-test fixtures can't predict or hand-verify it. We sort by name instead
+   * of passing raw map iteration order through: this can't recover the true declaration order (already gone), but it
+   * replaces "whatever the hash trie yields" with a rule a test author can compute by hand. Don't remove this sort as
+   * redundant - that's what it's for.
    */
   def lowerConstructors(ctors: v3.Constructors[Any]): Chunk[cm.Constructor] =
-    Chunk.from(ctors.toMap.toSeq.map { case (name, args) =>
+    Chunk.from(ctors.toMap.toSeq.sortBy(_._1.toCamelCase).map { case (name, args) =>
       cm.Constructor(
         name,
         Chunk.from(args.map { case (paramName, paramType) => cm.Parameter(paramName, lowerType(paramType)) })
@@ -150,9 +153,11 @@ object V3Lowering:
       case v3Value.Value.LetDefinition(_, name, definition, inValue) =>
         cm.Expr.LetDefinition(attrs, name, lowerValueDefinitionBody(definition), lowerExpr(inValue))
       case v3Value.Value.LetRecursion(_, definitions, inValue) =>
+        // definitions is a Map[Name, ValueDefinition]; sorted by name for the same reason as lowerConstructors
+        // above - Map iteration order isn't a contract a differential-test fixture can rely on.
         cm.Expr.LetRecursion(
           attrs,
-          Chunk.from(definitions.map { case (name, definition) =>
+          Chunk.from(definitions.toSeq.sortBy(_._1.toCamelCase).map { case (name, definition) =>
             cm.Binding(name, lowerValueDefinitionBody(definition))
           }),
           lowerExpr(inValue)
@@ -170,10 +175,13 @@ object V3Lowering:
           })
         )
       case v3Value.Value.UpdateRecord(_, valueToUpdate, fieldsToUpdate) =>
+        // fieldsToUpdate is a Map[Name, Value]; sorted by name for the same reason as lowerConstructors above.
         cm.Expr.UpdateRecord(
           attrs,
           lowerExpr(valueToUpdate),
-          Chunk.from(fieldsToUpdate.map { case (name, fieldValue) => cm.RecordField(name, lowerExpr(fieldValue)) })
+          Chunk.from(fieldsToUpdate.toSeq.sortBy(_._1.toCamelCase).map { case (name, fieldValue) =>
+            cm.RecordField(name, lowerExpr(fieldValue))
+          })
         )
 
   /**
@@ -218,7 +226,7 @@ object V3Lowering:
    * where `Documentation` is a `Chunk` of lines. An empty v3 doc string lowers to `None`; anything else is split on
    * newlines into `Documentation`'s lines.
    */
-  private def lowerDocumented[A, B](d: Documented[A])(f: A => B): cm.Documented[B] =
+  def lowerDocumented[A, B](d: Documented[A])(f: A => B): cm.Documented[B] =
     val doc = if d.doc.isEmpty then None else Some(cm.Documentation(Chunk.from(d.doc.linesIterator.toSeq)))
     cm.Documented(doc, f(d.value))
 
@@ -258,28 +266,29 @@ object V3Lowering:
     )
 
   /**
-   * Only `Distribution.Library` has a code-model counterpart. `Distribution.Bundle` is a `Map[PackageName, Lib]` — a
-   * collection of libraries with no single package name or definition of its own — and none of `cm.Distribution`'s
-   * cases (`Library`, `Specs`, `Application`) model a multi-package collection. Lowering a `Bundle` would require
-   * inventing a mapping the code model doesn't have; per the task's ground rule ("if a v3 case has no clean mapping,
-   * stop and report rather than inventing one") this throws instead. Callers with a `Bundle` should lower each of its
-   * `toLibraries`/`allDistributions` individually.
+   * Only `Distribution.Library` has a code-model counterpart, so `lowerDistribution` accepts a `Library` directly
+   * rather than the `V3Distribution` sum type - this makes it total at compile time instead of partial at runtime.
+   * `Distribution.Bundle` is a `Map[PackageName, Lib]` - a collection of libraries with no single package name or
+   * definition of its own - and none of `cm.Distribution`'s cases (`Library`, `Specs`, `Application`) model a
+   * multi-package collection, so there is no `lowerDistribution(bundle)` to write. See `lowerBundle` below for how a
+   * `Bundle` is handled instead.
    */
-  def lowerDistribution(d: V3Distribution): cm.Distribution =
-    d match
-      case lib: V3Distribution.Library =>
-        cm.Distribution.Library(
-          cm.LibraryDistribution(
-            packageInfo = cm.PackageInfo(lib.packageName, ""),
-            definition = lowerPackageDefinition(lib.packageDef),
-            dependencies = lib.dependencies.map { case (packageName, spec) =>
-              packageName -> lowerPackageSpecification(spec)
-            }
-          )
-        )
-      case _: V3Distribution.Bundle =>
-        throw new UnsupportedOperationException(
-          "V3Lowering.lowerDistribution: v3 Distribution.Bundle has no code-model counterpart (cm.Distribution " +
-            "models a single package - Library, Specs or Application; Bundle is a multi-package collection). " +
-            "Lower each contained Library individually via Bundle#toLibraries."
-        )
+  def lowerDistribution(lib: V3Distribution.Library): cm.Distribution =
+    cm.Distribution.Library(
+      cm.LibraryDistribution(
+        packageInfo = cm.PackageInfo(lib.packageName, ""),
+        definition = lowerPackageDefinition(lib.packageDef),
+        dependencies = lib.dependencies.map { case (packageName, spec) =>
+          packageName -> lowerPackageSpecification(spec)
+        }
+      )
+    )
+
+  /**
+   * Expands a `Bundle` into its constituent libraries and lowers each one, rather than attempting to lower the `Bundle`
+   * itself (which has no single-package code-model counterpart - see `lowerDistribution` above). Goes through the
+   * public `Distribution.toLibraries` rather than `Bundle#toLibraries`, since the latter is `private[Distribution]` and
+   * not reachable from outside `org.finos.morphir.ir.distribution`.
+   */
+  def lowerBundle(b: V3Distribution.Bundle): Chunk[cm.Distribution] =
+    Chunk.from(V3Distribution.toLibraries(b).map(lowerDistribution))

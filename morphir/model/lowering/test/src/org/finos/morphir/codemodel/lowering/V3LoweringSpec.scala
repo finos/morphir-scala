@@ -10,6 +10,7 @@ import org.finos.morphir.ir.Value as v3Value
 import org.finos.morphir.ir.Literal as v3Literal
 import org.finos.morphir.ir.Module as v3Module
 import org.finos.morphir.ir.AccessControlled
+import org.finos.morphir.ir.Documented
 import org.finos.morphir.ir.packages.Definition as V3PackageDefinition
 import org.finos.morphir.ir.distribution.Distribution as V3Distribution
 
@@ -57,6 +58,43 @@ class V3LoweringSpec extends Test[Any]:
           cm.Type.Unit(cm.TypeAttributes.empty),
           cm.Type.Unit(cm.TypeAttributes.empty)
         )
+    )
+  }
+
+  "lowers a TypeAliasDefinition's body" in {
+    val in  = v3.Definition.TypeAlias(ZChunk.empty, v3.unit)
+    val out = cm.TypeDefinition.TypeAliasDefinition(Chunk.empty, cm.Type.Unit(cm.TypeAttributes.empty))
+    assert(V3Lowering.lowerTypeDefinition(in) == out)
+  }
+
+  "lowers a CustomTypeDefinition's constructors" in {
+    val ctorName  = Name.fromString("Foo")
+    val paramName = Name.fromString("value")
+    val ctors     = v3.Constructors(Map(ctorName -> ZChunk((paramName, v3.unit))))
+    val in        = v3.Definition.CustomType(ZChunk.empty, AccessControlled.publicAccess(ctors))
+    val out       = cm.TypeDefinition.CustomTypeDefinition(
+      Chunk.empty,
+      cm.AccessControlled(
+        cm.Access.Public,
+        Chunk(cm.Constructor(ctorName, Chunk(cm.Parameter(paramName, cm.Type.Unit(cm.TypeAttributes.empty)))))
+      )
+    )
+    assert(V3Lowering.lowerTypeDefinition(in) == out)
+  }
+
+  "lowers a TypeAliasSpecification's body" in {
+    val in  = v3.Specification.TypeAliasSpecification(ZChunk.empty, v3.unit)
+    val out = cm.TypeSpecification.TypeAliasSpecification(Chunk.empty, cm.Type.Unit(cm.TypeAttributes.empty))
+    assert(V3Lowering.lowerTypeSpecification(in) == out)
+  }
+
+  "lowerDocumented splits an empty v3 doc string to None and a non-empty one to Some(Documentation(lines))" in {
+    val emptyDoc    = Documented("", 42)
+    val nonEmptyDoc = Documented("hello\nworld", 42)
+    assert(V3Lowering.lowerDocumented(emptyDoc)(identity) == cm.Documented(None, 42))
+    assert(
+      V3Lowering.lowerDocumented(nonEmptyDoc)(identity) ==
+        cm.Documented(Some(cm.Documentation(Chunk("hello", "world"))), 42)
     )
   }
 
@@ -259,6 +297,20 @@ class V3LoweringSpec extends Test[Any]:
     assert(V3Lowering.lowerValueSpecification(in) == out)
   }
 
+  "duplicates the module-level access marker into ValueDefinition.body's inner AccessControlled" in {
+    val name      = Name.fromString("x")
+    val defn      = v3Value.Value.Definition(v3.Type.Unit(()), v3Value.Value.Unit(()))
+    val moduleDef = v3Module.Definition(
+      types = Map.empty,
+      values = Map(name -> AccessControlled.privateAccess(Documented("", defn)))
+    )
+
+    val lowered    = V3Lowering.lowerModuleDefinition(moduleDef)
+    val valueEntry = lowered.values(name)
+    assert(valueEntry.access == cm.Access.Private)
+    assert(valueEntry.value.value.body.access == cm.Access.Private)
+  }
+
   // -------------------------------------------------------------------------------------------------------------
   // Distributions
   // -------------------------------------------------------------------------------------------------------------
@@ -280,6 +332,57 @@ class V3LoweringSpec extends Test[Any]:
         assert(lib.packageInfo.name == packageName)
         assert(lib.definition.modules.size == 2)
       case other => assert(false)
+  }
+
+  "lowers a Distribution.Library with a populated module, carrying a type and a value definition through" in {
+    val packageName = PackageName.fromString("My.Package")
+    val moduleName  = ModuleName.fromString("ModuleA")
+    val typeName    = Name.fromString("MyType")
+    val valueName   = Name.fromString("myValue")
+
+    val typeDef  = v3.Definition.TypeAlias(ZChunk.empty, v3.unit)
+    val bodyExpr = v3Value.Value.Literal(v3.unit, v3Literal.Lit.int(1))
+    val valueDef = v3Value.Value.Definition(v3.unit, bodyExpr)
+
+    val moduleDef = v3Module.Definition(
+      types = Map(typeName -> AccessControlled.publicAccess(Documented("a type", typeDef))),
+      values = Map(valueName -> AccessControlled.publicAccess(Documented("a value", valueDef)))
+    )
+    val packageDef = V3PackageDefinition.Typed(Map(moduleName -> AccessControlled.publicAccess(moduleDef)))
+    val library    = V3Distribution.Library(packageName, Map.empty, packageDef)
+
+    V3Lowering.lowerDistribution(library) match
+      case cm.Distribution.Library(lib) =>
+        val mod = lib.definition.modules(moduleName).value
+
+        assert(
+          mod.types(typeName).value.value ==
+            cm.TypeDefinition.TypeAliasDefinition(Chunk.empty, cm.Type.Unit(cm.TypeAttributes.empty))
+        )
+
+        val loweredValueDef = mod.values(valueName).value.value
+        val expectedBody    = cm.Expr.Literal(
+          cm.ValueAttributes.empty.copy(inferredType = Some(cm.Type.Unit(cm.TypeAttributes.empty))),
+          cm.Literal.IntegerLiteral(BigInt(1))
+        )
+        assert(
+          loweredValueDef.body.value ==
+            cm.ValueDefinitionBody.ExpressionBody(Chunk.empty, cm.Type.Unit(cm.TypeAttributes.empty), expectedBody)
+        )
+      case other => assert(false)
+  }
+
+  "lowerBundle expands a Bundle into its libraries and lowers each one" in {
+    val packageNameA = PackageName.fromString("Pkg.A")
+    val packageNameB = PackageName.fromString("Pkg.B")
+    val libA         = V3Distribution.Library(packageNameA, Map.empty, V3PackageDefinition.Typed(Map.empty))
+    val libB         = V3Distribution.Library(packageNameB, Map.empty, V3PackageDefinition.Typed(Map.empty))
+    val bundle       = V3Distribution.toBundleUnsafe(libA, libB)
+
+    val lowered             = V3Lowering.lowerBundle(bundle)
+    val loweredPackageNames = lowered.toSeq.collect { case cm.Distribution.Library(lib) => lib.packageInfo.name }.toSet
+    assert(lowered.size == 2)
+    assert(loweredPackageNames == Set(packageNameA, packageNameB))
   }
 
 end V3LoweringSpec
