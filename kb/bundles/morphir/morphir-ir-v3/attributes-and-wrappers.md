@@ -56,3 +56,10 @@ A **Documented** wrapper associates documentation with an IR element.
 
 Documentation is preserved from source through compilation, so generated code and browsable IR can both carry the
 original prose. In a module, types and values are wrapped in both `AccessControlled` and `Documented`.
+
+## See also
+
+The [Morphir attribution evolution case study](https://github.com/finos/morphir-scala/blob/main/kb/bundles/programming-language-tooling/morphir-attribution-evolution.md)
+places these v3 generic attributes beside Morphir-Elm decorators and the separate v4 proposals. The general
+[attribution of typed trees reference](https://github.com/finos/morphir-scala/blob/main/kb/bundles/programming-language-tooling/attribution-of-typed-trees.md)
+compares recursive payloads with intrinsic fields, side tables, overlays, and relation graphs.

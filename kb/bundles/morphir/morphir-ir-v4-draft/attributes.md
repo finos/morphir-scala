@@ -68,4 +68,7 @@ generic parameter is gone.
 ## Related
 
 [Type Expressions](/type-expressions.md) and [Value Expressions](/value-expressions.md) carry these structures on
-every node.
+every node. The [Morphir attribution evolution case study](https://github.com/finos/morphir-scala/blob/main/kb/bundles/programming-language-tooling/morphir-attribution-evolution.md)
+traces the change from v3 generic payloads and keeps this draft schema distinct from the separate decorations design.
+The draft [typed attribution guide for morphir-scala](https://github.com/finos/morphir-scala/blob/main/kb/bundles/programming-language-tooling/typed-attribution-guidance-for-morphir-scala.md)
+ranks implementation strategies for prototyping; it does not change this specification's draft status or schema.
