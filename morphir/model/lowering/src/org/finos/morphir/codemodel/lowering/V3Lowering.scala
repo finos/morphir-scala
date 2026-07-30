@@ -26,7 +26,8 @@ import scala.math.Ordering.Implicits.seqOrdering
  *
  * Direction is v3 -> code model only. The reverse is lossy by construction: `Hole`, `Incompleteness`, `Native`,
  * `NativeInfo`, `External`, `EntryPoint`, `TypeConstraints` and `ValueProperties` have no v3 counterpart and are never
- * populated here.
+ * populated here. One value crosses the other way: `cm.PackageInfo.version` has no v3 source and is populated with a
+ * fixed placeholder rather than left unset - see `unknownPackageVersion` below.
  */
 object V3Lowering:
 
@@ -79,6 +80,15 @@ object V3Lowering:
    * is not injective - `Name.fromList(List("myType"))` and `Name.fromList(List("my", "type"))` both render `"myType"`,
    * and `fromList` does not re-normalise its input - so two distinct names could collide and make the sort order
    * ambiguous. `.toList` has no such collision.
+   *
+   * Scope of the guarantee: this sort (and the two like it below, on `LetRecursion` and `UpdateRecord`, plus the one on
+   * `lowerBundle` below) only reaches the `Chunk`-valued fields this file produces. Five other code-model fields -
+   * `ModuleDefinition.types`/`values`, `PackageDefinition.modules`, `PackageSpecification.modules` and
+   * `LibraryDistribution.dependencies` (all in `VfsDistribution.scala`) - are `Map`s that `lowerModuleDefinition`,
+   * `lowerPackageDefinition` and friends pass straight through unsorted, and the derived kyo-schema codec serialises a
+   * `Map` in its iteration order. So `CodeModelCodecs.encodeDistribution` is not byte-stable end to end - only the
+   * sites sorted in this file are. Making the whole tree order-stable would mean changing the code-model shape itself
+   * to stop using `Map`, which is out of scope for the lowering.
    */
   def lowerConstructors(ctors: v3.Constructors[Any]): Chunk[cm.Constructor] =
     Chunk.from(ctors.toMap.toSeq.sortBy(_._1.toList).map { case (name, args) =>
@@ -234,6 +244,10 @@ object V3Lowering:
    * v3's `Documented` always carries a (possibly-empty) `String`; the code model's carries an `Option[Documentation]`
    * where `Documentation` is a `Chunk` of lines. An empty v3 doc string lowers to `None`; anything else is split on
    * newlines into `Documentation`'s lines.
+   *
+   * The split is not injective, and the `Some`/`None` boundary is a convenience rather than a faithful reconstruction:
+   * `"a\r\nb"`, `"a\nb"` and `"a\nb\n"` all collapse to the same lines, and a blank-but-non-empty doc string (`"\n"`)
+   * lowers to `Some(Documentation(Chunk("")))` rather than `None`.
    */
   def lowerDocumented[A, B](d: Documented[A])(f: A => B): cm.Documented[B] =
     val doc = if d.doc.isEmpty then None else Some(cm.Documentation(Chunk.from(d.doc.linesIterator.toSeq)))
@@ -282,10 +296,17 @@ object V3Lowering:
    * multi-package collection, so there is no `lowerDistribution(bundle)` to write. See `lowerBundle` below for how a
    * `Bundle` is handled instead.
    */
+  /**
+   * v3's `Distribution.Library` has no version field - only a `packageName` - so `cm.PackageInfo.version` (which has no
+   * v3 source) is populated with this fixed placeholder rather than left for the caller to guess at. Not a real
+   * version: a reader diffing lowered output against v3 input should not mistake it for one.
+   */
+  private val unknownPackageVersion = ""
+
   def lowerDistribution(lib: V3Distribution.Library): cm.Distribution =
     cm.Distribution.Library(
       cm.LibraryDistribution(
-        packageInfo = cm.PackageInfo(lib.packageName, ""),
+        packageInfo = cm.PackageInfo(lib.packageName, unknownPackageVersion),
         definition = lowerPackageDefinition(lib.packageDef),
         dependencies = lib.dependencies.map { case (packageName, spec) =>
           packageName -> lowerPackageSpecification(spec)
@@ -298,6 +319,18 @@ object V3Lowering:
    * itself (which has no single-package code-model counterpart - see `lowerDistribution` above). Goes through the
    * public `Distribution.toLibraries` rather than `Bundle#toLibraries`, since the latter is `private[Distribution]` and
    * not reachable from outside `org.finos.morphir.ir.distribution`.
+   *
+   * `toLibraries` maps over the `Bundle`'s `Map[PackageName, Lib]`, so the `List` it returns is in raw hash-trie order -
+   * the same non-contract Map-iteration-order hazard called out on `lowerConstructors` above, one level up (packages
+   * instead of constructors). We sort by package name for the same reason: not to recover a "true" order (a `Bundle` is
+   * an unordered collection of libraries by construction, so there isn't one), but so a differential-test fixture with
+   * more than one library has a predictable, hand-verifiable order instead of whatever the hash trie yields.
+   * `PackageName.toPath.segments` (`Vector[Name]`, each compared on `.toList`) is used as the key rather than a
+   * rendered string, for the same injectivity reason `lowerConstructors` avoids `.toCamelCase`.
    */
   def lowerBundle(b: V3Distribution.Bundle): Chunk[cm.Distribution] =
-    Chunk.from(V3Distribution.toLibraries(b).map(lowerDistribution))
+    Chunk.from(
+      V3Distribution.toLibraries(b)
+        .sortBy(_.packageName.toPath.segments.toList.map(_.toList))
+        .map(lowerDistribution)
+    )

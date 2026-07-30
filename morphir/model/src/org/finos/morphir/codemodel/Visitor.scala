@@ -2,7 +2,7 @@ package org.finos.morphir.codemodel
 
 trait Visitor[Context, +Result] {
   def visitType(cursor: TypeCursor, context: Context): Result
-  def visitValue(cursor: ValueCursor, context: Context): Result
+  def visitValue(cursor: ExprCursor, context: Context): Result
 }
 
 object Visitor {
@@ -11,6 +11,6 @@ object Visitor {
   def foldType[Context, Result](cursor: TypeCursor, context: Context)(visitor: Visitor[Context, Result]): Result =
     visitor.visitType(cursor, context)
 
-  def foldValue[Context, Result](cursor: ValueCursor, context: Context)(visitor: Visitor[Context, Result]): Result =
+  def foldValue[Context, Result](cursor: ExprCursor, context: Context)(visitor: Visitor[Context, Result]): Result =
     visitor.visitValue(cursor, context)
 }

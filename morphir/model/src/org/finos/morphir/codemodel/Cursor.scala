@@ -135,7 +135,7 @@ final case class TypeCursor(current: Type, ancestors: List[TypeContext]) {
   }
 }
 
-enum ValueContext {
+enum ExprContext {
   case TupleElements(attributes: ValueAttributes, before: List[Expr], after: List[Expr])
   case ListItems(attributes: ValueAttributes, before: List[Expr], after: List[Expr])
   case ApplyFunction(attributes: ValueAttributes, argument: Expr)
@@ -146,89 +146,89 @@ enum ValueContext {
   case IfThenElseElseBranch(attributes: ValueAttributes, condition: Expr, thenBranch: Expr)
 }
 
-final case class ValueCursor(current: Expr, ancestors: List[ValueContext]) {
-  def up: Option[ValueCursor] = ancestors match {
+final case class ExprCursor(current: Expr, ancestors: List[ExprContext]) {
+  def up: Option[ExprCursor] = ancestors match {
     case Nil          => None
     case head :: tail =>
       val parent = head match {
-        case ValueContext.TupleElements(attributes, before, after) =>
+        case ExprContext.TupleElements(attributes, before, after) =>
           Expr.Tuple(attributes, Chunk.from(before.reverse ::: (current :: after)))
-        case ValueContext.ListItems(attributes, before, after) =>
+        case ExprContext.ListItems(attributes, before, after) =>
           Expr.List(attributes, Chunk.from(before.reverse ::: (current :: after)))
-        case ValueContext.ApplyFunction(attributes, argument) =>
+        case ExprContext.ApplyFunction(attributes, argument) =>
           Expr.Apply(attributes, current, argument)
-        case ValueContext.ApplyArgument(attributes, function) =>
+        case ExprContext.ApplyArgument(attributes, function) =>
           Expr.Apply(attributes, function, current)
-        case ValueContext.LambdaBody(attributes, argumentPattern) =>
+        case ExprContext.LambdaBody(attributes, argumentPattern) =>
           Expr.Lambda(attributes, argumentPattern, current)
-        case ValueContext.IfThenElseCondition(attributes, thenBranch, elseBranch) =>
+        case ExprContext.IfThenElseCondition(attributes, thenBranch, elseBranch) =>
           Expr.IfThenElse(attributes, current, thenBranch, elseBranch)
-        case ValueContext.IfThenElseThenBranch(attributes, condition, elseBranch) =>
+        case ExprContext.IfThenElseThenBranch(attributes, condition, elseBranch) =>
           Expr.IfThenElse(attributes, condition, current, elseBranch)
-        case ValueContext.IfThenElseElseBranch(attributes, condition, thenBranch) =>
+        case ExprContext.IfThenElseElseBranch(attributes, condition, thenBranch) =>
           Expr.IfThenElse(attributes, condition, thenBranch, current)
       }
-      Some(ValueCursor(parent, tail))
+      Some(ExprCursor(parent, tail))
   }
 
-  def down: Option[ValueCursor] = current match {
+  def down: Option[ExprCursor] = current match {
     case Expr.Tuple(attributes, elements) if elements.nonEmpty =>
-      Some(ValueCursor(elements.head, ValueContext.TupleElements(attributes, Nil, elements.tail.toList) :: ancestors))
+      Some(ExprCursor(elements.head, ExprContext.TupleElements(attributes, Nil, elements.tail.toList) :: ancestors))
     case Expr.List(attributes, items) if items.nonEmpty =>
-      Some(ValueCursor(items.head, ValueContext.ListItems(attributes, Nil, items.tail.toList) :: ancestors))
+      Some(ExprCursor(items.head, ExprContext.ListItems(attributes, Nil, items.tail.toList) :: ancestors))
     case Expr.Apply(attributes, function, argument) =>
-      Some(ValueCursor(function, ValueContext.ApplyFunction(attributes, argument) :: ancestors))
+      Some(ExprCursor(function, ExprContext.ApplyFunction(attributes, argument) :: ancestors))
     case Expr.Lambda(attributes, pattern, body) =>
-      Some(ValueCursor(body, ValueContext.LambdaBody(attributes, pattern) :: ancestors))
+      Some(ExprCursor(body, ExprContext.LambdaBody(attributes, pattern) :: ancestors))
     case Expr.IfThenElse(attributes, condition, thenBranch, elseBranch) =>
-      Some(ValueCursor(condition, ValueContext.IfThenElseCondition(attributes, thenBranch, elseBranch) :: ancestors))
+      Some(ExprCursor(condition, ExprContext.IfThenElseCondition(attributes, thenBranch, elseBranch) :: ancestors))
     case _ => None
   }
-  def left: Option[ValueCursor] = ancestors match {
-    case (head: ValueContext) :: tail =>
+  def left: Option[ExprCursor] = ancestors match {
+    case (head: ExprContext) :: tail =>
       head match {
-        case ValueContext.TupleElements(attributes, before, after) if before.nonEmpty =>
+        case ExprContext.TupleElements(attributes, before, after) if before.nonEmpty =>
           val prev   = before.head
-          val newCtx = ValueContext.TupleElements(attributes, before.tail, current :: after)
-          Some(ValueCursor(prev, newCtx :: tail))
-        case ValueContext.ListItems(attributes, before, after) if before.nonEmpty =>
+          val newCtx = ExprContext.TupleElements(attributes, before.tail, current :: after)
+          Some(ExprCursor(prev, newCtx :: tail))
+        case ExprContext.ListItems(attributes, before, after) if before.nonEmpty =>
           val prev   = before.head
-          val newCtx = ValueContext.ListItems(attributes, before.tail, current :: after)
-          Some(ValueCursor(prev, newCtx :: tail))
-        case ValueContext.ApplyArgument(attributes, function) =>
+          val newCtx = ExprContext.ListItems(attributes, before.tail, current :: after)
+          Some(ExprCursor(prev, newCtx :: tail))
+        case ExprContext.ApplyArgument(attributes, function) =>
           // Left of argument is function
-          Some(ValueCursor(function, ValueContext.ApplyFunction(attributes, current) :: tail))
-        case ValueContext.IfThenElseThenBranch(attributes, condition, elseBranch) =>
+          Some(ExprCursor(function, ExprContext.ApplyFunction(attributes, current) :: tail))
+        case ExprContext.IfThenElseThenBranch(attributes, condition, elseBranch) =>
           // Left of thenBranch is condition
-          Some(ValueCursor(condition, ValueContext.IfThenElseCondition(attributes, current, elseBranch) :: tail))
-        case ValueContext.IfThenElseElseBranch(attributes, condition, thenBranch) =>
+          Some(ExprCursor(condition, ExprContext.IfThenElseCondition(attributes, current, elseBranch) :: tail))
+        case ExprContext.IfThenElseElseBranch(attributes, condition, thenBranch) =>
           // Left of elseBranch is thenBranch
-          Some(ValueCursor(thenBranch, ValueContext.IfThenElseThenBranch(attributes, condition, current) :: tail))
+          Some(ExprCursor(thenBranch, ExprContext.IfThenElseThenBranch(attributes, condition, current) :: tail))
         case _ => None
       }
     case Nil => None
   }
 
-  def right: Option[ValueCursor] = ancestors match {
-    case (head: ValueContext) :: tail =>
+  def right: Option[ExprCursor] = ancestors match {
+    case (head: ExprContext) :: tail =>
       head match {
-        case ValueContext.TupleElements(attributes, before, after) if after.nonEmpty =>
+        case ExprContext.TupleElements(attributes, before, after) if after.nonEmpty =>
           val next   = after.head
-          val newCtx = ValueContext.TupleElements(attributes, current :: before, after.tail)
-          Some(ValueCursor(next, newCtx :: tail))
-        case ValueContext.ListItems(attributes, before, after) if after.nonEmpty =>
+          val newCtx = ExprContext.TupleElements(attributes, current :: before, after.tail)
+          Some(ExprCursor(next, newCtx :: tail))
+        case ExprContext.ListItems(attributes, before, after) if after.nonEmpty =>
           val next   = after.head
-          val newCtx = ValueContext.ListItems(attributes, current :: before, after.tail)
-          Some(ValueCursor(next, newCtx :: tail))
-        case ValueContext.ApplyFunction(attributes, argument) =>
+          val newCtx = ExprContext.ListItems(attributes, current :: before, after.tail)
+          Some(ExprCursor(next, newCtx :: tail))
+        case ExprContext.ApplyFunction(attributes, argument) =>
           // Right of function is argument
-          Some(ValueCursor(argument, ValueContext.ApplyArgument(attributes, current) :: tail))
-        case ValueContext.IfThenElseCondition(attributes, thenBranch, elseBranch) =>
+          Some(ExprCursor(argument, ExprContext.ApplyArgument(attributes, current) :: tail))
+        case ExprContext.IfThenElseCondition(attributes, thenBranch, elseBranch) =>
           // Right of condition is thenBranch
-          Some(ValueCursor(thenBranch, ValueContext.IfThenElseThenBranch(attributes, current, elseBranch) :: tail))
-        case ValueContext.IfThenElseThenBranch(attributes, condition, elseBranch) =>
+          Some(ExprCursor(thenBranch, ExprContext.IfThenElseThenBranch(attributes, current, elseBranch) :: tail))
+        case ExprContext.IfThenElseThenBranch(attributes, condition, elseBranch) =>
           // Right of thenBranch is elseBranch
-          Some(ValueCursor(elseBranch, ValueContext.IfThenElseElseBranch(attributes, condition, current) :: tail))
+          Some(ExprCursor(elseBranch, ExprContext.IfThenElseElseBranch(attributes, condition, current) :: tail))
         case _ => None
       }
     case Nil => None

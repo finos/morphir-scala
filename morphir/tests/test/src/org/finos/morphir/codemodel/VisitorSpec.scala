@@ -23,7 +23,7 @@ object VisitorSpec extends ZIOSpecDefault {
       case _ => 1
     }
 
-    override def visitValue(cursor: ValueCursor, context: Unit): Int = cursor.current match {
+    override def visitValue(cursor: ExprCursor, context: Unit): Int = cursor.current match {
       case Expr.Literal(_, _) => 1
       case _                  => 1
     }
@@ -39,7 +39,7 @@ object VisitorSpec extends ZIOSpecDefault {
     },
     test("foldValue should invoke visitValue") {
       val v       = Expr.Literal(ValueAttributes.empty, Literal.BoolLiteral(true))
-      val cursor  = ValueCursor(v, Nil)
+      val cursor  = ExprCursor(v, Nil)
       val visitor = new TestVisitor
       val result  = Visitor.foldValue(cursor, ())(visitor)
       assert(result)(equalTo(1))

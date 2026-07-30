@@ -41,13 +41,13 @@ object CursorSpec extends ZIOSpecDefault {
         assert(downArg.flatMap(_.right).flatMap(_.up))(isSome(hasField("current", _.current, equalTo(func))))
       }
     ),
-    suite("ValueCursor Navigation")(
+    suite("ExprCursor Navigation")(
       test("Should navigate down/up in Tuple") {
         val v1    = Expr.Literal(ValueAttributes.empty, Literal.BoolLiteral(true))
         val v2    = Expr.Literal(ValueAttributes.empty, Literal.BoolLiteral(false))
         val tuple = Expr.Tuple(ValueAttributes.empty, Chunk(v1, v2))
 
-        val cursor = ValueCursor(tuple, Nil)
+        val cursor = ExprCursor(tuple, Nil)
 
         // Down to first element
         val down1 = cursor.down
@@ -63,7 +63,7 @@ object CursorSpec extends ZIOSpecDefault {
         val elseB  = Expr.Variable(ValueAttributes.empty, Name.fromString("b"))
         val ifExpr = Expr.IfThenElse(ValueAttributes.empty, cond, thenB, elseB)
 
-        val cursor = ValueCursor(ifExpr, Nil)
+        val cursor = ExprCursor(ifExpr, Nil)
 
         // Down to condition
         val downCond = cursor.down
