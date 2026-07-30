@@ -67,6 +67,23 @@ class V3LoweringSpec extends Test[Any]:
     assert(V3Lowering.lowerTypeDefinition(in) == out)
   }
 
+  "lowers a CustomTypeDefinition's constructors in sorted order regardless of insertion order" in {
+    val nameC = Name.fromString("Charlie")
+    val nameA = Name.fromString("Alpha")
+    val nameB = Name.fromString("Bravo")
+    // Inserted deliberately out of order; Map iteration order can't be relied on to preserve this anyway, which is
+    // exactly the point being tested - the sort must produce Alpha, Bravo, Charlie regardless.
+    val ctors = v3.Constructors(
+      Map(
+        nameC -> ZChunk.empty,
+        nameA -> ZChunk.empty,
+        nameB -> ZChunk.empty
+      )
+    )
+    val out = V3Lowering.lowerConstructors(ctors)
+    assert(out.map(_.name).toList == List(nameA, nameB, nameC))
+  }
+
   "lowers a CustomTypeDefinition's constructors" in {
     val ctorName  = Name.fromString("Foo")
     val paramName = Name.fromString("value")
@@ -237,6 +254,29 @@ class V3LoweringSpec extends Test[Any]:
     assert(V3Lowering.lowerExpr(in) == out)
   }
 
+  "lowers an UpdateRecord expression's field updates in sorted order regardless of insertion order" in {
+    def lit(n: Int) = v3Value.Value.Literal((), v3Literal.Lit.int(n))
+    val nameC       = Name.fromString("Charlie")
+    val nameA       = Name.fromString("Alpha")
+    val nameB       = Name.fromString("Bravo")
+    val in          = v3Value.Value.UpdateRecord(
+      (),
+      v3Value.Value.Unit(()),
+      Map(nameC -> lit(3), nameA -> lit(1), nameB -> lit(2))
+    )
+    def expectedField(name: Name, n: Int) =
+      cm.RecordField(name, cm.Expr.Literal(cm.ValueAttributes.empty, cm.Literal.IntegerLiteral(BigInt(n))))
+    val out = V3Lowering.lowerExpr(in)
+    assert(
+      out ==
+        cm.Expr.UpdateRecord(
+          cm.ValueAttributes.empty,
+          cm.Expr.Unit(cm.ValueAttributes.empty),
+          Chunk(expectedField(nameA, 1), expectedField(nameB, 2), expectedField(nameC, 3))
+        )
+    )
+  }
+
   "lowers a LetDefinition expression" in {
     val name = Name.fromString("x")
     val defn = v3Value.Value.Definition(v3.Type.Unit(()), v3Value.Value.Unit(()))
@@ -270,6 +310,37 @@ class V3LoweringSpec extends Test[Any]:
       cm.Expr.Unit(cm.ValueAttributes.empty)
     )
     assert(V3Lowering.lowerExpr(in) == out)
+  }
+
+  "lowers a LetRecursion expression's bindings in sorted order regardless of insertion order" in {
+    def defn(n: Int) = v3Value.Value.Definition(v3.Type.Unit(()), v3Value.Value.Literal((), v3Literal.Lit.int(n)))
+    val nameC        = Name.fromString("Charlie")
+    val nameA        = Name.fromString("Alpha")
+    val nameB        = Name.fromString("Bravo")
+    // Inserted deliberately out of order, each bound to a distinguishable body so the assertion also confirms the
+    // right definition travels with the right name.
+    val in = v3Value.Value.LetRecursion(
+      (),
+      Map(nameC -> defn(3), nameA -> defn(1), nameB -> defn(2)),
+      v3Value.Value.Unit(())
+    )
+    def expectedBinding(name: Name, n: Int) = cm.Binding(
+      name,
+      cm.ValueDefinitionBody.ExpressionBody(
+        Chunk.empty,
+        cm.Type.Unit(cm.TypeAttributes.empty),
+        cm.Expr.Literal(cm.ValueAttributes.empty, cm.Literal.IntegerLiteral(BigInt(n)))
+      )
+    )
+    val out = V3Lowering.lowerExpr(in)
+    assert(
+      out ==
+        cm.Expr.LetRecursion(
+          cm.ValueAttributes.empty,
+          Chunk(expectedBinding(nameA, 1), expectedBinding(nameB, 2), expectedBinding(nameC, 3)),
+          cm.Expr.Unit(cm.ValueAttributes.empty)
+        )
+    )
   }
 
   "populates inferredType when lowering a TypedValue" in {

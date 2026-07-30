@@ -5,6 +5,7 @@ object jvm:
   moduleDeps: [build.morphir.model.jvm, build.morphir.jvm]
   object test:
     extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
+    moduleDeps: !append [build.morphir.interop.zio.json.jvm]
 
 object js:
   extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirSnapshotRepos, build.MorphirKyoMvnDeps]

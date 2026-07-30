@@ -12,6 +12,8 @@ import org.finos.morphir.ir.Module as v3Module
 import org.finos.morphir.ir.packages.{Definition as V3PackageDefinition, Specification as V3PackageSpecification}
 import org.finos.morphir.ir.distribution.Distribution as V3Distribution
 
+import scala.math.Ordering.Implicits.seqOrdering
+
 /**
  * Lowers the v3 IR (`org.finos.morphir.ir`, `morphir-ir.json`) to the code model (`org.finos.morphir.codemodel`, the v4
  * IR).
@@ -72,9 +74,14 @@ object V3Lowering:
    * of passing raw map iteration order through: this can't recover the true declaration order (already gone), but it
    * replaces "whatever the hash trie yields" with a rule a test author can compute by hand. Don't remove this sort as
    * redundant - that's what it's for.
+   *
+   * Sorting on `.toList` (`List[String]`, compared lexicographically) rather than `.toCamelCase` (`String`): camel case
+   * is not injective - `Name.fromList(List("myType"))` and `Name.fromList(List("my", "type"))` both render `"myType"`,
+   * and `fromList` does not re-normalise its input - so two distinct names could collide and make the sort order
+   * ambiguous. `.toList` has no such collision.
    */
   def lowerConstructors(ctors: v3.Constructors[Any]): Chunk[cm.Constructor] =
-    Chunk.from(ctors.toMap.toSeq.sortBy(_._1.toCamelCase).map { case (name, args) =>
+    Chunk.from(ctors.toMap.toSeq.sortBy(_._1.toList).map { case (name, args) =>
       cm.Constructor(
         name,
         Chunk.from(args.map { case (paramName, paramType) => cm.Parameter(paramName, lowerType(paramType)) })
@@ -153,11 +160,12 @@ object V3Lowering:
       case v3Value.Value.LetDefinition(_, name, definition, inValue) =>
         cm.Expr.LetDefinition(attrs, name, lowerValueDefinitionBody(definition), lowerExpr(inValue))
       case v3Value.Value.LetRecursion(_, definitions, inValue) =>
-        // definitions is a Map[Name, ValueDefinition]; sorted by name for the same reason as lowerConstructors
-        // above - Map iteration order isn't a contract a differential-test fixture can rely on.
+        // definitions is a Map[Name, ValueDefinition]; sorted by name (on .toList, not .toCamelCase - see
+        // lowerConstructors above) for the same reason - Map iteration order isn't a contract a differential-test
+        // fixture can rely on.
         cm.Expr.LetRecursion(
           attrs,
-          Chunk.from(definitions.toSeq.sortBy(_._1.toCamelCase).map { case (name, definition) =>
+          Chunk.from(definitions.toSeq.sortBy(_._1.toList).map { case (name, definition) =>
             cm.Binding(name, lowerValueDefinitionBody(definition))
           }),
           lowerExpr(inValue)
@@ -175,11 +183,12 @@ object V3Lowering:
           })
         )
       case v3Value.Value.UpdateRecord(_, valueToUpdate, fieldsToUpdate) =>
-        // fieldsToUpdate is a Map[Name, Value]; sorted by name for the same reason as lowerConstructors above.
+        // fieldsToUpdate is a Map[Name, Value]; sorted by name (on .toList, not .toCamelCase) for the same reason as
+        // lowerConstructors above.
         cm.Expr.UpdateRecord(
           attrs,
           lowerExpr(valueToUpdate),
-          Chunk.from(fieldsToUpdate.toSeq.sortBy(_._1.toCamelCase).map { case (name, fieldValue) =>
+          Chunk.from(fieldsToUpdate.toSeq.sortBy(_._1.toList).map { case (name, fieldValue) =>
             cm.RecordField(name, lowerExpr(fieldValue))
           })
         )
