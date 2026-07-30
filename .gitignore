@@ -479,3 +479,9 @@ build.user.yaml
 
 # Squire local settings (personal/org-specific config — not committed)
 .config/squire/settings.local.yaml
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
