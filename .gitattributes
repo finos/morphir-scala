@@ -2,5 +2,15 @@ sbt linguist-vendored
 website/* linguist-vendored
 docs/* linguist-vendored
 
+# Contributor-facing process docs we author and review here, so they should show up
+# in diffs like any other reviewed file rather than being collapsed as vendored.
+docs/task-tracking.md -linguist-vendored
+
 # Treat huge morphir json blobs as binary files. Don't show diff
 morphir-ir.json binary
+
+# Beads audit log: append-only, one JSON event per line, and line order carries no
+# meaning (each entry has its own id and created_at). Two branches appending
+# different lines conflict textually while being semantically compatible, so take
+# both sides rather than making a human resolve it. See docs/task-tracking.md.
+.beads/interactions.jsonl merge=union
