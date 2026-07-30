@@ -260,6 +260,26 @@ trait RuntimeTests extends TestModule.ZioTest {
   }
 }
 
+/** `model.lowering`'s differential test (`RealIrCodecRoundTripSpec`) reads its real-IR fixture from the tracked
+  * `evaluator-tests` example output (`examples/morphir-elm-projects/evaluator-tests/morphir-ir2.json`) rather than
+  * keeping a byte-identical duplicate under `test/resources` - two copies would silently drift the next time the
+  * example is regenerated. The fixture is copied (not symlinked, for portability across OSes and IDEs) into a
+  * synthesized resource directory on every build, so the tracked file stays the single source of truth and the rest
+  * of the `evaluator-tests` Elm project isn't exposed as a resource root.
+  */
+trait LoweringRealIrFixture extends JavaModule {
+  def realIrFixtureSource: T[PathRef] = Task.Source(
+    examples.`morphir-elm-projects`.`evaluator-tests`.moduleDir / "morphir-ir2.json"
+  )
+
+  override def resources: T[Seq[PathRef]] = Task {
+    val fixtureDir = Task.dest / "resources"
+    os.makeDir.all(fixtureDir)
+    os.copy.over(realIrFixtureSource().path, fixtureDir / "morphir-ir2.json")
+    super.resources() :+ PathRef(fixtureDir)
+  }
+}
+
 /** `tools.js`'s doc-source filtering: scaladoc's JS output ships `.tasty` files needing this narrowing. */
 trait ToolsJSDocSources extends ScalaJSModule {
   override def docSources = Task {
