@@ -65,11 +65,16 @@ VALIDATORS = [
     ("jsonschema metaschema", "jsonschema",
      ["jsonschema", "metaschema", "website/static/schemas/*.yaml"], ".",
      ["website/static/schemas"], "website/static/schemas"),
-    ("yaml-to-json-schemas", "node",
-     ["node", "scripts/yaml-to-json-schemas.js"], "website",
-     # js-yaml is a devDependency: without `npm install` in the checkout the generator throws rather than converting.
-     ["scripts/yaml-to-json-schemas.js", "node_modules/js-yaml"], "website/static/schemas"),
+    # The YAML↔JSON sync check upstream does not have. Their generator only runs during the Netlify build, so a
+    # schema edit merged without it leaves the served JSON stale until the next deploy silently rewrites it. This
+    # reproduces that generator exactly — verified byte-for-byte against the committed output — and needs no
+    # `npm install`, which a sparse reference checkout will never have had.
+    ("schemas json in step", "bun",
+     ["bun", "{SQUIRE}/schemas-to-json.ts", "--from", "website/static/schemas", "--check"], ".",
+     ["website/static/schemas"], "website/static/schemas"),
 ]
+
+SCRIPTS_DIR = pathlib.Path(__file__).resolve().parent
 
 # Filled as the run proceeds; emitted as one object under --json.
 STEPS = []
@@ -215,6 +220,9 @@ def expand(cwd, argv):
     """
     out = []
     for arg in argv:
+        # {SQUIRE} lets a validator name a script that ships with this skill. The command still runs inside the
+        # checkout, so the path has to be absolute — the checkout has no idea this skill exists.
+        arg = arg.replace("{SQUIRE}", str(SCRIPTS_DIR))
         if "*" not in arg:
             out.append(arg)
             continue
@@ -252,7 +260,8 @@ def step_validators(checkout, dry_run, written):
             record(f"validator:{label}", "skipped", "no matching files")
             continue
         if dry_run:
-            say(f"  would run: {' '.join(argv)}  (in {cwd_rel})")
+            # The expanded form, so what is printed is what you could paste.
+            say(f"  would run: {' '.join(expanded)}  (in {cwd_rel})")
             record(f"validator:{label}", "skipped", "--dry-run")
             continue
         result = subprocess.run(expanded, cwd=str(cwd), capture_output=True, text=True)

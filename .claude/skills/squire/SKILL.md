@@ -68,3 +68,28 @@ Read the full reference before running:
 **When to invoke:** When asked to sync, import or export the Morphir spec or schemas, to refresh the mirrored upstream bundle, or to prepare spec changes for a pull request against `finos/morphir`. Also run `spec sync` before starting spec work, so the bundle reflects today's upstream.
 
 Sub-commands: `squire spec sync`, `squire spec export`
+
+### `/squire schemas`
+
+Generates the Morphir IR JSON schemas from the YAML the knowledge base mirrors, and checks that the two are in step.
+
+```bash
+mise run schemas:build     # YAML → JSON, into .dev/out/squire/schemas/
+mise run schemas:check     # metaschema conformance, then validate every mirrored v4 document
+bun .claude/skills/squire/scripts/schemas-to-json.ts --from <dir> --check
+```
+
+The knowledge base mirrors the YAML only. Upstream generates the `.json` siblings with
+`website/scripts/yaml-to-json-schemas.js`, which runs during its Netlify build and nowhere else — so nothing verifies
+the committed JSON still matches the YAML, and the generator cannot run in a checkout without `npm install`. This
+reproduces that generator exactly, using bun's native YAML parsing, with no dependencies; `--check` is the
+verification upstream lacks, and `spec export` runs it.
+
+Two things it deliberately does not do. It does not reformat: byte-identical output is what stops the next Netlify
+deploy rewriting whatever we send, and none of upstream's committed JSON is canonical by `jsonschema fmt` anyway. And
+it does not fail on documents that were already failing — at the pinned commit every complete v4 document upstream
+publishes is rejected by upstream's own v4 schema. That is recorded as a finding in the `morphir-ir-v4-draft` bundle,
+not treated as a gate.
+
+**When to invoke:** When a mirrored schema has been edited, before an export, or when asked whether the IR documents
+and the IR schemas actually agree.

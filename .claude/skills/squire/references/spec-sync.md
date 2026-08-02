@@ -97,12 +97,26 @@ Four steps:
 
 1. **push** — `kb sync push --to <checkout>`. Only `local-only` files are exported by default; `diverged` ones need `--include-diverged` and a human's judgement first. A file whose `# kb:begin` fence is damaged is refused, and the step fails.
 2. **branch** — `git switch -c morphir-kb/spec-sync` in the checkout (override with `--branch`, suppress with `--no-branch`). Re-running switches to the existing branch, so successive exports accumulate on one.
-3. **validators** — upstream's own, run from inside the checkout. Each is skipped with a warning when its tool is not on PATH, and fails the export when it runs and fails:
+3. **validators** — run from inside the checkout. Each is skipped with a warning when its tool is not on PATH or when
+   what it judges is not in the checkout, which a sparse clone makes normal:
    - `jsonschema fmt --check website/static/schemas/`
    - `jsonschema lint website/static/schemas/*.yaml`
    - `jsonschema metaschema website/static/schemas/*.yaml`
-   - `node scripts/yaml-to-json-schemas.js`, from `website/`
+   - `schemas-to-json.ts --check` — the YAML↔JSON sync check upstream does not have
 4. **status** — `git status --short` in the checkout, and stop.
+
+**A validator blames only what the export touched.** Upstream's GitHub Actions runs none of these, so schemas arrive
+already failing — at the pinned commit `morphir-ir-v4-document-tree-files.yaml` does not satisfy its own metaschema,
+and none of the committed JSON is canonical by `jsonschema fmt`. A failure in a subtree this export did not write is
+reported in full and does not fail the run. Blocking a prose change on a schema defect somebody else introduced would
+only teach people to route around the gauntlet.
+
+Two notes on the schema tooling. `jsonschema fmt` refuses YAML input in 16.3.0, and every schema upstream keeps is
+YAML, so that first validator currently always skips — which also means upstream's own `fmt:schema` task and the
+`.husky/pre-push` hook gating on it cannot be doing what they appear to. And the last validator replaces
+`node scripts/yaml-to-json-schemas.js`: that generator needs `js-yaml`, a devDependency no sparse reference checkout
+will have installed. `schemas-to-json.ts` reproduces it exactly using bun's native YAML parsing — verified
+byte-for-byte against upstream's committed output — so the check runs everywhere.
 
 **It does not commit and it does not push.** The contribution is the human's, made under their FINOS CLA, and only they can judge whether what landed in the checkout is what they meant to send.
 
