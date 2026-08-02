@@ -50,6 +50,7 @@ Knowledge bundle for the **draft** specification of Morphir IR format version 4.
 ## Serialization
 
 * [Schema Architecture](/schema-architecture.md) - The two JSON Schema files that actually define v4, and the modular hierarchy upstream documents but never built.
+* [Schema Conformance](/schema-conformance.md) - What validators actually report when run against the v4 schemas and documents — every complete v4 document upstream ships fails upstream's own v4 schema.
 
 ## Design rationale
 
