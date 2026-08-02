@@ -102,7 +102,13 @@ async function main(): Promise<number> {
       console.log(`${mark} ${o.file.padEnd(42)} ${o.status}${o.detail ? ` — ${o.detail}` : ""}`);
     }
     console.log("");
-    if (check) {
+    if (check && outcomes.every((o) => o.status === "missing")) {
+      // The knowledge base mirrors the YAML only, so checking it against itself finds no JSON at all. Say that
+      // rather than listing every file as a defect.
+      console.log(`no generated JSON under ${to}`);
+      console.log("--check compares a directory that holds both, such as a reference checkout;");
+      console.log("to generate from the mirror instead, drop --check or run `mise run schemas:build`.");
+    } else if (check) {
       console.log(bad.length === 0 ? `${outcomes.length} schema(s) in step with their YAML` : `${bad.length} of ${outcomes.length} schema(s) out of step`);
     } else {
       console.log(`wrote ${outcomes.length} schema(s) to ${to}`);
