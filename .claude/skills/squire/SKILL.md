@@ -1,6 +1,6 @@
 ---
 name: squire
-description: "Development environment diagnostics and unblocking for the morphir-scala project. Use when hitting build tool failures, sandbox restrictions, mill daemon errors, or SSL/network issues. Also manages reference repositories under .refs/ — invoke when asked to add, list, check, or remove a reference repo, clone a repo for reference, or work with a local copy of an upstream project. Also owns task-tracking configuration — invoke before tracking work to resolve whether beads (bd) is in use for this checkout, and when asked to opt out of beads, change tracking settings, or repair beads guidance that a bd command re-added to AGENTS.md/CLAUDE.md."
+description: "Development environment diagnostics and unblocking for the morphir-scala project. Use when hitting build tool failures, sandbox restrictions, mill daemon errors, or SSL/network issues. Also manages reference repositories under .refs/ — invoke when asked to add, list, check, or remove a reference repo, clone a repo for reference, or work with a local copy of an upstream project. And round-trips the Morphir IR specification between finos/morphir and the knowledge base — invoke when asked to sync, import or export the spec, schemas or upstream docs, refresh the mirrored upstream bundle, or prepare spec changes to send back upstream. Also owns task-tracking configuration — invoke before tracking work to resolve whether beads (bd) is in use for this checkout, and when asked to opt out of beads, change tracking settings, or repair beads guidance that a bd command re-added to AGENTS.md/CLAUDE.md."
 allowed-tools: Bash(cat *), Bash(ls *), Bash(find *), Bash(python3 *), Bash(git *), Bash(gh *), Read, Edit, Write
 metadata:
   version: 0.4.0
@@ -55,3 +55,16 @@ Read the full reference before running:
 Sub-commands: `squire tracking status`, `squire tracking sync`, `squire tracking doctor`
 
 Contributor-facing guidance, conventions and opt-out steps live in [docs/task-tracking.md](../../../docs/task-tracking.md).
+
+### `/squire spec sync` and `/squire spec export`
+
+Round-trips the Morphir IR specification, design documents and JSON schemas between `finos/morphir` and the knowledge base bundle that mirrors them. `spec sync` imports upstream's changes; `spec export` projects local edits back into a reference checkout, runs upstream's own validators, and stops short of committing.
+
+The `kb` skill owns the mechanism (`kb sync status|pull|push|diff`); squire owns the Morphir specifics — the repo, the ref, the sparse subtrees, the validators, and the order things run in.
+
+Read the full reference before running:
+→ [references/spec-sync.md](references/spec-sync.md)
+
+**When to invoke:** When asked to sync, import or export the Morphir spec or schemas, to refresh the mirrored upstream bundle, or to prepare spec changes for a pull request against `finos/morphir`. Also run `spec sync` before starting spec work, so the bundle reflects today's upstream.
+
+Sub-commands: `squire spec sync`, `squire spec export`

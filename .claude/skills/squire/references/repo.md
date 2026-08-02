@@ -25,6 +25,9 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/com-lihaoyi
 # Full clone, complete history
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/com-lihaoyi/mill --full
 
+# Sparse clone — only these subtrees land on disk
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/finos/morphir --sparse docs website wit
+
 # Symlink an existing local repo (saves disk space)
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py /path/to/local/mill --strategy symlink
 
@@ -40,6 +43,19 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/com-lihaoyi
 - **`clone`** — Default. Fresh download. For GitHub URLs, `gh repo clone` is used automatically if `gh` is installed and authenticated (faster, uses your GitHub credentials). Falls back to plain `git clone`. Shallow by default (`--depth 1`, just the ref being downloaded) — pass `--depth N` for more history or `--full` for a complete clone.
 - **`symlink`** — Repo already exists locally at another path. Zero disk cost. Tracks live state of source.
 - **`worktree`** — Need an isolated, ref-based (tag/commit) snapshot from a local repo. No network needed. Can coexist with other worktrees of the same repo.
+
+**Sparse checkouts:**
+
+`--sparse PATH [PATH ...]` clones partially (`--filter=blob:none`) and sparsely (`--sparse`), then applies the paths with `git sparse-checkout set`. Only those subtrees materialise; everything else stays in the object store, unfetched. It composes with `--depth`/`--full` and `--ref`, and with the `gh repo clone` path — the flags are forwarded verbatim after `--`.
+
+Reach for it when the upstream repo is large and only a fraction of it is interesting. The spec-sync loop is the motivating case — see [spec-sync.md](spec-sync.md), which owns the authoritative path list:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/finos/morphir \
+  --sparse docs website tests/bdd wit
+```
+
+Clone strategy only — `--sparse` with `symlink` or `worktree` is an error. The paths are recorded in the manifest entry as `"sparse": [...]`, so `repo list` can mark the checkout `[sparse]` and `repo status` can print it. That marker matters: a file "missing" from a sparse checkout is not missing upstream, it is simply not checked out. Widen the set with `git -C .refs/<org>/<name> sparse-checkout set <paths...>` (the manifest is not rewritten by that, so update it by hand or re-add the repo).
 
 ### `squire repo list`
 
@@ -92,6 +108,18 @@ For worktrees, the `git worktree remove` is issued against the source repo. For 
       "ref": "main",
       "commit": "abc123...",
       "depth": 1
+    },
+    {
+      "name": "morphir",
+      "org": "finos",
+      "path": "finos/morphir",
+      "added": "2026-07-24T22:00:30+00:00",
+      "strategy": "clone",
+      "url": "https://github.com/finos/morphir",
+      "ref": "main",
+      "commit": "abc123...",
+      "depth": 1,
+      "sparse": ["docs", "website", "tests/bdd", "wit"]
     },
     {
       "name": "kyo",
