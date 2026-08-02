@@ -8,6 +8,7 @@ self-contained OKF bundle.
 | ------ | --------------- | ----------- |
 | [`morphir-ir-v3`](./morphir-ir-v3/) | [finos/morphir](https://github.com/finos/morphir) `docs/` | The Morphir IR specification at format version 3 — the current, active version. |
 | [`morphir-ir-v4-draft`](./morphir-ir-v4-draft/) | [finos/morphir](https://github.com/finos/morphir) `docs/spec/draft/` and `docs/design/draft/ir/` | The draft specification for Morphir IR format version 4, with the design rationale behind it. Not yet active; subject to change. |
+| [`morphir-upstream`](./morphir-upstream/) | [finos/morphir](https://github.com/finos/morphir), mirrored | The IR specification, design and schema files themselves, worked on here and synced back. Not a summary — upstream's own bytes. |
 | [`morphir-configuration`](./morphir-configuration/) | [finos/morphir](https://github.com/finos/morphir) `docs/spec/morphir-toml/` | The `morphir.toml` workspace and project configuration format, and how layered configuration sources merge. |
 | [`morphir-scala`](./morphir-scala/) | this repository | What morphir-scala does today, in the present tense. Released intent links here. |
 | [`morphir-elm`](./morphir-elm/) | [finos/morphir-elm](https://github.com/finos/morphir-elm) | The Elm implementation of Morphir, which produces and consumes IR format version 3. |
@@ -21,8 +22,12 @@ These bundles were seeded from two upstream repositories at pinned commits:
 
 Two constraints apply to how those repositories may be used as sources:
 
-1. **`finos/morphir` — documentation only.** Only `docs/` is authoritative for spec knowledge. Code outside `docs/`
-   in that repository is experimental and must not be consulted for knowledge or used to verify claims.
+1. **`finos/morphir` — documentation, plus the artifacts the format is actually defined by.** `docs/` is
+   authoritative for spec knowledge, and so are four things outside it that the original seeding missed:
+   `website/static/schemas/morphir-ir-*.yaml` (the JSON schemas — note the `.json` siblings are generated from
+   these), `tests/bdd/fixtures/ir/v4/` and `tests/bdd/features/ir/`, `website/static/ir/examples/`, and
+   `wit/morphir-ir/`. Where prose and schema disagree, the schema wins. The Rust and web application code in that
+   repository remains experimental and must not be consulted for knowledge.
 2. **`finos/morphir-elm` — the v3 implementation.** Its source is authoritative for how format version 3 is actually
    implemented, and is the right place to verify v3 claims against working code.
 
