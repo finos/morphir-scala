@@ -49,7 +49,7 @@ Knowledge bundle for the **draft** specification of Morphir IR format version 4.
 
 ## Serialization
 
-* [Schema Architecture](/schema-architecture.md) - How v4 splits its JSON schemas into separate root schemas over shared $ref definitions.
+* [Schema Architecture](/schema-architecture.md) - The two JSON Schema files that actually define v4, and the modular hierarchy upstream documents but never built.
 
 ## Design rationale
 
@@ -57,7 +57,7 @@ The [`design/`](/design/index.md) subdirectory covers `docs/design/draft/ir/` â€
 five features the spec draft has not absorbed.
 
 * [v4 Architecture](/design/architecture.md) - The hub-and-spoke daemon model behind v4, its design principles, and how the design documents track status.
-* [Specification and Design Divergences](/design/divergences.md) - Where the v4 design documents and the v4 spec draft disagree, and what those disagreements leave open.
+* [Specification and Design Divergences](/design/divergences.md) - Where the v4 spec draft, design documents and JSON schemas disagree â€” what the schemas settle, and what stays open.
 * [Naming Decisions](/design/naming-decisions.md) - Why v4 names are opaque newtypes stored as canonical strings, and why acronyms are parenthesized.
 * [Type Encoding Decisions](/design/type-encoding-decisions.md) - Permissive input and canonical output, type shorthand forms, and backwards-compatible decoding of v1 through v3.
 * [Value Encoding Decisions](/design/value-encoding-decisions.md) - The IntegerLiteral rename, value shorthand, and which value forms must stay explicitly wrapped.

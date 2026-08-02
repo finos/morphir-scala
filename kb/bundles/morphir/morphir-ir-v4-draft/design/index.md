@@ -11,7 +11,7 @@ between the two as unresolved, not as the design winning.
 ## Orientation
 
 * [v4 Architecture](/design/architecture.md) - The hub-and-spoke daemon model behind v4, its design principles, and how the design documents track status.
-* [Specification and Design Divergences](/design/divergences.md) - Where the v4 design documents and the v4 spec draft disagree, and what those disagreements leave open.
+* [Specification and Design Divergences](/design/divergences.md) - Where the v4 spec draft, design documents and JSON schemas disagree — what the schemas settle, and what stays open.
 
 ## Encoding decisions
 
