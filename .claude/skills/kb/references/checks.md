@@ -22,6 +22,8 @@ Exit code is non-zero when there is at least one error, or with `--strict`, at l
 | `link-broken` | A link target does not exist | Fix the path. Bundle-relative links start at the **bundle** root, not the kb root |
 | `readme-in-bundle` | A `README.md` sits inside a bundle, where it parses as a concept | Move its content into `index.md`. `README.md` belongs to grouping directories |
 | `stray-markdown` | A `.md` file under `bundles/` belongs to no bundle | Either its directory is missing `okf_version` in `index.md`, or the file is misplaced |
+| `sync-projection-broken` | A mirrored file cannot be reduced to its upstream form — its `# kb:begin` … `# kb:end` region is damaged | See below |
+| `sync-lock-drift` | `sync.lock.yaml` lists a mirrored file that is not in the mirror | See below |
 
 A broken link is an error here even though OKF treats dangling links as "not-yet-written knowledge" — because OKF is
 describing *consumers*, and this is a producer-side linter. Nothing reading a bundle should fail on a dangling link;
@@ -46,6 +48,11 @@ warning. Otherwise, if you mean to point at something unwritten, say so in prose
 | `duplicate-title` | Two concepts in a bundle share a title | Retitle one. Duplicate titles make search results ambiguous |
 | `source-commit-drift` | A source is pinned at one commit but the `.refs/` checkout is at another | See below |
 | `source-path-missing` | A pinned source path no longer exists at the checkout's HEAD | The file moved or was deleted upstream. The pinned URL still resolves on GitHub |
+| `link-broken-upstream` | A link in a **mirrored** document does not resolve | Upstream's own link rot. Fix it upstream and export, or leave it |
+| `sync-untracked` | Upstream has a file a manifest mapping selects, and `sync.lock.yaml` does not list it | `kb sync pull` imports it |
+| `sync-upstream-drift` | Upstream has moved on since the last import, and the local copy has no edits | `kb sync pull` takes it. Nothing here is lost — that is what "no edits" means |
+| `sync-diverged` | A mirrored file changed both here and upstream since the last import | Reconcile by hand; `kb sync diff <path>` shows both sides. `kb sync pull --theirs` discards the local side |
+| `sync-deleted-upstream` | A mirrored file is no longer present upstream | `kb sync pull --prune` removes it here too, if that is what you want |
 
 ### On `index-description-drift`
 
@@ -66,6 +73,36 @@ Two legitimate responses:
 
 - Re-read the source at the new HEAD and update the concept, re-pinning to the new commit.
 - Leave the pin alone and accept it as historical, if the concept is explicitly about what the source said then.
+
+### On the `sync-*` checks
+
+These run for every bundle carrying a `sync.yaml` — → [sync.md](sync.md) for the mechanism. They take the same
+stance as `source-commit-drift`, for the same reason: drift is a prompt, not a failure. A mirror that has moved
+apart from upstream is the normal state of anything being worked on, and the tooling's job is to tell you *which
+way* it moved, not to insist you reconcile it now.
+
+Two are errors, and only two, because they are the states in which an export would send the wrong bytes:
+
+- **`sync-projection-broken`.** The `# kb:begin` … `# kb:end` region is the only part of a mirrored file the
+  knowledge base owns, and removing exactly that region is what recovers upstream's bytes. When the fence is
+  damaged — unmatched, or closing before it opens — that removal cannot be trusted, so it is refused rather than
+  guessed at. Restore the fence by hand, or re-run `kb sync pull --theirs` for the bundle to take upstream's copy
+  and re-inject. Any local edit to that file is lost by the second route, so check `kb sync diff <path>` first.
+- **`sync-lock-drift`.** The lockfile names a file the mirror does not have, so the two disagree about what is
+  vendored. `kb sync pull` restores it from upstream. If upstream dropped the file deliberately, `kb sync pull
+  --prune` removes the entry instead.
+
+Without a reference checkout under `.refs/` — or with `--no-provenance` — only those two can fire. The other four
+are all comparisons against upstream, and there is nothing to compare against.
+
+Mirrored documents are also held to a *looser* structural standard than authored ones, because their frontmatter
+belongs to upstream. `concept-missing-title`, `concept-missing-description`, `status-unknown`, `stale-after-passed`,
+`duplicate-title` and `frontmatter-unknown-key` are all suppressed for them; demanding OKF's vocabulary of somebody
+else's Docusaurus keys would bury the findings that are actually yours to fix. `concept-missing-type` still applies,
+with a different message: `kb sync pull` injects `type`, so its absence means the injection failed.
+
+What is *not* relaxed is `concept-not-indexed`. Mirrored concepts must still be reachable from an index, which is
+why `kb sync pull` regenerates the bundle index below its `<!-- kb:sources -->` marker.
 
 ---
 

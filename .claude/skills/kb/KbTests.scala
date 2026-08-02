@@ -1,7 +1,7 @@
 //| scalaVersion: 3.8.4
 //| mainClass: kyo.test.runner.Cli
 //| resources: [test-resources]
-//| moduleDeps: [KbIntentEdit.scala, KbRefresh.scala, KbRender.scala]
+//| moduleDeps: [KbIntentEdit.scala, KbRefresh.scala, KbRender.scala, KbSync.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-test-api:1.0.0-RC5
 //| - io.getkyo::kyo-test-runner:1.0.0-RC5
@@ -476,6 +476,352 @@ class KbIndexSpec extends Test[Any]:
       yield
         assert(fresh.toOption.get._3.isEmpty, "fresh immediately after building")
         assert(after.toOption.get._3.exists(_.contains("removed since")), s"got ${after.toOption.get._3}")
+    }
+  }
+
+// ------------------------------------------------------------------------- sync
+
+/** The vendoring engine, and above all its one load-bearing invariant.
+  *
+  * `project(inject(bytes)) == bytes` is what makes an export safe. If it slips, the knowledge base silently rewrites
+  * somebody else's repository — so the corpus below is deliberately hostile: CRLF, nested YAML blocks, fractional
+  * numbers, `---` in the body, and no frontmatter at all.
+  */
+class KbSyncSpec extends Test[Any]:
+
+  /** Documents that have all previously been plausible ways to break the projection. */
+  private val corpus: Seq[(String, String)] = Seq(
+    "plain frontmatter" -> "---\ntitle: Types\ndescription: The type system\n---\n\n# Types\n\nProse.\n",
+    "no frontmatter at all" -> "# Agents\n\nA working agreement.\n",
+    "CRLF throughout" -> "---\r\ntitle: Types\r\n---\r\n\r\n# Types\r\n",
+    "nested block" -> "---\ntitle: IR v4\nstatus: partial\ntracking:\n  beads: [morphir-8fx]\n  github_issues: [398]\n---\n\nBody.\n",
+    "fractional sidebar_position" -> "---\ntitle: Attributes\nsidebar_position: 2.5\n---\n\nBody.\n",
+    "body contains a fence" -> "---\ntitle: X\n---\n\nBefore.\n\n---\n\nAfter.\n",
+    "empty frontmatter block" -> "---\n---\n\nBody.\n",
+    "no trailing newline" -> "---\ntitle: X\n---\n\nBody without a newline",
+    "unterminated frontmatter" -> "---\ntitle: never closed\n\n# Body\n"
+  )
+
+  private val keys = Seq("type" -> "Specification Source", "kb_upstream" -> "docs/spec/draft/types.md")
+
+  "the round-trip invariant" - {
+    corpus.foreach { (label, text) =>
+      s"survives $label" in {
+        val injected = KbSync.inject(text, keys)
+        assert(KbSync.project(injected) == Right(text), s"round-trip changed the bytes for $label")
+      }
+    }
+    "injects keys that actually parse as YAML" in {
+      val injected = KbSync.inject(corpus.head._2, keys)
+      val fm = KbSync.split(injected).flatMap(s => KbStore.parseFrontmatter(s.fm).toOption).get
+      assert(fm.`type`.contains("Specification Source"), s"got ${fm.`type`}")
+      assert(fm.title.contains("Types"), "upstream's own keys must survive injection")
+    }
+    "leaves a document that was never injected alone" in {
+      assert(KbSync.project(corpus.head._2) == Right(corpus.head._2))
+    }
+    "removes the whole block when upstream had no frontmatter" in {
+      val injected = KbSync.inject("# Agents\n\nProse.\n", keys)
+      assert(injected.startsWith("---\n"), "a block is added to carry the keys")
+      assert(KbSync.project(injected) == Right("# Agents\n\nProse.\n"))
+    }
+    "refuses a damaged fence rather than guessing" in {
+      val broken = "---\ntitle: X\n# kb:begin\ntype: Y\n---\n\nBody.\n"
+      assert(KbSync.project(broken).isLeft, "an unclosed fence must not silently export")
+    }
+  }
+
+  "injectedKeys" - {
+    "supplies title and description only when upstream omits them" in {
+      val m = KbSync.parseManifest("upstream:\n  repo: acme/spec\nmappings:\n  - docs/**\n").toOption.get
+      val withBoth = KbSync.injectedKeys(m, "docs/a.md", "---\ntitle: A\ndescription: B\n---\n")
+      val without = KbSync.injectedKeys(m, "docs/some-file.md", "# No frontmatter\n")
+      assert(withBoth.map(_._1) == Seq("type", "kb_upstream"), s"got ${withBoth.map(_._1)}")
+      assert(without.map(_._1) == Seq("type", "title", "description", "kb_upstream"), s"got ${without.map(_._1)}")
+      assert(without.toMap.get("title").contains("Some File"), s"got ${without.toMap.get("title")}")
+    }
+  }
+
+  "relative links in mirrored documents" - {
+    "regression: a sibling link resolves to an absolute path that exists" in {
+      // resolveLink rebuilt the path from a segment list, dropping the leading empty segment of an absolute path
+      // along with `.` and `""`. Every relative link then resolved to a relative path that could not exist. Authored
+      // concepts link bundle-relative, so nothing noticed until a mirror full of upstream's relative links arrived.
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        _ <- KbSync.writeBytes(
+          upstream / "docs" / "guide.md",
+          "---\ntitle: Guide\ndescription: A guide.\n---\n\nSee [types](types.md) and [gone](missing.md).\n".getBytes("UTF-8")
+        )
+        (_, sb0) <- loadSync(kbRoot)
+        result <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, result.lock)
+        kb <- KbStore.load(kbRoot)
+        b = kb.bundle("vendored").get
+        guide = b.concepts.find(_.name == "guide.md").get
+        resolved = guide.links.flatMap(l => KbStore.resolveLink(guide, l))
+        existence <- Kyo.foreach(Chunk.from(resolved))(p => p.exists.map(p -> _))
+      yield
+        assert(resolved.size == 2, s"got ${resolved.map(KbPath.render)}")
+        assert(
+          existence.exists((p, ok) => ok && KbPath.render(p).endsWith("/sources/docs/types.md")),
+          s"got ${existence.map((p, ok) => KbPath.render(p) -> ok)}"
+        )
+        assert(existence.exists((p, ok) => !ok && KbPath.render(p).endsWith("missing.md")), "and a real miss still misses")
+    }
+  }
+
+  "glob matching" - {
+    "** spans directories and also matches zero of them" in {
+      assert(KbGlob.matches("docs/**", "docs/spec/draft/types.md"))
+      assert(KbGlob.matches("docs/**/x.md", "docs/x.md"), "**/ must match zero directories")
+      assert(!KbGlob.matches("docs/**", "wit/types.wit"))
+    }
+    "* stops at a separator" in {
+      assert(KbGlob.matches("website/static/schemas/morphir-*.yaml", "website/static/schemas/morphir-ir-v4.yaml"))
+      assert(!KbGlob.matches("docs/*.md", "docs/spec/types.md"))
+    }
+    "a dot is literal, not any-character" in {
+      assert(!KbGlob.matches("docs/a.md", "docs/axmd"))
+    }
+  }
+
+  "the manifest" - {
+    "needs a repo and at least one mapping" in {
+      assert(KbSync.parseManifest("mappings:\n  - docs/**\n").isLeft, "no upstream.repo")
+      assert(KbSync.parseManifest("upstream:\n  repo: a/b\n").isLeft, "no mappings")
+    }
+    "resolves type by first matching glob, in declaration order" in {
+      val m = KbSync.parseManifest(
+        "upstream:\n  repo: a/b\nmappings:\n  - docs/**\ntype_map:\n  \"docs/design/**\": Design Source\n  \"docs/**\": Specification Source\n"
+      ).toOption.get
+      assert(m.typeFor("docs/design/ir/values.md") == "Design Source")
+      assert(m.typeFor("docs/spec/types.md") == "Specification Source")
+      assert(m.typeFor("wit/x.wit") == "Source Document", "unmatched paths fall back")
+    }
+    "selects by mapping minus exclusions" in {
+      val m = KbSync.parseManifest(
+        "upstream:\n  repo: a/b\nmappings:\n  - { from: \"website/**\", exclude: [\"**/*.json\"] }\nexclude:\n  - \"**/big.yaml\"\n"
+      ).toOption.get
+      assert(m.selects("website/static/schemas/x.yaml"))
+      assert(!m.selects("website/static/schemas/x.json"), "mapping-level exclude")
+      assert(!m.selects("website/static/schemas/big.yaml"), "manifest-level exclude")
+    }
+    "classifies markdown as a concept and everything else as an asset" in {
+      val m = KbSync.parseManifest("upstream:\n  repo: a/b\nmappings:\n  - \"**\"\n").toOption.get
+      assert(m.kindOf("docs/x.md") == SyncKind.Concept)
+      // .mdx carries JSX, which commonmark has no business parsing.
+      assert(m.kindOf("docs/x.mdx") == SyncKind.Asset)
+      assert(m.kindOf("schemas/x.yaml") == SyncKind.Asset)
+    }
+  }
+
+  "the lockfile" - {
+    "round-trips through render and parse" in {
+      val lock = SyncLock("abc123", "2026-07-28", Seq(
+        LockEntry("docs/b.md", SyncKind.Concept, "hash-b"),
+        LockEntry("wit/a.wit", SyncKind.Asset, "hash-a")
+      ))
+      val rendered = KbSync.renderLock(lock)
+      val back = KbSync.parseLock(rendered).toOption.get
+      assert(back.baseCommit == "abc123")
+      assert(back.get("wit/a.wit").map(_.kind).contains(SyncKind.Asset))
+      // Sorted on write, so a pull that changes nothing produces no diff.
+      assert(rendered.indexOf("docs/b.md") < rendered.indexOf("wit/a.wit"), "entries are written in path order")
+    }
+  }
+
+  // ------------------------------------------------------------ end to end
+
+  /** A knowledge base with one sync bundle, plus a fake upstream checkout to pull from. */
+  private def syncFixture: (Path, Path, Path) < (Sync & Abort[Throwable]) =
+    for
+      root <- scratch("sync")
+      kbRoot = root / "kb"
+      upstream = root / "upstream"
+      _ <- KbScaffold.newBundle(kbRoot, "vendored", None, "Vendored", "Mirrored upstream material.", "0.2", today)
+      bundleRoot = kbRoot / "bundles" / "vendored"
+      _ <- KbIntentEdit.setKeys(bundleRoot / "index.md", Seq("sync" -> Some("true")))
+      _ <- (bundleRoot / "sync.yaml").write(
+        "upstream:\n  repo: acme/spec\n  refs_path: acme/spec\nroot: sources\n" +
+          "mappings:\n  - \"docs/**\"\n  - \"schemas/**\"\ntype_map:\n  \"docs/**\": Specification Source\n"
+      )
+      _ <- KbSync.writeBytes(upstream / "docs" / "types.md", "---\ntitle: Types\ndescription: The types.\n---\n\n# Types\n".getBytes("UTF-8"))
+      _ <- KbSync.writeBytes(upstream / "docs" / "index.md", "---\ntitle: Docs\ndescription: The docs.\n---\n\n# Docs\n".getBytes("UTF-8"))
+      _ <- KbSync.writeBytes(upstream / "schemas" / "thing.yaml", "$id: thing\ntype: object\n".getBytes("UTF-8"))
+    yield (kbRoot, bundleRoot, upstream)
+
+  private def loadSync(kbRoot: Path): (Kb, SyncBundle) < (Sync & Abort[Throwable]) =
+    for
+      kb <- KbStore.load(kbRoot)
+      sb <- KbSync.load(KbSync.findBundle(kb, None).get)
+    yield (kb, sb.toOption.get)
+
+  "pull" - {
+    "imports concepts and assets, and records both in the lock" in {
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        (_, sb) <- loadSync(kbRoot)
+        result <- KbSync.pull(sb, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb, result.lock)
+        typesText <- (sb.localFile("docs/types.md")).read
+        schemaText <- (sb.localFile("schemas/thing.yaml")).read
+      yield
+        assert(result.actions.count(_.verb == "added") == 3, s"got ${result.actions}")
+        assert(typesText.contains("type: Specification Source"), "concepts gain a kb block")
+        assert(typesText.contains("title: Types"), "upstream frontmatter is preserved")
+        assert(schemaText == "$id: thing\ntype: object\n", "assets are byte-identical")
+        assert(result.lock.files.count(_.kind == SyncKind.Asset) == 1, s"got ${result.lock.files}")
+    }
+    "writes nothing under --dry-run" in {
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        (_, sb) <- loadSync(kbRoot)
+        result <- KbSync.pull(sb, upstream, "deadbeef", today, dryRun = true, theirs = false, prune = false)
+        landed <- sb.localFile("docs/types.md").exists
+      yield
+        assert(result.actions.nonEmpty, "it still reports what it would do")
+        assert(!landed, "dry run must not write")
+    }
+    "regression: a mirrored index.md is a concept, not a sub-index" in {
+      // `kindOf` reserves index.md for the bundle. Inside a mirror the name is upstream's, and upstream puts
+      // frontmatter in it — which used to be reported as `subindex-has-frontmatter`.
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        (_, sb) <- loadSync(kbRoot)
+        result <- KbSync.pull(sb, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb, result.lock)
+        kb <- KbStore.load(kbRoot)
+        b = kb.bundle("vendored").get
+        mirrored = b.concepts.find(_.rel.mkString("/") == "sources/docs/index.md")
+      yield
+        assert(mirrored.isDefined, s"got ${b.concepts.map(_.rel.mkString("/"))}")
+        assert(mirrored.get.kind == DocKind.Concept, s"got ${mirrored.get.kind}")
+        assert(mirrored.get.vendored, "and it is marked as vendored")
+    }
+    "regression: refuses a manifest path that escapes the mirror" in {
+      // The same hole `add-concept` had: a relative path with `..` writes outside the bundle it claims to be in.
+      assert(!KbSync.safeRelative("../escaped.md"))
+      assert(!KbSync.safeRelative("/etc/passwd"))
+      assert(KbSync.safeRelative("docs/spec/types.md"))
+    }
+  }
+
+  "status" - {
+    "is clean straight after a pull, and local-only after an edit" in {
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        (_, sb0) <- loadSync(kbRoot)
+        result <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, result.lock)
+        (_, sb) <- loadSync(kbRoot)
+        clean <- KbSync.status(sb, Some(upstream))
+        before <- sb.localFile("docs/types.md").read
+        _ <- sb.localFile("docs/types.md").write(before + "\nAn extra line.\n")
+        (_, sb2) <- loadSync(kbRoot)
+        edited <- KbSync.status(sb2, Some(upstream))
+      yield
+        assert(clean.forall(_.state == SyncState.Clean), s"got ${clean.map(r => r.path -> r.state.label)}")
+        assert(
+          edited.count(_.state == SyncState.LocalOnly) == 1,
+          s"got ${edited.map(r => r.path -> r.state.label)}"
+        )
+    }
+    "reports upstream-only when upstream moves and we did not" in {
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        (_, sb0) <- loadSync(kbRoot)
+        result <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, result.lock)
+        _ <- KbSync.writeBytes(upstream / "docs" / "types.md", "---\ntitle: Types\ndescription: Changed.\n---\n\n# Types\n".getBytes("UTF-8"))
+        (_, sb) <- loadSync(kbRoot)
+        rows <- KbSync.status(sb, Some(upstream))
+      yield assert(
+        rows.exists(r => r.path == "docs/types.md" && r.state == SyncState.UpstreamOnly),
+        s"got ${rows.map(r => r.path -> r.state.label)}"
+      )
+    }
+    "reports diverged when both sides moved" in {
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        (_, sb0) <- loadSync(kbRoot)
+        result <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, result.lock)
+        _ <- KbSync.writeBytes(upstream / "docs" / "types.md", "---\ntitle: Types\ndescription: Theirs.\n---\n\n# Types\n".getBytes("UTF-8"))
+        before <- sb0.localFile("docs/types.md").read
+        _ <- sb0.localFile("docs/types.md").write(before + "\nOurs.\n")
+        (_, sb) <- loadSync(kbRoot)
+        rows <- KbSync.status(sb, Some(upstream))
+      yield assert(
+        rows.exists(r => r.path == "docs/types.md" && r.state == SyncState.Diverged),
+        s"got ${rows.map(r => r.path -> r.state.label)}"
+      )
+    }
+  }
+
+  "push" - {
+    "writes back only what changed here, and in upstream's form" in {
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        (_, sb0) <- loadSync(kbRoot)
+        result <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, result.lock)
+        before <- sb0.localFile("docs/types.md").read
+        _ <- sb0.localFile("docs/types.md").write(before + "\nA sentence we added.\n")
+        (_, sb) <- loadSync(kbRoot)
+        target <- scratch("export")
+        out <- KbSync.push(sb, target, Some(upstream), dryRun = false, includeDiverged = false)
+        (actions, refused) = out
+        exported <- (target / "docs" / "types.md").read
+        untouched <- (target / "schemas" / "thing.yaml").exists
+      yield
+        assert(refused.isEmpty, s"got $refused")
+        assert(actions.map(_.path) == Seq("docs/types.md"), s"got ${actions.map(_.path)}")
+        assert(!exported.contains("kb:begin"), "the kb block must never reach upstream")
+        assert(!exported.contains("kb_upstream"), "nor its keys")
+        assert(exported == "---\ntitle: Types\ndescription: The types.\n---\n\n# Types\n\nA sentence we added.\n", s"got: $exported")
+        assert(!untouched, "unchanged files are not written")
+    }
+    "regression: holds back a diverged file rather than overwriting upstream's change" in {
+      // push used to compare against the lockfile alone. A file that had moved on both sides then looked merely
+      // local-only, and exporting it silently discarded upstream's edit.
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        (_, sb0) <- loadSync(kbRoot)
+        result <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, result.lock)
+        _ <- KbSync.writeBytes(upstream / "docs" / "types.md", "---\ntitle: Types\ndescription: Theirs.\n---\n\n# Types\n".getBytes("UTF-8"))
+        before <- sb0.localFile("docs/types.md").read
+        _ <- sb0.localFile("docs/types.md").write(before + "\nOurs.\n")
+        (_, sb) <- loadSync(kbRoot)
+        target <- scratch("export-diverged")
+        held <- KbSync.push(sb, target, Some(upstream), dryRun = false, includeDiverged = false)
+        landed <- (target / "docs" / "types.md").exists
+        forced <- KbSync.push(sb, target, Some(upstream), dryRun = false, includeDiverged = true)
+        forcedLanded <- (target / "docs" / "types.md").exists
+      yield
+        assert(!landed, "a diverged file must not be exported by default")
+        assert(held._1.exists(_.verb == "held back"), s"and it must be reported: ${held._1}")
+        assert(held._2.nonEmpty, "it counts as refused, so the command exits non-zero")
+        assert(forcedLanded, "--include-diverged is the explicit override")
+        assert(forced._1.exists(_.verb == "wrote"), s"got ${forced._1}")
+    }
+  }
+
+  "check findings" - {
+    "flags a mirrored file the lockfile expects but the mirror lacks" in {
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        (_, sb0) <- loadSync(kbRoot)
+        result <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, result.lock)
+        _ <- KbSync.deleteFile(sb0.localFile("docs/types.md"))
+        (kb, sb) <- loadSync(kbRoot)
+        findings <- KbSync.checkFindings(kb, sb, None)
+      yield assert(
+        findings.exists(f => f.check == "sync-lock-drift" && f.severity == Severity.Error),
+        s"got ${findings.map(_.check)}"
+      )
     }
   }
 

@@ -9,4 +9,5 @@ KbScaffoldSpec
 KbIntentSpec
 KbCheckSpec
 KbIndexSpec
+KbSyncSpec
 KbMetaSpec
