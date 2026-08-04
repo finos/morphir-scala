@@ -95,6 +95,10 @@ Run as part of `kb check`. See [checks.md](./checks.md) for the full catalogue.
 | `decision-decided-missing` | warn | No valid `decided` date |
 | `decision-supersede-not-mutual` | warn | A supersedes B, but B does not name A in `superseded_by` |
 
+None of them run on a **mirrored** record. An ADR imported from an upstream repository keeps upstream's conventions —
+`ADR-0001-…` for a filename, status and date in the body — and holding it to this register's schema would report four
+errors per file that nobody here can fix. It still lists.
+
 The mutuality check is the one that earns its keep. One-way supersession is how a chain silently breaks: the
 superseded record still reads as current to anyone who lands on it directly, and nothing says otherwise.
 

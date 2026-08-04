@@ -172,13 +172,62 @@ object KbStore:
       }.map(_.flattenChunk)
     }
 
+  /** Every file at or below `dir` that is *not* markdown — the mirrored assets of a sync bundle. */
+  def nonMarkdownUnder(dir: Path): Chunk[Path] < (Sync & Abort[Throwable]) =
+    dir.exists.map {
+      case false => Chunk.empty[Path]
+      case true =>
+        dir.list.map { entries =>
+          Kyo.foreach(entries) { e =>
+            e.isDirectory.map {
+              case true => nonMarkdownUnder(e)
+              case false => if isMarkdown(e) then Chunk.empty[Path] else Chunk(e)
+            }
+          }.map(_.flattenChunk)
+        }
+    }
+
+  /** The `root:` of a bundle's `sync.yaml`, as path segments, when the bundle mirrors an upstream repository.
+    *
+    * Read here rather than in KbSync because loading has to know which files are vendored before anything else can,
+    * and KbSync sits downstream of this file.
+    */
+  def mirrorSegments(bundleRoot: Path): Option[Seq[String]] < (Sync & Abort[Throwable]) =
+    val manifest = bundleRoot / "sync.yaml"
+    manifest.exists.map {
+      case false => (None: Option[Seq[String]])
+      case true =>
+        manifest.read.map { raw =>
+          val root =
+            try
+              newYaml().load[Object](raw) match
+                case m: java.util.Map[?, ?] =>
+                  m.asScala.toMap.map((k, v) => k.toString -> v).get("root").collect { case s: String => s }
+                case _ => None
+            catch case _: Exception => None
+          Some(root.getOrElse("sources").split("/").filter(_.nonEmpty).toSeq)
+        }
+    }
+
   def loadBundle(root: Path, kbRoot: Path): Bundle < (Sync & Abort[Throwable]) =
     for
+      mirror <- mirrorSegments(root)
       files <- markdownUnder(root)
-      docs <- Kyo.foreach(files)(loadDoc(_, root))
+      loaded <- Kyo.foreach(files)(loadDoc(_, root))
+      assetFiles <- mirror match
+        case None => (Chunk.empty[Path]: Chunk[Path] < (Sync & Abort[Throwable]))
+        case Some(segs) => nonMarkdownUnder(segs.foldLeft(root)(_ / _))
     yield
       val segs = KbPath.segmentsUnder(root, kbRoot / "bundles").getOrElse(root.parts.lastOption.toSeq)
+      val isVendored: Doc => Boolean =
+        d => mirror.exists(m => d.rel.length > m.length && d.rel.startsWith(m))
+      // Inside the mirror, `index.md` and `log.md` are upstream's own files and carry upstream's own frontmatter.
+      // OKF reserves those names for the *bundle*, so the reservation stops at the mirror boundary.
+      val docs = loaded.map(d => if isVendored(d) then d.copy(vendored = true, kind = DocKind.Concept) else d)
       val sorted = docs.sortBy(_.rel.mkString("/"))
+      val assets = assetFiles.map { f =>
+        Asset(f, root, KbPath.segmentsUnder(f, root).getOrElse(f.parts.lastOption.toSeq))
+      }.sortBy(_.rel.mkString("/")).toSeq
       Bundle(
         root = root,
         name = root.parts.lastOption.getOrElse("?"),
@@ -188,7 +237,9 @@ object KbStore:
         ),
         log = sorted.find(d => d.kind == DocKind.Log && d.rel.length == 1),
         subIndexes = sorted.filter(_.kind == DocKind.SubIndex),
-        concepts = sorted.filter(_.isConcept)
+        concepts = sorted.filter(_.isConcept),
+        assets = assets,
+        mirror = mirror
       )
 
   /** Loads the whole knowledge base rooted at `kbRoot` — the directory holding `bundles/`. */
@@ -218,14 +269,14 @@ object KbStore:
       else
         // Relative to the containing directory, resolving any `..` segments.
         //
-        // Fold over the destination's segments only, seeded with the containing directory — never over the
-        // directory's own segments. Folding over those too would apply the `"" => drop` case to the leading empty
-        // segment that marks an absolute path, quietly turning the result relative so that `exists` tested it
-        // against the process's working directory instead of the filesystem root.
-        val resolved = dest.split('/').foldLeft(doc.file.parts.dropRight(1).toVector) { (acc, seg) =>
+        // Built up from the directory Path rather than from a rebuilt segment list: an absolute path's leading empty
+        // segment was being dropped along with `.` and `""`, quietly turning every resolved relative link into a
+        // relative path that could never exist. Nothing caught it because authored concepts link bundle-relative.
+        val dir = Path(doc.file.parts.dropRight(1)*)
+        val resolved = dest.split('/').foldLeft(dir) { (acc, seg) =>
           seg match
             case "." | "" => acc
-            case ".." => acc.dropRight(1)
-            case s => acc :+ s
+            case ".." => Path(acc.parts.dropRight(1)*)
+            case s => acc / s
         }
-        Some(Path(resolved*))
+        Some(resolved)

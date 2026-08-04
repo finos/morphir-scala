@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# MISE description="Report how the mirrored upstream sources stand against the lockfile and the reference checkout"
+
+set -e
+
+echo "Checking mirrored sources..."
+
+# --strict fails on diverged and unreadable files only. Upstream having moved on is a prompt to pull, not a defect,
+# so upstream-drift stays a warning — the same stance provenance drift takes.
+#
+# Without a reference checkout under .refs/ this still does useful work: the mirror is compared against
+# sync.lock.yaml, which catches a file edited into a state it cannot be exported from.
+if [ -d .refs ]; then
+  .claude/skills/kb/kb sync status --strict
+else
+  echo "  no .refs/ checkout — comparing against the lockfile only"
+  .claude/skills/kb/kb sync status --no-upstream --strict
+fi
+
+echo ""
+echo "Source sync check completed successfully"

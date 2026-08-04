@@ -39,6 +39,7 @@ Full flag reference: → [references/commands.md](references/commands.md)
 | `index` | Builds the SQLite index; `--status` reports its freshness |
 | `refresh` | Both kinds of derived state; narrow with `refresh markdown` / `refresh db` |
 | `query --sql` | Read-only SQL over that index |
+| `sync …` | Mirroring an upstream repository into a bundle — `status`, `pull`, `push`, `diff` |
 | `intent …` | Intent lifecycle — `new`, `list`, `show`, the transition verbs, `check` |
 | `new-bundle` | Scaffolds a bundle with `index.md` and `log.md` |
 | `add-concept` | Scaffolds a concept and wires it into the index and log |
@@ -99,6 +100,17 @@ read them; `kb check` validates their supersession links.
 
 → [references/decisions.md](references/decisions.md) for the frontmatter, the checks and how to supersede one.
 
+**Mirroring an upstream repository.** A bundle may declare a `sync.yaml` and carry upstream's own files rather than
+a paraphrase of them. Markdown lands as concepts with an injected, fenced block of kb-owned frontmatter; everything
+else lands as byte-identical assets. `kb sync push` deletes exactly that fenced region, so what goes back upstream
+is what came from it.
+
+```bash
+.claude/skills/kb/kb sync status
+```
+
+→ [references/sync.md](references/sync.md) for the manifest, the lockfile and the state model.
+
 **Finding divergence in the *content*.** `check` finds mechanical inconsistency. Contradictions between what two
 concepts assert — the thing that actually matters in a knowledge base — cannot be detected by a script.
 
@@ -108,6 +120,7 @@ concepts assert — the thing that actually matters in a knowledge base — cann
 
 - A **bundle root** is a directory whose `index.md` carries `okf_version`. That is how bundles are discovered.
 - Only `index.md` and `log.md` are reserved. Every other `.md` file inside a bundle is a concept and needs `type:`.
+  The reservation stops at a mirror boundary — inside a vendored subtree those names are upstream's own files.
 - A **grouping directory** gets a `README.md` and never an `index.md`. `README.md` inside a bundle is an error.
 - Sub-directory `index.md` files carry **no frontmatter**.
 - Index bullets mirror the target concept's `description`. Changing one means changing the other.
@@ -126,8 +139,10 @@ header; `kb.scala` is the entry point and names the others in `moduleDeps`.
 | `KbScaffold.scala` | Bundle and concept creation, index and log editing |
 | `KbIndex.scala` | SQLite schema, index build, and query surface |
 | `KbRefresh.scala` | Reconciling derived state — index bullets and the database |
+| `KbSync.scala` | Vendoring an upstream repository: manifest, lockfile, frontmatter injection and projection |
 | `KbIntent.scala` | Intent model, lifecycle states, kinds and checks |
 | `KbIntentEdit.scala` | Creating intent, transitions, generated intent index |
+| `KbDecision.scala` | Decision Record model, supersession checks and rendering |
 | `KbTests.scala` | The kyo-test suites — run them with `mise run kb:test` |
 | `KbRender.scala` | Text and JSON rendering |
 
@@ -147,7 +162,7 @@ Run the tests:
 mise run kb:test
 ```
 
-49 cases across six suites, using **kyo-test** — the same framework `langkit` and `kit` use. Mill's script mode
+80 cases across seven suites, using **kyo-test** — the same framework `langkit` and `kit` use. Mill's script mode
 exposes no test module (`mill test <script>` does not resolve), so the suite runs through kyo-test's own CLI runner
 as the script's `mainClass`, with `//| resources: [test-resources]` putting the ServiceLoader registry on the
 classpath.

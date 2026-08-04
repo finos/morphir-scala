@@ -26,15 +26,15 @@ kb/bundles/<bundle-slug>/
   <subdirectory>/
     index.md               # Directory index (no frontmatter)
     <concept>.md
-  references/              # Optional: mirrored external material, run instructions, code
+  sync.yaml                # Optional: what this bundle mirrors from an upstream repository
+  sync.lock.yaml           # Generated companion to sync.yaml; never hand-edited
+  sources/                 # The mirrored subtree, named by `root:` in sync.yaml
 ```
 
 - `<bundle-slug>` is lower-case kebab-case, matching the slug convention used elsewhere in this repo.
 - Every `.md` file that is not `index.md` or `log.md` is a **concept document**.
-- `index.md` and `log.md` are reserved filenames. Do not use them for concepts.
+- `index.md` and `log.md` are reserved filenames outside a mirrored subtree. Do not use them for concepts.
 - Subdirectories nest freely; depth is a modelling choice, not a spec constraint.
-- `references/` is a naming convention, not a requirement. Use it when mirroring external material so that `sources`,
-  executors, and attesters have a stable place to point at.
 
 ## Grouping directories
 
@@ -49,6 +49,31 @@ directory from being mistaken for a bundle:
 
 A group's `README.md` should list its bundles and record any constraints shared across them (which upstream sources
 are authoritative, which are off-limits).
+
+## Mirrored bundles
+
+A bundle may carry a `sync.yaml` naming an upstream repository and the paths it mirrors. Everything under the
+subtree that manifest's `root:` names is upstream's material, vendored here so it can be read exactly, diffed, and
+edited with the edits sent back. Use it when a paraphrase will not do; use `sources` (below) when it will.
+
+- **Markdown in the mirror is a concept document**, but its frontmatter is upstream's. The knowledge base owns one
+  fenced `# kb:begin` … `# kb:end` region inside it, holding the `type` OKF requires and the upstream path.
+  `kb sync push` deletes exactly that region to recover upstream's bytes, so do not edit inside the fence by hand,
+  and do not reformat anything outside it.
+- **Everything that is not markdown is an asset** — schemas, fixtures, `.mdx` pages, sidebar descriptors. Assets are
+  mirrored byte-for-byte and tracked, but never parsed, so they carry no frontmatter and need no `type`.
+- **`index.md` and `log.md` are reserved only outside the mirror.** Inside it those names belong to upstream,
+  frontmatter and all, and the files are treated as ordinary concepts.
+- **The bundle-root `index.md` carries `sync: true`.** That is the marker the `kb sync` commands discover the bundle
+  by; the `sync.yaml` itself is what makes the subtree vendored.
+- `sync.lock.yaml` is generated: it records the upstream commit the import came from and, per file, a hash of its
+  upstream form. Never edit it by hand, and let `kb sync pull` regenerate the index region it maintains.
+
+Mirrored documents are held to a looser standard than authored ones — checks that would judge upstream's frontmatter
+or upstream's link rot are relaxed — so review a mirror by reading its diff against upstream, not by trusting a
+clean `kb check`.
+
+→ the `kb` skill's [sync reference](../.claude/skills/kb/references/sync.md) for the manifest format and commands.
 
 ## Concept documents
 

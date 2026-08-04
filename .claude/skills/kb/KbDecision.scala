@@ -86,7 +86,11 @@ object KbDecision:
     * than across the whole knowledge base — two bundles may each number their decisions from 0001.
     */
   def findings(kb: Kb): Seq[Finding] =
-    val all = decisions(kb)
+    // Mirrored records are upstream's, and so is their schema: an ADR imported from finos/morphir carries its status
+    // and date in the body under upstream's own conventions, and its filename is `ADR-0001-…` rather than `0001-…`.
+    // Demanding this register's shape of it would report four errors per file that nobody here can fix. They stay
+    // listable — `decisions` still finds them — because they are decision records; they are just not ours to check.
+    val all = decisions(kb).filterNot(_.doc.vendored)
     all.groupBy(_.bundle).toSeq.sortBy(_._1).flatMap { (_, inBundle) =>
       val byId = inBundle.filter(_.id.nonEmpty).groupBy(_.id)
       inBundle.flatMap(one(kb, _, byId)) ++ duplicates(kb, byId)

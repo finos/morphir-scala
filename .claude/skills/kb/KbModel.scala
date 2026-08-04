@@ -71,6 +71,15 @@ case class LinkRef(text: String, dest: String, line: Int):
 /** A provenance entry from the `sources` frontmatter family. */
 case class SourceRef(id: Option[String], resource: String, title: Option[String])
 
+/** A non-markdown file mirrored into a bundle: a schema, a fixture, a sidebar descriptor.
+  *
+  * Assets are carried and synced but never parsed. They have no frontmatter to hold a `type`, so treating them as
+  * concepts would mean every one of them failing the checks that make concepts useful.
+  */
+case class Asset(file: Path, bundleRoot: Path, rel: Seq[String]):
+  def bundlePath: String = rel.mkString("/", "/", "").stripSuffix("/")
+  def name: String = rel.lastOption.getOrElse("")
+
 /** Parsed YAML frontmatter, kept as raw values with typed accessors over the top.
   *
   * Accessors are deliberately permissive: a missing or wrongly-typed field yields None/Nil rather than throwing, so
@@ -130,7 +139,10 @@ object Frontmatter:
     "type", "title", "description", "resource", "tags",
     "sources", "generated", "verified", "status", "stale_after",
     "runtime", "parameters", "computation", "executor", "attester",
-    "okf_version"
+    "okf_version",
+    // Vendoring: `sync` marks a bundle that mirrors an upstream repository, `kb_upstream` records which file a
+    // mirrored concept came from. Both are stripped back out by `kb sync push`.
+    "sync", "kb_upstream"
   )
 
   /** Keys this tooling defines on top of OKF, and therefore understands.
@@ -166,7 +178,9 @@ case class Doc(
     /** Set when a frontmatter block was present but did not parse as YAML. */
     frontmatterError: Option[String],
     body: String,
-    links: Seq[LinkRef]
+    links: Seq[LinkRef],
+    /** True when the file is mirrored from upstream rather than authored here. */
+    vendored: Boolean = false
 ):
   /** Bundle-relative path in OKF link form, e.g. `/design/annotations.md`. */
   def bundlePath: String = rel.mkString("/", "/", "").stripSuffix("/")
@@ -183,10 +197,16 @@ case class Bundle(
     index: Doc,
     log: Option[Doc],
     subIndexes: Seq[Doc],
-    concepts: Seq[Doc]
+    concepts: Seq[Doc],
+    assets: Seq[Asset] = Nil,
+    /** Segments of the mirrored subtree, when the bundle vendors an upstream repository. */
+    mirror: Option[Seq[String]] = None
 ):
+  def mirrorRoot: Option[Path] = mirror.map(_.foldLeft(root)(_ / _))
   def label: String = group.map(g => s"$g/$name").getOrElse(name)
   def allDocs: Seq[Doc] = Seq(index) ++ log ++ subIndexes ++ concepts
+  /** Concepts written here rather than mirrored — what most checks and reports mean by "the bundle's concepts". */
+  def authoredConcepts: Seq[Doc] = concepts.filterNot(_.vendored)
   def allIndexes: Seq[Doc] = index +: subIndexes
   def okfVersion: Option[String] = index.fm.okfVersion
   def conceptAt(bundlePath: String): Option[Doc] =

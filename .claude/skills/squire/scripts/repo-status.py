@@ -43,6 +43,10 @@ def status_entry(entry):
     if entry.get("source"):
         lines.append(f"  source:   {entry['source']}")
 
+    if entry.get("sparse"):
+        # Only clones made with --sparse carry this; the checkout holds these subtrees alone.
+        lines.append(f"  sparse:   {' '.join(entry['sparse'])}")
+
     lines.append(f"  ref:      {entry.get('ref','?')}")
     lines.append(f"  recorded: {entry.get('commit','?')}")
     lines.append(f"  added:    {entry.get('added','?')}")
