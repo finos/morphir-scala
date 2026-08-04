@@ -80,7 +80,8 @@ object SyncLock:
 
 /** Where a mirrored file stands relative to the import baseline. Derived on every run, never stored. */
 enum SyncState:
-  case Clean, LocalOnly, UpstreamOnly, Diverged, MissingLocal, DeletedUpstream, Untracked, Unreadable
+  case Clean, LocalOnly, UpstreamOnly, Diverged, MissingLocal, DeletedUpstream, DeletedUpstreamEdited, Untracked,
+    Unreadable
 
   def label: String = this match
     case Clean => "clean"
@@ -89,6 +90,7 @@ enum SyncState:
     case Diverged => "diverged"
     case MissingLocal => "missing-local"
     case DeletedUpstream => "deleted-upstream"
+    case DeletedUpstreamEdited => "deleted-upstream-edited"
     case Untracked => "untracked"
     case Unreadable => "unreadable"
 
@@ -405,7 +407,7 @@ object KbSync:
   /** Compares local, baseline and upstream for one path. Upstream is optional so status works without a checkout. */
   private def stateOf(
       lockHash: Option[String],
-      localUpstreamForm: Option[Either[String, String]],
+      localUpstreamForm: Option[Either[String, Array[Byte]]],
       upstreamHash: Option[String]
   ): SyncState =
     (lockHash, localUpstreamForm, upstreamHash) match
@@ -413,7 +415,7 @@ object KbSync:
       case (None, _, _) => SyncState.Untracked
       case (Some(_), None, _) => SyncState.MissingLocal
       case (Some(base), Some(Right(local)), up) =>
-        val localHash = sha256(local.getBytes("UTF-8"))
+        val localHash = sha256(local)
         val localChanged = localHash != base
         up match
           case None => if localChanged then SyncState.LocalOnly else SyncState.Clean
@@ -424,17 +426,22 @@ object KbSync:
           case Some(h) if h == base => if localChanged then SyncState.LocalOnly else SyncState.Clean
           case Some(_) => if localChanged then SyncState.Diverged else SyncState.UpstreamOnly
 
-  /** Reads a mirrored file and reduces it to its upstream form. Assets are already in it. */
-  private def upstreamFormOf(sb: SyncBundle, rel: String, kind: SyncKind): Option[Either[String, String]] < (Sync & Abort[Throwable]) =
+  /** Reads a mirrored file and reduces it to the bytes it would go back upstream as.
+    *
+    * Bytes, not text: an asset is whatever upstream stores, and decoding one as UTF-8 to hash or export it would
+    * replace any invalid sequence with U+FFFD. That makes a freshly pulled binary look locally modified, and then
+    * writes the corruption out on push. Only concepts are text, because only concepts carry a frontmatter fence.
+    */
+  private def upstreamFormOf(sb: SyncBundle, rel: String, kind: SyncKind)
+      : Option[Either[String, Array[Byte]]] < (Sync & Abort[Throwable]) =
     val f = sb.localFile(rel)
     f.exists.map {
-      case false => (None: Option[Either[String, String]])
+      case false => (None: Option[Either[String, Array[Byte]]])
       case true =>
         readBytes(f).map { bytes =>
-          val text = String(bytes, "UTF-8")
           Some(kind match
-            case SyncKind.Concept => project(text)
-            case SyncKind.Asset => Right(text))
+            case SyncKind.Concept => project(String(bytes, "UTF-8")).map(_.getBytes("UTF-8"))
+            case SyncKind.Asset => Right(bytes))
         }
     }
 
@@ -452,8 +459,17 @@ object KbSync:
         val kind = entry.map(_.kind).getOrElse(sb.manifest.kindOf(rel))
         upstreamFormOf(sb, rel, kind).map { local =>
           val up = upstreamHashes.get(rel)
+          val goneUpstream = entry.isDefined && upstreamRoot.isDefined && up.isEmpty
+          // A file upstream has deleted but we have since edited is a conflict, not a clean deletion. Reporting it
+          // as `deleted-upstream` would let `pull --prune` throw the edit away without asking — the one operation
+          // here that destroys work nobody can recover.
+          val editedLocally = (entry, local) match
+            case (Some(e), Some(Right(bytes))) => sha256(bytes) != e.upstreamSha256
+            case (_, Some(Left(_))) => true
+            case _ => false
           val state =
-            if entry.isDefined && upstreamRoot.isDefined && up.isEmpty then SyncState.DeletedUpstream
+            if goneUpstream && editedLocally then SyncState.DeletedUpstreamEdited
+            else if goneUpstream then SyncState.DeletedUpstream
             else stateOf(entry.map(_.upstreamSha256), local, up)
           val detail = local match
             case Some(Left(err)) => err
@@ -487,6 +503,14 @@ object KbSync:
         if !safeRelative(rel) then
           (Chunk((Some(SyncAction("refused", rel, "path escapes the mirror")), None, Some(st)))
             : Chunk[(Option[SyncAction], Option[LockEntry], Option[FileStatus])] < (Sync & Abort[Throwable]))
+        else if st.state == SyncState.DeletedUpstreamEdited then
+          // Never pruned, and never taken by --theirs either: taking theirs here means deleting our edit, which is
+          // not what anyone reaching for that flag is asking for. The lock entry is kept so the file stays tracked.
+          (Chunk((
+            Some(SyncAction("held back", rel, "deleted upstream but edited here")),
+            sb.lock.get(rel),
+            Some(st)
+          )): Chunk[(Option[SyncAction], Option[LockEntry], Option[FileStatus])] < (Sync & Abort[Throwable]))
         else if st.state == SyncState.DeletedUpstream then
           val act = if prune then "removed" else "gone upstream"
           val doIt = prune && !dryRun
@@ -555,16 +579,21 @@ object KbSync:
         if st.state == SyncState.Diverged && !includeDiverged then
           (Chunk((SyncAction("held back", st.path, "diverged — reconcile, or pass --include-diverged"), Some(st)))
             : Chunk[(SyncAction, Option[FileStatus])] < (Sync & Abort[Throwable]))
+        else if st.state == SyncState.DeletedUpstreamEdited then
+          (Chunk((
+            SyncAction("held back", st.path, "deleted upstream but edited here — restore it there, or drop the edit"),
+            Some(st)
+          )): Chunk[(SyncAction, Option[FileStatus])] < (Sync & Abort[Throwable]))
         else if !exportable || !safeRelative(st.path) then
           (Chunk.empty[(SyncAction, Option[FileStatus])]: Chunk[(SyncAction, Option[FileStatus])] < (Sync & Abort[Throwable]))
         else
-          readBytes(sb.localFile(st.path)).map { bytes =>
-            project(String(bytes, "UTF-8")) match
-              case Left(err) => Chunk((SyncAction("refused", st.path, err), Some(st)))
-              case Right(upstreamForm) =>
-                val out = upstreamForm.getBytes("UTF-8")
-                (if dryRun then ((): Unit < (Sync & Abort[Throwable])) else writeBytes(resolve(target, st.path), out))
-                  .andThen(Chunk((SyncAction("wrote", st.path, st.state.label), None)))
+          // Through `upstreamFormOf` so assets travel as the bytes they are; only concepts get text projection.
+          upstreamFormOf(sb, st.path, st.kind).map {
+            case Some(Left(err)) => Chunk((SyncAction("refused", st.path, err), Some(st)))
+            case Some(Right(out)) =>
+              (if dryRun then ((): Unit < (Sync & Abort[Throwable])) else writeBytes(resolve(target, st.path), out))
+                .andThen(Chunk((SyncAction("wrote", st.path, st.state.label), None)))
+            case None => Chunk((SyncAction("refused", st.path, "vanished before it could be written"), Some(st)))
           }
       }.map(_.flattenChunk)
     yield (results.map(_._1).toSeq, results.flatMap(_._2).toSeq)
@@ -669,6 +698,15 @@ object KbSync:
               None,
               "upstream has moved on since the last import",
               Some("run `kb sync pull` to take it — nothing here is lost, this file has no local edits")
+            ))
+          case SyncState.DeletedUpstreamEdited =>
+            Seq(Finding(
+              Severity.Error,
+              "sync-deleted-upstream-edited",
+              where,
+              None,
+              "deleted upstream, but edited here since the last import",
+              Some("nothing will prune or overwrite it; restore it upstream and export, or revert the local edit")
             ))
           case SyncState.DeletedUpstream =>
             Seq(Finding(

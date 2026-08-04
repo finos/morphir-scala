@@ -810,6 +810,11 @@ object KbApp extends CommandsEntryPoint:
                   case None => ((): Unit < (Sync & Abort[Throwable]))
               yield ()
           _ <- Console.print(KbSync.renderActions(result.actions, result.refused, o.dryRun, o.sync.common.json))
+          // Non-zero when anything was held back, matching `sync push`. Without it a caller that only checks the
+          // exit code — spec-sync.py does — reports a clean import over files that were never imported.
+          _ <-
+            if result.refused.nonEmpty then Sync.defer(java.lang.System.exit(1))
+            else ((): Unit < (Sync & Abort[Throwable]))
         yield ()
       }
     }

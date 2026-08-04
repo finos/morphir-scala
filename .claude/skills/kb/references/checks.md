@@ -53,6 +53,7 @@ warning. Otherwise, if you mean to point at something unwritten, say so in prose
 | `sync-upstream-drift` | Upstream has moved on since the last import, and the local copy has no edits | `kb sync pull` takes it. Nothing here is lost — that is what "no edits" means |
 | `sync-diverged` | A mirrored file changed both here and upstream since the last import | Reconcile by hand; `kb sync diff <path>` shows both sides. `kb sync pull --theirs` discards the local side |
 | `sync-deleted-upstream` | A mirrored file is no longer present upstream | `kb sync pull --prune` removes it here too, if that is what you want |
+| `sync-deleted-upstream-edited` | Gone upstream, but carrying local edits — an **error**, because the edit is unrecoverable if discarded | Restore the file upstream and export, or revert the edit. Nothing prunes or overwrites it in the meantime. |
 
 ### On `index-description-drift`
 

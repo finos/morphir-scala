@@ -707,6 +707,78 @@ class KbSyncSpec extends Test[Any]:
     }
   }
 
+  "review regressions" - {
+    "regression: a binary asset survives status and push as bytes" in {
+      // Assets were decoded as UTF-8 to hash and to export. Any invalid sequence became U+FFFD, so a freshly pulled
+      // binary looked locally modified — and push then wrote the replacement characters over upstream's bytes.
+      val binary = Array[Byte](0xff.toByte, 0xfe.toByte, 0x00, 0x01, 0x80.toByte, 'o', 'k')
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        _ <- KbSync.writeBytes(upstream / "schemas" / "blob.bin", binary)
+        (_, sb0) <- loadSync(kbRoot)
+        result <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, result.lock)
+        (_, sb) <- loadSync(kbRoot)
+        mirrored <- KbSync.readBytes(sb.localFile("schemas/blob.bin"))
+        rows <- KbSync.status(sb, Some(upstream))
+        target <- scratch("export-binary")
+        _ <- sb.localFile("docs/types.md").read.map(t => sb.localFile("docs/types.md").write(t + "\nedit\n"))
+        (_, sb2) <- loadSync(kbRoot)
+        _ <- KbSync.push(sb2, target, Some(upstream), dryRun = false, includeDiverged = false)
+        exportedExists <- (target / "schemas" / "blob.bin").exists
+      yield
+        assert(mirrored.sameElements(binary), "the mirror holds upstream's bytes verbatim")
+        assert(
+          rows.find(_.path == "schemas/blob.bin").map(_.state).contains(SyncState.Clean),
+          s"got ${rows.find(_.path == "schemas/blob.bin").map(_.state.label)}"
+        )
+        assert(!exportedExists, "an unchanged asset is not rewritten")
+    }
+    "regression: a file deleted upstream but edited here is never pruned" in {
+      // `deleted-upstream` was assigned before the local hash was consulted, so `pull --prune` deleted a file
+      // carrying edits that were waiting to be exported — the one operation here that destroys unrecoverable work.
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        (_, sb0) <- loadSync(kbRoot)
+        result <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, result.lock)
+        before <- sb0.localFile("docs/types.md").read
+        _ <- sb0.localFile("docs/types.md").write(before + "\nWork we mean to send.\n")
+        _ <- KbSync.deleteFile(upstream / "docs" / "types.md")
+        (_, sb) <- loadSync(kbRoot)
+        rows <- KbSync.status(sb, Some(upstream))
+        pruned <- KbSync.pull(sb, upstream, "deadbeef", today, dryRun = false, theirs = true, prune = true)
+        stillThere <- sb.localFile("docs/types.md").exists
+        content <- sb.localFile("docs/types.md").read
+      yield
+        assert(
+          rows.find(_.path == "docs/types.md").map(_.state).contains(SyncState.DeletedUpstreamEdited),
+          s"got ${rows.find(_.path == "docs/types.md").map(_.state.label)}"
+        )
+        assert(stillThere, "--prune --theirs together must still not delete it")
+        assert(content.contains("Work we mean to send."), "and the edit is intact")
+        assert(pruned.refused.map(_.path) == Seq("docs/types.md"), s"got ${pruned.refused.map(_.path)}")
+    }
+    "pull populates `refused`, which is the contract the CLI's exit code rests on" in {
+      // The library always reported refusals here; the command ignored them and exited 0, so spec-sync.py — which
+      // checks only the exit code — announced "Import complete" over files it had not imported. The fix is in
+      // SyncPullCmd, verified end to end rather than here; this pins the contract that fix depends on.
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        (_, sb0) <- loadSync(kbRoot)
+        first <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, first.lock)
+        _ <- KbSync.writeBytes(upstream / "docs" / "types.md", "---\ntitle: Types\ndescription: Theirs.\n---\n\n# T\n".getBytes("UTF-8"))
+        before <- sb0.localFile("docs/types.md").read
+        _ <- sb0.localFile("docs/types.md").write(before + "\nOurs.\n")
+        (_, sb) <- loadSync(kbRoot)
+        again <- KbSync.pull(sb, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+      yield
+        assert(again.refused.map(_.path) == Seq("docs/types.md"), s"got ${again.refused.map(_.path)}")
+        assert(again.refused.head.state == SyncState.Diverged, s"got ${again.refused.head.state.label}")
+    }
+  }
+
   "status" - {
     "is clean straight after a pull, and local-only after an edit" in {
       for

@@ -137,7 +137,8 @@ When you do commit in the checkout, the message must carry no `Generated with â€
 | `upstream-only` | Upstream moved; no local edits. | `spec sync` takes it, losing nothing. |
 | `diverged` | Both sides changed since the import. | Reconcile by hand. `kb sync diff <path>` shows both. `--theirs` takes upstream's; `--include-diverged` sends yours. |
 | `missing-local` | In the lockfile, absent from the mirror. | `spec sync` restores it. If upstream dropped it, `--prune`. |
-| `deleted-upstream` | Mirrored here, gone upstream. | `spec sync --prune` removes it here too, if that is what you want. |
+| `deleted-upstream` | Mirrored here, gone upstream, unmodified. | `spec sync --prune` removes it here too, if that is what you want. |
+| `deleted-upstream-edited` | Gone upstream, but edited here. | Held back by everything, `--prune` included. Restore it upstream and export, or revert the edit. |
 | `untracked` | Matches a mapping in `sync.yaml` but was never imported. | `spec sync` imports it. |
 | `unreadable` | The `# kb:begin` â€¦ `# kb:end` region is damaged, so the file cannot be reduced to its upstream form. | Repair the fence by hand, or re-import with `--theirs`. An error, not a warning: an export would send the wrong bytes. |
 

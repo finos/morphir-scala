@@ -173,7 +173,8 @@ upstream file's hash. Nothing is stored.
 | `upstream-only` | Upstream moved; no local edits | takes it — nothing local is lost | nothing |
 | `diverged` | Both sides moved since the import | refuses, unless `--theirs` | writes it — see the note below |
 | `missing-local` | In the lockfile, absent from the mirror | re-imports it from upstream | nothing |
-| `deleted-upstream` | In the lockfile, gone upstream | reports it and keeps it; `--prune` deletes it and drops the entry | nothing, unless it was also edited here |
+| `deleted-upstream` | In the lockfile, gone upstream, unmodified here | reports it and keeps it; `--prune` deletes it and drops the entry | nothing |
+| `deleted-upstream-edited` | Gone upstream, but edited here since the import | holds it back — neither `--prune` nor `--theirs` will touch it | holds it back; restore it upstream, or drop the edit |
 | `untracked` | Upstream has it and a mapping selects it, but the lockfile does not list it | imports it | nothing |
 | `unreadable` | The kb fence is damaged, so the file cannot be projected | refuses, unless `--theirs` overwrites it from upstream | skipped |
 
