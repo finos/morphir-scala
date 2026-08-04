@@ -239,6 +239,92 @@ The body is a stub with a `TODO` comment. Write it yourself — → [authoring.m
 
 ---
 
+## `sync …`
+
+Mirrors an upstream repository into a bundle and projects edits back out. The *mechanism* — the manifest, the
+lockfile, the fenced frontmatter block, the state model — is documented in [sync.md](sync.md); this is the flag
+reference.
+
+All four take these:
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--bundle <b>` | Bundle to sync. Defaults to the one whose root `index.md` declares `sync: true` |
+| `--refs <path>` | Reference checkout root (default `<repo>/.refs`). The upstream checkout is `<refs>/<upstream.refs_path>` |
+
+`pull` and `diff` fail with guidance when that checkout is absent, as does `push` unless `--to` names somewhere
+else. `status` does not — it falls back to comparing the mirror against the lockfile alone.
+
+### `sync status`
+
+What has moved, here and upstream. Clean files are omitted unless you ask for them.
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--no-upstream` | Do not consult the upstream checkout — compare the mirror against the lockfile only |
+| `--verbose` | List clean files too |
+| `--strict` | Exit non-zero when anything is `diverged` or `unreadable` |
+
+```bash
+.claude/skills/kb/kb sync status
+```
+
+JSON gives `{files[{path, kind, state, detail}], summary{<state>: <count>}}`.
+
+### `sync pull`
+
+Imports upstream, rewrites `sync.lock.yaml`, then regenerates the bundle index below the `<!-- kb:sources -->`
+marker. `base_commit` is the checkout's current HEAD.
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--dry-run` | Report what would change without writing anything — no files, no lockfile, no index |
+| `--theirs` | Take upstream's version of files that changed on both sides. Without it, those are refused and listed |
+| `--prune` | Delete mirrored files upstream has removed, and drop their lockfile entries |
+| `--date <YYYY-MM-DD>` | Override today's date in `imported_at` and the generated index |
+
+```bash
+.claude/skills/kb/kb sync pull --dry-run
+```
+
+```bash
+.claude/skills/kb/kb sync pull --theirs --prune
+```
+
+### `sync push`
+
+Projects each locally-edited file back to its upstream form and writes it into a checkout. It writes files and
+stops — branching, validating and opening a pull request are separate, explicit steps.
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--to <path>` | Checkout to write into (default: the reference checkout) |
+| `--dry-run` | Report what would be written without writing anything |
+| `--include-diverged` | Also export files that changed upstream since the last import |
+
+Exits non-zero if any path was refused. Note that `push` compares the mirror against the lockfile only and never
+reads upstream, so a file that moved on both sides presents to it as a local change and is exported regardless of
+`--include-diverged`. Run `sync status` first when that distinction matters.
+
+```bash
+.claude/skills/kb/kb sync push --dry-run
+```
+
+### `sync diff`
+
+`git diff` between upstream's copy of a file and the **upstream form** of ours — the bytes an export would send,
+with the kb frontmatter block removed.
+
+| Flag | Meaning |
+| ---- | ------- |
+| `--path <p>` | Mirrored path, relative to the mirror root. Also accepted positionally |
+
+```bash
+.claude/skills/kb/kb sync diff docs/spec/draft/types.md
+```
+
+---
+
 ## `intent …`
 
 Intent management. The *process* — states, kinds, obligations, when to reach for what — is documented in the

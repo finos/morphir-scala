@@ -1,0 +1,42 @@
+# What this bundle mirrors from finos/morphir, and where it lands.
+#
+# Hand-written and reviewed. The generated companion is sync.lock.yaml, which records the commit each file came from
+# and its hash — that is what `kb sync status` compares against, and it is never edited by hand.
+#
+# Scope is the IR *format*: the specification prose, the design documents behind it, the JSON schemas that actually
+# define it, and the fixtures and examples that exercise it. The adjacent design themes — daemon, document tree
+# protocol, extensions — concern the toolchain rather than the format, and are deliberately out.
+
+upstream:
+  repo: finos/morphir
+  ref: main
+  refs_path: finos/morphir
+
+root: sources
+
+mappings:
+  # The v4 draft narrative.
+  - "docs/spec/draft/**"
+  # The published spec tree, including the v4 schema reference and the Document Tree file format. Larger and more
+  # detailed than the draft, and the bundle's original seeding never saw it.
+  - "docs/spec/ir/**"
+  # The reasoning behind the format.
+  - "docs/design/draft/ir/**"
+  # The schemas themselves. YAML only: the sibling .json files are generated from these by
+  # website/scripts/yaml-to-json-schemas.js, so mirroring them would mean maintaining two copies of one fact.
+  - "website/static/schemas/morphir-*.yaml"
+  # Executable ground truth — the only artifacts anything actually validates against.
+  - "tests/bdd/fixtures/ir/v4/**"
+  - "tests/bdd/features/ir/v4_compliance.feature"
+  - "website/static/ir/examples/v4/**"
+  # The IR expressed as WebAssembly Interface Types.
+  - "wit/morphir-ir/**"
+  # Accepted and proposed decisions that bear on the format.
+  - "docs/adr/**"
+
+# First match wins, so the narrower globs come first.
+type_map:
+  "docs/design/**": Design Source
+  "docs/adr/**": Decision Record
+  "docs/spec/**": Specification Source
+  "wit/**": Interface Definition

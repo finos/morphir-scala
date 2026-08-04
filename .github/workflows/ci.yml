@@ -80,6 +80,11 @@ jobs:
         run: |
           .claude/skills/kb/kb check --no-provenance
           .claude/skills/kb/kb intent check
+      # Mirrored upstream sources are compared against sync.lock.yaml only. The other half of the comparison needs
+      # .refs/, which is gitignored and absent here — same reason provenance is skipped above. What this does catch
+      # is a mirrored file edited into a state it could not be exported from, which is the failure that matters.
+      - name: Check mirrored upstream sources
+        run: .claude/skills/kb/kb sync status --no-upstream --strict
 
   test-js:
     runs-on: ubuntu-latest

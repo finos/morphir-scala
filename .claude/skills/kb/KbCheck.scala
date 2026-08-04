@@ -69,7 +69,7 @@ object KbCheck:
     }
 
   private def docFindings(kb: Kb, b: Bundle, d: Doc, today: LocalDate, allowDangling: Boolean): Chunk[Finding] < (Sync & Abort[Throwable]) =
-    linkFindings(kb, d, allowDangling).map(links => Chunk.from(pureDocFindings(kb, d, today)) ++ links)
+    linkFindings(kb, b, d, allowDangling).map(links => Chunk.from(pureDocFindings(kb, d, today)) ++ links)
 
   /** Everything about a document that can be decided without touching the filesystem. */
   def pureDocFindings(kb: Kb, d: Doc, today: LocalDate): Seq[Finding] =
@@ -100,8 +100,27 @@ object KbCheck:
         ))
       case _ => Nil
 
+    // A mirrored document's frontmatter belongs to upstream. Demanding OKF's `status` vocabulary of it, or reporting
+    // every `sidebar_position` as an unknown key, would bury the findings that are actually ours to fix. `type` still
+    // has to be there — `kb sync pull` injects it, so its absence means the injection failed.
+    val vendoredErrors =
+      if !d.vendored || !d.hasFrontmatterBlock then Nil
+      else
+        Seq(
+          Option.when(d.fm.`type`.isEmpty)(
+            Finding(
+              Severity.Error,
+              "concept-missing-type",
+              where,
+              Some(1),
+              "mirrored concept has no `type` — the kb frontmatter block is missing or damaged",
+              Some("re-run `kb sync pull` for this bundle")
+            )
+          )
+        ).flatten
+
     val conceptErrors =
-      if !d.isConcept || !d.hasFrontmatterBlock then Nil
+      if !d.isConcept || !d.hasFrontmatterBlock || d.vendored then Nil
       else
         val fm = d.fm
         Seq(
@@ -120,7 +139,7 @@ object KbCheck:
           )
         ).flatten ++ unknownKeys(where, d)
 
-    fmErrors ++ kindErrors ++ conceptErrors
+    fmErrors ++ kindErrors ++ conceptErrors ++ vendoredErrors
 
   private def unknownKeys(where: String, d: Doc): Seq[Finding] =
     d.fm.values.keys.filterNot(Frontmatter.Known.contains).toSeq.sorted.map { k =>
@@ -134,19 +153,37 @@ object KbCheck:
     * linter, where a dangling link is nearly always a typo — so it is an error by default. `allowDangling` restores
     * OKF's lenient stance for a knowledge base that genuinely links forward to unwritten work.
     */
-  private def linkFindings(kb: Kb, d: Doc, allowDangling: Boolean): Chunk[Finding] < (Sync & Abort[Throwable]) =
-    val resolvable = d.links.flatMap(l => KbStore.resolveLink(d, l).map(l -> _))
+  private def linkFindings(kb: Kb, b: Bundle, d: Doc, allowDangling: Boolean): Chunk[Finding] < (Sync & Abort[Throwable]) =
+    // A mirrored document's links are written for the *upstream site*, where `../migration-guide/` and
+    // `/schemas/x.yaml` are routes rather than paths on disk. Resolving those needs the site's own configuration,
+    // which a domain-neutral tool cannot know — so only relative links that name an actual file are checked, and the
+    // rest are left to whatever link checker upstream runs. Reporting routes as rot would bury the real findings.
+    val resolveOne: LinkRef => Option[Path] =
+      if d.vendored then
+        link =>
+          val target = link.dest.takeWhile(_ != '#')
+          val last = target.split("/").filter(_.nonEmpty).lastOption
+          val namesAFile = last.exists(s => s.contains('.') && s != "." && s != "..")
+          Option.when(namesAFile && !link.isBundleRelative)(link).flatMap(KbStore.resolveLink(d, _))
+      else link => KbStore.resolveLink(d, link)
+
+    val severity =
+      if d.vendored || allowDangling then Severity.Warn else Severity.Error
+    val rule = if d.vendored then "link-broken-upstream" else "link-broken"
+
+    val resolvable = d.links.flatMap(l => resolveOne(l).map(l -> _))
     Kyo.foreach(Chunk.from(resolvable)) { (link, target) =>
       target.exists.map {
         case true => Chunk.empty[Finding]
         case false =>
           Chunk(Finding(
-            if allowDangling then Severity.Warn else Severity.Error,
-            "link-broken",
+            severity,
+            rule,
             kb.rel(d.file),
             Some(link.line),
             s"link target does not exist: ${link.dest}",
-            Option.when(link.isBundleRelative)("bundle-relative paths start at the bundle root, not the kb root")
+            if d.vendored then Some("upstream's own link; fix it there and export, or leave it")
+            else Option.when(link.isBundleRelative)("bundle-relative paths start at the bundle root, not the kb root")
           ))
       }
     }.map(_.flattenChunk)
@@ -194,15 +231,18 @@ object KbCheck:
   private def normalize(s: String): String =
     s.trim.stripSuffix(".").replaceAll("\\s+", " ").toLowerCase
 
+  /** Mirrored documents are excluded: upstream reuses `index.md` and `whats-new.md` across version directories, and
+    * that is upstream's naming to answer for, not a defect in this bundle.
+    */
   private def duplicateTitles(kb: Kb, b: Bundle): Seq[Finding] =
-    b.concepts.groupBy(_.displayTitle).filter(_._2.size > 1).toSeq.sortBy(_._1).flatMap { (title, docs) =>
+    b.authoredConcepts.groupBy(_.displayTitle).filter(_._2.size > 1).toSeq.sortBy(_._1).flatMap { (title, docs) =>
       docs.map(d =>
         Finding(Severity.Warn, "duplicate-title", kb.rel(d.file), Some(1), s"title `$title` is used by ${docs.size} concepts in ${b.label}")
       )
     }
 
   private def readmeInBundle(kb: Kb, b: Bundle): Seq[Finding] =
-    b.concepts.filter(_.name.equalsIgnoreCase("README.md")).map { d =>
+    b.authoredConcepts.filter(_.name.equalsIgnoreCase("README.md")).map { d =>
       Finding(
         Severity.Error,
         "readme-in-bundle",

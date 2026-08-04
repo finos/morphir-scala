@@ -1,6 +1,6 @@
 //| scalaVersion: 3.8.4
 //| mainClass: KbApp
-//| moduleDeps: [KbCheck.scala, KbScaffold.scala, KbRender.scala, KbIndex.scala, KbRefresh.scala, KbIntentEdit.scala]
+//| moduleDeps: [KbCheck.scala, KbScaffold.scala, KbRender.scala, KbIndex.scala, KbRefresh.scala, KbIntentEdit.scala, KbSync.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-case-app:1.0.0-RC5
 
@@ -205,6 +205,39 @@ case class IntentSupersedeOpts(
     @HelpMessage("Override today's date (YYYY-MM-DD)") date: Option[String] = None
 )
 
+case class SyncCommonOpts(
+    @Recurse common: CommonOpts = CommonOpts(),
+    @HelpMessage("Bundle to sync (defaults to the one whose index declares `sync: true`)") bundle: Option[String] = None,
+    @HelpMessage("Reference checkouts root (default: <repo>/.refs)") refs: Option[String] = None
+)
+
+case class SyncStatusOpts(
+    @Recurse sync: SyncCommonOpts = SyncCommonOpts(),
+    @HelpMessage("Do not consult the upstream checkout — compare the mirror against the lockfile only") noUpstream: Boolean = false,
+    @HelpMessage("List clean files too") verbose: Boolean = false,
+    @HelpMessage("Exit non-zero when anything has diverged") strict: Boolean = false
+)
+
+case class SyncPullOpts(
+    @Recurse sync: SyncCommonOpts = SyncCommonOpts(),
+    @HelpMessage("Report what would change without writing anything") dryRun: Boolean = false,
+    @HelpMessage("Take upstream's version of files that changed on both sides") theirs: Boolean = false,
+    @HelpMessage("Delete mirrored files that upstream has removed") prune: Boolean = false,
+    @HelpMessage("Override today's date (YYYY-MM-DD)") date: Option[String] = None
+)
+
+case class SyncPushOpts(
+    @Recurse sync: SyncCommonOpts = SyncCommonOpts(),
+    @HelpMessage("Checkout to write the upstream form into (default: the reference checkout)") to: Option[String] = None,
+    @HelpMessage("Report what would be written without writing anything") dryRun: Boolean = false,
+    @HelpMessage("Also export files that changed upstream since the last import") includeDiverged: Boolean = false
+)
+
+case class SyncDiffOpts(
+    @Recurse sync: SyncCommonOpts = SyncCommonOpts(),
+    @HelpMessage("Mirrored path, e.g. docs/spec/draft/types.md") path: Option[String] = None
+)
+
 // -------------------------------------------------------------------- shared
 
 object KbCli:
@@ -308,6 +341,55 @@ object KbCli:
   def intentId(flag: Option[String], rest: caseapp.RemainingArgs): Option[String] =
     flag.orElse(rest.remaining.headOption).map(_.trim).filter(_.nonEmpty)
 
+  /** `.refs/` sits beside `kb/`, which is the convention `kb check` already follows for provenance. */
+  def refsRoot(explicit: Option[String], kbRoot: Path): Path =
+    explicit.map(at).getOrElse(Path((kbRoot.parts.dropRight(1) :+ ".refs")*))
+
+  /** Loads the kb and the sync bundle's manifest and lockfile, failing with guidance when either is missing. */
+  def withSync[A](o: SyncCommonOpts)(
+      f: (Path, Kb, SyncBundle) => A < (Async & Abort[Throwable])
+  ): A < (Async & Abort[Throwable]) =
+    for
+      root <- resolveKb(o.common.kb)
+      kb <- KbStore.load(root)
+      b <- KbSync.findBundle(kb, o.bundle) match
+        case Some(b) => (b: Bundle < (Async & Abort[Throwable]))
+        case None =>
+          Abort.fail(RuntimeException(
+            "no sync bundle — no bundle index declares `sync: true`. Pass --bundle, or add a sync.yaml."
+          ))
+      loaded <- KbSync.load(b)
+      out <- loaded match
+        case Left(err) => Abort.fail(RuntimeException(err))
+        case Right(sb) => f(root, kb, sb)
+    yield out
+
+  /** The upstream checkout a sync bundle reads from, when it is present on disk. */
+  def upstreamRoot(refs: Path, sb: SyncBundle): Option[Path] < (Sync & Abort[Throwable]) =
+    val candidate = sb.manifest.refsPath.split("/").filter(_.nonEmpty).foldLeft(refs)(_ / _)
+    candidate.exists.map(Option.when(_)(candidate))
+
+  /** Sync findings for every bundle that mirrors something, folded into `kb check` alongside the rest. */
+  def allSyncFindings(kb: Kb, refs: Path, useUpstream: Boolean): Seq[Finding] < (Sync & Abort[Throwable]) =
+    Kyo.foreach(Chunk.from(kb.bundles.filter(_.mirror.isDefined))) { b =>
+      KbSync.load(b).map {
+        case Left(_) => (Chunk.empty[Finding]: Chunk[Finding] < (Sync & Abort[Throwable]))
+        case Right(sb) =>
+          val up = if useUpstream then upstreamRoot(refs, sb) else (None: Option[Path] < (Sync & Abort[Throwable]))
+          up.map(KbSync.checkFindings(kb, sb, _).map(Chunk.from))
+      }
+    }.map(_.flattenChunk.toSeq)
+
+  def requireUpstream(refs: Path, sb: SyncBundle): Path < (Async & Abort[Throwable]) =
+    upstreamRoot(refs, sb).map {
+      case Some(p) => (p: Path < (Async & Abort[Throwable]))
+      case None =>
+        Abort.fail(RuntimeException(
+          s"no reference checkout for ${sb.manifest.repo} under ${KbPath.render(refs)} — " +
+            s"add one with `/squire reference repo add https://github.com/${sb.manifest.repo}`"
+        ))
+    }
+
   def runTransition(
       kbOpt: Option[String],
       json: Boolean,
@@ -348,6 +430,7 @@ object KbApp extends CommandsEntryPoint:
   def commands =
     Seq(ListCmd, ShowCmd, SearchCmd, CheckCmd, IndexCmd, RefreshCmd, RefreshMarkdownCmd, RefreshDbCmd, QueryCmd,
       NewBundleCmd, AddConceptCmd,
+      SyncStatusCmd, SyncPullCmd, SyncPushCmd, SyncDiffCmd,
       IntentInitCmd, IntentNewCmd, IntentListCmd, IntentShowCmd, IntentCheckCmd,
       IntentRefineCmd, IntentStartCmd, IntentMoveCmd, IntentReleaseCmd, IntentCancelCmd, IntentSupersedeCmd)
 
@@ -482,7 +565,9 @@ object KbApp extends CommandsEntryPoint:
         kb <- KbStore.load(root)
         refsCandidate = o.refs.map(KbCli.at).getOrElse(Path((root.parts.dropRight(1) :+ ".refs")*))
         refsPresent <- if o.noProvenance then (false: Boolean < (Sync & Abort[Throwable])) else refsCandidate.exists
-        findings <- KbCheck.run(kb, Option.when(refsPresent)(refsCandidate), LocalDate.now(), o.allowDangling)
+        core <- KbCheck.run(kb, Option.when(refsPresent)(refsCandidate), LocalDate.now(), o.allowDangling)
+        sync <- KbCli.allSyncFindings(kb, refsCandidate, refsPresent)
+        findings = (core ++ sync).sortBy(f => (f.severity.ordinal, f.path, f.line.getOrElse(0)))
         text = if o.common.json then KbCheck.renderJson(findings) else KbCheck.renderText(findings, o.verbose)
         _ <- KbCli.emit(text, o.out)
         errs = findings.count(_.severity == Severity.Error)
@@ -679,4 +764,115 @@ object KbApp extends CommandsEntryPoint:
         case Some(id) =>
           KbCli.runTransition(o.common.kb, o.common.json, id, o.date)(_ =>
             KbIntentEdit.Transition(IntentState.Superseded, supersededBy = o.by))
+    }
+
+  // ------------------------------------------------------------------- sync
+
+  object SyncStatusCmd extends KyoCommand[SyncStatusOpts]:
+    override def name = "sync status"
+    override def names = List(List("sync", "status"))
+    run { (o: SyncStatusOpts) =>
+      KbCli.withSync(o.sync) { (root, _, sb) =>
+        val refs = KbCli.refsRoot(o.sync.refs, root)
+        for
+          up <- if o.noUpstream then (None: Option[Path] < (Sync & Abort[Throwable])) else KbCli.upstreamRoot(refs, sb)
+          rows <- KbSync.status(sb, up)
+          _ <- Console.print(KbSync.renderStatus(rows, o.sync.common.json, o.verbose))
+          bad = rows.count(r => r.state == SyncState.Diverged || r.state == SyncState.Unreadable)
+          _ <-
+            if o.strict && bad > 0 then Sync.defer(java.lang.System.exit(1))
+            else ((): Unit < (Sync & Abort[Throwable]))
+        yield ()
+      }
+    }
+
+  object SyncPullCmd extends KyoCommand[SyncPullOpts]:
+    override def name = "sync pull"
+    override def names = List(List("sync", "pull"))
+    run { (o: SyncPullOpts) =>
+      KbCli.withSync(o.sync) { (root, _, sb) =>
+        val refs = KbCli.refsRoot(o.sync.refs, root)
+        val today = KbCli.today(o.date)
+        for
+          up <- KbCli.requireUpstream(refs, sb)
+          head <- KbCheck.gitHead(up)
+          result <- KbSync.pull(sb, up, head.getOrElse(sb.lock.baseCommit), today, o.dryRun, o.theirs, o.prune)
+          _ <-
+            if o.dryRun then ((): Unit < (Async & Abort[Throwable]))
+            else
+              for
+                written <- KbSync.writeLock(sb, result.lock)
+                // Reload before generating the index: the bullets have to carry the descriptions of the concepts
+                // that were just written, and the in-memory bundle predates them.
+                reloaded <- KbStore.load(root)
+                _ <- KbSync.findBundle(reloaded, o.sync.bundle) match
+                  case Some(b) => KbSync.generateIndex(sb.copy(bundle = b), written, today).unit
+                  case None => ((): Unit < (Sync & Abort[Throwable]))
+              yield ()
+          _ <- Console.print(KbSync.renderActions(result.actions, result.refused, o.dryRun, o.sync.common.json))
+          // Non-zero when anything was held back, matching `sync push`. Without it a caller that only checks the
+          // exit code — spec-sync.py does — reports a clean import over files that were never imported.
+          _ <-
+            if result.refused.nonEmpty then Sync.defer(java.lang.System.exit(1))
+            else ((): Unit < (Sync & Abort[Throwable]))
+        yield ()
+      }
+    }
+
+  object SyncPushCmd extends KyoCommand[SyncPushOpts]:
+    override def name = "sync push"
+    override def names = List(List("sync", "push"))
+    run { (o: SyncPushOpts) =>
+      KbCli.withSync(o.sync) { (root, _, sb) =>
+        val refs = KbCli.refsRoot(o.sync.refs, root)
+        for
+          target <- o.to match
+            case Some(p) => (KbCli.at(p): Path < (Async & Abort[Throwable]))
+            case None => KbCli.requireUpstream(refs, sb)
+          // Consult the checkout even when exporting elsewhere: it is the only way to know whether a change here
+          // would be overwriting a change there.
+          up <- KbCli.upstreamRoot(refs, sb)
+          out <- KbSync.push(sb, target, up, o.dryRun, o.includeDiverged)
+          (actions, refused) = out
+          _ <- Console.print(KbSync.renderActions(actions, refused, o.dryRun, o.sync.common.json))
+          _ <-
+            if refused.nonEmpty then Sync.defer(java.lang.System.exit(1))
+            else ((): Unit < (Sync & Abort[Throwable]))
+        yield ()
+      }
+    }
+
+  object SyncDiffCmd extends KyoCommand[SyncDiffOpts]:
+    override def name = "sync diff"
+    override def names = List(List("sync", "diff"))
+    run { (o: SyncDiffOpts, rest: caseapp.RemainingArgs) =>
+      o.path.orElse(rest.remaining.headOption).map(_.trim).filter(_.nonEmpty) match
+        case None => KbCli.fail("give a mirrored path, e.g. `kb sync diff docs/spec/draft/types.md`")
+        case Some(rel) =>
+          KbCli.withSync(o.sync) { (root, _, sb) =>
+            val refs = KbCli.refsRoot(o.sync.refs, root)
+            for
+              up <- KbCli.requireUpstream(refs, sb)
+              local <- KbSync.readBytes(sb.localFile(rel))
+              _ <- KbSync.project(String(local, "UTF-8")) match
+                case Left(err) => KbCli.fail(s"$rel: $err")
+                case Right(projected) =>
+                  // Diff the *upstream form* of our copy, which is the thing an export would send.
+                  val tmp = Path(sys.props.getOrElse("java.io.tmpdir", "/tmp")) / s"kb-sync-${rel.replace('/', '_')}"
+                  for
+                    _ <- KbSync.writeBytes(tmp, projected.getBytes("UTF-8"))
+                    res <- Abort.run[Throwable](
+                      Command(
+                        "git", "diff", "--no-index", "--",
+                        KbPath.render(KbSync.resolve(up, rel)),
+                        KbPath.render(tmp)
+                      ).textWithExitCode
+                    )
+                    _ <- res match
+                      case Result.Success((text, _)) if text.trim.isEmpty => Console.printLine(s"$rel: identical")
+                      case Result.Success((text, _)) => Console.print(text)
+                      case _ => KbCli.fail("git diff failed — is git on PATH?")
+                  yield ()
+            yield ()
+          }
     }

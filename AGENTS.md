@@ -108,6 +108,10 @@ mise run test:jvm       # Run JVM tests (includes langkit.itest)
 mise run test:js        # Run JS tests (includes the wasm link variants)
 mise run test:native    # Run Scala Native tests
 mise run ci:local       # Run full local CI
+mise run kb:check       # Check the knowledge base and its intent records
+mise run kb:sync        # Check the mirrored upstream sources against their lockfile
+mise run schemas:build  # Generate the Morphir IR JSON schemas from the mirrored YAML
+mise run schemas:check  # Validate the mirrored v4 documents against those schemas
 ```
 
 Or use Mill directly:

@@ -46,9 +46,12 @@ def disk_status(entry):
     if path.is_dir():
         commit = current_commit(path)
         if commit:
+            # Flag sparse clones — the tree on disk is deliberately partial, and a
+            # "file not found" there means "not checked out", not "not upstream".
+            sparse = " [sparse]" if entry.get("sparse") else ""
             if commit != entry.get("commit"):
-                return f"MODIFIED (was {entry.get('commit','?')[:8]}, now {commit[:8]})"
-            return f"OK ({commit[:8]})"
+                return f"MODIFIED (was {entry.get('commit','?')[:8]}, now {commit[:8]}){sparse}"
+            return f"OK ({commit[:8]}){sparse}"
         return "DIR_NO_GIT"
     return "MISSING"
 

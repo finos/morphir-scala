@@ -4,7 +4,7 @@ squire repo add — Add a reference repository to .refs/
 
 Usage:
   python3 repo-add.py <url-or-path> [--name NAME] [--ref REF] [--strategy clone|symlink|worktree]
-                       [--depth N | --full]
+                       [--depth N | --full] [--sparse PATH [PATH ...]]
 
 Strategies:
   clone     (default) Git clone into .refs/<org>/<name>
@@ -26,6 +26,13 @@ Clone depth:
   Clones default to --depth 1 (shallow, just the ref being downloaded).
   Pass --depth N for a deeper shallow clone, or --full for complete history.
   Ignored for symlink/worktree strategies.
+
+Sparse checkout:
+  --sparse PATH [PATH ...] materialises only those subtrees. The clone is
+  partial (--filter=blob:none) and sparse (--sparse), then the paths are
+  applied with `git sparse-checkout set`. Use it for large monorepos where
+  only a couple of directories matter — a spec mirror, a schema directory.
+  Clone strategy only; the paths are recorded in the manifest as "sparse".
 
 The manifest at .refs/manifest.json is updated after every operation.
 """
@@ -129,32 +136,50 @@ def is_github_url(url):
     return "github.com" in url
 
 
-def add_clone(url, name, ref, dest, depth):
+def add_clone(url, name, ref, dest, depth, sparse):
     """Clone a remote URL into dest, preferring gh CLI for GitHub URLs.
 
     depth=None means a full clone (all history); any int means a shallow
     clone truncated to that many commits on the resolved ref.
+
+    sparse=None means an ordinary full-tree checkout. A non-empty list turns
+    the clone partial + sparse, so only those subtrees land on disk.
     """
-    depth_args = [] if depth is None else ["--depth", str(depth)]
+    # Order matters only for readability — git accepts these in any order before the URL.
+    clone_flags = [] if depth is None else ["--depth", str(depth)]
+    if sparse:
+        # --filter=blob:none skips blobs we never check out; --sparse leaves the
+        # working tree at the root files only, until sparse-checkout set runs below.
+        clone_flags += ["--filter=blob:none", "--sparse"]
+    if ref:
+        clone_flags += ["--branch", ref, "--single-branch"]
+    shape = f"depth={depth or 'full'}"
+    if sparse:
+        shape += f", sparse={' '.join(sparse)}"
     if is_github_url(url) and gh_available():
-        # gh repo clone handles auth, SSH fallback, and is generally faster
+        # gh repo clone handles auth, SSH fallback, and is generally faster.
+        # Anything after `--` is forwarded verbatim to git clone, so the partial
+        # and sparse flags compose with it unchanged.
         cmd = ["gh", "repo", "clone", url, str(dest)]
-        extra = depth_args[:]
-        if ref:
-            extra += ["--branch", ref, "--single-branch"]
-        if extra:
-            cmd += ["--"] + extra
-        print(f"Cloning {url} → {dest} (via gh, depth={depth or 'full'}) ...")
+        if clone_flags:
+            cmd += ["--"] + clone_flags
+        print(f"Cloning {url} → {dest} (via gh, {shape}) ...")
     else:
-        cmd = ["git", "clone"] + depth_args
-        if ref:
-            cmd += ["--branch", ref, "--single-branch"]
-        cmd += [url, str(dest)]
-        print(f"Cloning {url} → {dest} (via git, depth={depth or 'full'}) ...")
+        cmd = ["git", "clone"] + clone_flags + [url, str(dest)]
+        print(f"Cloning {url} → {dest} (via git, {shape}) ...")
     subprocess.run(cmd, check=True)
+    if sparse:
+        # `git clone --sparse` leaves cone mode on, so `set` takes plain directory
+        # paths here rather than gitignore-style patterns.
+        print(f"Restricting checkout to: {', '.join(sparse)}")
+        subprocess.run(["git", "-C", str(dest), "sparse-checkout", "set"] + list(sparse), check=True)
     actual_ref = resolve_ref_name(dest)
     commit = resolve_git_ref(dest)
-    return {"strategy": "clone", "url": url, "ref": actual_ref, "commit": commit, "depth": depth}
+    meta = {"strategy": "clone", "url": url, "ref": actual_ref, "commit": commit, "depth": depth}
+    if sparse:
+        # Only written when actually sparse, so existing manifests stay byte-identical.
+        meta["sparse"] = list(sparse)
+    return meta
 
 
 def add_symlink(source, name, dest):
@@ -202,10 +227,15 @@ def main():
                         help="Shallow-clone depth (default: 1). Ignored with --full.")
     parser.add_argument("--full", action="store_true",
                         help="Full clone with complete history (no depth limit)")
+    parser.add_argument("--sparse", nargs="+", metavar="PATH",
+                        help="Materialise only these subtrees (partial + sparse checkout). Clone strategy only.")
     args = parser.parse_args()
 
     if args.full and args.depth is not None:
         print("ERROR: --full and --depth are mutually exclusive", file=sys.stderr)
+        sys.exit(1)
+    if args.sparse and args.strategy != "clone":
+        print(f"ERROR: --sparse applies to the clone strategy only, not {args.strategy}", file=sys.stderr)
         sys.exit(1)
     depth = None if args.full else (args.depth or 1)
 
@@ -230,7 +260,7 @@ def main():
     dest.parent.mkdir(parents=True, exist_ok=True)
 
     if args.strategy == "clone":
-        meta = add_clone(args.url_or_path, name, args.ref, dest, depth)
+        meta = add_clone(args.url_or_path, name, args.ref, dest, depth, args.sparse)
     elif args.strategy == "symlink":
         meta = add_symlink(args.url_or_path, name, dest)
     elif args.strategy == "worktree":
