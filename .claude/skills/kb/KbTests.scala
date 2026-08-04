@@ -617,6 +617,28 @@ class KbSyncSpec extends Test[Any]:
   }
 
   "the lockfile" - {
+    "regression: an unquoted date parses back as a date, not as nothing" in {
+      // SnakeYAML resolves `2026-07-28` to a java.util.Date. The accessor only handled String, so `imported_at` read
+      // as absent and every pull restamped it — the lockfile and the generated index churned on runs that imported
+      // nothing. KbModel's Frontmatter.str carries the same case, for the same reason.
+      val lock = SyncLock("abc123", "2026-07-28", Seq(LockEntry("a.md", SyncKind.Concept, "h")))
+      val back = KbSync.parseLock(KbSync.renderLock(lock)).toOption.get
+      assert(back.importedAt == "2026-07-28", s"got '${back.importedAt}'")
+    }
+    "leaves the date alone when a pull imports nothing" in {
+      for
+        (kbRoot, _, upstream) <- syncFixture
+        (_, sb0) <- loadSync(kbRoot)
+        first <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, first.lock)
+        (_, sb) <- loadSync(kbRoot)
+        later = today.plusDays(30)
+        again <- KbSync.pull(sb, upstream, "deadbeef", later, dryRun = false, theirs = false, prune = false)
+        written <- KbSync.writeLock(sb, again.lock)
+      yield
+        assert(again.actions.isEmpty, s"the second pull imports nothing: ${again.actions}")
+        assert(written.importedAt == today.toString, s"so the date holds: got ${written.importedAt}")
+    }
     "round-trips through render and parse" in {
       val lock = SyncLock("abc123", "2026-07-28", Seq(
         LockEntry("docs/b.md", SyncKind.Concept, "hash-b"),

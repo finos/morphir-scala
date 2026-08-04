@@ -801,12 +801,12 @@ object KbApp extends CommandsEntryPoint:
             if o.dryRun then ((): Unit < (Async & Abort[Throwable]))
             else
               for
-                _ <- KbSync.writeLock(sb, result.lock)
+                written <- KbSync.writeLock(sb, result.lock)
                 // Reload before generating the index: the bullets have to carry the descriptions of the concepts
                 // that were just written, and the in-memory bundle predates them.
                 reloaded <- KbStore.load(root)
                 _ <- KbSync.findBundle(reloaded, o.sync.bundle) match
-                  case Some(b) => KbSync.generateIndex(sb.copy(bundle = b), result.lock, today).unit
+                  case Some(b) => KbSync.generateIndex(sb.copy(bundle = b), written, today).unit
                   case None => ((): Unit < (Sync & Abort[Throwable]))
               yield ()
           _ <- Console.print(KbSync.renderActions(result.actions, result.refused, o.dryRun, o.sync.common.json))
