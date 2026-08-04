@@ -17,6 +17,17 @@ _Avoid_: ticket, issue, story, task
 Something the system does today, described in the present tense. Has no lifecycle — it is either true or stale.
 _Avoid_: delivered feature, shipped work, functionality
 
+**Decision Record**:
+An architectural decision, recorded past-tense with the alternatives that were rejected and the condition under which
+it should be revisited. Immutable: superseded by a later record rather than edited, so the reasoning available at the
+time survives even after the conclusion changes.
+_Avoid_: ADR (spell it out), design doc, RFC
+
+**Decision State**:
+Where a Decision Record sits: `Proposed`, `Accepted`, `Superseded`, `Withdrawn`. Recorded in the `state` field, the
+same field name Intent uses — the two are told apart by `type`.
+_Avoid_: status (means OKF document maturity, and is validated separately)
+
 **Intent State**:
 Where an Intent sits in its lifecycle: `Backlog`, `Refinement`, `InProgress`, `Released`, `Cancelled`, `Superseded`.
 Recorded in the `state` field.

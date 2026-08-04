@@ -1,31 +1,28 @@
----
-okf_version: "0.2"
-title: morphir-scala
-description: "What morphir-scala does today — the Scala bindings, JVM tooling and build for Morphir — and the decisions behind it."
----
+# Decision Records
 
-# morphir-scala
+Architectural decisions for morphir-scala, recorded as prose and **superseded rather than edited**. A record captures
+what was decided, which alternatives were rejected, and under what condition it should be revisited — so the
+reasoning available at the time survives even after the conclusion changes.
 
-What morphir-scala does today — the Scala bindings, JVM tooling and build for Morphir — and the decisions behind it.
+This is the third register in the knowledge base. An [Intent](../../../intent/index.md) is future-tense and answers
+*should we do this*; a Capability is present-tense and answers *what does the system do*; a Decision Record is
+past-tense and answers *why is it shaped this way*. See
+[0004](/decisions/0004-decision-records-are-a-third-register.md) for that reasoning.
 
-Capabilities are present-tense: what the system does. [Decision Records](/decisions/index.md) are past-tense and
-immutable: why it is shaped that way, and what would have to change for the answer to be different.
+```bash
+.claude/skills/kb/kb decision list --in-force
+.claude/skills/kb/kb decision show 0005
+```
 
-## Orientation
-
-* [Knowledge Base Tooling](/knowledge-base-tooling.md) - The kb skill manages the OKF knowledge base and the intent recorded in it, from the command line.
-* [Continuous Integration](/continuous-integration.md) - GitHub Actions runs linting, cross-platform tests and knowledge base checks on every pull request.
-* [Build System](/build-system.md) - Mill drives the build from per-directory package.mill.yaml files, with mise as the task runner.
-* [Cross-Platform Targets](/cross-platform-targets.md) - Modules compile to the JVM, ScalaJS, WebAssembly and Scala Native from one shared source layout.
-
-## Decisions
-
-Full list, grouped, in [decisions/index.md](/decisions/index.md).
+## Knowledge base and process
 
 * [Released intent stays; capabilities are separate documents](/decisions/0001-released-intent-stays-capabilities-are-separate.md) - Intent records are never moved on release; a Released intent must link to a separate present-tense Capability document.
 * [Intent tooling lives in the kb skill](/decisions/0002-intent-tooling-lives-in-the-kb-skill.md) - Intent management is implemented as `kb intent …` subcommands inside the kb skill, not as a separate skill with its own code.
 * [Two identifier schemes for intent, deliberately](/decisions/0003-two-identifier-schemes-for-intent.md) - Documents are addressed as `bundle-label:/path.md` and published software by Package URL; neither scheme is legacy.
 * [Decision Records are a third register in the knowledge base](/decisions/0004-decision-records-are-a-third-register.md) - Architectural decisions are recorded as `type: Decision Record` concepts that are superseded rather than edited, alongside Intent and Capability.
+
+## Runtime and code model
+
 * [Bridge nothing between ZIO and Kyo](/decisions/0005-bridge-nothing-between-zio-and-kyo.md) - New code is written against Kyo, existing ZIO code is left untouched, and no ZIO-to-Kyo adapter is permitted at the boundary.
 * [Runtime values are one serializable Val built on kyo-schema](/decisions/0006-runtime-values-are-val-on-kyo-schema.md) - The new runtime has a single value type, datamodel.Val, whose structured case is kyo-schema's Structure.Value and whose closures serialize.
 * [The runtime reuses the code model's type language and targets v4](/decisions/0007-runtime-reuses-the-code-model-type-language.md) - Runtime types are codemodel.Type rather than a second type language, and the new runtime targets the v4 code model with a one-way lowering from v3.

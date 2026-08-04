@@ -1,4 +1,14 @@
-# Two identifier schemes for intent, deliberately
+---
+type: Decision Record
+title: Two identifier schemes for intent, deliberately
+description: "Documents are addressed as `bundle-label:/path.md` and published software by Package URL; neither scheme is legacy."
+state: Accepted
+decided: 2026-07-28
+tags: [kb, intent, identifiers, purl]
+status: stable
+---
+
+# 0003 — Two identifier schemes for intent, deliberately
 
 Intent records use two reference syntaxes, and neither is legacy. Documents inside the knowledge base are addressed
 as `bundle-label:/path.md` — for example `capability: morphir/morphir-scala:/wasm-linking.md`. Published software is
@@ -22,5 +32,11 @@ The `bundle:path` form echoes Morphir's own `package:module#local` shape, and th
 
 ## Consequences
 
-`kb check` does not validate either form — both are unknown frontmatter keys to it, reported at info level.
-`intent check` owns their validation, and the SQLite index turns the capability link into a real foreign key.
+`kb check` does not validate either form. `intent check` owns their validation, and the SQLite index turns the
+capability link into a real foreign key.
+
+This record originally added that both were "unknown frontmatter keys to `kb check`, reported at info level". That
+stopped being true when the decision register was introduced: `Frontmatter.ProducerKnown` now lists the keys this
+tooling defines — intent's and the decision register's alike — so they are no longer reported as unrecognized. The
+substance is unchanged, in that `kb check` still does not validate their *contents*; only the info-level noise went
+away.

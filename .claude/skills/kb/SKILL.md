@@ -1,9 +1,9 @@
 ---
 name: kb
-description: "Manages the Morphir knowledge base under kb/ — OKF bundles and concept documents. Use when adding content to a bundle, creating a new bundle, checking the knowledge base for conformance or provenance drift, building or querying its SQLite index, managing intent through its lifecycle, or navigating, searching and listing its bundles, concepts and links."
+description: "Manages the Morphir knowledge base under kb/ — OKF bundles and concept documents. Use when adding content to a bundle, creating a new bundle, checking the knowledge base for conformance or provenance drift, building or querying its SQLite index, managing intent through its lifecycle, recording or reading architectural decisions as Decision Records, or navigating, searching and listing its bundles, concepts and links."
 allowed-tools: Bash(.claude/skills/kb/kb *), Bash(cat *), Bash(ls *), Bash(find *), Bash(git *), Read, Edit, Write
 metadata:
-  version: 0.6.0
+  version: 0.7.0
 ---
 
 # kb — Morphir Knowledge Base Assistant
@@ -94,6 +94,12 @@ whose obligations are enforced — most importantly, releasing requires linking 
 
 → the [`intent` skill](../intent/SKILL.md) for the process; [references/commands.md](references/commands.md) for flags.
 
+**Recording a decision.** Architectural decisions are the knowledge base's third register, alongside Intent and
+Capability: past-tense, immutable, and **superseded rather than edited**. `kb decision list` and `kb decision show`
+read them; `kb check` validates their supersession links.
+
+→ [references/decisions.md](references/decisions.md) for the frontmatter, the checks and how to supersede one.
+
 **Mirroring an upstream repository.** A bundle may declare a `sync.yaml` and carry upstream's own files rather than
 a paraphrase of them. Markdown lands as concepts with an injected, fenced block of kb-owned frontmatter; everything
 else lands as byte-identical assets. `kb sync push` deletes exactly that fenced region, so what goes back upstream
@@ -136,6 +142,7 @@ header; `kb.scala` is the entry point and names the others in `moduleDeps`.
 | `KbSync.scala` | Vendoring an upstream repository: manifest, lockfile, frontmatter injection and projection |
 | `KbIntent.scala` | Intent model, lifecycle states, kinds and checks |
 | `KbIntentEdit.scala` | Creating intent, transitions, generated intent index |
+| `KbDecision.scala` | Decision Record model, supersession checks and rendering |
 | `KbTests.scala` | The kyo-test suites — run them with `mise run kb:test` |
 | `KbRender.scala` | Text and JSON rendering |
 

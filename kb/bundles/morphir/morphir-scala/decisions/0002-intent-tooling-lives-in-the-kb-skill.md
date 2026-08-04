@@ -1,4 +1,14 @@
-# Intent tooling lives in the kb skill
+---
+type: Decision Record
+title: Intent tooling lives in the kb skill
+description: "Intent management is implemented as `kb intent …` subcommands inside the kb skill, not as a separate skill with its own code."
+state: Accepted
+decided: 2026-07-28
+tags: [kb, intent, mill, tooling]
+status: stable
+---
+
+# 0002 — Intent tooling lives in the kb skill
 
 Intent management is implemented as `kb intent …` subcommands inside `.claude/skills/kb/`, not as a separate skill
 with its own code. A thin `.claude/skills/intent/SKILL.md` exists for discoverability and documents the lifecycle, but
@@ -24,3 +34,6 @@ but leaves both skill directories with no implementation in them.
 A future reader will find intent code in a skill called `kb` and reasonably conclude it belongs somewhere else. If
 they split it out, they will hit the same `moduleDeps` wall — unless Mill has since gained cross-directory module
 dependencies, which is the condition under which this decision should be revisited.
+
+The same reasoning applied unchanged when the decision register was added: `KbDecision.scala` sits beside
+`KbIntent.scala` in the same skill for the same reason.

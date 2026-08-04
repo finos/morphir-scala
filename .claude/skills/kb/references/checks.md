@@ -22,6 +22,14 @@ Exit code is non-zero when there is at least one error, or with `--strict`, at l
 | `link-broken` | A link target does not exist | Fix the path. Bundle-relative links start at the **bundle** root, not the kb root |
 | `readme-in-bundle` | A `README.md` sits inside a bundle, where it parses as a concept | Move its content into `index.md`. `README.md` belongs to grouping directories |
 | `stray-markdown` | A `.md` file under `bundles/` belongs to no bundle | Either its directory is missing `okf_version` in `index.md`, or the file is misplaced |
+| `link-escapes-bundle` | A bundle-relative link climbs above the bundle root with `..` | Use an ordinary relative path to reach another bundle. Such a link often still resolves on disk — the filesystem collapses the `..` — so `link-broken` stays silent while the link means something other than it says |
+| `decision-no-id` | A decision record's filename does not start with a numeric id | Rename it `NNNN-slug.md` |
+| `decision-duplicate-id` | Two decision records in one bundle share an id | Renumber one. Ids are unique per bundle, not globally |
+| `decision-state-unknown` | A decision record has no `state`, or one that is not recognized | One of `Proposed`, `Accepted`, `Superseded`, `Withdrawn` |
+| `decision-superseded-no-successor` | `state: Superseded` with no `superseded_by` | Name the record that replaced it, or a reader has nowhere to go |
+| `decision-superseded-unknown` | `superseded_by` names no record in the bundle | Fix the id |
+| `decision-supersedes-unknown` | `supersedes` names no record in the bundle | Fix the id |
+| `decision-withdrawn-no-reason` | `state: Withdrawn` with no `reason` | Say why. A withdrawal without a reason is worthless six months on |
 | `sync-projection-broken` | A mirrored file cannot be reduced to its upstream form — its `# kb:begin` … `# kb:end` region is damaged | See below |
 | `sync-lock-drift` | `sync.lock.yaml` lists a mirrored file that is not in the mirror | See below |
 
@@ -48,6 +56,8 @@ warning. Otherwise, if you mean to point at something unwritten, say so in prose
 | `duplicate-title` | Two concepts in a bundle share a title | Retitle one. Duplicate titles make search results ambiguous |
 | `source-commit-drift` | A source is pinned at one commit but the `.refs/` checkout is at another | See below |
 | `source-path-missing` | A pinned source path no longer exists at the checkout's HEAD | The file moved or was deleted upstream. The pinned URL still resolves on GitHub |
+| `decision-decided-missing` | A decision record has no valid `decided` date | Add `decided: YYYY-MM-DD`. Without it the records cannot be read in sequence |
+| `decision-supersede-not-mutual` | A supersession link points only one way — either a record supersedes another that does not name it in `superseded_by`, or a record names a successor that does not list it in `supersedes` | Write both halves. One-way supersession is how a chain silently breaks — the old record still reads as current |
 | `link-broken-upstream` | A link in a **mirrored** document does not resolve | Upstream's own link rot. Fix it upstream and export, or leave it |
 | `sync-untracked` | Upstream has a file a manifest mapping selects, and `sync.lock.yaml` does not list it | `kb sync pull` imports it |
 | `sync-upstream-drift` | Upstream has moved on since the last import, and the local copy has no edits | `kb sync pull` takes it. Nothing here is lost — that is what "no edits" means |
@@ -111,7 +121,7 @@ why `kb sync pull` regenerates the bundle index below its `<!-- kb:sources -->` 
 
 | Check | Means |
 | ----- | ----- |
-| `frontmatter-unknown-key` | A frontmatter key OKF v0.2 does not define. Producer-specific keys are legal; this is a heads-up, not a complaint |
+| `frontmatter-unknown-key` | A frontmatter key recognized by neither OKF v0.2 nor this tooling. Keys this tooling defines — the intent and decision registers' — are listed in `Frontmatter.ProducerKnown` and are not reported; anything else is a heads-up, not a complaint |
 | `source-ref-missing` | No reference checkout exists for a pinned GitHub source, so it could not be verified. Add one with `/squire reference repo add` |
 
 Info findings are hidden unless you pass `--verbose`.

@@ -1,4 +1,14 @@
-# Released intent stays; capabilities are separate documents
+---
+type: Decision Record
+title: Released intent stays; capabilities are separate documents
+description: "Intent records are never moved on release; a Released intent must link to a separate present-tense Capability document."
+state: Accepted
+decided: 2026-07-28
+tags: [kb, intent, capability, lifecycle]
+status: stable
+---
+
+# 0001 — Released intent stays; capabilities are separate documents
 
 Intent records in `kb/bundles/intent/` are never deleted or moved when the work ships. They stay in place with
 `state: Released`, and marking an intent Released *requires* a link to a Capability concept — a present-tense
@@ -26,3 +36,8 @@ without anyone pruning.
 
 The required capability link is deliberate friction, and it is the mechanism that stops the knowledge base falling
 silently behind the code. It will feel like bureaucracy to anyone who does not know that is what it is for.
+
+A third register was added later — the Decision Record you are reading. It is neither future-tense nor present-tense
+but past-tense and immutable, and it answers a question the other two do not: *why is it shaped this way*. See
+[0004](/decisions/0004-decision-records-are-a-third-register.md) for that reasoning, which extends rather than
+revises this one.

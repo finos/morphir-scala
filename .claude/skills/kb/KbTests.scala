@@ -285,7 +285,7 @@ class KbIntentSpec extends Test[Any]:
     }
     "needs no capability for internal kinds" in {
       // Internal work often changes nothing a reader of the knowledge base needs to know; inventing a document for
-      // "added three release labels" would be exactly the noise the design avoids. See docs/adr/0001.
+      // "added three release labels" would be exactly the noise the design avoids. See decision 0001 in kb/bundles/morphir/morphir-scala/decisions/.
       for
         (_, kb, b, i) <- withOneIntent("Build work", IntentKind.Build)
         res <- KbIntentEdit.transition(kb, b, i, KbIntentEdit.Transition(IntentState.Released), today)
@@ -920,6 +920,247 @@ class KbSyncSpec extends Test[Any]:
   }
 
 // ------------------------------------------------------------------------- meta
+
+// --------------------------------------------------------------------- decisions
+
+class KbDecisionSpec extends Test[Any]:
+
+  /** Writes a decision record straight to disk. Scaffolding one would go through `addConcept`, but these tests care
+    * about the frontmatter the checks read, not about how it got there.
+    */
+  private def record(
+      b: Bundle,
+      name: String,
+      title: String,
+      state: String,
+      extra: String = ""
+  ): Unit < (Sync & Abort[Throwable]) =
+    val dir = b.root / "decisions"
+    val text =
+      s"""---
+         |type: Decision Record
+         |title: $title
+         |description: "Something was decided."
+         |state: $state
+         |decided: 2026-07-28
+         |$extra---
+         |
+         |# $name
+         |
+         |Body.
+         |""".stripMargin
+    dir.mkDir.andThen((dir / s"$name.md").write(text))
+
+  "discovery" - {
+    "finds records by type and reads their fields" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- record(b0, "0001-first", "First", "Accepted")
+        kb <- KbStore.load(kbRoot)
+      yield
+        val ds = KbDecision.decisions(kb)
+        assert(ds.size == 1, s"got ${ds.size}")
+        assert(ds.head.id == "0001", s"id was ${ds.head.id}")
+        assert(ds.head.state.contains(DecisionState.Accepted))
+        assert(ds.head.decided.map(_.toString).contains("2026-07-28"))
+        assert(KbDecision.find(kb, "1").exists(_.id == "0001"), "a bare `1` should find 0001")
+    }
+
+    // Ids are unique per bundle, not globally — `duplicates` only complains within one. Returning the first in sort
+    // order would show an unrelated decision with nothing to say a choice had been made.
+    "refuses to guess when an id means a record in more than one bundle (regression)" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        _ <- KbScaffold.newBundle(kbRoot, "other", None, "Other", "A second scratch bundle.", "0.2", today)
+        kb0 <- KbStore.load(kbRoot)
+        _ <- record(kb0.bundle("demo").get, "0001-here", "Here", "Accepted")
+        _ <- record(kb0.bundle("other").get, "0001-there", "There", "Accepted")
+        kb <- KbStore.load(kbRoot)
+      yield
+        assert(KbDecision.findAll(kb, "0001").size == 2, "both bundles number a record 0001")
+        assert(KbDecision.find(kb, "0001").isEmpty, "an ambiguous id resolves to nothing")
+        assert(
+          KbDecision.find(kb, "0001", Some("other")).exists(_.slug == "0001-there"),
+          "--bundle disambiguates"
+        )
+        assert(KbDecision.findings(kb).forall(_.check != "decision-duplicate-id"), "same id in two bundles is legal")
+    }
+
+    // An ADR mirrored from upstream is a decision record under upstream's conventions — `ADR-0001-…` for a filename,
+    // status and date in the body — so this register's schema is not its to satisfy.
+    "lists a mirrored record but does not hold it to this register's schema (regression)" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- (b0.root / "sync.yaml").write("repo: finos/morphir\nroot: sources\n")
+        dir = b0.root / "sources" / "docs" / "adr"
+        _ <- dir.mkDir
+        _ <- (dir / "ADR-0001-upstream.md").write(
+          "---\ntype: Decision Record\ntitle: ADR 0001\ndescription: \"Upstream's own.\"\n---\n\nBody.\n"
+        )
+        kb <- KbStore.load(kbRoot)
+      yield
+        assert(KbDecision.decisions(kb).exists(_.doc.vendored), "still discovered as a decision record")
+        val findings = KbDecision.findings(kb)
+        assert(findings.isEmpty, s"expected none, got ${findings.map(f => f.check -> f.path)}")
+    }
+  }
+
+  "supersession" - {
+    "requires a successor, and requires it to exist" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- record(b0, "0001-orphaned", "Orphaned", "Superseded")
+        _ <- record(b0, "0002-dangling", "Dangling", "Superseded", "superseded_by: \"0099\"\n")
+        kb <- KbStore.load(kbRoot)
+      yield
+        val findings = KbDecision.findings(kb)
+        assert(findings.exists(_.check == "decision-superseded-no-successor"), s"got ${findings.map(_.check)}")
+        assert(findings.exists(_.check == "decision-superseded-unknown"), s"got ${findings.map(_.check)}")
+    }
+
+    "warns when supersession is not mutual" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        // 0002 claims to replace 0001, but 0001 still reads as current — how a chain silently breaks.
+        _ <- record(b0, "0001-old", "Old", "Accepted")
+        _ <- record(b0, "0002-new", "New", "Accepted", "supersedes: [\"0001\"]\n")
+        kb <- KbStore.load(kbRoot)
+      yield
+        val findings = KbDecision.findings(kb)
+        assert(findings.exists(_.check == "decision-supersede-not-mutual"), s"got ${findings.map(_.check)}")
+    }
+
+    // The mirror of the case above. Nothing anywhere carries a `supersedes` entry, so a forward-only check has no
+    // record to inspect and the one-way chain passes unreported.
+    "warns when only the retired record carries the link (regression)" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- record(b0, "0001-old", "Old", "Superseded", "superseded_by: \"0002\"\n")
+        _ <- record(b0, "0002-new", "New", "Accepted")
+        kb <- KbStore.load(kbRoot)
+      yield
+        val findings = KbDecision.findings(kb)
+        assert(findings.exists(_.check == "decision-supersede-not-mutual"), s"got ${findings.map(_.check)}")
+    }
+
+    // SnakeYAML reads an unquoted `2` as an Integer. A list accessor that kept only Strings dropped it, and every
+    // supersession check downstream then behaved as if the field were absent.
+    "reads an unquoted numeric `supersedes` entry (regression)" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- record(b0, "0001-old", "Old", "Superseded", "superseded_by: \"0002\"\n")
+        _ <- record(b0, "0002-new", "New", "Accepted", "supersedes: [1]\n")
+        kb <- KbStore.load(kbRoot)
+      yield
+        val newer = KbDecision.find(kb, "0002").get
+        assert(newer.supersedes == List("0001"), s"got ${newer.supersedes}")
+        val findings = KbDecision.findings(kb)
+        assert(findings.isEmpty, s"expected none, got ${findings.map(_.check)}")
+    }
+
+    "is silent when both sides agree" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- record(b0, "0001-old", "Old", "Superseded", "superseded_by: \"0002\"\n")
+        _ <- record(b0, "0002-new", "New", "Accepted", "supersedes: [\"0001\"]\n")
+        kb <- KbStore.load(kbRoot)
+      yield
+        val findings = KbDecision.findings(kb)
+        assert(findings.isEmpty, s"expected none, got ${findings.map(_.check)}")
+    }
+  }
+
+  "validation" - {
+    "rejects an unknown state, a duplicate id and a reasonless withdrawal" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- record(b0, "0001-a", "A", "Rejected")
+        _ <- record(b0, "0001-b", "B", "Accepted")
+        _ <- record(b0, "0003-c", "C", "Withdrawn")
+        kb <- KbStore.load(kbRoot)
+      yield
+        val findings = KbDecision.findings(kb)
+        assert(findings.exists(_.check == "decision-state-unknown"), "Rejected is not a state")
+        assert(findings.exists(_.check == "decision-duplicate-id"), "two records both numbered 0001")
+        assert(findings.exists(_.check == "decision-withdrawn-no-reason"))
+    }
+  }
+
+  "frontmatter keys" - {
+    "are recognized, so they raise no unknown-key noise (regression)" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- record(b0, "0001-first", "First", "Accepted")
+        kb <- KbStore.load(kbRoot)
+        findings <- KbCheck.run(kb, None, today)
+      yield
+        val noisy = findings.filter(f => f.check == "frontmatter-unknown-key" && f.path.contains("0001-first"))
+        assert(noisy.isEmpty, s"decision keys should be recognized, got ${noisy.map(_.message)}")
+        assert(Frontmatter.isRecognized("decided") && Frontmatter.isRecognized("supersedes"))
+        assert(!Frontmatter.Known.contains("decided"), "ProducerKnown must stay distinct from what OKF defines")
+    }
+  }
+
+// --------------------------------------------------------------------- link resolution
+
+class KbLinkSpec extends Test[Any]:
+
+  "a bundle-relative link climbing above the bundle root" - {
+    "is an error, even though the filesystem would collapse the `..` (regression)" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- KbScaffold.addConcept(b0, "a.md", "Concept", "A", "First.", Nil, None, Nil, "Orientation", None, today)
+        // `/../demo/a.md` resolves on disk — bundleRoot + "../demo/a.md" is the same file — so `link-broken` stays
+        // silent while the link means something other than it says.
+        _ <- (b0.root / "a.md").read.map(t => (b0.root / "a.md").write(t + "\nSee [sideways](/../demo/a.md).\n"))
+        kb <- KbStore.load(kbRoot)
+        findings <- KbCheck.run(kb, None, today)
+      yield assert(
+        findings.exists(f => f.check == "link-escapes-bundle" && f.severity == Severity.Error),
+        s"got ${findings.map(_.check)}"
+      )
+    }
+  }
+
+  "an ordinary relative link" - {
+    "resolves against the containing directory (regression)" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- KbScaffold.addConcept(b0, "a.md", "Concept", "A", "First.", Nil, None, Nil, "Orientation", None, today)
+        _ <- KbScaffold.addConcept(b0, "sub/b.md", "Concept", "B", "Second.", Nil, None, Nil, "Orientation", None, today)
+        // Relative links are permitted by kb/AGENTS.md, but no bundle used one — which hid a resolver bug. Folding
+        // over the base path's own segments dropped the leading empty segment marking it absolute, so every relative
+        // link resolved against the working directory and was reported broken.
+        _ <- (b0.root / "sub" / "b.md").read.map(t => (b0.root / "sub" / "b.md").write(t + "\nSee [a](../a.md).\n"))
+        kb <- KbStore.load(kbRoot)
+        findings <- KbCheck.run(kb, None, today)
+      yield
+        val broken = findings.filter(f => f.check == "link-broken" && f.path.contains("b.md"))
+        assert(broken.isEmpty, s"../a.md exists and should resolve, got ${broken.map(_.message)}")
+    }
+  }
 
 /** Guards the one way this suite can lie: a spec that exists but is never run.
   *
