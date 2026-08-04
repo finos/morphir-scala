@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "morphir",
+  "project_id": "9a9f3a7e-01df-4736-8eb8-51d9a7f55c88"
+}

@@ -479,3 +479,12 @@ build.user.yaml
 
 # Squire local settings (personal/org-specific config — not committed)
 .config/squire/settings.local.yaml
+
+# Beads / Dolt files (added by bd init)
+# Narrowed from bd's default bare `*.db`, which would silently swallow any future
+# database fixture anywhere in the tree. bd only needs the pattern for legacy
+# pre-Dolt SQLite stores, and those only ever lived under .beads/.
+.dolt/
+.beads/*.db
+.beads-credential-key
+.beads/proxieddb/

@@ -19,3 +19,20 @@ cellar:
 
   # Optional: override the cellar binary path if not on PATH
   # binary: /path/to/cellar
+
+tracking:
+  # Task tracking for this checkout. See docs/task-tracking.md.
+  #
+  #   auto  (default) use beads if `bd` is installed and .beads/ exists
+  #   beads           require beads; a missing `bd` is a setup problem to fix
+  #   off             opt out entirely — agents use session-scoped tracking
+  #                   instead and must not run `bd` write commands here
+  #
+  # Beads is never a prerequisite for contributing: nothing in the build, the
+  # test suites or CI reads .beads/. This setting is a declaration of intent
+  # that agents and scripts read, and it is gitignored, so it affects only you.
+  #
+  # Check what took effect:
+  #   python3 .claude/skills/squire/scripts/tracking-status.py
+  #
+  # mode: auto
