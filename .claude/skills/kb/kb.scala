@@ -215,6 +215,7 @@ case class DecisionListOpts(
 case class DecisionShowOpts(
     @Recurse common: CommonOpts = CommonOpts(),
     @HelpMessage("Decision id or slug, e.g. 0004") id: Option[String] = None,
+    @HelpMessage("Bundle to look in — required when an id means a record in more than one") bundle: Option[String] = None,
     @HelpMessage("Also include the document body") body: Boolean = false
 )
 
@@ -475,9 +476,15 @@ object KbApp extends CommandsEntryPoint:
           for
             root <- KbCli.resolveKb(o.common.kb)
             kb <- KbStore.load(root)
-            _ <- KbDecision.find(kb, id) match
-              case None => KbCli.fail(s"no decision record `$id`")
-              case Some(d) => Console.print(KbDecision.renderShow(d, o.body, o.common.json))
+            _ <- KbDecision.findAll(kb, id, o.bundle) match
+              case Seq() => KbCli.fail(s"no decision record `$id`")
+              case Seq(d) => Console.print(KbDecision.renderShow(d, o.body, o.common.json))
+              // Ids are unique per bundle, so the same number can name a different decision in each. Picking one
+              // would be silent and wrong; say which bundles have it and let the caller name one.
+              case many => KbCli.fail(
+                  s"`$id` names a decision record in ${many.size} bundles — pass --bundle to choose:\n" +
+                    many.map(d => s"  ${d.bundle}  ${d.slug}").mkString("\n")
+                )
           yield ()
     }
 

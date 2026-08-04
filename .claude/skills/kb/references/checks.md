@@ -57,7 +57,7 @@ warning. Otherwise, if you mean to point at something unwritten, say so in prose
 | `source-commit-drift` | A source is pinned at one commit but the `.refs/` checkout is at another | See below |
 | `source-path-missing` | A pinned source path no longer exists at the checkout's HEAD | The file moved or was deleted upstream. The pinned URL still resolves on GitHub |
 | `decision-decided-missing` | A decision record has no valid `decided` date | Add `decided: YYYY-MM-DD`. Without it the records cannot be read in sequence |
-| `decision-supersede-not-mutual` | A record supersedes another, but that one does not name it in `superseded_by` | Set `state: Superseded` and `superseded_by` on the older record. One-way supersession is how a chain silently breaks — the old record still reads as current |
+| `decision-supersede-not-mutual` | A supersession link points only one way — either a record supersedes another that does not name it in `superseded_by`, or a record names a successor that does not list it in `supersedes` | Write both halves. One-way supersession is how a chain silently breaks — the old record still reads as current |
 | `link-broken-upstream` | A link in a **mirrored** document does not resolve | Upstream's own link rot. Fix it upstream and export, or leave it |
 | `sync-untracked` | Upstream has a file a manifest mapping selects, and `sync.lock.yaml` does not list it | `kb sync pull` imports it |
 | `sync-upstream-drift` | Upstream has moved on since the last import, and the local copy has no edits | `kb sync pull` takes it. Nothing here is lost — that is what "no edits" means |

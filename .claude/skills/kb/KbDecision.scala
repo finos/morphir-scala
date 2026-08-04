@@ -75,10 +75,25 @@ object KbDecision:
   def decisionsIn(kb: Kb, bundle: String): Seq[Decision] =
     decisions(kb).filter(_.bundle == bundle)
 
-  def find(kb: Kb, id: String): Option[Decision] =
+  /** Every record an id or slug could mean, optionally narrowed to one bundle.
+    *
+    * Plural rather than `Option` on purpose. Ids are unique per bundle, not across the knowledge base — `duplicates`
+    * only complains within a bundle — so `0001` genuinely names several records once there is more than one bundle
+    * with decisions in it. Returning the first in sort order would show an unrelated decision with no hint that a
+    * choice had been made; callers are expected to reject an ambiguous answer instead.
+    */
+  def findAll(kb: Kb, id: String, bundle: Option[String] = None): Seq[Decision] =
     val wanted = id.trim
     val padded = wanted.takeWhile(_.isDigit).toIntOption.map(i => f"$i%04d")
-    decisions(kb).find(d => d.slug == wanted || d.id == wanted || padded.contains(d.id))
+    decisions(kb)
+      .filter(d => bundle.forall(b => d.bundle == b || d.bundle.endsWith(s"/$b")))
+      .filter(d => d.slug == wanted || d.id == wanted || padded.contains(d.id))
+
+  /** The unambiguous match, or None when there is none — or when there is more than one. */
+  def find(kb: Kb, id: String, bundle: Option[String] = None): Option[Decision] =
+    findAll(kb, id, bundle) match
+      case Seq(one) => Some(one)
+      case _ => None
 
   // ---------------------------------------------------------------- checks
 
@@ -130,6 +145,15 @@ object KbDecision:
               Some("a superseded record must say what replaced it, or a reader has nowhere to go")))
           case Some(succ) if !byId.contains(succ) =>
             Seq(err(kb, d, "decision-superseded-unknown", s"`superseded_by: $succ` names no decision record in ${d.bundle}"))
+          // The other direction of the mutuality below. Checking only the forward one leaves a chain that is one-way
+          // from the *retired* end unreported: this record points at its successor, the successor says nothing, and
+          // `kb check` stays silent because there is no `supersedes` entry anywhere to inspect.
+          case Some(succ) if d.id.nonEmpty =>
+            byId.getOrElse(succ, Nil).filterNot(_.supersedes.contains(d.id)).map { s =>
+              warn(kb, d, "decision-supersede-not-mutual",
+                s"this record names ${s.id} in `superseded_by` but ${s.id} does not list ${d.id} in `supersedes`",
+                Some(s"add `supersedes: [\"${d.id}\"]` to ${s.slug}.md"))
+            }
           case _ => Nil
       case DecisionState.Withdrawn =>
         Option.when(d.reason.forall(_.trim.isEmpty))(

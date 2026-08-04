@@ -88,22 +88,12 @@ case class Asset(file: Path, bundleRoot: Path, rel: Seq[String]):
 case class Frontmatter(values: Map[String, Any]):
   def has(key: String): Boolean = values.contains(key)
 
-  def str(key: String): Option[String] = values.get(key).collect {
-    case s: String => s
-    case i: Integer => i.toString
-    case l: java.lang.Long => l.toString
-    case d: java.lang.Double => d.toString
-    case b: java.lang.Boolean => b.toString
-    // SnakeYAML resolves an unquoted `2026-07-28` to a java.util.Date. Without this, every date-valued field —
-    // OKF's `stale_after`, intent's `created` and `state_since` — silently reads as absent.
-    case d: java.util.Date =>
-      java.time.Instant.ofEpochMilli(d.getTime).atZone(java.time.ZoneOffset.UTC).toLocalDate.toString
-  }
+  def str(key: String): Option[String] = values.get(key).collect(Frontmatter.scalar)
 
   def strList(key: String): List[String] = values.get(key) match
-    case Some(l: java.util.List[?]) => l.asScala.toList.collect { case s: String => s }
-    case Some(s: String) => List(s)
-    case _ => Nil
+    case Some(l: java.util.List[?]) => l.asScala.toList.collect(Frontmatter.scalar)
+    case Some(v) => Frontmatter.scalar.lift(v).toList
+    case None => Nil
 
   private def mapsAt(key: String): List[Map[String, Any]] = values.get(key) match
     case Some(l: java.util.List[?]) =>
@@ -133,6 +123,22 @@ case class Frontmatter(values: Map[String, Any]):
 
 object Frontmatter:
   val Empty: Frontmatter = Frontmatter(Map.empty)
+
+  /** How a YAML scalar reads as a string. Shared by [[Frontmatter.str]] and [[Frontmatter.strList]] so that a value
+    * means the same thing whether it stands alone or sits in a list: `supersedes: [2]` gives SnakeYAML an Integer,
+    * and a list accessor that kept only Strings would drop it silently, leaving supersession unvalidated.
+    */
+  val scalar: PartialFunction[Any, String] = {
+    case s: String => s
+    case i: Integer => i.toString
+    case l: java.lang.Long => l.toString
+    case d: java.lang.Double => d.toString
+    case b: java.lang.Boolean => b.toString
+    // SnakeYAML resolves an unquoted `2026-07-28` to a java.util.Date. Without this, every date-valued field —
+    // OKF's `stale_after`, intent's `created` and `state_since` — silently reads as absent.
+    case d: java.util.Date =>
+      java.time.Instant.ofEpochMilli(d.getTime).atZone(java.time.ZoneOffset.UTC).toLocalDate.toString
+  }
 
   /** Frontmatter keys OKF v0.2 defines. Anything else is producer-specific and merely reported, never rejected. */
   val Known: Set[String] = Set(

@@ -62,7 +62,11 @@ document.
 .claude/skills/kb/kb decision show 0005             # id, slug, or bare number
 .claude/skills/kb/kb decision show 0005 --body
 .claude/skills/kb/kb decision show 0005 --json
+.claude/skills/kb/kb decision show 0001 --bundle morphir-scala
 ```
+
+Ids are unique within a bundle, not across the knowledge base, so `0001` may name a record in more than one. When it
+does, `show` lists the candidates and exits non-zero rather than picking one; `--bundle` narrows it.
 
 There is no `kb decision new`. Use `kb add-concept`, which already handles the file, the frontmatter and the index
 entry:
@@ -93,14 +97,15 @@ Run as part of `kb check`. See [checks.md](./checks.md) for the full catalogue.
 | `decision-supersedes-unknown` | error | `supersedes` names no record in the bundle |
 | `decision-withdrawn-no-reason` | error | `state: Withdrawn` with no `reason` |
 | `decision-decided-missing` | warn | No valid `decided` date |
-| `decision-supersede-not-mutual` | warn | A supersedes B, but B does not name A in `superseded_by` |
+| `decision-supersede-not-mutual` | warn | A supersedes B, but B does not name A in `superseded_by` — or B names A in `superseded_by` and A does not list B in `supersedes` |
 
 None of them run on a **mirrored** record. An ADR imported from an upstream repository keeps upstream's conventions —
 `ADR-0001-…` for a filename, status and date in the body — and holding it to this register's schema would report four
 errors per file that nobody here can fix. It still lists.
 
-The mutuality check is the one that earns its keep. One-way supersession is how a chain silently breaks: the
-superseded record still reads as current to anyone who lands on it directly, and nothing says otherwise.
+The mutuality check is the one that earns its keep, and it runs in both directions. One-way supersession is how a
+chain silently breaks: the superseded record still reads as current to anyone who lands on it directly, and nothing
+says otherwise.
 
 ## Superseding a record
 

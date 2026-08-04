@@ -967,6 +967,46 @@ class KbDecisionSpec extends Test[Any]:
         assert(ds.head.decided.map(_.toString).contains("2026-07-28"))
         assert(KbDecision.find(kb, "1").exists(_.id == "0001"), "a bare `1` should find 0001")
     }
+
+    // Ids are unique per bundle, not globally — `duplicates` only complains within one. Returning the first in sort
+    // order would show an unrelated decision with nothing to say a choice had been made.
+    "refuses to guess when an id means a record in more than one bundle (regression)" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        _ <- KbScaffold.newBundle(kbRoot, "other", None, "Other", "A second scratch bundle.", "0.2", today)
+        kb0 <- KbStore.load(kbRoot)
+        _ <- record(kb0.bundle("demo").get, "0001-here", "Here", "Accepted")
+        _ <- record(kb0.bundle("other").get, "0001-there", "There", "Accepted")
+        kb <- KbStore.load(kbRoot)
+      yield
+        assert(KbDecision.findAll(kb, "0001").size == 2, "both bundles number a record 0001")
+        assert(KbDecision.find(kb, "0001").isEmpty, "an ambiguous id resolves to nothing")
+        assert(
+          KbDecision.find(kb, "0001", Some("other")).exists(_.slug == "0001-there"),
+          "--bundle disambiguates"
+        )
+        assert(KbDecision.findings(kb).forall(_.check != "decision-duplicate-id"), "same id in two bundles is legal")
+    }
+
+    // An ADR mirrored from upstream is a decision record under upstream's conventions — `ADR-0001-…` for a filename,
+    // status and date in the body — so this register's schema is not its to satisfy.
+    "lists a mirrored record but does not hold it to this register's schema (regression)" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- (b0.root / "sync.yaml").write("repo: finos/morphir\nroot: sources\n")
+        dir = b0.root / "sources" / "docs" / "adr"
+        _ <- dir.mkDir
+        _ <- (dir / "ADR-0001-upstream.md").write(
+          "---\ntype: Decision Record\ntitle: ADR 0001\ndescription: \"Upstream's own.\"\n---\n\nBody.\n"
+        )
+        kb <- KbStore.load(kbRoot)
+      yield
+        assert(KbDecision.decisions(kb).exists(_.doc.vendored), "still discovered as a decision record")
+        val findings = KbDecision.findings(kb)
+        assert(findings.isEmpty, s"expected none, got ${findings.map(f => f.check -> f.path)}")
+    }
   }
 
   "supersession" - {
@@ -996,6 +1036,38 @@ class KbDecisionSpec extends Test[Any]:
       yield
         val findings = KbDecision.findings(kb)
         assert(findings.exists(_.check == "decision-supersede-not-mutual"), s"got ${findings.map(_.check)}")
+    }
+
+    // The mirror of the case above. Nothing anywhere carries a `supersedes` entry, so a forward-only check has no
+    // record to inspect and the one-way chain passes unreported.
+    "warns when only the retired record carries the link (regression)" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- record(b0, "0001-old", "Old", "Superseded", "superseded_by: \"0002\"\n")
+        _ <- record(b0, "0002-new", "New", "Accepted")
+        kb <- KbStore.load(kbRoot)
+      yield
+        val findings = KbDecision.findings(kb)
+        assert(findings.exists(_.check == "decision-supersede-not-mutual"), s"got ${findings.map(_.check)}")
+    }
+
+    // SnakeYAML reads an unquoted `2` as an Integer. A list accessor that kept only Strings dropped it, and every
+    // supersession check downstream then behaved as if the field were absent.
+    "reads an unquoted numeric `supersedes` entry (regression)" in {
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- record(b0, "0001-old", "Old", "Superseded", "superseded_by: \"0002\"\n")
+        _ <- record(b0, "0002-new", "New", "Accepted", "supersedes: [1]\n")
+        kb <- KbStore.load(kbRoot)
+      yield
+        val newer = KbDecision.find(kb, "0002").get
+        assert(newer.supersedes == List("0001"), s"got ${newer.supersedes}")
+        val findings = KbDecision.findings(kb)
+        assert(findings.isEmpty, s"expected none, got ${findings.map(_.check)}")
     }
 
     "is silent when both sides agree" in {
