@@ -88,6 +88,55 @@ repo pointer — the signal that `/squire tracking sync` should run.
 **When to invoke:** at the start of any session where you're about to track work, before creating a
 `bd` issue, and any time you'd otherwise assume beads is in play.
 
+### Worktrees
+
+`.beads/` existing is not the same as `bd` resolving to a workspace, and in a git worktree the two
+come apart.
+
+`bd` walks up from the working directory for `.beads/config.yaml` and, finding none, falls back to
+the **main clone's** `.beads/` (`worktreeFallbackConfigPath`, beads `internal/config/config.go`).
+That default is right — one issue database per repository, not one per worktree. The catch is that
+the fallback targets a *tracked* file, so it resolves against whichever branch the main clone
+happens to have checked out. If that branch predates the repo adopting beads, `bd` finds no config,
+silently defaults the database name to `beads` instead of the configured one, and reports an empty
+workspace — while `.beads/` sits in the worktree, fully populated, on this branch.
+
+The symptom is a checkout that looks healthy and fails anyway:
+
+```
+$ bd create --title "…"
+Error: database not initialized: issue_prefix config is missing
+```
+
+`tracking status` reports this as `effective_mode: unavailable` with the offending path and the
+remedy, rather than `beads`, because reporting `beads` sends an agent off to run commands that
+cannot work. The `workspace` block carries the detail:
+
+```json
+"workspace": {
+  "is_worktree": true,
+  "local_store": false,
+  "fallback_config": "/path/to/main-clone/.beads/config.yaml",
+  "status": "unresolvable",
+  "remedy": "run `bd bootstrap` here to clone the workspace from the remote ref"
+}
+```
+
+**`bd bootstrap` is the fix**, not `bd init`. Issue data lives on the git remote under
+`refs/dolt/data` (see `sync.remote` in `.beads/config.yaml`), so `bootstrap` clones the existing
+workspace — correct prefix, existing issues, nothing invented. `bd init --prefix morphir` would
+create a *new empty* database sharing the same prefix, free to mint IDs that collide with the real
+ones.
+
+`status` values for the `workspace` block:
+
+| Value | Meaning |
+| ----- | ------- |
+| `local` | This working copy has a beads store of its own; no fallback involved. |
+| `shared` | Not a worktree, or the main clone's config is present and usable. |
+| `unresolvable` | A worktree with no store of its own, and the fallback config is missing. |
+| `no-repo` | Not inside a git repository. |
+
 ## `/squire tracking sync`
 
 Removes any `BEADS INTEGRATION` or `BEADS CODEX SETUP` block from `AGENTS.md` and `CLAUDE.md`, then

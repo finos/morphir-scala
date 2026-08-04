@@ -107,12 +107,82 @@ def guidance_drift():
     return drift
 
 
+def git_dirs():
+    """`(git_dir, common_dir)` for this checkout, or `(None, None)` outside a repository.
+
+    They differ exactly when the current working copy is a git worktree.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--git-dir", "--git-common-dir"],
+            capture_output=True, text=True, timeout=10,
+        )
+        lines = out.stdout.strip().splitlines()
+        if out.returncode != 0 or len(lines) < 2:
+            return None, None
+        return pathlib.Path(lines[0]).resolve(), pathlib.Path(lines[1]).resolve()
+    except Exception:
+        return None, None
+
+
+def workspace_resolution():
+    """Where `bd` will look for the beads workspace, and whether it will find a usable one.
+
+    `.beads/` existing is not the same as bd resolving to a workspace. bd walks up from the
+    working directory for `.beads/config.yaml` and, finding none, falls back to the *main
+    clone's* `.beads/` — see `worktreeFallbackConfigPath` in beads' internal/config/config.go.
+    That is the right default: one issue database per repository, not one per worktree.
+
+    The catch is that the fallback targets a **tracked** file. In a worktree it therefore
+    resolves against whichever branch the main clone happens to have checked out, which is not
+    this worktree's branch. If that branch predates the repo adopting beads, bd finds no config,
+    silently defaults the database name, and reports an empty workspace — while `.beads/` sits
+    right here, fully populated, on this branch.
+
+    That is how a checkout can report `effective_mode: beads` and still fail every `bd create`
+    with "issue_prefix config is missing". Detecting it is cheaper than diagnosing it twice.
+    """
+    git_dir, common_dir = git_dirs()
+    if git_dir is None:
+        return {"status": "no-repo", "detail": "not inside a git repository"}
+
+    is_worktree = git_dir != common_dir
+    # The data store, as opposed to the tracked config. Any of these means this working copy
+    # has a workspace of its own and bd will not fall back.
+    local_store = any((BEADS_DIR / name).exists() for name in ("embeddeddolt", "dolt", "proxieddb")) \
+        or any(BEADS_DIR.glob("*.db"))
+
+    info = {"is_worktree": is_worktree, "local_store": local_store}
+
+    if not is_worktree or local_store:
+        info["status"] = "local" if local_store else "shared"
+        return info
+
+    # A worktree with no store of its own: bd will use the main clone's config.
+    fallback = common_dir.parent / ".beads" / "config.yaml" if common_dir.name == ".git" \
+        else common_dir / ".beads" / "config.yaml"
+    info["fallback_config"] = str(fallback)
+    if fallback.exists():
+        info["status"] = "shared"
+        return info
+
+    info["status"] = "unresolvable"
+    info["detail"] = (
+        f"this is a git worktree with no beads workspace of its own, and the main clone's "
+        f"{fallback} does not exist — most likely it is on a branch that predates beads. "
+        f"bd will silently default the database name and report an empty workspace."
+    )
+    info["remedy"] = "run `bd bootstrap` here to clone the workspace from the remote ref"
+    return info
+
+
 def resolve():
     settings = load_local_settings()
     configured, complaint = configured_mode(settings)
     version = bd_version()
     installed = version is not None
     initialized = BEADS_DIR.exists()
+    workspace = workspace_resolution()
 
     if configured == "off":
         effective, why = "off", "contributor opted out via tracking.mode: off"
@@ -120,6 +190,11 @@ def resolve():
         effective, why = "unavailable", "bd is not on PATH"
     elif not initialized:
         effective, why = "unavailable", f"{BEADS_DIR} does not exist in this checkout"
+    elif workspace.get("status") == "unresolvable":
+        # `.beads/` is present but bd will not resolve to it. Reporting `beads` here would send
+        # an agent off to run commands that cannot work, which is the failure this check exists
+        # to prevent.
+        effective, why = "unavailable", workspace["detail"]
     else:
         effective, why = "beads", (
             "tracking.mode: beads" if configured == "beads"
@@ -132,6 +207,7 @@ def resolve():
         "reason": why,
         "bd": {"installed": installed, "version": version},
         "beads_dir_present": initialized,
+        "workspace": workspace,
         "settings_file": str(SETTINGS_FILE),
         "settings_file_present": SETTINGS_FILE.exists(),
         "guidance_doc": str(GUIDANCE_DOC),
