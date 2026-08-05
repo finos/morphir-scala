@@ -1,6 +1,6 @@
 ---
 # kb:begin block — added by the knowledge base; removed on export
-type: Decision Record
+type: Decision Source
 title: ADR 0001 Morphir Ir Sum Types In Go
 description: "Upstream source document finos/morphir:docs/adr/ADR-0001-morphir-ir-sum-types-in-go.md."
 kb_upstream: docs/adr/ADR-0001-morphir-ir-sum-types-in-go.md

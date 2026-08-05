@@ -542,6 +542,66 @@ class KbSyncSpec extends Test[Any]:
     }
   }
 
+  "re-injection" - {
+    val manifest = KbSync.parseManifest(
+      "upstream:\n  repo: acme/spec\nmappings:\n  - \"docs/**\"\ntype_map:\n  \"docs/**\": Design Source\n"
+    ).toOption.get
+
+    "rewrites the keys the injection owns" in {
+      val before = KbSync.inject("---\ntitle: Types\ndescription: The types.\n---\n\n# Types\n", keys)
+      val after = KbSync.reinjected(manifest, "docs/types.md", before).toOption.get
+      assert(after.contains("type: Design Source"), s"got: $after")
+      assert(!after.contains("Specification Source"), "the old value goes")
+      assert(after.contains("title: Types"), "upstream's own keys are outside the fence and untouched")
+    }
+    "keeps keys a human added inside the fence" in {
+      val before = KbSync.inject("---\ntitle: Types\n---\n\n# Types\n", keys)
+        .replace("# kb:end", "reviewed_by: us\n# kb:end")
+      val after = KbSync.reinjected(manifest, "docs/types.md", before).toOption.get
+      assert(after.contains("reviewed_by: us"), s"a hand-added key must survive: $after")
+      assert(after.contains("type: Design Source"), "while the generated ones are recomputed")
+    }
+    "leaves the upstream form exactly as it was" in {
+      // The whole point: re-injection is a change to our block, never to the bytes an export would send.
+      corpus.foreach { (label, text) =>
+        val injected = KbSync.inject(text, keys)
+        val after = KbSync.reinjected(manifest, "docs/types.md", injected).toOption.get
+        assert(KbSync.project(after) == Right(text), s"round-trip changed the bytes for $label")
+      }
+    }
+    "is idempotent, so a second pull finds nothing to do" in {
+      val once = KbSync.reinjected(manifest, "docs/types.md", KbSync.inject(corpus.head._2, keys)).toOption.get
+      assert(!KbSync.injectionStale(manifest, "docs/types.md", once), "the first pass settles it")
+      assert(KbSync.reinjected(manifest, "docs/types.md", once) == Right(once))
+    }
+    "gives a fence to a mirrored file that has lost one" in {
+      val after = KbSync.reinjected(manifest, "docs/types.md", "---\ntitle: Types\n---\n\n# Types\n").toOption.get
+      assert(after.contains("# kb:begin"), s"got: $after")
+      assert(after.contains("type: Design Source"))
+    }
+    "refuses a damaged fence rather than rewriting it" in {
+      val broken = "---\ntitle: X\n# kb:begin\ntype: Y\n---\n\nBody.\n"
+      assert(KbSync.reinject(broken, keys).isLeft)
+      assert(!KbSync.injectionStale(manifest, "docs/types.md", broken), "and it is reported as unreadable, not stale")
+    }
+    "drops an injected fallback upstream has since supplied itself" in {
+      // The file was seeded when upstream had neither key, and upstream has since added both. Keeping ours would
+      // leave `title` in the frontmatter twice, which SnakeYAML refuses outright — the document would stop loading.
+      val stale =
+        "---\ntitle: Types\ndescription: Theirs.\n" +
+          "# kb:begin — added by the knowledge base; removed on export\n" +
+          "type: Design Source\ntitle: Types\n" +
+          "description: \"Upstream source document acme/spec:docs/types.md.\"\n" +
+          "kb_upstream: docs/types.md\n# kb:end\n---\n\n# Types\n"
+      assert(KbSync.injectionStale(manifest, "docs/types.md", stale), "a duplicated key is staleness by any reading")
+      val after = KbSync.reinjected(manifest, "docs/types.md", stale).toOption.get
+      assert(after.linesIterator.count(_.startsWith("title: ")) == 1, s"one title, not two: $after")
+      assert(!after.contains("Upstream source document"), s"and the fallback description goes with it: $after")
+      val fm = KbSync.split(after).flatMap(s => KbStore.parseFrontmatter(s.fm).toOption)
+      assert(fm.flatMap(_.description).contains("Theirs."), s"leaving upstream's own: $fm")
+    }
+  }
+
   "relative links in mirrored documents" - {
     "regression: a sibling link resolves to an absolute path that exists" in {
       // resolveLink rebuilt the path from a segment list, dropping the leading empty segment of an absolute path
@@ -606,6 +666,29 @@ class KbSyncSpec extends Test[Any]:
       assert(m.selects("website/static/schemas/x.yaml"))
       assert(!m.selects("website/static/schemas/x.json"), "mapping-level exclude")
       assert(!m.selects("website/static/schemas/big.yaml"), "manifest-level exclude")
+    }
+    "refuses a type_map entry naming a type a register owns" in {
+      // The live instance: `docs/adr/**` mapped to `Decision Record`, which is exactly what KbDecision discovers by.
+      // Upstream's ADRs were pulled into our register and judged against a schema that is not theirs — four errors
+      // per file, none fixable from this side.
+      val bad = KbSync.parseManifest(
+        "upstream:\n  repo: a/b\nmappings:\n  - docs/**\ntype_map:\n  \"docs/adr/**\": Decision Record\n"
+      )
+      assert(bad.isLeft, "a manifest may not inject a register-owned type")
+      assert(bad.left.toOption.exists(_.contains("docs/adr/**")), s"and must say which entry: $bad")
+      assert(
+        KbSync.parseManifest(
+          "upstream:\n  repo: a/b\nmappings:\n  - docs/**\ntype_map:\n  \"docs/adr/**\": Decision Source\n"
+        ).isRight,
+        "naming what the file *is* stays allowed"
+      )
+      // Case and surrounding space cannot be used to smuggle one past: the register matches by `equalsIgnoreCase`.
+      assert(
+        KbSync.parseManifest(
+          "upstream:\n  repo: a/b\nmappings:\n  - docs/**\ntype_map:\n  \"docs/adr/**\": \" decision record \"\n"
+        ).isLeft,
+        "the comparison is the register's own, not a literal one"
+      )
     }
     "classifies markdown as a concept and everything else as an asset" in {
       val m = KbSync.parseManifest("upstream:\n  repo: a/b\nmappings:\n  - \"**\"\n").toOption.get
@@ -726,6 +809,96 @@ class KbSyncSpec extends Test[Any]:
       assert(!KbSync.safeRelative("../escaped.md"))
       assert(!KbSync.safeRelative("/etc/passwd"))
       assert(KbSync.safeRelative("docs/spec/types.md"))
+    }
+  }
+
+  /** Rewrites the fixture's manifest with a different `type_map`, which is the edit that used to have no effect. */
+  private def retype(bundleRoot: Path, t: String): Unit < (Sync & Abort[Throwable]) =
+    (bundleRoot / "sync.yaml").write(
+      "upstream:\n  repo: acme/spec\n  refs_path: acme/spec\nroot: sources\n" +
+        s"mappings:\n  - \"docs/**\"\n  - \"schemas/**\"\ntype_map:\n  \"docs/**\": $t\n"
+    )
+
+  "the injected block follows the manifest" - {
+    "regression: a type_map edit reaches a file that is already clean" in {
+      // The bug behind #947. `stateOf` compares projected forms, so the injected block is invisible to status and
+      // pull passed over every clean file — a manifest edit was write-once, and a wrong `type` sat there forever.
+      for
+        (kbRoot, bundleRoot, upstream) <- syncFixture
+        (_, sb0) <- loadSync(kbRoot)
+        first <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, first.lock)
+        _ <- retype(bundleRoot, "Design Source")
+        (_, sb) <- loadSync(kbRoot)
+        rows <- KbSync.status(sb, Some(upstream))
+        again <- KbSync.pull(sb, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        after <- sb.localFile("docs/types.md").read
+        (_, sb2) <- loadSync(kbRoot)
+        settled <- KbSync.status(sb2, Some(upstream))
+      yield
+        assert(
+          rows.filter(_.injectionStale).map(_.path) == Seq("docs/index.md", "docs/types.md"),
+          s"both concepts are stale, the asset is not: ${rows.map(r => r.path -> r.injectionStale)}"
+        )
+        assert(
+          rows.forall(_.state == SyncState.Clean),
+          s"and staleness is orthogonal to state: ${rows.map(r => r.path -> r.state.label)}"
+        )
+        assert(again.actions.count(_.verb == "re-injected") == 2, s"got ${again.actions}")
+        assert(after.contains("type: Design Source"), s"got: $after")
+        assert(after.contains("title: Types"), "upstream's frontmatter is untouched")
+        assert(settled.forall(!_.injectionStale), "and a second pass has nothing left to do")
+    }
+    "keeps a key added inside the fence by hand" in {
+      for
+        (kbRoot, bundleRoot, upstream) <- syncFixture
+        (_, sb0) <- loadSync(kbRoot)
+        first <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, first.lock)
+        before <- sb0.localFile("docs/types.md").read
+        _ <- sb0.localFile("docs/types.md").write(before.replace("# kb:end", "reviewed_by: us\n# kb:end"))
+        _ <- retype(bundleRoot, "Design Source")
+        (_, sb) <- loadSync(kbRoot)
+        _ <- KbSync.pull(sb, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        after <- sb.localFile("docs/types.md").read
+        rows <- KbSync.status(sb, Some(upstream))
+      yield
+        assert(after.contains("reviewed_by: us"), s"the hand-added key survives: $after")
+        assert(after.contains("type: Design Source"), "and the generated one is corrected")
+        assert(
+          rows.find(_.path == "docs/types.md").exists(_.state == SyncState.Clean),
+          s"re-injection does not disturb the upstream form: ${rows.map(r => r.path -> r.state.label)}"
+        )
+    }
+    "reports the rewrite under --dry-run without performing it" in {
+      for
+        (kbRoot, bundleRoot, upstream) <- syncFixture
+        (_, sb0) <- loadSync(kbRoot)
+        first <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, first.lock)
+        _ <- retype(bundleRoot, "Design Source")
+        (_, sb) <- loadSync(kbRoot)
+        dry <- KbSync.pull(sb, upstream, "deadbeef", today, dryRun = true, theirs = false, prune = false)
+        after <- sb.localFile("docs/types.md").read
+      yield
+        assert(dry.actions.count(_.verb == "re-injected") == 2, s"got ${dry.actions}")
+        // Its own verb, so a bulk re-injection across a mirror does not read as an import from upstream.
+        assert(dry.actions.forall(a => a.verb != "added" && a.verb != "updated"), s"got ${dry.actions}")
+        assert(after.contains("type: Specification Source"), "dry run must not write")
+    }
+    "reports a stale block through kb check, without a reference checkout" in {
+      for
+        (kbRoot, bundleRoot, upstream) <- syncFixture
+        (_, sb0) <- loadSync(kbRoot)
+        first <- KbSync.pull(sb0, upstream, "deadbeef", today, dryRun = false, theirs = false, prune = false)
+        _ <- KbSync.writeLock(sb0, first.lock)
+        _ <- retype(bundleRoot, "Design Source")
+        (kb, sb) <- loadSync(kbRoot)
+        findings <- KbSync.checkFindings(kb, sb, None)
+      yield assert(
+        findings.count(f => f.check == "sync-injection-stale" && f.severity == Severity.Warn) == 2,
+        s"got ${findings.map(f => f.check -> f.path)}"
+      )
     }
   }
 

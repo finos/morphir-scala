@@ -1,6 +1,6 @@
 ---
 # kb:begin block — added by the knowledge base; removed on export
-type: Decision Record
+type: Decision Source
 title: ADR 0002 Processing Pipeline
 description: "Upstream source document finos/morphir:docs/adr/ADR-0002-processing-pipeline.md."
 kb_upstream: docs/adr/ADR-0002-processing-pipeline.md

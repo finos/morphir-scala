@@ -32,6 +32,7 @@ Exit code is non-zero when there is at least one error, or with `--strict`, at l
 | `decision-withdrawn-no-reason` | `state: Withdrawn` with no `reason` | Say why. A withdrawal without a reason is worthless six months on |
 | `sync-projection-broken` | A mirrored file cannot be reduced to its upstream form — its `# kb:begin` … `# kb:end` region is damaged | See below |
 | `sync-lock-drift` | `sync.lock.yaml` lists a mirrored file that is not in the mirror | See below |
+| `sync-manifest-invalid` | A bundle has a `sync.yaml` this tooling refuses — most often a `type_map` naming a type one of the registers owns | See below |
 
 A broken link is an error here even though OKF treats dangling links as "not-yet-written knowledge" — because OKF is
 describing *consumers*, and this is a producer-side linter. Nothing reading a bundle should fail on a dangling link;
@@ -64,6 +65,7 @@ warning. Otherwise, if you mean to point at something unwritten, say so in prose
 | `sync-diverged` | A mirrored file changed both here and upstream since the last import | Reconcile by hand; `kb sync diff <path>` shows both sides. `kb sync pull --theirs` discards the local side |
 | `sync-deleted-upstream` | A mirrored file is no longer present upstream | `kb sync pull --prune` removes it here too, if that is what you want |
 | `sync-deleted-upstream-edited` | Gone upstream, but carrying local edits — an **error**, because the edit is unrecoverable if discarded | Restore the file upstream and export, or revert the edit. Nothing prunes or overwrites it in the meantime. |
+| `sync-injection-stale` | A mirrored file's `# kb:begin` block does not say what `sync.yaml` now implies — usually a `type_map` edit that was never applied | `kb sync pull` rewrites the block in place. Keys you added inside the fence are kept |
 
 ### On `index-description-drift`
 
@@ -92,7 +94,8 @@ stance as `source-commit-drift`, for the same reason: drift is a prompt, not a f
 apart from upstream is the normal state of anything being worked on, and the tooling's job is to tell you *which
 way* it moved, not to insist you reconcile it now.
 
-Two are errors, and only two, because they are the states in which an export would send the wrong bytes:
+Two are errors because they are the states in which an export would send the wrong bytes, and a third because it is a
+manifest no command will accept:
 
 - **`sync-projection-broken`.** The `# kb:begin` … `# kb:end` region is the only part of a mirrored file the
   knowledge base owns, and removing exactly that region is what recovers upstream's bytes. When the fence is
@@ -102,8 +105,17 @@ Two are errors, and only two, because they are the states in which an export wou
 - **`sync-lock-drift`.** The lockfile names a file the mirror does not have, so the two disagree about what is
   vendored. `kb sync pull` restores it from upstream. If upstream dropped the file deliberately, `kb sync pull
   --prune` removes the entry instead.
+- **`sync-manifest-invalid`.** The manifest itself is refused, so no sync command will run — this finding is how you
+  see that from `kb check` rather than only from `kb sync`. The usual cause is a `type_map` entry naming a type a
+  register discovers by, such as `Decision Record`: a mirrored document injected with one is pulled into that register
+  and judged against a schema it was never written to. Type a mirrored file by what it *is* — `Decision Source` — and
+  → [sync.md](sync.md#type_map-may-not-name-a-register-owned-type) for why the constraint is general.
 
-Without a reference checkout under `.refs/` — or with `--no-provenance` — only those two can fire. The other four
+`sync-injection-stale` also fires without a checkout: it compares the file on disk against what the manifest implies,
+which needs nothing from upstream. That is the point — a `type_map` edit that was never applied is otherwise invisible,
+because status compares projected forms and the injected block is stripped before the comparison.
+
+Without a reference checkout under `.refs/` — or with `--no-provenance` — only those four can fire. The other four
 are all comparisons against upstream, and there is nothing to compare against.
 
 Mirrored documents are also held to a *looser* structural standard than authored ones, because their frontmatter

@@ -39,6 +39,19 @@ commands.
 Globs are matched against `/`-separated upstream-relative paths and support `*` (stops at a separator), `?` and
 `**`. `**/` also matches zero directories, so `docs/**/x.md` finds `docs/x.md`.
 
+### `type_map` may not name a register-owned type
+
+A register that discovers its records by `type:` claims that value across the whole knowledge base — `kb decision`
+collects every concept whose `type` is `Decision Record` wherever it sits, by design. Injecting one into a mirrored
+document conscripts upstream's file into a register whose schema it was never written against: an ADR imported from
+`finos/morphir` keeps its id in an `ADR-0001-…` filename and its status in the body, where this register expects a
+`NNNN-` prefix and frontmatter, so it fails four checks that nobody on this side can fix.
+
+So a mirrored document is typed by **what it is**, not by which of our registers would like it: `Decision Source`,
+not `Decision Record`. `kb sync` refuses a manifest that names an owned type — every command, not just `pull` — and
+`kb check` reports the same refusal as `sync-manifest-invalid` so it is caught without a reference checkout. The set
+lives in `KbRegisters.ownedTypes`; a register that starts discovering by `type:` adds itself there.
+
 ```yaml
 # What this bundle mirrors from finos/morphir, and where it lands.
 upstream:
@@ -140,6 +153,32 @@ The `block` flag exists because a document whose upstream frontmatter is an *emp
 indistinguishable from one that had none, and export would delete a block upstream actually has. The whole block is
 removed only when we created it *and* nobody has since added a key of their own alongside it.
 
+### The block is manifest-derived, and self-correcting
+
+Everything inside the fence is *generated*: `type` from `type_map`, `kb_upstream` from the path, `title` and
+`description` from the fallbacks. Edit the manifest and the next `kb sync pull` rewrites the block in place — it does
+not wait for upstream to touch the file, and it does not need the file to have drifted.
+
+This is not free, and it is worth knowing why it exists. `status` compares *projected* forms, so the injected block is
+invisible to it by construction — which is right for detecting upstream drift, and is exactly why nothing used to
+notice when our own injection went stale. A clean file was passed over on every pull, so a `type_map` edit had no
+effect on anything already imported and the manifest was effectively write-once. Instead of a second hash in the
+lockfile, `pull` compares each file against what the manifest now implies and rewrites the ones that disagree:
+
+- The comparison uses the local file alone, so `kb sync status` and `kb check` report staleness with **no reference
+  checkout** — a manifest edit that was never applied shows up offline.
+- `status` marks such a file `[injection stale]` whatever its state, and `--strict` fails on it. It is not a
+  `SyncState`: a file can have drifted upstream *and* carry a stale block, and collapsing the two would lose one.
+- `pull` reports the rewrite as its own verb, `re-injected`, and `--dry-run` lists it without writing. A bulk
+  re-injection across a whole mirror should not read as an import from upstream.
+- Re-injection changes only the fenced region, so the upstream form — and the hash beside it in the lockfile — is
+  unchanged. That is why it is safe to do to a `local-only` file: the edit you mean to export is outside the fence.
+- **Keys you add inside the fence by hand survive.** `type`, `title`, `description` and `kb_upstream` are ours and are
+  recomputed; anything else in there is left alone. The four are fixed rather than taken from the file, because the
+  day upstream supplies a `title` of its own, ours has to go or the frontmatter carries the key twice and stops
+  parsing.
+- A damaged fence is refused, not guessed at. That file is `unreadable` and has its own finding.
+
 ### The round-trip invariant
 
 ```
@@ -197,12 +236,14 @@ Full flag tables live in [commands.md](commands.md); this is what each one is fo
 
 **`kb sync status`** — what has moved, on both sides. It degrades gracefully: with no reference checkout, or with
 `--no-upstream`, it compares the mirror against the lockfile alone and reports only the states that comparison can
-decide. `--verbose` lists clean files too; `--strict` exits non-zero when anything is `diverged` or `unreadable`.
+decide. `--verbose` lists clean files too; `--strict` exits non-zero when anything is `diverged`, `unreadable`, or
+carrying a stale injected block — that last one is a manifest edit that was never applied, which is a manifest true
+only on paper.
 
-**`kb sync pull`** — import. Requires the reference checkout. It writes the mirrored files, rewrites
-`sync.lock.yaml` with the checkout's current HEAD as `base_commit`, then regenerates the bundle index below the
-`<!-- kb:sources -->` marker. `--dry-run` reports and writes nothing; `--theirs` takes upstream's version of files
-that changed on both sides; `--prune` deletes what upstream has removed.
+**`kb sync pull`** — import. Requires the reference checkout. It writes the mirrored files, re-injects any block that
+no longer matches the manifest, rewrites `sync.lock.yaml` with the checkout's current HEAD as `base_commit`, then
+regenerates the bundle index below the `<!-- kb:sources -->` marker. `--dry-run` reports and writes nothing;
+`--theirs` takes upstream's version of files that changed on both sides; `--prune` deletes what upstream has removed.
 
 The index is generated because forty hand-written bullets rot on the first pull. Everything above the marker is
 yours; everything below it is rewritten. Bullet text is the concept's own `description`, verbatim — that equality is
@@ -219,8 +260,9 @@ an export would actually send. Take the path from `sync status`; it is relative 
 ## Checks
 
 `kb check` folds sync findings in alongside the rest, for every bundle that has a `sync.yaml`. Drift is a prompt,
-not a failure — only `sync-projection-broken` and `sync-lock-drift` are errors, because those are the two states in
-which an export would send the wrong bytes.
+not a failure — only `sync-projection-broken`, `sync-lock-drift` and `sync-manifest-invalid` are errors: the first
+two are the states in which an export would send the wrong bytes, and the third is a manifest no command will accept.
+A stale injected block is `sync-injection-stale`, a warning, because `kb sync pull` fixes it mechanically.
 
 Mirrored documents also get relaxed structural checks: their frontmatter is upstream's, so `title`, `description`,
 `status` and unknown-key findings are suppressed, and a broken link becomes `link-broken-upstream` (a warning)

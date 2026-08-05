@@ -39,9 +39,13 @@ object DecisionState:
   /** Display order: what governs now, then what used to. */
   val displayOrder: Seq[DecisionState] = Seq(Accepted, Proposed, Superseded, Withdrawn)
 
-/** The `type` value that marks a concept as a decision record. */
+/** The `type` value that marks a concept as a decision record.
+  *
+  * Defined in [[KbRegisters]] rather than here: discovering by `type:` claims that string knowledge-base wide, and
+  * the vendoring engine has to know the same set to keep a manifest from injecting it into somebody else's document.
+  */
 object DecisionType:
-  val Name = "Decision Record"
+  val Name: String = KbRegisters.DecisionRecord
 
 case class Decision(doc: Doc, bundle: String):
   private def fm = doc.fm

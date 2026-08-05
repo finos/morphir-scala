@@ -263,18 +263,26 @@ What has moved, here and upstream. Clean files are omitted unless you ask for th
 | ---- | ------- |
 | `--no-upstream` | Do not consult the upstream checkout — compare the mirror against the lockfile only |
 | `--verbose` | List clean files too |
-| `--strict` | Exit non-zero when anything is `diverged` or `unreadable` |
+| `--strict` | Exit non-zero when anything is `diverged`, `unreadable`, or carrying a stale injected block |
+
+A file whose `# kb:begin` block no longer matches `sync.yaml` is listed as `[injection stale]` whatever its state,
+and is counted separately in the summary. That comparison needs no upstream checkout, so `--no-upstream` still makes
+it.
 
 ```bash
 .claude/skills/kb/kb sync status
 ```
 
-JSON gives `{files[{path, kind, state, detail}], summary{<state>: <count>}}`.
+JSON gives `{files[{path, kind, state, detail, injectionStale}], summary{<state>: <count>}}`.
 
 ### `sync pull`
 
-Imports upstream, rewrites `sync.lock.yaml`, then regenerates the bundle index below the `<!-- kb:sources -->`
-marker. `base_commit` is the checkout's current HEAD.
+Imports upstream, re-injects any block the manifest no longer implies, rewrites `sync.lock.yaml`, then regenerates
+the bundle index below the `<!-- kb:sources -->` marker. `base_commit` is the checkout's current HEAD.
+
+Re-injection is reported under its own verb, `re-injected`, and is what makes a `type_map` edit take effect on files
+that are already clean. It rewrites only the fenced region — keys added inside the fence by hand are kept, and the
+bytes an export would send are unchanged.
 
 | Flag | Meaning |
 | ---- | ------- |
