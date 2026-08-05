@@ -1,25 +1,11 @@
 extends: Module
 
 object jvm:
-  extends: [build.MorphirJVMModule, build.MorphirIntelligencePublishModule, build.MorphirScoverage]
-  mvnDeps:
-  - io.getkyo::kyo-schema:1.0.0-RC5
+  extends: [build.MorphirJVMModule, build.MorphirIntelligencePublishModule, build.MorphirScoverage, build.MorphirKyoSchemaMvnDeps]
   object test:
-    extends: [ScoverageTests, millbuild.KyoTest]
-    mvnDeps:
-    - io.getkyo::kyo-core:1.0.0-RC5
-    - io.getkyo::kyo-prelude:1.0.0-RC5
-    - io.getkyo::kyo-test-api:1.0.0-RC5
-    - io.getkyo::kyo-test-runner:1.0.0-RC5
+    extends: [ScoverageTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
 
 object js:
-  extends: [build.MorphirJSModule, build.MorphirIntelligencePublishModule]
-  mvnDeps:
-  - io.getkyo::kyo-schema::1.0.0-RC5
+  extends: [build.MorphirJSModule, build.MorphirIntelligencePublishModule, build.MorphirKyoSchemaMvnDeps]
   object test:
-    extends: [ScalaJSTests, millbuild.KyoTestJS]
-    mvnDeps:
-    - io.getkyo::kyo-core::1.0.0-RC5
-    - io.getkyo::kyo-prelude::1.0.0-RC5
-    - io.getkyo::kyo-test-api::1.0.0-RC5
-    - io.getkyo::kyo-test-runner::1.0.0-RC5
+    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]

@@ -158,10 +158,12 @@ declaring file, while `final` forbids it outright. `final` is therefore strictly
 and it is the idiomatic Scala 3 spelling. Nothing in this repo subclasses a `sealed case
 class` — the modifier buys nothing anywhere it currently appears.
 
-It also actively breaks things. kyo-schema's `Schema.derived` rejects a `sealed case class`
-outright, misreporting it as a sealed trait with no variants, because the type carries both
-the `Sealed` and `Case` flags. Any module we want kyo-schema derivation for must be free of
-the idiom first.
+It has also broken things. Up to kyo `1.0.0-RC5`, kyo-schema's `Schema.derived` rejected a
+`sealed case class` outright, misreporting it as a sealed trait with no variants, because the
+type carries both the `Sealed` and `Case` flags. That is fixed as of `1.0.0-RC6`
+([getkyo/kyo#1811](https://github.com/getkyo/kyo/issues/1811)), which this build is on — so
+the rule now rests on the argument above rather than on a derivation failure, and it is no
+less binding for that.
 
 **Do not confuse it with `sealed abstract case class`, which is a deliberate and correct
 pattern** — the smart-constructor idiom. There, `abstract` suppresses synthesis of `apply`

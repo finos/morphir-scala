@@ -288,22 +288,34 @@ trait ToolsJSDocSources extends ScalaJSModule {
   }
 }
 
-/** Adds the Sonatype snapshot repository. Needed while kyo is pinned to a snapshot build.
-  *
-  * `repositories` is NOT inherited by a nested test module from its enclosing module, so a test block declaring
-  * snapshot-pinned deps needs this in scope in its own right. Rather than rely on every such block remembering to
-  * name it, each of the kyo `*MvnDeps` traits below mixes this in: the repository then travels with the deps that
-  * require it. Mix it in directly only where a module needs the repository without the deps — `morphir.main`, which
-  * inherits snapshot artifacts transitively through its `moduleDeps`.
+/** The base kyo effect deps — what a module needs to write `ArrowEffect`s and run them. Used by the `langkit`
+  * modules, whose production code is Kyo-native. Named as a trait rather than repeated as YAML literals so the
+  * version pin stays sourced from [[millbuild.Versions.kyo]] alone: a second literal elsewhere in the build is how
+  * two kyo versions end up in one Coursier resolution.
   */
-trait MorphirSnapshotRepos extends CoursierModule {
-  override def repositories = Task {
-    super.repositories() :+ "https://central.sonatype.com/repository/maven-snapshots"
-  }
+trait MorphirKyoCoreMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.io.getkyo.`kyo-core`,
+    Deps.io.getkyo.`kyo-prelude`
+  )
+}
+
+/** `kyo-schema` on its own, for modules that derive schemas without needing kyo-data's containers. */
+trait MorphirKyoSchemaMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.io.getkyo.`kyo-schema`
+  )
+}
+
+/** `kyo-case-app`, the CLI argument parser behind `morphir.intelligence`'s entry point. */
+trait MorphirKyoCaseAppMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.io.getkyo.`kyo-case-app`
+  )
 }
 
 /** kyo deps for `morphir.model`. */
-trait MorphirKyoMvnDeps extends ScalaModule with MorphirSnapshotRepos {
+trait MorphirKyoMvnDeps extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.io.getkyo.`kyo-data`,
     Deps.io.getkyo.`kyo-schema`
@@ -312,7 +324,7 @@ trait MorphirKyoMvnDeps extends ScalaModule with MorphirSnapshotRepos {
 
 /** kyo-test deps. kyo-test's Mill traits set only the framework class, so each test block
   * must declare these itself. */
-trait MorphirKyoTestMvnDeps extends ScalaModule with MorphirSnapshotRepos {
+trait MorphirKyoTestMvnDeps extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.io.getkyo.`kyo-core`,
     Deps.io.getkyo.`kyo-prelude`,
@@ -324,7 +336,7 @@ trait MorphirKyoTestMvnDeps extends ScalaModule with MorphirSnapshotRepos {
 /** The `kyo-schema` JSON codec (`kyo.Json`), published as a separate artifact from `kyo-schema` itself. Needed
   * wherever a derived `Schema` is round-tripped through `encodeString`/`decodeString`, whether that's production
   * code (e.g. `morphir.model`'s `CodeModelCodecs`) or a test. */
-trait MorphirKyoSchemaJsonMvnDeps extends ScalaModule with MorphirSnapshotRepos {
+trait MorphirKyoSchemaJsonMvnDeps extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.io.getkyo.`kyo-schema-json`
   )

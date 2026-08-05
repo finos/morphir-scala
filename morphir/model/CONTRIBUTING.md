@@ -79,18 +79,69 @@ corpus under `morphir/interop/zio/json/test/resources/golden/` is a second sourc
 `morphir/model/lowering` currently reads. Broadening coverage to that corpus (and to a `Specs`/`Application` fixture
 if a real one can be sourced) is a named, not-yet-started follow-up.
 
-### 5. Two kyo versions coexist in the dependency graph
+Two `V3Lowering` entry points have no direct test at all: `lowerModuleSpecification` and
+`lowerPackageSpecification`. `lowerTypeDefinition`, `lowerTypeSpecification`, `lowerConstructors` and
+`lowerDocumented` do, so the gap is narrower than the whole specification path, but a specification-shaped
+distribution would exercise both of the untested ones at once - which is a second reason to want the `Specs`
+fixture above.
 
-`Versions.kyo` (`mill-build/src/millbuild/deps.scala`) pins the `1.0.0-RC5+50-7da9d49b-SNAPSHOT` build that
-`morphir/model` and everything depending on it require (kyo-schema derivation needs fixes only in the snapshot - see
-the kyo-related task notes this file's history is drawn from). Four `langkit` modules - `langkit/core`,
-`langkit/trees`, `langkit/elm/core`, `langkit/elm/compiler/api` - still hardcode the released `1.0.0-RC5` in their
-`package.mill.yaml`. Their classpaths are currently disjoint from `morphir/model`'s, so there is no live conflict
-today, but Coursier resolves a single version per artifact coordinate across a build - the moment something depends
-on both sides (`morphir.kit.kyo` looks like the likely meeting point, since `kit/` modules bridge upstream libraries
-into the kyo ecosystem this codebase uses), Coursier will unify to the snapshot and the four `langkit` modules will
-silently start building against a version they didn't pin. Worth moving them onto `Versions.kyo` before that
-happens, rather than after something breaks from it.
+### 4a. Determinism sorts in the lowering are load-bearing
+
+`V3Lowering` sorts at four sites, and each one is there to make the lowering's output reproducible rather than to
+tidy anything up:
+
+| Site | Key |
+| ---- | --- |
+| `lowerConstructors` | `ctors.toMap.toSeq.sortBy(_._1.toList)` |
+| `Expr.LetRecursion` bindings, in `lowerExpr` | `definitions.toSeq.sortBy(_._1.toList)` |
+| `Expr.UpdateRecord` fields, in `lowerExpr` | `fieldsToUpdate.toSeq.sortBy(_._1.toList)` |
+| `lowerBundle` | `sortBy(_.packageName.toPath.segments.toList.map(_.toList))` |
+
+v3 holds these as a `Map`, and Scala guarantees nothing about `Map` iteration order. Without the sorts the same
+input can lower to two different-but-equivalent code models, which makes the derived JSON non-reproducible and makes
+a golden fixture unverifiable by hand. The sort recovers *a* reproducible rule; it does not recover the original
+declaration order, which v3's use of `Map` had already discarded. `Name` has no `Ordering`, hence the `.toList` key.
+
+Each site carries a comment saying so. **Do not remove them as redundant.** Note also that this makes the four
+sorted sites order-stable, not the whole tree - making the tree order-stable would mean changing the code model to
+stop using `Map`, which is out of scope for the lowering.
+
+### 4b. What kyo-schema derivation costs at compile time
+
+Measured on `morphir/model` when `derives Schema` was introduced, alternating `./mill clean morphir.model.jvm`
+with `time ./mill morphir.model.jvm.compile` between the pre- and post-derivation states:
+
+| State | Steady-state compile |
+| ----- | -------------------- |
+| 8 sources, no `derives Schema` | ~1.8-4.0s, median ≈2.9s |
+| 9 sources, full `derives Schema` closure | ~4.3-6.8s, median ≈5.6s |
+
+So roughly +2.7s, under 2x - against a stop condition of 3x, which is why derivation over the whole
+`Type`/`Expr` closure was accepted rather than narrowed. Derivation succeeded in a single pass over all 23
+product/sum types with no manual intervention beyond the instances in `NamingSchemas.scala`.
+
+Treat this as a rough floor, not a precise number: it is a 9-file module on a warm Mill daemon, so JVM and
+class-loading time dominate and the run-to-run variance is large relative to the delta. **If `codemodel` grows
+substantially, re-measure rather than assuming this still holds.**
+
+### 5. One kyo version, and one place that names it (resolved)
+
+This module tree used to require a `1.0.0-RC5+…-SNAPSHOT` build of kyo, because the kyo-schema derivation fixes it
+depends on had not been released. It is now on `1.0.0-RC6`, which carries them, so the Sonatype snapshot repository
+and the `MorphirSnapshotRepos` trait that added it are both gone.
+
+At the same time, eight modules that hardcoded a kyo version literal in their `package.mill.yaml` - `langkit/core`,
+`langkit/trees`, `langkit/elm/core`, `langkit/elm/compiler/api`, `kit/kyo`, `contrib/knowledge`, `intelligence` and
+`intelligence/sdk` - moved onto the `Morphir*MvnDeps` traits in `build.mill`, which source their version from
+`Versions.kyo` alone. That is what keeps the guarantee: Coursier resolves a single version per artifact coordinate
+across the whole build, so a second literal anywhere is a silent version unification waiting for the first module
+that depends on both sides.
+
+**When adding kyo deps to a module, name a trait; do not paste a version literal into YAML.** The traits are
+`MorphirKyoCoreMvnDeps` (kyo-core, kyo-prelude), `MorphirKyoTestMvnDeps` (those two plus kyo-test-api and
+kyo-test-runner), `MorphirKyoMvnDeps` (kyo-data, kyo-schema), `MorphirKyoSchemaMvnDeps`,
+`MorphirKyoSchemaJsonMvnDeps` and `MorphirKyoCaseAppMvnDeps`. A YAML block that also has non-kyo deps declares them
+with `mvnDeps: !append`, since a bare `mvnDeps:` replaces what the trait contributed rather than adding to it.
 
 ### 6. Split packages across artifacts
 
