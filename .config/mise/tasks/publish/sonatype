@@ -211,6 +211,16 @@ run_publish() {
     # Run Mill publish for all morphir modules except the mill-morphir-elm plugin
     # The plugin depends on mill-scalalib which isn't on Maven Central
     #
+    # INVARIANT: this list must cover every module extending MorphirPublishModule,
+    # minus that plugin. Check with:
+    #
+    #     ./mill resolve 'morphir.__.publishSonatypeCentral'
+    #
+    # A module that carries the trait but is missing here is not published, and
+    # nothing reports it. If a module should not be released, drop the trait
+    # rather than leaving it out of this list — the trait is what declares the
+    # intent, so the two must agree.
+    #
     # `morphir.naming.__` is not optional: `morphir.jvm`/`morphir.js` declare a
     # moduleDep on it, so the published `morphir` POM names `morphir-naming_3`.
     # Omitting it publishes a POM pointing at an artifact that is not on

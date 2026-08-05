@@ -1,11 +1,11 @@
 extends: Module
 
 object jvm:
-  extends: [build.MorphirJVMModule, build.MorphirIntelligencePublishModule, build.MorphirScoverage, build.MorphirKyoSchemaMvnDeps]
+  extends: [build.MorphirJVMModule, build.MorphirScoverage, build.MorphirKyoSchemaMvnDeps]
   object test:
     extends: [ScoverageTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
 
 object js:
-  extends: [build.MorphirJSModule, build.MorphirIntelligencePublishModule, build.MorphirKyoSchemaMvnDeps]
+  extends: [build.MorphirJSModule, build.MorphirKyoSchemaMvnDeps]
   object test:
     extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]

@@ -1,4 +1,4 @@
-extends: [build.MorphirCommonModule, build.MorphirIntelligencePublishModule, build.MorphirIntelligenceBuildInfo, build.MorphirScoverage, build.MorphirKyoCaseAppMvnDeps, build.MorphirKyoSchemaMvnDeps]
+extends: [build.MorphirCommonModule, build.MorphirIntelligenceBuildInfo, build.MorphirScoverage, build.MorphirKyoCaseAppMvnDeps, build.MorphirKyoSchemaMvnDeps]
 mainClass: org.finos.morphir.intelligence.Main
 moduleDeps: [build.morphir.intelligence.sdk.jvm]
 

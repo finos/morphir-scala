@@ -1,17 +1,17 @@
 extends: Module
 
 object jvm:
-  extends: [build.MorphirJVMModule, build.MorphirPublishModule]
+  extends: [build.MorphirJVMModule]
   object test:
     extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
 
 object js:
-  extends: [build.MorphirJSModule, build.MorphirPublishModule]
+  extends: [build.MorphirJSModule]
   object test:
     extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
 
 object native:
-  extends: [build.MorphirNativeModule, build.MorphirPublishModule]
+  extends: [build.MorphirNativeModule]
   object test:
     extends: [ScalaNativeTests, millbuild.KyoTestNative, build.MorphirKyoTestMvnDeps]
     mvnDeps: !append
