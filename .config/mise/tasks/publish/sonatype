@@ -210,10 +210,18 @@ run_publish() {
 
     # Run Mill publish for all morphir modules except the mill-morphir-elm plugin
     # The plugin depends on mill-scalalib which isn't on Maven Central
+    #
+    # `morphir.naming.__` is not optional: `morphir.jvm`/`morphir.js` declare a
+    # moduleDep on it, so the published `morphir` POM names `morphir-naming_3`.
+    # Omitting it publishes a POM pointing at an artifact that is not on
+    # Sonatype, which breaks resolution for every consumer of `morphir` — not
+    # just for consumers of the new modules.
     ./mill -i \
         morphir.main.publishSonatypeCentral \
         + morphir.jvm.publishSonatypeCentral \
         + morphir.js.publishSonatypeCentral \
+        + morphir.naming.__.publishSonatypeCentral \
+        + morphir.model.__.publishSonatypeCentral \
         + morphir.runtime.__.publishSonatypeCentral \
         + morphir.tools.__.publishSonatypeCentral \
         + morphir.extensibility.__.publishSonatypeCentral \
