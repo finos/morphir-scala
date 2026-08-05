@@ -9,7 +9,16 @@ echo "Running JS tests..."
 # sibling rather than under it, so the `morphir.__.js.__` glob never matches
 # them. `fullLinkJS` is included so a linker regression fails here rather than
 # at release time — the tests alone only exercise `fastLinkJSTest`.
-./mill -i -k -j 0 \
+#
+# `-j 4` rather than `-j 0`, and this is the one suite that needs the cap. Every
+# Scala.js link runs inside the single Mill daemon JVM, which `.mill-jvm-opts`
+# caps at `-Xmx4g`, and each concurrent link holds a full linker working set.
+# `-j 0` on a many-core developer machine schedules one per core and exhausts
+# that heap — the failure surfaces as `OutOfMemoryError` inside
+# `ByteArrayWriter.ensureCapacity` partway through the run, not as a test
+# failure. CI's 4-vCPU runners never hit it, so unbounded parallelism here only
+# made local runs diverge from CI. Raise this only alongside `-Xmx`.
+./mill -i -k -j 4 \
     "morphir.__.js.__.compile" \
     + \
     "morphir.__.js.publishArtifacts" \
