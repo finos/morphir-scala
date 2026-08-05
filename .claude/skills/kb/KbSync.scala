@@ -18,6 +18,11 @@
   * byte for byte, including line endings. That is why nothing here re-serializes YAML: upstream frontmatter is moved
   * around as lines, never parsed and rewritten, so a fractional `sidebar_position` or a nested `tracking:` block
   * cannot be reformatted by accident.
+  *
+  * The invariant has a corollary worth stating, because missing it was a bug: since projection strips the fenced
+  * region, the region is invisible to every hash comparison here, and nothing about upstream drift can tell you that
+  * *our own* injection has gone stale. [[KbSync.reinjected]] is the answer — the manifest is compared against each
+  * file directly, so editing `type_map` reaches files that were imported long ago.
   */
 
 import kyo.*
@@ -50,6 +55,16 @@ case class SyncManifest(
 
   def typeFor(path: String): String =
     typeMap.collectFirst { case (glob, t) if KbGlob.matches(glob, path) => t }.getOrElse("Source Document")
+
+  /** `type_map` entries naming a type one of the knowledge base's registers discovers by.
+    *
+    * A mirrored document describes what it *is* — `Design Source`, `Decision Source` — and stays out of the
+    * vocabulary the registers claim. Injecting a register-owned type instead conscripts upstream's document into a
+    * register whose schema it was never written against, and the resulting findings are unfixable from this side.
+    * See [[KbRegisters]] for the set and why it is a constraint rather than a convention.
+    */
+  def typeMapCollisions: Seq[(String, String)] =
+    typeMap.filter((_, t) => KbRegisters.owns(t))
 
   def selects(path: String): Boolean =
     val excluded = exclude.exists(KbGlob.matches(_, path))
@@ -94,7 +109,18 @@ enum SyncState:
     case Untracked => "untracked"
     case Unreadable => "unreadable"
 
-case class FileStatus(path: String, kind: SyncKind, state: SyncState, detail: String = "")
+/** Where a mirrored file stands, plus whether the block we inject into it still says what the manifest says.
+  *
+  * Injection staleness is orthogonal to [[SyncState]] rather than another case of it: a file can have drifted
+  * upstream *and* carry a block the manifest no longer implies, and collapsing the two would lose one of them.
+  */
+case class FileStatus(
+    path: String,
+    kind: SyncKind,
+    state: SyncState,
+    detail: String = "",
+    injectionStale: Boolean = false
+)
 
 /** What a `pull` or `push` did, or would do under `--dry-run`. Mirrors `RefreshAction` so both render the same way. */
 case class SyncAction(verb: String, path: String, detail: String)
@@ -235,6 +261,58 @@ object KbSync:
           if wholeBlock && kept.isEmpty then Right(s.body)
           else Right(s.open + kept.mkString + s.close + s.body)
 
+  /** Frontmatter keys the injection owns.
+    *
+    * Fixed rather than derived from a particular file's [[injectedKeys]], because which of them apply changes with
+    * upstream: the day upstream adds a `title` of its own, ours has to go or the frontmatter carries the key twice
+    * and stops parsing. Anything inside the fence that is *not* one of these was put there by hand and survives.
+    */
+  val GeneratedKeys: Set[String] = Set("type", "title", "description", "kb_upstream")
+
+  private def isGenerated(line: String): Boolean =
+    val key = line.takeWhile(c => c != ':' && c != '\n' && c != '\r')
+    line.startsWith(s"$key:") && GeneratedKeys.contains(key)
+
+  /** Rewrites the fenced region to `keys`, keeping every line in it the injection does not own.
+    *
+    * The counterpart to [[inject]] for a file already on disk: same result, but hand-added keys stay. A file with no
+    * fence gets one, which is what a failed or lost injection needs. Left when the fence is damaged, on the same
+    * terms as [[project]] — a file we cannot take apart is one we must not write back.
+    */
+  def reinject(text: String, keys: Seq[(String, String)]): Either[String, String] =
+    split(text) match
+      case None => Right(inject(text, keys))
+      case Some(s) =>
+        val lines = linesKeepingEol(s.fm)
+        val b = lines.indexWhere(_.trim.startsWith(FenceBegin))
+        val e = lines.indexWhere(_.trim == FenceEnd)
+        if b < 0 && e < 0 then Right(inject(text, keys))
+        else if b < 0 then Left(s"$FenceEnd without $FenceBegin")
+        else if e < 0 then Left(s"$FenceBegin without $FenceEnd")
+        else if e < b then Left("kb fence closes before it opens")
+        else
+          val eol = eolOf(text)
+          // The opening line is kept verbatim so the `block` flag survives: it records whether the whole frontmatter
+          // block is ours, which is a fact about upstream and not something re-injection may re-decide.
+          val handAdded = lines.slice(b + 1, e).filterNot(isGenerated)
+          val block = lines(b) + keys.map((k, v) => s"$k: $v" + eol).mkString + handAdded.mkString + lines(e)
+          Right(s.open + lines.take(b).mkString + block + lines.drop(e + 1).mkString + s.close + s.body)
+
+  /** A mirrored concept as the manifest now implies it: upstream's own bytes, with the injected block recomputed.
+    *
+    * This is what makes the manifest self-correcting. `stateOf` compares projected forms, so the injected block is
+    * invisible to it by construction — right for detecting upstream drift, and the reason nothing used to notice
+    * when our own injection went stale. Comparing a file against this closes that gap without a second hash.
+    */
+  def reinjected(manifest: SyncManifest, rel: String, text: String): Either[String, String] =
+    project(text).flatMap(upstream => reinject(text, injectedKeys(manifest, rel, upstream)))
+
+  /** True when the file on disk is not what the manifest would now produce. Damaged fences say no: they are already
+    * reported as `unreadable`, and rewriting one would mean guessing at what it was meant to hold.
+    */
+  def injectionStale(manifest: SyncManifest, rel: String, text: String): Boolean =
+    reinjected(manifest, rel, text).exists(_ != text)
+
   /** The keys the knowledge base injects: `type` always, plus whatever OKF needs and upstream did not supply. */
   def injectedKeys(manifest: SyncManifest, path: String, upstream: String): Seq[(String, String)] =
     val fm = split(upstream).flatMap(s => KbStore.parseFrontmatter(s.fm).toOption).getOrElse(Frontmatter.Empty)
@@ -296,7 +374,7 @@ object KbSync:
           }
           if mappings.isEmpty then Left("sync.yaml needs at least one entry under `mappings:`")
           else
-            Right(SyncManifest(
+            val manifest = SyncManifest(
               repo = repo,
               ref = str(up, "ref").getOrElse("main"),
               refsPath = str(up, "refs_path").getOrElse(repo),
@@ -305,8 +383,20 @@ object KbSync:
               exclude = strs(top, "exclude"),
               // SnakeYAML preserves mapping order, and order decides which glob wins.
               typeMap = asMap(top.getOrElse("type_map", null)).toSeq.collect { case (k, v: String) => k -> v }
-            ))
+            )
+            // Rejected at parse time so that every command reading the manifest refuses it, rather than each having
+            // to remember to ask. `kb check` reports the same failure without a checkout — see `allSyncFindings`.
+            manifest.typeMapCollisions match
+              case Nil => Right(manifest)
+              case bad => Left(collisionMessage(bad))
     catch case e: Exception => Left(Option(e.getMessage).getOrElse(e.toString).linesIterator.next())
+
+  /** Why a `type_map` entry is refused, naming the entry and what to write instead. */
+  def collisionMessage(bad: Seq[(String, String)]): String =
+    val entries = bad.map((glob, t) => s"`\"$glob\": $t`").mkString(", ")
+    s"sync.yaml type_map injects a type a register owns: $entries — " +
+      s"a mirrored document would be pulled into that register and judged against a schema that is not its own; " +
+      s"name what the file is instead (e.g. `Decision Source`). Register-owned: ${KbRegisters.ownedTypes.mkString(", ")}"
 
   def parseLock(raw: String): Either[String, SyncLock] =
     try
@@ -430,24 +520,35 @@ object KbSync:
           case Some(h) if h == base => if localChanged then SyncState.LocalOnly else SyncState.Clean
           case Some(_) => if localChanged then SyncState.Diverged else SyncState.UpstreamOnly
 
-  /** Reads a mirrored file and reduces it to the bytes it would go back upstream as.
+  /** A mirrored file as it sits on disk: the bytes it would go back upstream as, and — for a concept — the text they
+    * came from, which is the only place the injected block can be read.
     *
-    * Bytes, not text: an asset is whatever upstream stores, and decoding one as UTF-8 to hash or export it would
-    * replace any invalid sequence with U+FFFD. That makes a freshly pulled binary look locally modified, and then
-    * writes the corruption out on push. Only concepts are text, because only concepts carry a frontmatter fence.
+    * Bytes, not text, for the upstream form: an asset is whatever upstream stores, and decoding one as UTF-8 to hash
+    * or export it would replace any invalid sequence with U+FFFD. That makes a freshly pulled binary look locally
+    * modified, and then writes the corruption out on push. Only concepts are text, because only concepts carry a
+    * frontmatter fence — which is also why `text` is None for an asset.
     */
-  private def upstreamFormOf(sb: SyncBundle, rel: String, kind: SyncKind)
-      : Option[Either[String, Array[Byte]]] < (Sync & Abort[Throwable]) =
+  private case class LocalCopy(upstreamForm: Either[String, Array[Byte]], text: Option[String])
+
+  /** Reads a mirrored file into its [[LocalCopy]], or None when the mirror does not have it. */
+  private def localCopyOf(sb: SyncBundle, rel: String, kind: SyncKind)
+      : Option[LocalCopy] < (Sync & Abort[Throwable]) =
     val f = sb.localFile(rel)
     f.exists.map {
-      case false => (None: Option[Either[String, Array[Byte]]])
+      case false => (None: Option[LocalCopy])
       case true =>
         readBytes(f).map { bytes =>
           Some(kind match
-            case SyncKind.Concept => project(String(bytes, "UTF-8")).map(_.getBytes("UTF-8"))
-            case SyncKind.Asset => Right(bytes))
+            case SyncKind.Concept =>
+              val text = String(bytes, "UTF-8")
+              LocalCopy(project(text).map(_.getBytes("UTF-8")), Some(text))
+            case SyncKind.Asset => LocalCopy(Right(bytes), None))
         }
     }
+
+  private def upstreamFormOf(sb: SyncBundle, rel: String, kind: SyncKind)
+      : Option[Either[String, Array[Byte]]] < (Sync & Abort[Throwable]) =
+    localCopyOf(sb, rel, kind).map(_.map(_.upstreamForm))
 
   def status(sb: SyncBundle, upstreamRoot: Option[Path]): Seq[FileStatus] < (Sync & Abort[Throwable]) =
     for
@@ -461,7 +562,8 @@ object KbSync:
       rows <- Kyo.foreach(Chunk.from(paths)) { rel =>
         val entry = sb.lock.get(rel)
         val kind = entry.map(_.kind).getOrElse(sb.manifest.kindOf(rel))
-        upstreamFormOf(sb, rel, kind).map { local =>
+        localCopyOf(sb, rel, kind).map { copy =>
+          val local = copy.map(_.upstreamForm)
           val up = upstreamHashes.get(rel)
           val goneUpstream = entry.isDefined && upstreamRoot.isDefined && up.isEmpty
           // A file upstream has deleted but we have since edited is a conflict, not a clean deletion. Reporting it
@@ -478,7 +580,10 @@ object KbSync:
           val detail = local match
             case Some(Left(err)) => err
             case _ => ""
-          FileStatus(rel, kind, state, detail)
+          // Derived from the local file alone, so it is decided with or without a reference checkout — a manifest
+          // edit that was never applied is visible from `kb check` and `kb sync status --no-upstream` both.
+          val stale = copy.flatMap(_.text).exists(injectionStale(sb.manifest, rel, _))
+          FileStatus(rel, kind, state, detail, stale)
         }
       }
     yield rows.toSeq
@@ -486,6 +591,26 @@ object KbSync:
   // -------------------------------------------------------------------- pull
 
   case class PullResult(actions: Seq[SyncAction], lock: SyncLock, refused: Seq[FileStatus])
+
+  /** Rewrites a mirrored concept's fenced block to what the manifest now implies, when the two have parted company.
+    *
+    * Reported as its own verb rather than folded into `updated`: nothing came from upstream, and a bulk re-injection
+    * across a whole mirror should not read as an import. Silent when the file cannot be taken apart — that is the
+    * `unreadable` state, and it has its own finding.
+    */
+  private def reinjectIfStale(sb: SyncBundle, st: FileStatus, dryRun: Boolean)
+      : Option[SyncAction] < (Sync & Abort[Throwable]) =
+    if !st.injectionStale then (None: Option[SyncAction] < (Sync & Abort[Throwable]))
+    else
+      sb.localFile(st.path).read.map { text =>
+        reinjected(sb.manifest, st.path, text) match
+          case Left(_) => (None: Option[SyncAction] < (Sync & Abort[Throwable]))
+          case Right(out) =>
+            val write =
+              if dryRun then ((): Unit < (Sync & Abort[Throwable]))
+              else writeBytes(sb.localFile(st.path), out.getBytes("UTF-8"))
+            write.andThen(Some(SyncAction("re-injected", st.path, "the manifest implies different keys")))
+      }
 
   def pull(
       sb: SyncBundle,
@@ -532,12 +657,23 @@ object KbSync:
           else
             // A clean file whose recorded hash is stale — both sides moved to the same content, which is what an
             // export leaves behind — gets its baseline refreshed. No write, just the lock catching up.
-            readBytes(resolve(upstreamRoot, rel)).map { bytes =>
-              val hash = sha256(bytes)
-              val entry = sb.lock.get(rel).map(e => e.copy(upstreamSha256 = hash))
-              val rebaselined = sb.lock.get(rel).exists(_.upstreamSha256 != hash)
-              Chunk((Option.when(rebaselined)(SyncAction("rebaselined", rel, "already in step upstream")), entry, None))
-            }
+            //
+            // And a file whose injected block no longer matches the manifest is rewritten in place. Nothing else
+            // would ever reach it: the block is invisible to `stateOf`, so an otherwise clean file is passed over
+            // and a `type_map` edit never lands. Re-injection touches only the fence, so the upstream form and the
+            // hash beside it are unchanged — which is why this can be done to a `local-only` file just as safely.
+            for
+              bytes <- readBytes(resolve(upstreamRoot, rel))
+              hash = sha256(bytes)
+              entry = sb.lock.get(rel).map(e => e.copy(upstreamSha256 = hash))
+              rebaselined = sb.lock.get(rel).exists(_.upstreamSha256 != hash)
+              reinjection <- reinjectIfStale(sb, st, dryRun)
+            yield
+              val baseline: (Option[SyncAction], Option[LockEntry], Option[FileStatus]) =
+                (Option.when(rebaselined)(SyncAction("rebaselined", rel, "already in step upstream")), entry, None)
+              val reinjected: Seq[(Option[SyncAction], Option[LockEntry], Option[FileStatus])] =
+                reinjection.map(a => (Some(a), None, None)).toSeq
+              Chunk(baseline) ++ Chunk.from(reinjected)
         else
           val src = resolve(upstreamRoot, rel)
           readBytes(src).map { bytes =>
@@ -669,7 +805,19 @@ object KbSync:
     status(sb, upstreamRoot).map { rows =>
       rows.flatMap { r =>
         val where = kb.rel(sb.localFile(r.path))
-        r.state match
+        // Only where nothing else is already saying "pull this". A file that has drifted upstream will be re-injected
+        // by the same import that takes upstream's change, so reporting both would be two findings for one action.
+        val staleFindings = Option.when(
+          r.injectionStale && (r.state == SyncState.Clean || r.state == SyncState.LocalOnly)
+        )(Finding(
+          Severity.Warn,
+          "sync-injection-stale",
+          where,
+          None,
+          "the `# kb:begin` block does not say what sync.yaml now implies",
+          Some("run `kb sync pull` — it rewrites the block in place; keys you added inside the fence are kept")
+        )).toSeq
+        staleFindings ++ (r.state match
           case SyncState.Unreadable =>
             Seq(Finding(
               Severity.Error,
@@ -733,7 +881,7 @@ object KbSync:
               "no longer present upstream",
               Some("`kb sync pull --prune` removes it here too, if that is what you want")
             ))
-          case SyncState.Clean | SyncState.LocalOnly => Nil
+          case SyncState.Clean | SyncState.LocalOnly => Nil)
       }
     }
 
@@ -744,7 +892,13 @@ object KbSync:
       ujson.write(
         ujson.Obj(
           "files" -> ujson.Arr.from(rows.map(r =>
-            ujson.Obj("path" -> r.path, "kind" -> r.kind.label, "state" -> r.state.label, "detail" -> r.detail)
+            ujson.Obj(
+              "path" -> r.path,
+              "kind" -> r.kind.label,
+              "state" -> r.state.label,
+              "detail" -> r.detail,
+              "injectionStale" -> r.injectionStale
+            )
           )),
           "summary" -> ujson.Obj.from(
             rows.groupBy(_.state.label).map((k, v) => k -> ujson.Num(v.size.toDouble)).toSeq
@@ -754,17 +908,22 @@ object KbSync:
       ) + "\n"
     else
       val sbuf = StringBuilder()
-      val interesting = rows.filter(_.state != SyncState.Clean)
+      // A stale block is interesting whatever the state says: it is the one thing `stateOf` cannot see, so leaving
+      // it out of an otherwise clean listing is exactly how a manifest edit goes unnoticed.
+      val interesting = rows.filter(r => r.state != SyncState.Clean || r.injectionStale)
       val shown = if verbose then rows else interesting
       if shown.isEmpty then sbuf ++= s"${rows.size} file(s), all clean\n"
       else
         shown.sortBy(r => (r.state.label, r.path)).foreach { r =>
           sbuf ++= f"${r.state.label}%-17s ${r.path}"
+          if r.injectionStale then sbuf ++= "  [injection stale]"
           if r.detail.nonEmpty then sbuf ++= s"  — ${r.detail}"
           sbuf ++= "\n"
         }
         sbuf ++= "\n"
         rows.groupBy(_.state.label).toSeq.sortBy(_._1).foreach((k, v) => sbuf ++= s"$k: ${v.size}\n")
+        val stale = rows.count(_.injectionStale)
+        if stale > 0 then sbuf ++= s"injection stale: $stale\n"
       sbuf.toString
 
   def renderActions(actions: Seq[SyncAction], refused: Seq[FileStatus], dryRun: Boolean, json: Boolean): String =

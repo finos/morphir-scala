@@ -60,6 +60,11 @@ edited with the edits sent back. Use it when a paraphrase will not do; use `sour
   fenced `# kb:begin` … `# kb:end` region inside it, holding the `type` OKF requires and the upstream path.
   `kb sync push` deletes exactly that region to recover upstream's bytes, so do not edit inside the fence by hand,
   and do not reformat anything outside it.
+- **The fence is generated from `sync.yaml`.** `kb sync pull` rewrites it whenever the manifest implies different
+  keys, so an edit to `type`, `title`, `description` or `kb_upstream` there will not survive; change the manifest
+  instead. A mirrored document is typed by what it *is* — `Decision Source`, not `Decision Record` — because the
+  registers below discover their records by `type:` wherever those sit, and upstream's file would be judged against
+  a schema it was never written to. `kb sync` refuses a `type_map` that names a register-owned type.
 - **Everything that is not markdown is an asset** — schemas, fixtures, `.mdx` pages, sidebar descriptors. Assets are
   mirrored byte-for-byte and tracked, but never parsed, so they carry no frontmatter and need no `type`.
 - **`index.md` and `log.md` are reserved only outside the mirror.** Inside it those names belong to upstream,

@@ -35,8 +35,13 @@ mappings:
   - "docs/adr/**"
 
 # First match wins, so the narrower globs come first.
+#
+# Every value describes what the file *is*, and stays out of the vocabulary this knowledge base's own registers
+# discover by — `Decision Source`, not `Decision Record`. A mirrored ADR is upstream's, written to upstream's
+# conventions; injecting the register's type would conscript it into a register whose schema it fails by construction,
+# and the findings would be unfixable from here. `kb sync` refuses a type_map that names one.
 type_map:
   "docs/design/**": Design Source
-  "docs/adr/**": Decision Record
+  "docs/adr/**": Decision Source
   "docs/spec/**": Specification Source
   "wit/**": Interface Definition

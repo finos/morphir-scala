@@ -48,6 +48,29 @@ case class Finding(
 ):
   def location: String = line.map(l => s"$path:$l").getOrElse(path)
 
+/** The `type:` values a register claims, wherever a document carrying one sits.
+  *
+  * A register that discovers its records by `type:` owns that value across the whole knowledge base — `KbDecision`
+  * collects every concept whose `type` is `Decision Record` no matter which bundle it is in, by design. Two things
+  * follow, and both are enforced elsewhere:
+  *
+  *   - A mirrored document must never be *injected* with one of these. It would be pulled into the register and
+  *     judged against a schema that is not its own, and nobody on this side could fix the resulting findings.
+  *     `KbSync.parseManifest` rejects a `type_map` that names one.
+  *   - The register that owns a value is responsible for what it does with a vendored document that carries one
+  *     anyway, because upstream is free to use any string it likes.
+  *
+  * Exactly one value is owned today. The set is named here rather than inline so that the constraint is visible from
+  * the model, and so that a second register discovering by `type:` has one place to add itself.
+  */
+object KbRegisters:
+  /** The decision register's marker. Re-exported as `DecisionType.Name`, which is what that register reads. */
+  val DecisionRecord: String = "Decision Record"
+
+  val ownedTypes: Seq[String] = Seq(DecisionRecord)
+
+  def owns(t: String): Boolean = ownedTypes.exists(_.equalsIgnoreCase(t.trim))
+
 /** Markdown shapes the tooling recognizes.
   *
   * An index entry is `* [Title](/path.md) - description`. Groups: (1) everything through the closing paren, so a

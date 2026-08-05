@@ -387,7 +387,18 @@ object KbCli:
   def allSyncFindings(kb: Kb, refs: Path, useUpstream: Boolean): Seq[Finding] < (Sync & Abort[Throwable]) =
     Kyo.foreach(Chunk.from(kb.bundles.filter(_.mirror.isDefined))) { b =>
       KbSync.load(b).map {
-        case Left(_) => (Chunk.empty[Finding]: Chunk[Finding] < (Sync & Abort[Throwable]))
+        // These bundles have a sync.yaml by construction — `mirror` is read from it — so a failure to load is a
+        // manifest this tooling refuses, and used to pass in silence because every sync command was refusing it too.
+        // An error rather than a warning: nothing can be pulled or exported until it is fixed.
+        case Left(err) =>
+          (Chunk(Finding(
+            Severity.Error,
+            "sync-manifest-invalid",
+            kb.rel(b.root / KbSync.ManifestName),
+            None,
+            err,
+            Some("`kb sync status` reports the same failure; fix sync.yaml and re-run `kb sync pull`")
+          )): Chunk[Finding] < (Sync & Abort[Throwable]))
         case Right(sb) =>
           val up = if useUpstream then upstreamRoot(refs, sb) else (None: Option[Path] < (Sync & Abort[Throwable]))
           up.map(KbSync.checkFindings(kb, sb, _).map(Chunk.from))
@@ -832,7 +843,11 @@ object KbApp extends CommandsEntryPoint:
           up <- if o.noUpstream then (None: Option[Path] < (Sync & Abort[Throwable])) else KbCli.upstreamRoot(refs, sb)
           rows <- KbSync.status(sb, up)
           _ <- Console.print(KbSync.renderStatus(rows, o.sync.common.json, o.verbose))
-          bad = rows.count(r => r.state == SyncState.Diverged || r.state == SyncState.Unreadable)
+          // A stale injection counts as strict-bad: it means sync.yaml was edited and never applied, which is a
+          // manifest that is only true on paper. CI runs this, and `kb sync pull` fixes it mechanically.
+          bad = rows.count(r =>
+            r.state == SyncState.Diverged || r.state == SyncState.Unreadable || r.injectionStale
+          )
           _ <-
             if o.strict && bad > 0 then Sync.defer(java.lang.System.exit(1))
             else ((): Unit < (Sync & Abort[Throwable]))
