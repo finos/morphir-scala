@@ -8,7 +8,16 @@ echo "Running Native tests..."
 # Native support is currently scoped to the langkit and kit modules ported from
 # krueger, so this globs those rather than all of `morphir.__` — every other
 # module is jvm/js only and would resolve to nothing.
-./mill -i -k -j 0 \
+#
+# `-j 4` for the same reason as test:js: `nativeLink` runs inside the single Mill
+# daemon JVM, and each concurrent link holds a full linker working set, so the
+# daemon heap is the constraint rather than the core count. `-j 0` on a many-core
+# developer machine runs one per core and exhausts it, surfacing as
+# `OutOfMemoryError` from the daemon partway through rather than as a test
+# failure. The cap alone was not enough at `-Xmx4g` — this job OOM'd on CI with
+# `-j 4` — so `.mill-jvm-opts` is at `-Xmx8g`. Treat `-j` and `-Xmx` as one
+# setting.
+./mill -i -k -j 4 \
     "morphir.__.native.__.compile" \
     + \
     "morphir.__.native.__.test"

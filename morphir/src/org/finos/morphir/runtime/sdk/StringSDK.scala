@@ -1,6 +1,6 @@
 package org.finos.morphir.runtime.sdk
 
-import org.finos.morphir.datamodel.Schema.Primitive
+import org.finos.morphir.datamodel.classic.Schema.Primitive
 import org.finos.morphir.runtime.internal.{
   DynamicNativeFunction,
   DynamicNativeFunction1,

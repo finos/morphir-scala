@@ -119,8 +119,10 @@ jobs:
       - name: Run JS tests
         # Kept in step with .config/mise/tasks/test/js — the `wasm` link variants
         # sit beside their `js` sibling, so `morphir.__.js.__` never matches them.
+        # `-j 4` matches that task; see the comment there for why the Scala.js
+        # link phase needs a parallelism cap against the daemon's `-Xmx4g`.
         run: |
-          ./mill -i -k -j 0 "morphir.__.js.__.compile" + "morphir.__.js.publishArtifacts" + "morphir.__.js.__.test" + "morphir.__.wasm.__.test" + "morphir.__.wasm.fullLinkJS"
+          ./mill -i -k -j 4 "morphir.__.js.__.compile" + "morphir.__.js.publishArtifacts" + "morphir.__.js.__.test" + "morphir.__.wasm.__.test" + "morphir.__.wasm.fullLinkJS"
 
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
@@ -167,8 +169,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libuv1-dev
 
       - name: Run Native tests
+        # Kept in step with .config/mise/tasks/test/native — `-j 4` caps the
+        # concurrent `nativeLink` tasks against the daemon's `-Xmx4g`.
         run: |
-          ./mill -i -k -j 0 "morphir.__.native.__.compile" + "morphir.__.native.__.test"
+          ./mill -i -k -j 4 "morphir.__.native.__.compile" + "morphir.__.native.__.test"
 
   test-jvm:
     runs-on: ubuntu-latest
