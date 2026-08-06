@@ -2,7 +2,7 @@ package org.finos.morphir.datamodel
 
 import kyo.{Chunk, Schema, Structure}
 import org.finos.morphir.naming.*
-import org.finos.morphir.codemodel.Expr
+import org.finos.morphir.codemodel.{Expr, Pattern}
 import org.finos.morphir.codemodel.given
 
 /**
@@ -23,9 +23,9 @@ import org.finos.morphir.codemodel.given
  *     Nominal identity — "this is a `Customer`, not a same-shaped `Widget`" — lives on the corresponding
  *     `codemodel.Type`, never on the value itself (see `StructureNominalitySpec`).
  *   - [[Val.Closure]] for functions. Where `RTValue` would have closed over a Scala function value, `Closure` closes
- *     over data instead: the parameter names, the `Expr` body from the code model, and an environment mapping captured
- *     names to `Val`s. A closure is therefore IR plus values, all the way down — nothing in it can fail to serialize,
- *     because it never held anything opaque to serialize in the first place.
+ *     over data instead: the parameter patterns, the `Expr` body from the code model, and an environment mapping
+ *     captured names to `Val`s. A closure is therefore IR plus values, all the way down — nothing in it can fail to
+ *     serialize, because it never held anything opaque to serialize in the first place.
  *   - [[Val.Partial]] for a reference that has received fewer arguments than its arity requires — curried application
  *     caught mid-flight, again as data (the applied arguments) rather than as a partially-applied Scala closure.
  *
@@ -42,12 +42,12 @@ enum Val derives Schema:
   case Structured(value: Structure.Value)
 
   /**
-   * A function value: the parameter names it still expects, the `Expr` body to evaluate them against, and the
+   * A function value: the parameter patterns it still expects, the `Expr` body to evaluate them against, and the
    * environment captured at closure-creation time. Holding IR and an environment of `Val`s instead of a Scala function
    * is what makes a closure — the hardest case for any value model to serialize — just as serializable as everything
    * else.
    */
-  case Closure(params: Chunk[Name], body: Expr, env: Map[Name, Val])
+  case Closure(params: Chunk[Pattern], body: Expr, env: Map[Name, Val])
 
   /**
    * A reference to `fqn` (of the given `arity`) that has so far received `applied`, and is awaiting

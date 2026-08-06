@@ -1,5 +1,9 @@
 # Log
 
+## 2026-08-06
+
+* **Creation**: Accepted [Runtime closures retain parameter patterns](/decisions/0011-runtime-closures-retain-parameter-patterns.md), resolving the pre-release closure wire format.
+
 ## 2026-07-28
 
 * **Creation**: Bundle created.
