@@ -23,12 +23,34 @@ categories:
   - title: 'Dependency Updates'
     label: 'type: dependencies'
 
+# Pre-1.0 version resolution.
+#
+# This project is on the 0.x line, where semver says the leading zero is the
+# signal of instability and "anything MAY change at any time" (semver.org §4).
+# The practical convention that follows — the same one Cargo and npm assume — is
+# that under 0.x the MINOR position does the job MAJOR does after 1.0.
+#
+# So `type: breaking` resolves to a minor bump, not a major one. It used to
+# resolve to major, which meant a single breaking PR drafted a release as
+# 1.0.0 — declaring API stability as a side effect of labelling a PR, which is
+# not a decision that should be made by a label.
+#
+# Nothing resolves to major on purpose. A 1.0 release is a deliberate act, so
+# it should be tagged by hand rather than drafted.
+#
+# WHEN 1.0 SHIPS: move 'type: breaking' back under `major`, and move
+# 'type: feature' to `minor` if it is not already there. Until then, breaking
+# and feature both land on minor — which is the correct reading of a 0.x minor
+# bump, namely "this may contain breaking changes". The Breaking category above
+# is what makes the distinction visible in the notes.
+#
+# Note also that the current tags are milestone-shaped (v0.5.0-M04), which no
+# resolver will continue on its own. Treat $RESOLVED_VERSION as a starting
+# point and set the tag deliberately while that scheme is in use.
 version-resolver:
-  major:
-    labels:
-      - 'type: breaking'
   minor:
     labels:
+      - 'type: breaking'
       - 'type: feature'
       - 'type: deprecation'
   patch:
