@@ -51,16 +51,16 @@ The skill is structured in layers to keep each file focused:
 │   ├── spec-sync.md      # Morphir IR import/export workflow
 │   └── tracking.md       # Optional beads tracking configuration
 ├── scripts/
-    ├── ai-env-info.py            # Structured sandbox/network detection (JSON)
-    ├── branch-refresh.py         # Proves and refreshes a post-squash target
-    ├── cellar-query.py           # Runs project-configured JVM API queries
-    ├── check-mill-daemon.py      # Probes mill daemon TCP connectivity
-    ├── check-var-folders.py      # Probes /var/folders write access
-    ├── check-project-config.py   # Checks project config correctness
-    ├── repo-*.py                 # Manages entries under .refs/
-    ├── schemas-to-json.ts        # Builds/checks mirrored JSON schemas
-    ├── spec-*.py                 # Imports/exports the Morphir IR spec
-    └── tracking-*.py             # Resolves and repairs tracking guidance
+│   ├── ai-env-info.py            # Structured sandbox/network detection (JSON)
+│   ├── branch-refresh.py         # Proves and refreshes a post-squash target
+│   ├── cellar-query.py           # Runs project-configured JVM API queries
+│   ├── check-mill-daemon.py      # Probes mill daemon TCP connectivity
+│   ├── check-var-folders.py      # Probes /var/folders write access
+│   ├── check-project-config.py   # Checks project config correctness
+│   ├── repo-*.py                 # Manages entries under .refs/
+│   ├── schemas-to-json.ts        # Builds/checks mirrored JSON schemas
+│   ├── spec-*.py                 # Imports/exports the Morphir IR spec
+│   └── tracking-*.py             # Resolves and repairs tracking guidance
 └── tests/
     └── test_branch_refresh.py    # Branch refresh safety and CLI tests
 ```

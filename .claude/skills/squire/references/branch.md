@@ -2,7 +2,7 @@
 
 `/squire branch refresh` safely moves a remote target branch to the current
 `origin/main` after the target-to-main pull request has been squash-merged. The
-The `--target` parameter defaults to `develop`; pass another branch name when
+`--target` parameter defaults to `develop`; pass another branch name when
 refreshing a different integration branch.
 
 The command updates remote refs directly. It does **not** check out or switch a
@@ -50,6 +50,16 @@ Before any mutation, the script:
 6. On a non-dry run, performs only this mutation: an explicit
    `--force-with-lease` push whose lease expects the validated target SHA and
    whose source is the validated `origin/main` tracking ref.
+
+The resulting push has this exact shape:
+
+```bash
+git push --force-with-lease=refs/heads/<target>:<validated-target-sha> origin refs/remotes/origin/main:refs/heads/<target>
+```
+
+`<validated-target-sha>` is the freshly fetched target SHA that exactly matched
+the merged PR's `headRefOid`. If the remote target no longer has that SHA, the
+lease rejects the push.
 
 The exact head match is deliberate. If the target advanced after the matching
 PR merged, the proof fails and the script refuses to push. It never retries
