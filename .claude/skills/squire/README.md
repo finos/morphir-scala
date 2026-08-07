@@ -1,15 +1,33 @@
 # Squire
 
-A Claude Code project skill for the morphir-scala repository that diagnoses and unblocks common development environment issues.
+A Claude Code project skill for morphir-scala development environment diagnostics, reference repositories, safe post-squash branch refreshes, task tracking, and Morphir specification/schema workflows.
 
 ## Overview
 
-Squire is invoked as a slash command within Claude Code. It provides targeted guidance when Claude hits build, network, or sandbox failures — rather than blindly retrying or guessing at fixes.
+Squire is invoked as a slash command within Claude Code. It routes each maintained command to focused guidance and project-local automation.
 
 ```text
-/squire ai env info   — Report sandbox/network status as structured JSON
-/squire doctor        — Run a full environment diagnostic
+/squire ai env info          — Report sandbox/network status as structured JSON
+/squire doctor               — Run a full environment diagnostic
+/squire reference repo ...   — Manage repositories under .refs/
+/squire branch refresh       — Refresh develop from main after a squash merge
+/squire tracking ...         — Resolve and maintain optional beads tracking
+/squire spec sync|export     — Round-trip the Morphir IR specification
+/squire schemas              — Build and check generated IR JSON schemas
 ```
+
+The branch refresh workflow is deliberately two-step:
+
+```bash
+python3 .claude/skills/squire/scripts/branch-refresh.py --dry-run
+python3 .claude/skills/squire/scripts/branch-refresh.py
+
+# Parameterized target
+python3 .claude/skills/squire/scripts/branch-refresh.py --dry-run --target <branch>
+python3 .claude/skills/squire/scripts/branch-refresh.py --target <branch>
+```
+
+See [references/branch.md](references/branch.md) for the complete safety proof and failure recovery.
 
 ## How It Works
 
@@ -25,19 +43,44 @@ The skill is structured in layers to keep each file focused:
 .claude/skills/squire/
 ├── SKILL.md              # Entry point — command list and when to invoke
 ├── references/
+│   ├── branch.md         # Post-squash branch refresh lifecycle and safety proof
+│   ├── cellar.md         # JVM dependency API inspection
 │   ├── doctor.md         # Full diagnostic procedure and issue catalogue
-│   └── env.md            # ai env info — sandbox/network detection reference
-└── scripts/
+│   ├── env.md            # ai env info — sandbox/network detection reference
+│   ├── repo.md           # Reference repository management
+│   ├── spec-sync.md      # Morphir IR import/export workflow
+│   └── tracking.md       # Optional beads tracking configuration
+├── scripts/
     ├── ai-env-info.py            # Structured sandbox/network detection (JSON)
+    ├── branch-refresh.py         # Proves and refreshes a post-squash target
+    ├── cellar-query.py           # Runs project-configured JVM API queries
     ├── check-mill-daemon.py      # Probes mill daemon TCP connectivity
     ├── check-var-folders.py      # Probes /var/folders write access
-    └── check-project-config.py  # Checks project config correctness
+    ├── check-project-config.py   # Checks project config correctness
+    ├── repo-*.py                 # Manages entries under .refs/
+    ├── schemas-to-json.ts        # Builds/checks mirrored JSON schemas
+    ├── spec-*.py                 # Imports/exports the Morphir IR spec
+    └── tracking-*.py             # Resolves and repairs tracking guidance
+└── tests/
+    └── test_branch_refresh.py    # Branch refresh safety and CLI tests
 ```
 
 `scripts/lib/mill-flags.sh` (repo root, not under `.claude/`) is a shell consumer
 of `ai-env-info.py` — see [references/env.md](references/env.md).
 
-`SKILL.md` is concise — Claude reads it on every invocation. `references/doctor.md` is only loaded when running `/squire doctor`, keeping context usage low. Scripts are called via `${CLAUDE_PLUGIN_ROOT}` which resolves to the skill's root directory at runtime.
+`SKILL.md` is concise — Claude reads it on every invocation. The matching reference is loaded completely only when its command is used, keeping context usage low. Scripts are normally called from the repository root; references that support plugin installation may use `${CLAUDE_PLUGIN_ROOT}` for the skill root.
+
+### Maintained command areas
+
+| Area | Command or entry point | Full reference |
+|------|-------------------------|----------------|
+| Environment | `/squire ai env info`, `/squire doctor` | `references/env.md`, `references/doctor.md` |
+| Reference repos | `/squire reference repo add\|list\|status\|remove` | `references/repo.md` |
+| Branch lifecycle | `/squire branch refresh` | `references/branch.md` |
+| Task tracking | `/squire tracking status\|sync\|doctor` | `references/tracking.md` |
+| Morphir spec | `/squire spec sync`, `/squire spec export` | `references/spec-sync.md` |
+| Schemas | `/squire schemas` | `SKILL.md` |
+| JVM API inspection | `cellar-query.py` | `references/cellar.md` |
 
 ### `/squire doctor`
 
