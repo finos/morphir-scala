@@ -37,8 +37,10 @@ snapshot repository and depend on the exact coordinate they intend to test:
 https://central.sonatype.com/repository/maven-snapshots
 ```
 
-Snapshot artifacts may be replaced or resolved according to the repository's snapshot behavior. The branch,
-distance, and revision components make the requested source state explicit even when repository metadata changes.
+The revision-bearing logical version is traceable, but its `-SNAPSHOT` artifact is mutable and may be overwritten.
+[Sonatype's snapshot documentation](https://central.sonatype.org/publish/publish-portal-snapshots/) says snapshots
+are currently cleaned up after 90 days. Do not treat this coordinate as an immutable, reproducible-release lock;
+resolution and availability follow the snapshot repository's behavior.
 
 Publication from `main`, `0.4.x`, and tags continues to use the ordinary VCS-derived milestone and release flow. The
 snapshot environment is configured only for `develop`, never for `main` or tags.
@@ -49,8 +51,18 @@ Maintainers open a `develop`-to-`main` release pull request and **MUST squash-me
 in GitHub is an operator precondition: the refresh script can prove the merged pull request and its ancestry, but it
 cannot determine which merge method GitHub used.
 
-After the squash merge is visible on `origin/main`, first prove the default `develop` refresh without pushing, review
-the reported branch and SHAs, and then perform it:
+After the squash merge is visible on `origin/main`, verify that `origin` is the intended canonical repository and that
+the GitHub CLI is authenticated and resolves the same repository:
+
+```bash
+git remote get-url origin
+gh auth status
+gh repo view --json nameWithOwner --jq .nameWithOwner
+```
+
+Stop if the remote is not the canonical `finos/morphir-scala` repository or the final command does not print
+`finos/morphir-scala`. Then prove the default `develop` refresh without pushing, review the reported branch and SHAs,
+and perform it:
 
 ```bash
 python3 .claude/skills/squire/scripts/branch-refresh.py --dry-run

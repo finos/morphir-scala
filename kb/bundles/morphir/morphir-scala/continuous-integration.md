@@ -1,14 +1,15 @@
 ---
 type: Capability
 title: Continuous Integration
-description: "GitHub Actions runs linting, cross-platform tests and knowledge base checks on every pull request."
+description: "GitHub Actions runs linting, cross-platform tests and knowledge base checks on pull requests targeting supported branches."
 tags: [ci, build]
 status: stable
 ---
 
 # Continuous Integration
 
-GitHub Actions runs linting, cross-platform tests and knowledge base checks on every pull request.
+GitHub Actions runs linting, cross-platform tests and knowledge base checks on pull requests targeting supported
+branches.
 
 ## Jobs
 
@@ -35,8 +36,11 @@ distance from the nearest version tag, and a six-character Git abbreviation befo
 Only non-PR runs in the canonical `finos/morphir-scala` repository can reach publication and its credentials. Pull
 requests validate without publishing, and contributors do not receive publication credentials locally. Consumers
 add `https://central.sonatype.com/repository/maven-snapshots` and select the exact coordinate; resolution and
-replacement follow the snapshot repository's behavior. Publication from `main`, `0.4.x`, and tags keeps the ordinary
-VCS-derived milestone and release flow, with no snapshot environment on `main` or tags.
+availability follow the snapshot repository's behavior. The revision-bearing logical version is traceable, but its
+`-SNAPSHOT` artifact is mutable and may be overwritten. Sonatype says snapshots are
+[currently cleaned up after 90 days](https://central.sonatype.org/publish/publish-portal-snapshots/), so the coordinate
+must not be treated as an immutable, reproducible-release lock. Publication from `main`, `0.4.x`, and tags keeps the
+ordinary VCS-derived milestone and release flow, with no snapshot environment on `main` or tags.
 
 ## The knowledge-base job
 
