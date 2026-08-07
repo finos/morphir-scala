@@ -58,8 +58,9 @@ Treat [issue #932](https://github.com/finos/morphir-scala/issues/932) as an umbr
 after the shared boundaries are settled. The design should preserve these constraints:
 
 - One language-neutral orchestration model carries a project through frontend-specific stages from source text to CST,
-  AST, and Morphir IR. Stage implementations remain language-specific; diagnostic collection, halting, and execution
-  policy are shared.
+  AST, and Morphir IR. Stage implementations retain frontend-internal diagnostic, reporting, and fatality policy behind
+  adapters. Typed phase results expose outcomes and diagnostics so the shared pipeline can propagate and aggregate
+  them, schedule ready stages, and apply configured stop-or-continue policy at phase boundaries.
 - A workspace may contain projects from different frontend ecosystems. Adapters interpret `morphir.toml`,
   `morphir.json`, `elm.json`, and future native manifests into one internal workspace/project model, with explicit
   discovery, precedence, and merge rules.
@@ -72,19 +73,33 @@ after the shared boundaries are settled. The design should preserve these constr
   pipeline under different policy interpreters.
 - Morphir packages have a distributable form without depending on one registry implementation. A git-file index and
   local-directory registry are launch candidates because they support offline and service-free operation.
-- Dependency coordinates use an ecosystem-spanning vocabulary if one fits. Package URL plus the companion version
-  range specification is the leading candidate, but Elm's missing registered purl type and the boundary between
-  coordinate qualifiers and separate location records require an explicit decision.
+- Dependency identity uses Package URL end to end so native ecosystem references remain interoperable. Package VERS
+  expresses ranges through the standard `vers` qualifier; physical source and cache locations remain separate.
+  Morphir uses a provisional project-owned type while real packages demonstrate its semantics. Filing an upstream
+  proposal is outside this initiative. Elm package-type ownership and any Elm proposal are outside this project's
+  scope.
 
-Refinement owes a written design or ADR covering the pipeline effect, workspace model, package-management operations
-and interpreters, and package distribution. It must survey shelm's coordinate/location split, MoonBit's registry
-interface and git index, Elm's cache layout, and the existing `ElmPackages` resolution ladder. MoonBit is AGPL-3.0, so
-its architecture may inform the design but its code must not be copied or adapted.
+The evolving [pipeline and workspace Design Note](../morphir/morphir-scala/design/pipeline-workspace-boundaries.md)
+owns the shared phase contracts, workspace normalization, frontend dependency direction, and issue #930 seam. Its
+current refinement direction keeps `ElmParse` Elm-specific, uses `Parse` and `Compile` as buildkit phase contracts over
+typed stages, gives `morphir.toml` workspace-orchestration responsibility while native manifests normalize through
+adapters, leaves frontend diagnostic semantics behind those adapters while buildkit owns cross-phase propagation and
+scheduling, and lets issue #930 consume resolved sources without depending on an Elm cache or compiler sandbox.
 
-The design must also decide whether `ElmParse` becomes the shared effect or remains Elm's instance of a new one, what
-claims the `Parse` and `Compile` names, which package backends ship first, and how issue #930 consumes shared resolution
-without forcing the rest of the pipeline to be delivered at once. The result should be a set of independently
-implementable follow-up issues, not a single implementation change.
+Refinement must continue to survey shelm's coordinate/location split, the
+[MoonBit registry and source-materialization architecture](../morphir/morphir-scala/design/moonbit-package-management.md),
+Elm's cache layout, and the existing `ElmPackages` resolution ladder. MoonBit is AGPL-3.0, so its architecture may
+inform the design but its code must not be copied or adapted.
+
+Those boundaries remain mutable until a working vertical slice makes their alternatives, consequences, and revisit
+conditions stable enough for an immutable Decision Record. Refinement still owes the exact stage outcome, pipeline
+validation boundary, plugin composition rules, normalized project vocabulary, manifest-conflict diagnostics, and the
+minimal interpreters issue #930 needs. The result should be independently implementable follow-up issues, not a single
+implementation change.
+
+The mutable [Package URL-centered package-management Design Note](../morphir/morphir-scala/design/package-url-package-management.md)
+holds the packaging research and open questions. It deliberately does not block task-graph, runtime, or Morphir-Elm
+build work whose contracts do not depend on those choices.
 
 ## Buildkit direction
 
