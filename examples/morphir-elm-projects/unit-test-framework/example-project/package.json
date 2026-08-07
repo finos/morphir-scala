@@ -2,12 +2,10 @@
   "name": "@morphir-examples/unit-test-framework-example",
   "private": true,
   "devDependencies": {
-    "elm-tooling": "^1.15.1",
-    "morphir-elm": "^2.81.0"
+    "elm-tooling": "^1.15.1"
   },
   "scripts": {
     "postinstall": "elm-tooling install",
-    "format": "elm-format --yes .",
-    "make": "morphir-elm make"
+    "format": "elm-format --yes ."
   }
 }

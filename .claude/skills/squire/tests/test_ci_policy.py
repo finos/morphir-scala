@@ -166,16 +166,17 @@ def assert_squire_ci_policy(workflow: str) -> None:
 
 
 def assert_mill_owned_morphir_elm_policy(workflow: str) -> None:
-    forbidden = ("Install morphir-elm", "npm install -g morphir-elm")
+    forbidden = (
+        "Install morphir-elm",
+        "npm install -g morphir-elm",
+        "npx morphir-elm",
+        "morphir-elm make",
+        "Cache elm-tooling downloads",
+        "ELM_TOOLING_INSTALL=1",
+    )
     for value in forbidden:
         if value in workflow:
             raise AssertionError(f"workflow must not install a global Morphir Elm tool: {value}")
-
-    for job_name in ("lint:", "test-jvm:", "publish:"):
-        job = indented_block(workflow, job_name, 2)
-        for value in ("Setup Node.js", "Cache elm-tooling downloads", "ELM_TOOLING_INSTALL=1", "mise run setup"):
-            if value in job:
-                raise AssertionError(f"{job_name} retains obsolete Elm setup: {value}")
 
     test_jvm = indented_block(workflow, "test-jvm:", 2)
     if "mise run build:morphir-elm" in test_jvm:
