@@ -42,6 +42,7 @@ class MiseTaskPolicyTest(unittest.TestCase):
             for dependency in ci_info["depends"]
         ]
         self.assertEqual(dependency_names, CI_DEPENDENCIES)
+        self.assertEqual(ci_info["description"], "Run the core CI workflow locally")
         self.assertEqual(
             squire_info["description"],
             "Test Squire commands and build/release policy",
