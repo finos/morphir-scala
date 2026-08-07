@@ -1,15 +1,27 @@
 ---
 okf_version: "0.2"
 title: morphir-scala
-description: "What morphir-scala does today — the Scala bindings, JVM tooling and build for Morphir — and the decisions behind it."
+description: "What morphir-scala does today and why, alongside non-authoritative draft Design Notes and research for work still in refinement."
 ---
 
 # morphir-scala
 
-What morphir-scala does today — the Scala bindings, JVM tooling and build for Morphir — and the decisions behind it.
+What morphir-scala does today and why, alongside non-authoritative draft Design Notes and research for work still in refinement.
 
 Capabilities are present-tense: what the system does. [Decision Records](/decisions/index.md) are past-tense and
 immutable: why it is shaped that way, and what would have to change for the answer to be different.
+
+Draft Design Notes and research document evolving proposals and evidence. They guide refinement but are not current
+capabilities or accepted architecture unless an accepted Decision Record says so.
+
+## Design Notes
+
+* [Package URL-centered package management](/design/package-url-package-management.md) - An evolving design for canonical Package URL identities, VERS requirements, reproducible materialization, and packages outside ecosystem registries.
+* [Multi-frontend pipeline and workspace boundaries](/design/pipeline-workspace-boundaries.md) - An evolving design for shared buildkit phase contracts, workspace normalization, frontend isolation, and the issue #930 dependency-source seam.
+
+## Package-management research
+
+* [MoonBit registry, resolution, and source materialization](/design/moonbit-package-management.md) - How MoonBit separates registry metadata, dependency resolution, source archive acquisition, checksum verification, and materialization through a Git-backed line-delimited JSON index.
 
 ## Orientation
 
