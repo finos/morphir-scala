@@ -8,13 +8,14 @@ import org.finos.morphir.ir.Literal.Literal as Lit
 import org.finos.morphir.ir.Value.TypedValue
 import org.finos.morphir.datamodel.classic.Data
 import org.finos.morphir.naming.FQName
-import org.finos.morphir.runtime.quick.{EvaluatorQuick, GlobalDefs, Native}
+import org.finos.morphir.runtime.quick.{EvaluatorQuick, GlobalDefs}
 import V.*
 import zio.Chunk
 import zio.test.*
 
 object EvaluatorQuickSpec extends MorphirBaseSpec {
-  private val globals = GlobalDefs(definitions = Native.native, ctors = Native.nativeCtors)
+  // JVM-only: canonical NativeSDK/CharSDK uses Character.codePointOf, which Scala.js does not provide.
+  private val globals = GlobalDefs.native
 
   private def eval(v: TypedValue): Any =
     unwrap(EvaluatorQuick.eval(value = v, globals = globals, dists = Distributions()))
