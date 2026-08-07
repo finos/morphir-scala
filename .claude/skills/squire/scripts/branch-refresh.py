@@ -153,7 +153,7 @@ def refresh(target: str, dry_run: bool, run: Runner = run_command) -> RefreshRes
     )
     if matching_pr is None:
         raise RefreshError(
-            f"{proof_context} whose head SHA exactly matches {target_sha}"
+            f"could not find {proof_context} whose head SHA exactly matches {target_sha}"
         )
 
     pull_request_number = matching_pr.get("number")

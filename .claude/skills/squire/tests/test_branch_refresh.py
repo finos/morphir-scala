@@ -421,7 +421,8 @@ class BranchRefreshTest(unittest.TestCase):
         runner = RecordingRunner(self.proof_responses([other]))
 
         with self.assertRaisesRegex(
-            branch_refresh.RefreshError, "develop.*develop-to-main PR"
+            branch_refresh.RefreshError,
+            "could not find.*develop.*develop-to-main PR.*head SHA exactly matches",
         ):
             branch_refresh.refresh("develop", True, run=runner)
 
