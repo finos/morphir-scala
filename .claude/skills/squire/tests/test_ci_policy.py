@@ -165,6 +165,28 @@ def assert_squire_ci_policy(workflow: str) -> None:
         raise AssertionError("workflow must invoke test:squire exactly once")
 
 
+def assert_mill_owned_morphir_elm_policy(workflow: str) -> None:
+    forbidden = (
+        "Install morphir-elm",
+        "npm install -g morphir-elm",
+        "npx morphir-elm",
+        "morphir-elm make",
+        "Cache elm-tooling downloads",
+        "ELM_TOOLING_INSTALL=1",
+    )
+    for value in forbidden:
+        if value in workflow:
+            raise AssertionError(f"workflow must not install a global Morphir Elm tool: {value}")
+
+    test_jvm = indented_block(workflow, "test-jvm:", 2)
+    if "mise run build:morphir-elm" in test_jvm:
+        raise AssertionError("test-jvm must let fixture-dependent Mill tests invoke make")
+
+    test_js = indented_block(workflow, "test-js:", 2)
+    if test_js.count("Setup Node.js") != 1:
+        raise AssertionError("test-js must retain exactly one Node setup for Scala.js")
+
+
 def replace_in_job(workflow: str, job_name: str, old: str, new: str) -> str:
     job = indented_block(workflow, job_name, 2)
     if old not in job:
@@ -219,6 +241,9 @@ class CiPolicyTest(unittest.TestCase):
         ):
             with self.subTest(mutation=name):
                 self.assertRaises(AssertionError, assert_squire_ci_policy, mutation)
+
+    def test_morphir_elm_tooling_is_owned_by_mill(self):
+        assert_mill_owned_morphir_elm_policy(self.workflow)
 
     def test_policy_validators_reject_representative_regressions(self):
         push_with_extra_branch = self.workflow.replace(

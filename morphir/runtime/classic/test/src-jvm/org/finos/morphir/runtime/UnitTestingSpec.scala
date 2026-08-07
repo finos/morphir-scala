@@ -5,34 +5,34 @@ import org.finos.morphir.datamodel.classic.*
 import org.finos.morphir.ir.Type
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.environment.MorphirEnv
+import org.finos.morphir.runtime.fixtures.GeneratedRuntimeFixtures
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
 import zio.{Console, ZIO, ZLayer}
 
 object UnitTestingSpec extends MorphirBaseSpec {
-  val testFrameworkPath =
-    "morphir-elm/sdks/morphir-unit-test/morphir-ir.json"
-  val basicPath = "examples/morphir-elm-projects/unit-test-framework/example-project/morphir-ir.json"
-  val failingPaths = List(
-    "examples/morphir-elm-projects/unit-test-framework/example-project-tests/morphir-ir.json",
+  val testFrameworkPath = GeneratedRuntimeFixtures.unitTestFramework
+  val basicPath         = GeneratedRuntimeFixtures.unitTestExample
+  val failingPaths      = List(
+    GeneratedRuntimeFixtures.unitTestFailing,
     basicPath,
     testFrameworkPath
   )
   val passingPaths = List(
-    "examples/morphir-elm-projects/unit-test-framework/example-project-tests-passing/morphir-ir.json",
+    GeneratedRuntimeFixtures.unitTestPassing,
     basicPath,
     testFrameworkPath
   )
   val incompletePaths = List(
-    "examples/morphir-elm-projects/unit-test-framework/example-project-tests-incomplete/morphir-ir.json",
+    GeneratedRuntimeFixtures.unitTestIncomplete,
     basicPath,
     testFrameworkPath
   )
 
-  def makeTestSummaryLayer(paths: List[String]): ZLayer[Any, Throwable, TestSummary] =
+  def makeTestSummaryLayer(paths: List[java.nio.file.Path]): ZLayer[Any, Throwable, TestSummary] =
     ZLayer(for {
-      dists <- ZIO.collectAll(paths.map(path => EvaluationLibrary.loadDistributionFromFileZIO(path)))
+      dists <- ZIO.collectAll(paths.map(path => EvaluationLibrary.loadDistributionFromFileZIO(path.toString)))
       runtime = MorphirRuntime.quick(dists: _*)
       summary <- runtime.runUnitTests()
         .provideEnvironment(MorphirEnv.live)

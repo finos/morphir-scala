@@ -93,7 +93,7 @@ When invoked, Claude reads `references/doctor.md` then runs the three diagnostic
 2. **`check-var-folders.py`** — Attempts a real write probe at `/var/folders/.squire-probe`. This is ground truth: if the write succeeds, cellar can write its temp `.tasty` files there. Reports `OK` or `BLOCKED` with remediation steps.
 
 3. **`check-project-config.py`** — Checks three project-level invariants:
-   - The `ELM_TOOLING_INSTALL` guard in `.config/mise/tasks/setup` (prevents elm binary downloads in restricted networks)
+   - Mise setup skips workspace postinstall hooks and leaves Morphir Elm provisioning to Mill
    - The `Task { }` wrapper on `mainClass` in `morphir/package.mill` (prevents mill assembly introspection warning)
    - `/var/folders` write access via real probe (same as script 2, for a single-script summary pass)
 
@@ -108,7 +108,7 @@ Claude reports each result as ✅ or ⚠️ and applies fixes from `references/d
 | Mill daemon TCP blocked by sandbox | `check-mill-daemon.py` |
 | Mill assembly `mainClass` introspection warning | `check-project-config.py` |
 | `cellar` temp file write blocked | `check-var-folders.py`, `check-project-config.py` |
-| `mise run setup` elm-tooling 504 failures (CI) | `check-project-config.py` |
+| Mise setup bypassing Mill-owned Morphir Elm tooling | `check-project-config.py` |
 | Scalafmt lint failures | `references/doctor.md` (guidance only) |
 
 ## Important Caveats

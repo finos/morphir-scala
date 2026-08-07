@@ -30,7 +30,10 @@ Expose Elm parsing, inspection, lowering, and source-to-IR compilation as indepe
 well as one frontend plugin for the standard preset. Elm CST and AST values remain their native types; generic tree
 processing uses `QueryableTree` and explicit projections instead of converting them to a buildkit-owned node model.
 
-Decide during refinement whether `ElmParse` becomes a specialization of a shared reporting effect or remains an Elm
-effect used behind the adapter. Neither choice may make the standard buildkit depend on Elm.
+The current [pipeline and workspace refinement direction](../morphir/morphir-scala/design/pipeline-workspace-boundaries.md)
+keeps `ElmParse` as an Elm effect used behind the adapter. Shared `Parse` and `Compile` names are typed buildkit phase
+contracts rather than global effects that replace frontend internals. This boundary remains in the mutable Design Note
+until a working vertical slice supplies enough evidence for an immutable Decision Record; the standard buildkit never
+depends on Elm.
 
 Depends on [0009 Standard Morphir build pipeline](/0009-standard-morphir-build-pipeline.md).
