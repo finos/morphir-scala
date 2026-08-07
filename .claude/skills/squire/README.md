@@ -62,7 +62,9 @@ The skill is structured in layers to keep each file focused:
 │   ├── spec-*.py                 # Imports/exports the Morphir IR spec
 │   └── tracking-*.py             # Resolves and repairs tracking guidance
 └── tests/
-    └── test_branch_refresh.py    # Branch refresh safety and CLI tests
+    ├── test_branch_refresh.py    # Branch refresh safety and CLI tests
+    ├── test_ci_policy.py        # Hosted CI and publishing policy tests
+    └── test_mise_task_policy.py # Local CI task metadata tests
 ```
 
 `scripts/lib/mill-flags.sh` (repo root, not under `.claude/`) is a shell consumer
