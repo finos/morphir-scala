@@ -21,6 +21,48 @@ final case class MorphirDependencyArtifact(moduleId: String, ir: PathRef) derive
 
 final case class StagedMorphirProject(projectDir: PathRef, output: os.Path) derives ReadWriter
 
+final case class ClassicRuntimeFixtureSet(
+    evaluator: PathRef,
+    defaults: PathRef,
+    unitTestFramework: PathRef,
+    unitTestExample: PathRef,
+    unitTestFailing: PathRef,
+    unitTestPassing: PathRef,
+    unitTestIncomplete: PathRef
+)
+
+object ClassicRuntimeFixtureSource {
+  def escapeScalaString(value: String): String =
+    value.flatMap {
+      case '\\' => "\\\\"
+      case '"'  => "\\\""
+      case '\n' => "\\n"
+      case '\r' => "\\r"
+      case '\t' => "\\t"
+      case c    => c.toString
+    }
+
+  def render(fixtures: ClassicRuntimeFixtureSet): String = {
+    def field(name: String, path: PathRef): String =
+      s"  val $name: java.nio.file.Path = java.nio.file.Paths.get(\"${escapeScalaString(path.path.toString)}\")"
+
+    Seq(
+      "package org.finos.morphir.runtime.fixtures",
+      "",
+      "object GeneratedRuntimeFixtures {",
+      field("evaluator", fixtures.evaluator),
+      field("defaults", fixtures.defaults),
+      field("unitTestFramework", fixtures.unitTestFramework),
+      field("unitTestExample", fixtures.unitTestExample),
+      field("unitTestFailing", fixtures.unitTestFailing),
+      field("unitTestPassing", fixtures.unitTestPassing),
+      field("unitTestIncomplete", fixtures.unitTestIncomplete),
+      "}",
+      ""
+    ).mkString("\n")
+  }
+}
+
 object MorphirElmProjectSandbox {
   private val SafeModuleId = "[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?".r
   private val SafeFilename = "[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?".r

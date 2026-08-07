@@ -1,6 +1,6 @@
 package org.finos.morphir.runtime
 
-import org.finos.morphir.naming._
+import org.finos.morphir.naming.*
 import org.finos.morphir.datamodel.classic.Util.*
 import org.finos.morphir.datamodel.classic.*
 import org.finos.morphir.ir.{Type => T, Value => V}
@@ -10,6 +10,7 @@ import org.finos.morphir.ir.sdk
 import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.MorphirRuntimeError.*
+import org.finos.morphir.runtime.fixtures.GeneratedRuntimeFixtures
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
@@ -19,7 +20,7 @@ import org.finos.morphir.ir.Value.RawValueExtensions
 object TypeCheckerTests extends MorphirBaseSpec {
   val morphirRuntimeLayer: ZLayer[Any, Throwable, TypedMorphirRuntime] =
     ZLayer(for {
-      irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
+      irFilePath <- ZIO.succeed(GeneratedRuntimeFixtures.evaluator)
       _          <- Console.printLine(s"Loading distribution from $irFilePath")
       dist       <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
 
@@ -27,11 +28,11 @@ object TypeCheckerTests extends MorphirBaseSpec {
 
   val typeCheckerLayer: ZLayer[Any, Throwable, TypeChecker] =
     ZLayer(for {
-      irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
-      _          <- Console.printLine(s"Loading distribution from $irFilePath")
-      dist       <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
+      irFilePath   <- ZIO.succeed(GeneratedRuntimeFixtures.evaluator)
+      _            <- Console.printLine(s"Loading distribution from $irFilePath")
+      dist         <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
       unitTestDist <-
-        EvaluationLibrary.loadDistributionFromFileZIO("morphir-elm/sdks/morphir-unit-test/morphir-ir.json")
+        EvaluationLibrary.loadDistributionFromFileZIO(GeneratedRuntimeFixtures.unitTestFramework.toString)
     } yield new TypeChecker(Distributions(dist, unitTestDist)))
 
   def testTypeConforms(tpe1: UType, tpe2: UType)(expectedErrors: Int): ZIO[TypeChecker, Throwable, TestResult] =
@@ -78,7 +79,7 @@ object TypeCheckerTests extends MorphirBaseSpec {
 
   val validString: TypedValue = V.string(sdk.String.stringType, "Green")
   val invalidInt: TypedValue  = V.string("Red") :> sdk.Basics.intType
-  val intToInt: TypedValue = V.reference(
+  val intToInt: TypedValue    = V.reference(
     T.function(Basics.intType, Basics.intType),
     FQName.fromString("Morphir/Examples/App:TypeCheckerTests:intToInt")
   )

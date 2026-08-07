@@ -305,4 +305,42 @@ def writeProject(project: os.Path, sourceDirectory: String = "src"): MorphirProj
       assert(MorphirElmProjectSandbox.withOutputFilename(staged, filename).isLeft)
     }
   }
+
+  withTempDir { temp =>
+    def fixture(name: String): PathRef = {
+      val path = temp / name
+      os.write(path, name)
+      PathRef(path)
+    }
+
+    val fixtures = ClassicRuntimeFixtureSet(
+      evaluator = fixture("evaluator.json"),
+      defaults = fixture("defaults.json"),
+      unitTestFramework = fixture("unit-test-framework.json"),
+      unitTestExample = fixture("unit-test-example.json"),
+      unitTestFailing = fixture("unit-test-failing.json"),
+      unitTestPassing = fixture("unit-test-passing.json"),
+      unitTestIncomplete = fixture("unit-test-incomplete.json")
+    )
+    val rendered = ClassicRuntimeFixtureSource.render(fixtures)
+
+    assertEquals(rendered, ClassicRuntimeFixtureSource.render(fixtures))
+    assert(rendered.contains("package org.finos.morphir.runtime.fixtures"))
+    assert(rendered.contains("object GeneratedRuntimeFixtures"))
+    Seq(
+      "evaluator",
+      "defaults",
+      "unitTestFramework",
+      "unitTestExample",
+      "unitTestFailing",
+      "unitTestPassing",
+      "unitTestIncomplete"
+    ).foreach { field =>
+      assert(rendered.contains(s"val $field: java.nio.file.Path"), s"Missing generated Path field $field")
+    }
+  }
+
+  val windowsPath = "C:\\fixtures\\morphir-ir.json"
+  val escaped      = ClassicRuntimeFixtureSource.escapeScalaString(windowsPath)
+  assertEquals(escaped, "C:\\\\fixtures\\\\morphir-ir.json")
 }

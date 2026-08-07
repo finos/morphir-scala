@@ -12,13 +12,13 @@ import zio.{Console, ZIO, ZLayer}
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.runtime.quick.EvaluatorQuick
 import org.finos.morphir.runtime.ToMDMConcept.*
+import org.finos.morphir.runtime.fixtures.GeneratedRuntimeFixtures
 
 object DefaultsTestingSpec extends MorphirBaseSpec {
-  val path =
-    "examples/morphir-elm-projects/defaults-tests/morphir-ir.json"
+  val path = GeneratedRuntimeFixtures.defaults
 
   val testLayer: ZLayer[Any, Throwable, (Distribution, TypedMorphirRuntime)] = ZLayer(for {
-    dist <- EvaluationLibrary.loadDistributionFromFileZIO(path)
+    dist <- EvaluationLibrary.loadDistributionFromFileZIO(path.toString)
   } yield (dist, MorphirRuntime.quick(dist)))
 
   def getRT =

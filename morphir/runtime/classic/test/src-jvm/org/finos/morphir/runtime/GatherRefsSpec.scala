@@ -9,6 +9,7 @@ import org.finos.morphir.ir.sdk.Basics
 import org.finos.morphir.ir.{Documented, Module, MorphirIRFile, Type => T, Value => V}
 import org.finos.morphir.naming.*
 import org.finos.morphir.runtime.*
+import org.finos.morphir.runtime.fixtures.GeneratedRuntimeFixtures
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.prelude.fx.*
 import zio.test.Assertion.{equalTo, fails}
@@ -19,10 +20,10 @@ import zio.{test as _, *}
 import scala.collection.immutable.ListMap
 
 object GatherRefsSpec extends MorphirBaseSpec {
-  val dist = EvaluationLibrary.loadDistributionUnsafe("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json")
+  val dist = EvaluationLibrary.loadDistributionUnsafe(GeneratedRuntimeFixtures.evaluator.toString)
   // Pretend the following is a distinct distribution like an SDK (when using the instrument, it should be one or more such)
   val otherDist =
-    EvaluationLibrary.loadDistributionUnsafe("./examples/morphir-elm-projects/evaluator-tests/morphir-ir.json")
+    EvaluationLibrary.loadDistributionUnsafe(GeneratedRuntimeFixtures.evaluator.toString)
   val example: FQName = FQName.fromString("Morphir.SDK:Basics:and")
   val existing        = Native.native.keys
 
