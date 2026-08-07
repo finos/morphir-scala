@@ -3,3 +3,5 @@
 set -euo pipefail
 python3 -m unittest discover -s .claude/skills/squire/tests -p 'test_*.py' -v
 ./mill --ticker false mill-build/test/SnapshotVersionTests.scala
+./mill --ticker false mill-build/test/NodeToolchainTests.scala
+./mill --ticker false mill-build/test/MorphirElmToolTests.scala
