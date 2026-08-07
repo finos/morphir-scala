@@ -7,8 +7,14 @@ import mill.util.VcsVersion
 import java.util.Locale
 
 object SnapshotVersion {
-  private val SemverTag = raw"^v?(\d+\.\d+\.\d+)(?:-([0-9A-Za-z][0-9A-Za-z.-]*))?$$".r
-  private val Revision  = raw"^[0-9a-fA-F]{7,40}$$".r
+  private val SemverTag =
+    raw"^v?((?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$$".r
+  private val Revision = raw"^[0-9a-fA-F]{7,40}$$".r
+
+  private def validPrerelease(qualifier: String): Boolean =
+    qualifier.split('.').forall { identifier =>
+      !identifier.forall(_.isDigit) || identifier == "0" || !identifier.startsWith("0")
+    }
 
   def format(state: VcsVersion.State, branch: String): Either[String, String] =
     for {
@@ -30,8 +36,8 @@ object SnapshotVersion {
         "revision must be 7 to 40 hexadecimal characters"
       )
       releaseLine <- state.lastTag match {
-        case None                                => Right("0.0.0")
-        case Some(SemverTag(version, qualifier)) =>
+        case None => Right("0.0.0")
+        case Some(SemverTag(version, qualifier)) if Option(qualifier).forall(validPrerelease) =>
           Right(Option(qualifier).fold(version)(value => s"$version-$value"))
         case Some(tag) => Left(s"nearest tag '$tag' is not a semantic version")
       }

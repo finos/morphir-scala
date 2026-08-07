@@ -28,6 +28,10 @@ def state(
     Right("0.5.0-develop.57.gbd4cd2-SNAPSHOT")
   )
   assertEquals(
+    SnapshotVersion.format(state(tag = Some("v0.5.0-alpha.1")), "develop"),
+    Right("0.5.0-alpha.1-develop.57.gbd4cd2-SNAPSHOT")
+  )
+  assertEquals(
     SnapshotVersion.format(state(tag = None), "develop"),
     Right("0.0.0-develop.57.gbd4cd2-SNAPSHOT")
   )
@@ -58,6 +62,16 @@ def state(
   assertLeft(SnapshotVersion.format(state(dirtyHash = Some("dirty")), "develop"), "a dirty state")
   assertLeft(SnapshotVersion.format(state(distance = -1), "develop"), "negative distance")
   assertLeft(SnapshotVersion.format(state(tag = Some("release-five")), "develop"), "a non-version tag")
+  Seq(
+    "v01.2.3",
+    "v1.02.3",
+    "v1.2.03",
+    "v0.5.0-alpha.",
+    "v0.5.0-alpha..beta",
+    "v0.5.0-01"
+  ).foreach { tag =>
+    assertLeft(SnapshotVersion.format(state(tag = Some(tag)), "develop"), s"invalid SemVer tag $tag")
+  }
 
   assertEquals(SnapshotVersion.select(state(), Map.empty), Right(state().format()))
   assertEquals(
