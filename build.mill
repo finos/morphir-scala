@@ -261,7 +261,7 @@ trait EmptyDocJar extends JavaModule {
 /** `runtime`'s test module: sources its JSON test fixtures from the compiled `evaluator-tests` Elm project. */
 trait RuntimeTests extends TestModule.ZioTest {
   def morphirTestSources = Task {
-    examples.`morphir-elm-projects`.`evaluator-tests`.distOutputDirs()
+    build.examples.`morphir-elm-projects`.`evaluator-tests`.distOutputDirs()
   }
 
   def morphirTestSourceFiles = Task {
@@ -280,7 +280,7 @@ trait RuntimeTests extends TestModule.ZioTest {
   */
 trait LoweringRealIrFixture extends JavaModule {
   def realIrFixtureSource: T[PathRef] = Task.Source(
-    examples.`morphir-elm-projects`.`evaluator-tests`.moduleDir / "morphir-ir2.json"
+    build.examples.`morphir-elm-projects`.`evaluator-tests`.moduleDir / "morphir-ir2.json"
   )
 
   override def resources: T[Seq[PathRef]] = Task {
@@ -533,44 +533,21 @@ object toolchains extends Module {
   }
 }
 
-// The following modules are morphir-elm modules that have been setup to be built using mill
-// Morphir Elm Projects/Modules:
-object examples extends Module {
-  object `morphir-elm-projects` extends Module {
-    object finance extends MorphirElmModule
-
-    object `evaluator-tests`     extends MorphirElmModule
-    object `unit-test-framework` extends Module {
-      object `example-project` extends MorphirElmModule {
-        def morphirModuleDeps = Seq(`morphir-elm`.sdks.`morphir-unit-test`)
-      }
-
-      object `example-project-tests` extends MorphirElmModule {
-        def morphirModuleDeps = Seq(
-          `morphir-elm`.sdks.`morphir-unit-test`,
-          `example-project`
-        )
-      }
-      object `example-project-tests-incomplete` extends MorphirElmModule {
-        def morphirModuleDeps = Seq(
-          `morphir-elm`.sdks.`morphir-unit-test`,
-          `example-project`
-        )
-      }
-      object `example-project-tests-passing` extends MorphirElmModule {
-        def morphirModuleDeps = Seq(
-          `morphir-elm`.sdks.`morphir-unit-test`,
-          `example-project`
-        )
-      }
-    }
-  }
+trait MorphirElmProject extends MorphirElmModule {
+  def morphirElmTool = toolchains.morphirElm
 }
 
-object `morphir-elm` extends Module {
-  object sdks extends Module {
-    object `morphir-unit-test` extends MorphirElmModule
-  }
+/** Exact local IR inputs shared by the three unit-test example consumers.
+  *
+  * Mill 1.2.0-RC1 cannot override the non-task `morphirModuleDeps` member from YAML, so this deliberately narrow
+  * reference trait carries only those two module references. Project declarations and identity stay colocated in
+  * each project's `package.mill.yaml`.
+  */
+trait ExampleProjectTestMorphirDependencies extends MorphirModule {
+  override def morphirModuleDeps = Seq(
+    build.`morphir-elm`.sdks.`morphir-unit-test`,
+    build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project`
+  )
 }
 
 // ci module removed - using Mill's built-in mill.scalalib.PublishModule/ for publishing
