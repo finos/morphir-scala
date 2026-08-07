@@ -3,9 +3,13 @@
 
 package org.finos.millmorphir.elm
 
+import java.nio.file.{Files, LinkOption}
+import java.util.Locale
+
 import mill.PathRef
 import mill.api.JsonFormatters.*
 import org.finos.millmorphir.api.MorphirProjectConfig
+import scala.jdk.CollectionConverters.*
 import upickle.default.*
 
 /** An already-materialized Morphir IR input.
@@ -19,10 +23,14 @@ final case class StagedMorphirProject(projectDir: PathRef, output: os.Path) deri
 
 object MorphirElmProjectSandbox {
   private val SafeModuleId = "[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?".r
+  private val SafeFilename = "[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?".r
+  private val WindowsReservedNames =
+    Set("CON", "PRN", "AUX", "NUL") ++ (1 to 9).flatMap(number => Seq(s"COM$number", s"LPT$number"))
 
   def dependencyRelativePath(moduleId: String): Either[String, os.RelPath] =
     moduleId match {
-      case SafeModuleId() => Right(os.rel / ".morphir-deps" / moduleId / "morphir-ir.json")
+      case SafeModuleId() if !isWindowsReserved(moduleId) =>
+        Right(os.rel / ".morphir-deps" / moduleId / "morphir-ir.json")
       case _              => Left(s"Unsafe Morphir dependency module ID: $moduleId")
     }
 
@@ -30,7 +38,9 @@ object MorphirElmProjectSandbox {
       config: MorphirProjectConfig,
       dependencies: Seq[MorphirDependencyArtifact]
   ): Either[String, MorphirProjectConfig] = {
-    val duplicates = dependencies.groupBy(_.moduleId).collect { case (moduleId, artifacts) if artifacts.size > 1 => moduleId }
+    val duplicates = dependencies
+      .groupBy(_.moduleId.toLowerCase(Locale.ROOT))
+      .collect { case (_, artifacts) if artifacts.size > 1 => artifacts.map(_.moduleId).sorted.mkString("/") }
     if (duplicates.nonEmpty)
       Left(s"Duplicate Morphir dependency module IDs: ${duplicates.toSeq.sorted.mkString(", ")}")
     else
@@ -57,6 +67,7 @@ object MorphirElmProjectSandbox {
       rewritten      <- rewrittenConfig(original, dependencies)
       _               <- validateInput(config, "Morphir project config")
       _               <- elm.map(validateInput(_, "Elm project config")).getOrElse(Right(()))
+      _               <- elm.map(validateElmConfig(_, sourceRelative)).getOrElse(Right(()))
       _               <- validateDirectory(source, "Morphir project source")
       _               <- dependencies.foldLeft[Either[String, Unit]](Right(())) { (validated, dependency) =>
         validated.flatMap(_ => validateInput(dependency.ir.path, s"Morphir dependency ${dependency.moduleId}"))
@@ -77,6 +88,15 @@ object MorphirElmProjectSandbox {
     }
   }
 
+  def withOutputFilename(
+      project: StagedMorphirProject,
+      filename: String
+  ): Either[String, StagedMorphirProject] =
+    filename match {
+      case SafeFilename() if !isWindowsReserved(filename) => Right(project.copy(output = project.projectDir.path / filename))
+      case _                                               => Left(s"Unsafe Morphir IR output filename: $filename")
+    }
+
   private def readConfig(path: os.Path): Either[String, MorphirProjectConfig] =
     validateInput(path, "Morphir project config").flatMap { _ =>
       try Right(read[MorphirProjectConfig](os.read(path)))
@@ -87,7 +107,8 @@ object MorphirElmProjectSandbox {
     try {
       val relative = os.RelPath(value)
       if (
-        value.isEmpty || relative.ups > 0 || relative.segments.isEmpty ||
+        value.isEmpty || value.contains('\\') || value.matches("^[A-Za-z]:.*") ||
+        relative.ups > 0 || relative.segments.isEmpty ||
         relative.segments.exists(segment => segment == ".." || segment == ".")
       )
         Left(s"Unsafe Morphir source directory: $value")
@@ -97,8 +118,92 @@ object MorphirElmProjectSandbox {
     }
 
   private def validateInput(path: os.Path, description: String): Either[String, Unit] =
-    if (os.isFile(path)) Right(()) else Left(s"$description is not a file: $path")
+    if (Files.isSymbolicLink(path.toNIO)) Left(s"$description must not be a symbolic link: $path")
+    else if (Files.isRegularFile(path.toNIO, LinkOption.NOFOLLOW_LINKS)) Right(())
+    else Left(s"$description is not a file: $path")
 
-  private def validateDirectory(path: os.Path, description: String): Either[String, Unit] =
-    if (os.isDir(path)) Right(()) else Left(s"$description is not a directory: $path")
+  private def validateDirectory(path: os.Path, description: String): Either[String, Unit] = {
+    if (Files.isSymbolicLink(path.toNIO)) Left(s"$description must not be a symbolic link: $path")
+    else if (!Files.isDirectory(path.toNIO, LinkOption.NOFOLLOW_LINKS)) Left(s"$description is not a directory: $path")
+    else {
+      val stream = Files.walk(path.toNIO)
+      try
+        stream.iterator().asScala.find(Files.isSymbolicLink) match {
+          case Some(link) => Left(s"$description contains symbolic link: $link")
+          case None       => Right(())
+        }
+      finally stream.close()
+    }
+  }
+
+  private def validateElmConfig(path: os.Path, morphirSource: os.RelPath): Either[String, Unit] =
+    try {
+      val config = ujson.read(os.read(path))
+      config.obj.get("source-directories") match {
+        case None => Right(())
+        case Some(value) =>
+          value.arr.foldLeft[Either[String, Unit]](Right(())) { (validated, sourceValue) =>
+            validated.flatMap { _ =>
+              safeSourceDirectory(sourceValue.str).flatMap { elmSource =>
+                val elmSegments     = elmSource.segments.toSeq
+                val morphirSegments = morphirSource.segments.toSeq
+                val intersectsStagedSource =
+                  elmSegments.startsWith(morphirSegments) || morphirSegments.startsWith(elmSegments)
+                if (intersectsStagedSource) Right(())
+                else Left(s"Elm source-directory is outside the staged Morphir source: ${sourceValue.str}")
+              }
+            }
+          }
+      }
+    } catch {
+      case exception: Exception => Left(s"Invalid Elm project config at $path: ${exception.getMessage}")
+    }
+
+  private def isWindowsReserved(value: String): Boolean = {
+    val basename = value.takeWhile(_ != '.').toUpperCase(Locale.ROOT)
+    WindowsReservedNames.contains(basename)
+  }
+}
+
+private[millmorphir] object MorphirElmProcessEnvironment {
+  private val RetainedVariables = Set(
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "NO_PROXY",
+    "ALL_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "no_proxy",
+    "all_proxy",
+    "SSL_CERT_FILE",
+    "SSL_CERT_DIR",
+    "NODE_EXTRA_CA_CERTS",
+    "SYSTEMROOT",
+    "SystemRoot",
+    "WINDIR",
+    "COMSPEC",
+    "PATHEXT"
+  )
+
+  def create(taskRoot: os.Path, ambient: Map[String, String]): Map[String, String] = {
+    val home    = taskRoot / "home"
+    val elmHome = taskRoot / "elm-home"
+    val cache   = taskRoot / "cache"
+    val temp    = taskRoot / "tmp"
+    val contained = Map(
+      "HOME"             -> home.toString,
+      "USERPROFILE"      -> home.toString,
+      "ELM_HOME"         -> elmHome.toString,
+      "XDG_CACHE_HOME"   -> (cache / "xdg").toString,
+      "npm_config_cache" -> (cache / "npm").toString,
+      "TMPDIR"           -> temp.toString,
+      "TMP"              -> temp.toString,
+      "TEMP"             -> temp.toString
+    )
+    ambient.view.filterKeys(RetainedVariables).toMap ++ contained
+  }
+
+  def initialize(environment: Map[String, String]): Unit =
+    Seq("HOME", "ELM_HOME", "XDG_CACHE_HOME", "npm_config_cache", "TMPDIR")
+      .foreach(name => os.makeDir.all(os.Path(environment(name), os.pwd)))
 }

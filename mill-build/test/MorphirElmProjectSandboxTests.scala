@@ -1,11 +1,12 @@
 //| moduleDeps: ["//mill-build/src/org/finos/millmorphir/elm/MorphirElmProjectSandbox.scala", "//mill-build/src/org/finos/millmorphir/api/MorphirProjectConfig.scala"]
 //| mvnDeps: ["com.lihaoyi::mill-libs:$MILL_VERSION"]
 
+package org.finos.millmorphir.elm
+
 import java.nio.file.Files
 
 import mill.PathRef
 import org.finos.millmorphir.api.MorphirProjectConfig
-import org.finos.millmorphir.elm.*
 import upickle.default.*
 
 def assertEquals[A](actual: A, expected: A): Unit =
@@ -153,5 +154,155 @@ def writeProject(project: os.Path, sourceDirectory: String = "src"): MorphirProj
     )
     assert(result.isLeft)
     assert(!os.exists(sandbox), "Unsafe source directories must be rejected before staging begins")
+  }
+
+  withTempDir { temp =>
+    val project = temp / "project"
+    writeProject(project)
+    val sentinel = temp / "external-sentinel.txt"
+    os.write(sentinel, "must-not-be-staged")
+    Files.createSymbolicLink((project / "src" / "external-link.txt").toNIO, sentinel.toNIO)
+    val sandbox = temp / "task-dest" / "project"
+
+    val result = MorphirElmProjectSandbox.stage(
+      sandbox,
+      project / "morphir.json",
+      Some(project / "elm.json"),
+      project / "src",
+      Seq.empty
+    )
+    assert(result.isLeft)
+    assert(!os.exists(sandbox), "A source-tree symlink must be rejected before staging begins")
+    assertEquals(os.read(sentinel), "must-not-be-staged")
+  }
+
+  withTempDir { temp =>
+    val project = temp / "project"
+    writeProject(project)
+    val dependency = temp / "dependency.json"
+    os.write(dependency, "dependency")
+    val dependencyLink = temp / "dependency-link.json"
+    Files.createSymbolicLink(dependencyLink.toNIO, dependency.toNIO)
+    val configLink = temp / "morphir-link.json"
+    Files.createSymbolicLink(configLink.toNIO, (project / "morphir.json").toNIO)
+    val elmLink = temp / "elm-link.json"
+    Files.createSymbolicLink(elmLink.toNIO, (project / "elm.json").toNIO)
+
+    assert(
+      MorphirElmProjectSandbox
+        .stage(temp / "config-sandbox", configLink, Some(project / "elm.json"), project / "src", Seq.empty)
+        .isLeft
+    )
+    assert(
+      MorphirElmProjectSandbox
+        .stage(temp / "elm-sandbox", project / "morphir.json", Some(elmLink), project / "src", Seq.empty)
+        .isLeft
+    )
+    assert(
+      MorphirElmProjectSandbox
+        .stage(
+          temp / "dependency-sandbox",
+          project / "morphir.json",
+          Some(project / "elm.json"),
+          project / "src",
+          Seq(MorphirDependencyArtifact("dependency", PathRef(dependencyLink)))
+        )
+        .isLeft
+    )
+  }
+
+  withTempDir { temp =>
+    val project = temp / "project"
+    writeProject(project)
+    val sentinelDirectory = temp / "external-sources"
+    os.makeDir.all(sentinelDirectory)
+    os.write(sentinelDirectory / "Sentinel.elm", "sentinel")
+
+    Seq(
+      ujson.Obj("type" -> "application", "source-directories" -> ujson.Arr("../external-sources")),
+      ujson.Obj("type" -> "application", "source-directories" -> ujson.Arr(sentinelDirectory.toString)),
+      ujson.Obj("type" -> "application", "source-directories" -> ujson.Arr("C:\\external-sources")),
+      ujson.Obj("type" -> "application", "source-directories" -> ujson.Arr("C:/external-sources")),
+      ujson.Obj("type" -> "application", "source-directories" -> ujson.Arr("\\\\server\\share")),
+      ujson.Obj("type" -> "application", "source-directories" -> ujson.Arr("src/C:\\external-sources"))
+    ).zipWithIndex.foreach { case (elmConfig, index) =>
+      os.write.over(project / "elm.json", elmConfig.render())
+      val sandbox = temp / s"elm-source-sandbox-$index"
+      assert(
+        MorphirElmProjectSandbox
+          .stage(sandbox, project / "morphir.json", Some(project / "elm.json"), project / "src", Seq.empty)
+          .isLeft
+      )
+      assert(!os.exists(sandbox))
+      assertEquals(os.read(sentinelDirectory / "Sentinel.elm"), "sentinel")
+    }
+  }
+
+  withTempDir { temp =>
+    val first  = temp / "first.json"
+    val second = temp / "second.json"
+    os.write(first, "first")
+    os.write(second, "second")
+    assert(
+      MorphirElmProjectSandbox
+        .rewrittenConfig(
+          baseConfig,
+          Seq(
+            MorphirDependencyArtifact("Dependency.One", PathRef(first)),
+            MorphirDependencyArtifact("dependency.one", PathRef(second))
+          )
+        )
+        .isLeft,
+      "Dependency paths must not collide on case-insensitive filesystems"
+    )
+    Seq("CON", "con.txt", "PRN", "AUX", "NUL", "COM1", "com9.json", "LPT1", "lpt9.txt").foreach {
+      moduleId =>
+        assert(
+          MorphirElmProjectSandbox.dependencyRelativePath(moduleId).isLeft,
+          s"Expected Windows reserved dependency module ID to be rejected: $moduleId"
+        )
+    }
+  }
+
+  withTempDir { temp =>
+    val poisoned = temp / "poisoned-ambient-home"
+    val environment = MorphirElmProcessEnvironment.create(
+      temp / "make-task",
+      Map(
+        "HOME" -> poisoned.toString,
+        "USERPROFILE" -> poisoned.toString,
+        "ELM_HOME" -> (poisoned / "elm").toString,
+        "XDG_CACHE_HOME" -> (poisoned / "cache").toString,
+        "HTTPS_PROXY" -> "https://proxy.example.test",
+        "UNRELATED_SECRET" -> "must-not-propagate"
+      )
+    )
+
+    assertEquals(environment("HOME"), (temp / "make-task" / "home").toString)
+    assertEquals(environment("USERPROFILE"), (temp / "make-task" / "home").toString)
+    assertEquals(environment("ELM_HOME"), (temp / "make-task" / "elm-home").toString)
+    assertEquals(environment("XDG_CACHE_HOME"), (temp / "make-task" / "cache" / "xdg").toString)
+    assertEquals(environment("HTTPS_PROXY"), "https://proxy.example.test")
+    assert(!environment.contains("UNRELATED_SECRET"))
+    assert(!environment.values.exists(_.contains(poisoned.toString)))
+
+    if (!scala.util.Properties.isWin) {
+      val observed = os.proc("/usr/bin/env").call(env = environment, propagateEnv = false).out.lines().toSet
+      assert(observed.contains(s"HOME=${temp / "make-task" / "home"}"))
+      assert(observed.contains(s"ELM_HOME=${temp / "make-task" / "elm-home"}"))
+      assert(!observed.exists(_.startsWith("UNRELATED_SECRET=")))
+      assert(!observed.exists(_.contains(poisoned.toString)))
+    }
+  }
+
+  withTempDir { temp =>
+    val staged = StagedMorphirProject(PathRef(temp), temp / "morphir-ir.json")
+    assertEquals(
+      MorphirElmProjectSandbox.withOutputFilename(staged, "custom-ir.json"),
+      Right(staged.copy(output = temp / "custom-ir.json"))
+    )
+    Seq("", "../escape.json", "nested/output.json", "/absolute.json", "C:\\escape.json").foreach { filename =>
+      assert(MorphirElmProjectSandbox.withOutputFilename(staged, filename).isLeft)
+    }
   }
 }

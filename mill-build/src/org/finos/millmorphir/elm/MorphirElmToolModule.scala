@@ -17,6 +17,8 @@ trait MorphirElmToolModule extends Module {
   def morphirElmInstall: T[PathRef] = Task {
     val install = Task.dest / "install"
     val cache   = Task.dest / "npm-cache"
+    val environment = MorphirElmProcessEnvironment.create(Task.dest / "tool-state", Task.env)
+    MorphirElmProcessEnvironment.initialize(environment)
     os.makeDir.all(install)
     os.copy.over(toolManifest().path, install / "package.json")
     os.copy.over(toolLock().path, install / "package-lock.json")
@@ -27,7 +29,7 @@ trait MorphirElmToolModule extends Module {
         nodeToolchain.npmCli().path,
         cache
       )
-    ).call(cwd = install)
+    ).call(cwd = install, env = environment, propagateEnv = false)
 
     PathRef(install)
   }

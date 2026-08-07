@@ -80,9 +80,12 @@ trait MorphirModule extends Module {
         dependencyArtifacts()
       )
       .fold(message => throw new IllegalArgumentException(message), identity)
+    val stagedWithOutput = MorphirElmProjectSandbox
+      .withOutputFilename(staged, morphirIrFilename())
+      .fold(message => throw new IllegalArgumentException(message), identity)
     val extensionInputs = additionalSandboxInputs()
-    prepareSandboxExtension(staged, extensionInputs)
-    staged
+    prepareSandboxExtension(stagedWithOutput, extensionInputs)
+    stagedWithOutput
   }
 
   def makeArgs: Task[MakeArgs] = Task.Anon {
@@ -104,7 +107,9 @@ trait MorphirModule extends Module {
       arguments.toCommandArgs
     )
     val workingDir = arguments.projectDir
-    MillbuildJvm.runSubprocess(command, Task.env, workingDir)
+    val environment = MorphirElmProcessEnvironment.create(Task.dest / "tool-state", Task.env)
+    MorphirElmProcessEnvironment.initialize(environment)
+    MillbuildJvm.runSubprocess(command, environment, workingDir, propagateEnv = false)
     if (!os.isFile(arguments.output))
       throw new IllegalStateException(s"Morphir Elm did not produce ${arguments.output}")
     val hashesPath = workingDir / "morphir-hashes.json"
