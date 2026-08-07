@@ -58,7 +58,11 @@ object scoverage extends ScoverageReport {
 trait MorphirPublishModule extends PublishModule with JavaModule with Mima with SonatypeCentralPublishModule {
   import mill.scalalib.publish.*
 
-  def publishVersion             = VcsVersion.vcsState().format()
+  def publishVersion = Task {
+    SnapshotVersion
+      .select(VcsVersion.vcsState(), Task.env)
+      .fold(message => throw new IllegalArgumentException(message), identity)
+  }
   def packageDescription: String = s"The $artifactName package"
   def pomSettings                = PomSettings(
     description = packageDescription,
