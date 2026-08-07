@@ -5,14 +5,17 @@
 `--target` parameter defaults to `develop`; pass another branch name when
 refreshing a different integration branch.
 
-The command updates remote refs directly. It does **not** check out or switch a
-branch, reset the current branch, modify files, stage changes, or otherwise
-affect the dirty worktree.
+The command does **not** check out or switch a branch, reset the current branch,
+modify files, stage changes, or otherwise affect the dirty worktree. Its fetch
+does update local `origin/main` and `origin/<target>` remote-tracking refs and
+`FETCH_HEAD`; because it uses `--prune`, it may also remove stale local
+remote-tracking refs. The remote target branch is unchanged unless the final
+leased push succeeds.
 
 ## Expected workflow
 
-Use this after GitHub reports that the target-to-main PR was squash-merged and
-the merge commit is visible on `origin/main`:
+Use this only after a maintainer confirms in GitHub that the target-to-main PR
+was squash-merged and its merge commit is visible on `origin/main`:
 
 ```bash
 # Prove that develop can be refreshed, without pushing.
@@ -29,13 +32,14 @@ python3 .claude/skills/squire/scripts/branch-refresh.py --dry-run --target <bran
 python3 .claude/skills/squire/scripts/branch-refresh.py --target <branch>
 ```
 
-`--dry-run` performs every fetch and safety check but never pushes. Run it
-first, then run the same command without `--dry-run` only after reviewing the
-validated target and SHAs.
+`--dry-run` performs every fetch and safety check but never pushes. It therefore
+still updates the local fetch metadata described above. Run it first, then run
+the same command without `--dry-run` only after reviewing the validated target
+and SHAs.
 
 ## Safety proof
 
-Before any mutation, the script:
+Before changing the remote target branch, the script:
 
 1. Validates the target branch name and refuses `main` as the target.
 2. Explicitly fetches the authoritative `origin/main` and `origin/<target>`
@@ -45,11 +49,18 @@ Before any mutation, the script:
    freshly fetched refs are equal.
 4. Otherwise requires the current `origin/<target>` SHA to exactly equal the
    `headRefOid` of a merged `<target>`-to-`main` pull request.
-5. Requires that PR's squash merge commit to be reachable from the freshly
-   fetched `origin/main`.
-6. On a non-dry run, performs only this mutation: an explicit
+5. Requires the merge commit returned for that PR to exist and be reachable
+   from the freshly fetched `origin/main`.
+6. On a non-dry run, performs only this remote mutation: an explicit
    `--force-with-lease` push whose lease expects the validated target SHA and
    whose source is the validated `origin/main` tracking ref.
+
+Squash merge is a maintainer workflow precondition, not something the script
+can prove. The GitHub fields it queries identify a merged PR, its `headRefOid`,
+and its merge commit, but do not distinguish squash from other merge methods.
+The operator must confirm the PR was squash-merged before running the command;
+the script then proves the exact target-head match and merge-commit reachability
+described above.
 
 The resulting push has this exact shape:
 
