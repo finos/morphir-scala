@@ -45,7 +45,7 @@ def parser() -> argparse.ArgumentParser:
     argument_parser = argparse.ArgumentParser(
         description="Safely refresh a branch from origin/main after its squash merge."
     )
-    argument_parser.add_argument("target", nargs="?", default="develop")
+    argument_parser.add_argument("--target", default="develop")
     argument_parser.add_argument("--dry-run", action="store_true")
     return argument_parser
 

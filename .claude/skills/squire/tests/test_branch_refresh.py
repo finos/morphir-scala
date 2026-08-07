@@ -1,9 +1,11 @@
 import importlib.util
+import io
 import json
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 
 
@@ -126,6 +128,22 @@ class BranchRefreshTest(unittest.TestCase):
 
         self.assertEqual(args.target, "develop")
         self.assertFalse(args.dry_run)
+
+    def test_parser_accepts_target_option(self):
+        with redirect_stderr(io.StringIO()):
+            try:
+                args = branch_refresh.parser().parse_args(
+                    ["--target", "release-line"]
+                )
+            except SystemExit as error:
+                self.fail(f"--target was rejected with exit code {error.code}")
+
+        self.assertEqual(args.target, "release-line")
+
+    def test_parser_rejects_bare_positional_target(self):
+        with redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                branch_refresh.parser().parse_args(["release-line"])
 
     def test_equal_remote_refs_are_already_current_without_github_call(self):
         sha = "a" * 40
