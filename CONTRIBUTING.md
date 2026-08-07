@@ -13,6 +13,69 @@ Before making a contribution, please take the following steps:
 
 NOTE: All contributors must have a contributor license agreement (CLA) on file with FINOS before their pull requests will be merged. Please review the FINOS [contribution requirements](https://finosfoundation.atlassian.net/wiki/spaces/FINOS/pages/75530375/Contribution+Compliance+Requirements) and submit (or have your employer submit) the required CLA before submitting a pull request.
 
+## Development and snapshot releases
+
+Feature and contributor pull requests target `develop`. Pull-request events run the validation jobs, but never
+publish artifacts. After a pull request is merged, a successful push to `develop` runs the full aggregate CI gate and
+then automatically publishes a traceable snapshot from the canonical `finos/morphir-scala` repository. Publication
+credentials remain in that repository's CI environment; contributors neither need nor receive them locally. An
+administrator must first enable snapshot support for the project's Sonatype namespace.
+
+Each snapshot uses an exact coordinate such as:
+
+```text
+0.5.0-M04-develop.57.gbd4cd2-SNAPSHOT
+0.5.0-develop.57.gbd4cd2-SNAPSHOT
+```
+
+The coordinate contains the release line (`0.5.0`), an optional release-line qualifier (`M04`), the branch
+(`develop`), the commit distance from the nearest version tag (`57`), a `g` followed by the first six hexadecimal
+characters of the Git revision (`bd4cd2`), and the terminal `SNAPSHOT` marker. Consumers must add the Sonatype
+snapshot repository and depend on the exact coordinate they intend to test:
+
+```text
+https://central.sonatype.com/repository/maven-snapshots
+```
+
+The revision-bearing logical version is traceable, but its `-SNAPSHOT` artifact is mutable and may be overwritten.
+[Sonatype's snapshot documentation](https://central.sonatype.org/publish/publish-portal-snapshots/) says snapshots
+are currently cleaned up after 90 days. Do not treat this coordinate as an immutable, reproducible-release lock;
+resolution and availability follow the snapshot repository's behavior.
+
+Publication from `main`, `0.4.x`, and tags continues to use the ordinary VCS-derived milestone and release flow. The
+snapshot environment is configured only for `develop`, never for `main` or tags.
+
+### Promoting `develop` to `main`
+
+Maintainers open a `develop`-to-`main` release pull request and **MUST squash-merge it**. Confirming the squash merge
+in GitHub is an operator precondition: the refresh script can prove the merged pull request and its ancestry, but it
+cannot determine which merge method GitHub used.
+
+After the squash merge is visible on `origin/main`, verify that `origin` is the intended canonical repository and that
+the GitHub CLI is authenticated and resolves the same repository:
+
+```bash
+git remote get-url origin
+gh auth status
+gh repo view --json nameWithOwner --jq .nameWithOwner
+```
+
+Stop if the remote is not the canonical `finos/morphir-scala` repository or the final command does not print
+`finos/morphir-scala`. Then prove the default `develop` refresh without pushing, review the reported branch and SHAs,
+and perform it:
+
+```bash
+python3 .claude/skills/squire/scripts/branch-refresh.py --dry-run
+python3 .claude/skills/squire/scripts/branch-refresh.py
+```
+
+The equivalent assisted workflow is `/squire branch refresh`. The command defaults to `develop`; for a different
+integration branch, pass `--target <branch>` to both Python invocations. It fetches remote-tracking refs but does not
+check out a branch or mutate the working tree. Before updating the remote target, it requires the target SHA to match
+the merged pull request's exact head and requires that pull request's merge commit to be an ancestor of
+`origin/main`. It therefore refuses to refresh if `develop` advanced after the matching pull request. The only remote
+update it can make is protected by `--force-with-lease`; it never uses or recommends unconditional force.
+
 ## Governance
 
 ### Roles

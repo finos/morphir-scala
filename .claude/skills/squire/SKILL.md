@@ -1,14 +1,14 @@
 ---
 name: squire
-description: "Development environment diagnostics and unblocking for the morphir-scala project. Use when hitting build tool failures, sandbox restrictions, mill daemon errors, or SSL/network issues. Also manages reference repositories under .refs/ — invoke when asked to add, list, check, or remove a reference repo, clone a repo for reference, or work with a local copy of an upstream project. And round-trips the Morphir IR specification between finos/morphir and the knowledge base — invoke when asked to sync, import or export the spec, schemas or upstream docs, refresh the mirrored upstream bundle, or prepare spec changes to send back upstream. Also owns task-tracking configuration — invoke before tracking work to resolve whether beads (bd) is in use for this checkout, and when asked to opt out of beads, change tracking settings, or repair beads guidance that a bd command re-added to AGENTS.md/CLAUDE.md."
+description: "Use when morphir-scala work needs environment diagnostics or build/network/sandbox unblocking; reference repository management; branch lifecycle refresh after squash-merging a target branch into main; Morphir IR spec/schema sync or export; or task-tracking configuration and beads mode resolution."
 allowed-tools: Bash(cat *), Bash(ls *), Bash(find *), Bash(python3 *), Bash(git *), Bash(gh *), Read, Edit, Write
 metadata:
-  version: 0.4.0
+  version: 0.5.0
 ---
 
 # Squire — morphir-scala Dev Environment Assistant
 
-Squire diagnoses and unblocks development environment issues, manages reference repositories, and owns task-tracking configuration for the morphir-scala project.
+Squire diagnoses and unblocks development environment issues, manages reference repositories and branch lifecycle, and owns task-tracking configuration for the morphir-scala project.
 
 ## Commands
 
@@ -40,6 +40,15 @@ Read the full reference before running:
 **When to invoke:** When asked to add a reference repo, clone an upstream project, list or check existing references, or when context about an external codebase is needed locally.
 
 Sub-commands: `squire reference repo add`, `squire reference repo list`, `squire reference repo status`, `squire reference repo remove`
+
+### `/squire branch refresh`
+
+Safely refreshes a remote target branch from `origin/main` after its target-to-main pull request has been squash-merged. The target defaults to `develop`; use `--dry-run` to prove the refresh without pushing.
+
+Read the full reference completely before running:
+→ [references/branch.md](references/branch.md)
+
+**When to invoke:** After squash-merging an integration branch into `main`, when the remote target should begin its next lifecycle at the new `main` tip.
 
 ### `/squire tracking`
 

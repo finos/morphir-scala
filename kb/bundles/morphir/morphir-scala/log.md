@@ -1,5 +1,10 @@
 # Log
 
+## 2026-08-07
+
+* **Update**: CI now validates pull requests into `develop` and, after the aggregate gate, publishes traceable
+  `develop` snapshots as described in [Continuous Integration](/continuous-integration.md).
+
 ## 2026-08-06
 
 * **Creation**: Accepted [Runtime closures retain parameter patterns](/decisions/0011-runtime-closures-retain-parameter-patterns.md), resolving the pre-release closure wire format.
