@@ -1,6 +1,8 @@
 import importlib.util
 import json
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -28,6 +30,26 @@ class RecordingRunner:
         return response
 
 
+class LocalGitRunner:
+    def __init__(self, cwd, responses):
+        self.cwd = cwd
+        self.responses = responses
+        self.calls = []
+
+    def __call__(self, argv):
+        command = tuple(argv)
+        self.calls.append(command)
+        if command[0] == "git":
+            return subprocess.run(
+                command,
+                cwd=self.cwd,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        return self.responses[command]
+
+
 class BranchRefreshTest(unittest.TestCase):
     source_sha = "1" * 40
     target_sha = "2" * 40
@@ -36,7 +58,14 @@ class BranchRefreshTest(unittest.TestCase):
     def proof_responses(self, pull_requests):
         return {
             ("git", "check-ref-format", "--branch", "develop"): "develop\n",
-            ("git", "fetch", "--prune", "origin", "main", "develop"): "",
+            (
+                "git",
+                "fetch",
+                "--prune",
+                "origin",
+                "+refs/heads/main:refs/remotes/origin/main",
+                "+refs/heads/develop:refs/remotes/origin/develop",
+            ): "",
             ("git", "rev-parse", "refs/remotes/origin/main"): f"{self.source_sha}\n",
             ("git", "rev-parse", "refs/remotes/origin/develop"): f"{self.target_sha}\n",
             (
@@ -103,7 +132,14 @@ class BranchRefreshTest(unittest.TestCase):
         runner = RecordingRunner(
             {
                 ("git", "check-ref-format", "--branch", "develop"): "develop\n",
-                ("git", "fetch", "--prune", "origin", "main", "develop"): "",
+                (
+                    "git",
+                    "fetch",
+                    "--prune",
+                    "origin",
+                    "+refs/heads/main:refs/remotes/origin/main",
+                    "+refs/heads/develop:refs/remotes/origin/develop",
+                ): "",
                 ("git", "rev-parse", "refs/remotes/origin/main"): f"{sha}\n",
                 ("git", "rev-parse", "refs/remotes/origin/develop"): f"{sha}\n",
             }
@@ -117,11 +153,147 @@ class BranchRefreshTest(unittest.TestCase):
         self.assertEqual(result.new_sha, sha)
         self.assertFalse(any(command[0] == "gh" for command in runner.calls))
 
+    def test_fetch_refreshes_both_tracking_refs_in_single_branch_clone(self):
+        def git(cwd, *args):
+            return subprocess.run(
+                ("git", *args),
+                cwd=cwd,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            origin = root / "origin.git"
+            seed = root / "seed"
+            clone = root / "clone"
+
+            git(root, "init", "--bare", str(origin))
+            git(root, "init", "-b", "main", str(seed))
+            git(seed, "config", "user.name", "Branch Refresh Test")
+            git(seed, "config", "user.email", "branch-refresh@example.invalid")
+            (seed / "main.txt").write_text("main one\n")
+            git(seed, "add", "main.txt")
+            git(seed, "commit", "-m", "main one")
+            git(seed, "remote", "add", "origin", str(origin))
+            git(seed, "push", "-u", "origin", "main")
+
+            git(seed, "switch", "-c", "develop")
+            (seed / "develop.txt").write_text("develop one\n")
+            git(seed, "add", "develop.txt")
+            git(seed, "commit", "-m", "develop one")
+            git(seed, "push", "-u", "origin", "develop")
+
+            git(
+                root,
+                "clone",
+                "--single-branch",
+                "--branch",
+                "main",
+                str(origin),
+                str(clone),
+            )
+            cloned_main_sha = git(clone, "rev-parse", "refs/remotes/origin/main")
+
+            git(seed, "switch", "main")
+            (seed / "main.txt").write_text("main two\n")
+            git(seed, "add", "main.txt")
+            git(seed, "commit", "-m", "main two")
+            git(seed, "push", "origin", "main")
+            main_tip = git(origin, "rev-parse", "refs/heads/main")
+
+            git(seed, "switch", "develop")
+            (seed / "develop.txt").write_text("develop two\n")
+            git(seed, "add", "develop.txt")
+            git(seed, "commit", "-m", "develop two")
+            git(seed, "push", "origin", "develop")
+            develop_tip = git(origin, "rev-parse", "refs/heads/develop")
+
+            self.assertNotEqual(cloned_main_sha, main_tip)
+            develop_ref = "refs/remotes/origin/develop"
+            self.assertNotEqual(
+                subprocess.run(
+                    ("git", "show-ref", "--verify", "--quiet", develop_ref),
+                    cwd=clone,
+                ).returncode,
+                0,
+            )
+
+            pull_request = {
+                "number": 42,
+                "headRefOid": develop_tip,
+                "mergeCommit": {"oid": main_tip},
+                "url": "https://github.com/finos/morphir-scala/pull/42",
+                "mergedAt": "2026-08-07T12:00:00Z",
+            }
+            runner = LocalGitRunner(
+                clone,
+                {
+                    (
+                        "gh",
+                        "repo",
+                        "view",
+                        "--json",
+                        "nameWithOwner",
+                        "--jq",
+                        ".nameWithOwner",
+                    ): "finos/morphir-scala\n",
+                    (
+                        "gh",
+                        "pr",
+                        "list",
+                        "--repo",
+                        "finos/morphir-scala",
+                        "--base",
+                        "main",
+                        "--head",
+                        "develop",
+                        "--state",
+                        "merged",
+                        "--limit",
+                        "100",
+                        "--json",
+                        "number,headRefOid,mergeCommit,url,mergedAt",
+                    ): json.dumps([pull_request]),
+                },
+            )
+
+            try:
+                result = branch_refresh.refresh("develop", True, run=runner)
+            except branch_refresh.RefreshError as error:
+                current_main = git(clone, "rev-parse", "refs/remotes/origin/main")
+                develop_exists = (
+                    subprocess.run(
+                        ("git", "show-ref", "--verify", "--quiet", develop_ref),
+                        cwd=clone,
+                    ).returncode
+                    == 0
+                )
+                self.fail(
+                    "production fetch left remote-tracking refs stale or absent: "
+                    f"origin/main={current_main}, expected={main_tip}; "
+                    f"origin/develop exists={develop_exists}; error={error}"
+                )
+
+            self.assertEqual(result.kind, "validated")
+            self.assertEqual(
+                git(clone, "rev-parse", "refs/remotes/origin/main"), main_tip
+            )
+            self.assertEqual(git(clone, "rev-parse", develop_ref), develop_tip)
+
     def test_pre_proof_command_failures_include_operation_and_pr_context(self):
         sha = "a" * 40
         base_responses = {
             ("git", "check-ref-format", "--branch", "develop"): "develop\n",
-            ("git", "fetch", "--prune", "origin", "main", "develop"): "",
+            (
+                "git",
+                "fetch",
+                "--prune",
+                "origin",
+                "+refs/heads/main:refs/remotes/origin/main",
+                "+refs/heads/develop:refs/remotes/origin/develop",
+            ): "",
             ("git", "rev-parse", "refs/remotes/origin/main"): f"{sha}\n",
             ("git", "rev-parse", "refs/remotes/origin/develop"): f"{sha}\n",
         }
@@ -132,7 +304,14 @@ class BranchRefreshTest(unittest.TestCase):
                 "invalid ref",
             ),
             (
-                ("git", "fetch", "--prune", "origin", "main", "develop"),
+                (
+                    "git",
+                    "fetch",
+                    "--prune",
+                    "origin",
+                    "+refs/heads/main:refs/remotes/origin/main",
+                    "+refs/heads/develop:refs/remotes/origin/develop",
+                ),
                 "fetch origin branches",
                 "network unavailable",
             ),

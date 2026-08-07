@@ -63,7 +63,16 @@ def refresh(target: str, dry_run: bool, run: Runner = run_command) -> RefreshRes
         ) from error
 
     try:
-        run(("git", "fetch", "--prune", REMOTE, SOURCE, target))
+        run(
+            (
+                "git",
+                "fetch",
+                "--prune",
+                REMOTE,
+                f"+refs/heads/{SOURCE}:refs/remotes/{REMOTE}/{SOURCE}",
+                f"+refs/heads/{target}:refs/remotes/{REMOTE}/{target}",
+            )
+        )
     except Exception as error:
         raise RefreshError(
             f"could not fetch origin branches for {proof_context}: {error}"
