@@ -8,13 +8,22 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).parents[4]
 CI_DEPENDENCIES = [
-    "setup",
     "lint",
     "test:squire",
-    "build:morphir-elm",
     "test:jvm",
     "test:js",
     "test:native",
+]
+EVALUATOR_MAKE = "examples.morphir-elm-projects.evaluator-tests.make"
+ALL_ELM_MAKES = [
+    "examples.morphir-elm-projects.evaluator-tests.make",
+    "examples.morphir-elm-projects.defaults-tests.make",
+    "examples.morphir-elm-projects.finance.make",
+    "morphir-elm.sdks.morphir-unit-test.make",
+    "examples.morphir-elm-projects.unit-test-framework.example-project.make",
+    "examples.morphir-elm-projects.unit-test-framework.example-project-tests.make",
+    "examples.morphir-elm-projects.unit-test-framework.example-project-tests-passing.make",
+    "examples.morphir-elm-projects.unit-test-framework.example-project-tests-incomplete.make",
 ]
 
 
@@ -50,6 +59,19 @@ class MiseTaskPolicyTest(unittest.TestCase):
 
         dry_run = mise("run", "--dry-run", "ci:local")
         self.assertIn("test:squire", dry_run.stdout + dry_run.stderr)
+
+    def test_morphir_elm_build_wrappers_delegate_only_to_mill_make_tasks(self):
+        evaluator = (REPO_ROOT / ".config/mise/tasks/build/morphir-elm").read_text()
+        all_projects = (REPO_ROOT / ".config/mise/tasks/build/elm").read_text()
+
+        self.assertEqual(evaluator.count(EVALUATOR_MAKE), 1)
+        for make_task in ALL_ELM_MAKES:
+            self.assertEqual(all_projects.count(make_task), 1)
+        for script in (evaluator, all_projects):
+            self.assertIn("./mill", script)
+            self.assertNotIn("morphir-elm make", script)
+            self.assertNotIn("npm ", script)
+            self.assertNotIn("npx ", script)
 
 
 if __name__ == "__main__":

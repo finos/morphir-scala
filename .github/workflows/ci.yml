@@ -41,17 +41,6 @@ jobs:
         with:
           experimental: true
 
-      - name: Cache elm-tooling downloads
-        uses: actions/cache@v6
-        with:
-          path: ~/.elm/elm-tooling
-          key: ${{ runner.os }}-elm-tooling-${{ hashFiles('**/elm-tooling.json') }}
-          restore-keys: |
-            ${{ runner.os }}-elm-tooling-
-
-      - name: Install tooling
-        run: |
-          ELM_TOOLING_INSTALL=1 mise run setup
       - name: Lint code
         run: mise run lint
       - name: Test Squire and release policy
@@ -106,10 +95,6 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: ".nvmrc"
-
-      - name: Install morphir-elm
-        run: |
-          npm install -g morphir-elm
 
       - name: Setup Scala and Java
         uses: actions/setup-java@v5
@@ -190,15 +175,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: ".nvmrc"
-
-      - name: Install morphir-elm
-        run: |
-          npm install -g morphir-elm
-
       - name: Setup Scala and Java
         uses: actions/setup-java@v5
         with:
@@ -212,20 +188,6 @@ jobs:
         with:
           experimental: true
 
-      - name: Cache elm-tooling downloads
-        uses: actions/cache@v6
-        with:
-          path: ~/.elm/elm-tooling
-          key: ${{ runner.os }}-elm-tooling-${{ hashFiles('**/elm-tooling.json') }}
-          restore-keys: |
-            ${{ runner.os }}-elm-tooling-
-
-      - name: Install tooling
-        run: |
-          ELM_TOOLING_INSTALL=1 mise run setup
-      - name: Make Morphir IR
-        run: |
-          mise run build:morphir-elm
       - name: Run JVM tests
         run: |
           mise run test:jvm
@@ -261,15 +223,6 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: ".nvmrc"
-
-      - name: Install morphir-elm
-        run: |
-          npm install -g morphir-elm
 
       - uses: actions/setup-java@v5
         with:
