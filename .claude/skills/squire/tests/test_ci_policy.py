@@ -25,14 +25,26 @@ SNAPSHOT_COMMANDS = (
 
 
 def indented_block(text: str, header: str, indent: int) -> str:
-    pattern = re.compile(
-        rf"(?ms)^{re.escape(' ' * indent + header)}\n"
-        rf"(?P<body>(?:^(?:{' ' * (indent + 1)}.*|\s*)\n?)*)"
+    lines = text.splitlines(keepends=True)
+    expected_header = " " * indent + header
+    start = next(
+        (
+            index
+            for index, line in enumerate(lines)
+            if line.rstrip("\r\n") == expected_header
+        ),
+        None,
     )
-    match = pattern.search(text)
-    if match is None:
+    if start is None:
         raise AssertionError(f"missing block: {header}")
-    return match.group("body")
+
+    body = []
+    for line in lines[start + 1 :]:
+        if not line.strip() or len(line) - len(line.lstrip(" ")) > indent:
+            body.append(line)
+        else:
+            break
+    return "".join(body)
 
 
 def inline_list(block: str, key: str) -> list[str]:
@@ -75,6 +87,9 @@ def assert_publish_policy(workflow: str) -> None:
         raise AssertionError("publish predicate does not match the release allowlist")
     if len(re.findall(r"(?m)^      - name: Release\s*$", publish)) != 1:
         raise AssertionError("publish job must contain exactly one Release step")
+    release = indented_block(publish, "- name: Release", 6)
+    if release.count("mise run publish:sonatype") != 1:
+        raise AssertionError("Release step must contain the Sonatype publish invocation")
     if workflow.count("mise run publish:sonatype") != 1:
         raise AssertionError("workflow must contain exactly one Sonatype publish invocation")
 
@@ -169,6 +184,17 @@ class CiPolicyTest(unittest.TestCase):
             "          mise run publish:sonatype\n          mise run publish:sonatype",
             1,
         )
+        unguarded_publish_path = self.workflow.replace(
+            "          mise run publish:sonatype",
+            "          echo release command moved",
+            1,
+        ) + (
+            "\n  unguarded-publish:\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps:\n"
+            "      - name: Bypass Release\n"
+            "        run: mise run publish:sonatype\n"
+        )
 
         mutations = (
             ("extra push branch", assert_branch_policy, push_with_extra_branch),
@@ -187,6 +213,11 @@ class CiPolicyTest(unittest.TestCase):
                 "duplicate publish command",
                 assert_publish_policy,
                 duplicate_publish_path,
+            ),
+            (
+                "publish command moved to unguarded job",
+                assert_publish_policy,
+                unguarded_publish_path,
             ),
         )
         for name, validator, mutation in mutations:
