@@ -71,7 +71,7 @@ def refresh(target: str, dry_run: bool, run: Runner = run_command) -> RefreshRes
     if source_sha == target_sha:
         return RefreshResult("already-current", target, target_sha, source_sha)
 
-    proof_context = f"target {target} requires a merged {target}-to-{SOURCE} PR"
+    proof_context = f"target {target} and its required {target}-to-{SOURCE} PR"
     try:
         repository = run(
             (
@@ -84,6 +84,12 @@ def refresh(target: str, dry_run: bool, run: Runner = run_command) -> RefreshRes
                 ".nameWithOwner",
             )
         ).strip()
+    except Exception as error:
+        raise RefreshError(
+            f"could not identify repository while proving {proof_context}: {error}"
+        ) from error
+
+    try:
         pull_requests_json = run(
             (
                 "gh",
@@ -104,7 +110,9 @@ def refresh(target: str, dry_run: bool, run: Runner = run_command) -> RefreshRes
             )
         )
     except Exception as error:
-        raise RefreshError(f"{proof_context}; GitHub command failed: {error}") from error
+        raise RefreshError(
+            f"could not list merged PRs while proving {proof_context}: {error}"
+        ) from error
 
     try:
         pull_requests = json.loads(pull_requests_json)
@@ -127,6 +135,10 @@ def refresh(target: str, dry_run: bool, run: Runner = run_command) -> RefreshRes
             f"{proof_context} whose head SHA exactly matches {target_sha}"
         )
 
+    pull_request_number = matching_pr.get("number")
+    if type(pull_request_number) is not int:
+        raise RefreshError(f"{proof_context} is malformed: PR number must be an integer")
+
     merge_commit = matching_pr.get("mergeCommit")
     merge_sha = merge_commit.get("oid") if isinstance(merge_commit, dict) else None
     if not isinstance(merge_sha, str) or not merge_sha:
@@ -144,11 +156,10 @@ def refresh(target: str, dry_run: bool, run: Runner = run_command) -> RefreshRes
         )
     except Exception as error:
         raise RefreshError(
-            f"{proof_context}; merge commit {merge_sha} is not reachable from "
+            f"could not verify merge ancestry for {proof_context} in "
             f"{REMOTE}/{SOURCE}: {error}"
         ) from error
 
-    pull_request_number = matching_pr.get("number")
     if dry_run:
         return RefreshResult(
             "validated",
@@ -169,7 +180,9 @@ def refresh(target: str, dry_run: bool, run: Runner = run_command) -> RefreshRes
             )
         )
     except Exception as error:
-        raise RefreshError(f"failed to refresh target {target}: {error}") from error
+        raise RefreshError(
+            f"could not push leased update for {proof_context}: {error}"
+        ) from error
 
     return RefreshResult(
         "updated",

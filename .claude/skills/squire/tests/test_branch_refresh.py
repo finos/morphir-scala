@@ -167,7 +167,10 @@ class BranchRefreshTest(unittest.TestCase):
         responses[push] = RuntimeError("lease rejected")
         runner = RecordingRunner(responses)
 
-        with self.assertRaisesRegex(branch_refresh.RefreshError, "lease rejected"):
+        with self.assertRaisesRegex(
+            branch_refresh.RefreshError,
+            "push leased update.*develop.*develop-to-main PR.*lease rejected",
+        ):
             branch_refresh.refresh("develop", False, run=runner)
 
         self.assertEqual(runner.calls.count(push), 1)
@@ -198,6 +201,42 @@ class BranchRefreshTest(unittest.TestCase):
 
         self.assert_never_pushed(runner)
 
+    def test_matching_pull_request_without_number_is_rejected(self):
+        pull_request = self.matching_pull_request()
+        del pull_request["number"]
+        responses = self.successful_proof_responses()
+        pr_list = next(
+            command for command in responses if command[:3] == ("gh", "pr", "list")
+        )
+        responses[pr_list] = json.dumps([pull_request])
+        runner = RecordingRunner(responses)
+
+        with self.assertRaisesRegex(
+            branch_refresh.RefreshError,
+            "develop.*develop-to-main PR.*number.*integer",
+        ):
+            branch_refresh.refresh("develop", True, run=runner)
+
+        self.assert_never_pushed(runner)
+
+    def test_matching_pull_request_with_non_integer_number_is_rejected(self):
+        pull_request = self.matching_pull_request()
+        pull_request["number"] = "42"
+        responses = self.successful_proof_responses()
+        pr_list = next(
+            command for command in responses if command[:3] == ("gh", "pr", "list")
+        )
+        responses[pr_list] = json.dumps([pull_request])
+        runner = RecordingRunner(responses)
+
+        with self.assertRaisesRegex(
+            branch_refresh.RefreshError,
+            "develop.*develop-to-main PR.*number.*integer",
+        ):
+            branch_refresh.refresh("develop", True, run=runner)
+
+        self.assert_never_pushed(runner)
+
     def test_merge_commit_not_reachable_from_origin_main_is_rejected(self):
         responses = self.proof_responses([self.matching_pull_request()])
         ancestor = (
@@ -211,7 +250,8 @@ class BranchRefreshTest(unittest.TestCase):
         runner = RecordingRunner(responses)
 
         with self.assertRaisesRegex(
-            branch_refresh.RefreshError, "develop.*develop-to-main PR.*origin/main"
+            branch_refresh.RefreshError,
+            "verify merge ancestry.*develop.*develop-to-main PR.*origin/main.*not an ancestor",
         ):
             branch_refresh.refresh("develop", True, run=runner)
 
@@ -258,7 +298,24 @@ class BranchRefreshTest(unittest.TestCase):
         runner = RecordingRunner(responses)
 
         with self.assertRaisesRegex(
-            branch_refresh.RefreshError, "develop.*develop-to-main PR.*gh unavailable"
+            branch_refresh.RefreshError,
+            "identify repository.*develop.*develop-to-main PR.*gh unavailable",
+        ):
+            branch_refresh.refresh("develop", True, run=runner)
+
+        self.assert_never_pushed(runner)
+
+    def test_pull_request_list_failure_is_rejected_with_context(self):
+        responses = self.proof_responses([])
+        pr_list = next(
+            command for command in responses if command[:3] == ("gh", "pr", "list")
+        )
+        responses[pr_list] = RuntimeError("PR listing unavailable")
+        runner = RecordingRunner(responses)
+
+        with self.assertRaisesRegex(
+            branch_refresh.RefreshError,
+            "list merged PRs.*develop.*develop-to-main PR.*PR listing unavailable",
         ):
             branch_refresh.refresh("develop", True, run=runner)
 
