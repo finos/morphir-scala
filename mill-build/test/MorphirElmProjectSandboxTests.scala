@@ -338,6 +338,29 @@ def writeProject(project: os.Path, sourceDirectory: String = "src"): MorphirProj
     ).foreach { field =>
       assert(rendered.contains(s"val $field: java.nio.file.Path"), s"Missing generated Path field $field")
     }
+
+    def sha256(path: os.Path): String = {
+      val digest = java.security.MessageDigest.getInstance("SHA-256")
+      digest.digest(os.read.bytes(path)).map(byte => f"${byte & 0xff}%02x").mkString
+    }
+
+    val identities = Seq(
+      fixtures.evaluator,
+      fixtures.defaults,
+      fixtures.unitTestFramework,
+      fixtures.unitTestExample,
+      fixtures.unitTestFailing,
+      fixtures.unitTestPassing,
+      fixtures.unitTestIncomplete
+    ).map(path => sha256(path.path))
+    identities.foreach { identity =>
+      assert(rendered.contains(identity), s"Missing fixture content identity $identity")
+    }
+
+    os.write.over(fixtures.evaluator.path, "changed evaluator content")
+    val changed = ClassicRuntimeFixtureSource.render(fixtures)
+    assert(changed != rendered, "Changing fixture bytes at the same path must change the generated source")
+    assertEquals(changed, ClassicRuntimeFixtureSource.render(fixtures))
   }
 
   val windowsPath = "C:\\fixtures\\morphir-ir.json"

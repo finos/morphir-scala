@@ -42,9 +42,24 @@ object ClassicRuntimeFixtureSource {
       case c    => c.toString
     }
 
+  private def sha256(path: os.Path): String = {
+    val digest = java.security.MessageDigest.getInstance("SHA-256")
+    val input  = Files.newInputStream(path.toNIO)
+    val buffer = new Array[Byte](8192)
+    try {
+      var read = input.read(buffer)
+      while (read >= 0) {
+        if (read > 0) digest.update(buffer, 0, read)
+        read = input.read(buffer)
+      }
+    } finally input.close()
+    digest.digest().map(byte => f"${byte & 0xff}%02x").mkString
+  }
+
   def render(fixtures: ClassicRuntimeFixtureSet): String = {
     def field(name: String, path: PathRef): String =
-      s"  val $name: java.nio.file.Path = java.nio.file.Paths.get(\"${escapeScalaString(path.path.toString)}\")"
+      s"  // $name SHA-256: ${sha256(path.path)}\n" +
+        s"  val $name: java.nio.file.Path = java.nio.file.Paths.get(\"${escapeScalaString(path.path.toString)}\")"
 
     Seq(
       "package org.finos.morphir.runtime.fixtures",
