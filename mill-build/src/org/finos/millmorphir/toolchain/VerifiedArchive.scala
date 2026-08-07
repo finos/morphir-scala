@@ -10,10 +10,12 @@ import java.nio.file.attribute.PosixFilePermission
 import java.security.MessageDigest
 import java.util.EnumSet
 import java.util.zip.GZIPInputStream
+import scala.jdk.CollectionConverters.*
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Using
 
 import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInputStream}
-import org.apache.commons.compress.archivers.zip.{ZipArchiveEntry, ZipArchiveInputStream}
+import org.apache.commons.compress.archivers.zip.{ZipArchiveEntry, ZipFile}
 
 object VerifiedArchive {
   private val BufferSize   = 64 * 1024
@@ -24,9 +26,7 @@ object VerifiedArchive {
 
   def sha256(path: os.Path): String = {
     val digest = MessageDigest.getInstance("SHA-256")
-    val input  = Files.newInputStream(path.toNIO)
-    try copy(input, None, digest)
-    finally input.close()
+    Using.resource(Files.newInputStream(path.toNIO))(input => copy(input, None, digest))
     hex(digest.digest())
   }
 
@@ -76,36 +76,40 @@ object VerifiedArchive {
     val connection = url.openConnection()
     connection.setConnectTimeout(30000)
     connection.setReadTimeout(60000)
-    val input  = new BufferedInputStream(connection.getInputStream)
-    val output = Files.newOutputStream(target.toNIO, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
     val digest = MessageDigest.getInstance("SHA-256")
-    try copy(input, Some(output), digest)
-    finally {
-      output.close()
-      input.close()
-    }
+    Using
+      .Manager { use =>
+        val rawInput = use(connection.getInputStream)
+        val input    = use(new BufferedInputStream(rawInput))
+        val output   = use(
+          Files.newOutputStream(target.toNIO, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+        )
+        copy(input, Some(output), digest)
+      }
+      .get
     hex(digest.digest())
   }
 
-  private def extractTarGz(archive: os.Path, destination: os.Path): Unit = {
-    val input = new TarArchiveInputStream(new GZIPInputStream(Files.newInputStream(archive.toNIO)))
-    val root  = ArrayBuffer.empty[String]
-    try
-      Iterator.continually(input.getNextEntry).takeWhile(_ != null).foreach { entry =>
-        stripped(entry.getName, root).foreach(relative => extractTarEntry(input, entry, destination, relative, root))
+  private def extractTarGz(archive: os.Path, destination: os.Path): Unit =
+    Using
+      .Manager { use =>
+        val rawInput = use(Files.newInputStream(archive.toNIO))
+        val gzip     = use(new GZIPInputStream(rawInput))
+        val input    = use(new TarArchiveInputStream(gzip))
+        val root     = ArrayBuffer.empty[String]
+        Iterator.continually(input.getNextEntry).takeWhile(_ != null).foreach { entry =>
+          stripped(entry.getName, root).foreach(relative => extractTarEntry(input, entry, destination, relative, root))
+        }
       }
-    finally input.close()
-  }
+      .get
 
-  private def extractZip(archive: os.Path, destination: os.Path): Unit = {
-    val input = new ZipArchiveInputStream(Files.newInputStream(archive.toNIO))
-    val root  = ArrayBuffer.empty[String]
-    try
-      Iterator.continually(input.getNextEntry).takeWhile(_ != null).foreach { entry =>
-        stripped(entry.getName, root).foreach(relative => extractZipEntry(input, entry, destination, relative))
+  private def extractZip(archive: os.Path, destination: os.Path): Unit =
+    Using.resource(ZipFile.builder().setPath(archive.toNIO).get()) { zipFile =>
+      val root = ArrayBuffer.empty[String]
+      zipFile.getEntries.asScala.foreach { entry =>
+        stripped(entry.getName, root).foreach(relative => extractZipEntry(zipFile, entry, destination, relative))
       }
-    finally input.close()
-  }
+    }
 
   private def stripped(name: String, root: ArrayBuffer[String]): Option[String] = {
     val normalized = name.replace('\\', '/')
@@ -144,18 +148,20 @@ object VerifiedArchive {
   }
 
   private def extractZipEntry(
-      input: ZipArchiveInputStream,
+      zipFile: ZipFile,
       entry: ZipArchiveEntry,
       destination: os.Path,
       relative: String
   ): Unit = {
     val target = targetOrThrow(destination, relative)
     if (entry.isUnixSymlink) {
-      val linkTarget = new String(readAll(input), java.nio.charset.StandardCharsets.UTF_8)
+      val linkTarget = Using.resource(zipFile.getInputStream(entry)) { input =>
+        new String(readAll(input), java.nio.charset.StandardCharsets.UTF_8)
+      }
       createSymbolicLink(destination, target, linkTarget)
     } else if (entry.isDirectory) createDirectory(destination, target)
     else {
-      writeFile(input, destination, target)
+      Using.resource(zipFile.getInputStream(entry))(input => writeFile(input, destination, target))
       preserveMode(target, entry.getUnixMode)
     }
   }
@@ -185,13 +191,13 @@ object VerifiedArchive {
   private def writeFile(input: InputStream, destination: os.Path, target: os.Path): Unit = {
     ensureNoSymlinkParents(destination, target)
     Files.createDirectories(target.toNIO.getParent)
-    val output = Files.newOutputStream(
-      target.toNIO,
-      StandardOpenOption.CREATE_NEW,
-      StandardOpenOption.WRITE
-    )
-    try copy(input, Some(output), MessageDigest.getInstance("SHA-256"))
-    finally output.close()
+    Using.resource(
+      Files.newOutputStream(
+        target.toNIO,
+        StandardOpenOption.CREATE_NEW,
+        StandardOpenOption.WRITE
+      )
+    )(output => copy(input, Some(output), MessageDigest.getInstance("SHA-256")))
   }
 
   private def createDirectory(destination: os.Path, target: os.Path): Unit = {

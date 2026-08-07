@@ -1,10 +1,13 @@
 //| moduleDeps: ["//mill-build/src/org/finos/millmorphir/toolchain/NodeDistribution.scala", "//mill-build/src/org/finos/millmorphir/toolchain/VerifiedArchive.scala"]
 //| mvnDeps: ["org.apache.commons:commons-compress:1.28.0"]
 
+import java.io.ByteArrayInputStream
+import java.net.{URL, URLConnection, URLStreamHandler}
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveOutputStream, TarConstants}
+import org.apache.commons.compress.archivers.zip.{ZipArchiveEntry, ZipArchiveOutputStream}
 import org.finos.millmorphir.toolchain.*
 
 def assertEquals[A](actual: A, expected: A): Unit =
@@ -43,6 +46,41 @@ def writeTarGz(path: os.Path, entries: Seq[(String, Array[Byte], Option[String])
     output.finish()
   } finally output.close()
 }
+
+def writeZip(path: os.Path, entries: Seq[(String, Array[Byte], Int)]): Unit = {
+  val output = new ZipArchiveOutputStream(path.toNIO)
+  try {
+    entries.foreach { case (name, contents, unixMode) =>
+      val entry = new ZipArchiveEntry(name)
+      entry.setUnixMode(unixMode)
+      output.putArchiveEntry(entry)
+      output.write(contents)
+      output.closeArchiveEntry()
+    }
+    output.finish()
+  } finally output.close()
+}
+
+final class TrackingInputStream(bytes: Array[Byte]) extends ByteArrayInputStream(bytes) {
+  var wasClosed              = false
+  override def close(): Unit = {
+    wasClosed = true
+    super.close()
+  }
+}
+
+def urlFor(input: TrackingInputStream): URL =
+  new URL(
+    null,
+    "test://node-distribution",
+    new URLStreamHandler {
+      override def openConnection(url: URL): URLConnection =
+        new URLConnection(url) {
+          override def connect(): Unit                     = ()
+          override def getInputStream: TrackingInputStream = input
+        }
+    }
+  )
 
 @main def runNodeToolchainTests(): Unit = {
   assertEquals(NodeDistribution.Version, "24.19.0")
@@ -171,5 +209,77 @@ def writeTarGz(path: os.Path, entries: Seq[(String, Array[Byte], Option[String])
     )
     assertEquals(os.read(destination / "bin" / "node"), "node")
     assert(Files.isExecutable((destination / "bin" / "node").toNIO))
+  }
+
+  withTempDir { directory =>
+    val archive = directory / "node.zip"
+    writeZip(
+      archive,
+      Seq(("node-v24.19.0-win-x64/node.exe", "node".getBytes(StandardCharsets.UTF_8), 0x81ed))
+    )
+    val destination = directory / "zip-extracted"
+    VerifiedArchive.downloadAndExtract(
+      archive.toNIO.toUri.toURL,
+      VerifiedArchive.sha256(archive),
+      ArchiveFormat.Zip,
+      destination
+    )
+    assertEquals(os.read(destination / "node.exe"), "node")
+  }
+
+  withTempDir { directory =>
+    val archive = directory / "traversal.zip"
+    writeZip(
+      archive,
+      Seq(("node-v24.19.0-win-x64/../escape", "escape".getBytes(StandardCharsets.UTF_8), 0x81a4))
+    )
+    val destination = directory / "zip-traversal"
+    assert(
+      scala.util
+        .Try(
+          VerifiedArchive.downloadAndExtract(
+            archive.toNIO.toUri.toURL,
+            VerifiedArchive.sha256(archive),
+            ArchiveFormat.Zip,
+            destination
+          )
+        )
+        .isFailure
+    )
+    assert(!os.exists(directory / "escape"))
+  }
+
+  withTempDir { directory =>
+    val archive = directory / "symlink.zip"
+    writeZip(
+      archive,
+      Seq(("node-v24.19.0-win-x64/link", "../../escape".getBytes(StandardCharsets.UTF_8), 0xa1ff))
+    )
+    val destination = directory / "zip-symlink"
+    assert(
+      scala.util
+        .Try(
+          VerifiedArchive.downloadAndExtract(
+            archive.toNIO.toUri.toURL,
+            VerifiedArchive.sha256(archive),
+            ArchiveFormat.Zip,
+            destination
+          )
+        )
+        .isFailure
+    )
+    assert(!os.exists(directory / "escape"))
+  }
+
+  withTempDir { directory =>
+    val destination = directory / "unwritable-download"
+    os.makeDir.all(destination / ".node-distribution.download")
+    val input = new TrackingInputStream("archive".getBytes(StandardCharsets.UTF_8))
+    assert(
+      scala.util
+        .Try(VerifiedArchive.downloadAndExtract(urlFor(input), "0" * 64, ArchiveFormat.Zip, destination))
+        .isFailure
+    )
+    assert(input.wasClosed, "The download stream must close when output acquisition fails")
   }
 }
