@@ -144,6 +144,27 @@ def assert_cache_policy(workflow: str) -> None:
             raise AssertionError(f"{step_name} has an unapproved condition: {condition}")
 
 
+def assert_squire_ci_policy(workflow: str) -> None:
+    step_name = "Test Squire and release policy"
+    if len(re.findall(rf"(?m)^      - name: {re.escape(step_name)}\s*$", workflow)) != 1:
+        raise AssertionError(f"workflow must contain exactly one {step_name} step")
+
+    lint = indented_block(workflow, "lint:", 2)
+    step_names = re.findall(r"(?m)^      - name: (.+?)\s*$", lint)
+    try:
+        lint_index = step_names.index("Lint code")
+    except ValueError as error:
+        raise AssertionError("lint job must contain the Lint code step") from error
+    if step_names[lint_index + 1 : lint_index + 2] != [step_name]:
+        raise AssertionError(f"{step_name} must immediately follow Lint code")
+
+    step = indented_block(lint, f"- name: {step_name}", 6)
+    if scalar(step, "run") != "mise run test:squire":
+        raise AssertionError(f"{step_name} must run mise run test:squire exactly")
+    if workflow.count("mise run test:squire") != 1:
+        raise AssertionError("workflow must invoke test:squire exactly once")
+
+
 def replace_in_job(workflow: str, job_name: str, old: str, new: str) -> str:
     job = indented_block(workflow, job_name, 2)
     if old not in job:
@@ -167,6 +188,31 @@ class CiPolicyTest(unittest.TestCase):
 
     def test_each_js_and_jvm_cache_save_retains_all_release_refs(self):
         assert_cache_policy(self.workflow)
+
+    def test_lint_job_runs_squire_and_release_policy_exactly_once_after_lint(self):
+        assert_squire_ci_policy(self.workflow)
+
+        policy_step = (
+            "      - name: Test Squire and release policy\n"
+            "        run: mise run test:squire\n"
+        )
+        duplicate_step = self.workflow.replace(
+            policy_step,
+            policy_step * 2,
+            1,
+        )
+        wrong_job = self.workflow.replace(policy_step, "", 1) + (
+            "\n  bypass-policy:\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps:\n"
+            f"{policy_step}"
+        )
+        for name, mutation in (
+            ("duplicate step", duplicate_step),
+            ("step in another job", wrong_job),
+        ):
+            with self.subTest(mutation=name):
+                self.assertRaises(AssertionError, assert_squire_ci_policy, mutation)
 
     def test_policy_validators_reject_representative_regressions(self):
         push_with_extra_branch = self.workflow.replace(

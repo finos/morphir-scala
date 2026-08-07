@@ -54,6 +54,8 @@ jobs:
           ELM_TOOLING_INSTALL=1 mise run setup
       - name: Lint code
         run: mise run lint
+      - name: Test Squire and release policy
+        run: mise run test:squire
 
   knowledge-base:
     runs-on: ubuntu-latest
