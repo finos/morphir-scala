@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: MoonBit registry, resolution, and source materialization
-description: "How MoonBit separates registry metadata, dependency resolution, source archive acquisition, checksum verification, and materialization through a Git-backed line-delimited JSON index."
+description: "How MoonBit resolves and materializes source packages from its Git-backed JSONL registry."
 tags: [buildkit, package-management, moonbit, registry, resolution, source-packages]
 status: stable
 stale_after: 2026-10-05
@@ -238,11 +238,13 @@ a path such as `data/linux/nightly/data.jsonl`; each displayed line is one compl
 {"source":{"type":"git","url":"https://github.com/example/rules.git","rev":"main"},"error":"clone failed"}
 ```
 
-The header line has no `source`: it describes the dashboard run. Each subsequent line is a build result whose `source`
-is either an exact Mooncakes package version or a Git URL plus the requested revision string. A successful result can
-carry the `cbt` matrix for `check`, `build`, and `test` across `wasm`, `wasm-gc`, `js`, and `native`; individual cells
-are `Success`, `Failure`, `WarningFailure`, or `Skipped`. Success and failure cells point to separate log files rather
-than embedding their output. A source-level failure can instead carry `error`, as the final line does.
+The line types differ:
+
+- The header has no `source`; it describes the dashboard run.
+- Each later line identifies either an exact Mooncakes package or a Git URL and requested revision.
+- A successful result may report `check`, `build`, and `test` across `wasm`, `wasm-gc`, `js`, and `native`.
+- Each matrix cell is `Success`, `Failure`, `WarningFailure`, or `Skipped`, with logs stored separately.
+- A source-level failure may carry `error`, as the final example does.
 
 This `data.jsonl` is generated CI evidence for the dashboard, not a registry index and not an input to ordinary
 dependency resolution. In particular, the Git example records the selector `main`; it does not prove which immutable

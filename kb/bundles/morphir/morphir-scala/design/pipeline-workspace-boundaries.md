@@ -1,7 +1,7 @@
 ---
 type: Design Note
 title: Multi-frontend pipeline and workspace boundaries
-description: "An evolving design for shared buildkit phase contracts, workspace normalization, frontend isolation, and the issue #930 dependency-source seam."
+description: "A design for shared buildkit phases, workspace normalization, frontend isolation, and issue #930."
 tags: [buildkit, pipeline, workspace, frontends, elm]
 status: draft
 stale_after: 2026-10-05

@@ -2,6 +2,7 @@
 
 ## 2026-08-07
 
+* **Update**: Shortened bundle and design descriptions and converted dense enumerations into scannable lists.
 * **Update**: CI now validates pull requests into `develop` and, after the aggregate gate, publishes traceable
   `develop` snapshots as described in [Continuous Integration](/continuous-integration.md).
 * **Creation**: Added the evolving [multi-frontend pipeline and workspace Design Note](/design/pipeline-workspace-boundaries.md), separating observed facts, current proposals, settled-enough refinement boundaries, and open questions without prematurely creating a Decision Record.

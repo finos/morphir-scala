@@ -25,8 +25,12 @@ the pipeline to one ecosystem and prevents reproducible offline, vendored, mirro
 Use Package URL as the canonical package identity and interchange model. Exact requirements use versioned purls;
 ranged requirements use the standard `vers` qualifier and expose its Package VERS value through a typed API. Keep
 resolved identities, immutable source revisions, content digests, credentials, and physical locations distinct.
-Define a small cross-platform effect for version discovery, dependency metadata, resolution, locking,
-materialization, module enumeration, and source reading.
+Define a small cross-platform effect for:
+
+- version discovery and dependency metadata;
+- resolution and locking;
+- materialization; and
+- module enumeration and source reading.
 
 Provide interchangeable interpreters for the launch techniques chosen during refinement, including a git-file index
 and local directory. Preserve room for registry, git, path, vendored, cache, offline, and test implementations.

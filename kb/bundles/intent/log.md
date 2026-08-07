@@ -2,6 +2,8 @@
 
 ## 2026-08-07
 
+* **Update**: Reworked dense intent summaries into short paragraphs and lists without changing their design status or
+  meaning.
 * **Update**: Linked intents 0007 and 0010 to the mutable pipeline/workspace Design Note and recorded the current Elm-specific `ElmParse`, frontend-internal diagnostic policy, shared phase propagation, workspace-ownership, and issue #930 boundaries without prematurely accepting a Decision Record.
 * **Update**: Strengthened intent 0013 acceptance around a used transitive unpublished symbol and an externally egress-denied resolution, materialization, and compilation run through both launch backends.
 

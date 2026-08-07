@@ -1,27 +1,24 @@
 ---
 okf_version: "0.2"
 title: morphir-scala
-description: "What morphir-scala does today and why, alongside non-authoritative draft Design Notes and research for work still in refinement."
+description: "Morphir-scala capabilities, decisions, design notes, and research."
 ---
 
 # morphir-scala
 
-What morphir-scala does today and why, alongside non-authoritative draft Design Notes and research for work still in refinement.
+This bundle covers morphir-scala capabilities, decisions, design notes, and research.
 
-Capabilities are present-tense: what the system does. [Decision Records](/decisions/index.md) are past-tense and
-immutable: why it is shaped that way, and what would have to change for the answer to be different.
-
-Draft Design Notes and research document evolving proposals and evidence. They guide refinement but are not current
-capabilities or accepted architecture unless an accepted Decision Record says so.
+Capabilities describe current behavior. Immutable [Decision Records](/decisions/index.md) explain accepted choices.
+Draft Design Notes and research are provisional.
 
 ## Design Notes
 
-* [Package URL-centered package management](/design/package-url-package-management.md) - An evolving design for canonical Package URL identities, VERS requirements, reproducible materialization, and packages outside ecosystem registries.
-* [Multi-frontend pipeline and workspace boundaries](/design/pipeline-workspace-boundaries.md) - An evolving design for shared buildkit phase contracts, workspace normalization, frontend isolation, and the issue #930 dependency-source seam.
+* [Package URL-centered package management](/design/package-url-package-management.md) - A design for PURL identities, reproducible materialization, and packages outside ecosystem registries.
+* [Multi-frontend pipeline and workspace boundaries](/design/pipeline-workspace-boundaries.md) - A design for shared buildkit phases, workspace normalization, frontend isolation, and issue #930.
 
 ## Package-management research
 
-* [MoonBit registry, resolution, and source materialization](/design/moonbit-package-management.md) - How MoonBit separates registry metadata, dependency resolution, source archive acquisition, checksum verification, and materialization through a Git-backed line-delimited JSON index.
+* [MoonBit registry, resolution, and source materialization](/design/moonbit-package-management.md) - How MoonBit resolves and materializes source packages from its Git-backed JSONL registry.
 
 ## Orientation
 

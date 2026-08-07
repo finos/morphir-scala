@@ -43,14 +43,16 @@ pipeline, while `ElmParse` cannot be confidently generalised or established as a
 the semantics. The decisions and their rationale therefore need to be made explicitly before more frontend-specific
 infrastructure hardens around them.
 
-The issue's workspace discussion also needs to be reconciled with context already present in the knowledge base. The
-draft Morphir configuration model gives `morphir.toml` responsibility for workspace discovery, member projects, tasks,
-workflows, and an intrinsic `morphir.pipeline.compile` action; see [Configuration Overview](https://github.com/finos/morphir-scala/blob/d2abf88838da641fb7944c8d1569c9068eebdf4c/kb/bundles/morphir/morphir-configuration/overview.md),
-[Workspace and Project](https://github.com/finos/morphir-scala/blob/d2abf88838da641fb7944c8d1569c9068eebdf4c/kb/bundles/morphir/morphir-configuration/workspace-and-project.md), and
-[Tasks and Workflows](https://github.com/finos/morphir-scala/blob/d2abf88838da641fb7944c8d1569c9068eebdf4c/kb/bundles/morphir/morphir-configuration/tasks-and-workflows.md). The pipeline design must decide how that
-model relates to `morphir.json`, `elm.json`, and future ecosystem manifests rather than silently creating a competing
-workspace model. Those configuration documents are draft, so alignment is a design input, not an assertion that their
-current shape is final.
+The issue's workspace discussion must align with the draft Morphir configuration model:
+
+- [Configuration Overview](https://github.com/finos/morphir-scala/blob/d2abf88838da641fb7944c8d1569c9068eebdf4c/kb/bundles/morphir/morphir-configuration/overview.md)
+- [Workspace and Project](https://github.com/finos/morphir-scala/blob/d2abf88838da641fb7944c8d1569c9068eebdf4c/kb/bundles/morphir/morphir-configuration/workspace-and-project.md)
+- [Tasks and Workflows](https://github.com/finos/morphir-scala/blob/d2abf88838da641fb7944c8d1569c9068eebdf4c/kb/bundles/morphir/morphir-configuration/tasks-and-workflows.md)
+
+That model gives `morphir.toml` responsibility for workspace discovery, member projects, tasks, workflows, and the
+intrinsic `morphir.pipeline.compile` action. The pipeline must define how it relates to `morphir.json`, `elm.json`,
+and future ecosystem manifests without creating a competing workspace model. Because the configuration documents
+are drafts, they inform the design but do not fix its final shape.
 
 ## Approach
 
@@ -80,11 +82,14 @@ after the shared boundaries are settled. The design should preserve these constr
   scope.
 
 The evolving [pipeline and workspace Design Note](../morphir/morphir-scala/design/pipeline-workspace-boundaries.md)
-owns the shared phase contracts, workspace normalization, frontend dependency direction, and issue #930 seam. Its
-current refinement direction keeps `ElmParse` Elm-specific, uses `Parse` and `Compile` as buildkit phase contracts over
-typed stages, gives `morphir.toml` workspace-orchestration responsibility while native manifests normalize through
-adapters, leaves frontend diagnostic semantics behind those adapters while buildkit owns cross-phase propagation and
-scheduling, and lets issue #930 consume resolved sources without depending on an Elm cache or compiler sandbox.
+currently sets these directions:
+
+- Keep `ElmParse` Elm-specific.
+- Use `Parse` and `Compile` as typed buildkit phase contracts.
+- Give `morphir.toml` workspace-orchestration responsibility.
+- Normalize native manifests through adapters.
+- Keep diagnostic semantics inside frontend adapters while buildkit handles cross-phase propagation and scheduling.
+- Let issue #930 consume resolved sources without depending on an Elm cache or compiler sandbox.
 
 Refinement must continue to survey shelm's coordinate/location split, the
 [MoonBit registry and source-materialization architecture](../morphir/morphir-scala/design/moonbit-package-management.md),
@@ -92,10 +97,15 @@ Elm's cache layout, and the existing `ElmPackages` resolution ladder. MoonBit is
 inform the design but its code must not be copied or adapted.
 
 Those boundaries remain mutable until a working vertical slice makes their alternatives, consequences, and revisit
-conditions stable enough for an immutable Decision Record. Refinement still owes the exact stage outcome, pipeline
-validation boundary, plugin composition rules, normalized project vocabulary, manifest-conflict diagnostics, and the
-minimal interpreters issue #930 needs. The result should be independently implementable follow-up issues, not a single
-implementation change.
+conditions stable enough for an immutable Decision Record. Refinement still owes:
+
+- the exact stage outcome and pipeline validation boundary;
+- plugin composition rules;
+- normalized project vocabulary;
+- manifest-conflict diagnostics; and
+- the minimal interpreters issue #930 needs.
+
+The result should be independently implementable follow-up issues, not one implementation change.
 
 The mutable [Package URL-centered package-management Design Note](../morphir/morphir-scala/design/package-url-package-management.md)
 holds the packaging research and open questions. It deliberately does not block task-graph, runtime, or Morphir-Elm
