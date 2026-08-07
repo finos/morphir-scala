@@ -1,3 +1,9 @@
+"""CI policy checks use stdlib text parsing intentionally.
+
+Canonical formatting keeps security-sensitive Actions expressions reviewable while
+avoiding YAML 1.1 coercion surprises and dependencies on YAML or expression parsers.
+"""
+
 import re
 import unittest
 from pathlib import Path
@@ -12,11 +18,11 @@ PUBLISH_PREDICATE = (
     "github.ref == 'refs/heads/develop' || "
     "startsWith(github.ref, 'refs/tags/'))"
 )
-CACHE_PREDICATES = (
-    "github.ref == 'refs/heads/main'",
-    "github.ref == 'refs/heads/0.4.x'",
-    "github.ref == 'refs/heads/develop'",
-    "startsWith(github.ref, 'refs/tags/')",
+CACHE_PREDICATE = (
+    "github.ref == 'refs/heads/main' || "
+    "github.ref == 'refs/heads/0.4.x' || "
+    "github.ref == 'refs/heads/develop' || "
+    "startsWith(github.ref, 'refs/tags/')"
 )
 SNAPSHOT_COMMANDS = (
     'echo "MORPHIR_PUBLISH_MODE=snapshot" >> "$GITHUB_ENV"',
@@ -63,6 +69,10 @@ def scalar(block: str, key: str) -> str:
     if match is None:
         raise AssertionError(f"missing scalar: {key}")
     return match.group(1)
+
+
+def normalize_expression(expression: str) -> str:
+    return " ".join(expression.split())
 
 
 def publish_block(workflow: str) -> str:
@@ -130,9 +140,8 @@ def assert_cache_policy(workflow: str) -> None:
         job = indented_block(workflow, job_name, 2)
         step = indented_block(job, f"- name: {step_name}", 6)
         condition = scalar(step, "if")
-        missing = [predicate for predicate in CACHE_PREDICATES if predicate not in condition]
-        if missing:
-            raise AssertionError(f"{step_name} is missing predicates: {missing!r}")
+        if normalize_expression(condition) != normalize_expression(CACHE_PREDICATE):
+            raise AssertionError(f"{step_name} has an unapproved condition: {condition}")
 
 
 def replace_in_job(workflow: str, job_name: str, old: str, new: str) -> str:
@@ -225,10 +234,28 @@ class CiPolicyTest(unittest.TestCase):
                 self.assertRaises(AssertionError, validator, mutation)
 
     def test_cache_validator_rejects_every_required_predicate_removed_from_each_job(self):
+        required_predicates = (
+            "github.ref == 'refs/heads/main'",
+            "github.ref == 'refs/heads/0.4.x'",
+            "github.ref == 'refs/heads/develop'",
+            "startsWith(github.ref, 'refs/tags/')",
+        )
         for job_name in ("test-js:", "test-jvm:"):
-            for predicate in CACHE_PREDICATES:
+            for predicate in required_predicates:
                 with self.subTest(job=job_name, removed=predicate):
                     mutation = replace_in_job(self.workflow, job_name, predicate, "false")
+                    self.assertRaises(AssertionError, assert_cache_policy, mutation)
+
+    def test_cache_validator_rejects_disabled_or_broadened_conditions(self):
+        for job_name in ("test-js:", "test-jvm:"):
+            for label, condition in (
+                ("disabled", f"false && ({CACHE_PREDICATE})"),
+                ("broadened", f"({CACHE_PREDICATE}) || true"),
+            ):
+                with self.subTest(job=job_name, mutation=label):
+                    mutation = replace_in_job(
+                        self.workflow, job_name, CACHE_PREDICATE, condition
+                    )
                     self.assertRaises(AssertionError, assert_cache_policy, mutation)
 
 
