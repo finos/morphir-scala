@@ -150,12 +150,12 @@ def assert_squire_ci_policy(workflow: str) -> None:
         raise AssertionError(f"workflow must contain exactly one {step_name} step")
 
     lint = indented_block(workflow, "lint:", 2)
-    step_names = re.findall(r"(?m)^      - name: (.+?)\s*$", lint)
+    step_headers = re.findall(r"(?m)^      - (.+?)\s*$", lint)
     try:
-        lint_index = step_names.index("Lint code")
+        lint_index = step_headers.index("name: Lint code")
     except ValueError as error:
         raise AssertionError("lint job must contain the Lint code step") from error
-    if step_names[lint_index + 1 : lint_index + 2] != [step_name]:
+    if step_headers[lint_index + 1 : lint_index + 2] != [f"name: {step_name}"]:
         raise AssertionError(f"{step_name} must immediately follow Lint code")
 
     step = indented_block(lint, f"- name: {step_name}", 6)
@@ -201,6 +201,11 @@ class CiPolicyTest(unittest.TestCase):
             policy_step * 2,
             1,
         )
+        unnamed_intermediate_step = self.workflow.replace(
+            policy_step,
+            "      - run: echo intermediate\n" + policy_step,
+            1,
+        )
         wrong_job = self.workflow.replace(policy_step, "", 1) + (
             "\n  bypass-policy:\n"
             "    runs-on: ubuntu-latest\n"
@@ -209,6 +214,7 @@ class CiPolicyTest(unittest.TestCase):
         )
         for name, mutation in (
             ("duplicate step", duplicate_step),
+            ("unnamed intermediate step", unnamed_intermediate_step),
             ("step in another job", wrong_job),
         ):
             with self.subTest(mutation=name):
