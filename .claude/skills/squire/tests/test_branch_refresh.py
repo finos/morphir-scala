@@ -117,6 +117,47 @@ class BranchRefreshTest(unittest.TestCase):
         self.assertEqual(result.new_sha, sha)
         self.assertFalse(any(command[0] == "gh" for command in runner.calls))
 
+    def test_pre_proof_command_failures_include_operation_and_pr_context(self):
+        sha = "a" * 40
+        base_responses = {
+            ("git", "check-ref-format", "--branch", "develop"): "develop\n",
+            ("git", "fetch", "--prune", "origin", "main", "develop"): "",
+            ("git", "rev-parse", "refs/remotes/origin/main"): f"{sha}\n",
+            ("git", "rev-parse", "refs/remotes/origin/develop"): f"{sha}\n",
+        }
+        cases = (
+            (
+                ("git", "check-ref-format", "--branch", "develop"),
+                "validate target branch",
+                "invalid ref",
+            ),
+            (
+                ("git", "fetch", "--prune", "origin", "main", "develop"),
+                "fetch origin branches",
+                "network unavailable",
+            ),
+            (
+                ("git", "rev-parse", "refs/remotes/origin/main"),
+                "resolve remote refs",
+                "missing origin main",
+            ),
+        )
+
+        for command, operation, detail in cases:
+            with self.subTest(operation=operation):
+                responses = dict(base_responses)
+                responses[command] = branch_refresh.RefreshError(detail)
+                runner = RecordingRunner(responses)
+
+                with self.assertRaisesRegex(
+                    branch_refresh.RefreshError,
+                    f"{operation}.*develop.*develop-to-main PR.*{detail}",
+                ):
+                    branch_refresh.refresh("develop", False, run=runner)
+
+                self.assertFalse(any(call[0] == "gh" for call in runner.calls))
+                self.assert_never_pushed(runner)
+
     def test_exact_target_head_match_with_reachable_merge_is_validated(self):
         responses = self.successful_proof_responses()
         ancestor = (

@@ -54,24 +54,36 @@ def refresh(target: str, dry_run: bool, run: Runner = run_command) -> RefreshRes
     if target == SOURCE:
         raise RefreshError(f"target branch must not be {SOURCE}")
 
+    proof_context = f"target {target} and its required {target}-to-{SOURCE} PR"
     try:
         run(("git", "check-ref-format", "--branch", target))
+    except Exception as error:
+        raise RefreshError(
+            f"could not validate target branch for {proof_context}: {error}"
+        ) from error
+
+    try:
         run(("git", "fetch", "--prune", REMOTE, SOURCE, target))
+    except Exception as error:
+        raise RefreshError(
+            f"could not fetch origin branches for {proof_context}: {error}"
+        ) from error
+
+    try:
         source_sha = run(
             ("git", "rev-parse", f"refs/remotes/{REMOTE}/{SOURCE}")
         ).strip()
         target_sha = run(
             ("git", "rev-parse", f"refs/remotes/{REMOTE}/{target}")
         ).strip()
-    except RefreshError:
-        raise
     except Exception as error:
-        raise RefreshError(f"could not inspect target branch {target}: {error}") from error
+        raise RefreshError(
+            f"could not resolve remote refs for {proof_context}: {error}"
+        ) from error
 
     if source_sha == target_sha:
         return RefreshResult("already-current", target, target_sha, source_sha)
 
-    proof_context = f"target {target} and its required {target}-to-{SOURCE} PR"
     try:
         repository = run(
             (
