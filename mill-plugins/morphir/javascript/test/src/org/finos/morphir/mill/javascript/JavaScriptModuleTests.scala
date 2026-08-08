@@ -1,0 +1,305 @@
+package org.finos.morphir.mill.javascript
+
+import java.nio.file.Files
+
+import mill.PathRef
+import org.finos.morphir.mill.javascript.node.{NodeDistribution, NodeProcess}
+import org.finos.morphir.mill.javascript.npm.NpmProcess
+import org.finos.morphir.mill.javascript.node.NodeRuntimeModule
+import org.finos.morphir.mill.toolchain.{AcquisitionSettings, ArchiveFormat}
+import scala.compiletime.testing.typeCheckErrors
+import utest.*
+
+object JavaScriptModuleTests extends TestSuite {
+  private def distribution(osName: String, osArch: String): NodeDistribution =
+    NodeDistribution.resolve(osName, osArch).fold(message => throw new java.lang.AssertionError(message), identity)
+
+  private def withTempDir[A](f: os.Path => A): A = {
+    val directory = os.Path(Files.createTempDirectory("javascript-module-test"))
+    try f(directory)
+    finally os.remove.all(directory)
+  }
+
+  val tests = Tests {
+    test("node distributions retain the exact supported archives and checksums") {
+      assert(NodeDistribution.Version == "24.19.0")
+      val expected = Seq(
+        (
+          "Mac OS X",
+          "aarch64",
+          "node-v24.19.0-darwin-arm64.tar.gz",
+          "8294b7aa9b03997481c06babf1e8b270c859358f27da57a11509afe537ac381d"
+        ),
+        (
+          "darwin",
+          "arm64",
+          "node-v24.19.0-darwin-arm64.tar.gz",
+          "8294b7aa9b03997481c06babf1e8b270c859358f27da57a11509afe537ac381d"
+        ),
+        (
+          "macos",
+          "amd64",
+          "node-v24.19.0-darwin-x64.tar.gz",
+          "d1b5e999db158c62fe8f7267a4476b035d8bd93b1a605bac24a3f0dd166e3316"
+        ),
+        (
+          "linux",
+          "aarch64",
+          "node-v24.19.0-linux-arm64.tar.gz",
+          "d28c8a5bf0a808f0ed434a1dce8c54ae98f0371c0bd86ac58abc613f73e6643f"
+        ),
+        (
+          "Linux",
+          "x86_64",
+          "node-v24.19.0-linux-x64.tar.gz",
+          "f625d97cd707df4ff96254916fbc5ff014f09c09effe5a1e0ca8f6d41a8789d4"
+        ),
+        (
+          "windows",
+          "arm64",
+          "node-v24.19.0-win-arm64.zip",
+          "8502f4a50b458d4cc38ed8f2001556c2cd239d464920f74017926ccb1e1c157f"
+        ),
+        (
+          "Windows 11",
+          "amd64",
+          "node-v24.19.0-win-x64.zip",
+          "57f71ab3652e797d84acddc79c81cc9ff1c6ddb2a1974cdb83f00fee9bff4c73"
+        )
+      )
+
+      expected.foreach { case (osName, osArch, archiveName, sha256) =>
+        val resolved = distribution(osName, osArch)
+        assert(resolved.version == NodeDistribution.Version)
+        assert(resolved.archiveName == archiveName)
+        assert(resolved.sha256 == sha256)
+        assert(resolved.format == (if (archiveName.endsWith(".zip")) ArchiveFormat.Zip else ArchiveFormat.TarGz))
+      }
+      assert(NodeDistribution.resolve("freebsd", "x86_64").isLeft)
+      assert(NodeDistribution.resolve("linux", "riscv64").isLeft)
+      assert(NodeDistribution.resolve("24.19.1", "linux", "x86_64").isLeft)
+    }
+
+    test("node distribution exposes provisioned executable paths") {
+      val unix = distribution("linux", "amd64")
+      assert(unix.nodeRelativePath == os.rel / "bin" / "node")
+      assert(unix.npmCliRelativePath == os.rel / "lib" / "node_modules" / "npm" / "bin" / "npm-cli.js")
+
+      val windows = distribution("windows", "x86_64")
+      assert(windows.nodeRelativePath == os.rel / "node.exe")
+      assert(windows.npmCliRelativePath == os.rel / "node_modules" / "npm" / "bin" / "npm-cli.js")
+    }
+
+    test("package binary runtime validation and round trip") {
+      val location                 = PackageBinary.CallSite("build.mill", 17, "consumer.tools")
+      given PackageBinary.CallSite = location
+      val accepted                 = Seq("morphir-elm", "eslint.js", "tool_2", "A9")
+      accepted.foreach { input =>
+        val parsed = PackageBinary.parse(input)
+        assert(parsed.map(_.value) == Right(input))
+      }
+
+      val rejected = Seq("", ".", "..", "a/b", "a\\b", "white space", "@scope/tool", "CON", "nul.txt", "Lpt9")
+      rejected.foreach { input =>
+        val error = PackageBinary.parse(input).swap.toOption.get
+        assert(error.input == input)
+        assert(error.location == location)
+        assert(error.getMessage.contains(location.render))
+      }
+    }
+
+    test("package binary literal validates at compile time and rejects interpolation") {
+      val literal = packageBinary"morphir-elm"
+      assert(literal.value == "morphir-elm")
+      val invalid      = typeCheckErrors("""import org.finos.morphir.mill.javascript.*; packageBinary"../tool"""")
+      val interpolated = typeCheckErrors(
+        """import org.finos.morphir.mill.javascript.*; val name = "tool"; packageBinary"$name""""
+      )
+      assert(invalid.nonEmpty)
+      assert(invalid.head.message.contains("package binary"))
+      assert(invalid.head.column > 0)
+      assert(interpolated.nonEmpty)
+      assert(interpolated.head.message.contains("does not accept interpolation"))
+    }
+
+    test("runtime and npm commands never perform ambient executable lookup") {
+      withTempDir { root =>
+        val node    = PathRef(root / "provisioned" / "bin" / "node")
+        val npm     = PathRef(root / "provisioned" / "lib" / "npm-cli.js")
+        val runtime = NodeProcess.runtime(node, Seq("--version"))
+        val manager = NodeProcess.npm(node, npm, Seq("--version"))
+        assert(runtime == JavaScriptCommand(node, Seq("--version")))
+        assert(manager == JavaScriptCommand(node, Seq(npm.path.toString, "--version")))
+        assert(!runtime.arguments.exists(Set("node", "npm", "npx", "bun", "mise")))
+        assert(!manager.arguments.exists(Set("node", "npm", "npx", "bun", "mise")))
+      }
+    }
+
+    test("npm install requires a committed lock before process execution") {
+      withTempDir { root =>
+        val manifest = root / "package.json"
+        os.write(manifest, "{}")
+        val error = scala.util.Try {
+          NpmProcess.prepareInstall(root / "install", Seq(PathRef(manifest)), Seq.empty)
+        }.failed.get.asInstanceOf[IllegalArgumentException]
+        assert(error.getMessage.contains("committed npm lock"))
+        assert(!os.exists(root / "install"))
+      }
+    }
+
+    test("npm install copies tracked project files and isolates state") {
+      withTempDir { root =>
+        val project = root / "project"
+        os.makeDir.all(project)
+        val manifest = project / "package.json"
+        val lock     = project / "package-lock.json"
+        os.write(manifest, "{}")
+        os.write(lock, """{"lockfileVersion":3}""")
+        val install = NpmProcess.prepareInstall(root / "task" / "install", Seq(PathRef(manifest)), Seq(PathRef(lock)))
+        assert(install.projectFiles.map(_.path.last) == Seq("package.json"))
+        assert(install.lockFiles.map(_.path.last) == Seq("package-lock.json"))
+        assert(os.exists(install.root.path / "package.json"))
+        assert(os.exists(install.root.path / "package-lock.json"))
+
+        val environment = NpmProcess.environment(root / "task", Map("PATH" -> "/ambient", "HOME" -> "/ambient-home"))
+        assert(!environment.contains("PATH"))
+        assert(environment("HOME").startsWith((root / "task").toString))
+        assert(environment("npm_config_cache").startsWith((root / "task").toString))
+      }
+    }
+
+    test("npm commands are locked, local-only, and invalidation inputs remain explicit") {
+      withTempDir { root =>
+        val node    = PathRef(root / "node")
+        val npm     = PathRef(root / "npm-cli.js")
+        val install = JavaScriptInstall(
+          PathRef(root / "install"),
+          Seq(PathRef(root / "package.json")),
+          Seq(PathRef(root / "package-lock.json"))
+        )
+        val installedPackage = install.root.path / "node_modules" / "fixture-tool"
+        os.makeDir.all(installedPackage)
+        os.write(installedPackage / "package.json", """{"name":"fixture-tool","bin":{"fixture-tool":"cli.js"}}""")
+        os.write(installedPackage / "cli.js", "console.log('fixture')")
+        val ci = NpmProcess.ci(node, npm, root / "npm-cache")
+        assert(
+          ci.arguments == Seq(
+            npm.path.toString,
+            "ci",
+            "--ignore-scripts",
+            "--no-audit",
+            "--no-fund",
+            "--cache",
+            (root / "npm-cache").toString
+          )
+        )
+        val binary = NpmProcess.binary(node, install, packageBinary"fixture-tool", Seq("answer"))
+        assert(binary.executable == node)
+        assert(binary.arguments.head.endsWith("node_modules/fixture-tool/cli.js"))
+        assert(binary.arguments.endsWith(Seq("answer")))
+        assert(!binary.arguments.exists(Set("npm", "npx", "--package", "--yes")))
+      }
+    }
+
+    test("provisioned node performs locked npm ci and executes only the installed local binary") {
+      withTempDir { root =>
+        val fixtureResource = Option(getClass.getClassLoader.getResource("locked-npm-project/package.json"))
+          .getOrElse(throw new java.lang.AssertionError("locked npm fixture is not on the test classpath"))
+        val fixture      = os.Path(java.nio.file.Paths.get(fixtureResource.toURI)) / os.up
+        val distribution = NodeDistribution
+          .resolve(System.getProperty("os.name"), System.getProperty("os.arch"))
+          .fold(message => throw new java.lang.AssertionError(message), identity)
+        val runtime  = NodeRuntimeModule.provision(distribution, AcquisitionSettings(), root / "runtime")
+        val node     = PathRef(runtime.path / distribution.nodeRelativePath)
+        val npm      = PathRef(runtime.path / distribution.npmCliRelativePath)
+        val prepared = NpmProcess.prepareInstall(
+          root / "task" / "install",
+          Seq(PathRef(fixture / "package.json"), PathRef(fixture / "fixture-tool")),
+          Seq(PathRef(fixture / "package-lock.json"))
+        )
+        val environment = NpmProcess.environment(
+          root / "task" / "state",
+          Map("PATH" -> "/definitely-not-usable", "HOME" -> "/ambient-home")
+        )
+        NpmProcess.initialize(environment)
+        val ci = NpmProcess.ci(node, npm, root / "task" / "npm-cache")
+        os.proc(ci.executable.path.toString +: ci.arguments)
+          .call(cwd = prepared.root.path, env = environment, propagateEnv = false)
+        val binary = NpmProcess.binary(node, prepared, packageBinary"fixture-tool", Seq("answer"))
+        val result = os.proc(binary.executable.path.toString +: binary.arguments)
+          .call(cwd = root, env = environment, propagateEnv = false)
+        assert(result.out.text().trim == "fixture:answer")
+        assert(!environment.contains("PATH"))
+      }
+    }
+
+    test("local binary resolution supports npm bin shapes and rejects path escape") {
+      withTempDir { root =>
+        val install     = JavaScriptInstall(PathRef(root / "install"), Seq.empty, Seq.empty)
+        val nodeModules = install.root.path / "node_modules"
+        val objectBin   = nodeModules / "object-tool"
+        val scopedBin   = nodeModules / "@scope" / "scoped-tool"
+        os.makeDir.all(objectBin)
+        os.makeDir.all(scopedBin)
+        os.write(objectBin / "package.json", """{"name":"object-tool","bin":{"object-tool":"cli.js"}}""")
+        os.write(objectBin / "cli.js", "console.log('object')")
+        os.write(scopedBin / "package.json", """{"name":"@scope/scoped-tool","bin":"cli.js"}""")
+        os.write(scopedBin / "cli.js", "console.log('scoped')")
+        val node          = PathRef(root / "node.exe")
+        val objectCommand = NpmProcess.binary(node, install, packageBinary"object-tool", Seq.empty)
+        val scopedCommand = NpmProcess.binary(node, install, packageBinary"scoped-tool", Seq.empty)
+        assert(objectCommand.executable == node)
+        assert(objectCommand.arguments.head.endsWith("object-tool/cli.js"))
+        assert(scopedCommand.arguments.head.endsWith("@scope/scoped-tool/cli.js"))
+        assert(!objectCommand.arguments.head.endsWith(".cmd"))
+
+        val escape = nodeModules / "escape-tool"
+        os.makeDir.all(escape)
+        os.write(escape / "package.json", """{"name":"escape-tool","bin":{"escape-tool":"../outside.js"}}""")
+        os.write(nodeModules / "outside.js", "console.log('outside')")
+        val error = scala.util.Try {
+          NpmProcess.binary(node, install, packageBinary"escape-tool", Seq.empty)
+        }.failed.get
+        assert(error.getMessage.contains("unsafe binary path"))
+      }
+    }
+
+    test("local binary resolution rejects installed package symlink escape") {
+      withTempDir { root =>
+        val install     = JavaScriptInstall(PathRef(root / "install"), Seq.empty, Seq.empty)
+        val nodeModules = install.root.path / "node_modules"
+        val outside     = root / "outside-package"
+        os.makeDir.all(nodeModules)
+        os.makeDir.all(outside)
+        os.write(outside / "package.json", """{"name":"linked-tool","bin":{"linked-tool":"cli.js"}}""")
+        os.write(outside / "cli.js", "console.log('outside')")
+        val symlink = scala.util.Try(Files.createSymbolicLink((nodeModules / "linked-tool").toNIO, outside.toNIO))
+        symlink.foreach { _ =>
+          val error = scala.util.Try {
+            NpmProcess.binary(PathRef(root / "node"), install, packageBinary"linked-tool", Seq.empty)
+          }.failed.get
+          assert(error.getMessage.contains("escapes its install root"))
+        }
+      }
+    }
+
+    test("manifest and lock PathRefs change when tracked content changes") {
+      withTempDir { root =>
+        val manifest = root / "package.json"
+        val lock     = root / "package-lock.json"
+        os.write(manifest, """{"version":"1.0.0"}""")
+        os.write(lock, """{"lockfileVersion":3,"version":"1.0.0"}""")
+        val manifestBefore = PathRef(manifest).sig
+        val lockBefore     = PathRef(lock).sig
+        os.write.over(manifest, """{"version":"2.0.0"}""")
+        os.write.over(lock, """{"lockfileVersion":3,"version":"2.0.0"}""")
+        assert(PathRef(manifest).sig != manifestBefore)
+        assert(PathRef(lock).sig != lockBefore)
+      }
+    }
+
+    test("neutral consumer needs only runtime and package-manager contracts") {
+      assert(NeutralJavaScriptConsumer.usesOnlyContracts != null)
+    }
+  }
+}

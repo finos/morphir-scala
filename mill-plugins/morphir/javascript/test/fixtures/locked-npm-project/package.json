@@ -1,0 +1,8 @@
+{
+  "name": "locked-npm-project",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "fixture-tool": "file:fixture-tool"
+  }
+}

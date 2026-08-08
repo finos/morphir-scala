@@ -1,6 +1,6 @@
 //| moduleDeps: ["//mill-plugins/morphir/toolchain/src/org/finos/morphir/mill/toolchain/AcquisitionSettings.scala"]
 
-package org.finos.millmorphir.toolchain
+package org.finos.morphir.mill.javascript.node
 
 import org.finos.morphir.mill.toolchain.ArchiveFormat
 import upickle.default.{ReadWriter, macroRW, readwriter}
@@ -17,8 +17,8 @@ final case class NodeDistribution(
 object NodeDistribution {
   private given ReadWriter[ArchiveFormat] =
     readwriter[String].bimap(_.toString, ArchiveFormat.valueOf)
-  private given ReadWriter[os.RelPath]   = readwriter[String].bimap(_.toString, os.RelPath(_))
-  given ReadWriter[NodeDistribution]     = macroRW
+  private given ReadWriter[os.RelPath] = readwriter[String].bimap(_.toString, os.RelPath(_))
+  given ReadWriter[NodeDistribution]   = macroRW
 
   val Version = "24.19.0"
 
@@ -32,26 +32,31 @@ object NodeDistribution {
   )
 
   def resolve(osName: String, osArch: String): Either[String, NodeDistribution] =
-    for {
-      operatingSystem <- normalizeOperatingSystem(osName)
-      architecture    <- normalizeArchitecture(osArch)
-      checksum        <- Checksums.get((operatingSystem, architecture)).toRight(
-        s"Node $Version is not available for operating system '$osName' and architecture '$osArch'"
-      )
-    } yield {
-      val isWindows = operatingSystem == "win"
-      val extension = if (isWindows) "zip" else "tar.gz"
-      NodeDistribution(
-        version = Version,
-        archiveName = s"node-v$Version-$operatingSystem-$architecture.$extension",
-        sha256 = checksum,
-        format = if (isWindows) ArchiveFormat.Zip else ArchiveFormat.TarGz,
-        nodeRelativePath = if (isWindows) os.rel / "node.exe" else os.rel / "bin" / "node",
-        npmCliRelativePath =
-          if (isWindows) os.rel / "node_modules" / "npm" / "bin" / "npm-cli.js"
-          else os.rel / "lib" / "node_modules" / "npm" / "bin" / "npm-cli.js"
-      )
-    }
+    resolve(Version, osName, osArch)
+
+  def resolve(version: String, osName: String, osArch: String): Either[String, NodeDistribution] =
+    if (version != Version) Left(s"Unsupported Node version '$version'; the verified version is $Version")
+    else
+      for {
+        operatingSystem <- normalizeOperatingSystem(osName)
+        architecture    <- normalizeArchitecture(osArch)
+        checksum        <- Checksums.get((operatingSystem, architecture)).toRight(
+          s"Node $Version is not available for operating system '$osName' and architecture '$osArch'"
+        )
+      } yield {
+        val isWindows = operatingSystem == "win"
+        val extension = if (isWindows) "zip" else "tar.gz"
+        NodeDistribution(
+          version = Version,
+          archiveName = s"node-v$Version-$operatingSystem-$architecture.$extension",
+          sha256 = checksum,
+          format = if (isWindows) ArchiveFormat.Zip else ArchiveFormat.TarGz,
+          nodeRelativePath = if (isWindows) os.rel / "node.exe" else os.rel / "bin" / "node",
+          npmCliRelativePath =
+            if (isWindows) os.rel / "node_modules" / "npm" / "bin" / "npm-cli.js"
+            else os.rel / "lib" / "node_modules" / "npm" / "bin" / "npm-cli.js"
+        )
+      }
 
   private def normalizeOperatingSystem(value: String): Either[String, String] =
     value.toLowerCase(java.util.Locale.ROOT) match {
