@@ -22,11 +22,11 @@ sources:
 
 # Mill Morphir plugin architecture
 
-Morphir build integration should be a family of publishable Mill plugins under `org.finos.morphir.mill`. The plugins
+Morphir build integration is a family of publishable Mill plugins under `org.finos.morphir.mill`. The plugins
 acquire their own tools, expose typed compilation tasks, and compose generated code with the host language instead of
 replacing its compiler lifecycle.
 
-This is an evolving design. The current slice restores Elm-to-Morphir IR generation and runtime tests; the same
+This is an evolving design. The current slice restores Elm-to-Morphir IR generation and runtime tests. The same
 boundaries leave room for other frontends and code-generation backends. The broader transformation model remains in
 the [pipeline and workspace Design Note](/design/pipeline-workspace-boundaries.md). Package identity and source
 materialization remain in the
@@ -45,8 +45,12 @@ those capabilities; it does not implement the buildkit pipeline itself.
 - Preserve Mill's task graph, caching, generated-source, BSP, and testing behavior.
 - Support Morphir packages whose sources are not published to an ecosystem registry.
 
-The first slice does not remove every Mise task, implement the future Morphir package manager, add an upstream
-Package URL type, or implement a separate generated Scala module.
+The first slice does not:
+
+- remove every Mise task;
+- implement the future Morphir package manager;
+- file an upstream Package URL proposal; or
+- require generated Scala to live in a separate module.
 
 ## Plugin family
 
@@ -73,6 +77,9 @@ consumers or creating one artifact per tool.
 The metabuild and published modules compile the same source tree. Source sharing solves the first-release bootstrap
 without preserving a private implementation under `mill-build`.
 
+`mill-plugins/morphir/integration` is test-only. It publishes the five artifacts to a task-local repository and runs
+a fresh consumer build against them.
+
 ## Compilation task ownership
 
 Host-language modules own `compile`. A Morphir capability that may mix into `ScalaModule` must not override or
@@ -88,9 +95,9 @@ The phases instead have distinct typed tasks:
 `MorphirElmModule.make` remains as a compatibility alias. An Elm language module may own its own `compile` task;
 the Morphir Elm adapter does not.
 
-The initial Scala integration generates sources into the same module. Generation results retain enough identity and
-location information for a future adapter to expose them as a distinct downstream module without changing the
-frontend contract.
+The current Scala integration generates sources into the same module. Tests prove that handwritten code compiles
+against them and that same-path IR changes invalidate generation and compilation. Generation results retain enough
+identity and location information for a future adapter to expose them as a distinct downstream module.
 
 ## Acquisition and caching
 
@@ -155,7 +162,7 @@ The acceptance path uses two Mill evaluations:
 
 1. Publish the current plugin family as `SNAPSHOT` artifacts to a task-local repository.
 2. Start a fresh consumer evaluation that selects that repository and plugin version.
-3. Generate project IR and run the dependent runtime tests through the resolved artifacts.
+3. Generate project IR and compile dependent Scala through the resolved artifacts.
 
 Plugin version and repository selection are tracked metabuild inputs. The fast path uses direct module tests,
 `UnitTester`, and selected integration fixtures without publication. It shortens iteration but never replaces the
@@ -206,7 +213,7 @@ green job cannot hide suites that Mill no longer discovers.
 repository, cache, and metabuild invalidation problems; it does not duplicate this design or implement the workflow
 in Python.
 
-Implementation feedback may refine this note. Once a vertical slice validates compile ownership and generated-source
-composition, that choice can become an immutable Decision Record. A separate generated module should be added when
-a real consumer needs independently addressable generated code, different compiler settings, or reuse by multiple
-downstream modules—not pre-emptively.
+The current vertical slice validates compile ownership and generated-source composition. A separate generated module
+should be added only when a real consumer needs independently addressable code, different compiler settings, or reuse
+by multiple downstream modules. This note remains the evolving record until that boundary is stable enough for an
+immutable Decision Record.

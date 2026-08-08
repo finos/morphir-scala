@@ -78,9 +78,9 @@ morphir-scala/
 │   ├── toolchain/           # Verified acquisition and machine-cache support
 │   ├── javascript/          # JavaScript runtime/package-manager contracts and implementations
 │   ├── elm-tooling/         # Elm tool acquisition and compilation
-│   ├── core/                # Frontend-neutral Morphir tasks and typed artifacts
+│   ├── core/                # Frontend-neutral tasks, typed artifacts and Scala source composition
 │   ├── elm/                 # Morphir Elm project-to-IR compilation
-│   └── integration/         # Published-SNAPSHOT consumer acceptance tests
+│   └── integration/         # Test-only published-SNAPSHOT consumer acceptance
 ├── examples/
 │   └── morphir-elm-projects/ # Elm projects used to generate runtime fixtures
 ├── morphir-elm/             # Morphir Elm SDK projects built through the plugins
@@ -117,7 +117,7 @@ the metabuild or in `build.mill` that the YAML then names in its `extends:`.
 Use mise for task management:
 
 ```bash
-mise run setup          # Install repository tooling; Mill acquires Node, Elm and Morphir Elm
+mise run setup          # Install developer dependencies; it does not install Morphir build tools
 mise run lint           # Check code formatting
 mise run fmt            # Format code
 mise run test:jvm       # Run JVM tests (includes langkit.itest)
@@ -138,8 +138,9 @@ Or use Mill directly:
 ```bash
 ./mill morphir.jvm.compile
 ./mill morphir.tests.jvm.test
-./mill 'mill-plugins.morphir.__.test'
+./mill -i -k 'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'
 ./mill mill-plugins.morphir.integration.test
+./mill -i -k 'examples.morphir-elm-projects.__.morphirIR' + 'morphir-elm.sdks.__.morphirIR'
 ./mill morphir.runtime.classic.jvm.test.generatedRuntimeFixtures
 ./mill morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery
 ./mill morphir.runtime.classic.jvm.test
@@ -158,9 +159,13 @@ The project uses a custom cross-platform source layout. For a module at `morphir
 - `jvm/src-3/` - JVM + Scala 3.x specific sources
 - `js/src-3/` - ScalaJS + Scala 3.x specific sources
 - `native/src-3/` - Scala Native + Scala 3.x specific sources
+- `js-jvm/src/`, `js-jvm/src-3/` - JVM + ScalaJS sources
+- `jvm-native/src/`, `jvm-native/src-3/` - JVM + Scala Native sources
+- `js-native/src/`, `js-native/src-3/` - ScalaJS + Scala Native sources
 
 Note the nesting: the platform is a directory *containing* `src`, not a suffix on it (`jvm/src-3`, not `src-3-jvm`).
-See `millbuild.crossplatform.CrossPlatformScalaModule` for how the paths are derived.
+Two-platform directory names are sorted and shared by both targets. See
+`millbuild.crossplatform.CrossPlatformScalaModule` for how the paths are derived.
 
 ## Code Style
 

@@ -2,6 +2,9 @@
 
 ## 2026-08-08
 
+* **Update**: Implemented the five publishable Mill Morphir plugins and a fresh-consumer `SNAPSHOT` acceptance test.
+* **Update**: Restored all eight Elm-to-Morphir IR builds and the generated classic-runtime test path.
+* **Update**: Proved generated Scala composition without replacing the host module's `compile` task.
 * **Update**: Made Morphir module identity an opaque, parsed value with compile-time literal support.
 * **Update**: Unified JavaScript tooling in one plugin and made validation errors source-located exceptions.
 
