@@ -259,6 +259,15 @@ object ElmToolingTests extends TestSuite {
       }
     }
 
+    test("Elm input entry counters do not wrap at Int.MaxValue") {
+      val path  = java.nio.file.Paths.get("overflow-entry")
+      val error = scala.util.Try {
+        ElmProjectSnapshot.incrementEntryCount(Int.MaxValue.toLong, Int.MaxValue, path)
+      }.failed.get
+      assert(error.getMessage.contains((Int.MaxValue.toLong + 1L).toString))
+      assert(error.getMessage.contains("entry count limit"))
+    }
+
     test("Elm compile invalidates on a full fingerprint despite a legacy PathRef collision") {
       withTempDir { root =>
         val first    = "collision-00156726"

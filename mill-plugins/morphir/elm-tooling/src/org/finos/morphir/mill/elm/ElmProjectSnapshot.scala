@@ -46,15 +46,12 @@ object ElmProjectSnapshot {
   }
 
   private final class Budget(val limits: ElmInputLimits) {
-    private var entries      = 0
+    private var entries      = 0L
     private var bytes        = 0L
     private val destinations = mutable.Set.empty[String]
 
-    def addEntry(path: JPath): Unit = {
-      entries += 1
-      if (entries > limits.maxEntries)
-        throw invalid(s"Elm input entry count limit ${limits.maxEntries} exceeded at $path")
-    }
+    def addEntry(path: JPath): Unit =
+      entries = incrementEntryCount(entries, limits.maxEntries, path)
 
     def checkFile(path: JPath, size: Long): Unit = {
       if (size > limits.maxFileBytes.toBytes)
@@ -74,6 +71,15 @@ object ElmProjectSnapshot {
       if (!destinations.add(normalized))
         throw invalid(s"Elm inputs have a duplicate staged destination: $path")
     }
+  }
+
+  private[elm] def incrementEntryCount(current: Long, limit: Int, path: JPath): Long = {
+    if (current == Long.MaxValue)
+      throw invalid(s"Elm input entry count limit $limit exceeded at $path after $current entries")
+    val updated = current + 1L
+    if (updated > limit.toLong)
+      throw invalid(s"Elm input entry count limit $limit exceeded at $path after $updated entries")
+    updated
   }
 
   def stage(
