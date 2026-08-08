@@ -1,6 +1,6 @@
 //| scalaVersion: 3.8.4
 //| mainClass: SquireApp
-//| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireEnv.scala, SquireDoctor.scala]
+//| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireEnv.scala, SquireDoctor.scala, SquireCellar.scala, SquireRepo.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-case-app:1.0.0-RC6
 
@@ -41,7 +41,7 @@ case class ReferenceRepoAddOpts(
     @HelpMessage("Subtrees to materialise") sparse: List[String] = Nil
 )
 
-case class ReferenceRepoListOpts()
+case class ReferenceRepoListOpts(@HelpMessage("Output the raw manifest as JSON") json: Boolean = false)
 case class ReferenceRepoStatusOpts(@HelpMessage("Repository name") name: Option[String] = None)
 case class ReferenceRepoRemoveOpts(
     @HelpMessage("Repository name") name: String,
@@ -119,6 +119,85 @@ object SquireCli:
   def printDoctor(report: SquireDoctor.DoctorReport): Unit < Sync =
     Sync.defer(report.findings.foreach(finding => java.lang.System.out.println(s"${finding.code} - ${finding.message}")))
 
+  def runCellar(
+      action: CellarAction,
+      root: Path,
+      runner: ProcessRunner,
+      platform: SquirePlatform,
+      output: String => Unit,
+      errorOutput: String => Unit
+  ): Int < (Async & Abort[SquireError]) =
+    SquireCellar.run(action, root, runner, platform).map { result =>
+      if result.stdout.nonEmpty then output(result.stdout)
+      if result.stderr.nonEmpty then errorOutput(result.stderr)
+      result.exitCode
+    }
+
+  def runReferenceAdd(
+      options: ReferenceRepoAddOpts,
+      root: Path,
+      runner: ProcessRunner,
+      platform: SquirePlatform,
+      output: String => Unit
+  ): Int < (Async & Sync & Abort[SquireError]) =
+    SquireRepo
+      .add(
+        ReferenceAdd(
+          options.urlOrPath,
+          options.name,
+          options.ref,
+          options.strategy,
+          options.depth,
+          options.full,
+          options.sparse
+        ),
+        root,
+        runner,
+        platform
+      )
+      .map { entry =>
+        output(s"Added '${entry.name}' to .refs/ manifest.\n")
+        output(SquireJson.encode(entry) + "\n")
+        0
+      }
+
+  def runReferenceList(
+      options: ReferenceRepoListOpts,
+      root: Path,
+      runner: ProcessRunner,
+      output: String => Unit
+  ): Int < (Async & Sync & Abort[SquireError]) =
+    SquireRepo.list(root, options.json, runner).map { rendered =>
+      output(rendered)
+      0
+    }
+
+  def runReferenceStatus(
+      options: ReferenceRepoStatusOpts,
+      root: Path,
+      runner: ProcessRunner,
+      output: String => Unit
+  ): Int < (Async & Sync & Abort[SquireError]) =
+    SquireRepo.status(root, options.name, runner).map { report =>
+      output(report.output)
+      report.exitCode
+    }
+
+  def runReferenceRemove(
+      options: ReferenceRepoRemoveOpts,
+      root: Path,
+      runner: ProcessRunner,
+      platform: SquirePlatform,
+      output: String => Unit
+  ): Int < (Async & Sync & Abort[SquireError]) =
+    SquireRepo.remove(options.name, options.keepFiles, root, runner, platform).map { _ =>
+      output(s"Removed '${options.name}' from manifest.\n")
+      0
+    }
+
+  def exitUnlessZero(exitCode: Int): Unit < Sync =
+    if exitCode == 0 then () else Sync.defer(java.lang.System.exit(exitCode))
+
 object SquireApp extends CommandsEntryPoint:
   override def progName: String = "squire"
 
@@ -168,39 +247,108 @@ object SquireApp extends CommandsEntryPoint:
     }
 
   object CellarGetCmd extends KyoCommand[CellarGetOpts]:
-    override def name = "cellar get"
+    override def name  = "cellar get"
     override def names = List(List("cellar", "get"))
-    run { (_: CellarGetOpts) => SquireCli.notImplemented(name) }
+    run { options =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli
+          .runCellar(
+            CellarAction.Get(
+              options.coordinate,
+              options.symbol,
+              options.hideInherited,
+              options.groupInherited,
+              options.limit
+            ),
+            root,
+            LiveProcessRunner,
+            LiveSquirePlatform,
+            java.lang.System.out.print,
+            java.lang.System.err.print
+          )
+          .flatMap(SquireCli.exitUnlessZero)
+      }
+    }
 
   object CellarSearchCmd extends KyoCommand[CellarSearchOpts]:
-    override def name = "cellar search"
+    override def name  = "cellar search"
     override def names = List(List("cellar", "search"))
-    run { (_: CellarSearchOpts) => SquireCli.notImplemented(name) }
+    run { options =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli
+          .runCellar(
+            CellarAction.Search(options.coordinate, options.query, options.limit),
+            root,
+            LiveProcessRunner,
+            LiveSquirePlatform,
+            java.lang.System.out.print,
+            java.lang.System.err.print
+          )
+          .flatMap(SquireCli.exitUnlessZero)
+      }
+    }
 
   object CellarDepsCmd extends KyoCommand[CellarDepsOpts]:
-    override def name = "cellar deps"
+    override def name  = "cellar deps"
     override def names = List(List("cellar", "deps"))
-    run { (_: CellarDepsOpts) => SquireCli.notImplemented(name) }
+    run { options =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli
+          .runCellar(
+            CellarAction.Deps(options.coordinate),
+            root,
+            LiveProcessRunner,
+            LiveSquirePlatform,
+            java.lang.System.out.print,
+            java.lang.System.err.print
+          )
+          .flatMap(SquireCli.exitUnlessZero)
+      }
+    }
 
   object ReferenceRepoAddCmd extends KyoCommand[ReferenceRepoAddOpts]:
-    override def name = "reference repo add"
+    override def name  = "reference repo add"
     override def names = List(List("reference", "repo", "add"))
-    run { (_: ReferenceRepoAddOpts) => SquireCli.notImplemented(name) }
+    run { options =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli
+          .runReferenceAdd(options, root, LiveProcessRunner, LiveSquirePlatform, java.lang.System.out.print)
+          .flatMap(SquireCli.exitUnlessZero)
+      }
+    }
 
   object ReferenceRepoListCmd extends KyoCommand[ReferenceRepoListOpts]:
-    override def name = "reference repo list"
+    override def name  = "reference repo list"
     override def names = List(List("reference", "repo", "list"))
-    run { (_: ReferenceRepoListOpts) => SquireCli.notImplemented(name) }
+    run { options =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli
+          .runReferenceList(options, root, LiveProcessRunner, java.lang.System.out.print)
+          .flatMap(SquireCli.exitUnlessZero)
+      }
+    }
 
   object ReferenceRepoStatusCmd extends KyoCommand[ReferenceRepoStatusOpts]:
-    override def name = "reference repo status"
+    override def name  = "reference repo status"
     override def names = List(List("reference", "repo", "status"))
-    run { (_: ReferenceRepoStatusOpts) => SquireCli.notImplemented(name) }
+    run { options =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli
+          .runReferenceStatus(options, root, LiveProcessRunner, java.lang.System.out.print)
+          .flatMap(SquireCli.exitUnlessZero)
+      }
+    }
 
   object ReferenceRepoRemoveCmd extends KyoCommand[ReferenceRepoRemoveOpts]:
-    override def name = "reference repo remove"
+    override def name  = "reference repo remove"
     override def names = List(List("reference", "repo", "remove"))
-    run { (_: ReferenceRepoRemoveOpts) => SquireCli.notImplemented(name) }
+    run { options =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli
+          .runReferenceRemove(options, root, LiveProcessRunner, LiveSquirePlatform, java.lang.System.out.print)
+          .flatMap(SquireCli.exitUnlessZero)
+      }
+    }
 
   object BranchRefreshCmd extends KyoCommand[BranchRefreshOpts]:
     override def name = "branch refresh"
