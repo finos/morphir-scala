@@ -33,7 +33,15 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-var-folders.py
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-project-config.py
 ```
 
-Checks Mill-owned Morphir Elm setup, the `mainClass` Task wrapper, and `/var/folders` writability in one pass.
+Checks:
+
+- Mill-owned Morphir Elm setup
+- the YAML-owned `mainClass` setting
+- Mill Morphir plugin and local-repository wiring
+- machine acquisition cache state
+- metabuild freshness
+- `/var/folders` writability
+
 `ISSUE` lines identify which fixes are needed.
 
 ---
@@ -74,13 +82,13 @@ Could not detect the parent class of task morphir.main.mainClass.super.main.
 
 **Cause:** Mill's assembly task tries to introspect the JVM parent class of `mainClass` at build time. `CommandsEntryPoint` (case-app) is not a traditional `App`/`Main` so introspection fails.
 
-**Fix:** Already resolved in `morphir/package.mill` — `mainClass` is wrapped as a `Task`:
+**Fix:** Already resolved in `morphir/package.mill.yaml`:
 
-```scala
-override def mainClass: T[Option[String]] = Task { Some("org.finos.morphir.cli.MorphirCliMain") }
+```yaml
+mainClass: org.finos.morphir.cli.MorphirCliMain
 ```
 
-If the warning reappears, verify the `Task { }` wrapper is still present.
+If the warning reappears, verify the YAML entry is still present.
 
 ---
 
@@ -131,3 +139,17 @@ Elm editor/formatting tooling remains a developer-local concern and is not part 
 ```bash
 ./mill --no-server mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
 ```
+
+### 6. Mill Morphir plugin workflow
+
+Read [mill-morphir.md](mill-morphir.md) for the fast and dogfood routes.
+
+The project check may report:
+
+- **Missing plugin module:** verify the plugin tree with `./mill resolve 'mill-plugins.morphir.__'`.
+- **Broken local repository wiring:** run `./mill mill-plugins.morphir.integration.test`.
+- **Corrupt cache entry:** rerun `./mill examples.morphir-elm-projects.evaluator-tests.morphirIR` online. Verified acquisition replaces bad bytes.
+- **Disabled machine cache:** generation remains correct but downloads stay task-local. Set `MORPHIR_NODE_DISABLE_MACHINE_CACHE=false` when reuse is wanted.
+- **Stale metabuild:** run `./mill resolve 'mill-plugins.morphir.__'` to recompile it.
+
+Squire only diagnoses these states. Mill owns acquisition, generation, and fresh-consumer acceptance.

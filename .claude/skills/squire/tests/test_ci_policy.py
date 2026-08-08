@@ -245,6 +245,34 @@ class CiPolicyTest(unittest.TestCase):
     def test_morphir_elm_tooling_is_owned_by_mill(self):
         assert_mill_owned_morphir_elm_policy(self.workflow)
 
+    def test_morphir_elm_policy_is_narrow_and_allows_generic_node_and_mise_steps(self):
+        generic_tooling = self.workflow + (
+            "\n  generic-javascript-tools:\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps:\n"
+            "      - name: Install project JavaScript dependencies\n"
+            "        run: mise run setup && npm ci\n"
+        )
+        assert_mill_owned_morphir_elm_policy(generic_tooling)
+
+        for legacy_command in (
+            "npm install -g morphir-elm",
+            "npx morphir-elm make",
+            "morphir-elm make",
+            "ELM_TOOLING_INSTALL=1",
+        ):
+            with self.subTest(legacy_command=legacy_command):
+                mutation = self.workflow + (
+                    "\n  legacy-morphir-elm:\n"
+                    "    runs-on: ubuntu-latest\n"
+                    "    steps:\n"
+                    "      - name: Legacy Morphir Elm\n"
+                    f"        run: {legacy_command}\n"
+                )
+                self.assertRaises(
+                    AssertionError, assert_mill_owned_morphir_elm_policy, mutation
+                )
+
     def test_policy_validators_reject_representative_regressions(self):
         push_with_extra_branch = self.workflow.replace(
             '  push:\n    branches: ["main", "0.4.x", "develop"]',

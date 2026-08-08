@@ -3,7 +3,7 @@ name: squire
 description: "Use when morphir-scala work needs environment diagnostics or build/network/sandbox unblocking; reference repository management; branch lifecycle refresh after squash-merging a target branch into main; Morphir IR spec/schema sync or export; or task-tracking configuration and beads mode resolution."
 allowed-tools: Bash(cat *), Bash(ls *), Bash(find *), Bash(python3 *), Bash(git *), Bash(gh *), Read, Edit, Write
 metadata:
-  version: 0.5.0
+  version: 0.6.0
 ---
 
 # Squire — morphir-scala Dev Environment Assistant
@@ -29,6 +29,15 @@ Read the full diagnostic procedure and issue catalogue before running:
 → [references/doctor.md](references/doctor.md)
 
 **When to invoke:** Any time a Bash tool call fails with a build, network, or sandbox error — especially before retrying the failed command.
+
+### `/squire mill morphir`
+
+Explains the fast source-module route, the published-plugin dogfood route, and focused recovery commands.
+
+Read the full reference before running:
+→ [references/mill-morphir.md](references/mill-morphir.md)
+
+**When to invoke:** When developing a Mill Morphir plugin, generating Morphir IR, testing a fresh published-plugin consumer, or diagnosing plugin/cache/metabuild state.
 
 ### `/squire reference repo`
 

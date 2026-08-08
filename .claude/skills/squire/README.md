@@ -9,6 +9,7 @@ Squire is invoked as a slash command within Claude Code. It routes each maintain
 ```text
 /squire ai env info          — Report sandbox/network status as structured JSON
 /squire doctor               — Run a full environment diagnostic
+/squire mill morphir         — Develop and diagnose the Mill Morphir plugins
 /squire reference repo ...   — Manage repositories under .refs/
 /squire branch refresh       — Refresh develop from main after a squash merge
 /squire tracking ...         — Resolve and maintain optional beads tracking
@@ -47,6 +48,7 @@ The skill is structured in layers to keep each file focused:
 │   ├── cellar.md         # JVM dependency API inspection
 │   ├── doctor.md         # Full diagnostic procedure and issue catalogue
 │   ├── env.md            # ai env info — sandbox/network detection reference
+│   ├── mill-morphir.md   # Fast and published-plugin dogfood workflows
 │   ├── repo.md           # Reference repository management
 │   ├── spec-sync.md      # Morphir IR import/export workflow
 │   └── tracking.md       # Optional beads tracking configuration
@@ -77,6 +79,7 @@ of `ai-env-info.py` — see [references/env.md](references/env.md).
 | Area | Command or entry point | Full reference |
 |------|-------------------------|----------------|
 | Environment | `/squire ai env info`, `/squire doctor` | `references/env.md`, `references/doctor.md` |
+| Mill Morphir plugins | `/squire mill morphir` | `references/mill-morphir.md` |
 | Reference repos | `/squire reference repo add\|list\|status\|remove` | `references/repo.md` |
 | Branch lifecycle | `/squire branch refresh` | `references/branch.md` |
 | Task tracking | `/squire tracking status\|sync\|doctor` | `references/tracking.md` |
@@ -92,9 +95,13 @@ When invoked, Claude reads `references/doctor.md` then runs the three diagnostic
 
 2. **`check-var-folders.py`** — Attempts a real write probe at `/var/folders/.squire-probe`. This is ground truth: if the write succeeds, cellar can write its temp `.tasty` files there. Reports `OK` or `BLOCKED` with remediation steps.
 
-3. **`check-project-config.py`** — Checks three project-level invariants:
+3. **`check-project-config.py`** — Checks project-level invariants:
    - Mise setup skips workspace postinstall hooks and leaves Morphir Elm provisioning to Mill
-   - The `Task { }` wrapper on `mainClass` in `morphir/package.mill` (prevents mill assembly introspection warning)
+   - The `mainClass` entry in `morphir/package.mill.yaml`
+   - All Mill Morphir plugin modules are present
+   - Published-plugin tests resolve from their task-local repository
+   - Machine acquisition cache state is usable or intentionally disabled
+   - Metabuild output is newer than its inputs
    - `/var/folders` write access via real probe (same as script 2, for a single-script summary pass)
 
    Reports `OK` per check or `ISSUE` with the specific fix.
@@ -109,6 +116,10 @@ Claude reports each result as ✅ or ⚠️ and applies fixes from `references/d
 | Mill assembly `mainClass` introspection warning | `check-project-config.py` |
 | `cellar` temp file write blocked | `check-var-folders.py`, `check-project-config.py` |
 | Mise setup bypassing Mill-owned Morphir Elm tooling | `check-project-config.py` |
+| Missing Mill Morphir plugin modules | `check-project-config.py` |
+| Broken task-local plugin repository wiring | `check-project-config.py` |
+| Corrupt or disabled machine acquisition cache | `check-project-config.py` |
+| Stale Mill metabuild compilation | `check-project-config.py` |
 | Scalafmt lint failures | `references/doctor.md` (guidance only) |
 
 ## Important Caveats
