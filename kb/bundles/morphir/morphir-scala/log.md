@@ -7,6 +7,7 @@
 * **Update**: Strengthened unpublished-package acceptance to prove a used transitive symbol and a preseeded, externally network-denied run through both launch backends.
 * **Update**: Represented the pinned Mooncakes registry snapshot as an explicit Git remote and commit scope rather than an HTTP fragment.
 * **Update**: Marked draft Design Notes and research as non-authoritative and corrected the Package URL component list and MoonBit checksum qualification.
+* **Creation**: Added [Mill Morphir plugin architecture](/design/mill-morphir-plugin-architecture.md).
 
 ## 2026-08-06
 

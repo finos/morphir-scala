@@ -51,6 +51,8 @@ The boundaries below are settled enough to guide refinement, but implementation 
 alternatives and consequences stable enough for an immutable Decision Record. Package identity, ranges, locks,
 registries, and materialization evolve separately in the
 [Package URL-centered package-management Design Note](/design/package-url-package-management.md).
+Mill tool acquisition, frontend compilation tasks, and generated-source composition evolve in the
+[Mill Morphir plugin architecture Design Note](/design/mill-morphir-plugin-architecture.md).
 
 ## Observed facts
 
