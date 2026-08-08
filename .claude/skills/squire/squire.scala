@@ -10,7 +10,7 @@ import kyo.*
 
 case class AiEnvInfoOpts(
     @HelpMessage("Run one named check and return its status") check: Option[String] = None,
-    @HelpMessage("Bound live probes in seconds") timeout: Int = 8
+    @HelpMessage("Bound live probes in seconds") timeout: Double = 8.0
 )
 
 case class DoctorOpts()
@@ -98,6 +98,9 @@ object SquireCli:
   def projectRoot(from: Path): Path < Sync =
     SquirePaths.findRepoRoot(from).map(_.getOrElse(from))
 
+  private def timeoutDuration(seconds: Double): Duration =
+    math.max(0.0, seconds).*(1000000000L).toLong.nanos
+
   def runEnvInfo(
       options: AiEnvInfoOpts,
       root: Path,
@@ -105,12 +108,12 @@ object SquireCli:
       output: String => Unit
   ): Int < Sync =
     options.check match
-      case None => SquireEnv.report(options.timeout.seconds, platform, root).map { report =>
-          output(SquireJson.encode(report) + "\n")
+      case None => SquireEnv.report(timeoutDuration(options.timeout), platform, root).map { report =>
+          output(SquireEnv.renderLegacyReport(report))
           0
         }
-      case Some("jvm-network") => SquireEnv.check(SquireEnv.CheckKind.JvmNetwork, options.timeout.seconds, platform).map(if _ then 0 else 1)
-      case Some("var-folders") => SquireEnv.check(SquireEnv.CheckKind.VarFolders, options.timeout.seconds, platform).map(if _ then 0 else 1)
+      case Some("jvm-network") => SquireEnv.check(SquireEnv.CheckKind.JvmNetwork, timeoutDuration(options.timeout), platform).map(if _ then 0 else 1)
+      case Some("var-folders") => SquireEnv.check(SquireEnv.CheckKind.VarFolders, timeoutDuration(options.timeout), platform).map(if _ then 0 else 1)
       case Some(_)              => 2
 
   def printDoctor(report: SquireDoctor.DoctorReport): Unit < Sync =

@@ -51,8 +51,16 @@ class SquireCliSpec extends Test[Any]:
         blockedPlatform = SquireFixtures.platform(root, SquireEnv.CheckResult(Present(false), "blocked", 0.0))
         blockedOutput = new StringBuilder
         blockedExit <- SquireCli.runEnvInfo(AiEnvInfoOpts(check = Some("jvm-network")), root, blockedPlatform, value => blockedOutput.append(value))
-        fullJson = fullOutput.result().contains("jvm_network") && !fullOutput.result().contains("python_network")
-      yield assert(fullExit == 0 && fullJson && skippedExit == 0 && skippedOutput.isEmpty && blockedExit == 1 && blockedOutput.isEmpty)
+        fractionalOutput = new StringBuilder
+        fractionalExit <- SquireCli.runEnvInfo(AiEnvInfoOpts(timeout = 0.5), root, platform, value => fractionalOutput.append(value))
+        json = fullOutput.result()
+        legacyKeys = List("generated_at", "claude_code", "ci", "checks", "sandboxed", "claude_settings", "recommendation")
+        ordered = legacyKeys.map(json.indexOf).sliding(2).forall { case List(left, right) => left >= 0 && left < right; case _ => true }
+      yield assert(
+        fullExit == 0 && json.contains("\"jvm_network\"") && json.contains("\"python_network\": null") &&
+          json.contains("\"entrypoint\": null") && json.contains("\"session_id\": null") && ordered &&
+          fractionalExit == 0 && fractionalOutput.nonEmpty && skippedExit == 0 && skippedOutput.isEmpty && blockedExit == 1 && blockedOutput.isEmpty
+      )
     }
 
     "resolves the repository root for routed diagnostics" in {
@@ -266,8 +274,7 @@ class SquireEnvSpec extends Test[Any]:
           report.claudeCode.childSession &&
           report.ci &&
           !report.sandboxed &&
-          serialized.contains("jvm_network") &&
-          !serialized.contains("python_network")
+          serialized.contains("jvm_network")
       )
     }
 
@@ -280,8 +287,8 @@ class SquireEnvSpec extends Test[Any]:
           Files.createDirectories((home / ".claude").toJava)
           Files.createDirectories((root / ".claude").toJava)
           Files.writeString(managed.toJava, """{"sandbox":{"enabled":true,"network":{"allowedDomains":["managed.example"]}}}""")
-          Files.writeString((home / ".claude" / "settings.json").toJava, """{"sandbox":{"enabled":false,"network":{"deniedDomains":["user.example"]}}}""")
-          Files.writeString((root / ".claude" / "settings.json").toJava, """{"sandbox":{"enabled":true,"network":{"allowedDomains":["project.example"]}}}""")
+          Files.writeString((home / ".claude" / "settings.json").toJava, "{}")
+          Files.writeString((root / ".claude" / "settings.json").toJava, """{"unknown":true,"sandbox":{"enabled":true,"network":{"allowedDomains":["project.example"]}}}""")
           Files.writeString((root / ".claude" / "settings.local.json").toJava, "not json")
         }
         report <- SquireEnv.report(
@@ -293,14 +300,14 @@ class SquireEnvSpec extends Test[Any]:
       yield assert(
         settings.sandboxEnabled == Map(
           "managed" -> Present(true),
-          "user" -> Present(false),
+          "user" -> Absent,
           "project" -> Present(true),
           "project_local" -> Absent
         ) &&
           settings.networkAllowedDomains == Chunk("managed.example", "project.example") &&
-          settings.networkDeniedDomains == Chunk("user.example") &&
+          settings.networkDeniedDomains == Chunk.empty &&
           settings.sources("managed").present &&
-          settings.sources("user").present &&
+          !settings.sources("user").present &&
           settings.sources("project").present &&
           !settings.sources("project_local").present
       )
@@ -357,6 +364,19 @@ class SquireEnvSpec extends Test[Any]:
         blocked <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
         probeExists <- (root / ".squire-env-probe").exists
       yield assert(!blocked && !probeExists)
+    }
+
+    "cleans a probe created before a write failure and reports cleanup failures" in {
+      for
+        root <- SquireFixtures.scratch("env-var-folders-partial")
+        platform = SquireFixtures.platform(
+          root,
+          SquireEnv.CheckResult(Present(true), "ok", 0.0),
+          writeProbe = path => { Files.writeString(path.toJava, "partial"); throw java.nio.file.AccessDeniedException(path.toString) }
+        )
+        partial <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
+        removed <- (root / ".squire-env-probe").exists
+      yield assert(!partial && !removed)
     }
   }
 
