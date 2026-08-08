@@ -1,6 +1,6 @@
 package org.finos.morphir.mill.toolchain
 
-import java.io.InputStream
+import java.io.{BufferedInputStream, InputStream}
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.FileChannel
@@ -31,29 +31,47 @@ private[toolchain] object ArchivePreflight {
   // the inflater requests its next read; the completed stream is checked without this allowance.
   private val GzipStreamingSlackBytes = GzipInputBufferBytes.toLong
 
-  def tarGz(archive: os.Path, limits: ArchiveLimits): Unit = {
+  def tarGz(
+      archive: os.Path,
+      limits: ArchiveLimits,
+      gzipConstructedObserver: () => Unit = () => ()
+  ): Unit = {
     val snapshotBytes = Files.size(archive.toNIO)
-    try
-      Using.resource(Files.newInputStream(archive.toNIO)) { raw =>
-        Using.resource(
-          GzipCompressorInputStream
-            .builder()
-            .setInputStream(raw)
-            .setBufferSize(GzipInputBufferBytes)
-            .setDecompressConcatenated(true)
-            .get()
-        ) { gzip =>
-          val decompressedBytes = scanTar(gzip, archive, limits, () => gzip.getCompressedCount)
-          val memberBytes       = gzip.getCompressedCount
+    try {
+      prevalidateGzipHeader(archive, limits.maxGzipHeaderBytes)
+      Using
+        .Manager { use =>
+          val raw      = use(Files.newInputStream(archive.toNIO))
+          val buffered = use(new BufferedInputStream(raw, GzipInputBufferBytes))
+          // Only a single gzip member is accepted. The mark-capable wrapper lets Commons
+          // rewind inflater lookahead so getCompressedCount identifies the member boundary.
+          val gzip = use(
+            GzipCompressorInputStream
+              .builder()
+              .setInputStream(buffered)
+              .setDecompressConcatenated(false)
+              .get()
+          )
+          gzipConstructedObserver()
+          val decompressedBytes =
+            try scanTar(gzip, archive, limits, () => gzip.getCompressedCount)
+            catch {
+              case error: IllegalArgumentException
+                  if Option(error.getMessage).exists(_.startsWith("Malformed or truncated TAR")) &&
+                    gzip.getCompressedCount < snapshotBytes =>
+                throw new IllegalArgumentException(
+                  singleGzipMemberMessage(gzip.getCompressedCount, snapshotBytes, archive),
+                  error
+                )
+            }
+          val memberBytes = gzip.getCompressedCount
           if (memberBytes != snapshotBytes)
-            fail(
-              s"Gzip member bytes consumed $memberBytes do not match verified archive size $snapshotBytes: $archive"
-            )
+            fail(singleGzipMemberMessage(memberBytes, snapshotBytes, archive))
           if (decompressedBytes > saturatedRatioLimit(memberBytes, limits.maxCompressionRatio))
             fail(s"TAR.GZ preflight compression ratio exceeds limit ${limits.maxCompressionRatio}: $archive")
         }
-      }
-    catch {
+        .get
+    } catch {
       case error: IllegalArgumentException => throw error
       case NonFatal(error)                 =>
         throw new IllegalArgumentException(
@@ -61,6 +79,60 @@ private[toolchain] object ArchivePreflight {
           error
         )
     }
+  }
+
+  private def singleGzipMemberMessage(memberBytes: Long, snapshotBytes: Long, archive: os.Path): String =
+    s"Only a single gzip member is supported; member bytes $memberBytes do not match " +
+      s"verified archive size $snapshotBytes: $archive"
+
+  private def prevalidateGzipHeader(archive: os.Path, maxHeaderBytes: Long): Unit =
+    Using.resource(Files.newInputStream(archive.toNIO)) { input =>
+      val reader = new GzipHeaderReader(input, archive, maxHeaderBytes)
+      val id1    = reader.read("magic")
+      val id2    = reader.read("magic")
+      if (id1 != 0x1f || id2 != 0x8b) fail(s"Invalid gzip magic: $archive")
+      val method = reader.read("compression method")
+      if (method != 8) fail(s"Unsupported gzip compression method $method: $archive")
+      val flags = reader.read("flags")
+      if ((flags & 0xe0) != 0) fail(s"Reserved gzip flags are set: $archive")
+      reader.discard(6, "fixed header")
+      if ((flags & 0x04) != 0) {
+        val low         = reader.read("FEXTRA length")
+        val high        = reader.read("FEXTRA length")
+        val extraLength = low | (high << 8)
+        reader.discard(extraLength, "FEXTRA")
+      }
+      if ((flags & 0x08) != 0) reader.discardZeroTerminated("FNAME")
+      if ((flags & 0x10) != 0) reader.discardZeroTerminated("FCOMMENT")
+      if ((flags & 0x02) != 0) reader.discard(2, "FHCRC")
+    }
+
+  private final class GzipHeaderReader(
+      input: InputStream,
+      archive: os.Path,
+      maxHeaderBytes: Long
+  ) {
+    private var bytesRead = 0L
+
+    def read(field: String): Int = {
+      if (bytesRead >= maxHeaderBytes)
+        fail(s"gzip header byte limit $maxHeaderBytes exceeded while reading $field: $archive")
+      val byte = input.read()
+      if (byte < 0) fail(s"Truncated gzip $field: $archive")
+      bytesRead += 1
+      byte
+    }
+
+    def discard(count: Int, field: String): Unit = {
+      var remaining = count
+      while (remaining > 0) {
+        read(field)
+        remaining -= 1
+      }
+    }
+
+    def discardZeroTerminated(field: String): Unit =
+      while (read(field) != 0) ()
   }
 
   def zip(archive: os.Path, limits: ArchiveLimits): Unit =

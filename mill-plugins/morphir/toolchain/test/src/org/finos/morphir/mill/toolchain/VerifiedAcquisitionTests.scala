@@ -223,6 +223,50 @@ object VerifiedAcquisitionTests extends TestSuite {
     finally output.close()
   }
 
+  private def addGzipHeaderCrc(path: os.Path): Unit = {
+    val bytes  = os.read.bytes(path)
+    val header = bytes.take(10)
+    header(3) = (header(3) | 0x02).toByte
+    val crc = new java.util.zip.CRC32()
+    crc.update(header)
+    val output = new ByteArrayOutputStream()
+    output.write(header)
+    output.write((crc.getValue & 0xff).toInt)
+    output.write(((crc.getValue >>> 8) & 0xff).toInt)
+    output.write(bytes, 10, bytes.length - 10)
+    os.write.over(path, output.toByteArray)
+  }
+
+  private def writeSyntheticGzipHeader(
+      path: os.Path,
+      flags: Int,
+      method: Int = 8,
+      extra: Array[Byte] = Array.emptyByteArray,
+      fileName: Array[Byte] = Array.emptyByteArray,
+      terminateFileName: Boolean = true,
+      comment: Array[Byte] = Array.emptyByteArray,
+      terminateComment: Boolean = true,
+      headerCrc: Boolean = false
+  ): Unit = {
+    val output = new ByteArrayOutputStream()
+    output.write(Array[Byte](0x1f, 0x8b.toByte, method.toByte, flags.toByte, 0, 0, 0, 0, 0, 3))
+    if ((flags & 0x04) != 0) {
+      output.write(extra.length & 0xff)
+      output.write((extra.length >>> 8) & 0xff)
+      output.write(extra)
+    }
+    if ((flags & 0x08) != 0) {
+      output.write(fileName)
+      if (terminateFileName) output.write(0)
+    }
+    if ((flags & 0x10) != 0) {
+      output.write(comment)
+      if (terminateComment) output.write(0)
+    }
+    if ((flags & 0x02) != 0 && headerCrc) output.write(Array[Byte](0, 0))
+    os.write(path, output.toByteArray)
+  }
+
   private def writeRawTarGz(
       path: os.Path,
       entries: Seq[(Byte, Array[Byte])],
@@ -1857,6 +1901,185 @@ object VerifiedAcquisitionTests extends TestSuite {
       }
     }
 
+    test("gzip preflight bounds FNAME before Commons construction") {
+      withTempDir { directory =>
+        val archive = directory / "oversized-name.tar.gz"
+        writeSyntheticGzipHeader(
+          archive,
+          flags = 0x08,
+          fileName = Array.fill[Byte](32)('n'.toByte),
+          terminateFileName = false
+        )
+        var gzipConstructed = false
+        var parserOpened    = false
+
+        val result = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            limits = ArchiveLimits(maxGzipHeaderBytes = 16),
+            parserObserver = _ => parserOpened = true,
+            gzipConstructedObserver = () => gzipConstructed = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("gzip header byte limit"))
+        assert(!gzipConstructed)
+        assert(!parserOpened)
+      }
+    }
+
+    test("gzip preflight bounds optional header fields before Commons construction") {
+      withTempDir { directory =>
+        val cases = Seq[(String, os.Path => Unit, Long, String)](
+          (
+            "oversized-name",
+            path =>
+              writeSyntheticGzipHeader(
+                path,
+                flags = 0x08,
+                fileName = Array.fill[Byte](32)('n'.toByte)
+              ),
+            16L,
+            "header byte limit"
+          ),
+          (
+            "unterminated-name",
+            path =>
+              writeSyntheticGzipHeader(
+                path,
+                flags = 0x08,
+                fileName = "name".getBytes(StandardCharsets.UTF_8),
+                terminateFileName = false
+              ),
+            64L,
+            "Truncated gzip FNAME"
+          ),
+          (
+            "oversized-comment",
+            path =>
+              writeSyntheticGzipHeader(
+                path,
+                flags = 0x10,
+                comment = Array.fill[Byte](32)('c'.toByte)
+              ),
+            16L,
+            "header byte limit"
+          ),
+          (
+            "unterminated-comment",
+            path =>
+              writeSyntheticGzipHeader(
+                path,
+                flags = 0x10,
+                comment = "comment".getBytes(StandardCharsets.UTF_8),
+                terminateComment = false
+              ),
+            64L,
+            "Truncated gzip FCOMMENT"
+          ),
+          (
+            "oversized-extra",
+            path =>
+              writeSyntheticGzipHeader(
+                path,
+                flags = 0x04,
+                extra = Array.fill[Byte](32)(1)
+              ),
+            16L,
+            "header byte limit"
+          ),
+          (
+            "invalid-magic",
+            path => os.write(path, Array.fill[Byte](10)(0)),
+            64L,
+            "Invalid gzip magic"
+          ),
+          (
+            "unsupported-method",
+            path => writeSyntheticGzipHeader(path, flags = 0, method = 0),
+            64L,
+            "Unsupported gzip compression method"
+          ),
+          (
+            "reserved-flags",
+            path => writeSyntheticGzipHeader(path, flags = 0x20),
+            64L,
+            "Reserved gzip flags"
+          ),
+          (
+            "truncated-fixed-header",
+            path => os.write(path, Array[Byte](0x1f, 0x8b.toByte, 8, 0, 0)),
+            64L,
+            "Truncated gzip fixed header"
+          ),
+          (
+            "truncated-extra-length",
+            path =>
+              os.write(
+                path,
+                Array[Byte](0x1f, 0x8b.toByte, 8, 0x04, 0, 0, 0, 0, 0, 3, 1)
+              ),
+            64L,
+            "Truncated gzip FEXTRA length"
+          ),
+          (
+            "truncated-header-crc",
+            path => writeSyntheticGzipHeader(path, flags = 0x02, headerCrc = false),
+            64L,
+            "Truncated gzip FHCRC"
+          )
+        )
+
+        cases.foreach { case (label, writeArchive, limit, expectedMessage) =>
+          val archive = directory / s"$label.tar.gz"
+          writeArchive(archive)
+          var gzipConstructed = false
+          var parserOpened    = false
+          val result          = scala.util.Try(
+            VerifiedArchive.extractObserved(
+              VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+              ArchiveFormat.TarGz,
+              directory / s"extracted-$label",
+              limits = ArchiveLimits(maxGzipHeaderBytes = limit),
+              parserObserver = _ => parserOpened = true,
+              gzipConstructedObserver = () => gzipConstructed = true
+            ) {}
+          )
+
+          assert(result.isFailure)
+          assert(result.failed.get.getMessage.contains(expectedMessage))
+          assert(!gzipConstructed)
+          assert(!parserOpened)
+        }
+      }
+    }
+
+    test("gzip preflight accepts a bounded optional FHCRC header") {
+      withTempDir { directory =>
+        val archive = directory / "header-crc.tar.gz"
+        writeTarGz(archive, Seq(("root/file", "data".getBytes(StandardCharsets.UTF_8), None)))
+        addGzipHeaderCrc(archive)
+        var gzipConstructed = false
+        var parserOpened    = false
+
+        VerifiedArchive.extractObserved(
+          VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+          ArchiveFormat.TarGz,
+          directory / "extracted",
+          parserObserver = _ => parserOpened = true,
+          gzipConstructedObserver = () => gzipConstructed = true
+        ) {}
+
+        assert(gzipConstructed)
+        assert(parserOpened)
+        assert(os.read(directory / "extracted" / "file") == "data")
+        assert(scala.util.Try(ArchiveLimits(maxGzipHeaderBytes = 0)).isFailure)
+      }
+    }
+
     test("tar.gz preflight rejects trailing non-gzip garbage before Commons TAR parsing") {
       withTempDir { directory =>
         val archive = directory / "trailing-garbage.tar.gz"
@@ -1879,7 +2102,7 @@ object VerifiedAcquisitionTests extends TestSuite {
       }
     }
 
-    test("tar.gz preflight supports a TAR stream split across concatenated gzip members") {
+    test("tar.gz preflight rejects a TAR stream split across concatenated gzip members") {
       withTempDir { directory =>
         val ordinary = directory / "ordinary.tar.gz"
         val archive  = directory / "concatenated.tar.gz"
@@ -1888,17 +2111,23 @@ object VerifiedAcquisitionTests extends TestSuite {
         val tarBytes = readGzipBytes(ordinary)
         val split    = tarBytes.length / 2
         writeConcatenatedGzip(archive, Seq(tarBytes.take(split), tarBytes.drop(split)))
-        var parserOpened = false
+        var gzipConstructed = false
+        var parserOpened    = false
 
-        VerifiedArchive.extractObserved(
-          VerifiedContent(archive, VerifiedArchive.sha256(archive)),
-          ArchiveFormat.TarGz,
-          directory / "extracted",
-          parserObserver = _ => parserOpened = true
-        ) {}
+        val result = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            parserObserver = _ => parserOpened = true,
+            gzipConstructedObserver = () => gzipConstructed = true
+          ) {}
+        )
 
-        assert(parserOpened)
-        assert(os.read.bytes(directory / "extracted" / "file").sameElements(contents))
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("single gzip member"))
+        assert(gzipConstructed)
+        assert(!parserOpened)
       }
     }
 

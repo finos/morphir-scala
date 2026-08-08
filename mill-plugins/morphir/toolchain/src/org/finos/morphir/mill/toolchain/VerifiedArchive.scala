@@ -76,7 +76,8 @@ object VerifiedArchive {
       limits: ArchiveLimits = ArchiveLimits(),
       cleanup: os.Path => Unit = removeTemporary,
       parserObserver: ArchiveFormat => Unit = _ => (),
-      zipConstructedObserver: () => Unit = () => ()
+      zipConstructedObserver: () => Unit = () => (),
+      gzipConstructedObserver: () => Unit = () => ()
   )(afterSnapshotVerified: => Unit): Unit = {
     val parent   = destination / os.up
     val nonce    = UUID.randomUUID()
@@ -94,8 +95,9 @@ object VerifiedArchive {
         afterSnapshotVerified
         Files.createDirectory(staging.toNIO)
         format match {
-          case ArchiveFormat.TarGz => extractTarGz(snapshot, staging, limits, parserObserver)
-          case ArchiveFormat.Zip   =>
+          case ArchiveFormat.TarGz =>
+            extractTarGz(snapshot, staging, limits, parserObserver, gzipConstructedObserver)
+          case ArchiveFormat.Zip =>
             extractZip(snapshot, staging, limits, parserObserver, zipConstructedObserver)
         }
         promoteExclusive(staging, destination)
@@ -299,9 +301,10 @@ object VerifiedArchive {
       archive: os.Path,
       destination: os.Path,
       limits: ArchiveLimits,
-      parserObserver: ArchiveFormat => Unit
+      parserObserver: ArchiveFormat => Unit,
+      gzipConstructedObserver: () => Unit
   ): Unit = {
-    ArchivePreflight.tarGz(archive, limits)
+    ArchivePreflight.tarGz(archive, limits, gzipConstructedObserver)
     parserObserver(ArchiveFormat.TarGz)
     Using
       .Manager { use =>

@@ -11,7 +11,8 @@ final case class ArchiveLimits(
     maxCentralDirectoryBytes: Long = 128L * 1024 * 1024,
     maxMetadataEntryBytes: Long = 1024L * 1024,
     maxArchiveMetadataBytes: Long = 16L * 1024 * 1024,
-    maxConsecutiveMetadataEntries: Long = 32L
+    maxConsecutiveMetadataEntries: Long = 32L,
+    maxGzipHeaderBytes: Long = 64L * 1024
 ) {
   require(maxEntries > 0, "maxEntries must be positive")
   require(maxEntryUncompressedBytes > 0, "maxEntryUncompressedBytes must be positive")
@@ -23,4 +24,5 @@ final case class ArchiveLimits(
   require(maxMetadataEntryBytes > 0, "maxMetadataEntryBytes must be positive")
   require(maxArchiveMetadataBytes > 0, "maxArchiveMetadataBytes must be positive")
   require(maxConsecutiveMetadataEntries > 0, "maxConsecutiveMetadataEntries must be positive")
+  require(maxGzipHeaderBytes > 0, "maxGzipHeaderBytes must be positive")
 }
