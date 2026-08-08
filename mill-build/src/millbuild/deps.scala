@@ -56,7 +56,8 @@ object Deps {
       val geny           = mvn"com.lihaoyi::geny::${Versions.geny}"
       val mainargs       = mvn"com.lihaoyi::mainargs::${Versions.`mainargs`}"
       val `os-lib`       = mvn"com.lihaoyi::os-lib::${Versions.`os-lib`}"
-      val sourcecode     = mvn"com.lihaoyi::sourcecode::0.4.4"
+      val sourcecode     = mvn"com.lihaoyi::sourcecode::${Versions.sourcecode}"
+      val sourcecodeJvm  = mvn"com.lihaoyi::sourcecode:${Versions.sourcecode}"
       val pprint         = mvn"com.lihaoyi::pprint::0.9.6"
       val ujson          = mvn"com.lihaoyi::ujson::${Versions.upickle}"
       val upickle        = mvn"com.lihaoyi::upickle::${Versions.upickle}"
@@ -217,10 +218,12 @@ object Versions {
   val `scalac-compat-annotation` = "0.1.4"
   val scoverage                  = "2.5.2"
   val scribe                     = "3.19.0"
+  val sourcecode                 = "0.4.4"
   val silencer                   = "1.4.2"
   val spire                      = "0.18.0"
   val `tasty-query`              = "0.5.6"
   val upickle                    = "4.4.3"
+  val utest                      = "0.9.1"
   val zio                        = "2.1.26"
 
   val `zio-config`       = "4.0.8"
@@ -246,10 +249,7 @@ object ScalaVersions {
 }
 
 object MillVersions {
-  val all = Seq("1.1.5")
-  // Compute Mill binary version similar to Scala Native binary version
-  def millBinaryVersion(millVersion: String): String = {
-    val parts = millVersion.split('.').take(2)
-    parts.mkString(".")
-  }
+  val all            = Seq("1.1.5")
+  val oldest         = all.head
+  val platformSuffix = "_mill1"
 }

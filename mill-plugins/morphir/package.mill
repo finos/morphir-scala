@@ -1,0 +1,62 @@
+package build.`mill-plugins`.morphir
+
+import mill.*, mill.scalalib.*
+import millbuild.{Deps, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
+import build.MorphirMillPublishModule
+
+trait MorphirMillPlugin extends Cross.Module[String] with ScalaModule with MorphirMillPublishModule {
+  def millVersion = crossValue
+
+  def scalaVersion            = ScalaVers.scala3
+  override def platformSuffix = MillVersions.platformSuffix
+  override def compileMvnDeps = super.compileMvnDeps() ++ Seq(
+    mvn"com.lihaoyi::mill-libs-scalalib:$millVersion"
+  )
+  override def scalacOptions = Seq("-Wunused:all", "-deprecation")
+}
+
+object toolchain extends Cross[ToolchainPlugin](MillVersions.all)
+
+trait ToolchainPlugin extends MorphirMillPlugin {
+  override def artifactName = "mill-morphir-toolchain"
+}
+
+object javascript extends Cross[JavaScriptPlugin](MillVersions.all)
+
+trait JavaScriptPlugin extends MorphirMillPlugin {
+  override def artifactName = "mill-morphir-javascript"
+  override def moduleDeps   = Seq(toolchain(crossValue))
+  override def mvnDeps      = super.mvnDeps() ++ Seq(Deps.com.lihaoyi.sourcecodeJvm)
+  override protected def resolvedDepsWarnNonPlatform = false
+}
+
+object `elm-tooling` extends Cross[ElmToolingPlugin](MillVersions.all)
+
+trait ElmToolingPlugin extends MorphirMillPlugin {
+  override def artifactName = "mill-morphir-elm-tooling"
+  override def moduleDeps   = Seq(javascript(crossValue))
+}
+
+object core extends Cross[CorePlugin](MillVersions.all)
+
+trait CorePlugin extends MorphirMillPlugin {
+  override def artifactName = "mill-morphir-core"
+  override def mvnDeps      = super.mvnDeps() ++ Seq(Deps.com.lihaoyi.sourcecodeJvm)
+  override protected def resolvedDepsWarnNonPlatform = false
+}
+
+object elm extends Cross[ElmPlugin](MillVersions.all)
+
+trait ElmPlugin extends MorphirMillPlugin {
+  override def artifactName = "mill-morphir-elm"
+  override def moduleDeps   = Seq(core(crossValue), `elm-tooling`(crossValue))
+}
+
+object integration extends ScalaModule {
+  def scalaVersion = ScalaVers.scala3
+  def moduleDeps   = Seq(core(MillVersions.oldest))
+
+  object test extends ScalaTests with TestModule.Utest {
+    def utestVersion = Vers.utest
+  }
+}

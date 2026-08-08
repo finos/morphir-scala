@@ -88,6 +88,11 @@ trait MorphirIntelligencePublishModule extends MorphirPublishModule {
   override def pomSettings = super.pomSettings().copy(organization = "org.finos.morphir.intelligence")
 }
 
+trait MorphirMillPublishModule extends MorphirPublishModule {
+  import mill.scalalib.publish.*
+  override def pomSettings = super.pomSettings().copy(organization = "org.finos.morphir.mill")
+}
+
 trait MorphirCommonModule extends ScalaModule with CommonScalaModule {
   def scalaVersion: T[String]      = Task { morphirScalaVersion }
   def semanticDbVersion: T[String] = Task { Vers.semanticDb }
