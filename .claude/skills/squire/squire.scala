@@ -1,6 +1,6 @@
 //| scalaVersion: 3.8.4
 //| mainClass: SquireApp
-//| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireEnv.scala, SquireDoctor.scala, SquireCellar.scala, SquireRepo.scala]
+//| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireEnv.scala, SquireDoctor.scala, SquireCellar.scala, SquireRepo.scala, SquireBranch.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-case-app:1.0.0-RC6
 
@@ -50,7 +50,8 @@ case class ReferenceRepoRemoveOpts(
 
 case class BranchRefreshOpts(
     @HelpMessage("Target branch to refresh") target: String = "develop",
-    @HelpMessage("Report the update without writing") dryRun: Boolean = false
+    @HelpMessage("Report the update without writing") dryRun: Boolean = false,
+    @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )
 
 case class TrackingStatusOpts()
@@ -194,6 +195,33 @@ object SquireCli:
       output(s"Removed '${options.name}' from manifest.\n")
       0
     }
+
+  def runBranch(
+      options: BranchRefreshOpts,
+      runner: ProcessRunner,
+      output: String => Unit
+  ): Int < (Async & Abort[SquireError]) =
+    runBranch(options, Seq.empty, runner, output)
+
+  def runBranch(
+      options: BranchRefreshOpts,
+      positional: Seq[String],
+      runner: ProcessRunner,
+      output: String => Unit
+  ): Int < (Async & Abort[SquireError]) =
+    if positional.nonEmpty then
+      Abort.fail(
+        SquireError.Failure(
+          "cli",
+          s"unexpected positional arguments for branch refresh: ${positional.mkString(" ")}"
+        )
+      )
+    else
+      SquireBranch.refresh(options.target, options.dryRun, runner).map { result =>
+        if options.json then output(SquireJson.encode(result) + "\n")
+        else output(s"${result.kind}: ${result.target} ${result.oldSha} -> ${result.newSha}\n")
+        0
+      }
 
   def exitUnlessZero(exitCode: Int): Unit < Sync =
     if exitCode == 0 then () else Sync.defer(java.lang.System.exit(exitCode))
@@ -351,9 +379,13 @@ object SquireApp extends CommandsEntryPoint:
     }
 
   object BranchRefreshCmd extends KyoCommand[BranchRefreshOpts]:
-    override def name = "branch refresh"
+    override def name  = "branch refresh"
     override def names = List(List("branch", "refresh"))
-    run { (_: BranchRefreshOpts) => SquireCli.notImplemented(name) }
+    run { (options, remaining) =>
+      SquireCli
+        .runBranch(options, remaining.all, LiveProcessRunner, java.lang.System.out.print)
+        .flatMap(SquireCli.exitUnlessZero)
+    }
 
   object TrackingStatusCmd extends KyoCommand[TrackingStatusOpts]:
     override def name = "tracking status"

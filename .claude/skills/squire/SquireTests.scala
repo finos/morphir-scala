@@ -8,6 +8,7 @@
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import caseapp.core.parser.Parser
 import kyo.*
 import kyo.test.*
 
@@ -129,6 +130,40 @@ class SquireCliSpec extends Test[Any]:
     }
   }
 
+  "branch refresh routing" - {
+    "renders text and typed JSON results" in {
+      val textRunner = BranchRecordingRunner(SquireBranchFixtures.successfulProofResponses)
+      val jsonRunner = BranchRecordingRunner(SquireBranchFixtures.successfulProofResponses)
+      val text       = new StringBuilder
+      val json       = new StringBuilder
+      for
+        textExit <- SquireCli.runBranch(
+          BranchRefreshOpts(dryRun = true),
+          textRunner,
+          value => text.append(value)
+        )
+        jsonExit <- SquireCli.runBranch(
+          BranchRefreshOpts(dryRun = true, json = true),
+          jsonRunner,
+          value => json.append(value)
+        )
+      yield assert(
+        textExit == 0 && text.result() ==
+          s"validated: develop ${SquireBranchFixtures.targetSha} -> ${SquireBranchFixtures.sourceSha}\n" &&
+          jsonExit == 0 &&
+          SquireJson.decode[RefreshResult](json.result().trim) == Result.Success(
+            RefreshResult(
+              "validated",
+              "develop",
+              SquireBranchFixtures.targetSha,
+              SquireBranchFixtures.sourceSha,
+              Present(42)
+            )
+          )
+      )
+    }
+  }
+
 class SquireMetaSpec extends Test[Any]:
   private val skillDirectory = java.nio.file.Paths.get(java.lang.System.getProperty("user.dir"))
 
@@ -166,9 +201,223 @@ class SquireMetaSpec extends Test[Any]:
           "SquireEnvSpec",
           "SquireDoctorSpec",
           "SquireCellarSpec",
-          "SquireRepoSpec"
+          "SquireRepoSpec",
+          "SquireBranchSpec"
         )
       )
+    }
+  }
+
+class SquireBranchSpec extends Test[Any]:
+  import SquireBranchFixtures.*
+
+  "CLI options" - {
+    "default to develop without dry-run or JSON" in {
+      val parsed = Parser[BranchRefreshOpts].parse(Seq.empty)
+      assert(parsed == Right((BranchRefreshOpts(), Seq.empty)))
+    }
+
+    "accept a named target and reject a bare positional target before any process" in {
+      val named      = Parser[BranchRefreshOpts].parse(Seq("--target", "release-line"))
+      val positional = SquireApp.BranchRefreshCmd.parser.detailedParse(Seq("release-line"))
+      positional match
+        case Left(_)                     => assert(false)
+        case Right((options, remaining)) =>
+          val runner = BranchRecordingRunner(Map.empty)
+          Abort.run[SquireError](
+            SquireCli.runBranch(options, remaining.all, runner, _ => ())
+          ).map { outcome =>
+            assert(
+              named == Right((BranchRefreshOpts(target = "release-line"), Seq.empty)) &&
+                failureContains(outcome, "unexpected positional arguments", "release-line") &&
+                runner.requests.isEmpty
+            )
+          }
+    }
+  }
+
+  "proof pipeline" - {
+    "short-circuits equal remote refs before GitHub and never pushes" in {
+      val sha    = "a" * 40
+      val runner = BranchRecordingRunner(
+        baseResponses.updated(resolveSource, ok(resolveSource, sha + "\n"))
+          .updated(resolveTarget, ok(resolveTarget, sha + "\n"))
+      )
+      Abort.run[SquireError](SquireBranch.refresh("develop", dryRun = false, runner)).map { outcome =>
+        assert(
+          outcome == Result.Success(RefreshResult("already-current", "develop", sha, sha, Absent)) &&
+            !runner.requests.exists(_.argv.headOption.contains("gh")) &&
+            neverPushed(runner)
+        )
+      }
+    }
+
+    "fetches both exact remote-tracking refspecs in a single-branch clone" in {
+      for
+        root <- SquireFixtures.scratch("branch-fetch")
+        origin = root / "origin.git"
+        seed   = root / "seed"
+        clone  = root / "clone"
+        _ <- Sync.defer {
+          git(root, "init", "--bare", origin.toString)
+          git(root, "init", "-b", "main", seed.toString)
+          git(seed, "config", "user.name", "Branch Refresh Test")
+          git(seed, "config", "user.email", "branch-refresh@example.invalid")
+          Files.writeString((seed / "main.txt").toJava, "main one\n")
+          git(seed, "add", "main.txt")
+          git(seed, "commit", "-m", "main one")
+          git(seed, "remote", "add", "origin", origin.toString)
+          git(seed, "push", "-u", "origin", "main")
+          git(seed, "switch", "-c", "develop")
+          Files.writeString((seed / "develop.txt").toJava, "develop one\n")
+          git(seed, "add", "develop.txt")
+          git(seed, "commit", "-m", "develop one")
+          git(seed, "push", "-u", "origin", "develop")
+          git(root, "clone", "--single-branch", "--branch", "main", origin.toString, clone.toString)
+          git(seed, "switch", "main")
+          Files.writeString((seed / "main.txt").toJava, "main two\n")
+          git(seed, "add", "main.txt")
+          git(seed, "commit", "-m", "main two")
+          git(seed, "push", "origin", "main")
+          git(seed, "switch", "develop")
+          Files.writeString((seed / "develop.txt").toJava, "develop two\n")
+          git(seed, "add", "develop.txt")
+          git(seed, "commit", "-m", "develop two")
+          git(seed, "push", "origin", "develop")
+        }
+        mainTip     = git(origin, "rev-parse", "refs/heads/main").trim
+        developTip  = git(origin, "rev-parse", "refs/heads/develop").trim
+        pullRequest =
+          s"""[{"number":42,"headRefOid":"$developTip","mergeCommit":{"oid":"$mainTip"}}]"""
+        runner = LocalGitBranchRunner(clone, Map(repoView -> "finos/morphir-scala\n", prList -> pullRequest))
+        outcome <- Abort.run[SquireError](SquireBranch.refresh("develop", dryRun = true, runner))
+        fetchedMain    = git(clone, "rev-parse", "refs/remotes/origin/main").trim
+        fetchedDevelop = git(clone, "rev-parse", "refs/remotes/origin/develop").trim
+      yield assert(
+        outcome == Result.Success(RefreshResult("validated", "develop", developTip, mainTip, Present(42))) &&
+          fetchedMain == mainTip && fetchedDevelop == developTip &&
+          runner.requests.map(_.argv).contains(fetch)
+      )
+    }
+
+    "rejects each pre-proof command failure with operation and PR context before push" in {
+      val cases = Chunk(
+        (checkTarget, "validate target branch", "invalid ref"),
+        (fetch, "fetch origin branches", "network unavailable"),
+        (resolveSource, "resolve remote refs", "missing origin main")
+      )
+      Kyo.foreach(cases) { case (command, operation, detail) =>
+        val runner = BranchRecordingRunner(baseResponses.updated(command, failed(command, detail)))
+        Abort.run[SquireError](SquireBranch.refresh("develop", dryRun = false, runner)).map { outcome =>
+          assert(
+            failureContains(outcome, operation, "develop", "develop-to-main PR", detail) &&
+              !runner.requests.exists(_.argv.headOption.contains("gh")) && neverPushed(runner)
+          )
+        }
+      }
+    }
+
+    "validates an exact target head with a reachable merge without push" in {
+      val runner = BranchRecordingRunner(successfulProofResponses)
+      Abort.run[SquireError](SquireBranch.refresh("develop", dryRun = true, runner)).map { outcome =>
+        assert(
+          outcome == Result.Success(
+            RefreshResult("validated", "develop", targetSha, sourceSha, Present(42))
+          ) && runner.requests.map(_.argv).contains(ancestor) && neverPushed(runner)
+        )
+      }
+    }
+
+    "rejects every GitHub proof shape and command failure before push" in {
+      val otherHead = matchingPullRequest.replace(targetSha, "4" * 40)
+      val cases     = Chunk(
+        (proofResponses(s"[$otherHead]"), Chunk("could not find", "head SHA exactly matches")),
+        (
+          proofResponses(s"[${matchingPullRequest.replace(s"{\"oid\":\"$mergeSha\"}", "null")}]"),
+          Chunk("merge commit")
+        ),
+        (proofResponses(s"[${matchingPullRequest.replace("\"number\":42,", "")}]"), Chunk("number", "integer")),
+        (
+          proofResponses(s"[${matchingPullRequest.replace("\"number\":42", "\"number\":\"42\"")}]"),
+          Chunk("number", "integer")
+        ),
+        (proofResponses("not json"), Chunk("JSON")),
+        (proofResponses("{\"number\":42}"), Chunk("array")),
+        (
+          proofResponses("[]").updated(repoView, failed(repoView, "gh unavailable")),
+          Chunk("identify repository", "gh unavailable")
+        ),
+        (
+          proofResponses("[]").updated(prList, failed(prList, "PR listing unavailable")),
+          Chunk("list merged PRs", "PR listing unavailable")
+        )
+      )
+      Kyo.foreach(cases) { case (responses, fragments) =>
+        val runner = BranchRecordingRunner(responses)
+        Abort.run[SquireError](SquireBranch.refresh("develop", dryRun = true, runner)).map { outcome =>
+          assert(
+            failureContains(outcome, (Chunk("develop", "develop-to-main PR") ++ fragments)*) &&
+              neverPushed(runner)
+          )
+        }
+      }
+    }
+
+    "rejects unreachable merge ancestry before push" in {
+      val runner = BranchRecordingRunner(
+        proofResponses(s"[$matchingPullRequest]").updated(ancestor, failed(ancestor, "not an ancestor"))
+      )
+      Abort.run[SquireError](SquireBranch.refresh("develop", dryRun = true, runner)).map { outcome =>
+        assert(
+          failureContains(
+            outcome,
+            "verify merge ancestry",
+            "develop",
+            "develop-to-main PR",
+            "origin/main",
+            "not an ancestor"
+          ) && neverPushed(runner)
+        )
+      }
+    }
+
+    "rejects main as a target without invoking a process" in {
+      val runner = BranchRecordingRunner(Map.empty)
+      Abort.run[SquireError](SquireBranch.refresh("main", dryRun = false, runner)).map { outcome =>
+        assert(failureContains(outcome, "target branch must not be main") && runner.requests.isEmpty)
+      }
+    }
+  }
+
+  "leased update boundary" - {
+    "uses the exact force-with-lease request only after every proof" in {
+      val runner = BranchRecordingRunner(successfulProofResponses.updated(push, ok(push)))
+      Abort.run[SquireError](SquireBranch.refresh("develop", dryRun = false, runner)).map { outcome =>
+        assert(
+          outcome == Result.Success(RefreshResult("updated", "develop", targetSha, sourceSha, Present(42))) &&
+            runner.requests.map(_.argv) == Chunk(
+              checkTarget,
+              fetch,
+              resolveSource,
+              resolveTarget,
+              repoView,
+              prList,
+              ancestor,
+              push
+            )
+        )
+      }
+    }
+
+    "surfaces a lease rejection without retry or unleased force" in {
+      val runner = BranchRecordingRunner(successfulProofResponses.updated(push, failed(push, "lease rejected")))
+      Abort.run[SquireError](SquireBranch.refresh("develop", dryRun = false, runner)).map { outcome =>
+        val pushes = runner.requests.map(_.argv).filter(_.take(2) == Chunk("git", "push"))
+        assert(
+          failureContains(outcome, "push leased update", "develop", "develop-to-main PR", "lease rejected") &&
+            pushes == Chunk(push)
+        )
+      }
     }
   }
 
@@ -314,6 +563,120 @@ final class RuleRunner(response: ProcessRequest => ProcessResult) extends Proces
   def run(request: ProcessRequest): ProcessResult < (Async & Abort[SquireError]) =
     requests = requests.append(request)
     response(request)
+
+final class BranchRecordingRunner(responses: Map[Chunk[String], ProcessResult]) extends ProcessRunner:
+  var requests: Chunk[ProcessRequest] = Chunk.empty
+
+  def run(request: ProcessRequest): ProcessResult < (Async & Abort[SquireError]) =
+    requests = requests.append(request)
+    responses(request.argv).copy(request = request)
+
+object BranchRecordingRunner:
+  def apply(responses: Map[Chunk[String], ProcessResult]): BranchRecordingRunner =
+    new BranchRecordingRunner(responses)
+
+final class LocalGitBranchRunner(cwd: Path, responses: Map[Chunk[String], String]) extends ProcessRunner:
+  var requests: Chunk[ProcessRequest] = Chunk.empty
+
+  def run(request: ProcessRequest): ProcessResult < (Async & Abort[SquireError]) =
+    requests = requests.append(request)
+    if request.argv.headOption.contains("git") then
+      LiveProcessRunner.run(request.copy(cwd = Present(cwd))).map(_.copy(request = request))
+    else
+      ProcessResult(request, 0, responses(request.argv), "")
+
+object SquireBranchFixtures:
+  val sourceSha: String = "1" * 40
+  val targetSha: String = "2" * 40
+  val mergeSha: String  = "3" * 40
+
+  val checkTarget: Chunk[String] = Chunk("git", "check-ref-format", "--branch", "develop")
+  val fetch: Chunk[String]       = Chunk(
+    "git",
+    "fetch",
+    "--prune",
+    "origin",
+    "+refs/heads/main:refs/remotes/origin/main",
+    "+refs/heads/develop:refs/remotes/origin/develop"
+  )
+  val resolveSource: Chunk[String] = Chunk("git", "rev-parse", "refs/remotes/origin/main")
+  val resolveTarget: Chunk[String] = Chunk("git", "rev-parse", "refs/remotes/origin/develop")
+  val repoView: Chunk[String]      = Chunk(
+    "gh",
+    "repo",
+    "view",
+    "--json",
+    "nameWithOwner",
+    "--jq",
+    ".nameWithOwner"
+  )
+  val prList: Chunk[String] = Chunk(
+    "gh",
+    "pr",
+    "list",
+    "--repo",
+    "finos/morphir-scala",
+    "--base",
+    "main",
+    "--head",
+    "develop",
+    "--state",
+    "merged",
+    "--limit",
+    "100",
+    "--json",
+    "number,headRefOid,mergeCommit,url,mergedAt"
+  )
+  val ancestor: Chunk[String] =
+    Chunk("git", "merge-base", "--is-ancestor", mergeSha, "refs/remotes/origin/main")
+  val push: Chunk[String] = Chunk(
+    "git",
+    "push",
+    s"--force-with-lease=refs/heads/develop:$targetSha",
+    "origin",
+    "refs/remotes/origin/main:refs/heads/develop"
+  )
+
+  val matchingPullRequest: String =
+    s"""{"number":42,"headRefOid":"$targetSha","mergeCommit":{"oid":"$mergeSha"},"url":"https://github.com/finos/morphir-scala/pull/42","mergedAt":"2026-08-07T12:00:00Z"}"""
+
+  def ok(argv: Chunk[String], stdout: String = ""): ProcessResult =
+    ProcessResult(ProcessRequest(argv), 0, stdout, "")
+
+  def failed(argv: Chunk[String], detail: String): ProcessResult =
+    ProcessResult(ProcessRequest(argv), 1, "", detail)
+
+  val baseResponses: Map[Chunk[String], ProcessResult] = Map(
+    checkTarget   -> ok(checkTarget, "develop\n"),
+    fetch         -> ok(fetch),
+    resolveSource -> ok(resolveSource, sourceSha + "\n"),
+    resolveTarget -> ok(resolveTarget, targetSha + "\n")
+  )
+
+  def proofResponses(pullRequests: String): Map[Chunk[String], ProcessResult] =
+    baseResponses ++ Map(
+      repoView -> ok(repoView, "finos/morphir-scala\n"),
+      prList   -> ok(prList, pullRequests)
+    )
+
+  val successfulProofResponses: Map[Chunk[String], ProcessResult] =
+    proofResponses(s"[$matchingPullRequest]").updated(ancestor, ok(ancestor))
+
+  def neverPushed(runner: BranchRecordingRunner): Boolean =
+    !runner.requests.exists(_.argv.take(2) == Chunk("git", "push"))
+
+  def failureContains[A](outcome: Result[SquireError, A], fragments: String*): Boolean =
+    outcome match
+      case Result.Failure(error) => fragments.forall(error.getMessage.contains)
+      case Result.Success(_)     => false
+
+  def git(cwd: Path, args: String*): String =
+    val process =
+      new ProcessBuilder((Seq("git") ++ args)*).directory(cwd.toJava.toFile).redirectErrorStream(true).start()
+    val output = new String(process.getInputStream.readAllBytes(), StandardCharsets.UTF_8)
+    val exit   = process.waitFor()
+    if exit != 0 then throw new RuntimeException(s"git ${args.mkString(" ")} failed: ${output.trim}")
+    output
 
 final case class TestSquirePlatform(
     executable: Maybe[String] = Absent,
