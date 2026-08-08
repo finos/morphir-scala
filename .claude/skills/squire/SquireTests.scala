@@ -11,6 +11,7 @@ import java.nio.file.Files
 import caseapp.core.parser.Parser
 import kyo.*
 import kyo.test.*
+import scala.jdk.CollectionConverters.*
 
 class SquireCliSpec extends Test[Any]:
   "commands" - {
@@ -203,6 +204,42 @@ class SquireCliSpec extends Test[Any]:
     }
   }
 
+  "schema routing" - {
+    "uses build and compare defaults while keeping JSON stdout clean" in {
+      for
+        root <- SquireFixtures.scratch("schemas-cli")
+        source = root / "schemas"
+        _ <- Sync.defer {
+          Files.createDirectories(source.toJava)
+          Files.writeString((source / "morphir-ir-v4.yaml").toJava, "$id: https://example.test/v4.yaml\ntype: object\n")
+        }
+        buildOutput = new StringBuilder
+        buildExit <- SquireCli.runSchemasBuild(
+          SchemasBuildOpts(from = Some(source.toString), json = true),
+          root,
+          value => buildOutput.append(value),
+          _ => ()
+        )
+        buildReport   = SquireJson.decode[SchemaReport](buildOutput.result().trim)
+        generated     = root / ".dev" / "out" / "squire" / "schemas" / "morphir-ir-v4.json"
+        compareOutput = new StringBuilder
+        compareExit <- SquireCli.runSchemasCompare(
+          SchemasCompareOpts(from = Some(source.toString), json = true),
+          root,
+          value => compareOutput.append(value),
+          _ => ()
+        )
+        compareReport = SquireJson.decode[SchemaReport](compareOutput.result().trim)
+      yield assert(
+        buildExit == 0 && buildReport.exists(report => report.to == generated.parent.get.toString && report.ok) &&
+          Files.exists(generated.toJava) && compareExit == 1 &&
+          compareReport.exists(report => report.to == source.toString && !report.ok) &&
+          !buildOutput.result().contains("written\nwritten")
+      )
+    }
+  }
+
+
 class SquireMetaSpec extends Test[Any]:
   private val skillDirectory = java.nio.file.Paths.get(java.lang.System.getProperty("user.dir"))
 
@@ -213,6 +250,10 @@ class SquireMetaSpec extends Test[Any]:
     "run the single-file application without a Mill server or ticker" in {
       assert(read("squire").contains("--no-server --ticker false squire.scala"))
       assert(read("squire.bat").contains("--no-server --ticker false squire.scala"))
+    }
+    "preserve the activated validator executable across Mill's PATH rewrite" in {
+      assert(read("squire").contains("command -v jsonschema") && read("squire").contains("SQUIRE_JSONSCHEMA_BIN"))
+      assert(read("squire.bat").contains("where jsonschema") && read("squire.bat").contains("SQUIRE_JSONSCHEMA_BIN"))
     }
   }
 
@@ -242,7 +283,8 @@ class SquireMetaSpec extends Test[Any]:
           "SquireCellarSpec",
           "SquireRepoSpec",
           "SquireBranchSpec",
-          "SquireTrackingSpec"
+          "SquireTrackingSpec",
+          "SquireSchemasSpec"
         )
       )
     }
@@ -517,6 +559,232 @@ class SquireModelSpec extends Test[Any]:
     catch
       case SquireError.Failure(area, message, _) =>
         area == "json" && message == "value cannot be represented as deterministic JSON"
+
+class SquireSchemasSpec extends Test[Any]:
+  private val skillDirectory = java.nio.file.Paths.get(java.lang.System.getProperty("user.dir"))
+
+  "conversion" - {
+    "preserves YAML scalar types, order, Unicode, escapes, mappings, and sequences while rewriting only top-level id" in {
+      val yaml =
+        """$id: https://example.test/schema.yaml
+          |nested:
+          |  $id: keep.yaml
+          |nothing: null
+          |yes: true
+          |no: false
+          |integer: 42
+          |negative: -7
+          |decimal: 1.25
+          |exponential: 1.2e3
+          |unicode: "λ café"
+          |escaped: "line\n\"quoted\"\\slash"
+          |mapping:
+          |  z: first
+          |  a: second
+          |sequence:
+          |  - null
+          |  - false
+          |  - 3
+          |  - 2.5
+          |""".stripMargin
+      val expected =
+        """{
+          |  "$id": "https://example.test/schema.json",
+          |  "nested": {
+          |    "$id": "keep.yaml"
+          |  },
+          |  "nothing": null,
+          |  "yes": true,
+          |  "no": false,
+          |  "integer": 42,
+          |  "negative": -7,
+          |  "decimal": 1.25,
+          |  "exponential": 1200,
+          |  "unicode": "λ café",
+          |  "escaped": "line\n\"quoted\"\\slash",
+          |  "mapping": {
+          |    "z": "first",
+          |    "a": "second"
+          |  },
+          |  "sequence": [
+          |    null,
+          |    false,
+          |    3,
+          |    2.5
+          |  ]
+          |}
+          |""".stripMargin
+      assert(SquireSchemas.convert(yaml) == Result.Success(expected))
+    }
+
+    "matches the committed v4 golden bytes" in {
+      val yaml = Files.readString(skillDirectory.resolve("test-resources/schemas/morphir-ir-v4.yaml"))
+      val json = Files.readString(skillDirectory.resolve("test-resources/schemas/morphir-ir-v4.json"))
+      assert(SquireSchemas.convert(yaml) == Result.Success(json))
+    }
+
+    "matches every available reference-checkout IR golden" in {
+      val root      = skillDirectory.resolve("../../..").normalize
+      val mirror    = root.resolve("kb/bundles/morphir/morphir-upstream/sources/website/static/schemas")
+      val reference = root.resolve(".refs/finos/morphir/website/static/schemas")
+      if !Files.isDirectory(reference) then assert(true)
+      else
+        val stream = Files.list(mirror)
+        try
+          val names = stream.iterator.asScala
+            .map(_.getFileName.toString)
+            .filter(name => name.startsWith("morphir-ir-") && name.endsWith(".yaml"))
+            .toList
+            .sorted
+          assert(names.forall { name =>
+            val target = reference.resolve(name.stripSuffix(".yaml") + ".json")
+            Files.isRegularFile(target) &&
+            SquireSchemas.convert(Files.readString(mirror.resolve(name))) == Result.Success(Files.readString(target))
+          })
+        finally stream.close()
+    }
+  }
+
+  "build and compare" - {
+    "selects IR-only or all Morphir YAML in basename order and creates output directories" in {
+      for
+        root <- SquireFixtures.scratch("schemas-build")
+        source = root / "source"
+        out    = root / "nested" / "generated"
+        allOut = root / "all"
+        _ <- Sync.defer {
+          Files.createDirectories(source.toJava)
+          Files.writeString((source / "morphir-ir-z.yaml").toJava, "z: 1\n")
+          Files.writeString((source / "morphir-config-v1.yaml").toJava, "config: true\n")
+          Files.writeString((source / "morphir-ir-a.yaml").toJava, "a: 2\n")
+          Files.writeString((source / "ignored.yaml").toJava, "ignored: true\n")
+        }
+        ir  <- SquireSchemas.build(source, out, all = false)
+        all <- SquireSchemas.build(source, allOut, all = true)
+      yield assert(
+        ir.outcomes.map(_.file) == List("morphir-ir-a.json", "morphir-ir-z.json") &&
+          ir.outcomes.forall(_.status == "written") && Files.isDirectory(out.toJava) &&
+          all.outcomes.map(_.file) == List("morphir-config-v1.json", "morphir-ir-a.json", "morphir-ir-z.json")
+      )
+    }
+
+    "reports identical, drifted, missing, and the all-missing summary with nonzero comparison status" in {
+      for
+        root <- SquireFixtures.scratch("schemas-compare")
+        source  = root / "source"
+        target  = root / "target"
+        missing = root / "missing"
+        _ <- Sync.defer {
+          Files.createDirectories(source.toJava)
+          Files.createDirectories(target.toJava)
+          Files.createDirectories(missing.toJava)
+          Files.writeString((source / "morphir-ir-a.yaml").toJava, "a: 1\n")
+          Files.writeString((source / "morphir-ir-b.yaml").toJava, "b: 2\n")
+          Files.writeString((source / "morphir-config-v1.yaml").toJava, "config: true\n")
+          Files.writeString((target / "morphir-ir-a.json").toJava, "{\n  \"a\": 1\n}\n")
+          Files.writeString((target / "morphir-ir-b.json").toJava, "{}\n")
+        }
+        compared   <- SquireSchemas.compare(source, target, all = true)
+        allMissing <- SquireSchemas.compare(source, missing, all = false)
+      yield assert(
+        compared.outcomes.map(outcome => outcome.file -> outcome.status) == List(
+          "morphir-config-v1.json" -> "missing",
+          "morphir-ir-a.json"      -> "identical",
+          "morphir-ir-b.json"      -> "drifted"
+        ) && !compared.ok && SquireSchemas.exitCode(compared) == 1 &&
+          allMissing.outcomes.forall(_.status == "missing") &&
+          SquireSchemas.renderText(allMissing).contains("no generated JSON under")
+      )
+    }
+
+    "fails explicitly when no input names match" in {
+      for
+        root <- SquireFixtures.scratch("schemas-empty")
+        source = root / "source"
+        _      <- Sync.defer(Files.createDirectories(source.toJava))
+        result <- Abort.run[SquireError](SquireSchemas.build(source, root / "out", all = false))
+      yield assert(result.isFailure)
+    }
+  }
+
+  "validation" - {
+    "fails when jsonschema is unavailable" in {
+      for
+        root <- SquireFixtures.scratch("schemas-no-jsonschema")
+        runner = RuleRunner(request => ProcessResult(request, 127, "", "not found"))
+        result <- Abort.run[SquireError](SquireSchemas.validate(root, root, root, runner))
+      yield assert(result.isFailure && runner.requests.map(_.argv) == Chunk(Chunk("jsonschema", "--version")))
+    }
+
+    "distinguishes an incompatible validator command from an invalid schema" in {
+      for
+        root <- SquireFixtures.scratch("schemas-incompatible-jsonschema")
+        yaml = root / "morphir-ir-v4.yaml"
+        _ <- Sync.defer(Files.writeString(yaml.toJava, "type: object\n"))
+        runner = RuleRunner { request =>
+          if request.argv == Chunk("/tools/jsonschema", "--version") then ProcessResult(request, 0, "4.10.3\n", "")
+          else ProcessResult(request, 2, "", "usage: jsonschema\njsonschema: error: unrecognized arguments")
+        }
+        result <- Abort.run[SquireError](
+          SquireSchemas.validate(root, root, root, runner, jsonschema = "/tools/jsonschema")
+        )
+      yield assert(result.isFailure && runner.requests.map(_.argv) == Chunk(
+        Chunk("/tools/jsonschema", "--version"),
+        Chunk("/tools/jsonschema", "metaschema", yaml.toString)
+      ))
+    }
+
+    "reports sorted metaschema and document outcomes, skips non-documents, and keeps validation non-gating" in {
+      for
+        root <- SquireFixtures.scratch("schemas-validate")
+        yaml      = root / "yaml"
+        generated = root / "generated"
+        documents = root / "documents"
+        _ <- Sync.defer {
+          Files.createDirectories(yaml.toJava)
+          Files.createDirectories(generated.toJava)
+          Files.createDirectories(documents.toJava)
+          Files.writeString((yaml / "morphir-ir-z.yaml").toJava, "type: object\n")
+          Files.writeString((yaml / "morphir-ir-a.yaml").toJava, "type: object\n")
+          Files.writeString((generated / "morphir-ir-v4.json").toJava, "{}\n")
+          Files.writeString((documents / "a-invalid.json").toJava, "{\"formatVersion\":\"4.2\"}\n")
+          Files.writeString((documents / "b-malformed.json").toJava, "{not-json")
+          Files.writeString((documents / "c-array.json").toJava, "[]\n")
+          Files.writeString((documents / "d-missing-schema.json").toJava, "{\"formatVersion\":\"9.0\"}\n")
+          Files.writeString((documents / "z-valid.json").toJava, "{\"formatVersion\":4}\n")
+        }
+        runner = RuleRunner { request =>
+          val name = request.argv.lastOption.getOrElse("")
+          if request.argv == Chunk("jsonschema", "--version") then ProcessResult(request, 0, "v0", "")
+          else if request.argv.lift(1).contains("metaschema") && name.endsWith("morphir-ir-z.yaml") then
+            ProcessResult(request, 1, "", "bad schema")
+          else if request.argv.lift(1).contains("validate") && name.endsWith("a-invalid.json") then
+            ProcessResult(request, 2, "", "error: Schema validation failure")
+          else ProcessResult(request, 0, "", "")
+        }
+        report <- SquireSchemas.validate(yaml, generated, documents, runner)
+      yield assert(
+        report.ok && SquireSchemas.exitCode(report) == 0 &&
+          report.outcomes.map(outcome => outcome.file -> outcome.status) == List(
+            "morphir-ir-a.yaml"     -> "metaschema-valid",
+            "morphir-ir-z.yaml"     -> "metaschema-invalid",
+            "a-invalid.json"        -> "invalid",
+            "b-malformed.json"      -> "skipped",
+            "c-array.json"          -> "skipped",
+            "d-missing-schema.json" -> "skipped",
+            "z-valid.json"          -> "valid"
+          ) &&
+          runner.requests.exists(_.argv == Chunk(
+            "jsonschema",
+            "validate",
+            (generated / "morphir-ir-v4.json").toString,
+            (documents / "z-valid.json").toString
+          )) &&
+          runner.requests.forall(!_.argv.exists(_.contains("python")))
+      )
+    }
+  }
+
 
 class SquireProcessSpec extends Test[Any]:
   "process runner" - {

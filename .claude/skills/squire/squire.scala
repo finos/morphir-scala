@@ -1,6 +1,6 @@
 //| scalaVersion: 3.8.4
 //| mainClass: SquireApp
-//| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireEnv.scala, SquireDoctor.scala, SquireCellar.scala, SquireRepo.scala, SquireBranch.scala, SquireTracking.scala]
+//| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireEnv.scala, SquireDoctor.scala, SquireCellar.scala, SquireRepo.scala, SquireBranch.scala, SquireTracking.scala, SquireSchemas.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-case-app:1.0.0-RC6
 
@@ -82,17 +82,22 @@ case class SpecExportOpts(
 
 case class SchemasBuildOpts(
     @HelpMessage("Input schema directory") from: Option[String] = None,
-    @HelpMessage("Output schema directory") out: Option[String] = None
+    @HelpMessage("Output schema directory") out: Option[String] = None,
+    @HelpMessage("Include every morphir-*.yaml schema") all: Boolean = false,
+    @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )
 
 case class SchemasCompareOpts(
     @HelpMessage("Input schema directory") from: Option[String] = None,
-    @HelpMessage("Output schema directory") out: Option[String] = None
+    @HelpMessage("Output schema directory") out: Option[String] = None,
+    @HelpMessage("Include every morphir-*.yaml schema") all: Boolean = false,
+    @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )
 
 case class SchemasValidateOpts(
     @HelpMessage("Schema directory") schemas: Option[String] = None,
-    @HelpMessage("Document directory") documents: Option[String] = None
+    @HelpMessage("Document directory") documents: Option[String] = None,
+    @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )
 
 object SquireCli:
@@ -276,6 +281,67 @@ object SquireCli:
       output("guidance:\n")
       output(guidance.output)
       if guidance.exitCode == 0 then 0 else 1
+
+  def runSchemasBuild(
+      options: SchemasBuildOpts,
+      root: Path,
+      output: String => Unit,
+      errorOutput: String => Unit
+  ): Int < Sync =
+    val from = resolveOption(root, options.from, SquireSchemas.DefaultFrom)
+    val to   = resolveOption(root, options.out, SquireSchemas.DefaultOut)
+    runSchemaReport(SquireSchemas.build(from, to, options.all), options.json, output, errorOutput)
+
+  def runSchemasCompare(
+      options: SchemasCompareOpts,
+      root: Path,
+      output: String => Unit,
+      errorOutput: String => Unit
+  ): Int < Sync =
+    val from = resolveOption(root, options.from, SquireSchemas.DefaultFrom)
+    val to   = options.out.fold(from)(value => resolvePath(root, value))
+    runSchemaReport(SquireSchemas.compare(from, to, options.all), options.json, output, errorOutput)
+
+  def runSchemasValidate(
+      options: SchemasValidateOpts,
+      root: Path,
+      runner: ProcessRunner,
+      output: String => Unit,
+      errorOutput: String => Unit
+  ): Int < (Async & Sync) =
+    val sources    = root / SquireSchemas.DefaultFrom
+    val schemas    = resolveOption(root, options.schemas, SquireSchemas.DefaultOut)
+    val documents  = resolveOption(root, options.documents, SquireSchemas.DefaultDocuments)
+    val jsonschema = Option(java.lang.System.getenv("SQUIRE_JSONSCHEMA_BIN")).filter(_.nonEmpty).getOrElse("jsonschema")
+    runSchemaReport(
+      SquireSchemas.validate(sources, schemas, documents, runner, jsonschema),
+      options.json,
+      output,
+      errorOutput
+    )
+
+  private def runSchemaReport[S](
+      operation: SchemaReport < (S & Abort[SquireError]),
+      json: Boolean,
+      output: String => Unit,
+      errorOutput: String => Unit
+  ): Int < S =
+    Abort.run[SquireError](operation).map {
+      case Result.Success(report) =>
+        output(if json then SquireJson.encode(report) + "\n" else SquireSchemas.renderText(report))
+        SquireSchemas.exitCode(report)
+      case Result.Failure(error) =>
+        errorOutput(s"ERROR: ${error.getMessage}\n")
+        1
+    }
+
+  private def resolveOption(root: Path, value: Option[String], default: String): Path =
+    resolvePath(root, value.getOrElse(default))
+
+  private def resolvePath(root: Path, value: String): Path =
+    val path = Path(value)
+    if path.toJava.isAbsolute then path else root / value
+
 
   def exitUnlessZero(exitCode: Int): Unit < Sync =
     if exitCode == 0 then () else Sync.defer(java.lang.System.exit(exitCode))
@@ -479,16 +545,40 @@ object SquireApp extends CommandsEntryPoint:
     run { (_: SpecExportOpts) => SquireCli.notImplemented(name) }
 
   object SchemasBuildCmd extends KyoCommand[SchemasBuildOpts]:
-    override def name = "schemas build"
+    override def name  = "schemas build"
     override def names = List(List("schemas", "build"))
-    run { (_: SchemasBuildOpts) => SquireCli.notImplemented(name) }
+    run { options =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli
+          .runSchemasBuild(options, root, java.lang.System.out.print, java.lang.System.err.print)
+          .flatMap(SquireCli.exitUnlessZero)
+      }
+    }
 
   object SchemasCompareCmd extends KyoCommand[SchemasCompareOpts]:
-    override def name = "schemas compare"
+    override def name  = "schemas compare"
     override def names = List(List("schemas", "compare"))
-    run { (_: SchemasCompareOpts) => SquireCli.notImplemented(name) }
+    run { options =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli
+          .runSchemasCompare(options, root, java.lang.System.out.print, java.lang.System.err.print)
+          .flatMap(SquireCli.exitUnlessZero)
+      }
+    }
 
   object SchemasValidateCmd extends KyoCommand[SchemasValidateOpts]:
-    override def name = "schemas validate"
+    override def name  = "schemas validate"
     override def names = List(List("schemas", "validate"))
-    run { (_: SchemasValidateOpts) => SquireCli.notImplemented(name) }
+    run { options =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli
+          .runSchemasValidate(
+            options,
+            root,
+            LiveProcessRunner,
+            java.lang.System.out.print,
+            java.lang.System.err.print
+          )
+          .flatMap(SquireCli.exitUnlessZero)
+      }
+    }
