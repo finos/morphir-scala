@@ -1,12 +1,16 @@
 package org.finos.morphir.mill.toolchain
 
 import java.util.Locale
+import upickle.default.ReadWriter
 
 /** A non-negative quantity of storage represented exactly in bytes. */
 opaque type StorageSize = Long
 
 object StorageSize {
   inline given CanEqual[StorageSize, StorageSize] = CanEqual.derived
+
+  given ReadWriter[StorageSize] =
+    upickle.default.readwriter[Long].bimap[StorageSize](_.toBytes, value => fromBytes(value).fold(throw _, identity))
 
   final case class Error(input: String, reason: String)
       extends IllegalArgumentException(s"Invalid storage size '$input': $reason")

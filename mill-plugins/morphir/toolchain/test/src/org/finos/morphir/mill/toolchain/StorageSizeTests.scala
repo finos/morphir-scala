@@ -46,6 +46,37 @@ object StorageSizeTests extends TestSuite {
       }
     }
 
+    test("checked byte construction rejects negatives and preserves non-negative values") {
+      val negative = StorageSize.fromBytes(-1L)
+      assert(negative.isLeft)
+      assert(negative.swap.toOption.get.isInstanceOf[IllegalArgumentException])
+      assert(StorageSize.fromBytes(0L) == Right(StorageSize.Zero))
+      assert(StorageSize.fromBytes(42L).map(_.toBytes) == Right(42L))
+    }
+
+    test("external consumers cannot assign a raw Long to StorageSize") {
+      val errors = typeCheckErrors(
+        """
+          import org.finos.morphir.mill.toolchain.StorageSize
+          val raw: Long = 64L
+          val size: StorageSize = raw
+        """
+      )
+      assert(errors.nonEmpty)
+      assert(errors.exists(_.message.contains("Required: org.finos.morphir.mill.toolchain.StorageSize")))
+    }
+
+    test("storage sizes serialize as validated byte counts") {
+      val size = storageSize"64 MiB"
+      val json = upickle.default.write(size)
+      assert(json == "67108864")
+      assert(upickle.default.read[StorageSize](json) == size)
+
+      val negative = scala.util.Try(upickle.default.read[StorageSize]("-1")).failed.get
+      val causes = Iterator.iterate(Option(negative))(_.flatMap(error => Option(error.getCause))).takeWhile(_.nonEmpty)
+      assert(causes.flatten.exists(_.isInstanceOf[StorageSize.Error]))
+    }
+
     test("human rendering is lossless") {
       val expected = Seq(
         "0"                    -> "0 B",
@@ -81,12 +112,20 @@ object StorageSizeTests extends TestSuite {
       val interpolated = typeCheckErrors(
         """import org.finos.morphir.mill.toolchain.*; val value = 64; storageSize"$value MiB""""
       )
+      val dynamicVarargs = typeCheckErrors(
+        """
+          import org.finos.morphir.mill.toolchain.*
+          def forward(values: Seq[Any]) = StringContext("64 MiB").storageSize(values*)
+        """
+      )
 
       assert(negative.nonEmpty)
       assert(inexact.nonEmpty)
       assert(overflow.nonEmpty)
       assert(interpolated.nonEmpty)
       assert(interpolated.head.message.contains("does not accept interpolation"))
+      assert(dynamicVarargs.nonEmpty)
+      assert(dynamicVarargs.head.message.contains("requires literal arguments"))
     }
 
     test("public toolchain byte limits use StorageSize") {

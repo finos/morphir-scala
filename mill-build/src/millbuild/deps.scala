@@ -62,6 +62,7 @@ object Deps {
       val pprint         = mvn"com.lihaoyi::pprint::0.9.6"
       val ujson          = mvn"com.lihaoyi::ujson::${Versions.upickle}"
       val upickle        = mvn"com.lihaoyi::upickle::${Versions.upickle}"
+      val upickleJvm     = mvn"com.lihaoyi::upickle:${Versions.upickle}"
       val `upickle-core` = mvn"com.lihaoyi::upickle-core::${Versions.upickle}"
     }
 

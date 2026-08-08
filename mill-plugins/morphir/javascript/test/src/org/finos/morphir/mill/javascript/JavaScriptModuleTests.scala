@@ -400,6 +400,24 @@ object JavaScriptModuleTests extends TestSuite {
       }
     }
 
+    test("optional entry counters do not wrap at Int.MaxValue") {
+      val next = NpmProcess.incrementOptionalCount(
+        Int.MaxValue.toLong,
+        None,
+        count => new IllegalArgumentException(s"unexpected $count")
+      )
+      assert(next == Int.MaxValue.toLong + 1L)
+
+      val capped = scala.util.Try {
+        NpmProcess.incrementOptionalCount(
+          Int.MaxValue.toLong,
+          Some(Int.MaxValue),
+          count => new IllegalArgumentException(s"limit exceeded at $count")
+        )
+      }.failed.get
+      assert(capped.getMessage.contains((Int.MaxValue.toLong + 1L).toString))
+    }
+
     test("stable verified npm inputs launch only from the snapshot-backed install") {
       withTempDir { root =>
         val project  = root / "project"

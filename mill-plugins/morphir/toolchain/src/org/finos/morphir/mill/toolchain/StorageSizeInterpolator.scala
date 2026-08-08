@@ -13,6 +13,8 @@ object StorageSizeInterpolator {
       case Varargs(_) if parts.size != 1 =>
         report.errorAndAbort("storageSize does not accept interpolation", context)
       case Varargs(_) => ()
+      case _          =>
+        report.errorAndAbort("storageSize requires literal arguments; dynamic varargs are not supported", arguments)
     }
 
     val input = parts.head

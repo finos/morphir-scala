@@ -24,6 +24,7 @@ trait ToolchainPlugin extends MorphirMillPlugin {
   override def packageDescription = "Verified tool acquisition and platform support for Mill Morphir plugins."
   override def mvnDeps            = super.mvnDeps() ++ Seq(
     Deps.com.lihaoyi.osLibJvm,
+    Deps.com.lihaoyi.upickleJvm,
     Deps.org.apache.commons.`commons-compress`
   )
   override protected def resolvedDepsWarnNonPlatform = false

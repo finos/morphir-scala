@@ -7,10 +7,16 @@ import mill.api.ExecResult
 import mill.testkit.{TestRootModule, UnitTester}
 import org.finos.morphir.mill.javascript.node.{NodeDistribution, NodeRuntimeModule}
 import org.finos.morphir.mill.javascript.npm.{NpmPackageManagerModule, NpmProcess}
-import org.finos.morphir.mill.toolchain.AcquisitionSettings
+import org.finos.morphir.mill.toolchain.{AcquisitionSettings, StorageSize, storageSize}
 import utest.*
 
 object NpmInstallInvalidationTests extends TestSuite {
+  private final class StorageSizeBuild(workspace: os.Path) extends TestRootModule(workspace) {
+    lazy val millDiscover = mill.api.Discover[this.type]
+
+    def configuredSize: T[StorageSize] = Task { storageSize"1 MiB" }
+  }
+
   private final class InvalidationBuild(
       workspace: os.Path,
       provisionedRuntime: PathRef,
@@ -65,6 +71,20 @@ object NpmInstallInvalidationTests extends TestSuite {
   }
 
   val tests = Tests {
+    test("Mill consumers can cache tasks returning StorageSize") {
+      withTempDir { root =>
+        val sources = root / "sources"
+        os.makeDir.all(sources)
+        val module = new StorageSizeBuild(root / "workspace")
+        UnitTester(module, sources).scoped { evaluator =>
+          val initial = success(evaluator(module.configuredSize))
+          assert(initial.value.toBytes == 1024L * 1024L)
+          assert(initial.evalCount > 0)
+          assert(success(evaluator(module.configuredSize)).evalCount == 0)
+        }
+      }
+    }
+
     test("Mill invalidates npm install for manifest lock and runtime input mutations") {
       withTempDir { root =>
         val distribution = NodeDistribution

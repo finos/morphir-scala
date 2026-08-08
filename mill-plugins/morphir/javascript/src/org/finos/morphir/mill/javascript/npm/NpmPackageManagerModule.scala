@@ -125,18 +125,20 @@ private[javascript] object NpmProcess {
   )
 
   private final class InputBudget(val limits: InputLimits) {
-    private var entries = 0
+    private var entries = 0L
     private var bytes   = 0L
 
-    def addEntry(path: JPath): Unit = {
-      entries += 1
-      limits.maxEntries.foreach { limit =>
-        if (entries > limit)
-          throw new IllegalArgumentException(
-            s"npm project input entry count limit $limit exceeded at $path"
+    def addEntry(path: JPath): Unit =
+      entries = incrementOptionalCount(
+        entries,
+        limits.maxEntries,
+        count =>
+          new IllegalArgumentException(
+            limits.maxEntries.fold(s"npm project input entry count exceeds $count at $path")(limit =>
+              s"npm project input entry count limit $limit exceeded at $path"
+            )
           )
-      }
-    }
+      )
 
     def checkFileSize(path: JPath, size: Long): Unit = {
       limits.maxFileBytes.foreach { limit =>
@@ -407,17 +409,19 @@ private[javascript] object NpmProcess {
       limits: DiscoveryLimits
   ): Seq[java.nio.file.Path] = {
     val packages = ArrayBuffer.empty[java.nio.file.Path]
-    var entries  = 0
+    var entries  = 0L
 
-    def countEntry(path: java.nio.file.Path): Unit = {
-      entries += 1
-      limits.maxDiscoveryEntries.foreach { limit =>
-        if (entries > limit)
-          throw new IllegalArgumentException(
-            s"Installed npm package discovery entry count limit $limit exceeded at $path"
+    def countEntry(path: java.nio.file.Path): Unit =
+      entries = incrementOptionalCount(
+        entries,
+        limits.maxDiscoveryEntries,
+        count =>
+          new IllegalArgumentException(
+            limits.maxDiscoveryEntries.fold(
+              s"Installed npm package discovery entry count exceeds $count at $path"
+            )(limit => s"Installed npm package discovery entry count limit $limit exceeded at $path")
           )
-      }
-    }
+      )
 
     def addPackage(path: java.nio.file.Path): Unit = {
       limits.maxPackages.foreach { limit =>
@@ -540,6 +544,17 @@ private[javascript] object NpmProcess {
 
   private def validateOptionalCount(value: Option[Int], description: String): Unit =
     value.foreach(limit => requirePositive(limit.toLong, description))
+
+  private[javascript] def incrementOptionalCount(
+      current: Long,
+      limit: Option[Int],
+      onExceeded: Long => IllegalArgumentException
+  ): Long = {
+    if (current == Long.MaxValue) throw onExceeded(current)
+    val updated = current + 1L
+    limit.foreach(maximum => if (updated > maximum.toLong) throw onExceeded(updated))
+    updated
+  }
 
   private def validateOptionalSize(value: Option[StorageSize], description: String): Unit =
     value.foreach(limit => requirePositive(limit.toBytes, description))
