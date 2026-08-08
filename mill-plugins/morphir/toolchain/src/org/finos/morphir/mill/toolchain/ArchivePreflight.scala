@@ -38,7 +38,7 @@ private[toolchain] object ArchivePreflight {
   ): Unit = {
     val snapshotBytes = Files.size(archive.toNIO)
     try {
-      prevalidateGzipHeader(archive, limits.maxGzipHeaderBytes)
+      prevalidateGzipHeader(archive, limits.maxGzipHeaderBytes.toBytes)
       Using
         .Manager { use =>
           val raw      = use(Files.newInputStream(archive.toNIO))
@@ -273,23 +273,25 @@ private[toolchain] object ArchivePreflight {
             fail(
               s"TAR consecutive metadata entry limit ${limits.maxConsecutiveMetadataEntries} exceeded: $archive"
             )
-          if (size > limits.maxMetadataEntryBytes)
-            fail(s"TAR metadata entry byte limit ${limits.maxMetadataEntryBytes} exceeded by $size bytes: $archive")
+          if (size > limits.maxMetadataEntryBytes.toBytes)
+            fail(
+              s"TAR metadata entry byte limit ${limits.maxMetadataEntryBytes.show} exceeded by $size bytes: $archive"
+            )
           metadataBytes = addWithin(
             metadataBytes,
             size,
-            limits.maxArchiveMetadataBytes,
+            limits.maxArchiveMetadataBytes.toBytes,
             "TAR aggregate metadata bytes",
             archive
           )
         } else {
           consecutiveMetadataEntries = 0
-          if (size > limits.maxEntryUncompressedBytes)
-            fail(s"TAR per-entry uncompressed byte limit ${limits.maxEntryUncompressedBytes} exceeded: $archive")
+          if (size > limits.maxEntryUncompressedBytes.toBytes)
+            fail(s"TAR per-entry uncompressed byte limit ${limits.maxEntryUncompressedBytes.show} exceeded: $archive")
           contentBytes = addWithin(
             contentBytes,
             size,
-            limits.maxTotalUncompressedBytes,
+            limits.maxTotalUncompressedBytes.toBytes,
             "TAR total uncompressed bytes",
             archive
           )
@@ -461,7 +463,7 @@ private[toolchain] object ArchivePreflight {
   private def derivedTarStreamLimit(limits: ArchiveLimits): Long = {
     val headerAndPadding = saturatingMultiply(limits.maxEntries, 1023L)
     saturatingAdd(
-      saturatingAdd(limits.maxTotalUncompressedBytes, limits.maxArchiveMetadataBytes),
+      saturatingAdd(limits.maxTotalUncompressedBytes.toBytes, limits.maxArchiveMetadataBytes.toBytes),
       saturatingAdd(headerAndPadding, 1024L)
     )
   }
@@ -560,9 +562,9 @@ private[toolchain] object ArchivePreflight {
   ): Unit = {
     if (directory.entries > limits.maxEntries)
       fail(s"ZIP entry count ${directory.entries} exceeds limit ${limits.maxEntries}: $archive")
-    if (directory.bytes > limits.maxCentralDirectoryBytes)
+    if (directory.bytes > limits.maxCentralDirectoryBytes.toBytes)
       fail(
-        s"ZIP central-directory byte size ${directory.bytes} exceeds limit ${limits.maxCentralDirectoryBytes}: $archive"
+        s"ZIP central-directory byte size ${directory.bytes} exceeds limit ${limits.maxCentralDirectoryBytes.show}: $archive"
       )
     if (directory.offset > fileSize || directory.bytes > fileSize - directory.offset)
       fail(s"ZIP central-directory range is outside the archive: $archive")

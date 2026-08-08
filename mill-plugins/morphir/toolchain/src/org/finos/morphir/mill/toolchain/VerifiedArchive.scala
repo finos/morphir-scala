@@ -91,7 +91,7 @@ object VerifiedArchive {
         requireExclusiveDestination(destination)
       }
       try {
-        snapshotAndVerify(archive, snapshot, limits.maxCompressedArchiveBytes)
+        snapshotAndVerify(archive, snapshot, limits.maxCompressedArchiveBytes.toBytes)
         afterSnapshotVerified
         Files.createDirectory(staging.toNIO)
         format match {
@@ -385,20 +385,20 @@ object VerifiedArchive {
         throw new IllegalArgumentException(
           s"Archive entry count exceeds limit ${limits.maxEntries} at '$name'"
         )
-      if (declaredSize > limits.maxEntryUncompressedBytes)
+      if (declaredSize > limits.maxEntryUncompressedBytes.toBytes)
         throw new IllegalArgumentException(
-          s"Archive per-entry uncompressed byte limit ${limits.maxEntryUncompressedBytes} exceeded by '$name'"
+          s"Archive per-entry uncompressed byte limit ${limits.maxEntryUncompressedBytes.show} exceeded by '$name'"
         )
     }
 
     def recordBytes(count: Int): Unit = {
-      if (count > limits.maxEntryUncompressedBytes - entryBytes)
+      if (count > limits.maxEntryUncompressedBytes.toBytes - entryBytes)
         throw new IllegalArgumentException(
-          s"Archive per-entry uncompressed byte limit ${limits.maxEntryUncompressedBytes} exceeded by '$currentEntryName'"
+          s"Archive per-entry uncompressed byte limit ${limits.maxEntryUncompressedBytes.show} exceeded by '$currentEntryName'"
         )
-      if (count > limits.maxTotalUncompressedBytes - totalBytes)
+      if (count > limits.maxTotalUncompressedBytes.toBytes - totalBytes)
         throw new IllegalArgumentException(
-          s"Archive total uncompressed byte limit ${limits.maxTotalUncompressedBytes} exceeded at '$currentEntryName'"
+          s"Archive total uncompressed byte limit ${limits.maxTotalUncompressedBytes.show} exceeded at '$currentEntryName'"
         )
       entryBytes += count
       totalBytes += count
@@ -414,9 +414,9 @@ object VerifiedArchive {
       checkLinkTargetBytes(target.getBytes(java.nio.charset.StandardCharsets.UTF_8).length)
 
     def checkLinkTargetBytes(size: Int): Unit =
-      if (size > limits.maxSymlinkTargetBytes)
+      if (size > limits.maxSymlinkTargetBytes.toBytes)
         throw new IllegalArgumentException(
-          s"Archive link target byte limit ${limits.maxSymlinkTargetBytes} exceeded at '$currentEntryName'"
+          s"Archive link target byte limit ${limits.maxSymlinkTargetBytes.show} exceeded at '$currentEntryName'"
         )
   }
 

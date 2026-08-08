@@ -23,6 +23,7 @@ import scala.util.Using
 import mill.*
 import org.finos.morphir.mill.javascript.*
 import org.finos.morphir.mill.javascript.node.{NodeProcess, NodeRuntimeModule}
+import org.finos.morphir.mill.toolchain.{StorageSize, storageSize}
 import upickle.default.ReadWriter
 
 trait NpmPackageManagerModule extends JavaScriptPackageManagerModule {
@@ -104,14 +105,14 @@ private[javascript] object NpmProcess {
   }
 
   final case class DiscoveryLimits(
-      maxPackages: Int = 10000,
-      maxDiscoveryEntries: Int = 20000,
-      maxManifestBytes: Long = 1024 * 1024
+      maxPackages: Option[Int] = Some(10000),
+      maxDiscoveryEntries: Option[Int] = Some(20000),
+      maxManifestBytes: Option[StorageSize] = Some(storageSize"1 MiB")
   )
   final case class InputLimits(
-      maxEntries: Int = 10000,
-      maxFileBytes: Long = 64L * 1024 * 1024,
-      maxTotalBytes: Long = 512L * 1024 * 1024
+      maxEntries: Option[Int] = Some(10000),
+      maxFileBytes: Option[StorageSize] = Some(storageSize"64 MiB"),
+      maxTotalBytes: Option[StorageSize] = Some(storageSize"512 MiB")
   )
 
   private final case class VerifiedInput(original: PathRef, fingerprint: String)
@@ -129,29 +130,37 @@ private[javascript] object NpmProcess {
 
     def addEntry(path: JPath): Unit = {
       entries += 1
-      if (entries > limits.maxEntries)
-        throw new IllegalArgumentException(
-          s"npm project input entry count limit ${limits.maxEntries} exceeded at $path"
-        )
+      limits.maxEntries.foreach { limit =>
+        if (entries > limit)
+          throw new IllegalArgumentException(
+            s"npm project input entry count limit $limit exceeded at $path"
+          )
+      }
     }
 
     def checkFileSize(path: JPath, size: Long): Unit = {
-      if (size > limits.maxFileBytes)
-        throw new IllegalArgumentException(
-          s"npm project input file $path exceeds ${limits.maxFileBytes} bytes"
-        )
-      if (bytes + size > limits.maxTotalBytes)
-        throw new IllegalArgumentException(
-          s"npm project inputs exceed ${limits.maxTotalBytes} total bytes at $path"
-        )
+      limits.maxFileBytes.foreach { limit =>
+        if (size > limit.toBytes)
+          throw new IllegalArgumentException(
+            s"npm project input file $path exceeds ${limit.show}"
+          )
+      }
+      limits.maxTotalBytes.foreach { limit =>
+        if (size > limit.toBytes - bytes)
+          throw new IllegalArgumentException(
+            s"npm project inputs exceed ${limit.show} total at $path"
+          )
+      }
     }
 
     def addBytes(path: JPath, count: Int): Unit = {
       bytes += count
-      if (bytes > limits.maxTotalBytes)
-        throw new IllegalArgumentException(
-          s"npm project inputs exceed ${limits.maxTotalBytes} total bytes at $path"
-        )
+      limits.maxTotalBytes.foreach { limit =>
+        if (bytes > limit.toBytes)
+          throw new IllegalArgumentException(
+            s"npm project inputs exceed ${limit.show} total at $path"
+          )
+      }
     }
   }
 
@@ -364,9 +373,9 @@ private[javascript] object NpmProcess {
       arguments: Seq[String],
       limits: DiscoveryLimits = DiscoveryLimits()
   ): JavaScriptCommand = {
-    requirePositive(limits.maxPackages.toLong, "installed package count")
-    requirePositive(limits.maxDiscoveryEntries.toLong, "installed package discovery entry count")
-    requirePositive(limits.maxManifestBytes, "installed package manifest bytes")
+    validateOptionalCount(limits.maxPackages, "installed package count")
+    validateOptionalCount(limits.maxDiscoveryEntries, "installed package discovery entry count")
+    validateOptionalSize(limits.maxManifestBytes, "installed package manifest bytes")
     val installPath = install.root.path.toNIO
     if (Files.isSymbolicLink(installPath))
       throw new IllegalArgumentException(s"JavaScript install root must not be a symbolic link: $installPath")
@@ -402,17 +411,21 @@ private[javascript] object NpmProcess {
 
     def countEntry(path: java.nio.file.Path): Unit = {
       entries += 1
-      if (entries > limits.maxDiscoveryEntries)
-        throw new IllegalArgumentException(
-          s"Installed npm package discovery entry count limit ${limits.maxDiscoveryEntries} exceeded at $path"
-        )
+      limits.maxDiscoveryEntries.foreach { limit =>
+        if (entries > limit)
+          throw new IllegalArgumentException(
+            s"Installed npm package discovery entry count limit $limit exceeded at $path"
+          )
+      }
     }
 
     def addPackage(path: java.nio.file.Path): Unit = {
-      if (packages.size >= limits.maxPackages)
-        throw new IllegalArgumentException(
-          s"Installed npm package count limit ${limits.maxPackages} exceeded under $nodeModules"
-        )
+      limits.maxPackages.foreach { limit =>
+        if (packages.size >= limit)
+          throw new IllegalArgumentException(
+            s"Installed npm package count limit $limit exceeded under $nodeModules"
+          )
+      }
       packages += path
     }
 
@@ -444,7 +457,7 @@ private[javascript] object NpmProcess {
       installRoot: java.nio.file.Path,
       packageDirectory: java.nio.file.Path,
       binary: PackageBinary,
-      maxManifestBytes: Long
+      maxManifestBytes: Option[StorageSize]
   ): Seq[os.Path] = {
     val packageReal = requireContainedPackageDirectory(installRoot, packageDirectory)
     val manifest    = packageReal.resolve("package.json")
@@ -494,23 +507,28 @@ private[javascript] object NpmProcess {
       parts.length == 2 && parts(0).length > 1 && parts(1).nonEmpty && !parts(1).contains('\\')
     } else value.nonEmpty && !value.contains('/') && !value.contains('\\')
 
-  private def readBoundedManifest(manifest: java.nio.file.Path, maxBytes: Long): String = {
+  private def readBoundedManifest(manifest: java.nio.file.Path, maxBytes: Option[StorageSize]): String = {
     val attributes = Files.readAttributes(manifest, classOf[BasicFileAttributes], LinkOption.NOFOLLOW_LINKS)
     if (!attributes.isRegularFile)
       throw invalidManifest(manifest, "$", "manifest is not a regular file")
-    if (attributes.size() > maxBytes)
-      throw invalidManifest(manifest, "$", s"manifest exceeds $maxBytes bytes")
+    maxBytes.foreach { limit =>
+      if (attributes.size() > limit.toBytes)
+        throw invalidManifest(manifest, "$", s"manifest exceeds ${limit.show}")
+    }
     val options = Set[OpenOption](StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS).asJava
     Using.resource(Files.newByteChannel(manifest, options)) { channel =>
-      val output = new ByteArrayOutputStream(math.min(math.min(attributes.size(), maxBytes), 8192L).toInt)
-      val buffer = ByteBuffer.allocate(8192)
-      var total  = 0L
-      var read   = channel.read(buffer)
+      val boundedSize = maxBytes.fold(attributes.size())(limit => math.min(attributes.size(), limit.toBytes))
+      val output      = new ByteArrayOutputStream(math.min(boundedSize, 8192L).toInt)
+      val buffer      = ByteBuffer.allocate(8192)
+      var total       = 0L
+      var read        = channel.read(buffer)
       while (read >= 0) {
         if (read > 0) {
           total += read
-          if (total > maxBytes)
-            throw invalidManifest(manifest, "$", s"manifest exceeds $maxBytes bytes")
+          maxBytes.foreach { limit =>
+            if (total > limit.toBytes)
+              throw invalidManifest(manifest, "$", s"manifest exceeds ${limit.show}")
+          }
           output.write(buffer.array(), 0, read)
           buffer.clear()
         }
@@ -520,13 +538,19 @@ private[javascript] object NpmProcess {
     }
   }
 
+  private def validateOptionalCount(value: Option[Int], description: String): Unit =
+    value.foreach(limit => requirePositive(limit.toLong, description))
+
+  private def validateOptionalSize(value: Option[StorageSize], description: String): Unit =
+    value.foreach(limit => requirePositive(limit.toBytes, description))
+
   private def requirePositive(value: Long, description: String): Unit =
     if (value <= 0) throw new IllegalArgumentException(s"npm $description limit must be positive: $value")
 
   private def validateInputLimits(limits: InputLimits): Unit = {
-    requirePositive(limits.maxEntries.toLong, "project input entry count")
-    requirePositive(limits.maxFileBytes, "project input file bytes")
-    requirePositive(limits.maxTotalBytes, "project input total bytes")
+    validateOptionalCount(limits.maxEntries, "project input entry count")
+    validateOptionalSize(limits.maxFileBytes, "project input file bytes")
+    validateOptionalSize(limits.maxTotalBytes, "project input total bytes")
   }
 
   private def scanInput(
@@ -580,10 +604,12 @@ private[javascript] object NpmProcess {
             while (read >= 0) {
               if (read > 0) {
                 fileSize += read
-                if (fileSize > budget.limits.maxFileBytes)
-                  throw new IllegalArgumentException(
-                    s"npm project input file $file exceeds ${budget.limits.maxFileBytes} bytes"
-                  )
+                budget.limits.maxFileBytes.foreach { limit =>
+                  if (fileSize > limit.toBytes)
+                    throw new IllegalArgumentException(
+                      s"npm project input file $file exceeds ${limit.show}"
+                    )
+                }
                 budget.addBytes(file, read)
                 buffer.flip()
                 digest.update(buffer.asReadOnlyBuffer())

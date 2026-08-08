@@ -75,7 +75,7 @@ final class AcquisitionCache private (
           val output = use(
             Files.newOutputStream(temporary.toNIO, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
           )
-          copyBounded(input, output, limits.maxAcquiredBytes, source)
+          copyBounded(input, output, limits.maxAcquiredBytes.toBytes, source)
         }
         .get
       verify(temporary, digest)
@@ -101,7 +101,7 @@ final class AcquisitionCache private (
       )
       // An oversized candidate cannot be proven valid without violating this caller's I/O bound.
       // Treat it as unusable: online callers may replace it, while offline callers fail lazily.
-      if (!attributes.isRegularFile || attributes.size() > limits.maxAcquiredBytes) CandidateState.Unusable
+      if (!attributes.isRegularFile || attributes.size() > limits.maxAcquiredBytes.toBytes) CandidateState.Unusable
       else {
         if (scala.util.Try(verify(entry, digest)).isSuccess) CandidateState.Verified
         else CandidateState.Unusable
@@ -130,9 +130,9 @@ final class AcquisitionCache private (
       source: String,
       limits: AcquisitionLimits
   ): Unit =
-    if (attributes.size() > limits.maxAcquiredBytes)
+    if (attributes.size() > limits.maxAcquiredBytes.toBytes)
       throw new IllegalArgumentException(
-        s"Verified acquisition acquired byte limit ${limits.maxAcquiredBytes} exceeded for $source: " +
+        s"Verified acquisition acquired byte limit ${limits.maxAcquiredBytes.show} exceeded for $source: " +
           s"cached content is ${attributes.size()} bytes"
       )
 

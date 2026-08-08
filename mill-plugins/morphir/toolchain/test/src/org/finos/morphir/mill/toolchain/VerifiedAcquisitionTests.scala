@@ -15,6 +15,9 @@ import org.apache.commons.compress.archivers.zip.{ZipArchiveEntry, ZipArchiveOut
 import utest.*
 
 object VerifiedAcquisitionTests extends TestSuite {
+  private def storageSizeFromBytes(value: Long): StorageSize =
+    StorageSize.fromBytes(value).fold(throw _, identity)
+
   private final class TrackingInputStream(bytes: Array[Byte]) extends ByteArrayInputStream(bytes) {
     var wasClosed              = false
     override def close(): Unit = {
@@ -525,13 +528,14 @@ object VerifiedAcquisitionTests extends TestSuite {
         val digest   = VerifiedArchive.sha256(bytes)
         val settings = AcquisitionSettings(cacheRoot = Some(directory / "machine-cache"))
         val cache    = AcquisitionCache(settings, directory / "task")
-        val seeded   = cache.acquire(digest, "memory:seed", AcquisitionLimits(maxAcquiredBytes = 5))(
-          new ByteArrayInputStream(bytes)
-        )
+        val seeded   =
+          cache.acquire(digest, "memory:seed", AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(5)))(
+            new ByteArrayInputStream(bytes)
+          )
         var opened = false
 
         val limited = scala.util.Try(
-          cache.acquire(digest, "memory:limited", AcquisitionLimits(maxAcquiredBytes = 4)) {
+          cache.acquire(digest, "memory:limited", AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(4))) {
             opened = true
             new ByteArrayInputStream(bytes)
           }
@@ -542,9 +546,10 @@ object VerifiedAcquisitionTests extends TestSuite {
         assert(opened)
         assert(os.read.bytes(seeded.path).sameElements(bytes))
 
-        val reused = cache.acquire(digest, "memory:larger", AcquisitionLimits(maxAcquiredBytes = 5))(
-          throw new java.lang.AssertionError("larger warm acquisition opened its source")
-        )
+        val reused =
+          cache.acquire(digest, "memory:larger", AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(5)))(
+            throw new java.lang.AssertionError("larger warm acquisition opened its source")
+          )
         assert(reused == seeded)
       }
     }
@@ -569,7 +574,7 @@ object VerifiedAcquisitionTests extends TestSuite {
           VerifiedArchive.verifySha256(path, expectedDigest)
         }
         val reacquired = cache
-          .acquire(digest, "memory:oversized-corrupt", AcquisitionLimits(maxAcquiredBytes = 4)) {
+          .acquire(digest, "memory:oversized-corrupt", AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(4))) {
             opened = true
             new ByteArrayInputStream(expected)
           }
@@ -601,7 +606,11 @@ object VerifiedAcquisitionTests extends TestSuite {
           VerifiedArchive.verifySha256(path, expectedDigest)
         }
         val result = scala.util.Try(
-          cache.acquire(digest, "memory:offline-oversized-corrupt", AcquisitionLimits(maxAcquiredBytes = 4)) {
+          cache.acquire(
+            digest,
+            "memory:offline-oversized-corrupt",
+            AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(4))
+          ) {
             opened = true
             new ByteArrayInputStream(expected)
           }
@@ -627,7 +636,7 @@ object VerifiedAcquisitionTests extends TestSuite {
         val cache = AcquisitionCache(AcquisitionSettings(cacheRoot = Some(cacheRoot)), directory / "task")
 
         val failed = scala.util.Try(
-          cache.acquire(digest, "memory:retention", AcquisitionLimits(maxAcquiredBytes = 4)) {
+          cache.acquire(digest, "memory:retention", AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(4))) {
             throw new java.io.IOException("source unavailable")
           }
         )
@@ -636,9 +645,10 @@ object VerifiedAcquisitionTests extends TestSuite {
         assert(failed.failed.get.getMessage == "source unavailable")
         assert(os.read.bytes(entry).sameElements(corrupt))
 
-        val recovered = cache.acquire(digest, "memory:recovery", AcquisitionLimits(maxAcquiredBytes = 4))(
-          new ByteArrayInputStream(expected)
-        )
+        val recovered =
+          cache.acquire(digest, "memory:recovery", AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(4)))(
+            new ByteArrayInputStream(expected)
+          )
         assert(recovered.path == entry)
         assert(os.read.bytes(entry).sameElements(expected))
       }
@@ -722,13 +732,14 @@ object VerifiedAcquisitionTests extends TestSuite {
         val digest   = VerifiedArchive.sha256(bytes)
         val taskRoot = directory / "task"
         val cache    = AcquisitionCache(AcquisitionSettings(useMachineCache = false), taskRoot)
-        val seeded   = cache.acquire(digest, "memory:seed", AcquisitionLimits(maxAcquiredBytes = 5))(
-          new ByteArrayInputStream(bytes)
-        )
+        val seeded   =
+          cache.acquire(digest, "memory:seed", AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(5)))(
+            new ByteArrayInputStream(bytes)
+          )
         var opened = false
 
         val limited = scala.util.Try(
-          cache.acquire(digest, "memory:limited", AcquisitionLimits(maxAcquiredBytes = 4)) {
+          cache.acquire(digest, "memory:limited", AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(4))) {
             opened = true
             new ByteArrayInputStream(bytes)
           }
@@ -739,9 +750,10 @@ object VerifiedAcquisitionTests extends TestSuite {
         assert(opened)
         assert(os.read.bytes(seeded.path).sameElements(bytes))
 
-        val reused = cache.acquire(digest, "memory:larger", AcquisitionLimits(maxAcquiredBytes = 5))(
-          throw new java.lang.AssertionError("larger task-local acquisition opened its source")
-        )
+        val reused =
+          cache.acquire(digest, "memory:larger", AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(5)))(
+            throw new java.lang.AssertionError("larger task-local acquisition opened its source")
+          )
         assert(reused == seeded)
       }
     }
@@ -846,7 +858,7 @@ object VerifiedAcquisitionTests extends TestSuite {
         val digest    = VerifiedArchive.sha256(bytes)
         val cacheRoot = directory / "machine-cache"
         val seeded    = AcquisitionCache(AcquisitionSettings(cacheRoot = Some(cacheRoot)), directory / "online")
-          .acquire(digest, "memory:seed", AcquisitionLimits(maxAcquiredBytes = 5))(
+          .acquire(digest, "memory:seed", AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(5)))(
             new ByteArrayInputStream(bytes)
           )
         val offline = AcquisitionCache(
@@ -856,7 +868,7 @@ object VerifiedAcquisitionTests extends TestSuite {
         var opened = false
 
         val limited = scala.util.Try(
-          offline.acquire(digest, "memory:limited", AcquisitionLimits(maxAcquiredBytes = 4)) {
+          offline.acquire(digest, "memory:limited", AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(4))) {
             opened = true
             new ByteArrayInputStream(bytes)
           }
@@ -867,9 +879,10 @@ object VerifiedAcquisitionTests extends TestSuite {
         assert(!opened)
         assert(os.read.bytes(seeded.path).sameElements(bytes))
 
-        val reused = offline.acquire(digest, "memory:larger", AcquisitionLimits(maxAcquiredBytes = 5))(
-          throw new java.lang.AssertionError("larger offline acquisition opened its source")
-        )
+        val reused =
+          offline.acquire(digest, "memory:larger", AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(5)))(
+            throw new java.lang.AssertionError("larger offline acquisition opened its source")
+          )
         assert(reused == seeded)
       }
     }
@@ -983,7 +996,7 @@ object VerifiedAcquisitionTests extends TestSuite {
 
         val result = scala.util.Try(
           AcquisitionCache(AcquisitionSettings(cacheRoot = Some(cacheRoot)), directory / "task")
-            .acquire(digest, "memory:bounded", AcquisitionLimits(maxAcquiredBytes = 4))(input)
+            .acquire(digest, "memory:bounded", AcquisitionLimits(maxAcquiredBytes = storageSizeFromBytes(4)))(input)
         )
 
         assert(result.isFailure)
@@ -1456,7 +1469,7 @@ object VerifiedAcquisitionTests extends TestSuite {
             VerifiedContent(archive, VerifiedArchive.sha256(archive)),
             ArchiveFormat.Zip,
             directory / "extracted",
-            limits = ArchiveLimits(maxCentralDirectoryBytes = 1),
+            limits = ArchiveLimits(maxCentralDirectoryBytes = storageSizeFromBytes(1)),
             parserObserver = _ => parserOpened = true
           ) {}
         )
@@ -1545,7 +1558,7 @@ object VerifiedAcquisitionTests extends TestSuite {
                 VerifiedContent(archive, VerifiedArchive.sha256(archive)),
                 ArchiveFormat.TarGz,
                 directory / s"extracted-$index",
-                limits = ArchiveLimits(maxMetadataEntryBytes = 4),
+                limits = ArchiveLimits(maxMetadataEntryBytes = storageSizeFromBytes(4)),
                 parserObserver = _ => parserOpened = true
               ) {}
             )
@@ -1574,7 +1587,10 @@ object VerifiedAcquisitionTests extends TestSuite {
             VerifiedContent(archive, VerifiedArchive.sha256(archive)),
             ArchiveFormat.TarGz,
             directory / "extracted",
-            limits = ArchiveLimits(maxMetadataEntryBytes = 3, maxArchiveMetadataBytes = 5),
+            limits = ArchiveLimits(
+              maxMetadataEntryBytes = storageSizeFromBytes(3),
+              maxArchiveMetadataBytes = storageSizeFromBytes(5)
+            ),
             parserObserver = _ => parserOpened = true
           ) {}
         )
@@ -1727,7 +1743,11 @@ object VerifiedAcquisitionTests extends TestSuite {
             VerifiedContent(archive, VerifiedArchive.sha256(archive)),
             ArchiveFormat.TarGz,
             directory / "extracted",
-            limits = ArchiveLimits(maxEntries = 1, maxTotalUncompressedBytes = 1, maxArchiveMetadataBytes = 1),
+            limits = ArchiveLimits(
+              maxEntries = 1,
+              maxTotalUncompressedBytes = storageSizeFromBytes(1),
+              maxArchiveMetadataBytes = storageSizeFromBytes(1)
+            ),
             parserObserver = _ => parserOpened = true
           ) {}
         )
@@ -1751,7 +1771,7 @@ object VerifiedAcquisitionTests extends TestSuite {
             VerifiedContent(archive, VerifiedArchive.sha256(archive)),
             ArchiveFormat.TarGz,
             directory / "extracted",
-            ArchiveLimits(maxCompressedArchiveBytes = 8)
+            ArchiveLimits(maxCompressedArchiveBytes = storageSizeFromBytes(8))
           )
         )
 
@@ -1777,7 +1797,7 @@ object VerifiedAcquisitionTests extends TestSuite {
             VerifiedContent(archive, VerifiedArchive.sha256(archive)),
             ArchiveFormat.TarGz,
             directory / "extracted",
-            ArchiveLimits(maxEntryUncompressedBytes = 3)
+            ArchiveLimits(maxEntryUncompressedBytes = storageSizeFromBytes(3))
           )
         )
 
@@ -1803,7 +1823,7 @@ object VerifiedAcquisitionTests extends TestSuite {
             VerifiedContent(archive, VerifiedArchive.sha256(archive)),
             ArchiveFormat.TarGz,
             directory / "extracted",
-            ArchiveLimits(maxTotalUncompressedBytes = 5)
+            ArchiveLimits(maxTotalUncompressedBytes = storageSizeFromBytes(5))
           )
         )
 
@@ -1918,7 +1938,7 @@ object VerifiedAcquisitionTests extends TestSuite {
             VerifiedContent(archive, VerifiedArchive.sha256(archive)),
             ArchiveFormat.TarGz,
             directory / "extracted",
-            limits = ArchiveLimits(maxGzipHeaderBytes = 16),
+            limits = ArchiveLimits(maxGzipHeaderBytes = storageSizeFromBytes(16)),
             parserObserver = _ => parserOpened = true,
             gzipConstructedObserver = () => gzipConstructed = true
           ) {}
@@ -2043,7 +2063,7 @@ object VerifiedAcquisitionTests extends TestSuite {
               VerifiedContent(archive, VerifiedArchive.sha256(archive)),
               ArchiveFormat.TarGz,
               directory / s"extracted-$label",
-              limits = ArchiveLimits(maxGzipHeaderBytes = limit),
+              limits = ArchiveLimits(maxGzipHeaderBytes = storageSizeFromBytes(limit)),
               parserObserver = _ => parserOpened = true,
               gzipConstructedObserver = () => gzipConstructed = true
             ) {}
@@ -2076,7 +2096,7 @@ object VerifiedAcquisitionTests extends TestSuite {
         assert(gzipConstructed)
         assert(parserOpened)
         assert(os.read(directory / "extracted" / "file") == "data")
-        assert(scala.util.Try(ArchiveLimits(maxGzipHeaderBytes = 0)).isFailure)
+        assert(scala.util.Try(ArchiveLimits(maxGzipHeaderBytes = StorageSize.Zero)).isFailure)
       }
     }
 
@@ -2144,7 +2164,7 @@ object VerifiedAcquisitionTests extends TestSuite {
             VerifiedContent(archive, VerifiedArchive.sha256(archive)),
             ArchiveFormat.TarGz,
             directory / "extracted",
-            ArchiveLimits(maxSymlinkTargetBytes = 4)
+            ArchiveLimits(maxSymlinkTargetBytes = storageSizeFromBytes(4))
           )
         )
 

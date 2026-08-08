@@ -6,7 +6,7 @@ import mill.PathRef
 import org.finos.morphir.mill.javascript.node.{NodeDistribution, NodeProcess}
 import org.finos.morphir.mill.javascript.npm.NpmProcess
 import org.finos.morphir.mill.javascript.node.NodeRuntimeModule
-import org.finos.morphir.mill.toolchain.{AcquisitionSettings, ArchiveFormat}
+import org.finos.morphir.mill.toolchain.{AcquisitionSettings, ArchiveFormat, storageSize}
 import scala.compiletime.testing.typeCheckErrors
 import utest.*
 
@@ -126,11 +126,11 @@ object JavaScriptModuleTests extends TestSuite {
         Files.createSymbolicLink((tracked / "nested-link").toNIO, outside.toNIO)
         Seq(rootLink, tracked).foreach { input =>
           val error = scala.util.Try {
-            NpmProcess.inputPathRefs(Seq(input), NpmProcess.InputLimits(maxFileBytes = 1))
+            NpmProcess.inputPathRefs(Seq(input), NpmProcess.InputLimits(maxFileBytes = Some(storageSize"1 B")))
           }.failed.get
           assert(error.isInstanceOf[IllegalArgumentException])
           assert(error.getMessage.contains("symbolic link"))
-          assert(!error.getMessage.contains("exceeds 1 bytes"))
+          assert(!error.getMessage.contains("exceeds 1 B"))
         }
       }
     }
@@ -345,16 +345,58 @@ object JavaScriptModuleTests extends TestSuite {
         assert(symlink.getMessage.contains("symbolic link"))
         assert(symlink.getMessage.contains("secret-link"))
 
-        val count = attempt("entry-limit", NpmProcess.InputLimits(maxEntries = 3)) { dependency =>
+        val count = attempt("entry-limit", NpmProcess.InputLimits(maxEntries = Some(3))) { dependency =>
           os.write(dependency / "one.js", "one")
           os.write(dependency / "two.js", "two")
         }
         assert(count.getMessage.contains("entry count limit 3"))
 
-        val bytes = attempt("byte-limit", NpmProcess.InputLimits(maxFileBytes = 4)) { dependency =>
+        val bytes = attempt("byte-limit", NpmProcess.InputLimits(maxFileBytes = Some(storageSize"4 B"))) { dependency =>
           os.write(dependency / "large.js", "more than four bytes")
         }
-        assert(bytes.getMessage.contains("exceeds 4 bytes"))
+        assert(bytes.getMessage.contains("exceeds 4 B"))
+      }
+    }
+
+    test("npm project input caps use Option and None is uncapped") {
+      withTempDir { root =>
+        val project = root / "project"
+        os.makeDir.all(project)
+        os.write(project / "one.json", "12345")
+        os.write(project / "two.json", "67890")
+
+        val uncapped = NpmProcess.InputLimits(
+          maxEntries = None,
+          maxFileBytes = None,
+          maxTotalBytes = None
+        )
+        assert(NpmProcess.trackInputs(Seq(project), NpmProcess.InputKind.Project, uncapped).nonEmpty)
+
+        val entryError = scala.util.Try {
+          NpmProcess.trackInputs(
+            Seq(project),
+            NpmProcess.InputKind.Project,
+            uncapped.copy(maxEntries = Some(1))
+          )
+        }.failed.get
+        val fileError = scala.util.Try {
+          NpmProcess.trackInputs(
+            Seq(project),
+            NpmProcess.InputKind.Project,
+            uncapped.copy(maxFileBytes = Some(storageSize"4 B"))
+          )
+        }.failed.get
+        val totalError = scala.util.Try {
+          NpmProcess.trackInputs(
+            Seq(project),
+            NpmProcess.InputKind.Project,
+            uncapped.copy(maxTotalBytes = Some(storageSize"9 B"))
+          )
+        }.failed.get
+
+        assert(entryError.getMessage.contains("entry count limit 1"))
+        assert(fileError.getMessage.contains("exceeds 4 B"))
+        assert(totalError.getMessage.contains("exceed 9 B"))
       }
     }
 
@@ -540,7 +582,10 @@ object JavaScriptModuleTests extends TestSuite {
             install,
             packageBinary"missing-tool",
             Seq.empty,
-            NpmProcess.DiscoveryLimits(maxPackages = 1, maxManifestBytes = 1024)
+            NpmProcess.DiscoveryLimits(
+              maxPackages = Some(1),
+              maxManifestBytes = Some(storageSize"1 KiB")
+            )
           )
         }.failed.get
         assert(error.isInstanceOf[IllegalArgumentException])
@@ -562,7 +607,11 @@ object JavaScriptModuleTests extends TestSuite {
               install,
               packageBinary"missing-tool",
               Seq.empty,
-              NpmProcess.DiscoveryLimits(maxPackages = 10, maxDiscoveryEntries = 2, maxManifestBytes = 1024)
+              NpmProcess.DiscoveryLimits(
+                maxPackages = Some(10),
+                maxDiscoveryEntries = Some(2),
+                maxManifestBytes = Some(storageSize"1 KiB")
+              )
             )
           }.failed.get
           assert(error.isInstanceOf[IllegalArgumentException])
@@ -603,12 +652,76 @@ object JavaScriptModuleTests extends TestSuite {
             install,
             packageBinary"large-tool",
             Seq.empty,
-            NpmProcess.DiscoveryLimits(maxPackages = 10, maxManifestBytes = 32)
+            NpmProcess.DiscoveryLimits(
+              maxPackages = Some(10),
+              maxManifestBytes = Some(storageSize"32 B")
+            )
           )
         }.failed.get
         assert(error.isInstanceOf[IllegalArgumentException])
         assert(error.getMessage.contains(manifest.toString))
-        assert(error.getMessage.contains("exceeds 32 bytes"))
+        assert(error.getMessage.contains("exceeds 32 B"))
+      }
+    }
+
+    test("npm package discovery caps use Option and None is uncapped") {
+      withTempDir { root =>
+        val install     = JavaScriptInstall(PathRef(root / "install"), Seq.empty, Seq.empty)
+        val nodeModules = install.root.path / "node_modules"
+        val packageRoot = nodeModules / "large-tool"
+        os.makeDir.all(packageRoot)
+        os.makeDir.all(nodeModules / "second-tool")
+        os.write(
+          packageRoot / "package.json",
+          """{"name":"large-tool","padding":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","bin":"cli.js"}"""
+        )
+        os.write(packageRoot / "cli.js", "console.log('large')")
+
+        val uncapped = NpmProcess.DiscoveryLimits(
+          maxPackages = None,
+          maxDiscoveryEntries = None,
+          maxManifestBytes = None
+        )
+        val command = NpmProcess.binary(
+          PathRef(root / "node"),
+          install,
+          packageBinary"large-tool",
+          Seq.empty,
+          uncapped
+        )
+        assert(os.Path(command.arguments.head) == os.Path((packageRoot / "cli.js").toNIO.toRealPath()))
+
+        val packageError = scala.util.Try {
+          NpmProcess.binary(
+            PathRef(root / "node"),
+            install,
+            packageBinary"missing-tool",
+            Seq.empty,
+            uncapped.copy(maxPackages = Some(1))
+          )
+        }.failed.get
+        val entryError = scala.util.Try {
+          NpmProcess.binary(
+            PathRef(root / "node"),
+            install,
+            packageBinary"missing-tool",
+            Seq.empty,
+            uncapped.copy(maxDiscoveryEntries = Some(1))
+          )
+        }.failed.get
+        val manifestError = scala.util.Try {
+          NpmProcess.binary(
+            PathRef(root / "node"),
+            install,
+            packageBinary"large-tool",
+            Seq.empty,
+            uncapped.copy(maxManifestBytes = Some(storageSize"32 B"))
+          )
+        }.failed.get
+
+        assert(packageError.getMessage.contains("package count limit 1"))
+        assert(entryError.getMessage.contains("discovery entry count limit 1"))
+        assert(manifestError.getMessage.contains("exceeds 32 B"))
       }
     }
 
