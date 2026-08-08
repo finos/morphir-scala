@@ -34,16 +34,12 @@ CI_DEPENDENCIES = [
     "test:js",
     "test:native",
 ]
-EVALUATOR_MAKE = "examples.morphir-elm-projects.evaluator-tests.make"
-ALL_ELM_MAKES = [
-    "examples.morphir-elm-projects.evaluator-tests.make",
-    "examples.morphir-elm-projects.defaults-tests.make",
-    "examples.morphir-elm-projects.finance.make",
-    "morphir-elm.sdks.morphir-unit-test.make",
-    "examples.morphir-elm-projects.unit-test-framework.example-project.make",
-    "examples.morphir-elm-projects.unit-test-framework.example-project-tests.make",
-    "examples.morphir-elm-projects.unit-test-framework.example-project-tests-passing.make",
-    "examples.morphir-elm-projects.unit-test-framework.example-project-tests-incomplete.make",
+EVALUATOR_IR = "examples.morphir-elm-projects.evaluator-tests.morphirIR"
+ALL_ELM_IR = [
+    "-k",
+    "examples.morphir-elm-projects.__.morphirIR",
+    "+",
+    "morphir-elm.sdks.__.morphirIR",
 ]
 ELM_PROJECT_MANIFESTS = [
     "examples/morphir-elm-projects/evaluator-tests/package.json",
@@ -196,15 +192,12 @@ class MiseTaskPolicyTest(unittest.TestCase):
         dry_run = mise("run", "--dry-run", "ci:local")
         self.assertIn("test:squire", dry_run.stdout + dry_run.stderr)
 
-    def test_morphir_elm_build_wrappers_delegate_only_to_mill_make_tasks(self):
+    def test_morphir_elm_build_wrappers_delegate_only_to_mill_ir_tasks(self):
         evaluator = self.run_build_wrapper(".config/mise/tasks/build/morphir-elm")
         all_projects = self.run_build_wrapper(".config/mise/tasks/build/elm")
 
-        self.assertEqual(evaluator, ["--ticker", "false", EVALUATOR_MAKE])
-        expected_all_projects = ["--ticker", "false", ALL_ELM_MAKES[0]]
-        for make_task in ALL_ELM_MAKES[1:]:
-            expected_all_projects.extend(["+", make_task])
-        self.assertEqual(all_projects, expected_all_projects)
+        self.assertEqual(evaluator, ["--ticker", "false", EVALUATOR_IR])
+        self.assertEqual(all_projects, ["--ticker", "false", *ALL_ELM_IR])
 
     def test_setup_and_elm_projects_do_not_install_a_second_morphir_elm_tool(self):
         root_manifest = json.loads((REPO_ROOT / "package.json").read_text())

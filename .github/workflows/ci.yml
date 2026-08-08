@@ -78,6 +78,181 @@ jobs:
       - name: Check mirrored upstream sources
         run: .claude/skills/kb/kb sync status --no-upstream --strict
 
+  mill-morphir-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Setup Scala and Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "25"
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+      - name: Cache verified Morphir tool downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/morphir-scala
+          key: ${{ runner.os }}-morphir-tools-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}
+      - name: Cache Mill capability outputs
+        uses: actions/cache@v6
+        with:
+          path: |
+            out/mill-plugins/morphir/
+            !out/mill-plugins/morphir/**/testForked.dest/**
+            !out/mill-plugins/morphir/**/testOnly.dest/**
+          key: ${{ runner.os }}-mill-morphir-unit-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
+      - name: Run capability
+        run: ./mill -i -k "mill-plugins.morphir.__.test"
+
+  mill-morphir-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [mill-morphir-unit]
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Setup Scala and Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "25"
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+      - name: Cache verified Morphir tool downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/morphir-scala
+          key: ${{ runner.os }}-morphir-tools-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}
+      - name: Cache Mill capability outputs
+        uses: actions/cache@v6
+        with:
+          path: |
+            out/mill-plugins/morphir/
+            !out/mill-plugins/morphir/**/testForked.dest/**
+            !out/mill-plugins/morphir/**/testOnly.dest/**
+          key: ${{ runner.os }}-mill-morphir-unit-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
+      - name: Run capability
+        run: ./mill -i mill-plugins.morphir.integration.test
+
+  morphir-elm-projects:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [mill-morphir-unit]
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Setup Scala and Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "25"
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+      - name: Cache verified Morphir tool downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/morphir-scala
+          key: ${{ runner.os }}-morphir-tools-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}
+      - name: Restore Mill plugin outputs
+        uses: actions/cache/restore@v6
+        with:
+          path: out/mill-plugins/morphir/
+          key: ${{ runner.os }}-mill-morphir-unit-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
+      - name: Cache Mill capability outputs
+        uses: actions/cache@v6
+        with:
+          path: |
+            out/examples/morphir-elm-projects/
+            out/morphir-elm/
+          key: ${{ runner.os }}-mill-morphir-projects-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
+      - name: Run capability
+        run: |
+          ./mill -i -k "examples.morphir-elm-projects.__.morphirIR" \
+            + "morphir-elm.sdks.__.morphirIR"
+
+  runtime-generated-fixtures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [morphir-elm-projects]
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Setup Scala and Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "25"
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+      - name: Cache verified Morphir tool downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/morphir-scala
+          key: ${{ runner.os }}-morphir-tools-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}
+      - name: Restore generated Morphir IR outputs
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            out/examples/morphir-elm-projects/
+            out/morphir-elm/
+          key: ${{ runner.os }}-mill-morphir-projects-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
+      - name: Cache Mill capability outputs
+        uses: actions/cache@v6
+        with:
+          path: out/morphir/runtime/classic/jvm/test/
+          key: ${{ runner.os }}-mill-runtime-generated-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
+      - name: Run capability
+        run: ./mill -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures
+
+  runtime-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [runtime-generated-fixtures]
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Setup Scala and Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "25"
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+      - name: Cache verified Morphir tool downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/morphir-scala
+          key: ${{ runner.os }}-morphir-tools-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}
+      - name: Restore generated Morphir IR outputs
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            out/examples/morphir-elm-projects/
+            out/morphir-elm/
+          key: ${{ runner.os }}-mill-morphir-projects-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
+      - name: Cache Mill capability outputs
+        uses: actions/cache@v6
+        with:
+          path: out/morphir/runtime/classic/jvm/test/
+          key: ${{ runner.os }}-mill-runtime-generated-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
+      - name: Run capability
+        run: |
+          ./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery
+          ./mill -i morphir.runtime.classic.jvm.test
+
   test-js:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -273,7 +448,7 @@ jobs:
 
   ci:
     runs-on: ubuntu-latest
-    needs: [lint, knowledge-base, test-js, test-jvm, test-native]
+    needs: [lint, knowledge-base, test-js, test-jvm, test-native, mill-morphir-unit, mill-morphir-integration, morphir-elm-projects, runtime-generated-fixtures, runtime-tests]
     steps:
       - name: Aggregate of lint, and all tests
         run: echo "ci passed"

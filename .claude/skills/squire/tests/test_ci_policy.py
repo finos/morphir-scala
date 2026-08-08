@@ -10,6 +10,7 @@ from pathlib import Path
 
 
 WORKFLOW = Path(__file__).parents[4] / ".github/workflows/ci.yml"
+MISE_TASKS = Path(__file__).parents[4] / ".config/mise/tasks"
 SUPPORTED_BRANCHES = ["main", "0.4.x", "develop"]
 PUBLISH_PREDICATE = (
     "github.repository == 'finos/morphir-scala' && "
@@ -27,6 +28,43 @@ CACHE_PREDICATE = (
 SNAPSHOT_COMMANDS = (
     'echo "MORPHIR_PUBLISH_MODE=snapshot" >> "$GITHUB_ENV"',
     'echo "MORPHIR_PUBLISH_BRANCH=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"',
+)
+MORPHIR_JOBS = {
+    "mill-morphir-unit": {
+        "needs": [],
+        "commands": ('./mill -i -k "mill-plugins.morphir.__.test"',),
+    },
+    "mill-morphir-integration": {
+        "needs": ["mill-morphir-unit"],
+        "commands": ("./mill -i mill-plugins.morphir.integration.test",),
+    },
+    "morphir-elm-projects": {
+        "needs": ["mill-morphir-unit"],
+        "commands": (
+            './mill -i -k "examples.morphir-elm-projects.__.morphirIR" \\',
+            '  + "morphir-elm.sdks.__.morphirIR"',
+        ),
+    },
+    "runtime-generated-fixtures": {
+        "needs": ["morphir-elm-projects"],
+        "commands": (
+            "./mill -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
+        ),
+    },
+    "runtime-tests": {
+        "needs": ["runtime-generated-fixtures"],
+        "commands": (
+            "./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery",
+            "./mill -i morphir.runtime.classic.jvm.test",
+        ),
+    },
+}
+PLATFORM_JOBS = ("test-js", "test-jvm", "test-native")
+TOOL_CACHE_PATH = "~/.cache/morphir-scala"
+TOOL_CACHE_DIGEST = (
+    "hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', "
+    "'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', "
+    "'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json')"
 )
 
 
@@ -69,6 +107,22 @@ def scalar(block: str, key: str) -> str:
     if match is None:
         raise AssertionError(f"missing scalar: {key}")
     return match.group(1)
+
+
+def optional_inline_list(block: str, key: str) -> list[str]:
+    if re.search(rf"(?m)^\s*{re.escape(key)}:", block) is None:
+        return []
+    return inline_list(block, key)
+
+
+def literal_run_commands(step: str) -> tuple[str, ...]:
+    scalar_run = re.search(r"(?m)^\s+run:\s+([^|].*)$", step)
+    if scalar_run is not None:
+        return (scalar_run.group(1),)
+    literal_run = re.search(r"(?m)^\s+run: \|\n(?P<body>(?:^\s{10}.*\n?)*)", step)
+    if literal_run is None:
+        raise AssertionError("step must have a scalar or literal run command")
+    return tuple(line[10:] for line in literal_run.group("body").splitlines())
 
 
 def normalize_expression(expression: str) -> str:
@@ -187,6 +241,73 @@ def assert_mill_owned_morphir_elm_policy(workflow: str) -> None:
         raise AssertionError("test-js must retain exactly one Node setup for Scala.js")
 
 
+def assert_morphir_capability_jobs(workflow: str) -> None:
+    for job_name, policy in MORPHIR_JOBS.items():
+        if len(re.findall(rf"(?m)^  {re.escape(job_name)}:\s*$", workflow)) != 1:
+            raise AssertionError(f"workflow must contain exactly one {job_name} job")
+        job = indented_block(workflow, f"{job_name}:", 2)
+        if optional_inline_list(job, "needs") != policy["needs"]:
+            raise AssertionError(f"{job_name} has the wrong dependency order")
+        run_step = indented_block(job, "- name: Run capability", 6)
+        if literal_run_commands(run_step) != policy["commands"]:
+            raise AssertionError(f"{job_name} does not run its exact Mill capability")
+
+    aggregate = indented_block(workflow, "ci:", 2)
+    required = ["lint", "knowledge-base", *PLATFORM_JOBS, *MORPHIR_JOBS]
+    if inline_list(aggregate, "needs") != required:
+        raise AssertionError("aggregate ci must wait for every independent capability job")
+
+    for platform_job in PLATFORM_JOBS:
+        job = indented_block(workflow, f"{platform_job}:", 2)
+        if any(name in optional_inline_list(job, "needs") for name in MORPHIR_JOBS):
+            raise AssertionError(f"{platform_job} must remain separate from Morphir generation")
+
+
+def assert_morphir_cache_policy(workflow: str) -> None:
+    if "ELM_HOME" in workflow:
+        raise AssertionError("ELM_HOME is an Elm implementation detail, not a CI contract")
+    if re.search(r"(?m)^\s+[^#\n]*elm-stuff", workflow):
+        raise AssertionError("CI must not cache source-project elm-stuff")
+
+    for job_name in MORPHIR_JOBS:
+        job = indented_block(workflow, f"{job_name}:", 2)
+        tool_cache = indented_block(job, "- name: Cache verified Morphir tool downloads", 6)
+        if scalar(tool_cache, "uses") != "actions/cache@v6":
+            raise AssertionError(f"{job_name} must use the supported Actions cache")
+        if scalar(tool_cache, "path") != TOOL_CACHE_PATH:
+            raise AssertionError(f"{job_name} must cache only the verified machine cache")
+        key = scalar(tool_cache, "key")
+        if "${{ runner.os }}" not in key or f"${{{{ {TOOL_CACHE_DIGEST} }}}}" not in key:
+            raise AssertionError(f"{job_name} machine-cache key lacks OS/tool identity")
+
+        mill_cache = indented_block(job, "- name: Cache Mill capability outputs", 6)
+        if scalar(mill_cache, "uses") != "actions/cache@v6":
+            raise AssertionError(f"{job_name} must cache its useful Mill outputs")
+        mill_key = scalar(mill_cache, "key")
+        if "${{ runner.os }}" not in mill_key or f"${{{{ {TOOL_CACHE_DIGEST} }}}}" not in mill_key:
+            raise AssertionError(f"{job_name} Mill-cache key lacks OS/tool identity")
+        if "${{ github.sha }}" not in mill_key:
+            raise AssertionError(f"{job_name} Mill-cache key must identify the source revision")
+        if job_name in ("mill-morphir-unit", "mill-morphir-integration"):
+            for disposable in ("testForked.dest", "testOnly.dest"):
+                exclusion = f"!out/mill-plugins/morphir/**/{disposable}/**"
+                if exclusion not in mill_cache:
+                    raise AssertionError(
+                        f"{job_name} must not cache disposable {disposable} sandboxes"
+                    )
+
+
+def assert_mise_morphir_delegates() -> None:
+    elm = (MISE_TASKS / "build/elm").read_text(encoding="utf-8")
+    morphir_elm = (MISE_TASKS / "build/morphir-elm").read_text(encoding="utf-8")
+    for path, task in (("build:elm", elm), ("build:morphir-elm", morphir_elm)):
+        if "./mill" not in task or ".morphirIR" not in task:
+            raise AssertionError(f"{path} must delegate Morphir IR generation to Mill")
+        for forbidden in ("npm ", "npx ", "mise install", "ELM_HOME", ".make"):
+            if forbidden in task:
+                raise AssertionError(f"{path} must not acquire tools or use legacy make: {forbidden}")
+
+
 def replace_in_job(workflow: str, job_name: str, old: str, new: str) -> str:
     job = indented_block(workflow, job_name, 2)
     if old not in job:
@@ -244,6 +365,15 @@ class CiPolicyTest(unittest.TestCase):
 
     def test_morphir_elm_tooling_is_owned_by_mill(self):
         assert_mill_owned_morphir_elm_policy(self.workflow)
+
+    def test_morphir_capabilities_are_separate_ordered_jobs(self):
+        assert_morphir_capability_jobs(self.workflow)
+
+    def test_morphir_jobs_cache_only_verified_tools_and_useful_mill_outputs(self):
+        assert_morphir_cache_policy(self.workflow)
+
+    def test_mise_build_commands_are_compatibility_delegates(self):
+        assert_mise_morphir_delegates()
 
     def test_morphir_elm_policy_is_narrow_and_allows_generic_node_and_mise_steps(self):
         generic_tooling = self.workflow + (

@@ -4,14 +4,8 @@
 set -euo pipefail
 
 echo "Building Elm projects..."
-./mill --ticker false \
-    examples.morphir-elm-projects.evaluator-tests.make \
-    + examples.morphir-elm-projects.defaults-tests.make \
-    + examples.morphir-elm-projects.finance.make \
-    + morphir-elm.sdks.morphir-unit-test.make \
-    + examples.morphir-elm-projects.unit-test-framework.example-project.make \
-    + examples.morphir-elm-projects.unit-test-framework.example-project-tests.make \
-    + examples.morphir-elm-projects.unit-test-framework.example-project-tests-passing.make \
-    + examples.morphir-elm-projects.unit-test-framework.example-project-tests-incomplete.make
+./mill --ticker false -k \
+    "examples.morphir-elm-projects.__.morphirIR" \
+    + "morphir-elm.sdks.__.morphirIR"
 
 echo "Elm build completed successfully"
