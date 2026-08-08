@@ -1,6 +1,4 @@
 package org.finos.millmorphir.elm
 
 /** Temporary source-compatible package bridge; implementation lives in mill-morphir-elm. */
-trait MorphirElmModule
-    extends org.finos.millmorphir.MorphirModule
-    with org.finos.morphir.mill.elm.morphir.MorphirElmModule
+trait MorphirElmModule extends org.finos.millmorphir.MorphirModule

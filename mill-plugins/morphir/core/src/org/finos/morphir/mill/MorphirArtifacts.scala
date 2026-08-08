@@ -7,28 +7,64 @@ import java.security.MessageDigest
 import scala.jdk.CollectionConverters.*
 
 import mill.PathRef
-import upickle.default.ReadWriter
+import upickle.default.{ReadWriter, readwriter}
 
-final case class MorphirIrArtifact(moduleId: ModuleId, path: PathRef, sha256: String) derives ReadWriter {
-  MorphirArtifactIdentity.requireSha256(sha256)
+sealed abstract case class MorphirIrArtifact private (moduleId: ModuleId, path: PathRef, sha256: String) {
 
   /** Compatibility spelling retained for consumers of the original metabuild API. */
   def irFilePath: PathRef = path
 }
 
 object MorphirIrArtifact {
-  def fromFile(moduleId: ModuleId, path: PathRef): MorphirIrArtifact =
-    MorphirIrArtifact(moduleId, path, MorphirArtifactIdentity.sha256(path.path))
+  private final case class Wire(moduleId: ModuleId, path: PathRef, sha256: String) derives ReadWriter
+
+  given ReadWriter[MorphirIrArtifact] = readwriter[Wire].bimap(
+    artifact => Wire(artifact.moduleId, artifact.path, artifact.sha256),
+    wire => verified(wire.moduleId, wire.path, Some(wire.sha256))
+  )
+
+  def fromFile(moduleId: ModuleId, path: PathRef): MorphirIrArtifact = verified(moduleId, path, None)
+
+  private def verified(moduleId: ModuleId, path: PathRef, expectedSha256: Option[String]): MorphirIrArtifact = {
+    expectedSha256.foreach(MorphirArtifactIdentity.requireSha256)
+    val actual = MorphirArtifactIdentity.sha256(path.path)
+    expectedSha256.foreach { expected =>
+      if (actual != expected)
+        throw new IllegalArgumentException(
+          s"Morphir IR artifact content identity mismatch for ${path.path}: expected $expected, got $actual"
+        )
+    }
+    new MorphirIrArtifact(moduleId, path, actual) {}
+  }
 }
 
-final case class MorphirDependencyArtifact(moduleId: ModuleId, irFilePath: PathRef, sha256: String)
-    derives ReadWriter {
-  MorphirArtifactIdentity.requireSha256(sha256)
-}
+sealed abstract case class MorphirDependencyArtifact private (
+    moduleId: ModuleId,
+    irFilePath: PathRef,
+    sha256: String
+)
 
 object MorphirDependencyArtifact {
+  private final case class Wire(moduleId: ModuleId, irFilePath: PathRef, sha256: String) derives ReadWriter
+
+  given ReadWriter[MorphirDependencyArtifact] = readwriter[Wire].bimap(
+    artifact => Wire(artifact.moduleId, artifact.irFilePath, artifact.sha256),
+    wire => verified(wire.moduleId, wire.irFilePath, wire.sha256)
+  )
+
   def fromArtifact(artifact: MorphirIrArtifact): MorphirDependencyArtifact =
-    MorphirDependencyArtifact(artifact.moduleId, artifact.path, artifact.sha256)
+    verified(artifact.moduleId, artifact.path, artifact.sha256)
+
+  private def verified(moduleId: ModuleId, path: PathRef, expectedSha256: String): MorphirDependencyArtifact = {
+    MorphirArtifactIdentity.requireSha256(expectedSha256)
+    val actual = MorphirArtifactIdentity.sha256(path.path)
+    if (actual != expectedSha256)
+      throw new IllegalArgumentException(
+        s"Morphir dependency artifact content identity mismatch for ${path.path}: " +
+          s"expected $expectedSha256, got $actual"
+      )
+    new MorphirDependencyArtifact(moduleId, path, actual) {}
+  }
 }
 
 object MorphirArtifactIdentity {

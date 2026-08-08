@@ -51,6 +51,19 @@ object MorphirElmProjectTests extends TestSuite {
     MorphirDependencyArtifact.fromArtifact(MorphirIrArtifact.fromFile(module, PathRef(path)))
 
   val tests = Tests {
+    test("legacy metabuild module names retain the Elm adapter surface") {
+      val errors = scala.compiletime.testing.typeCheckErrors(
+        """
+          def publishedAdapter(
+              legacy: org.finos.millmorphir.MorphirModule
+          ): org.finos.morphir.mill.elm.morphir.MorphirElmModule = legacy
+          def makeSurface(legacy: org.finos.millmorphir.MorphirModule) = legacy.make
+          def morphirIrSurface(legacy: org.finos.millmorphir.MorphirModule) = legacy.morphirIR
+        """
+      )
+      assert(errors.isEmpty)
+    }
+
     test("typed dependency IDs produce bounded sandbox paths") {
       val id = moduleId"morphir-elm.sdks.morphir-unit-test"
       assert(

@@ -138,7 +138,62 @@ object MorphirCoreTests extends TestSuite {
 
         val roundTrip = read[MorphirIrArtifact](write(second))
         assert(roundTrip == second)
+        assert(read[MorphirDependencyArtifact](write(dependency)) == dependency)
+
+        val forgedIr = ujson.read(write(second))
+        forgedIr("sha256") = "0000000000000000000000000000000000000000000000000000000000000000"
+        assert(scala.util.Try(read[MorphirIrArtifact](forgedIr)).isFailure)
+
+        val forgedDependency = ujson.read(write(dependency))
+        forgedDependency("sha256") =
+          "0000000000000000000000000000000000000000000000000000000000000000"
+        assert(scala.util.Try(read[MorphirDependencyArtifact](forgedDependency)).isFailure)
       }
+    }
+
+    test("artifact constructors are not public verification bypasses") {
+      val irConstructor = typeCheckErrors(
+        """
+          import mill.PathRef
+          import org.finos.morphir.mill.*
+          MorphirIrArtifact(
+            moduleId"examples.defaults-tests",
+            PathRef(os.pwd / "morphir-ir.json"),
+            "0000000000000000000000000000000000000000000000000000000000000000"
+          )
+        """
+      )
+      val dependencyConstructor = typeCheckErrors(
+        """
+          import mill.PathRef
+          import org.finos.morphir.mill.*
+          MorphirDependencyArtifact(
+            moduleId"examples.defaults-tests",
+            PathRef(os.pwd / "morphir-ir.json"),
+            "0000000000000000000000000000000000000000000000000000000000000000"
+          )
+        """
+      )
+      val irCopy = typeCheckErrors(
+        """
+          import org.finos.morphir.mill.*
+          def replaceDigest(artifact: MorphirIrArtifact) = artifact.copy(
+            sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+          )
+        """
+      )
+      val dependencyCopy = typeCheckErrors(
+        """
+          import org.finos.morphir.mill.*
+          def replaceDigest(artifact: MorphirDependencyArtifact) = artifact.copy(
+            sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+          )
+        """
+      )
+      assert(irConstructor.nonEmpty)
+      assert(dependencyConstructor.nonEmpty)
+      assert(irCopy.nonEmpty)
+      assert(dependencyCopy.nonEmpty)
     }
 
     test("artifact hashing rejects a symlink swap between validation and open") {
