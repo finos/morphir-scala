@@ -69,7 +69,8 @@ object VerifiedArchive {
       archive: VerifiedContent,
       format: ArchiveFormat,
       destination: os.Path,
-      limits: ArchiveLimits = ArchiveLimits()
+      limits: ArchiveLimits = ArchiveLimits(),
+      cleanup: os.Path => Unit = removeTemporary
   )(afterSnapshotVerified: => Unit): Unit = {
     val parent   = destination / os.up
     val nonce    = UUID.randomUUID()
@@ -86,10 +87,28 @@ object VerifiedArchive {
         case ArchiveFormat.Zip   => extractZip(snapshot, staging, limits)
       }
       promoteExclusive(staging, destination)
-    } finally
-      try os.remove(snapshot)
-      finally os.remove.all(staging)
+    } catch {
+      case primary: Throwable =>
+        cleanupSuppressed(snapshot, primary, cleanup)
+        cleanupSuppressed(staging, primary, cleanup)
+        throw primary
+    }
+    bestEffortCleanup(snapshot, cleanup)
+    bestEffortCleanup(staging, cleanup)
   }
+
+  private def cleanupSuppressed(path: os.Path, primary: Throwable, cleanup: os.Path => Unit): Unit =
+    try cleanup(path)
+    catch {
+      case cleanupError: Throwable if cleanupError ne primary => primary.addSuppressed(cleanupError)
+      case _: Throwable                                       => ()
+    }
+
+  private def bestEffortCleanup(path: os.Path, cleanup: os.Path => Unit): Unit =
+    try cleanup(path)
+    catch { case _: Throwable => () }
+
+  private def removeTemporary(path: os.Path): Unit = os.remove.all(path)
 
   private def snapshotAndVerify(content: VerifiedContent, snapshot: os.Path, maxBytes: Long): Unit = {
     val digest = MessageDigest.getInstance("SHA-256")

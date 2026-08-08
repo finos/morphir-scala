@@ -3,6 +3,7 @@ package org.finos.morphir.mill.toolchain
 import java.io.{IOException, InputStream}
 import java.nio.file.{
   AtomicMoveNotSupportedException,
+  FileAlreadyExistsException,
   FileVisitResult,
   Files,
   LinkOption,
@@ -36,9 +37,9 @@ final class AcquisitionCache private (
     val digest = normalizedDigest(expectedSha256)
     val root   =
       if (settings.useMachineCache) settings.cacheRoot.getOrElse(AcquisitionSettings.defaultCacheRoot)
-      else taskRoot / os.up / s".${taskRoot.last}.morphir-acquisitions"
+      else taskLocalCacheRoot()
     val entry = root / "sha256" / digest
-    os.makeDir.all(entry / os.up)
+    if (settings.useMachineCache) os.makeDir.all(entry / os.up)
     coordinated(entry) {
       acquireLocked(root, entry, digest, source, limits)(openStream)
     }
@@ -54,7 +55,7 @@ final class AcquisitionCache private (
       openStream: => InputStream
   ): VerifiedContent = {
     pruneStaleSiblings(entry)
-    if (isVerifiedRegularFile(entry, digest))
+    if (isVerifiedRegularFile(entry, digest, source, limits))
       return checkedContent(entry, digest, source, limits)
     if (settings.offline)
       throw new IllegalStateException(
@@ -80,7 +81,12 @@ final class AcquisitionCache private (
     } finally bestEffortCleanup(temporary)
   }
 
-  private def isVerifiedRegularFile(entry: os.Path, digest: String): Boolean =
+  private def isVerifiedRegularFile(
+      entry: os.Path,
+      digest: String,
+      source: String,
+      limits: AcquisitionLimits
+  ): Boolean =
     if (!Files.exists(entry.toNIO, LinkOption.NOFOLLOW_LINKS)) false
     else {
       val attributes = Files.readAttributes(
@@ -88,7 +94,11 @@ final class AcquisitionCache private (
         classOf[BasicFileAttributes],
         LinkOption.NOFOLLOW_LINKS
       )
-      attributes.isRegularFile && scala.util.Try(VerifiedArchive.verifySha256(entry, digest)).isSuccess
+      if (!attributes.isRegularFile) false
+      else {
+        checkSize(attributes, source, limits)
+        scala.util.Try(VerifiedArchive.verifySha256(entry, digest)).isSuccess
+      }
     }
 
   private def checkedContent(
@@ -104,12 +114,41 @@ final class AcquisitionCache private (
     )
     if (!attributes.isRegularFile)
       throw new IllegalStateException(s"Verified acquisition content changed before use for $source: $entry")
+    checkSize(attributes, source, limits)
+    VerifiedContent(entry, digest)
+  }
+
+  private def checkSize(
+      attributes: BasicFileAttributes,
+      source: String,
+      limits: AcquisitionLimits
+  ): Unit =
     if (attributes.size() > limits.maxAcquiredBytes)
       throw new IllegalArgumentException(
         s"Verified acquisition acquired byte limit ${limits.maxAcquiredBytes} exceeded for $source: " +
           s"cached content is ${attributes.size()} bytes"
       )
-    VerifiedContent(entry, digest)
+
+  private def taskLocalCacheRoot(): os.Path = {
+    os.makeDir.all(taskRoot)
+    val root = taskRoot / ".morphir-acquisitions"
+    ensureTaskLocalDirectory(root)
+    ensureTaskLocalDirectory(root / "sha256")
+    root
+  }
+
+  private def ensureTaskLocalDirectory(path: os.Path): Unit = {
+    try Files.createDirectory(path.toNIO)
+    catch { case _: FileAlreadyExistsException => () }
+    val attributes = Files.readAttributes(
+      path.toNIO,
+      classOf[BasicFileAttributes],
+      LinkOption.NOFOLLOW_LINKS
+    )
+    if (!attributes.isDirectory)
+      throw new IllegalArgumentException(
+        s"Reserved task-local acquisition cache path must be a directory and may not be a symbolic link: $path"
+      )
   }
 
   private def quarantineAndPromote(

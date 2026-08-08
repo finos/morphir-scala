@@ -287,6 +287,32 @@ object VerifiedAcquisitionTests extends TestSuite {
       }
     }
 
+    test("oversized corrupt cache entries are rejected before hashing or acquisition") {
+      withTempDir { directory =>
+        val expected  = "12345".getBytes(StandardCharsets.UTF_8)
+        val corrupt   = "abcde".getBytes(StandardCharsets.UTF_8)
+        val digest    = VerifiedArchive.sha256(expected)
+        val cacheRoot = directory / "machine-cache"
+        val entry     = cacheRoot / "sha256" / digest
+        os.makeDir.all(entry / os.up)
+        os.write(entry, corrupt)
+        var opened = false
+
+        val limited = scala.util.Try(
+          AcquisitionCache(AcquisitionSettings(cacheRoot = Some(cacheRoot)), directory / "task")
+            .acquire(digest, "memory:oversized-corrupt", AcquisitionLimits(maxAcquiredBytes = 4)) {
+              opened = true
+              new ByteArrayInputStream(expected)
+            }
+        )
+
+        assert(limited.isFailure)
+        assert(limited.failed.get.getMessage.contains("acquired byte limit"))
+        assert(!opened)
+        assert(os.read.bytes(entry).sameElements(corrupt))
+      }
+    }
+
     test("disabled machine cache keeps verified content task-local") {
       withTempDir { directory =>
         val bytes       = "task-local bytes".getBytes(StandardCharsets.UTF_8)
@@ -300,10 +326,62 @@ object VerifiedAcquisitionTests extends TestSuite {
 
         val content = cache.acquire(digest, "memory:disabled")(new ByteArrayInputStream(bytes))
 
-        assert(content.path == taskRoot / os.up / s".${taskRoot.last}.morphir-acquisitions" / "sha256" / digest)
-        assert(!content.path.toNIO.startsWith(taskRoot.toNIO))
+        assert(content.path == taskRoot / ".morphir-acquisitions" / "sha256" / digest)
+        assert(content.path.toNIO.startsWith(taskRoot.toNIO))
         assert(!os.exists(machineRoot))
         assert(os.read.bytes(content.path).sameElements(bytes))
+      }
+    }
+
+    test("disabled acquisition rejects a reserved cache symlink without following it") {
+      withTempDir { directory =>
+        val bytes    = "task-local symlink".getBytes(StandardCharsets.UTF_8)
+        val digest   = VerifiedArchive.sha256(bytes)
+        val taskRoot = directory / "task"
+        val external = directory / "external"
+        os.makeDir.all(taskRoot)
+        os.makeDir.all(external)
+        Files.createSymbolicLink((taskRoot / ".morphir-acquisitions").toNIO, external.toNIO)
+        var opened = false
+
+        val result = scala.util.Try(
+          AcquisitionCache(AcquisitionSettings(useMachineCache = false), taskRoot)
+            .acquire(digest, "memory:reserved-symlink") {
+              opened = true
+              new ByteArrayInputStream(bytes)
+            }
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("task-local acquisition cache"))
+        assert(!opened)
+        assert(Files.isSymbolicLink((taskRoot / ".morphir-acquisitions").toNIO))
+        assert(os.list(external).isEmpty)
+      }
+    }
+
+    test("disabled acquisition rejects a reserved cache file collision") {
+      withTempDir { directory =>
+        val bytes    = "task-local collision".getBytes(StandardCharsets.UTF_8)
+        val digest   = VerifiedArchive.sha256(bytes)
+        val taskRoot = directory / "task"
+        val reserved = taskRoot / ".morphir-acquisitions"
+        os.makeDir.all(taskRoot)
+        os.write(reserved, "reserved collision")
+        var opened = false
+
+        val result = scala.util.Try(
+          AcquisitionCache(AcquisitionSettings(useMachineCache = false), taskRoot)
+            .acquire(digest, "memory:reserved-collision") {
+              opened = true
+              new ByteArrayInputStream(bytes)
+            }
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("task-local acquisition cache"))
+        assert(!opened)
+        assert(os.read(reserved) == "reserved collision")
       }
     }
 
@@ -348,8 +426,9 @@ object VerifiedAcquisitionTests extends TestSuite {
         val digest = VerifiedArchive.sha256(bytes)
 
         def acquireAndExtract(name: String, settings: AcquisitionSettings): os.Path = {
-          val destination = directory / name
-          val content     = AcquisitionCache(settings, destination)
+          val taskRoot    = directory / name
+          val destination = taskRoot / "node"
+          val content     = AcquisitionCache(settings, taskRoot)
             .acquire(digest, s"memory:$name")(new ByteArrayInputStream(bytes))
           VerifiedArchive.extract(content, ArchiveFormat.TarGz, destination)
           destination
@@ -589,7 +668,7 @@ object VerifiedAcquisitionTests extends TestSuite {
         val bytes        = "output failure".getBytes(StandardCharsets.UTF_8)
         val digest       = VerifiedArchive.sha256(bytes)
         val taskRoot     = directory / "task"
-        val outputParent = taskRoot / os.up / s".${taskRoot.last}.morphir-acquisitions" / "sha256"
+        val outputParent = taskRoot / ".morphir-acquisitions" / "sha256"
         val displaced    = directory / "displaced-sha256"
         val input        = new TrackingInputStream(bytes)
 
@@ -786,6 +865,34 @@ object VerifiedAcquisitionTests extends TestSuite {
           contender.join(5000)
           owner.join(5000)
         }
+      }
+    }
+
+    test("same-thread recursive path coordination fails clearly instead of deadlocking") {
+      withTempDir { directory =>
+        val lockPath = directory / ".recursive.lock"
+        val result   = new AtomicReference[scala.util.Try[Unit]]()
+        val worker   = new Thread(() =>
+          result.set(
+            scala.util.Try(
+              PathCoordinator.withLock(lockPath) {
+                PathCoordinator.withLock(lockPath)(())
+              }
+            )
+          )
+        )
+
+        worker.start()
+        worker.join(1000)
+        val deadlocked = worker.isAlive
+        if (deadlocked) {
+          worker.interrupt()
+          worker.join(1000)
+        }
+
+        assert(!deadlocked)
+        assert(result.get().isFailure)
+        assert(result.get().failed.get.getMessage.contains("Recursive path coordination"))
       }
     }
 
@@ -1133,6 +1240,63 @@ object VerifiedAcquisitionTests extends TestSuite {
         assert(mismatch.isFailure)
         assert(mismatch.failed.get.getMessage.contains("SHA-256 mismatch"))
         assert(!mismatch.failed.get.getMessage.contains("stubborn cleanup"))
+      }
+    }
+
+    test("archive cleanup failures are suppressed onto primary snapshot and extraction failures") {
+      withTempDir { directory =>
+        val validArchive = directory / "valid.tar.gz"
+        writeTarGz(
+          validArchive,
+          Seq(("root/bin/node", "node".getBytes(StandardCharsets.UTF_8), None))
+        )
+        val malformedArchive = directory / "malformed.tar.gz"
+        os.write(malformedArchive, "not a gzip archive")
+        val cases = Seq(
+          "snapshot"   -> VerifiedContent(validArchive, "0" * 64),
+          "extraction" -> VerifiedContent(malformedArchive, VerifiedArchive.sha256(malformedArchive))
+        )
+
+        cases.foreach { case (label, content) =>
+          val result = scala.util.Try(
+            VerifiedArchive.extractObserved(
+              content,
+              ArchiveFormat.TarGz,
+              directory / s"extracted-$label",
+              cleanup = _ => throw new java.io.IOException(s"$label cleanup failure")
+            ) {}
+          )
+
+          assert(result.isFailure)
+          assert(!result.failed.get.getMessage.contains("cleanup failure"))
+          assert(result.failed.get.getSuppressed.length == 2)
+          assert(result.failed.get.getSuppressed.forall(_.getMessage == s"$label cleanup failure"))
+          assert(!os.exists(directory / s"extracted-$label"))
+        }
+      }
+    }
+
+    test("archive cleanup failures after promotion do not fail a completed destination") {
+      withTempDir { directory =>
+        val archive = directory / "node.tar.gz"
+        writeTarGz(
+          archive,
+          Seq(("root/bin/node", "node".getBytes(StandardCharsets.UTF_8), None))
+        )
+        val cleanupAttempts = new AtomicInteger(0)
+
+        VerifiedArchive.extractObserved(
+          VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+          ArchiveFormat.TarGz,
+          directory / "extracted",
+          cleanup = _ => {
+            cleanupAttempts.incrementAndGet()
+            throw new java.io.IOException("post-promotion cleanup failure")
+          }
+        ) {}
+
+        assert(cleanupAttempts.get() == 2)
+        assert(os.read(directory / "extracted" / "bin" / "node") == "node")
       }
     }
 

@@ -17,6 +17,8 @@ private[toolchain] object PathCoordinator {
     os.makeDir.all(lockPath / os.up)
     val lockKey = lockPath.toNIO.getParent.toRealPath().resolve(lockPath.last).toString
     val local   = LocalLocks.computeIfAbsent(lockKey, _ => new ReentrantLock())
+    if (local.isHeldByCurrentThread)
+      throw new IllegalStateException(s"Recursive path coordination is not supported for $lockPath")
     try local.lockInterruptibly()
     catch {
       case error: InterruptedException => throw interrupted(lockPath, error)

@@ -24,8 +24,9 @@ trait NodeToolchainModule extends Module {
       connection.setReadTimeout(60000)
       new BufferedInputStream(connection.getInputStream)
     }
-    VerifiedArchive.extract(content, distribution.format, Task.dest)
-    PathRef(Task.dest)
+    val destination = Task.dest / "node"
+    VerifiedArchive.extract(content, distribution.format, destination)
+    PathRef(destination)
   }
 
   def nodeExecutable: T[PathRef] = Task {
