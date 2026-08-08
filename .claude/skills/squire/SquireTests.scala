@@ -1,7 +1,7 @@
 //| scalaVersion: 3.8.4
 //| mainClass: kyo.test.runner.Cli
 //| resources: [test-resources]
-//| moduleDeps: [squire.scala, SquireCellar.scala, SquireRepo.scala]
+//| moduleDeps: [squire.scala, SquireCellar.scala, SquireRepo.scala, SquireTracking.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-test-api:1.0.0-RC6
 //| - io.getkyo::kyo-test-runner:1.0.0-RC6
@@ -164,6 +164,33 @@ class SquireCliSpec extends Test[Any]:
     }
   }
 
+  "tracking routing" - {
+    "renders quiet checks sync and doctor through the typed tracking boundary" in {
+      import SquireTrackingFixtures.*
+      for
+        root <- SquireFixtures.scratch("tracking-cli")
+        _ <- beads(root)
+        _ <- Sync.defer {
+          Files.writeString((root / "AGENTS.md").toJava, SquireTracking.pointer + "\n")
+          Files.writeString((root / "CLAUDE.md").toJava, SquireTracking.pointer + "\n")
+        }
+        statusOutput = new StringBuilder
+        status <- SquireCli.runTrackingStatus(
+          TrackingStatusOpts(quiet = true), root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")), value => statusOutput.append(value)
+        )
+        checkOutput = new StringBuilder
+        check <- SquireCli.runTrackingStatus(
+          TrackingStatusOpts(check = Some("off")), root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")), value => checkOutput.append(value)
+        )
+        syncOutput = new StringBuilder
+        sync <- SquireCli.runTrackingSync(TrackingSyncOpts(check = true), root, value => syncOutput.append(value))
+        doctorOutput = new StringBuilder
+        doctor <- SquireCli.runTrackingDoctor(root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")), value => doctorOutput.append(value))
+      yield assert(status == 0 && statusOutput.result() == "beads\n" && check == 1 && checkOutput.isEmpty &&
+        sync == 0 && syncOutput.result().contains("OK - AGENTS.md") && doctor == 0 && doctorOutput.result().contains("guidance"))
+    }
+  }
+
 class SquireMetaSpec extends Test[Any]:
   private val skillDirectory = java.nio.file.Paths.get(java.lang.System.getProperty("user.dir"))
 
@@ -202,7 +229,8 @@ class SquireMetaSpec extends Test[Any]:
           "SquireDoctorSpec",
           "SquireCellarSpec",
           "SquireRepoSpec",
-          "SquireBranchSpec"
+          "SquireBranchSpec",
+          "SquireTrackingSpec"
         )
       )
     }
@@ -1782,6 +1810,146 @@ class SquireDoctorSpec extends Test[Any]:
       )
     }
   }
+
+class SquireTrackingSpec extends Test[Any]:
+  import SquireTrackingFixtures.*
+
+  "tracking resolution" - {
+    "defaults absent settings to auto and reports unavailable when bd is missing" in {
+      for
+        root <- SquireFixtures.scratch("tracking-absent")
+        report <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
+      yield assert(report.configuredMode == TrackingMode.Auto && report.effectiveMode == TrackingMode.Unavailable &&
+        report.reason == "bd is not on PATH")
+    }
+
+    "honours auto beads off and YAML boolean mode settings" in {
+      for
+        root <- SquireFixtures.scratch("tracking-modes")
+        _ <- settings(root, "auto")
+        _ <- beads(root)
+        auto <- SquireTracking.resolve(root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")))
+        _ <- settings(root, "beads")
+        forced <- SquireTracking.resolve(root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")))
+        _ <- settings(root, "off")
+        off <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
+        _ <- settings(root, "false")
+        booleanOff <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
+        _ <- settings(root, "true")
+        booleanBeads <- SquireTracking.resolve(root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")))
+      yield assert(auto.effectiveMode == TrackingMode.Beads && forced.effectiveMode == TrackingMode.Beads &&
+        off.effectiveMode == TrackingMode.Off && booleanOff.configuredMode == TrackingMode.Off &&
+        booleanBeads.configuredMode == TrackingMode.Beads)
+    }
+
+    "warns for invalid or unavailable forced beads settings" in {
+      for
+        root <- SquireFixtures.scratch("tracking-warnings")
+        _ <- settings(root, "unknown")
+        invalid <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
+        _ <- settings(root, "beads")
+        unavailable <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
+      yield assert(invalid.configuredMode == TrackingMode.Auto && invalid.warning.exists(_.contains("unrecognised")) &&
+        unavailable.warning.exists(_.contains("tracking.mode is 'beads'")))
+    }
+
+    "reports guidance drift independently for both agent instruction files" in {
+      for
+        root <- SquireFixtures.scratch("tracking-guidance-drift")
+        _ <- Sync.defer {
+          Files.writeString((root / "AGENTS.md").toJava, "<!-- BEGIN BEADS INTEGRATION -->old<!-- END BEADS INTEGRATION -->")
+          Files.writeString((root / "CLAUDE.md").toJava, "no pointer")
+        }
+        report <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
+      yield assert(report.guidanceDrift.map(_.file).toSet == Set("AGENTS.md", "CLAUDE.md"))
+    }
+
+    "distinguishes missing beads git worktree and workspace fallback states" in {
+      for
+        root <- SquireFixtures.scratch("tracking-workspaces")
+        missingBeads <- SquireTracking.resolve(root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")))
+        _ <- beads(root)
+        localStore = root / ".beads" / "embeddeddolt"
+        _ <- Sync.defer(Files.createDirectories(localStore.toJava))
+        local <- SquireTracking.resolve(root, runner(gitWorktree(root / ".git", root / ".git"), bdVersion), TestSquirePlatform(Present("bd")))
+        _ <- Sync.defer(Files.delete(localStore.toJava))
+        main = root / "main"
+        common = main / ".git"
+        _ <- Sync.defer(Files.createDirectories(common.toJava))
+        _ <- Sync.defer(Files.createDirectories((main / ".beads").toJava))
+        _ <- Sync.defer(Files.writeString((main / ".beads" / "config.yaml").toJava, "prefix: morphir\n"))
+        shared <- SquireTracking.resolve(root, runner(gitWorktree(root / "worktree-git", common), bdVersion), TestSquirePlatform(Present("bd")))
+        _ <- Sync.defer(Files.delete((main / ".beads" / "config.yaml").toJava))
+        unresolved <- SquireTracking.resolve(root, runner(gitWorktree(root / "worktree-git", common), bdVersion), TestSquirePlatform(Present("bd")))
+      yield assert(missingBeads.effectiveMode == TrackingMode.Unavailable && local.workspace.status == "local" &&
+        shared.workspace.status == "shared" && unresolved.effectiveMode == TrackingMode.Unavailable &&
+        unresolved.workspace.remedy.exists(_.contains("bd bootstrap")))
+    }
+
+    "treats bd version failure and a non repository as unavailable without mutating beads" in {
+      for
+        root <- SquireFixtures.scratch("tracking-failures")
+        _ <- beads(root)
+        failed <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform(Present("bd")))
+      yield assert(failed.effectiveMode == TrackingMode.Unavailable && failed.workspace.status == "no-repo")
+    }
+  }
+
+  "guidance rewrite" - {
+    "removes both beads marker families and replaces the pointer with one trailing newline" in {
+      val input = "before\n<!-- BEGIN BEADS INTEGRATION -->old<!-- END BEADS INTEGRATION -->\n" +
+        "<!-- BEGIN BEADS CODEX SETUP -->old<!-- END BEADS CODEX SETUP -->\n" +
+        "<!-- BEGIN MORPHIR TRACKING -->stale<!-- END MORPHIR TRACKING -->\n\n"
+      val rewrite = SquireTracking.rewriteGuidance(input)
+      assert(rewrite.removedBeadsBlocks == 2 && !rewrite.text.contains("BEGIN BEADS") &&
+        rewrite.text.contains(".claude/skills/squire/squire tracking status --quiet") && rewrite.text.endsWith("\n") &&
+        !rewrite.text.endsWith("\n\n"))
+    }
+
+    "appends the pointer and is idempotent" in {
+      val first = SquireTracking.rewriteGuidance("agent instructions\n")
+      val second = SquireTracking.rewriteGuidance(first.text)
+      assert(first.changed && second.text == first.text && !second.changed)
+    }
+
+    "checks diffs applies only when requested and reports missing targets" in {
+      for
+        root <- SquireFixtures.scratch("tracking-guidance")
+        _ <- Sync.defer(Files.writeString((root / "AGENTS.md").toJava, "stale\n"))
+        check <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Check)
+        diff <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Diff)
+        before <- Sync.defer(Files.readString((root / "AGENTS.md").toJava))
+        apply <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Apply)
+        after <- Sync.defer(Files.readString((root / "AGENTS.md").toJava))
+        second <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Apply)
+      yield assert(check.exitCode == 1 && diff.exitCode == 1 && diff.output.contains("--- a/AGENTS.md") &&
+        before == "stale\n" && apply.exitCode == 1 && after.contains("BEGIN MORPHIR TRACKING") &&
+        apply.missing == Chunk("CLAUDE.md") && second.changed.isEmpty)
+    }
+  }
+
+object SquireTrackingFixtures:
+  val gitShared: ProcessRequest => ProcessResult = request => ProcessResult(request, 0, ".git\n.git\n", "")
+  val gitFailure: ProcessRequest => ProcessResult = request => ProcessResult(request, 1, "", "not a repository")
+  val bdVersion: ProcessRequest => ProcessResult = request => ProcessResult(request, 0, "bd 0.42.0\n", "")
+  val bdFailure: ProcessRequest => ProcessResult = request => ProcessResult(request, 1, "", "failed")
+  val unexpected: ProcessRequest => ProcessResult = request => throw new AssertionError(s"unexpected process: ${request.argv}")
+
+  def runner(git: ProcessRequest => ProcessResult, bd: ProcessRequest => ProcessResult): RuleRunner =
+    RuleRunner(request => if request.argv.headOption.contains("git") then git(request) else bd(request))
+
+  def gitWorktree(gitDir: Path, commonDir: Path): ProcessRequest => ProcessResult =
+    request => ProcessResult(request, 0, s"$gitDir\n$commonDir\n", "")
+
+  def settings(root: Path, mode: String): Unit < Sync =
+    Sync.defer {
+      val path = root / ".config" / "squire" / "settings.local.yaml"
+      Files.createDirectories(path.parent.get.toJava)
+      Files.writeString(path.toJava, s"tracking:\n  mode: $mode\n")
+    }
+
+  def beads(root: Path): Unit < Sync =
+    Sync.defer(Files.createDirectories((root / ".beads").toJava))
 
 final class TestEnvPlatform(
     val environment: Map[String, String],

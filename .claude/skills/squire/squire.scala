@@ -1,6 +1,6 @@
 //| scalaVersion: 3.8.4
 //| mainClass: SquireApp
-//| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireEnv.scala, SquireDoctor.scala, SquireCellar.scala, SquireRepo.scala, SquireBranch.scala]
+//| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireEnv.scala, SquireDoctor.scala, SquireCellar.scala, SquireRepo.scala, SquireBranch.scala, SquireTracking.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-case-app:1.0.0-RC6
 
@@ -54,8 +54,14 @@ case class BranchRefreshOpts(
     @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )
 
-case class TrackingStatusOpts()
-case class TrackingSyncOpts()
+case class TrackingStatusOpts(
+    @HelpMessage("Print only the effective tracking mode") quiet: Boolean = false,
+    @HelpMessage("Exit successfully only when the effective mode matches") check: Option[String] = None
+)
+case class TrackingSyncOpts(
+    @HelpMessage("Report guidance drift without writing") check: Boolean = false,
+    @HelpMessage("Print the pending guidance diff without writing") diff: Boolean = false
+)
 case class TrackingDoctorOpts()
 
 case class SpecSyncOpts(
@@ -222,6 +228,50 @@ object SquireCli:
         else output(s"${result.kind}: ${result.target} ${result.oldSha} -> ${result.newSha}\n")
         0
       }
+
+  def runTrackingStatus(
+      options: TrackingStatusOpts,
+      root: Path,
+      runner: ProcessRunner,
+      platform: SquirePlatform,
+      output: String => Unit
+  ): Int < (Async & Sync & Abort[SquireError]) =
+    SquireTracking.resolve(root, runner, platform).map { report =>
+      options.check match
+        case Some(expected) => if report.effectiveMode.toString.equalsIgnoreCase(expected) then 0 else 1
+        case None if options.quiet =>
+          output(report.effectiveMode.toString.toLowerCase + "\n")
+          0
+        case None =>
+          output(SquireJson.encode(report) + "\n")
+          0
+    }
+
+  def runTrackingSync(
+      options: TrackingSyncOpts,
+      root: Path,
+      output: String => Unit
+  ): Int < Sync =
+    val mode = if options.diff then SquireTracking.GuidanceMode.Diff else if options.check then SquireTracking.GuidanceMode.Check else SquireTracking.GuidanceMode.Apply
+    SquireTracking.syncGuidance(root, mode).map { report =>
+      output(report.output)
+      report.exitCode
+    }
+
+  def runTrackingDoctor(
+      root: Path,
+      runner: ProcessRunner,
+      platform: SquirePlatform,
+      output: String => Unit
+  ): Int < (Async & Sync & Abort[SquireError]) =
+    for
+      report <- SquireTracking.resolve(root, runner, platform)
+      guidance <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Check)
+    yield
+      output(SquireJson.encode(report) + "\n")
+      output("guidance:\n")
+      output(guidance.output)
+      if guidance.exitCode == 0 then 0 else 1
 
   def exitUnlessZero(exitCode: Int): Unit < Sync =
     if exitCode == 0 then () else Sync.defer(java.lang.System.exit(exitCode))
@@ -390,17 +440,29 @@ object SquireApp extends CommandsEntryPoint:
   object TrackingStatusCmd extends KyoCommand[TrackingStatusOpts]:
     override def name = "tracking status"
     override def names = List(List("tracking", "status"))
-    run { (_: TrackingStatusOpts) => SquireCli.notImplemented(name) }
+    run { options =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli.runTrackingStatus(options, root, LiveProcessRunner, LiveSquirePlatform, java.lang.System.out.print).flatMap(SquireCli.exitUnlessZero)
+      }
+    }
 
   object TrackingSyncCmd extends KyoCommand[TrackingSyncOpts]:
     override def name = "tracking sync"
     override def names = List(List("tracking", "sync"))
-    run { (_: TrackingSyncOpts) => SquireCli.notImplemented(name) }
+    run { options =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli.runTrackingSync(options, root, java.lang.System.out.print).flatMap(SquireCli.exitUnlessZero)
+      }
+    }
 
   object TrackingDoctorCmd extends KyoCommand[TrackingDoctorOpts]:
     override def name = "tracking doctor"
     override def names = List(List("tracking", "doctor"))
-    run { (_: TrackingDoctorOpts) => SquireCli.notImplemented(name) }
+    run { (_: TrackingDoctorOpts) =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli.runTrackingDoctor(root, LiveProcessRunner, LiveSquirePlatform, java.lang.System.out.print).flatMap(SquireCli.exitUnlessZero)
+      }
+    }
 
   object SpecSyncCmd extends KyoCommand[SpecSyncOpts]:
     override def name = "spec sync"
