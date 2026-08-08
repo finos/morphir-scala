@@ -5,7 +5,7 @@ import java.nio.channels.FileChannel
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, StandardOpenOption}
 import java.util.concurrent.{CountDownLatch, TimeUnit}
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
 import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext, Future}
 
@@ -270,9 +270,42 @@ object VerifiedAcquisitionTests extends TestSuite {
 
         val content = cache.acquire(digest, "memory:disabled")(new ByteArrayInputStream(bytes))
 
-        assert(content.path.toNIO.startsWith(taskRoot.toNIO))
+        assert(content.path == taskRoot / os.up / s".${taskRoot.last}.morphir-acquisitions" / "sha256" / digest)
+        assert(!content.path.toNIO.startsWith(taskRoot.toNIO))
         assert(!os.exists(machineRoot))
         assert(os.read.bytes(content.path).sameElements(bytes))
+      }
+    }
+
+    test("enabled and disabled acquisition extract identical task output") {
+      withTempDir { directory =>
+        val archive = directory / "node.tar.gz"
+        writeTarGz(
+          archive,
+          Seq(("node-v-test/bin/node", "node".getBytes(StandardCharsets.UTF_8), None))
+        )
+        val bytes  = os.read.bytes(archive)
+        val digest = VerifiedArchive.sha256(bytes)
+
+        def acquireAndExtract(name: String, settings: AcquisitionSettings): os.Path = {
+          val destination = directory / name
+          val content     = AcquisitionCache(settings, destination)
+            .acquire(digest, s"memory:$name")(new ByteArrayInputStream(bytes))
+          VerifiedArchive.extract(content, ArchiveFormat.TarGz, destination)
+          destination
+        }
+
+        val enabled = acquireAndExtract(
+          "enabled",
+          AcquisitionSettings(cacheRoot = Some(directory / "machine-cache"))
+        )
+        val disabled = acquireAndExtract(
+          "disabled",
+          AcquisitionSettings(useMachineCache = false)
+        )
+
+        assert(os.walk(enabled).map(_.relativeTo(enabled)).toSet == os.walk(disabled).map(_.relativeTo(disabled)).toSet)
+        assert(os.read.bytes(enabled / "bin" / "node").sameElements(os.read.bytes(disabled / "bin" / "node")))
       }
     }
 
@@ -437,12 +470,32 @@ object VerifiedAcquisitionTests extends TestSuite {
       }
     }
 
+    test("acquisition rejects source bytes beyond its configured limit") {
+      withTempDir { directory =>
+        val bytes     = "five!".getBytes(StandardCharsets.UTF_8)
+        val digest    = VerifiedArchive.sha256(bytes)
+        val cacheRoot = directory / "machine-cache"
+        val input     = new TrackingInputStream(bytes)
+
+        val result = scala.util.Try(
+          AcquisitionCache(AcquisitionSettings(cacheRoot = Some(cacheRoot)), directory / "task")
+            .acquire(digest, "memory:bounded", AcquisitionLimits(maxAcquiredBytes = 4))(input)
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("acquired byte limit"))
+        assert(input.wasClosed)
+        assert(!os.exists(cacheRoot / "sha256" / digest))
+        assert(os.list(cacheRoot / "sha256").forall(!_.last.endsWith(".tmp")))
+      }
+    }
+
     test("output acquisition failure closes the already-opened source") {
       withTempDir { directory =>
         val bytes        = "output failure".getBytes(StandardCharsets.UTF_8)
         val digest       = VerifiedArchive.sha256(bytes)
         val taskRoot     = directory / "task"
-        val outputParent = taskRoot / ".morphir-acquisitions" / "sha256"
+        val outputParent = taskRoot / os.up / s".${taskRoot.last}.morphir-acquisitions" / "sha256"
         val displaced    = directory / "displaced-sha256"
         val input        = new TrackingInputStream(bytes)
 
@@ -570,6 +623,78 @@ object VerifiedAcquisitionTests extends TestSuite {
       }
     }
 
+    test("path coordination waits beyond the previous short test threshold") {
+      withTempDir { directory =>
+        val lockPath           = directory / ".content.lock"
+        val channel            = FileChannel.open(lockPath.toNIO, StandardOpenOption.CREATE, StandardOpenOption.WRITE)
+        val held               = channel.lock()
+        val started            = new CountDownLatch(1)
+        given ExecutionContext = ExecutionContext.global
+        try {
+          val coordinated = Future {
+            started.countDown()
+            PathCoordinator.withLock(lockPath)("complete")
+          }
+          assert(started.await(5, TimeUnit.SECONDS))
+          Thread.sleep(600)
+          assert(!coordinated.isCompleted)
+          held.release()
+
+          assert(Await.result(coordinated, 5.seconds) == "complete")
+        } finally {
+          if (held.isValid) held.release()
+          channel.close()
+        }
+      }
+    }
+
+    test("same-JVM path coordination wait is interruptible") {
+      withTempDir { directory =>
+        val lockPath       = directory / ".interrupt.lock"
+        val ownerEntered   = new CountDownLatch(1)
+        val releaseOwner   = new CountDownLatch(1)
+        val contenderReady = new CountDownLatch(1)
+        val failure        = new AtomicReference[Throwable]()
+        val preserved      = new AtomicBoolean(false)
+
+        val owner = new Thread(() =>
+          PathCoordinator.withLock(lockPath) {
+            ownerEntered.countDown()
+            releaseOwner.await(5, TimeUnit.SECONDS)
+            ()
+          }
+        )
+        val contender = new Thread(() => {
+          contenderReady.countDown()
+          try PathCoordinator.withLock(lockPath)(())
+          catch {
+            case error: Throwable =>
+              failure.set(error)
+              preserved.set(Thread.currentThread().isInterrupted)
+          }
+        })
+
+        owner.start()
+        try {
+          assert(ownerEntered.await(5, TimeUnit.SECONDS))
+          contender.start()
+          assert(contenderReady.await(5, TimeUnit.SECONDS))
+          Thread.sleep(100)
+          contender.interrupt()
+          contender.join(5000)
+          assert(!contender.isAlive)
+          assert(failure.get().isInstanceOf[java.io.IOException])
+          assert(failure.get().getMessage.contains("Interrupted"))
+          assert(preserved.get())
+        } finally {
+          if (contender.isAlive) contender.interrupt()
+          releaseOwner.countDown()
+          contender.join(5000)
+          owner.join(5000)
+        }
+      }
+    }
+
     test("online acquisition quarantines a nonempty digest directory without following it") {
       withTempDir { directory =>
         val bytes     = "directory replacement".getBytes(StandardCharsets.UTF_8)
@@ -612,6 +737,32 @@ object VerifiedAcquisitionTests extends TestSuite {
         assert(result.isFailure)
         assert(result.failed.get.getMessage.contains("entry count"))
         assert(!os.exists(directory / "extracted"))
+      }
+    }
+
+    test("compressed archive snapshot limit rejects before extraction") {
+      withTempDir { directory =>
+        val archive = directory / "snapshot.tar.gz"
+        writeTarGz(
+          archive,
+          Seq(("root/file", "small".getBytes(StandardCharsets.UTF_8), None))
+        )
+
+        val result = scala.util.Try(
+          VerifiedArchive.extract(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            ArchiveLimits(maxCompressedArchiveBytes = 8)
+          )
+        )
+
+        assert(result.isFailure)
+        assert(
+          result.failed.get.getMessage.toLowerCase(java.util.Locale.ROOT).contains("compressed archive byte limit")
+        )
+        assert(!os.exists(directory / "extracted"))
+        assert(os.list(directory).forall(!_.last.endsWith(".archive")))
       }
     }
 
@@ -852,6 +1003,45 @@ object VerifiedAcquisitionTests extends TestSuite {
       }
     }
 
+    test("cleanup failures do not fail warm content or mask a primary failure") {
+      withTempDir { directory =>
+        val bytes     = "cleanup isolation".getBytes(StandardCharsets.UTF_8)
+        val digest    = VerifiedArchive.sha256(bytes)
+        val cacheRoot = directory / "machine-cache"
+        val digestDir = cacheRoot / "sha256"
+        val entry     = digestDir / digest
+        os.makeDir.all(digestDir)
+        os.write(entry, "corrupt")
+        os.write(digestDir / s".$digest.stale.tmp", "stale")
+        val cleanupAttempts = new AtomicInteger(0)
+        val cache           = AcquisitionCache.withCleanup(
+          AcquisitionSettings(cacheRoot = Some(cacheRoot)),
+          directory / "task"
+        ) { (_: os.Path) =>
+          cleanupAttempts.incrementAndGet()
+          throw new java.io.IOException("stubborn cleanup")
+        }
+
+        val acquired = cache.acquire(digest, "memory:cleanup")(new ByteArrayInputStream(bytes))
+        val warm     = cache.acquire(digest, "memory:warm")(
+          throw new java.lang.AssertionError("warm acquisition opened its source")
+        )
+
+        assert(warm == acquired)
+        assert(os.read.bytes(warm.path).sameElements(bytes))
+        assert(cleanupAttempts.get() > 0)
+
+        val mismatch = scala.util.Try(
+          cache.acquire(VerifiedArchive.sha256("expected".getBytes(StandardCharsets.UTF_8)), "memory:mismatch")(
+            new ByteArrayInputStream("wrong".getBytes(StandardCharsets.UTF_8))
+          )
+        )
+        assert(mismatch.isFailure)
+        assert(mismatch.failed.get.getMessage.contains("SHA-256 mismatch"))
+        assert(!mismatch.failed.get.getMessage.contains("stubborn cleanup"))
+      }
+    }
+
     test("failed extraction leaves no partial destination and can be retried") {
       withTempDir { directory =>
         val rejected = directory / "rejected.tar.gz"
@@ -883,27 +1073,46 @@ object VerifiedAcquisitionTests extends TestSuite {
       }
     }
 
-    test("concurrent extraction permits exactly one exclusive destination promotion") {
+    test("concurrent extraction serializes promotion without replacing the winner") {
       withTempDir { directory =>
-        val archive = directory / "concurrent.tar.gz"
+        val firstArchive = directory / "first.tar.gz"
         writeTarGz(
-          archive,
-          Seq(("root/bin/node", "node".getBytes(StandardCharsets.UTF_8), None))
+          firstArchive,
+          Seq(("root/bin/node", "first".getBytes(StandardCharsets.UTF_8), None))
         )
-        val content            = VerifiedContent(archive, VerifiedArchive.sha256(archive))
+        val secondArchive = directory / "second.tar.gz"
+        writeTarGz(
+          secondArchive,
+          Seq(("root/bin/node", "second".getBytes(StandardCharsets.UTF_8), None))
+        )
+        val contents = Seq(
+          "first"  -> VerifiedContent(firstArchive, VerifiedArchive.sha256(firstArchive)),
+          "second" -> VerifiedContent(secondArchive, VerifiedArchive.sha256(secondArchive))
+        )
         val destination        = directory / "extracted"
+        val snapshotsReady     = new CountDownLatch(2)
+        val releasePromotion   = new CountDownLatch(1)
         given ExecutionContext = ExecutionContext.global
 
-        val results = Await.result(
-          Future.sequence(
-            Seq.fill(2)(Future(scala.util.Try(VerifiedArchive.extract(content, ArchiveFormat.TarGz, destination))))
-          ),
-          10.seconds
-        )
+        val extractions = contents.map { case (label, content) =>
+          Future {
+            label -> scala.util.Try(
+              VerifiedArchive.extractObserved(content, ArchiveFormat.TarGz, destination) {
+                snapshotsReady.countDown()
+                releasePromotion.await(5, TimeUnit.SECONDS)
+              }
+            )
+          }
+        }
+        assert(snapshotsReady.await(5, TimeUnit.SECONDS))
+        releasePromotion.countDown()
+        val results = Await.result(Future.sequence(extractions), 10.seconds)
 
-        assert(results.count(_.isSuccess) == 1)
-        assert(results.count(_.isFailure) == 1)
-        assert(os.read(destination / "bin" / "node") == "node")
+        val winners = results.collect { case (label, result) if result.isSuccess => label }
+        assert(winners.size == 1)
+        assert(results.count(_._2.isFailure) == 1)
+        assert(os.read(destination / "bin" / "node") == winners.head)
+        assert(os.exists(directory / ".extracted.lock"))
         assert(os.list(directory).forall(!_.last.endsWith(".extract")))
       }
     }

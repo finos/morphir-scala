@@ -78,7 +78,7 @@ object VerifiedArchive {
     os.makeDir.all(parent)
     requireExclusiveDestination(destination)
     try {
-      snapshotAndVerify(archive, snapshot)
+      snapshotAndVerify(archive, snapshot, limits.maxCompressedArchiveBytes)
       afterSnapshotVerified
       Files.createDirectory(staging.toNIO)
       format match {
@@ -91,7 +91,7 @@ object VerifiedArchive {
       finally os.remove.all(staging)
   }
 
-  private def snapshotAndVerify(content: VerifiedContent, snapshot: os.Path): Unit = {
+  private def snapshotAndVerify(content: VerifiedContent, snapshot: os.Path, maxBytes: Long): Unit = {
     val digest = MessageDigest.getInstance("SHA-256")
     Using
       .Manager { use =>
@@ -99,10 +99,32 @@ object VerifiedArchive {
         val output = use(
           Files.newOutputStream(snapshot.toNIO, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
         )
-        copy(input, Some(output), digest)
+        copySnapshotBounded(input, output, digest, maxBytes, content.path)
       }
       .get
     verifyDigest(hex(digest.digest()), content.sha256, content.path.toString)
+  }
+
+  private def copySnapshotBounded(
+      input: InputStream,
+      output: java.io.OutputStream,
+      digest: MessageDigest,
+      maxBytes: Long,
+      source: os.Path
+  ): Unit = {
+    val buffer = new Array[Byte](BufferSize)
+    var total  = 0L
+    Iterator.continually(input.read(buffer)).takeWhile(_ >= 0).foreach { count =>
+      if (count > 0) {
+        if (count > maxBytes - total)
+          throw new IllegalArgumentException(
+            s"Compressed archive byte limit $maxBytes exceeded while snapshotting $source"
+          )
+        digest.update(buffer, 0, count)
+        output.write(buffer, 0, count)
+        total += count
+      }
+    }
   }
 
   private def requireExclusiveDestination(destination: os.Path): Unit =
@@ -118,7 +140,12 @@ object VerifiedArchive {
         )
     }
 
-  private def promoteExclusive(staging: os.Path, destination: os.Path): Unit = {
+  private def promoteExclusive(staging: os.Path, destination: os.Path): Unit =
+    PathCoordinator.withLock(destination / os.up / s".${destination.last}.lock") {
+      promoteExclusiveLocked(staging, destination)
+    }
+
+  private def promoteExclusiveLocked(staging: os.Path, destination: os.Path): Unit = {
     requireExclusiveDestination(destination)
     val hadEmptyDestination = Files.exists(destination.toNIO, LinkOption.NOFOLLOW_LINKS)
     if (hadEmptyDestination) Files.delete(destination.toNIO)

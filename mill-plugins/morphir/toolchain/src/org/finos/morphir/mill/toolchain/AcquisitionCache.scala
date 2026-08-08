@@ -1,7 +1,6 @@
 package org.finos.morphir.mill.toolchain
 
 import java.io.{IOException, InputStream}
-import java.nio.channels.{FileChannel, FileLock, OverlappingFileLockException}
 import java.nio.file.{
   AtomicMoveNotSupportedException,
   FileVisitResult,
@@ -14,26 +13,44 @@ import java.nio.file.{
 }
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 import scala.util.Using
 import scala.util.control.NonFatal
 
-final class AcquisitionCache(settings: AcquisitionSettings, taskRoot: os.Path) {
+final class AcquisitionCache private (
+    settings: AcquisitionSettings,
+    taskRoot: os.Path,
+    cleanup: os.Path => Unit
+) {
+
+  def this(settings: AcquisitionSettings, taskRoot: os.Path) =
+    this(settings, taskRoot, AcquisitionCache.removeNoFollow)
 
   /** Acquires verified content and always closes the supplied stream after opening it. */
-  def acquire(expectedSha256: String, source: String)(openStream: => InputStream): VerifiedContent = {
+  def acquire(expectedSha256: String, source: String)(openStream: => InputStream): VerifiedContent =
+    acquire(expectedSha256, source, AcquisitionLimits())(openStream)
+
+  /** Acquires size-bounded verified content and always closes the supplied stream after opening it. */
+  def acquire(expectedSha256: String, source: String, limits: AcquisitionLimits)(
+      openStream: => InputStream
+  ): VerifiedContent = {
     val digest = normalizedDigest(expectedSha256)
     val root   =
       if (settings.useMachineCache) settings.cacheRoot.getOrElse(AcquisitionSettings.defaultCacheRoot)
-      else taskRoot / ".morphir-acquisitions"
+      else taskRoot / os.up / s".${taskRoot.last}.morphir-acquisitions"
     val entry = root / "sha256" / digest
     os.makeDir.all(entry / os.up)
     coordinated(entry) {
-      acquireLocked(root, entry, digest, source)(openStream)
+      acquireLocked(root, entry, digest, source, limits)(openStream)
     }
   }
 
-  private def acquireLocked(cacheRoot: os.Path, entry: os.Path, digest: String, source: String)(
+  private def acquireLocked(
+      cacheRoot: os.Path,
+      entry: os.Path,
+      digest: String,
+      source: String,
+      limits: AcquisitionLimits
+  )(
       openStream: => InputStream
   ): VerifiedContent = {
     pruneStaleSiblings(entry)
@@ -51,7 +68,7 @@ final class AcquisitionCache(settings: AcquisitionSettings, taskRoot: os.Path) {
           val output = use(
             Files.newOutputStream(temporary.toNIO, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
           )
-          input.transferTo(output)
+          copyBounded(input, output, limits.maxAcquiredBytes, source)
         }
         .get
       VerifiedArchive.verifySha256(temporary, digest)
@@ -60,7 +77,7 @@ final class AcquisitionCache(settings: AcquisitionSettings, taskRoot: os.Path) {
     } catch {
       case error: IllegalArgumentException =>
         throw new IllegalArgumentException(s"Verified acquisition failed for $source: ${error.getMessage}", error)
-    } finally removeNoFollow(temporary)
+    } finally bestEffortCleanup(temporary)
   }
 
   private def isVerifiedRegularFile(entry: os.Path, digest: String): Boolean =
@@ -99,7 +116,7 @@ final class AcquisitionCache(settings: AcquisitionSettings, taskRoot: os.Path) {
             catch { case NonFatal(restorationError) => error.addSuppressed(restorationError) }
         }
         throw error
-    } finally if (promoted) quarantine.foreach(removeNoFollow)
+    } finally if (promoted) quarantine.foreach(bestEffortCleanup)
   }
 
   private def atomicMove(from: os.Path, to: os.Path, source: String, cacheRoot: os.Path): Unit =
@@ -121,11 +138,49 @@ final class AcquisitionCache(settings: AcquisitionSettings, taskRoot: os.Path) {
         val sibling = iterator.next()
         val name    = sibling.getFileName.toString
         if (name.startsWith(prefix) && (name.endsWith(".tmp") || name.endsWith(".quarantine")))
-          removeNoFollow(os.Path(sibling))
+          bestEffortCleanup(os.Path(sibling))
       }
     }
   }
 
+  private def bestEffortCleanup(path: os.Path): Unit =
+    try cleanup(path)
+    catch { case NonFatal(_) => () }
+
+  private def coordinated[A](entry: os.Path)(operation: => A): A = {
+    val lockPath = entry / os.up / s".${entry.last}.lock"
+    PathCoordinator.withLock(lockPath)(operation)
+  }
+
+  private def copyBounded(
+      input: InputStream,
+      output: java.io.OutputStream,
+      maxBytes: Long,
+      source: String
+  ): Unit = {
+    val buffer = new Array[Byte](64 * 1024)
+    var total  = 0L
+    Iterator.continually(input.read(buffer)).takeWhile(_ >= 0).foreach { count =>
+      if (count > 0) {
+        if (count > maxBytes - total)
+          throw new IllegalArgumentException(
+            s"Acquisition acquired byte limit $maxBytes exceeded for $source"
+          )
+        output.write(buffer, 0, count)
+        total += count
+      }
+    }
+  }
+
+  private def normalizedDigest(value: String): String = {
+    val normalized = value.toLowerCase(java.util.Locale.ROOT)
+    if (!normalized.matches("[0-9a-f]{64}"))
+      throw new IllegalArgumentException(s"Invalid SHA-256 digest for acquisition: '$value'")
+    normalized
+  }
+}
+
+object AcquisitionCache {
   private def removeNoFollow(path: os.Path): Unit =
     if (Files.exists(path.toNIO, LinkOption.NOFOLLOW_LINKS)) {
       val attributes = Files.readAttributes(
@@ -151,56 +206,11 @@ final class AcquisitionCache(settings: AcquisitionSettings, taskRoot: os.Path) {
       else Files.deleteIfExists(path.toNIO)
     }
 
-  private def coordinated[A](entry: os.Path)(operation: => A): A = {
-    val lockPath = entry / os.up / s".${entry.last}.lock"
-    val lockKey  = lockPath.toNIO.getParent.toRealPath().resolve(lockPath.last).toString
-    val monitor  = AcquisitionCache.LocalLocks.computeIfAbsent(lockKey, _ => new Object)
-    monitor.synchronized {
-      Using.resource(
-        FileChannel.open(lockPath.toNIO, StandardOpenOption.CREATE, StandardOpenOption.WRITE)
-      ) { channel =>
-        Using.resource(acquireFileLock(channel, lockPath))(_ => operation)
-      }
-    }
-  }
-
-  private def acquireFileLock(channel: FileChannel, lockPath: os.Path): FileLock = {
-    val deadline = System.nanoTime() + AcquisitionCache.FileLockTimeoutNanos
-    var delay    = AcquisitionCache.InitialLockDelayMillis
-    while (System.nanoTime() < deadline) {
-      val lock =
-        try channel.tryLock()
-        catch { case _: OverlappingFileLockException => null }
-      if (lock != null) return lock
-      try Thread.sleep(delay)
-      catch {
-        case error: InterruptedException =>
-          Thread.currentThread().interrupt()
-          throw new IOException(s"Interrupted while waiting for acquisition lock $lockPath", error)
-      }
-      delay = math.min(delay * 2, AcquisitionCache.MaximumLockDelayMillis)
-    }
-    throw new IOException(
-      s"Timed out waiting for acquisition lock $lockPath after ${AcquisitionCache.FileLockTimeoutSeconds} seconds"
-    )
-  }
-
-  private def normalizedDigest(value: String): String = {
-    val normalized = value.toLowerCase(java.util.Locale.ROOT)
-    if (!normalized.matches("[0-9a-f]{64}"))
-      throw new IllegalArgumentException(s"Invalid SHA-256 digest for acquisition: '$value'")
-    normalized
-  }
-}
-
-object AcquisitionCache {
-  // Entries intentionally persist: unsafe eviction could create two monitors for the same digest concurrently.
-  private val LocalLocks             = new ConcurrentHashMap[String, Object]()
-  private val FileLockTimeoutSeconds = 30L
-  private val FileLockTimeoutNanos   = FileLockTimeoutSeconds * 1000000000L
-  private val InitialLockDelayMillis = 10L
-  private val MaximumLockDelayMillis = 250L
-
   def apply(settings: AcquisitionSettings, taskRoot: os.Path): AcquisitionCache =
     new AcquisitionCache(settings, taskRoot)
+
+  private[toolchain] def withCleanup(settings: AcquisitionSettings, taskRoot: os.Path)(
+      cleanup: os.Path => Unit
+  ): AcquisitionCache =
+    new AcquisitionCache(settings, taskRoot, cleanup)
 }
