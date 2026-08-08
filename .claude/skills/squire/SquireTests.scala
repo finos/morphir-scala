@@ -1128,6 +1128,60 @@ class SquireSpecSpec extends Test[Any]:
           safe(statusRunner) && safe(pullRunner) && safe(checkRunner)
       )
     }
+
+    "fails closed on repository sparse dirty and kb status probe failures" in {
+      for
+        headRoot <- preparedRoot("spec-head-probe")
+        headCheckout = headRoot / SquireSpec.CheckoutRel
+        headRunner   = syncRunner(headRoot, headExit = 128, headError = "not a repository")
+        head      <- SquireSpec.sync(SpecSyncOptions(prune = true), headRoot, headRunner, TestSpecPlatform())
+        emptyRoot <- preparedRoot("spec-empty-head")
+        emptyRunner = syncRunner(emptyRoot, headOutput = "")
+        empty      <- SquireSpec.sync(SpecSyncOptions(prune = true), emptyRoot, emptyRunner, TestSpecPlatform())
+        sparseRoot <- preparedRoot("spec-sparse-probe", Chunk("docs"), schemas = false)
+        sparseCheckout = sparseRoot / SquireSpec.CheckoutRel
+        sparseRunner   = syncRunner(sparseRoot, sparseExit = 128, sparseError = "config failed")
+        sparse <- SquireSpec.sync(
+          SpecSyncOptions(prune = true, noFetch = true),
+          sparseRoot,
+          sparseRunner,
+          TestSpecPlatform()
+        )
+        unsetRoot <- preparedRoot("spec-sparse-unset")
+        unsetRunner = syncRunner(unsetRoot, sparseExit = 1)
+        unset     <- SquireSpec.sync(SpecSyncOptions(noFetch = true), unsetRoot, unsetRunner, TestSpecPlatform())
+        dirtyRoot <- preparedRoot("spec-dirty-probe")
+        dirtyCheckout = dirtyRoot / SquireSpec.CheckoutRel
+        dirtyRunner   = syncRunner(dirtyRoot, dirtyExit = 128, dirtyError = "status failed")
+        dirty      <- SquireSpec.sync(SpecSyncOptions(prune = true), dirtyRoot, dirtyRunner, TestSpecPlatform())
+        statusRoot <- preparedRoot("spec-kb-status-probe")
+        statusRunner = syncRunner(statusRoot, statusExit = 7)
+        status <- SquireSpec.sync(
+          SpecSyncOptions(prune = true, noFetch = true),
+          statusRoot,
+          statusRunner,
+          TestSpecPlatform()
+        )
+      yield assert(
+        !head.ok && head.steps.last.step == "checkout" && headRunner.requests.map(_.argv) == Chunk(
+          revParse(headCheckout)
+        ) &&
+          !empty.ok && empty.steps.last.step == "checkout" && emptyRunner.requests.size == 1 &&
+          !sparse.ok && sparse.steps.last.step == "checkout" && sparseRunner.requests.map(_.argv) == Chunk(
+            revParse(sparseCheckout),
+            sparseConfig(sparseCheckout)
+          ) && !sparseRunner.requests.exists(_.argv == kb(sparseRoot, "sync", "pull", "--prune")) &&
+          unset.ok && unset.steps.find(_.step == "checkout").exists(_.status == "ok") &&
+          !dirty.ok && dirty.steps.last.step == "fetch" && dirtyRunner.requests.map(_.argv) == Chunk(
+            revParse(dirtyCheckout),
+            sparseConfig(dirtyCheckout),
+            dirtyStatus(dirtyCheckout)
+          ) && !dirtyRunner.requests.exists(_.argv.contains("fetch")) &&
+          !status.ok && status.steps.last.step == "status" &&
+          !statusRunner.requests.exists(_.argv == kb(statusRoot, "sync", "pull", "--prune")) &&
+          List(headRunner, emptyRunner, sparseRunner, unsetRunner, dirtyRunner, statusRunner).forall(safe)
+      )
+    }
   }
 
   "export orchestration" - {
@@ -1164,10 +1218,63 @@ class SquireSpecSpec extends Test[Any]:
         pushResult = report.steps.find(_.step == "push").flatMap(_.result.toOption)
       yield assert(
         !missingReport.ok && missingRunner.requests.isEmpty && missingReport.steps.last.step == "checkout" &&
-          report.ok && runner.requests.head.argv == expected && pushResult.exists(recordHas(_, "actions")) &&
+          report.ok && runner.requests.map(_.argv).take(2) == Chunk(gitCheckoutProbe(checkout), expected) &&
+          pushResult.exists(recordHas(_, "actions")) &&
           report.steps.find(_.step == "push").exists(_.detail.contains("2 written path(s)")) &&
           report.steps.find(_.step == "branch").exists(_.status == "skipped") && safe(missingRunner) && safe(runner)
       )
+    }
+
+    "rejects a non-Git target before kb push" in {
+      for
+        root     <- rootWithoutCheckout("spec-non-git-target")
+        checkout <- standaloneCheckout(root / "ordinary-directory")
+        runner = exportRunner(root, checkout, gitCheckoutExit = 128)
+        report <- SquireSpec.`export`(
+          SpecExportOptions(to = Present(checkout)),
+          root,
+          runner,
+          TestSpecPlatform()
+        )
+      yield assert(
+        !report.ok && report.steps.last.step == "checkout" &&
+          runner.requests.map(_.argv) == Chunk(gitCheckoutProbe(checkout)) &&
+          !runner.requests.exists(_.argv.take(3) == kb(root, "sync", "push").take(3)) && safe(runner)
+      )
+    }
+
+    "fails push when ownership JSON is absent malformed non-object or structurally invalid" in {
+      val cases = Chunk(
+        ("absent", "", false),
+        ("malformed", "{", false),
+        ("non-object", "[]", true),
+        ("scalar", "7", true),
+        ("missing-actions", "{}", true),
+        ("duplicate-actions", "{\"actions\":[],\"actions\":[]}", true),
+        ("actions-object", "{\"actions\":{}}", true),
+        ("action-scalar", "{\"actions\":[\"wrote\"]}", true),
+        ("wrote-missing-path", "{\"actions\":[{\"verb\":\"wrote\"}]}", true),
+        ("other-missing-path", "{\"actions\":[{\"verb\":\"held back\"}]}", true),
+        ("wrote-empty-path", "{\"actions\":[{\"verb\":\"wrote\",\"path\":\"\"}]}", true),
+        ("wrote-non-string-path", "{\"actions\":[{\"verb\":\"wrote\",\"path\":7}]}", true),
+        ("non-string-verb", "{\"actions\":[{\"verb\":7,\"path\":\"website/static/schemas/x.yaml\"}]}", true)
+      )
+      Kyo.foreach(cases) { case (label, payload, parsedEvidence) =>
+        for
+          root     <- rootWithoutCheckout(s"spec-push-json-$label")
+          checkout <- standaloneCheckout(root / "checkout", schemas = true)
+          runner = exportRunner(root, checkout, pushStdout = Some(payload))
+          report <- SquireSpec.`export`(
+            SpecExportOptions(to = Present(checkout), noBranch = true),
+            root,
+            runner,
+            TestSpecPlatform()
+          )
+          push = report.steps.find(_.step == "push")
+        yield !report.ok && push.exists(step => step.status == "failed" && step.result.isDefined == parsedEvidence) &&
+          report.steps.last.step == "status" &&
+          !runner.requests.exists(_.argv.headOption.contains("jsonschema")) && safe(runner)
+      }.map(results => assert(results.forall(identity)))
     }
 
     "creates reuses or fails the review branch without ever committing or pushing" in {
@@ -1192,9 +1299,95 @@ class SquireSpecSpec extends Test[Any]:
           reused.ok && reused.steps.find(_.step == "branch").exists(step =>
             step.status == "ok" && step.detail.contains("already existed")
           ) &&
-          !failed.ok && failed.steps.last.step == "branch" &&
-          !failedRunner.requests.exists(_.argv == Chunk("git", "-C", failedCheckout.toString, "status", "--short")) &&
+          !failed.ok && failed.steps.find(_.step == "branch").exists(_.status == "failed") &&
+          failed.steps.last.step == "status" &&
+          failedRunner.requests.exists(_.argv == Chunk("git", "-C", failedCheckout.toString, "status", "--short")) &&
           safe(createdRunner) && safe(reusedRunner) && safe(failedRunner)
+      )
+    }
+
+    "preserves partial push and runner Abort failures while always recording final status" in {
+      for
+        pushRoot     <- rootWithoutCheckout("spec-partial-push")
+        pushCheckout <- standaloneCheckout(pushRoot / "checkout")
+        partialPayload = "{\"actions\":[{\"verb\":\"wrote\",\"path\":\"docs/spec.md\"}]}"
+        pushRunner     = exportRunner(
+          pushRoot,
+          pushCheckout,
+          pushExit = 9,
+          pushStdout = Some(partialPayload),
+          changed = " M docs/spec.md\n"
+        )
+        push <- SquireSpec.`export`(
+          SpecExportOptions(to = Present(pushCheckout)),
+          pushRoot,
+          pushRunner,
+          TestSpecPlatform()
+        )
+        abortRoot     <- rootWithoutCheckout("spec-aborted-push")
+        abortCheckout <- standaloneCheckout(abortRoot / "checkout")
+        abortBase   = exportResponse(abortRoot, abortCheckout, changed = " M docs/spec.md\n")
+        abortRunner = AbortRuleRunner { request =>
+          if request.argv.take(3) == kb(abortRoot, "sync", "push").take(3) then
+            Abort.fail(SquireError.Failure("process", "push launch failed"))
+          else abortBase(request)
+        }
+        aborted <- Abort.run[SquireError](
+          SquireSpec.`export`(
+            SpecExportOptions(to = Present(abortCheckout)),
+            abortRoot,
+            abortRunner,
+            TestSpecPlatform()
+          )
+        )
+      yield assert(
+        !push.ok && push.steps.find(_.step == "push").exists(step =>
+          step.status == "failed" && step.result.exists(recordHas(_, "actions"))
+        ) && push.steps.last.step == "status" &&
+          !pushRunner.requests.exists(_.argv.contains("switch")) &&
+          aborted.exists(report =>
+            !report.ok && report.steps.find(_.step == "push").exists(step =>
+              step.status == "failed" && step.detail.contains("push launch failed")
+            ) && report.steps.last.step == "status"
+          ) && safe(pushRunner) && safe(abortRunner)
+      )
+    }
+
+    "contains validator launch Abort and makes nonzero final status fail the report" in {
+      for
+        validatorRoot     <- rootWithoutCheckout("spec-validator-abort")
+        validatorCheckout <- standaloneCheckout(validatorRoot / "checkout", schemas = true)
+        validatorBase   = exportResponse(validatorRoot, validatorCheckout)
+        validatorRunner = AbortRuleRunner { request =>
+          if request.argv.headOption.contains("jsonschema") then
+            Abort.fail(SquireError.Failure("process", "validator launch failed"))
+          else validatorBase(request)
+        }
+        validator <- Abort.run[SquireError](
+          SquireSpec.`export`(
+            SpecExportOptions(to = Present(validatorCheckout), noBranch = true),
+            validatorRoot,
+            validatorRunner,
+            TestSpecPlatform()
+          )
+        )
+        statusRoot     <- rootWithoutCheckout("spec-status-exit")
+        statusCheckout <- standaloneCheckout(statusRoot / "checkout", schemas = true)
+        statusRunner = exportRunner(statusRoot, statusCheckout, statusExit = 7)
+        status <- SquireSpec.`export`(
+          SpecExportOptions(to = Present(statusCheckout), noBranch = true),
+          statusRoot,
+          statusRunner,
+          TestSpecPlatform()
+        )
+      yield assert(
+        validator.exists(report =>
+          !report.ok && report.steps.find(_.step == "validator:jsonschema fmt").exists(step =>
+            step.status == "failed" && step.detail.contains("validator launch failed")
+          ) && report.steps.last.step == "status"
+        ) &&
+          !status.ok && status.steps.last.step == "status" && status.steps.last.status == "failed" &&
+          status.steps.last.detail.contains("exited 7") && safe(validatorRunner) && safe(statusRunner)
       )
     }
 
@@ -1390,6 +1583,36 @@ class SquireSpecSpec extends Test[Any]:
           !jsonOut.result().contains("[1/5]") && jsonErr.isEmpty
       )
     }
+
+    "keeps export JSON to one typed report when a validator process aborts" in {
+      for
+        root     <- rootWithoutCheckout("spec-cli-export-abort")
+        checkout <- standaloneCheckout(root / "checkout", schemas = true)
+        base   = exportResponse(root, checkout)
+        runner = AbortRuleRunner { request =>
+          if request.argv.headOption.contains("jsonschema") then
+            Abort.fail(SquireError.Failure("process", "validator launch failed"))
+          else base(request)
+        }
+        out = new StringBuilder
+        err = new StringBuilder
+        result <- Abort.run[SquireError](
+          SquireCli.runSpecExport(
+            SpecExportOpts(to = Some(checkout.toString), noBranch = true, json = true),
+            root,
+            runner,
+            TestSpecPlatform(),
+            value => out.append(value),
+            value => err.append(value)
+          )
+        )
+        decoded = SquireJson.decode[SpecReport](out.result().trim)
+      yield assert(
+        result == Result.Success(1) && decoded.exists(report => !report.ok && report.command == "spec-export") &&
+          !out.result().contains("[1/4]") && out.result().trim.linesIterator.count(_.startsWith("{")) == 1 &&
+          err.result().linesIterator.count(_.startsWith("ERROR:")) == 1 && safe(runner)
+      )
+    }
   }
 
 class SquireProcessSpec extends Test[Any]:
@@ -1471,12 +1694,28 @@ final class RecordingRunner(responses: Chunk[ProcessResult]) extends ProcessRunn
     index += 1
     response
 
-final class RuleRunner(response: ProcessRequest => ProcessResult) extends ProcessRunner:
+trait SpecRecordedRunner:
+  def requests: Chunk[ProcessRequest]
+
+final class RuleRunner(response: ProcessRequest => ProcessResult) extends ProcessRunner with SpecRecordedRunner:
   var requests: Chunk[ProcessRequest] = Chunk.empty
 
   def run(request: ProcessRequest): ProcessResult < (Async & Abort[SquireError]) =
     requests = requests.append(request)
     response(request)
+
+final class AbortRuleRunner(response: ProcessRequest => ProcessResult < Abort[SquireError])
+    extends ProcessRunner
+    with SpecRecordedRunner:
+  var requests: Chunk[ProcessRequest] = Chunk.empty
+
+  def run(request: ProcessRequest): ProcessResult < (Async & Abort[SquireError]) =
+    requests = requests.append(request)
+    response(request)
+
+object AbortRuleRunner:
+  def apply(response: ProcessRequest => ProcessResult < Abort[SquireError]): AbortRuleRunner =
+    new AbortRuleRunner(response)
 
 final case class TestSpecPlatform(
     executables: Set[String] = Set("jsonschema"),
@@ -1556,17 +1795,28 @@ object SquireSpecFixtures:
       dirty: String = "",
       statusJson: String = "{\"summary\":{\"clean\":1}}\n",
       pullExit: Int = 0,
-      checkExit: Int = 0
+      checkExit: Int = 0,
+      headExit: Int = 0,
+      headOutput: String = head + "\n",
+      headError: String = "",
+      sparseExit: Int = 0,
+      sparseError: String = "",
+      dirtyExit: Int = 0,
+      dirtyError: String = "",
+      statusExit: Int = 0
   ): RuleRunner =
     val checkout = root / SquireSpec.CheckoutRel
     RuleRunner { request =>
       val argv = request.argv
-      if argv == revParse(checkout) then ok(request, head + "\n")
-      else if argv == sparseConfig(checkout) then ok(request, if sparse then "true\n" else "false\n")
-      else if argv == dirtyStatus(checkout) then ok(request, dirty)
+      if argv == revParse(checkout) then ProcessResult(request, headExit, headOutput, headError)
+      else if argv == sparseConfig(checkout) then
+        val output =
+          if sparseExit == 1 && !sparse && sparseError.isEmpty then "" else if sparse then "true\n" else "false\n"
+        ProcessResult(request, sparseExit, output, sparseError)
+      else if argv == dirtyStatus(checkout) then ProcessResult(request, dirtyExit, dirty, dirtyError)
       else if argv.take(6) == Chunk("git", "-C", checkout.toString, "fetch", "--depth", "1") then ok(request)
       else if argv == Chunk("git", "-C", checkout.toString, "checkout", "--detach", "FETCH_HEAD") then ok(request)
-      else if argv == kb(root, "sync", "status", "--json") then ok(request, statusJson)
+      else if argv == kb(root, "sync", "status", "--json") then ProcessResult(request, statusExit, statusJson, "")
       else if argv.take(3) == kb(root, "sync", "pull").take(3) then
         ProcessResult(request, pullExit, "{\"actions\":[]}", if pullExit == 0 then "" else "pull failed")
       else if argv.take(2) == kb(root, "check").take(2) then
@@ -1582,25 +1832,67 @@ object SquireSpecFixtures:
       reuseBranchExit: Int = 0,
       validatorFailure: Option[String] = None,
       yamlUnsupported: Boolean = false,
-      changed: String = ""
+      changed: String = "",
+      gitCheckoutExit: Int = 0,
+      pushExit: Int = 0,
+      pushStdout: Option[String] = None,
+      statusExit: Int = 0
   ): RuleRunner =
-    RuleRunner { request =>
+    RuleRunner(
+      exportResponse(
+        root,
+        checkout,
+        written,
+        createBranchExit,
+        reuseBranchExit,
+        validatorFailure,
+        yamlUnsupported,
+        changed,
+        gitCheckoutExit,
+        pushExit,
+        pushStdout,
+        statusExit
+      )
+    )
+
+  def exportResponse(
+      root: Path,
+      checkout: Path,
+      written: List[String] = Nil,
+      createBranchExit: Int = 0,
+      reuseBranchExit: Int = 0,
+      validatorFailure: Option[String] = None,
+      yamlUnsupported: Boolean = false,
+      changed: String = "",
+      gitCheckoutExit: Int = 0,
+      pushExit: Int = 0,
+      pushStdout: Option[String] = None,
+      statusExit: Int = 0
+  ): ProcessRequest => ProcessResult =
+    request =>
       val argv = request.argv
-      if argv.take(3) == kb(root, "sync", "push").take(3) then
+      if argv == gitCheckoutProbe(checkout) then
+        ProcessResult(request, gitCheckoutExit, if gitCheckoutExit == 0 then "true\n" else "", "not a work tree")
+      else if argv.take(3) == kb(root, "sync", "push").take(3) then
         val actions = written.map(path => s"{\"verb\":\"wrote\",\"path\":\"$path\"}").mkString(",")
-        ok(request, s"{\"actions\":[$actions]}\n")
+        ProcessResult(
+          request,
+          pushExit,
+          pushStdout.getOrElse(s"{\"actions\":[$actions]}\n"),
+          if pushExit == 0 then "" else "push failed"
+        )
       else if argv == Chunk("git", "-C", checkout.toString, "switch", "-c", SquireSpec.DefaultExportBranch) then
         ProcessResult(request, createBranchExit, "", if createBranchExit == 0 then "" else "already exists")
       else if argv == Chunk("git", "-C", checkout.toString, "switch", SquireSpec.DefaultExportBranch) then
         ProcessResult(request, reuseBranchExit, "", if reuseBranchExit == 0 then "" else "cannot switch")
-      else if argv == Chunk("git", "-C", checkout.toString, "status", "--short") then ok(request, changed)
+      else if argv == Chunk("git", "-C", checkout.toString, "status", "--short") then
+        ProcessResult(request, statusExit, changed, if statusExit == 0 then "" else "status failed")
       else if argv.headOption.contains("jsonschema") then
         val operation = argv.lift(1).getOrElse("")
         if yamlUnsupported && operation == "fmt" then ProcessResult(request, 1, "", "does not support YAML")
         else if validatorFailure.contains(operation) then ProcessResult(request, 1, "", s"$operation failed")
         else ok(request)
       else unexpected(request)
-    }
 
   def kb(root: Path, args: String*): Chunk[String] =
     Chunk((root / ".claude" / "skills" / "kb" / "kb").toString) ++ Chunk.from(args)
@@ -1608,7 +1900,9 @@ object SquireSpecFixtures:
   def revParse(checkout: Path): Chunk[String]     = Chunk("git", "-C", checkout.toString, "rev-parse", "HEAD")
   def sparseConfig(checkout: Path): Chunk[String] =
     Chunk("git", "-C", checkout.toString, "config", "--get", "core.sparseCheckout")
-  def dirtyStatus(checkout: Path): Chunk[String] = Chunk("git", "-C", checkout.toString, "status", "--porcelain")
+  def dirtyStatus(checkout: Path): Chunk[String]      = Chunk("git", "-C", checkout.toString, "status", "--porcelain")
+  def gitCheckoutProbe(checkout: Path): Chunk[String] =
+    Chunk("git", "-C", checkout.toString, "rev-parse", "--is-inside-work-tree")
 
   def ok(request: ProcessRequest, stdout: String = ""): ProcessResult = ProcessResult(request, 0, stdout, "")
 
@@ -1616,7 +1910,7 @@ object SquireSpecFixtures:
     case Structure.Value.Record(fields) => fields.exists(_._1 == field)
     case _                              => false
 
-  def safe(runner: RuleRunner): Boolean =
+  def safe(runner: SpecRecordedRunner): Boolean =
     !runner.requests.exists { request =>
       request.argv.headOption.contains("git") &&
       request.argv.exists(argument => argument == "commit" || argument == "push")

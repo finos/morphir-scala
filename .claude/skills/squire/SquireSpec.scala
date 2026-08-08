@@ -177,14 +177,18 @@ object SquireSpec:
             Present("run spec sync first, or pass --to with a path to a morphir checkout")
           )
         else
-          pushStep(root, checkout, options, runner, Nil).flatMap {
-            case Left(report)                => report
-            case Right((written, pushSteps)) =>
-              branchStep(checkout, options, runner, pushSteps).flatMap {
-                case Left(report)       => report
-                case Right(branchSteps) =>
-                  validatorSteps(checkout, options.dryRun, written, runner, platform, branchSteps).flatMap {
-                    case (validatorSteps, failures) => statusExportStep(checkout, runner, validatorSteps, failures)
+          exportCheckoutStep(checkout, runner).flatMap {
+            case Left(report)         => report
+            case Right(checkoutSteps) =>
+              pushStep(root, checkout, options, runner, checkoutSteps).flatMap {
+                case Left(report)                => statusExportStep(checkout, runner, report.steps, failures = 1)
+                case Right((written, pushSteps)) =>
+                  branchStep(checkout, options, runner, pushSteps).flatMap {
+                    case Left(report)       => statusExportStep(checkout, runner, report.steps, failures = 1)
+                    case Right(branchSteps) =>
+                      validatorSteps(checkout, options.dryRun, written, runner, platform, branchSteps).flatMap {
+                        case (validatorSteps, failures) => statusExportStep(checkout, runner, validatorSteps, failures)
+                      }
                   }
               }
           }
@@ -253,36 +257,68 @@ object SquireSpec:
             )
           )
         else
-          for
-            headResult   <- runner.run(git(checkout, "rev-parse", "HEAD"))
-            sparseResult <- runner.run(git(checkout, "config", "--get", "core.sparseCheckout"))
-            sparse = sparseResult.stdout.trim == "true"
-            missing <-
-              if sparse then missingSparsePaths(checkout, platform, SparsePaths.toList)
-              else Sync.defer(List.empty[String])
-          yield
-            if missing.nonEmpty && prune then
-              Left(
-                failedValue(
-                  command,
-                  steps,
-                  "checkout",
-                  s"sparse checkout is missing ${missing.mkString(", ")}, and --prune would delete the mirror's copy of everything under them",
-                  Present(s"widen it: git -C $CheckoutRel sparse-checkout set ${SparsePaths.mkString(" ")}")
+          runner.run(git(checkout, "rev-parse", "HEAD")).flatMap { headResult =>
+            val head = headResult.stdout.trim
+            if headResult.exitCode != 0 || head.isEmpty then
+              Sync.defer(
+                Left(
+                  failedValue(
+                    command,
+                    steps,
+                    "checkout",
+                    s"$CheckoutRel is not a usable Git checkout with a HEAD",
+                    optional(lastDetail(headResult))
+                  )
                 )
               )
             else
-              val detail =
-                if missing.nonEmpty then s"$checkout (missing ${missing.mkString(", ")})"
-                else checkout.toString
-              val result = record(
-                "commit"  -> optionalString(headResult.stdout.trim),
-                "sparse"  -> Structure.Value.Bool(sparse),
-                "missing" -> Structure.Value.Sequence(Chunk.from(missing.map(Structure.Value.Str(_))))
-              )
-              val next =
-                SpecReport(command, ok = true, steps :+ SpecStep("checkout", "ok", detail, result = Present(result)))
-              Right(checkout -> next)
+              runner.run(git(checkout, "config", "--get", "core.sparseCheckout")).flatMap { sparseResult =>
+                sparseSetting(sparseResult) match
+                  case Left(detail) =>
+                    Sync.defer(
+                      Left(
+                        failedValue(
+                          command,
+                          steps,
+                          "checkout",
+                          "could not inspect sparse checkout configuration",
+                          Present(detail)
+                        )
+                      )
+                    )
+                  case Right(sparse) =>
+                    val missingEffect =
+                      if sparse then missingSparsePaths(checkout, platform, SparsePaths.toList)
+                      else Sync.defer(List.empty[String])
+                    missingEffect.map { missing =>
+                      if missing.nonEmpty && prune then
+                        Left(
+                          failedValue(
+                            command,
+                            steps,
+                            "checkout",
+                            s"sparse checkout is missing ${missing.mkString(", ")}, and --prune would delete the mirror's copy of everything under them",
+                            Present(s"widen it: git -C $CheckoutRel sparse-checkout set ${SparsePaths.mkString(" ")}")
+                          )
+                        )
+                      else
+                        val detail =
+                          if missing.nonEmpty then s"$checkout (missing ${missing.mkString(", ")})"
+                          else checkout.toString
+                        val result = record(
+                          "commit"  -> Structure.Value.Str(head),
+                          "sparse"  -> Structure.Value.Bool(sparse),
+                          "missing" -> Structure.Value.Sequence(Chunk.from(missing.map(Structure.Value.Str(_))))
+                        )
+                        val next = SpecReport(
+                          command,
+                          ok = true,
+                          steps :+ SpecStep("checkout", "ok", detail, result = Present(result))
+                        )
+                        Right(checkout -> next)
+                    }
+              }
+          }
     yield result
 
   private def fetchStep(
@@ -295,7 +331,17 @@ object SquireSpec:
     else if options.dryRun then Right(steps :+ SpecStep("fetch", "skipped", "--dry-run"))
     else
       runner.run(git(checkout, "status", "--porcelain")).flatMap { dirty =>
-        if dirty.stdout.trim.nonEmpty then
+        if dirty.exitCode != 0 then
+          Left(
+            failedValue(
+              "spec-sync",
+              steps,
+              "fetch",
+              s"could not inspect $CheckoutRel for uncommitted changes",
+              optional(lastDetail(dirty))
+            )
+          )
+        else if dirty.stdout.trim.nonEmpty then
           Left(
             failedValue(
               "spec-sync",
@@ -325,15 +371,26 @@ object SquireSpec:
                   ))
                 else
                   runner.run(git(checkout, "rev-parse", "HEAD")).map { head =>
-                    val result = record("commit" -> optionalString(head.stdout.trim))
-                    Right(
-                      steps :+ SpecStep(
-                        "fetch",
-                        "ok",
-                        s"$UpstreamRepo@${options.ref}",
-                        result = Present(result)
+                    if head.exitCode != 0 || head.stdout.trim.isEmpty then
+                      Left(
+                        failedValue(
+                          "spec-sync",
+                          steps,
+                          "fetch",
+                          "git checkout FETCH_HEAD did not leave a usable HEAD",
+                          optional(lastDetail(head))
+                        )
                       )
-                    )
+                    else
+                      val result = record("commit" -> Structure.Value.Str(head.stdout.trim))
+                      Right(
+                        steps :+ SpecStep(
+                          "fetch",
+                          "ok",
+                          s"$UpstreamRepo@${options.ref}",
+                          result = Present(result)
+                        )
+                      )
                   }
               }
           }
@@ -345,12 +402,23 @@ object SquireSpec:
       steps: List[SpecStep]
   ): Either[SpecReport, List[SpecStep]] < (Async & Abort[SquireError]) =
     runner.run(kb(root, "sync", "status", "--json")).map { process =>
-      parseJson(process.stdout) match
-        case None =>
-          val detail = lastDetail(process)
-          Left(failedValue("spec-sync", steps, "status", "kb sync status produced no JSON", optional(detail)))
-        case Some(value) =>
-          Right(steps :+ SpecStep("status", "ok", "kb sync status", result = Present(value)))
+      if process.exitCode != 0 then
+        Left(
+          failedValue(
+            "spec-sync",
+            steps,
+            "status",
+            s"kb sync status exited ${process.exitCode}",
+            optional(lastDetail(process))
+          )
+        )
+      else
+        parseJson(process.stdout) match
+          case None =>
+            val detail = lastDetail(process)
+            Left(failedValue("spec-sync", steps, "status", "kb sync status produced no JSON", optional(detail)))
+          case Some(value) =>
+            Right(steps :+ SpecStep("status", "ok", "kb sync status", result = Present(value)))
     }
 
   private def pullStep(
@@ -404,36 +472,96 @@ object SquireSpec:
       options: SpecExportOptions,
       runner: ProcessRunner,
       steps: List[SpecStep]
-  ): Either[SpecReport, (List[String], List[SpecStep])] < (Async & Abort[SquireError]) =
+  ): Either[SpecReport, (List[String], List[SpecStep])] < Async =
     val displayArguments = Chunk("sync", "push", "--to", checkout.toString) ++
       (if options.dryRun then Chunk("--dry-run") else Chunk.empty) ++
       (if options.includeDiverged then Chunk("--include-diverged") else Chunk.empty) ++
       (if options.json then Chunk("--json") else Chunk.empty)
     val processArguments =
       if displayArguments.contains("--json") then displayArguments else displayArguments ++ Chunk("--json")
-    runner.run(ProcessRequest(Chunk((root / KbRel).toString) ++ processArguments, Present(root))).map { process =>
-      val display = displayArguments.mkString(" ")
-      if process.exitCode != 0 then
+    val request = ProcessRequest(Chunk((root / KbRel).toString) ++ processArguments, Present(root))
+    Abort.run[SquireError](runner.run(request)).map {
+      case Result.Failure(error) =>
+        Left(
+          SpecReport(
+            "spec-export",
+            ok = false,
+            steps :+ SpecStep("push", "failed", s"kb ${displayArguments.mkString(" ")}: ${error.getMessage}")
+          )
+        )
+      case Result.Success(process) =>
+        val display = displayArguments.mkString(" ")
+        val payload = parseJson(process.stdout)
+        if process.exitCode != 0 then
+          Left(
+            SpecReport(
+              "spec-export",
+              ok = false,
+              steps :+ SpecStep(
+                "push",
+                "failed",
+                s"kb $display exited ${process.exitCode}",
+                optional(lastDetail(process)),
+                payload.map(Present(_)).getOrElse(Absent)
+              )
+            )
+          )
+        else
+          payload match
+            case None =>
+              Left(
+                failedValue(
+                  "spec-export",
+                  steps,
+                  "push",
+                  s"kb $display produced no valid JSON ownership report",
+                  optional(lastDetail(process))
+                )
+              )
+            case Some(value) =>
+              writtenPaths(value) match
+                case Left(detail) =>
+                  Left(
+                    SpecReport(
+                      "spec-export",
+                      ok = false,
+                      steps :+ SpecStep(
+                        "push",
+                        "failed",
+                        s"kb $display produced invalid ownership JSON: $detail",
+                        result = Present(value)
+                      )
+                    )
+                  )
+                case Right(written) =>
+                  Right(
+                    written ->
+                      (steps :+ SpecStep(
+                        "push",
+                        "ok",
+                        s"$display (${written.size} written path(s))",
+                        result = Present(value)
+                      ))
+                  )
+    }
+
+  private def exportCheckoutStep(
+      checkout: Path,
+      runner: ProcessRunner
+  ): Either[SpecReport, List[SpecStep]] < Async =
+    Abort.run[SquireError](runner.run(git(checkout, "rev-parse", "--is-inside-work-tree"))).map {
+      case Result.Failure(error) =>
+        Left(failedValue("spec-export", Nil, "checkout", s"could not inspect target checkout: ${error.getMessage}"))
+      case Result.Success(process) if process.exitCode == 0 && process.stdout.trim == "true" => Right(Nil)
+      case Result.Success(process)                                                           =>
         Left(
           failedValue(
             "spec-export",
-            steps,
-            "push",
-            s"kb $display exited ${process.exitCode}",
+            Nil,
+            "checkout",
+            s"$checkout is not a working Git checkout",
             optional(lastDetail(process))
           )
-        )
-      else
-        val payload = parseJson(process.stdout).getOrElse(record())
-        val written = writtenPaths(payload)
-        Right(
-          written ->
-            (steps :+ SpecStep(
-              "push",
-              "ok",
-              s"$display (${written.size} written path(s))",
-              result = Present(payload)
-            ))
         )
     }
 
@@ -442,21 +570,33 @@ object SquireSpec:
       options: SpecExportOptions,
       runner: ProcessRunner,
       steps: List[SpecStep]
-  ): Either[SpecReport, List[SpecStep]] < (Async & Abort[SquireError]) =
+  ): Either[SpecReport, List[SpecStep]] < Async =
     if options.noBranch then Right(steps :+ SpecStep("branch", "skipped", "--no-branch"))
     else if options.dryRun then Right(steps :+ SpecStep("branch", "skipped", "--dry-run"))
     else
-      runner.run(git(checkout, "switch", "-c", options.branch)).flatMap { created =>
-        if created.exitCode == 0 then
+      Abort.run[SquireError](runner.run(git(checkout, "switch", "-c", options.branch))).flatMap {
+        case Result.Failure(error) =>
+          Left(failedValue("spec-export", steps, "branch", s"cannot create ${options.branch}: ${error.getMessage}"))
+        case Result.Success(created) if created.exitCode == 0 =>
           Right(steps :+ SpecStep(
             "branch",
             "ok",
             s"${options.branch} created",
             result = Present(record("created" -> Structure.Value.Bool(true)))
           ))
-        else
-          runner.run(git(checkout, "switch", options.branch)).map { existing =>
-            if existing.exitCode == 0 then
+        case Result.Success(created) =>
+          Abort.run[SquireError](runner.run(git(checkout, "switch", options.branch))).map {
+            case Result.Failure(error) =>
+              Left(
+                failedValue(
+                  "spec-export",
+                  steps,
+                  "branch",
+                  s"cannot switch to ${options.branch}: ${error.getMessage}",
+                  Present("the checkout may have uncommitted changes on another branch")
+                )
+              )
+            case Result.Success(existing) if existing.exitCode == 0 =>
               Right(
                 steps :+ SpecStep(
                   "branch",
@@ -465,7 +605,7 @@ object SquireSpec:
                   result = Present(record("created" -> Structure.Value.Bool(false)))
                 )
               )
-            else
+            case Result.Success(_) =>
               Left(
                 failedValue(
                   "spec-export",
@@ -485,7 +625,7 @@ object SquireSpec:
       runner: ProcessRunner,
       platform: SquireSpecPlatform,
       steps: List[SpecStep]
-  ): (List[SpecStep], Int) < (Async & Sync & Abort[SquireError]) =
+  ): (List[SpecStep], Int) < (Async & Sync) =
     externalValidators(checkout, dryRun, written, runner, platform, Validators, steps, 0).flatMap {
       case (externalSteps, failures) =>
         schemaValidator(checkout, dryRun, written, platform, externalSteps, failures)
@@ -500,7 +640,7 @@ object SquireSpec:
       remaining: List[Validator],
       steps: List[SpecStep],
       failures: Int
-  ): (List[SpecStep], Int) < (Async & Sync & Abort[SquireError]) =
+  ): (List[SpecStep], Int) < (Async & Sync) =
     remaining match
       case Nil               => (steps, failures)
       case validator :: tail =>
@@ -524,7 +664,7 @@ object SquireSpec:
       runner: ProcessRunner,
       platform: SquireSpecPlatform,
       validator: Validator
-  ): SpecStep < (Async & Sync & Abort[SquireError]) =
+  ): SpecStep < (Async & Sync) =
     val name = s"validator:${validator.label}"
     platform.findExecutable("jsonschema") match
       case Absent              => SpecStep(name, "skipped", "jsonschema not on PATH")
@@ -536,15 +676,17 @@ object SquireSpec:
               case None                 => SpecStep(name, "skipped", "no matching files")
               case Some(argv) if dryRun => SpecStep(name, "skipped", "--dry-run")
               case Some(argv)           =>
-                runner.run(ProcessRequest(argv, Present(checkout))).map { process =>
-                  val output = (process.stdout + process.stderr).trim
-                  if process.exitCode == 0 then SpecStep(name, "ok", validator.argv.mkString(" "))
-                  else if output.contains("does not support YAML") then
-                    SpecStep(name, "skipped", "tool does not support YAML input", result = optionalValue(output))
-                  else
-                    val ours   = ownsSchemas(written)
-                    val status = if ours then "failed" else "pre-existing"
-                    SpecStep(name, status, validator.argv.mkString(" "), result = optionalValue(output))
+                Abort.run[SquireError](runner.run(ProcessRequest(argv, Present(checkout)))).map {
+                  case Result.Failure(error)   => SpecStep(name, "failed", error.getMessage)
+                  case Result.Success(process) =>
+                    val output = (process.stdout + process.stderr).trim
+                    if process.exitCode == 0 then SpecStep(name, "ok", validator.argv.mkString(" "))
+                    else if output.contains("does not support YAML") then
+                      SpecStep(name, "skipped", "tool does not support YAML input", result = optionalValue(output))
+                    else
+                      val ours   = ownsSchemas(written)
+                      val status = if ours then "failed" else "pre-existing"
+                      SpecStep(name, status, validator.argv.mkString(" "), result = optionalValue(output))
                 }
             }
         }
@@ -556,7 +698,7 @@ object SquireSpec:
       platform: SquireSpecPlatform,
       steps: List[SpecStep],
       failures: Int
-  ): (List[SpecStep], Int) < (Sync & Abort[SquireError]) =
+  ): (List[SpecStep], Int) < Sync =
     val name      = "validator:schemas json in step"
     val directory = checkout / SchemaRel
     platform.isDirectory(directory).flatMap { present =>
@@ -591,15 +733,33 @@ object SquireSpec:
       runner: ProcessRunner,
       steps: List[SpecStep],
       failures: Int
-  ): SpecReport < (Async & Abort[SquireError]) =
-    runner.run(git(checkout, "status", "--short")).map { process =>
-      val changed = process.stdout.linesIterator.filter(_.nonEmpty).toList
-      val result  = record("changed" -> Structure.Value.Sequence(Chunk.from(changed.map(Structure.Value.Str(_)))))
-      SpecReport(
-        "spec-export",
-        ok = failures == 0,
-        steps :+ SpecStep("status", "ok", s"${changed.size} changed path(s)", result = Present(result))
-      )
+  ): SpecReport < Async =
+    Abort.run[SquireError](runner.run(git(checkout, "status", "--short"))).map {
+      case Result.Failure(error) =>
+        SpecReport(
+          "spec-export",
+          ok = false,
+          steps :+ SpecStep("status", "failed", s"could not inspect checkout status: ${error.getMessage}")
+        )
+      case Result.Success(process) if process.exitCode != 0 =>
+        SpecReport(
+          "spec-export",
+          ok = false,
+          steps :+ SpecStep(
+            "status",
+            "failed",
+            s"git status --short exited ${process.exitCode}",
+            optional(lastDetail(process))
+          )
+        )
+      case Result.Success(process) =>
+        val changed = process.stdout.linesIterator.filter(_.nonEmpty).toList
+        val result  = record("changed" -> Structure.Value.Sequence(Chunk.from(changed.map(Structure.Value.Str(_)))))
+        SpecReport(
+          "spec-export",
+          ok = failures == 0,
+          steps :+ SpecStep("status", "ok", s"${changed.size} changed path(s)", result = Present(result))
+        )
     }
 
   private def expand(
@@ -630,28 +790,52 @@ object SquireSpec:
         }
 
   private def parseJson(text: String): Option[Structure.Value] =
-    val start = text.indexOf('{')
-    if start < 0 then None
+    val trimmed                                        = text.trim
+    def decode(value: String): Option[Structure.Value] =
+      Json.decode[Structure.Value](value) match
+        case Result.Success(parsed) => Some(parsed)
+        case _                      => None
+    if trimmed.isEmpty then None
     else
-      Json.decode[Structure.Value](text.substring(start)) match
-        case Result.Success(value) => Some(value)
-        case _                     => None
+      decode(trimmed).orElse {
+        val objectStart = text.indexOf('{')
+        val arrayStart  = text.indexOf('[')
+        List(objectStart, arrayStart).filter(_ >= 0).sorted.iterator
+          .flatMap(start => decode(text.substring(start).trim))
+          .nextOption()
+      }
 
-  private def writtenPaths(value: Structure.Value): List[String] =
+  private def writtenPaths(value: Structure.Value): Either[String, List[String]] =
     value match
       case Structure.Value.Record(fields) =>
-        fields.find(_._1 == "actions").toList.flatMap {
-          case (_, Structure.Value.Sequence(actions)) =>
-            actions.toList.flatMap {
-              case Structure.Value.Record(action) =>
-                val verb = action.collectFirst { case ("verb", Structure.Value.Str(value)) => value }
-                val path = action.collectFirst { case ("path", Structure.Value.Str(value)) => value }
-                if verb.contains("wrote") then path.toList else Nil
-              case _ => Nil
+        fields.filter(_._1 == "actions").toList match
+          case Nil                                          => Left("missing actions array")
+          case List((_, Structure.Value.Sequence(actions))) =>
+            actions.toList.zipWithIndex.foldLeft[Either[String, List[String]]](Right(Nil)) {
+              case (left @ Left(_), _)                                       => left
+              case (Right(written), (Structure.Value.Record(action), index)) =>
+                val verbs = action.filter(_._1 == "verb").toList
+                val paths = action.filter(_._1 == "path").toList
+                (verbs, paths) match
+                  case (List((_, Structure.Value.Str(verb))), List((_, Structure.Value.Str(path)))) if path.nonEmpty =>
+                    Right(if verb == "wrote" then written :+ path else written)
+                  case (List((_, Structure.Value.Str(_))), _) =>
+                    Left(s"action $index requires exactly one non-empty string path")
+                  case _ => Left(s"action $index requires exactly one string verb")
+              case (Right(_), (_, index)) => Left(s"action $index must be an object")
             }
-          case _ => Nil
-        }
-      case _ => Nil
+          case List(_) => Left("actions must be an array")
+          case _       => Left("ownership report must contain exactly one actions array")
+      case _ => Left("ownership report must be an object")
+
+  private def sparseSetting(result: ProcessResult): Either[String, Boolean] =
+    if result.exitCode == 0 then
+      result.stdout.trim.toLowerCase match
+        case "true" | "yes" | "on" | "1"  => Right(true)
+        case "false" | "no" | "off" | "0" => Right(false)
+        case value => Left(s"invalid core.sparseCheckout value: ${if value.isEmpty then "<empty>" else value}")
+    else if result.exitCode == 1 && result.stdout.trim.isEmpty && result.stderr.trim.isEmpty then Right(false)
+    else Left(lastDetail(result))
 
   private def ownsSchemas(written: List[String]): Boolean = written.exists(_.startsWith(SchemaRel))
 
@@ -682,9 +866,6 @@ object SquireSpec:
 
   private def record(fields: (String, Structure.Value)*): Structure.Value =
     Structure.Value.Record(Chunk.from(fields))
-
-  private def optionalString(value: String): Structure.Value =
-    if value.nonEmpty then Structure.Value.Str(value) else Structure.Value.Null
 
   private def optional(value: String): Maybe[String]               = if value.nonEmpty then Present(value) else Absent
   private def optionalValue(value: String): Maybe[Structure.Value] =
