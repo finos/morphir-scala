@@ -20,6 +20,7 @@ import scala.jdk.CollectionConverters.*
 
 import mill.PathRef
 import org.finos.morphir.mill.toolchain.{StorageSize, storageSize}
+import upickle.default.ReadWriter
 
 final case class ElmInputLimits(
     maxEntries: Int = 10000,
@@ -28,6 +29,22 @@ final case class ElmInputLimits(
 )
 
 object ElmProjectSnapshot {
+  enum InputRole derives ReadWriter {
+    case ElmJson, Source
+  }
+
+  final case class TrackedElmInput(path: String, role: InputRole, fingerprint: Vector[Int]) derives ReadWriter {
+    def pathRef: PathRef = {
+      val inputPath = os.Path(path, os.pwd)
+      PathRef(
+        inputPath,
+        quick = false,
+        sig = fingerprintSignature(fingerprintHex(fingerprint)),
+        revalidate = PathRef.Revalidate.Never
+      )
+    }
+  }
+
   private final class Budget(val limits: ElmInputLimits) {
     private var entries      = 0
     private var bytes        = 0L
@@ -66,16 +83,43 @@ object ElmProjectSnapshot {
       entrypoint: os.RelPath,
       limits: ElmInputLimits,
       beforeRevalidate: () => Unit = () => ()
+  ): os.Path =
+    stage(taskRoot, trackInputs(elmJson.path, sources.map(_.path), limits), entrypoint, limits, beforeRevalidate)
+
+  def trackInputs(
+      elmJson: os.Path,
+      sources: Seq[os.Path],
+      limits: ElmInputLimits
+  ): Seq[TrackedElmInput] = {
+    validateLimits(limits)
+    val sourceDestinations = validateInputPaths(elmJson, sources)
+    val budget             = new Budget(limits)
+    val jsonFingerprint    = scan(elmJson.toNIO, None, os.rel / "elm.json", budget)
+    val sourceFingerprints = sources.zip(sourceDestinations).map { case (source, destination) =>
+      TrackedElmInput(
+        source.toString,
+        InputRole.Source,
+        fingerprintBytes(scan(source.toNIO, None, destination, budget))
+      )
+    }
+    TrackedElmInput(elmJson.toString, InputRole.ElmJson, fingerprintBytes(jsonFingerprint)) +: sourceFingerprints
+  }
+
+  def stage(
+      taskRoot: os.Path,
+      trackedInputs: Seq[TrackedElmInput],
+      entrypoint: os.RelPath,
+      limits: ElmInputLimits,
+      beforeRevalidate: () => Unit
   ): os.Path = {
     validateLimits(limits)
-    val sourceDestinations = sources.map(source => os.rel / source.path.last)
-    val topLevel           = (os.rel / "elm.json") +: sourceDestinations
-    val duplicateTopLevel  = topLevel
-      .groupBy(_.toString.toLowerCase(Locale.ROOT))
-      .collectFirst { case (_, paths) if paths.size > 1 => paths.head }
-    duplicateTopLevel.foreach(path => throw invalid(s"Elm inputs have a duplicate staged destination: $path"))
-    validateRoot(elmJson.path, expectDirectory = false)
-    sources.foreach(source => validateRoot(source.path, expectDirectory = true))
+    val jsonInputs   = trackedInputs.filter(_.role == InputRole.ElmJson)
+    val sourceInputs = trackedInputs.filter(_.role == InputRole.Source)
+    if (jsonInputs.size != 1)
+      throw invalid(s"Elm tracked inputs require exactly one elm.json role, found ${jsonInputs.size}")
+    val elmJson            = jsonInputs.head.pathRef
+    val sources            = sourceInputs.map(_.pathRef)
+    val sourceDestinations = validateInputPaths(elmJson.path, sources.map(_.path))
     validateEntrypoint(entrypoint, sourceDestinations)
 
     val project = taskRoot / "project"
@@ -84,23 +128,36 @@ object ElmProjectSnapshot {
     removeOwned(project)
     os.makeDir.all(staging)
     try {
-      val snapshotBudget = new Budget(limits)
-      val inputs = (elmJson.path, os.rel / "elm.json") +: sources.zip(sourceDestinations).map { case (source, dest) =>
-        source.path -> dest
+      val inputs         = (jsonInputs.head, os.rel / "elm.json") +: sourceInputs.zip(sourceDestinations)
+      val baselineBudget = new Budget(limits)
+      inputs.foreach { case (tracked, destination) =>
+        val actual = fingerprintBytes(scan(tracked.pathRef.path.toNIO, None, destination, baselineBudget))
+        if (actual != tracked.fingerprint)
+          throw invalid(s"Elm input full fingerprint changed before snapshot: ${tracked.path}")
       }
-      val fingerprints = inputs.map { case (source, destination) =>
-        source -> scan(source.toNIO, Some((staging / destination).toNIO), destination, snapshotBudget)
+      val snapshotBudget = new Budget(limits)
+      val fingerprints   = inputs.map { case (tracked, destination) =>
+        val actual = scan(
+          tracked.pathRef.path.toNIO,
+          Some((staging / destination).toNIO),
+          destination,
+          snapshotBudget
+        )
+        if (fingerprintBytes(actual) != tracked.fingerprint)
+          throw invalid(s"Elm input changed while creating snapshot: ${tracked.path}")
+        tracked -> actual
       }
       val stagedEntrypoint = staging / entrypoint
       if (!Files.isRegularFile(stagedEntrypoint.toNIO, LinkOption.NOFOLLOW_LINKS))
         throw invalid(s"Elm entrypoint is not a staged regular file: $entrypoint")
       beforeRevalidate()
       val revalidationBudget = new Budget(limits)
-      fingerprints.foreach { case (source, expected) =>
-        val destination = if (source == elmJson.path) os.rel / "elm.json" else os.rel / source.last
-        val actual      = scan(source.toNIO, None, destination, revalidationBudget)
+      fingerprints.foreach { case (tracked, expected) =>
+        val destination =
+          if (tracked.role == InputRole.ElmJson) os.rel / "elm.json" else os.rel / tracked.pathRef.path.last
+        val actual = scan(tracked.pathRef.path.toNIO, None, destination, revalidationBudget)
         if (actual != expected)
-          throw invalid(s"Elm input changed after snapshot: $source")
+          throw invalid(s"Elm input changed after snapshot: ${tracked.path}")
       }
       promote(staging, project)
       project
@@ -110,6 +167,18 @@ object ElmProjectSnapshot {
         removeOwned(project)
         throw error
     }
+  }
+
+  private def validateInputPaths(elmJson: os.Path, sources: Seq[os.Path]): Seq[os.RelPath] = {
+    val sourceDestinations = sources.map(source => os.rel / source.last)
+    val topLevel           = (os.rel / "elm.json") +: sourceDestinations
+    val duplicateTopLevel  = topLevel
+      .groupBy(_.toString.toLowerCase(Locale.ROOT))
+      .collectFirst { case (_, paths) if paths.size > 1 => paths.head }
+    duplicateTopLevel.foreach(path => throw invalid(s"Elm inputs have a duplicate staged destination: $path"))
+    validateRoot(elmJson, expectDirectory = false)
+    sources.foreach(source => validateRoot(source, expectDirectory = true))
+    sourceDestinations
   }
 
   private def validateEntrypoint(entrypoint: os.RelPath, sources: Seq[os.RelPath]): Unit = {
@@ -252,6 +321,15 @@ object ElmProjectSnapshot {
     else if (Files.exists(path.toNIO, LinkOption.NOFOLLOW_LINKS)) os.remove.all(path)
 
   private def hex(bytes: Array[Byte]): String = bytes.iterator.map(byte => f"${byte & 0xff}%02x").mkString
+
+  private def fingerprintSignature(fingerprint: String): Int =
+    java.util.Arrays.hashCode(fingerprint.getBytes(java.nio.charset.StandardCharsets.US_ASCII))
+
+  private def fingerprintBytes(fingerprint: String): Vector[Int] =
+    fingerprint.grouped(2).map(Integer.parseInt(_, 16)).toVector
+
+  private def fingerprintHex(fingerprint: Vector[Int]): String =
+    fingerprint.iterator.map(byte => f"$byte%02x").mkString
 
   private def invalid(detail: String, cause: Throwable = null): IllegalArgumentException =
     new IllegalArgumentException(detail, cause)

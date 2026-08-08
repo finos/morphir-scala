@@ -93,7 +93,12 @@ object MorphirElmToolTests extends TestSuite {
         "ssh://git@example.test/owner/repo.git",
         "git@example.test:owner/repo.git",
         "file:../tool",
-        "link:../tool"
+        "link:../tool",
+        ".",
+        "..",
+        "...",
+        ".foo",
+        "..foo"
       ).foreach { dependency =>
         rejected(
           lock => lock("packages").obj(path).obj("peerDependencies") = ujson.Obj("unsafe" -> dependency),

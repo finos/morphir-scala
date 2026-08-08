@@ -20,8 +20,10 @@ object ElmToolingTests extends TestSuite {
     finally os.remove.all(root)
   }
 
-  private def success[A](result: Either[ExecResult.Failing[A], UnitTester.Result[A]]): A =
-    result.fold(failure => throw new java.lang.AssertionError(failure.toString), _.value)
+  private def successResult[A](result: Either[ExecResult.Failing[A], UnitTester.Result[A]]): UnitTester.Result[A] =
+    result.fold(failure => throw new java.lang.AssertionError(failure.toString), identity)
+
+  private def success[A](result: Either[ExecResult.Failing[A], UnitTester.Result[A]]): A = successResult(result).value
 
   private final class CommandBuild(workspace: os.Path) extends TestRootModule(workspace) { outer =>
     lazy val millDiscover = mill.api.Discover[this.type]
@@ -62,6 +64,45 @@ object ElmToolingTests extends TestSuite {
     }
   }
 
+  private final class TrackingBuild(workspace: os.Path) extends TestRootModule(workspace) { outer =>
+    lazy val millDiscover = mill.api.Discover[this.type]
+
+    object runtime extends JavaScriptRuntimeModule {
+      def runtimeVersion: T[String]     = Task("test")
+      def runtimeHome: T[PathRef]       = Task(PathRef(os.Path(System.getProperty("java.home"), os.pwd)))
+      def runtimeExecutable: T[PathRef] = Task {
+        PathRef(os.Path(System.getProperty("java.home"), os.pwd) / "bin" / "java")
+      }
+      def runtimeCommand(arguments: Seq[String]): Task[JavaScriptCommand] = Task.Anon {
+        JavaScriptCommand(runtimeExecutable(), arguments)
+      }
+    }
+
+    object packages extends JavaScriptPackageManagerModule {
+      def runtime: JavaScriptRuntimeModule = outer.runtime
+      def projectFiles: T[Seq[PathRef]]    = Task(Seq.empty)
+      def lockFiles: T[Seq[PathRef]]       = Task(Seq.empty)
+      def install: T[JavaScriptInstall]    = Task(throw new UnsupportedOperationException)
+      def packageManagerCommand(arguments: Seq[String]): Task[JavaScriptCommand] =
+        Task.Anon(throw new UnsupportedOperationException)
+      def packageBinaryCommand(binary: PackageBinary, arguments: Seq[String]): Task[JavaScriptCommand] = Task.Anon {
+        val executable = os.Path(System.getProperty("java.home"), os.pwd) / "bin" / "java"
+        JavaScriptCommand(
+          PathRef(executable),
+          (outer.moduleDir / "FakeElm.java").toString +: arguments
+        )
+      }
+    }
+
+    object tools extends ElmToolModule {
+      def packageManager = outer.packages
+    }
+
+    object app extends ElmModule {
+      def elmTool = outer.tools
+    }
+  }
+
   val tests = Tests {
     test("Elm tooling exposes neutral package-manager APIs and an authoritative compile task") {
       val errors = typeCheckErrors(
@@ -71,8 +112,10 @@ object ElmToolingTests extends TestSuite {
           import org.finos.morphir.mill.javascript.*
           trait Consumer extends ElmModule {
             def elmTool: ElmToolModule
-            override def elmJson: T[PathRef] = super.elmJson
-            override def elmSources: T[Seq[PathRef]] = super.elmSources
+            override def elmJsonPath: os.Path = moduleDir / "custom-elm.json"
+            override def elmSourcePaths: Seq[os.Path] = Seq(moduleDir / "custom-src")
+            val publicElmJson: T[PathRef] = elmJson
+            val publicElmSources: T[Seq[PathRef]] = elmSources
             override def compile: T[PathRef] = super.compile
           }
           trait Tool extends ElmToolModule {
@@ -213,6 +256,63 @@ object ElmToolingTests extends TestSuite {
         }.failed.get
         assert(race.getMessage.contains("changed after snapshot"))
         assert(!os.exists(root / "race-task" / "project"))
+      }
+    }
+
+    test("Elm compile invalidates on a full fingerprint despite a legacy PathRef collision") {
+      withTempDir { root =>
+        val first    = "collision-00156726"
+        val second   = "collision-00163008"
+        val sources  = root / "sources"
+        val app      = sources / "app"
+        val changing = app / "src" / "Collision.txt"
+        os.write(
+          sources / "FakeElm.java",
+          """import java.nio.file.*;
+            |final class FakeElm {
+            |  public static void main(String[] arguments) throws Exception {
+            |    int outputIndex = java.util.Arrays.asList(arguments).indexOf("--output");
+            |    Path workingDirectory = Paths.get(System.getProperty("user.dir"));
+            |    String content = Files.readString(workingDirectory.resolve("src").resolve("Collision.txt"));
+            |    Files.writeString(workingDirectory.resolve(arguments[outputIndex + 1]), content);
+            |  }
+            |}
+            |""".stripMargin,
+          createFolders = true
+        )
+        os.write(app / "elm.json", "{}", createFolders = true)
+        os.write(app / "src" / "Main.elm", "module Main exposing (main)", createFolders = true)
+        os.write(changing, first)
+
+        val legacyFirst  = PathRef(app / "src").sig
+        val firstTracked = ElmProjectSnapshot
+          .trackInputs(app / "elm.json", Seq(app / "src"), ElmInputLimits())
+          .find(_.role == ElmProjectSnapshot.InputRole.Source)
+          .get
+        os.write.over(changing, second)
+        val legacySecond  = PathRef(app / "src").sig
+        val secondTracked = ElmProjectSnapshot
+          .trackInputs(app / "elm.json", Seq(app / "src"), ElmInputLimits())
+          .find(_.role == ElmProjectSnapshot.InputRole.Source)
+          .get
+        assert(legacyFirst == legacySecond)
+        assert(firstTracked.fingerprint != secondTracked.fingerprint)
+        os.write.over(changing, first)
+
+        val module = new TrackingBuild(root / "workspace")
+        UnitTester(module, sources).scoped { evaluator =>
+          val initial = success(evaluator(module.app.compile))
+          assert(os.read(initial.path) == first)
+          assert(successResult(evaluator(module.app.compile)).evalCount == 0)
+
+          os.write.over(module.moduleDir / "app" / "src" / "Collision.txt", second)
+          val mutation = evaluator(module.app.compile).fold(
+            failure => throw new java.lang.AssertionError(failure.toString),
+            identity
+          )
+          assert(mutation.evalCount > 0)
+          assert(os.read(mutation.value.path) == second)
+        }
       }
     }
 

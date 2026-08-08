@@ -102,15 +102,20 @@ object MorphirElmLock {
 
   private def isRegistrySpec(value: String): Boolean =
     value match {
-      case PlainRegistrySpec() if value.trim.nonEmpty => true
-      case _ if value.startsWith("npm:")              =>
+      case _ if isPlainRegistrySpec(value) => true
+      case _ if value.startsWith("npm:")   =>
         val alias       = value.stripPrefix("npm:")
         val versionAt   = alias.lastIndexOf('@')
         val packageName = if (versionAt > 0) alias.take(versionAt) else alias
         val version     = if (versionAt > 0) alias.drop(versionAt + 1) else "latest"
-        RegistryPackageName.matches(packageName) && PlainRegistrySpec.matches(version) && version.trim.nonEmpty
+        RegistryPackageName.matches(packageName) && isPlainRegistrySpec(version)
       case _ => false
     }
+
+  private def isPlainRegistrySpec(value: String): Boolean = {
+    val normalized = value.trim
+    normalized.nonEmpty && !normalized.startsWith(".") && PlainRegistrySpec.matches(value)
+  }
 
   private def validateIntegrity(path: os.Path, packagePath: String, integrity: String): Unit = {
     val values = integrity.split("\\s+").toSeq.filter(_.nonEmpty)
