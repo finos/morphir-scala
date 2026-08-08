@@ -92,6 +92,12 @@ JVM_PLATFORM_TEST_SELECTOR = (
     "kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,"
     "langkit.trees,model,model.lowering,tests}.jvm.test"
 )
+JVM_PLATFORM_ALIAS_MEMBERS = (
+    *JVM_PLATFORM_COMPILE_SELECTORS,
+    *JVM_PLATFORM_PUBLISH_SELECTORS,
+    JVM_PLATFORM_TEST_SELECTOR,
+    "morphir.langkit.itest.testCached",
+)
 
 
 def indented_block(text: str, header: str, indent: int) -> str:
@@ -306,8 +312,15 @@ def assert_morphir_capability_jobs(workflow: str) -> None:
 
 def assert_read_only_default_permissions(workflow: str) -> None:
     permissions = indented_block(workflow, "permissions:", 0)
-    if scalar(permissions, "contents") != "read":
-        raise AssertionError("workflow must default to read-only repository contents")
+    entries = [
+        line.strip()
+        for line in permissions.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    if entries != ["contents: read"]:
+        raise AssertionError(
+            "workflow permissions must contain only read-only repository contents"
+        )
 
 
 def assert_jvm_platform_split(workflow: str) -> None:
@@ -319,22 +332,38 @@ def assert_jvm_platform_split(workflow: str) -> None:
         raise AssertionError("generic JVM CI must not invoke classic runtime tasks")
 
 
-def assert_jvm_platform_aggregate() -> None:
-    build = BUILD.read_text(encoding="utf-8")
-    task_path = MISE_TASKS / "test/jvm-platform"
-    if not task_path.is_file():
-        raise AssertionError("missing test:jvm-platform compatibility task")
-    task = task_path.read_text(encoding="utf-8")
-    if "def testJVMPlatform" not in build:
-        raise AssertionError("build must provide a named non-classic JVM aggregate")
-    for selector in (
-        *JVM_PLATFORM_COMPILE_SELECTORS,
-        *JVM_PLATFORM_PUBLISH_SELECTORS,
-        JVM_PLATFORM_TEST_SELECTOR,
-        "morphir.langkit.itest.testCached",
-    ):
-        if selector not in build:
-            raise AssertionError(f"JVM platform aggregate is missing {selector}")
+def assert_jvm_platform_aggregate(
+    *, build: str | None = None, task: str | None = None
+) -> None:
+    if build is None:
+        build = BUILD.read_text(encoding="utf-8")
+    if task is None:
+        task_path = MISE_TASKS / "test/jvm-platform"
+        if not task_path.is_file():
+            raise AssertionError("missing test:jvm-platform compatibility task")
+        task = task_path.read_text(encoding="utf-8")
+    if len(re.findall(r"(?m)^\s*def testJVMPlatform\b", build)) != 1:
+        raise AssertionError("build must provide exactly one non-classic JVM aggregate")
+    alias = re.search(
+        r"(?ms)^\s*def testJVMPlatform\s*=\s*alias\(\s*\n"
+        r"(?P<body>.*?)^\s*\)\s*$",
+        build,
+    )
+    if alias is None:
+        raise AssertionError("testJVMPlatform must have a parseable alias body")
+
+    members = []
+    lines = alias.group("body").splitlines()
+    for index, line in enumerate(lines):
+        member = re.fullmatch(r'\s*"([^"]+)"(,?)\s*', line)
+        if member is None:
+            raise AssertionError("testJVMPlatform contains a non-literal member")
+        expected_comma = "," if index < len(lines) - 1 else ""
+        if member.group(2) != expected_comma:
+            raise AssertionError("testJVMPlatform members must use canonical separators")
+        members.append(member.group(1))
+    if tuple(members) != JVM_PLATFORM_ALIAS_MEMBERS:
+        raise AssertionError(f"unexpected testJVMPlatform members: {tuple(members)!r}")
     if "./mill -i Alias/run testJVMPlatform" not in task:
         raise AssertionError("test:jvm-platform must delegate to the named Mill aggregate")
 
@@ -448,6 +477,16 @@ class CiPolicyTest(unittest.TestCase):
     def test_workflow_defaults_to_read_only_contents_permission(self):
         assert_read_only_default_permissions(self.workflow)
 
+    def test_workflow_permissions_reject_additional_write_capabilities(self):
+        mutation = self.workflow.replace(
+            "permissions:\n  contents: read",
+            "permissions:\n  contents: read\n  actions: write",
+            1,
+        )
+
+        with self.assertRaises(AssertionError):
+            assert_read_only_default_permissions(mutation)
+
     def test_morphir_unit_selector_excludes_published_plugin_integration(self):
         targets = resolve_targets(MILL_MORPHIR_UNIT_SELECTOR)
         modules = {
@@ -469,6 +508,19 @@ class CiPolicyTest(unittest.TestCase):
 
     def test_build_exposes_the_named_non_classic_jvm_aggregate(self):
         assert_jvm_platform_aggregate()
+
+    def test_jvm_platform_aggregate_rejects_an_injected_classic_runtime_member(self):
+        build = BUILD.read_text(encoding="utf-8")
+        task = (MISE_TASKS / "test/jvm-platform").read_text(encoding="utf-8")
+        mutation = build.replace(
+            '    "morphir.langkit.itest.testCached"',
+            '    "morphir.runtime.classic.jvm.test",\n'
+            '    "morphir.langkit.itest.testCached"',
+            1,
+        )
+
+        with self.assertRaises(AssertionError):
+            assert_jvm_platform_aggregate(build=mutation, task=task)
 
     def test_jvm_platform_selectors_cover_every_non_classic_target(self):
         classic_prefix = "morphir.runtime.classic.jvm"
