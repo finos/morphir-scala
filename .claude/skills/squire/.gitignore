@@ -1,0 +1,3 @@
+# Mill build state for the skill's single-file scripts. Also covered by the repo-root `out/` rule; kept here so the
+# skill is self-describing if it is ever copied elsewhere.
+out/
