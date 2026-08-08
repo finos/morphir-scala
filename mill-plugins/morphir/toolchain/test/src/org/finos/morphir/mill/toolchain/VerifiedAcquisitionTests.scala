@@ -422,5 +422,32 @@ object VerifiedAcquisitionTests extends TestSuite {
         assert(os.list(cacheRoot / "sha256").forall(!_.last.endsWith(".tmp")))
       }
     }
+
+    test("output acquisition failure closes the already-opened source") {
+      withTempDir { directory =>
+        val bytes        = "output failure".getBytes(StandardCharsets.UTF_8)
+        val digest       = VerifiedArchive.sha256(bytes)
+        val taskRoot     = directory / "task"
+        val outputParent = taskRoot / ".morphir-acquisitions" / "sha256"
+        val displaced    = directory / "displaced-sha256"
+        val input        = new TrackingInputStream(bytes)
+
+        val result = scala.util.Try(
+          AcquisitionCache(
+            AcquisitionSettings(useMachineCache = false),
+            taskRoot
+          ).acquire(digest, "memory:output-failure") {
+            os.move(outputParent, displaced)
+            os.write(outputParent, "not a directory")
+            input
+          }
+        )
+
+        assert(result.isFailure)
+        assert(input.wasClosed)
+        assert(!os.exists(displaced / digest))
+        assert(os.list(displaced).forall(!_.last.endsWith(".tmp")))
+      }
+    }
   }
 }
