@@ -258,7 +258,7 @@ object ScalaVersions {
 }
 
 object MillVersions {
-  val all            = Seq("1.1.5")
+  val all            = Seq("1.2.0-RC1-46-16168f")
   val oldest         = all.head
   val platformSuffix = "_mill1"
 }

@@ -52,9 +52,9 @@ trait NodeRuntimeModule extends JavaScriptRuntimeModule {
     NodeProcess.runtime(runtimeExecutable(), arguments)
   }
 
-  final def nodeVersion: T[String]     = runtimeVersion
-  final def nodeHome: T[PathRef]       = runtimeHome
-  final def nodeExecutable: T[PathRef] = runtimeExecutable
+  def nodeVersion: T[String]     = runtimeVersion
+  def nodeHome: T[PathRef]       = runtimeHome
+  def nodeExecutable: T[PathRef] = runtimeExecutable
 
   def npmCli: T[PathRef] = Task {
     PathRef(runtimeHome().path / nodeDistribution().npmCliRelativePath)

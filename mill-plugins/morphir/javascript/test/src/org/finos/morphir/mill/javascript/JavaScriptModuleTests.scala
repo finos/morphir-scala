@@ -90,6 +90,51 @@ object JavaScriptModuleTests extends TestSuite {
       assert(windows.npmCliRelativePath == os.rel / "node_modules" / "npm" / "bin" / "npm-cli.js")
     }
 
+    test("Mill PathRef signatures do not traverse symbolic-link targets") {
+      withTempDir { root =>
+        val targetFile = root / "target.txt"
+        val targetDir  = root / "target-directory"
+        os.write(targetFile, "first")
+        os.makeDir.all(targetDir)
+        os.write(targetDir / "first.txt", "first")
+        val tracked       = root / "tracked"
+        val fileLink      = tracked / "file-link"
+        val directoryLink = tracked / "directory-link"
+        os.makeDir.all(tracked)
+        val links = scala.util.Try {
+          Files.createSymbolicLink(fileLink.toNIO, targetFile.toNIO)
+          Files.createSymbolicLink(directoryLink.toNIO, targetDir.toNIO)
+        }
+        links.foreach { _ =>
+          val signature = PathRef(tracked).sig
+          os.write.over(targetFile, "second with different bytes")
+          os.write(targetDir / "second.txt", "new target content")
+          assert(PathRef(tracked).sig == signature)
+        }
+      }
+    }
+
+    test("npm tracked inputs reject root and nested directory symlinks before reading targets") {
+      withTempDir { root =>
+        val outside = root / "outside"
+        os.makeDir.all(outside)
+        os.write(outside / "oversized-secret", "target bytes must never be read")
+        val rootLink = root / "root-link"
+        val tracked  = root / "tracked"
+        os.makeDir.all(tracked)
+        Files.createSymbolicLink(rootLink.toNIO, outside.toNIO)
+        Files.createSymbolicLink((tracked / "nested-link").toNIO, outside.toNIO)
+        Seq(rootLink, tracked).foreach { input =>
+          val error = scala.util.Try {
+            NpmProcess.inputPathRefs(Seq(input), NpmProcess.InputLimits(maxFileBytes = 1))
+          }.failed.get
+          assert(error.isInstanceOf[IllegalArgumentException])
+          assert(error.getMessage.contains("symbolic link"))
+          assert(!error.getMessage.contains("exceeds 1 bytes"))
+        }
+      }
+    }
+
     test("package binary runtime validation and round trip") {
       val location                 = PackageBinary.CallSite("build.mill", 17, "consumer.tools")
       given PackageBinary.CallSite = location
@@ -143,12 +188,41 @@ object JavaScriptModuleTests extends TestSuite {
       }
     }
 
+    test("legacy Node aliases remain override-compatible") {
+      val errors = typeCheckErrors(
+        """
+          import mill.*
+          import org.finos.morphir.mill.javascript.node.NodeRuntimeModule
+          trait CustomLegacyNode extends NodeRuntimeModule {
+            override def nodeVersion: T[String] = runtimeVersion
+            override def nodeHome: T[PathRef] = runtimeHome
+            override def nodeExecutable: T[PathRef] = runtimeExecutable
+          }
+        """
+      )
+      assert(errors.isEmpty)
+    }
+
+    test("npm owns final safe tracked-input tasks") {
+      val errors = typeCheckErrors(
+        """
+          import mill.*
+          import org.finos.morphir.mill.javascript.npm.NpmPackageManagerModule
+          trait UnsafeNpmInputs extends NpmPackageManagerModule {
+            override def projectFiles: T[Seq[PathRef]] = ???
+          }
+        """
+      )
+      assert(errors.nonEmpty)
+      assert(errors.exists(_.message.contains("final member")))
+    }
+
     test("npm install requires a committed lock before process execution") {
       withTempDir { root =>
         val manifest = root / "package.json"
         os.write(manifest, "{}")
         val error = scala.util.Try {
-          NpmProcess.prepareInstall(root / "install", Seq(PathRef(manifest)), Seq.empty)
+          NpmProcess.prepareInstall(root / "install", NpmProcess.inputPathRefs(Seq(manifest)), Seq.empty)
         }.failed.get.asInstanceOf[IllegalArgumentException]
         assert(error.getMessage.contains("committed npm lock"))
         assert(!os.exists(root / "install"))
@@ -163,7 +237,11 @@ object JavaScriptModuleTests extends TestSuite {
         val lock     = project / "package-lock.json"
         os.write(manifest, "{}")
         os.write(lock, """{"lockfileVersion":3}""")
-        val install = NpmProcess.prepareInstall(root / "task" / "install", Seq(PathRef(manifest)), Seq(PathRef(lock)))
+        val install = NpmProcess.prepareInstall(
+          root / "task" / "install",
+          NpmProcess.inputPathRefs(Seq(manifest)),
+          NpmProcess.inputPathRefs(Seq(lock))
+        )
         assert(install.projectFiles.map(_.path.last) == Seq("package.json"))
         assert(install.lockFiles.map(_.path.last) == Seq("package-lock.json"))
         assert(os.exists(install.root.path / "package.json"))
@@ -173,6 +251,135 @@ object JavaScriptModuleTests extends TestSuite {
         assert(!environment.contains("PATH"))
         assert(environment("HOME").startsWith((root / "task").toString))
         assert(environment("npm_config_cache").startsWith((root / "task").toString))
+      }
+    }
+
+    test("npm install rejects source swaps before launch and cleans accepted state") {
+      withTempDir { root =>
+        def runCase(name: String)(mutate: (os.Path, os.Path) => Unit): Unit = {
+          val caseRoot = root / name
+          val project  = caseRoot / "project"
+          val taskRoot = caseRoot / "task"
+          val manifest = project / "package.json"
+          val lock     = project / "package-lock.json"
+          os.makeDir.all(project)
+          os.write(manifest, "{}")
+          os.write(lock, """{"lockfileVersion":3}""")
+          val projectFiles = NpmProcess.inputPathRefs(Seq(manifest))
+          val lockFiles    = NpmProcess.inputPathRefs(Seq(lock))
+          var launched     = false
+
+          val error = scala.util.Try {
+            NpmProcess.install(
+              taskRoot,
+              projectFiles,
+              lockFiles,
+              JavaScriptCommand(PathRef(caseRoot / "node"), Seq("npm-cli.js", "ci")),
+              Map.empty,
+              beforeVerify = () => mutate(manifest, lock),
+              launch = (_, _, _) => launched = true
+            )
+          }.failed.get
+          assert(error.isInstanceOf[IllegalArgumentException])
+          assert(error.getMessage.contains("changed after its verified snapshot"))
+          assert(!launched)
+          assert(!os.exists(taskRoot / "install"))
+          assert(!os.exists(taskRoot / "input-snapshot"))
+          assert(!os.exists(taskRoot / "process-state"))
+          assert(!os.exists(taskRoot / "npm-cache"))
+        }
+
+        runCase("content-swap") { (_, lock) =>
+          os.write.over(lock, """{"lockfileVersion":3,"changed":true}""")
+        }
+        runCase("symlink-swap") { (manifest, _) =>
+          val replacement = manifest / os.up / "replacement.json"
+          os.write(replacement, "{}")
+          os.remove(manifest)
+          Files.createSymbolicLink(manifest.toNIO, replacement.toNIO)
+        }
+      }
+    }
+
+    test("npm input snapshots reject nested symlinks and bounded-input excess before launch") {
+      withTempDir { root =>
+        def attempt(
+            name: String,
+            limits: NpmProcess.InputLimits = NpmProcess.InputLimits()
+        )(prepareDependency: os.Path => Unit): IllegalArgumentException = {
+          val caseRoot   = root / name
+          val project    = caseRoot / "project"
+          val dependency = project / "fixture-tool"
+          val manifest   = project / "package.json"
+          val lock       = project / "package-lock.json"
+          os.makeDir.all(dependency)
+          os.write(manifest, "{}")
+          os.write(lock, """{"lockfileVersion":3}""")
+          prepareDependency(dependency)
+          var launched = false
+          val error    = scala.util.Try {
+            NpmProcess.install(
+              caseRoot / "task",
+              NpmProcess.inputPathRefs(Seq(manifest, dependency), limits),
+              NpmProcess.inputPathRefs(Seq(lock), limits),
+              JavaScriptCommand(PathRef(caseRoot / "node"), Seq("npm-cli.js", "ci")),
+              Map.empty,
+              limits = limits,
+              launch = (_, _, _) => launched = true
+            )
+          }.failed.get.asInstanceOf[IllegalArgumentException]
+          assert(!launched)
+          assert(!os.exists(caseRoot / "task" / "install"))
+          error
+        }
+
+        val outside = root / "outside-secret"
+        os.write(outside, "must never be copied")
+        val symlink = attempt("symlink") { dependency =>
+          Files.createSymbolicLink((dependency / "secret-link").toNIO, outside.toNIO)
+        }
+        assert(symlink.getMessage.contains("symbolic link"))
+        assert(symlink.getMessage.contains("secret-link"))
+
+        val count = attempt("entry-limit", NpmProcess.InputLimits(maxEntries = 3)) { dependency =>
+          os.write(dependency / "one.js", "one")
+          os.write(dependency / "two.js", "two")
+        }
+        assert(count.getMessage.contains("entry count limit 3"))
+
+        val bytes = attempt("byte-limit", NpmProcess.InputLimits(maxFileBytes = 4)) { dependency =>
+          os.write(dependency / "large.js", "more than four bytes")
+        }
+        assert(bytes.getMessage.contains("exceeds 4 bytes"))
+      }
+    }
+
+    test("stable verified npm inputs launch only from the snapshot-backed install") {
+      withTempDir { root =>
+        val project  = root / "project"
+        val taskRoot = root / "task"
+        val manifest = project / "package.json"
+        val lock     = project / "package-lock.json"
+        os.makeDir.all(project)
+        os.write(manifest, "{}")
+        os.write(lock, """{"lockfileVersion":3}""")
+        var launched = false
+        val install  = NpmProcess.install(
+          taskRoot,
+          NpmProcess.inputPathRefs(Seq(manifest)),
+          NpmProcess.inputPathRefs(Seq(lock)),
+          JavaScriptCommand(PathRef(root / "node"), Seq("npm-cli.js", "ci")),
+          Map.empty,
+          launch = (_, cwd, _) => {
+            launched = true
+            assert(cwd == taskRoot / "install")
+            assert(os.read(cwd / "package.json") == "{}")
+            assert(os.read(cwd / "package-lock.json").contains("lockfileVersion"))
+          }
+        )
+        assert(launched)
+        assert(install.root.path == taskRoot / "install")
+        assert(!os.exists(taskRoot / "input-snapshot"))
       }
     }
 
@@ -222,8 +429,8 @@ object JavaScriptModuleTests extends TestSuite {
         val npm      = PathRef(runtime.path / distribution.npmCliRelativePath)
         val prepared = NpmProcess.prepareInstall(
           root / "task" / "install",
-          Seq(PathRef(fixture / "package.json"), PathRef(fixture / "fixture-tool")),
-          Seq(PathRef(fixture / "package-lock.json"))
+          NpmProcess.inputPathRefs(Seq(fixture / "package.json", fixture / "fixture-tool")),
+          NpmProcess.inputPathRefs(Seq(fixture / "package-lock.json"))
         )
         val environment = NpmProcess.environment(
           root / "task" / "state",
@@ -287,6 +494,101 @@ object JavaScriptModuleTests extends TestSuite {
             NpmProcess.binary(PathRef(root / "node"), install, packageBinary"linked-tool", Seq.empty)
           }.failed.get
           assert(error.getMessage.contains("escapes its install root"))
+        }
+      }
+    }
+
+    test("local binary discovery rejects a symlinked scope before enumeration") {
+      withTempDir { root =>
+        val install      = JavaScriptInstall(PathRef(root / "install"), Seq.empty, Seq.empty)
+        val nodeModules  = install.root.path / "node_modules"
+        val outsideScope = root / "outside-scope"
+        val outsideTool  = outsideScope / "scope-tool"
+        os.makeDir.all(nodeModules)
+        os.makeDir.all(outsideTool)
+        os.write(outsideTool / "package.json", """{"name":"@scope/scope-tool","bin":"cli.js"}""")
+        os.write(outsideTool / "cli.js", "console.log('outside')")
+        val scope = nodeModules / "@scope"
+        Files.createSymbolicLink(scope.toNIO, outsideScope.toNIO)
+
+        val error = scala.util.Try {
+          NpmProcess.binary(PathRef(root / "node"), install, packageBinary"scope-tool", Seq.empty)
+        }.failed.get
+        assert(error.isInstanceOf[IllegalArgumentException])
+        assert(error.getMessage.contains("symbolic link"))
+        assert(error.getMessage.contains(scope.toString))
+      }
+    }
+
+    test("local binary discovery caps installed package count") {
+      withTempDir { root =>
+        val install     = JavaScriptInstall(PathRef(root / "install"), Seq.empty, Seq.empty)
+        val nodeModules = install.root.path / "node_modules"
+        os.makeDir.all(nodeModules / "first-tool")
+        os.makeDir.all(nodeModules / "second-tool")
+
+        val error = scala.util.Try {
+          NpmProcess.binary(
+            PathRef(root / "node"),
+            install,
+            packageBinary"missing-tool",
+            Seq.empty,
+            NpmProcess.DiscoveryLimits(maxPackages = 1, maxManifestBytes = 1024)
+          )
+        }.failed.get
+        assert(error.isInstanceOf[IllegalArgumentException])
+        assert(error.getMessage.contains("package count limit 1"))
+        assert(error.getMessage.contains(nodeModules.toString))
+      }
+    }
+
+    test("installed package manifests are size bounded before reading") {
+      withTempDir { root =>
+        val install     = JavaScriptInstall(PathRef(root / "install"), Seq.empty, Seq.empty)
+        val packageRoot = install.root.path / "node_modules" / "large-tool"
+        val manifest    = packageRoot / "package.json"
+        os.makeDir.all(packageRoot)
+        os.write(manifest, """{"name":"large-tool","padding":"xxxxxxxxxxxxxxxx","bin":"cli.js"}""")
+
+        val error = scala.util.Try {
+          NpmProcess.binary(
+            PathRef(root / "node"),
+            install,
+            packageBinary"large-tool",
+            Seq.empty,
+            NpmProcess.DiscoveryLimits(maxPackages = 10, maxManifestBytes = 32)
+          )
+        }.failed.get
+        assert(error.isInstanceOf[IllegalArgumentException])
+        assert(error.getMessage.contains(manifest.toString))
+        assert(error.getMessage.contains("exceeds 32 bytes"))
+      }
+    }
+
+    test("installed package manifest shape failures retain the manifest path") {
+      withTempDir { root =>
+        val install     = JavaScriptInstall(PathRef(root / "install"), Seq.empty, Seq.empty)
+        val packageRoot = install.root.path / "node_modules" / "shape-tool"
+        val manifest    = packageRoot / "package.json"
+        os.makeDir.all(packageRoot)
+        os.write(packageRoot / "cli.js", "console.log('shape')")
+        val malformed = Seq(
+          "[]"                                                -> "$",
+          """{"bin":"cli.js"}"""                              -> "$.name",
+          """{"name":17,"bin":"cli.js"}"""                    -> "$.name",
+          """{"name":"@/shape-tool","bin":"cli.js"}"""        -> "$.name",
+          """{"name":"shape-tool","bin":17}"""                -> "$.bin",
+          """{"name":"shape-tool","bin":{"shape-tool":17}}""" -> "$.bin.shape-tool"
+        )
+
+        malformed.foreach { case (json, diagnostic) =>
+          os.write.over(manifest, json)
+          val error = scala.util.Try {
+            NpmProcess.binary(PathRef(root / "node"), install, packageBinary"shape-tool", Seq.empty)
+          }.failed.get
+          assert(error.isInstanceOf[IllegalArgumentException])
+          assert(error.getMessage.contains(manifest.toString))
+          assert(error.getMessage.contains(diagnostic))
         }
       }
     }

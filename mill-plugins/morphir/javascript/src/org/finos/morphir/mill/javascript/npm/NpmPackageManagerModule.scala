@@ -1,6 +1,22 @@
 package org.finos.morphir.mill.javascript.npm
 
-import java.nio.file.{Files, LinkOption}
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.{
+  AtomicMoveNotSupportedException,
+  FileVisitResult,
+  Files,
+  LinkOption,
+  OpenOption,
+  Path as JPath,
+  SimpleFileVisitor,
+  StandardCopyOption,
+  StandardOpenOption
+}
+import java.security.MessageDigest
+import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
@@ -11,15 +27,27 @@ import org.finos.morphir.mill.javascript.node.{NodeProcess, NodeRuntimeModule}
 trait NpmPackageManagerModule extends JavaScriptPackageManagerModule {
   def runtime: NodeRuntimeModule
 
-  def packageJson: T[PathRef]     = Task.Source(moduleDir / "package.json")
-  def packageLockJson: T[PathRef] = Task.Source(moduleDir / "package-lock.json")
+  def npmProjectPaths: Seq[os.Path] = Seq(moduleDir / "package.json")
+  def npmLockPaths: Seq[os.Path]    = Seq(moduleDir / "package-lock.json")
 
-  def projectFiles: T[Seq[PathRef]] = Task {
-    Seq(packageJson())
+  final def projectFiles: T[Seq[PathRef]] = Task.Input {
+    NpmProcess.inputPathRefs(npmProjectPaths)
   }
 
-  def lockFiles: T[Seq[PathRef]] = Task {
-    Seq(packageLockJson())
+  final def lockFiles: T[Seq[PathRef]] = Task.Input {
+    NpmProcess.inputPathRefs(npmLockPaths)
+  }
+
+  def packageJson: T[PathRef] = Task {
+    projectFiles().find(_.path.last == "package.json").getOrElse {
+      throw new IllegalArgumentException("npm project paths do not contain package.json")
+    }
+  }
+
+  def packageLockJson: T[PathRef] = Task {
+    lockFiles().find(_.path.last == "package-lock.json").getOrElse {
+      throw new IllegalArgumentException("npm lock paths do not contain package-lock.json")
+    }
   }
 
   def npmEnvironmentInputs: T[Seq[(String, String)]] = Task.Input {
@@ -27,14 +55,15 @@ trait NpmPackageManagerModule extends JavaScriptPackageManagerModule {
   }
 
   def install: T[JavaScriptInstall] = Task {
-    val _           = runtime.runtimeVersion()
-    val prepared    = NpmProcess.prepareInstall(Task.dest / "install", projectFiles(), lockFiles())
-    val command     = NpmProcess.ci(runtime.runtimeExecutable(), runtime.npmCli(), Task.dest / "npm-cache")
-    val environment = NpmProcess.environment(Task.dest / "process-state", npmEnvironmentInputs().toMap)
-    NpmProcess.initialize(environment)
-    os.proc(command.executable.path.toString +: command.arguments)
-      .call(cwd = prepared.root.path, env = environment, propagateEnv = false)
-    prepared
+    val _       = runtime.runtimeVersion()
+    val command = NpmProcess.ci(runtime.runtimeExecutable(), runtime.npmCli(), Task.dest / "npm-cache")
+    NpmProcess.install(
+      Task.dest,
+      projectFiles(),
+      lockFiles(),
+      command,
+      npmEnvironmentInputs().toMap
+    )
   }
 
   def packageManagerCommand(arguments: Seq[String]): Task[JavaScriptCommand] = Task.Anon {
@@ -47,6 +76,54 @@ trait NpmPackageManagerModule extends JavaScriptPackageManagerModule {
 }
 
 private[javascript] object NpmProcess {
+  final case class DiscoveryLimits(maxPackages: Int = 10000, maxManifestBytes: Long = 1024 * 1024)
+  final case class InputLimits(
+      maxEntries: Int = 10000,
+      maxFileBytes: Long = 64L * 1024 * 1024,
+      maxTotalBytes: Long = 512L * 1024 * 1024
+  )
+
+  private final case class VerifiedInput(original: PathRef, fingerprint: String)
+  private final case class InputSnapshot(
+      root: os.Path,
+      projectNames: Seq[String],
+      lockNames: Seq[String],
+      originals: Seq[VerifiedInput],
+      limits: InputLimits
+  )
+
+  private final class InputBudget(val limits: InputLimits) {
+    private var entries = 0
+    private var bytes   = 0L
+
+    def addEntry(path: JPath): Unit = {
+      entries += 1
+      if (entries > limits.maxEntries)
+        throw new IllegalArgumentException(
+          s"npm project input entry count limit ${limits.maxEntries} exceeded at $path"
+        )
+    }
+
+    def checkFileSize(path: JPath, size: Long): Unit = {
+      if (size > limits.maxFileBytes)
+        throw new IllegalArgumentException(
+          s"npm project input file $path exceeds ${limits.maxFileBytes} bytes"
+        )
+      if (bytes + size > limits.maxTotalBytes)
+        throw new IllegalArgumentException(
+          s"npm project inputs exceed ${limits.maxTotalBytes} total bytes at $path"
+        )
+    }
+
+    def addBytes(path: JPath, count: Int): Unit = {
+      bytes += count
+      if (bytes > limits.maxTotalBytes)
+        throw new IllegalArgumentException(
+          s"npm project inputs exceed ${limits.maxTotalBytes} total bytes at $path"
+        )
+    }
+  }
+
   private val RetainedVariables = Set(
     "HTTP_PROXY",
     "HTTPS_PROXY",
@@ -88,24 +165,144 @@ private[javascript] object NpmProcess {
     Seq("HOME", "XDG_CACHE_HOME", "npm_config_cache", "TMPDIR")
       .foreach(name => os.makeDir.all(os.Path(environment(name), os.pwd)))
 
-  def prepareInstall(root: os.Path, projectFiles: Seq[PathRef], lockFiles: Seq[PathRef]): JavaScriptInstall = {
+  /**
+   * Mill 1.2 does not follow links nested below a PathRef, but an initial directory-symlink path is still traversed.
+   * Build npm inputs from a bounded no-follow fingerprint before constructing their PathRefs.
+   */
+  def inputPathRefs(paths: Seq[os.Path], limits: InputLimits = InputLimits()): Seq[PathRef] = {
+    validateInputLimits(limits)
+    val budget = new InputBudget(limits)
+    paths.map { path =>
+      val fingerprint = scanInput(path.toNIO, None, budget)
+      PathRef(
+        path,
+        quick = false,
+        sig = fingerprintSignature(fingerprint),
+        revalidate = PathRef.Revalidate.Never
+      )
+    }
+  }
+
+  def install(
+      taskRoot: os.Path,
+      projectFiles: Seq[PathRef],
+      lockFiles: Seq[PathRef],
+      command: JavaScriptCommand,
+      environmentInputs: Map[String, String],
+      limits: InputLimits = InputLimits(),
+      beforeVerify: () => Unit = () => (),
+      launch: (JavaScriptCommand, os.Path, Map[String, String]) => Unit = launchProcess
+  ): JavaScriptInstall = {
+    val snapshotRoot = taskRoot / "input-snapshot"
+    val installRoot  = taskRoot / "install"
+    try {
+      val snapshot           = snapshotInputs(snapshotRoot, projectFiles, lockFiles, limits)
+      val prepared           = prepareSnapshotInstall(installRoot, snapshot)
+      val processEnvironment = environment(taskRoot / "process-state", environmentInputs)
+      initialize(processEnvironment)
+      beforeVerify()
+      verifyOriginals(snapshot)
+      launch(command, prepared.root.path, processEnvironment)
+      removeOwned(snapshotRoot)
+      prepared
+    } catch {
+      case error: Throwable =>
+        removeOwned(snapshotRoot)
+        removeOwned(snapshotRoot / os.up / "input-snapshot.staging")
+        removeOwned(installRoot)
+        removeOwned(installRoot / os.up / "install.staging")
+        removeOwned(taskRoot / "process-state")
+        removeOwned(taskRoot / "npm-cache")
+        throw error
+    }
+  }
+
+  def prepareInstall(
+      root: os.Path,
+      projectFiles: Seq[PathRef],
+      lockFiles: Seq[PathRef],
+      limits: InputLimits = InputLimits()
+  ): JavaScriptInstall = {
+    val snapshotRoot = root / os.up / "input-snapshot"
+    try {
+      val snapshot = snapshotInputs(snapshotRoot, projectFiles, lockFiles, limits)
+      val prepared = prepareSnapshotInstall(root, snapshot)
+      verifyOriginals(snapshot)
+      prepared
+    } catch {
+      case error: Throwable =>
+        removeOwned(root)
+        throw error
+    } finally removeOwned(snapshotRoot)
+  }
+
+  private def snapshotInputs(
+      root: os.Path,
+      projectFiles: Seq[PathRef],
+      lockFiles: Seq[PathRef],
+      limits: InputLimits
+  ): InputSnapshot = {
     if (lockFiles.isEmpty)
       throw new IllegalArgumentException("npm install requires a committed npm lock file")
-    val allFiles = projectFiles ++ lockFiles
-    allFiles.foreach(validateTrackedInput)
+    validateInputLimits(limits)
+    val allFiles       = projectFiles ++ lockFiles
     val duplicateNames = allFiles.groupBy(_.path.last).collect { case (name, files) if files.size > 1 => name }
     if (duplicateNames.nonEmpty)
       throw new IllegalArgumentException(
         s"npm project files have duplicate names: ${duplicateNames.toSeq.sorted.mkString(", ")}"
       )
-    lockFiles.foreach(validateNpmLock)
-    os.makeDir.all(root)
-    allFiles.foreach(file => os.copy.over(file.path, root / file.path.last, createFolders = true))
-    JavaScriptInstall(
-      PathRef(root),
-      projectFiles.map(file => PathRef(root / file.path.last)),
-      lockFiles.map(file => PathRef(root / file.path.last))
-    )
+    val staging = root / os.up / "input-snapshot.staging"
+    removeOwned(staging)
+    removeOwned(root)
+    os.makeDir.all(staging)
+    try {
+      val baselineBudget = new InputBudget(limits)
+      val baselines      = allFiles.map { input =>
+        val fingerprint = scanInput(input.path.toNIO, None, baselineBudget)
+        if (fingerprintSignature(fingerprint) != input.sig)
+          throw changedInput(input.path, "changed before its verified snapshot")
+        input -> fingerprint
+      }
+      val copyBudget = new InputBudget(limits)
+      val verified   = baselines.map { case (input, fingerprint) =>
+        val confirmation = scanInput(input.path.toNIO, Some((staging / input.path.last).toNIO), copyBudget)
+        if (confirmation != fingerprint || fingerprintSignature(confirmation) != input.sig)
+          throw changedInput(input.path, "changed while creating its verified snapshot")
+        VerifiedInput(input, fingerprint)
+      }
+      lockFiles.foreach(file => validateNpmLock(PathRef(staging / file.path.last)))
+      promote(staging, root)
+      InputSnapshot(root, projectFiles.map(_.path.last), lockFiles.map(_.path.last), verified, limits)
+    } catch {
+      case error: Throwable =>
+        removeOwned(staging)
+        removeOwned(root)
+        throw error
+    }
+  }
+
+  private def prepareSnapshotInstall(root: os.Path, snapshot: InputSnapshot): JavaScriptInstall = {
+    val staging = root / os.up / "install.staging"
+    removeOwned(staging)
+    removeOwned(root)
+    os.makeDir.all(staging)
+    try {
+      val budget = new InputBudget(snapshot.limits)
+      (snapshot.projectNames ++ snapshot.lockNames).foreach { name =>
+        scanInput((snapshot.root / name).toNIO, Some((staging / name).toNIO), budget)
+      }
+      promote(staging, root)
+      JavaScriptInstall(
+        PathRef(root),
+        snapshot.projectNames.map(name => PathRef(root / name)),
+        snapshot.lockNames.map(name => PathRef(root / name))
+      )
+    } catch {
+      case error: Throwable =>
+        removeOwned(staging)
+        removeOwned(root)
+        throw error
+    }
   }
 
   def ci(node: PathRef, npmCli: PathRef, cache: os.Path): JavaScriptCommand =
@@ -119,12 +316,23 @@ private[javascript] object NpmProcess {
       node: PathRef,
       install: JavaScriptInstall,
       binary: PackageBinary,
-      arguments: Seq[String]
+      arguments: Seq[String],
+      limits: DiscoveryLimits = DiscoveryLimits()
   ): JavaScriptCommand = {
+    requirePositive(limits.maxPackages.toLong, "installed package count")
+    requirePositive(limits.maxManifestBytes, "installed package manifest bytes")
+    val installPath = install.root.path.toNIO
+    if (Files.isSymbolicLink(installPath))
+      throw new IllegalArgumentException(s"JavaScript install root must not be a symbolic link: $installPath")
+    if (!Files.isDirectory(installPath, LinkOption.NOFOLLOW_LINKS))
+      throw new IllegalArgumentException(s"JavaScript install root is not a directory: $installPath")
+    val installReal = installPath.toRealPath()
     val nodeModules = install.root.path / "node_modules"
     if (!Files.isDirectory(nodeModules.toNIO, LinkOption.NOFOLLOW_LINKS))
       throw new IllegalArgumentException(s"JavaScript packages are not installed under ${install.root.path}")
-    val candidates = packageDirectories(nodeModules).flatMap(resolvePackageBinary(install.root.path, _, binary))
+    val nodeModulesReal = requireContainedDirectory(installReal, nodeModules.toNIO, "npm node_modules directory")
+    val candidates      = packageDirectories(installReal, nodeModulesReal, limits.maxPackages)
+      .flatMap(resolvePackageBinary(installReal, _, binary, limits.maxManifestBytes))
     candidates.distinct match {
       case Seq(executable) => NodeProcess.runtime(node, executable.toString +: arguments)
       case Seq()           =>
@@ -138,43 +346,309 @@ private[javascript] object NpmProcess {
     }
   }
 
-  private def packageDirectories(nodeModules: os.Path): Seq[os.Path] =
-    children(nodeModules).filter(path => path.last != ".bin").flatMap { entry =>
-      if (entry.last.startsWith("@") && Files.isDirectory(entry.toNIO)) children(entry)
-      else Seq(entry)
+  private def packageDirectories(
+      installRoot: java.nio.file.Path,
+      nodeModules: java.nio.file.Path,
+      maxPackages: Int
+  ): Seq[java.nio.file.Path] = {
+    val packages = ArrayBuffer.empty[java.nio.file.Path]
+
+    def addPackage(path: java.nio.file.Path): Unit = {
+      if (packages.size >= maxPackages)
+        throw new IllegalArgumentException(
+          s"Installed npm package count limit $maxPackages exceeded under $nodeModules"
+        )
+      packages += path
     }
 
-  private def children(directory: os.Path): Seq[os.Path] =
-    Using.resource(Files.newDirectoryStream(directory.toNIO))(_.iterator().asScala.map(os.Path(_)).toSeq)
+    foreachChild(nodeModules) { entry =>
+      if (entry.getFileName.toString != ".bin") {
+        if (entry.getFileName.toString.startsWith("@")) {
+          if (Files.isSymbolicLink(entry))
+            throw new IllegalArgumentException(s"Installed npm package scope must not be a symbolic link: $entry")
+          if (Files.isDirectory(entry, LinkOption.NOFOLLOW_LINKS)) {
+            val scope = requireContainedDirectory(installRoot, entry, "Installed npm package scope")
+            foreachChild(scope) { packageEntry =>
+              if (Files.isSymbolicLink(packageEntry) || Files.isDirectory(packageEntry, LinkOption.NOFOLLOW_LINKS))
+                addPackage(packageEntry)
+            }
+          }
+        } else if (Files.isSymbolicLink(entry) || Files.isDirectory(entry, LinkOption.NOFOLLOW_LINKS))
+          addPackage(entry)
+      }
+    }
+    packages.toSeq
+  }
+
+  private def foreachChild(directory: java.nio.file.Path)(f: java.nio.file.Path => Unit): Unit =
+    Using.resource(Files.newDirectoryStream(directory))(_.iterator().asScala.foreach(f))
 
   private def resolvePackageBinary(
-      installRoot: os.Path,
-      packageDirectory: os.Path,
-      binary: PackageBinary
+      installRoot: java.nio.file.Path,
+      packageDirectory: java.nio.file.Path,
+      binary: PackageBinary,
+      maxManifestBytes: Long
   ): Seq[os.Path] = {
-    val installReal = installRoot.toNIO.toRealPath()
-    val packageReal = packageDirectory.toNIO.toRealPath()
-    if (!packageReal.startsWith(installReal))
-      throw new IllegalArgumentException(s"Installed npm package escapes its install root: $packageDirectory")
-    val manifest = packageReal.resolve("package.json")
-    if (!Files.isRegularFile(manifest, LinkOption.NOFOLLOW_LINKS)) Seq.empty
+    val packageReal = requireContainedPackageDirectory(installRoot, packageDirectory)
+    val manifest    = packageReal.resolve("package.json")
+    if (Files.isSymbolicLink(manifest))
+      throw invalidManifest(manifest, "$", "manifest must not be a symbolic link")
+    else if (!Files.isRegularFile(manifest, LinkOption.NOFOLLOW_LINKS)) Seq.empty
     else {
-      val json =
-        try ujson.read(Files.readString(manifest))
-        catch {
-          case error: Exception =>
-            throw new IllegalArgumentException(
-              s"Invalid installed npm package manifest $manifest: ${error.getMessage}",
-              error
-            )
-        }
-      val matches = json.obj.get("bin").toSeq.flatMap {
+      val json = try ujson.read(readBoundedManifest(manifest, maxManifestBytes))
+      catch {
+        case error: IllegalArgumentException
+            if error.getMessage.startsWith("Invalid installed npm package manifest") =>
+          throw error
+        case error: Exception => throw invalidManifest(manifest, "$", error.getMessage, error)
+      }
+      val fields = json match {
+        case value: ujson.Obj => value.obj
+        case _                => throw invalidManifest(manifest, "$", "expected an object")
+      }
+      val packageName = fields.get("name").map {
+        case ujson.Str(value) if validPackageName(value) => value.split('/').last
+        case ujson.Str(_)                                =>
+          throw invalidManifest(manifest, "$.name", "expected an npm package name")
+        case _ => throw invalidManifest(manifest, "$.name", "expected a string")
+      }
+      val declared = fields.get("bin").toSeq.flatMap {
         case ujson.Str(path) =>
-          json.obj.get("name").map(_.str.split('/').last -> path).toSeq
-        case value => value.obj.toSeq.map { case (name, path) => name -> path.str }
-      }.collect { case (name, path) if name == binary.value => path }
-      matches.map(path => safeInstalledBinary(installReal, packageReal, path))
+          packageName match {
+            case Some(name) => Seq(name -> path)
+            case None       => throw invalidManifest(manifest, "$.name", "required when bin is a string")
+          }
+        case value: ujson.Obj =>
+          value.obj.toSeq.map {
+            case (name, ujson.Str(path)) => name -> path
+            case (name, _)               =>
+              throw invalidManifest(manifest, s"$$.bin.$name", "expected a string")
+          }
+        case _ => throw invalidManifest(manifest, "$.bin", "expected a string or object")
+      }
+      declared.collect { case (name, path) if name == binary.value => path }
+        .map(path => safeInstalledBinary(installRoot, packageReal, path))
     }
+  }
+
+  private def validPackageName(value: String): Boolean =
+    if (value.startsWith("@")) {
+      val parts = value.split("/", -1)
+      parts.length == 2 && parts(0).length > 1 && parts(1).nonEmpty && !parts(1).contains('\\')
+    } else value.nonEmpty && !value.contains('/') && !value.contains('\\')
+
+  private def readBoundedManifest(manifest: java.nio.file.Path, maxBytes: Long): String = {
+    val attributes = Files.readAttributes(manifest, classOf[BasicFileAttributes], LinkOption.NOFOLLOW_LINKS)
+    if (!attributes.isRegularFile)
+      throw invalidManifest(manifest, "$", "manifest is not a regular file")
+    if (attributes.size() > maxBytes)
+      throw invalidManifest(manifest, "$", s"manifest exceeds $maxBytes bytes")
+    val options = Set[OpenOption](StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS).asJava
+    Using.resource(Files.newByteChannel(manifest, options)) { channel =>
+      val output = new ByteArrayOutputStream(math.min(math.min(attributes.size(), maxBytes), 8192L).toInt)
+      val buffer = ByteBuffer.allocate(8192)
+      var total  = 0L
+      var read   = channel.read(buffer)
+      while (read >= 0) {
+        if (read > 0) {
+          total += read
+          if (total > maxBytes)
+            throw invalidManifest(manifest, "$", s"manifest exceeds $maxBytes bytes")
+          output.write(buffer.array(), 0, read)
+          buffer.clear()
+        }
+        read = channel.read(buffer)
+      }
+      output.toString(StandardCharsets.UTF_8)
+    }
+  }
+
+  private def requirePositive(value: Long, description: String): Unit =
+    if (value <= 0) throw new IllegalArgumentException(s"npm $description limit must be positive: $value")
+
+  private def validateInputLimits(limits: InputLimits): Unit = {
+    requirePositive(limits.maxEntries.toLong, "project input entry count")
+    requirePositive(limits.maxFileBytes, "project input file bytes")
+    requirePositive(limits.maxTotalBytes, "project input total bytes")
+  }
+
+  private def scanInput(
+      source: JPath,
+      destination: Option[JPath],
+      budget: InputBudget
+  ): String = {
+    if (!Files.exists(source, LinkOption.NOFOLLOW_LINKS))
+      throw new IllegalArgumentException(s"npm project input does not exist: $source")
+    val records = ArrayBuffer.empty[String]
+
+    def relativeName(path: JPath): String = {
+      val relative = source.relativize(path).iterator().asScala.map(_.toString).mkString("/")
+      if (relative.isEmpty) source.getFileName.toString else s"${source.getFileName}/$relative"
+    }
+
+    def destinationPath(path: JPath): Option[JPath] =
+      destination.map(_.resolve(source.relativize(path)))
+
+    Files.walkFileTree(
+      source,
+      new SimpleFileVisitor[JPath] {
+        override def preVisitDirectory(directory: JPath, attributes: BasicFileAttributes): FileVisitResult = {
+          if (attributes.isSymbolicLink || Files.isSymbolicLink(directory))
+            throw new IllegalArgumentException(s"npm project input contains a symbolic link: $directory")
+          budget.addEntry(directory)
+          destinationPath(directory).foreach(Files.createDirectories(_))
+          records += s"D:${relativeName(directory)}"
+          FileVisitResult.CONTINUE
+        }
+
+        override def visitFile(file: JPath, attributes: BasicFileAttributes): FileVisitResult = {
+          if (attributes.isSymbolicLink || Files.isSymbolicLink(file))
+            throw new IllegalArgumentException(s"npm project input contains a symbolic link: $file")
+          if (!attributes.isRegularFile)
+            throw new IllegalArgumentException(s"npm project input must contain only regular files: $file")
+          budget.addEntry(file)
+          budget.checkFileSize(file, attributes.size())
+          val digest       = MessageDigest.getInstance("SHA-256")
+          val readOptions  = Set[OpenOption](StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS).asJava
+          val writeOptions = Set[OpenOption](StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE).asJava
+          val input        = Files.newByteChannel(file, readOptions)
+          val output       = destinationPath(file).map { target =>
+            Option(target.getParent).foreach(Files.createDirectories(_))
+            Files.newByteChannel(target, writeOptions)
+          }
+          try {
+            val buffer   = ByteBuffer.allocate(8192)
+            var fileSize = 0L
+            var read     = input.read(buffer)
+            while (read >= 0) {
+              if (read > 0) {
+                fileSize += read
+                if (fileSize > budget.limits.maxFileBytes)
+                  throw new IllegalArgumentException(
+                    s"npm project input file $file exceeds ${budget.limits.maxFileBytes} bytes"
+                  )
+                budget.addBytes(file, read)
+                buffer.flip()
+                digest.update(buffer.asReadOnlyBuffer())
+                output.foreach(channel => while (buffer.hasRemaining) channel.write(buffer))
+                buffer.clear()
+              }
+              read = input.read(buffer)
+            }
+          } finally {
+            output.foreach(_.close())
+            input.close()
+          }
+          val after       = Files.readAttributes(file, classOf[BasicFileAttributes], LinkOption.NOFOLLOW_LINKS)
+          val sameFileKey =
+            attributes.fileKey() == null || after.fileKey() == null || attributes.fileKey() == after.fileKey()
+          if (
+            !after.isRegularFile || attributes.size() != after.size() ||
+            attributes.lastModifiedTime() != after.lastModifiedTime() || !sameFileKey
+          ) throw changedInput(os.Path(file), "changed while creating its verified snapshot")
+          records += s"F:${relativeName(file)}:${after.size()}:${hex(digest.digest())}"
+          FileVisitResult.CONTINUE
+        }
+
+        override def visitFileFailed(file: JPath, error: java.io.IOException): FileVisitResult =
+          throw new IllegalArgumentException(s"Unable to read npm project input $file: ${error.getMessage}", error)
+      }
+    )
+    val digest = MessageDigest.getInstance("SHA-256")
+    records.sorted.foreach { record =>
+      digest.update(record.getBytes(StandardCharsets.UTF_8))
+      digest.update(0.toByte)
+    }
+    hex(digest.digest())
+  }
+
+  private def verifyOriginals(snapshot: InputSnapshot): Unit = {
+    val budget = new InputBudget(snapshot.limits)
+    snapshot.originals.foreach { verified =>
+      try {
+        val fingerprint = scanInput(verified.original.path.toNIO, None, budget)
+        if (
+          fingerprint != verified.fingerprint ||
+          fingerprintSignature(fingerprint) != verified.original.sig
+        )
+          throw changedInput(verified.original.path, "content fingerprint changed")
+      } catch {
+        case error: IllegalArgumentException
+            if error.getMessage.startsWith("npm project input changed after its verified snapshot") =>
+          throw error
+        case error: Exception =>
+          throw changedInput(verified.original.path, error.getMessage, error)
+      }
+    }
+  }
+
+  private def changedInput(path: os.Path, detail: String, cause: Throwable = null): IllegalArgumentException =
+    new IllegalArgumentException(
+      s"npm project input changed after its verified snapshot: $path ($detail)",
+      cause
+    )
+
+  private def hex(bytes: Array[Byte]): String = bytes.iterator.map(byte => f"${byte & 0xff}%02x").mkString
+
+  private def fingerprintSignature(fingerprint: String): Int =
+    java.util.Arrays.hashCode(fingerprint.getBytes(StandardCharsets.US_ASCII))
+
+  private def promote(staging: os.Path, destination: os.Path): Unit =
+    try Files.move(staging.toNIO, destination.toNIO, StandardCopyOption.ATOMIC_MOVE)
+    catch {
+      case _: AtomicMoveNotSupportedException => Files.move(staging.toNIO, destination.toNIO)
+    }
+
+  private def removeOwned(path: os.Path): Unit =
+    if (Files.isSymbolicLink(path.toNIO)) Files.deleteIfExists(path.toNIO)
+    else if (Files.exists(path.toNIO, LinkOption.NOFOLLOW_LINKS)) os.remove.all(path)
+
+  private def launchProcess(
+      command: JavaScriptCommand,
+      cwd: os.Path,
+      processEnvironment: Map[String, String]
+  ): Unit = {
+    val _ = os.proc(command.executable.path.toString +: command.arguments)
+      .call(cwd = cwd, env = processEnvironment, propagateEnv = false)
+  }
+
+  private def invalidManifest(
+      manifest: java.nio.file.Path,
+      jsonPath: String,
+      detail: String,
+      cause: Throwable = null
+  ): IllegalArgumentException =
+    new IllegalArgumentException(s"Invalid installed npm package manifest $manifest at $jsonPath: $detail", cause)
+
+  private def requireContainedDirectory(
+      installRoot: java.nio.file.Path,
+      directory: java.nio.file.Path,
+      description: String
+  ): java.nio.file.Path = {
+    if (Files.isSymbolicLink(directory))
+      throw new IllegalArgumentException(s"$description must not be a symbolic link: $directory")
+    if (!Files.isDirectory(directory, LinkOption.NOFOLLOW_LINKS))
+      throw new IllegalArgumentException(s"$description is not a directory: $directory")
+    val real = directory.toRealPath()
+    if (!real.startsWith(installRoot))
+      throw new IllegalArgumentException(s"$description escapes its install root: $directory")
+    real
+  }
+
+  private def requireContainedPackageDirectory(
+      installRoot: java.nio.file.Path,
+      directory: java.nio.file.Path
+  ): java.nio.file.Path = {
+    val real = try directory.toRealPath()
+    catch {
+      case error: Exception =>
+        throw new IllegalArgumentException(s"Installed npm package is not a readable directory: $directory", error)
+    }
+    if (!real.startsWith(installRoot))
+      throw new IllegalArgumentException(s"Installed npm package escapes its install root: $directory")
+    if (!Files.isDirectory(real, LinkOption.NOFOLLOW_LINKS))
+      throw new IllegalArgumentException(s"Installed npm package is not a directory: $directory")
+    real
   }
 
   private def safeInstalledBinary(
@@ -196,22 +670,6 @@ private[javascript] object NpmProcess {
     if (!target.startsWith(installRoot) || !Files.isRegularFile(target, LinkOption.NOFOLLOW_LINKS))
       throw new IllegalArgumentException(s"Installed npm package binary escapes its install root: '$value'")
     os.Path(target)
-  }
-
-  private def validateTrackedInput(file: PathRef): Unit = {
-    val path = file.path.toNIO
-    if (Files.isSymbolicLink(path))
-      throw new IllegalArgumentException(s"npm project input must not be a symbolic link: ${file.path}")
-    else if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
-      val stream = Files.walk(path)
-      try
-        stream.iterator().asScala.find(Files.isSymbolicLink) match {
-          case Some(link) => throw new IllegalArgumentException(s"npm project input contains a symbolic link: $link")
-          case None       => ()
-        }
-      finally stream.close()
-    } else if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
-      throw new IllegalArgumentException(s"npm project input must be a tracked file or directory: ${file.path}")
   }
 
   private def validateNpmLock(file: PathRef): Unit = {

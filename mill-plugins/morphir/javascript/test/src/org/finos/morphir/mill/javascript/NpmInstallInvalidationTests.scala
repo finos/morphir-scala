@@ -41,13 +41,9 @@ object NpmInstallInvalidationTests extends TestSuite {
     object packages extends NpmPackageManagerModule {
       def runtime = outer.runtime
 
-      override def packageJson: T[PathRef]     = Task.Source(outer.moduleDir / "package.json")
-      override def packageLockJson: T[PathRef] = Task.Source(outer.moduleDir / "package-lock.json")
-      def localPackage: T[PathRef]             = Task.Source(outer.moduleDir / "fixture-tool")
-
-      override def projectFiles: T[Seq[PathRef]] = Task {
-        Seq(packageJson(), localPackage())
-      }
+      override def npmProjectPaths: Seq[os.Path] =
+        Seq(outer.moduleDir / "package.json", outer.moduleDir / "fixture-tool")
+      override def npmLockPaths: Seq[os.Path] = Seq(outer.moduleDir / "package-lock.json")
     }
   }
 
@@ -99,8 +95,8 @@ object NpmInstallInvalidationTests extends TestSuite {
           )
           os.write.over(manifestPath, manifest)
           val manifestMutation = success(evaluator(module.packages.install))
-          assert(manifestMutation.evalCount >= 2)
           assert(!os.exists(sentinel))
+          assert(manifestMutation.evalCount >= 1)
           assert(os.read(manifestMutation.value.root.path / "package.json").contains("manifest-two"))
           os.write(sentinel, "must be cleared after lock mutation")
 
@@ -111,8 +107,8 @@ object NpmInstallInvalidationTests extends TestSuite {
           )
           os.write.over(lockPath, lock)
           val lockMutation = success(evaluator(module.packages.install))
-          assert(lockMutation.evalCount >= 2)
           assert(!os.exists(sentinel))
+          assert(lockMutation.evalCount >= 1)
           assert(os.read(lockMutation.value.root.path / "package-lock.json").contains("lock-two"))
           os.write(sentinel, "must be cleared after runtime mutation")
 
