@@ -11,17 +11,20 @@ import scala.util.Using
 import scala.util.control.NonFatal
 
 private[toolchain] object ArchivePreflight {
-  private val ZipEndSignature    = 0x06054b50
-  private val Zip64EndSignature  = 0x06064b50
-  private val Zip64Locator       = 0x07064b50
-  private val ZipEndMinimumBytes = 22
-  private val ZipMaximumComment  = 65535
-  private val TarBlockBytes      = 512
-  private val TarSizeOffset      = 124
-  private val TarSizeLength      = 12
-  private val TarChecksumOffset  = 148
-  private val TarChecksumLength  = 8
-  private val TarTypeOffset      = 156
+  private val ZipEndSignature       = 0x06054b50
+  private val Zip64EndSignature     = 0x06064b50
+  private val Zip64Locator          = 0x07064b50
+  private val ZipCentralHeader      = 0x02014b50
+  private val ZipDigitalSignature   = 0x05054b50
+  private val ZipEndMinimumBytes    = 22
+  private val ZipMaximumComment     = 65535
+  private val ZipCentralHeaderBytes = 46
+  private val TarBlockBytes         = 512
+  private val TarSizeOffset         = 124
+  private val TarSizeLength         = 12
+  private val TarChecksumOffset     = 148
+  private val TarChecksumLength     = 8
+  private val TarTypeOffset         = 156
 
   def tarGz(archive: os.Path, limits: ArchiveLimits): Unit =
     try
@@ -64,7 +67,72 @@ private[toolchain] object ArchivePreflight {
           ZipDirectory(count.toLong, centralBytes, centralOffset, endOffset)
         }
       validateZipDirectory(directory, fileSize, archive, limits)
+      val actualEntries = scanZipDirectory(channel, directory, archive, limits)
+      if (actualEntries != directory.entries)
+        fail(
+          s"ZIP central directory declares ${directory.entries} entries but contains $actualEntries: $archive"
+        )
     }
+
+  private def scanZipDirectory(
+      channel: FileChannel,
+      directory: ZipDirectory,
+      archive: os.Path,
+      limits: ArchiveLimits
+  ): Long = {
+    val end      = directory.offset + directory.bytes
+    var position = directory.offset
+    var entries  = 0L
+    while (position < end) {
+      val remaining = end - position
+      if (remaining < 4)
+        fail(s"ZIP central directory has truncated trailing bytes: $archive")
+      val signature = readBuffer(channel, position, 4, "ZIP central-directory signature").getInt(0)
+      if (signature == ZipCentralHeader) {
+        if (remaining < ZipCentralHeaderBytes)
+          fail(s"ZIP central-directory file header is truncated: $archive")
+        val header = readBuffer(
+          channel,
+          position,
+          ZipCentralHeaderBytes,
+          "ZIP central-directory file header"
+        )
+        val nameBytes     = unsignedShort(header, 28)
+        val extraBytes    = unsignedShort(header, 30)
+        val commentBytes  = unsignedShort(header, 32)
+        val variableBytes = checkedAdd(
+          checkedAdd(nameBytes.toLong, extraBytes.toLong, "ZIP central-directory variable fields", archive),
+          commentBytes.toLong,
+          "ZIP central-directory variable fields",
+          archive
+        )
+        val recordBytes = checkedAdd(
+          ZipCentralHeaderBytes.toLong,
+          variableBytes,
+          "ZIP central-directory record length",
+          archive
+        )
+        if (recordBytes > remaining)
+          fail(s"ZIP central-directory file header lengths exceed its bounded extent: $archive")
+        entries += 1
+        if (entries > limits.maxEntries)
+          fail(s"ZIP entry count $entries exceeds limit ${limits.maxEntries}: $archive")
+        position += recordBytes
+      } else if (signature == ZipDigitalSignature) {
+        if (remaining < 6)
+          fail(s"ZIP central-directory digital signature is truncated: $archive")
+        val header      = readBuffer(channel, position, 6, "ZIP central-directory digital signature")
+        val recordBytes = 6L + unsignedShort(header, 4)
+        if (recordBytes != remaining)
+          fail(s"ZIP central-directory digital signature has trailing or truncated bytes: $archive")
+        position = end
+      } else
+        fail(
+          f"ZIP central directory contains unsupported record signature 0x${Integer.toUnsignedLong(signature)}%08x: $archive"
+        )
+    }
+    entries
+  }
 
   private def scanTar(input: InputStream, archive: os.Path, limits: ArchiveLimits): Unit = {
     val header            = new Array[Byte](TarBlockBytes)

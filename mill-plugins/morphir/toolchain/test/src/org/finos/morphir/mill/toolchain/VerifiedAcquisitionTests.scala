@@ -108,6 +108,38 @@ object VerifiedAcquisitionTests extends TestSuite {
     os.write(path, bytes.array())
   }
 
+  private def writeSyntheticZip64CentralDirectory(path: os.Path, actualEntries: Int, declaredEntries: Long): Unit = {
+    val centralBytes = actualEntries * 46
+    val bytes        = ByteBuffer.allocate(centralBytes + 56 + 20 + 22).order(ByteOrder.LITTLE_ENDIAN)
+    (0 until actualEntries).foreach { _ =>
+      bytes.putInt(0x02014b50)
+      bytes.position(bytes.position() + 42)
+    }
+    bytes.putInt(0x06064b50)
+    bytes.putLong(44L)
+    bytes.putShort(45.toShort)
+    bytes.putShort(45.toShort)
+    bytes.putInt(0)
+    bytes.putInt(0)
+    bytes.putLong(declaredEntries)
+    bytes.putLong(declaredEntries)
+    bytes.putLong(centralBytes.toLong)
+    bytes.putLong(0L)
+    bytes.putInt(0x07064b50)
+    bytes.putInt(0)
+    bytes.putLong(centralBytes.toLong)
+    bytes.putInt(1)
+    bytes.putInt(0x06054b50)
+    bytes.putShort(0.toShort)
+    bytes.putShort(0.toShort)
+    bytes.putShort(0xffff.toShort)
+    bytes.putShort(0xffff.toShort)
+    bytes.putInt(0xffffffffL.toInt)
+    bytes.putInt(0xffffffffL.toInt)
+    bytes.putShort(0.toShort)
+    os.write(path, bytes.array())
+  }
+
   private def writeSyntheticZipEnd(path: os.Path, disk: Int, declaredCommentBytes: Int): Unit = {
     val bytes = ByteBuffer.allocate(22).order(ByteOrder.LITTLE_ENDIAN)
     bytes.putInt(0x06054b50)
@@ -118,6 +150,34 @@ object VerifiedAcquisitionTests extends TestSuite {
     bytes.putInt(0)
     bytes.putInt(0)
     bytes.putShort(declaredCommentBytes.toShort)
+    os.write(path, bytes.array())
+  }
+
+  private def writeSyntheticCentralDirectoryZip(
+      path: os.Path,
+      actualEntries: Int,
+      declaredEntries: Int,
+      trailing: Array[Byte] = Array.emptyByteArray,
+      firstNameLength: Int = 0
+  ): Unit = {
+    val centralBytes = actualEntries * 46 + trailing.length
+    val bytes        = ByteBuffer.allocate(centralBytes + 22).order(ByteOrder.LITTLE_ENDIAN)
+    (0 until actualEntries).foreach { index =>
+      val start = bytes.position()
+      bytes.putInt(0x02014b50)
+      bytes.position(start + 28)
+      bytes.putShort((if (index == 0) firstNameLength else 0).toShort)
+      bytes.position(start + 46)
+    }
+    bytes.put(trailing)
+    bytes.putInt(0x06054b50)
+    bytes.putShort(0.toShort)
+    bytes.putShort(0.toShort)
+    bytes.putShort(declaredEntries.toShort)
+    bytes.putShort(declaredEntries.toShort)
+    bytes.putInt(centralBytes)
+    bytes.putInt(0)
+    bytes.putShort(0.toShort)
     os.write(path, bytes.array())
   }
 
@@ -1136,6 +1196,150 @@ object VerifiedAcquisitionTests extends TestSuite {
       }
     }
 
+    test("ZIP preflight rejects a classic EOCD that under-declares central-directory entries") {
+      withTempDir { directory =>
+        val archive = directory / "under-declared.zip"
+        writeSyntheticCentralDirectoryZip(archive, actualEntries = 2, declaredEntries = 1)
+        var parserOpened = false
+
+        val result = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.Zip,
+            directory / "extracted",
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("declares 1 entries but contains 2"))
+        assert(!parserOpened)
+      }
+    }
+
+    test("ZIP preflight rejects an over-declared central-directory entry count") {
+      withTempDir { directory =>
+        val archive = directory / "over-declared.zip"
+        writeSyntheticCentralDirectoryZip(archive, actualEntries = 1, declaredEntries = 2)
+        var parserOpened = false
+        val result       = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.Zip,
+            directory / "extracted",
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("declares 2 entries but contains 1"))
+        assert(!parserOpened)
+      }
+    }
+
+    test("ZIP preflight rejects central-directory record lengths outside the bounded extent") {
+      withTempDir { directory =>
+        val archive = directory / "bad-record-length.zip"
+        writeSyntheticCentralDirectoryZip(
+          archive,
+          actualEntries = 1,
+          declaredEntries = 1,
+          firstNameLength = 1
+        )
+        var parserOpened = false
+        val result       = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.Zip,
+            directory / "extracted",
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("header lengths exceed"))
+        assert(!parserOpened)
+      }
+    }
+
+    test("ZIP preflight rejects unknown central-directory trailing records") {
+      withTempDir { directory =>
+        val archive  = directory / "unknown-central-record.zip"
+        val trailing = ByteBuffer
+          .allocate(4)
+          .order(ByteOrder.LITTLE_ENDIAN)
+          .putInt(0x12345678)
+          .array()
+        writeSyntheticCentralDirectoryZip(archive, actualEntries = 1, declaredEntries = 1, trailing = trailing)
+        var parserOpened = false
+        val result       = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.Zip,
+            directory / "extracted",
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("unsupported record signature"))
+        assert(!parserOpened)
+      }
+    }
+
+    test("ZIP preflight accepts a terminal central-directory digital signature") {
+      withTempDir { directory =>
+        val archive   = directory / "digital-signature.zip"
+        val signature = ByteBuffer
+          .allocate(9)
+          .order(ByteOrder.LITTLE_ENDIAN)
+          .putInt(0x05054b50)
+          .putShort(3.toShort)
+          .put(Array[Byte](1, 2, 3))
+          .array()
+        writeSyntheticCentralDirectoryZip(archive, actualEntries = 1, declaredEntries = 1, trailing = signature)
+        var parserOpened = false
+
+        scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.Zip,
+            directory / "extracted",
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(parserOpened)
+      }
+    }
+
+    test("ZIP preflight rejects a truncated central-directory digital signature") {
+      withTempDir { directory =>
+        val archive   = directory / "truncated-digital-signature.zip"
+        val signature = ByteBuffer
+          .allocate(9)
+          .order(ByteOrder.LITTLE_ENDIAN)
+          .putInt(0x05054b50)
+          .putShort(4.toShort)
+          .put(Array[Byte](1, 2, 3))
+          .array()
+        writeSyntheticCentralDirectoryZip(archive, actualEntries = 1, declaredEntries = 1, trailing = signature)
+        var parserOpened = false
+        val result       = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.Zip,
+            directory / "extracted",
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("digital signature has trailing or truncated bytes"))
+        assert(!parserOpened)
+      }
+    }
+
     test("ZIP central-directory byte limit rejects before opening Commons ZipFile") {
       withTempDir { directory =>
         val archive = directory / "central-directory.zip"
@@ -1176,6 +1380,27 @@ object VerifiedAcquisitionTests extends TestSuite {
 
         assert(result.isFailure)
         assert(result.failed.get.getMessage.contains("ZIP entry count 2"))
+        assert(!parserOpened)
+      }
+    }
+
+    test("ZIP preflight rejects ZIP64 metadata that under-declares central-directory entries") {
+      withTempDir { directory =>
+        val archive = directory / "zip64-under-declared.zip"
+        writeSyntheticZip64CentralDirectory(archive, actualEntries = 2, declaredEntries = 1)
+        var parserOpened = false
+
+        val result = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.Zip,
+            directory / "extracted",
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("declares 1 entries but contains 2"))
         assert(!parserOpened)
       }
     }
