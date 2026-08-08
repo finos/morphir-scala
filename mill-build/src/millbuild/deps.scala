@@ -56,6 +56,7 @@ object Deps {
       val geny           = mvn"com.lihaoyi::geny::${Versions.geny}"
       val mainargs       = mvn"com.lihaoyi::mainargs::${Versions.`mainargs`}"
       val `os-lib`       = mvn"com.lihaoyi::os-lib::${Versions.`os-lib`}"
+      val osLibJvm       = mvn"com.lihaoyi:os-lib_3:${Versions.`os-lib`}"
       val sourcecode     = mvn"com.lihaoyi::sourcecode::${Versions.sourcecode}"
       val sourcecodeJvm  = mvn"com.lihaoyi::sourcecode:${Versions.sourcecode}"
       val pprint         = mvn"com.lihaoyi::pprint::0.9.6"
@@ -157,6 +158,12 @@ object Deps {
     }
   }
   object org {
+    object apache {
+      object commons {
+        val `commons-compress` = mvn"org.apache.commons:commons-compress:${Versions.`commons-compress`}"
+      }
+    }
+
     object `scala-lang` {
 
       object modules {
@@ -192,6 +199,8 @@ object Deps {
 object Versions {
   val castor = "0.3.2"
   val cats   = "2.13.0"
+
+  val `commons-compress` = "1.28.0"
 
   val enumeratum = "1.9.8"
 

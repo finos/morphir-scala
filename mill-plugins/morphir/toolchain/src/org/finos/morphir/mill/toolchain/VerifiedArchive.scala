@@ -1,10 +1,6 @@
-//| moduleDeps: ["//mill-build/src/org/finos/millmorphir/toolchain/NodeDistribution.scala"]
-//| mvnDeps: ["org.apache.commons:commons-compress:1.28.0"]
+package org.finos.morphir.mill.toolchain
 
-package org.finos.millmorphir.toolchain
-
-import java.io.{BufferedInputStream, InputStream}
-import java.net.URL
+import java.io.InputStream
 import java.nio.file.{Files, Paths, StandardOpenOption}
 import java.nio.file.attribute.PosixFilePermission
 import java.security.MessageDigest
@@ -51,43 +47,21 @@ object VerifiedArchive {
       }
   }
 
-  def downloadAndExtract(url: URL, expectedSha256: String, format: ArchiveFormat, destination: os.Path): Unit = {
+  def extract(archive: VerifiedContent, format: ArchiveFormat, destination: os.Path): Unit = {
+    verifySha256(archive.path, archive.sha256)
     os.makeDir.all(destination)
-    val archive = destination / ".node-distribution.download"
-    val staging = destination / ".node-distribution.extract"
+    val staging = destination / ".verified-archive.extract"
     os.remove.all(staging)
     os.makeDir.all(staging)
 
     try {
-      val actualSha256 = download(url, archive)
-      verifyDigest(actualSha256, expectedSha256, url.toString)
       format match {
-        case ArchiveFormat.TarGz => extractTarGz(archive, staging)
-        case ArchiveFormat.Zip   => extractZip(archive, staging)
+        case ArchiveFormat.TarGz => extractTarGz(archive.path, staging)
+        case ArchiveFormat.Zip   => extractZip(archive.path, staging)
       }
       os.list(staging).foreach(path => os.move(path, destination / path.last, replaceExisting = true))
-    } finally {
-      os.remove.all(archive)
+    } finally
       os.remove.all(staging)
-    }
-  }
-
-  private def download(url: URL, target: os.Path): String = {
-    val connection = url.openConnection()
-    connection.setConnectTimeout(30000)
-    connection.setReadTimeout(60000)
-    val digest = MessageDigest.getInstance("SHA-256")
-    Using
-      .Manager { use =>
-        val rawInput = use(connection.getInputStream)
-        val input    = use(new BufferedInputStream(rawInput))
-        val output   = use(
-          Files.newOutputStream(target.toNIO, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
-        )
-        copy(input, Some(output), digest)
-      }
-      .get
-    hex(digest.digest())
   }
 
   private def extractTarGz(archive: os.Path, destination: os.Path): Unit =

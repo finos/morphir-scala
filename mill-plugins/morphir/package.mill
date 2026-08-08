@@ -22,6 +22,15 @@ object toolchain extends Cross[ToolchainPlugin](MillVersions.all)
 trait ToolchainPlugin extends MorphirMillPlugin {
   override def artifactName       = "mill-morphir-toolchain"
   override def packageDescription = "Verified tool acquisition and platform support for Mill Morphir plugins."
+  override def mvnDeps            = super.mvnDeps() ++ Seq(
+    Deps.com.lihaoyi.osLibJvm,
+    Deps.org.apache.commons.`commons-compress`
+  )
+  override protected def resolvedDepsWarnNonPlatform = false
+
+  object test extends ScalaTests with TestModule.Utest with ScalafmtModule {
+    def utestVersion = Vers.utest
+  }
 }
 
 object javascript extends Cross[JavaScriptPlugin](MillVersions.all)

@@ -1,8 +1,10 @@
 package org.finos.millmorphir.toolchain
 
+import java.io.BufferedInputStream
 import java.net.URI
 
 import mill.*
+import org.finos.morphir.mill.toolchain.{AcquisitionCache, AcquisitionSettings, VerifiedArchive}
 
 trait NodeToolchainModule extends Module {
   def nodeVersion: T[String] = Task { NodeDistribution.Version }
@@ -16,7 +18,13 @@ trait NodeToolchainModule extends Module {
   def nodeHome: T[PathRef] = Task {
     val distribution = nodeDistribution()
     val url          = URI.create(s"https://nodejs.org/dist/v${distribution.version}/${distribution.archiveName}").toURL
-    VerifiedArchive.downloadAndExtract(url, distribution.sha256, distribution.format, Task.dest)
+    val content      = AcquisitionCache(AcquisitionSettings(), Task.dest).acquire(distribution.sha256, url.toString) {
+      val connection = url.openConnection()
+      connection.setConnectTimeout(30000)
+      connection.setReadTimeout(60000)
+      new BufferedInputStream(connection.getInputStream)
+    }
+    VerifiedArchive.extract(content, distribution.format, Task.dest)
     PathRef(Task.dest)
   }
 

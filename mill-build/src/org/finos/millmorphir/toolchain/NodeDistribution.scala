@@ -1,10 +1,9 @@
+//| moduleDeps: ["//mill-plugins/morphir/toolchain/src/org/finos/morphir/mill/toolchain/AcquisitionSettings.scala"]
+
 package org.finos.millmorphir.toolchain
 
+import org.finos.morphir.mill.toolchain.ArchiveFormat
 import upickle.default.{ReadWriter, macroRW, readwriter}
-
-enum ArchiveFormat derives ReadWriter {
-  case TarGz, Zip
-}
 
 final case class NodeDistribution(
     version: String,
@@ -16,8 +15,10 @@ final case class NodeDistribution(
 )
 
 object NodeDistribution {
-  private given ReadWriter[os.RelPath] = readwriter[String].bimap(_.toString, os.RelPath(_))
-  given ReadWriter[NodeDistribution]   = macroRW
+  private given ReadWriter[ArchiveFormat] =
+    readwriter[String].bimap(_.toString, ArchiveFormat.valueOf)
+  private given ReadWriter[os.RelPath]   = readwriter[String].bimap(_.toString, os.RelPath(_))
+  given ReadWriter[NodeDistribution]     = macroRW
 
   val Version = "24.19.0"
 
