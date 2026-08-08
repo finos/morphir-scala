@@ -6,7 +6,7 @@ import mill.*
 import mill.api.ExecResult
 import mill.testkit.{TestRootModule, UnitTester}
 import org.finos.morphir.mill.javascript.node.{NodeDistribution, NodeRuntimeModule}
-import org.finos.morphir.mill.javascript.npm.NpmPackageManagerModule
+import org.finos.morphir.mill.javascript.npm.{NpmPackageManagerModule, NpmProcess}
 import org.finos.morphir.mill.toolchain.AcquisitionSettings
 import utest.*
 
@@ -14,7 +14,8 @@ object NpmInstallInvalidationTests extends TestSuite {
   private final class InvalidationBuild(
       workspace: os.Path,
       provisionedRuntime: PathRef,
-      distribution: NodeDistribution
+      distribution: NodeDistribution,
+      includeFixtureTool: Boolean = true
   ) extends TestRootModule(workspace) { outer =>
     lazy val millDiscover = mill.api.Discover[this.type]
 
@@ -42,7 +43,8 @@ object NpmInstallInvalidationTests extends TestSuite {
       def runtime = outer.runtime
 
       override def npmProjectPaths: Seq[os.Path] =
-        Seq(outer.moduleDir / "package.json", outer.moduleDir / "fixture-tool")
+        Seq(outer.moduleDir / "package.json") ++
+          Option.when(includeFixtureTool)(outer.moduleDir / "fixture-tool")
       override def npmLockPaths: Seq[os.Path] = Seq(outer.moduleDir / "package-lock.json")
     }
   }
@@ -118,6 +120,58 @@ object NpmInstallInvalidationTests extends TestSuite {
           assert(!os.exists(sentinel))
           val recached = success(evaluator(module.packages.install))
           assert(recached.evalCount == 0)
+        }
+      }
+    }
+
+    test("Mill invalidates npm install when full lock fingerprints differ despite a legacy PathRef collision") {
+      withTempDir { root =>
+        val firstLock  = """{"lockfileVersion":3,"x":"00041123"}"""
+        val secondLock = """{"lockfileVersion":3,"x":"00165045"}"""
+        val lockPath   = root / "collision-check" / "package-lock.json"
+        os.write(lockPath, firstLock, createFolders = true)
+        val firstTracked = NpmProcess.trackInputs(Seq(lockPath), NpmProcess.InputKind.Lock).head
+        os.write.over(lockPath, secondLock)
+        val secondTracked = NpmProcess.trackInputs(Seq(lockPath), NpmProcess.InputKind.Lock).head
+        assert(firstTracked.pathRef.sig == secondTracked.pathRef.sig)
+        assert(firstTracked.fingerprint != secondTracked.fingerprint)
+        val collisionManifest = lockPath / os.up / "package.json"
+        os.write(collisionManifest, "{}")
+        val staleError = scala.util.Try {
+          NpmProcess.prepareInstall(
+            root / "collision-check" / "install",
+            NpmProcess.trackInputs(Seq(collisionManifest), NpmProcess.InputKind.Project),
+            Seq(firstTracked)
+          )
+        }.failed.get
+        assert(staleError.isInstanceOf[IllegalArgumentException])
+        assert(staleError.getMessage.contains("full fingerprint changed"))
+        assert(!os.exists(root / "collision-check" / "install"))
+
+        val distribution = NodeDistribution
+          .resolve(System.getProperty("os.name"), System.getProperty("os.arch"))
+          .fold(message => throw new java.lang.AssertionError(message), identity)
+        val provisioned = NodeRuntimeModule.provision(distribution, AcquisitionSettings(), root / "provisioned")
+        val sources     = root / "sources"
+        os.makeDir.all(sources)
+        os.write(sources / "package.json", """{"private":true}""")
+        os.write(sources / "package-lock.json", firstLock)
+        os.write(sources / "runtime-version.txt", "runtime-one")
+
+        val module = new InvalidationBuild(root / "workspace", provisioned, distribution, includeFixtureTool = false)
+        UnitTester(module, sources).scoped { evaluator =>
+          val initial = success(evaluator(module.packages.install))
+          assert(initial.evalCount > 0)
+          val cached = success(evaluator(module.packages.install))
+          assert(cached.evalCount == 0)
+          val sentinel = cached.value.root.path / "stale-collision-output"
+          os.write(sentinel, "must be cleared for a full-fingerprint mutation")
+
+          os.write.over(module.moduleDir / "package-lock.json", secondLock)
+          val mutation = success(evaluator(module.packages.install))
+          assert(mutation.evalCount >= 1)
+          assert(!os.exists(sentinel))
+          assert(os.read(mutation.value.root.path / "package-lock.json") == secondLock)
         }
       }
     }

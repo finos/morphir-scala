@@ -222,7 +222,11 @@ object JavaScriptModuleTests extends TestSuite {
         val manifest = root / "package.json"
         os.write(manifest, "{}")
         val error = scala.util.Try {
-          NpmProcess.prepareInstall(root / "install", NpmProcess.inputPathRefs(Seq(manifest)), Seq.empty)
+          NpmProcess.prepareInstall(
+            root / "install",
+            NpmProcess.trackInputs(Seq(manifest), NpmProcess.InputKind.Project),
+            Seq.empty
+          )
         }.failed.get.asInstanceOf[IllegalArgumentException]
         assert(error.getMessage.contains("committed npm lock"))
         assert(!os.exists(root / "install"))
@@ -239,8 +243,8 @@ object JavaScriptModuleTests extends TestSuite {
         os.write(lock, """{"lockfileVersion":3}""")
         val install = NpmProcess.prepareInstall(
           root / "task" / "install",
-          NpmProcess.inputPathRefs(Seq(manifest)),
-          NpmProcess.inputPathRefs(Seq(lock))
+          NpmProcess.trackInputs(Seq(manifest), NpmProcess.InputKind.Project),
+          NpmProcess.trackInputs(Seq(lock), NpmProcess.InputKind.Lock)
         )
         assert(install.projectFiles.map(_.path.last) == Seq("package.json"))
         assert(install.lockFiles.map(_.path.last) == Seq("package-lock.json"))
@@ -265,8 +269,8 @@ object JavaScriptModuleTests extends TestSuite {
           os.makeDir.all(project)
           os.write(manifest, "{}")
           os.write(lock, """{"lockfileVersion":3}""")
-          val projectFiles = NpmProcess.inputPathRefs(Seq(manifest))
-          val lockFiles    = NpmProcess.inputPathRefs(Seq(lock))
+          val projectFiles = NpmProcess.trackInputs(Seq(manifest), NpmProcess.InputKind.Project)
+          val lockFiles    = NpmProcess.trackInputs(Seq(lock), NpmProcess.InputKind.Lock)
           var launched     = false
 
           val error = scala.util.Try {
@@ -320,8 +324,8 @@ object JavaScriptModuleTests extends TestSuite {
           val error    = scala.util.Try {
             NpmProcess.install(
               caseRoot / "task",
-              NpmProcess.inputPathRefs(Seq(manifest, dependency), limits),
-              NpmProcess.inputPathRefs(Seq(lock), limits),
+              NpmProcess.trackInputs(Seq(manifest, dependency), NpmProcess.InputKind.Project, limits),
+              NpmProcess.trackInputs(Seq(lock), NpmProcess.InputKind.Lock, limits),
               JavaScriptCommand(PathRef(caseRoot / "node"), Seq("npm-cli.js", "ci")),
               Map.empty,
               limits = limits,
@@ -366,8 +370,8 @@ object JavaScriptModuleTests extends TestSuite {
         var launched = false
         val install  = NpmProcess.install(
           taskRoot,
-          NpmProcess.inputPathRefs(Seq(manifest)),
-          NpmProcess.inputPathRefs(Seq(lock)),
+          NpmProcess.trackInputs(Seq(manifest), NpmProcess.InputKind.Project),
+          NpmProcess.trackInputs(Seq(lock), NpmProcess.InputKind.Lock),
           JavaScriptCommand(PathRef(root / "node"), Seq("npm-cli.js", "ci")),
           Map.empty,
           launch = (_, cwd, _) => {
@@ -429,8 +433,11 @@ object JavaScriptModuleTests extends TestSuite {
         val npm      = PathRef(runtime.path / distribution.npmCliRelativePath)
         val prepared = NpmProcess.prepareInstall(
           root / "task" / "install",
-          NpmProcess.inputPathRefs(Seq(fixture / "package.json", fixture / "fixture-tool")),
-          NpmProcess.inputPathRefs(Seq(fixture / "package-lock.json"))
+          NpmProcess.trackInputs(
+            Seq(fixture / "package.json", fixture / "fixture-tool"),
+            NpmProcess.InputKind.Project
+          ),
+          NpmProcess.trackInputs(Seq(fixture / "package-lock.json"), NpmProcess.InputKind.Lock)
         )
         val environment = NpmProcess.environment(
           root / "task" / "state",
@@ -542,6 +549,46 @@ object JavaScriptModuleTests extends TestSuite {
       }
     }
 
+    test("local binary discovery bounds every root and scoped directory entry") {
+      withTempDir { root =>
+        def assertBounded(name: String, populate: os.Path => Unit): Unit = {
+          val install     = JavaScriptInstall(PathRef(root / name / "install"), Seq.empty, Seq.empty)
+          val nodeModules = install.root.path / "node_modules"
+          os.makeDir.all(nodeModules)
+          populate(nodeModules)
+          val error = scala.util.Try {
+            NpmProcess.binary(
+              PathRef(root / "node"),
+              install,
+              packageBinary"missing-tool",
+              Seq.empty,
+              NpmProcess.DiscoveryLimits(maxPackages = 10, maxDiscoveryEntries = 2, maxManifestBytes = 1024)
+            )
+          }.failed.get
+          assert(error.isInstanceOf[IllegalArgumentException])
+          assert(error.getMessage.contains("discovery entry count limit 2"))
+          assert(!error.getMessage.contains("Invalid installed npm package manifest"))
+        }
+
+        assertBounded(
+          "root-flood",
+          nodeModules => {
+            Seq("ordinary-1", "ordinary-2", "ordinary-3").foreach(name => os.write(nodeModules / name, "x"))
+            os.write(nodeModules / "later-package" / "package.json", "[", createFolders = true)
+          }
+        )
+        assertBounded(
+          "scope-flood",
+          nodeModules => {
+            val scope = nodeModules / "@scope"
+            os.makeDir.all(scope)
+            Seq("ordinary-1", "ordinary-2", "ordinary-3").foreach(name => os.write(scope / name, "x"))
+            os.write(scope / "later-package" / "package.json", "[", createFolders = true)
+          }
+        )
+      }
+    }
+
     test("installed package manifests are size bounded before reading") {
       withTempDir { root =>
         val install     = JavaScriptInstall(PathRef(root / "install"), Seq.empty, Seq.empty)
@@ -589,6 +636,31 @@ object JavaScriptModuleTests extends TestSuite {
           assert(error.isInstanceOf[IllegalArgumentException])
           assert(error.getMessage.contains(manifest.toString))
           assert(error.getMessage.contains(diagnostic))
+        }
+      }
+    }
+
+    test("installed package binaries reject cross-platform absolute paths and contextualize missing targets") {
+      withTempDir { root =>
+        val install     = JavaScriptInstall(PathRef(root / "install"), Seq.empty, Seq.empty)
+        val packageRoot = install.root.path / "node_modules" / "path-tool"
+        val manifest    = packageRoot / "package.json"
+        os.makeDir.all(packageRoot)
+        val rejected = Seq(
+          "/tmp/cli.js",
+          "C:/tool/cli.js",
+          "C:\\tool\\cli.js",
+          "\\\\server\\share\\cli.js",
+          "missing.js"
+        )
+        rejected.foreach { path =>
+          os.write.over(manifest, ujson.Obj("name" -> "path-tool", "bin" -> path).render())
+          val error = scala.util.Try {
+            NpmProcess.binary(PathRef(root / "node"), install, packageBinary"path-tool", Seq.empty)
+          }.failed.get
+          assert(error.isInstanceOf[IllegalArgumentException])
+          assert(error.getMessage.contains("Installed npm package binary"))
+          assert(error.getMessage.contains(path))
         }
       }
     }

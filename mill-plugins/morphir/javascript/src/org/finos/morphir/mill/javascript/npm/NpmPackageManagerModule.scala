@@ -23,6 +23,7 @@ import scala.util.Using
 import mill.*
 import org.finos.morphir.mill.javascript.*
 import org.finos.morphir.mill.javascript.node.{NodeProcess, NodeRuntimeModule}
+import upickle.default.ReadWriter
 
 trait NpmPackageManagerModule extends JavaScriptPackageManagerModule {
   def runtime: NodeRuntimeModule
@@ -30,12 +31,20 @@ trait NpmPackageManagerModule extends JavaScriptPackageManagerModule {
   def npmProjectPaths: Seq[os.Path] = Seq(moduleDir / "package.json")
   def npmLockPaths: Seq[os.Path]    = Seq(moduleDir / "package-lock.json")
 
-  final def projectFiles: T[Seq[PathRef]] = Task.Input {
-    NpmProcess.inputPathRefs(npmProjectPaths)
+  private[javascript] final def trackedProjectInputs: T[Seq[NpmProcess.TrackedNpmInput]] = Task.Input {
+    NpmProcess.trackInputs(npmProjectPaths, NpmProcess.InputKind.Project)
   }
 
-  final def lockFiles: T[Seq[PathRef]] = Task.Input {
-    NpmProcess.inputPathRefs(npmLockPaths)
+  private[javascript] final def trackedLockInputs: T[Seq[NpmProcess.TrackedNpmInput]] = Task.Input {
+    NpmProcess.trackInputs(npmLockPaths, NpmProcess.InputKind.Lock)
+  }
+
+  final def projectFiles: T[Seq[PathRef]] = Task {
+    trackedProjectInputs().map(_.pathRef)
+  }
+
+  final def lockFiles: T[Seq[PathRef]] = Task {
+    trackedLockInputs().map(_.pathRef)
   }
 
   def packageJson: T[PathRef] = Task {
@@ -55,12 +64,14 @@ trait NpmPackageManagerModule extends JavaScriptPackageManagerModule {
   }
 
   def install: T[JavaScriptInstall] = Task {
-    val _       = runtime.runtimeVersion()
-    val command = NpmProcess.ci(runtime.runtimeExecutable(), runtime.npmCli(), Task.dest / "npm-cache")
+    val _             = runtime.runtimeVersion()
+    val projectInputs = trackedProjectInputs()
+    val lockInputs    = trackedLockInputs()
+    val command       = NpmProcess.ci(runtime.runtimeExecutable(), runtime.npmCli(), Task.dest / "npm-cache")
     NpmProcess.install(
       Task.dest,
-      projectFiles(),
-      lockFiles(),
+      projectInputs,
+      lockInputs,
       command,
       npmEnvironmentInputs().toMap
     )
@@ -76,7 +87,27 @@ trait NpmPackageManagerModule extends JavaScriptPackageManagerModule {
 }
 
 private[javascript] object NpmProcess {
-  final case class DiscoveryLimits(maxPackages: Int = 10000, maxManifestBytes: Long = 1024 * 1024)
+  enum InputKind derives ReadWriter {
+    case Project, Lock
+  }
+
+  final case class TrackedNpmInput(path: String, kind: InputKind, fingerprint: Vector[Int]) derives ReadWriter {
+    def pathRef: PathRef = {
+      val inputPath = os.Path(path, os.pwd)
+      PathRef(
+        inputPath,
+        quick = false,
+        sig = fingerprintSignature(fingerprintHex(fingerprint)),
+        revalidate = PathRef.Revalidate.Never
+      )
+    }
+  }
+
+  final case class DiscoveryLimits(
+      maxPackages: Int = 10000,
+      maxDiscoveryEntries: Int = 20000,
+      maxManifestBytes: Long = 1024 * 1024
+  )
   final case class InputLimits(
       maxEntries: Int = 10000,
       maxFileBytes: Long = 64L * 1024 * 1024,
@@ -167,26 +198,30 @@ private[javascript] object NpmProcess {
 
   /**
    * Mill 1.2 does not follow links nested below a PathRef, but an initial directory-symlink path is still traversed.
-   * Build npm inputs from a bounded no-follow fingerprint before constructing their PathRefs.
+   * Build npm inputs from a bounded no-follow fingerprint before constructing their PathRefs. Mill's action-cache
+   * signature is an Int derived from serialized JSON, so retaining all digest bytes cannot make collisions impossible;
+   * the byte-vector encoding avoids reducing the digest to PathRef's known 32-bit alias first.
    */
-  def inputPathRefs(paths: Seq[os.Path], limits: InputLimits = InputLimits()): Seq[PathRef] = {
+  def trackInputs(
+      paths: Seq[os.Path],
+      kind: InputKind,
+      limits: InputLimits = InputLimits()
+  ): Seq[TrackedNpmInput] = {
     validateInputLimits(limits)
     val budget = new InputBudget(limits)
     paths.map { path =>
       val fingerprint = scanInput(path.toNIO, None, budget)
-      PathRef(
-        path,
-        quick = false,
-        sig = fingerprintSignature(fingerprint),
-        revalidate = PathRef.Revalidate.Never
-      )
+      TrackedNpmInput(path.toString, kind, fingerprintBytes(fingerprint))
     }
   }
 
+  def inputPathRefs(paths: Seq[os.Path], limits: InputLimits = InputLimits()): Seq[PathRef] =
+    trackInputs(paths, InputKind.Project, limits).map(_.pathRef)
+
   def install(
       taskRoot: os.Path,
-      projectFiles: Seq[PathRef],
-      lockFiles: Seq[PathRef],
+      projectInputs: Seq[TrackedNpmInput],
+      lockInputs: Seq[TrackedNpmInput],
       command: JavaScriptCommand,
       environmentInputs: Map[String, String],
       limits: InputLimits = InputLimits(),
@@ -196,7 +231,7 @@ private[javascript] object NpmProcess {
     val snapshotRoot = taskRoot / "input-snapshot"
     val installRoot  = taskRoot / "install"
     try {
-      val snapshot           = snapshotInputs(snapshotRoot, projectFiles, lockFiles, limits)
+      val snapshot           = snapshotInputs(snapshotRoot, projectInputs, lockInputs, limits)
       val prepared           = prepareSnapshotInstall(installRoot, snapshot)
       val processEnvironment = environment(taskRoot / "process-state", environmentInputs)
       initialize(processEnvironment)
@@ -219,13 +254,13 @@ private[javascript] object NpmProcess {
 
   def prepareInstall(
       root: os.Path,
-      projectFiles: Seq[PathRef],
-      lockFiles: Seq[PathRef],
+      projectInputs: Seq[TrackedNpmInput],
+      lockInputs: Seq[TrackedNpmInput],
       limits: InputLimits = InputLimits()
   ): JavaScriptInstall = {
     val snapshotRoot = root / os.up / "input-snapshot"
     try {
-      val snapshot = snapshotInputs(snapshotRoot, projectFiles, lockFiles, limits)
+      val snapshot = snapshotInputs(snapshotRoot, projectInputs, lockInputs, limits)
       val prepared = prepareSnapshotInstall(root, snapshot)
       verifyOriginals(snapshot)
       prepared
@@ -238,14 +273,17 @@ private[javascript] object NpmProcess {
 
   private def snapshotInputs(
       root: os.Path,
-      projectFiles: Seq[PathRef],
-      lockFiles: Seq[PathRef],
+      projectInputs: Seq[TrackedNpmInput],
+      lockInputs: Seq[TrackedNpmInput],
       limits: InputLimits
   ): InputSnapshot = {
-    if (lockFiles.isEmpty)
+    if (lockInputs.isEmpty)
       throw new IllegalArgumentException("npm install requires a committed npm lock file")
     validateInputLimits(limits)
-    val allFiles       = projectFiles ++ lockFiles
+    if (projectInputs.exists(_.kind != InputKind.Project) || lockInputs.exists(_.kind != InputKind.Lock))
+      throw new IllegalArgumentException("npm tracked input kind does not match its project or lock role")
+    val allInputs      = projectInputs ++ lockInputs
+    val allFiles       = allInputs.map(_.pathRef)
     val duplicateNames = allFiles.groupBy(_.path.last).collect { case (name, files) if files.size > 1 => name }
     if (duplicateNames.nonEmpty)
       throw new IllegalArgumentException(
@@ -257,10 +295,11 @@ private[javascript] object NpmProcess {
     os.makeDir.all(staging)
     try {
       val baselineBudget = new InputBudget(limits)
-      val baselines      = allFiles.map { input =>
+      val baselines      = allInputs.map { tracked =>
+        val input       = tracked.pathRef
         val fingerprint = scanInput(input.path.toNIO, None, baselineBudget)
-        if (fingerprintSignature(fingerprint) != input.sig)
-          throw changedInput(input.path, "changed before its verified snapshot")
+        if (fingerprint != fingerprintHex(tracked.fingerprint) || fingerprintSignature(fingerprint) != input.sig)
+          throw changedInput(input.path, "full fingerprint changed before its verified snapshot")
         input -> fingerprint
       }
       val copyBudget = new InputBudget(limits)
@@ -270,9 +309,15 @@ private[javascript] object NpmProcess {
           throw changedInput(input.path, "changed while creating its verified snapshot")
         VerifiedInput(input, fingerprint)
       }
-      lockFiles.foreach(file => validateNpmLock(PathRef(staging / file.path.last)))
+      lockInputs.foreach(input => validateNpmLock(PathRef(staging / input.pathRef.path.last)))
       promote(staging, root)
-      InputSnapshot(root, projectFiles.map(_.path.last), lockFiles.map(_.path.last), verified, limits)
+      InputSnapshot(
+        root,
+        projectInputs.map(_.pathRef.path.last),
+        lockInputs.map(_.pathRef.path.last),
+        verified,
+        limits
+      )
     } catch {
       case error: Throwable =>
         removeOwned(staging)
@@ -320,6 +365,7 @@ private[javascript] object NpmProcess {
       limits: DiscoveryLimits = DiscoveryLimits()
   ): JavaScriptCommand = {
     requirePositive(limits.maxPackages.toLong, "installed package count")
+    requirePositive(limits.maxDiscoveryEntries.toLong, "installed package discovery entry count")
     requirePositive(limits.maxManifestBytes, "installed package manifest bytes")
     val installPath = install.root.path.toNIO
     if (Files.isSymbolicLink(installPath))
@@ -331,7 +377,7 @@ private[javascript] object NpmProcess {
     if (!Files.isDirectory(nodeModules.toNIO, LinkOption.NOFOLLOW_LINKS))
       throw new IllegalArgumentException(s"JavaScript packages are not installed under ${install.root.path}")
     val nodeModulesReal = requireContainedDirectory(installReal, nodeModules.toNIO, "npm node_modules directory")
-    val candidates      = packageDirectories(installReal, nodeModulesReal, limits.maxPackages)
+    val candidates      = packageDirectories(installReal, nodeModulesReal, limits)
       .flatMap(resolvePackageBinary(installReal, _, binary, limits.maxManifestBytes))
     candidates.distinct match {
       case Seq(executable) => NodeProcess.runtime(node, executable.toString +: arguments)
@@ -349,19 +395,29 @@ private[javascript] object NpmProcess {
   private def packageDirectories(
       installRoot: java.nio.file.Path,
       nodeModules: java.nio.file.Path,
-      maxPackages: Int
+      limits: DiscoveryLimits
   ): Seq[java.nio.file.Path] = {
     val packages = ArrayBuffer.empty[java.nio.file.Path]
+    var entries  = 0
+
+    def countEntry(path: java.nio.file.Path): Unit = {
+      entries += 1
+      if (entries > limits.maxDiscoveryEntries)
+        throw new IllegalArgumentException(
+          s"Installed npm package discovery entry count limit ${limits.maxDiscoveryEntries} exceeded at $path"
+        )
+    }
 
     def addPackage(path: java.nio.file.Path): Unit = {
-      if (packages.size >= maxPackages)
+      if (packages.size >= limits.maxPackages)
         throw new IllegalArgumentException(
-          s"Installed npm package count limit $maxPackages exceeded under $nodeModules"
+          s"Installed npm package count limit ${limits.maxPackages} exceeded under $nodeModules"
         )
       packages += path
     }
 
     foreachChild(nodeModules) { entry =>
+      countEntry(entry)
       if (entry.getFileName.toString != ".bin") {
         if (entry.getFileName.toString.startsWith("@")) {
           if (Files.isSymbolicLink(entry))
@@ -369,6 +425,7 @@ private[javascript] object NpmProcess {
           if (Files.isDirectory(entry, LinkOption.NOFOLLOW_LINKS)) {
             val scope = requireContainedDirectory(installRoot, entry, "Installed npm package scope")
             foreachChild(scope) { packageEntry =>
+              countEntry(packageEntry)
               if (Files.isSymbolicLink(packageEntry) || Files.isDirectory(packageEntry, LinkOption.NOFOLLOW_LINKS))
                 addPackage(packageEntry)
             }
@@ -593,6 +650,12 @@ private[javascript] object NpmProcess {
   private def fingerprintSignature(fingerprint: String): Int =
     java.util.Arrays.hashCode(fingerprint.getBytes(StandardCharsets.US_ASCII))
 
+  private def fingerprintBytes(fingerprint: String): Vector[Int] =
+    fingerprint.grouped(2).map(Integer.parseInt(_, 16)).toVector
+
+  private def fingerprintHex(fingerprint: Vector[Int]): String =
+    fingerprint.iterator.map(byte => f"$byte%02x").mkString
+
   private def promote(staging: os.Path, destination: os.Path): Unit =
     try Files.move(staging.toNIO, destination.toNIO, StandardCopyOption.ATOMIC_MOVE)
     catch {
@@ -656,6 +719,9 @@ private[javascript] object NpmProcess {
       packageRoot: java.nio.file.Path,
       value: String
   ): os.Path = {
+    val windowsDrivePrefixed = value.length >= 2 && value.charAt(0).isLetter && value.charAt(1) == ':'
+    if (value.startsWith("/") || value.startsWith("\\") || windowsDrivePrefixed)
+      throw new IllegalArgumentException(s"Installed npm package binary path must be relative: '$value'")
     val relative =
       try os.RelPath(value)
       catch {
@@ -666,9 +732,18 @@ private[javascript] object NpmProcess {
       value.isEmpty || value.contains('\\') || relative.ups > 0 || relative.segments.isEmpty ||
       relative.segments.exists(segment => segment == "." || segment == "..")
     ) throw new IllegalArgumentException(s"Installed npm package declares an unsafe binary path: '$value'")
-    val target = packageRoot.resolve(relative.toString).toRealPath()
+    val target = try packageRoot.resolve(relative.toString).toRealPath()
+    catch {
+      case error: Exception =>
+        throw new IllegalArgumentException(
+          s"Installed npm package binary target is not readable: '$value' under $packageRoot",
+          error
+        )
+    }
     if (!target.startsWith(installRoot) || !Files.isRegularFile(target, LinkOption.NOFOLLOW_LINKS))
-      throw new IllegalArgumentException(s"Installed npm package binary escapes its install root: '$value'")
+      throw new IllegalArgumentException(
+        s"Installed npm package binary target is not a contained regular file: '$value' under $packageRoot"
+      )
     os.Path(target)
   }
 
