@@ -1,33 +1,30 @@
 ---
 okf_version: "0.2"
 title: morphir-scala
-description: "What morphir-scala does today and why, alongside non-authoritative draft Design Notes and research for work still in refinement."
+description: "Morphir-scala capabilities, decisions, design notes, and research."
 ---
 
 # morphir-scala
 
-What morphir-scala does today and why, alongside non-authoritative draft Design Notes and research for work still in refinement.
+This bundle covers morphir-scala capabilities, decisions, design notes, and research.
 
-Capabilities are present-tense: what the system does. [Decision Records](/decisions/index.md) are past-tense and
-immutable: why it is shaped that way, and what would have to change for the answer to be different.
-
-Draft Design Notes and research document evolving proposals and evidence. They guide refinement but are not current
-capabilities or accepted architecture unless an accepted Decision Record says so.
+Capabilities describe current behavior. Immutable [Decision Records](/decisions/index.md) explain accepted choices.
+Draft Design Notes and research are provisional.
 
 ## Design Notes
 
-* [Package URL-centered package management](/design/package-url-package-management.md) - An evolving design for canonical Package URL identities, VERS requirements, reproducible materialization, and packages outside ecosystem registries.
-* [Multi-frontend pipeline and workspace boundaries](/design/pipeline-workspace-boundaries.md) - An evolving design for shared buildkit phase contracts, workspace normalization, frontend isolation, and the issue #930 dependency-source seam.
+* [Package URL-centered package management](/design/package-url-package-management.md) - A design for PURL identities, reproducible materialization, and packages outside ecosystem registries.
+* [Multi-frontend pipeline and workspace boundaries](/design/pipeline-workspace-boundaries.md) - A design for shared buildkit phases, workspace normalization, frontend isolation, and issue #930.
 * [Mill Morphir plugin architecture](/design/mill-morphir-plugin-architecture.md) - Design for publishable Mill plugins that acquire tools and compose Morphir generation with host-language builds.
 
 ## Package-management research
 
-* [MoonBit registry, resolution, and source materialization](/design/moonbit-package-management.md) - How MoonBit separates registry metadata, dependency resolution, source archive acquisition, checksum verification, and materialization through a Git-backed line-delimited JSON index.
+* [MoonBit registry, resolution, and source materialization](/design/moonbit-package-management.md) - How MoonBit resolves and materializes source packages from its Git-backed JSONL registry.
 
 ## Orientation
 
 * [Knowledge Base Tooling](/knowledge-base-tooling.md) - The kb skill manages the OKF knowledge base and the intent recorded in it, from the command line.
-* [Continuous Integration](/continuous-integration.md) - GitHub Actions runs linting, cross-platform tests and knowledge base checks on every pull request.
+* [Continuous Integration](/continuous-integration.md) - GitHub Actions runs linting, cross-platform tests and knowledge base checks on pull requests targeting supported branches.
 * [Build System](/build-system.md) - Mill drives the build from per-directory package.mill.yaml files, with mise as the task runner.
 * [Cross-Platform Targets](/cross-platform-targets.md) - Modules compile to the JVM, ScalaJS, WebAssembly and Scala Native from one shared source layout.
 
@@ -45,3 +42,4 @@ Full list, grouped, in [decisions/index.md](/decisions/index.md).
 * [morphir/model and morphir/naming are dependency-constrained modules](/decisions/0008-model-and-naming-are-dependency-constrained-modules.md) - The code model and the naming vocabulary were extracted into modules whose dependency closures are constrained by construction, not by convention.
 * [Expressions are Expr, values are Val — diverging from Morphir's Elm-inherited vocabulary](/decisions/0009-expressions-are-expr-values-are-val.md) - The code model's expression type is renamed from Value to Expr, so that the word value is free for what an expression evaluates to.
 * [The old runtime becomes runtime.classic; its package rename is deferred](/decisions/0010-the-old-runtime-becomes-runtime-classic.md) - The existing ZIO runtime moved to morphir/runtime/classic intact, so the new runtime can take the good module path without a flag-day cutover.
+* [Runtime closures retain parameter patterns](/decisions/0011-runtime-closures-retain-parameter-patterns.md) - Val.Closure stores each remaining parameter as a code-model Pattern, preserving destructuring lambdas in the serializable runtime value.

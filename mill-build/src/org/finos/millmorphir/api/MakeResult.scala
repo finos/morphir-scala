@@ -4,7 +4,7 @@ import mill.PathRef
 import mill.api.JsonFormatters.*
 import upickle.default.*
 
-case class MakeResult(
+final case class MakeResult(
     makeArgs: MakeArgs,
     irFilePath: PathRef,
     commandArgs: Seq[String],

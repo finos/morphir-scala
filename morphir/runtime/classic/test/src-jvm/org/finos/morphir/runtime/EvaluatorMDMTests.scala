@@ -8,6 +8,7 @@ import org.finos.morphir.runtime.EvaluatorMDMTests.testExceptionMultiple
 import org.finos.morphir.runtime.environment.MorphirEnv
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 import org.finos.morphir.runtime.MorphirRuntimeError.RTValueToMDMError.ResultTypeMismatch
+import org.finos.morphir.runtime.fixtures.GeneratedRuntimeFixtures
 import org.finos.morphir.testing.MorphirBaseSpec
 import zio.test.*
 import zio.test.TestAspect.{ignore, tag}
@@ -22,7 +23,7 @@ import zio.{Console, ZIO, ZLayer}
 object EvaluatorMDMTests extends MorphirBaseSpec {
   val morphirRuntimeLayer: ZLayer[Any, Throwable, TypedMorphirRuntime] =
     ZLayer(for {
-      irFilePath <- ZIO.succeed(os.pwd / "examples" / "morphir-elm-projects" / "evaluator-tests" / "morphir-ir.json")
+      irFilePath <- ZIO.succeed(GeneratedRuntimeFixtures.evaluator)
       _          <- Console.printLine(s"Loading distribution from $irFilePath")
       dist       <- EvaluationLibrary.loadDistributionFromFileZIO(irFilePath.toString)
     } yield MorphirRuntime.quick(dist))
@@ -44,7 +45,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case m: java.time.Month       => Deriver.toData(m)
       case dow: java.time.DayOfWeek => Deriver.toData(dow)
       case lt: java.time.LocalTime  => Deriver.toData(lt)
-      case list: List[_] =>
+      case list: List[_]            =>
         val mapped = list.map(deriveData(_))
         Data.List(mapped.head, mapped.tail: _*)
       case map: Map[_, _] =>
@@ -56,7 +57,7 @@ object EvaluatorMDMTests extends MorphirBaseSpec {
       case Some(a: Any)           => Data.Optional.Some(deriveData(a))
       case (first, second)        => Data.Tuple(deriveData(first), deriveData(second))
       case (first, second, third) => Data.Tuple(deriveData(first), deriveData(second), deriveData(third))
-      case e: Either[_, _] => throw new Exception(
+      case e: Either[_, _]        => throw new Exception(
           s"Couldn't derive $e (Hint: I can't tell what the other side of the either would be. Use Data constructors directly instead."
         )
       case other => throw new Exception(s"Couldn't derive $other")

@@ -84,6 +84,14 @@ clean `kb check`.
 
 Every concept document starts with a YAML frontmatter block.
 
+### Writing style
+
+- Use concise, plain language and short paragraphs.
+- Use bullets or numbered steps when listing three or more items.
+- Use tables for comparisons that repeat the same fields.
+- Avoid repetitive framing and exhaustive prose when a link provides the detail.
+- Write each `description` as one short, standalone sentence.
+
 ### Required
 
 - `type` — short string naming the kind of concept (`Playbook`, `Metric`, `Module`, `Attested Computation`, …).
@@ -97,7 +105,7 @@ Every concept document starts with a YAML frontmatter block.
 ### Recommended
 
 - `title` — human-readable display name. Consumers may derive one from the filename if omitted; supply it anyway.
-- `description` — one sentence. Index generators and search snippets pull from this, so write it to stand alone.
+- `description` — one short sentence. Index generators and search snippets pull from this, so write it to stand alone.
 - `resource` — URI uniquely identifying the underlying asset. Omit for abstract concepts.
 - `tags` — YAML list of short strings for cross-cutting categorization.
 

@@ -33,7 +33,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-var-folders.py
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-project-config.py
 ```
 
-Checks elm-tooling guard, `mainClass` Task wrapper, and `/var/folders` writability in one pass.
+Checks Mill-owned Morphir Elm setup, the `mainClass` Task wrapper, and `/var/folders` writability in one pass.
 `ISSUE` lines identify which fixes are needed.
 
 ---
@@ -104,7 +104,7 @@ If the warning reappears, verify the `Task { }` wrapper is still present.
 
 ---
 
-### 4. `mise run setup` failing on elm-tooling downloads (CI)
+### 4. `mise run setup` must not provision Morphir Elm
 
 **Symptom:**
 
@@ -113,18 +113,12 @@ curl: (22) The requested URL returned error: 504
 error: postinstall script from "@morphir-examples/finance" exited with 1
 ```
 
-**Cause:** `bun install` triggers `elm-tooling install` postinstall scripts which download elm binaries from GitHub releases — flaky under network restrictions.
+**Cause:** Workspace postinstall hooks download Elm binaries, and legacy workspace dependencies installed a second
+Morphir Elm CLI outside Mill's verified toolchain.
 
-**Fix:** Two mitigations are in place:
-
-1. `mise run setup` skips postinstall scripts unless `ELM_TOOLING_INSTALL=1` is set
-2. CI caches `~/.elm/elm-tooling` via `actions/cache@v4`
-
-To run locally with elm tooling:
-
-```bash
-ELM_TOOLING_INSTALL=1 mise run setup
-```
+**Fix:** `mise run setup` always uses `bun install --ignore-scripts`; Morphir Elm dependencies and make scripts are
+absent from the root workspace manifests. Mill provisions the locked compiler and owns fixture generation. Optional
+Elm editor/formatting tooling remains a developer-local concern and is not part of the build contract.
 
 ---
 

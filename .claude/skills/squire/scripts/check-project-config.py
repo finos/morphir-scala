@@ -8,13 +8,17 @@ import sys
 
 issues = []
 
-# 1. elm-tooling skip guard
+# 1. Mill owns Morphir Elm; setup installs only optional JS tooling without hooks.
 setup_task = pathlib.Path(".config/mise/tasks/setup")
 if setup_task.exists():
-    if "ELM_TOOLING_INSTALL" not in setup_task.read_text():
-        issues.append("MISSING elm-tooling guard in .config/mise/tasks/setup")
+    setup_text = setup_task.read_text()
+    root_package = json.loads(pathlib.Path("package.json").read_text())
+    if "bun install --ignore-scripts" not in setup_text:
+        issues.append("MISSING --ignore-scripts in .config/mise/tasks/setup")
+    elif "morphir-elm" in root_package.get("devDependencies", {}):
+        issues.append("OBSOLETE root morphir-elm dependency; Mill owns the tool")
     else:
-        print("OK - elm-tooling skip guard present in mise setup task")
+        print("OK - setup leaves Morphir Elm provisioning to Mill")
 else:
     issues.append("NOT FOUND - .config/mise/tasks/setup does not exist")
 

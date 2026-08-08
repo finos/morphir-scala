@@ -1,7 +1,7 @@
 ---
 type: Design Note
 title: Package URL-centered package management
-description: "An evolving design for canonical Package URL identities, VERS requirements, reproducible materialization, and packages outside ecosystem registries."
+description: "A design for PURL identities, reproducible materialization, and packages outside ecosystem registries."
 tags: [buildkit, package-management, purl, vers, resolution, elm]
 status: draft
 stale_after: 2026-10-05
@@ -66,10 +66,14 @@ private package-cache representation.
 
 ## Standards facts that constrain the design
 
-A Package URL comprises seven components: scheme, type, namespace, name, version, qualifiers, and subpath. The scheme
-is required and has the constant value `pkg`; type and name are also required. Canonicalization lowercases the type,
-percent-encodes components with the specification's UTF-8 rules, sorts unique qualifier keys, and applies registered
-type-specific normalization. Version comparison is outside the Package URL layer.
+A Package URL has seven components:
+
+- required `scheme`, fixed as `pkg`;
+- required `type` and `name`; and
+- optional `namespace`, `version`, `qualifiers`, and `subpath`.
+
+Canonicalization lowercases the type, percent-encodes components with the specification's UTF-8 rules, sorts unique
+qualifier keys, and applies registered type-specific normalization. Version comparison is outside the PURL layer.
 
 The common `vers` qualifier carries a Package VERS value on a versionless purl. It is mutually exclusive with the
 exact `@version` component. VERS types define comparison and interval membership; their `|`-separated constraints are
@@ -120,18 +124,28 @@ convention matching Elm's observed `author/project` coordinate without assuming 
 project does not own Elm's package semantics, claim that identifier is a registered purl type, or propose it upstream.
 The adapter's unpublished-package acceptance work therefore does not become an Elm Package URL standardization task.
 
-The working Morphir form is `pkg:morphir/<namespace>/<name>@<version>`. Research and implementation must settle whether
-a Morphir package is a distribution unit distinct from its Maven, npm, or Elm publication; namespace and case rules;
-version ordering; the package root addressed by `subpath`; and default repository semantics. Real source-package and
-registry workflows must demonstrate that this convention meets Morphir's needs before a later, separately scoped
-effort even considers an upstream proposal. If a distribution is only an artifact of another ecosystem, that
-ecosystem's registered purl remains authoritative.
+The working Morphir form is `pkg:morphir/<namespace>/<name>@<version>`. Research and implementation must settle:
+
+- whether a Morphir package differs from its Maven, npm, or Elm publication;
+- namespace and case rules;
+- version ordering;
+- the package root addressed by `subpath`; and
+- default repository semantics.
+
+Real source-package and registry workflows must first prove this convention. Any upstream proposal would be a later,
+separate effort. If a distribution belongs to another ecosystem, that ecosystem's registered purl remains
+authoritative.
 
 ## Resolution and materialization
 
-The package capability covers version discovery, dependency metadata, resolution, locking, materialization, module
-enumeration, and source reading. Policy for network access, mirrors, credentials, caches, and fatality belongs to
-interpreters.
+The package capability covers:
+
+- version discovery and dependency metadata;
+- resolution and locking;
+- materialization; and
+- module enumeration and source reading.
+
+Interpreters own policy for network access, mirrors, credentials, caches, and fatality.
 
 The launch backends are a pinnable git-file index and a local-directory registry. Both key records by canonical purl
 and return typed locations plus integrity information. Later Git, HTTP registry, archive, vendored-tree, cache, and

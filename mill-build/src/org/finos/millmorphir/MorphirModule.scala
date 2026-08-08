@@ -1,230 +1,135 @@
 package org.finos.millmorphir
 
-import millbuild.util.Collections._
-import millbuild.util.ProcessHelper
-import millbuild.util.{Jvm => MillbuildJvm}
-import millbuild.jsruntime.JsRuntime
-import org.finos.millmorphir.api._
 import mill.*
-import mill.api.JsonFormatters._
-import mill.scalalib.*
+import mill.api.JsonFormatters.*
+import millbuild.util.{Jvm => MillbuildJvm}
+import org.finos.millmorphir.api.*
+import org.finos.millmorphir.elm.*
 import upickle.default.*
 
-trait MorphirModule extends Module { self =>
+trait MorphirModule extends Module {
+  def morphirElmTool: MorphirElmToolModule
 
-  def clean() = Task.Command {
-    var pendingDelete = List(morphirProjectDirResolved().path / "morphir-hashes.json")
-    pendingDelete.foreach { path =>
-      if (os.exists(path)) {
-        os.remove.all(path)
-      }
-    }
-  }
+  protected def additionalSandboxInputs: T[Seq[PathRef]] = Task(Seq.empty)
 
-  def dist: T[Set[ArtifactRef]] = Task {
-    val incrementalBuildFiles = incrementalMakeSourceFiles()
-    val outputs               = make()
+  protected def prepareSandboxExtension(project: StagedMorphirProject, inputs: Seq[PathRef]): Unit = ()
 
-    val distPath = distFolder().path
-    if (!os.exists(distPath)) {
-      os.makeDir.all(distPath)
-    }
-
-    outputs.artifacts.map { artifact =>
-      val path      = artifact.path
-      val targetDir = distPath
-      if (!os.exists(targetDir)) {
-        os.makeDir.all(targetDir)
-      }
-
-      val targetPath = targetDir / path.last
-
-      Task.log.debug(s"Copying ${path} to $targetPath")
-      try {
-        if (os.exists(path) && path != targetPath) {
-          os.copy.over(path, targetPath)
-        }
-        Option(artifact.withPath(targetPath))
-      } catch {
-        case e: Exception =>
-          Task.log.error(s"Failed to copy $path to $targetPath")
-          Task.log.error(e.toString)
-          None
-      }
-
-    }.collect { case Some(artifact) => artifact }
-  }
-
-  final def distOutputDirs: T[Seq[PathRef]] = Task {
-    dist().map { case artifactRef: ArtifactRef =>
-      val path = artifactRef.path / os.up
-      PathRef(path)
-    }.toSeq
-  }
-
-  def distFolder: T[PathRef] = Task {
-    // PathRef(morphirProjectDirResolved().path / "dist")
-    morphirProjectDirResolved()
-  }
-
-  def incrementalMakeSources: T[Seq[PathRef]] = Task {
-    Seq(PathRef(moduleDir))
-  }
-
-  def incrementalMakeSourceFiles: T[Seq[PathRef]] = Task {
-    val sourceFileNames = Set("morphir-hashes.json", "morphir-ir.json")
-    for {
-      source         <- incrementalMakeSources()
-      sourceFileName <- sourceFileNames
-      sourceFile = source.path / sourceFileName
-      if os.exists(sourceFile)
-    } yield PathRef(sourceFile)
-  }
-
-  /// Use indentation in the generated JSON file.
   def indentJson: T[Boolean] = Task(false)
 
-  def morphirCommand: T[String]     = Task("morphir")
-  def morphirProjectDir: T[PathRef] = Task(PathRef(moduleDir))
-  final def morphirProjectDirResolved: T[PathRef] = Task {
-    PathRef(makeArgs().projectDir)
-  }
-  def morphirHashesPath: T[PathRef] = Task {
-    PathRef(morphirProjectDir().path / "morphir-hashes.json")
+  def typesOnly: T[Boolean] = Task(false)
+
+  def morphirIrFilename: T[String] = Task("morphir-ir.json")
+
+  def moduleId: T[String] = Task {
+    val resolvedModule    = os.Path(moduleDir.toNIO.toRealPath())
+    val resolvedWorkspace = os.Path(mill.api.BuildCtx.workspaceRoot.toNIO.toRealPath())
+    resolvedModule.relativeTo(resolvedWorkspace).segments.toSeq.mkString(".")
   }
 
-  def morphirHashesContent: T[Option[ujson.Value]] = Task {
-    if (os.exists(morphirProjectDirResolved().path)) {
-      Option(ujson.read(os.read(morphirHashesPath().path)))
-    } else {
-      None
-    }
-  }
+  def morphirProjectConfigFile: T[PathRef] = Task.Source(moduleDir / "morphir.json")
 
-  def morphirProjectSources: T[Seq[PathRef]] = Task {
-    Seq(PathRef(moduleDir))
-  }
+  def elmProjectConfigFiles: T[Seq[PathRef]] = Task.Sources(moduleDir / "elm.json")
 
-  def morphirProjectSourceFileNames: T[Set[String]] = Task {
-    Set("morphir.json")
-  }
-
-  def morphirProjectSourceFiles: T[Seq[PathRef]] = Task {
-    for {
-      source         <- morphirProjectSources()
-      sourceFileName <- morphirProjectSourceFileNames()
-      sourceFile = source.path / sourceFileName
-      if os.exists(sourceFile)
-    } yield PathRef(sourceFile)
-  }
-
-  def sources: T[Seq[PathRef]] = Task.Sources(moduleDir / "src")
-
-  def allSourceFiles: T[Seq[PathRef]] = Task {
-    sources().map(_.path).flatMap(os.walk(_).filter(_.toIO.isFile)).map(PathRef(_))
-  }
-
-  def morphirIncrementalBuildSourceFiles: T[Seq[PathRef]] = Task {
-    Seq(PathRef(morphirProjectDir().path / "morphir-hashes.json"))
-  }
+  def morphirProjectSource: T[PathRef] = Task.Source(moduleDir / "src")
 
   def morphirProjectConfig: T[MorphirProjectConfig] = Task {
-    val morphirProjectFile = morphirProjectDir().path / "morphir.json"
-    if (os.exists(morphirProjectFile)) {
-      read[MorphirProjectConfig](os.read(morphirProjectFile))
-    } else {
-      throw new Exception(s"morphir.json file not found, looked for it at ${morphirProjectFile}.")
-    }
+    read[MorphirProjectConfig](os.read(morphirProjectConfigFile().path))
   }
 
-  def makeCommandRunner: T[String] = Task {
-    ProcessHelper.whereIs(morphirCommand())
+  /** Direct Morphir project dependencies whose generated IR is staged into this project's private sandbox. */
+  def morphirModuleDeps: Seq[MorphirModule] = Seq.empty
+
+  final def morphirModuleDepsChecked: Seq[MorphirModule] = {
+    recursiveMorphirModuleDeps
+    morphirModuleDeps
   }
 
-  def morphirIrFilename = Task("morphir-ir.json")
+  private lazy val recursiveMorphirModuleDeps: Seq[MorphirModule] = {
+    def collect(dependencies: Seq[MorphirModule], seen: Set[MorphirModule]): Seq[MorphirModule] =
+      dependencies.flatMap { dependency =>
+        if (seen.contains(dependency))
+          throw new IllegalArgumentException(s"Cyclic Morphir module dependency involving ${dependency.moduleDir}")
+        else dependency +: collect(dependency.morphirModuleDeps, seen + dependency)
+      }
 
-  def moduleId = Task {
-    moduleDir.segments.toSeq.mkString(".")
+    collect(morphirModuleDeps, Set(this))
   }
 
-  def make: T[MakeOutputs] = Task {
-    val makeResult = morphirMake()
-    val artifacts: Set[ArtifactRef] =
-      Set(ArtifactRef.morphirIR(makeResult.irFilePath, "morphir", "ir")) ++ makeResult.morphirHashesPath.map { path =>
-        Seq(ArtifactRef.morphirHashes(path, "morphir", "hashes", "incremental"))
-      }.getOrElse(Seq.empty).toSet
+  def dependencyArtifacts: Task[Seq[MorphirDependencyArtifact]] = Task.Anon {
+    Task.traverse(morphirModuleDepsChecked) { dependency =>
+      Task.Anon {
+        MorphirDependencyArtifact(dependency.moduleId(), dependency.make().irFilePath)
+      }
+    }()
+  }
 
-    MakeOutputs(moduleId(), artifacts)
+  def preparedProject: Task[StagedMorphirProject] = Task.Anon {
+    val config         = morphirProjectConfig()
+    val sourceRelative = os.RelPath(config.sourceDirectory)
+    if (sourceRelative.ups > 0 || sourceRelative.segments.headOption != Some("src"))
+      throw new IllegalArgumentException(
+        s"Morphir sourceDirectory must be src or a child of src, got ${config.sourceDirectory}"
+      )
+    val source = sourceRelative.segments.drop(1).foldLeft(morphirProjectSource().path)(_ / _)
+    val staged = MorphirElmProjectSandbox
+      .stage(
+        Task.dest / "project",
+        morphirProjectConfigFile().path,
+        elmProjectConfigFiles().headOption.filter(path => os.isFile(path.path)).map(_.path),
+        source,
+        dependencyArtifacts()
+      )
+      .fold(message => throw new IllegalArgumentException(message), identity)
+    val stagedWithOutput = MorphirElmProjectSandbox
+      .withOutputFilename(staged, morphirIrFilename())
+      .fold(message => throw new IllegalArgumentException(message), identity)
+    val extensionInputs = additionalSandboxInputs()
+    prepareSandboxExtension(stagedWithOutput, extensionInputs)
+    stagedWithOutput
   }
 
   def makeArgs: Task[MakeArgs] = Task.Anon {
+    val project = preparedProject()
     MakeArgs(
-      projectDir = morphirProjectDir().path,
-      output = Task.dest / morphirIrFilename(),
+      projectDir = project.projectDir.path,
+      output = project.output,
       indentJson = indentJson(),
       typesOnly = typesOnly(),
       fallbackCli = None
     )
   }
 
-  /**
-   * The direct dependencies of this module. This is meant to be overridden to add dependencies. To read the value, you
-   * should use [[morphirModuleDepsChecked]] instead, which uses a cached result which is also checked to be free of
-   * cycles.
-   * @see
-   *   [[morphirModuleDepsChecked]]
-   */
-  def morphirModuleDeps: Seq[MorphirModule] = Seq.empty
-
-  /**
-   * Same as [[morphirModuleDeps]], but checked to not contain cycles. Prefer this over using [[moduleDeps]] directly.
-   */
-  final def morphirModuleDepsChecked: Seq[MorphirModule] = {
-    recMorphirModuleDeps
-    morphirModuleDeps
+  def make: T[MakeResult] = Task {
+    val arguments = makeArgs()
+    val command = MorphirElmCommand.cli(
+      morphirElmTool.nodeToolchain.nodeExecutable().path,
+      morphirElmTool.morphirElmInstall().path,
+      arguments.toCommandArgs
+    )
+    val workingDir = arguments.projectDir
+    val environment = MorphirElmProcessEnvironment.create(Task.dest / "tool-state", Task.env)
+    MorphirElmProcessEnvironment.initialize(environment)
+    MillbuildJvm.runSubprocess(command, environment, workingDir, propagateEnv = false)
+    if (!os.isFile(arguments.output))
+      throw new IllegalStateException(s"Morphir Elm did not produce ${arguments.output}")
+    val hashesPath = workingDir / "morphir-hashes.json"
+    MakeResult(
+      arguments,
+      PathRef(arguments.output),
+      command,
+      workingDir,
+      Option.when(os.isFile(hashesPath))(PathRef(hashesPath))
+    )
   }
 
-  /** Should only be called from [[moduleDepsChecked]] */
-  private lazy val recMorphirModuleDeps: Seq[MorphirModule] = {
-    def go(deps: Seq[MorphirModule], seen: Set[MorphirModule]): Seq[MorphirModule] = {
-      deps.flatMap { m =>
-        if (seen.contains(m)) Seq.empty
-        else m +: go(m.morphirModuleDeps, seen + m)
-      }
-    }
-    go(morphirModuleDeps, Set(this))
+  def dist: T[MakeOutputs] = Task {
+    val result = make()
+    val artifacts = Set(ArtifactRef.morphirIR(result.irFilePath, "morphir", "ir")) ++
+      result.morphirHashesPath.map(ArtifactRef.morphirHashes(_, "morphir", "hashes", "incremental"))
+    MakeOutputs(moduleId(), artifacts)
   }
 
-  /** The direct and indirect dependencies of this module */
-  def recursiveMorphirModuleDeps: Seq[MorphirModule] =
-    recMorphirModuleDeps
-
-  /**
-   * Like `recursiveMorphirModuleDeps`, but includes this module itself as well.
-   */
-  def transitiveMorphirModuleDeps: Seq[MorphirModule] = Seq(this) ++ recursiveMorphirModuleDeps
-
-  def upstreamMakeOutput: Task[Seq[Set[ArtifactRef]]] = Task.Anon {
-    Task.traverse(recursiveMorphirModuleDeps.distinct)(_.dist)()
+  final def distOutputDirs: T[Seq[PathRef]] = Task {
+    dist().artifacts.toSeq.map(artifact => PathRef(artifact.path / os.up)).distinct
   }
-
-  def morphirMake: T[MakeResult] = Task {
-    val makeArgs: MakeArgs = self.makeArgs()
-    val cli                = makeCommandRunner()
-
-    val _           = upstreamMakeOutput()
-    val _           = allSourceFiles()
-    val commandArgs = makeArgs.toCommandArgs(cli)
-    val workingDir  = makeArgs.projectDir
-    val destPath    = makeArgs.output
-    MillbuildJvm.runSubprocess(commandArgs, Task.env, workingDir)
-    val hashesPath = morphirHashesPath()
-    val hashesPathFinal =
-      if (os.exists(hashesPath.path)) Option(hashesPath) else None
-    MakeResult(makeArgs, PathRef(destPath), commandArgs, workingDir, morphirHashesPath = hashesPathFinal)
-  }
-
-  /// Only include type information in the IR, no values.
-  def typesOnly: T[Boolean] = Task(false)
-
 }

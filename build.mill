@@ -7,6 +7,7 @@
 //| - com.carlosedp::mill-aliases::1.1.0
 //| - com.github.lolgab::mill-mima::0.2.0
 //| - io.eleven19.mill-github-dependency-graph::mill-github-dependency-graph:0.0.2
+//| - org.apache.commons:commons-compress:1.28.0
 
 package build
 
@@ -20,6 +21,7 @@ import millbuild.crossplatform.*
 import millbuild.jsruntime.*
 import org.finos.millmorphir.*
 import org.finos.millmorphir.elm.*
+import org.finos.millmorphir.toolchain.*
 import mill.*, mill.scalalib.*, mill.scalajslib.*, mill.scalanativelib.*, scalafmt.*
 import mill.javalib.SonatypeCentralPublishModule
 import mill.scalajslib.api.ModuleKind
@@ -58,7 +60,16 @@ object scoverage extends ScoverageReport {
 trait MorphirPublishModule extends PublishModule with JavaModule with Mima with SonatypeCentralPublishModule {
   import mill.scalalib.publish.*
 
-  def publishVersion             = VcsVersion.vcsState().format()
+  def publishVersionEnvironment = Task.Input {
+    Seq("MORPHIR_PUBLISH_MODE", "MORPHIR_PUBLISH_BRANCH")
+      .flatMap(name => Task.env.get(name).map(name -> _))
+      .toMap
+  }
+  def publishVersion = Task {
+    SnapshotVersion
+      .select(VcsVersion.vcsState(), publishVersionEnvironment())
+      .fold(message => throw new IllegalArgumentException(message), identity)
+  }
   def packageDescription: String = s"The $artifactName package"
   def pomSettings                = PomSettings(
     description = packageDescription,
@@ -247,16 +258,22 @@ trait EmptyDocJar extends JavaModule {
   }
 }
 
-/** `runtime`'s test module: sources its JSON test fixtures from the compiled `evaluator-tests` Elm project. */
-trait RuntimeTests extends TestModule.ZioTest {
-  def morphirTestSources = Task {
-    examples.`morphir-elm-projects`.`evaluator-tests`.distOutputDirs()
-  }
-
-  def morphirTestSourceFiles = Task {
-    Lib.findSourceFiles(morphirTestSources(), Seq("json")).collect {
-      case path if path.last.startsWith("morphir-") => PathRef(path)
-    }
+/** Generates typed JVM-only paths to the seven Morphir IR fixtures used by the classic runtime tests. */
+trait ClassicRuntimeTestFixtures extends ScalaModule {
+  override def generatedSources: T[Seq[PathRef]] = Task {
+    val fixtures = ClassicRuntimeFixtureSet(
+      evaluator = build.examples.`morphir-elm-projects`.`evaluator-tests`.make().irFilePath,
+      defaults = build.examples.`morphir-elm-projects`.`defaults-tests`.make().irFilePath,
+      unitTestFramework = build.`morphir-elm`.sdks.`morphir-unit-test`.make().irFilePath,
+      unitTestExample = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project`.make().irFilePath,
+      unitTestFailing = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests`.make().irFilePath,
+      unitTestPassing = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-passing`.make().irFilePath,
+      unitTestIncomplete = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-incomplete`.make().irFilePath
+    )
+    val packageDirectory = Task.dest / "org" / "finos" / "morphir" / "runtime" / "fixtures"
+    os.makeDir.all(packageDirectory)
+    os.write.over(packageDirectory / "GeneratedRuntimeFixtures.scala", ClassicRuntimeFixtureSource.render(fixtures))
+    super.generatedSources() :+ PathRef(Task.dest)
   }
 }
 
@@ -269,7 +286,7 @@ trait RuntimeTests extends TestModule.ZioTest {
   */
 trait LoweringRealIrFixture extends JavaModule {
   def realIrFixtureSource: T[PathRef] = Task.Source(
-    examples.`morphir-elm-projects`.`evaluator-tests`.moduleDir / "morphir-ir2.json"
+    build.examples.`morphir-elm-projects`.`evaluator-tests`.moduleDir / "morphir-ir2.json"
   )
 
   override def resources: T[Seq[PathRef]] = Task {
@@ -515,44 +532,28 @@ trait MorphirLangkitItestElmPackages extends JavaModule {
   }
 }
 
-// The following modules are morphir-elm modules that have been setup to be built using mill
-// Morphir Elm Projects/Modules:
-object examples extends Module {
-  object `morphir-elm-projects` extends Module {
-    object finance extends MorphirElmModule
-
-    object `evaluator-tests`     extends MorphirElmModule
-    object `unit-test-framework` extends Module {
-      object `example-project` extends MorphirElmModule {
-        def morphirModuleDeps = Seq(`morphir-elm`.sdks.`morphir-unit-test`)
-      }
-
-      object `example-project-tests` extends MorphirElmModule {
-        def morphirModuleDeps = Seq(
-          `morphir-elm`.sdks.`morphir-unit-test`,
-          `example-project`
-        )
-      }
-      object `example-project-tests-incomplete` extends MorphirElmModule {
-        def morphirModuleDeps = Seq(
-          `morphir-elm`.sdks.`morphir-unit-test`,
-          `example-project`
-        )
-      }
-      object `example-project-tests-passing` extends MorphirElmModule {
-        def morphirModuleDeps = Seq(
-          `morphir-elm`.sdks.`morphir-unit-test`,
-          `example-project`
-        )
-      }
-    }
+object toolchains extends Module {
+  object node extends NodeToolchainModule
+  object morphirElm extends MorphirElmToolModule {
+    def nodeToolchain = toolchains.node
   }
 }
 
-object `morphir-elm` extends Module {
-  object sdks extends Module {
-    object `morphir-unit-test` extends MorphirElmModule
-  }
+trait MorphirElmProject extends MorphirElmModule {
+  def morphirElmTool = toolchains.morphirElm
+}
+
+/** Exact local IR inputs shared by the three unit-test example consumers.
+  *
+  * Mill 1.2.0-RC1 cannot override the non-task `morphirModuleDeps` member from YAML, so this deliberately narrow
+  * reference trait carries only those two module references. Project declarations and identity stay colocated in
+  * each project's `package.mill.yaml`.
+  */
+trait ExampleProjectTestMorphirDependencies extends MorphirModule {
+  override def morphirModuleDeps = Seq(
+    build.`morphir-elm`.sdks.`morphir-unit-test`,
+    build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project`
+  )
 }
 
 // ci module removed - using Mill's built-in mill.scalalib.PublishModule/ for publishing

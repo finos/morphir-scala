@@ -4,7 +4,7 @@ import kyo.test.*
 import kyo.{Chunk, Result, Schema, Structure}
 import kyo.Json.given_Json
 import org.finos.morphir.naming.*
-import org.finos.morphir.codemodel.{Expr, Literal, ValueAttributes}
+import org.finos.morphir.codemodel.{Expr, Literal, Pattern, ValueAttributes}
 
 /**
  * The closure round-trip below is the load-bearing assertion for this whole slice: it is the property the classic
@@ -15,7 +15,19 @@ class ValSpec extends Test[Any]:
 
   private val closure: Val =
     Val.Closure(
-      params = Chunk(Name.fromString("x")),
+      params = Chunk(
+        Pattern.TuplePattern(
+          ValueAttributes.empty,
+          Chunk(
+            Pattern.AsPattern(
+              ValueAttributes.empty,
+              Pattern.WildcardPattern(ValueAttributes.empty),
+              Name.fromString("x")
+            ),
+            Pattern.WildcardPattern(ValueAttributes.empty)
+          )
+        )
+      ),
       body = Expr.Literal(ValueAttributes.empty, Literal.IntegerLiteral(BigInt(42))),
       env = Map(Name.fromString("y") -> Val.Structured(Structure.encode(7)))
     )
