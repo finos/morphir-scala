@@ -1,8 +1,9 @@
 package org.finos.morphir.mill.toolchain
 
 import java.io.ByteArrayInputStream
+import java.nio.channels.FileChannel
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
+import java.nio.file.{Files, StandardOpenOption}
 import java.util.concurrent.{CountDownLatch, TimeUnit}
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration.*
@@ -62,6 +63,19 @@ object VerifiedAcquisitionTests extends TestSuite {
         output.write(contents)
         output.closeArchiveEntry()
       }
+      output.finish()
+    } finally output.close()
+  }
+
+  private def writeTarGzSpecial(path: os.Path, name: String, linkFlag: Byte): Unit = {
+    val output = new TarArchiveOutputStream(
+      new java.util.zip.GZIPOutputStream(Files.newOutputStream(path.toNIO))
+    )
+    try {
+      val entry = new TarArchiveEntry(name, linkFlag)
+      entry.setSize(0L)
+      output.putArchiveEntry(entry)
+      output.closeArchiveEntry()
       output.finish()
     } finally output.close()
   }
@@ -447,6 +461,450 @@ object VerifiedAcquisitionTests extends TestSuite {
         assert(input.wasClosed)
         assert(!os.exists(displaced / digest))
         assert(os.list(displaced).forall(!_.last.endsWith(".tmp")))
+      }
+    }
+
+    test("extraction rejects a nonempty destination without changing it") {
+      withTempDir { directory =>
+        val archive = directory / "node.tar.gz"
+        writeTarGz(
+          archive,
+          Seq(("node-v-test/bin/node", "node".getBytes(StandardCharsets.UTF_8), None))
+        )
+        val destination = directory / "existing"
+        os.makeDir.all(destination)
+        os.write(destination / "keep", "keep")
+
+        val result = scala.util.Try(
+          VerifiedArchive.extract(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            destination
+          )
+        )
+
+        assert(result.isFailure)
+        assert(os.read(destination / "keep") == "keep")
+        assert(!os.exists(destination / "bin"))
+      }
+    }
+
+    test("extraction atomically replaces an empty destination") {
+      withTempDir { directory =>
+        val archive = directory / "node.tar.gz"
+        writeTarGz(
+          archive,
+          Seq(("node-v-test/bin/node", "node".getBytes(StandardCharsets.UTF_8), None))
+        )
+        val destination = directory / "empty"
+        os.makeDir(destination)
+
+        VerifiedArchive.extract(
+          VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+          ArchiveFormat.TarGz,
+          destination
+        )
+
+        assert(os.read(destination / "bin" / "node") == "node")
+      }
+    }
+
+    test("extraction reads only the verified snapshot after the boundary") {
+      withTempDir { directory =>
+        val archive = directory / "node.tar.gz"
+        writeTarGz(
+          archive,
+          Seq(("node-v-test/bin/node", "verified".getBytes(StandardCharsets.UTF_8), None))
+        )
+        val replacement = directory / "replacement.tar.gz"
+        writeTarGz(
+          replacement,
+          Seq(("node-v-test/bin/node", "changed".getBytes(StandardCharsets.UTF_8), None))
+        )
+
+        VerifiedArchive.extractObserved(
+          VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+          ArchiveFormat.TarGz,
+          directory / "extracted"
+        ) {
+          os.move(replacement, archive, replaceExisting = true)
+        }
+
+        assert(os.read(directory / "extracted" / "bin" / "node") == "verified")
+      }
+    }
+
+    test("acquisition waits for an overlapping file lock and then succeeds") {
+      withTempDir { directory =>
+        val bytes     = "overlapping lock".getBytes(StandardCharsets.UTF_8)
+        val digest    = VerifiedArchive.sha256(bytes)
+        val cacheRoot = directory / "machine-cache"
+        val lockDir   = cacheRoot / "sha256"
+        val lockPath  = lockDir / s".$digest.lock"
+        os.makeDir.all(lockDir)
+        val attempts           = new AtomicInteger(0)
+        given ExecutionContext = ExecutionContext.global
+
+        val channel = FileChannel.open(lockPath.toNIO, StandardOpenOption.CREATE, StandardOpenOption.WRITE)
+        val held    = channel.lock()
+        try {
+          val acquisition = Future {
+            AcquisitionCache(AcquisitionSettings(cacheRoot = Some(cacheRoot)), directory / "task")
+              .acquire(digest, "memory:overlapping-lock") {
+                attempts.incrementAndGet()
+                new ByteArrayInputStream(bytes)
+              }
+          }
+          Thread.sleep(100)
+          assert(!acquisition.isCompleted)
+          assert(attempts.get() == 0)
+          held.release()
+
+          val content = Await.result(acquisition, 5.seconds)
+          assert(os.read.bytes(content.path).sameElements(bytes))
+          assert(attempts.get() == 1)
+        } finally {
+          if (held.isValid) held.release()
+          channel.close()
+        }
+      }
+    }
+
+    test("online acquisition quarantines a nonempty digest directory without following it") {
+      withTempDir { directory =>
+        val bytes     = "directory replacement".getBytes(StandardCharsets.UTF_8)
+        val digest    = VerifiedArchive.sha256(bytes)
+        val cacheRoot = directory / "machine-cache"
+        val entry     = cacheRoot / "sha256" / digest
+        os.makeDir.all(entry)
+        os.write(entry / "unexpected", "unexpected")
+
+        val content = AcquisitionCache(AcquisitionSettings(cacheRoot = Some(cacheRoot)), directory / "task")
+          .acquire(digest, "memory:directory-replacement")(new ByteArrayInputStream(bytes))
+
+        assert(content.path == entry)
+        assert(Files.isRegularFile(entry.toNIO, java.nio.file.LinkOption.NOFOLLOW_LINKS))
+        assert(os.read.bytes(entry).sameElements(bytes))
+        assert(os.list(cacheRoot / "sha256").forall(!_.last.contains("quarantine")))
+      }
+    }
+
+    test("archive entry-count limit rejects a small synthetic archive") {
+      withTempDir { directory =>
+        val archive = directory / "entries.tar.gz"
+        writeTarGz(
+          archive,
+          Seq(
+            ("root/one", "1".getBytes(StandardCharsets.UTF_8), None),
+            ("root/two", "2".getBytes(StandardCharsets.UTF_8), None)
+          )
+        )
+
+        val result = scala.util.Try(
+          VerifiedArchive.extract(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            ArchiveLimits(maxEntries = 1)
+          )
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("entry count"))
+        assert(!os.exists(directory / "extracted"))
+      }
+    }
+
+    test("per-entry uncompressed-byte limit rejects a small synthetic archive") {
+      withTempDir { directory =>
+        val archive = directory / "entry-size.tar.gz"
+        writeTarGz(
+          archive,
+          Seq(("root/file", "four".getBytes(StandardCharsets.UTF_8), None))
+        )
+
+        val result = scala.util.Try(
+          VerifiedArchive.extract(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            ArchiveLimits(maxEntryUncompressedBytes = 3)
+          )
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("per-entry"))
+        assert(!os.exists(directory / "extracted"))
+      }
+    }
+
+    test("total uncompressed-byte limit rejects a small synthetic archive") {
+      withTempDir { directory =>
+        val archive = directory / "total-size.tar.gz"
+        writeTarGz(
+          archive,
+          Seq(
+            ("root/one", "123".getBytes(StandardCharsets.UTF_8), None),
+            ("root/two", "456".getBytes(StandardCharsets.UTF_8), None)
+          )
+        )
+
+        val result = scala.util.Try(
+          VerifiedArchive.extract(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            ArchiveLimits(maxTotalUncompressedBytes = 5)
+          )
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("total uncompressed"))
+        assert(!os.exists(directory / "extracted"))
+      }
+    }
+
+    test("ZIP entry compression-ratio limit rejects a small synthetic archive") {
+      withTempDir { directory =>
+        val archive = directory / "ratio.zip"
+        writeZip(archive, Seq(("root/file", Array.fill[Byte](1024)(0), 0x81a4)))
+
+        val result = scala.util.Try(
+          VerifiedArchive.extract(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.Zip,
+            directory / "extracted",
+            ArchiveLimits(maxCompressionRatio = 2.0)
+          )
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("compression ratio"))
+        assert(!os.exists(directory / "extracted"))
+      }
+    }
+
+    test("tar.gz overall compression-ratio limit rejects a small synthetic archive") {
+      withTempDir { directory =>
+        val archive = directory / "ratio.tar.gz"
+        writeTarGz(
+          archive,
+          Seq(("root/file", Array.fill[Byte](4096)(0), None))
+        )
+
+        val result = scala.util.Try(
+          VerifiedArchive.extract(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            ArchiveLimits(maxCompressionRatio = 2.0)
+          )
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("compression ratio"))
+        assert(!os.exists(directory / "extracted"))
+      }
+    }
+
+    test("symbolic-link target byte limit rejects a small synthetic archive") {
+      withTempDir { directory =>
+        val archive = directory / "symlink-target.tar.gz"
+        writeTarGz(
+          archive,
+          Seq(("root/link", Array.emptyByteArray, Some("bin/node")))
+        )
+
+        val result = scala.util.Try(
+          VerifiedArchive.extract(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            ArchiveLimits(maxSymlinkTargetBytes = 4)
+          )
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("link target"))
+        assert(!os.exists(directory / "extracted"))
+      }
+    }
+
+    test("TAR extraction rejects FIFO, device, and unknown entry types") {
+      withTempDir { directory =>
+        Seq(
+          "fifo"    -> TarConstants.LF_FIFO,
+          "device"  -> TarConstants.LF_CHR,
+          "unknown" -> 'Z'.toByte
+        ).foreach { case (name, entryType) =>
+          val archive = directory / s"$name.tar.gz"
+          writeTarGzSpecial(archive, s"root/$name", entryType)
+
+          val result = scala.util.Try(
+            VerifiedArchive.extract(
+              VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+              ArchiveFormat.TarGz,
+              directory / s"extracted-$name"
+            )
+          )
+
+          assert(result.isFailure)
+          assert(result.failed.get.getMessage.contains("Unsupported TAR entry type"))
+          assert(!os.exists(directory / s"extracted-$name"))
+        }
+      }
+    }
+
+    test("online acquisition replaces a matching digest symlink without following it") {
+      withTempDir { directory =>
+        val bytes     = "symlink target".getBytes(StandardCharsets.UTF_8)
+        val digest    = VerifiedArchive.sha256(bytes)
+        val cacheRoot = directory / "machine-cache"
+        val entry     = cacheRoot / "sha256" / digest
+        val external  = directory / "external"
+        os.makeDir.all(entry / os.up)
+        os.write(external, bytes)
+        Files.createSymbolicLink(entry.toNIO, external.toNIO)
+
+        val content = AcquisitionCache(AcquisitionSettings(cacheRoot = Some(cacheRoot)), directory / "task")
+          .acquire(digest, "memory:symlink-replacement")(new ByteArrayInputStream(bytes))
+
+        assert(content.path == entry)
+        assert(Files.isRegularFile(entry.toNIO, java.nio.file.LinkOption.NOFOLLOW_LINKS))
+        assert(os.read.bytes(entry).sameElements(bytes))
+        assert(os.read.bytes(external).sameElements(bytes))
+      }
+    }
+
+    test("offline acquisition rejects a matching digest symlink without opening the source") {
+      withTempDir { directory =>
+        val bytes     = "offline symlink".getBytes(StandardCharsets.UTF_8)
+        val digest    = VerifiedArchive.sha256(bytes)
+        val cacheRoot = directory / "machine-cache"
+        val entry     = cacheRoot / "sha256" / digest
+        val external  = directory / "external"
+        os.makeDir.all(entry / os.up)
+        os.write(external, bytes)
+        Files.createSymbolicLink(entry.toNIO, external.toNIO)
+        var opened = false
+
+        val result = scala.util.Try(
+          AcquisitionCache(
+            AcquisitionSettings(cacheRoot = Some(cacheRoot), offline = true),
+            directory / "task"
+          ).acquire(digest, "memory:offline-symlink") {
+            opened = true
+            new ByteArrayInputStream(bytes)
+          }
+        )
+
+        assert(result.isFailure)
+        assert(!opened)
+        assert(Files.isSymbolicLink(entry.toNIO))
+        assert(os.read.bytes(external).sameElements(bytes))
+      }
+    }
+
+    test("offline acquisition rejects a nonregular digest directory without opening the source") {
+      withTempDir { directory =>
+        val bytes     = "offline directory".getBytes(StandardCharsets.UTF_8)
+        val digest    = VerifiedArchive.sha256(bytes)
+        val cacheRoot = directory / "machine-cache"
+        val entry     = cacheRoot / "sha256" / digest
+        os.makeDir.all(entry)
+        os.write(entry / "unexpected", "unexpected")
+        var opened = false
+
+        val result = scala.util.Try(
+          AcquisitionCache(
+            AcquisitionSettings(cacheRoot = Some(cacheRoot), offline = true),
+            directory / "task"
+          ).acquire(digest, "memory:offline-directory") {
+            opened = true
+            new ByteArrayInputStream(bytes)
+          }
+        )
+
+        assert(result.isFailure)
+        assert(!opened)
+        assert(os.read(entry / "unexpected") == "unexpected")
+      }
+    }
+
+    test("acquisition prunes stale digest siblings but retains its persistent lock") {
+      withTempDir { directory =>
+        val bytes     = "stale siblings".getBytes(StandardCharsets.UTF_8)
+        val digest    = VerifiedArchive.sha256(bytes)
+        val cacheRoot = directory / "machine-cache"
+        val digestDir = cacheRoot / "sha256"
+        val staleTemp = digestDir / s".$digest.stale.tmp"
+        val staleBox  = digestDir / s".$digest.stale.quarantine"
+        os.makeDir.all(staleBox)
+        os.write(staleTemp, "stale")
+        os.write(staleBox / "nested", "stale")
+
+        AcquisitionCache(AcquisitionSettings(cacheRoot = Some(cacheRoot)), directory / "task")
+          .acquire(digest, "memory:stale-siblings")(new ByteArrayInputStream(bytes))
+
+        assert(!os.exists(staleTemp))
+        assert(!os.exists(staleBox))
+        assert(os.exists(digestDir / s".$digest.lock"))
+      }
+    }
+
+    test("failed extraction leaves no partial destination and can be retried") {
+      withTempDir { directory =>
+        val rejected = directory / "rejected.tar.gz"
+        writeTarGzSpecial(rejected, "root/fifo", TarConstants.LF_FIFO)
+        val destination = directory / "extracted"
+
+        val first = scala.util.Try(
+          VerifiedArchive.extract(
+            VerifiedContent(rejected, VerifiedArchive.sha256(rejected)),
+            ArchiveFormat.TarGz,
+            destination
+          )
+        )
+        assert(first.isFailure)
+        assert(!os.exists(destination))
+
+        val accepted = directory / "accepted.tar.gz"
+        writeTarGz(
+          accepted,
+          Seq(("root/bin/node", "node".getBytes(StandardCharsets.UTF_8), None))
+        )
+        VerifiedArchive.extract(
+          VerifiedContent(accepted, VerifiedArchive.sha256(accepted)),
+          ArchiveFormat.TarGz,
+          destination
+        )
+
+        assert(os.read(destination / "bin" / "node") == "node")
+      }
+    }
+
+    test("concurrent extraction permits exactly one exclusive destination promotion") {
+      withTempDir { directory =>
+        val archive = directory / "concurrent.tar.gz"
+        writeTarGz(
+          archive,
+          Seq(("root/bin/node", "node".getBytes(StandardCharsets.UTF_8), None))
+        )
+        val content            = VerifiedContent(archive, VerifiedArchive.sha256(archive))
+        val destination        = directory / "extracted"
+        given ExecutionContext = ExecutionContext.global
+
+        val results = Await.result(
+          Future.sequence(
+            Seq.fill(2)(Future(scala.util.Try(VerifiedArchive.extract(content, ArchiveFormat.TarGz, destination))))
+          ),
+          10.seconds
+        )
+
+        assert(results.count(_.isSuccess) == 1)
+        assert(results.count(_.isFailure) == 1)
+        assert(os.read(destination / "bin" / "node") == "node")
+        assert(os.list(directory).forall(!_.last.endsWith(".extract")))
       }
     }
   }

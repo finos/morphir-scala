@@ -1,14 +1,23 @@
 package org.finos.morphir.mill.toolchain
 
 import java.io.InputStream
-import java.nio.file.{Files, Paths, StandardOpenOption}
-import java.nio.file.attribute.PosixFilePermission
+import java.nio.file.{
+  AtomicMoveNotSupportedException,
+  FileAlreadyExistsException,
+  Files,
+  LinkOption,
+  Paths,
+  StandardCopyOption,
+  StandardOpenOption
+}
+import java.nio.file.attribute.{BasicFileAttributes, PosixFilePermission}
 import java.security.MessageDigest
-import java.util.EnumSet
+import java.util.{EnumSet, UUID}
 import java.util.zip.GZIPInputStream
 import scala.jdk.CollectionConverters.*
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Using
+import scala.util.control.NonFatal
 
 import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInputStream}
 import org.apache.commons.compress.archivers.zip.{ZipArchiveEntry, ZipFile}
@@ -47,43 +56,205 @@ object VerifiedArchive {
       }
   }
 
-  def extract(archive: VerifiedContent, format: ArchiveFormat, destination: os.Path): Unit = {
-    verifySha256(archive.path, archive.sha256)
-    os.makeDir.all(destination)
-    val staging = destination / ".verified-archive.extract"
-    os.remove.all(staging)
-    os.makeDir.all(staging)
+  /** Extracts a verified archive into an exclusive destination, which must be absent or an empty directory. */
+  def extract(
+      archive: VerifiedContent,
+      format: ArchiveFormat,
+      destination: os.Path,
+      limits: ArchiveLimits = ArchiveLimits()
+  ): Unit =
+    extractObserved(archive, format, destination, limits)(())
 
+  private[toolchain] def extractObserved(
+      archive: VerifiedContent,
+      format: ArchiveFormat,
+      destination: os.Path,
+      limits: ArchiveLimits = ArchiveLimits()
+  )(afterSnapshotVerified: => Unit): Unit = {
+    val parent   = destination / os.up
+    val nonce    = UUID.randomUUID()
+    val snapshot = parent / s".${destination.last}.$nonce.archive"
+    val staging  = parent / s".${destination.last}.$nonce.extract"
+    os.makeDir.all(parent)
+    requireExclusiveDestination(destination)
     try {
+      snapshotAndVerify(archive, snapshot)
+      afterSnapshotVerified
+      Files.createDirectory(staging.toNIO)
       format match {
-        case ArchiveFormat.TarGz => extractTarGz(archive.path, staging)
-        case ArchiveFormat.Zip   => extractZip(archive.path, staging)
+        case ArchiveFormat.TarGz => extractTarGz(snapshot, staging, limits)
+        case ArchiveFormat.Zip   => extractZip(snapshot, staging, limits)
       }
-      os.list(staging).foreach(path => os.move(path, destination / path.last, replaceExisting = true))
+      promoteExclusive(staging, destination)
     } finally
-      os.remove.all(staging)
+      try os.remove(snapshot)
+      finally os.remove.all(staging)
   }
 
-  private def extractTarGz(archive: os.Path, destination: os.Path): Unit =
+  private def snapshotAndVerify(content: VerifiedContent, snapshot: os.Path): Unit = {
+    val digest = MessageDigest.getInstance("SHA-256")
+    Using
+      .Manager { use =>
+        val input  = use(Files.newInputStream(content.path.toNIO))
+        val output = use(
+          Files.newOutputStream(snapshot.toNIO, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
+        )
+        copy(input, Some(output), digest)
+      }
+      .get
+    verifyDigest(hex(digest.digest()), content.sha256, content.path.toString)
+  }
+
+  private def requireExclusiveDestination(destination: os.Path): Unit =
+    if (Files.exists(destination.toNIO, LinkOption.NOFOLLOW_LINKS)) {
+      val attributes = Files.readAttributes(
+        destination.toNIO,
+        classOf[BasicFileAttributes],
+        LinkOption.NOFOLLOW_LINKS
+      )
+      if (!attributes.isDirectory || os.list(destination).nonEmpty)
+        throw new IllegalArgumentException(
+          s"Archive extraction destination must be absent or empty: $destination"
+        )
+    }
+
+  private def promoteExclusive(staging: os.Path, destination: os.Path): Unit = {
+    requireExclusiveDestination(destination)
+    val hadEmptyDestination = Files.exists(destination.toNIO, LinkOption.NOFOLLOW_LINKS)
+    if (hadEmptyDestination) Files.delete(destination.toNIO)
+    try Files.move(staging.toNIO, destination.toNIO, StandardCopyOption.ATOMIC_MOVE)
+    catch {
+      case error: FileAlreadyExistsException =>
+        throw new IllegalStateException(s"Archive extraction destination became nonempty: $destination", error)
+      case error: AtomicMoveNotSupportedException =>
+        val failure = new java.io.IOException(
+          s"Atomic archive extraction promotion is unavailable from $staging to $destination; " +
+            "choose a destination on a filesystem that supports atomic moves",
+          error
+        )
+        restoreEmptyDestination(destination, hadEmptyDestination, failure)
+        throw failure
+      case NonFatal(error) =>
+        restoreEmptyDestination(destination, hadEmptyDestination, error)
+        throw error
+    }
+  }
+
+  private def restoreEmptyDestination(
+      destination: os.Path,
+      hadEmptyDestination: Boolean,
+      failure: Throwable
+  ): Unit =
+    if (hadEmptyDestination && !Files.exists(destination.toNIO, LinkOption.NOFOLLOW_LINKS))
+      try Files.createDirectory(destination.toNIO)
+      catch {
+        case _: FileAlreadyExistsException => ()
+        case NonFatal(restorationError)    => failure.addSuppressed(restorationError)
+      }
+
+  private def extractTarGz(archive: os.Path, destination: os.Path, limits: ArchiveLimits): Unit =
     Using
       .Manager { use =>
         val rawInput = use(Files.newInputStream(archive.toNIO))
         val gzip     = use(new GZIPInputStream(rawInput))
         val input    = use(new TarArchiveInputStream(gzip))
         val root     = ArrayBuffer.empty[String]
+        val budget   = new ExtractionBudget(limits, Some(Files.size(archive.toNIO)))
         Iterator.continually(input.getNextEntry).takeWhile(_ != null).foreach { entry =>
-          stripped(entry.getName, root).foreach(relative => extractTarEntry(input, entry, destination, relative, root))
+          budget.beginEntry(entry.getName, entry.getSize)
+          validateTarEntryType(entry)
+          stripped(entry.getName, root).foreach { relative =>
+            extractTarEntry(input, entry, destination, relative, root, budget)
+          }
         }
       }
       .get
 
-  private def extractZip(archive: os.Path, destination: os.Path): Unit =
+  private def validateTarEntryType(entry: TarArchiveEntry): Unit =
+    if (
+      !(
+        entry.isDirectory || entry.isSymbolicLink || entry.isLink ||
+          entry.getLinkFlag == org.apache.commons.compress.archivers.tar.TarConstants.LF_NORMAL ||
+          entry.getLinkFlag == org.apache.commons.compress.archivers.tar.TarConstants.LF_OLDNORM
+      )
+    )
+      throw new IllegalArgumentException(
+        s"Unsupported TAR entry type for '${entry.getName}' (link flag ${entry.getLinkFlag.toInt})"
+      )
+
+  private def extractZip(archive: os.Path, destination: os.Path, limits: ArchiveLimits): Unit =
     Using.resource(ZipFile.builder().setPath(archive.toNIO).get()) { zipFile =>
-      val root = ArrayBuffer.empty[String]
+      val root   = ArrayBuffer.empty[String]
+      val budget = new ExtractionBudget(limits, None)
       zipFile.getEntries.asScala.foreach { entry =>
-        stripped(entry.getName, root).foreach(relative => extractZipEntry(zipFile, entry, destination, relative))
+        validateZipCompressionRatio(entry, limits)
+        budget.beginEntry(entry.getName, entry.getSize)
+        stripped(entry.getName, root).foreach(relative =>
+          extractZipEntry(zipFile, entry, destination, relative, budget)
+        )
       }
     }
+
+  private def validateZipCompressionRatio(entry: ZipArchiveEntry, limits: ArchiveLimits): Unit = {
+    val uncompressed = entry.getSize
+    val compressed   = entry.getCompressedSize
+    if (
+      uncompressed > 0 && compressed >= 0 &&
+      (compressed == 0 || uncompressed.toDouble / compressed.toDouble > limits.maxCompressionRatio)
+    )
+      throw new IllegalArgumentException(
+        s"ZIP entry compression ratio exceeds limit ${limits.maxCompressionRatio} at '${entry.getName}'"
+      )
+  }
+
+  private final class ExtractionBudget(limits: ArchiveLimits, tarGzCompressedBytes: Option[Long]) {
+    private var entryCount       = 0L
+    private var entryBytes       = 0L
+    private var totalBytes       = 0L
+    private var currentEntryName = ""
+
+    def beginEntry(name: String, declaredSize: Long): Unit = {
+      entryCount += 1
+      entryBytes = 0L
+      currentEntryName = name
+      if (entryCount > limits.maxEntries)
+        throw new IllegalArgumentException(
+          s"Archive entry count exceeds limit ${limits.maxEntries} at '$name'"
+        )
+      if (declaredSize > limits.maxEntryUncompressedBytes)
+        throw new IllegalArgumentException(
+          s"Archive per-entry uncompressed byte limit ${limits.maxEntryUncompressedBytes} exceeded by '$name'"
+        )
+    }
+
+    def recordBytes(count: Int): Unit = {
+      if (count > limits.maxEntryUncompressedBytes - entryBytes)
+        throw new IllegalArgumentException(
+          s"Archive per-entry uncompressed byte limit ${limits.maxEntryUncompressedBytes} exceeded by '$currentEntryName'"
+        )
+      if (count > limits.maxTotalUncompressedBytes - totalBytes)
+        throw new IllegalArgumentException(
+          s"Archive total uncompressed byte limit ${limits.maxTotalUncompressedBytes} exceeded at '$currentEntryName'"
+        )
+      entryBytes += count
+      totalBytes += count
+      tarGzCompressedBytes.filter(_ > 0).foreach { compressedBytes =>
+        if (totalBytes.toDouble / compressedBytes.toDouble > limits.maxCompressionRatio)
+          throw new IllegalArgumentException(
+            s"tar.gz overall compression ratio exceeds limit ${limits.maxCompressionRatio} at '$currentEntryName'"
+          )
+      }
+    }
+
+    def checkLinkTarget(target: String): Unit =
+      checkLinkTargetBytes(target.getBytes(java.nio.charset.StandardCharsets.UTF_8).length)
+
+    def checkLinkTargetBytes(size: Int): Unit =
+      if (size > limits.maxSymlinkTargetBytes)
+        throw new IllegalArgumentException(
+          s"Archive link target byte limit ${limits.maxSymlinkTargetBytes} exceeded at '$currentEntryName'"
+        )
+  }
 
   private def stripped(name: String, root: ArrayBuffer[String]): Option[String] = {
     val normalized = name.replace('\\', '/')
@@ -104,11 +275,15 @@ object VerifiedArchive {
       entry: TarArchiveEntry,
       destination: os.Path,
       relative: String,
-      root: ArrayBuffer[String]
+      root: ArrayBuffer[String],
+      budget: ExtractionBudget
   ): Unit = {
     val target = targetOrThrow(destination, relative)
-    if (entry.isSymbolicLink) createSymbolicLink(destination, target, entry.getLinkName)
-    else if (entry.isLink) {
+    if (entry.isSymbolicLink) {
+      budget.checkLinkTarget(entry.getLinkName)
+      createSymbolicLink(destination, target, entry.getLinkName)
+    } else if (entry.isLink) {
+      budget.checkLinkTarget(entry.getLinkName)
       val linkRelative = stripKnownRoot(entry.getLinkName, root.head)
       val source       = targetOrThrow(destination, linkRelative)
       ensureNoSymlinkParents(destination, target)
@@ -116,7 +291,7 @@ object VerifiedArchive {
       Files.createLink(target.toNIO, source.toNIO)
     } else if (entry.isDirectory) createDirectory(destination, target)
     else {
-      writeFile(input, destination, target)
+      writeFile(input, destination, target, budget)
       preserveMode(target, entry.getMode)
     }
   }
@@ -125,17 +300,18 @@ object VerifiedArchive {
       zipFile: ZipFile,
       entry: ZipArchiveEntry,
       destination: os.Path,
-      relative: String
+      relative: String,
+      budget: ExtractionBudget
   ): Unit = {
     val target = targetOrThrow(destination, relative)
     if (entry.isUnixSymlink) {
       val linkTarget = Using.resource(zipFile.getInputStream(entry)) { input =>
-        new String(readAll(input), java.nio.charset.StandardCharsets.UTF_8)
+        new String(readLinkTarget(input, budget), java.nio.charset.StandardCharsets.UTF_8)
       }
       createSymbolicLink(destination, target, linkTarget)
     } else if (entry.isDirectory) createDirectory(destination, target)
     else {
-      Using.resource(zipFile.getInputStream(entry))(input => writeFile(input, destination, target))
+      Using.resource(zipFile.getInputStream(entry))(input => writeFile(input, destination, target, budget))
       preserveMode(target, entry.getUnixMode)
     }
   }
@@ -162,7 +338,12 @@ object VerifiedArchive {
     Files.createSymbolicLink(link.toNIO, targetPath)
   }
 
-  private def writeFile(input: InputStream, destination: os.Path, target: os.Path): Unit = {
+  private def writeFile(
+      input: InputStream,
+      destination: os.Path,
+      target: os.Path,
+      budget: ExtractionBudget
+  ): Unit = {
     ensureNoSymlinkParents(destination, target)
     Files.createDirectories(target.toNIO.getParent)
     Using.resource(
@@ -171,7 +352,15 @@ object VerifiedArchive {
         StandardOpenOption.CREATE_NEW,
         StandardOpenOption.WRITE
       )
-    )(output => copy(input, Some(output), MessageDigest.getInstance("SHA-256")))
+    ) { output =>
+      val buffer = new Array[Byte](BufferSize)
+      Iterator.continually(input.read(buffer)).takeWhile(_ >= 0).foreach { count =>
+        if (count > 0) {
+          budget.recordBytes(count)
+          output.write(buffer, 0, count)
+        }
+      }
+    }
   }
 
   private def createDirectory(destination: os.Path, target: os.Path): Unit = {
@@ -210,10 +399,18 @@ object VerifiedArchive {
     catch { case _: UnsupportedOperationException => () }
   }
 
-  private def readAll(input: InputStream): Array[Byte] = {
-    val output = new java.io.ByteArrayOutputStream()
-    val buffer = new Array[Byte](BufferSize)
-    Iterator.continually(input.read(buffer)).takeWhile(_ >= 0).foreach(count => output.write(buffer, 0, count))
+  private def readLinkTarget(input: InputStream, budget: ExtractionBudget): Array[Byte] = {
+    val output      = new java.io.ByteArrayOutputStream()
+    val buffer      = new Array[Byte](BufferSize)
+    var targetBytes = 0
+    Iterator.continually(input.read(buffer)).takeWhile(_ >= 0).foreach { count =>
+      if (count > 0) {
+        targetBytes += count
+        budget.checkLinkTargetBytes(targetBytes)
+        budget.recordBytes(count)
+        output.write(buffer, 0, count)
+      }
+    }
     output.toByteArray
   }
 
