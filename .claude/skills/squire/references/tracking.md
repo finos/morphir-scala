@@ -31,26 +31,26 @@ at all.
 
 ```bash
 # Resolved mode and full state as JSON
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracking-status.py
+${CLAUDE_PLUGIN_ROOT}/squire tracking status
 
 # Just the mode, for scripting
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracking-status.py --quiet
+${CLAUDE_PLUGIN_ROOT}/squire tracking status --quiet
 
 # Exit-code check (0 = matches, 1 = doesn't)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracking-status.py --check beads
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracking-status.py --check off
+${CLAUDE_PLUGIN_ROOT}/squire tracking status --check beads
+${CLAUDE_PLUGIN_ROOT}/squire tracking status --check off
 
 # Re-apply the repo-owned pointer to AGENTS.md / CLAUDE.md
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracking-guidance.py           # apply
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracking-guidance.py --check   # report drift, exit 1 if any
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracking-guidance.py --diff    # preview, write nothing
+${CLAUDE_PLUGIN_ROOT}/squire tracking sync           # apply
+${CLAUDE_PLUGIN_ROOT}/squire tracking sync --check   # report drift, exit 1 if any
+${CLAUDE_PLUGIN_ROOT}/squire tracking sync --diff    # preview, write nothing
 ```
 
 From a plain shell (CI, a terminal, a mise task) use the stable in-repo path instead —
 `${CLAUDE_PLUGIN_ROOT}` is only populated when Claude itself issues the command:
 
 ```bash
-python3 .claude/skills/squire/scripts/tracking-status.py --quiet
+.claude/skills/squire/squire tracking status --quiet
 ```
 
 ## `/squire tracking status`
@@ -148,13 +148,13 @@ script deliberately does not normalise whitespace elsewhere in the file, so the 
 hunk per file and doesn't churn unrelated content.
 
 **When to invoke:** after anyone runs `bd init` or `bd setup <editor>` in this repo, or when
-`tracking-status.py` reports non-empty `guidance_drift`. `--check` is suitable for a pre-commit hook
+`tracking status` reports non-empty `guidance_drift`. `--check` is suitable for a pre-commit hook
 or CI step if we ever want the drift enforced rather than just detected.
 
 ## `/squire tracking doctor`
 
-There is no separate doctor script — `tracking-status.py` already reports everything diagnosable, and
-`tracking-guidance.py --check` covers the one repairable drift. Treat "doctor" as: run status, read
+`tracking doctor` combines the same typed status report and guidance check used by the other tracking commands.
+Treat "doctor" as: run status, read
 `warning` and `guidance_drift`, and act on them.
 
 Known issues and their fixes:
@@ -163,7 +163,7 @@ Known issues and their fixes:
 |---|---|---|
 | `effective_mode: unavailable`, `bd.installed: false` | `bd` not on `PATH` | Install beads, or set `tracking.mode: off` to opt out deliberately |
 | `warning` about `mode: beads` but unavailable | Config asks for beads, environment can't provide it | Install `bd`, or change the mode |
-| `guidance_drift` non-empty | `bd init`/`bd setup` re-added its own block | `python3 …/tracking-guidance.py` |
+| `guidance_drift` non-empty | `bd init`/`bd setup` re-added its own block | `squire tracking sync` |
 | `bd setup claude --check` says "no beads section found" while a block is present | bd's check looks for a different marker than `bd init` writes | Harmless. Do not "fix" it by running `bd setup claude` — that appends a second block. Run `tracking sync` instead |
 | Issue changes invisible to teammates | `bd dolt push` not run | Run it; `git push` does not carry issue data |
 | `bd ready`/`bd list` empty on a fresh clone | Issue data lives on the Dolt remote, not in the checkout | `bd dolt pull` |

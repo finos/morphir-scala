@@ -19,17 +19,17 @@ was squash-merged and its merge commit is visible on `origin/main`:
 
 ```bash
 # Prove that develop can be refreshed, without pushing.
-python3 .claude/skills/squire/scripts/branch-refresh.py --dry-run
+.claude/skills/squire/squire branch refresh --dry-run
 
 # Repeat the proof and refresh develop.
-python3 .claude/skills/squire/scripts/branch-refresh.py
+.claude/skills/squire/squire branch refresh
 ```
 
 For another target branch, supply the `--target` parameter:
 
 ```bash
-python3 .claude/skills/squire/scripts/branch-refresh.py --dry-run --target <branch>
-python3 .claude/skills/squire/scripts/branch-refresh.py --target <branch>
+.claude/skills/squire/squire branch refresh --dry-run --target <branch>
+.claude/skills/squire/squire branch refresh --target <branch>
 ```
 
 `--dry-run` performs every fetch and safety check but never pushes. It therefore
@@ -39,7 +39,7 @@ and SHAs.
 
 ## Safety proof
 
-Before changing the remote target branch, the script:
+Before changing the remote target branch, Squire:
 
 1. Validates the target branch name and refuses `main` as the target.
 2. Explicitly fetches the authoritative `origin/main` and `origin/<target>`
@@ -55,11 +55,11 @@ Before changing the remote target branch, the script:
    `--force-with-lease` push whose lease expects the validated target SHA and
    whose source is the validated `origin/main` tracking ref.
 
-Squash merge is a maintainer workflow precondition, not something the script
+Squash merge is a maintainer workflow precondition, not something Squire
 can prove. The GitHub fields it queries identify a merged PR, its `headRefOid`,
 and its merge commit, but do not distinguish squash from other merge methods.
 The operator must confirm the PR was squash-merged before running the command;
-the script then proves the exact target-head match and merge-commit reachability
+Squire then proves the exact target-head match and merge-commit reachability
 described above.
 
 The resulting push has this exact shape:

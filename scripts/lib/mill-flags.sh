@@ -32,9 +32,9 @@ mill_flags() {
     return
   fi
 
-  probe_script=".claude/skills/squire/scripts/ai-env-info.py"
-  if command -v python3 >/dev/null 2>&1 && [ -f "${probe_script}" ] \
-      && python3 "${probe_script}" --check jvm-network >/dev/null 2>&1; then
+  squire_launcher=".claude/skills/squire/squire"
+  if [ -x "${squire_launcher}" ] \
+      && "${squire_launcher}" ai env info --check jvm-network >/dev/null 2>&1; then
     echo ""
   else
     # No probe available, or it reported (or failed to rule out) a blocked

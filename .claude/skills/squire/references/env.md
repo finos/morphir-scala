@@ -13,24 +13,23 @@ Claude settings (managed/user/project/project-local) and varies per session.
 
 ```bash
 # Full structured report
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/ai-env-info.py
+${CLAUDE_PLUGIN_ROOT}/squire ai env info
 
 # Single check, exit-code only (0 = ok, 1 = blocked) — for shell scripting
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/ai-env-info.py --check jvm-network
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/ai-env-info.py --check python-network
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/ai-env-info.py --check var-folders
+${CLAUDE_PLUGIN_ROOT}/squire ai env info --check jvm-network
+${CLAUDE_PLUGIN_ROOT}/squire ai env info --check var-folders
 
-# Bound the live probes (default 8s)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/ai-env-info.py --timeout 15
+# Bound the live probe (default 8s)
+${CLAUDE_PLUGIN_ROOT}/squire ai env info --timeout 15
 ```
 
-From project shell scripts (mise tasks, `morphir-local`), the script is called by
+From project shell scripts (Mise tasks, `morphir-local`), the launcher is called by
 its stable in-repo path rather than `${CLAUDE_PLUGIN_ROOT}` (that variable is only
 populated when Claude itself issues the command; plain shell scripts run
 independently of Claude, e.g. from a terminal or CI):
 
 ```bash
-python3 .claude/skills/squire/scripts/ai-env-info.py --check jvm-network
+.claude/skills/squire/squire ai env info --check jvm-network
 ```
 
 `scripts/lib/mill-flags.sh` wraps this for mill's daemon-vs-`--no-server` decision
@@ -44,7 +43,6 @@ python3 .claude/skills/squire/scripts/ai-env-info.py --check jvm-network
   "claude_code": { "detected": true, "entrypoint": "cli", "session_id": "...", "child_session": true },
   "ci": false,
   "checks": {
-    "python_network": { "ok": true, "detail": "...", "duration_s": 0.0 },
     "jvm_network":    { "ok": true, "detail": "...", "duration_s": 0.3 },
     "var_folders_writable": { "ok": false, "detail": "PermissionError: ..." }
   },
@@ -73,20 +71,11 @@ python3 .claude/skills/squire/scripts/ai-env-info.py --check jvm-network
 
 ## Why a live probe and not just settings
 
-`check-mill-daemon.py` already documents the core gotcha this project has hit
-repeatedly: **Python socket success does not guarantee JVM `java.net.Socket`
-success** — they take different OS-level paths, and a sandbox profile can block
-one while allowing the other. So `ai-env-info.py` runs both:
-
-- `python_network` — stdlib `socket` loopback bind+accept+connect.
-- `jvm_network` — the same probe, but as a self-contained single-file Java
-  program (`java Probe.java`, JEP 330 — no `javac`/build step needed), run under
-  `timeout` so a sandbox-induced hang (not just a fast `EPERM`) still resolves in
-  bounded time instead of hanging the caller forever.
-
-Both are fresh, self-contained, and clean up after themselves — no daemon is
-left running, unlike probing via a real `./mill` invocation. Cheap enough
-(~0.3–2s normally) to run on every call; no caching.
+Squire probes `jvm_network` with the same JVM socket mechanism Mill uses, so the
+result answers the actual daemon-connectivity question instead of inferring it
+from an unrelated runtime. The probe is fresh, bounded by `--timeout`, and
+closes its sockets before returning; no daemon is left running and no result is
+cached between calls.
 
 ## `scripts/lib/mill-flags.sh`
 

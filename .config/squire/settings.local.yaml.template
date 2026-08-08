@@ -33,6 +33,6 @@ tracking:
   # that agents and scripts read, and it is gitignored, so it affects only you.
   #
   # Check what took effect:
-  #   python3 .claude/skills/squire/scripts/tracking-status.py
+  #   .claude/skills/squire/squire tracking status
   #
   # mode: auto

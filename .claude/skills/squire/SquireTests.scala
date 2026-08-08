@@ -13,6 +13,149 @@ import kyo.*
 import kyo.test.*
 import scala.jdk.CollectionConverters.*
 
+object SquireCiPolicy:
+  val SupportedBranches = List("main", "0.4.x", "develop")
+  val PublishPredicate  =
+    "github.repository == 'finos/morphir-scala' && " +
+      "(github.ref == 'refs/heads/main' || " +
+      "github.ref == 'refs/heads/0.4.x' || " +
+      "github.ref == 'refs/heads/develop' || " +
+      "startsWith(github.ref, 'refs/tags/'))"
+  val CachePredicate =
+    "github.ref == 'refs/heads/main' || " +
+      "github.ref == 'refs/heads/0.4.x' || " +
+      "github.ref == 'refs/heads/develop' || " +
+      "startsWith(github.ref, 'refs/tags/')"
+  val SnapshotCommands = List(
+    "echo \"MORPHIR_PUBLISH_MODE=snapshot\" >> \"$GITHUB_ENV\"",
+    "echo \"MORPHIR_PUBLISH_BRANCH=${GITHUB_REF_NAME}\" >> \"$GITHUB_ENV\""
+  )
+
+  private def fail(message: String): Nothing = throw new AssertionError(message)
+
+  private def expect(condition: Boolean, message: String): Unit =
+    if !condition then fail(message)
+
+  private def leadingSpaces(line: String): Int = line.length - line.dropWhile(_ == ' ').length
+
+  def indentedBlock(text: String, header: String, indent: Int): String =
+    val lines          = text.linesIterator.toList
+    val expectedHeader = " " * indent + header
+    val start          = lines.indexWhere(_ == expectedHeader)
+    if start < 0 then fail(s"missing block: $header")
+    lines.drop(start + 1).takeWhile(line => line.trim.isEmpty || leadingSpaces(line) > indent).mkString("\n")
+
+  def inlineList(block: String, key: String): List[String] =
+    val value = block.linesIterator.map(_.trim).find(_.startsWith(s"$key:")).map(_.drop(key.length + 1).trim)
+      .getOrElse(fail(s"missing inline list: $key"))
+    expect(value.startsWith("[") && value.endsWith("]"), s"invalid inline list: $key")
+    value.drop(1).dropRight(1).split(',').iterator.map(_.trim.stripPrefix("\"").stripSuffix("\"")
+      .stripPrefix("'").stripSuffix("'")).filter(_.nonEmpty).toList
+
+  def scalar(block: String, key: String): String =
+    block.linesIterator.map(_.trim).find(_.startsWith(s"$key:")).map(_.drop(key.length + 1).trim)
+      .getOrElse(fail(s"missing scalar: $key"))
+
+  def normalizeExpression(expression: String): String = expression.split("\\s+").filter(_.nonEmpty).mkString(" ")
+
+  def count(text: String, needle: String): Int =
+    Iterator.iterate(text.indexOf(needle)) { index =>
+      if index < 0 then -1 else text.indexOf(needle, index + needle.length)
+    }.takeWhile(_ >= 0).size
+
+  def replaceOnce(text: String, oldValue: String, newValue: String): String =
+    val index = text.indexOf(oldValue)
+    if index < 0 then fail(s"mutation target not found: $oldValue")
+    text.substring(0, index) + newValue + text.substring(index + oldValue.length)
+
+  def publishBlock(workflow: String): String =
+    expect(workflow.linesIterator.count(_ == "  publish:") == 1, "workflow must contain exactly one publish job")
+    indentedBlock(workflow, "publish:", 2)
+
+  def assertBranchPolicy(workflow: String): Unit =
+    val events = indentedBlock(workflow, "on:", 0)
+    List("pull_request:", "push:").foreach { event =>
+      val branches = inlineList(indentedBlock(events, event, 2), "branches")
+      expect(branches == SupportedBranches, s"$event branches were $branches")
+    }
+
+  def assertPublishPolicy(workflow: String): Unit =
+    val publish = publishBlock(workflow)
+    expect(scalar(publish, "needs") == "[ci]", "publish must depend only on aggregate ci")
+    expect(scalar(publish, "if") == PublishPredicate, "publish predicate does not match the release allowlist")
+    expect(
+      publish.linesIterator.count(_ == "      - name: Release") == 1,
+      "publish job must contain exactly one Release step"
+    )
+    val release = indentedBlock(publish, "- name: Release", 6)
+    expect(
+      count(release, "mise run publish:sonatype") == 1,
+      "Release step must contain the Sonatype publish invocation"
+    )
+    expect(
+      count(workflow, "mise run publish:sonatype") == 1,
+      "workflow must contain exactly one Sonatype publish invocation"
+    )
+
+  def assertSnapshotPolicy(workflow: String): Unit =
+    val publish  = publishBlock(workflow)
+    val snapshot = indentedBlock(publish, "- name: Configure develop snapshot version", 6)
+    expect(
+      scalar(snapshot, "if") == "github.ref == 'refs/heads/develop'",
+      "snapshot step must run only on develop"
+    )
+    val lines    = snapshot.linesIterator.toList
+    val runIndex = lines.indexWhere(_.trim == "run: |")
+    if runIndex < 0 then fail("snapshot step must have a literal run block")
+    val commands = lines.drop(runIndex + 1).takeWhile(line => line.trim.isEmpty || leadingSpaces(line) > 8)
+      .map(_.drop(10))
+    expect(commands == SnapshotCommands, s"unexpected snapshot commands: $commands")
+    expect(
+      publish.indexOf("- name: Configure develop snapshot version") < publish.indexOf("- name: Release"),
+      "snapshot configuration must precede Release"
+    )
+    List("MORPHIR_PUBLISH_MODE=snapshot", "MORPHIR_PUBLISH_BRANCH=${GITHUB_REF_NAME}").foreach { assignment =>
+      expect(count(workflow, assignment) == 1, s"snapshot assignment must occur exactly once: $assignment")
+    }
+
+  def assertCachePolicy(workflow: String): Unit =
+    List("test-js:" -> "Cache JS build output", "test-jvm:" -> "Cache JVM build output").foreach {
+      case (jobName, stepName) =>
+        val job       = indentedBlock(workflow, jobName, 2)
+        val step      = indentedBlock(job, s"- name: $stepName", 6)
+        val condition = scalar(step, "if")
+        expect(
+          normalizeExpression(condition) == normalizeExpression(CachePredicate),
+          s"$stepName has an unapproved condition: $condition"
+        )
+    }
+
+  def assertSquireCiPolicy(workflow: String): Unit =
+    val stepName = "Test Squire and release policy"
+    expect(
+      workflow.linesIterator.count(_ == s"      - name: $stepName") == 1,
+      s"workflow must contain exactly one $stepName step"
+    )
+    val lint        = indentedBlock(workflow, "lint:", 2)
+    val stepHeaders = lint.linesIterator.collect { case line if line.startsWith("      - ") => line.drop(8) }.toList
+    val lintIndex   = stepHeaders.indexOf("name: Lint code")
+    if lintIndex < 0 then fail("lint job must contain the Lint code step")
+    expect(
+      stepHeaders.slice(lintIndex + 1, lintIndex + 2) == List(s"name: $stepName"),
+      s"$stepName must immediately follow Lint code"
+    )
+    val step = indentedBlock(lint, s"- name: $stepName", 6)
+    expect(scalar(step, "run") == "mise run test:squire", s"$stepName must run mise run test:squire exactly")
+    expect(count(workflow, "mise run test:squire") == 1, "workflow must invoke test:squire exactly once")
+
+  def replaceInJob(workflow: String, jobName: String, oldValue: String, newValue: String): String =
+    val job = indentedBlock(workflow, jobName, 2)
+    if !job.contains(oldValue) then fail(s"mutation target not found in $jobName: $oldValue")
+    replaceOnce(workflow, job, replaceOnce(job, oldValue, newValue))
+
+  def rejects(validator: String => Unit, workflow: String): Boolean =
+    scala.util.Try(validator(workflow)).isFailure
+
 class SquireCliSpec extends Test[Any]:
   "commands" - {
     "expose the complete unified command tree" in {
@@ -297,6 +440,9 @@ class SquireMetaSpec extends Test[Any]:
       assert(
         registry == Set(
           "SquireCliSpec",
+          "SquireCiPolicySpec",
+          "SquireMisePolicySpec",
+          "SquireMigrationSpec",
           "SquireMetaSpec",
           "SquireModelSpec",
           "SquireProcessSpec",
@@ -309,6 +455,253 @@ class SquireMetaSpec extends Test[Any]:
           "SquireSchemasSpec",
           "SquireSpecSpec"
         )
+      )
+    }
+  }
+
+class SquireCiPolicySpec extends Test[Any]:
+  import SquireCiPolicy.*
+
+  private val skillDirectory = java.nio.file.Paths.get(java.lang.System.getProperty("user.dir"))
+  private val workflow       = Files.readString(
+    skillDirectory.resolve("../../../.github/workflows/ci.yml").normalize,
+    StandardCharsets.UTF_8
+  )
+
+  "hosted CI policy" - {
+    "targets the exact supported pull-request and push branches" in {
+      assertBranchPolicy(workflow)
+      assert(true)
+    }
+
+    "waits for aggregate CI and owns one guarded release path" in {
+      assertPublishPolicy(workflow)
+      assert(true)
+    }
+
+    "scopes the exact snapshot configuration to develop" in {
+      assertSnapshotPolicy(workflow)
+      assert(true)
+    }
+
+    "retains every release ref on the JS and JVM cache saves" in {
+      assertCachePolicy(workflow)
+      assert(true)
+    }
+
+    "runs Squire policy once immediately after lint" in {
+      assertSquireCiPolicy(workflow)
+
+      val policyStep =
+        "      - name: Test Squire and release policy\n" +
+          "        run: mise run test:squire\n"
+      val mutations = List(
+        "duplicate step"            -> replaceOnce(workflow, policyStep, policyStep + policyStep),
+        "unnamed intermediate step" -> replaceOnce(
+          workflow,
+          policyStep,
+          "      - run: echo intermediate\n" + policyStep
+        ),
+        "step in another job" -> (replaceOnce(workflow, policyStep, "") +
+          "\n  bypass-policy:\n" +
+          "    runs-on: ubuntu-latest\n" +
+          "    steps:\n" +
+          policyStep)
+      )
+      assert(mutations.forall((_, mutation) => rejects(assertSquireCiPolicy, mutation)))
+    }
+
+    "rejects representative branch snapshot and publish regressions" in {
+      val pushWithExtraBranch = replaceOnce(
+        workflow,
+        "  push:\n    branches: [\"main\", \"0.4.x\", \"develop\"]",
+        "  push:\n    branches: [\"main\", \"0.4.x\", \"develop\", \"feature\"]"
+      )
+      val broadSnapshotCondition = replaceOnce(
+        workflow,
+        "        if: github.ref == 'refs/heads/develop'\n        run: |",
+        "        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'\n        run: |"
+      )
+      val extraSnapshotWrite = replaceOnce(
+        workflow,
+        s"          ${SnapshotCommands(1)}",
+        s"          ${SnapshotCommands(1)}\n          echo EXTRA=true >> \"$$GITHUB_ENV\""
+      )
+      val duplicateSnapshotAssignment = workflow +
+        "\nenv:\n  DUPLICATE: \"MORPHIR_PUBLISH_MODE=snapshot\"\n"
+      val duplicatePublishPath = replaceOnce(
+        workflow,
+        "          mise run publish:sonatype",
+        "          mise run publish:sonatype\n          mise run publish:sonatype"
+      )
+      val unguardedPublishPath = replaceOnce(
+        workflow,
+        "          mise run publish:sonatype",
+        "          echo release command moved"
+      ) +
+        "\n  unguarded-publish:\n" +
+        "    runs-on: ubuntu-latest\n" +
+        "    steps:\n" +
+        "      - name: Bypass Release\n" +
+        "        run: mise run publish:sonatype\n"
+
+      val mutations = List(
+        (assertBranchPolicy, pushWithExtraBranch),
+        (assertSnapshotPolicy, broadSnapshotCondition),
+        (assertSnapshotPolicy, extraSnapshotWrite),
+        (assertSnapshotPolicy, duplicateSnapshotAssignment),
+        (assertPublishPolicy, duplicatePublishPath),
+        (assertPublishPolicy, unguardedPublishPath)
+      )
+      assert(mutations.forall((validator, mutation) => rejects(validator, mutation)))
+    }
+
+    "rejects every required cache predicate removed from either cache job" in {
+      val predicates = List(
+        "github.ref == 'refs/heads/main'",
+        "github.ref == 'refs/heads/0.4.x'",
+        "github.ref == 'refs/heads/develop'",
+        "startsWith(github.ref, 'refs/tags/')"
+      )
+      val mutations =
+        for
+          job       <- List("test-js:", "test-jvm:")
+          predicate <- predicates
+        yield replaceInJob(workflow, job, predicate, "false")
+      assert(mutations.forall(rejects(assertCachePolicy, _)))
+    }
+
+    "rejects disabled or broadened conditions on either cache job" in {
+      val conditions = List(s"false && ($CachePredicate)", s"($CachePredicate) || true")
+      val mutations  =
+        for
+          job       <- List("test-js:", "test-jvm:")
+          condition <- conditions
+        yield replaceInJob(workflow, job, CachePredicate, condition)
+      assert(mutations.forall(rejects(assertCachePolicy, _)))
+    }
+  }
+
+class SquireMisePolicySpec extends Test[Any]:
+  private val skillDirectory = Path(java.lang.System.getProperty("user.dir"))
+  private val repositoryRoot = skillDirectory / ".." / ".." / ".."
+  private val miseExecutable = Option(java.lang.System.getenv("SQUIRE_MISE_BIN")).filter(_.nonEmpty).getOrElse("mise")
+  private val expectedDependencies = List(
+    "setup",
+    "lint",
+    "test:squire",
+    "build:morphir-elm",
+    "test:jvm",
+    "test:js",
+    "test:native"
+  )
+
+  private def runMise(arguments: String*): ProcessResult < (Async & Abort[SquireError]) =
+    LiveProcessRunner.run(ProcessRequest(Chunk(miseExecutable) ++ Chunk.from(arguments), Present(repositoryRoot)))
+
+  private def stringField(json: String, name: String): String =
+    val pattern = ("\\\"" + java.util.regex.Pattern.quote(name) + "\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"").r
+    pattern.findFirstMatchIn(json).map(_.group(1)).getOrElse(throw new AssertionError(s"missing JSON field: $name"))
+
+  private def stringArray(json: String, name: String): List[String] =
+    val pattern = ("(?s)\\\"" + java.util.regex.Pattern.quote(name) + "\\\"\\s*:\\s*\\[(.*?)\\]").r
+    val body    = pattern.findFirstMatchIn(json).map(_.group(1))
+      .getOrElse(throw new AssertionError(s"missing JSON array: $name"))
+    "\\\"([^\\\"]+)\\\"".r.findAllMatchIn(body).map(_.group(1)).toList
+
+  "Mise task policy" - {
+    "resolves Squire metadata and the exact local CI dependency list" in {
+      for
+        ciInfo     <- runMise("task", "info", "ci:local", "--json")
+        squireInfo <- runMise("task", "info", "test:squire", "--json")
+        dryRun     <- runMise("run", "--dry-run", "ci:local")
+      yield assert(
+        ciInfo.exitCode == 0 && squireInfo.exitCode == 0 && dryRun.exitCode == 0 &&
+          stringArray(ciInfo.stdout, "depends") == expectedDependencies &&
+          stringField(ciInfo.stdout, "description") == "Run the core CI workflow locally" &&
+          stringField(squireInfo.stdout, "description") == "Test Squire commands and build/release policy" &&
+          (dryRun.stdout + dryRun.stderr).contains("test:squire")
+      )
+    }
+  }
+
+class SquireMigrationSpec extends Test[Any]:
+  private val skillDirectory      = java.nio.file.Paths.get(java.lang.System.getProperty("user.dir"))
+  private val repositoryRoot      = skillDirectory.resolve("../../..").normalize
+  private val maintainedConsumers = List(
+    ".claude/skills/squire/SKILL.md",
+    ".claude/skills/squire/README.md",
+    ".claude/skills/squire/references/branch.md",
+    ".claude/skills/squire/references/cellar.md",
+    ".claude/skills/squire/references/doctor.md",
+    ".claude/skills/squire/references/env.md",
+    ".claude/skills/squire/references/repo.md",
+    ".claude/skills/squire/references/spec-sync.md",
+    ".claude/skills/squire/references/tracking.md",
+    ".config/mise/tasks/test/squire",
+    ".config/mise/tasks/schemas/build",
+    ".config/mise/tasks/schemas/check",
+    ".config/mise/tasks/ci/local",
+    ".config/mise/config.toml",
+    ".config/squire/settings.local.yaml.template",
+    ".github/workflows/ci.yml",
+    "scripts/lib/mill-flags.sh",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "CONTRIBUTING.md",
+    "docs/task-tracking.md",
+    "kb/bundles/morphir/morphir-ir-v4-draft/schema-conformance.md"
+  )
+
+  "migration completeness" - {
+    "removes every Python and TypeScript implementation and test from Squire" in {
+      val stream      = Files.walk(skillDirectory)
+      val legacyFiles =
+        try stream.iterator.asScala.filter { path =>
+            val rendered = path.toString
+            rendered.endsWith(".py") || rendered.endsWith(".ts")
+          }.map(skillDirectory.relativize).map(_.toString).toList.sorted
+        finally stream.close()
+      if legacyFiles.nonEmpty then
+        throw new AssertionError(s"legacy Squire files remain: ${legacyFiles.mkString(", ")}")
+      assert(legacyFiles.isEmpty)
+    }
+
+    "routes every maintained consumer through the unified launcher" in {
+      val maintainedConsumerText = maintainedConsumers.map { relative =>
+        relative -> Files.readString(repositoryRoot.resolve(relative), StandardCharsets.UTF_8)
+      }
+      val stale = List(
+        "python3 .claude/skills/squire",
+        "${CLAUDE_PLUGIN_ROOT}/scripts/",
+        "bun .claude/skills/squire",
+        "schemas-to-json.ts"
+      ).flatMap { token =>
+        maintainedConsumerText.collect { case (path, text) if text.contains(token) => s"$path: $token" }
+      }
+      if stale.nonEmpty then throw new AssertionError(s"stale Squire invocations remain: ${stale.mkString(", ")}")
+      assert(
+        !maintainedConsumerText.exists(_._2.contains("python3 .claude/skills/squire")) &&
+          !maintainedConsumerText.exists(_._2.contains("${CLAUDE_PLUGIN_ROOT}/scripts/")) &&
+          !maintainedConsumerText.exists(_._2.contains("bun .claude/skills/squire")) &&
+          !maintainedConsumerText.exists(_._2.contains("schemas-to-json.ts"))
+      )
+    }
+
+    "keeps the documented schema parity command on the compare parser" in {
+      val evidence = Files.readString(
+        repositoryRoot.resolve("kb/bundles/morphir/morphir-ir-v4-draft/schema-conformance.md"),
+        StandardCharsets.UTF_8
+      )
+      val documentedSource = ".refs/finos/morphir/website/static/schemas"
+      val parsed           = Parser[SchemasCompareOpts].parse(Seq("--from", documentedSource))
+      assert(
+        evidence.contains(
+          s"`.claude/skills/squire/squire schemas compare --from $documentedSource`"
+        ) &&
+          !evidence.contains("schemas build --check") &&
+          parsed == Right((SchemasCompareOpts(from = Some(documentedSource)), Seq.empty)) &&
+          SquireApp.SchemasCompareCmd.names.contains(List("schemas", "compare"))
       )
     }
   }

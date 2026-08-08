@@ -6,32 +6,24 @@ Full catalogue of known environment blockers and the step-by-step diagnostic pro
 
 ## Diagnostic Workflow
 
-Run these checks in order and report each as ✅ (no action needed) or ⚠️ (blocker present) with the specific fix to apply.
+Run the unified diagnostic and report each finding as ✅ (no action needed) or ⚠️ (blocker present) with the specific fix to apply:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/squire doctor
+```
 
 ### 1. Mill daemon TCP connectivity
 
-```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-mill-daemon.py
-```
-
-- `PORT_OPEN` → daemon port responds to Python. **This does not guarantee JVM socket success** — the sandbox may still block `java.net.Socket`. If `./mill` subsequently fails with `Operation not permitted`, follow [Mill daemon blocked](#1-mill-daemon-tcp-socket-blocked-sandbox).
-- `SANDBOX` → both Python and JVM sockets blocked; use `--no-server`.
+- `PORT_OPEN` → daemon port responds to the same JVM socket mechanism Mill uses.
+- `SANDBOX` → the JVM socket is blocked; use `--no-server`.
 - `REFUSED` or `NO_DAEMON` → daemon not running; plain `./mill` will start one, or use `./morphir-local`.
 
 ### 2. `/var/folders` write access (cellar)
-
-```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-var-folders.py
-```
 
 - `OK` → cellar can write temp files.
 - `BLOCKED` → see [cellar temp file error](#3-cellar-temp-file-permission-error).
 
 ### 3. Project configuration checks
-
-```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-project-config.py
-```
 
 Checks elm-tooling guard, `mainClass` Task wrapper, and `/var/folders` writability in one pass.
 `ISSUE` lines identify which fixes are needed.

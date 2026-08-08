@@ -1,4 +1,7 @@
 SquireCliSpec
+SquireCiPolicySpec
+SquireMisePolicySpec
+SquireMigrationSpec
 SquireMetaSpec
 SquireModelSpec
 SquireProcessSpec

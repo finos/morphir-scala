@@ -1,9 +1,9 @@
 ---
 name: squire
 description: "Use when morphir-scala work needs environment diagnostics or build/network/sandbox unblocking; reference repository management; branch lifecycle refresh after squash-merging a target branch into main; Morphir IR spec/schema sync or export; or task-tracking configuration and beads mode resolution."
-allowed-tools: Bash(cat *), Bash(ls *), Bash(find *), Bash(python3 *), Bash(git *), Bash(gh *), Read, Edit, Write
+allowed-tools: Bash(cat *), Bash(ls *), Bash(find *), Bash(git *), Bash(gh *), Bash(.claude/skills/squire/squire *), Read, Edit, Write
 metadata:
-  version: 0.5.0
+  version: 0.6.0
 ---
 
 # Squire — morphir-scala Dev Environment Assistant
@@ -14,7 +14,7 @@ Squire diagnoses and unblocks development environment issues, manages reference 
 
 ### `/squire ai env info`
 
-Reports whether the current session is actually sandboxed (JVM/Python network sockets, `/var/folders` writes) as structured JSON — live-probed, not guessed from `CLAUDE_CODE_*` env vars. Other skills and build scripts (mill task wrappers, etc.) can consume this instead of assuming "running under Claude Code" implies restricted.
+Reports whether the current session is actually sandboxed (JVM network sockets and `/var/folders` writes) as structured JSON — live-probed, not guessed from `CLAUDE_CODE_*` env vars. Other skills and build scripts (Mill task wrappers, etc.) can consume this instead of assuming "running under Claude Code" implies restricted.
 
 Read the full reference before running:
 → [references/env.md](references/env.md)
@@ -85,14 +85,14 @@ Generates the Morphir IR JSON schemas from the YAML the knowledge base mirrors, 
 ```bash
 mise run schemas:build     # YAML → JSON, into .dev/out/squire/schemas/
 mise run schemas:check     # metaschema conformance, then validate every mirrored v4 document
-bun .claude/skills/squire/scripts/schemas-to-json.ts --from <dir> --check
+.claude/skills/squire/squire schemas compare --from <dir>
 ```
 
 The knowledge base mirrors the YAML only. Upstream generates the `.json` siblings with
 `website/scripts/yaml-to-json-schemas.js`, which runs during its Netlify build and nowhere else — so nothing verifies
-the committed JSON still matches the YAML, and the generator cannot run in a checkout without `npm install`. This
-reproduces that generator exactly, using bun's native YAML parsing, with no dependencies; `--check` is the
-verification upstream lacks, and `spec export` runs it.
+the committed JSON still matches the YAML, and the generator cannot run in a checkout without `npm install`. The
+Scala implementation reproduces that generator exactly using Kyo YAML, with no Node or Bun runtime dependency;
+`schemas compare` is the verification upstream lacks, and `spec export` runs it.
 
 Two things it deliberately does not do. It does not reformat: byte-identical output is what stops the next Netlify
 deploy rewriting whatever we send, and none of upstream's committed JSON is canonical by `jsonschema fmt` anyway. And

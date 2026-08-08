@@ -27,7 +27,7 @@ Keep it that way. A rule that only makes sense for Morphir belongs here. A capab
 Both halves need a checkout of upstream at `.refs/finos/morphir`. Morphir is a large repository and the mirror maps four subtrees of it, so clone it sparsely:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/finos/morphir \
+${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/finos/morphir \
   --sparse docs website tests/bdd wit
 ```
 
@@ -36,7 +36,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/finos/morph
 - `tests/bdd/` — the fixtures and feature files that are the executable ground truth
 - `wit/` — the IR expressed as WebAssembly Interface Types
 
-See [repo.md](repo.md) for what `--sparse` does. `spec-sync.py` prints this exact command and stops if the checkout is missing.
+See [repo.md](repo.md) for what `--sparse` does. `spec sync` prints this exact command and stops if the checkout is missing.
 
 **Keep the sparse set at least as wide as the manifest.** These paths are the top-level roots of every glob in the bundle's `sync.yaml`; add a mapping there and this set has to grow with it. A file that is mapped but not checked out is indistinguishable from a file upstream deleted, so it reports as `deleted-upstream` — and `--prune` acts on that. `spec sync` warns when the checkout is narrower than it expects, and refuses outright to run `--prune` in that state. Widen an existing checkout with:
 
@@ -50,19 +50,19 @@ git -C .refs/finos/morphir sparse-checkout set docs website tests/bdd wit
 
 ```bash
 # Ordinary import from main
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/spec-sync.py
+${CLAUDE_PLUGIN_ROOT}/squire spec sync
 
 # See what would happen, touching nothing
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/spec-sync.py --dry-run
+${CLAUDE_PLUGIN_ROOT}/squire spec sync --dry-run
 
 # Import from a tag or branch
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/spec-sync.py --ref v4-draft
+${CLAUDE_PLUGIN_ROOT}/squire spec sync --ref v4-draft
 
 # Take upstream's side of files edited on both sides, and drop files upstream deleted
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/spec-sync.py --theirs --prune
+${CLAUDE_PLUGIN_ROOT}/squire spec sync --theirs --prune
 
 # Use the checkout exactly as it stands
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/spec-sync.py --no-fetch
+${CLAUDE_PLUGIN_ROOT}/squire spec sync --no-fetch
 ```
 
 Five steps, each reported, any of which aborts the run non-zero:
@@ -81,16 +81,16 @@ Five steps, each reported, any of which aborts the run non-zero:
 
 ```bash
 # Project local edits into the reference checkout on a review branch
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/spec-export.py
+${CLAUDE_PLUGIN_ROOT}/squire spec export
 
 # See what would be written and which validators would run
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/spec-export.py --dry-run
+${CLAUDE_PLUGIN_ROOT}/squire spec export --dry-run
 
 # Export into some other morphir checkout — a fork you already have a remote on
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/spec-export.py --to ~/code/github/me/morphir
+${CLAUDE_PLUGIN_ROOT}/squire spec export --to ~/code/github/me/morphir
 
 # Also send files that moved upstream since the last import (reconcile them first)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/spec-export.py --include-diverged
+${CLAUDE_PLUGIN_ROOT}/squire spec export --include-diverged
 ```
 
 Four steps:
@@ -102,7 +102,7 @@ Four steps:
    - `jsonschema fmt --check website/static/schemas/`
    - `jsonschema lint website/static/schemas/*.yaml`
    - `jsonschema metaschema website/static/schemas/*.yaml`
-   - `schemas-to-json.ts --check` — the YAML↔JSON sync check upstream does not have
+   - `squire schemas compare --from website/static/schemas` — the YAML↔JSON sync check upstream does not have
 4. **status** — `git status --short` in the checkout, and stop.
 
 **A validator blames only what the export touched.** Upstream's GitHub Actions runs none of these, so schemas arrive
@@ -113,10 +113,10 @@ only teach people to route around the gauntlet.
 
 Two notes on the schema tooling. `jsonschema fmt` refuses YAML input in 16.3.0, and every schema upstream keeps is
 YAML, so that first validator currently always skips — which also means upstream's own `fmt:schema` task and the
-`.husky/pre-push` hook gating on it cannot be doing what they appear to. And the last validator replaces
-`node scripts/yaml-to-json-schemas.js`: that generator needs `js-yaml`, a devDependency no sparse reference checkout
-will have installed. `schemas-to-json.ts` reproduces it exactly using bun's native YAML parsing — verified
-byte-for-byte against upstream's committed output — so the check runs everywhere.
+`.husky/pre-push` hook gating on it cannot be doing what they appear to. The last validator reproduces
+`node scripts/yaml-to-json-schemas.js` in Scala using Kyo YAML. The upstream generator needs `js-yaml`, a
+devDependency no sparse reference checkout will have installed; Squire's in-process comparison is verified
+byte-for-byte against upstream's committed output and runs without a Node or Bun runtime.
 
 **It does not commit and it does not push.** The contribution is the human's, made under their FINOS CLA, and only they can judge whether what landed in the checkout is what they meant to send.
 

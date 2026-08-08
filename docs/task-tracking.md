@@ -197,7 +197,7 @@ lands in a commit or affects anyone else.
 Check it took effect:
 
 ```bash
-python3 .claude/skills/squire/scripts/tracking-status.py
+.claude/skills/squire/squire tracking status
 ```
 
 `effective_mode` should read `off`. With tracking off, agents must fall back to their own
@@ -216,7 +216,7 @@ agents and scripts read, not a lock.
 
 ## Guidance for AI agents
 
-**Resolve the mode before tracking anything.** Run `/squire tracking status` (or the script directly)
+**Resolve the mode before tracking anything.** Run `/squire tracking status` (or the in-repo launcher directly)
 and act on `effective_mode`:
 
 - **`beads`** — use `bd` for work that outlives the session: multi-step tasks, anything with
