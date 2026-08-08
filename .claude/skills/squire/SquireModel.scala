@@ -67,8 +67,32 @@ object SquirePaths:
     child.parts.take(base.parts.size) == base.parts
 
   def resolveUnder(candidate: Path, base: Path): Result[SquireError, Path] =
-    if isUnder(candidate, base) then Result.Success(candidate)
-    else Result.Failure(SquireError.Failure("path", "path escapes its configured base"))
+    try
+      val baseReal                        = base.toJava.toRealPath()
+      val (existingAncestor, missingTail) = nearestExisting(candidate.toJava.toAbsolutePath.normalize)
+      val candidateAncestorReal           = existingAncestor.toRealPath()
+      if candidateAncestorReal.startsWith(baseReal) then
+        val resolved = missingTail.foldLeft(candidateAncestorReal)(_.resolve(_))
+        Result.Success(Path(resolved.toString))
+      else pathEscapeFailure
+    catch
+      case error: java.io.IOException =>
+        Result.Failure(SquireError.Failure("path", "could not resolve path under configured base", Present(error.getMessage)))
+
+  private def nearestExisting(path: java.nio.file.Path): (java.nio.file.Path, List[java.nio.file.Path]) =
+    @scala.annotation.tailrec
+    def loop(current: java.nio.file.Path, missing: List[java.nio.file.Path]): (java.nio.file.Path, List[java.nio.file.Path]) =
+      if java.nio.file.Files.exists(current) then (current, missing)
+      else if java.nio.file.Files.exists(current, java.nio.file.LinkOption.NOFOLLOW_LINKS) then
+        throw java.nio.file.NoSuchFileException(current.toString, null, "path contains a dangling symbolic link")
+      else
+        Option(current.getParent) match
+          case Some(parent) => loop(parent, current.getFileName :: missing)
+          case None         => throw java.nio.file.NoSuchFileException(current.toString)
+    loop(path, Nil)
+
+  private def pathEscapeFailure: Result[SquireError, Path] =
+    Result.Failure(SquireError.Failure("path", "path escapes its configured base"))
 
   def findRepoRoot(from: Path): Maybe[Path] < Sync =
     def loop(path: Path): Maybe[Path] < Sync =

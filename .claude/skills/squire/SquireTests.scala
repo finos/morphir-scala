@@ -86,6 +86,18 @@ class SquireModelSpec extends Test[Any]:
         SquireJson.pretty(value) == "{\n  \"z\": \"line\\n\\\"quoted\\\"\",\n  \"a\": [\n    1,\n    true\n  ]\n}\n"
       )
     }
+
+    "rejects Bytes as non-deterministic JSON" in {
+      assert(isRejectedAsNonDeterministicJson(Structure.Value.Bytes(Span.from(Array[Byte](1, 2, 3)))))
+    }
+
+    "rejects Instant as non-deterministic JSON" in {
+      assert(isRejectedAsNonDeterministicJson(Structure.Value.Instant(java.time.Instant.EPOCH)))
+    }
+
+    "rejects Duration as non-deterministic JSON" in {
+      assert(isRejectedAsNonDeterministicJson(Structure.Value.Duration(java.time.Duration.ZERO)))
+    }
   }
 
   "paths" - {
@@ -94,7 +106,30 @@ class SquireModelSpec extends Test[Any]:
       val sibling = Path("/tmp/squire-path-test/.refs-escaped/repo")
       assert(SquirePaths.resolveUnder(sibling, base).isFailure)
     }
+
+    "resolveUnder rejects an in-base symlink that escapes" in {
+      for
+        root    <- SquireFixtures.scratch("path")
+        base    = root / ".refs"
+        outside = root / "outside"
+        link    = base / "link-outside"
+        _ <- Sync.defer {
+          Files.createDirectories(base.toJava)
+          Files.createDirectories(outside.toJava)
+          Files.createSymbolicLink(link.toJava, outside.toJava)
+        }
+        result = SquirePaths.resolveUnder(link / "repo", base)
+      yield assert(result.isFailure)
+    }
   }
+
+  private def isRejectedAsNonDeterministicJson(value: Structure.Value): Boolean =
+    try
+      SquireJson.pretty(value)
+      false
+    catch
+      case SquireError.Failure(area, message, _) =>
+        area == "json" && message == "value cannot be represented as deterministic JSON"
 
 class SquireProcessSpec extends Test[Any]:
   "process runner" - {
@@ -106,14 +141,25 @@ class SquireProcessSpec extends Test[Any]:
     }
 
     "live runner captures stdout and stderr separately" in {
+      val outputBytes = 128 * 1024
       for
         root   <- SquireFixtures.scratch("process")
         source = root / "ProcessProbe.java"
         _ <- source.write(
-          "class ProcessProbe { public static void main(String[] a) { System.out.print(\"out\"); System.err.print(\"err\"); System.exit(7); } }"
+          s"class ProcessProbe { public static void main(String[] a) { String out = \"o\".repeat($outputBytes); String err = \"e\".repeat($outputBytes); System.out.print(out); System.err.print(err); System.exit(7); } }"
         )
-        result <- LiveProcessRunner.run(ProcessRequest(Chunk(SquireFixtures.javaExecutable, SquirePaths.render(source))))
-      yield assert(result.exitCode == 7 && result.stdout == "out" && result.stderr == "err")
+        outcome <- Abort.run[SquireError | Timeout](
+          Async.timeout(5.seconds)(
+            LiveProcessRunner.run(ProcessRequest(Chunk(SquireFixtures.javaExecutable, SquirePaths.render(source))))
+          )
+        )
+        result = outcome match
+          case Result.Success(value) =>
+            value.exitCode == 7 &&
+              value.stdout == "o".repeat(outputBytes) &&
+              value.stderr == "e".repeat(outputBytes)
+          case Result.Failure(_) => false
+      yield assert(result)
     }
   }
 
