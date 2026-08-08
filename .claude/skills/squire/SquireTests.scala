@@ -170,25 +170,40 @@ class SquireCliSpec extends Test[Any]:
       import SquireTrackingFixtures.*
       for
         root <- SquireFixtures.scratch("tracking-cli")
-        _ <- beads(root)
-        _ <- Sync.defer {
+        _    <- beads(root)
+        _    <- Sync.defer {
           Files.writeString((root / "AGENTS.md").toJava, SquireTracking.pointer + "\n")
           Files.writeString((root / "CLAUDE.md").toJava, SquireTracking.pointer + "\n")
         }
         statusOutput = new StringBuilder
         status <- SquireCli.runTrackingStatus(
-          TrackingStatusOpts(quiet = true), root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")), value => statusOutput.append(value)
+          TrackingStatusOpts(quiet = true),
+          root,
+          runner(gitShared, bdVersion),
+          TestSquirePlatform(Present("bd")),
+          value => statusOutput.append(value)
         )
         checkOutput = new StringBuilder
         check <- SquireCli.runTrackingStatus(
-          TrackingStatusOpts(check = Some("off")), root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")), value => checkOutput.append(value)
+          TrackingStatusOpts(check = Some("off")),
+          root,
+          runner(gitShared, bdVersion),
+          TestSquirePlatform(Present("bd")),
+          value => checkOutput.append(value)
         )
         syncOutput = new StringBuilder
         sync <- SquireCli.runTrackingSync(TrackingSyncOpts(check = true), root, value => syncOutput.append(value))
         doctorOutput = new StringBuilder
-        doctor <- SquireCli.runTrackingDoctor(root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")), value => doctorOutput.append(value))
+        doctor <- SquireCli.runTrackingDoctor(
+          root,
+          runner(gitShared, bdVersion),
+          TestSquirePlatform(Present("bd")),
+          value => doctorOutput.append(value)
+        )
       yield assert(status == 0 && statusOutput.result() == "beads\n" && check == 1 && checkOutput.isEmpty &&
-        sync == 0 && syncOutput.result().contains("OK - AGENTS.md") && doctor == 0 && doctorOutput.result().contains("guidance"))
+        sync == 0 && syncOutput.result().contains("OK - AGENTS.md") && doctor == 0 && doctorOutput.result().contains(
+          "guidance"
+        ))
     }
 
     "rejects invalid status checks and conflicting sync modes before output or process work" in {
@@ -196,10 +211,18 @@ class SquireCliSpec extends Test[Any]:
         root <- SquireFixtures.scratch("tracking-cli-invalid")
         statusOutput = new StringBuilder
         status <- SquireCli.runTrackingStatus(
-          TrackingStatusOpts(check = Some("invalid")), root, RuleRunner(SquireTrackingFixtures.unexpected), TestSquirePlatform(), value => statusOutput.append(value)
+          TrackingStatusOpts(check = Some("invalid")),
+          root,
+          RuleRunner(SquireTrackingFixtures.unexpected),
+          TestSquirePlatform(),
+          value => statusOutput.append(value)
         )
         syncOutput = new StringBuilder
-        sync <- SquireCli.runTrackingSync(TrackingSyncOpts(check = true, diff = true), root, value => syncOutput.append(value))
+        sync <- SquireCli.runTrackingSync(
+          TrackingSyncOpts(check = true, diff = true),
+          root,
+          value => syncOutput.append(value)
+        )
       yield assert(status == 2 && statusOutput.isEmpty && sync == 2 && syncOutput.isEmpty)
     }
   }
@@ -238,7 +261,6 @@ class SquireCliSpec extends Test[Any]:
       )
     }
   }
-
 
 class SquireMetaSpec extends Test[Any]:
   private val skillDirectory = java.nio.file.Paths.get(java.lang.System.getProperty("user.dir"))
@@ -284,7 +306,8 @@ class SquireMetaSpec extends Test[Any]:
           "SquireRepoSpec",
           "SquireBranchSpec",
           "SquireTrackingSpec",
-          "SquireSchemasSpec"
+          "SquireSchemasSpec",
+          "SquireSpecSpec"
         )
       )
     }
@@ -676,7 +699,7 @@ class SquireSchemasSpec extends Test[Any]:
     }
 
     "keeps overflow recovery compatible with YAML anchors and aliases" in {
-      val yaml = "value: &big 9223372036854775808\nalias: *big\n"
+      val yaml     = "value: &big 9223372036854775808\nalias: *big\n"
       val expected =
         """{
           |  "value": 9223372036854776000,
@@ -894,16 +917,17 @@ class SquireSchemasSpec extends Test[Any]:
       for
         root <- SquireFixtures.scratch("schemas-fatal-validation")
         yaml = root / "morphir-ir-v4.yaml"
-        _ <- Sync.defer(Files.writeString(yaml.toJava, "type: object\n"))
+        _       <- Sync.defer(Files.writeString(yaml.toJava, "type: object\n"))
         results <- Kyo.foreach(Chunk(42, 127)) { exitCode =>
           val runner = RuleRunner { request =>
             if request.argv == Chunk("jsonschema", "--version") then ProcessResult(request, 0, "v0", "")
-            else ProcessResult(
-              request,
-              exitCode,
-              "",
-              s"fail: ${request.argv.lastOption.getOrElse("")}\nerror: Schema validation failure\n"
-            )
+            else
+              ProcessResult(
+                request,
+                exitCode,
+                "",
+                s"fail: ${request.argv.lastOption.getOrElse("")}\nerror: Schema validation failure\n"
+              )
           }
           Abort.run[SquireError](SquireSchemas.validate(root, root, root, runner))
         }
@@ -914,7 +938,7 @@ class SquireSchemasSpec extends Test[Any]:
       for
         root <- SquireFixtures.scratch("schemas-exact-validation-failure")
         yaml = root / "morphir-ir-v4.yaml"
-        _ <- Sync.defer(Files.writeString(yaml.toJava, "type: object\n"))
+        _       <- Sync.defer(Files.writeString(yaml.toJava, "type: object\n"))
         results <- Kyo.foreach(Chunk("leading", "trailing", "mismatched", "empty", "stdout")) { shape =>
           val runner = RuleRunner { request =>
             if request.argv == Chunk("jsonschema", "--version") then ProcessResult(request, 0, "v0", "")
@@ -939,7 +963,7 @@ class SquireSchemasSpec extends Test[Any]:
         yaml = root / "morphir-ir-v4.yaml"
         _ <- Sync.defer(Files.writeString(yaml.toJava, "type: object\n"))
         relativeRoot = Path(skillDirectory.relativize(root.toJava).toString)
-        runner = RuleRunner { request =>
+        runner       = RuleRunner { request =>
           if request.argv == Chunk("jsonschema", "--version") then ProcessResult(request, 0, "v0", "")
           else
             val requested = java.nio.file.Paths.get(request.argv.lastOption.getOrElse(""))
@@ -979,6 +1003,394 @@ class SquireSchemasSpec extends Test[Any]:
     }
   }
 
+class SquireSpecSpec extends Test[Any]:
+  import SquireSpecFixtures.*
+
+  "repository and checkout boundaries" - {
+    "discovers the repository by its sibling kb launcher and reports the unified add hint" in {
+      for
+        root <- rootWithoutCheckout("spec-root")
+        nested = root / ".claude" / "skills" / "squire" / "nested"
+        _ <- Sync.defer(Files.createDirectories(nested.toJava))
+        platform = TestSpecPlatform()
+        found <- SquireSpec.findRepoRoot(nested, platform)
+        runner = RuleRunner(unexpected)
+        report <- SquireSpec.sync(SpecSyncOptions(noFetch = true), root, runner, platform)
+        checkout = report.steps.find(_.step == "checkout")
+      yield assert(
+        found == Present(root) && !report.ok && runner.requests.isEmpty &&
+          checkout.exists(step =>
+            step.status == "failed" &&
+              step.detail.contains("no reference checkout of finos/morphir") &&
+              step.hint.exists(
+                _ ==
+                  "add one with:\n    squire reference repo add https://github.com/finos/morphir --sparse docs website tests/bdd wit"
+              )
+          ) && safe(runner)
+      )
+    }
+
+    "warns for an incomplete sparse checkout but refuses prune before kb work" in {
+      for
+        root <- preparedRoot("spec-sparse", Chunk("docs"), schemas = false)
+        checkout    = root / SquireSpec.CheckoutRel
+        pruneRunner = syncRunner(root, sparse = true)
+        prune <- SquireSpec.sync(SpecSyncOptions(prune = true, noFetch = true), root, pruneRunner, TestSpecPlatform())
+        warningRunner = syncRunner(root, sparse = true)
+        warning <- SquireSpec.sync(SpecSyncOptions(noFetch = true), root, warningRunner, TestSpecPlatform())
+        warningStep = warning.steps.find(_.step == "checkout")
+      yield assert(
+        !prune.ok && prune.steps.last.status == "failed" && prune.steps.last.detail.contains("--prune would delete") &&
+          pruneRunner.requests.map(_.argv) == Chunk(revParse(checkout), sparseConfig(checkout)) &&
+          warning.ok && warningStep.exists(step =>
+            step.status == "ok" && step.detail.contains("missing website, tests/bdd, wit")
+          ) && safe(pruneRunner) && safe(warningRunner)
+      )
+    }
+  }
+
+  "sync orchestration" - {
+    "refuses a dirty fetch and honours no-fetch and dry-run without refresh mutation" in {
+      for
+        dirtyRoot <- preparedRoot("spec-dirty")
+        dirtyCheckout = dirtyRoot / SquireSpec.CheckoutRel
+        dirtyRunner   = syncRunner(dirtyRoot, dirty = " M exported.yaml\n")
+        dirty       <- SquireSpec.sync(SpecSyncOptions(ref = "v4"), dirtyRoot, dirtyRunner, TestSpecPlatform())
+        noFetchRoot <- preparedRoot("spec-no-fetch")
+        noFetchRunner = syncRunner(noFetchRoot)
+        noFetch <- SquireSpec.sync(SpecSyncOptions(noFetch = true), noFetchRoot, noFetchRunner, TestSpecPlatform())
+        dryRoot <- preparedRoot("spec-dry")
+        dryRunner = syncRunner(dryRoot)
+        dry <- SquireSpec.sync(SpecSyncOptions(ref = "release", dryRun = true), dryRoot, dryRunner, TestSpecPlatform())
+        dryKb = kb(dryRoot, "sync", "pull", "--dry-run")
+      yield assert(
+        !dirty.ok && dirty.steps.last.step == "fetch" && dirty.steps.last.detail.contains("uncommitted changes") &&
+          dirtyRunner.requests.map(_.argv) == Chunk(
+            revParse(dirtyCheckout),
+            sparseConfig(dirtyCheckout),
+            dirtyStatus(dirtyCheckout)
+          ) &&
+          noFetch.ok && noFetch.steps.find(_.step == "fetch").exists(step =>
+            step.status == "skipped" && step.detail == "--no-fetch"
+          ) && !noFetchRunner.requests.exists(_.argv == dirtyStatus(noFetchRoot / SquireSpec.CheckoutRel)) &&
+          dry.ok && dry.steps.find(_.step == "fetch").exists(step =>
+            step.status == "skipped" && step.detail == "--dry-run"
+          ) && dryRunner.requests.exists(_.argv == dryKb) &&
+          !dryRunner.requests.exists(request => request.argv.contains("fetch") || request.argv.contains("checkout")) &&
+          safe(dirtyRunner) && safe(noFetchRunner) && safe(dryRunner)
+      )
+    }
+
+    "uses the exact shallow fetch and detached checkout then parses status and pull options" in {
+      for
+        root <- preparedRoot("spec-fetch")
+        checkout = root / SquireSpec.CheckoutRel
+        runner   = syncRunner(root, statusJson = "banner\n{\"summary\":{\"clean\":2,\"local-only\":1}}\n")
+        report <- SquireSpec.sync(
+          SpecSyncOptions(ref = "v4-draft", theirs = true, prune = true, json = true),
+          root,
+          runner,
+          TestSpecPlatform()
+        )
+        fetch        = Chunk("git", "-C", checkout.toString, "fetch", "--depth", "1", "origin", "v4-draft")
+        detach       = Chunk("git", "-C", checkout.toString, "checkout", "--detach", "FETCH_HEAD")
+        pull         = kb(root, "sync", "pull", "--theirs", "--prune", "--json")
+        statusResult = report.steps.find(_.step == "status").flatMap(_.result.toOption)
+      yield assert(
+        report.ok && runner.requests.map(_.argv).contains(fetch) && runner.requests.map(_.argv).contains(detach) &&
+          runner.requests.map(_.argv).contains(pull) && statusResult.exists(recordHas(_, "summary")) &&
+          report.steps.map(_.step) == List("checkout", "fetch", "status", "pull", "check") && safe(runner)
+      )
+    }
+
+    "reports malformed status, pull failure, and final check failure without continuing past the failed step" in {
+      for
+        statusRoot <- preparedRoot("spec-status-fail")
+        statusRunner = syncRunner(statusRoot, statusJson = "not json\n")
+        status   <- SquireSpec.sync(SpecSyncOptions(noFetch = true), statusRoot, statusRunner, TestSpecPlatform())
+        pullRoot <- preparedRoot("spec-pull-fail")
+        pullRunner = syncRunner(pullRoot, pullExit = 9)
+        pull      <- SquireSpec.sync(SpecSyncOptions(noFetch = true), pullRoot, pullRunner, TestSpecPlatform())
+        checkRoot <- preparedRoot("spec-check-fail")
+        checkRunner = syncRunner(checkRoot, checkExit = 1)
+        check <-
+          SquireSpec.sync(SpecSyncOptions(noFetch = true, json = true), checkRoot, checkRunner, TestSpecPlatform())
+      yield assert(
+        !status.ok && status.steps.last.step == "status" && !statusRunner.requests.exists(_.argv == kb(
+          statusRoot,
+          "sync",
+          "pull"
+        )) &&
+          !pull.ok && pull.steps.last.step == "pull" && !pullRunner.requests.exists(
+            _.argv.headOption.contains("check")
+          ) &&
+          !check.ok && check.steps.last.step == "check" && check.steps.last.status == "failed" &&
+          safe(statusRunner) && safe(pullRunner) && safe(checkRunner)
+      )
+    }
+  }
+
+  "export orchestration" - {
+    "validates the target then requests kb JSON push with every option and extracts written paths" in {
+      for
+        root <- rootWithoutCheckout("spec-export-target")
+        missing       = root / "missing"
+        missingRunner = RuleRunner(unexpected)
+        missingReport <- SquireSpec.`export`(
+          SpecExportOptions(to = Present(missing)),
+          root,
+          missingRunner,
+          TestSpecPlatform()
+        )
+        checkout <- standaloneCheckout(root / "target")
+        runner = exportRunner(
+          root,
+          checkout,
+          written = List("docs/spec.md", "website/static/schemas/morphir-ir-v4.yaml")
+        )
+        report <- SquireSpec.`export`(
+          SpecExportOptions(
+            to = Present(checkout),
+            dryRun = true,
+            includeDiverged = true,
+            noBranch = true,
+            json = true
+          ),
+          root,
+          runner,
+          TestSpecPlatform()
+        )
+        expected   = kb(root, "sync", "push", "--to", checkout.toString, "--dry-run", "--include-diverged", "--json")
+        pushResult = report.steps.find(_.step == "push").flatMap(_.result.toOption)
+      yield assert(
+        !missingReport.ok && missingRunner.requests.isEmpty && missingReport.steps.last.step == "checkout" &&
+          report.ok && runner.requests.head.argv == expected && pushResult.exists(recordHas(_, "actions")) &&
+          report.steps.find(_.step == "push").exists(_.detail.contains("2 written path(s)")) &&
+          report.steps.find(_.step == "branch").exists(_.status == "skipped") && safe(missingRunner) && safe(runner)
+      )
+    }
+
+    "creates reuses or fails the review branch without ever committing or pushing" in {
+      for
+        root            <- rootWithoutCheckout("spec-branches")
+        createdCheckout <- standaloneCheckout(root / "created")
+        createdRunner = exportRunner(root, createdCheckout)
+        created <-
+          SquireSpec.`export`(SpecExportOptions(to = Present(createdCheckout)), root, createdRunner, TestSpecPlatform())
+        reusedCheckout <- standaloneCheckout(root / "reused")
+        reusedRunner = exportRunner(root, reusedCheckout, createBranchExit = 1)
+        reused <-
+          SquireSpec.`export`(SpecExportOptions(to = Present(reusedCheckout)), root, reusedRunner, TestSpecPlatform())
+        failedCheckout <- standaloneCheckout(root / "failed")
+        failedRunner = exportRunner(root, failedCheckout, createBranchExit = 1, reuseBranchExit = 1)
+        failed <-
+          SquireSpec.`export`(SpecExportOptions(to = Present(failedCheckout)), root, failedRunner, TestSpecPlatform())
+      yield assert(
+        created.ok && created.steps.find(_.step == "branch").exists(step =>
+          step.status == "ok" && step.detail.contains("created")
+        ) &&
+          reused.ok && reused.steps.find(_.step == "branch").exists(step =>
+            step.status == "ok" && step.detail.contains("already existed")
+          ) &&
+          !failed.ok && failed.steps.last.step == "branch" &&
+          !failedRunner.requests.exists(_.argv == Chunk("git", "-C", failedCheckout.toString, "status", "--short")) &&
+          safe(createdRunner) && safe(reusedRunner) && safe(failedRunner)
+      )
+    }
+
+    "expands validator globs and classifies YAML unsupported, pre-existing, and owned failures" in {
+      for
+        preRoot     <- rootWithoutCheckout("spec-preexisting")
+        preCheckout <- standaloneCheckout(preRoot / "preexisting", schemas = true)
+        preRunner   = exportRunner(preRoot, preCheckout, validatorFailure = Some("lint"))
+        prePlatform = TestSpecPlatform()
+        pre <- SquireSpec.`export`(
+          SpecExportOptions(to = Present(preCheckout), noBranch = true),
+          preRoot,
+          preRunner,
+          prePlatform
+        )
+        ownRoot     <- rootWithoutCheckout("spec-owned")
+        ownCheckout <- standaloneCheckout(ownRoot / "owned", schemas = true)
+        ownRunner = exportRunner(
+          ownRoot,
+          ownCheckout,
+          written = List("website/static/schemas/morphir-ir-v4.yaml"),
+          validatorFailure = Some("lint")
+        )
+        own <- SquireSpec.`export`(
+          SpecExportOptions(to = Present(ownCheckout), noBranch = true),
+          ownRoot,
+          ownRunner,
+          TestSpecPlatform()
+        )
+        yamlRoot     <- rootWithoutCheckout("spec-yaml-unsupported")
+        yamlCheckout <- standaloneCheckout(yamlRoot / "yaml", schemas = true)
+        yamlRunner = exportRunner(yamlRoot, yamlCheckout, yamlUnsupported = true)
+        yaml <- SquireSpec.`export`(
+          SpecExportOptions(to = Present(yamlCheckout), noBranch = true),
+          yamlRoot,
+          yamlRunner,
+          TestSpecPlatform()
+        )
+        expanded = Chunk(
+          "jsonschema",
+          "lint",
+          "website/static/schemas/morphir-ir-v4.yaml"
+        )
+      yield assert(
+        pre.ok && pre.steps.find(_.step == "validator:jsonschema lint").exists(_.status == "pre-existing") &&
+          !own.ok && own.steps.find(_.step == "validator:jsonschema lint").exists(_.status == "failed") &&
+          yaml.ok && yaml.steps.find(_.step == "validator:jsonschema fmt").exists(step =>
+            step.status == "skipped" && step.detail.contains("does not support YAML")
+          ) &&
+          preRunner.requests.exists(_.argv == expanded) && safe(preRunner) && safe(ownRunner) && safe(yamlRunner)
+      )
+    }
+
+    "skips absent tools paths and globs while replacing Bun with in-process schema comparison" in {
+      for
+        toolRoot     <- rootWithoutCheckout("spec-no-tool")
+        toolCheckout <- standaloneCheckout(toolRoot / "no-tool", schemas = true)
+        toolRunner   = exportRunner(toolRoot, toolCheckout)
+        toolPlatform = TestSpecPlatform(executables = Set.empty)
+        toolReport <- SquireSpec.`export`(
+          SpecExportOptions(to = Present(toolCheckout), noBranch = true),
+          toolRoot,
+          toolRunner,
+          toolPlatform
+        )
+        pathRoot     <- rootWithoutCheckout("spec-no-path")
+        pathCheckout <- standaloneCheckout(pathRoot / "no-path", schemas = false)
+        pathRunner   = exportRunner(pathRoot, pathCheckout)
+        pathPlatform = TestSpecPlatform()
+        pathReport <- SquireSpec.`export`(
+          SpecExportOptions(to = Present(pathCheckout), noBranch = true),
+          pathRoot,
+          pathRunner,
+          pathPlatform
+        )
+        globRoot     <- rootWithoutCheckout("spec-no-glob")
+        globCheckout <- standaloneCheckout(globRoot / "no-glob", schemas = true, yaml = false)
+        globRunner   = exportRunner(globRoot, globCheckout)
+        globPlatform = TestSpecPlatform()
+        globReport <- SquireSpec.`export`(
+          SpecExportOptions(to = Present(globCheckout), noBranch = true),
+          globRoot,
+          globRunner,
+          globPlatform
+        )
+        schemaDir = toolCheckout / "website" / "static" / "schemas"
+      yield assert(
+        toolReport.ok && toolReport.steps.count(step =>
+          step.step.startsWith("validator:jsonschema") && step.status == "skipped"
+        ) == 3 && toolPlatform.schemaRequests == List(schemaDir) &&
+          pathReport.ok && pathReport.steps.count(step =>
+            step.step.startsWith("validator:") && step.status == "skipped"
+          ) == 4 &&
+          pathPlatform.schemaRequests.isEmpty &&
+          globReport.ok && globReport.steps.find(
+            _.step == "validator:jsonschema lint"
+          ).exists(_.detail == "no matching files") &&
+          globReport.steps.find(_.step == "validator:schemas json in step").exists(_.detail == "no matching files") &&
+          globPlatform.schemaRequests.isEmpty &&
+          List(toolRunner, pathRunner, globRunner).forall(runner =>
+            !runner.requests.exists(_.argv.headOption.contains("bun")) && safe(runner)
+          )
+      )
+    }
+
+    "gates owned schema drift, still records final status, and never requests commit or push" in {
+      for
+        root     <- rootWithoutCheckout("spec-schema-drift")
+        checkout <- standaloneCheckout(root / "checkout", schemas = true)
+        runner = exportRunner(
+          root,
+          checkout,
+          written = List("website/static/schemas/morphir-ir-v4.yaml"),
+          changed = " M website/static/schemas/morphir-ir-v4.yaml\n"
+        )
+        platform = TestSpecPlatform(schemaOk = false)
+        report <- SquireSpec.`export`(
+          SpecExportOptions(to = Present(checkout), noBranch = true),
+          root,
+          runner,
+          platform
+        )
+        status = report.steps.find(_.step == "status")
+      yield assert(
+        !report.ok && report.steps.find(_.step == "validator:schemas json in step").exists(_.status == "failed") &&
+          status.exists(step => step.status == "ok" && step.detail == "1 changed path(s)") &&
+          platform.schemaRequests == List(checkout / "website" / "static" / "schemas") && safe(runner)
+      )
+    }
+
+    "contains typed schema comparison failures and still records final status" in {
+      for
+        root     <- rootWithoutCheckout("spec-schema-error")
+        checkout <- standaloneCheckout(root / "checkout", schemas = true)
+        runner = exportRunner(
+          root,
+          checkout,
+          written = List("website/static/schemas/morphir-ir-v4.yaml"),
+          changed = " M website/static/schemas/morphir-ir-v4.yaml\n"
+        )
+        platform = TestSpecPlatform(schemaFailure = Some("could not decode YAML schema"))
+        outcome <- Abort.run[SquireError](
+          SquireSpec.`export`(
+            SpecExportOptions(to = Present(checkout), noBranch = true),
+            root,
+            runner,
+            platform
+          )
+        )
+      yield assert(
+        outcome.exists(report =>
+          !report.ok &&
+            report.steps.find(_.step == "validator:schemas json in step").exists(step =>
+              step.status == "failed" && step.detail.contains("could not decode YAML schema")
+            ) &&
+            report.steps.last.step == "status"
+        ) && safe(runner)
+      )
+    }
+  }
+
+  "CLI reporting" - {
+    "renders step text or one clean typed JSON report and forwards the aggregate exit" in {
+      for
+        textRoot <- preparedRoot("spec-cli-text")
+        textOut = new StringBuilder
+        textErr = new StringBuilder
+        textExit <- SquireCli.runSpecSync(
+          SpecSyncOpts(noFetch = true),
+          textRoot,
+          syncRunner(textRoot),
+          TestSpecPlatform(),
+          value => textOut.append(value),
+          value => textErr.append(value)
+        )
+        jsonRoot <- preparedRoot("spec-cli-json")
+        jsonOut = new StringBuilder
+        jsonErr = new StringBuilder
+        jsonExit <- SquireCli.runSpecSync(
+          SpecSyncOpts(noFetch = true, json = true),
+          jsonRoot,
+          syncRunner(jsonRoot),
+          TestSpecPlatform(),
+          value => jsonOut.append(value),
+          value => jsonErr.append(value)
+        )
+        decoded = SquireJson.decode[SpecReport](jsonOut.result().trim)
+      yield assert(
+        textExit == 0 && textOut.result().contains("[1/5] reference checkout") && textOut.result().contains(
+          "Import complete"
+        ) &&
+          textErr.isEmpty && jsonExit == 0 && decoded.exists(report => report.command == "spec-sync" && report.ok) &&
+          !jsonOut.result().contains("[1/5]") && jsonErr.isEmpty
+      )
+    }
+  }
 
 class SquireProcessSpec extends Test[Any]:
   "process runner" - {
@@ -1065,6 +1477,150 @@ final class RuleRunner(response: ProcessRequest => ProcessResult) extends Proces
   def run(request: ProcessRequest): ProcessResult < (Async & Abort[SquireError]) =
     requests = requests.append(request)
     response(request)
+
+final case class TestSpecPlatform(
+    executables: Set[String] = Set("jsonschema"),
+    schemaOk: Boolean = true,
+    schemaFailure: Option[String] = None
+) extends SquireSpecPlatform:
+  var schemaRequests: List[Path] = Nil
+
+  def exists(path: Path): Boolean < Sync          = Sync.defer(Files.exists(path.toJava))
+  def isDirectory(path: Path): Boolean < Sync     = Sync.defer(Files.isDirectory(path.toJava))
+  def isSymlink(path: Path): Boolean < Sync       = Sync.defer(Files.isSymbolicLink(path.toJava))
+  def resolve(path: Path): Path < Sync            = Sync.defer(Path(path.toJava.toAbsolutePath.normalize.toString))
+  def findExecutable(name: String): Maybe[String] =
+    if executables.contains(name) then Present(name) else Absent
+  def glob(cwd: Path, pattern: String): Chunk[String] < Sync = LiveSquireSpecPlatform.glob(cwd, pattern)
+  def compareSchemas(directory: Path): SchemaReport < (Sync & Abort[SquireError]) =
+    schemaRequests = schemaRequests :+ directory
+    schemaFailure match
+      case Some(message) => Abort.fail(SquireError.Failure("schemas", message))
+      case None          =>
+        SchemaReport(
+          "schemas-to-json",
+          directory.toString,
+          directory.toString,
+          check = true,
+          ok = schemaOk,
+          List(SchemaOutcome("morphir-ir-v4.json", if schemaOk then "identical" else "drifted"))
+        )
+
+object SquireSpecFixtures:
+  val head: String = "a" * 40
+
+  def rootWithoutCheckout(name: String): Path < Sync =
+    for
+      root <- SquireFixtures.scratch(name)
+      _    <- Sync.defer {
+        val launcher = root / ".claude" / "skills" / "kb" / "kb"
+        Files.createDirectories(launcher.parent.get.toJava)
+        Files.writeString(launcher.toJava, "#!/bin/sh\n")
+      }
+    yield root
+
+  def preparedRoot(
+      name: String,
+      sparse: Chunk[String] = SquireSpec.SparsePaths,
+      schemas: Boolean = true
+  ): Path < Sync =
+    for
+      root <- rootWithoutCheckout(name)
+      _    <- standaloneCheckout(root / SquireSpec.CheckoutRel, sparse, schemas)
+    yield root
+
+  def standaloneCheckout(
+      checkout: Path,
+      sparse: Chunk[String] = SquireSpec.SparsePaths,
+      schemas: Boolean = false,
+      yaml: Boolean = true
+  ): Path < Sync =
+    Sync.defer {
+      Files.createDirectories((checkout / ".git").toJava)
+      sparse.foreach(path => Files.createDirectories((checkout / path).toJava))
+      if schemas then
+        val directory = checkout / "website" / "static" / "schemas"
+        Files.createDirectories(directory.toJava)
+        if yaml then
+          Files.writeString((directory / "morphir-ir-v4.yaml").toJava, "type: object\n")
+          Files.writeString((directory / "morphir-ir-v4.json").toJava, "{\n  \"type\": \"object\"\n}\n")
+      checkout
+    }
+
+  def unexpected(request: ProcessRequest): ProcessResult =
+    ProcessResult(request, 99, "", s"unexpected: ${request.argv.mkString(" ")}")
+
+  def syncRunner(
+      root: Path,
+      sparse: Boolean = false,
+      dirty: String = "",
+      statusJson: String = "{\"summary\":{\"clean\":1}}\n",
+      pullExit: Int = 0,
+      checkExit: Int = 0
+  ): RuleRunner =
+    val checkout = root / SquireSpec.CheckoutRel
+    RuleRunner { request =>
+      val argv = request.argv
+      if argv == revParse(checkout) then ok(request, head + "\n")
+      else if argv == sparseConfig(checkout) then ok(request, if sparse then "true\n" else "false\n")
+      else if argv == dirtyStatus(checkout) then ok(request, dirty)
+      else if argv.take(6) == Chunk("git", "-C", checkout.toString, "fetch", "--depth", "1") then ok(request)
+      else if argv == Chunk("git", "-C", checkout.toString, "checkout", "--detach", "FETCH_HEAD") then ok(request)
+      else if argv == kb(root, "sync", "status", "--json") then ok(request, statusJson)
+      else if argv.take(3) == kb(root, "sync", "pull").take(3) then
+        ProcessResult(request, pullExit, "{\"actions\":[]}", if pullExit == 0 then "" else "pull failed")
+      else if argv.take(2) == kb(root, "check").take(2) then
+        ProcessResult(request, checkExit, "{\"findings\":[]}", if checkExit == 0 then "" else "check failed")
+      else unexpected(request)
+    }
+
+  def exportRunner(
+      root: Path,
+      checkout: Path,
+      written: List[String] = Nil,
+      createBranchExit: Int = 0,
+      reuseBranchExit: Int = 0,
+      validatorFailure: Option[String] = None,
+      yamlUnsupported: Boolean = false,
+      changed: String = ""
+  ): RuleRunner =
+    RuleRunner { request =>
+      val argv = request.argv
+      if argv.take(3) == kb(root, "sync", "push").take(3) then
+        val actions = written.map(path => s"{\"verb\":\"wrote\",\"path\":\"$path\"}").mkString(",")
+        ok(request, s"{\"actions\":[$actions]}\n")
+      else if argv == Chunk("git", "-C", checkout.toString, "switch", "-c", SquireSpec.DefaultExportBranch) then
+        ProcessResult(request, createBranchExit, "", if createBranchExit == 0 then "" else "already exists")
+      else if argv == Chunk("git", "-C", checkout.toString, "switch", SquireSpec.DefaultExportBranch) then
+        ProcessResult(request, reuseBranchExit, "", if reuseBranchExit == 0 then "" else "cannot switch")
+      else if argv == Chunk("git", "-C", checkout.toString, "status", "--short") then ok(request, changed)
+      else if argv.headOption.contains("jsonschema") then
+        val operation = argv.lift(1).getOrElse("")
+        if yamlUnsupported && operation == "fmt" then ProcessResult(request, 1, "", "does not support YAML")
+        else if validatorFailure.contains(operation) then ProcessResult(request, 1, "", s"$operation failed")
+        else ok(request)
+      else unexpected(request)
+    }
+
+  def kb(root: Path, args: String*): Chunk[String] =
+    Chunk((root / ".claude" / "skills" / "kb" / "kb").toString) ++ Chunk.from(args)
+
+  def revParse(checkout: Path): Chunk[String]     = Chunk("git", "-C", checkout.toString, "rev-parse", "HEAD")
+  def sparseConfig(checkout: Path): Chunk[String] =
+    Chunk("git", "-C", checkout.toString, "config", "--get", "core.sparseCheckout")
+  def dirtyStatus(checkout: Path): Chunk[String] = Chunk("git", "-C", checkout.toString, "status", "--porcelain")
+
+  def ok(request: ProcessRequest, stdout: String = ""): ProcessResult = ProcessResult(request, 0, stdout, "")
+
+  def recordHas(value: Structure.Value, field: String): Boolean = value match
+    case Structure.Value.Record(fields) => fields.exists(_._1 == field)
+    case _                              => false
+
+  def safe(runner: RuleRunner): Boolean =
+    !runner.requests.exists { request =>
+      request.argv.headOption.contains("git") &&
+      request.argv.exists(argument => argument == "commit" || argument == "push")
+    }
 
 final class BranchRecordingRunner(responses: Map[Chunk[String], ProcessResult]) extends ProcessRunner:
   var requests: Chunk[ProcessRequest] = Chunk.empty
@@ -2291,7 +2847,7 @@ class SquireTrackingSpec extends Test[Any]:
   "tracking resolution" - {
     "defaults absent settings to auto and reports unavailable when bd is missing" in {
       for
-        root <- SquireFixtures.scratch("tracking-absent")
+        root   <- SquireFixtures.scratch("tracking-absent")
         report <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
       yield assert(report.configuredMode == TrackingMode.Auto && report.effectiveMode == TrackingMode.Unavailable &&
         report.reason == "bd is not on PATH")
@@ -2299,17 +2855,17 @@ class SquireTrackingSpec extends Test[Any]:
 
     "honours auto beads off and YAML boolean mode settings" in {
       for
-        root <- SquireFixtures.scratch("tracking-modes")
-        _ <- settings(root, "auto")
-        _ <- beads(root)
-        auto <- SquireTracking.resolve(root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")))
-        _ <- settings(root, "beads")
-        forced <- SquireTracking.resolve(root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")))
-        _ <- settings(root, "off")
-        off <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
-        _ <- settings(root, "false")
-        booleanOff <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
-        _ <- settings(root, "true")
+        root         <- SquireFixtures.scratch("tracking-modes")
+        _            <- settings(root, "auto")
+        _            <- beads(root)
+        auto         <- SquireTracking.resolve(root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")))
+        _            <- settings(root, "beads")
+        forced       <- SquireTracking.resolve(root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")))
+        _            <- settings(root, "off")
+        off          <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
+        _            <- settings(root, "false")
+        booleanOff   <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
+        _            <- settings(root, "true")
         booleanBeads <- SquireTracking.resolve(root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")))
       yield assert(auto.effectiveMode == TrackingMode.Beads && forced.effectiveMode == TrackingMode.Beads &&
         off.effectiveMode == TrackingMode.Off && booleanOff.configuredMode == TrackingMode.Off &&
@@ -2318,10 +2874,10 @@ class SquireTrackingSpec extends Test[Any]:
 
     "warns for invalid or unavailable forced beads settings" in {
       for
-        root <- SquireFixtures.scratch("tracking-warnings")
-        _ <- settings(root, "unknown")
-        invalid <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
-        _ <- settings(root, "beads")
+        root        <- SquireFixtures.scratch("tracking-warnings")
+        _           <- settings(root, "unknown")
+        invalid     <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
+        _           <- settings(root, "beads")
         unavailable <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
       yield assert(invalid.configuredMode == TrackingMode.Auto && invalid.warning.exists(_.contains("unrecognised")) &&
         unavailable.warning.exists(_.contains("tracking.mode is 'beads'")))
@@ -2330,8 +2886,11 @@ class SquireTrackingSpec extends Test[Any]:
     "reports guidance drift independently for both agent instruction files" in {
       for
         root <- SquireFixtures.scratch("tracking-guidance-drift")
-        _ <- Sync.defer {
-          Files.writeString((root / "AGENTS.md").toJava, "<!-- BEGIN BEADS INTEGRATION -->old<!-- END BEADS INTEGRATION -->")
+        _    <- Sync.defer {
+          Files.writeString(
+            (root / "AGENTS.md").toJava,
+            "<!-- BEGIN BEADS INTEGRATION -->old<!-- END BEADS INTEGRATION -->"
+          )
           Files.writeString((root / "CLAUDE.md").toJava, "no pointer")
         }
         report <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform())
@@ -2340,21 +2899,33 @@ class SquireTrackingSpec extends Test[Any]:
 
     "distinguishes missing beads git worktree and workspace fallback states" in {
       for
-        root <- SquireFixtures.scratch("tracking-workspaces")
+        root         <- SquireFixtures.scratch("tracking-workspaces")
         missingBeads <- SquireTracking.resolve(root, runner(gitShared, bdVersion), TestSquirePlatform(Present("bd")))
-        _ <- beads(root)
+        _            <- beads(root)
         localStore = root / ".beads" / "embeddeddolt"
-        _ <- Sync.defer(Files.createDirectories(localStore.toJava))
-        local <- SquireTracking.resolve(root, runner(gitWorktree(root / ".git", root / ".git"), bdVersion), TestSquirePlatform(Present("bd")))
+        _     <- Sync.defer(Files.createDirectories(localStore.toJava))
+        local <- SquireTracking.resolve(
+          root,
+          runner(gitWorktree(root / ".git", root / ".git"), bdVersion),
+          TestSquirePlatform(Present("bd"))
+        )
         _ <- Sync.defer(Files.delete(localStore.toJava))
-        main = root / "main"
+        main   = root / "main"
         common = main / ".git"
-        _ <- Sync.defer(Files.createDirectories(common.toJava))
-        _ <- Sync.defer(Files.createDirectories((main / ".beads").toJava))
-        _ <- Sync.defer(Files.writeString((main / ".beads" / "config.yaml").toJava, "prefix: morphir\n"))
-        shared <- SquireTracking.resolve(root, runner(gitWorktree(root / "worktree-git", common), bdVersion), TestSquirePlatform(Present("bd")))
-        _ <- Sync.defer(Files.delete((main / ".beads" / "config.yaml").toJava))
-        unresolved <- SquireTracking.resolve(root, runner(gitWorktree(root / "worktree-git", common), bdVersion), TestSquirePlatform(Present("bd")))
+        _      <- Sync.defer(Files.createDirectories(common.toJava))
+        _      <- Sync.defer(Files.createDirectories((main / ".beads").toJava))
+        _      <- Sync.defer(Files.writeString((main / ".beads" / "config.yaml").toJava, "prefix: morphir\n"))
+        shared <- SquireTracking.resolve(
+          root,
+          runner(gitWorktree(root / "worktree-git", common), bdVersion),
+          TestSquirePlatform(Present("bd"))
+        )
+        _          <- Sync.defer(Files.delete((main / ".beads" / "config.yaml").toJava))
+        unresolved <- SquireTracking.resolve(
+          root,
+          runner(gitWorktree(root / "worktree-git", common), bdVersion),
+          TestSquirePlatform(Present("bd"))
+        )
       yield assert(missingBeads.effectiveMode == TrackingMode.Unavailable && local.workspace.status == "local" &&
         shared.workspace.status == "shared" && unresolved.effectiveMode == TrackingMode.Unavailable &&
         unresolved.workspace.remedy.exists(_.contains("bd bootstrap")))
@@ -2362,8 +2933,8 @@ class SquireTrackingSpec extends Test[Any]:
 
     "treats bd version failure and a non repository as unavailable without mutating beads" in {
       for
-        root <- SquireFixtures.scratch("tracking-failures")
-        _ <- beads(root)
+        root   <- SquireFixtures.scratch("tracking-failures")
+        _      <- beads(root)
         failed <- SquireTracking.resolve(root, runner(gitFailure, bdFailure), TestSquirePlatform(Present("bd")))
       yield assert(failed.effectiveMode == TrackingMode.Unavailable && failed.workspace.status == "no-repo")
     }
@@ -2381,20 +2952,20 @@ class SquireTrackingSpec extends Test[Any]:
     }
 
     "appends the pointer and is idempotent" in {
-      val first = SquireTracking.rewriteGuidance("agent instructions\n")
+      val first  = SquireTracking.rewriteGuidance("agent instructions\n")
       val second = SquireTracking.rewriteGuidance(first.text)
       assert(first.changed && second.text == first.text && !second.changed)
     }
 
     "checks diffs applies only when requested and reports missing targets" in {
       for
-        root <- SquireFixtures.scratch("tracking-guidance")
-        _ <- Sync.defer(Files.writeString((root / "AGENTS.md").toJava, "stale\n"))
-        check <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Check)
-        diff <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Diff)
+        root   <- SquireFixtures.scratch("tracking-guidance")
+        _      <- Sync.defer(Files.writeString((root / "AGENTS.md").toJava, "stale\n"))
+        check  <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Check)
+        diff   <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Diff)
         before <- Sync.defer(Files.readString((root / "AGENTS.md").toJava))
-        apply <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Apply)
-        after <- Sync.defer(Files.readString((root / "AGENTS.md").toJava))
+        apply  <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Apply)
+        after  <- Sync.defer(Files.readString((root / "AGENTS.md").toJava))
         second <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Apply)
       yield assert(check.exitCode == 1 && diff.exitCode == 1 && diff.output.contains("--- a/AGENTS.md") &&
         before == "stale\n" && apply.exitCode == 1 && after.contains("BEGIN MORPHIR TRACKING") &&
@@ -2404,7 +2975,7 @@ class SquireTrackingSpec extends Test[Any]:
     "rejects symlinked guidance targets before apply check or doctor can follow them" in {
       for
         root <- SquireFixtures.scratch("tracking-guidance-symlink")
-        outside = root / "outside"
+        outside  = root / "outside"
         external = outside / "AGENTS.md"
         _ <- Sync.defer {
           Files.createDirectories(outside.toJava)
@@ -2415,17 +2986,24 @@ class SquireTrackingSpec extends Test[Any]:
         checked <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Check)
         applied <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Apply)
         doctorOutput = new StringBuilder
-        doctor <- SquireCli.runTrackingDoctor(root, runner(gitFailure, bdFailure), TestSquirePlatform(), value => doctorOutput.append(value))
+        doctor <- SquireCli.runTrackingDoctor(
+          root,
+          runner(gitFailure, bdFailure),
+          TestSquirePlatform(),
+          value => doctorOutput.append(value)
+        )
         after <- Sync.defer(Files.readString(external.toJava))
       yield assert(checked.exitCode == 1 && applied.exitCode == 1 && doctor == 1 && after == "outside\n" &&
-        checked.output.contains("unsafe") && applied.output.contains("unsafe") && doctorOutput.result().contains("unsafe"))
+        checked.output.contains("unsafe") && applied.output.contains("unsafe") && doctorOutput.result().contains(
+          "unsafe"
+        ))
     }
 
     "rejects a symlinked repository root before reading its guidance targets" in {
       for
         root <- SquireFixtures.scratch("tracking-guidance-intermediate")
-        outside = root / "outside"
-        alias = root / "alias"
+        outside  = root / "outside"
+        alias    = root / "alias"
         external = outside / "AGENTS.md"
         _ <- Sync.defer {
           Files.createDirectories(outside.toJava)
@@ -2434,17 +3012,18 @@ class SquireTrackingSpec extends Test[Any]:
           Files.createSymbolicLink(alias.toJava, outside.toJava)
         }
         result <- SquireTracking.syncGuidance(alias, SquireTracking.GuidanceMode.Apply)
-        after <- Sync.defer(Files.readString(external.toJava))
+        after  <- Sync.defer(Files.readString(external.toJava))
       yield assert(result.exitCode == 1 && result.output.contains("unsafe") && after == "outside\n")
     }
   }
 
 object SquireTrackingFixtures:
-  val gitShared: ProcessRequest => ProcessResult = request => ProcessResult(request, 0, ".git\n.git\n", "")
+  val gitShared: ProcessRequest => ProcessResult  = request => ProcessResult(request, 0, ".git\n.git\n", "")
   val gitFailure: ProcessRequest => ProcessResult = request => ProcessResult(request, 1, "", "not a repository")
-  val bdVersion: ProcessRequest => ProcessResult = request => ProcessResult(request, 0, "bd 0.42.0\n", "")
-  val bdFailure: ProcessRequest => ProcessResult = request => ProcessResult(request, 1, "", "failed")
-  val unexpected: ProcessRequest => ProcessResult = request => throw new AssertionError(s"unexpected process: ${request.argv}")
+  val bdVersion: ProcessRequest => ProcessResult  = request => ProcessResult(request, 0, "bd 0.42.0\n", "")
+  val bdFailure: ProcessRequest => ProcessResult  = request => ProcessResult(request, 1, "", "failed")
+  val unexpected: ProcessRequest => ProcessResult =
+    request => throw new AssertionError(s"unexpected process: ${request.argv}")
 
   def runner(git: ProcessRequest => ProcessResult, bd: ProcessRequest => ProcessResult): RuleRunner =
     RuleRunner(request => if request.argv.headOption.contains("git") then git(request) else bd(request))
