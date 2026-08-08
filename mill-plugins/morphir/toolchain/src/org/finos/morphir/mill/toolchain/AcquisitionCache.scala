@@ -55,7 +55,7 @@ final class AcquisitionCache private (
   ): VerifiedContent = {
     pruneStaleSiblings(entry)
     if (isVerifiedRegularFile(entry, digest))
-      return VerifiedContent(entry, digest)
+      return checkedContent(entry, digest, source, limits)
     if (settings.offline)
       throw new IllegalStateException(
         s"Offline acquisition cannot use $source: no verified cached content for SHA-256 $digest"
@@ -73,7 +73,7 @@ final class AcquisitionCache private (
         .get
       VerifiedArchive.verifySha256(temporary, digest)
       quarantineAndPromote(temporary, entry, source, cacheRoot)
-      VerifiedContent(entry, digest)
+      checkedContent(entry, digest, source, limits)
     } catch {
       case error: IllegalArgumentException =>
         throw new IllegalArgumentException(s"Verified acquisition failed for $source: ${error.getMessage}", error)
@@ -90,6 +90,27 @@ final class AcquisitionCache private (
       )
       attributes.isRegularFile && scala.util.Try(VerifiedArchive.verifySha256(entry, digest)).isSuccess
     }
+
+  private def checkedContent(
+      entry: os.Path,
+      digest: String,
+      source: String,
+      limits: AcquisitionLimits
+  ): VerifiedContent = {
+    val attributes = Files.readAttributes(
+      entry.toNIO,
+      classOf[BasicFileAttributes],
+      LinkOption.NOFOLLOW_LINKS
+    )
+    if (!attributes.isRegularFile)
+      throw new IllegalStateException(s"Verified acquisition content changed before use for $source: $entry")
+    if (attributes.size() > limits.maxAcquiredBytes)
+      throw new IllegalArgumentException(
+        s"Verified acquisition acquired byte limit ${limits.maxAcquiredBytes} exceeded for $source: " +
+          s"cached content is ${attributes.size()} bytes"
+      )
+    VerifiedContent(entry, digest)
+  }
 
   private def quarantineAndPromote(
       temporary: os.Path,

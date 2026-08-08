@@ -257,6 +257,36 @@ object VerifiedAcquisitionTests extends TestSuite {
       }
     }
 
+    test("warm machine-cache hits enforce the caller acquisition limit without removing content") {
+      withTempDir { directory =>
+        val bytes    = "12345".getBytes(StandardCharsets.UTF_8)
+        val digest   = VerifiedArchive.sha256(bytes)
+        val settings = AcquisitionSettings(cacheRoot = Some(directory / "machine-cache"))
+        val cache    = AcquisitionCache(settings, directory / "task")
+        val seeded   = cache.acquire(digest, "memory:seed", AcquisitionLimits(maxAcquiredBytes = 5))(
+          new ByteArrayInputStream(bytes)
+        )
+        var opened = false
+
+        val limited = scala.util.Try(
+          cache.acquire(digest, "memory:limited", AcquisitionLimits(maxAcquiredBytes = 4)) {
+            opened = true
+            new ByteArrayInputStream(bytes)
+          }
+        )
+
+        assert(limited.isFailure)
+        assert(limited.failed.get.getMessage.contains("acquired byte limit"))
+        assert(!opened)
+        assert(os.read.bytes(seeded.path).sameElements(bytes))
+
+        val reused = cache.acquire(digest, "memory:larger", AcquisitionLimits(maxAcquiredBytes = 5))(
+          throw new java.lang.AssertionError("larger warm acquisition opened its source")
+        )
+        assert(reused == seeded)
+      }
+    }
+
     test("disabled machine cache keeps verified content task-local") {
       withTempDir { directory =>
         val bytes       = "task-local bytes".getBytes(StandardCharsets.UTF_8)
@@ -274,6 +304,36 @@ object VerifiedAcquisitionTests extends TestSuite {
         assert(!content.path.toNIO.startsWith(taskRoot.toNIO))
         assert(!os.exists(machineRoot))
         assert(os.read.bytes(content.path).sameElements(bytes))
+      }
+    }
+
+    test("warm task-local hits enforce the caller acquisition limit without removing content") {
+      withTempDir { directory =>
+        val bytes    = "12345".getBytes(StandardCharsets.UTF_8)
+        val digest   = VerifiedArchive.sha256(bytes)
+        val taskRoot = directory / "task"
+        val cache    = AcquisitionCache(AcquisitionSettings(useMachineCache = false), taskRoot)
+        val seeded   = cache.acquire(digest, "memory:seed", AcquisitionLimits(maxAcquiredBytes = 5))(
+          new ByteArrayInputStream(bytes)
+        )
+        var opened = false
+
+        val limited = scala.util.Try(
+          cache.acquire(digest, "memory:limited", AcquisitionLimits(maxAcquiredBytes = 4)) {
+            opened = true
+            new ByteArrayInputStream(bytes)
+          }
+        )
+
+        assert(limited.isFailure)
+        assert(limited.failed.get.getMessage.contains("acquired byte limit"))
+        assert(!opened)
+        assert(os.read.bytes(seeded.path).sameElements(bytes))
+
+        val reused = cache.acquire(digest, "memory:larger", AcquisitionLimits(maxAcquiredBytes = 5))(
+          throw new java.lang.AssertionError("larger task-local acquisition opened its source")
+        )
+        assert(reused == seeded)
       }
     }
 
@@ -367,6 +427,40 @@ object VerifiedAcquisitionTests extends TestSuite {
         )
 
         assert(offline == cached)
+      }
+    }
+
+    test("offline warm hits enforce the caller acquisition limit without removing content") {
+      withTempDir { directory =>
+        val bytes     = "12345".getBytes(StandardCharsets.UTF_8)
+        val digest    = VerifiedArchive.sha256(bytes)
+        val cacheRoot = directory / "machine-cache"
+        val seeded    = AcquisitionCache(AcquisitionSettings(cacheRoot = Some(cacheRoot)), directory / "online")
+          .acquire(digest, "memory:seed", AcquisitionLimits(maxAcquiredBytes = 5))(
+            new ByteArrayInputStream(bytes)
+          )
+        val offline = AcquisitionCache(
+          AcquisitionSettings(cacheRoot = Some(cacheRoot), offline = true),
+          directory / "offline"
+        )
+        var opened = false
+
+        val limited = scala.util.Try(
+          offline.acquire(digest, "memory:limited", AcquisitionLimits(maxAcquiredBytes = 4)) {
+            opened = true
+            new ByteArrayInputStream(bytes)
+          }
+        )
+
+        assert(limited.isFailure)
+        assert(limited.failed.get.getMessage.contains("acquired byte limit"))
+        assert(!opened)
+        assert(os.read.bytes(seeded.path).sameElements(bytes))
+
+        val reused = offline.acquire(digest, "memory:larger", AcquisitionLimits(maxAcquiredBytes = 5))(
+          throw new java.lang.AssertionError("larger offline acquisition opened its source")
+        )
+        assert(reused == seeded)
       }
     }
 
