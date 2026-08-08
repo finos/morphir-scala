@@ -6,9 +6,10 @@ import java.nio.ByteOrder
 import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
-import java.util.zip.GZIPInputStream
 import scala.util.Using
 import scala.util.control.NonFatal
+
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 
 private[toolchain] object ArchivePreflight {
   private val ZipEndSignature       = 0x06054b50
@@ -25,19 +26,42 @@ private[toolchain] object ArchivePreflight {
   private val TarChecksumOffset     = 148
   private val TarChecksumLength     = 8
   private val TarTypeOffset         = 156
+  private val GzipInputBufferBytes  = 8192
+  // One additional input buffer keeps the streaming ratio check independent of exactly when
+  // the inflater requests its next read; the completed stream is checked without this allowance.
+  private val GzipStreamingSlackBytes = GzipInputBufferBytes.toLong
 
-  def tarGz(archive: os.Path, limits: ArchiveLimits): Unit =
+  def tarGz(archive: os.Path, limits: ArchiveLimits): Unit = {
+    val snapshotBytes = Files.size(archive.toNIO)
     try
       Using.resource(Files.newInputStream(archive.toNIO)) { raw =>
-        Using.resource(new GZIPInputStream(raw)) { gzip =>
-          scanTar(gzip, archive, limits, Files.size(archive.toNIO))
+        Using.resource(
+          GzipCompressorInputStream
+            .builder()
+            .setInputStream(raw)
+            .setBufferSize(GzipInputBufferBytes)
+            .setDecompressConcatenated(true)
+            .get()
+        ) { gzip =>
+          val decompressedBytes = scanTar(gzip, archive, limits, () => gzip.getCompressedCount)
+          val memberBytes       = gzip.getCompressedCount
+          if (memberBytes != snapshotBytes)
+            fail(
+              s"Gzip member bytes consumed $memberBytes do not match verified archive size $snapshotBytes: $archive"
+            )
+          if (decompressedBytes > saturatedRatioLimit(memberBytes, limits.maxCompressionRatio))
+            fail(s"TAR.GZ preflight compression ratio exceeds limit ${limits.maxCompressionRatio}: $archive")
         }
       }
     catch {
       case error: IllegalArgumentException => throw error
       case NonFatal(error)                 =>
-        throw new IllegalArgumentException(s"Malformed or truncated TAR.GZ archive: $archive", error)
+        throw new IllegalArgumentException(
+          s"Malformed gzip member stream, trailing non-member bytes, or truncated TAR archive: $archive",
+          error
+        )
     }
+  }
 
   def zip(archive: os.Path, limits: ArchiveLimits): Unit =
     Using.resource(FileChannel.open(archive.toNIO, StandardOpenOption.READ)) { channel =>
@@ -138,12 +162,11 @@ private[toolchain] object ArchivePreflight {
       input: InputStream,
       archive: os.Path,
       limits: ArchiveLimits,
-      compressedBytes: Long
-  ): Unit = {
+      compressedCount: () => Long
+  ): Long = {
     val header                     = new Array[Byte](TarBlockBytes)
     val skipBuffer                 = new Array[Byte](8192)
     val maxStreamBytes             = derivedTarStreamLimit(limits)
-    val maxRatioBytes              = saturatedRatioLimit(compressedBytes, limits.maxCompressionRatio)
     var streamBytes                = 0L
     var entryCount                 = 0L
     var contentBytes               = 0L
@@ -158,7 +181,7 @@ private[toolchain] object ArchivePreflight {
         streamBytes,
         header.length,
         maxStreamBytes,
-        maxRatioBytes,
+        compressedCount(),
         limits.maxCompressionRatio,
         archive
       )
@@ -207,7 +230,7 @@ private[toolchain] object ArchivePreflight {
           skipBuffer,
           streamBytes,
           maxStreamBytes,
-          maxRatioBytes,
+          compressedCount,
           limits.maxCompressionRatio,
           archive
         )
@@ -221,7 +244,7 @@ private[toolchain] object ArchivePreflight {
           streamBytes,
           read.toLong,
           maxStreamBytes,
-          maxRatioBytes,
+          compressedCount(),
           limits.maxCompressionRatio,
           archive
         )
@@ -234,6 +257,7 @@ private[toolchain] object ArchivePreflight {
       }
       read = input.read(skipBuffer)
     }
+    streamBytes
   }
 
   private def validateTarChecksum(header: Array[Byte], archive: os.Path): Unit = {
@@ -338,7 +362,7 @@ private[toolchain] object ArchivePreflight {
       buffer: Array[Byte],
       initialStreamBytes: Long,
       maxStreamBytes: Long,
-      maxRatioBytes: Long,
+      compressedCount: () => Long,
       ratio: Double,
       archive: os.Path
   ): Long = {
@@ -353,7 +377,7 @@ private[toolchain] object ArchivePreflight {
         streamBytes,
         read.toLong,
         maxStreamBytes,
-        maxRatioBytes,
+        compressedCount(),
         ratio,
         archive
       )
@@ -380,11 +404,13 @@ private[toolchain] object ArchivePreflight {
       current: Long,
       increment: Long,
       maxStreamBytes: Long,
-      maxRatioBytes: Long,
+      compressedBytes: Long,
       ratio: Double,
       archive: os.Path
   ): Long = {
-    val updated = addWithin(current, increment, maxStreamBytes, "TAR decompressed stream", archive)
+    val updated              = addWithin(current, increment, maxStreamBytes, "TAR decompressed stream", archive)
+    val streamingDenominator = saturatingAdd(math.max(1L, compressedBytes), GzipStreamingSlackBytes)
+    val maxRatioBytes        = saturatedRatioLimit(streamingDenominator, ratio)
     if (updated > maxRatioBytes)
       fail(s"TAR.GZ preflight compression ratio exceeds limit $ratio: $archive")
     updated

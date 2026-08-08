@@ -1,6 +1,6 @@
 package org.finos.morphir.mill.toolchain
 
-import java.io.ByteArrayInputStream
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.channels.FileChannel
 import java.nio.{ByteBuffer, ByteOrder}
 import java.nio.charset.StandardCharsets
@@ -194,6 +194,32 @@ object VerifiedAcquisitionTests extends TestSuite {
   private def writeGzipBytes(path: os.Path, bytes: Array[Byte]): Unit = {
     val output = new java.util.zip.GZIPOutputStream(Files.newOutputStream(path.toNIO))
     try output.write(bytes)
+    finally output.close()
+  }
+
+  private def appendBytes(path: os.Path, bytes: Array[Byte]): Unit = {
+    val output = Files.newOutputStream(path.toNIO, StandardOpenOption.APPEND)
+    try output.write(bytes)
+    finally output.close()
+  }
+
+  private def readGzipBytes(path: os.Path): Array[Byte] = {
+    val input = new java.util.zip.GZIPInputStream(Files.newInputStream(path.toNIO))
+    try input.readAllBytes()
+    finally input.close()
+  }
+
+  private def gzipMember(bytes: Array[Byte]): Array[Byte] = {
+    val buffer = new ByteArrayOutputStream()
+    val output = new java.util.zip.GZIPOutputStream(buffer)
+    try output.write(bytes)
+    finally output.close()
+    buffer.toByteArray
+  }
+
+  private def writeConcatenatedGzip(path: os.Path, parts: Seq[Array[Byte]]): Unit = {
+    val output = Files.newOutputStream(path.toNIO)
+    try parts.foreach(part => output.write(gzipMember(part)))
     finally output.close()
   }
 
@@ -1805,6 +1831,74 @@ object VerifiedAcquisitionTests extends TestSuite {
         assert(result.isFailure)
         assert(result.failed.get.getMessage.contains("TAR.GZ preflight compression ratio"))
         assert(!parserOpened)
+      }
+    }
+
+    test("tar.gz trailing padding cannot inflate the compression-ratio denominator") {
+      withTempDir { directory =>
+        val archive = directory / "padded-ratio.tar.gz"
+        writeTarGz(archive, Seq(("root/file", Array.fill[Byte](64 * 1024)(0), None)))
+        appendBytes(archive, Array.fill[Byte](128 * 1024)(0))
+        var parserOpened = false
+
+        val result = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            limits = ArchiveLimits(maxCompressionRatio = 2.0),
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("TAR.GZ preflight compression ratio"))
+        assert(!parserOpened)
+      }
+    }
+
+    test("tar.gz preflight rejects trailing non-gzip garbage before Commons TAR parsing") {
+      withTempDir { directory =>
+        val archive = directory / "trailing-garbage.tar.gz"
+        writeTarGz(archive, Seq(("root/file", "data".getBytes(StandardCharsets.UTF_8), None)))
+        appendBytes(archive, Array[Byte](1, 2, 3, 4))
+        var parserOpened = false
+
+        val result = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("gzip member"))
+        assert(!parserOpened)
+      }
+    }
+
+    test("tar.gz preflight supports a TAR stream split across concatenated gzip members") {
+      withTempDir { directory =>
+        val ordinary = directory / "ordinary.tar.gz"
+        val archive  = directory / "concatenated.tar.gz"
+        val contents = "concatenated".getBytes(StandardCharsets.UTF_8)
+        writeTarGz(ordinary, Seq(("root/file", contents, None)))
+        val tarBytes = readGzipBytes(ordinary)
+        val split    = tarBytes.length / 2
+        writeConcatenatedGzip(archive, Seq(tarBytes.take(split), tarBytes.drop(split)))
+        var parserOpened = false
+
+        VerifiedArchive.extractObserved(
+          VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+          ArchiveFormat.TarGz,
+          directory / "extracted",
+          parserObserver = _ => parserOpened = true
+        ) {}
+
+        assert(parserOpened)
+        assert(os.read.bytes(directory / "extracted" / "file").sameElements(contents))
       }
     }
 
