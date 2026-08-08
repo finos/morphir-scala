@@ -686,6 +686,43 @@ class SquireSchemasSpec extends Test[Any]:
       assert(SquireSchemas.convert(yaml) == Result.Success(expected))
     }
 
+    "matches Bun bytes for non-finite numeric anchors and every alias shape" in {
+      val huge = "9" * 400
+      val yaml =
+        s"""positive: &positive $huge
+           |positiveAlias: *positive
+           |nested:
+           |  positiveAlias: *positive
+           |sequence:
+           |  - *positive
+           |  - &negative -$huge
+           |  - *negative
+           |negativeAlias: *negative
+           |negativeNested:
+           |  value: *negative
+           |""".stripMargin
+      val expected =
+        """{
+          |  "positive": null,
+          |  "positiveAlias": null,
+          |  "nested": {
+          |    "positiveAlias": null
+          |  },
+          |  "sequence": [
+          |    null,
+          |    null,
+          |    null
+          |  ],
+          |  "negativeAlias": null,
+          |  "negativeNested": {
+          |    "value": null
+          |  }
+          |}
+          |""".stripMargin
+
+      assert(scala.util.Try(SquireSchemas.convert(yaml)).toOption == Some(Result.Success(expected)))
+    }
+
     "matches the committed v4 golden bytes" in {
       val yaml = Files.readString(skillDirectory.resolve("test-resources/schemas/morphir-ir-v4.yaml"))
       val json = Files.readString(skillDirectory.resolve("test-resources/schemas/morphir-ir-v4.json"))
@@ -871,6 +908,74 @@ class SquireSchemasSpec extends Test[Any]:
           Abort.run[SquireError](SquireSchemas.validate(root, root, root, runner))
         }
       yield assert(results.forall(_.isFailure))
+    }
+
+    "rejects every exit-2 result outside the exact target-matched Sourcemeta shape" in {
+      for
+        root <- SquireFixtures.scratch("schemas-exact-validation-failure")
+        yaml = root / "morphir-ir-v4.yaml"
+        _ <- Sync.defer(Files.writeString(yaml.toJava, "type: object\n"))
+        results <- Kyo.foreach(Chunk("leading", "trailing", "mismatched", "empty", "stdout")) { shape =>
+          val runner = RuleRunner { request =>
+            if request.argv == Chunk("jsonschema", "--version") then ProcessResult(request, 0, "v0", "")
+            else
+              val target = request.argv.lastOption.getOrElse("")
+              val stderr = shape match
+                case "leading"    => s"fatal: transport failed\nfail: $target\nerror: Schema validation failure"
+                case "trailing"   => s"fail: $target\nerror: Schema validation failure\nfatal: transport failed"
+                case "mismatched" => s"fail: ${root / "unrelated.yaml"}\nerror: Schema validation failure"
+                case "empty"      => "fail: \nerror: Schema validation failure"
+                case _            => s"fail: $target\nerror: Schema validation failure"
+              ProcessResult(request, 2, if shape == "stdout" then "unexpected stdout" else "", stderr)
+          }
+          Abort.run[SquireError](SquireSchemas.validate(root, root, root, runner))
+        }
+      yield assert(results.forall(_.isFailure))
+    }
+
+    "matches Sourcemeta's absolute normalized target for a relative request" in {
+      for
+        root <- SquireFixtures.scratch("schemas-relative-validation-target")
+        yaml = root / "morphir-ir-v4.yaml"
+        _ <- Sync.defer(Files.writeString(yaml.toJava, "type: object\n"))
+        relativeRoot = Path(skillDirectory.relativize(root.toJava).toString)
+        runner = RuleRunner { request =>
+          if request.argv == Chunk("jsonschema", "--version") then ProcessResult(request, 0, "v0", "")
+          else
+            val requested = java.nio.file.Paths.get(request.argv.lastOption.getOrElse(""))
+            val target    = skillDirectory.resolve(requested).toAbsolutePath.normalize
+            ProcessResult(request, 2, "", s"fail: $target\nerror: Schema validation failure")
+        }
+        report <- SquireSchemas.validate(relativeRoot, relativeRoot, relativeRoot, runner)
+      yield assert(report.outcomes.map(_.status) == List("metaschema-invalid"))
+    }
+
+    "accepts installed Sourcemeta structured diagnostics only as complete detail triplets" in {
+      for
+        root <- SquireFixtures.scratch("schemas-structured-validation-failure")
+        yaml = root / "morphir-ir-v4.yaml"
+        _ <- Sync.defer(Files.writeString(yaml.toJava, "type: object\n"))
+        runner = RuleRunner { request =>
+          if request.argv == Chunk("jsonschema", "--version") then ProcessResult(request, 0, "v0", "")
+          else
+            val target = request.argv.lastOption.getOrElse("")
+            ProcessResult(
+              request,
+              2,
+              "",
+              s"""fail: $target
+                 |error: Schema validation failure
+                 |  The value was expected to be of type boolean, or object but it was of type string
+                 |    at instance location "/description" (line 83, column 7)
+                 |    at evaluate path "/properties/description/type"
+                 |  The object value was expected to validate against the defined properties subschemas
+                 |    at instance location "" (line 1, column 1)
+                 |    at evaluate path "/properties"
+                 |""".stripMargin
+            )
+        }
+        report <- SquireSchemas.validate(root, root, root, runner)
+      yield assert(report.outcomes.map(_.status) == List("metaschema-invalid"))
     }
   }
 

@@ -201,25 +201,36 @@ object SquireSchemas:
       case other => other
 
   private def reconcileYamlNode(value: Structure.Value, node: Yaml.Node): Structure.Value =
-    (value, node) match
-      case (Structure.Value.Record(fields), Yaml.Node.Mapping(entries, _)) if fields.size == entries.size =>
-        Structure.Value.Record(fields.zip(entries).map {
-          case ((name, child), (Yaml.Node.Scalar(key, _), childNode)) if name == key =>
-            name -> reconcileYamlNode(child, childNode)
-          case ((name, child), _) => name -> child
-        })
-      case (Structure.Value.Sequence(elements), Yaml.Node.Sequence(nodes, _)) if elements.size == nodes.size =>
-        Structure.Value.Sequence(elements.zip(nodes).map(reconcileYamlNode))
-      case (decoded, Yaml.Node.Scalar(raw, meta)) =>
-        yamlNumber(raw, meta)
-          .map(number => if number.isFinite then Structure.Value.Decimal(number) else Structure.Value.Null)
-          .getOrElse {
-            decoded match
-              case Structure.Value.Str(value) =>
-                repairQuotedBoundaryScalar(raw, meta).getOrElse(Structure.Value.Str(value))
-              case other => other
-          }
-      case _ => value
+    val numericAnchors = scala.collection.mutable.Map.empty[String, Structure.Value]
+
+    def loop(value: Structure.Value, node: Yaml.Node): Structure.Value =
+      (value, node) match
+        case (Structure.Value.Record(fields), Yaml.Node.Mapping(entries, _)) if fields.size == entries.size =>
+          Structure.Value.Record(fields.zip(entries).map {
+            case ((name, child), (Yaml.Node.Scalar(key, _), childNode)) if name == key =>
+              name -> loop(child, childNode)
+            case ((name, child), _) => name -> child
+          })
+        case (Structure.Value.Sequence(elements), Yaml.Node.Sequence(nodes, _)) if elements.size == nodes.size =>
+          Structure.Value.Sequence(elements.zip(nodes).map(loop))
+        case (decoded, Yaml.Node.Scalar(raw, meta)) =>
+          val number = yamlNumber(raw, meta)
+          val reconciled = number
+            .map(number => if number.isFinite then Structure.Value.Decimal(number) else Structure.Value.Null)
+            .getOrElse {
+              decoded match
+                case Structure.Value.Str(value) =>
+                  repairQuotedBoundaryScalar(raw, meta).getOrElse(Structure.Value.Str(value))
+                case other => other
+            }
+          (number, meta.anchor) match
+            case (Some(_), Present(anchor)) => numericAnchors.update(anchor.value, reconciled)
+            case _                          => ()
+          reconciled
+        case (decoded, Yaml.Node.Alias(anchor, _)) => numericAnchors.getOrElse(anchor.value, decoded)
+        case _                                     => value
+
+    loop(value, node)
 
   private final case class NumericPatch(start: Int, length: Int, replacement: String)
 
@@ -491,8 +502,33 @@ object SquireSchemas:
     if result.exitCode != 2 || result.stdout.nonEmpty then false
     else
       val lines = result.stderr.linesIterator.toList
-      lines.length >= 2 && lines.head.startsWith("fail: ") && lines.head.length > "fail: ".length &&
-        lines(1) == "error: Schema validation failure"
+      normalizedValidatorTarget(result.request).exists { target =>
+        lines match
+          case header :: "error: Schema validation failure" :: details =>
+            header == s"fail: $target" && (details.isEmpty || capturedValidationDetails(details))
+          case _ => false
+      }
+
+  private def capturedValidationDetails(lines: List[String]): Boolean =
+    lines.nonEmpty && lines.size % 3 == 0 && lines.grouped(3).forall {
+      case List(message, instance, evaluation) =>
+        message.length > 2 && message.startsWith("  ") && message.charAt(2) != ' ' &&
+          instance.matches("""    at instance location ".*" \(line [0-9]+, column [0-9]+\)""") &&
+          evaluation.startsWith("    at evaluate path \"") && evaluation.endsWith("\"")
+      case _ => false
+    }
+
+  private def normalizedValidatorTarget(request: ProcessRequest): Option[String] =
+    request.argv.lastOption.flatMap { target =>
+      try
+        val requested = java.nio.file.Paths.get(target)
+        val base = request.cwd match
+          case Present(path) => path.toJava
+          case Absent        => java.nio.file.Paths.get(java.lang.System.getProperty("user.dir"))
+        Some((if requested.isAbsolute then requested else base.resolve(requested)).toAbsolutePath.normalize.toString)
+      catch
+        case _: java.nio.file.InvalidPathException => None
+    }
 
   private def fromResultEffect[A](effect: Result[SquireError, A] < Sync): A < (Sync & Abort[SquireError]) =
     effect.flatMap {
