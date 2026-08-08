@@ -617,6 +617,75 @@ class SquireSchemasSpec extends Test[Any]:
       assert(SquireSchemas.convert(yaml) == Result.Success(expected))
     }
 
+    "matches Bun JSON.stringify bytes for every legacy numeric boundary" in {
+      val yaml =
+        """$id: https://example.test/numeric.yaml
+          |ordinaryInt: 42
+          |ordinaryNegative: -7
+          |ordinaryDecimal: 1.25
+          |integralDecimal: 1.0
+          |ordinaryExponent: 1.2e3
+          |lowerFixed: 1e-6
+          |lowerScientific: 1e-7
+          |upperFixed: 1e20
+          |upperScientific: 1E21
+          |explicitPositiveExponent: 1E+7
+          |upperNegativeExponent: 1E-7
+          |positiveZero: 0
+          |negativeZero: -0
+          |negativeDecimalZero: -0.0
+          |negativeExponentZero: -0e5
+          |unsafeInteger: 9007199254740993
+          |beyondLong: 9223372036854775808
+          |notANumber: .nan
+          |positiveInfinity: .inf
+          |negativeInfinity: -.inf
+          |""".stripMargin
+      val expected =
+        """{
+          |  "$id": "https://example.test/numeric.json",
+          |  "ordinaryInt": 42,
+          |  "ordinaryNegative": -7,
+          |  "ordinaryDecimal": 1.25,
+          |  "integralDecimal": 1,
+          |  "ordinaryExponent": 1200,
+          |  "lowerFixed": 0.000001,
+          |  "lowerScientific": 1e-7,
+          |  "upperFixed": 100000000000000000000,
+          |  "upperScientific": 1e+21,
+          |  "explicitPositiveExponent": 10000000,
+          |  "upperNegativeExponent": 1e-7,
+          |  "positiveZero": 0,
+          |  "negativeZero": 0,
+          |  "negativeDecimalZero": 0,
+          |  "negativeExponentZero": 0,
+          |  "unsafeInteger": 9007199254740992,
+          |  "beyondLong": 9223372036854776000,
+          |  "notANumber": null,
+          |  "positiveInfinity": null,
+          |  "negativeInfinity": null
+          |}
+          |""".stripMargin
+
+      assert(scala.util.Try(SquireSchemas.convert(yaml)).toOption == Some(Result.Success(expected)))
+    }
+
+    "returns malformed conversions as typed failures" in {
+      val result = scala.util.Try(SquireSchemas.convert("value: !!int nope\n")).toOption
+      assert(result.exists(_.isFailure))
+    }
+
+    "keeps overflow recovery compatible with YAML anchors and aliases" in {
+      val yaml = "value: &big 9223372036854775808\nalias: *big\n"
+      val expected =
+        """{
+          |  "value": 9223372036854776000,
+          |  "alias": 9223372036854776000
+          |}
+          |""".stripMargin
+      assert(SquireSchemas.convert(yaml) == Result.Success(expected))
+    }
+
     "matches the committed v4 golden bytes" in {
       val yaml = Files.readString(skillDirectory.resolve("test-resources/schemas/morphir-ir-v4.yaml"))
       val json = Files.readString(skillDirectory.resolve("test-resources/schemas/morphir-ir-v4.json"))
@@ -759,7 +828,7 @@ class SquireSchemasSpec extends Test[Any]:
           else if request.argv.lift(1).contains("metaschema") && name.endsWith("morphir-ir-z.yaml") then
             ProcessResult(request, 1, "", "bad schema")
           else if request.argv.lift(1).contains("validate") && name.endsWith("a-invalid.json") then
-            ProcessResult(request, 2, "", "error: Schema validation failure")
+            ProcessResult(request, 2, "", s"fail: $name\nerror: Schema validation failure")
           else ProcessResult(request, 0, "", "")
         }
         report <- SquireSchemas.validate(yaml, generated, documents, runner)
@@ -782,6 +851,26 @@ class SquireSchemasSpec extends Test[Any]:
           )) &&
           runner.requests.forall(!_.argv.exists(_.contains("python")))
       )
+    }
+
+    "aborts when unexpected exits mimic Sourcemeta's validation failure" in {
+      for
+        root <- SquireFixtures.scratch("schemas-fatal-validation")
+        yaml = root / "morphir-ir-v4.yaml"
+        _ <- Sync.defer(Files.writeString(yaml.toJava, "type: object\n"))
+        results <- Kyo.foreach(Chunk(42, 127)) { exitCode =>
+          val runner = RuleRunner { request =>
+            if request.argv == Chunk("jsonschema", "--version") then ProcessResult(request, 0, "v0", "")
+            else ProcessResult(
+              request,
+              exitCode,
+              "",
+              s"fail: ${request.argv.lastOption.getOrElse("")}\nerror: Schema validation failure\n"
+            )
+          }
+          Abort.run[SquireError](SquireSchemas.validate(root, root, root, runner))
+        }
+      yield assert(results.forall(_.isFailure))
     }
   }
 

@@ -3,8 +3,10 @@
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.math.{BigDecimal as JBigDecimal, MathContext, RoundingMode}
 import kyo.*
 import scala.jdk.CollectionConverters.*
+import scala.util.control.NonFatal
 
 final case class SchemaOutcome(
     file: String,
@@ -27,18 +29,25 @@ object SquireSchemas:
   val DefaultDocuments: String = "kb/bundles/morphir/morphir-upstream/sources"
 
   def convert(yaml: String): Result[SquireError, String] =
-    Yaml.decode[Structure.Value](yaml) match
-      case Result.Success(directValue) =>
-        val value = Yaml.parse(yaml) match
-          case Result.Success(node) => reconcileYamlNode(directValue, node)
-          case Result.Failure(_)    => directValue
-        try Result.Success(SquireJson.pretty(normalizeForJson(rewriteTopLevelId(value))))
-        catch
-          case error: SquireError => Result.Failure(error)
-      case Result.Failure(error) =>
-        Result.Failure(
-          SquireError.Failure("schemas", "could not decode YAML schema", Present(error.getMessage))
-        )
+    try
+      val direct = Yaml.decode[Structure.Value](yaml)
+      Yaml.parse(yaml) match
+        case Result.Success(node) =>
+          direct match
+            case Result.Success(value) => renderConverted(reconcileYamlNode(value, node))
+            case Result.Panic(_: NumberFormatException) =>
+              recoverOverflowingIntegers(yaml, node).flatMap { recovered =>
+                Yaml.decode[Structure.Value](recovered) match
+                  case Result.Success(value) => renderConverted(reconcileYamlNode(value, node))
+                  case Result.Failure(error) => conversionFailure(error)
+                  case Result.Panic(error)   => conversionFailure(error)
+              }
+            case Result.Failure(error) => conversionFailure(error)
+            case Result.Panic(error)   => conversionFailure(error)
+        case Result.Failure(error) => conversionFailure(error)
+        case Result.Panic(error)   => conversionFailure(error)
+    catch
+      case NonFatal(error) => conversionFailure(error)
 
   def build(from: Path, to: Path, all: Boolean): SchemaReport < (Sync & Abort[SquireError]) =
     fromResultEffect(Sync.defer(buildResult(from, to, all)))
@@ -191,22 +200,6 @@ object SquireSchemas:
         })
       case other => other
 
-  private def normalizeForJson(value: Structure.Value): Structure.Value =
-    value match
-      case Structure.Value.Record(fields) =>
-        Structure.Value.Record(fields.map((name, value) => name -> normalizeForJson(value)))
-      case Structure.Value.VariantCase(name, value) =>
-        Structure.Value.VariantCase(name, normalizeForJson(value))
-      case Structure.Value.Sequence(elements) =>
-        Structure.Value.Sequence(elements.map(normalizeForJson))
-      case Structure.Value.MapEntries(entries) =>
-        Structure.Value.MapEntries(entries.map((key, value) => normalizeForJson(key) -> normalizeForJson(value)))
-      case Structure.Value.Decimal(value)
-          if value.isFinite && value >= Long.MinValue.toDouble && value <= Long.MaxValue.toDouble &&
-            value == value.toLong.toDouble =>
-        Structure.Value.Integer(value.toLong)
-      case other => other
-
   private def reconcileYamlNode(value: Structure.Value, node: Yaml.Node): Structure.Value =
     (value, node) match
       case (Structure.Value.Record(fields), Yaml.Node.Mapping(entries, _)) if fields.size == entries.size =>
@@ -217,9 +210,184 @@ object SquireSchemas:
         })
       case (Structure.Value.Sequence(elements), Yaml.Node.Sequence(nodes, _)) if elements.size == nodes.size =>
         Structure.Value.Sequence(elements.zip(nodes).map(reconcileYamlNode))
-      case (Structure.Value.Str(decoded), Yaml.Node.Scalar(raw, meta)) =>
-        repairQuotedBoundaryScalar(raw, meta).getOrElse(Structure.Value.Str(decoded))
+      case (decoded, Yaml.Node.Scalar(raw, meta)) =>
+        yamlNumber(raw, meta)
+          .map(number => if number.isFinite then Structure.Value.Decimal(number) else Structure.Value.Null)
+          .getOrElse {
+            decoded match
+              case Structure.Value.Str(value) =>
+                repairQuotedBoundaryScalar(raw, meta).getOrElse(Structure.Value.Str(value))
+              case other => other
+          }
       case _ => value
+
+  private final case class NumericPatch(start: Int, length: Int, replacement: String)
+
+  private def recoverOverflowingIntegers(yaml: String, node: Yaml.Node): Result[SquireError, String] =
+    numericPatches(yaml, node).flatMap { patches =>
+      if patches.isEmpty then
+        Result.Failure(SquireError.Failure("schemas", "could not reconcile YAML numeric scalar"))
+      else
+        val recovered = patches.sortBy(_.start).reverse.foldLeft(yaml) { (text, patch) =>
+          text.substring(0, patch.start) + patch.replacement + text.substring(patch.start + patch.length)
+        }
+        Result.Success(recovered)
+    }
+
+  private def numericPatches(yaml: String, node: Yaml.Node): Result[SquireError, List[NumericPatch]] =
+    node match
+      case Yaml.Node.Mapping(entries, _) =>
+        entries.foldLeft(Result.Success(List.empty[NumericPatch]): Result[SquireError, List[NumericPatch]]) {
+          case (result, (_, child)) =>
+            result.flatMap(current => numericPatches(yaml, child).map(current ++ _))
+        }
+      case Yaml.Node.Sequence(elements, _) =>
+        elements.foldLeft(Result.Success(List.empty[NumericPatch]): Result[SquireError, List[NumericPatch]]) {
+          case (result, child) => result.flatMap(current => numericPatches(yaml, child).map(current ++ _))
+        }
+      case Yaml.Node.Scalar(raw, meta) =>
+        val overflow =
+          if numericTag(meta) then
+            Yaml.decode[Structure.Value](raw) match
+              case Result.Panic(_: NumberFormatException) => yamlNumber(raw, meta)
+              case _                                      => None
+          else None
+        overflow match
+          case None => Result.Success(Nil)
+          case Some(number) =>
+            scalarStart(yaml, raw, meta.mark) match
+              case Some(start) =>
+                val replacement =
+                  if number == Double.PositiveInfinity then ".inf"
+                  else if number == Double.NegativeInfinity then "-.inf"
+                  else java.lang.Double.toString(number)
+                Result.Success(List(NumericPatch(start, raw.length, replacement)))
+              case None =>
+                Result.Failure(
+                  SquireError.Failure(
+                    "schemas",
+                    "could not reconcile YAML numeric scalar",
+                    Present(s"line ${meta.mark.line + 1}, column ${meta.mark.column + 1}")
+                  )
+                )
+      case Yaml.Node.Alias(_, _) => Result.Success(Nil)
+
+  private def scalarStart(yaml: String, raw: String, mark: Yaml.Mark): Option[Int] =
+    val start   = mark.index
+    val lineEnd = yaml.indexOf('\n', start) match
+      case -1    => yaml.length
+      case index => index
+    Option
+      .when(start >= 0 && start <= yaml.length)(yaml.indexOf(raw, start))
+      .filter(index => index >= start && index + raw.length <= lineEnd)
+
+  private def yamlNumber(value: String, meta: Yaml.ScalarMeta): Option[Double] =
+    Option.when(numericTag(meta)) {
+      Yaml.decode[Double](value) match
+        case Result.Success(number) => Some(number)
+        case _                      => None
+    }.flatten
+
+  private def numericTag(meta: Yaml.ScalarMeta): Boolean =
+    meta.style == Yaml.ScalarStyle.Plain &&
+      (meta.tag match
+        case Absent => true
+        case Present(tag) =>
+          val value = tag.value
+          value == "!!int" || value == "!!float" || value.endsWith(":int") || value.endsWith(":float"))
+
+  private def renderConverted(value: Structure.Value): Result[SquireError, String] =
+    try Result.Success(renderJson(rewriteTopLevelId(value), 0) + "\n")
+    catch
+      case error: SquireError => Result.Failure(error)
+      case NonFatal(error)    => conversionFailure(error)
+
+  private def renderJson(value: Structure.Value, depth: Int): String =
+    value match
+      case Structure.Value.Record(fields) => renderObject(fields, depth)
+      case Structure.Value.VariantCase(name, value) =>
+        renderObject(Chunk("name" -> Structure.Value.Str(name), "value" -> value), depth)
+      case Structure.Value.Sequence(elements) => renderArray(elements, depth)
+      case Structure.Value.MapEntries(entries) =>
+        renderArray(entries.map { case (key, value) => Structure.Value.Sequence(Chunk(key, value)) }, depth)
+      case Structure.Value.Str(value)     => Json.encode(value)
+      case Structure.Value.Bool(value)    => Json.encode(value)
+      case Structure.Value.Integer(value) => renderNumber(value.toDouble)
+      case Structure.Value.Decimal(value) => renderNumber(value)
+      case Structure.Value.BigNum(value)  => renderNumber(value.toDouble)
+      case Structure.Value.Null           => "null"
+      case Structure.Value.Bytes(_) | Structure.Value.Instant(_) | Structure.Value.Duration(_) =>
+        throw SquireError.Failure("json", "value cannot be represented as deterministic JSON")
+
+  private def renderObject(fields: Chunk[(String, Structure.Value)], depth: Int): String =
+    if fields.isEmpty then "{}"
+    else
+      fields
+        .map { case (name, value) =>
+          s"${indent(depth + 1)}${Json.encode(name)}: ${renderJson(value, depth + 1)}"
+        }
+        .mkString("{\n", ",\n", s"\n${indent(depth)}}")
+
+  private def renderArray(elements: Chunk[Structure.Value], depth: Int): String =
+    if elements.isEmpty then "[]"
+    else
+      elements
+        .map(value => s"${indent(depth + 1)}${renderJson(value, depth + 1)}")
+        .mkString("[\n", ",\n", s"\n${indent(depth)}]")
+
+  private def renderNumber(value: Double): String =
+    if !value.isFinite then "null"
+    else if value == 0d then "0"
+    else
+      val negative = value < 0d
+      val decimal  = shortestDecimal(math.abs(value)).stripTrailingZeros
+      val digits   = decimal.unscaledValue.abs.toString
+      val exponent = decimal.precision - decimal.scale - 1
+      val unsigned =
+        if exponent >= 21 || exponent <= -7 then
+          val significand = if digits.length == 1 then digits else s"${digits.head}.${digits.tail}"
+          val sign        = if exponent >= 0 then "+" else ""
+          s"$significand" + "e" + s"$sign$exponent"
+        else if exponent < 0 then "0." + ("0" * (-exponent - 1)) + digits
+        else if exponent + 1 >= digits.length then digits + ("0" * (exponent + 1 - digits.length))
+        else digits.take(exponent + 1) + "." + digits.drop(exponent + 1)
+      if negative then "-" + unsigned else unsigned
+
+  private def shortestDecimal(value: Double): JBigDecimal =
+    val exact    = new JBigDecimal(value)
+    val exponent = exact.precision - exact.scale - 1
+    (1 to 17).iterator
+      .flatMap { precision =>
+        val context = new MathContext(precision, RoundingMode.HALF_EVEN)
+        val rounded = exact.round(context)
+        val quantum = JBigDecimal.ONE.scaleByPowerOfTen(exponent - precision + 1)
+        List(rounded, rounded.subtract(quantum), rounded.add(quantum))
+          .map(_.stripTrailingZeros)
+          .filter(candidate => candidate.signum > 0 && candidate.precision <= precision)
+          .filter(candidate => candidate.doubleValue == value)
+          .sortWith((left, right) => closerDecimal(left, right, exact))
+          .headOption
+      }
+      .next()
+
+  private def closerDecimal(left: JBigDecimal, right: JBigDecimal, exact: JBigDecimal): Boolean =
+    val comparison = left.subtract(exact).abs.compareTo(right.subtract(exact).abs)
+    if comparison != 0 then comparison < 0
+    else
+      val leftEven  = !left.unscaledValue.abs.testBit(0)
+      val rightEven = !right.unscaledValue.abs.testBit(0)
+      if leftEven != rightEven then leftEven else left.compareTo(right) < 0
+
+  private def indent(depth: Int): String = "  " * depth
+
+  private def conversionFailure[A](error: Throwable): Result[SquireError, A] =
+    Result.Failure(
+      SquireError.Failure(
+        "schemas",
+        "could not decode YAML schema",
+        Present(Option(error.getMessage).getOrElse(error.getClass.getName))
+      )
+    )
 
   private def repairQuotedBoundaryScalar(value: String, meta: Yaml.ScalarMeta): Option[Structure.Value.Str] =
     val hasQuotedSurface =
@@ -309,7 +477,7 @@ object SquireSchemas:
 
   private def ensureValidatorResult(result: ProcessResult, operation: String): Unit < Abort[SquireError] =
     val output = result.stderr + result.stdout
-    if result.exitCode <= 1 || output.contains("Schema validation failure") then ()
+    if result.exitCode == 0 || result.exitCode == 1 || isCapturedValidationFailure(result) then ()
     else
       Abort.fail(
         SquireError.Failure(
@@ -318,6 +486,13 @@ object SquireSchemas:
           Present(output.trim)
         )
       )
+
+  private def isCapturedValidationFailure(result: ProcessResult): Boolean =
+    if result.exitCode != 2 || result.stdout.nonEmpty then false
+    else
+      val lines = result.stderr.linesIterator.toList
+      lines.length >= 2 && lines.head.startsWith("fail: ") && lines.head.length > "fail: ".length &&
+        lines(1) == "error: Schema validation failure"
 
   private def fromResultEffect[A](effect: Result[SquireError, A] < Sync): A < (Sync & Abort[SquireError]) =
     effect.flatMap {
