@@ -8,6 +8,8 @@ import mill.testkit.{TestRootModule, UnitTester}
 import org.finos.morphir.mill.javascript.*
 import org.finos.morphir.mill.javascript.node.NodeRuntimeModule
 import org.finos.morphir.mill.javascript.npm.NpmPackageManagerModule
+import org.finos.morphir.mill.toolchain.storageSize
+import org.finos.morphir.mill.toolchain.StorageSize
 import scala.compiletime.testing.typeCheckErrors
 import utest.*
 
@@ -79,6 +81,8 @@ object ElmToolingTests extends TestSuite {
         """
       )
       assert(errors.isEmpty)
+      val maxFileBytes: StorageSize = ElmInputLimits().maxFileBytes
+      assert(maxFileBytes == storageSize"64 MiB")
     }
 
     test("Elm command uses the typed package binary without runtime assumptions") {
@@ -114,6 +118,101 @@ object ElmToolingTests extends TestSuite {
         assert(environment("ELM_HOME").startsWith((root / "task").toString))
         assert(environment("HTTPS_PROXY") == "https://proxy.example.test")
         assert(!environment.values.exists(_.contains(poisoned.toString)))
+      }
+    }
+
+    test("Elm project snapshots reject symlinks duplicate destinations and escaping entrypoints") {
+      withTempDir { root =>
+        val elmJson = root / "inputs" / "elm.json"
+        val source  = root / "inputs" / "src"
+        os.write(elmJson, "{}", createFolders = true)
+        os.write(source / "Main.elm", "module Main exposing (main)", createFolders = true)
+
+        def rejected(
+            name: String,
+            json: os.Path = elmJson,
+            sources: Seq[os.Path] = Seq(source),
+            entrypoint: os.RelPath = os.rel / "src" / "Main.elm"
+        )(expected: String): Unit = {
+          val error = scala.util.Try {
+            ElmProjectSnapshot.stage(
+              root / "task" / name,
+              PathRef(json),
+              sources.map(PathRef(_)),
+              entrypoint,
+              ElmInputLimits(maxEntries = 10, maxFileBytes = storageSize"1 KiB", maxTotalBytes = storageSize"4 KiB")
+            )
+          }.failed.get
+          assert(error.getMessage.contains(expected))
+          assert(!os.exists(root / "task" / name / "project"))
+        }
+
+        val outside  = root / "outside"
+        val rootLink = root / "source-link"
+        os.makeDir.all(outside)
+        os.write(outside / "Secret.elm", "secret")
+        Files.createSymbolicLink(rootLink.toNIO, outside.toNIO)
+        rejected("root-symlink", sources = Seq(rootLink))("symbolic link")
+
+        val nested = source / "nested-link"
+        Files.createSymbolicLink(nested.toNIO, outside.toNIO)
+        rejected("nested-symlink")("symbolic link")
+        Files.delete(nested.toNIO)
+
+        val otherSource = root / "other" / "src"
+        os.write(otherSource / "Other.elm", "module Other exposing (..)", createFolders = true)
+        rejected("duplicate", sources = Seq(source, otherSource))("duplicate staged destination")
+        rejected("upward", entrypoint = os.rel / os.up / "Outside.elm")("entrypoint")
+        rejected("outside-source", entrypoint = os.rel / "other" / "Main.elm")("entrypoint")
+      }
+    }
+
+    test("Elm project snapshots enforce limits and detect same-path input races") {
+      withTempDir { root =>
+        val elmJson = root / "inputs" / "elm.json"
+        val source  = root / "inputs" / "src"
+        val main    = source / "Main.elm"
+        os.write(elmJson, "{}", createFolders = true)
+        os.write(main, "module Main exposing (main)", createFolders = true)
+
+        def failure(limits: ElmInputLimits, expected: String): Unit = {
+          val error = scala.util.Try {
+            ElmProjectSnapshot.stage(
+              root / s"task-${expected.hashCode}",
+              PathRef(elmJson),
+              Seq(PathRef(source)),
+              os.rel / "src" / "Main.elm",
+              limits
+            )
+          }.failed.get
+          assert(error.getMessage.contains(expected))
+        }
+
+        failure(
+          ElmInputLimits(maxEntries = 1, maxFileBytes = storageSize"1 KiB", maxTotalBytes = storageSize"4 KiB"),
+          "entry count"
+        )
+        failure(
+          ElmInputLimits(maxEntries = 10, maxFileBytes = storageSize"4 B", maxTotalBytes = storageSize"4 KiB"),
+          "file bytes"
+        )
+        failure(
+          ElmInputLimits(maxEntries = 10, maxFileBytes = storageSize"1 KiB", maxTotalBytes = storageSize"4 B"),
+          "total bytes"
+        )
+
+        val race = scala.util.Try {
+          ElmProjectSnapshot.stage(
+            root / "race-task",
+            PathRef(elmJson),
+            Seq(PathRef(source)),
+            os.rel / "src" / "Main.elm",
+            ElmInputLimits(),
+            beforeRevalidate = () => os.write.over(main, "changed after snapshot")
+          )
+        }.failed.get
+        assert(race.getMessage.contains("changed after snapshot"))
+        assert(!os.exists(root / "race-task" / "project"))
       }
     }
 

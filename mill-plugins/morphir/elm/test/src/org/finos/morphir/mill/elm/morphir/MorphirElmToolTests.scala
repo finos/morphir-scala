@@ -62,7 +62,7 @@ object MorphirElmToolTests extends TestSuite {
       val registry         = packages.collectFirst { case (path, value) if path.nonEmpty => path -> value }.get
       val (path, metadata) = registry
 
-      def rejected(mutator: ujson.Obj => Unit, expected: String): Unit = {
+      def rejected(mutator: collection.mutable.Map[String, ujson.Value] => Unit, expected: String): Unit = {
         val copy = ujson.read(original.render()).obj
         mutator(copy)
         val temp = os.temp(prefix = "invalid-morphir-lock", suffix = ".json", deleteOnExit = true)
@@ -71,19 +71,67 @@ object MorphirElmToolTests extends TestSuite {
         assert(error.getMessage.contains(expected))
       }
 
+      rejected(lock => lock("lockfileVersion") = ujson.Num(2), "lockfileVersion 3")
+      rejected(lock => lock("packages").obj("").obj("dependencies").obj.remove("morphir-elm"), "root morphir-elm")
+      rejected(
+        lock => lock("packages").obj("").obj("dependencies").obj("morphir-elm") = ujson.Str("2.88.0"),
+        "root morphir-elm"
+      )
       rejected(lock => lock("packages").obj(path).obj.remove("resolved"), "resolved")
       rejected(lock => lock("packages").obj(path).obj.remove("integrity"), "integrity")
       rejected(
         lock => lock("packages").obj(path).obj("resolved") = ujson.Str("git+https://example.test/tool.git"),
         "registry"
       )
-      Seq("git+https://example.test/tool.git", "file:../tool", "link:../tool").foreach { dependency =>
+      Seq(
+        "git+https://example.test/tool.git",
+        "github:owner/repo",
+        "gitlab:owner/repo",
+        "bitbucket:owner/repo",
+        "gist:deadbeef",
+        "owner/repo",
+        "ssh://git@example.test/owner/repo.git",
+        "git@example.test:owner/repo.git",
+        "file:../tool",
+        "link:../tool"
+      ).foreach { dependency =>
         rejected(
-          lock => lock("packages").obj("").obj("dependencies").obj("morphir-elm") = ujson.Str(dependency),
+          lock => lock("packages").obj(path).obj("peerDependencies") = ujson.Obj("unsafe" -> dependency),
           "non-registry"
         )
       }
+      Seq("1.2.3", "^1.2.3", ">=1 <3", "~2.0.0 || ^3.0.0", "latest", "npm:other-package@^1.0.0").foreach {
+        dependency =>
+          val copy = ujson.read(original.render()).obj
+          copy("packages").obj(path).obj("peerDependencies") = ujson.Obj("safe" -> dependency)
+          val temp = os.temp(prefix = "valid-morphir-lock", suffix = ".json", deleteOnExit = true)
+          os.write.over(temp, copy.render())
+          MorphirElmLock.validate(temp)
+      }
       rejected(lock => lock("packages").obj(path).obj("hasInstallScript") = ujson.Bool(true), "install scripts")
+
+      val morphirPackage = "node_modules/morphir-elm"
+      rejected(lock => lock("packages").obj(morphirPackage).obj("version") = ujson.Str("2.88.0"), "pinned version")
+      rejected(
+        lock =>
+          lock("packages").obj(morphirPackage).obj("resolved") =
+            ujson.Str("https://registry.npmjs.org/morphir-elm/-/morphir-elm-2.88.0.tgz"),
+        "pinned resolved"
+      )
+      rejected(
+        lock =>
+          lock("packages").obj(morphirPackage).obj("integrity") =
+            ujson.Str("sha512-" + java.util.Base64.getEncoder.encodeToString(Array.fill[Byte](64)(0))),
+        "pinned integrity"
+      )
+      rejected(lock => lock("packages").obj(path).obj("integrity") = ujson.Str("sha512-not-base64!"), "SHA-512")
+      rejected(
+        lock =>
+          lock("packages").obj(path).obj("integrity") =
+            ujson.Str("sha512-" + java.util.Base64.getEncoder.encodeToString(Array.fill[Byte](63)(0))),
+        "64 bytes"
+      )
+      rejected(lock => lock("packages").obj(path).obj("dependencies") = ujson.Arr(), "dependencies")
       assert(metadata.obj.contains("resolved"))
     }
 

@@ -11,13 +11,16 @@ trait ElmModule extends Module {
 
   def elmEntryPoint: os.RelPath = os.rel / "src" / "Main.elm"
 
+  def elmInputLimits: ElmInputLimits = ElmInputLimits()
+
   def compile: T[PathRef] = Task {
-    val project = Task.dest / "project"
-    os.makeDir.all(project)
-    os.copy.over(elmJson().path, project / "elm.json")
-    elmSources().foreach { source =>
-      os.copy.over(source.path, project / source.path.last, createFolders = true)
-    }
+    val project = ElmProjectSnapshot.stage(
+      Task.dest,
+      elmJson(),
+      elmSources(),
+      elmEntryPoint,
+      elmInputLimits
+    )
     val output      = project / "main.js"
     val command     = elmTool.elmCommand(Seq("make", elmEntryPoint.toString, "--output", "main.js"))()
     val environment = ElmProcessEnvironment.create(Task.dest / "tool-state", Task.env)
