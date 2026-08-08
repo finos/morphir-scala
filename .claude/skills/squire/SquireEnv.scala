@@ -4,6 +4,8 @@
 import java.net.{InetAddress, InetSocketAddress, ServerSocket, Socket, SocketException}
 import java.nio.file.{Files, Path as JavaPath}
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kyo.*
 
 object SquireEnv:
@@ -49,6 +51,7 @@ object SquireEnv:
     def managedSettingsCandidates: Chunk[Path]
     def varFolders: Path
     def now: Instant
+    def zone: ZoneId = ZoneId.systemDefault()
     def probeJvmNetwork(timeout: Duration): CheckResult
     def probeDaemon(port: Int): DaemonProbe
     def writeProbe(path: Path): Unit = Files.writeString(path.toJava, "squire probe")
@@ -95,7 +98,7 @@ object SquireEnv:
     yield
       val sandboxed = jvmNetwork.ok == Present(false)
       EnvReport(
-        generatedAt = platform.now.toString,
+        generatedAt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").format(platform.now.atZone(platform.zone)),
         claudeCode = ClaudeCodeInfo(
           detected = claudeEnvironmentDetected(platform.environment),
           entrypoint = environmentValue(platform.environment, "CLAUDE_CODE_ENTRYPOINT"),
@@ -147,7 +150,7 @@ object SquireEnv:
             "child_session" -> Structure.Value.Bool(report.claudeCode.childSession)
           )),
           "ci" -> Structure.Value.Bool(report.ci),
-          "checks" -> Structure.Value.Record(Chunk("python_network" -> Structure.Value.Null, "jvm_network" -> checkValue(report.checks("jvm_network")), "var_folders_writable" -> checkValue(report.checks("var_folders_writable")))),
+          "checks" -> Structure.Value.Record(Chunk("jvm_network" -> checkValue(report.checks("jvm_network")), "var_folders_writable" -> checkValue(report.checks("var_folders_writable")))),
           "sandboxed" -> Structure.Value.Bool(report.sandboxed),
           "claude_settings" -> Structure.Value.Record(Chunk(
             "sources" -> settingSources,
@@ -239,14 +242,14 @@ object SquireEnv:
       case Absent => LoadedSettings(Absent, Absent, false)
       case Present(value) if !Files.exists(value.toJava) => LoadedSettings(Present(value), Absent, false)
       case Present(value) =>
-        val content = Files.readString(value.toJava)
-        val settings =
+        val (settings, present) =
           try
+            val content = Files.readString(value.toJava)
             SquireJson.decode[SettingsFile](content) match
-              case Result.Success(decoded) => Present(decoded)
-              case Result.Failure(_)       => Absent
-          catch case _: java.io.IOException => Absent
-        LoadedSettings(Present(value), settings, settings.isDefined && content.filterNot(_.isWhitespace) != "{}")
+              case Result.Success(decoded) => (Present(decoded), content.filterNot(_.isWhitespace) != "{}")
+              case Result.Failure(_)       => (Absent, false)
+          catch case _: java.io.IOException => (Absent, false)
+        LoadedSettings(Present(value), settings, present)
 
   private def timeoutMillis(timeout: Duration): Int =
     math.max(1L, math.min(Int.MaxValue.toLong, timeout.toJava.toMillis)).toInt

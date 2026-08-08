@@ -57,7 +57,7 @@ class SquireCliSpec extends Test[Any]:
         legacyKeys = List("generated_at", "claude_code", "ci", "checks", "sandboxed", "claude_settings", "recommendation")
         ordered = legacyKeys.map(json.indexOf).sliding(2).forall { case List(left, right) => left >= 0 && left < right; case _ => true }
       yield assert(
-        fullExit == 0 && json.contains("\"jvm_network\"") && json.contains("\"python_network\": null") &&
+        fullExit == 0 && json.contains("\"generated_at\": \"1970-01-01T00:00:00+0000\"") && json.contains("\"jvm_network\"") && !json.contains("python_network") &&
           json.contains("\"entrypoint\": null") && json.contains("\"session_id\": null") && ordered &&
           fractionalExit == 0 && fractionalOutput.nonEmpty && skippedExit == 0 && skippedOutput.isEmpty && blockedExit == 1 && blockedOutput.isEmpty
       )
@@ -454,6 +454,7 @@ final class TestEnvPlatform(
   var daemonPorts: Chunk[Int] = Chunk.empty
 
   def now: java.time.Instant = java.time.Instant.EPOCH
+  override def zone: java.time.ZoneId = java.time.ZoneOffset.UTC
 
   def probeJvmNetwork(timeout: Duration): SquireEnv.CheckResult = jvmProbe(timeout)
 
