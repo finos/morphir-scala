@@ -165,6 +165,11 @@ object integration extends ScalaModule with ScalafmtModule {
   def scalaVersion = ScalaVers.scala3
   def moduleDeps   = Seq(core(MillVersions.oldest))
 
+  object millExecutable extends JavaModule {
+    def mvnDeps   = Seq(mvn"com.lihaoyi:mill-runner-launcher_3:${MillVersions.oldest}")
+    def mainClass = Some("mill.launcher.MillLauncherMain")
+  }
+
   def publishedPluginRepositories: T[Seq[PathRef]] = Task {
     Seq(
       toolchain(MillVersions.oldest).publishLocalTestRepo(),
@@ -175,30 +180,33 @@ object integration extends ScalaModule with ScalafmtModule {
     )
   }
 
-  object test extends ScalaTests with TestModule.Utest with ScalafmtModule {
-    def utestVersion       = Vers.utest
-    override def resources = Task.Sources(moduleDir / os.up / "resources")
-    override def mvnDeps   = super.mvnDeps() ++ Seq(
-      mvn"com.lihaoyi::mill-testkit:${MillVersions.oldest}"
-    )
-
-    override def forkEnv = Task {
-      val localRepositories = integration.publishedPluginRepositories()
-      val repositories      = localRepositories.map(_.path.wrapped.toUri.toASCIIString) :+
-        Task.env.getOrElse("COURSIER_REPOSITORIES", "ivy2Local|central")
-      super.forkEnv() ++ Map(
-        "MILL_EXECUTABLE_PATH"                -> PathRef.toAbsString(millExecutable.assembly()),
-        "MORPHIR_PUBLISHED_TEST_REPOSITORIES" ->
-          localRepositories
-            .map(PathRef.toAbsString)
-            .mkString(java.io.File.pathSeparator),
-        "COURSIER_REPOSITORIES" -> repositories.mkString("|")
+  def publishedConsumerInputs: T[PathRef] = Task {
+    val root       = Task.dest / "published-consumer-inputs"
+    val repository = root / "repository"
+    os.makeDir.all(repository)
+    publishedPluginRepositories().foreach { source =>
+      os.copy.into(
+        source.path / "org",
+        repository,
+        followLinks = true,
+        replaceExisting = true,
+        copyAttributes = true,
+        createFolders = true,
+        mergeFolders = true
       )
     }
+    os.copy.over(millExecutable.assembly().path, root / "mill-executable.jar")
+    PathRef(root)
+  }
 
-    object millExecutable extends JavaModule {
-      def mvnDeps   = Seq(mvn"com.lihaoyi:mill-runner-launcher_3:${MillVersions.oldest}")
-      def mainClass = Some("mill.launcher.MillLauncherMain")
+  object test extends ScalaTests with TestModule.Utest with ScalafmtModule {
+    def utestVersion       = Vers.utest
+    def fixtureResources   = Task.Sources(moduleDir / os.up / "resources")
+    override def resources = Task {
+      fixtureResources() :+ integration.publishedConsumerInputs()
     }
+    override def mvnDeps = super.mvnDeps() ++ Seq(
+      mvn"com.lihaoyi::mill-testkit:${MillVersions.oldest}"
+    )
   }
 }
