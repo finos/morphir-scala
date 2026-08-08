@@ -75,6 +75,10 @@ otherwise                                  -> effective_mode = beads
 `effective_mode` is what agents and scripts should branch on. `configured_mode` is only what the
 contributor wrote.
 
+The JSON report keeps the legacy machine contract: field names are snake_case, both modes are lowercase strings,
+and `bd` is an object with `installed` and `version`. It also always reports the documented paths as
+`settings_file: ".config/squire/settings.local.yaml"` and `guidance_doc: "docs/task-tracking.md"`.
+
 A `warning` field appears when the configuration is self-contradictory — `mode: beads` with `bd`
 missing, or an unrecognised mode value (which falls back to `auto` rather than failing).
 

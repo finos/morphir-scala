@@ -12,6 +12,10 @@ Run the unified diagnostic and report each finding as ✅ (no action needed) or 
 ${CLAUDE_PLUGIN_ROOT}/squire doctor
 ```
 
+The command prints blocked findings as `ISSUE - <CODE> - <message>` and exits 1 when any finding is blocked.
+Healthy findings, `NO_DAEMON`, and `REFUSED` are informational and do not make the command fail; when those are the
+only findings, it exits 0.
+
 ### 1. Mill daemon TCP connectivity
 
 - `PORT_OPEN` → daemon port responds to the same JVM socket mechanism Mill uses.

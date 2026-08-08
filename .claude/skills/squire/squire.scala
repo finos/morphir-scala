@@ -6,16 +6,18 @@
 
 import caseapp.*
 import caseapp.core.app.CommandsEntryPoint
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, LinkOption, StandardOpenOption}
 import kyo.*
 
-case class AiEnvInfoOpts(
+final case class AiEnvInfoOpts(
     @HelpMessage("Run one named check and return its status") check: Option[String] = None,
     @HelpMessage("Bound live probes in seconds") timeout: Double = 8.0
 )
 
-case class DoctorOpts()
+final case class DoctorOpts()
 
-case class CellarGetOpts(
+final case class CellarGetOpts(
     @HelpMessage("Maven coordinate or project alias") coordinate: String,
     @HelpMessage("Fully qualified symbol") symbol: String,
     @HelpMessage("Hide inherited members") hideInherited: Boolean = false,
@@ -23,15 +25,15 @@ case class CellarGetOpts(
     @HelpMessage("Maximum number of results") limit: Option[Int] = None
 )
 
-case class CellarSearchOpts(
+final case class CellarSearchOpts(
     @HelpMessage("Maven coordinate or project alias") coordinate: String,
     @HelpMessage("Symbol-name substring") query: String,
     @HelpMessage("Maximum number of results") limit: Option[Int] = None
 )
 
-case class CellarDepsOpts(@HelpMessage("Maven coordinate or project alias") coordinate: String)
+final case class CellarDepsOpts(@HelpMessage("Maven coordinate or project alias") coordinate: String)
 
-case class ReferenceRepoAddOpts(
+final case class ReferenceRepoAddOpts(
     @HelpMessage("Git URL or local repository path") urlOrPath: String,
     @HelpMessage("Override the repository name") name: Option[String] = None,
     @HelpMessage("Branch, tag, or commit to check out") ref: Option[String] = None,
@@ -41,30 +43,30 @@ case class ReferenceRepoAddOpts(
     @HelpMessage("Subtrees to materialise") sparse: List[String] = Nil
 )
 
-case class ReferenceRepoListOpts(@HelpMessage("Output the raw manifest as JSON") json: Boolean = false)
-case class ReferenceRepoStatusOpts(@HelpMessage("Repository name") name: Option[String] = None)
-case class ReferenceRepoRemoveOpts(
+final case class ReferenceRepoListOpts(@HelpMessage("Output the raw manifest as JSON") json: Boolean = false)
+final case class ReferenceRepoStatusOpts(@HelpMessage("Repository name") name: Option[String] = None)
+final case class ReferenceRepoRemoveOpts(
     @HelpMessage("Repository name") name: String,
     @HelpMessage("Leave checkout files in place") keepFiles: Boolean = false
 )
 
-case class BranchRefreshOpts(
+final case class BranchRefreshOpts(
     @HelpMessage("Target branch to refresh") target: String = "develop",
     @HelpMessage("Report the update without writing") dryRun: Boolean = false,
     @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )
 
-case class TrackingStatusOpts(
+final case class TrackingStatusOpts(
     @HelpMessage("Print only the effective tracking mode") quiet: Boolean = false,
     @HelpMessage("Exit successfully only when the effective mode matches") check: Option[String] = None
 )
-case class TrackingSyncOpts(
+final case class TrackingSyncOpts(
     @HelpMessage("Report guidance drift without writing") check: Boolean = false,
     @HelpMessage("Print the pending guidance diff without writing") diff: Boolean = false
 )
-case class TrackingDoctorOpts()
+final case class TrackingDoctorOpts()
 
-case class SpecSyncOpts(
+final case class SpecSyncOpts(
     @HelpMessage("Report changes without writing") dryRun: Boolean = false,
     @HelpMessage("Upstream ref to import") ref: Option[String] = None,
     @HelpMessage("Take the upstream side of conflicts") theirs: Boolean = false,
@@ -73,7 +75,7 @@ case class SpecSyncOpts(
     @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )
 
-case class SpecExportOpts(
+final case class SpecExportOpts(
     @HelpMessage("Target Morphir checkout") to: Option[String] = None,
     @HelpMessage("Report changes without writing") dryRun: Boolean = false,
     @HelpMessage("Include changes that also moved upstream") includeDiverged: Boolean = false,
@@ -82,31 +84,66 @@ case class SpecExportOpts(
     @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )
 
-case class SchemasBuildOpts(
+final case class SchemasBuildOpts(
     @HelpMessage("Input schema directory") from: Option[String] = None,
     @HelpMessage("Output schema directory") out: Option[String] = None,
     @HelpMessage("Include every morphir-*.yaml schema") all: Boolean = false,
     @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )
 
-case class SchemasCompareOpts(
+final case class SchemasCompareOpts(
     @HelpMessage("Input schema directory") from: Option[String] = None,
     @HelpMessage("Output schema directory") out: Option[String] = None,
     @HelpMessage("Include every morphir-*.yaml schema") all: Boolean = false,
     @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )
 
-case class SchemasValidateOpts(
+final case class SchemasValidateOpts(
     @HelpMessage("Schema directory") schemas: Option[String] = None,
     @HelpMessage("Document directory") documents: Option[String] = None,
     @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )
 
 object SquireCli:
-  def notImplemented(command: String): Unit < Sync =
-    Sync.defer {
-      java.lang.System.err.println(s"error: squire $command is not implemented yet")
-      java.lang.System.exit(1)
+  private val ExitFileEnvironment = "SQUIRE_EXIT_FILE"
+
+  def runCommand[S](
+      operation: Int < (S & Abort[SquireError]),
+      errorOutput: String => Unit = java.lang.System.err.print,
+      recordExit: Int => Unit = recordExitCode
+  ): Unit < (S & Sync) =
+    Abort.run[SquireError](operation).flatMap {
+      case Result.Success(exitCode) => Sync.defer(recordExit(validatedExit(exitCode, errorOutput)))
+      case Result.Failure(error)    => Sync.defer {
+          errorOutput(renderError(error))
+          recordExit(1)
+        }
+    }
+
+  private def validatedExit(exitCode: Int, errorOutput: String => Unit): Int =
+    if exitCode >= 0 && exitCode <= 255 then exitCode
+    else
+      errorOutput(s"ERROR [cli]: command returned invalid exit code $exitCode; expected 0 through 255\n")
+      1
+
+  private def renderError(error: SquireError): String =
+    error match
+      case SquireError.Failure(area, message, detail) =>
+        s"ERROR [$area]: $message\n" + detail.map(value => s"  $value\n").getOrElse("")
+
+  private def recordExitCode(exitCode: Int): Unit =
+    Option(java.lang.System.getenv(ExitFileEnvironment)).filter(_.nonEmpty).foreach { value =>
+      val path = java.nio.file.Path.of(value)
+      if !Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(path) then
+        throw java.io.IOException(s"Squire exit handoff is not a regular file: $path")
+      Files.writeString(
+        path,
+        s"$exitCode\n",
+        StandardCharsets.UTF_8,
+        StandardOpenOption.TRUNCATE_EXISTING,
+        StandardOpenOption.WRITE,
+        LinkOption.NOFOLLOW_LINKS
+      )
     }
 
   def projectRoot(from: Path): Path < Sync =
@@ -134,10 +171,14 @@ object SquireCli:
         else 1)
       case Some(_) => 2
 
-  def printDoctor(report: SquireDoctor.DoctorReport): Unit < Sync =
-    Sync.defer(report.findings.foreach(finding =>
-      java.lang.System.out.println(s"${finding.code} - ${finding.message}")
-    ))
+  def printDoctor(report: SquireDoctor.DoctorReport): Int < Sync =
+    Sync.defer {
+      report.findings.foreach { finding =>
+        val prefix = if finding.blocked then "ISSUE - " else ""
+        java.lang.System.out.println(s"$prefix${finding.code} - ${finding.message}")
+      }
+      if report.findings.exists(_.blocked) then 1 else 0
+    }
 
   def runCellar(
       action: CellarAction,
@@ -258,9 +299,64 @@ object SquireCli:
               output(report.effectiveMode.toString.toLowerCase + "\n")
               0
             case None =>
-              output(SquireJson.encode(report) + "\n")
+              output(renderTrackingReport(report))
               0
         }
+
+  private def renderTrackingReport(report: TrackingReport): String =
+    import Structure.Value
+
+    def mode(value: TrackingMode): String =
+      value match
+        case TrackingMode.Auto        => "auto"
+        case TrackingMode.Beads       => "beads"
+        case TrackingMode.Off         => "off"
+        case TrackingMode.Unavailable => "unavailable"
+
+    def optionalString(name: String, value: Maybe[String]): Chunk[(String, Value)] =
+      value match
+        case Present(text) => Chunk(name -> Value.Str(text))
+        case Absent        => Chunk.empty
+
+    val workspace       = report.workspace
+    val workspaceFields =
+      if workspace.status == "no-repo" then
+        Chunk("status" -> Value.Str(workspace.status)) ++
+          optionalString("detail", workspace.detail) ++
+          optionalString("remedy", workspace.remedy)
+      else
+        Chunk(
+          "is_worktree" -> Value.Bool(workspace.isWorktree),
+          "local_store" -> Value.Bool(workspace.localStore)
+        ) ++
+          optionalString("fallback_config", workspace.fallbackConfig) ++
+          Chunk("status" -> Value.Str(workspace.status)) ++
+          optionalString("detail", workspace.detail) ++
+          optionalString("remedy", workspace.remedy)
+
+    val fields = Chunk(
+      "configured_mode" -> Value.Str(mode(report.configuredMode)),
+      "effective_mode"  -> Value.Str(mode(report.effectiveMode)),
+      "reason"          -> Value.Str(report.reason),
+      "bd"              -> Value.Record(
+        Chunk(
+          "installed" -> Value.Bool(report.bdInstalled),
+          "version"   -> report.bdVersion.map(Value.Str(_)).getOrElse(Value.Null)
+        )
+      ),
+      "beads_dir_present"     -> Value.Bool(report.beadsDirPresent),
+      "workspace"             -> Value.Record(workspaceFields),
+      "settings_file"         -> Value.Str(SquireTracking.settingsFile),
+      "settings_file_present" -> Value.Bool(report.settingsFilePresent),
+      "guidance_doc"          -> Value.Str(SquireTracking.guidanceDoc),
+      "guidance_drift"        -> Value.Sequence(
+        report.guidanceDrift.map(drift =>
+          Value.Record(Chunk("file" -> Value.Str(drift.file), "issue" -> Value.Str(drift.issue)))
+        )
+      )
+    ) ++ optionalString("warning", report.warning)
+
+    SquireJson.pretty(Value.Record(fields))
 
   def runTrackingSync(
       options: TrackingSyncOpts,
@@ -286,7 +382,7 @@ object SquireCli:
       report   <- SquireTracking.resolve(root, runner, platform)
       guidance <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Check)
     yield
-      output(SquireJson.encode(report) + "\n")
+      output(renderTrackingReport(report))
       output("guidance:\n")
       output(guidance.output)
       if guidance.exitCode == 0 then 0 else 1
@@ -361,7 +457,7 @@ object SquireCli:
       root: Path,
       output: String => Unit,
       errorOutput: String => Unit
-  ): Int < Sync =
+  ): Int < (Sync & Abort[SquireError]) =
     val from = resolveOption(root, options.from, SquireSchemas.DefaultFrom)
     val to   = resolveOption(root, options.out, SquireSchemas.DefaultOut)
     runSchemaReport(SquireSchemas.build(from, to, options.all), options.json, output, errorOutput)
@@ -371,7 +467,7 @@ object SquireCli:
       root: Path,
       output: String => Unit,
       errorOutput: String => Unit
-  ): Int < Sync =
+  ): Int < (Sync & Abort[SquireError]) =
     val from = resolveOption(root, options.from, SquireSchemas.DefaultFrom)
     val to   = options.out.fold(from)(value => resolvePath(root, value))
     runSchemaReport(SquireSchemas.compare(from, to, options.all), options.json, output, errorOutput)
@@ -382,7 +478,7 @@ object SquireCli:
       runner: ProcessRunner,
       output: String => Unit,
       errorOutput: String => Unit
-  ): Int < (Async & Sync) =
+  ): Int < (Async & Sync & Abort[SquireError]) =
     val sources    = root / SquireSchemas.DefaultFrom
     val schemas    = resolveOption(root, options.schemas, SquireSchemas.DefaultOut)
     val documents  = resolveOption(root, options.documents, SquireSchemas.DefaultDocuments)
@@ -399,14 +495,10 @@ object SquireCli:
       json: Boolean,
       output: String => Unit,
       errorOutput: String => Unit
-  ): Int < S =
-    Abort.run[SquireError](operation).map {
-      case Result.Success(report) =>
-        output(if json then SquireJson.encode(report) + "\n" else SquireSchemas.renderText(report))
-        SquireSchemas.exitCode(report)
-      case Result.Failure(error) =>
-        errorOutput(s"ERROR: ${error.getMessage}\n")
-        1
+  ): Int < (S & Abort[SquireError]) =
+    operation.map { report =>
+      output(if json then SquireJson.encode(report) + "\n" else SquireSchemas.renderText(report))
+      SquireSchemas.exitCode(report)
     }
 
   private def resolveOption(root: Path, value: Option[String], default: String): Path =
@@ -415,9 +507,6 @@ object SquireCli:
   private def resolvePath(root: Path, value: String): Path =
     val path = Path(value)
     if path.toJava.isAbsolute then path else root / value
-
-  def exitUnlessZero(exitCode: Int): Unit < Sync =
-    if exitCode == 0 then () else Sync.defer(java.lang.System.exit(exitCode))
 
 object SquireApp extends CommandsEntryPoint:
   override def progName: String = "squire"
@@ -447,33 +536,30 @@ object SquireApp extends CommandsEntryPoint:
     override def name  = "ai env info"
     override def names = List(List("ai", "env", "info"))
     run { options =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli
-          .runEnvInfo(options, root, SquireEnv.LivePlatform, java.lang.System.out.print)
-          .flatMap { exitCode =>
-            if exitCode == 0 then ()
-            else Sync.defer(java.lang.System.exit(exitCode))
-          }
-      }
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runEnvInfo(options, root, SquireEnv.LivePlatform, java.lang.System.out.print)
+        }
+      )
     }
 
   object DoctorCmd extends KyoCommand[DoctorOpts]:
     override def name = "doctor"
     run { (_: DoctorOpts) =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireDoctor
-          .run(root, LiveProcessRunner, SquireEnv.LivePlatform)
-          .flatMap(SquireCli.printDoctor)
-      }
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireDoctor.run(root, LiveProcessRunner, SquireEnv.LivePlatform).flatMap(SquireCli.printDoctor)
+        }
+      )
     }
 
   object CellarGetCmd extends KyoCommand[CellarGetOpts]:
     override def name  = "cellar get"
     override def names = List(List("cellar", "get"))
     run { options =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli
-          .runCellar(
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runCellar(
             CellarAction.Get(
               options.coordinate,
               options.symbol,
@@ -487,17 +573,17 @@ object SquireApp extends CommandsEntryPoint:
             java.lang.System.out.print,
             java.lang.System.err.print
           )
-          .flatMap(SquireCli.exitUnlessZero)
-      }
+        }
+      )
     }
 
   object CellarSearchCmd extends KyoCommand[CellarSearchOpts]:
     override def name  = "cellar search"
     override def names = List(List("cellar", "search"))
     run { options =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli
-          .runCellar(
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runCellar(
             CellarAction.Search(options.coordinate, options.query, options.limit),
             root,
             LiveProcessRunner,
@@ -505,17 +591,17 @@ object SquireApp extends CommandsEntryPoint:
             java.lang.System.out.print,
             java.lang.System.err.print
           )
-          .flatMap(SquireCli.exitUnlessZero)
-      }
+        }
+      )
     }
 
   object CellarDepsCmd extends KyoCommand[CellarDepsOpts]:
     override def name  = "cellar deps"
     override def names = List(List("cellar", "deps"))
     run { options =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli
-          .runCellar(
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runCellar(
             CellarAction.Deps(options.coordinate),
             root,
             LiveProcessRunner,
@@ -523,109 +609,115 @@ object SquireApp extends CommandsEntryPoint:
             java.lang.System.out.print,
             java.lang.System.err.print
           )
-          .flatMap(SquireCli.exitUnlessZero)
-      }
+        }
+      )
     }
 
   object ReferenceRepoAddCmd extends KyoCommand[ReferenceRepoAddOpts]:
     override def name  = "reference repo add"
     override def names = List(List("reference", "repo", "add"))
     run { options =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli
-          .runReferenceAdd(options, root, LiveProcessRunner, LiveSquirePlatform, java.lang.System.out.print)
-          .flatMap(SquireCli.exitUnlessZero)
-      }
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runReferenceAdd(options, root, LiveProcessRunner, LiveSquirePlatform, java.lang.System.out.print)
+        }
+      )
     }
 
   object ReferenceRepoListCmd extends KyoCommand[ReferenceRepoListOpts]:
     override def name  = "reference repo list"
     override def names = List(List("reference", "repo", "list"))
     run { options =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli
-          .runReferenceList(options, root, LiveProcessRunner, java.lang.System.out.print)
-          .flatMap(SquireCli.exitUnlessZero)
-      }
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runReferenceList(options, root, LiveProcessRunner, java.lang.System.out.print)
+        }
+      )
     }
 
   object ReferenceRepoStatusCmd extends KyoCommand[ReferenceRepoStatusOpts]:
     override def name  = "reference repo status"
     override def names = List(List("reference", "repo", "status"))
     run { options =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli
-          .runReferenceStatus(options, root, LiveProcessRunner, java.lang.System.out.print)
-          .flatMap(SquireCli.exitUnlessZero)
-      }
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runReferenceStatus(options, root, LiveProcessRunner, java.lang.System.out.print)
+        }
+      )
     }
 
   object ReferenceRepoRemoveCmd extends KyoCommand[ReferenceRepoRemoveOpts]:
     override def name  = "reference repo remove"
     override def names = List(List("reference", "repo", "remove"))
     run { options =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli
-          .runReferenceRemove(options, root, LiveProcessRunner, LiveSquirePlatform, java.lang.System.out.print)
-          .flatMap(SquireCli.exitUnlessZero)
-      }
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runReferenceRemove(options, root, LiveProcessRunner, LiveSquirePlatform, java.lang.System.out.print)
+        }
+      )
     }
 
   object BranchRefreshCmd extends KyoCommand[BranchRefreshOpts]:
     override def name  = "branch refresh"
     override def names = List(List("branch", "refresh"))
     run { (options, remaining) =>
-      SquireCli
-        .runBranch(options, remaining.all, LiveProcessRunner, java.lang.System.out.print)
-        .flatMap(SquireCli.exitUnlessZero)
+      SquireCli.runCommand(
+        SquireCli.runBranch(options, remaining.all, LiveProcessRunner, java.lang.System.out.print)
+      )
     }
 
   object TrackingStatusCmd extends KyoCommand[TrackingStatusOpts]:
     override def name  = "tracking status"
     override def names = List(List("tracking", "status"))
     run { options =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli.runTrackingStatus(
-          options,
-          root,
-          LiveProcessRunner,
-          LiveSquirePlatform,
-          java.lang.System.out.print
-        ).flatMap(SquireCli.exitUnlessZero)
-      }
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runTrackingStatus(
+            options,
+            root,
+            LiveProcessRunner,
+            LiveSquirePlatform,
+            java.lang.System.out.print
+          )
+        }
+      )
     }
 
   object TrackingSyncCmd extends KyoCommand[TrackingSyncOpts]:
     override def name  = "tracking sync"
     override def names = List(List("tracking", "sync"))
     run { options =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli.runTrackingSync(options, root, java.lang.System.out.print).flatMap(SquireCli.exitUnlessZero)
-      }
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runTrackingSync(options, root, java.lang.System.out.print)
+        }
+      )
     }
 
   object TrackingDoctorCmd extends KyoCommand[TrackingDoctorOpts]:
     override def name  = "tracking doctor"
     override def names = List(List("tracking", "doctor"))
     run { (_: TrackingDoctorOpts) =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli.runTrackingDoctor(
-          root,
-          LiveProcessRunner,
-          LiveSquirePlatform,
-          java.lang.System.out.print
-        ).flatMap(SquireCli.exitUnlessZero)
-      }
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runTrackingDoctor(
+            root,
+            LiveProcessRunner,
+            LiveSquirePlatform,
+            java.lang.System.out.print
+          )
+        }
+      )
     }
 
   object SpecSyncCmd extends KyoCommand[SpecSyncOpts]:
     override def name  = "spec sync"
     override def names = List(List("spec", "sync"))
     run { options =>
-      SquireSpec.findRepoRoot(Path(java.lang.System.getProperty("user.dir")), LiveSquireSpecPlatform).flatMap {
-        case Present(root) =>
-          SquireCli
-            .runSpecSync(
+      SquireCli.runCommand(
+        SquireSpec.findRepoRoot(Path(java.lang.System.getProperty("user.dir")), LiveSquireSpecPlatform).flatMap {
+          case Present(root) =>
+            SquireCli.runSpecSync(
               options,
               root,
               LiveProcessRunner,
@@ -633,19 +725,19 @@ object SquireApp extends CommandsEntryPoint:
               java.lang.System.out.print,
               java.lang.System.err.print
             )
-            .flatMap(SquireCli.exitUnlessZero)
-        case Absent => Abort.fail(SquireError.Failure("spec", "no repository root contains .claude/skills/kb/kb"))
-      }
+          case Absent => Abort.fail(SquireError.Failure("spec", "no repository root contains .claude/skills/kb/kb"))
+        }
+      )
     }
 
   object SpecExportCmd extends KyoCommand[SpecExportOpts]:
     override def name  = "spec export"
     override def names = List(List("spec", "export"))
     run { options =>
-      SquireSpec.findRepoRoot(Path(java.lang.System.getProperty("user.dir")), LiveSquireSpecPlatform).flatMap {
-        case Present(root) =>
-          SquireCli
-            .runSpecExport(
+      SquireCli.runCommand(
+        SquireSpec.findRepoRoot(Path(java.lang.System.getProperty("user.dir")), LiveSquireSpecPlatform).flatMap {
+          case Present(root) =>
+            SquireCli.runSpecExport(
               options,
               root,
               LiveProcessRunner,
@@ -653,46 +745,46 @@ object SquireApp extends CommandsEntryPoint:
               java.lang.System.out.print,
               java.lang.System.err.print
             )
-            .flatMap(SquireCli.exitUnlessZero)
-        case Absent => Abort.fail(SquireError.Failure("spec", "no repository root contains .claude/skills/kb/kb"))
-      }
+          case Absent => Abort.fail(SquireError.Failure("spec", "no repository root contains .claude/skills/kb/kb"))
+        }
+      )
     }
 
   object SchemasBuildCmd extends KyoCommand[SchemasBuildOpts]:
     override def name  = "schemas build"
     override def names = List(List("schemas", "build"))
     run { options =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli
-          .runSchemasBuild(options, root, java.lang.System.out.print, java.lang.System.err.print)
-          .flatMap(SquireCli.exitUnlessZero)
-      }
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runSchemasBuild(options, root, java.lang.System.out.print, java.lang.System.err.print)
+        }
+      )
     }
 
   object SchemasCompareCmd extends KyoCommand[SchemasCompareOpts]:
     override def name  = "schemas compare"
     override def names = List(List("schemas", "compare"))
     run { options =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli
-          .runSchemasCompare(options, root, java.lang.System.out.print, java.lang.System.err.print)
-          .flatMap(SquireCli.exitUnlessZero)
-      }
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runSchemasCompare(options, root, java.lang.System.out.print, java.lang.System.err.print)
+        }
+      )
     }
 
   object SchemasValidateCmd extends KyoCommand[SchemasValidateOpts]:
     override def name  = "schemas validate"
     override def names = List(List("schemas", "validate"))
     run { options =>
-      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-        SquireCli
-          .runSchemasValidate(
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runSchemasValidate(
             options,
             root,
             LiveProcessRunner,
             java.lang.System.out.print,
             java.lang.System.err.print
           )
-          .flatMap(SquireCli.exitUnlessZero)
-      }
+        }
+      )
     }

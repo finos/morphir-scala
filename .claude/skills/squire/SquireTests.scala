@@ -13,6 +13,30 @@ import kyo.*
 import kyo.test.*
 import scala.jdk.CollectionConverters.*
 
+final case class LaunchedSquire(exitCode: Int, stdout: String, stderr: String)
+
+object SquireLauncherFixtures:
+  def run(
+      skillDirectory: java.nio.file.Path,
+      arguments: Seq[String],
+      environment: Map[String, String] = Map.empty,
+      launcher: String = "squire"
+  ): LaunchedSquire =
+    val command =
+      if launcher.endsWith(".bat") then Seq("cmd", "/d", "/c", skillDirectory.resolve(launcher).toString)
+      else Seq(skillDirectory.resolve(launcher).toString)
+    val builder = new ProcessBuilder((command ++ arguments)*)
+      .directory(skillDirectory.toFile)
+    builder.environment().putAll(environment.asJava)
+    val process = builder.start()
+    val stdout  = new String(process.getInputStream.readAllBytes(), StandardCharsets.UTF_8)
+    val stderr  = new String(process.getErrorStream.readAllBytes(), StandardCharsets.UTF_8)
+    LaunchedSquire(process.waitFor(), stdout, stderr)
+
+  def executable(path: java.nio.file.Path, text: String): Unit =
+    Files.writeString(path, text, StandardCharsets.UTF_8)
+    if !path.toFile.setExecutable(true) then throw new AssertionError(s"could not make $path executable")
+
 object SquireCiPolicy:
   val SupportedBranches = List("main", "0.4.x", "develop")
   val PublishPredicate  =
@@ -368,6 +392,84 @@ class SquireCliSpec extends Test[Any]:
         )
       yield assert(status == 2 && statusOutput.isEmpty && sync == 2 && syncOutput.isEmpty)
     }
+
+    "preserves the legacy tracking status JSON shape byte for byte" in {
+      import SquireTrackingFixtures.*
+      for
+        root <- SquireFixtures.scratch("tracking-cli-legacy-json")
+        _    <- beads(root)
+        output = new StringBuilder
+        exit <- SquireCli.runTrackingStatus(
+          TrackingStatusOpts(),
+          root,
+          runner(gitShared, bdVersion),
+          TestSquirePlatform(Present("bd")),
+          value => output.append(value)
+        )
+        expected = """{
+                     |  "configured_mode": "auto",
+                     |  "effective_mode": "beads",
+                     |  "reason": "bd is installed and .beads/ exists (mode: auto)",
+                     |  "bd": {
+                     |    "installed": true,
+                     |    "version": "bd 0.42.0"
+                     |  },
+                     |  "beads_dir_present": true,
+                     |  "workspace": {
+                     |    "is_worktree": false,
+                     |    "local_store": false,
+                     |    "status": "shared"
+                     |  },
+                     |  "settings_file": ".config/squire/settings.local.yaml",
+                     |  "settings_file_present": false,
+                     |  "guidance_doc": "docs/task-tracking.md",
+                     |  "guidance_drift": []
+                     |}
+                     |""".stripMargin
+      yield assert(exit == 0 && output.result() == expected)
+    }
+  }
+
+  "doctor routing" - {
+    "returns one for blockers and zero for healthy refused or absent daemon findings" in {
+      val healthy = SquireDoctor.DoctorReport(
+        Chunk(
+          SquireDoctor.Finding("mill_daemon", "NO_DAEMON", "not running", false),
+          SquireDoctor.Finding("mill_daemon", "REFUSED", "not accepting connections", false),
+          SquireDoctor.Finding("project", "OK", "healthy", false)
+        )
+      )
+      val blocked = SquireDoctor.DoctorReport(
+        Chunk(SquireDoctor.Finding("var_folders", "BLOCKED", "cannot write", true))
+      )
+      for
+        healthyExit <- SquireCli.printDoctor(healthy)
+        blockedExit <- SquireCli.printDoctor(blocked)
+      yield
+        val healthyCode: Any = healthyExit
+        val blockedCode: Any = blockedExit
+        assert(healthyCode == 0 && blockedCode == 1)
+    }
+  }
+
+  "command boundary" - {
+    "records exact exits and renders one structured domain error" in {
+      val exits                             = scala.collection.mutable.ArrayBuffer.empty[Int]
+      val errors                            = new StringBuilder
+      val failure: Int < Abort[SquireError] = Abort.fail(
+        SquireError.Failure("repo", "manifest entry is missing", Present("choose a configured repository name"))
+      )
+      for
+        _ <- SquireCli.runCommand(0, value => errors.append(value), code => exits.append(code))
+        _ <- SquireCli.runCommand(1, value => errors.append(value), code => exits.append(code))
+        _ <- SquireCli.runCommand(2, value => errors.append(value), code => exits.append(code))
+        _ <- SquireCli.runCommand(7, value => errors.append(value), code => exits.append(code))
+        _ <- SquireCli.runCommand(failure, value => errors.append(value), code => exits.append(code))
+      yield assert(
+        exits.toList == List(0, 1, 2, 7, 1) &&
+          errors.result() == "ERROR [repo]: manifest entry is missing\n  choose a configured repository name\n"
+      )
+    }
   }
 
   "schema routing" - {
@@ -419,6 +521,69 @@ class SquireMetaSpec extends Test[Any]:
     "preserve the activated validator executable across Mill's PATH rewrite" in {
       assert(read("squire").contains("command -v jsonschema") && read("squire").contains("SQUIRE_JSONSCHEMA_BIN"))
       assert(read("squire.bat").contains("where jsonschema") && read("squire.bat").contains("SQUIRE_JSONSCHEMA_BIN"))
+    }
+
+    "honours the POSIX exit-file contract and propagates Mill failure without a handoff" in Sync.defer {
+      val root     = Files.createTempDirectory("squire-wrapper-contract-")
+      val launcher = root.resolve("squire")
+      val mill     = root.resolve("mill")
+      Files.copy(skillDirectory.resolve("squire"), launcher)
+      SquireLauncherFixtures.executable(launcher, Files.readString(launcher, StandardCharsets.UTF_8))
+      SquireLauncherFixtures.executable(
+        mill,
+        """#!/bin/sh
+          |if [ -n "${SQUIRE_TEST_RECORDED_EXIT:-}" ]; then
+          |  printf '%s\n' "$SQUIRE_TEST_RECORDED_EXIT" > "$SQUIRE_EXIT_FILE"
+          |fi
+          |exit "${SQUIRE_TEST_MILL_EXIT:-0}"
+          |""".stripMargin
+      )
+      val recorded = List(0, 1, 2, 7).map(code =>
+        SquireLauncherFixtures.run(
+          root,
+          Seq.empty,
+          Map("SQUIRE_TEST_RECORDED_EXIT" -> code.toString, "SQUIRE_TEST_MILL_EXIT" -> "0")
+        ).exitCode
+      )
+      val millFailure = SquireLauncherFixtures.run(
+        root,
+        Seq.empty,
+        Map("SQUIRE_TEST_MILL_EXIT" -> "23")
+      )
+      assert(recorded == List(0, 1, 2, 7) && millFailure.exitCode == 23)
+    }
+
+    "defines the same validated temporary exit-file contract on Windows" in {
+      val launcher = read("squire.bat")
+      assert(
+        launcher.contains("SQUIRE_EXIT_FILE") && launcher.contains("SQUIRE_RECORDED_EXIT") &&
+          launcher.contains("SQUIRE_MILL_EXIT") && launcher.contains("del /q") &&
+          launcher.contains("goto no_recorded_exit") &&
+          launcher.contains("--no-server --ticker false squire.scala")
+      )
+    }
+  }
+
+  "Scala source policy" - {
+    "marks every concrete Squire case class final" in {
+      val stream     = Files.list(skillDirectory)
+      val violations =
+        try
+          stream.iterator().asScala
+            .filter(path => path.getFileName.toString.endsWith(".scala"))
+            .flatMap(path =>
+              Files.readAllLines(path, StandardCharsets.UTF_8).asScala.iterator.zipWithIndex.map {
+                case (line, index) => (path.getFileName.toString, index + 1, line.trim)
+              }
+            )
+            .collect {
+              case (file, line, source)
+                  if source.startsWith("case class ") || source.startsWith("private case class ") =>
+                s"$file:$line: $source"
+            }
+            .toList
+        finally stream.close()
+      assert(violations.isEmpty, violations.mkString("non-final case classes:\n", "\n", ""))
     }
   }
 

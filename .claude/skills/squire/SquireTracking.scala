@@ -77,6 +77,7 @@ object LiveTrackingFileSystem extends TrackingFileSystem:
 
 object SquireTracking:
   val settingsFile: String = ".config/squire/settings.local.yaml"
+  val guidanceDoc: String  = "docs/task-tracking.md"
   val targets: Chunk[String] = Chunk("AGENTS.md", "CLAUDE.md")
 
   val pointer: String = """<!-- BEGIN MORPHIR TRACKING -->
