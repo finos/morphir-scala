@@ -189,6 +189,18 @@ class SquireCliSpec extends Test[Any]:
       yield assert(status == 0 && statusOutput.result() == "beads\n" && check == 1 && checkOutput.isEmpty &&
         sync == 0 && syncOutput.result().contains("OK - AGENTS.md") && doctor == 0 && doctorOutput.result().contains("guidance"))
     }
+
+    "rejects invalid status checks and conflicting sync modes before output or process work" in {
+      for
+        root <- SquireFixtures.scratch("tracking-cli-invalid")
+        statusOutput = new StringBuilder
+        status <- SquireCli.runTrackingStatus(
+          TrackingStatusOpts(check = Some("invalid")), root, RuleRunner(SquireTrackingFixtures.unexpected), TestSquirePlatform(), value => statusOutput.append(value)
+        )
+        syncOutput = new StringBuilder
+        sync <- SquireCli.runTrackingSync(TrackingSyncOpts(check = true, diff = true), root, value => syncOutput.append(value))
+      yield assert(status == 2 && statusOutput.isEmpty && sync == 2 && syncOutput.isEmpty)
+    }
   }
 
 class SquireMetaSpec extends Test[Any]:
@@ -1925,6 +1937,43 @@ class SquireTrackingSpec extends Test[Any]:
       yield assert(check.exitCode == 1 && diff.exitCode == 1 && diff.output.contains("--- a/AGENTS.md") &&
         before == "stale\n" && apply.exitCode == 1 && after.contains("BEGIN MORPHIR TRACKING") &&
         apply.missing == Chunk("CLAUDE.md") && second.changed.isEmpty)
+    }
+
+    "rejects symlinked guidance targets before apply check or doctor can follow them" in {
+      for
+        root <- SquireFixtures.scratch("tracking-guidance-symlink")
+        outside = root / "outside"
+        external = outside / "AGENTS.md"
+        _ <- Sync.defer {
+          Files.createDirectories(outside.toJava)
+          Files.writeString(external.toJava, "outside\n")
+          Files.createSymbolicLink((root / "AGENTS.md").toJava, external.toJava)
+          Files.writeString((root / "CLAUDE.md").toJava, SquireTracking.pointer + "\n")
+        }
+        checked <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Check)
+        applied <- SquireTracking.syncGuidance(root, SquireTracking.GuidanceMode.Apply)
+        doctorOutput = new StringBuilder
+        doctor <- SquireCli.runTrackingDoctor(root, runner(gitFailure, bdFailure), TestSquirePlatform(), value => doctorOutput.append(value))
+        after <- Sync.defer(Files.readString(external.toJava))
+      yield assert(checked.exitCode == 1 && applied.exitCode == 1 && doctor == 1 && after == "outside\n" &&
+        checked.output.contains("unsafe") && applied.output.contains("unsafe") && doctorOutput.result().contains("unsafe"))
+    }
+
+    "rejects a symlinked repository root before reading its guidance targets" in {
+      for
+        root <- SquireFixtures.scratch("tracking-guidance-intermediate")
+        outside = root / "outside"
+        alias = root / "alias"
+        external = outside / "AGENTS.md"
+        _ <- Sync.defer {
+          Files.createDirectories(outside.toJava)
+          Files.writeString(external.toJava, "outside\n")
+          Files.writeString((outside / "CLAUDE.md").toJava, SquireTracking.pointer + "\n")
+          Files.createSymbolicLink(alias.toJava, outside.toJava)
+        }
+        result <- SquireTracking.syncGuidance(alias, SquireTracking.GuidanceMode.Apply)
+        after <- Sync.defer(Files.readString(external.toJava))
+      yield assert(result.exitCode == 1 && result.output.contains("unsafe") && after == "outside\n")
     }
   }
 

@@ -236,27 +236,31 @@ object SquireCli:
       platform: SquirePlatform,
       output: String => Unit
   ): Int < (Async & Sync & Abort[SquireError]) =
-    SquireTracking.resolve(root, runner, platform).map { report =>
-      options.check match
-        case Some(expected) => if report.effectiveMode.toString.equalsIgnoreCase(expected) then 0 else 1
-        case None if options.quiet =>
-          output(report.effectiveMode.toString.toLowerCase + "\n")
-          0
-        case None =>
-          output(SquireJson.encode(report) + "\n")
-          0
-    }
+    options.check match
+      case Some(expected) if !Set("auto", "beads", "off", "unavailable").contains(expected.toLowerCase) => 2
+      case _ => SquireTracking.resolve(root, runner, platform).map { report =>
+          options.check match
+            case Some(expected) => if report.effectiveMode.toString.equalsIgnoreCase(expected) then 0 else 1
+            case None if options.quiet =>
+              output(report.effectiveMode.toString.toLowerCase + "\n")
+              0
+            case None =>
+              output(SquireJson.encode(report) + "\n")
+              0
+        }
 
   def runTrackingSync(
       options: TrackingSyncOpts,
       root: Path,
       output: String => Unit
   ): Int < Sync =
-    val mode = if options.diff then SquireTracking.GuidanceMode.Diff else if options.check then SquireTracking.GuidanceMode.Check else SquireTracking.GuidanceMode.Apply
-    SquireTracking.syncGuidance(root, mode).map { report =>
-      output(report.output)
-      report.exitCode
-    }
+    if options.check && options.diff then 2
+    else
+      val mode = if options.diff then SquireTracking.GuidanceMode.Diff else if options.check then SquireTracking.GuidanceMode.Check else SquireTracking.GuidanceMode.Apply
+      SquireTracking.syncGuidance(root, mode).map { report =>
+        output(report.output)
+        report.exitCode
+      }
 
   def runTrackingDoctor(
       root: Path,

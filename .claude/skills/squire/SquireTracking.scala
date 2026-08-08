@@ -2,7 +2,7 @@
 //| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireCellar.scala]
 
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
+import java.nio.file.{Files, LinkOption, StandardOpenOption}
 import kyo.*
 import scala.jdk.CollectionConverters.*
 
@@ -39,7 +39,8 @@ final case class GuidanceSyncReport(
     output: String,
     exitCode: Int,
     changed: Chunk[String],
-    missing: Chunk[String]
+    missing: Chunk[String],
+    unsafe: Chunk[String]
 ) derives CanEqual
 
 trait TrackingFileSystem:
@@ -50,8 +51,22 @@ trait TrackingFileSystem:
 
 object LiveTrackingFileSystem extends TrackingFileSystem:
   def exists(path: Path): Boolean < Sync = path.exists
-  def read(path: Path): String < Sync = Sync.defer(Files.readString(path.toJava, StandardCharsets.UTF_8))
-  def write(path: Path, text: String): Unit < Sync = Sync.defer(Files.writeString(path.toJava, text, StandardCharsets.UTF_8))
+  def read(path: Path): String < Sync = Sync.defer {
+    val input = Files.newInputStream(path.toJava, StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS)
+    try new String(input.readAllBytes(), StandardCharsets.UTF_8)
+    finally input.close()
+  }
+  def write(path: Path, text: String): Unit < Sync = Sync.defer {
+    val output = Files.newOutputStream(
+      path.toJava,
+      StandardOpenOption.CREATE,
+      StandardOpenOption.TRUNCATE_EXISTING,
+      StandardOpenOption.WRITE,
+      LinkOption.NOFOLLOW_LINKS
+    )
+    try output.write(text.getBytes(StandardCharsets.UTF_8))
+    finally output.close()
+  }
   def children(path: Path): Chunk[Path] < Sync = Sync.defer {
     if !Files.isDirectory(path.toJava) then Chunk.empty
     else
@@ -152,11 +167,11 @@ contributor's say-so.
       files: TrackingFileSystem = LiveTrackingFileSystem
   ): GuidanceSyncReport < Sync =
     for
-      state <- syncTargets(root, targets.toList, mode, files, Chunk.empty, Chunk.empty, "")
+      state <- syncTargets(root, targets.toList, mode, files, Chunk.empty, Chunk.empty, Chunk.empty, "")
     yield
-      val (changed, missing, output) = state
-      val exitCode = if missing.nonEmpty || ((mode == GuidanceMode.Check || mode == GuidanceMode.Diff) && changed.nonEmpty) then 1 else 0
-      GuidanceSyncReport(output, exitCode, changed, missing)
+      val (changed, missing, unsafe, output) = state
+      val exitCode = if missing.nonEmpty || unsafe.nonEmpty || ((mode == GuidanceMode.Check || mode == GuidanceMode.Diff) && changed.nonEmpty) then 1 else 0
+      GuidanceSyncReport(output, exitCode, changed, missing, unsafe)
 
   private def syncTargets(
       root: Path,
@@ -165,29 +180,33 @@ contributor's say-so.
       files: TrackingFileSystem,
       changed: Chunk[String],
       missing: Chunk[String],
+      unsafe: Chunk[String],
       output: String
-  ): (Chunk[String], Chunk[String], String) < Sync =
+  ): (Chunk[String], Chunk[String], Chunk[String], String) < Sync =
     remaining match
-      case Nil => (changed, missing, output)
+      case Nil => (changed, missing, unsafe, output)
       case name :: tail =>
-        val path = root / name
-        files.exists(path).flatMap {
-          case false => syncTargets(root, tail, mode, files, changed, missing.append(name), output + s"ISSUE - $name does not exist\n")
-          case true =>
-            files.read(path).flatMap { original =>
-              val rewrite = rewriteGuidance(original)
-              if !rewrite.changed then syncTargets(root, tail, mode, files, changed, missing, output + s"OK - $name pointer is current\n")
-              else
-                val drift =
-                  if rewrite.removedBeadsBlocks > 0 then s"DRIFT - $name carries ${rewrite.removedBeadsBlocks} bd-managed block(s); pointer needs reapplying\n"
-                  else s"DRIFT - $name pointer is missing or stale\n"
-                mode match
-                  case GuidanceMode.Apply =>
-                    files.write(path, rewrite.text).flatMap(_ => syncTargets(root, tail, mode, files, changed.append(name), missing, output + drift + s"  updated $name\n"))
-                  case GuidanceMode.Check => syncTargets(root, tail, mode, files, changed.append(name), missing, output + drift)
-                  case GuidanceMode.Diff => syncTargets(root, tail, mode, files, changed.append(name), missing, output + drift + unifiedDiff(name, original, rewrite.text))
+        guidanceTarget(root, name) match
+          case Result.Failure(error) =>
+            syncTargets(root, tail, mode, files, changed, missing, unsafe.append(name), output + s"ISSUE - $name unsafe guidance target: ${error.getMessage}\n")
+          case Result.Success(path) =>
+            files.exists(path).flatMap {
+              case false => syncTargets(root, tail, mode, files, changed, missing.append(name), unsafe, output + s"ISSUE - $name does not exist\n")
+              case true =>
+                files.read(path).flatMap { original =>
+                  val rewrite = rewriteGuidance(original)
+                  if !rewrite.changed then syncTargets(root, tail, mode, files, changed, missing, unsafe, output + s"OK - $name pointer is current\n")
+                  else
+                    val drift =
+                      if rewrite.removedBeadsBlocks > 0 then s"DRIFT - $name carries ${rewrite.removedBeadsBlocks} bd-managed block(s); pointer needs reapplying\n"
+                      else s"DRIFT - $name pointer is missing or stale\n"
+                    mode match
+                      case GuidanceMode.Apply =>
+                        files.write(path, rewrite.text).flatMap(_ => syncTargets(root, tail, mode, files, changed.append(name), missing, unsafe, output + drift + s"  updated $name\n"))
+                      case GuidanceMode.Check => syncTargets(root, tail, mode, files, changed.append(name), missing, unsafe, output + drift)
+                      case GuidanceMode.Diff => syncTargets(root, tail, mode, files, changed.append(name), missing, unsafe, output + drift + unifiedDiff(name, original, rewrite.text))
+                }
             }
-        }
 
   private def loadSettings(root: Path, files: TrackingFileSystem): Maybe[String] < Sync =
     val path = root / settingsFile
@@ -267,9 +286,11 @@ contributor's say-so.
       remaining match
         case Nil => drift
         case name :: tail =>
-          files.exists(root / name).flatMap {
-            case false => loop(tail, drift)
-            case true => files.read(root / name).flatMap { text =>
+          guidanceTarget(root, name) match
+            case Result.Failure(error) => loop(tail, drift.append(GuidanceDrift(name, s"unsafe guidance target: ${error.getMessage}")))
+            case Result.Success(path) => files.exists(path).flatMap {
+              case false => loop(tail, drift)
+              case true => files.read(path).flatMap { text =>
                 val issue =
                   if text.contains("BEGIN BEADS INTEGRATION") || text.contains("BEGIN BEADS CODEX SETUP") then
                     Present("bd-managed guidance block present; expected the repo pointer")
@@ -277,8 +298,23 @@ contributor's say-so.
                   else Absent
                 loop(tail, issue.map(message => drift.append(GuidanceDrift(name, message))).getOrElse(drift))
               }
-          }
+            }
     loop(targets.toList, Chunk.empty)
+
+  private def guidanceTarget(root: Path, name: String): Result[SquireError, Path] =
+    try
+      val base = root.toJava.toAbsolutePath.normalize
+      val candidate = base.resolve(name).normalize
+      if !Files.exists(base, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(base) ||
+        !Files.isDirectory(base, LinkOption.NOFOLLOW_LINKS)
+      then Result.Failure(SquireError.Failure("tracking", "repository root is not an exact directory"))
+      else if !candidate.startsWith(base) || candidate == base then
+        Result.Failure(SquireError.Failure("tracking", "guidance target escapes repository root"))
+      else if Files.exists(candidate, LinkOption.NOFOLLOW_LINKS) && Files.isSymbolicLink(candidate) then
+        Result.Failure(SquireError.Failure("tracking", "guidance target is a symbolic link"))
+      else SquirePaths.resolveUnder(Path(candidate.toString), Path(base.toString))
+    catch
+      case error: java.io.IOException => Result.Failure(SquireError.Failure("tracking", "could not resolve guidance target", Present(error.getMessage)))
 
   private def gitPath(root: Path, rendered: String): Path =
     val path = java.nio.file.Path.of(rendered)
