@@ -419,6 +419,43 @@ class SquireCellarSpec extends Test[Any]:
           ProcessRequest(Chunk("cellar", "deps", "com.lihaoyi:mill-scalalib_3:0.12.0"))
       )
     }
+
+    "preserve legacy zero and negative limit argv semantics" in
+      assert(
+        SquireCellar.command(CellarAction.Search("coord", "query", Some(0)), CellarSettings(), "cellar") ==
+          ProcessRequest(Chunk("cellar", "search-external", "coord", "query")) &&
+          SquireCellar.command(CellarAction.Search("coord", "query", Some(-2)), CellarSettings(), "cellar") ==
+          ProcessRequest(Chunk("cellar", "search-external", "coord", "query", "--limit", "-2"))
+      )
+
+    "resolve bare executables with POSIX names and Windows PATHEXT" in {
+      for
+        root <- SquireFixtures.scratch("cellar-executable")
+        posixBin   = root / "posix-bin"
+        windowsBin = root / "windows-bin"
+        _ <- Sync.defer {
+          Files.createDirectories(posixBin.toJava)
+          Files.createDirectories(windowsBin.toJava)
+          Files.writeString((posixBin / "cellar").toJava, "probe")
+          Files.writeString((windowsBin / "cellar.CMD").toJava, "probe")
+        }
+        posix = SquireExecutableLookup.find(
+          "cellar",
+          List(posixBin),
+          windows = false,
+          pathExtensions = Nil,
+          candidate => Files.isRegularFile(candidate.toJava)
+        )
+        windows = SquireExecutableLookup.find(
+          "cellar",
+          List(windowsBin),
+          windows = true,
+          pathExtensions = List(".EXE", ".CMD", ".BAT"),
+          candidate => Files.isRegularFile(candidate.toJava)
+        )
+      yield assert(posix == Present((posixBin / "cellar").toString) &&
+        windows == Present((windowsBin / "cellar.CMD").toString))
+    }
   }
 
 class SquireRepoSpec extends Test[Any]:
@@ -454,6 +491,19 @@ class SquireRepoSpec extends Test[Any]:
             ReferenceAdd("/tmp/morphir", strategy = "worktree", sparse = List("docs")),
             ReferenceManifest()
           ).isFailure
+      )
+    }
+
+    "reject empty dot separator and normalization-alias path components" in {
+      val invalidNames = List("", ".", "..", "nested/repo", "nested\\repo", "one/../repo")
+      assert(
+        invalidNames.forall(name =>
+          SquireRepo.validate(
+            ReferenceAdd("https://github.com/finos/morphir", name = Some(name)),
+            ReferenceManifest()
+          ).isFailure
+        ) &&
+          SquireRepo.validate(ReferenceAdd("https://github.com/../morphir"), ReferenceManifest()).isFailure
       )
     }
 
@@ -508,9 +558,36 @@ class SquireRepoSpec extends Test[Any]:
           )
       )
     }
+
+    "preserve legacy zero and negative clone-depth argv semantics" in {
+      val dest = Path("/repo/.refs/finos/morphir")
+      assert(
+        SquireRepo.cloneRequest(ReferenceAdd("url", depth = Some(0)), dest, useGh = false) ==
+          ProcessRequest(Chunk("git", "clone", "--depth", "1", "url", dest.toString)) &&
+          SquireRepo.cloneRequest(ReferenceAdd("url", depth = Some(-2)), dest, useGh = false) ==
+          ProcessRequest(Chunk("git", "clone", "--depth", "-2", "url", dest.toString))
+      )
+    }
   }
 
   "add and manifest" - {
+    "reject an existing destination before invoking clone" in {
+      for
+        root <- SquireFixtures.scratch("repo-add-collision")
+        dest = root / ".refs" / "finos" / "morphir"
+        _ <- Sync.defer(Files.createDirectories(dest.toJava))
+        runner = RuleRunner(SquireRepoFixtures.ok)
+        result <- Abort.run[SquireError](
+          SquireRepo.add(
+            ReferenceAdd("https://github.com/finos/morphir"),
+            root,
+            runner,
+            TestSquirePlatform()
+          )
+        )
+      yield assert(result.isFailure && runner.requests.isEmpty && Files.isDirectory(dest.toJava))
+    }
+
     "record clone metadata and round-trip it through Kyo Schema JSON" in {
       for
         root <- SquireFixtures.scratch("repo-clone")
@@ -611,6 +688,63 @@ class SquireRepoSpec extends Test[Any]:
           missing.exitCode == 1 && unknown.exitCode == 1 && unknown.output.contains("not in manifest")
       )
     }
+
+    "share legacy disk labels and make non-Git and failed Git probes unhealthy" in {
+      for
+        root <- SquireFixtures.scratch("repo-status-labels")
+        refs   = root / ".refs"
+        target = root / "target-repo"
+        _ <- Sync.defer {
+          List("ok", "modified", "nongit", "git-error").foreach(name =>
+            Files.createDirectories((refs / "finos" / name).toJava)
+          )
+          Files.createDirectories(target.toJava)
+          Files.createSymbolicLink((refs / "finos" / "linked").toJava, target.toJava)
+          Files.createSymbolicLink((refs / "finos" / "broken").toJava, (root / "absent-target").toJava)
+        }
+        manifest = ReferenceManifest(List(
+          SquireRepoFixtures.repo("ok", sparse = List("docs")),
+          SquireRepoFixtures.repo("modified", commit = Some("old123")),
+          SquireRepoFixtures.repo("nongit"),
+          SquireRepoFixtures.repo("git-error"),
+          SquireRepoFixtures.repo("linked", strategy = "symlink", source = Some(target.toString)),
+          SquireRepoFixtures.repo("broken", strategy = "symlink", source = Some((root / "absent-target").toString)),
+          SquireRepoFixtures.repo("missing")
+        ))
+        _ <- SquireRepo.saveManifest(root, manifest)
+        runner = RuleRunner(SquireRepoFixtures.legacyStatusResponse)
+        listed   <- SquireRepo.list(root, asJson = false, runner)
+        detailed <- SquireRepo.status(root, None, runner)
+      yield assert(
+        listed.contains("OK (abc123) [sparse]") &&
+          listed.contains("MODIFIED (was old123, now new123)") &&
+          listed.contains("DIR_NO_GIT") && listed.contains("GIT_ERROR") &&
+          listed.contains("symlink →") && listed.contains("BROKEN_SYMLINK") && listed.contains("MISSING") &&
+          detailed.exitCode == 1 && detailed.output.contains("DIR_NO_GIT") && detailed.output.contains("GIT_ERROR")
+      )
+    }
+
+    "reject escaped and intermediate-link manifest paths before filesystem or Git inspection" in {
+      for
+        root <- SquireFixtures.scratch("repo-status-path-policy")
+        refs    = root / ".refs"
+        outside = root / "outside"
+        _ <- Sync.defer {
+          Files.createDirectories(refs.toJava)
+          Files.createDirectories(outside.toJava)
+          Files.createSymbolicLink((refs / "redirect").toJava, outside.toJava)
+        }
+        manifest = ReferenceManifest(List(
+          SquireRepoFixtures.repo("lexical", path = "../outside"),
+          SquireRepoFixtures.repo("redirected", path = "redirect/repo")
+        ))
+        _ <- SquireRepo.saveManifest(root, manifest)
+        runner = RuleRunner(SquireRepoFixtures.ok)
+        report <- SquireRepo.status(root, None, runner)
+        listed <- SquireRepo.list(root, asJson = false, runner)
+      yield assert(report.exitCode == 1 && report.output.contains("INVALID_PATH") && listed.contains("INVALID_PATH") &&
+        runner.requests.isEmpty)
+    }
   }
 
   "remove" - {
@@ -701,6 +835,121 @@ class SquireRepoSpec extends Test[Any]:
       yield assert(targetKept && linkGone && escaped.isFailure && targetStillKept && Files.isSymbolicLink(link.toJava))
     }
 
+    "reject intermediate redirects and final clone aliases without touching their targets" in {
+      for
+        root <- SquireFixtures.scratch("repo-remove-aliases")
+        refs       = root / ".refs"
+        outside    = root / "outside"
+        outsideDir = root / "outside-dir"
+        targetRepo = refs / "target-repo"
+        _ <- Sync.defer {
+          Files.createDirectories(refs.toJava)
+          Files.createDirectories(outside.toJava)
+          Files.createDirectories(outsideDir.toJava)
+          Files.createDirectories(targetRepo.toJava)
+          Files.writeString((targetRepo / "keep.txt").toJava, "keep")
+          Files.createSymbolicLink((refs / "redirect").toJava, outsideDir.toJava)
+          Files.createSymbolicLink((outsideDir / "victim").toJava, outside.toJava)
+        }
+        redirected = SquireRepoFixtures.repo(
+          "evil",
+          path = "redirect/victim",
+          strategy = "symlink",
+          source = Some(outside.toString)
+        )
+        _                <- SquireRepo.saveManifest(root, ReferenceManifest(List(redirected)))
+        redirectedResult <- Abort.run[SquireError](
+          SquireRepo.remove("evil", keepFiles = false, root, RuleRunner(SquireRepoFixtures.ok), TestSquirePlatform())
+        )
+        victimKept = Files.isSymbolicLink((outsideDir / "victim").toJava)
+        _ <- Sync.defer(Files.createSymbolicLink((refs / "alias").toJava, targetRepo.toJava))
+        alias = SquireRepoFixtures.repo("alias", path = "alias")
+        _           <- SquireRepo.saveManifest(root, ReferenceManifest(List(alias)))
+        aliasResult <- Abort.run[SquireError](
+          SquireRepo.remove("alias", keepFiles = false, root, RuleRunner(SquireRepoFixtures.ok), TestSquirePlatform())
+        )
+      yield assert(
+        redirectedResult.isFailure && victimKept && aliasResult.isFailure &&
+          Files.isSymbolicLink((refs / "alias").toJava) && Files.exists((targetRepo / "keep.txt").toJava)
+      )
+    }
+
+    "handle dangling final links by strategy and reject dangling intermediate links" in {
+      for
+        root <- SquireFixtures.scratch("repo-remove-dangling")
+        refs = root / ".refs"
+        _ <- Sync.defer {
+          Files.createDirectories(refs.toJava)
+          Files.createSymbolicLink((refs / "dangling-link").toJava, (root / "missing-target").toJava)
+        }
+        symlinkEntry = SquireRepoFixtures.repo(
+          "dangling-link",
+          path = "dangling-link",
+          strategy = "symlink",
+          source = Some((root / "missing-target").toString)
+        )
+        _ <- SquireRepo.saveManifest(root, ReferenceManifest(List(symlinkEntry)))
+        _ <- SquireRepo.remove(
+          "dangling-link",
+          keepFiles = false,
+          root,
+          RuleRunner(SquireRepoFixtures.ok),
+          TestSquirePlatform()
+        )
+        symlinkRemoved = !Files.exists((refs / "dangling-link").toJava, java.nio.file.LinkOption.NOFOLLOW_LINKS)
+        _ <- Sync.defer {
+          Files.createSymbolicLink((refs / "dangling-clone").toJava, (root / "missing-target").toJava)
+          Files.createSymbolicLink((refs / "dangling-parent").toJava, (root / "missing-parent").toJava)
+        }
+        cloneEntry = SquireRepoFixtures.repo("dangling-clone", path = "dangling-clone")
+        _           <- SquireRepo.saveManifest(root, ReferenceManifest(List(cloneEntry)))
+        cloneResult <- Abort.run[SquireError](
+          SquireRepo.remove(
+            "dangling-clone",
+            keepFiles = false,
+            root,
+            RuleRunner(SquireRepoFixtures.ok),
+            TestSquirePlatform()
+          )
+        )
+        intermediateEntry = SquireRepoFixtures.repo(
+          "nested",
+          path = "dangling-parent/nested",
+          strategy = "symlink",
+          source = Some("unused")
+        )
+        _                  <- SquireRepo.saveManifest(root, ReferenceManifest(List(intermediateEntry)))
+        intermediateResult <- Abort.run[SquireError](
+          SquireRepo.remove("nested", keepFiles = false, root, RuleRunner(SquireRepoFixtures.ok), TestSquirePlatform())
+        )
+      yield assert(
+        symlinkRemoved && cloneResult.isFailure && Files.isSymbolicLink((refs / "dangling-clone").toJava) &&
+          intermediateResult.isFailure && Files.isSymbolicLink((refs / "dangling-parent").toJava)
+      )
+    }
+
+    "delete the exact in-base worktree directory when its source is missing" in {
+      for
+        root <- SquireFixtures.scratch("repo-remove-worktree-fallback")
+        dest   = root / ".refs" / "finos" / ".worktrees" / "morphir" / "v4"
+        source = root / "missing-source"
+        _ <- Sync.defer {
+          Files.createDirectories(dest.toJava)
+          Files.writeString((dest / "marker").toJava, "fixture")
+        }
+        entry = SquireRepoFixtures.repo(
+          "v4",
+          path = "finos/.worktrees/morphir/v4",
+          strategy = "worktree",
+          source = Some(source.toString),
+          ref = Some("v4")
+        )
+        _ <- SquireRepo.saveManifest(root, ReferenceManifest(List(entry)))
+        runner = RuleRunner(SquireRepoFixtures.ok)
+        _ <- SquireRepo.remove("v4", keepFiles = false, root, runner, TestSquirePlatform())
+      yield assert(!Files.exists(dest.toJava, java.nio.file.LinkOption.NOFOLLOW_LINKS) && runner.requests.isEmpty)
+    }
+
     "remove worktrees through Git and prune their empty hierarchy" in {
       for
         root <- SquireFixtures.scratch("repo-remove-worktree")
@@ -776,6 +1025,16 @@ object SquireRepoFixtures:
     else if request.argv.contains("symbolic-ref") then ProcessResult(request, 0, "main\n", "")
     else if request.argv.contains("status") then
       ProcessResult(request, 0, if path.endsWith("dirty") then " M README.md\n" else "", "")
+    else ProcessResult(request, 0, "", "")
+
+  def legacyStatusResponse(request: ProcessRequest): ProcessResult =
+    val path = request.argv.lift(2).getOrElse("")
+    if request.argv.contains("rev-parse") then
+      if path.endsWith("nongit") then ProcessResult(request, 128, "", "not a git repository")
+      else ProcessResult(request, 0, if path.endsWith("modified") then "new123\n" else "abc123\n", "")
+    else if request.argv.contains("symbolic-ref") then ProcessResult(request, 0, "main\n", "")
+    else if request.argv.contains("status") then
+      ProcessResult(request, if path.endsWith("git-error") then 2 else 0, "", "status failed")
     else ProcessResult(request, 0, "", "")
 
 class SquireEnvSpec extends Test[Any]:

@@ -33,6 +33,24 @@ final case class ReferenceAdd(
 
 final case class ReferenceStatusReport(output: String, exitCode: Int) derives CanEqual
 
+enum ReferencePathKind:
+  case Missing
+  case Directory(realPath: Path)
+  case Symlink(target: Option[Path])
+
+final case class ManagedReferencePath(path: Path, kind: ReferencePathKind)
+
+final case class ReferenceEntryStatus(
+    repo: ReferenceRepo,
+    path: Path,
+    diskLabel: String,
+    healthy: Boolean,
+    current: Option[String] = None,
+    branch: Option[String] = None,
+    dirty: Boolean = false,
+    problem: Option[String] = None
+)
+
 object SquireRepo:
   def nameFrom(urlOrPath: String): String =
     val trimmed = urlOrPath.stripSuffix("/")
@@ -56,8 +74,12 @@ object SquireRepo:
         .filter(_.nonEmpty)
 
   def validate(options: ReferenceAdd, manifest: ReferenceManifest): Result[SquireError, Unit] =
-    val name = options.name.filter(_.nonEmpty).getOrElse(nameFrom(options.urlOrPath))
-    if manifest.repos.exists(_.name == name) then failure(s"repo '$name' already in manifest")
+    val name       = options.name.getOrElse(nameFrom(options.urlOrPath))
+    val components = List(name) ++ orgFrom(options.urlOrPath).toList ++
+      (if options.strategy == "worktree" then List(sourceRepositoryName(options.urlOrPath)) else Nil)
+    if components.exists(component => !validComponent(component)) then
+      failure("repository names, organizations, and source names must be single filename segments")
+    else if manifest.repos.exists(_.name == name) then failure(s"repo '$name' already in manifest")
     else if options.full && options.depth.nonEmpty then failure("--full and --depth are mutually exclusive")
     else if options.sparse.nonEmpty && options.strategy != "clone" then
       failure(s"--sparse applies to the clone strategy only, not ${options.strategy}")
@@ -103,6 +125,7 @@ object SquireRepo:
       relativePath = relativePathFor(options, name, org)
       lexicalDest  = refs / relativePath
       dest     <- fromResult(SquirePaths.resolveUnder(lexicalDest, refs))
+      _        <- ensureDestinationAbsent(dest)
       _        <- Sync.defer(Files.createDirectories(dest.parent.get.toJava))
       metadata <- addByStrategy(options, dest, runner, platform)
       entry = ReferenceRepo(
@@ -126,13 +149,11 @@ object SquireRepo:
       if asJson then SquireJson.encode(manifest) + "\n"
       else if manifest.repos.isEmpty then "No reference repos. Use reference repo add to add one.\n"
       else
-        status(root, None, runner).map { report =>
+        statusEntries(root, manifest.repos, runner).map { statuses =>
           val header = f"${"NAME"}%-20s ${"PATH"}%-28s ${"STRATEGY"}%-10s ${"REF"}%-20s STATUS\n" + ("-" * 100) + "\n"
-          val rows   = manifest.repos.map { repo =>
-            val marker = if repo.sparse.nonEmpty then " [sparse]" else ""
-            val state  =
-              if report.output.contains(s"[${repo.name}]\n") then "see status" + marker else "MISSING" + marker
-            f"${repo.name}%-20s ${repo.path}%-28s ${repo.strategy}%-10s ${repo.ref.getOrElse("").take(20)}%-20s $state"
+          val rows   = statuses.map { status =>
+            val repo = status.repo
+            f"${repo.name}%-20s ${repo.path}%-28s ${repo.strategy}%-10s ${repo.ref.getOrElse("").take(20)}%-20s ${status.diskLabel}"
           }
           header + rows.mkString("\n") + "\n"
         }
@@ -152,8 +173,8 @@ object SquireRepo:
         if selected.isEmpty then ReferenceStatusReport(s"ERROR: '${filterName.getOrElse("")}' not in manifest\n", 1)
         else
           statusEntries(root, selected, runner).map { entries =>
-            val output = entries.map((repo, detail, _) => s"\n[${repo.name}]\n$detail\n").mkString
-            ReferenceStatusReport(output, if entries.forall(_._3) then 0 else 1)
+            val output = entries.map(entry => s"\n[${entry.repo.name}]\n${renderDetailedStatus(entry)}\n").mkString
+            ReferenceStatusReport(output, if entries.forall(_.healthy) then 0 else 1)
           }
     }
 
@@ -169,12 +190,11 @@ object SquireRepo:
         case None        => Abort.fail(SquireError.Failure("repo", s"'$name' not in manifest"))
         case Some(entry) =>
           val refs = root / ".refs"
-          val dest = refs / entry.path
           if keepFiles then saveManifest(root, ReferenceManifest(manifest.repos.filterNot(_.name == name)))
           else
-            fromResult(lexicalPathUnder(dest, refs)).flatMap { safeLexicalDest =>
-              removeFiles(entry, safeLexicalDest, refs, runner).flatMap { _ =>
-                pruneEmptyParents(safeLexicalDest.parent.get, refs).flatMap { _ =>
+            fromResult(managedReferencePath(entry, refs)).flatMap { managed =>
+              removeFiles(entry, managed, runner).flatMap { _ =>
+                pruneEmptyParents(managed.path.parent.get, refs).flatMap { _ =>
                   saveManifest(root, ReferenceManifest(manifest.repos.filterNot(_.name == name)))
                 }
               }
@@ -270,7 +290,7 @@ object SquireRepo:
       root: Path,
       repos: List[ReferenceRepo],
       runner: ProcessRunner
-  ): List[(ReferenceRepo, String, Boolean)] < (Async & Sync & Abort[SquireError]) =
+  ): List[ReferenceEntryStatus] < (Async & Sync & Abort[SquireError]) =
     repos match
       case Nil          => Nil
       case repo :: tail =>
@@ -282,11 +302,89 @@ object SquireRepo:
       root: Path,
       repo: ReferenceRepo,
       runner: ProcessRunner
-  ): (ReferenceRepo, String, Boolean) < (Async & Sync & Abort[SquireError]) =
-    val path   = root / ".refs" / repo.path
+  ): ReferenceEntryStatus < (Async & Sync & Abort[SquireError]) =
+    val refs = root / ".refs"
+    Sync.defer(managedReferencePath(repo, refs)).flatMap {
+      case Result.Failure(error) =>
+        ReferenceEntryStatus(
+          repo,
+          refs / repo.path,
+          "INVALID_PATH",
+          healthy = false,
+          problem = Some(error.getMessage)
+        )
+      case Result.Success(managed) =>
+        managed.kind match
+          case ReferencePathKind.Missing =>
+            ReferenceEntryStatus(repo, managed.path, "MISSING", healthy = false, problem = Some("not found on disk"))
+          case ReferencePathKind.Symlink(None) =>
+            ReferenceEntryStatus(
+              repo,
+              managed.path,
+              "BROKEN_SYMLINK",
+              healthy = false,
+              problem = Some("target does not exist")
+            )
+          case ReferencePathKind.Symlink(Some(target)) =>
+            gitEntryStatus(repo, managed.path, s"symlink → $target", runner)
+          case ReferencePathKind.Directory(realPath) =>
+            gitEntryStatus(repo, realPath, "", runner)
+    }
+
+  private def gitEntryStatus(
+      repo: ReferenceRepo,
+      path: Path,
+      fixedDiskLabel: String,
+      runner: ProcessRunner
+  ): ReferenceEntryStatus < (Async & Abort[SquireError]) =
+    runner.run(ProcessRequest(Chunk("git", "-C", path.toString, "rev-parse", "HEAD"))).flatMap { headResult =>
+      val current = Option(headResult.stdout.trim).filter(_.nonEmpty)
+      if headResult.exitCode != 0 || current.isEmpty then
+        ReferenceEntryStatus(
+          repo,
+          path,
+          if fixedDiskLabel.nonEmpty then fixedDiskLabel else "DIR_NO_GIT",
+          healthy = false,
+          problem = Some("DIR_NO_GIT — could not read Git HEAD")
+        )
+      else
+        runner.run(ProcessRequest(Chunk("git", "-C", path.toString, "symbolic-ref", "--short", "HEAD"))).flatMap {
+          branchResult =>
+            val branch =
+              if branchResult.exitCode == 0 then Option(branchResult.stdout.trim).filter(_.nonEmpty) else None
+            runner.run(ProcessRequest(Chunk("git", "-C", path.toString, "status", "--porcelain"))).map {
+              statusResult =>
+                val dirty  = statusResult.exitCode == 0 && statusResult.stdout.trim.nonEmpty
+                val drift  = current != repo.commit
+                val sparse = if repo.sparse.nonEmpty then " [sparse]" else ""
+                val label  =
+                  if fixedDiskLabel.nonEmpty then fixedDiskLabel
+                  else if statusResult.exitCode != 0 then "GIT_ERROR"
+                  else if drift then
+                    s"MODIFIED (was ${repo.commit.getOrElse("?").take(8)}, now ${current.get.take(8)})$sparse"
+                  else s"OK (${current.get.take(8)})$sparse"
+                ReferenceEntryStatus(
+                  repo,
+                  path,
+                  label,
+                  healthy = statusResult.exitCode == 0 && !drift && !dirty,
+                  current = current,
+                  branch = branch,
+                  dirty = dirty,
+                  problem =
+                    if statusResult.exitCode != 0 then Some("GIT_ERROR — git status failed")
+                    else if drift then Some("DRIFT — manifest commit differs from current HEAD")
+                    else None
+                )
+            }
+        }
+    }
+
+  private def renderDetailedStatus(status: ReferenceEntryStatus): String =
+    val repo   = status.repo
     val prefix = List(
       s"  name:     ${repo.name}",
-      s"  path:     $path",
+      s"  path:     ${status.path}",
       s"  strategy: ${repo.strategy}"
     ) ++ repo.url.map(value => s"  url:      $value") ++
       repo.source.map(value => s"  source:   $value") ++
@@ -296,51 +394,32 @@ object SquireRepo:
         s"  recorded: ${repo.commit.getOrElse("?")}",
         s"  added:    ${repo.added}"
       )
-    if Files.isSymbolicLink(path.toJava) && !Files.exists(path.toJava) then
-      val detail = (prefix :+ "  disk:     broken symlink" :+ "  BROKEN_SYMLINK — target does not exist").mkString("\n")
-      (repo, detail, false)
-    else if !Files.exists(path.toJava) then
-      (repo, (prefix :+ "  MISSING — not found on disk").mkString("\n"), false)
-    else
-      for
-        current     <- gitValue(path, runner, Chunk("rev-parse", "HEAD"))
-        branch      <- gitValue(path, runner, Chunk("symbolic-ref", "--short", "HEAD"))
-        dirtyResult <- runner.run(ProcessRequest(Chunk("git", "-C", path.toString, "status", "--porcelain")))
-      yield
-        val dirty = dirtyResult.exitCode == 0 && dirtyResult.stdout.trim.nonEmpty
-        val drift = current.nonEmpty && current != repo.commit
-        val state =
-          List(s"  current:  ${current.getOrElse("?")} (${branch.getOrElse("(detached)")})") ++
-            (if drift then List("  DRIFT — manifest commit differs from current HEAD") else Nil) ++
-            (if dirty then List("  DIRTY — uncommitted changes present") else Nil) ++
-            (if !drift && !dirty then List("  in sync with manifest") else Nil)
-        (repo, (prefix ++ state).mkString("\n"), !drift && !dirty)
+    val state = List(s"  disk:     ${status.diskLabel}") ++
+      status.current.map(value => s"  current:  $value (${status.branch.getOrElse("(detached)")})") ++
+      status.problem.toList.map(value => s"  $value") ++
+      (if status.dirty then List("  DIRTY — uncommitted changes present") else Nil) ++
+      (if status.healthy then List("  in sync with manifest") else Nil)
+    (prefix ++ state).mkString("\n")
 
   private def removeFiles(
       entry: ReferenceRepo,
-      dest: Path,
-      refs: Path,
+      managed: ManagedReferencePath,
       runner: ProcessRunner
   ): Unit < (Async & Sync & Abort[SquireError]) =
-    entry.strategy match
-      case "symlink" =>
-        Sync.defer {
-          if Files.isSymbolicLink(dest.toJava) then Files.delete(dest.toJava)
-        }
-      case "worktree" =>
-        fromResult(SquirePaths.resolveUnder(dest, refs)).flatMap { safeDest =>
-          entry.source match
-            case Some(source) if Files.exists(java.nio.file.Path.of(source)) =>
-              runChecked(
-                runner,
-                ProcessRequest(Chunk("git", "-C", source, "worktree", "remove", "--force", safeDest.toString))
-              ).unit
-            case _ => deleteTree(safeDest)
-        }
-      case _ =>
-        if Files.exists(dest.toJava, LinkOption.NOFOLLOW_LINKS) then
-          fromResult(SquirePaths.resolveUnder(dest, refs)).flatMap(deleteTree)
-        else ()
+    managed.kind match
+      case ReferencePathKind.Missing             => ()
+      case ReferencePathKind.Symlink(_)          => Sync.defer(Files.delete(managed.path.toJava))
+      case ReferencePathKind.Directory(realPath) =>
+        entry.strategy match
+          case "worktree" =>
+            entry.source match
+              case Some(source) if Files.exists(java.nio.file.Path.of(source)) =>
+                runChecked(
+                  runner,
+                  ProcessRequest(Chunk("git", "-C", source, "worktree", "remove", "--force", realPath.toString))
+                ).unit
+              case _ => deleteTree(realPath)
+          case _ => deleteTree(realPath)
 
   private def deleteTree(path: Path): Unit < Sync =
     Sync.defer {
@@ -436,11 +515,76 @@ object SquireRepo:
   private def failure(message: String): Result[SquireError, Unit] =
     Result.Failure(SquireError.Failure("repo", message))
 
-  private def lexicalPathUnder(candidate: Path, base: Path): Result[SquireError, Path] =
-    val basePath      = base.toJava.toAbsolutePath.normalize
-    val candidatePath = candidate.toJava.toAbsolutePath.normalize
-    if candidatePath != basePath && candidatePath.startsWith(basePath) then Result.Success(Path(candidatePath.toString))
-    else Result.Failure(SquireError.Failure("path", "path escapes its configured base"))
+  private def managedReferencePath(repo: ReferenceRepo, refs: Path): Result[SquireError, ManagedReferencePath] =
+    def invalid(detail: String): Result[SquireError, ManagedReferencePath] =
+      Result.Failure(SquireError.Failure("path", s"invalid reference path '${repo.path}'", Present(detail)))
+
+    try
+      val base      = refs.toJava.toAbsolutePath.normalize
+      val candidate = base.resolve(repo.path).normalize
+      if candidate == base || !candidate.startsWith(base) then invalid("path escapes its configured base")
+      else if Files.isSymbolicLink(base) || !Files.isDirectory(base, LinkOption.NOFOLLOW_LINKS) then
+        invalid("reference base is not an exact directory")
+      else
+        val baseReal                = base.toRealPath()
+        val relative                = base.relativize(candidate)
+        var current                 = base
+        var index                   = 0
+        var problem: Option[String] = None
+        var missing                 = false
+        while index < relative.getNameCount - 1 && problem.isEmpty && !missing do
+          current = current.resolve(relative.getName(index))
+          if Files.isSymbolicLink(current) then problem = Some("intermediate path component is a symbolic link")
+          else if !Files.exists(current, LinkOption.NOFOLLOW_LINKS) then missing = true
+          else if !Files.isDirectory(current, LinkOption.NOFOLLOW_LINKS) then
+            problem = Some("intermediate path component is not a directory")
+          else if !current.toRealPath().startsWith(baseReal) then
+            problem = Some("intermediate directory resolves outside the reference base")
+          index += 1
+
+        problem match
+          case Some(detail)    => invalid(detail)
+          case None if missing =>
+            Result.Success(ManagedReferencePath(Path(candidate.toString), ReferencePathKind.Missing))
+          case None =>
+            val parent = candidate.getParent
+            if Files.isSymbolicLink(parent) || !Files.isDirectory(parent, LinkOption.NOFOLLOW_LINKS) then
+              invalid("final parent is not an exact directory")
+            else
+              val parentReal = parent.toRealPath()
+              if !parentReal.startsWith(baseReal) then invalid("final parent resolves outside the reference base")
+              else if !Files.exists(candidate, LinkOption.NOFOLLOW_LINKS) then
+                Result.Success(ManagedReferencePath(Path(candidate.toString), ReferencePathKind.Missing))
+              else
+                repo.strategy match
+                  case "symlink" =>
+                    if !Files.isSymbolicLink(candidate) then invalid("symlink strategy requires a final symbolic link")
+                    else
+                      val target =
+                        try Some(Path(candidate.toRealPath().toString))
+                        catch case _: java.nio.file.NoSuchFileException => None
+                      Result.Success(ManagedReferencePath(Path(candidate.toString), ReferencePathKind.Symlink(target)))
+                  case "clone" | "worktree" =>
+                    if Files.isSymbolicLink(candidate) then
+                      invalid(s"${repo.strategy} strategy forbids a final symbolic link")
+                    else if !Files.isDirectory(candidate, LinkOption.NOFOLLOW_LINKS) then
+                      invalid(s"${repo.strategy} strategy requires a directory")
+                    else
+                      val real     = candidate.toRealPath()
+                      val expected = parentReal.resolve(candidate.getFileName).normalize
+                      if !real.startsWith(baseReal) || real != expected then
+                        invalid(s"${repo.strategy} directory is not the exact in-base destination")
+                      else
+                        Result.Success(
+                          ManagedReferencePath(
+                            Path(candidate.toString),
+                            ReferencePathKind.Directory(Path(real.toString))
+                          )
+                        )
+                  case other => invalid(s"unknown reference repository strategy: $other")
+    catch
+      case error: java.io.IOException => invalid(error.getMessage)
+      case error: SecurityException   => invalid(error.getMessage)
 
   private def ownerFromSegments(parts: List[String]): Option[String] =
     parts.filter(_.nonEmpty) match
@@ -449,7 +593,7 @@ object SquireRepo:
 
   private def relativePathFor(options: ReferenceAdd, name: String, org: Option[String]): String =
     if options.strategy == "worktree" then
-      val repositoryName = java.nio.file.Path.of(options.urlOrPath).toAbsolutePath.normalize.getFileName.toString
+      val repositoryName = sourceRepositoryName(options.urlOrPath)
       org match
         case Some(owner) => s"$owner/.worktrees/$repositoryName/$name"
         case None        => s".worktrees/$repositoryName/$name"
@@ -466,6 +610,19 @@ object SquireRepo:
     depth ++ sparse ++ ref
 
   private def effectiveDepth(options: ReferenceAdd): Option[Int] =
-    if options.full then None else Some(options.depth.getOrElse(1))
+    if options.full then None else Some(options.depth.filter(_ != 0).getOrElse(1))
 
   private def isGithub(url: String): Boolean = url.contains("github.com")
+
+  private def sourceRepositoryName(source: String): String =
+    Option(java.nio.file.Path.of(source).toAbsolutePath.normalize.getFileName).fold("")(_.toString)
+
+  private def validComponent(component: String): Boolean =
+    component.nonEmpty && component != "." && component != ".." &&
+      !component.contains('/') && !component.contains('\\') &&
+      java.nio.file.Path.of(component).normalize.toString == component
+
+  private def ensureDestinationAbsent(dest: Path): Unit < Abort[SquireError] =
+    if Files.exists(dest.toJava, LinkOption.NOFOLLOW_LINKS) then
+      Abort.fail(SquireError.Failure("repo", s"reference destination already exists: $dest"))
+    else ()

@@ -27,16 +27,48 @@ trait SquirePlatform:
   def findExecutable(name: String): Maybe[String]
   def now: Instant
 
-object LiveSquirePlatform extends SquirePlatform:
-  def findExecutable(name: String): Maybe[String] =
-    val path = Option(java.lang.System.getenv("PATH")).getOrElse("")
-    path
-      .split(java.io.File.pathSeparator)
-      .iterator
-      .map(directory => java.nio.file.Path.of(directory, name))
-      .find(candidate => Files.isRegularFile(candidate) && Files.isExecutable(candidate)) match
+object SquireExecutableLookup:
+  def find(
+      name: String,
+      pathEntries: List[Path],
+      windows: Boolean,
+      pathExtensions: List[String],
+      isExecutable: Path => Boolean
+  ): Maybe[String] =
+    val names =
+      if windows && !pathExtensions.exists(extension => name.toLowerCase.endsWith(extension.toLowerCase)) then
+        pathExtensions.map(extension => name + extension)
+      else List(name)
+    pathEntries.iterator
+      .flatMap(directory => names.iterator.map(directory / _))
+      .find(isExecutable) match
       case Some(candidate) => Present(candidate.toString)
       case None            => Absent
+
+object LiveSquirePlatform extends SquirePlatform:
+  def findExecutable(name: String): Maybe[String] =
+    val windows     = java.lang.System.getProperty("os.name", "").toLowerCase.startsWith("windows")
+    val pathEntries = Option(java.lang.System.getenv("PATH")).getOrElse("")
+      .split(java.io.File.pathSeparator)
+      .iterator
+      .filter(_.nonEmpty)
+      .map(Path(_))
+      .toList
+    val pathExtensions =
+      if windows then
+        Option(java.lang.System.getenv("PATHEXT")).getOrElse(".COM;.EXE;.BAT;.CMD")
+          .split(';')
+          .iterator
+          .filter(_.nonEmpty)
+          .toList
+      else Nil
+    SquireExecutableLookup.find(
+      name,
+      pathEntries,
+      windows,
+      pathExtensions,
+      candidate => Files.isRegularFile(candidate.toJava) && (windows || Files.isExecutable(candidate.toJava))
+    )
 
   def now: Instant = Instant.now()
 
@@ -112,5 +144,5 @@ object SquireCellar:
 
   private def valueFlag(value: Option[Int], flag: String): Chunk[String] =
     value match
-      case Some(number) => Chunk(flag, number.toString)
-      case None         => Chunk.empty
+      case Some(number) if number != 0 => Chunk(flag, number.toString)
+      case _                           => Chunk.empty
