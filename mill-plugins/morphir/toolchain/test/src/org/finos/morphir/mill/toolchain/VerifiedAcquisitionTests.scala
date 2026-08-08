@@ -2,6 +2,7 @@ package org.finos.morphir.mill.toolchain
 
 import java.io.ByteArrayInputStream
 import java.nio.channels.FileChannel
+import java.nio.{ByteBuffer, ByteOrder}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, StandardOpenOption}
 import java.util.concurrent.{CountDownLatch, TimeUnit}
@@ -77,6 +78,102 @@ object VerifiedAcquisitionTests extends TestSuite {
       output.putArchiveEntry(entry)
       output.closeArchiveEntry()
       output.finish()
+    } finally output.close()
+  }
+
+  private def writeSyntheticZip64(path: os.Path, entries: Long): Unit = {
+    val bytes = ByteBuffer.allocate(56 + 20 + 22).order(ByteOrder.LITTLE_ENDIAN)
+    bytes.putInt(0x06064b50)
+    bytes.putLong(44L)
+    bytes.putShort(45.toShort)
+    bytes.putShort(45.toShort)
+    bytes.putInt(0)
+    bytes.putInt(0)
+    bytes.putLong(entries)
+    bytes.putLong(entries)
+    bytes.putLong(0L)
+    bytes.putLong(0L)
+    bytes.putInt(0x07064b50)
+    bytes.putInt(0)
+    bytes.putLong(0L)
+    bytes.putInt(1)
+    bytes.putInt(0x06054b50)
+    bytes.putShort(0.toShort)
+    bytes.putShort(0.toShort)
+    bytes.putShort(0xffff.toShort)
+    bytes.putShort(0xffff.toShort)
+    bytes.putInt(0xffffffffL.toInt)
+    bytes.putInt(0xffffffffL.toInt)
+    bytes.putShort(0.toShort)
+    os.write(path, bytes.array())
+  }
+
+  private def writeSyntheticZipEnd(path: os.Path, disk: Int, declaredCommentBytes: Int): Unit = {
+    val bytes = ByteBuffer.allocate(22).order(ByteOrder.LITTLE_ENDIAN)
+    bytes.putInt(0x06054b50)
+    bytes.putShort(disk.toShort)
+    bytes.putShort(disk.toShort)
+    bytes.putShort(0.toShort)
+    bytes.putShort(0.toShort)
+    bytes.putInt(0)
+    bytes.putInt(0)
+    bytes.putShort(declaredCommentBytes.toShort)
+    os.write(path, bytes.array())
+  }
+
+  private def writeGzipBytes(path: os.Path, bytes: Array[Byte]): Unit = {
+    val output = new java.util.zip.GZIPOutputStream(Files.newOutputStream(path.toNIO))
+    try output.write(bytes)
+    finally output.close()
+  }
+
+  private def writeRawTarGz(
+      path: os.Path,
+      entries: Seq[(Byte, Array[Byte])],
+      base256Sizes: Set[Int] = Set.empty,
+      trailingZeroBytes: Int = 0
+  ): Unit = {
+    val output = new java.util.zip.GZIPOutputStream(Files.newOutputStream(path.toNIO))
+    try {
+      entries.zipWithIndex.foreach { case ((entryType, contents), index) =>
+        val header                                  = new Array[Byte](512)
+        def ascii(offset: Int, value: String): Unit = {
+          val bytes = value.getBytes(StandardCharsets.US_ASCII)
+          System.arraycopy(bytes, 0, header, offset, bytes.length)
+        }
+        def octal(offset: Int, length: Int, value: Long): Unit = {
+          val digits = java.lang.Long.toOctalString(value)
+          ascii(offset, "0" * (length - 1 - digits.length) + digits + "\u0000")
+        }
+
+        ascii(0, s"root/entry-$index")
+        octal(100, 8, 0x1a4)
+        octal(108, 8, 0)
+        octal(116, 8, 0)
+        if (base256Sizes.contains(index)) {
+          header(124) = 0x80.toByte
+          var value    = contents.length.toLong
+          var position = 135
+          while (value > 0) {
+            header(position) = (value & 0xff).toByte
+            value >>>= 8
+            position -= 1
+          }
+        } else octal(124, 12, contents.length.toLong)
+        octal(136, 12, 0)
+        java.util.Arrays.fill(header, 148, 156, ' '.toByte)
+        header(156) = entryType
+        ascii(257, "ustar\u0000")
+        ascii(263, "00")
+        val checksum = header.iterator.map(_ & 0xff).sum
+        ascii(148, f"$checksum%06o\u0000 ")
+        output.write(header)
+        output.write(contents)
+        val padding = (512 - contents.length % 512) % 512
+        output.write(new Array[Byte](padding))
+      }
+      output.write(new Array[Byte](1024))
+      output.write(new Array[Byte](trailingZeroBytes))
     } finally output.close()
   }
 
@@ -1010,6 +1107,249 @@ object VerifiedAcquisitionTests extends TestSuite {
       }
     }
 
+    test("ZIP entry-count preflight rejects before opening Commons ZipFile") {
+      withTempDir { directory =>
+        val archive = directory / "entries.zip"
+        writeZip(
+          archive,
+          Seq(
+            ("root/one", "1".getBytes(StandardCharsets.UTF_8), 0x81a4),
+            ("root/two", "2".getBytes(StandardCharsets.UTF_8), 0x81a4)
+          )
+        )
+        var parserOpened = false
+
+        val result = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.Zip,
+            directory / "extracted",
+            limits = ArchiveLimits(maxEntries = 1),
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("ZIP entry count"))
+        assert(!parserOpened)
+        assert(!os.exists(directory / "extracted"))
+      }
+    }
+
+    test("ZIP central-directory byte limit rejects before opening Commons ZipFile") {
+      withTempDir { directory =>
+        val archive = directory / "central-directory.zip"
+        writeZip(archive, Seq(("root/file", "data".getBytes(StandardCharsets.UTF_8), 0x81a4)))
+        var parserOpened = false
+
+        val result = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.Zip,
+            directory / "extracted",
+            limits = ArchiveLimits(maxCentralDirectoryBytes = 1),
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("central-directory byte size"))
+        assert(!parserOpened)
+      }
+    }
+
+    test("ZIP64 sentinel entry count is bounded during preflight") {
+      withTempDir { directory =>
+        val archive = directory / "zip64.zip"
+        writeSyntheticZip64(archive, entries = 2)
+        var parserOpened = false
+
+        val result = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.Zip,
+            directory / "extracted",
+            limits = ArchiveLimits(maxEntries = 1),
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("ZIP entry count 2"))
+        assert(!parserOpened)
+      }
+    }
+
+    test("ZIP preflight rejects malformed and multi-disk end records before Commons") {
+      withTempDir { directory =>
+        Seq(("multidisk", 1, 0, "Multi-disk"), ("malformed", 0, 1, "missing or malformed")).foreach {
+          case (name, disk, commentBytes, expected) =>
+            val archive = directory / s"$name.zip"
+            writeSyntheticZipEnd(archive, disk, commentBytes)
+            var parserOpened = false
+            val result       = scala.util.Try(
+              VerifiedArchive.extractObserved(
+                VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+                ArchiveFormat.Zip,
+                directory / s"$name-output",
+                parserObserver = _ => parserOpened = true
+              ) {}
+            )
+            assert(result.isFailure)
+            assert(result.failed.get.getMessage.contains(expected))
+            assert(!parserOpened)
+        }
+      }
+    }
+
+    test("TAR metadata entry limit rejects before opening Commons parser") {
+      withTempDir { directory =>
+        Seq(TarConstants.LF_GNUTYPE_LONGNAME, TarConstants.LF_GNUTYPE_LONGLINK).zipWithIndex.foreach {
+          case (entryType, index) =>
+            val archive = directory / s"metadata-$index.tar.gz"
+            writeRawTarGz(archive, Seq((entryType, "12345".getBytes(StandardCharsets.US_ASCII))))
+            var parserOpened = false
+
+            val result = scala.util.Try(
+              VerifiedArchive.extractObserved(
+                VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+                ArchiveFormat.TarGz,
+                directory / s"extracted-$index",
+                limits = ArchiveLimits(maxMetadataEntryBytes = 4),
+                parserObserver = _ => parserOpened = true
+              ) {}
+            )
+
+            assert(result.isFailure)
+            assert(result.failed.get.getMessage.contains("TAR metadata entry byte limit"))
+            assert(!parserOpened)
+            assert(!os.exists(directory / s"extracted-$index"))
+        }
+      }
+    }
+
+    test("TAR chained PAX metadata is bounded in aggregate before Commons") {
+      withTempDir { directory =>
+        val archive = directory / "pax-metadata.tar.gz"
+        writeRawTarGz(
+          archive,
+          Seq(
+            (TarConstants.LF_PAX_EXTENDED_HEADER_LC, "abc".getBytes(StandardCharsets.US_ASCII)),
+            (TarConstants.LF_PAX_GLOBAL_EXTENDED_HEADER, "def".getBytes(StandardCharsets.US_ASCII))
+          )
+        )
+        var parserOpened = false
+        val result       = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            limits = ArchiveLimits(maxMetadataEntryBytes = 3, maxArchiveMetadataBytes = 5),
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("TAR aggregate metadata bytes"))
+        assert(!parserOpened)
+      }
+    }
+
+    test("TAR pseudo-entry headers count toward the entry limit") {
+      withTempDir { directory =>
+        val archive = directory / "pseudo-count.tar.gz"
+        writeRawTarGz(
+          archive,
+          Seq(
+            (TarConstants.LF_GNUTYPE_LONGNAME, "a".getBytes(StandardCharsets.US_ASCII)),
+            (TarConstants.LF_PAX_EXTENDED_HEADER_LC, "b".getBytes(StandardCharsets.US_ASCII))
+          )
+        )
+        var parserOpened = false
+        val result       = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            limits = ArchiveLimits(maxEntries = 1),
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("TAR header and pseudo-entry count"))
+        assert(!parserOpened)
+      }
+    }
+
+    test("TAR malformed and truncated headers fail during preflight") {
+      withTempDir { directory =>
+        val malformed = directory / "malformed.tar.gz"
+        val truncated = directory / "truncated.tar.gz"
+        writeGzipBytes(malformed, Array.fill[Byte](512)(1))
+        writeGzipBytes(truncated, Array.fill[Byte](100)(0))
+
+        Seq(malformed, truncated).zipWithIndex.foreach { case (archive, index) =>
+          var parserOpened = false
+          val result       = scala.util.Try(
+            VerifiedArchive.extractObserved(
+              VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+              ArchiveFormat.TarGz,
+              directory / s"malformed-output-$index",
+              parserObserver = _ => parserOpened = true
+            ) {}
+          )
+          assert(result.isFailure)
+          assert(result.failed.get.getMessage.toLowerCase(java.util.Locale.ROOT).contains("tar"))
+          assert(!parserOpened)
+        }
+      }
+    }
+
+    test("TAR preflight accepts a positive base-256 entry size") {
+      withTempDir { directory =>
+        val archive = directory / "base-256.tar.gz"
+        writeRawTarGz(
+          archive,
+          Seq((TarConstants.LF_NORMAL, "x".getBytes(StandardCharsets.US_ASCII))),
+          base256Sizes = Set(0)
+        )
+
+        VerifiedArchive.extract(
+          VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+          ArchiveFormat.TarGz,
+          directory / "extracted"
+        )
+
+        assert(os.read(directory / "extracted" / "entry-0") == "x")
+      }
+    }
+
+    test("TAR preflight bounds the complete decompressed stream") {
+      withTempDir { directory =>
+        val archive = directory / "stream-limit.tar.gz"
+        writeRawTarGz(
+          archive,
+          Seq((TarConstants.LF_NORMAL, "x".getBytes(StandardCharsets.US_ASCII))),
+          trailingZeroBytes = 2
+        )
+        var parserOpened = false
+        val result       = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            limits = ArchiveLimits(maxEntries = 1, maxTotalUncompressedBytes = 1, maxArchiveMetadataBytes = 1),
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("TAR decompressed stream"))
+        assert(!parserOpened)
+      }
+    }
+
     test("compressed archive snapshot limit rejects before extraction") {
       withTempDir { directory =>
         val archive = directory / "snapshot.tar.gz"
@@ -1309,6 +1649,64 @@ object VerifiedAcquisitionTests extends TestSuite {
         assert(mismatch.isFailure)
         assert(mismatch.failed.get.getMessage.contains("SHA-256 mismatch"))
         assert(!mismatch.failed.get.getMessage.contains("stubborn cleanup"))
+      }
+    }
+
+    test("archive extraction prunes stale snapshot and staging siblings without following links") {
+      withTempDir { directory =>
+        val archive = directory / "node.tar.gz"
+        writeTarGz(archive, Seq(("root/bin/node", "node".getBytes(StandardCharsets.UTF_8), None)))
+        val staleSnapshot = directory / ".extracted.stale.archive"
+        val staleStaging  = directory / ".extracted.stale.extract"
+        val external      = directory / "external"
+        os.write(external, "keep")
+        Files.createSymbolicLink(staleSnapshot.toNIO, external.toNIO)
+        os.makeDir.all(staleStaging / "nested")
+        os.write(staleStaging / "nested" / "file", "stale")
+
+        VerifiedArchive.extract(
+          VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+          ArchiveFormat.TarGz,
+          directory / "extracted"
+        )
+
+        assert(!Files.exists(staleSnapshot.toNIO, java.nio.file.LinkOption.NOFOLLOW_LINKS))
+        assert(!os.exists(staleStaging))
+        assert(os.read(external) == "keep")
+        assert(os.exists(directory / ".extracted.lock"))
+        assert(os.read(directory / "extracted" / "bin" / "node") == "node")
+      }
+    }
+
+    test("stale cleanup does not prune a concurrent extraction lease") {
+      withTempDir { directory =>
+        val archive = directory / "node.tar.gz"
+        writeTarGz(archive, Seq(("root/bin/node", "node".getBytes(StandardCharsets.UTF_8), None)))
+        val content            = VerifiedContent(archive, VerifiedArchive.sha256(archive))
+        val destination        = directory / "extracted"
+        val firstSnapshotReady = new CountDownLatch(1)
+        val releaseFirst       = new CountDownLatch(1)
+        given ExecutionContext = ExecutionContext.global
+
+        val first = Future {
+          scala.util.Try(
+            VerifiedArchive.extractObserved(content, ArchiveFormat.TarGz, destination) {
+              firstSnapshotReady.countDown()
+              releaseFirst.await(5, TimeUnit.SECONDS)
+            }
+          )
+        }
+        assert(firstSnapshotReady.await(5, TimeUnit.SECONDS))
+        val liveSnapshot = os.list(directory).find(_.last.endsWith(".archive")).get
+
+        val second = Future(scala.util.Try(VerifiedArchive.extract(content, ArchiveFormat.TarGz, destination)))
+        assert(Await.result(second, 5.seconds).isSuccess)
+        assert(Files.exists(liveSnapshot.toNIO, java.nio.file.LinkOption.NOFOLLOW_LINKS))
+        releaseFirst.countDown()
+
+        assert(Await.result(first, 5.seconds).isFailure)
+        assert(os.read(destination / "bin" / "node") == "node")
+        assert(os.list(directory).forall(!_.last.endsWith(".lease")))
       }
     }
 

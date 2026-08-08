@@ -7,7 +7,10 @@ final case class ArchiveLimits(
     maxTotalUncompressedBytes: Long = 8L * 1024 * 1024 * 1024,
     maxCompressionRatio: Double = 200.0,
     maxSymlinkTargetBytes: Int = 4096,
-    maxCompressedArchiveBytes: Long = 1024L * 1024 * 1024
+    maxCompressedArchiveBytes: Long = 1024L * 1024 * 1024,
+    maxCentralDirectoryBytes: Long = 128L * 1024 * 1024,
+    maxMetadataEntryBytes: Long = 1024L * 1024,
+    maxArchiveMetadataBytes: Long = 16L * 1024 * 1024
 ) {
   require(maxEntries > 0, "maxEntries must be positive")
   require(maxEntryUncompressedBytes > 0, "maxEntryUncompressedBytes must be positive")
@@ -15,4 +18,7 @@ final case class ArchiveLimits(
   require(maxCompressionRatio.isFinite && maxCompressionRatio >= 1.0, "maxCompressionRatio must be finite and >= 1")
   require(maxSymlinkTargetBytes > 0, "maxSymlinkTargetBytes must be positive")
   require(maxCompressedArchiveBytes > 0, "maxCompressedArchiveBytes must be positive")
+  require(maxCentralDirectoryBytes > 0, "maxCentralDirectoryBytes must be positive")
+  require(maxMetadataEntryBytes > 0, "maxMetadataEntryBytes must be positive")
+  require(maxArchiveMetadataBytes > 0, "maxArchiveMetadataBytes must be positive")
 }

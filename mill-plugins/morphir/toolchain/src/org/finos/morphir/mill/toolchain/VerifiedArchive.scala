@@ -1,12 +1,16 @@
 package org.finos.morphir.mill.toolchain
 
 import java.io.InputStream
+import java.nio.channels.{FileChannel, OverlappingFileLockException}
 import java.nio.file.{
   AtomicMoveNotSupportedException,
+  FileVisitResult,
   FileAlreadyExistsException,
   Files,
   LinkOption,
+  Path,
   Paths,
+  SimpleFileVisitor,
   StandardCopyOption,
   StandardOpenOption
 }
@@ -70,31 +74,56 @@ object VerifiedArchive {
       format: ArchiveFormat,
       destination: os.Path,
       limits: ArchiveLimits = ArchiveLimits(),
-      cleanup: os.Path => Unit = removeTemporary
+      cleanup: os.Path => Unit = removeTemporary,
+      parserObserver: ArchiveFormat => Unit = _ => ()
   )(afterSnapshotVerified: => Unit): Unit = {
     val parent   = destination / os.up
     val nonce    = UUID.randomUUID()
     val snapshot = parent / s".${destination.last}.$nonce.archive"
     val staging  = parent / s".${destination.last}.$nonce.extract"
+    val lease    = parent / s".${destination.last}.$nonce.lease"
     os.makeDir.all(parent)
-    requireExclusiveDestination(destination)
-    try {
-      snapshotAndVerify(archive, snapshot, limits.maxCompressedArchiveBytes)
-      afterSnapshotVerified
-      Files.createDirectory(staging.toNIO)
-      format match {
-        case ArchiveFormat.TarGz => extractTarGz(snapshot, staging, limits)
-        case ArchiveFormat.Zip   => extractZip(snapshot, staging, limits)
+    withExtractionLease(lease) {
+      PathCoordinator.withLock(destinationLock(destination)) {
+        pruneStaleSiblings(parent, destination.last, cleanup)
+        requireExclusiveDestination(destination)
       }
-      promoteExclusive(staging, destination)
-    } catch {
-      case primary: Throwable =>
-        cleanupSuppressed(snapshot, primary, cleanup)
-        cleanupSuppressed(staging, primary, cleanup)
-        throw primary
+      try {
+        snapshotAndVerify(archive, snapshot, limits.maxCompressedArchiveBytes)
+        afterSnapshotVerified
+        Files.createDirectory(staging.toNIO)
+        format match {
+          case ArchiveFormat.TarGz => extractTarGz(snapshot, staging, limits, parserObserver)
+          case ArchiveFormat.Zip   => extractZip(snapshot, staging, limits, parserObserver)
+        }
+        promoteExclusive(staging, destination)
+      } catch {
+        case primary: Throwable =>
+          cleanupSuppressed(snapshot, primary, cleanup)
+          cleanupSuppressed(staging, primary, cleanup)
+          throw primary
+      }
+      bestEffortCleanup(snapshot, cleanup)
+      bestEffortCleanup(staging, cleanup)
     }
-    bestEffortCleanup(snapshot, cleanup)
-    bestEffortCleanup(staging, cleanup)
+  }
+
+  private def withExtractionLease[A](leasePath: os.Path)(body: => A): A = {
+    val channel = FileChannel.open(
+      leasePath.toNIO,
+      StandardOpenOption.CREATE_NEW,
+      StandardOpenOption.WRITE,
+      LinkOption.NOFOLLOW_LINKS
+    )
+    val lease = channel.lock()
+    try body
+    finally {
+      try lease.release()
+      catch { case _: Throwable => () }
+      try channel.close()
+      catch { case _: Throwable => () }
+      bestEffortCleanup(leasePath, removeTemporary)
+    }
   }
 
   private def cleanupSuppressed(path: os.Path, primary: Throwable, cleanup: os.Path => Unit): Unit =
@@ -108,7 +137,70 @@ object VerifiedArchive {
     try cleanup(path)
     catch { case _: Throwable => () }
 
-  private def removeTemporary(path: os.Path): Unit = os.remove.all(path)
+  private def removeTemporary(path: os.Path): Unit = {
+    if (!Files.exists(path.toNIO, LinkOption.NOFOLLOW_LINKS)) return
+    val attributes = Files.readAttributes(path.toNIO, classOf[BasicFileAttributes], LinkOption.NOFOLLOW_LINKS)
+    if (!attributes.isDirectory) Files.deleteIfExists(path.toNIO)
+    else
+      Files.walkFileTree(
+        path.toNIO,
+        new SimpleFileVisitor[Path] {
+          override def visitFile(file: Path, attributes: BasicFileAttributes): FileVisitResult = {
+            Files.deleteIfExists(file)
+            FileVisitResult.CONTINUE
+          }
+
+          override def postVisitDirectory(directory: Path, error: java.io.IOException): FileVisitResult = {
+            if (error != null) throw error
+            Files.deleteIfExists(directory)
+            FileVisitResult.CONTINUE
+          }
+        }
+      )
+  }
+
+  private def pruneStaleSiblings(parent: os.Path, destinationName: String, cleanup: os.Path => Unit): Unit =
+    try
+      Using.resource(Files.newDirectoryStream(parent.toNIO)) { entries =>
+        entries.asScala.foreach { entry =>
+          val name = entry.getFileName.toString
+          if (
+            name.startsWith(s".$destinationName.") &&
+            (name.endsWith(".archive") || name.endsWith(".extract"))
+          ) {
+            val suffix    = if (name.endsWith(".archive")) ".archive" else ".extract"
+            val leaseName = name.stripSuffix(suffix) + ".lease"
+            pruneIfUnleased(os.Path(entry), parent / leaseName, cleanup)
+          }
+        }
+      }
+    catch { case _: Throwable => () }
+
+  private def pruneIfUnleased(stale: os.Path, leasePath: os.Path, cleanup: os.Path => Unit): Unit = {
+    var channel: FileChannel             = null
+    var lock: java.nio.channels.FileLock = null
+    try {
+      channel = FileChannel.open(
+        leasePath.toNIO,
+        StandardOpenOption.CREATE,
+        StandardOpenOption.WRITE,
+        LinkOption.NOFOLLOW_LINKS
+      )
+      lock = channel.tryLock()
+      if (lock != null) bestEffortCleanup(stale, cleanup)
+    } catch {
+      case _: OverlappingFileLockException => ()
+      case _: Throwable                    => ()
+    } finally {
+      if (lock != null)
+        try lock.release()
+        catch { case _: Throwable => () }
+      if (channel != null)
+        try channel.close()
+        catch { case _: Throwable => () }
+      if (lock != null) bestEffortCleanup(leasePath, removeTemporary)
+    }
+  }
 
   private def snapshotAndVerify(content: VerifiedContent, snapshot: os.Path, maxBytes: Long): Unit = {
     val digest = MessageDigest.getInstance("SHA-256")
@@ -160,9 +252,12 @@ object VerifiedArchive {
     }
 
   private def promoteExclusive(staging: os.Path, destination: os.Path): Unit =
-    PathCoordinator.withLock(destination / os.up / s".${destination.last}.lock") {
+    PathCoordinator.withLock(destinationLock(destination)) {
       promoteExclusiveLocked(staging, destination)
     }
+
+  private def destinationLock(destination: os.Path): os.Path =
+    destination / os.up / s".${destination.last}.lock"
 
   private def promoteExclusiveLocked(staging: os.Path, destination: os.Path): Unit = {
     requireExclusiveDestination(destination)
@@ -198,7 +293,14 @@ object VerifiedArchive {
         case NonFatal(restorationError)    => failure.addSuppressed(restorationError)
       }
 
-  private def extractTarGz(archive: os.Path, destination: os.Path, limits: ArchiveLimits): Unit =
+  private def extractTarGz(
+      archive: os.Path,
+      destination: os.Path,
+      limits: ArchiveLimits,
+      parserObserver: ArchiveFormat => Unit
+  ): Unit = {
+    ArchivePreflight.tarGz(archive, limits)
+    parserObserver(ArchiveFormat.TarGz)
     Using
       .Manager { use =>
         val rawInput = use(Files.newInputStream(archive.toNIO))
@@ -215,6 +317,7 @@ object VerifiedArchive {
         }
       }
       .get
+  }
 
   private def validateTarEntryType(entry: TarArchiveEntry): Unit =
     if (
@@ -228,7 +331,14 @@ object VerifiedArchive {
         s"Unsupported TAR entry type for '${entry.getName}' (link flag ${entry.getLinkFlag.toInt})"
       )
 
-  private def extractZip(archive: os.Path, destination: os.Path, limits: ArchiveLimits): Unit =
+  private def extractZip(
+      archive: os.Path,
+      destination: os.Path,
+      limits: ArchiveLimits,
+      parserObserver: ArchiveFormat => Unit
+  ): Unit = {
+    ArchivePreflight.zip(archive, limits)
+    parserObserver(ArchiveFormat.Zip)
     Using.resource(ZipFile.builder().setPath(archive.toNIO).get()) { zipFile =>
       val root   = ArrayBuffer.empty[String]
       val budget = new ExtractionBudget(limits, None)
@@ -240,6 +350,7 @@ object VerifiedArchive {
         )
       }
     }
+  }
 
   private def validateZipCompressionRatio(entry: ZipArchiveEntry, limits: ArchiveLimits): Unit = {
     val uncompressed = entry.getSize
