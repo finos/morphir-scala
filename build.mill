@@ -599,6 +599,14 @@ object MyAliases extends Aliases {
   def deps          = alias("mill.scalalib.Dependency/showUpdates")
   def testall       = alias("__.test")
   def testJVM       = alias("morphir.__.jvm.__.test")
+  def testJVMPlatform = alias(
+    "morphir.jvm.__.compile",
+    "morphir.{contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
+    "morphir.jvm.publishArtifacts",
+    "morphir.{contrib.knowledge,extensibility,interop.borer,interop.zio.json,lib.interop,model,model.lowering,naming,tests,tools}.jvm.publishArtifacts",
+    "morphir.{contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,model,model.lowering,tests}.jvm.test",
+    "morphir.langkit.itest.testCached"
+  )
   def testJVMCached = alias("morphir.__.jvm.__.testCached")
   def compileall    = alias("__.compile")
   def comptestall   = alias("__.compile", "__.test")

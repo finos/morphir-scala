@@ -30,10 +30,13 @@ JVM_TEMP_REMEDY = (
 CI_DEPENDENCIES = [
     "lint",
     "test:squire",
-    "test:jvm",
+    "test:jvm-platform",
     "test:js",
     "test:native",
 ]
+MILL_MORPHIR_UNIT_SELECTOR = (
+    "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test"
+)
 EVALUATOR_IR = "examples.morphir-elm-projects.evaluator-tests.morphirIR"
 ALL_ELM_IR = [
     "-k",
@@ -191,6 +194,21 @@ class MiseTaskPolicyTest(unittest.TestCase):
 
         dry_run = mise("run", "--dry-run", "ci:local")
         self.assertIn("test:squire", dry_run.stdout + dry_run.stderr)
+
+    def test_local_ci_keeps_plugin_integration_and_classic_runtime_in_dedicated_steps(self):
+        local_ci = (REPO_ROOT / ".config/mise/tasks/ci/local").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(f'"{MILL_MORPHIR_UNIT_SELECTOR}"', local_ci)
+        self.assertEqual(
+            local_ci.count("mill-plugins.morphir.integration.test"),
+            1,
+        )
+        self.assertEqual(
+            local_ci.count("morphir.runtime.classic.jvm.test\n"),
+            1,
+        )
 
     def test_morphir_elm_build_wrappers_delegate_only_to_mill_ir_tasks(self):
         evaluator = self.run_build_wrapper(".config/mise/tasks/build/morphir-elm")

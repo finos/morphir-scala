@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #MISE description="Run the core CI workflow locally"
-#MISE depends=["lint", "test:squire", "test:jvm", "test:js", "test:native"]
+#MISE depends=["lint", "test:squire", "test:jvm-platform", "test:js", "test:native"]
 
 set -euo pipefail
 
-./mill -i -k "mill-plugins.morphir.__.test"
+./mill -i -k "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test"
 ./mill -i mill-plugins.morphir.integration.test
 ./mill -i -k \
     "examples.morphir-elm-projects.__.morphirIR" \

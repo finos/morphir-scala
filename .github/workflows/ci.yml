@@ -20,6 +20,9 @@ concurrency:
   group: cancel-old-pr-runs-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -107,7 +110,7 @@ jobs:
             !out/mill-plugins/morphir/**/testOnly.dest/**
           key: ${{ runner.os }}-mill-morphir-unit-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
       - name: Run capability
-        run: ./mill -i -k "mill-plugins.morphir.__.test"
+        run: ./mill -i -k 'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'
 
   mill-morphir-integration:
     runs-on: ubuntu-latest
@@ -364,8 +367,7 @@ jobs:
           experimental: true
 
       - name: Run JVM tests
-        run: |
-          mise run test:jvm
+        run: mise run test:jvm-platform
 
       - name: Cache JVM build output
         # when in master repo: all commits to main branch and all additional tags
