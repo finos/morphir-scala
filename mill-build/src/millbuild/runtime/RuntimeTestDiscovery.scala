@@ -16,7 +16,7 @@ object RuntimeTestDiscovery {
 
   def requireAllDiscovered(discoveredClassNames: Seq[String]): Unit =
     missing(discoveredClassNames) match {
-      case Seq() => ()
+      case Seq()  => ()
       case absent =>
         throw new IllegalStateException(
           s"Missing required classic runtime test classes: ${absent.mkString(", ")}"
