@@ -1,10 +1,12 @@
 package build.`mill-plugins`.morphir
 
 import mill.*, mill.scalalib.*
+import mill.scalalib.scalafmt.ScalafmtModule
 import millbuild.{Deps, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
 import build.MorphirMillPublishModule
 
-trait MorphirMillPlugin extends Cross.Module[String] with ScalaModule with MorphirMillPublishModule {
+trait MorphirMillPlugin extends Cross.Module[String] with ScalaModule with ScalafmtModule
+    with MorphirMillPublishModule {
   def millVersion = crossValue
 
   def scalaVersion            = ScalaVers.scala3
@@ -18,45 +20,50 @@ trait MorphirMillPlugin extends Cross.Module[String] with ScalaModule with Morph
 object toolchain extends Cross[ToolchainPlugin](MillVersions.all)
 
 trait ToolchainPlugin extends MorphirMillPlugin {
-  override def artifactName = "mill-morphir-toolchain"
+  override def artifactName       = "mill-morphir-toolchain"
+  override def packageDescription = "Verified tool acquisition and platform support for Mill Morphir plugins."
 }
 
 object javascript extends Cross[JavaScriptPlugin](MillVersions.all)
 
 trait JavaScriptPlugin extends MorphirMillPlugin {
-  override def artifactName = "mill-morphir-javascript"
-  override def moduleDeps   = Seq(toolchain(crossValue))
-  override def mvnDeps      = super.mvnDeps() ++ Seq(Deps.com.lihaoyi.sourcecodeJvm)
+  override def artifactName       = "mill-morphir-javascript"
+  override def packageDescription = "JavaScript runtime and package-manager support for Mill Morphir plugins."
+  override def moduleDeps         = Seq(toolchain(crossValue))
+  override def mvnDeps            = super.mvnDeps() ++ Seq(Deps.com.lihaoyi.sourcecodeJvm)
   override protected def resolvedDepsWarnNonPlatform = false
 }
 
 object `elm-tooling` extends Cross[ElmToolingPlugin](MillVersions.all)
 
 trait ElmToolingPlugin extends MorphirMillPlugin {
-  override def artifactName = "mill-morphir-elm-tooling"
-  override def moduleDeps   = Seq(javascript(crossValue))
+  override def artifactName       = "mill-morphir-elm-tooling"
+  override def packageDescription = "Elm tooling support for Mill builds."
+  override def moduleDeps         = Seq(javascript(crossValue))
 }
 
 object core extends Cross[CorePlugin](MillVersions.all)
 
 trait CorePlugin extends MorphirMillPlugin {
-  override def artifactName = "mill-morphir-core"
-  override def mvnDeps      = super.mvnDeps() ++ Seq(Deps.com.lihaoyi.sourcecodeJvm)
+  override def artifactName                          = "mill-morphir-core"
+  override def packageDescription                    = "Frontend-neutral Morphir project and IR support for Mill."
+  override def mvnDeps                               = super.mvnDeps() ++ Seq(Deps.com.lihaoyi.sourcecodeJvm)
   override protected def resolvedDepsWarnNonPlatform = false
 }
 
 object elm extends Cross[ElmPlugin](MillVersions.all)
 
 trait ElmPlugin extends MorphirMillPlugin {
-  override def artifactName = "mill-morphir-elm"
-  override def moduleDeps   = Seq(core(crossValue), `elm-tooling`(crossValue))
+  override def artifactName       = "mill-morphir-elm"
+  override def packageDescription = "Morphir IR generation from Elm projects in Mill."
+  override def moduleDeps         = Seq(core(crossValue), `elm-tooling`(crossValue))
 }
 
-object integration extends ScalaModule {
+object integration extends ScalaModule with ScalafmtModule {
   def scalaVersion = ScalaVers.scala3
   def moduleDeps   = Seq(core(MillVersions.oldest))
 
-  object test extends ScalaTests with TestModule.Utest {
+  object test extends ScalaTests with TestModule.Utest with ScalafmtModule {
     def utestVersion = Vers.utest
   }
 }
