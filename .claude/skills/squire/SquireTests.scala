@@ -1584,35 +1584,39 @@ class SquireSpecSpec extends Test[Any]:
       )
     }
 
-    "keeps export JSON to one typed report when a validator process aborts" in {
-      for
-        root     <- rootWithoutCheckout("spec-cli-export-abort")
-        checkout <- standaloneCheckout(root / "checkout", schemas = true)
-        base   = exportResponse(root, checkout)
-        runner = AbortRuleRunner { request =>
-          if request.argv.headOption.contains("jsonschema") then
-            Abort.fail(SquireError.Failure("process", "validator launch failed"))
-          else base(request)
-        }
-        out = new StringBuilder
-        err = new StringBuilder
-        result <- Abort.run[SquireError](
-          SquireCli.runSpecExport(
-            SpecExportOpts(to = Some(checkout.toString), noBranch = true, json = true),
-            root,
-            runner,
-            TestSpecPlatform(),
-            value => out.append(value),
-            value => err.append(value)
+    "reports the primary export failure after successful or failed final status" in
+      Kyo.foreach(Chunk(("status-ok", 0), ("status-failed", 7))) { case (label, statusExit) =>
+        for
+          root     <- rootWithoutCheckout(s"spec-cli-export-$label")
+          checkout <- standaloneCheckout(root / "checkout", schemas = true)
+          base   = exportResponse(root, checkout, statusExit = statusExit)
+          runner = AbortRuleRunner { request =>
+            if request.argv.headOption.contains("jsonschema") then
+              Abort.fail(SquireError.Failure("process", "validator launch failed"))
+            else base(request)
+          }
+          out = new StringBuilder
+          err = new StringBuilder
+          result <- Abort.run[SquireError](
+            SquireCli.runSpecExport(
+              SpecExportOpts(to = Some(checkout.toString), noBranch = true, json = true),
+              root,
+              runner,
+              TestSpecPlatform(),
+              value => out.append(value),
+              value => err.append(value)
+            )
           )
-        )
-        decoded = SquireJson.decode[SpecReport](out.result().trim)
-      yield assert(
-        result == Result.Success(1) && decoded.exists(report => !report.ok && report.command == "spec-export") &&
-          !out.result().contains("[1/4]") && out.result().trim.linesIterator.count(_.startsWith("{")) == 1 &&
-          err.result().linesIterator.count(_.startsWith("ERROR:")) == 1 && safe(runner)
-      )
-    }
+          decoded = SquireJson.decode[SpecReport](out.result().trim)
+        yield result == Result.Success(1) && decoded.exists(report =>
+          !report.ok && report.command == "spec-export" &&
+            report.steps.find(_.status == "failed").exists(_.detail == "validator launch failed") &&
+            report.steps.lastOption.exists(step =>
+              step.step == "status" && step.status == (if statusExit == 0 then "ok" else "failed")
+            )
+        ) && out.result().trim.linesIterator.size == 1 &&
+          err.result() == "ERROR: validator launch failed\n" && safe(runner)
+      }.map(results => assert(results.forall(identity)))
   }
 
 class SquireProcessSpec extends Test[Any]:

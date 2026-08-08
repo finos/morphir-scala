@@ -351,7 +351,9 @@ object SquireCli:
   ): Int =
     output(if json then SquireJson.encode(report) + "\n" else SquireSpec.renderText(report))
     if !report.ok then
-      report.steps.lastOption.foreach(step => errorOutput(s"ERROR: ${step.detail}\n"))
+      report.steps.find(_.status == "failed").orElse(report.steps.lastOption).foreach { step =>
+        errorOutput(s"ERROR: ${step.detail}\n")
+      }
     if report.ok then 0 else 1
 
   def runSchemasBuild(
