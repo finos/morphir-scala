@@ -27,7 +27,9 @@ object PackageBinary {
   private[javascript] def validate(value: String, location: CallSite): Either[Error, PackageBinary] = {
     val basename = value.takeWhile(_ != '.').toUpperCase(Locale.ROOT)
     value match {
-      case PortableName() if value != "." && value != ".." && !WindowsReservedNames.contains(basename) => Right(value)
+      case PortableName()
+          if value != "." && value != ".." && !value.endsWith(".") && !WindowsReservedNames.contains(basename) =>
+        Right(value)
       case _ => Left(Error(value, location))
     }
   }

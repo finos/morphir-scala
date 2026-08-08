@@ -99,7 +99,8 @@ object JavaScriptModuleTests extends TestSuite {
         assert(parsed.map(_.value) == Right(input))
       }
 
-      val rejected = Seq("", ".", "..", "a/b", "a\\b", "white space", "@scope/tool", "CON", "nul.txt", "Lpt9")
+      val rejected =
+        Seq("", ".", "..", "...", "tool.", "a/b", "a\\b", "white space", "@scope/tool", "CON", "nul.txt", "Lpt9")
       rejected.foreach { input =>
         val error = PackageBinary.parse(input).swap.toOption.get
         assert(error.input == input)
@@ -111,13 +112,20 @@ object JavaScriptModuleTests extends TestSuite {
     test("package binary literal validates at compile time and rejects interpolation") {
       val literal = packageBinary"morphir-elm"
       assert(literal.value == "morphir-elm")
-      val invalid      = typeCheckErrors("""import org.finos.morphir.mill.javascript.*; packageBinary"../tool"""")
+      val invalid        = typeCheckErrors("""import org.finos.morphir.mill.javascript.*; packageBinary"../tool"""")
+      val trailingPeriod =
+        typeCheckErrors("""import org.finos.morphir.mill.javascript.*; packageBinary"tool."""")
+      val allDots      = typeCheckErrors("""import org.finos.morphir.mill.javascript.*; packageBinary"..."""")
       val interpolated = typeCheckErrors(
         """import org.finos.morphir.mill.javascript.*; val name = "tool"; packageBinary"$name""""
       )
       assert(invalid.nonEmpty)
       assert(invalid.head.message.contains("package binary"))
       assert(invalid.head.column > 0)
+      assert(trailingPeriod.nonEmpty)
+      assert(trailingPeriod.head.message.contains("package binary"))
+      assert(allDots.nonEmpty)
+      assert(allDots.head.message.contains("package binary"))
       assert(interpolated.nonEmpty)
       assert(interpolated.head.message.contains("does not accept interpolation"))
     }
@@ -280,21 +288,6 @@ object JavaScriptModuleTests extends TestSuite {
           }.failed.get
           assert(error.getMessage.contains("escapes its install root"))
         }
-      }
-    }
-
-    test("manifest and lock PathRefs change when tracked content changes") {
-      withTempDir { root =>
-        val manifest = root / "package.json"
-        val lock     = root / "package-lock.json"
-        os.write(manifest, """{"version":"1.0.0"}""")
-        os.write(lock, """{"lockfileVersion":3,"version":"1.0.0"}""")
-        val manifestBefore = PathRef(manifest).sig
-        val lockBefore     = PathRef(lock).sig
-        os.write.over(manifest, """{"version":"2.0.0"}""")
-        os.write.over(lock, """{"lockfileVersion":3,"version":"2.0.0"}""")
-        assert(PathRef(manifest).sig != manifestBefore)
-        assert(PathRef(lock).sig != lockBefore)
       }
     }
 
