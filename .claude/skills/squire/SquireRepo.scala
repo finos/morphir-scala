@@ -2,7 +2,17 @@
 //| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireCellar.scala]
 
 import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{FileVisitResult, Files, LinkOption, Path as JavaPath, SimpleFileVisitor}
+import java.nio.charset.StandardCharsets
+import java.nio.file.{
+  AtomicMoveNotSupportedException,
+  FileVisitResult,
+  Files,
+  LinkOption,
+  Path as JavaPath,
+  SimpleFileVisitor,
+  StandardCopyOption,
+  StandardOpenOption
+}
 import kyo.*
 
 final case class ReferenceManifest(repos: List[ReferenceRepo] = Nil) derives Schema
@@ -52,6 +62,8 @@ final case class ReferenceEntryStatus(
 )
 
 object SquireRepo:
+  private final case class ValidatedControlRoot(path: Path, exists: Boolean)
+
   def nameFrom(urlOrPath: String): String =
     val trimmed = urlOrPath.stripSuffix("/")
     val leaf    = trimmed.lastIndexOf('/') match
@@ -118,8 +130,8 @@ object SquireRepo:
     for
       manifest <- loadManifest(root)
       _        <- fromResult(validate(options, manifest))
-      refs = root / ".refs"
-      _ <- Sync.defer(Files.createDirectories(refs.toJava))
+      control  <- fromResultEffect(Sync.defer(validatedControlRoot(root, create = true)))
+      refs         = control.path
       name         = options.name.filter(_.nonEmpty).getOrElse(nameFrom(options.urlOrPath))
       org          = orgFrom(options.urlOrPath)
       relativePath = relativePathFor(options, name, org)
@@ -474,32 +486,73 @@ object SquireRepo:
     }
 
   private def readManifest(root: Path): Result[SquireError, ReferenceManifest] =
-    val path = root / ".refs" / "manifest.json"
-    if !Files.exists(path.toJava) then Result.Success(ReferenceManifest())
-    else
-      try
-        SquireJson.decode[ReferenceManifest](Files.readString(path.toJava)) match
-          case Result.Success(manifest) => Result.Success(manifest)
-          case Result.Failure(error)    =>
-            Result.Failure(SquireError.Failure(
-              "repo",
-              "could not decode reference manifest",
-              Present(error.getMessage)
-            ))
-      catch
-        case error: java.io.IOException =>
-          Result.Failure(SquireError.Failure("repo", "could not read reference manifest", Present(error.getMessage)))
+    validatedControlRoot(root, create = false).flatMap { control =>
+      if !control.exists then Result.Success(ReferenceManifest())
+      else
+        val path = control.path / "manifest.json"
+        if !Files.exists(path.toJava, LinkOption.NOFOLLOW_LINKS) then Result.Success(ReferenceManifest())
+        else if Files.isSymbolicLink(path.toJava) || !Files.isRegularFile(path.toJava, LinkOption.NOFOLLOW_LINKS) then
+          Result.Failure(SquireError.Failure("repo", "reference manifest is not an exact regular file"))
+        else
+          try
+            val input = Files.newInputStream(path.toJava, StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS)
+            val text  = try new String(input.readAllBytes(), StandardCharsets.UTF_8)
+            finally input.close()
+            SquireJson.decode[ReferenceManifest](text) match
+              case Result.Success(manifest) => Result.Success(manifest)
+              case Result.Failure(error)    =>
+                Result.Failure(SquireError.Failure(
+                  "repo",
+                  "could not decode reference manifest",
+                  Present(error.getMessage)
+                ))
+          catch
+            case error: java.io.IOException =>
+              Result.Failure(
+                SquireError.Failure("repo", "could not read reference manifest", Present(error.getMessage))
+              )
+    }
 
   private def writeManifest(root: Path, manifest: ReferenceManifest): Result[SquireError, Unit] =
-    val refs = root / ".refs"
-    val path = refs / "manifest.json"
-    try
-      Files.createDirectories(refs.toJava)
-      Files.writeString(path.toJava, SquireJson.encode(manifest) + "\n")
-      Result.Success(())
-    catch
-      case error: java.io.IOException =>
-        Result.Failure(SquireError.Failure("repo", "could not write reference manifest", Present(error.getMessage)))
+    validatedControlRoot(root, create = true).flatMap { control =>
+      val path = control.path / "manifest.json"
+      if Files.exists(path.toJava, LinkOption.NOFOLLOW_LINKS) &&
+        (Files.isSymbolicLink(path.toJava) || !Files.isRegularFile(path.toJava, LinkOption.NOFOLLOW_LINKS))
+      then Result.Failure(SquireError.Failure("repo", "reference manifest is not an exact regular file"))
+      else
+        var temporary: JavaPath = null
+        try
+          temporary = Files.createTempFile(control.path.toJava, ".manifest-", ".tmp")
+          val output = Files.newOutputStream(
+            temporary,
+            StandardOpenOption.WRITE,
+            StandardOpenOption.TRUNCATE_EXISTING,
+            LinkOption.NOFOLLOW_LINKS
+          )
+          try output.write((SquireJson.encode(manifest) + "\n").getBytes(StandardCharsets.UTF_8))
+          finally output.close()
+          try
+            Files.move(
+              temporary,
+              path.toJava,
+              StandardCopyOption.ATOMIC_MOVE,
+              StandardCopyOption.REPLACE_EXISTING
+            )
+          catch
+            case _: AtomicMoveNotSupportedException =>
+              Files.move(temporary, path.toJava, StandardCopyOption.REPLACE_EXISTING)
+          temporary = null
+          Result.Success(())
+        catch
+          case error: java.io.IOException =>
+            Result.Failure(
+              SquireError.Failure("repo", "could not write reference manifest", Present(error.getMessage))
+            )
+        finally
+          if temporary != null then
+            try Files.deleteIfExists(temporary)
+            catch case _: java.io.IOException => ()
+    }
 
   private def fromResultEffect[A](effect: Result[SquireError, A] < Sync): A < (Sync & Abort[SquireError]) =
     effect.flatMap {
@@ -514,6 +567,30 @@ object SquireRepo:
 
   private def failure(message: String): Result[SquireError, Unit] =
     Result.Failure(SquireError.Failure("repo", message))
+
+  private def validatedControlRoot(
+      root: Path,
+      create: Boolean
+  ): Result[SquireError, ValidatedControlRoot] =
+    val refs = (root / ".refs").toJava.toAbsolutePath.normalize
+    try
+      if Files.exists(refs, LinkOption.NOFOLLOW_LINKS) then
+        if Files.isSymbolicLink(refs) || !Files.isDirectory(refs, LinkOption.NOFOLLOW_LINKS) then
+          Result.Failure(SquireError.Failure("path", "reference control root is not an exact directory"))
+        else Result.Success(ValidatedControlRoot(Path(refs.toString), exists = true))
+      else if create then
+        Files.createDirectory(refs)
+        Result.Success(ValidatedControlRoot(Path(refs.toString), exists = true))
+      else Result.Success(ValidatedControlRoot(Path(refs.toString), exists = false))
+    catch
+      case error: java.io.IOException =>
+        Result.Failure(
+          SquireError.Failure("path", "could not validate reference control root", Present(error.getMessage))
+        )
+      case error: SecurityException =>
+        Result.Failure(
+          SquireError.Failure("path", "could not validate reference control root", Present(error.getMessage))
+        )
 
   private def managedReferencePath(repo: ReferenceRepo, refs: Path): Result[SquireError, ManagedReferencePath] =
     def invalid(detail: String): Result[SquireError, ManagedReferencePath] =

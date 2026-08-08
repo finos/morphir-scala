@@ -570,6 +570,141 @@ class SquireRepoSpec extends Test[Any]:
     }
   }
 
+  "control root and manifest" - {
+    "reject a symlinked control root throughout the read lifecycle" in {
+      for
+        root <- SquireFixtures.scratch("repo-control-root-read")
+        refs     = root / ".refs"
+        external = root / "external-refs"
+        entry    = SquireRepoFixtures.repo("mill")
+        original = SquireJson.encode(ReferenceManifest(List(entry))) + "\n"
+        _ <- Sync.defer {
+          Files.createDirectories(external.toJava)
+          Files.writeString((external / "manifest.json").toJava, original)
+          Files.createSymbolicLink(refs.toJava, external.toJava)
+        }
+        runner = RuleRunner(SquireRepoFixtures.ok)
+        loaded   <- Abort.run[SquireError](SquireRepo.loadManifest(root))
+        listed   <- Abort.run[SquireError](SquireRepo.list(root, asJson = false, runner))
+        detailed <- Abort.run[SquireError](SquireRepo.status(root, None, runner))
+        removed  <- Abort.run[SquireError](
+          SquireRepo.remove("mill", keepFiles = false, root, runner, TestSquirePlatform())
+        )
+        after <- Sync.defer(Files.readString((external / "manifest.json").toJava))
+      yield assert(
+        loaded.isFailure && listed.isFailure && detailed.isFailure && removed.isFailure &&
+          runner.requests.isEmpty && after == original && Files.isSymbolicLink(refs.toJava)
+      )
+    }
+
+    "reject a symlinked control root before write lifecycle effects" in {
+      for
+        saveRoot <- SquireFixtures.scratch("repo-control-root-save")
+        saveRefs     = saveRoot / ".refs"
+        saveExternal = saveRoot / "external-refs"
+        original     = "{\"repos\":[]}\n"
+        _ <- Sync.defer {
+          Files.createDirectories(saveExternal.toJava)
+          Files.writeString((saveExternal / "manifest.json").toJava, original)
+          Files.createSymbolicLink(saveRefs.toJava, saveExternal.toJava)
+        }
+        saved <- Abort.run[SquireError](
+          SquireRepo.saveManifest(saveRoot, ReferenceManifest(List(SquireRepoFixtures.repo("mill"))))
+        )
+        savedAfter <- Sync.defer(Files.readString((saveExternal / "manifest.json").toJava))
+        addRoot    <- SquireFixtures.scratch("repo-control-root-add")
+        addRefs     = addRoot / ".refs"
+        addExternal = addRoot / "external-refs"
+        _ <- Sync.defer {
+          Files.createDirectories(addExternal.toJava)
+          Files.writeString((addExternal / "manifest.json").toJava, original)
+          Files.createSymbolicLink(addRefs.toJava, addExternal.toJava)
+        }
+        runner = RuleRunner(SquireRepoFixtures.cloneResponse)
+        added <- Abort.run[SquireError](
+          SquireRepo.add(
+            ReferenceAdd("https://github.com/finos/morphir"),
+            addRoot,
+            runner,
+            TestSquirePlatform()
+          )
+        )
+        addedAfter <- Sync.defer(Files.readString((addExternal / "manifest.json").toJava))
+      yield assert(
+        saved.isFailure && added.isFailure && savedAfter == original && addedAfter == original &&
+          runner.requests.isEmpty && !Files.exists(
+            (addExternal / "finos").toJava,
+            java.nio.file.LinkOption.NOFOLLOW_LINKS
+          )
+      )
+    }
+
+    "reject a final manifest symlink throughout the read lifecycle" in {
+      for
+        root <- SquireFixtures.scratch("repo-manifest-link-read")
+        refs     = root / ".refs"
+        external = root / "external-manifest.json"
+        entry    = SquireRepoFixtures.repo("mill")
+        original = SquireJson.encode(ReferenceManifest(List(entry))) + "\n"
+        _ <- Sync.defer {
+          Files.createDirectories(refs.toJava)
+          Files.writeString(external.toJava, original)
+          Files.createSymbolicLink((refs / "manifest.json").toJava, external.toJava)
+        }
+        runner = RuleRunner(SquireRepoFixtures.ok)
+        loaded   <- Abort.run[SquireError](SquireRepo.loadManifest(root))
+        listed   <- Abort.run[SquireError](SquireRepo.list(root, asJson = false, runner))
+        detailed <- Abort.run[SquireError](SquireRepo.status(root, None, runner))
+        removed  <- Abort.run[SquireError](
+          SquireRepo.remove("mill", keepFiles = false, root, runner, TestSquirePlatform())
+        )
+        after <- Sync.defer(Files.readString(external.toJava))
+      yield assert(
+        loaded.isFailure && listed.isFailure && detailed.isFailure && removed.isFailure &&
+          runner.requests.isEmpty && after == original && Files.isSymbolicLink((refs / "manifest.json").toJava)
+      )
+    }
+
+    "reject a final manifest symlink before write lifecycle effects" in {
+      for
+        saveRoot <- SquireFixtures.scratch("repo-manifest-link-save")
+        saveRefs     = saveRoot / ".refs"
+        saveExternal = saveRoot / "external-manifest.json"
+        original     = "{\"repos\":[]}\n"
+        _ <- Sync.defer {
+          Files.createDirectories(saveRefs.toJava)
+          Files.writeString(saveExternal.toJava, original)
+          Files.createSymbolicLink((saveRefs / "manifest.json").toJava, saveExternal.toJava)
+        }
+        saved <- Abort.run[SquireError](
+          SquireRepo.saveManifest(saveRoot, ReferenceManifest(List(SquireRepoFixtures.repo("mill"))))
+        )
+        savedAfter <- Sync.defer(Files.readString(saveExternal.toJava))
+        addRoot    <- SquireFixtures.scratch("repo-manifest-link-add")
+        addRefs     = addRoot / ".refs"
+        addExternal = addRoot / "external-manifest.json"
+        _ <- Sync.defer {
+          Files.createDirectories(addRefs.toJava)
+          Files.writeString(addExternal.toJava, original)
+          Files.createSymbolicLink((addRefs / "manifest.json").toJava, addExternal.toJava)
+        }
+        runner = RuleRunner(SquireRepoFixtures.cloneResponse)
+        added <- Abort.run[SquireError](
+          SquireRepo.add(
+            ReferenceAdd("https://github.com/finos/morphir"),
+            addRoot,
+            runner,
+            TestSquirePlatform()
+          )
+        )
+        addedAfter <- Sync.defer(Files.readString(addExternal.toJava))
+      yield assert(
+        saved.isFailure && added.isFailure && savedAfter == original && addedAfter == original &&
+          runner.requests.isEmpty && !Files.exists((addRefs / "finos").toJava, java.nio.file.LinkOption.NOFOLLOW_LINKS)
+      )
+    }
+  }
+
   "add and manifest" - {
     "reject an existing destination before invoking clone" in {
       for
