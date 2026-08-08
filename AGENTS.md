@@ -11,6 +11,8 @@ FINOS requires all contributors to have a signed Contributor License Agreement (
 - Do NOT use `Co-authored-by:` trailers for AI agents
 - Do NOT add AI agents to commit author fields
 - The human developer who reviews and commits the code is the sole author
+- Do NOT state in PR descriptions or issues that an AI agent authored the work; the human operator takes credit and
+  accountability for the changes
 
 This is a FINOS-wide policy that applies to all projects under the FINOS umbrella.
 
@@ -68,13 +70,25 @@ One exception worth knowing: the Scala.js version is pinned in two places that m
 
 ```
 morphir-scala/
-├── build.mill               # Root build: metabuild traits shared by every module
-├── mill-build/src/          # Custom Mill plugins and build helpers
-│   └── millbuild/           # Version pins, kyo-test wiring, cross-platform sources
+├── mill                     # Mill launcher
+├── build.mill               # Root build: traits and project-specific wiring
+├── mill-build/              # Metabuild bootstrap and repository-local helpers
+│   └── src/millbuild/       # Version pins, kyo-test wiring, cross-platform sources
+├── mill-plugins/morphir/    # Publishable Mill plugins dogfooded by this repository
+│   ├── toolchain/           # Verified acquisition and machine-cache support
+│   ├── javascript/          # JavaScript runtime/package-manager contracts and implementations
+│   ├── elm-tooling/         # Elm tool acquisition and compilation
+│   ├── core/                # Frontend-neutral Morphir tasks and typed artifacts
+│   ├── elm/                 # Morphir Elm project-to-IR compilation
+│   └── integration/         # Published-SNAPSHOT consumer acceptance tests
+├── examples/
+│   └── morphir-elm-projects/ # Elm projects used to generate runtime fixtures
+├── morphir-elm/             # Morphir Elm SDK projects built through the plugins
 ├── morphir/                 # Main Morphir library modules
 │   ├── src/                 # Shared sources (all platforms)
 │   ├── jvm/src/             # JVM-specific sources
 │   ├── js/src/              # ScalaJS-specific sources
+│   ├── native/src/          # Scala Native-specific sources
 │   ├── contrib/             # Contributed modules
 │   ├── interop/             # Interoperability modules (borer, zio-json)
 │   ├── kit/                 # Kits: extensions and bridges per upstream library (e.g. kit/kyo)
@@ -91,22 +105,27 @@ Knowledge bundles under `kb/bundles/` follow the [Open Knowledge Format](https:/
 see [kb/AGENTS.md](./kb/AGENTS.md) before authoring or editing one.
 
 Modules are configured per-directory in `package.mill.yaml` files. YAML is the default; a `.mill` file is the escape
-hatch for what YAML cannot express (currently only `Cross[...]` declarations, in `morphir/build/package.mill`).
+hatch for what YAML cannot express (currently the plugin `Cross[...]` declarations in
+`mill-plugins/morphir/package.mill`).
 Anything needing a `Task` — computed source paths, `forkArgs`, BuildInfo members — belongs in a named trait in
-`build.mill` that the YAML then names in its `extends:`.
+the metabuild or in `build.mill` that the YAML then names in its `extends:`.
 
 ## Build System
 
 ### Running Commands
 
 Use mise for task management:
+
 ```bash
-mise run setup          # Install tooling
+mise run setup          # Install repository tooling; Mill acquires Node, Elm and Morphir Elm
 mise run lint           # Check code formatting
 mise run fmt            # Format code
 mise run test:jvm       # Run JVM tests (includes langkit.itest)
 mise run test:js        # Run JS tests (includes the wasm link variants)
 mise run test:native    # Run Scala Native tests
+mise run test:runtime-jvm # Run the classic JVM runtime tests backed by generated Elm IR
+mise run build:morphir-elm # Generate the evaluator Morphir IR through Mill
+mise run build:elm      # Generate all Morphir Elm project IR through Mill
 mise run ci:local       # Run full local CI
 mise run kb:check       # Check the knowledge base and its intent records
 mise run kb:sync        # Check the mirrored upstream sources against their lockfile
@@ -115,20 +134,30 @@ mise run schemas:check  # Validate the mirrored v4 documents against those schem
 ```
 
 Or use Mill directly:
+
 ```bash
 ./mill morphir.jvm.compile
 ./mill morphir.tests.jvm.test
+./mill 'mill-plugins.morphir.__.test'
+./mill mill-plugins.morphir.integration.test
+./mill morphir.runtime.classic.jvm.test.generatedRuntimeFixtures
+./mill morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery
+./mill morphir.runtime.classic.jvm.test
 ./mill mill.scalalib.scalafmt.ScalafmtModule/reformatAll 'morphir.__.sources'
 ```
 
 ### Cross-Platform Sources
 
 The project uses a custom cross-platform source layout. For a module at `morphir/foo/`:
+
 - `src/` - Shared sources (all platforms, all Scala versions)
 - `jvm/src/` - JVM-specific sources
 - `js/src/` - ScalaJS-specific sources
+- `native/src/` - Scala Native-specific sources
 - `src-3/` - Scala 3.x specific sources
 - `jvm/src-3/` - JVM + Scala 3.x specific sources
+- `js/src-3/` - ScalaJS + Scala 3.x specific sources
+- `native/src-3/` - Scala Native + Scala 3.x specific sources
 
 Note the nesting: the platform is a directory *containing* `src`, not a suffix on it (`jvm/src-3`, not `src-3-jvm`).
 See `millbuild.crossplatform.CrossPlatformScalaModule` for how the paths are derived.
@@ -147,6 +176,11 @@ See `millbuild.crossplatform.CrossPlatformScalaModule` for how the paths are der
 - Use `derives` for typeclass derivation
 - Use `extension` methods instead of implicit classes
 - Import with `*` instead of `_` (Scala 3 syntax)
+- Write code that follows functional design principles first:
+  - Keep invalid states unrepresentable, particularly in public user-facing code
+  - Leverage algebraic data types
+  - Prefer newtypes via opaque types over stringly typed or non-intention-revealing primitives
+  - Use named tuples, especially where they make public signatures easier to read
 
 #### `sealed case class` — legacy idiom, prefer `final case class`
 
@@ -157,13 +191,6 @@ idiom and new code must not add more.** Write `final case class` instead.
 declaring file, while `final` forbids it outright. `final` is therefore strictly stronger,
 and it is the idiomatic Scala 3 spelling. Nothing in this repo subclasses a `sealed case
 class` — the modifier buys nothing anywhere it currently appears.
-
-It has also broken things. Up to kyo `1.0.0-RC5`, kyo-schema's `Schema.derived` rejected a
-`sealed case class` outright, misreporting it as a sealed trait with no variants, because the
-type carries both the `Sealed` and `Case` flags. That is fixed as of `1.0.0-RC6`
-([getkyo/kyo#1811](https://github.com/getkyo/kyo/issues/1811)), which this build is on — so
-the rule now rests on the argument above rather than on a derivation failure, and it is no
-less binding for that.
 
 **Do not confuse it with `sealed abstract case class`, which is a deliberate and correct
 pattern** — the smart-constructor idiom. There, `abstract` suppresses synthesis of `apply`
@@ -187,6 +214,13 @@ that capability is invisible to downstream consumers.
 
 - Use `mvn""` interpolator (not `ivy""` which is deprecated in Mill 1.x)
 - Prefer ZIO or Kyo ecosystem libraries where possible
+
+### Plugin API Conventions
+
+- Keep JavaScript runtime and package-manager contracts tool-neutral. Node, npm, Yarn, pnpm, Bun, and Deno belong
+  in the same `mill-morphir-javascript` artifact; consumers should not depend on npm-specific paths or file names.
+- Model validated identifiers with opaque types and safe parsers or literal interpolators.
+- Keep typed `Error` ADTs usable as exceptions and attach source-location data at user-facing boundaries.
 
 ## Testing
 
@@ -234,14 +268,20 @@ that capability is invisible to downstream consumers.
 ## CI/CD
 
 The project uses GitHub Actions for CI:
+
 - `lint` - Scalafmt check
+- `knowledge-base` - KB tests, validation, intent checks and mirror checks
+- `mill-morphir-unit` - Fast Scala tests for the Mill Morphir plugin family
+- `mill-morphir-integration` - Fresh-consumer tests using locally published SNAPSHOT plugins
+- `morphir-elm-projects` - Generate the Morphir IR for each Elm project
+- `runtime-generated-fixtures` - Build typed runtime fixture sources from generated IR
+- `runtime-tests` - Verify classic runtime test discovery and run those tests
 - `test-jvm` - JVM tests, including `langkit.itest`
 - `test-js` - ScalaJS tests, including the wasm link variants
 - `test-native` - Scala Native tests
-- `publish` - Publish to Sonatype (main/tags only)
+- `publish` - Publish milestones/releases from main or release lines and SNAPSHOTs from develop
 
-CI runs on: pull requests, pushes to main/0.4.x, releases, and manual triggers.
-
+CI runs on pull requests targeting and pushes to `main`, `0.4.x`, and `develop`, plus releases and manual triggers.
 
 ## Pull Request & CI Protocol
 

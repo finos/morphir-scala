@@ -41,7 +41,7 @@ those capabilities; it does not implement the buildkit pipeline itself.
 
 - Make verified tool acquisition a Mill capability rather than a Mise prerequisite.
 - Develop the plugins beside morphir-scala and dogfood their published boundary.
-- Keep Node, npm, Elm, and Morphir Elm concerns in focused packages and artifacts.
+- Keep JavaScript runtimes/package managers, Elm, and Morphir Elm concerns in focused packages and artifacts.
 - Preserve Mill's task graph, caching, generated-source, BSP, and testing behavior.
 - Support Morphir packages whose sources are not published to an ecosystem registry.
 
@@ -56,7 +56,7 @@ initially share one release version.
 | Artifact | Package | Responsibility |
 | --- | --- | --- |
 | `mill-morphir-toolchain` | `org.finos.morphir.mill.toolchain` | Verified acquisition, platform selection, and safe extraction |
-| `mill-morphir-node` | `org.finos.morphir.mill.node` | Provisioned Node and lockfile-driven npm execution |
+| `mill-morphir-javascript` | `org.finos.morphir.mill.javascript` | JavaScript runtime/package-manager contracts with provisioned Node and locked npm support |
 | `mill-morphir-elm-tooling` | `org.finos.morphir.mill.elm` | Elm tools and Elm-language compilation |
 | `mill-morphir-core` | `org.finos.morphir.mill` | Frontend-neutral Morphir project, IR artifact, and generation contracts |
 | `mill-morphir-elm` | `org.finos.morphir.mill.elm.morphir` | Elm-project-to-Morphir-IR compilation |
@@ -64,6 +64,11 @@ initially share one release version.
 The existing `mill-morphir-elm` shell and the working metabuild implementation move into this family. They do not
 remain as parallel implementations. Plugin artifacts depend on Mill APIs and lower plugin layers, not on the
 morphir-scala application modules being built.
+
+`mill-morphir-javascript` is one deployable plugin jar. Its public contracts describe runtime execution, project and
+lock inputs, installation, and local package-binary invocation without naming npm or assuming one file of each type.
+Node and npm are the first implementations. Yarn, pnpm, Bun, and Deno can be added to the same jar without changing
+consumers or creating one artifact per tool.
 
 The metabuild and published modules compile the same source tree. Source sharing solves the first-release bootstrap
 without preserving a private implementation under `mill-build`.
@@ -117,11 +122,25 @@ Source-level dependencies may be materialized into the sandbox without being pub
 The frontend consumes the resulting source or typed IR view; it does not expose an Elm cache workaround as the
 package-management contract.
 
+## Typed module identity
+
+Public APIs use an opaque `ModuleId`, not a raw string:
+
+- Computed IDs use one parser for portable, lower-case, dot-separated segments.
+- Static IDs use a `moduleId"..."` interpolator with the same validation.
+- Invalid IDs return a typed `Error` that is also a source-located exception.
+- Raw text is exposed only for serialization, diagnostics, commands, and bounded sandbox paths.
+
+There is no public unchecked constructor.
+
 ## Failure contract
 
 Failures name their layer and corrective action: unsupported platform, verification failure, invalid lockfile,
 project or dependency error, compiler diagnostic, or missing output. Process execution records the tool version,
 working directory, command, and captured diagnostics in the Mill task log without exposing credentials.
+
+Public validation errors remain typed ADTs, also extend an exception type, and carry source-location data where the
+caller can act on it.
 
 External processes receive an explicit environment. Proxy, registry, and credential settings enter through
 documented inputs rather than unrestricted ambient environment propagation.

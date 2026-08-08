@@ -1,5 +1,10 @@
 # Log
 
+## 2026-08-08
+
+* **Update**: Made Morphir module identity an opaque, parsed value with compile-time literal support.
+* **Update**: Unified JavaScript tooling in one plugin and made validation errors source-located exceptions.
+
 ## 2026-08-07
 
 * **Creation**: Added the evolving [multi-frontend pipeline and workspace Design Note](/design/pipeline-workspace-boundaries.md), separating observed facts, current proposals, settled-enough refinement boundaries, and open questions without prematurely creating a Decision Record.
