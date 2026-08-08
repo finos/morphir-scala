@@ -5,7 +5,7 @@ import java.nio.channels.FileChannel
 import java.nio.{ByteBuffer, ByteOrder}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, StandardOpenOption}
-import java.util.concurrent.{CountDownLatch, TimeUnit}
+import java.util.concurrent.{CountDownLatch, Executors, TimeUnit}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
 import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -922,7 +922,8 @@ object VerifiedAcquisitionTests extends TestSuite {
         val firstOpened        = new CountDownLatch(1)
         val releaseFirst       = new CountDownLatch(1)
         val contendersLive     = new CountDownLatch(7)
-        given ExecutionContext = ExecutionContext.global
+        val executor           = Executors.newFixedThreadPool(8)
+        given ExecutionContext = ExecutionContext.fromExecutorService(executor)
 
         def acquire(task: String): VerifiedContent =
           AcquisitionCache(settings, directory / task).acquire(digest, s"memory:$task") {
@@ -934,21 +935,29 @@ object VerifiedAcquisitionTests extends TestSuite {
             new ByteArrayInputStream(bytes)
           }
 
-        val first = Future(acquire("task-0"))
-        assert(firstOpened.await(5, TimeUnit.SECONDS))
-        val contenders = (1 to 7).map { index =>
-          Future {
-            contendersLive.countDown()
-            acquire(s"task-$index")
+        try {
+          val first = Future(acquire("task-0"))
+          assert(firstOpened.await(5, TimeUnit.SECONDS))
+          val contenders = (1 to 7).map { index =>
+            Future {
+              contendersLive.countDown()
+              acquire(s"task-$index")
+            }
+          }
+          assert(contendersLive.await(5, TimeUnit.SECONDS))
+          releaseFirst.countDown()
+
+          val contents = Await.result(Future.sequence(first +: contenders), 10.seconds)
+          assert(attempts.get() == 1)
+          assert(contents.map(_.path).distinct.size == 1)
+        } finally {
+          releaseFirst.countDown()
+          executor.shutdown()
+          if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+            executor.shutdownNow()
+            assert(executor.awaitTermination(5, TimeUnit.SECONDS))
           }
         }
-        assert(contendersLive.await(5, TimeUnit.SECONDS))
-        Thread.sleep(100)
-        releaseFirst.countDown()
-
-        val contents = Await.result(Future.sequence(first +: contenders), 10.seconds)
-        assert(attempts.get() == 1)
-        assert(contents.map(_.path).distinct.size == 1)
       }
     }
 
