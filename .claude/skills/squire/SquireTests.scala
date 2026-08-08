@@ -224,9 +224,10 @@ object SquireFixtures:
       managed: Chunk[Path] = Chunk.empty,
       varFolders: Option[Path] = None,
       daemonProbe: Int => SquireEnv.DaemonProbe = _ => SquireEnv.DaemonProbe.Open,
-      writeProbe: Path => Unit = path => Files.writeString(path.toJava, "squire probe")
+      writeProbe: Path => Unit = path => Files.writeString(path.toJava, "squire probe"),
+      deleteProbe: Path => Unit = path => Files.deleteIfExists(path.toJava)
   ): TestEnvPlatform =
-    TestEnvPlatform(environment, home.getOrElse(root / "home"), managed, varFolders.getOrElse(root), _ => jvmResult, daemonProbe, writeProbe)
+    TestEnvPlatform(environment, home.getOrElse(root / "home"), managed, varFolders.getOrElse(root), _ => jvmResult, daemonProbe, writeProbe, deleteProbe)
 
   def writeDaemonFiles(root: Path, portFile: Option[Int], logPort: Option[Int]): Unit < Sync =
     Sync.defer {
@@ -366,7 +367,7 @@ class SquireEnvSpec extends Test[Any]:
       yield assert(!blocked && !probeExists)
     }
 
-    "cleans a probe created before a write failure and reports cleanup failures" in {
+    "cleans a probe created before a write failure" in {
       for
         root <- SquireFixtures.scratch("env-var-folders-partial")
         platform = SquireFixtures.platform(
@@ -377,6 +378,19 @@ class SquireEnvSpec extends Test[Any]:
         partial <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
         removed <- (root / ".squire-env-probe").exists
       yield assert(!partial && !removed)
+    }
+
+    "reports a delete probe failure without throwing" in {
+      for
+        root <- SquireFixtures.scratch("env-var-folders-delete")
+        platform = SquireFixtures.platform(
+          root,
+          SquireEnv.CheckResult(Present(true), "ok", 0.0),
+          deleteProbe = _ => throw java.nio.file.AccessDeniedException("/var/folders/.squire-env-probe")
+        )
+        check <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
+        report <- SquireEnv.report(1.seconds, platform, root)
+      yield assert(!check && report.checks("var_folders_writable").detail.startsWith("could not clean probe file:"))
     }
   }
 
@@ -449,7 +463,8 @@ final class TestEnvPlatform(
     val varFolders: Path,
     val jvmProbe: Duration => SquireEnv.CheckResult,
     val daemonProbe: Int => SquireEnv.DaemonProbe,
-    val writeProbeFn: Path => Unit
+    val writeProbeFn: Path => Unit,
+    val deleteProbeFn: Path => Unit
 ) extends SquireEnv.Platform:
   var daemonPorts: Chunk[Int] = Chunk.empty
 
@@ -463,3 +478,4 @@ final class TestEnvPlatform(
     daemonProbe(port)
 
   override def writeProbe(path: Path): Unit = writeProbeFn(path)
+  override def deleteProbe(path: Path): Unit = deleteProbeFn(path)
