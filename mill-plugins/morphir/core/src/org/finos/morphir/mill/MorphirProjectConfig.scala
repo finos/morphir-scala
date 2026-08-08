@@ -1,6 +1,6 @@
-package org.finos.millmorphir.api
+package org.finos.morphir.mill
 
-import upickle.default.*
+import upickle.default.ReadWriter
 
 final case class MorphirProjectConfig(
     name: String,

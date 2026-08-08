@@ -19,9 +19,10 @@ import com.carlosedp.aliases.*
 import millbuild.*
 import millbuild.crossplatform.*
 import millbuild.jsruntime.*
-import org.finos.millmorphir.*
-import org.finos.millmorphir.elm.*
+import org.finos.millmorphir.elm.{MorphirElmToolModule => RepositoryMorphirElmToolModule}
 import org.finos.millmorphir.toolchain.*
+import org.finos.morphir.mill.*
+import org.finos.morphir.mill.elm.morphir.MorphirElmModule
 import mill.*, mill.scalalib.*, mill.scalajslib.*, mill.scalanativelib.*, scalafmt.*
 import mill.javalib.SonatypeCentralPublishModule
 import mill.scalajslib.api.ModuleKind
@@ -267,13 +268,13 @@ trait EmptyDocJar extends JavaModule {
 trait ClassicRuntimeTestFixtures extends ScalaModule {
   override def generatedSources: T[Seq[PathRef]] = Task {
     val fixtures = ClassicRuntimeFixtureSet(
-      evaluator = build.examples.`morphir-elm-projects`.`evaluator-tests`.make().irFilePath,
-      defaults = build.examples.`morphir-elm-projects`.`defaults-tests`.make().irFilePath,
-      unitTestFramework = build.`morphir-elm`.sdks.`morphir-unit-test`.make().irFilePath,
-      unitTestExample = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project`.make().irFilePath,
-      unitTestFailing = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests`.make().irFilePath,
-      unitTestPassing = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-passing`.make().irFilePath,
-      unitTestIncomplete = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-incomplete`.make().irFilePath
+      evaluator = build.examples.`morphir-elm-projects`.`evaluator-tests`.morphirIR(),
+      defaults = build.examples.`morphir-elm-projects`.`defaults-tests`.morphirIR(),
+      unitTestFramework = build.`morphir-elm`.sdks.`morphir-unit-test`.morphirIR(),
+      unitTestExample = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project`.morphirIR(),
+      unitTestFailing = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests`.morphirIR(),
+      unitTestPassing = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-passing`.morphirIR(),
+      unitTestIncomplete = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-incomplete`.morphirIR()
     )
     val packageDirectory = Task.dest / "org" / "finos" / "morphir" / "runtime" / "fixtures"
     os.makeDir.all(packageDirectory)
@@ -539,7 +540,7 @@ trait MorphirLangkitItestElmPackages extends JavaModule {
 
 object toolchains extends Module {
   object node extends NodeToolchainModule
-  object morphirElm extends MorphirElmToolModule {
+  object morphirElm extends RepositoryMorphirElmToolModule {
     def nodeToolchain = toolchains.node
   }
 }

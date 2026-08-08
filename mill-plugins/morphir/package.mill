@@ -74,8 +74,18 @@ object core extends Cross[CorePlugin](MillVersions.all)
 trait CorePlugin extends MorphirMillPlugin {
   override def artifactName                          = "mill-morphir-core"
   override def packageDescription                    = "Frontend-neutral Morphir project and IR support for Mill."
-  override def mvnDeps                               = super.mvnDeps() ++ Seq(Deps.com.lihaoyi.sourcecodeJvm)
+  override def mvnDeps                               = super.mvnDeps() ++ Seq(
+    Deps.com.lihaoyi.sourcecodeJvm,
+    Deps.com.lihaoyi.upickleJvm
+  )
   override protected def resolvedDepsWarnNonPlatform = false
+
+  object test extends ScalaTests with TestModule.Utest with ScalafmtModule {
+    def utestVersion = Vers.utest
+    override def mvnDeps = super.mvnDeps() ++ Seq(
+      mvn"com.lihaoyi::mill-libs-scalalib:${CorePlugin.this.millVersion}"
+    )
+  }
 }
 
 object elm extends Cross[ElmPlugin](MillVersions.all)
