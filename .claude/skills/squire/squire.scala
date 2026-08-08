@@ -1,6 +1,6 @@
 //| scalaVersion: 3.8.4
 //| mainClass: SquireApp
-//| moduleDeps: [SquireModel.scala, SquireProcess.scala]
+//| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireEnv.scala, SquireDoctor.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-case-app:1.0.0-RC6
 
@@ -95,6 +95,27 @@ object SquireCli:
       java.lang.System.exit(1)
     }
 
+  def projectRoot(from: Path): Path < Sync =
+    SquirePaths.findRepoRoot(from).map(_.getOrElse(from))
+
+  def runEnvInfo(
+      options: AiEnvInfoOpts,
+      root: Path,
+      platform: SquireEnv.Platform,
+      output: String => Unit
+  ): Int < Sync =
+    options.check match
+      case None => SquireEnv.report(options.timeout.seconds, platform, root).map { report =>
+          output(SquireJson.encode(report) + "\n")
+          0
+        }
+      case Some("jvm-network") => SquireEnv.check(SquireEnv.CheckKind.JvmNetwork, options.timeout.seconds, platform).map(if _ then 0 else 1)
+      case Some("var-folders") => SquireEnv.check(SquireEnv.CheckKind.VarFolders, options.timeout.seconds, platform).map(if _ then 0 else 1)
+      case Some(_)              => 2
+
+  def printDoctor(report: SquireDoctor.DoctorReport): Unit < Sync =
+    Sync.defer(report.findings.foreach(finding => java.lang.System.out.println(s"${finding.code} - ${finding.message}")))
+
 object SquireApp extends CommandsEntryPoint:
   override def progName: String = "squire"
 
@@ -122,11 +143,26 @@ object SquireApp extends CommandsEntryPoint:
   object AiEnvInfoCmd extends KyoCommand[AiEnvInfoOpts]:
     override def name = "ai env info"
     override def names = List(List("ai", "env", "info"))
-    run { (_: AiEnvInfoOpts) => SquireCli.notImplemented(name) }
+    run { options =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireCli
+          .runEnvInfo(options, root, SquireEnv.LivePlatform, java.lang.System.out.print)
+        .flatMap { exitCode =>
+          if exitCode == 0 then ()
+          else Sync.defer(java.lang.System.exit(exitCode))
+        }
+      }
+    }
 
   object DoctorCmd extends KyoCommand[DoctorOpts]:
     override def name = "doctor"
-    run { (_: DoctorOpts) => SquireCli.notImplemented(name) }
+    run { (_: DoctorOpts) =>
+      SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+        SquireDoctor
+          .run(root, LiveProcessRunner, SquireEnv.LivePlatform)
+          .flatMap(SquireCli.printDoctor)
+      }
+    }
 
   object CellarGetCmd extends KyoCommand[CellarGetOpts]:
     override def name = "cellar get"

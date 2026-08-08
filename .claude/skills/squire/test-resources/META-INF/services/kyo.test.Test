@@ -2,3 +2,5 @@ SquireCliSpec
 SquireMetaSpec
 SquireModelSpec
 SquireProcessSpec
+SquireEnvSpec
+SquireDoctorSpec
