@@ -3,9 +3,9 @@
 squire use-cellar — Wrapper for the cellar JVM API inspection tool.
 
 Usage:
-  python3 cellar-query.py get <coordinate> <symbol> [--hide-inherited] [--group-inherited]
-  python3 cellar-query.py search <coordinate> <query> [--limit N]
-  python3 cellar-query.py deps <coordinate>
+  python3 cellar-query.py [--temp-directory /absolute/path] get <coordinate> <symbol> [options]
+  python3 cellar-query.py [--temp-directory /absolute/path] search <coordinate> <query> [options]
+  python3 cellar-query.py [--temp-directory /absolute/path] deps <coordinate>
 
 Loads optional repository configuration from .config/squire/settings.local.yaml
 (gitignored). See .config/squire/settings.local.yaml.template for the format.
@@ -24,6 +24,7 @@ import pathlib
 import shutil
 import subprocess
 import sys
+import tempfile
 
 # Coordinate shorthand: alias -> full dependency coordinate
 ALIASES = {
@@ -93,6 +94,24 @@ def resolve_coordinate(coord):
     return ALIASES.get(coord, coord)
 
 
+def writable_absolute_directory(value):
+    path = pathlib.Path(value)
+    if not path.is_absolute():
+        raise argparse.ArgumentTypeError("temp directory must be an absolute path")
+    if not path.is_dir():
+        raise argparse.ArgumentTypeError(
+            "temp directory must be an existing directory"
+        )
+    try:
+        with tempfile.NamedTemporaryFile(dir=path, prefix=".squire-cellar-probe-"):
+            pass
+    except OSError as error:
+        raise argparse.ArgumentTypeError(
+            f"temp directory must be writable: {error}"
+        ) from error
+    return path
+
+
 def run(cmd):
     print(f"+ {' '.join(cmd)}", file=sys.stderr)
     result = subprocess.run(cmd)
@@ -106,6 +125,11 @@ def main():
             f"Repository config loaded from: {SETTINGS_FILE}\n"
             f"Template: {SETTINGS_TEMPLATE}"
         )
+    )
+    parser.add_argument(
+        "--temp-directory",
+        type=writable_absolute_directory,
+        help="Absolute writable temp directory for the native Cellar process",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -129,6 +153,9 @@ def main():
     cellar = cellar_binary(settings)
     coord = resolve_coordinate(args.coordinate)
     repos = repo_flags(settings)
+    native_options = (
+        [f"-Djava.io.tmpdir={args.temp_directory}"] if args.temp_directory else []
+    )
 
     if not repos:
         print(
@@ -138,7 +165,13 @@ def main():
         )
 
     if args.command == "get":
-        cmd = [cellar, "get-external"] + repos + [coord, args.symbol]
+        cmd = (
+            [cellar]
+            + native_options
+            + ["get-external"]
+            + repos
+            + [coord, args.symbol]
+        )
         if args.hide_inherited:
             cmd.append("--hide-inherited")
         if args.group_inherited:
@@ -147,12 +180,18 @@ def main():
             cmd += ["--limit", str(args.limit)]
 
     elif args.command == "search":
-        cmd = [cellar, "search-external"] + repos + [coord, args.query]
+        cmd = (
+            [cellar]
+            + native_options
+            + ["search-external"]
+            + repos
+            + [coord, args.query]
+        )
         if args.limit:
             cmd += ["--limit", str(args.limit)]
 
     elif args.command == "deps":
-        cmd = [cellar, "deps"] + repos + [coord]
+        cmd = [cellar] + native_options + ["deps"] + repos + [coord]
 
     run(cmd)
 

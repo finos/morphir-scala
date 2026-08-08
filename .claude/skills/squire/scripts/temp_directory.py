@@ -14,8 +14,8 @@ JVM_TEMP_REMEDY = (
     '    JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=<writable-temp>" '
     "python3 .claude/skills/squire/scripts/check-var-folders.py\n"
     "  Retry Cellar:\n"
-    '    JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=<writable-temp>" '
     "python3 .claude/skills/squire/scripts/cellar-query.py "
+    '--temp-directory "<writable-temp>" '
     "CELLAR_COMMAND CELLAR_COORDINATE CELLAR_ARGUMENTS"
 )
 

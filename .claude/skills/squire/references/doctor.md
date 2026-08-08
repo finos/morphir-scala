@@ -103,14 +103,14 @@ If the warning reappears, verify the YAML entry is still present.
 
 **Cause:** Cellar writes temp `.tasty` files to the JVM's active `java.io.tmpdir`. On macOS this is normally a user-specific directory below `/var/folders`, not the `/var/folders` root.
 
-**Fix:** Apply the setting to both the check and the Cellar retry:
+**Fix:** Probe a writable path, then pass it directly to the native Cellar process:
 
 ```bash
 JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=<writable-temp>" python3 .claude/skills/squire/scripts/check-var-folders.py
-JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=<writable-temp>" python3 .claude/skills/squire/scripts/cellar-query.py CELLAR_COMMAND CELLAR_COORDINATE CELLAR_ARGUMENTS
+python3 .claude/skills/squire/scripts/cellar-query.py --temp-directory "<writable-temp>" CELLAR_COMMAND CELLAR_COORDINATE CELLAR_ARGUMENTS
 ```
 
-Each command starts the JVM that needs the option; an existing Mill daemon is not involved.
+`JAVA_TOOL_OPTIONS` configures the Java probe. Cellar is a native executable, so its wrapper passes the temp setting as a native runtime option.
 
 ---
 

@@ -14,6 +14,7 @@ REPO_ROOT = Path(__file__).parents[4]
 PROJECT_CHECKER = REPO_ROOT / ".claude/skills/squire/scripts/check-project-config.py"
 TEMP_CHECKER = REPO_ROOT / ".claude/skills/squire/scripts/check-var-folders.py"
 AI_ENV_CHECKER = REPO_ROOT / ".claude/skills/squire/scripts/ai-env-info.py"
+CELLAR_QUERY = REPO_ROOT / ".claude/skills/squire/scripts/cellar-query.py"
 DOCTOR_REFERENCE = REPO_ROOT / ".claude/skills/squire/references/doctor.md"
 MILL_MORPHIR_REFERENCE = REPO_ROOT / ".claude/skills/squire/references/mill-morphir.md"
 PLUGIN_MODULES = ["toolchain", "javascript", "elm-tooling", "core", "elm", "integration"]
@@ -22,8 +23,8 @@ JVM_TEMP_REMEDY = (
     '    JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=<writable-temp>" '
     "python3 .claude/skills/squire/scripts/check-var-folders.py\n"
     "  Retry Cellar:\n"
-    '    JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=<writable-temp>" '
     "python3 .claude/skills/squire/scripts/cellar-query.py "
+    '--temp-directory "<writable-temp>" '
     "CELLAR_COMMAND CELLAR_COORDINATE CELLAR_ARGUMENTS"
 )
 CI_DEPENDENCIES = [
@@ -499,6 +500,73 @@ class MiseTaskPolicyTest(unittest.TestCase):
             "JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=<writable-temp>", cellar_section
         )
         self.assertNotIn("./mill resolve", cellar_section)
+
+    def test_cellar_wrapper_passes_validated_temp_to_native_command(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            writable_temp = root / "cellar-temp"
+            writable_temp.mkdir()
+            argv_log = root / "cellar-argv.json"
+            fake_bin = root / "bin"
+            fake_bin.mkdir()
+            fake_cellar = fake_bin / "cellar"
+            fake_cellar.write_text(
+                f"#!{sys.executable}\n"
+                "import json, os, pathlib, sys\n"
+                "pathlib.Path(os.environ['CELLAR_ARGV_LOG']).write_text(json.dumps(sys.argv[1:]))\n",
+                encoding="utf-8",
+            )
+            fake_cellar.chmod(0o755)
+            environment = dict(os.environ)
+            environment["PATH"] = f"{fake_bin}{os.pathsep}{environment['PATH']}"
+            environment["CELLAR_ARGV_LOG"] = str(argv_log)
+            environment["JAVA_TOOL_OPTIONS"] = "-Djava.io.tmpdir=/ignored-by-native"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CELLAR_QUERY),
+                    "--temp-directory",
+                    str(writable_temp),
+                    "deps",
+                    "zio:2.1.26",
+                ],
+                cwd=root,
+                env=environment,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(
+                json.loads(argv_log.read_text(encoding="utf-8")),
+                [
+                    f"-Djava.io.tmpdir={writable_temp}",
+                    "deps",
+                    "dev.zio:zio_3:2.1.26",
+                ],
+            )
+
+            argv_log.unlink()
+            rejected = subprocess.run(
+                [
+                    sys.executable,
+                    str(CELLAR_QUERY),
+                    "--temp-directory=-Djava.io.tmpdir=relative",
+                    "deps",
+                    "zio:2.1.26",
+                ],
+                cwd=root,
+                env=environment,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn("must be an absolute path", rejected.stderr)
+            self.assertFalse(argv_log.exists(), "invalid paths must not invoke Cellar")
 
     def test_project_checker_diagnoses_stale_metabuild_compilation(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -24,7 +24,7 @@ mise install github-VirtusLab/cellar
 
 Cellar writes temp `.tasty` files under the JVM's active `java.io.tmpdir`. If you hit `Operation not permitted`, run `/squire doctor` to probe that effective JVM path.
 
-Apply any override to both the check and the Cellar retry. See the doctor reference for the exact commands.
+Use `JAVA_TOOL_OPTIONS` for the Java probe. Pass the verified path to Cellar with `--temp-directory`; the wrapper validates it and configures the native executable. See the doctor reference for the exact commands.
 
 ### Private Maven repositories (optional)
 
@@ -43,7 +43,7 @@ Then add your Maven mirror URLs to `settings.local.yaml` — it is gitignored. T
 All cellar queries for this project should go through `cellar-query.py`, which automatically adds the internal Maven repositories and supports coordinate aliases for common project dependencies.
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py <command> <coordinate> [args]
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py [--temp-directory "/absolute/path"] <command> <coordinate> [args]
 ```
 
 ### Commands
