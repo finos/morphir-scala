@@ -132,6 +132,32 @@ object MorphirElmProjectTests extends TestSuite {
       }
     }
 
+    test("project staging preserves a configured non-src source root") {
+      withTempDir { root =>
+        val project = root / "project"
+        writeProject(project, "elm-src")
+        os.write.over(
+          project / "elm.json",
+          ujson.Obj("type" -> "application", "source-directories" -> ujson.Arr("elm-src")).render()
+        )
+        val sandbox = root / "task" / "project"
+        val staged  = MorphirElmProjectSandbox
+          .stage(
+            sandbox,
+            project / "morphir.json",
+            Some(project / "elm.json"),
+            project / "elm-src",
+            Seq.empty
+          )
+          .fold(message => throw new IllegalStateException(message), identity)
+
+        assert(staged.projectDir.path == sandbox)
+        assert(os.read(sandbox / "elm-src" / "Example.elm") == "module Example exposing (..)")
+        assert(!os.exists(sandbox / "src"))
+        assert(read[MorphirProjectConfig](os.read(sandbox / "morphir.json")).sourceDirectory == "elm-src")
+      }
+    }
+
     test("dependency content identity is revalidated immediately before staging") {
       withTempDir { root =>
         val project = root / "project"
@@ -218,6 +244,117 @@ object MorphirElmProjectTests extends TestSuite {
       }
     }
 
+    test("project staging rejects a configured source outside the tracked source root") {
+      withTempDir { root =>
+        val project = root / "project"
+        writeProject(project)
+        val trackedSource = project / "elm-src"
+        os.write(trackedSource / "Example.elm", "module Example exposing (..)", createFolders = true)
+        val sandbox = root / "task" / "project"
+        val result  = MorphirElmProjectSandbox.stage(
+          sandbox,
+          project / "morphir.json",
+          Some(project / "elm.json"),
+          trackedSource,
+          Seq.empty
+        )
+
+        assert(result.isLeft)
+        assert(result.swap.toOption.get.contains("outside the tracked source root"))
+        assert(!os.exists(sandbox))
+      }
+    }
+
+    test("project staging rejects a tracked source root outside the configured project") {
+      withTempDir { root =>
+        val project = root / "project"
+        writeProject(project, "elm-src")
+        val outside = root / "elm-src"
+        os.write(outside / "Example.elm", "module Example exposing (..)", createFolders = true)
+        val sandbox = root / "task" / "project"
+        val result  = MorphirElmProjectSandbox.stage(
+          sandbox,
+          project / "morphir.json",
+          Some(project / "elm.json"),
+          outside,
+          Seq.empty
+        )
+
+        assert(result.isLeft)
+        assert(result.swap.toOption.get.contains("outside the Morphir project root"))
+        assert(!os.exists(sandbox))
+      }
+    }
+
+    test("project input tracking rejects a source root outside the configured project") {
+      withTempDir { root =>
+        val project = root / "project"
+        writeProject(project, "elm-src")
+        val outside = root / "elm-src"
+        os.write(outside / "Example.elm", "module Example exposing (..)", createFolders = true)
+
+        val result = scala.util.Try {
+          MorphirElmProjectInputs.capture(
+            project / "morphir.json",
+            Some(project / "elm.json"),
+            outside,
+            ElmInputLimits()
+          )
+        }
+        assert(result.isFailure)
+        val error = result.failed.get
+        assert(error.isInstanceOf[IllegalArgumentException])
+        assert(error.getMessage.contains("outside the Morphir project root"))
+      }
+    }
+
+    test("project staging keeps custom source roots out of reserved sandbox paths") {
+      withTempDir { root =>
+        val project = root / "project"
+        writeProject(project, ".morphir-deps")
+        val sandbox = root / "task" / "project"
+        val result  = MorphirElmProjectSandbox.stage(
+          sandbox,
+          project / "morphir.json",
+          Some(project / "elm.json"),
+          project / ".morphir-deps",
+          Seq.empty
+        )
+
+        assert(result.isLeft)
+        assert(result.swap.toOption.get.contains("reserved sandbox path"))
+        assert(!os.exists(sandbox))
+      }
+    }
+
+    test("project staging rejects a symlink in the tracked source root path") {
+      if (!scala.util.Properties.isWin) withTempDir { root =>
+        val project = root / "project"
+        val outside = root / "outside"
+        os.write(outside / "src" / "Example.elm", "module Example exposing (..)", createFolders = true)
+        os.makeDir.all(project)
+        Files.createSymbolicLink((project / "linked").toNIO, outside.toNIO)
+        val config = MorphirProjectConfig(
+          name = "Example.Project",
+          sourceDirectory = "linked/src",
+          exposedModules = List("Example")
+        )
+        os.write(project / "morphir.json", write(config, indent = 2))
+        val sandbox = root / "task" / "project"
+        val result  = MorphirElmProjectSandbox.stage(
+          sandbox,
+          project / "morphir.json",
+          None,
+          project / "linked" / "src",
+          Seq.empty
+        )
+
+        assert(result.isLeft)
+        assert(result.swap.toOption.get.contains("symbolic link"))
+        assert(!os.exists(sandbox))
+      }
+    }
+
     test("project staging enforces bounded source inputs") {
       withTempDir { root =>
         val project = root / "project"
@@ -246,6 +383,26 @@ object MorphirElmProjectTests extends TestSuite {
         )
         Seq("", "../escape.json", "nested/output.json", "/absolute.json", "C:\\escape.json", "con.json")
           .foreach(filename => assert(MorphirElmProjectSandbox.withOutputFilename(staged, filename).isLeft))
+      }
+    }
+
+    test("output filename cannot collide with a custom source root") {
+      withTempDir { root =>
+        val project = root / "project"
+        writeProject(project, "custom-ir.json")
+        val staged = MorphirElmProjectSandbox
+          .stage(
+            root / "task" / "project",
+            project / "morphir.json",
+            None,
+            project / "custom-ir.json",
+            Seq.empty
+          )
+          .fold(message => throw new IllegalStateException(message), identity)
+
+        val result = MorphirElmProjectSandbox.withOutputFilename(staged, "custom-ir.json")
+        assert(result.isLeft)
+        assert(result.swap.toOption.get.contains("collides with a staged project input"))
       }
     }
 

@@ -31,6 +31,8 @@ object MorphirElmProjectSandbox {
   private val SafeFilename         = "[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?".r
   private val WindowsReservedNames =
     Set("CON", "PRN", "AUX", "NUL") ++ (1 to 9).flatMap(number => Seq(s"COM$number", s"LPT$number"))
+  private val WindowsInvalidPathCharacters = Set('<', '>', ':', '"', '|', '?', '*')
+  private val ReservedSandboxPaths         = Set(".morphir-deps", "morphir.json", "elm.json")
 
   private final class Budget(limits: ElmInputLimits) {
     private var entries = 0L
@@ -109,26 +111,27 @@ object MorphirElmProjectSandbox {
       removeOwned(root)
       os.makeDir.all(staging)
 
-      val config   = tracked.morphirJson.pathRef.path
-      val elm      = tracked.elmJson.map(_.pathRef.path)
-      val source   = tracked.source.pathRef.path
-      val metadata = staging / ".morphir-inputs"
-      os.makeDir.all(metadata)
-      copyStableFile(config.toNIO, (metadata / "morphir.json").toNIO, None, None)
-      elm.foreach(path => copyStableFile(path.toNIO, (metadata / "elm.json").toNIO, None, None))
+      val config = tracked.morphirJson.pathRef.path
+      val elm    = tracked.elmJson.map(_.pathRef.path)
+      val source = tracked.source.pathRef.path
+      copyStableFile(config.toNIO, (staging / "morphir.json").toNIO, None, None)
+      elm.foreach(path => copyStableFile(path.toNIO, (staging / "elm.json").toNIO, None, None))
 
-      val original       = readConfig(metadata / "morphir.json")
-      val sourceRelative = safeSourceDirectory(original.sourceDirectory)
-      val expectedSource = (config / os.up / "src").toNIO.toAbsolutePath.normalize()
-      if (source.toNIO.toAbsolutePath.normalize() != expectedSource)
+      val original              = readConfig(staging / "morphir.json")
+      val sourceRelative        = safeSourceDirectory(original.sourceDirectory)
+      val trackedSourceRelative = MorphirElmProjectInputs.trackedSourceRelative(config, source)
+      if (trackedSourceRelative.segments.exists(segment => !isPortablePathSegment(segment)))
+        throw invalid(s"tracked source root has a non-portable project-relative path: $source")
+      if (!sourceRelative.segments.toSeq.startsWith(trackedSourceRelative.segments.toSeq))
         throw invalid(
-          s"supplied source root $source does not match the configured source root ${config / os.up / "src"}"
+          s"configured source root ${original.sourceDirectory} is outside the tracked source root $source"
         )
+      validateSandboxDestination(trackedSourceRelative)
       val rewritten = rewrittenConfig(original, dependencies).fold(message => throw invalid(message), identity)
-      elm.foreach(_ => validateElmConfig(metadata / "elm.json", sourceRelative))
+      elm.foreach(_ => validateElmConfig(staging / "elm.json", sourceRelative))
 
       val sourceBudget = new Budget(limits)
-      copySourceDirectory(source.toNIO, (staging / "src").toNIO, sourceBudget)
+      copySourceDirectory(source.toNIO, (staging / trackedSourceRelative).toNIO, sourceBudget)
       dependencies.foreach { dependency =>
         val destination = staging / dependencyRelativePathFor(dependency)
         copyStableFile(
@@ -141,15 +144,13 @@ object MorphirElmProjectSandbox {
 
       MorphirElmProjectInputs.verifyCopied(
         tracked,
-        metadata / "morphir.json",
-        elm.map(_ => metadata / "elm.json"),
-        staging / "src",
+        staging / "morphir.json",
+        elm.map(_ => staging / "elm.json"),
+        staging / trackedSourceRelative,
         limits
       )
       MorphirElmProjectInputs.revalidate(tracked, limits)
       os.write.over(staging / "morphir.json", write(rewritten, indent = 2))
-      elm.foreach(_ => os.move(metadata / "elm.json", staging / "elm.json"))
-      removeOwned(metadata)
       promote(staging, root)
       Right(StagedMorphirProject(PathRef(root), root / "morphir-ir.json"))
     } catch {
@@ -162,8 +163,10 @@ object MorphirElmProjectSandbox {
 
   def withOutputFilename(project: StagedMorphirProject, filename: String): Either[String, StagedMorphirProject] =
     filename match {
-      case SafeFilename() if !isWindowsReserved(filename) =>
+      case SafeFilename() if !isWindowsReserved(filename) && !hasStagedCollision(project.projectDir.path, filename) =>
         Right(project.copy(output = project.projectDir.path / filename))
+      case SafeFilename() if !isWindowsReserved(filename) =>
+        Left(s"Morphir Elm IR output filename collides with a staged project input: $filename")
       case _ => Left(s"Morphir Elm IR output filename must be a portable sandbox leaf: $filename")
     }
 
@@ -178,19 +181,28 @@ object MorphirElmProjectSandbox {
 
   private def safeSourceDirectory(value: String): os.RelPath =
     try {
-      val relative = os.RelPath(value)
+      val segments = value.split("/", -1).toSeq
       if (
         value.isEmpty || value.contains('\\') || value.matches("^[A-Za-z]:.*") ||
-        relative.ups > 0 || relative.segments.isEmpty ||
-        relative.segments.headOption != Some("src") ||
-        relative.segments.exists(segment => segment == ".." || segment == ".")
+        segments.exists(segment => !isPortablePathSegment(segment))
       ) throw invalid(s"unsafe Morphir source directory: $value")
-      relative
+      segments.foldLeft(os.rel)((relative, segment) => relative / segment)
     } catch {
       case error: IllegalArgumentException if error.getMessage.startsWith("Morphir Elm project sandbox:") =>
         throw error
       case _: IllegalArgumentException => throw invalid(s"unsafe Morphir source directory: $value")
     }
+
+  private def validateSandboxDestination(source: os.RelPath): Unit =
+    source.segments.headOption.foreach { segment =>
+      if (ReservedSandboxPaths.contains(segment.toLowerCase(Locale.ROOT)))
+        throw invalid(s"tracked source root uses a reserved sandbox path: $source")
+    }
+
+  private def isPortablePathSegment(segment: String): Boolean =
+    segment.nonEmpty && segment != "." && segment != ".." &&
+      !segment.exists(WindowsInvalidPathCharacters.contains) &&
+      !segment.endsWith(".") && !segment.endsWith(" ") && !isWindowsReserved(segment)
 
   private def validateElmConfig(path: os.Path, morphirSource: os.RelPath): Unit =
     try {
@@ -317,6 +329,10 @@ object MorphirElmProjectSandbox {
     val basename = value.takeWhile(_ != '.').toUpperCase(Locale.ROOT)
     WindowsReservedNames.contains(basename)
   }
+
+  private def hasStagedCollision(project: os.Path, filename: String): Boolean =
+    Files.isDirectory(project.toNIO, LinkOption.NOFOLLOW_LINKS) &&
+      os.list(project).exists(path => path.last.equalsIgnoreCase(filename))
 
   private def layerMessage(error: Throwable): String =
     Option(error.getMessage).filter(_.nonEmpty) match {

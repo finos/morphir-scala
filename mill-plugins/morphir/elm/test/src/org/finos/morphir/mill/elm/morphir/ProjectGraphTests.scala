@@ -47,6 +47,15 @@ object ProjectGraphTests extends TestSuite {
       override def morphirProjectSourcePath = outer.moduleDir / "unpublished-dependency" / "src"
     }
 
+    object customSource extends MorphirElmModule {
+      def morphirElmTool    = outer.tool
+      override def moduleId = Task(moduleId"test.custom-source")
+
+      override def morphirProjectConfigPath = outer.moduleDir / "custom-source" / "morphir.json"
+      override def elmProjectConfigPaths    = Seq(outer.moduleDir / "custom-source" / "elm.json")
+      override def morphirProjectSourcePath = outer.moduleDir / "custom-source" / "elm-src"
+    }
+
     object consumer extends MorphirElmModule {
       def morphirElmTool = outer.tool
 
@@ -139,6 +148,30 @@ object ProjectGraphTests extends TestSuite {
           val artifact = success(evaluator(module.consumer.morphirIR))
           val ir       = ujson.read(os.read(artifact.path.path))
           assert(containsReferenceTo(ir, unpublishedSourceValue))
+        }
+      }
+    }
+
+    test("generated IR supports a configured non-src source root") {
+      withTempDir { root =>
+        val sources = root / "sources"
+        os.copy.over(
+          resource("unpublished-source-dependency/unpublished-dependency"),
+          sources / "custom-source",
+          createFolders = true
+        )
+        os.move(sources / "custom-source" / "src", sources / "custom-source" / "elm-src")
+        val morphirJson = ujson.read(os.read(sources / "custom-source" / "morphir.json"))
+        morphirJson("sourceDirectory") = "elm-src"
+        os.write.over(sources / "custom-source" / "morphir.json", morphirJson.render(indent = 2))
+        os.copy.over(resource("morphir-elm"), sources / "tool", createFolders = true)
+
+        val module = new SourceDependencyBuild(root / "workspace")
+        UnitTester(module, sources).scoped { evaluator =>
+          val artifact = success(evaluator(module.customSource.morphirIR))
+          val ir       = ujson.read(os.read(artifact.path.path))
+          assert(ir("formatVersion").num == 3)
+          assert(ir("distribution").arr.head.str == "Library")
         }
       }
     }

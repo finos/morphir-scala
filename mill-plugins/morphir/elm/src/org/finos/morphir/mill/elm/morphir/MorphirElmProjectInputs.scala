@@ -1,6 +1,7 @@
 package org.finos.morphir.mill.elm.morphir
 
 import java.nio.file.{Files, LinkOption}
+import scala.jdk.CollectionConverters.*
 
 import mill.*
 import org.finos.morphir.mill.MorphirProjectConfig
@@ -60,6 +61,7 @@ object MorphirElmProjectInputs {
       source: os.Path,
       limits: ElmInputLimits
   ): TrackedMorphirElmProject = {
+    trackedSourceRelative(morphirJson, source)
     val project = ElmProjectSnapshot.trackInputs(morphirJson, Seq(source), limits)
     val config  = project.find(_.role == ElmProjectSnapshot.InputRole.ElmJson).getOrElse {
       throw invalid("tracked project inputs do not contain morphir.json")
@@ -74,6 +76,26 @@ object MorphirElmProjectInputs {
         .getOrElse(throw invalid("tracked project inputs do not contain elm.json"))
     }
     TrackedMorphirElmProject(config, elmInput, sourceInput)
+  }
+
+  private[morphir] def trackedSourceRelative(morphirJson: os.Path, source: os.Path): os.RelPath = {
+    val projectRoot = morphirJson.toNIO.toAbsolutePath.normalize().getParent
+    val sourceRoot  = source.toNIO.toAbsolutePath.normalize()
+    if (projectRoot == null || sourceRoot == projectRoot || !sourceRoot.startsWith(projectRoot))
+      throw invalid(s"tracked source root $source is outside the Morphir project root ${morphirJson / os.up}")
+    if (Files.isSymbolicLink(projectRoot) || !Files.isDirectory(projectRoot, LinkOption.NOFOLLOW_LINKS))
+      throw invalid(s"Morphir project root is not a non-symbolic-link directory: ${morphirJson / os.up}")
+
+    val segments = projectRoot.relativize(sourceRoot).iterator().asScala.map(_.toString).toSeq
+    var current  = projectRoot
+    segments.foreach { segment =>
+      current = current.resolve(segment)
+      if (Files.isSymbolicLink(current))
+        throw invalid(s"tracked source root contains a symbolic link: $current")
+    }
+    if (!Files.isDirectory(sourceRoot, LinkOption.NOFOLLOW_LINKS))
+      throw invalid(s"tracked source root is not a non-symbolic-link directory: $source")
+    segments.foldLeft(os.rel)((relative, segment) => relative / segment)
   }
 
   def revalidate(expected: TrackedMorphirElmProject, limits: ElmInputLimits): Unit = {
