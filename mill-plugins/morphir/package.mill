@@ -98,7 +98,7 @@ trait ElmPlugin extends MorphirMillPlugin {
 
   object test extends ScalaTests with TestModule.Utest with ScalafmtModule {
     def utestVersion = Vers.utest
-    override def resources = Task.Sources(moduleDir / os.up / "test-tools")
+    override def resources = Task.Sources(moduleDir / "resources", moduleDir / os.up / "test-tools")
     override def sources = Task.Sources(
       moduleDir / "src",
       mill.api.BuildCtx.workspaceRoot / "mill-build" / "src" / "org" / "finos" / "millmorphir" /

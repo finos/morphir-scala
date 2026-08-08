@@ -22,7 +22,6 @@ import millbuild.jsruntime.*
 import org.finos.millmorphir.elm.{MorphirElmToolModule => RepositoryMorphirElmToolModule}
 import org.finos.millmorphir.toolchain.*
 import org.finos.morphir.mill.*
-import org.finos.morphir.mill.elm.morphir.MorphirElmModule
 import mill.*, mill.scalalib.*, mill.scalajslib.*, mill.scalanativelib.*, scalafmt.*
 import mill.javalib.SonatypeCentralPublishModule
 import mill.scalajslib.api.ModuleKind
@@ -545,7 +544,8 @@ object toolchains extends Module {
   }
 }
 
-trait MorphirElmProject extends MorphirElmModule {
+/** Repository tool-module reference that declarative Morphir Elm projects cannot express in Mill RC1 YAML. */
+trait RepositoryMorphirElmToolReference extends Module {
   def morphirElmTool = toolchains.morphirElm
 }
 
