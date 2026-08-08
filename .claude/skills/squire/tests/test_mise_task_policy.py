@@ -11,6 +11,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).parents[4]
 PROJECT_CHECKER = REPO_ROOT / ".claude/skills/squire/scripts/check-project-config.py"
+TEMP_CHECKER = REPO_ROOT / ".claude/skills/squire/scripts/check-var-folders.py"
+AI_ENV_CHECKER = REPO_ROOT / ".claude/skills/squire/scripts/ai-env-info.py"
 MILL_MORPHIR_REFERENCE = REPO_ROOT / ".claude/skills/squire/references/mill-morphir.md"
 PLUGIN_MODULES = ["toolchain", "javascript", "elm-tooling", "core", "elm", "integration"]
 CI_DEPENDENCIES = [
@@ -120,10 +122,17 @@ class MiseTaskPolicyTest(unittest.TestCase):
         return root, environment
 
     def run_project_checker(
-        self, root: Path, environment: dict[str, str]
+        self,
+        root: Path,
+        environment: dict[str, str],
+        *,
+        project_only: bool = True,
     ) -> subprocess.CompletedProcess[str]:
+        command = ["python3", str(PROJECT_CHECKER)]
+        if project_only:
+            command.append("--project-only")
         return subprocess.run(
-            ["python3", str(PROJECT_CHECKER), "--project-only"],
+            command,
             cwd=root,
             env=environment,
             check=False,
@@ -281,6 +290,108 @@ class MiseTaskPolicyTest(unittest.TestCase):
             self.assertIn("./mill examples.morphir-elm-projects.evaluator-tests.morphirIR", result.stdout)
             self.assertNotIn("CORRUPT", result.stdout)
 
+    def test_project_checker_rejects_relative_cache_override_even_when_cache_is_disabled(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root, environment = self.project_checker_fixture(directory)
+            environment["MORPHIR_NODE_DISABLE_MACHINE_CACHE"] = "true"
+            environment["MORPHIR_NODE_CACHE"] = "relative-cache"
+
+            result = self.run_project_checker(root, environment)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("INVALID MORPHIR_NODE_CACHE (must be absolute)", result.stdout)
+            self.assertIn(
+                "./mill examples.morphir-elm-projects.evaluator-tests.morphirIR",
+                result.stdout,
+            )
+
+    def test_project_checker_bounds_hashing_of_oversized_cache_entries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root, environment = self.project_checker_fixture(directory)
+            digest = "0" * 64
+            oversized = Path(environment["MORPHIR_NODE_CACHE"]) / "sha256" / digest
+            oversized.parent.mkdir(parents=True)
+            with oversized.open("wb") as stream:
+                stream.truncate(65 * 1024 * 1024)
+
+            result = self.run_project_checker(root, environment)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("NOTICE - acquisition cache diagnostic was bounded", result.stdout)
+            self.assertIn("oversized", result.stdout)
+            self.assertNotIn("CORRUPT", result.stdout)
+
+    def test_project_checker_catches_inaccessible_cache_entry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root, environment = self.project_checker_fixture(directory)
+            digest = "0" * 64
+            inaccessible = Path(environment["MORPHIR_NODE_CACHE"]) / "sha256" / digest
+            inaccessible.parent.mkdir(parents=True)
+            inaccessible.write_bytes(b"unreadable")
+            inaccessible.chmod(0)
+            try:
+                result = self.run_project_checker(root, environment)
+            finally:
+                inaccessible.chmod(0o600)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("NOTICE - acquisition cache diagnostic was bounded", result.stdout)
+            self.assertIn("unreadable or changed during inspection", result.stdout)
+            self.assertNotIn("Traceback", result.stderr)
+
+    def test_project_checker_bounds_total_cache_directory_entries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root, environment = self.project_checker_fixture(directory)
+            digest_root = Path(environment["MORPHIR_NODE_CACHE"]) / "sha256"
+            digest_root.mkdir(parents=True)
+            for index in range(257):
+                (digest_root / f"ignored-{index}.lock").touch()
+
+            result = self.run_project_checker(root, environment)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("NOTICE - acquisition cache diagnostic was bounded", result.stdout)
+            self.assertIn("directory entry limit reached (256)", result.stdout)
+
+    def test_temp_diagnostics_probe_the_configured_system_temp_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root, environment = self.project_checker_fixture(directory)
+            configured_temp = root / "configured-temp"
+            configured_temp.mkdir()
+            environment["TMPDIR"] = str(configured_temp)
+
+            project_result = self.run_project_checker(
+                root, environment, project_only=False
+            )
+            focused_result = subprocess.run(
+                ["python3", str(TEMP_CHECKER)],
+                cwd=root,
+                env=environment,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            env_result = subprocess.run(
+                ["python3", str(AI_ENV_CHECKER), "--timeout", "1"],
+                cwd=root,
+                env=environment,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            for result in (project_result, focused_result):
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn(
+                    f"system temp directory is writable: {configured_temp}",
+                    result.stdout,
+                )
+                self.assertNotIn("/var/folders/.squire-probe", result.stdout)
+            env_report = json.loads(env_result.stdout)
+            temp_check = env_report["checks"]["var_folders_writable"]
+            self.assertTrue(temp_check["ok"], temp_check["detail"])
+            self.assertIn(str(configured_temp), temp_check["detail"])
+
     def test_project_checker_diagnoses_stale_metabuild_compilation(self):
         with tempfile.TemporaryDirectory() as directory:
             root, environment = self.project_checker_fixture(directory)
@@ -304,7 +415,11 @@ class MiseTaskPolicyTest(unittest.TestCase):
 
         self.assertIn("## Fast route", reference)
         self.assertIn("## Dogfood route", reference)
-        self.assertIn('"mill-plugins.morphir.__.test"', reference)
+        self.assertIn(
+            "'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'",
+            reference,
+        )
+        self.assertNotIn('"mill-plugins.morphir.__.test"', reference)
         self.assertIn(
             "examples.morphir-elm-projects.evaluator-tests.morphirIR", reference
         )

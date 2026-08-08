@@ -7,7 +7,7 @@ Use the fast route while editing. Use the dogfood route before integration or pu
 - Run plugin unit tests:
 
 ```bash
-./mill --ticker false "mill-plugins.morphir.__.test"
+./mill --ticker false 'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'
 ```
 
 - Generate IR for one configured project:

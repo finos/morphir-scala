@@ -24,7 +24,7 @@ Design notes:
     unlike starting a real mill daemon. Cheap enough to run on every invocation.
   - `sandboxed` (top-level bool) mirrors checks.jvm_network.ok being False, since
     that's the check most consumers (mill wrappers) care about. Consumers with a
-    different concern (e.g. cellar caring about /var/folders) should read the
+    different concern (e.g. cellar caring about system temp access) should read the
     specific check in `checks` rather than relying on the top-level bool.
 """
 
@@ -190,16 +190,23 @@ def check_jvm_network(timeout):
 
 
 def check_var_folders():
-    probe_dir = pathlib.Path("/var/folders")
-    if not probe_dir.exists():
-        return {"ok": None, "detail": "/var/folders does not exist on this platform — check skipped"}
-    probe_path = probe_dir / ".squire-env-probe"
     try:
-        probe_path.write_text("squire probe")
-        probe_path.unlink()
-        return {"ok": True, "detail": "write probe succeeded"}
+        probe_dir = pathlib.Path(tempfile.gettempdir())
+        with tempfile.NamedTemporaryFile(
+            dir=probe_dir, prefix=".squire-env-probe-"
+        ) as probe:
+            probe.write(b"squire probe")
+            probe.flush()
+        return {
+            "ok": True,
+            "detail": f"system temp write probe succeeded: {probe_dir}",
+        }
     except OSError as e:
-        return {"ok": False, "detail": f"{type(e).__name__}: {e}"}
+        location = str(locals().get("probe_dir", "<unavailable>"))
+        return {
+            "ok": False,
+            "detail": f"system temp write probe failed at {location}: {type(e).__name__}: {e}",
+        }
 
 
 CHECKS = {

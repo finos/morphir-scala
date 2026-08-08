@@ -57,7 +57,7 @@ The skill is structured in layers to keep each file focused:
 │   ├── branch-refresh.py         # Proves and refreshes a post-squash target
 │   ├── cellar-query.py           # Runs project-configured JVM API queries
 │   ├── check-mill-daemon.py      # Probes mill daemon TCP connectivity
-│   ├── check-var-folders.py      # Probes /var/folders write access
+│   ├── check-var-folders.py      # Probes system temp write access
 │   ├── check-project-config.py   # Checks project config correctness
 │   ├── repo-*.py                 # Manages entries under .refs/
 │   ├── schemas-to-json.ts        # Builds/checks mirrored JSON schemas
@@ -93,7 +93,7 @@ When invoked, Claude reads `references/doctor.md` then runs the three diagnostic
 
 1. **`check-mill-daemon.py`** — Determines whether the mill daemon is reachable. Reads the daemon port from `out/mill-daemon/socketPort` (if present) or parses `out/mill-daemon/server.log` for `listening on port N`. Probes with a Python socket. Reports `PORT_OPEN`, `SANDBOX`, `REFUSED`, or `NO_DAEMON`. Includes a caveat that Python socket success does not guarantee JVM `java.net.Socket` success — they use different OS paths and sandbox restrictions may treat them differently.
 
-2. **`check-var-folders.py`** — Attempts a real write probe at `/var/folders/.squire-probe`. This is ground truth: if the write succeeds, cellar can write its temp `.tasty` files there. Reports `OK` or `BLOCKED` with remediation steps.
+2. **`check-var-folders.py`** — Writes a temporary file under the process's actual system temp directory. Reports `OK` or `BLOCKED` without assuming a platform-specific root.
 
 3. **`check-project-config.py`** — Checks project-level invariants:
    - Mise setup skips workspace postinstall hooks and leaves Morphir Elm provisioning to Mill
@@ -102,7 +102,7 @@ When invoked, Claude reads `references/doctor.md` then runs the three diagnostic
    - Published-plugin tests resolve from their task-local repository
    - Machine acquisition cache state is usable or intentionally disabled
    - Metabuild output is newer than its inputs
-   - `/var/folders` write access via real probe (same as script 2, for a single-script summary pass)
+   - system temp write access via real probe (same as script 2, for a single-script summary pass)
 
    Reports `OK` per check or `ISSUE` with the specific fix.
 
@@ -114,7 +114,7 @@ Claude reports each result as ✅ or ⚠️ and applies fixes from `references/d
 |-------|-------------|
 | Mill daemon TCP blocked by sandbox | `check-mill-daemon.py` |
 | Mill assembly `mainClass` introspection warning | `check-project-config.py` |
-| `cellar` temp file write blocked | `check-var-folders.py`, `check-project-config.py` |
+| System temp file write blocked | `check-var-folders.py`, `check-project-config.py` |
 | Mise setup bypassing Mill-owned Morphir Elm tooling | `check-project-config.py` |
 | Missing Mill Morphir plugin modules | `check-project-config.py` |
 | Broken task-local plugin repository wiring | `check-project-config.py` |

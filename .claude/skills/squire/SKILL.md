@@ -14,12 +14,12 @@ Squire diagnoses and unblocks development environment issues, manages reference 
 
 ### `/squire ai env info`
 
-Reports whether the current session is actually sandboxed (JVM/Python network sockets, `/var/folders` writes) as structured JSON — live-probed, not guessed from `CLAUDE_CODE_*` env vars. Other skills and build scripts (mill task wrappers, etc.) can consume this instead of assuming "running under Claude Code" implies restricted.
+Reports whether the current session is actually sandboxed (JVM/Python network sockets, system-temp writes) as structured JSON — live-probed, not guessed from `CLAUDE_CODE_*` env vars. Other skills and build scripts (mill task wrappers, etc.) can consume this instead of assuming "running under Claude Code" implies restricted.
 
 Read the full reference before running:
 → [references/env.md](references/env.md)
 
-**When to invoke:** Before deciding whether to use a daemon/server process, a JVM network call, or a `/var/folders`-writing tool — or any time you'd otherwise guess sandbox status from environment variables alone.
+**When to invoke:** Before deciding whether to use a daemon/server process, a JVM network call, or a system-temp-writing tool — or any time you'd otherwise guess sandbox status from environment variables alone.
 
 ### `/squire doctor`
 

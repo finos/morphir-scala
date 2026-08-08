@@ -8,25 +8,51 @@ import os
 import pathlib
 import platform
 import re
+import stat
 import sys
+import tempfile
 
 
 PLUGIN_MODULES = ("toolchain", "javascript", "elm-tooling", "core", "elm", "integration")
 MORPHIR_IR_TASK = "./mill examples.morphir-elm-projects.evaluator-tests.morphirIR"
 PLUGIN_RESOLVE_TASK = "./mill resolve 'mill-plugins.morphir.__'"
 INTEGRATION_TASK = "./mill mill-plugins.morphir.integration.test"
+CACHE_DIAGNOSTIC_MAX_ENTRY_BYTES = 64 * 1024 * 1024
+CACHE_DIAGNOSTIC_MAX_HASHED_BYTES = 256 * 1024 * 1024
+CACHE_DIAGNOSTIC_MAX_ENTRIES = 256
+CACHE_DIAGNOSTIC_MAX_DETAILS = 5
 
 
 def enabled(value: str | None) -> bool:
     return value is not None and value.lower() in {"1", "true", "yes", "on"}
 
 
-def sha256(path: pathlib.Path) -> str:
+class DiagnosticLimitExceeded(Exception):
+    def __init__(self, bytes_read: int):
+        self.bytes_read = bytes_read
+
+
+class DiagnosticReadError(Exception):
+    def __init__(self, cause: OSError, bytes_read: int):
+        self.cause = cause
+        self.bytes_read = bytes_read
+
+
+def sha256(path: pathlib.Path, max_bytes: int) -> tuple[str, int]:
     digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    total = 0
+    try:
+        with path.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                total += len(chunk)
+                if total > max_bytes:
+                    raise DiagnosticLimitExceeded(total)
+                digest.update(chunk)
+    except DiagnosticLimitExceeded:
+        raise
+    except OSError as error:
+        raise DiagnosticReadError(error, total) from error
+    return digest.hexdigest(), total
 
 
 def cache_root(environment: dict[str, str]) -> pathlib.Path:
@@ -135,33 +161,101 @@ def check_mill_morphir(
     machine_cache_disabled = enabled(
         environment.get("MORPHIR_NODE_DISABLE_MACHINE_CACHE")
     )
+    cache_path_valid = machine_cache.is_absolute()
+    if not cache_path_valid:
+        issues.append(
+            f"INVALID MORPHIR_NODE_CACHE (must be absolute): {machine_cache}\n"
+            f"  Verify: {MORPHIR_IR_TASK}"
+        )
     if machine_cache_disabled:
         notices.append(
             "Morphir machine acquisition cache is disabled; verified downloads remain task-local\n"
             f"  Run: MORPHIR_NODE_DISABLE_MACHINE_CACHE=false {MORPHIR_IR_TASK}"
         )
-    elif not machine_cache.is_absolute():
-        issues.append(
-            f"INVALID MORPHIR_NODE_CACHE (must be absolute): {machine_cache}\n"
-            f"  Verify: {MORPHIR_IR_TASK}"
-        )
 
     digest_root = machine_cache / "sha256"
     corrupt = []
-    if digest_root.is_dir() and not machine_cache_disabled:
-        for entry in digest_root.iterdir():
-            if not re.fullmatch(r"[0-9a-f]{64}", entry.name):
-                continue
-            if entry.is_symlink() or not entry.is_file() or sha256(entry) != entry.name:
-                corrupt.append(entry)
+    bounded_reasons = []
+    omitted_bounded_reasons = 0
+
+    def record_bounded(reason: str) -> None:
+        nonlocal omitted_bounded_reasons
+        if len(bounded_reasons) < CACHE_DIAGNOSTIC_MAX_DETAILS:
+            bounded_reasons.append(reason)
+        else:
+            omitted_bounded_reasons += 1
+
+    hashed_bytes = 0
+    scanned_entries = 0
+    if digest_root.is_dir() and not machine_cache_disabled and cache_path_valid:
+        try:
+            with os.scandir(digest_root) as entries:
+                for entry in entries:
+                    if scanned_entries >= CACHE_DIAGNOSTIC_MAX_ENTRIES:
+                        record_bounded(
+                            f"directory entry limit reached ({CACHE_DIAGNOSTIC_MAX_ENTRIES})"
+                        )
+                        break
+                    scanned_entries += 1
+                    if not re.fullmatch(r"[0-9a-f]{64}", entry.name):
+                        continue
+                    path = pathlib.Path(entry.path)
+                    try:
+                        attributes = entry.stat(follow_symlinks=False)
+                        if not stat.S_ISREG(attributes.st_mode):
+                            corrupt.append(path)
+                            continue
+                        if attributes.st_size > CACHE_DIAGNOSTIC_MAX_ENTRY_BYTES:
+                            record_bounded(f"oversized entry: {path}")
+                            continue
+                        remaining = CACHE_DIAGNOSTIC_MAX_HASHED_BYTES - hashed_bytes
+                        if attributes.st_size > remaining:
+                            record_bounded(
+                                f"total hash budget reached ({CACHE_DIAGNOSTIC_MAX_HASHED_BYTES} bytes)"
+                            )
+                            break
+                        digest, bytes_read = sha256(
+                            path,
+                            min(CACHE_DIAGNOSTIC_MAX_ENTRY_BYTES, remaining),
+                        )
+                        hashed_bytes += bytes_read
+                        if digest != entry.name:
+                            corrupt.append(path)
+                    except DiagnosticLimitExceeded as error:
+                        hashed_bytes += error.bytes_read
+                        record_bounded(f"entry changed size during inspection: {path}")
+                    except DiagnosticReadError as error:
+                        hashed_bytes += error.bytes_read
+                        record_bounded(
+                            f"unreadable or changed during inspection: {path}"
+                        )
+                    except OSError:
+                        record_bounded(f"unreadable or changed during inspection: {path}")
+        except OSError:
+            record_bounded(
+                f"unreadable or changed during inspection: {digest_root}"
+            )
     if corrupt:
-        rendered = ", ".join(str(path) for path in sorted(corrupt))
+        rendered = ", ".join(
+            str(path) for path in sorted(corrupt)[:CACHE_DIAGNOSTIC_MAX_DETAILS]
+        )
+        if len(corrupt) > CACHE_DIAGNOSTIC_MAX_DETAILS:
+            rendered += f", and {len(corrupt) - CACHE_DIAGNOSTIC_MAX_DETAILS} more"
         issues.append(
             f"CORRUPT acquisition cache entries: {rendered}\n"
             f"  Reacquire online: MORPHIR_NODE_OFFLINE=false {MORPHIR_IR_TASK}"
         )
-    elif machine_cache.is_absolute() and not machine_cache_disabled:
+    elif cache_path_valid and not machine_cache_disabled and not bounded_reasons:
         print(f"OK - acquisition cache has no corrupt content: {machine_cache}")
+    if bounded_reasons:
+        rendered_reasons = "; ".join(bounded_reasons)
+        if omitted_bounded_reasons:
+            rendered_reasons += f"; and {omitted_bounded_reasons} more"
+        notices.append(
+            "acquisition cache diagnostic was bounded: "
+            + rendered_reasons
+            + f"\n  Verify with Mill: {MORPHIR_IR_TASK}"
+        )
 
     sources = metabuild_sources(root)
     compiled = compiled_metabuild_files(root)
@@ -216,19 +310,23 @@ def check_legacy_project_configuration(root: pathlib.Path) -> list[str]:
     return issues
 
 
-def check_var_folders() -> list[str]:
-    probe = pathlib.Path("/var/folders/.squire-probe")
+def check_temp_directory() -> list[str]:
     try:
-        probe.touch()
-        probe.unlink()
-        print("OK - /var/folders is writable (cellar can write temp .tasty files)")
+        temp_directory = pathlib.Path(tempfile.gettempdir())
+        with tempfile.NamedTemporaryFile(
+            dir=temp_directory, prefix=".squire-probe-"
+        ) as probe:
+            probe.write(b"squire")
+            probe.flush()
+        print(f"OK - system temp directory is writable: {temp_directory}")
         return []
-    except PermissionError:
+    except OSError as error:
+        location = str(locals().get("temp_directory", "<unavailable>"))
         return [
-            "BLOCKED - /var/folders is not writable; cellar will fail\n"
-            "  Fix: add /var/folders to sandbox.filesystem.allowWrite in ~/.claude/settings.json\n"
-            "  Note: restart Claude Code after changing sandbox settings\n"
-            "  (settings.json may already contain this entry but a restart is required)"
+            f"BLOCKED - system temp directory is not writable: {location} ({error})\n"
+            "  Verify with Mill: TMPDIR=<writable-temp> "
+            "JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=<writable-temp> "
+            f"{PLUGIN_RESOLVE_TASK}"
         ]
 
 
@@ -237,7 +335,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "--project-only",
         action="store_true",
-        help="skip host-specific /var/folders probing",
+        help="skip host-specific system temp directory probing",
     )
     return result
 
@@ -249,7 +347,7 @@ def main() -> int:
     morphir_issues, notices = check_mill_morphir(root, dict(os.environ))
     issues.extend(morphir_issues)
     if not arguments.project_only:
-        issues.extend(check_var_folders())
+        issues.extend(check_temp_directory())
 
     for notice in notices:
         print(f"NOTICE - {notice}")

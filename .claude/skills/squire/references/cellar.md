@@ -20,9 +20,9 @@ If missing, install via mise:
 mise install github-VirtusLab/cellar
 ```
 
-### `/var/folders` write access
+### System temp write access
 
-Cellar writes temp `.tasty` files to macOS's `/var/folders/`. If you hit `Operation not permitted`, run `/squire doctor` — see the cellar section for the fix.
+Cellar writes temp `.tasty` files under the JVM's active `java.io.tmpdir`. If you hit `Operation not permitted`, run `/squire doctor` to probe the actual system temp directory.
 
 ### Private Maven repositories (optional)
 
