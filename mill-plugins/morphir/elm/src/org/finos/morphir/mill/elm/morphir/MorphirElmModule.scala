@@ -36,20 +36,29 @@ trait MorphirElmModule extends MorphirModule with MorphirElmProjectInputsModule 
   def morphirIrFilename: T[String] = Task("morphir-ir.json")
 
   def preparedProject: Task[StagedMorphirProject] = Task.Anon {
-    val tracked = trackedMorphirProjectInputs()
-    val staged  = MorphirElmProjectSandbox
+    val projectRoot = Task.dest / "project"
+    val tracked     = trackedMorphirProjectInputs()
+    val staged      = MorphirElmProjectSandbox
       .stage(
-        Task.dest / "project",
+        projectRoot,
         tracked,
         dependencyArtifacts(),
         morphirInputLimits
       )
       .fold(message => throw new IllegalArgumentException(message), identity)
-    val stagedWithOutput = MorphirElmProjectSandbox
-      .withOutputFilename(staged, morphirIrFilename())
-      .fold(message => throw new IllegalArgumentException(message), identity)
-    prepareSandboxExtension(stagedWithOutput, additionalSandboxInputs())
-    stagedWithOutput
+    try {
+      val stagedWithOutput = MorphirElmProjectSandbox
+        .withOutputFilename(staged, morphirIrFilename())
+        .fold(message => throw new IllegalArgumentException(message), identity)
+      prepareSandboxExtension(stagedWithOutput, additionalSandboxInputs())
+      MorphirElmProjectSandbox
+        .validateOutputAvailable(stagedWithOutput)
+        .fold(message => throw new IllegalArgumentException(message), identity)
+    } catch {
+      case NonFatal(error) =>
+        MorphirElmProjectSandbox.discardOwnedProject(projectRoot)
+        throw error
+    }
   }
 
   def makeArgs: Task[MorphirElmMakeArgs] = Task.Anon {

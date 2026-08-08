@@ -7,6 +7,9 @@ import mill.api.ExecResult
 import mill.testkit.{TestRootModule, UnitTester}
 import org.finos.morphir.mill.*
 import org.finos.morphir.mill.elm.ElmInputLimits
+import org.finos.morphir.mill.javascript.JavaScriptCommand
+import org.finos.morphir.mill.javascript.node.NodeRuntimeModule
+import org.finos.morphir.mill.javascript.npm.NpmPackageManagerModule
 import scala.compiletime.testing.typeCheckErrors
 import upickle.default.*
 import utest.*
@@ -20,6 +23,97 @@ object MorphirElmProjectTests extends TestSuite {
     def observedSourceFingerprint: T[Vector[Int]] = Task {
       trackedMorphirProjectInputs().source.fingerprint
     }
+  }
+
+  private final class SandboxExtensionBuild(workspace: os.Path) extends TestRootModule(workspace) { outer =>
+    lazy val millDiscover = mill.api.Discover[this.type]
+
+    private val observations = workspace / os.up / "observations"
+
+    object runtime extends NodeRuntimeModule
+
+    object packages extends NpmPackageManagerModule {
+      def runtime                  = outer.runtime
+      override def npmProjectPaths = Seq(outer.moduleDir / "unused-package.json")
+      override def npmLockPaths    = Seq(outer.moduleDir / "unused-package-lock.json")
+    }
+
+    object tool extends MorphirElmToolModule {
+      def packageManager = outer.packages
+
+      override def morphirElmExecutable: Task[JavaScriptCommand] = Task.Anon {
+        val script = Task.dest / "fake-morphir-elm.sh"
+        os.write.over(
+          script,
+          """marker="$1"
+            |shift
+            |: > "$marker"
+            |while [ "$#" -gt 0 ]; do
+            |  if [ "$1" = "--output" ]; then
+            |    shift
+            |    printf '{}' > "$1"
+            |    exit 0
+            |  fi
+            |  shift
+            |done
+            |exit 2
+            |""".stripMargin
+        )
+        JavaScriptCommand(PathRef(os.Path("/bin/sh")), Seq(script.toString, launchMarker.toString))
+      }
+    }
+
+    trait TestProject extends MorphirElmModule {
+      def morphirElmTool = outer.tool
+
+      override def morphirProjectConfigPath = outer.moduleDir / "project" / "morphir.json"
+      override def elmProjectConfigPaths    = Seq(outer.moduleDir / "project" / "elm.json")
+      override def morphirProjectSourcePath = outer.moduleDir / "project" / "src"
+
+      protected def recordProject(name: String, project: StagedMorphirProject): Unit =
+        os.write.over(observations / s"$name-project-root.txt", project.projectDir.path.toString, createFolders = true)
+    }
+
+    object colliding extends TestProject {
+      override def moduleId = Task(moduleId"test.extension-collision")
+
+      override protected def prepareSandboxExtension(
+          project: StagedMorphirProject,
+          inputs: Seq[PathRef]
+      ): Unit = {
+        recordProject("colliding", project)
+        os.write.over(project.output, "occupied by extension")
+      }
+    }
+
+    object throwing extends TestProject {
+      override def moduleId = Task(moduleId"test.extension-failure")
+
+      override protected def prepareSandboxExtension(
+          project: StagedMorphirProject,
+          inputs: Seq[PathRef]
+      ): Unit = {
+        recordProject("throwing", project)
+        throw new IllegalStateException("extension failed")
+      }
+    }
+
+    object successful extends TestProject {
+      override def moduleId = Task(moduleId"test.extension-success")
+
+      override protected def prepareSandboxExtension(
+          project: StagedMorphirProject,
+          inputs: Seq[PathRef]
+      ): Unit = {
+        recordProject("successful", project)
+        os.write.over(project.projectDir.path / "extension.txt", "extension input")
+      }
+    }
+
+    def launchMarker: os.Path = observations / "launched"
+
+    def observedProjectRoot(name: String): os.Path =
+      os.Path(os.read(observations / s"$name-project-root.txt"), os.pwd)
   }
 
   private def success[A](result: Either[ExecResult.Failing[A], UnitTester.Result[A]]): UnitTester.Result[A] =
@@ -403,6 +497,57 @@ object MorphirElmProjectTests extends TestSuite {
         val result = MorphirElmProjectSandbox.withOutputFilename(staged, "custom-ir.json")
         assert(result.isLeft)
         assert(result.swap.toOption.get.contains("collides with a staged project input"))
+      }
+    }
+
+    test("sandbox extensions cannot create the selected output before Morphir Elm runs") {
+      if (!scala.util.Properties.isWin) withTempDir { root =>
+        val sources = root / "sources"
+        writeProject(sources / "project")
+        val module = new SandboxExtensionBuild(root / "workspace")
+        UnitTester(module, sources).scoped { evaluator =>
+          val result      = evaluator(module.colliding.morphirIR)
+          val projectRoot = module.observedProjectRoot("colliding")
+
+          assert(result.isLeft)
+          assert(!os.exists(module.launchMarker))
+          assert(!os.exists(projectRoot))
+          assert(!os.exists(projectRoot / os.up / s"${projectRoot.last}.staging"))
+        }
+      }
+    }
+
+    test("sandbox extension failures clean the promoted project") {
+      if (!scala.util.Properties.isWin) withTempDir { root =>
+        val sources = root / "sources"
+        writeProject(sources / "project")
+        val module = new SandboxExtensionBuild(root / "workspace")
+        UnitTester(module, sources).scoped { evaluator =>
+          val result      = evaluator(module.throwing.morphirIR)
+          val projectRoot = module.observedProjectRoot("throwing")
+
+          assert(result.isLeft)
+          assert(!os.exists(module.launchMarker))
+          assert(!os.exists(projectRoot))
+          assert(!os.exists(projectRoot / os.up / s"${projectRoot.last}.staging"))
+        }
+      }
+    }
+
+    test("sandbox extensions preserve successful Morphir Elm generation") {
+      if (!scala.util.Properties.isWin) withTempDir { root =>
+        val sources = root / "sources"
+        writeProject(sources / "project")
+        val module = new SandboxExtensionBuild(root / "workspace")
+        UnitTester(module, sources).scoped { evaluator =>
+          val artifact    = success(evaluator(module.successful.morphirIR)).value
+          val projectRoot = module.observedProjectRoot("successful")
+
+          assert(os.exists(module.launchMarker))
+          assert(os.read(projectRoot / "extension.txt") == "extension input")
+          assert(artifact.path.path == projectRoot / "morphir-ir.json")
+          assert(os.read(artifact.path.path) == "{}")
+        }
       }
     }
 

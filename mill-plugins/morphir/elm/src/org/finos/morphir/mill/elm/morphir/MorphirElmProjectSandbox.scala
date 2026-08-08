@@ -170,6 +170,18 @@ object MorphirElmProjectSandbox {
       case _ => Left(s"Morphir Elm IR output filename must be a portable sandbox leaf: $filename")
     }
 
+  private[morphir] def validateOutputAvailable(project: StagedMorphirProject): Either[String, StagedMorphirProject] =
+    if (
+      Files.isSymbolicLink(project.projectDir.path.toNIO) ||
+      !Files.isDirectory(project.projectDir.path.toNIO, LinkOption.NOFOLLOW_LINKS)
+    ) Left(s"Morphir Elm project sandbox root changed after sandbox extension: ${project.projectDir.path}")
+    else if (hasStagedCollision(project.projectDir.path, project.output.last))
+      Left(s"Morphir Elm IR output filename collides with a sandbox extension: ${project.output.last}")
+    else Right(project)
+
+  private[morphir] def discardOwnedProject(projectRoot: os.Path): Unit =
+    removeOwned(projectRoot)
+
   private def dependencyRelativePathFor(dependency: MorphirDependencyArtifact): os.RelPath =
     dependencyRelativePath(dependency.moduleId)
 
