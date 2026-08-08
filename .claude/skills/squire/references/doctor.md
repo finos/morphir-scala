@@ -18,14 +18,15 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-mill-daemon.py
 - `SANDBOX` → both Python and JVM sockets blocked; use `--no-server`.
 - `REFUSED` or `NO_DAEMON` → daemon not running; plain `./mill` will start one, or use `./morphir-local`.
 
-### 2. System temp write access (cellar)
+### 2. Effective JVM temp write access (cellar)
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-var-folders.py
 ```
 
-- `OK` → cellar can write temp files in the active system temp directory.
+- `OK` → cellar can write temp files under the reported `java.io.tmpdir`.
 - `BLOCKED` → see [cellar temp file error](#3-cellar-temp-file-permission-error).
+- `UNAVAILABLE` → Java is missing or its bounded property query failed; no path was assumed.
 
 ### 3. Project configuration checks
 
@@ -40,7 +41,7 @@ Checks:
 - Mill Morphir plugin and local-repository wiring
 - machine acquisition cache state
 - metabuild freshness
-- system temp writability
+- effective JVM temp writability
 
 `ISSUE` lines identify which fixes are needed.
 
@@ -102,10 +103,10 @@ If the warning reappears, verify the YAML entry is still present.
 
 **Cause:** Cellar writes temp `.tasty` files to the JVM's active `java.io.tmpdir`. On macOS this is normally a user-specific directory below `/var/folders`, not the `/var/folders` root.
 
-**Fix:** Point both process and JVM temp settings at a writable directory, then verify through Mill:
+**Fix:** Point the JVM temp setting at a writable directory, then verify through Mill:
 
 ```bash
-TMPDIR=<writable-temp> JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=<writable-temp> \
+JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=<writable-temp> \
   ./mill resolve 'mill-plugins.morphir.__'
 ```
 

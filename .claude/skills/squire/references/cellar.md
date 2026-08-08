@@ -22,7 +22,7 @@ mise install github-VirtusLab/cellar
 
 ### System temp write access
 
-Cellar writes temp `.tasty` files under the JVM's active `java.io.tmpdir`. If you hit `Operation not permitted`, run `/squire doctor` to probe the actual system temp directory.
+Cellar writes temp `.tasty` files under the JVM's active `java.io.tmpdir`. If you hit `Operation not permitted`, run `/squire doctor` to probe that effective JVM path.
 
 ### Private Maven repositories (optional)
 

@@ -10,7 +10,8 @@ import platform
 import re
 import stat
 import sys
-import tempfile
+
+from temp_directory import probe_jvm_temp
 
 
 PLUGIN_MODULES = ("toolchain", "javascript", "elm-tooling", "core", "elm", "integration")
@@ -311,23 +312,18 @@ def check_legacy_project_configuration(root: pathlib.Path) -> list[str]:
 
 
 def check_temp_directory() -> list[str]:
-    try:
-        temp_directory = pathlib.Path(tempfile.gettempdir())
-        with tempfile.NamedTemporaryFile(
-            dir=temp_directory, prefix=".squire-probe-"
-        ) as probe:
-            probe.write(b"squire")
-            probe.flush()
-        print(f"OK - system temp directory is writable: {temp_directory}")
+    result = probe_jvm_temp()
+    if result.ok is True:
+        print(f"OK - JVM temp directory is writable: {result.path}")
         return []
-    except OSError as error:
-        location = str(locals().get("temp_directory", "<unavailable>"))
-        return [
-            f"BLOCKED - system temp directory is not writable: {location} ({error})\n"
-            "  Verify with Mill: TMPDIR=<writable-temp> "
-            "JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=<writable-temp> "
-            f"{PLUGIN_RESOLVE_TASK}"
-        ]
+    if result.ok is None:
+        print(f"NOTICE - JVM temp diagnostic unavailable: {result.detail}")
+        return []
+    return [
+        f"BLOCKED - JVM temp directory is not writable: {result.path} ({result.detail})\n"
+        "  Verify with Mill: JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=<writable-temp> "
+        f"{PLUGIN_RESOLVE_TASK}"
+    ]
 
 
 def parser() -> argparse.ArgumentParser:
@@ -335,7 +331,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "--project-only",
         action="store_true",
-        help="skip host-specific system temp directory probing",
+        help="skip the effective JVM temp directory probe",
     )
     return result
 

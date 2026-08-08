@@ -1,32 +1,27 @@
 #!/usr/bin/env python3
-"""Check whether the system temp directory is writable for JVM tooling."""
+"""Check whether the effective JVM temp directory is writable."""
 
-import pathlib
 import sys
-import tempfile
+
+from temp_directory import probe_jvm_temp
 
 
 def main() -> int:
-    try:
-        temp_directory = pathlib.Path(tempfile.gettempdir())
-        with tempfile.NamedTemporaryFile(
-            dir=temp_directory, prefix=".squire-probe-"
-        ) as probe:
-            probe.write(b"squire")
-            probe.flush()
-        print(f"OK - system temp directory is writable: {temp_directory}")
+    result = probe_jvm_temp()
+    if result.ok is True:
+        print(f"OK - JVM temp directory is writable: {result.path}")
         return 0
-    except OSError as error:
-        location = str(locals().get("temp_directory", "<unavailable>"))
-        print(
-            f"BLOCKED - system temp directory is not writable: {location} ({error})"
-        )
-        print(
-            "  Verify with Mill: TMPDIR=<writable-temp> "
-            "JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=<writable-temp> "
-            "./mill resolve 'mill-plugins.morphir.__'"
-        )
-        return 1
+    if result.ok is None:
+        print(f"UNAVAILABLE - JVM temp diagnostic unavailable: {result.detail}")
+        return 0
+    print(
+        f"BLOCKED - JVM temp directory is not writable: {result.path} ({result.detail})"
+    )
+    print(
+        "  Verify with Mill: JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=<writable-temp> "
+        "./mill resolve 'mill-plugins.morphir.__'"
+    )
+    return 1
 
 
 if __name__ == "__main__":

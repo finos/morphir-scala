@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -128,7 +129,7 @@ class MiseTaskPolicyTest(unittest.TestCase):
         *,
         project_only: bool = True,
     ) -> subprocess.CompletedProcess[str]:
-        command = ["python3", str(PROJECT_CHECKER)]
+        command = [sys.executable, str(PROJECT_CHECKER)]
         if project_only:
             command.append("--project-only")
         return subprocess.run(
@@ -353,29 +354,55 @@ class MiseTaskPolicyTest(unittest.TestCase):
             self.assertIn("NOTICE - acquisition cache diagnostic was bounded", result.stdout)
             self.assertIn("directory entry limit reached (256)", result.stdout)
 
-    def test_temp_diagnostics_probe_the_configured_system_temp_directory(self):
+    def run_temp_diagnostics(
+        self, root: Path, environment: dict[str, str]
+    ) -> tuple[subprocess.CompletedProcess[str], subprocess.CompletedProcess[str], dict]:
+        project_result = self.run_project_checker(
+            root, environment, project_only=False
+        )
+        focused_result = subprocess.run(
+            [sys.executable, str(TEMP_CHECKER)],
+            cwd=root,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        env_result = subprocess.run(
+            [sys.executable, str(AI_ENV_CHECKER), "--timeout", "1"],
+            cwd=root,
+            env=environment,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return project_result, focused_result, json.loads(env_result.stdout)
+
+    def test_temp_diagnostics_probe_effective_jvm_temp_not_python_temp(self):
         with tempfile.TemporaryDirectory() as directory:
             root, environment = self.project_checker_fixture(directory)
-            configured_temp = root / "configured-temp"
-            configured_temp.mkdir()
-            environment["TMPDIR"] = str(configured_temp)
+            python_temp = root / "python-temp"
+            jvm_temp = root / "jvm-temp"
+            python_temp.mkdir()
+            jvm_temp.mkdir()
+            environment["TMPDIR"] = str(python_temp)
+            environment["JAVA_TOOL_OPTIONS"] = f"-Djava.io.tmpdir={jvm_temp}"
 
-            project_result = self.run_project_checker(
-                root, environment, project_only=False
+            project_result, focused_result, env_report = self.run_temp_diagnostics(
+                root, environment
             )
-            focused_result = subprocess.run(
-                ["python3", str(TEMP_CHECKER)],
+            single_check = subprocess.run(
+                [
+                    sys.executable,
+                    str(AI_ENV_CHECKER),
+                    "--check",
+                    "var-folders",
+                    "--timeout",
+                    "1",
+                ],
                 cwd=root,
                 env=environment,
                 check=False,
-                capture_output=True,
-                text=True,
-            )
-            env_result = subprocess.run(
-                ["python3", str(AI_ENV_CHECKER), "--timeout", "1"],
-                cwd=root,
-                env=environment,
-                check=True,
                 capture_output=True,
                 text=True,
             )
@@ -383,14 +410,71 @@ class MiseTaskPolicyTest(unittest.TestCase):
             for result in (project_result, focused_result):
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertIn(
-                    f"system temp directory is writable: {configured_temp}",
-                    result.stdout,
+                    f"JVM temp directory is writable: {jvm_temp}", result.stdout
                 )
-                self.assertNotIn("/var/folders/.squire-probe", result.stdout)
-            env_report = json.loads(env_result.stdout)
+                self.assertNotIn(str(python_temp), result.stdout)
             temp_check = env_report["checks"]["var_folders_writable"]
             self.assertTrue(temp_check["ok"], temp_check["detail"])
-            self.assertIn(str(configured_temp), temp_check["detail"])
+            self.assertIn(str(jvm_temp), temp_check["detail"])
+            self.assertNotIn(str(python_temp), temp_check["detail"])
+            self.assertEqual(
+                single_check.returncode,
+                0,
+                single_check.stdout + single_check.stderr,
+            )
+
+    def test_temp_diagnostics_report_missing_and_unwritable_jvm_paths(self):
+        for state in ("missing", "unwritable"):
+            with self.subTest(state=state), tempfile.TemporaryDirectory() as directory:
+                root, environment = self.project_checker_fixture(directory)
+                jvm_temp = root / "jvm-temp"
+                if state == "unwritable":
+                    jvm_temp.mkdir()
+                    jvm_temp.chmod(0)
+                environment["JAVA_TOOL_OPTIONS"] = f"-Djava.io.tmpdir={jvm_temp}"
+                try:
+                    project_result, focused_result, env_report = self.run_temp_diagnostics(
+                        root, environment
+                    )
+                finally:
+                    if jvm_temp.exists():
+                        jvm_temp.chmod(0o700)
+
+                for result in (project_result, focused_result):
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(
+                        f"BLOCKED - JVM temp directory is not writable: {jvm_temp}",
+                        result.stdout,
+                    )
+                    self.assertIn(
+                        "JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=<writable-temp> "
+                        "./mill resolve 'mill-plugins.morphir.__'",
+                        result.stdout,
+                    )
+                    self.assertNotIn("sandbox.filesystem.allowWrite", result.stdout)
+                temp_check = env_report["checks"]["var_folders_writable"]
+                self.assertFalse(temp_check["ok"])
+                self.assertIn(str(jvm_temp), temp_check["detail"])
+
+    def test_temp_diagnostics_handle_missing_java_without_crashing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root, environment = self.project_checker_fixture(directory)
+            environment["PATH"] = ""
+
+            project_result, focused_result, env_report = self.run_temp_diagnostics(
+                root, environment
+            )
+
+            for result in (project_result, focused_result):
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn(
+                    "JVM temp diagnostic unavailable: java not found on PATH",
+                    result.stdout,
+                )
+                self.assertNotIn("Traceback", result.stderr)
+            temp_check = env_report["checks"]["var_folders_writable"]
+            self.assertIsNone(temp_check["ok"])
+            self.assertIn("java not found on PATH", temp_check["detail"])
 
     def test_project_checker_diagnoses_stale_metabuild_compilation(self):
         with tempfile.TemporaryDirectory() as directory:
