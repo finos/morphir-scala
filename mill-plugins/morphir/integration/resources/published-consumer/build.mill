@@ -1,0 +1,93 @@
+//| mvnDeps:
+//| - org.finos.morphir.mill::mill-morphir-toolchain::0.0.0-published-test-SNAPSHOT
+//| - org.finos.morphir.mill::mill-morphir-javascript::0.0.0-published-test-SNAPSHOT
+//| - org.finos.morphir.mill::mill-morphir-elm-tooling::0.0.0-published-test-SNAPSHOT
+//| - org.finos.morphir.mill::mill-morphir-core::0.0.0-published-test-SNAPSHOT
+//| - org.finos.morphir.mill::mill-morphir-elm::0.0.0-published-test-SNAPSHOT
+
+// Mill 1.2 cannot combine a root build.mill with a root package.mill.yaml; project modules below remain colocated YAML.
+
+package build
+
+import mill.*
+import org.finos.morphir.mill.*
+import org.finos.morphir.mill.elm.ElmToolModule
+import org.finos.morphir.mill.elm.morphir.*
+import org.finos.morphir.mill.javascript.node.NodeRuntimeModule
+import org.finos.morphir.mill.javascript.npm.NpmPackageManagerModule
+import org.finos.morphir.mill.toolchain.AcquisitionCache
+
+object runtime extends NodeRuntimeModule {
+  override def runtimeVersion = Task.Input {
+    os.read(mill.api.BuildCtx.workspaceRoot / "node-version.txt").trim
+  }
+}
+
+object packages extends NpmPackageManagerModule with MorphirElmToolModule {
+  def runtime                  = build.runtime
+  override def npmProjectPaths = Seq(mill.api.BuildCtx.workspaceRoot / "tool" / "package.json")
+  override def npmLockPaths    = Seq(mill.api.BuildCtx.workspaceRoot / "tool" / "package-lock.json")
+  def packageManager           = this
+}
+
+trait PublishedElmToolReference extends MorphirElmModule {
+  def morphirElmTool = build.packages
+}
+
+trait PublishedElmConsumerDependencies extends MorphirModule {
+  override def morphirModuleDeps = Seq(build.`elm-dependency`)
+}
+
+trait PublishedScalaConsumer extends MorphirScalaModule {
+  def scalaVersion = "3.8.4"
+
+  override def generatedMorphirSources = Task {
+    val artifact                = build.`elm-consumer`.morphirIR()
+    val ir                      = os.read(artifact.path.path)
+    val sourceDir               = Task.dest / "src"
+    val hasUnpublishedReference =
+      ir.contains("unpublished") && ir.contains("source") && ir.contains("value")
+    os.write(
+      sourceDir / "published" / "GeneratedMorphirModel.scala",
+      s"""package published
+
+object GeneratedMorphirModel {
+  val irSha256: String = "${artifact.sha256}"
+  val hasUnpublishedReference: Boolean = $hasUnpublishedReference
+}
+""",
+      createFolders = true
+    )
+    GeneratedMorphirSources(PathRef(sourceDir), artifact.sha256)
+  }
+}
+
+def verifyPublishedIsolation() = Task.Command {
+  val pluginClasses = Seq(
+    classOf[AcquisitionCache],
+    classOf[NodeRuntimeModule],
+    classOf[ElmToolModule],
+    classOf[MorphirModule],
+    classOf[MorphirElmModule]
+  )
+  val repositories = Task.env("MORPHIR_PUBLISHED_TEST_REPOSITORIES")
+    .split(java.io.File.pathSeparator)
+    .toSeq
+    .map(value => os.Path(value).toNIO.toRealPath())
+  val pluginLocations = pluginClasses.map(pluginClass =>
+    os.Path(pluginClass.getProtectionDomain.getCodeSource.getLocation.toURI).toNIO.toRealPath()
+  )
+  pluginLocations.foreach { location =>
+    if (!repositories.exists(location.startsWith))
+      throw new IllegalStateException(s"Plugin was not loaded from a task-local repository: $location")
+    if (!location.getFileName.toString.endsWith(".jar"))
+      throw new IllegalStateException(s"Plugin was not loaded from a published jar: $location")
+  }
+  try {
+    Class.forName("build.RepositoryMorphirElmToolReference")
+    throw new IllegalStateException("Root metabuild classes are visible to the published consumer")
+  } catch {
+    case _: ClassNotFoundException => ()
+  }
+  println(s"published-artifacts-only:${pluginLocations.mkString(",")}")
+}

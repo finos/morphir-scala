@@ -1,9 +1,13 @@
 package build.`mill-plugins`.morphir
 
 import mill.*, mill.scalalib.*
+import mill.api.TaskCtx
+import mill.scalalib.publish.{Artifact, LocalM2Publisher, Pom, PublishInfo}
 import mill.scalalib.scalafmt.ScalafmtModule
 import millbuild.{Deps, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
 import build.MorphirMillPublishModule
+
+val PublishedTestVersion = "0.0.0-published-test-SNAPSHOT"
 
 trait MorphirMillPlugin extends Cross.Module[String] with ScalaModule with ScalafmtModule
     with MorphirMillPublishModule {
@@ -15,6 +19,50 @@ trait MorphirMillPlugin extends Cross.Module[String] with ScalaModule with Scala
     mvn"com.lihaoyi::mill-libs-scalalib:$millVersion"
   )
   override def scalacOptions = Seq("-Wunused:all", "-deprecation")
+
+  /**
+   * A task-local Maven repository for fresh-consumer tests.
+   *
+   * This follows Mill's own plugin-test pattern: publish the ordinary compiled jar under a fixed SNAPSHOT coordinate
+   * and rewrite repository-local module dependencies to the same version. Normal publication keeps using the VCS
+   * version from [[MorphirMillPublishModule]].
+   */
+  override def publishLocalTestRepo: Task[PathRef] = Task {
+    def snapshot(artifact: Artifact): Artifact =
+      if (artifact.group == "org.finos.morphir.mill") artifact.copy(version = PublishedTestVersion)
+      else artifact
+
+    val artifact = Artifact(pomSettings().organization, artifactId(), PublishedTestVersion)
+    val pomText  = Pom(
+      artifact,
+      publishXmlDeps().map(dependency => dependency.copy(artifact = snapshot(dependency.artifact))),
+      artifactId(),
+      pomSettings(),
+      publishProperties(),
+      packagingType = pomPackagingType,
+      parentProject = pomParentProject().map(snapshot),
+      bomDependencies = publishXmlBomDeps().map(dependency =>
+        dependency.copy(artifact = snapshot(dependency.artifact))
+      ),
+      dependencyManagement = publishXmlDepMgmt().map(dependency =>
+        dependency.copy(artifact = snapshot(dependency.artifact))
+      )
+    )
+    val pomPath = Task.dest / s"${artifact.id}-${artifact.version}.pom"
+    os.write.over(pomPath, pomText)
+    LocalM2Publisher(Task.dest).publish(
+      pomPath,
+      artifact,
+      defaultPublishInfos(sources = false, docs = false)() ++
+        Seq(PublishInfo.sourcesJar(sourceJar())) ++ extraPublish()
+    )(using
+      new TaskCtx.Log {
+        override def log: mill.api.daemon.Logger = mill.api.Logger.DummyLogger
+      }
+    )
+    os.remove(pomPath)
+    PathRef(Task.dest)
+  }
 }
 
 object toolchain extends Cross[ToolchainPlugin](MillVersions.all)
@@ -44,9 +92,9 @@ trait JavaScriptPlugin extends MorphirMillPlugin {
   override protected def resolvedDepsWarnNonPlatform = false
 
   object test extends ScalaTests with TestModule.Utest with ScalafmtModule {
-    def utestVersion           = Vers.utest
-    override def resources     = Task.Sources(moduleDir / "fixtures")
-    override def mvnDeps       = super.mvnDeps() ++ Seq(
+    def utestVersion       = Vers.utest
+    override def resources = Task.Sources(moduleDir / "fixtures")
+    override def mvnDeps   = super.mvnDeps() ++ Seq(
       mvn"com.lihaoyi::mill-libs-scalalib:${JavaScriptPlugin.this.millVersion}",
       mvn"com.lihaoyi::mill-testkit:${JavaScriptPlugin.this.millVersion}"
     )
@@ -61,7 +109,7 @@ trait ElmToolingPlugin extends MorphirMillPlugin {
   override def moduleDeps         = Seq(javascript(crossValue))
 
   object test extends ScalaTests with TestModule.Utest with ScalafmtModule {
-    def utestVersion = Vers.utest
+    def utestVersion     = Vers.utest
     override def mvnDeps = super.mvnDeps() ++ Seq(
       mvn"com.lihaoyi::mill-libs-scalalib:${ElmToolingPlugin.this.millVersion}",
       mvn"com.lihaoyi::mill-testkit:${ElmToolingPlugin.this.millVersion}"
@@ -72,16 +120,16 @@ trait ElmToolingPlugin extends MorphirMillPlugin {
 object core extends Cross[CorePlugin](MillVersions.all)
 
 trait CorePlugin extends MorphirMillPlugin {
-  override def artifactName                          = "mill-morphir-core"
-  override def packageDescription                    = "Frontend-neutral Morphir project and IR support for Mill."
-  override def mvnDeps                               = super.mvnDeps() ++ Seq(
+  override def artifactName       = "mill-morphir-core"
+  override def packageDescription = "Frontend-neutral Morphir project and IR support for Mill."
+  override def mvnDeps            = super.mvnDeps() ++ Seq(
     Deps.com.lihaoyi.sourcecodeJvm,
     Deps.com.lihaoyi.upickleJvm
   )
   override protected def resolvedDepsWarnNonPlatform = false
 
   object test extends ScalaTests with TestModule.Utest with ScalafmtModule {
-    def utestVersion = Vers.utest
+    def utestVersion     = Vers.utest
     override def mvnDeps = super.mvnDeps() ++ Seq(
       mvn"com.lihaoyi::mill-libs-scalalib:${CorePlugin.this.millVersion}",
       mvn"com.lihaoyi::mill-testkit:${CorePlugin.this.millVersion}"
@@ -97,9 +145,9 @@ trait ElmPlugin extends MorphirMillPlugin {
   override def moduleDeps         = Seq(core(crossValue), `elm-tooling`(crossValue))
 
   object test extends ScalaTests with TestModule.Utest with ScalafmtModule {
-    def utestVersion = Vers.utest
+    def utestVersion       = Vers.utest
     override def resources = Task.Sources(moduleDir / "resources", moduleDir / os.up / "test-tools")
-    override def sources = Task.Sources(
+    override def sources   = Task.Sources(
       moduleDir / "src",
       mill.api.BuildCtx.workspaceRoot / "mill-build" / "src" / "org" / "finos" / "millmorphir" /
         "MorphirModule.scala",
@@ -117,7 +165,40 @@ object integration extends ScalaModule with ScalafmtModule {
   def scalaVersion = ScalaVers.scala3
   def moduleDeps   = Seq(core(MillVersions.oldest))
 
+  def publishedPluginRepositories: T[Seq[PathRef]] = Task {
+    Seq(
+      toolchain(MillVersions.oldest).publishLocalTestRepo(),
+      javascript(MillVersions.oldest).publishLocalTestRepo(),
+      `elm-tooling`(MillVersions.oldest).publishLocalTestRepo(),
+      core(MillVersions.oldest).publishLocalTestRepo(),
+      elm(MillVersions.oldest).publishLocalTestRepo()
+    )
+  }
+
   object test extends ScalaTests with TestModule.Utest with ScalafmtModule {
-    def utestVersion = Vers.utest
+    def utestVersion       = Vers.utest
+    override def resources = Task.Sources(moduleDir / os.up / "resources")
+    override def mvnDeps   = super.mvnDeps() ++ Seq(
+      mvn"com.lihaoyi::mill-testkit:${MillVersions.oldest}"
+    )
+
+    override def forkEnv = Task {
+      val localRepositories = integration.publishedPluginRepositories()
+      val repositories      = localRepositories.map(_.path.wrapped.toUri.toASCIIString) :+
+        Task.env.getOrElse("COURSIER_REPOSITORIES", "ivy2Local|central")
+      super.forkEnv() ++ Map(
+        "MILL_EXECUTABLE_PATH"                -> PathRef.toAbsString(millExecutable.assembly()),
+        "MORPHIR_PUBLISHED_TEST_REPOSITORIES" ->
+          localRepositories
+            .map(PathRef.toAbsString)
+            .mkString(java.io.File.pathSeparator),
+        "COURSIER_REPOSITORIES" -> repositories.mkString("|")
+      )
+    }
+
+    object millExecutable extends JavaModule {
+      def mvnDeps   = Seq(mvn"com.lihaoyi:mill-runner-launcher_3:${MillVersions.oldest}")
+      def mainClass = Some("mill.launcher.MillLauncherMain")
+    }
   }
 }
