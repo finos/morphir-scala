@@ -11,6 +11,18 @@ import org.finos.morphir.mill.javascript.npm.NpmPackageManagerModule
 import utest.*
 
 object ProjectGraphTests extends TestSuite {
+  private final case class ReferenceTarget(
+      packageName: Seq[Seq[String]],
+      moduleName: Seq[Seq[String]],
+      localName: Seq[String]
+  )
+
+  private val unpublishedSourceValue = ReferenceTarget(
+    packageName = Seq(Seq("unpublished"), Seq("source")),
+    moduleName = Seq(Seq("dependency")),
+    localName = Seq("unpublished", "source", "value")
+  )
+
   private final class SourceDependencyBuild(workspace: os.Path) extends TestRootModule(workspace) { outer =>
     lazy val millDiscover = mill.api.Discover[this.type]
 
@@ -57,31 +69,59 @@ object ProjectGraphTests extends TestSuite {
     finally os.remove.all(root)
   }
 
-  private def isName(value: ujson.Value, expected: Seq[String]): Boolean =
+  private def name(value: ujson.Value): Option[Seq[String]] =
     value match {
-      case array: ujson.Arr => array.value.toSeq == expected.map(ujson.Str(_))
-      case _                => false
+      case array: ujson.Arr if array.value.forall(_.isInstanceOf[ujson.Str]) =>
+        Some(array.value.toSeq.map(_.str))
+      case _ => None
     }
 
-  private def containsName(value: ujson.Value, expected: Seq[String]): Boolean =
-    isName(value, expected) ||
+  private def namePath(value: ujson.Value): Option[Seq[Seq[String]]] =
+    value match {
+      case array: ujson.Arr =>
+        val names = array.value.toSeq.map(name)
+        Option.when(names.forall(_.isDefined))(names.flatten)
+      case _ => None
+    }
+
+  private def referenceTarget(value: ujson.Value): Option[ReferenceTarget] =
+    value match {
+      case reference: ujson.Arr
+          if reference.value.length == 3 && reference.value.headOption.contains(ujson.Str("Reference")) =>
+        reference.value(2) match {
+          case fqName: ujson.Arr if fqName.value.length == 3 =>
+            for {
+              packageName <- namePath(fqName.value(0))
+              moduleName  <- namePath(fqName.value(1))
+              localName   <- name(fqName.value(2))
+            } yield ReferenceTarget(packageName, moduleName, localName)
+          case _ => None
+        }
+      case _ => None
+    }
+
+  private def containsReferenceTo(value: ujson.Value, expected: ReferenceTarget): Boolean =
+    referenceTarget(value).contains(expected) ||
       (value match {
-        case array: ujson.Arr => array.value.exists(containsName(_, expected))
-        case obj: ujson.Obj   => obj.value.values.exists(containsName(_, expected))
+        case array: ujson.Arr => array.value.exists(containsReferenceTo(_, expected))
+        case obj: ujson.Obj   => obj.value.values.exists(containsReferenceTo(_, expected))
         case _                => false
       })
 
-  private def containsReferenceTo(value: ujson.Value, expectedName: Seq[String]): Boolean =
-    value match {
-      case array: ujson.Arr =>
-        val isReference = array.value.headOption.contains(ujson.Str("Reference"))
-        (isReference && containsName(array, expectedName)) ||
-        array.value.exists(containsReferenceTo(_, expectedName))
-      case obj: ujson.Obj => obj.value.values.exists(containsReferenceTo(_, expectedName))
-      case _              => false
+  val tests = Tests {
+    test("reference matching rejects the right local name under the wrong package and module") {
+      val wrongTarget = ujson.Arr(
+        "Reference",
+        ujson.Obj(),
+        ujson.Arr(
+          ujson.Arr(ujson.Arr("wrong"), ujson.Arr("package")),
+          ujson.Arr(ujson.Arr("wrong", "module")),
+          ujson.Arr("unpublished", "source", "value")
+        )
+      )
+      assert(!containsReferenceTo(wrongTarget, unpublishedSourceValue))
     }
 
-  val tests = Tests {
     test("generated IR contains a used symbol from an unpublished Elm source dependency") {
       withTempDir { root =>
         val sources = root / "sources"
@@ -98,7 +138,7 @@ object ProjectGraphTests extends TestSuite {
         UnitTester(module, sources).scoped { evaluator =>
           val artifact = success(evaluator(module.consumer.morphirIR))
           val ir       = ujson.read(os.read(artifact.path.path))
-          assert(containsReferenceTo(ir, Seq("unpublished", "source", "value")))
+          assert(containsReferenceTo(ir, unpublishedSourceValue))
         }
       }
     }
