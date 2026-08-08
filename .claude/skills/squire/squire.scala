@@ -1,5 +1,6 @@
 //| scalaVersion: 3.8.4
 //| mainClass: SquireApp
+//| moduleDeps: [SquireModel.scala, SquireProcess.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-case-app:1.0.0-RC6
 
