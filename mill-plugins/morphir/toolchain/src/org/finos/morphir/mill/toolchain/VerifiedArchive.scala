@@ -75,7 +75,8 @@ object VerifiedArchive {
       destination: os.Path,
       limits: ArchiveLimits = ArchiveLimits(),
       cleanup: os.Path => Unit = removeTemporary,
-      parserObserver: ArchiveFormat => Unit = _ => ()
+      parserObserver: ArchiveFormat => Unit = _ => (),
+      zipConstructedObserver: () => Unit = () => ()
   )(afterSnapshotVerified: => Unit): Unit = {
     val parent   = destination / os.up
     val nonce    = UUID.randomUUID()
@@ -94,7 +95,8 @@ object VerifiedArchive {
         Files.createDirectory(staging.toNIO)
         format match {
           case ArchiveFormat.TarGz => extractTarGz(snapshot, staging, limits, parserObserver)
-          case ArchiveFormat.Zip   => extractZip(snapshot, staging, limits, parserObserver)
+          case ArchiveFormat.Zip   =>
+            extractZip(snapshot, staging, limits, parserObserver, zipConstructedObserver)
         }
         promoteExclusive(staging, destination)
       } catch {
@@ -335,11 +337,13 @@ object VerifiedArchive {
       archive: os.Path,
       destination: os.Path,
       limits: ArchiveLimits,
-      parserObserver: ArchiveFormat => Unit
+      parserObserver: ArchiveFormat => Unit,
+      constructedObserver: () => Unit
   ): Unit = {
     ArchivePreflight.zip(archive, limits)
     parserObserver(ArchiveFormat.Zip)
-    Using.resource(ZipFile.builder().setPath(archive.toNIO).get()) { zipFile =>
+    Using.resource(ZipFile.builder().setPath(archive.toNIO).setIgnoreLocalFileHeader(true).get()) { zipFile =>
+      constructedObserver()
       val root   = ArrayBuffer.empty[String]
       val budget = new ExtractionBudget(limits, None)
       zipFile.getEntries.asScala.foreach { entry =>

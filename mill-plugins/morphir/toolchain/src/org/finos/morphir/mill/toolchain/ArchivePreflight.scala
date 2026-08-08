@@ -30,7 +30,7 @@ private[toolchain] object ArchivePreflight {
     try
       Using.resource(Files.newInputStream(archive.toNIO)) { raw =>
         Using.resource(new GZIPInputStream(raw)) { gzip =>
-          scanTar(gzip, archive, limits)
+          scanTar(gzip, archive, limits, Files.size(archive.toNIO))
         }
       }
     catch {
@@ -134,20 +134,34 @@ private[toolchain] object ArchivePreflight {
     entries
   }
 
-  private def scanTar(input: InputStream, archive: os.Path, limits: ArchiveLimits): Unit = {
-    val header            = new Array[Byte](TarBlockBytes)
-    val skipBuffer        = new Array[Byte](8192)
-    val maxStreamBytes    = derivedTarStreamLimit(limits)
-    var streamBytes       = 0L
-    var entryCount        = 0L
-    var contentBytes      = 0L
-    var metadataBytes     = 0L
-    var previousZeroBlock = false
-    var finished          = false
+  private def scanTar(
+      input: InputStream,
+      archive: os.Path,
+      limits: ArchiveLimits,
+      compressedBytes: Long
+  ): Unit = {
+    val header                     = new Array[Byte](TarBlockBytes)
+    val skipBuffer                 = new Array[Byte](8192)
+    val maxStreamBytes             = derivedTarStreamLimit(limits)
+    val maxRatioBytes              = saturatedRatioLimit(compressedBytes, limits.maxCompressionRatio)
+    var streamBytes                = 0L
+    var entryCount                 = 0L
+    var contentBytes               = 0L
+    var metadataBytes              = 0L
+    var consecutiveMetadataEntries = 0L
+    var previousZeroBlock          = false
+    var finished                   = false
 
     while (!finished) {
       readExactly(input, header, 0, header.length, "TAR header", archive)
-      streamBytes = addWithin(streamBytes, header.length, maxStreamBytes, "TAR decompressed stream", archive)
+      streamBytes = recordTarStreamBytes(
+        streamBytes,
+        header.length,
+        maxStreamBytes,
+        maxRatioBytes,
+        limits.maxCompressionRatio,
+        archive
+      )
       val zero = header.forall(_ == 0)
       if (zero && previousZeroBlock) finished = true
       else if (zero) previousZeroBlock = true
@@ -159,6 +173,11 @@ private[toolchain] object ArchivePreflight {
         val size      = parseTarNumber(header, TarSizeOffset, TarSizeLength, "TAR entry size", archive)
         val entryType = header(TarTypeOffset)
         if (isTarMetadata(entryType)) {
+          consecutiveMetadataEntries += 1
+          if (consecutiveMetadataEntries > limits.maxConsecutiveMetadataEntries)
+            fail(
+              s"TAR consecutive metadata entry limit ${limits.maxConsecutiveMetadataEntries} exceeded: $archive"
+            )
           if (size > limits.maxMetadataEntryBytes)
             fail(s"TAR metadata entry byte limit ${limits.maxMetadataEntryBytes} exceeded by $size bytes: $archive")
           metadataBytes = addWithin(
@@ -169,6 +188,7 @@ private[toolchain] object ArchivePreflight {
             archive
           )
         } else {
+          consecutiveMetadataEntries = 0
           if (size > limits.maxEntryUncompressedBytes)
             fail(s"TAR per-entry uncompressed byte limit ${limits.maxEntryUncompressedBytes} exceeded: $archive")
           contentBytes = addWithin(
@@ -181,15 +201,30 @@ private[toolchain] object ArchivePreflight {
         }
         val padding = (TarBlockBytes - size % TarBlockBytes) % TarBlockBytes
         val body    = checkedAdd(size, padding, "TAR entry body and padding", archive)
-        skipExactly(input, body, skipBuffer, archive)
-        streamBytes = addWithin(streamBytes, body, maxStreamBytes, "TAR decompressed stream", archive)
+        streamBytes = skipExactly(
+          input,
+          body,
+          skipBuffer,
+          streamBytes,
+          maxStreamBytes,
+          maxRatioBytes,
+          limits.maxCompressionRatio,
+          archive
+        )
       }
     }
 
     var read = input.read(skipBuffer)
     while (read >= 0) {
       if (read > 0) {
-        streamBytes = addWithin(streamBytes, read.toLong, maxStreamBytes, "TAR decompressed stream", archive)
+        streamBytes = recordTarStreamBytes(
+          streamBytes,
+          read.toLong,
+          maxStreamBytes,
+          maxRatioBytes,
+          limits.maxCompressionRatio,
+          archive
+        )
         var index = 0
         while (index < read) {
           if (skipBuffer(index) != 0)
@@ -297,15 +332,34 @@ private[toolchain] object ArchivePreflight {
     }
   }
 
-  private def skipExactly(input: InputStream, count: Long, buffer: Array[Byte], archive: os.Path): Unit = {
-    var remaining = count
+  private def skipExactly(
+      input: InputStream,
+      count: Long,
+      buffer: Array[Byte],
+      initialStreamBytes: Long,
+      maxStreamBytes: Long,
+      maxRatioBytes: Long,
+      ratio: Double,
+      archive: os.Path
+  ): Long = {
+    var remaining   = count
+    var streamBytes = initialStreamBytes
     while (remaining > 0) {
       val requested = math.min(remaining, buffer.length.toLong).toInt
       val read      = input.read(buffer, 0, requested)
       if (read < 0) fail(s"Malformed or truncated TAR entry body: $archive")
       if (read == 0) fail(s"Unable to read TAR entry body: $archive")
+      streamBytes = recordTarStreamBytes(
+        streamBytes,
+        read.toLong,
+        maxStreamBytes,
+        maxRatioBytes,
+        ratio,
+        archive
+      )
       remaining -= read
     }
+    streamBytes
   }
 
   private def derivedTarStreamLimit(limits: ArchiveLimits): Long = {
@@ -314,6 +368,26 @@ private[toolchain] object ArchivePreflight {
       saturatingAdd(limits.maxTotalUncompressedBytes, limits.maxArchiveMetadataBytes),
       saturatingAdd(headerAndPadding, 1024L)
     )
+  }
+
+  private def saturatedRatioLimit(compressedBytes: Long, ratio: Double): Long = {
+    val expanded = compressedBytes.toDouble * ratio
+    if (!expanded.isFinite || expanded >= Long.MaxValue.toDouble) Long.MaxValue
+    else math.floor(expanded).toLong
+  }
+
+  private def recordTarStreamBytes(
+      current: Long,
+      increment: Long,
+      maxStreamBytes: Long,
+      maxRatioBytes: Long,
+      ratio: Double,
+      archive: os.Path
+  ): Long = {
+    val updated = addWithin(current, increment, maxStreamBytes, "TAR decompressed stream", archive)
+    if (updated > maxRatioBytes)
+      fail(s"TAR.GZ preflight compression ratio exceeds limit $ratio: $archive")
+    updated
   }
 
   private def saturatingMultiply(left: Long, right: Long): Long =

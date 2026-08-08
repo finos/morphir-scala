@@ -68,6 +68,16 @@ object VerifiedAcquisitionTests extends TestSuite {
     } finally output.close()
   }
 
+  private def overwriteZipLocalExtraLength(path: os.Path, length: Int): Unit = {
+    val bytes = ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(length.toShort)
+    bytes.flip()
+    val channel = FileChannel.open(path.toNIO, StandardOpenOption.WRITE)
+    try {
+      var position = 28L
+      while (bytes.hasRemaining) position += channel.write(bytes, position)
+    } finally channel.close()
+  }
+
   private def writeTarGzSpecial(path: os.Path, name: String, linkFlag: Byte): Unit = {
     val output = new TarArchiveOutputStream(
       new java.util.zip.GZIPOutputStream(Files.newOutputStream(path.toNIO))
@@ -333,6 +343,31 @@ object VerifiedAcquisitionTests extends TestSuite {
 
         assert(os.read(destination / "node.exe") == "node")
         assert(Files.isExecutable((destination / "node.exe").toNIO))
+      }
+    }
+
+    test("ZIP construction ignores malformed local-header extra data after bounded central preflight") {
+      withTempDir { directory =>
+        val archive = directory / "malformed-local-extra.zip"
+        writeZip(archive, Seq(("root/bin/tool", "tool".getBytes(StandardCharsets.UTF_8), 0x81ed)))
+        overwriteZipLocalExtraLength(archive, 32767)
+        var parserOpened = false
+        var constructed  = false
+
+        val result = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.Zip,
+            directory / "extracted",
+            parserObserver = _ => parserOpened = true,
+            zipConstructedObserver = () => constructed = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(parserOpened)
+        assert(constructed)
+        assert(!os.exists(directory / "extracted"))
       }
     }
 
@@ -1507,6 +1542,64 @@ object VerifiedAcquisitionTests extends TestSuite {
       }
     }
 
+    test("TAR preflight bounds consecutive parser-hidden metadata entries") {
+      withTempDir { directory =>
+        val archive = directory / "metadata-chain.tar.gz"
+        writeRawTarGz(
+          archive,
+          Seq(
+            (TarConstants.LF_GNUTYPE_LONGNAME, "a".getBytes(StandardCharsets.US_ASCII)),
+            (TarConstants.LF_GNUTYPE_LONGLINK, "b".getBytes(StandardCharsets.US_ASCII)),
+            (TarConstants.LF_PAX_EXTENDED_HEADER_LC, "c".getBytes(StandardCharsets.US_ASCII))
+          )
+        )
+        var parserOpened = false
+        val result       = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            limits = ArchiveLimits(maxConsecutiveMetadataEntries = 2),
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("consecutive metadata entry limit 2"))
+        assert(!parserOpened)
+      }
+    }
+
+    test("ordinary TAR entries reset the consecutive metadata limit") {
+      withTempDir { directory =>
+        val archive = directory / "reset-metadata-chain.tar.gz"
+        writeRawTarGz(
+          archive,
+          Seq(
+            (TarConstants.LF_GNUTYPE_LONGNAME, "a".getBytes(StandardCharsets.US_ASCII)),
+            (TarConstants.LF_GNUTYPE_LONGLINK, "b".getBytes(StandardCharsets.US_ASCII)),
+            (TarConstants.LF_NORMAL, "file".getBytes(StandardCharsets.US_ASCII)),
+            (TarConstants.LF_PAX_EXTENDED_HEADER_LC, "c".getBytes(StandardCharsets.US_ASCII)),
+            (TarConstants.LF_PAX_GLOBAL_EXTENDED_HEADER, "d".getBytes(StandardCharsets.US_ASCII))
+          )
+        )
+        var parserOpened = false
+
+        scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            limits = ArchiveLimits(maxConsecutiveMetadataEntries = 2),
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(parserOpened)
+        assert(scala.util.Try(ArchiveLimits(maxConsecutiveMetadataEntries = 0)).isFailure)
+      }
+    }
+
     test("TAR malformed and truncated headers fail during preflight") {
       withTempDir { directory =>
         val malformed = directory / "malformed.tar.gz"
@@ -1690,6 +1783,28 @@ object VerifiedAcquisitionTests extends TestSuite {
         assert(result.isFailure)
         assert(result.failed.get.getMessage.contains("compression ratio"))
         assert(!os.exists(directory / "extracted"))
+      }
+    }
+
+    test("tar.gz compression-ratio limit rejects during fixed-buffer preflight") {
+      withTempDir { directory =>
+        val archive = directory / "preflight-ratio.tar.gz"
+        writeTarGz(archive, Seq(("root/file", Array.fill[Byte](4096)(0), None)))
+        var parserOpened = false
+
+        val result = scala.util.Try(
+          VerifiedArchive.extractObserved(
+            VerifiedContent(archive, VerifiedArchive.sha256(archive)),
+            ArchiveFormat.TarGz,
+            directory / "extracted",
+            limits = ArchiveLimits(maxCompressionRatio = 2.0),
+            parserObserver = _ => parserOpened = true
+          ) {}
+        )
+
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("TAR.GZ preflight compression ratio"))
+        assert(!parserOpened)
       }
     }
 
