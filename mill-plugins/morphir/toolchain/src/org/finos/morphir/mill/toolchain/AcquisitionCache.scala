@@ -20,11 +20,15 @@ import scala.util.control.NonFatal
 final class AcquisitionCache private (
     settings: AcquisitionSettings,
     taskRoot: os.Path,
-    cleanup: os.Path => Unit
+    cleanup: os.Path => Unit,
+    verify: (os.Path, String) => Unit
 ) {
+  private enum CandidateState {
+    case Verified, Unusable
+  }
 
   def this(settings: AcquisitionSettings, taskRoot: os.Path) =
-    this(settings, taskRoot, AcquisitionCache.removeNoFollow)
+    this(settings, taskRoot, AcquisitionCache.removeNoFollow, VerifiedArchive.verifySha256)
 
   /** Acquires verified content and always closes the supplied stream after opening it. */
   def acquire(expectedSha256: String, source: String)(openStream: => InputStream): VerifiedContent =
@@ -55,8 +59,10 @@ final class AcquisitionCache private (
       openStream: => InputStream
   ): VerifiedContent = {
     pruneStaleSiblings(entry)
-    if (isVerifiedRegularFile(entry, digest, source, limits))
-      return checkedContent(entry, digest, source, limits)
+    classifyCandidate(entry, digest, limits) match {
+      case CandidateState.Verified => return checkedContent(entry, digest, source, limits)
+      case CandidateState.Unusable => ()
+    }
     if (settings.offline)
       throw new IllegalStateException(
         s"Offline acquisition cannot use $source: no verified cached content for SHA-256 $digest"
@@ -72,7 +78,7 @@ final class AcquisitionCache private (
           copyBounded(input, output, limits.maxAcquiredBytes, source)
         }
         .get
-      VerifiedArchive.verifySha256(temporary, digest)
+      verify(temporary, digest)
       quarantineAndPromote(temporary, entry, source, cacheRoot)
       checkedContent(entry, digest, source, limits)
     } catch {
@@ -81,23 +87,24 @@ final class AcquisitionCache private (
     } finally bestEffortCleanup(temporary)
   }
 
-  private def isVerifiedRegularFile(
+  private def classifyCandidate(
       entry: os.Path,
       digest: String,
-      source: String,
       limits: AcquisitionLimits
-  ): Boolean =
-    if (!Files.exists(entry.toNIO, LinkOption.NOFOLLOW_LINKS)) false
+  ): CandidateState =
+    if (!Files.exists(entry.toNIO, LinkOption.NOFOLLOW_LINKS)) CandidateState.Unusable
     else {
       val attributes = Files.readAttributes(
         entry.toNIO,
         classOf[BasicFileAttributes],
         LinkOption.NOFOLLOW_LINKS
       )
-      if (!attributes.isRegularFile) false
+      // An oversized candidate cannot be proven valid without violating this caller's I/O bound.
+      // Treat it as unusable: online callers may replace it, while offline callers fail lazily.
+      if (!attributes.isRegularFile || attributes.size() > limits.maxAcquiredBytes) CandidateState.Unusable
       else {
-        checkSize(attributes, source, limits)
-        scala.util.Try(VerifiedArchive.verifySha256(entry, digest)).isSuccess
+        if (scala.util.Try(verify(entry, digest)).isSuccess) CandidateState.Verified
+        else CandidateState.Unusable
       }
     }
 
@@ -272,5 +279,10 @@ object AcquisitionCache {
   private[toolchain] def withCleanup(settings: AcquisitionSettings, taskRoot: os.Path)(
       cleanup: os.Path => Unit
   ): AcquisitionCache =
-    new AcquisitionCache(settings, taskRoot, cleanup)
+    new AcquisitionCache(settings, taskRoot, cleanup, VerifiedArchive.verifySha256)
+
+  private[toolchain] def withVerifier(settings: AcquisitionSettings, taskRoot: os.Path)(
+      verify: (os.Path, String) => Unit
+  ): AcquisitionCache =
+    new AcquisitionCache(settings, taskRoot, removeNoFollow, verify)
 }

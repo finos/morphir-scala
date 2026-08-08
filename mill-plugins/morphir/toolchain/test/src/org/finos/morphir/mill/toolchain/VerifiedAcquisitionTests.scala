@@ -277,7 +277,7 @@ object VerifiedAcquisitionTests extends TestSuite {
 
         assert(limited.isFailure)
         assert(limited.failed.get.getMessage.contains("acquired byte limit"))
-        assert(!opened)
+        assert(opened)
         assert(os.read.bytes(seeded.path).sameElements(bytes))
 
         val reused = cache.acquire(digest, "memory:larger", AcquisitionLimits(maxAcquiredBytes = 5))(
@@ -287,29 +287,98 @@ object VerifiedAcquisitionTests extends TestSuite {
       }
     }
 
-    test("oversized corrupt cache entries are rejected before hashing or acquisition") {
+    test("oversized corrupt cache entries are reacquired without hashing the candidate") {
       withTempDir { directory =>
-        val expected  = "12345".getBytes(StandardCharsets.UTF_8)
+        val expected  = "1234".getBytes(StandardCharsets.UTF_8)
         val corrupt   = "abcde".getBytes(StandardCharsets.UTF_8)
         val digest    = VerifiedArchive.sha256(expected)
         val cacheRoot = directory / "machine-cache"
         val entry     = cacheRoot / "sha256" / digest
         os.makeDir.all(entry / os.up)
         os.write(entry, corrupt)
-        var opened = false
+        var opened          = false
+        var candidateHashes = 0
 
-        val limited = scala.util.Try(
-          AcquisitionCache(AcquisitionSettings(cacheRoot = Some(cacheRoot)), directory / "task")
-            .acquire(digest, "memory:oversized-corrupt", AcquisitionLimits(maxAcquiredBytes = 4)) {
-              opened = true
-              new ByteArrayInputStream(expected)
-            }
+        val cache = AcquisitionCache.withVerifier(
+          AcquisitionSettings(cacheRoot = Some(cacheRoot)),
+          directory / "task"
+        ) { (path, expectedDigest) =>
+          if (path == entry) candidateHashes += 1
+          VerifiedArchive.verifySha256(path, expectedDigest)
+        }
+        val reacquired = cache
+          .acquire(digest, "memory:oversized-corrupt", AcquisitionLimits(maxAcquiredBytes = 4)) {
+            opened = true
+            new ByteArrayInputStream(expected)
+          }
+
+        assert(opened)
+        assert(candidateHashes == 0)
+        assert(reacquired.path == entry)
+        assert(os.read.bytes(entry).sameElements(expected))
+      }
+    }
+
+    test("offline oversized corrupt cache entries fail without hashing or acquisition") {
+      withTempDir { directory =>
+        val expected  = "1234".getBytes(StandardCharsets.UTF_8)
+        val corrupt   = "abcde".getBytes(StandardCharsets.UTF_8)
+        val digest    = VerifiedArchive.sha256(expected)
+        val cacheRoot = directory / "machine-cache"
+        val entry     = cacheRoot / "sha256" / digest
+        os.makeDir.all(entry / os.up)
+        os.write(entry, corrupt)
+        var opened          = false
+        var candidateHashes = 0
+
+        val cache = AcquisitionCache.withVerifier(
+          AcquisitionSettings(cacheRoot = Some(cacheRoot), offline = true),
+          directory / "task"
+        ) { (path, expectedDigest) =>
+          if (path == entry) candidateHashes += 1
+          VerifiedArchive.verifySha256(path, expectedDigest)
+        }
+        val result = scala.util.Try(
+          cache.acquire(digest, "memory:offline-oversized-corrupt", AcquisitionLimits(maxAcquiredBytes = 4)) {
+            opened = true
+            new ByteArrayInputStream(expected)
+          }
         )
 
-        assert(limited.isFailure)
-        assert(limited.failed.get.getMessage.contains("acquired byte limit"))
+        assert(result.isFailure)
+        assert(result.failed.get.getMessage.contains("Offline acquisition"))
         assert(!opened)
+        assert(candidateHashes == 0)
         assert(os.read.bytes(entry).sameElements(corrupt))
+      }
+    }
+
+    test("failed oversized candidate reacquisition retains the candidate for recovery") {
+      withTempDir { directory =>
+        val expected  = "1234".getBytes(StandardCharsets.UTF_8)
+        val corrupt   = "abcde".getBytes(StandardCharsets.UTF_8)
+        val digest    = VerifiedArchive.sha256(expected)
+        val cacheRoot = directory / "machine-cache"
+        val entry     = cacheRoot / "sha256" / digest
+        os.makeDir.all(entry / os.up)
+        os.write(entry, corrupt)
+        val cache = AcquisitionCache(AcquisitionSettings(cacheRoot = Some(cacheRoot)), directory / "task")
+
+        val failed = scala.util.Try(
+          cache.acquire(digest, "memory:retention", AcquisitionLimits(maxAcquiredBytes = 4)) {
+            throw new java.io.IOException("source unavailable")
+          }
+        )
+
+        assert(failed.isFailure)
+        assert(failed.failed.get.getMessage == "source unavailable")
+        assert(os.read.bytes(entry).sameElements(corrupt))
+
+        val recovered = cache.acquire(digest, "memory:recovery", AcquisitionLimits(maxAcquiredBytes = 4))(
+          new ByteArrayInputStream(expected)
+        )
+        assert(recovered.path == entry)
+        assert(os.read.bytes(entry).sameElements(expected))
       }
     }
 
@@ -405,7 +474,7 @@ object VerifiedAcquisitionTests extends TestSuite {
 
         assert(limited.isFailure)
         assert(limited.failed.get.getMessage.contains("acquired byte limit"))
-        assert(!opened)
+        assert(opened)
         assert(os.read.bytes(seeded.path).sameElements(bytes))
 
         val reused = cache.acquire(digest, "memory:larger", AcquisitionLimits(maxAcquiredBytes = 5))(
@@ -532,7 +601,7 @@ object VerifiedAcquisitionTests extends TestSuite {
         )
 
         assert(limited.isFailure)
-        assert(limited.failed.get.getMessage.contains("acquired byte limit"))
+        assert(limited.failed.get.getMessage.contains("Offline acquisition"))
         assert(!opened)
         assert(os.read.bytes(seeded.path).sameElements(bytes))
 
