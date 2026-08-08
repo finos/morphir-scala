@@ -14,7 +14,7 @@ import org.finos.morphir.runtime.quick.EvaluatorQuick
 import org.finos.morphir.runtime.ToMDMConcept.*
 import org.finos.morphir.runtime.fixtures.GeneratedRuntimeFixtures
 
-object DefaultsTestingSpec extends MorphirBaseSpec {
+object DefaultsSpec extends MorphirBaseSpec {
   val path = GeneratedRuntimeFixtures.defaults
 
   val testLayer: ZLayer[Any, Throwable, (Distribution, TypedMorphirRuntime)] = ZLayer(for {

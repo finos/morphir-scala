@@ -13,6 +13,7 @@ package build
 
 import millbuild.{Deps, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
 import millbuild.docs.{Docusaurus2Module, MDocModule}
+import millbuild.runtime.RuntimeTestDiscovery
 import mill.scalalib.publish.PublishInfo
 import mill.local.plugins.ci.release.ReleaseSetupModule
 import com.carlosedp.aliases.*
@@ -265,20 +266,46 @@ trait EmptyDocJar extends JavaModule {
 
 /** Generates typed JVM-only paths to the seven Morphir IR fixtures used by the classic runtime tests. */
 trait ClassicRuntimeTestFixtures extends ScalaModule {
-  override def generatedSources: T[Seq[PathRef]] = Task {
+  def generatedRuntimeFixtures: T[PathRef] = Task {
+    val evaluator = build.examples.`morphir-elm-projects`.`evaluator-tests`.morphirIR()
+    val defaults  = build.examples.`morphir-elm-projects`.`defaults-tests`.morphirIR()
+    val unitTestFramework = build.`morphir-elm`.sdks.`morphir-unit-test`.morphirIR()
+    val unitTestExample =
+      build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project`.morphirIR()
+    val unitTestFailing =
+      build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests`.morphirIR()
+    val unitTestPassing =
+      build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-passing`.morphirIR()
+    val unitTestIncomplete =
+      build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-incomplete`.morphirIR()
+
     val fixtures = ClassicRuntimeFixtureSet(
-      evaluator = build.examples.`morphir-elm-projects`.`evaluator-tests`.morphirIR(),
-      defaults = build.examples.`morphir-elm-projects`.`defaults-tests`.morphirIR(),
-      unitTestFramework = build.`morphir-elm`.sdks.`morphir-unit-test`.morphirIR(),
-      unitTestExample = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project`.morphirIR(),
-      unitTestFailing = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests`.morphirIR(),
-      unitTestPassing = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-passing`.morphirIR(),
-      unitTestIncomplete = build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-incomplete`.morphirIR()
+      evaluator = evaluator,
+      defaults = defaults,
+      unitTestFramework = unitTestFramework,
+      unitTestExample = unitTestExample,
+      unitTestFailing = unitTestFailing,
+      unitTestPassing = unitTestPassing,
+      unitTestIncomplete = unitTestIncomplete
     )
     val packageDirectory = Task.dest / "org" / "finos" / "morphir" / "runtime" / "fixtures"
     os.makeDir.all(packageDirectory)
-    os.write.over(packageDirectory / "GeneratedRuntimeFixtures.scala", ClassicRuntimeFixtureSource.render(fixtures))
-    super.generatedSources() :+ PathRef(Task.dest)
+    os.write.over(
+      packageDirectory / "GeneratedRuntimeFixtures.scala",
+      ClassicRuntimeFixtureSource.render(fixtures)
+    )
+    PathRef(Task.dest)
+  }
+
+  override def generatedSources: T[Seq[PathRef]] = Task {
+    super.generatedSources() :+ generatedRuntimeFixtures()
+  }
+}
+
+/** Fails fast when any generated-fixture-backed classic runtime suite drops out of Mill test discovery. */
+trait ClassicRuntimeTestDiscovery extends mill.javalib.TestModule {
+  def verifyRuntimeTestDiscovery: T[Unit] = Task {
+    RuntimeTestDiscovery.requireAllDiscovered(discoveredTestClasses())
   }
 }
 
