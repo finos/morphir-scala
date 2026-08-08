@@ -101,22 +101,19 @@ trait MorphirModule extends Module {
 
   def make: T[MakeResult] = Task {
     val arguments = makeArgs()
-    val command = MorphirElmCommand.cli(
-      morphirElmTool.nodeToolchain.nodeExecutable().path,
-      morphirElmTool.morphirElmInstall().path,
-      arguments.toCommandArgs
-    )
+    val executable  = morphirElmTool.morphirElmExecutable()
+    val commandArgs = executable.executable.path.toString +: (executable.arguments ++ arguments.toCommandArgs)
     val workingDir = arguments.projectDir
     val environment = MorphirElmProcessEnvironment.create(Task.dest / "tool-state", Task.env)
     MorphirElmProcessEnvironment.initialize(environment)
-    MillbuildJvm.runSubprocess(command, environment, workingDir, propagateEnv = false)
+    MillbuildJvm.runSubprocess(commandArgs, environment, workingDir, propagateEnv = false)
     if (!os.isFile(arguments.output))
       throw new IllegalStateException(s"Morphir Elm did not produce ${arguments.output}")
     val hashesPath = workingDir / "morphir-hashes.json"
     MakeResult(
       arguments,
       PathRef(arguments.output),
-      command,
+      commandArgs,
       workingDir,
       Option.when(os.isFile(hashesPath))(PathRef(hashesPath))
     )

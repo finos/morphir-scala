@@ -1,4 +1,4 @@
-//| moduleDeps: ["//mill-build/src/org/finos/millmorphir/elm/MorphirElmProjectSandbox.scala", "//mill-build/src/org/finos/millmorphir/api/MorphirProjectConfig.scala"]
+//| moduleDeps: ["//mill-build/src/org/finos/millmorphir/elm/MorphirElmProjectSandbox.scala", "//mill-build/src/org/finos/millmorphir/api/MorphirProjectConfig.scala", "//mill-plugins/morphir/elm-tooling/src/org/finos/morphir/mill/elm/ElmProcessEnvironment.scala"]
 //| mvnDeps: ["com.lihaoyi::mill-libs:$MILL_VERSION"]
 
 package org.finos.millmorphir.elm

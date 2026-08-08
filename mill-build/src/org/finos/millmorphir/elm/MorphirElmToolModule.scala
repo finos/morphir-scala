@@ -1,44 +1,33 @@
 package org.finos.millmorphir.elm
 
 import mill.*
+import org.finos.morphir.mill.javascript.npm.NpmPackageManagerModule
 import org.finos.millmorphir.toolchain.NodeToolchainModule
 
-trait MorphirElmToolModule extends Module {
+/** Temporary old-package composition bridge; implementation lives in mill-morphir-elm. */
+trait MorphirElmToolModule extends org.finos.morphir.mill.elm.morphir.MorphirElmToolModule {
   def nodeToolchain: NodeToolchainModule
 
   def toolManifest: T[PathRef] = Task.Source(
-    mill.api.BuildCtx.workspaceRoot / "mill-build" / "morphir-elm-tool" / "package.json"
+    mill.api.BuildCtx.workspaceRoot / "mill-plugins" / "morphir" / "elm" / "test-tools" / "morphir-elm" / "package.json"
   )
 
   def toolLock: T[PathRef] = Task.Source(
-    mill.api.BuildCtx.workspaceRoot / "mill-build" / "morphir-elm-tool" / "package-lock.json"
+    mill.api.BuildCtx.workspaceRoot / "mill-plugins" / "morphir" / "elm" / "test-tools" / "morphir-elm" / "package-lock.json"
   )
 
-  def morphirElmInstall: T[PathRef] = Task {
-    val install = Task.dest / "install"
-    val cache   = Task.dest / "npm-cache"
-    val environment = MorphirElmProcessEnvironment.create(Task.dest / "tool-state", Task.env)
-    MorphirElmProcessEnvironment.initialize(environment)
-    os.makeDir.all(install)
-    os.copy.over(toolManifest().path, install / "package.json")
-    os.copy.over(toolLock().path, install / "package-lock.json")
+  object packages extends NpmPackageManagerModule {
+    def runtime = nodeToolchain
 
-    os.proc(
-      MorphirElmCommand.npmCi(
-        nodeToolchain.nodeExecutable().path,
-        nodeToolchain.npmCli().path,
-        cache
-      )
-    ).call(cwd = install, env = environment, propagateEnv = false)
-
-    PathRef(install)
-  }
-
-  def morphirElmCommand(args: Seq[String]): mill.Task[Seq[String]] = Task.Anon {
-    MorphirElmCommand.cli(
-      nodeToolchain.nodeExecutable().path,
-      morphirElmInstall().path,
-      args
+    override def npmProjectPaths: Seq[os.Path] = Seq(
+      mill.api.BuildCtx.workspaceRoot / "mill-plugins" / "morphir" / "elm" / "test-tools" / "morphir-elm" /
+        "package.json"
+    )
+    override def npmLockPaths: Seq[os.Path] = Seq(
+      mill.api.BuildCtx.workspaceRoot / "mill-plugins" / "morphir" / "elm" / "test-tools" / "morphir-elm" /
+        "package-lock.json"
     )
   }
+
+  def packageManager = packages
 }

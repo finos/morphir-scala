@@ -1,4 +1,4 @@
-//| moduleDeps: ["//mill-build/src/org/finos/millmorphir/elm/MorphirElmCommand.scala"]
+//| moduleDeps: ["//mill-build/src/org/finos/millmorphir/elm/MorphirElmCommand.scala", "//mill-plugins/morphir/elm/src/org/finos/morphir/mill/elm/morphir/MorphirElmTool.scala"]
 
 import org.finos.millmorphir.elm.*
 
@@ -6,7 +6,7 @@ def assertEquals[A](actual: A, expected: A): Unit =
   assert(actual == expected, s"Expected $expected, got $actual")
 
 @main def runMorphirElmToolTests(): Unit = {
-  val toolDirectory = os.pwd / "mill-build" / "morphir-elm-tool"
+  val toolDirectory = os.pwd / "mill-plugins" / "morphir" / "elm" / "test-tools" / "morphir-elm"
   val manifest      = ujson.read(os.read(toolDirectory / "package.json"))
   val lock          = ujson.read(os.read(toolDirectory / "package-lock.json"))
   val lockedPackage = lock("packages")("node_modules/morphir-elm")
