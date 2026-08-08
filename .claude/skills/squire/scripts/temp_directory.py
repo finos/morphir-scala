@@ -9,6 +9,17 @@ import subprocess
 import tempfile
 
 
+JVM_TEMP_REMEDY = (
+    "  Recheck JVM temp:\n"
+    '    JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=<writable-temp>" '
+    "python3 .claude/skills/squire/scripts/check-var-folders.py\n"
+    "  Retry Cellar:\n"
+    '    JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=<writable-temp>" '
+    "python3 .claude/skills/squire/scripts/cellar-query.py "
+    "CELLAR_COMMAND CELLAR_COORDINATE CELLAR_ARGUMENTS"
+)
+
+
 @dataclass(frozen=True)
 class JvmTempProbe:
     ok: bool | None

@@ -3,7 +3,7 @@
 
 import sys
 
-from temp_directory import probe_jvm_temp
+from temp_directory import JVM_TEMP_REMEDY, probe_jvm_temp
 
 
 def main() -> int:
@@ -17,10 +17,7 @@ def main() -> int:
     print(
         f"BLOCKED - JVM temp directory is not writable: {result.path} ({result.detail})"
     )
-    print(
-        "  Verify with Mill: JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=<writable-temp> "
-        "./mill resolve 'mill-plugins.morphir.__'"
-    )
+    print(JVM_TEMP_REMEDY)
     return 1
 
 

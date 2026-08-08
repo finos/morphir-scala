@@ -11,7 +11,7 @@ import re
 import stat
 import sys
 
-from temp_directory import probe_jvm_temp
+from temp_directory import JVM_TEMP_REMEDY, probe_jvm_temp
 
 
 PLUGIN_MODULES = ("toolchain", "javascript", "elm-tooling", "core", "elm", "integration")
@@ -321,8 +321,7 @@ def check_temp_directory() -> list[str]:
         return []
     return [
         f"BLOCKED - JVM temp directory is not writable: {result.path} ({result.detail})\n"
-        "  Verify with Mill: JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=<writable-temp> "
-        f"{PLUGIN_RESOLVE_TASK}"
+        + JVM_TEMP_REMEDY
     ]
 
 

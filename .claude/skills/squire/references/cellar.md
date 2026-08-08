@@ -24,6 +24,8 @@ mise install github-VirtusLab/cellar
 
 Cellar writes temp `.tasty` files under the JVM's active `java.io.tmpdir`. If you hit `Operation not permitted`, run `/squire doctor` to probe that effective JVM path.
 
+Apply any override to both the check and the Cellar retry. See the doctor reference for the exact commands.
+
 ### Private Maven repositories (optional)
 
 For dependencies not on Maven Central, create a local settings file from the template:

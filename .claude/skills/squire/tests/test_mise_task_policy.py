@@ -14,8 +14,18 @@ REPO_ROOT = Path(__file__).parents[4]
 PROJECT_CHECKER = REPO_ROOT / ".claude/skills/squire/scripts/check-project-config.py"
 TEMP_CHECKER = REPO_ROOT / ".claude/skills/squire/scripts/check-var-folders.py"
 AI_ENV_CHECKER = REPO_ROOT / ".claude/skills/squire/scripts/ai-env-info.py"
+DOCTOR_REFERENCE = REPO_ROOT / ".claude/skills/squire/references/doctor.md"
 MILL_MORPHIR_REFERENCE = REPO_ROOT / ".claude/skills/squire/references/mill-morphir.md"
 PLUGIN_MODULES = ["toolchain", "javascript", "elm-tooling", "core", "elm", "integration"]
+JVM_TEMP_REMEDY = (
+    "  Recheck JVM temp:\n"
+    '    JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=<writable-temp>" '
+    "python3 .claude/skills/squire/scripts/check-var-folders.py\n"
+    "  Retry Cellar:\n"
+    '    JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=<writable-temp>" '
+    "python3 .claude/skills/squire/scripts/cellar-query.py "
+    "CELLAR_COMMAND CELLAR_COORDINATE CELLAR_ARGUMENTS"
+)
 CI_DEPENDENCIES = [
     "lint",
     "test:squire",
@@ -446,11 +456,12 @@ class MiseTaskPolicyTest(unittest.TestCase):
                         f"BLOCKED - JVM temp directory is not writable: {jvm_temp}",
                         result.stdout,
                     )
-                    self.assertIn(
-                        "JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=<writable-temp> "
-                        "./mill resolve 'mill-plugins.morphir.__'",
-                        result.stdout,
+                    self.assertIn("  Recheck JVM temp:", result.stdout)
+                    remedy_start = result.stdout.index("  Recheck JVM temp:")
+                    self.assertEqual(
+                        result.stdout[remedy_start:].strip(), JVM_TEMP_REMEDY.strip()
                     )
+                    self.assertNotIn("./mill resolve", result.stdout)
                     self.assertNotIn("sandbox.filesystem.allowWrite", result.stdout)
                 temp_check = env_report["checks"]["var_folders_writable"]
                 self.assertFalse(temp_check["ok"])
@@ -475,6 +486,19 @@ class MiseTaskPolicyTest(unittest.TestCase):
             temp_check = env_report["checks"]["var_folders_writable"]
             self.assertIsNone(temp_check["ok"])
             self.assertIn("java not found on PATH", temp_check["detail"])
+
+    def test_doctor_jvm_temp_remedy_rechecks_and_retries_cellar(self):
+        doctor = DOCTOR_REFERENCE.read_text(encoding="utf-8")
+        cellar_section = doctor.split("### 3. `cellar` temp file permission error", 1)[
+            1
+        ].split("\n---", 1)[0]
+
+        for command in JVM_TEMP_REMEDY.splitlines()[1::2]:
+            self.assertIn(command.strip(), cellar_section)
+        self.assertNotIn(
+            "JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=<writable-temp>", cellar_section
+        )
+        self.assertNotIn("./mill resolve", cellar_section)
 
     def test_project_checker_diagnoses_stale_metabuild_compilation(self):
         with tempfile.TemporaryDirectory() as directory:
