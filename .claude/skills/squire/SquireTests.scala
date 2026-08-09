@@ -291,19 +291,24 @@ object SquireCiPolicy:
     )
     expected.foreach { case (jobName, expectedSteps) =>
       val job         = indentedBlock(workflow, jobName, 2)
-      val actualSteps = namedActionCacheSteps(job)
+      val actualSteps = actionCacheSteps(job)
       expect(actualSteps == expectedSteps, s"$jobName cache paths were $actualSteps")
     }
 
-  private def namedActionCacheSteps(job: String): List[(String, List[String])] =
-    job.linesIterator.collect {
-      case line if line.startsWith("      - name: ") => line.stripPrefix("      - name: ")
-    }.flatMap { name =>
-      val step = indentedBlock(job, s"- name: $name", 6)
-      val cacheAction = step.linesIterator.map(_.trim).exists(line =>
+  private def actionCacheSteps(job: String): List[(String, List[String])] =
+    val lines      = job.linesIterator.toList
+    val stepStarts = lines.indices.filter(index => lines(index).startsWith("      - "))
+    stepStarts.zip(stepStarts.drop(1) :+ lines.size).flatMap { case (start, end) =>
+      val step = lines.slice(start, end).mkString("\n")
+      val cacheAction = step.linesIterator.map(_.trim.stripPrefix("- ")).exists(line =>
         line.startsWith("uses: actions/cache@") || line.startsWith("uses: actions/cache/restore@")
       )
-      if cacheAction then Some(name -> cachePaths(step)) else None
+      if cacheAction then
+        val name = step.linesIterator.collectFirst {
+          case line if line.startsWith("      - name: ") => line.stripPrefix("      - name: ")
+        }.getOrElse("<unnamed cache action>")
+        Some(name -> cachePaths(step))
+      else None
     }.toList
 
   private def cachePaths(step: String): List[String] =
@@ -1033,6 +1038,26 @@ class SquireCiPolicySpec extends Test[Any]:
         "./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery",
         "echo out/morphir/runtime/classic/jvm/test/\n          ./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
       )
+      val unnamedCacheAction = replaceInJob(
+        workflow,
+        "mill-morphir-integration:",
+        "- name: Run capability",
+        "- uses: actions/cache@v6\n" +
+          "        with:\n" +
+          "          path: out/\n" +
+          "          key: injected-unnamed-cache\n" +
+          "      - name: Run capability"
+      )
+      val unnamedRestoreAction = replaceInJob(
+        workflow,
+        "morphir-elm-projects:",
+        "- name: Run capability",
+        "- uses: actions/cache/restore@v6\n" +
+          "        with:\n" +
+          "          path: out/mill-plugins/morphir/\n" +
+          "          key: injected-unnamed-restore\n" +
+          "      - name: Run capability"
+      )
       val cacheMutations = downloadCacheMutations ++ approvedDownloadPathOutsideNamedStep ++ List(
         replaceInJob(workflow, "mill-morphir-unit:", "out/mill-plugins/morphir/", "out/"),
         replaceInJob(workflow, "mill-morphir-unit:", "!out/mill-plugins/morphir/**/testForked.dest/**\n", ""),
@@ -1049,6 +1074,10 @@ class SquireCiPolicySpec extends Test[Any]:
       cacheMutations.zipWithIndex.foreach { case (mutation, index) =>
         assert(rejects(assertMorphirCachePolicy, mutation), s"cache mutation $index must be rejected")
       }
+      val acceptedUnnamedMutations = List(unnamedCacheAction, unnamedRestoreAction).zipWithIndex.collect {
+        case (mutation, index) if !rejects(assertMorphirCachePolicy, mutation) => index
+      }
+      assert(acceptedUnnamedMutations.isEmpty, s"unnamed cache mutations accepted: $acceptedUnnamedMutations")
     }
 
     "runs Squire policy once immediately after lint" in {
@@ -1216,9 +1245,11 @@ class SquireMisePolicySpec extends Test[Any]:
     LiveProcessRunner.run(ProcessRequest(Chunk(miseExecutable) ++ Chunk.from(arguments), Present(repositoryRoot)))
 
   private def validateTaskScript(scriptText: String): Either[SquireError, Unit] =
-    val executableText = scriptText.linesIterator.zipWithIndex.collect {
-      case (line, index) if index > 0 && !line.trim.startsWith("#") => line
-    }.mkString("\n")
+    val scriptLines = scriptText.linesIterator.toList
+    val executableLines = scriptLines match
+      case "#!/usr/bin/env bash" :: remaining => remaining
+      case _                                    => scriptLines
+    val executableText = executableLines.filterNot(_.trim.startsWith("#")).mkString("\n")
     val absoluteReference = "(?<![A-Za-z0-9_.-])(/[^\\s\\\"';&|]+|\\.\\./[^\\s\\\"';&|]+)".r
       .findFirstMatchIn(executableText).map(_.group(1))
     absoluteReference match
@@ -1493,21 +1524,30 @@ esac
           ("bun", "/home/linuxbrew/.linuxbrew/bin/bun"),
           ("npx", "/usr/bin/npx")
         )
-        proofs <- Kyo.foreach(escapes) { case (program, absoluteProgram) =>
-          val scriptName = s"absolute-$program"
-          val scriptText = s"#!/usr/bin/env bash\n$absoluteProgram --version\n"
+        variants = escapes.flatMap { case (program, absoluteProgram) =>
+          Chunk(
+            (program, absoluteProgram, "with-shebang", s"#!/usr/bin/env bash\n$absoluteProgram --version\n"),
+            (program, absoluteProgram, "without-shebang", s"$absoluteProgram --version\n")
+          )
+        }
+        approvedShebangAccepted = validateTaskScript("#!/usr/bin/env bash\n./mill clean\n").isRight
+        proofs <- Kyo.foreach(variants) { case (program, _, variant, scriptText) =>
+          val scriptName = s"absolute-$program-$variant"
           val preflight = validateTaskScript(scriptText)
           var executionStarted = false
-          for
-            before <- Sync.defer(taskScratchRoots(scriptName))
-            result <- Abort.run[SquireError](
-              runTaskScript(Path(scriptName), scriptText, Set(program), () => executionStarted = true)
-            )
-            after <- Sync.defer(taskScratchRoots(scriptName))
-          yield preflight.isLeft && failureContains(result, "absolute program reference", program) &&
-            !executionStarted && after == before
+          preflight match
+            case Left(_) =>
+              for
+                before <- Sync.defer(taskScratchRoots(scriptName))
+                result <- Abort.run[SquireError](
+                  runTaskScript(Path(scriptName), scriptText, Set(program), () => executionStarted = true)
+                )
+                after <- Sync.defer(taskScratchRoots(scriptName))
+              yield failureContains(result, "absolute program reference", program) &&
+                !executionStarted && after == before
+            case Right(_) => Sync.defer(false)
         }
-      yield assert(proofs.forall(identity))
+      yield assert(approvedShebangAccepted && proofs.forall(identity))
     }
 
     "semantically rejects forbidden Morphir Elm package manifest fields" in {
