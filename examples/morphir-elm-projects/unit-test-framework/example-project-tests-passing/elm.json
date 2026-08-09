@@ -1,9 +1,7 @@
 {
     "type": "application",
     "source-directories": [
-        "src",
-        "../example-project/src",
-        "../../../../morphir-elm/sdks/morphir-unit-test/src"
+        "src"
     ],
     "elm-version": "0.19.1",
     "dependencies": {

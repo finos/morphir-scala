@@ -6,7 +6,7 @@ object jvm:
   - build.morphir.jvm
   - build.morphir.interop.zio.json.jvm
   object test:
-    extends: [ScoverageTests, build.RuntimeTests, build.MorphirTestsTestMvnDepsJVM]
+    extends: [ScoverageTests, TestModule.ZioTest, build.ClassicRuntimeTestFixtures, build.ClassicRuntimeTestDiscovery, build.MorphirTestsTestMvnDepsJVM]
     moduleDeps: !append [build.morphir.testing.zio.jvm]
 
 object js:
@@ -15,6 +15,6 @@ object js:
   - build.morphir.js
   - build.morphir.interop.zio.json.js
   object test:
-    extends: [ScalaJSTests, build.RuntimeTests, build.MorphirTestsTestMvnDepsJS]
+    extends: [ScalaJSTests, TestModule.ZioTest, build.MorphirTestsTestMvnDepsJS]
     moduleKind: CommonJSModule
     moduleDeps: !append [build.morphir.testing.zio.js]

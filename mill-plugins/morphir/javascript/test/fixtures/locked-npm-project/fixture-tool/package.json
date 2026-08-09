@@ -1,0 +1,7 @@
+{
+  "name": "fixture-tool",
+  "version": "1.0.0",
+  "bin": {
+    "fixture-tool": "cli.js"
+  }
+}

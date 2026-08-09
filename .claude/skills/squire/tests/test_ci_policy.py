@@ -1,15 +1,19 @@
-"""CI policy checks use stdlib text parsing intentionally.
+"""CI policy checks use stdlib parsing and Mill target resolution intentionally.
 
 Canonical formatting keeps security-sensitive Actions expressions reviewable while
 avoiding YAML 1.1 coercion surprises and dependencies on YAML or expression parsers.
 """
 
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
 
 WORKFLOW = Path(__file__).parents[4] / ".github/workflows/ci.yml"
+REPO_ROOT = Path(__file__).parents[4]
+BUILD = REPO_ROOT / "build.mill"
+MISE_TASKS = Path(__file__).parents[4] / ".config/mise/tasks"
 SUPPORTED_BRANCHES = ["main", "0.4.x", "develop"]
 PUBLISH_PREDICATE = (
     "github.repository == 'finos/morphir-scala' && "
@@ -27,6 +31,72 @@ CACHE_PREDICATE = (
 SNAPSHOT_COMMANDS = (
     'echo "MORPHIR_PUBLISH_MODE=snapshot" >> "$GITHUB_ENV"',
     'echo "MORPHIR_PUBLISH_BRANCH=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"',
+)
+MORPHIR_JOBS = {
+    "mill-morphir-unit": {
+        "needs": [],
+        "commands": (
+            "./mill -i -k "
+            "'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'",
+        ),
+    },
+    "mill-morphir-integration": {
+        "needs": ["mill-morphir-unit"],
+        "commands": ("./mill -i mill-plugins.morphir.integration.test",),
+    },
+    "morphir-elm-projects": {
+        "needs": ["mill-morphir-unit"],
+        "commands": (
+            './mill -i -k "examples.morphir-elm-projects.__.morphirIR" \\',
+            '  + "morphir-elm.sdks.__.morphirIR"',
+        ),
+    },
+    "runtime-generated-fixtures": {
+        "needs": ["morphir-elm-projects"],
+        "commands": (
+            "./mill -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
+        ),
+    },
+    "runtime-tests": {
+        "needs": ["runtime-generated-fixtures"],
+        "commands": (
+            "./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery",
+            "./mill -i morphir.runtime.classic.jvm.test",
+        ),
+    },
+}
+PLATFORM_JOBS = ("test-js", "test-jvm", "test-native")
+TOOL_CACHE_PATH = "~/.cache/morphir-scala"
+TOOL_CACHE_DIGEST = (
+    "hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', "
+    "'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', "
+    "'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json')"
+)
+MILL_MORPHIR_UNIT_SELECTOR = (
+    "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test"
+)
+JVM_PLATFORM_COMPILE_SELECTORS = (
+    "morphir.jvm.__.compile",
+    "morphir.{contrib.knowledge,extensibility,intelligence.sdk,interop.borer,"
+    "interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,"
+    "langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,"
+    "testing.generators,testing.zio,tests,tools}.jvm.__.compile",
+)
+JVM_PLATFORM_PUBLISH_SELECTORS = (
+    "morphir.jvm.publishArtifacts",
+    "morphir.{contrib.knowledge,extensibility,interop.borer,interop.zio.json,"
+    "lib.interop,model,model.lowering,naming,tests,tools}.jvm.publishArtifacts",
+)
+JVM_PLATFORM_TEST_SELECTOR = (
+    "morphir.{contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,"
+    "kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,"
+    "langkit.trees,model,model.lowering,tests}.jvm.test"
+)
+JVM_PLATFORM_ALIAS_MEMBERS = (
+    *JVM_PLATFORM_COMPILE_SELECTORS,
+    *JVM_PLATFORM_PUBLISH_SELECTORS,
+    JVM_PLATFORM_TEST_SELECTOR,
+    "morphir.langkit.itest.testCached",
 )
 
 
@@ -69,6 +139,37 @@ def scalar(block: str, key: str) -> str:
     if match is None:
         raise AssertionError(f"missing scalar: {key}")
     return match.group(1)
+
+
+def optional_inline_list(block: str, key: str) -> list[str]:
+    if re.search(rf"(?m)^\s*{re.escape(key)}:", block) is None:
+        return []
+    return inline_list(block, key)
+
+
+def literal_run_commands(step: str) -> tuple[str, ...]:
+    scalar_run = re.search(r"(?m)^\s+run:\s+([^|].*)$", step)
+    if scalar_run is not None:
+        return (scalar_run.group(1),)
+    literal_run = re.search(r"(?m)^\s+run: \|\n(?P<body>(?:^\s{10}.*\n?)*)", step)
+    if literal_run is None:
+        raise AssertionError("step must have a scalar or literal run command")
+    return tuple(line[10:] for line in literal_run.group("body").splitlines())
+
+
+def resolve_targets(selector: str) -> set[str]:
+    result = subprocess.run(
+        [str(REPO_ROOT / "mill"), "--ticker", "false", "resolve", selector],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return {
+        line
+        for line in result.stdout.splitlines()
+        if line.startswith(("mill-plugins.", "morphir."))
+    }
 
 
 def normalize_expression(expression: str) -> str:
@@ -165,6 +266,153 @@ def assert_squire_ci_policy(workflow: str) -> None:
         raise AssertionError("workflow must invoke test:squire exactly once")
 
 
+def assert_mill_owned_morphir_elm_policy(workflow: str) -> None:
+    forbidden = (
+        "Install morphir-elm",
+        "npm install -g morphir-elm",
+        "npx morphir-elm",
+        "morphir-elm make",
+        "Cache elm-tooling downloads",
+        "ELM_TOOLING_INSTALL=1",
+    )
+    for value in forbidden:
+        if value in workflow:
+            raise AssertionError(f"workflow must not install a global Morphir Elm tool: {value}")
+
+    test_jvm = indented_block(workflow, "test-jvm:", 2)
+    if "mise run build:morphir-elm" in test_jvm:
+        raise AssertionError("test-jvm must let fixture-dependent Mill tests invoke make")
+
+    test_js = indented_block(workflow, "test-js:", 2)
+    if test_js.count("Setup Node.js") != 1:
+        raise AssertionError("test-js must retain exactly one Node setup for Scala.js")
+
+
+def assert_morphir_capability_jobs(workflow: str) -> None:
+    for job_name, policy in MORPHIR_JOBS.items():
+        if len(re.findall(rf"(?m)^  {re.escape(job_name)}:\s*$", workflow)) != 1:
+            raise AssertionError(f"workflow must contain exactly one {job_name} job")
+        job = indented_block(workflow, f"{job_name}:", 2)
+        if optional_inline_list(job, "needs") != policy["needs"]:
+            raise AssertionError(f"{job_name} has the wrong dependency order")
+        run_step = indented_block(job, "- name: Run capability", 6)
+        if literal_run_commands(run_step) != policy["commands"]:
+            raise AssertionError(f"{job_name} does not run its exact Mill capability")
+
+    aggregate = indented_block(workflow, "ci:", 2)
+    required = ["lint", "knowledge-base", *PLATFORM_JOBS, *MORPHIR_JOBS]
+    if inline_list(aggregate, "needs") != required:
+        raise AssertionError("aggregate ci must wait for every independent capability job")
+
+    for platform_job in PLATFORM_JOBS:
+        job = indented_block(workflow, f"{platform_job}:", 2)
+        if any(name in optional_inline_list(job, "needs") for name in MORPHIR_JOBS):
+            raise AssertionError(f"{platform_job} must remain separate from Morphir generation")
+
+
+def assert_read_only_default_permissions(workflow: str) -> None:
+    permissions = indented_block(workflow, "permissions:", 0)
+    entries = [
+        line.strip()
+        for line in permissions.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    if entries != ["contents: read"]:
+        raise AssertionError(
+            "workflow permissions must contain only read-only repository contents"
+        )
+
+
+def assert_jvm_platform_split(workflow: str) -> None:
+    test_jvm = indented_block(workflow, "test-jvm:", 2)
+    run_step = indented_block(test_jvm, "- name: Run JVM tests", 6)
+    if literal_run_commands(run_step) != ("mise run test:jvm-platform",):
+        raise AssertionError("generic JVM CI must use the non-classic platform aggregate")
+    if "morphir.runtime.classic.jvm" in test_jvm:
+        raise AssertionError("generic JVM CI must not invoke classic runtime tasks")
+
+
+def assert_jvm_platform_aggregate(
+    *, build: str | None = None, task: str | None = None
+) -> None:
+    if build is None:
+        build = BUILD.read_text(encoding="utf-8")
+    if task is None:
+        task_path = MISE_TASKS / "test/jvm-platform"
+        if not task_path.is_file():
+            raise AssertionError("missing test:jvm-platform compatibility task")
+        task = task_path.read_text(encoding="utf-8")
+    if len(re.findall(r"(?m)^\s*def testJVMPlatform\b", build)) != 1:
+        raise AssertionError("build must provide exactly one non-classic JVM aggregate")
+    alias = re.search(
+        r"(?ms)^\s*def testJVMPlatform\s*=\s*alias\(\s*\n"
+        r"(?P<body>.*?)^\s*\)\s*$",
+        build,
+    )
+    if alias is None:
+        raise AssertionError("testJVMPlatform must have a parseable alias body")
+
+    members = []
+    lines = alias.group("body").splitlines()
+    for index, line in enumerate(lines):
+        member = re.fullmatch(r'\s*"([^"]+)"(,?)\s*', line)
+        if member is None:
+            raise AssertionError("testJVMPlatform contains a non-literal member")
+        expected_comma = "," if index < len(lines) - 1 else ""
+        if member.group(2) != expected_comma:
+            raise AssertionError("testJVMPlatform members must use canonical separators")
+        members.append(member.group(1))
+    if tuple(members) != JVM_PLATFORM_ALIAS_MEMBERS:
+        raise AssertionError(f"unexpected testJVMPlatform members: {tuple(members)!r}")
+    if "./mill -i Alias/run testJVMPlatform" not in task:
+        raise AssertionError("test:jvm-platform must delegate to the named Mill aggregate")
+
+
+def assert_morphir_cache_policy(workflow: str) -> None:
+    if "ELM_HOME" in workflow:
+        raise AssertionError("ELM_HOME is an Elm implementation detail, not a CI contract")
+    if re.search(r"(?m)^\s+[^#\n]*elm-stuff", workflow):
+        raise AssertionError("CI must not cache source-project elm-stuff")
+
+    for job_name in MORPHIR_JOBS:
+        job = indented_block(workflow, f"{job_name}:", 2)
+        tool_cache = indented_block(job, "- name: Cache verified Morphir tool downloads", 6)
+        if scalar(tool_cache, "uses") != "actions/cache@v6":
+            raise AssertionError(f"{job_name} must use the supported Actions cache")
+        if scalar(tool_cache, "path") != TOOL_CACHE_PATH:
+            raise AssertionError(f"{job_name} must cache only the verified machine cache")
+        key = scalar(tool_cache, "key")
+        if "${{ runner.os }}" not in key or f"${{{{ {TOOL_CACHE_DIGEST} }}}}" not in key:
+            raise AssertionError(f"{job_name} machine-cache key lacks OS/tool identity")
+
+        mill_cache = indented_block(job, "- name: Cache Mill capability outputs", 6)
+        if scalar(mill_cache, "uses") != "actions/cache@v6":
+            raise AssertionError(f"{job_name} must cache its useful Mill outputs")
+        mill_key = scalar(mill_cache, "key")
+        if "${{ runner.os }}" not in mill_key or f"${{{{ {TOOL_CACHE_DIGEST} }}}}" not in mill_key:
+            raise AssertionError(f"{job_name} Mill-cache key lacks OS/tool identity")
+        if "${{ github.sha }}" not in mill_key:
+            raise AssertionError(f"{job_name} Mill-cache key must identify the source revision")
+        if job_name in ("mill-morphir-unit", "mill-morphir-integration"):
+            for disposable in ("testForked.dest", "testOnly.dest"):
+                exclusion = f"!out/mill-plugins/morphir/**/{disposable}/**"
+                if exclusion not in mill_cache:
+                    raise AssertionError(
+                        f"{job_name} must not cache disposable {disposable} sandboxes"
+                    )
+
+
+def assert_mise_morphir_delegates() -> None:
+    elm = (MISE_TASKS / "build/elm").read_text(encoding="utf-8")
+    morphir_elm = (MISE_TASKS / "build/morphir-elm").read_text(encoding="utf-8")
+    for path, task in (("build:elm", elm), ("build:morphir-elm", morphir_elm)):
+        if "./mill" not in task or ".morphirIR" not in task:
+            raise AssertionError(f"{path} must delegate Morphir IR generation to Mill")
+        for forbidden in ("npm ", "npx ", "mise install", "ELM_HOME", ".make"):
+            if forbidden in task:
+                raise AssertionError(f"{path} must not acquire tools or use legacy make: {forbidden}")
+
+
 def replace_in_job(workflow: str, job_name: str, old: str, new: str) -> str:
     job = indented_block(workflow, job_name, 2)
     if old not in job:
@@ -219,6 +467,124 @@ class CiPolicyTest(unittest.TestCase):
         ):
             with self.subTest(mutation=name):
                 self.assertRaises(AssertionError, assert_squire_ci_policy, mutation)
+
+    def test_morphir_elm_tooling_is_owned_by_mill(self):
+        assert_mill_owned_morphir_elm_policy(self.workflow)
+
+    def test_morphir_capabilities_are_separate_ordered_jobs(self):
+        assert_morphir_capability_jobs(self.workflow)
+
+    def test_workflow_defaults_to_read_only_contents_permission(self):
+        assert_read_only_default_permissions(self.workflow)
+
+    def test_workflow_permissions_reject_additional_write_capabilities(self):
+        mutation = self.workflow.replace(
+            "permissions:\n  contents: read",
+            "permissions:\n  contents: read\n  actions: write",
+            1,
+        )
+
+        with self.assertRaises(AssertionError):
+            assert_read_only_default_permissions(mutation)
+
+    def test_morphir_unit_selector_excludes_published_plugin_integration(self):
+        targets = resolve_targets(MILL_MORPHIR_UNIT_SELECTOR)
+        modules = {
+            target.split(".")[2]
+            for target in targets
+            if target.startswith("mill-plugins.morphir.")
+        }
+
+        self.assertEqual(
+            modules,
+            {"toolchain", "javascript", "elm-tooling", "core", "elm"},
+        )
+        self.assertFalse(
+            any(target.startswith("mill-plugins.morphir.integration") for target in targets)
+        )
+
+    def test_generic_jvm_ci_uses_the_non_classic_platform_task(self):
+        assert_jvm_platform_split(self.workflow)
+
+    def test_build_exposes_the_named_non_classic_jvm_aggregate(self):
+        assert_jvm_platform_aggregate()
+
+    def test_jvm_platform_aggregate_rejects_an_injected_classic_runtime_member(self):
+        build = BUILD.read_text(encoding="utf-8")
+        task = (MISE_TASKS / "test/jvm-platform").read_text(encoding="utf-8")
+        mutation = build.replace(
+            '    "morphir.langkit.itest.testCached"',
+            '    "morphir.runtime.classic.jvm.test",\n'
+            '    "morphir.langkit.itest.testCached"',
+            1,
+        )
+
+        with self.assertRaises(AssertionError):
+            assert_jvm_platform_aggregate(build=mutation, task=task)
+
+    def test_jvm_platform_selectors_cover_every_non_classic_target(self):
+        classic_prefix = "morphir.runtime.classic.jvm"
+
+        broad_compile = resolve_targets("morphir.__.jvm.__.compile")
+        expected_compile = {
+            target for target in broad_compile if not target.startswith(classic_prefix)
+        }
+        actual_compile = set().union(
+            *(resolve_targets(selector) for selector in JVM_PLATFORM_COMPILE_SELECTORS)
+        )
+        self.assertEqual(actual_compile, expected_compile)
+
+        broad_publish = resolve_targets("morphir.__.jvm.publishArtifacts")
+        expected_publish = {
+            target for target in broad_publish if not target.startswith(classic_prefix)
+        }
+        actual_publish = set().union(
+            *(resolve_targets(selector) for selector in JVM_PLATFORM_PUBLISH_SELECTORS)
+        )
+        self.assertEqual(actual_publish, expected_publish)
+
+        broad_test = resolve_targets("morphir.__.jvm.__.test")
+        expected_test = {
+            target for target in broad_test if not target.startswith(classic_prefix)
+        }
+        actual_test = resolve_targets(JVM_PLATFORM_TEST_SELECTOR)
+        self.assertIn("morphir.runtime.classic.jvm.test", broad_test)
+        self.assertEqual(actual_test, expected_test)
+        self.assertFalse(any(target.startswith(classic_prefix) for target in actual_test))
+
+    def test_morphir_jobs_cache_only_verified_tools_and_useful_mill_outputs(self):
+        assert_morphir_cache_policy(self.workflow)
+
+    def test_mise_build_commands_are_compatibility_delegates(self):
+        assert_mise_morphir_delegates()
+
+    def test_morphir_elm_policy_is_narrow_and_allows_generic_node_and_mise_steps(self):
+        generic_tooling = self.workflow + (
+            "\n  generic-javascript-tools:\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps:\n"
+            "      - name: Install project JavaScript dependencies\n"
+            "        run: mise run setup && npm ci\n"
+        )
+        assert_mill_owned_morphir_elm_policy(generic_tooling)
+
+        for legacy_command in (
+            "npm install -g morphir-elm",
+            "npx morphir-elm make",
+            "morphir-elm make",
+            "ELM_TOOLING_INSTALL=1",
+        ):
+            with self.subTest(legacy_command=legacy_command):
+                mutation = self.workflow + (
+                    "\n  legacy-morphir-elm:\n"
+                    "    runs-on: ubuntu-latest\n"
+                    "    steps:\n"
+                    "      - name: Legacy Morphir Elm\n"
+                    f"        run: {legacy_command}\n"
+                )
+                self.assertRaises(
+                    AssertionError, assert_mill_owned_morphir_elm_policy, mutation
+                )
 
     def test_policy_validators_reject_representative_regressions(self):
         push_with_extra_branch = self.workflow.replace(

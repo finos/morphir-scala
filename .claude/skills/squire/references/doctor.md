@@ -18,14 +18,15 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-mill-daemon.py
 - `SANDBOX` → both Python and JVM sockets blocked; use `--no-server`.
 - `REFUSED` or `NO_DAEMON` → daemon not running; plain `./mill` will start one, or use `./morphir-local`.
 
-### 2. `/var/folders` write access (cellar)
+### 2. Effective JVM temp write access (cellar)
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-var-folders.py
 ```
 
-- `OK` → cellar can write temp files.
+- `OK` → cellar can write temp files under the reported `java.io.tmpdir`.
 - `BLOCKED` → see [cellar temp file error](#3-cellar-temp-file-permission-error).
+- `UNAVAILABLE` → Java is missing or its bounded property query failed; no path was assumed.
 
 ### 3. Project configuration checks
 
@@ -33,7 +34,15 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-var-folders.py
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-project-config.py
 ```
 
-Checks elm-tooling guard, `mainClass` Task wrapper, and `/var/folders` writability in one pass.
+Checks:
+
+- Mill-owned Morphir Elm setup
+- the YAML-owned `mainClass` setting
+- Mill Morphir plugin and local-repository wiring
+- machine acquisition cache state
+- metabuild freshness
+- effective JVM temp writability
+
 `ISSUE` lines identify which fixes are needed.
 
 ---
@@ -74,13 +83,13 @@ Could not detect the parent class of task morphir.main.mainClass.super.main.
 
 **Cause:** Mill's assembly task tries to introspect the JVM parent class of `mainClass` at build time. `CommandsEntryPoint` (case-app) is not a traditional `App`/`Main` so introspection fails.
 
-**Fix:** Already resolved in `morphir/package.mill` — `mainClass` is wrapped as a `Task`:
+**Fix:** Already resolved in `morphir/package.mill.yaml`:
 
-```scala
-override def mainClass: T[Option[String]] = Task { Some("org.finos.morphir.cli.MorphirCliMain") }
+```yaml
+mainClass: org.finos.morphir.cli.MorphirCliMain
 ```
 
-If the warning reappears, verify the `Task { }` wrapper is still present.
+If the warning reappears, verify the YAML entry is still present.
 
 ---
 
@@ -92,19 +101,20 @@ If the warning reappears, verify the `Task { }` wrapper is still present.
 /var/folders/hc/.../cellar-*.tasty: Operation not permitted
 ```
 
-**Cause:** Cellar writes temp `.tasty` files to macOS's real temp dir (`/var/folders/...`). Depending on your Claude Code sandbox configuration, this path may be outside the write allowlist.
+**Cause:** Cellar writes temp `.tasty` files to the JVM's active `java.io.tmpdir`. On macOS this is normally a user-specific directory below `/var/folders`, not the `/var/folders` root.
 
-**Fix:** Add `/var/folders` to `~/.claude/settings.json`:
+**Fix:** Probe a writable path, then pass it directly to the native Cellar process:
 
-```json
-{ "sandbox": { "filesystem": { "allowWrite": ["/var/folders"] } } }
+```bash
+JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=<writable-temp>" python3 .claude/skills/squire/scripts/check-var-folders.py
+python3 .claude/skills/squire/scripts/cellar-query.py --temp-directory "<writable-temp>" CELLAR_COMMAND CELLAR_COORDINATE CELLAR_ARGUMENTS
 ```
 
-> **Important:** Sandbox config changes require restarting Claude Code to take effect.
+`JAVA_TOOL_OPTIONS` configures the Java probe. Cellar is a native executable, so its wrapper passes the temp setting as a native runtime option.
 
 ---
 
-### 4. `mise run setup` failing on elm-tooling downloads (CI)
+### 4. `mise run setup` must not provision Morphir Elm
 
 **Symptom:**
 
@@ -113,18 +123,12 @@ curl: (22) The requested URL returned error: 504
 error: postinstall script from "@morphir-examples/finance" exited with 1
 ```
 
-**Cause:** `bun install` triggers `elm-tooling install` postinstall scripts which download elm binaries from GitHub releases — flaky under network restrictions.
+**Cause:** Workspace postinstall hooks download Elm binaries, and legacy workspace dependencies installed a second
+Morphir Elm CLI outside Mill's verified toolchain.
 
-**Fix:** Two mitigations are in place:
-
-1. `mise run setup` skips postinstall scripts unless `ELM_TOOLING_INSTALL=1` is set
-2. CI caches `~/.elm/elm-tooling` via `actions/cache@v4`
-
-To run locally with elm tooling:
-
-```bash
-ELM_TOOLING_INSTALL=1 mise run setup
-```
+**Fix:** `mise run setup` always uses `bun install --ignore-scripts`; Morphir Elm dependencies and make scripts are
+absent from the root workspace manifests. Mill provisions the locked compiler and owns fixture generation. Optional
+Elm editor/formatting tooling remains a developer-local concern and is not part of the build contract.
 
 ---
 
@@ -137,3 +141,17 @@ ELM_TOOLING_INSTALL=1 mise run setup
 ```bash
 ./mill --no-server mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
 ```
+
+### 6. Mill Morphir plugin workflow
+
+Read [mill-morphir.md](mill-morphir.md) for the fast and dogfood routes.
+
+The project check may report:
+
+- **Missing plugin module:** verify the plugin tree with `./mill resolve 'mill-plugins.morphir.__'`.
+- **Broken local repository wiring:** run `./mill mill-plugins.morphir.integration.test`.
+- **Corrupt cache entry:** rerun `./mill examples.morphir-elm-projects.evaluator-tests.morphirIR` online. Verified acquisition replaces bad bytes.
+- **Disabled machine cache:** generation remains correct but downloads stay task-local. Set `MORPHIR_NODE_DISABLE_MACHINE_CACHE=false` when reuse is wanted.
+- **Stale metabuild:** run `./mill resolve 'mill-plugins.morphir.__'` to recompile it.
+
+Squire only diagnoses these states. Mill owns acquisition, generation, and fresh-consumer acceptance.

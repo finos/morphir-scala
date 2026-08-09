@@ -1,0 +1,7 @@
+{
+  "name": "Unpublished.Source",
+  "sourceDirectory": "src",
+  "exposedModules": [
+    "Dependency"
+  ]
+}

@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
-"""Check if /var/folders is writable (required for cellar temp files)."""
+"""Check whether the effective JVM temp directory is writable."""
 
-import os
 import sys
 
-probe = "/var/folders/.squire-probe"
-try:
-    open(probe, "w").close()
-    os.unlink(probe)
-    print("OK - /var/folders is writable; cellar can write temp .tasty files")
-except PermissionError:
-    print("BLOCKED - /var/folders is not writable")
-    print("  Fix: add /var/folders to sandbox.filesystem.allowWrite in ~/.claude/settings.json")
-    print("  Note: restart Claude Code after changing sandbox settings")
-    sys.exit(1)
+from temp_directory import JVM_TEMP_REMEDY, probe_jvm_temp
+
+
+def main() -> int:
+    result = probe_jvm_temp()
+    if result.ok is True:
+        print(f"OK - JVM temp directory is writable: {result.path}")
+        return 0
+    if result.ok is None:
+        print(f"UNAVAILABLE - JVM temp diagnostic unavailable: {result.detail}")
+        return 0
+    print(
+        f"BLOCKED - JVM temp directory is not writable: {result.path} ({result.detail})"
+    )
+    print(JVM_TEMP_REMEDY)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

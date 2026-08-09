@@ -1,0 +1,4 @@
+extends:
+  - org.finos.morphir.mill.elm.morphir.MorphirElmModule
+  - build.PublishedElmToolReference
+  - build.PublishedElmConsumerDependencies

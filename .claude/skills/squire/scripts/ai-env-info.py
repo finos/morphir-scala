@@ -24,7 +24,7 @@ Design notes:
     unlike starting a real mill daemon. Cheap enough to run on every invocation.
   - `sandboxed` (top-level bool) mirrors checks.jvm_network.ok being False, since
     that's the check most consumers (mill wrappers) care about. Consumers with a
-    different concern (e.g. cellar caring about /var/folders) should read the
+    different concern (e.g. cellar caring about JVM temp access) should read the
     specific check in `checks` rather than relying on the top-level bool.
 """
 
@@ -38,6 +38,8 @@ import subprocess
 import sys
 import tempfile
 import time
+
+from temp_directory import probe_jvm_temp
 
 
 CLAUDE_ENV_VARS = (
@@ -189,17 +191,15 @@ def check_jvm_network(timeout):
         return {"ok": False, "detail": (result.stderr or result.stdout or "non-zero exit").strip()[:300], "duration_s": duration}
 
 
-def check_var_folders():
-    probe_dir = pathlib.Path("/var/folders")
-    if not probe_dir.exists():
-        return {"ok": None, "detail": "/var/folders does not exist on this platform — check skipped"}
-    probe_path = probe_dir / ".squire-env-probe"
-    try:
-        probe_path.write_text("squire probe")
-        probe_path.unlink()
-        return {"ok": True, "detail": "write probe succeeded"}
-    except OSError as e:
-        return {"ok": False, "detail": f"{type(e).__name__}: {e}"}
+def check_var_folders(timeout):
+    result = probe_jvm_temp(timeout=timeout)
+    if result.ok is None:
+        return {"ok": None, "detail": result.detail}
+    outcome = "succeeded" if result.ok else "failed"
+    return {
+        "ok": result.ok,
+        "detail": f"JVM temp write probe {outcome} at {result.path}: {result.detail}",
+    }
 
 
 CHECKS = {
@@ -213,7 +213,7 @@ def build_report(timeout):
     checks = {
         "python_network": check_python_network(timeout),
         "jvm_network": check_jvm_network(timeout),
-        "var_folders_writable": check_var_folders(),
+        "var_folders_writable": check_var_folders(timeout),
     }
     return {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
@@ -243,7 +243,7 @@ def main():
         elif key == "python_network":
             result = check_python_network(args.timeout)
         else:
-            result = check_var_folders()
+            result = check_var_folders(args.timeout)
         sys.exit(0 if result["ok"] is not False else 1)
 
     print(json.dumps(build_report(args.timeout), indent=2))

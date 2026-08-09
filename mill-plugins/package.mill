@@ -1,0 +1,5 @@
+package build.`mill-plugins`
+
+import mill.*
+
+object `package` extends Module

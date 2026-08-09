@@ -1,15 +1,25 @@
 ---
 okf_version: "0.2"
 title: morphir-scala
-description: "What morphir-scala does today — the Scala bindings, JVM tooling and build for Morphir — and the decisions behind it."
+description: "Morphir-scala capabilities, decisions, design notes, and research."
 ---
 
 # morphir-scala
 
-What morphir-scala does today — the Scala bindings, JVM tooling and build for Morphir — and the decisions behind it.
+This bundle covers morphir-scala capabilities, decisions, design notes, and research.
 
-Capabilities are present-tense: what the system does. [Decision Records](/decisions/index.md) are past-tense and
-immutable: why it is shaped that way, and what would have to change for the answer to be different.
+Capabilities describe current behavior. Immutable [Decision Records](/decisions/index.md) explain accepted choices.
+Draft Design Notes and research are provisional.
+
+## Design Notes
+
+* [Package URL-centered package management](/design/package-url-package-management.md) - A design for PURL identities, reproducible materialization, and packages outside ecosystem registries.
+* [Multi-frontend pipeline and workspace boundaries](/design/pipeline-workspace-boundaries.md) - A design for shared buildkit phases, workspace normalization, frontend isolation, and issue #930.
+* [Mill Morphir plugin architecture](/design/mill-morphir-plugin-architecture.md) - Design for publishable Mill plugins that acquire tools and compose Morphir generation with host-language builds.
+
+## Package-management research
+
+* [MoonBit registry, resolution, and source materialization](/design/moonbit-package-management.md) - How MoonBit resolves and materializes source packages from its Git-backed JSONL registry.
 
 ## Orientation
 

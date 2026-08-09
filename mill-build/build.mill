@@ -1,0 +1,18 @@
+package build
+
+import mill.*
+import mill.meta.MillBuildRootModule
+
+object `package` extends MillBuildRootModule {
+  def pluginSources = Task.Sources(
+    moduleDir / os.up / "mill-plugins" / "morphir" / "toolchain" / "src",
+    moduleDir / os.up / "mill-plugins" / "morphir" / "javascript" / "src",
+    moduleDir / os.up / "mill-plugins" / "morphir" / "elm-tooling" / "src",
+    moduleDir / os.up / "mill-plugins" / "morphir" / "core" / "src",
+    moduleDir / os.up / "mill-plugins" / "morphir" / "elm" / "src"
+  )
+
+  override def sources = Task {
+    super.sources() ++ pluginSources()
+  }
+}
