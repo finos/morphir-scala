@@ -157,86 +157,68 @@ git commit -m "test(squire): preserve PR 955 CI policy"
 - Modify: `.claude/skills/squire/SquireTests.scala:768-807`
 
 **Interfaces:**
-- Consumes: repository paths rooted from `SquireMisePolicySpec.repositoryRoot` and the existing `LiveProcessRunner` metadata check.
-- Produces: `assertMiseMorphirPolicy(files: Map[String, String]): Unit`, a pure test helper accepting complete real file contents.
+- Consumes: repository paths rooted from `SquireMisePolicySpec.repositoryRoot`, the existing `LiveProcessRunner`, scratch fixtures, and Kyo JSON `Structure.Value` decoding.
+- Produces: a behavioral task harness that runs real task scripts against fake external executables and records complete argv sequences without invoking Mill, Bun, downloads, or the network.
 
-- [ ] **Step 1: Add failing repository-policy tests**
+- [ ] **Step 1: Add failing behavioral wrapper tests**
 
-Load these real files into a complete fixture map:
+Create a wished-for `runTaskScript` test helper with this interface:
 
-```text
-.config/mise/tasks/build/elm
-.config/mise/tasks/build/morphir-elm
-.config/mise/tasks/ci/local
-.config/mise/tasks/setup
-package.json
-examples/morphir-elm-projects/defaults-tests/package.json
-examples/morphir-elm-projects/evaluator-tests/package.json
-examples/morphir-elm-projects/finance/package.json
-examples/morphir-elm-projects/unit-test-framework/example-project/package.json
-examples/morphir-elm-projects/unit-test-framework/example-project-tests/package.json
-examples/morphir-elm-projects/unit-test-framework/example-project-tests-passing/package.json
-examples/morphir-elm-projects/unit-test-framework/example-project-tests-incomplete/package.json
+```scala
+final case class TaskInvocation(program: String, arguments: Chunk[String])
+
+def runTaskScript(
+    script: Path,
+    scriptText: String,
+    expectedPrograms: Set[String]
+): Chunk[TaskInvocation] < (Async & Sync & Abort[SquireError])
 ```
 
-Call the wished-for `assertMiseMorphirPolicy`. Add literal mutations that introduce `bun install` without `--ignore-scripts`, add a `morphir-elm` development dependency, add a `make` script, make either build wrapper run Bun/npm, remove a required Mill selector, or collapse dedicated local-CI steps.
+The helper writes `scriptText` as a temporary executable script, creates a fake `./mill` and fake `bun`/`npm`/`npx` executables, runs the script in the scratch root with the fake bin directory first on `PATH`, and decodes NUL-safe invocation records. The fake tools perform no work beyond recording their program name and arguments.
+
+Run the real repository scripts and assert these literal results:
+
+```scala
+val expectedBuildElm = Chunk(
+  TaskInvocation("mill", Chunk("--ticker", "false", "-k",
+    "examples.morphir-elm-projects.__.morphirIR", "+", "morphir-elm.sdks.__.morphirIR"))
+)
+val expectedBuildEvaluator = Chunk(
+  TaskInvocation("mill", Chunk("--ticker", "false",
+    "examples.morphir-elm-projects.evaluator-tests.morphirIR"))
+)
+val expectedSetup = Chunk(TaskInvocation("bun", Chunk("install", "--ignore-scripts")))
+```
+
+For `ci/local`, assert six exact Mill invocations in order: plugin unit, plugin integration, generated projects, generated fixtures, discovery verification, and classic runtime tests.
 
 - [ ] **Step 2: Run focused tests and record RED**
 
-Run the focused Squire command. Expected: compilation fails because `assertMiseMorphirPolicy` does not exist.
+Run the focused Squire command. Expected: compilation fails because `TaskInvocation` and `runTaskScript` do not exist.
 
-- [ ] **Step 3: Implement the minimal Mise policy helper**
+- [ ] **Step 3: Implement the minimal behavioral harness**
 
-Validate observable repository contracts from the supplied file map:
+Keep the helper in test code. Build fake executables with `SquireLauncherFixtures.executable`. Each fake appends this binary record to a task-specific log:
 
-- `build/elm` invokes only the two approved Morphir IR selectors after shell boilerplate and human-readable echoes;
-- `build/morphir-elm` invokes only `examples.morphir-elm-projects.evaluator-tests.morphirIR`;
-- `ci/local` contains separate unit, integration, generated project, fixture, discovery, and runtime invocations in order;
-- setup contains exactly one `bun install --ignore-scripts` and no plain `bun install` command;
-- every package manifest lacks a `morphir-elm` dependency and a `make` script.
-
-Use narrow regular expressions or the existing count helper. Do not introduce production code or parse JSON with the implementation under test.
-
-Implement the helper with literal contracts:
-
-```scala
-def assertMiseMorphirPolicy(files: Map[String, String]): Unit =
-  def content(path: String): String = files.getOrElse(path, throw new AssertionError(s"missing fixture: $path"))
-  val buildElm = content(".config/mise/tasks/build/elm")
-  assert(buildElm.contains("examples.morphir-elm-projects.__.morphirIR"))
-  assert(buildElm.contains("morphir-elm.sdks.__.morphirIR"))
-  assert(!List("bun ", "npm ", "npx ").exists(buildElm.contains))
-
-  val buildEvaluator = content(".config/mise/tasks/build/morphir-elm")
-  assert(buildEvaluator.contains("examples.morphir-elm-projects.evaluator-tests.morphirIR"))
-  assert(!List("bun ", "npm ", "npx ").exists(buildEvaluator.contains))
-
-  val localCi = content(".config/mise/tasks/ci/local")
-  List(
-    "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test",
-    "mill-plugins.morphir.integration.test",
-    "examples.morphir-elm-projects.__.morphirIR",
-    "morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
-    "morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery",
-    "morphir.runtime.classic.jvm.test"
-  ).foreach(selector => assert(localCi.contains(selector)))
-
-  val setup = content(".config/mise/tasks/setup")
-  assert(SquireCiPolicy.count(setup, "bun install --ignore-scripts") == 1)
-  assert(!setup.linesIterator.exists(line => line.trim == "bun install"))
-
-  files.iterator.filter { case (path, _) => path.endsWith("package.json") }.foreach { case (path, json) =>
-    assert(!json.contains("\"morphir-elm\""), s"$path must not install morphir-elm")
-    assert("(?s)\"scripts\"\\s*:\\s*\\{.*?\"make\"\\s*:".r.findFirstIn(json).isEmpty,
-      s"$path must not define a make script")
-  }
+```text
+program-name NUL argument-count NUL argument-1 NUL ... newline
 ```
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+Invoke `/usr/bin/env bash <temporary-script>` through `LiveProcessRunner`, require exit zero, and fail if an unapproved external program is invoked. Preserve the scratch working directory so every `./mill` call resolves to the fake executable.
+
+- [ ] **Step 4: Add executed mutation coverage**
+
+Run temporary mutated copies of the real scripts through the same harness. Mutations add a Bun/npm invocation, remove one approved selector, broaden the unit selector to include integration, collapse dedicated local-CI calls, or remove `--ignore-scripts`. Assert the recorded invocation sequence differs from the literal approved sequence or includes an unapproved program.
+
+- [ ] **Step 5: Add semantic package-manifest coverage**
+
+Load the root and every Morphir Elm example `package.json`, decode each with existing Kyo JSON into `Structure.Value`, and inspect the `devDependencies` and `scripts` record fields. Assert `morphir-elm` and `make` are absent. Add mutated in-memory JSON fixtures containing each forbidden key and prove the semantic validator rejects them.
+
+- [ ] **Step 6: Run focused tests and verify GREEN**
 
 Expected: `SquireMisePolicySpec` and all existing suites pass.
 
-- [ ] **Step 5: Commit the Mise parity group**
+- [ ] **Step 7: Commit the Mise parity group**
 
 ```bash
 git add .claude/skills/squire/SquireTests.scala
