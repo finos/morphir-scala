@@ -15,6 +15,8 @@ import scala.jdk.CollectionConverters.*
 
 final case class LaunchedSquire(exitCode: Int, stdout: String, stderr: String)
 
+final case class TaskInvocation(program: String, arguments: Chunk[String])
+
 object SquireLauncherFixtures:
   def run(
       skillDirectory: java.nio.file.Path,
@@ -957,6 +959,10 @@ class SquireMisePolicySpec extends Test[Any]:
   private val skillDirectory = Path(java.lang.System.getProperty("user.dir"))
   private val repositoryRoot = skillDirectory / ".." / ".." / ".."
   private val miseExecutable = Option(java.lang.System.getenv("SQUIRE_MISE_BIN")).filter(_.nonEmpty).getOrElse("mise")
+  private val buildElmScript = repositoryRoot / ".config" / "mise" / "tasks" / "build" / "elm"
+  private val buildEvaluatorScript = repositoryRoot / ".config" / "mise" / "tasks" / "build" / "morphir-elm"
+  private val setupScript = repositoryRoot / ".config" / "mise" / "tasks" / "setup"
+  private val localCiScript = repositoryRoot / ".config" / "mise" / "tasks" / "ci" / "local"
   private val expectedDependencies = List(
     "lint",
     "test:squire",
@@ -964,9 +970,158 @@ class SquireMisePolicySpec extends Test[Any]:
     "test:js",
     "test:native"
   )
+  private val expectedBuildElm = Chunk(
+    TaskInvocation(
+      "mill",
+      Chunk(
+        "--ticker",
+        "false",
+        "-k",
+        "examples.morphir-elm-projects.__.morphirIR",
+        "+",
+        "morphir-elm.sdks.__.morphirIR"
+      )
+    )
+  )
+  private val expectedBuildEvaluator = Chunk(
+    TaskInvocation(
+      "mill",
+      Chunk("--ticker", "false", "examples.morphir-elm-projects.evaluator-tests.morphirIR")
+    )
+  )
+  private val expectedSetup = Chunk(TaskInvocation("bun", Chunk("install", "--ignore-scripts")))
+  private val expectedLocalCi = Chunk(
+    TaskInvocation("mill", Chunk("-i", "-k", "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test")),
+    TaskInvocation("mill", Chunk("-i", "mill-plugins.morphir.integration.test")),
+    TaskInvocation(
+      "mill",
+      Chunk("-i", "-k", "examples.morphir-elm-projects.__.morphirIR", "+", "morphir-elm.sdks.__.morphirIR")
+    ),
+    TaskInvocation("mill", Chunk("-i", "morphir.runtime.classic.jvm.test.generatedRuntimeFixtures")),
+    TaskInvocation("mill", Chunk("-i", "morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery")),
+    TaskInvocation("mill", Chunk("-i", "morphir.runtime.classic.jvm.test"))
+  )
 
   private def runMise(arguments: String*): ProcessResult < (Async & Abort[SquireError]) =
     LiveProcessRunner.run(ProcessRequest(Chunk(miseExecutable) ++ Chunk.from(arguments), Present(repositoryRoot)))
+
+  private def runTaskScript(
+      script: Path,
+      scriptText: String,
+      expectedPrograms: Set[String]
+  ): Chunk[TaskInvocation] < (Async & Sync & Abort[SquireError]) =
+    for
+      root <- SquireFixtures.scratch(s"task-${script.toJava.getFileName}")
+      log <- Sync.defer {
+        val bin = root / "bin"
+        val log = root / "task-invocations.bin"
+        Files.createDirectories(bin.toJava)
+        SquireLauncherFixtures.executable((root / "task-script").toJava, scriptText)
+        SquireLauncherFixtures.executable((root / "mill").toJava, fakeTaskTool("mill"))
+        List("bun", "npm", "npx").foreach(program =>
+          SquireLauncherFixtures.executable((bin / program).toJava, fakeTaskTool(program))
+        )
+        SquireLauncherFixtures.executable((bin / "bash").toJava, "#!/bin/sh\nexec /usr/bin/bash \"$@\"\n")
+        log
+      }
+      result <- LiveProcessRunner.run(
+        ProcessRequest(
+          Chunk(
+            "/usr/bin/env",
+            s"PATH=${(root / "bin").toString}",
+            s"SQUIRE_TASK_LOG=${log.toString}",
+            s"SQUIRE_APPROVED_TASK_PROGRAMS=${expectedPrograms.toList.sorted.mkString(",")}",
+            "bash",
+            (root / "task-script").toString
+          ),
+          Present(root)
+        )
+      )
+      _ <- result match
+        case ProcessResult(_, 0, _, _) => Sync.defer(())
+        case _ =>
+          Abort.fail(
+            SquireError.Failure(
+              "mise-policy",
+              s"task script ${script.toString} failed with exit ${result.exitCode}: ${result.stderr.trim}",
+              Present(result.stderr.trim)
+            )
+          )
+      decoded <- Sync.defer(decodeTaskInvocations(log))
+      invocations <- decoded match
+        case Right(value) => Sync.defer(value)
+        case Left(error)  => Abort.fail(error)
+    yield invocations
+
+  private def fakeTaskTool(program: String): String =
+    s"""#!/bin/sh
+set -eu
+printf '%s\\0%s\\0' '$program' "$$#" >> "$$SQUIRE_TASK_LOG"
+for argument in "$$@"; do
+  printf '%s\\0' "$$argument" >> "$$SQUIRE_TASK_LOG"
+done
+printf '\\n' >> "$$SQUIRE_TASK_LOG"
+case ",$${SQUIRE_APPROVED_TASK_PROGRAMS}," in
+  *,$program,*) exit 0 ;;
+  *) echo "unapproved program: $program" >&2; exit 97 ;;
+esac
+"""
+
+  private def decodeTaskInvocations(log: Path): Either[SquireError, Chunk[TaskInvocation]] =
+    try
+      val bytes = Files.readAllBytes(log.toJava)
+      var offset = 0
+      val decoded = scala.collection.mutable.ArrayBuffer.empty[TaskInvocation]
+
+      def readField(): String =
+        val start = offset
+        while offset < bytes.length && bytes(offset) != 0 do offset += 1
+        if offset == bytes.length then throw new IllegalArgumentException("unterminated task invocation field")
+        val field = new String(bytes, start, offset - start, StandardCharsets.UTF_8)
+        offset += 1
+        field
+
+      while offset < bytes.length do
+        val program = readField()
+        val count = readField().toIntOption.getOrElse(throw new IllegalArgumentException("invalid task argument count"))
+        val arguments = Chunk.from(List.fill(count)(readField()))
+        if offset == bytes.length || bytes(offset) != '\n' then
+          throw new IllegalArgumentException("task invocation record is missing its newline terminator")
+        offset += 1
+        decoded += TaskInvocation(program, arguments)
+      Right(Chunk.from(decoded))
+    catch
+      case error: Exception =>
+        Left(SquireError.Failure("mise-policy", "could not decode task invocation record", Present(error.getMessage)))
+
+  private def failureContains[A](outcome: Result[SquireError, A], fragments: String*): Boolean =
+    outcome match
+      case Result.Failure(error) => fragments.forall(error.getMessage.contains)
+      case Result.Success(_)     => false
+
+  private def morphirElmManifests: List[Path] =
+    val examples = repositoryRoot / "examples" / "morphir-elm-projects"
+    val stream = Files.walk(examples.toJava)
+    try
+      (repositoryRoot / "package.json") :: stream.iterator.asScala
+        .filter(path => path.getFileName.toString == "package.json")
+        .map(path => Path(path.toString))
+        .toList
+    finally stream.close()
+
+  private def packageManifestIsSafe(json: String): Boolean =
+    SquireJson.decode[Structure.Value](json) match
+      case Result.Success(value) =>
+        !recordFieldContains(value, "devDependencies", "morphir-elm") &&
+          !recordFieldContains(value, "scripts", "make")
+      case Result.Failure(_) => false
+
+  private def recordFieldContains(value: Structure.Value, field: String, key: String): Boolean =
+    value match
+      case Structure.Value.Record(fields) =>
+        fields.collect { case (`field`, Structure.Value.Record(entries)) => entries }
+          .exists(_.exists(_._1 == key))
+      case _ => false
 
   private def stringField(json: String, name: String): String =
     val pattern = ("\\\"" + java.util.regex.Pattern.quote(name) + "\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"").r
@@ -990,6 +1145,74 @@ class SquireMisePolicySpec extends Test[Any]:
           stringField(ciInfo.stdout, "description") == "Run the core CI workflow locally" &&
           stringField(squireInfo.stdout, "description") == "Test Squire commands and build/release policy" &&
           (dryRun.stdout + dryRun.stderr).contains("test:squire")
+      )
+    }
+
+    "runs Elm build and setup scripts through only their approved tools" in {
+      for
+        buildElm <- runTaskScript(
+          buildElmScript,
+          Files.readString(buildElmScript.toJava, StandardCharsets.UTF_8),
+          Set("mill")
+        )
+        buildEvaluator <- runTaskScript(
+          buildEvaluatorScript,
+          Files.readString(buildEvaluatorScript.toJava, StandardCharsets.UTF_8),
+          Set("mill")
+        )
+        setup <- runTaskScript(setupScript, Files.readString(setupScript.toJava, StandardCharsets.UTF_8), Set("bun"))
+      yield assert(buildElm == expectedBuildElm && buildEvaluator == expectedBuildEvaluator && setup == expectedSetup)
+    }
+
+    "runs every local-CI Morphir capability through its dedicated Mill invocation" in {
+      runTaskScript(
+        localCiScript,
+        Files.readString(localCiScript.toJava, StandardCharsets.UTF_8),
+        Set("mill")
+      ).map(invocations => assert(invocations == expectedLocalCi))
+    }
+
+    "rejects executed task mutations that add package tooling or change the approved invocation sequences" in {
+      val buildElmText  = Files.readString(buildElmScript.toJava, StandardCharsets.UTF_8)
+      val setupText     = Files.readString(setupScript.toJava, StandardCharsets.UTF_8)
+      val localCiText   = Files.readString(localCiScript.toJava, StandardCharsets.UTF_8)
+      val addBun        = buildElmText + "\nbun install\n"
+      val addNpm        = buildElmText + "\nnpm install\n"
+      val removeSdk     = buildElmText.replace("    + \"morphir-elm.sdks.__.morphirIR\"\n", "")
+      val broadUnit     = localCiText.replace(
+        "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test",
+        "mill-plugins.morphir.__.test"
+      )
+      val collapseLocal = localCiText.replace(
+        "./mill -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures\n" +
+          "./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery\n",
+        "./mill -i morphir.runtime.classic.jvm.test\n"
+      )
+      val enableHooks = setupText.replace(" --ignore-scripts", "")
+      for
+        bunResult <- Abort.run[SquireError](runTaskScript(buildElmScript, addBun, Set("mill")))
+        npmResult <- Abort.run[SquireError](runTaskScript(buildElmScript, addNpm, Set("mill")))
+        withoutSdk <- runTaskScript(buildElmScript, removeSdk, Set("mill"))
+        broadUnitInvocations <- runTaskScript(localCiScript, broadUnit, Set("mill"))
+        collapsedInvocations <- runTaskScript(localCiScript, collapseLocal, Set("mill"))
+        hooksEnabled <- runTaskScript(setupScript, enableHooks, Set("bun"))
+      yield assert(
+        failureContains(bunResult, "unapproved program", "bun") &&
+          failureContains(npmResult, "unapproved program", "npm") &&
+          withoutSdk != expectedBuildElm &&
+          broadUnitInvocations != expectedLocalCi &&
+          collapsedInvocations != expectedLocalCi &&
+          hooksEnabled != expectedSetup
+      )
+    }
+
+    "semantically rejects forbidden Morphir Elm package manifest fields" in {
+      val forbiddenDevDependency = """{"devDependencies":{"morphir-elm":"1.0.0"},"scripts":{}}"""
+      val forbiddenScript = """{"devDependencies":{},"scripts":{"make":"make"}}"""
+      assert(
+        morphirElmManifests.forall(path => packageManifestIsSafe(Files.readString(path.toJava, StandardCharsets.UTF_8))) &&
+          !packageManifestIsSafe(forbiddenDevDependency) &&
+          !packageManifestIsSafe(forbiddenScript)
       )
     }
   }
