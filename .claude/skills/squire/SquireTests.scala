@@ -4062,6 +4062,29 @@ class SquireEnvSpec extends Test[Any]:
       )
     }
 
+    "reports an unavailable check when the JVM temp property is absent" in {
+      for
+        root <- SquireFixtures.scratch("env-var-folders-unavailable")
+        platform = TestEnvPlatform(
+          Map.empty,
+          root / "home",
+          Chunk.empty,
+          root,
+          Absent,
+          _ => SquireEnv.CheckResult(Present(true), "ok", 0.0),
+          _ => SquireEnv.DaemonProbe.Open,
+          path => Files.writeString(path.toJava, "squire probe"),
+          path => Files.deleteIfExists(path.toJava)
+        )
+        check <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
+        report <- SquireEnv.report(1.seconds, platform, root)
+      yield assert(
+        check &&
+          report.checks("var_folders_writable").ok == Absent &&
+          report.checks("var_folders_writable").detail == "effective JVM temp directory is unavailable — check skipped"
+      )
+    }
+
     "reports a blocked var folders write without leaving a probe" in {
       for
         root <- SquireFixtures.scratch("env-var-folders-blocked")
