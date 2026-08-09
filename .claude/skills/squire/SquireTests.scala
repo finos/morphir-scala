@@ -154,6 +154,92 @@ object SquireCiPolicy:
         )
     }
 
+  def assertReadOnlyPermissions(workflow: String): Unit =
+    val permissions = indentedBlock(workflow, "permissions:", 0)
+    expect(
+      permissions.linesIterator.filter(_.trim.nonEmpty).toList == List("  contents: read"),
+      "workflow permissions must be exactly contents: read"
+    )
+
+  def assertMorphirCapabilityPolicy(workflow: String): Unit =
+    val commands = List(
+      "mill-morphir-unit:" -> "'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'",
+      "mill-morphir-integration:" -> "mill-plugins.morphir.integration.test",
+      "morphir-elm-projects:" -> "examples.morphir-elm-projects.__.morphirIR",
+      "runtime-generated-fixtures:" -> "morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
+      "runtime-tests:" -> "morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
+    )
+    commands.foreach { case (job, command) =>
+      val block = indentedBlock(workflow, job, 2)
+      expect(block.contains(command), s"$job must run $command")
+    }
+    val unit = indentedBlock(workflow, "mill-morphir-unit:", 2)
+    expect(!unit.contains("mill-plugins.morphir.integration"), "unit selector must exclude integration")
+    List(
+      "mill-morphir-integration:" -> "[mill-morphir-unit]",
+      "morphir-elm-projects:" -> "[mill-morphir-unit]",
+      "runtime-generated-fixtures:" -> "[morphir-elm-projects]",
+      "runtime-tests:" -> "[runtime-generated-fixtures]"
+    ).foreach { case (job, dependency) =>
+      expect(
+        scalar(indentedBlock(workflow, job, 2), "needs") == dependency,
+        s"$job must depend on $dependency"
+      )
+    }
+
+  def assertJvmPlatformPolicy(workflow: String, buildMill: String, task: String): Unit =
+    expect(
+      indentedBlock(workflow, "test-jvm:", 2).contains("run: mise run test:jvm-platform"),
+      "generic JVM CI must use test:jvm-platform"
+    )
+    expect(
+      task.linesIterator.map(_.trim).contains("./mill -i Alias/run testJVMPlatform"),
+      "test:jvm-platform must invoke Alias/run testJVMPlatform"
+    )
+    val aliasStart = buildMill.indexOf("def testJVMPlatform")
+    val aliasEnd   = buildMill.indexOf("def testJVMCached", aliasStart)
+    expect(aliasStart >= 0 && aliasEnd > aliasStart, "missing testJVMPlatform alias")
+    val alias = buildMill.substring(aliasStart, aliasEnd)
+    List(
+      "morphir.jvm.__.compile",
+      "morphir.{contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
+      "morphir.{contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,model,model.lowering,tests}.jvm.test",
+      "morphir.langkit.itest.testCached"
+    ).foreach(selector => expect(alias.contains(selector), s"JVM alias missing $selector"))
+    expect(!alias.contains("morphir.runtime.classic"), "JVM platform alias must exclude classic runtime")
+
+  def assertMorphirCachePolicy(workflow: String): Unit =
+    List(
+      "mill-morphir-unit:",
+      "mill-morphir-integration:",
+      "morphir-elm-projects:",
+      "runtime-generated-fixtures:",
+      "runtime-tests:"
+    ).foreach { job =>
+      expect(
+        indentedBlock(workflow, job, 2).contains("path: ~/.cache/morphir-scala"),
+        s"$job must cache verified Morphir downloads"
+      )
+    }
+    val unit = indentedBlock(workflow, "mill-morphir-unit:", 2)
+    expect(
+      unit.contains("out/mill-plugins/morphir/") &&
+        unit.contains("!out/mill-plugins/morphir/**/testForked.dest/**") &&
+        unit.contains("!out/mill-plugins/morphir/**/testOnly.dest/**"),
+      "Mill unit cache must contain only reusable capability outputs"
+    )
+    val projects = indentedBlock(workflow, "morphir-elm-projects:", 2)
+    expect(
+      projects.contains("out/examples/morphir-elm-projects/") && projects.contains("out/morphir-elm/"),
+      "project cache must contain generated IR outputs"
+    )
+    List("runtime-generated-fixtures:", "runtime-tests:").foreach { job =>
+      expect(
+        indentedBlock(workflow, job, 2).contains("out/morphir/runtime/classic/jvm/test/"),
+        s"$job must use the classic runtime fixture output cache"
+      )
+    }
+
   def assertSquireCiPolicy(workflow: String): Unit =
     val stepName = "Test Squire and release policy"
     expect(
@@ -629,6 +715,14 @@ class SquireCiPolicySpec extends Test[Any]:
     skillDirectory.resolve("../../../.github/workflows/ci.yml").normalize,
     StandardCharsets.UTF_8
   )
+  private val buildMill = Files.readString(
+    skillDirectory.resolve("../../../build.mill").normalize,
+    StandardCharsets.UTF_8
+  )
+  private val jvmPlatformTask = Files.readString(
+    skillDirectory.resolve("../../../.config/mise/tasks/test/jvm-platform").normalize,
+    StandardCharsets.UTF_8
+  )
 
   "hosted CI policy" - {
     "targets the exact supported pull-request and push branches" in {
@@ -649,6 +743,100 @@ class SquireCiPolicySpec extends Test[Any]:
     "retains every release ref on the JS and JVM cache saves" in {
       assertCachePolicy(workflow)
       assert(true)
+    }
+
+    "restricts workflow permissions to read-only contents" in {
+      assertReadOnlyPermissions(workflow)
+
+      val permissionMutations = List(
+        replaceOnce(workflow, "permissions:\n  contents: read", "permissions:\n  contents: write"),
+        replaceOnce(workflow, "permissions:\n  contents: read", "permissions:\n  contents: read\n  packages: write")
+      )
+      assert(permissionMutations.forall(rejects(assertReadOnlyPermissions, _)))
+    }
+
+    "preserves the Morphir CI capability graph" in {
+      assertMorphirCapabilityPolicy(workflow)
+
+      val capabilityMutations = List(
+        assertMorphirCapabilityPolicy -> replaceInJob(
+          workflow,
+          "mill-morphir-unit:",
+          "'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'",
+          "'mill-plugins.morphir.__.test'"
+        ),
+        ((workflow: String) => assertJvmPlatformPolicy(workflow, buildMill, jvmPlatformTask)) -> replaceInJob(
+          workflow,
+          "test-jvm:",
+          "mise run test:jvm-platform",
+          "mise run test:jvm"
+        ),
+        assertMorphirCapabilityPolicy -> replaceInJob(
+          workflow,
+          "mill-morphir-integration:",
+          "needs: [mill-morphir-unit]",
+          "needs: []"
+        ),
+        assertMorphirCapabilityPolicy -> replaceInJob(
+          workflow,
+          "runtime-tests:",
+          "needs: [runtime-generated-fixtures]",
+          "needs: [test-jvm]"
+        )
+      )
+      assert(capabilityMutations.forall((validator, mutation) => rejects(validator, mutation)))
+    }
+
+    "keeps generic JVM CI on the non-classic platform alias" in {
+      assertJvmPlatformPolicy(workflow, buildMill, jvmPlatformTask)
+
+      val runtimeAliasMutation = replaceOnce(
+        buildMill,
+        "\"morphir.langkit.itest.testCached\"",
+        "\"morphir.langkit.itest.testCached\", \"morphir.runtime.classic.jvm.test\""
+      )
+      val taskMutation = replaceOnce(
+        jvmPlatformTask,
+        "./mill -i Alias/run testJVMPlatform",
+        "./mill -i Alias/run testJVM"
+      )
+      assert(rejects(assertJvmPlatformPolicy(workflow, _, jvmPlatformTask), runtimeAliasMutation))
+      assert(rejects(assertJvmPlatformPolicy(workflow, buildMill, _), taskMutation))
+    }
+
+    "keeps Morphir caches scoped to reusable capability outputs" in {
+      assertMorphirCachePolicy(workflow)
+
+      val morphirJobs = List(
+        "mill-morphir-unit:",
+        "mill-morphir-integration:",
+        "morphir-elm-projects:",
+        "runtime-generated-fixtures:",
+        "runtime-tests:"
+      )
+      val downloadCacheMutations = morphirJobs.map { job =>
+        replaceInJob(workflow, job, "path: ~/.cache/morphir-scala", "path: ~/.cache/unverified-morphir")
+      }
+      val movedRuntimeOutput = replaceInJob(
+        replaceInJob(
+          workflow,
+          "runtime-generated-fixtures:",
+          "path: out/morphir/runtime/classic/jvm/test/",
+          "path: out/morphir/runtime/classic/jvm/test-fixtures/"
+        ),
+        "morphir-elm-projects:",
+        "out/morphir-elm/",
+        "out/morphir-elm/\n            out/morphir/runtime/classic/jvm/test/"
+      )
+      val cacheMutations = downloadCacheMutations ++ List(
+        replaceInJob(workflow, "mill-morphir-unit:", "out/mill-plugins/morphir/", "out/"),
+        replaceInJob(workflow, "mill-morphir-unit:", "!out/mill-plugins/morphir/**/testForked.dest/**\n", ""),
+        replaceInJob(workflow, "mill-morphir-unit:", "!out/mill-plugins/morphir/**/testOnly.dest/**\n", ""),
+        replaceInJob(workflow, "morphir-elm-projects:", "out/examples/morphir-elm-projects/", "out/examples/"),
+        replaceInJob(workflow, "morphir-elm-projects:", "out/morphir-elm/", "out/"),
+        movedRuntimeOutput
+      )
+      assert(cacheMutations.forall(rejects(assertMorphirCachePolicy, _)))
     }
 
     "runs Squire policy once immediately after lint" in {
